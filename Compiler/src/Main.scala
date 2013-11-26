@@ -19,7 +19,7 @@ object Main {
     //	  TreeManager.register(new StackCollector)
     //	  TreeManager.apply(a1)
     //	  System.out.println("For-Loops: " + countForLoops)
-    println(Cpp(TreeManager.root))
+//    println(Cpp(TreeManager.root))
 
     val t = new Transformation({ case x : AbstractVariable => Some(AbstractVariable("j", x.Type)) })
     //	  println(t)
@@ -29,7 +29,7 @@ object Main {
     TreeManager.applyT(t)
 
     //println(TreeManager.root_)
-    println(Cpp(TreeManager.root))
+//    println(Cpp(TreeManager.root))
 
     //val t2 = new Transformation({ case x : AbstractForLoop => x.add(new Annotation("hallo", "ichbineineannotation")) )
 
