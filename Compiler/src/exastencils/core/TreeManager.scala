@@ -81,7 +81,7 @@ object TreeManager {
     unregister(defStack)
   }
 
-  def apply(func : Function[Node, Unit]) : Unit = {
+  protected def apply(func : Function[Node, Unit]) : Unit = {
     defStack.reset
     register(defStack)
     apply(root, func)

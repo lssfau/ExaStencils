@@ -59,10 +59,9 @@ object Main {
 
   def countForLoops() : Int = {
     var c = 0
-    val forCounter : PartialFunction[Node, Unit] = {
-      case a : AbstractForLoop => c += 1
-      case _                   =>
-    }
+    val forCounter = new Transformation({
+      case a : AbstractForLoop => c += 1; Some(a)
+    })
     TreeManager.apply(forCounter)
     return c
   }
