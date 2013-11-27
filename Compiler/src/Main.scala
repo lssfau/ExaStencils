@@ -28,7 +28,11 @@ object Main {
 
     //	  TreeManager.register(new StackCollector)
     //	  TreeManager.apply(a1)
-    //	  System.out.println("For-Loops: " + countForLoops)
+    System.out.println("For-Loops: " + countForLoops)
+    
+    var constcount = 0
+    TreeManager.apply(new Transformation({ case x : AbstractConstantExpression => constcount = constcount+1; println(x); Some(x) }))
+    System.out.println("Constants: " + constcount)
     
 
     val newt = TreeManager.root.deepClone
@@ -37,7 +41,7 @@ object Main {
     //println(t)
     
 
-    TreeManager.apply(t)
+    //TreeManager.apply(t)
     
     println(TreeManager.root)
     println(newt)
@@ -52,18 +56,6 @@ object Main {
     //	  val t : Transformation = new Transformation(match { case forloop : AbstractForLoop
     //	  => return new AbstractForLoop(forloop.Begin, forloop.Inc, forloop.End) } )
   }
-
-  //	def topdown (name : String, s : Strategy) : Strategy = {
-  //        lazy val result : Strategy = s <* (all (result))
-  //        result
-  //    }
-  //	
-  //	val replaceFromsWithTos =
-  //            topdown {
-  //                rule {
-  //                    case From (x) => To (x)
-  //                }
-  //            }
 
   def countForLoops() : Int = {
     var c = 0

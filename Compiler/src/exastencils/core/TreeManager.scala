@@ -42,13 +42,18 @@ object TreeManager {
       if (method.nonEmpty) {
         var obj : Object = null
         obj = method.get.invoke(node).asInstanceOf[Object]
-        if (obj.isInstanceOf[Node]) apply(obj.asInstanceOf[Node], f)
+        if(obj.isInstanceOf[Some[_]]) {
+          obj = obj.asInstanceOf[Some[Object]].get
+        }
+        if (obj.isInstanceOf[Node]) apply(obj.asInstanceOf[Node], f) //else println("Found something strange: " + obj)
       }
     })
     leaveNodeNotifyCollectors(node)
   }
 
-  protected def apply(node : Node, t : Transformation) : Unit = { // FIXME save previous in recursive call (or custom stack)
+  
+  
+  protected def apply(node : Node, t : Transformation) : Unit = {
     val ret = t.apply(node)
     if ((ret != None) && (ret.get ne node)) {
       replaceSubnode(defStack.head, node, ret.get)
@@ -60,7 +65,10 @@ object TreeManager {
       if (method.nonEmpty) {
         var obj : Object = null
         obj = method.get.invoke(node).asInstanceOf[Object]
-        if (obj.isInstanceOf[Node]) apply(obj.asInstanceOf[Node], t)
+        if(obj.isInstanceOf[Some[_]]) {
+          obj = obj.asInstanceOf[Some[Object]].get
+        }
+        if (obj.isInstanceOf[Node]) apply(obj.asInstanceOf[Node], t) //else println("Found something strange: " + obj)
       }
     })
     leaveNodeNotifyCollectors(node)
