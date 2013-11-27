@@ -2,8 +2,8 @@ package exastencils.datastructures
 
 import scala.collection.mutable.ListBuffer
 
-trait Node extends Cloneable with Annotatable {
-
+trait Node extends Annotatable {
+	def deepClone : Node
 }
 
 trait Annotatable {

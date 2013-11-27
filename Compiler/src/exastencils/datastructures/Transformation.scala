@@ -11,3 +11,4 @@ class Transformation(f : PartialFunction[Node, Option[Node]]) {
   def stopAfterNode : Boolean = { return false }
 
 }
+
