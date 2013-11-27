@@ -1,4 +1,7 @@
-package exastencils.datastructures
+package exastencils.datastructures.l4
+
+import exastencils.datastructures._
+
 
 trait AbstractDatatype extends CppPrettyPrintable
 case object IntegerDatatype extends AbstractDatatype {

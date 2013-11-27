@@ -7,12 +7,10 @@ class StackCollector extends Collector {
   private val stack = new Stack[Node]
 
   def enter(node : Node) : Unit = {
-    println("Entering node " + node)
     stack.push(node)
   }
   def leave(node : Node) : Unit = {
-    println("Leaving node " + node)
-    if (head != node) println("omg error while popping " + node)
+    if (head != node) sys.exit(-1) // fatal error is fatal // FIXME replace this with some nicer error
     stack.pop()
   }
   def reset() : Unit = { stack.clear }

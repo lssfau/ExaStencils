@@ -1,4 +1,5 @@
 package exastencils.core.collectors
+
 import exastencils.datastructures._
 
 abstract trait Collector {

@@ -1,5 +1,7 @@
 import exastencils.datastructures._
 import exastencils.core._
+import exastencils.datastructures._
+import exastencils.datastructures.l4._
 
 object Main {
   def main(args : Array[String]) : Unit = {
@@ -35,7 +37,7 @@ object Main {
     //println(t)
     
 
-    TreeManager.applyT(t)
+    TreeManager.apply(t)
     
     println(TreeManager.root)
     println(newt)

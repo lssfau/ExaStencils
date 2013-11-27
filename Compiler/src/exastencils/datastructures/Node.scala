@@ -16,14 +16,3 @@ trait Annotatable {
   def hasAnnotation(name : String) : Boolean = { return annotations_.exists(p => p.name == name) }
 }
 
-trait CppPrettyPrintable {
-  def cpp() : String
-}
-
-trait CudaPrettyPrintable {
-  def cuda() : String
-}
-
-trait Debuggable {
-  def debug() : String
-}

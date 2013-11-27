@@ -1,4 +1,5 @@
 package exastencils.core.collectors
+
 import exastencils.datastructures._
 
 class NullCollector extends Collector {
