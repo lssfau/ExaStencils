@@ -6,7 +6,7 @@ import exastencils.core.collectors._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 
-object TreeManager {
+object StateManager {
   protected var root_ : Node = AbstractForLoop(new AbstractVariableDeclarationStatement(AbstractVariable("i", IntegerDatatype), Some(new AbstractConstantExpression(1))),
     new AbstractConstantExpression(7), new AbstractConstantExpression(11))
   protected var collectors_ = new ListBuffer[Collector]
@@ -85,7 +85,7 @@ object TreeManager {
 
   def defaultApply(strategy : Strategy) : Boolean = {
     // clone previous state
-    val previous = Duplicate(TreeManager.root)
+    val previous = Duplicate(StateManager.root)
 
     var ret = false
     strategy.transformations.foreach(t => {
@@ -104,7 +104,7 @@ object TreeManager {
 
   def apply(strategy : Strategy) : Boolean = {
     // clone previous state
-    val previous = Duplicate(TreeManager.root)
+    val previous = Duplicate(StateManager.root)
 
     var ret = strategy.apply
     if (ret) {

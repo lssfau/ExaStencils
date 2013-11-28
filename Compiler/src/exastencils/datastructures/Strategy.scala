@@ -1,7 +1,7 @@
 package exastencils.datastructures
 
 import scala.collection.mutable.ListBuffer
-import exastencils.core.TreeManager
+import exastencils.core.StateManager
 
 class Strategy {
   protected var trafos = new ListBuffer[Transformation]
@@ -11,5 +11,5 @@ class Strategy {
 
   def transformations = { trafos.readOnly }
 
-  def apply : Boolean = { TreeManager.defaultApply(this) }
+  def apply : Boolean = { StateManager.defaultApply(this) }
 }

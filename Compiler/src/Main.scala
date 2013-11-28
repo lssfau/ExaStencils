@@ -9,8 +9,8 @@ object Main {
       var constcount = 0
       var forcount = 0
 
-      TreeManager.apply(new Transformation({ case x : AbstractConstantExpression => constcount += 1; WARN(x); Some(x) }))
-      TreeManager.apply(new Transformation({ case a : AbstractForLoop => forcount += 1; Some(a) }))
+      StateManager.apply(new Transformation({ case x : AbstractConstantExpression => constcount += 1; WARN(x); Some(x) }))
+      StateManager.apply(new Transformation({ case a : AbstractForLoop => forcount += 1; Some(a) }))
 
       WARN(f"Counted $constcount consts and $forcount fors")
 
@@ -28,7 +28,7 @@ object Main {
 //    newt.getAnnotations.foreach(a => println(a.name + " <-> " + a.value))
 
     DBG("previous:")
-    DBG(TreeManager.root)
+    DBG(StateManager.root)
     
     var replacingStrategy = new Strategy
     replacingStrategy += new Transformation({case x : AbstractConstantExpression if(x.Value == 1) => Some(AbstractConstantExpression(3)) })
@@ -40,8 +40,8 @@ object Main {
 
     DBG("===========================")
     DBG("after:")
-    DBG(TreeManager.root)
+    DBG(StateManager.root)
 
-    TreeManager.apply(CountingStrategy)
+    StateManager.apply(CountingStrategy)
   }
 }
