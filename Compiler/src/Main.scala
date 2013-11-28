@@ -27,12 +27,20 @@ object Main {
 //    println("cloned annotations")
 //    newt.getAnnotations.foreach(a => println(a.name + " <-> " + a.value))
 
+    DBG("previous:")
+    DBG(TreeManager.root)
+    
+    var replacingStrategy = new Strategy
+    replacingStrategy += new Transformation({case x : AbstractConstantExpression if(x.Value == 1) => Some(AbstractConstantExpression(3)) })
+    replacingStrategy += new Transformation({case x : AbstractConstantExpression if(x.Value.isInstanceOf[Int]) => Some(AbstractConstantExpression(x.Value.asInstanceOf[Int] * 10)) })
+    replacingStrategy.apply
     var absvarStrategy = new Strategy
     absvarStrategy += new Transformation({ case x : AbstractVariable => Some(AbstractVariable("j", x.Type)) })
     absvarStrategy.apply
 
+    DBG("===========================")
+    DBG("after:")
     DBG(TreeManager.root)
-//    println(newt)
 
     TreeManager.apply(CountingStrategy)
   }

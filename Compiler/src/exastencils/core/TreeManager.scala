@@ -38,6 +38,9 @@ object TreeManager {
       if (f.get(node) == oldSub) {
         f.set(node, newSub)
         ret = true
+      } else if (f.get(node).isInstanceOf[Some[_]] && f.get(node).asInstanceOf[Some[Object]].get == oldSub) {
+        f.set(node, Some(newSub))
+        ret = true
       }
       f.setAccessible(a)
     })
@@ -45,13 +48,13 @@ object TreeManager {
   }
 
   protected def apply(node : Node, t : Transformation) : Boolean = { // protected: only to be used internally!
-    var ret = false
+    var ret = true
 
     if (t.function.isDefinedAt(node)) {
       val fret = t.function(node)
       if ((fret != None) && (fret.get ne node)) {
         ret = replaceSubnode(defStack.head, node, fret.get)
-      }
+      } // else WARN("did not replace with " + fret)
     }
 
     if (!t.recursive) return ret
@@ -93,6 +96,8 @@ object TreeManager {
     })
     if (ret) {
       pushToHistory(previous, strategy)
+    } else {
+      WARN("Strategy did not apply successfully: " + strategy)
     }
     ret
   }
@@ -104,6 +109,8 @@ object TreeManager {
     var ret = strategy.apply
     if (ret) {
       pushToHistory(previous, strategy)
+    } else {
+      WARN("Strategy did not apply successfully: " + strategy)
     }
     ret
   }
