@@ -1,6 +1,7 @@
 package exastencils.core
 
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Stack
 import exastencils.core.collectors._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
@@ -9,8 +10,16 @@ object TreeManager {
   protected var root_ : Node = AbstractForLoop(new AbstractVariableDeclarationStatement(AbstractVariable("i", IntegerDatatype), Some(new AbstractConstantExpression(1))),
     new AbstractConstantExpression(7), new AbstractConstantExpression(11))
   protected var collectors_ = new ListBuffer[Collector]
-  
-  def root = root_ // FIXME remove this later
+
+  protected class LogEntry() // tuple-lile
+
+  protected class ProtocalEntry(treeBefore : Node, appliedStrategy : Strategy)
+  protected var history_ = new Stack[ProtocalEntry]
+  protected def pushToHistory(treeBefore : Node, appliedStrategy : Strategy) = {
+    history_.push(new ProtocalEntry(treeBefore, appliedStrategy))
+  }
+
+  def root = root_
 
   protected def enterNodeNotifyCollectors(node : Node) = { collectors_.foreach(c => c.enter(node)) }
   protected def leaveNodeNotifyCollectors(node : Node) = { collectors_.foreach(c => c.leave(node)) }
@@ -20,71 +29,83 @@ object TreeManager {
   def unregisterAll() = { collectors_.clear }
 
   val defStack = new StackCollector
-  
-  
-  protected def replaceSubnode(node : Node, oldSub : Node, newSub : Node) : Unit = {
+
+  protected def replaceSubnode(node : Node, oldSub : Node, newSub : Node) : Boolean = { // protected: only to be used internally!
+    var ret = false
     node.getClass.getDeclaredFields.foreach(f => {
       val a = f.isAccessible()
       f.setAccessible(true)
       if (f.get(node) == oldSub) {
         f.set(node, newSub)
+        ret = true
       }
       f.setAccessible(a)
     })
+    return ret
   }
 
-  protected def apply(node : Node, f : Function[Node, Unit]) : Unit = {
-    f(node)
+  protected def apply(node : Node, t : Transformation) : Boolean = { // protected: only to be used internally!
+    var ret = false
 
-    enterNodeNotifyCollectors(node)
-    node.getClass.getDeclaredFields.foreach(n => {
-      val method = node.getClass.getDeclaredMethods.find(m => m.getName == n.getName)
-      if (method.nonEmpty) {
-        var obj : Object = null
-        obj = method.get.invoke(node).asInstanceOf[Object]
-        if(obj.isInstanceOf[Some[_]]) {
-          obj = obj.asInstanceOf[Some[Object]].get
-        }
-        if (obj.isInstanceOf[Node]) apply(obj.asInstanceOf[Node], f) //else println("Found something strange: " + obj)
+    if (t.function.isDefinedAt(node)) {
+      val fret = t.function(node)
+      if ((fret != None) && (fret.get ne node)) {
+        ret = replaceSubnode(defStack.head, node, fret.get)
       }
-    })
-    leaveNodeNotifyCollectors(node)
-  }
-
-  
-  
-  protected def apply(node : Node, t : Transformation) : Unit = {
-    val ret = t.apply(node)
-    if ((ret != None) && (ret.get ne node)) {
-      replaceSubnode(defStack.head, node, ret.get)
     }
 
+    if (!t.recursive) return ret
+
     enterNodeNotifyCollectors(node)
     node.getClass.getDeclaredFields.foreach(n => {
       val method = node.getClass.getDeclaredMethods.find(m => m.getName == n.getName)
       if (method.nonEmpty) {
         var obj : Object = null
         obj = method.get.invoke(node).asInstanceOf[Object]
-        if(obj.isInstanceOf[Some[_]]) {
+        if (obj.isInstanceOf[Some[_]]) {
           obj = obj.asInstanceOf[Some[Object]].get
         }
-        if (obj.isInstanceOf[Node]) apply(obj.asInstanceOf[Node], t) //else println("Found something strange: " + obj)
+        // FIXME better handling if ret == false in traversal => i.e. abort traversal
+        if (obj.isInstanceOf[Node]) ret = apply(obj.asInstanceOf[Node], t) //else println("Found something strange: " + obj)
       }
     })
     leaveNodeNotifyCollectors(node)
+    return ret
   }
 
-  def apply(transformation : Transformation) : Unit = {
+  def apply(transformation : Transformation) : Unit = { // protected: only to be used internally!
     defStack.reset
     register(defStack)
     apply(root, transformation)
     unregister(defStack)
   }
 
-  protected def apply(func : Function[Node, Unit]) : Unit = {
-    defStack.reset
-    register(defStack)
-    apply(root, func)
-    unregister(defStack)
+  def defaultApply(strategy : Strategy) : Boolean = {
+    // clone previous state
+    val previous = Duplicate(TreeManager.root)
+
+    var ret = false
+    strategy.transformations.foreach(t => {
+      defStack.reset
+      register(defStack)
+      ret = apply(root, t) // FIXME better handling if ret == false in traversal => i.e. abort traversal
+      unregister(defStack)
+    })
+    if (ret) {
+      pushToHistory(previous, strategy)
+    }
+    ret
   }
+
+  def apply(strategy : Strategy) : Boolean = {
+    // clone previous state
+    val previous = Duplicate(TreeManager.root)
+
+    var ret = strategy.apply
+    if (ret) {
+      pushToHistory(previous, strategy)
+    }
+    ret
+  }
+
 }

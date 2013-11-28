@@ -1,11 +1,9 @@
 package exastencils.datastructures
 
-class Transformation(f : PartialFunction[Node, Option[Node]]) {
-  def apply(node : Node) : Option[Node] = {
-    if (f.isDefinedAt(node)) return f(node) else return Some(node)
-  }
+import exastencils.core.TreeManager
 
-  def stop : Boolean = { return false }
-  def stopAfterNode : Boolean = { return false }
+class Transformation(f : PartialFunction[Node, Option[Node]], rec : Boolean = true, node : Node = TreeManager.root) {
+  def function = f
+  def recursive = rec
+  def applyAt = node
 }
-

@@ -2,7 +2,6 @@ package exastencils.datastructures.l4
 
 import exastencils.datastructures._
 
-
 trait AbstractDatatype extends CppPrettyPrintable
 case object IntegerDatatype extends AbstractDatatype {
   def cpp : String = { return "int" }
@@ -10,7 +9,6 @@ case object IntegerDatatype extends AbstractDatatype {
 case object StringDatatype extends AbstractDatatype {
   def cpp : String = { return "std::string" }
 }
-
 
 case class AbstractVariable(var Name : String, var Type : AbstractDatatype)
     extends Node with CppPrettyPrintable {
@@ -27,7 +25,7 @@ abstract class AbstractStatement
 case class AbstractVariableDeclarationStatement(var Variable : AbstractVariable, var Expression : Option[AbstractExpression] = None)
     extends AbstractStatement {
   def cpp : String = { return "" }
-  
+
   override def duplicate = {
     if (Expression != None)
       AbstractVariableDeclarationStatement(Duplicate(Variable), Some(Duplicate(Expression.get))).asInstanceOf[this.type]
@@ -38,26 +36,25 @@ case class AbstractVariableDeclarationStatement(var Variable : AbstractVariable,
 case class AbstractAssignmentStatement(var Variable : AbstractVariable, var Expression : AbstractExpression)
     extends AbstractStatement {
   def cpp : String = { return "" }
-  
+
   override def duplicate = { this.copy(Variable = Duplicate(Variable), Expression = Duplicate(Expression)).asInstanceOf[this.type] }
 }
 
 trait AbstractExpression
-  extends Node with CppPrettyPrintable {
+    extends Node with CppPrettyPrintable {
 
   override def duplicate : this.type
 }
-  
 
 case class AbstractBooleanExpression(var Left : AbstractExpression, var Operator : String, var Right : AbstractExpression)
     extends AbstractExpression {
   def cpp : String = { return "" }
-  
+
   override def duplicate = { this.copy(Left = Duplicate(Left), Right = Duplicate(Right)).asInstanceOf[this.type] }
 }
 case class AbstractConstantExpression(var Value : Any) extends AbstractExpression {
   def cpp : String = { return "" }
-  
+
   override def duplicate = { this.copy().asInstanceOf[this.type] }
 }
 
@@ -67,6 +64,6 @@ case class AbstractForLoop(var Begin : AbstractVariableDeclarationStatement, var
     return ""
   }
 
-  override def duplicate = { this.copy(Begin = Duplicate(Begin), End = Duplicate(End), Inc = Duplicate(Inc)).asInstanceOf[this.type]}
+  override def duplicate = { this.copy(Begin = Duplicate(Begin), End = Duplicate(End), Inc = Duplicate(Inc)).asInstanceOf[this.type] }
 }
 
