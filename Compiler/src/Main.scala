@@ -19,7 +19,6 @@ object Main {
   }
 
   def main(args : Array[String]) : Unit = {
-    
 //    val newt = Duplicate(TreeManager.root)
 //    // annotations copied?
 //    println("original annotations")
