@@ -1,6 +1,5 @@
 package exastencils.datastructures.l4
 
-
 trait CppPrettyPrintable {
   def cpp() : String
 }

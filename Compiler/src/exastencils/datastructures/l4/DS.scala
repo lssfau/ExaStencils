@@ -19,17 +19,6 @@ case class AbstractVariable(var Name : String, var Type : AbstractDatatype)
   }
 
   override def duplicate = { this.copy().asInstanceOf[this.type] }
-
-//  
-  
-//  def copier(src : AbstractVariable) : CopyType = {
-//    return src.copy()
-//    //var f = new Function[AbstractVariable, AbstractVariable]({})
-////    var f : Function[AbstractVariable, AbstractVariable] = {
-////      return this.copy()
-////    }
-////    return f
-//  }
 }
 
 abstract class AbstractStatement
