@@ -11,12 +11,25 @@ case object StringDatatype extends AbstractDatatype {
   def cpp : String = { return "std::string" }
 }
 
+
 case class AbstractVariable(var Name : String, var Type : AbstractDatatype)
     extends Node with CppPrettyPrintable {
   def cpp : String = {
     return ""
   }
-  override def deepClone = { this.copy() }
+
+  override def duplicate = { this.copy().asInstanceOf[this.type] }
+
+//  
+  
+//  def copier(src : AbstractVariable) : CopyType = {
+//    return src.copy()
+//    //var f = new Function[AbstractVariable, AbstractVariable]({})
+////    var f : Function[AbstractVariable, AbstractVariable] = {
+////      return this.copy()
+////    }
+////    return f
+//  }
 }
 
 abstract class AbstractStatement
@@ -25,33 +38,38 @@ abstract class AbstractStatement
 case class AbstractVariableDeclarationStatement(var Variable : AbstractVariable, var Expression : Option[AbstractExpression] = None)
     extends AbstractStatement {
   def cpp : String = { return "" }
-  override def deepClone = {
+  
+  override def duplicate = {
     if (Expression != None)
-      AbstractVariableDeclarationStatement(Variable.deepClone, Some(Expression.get.deepClone))
+      AbstractVariableDeclarationStatement(Duplicate(Variable), Some(Duplicate(Expression.get))).asInstanceOf[this.type]
     else
-      AbstractVariableDeclarationStatement(Variable.deepClone)
+      AbstractVariableDeclarationStatement(Duplicate(Variable)).asInstanceOf[this.type]
   }
 }
 case class AbstractAssignmentStatement(var Variable : AbstractVariable, var Expression : AbstractExpression)
     extends AbstractStatement {
   def cpp : String = { return "" }
-  override def deepClone = { this.copy(Variable = this.Variable.deepClone, Expression = this.Expression.deepClone) }
+  
+  override def duplicate = { this.copy(Variable = Duplicate(Variable), Expression = Duplicate(Expression)).asInstanceOf[this.type] }
 }
 
 trait AbstractExpression
   extends Node with CppPrettyPrintable {
-  override def deepClone : AbstractExpression
+
+  override def duplicate : this.type
 }
   
 
 case class AbstractBooleanExpression(var Left : AbstractExpression, var Operator : String, var Right : AbstractExpression)
     extends AbstractExpression {
   def cpp : String = { return "" }
-  override def deepClone : AbstractBooleanExpression = { this.copy(Left = this.Left.deepClone, Right = this.Right.deepClone) }
+  
+  override def duplicate = { this.copy(Left = Duplicate(Left), Right = Duplicate(Right)).asInstanceOf[this.type] }
 }
 case class AbstractConstantExpression(var Value : Any) extends AbstractExpression {
   def cpp : String = { return "" }
-  override def deepClone : AbstractConstantExpression = { this.copy() }
+  
+  override def duplicate = { this.copy().asInstanceOf[this.type] }
 }
 
 case class AbstractForLoop(var Begin : AbstractVariableDeclarationStatement, var End : AbstractExpression, var Inc : AbstractExpression)
@@ -59,6 +77,7 @@ case class AbstractForLoop(var Begin : AbstractVariableDeclarationStatement, var
   def cpp : String = {
     return ""
   }
-  override def deepClone = { this.copy(Begin = this.Begin.deepClone, End = this.End.deepClone, Inc = this.Inc.deepClone) }
+
+  override def duplicate = { this.copy(Begin = Duplicate(Begin), End = Duplicate(End), Inc = Duplicate(Inc)).asInstanceOf[this.type]}
 }
 

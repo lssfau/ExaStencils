@@ -6,9 +6,10 @@ import exastencils.datastructures.l4._
 object Main {
   def main(args : Array[String]) : Unit = {
 
-    //    var aa1 = new Annotation("a1", "hallo welt")
-    //    var aa2 = aa1.deepClone.asInstanceOf[Annotation]
-    //    aa1.setValue("geändert")
+    // FIXME build unit tests
+    TreeManager.root.add(new Annotation("ich bin ein test", "hallo"))
+    TreeManager.root.add(new Annotation("und noch einer", "blabla"))
+    
     //    
     //    println(aa1.value)
     //    println(aa2.value)
@@ -28,24 +29,28 @@ object Main {
 
     //	  TreeManager.register(new StackCollector)
     //	  TreeManager.apply(a1)
-    System.out.println("For-Loops: " + countForLoops)
     
-    var constcount = 0
-    TreeManager.apply(new Transformation({ case x : AbstractConstantExpression => constcount = constcount+1; println(x); Some(x) }))
-    System.out.println("Constants: " + constcount)
+    val newt = Duplicate(TreeManager.root)
+    // annotations copied?
+    println("original annotations")
+    TreeManager.root.getAnnotations.foreach(a => println(a.name + " <-> " + a.value))
+    println("cloned annotations")
+    newt.getAnnotations.foreach(a => println(a.name + " <-> " + a.value))
     
+    println("For-Loops: " + countForLoops)
+    printConsts
 
-    val newt = TreeManager.root.deepClone
-
+    // Replacing all Variable names with "j"
+    
     val t = new Transformation({ case x : AbstractVariable => Some(AbstractVariable("j", x.Type)) })
-    //println(t)
-    
-
-    //TreeManager.apply(t)
+    TreeManager.apply(t)
     
     println(TreeManager.root)
     println(newt)
 
+    
+    
+    
     //    val newRoot = TreeManager.root.copy(_)
 
     //println(TreeManager.root_)
@@ -57,6 +62,12 @@ object Main {
     //	  => return new AbstractForLoop(forloop.Begin, forloop.Inc, forloop.End) } )
   }
 
+  def printConsts = {
+    var constcount = 0
+    TreeManager.apply(new Transformation({ case x : AbstractConstantExpression => constcount = constcount + 1; println(x); Some(x) }))
+    System.out.println("Constants: " + constcount)
+  }
+  
   def countForLoops() : Int = {
     var c = 0
     val forCounter = new Transformation({
