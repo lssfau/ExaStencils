@@ -9,10 +9,10 @@ object Main {
       var constcount = 0
       var forcount = 0
 
-      TreeManager.apply(new Transformation({ case x : AbstractConstantExpression => constcount += 1; println(x); Some(x) }))
+      TreeManager.apply(new Transformation({ case x : AbstractConstantExpression => constcount += 1; WARN(x); Some(x) }))
       TreeManager.apply(new Transformation({ case a : AbstractForLoop => forcount += 1; Some(a) }))
 
-      println(f"Counted $constcount consts and $forcount fors")
+      WARN(f"Counted $constcount consts and $forcount fors")
 
       true
     }
@@ -31,7 +31,7 @@ object Main {
     absvarStrategy += new Transformation({ case x : AbstractVariable => Some(AbstractVariable("j", x.Type)) })
     absvarStrategy.apply
 
-    println(TreeManager.root)
+    DBG(TreeManager.root)
 //    println(newt)
 
     TreeManager.apply(CountingStrategy)
