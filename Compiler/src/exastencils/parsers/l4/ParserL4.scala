@@ -1,23 +1,18 @@
-//package Parser
-//
-//import scala.util.parsing.combinator.syntactical.StandardTokenParsers
-//import dsl._
-//import Abstract._
-//import ast.TreeL2
-//
-//class ParserL4(tree : TreeL2) extends StandardTokenParsers {
-//  lexical.reserved += ("let", "loop", "next", "level", "def", "Int", "Array", "Unit", "Double", "return", "ToFine", "ToCoarse", "if", "else", "repeat", "Reduction", "class", "block", "public", "Complex", "order", "Communicate","decl")
-//  //  lexical.reserved += ("Domain", "Function", "Unknown", "Operator", "PDE", "PDEBC") 
-//  lexical.delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "+=", "|", "[", "]")
-//
-//  def newline: Parser[Any] = "\n" | "\r\n"
-//
-//  def parse(input: String) {
-//
-//    val tokens = new lexical.Scanner(input)
-//    println(tokens.toString)
-//    val result = phrase(exastencilsL4)(tokens)
-//    println(result.toString)
+package exastencils.parsers.l4
+
+import exastencils.parsers._
+
+class ParserL4 extends ExaParser {
+  lexical.reserved += ("let", "loop", "next", "level", "def", "Int", "Array", "Unit", "Double", "return", "ToFine", "ToCoarse", "if", "else", "repeat", "Reduction", "class", "block", "public", "Complex", "order", "Communicate","decl")
+  //  lexical.reserved += ("Domain", "Function", "Unknown", "Operator", "PDE", "PDEBC") 
+  lexical.delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "+=", "|", "[", "]", ",")
+
+  //lexical.reserved += ("Int")
+  
+  def parse(input: String) {
+    val tokens = new lexical.Scanner(input)
+    val result = phrase(program)(tokens)
+    println(result.toString)
 //    result match {
 //      case Success(tree, _) => new Interpreter(tree).run()
 //
@@ -29,7 +24,15 @@
 //    println(result.toString)
 //    for (e <- tree.exaClasses)
 //      println(e)
-//  }
+  }
+  
+  def program = function.* ^^ { case x => println(x); x }
+  
+  def function = "def" ~> ident ~ "(" ~ { functionArgumentList.? } ~ ")" ~ ":" ~ datatype ~ "{" ~ "}" // FIXME statements
+  
+  def functionArgumentList = { functionArgument ~ { "," | newline } }.* ~ functionArgument
+  def functionArgument = { { ident <~ ":" } ~ datatype } ^^ { case x ~ y => println(f"found argument $x of type $y"); }
+  
 //
 //  class ExaStringOption(val name: String, val value: String) {
 //  }
@@ -90,5 +93,5 @@
 //    | ident ~ "[" ~ factor ~ "]" ^^ { case id ~ a ~ t ~ b => AbstractVariable(id, t) }
 //    | numericLit ^^ { case s => AbstractLiteral(s) }
 //    | ident ^^ { case id => AbstractVariable(id, new AbstractLiteral("")) })
-//
-//}
+
+}

@@ -7,8 +7,8 @@ import exastencils.datastructures._
 import exastencils.datastructures.l4._
 
 object StateManager {
-  protected var root_ : Node = AbstractForLoop(new AbstractVariableDeclarationStatement(AbstractVariable("i", IntegerDatatype), Some(new AbstractConstantExpression(1))),
-    new AbstractConstantExpression(7), new AbstractConstantExpression(11))
+  protected var root_ : Node = ForStatement(VariableDeclarationStatement(Variable("i", IntegerDatatype()), Some(ConstantExpression(1))),
+    new ConstantExpression(7), new ConstantExpression(11))
   protected var collectors_ = new ListBuffer[Collector]
 
   protected class LogEntry() // tuple-lile

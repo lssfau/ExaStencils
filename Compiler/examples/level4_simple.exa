@@ -1,0 +1,48 @@
+def VCycle ( lev:Integer ) : Unit 
+{ 
+
+} 
+
+def Residual ( lev:Integer ) : Unit 
+{ 
+} 
+
+def L2Residual ( lev:Integer ) : Real 
+{ 
+} 
+
+def GaussSeidel ( lev:Integer ) : Unit 
+{ 
+
+} 
+
+def Restrict ( lev:Integer,
+        coarse:Array(Integer), 
+        fine:Array(Integer)) : Unit 
+{ 
+
+} 
+
+def interpolatecorr( lev:Integer,
+           uf:Array(Integer),
+           uc:Array(Integer) ) : Unit 
+{ 
+
+} 
+
+def set ( lev:Integer,
+     arr:Array(Integer),
+     value:Integer) : Unit 
+{ 
+
+} 
+
+def setrandom(arr:Array(Integer), v:Integer) : Unit 
+{ 
+
+} 
+
+def Application ( ) : Unit 
+{ 
+
+} 
