@@ -3,6 +3,7 @@ package exastencils.parsers
 import scala.util.parsing.combinator._
 import scala.util.parsing.combinator.syntactical._
 
+import exastencils.datastructures._
 import exastencils.datastructures.l4._
 
 class ExaParser extends StandardTokenParsers with scala.util.parsing.combinator.PackratParsers {

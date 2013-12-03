@@ -8,10 +8,10 @@ object Duplicate {
     if (t.isInstanceOf[Annotatable]) duplicate.asInstanceOf[Annotatable].add(t.asInstanceOf[Annotatable].getAnnotations)
     duplicate
   }
-  def apply[T <: Duplicable](t : Seq[T]) : ListBuffer[T] = {
+  def apply[T <: Duplicable](t : Seq[T]) : List[T] = {
     var duplicateList = new ListBuffer[T]
     t.foreach(t => duplicateList += Duplicate(t))
-    duplicateList
+    duplicateList.readOnly
   }
 }
 

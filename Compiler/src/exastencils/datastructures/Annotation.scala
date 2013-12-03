@@ -11,6 +11,8 @@ class Annotation(n : String, var v : Any) {
   override def clone : Annotation = {
     return new Annotation(n, v)
   }
+  
+  override def toString = { f"$name: $value" }
 }
 
 trait Annotatable {
