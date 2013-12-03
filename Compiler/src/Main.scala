@@ -11,7 +11,7 @@ object Main {
       var constcount = 0
       var forcount = 0
 
-      StateManager.apply(new Transformation({ case x : ConstantExpression => constcount += 1; WARN(x); Some(x) }))
+      StateManager.apply(new Transformation({ case x : Constant => constcount += 1; WARN(x); Some(x) }))
       StateManager.apply(new Transformation({ case a : ForStatement => forcount += 1; Some(a) }))
 
       WARN(f"Counted $constcount consts and $forcount fors")

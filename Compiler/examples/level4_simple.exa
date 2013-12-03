@@ -1,48 +1,7 @@
 def VCycle ( lev:Integer ) : Unit 
 { 
-
+a = 3 * 7 + a+1+5-3-9
+b = -9 + hallo()
+d = meck(hallo(), 7, a + b)
 } 
 
-def Residual ( lev:Integer ) : Unit 
-{ 
-} 
-
-def L2Residual ( lev:Integer ) : Real 
-{ 
-} 
-
-def GaussSeidel ( lev:Integer ) : Unit 
-{ 
-
-} 
-
-def Restrict ( lev:Integer,
-        coarse:Array(Integer), 
-        fine:Array(Integer)) : Unit 
-{ 
-
-} 
-
-def interpolatecorr( lev:Integer,
-           uf:Array(Integer),
-           uc:Array(Integer) ) : Unit 
-{ 
-
-} 
-
-def set ( lev:Integer,
-     arr:Array(Integer),
-     value:Integer) : Unit 
-{ 
-
-} 
-
-def setrandom(arr:Array(Integer), v:Integer) : Unit 
-{ 
-
-} 
-
-def Application ( ) : Unit 
-{ 
-
-} 

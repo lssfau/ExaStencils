@@ -5,24 +5,34 @@ import scala.util.parsing.combinator.syntactical._
 
 import exastencils.datastructures.l4._
 
-class ExaParser extends StandardTokenParsers {
+class ExaParser extends StandardTokenParsers with scala.util.parsing.combinator.PackratParsers {
   override val lexical : ExaLexer = new ExaLexer()
-  def listdelimiter = newline | ","
-  def newline = "\n" | "\r\n"
-  
-  def datatype : Parser[Datatype] = simpleDatatype |
-    numericDatatype |
-    { "Array" ~ "(" } ~> datatype <~ ")" ^^ { case x => new ArrayDatatype(x) }
+  lazy val listdelimiter = newline | ","
+  lazy val newline = "\n" | "\r\n"
 
-  def simpleDatatype = "Unit" ^^ { case x => new UnitDatatype } |
-    "String" ^^ { case x => new StringDatatype } |
-    numericSimpleDatatype
+  lazy val datatype : Parser[Datatype] =
+    simpleDatatype |
+      numericDatatype |
+      { "Array" ~ "(" } ~> datatype <~ ")" ^^ { case x => new ArrayDatatype(x) }
 
-  def numericDatatype = "Complex" ~> numericSimpleDatatype <~ ")" ^^ { case x => new ComplexDatatype(x) } |
-    numericSimpleDatatype
+  lazy val simpleDatatype : Parser[Datatype] =
+    "Unit" ^^ { case x => new UnitDatatype } |
+      "String" ^^ { case x => new StringDatatype } |
+      numericSimpleDatatype
 
-  def numericSimpleDatatype = "Integer" ^^ { case x => new IntegerDatatype } |
-    "Real" ^^ { case x => new RealDatatype }
+  lazy val numericDatatype : Parser[Datatype] =
+    "Complex" ~> numericSimpleDatatype <~ ")" ^^ { case x => new ComplexDatatype(x) } |
+      numericSimpleDatatype
+
+  lazy val numericSimpleDatatype : Parser[Datatype] =
+    "Integer" ^^ { case x => new IntegerDatatype } |
+      "Real" ^^ { case x => new RealDatatype }
+
+  lazy val literal : Parser[Expression] = stringLit ^^ { case x => StringLiteral(x) } |
+    numericLit ^^ { case x => NumericLiteral(0) } |
+    booleanLit ^^ { case x => BooleanLiteral(true) }
+
+  lazy val booleanLit : Parser[String] = "true" | "false"
 
   // set members of given object obj via reflection
   def set[T](obj : AnyRef, ident : String, value : T) {

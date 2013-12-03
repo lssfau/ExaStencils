@@ -1,5 +1,6 @@
 package exastencils.datastructures.l4
 
+import scala.collection.mutable.ListBuffer
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 
@@ -8,7 +9,7 @@ abstract class Statement
 
 case class VariableDeclarationStatement(variable : Variable, expression : Option[Expression] = None)
     extends Statement {
-  def cpp : String = { return "" }
+  override def cpp = ""
 
   override def duplicate = {
     if (expression != None)
@@ -17,16 +18,16 @@ case class VariableDeclarationStatement(variable : Variable, expression : Option
       VariableDeclarationStatement(Duplicate(variable)).asInstanceOf[this.type]
   }
 }
-case class AssignmentStatement(variable : Variable, expression : Expression)
+case class AssignmentStatement(identifier : Identifier, expression : Expression)
     extends Statement {
-  def cpp = { "" }
+  override def cpp = ""
 
-  override def duplicate = { this.copy(variable = Duplicate(variable), expression = Duplicate(expression)).asInstanceOf[this.type] }
+  override def duplicate = { this.copy(identifier = Duplicate(identifier), expression = Duplicate(expression)).asInstanceOf[this.type] }
 }
 
-case class ForStatement(begin : VariableDeclarationStatement, end : Expression, inc : Expression)
+case class ForStatement(begin : VariableDeclarationStatement, end : Expression, inc : Expression, statements: ListBuffer[Statement])
     extends Statement with CppPrettyPrintable {
-  def cpp = { "" }
+  override def cpp = ""
 
-  override def duplicate = { this.copy(begin = Duplicate(begin), end = Duplicate(end), inc = Duplicate(inc)).asInstanceOf[this.type] }
+  override def duplicate = { this.copy(begin = Duplicate(begin), end = Duplicate(end), inc = Duplicate(inc), statements = Duplicate(statements)).asInstanceOf[this.type] }
 }
