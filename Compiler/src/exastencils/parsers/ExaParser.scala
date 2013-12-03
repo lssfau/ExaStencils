@@ -7,6 +7,9 @@ import exastencils.datastructures.l4._
 
 class ExaParser extends StandardTokenParsers with scala.util.parsing.combinator.PackratParsers {
   override val lexical : ExaLexer = new ExaLexer()
+  
+
+
   lazy val listdelimiter = newline | ","
   lazy val newline = "\n" | "\r\n"
 
@@ -29,8 +32,8 @@ class ExaParser extends StandardTokenParsers with scala.util.parsing.combinator.
       "Real" ^^ { case x => new RealDatatype }
 
   lazy val literal : Parser[Expression] = stringLit ^^ { case x => StringLiteral(x) } |
-    numericLit ^^ { case x => NumericLiteral(0) } |
-    booleanLit ^^ { case x => BooleanLiteral(true) }
+    numericLit ^^ { case x => NumericLiteral(x.toDouble) } | // FIXME split into integerLiteral and realLiteral
+    booleanLit ^^ { case x => BooleanLiteral(x.toBoolean) }
 
   lazy val booleanLit : Parser[String] = "true" | "false"
 

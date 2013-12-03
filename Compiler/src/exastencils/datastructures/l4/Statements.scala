@@ -25,9 +25,16 @@ case class AssignmentStatement(identifier : Identifier, expression : Expression)
   override def duplicate = { this.copy(identifier = Duplicate(identifier), expression = Duplicate(expression)).asInstanceOf[this.type] }
 }
 
-case class ForStatement(begin : VariableDeclarationStatement, end : Expression, inc : Expression, statements: ListBuffer[Statement])
+case class ForStatement(begin : VariableDeclarationStatement, end : Expression, inc : Expression, statements : ListBuffer[Statement])
     extends Statement with CppPrettyPrintable {
   override def cpp = ""
 
   override def duplicate = { this.copy(begin = Duplicate(begin), end = Duplicate(end), inc = Duplicate(inc), statements = Duplicate(statements)).asInstanceOf[this.type] }
+}
+
+//area ~ level ~ order ~ blocksize ~ stmts
+case class LoopOverDomainStatement(area : String, level : String, order: Some[String], statements : ListBuffer[Statement])
+    extends Statement {
+  override def cpp = ""
+  override def duplicate = { this.copy(statements = Duplicate(statements)).asInstanceOf[this.type] }
 }

@@ -21,34 +21,33 @@ object Main {
   }
 
   def main(args : Array[String]) : Unit = {
-//    val newt = Duplicate(TreeManager.root)
-//    // annotations copied?
-//    println("original annotations")
-//    TreeManager.root.getAnnotations.foreach(a => println(a.name + " <-> " + a.value))
-//    println("cloned annotations")
-//    newt.getAnnotations.foreach(a => println(a.name + " <-> " + a.value))
+    //    val newt = Duplicate(TreeManager.root)
+    //    // annotations copied?
+    //    println("original annotations")
+    //    TreeManager.root.getAnnotations.foreach(a => println(a.name + " <-> " + a.value))
+    //    println("cloned annotations")
+    //    newt.getAnnotations.foreach(a => println(a.name + " <-> " + a.value))
 
-//    DBG("previous:")
-//    DBG(StateManager.root)
-//    
-//    var replacingStrategy = new Strategy
-//    replacingStrategy += new Transformation({case x : ConstantExpression if(x.Value == 1) => Some(ConstantExpression(3)) })
-//    replacingStrategy += new Transformation({case x : ConstantExpression if(x.Value.isInstanceOf[Int]) => Some(ConstantExpression(x.Value.asInstanceOf[Int] * 10)) })
-//    replacingStrategy.apply
-//    var absvarStrategy = new Strategy
-//    absvarStrategy += new Transformation({ case x : Variable => Some(AbstractVariable("j", x.Type)) })
-//    absvarStrategy.apply
-//
-//    DBG("===========================")
-//    DBG("after:")
-//    DBG(StateManager.root)
-//
-//    StateManager.apply(CountingStrategy)
-    
-    val p4 = new ParserL4
-    val input4 = scala.io.Source.fromFile("/scratch-local/schmittch/ExaStencils/ScalaExaStencil/Compiler/examples/level4_simple.exa").getLines.mkString
-    DBG(input4)
-    p4.parse(input4)
-    //p4.parse()
+    //    DBG("previous:")
+    //    DBG(StateManager.root)
+    //    
+    //    var replacingStrategy = new Strategy
+    //    replacingStrategy += new Transformation({case x : ConstantExpression if(x.Value == 1) => Some(ConstantExpression(3)) })
+    //    replacingStrategy += new Transformation({case x : ConstantExpression if(x.Value.isInstanceOf[Int]) => Some(ConstantExpression(x.Value.asInstanceOf[Int] * 10)) })
+    //    replacingStrategy.apply
+    //    var absvarStrategy = new Strategy
+    //    absvarStrategy += new Transformation({ case x : Variable => Some(AbstractVariable("j", x.Type)) })
+    //    absvarStrategy.apply
+    //
+    //    DBG("===========================")
+    //    DBG("after:")
+    //    DBG(StateManager.root)
+    //
+    //    StateManager.apply(CountingStrategy)
+
+        val p4 = new ParserL4
+        val input4 = scala.io.Source.fromFile("/scratch-local/schmittch/ExaStencils/ScalaExaStencil/Compiler/examples/level4_simple.exa").getLines.mkString("\n")
+        DBG(input4)
+        p4.parse(input4)
   }
 }
