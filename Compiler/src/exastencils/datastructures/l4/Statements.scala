@@ -33,7 +33,7 @@ case class ForStatement(begin : VariableDeclarationStatement, end : Expression, 
 }
 
 //area ~ level ~ order ~ blocksize ~ stmts
-case class LoopOverDomainStatement(area : String, level : String, order: Some[String], statements : ListBuffer[Statement])
+case class LoopOverDomainStatement(area : String, level : String, order : Some[String], statements : ListBuffer[Statement])
     extends Statement {
   override def cpp = ""
   override def duplicate = { this.copy(statements = Duplicate(statements)).asInstanceOf[this.type] }

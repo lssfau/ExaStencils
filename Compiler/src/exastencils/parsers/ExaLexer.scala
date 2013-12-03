@@ -14,11 +14,11 @@ class ExaLexer extends StdLexical {
 
   /*
    * language level 1 keywords
-   */ 
+   */
 
   /*
    * language level 2 keywords
-   */ 
+   */
 
   /*
    * language level 3 keywords
@@ -26,7 +26,7 @@ class ExaLexer extends StdLexical {
 
   /*
    * language level 4 keywords
-   */ 
+   */
   // loop keywords
   reserved += ("loop", "over", "next", "domain", "inner", "boundary", "blocksize")
 

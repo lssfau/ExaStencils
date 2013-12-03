@@ -45,9 +45,9 @@ object Main {
     //
     //    StateManager.apply(CountingStrategy)
 
-        val p4 = new ParserL4
-        val input4 = scala.io.Source.fromFile("/scratch-local/schmittch/ExaStencils/ScalaExaStencil/Compiler/examples/level4_simple.exa").getLines.mkString("\n")
-        DBG(input4)
-        p4.parse(input4)
+    val p4 = new ParserL4
+    val input4 = scala.io.Source.fromFile("/scratch-local/schmittch/ExaStencils/ScalaExaStencil/Compiler/examples/level4_simple.exa").getLines.mkString("\n")
+    DBG(input4)
+    p4.parse(input4)
   }
 }

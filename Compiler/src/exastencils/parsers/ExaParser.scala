@@ -7,8 +7,6 @@ import exastencils.datastructures.l4._
 
 class ExaParser extends StandardTokenParsers with scala.util.parsing.combinator.PackratParsers {
   override val lexical : ExaLexer = new ExaLexer()
-  
-
 
   lazy val listdelimiter = newline | ","
   lazy val newline = "\n" | "\r\n"

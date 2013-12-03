@@ -5,14 +5,13 @@ import scala.collection.mutable.ListBuffer
 class Annotation(n : String, var v : Any) {
   def name = n
   def value = v
-  
+
   def setValue(newV : Any) = { v = newV }
-  
+
   override def clone : Annotation = {
-     return new Annotation(n, v)
+    return new Annotation(n, v)
   }
 }
-
 
 trait Annotatable {
   private val annotations_ = new ListBuffer[Annotation]
