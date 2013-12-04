@@ -8,6 +8,15 @@ import exastencils.datastructures.l4._
 
 class ExaParser extends StandardTokenParsers with scala.util.parsing.combinator.PackratParsers {
   override val lexical : ExaLexer = new ExaLexer()
+  var scanner : lexical.Scanner = null
+  var reader : scala.util.parsing.input.PagedSeqReader = null
+
+  def locationize[T <: Annotatable](p : => Parser[T]) : Parser[T] = Parser { in =>
+    p(in) match {
+      case Success(t, in1) => Success(if (!t.hasAnnotation("location")) { t.add(new Annotation("location", in.pos)); t } else t, in1)
+      case ns : NoSuccess  => ns
+    }
+  }
 
   lazy val listdelimiter = newline | ","
   lazy val newline = "\n" | "\r\n"
