@@ -7,7 +7,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.l4._
 
 object StateManager {
-  protected var root_ : Node = ForStatement(VariableDeclarationStatement(Variable("i", IntegerDatatype()), Some(Constant(1))),
+  var root_ : Node = ForStatement(VariableDeclarationStatement(Variable("i", IntegerDatatype()), Some(Constant(1))),
     new Constant(7), new Constant(11), List[Statement]())
   protected var collectors_ = new ListBuffer[Collector]
 
@@ -65,11 +65,22 @@ object StateManager {
       if (method.nonEmpty) {
         var obj : Object = null
         obj = method.get.invoke(node).asInstanceOf[Object]
-        if (obj.isInstanceOf[Some[_]]) {
-          obj = obj.asInstanceOf[Some[Object]].get
+
+        if (obj.isInstanceOf[List[_]]) {
+          var list = obj.asInstanceOf[List[_]]
+
+          list.foreach(f => {
+            if (f.isInstanceOf[Node]) ret = apply(f.asInstanceOf[Node], t) // FIXME this is a hack
+          })
+
+        } else {
+
+          if (obj.isInstanceOf[Some[_]]) {
+            obj = obj.asInstanceOf[Some[Object]].get
+          }
+          // FIXME better handling if ret == false in traversal => i.e. abort traversal
+          if (obj.isInstanceOf[Node]) ret = apply(obj.asInstanceOf[Node], t) //else println("Found something strange: " + obj)
         }
-        // FIXME better handling if ret == false in traversal => i.e. abort traversal
-        if (obj.isInstanceOf[Node]) ret = apply(obj.asInstanceOf[Node], t) //else println("Found something strange: " + obj)
       }
     })
     leaveNodeNotifyCollectors(node)
