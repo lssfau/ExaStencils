@@ -7,3 +7,7 @@ trait CppPrettyPrintable {
 trait CudaPrettyPrintable {
   def cuda() : String
 }
+
+trait Debuggable {
+  def debug() : String
+}
