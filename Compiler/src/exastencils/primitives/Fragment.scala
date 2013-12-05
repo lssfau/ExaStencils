@@ -765,20 +765,14 @@ class NeighInfo(var dir : Array[Int], level : Int) {
 
 }
 
-class ExchangeDataSplitter(field : Field, maxLevel : Int) {
-  def toString_cpp : String = {
-    var s : String = "";
+case class ExchangeDataSplitter(field : Field, maxLevel : Int) extends Function(
+  head = s"void Fragment3DCube::exch${field.codeName} (std::vector<boost::shared_ptr<CurFragmentType> >& fragments, unsigned int level, unsigned int slot /*= 0*/)",
+  body = ListBuffer(s"switch (level)\n{") ++
+    ((0 to maxLevel).toArray.map(level =>
+      s"case $level: exch${field.codeName}_$level(fragments, slot);\nbreak;").toArray) ++
+    ListBuffer(s"}")) {
 
-    s += s"void Fragment3DCube::exch${field.codeName} (std::vector<boost::shared_ptr<CurFragmentType> >& fragments, unsigned int level, unsigned int slot /*= 0*/)\n\t{\n";
-    s += s"switch (level)\n{\n";
-    for (level <- (0 to maxLevel)) {
-      s += s"case $level: exch${field.codeName}_$level(fragments, slot);\nbreak;\n";
-    }
-    s += s"}\n";
-    s += s"\t}\n";
-
-    return s;
-  }
+  override def duplicate = this.copy().asInstanceOf[this.type]
 }
 
 class ExchangeData(field : Field, level : Int) {

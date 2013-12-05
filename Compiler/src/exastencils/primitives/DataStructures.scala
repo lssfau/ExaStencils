@@ -58,7 +58,7 @@ abstract class Class extends Node {
   var cTorInitList : ListBuffer[String] = new ListBuffer[String];
   var cTorBody : ListBuffer[String] = new ListBuffer[String];
   var dTorBody : ListBuffer[String] = new ListBuffer[String];
-  val functions : ListBuffer[String] = new ListBuffer()
+  var functions : ListBuffer[String] = new ListBuffer[String];
 
   def toString_cpp : String = {
     var s : String = "";
@@ -88,11 +88,32 @@ abstract class Class extends Node {
   }
 }
 
+abstract class Function (
+  head : String,
+  body : ListBuffer[String])
+  extends Node {
+  def toString_cpp : String = {
+    var s : String = "";
+
+    s += s"$head\n";
+    s += s"{\n"
+
+    for (stat <- body)
+      s += s"$stat\n";
+
+    s += s"}\n";
+
+    return s;
+  }
+}
+
 case class FragmentClass extends Class {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  var neighbors = new ListBuffer[NeighborInfo]();
   className = "Fragment3DCube";
+
+  var fields : ListBuffer[Field] = new ListBuffer;
+  var neighbors = new ListBuffer[NeighborInfo]();
 
   def init = {
     for (z <- -1 to 1; y <- -1 to 1; x <- -1 to 1; if (0 != x || 0 != y || 0 != z)) {
@@ -100,8 +121,6 @@ case class FragmentClass extends Class {
     }
   }
 
-  var fields : ListBuffer[Field] = new ListBuffer;
-  
   override def toString_cpp : String = {
     {
       val writer = new PrintWriter(new File(s"C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Poisson3D/Primitives/Fragment3DCube_TEMP.h"));
@@ -126,4 +145,4 @@ case class FragmentClass extends Class {
 
     return "";
   }
-};
+}
