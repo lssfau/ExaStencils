@@ -5,6 +5,8 @@ import exastencils.datastructures.l4._
 import exastencils.parsers.l4
 import exastencils.parsers.l4.ParserL4
 
+import exastencils.primitives
+
 object Main {
   object CountingStrategy extends Strategy {
     override def apply : Boolean = {
