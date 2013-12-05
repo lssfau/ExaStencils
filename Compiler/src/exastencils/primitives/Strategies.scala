@@ -33,8 +33,19 @@ object GenCommCode extends (() => Unit) {
 
     StateManager.apply(new Transformation({
       case frag : FragmentClass =>
-        frag.addSync(frag.fields);
+        frag.functions += (new WaitForMPIReq).toString_cpp;
+        for (field <- frag.fields) {
+          val maxLevel = 9;
+          frag.functions += (new ExchangeDataSplitter(field, maxLevel)).toString_cpp;
+          for (level <- (0 to maxLevel)) {
+            frag.functions += (new ExchangeData(field, level)).toString_cpp;
+          }
+        }
+        Some(frag);
+    }));
 
+    StateManager.apply(new Transformation({
+      case frag : FragmentClass =>
         frag.functions += (new ConnectLocalElement().toString_cpp);
         frag.functions += (new ConnectRemoteElement().toString_cpp);
         frag.functions += (new SetupBuffers(frag.fields).toString_cpp);
