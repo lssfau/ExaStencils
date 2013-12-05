@@ -8,7 +8,7 @@ import exastencils.parsers.l4.ParserL4
 import exastencils.primitives
 
 object Main {
-  object CountingStrategy extends Strategy {
+  object CountingStrategy extends Strategy("Counting") {
     override def apply : Boolean = {
       var constcount = 0
       var forcount = 0
@@ -52,7 +52,7 @@ object Main {
     
     StateManager.root_ = result
     
-    var positionStrategy = new Strategy
+    var positionStrategy = new Strategy("PositionStrategy")
     positionStrategy += new Transformation({case x : Annotatable => x.getAnnotations.foreach(a => println(x + " " + a.name +" - "+ a.value)); Some(x) })
     positionStrategy.apply
   }

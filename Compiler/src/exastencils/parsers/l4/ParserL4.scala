@@ -22,7 +22,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   protected def parseTokens(tokens : lexical.Scanner) : Node = {
     phrase(program)(tokens) match {
-      case Success(e, _)   => e // FIXME
+      case Success(e, _)   => e
       case Error(msg, _)   => throw new Exception("parse error: " + msg)
       case Failure(msg, _) => throw new Exception("parse failure: " + msg)
     }

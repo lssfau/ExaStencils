@@ -1,4 +1,4 @@
-package exastencils.datastructures.l4
+package exastencils.datastructures.ir
 
 class CostEstimation {
 

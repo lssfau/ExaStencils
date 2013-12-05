@@ -3,7 +3,7 @@ package exastencils.datastructures
 import scala.collection.mutable.ListBuffer
 import exastencils.core.StateManager
 
-class Strategy {
+class Strategy(val name: String) {
   protected var trafos = new ListBuffer[Transformation]
 
   def add(transformation : Transformation) = trafos += transformation

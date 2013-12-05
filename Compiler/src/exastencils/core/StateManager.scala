@@ -5,15 +5,34 @@ import scala.collection.mutable.Stack
 import exastencils.core.collectors._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
+import scala.util.control.Exception
 
 object StateManager {
   var root_ : Node = null //= ForStatement(VariableDeclarationStatement(Variable("i", IntegerDatatype()), Some(Constant(1))), new Constant(7), new Constant(11), List[Statement]())
   protected var collectors_ = new ListBuffer[Collector]
 
-  protected class ProtocalEntry(stateBefore : Node, appliedStrategy : Strategy)
-  protected var history_ = new Stack[ProtocalEntry]
-  protected def pushToHistory(stateBefore : Node, appliedStrategy : Strategy) = {
-    history_.push(new ProtocalEntry(stateBefore, appliedStrategy))
+  protected object History {
+    var current_ : Option[ProtocalEntry] = None
+    protected var history_ = new Stack[ProtocalEntry]
+    protected class ProtocalEntry(val stateBefore : Node, val appliedStrategy : Strategy)
+
+    def transaction(strategy : Strategy) = {
+      if (!current_.isEmpty) throw new Exception("Another transaction currently running!")
+
+      current_ = Some(new ProtocalEntry(Duplicate(StateManager.root_), strategy))
+    }
+
+    def commit() = {
+      if (current_.isEmpty) throw new Exception("No currently running transaction!")
+      history_.push(current_.get)
+      current_ = None
+    }
+
+    def abort() = {
+      if (current_.isEmpty) throw new Exception("No currently running transaction!")
+      root_ = current_.get.stateBefore
+      current_ = None
+    }
   }
 
   def root = root_
@@ -92,8 +111,8 @@ object StateManager {
   }
 
   def defaultApply(strategy : Strategy) : Boolean = {
-    // clone previous state
-    val previous = Duplicate(StateManager.root)
+    // start transformation transaction
+    History.transaction(strategy)
 
     var ret = false
     strategy.transformations.foreach(t => {
@@ -103,22 +122,26 @@ object StateManager {
       unregister(defStack)
     })
     if (ret) {
-      pushToHistory(previous, strategy)
+      History.commit
     } else {
-      WARN("Strategy did not apply successfully: " + strategy)
+      WARN("Strategy did not apply successfully: " + strategy.name)
+      WARN("Rollback will be performed")
+      History.abort
     }
     ret
   }
 
   def apply(strategy : Strategy) : Boolean = {
-    // clone previous state
-    val previous = Duplicate(StateManager.root)
+    // start transformation transaction
+    History.transaction(strategy)
 
     var ret = strategy.apply
     if (ret) {
-      pushToHistory(previous, strategy)
+      History.commit
     } else {
-      WARN("Strategy did not apply successfully: " + strategy)
+      WARN("Strategy did not apply successfully: " + strategy.name)
+      WARN("Rollback will be performed")
+      History.abort
     }
     ret
   }
