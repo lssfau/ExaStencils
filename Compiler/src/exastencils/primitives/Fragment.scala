@@ -91,18 +91,18 @@ class NeighborInfo(var dir : Array[Int]) {
   //  var codeTreatBC : String = "";
   //  var codeExchLocal : String = "";
   //
-  def addDeclarations() {
-    FragmentClass.declarations += s"MPI_Request request_$label;";
-    FragmentClass.declarations += s"bool reqOutstanding_$label;";
-    FragmentClass.cTorInitList += s"reqOutstanding_$label(false)";
+  def addDeclarations(frag : FragmentClass) {
+    frag.declarations += s"MPI_Request request_$label;";
+    frag.declarations += s"bool reqOutstanding_$label;";
+    frag.cTorInitList += s"reqOutstanding_$label(false)";
 
-    FragmentClass.declarations += s"exa_real_t* sendBuffer_$label;";
-    FragmentClass.cTorInitList += s"sendBuffer_$label(0)";
-    FragmentClass.dTorBody += s"if (sendBuffer_$label) { delete [] sendBuffer_$label; sendBuffer_$label = 0; }";
+    frag.declarations += s"exa_real_t* sendBuffer_$label;";
+    frag.cTorInitList += s"sendBuffer_$label(0)";
+    frag.dTorBody += s"if (sendBuffer_$label) { delete [] sendBuffer_$label; sendBuffer_$label = 0; }";
 
-    FragmentClass.declarations += s"exa_real_t* recvBuffer_$label;";
-    FragmentClass.cTorInitList += s"recvBuffer_$label(0)";
-    FragmentClass.dTorBody += s"if (recvBuffer_$label) { delete [] recvBuffer_$label; recvBuffer_$label = 0; }";
+    frag.declarations += s"exa_real_t* recvBuffer_$label;";
+    frag.cTorInitList += s"recvBuffer_$label(0)";
+    frag.dTorBody += s"if (recvBuffer_$label) { delete [] recvBuffer_$label; recvBuffer_$label = 0; }";
   }
 
   def getCode_TreatBC(field : Field, level : Int, slot : Any/*FIXME: Int*/) : String = {
@@ -151,45 +151,6 @@ object dirToString extends (Int => String) {
     }
   }
 };
-
-case class ifCond(cond : String, trueBranch : Array[String], falseBranch : Array[String] = Array[String]()) {
-  def toString_cpp : String = {
-    var s : String = "";
-
-    s += s"if ($cond)\n{\n";
-    for (stat <- trueBranch)
-      s += s"$stat\n";
-    s += s"}\n";
-    if (falseBranch.length > 0) {
-      s += s"else\n{\n";
-      for (stat <- falseBranch)
-        s += s"$stat\n";
-      s += s"}\n";
-    }
-
-    return s;
-  }
-}
-
-case class forLoop(head : String, body : Array[String]) {
-  def toString_cpp : String = {
-    var s : String = "";
-
-    // HACK
-    if ("int e = 0; e < fragments.size(); ++e" == head) {
-      s += "#pragma omp parallel for schedule(static, 1)\n";
-    }
-
-    s += s"for ($head)\n{\n";
-    for (stat <- body)
-      s += s"$stat\n";
-    s += s"}\n";
-
-    return s;
-  }
-}
-
-case class Field(name : String, codeName : String, dataType : String, numSlots : String, bcDir0 : Boolean) {}
 
 class ConnectLocalElement() {
   def toString_cpp : String = {
@@ -895,8 +856,8 @@ class ExchangeData(field : Field, level : Int) {
 
       // handle BC
       s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
-        //neighbors.map(neigh => neigh.codeTreatBC).toArray)).toString_cpp;
-        FragmentClass.neighbors.map(neigh => neigh.getCode_TreatBC(field, level, "slot")).toArray)).toString_cpp;
+        neighbors.map(neigh => neigh.codeTreatBC).toArray)).toString_cpp;
+        //FragmentClass.neighbors.map(neigh => neigh.getCode_TreatBC(field, level, "slot")).toArray)).toString_cpp;
 
       
       // sync duplicate values
@@ -952,15 +913,25 @@ class ExchangeData(field : Field, level : Int) {
 
 object GenCommCode extends (() => Unit) {
   def apply() : Unit = {
-    var fragment = new Fragment;
+    var fragment = new FragmentClass;
 
-    println("Setting up Fragment");
+    println("Setting up FragmentClass");
 
     // HACK
     StateManager.root_ = fragment;
 
     StateManager.apply(new Transformation({
-      case frag : Fragment =>
+      case frag : FragmentClass =>
+        for (neigh <- frag.neighbors) {
+          neigh.addDeclarations(frag);
+        }
+
+        frag.init;
+        Some(frag);
+    }));
+
+    StateManager.apply(new Transformation({
+      case frag : FragmentClass =>
         frag.fields += new Field("Solution", "solData", "double", "NUM_SOL_SLOTS", true);
         frag.fields += new Field("Residual", "resData", "double", "1", false);
         frag.fields += new Field("RHS", "rhsData", "double", "1", false);
@@ -968,7 +939,7 @@ object GenCommCode extends (() => Unit) {
     }));
 
     StateManager.apply(new Transformation({
-      case frag : Fragment =>
+      case frag : FragmentClass =>
         frag.addSync(frag.fields);
 
         frag.functions += (new ConnectLocalElement().toString_cpp);
@@ -978,24 +949,9 @@ object GenCommCode extends (() => Unit) {
     }));
 
     StateManager.apply(new Transformation({
-      case frag : Fragment =>
+      case frag : FragmentClass =>
         frag.toString_cpp;
         Some(frag);
-    }));
-
-    println("Setting up FragmentClass");
-
-    // HACK
-    StateManager.root_ = FragmentClass;
-
-    StateManager.apply(new Transformation({
-      case FragmentClass =>
-        for (neigh <- FragmentClass.neighbors) {
-          neigh.addDeclarations;
-        }
-
-        FragmentClass.toString_cpp;
-        Some(FragmentClass);
     }));
 
     println("Done");

@@ -7,9 +7,52 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.datastructures._
 
-case class Class extends Node {
+case class Field(name : String, codeName : String, dataType : String, numSlots : String, bcDir0 : Boolean) extends Node {
   override def duplicate = this.copy().asInstanceOf[this.type]
-  
+}
+
+case class ifCond(cond : String, trueBranch : Array[String], falseBranch : Array[String] = Array[String]()) extends Node {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def toString_cpp : String = {
+    var s : String = "";
+
+    s += s"if ($cond)\n{\n";
+    for (stat <- trueBranch)
+      s += s"$stat\n";
+    s += s"}\n";
+    if (falseBranch.length > 0) {
+      s += s"else\n{\n";
+      for (stat <- falseBranch)
+        s += s"$stat\n";
+      s += s"}\n";
+    }
+
+    return s;
+  }
+}
+
+case class forLoop(head : String, body : Array[String]) extends Node {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def toString_cpp : String = {
+    var s : String = "";
+
+    // HACK
+    if ("int e = 0; e < fragments.size(); ++e" == head) {
+      s += "#pragma omp parallel for schedule(static, 1)\n";
+    }
+
+    s += s"for ($head)\n{\n";
+    for (stat <- body)
+      s += s"$stat\n";
+    s += s"}\n";
+
+    return s;
+  }
+}
+
+abstract class Class extends Node {
   var className : String = "CLASS_NAME";
   var declarations : ListBuffer[String] = new ListBuffer[String];
   var cTorInitList : ListBuffer[String] = new ListBuffer[String];
@@ -44,7 +87,7 @@ case class Class extends Node {
   }
 }
 
-object FragmentClass extends Class {
+case class FragmentClass extends Class {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   var neighbors = new ListBuffer[NeighborInfo]();
@@ -55,20 +98,6 @@ object FragmentClass extends Class {
       neighbors += new NeighborInfo(Array(x, y, z));
     }
   }
-
-  override def toString_cpp : String = {
-    val writer = new PrintWriter(new File(s"C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Poisson3D/Primitives/Fragment3DCube_TEMP.h"));
-    writer.write(super.toString_cpp);
-    writer.close();
-    return "";
-  }
-}
-
-case class Fragment extends Node {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
-  FragmentClass.init;
-//  FragmentClass.addDeclarations;
 
   val functions : ListBuffer[String] = new ListBuffer()
   val members : ListBuffer[String] = new ListBuffer()
@@ -110,7 +139,13 @@ case class Fragment extends Node {
       members += s"\t${f.dataType}* ${f.codeName};\n";
   }
 
-  def toString_cpp : String = {
+  override def toString_cpp : String = {
+    {
+      val writer = new PrintWriter(new File(s"C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Poisson3D/Primitives/Fragment3DCube_TEMP.h"));
+      writer.write(super.toString_cpp);
+      writer.close();
+    }
+    
     var i = 0;
     for (f <- functions) {
       var s : String = "";
