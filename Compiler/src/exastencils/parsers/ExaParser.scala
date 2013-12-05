@@ -6,10 +6,10 @@ import scala.util.parsing.combinator.syntactical._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 
-class ExaParser extends StandardTokenParsers with scala.util.parsing.combinator.PackratParsers {
+class ExaParser extends StandardTokenParsers {
   override val lexical : ExaLexer = new ExaLexer()
-  var scanner : lexical.Scanner = null
-  var reader : scala.util.parsing.input.PagedSeqReader = null
+  //var scanner : lexical.Scanner = null
+  //var reader : scala.util.parsing.input.PagedSeqReader = null
 
   def locationize[T <: Annotatable](p : => Parser[T]) : Parser[T] = Parser { in =>
     p(in) match {

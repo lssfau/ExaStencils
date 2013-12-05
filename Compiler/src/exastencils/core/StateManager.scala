@@ -7,16 +7,13 @@ import exastencils.datastructures._
 import exastencils.datastructures.l4._
 
 object StateManager {
-  var root_ : Node = ForStatement(VariableDeclarationStatement(Variable("i", IntegerDatatype()), Some(Constant(1))),
-    new Constant(7), new Constant(11), List[Statement]())
+  var root_ : Node = null //= ForStatement(VariableDeclarationStatement(Variable("i", IntegerDatatype()), Some(Constant(1))), new Constant(7), new Constant(11), List[Statement]())
   protected var collectors_ = new ListBuffer[Collector]
 
-  protected class LogEntry() // tuple-lile
-
-  protected class ProtocalEntry(treeBefore : Node, appliedStrategy : Strategy)
+  protected class ProtocalEntry(stateBefore : Node, appliedStrategy : Strategy)
   protected var history_ = new Stack[ProtocalEntry]
-  protected def pushToHistory(treeBefore : Node, appliedStrategy : Strategy) = {
-    history_.push(new ProtocalEntry(treeBefore, appliedStrategy))
+  protected def pushToHistory(stateBefore : Node, appliedStrategy : Strategy) = {
+    history_.push(new ProtocalEntry(stateBefore, appliedStrategy))
   }
 
   def root = root_
@@ -102,7 +99,7 @@ object StateManager {
     strategy.transformations.foreach(t => {
       defStack.reset
       register(defStack)
-      ret = apply(root, t) // FIXME better handling if ret == false in traversal => i.e. abort traversal
+      apply(root, t) // FIXME better handling if ret == false in traversal => i.e. abort traversal
       unregister(defStack)
     })
     if (ret) {
