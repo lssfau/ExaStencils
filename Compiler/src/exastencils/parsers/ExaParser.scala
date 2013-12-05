@@ -8,8 +8,6 @@ import exastencils.datastructures.l4._
 
 class ExaParser extends StandardTokenParsers {
   override val lexical : ExaLexer = new ExaLexer()
-  //var scanner : lexical.Scanner = null
-  //var reader : scala.util.parsing.input.PagedSeqReader = null
 
   def locationize[T <: Annotatable](p : => Parser[T]) : Parser[T] = Parser { in =>
     p(in) match {
