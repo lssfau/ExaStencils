@@ -6,10 +6,6 @@ import exastencils.core._
 import exastencils.datastructures._
 import exastencils.primitives._
 
-object Knowledge {
-  val numGhostLayers = 1;
-}
-
 class IsNeighValid(neigh : NeighborInfo) {
   def toString_cpp : String = {
     var s : String = "";
@@ -225,7 +221,7 @@ case class SetupBuffers(fields : ListBuffer[Field]) extends Function("", new Lis
     var sizeArray = new ListBuffer[String]();
     for (i <- (0 to 2))
       if (0 == neighDir(i))
-        sizeArray += s"${Mapping.numPoints(9)}"; // FIXME: maxLevel
+        sizeArray += s"${Mapping.numPoints(Knowledge.maxLevel)}";
       else
         sizeArray += s"${Knowledge.numGhostLayers}";
 
@@ -739,10 +735,10 @@ class NeighInfo(var dir : Array[Int], level : Int) {
 
 }
 
-case class ExchangeDataSplitter(field : Field, maxLevel : Int) extends Function(
+case class ExchangeDataSplitter(field : Field) extends Function(
   head = s"void Fragment3DCube::exch${field.codeName} (std::vector<boost::shared_ptr<CurFragmentType> >& fragments, unsigned int level, unsigned int slot /*= 0*/)",
   body = ListBuffer(s"switch (level)\n{") ++
-    ((0 to maxLevel).toArray.map(level =>
+    ((0 to Knowledge.maxLevel).toArray.map(level =>
       s"case $level: exch${field.codeName}_$level(fragments, slot);\nbreak;").toArray) ++
     ListBuffer(s"}")) {
 

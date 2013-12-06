@@ -35,9 +35,9 @@ object GenCommCode extends (() => Unit) {
       case frag : FragmentClass =>
         frag.functions += new WaitForMPIReq;
         for (field <- frag.fields) {
-          val maxLevel = 9;
-          frag.functions += new ExchangeDataSplitter(field, maxLevel);
-          for (level <- (0 to maxLevel)) {
+          
+          frag.functions += new ExchangeDataSplitter(field);
+          for (level <- (0 to Knowledge.maxLevel)) {
             frag.functions += new ExchangeData(field, level);
           }
         }
