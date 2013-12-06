@@ -11,8 +11,8 @@ object Main {
       var constcount = 0
       var forcount = 0
 
-      StateManager.apply(new Transformation({ case x : Constant => constcount += 1; WARN(x); Some(x) }))
-      StateManager.apply(new Transformation({ case a : ForStatement => forcount += 1; Some(a) }))
+//      StateManager.apply(new Transformation({ case x : Constant => constcount += 1; WARN(x); Some(x) }))
+//      StateManager.apply(new Transformation({ case a : ForStatement => forcount += 1; Some(a) }))
 
       WARN(f"Counted $constcount consts and $forcount fors")
 
@@ -49,9 +49,19 @@ object Main {
     val result = p4.parseFile("/scratch-local/schmittch/ExaStencils/ScalaExaStencil/Compiler/examples/level4_simple.exa")
     
     StateManager.root_ = result
+
+    
+    println(StateManager.root_)
+    var replacingStrategy = new Strategy("replacing")
+    replacingStrategy += new Transformation({ case x : BinaryExpression => Some(BinaryExpression("XXX", Constant(0), Constant(0))) })
+//    replacingStrategy += new Transformation({ case x : BinaryExpression => throw TransformationException("omg") })
+    replacingStrategy.apply
+    
+    println(StateManager.root_)
     
     var positionStrategy = new Strategy("PositionStrategy")
-    positionStrategy += new Transformation({case x : Annotatable => x.getAnnotations.foreach(a => println(x + " " + a.name +" - "+ a.value)); Some(x) })
-    positionStrategy.apply
+    positionStrategy += new Transformation({case x : Annotatable => x.getAnnotations.foreach(a => println(x + " " + a.name + " - " + a.value)); Some(x) })
+    //positionStrategy.apply
+    
   }
 }

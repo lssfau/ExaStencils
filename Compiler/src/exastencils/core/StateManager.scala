@@ -44,106 +44,69 @@ object StateManager {
   def unregister(c : Collector) = { collectors_ -= c }
   def unregisterAll() = { collectors_.clear }
 
-  val defStack = new StackCollector
-
-  protected def replaceSubnode(node : Node, oldSub : Node, newSub : Node) : Boolean = { // protected: only to be used internally!
-    var ret = false
-    node.getClass.getDeclaredFields.foreach(f => {
-      val a = f.isAccessible()
-      f.setAccessible(true)
-      if (f.get(node) == oldSub) {
-        f.set(node, newSub)
-        ret = true
-      } else if (f.get(node).isInstanceOf[Some[_]] && f.get(node).asInstanceOf[Some[Object]].get == oldSub) {
-        f.set(node, Some(newSub))
-        ret = true
-      }
-      f.setAccessible(a)
-    })
-    return ret
+  protected def applyAtNode(node : Node, t : Transformation) : Option[Node] = {
+    if (t.function.isDefinedAt(node)) t.function(node) else Some(node)
   }
 
-  protected def apply(node : Node, t : Transformation) : Boolean = { // protected: only to be used internally!
-    var ret = true
+  protected def doReplace[T](node : Node, t : Transformation, field : java.lang.reflect.Field, oldNode : Any) = {
+    var subnode = oldNode
 
-    if (t.function.isDefinedAt(node)) {
-      val fret = t.function(node)
-      if ((fret != None) && (fret.get ne node)) {
-        ret = replaceSubnode(defStack.head, node, fret.get)
-      } // else WARN("did not replace with " + fret)
+    if (subnode.isInstanceOf[Some[_]]) subnode = subnode.asInstanceOf[Some[_]].get
+
+    if (subnode.isInstanceOf[Node]) {
+      var newSubnode = applyAtNode(subnode.asInstanceOf[Node], t).get
+      if (newSubnode ne subnode.asInstanceOf[Node]) {
+        field.set(node, newSubnode)
+      }
+      replace(newSubnode, t)
     }
-
-    if (!t.recursive) return ret
-
-    enterNodeNotifyCollectors(node)
-    node.getClass.getDeclaredFields.foreach(n => {
-      val method = node.getClass.getDeclaredMethods.find(m => m.getName == n.getName)
-      if (method.nonEmpty) {
-        var obj : Object = null
-        obj = method.get.invoke(node).asInstanceOf[Object]
-
-        if (obj.isInstanceOf[List[_]]) {
-          var list = obj.asInstanceOf[List[_]]
-
-          list.foreach(f => {
-            if (f.isInstanceOf[Node]) ret = apply(f.asInstanceOf[Node], t) // FIXME this is a hack
-          })
-
-        } else {
-
-          if (obj.isInstanceOf[Some[_]]) {
-            obj = obj.asInstanceOf[Some[Object]].get
-          }
-          // FIXME better handling if ret == false in traversal => i.e. abort traversal
-          if (obj.isInstanceOf[Node]) ret = apply(obj.asInstanceOf[Node], t) //else println("Found something strange: " + obj)
-        }
-      }
-    })
-    leaveNodeNotifyCollectors(node)
-    return ret
   }
 
-  def apply(transformation : Transformation) : Unit = { // protected: only to be used internally!
-    defStack.reset
-    register(defStack)
-    apply(root, transformation)
-    unregister(defStack)
+  protected def replace(node : Node, t : Transformation) : Unit = {
+    enterNodeNotifyCollectors(node)
+
+    node.getClass.getDeclaredFields.foreach(field => {
+      val accessible = field.isAccessible()
+      field.setAccessible(true)
+      var currentSubnode = field.get(node)
+
+      if (currentSubnode.isInstanceOf[Seq[_]]) {
+        var list = currentSubnode.asInstanceOf[Seq[_]]
+        val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
+
+        if (invalids.size <= 0) {
+          var newList = list.asInstanceOf[Seq[Node]].map(listitem => applyAtNode(listitem, t).get) // FIXME asof[List[Option[Node]]]
+          newList = newList.filterNot(listitem => listitem eq None)
+          field.set(node, newList)
+          newList.foreach(f => replace(f, t))
+        }
+      } else {
+        doReplace(node, t, field, currentSubnode)
+      }
+      field.setAccessible(accessible)
+    })
+
+    leaveNodeNotifyCollectors(node)
   }
 
   def defaultApply(strategy : Strategy) : Boolean = {
     // start transformation transaction
     History.transaction(strategy)
 
-    var ret = false
-    strategy.transformations.foreach(t => {
-      defStack.reset
-      register(defStack)
-      apply(root, t) // FIXME better handling if ret == false in traversal => i.e. abort traversal
-      unregister(defStack)
-    })
-    if (ret) {
+    try {
+      strategy.transformations.foreach(t => {
+        replace(root, t) // FIXME better handling if ret == false in traversal => i.e. abort traversal
+      })
       History.commit
-    } else {
-      WARN("Strategy did not apply successfully: " + strategy.name)
-      WARN("Rollback will be performed")
-      History.abort
+      return true
+    } catch {
+      case x : TransformationException => {
+        WARN(f"""Strategy "${strategy.name}" did not apply successfully""")
+        WARN(f"Message: ${x.msg}")
+        WARN(f"Rollback will be performed")
+        History.abort
+        return false
+      }
     }
-    ret
   }
-
-  def apply(strategy : Strategy) : Boolean = {
-    // start transformation transaction
-    History.transaction(strategy)
-
-    var ret = strategy.apply
-    if (ret) {
-      History.commit
-    } else {
-      WARN("Strategy did not apply successfully: " + strategy.name)
-      WARN("Rollback will be performed")
-      History.abort
-    }
-    ret
-  }
-
 }

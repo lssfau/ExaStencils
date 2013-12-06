@@ -7,3 +7,5 @@ class Transformation(f : PartialFunction[Node, Option[Node]], rec : Boolean = tr
   def recursive = rec
   def applyAt = node
 }
+
+case class TransformationException(msg : String) extends RuntimeException(msg)
