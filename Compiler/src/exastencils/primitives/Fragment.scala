@@ -1,13 +1,14 @@
 package exastencils.primitives
 
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.primitives._
+import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
 
 class IsNeighValid(neigh : NeighborInfo) {
-  def toString_cpp : String = {
+  def cpp : String = {
     var s : String = "";
 
     //s += s"fragments[e]->isValidNeigh_${neigh.label}";
@@ -18,7 +19,7 @@ class IsNeighValid(neigh : NeighborInfo) {
 }
 
 class FieldForLoop(indices : IndexRange, body : Array[String]) {
-  def toString_cpp : String = {
+  def cpp : String = {
     var s : String = "";
 
     for (i <- 2 to 0 by -1)
@@ -34,7 +35,7 @@ class FieldForLoop(indices : IndexRange, body : Array[String]) {
 }
 
 class FieldAccess(field : Field, level : Int, slot : Any/*FIXME: Int*/, index : String) {
-  def toString_cpp : String = {
+  def cpp : String = {
     var s : String = "";
 
     s += s"fragments[e]->${field.codeName}[$slot][$level]->data[$index]";
@@ -44,11 +45,11 @@ class FieldAccess(field : Field, level : Int, slot : Any/*FIXME: Int*/, index : 
 }
 
 class SetFieldToExpr(field : Field, level : Int, slot : Any/*FIXME: Int*/, indices : IndexRange, expr : String) {
-  def toString_cpp : String = {
+  def cpp : String = {
     var s : String = "";
 
     s += (new FieldForLoop(indices, Array(
-      (new FieldAccess(field, level, slot, Mapping.access(indices.level))).toString_cpp + s" = $expr;"))).toString_cpp;
+      (new FieldAccess(field, level, slot, Mapping.access(indices.level))).cpp + s" = $expr;"))).cpp;
 
     return s;
   }
@@ -88,17 +89,17 @@ class NeighborInfo(var dir : Array[Int]) {
   //  var codeExchLocal : String = "";
   //
   def addDeclarations(frag : FragmentClass) {
-    frag.declarations += s"MPI_Request request_$label;";
-    frag.declarations += s"bool reqOutstanding_$label;";
-    frag.cTorInitList += s"reqOutstanding_$label(false)";
+    frag.declarations += StringLiteral(s"MPI_Request request_$label;");
+    frag.declarations += StringLiteral(s"bool reqOutstanding_$label;");
+    frag.cTorInitList += StringLiteral(s"reqOutstanding_$label(false)");
 
-    frag.declarations += s"exa_real_t* sendBuffer_$label;";
-    frag.cTorInitList += s"sendBuffer_$label(0)";
-    frag.dTorBody += s"if (sendBuffer_$label) { delete [] sendBuffer_$label; sendBuffer_$label = 0; }";
+    frag.declarations += StringLiteral(s"exa_real_t* sendBuffer_$label;");
+    frag.cTorInitList += StringLiteral(s"sendBuffer_$label(0)");
+    frag.dTorBody += StringLiteral(s"if (sendBuffer_$label) { delete [] sendBuffer_$label; sendBuffer_$label = 0; }");
 
-    frag.declarations += s"exa_real_t* recvBuffer_$label;";
-    frag.cTorInitList += s"recvBuffer_$label(0)";
-    frag.dTorBody += s"if (recvBuffer_$label) { delete [] recvBuffer_$label; recvBuffer_$label = 0; }";
+    frag.declarations += StringLiteral(s"exa_real_t* recvBuffer_$label;");
+    frag.cTorInitList += StringLiteral(s"recvBuffer_$label(0)");
+    frag.dTorBody += StringLiteral(s"if (recvBuffer_$label) { delete [] recvBuffer_$label; recvBuffer_$label = 0; }");
   }
 
   def getCode_TreatBC(field : Field, level : Int, slot : Any/*FIXME: Int*/) : String = {
@@ -106,8 +107,8 @@ class NeighborInfo(var dir : Array[Int]) {
 
     if (field.bcDir0) {
       code += (new ifCond(
-        (new IsNeighValid(this)).toString_cpp,
-        Array((new SetFieldToExpr(field, level, slot, fieldToIndexBorder2(dir, level), "0.0")).toString_cpp))).toString_cpp;
+        (new IsNeighValid(this)).cpp,
+        Array((new SetFieldToExpr(field, level, slot, fieldToIndexBorder2(dir, level), "0.0")).cpp))).cpp;
     }
 
     return code;
@@ -121,7 +122,7 @@ class NeighborInfo(var dir : Array[Int]) {
   //        s"for (unsigned int ${dimToString(i)} = ${indexInner.begin(i)}; ${dimToString(i)} <= ${indexInner.end(i)}; ++${dimToString(i)})\n") ++
   //        Array(
   //          s"neighMem_$label[${Mapping.access(indexOpposingOuter.level, s"(z - (${indexInner.begin(2)}) + (${indexOpposingOuter.begin(2)}))", s"(y - (${indexInner.begin(1)}) + (${indexOpposingOuter.begin(1)}))", s"(x - (${indexInner.begin(0)}) + (${indexOpposingOuter.begin(0)}))")}]" +
-  //            s" = localMem[${Mapping.access(indexInner.level)}];\n"))).toString_cpp;
+  //            s" = localMem[${Mapping.access(indexInner.level)}];\n"))).cpp;
   //  }
 }
 
@@ -455,7 +456,7 @@ object fieldToIndexBorder extends ((Array[Int], String, Int) => IndexRange) {
 */
 
 class CopyLocalToBuffer(field : String, buffer : String, indices : IndexRange) {
-  def toString_cpp : String = {
+  def cpp : String = {
     var s : String = "";
     s += "size_t entry = 0;\n";
 
@@ -469,7 +470,7 @@ class CopyLocalToBuffer(field : String, buffer : String, indices : IndexRange) {
 };
 
 class CopyBufferToLocal(field : String, buffer : String, indices : IndexRange) {
-  def toString_cpp : String = {
+  def cpp : String = {
     var s : String = "";
     s += "size_t entry = 0;\n";
 
@@ -483,7 +484,7 @@ class CopyBufferToLocal(field : String, buffer : String, indices : IndexRange) {
 };
 
 class CopyLocalToLocal(fieldSrc : String, indicesSrc : IndexRange, fieldDest : String, indicesDest : IndexRange) {
-  def toString_cpp : String = {
+  def cpp : String = {
     var s : String = "";
 
     for (i <- 2 to 0 by -1)
@@ -498,7 +499,7 @@ class CopyLocalToLocal(fieldSrc : String, indicesSrc : IndexRange, fieldDest : S
 };
 
 //class CopyLocalToLocalHACK(fieldSrc : String, indicesSrc : IndexRange, fieldDest : String, indicesDest : IndexRange) {
-//  def toString_cpp : String = {
+//  def cpp : String = {
 //    var s : String = "";
 //
 //    for (i <- 2 to 0 by -1)
@@ -510,8 +511,10 @@ class CopyLocalToLocal(fieldSrc : String, indicesSrc : IndexRange, fieldDest : S
 //  }
 //};
 
-class CopyLocalToLocalHACK(fieldSrc : String, indicesSrc : IndexRange, fieldDest : String, indicesDest : IndexRange) {
-  def toString_cpp : String = {
+case class CopyLocalToLocalHACK(fieldSrc : String, indicesSrc : IndexRange, fieldDest : String, indicesDest : IndexRange) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def cpp : String = {
     var s : String = "";
 
     for (i <- 2 to 0 by -1)
@@ -523,8 +526,10 @@ class CopyLocalToLocalHACK(fieldSrc : String, indicesSrc : IndexRange, fieldDest
   }
 };
 
-class SetDataZero(field : String, indices : IndexRange) {
-  def toString_cpp : String = {
+case class SetDataZero(field : String, indices : IndexRange) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def cpp : String = {
     var s : String = "";
 
     for (i <- 2 to 0 by -1)
@@ -536,8 +541,10 @@ class SetDataZero(field : String, indices : IndexRange) {
   }
 };
 
-class SendBuffer(buffer : String, rank : String, tag : String, synchronous : Boolean = true, request : String = "request") {
-  def toString_cpp : String = {
+case class SendBuffer(buffer : String, rank : String, tag : String, synchronous : Boolean = true, request : String = "request") extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def cpp : String = {
     var s : String = "";
     // TODO: calculate number of entries
 
@@ -556,8 +563,10 @@ class SendBuffer(buffer : String, rank : String, tag : String, synchronous : Boo
   }
 };
 
-class RecvBuffer(buffer : String, rank : String, tag : String, size : String, synchronous : Boolean = true) {
-  def toString_cpp : String = {
+case class RecvBuffer(buffer : String, rank : String, tag : String, size : String, synchronous : Boolean = true) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def cpp : String = {
     var s : String = "";
     // TODO: calculate number of entries
 
@@ -581,8 +590,10 @@ class RecvBuffer(buffer : String, rank : String, tag : String, size : String, sy
   }
 };
 
-class TreatNeighSend(field : Field, neighName : String, indicesLocal : IndexRange, indicesNeigh : IndexRange, level : Int) {
-  def toString_cpp : String = {
+case class TreatNeighSend(field : Field, neighName : String, indicesLocal : IndexRange, indicesNeigh : IndexRange, level : Int) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def cpp : String = {
     var s : String = "";
     s += (new ifCond(
       s"FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN].location",
@@ -591,43 +602,49 @@ class TreatNeighSend(field : Field, neighName : String, indicesLocal : IndexRang
         (new ifCond(s"curNeigh.isRemote",
           Array(
             //"if (1 == mpiRank) LOG_NOTE(\"Sending from \" << fragments[e]->id << \" to \" << curNeigh.fragId);",
-            (new CopyLocalToBuffer(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->sendBuffer_$neighName", indicesLocal)).toString_cpp,
-            (new SendBuffer(s"fragments[e]->sendBuffer_$neighName", s"curNeigh.remoteRank", s"((unsigned int)fragments[e]->id << 16) + ((unsigned int)curNeigh.fragId & 0x0000ffff)", true, s"fragments[e]->request_$neighName")).toString_cpp,
+            (new CopyLocalToBuffer(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->sendBuffer_$neighName", indicesLocal)).cpp,
+            (new SendBuffer(s"fragments[e]->sendBuffer_$neighName", s"curNeigh.remoteRank", s"((unsigned int)fragments[e]->id << 16) + ((unsigned int)curNeigh.fragId & 0x0000ffff)", true, s"fragments[e]->request_$neighName")).cpp,
             s"fragments[e]->reqOutstanding_$neighName = true;"),
           Array(
-            (new CopyLocalToLocal(s"fragments[e]->${field.codeName}[slot][$level]", indicesLocal, s"curNeigh.fragment->get${field.codeName}($level, slot)", indicesNeigh)).toString_cpp))).toString_cpp))).toString_cpp;
+            (new CopyLocalToLocal(s"fragments[e]->${field.codeName}[slot][$level]", indicesLocal, s"curNeigh.fragment->get${field.codeName}($level, slot)", indicesNeigh)).cpp))).cpp))).cpp;
     return s;
   }
 }
 
-class TreatNeighSendRemote(field : Field, neighName : String, indicesLocal : IndexRange, indicesNeigh : IndexRange, level : Int) {
-  def toString_cpp : String = {
+case class TreatNeighSendRemote(field : Field, neighName : String, indicesLocal : IndexRange, indicesNeigh : IndexRange, level : Int) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def cpp : String = {
     var s : String = "";
     s += (new ifCond(
       s"FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN].location && fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN].isRemote",
       Array(
         s"FragmentNeighInfo& curNeigh = fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN];",
         //"if (1 == mpiRank) LOG_NOTE(\"Sending from \" << fragments[e]->id << \" to \" << curNeigh.fragId);",
-        (new CopyLocalToBuffer(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->sendBuffer_$neighName", indicesLocal)).toString_cpp,
-        (new SendBuffer(s"fragments[e]->sendBuffer_$neighName", s"curNeigh.remoteRank", s"((unsigned int)fragments[e]->id << 16) + ((unsigned int)curNeigh.fragId & 0x0000ffff)", true, s"fragments[e]->request_$neighName")).toString_cpp,
-        s"fragments[e]->reqOutstanding_$neighName = true;"))).toString_cpp;
+        (new CopyLocalToBuffer(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->sendBuffer_$neighName", indicesLocal)).cpp,
+        (new SendBuffer(s"fragments[e]->sendBuffer_$neighName", s"curNeigh.remoteRank", s"((unsigned int)fragments[e]->id << 16) + ((unsigned int)curNeigh.fragId & 0x0000ffff)", true, s"fragments[e]->request_$neighName")).cpp,
+        s"fragments[e]->reqOutstanding_$neighName = true;"))).cpp;
     return s;
   }
 }
 
-class TreatNeighSendLocal(field : Field, neighName : String, indicesLocal : IndexRange, indicesNeigh : IndexRange, level : Int) {
-  def toString_cpp : String = {
+case class TreatNeighSendLocal(field : Field, neighName : String, indicesLocal : IndexRange, indicesNeigh : IndexRange, level : Int) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def cpp : String = {
     var s : String = "";
     s += (new ifCond(
       s"isValid_$neighName",
       Array(
-        (new CopyLocalToLocalHACK(s"localMem", indicesLocal, s"neighMem_$neighName", indicesNeigh)).toString_cpp))).toString_cpp;
+        (new CopyLocalToLocalHACK(s"localMem", indicesLocal, s"neighMem_$neighName", indicesNeigh)).cpp))).cpp;
     return s;
   }
 }
 
-class TreatNeighRecv(field : Field, neighName : String, indices : IndexRange, level : Int) {
-  def toString_cpp : String = {
+case class TreatNeighRecv(field : Field, neighName : String, indices : IndexRange, level : Int) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def cpp : String = {
     var s : String = "";
     s += (new ifCond(
       s"FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN].location",
@@ -637,14 +654,16 @@ class TreatNeighRecv(field : Field, neighName : String, indices : IndexRange, le
           Array(
             //"if (1 == mpiRank) LOG_NOTE(\"Receiving from \" << curNeigh.fragId << \" to \" << fragments[e]->id);",
             (new RecvBuffer(s"fragments[e]->recvBuffer_$neighName", s"curNeigh.remoteRank", s"((unsigned int)curNeigh.fragId << 16) + ((unsigned int)fragments[e]->id & 0x0000ffff)",
-              s"NUM_GHOST_LAYERS * fragments[e]->${field.codeName}[slot][$level]->numDataPointsPerDim.y * fragments[e]->${field.codeName}[slot][$level]->numDataPointsPerDim.z", false)).toString_cpp,
-            (new CopyBufferToLocal(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->recvBuffer_$neighName", indices)).toString_cpp))).toString_cpp))).toString_cpp;
+              s"NUM_GHOST_LAYERS * fragments[e]->${field.codeName}[slot][$level]->numDataPointsPerDim.y * fragments[e]->${field.codeName}[slot][$level]->numDataPointsPerDim.z", false)).cpp,
+            (new CopyBufferToLocal(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->recvBuffer_$neighName", indices)).cpp))).cpp))).cpp;
     return s;
   }
 }
 
-class TreatNeighFinish(neighName : String) {
-  def toString_cpp : String = {
+case class TreatNeighFinish(neighName : String) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def cpp : String = {
     var s : String = "";
 
     s += (new ifCond(s"fragments[e]->reqOutstanding_$neighName",
@@ -653,21 +672,23 @@ class TreatNeighFinish(neighName : String) {
         s"{",
         s"waitForMPIReq(&fragments[e]->request_$neighName);",
         s"}",
-        s"fragments[e]->reqOutstanding_$neighName = false;"))).toString_cpp;
+        s"fragments[e]->reqOutstanding_$neighName = false;"))).cpp;
 
     return s;
   }
 }
 
-class TreatNeighBC(field : Field, neighName : String, indices : IndexRange, level : Int) {
-  def toString_cpp : String = {
+case class TreatNeighBC(field : Field, neighName : String, indices : IndexRange, level : Int) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def cpp : String = {
     var s : String = "";
 
     if (field.bcDir0) {
       s += (new ifCond(
         s"FRAG_INVALID == fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN].location",
         Array(
-          (new SetDataZero(s"fragments[e]->${field.codeName}[slot][$level]", indices)).toString_cpp))).toString_cpp;
+          (new SetDataZero(s"fragments[e]->${field.codeName}[slot][$level]", indices)).cpp))).cpp;
     }
     return s;
   }
@@ -701,46 +722,43 @@ class NeighInfo(var dir : Array[Int], level : Int) {
     indexOpposingBorder = fieldToIndexBorder(dir.map(i => -i), s"fragments[e]->${field.codeName}[slot][$level]", level);
   }
 
-  var codeInit : String = "";
-  var codeTreatBC : String = "";
-  var codeExchLocal : String = "";
+  var codeInit : Expression = "";
+  var codeTreatBC : Expression = "";
+  var codeExchLocal : Expression = "";
 
-//  def addCodeInit(field : Field) {
-//    codeInit += s"isValid_$label = (FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_$label - FRAG_CUBE_ZN_YN_XN].location && !fragments[e]->neigh[FRAG_CUBE_$label - FRAG_CUBE_ZN_YN_XN].isRemote);\n";
-//    codeInit += s"neighMem_$label = isValid_$label ? fragments[e]->neigh[FRAG_CUBE_$label - FRAG_CUBE_ZN_YN_XN].fragment->get${field.codeName}($level, slot)->data : 0;\n";
-//  }
+  //  def addCodeInit(field : Field) {
+  //    codeInit += s"isValid_$label = (FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_$label - FRAG_CUBE_ZN_YN_XN].location && !fragments[e]->neigh[FRAG_CUBE_$label - FRAG_CUBE_ZN_YN_XN].isRemote);\n";
+  //    codeInit += s"neighMem_$label = isValid_$label ? fragments[e]->neigh[FRAG_CUBE_$label - FRAG_CUBE_ZN_YN_XN].fragment->get${field.codeName}($level, slot)->data : 0;\n";
+  //  }
 
   def addTreatBC(field : Field) {
-    codeTreatBC = "";
     if (field.bcDir0) {
-      codeTreatBC += (new ifCond(
+      codeTreatBC = new ifCond(
         s"FRAG_INVALID == fragments[e]->neigh[FRAG_CUBE_$label - FRAG_CUBE_ZN_YN_XN].location",
-        Array(
-          (new SetDataZero(s"fragments[e]->${field.codeName}[slot][$level]", indexBorder)).toString_cpp))).toString_cpp;
+        Array(new SetDataZero(s"fragments[e]->${field.codeName}[slot][$level]", indexBorder)));
     }
   }
 
   def addExchLocal = {
-    codeExchLocal = "";
-    codeExchLocal += (new ifCond(
+    codeExchLocal = new ifCond(
       s"isValid_$label",
       (2 to 0 by -1).toArray.map(i =>
-        s"for (unsigned int ${dimToString(i)} = ${indexInner.begin(i)}; ${dimToString(i)} <= ${indexInner.end(i)}; ++${dimToString(i)})\n") ++
-        Array(
+        StringLiteral(s"for (unsigned int ${dimToString(i)} = ${indexInner.begin(i)}; ${dimToString(i)} <= ${indexInner.end(i)}; ++${dimToString(i)})\n")) ++
+        Array[StringLiteral](
           s"neighMem_$label[${Mapping.access(indexOpposingOuter.level, s"(z - (${indexInner.begin(2)}) + (${indexOpposingOuter.begin(2)}))", s"(y - (${indexInner.begin(1)}) + (${indexOpposingOuter.begin(1)}))", s"(x - (${indexInner.begin(0)}) + (${indexOpposingOuter.begin(0)}))")}]" +
-            s" = localMem[${Mapping.access(indexInner.level)}];\n"))).toString_cpp;
+            s" = localMem[${Mapping.access(indexInner.level)}];\n"));
   }
-  
-  // (new TreatNeighRecv(field, neigh.label, neigh.indexOuter, level)).toString_cpp).toArray)).toString_cpp;
+
+  // (new TreatNeighRecv(field, neigh.label, neigh.indexOuter, level)).cpp).toArray)).cpp;
 
 }
 
 case class ExchangeDataSplitter(field : Field) extends Function(
   head = s"void Fragment3DCube::exch${field.codeName} (std::vector<boost::shared_ptr<CurFragmentType> >& fragments, unsigned int level, unsigned int slot /*= 0*/)",
-  body = ListBuffer(s"switch (level)\n{") ++
+  body = ListBuffer(StringLiteral(s"switch (level)\n{")) ++
     ((0 to Knowledge.maxLevel).toArray.map(level =>
-      s"case $level: exch${field.codeName}_$level(fragments, slot);\nbreak;").toArray) ++
-    ListBuffer(s"}")) {
+      StringLiteral(s"case $level: exch${field.codeName}_$level(fragments, slot);\nbreak;")).toArray) ++
+    ListBuffer(StringLiteral(s"}"))) {
 
   override def duplicate = this.copy().asInstanceOf[this.type]
 }
@@ -765,8 +783,10 @@ case class ExchangeData_6(field : Field, level : Int) extends Function("", new L
 
   // handle BC
   body += (new LoopOverFragments(
-    neighbors.map(neigh =>
-      (new TreatNeighBC(field, neigh.label, fieldToIndexBorder(neigh.dir, fieldName, level), level)).toString_cpp).toArray)).toForLoop.toString_cpp;
+    neighbors.map(neigh => (
+      new TreatNeighBC(
+        field, neigh.label, fieldToIndexBorder(
+          neigh.dir, fieldName, level), level))).toArray)).toForLoop;
 
   // sync duplicate values
   for (dim <- 0 to 2) {
@@ -774,15 +794,15 @@ case class ExchangeData_6(field : Field, level : Int) extends Function("", new L
       Array(
         (new TreatNeighSend(field, neighbors(2 * dim + 1).label,
           neighbors(2 * dim + 1).indexBorder,
-          neighbors(2 * dim + 1).indexOpposingBorder, level)).toString_cpp))).toForLoop.toString_cpp;
+          neighbors(2 * dim + 1).indexOpposingBorder, level)).cpp))).toForLoop;
 
     body += (new LoopOverFragments(
       Array(
-        (new TreatNeighRecv(field, neighbors(2 * dim + 0).label, neighbors(2 * dim + 0).indexBorder, level)).toString_cpp))).toForLoop.toString_cpp;
+        (new TreatNeighRecv(field, neighbors(2 * dim + 0).label, neighbors(2 * dim + 0).indexBorder, level)).cpp))).toForLoop;
 
     body += (new LoopOverFragments(
       Array(
-        (new TreatNeighFinish(neighbors(2 * dim + 1).label)).toString_cpp))).toForLoop.toString_cpp;
+        (new TreatNeighFinish(neighbors(2 * dim + 1).label)).cpp))).toForLoop;
   }
 
   // update ghost layers
@@ -790,15 +810,15 @@ case class ExchangeData_6(field : Field, level : Int) extends Function("", new L
     body += (new LoopOverFragments(
       Array(0, 1).map(dir =>
         (new TreatNeighSend(field, neighbors(2 * dim + dir).label, neighbors(2 * dim + dir).indexInner,
-          neighbors(2 * dim + dir).indexOpposingOuter, level)).toString_cpp).toArray)).toForLoop.toString_cpp;
+          neighbors(2 * dim + dir).indexOpposingOuter, level))).toArray)).toForLoop;
 
     body += (new LoopOverFragments(
       Array(0, 1).map(dir =>
-        (new TreatNeighRecv(field, neighbors(2 * dim + dir).label, neighbors(2 * dim + dir).indexOuter, level)).toString_cpp).toArray)).toForLoop.toString_cpp;
+        (new TreatNeighRecv(field, neighbors(2 * dim + dir).label, neighbors(2 * dim + dir).indexOuter, level))).toArray)).toForLoop;
 
     body += (new LoopOverFragments(
       Array(0, 1).map(dir =>
-        (new TreatNeighFinish(neighbors(2 * dim + dir).label)).toString_cpp).toArray)).toForLoop.toString_cpp;
+        (new TreatNeighFinish(neighbors(2 * dim + dir).label))).toArray)).toForLoop;
   }
 }
 
@@ -826,49 +846,49 @@ case class ExchangeData_26(field : Field, level : Int) extends Function("", new 
   //body += "int mpiRank; MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);\n";
 
   // handle BC
-  // TODO: body += (new LoopOverFragments(new HandleBC(field))).toString_cpp;
-  body += (new LoopOverFragments(neighbors.map(neigh => neigh.codeTreatBC).toArray)).toForLoop.toString_cpp;
-  //FragmentClass.neighbors.map(neigh => neigh.getCode_TreatBC(field, level, "slot")).toArray)).toString_cpp;
+  // TODO: body += (new LoopOverFragments(new HandleBC(field))).cpp;
+  body += (new LoopOverFragments(neighbors.map(neigh => neigh.codeTreatBC).toArray)).toForLoop;
+  //FragmentClass.neighbors.map(neigh => neigh.getCode_TreatBC(field, level, "slot")).toArray)).cpp;
 
   // sync duplicate values
   body += (new LoopOverFragments(
     neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh =>
       (new TreatNeighSend(field, neigh.label, neigh.indexBorder,
-        neigh.indexOpposingBorder, level)).toString_cpp).toArray)).toForLoop.toString_cpp;
+        neigh.indexOpposingBorder, level))).toArray)).toForLoop;
 
   body += (new LoopOverFragments(
     neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0).map(neigh =>
-      (new TreatNeighRecv(field, neigh.label, neigh.indexBorder, level)).toString_cpp).toArray)).toForLoop.toString_cpp;
+      (new TreatNeighRecv(field, neigh.label, neigh.indexBorder, level))).toArray)).toForLoop;
 
   body += (new LoopOverFragments(
     neighbors.map(neigh =>
-      (new TreatNeighFinish(neigh.label)).toString_cpp).toArray)).toForLoop.toString_cpp;
+      (new TreatNeighFinish(neigh.label))).toArray)).toForLoop;
 
   // update ghost layers
   //      s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
   //        neighbors.map(neigh =>
   //          (new TreatNeighSend(field, neigh.label, neigh.indexInner,
-  //            neigh.indexOpposingOuter, level)).toString_cpp).toArray)).toString_cpp;
+  //            neigh.indexOpposingOuter, level)).cpp).toArray)).cpp;
   body += (new LoopOverFragments(
     neighbors.map(neigh =>
       (new TreatNeighSendRemote(field, neigh.label, neigh.indexInner,
-        neigh.indexOpposingOuter, level)).toString_cpp).toArray)).toForLoop.toString_cpp;
+        neigh.indexOpposingOuter, level))).toArray)).toForLoop;
   body += "//BEGIN LOCAL COMMUNICATION\n";
-  body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
-    Array(
+  body += (new LoopOverFragments(
+    Array[Array[Expression]](
       Array(s"exa_real_t* localMem = fragments[e]->${field.codeName}[slot][$level]->data;"),
       neighbors.map(neigh =>
-        s"bool isValid_${neigh.label} = (FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].location && !fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].isRemote);").toArray,
+        StringLiteral(s"bool isValid_${neigh.label} = (FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].location && !fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].isRemote);")).toArray,
       neighbors.map(neigh =>
-        s"exa_real_t* neighMem_${neigh.label} = isValid_${neigh.label} ? fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].fragment->get${field.codeName}($level, slot)->data : 0;").toArray,
-      neighbors.map(neigh => neigh.codeExchLocal).toArray).flatten)).toString_cpp;
+        StringLiteral(s"exa_real_t* neighMem_${neigh.label} = isValid_${neigh.label} ? fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].fragment->get${field.codeName}($level, slot)->data : 0;")).toArray,
+      neighbors.map(neigh => neigh.codeExchLocal).toArray).flatten)).toForLoop;
   body += "//END LOCAL COMMUNICATION\n";
 
   body += (new LoopOverFragments(
     neighbors.map(neigh =>
-      (new TreatNeighRecv(field, neigh.label, neigh.indexOuter, level)).toString_cpp).toArray)).toForLoop.toString_cpp;
+      (new TreatNeighRecv(field, neigh.label, neigh.indexOuter, level))).toArray)).toForLoop;
 
   body += (new LoopOverFragments(
     neighbors.map(neigh =>
-      (new TreatNeighFinish(neigh.label)).toString_cpp).toArray)).toForLoop.toString_cpp;
+      (new TreatNeighFinish(neigh.label))).toArray)).toForLoop;
 }

@@ -54,7 +54,7 @@ object GenCommCode extends (() => Unit) {
 
     StateManager.apply(new Transformation({
       case frag : FragmentClass =>
-        frag.toString_cpp;
+        frag.cpp;
         Some(frag);
     }));
 
