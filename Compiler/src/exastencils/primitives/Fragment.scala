@@ -858,8 +858,8 @@ case class ExchangeData_26(field : Field, level : Int) extends Function("", new 
   //body += "int mpiRank; MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);\n";
 
   // handle BC
-  //TODO: body += new LoopOverFragments(Array(new HandleBoundaries(neighbors)));
-  body += (new LoopOverFragments(neighbors.map(neigh => neigh.codeTreatBC).toArray)).toForLoop;
+  body += new LoopOverFragments(Array(new HandleBoundaries(neighbors)));
+  //body += (new LoopOverFragments(neighbors.map(neigh => neigh.codeTreatBC).toArray)).toForLoop;
   //FragmentClass.neighbors.map(neigh => neigh.getCode_TreatBC(field, level, "slot")).toArray)).cpp;
 
   // sync duplicate values
