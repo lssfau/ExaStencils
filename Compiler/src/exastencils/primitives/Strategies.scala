@@ -33,12 +33,12 @@ object GenCommCode extends (() => Unit) {
 
     StateManager.apply(new Transformation({
       case frag : FragmentClass =>
-        frag.functions += (new WaitForMPIReq).toString_cpp;
+        frag.functions += new WaitForMPIReq;
         for (field <- frag.fields) {
           val maxLevel = 9;
-          frag.functions += (new ExchangeDataSplitter(field, maxLevel)).toString_cpp;
+          frag.functions += new ExchangeDataSplitter(field, maxLevel);
           for (level <- (0 to maxLevel)) {
-            frag.functions += (new ExchangeData(field, level)).toString_cpp;
+            frag.functions += new ExchangeData(field, level);
           }
         }
         Some(frag);
@@ -46,9 +46,9 @@ object GenCommCode extends (() => Unit) {
 
     StateManager.apply(new Transformation({
       case frag : FragmentClass =>
-        frag.functions += (new ConnectLocalElement().toString_cpp);
-        frag.functions += (new ConnectRemoteElement().toString_cpp);
-        frag.functions += (new SetupBuffers(frag.fields).toString_cpp);
+        frag.functions += new ConnectLocalElement();
+        frag.functions += new ConnectRemoteElement();
+        frag.functions += new SetupBuffers(frag.fields);
         Some(frag);
     }));
 

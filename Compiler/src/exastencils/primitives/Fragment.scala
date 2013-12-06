@@ -152,131 +152,105 @@ object dirToString extends (Int => String) {
   }
 };
 
-class ConnectLocalElement() {
-  def toString_cpp : String = {
-    var s : String = "";
-
-    s += s"void Fragment3DCube::connectLocalElement (FRAGMENT_LOCATION location, boost::shared_ptr<CurFragmentType> fragment)\n\t{\n";
-    s += "ASSERT_WARNING((fragment), \"Invalid fragment pointer detected\", return);\n";
-
-    s += s"FragmentNeighInfo& ref = neigh[location - FRAG_CUBE_ZN_YN_XN];\n";
-    s += s"ref.location	= location;\n";
-    s += s"ref.isRemote	= false;\n";
-    s += s"ref.fragment	= fragment;\n";
-    s += s"ref.fragId		= fragment->getId();\n";
-
-    s += s"\t}\n";
-
-    return s;
-  }
+case class ConnectLocalElement() extends Function(
+  s"void Fragment3DCube::connectLocalElement (FRAGMENT_LOCATION location, boost::shared_ptr<CurFragmentType> fragment)",
+  ListBuffer(
+    "ASSERT_WARNING((fragment), \"Invalid fragment pointer detected\", return);",
+    s"FragmentNeighInfo& ref = neigh[location - FRAG_CUBE_ZN_YN_XN];",
+    s"ref.location	= location;",
+    s"ref.isRemote	= false;",
+    s"ref.fragment	= fragment;",
+    s"ref.fragId		= fragment->getId();")) {
+  
+  override def duplicate = this.copy().asInstanceOf[this.type]
 }
 
-class ConnectRemoteElement() {
-  def toString_cpp : String = {
-    var s : String = "";
-
-    s += s"void Fragment3DCube::connectRemoteElement (FRAGMENT_LOCATION location, exa_id_t id, int remoteRank)\n\t{\n";
-
-    s += s"FragmentNeighInfo& ref = neigh[location - FRAG_CUBE_ZN_YN_XN];\n";
-    s += s"ref.location	= location;\n";
-    s += s"ref.isRemote	= true;\n";
-    s += s"ref.fragment	= boost::shared_ptr<CurFragmentType>();\n";
-    s += s"ref.fragId		= id;\n";
-    s += s"ref.remoteRank	= remoteRank;\n";
-
-    s += s"\t}\n";
-
-    return s;
-  }
+case class ConnectRemoteElement() extends Function(
+  s"void Fragment3DCube::connectRemoteElement (FRAGMENT_LOCATION location, exa_id_t id, int remoteRank)",
+  ListBuffer(
+    s"FragmentNeighInfo& ref = neigh[location - FRAG_CUBE_ZN_YN_XN];",
+    s"ref.location	= location;",
+    s"ref.isRemote	= true;",
+    s"ref.fragment	= boost::shared_ptr<CurFragmentType>();",
+    s"ref.fragId		= id;",
+    s"ref.remoteRank	= remoteRank;")) {
+  
+  override def duplicate = this.copy().asInstanceOf[this.type]
 }
 
-class SetupBuffers(fields : ListBuffer[Field]) {
-  def toString_cpp : String = {
-    var s : String = "";
+case class SetupBuffers(fields : ListBuffer[Field]) extends Function("", new ListBuffer()) {
+  override def duplicate = this.copy().asInstanceOf[this.type]
 
-    s += s"void Fragment3DCube::setupBuffers ()\n\t{\n";
+  head = s"void Fragment3DCube::setupBuffers ()";
 
-    for (field <- fields) {
-      s += s"for (unsigned int s = 0; s < ${field.numSlots}; ++s)\n";
-      s += s"${field.codeName}[s].reserve(getNumLevels());\n";
-    }
+  for (field <- fields) {
+    body += s"for (unsigned int s = 0; s < ${field.numSlots}; ++s)\n";
+    body += s"${field.codeName}[s].reserve(getNumLevels());\n";
+  }
 
-    s += s"for (unsigned int l = 0; l < NUM_LEVELS; ++l)\n{\n";
-    s += s"unsigned int numDataPoints = (1u << l) + 1 + 2 * NUM_GHOST_LAYERS;\n";
-    for (field <- fields) {
-      s += s"for (unsigned int s = 0; s < ${field.numSlots}; ++s)\n";
-      s += s"${field.codeName}[s].push_back(new PayloadContainer_1Real(Vec3u(numDataPoints, numDataPoints, numDataPoints), 1));\n";
-      //s += s"${field.codeName}[s].push_back(boost::shared_ptr<PayloadContainer_1Real>(new PayloadContainer_1Real(Vec3u(numDataPoints, numDataPoints, numDataPoints), 1)));\n";
-    }
-    s += s"}\n";
+  body += s"for (unsigned int l = 0; l < NUM_LEVELS; ++l)\n{\n";
+  body += s"unsigned int numDataPoints = (1u << l) + 1 + 2 * NUM_GHOST_LAYERS;\n";
+  for (field <- fields) {
+    body += s"for (unsigned int s = 0; s < ${field.numSlots}; ++s)\n";
+    body += s"${field.codeName}[s].push_back(new PayloadContainer_1Real(Vec3u(numDataPoints, numDataPoints, numDataPoints), 1));\n";
+  }
+  body += s"}\n";
 
-    s += s"unsigned int maxNumPointsPerDim = (1u << (NUM_LEVELS - 1)) + 1 + 2 * NUM_GHOST_LAYERS;\n";
-    s += s"recvBuffer = new exa_real_t[(NUM_GHOST_LAYERS + 1) * maxNumPointsPerDim * maxNumPointsPerDim];\n";
-    s += s"sendBuffer = new exa_real_t[(NUM_GHOST_LAYERS + 1) * maxNumPointsPerDim * maxNumPointsPerDim];\n";
-    //s += s"recvBuffer = boost::shared_array<exa_real_t>(new exa_real_t[(NUM_GHOST_LAYERS + 1) * maxNumPointsPerDim * maxNumPointsPerDim]);\n";
-    //s += s"sendBuffer = boost::shared_array<exa_real_t>(new exa_real_t[(NUM_GHOST_LAYERS + 1) * maxNumPointsPerDim * maxNumPointsPerDim]);\n";
+  body += s"unsigned int maxNumPointsPerDim = (1u << (NUM_LEVELS - 1)) + 1 + 2 * NUM_GHOST_LAYERS;\n";
+  body += s"recvBuffer = new exa_real_t[(NUM_GHOST_LAYERS + 1) * maxNumPointsPerDim * maxNumPointsPerDim];\n";
+  body += s"sendBuffer = new exa_real_t[(NUM_GHOST_LAYERS + 1) * maxNumPointsPerDim * maxNumPointsPerDim];\n";
 
-    val neighbors : ListBuffer[(Array[Int], String)] = new ListBuffer();
-    for (z <- -1 to 1) {
-      for (y <- -1 to 1) {
-        for (x <- -1 to 1) {
-          val mod = Array("N", "0", "P")
-          if (0 != x || 0 != y || 0 != z) {
-            neighbors += ((Array(x, y, z), s"Z${mod(z + 1)}_Y${mod(y + 1)}_X${mod(x + 1)}"));
-          }
+  val neighbors : ListBuffer[(Array[Int], String)] = new ListBuffer();
+  for (z <- -1 to 1) {
+    for (y <- -1 to 1) {
+      for (x <- -1 to 1) {
+        val mod = Array("N", "0", "P")
+        if (0 != x || 0 != y || 0 != z) {
+          neighbors += ((Array(x, y, z), s"Z${mod(z + 1)}_Y${mod(y + 1)}_X${mod(x + 1)}"));
         }
       }
     }
+  }
 
-    //s += s"unsigned int maxNumPointsPerDim = (1u << (NUM_LEVELS - 1)) + 1 + 2 * NUM_GHOST_LAYERS;\n";
-    for (neigh <- neighbors) {
-      val neighDir = neigh._1;
-      val neighName = neigh._2;
+  //s += s"unsigned int maxNumPointsPerDim = (1u << (NUM_LEVELS - 1)) + 1 + 2 * NUM_GHOST_LAYERS;\n";
+  for (neigh <- neighbors) {
+    val neighDir = neigh._1;
+    val neighName = neigh._2;
 
-      //s += s"MPI_Request request_$neighName;\n";
-      s += s"reqOutstanding_$neighName = false;\n";
+    //s += s"MPI_Request request_$neighName;\n";
+    body += s"reqOutstanding_$neighName = false;\n";
 
-      var size : String = "";
-      //size += s"(NUM_GHOST_LAYERS + 1) * maxNumPointsPerDim * maxNumPointsPerDim";
-      var sizeArray = new ListBuffer[String]();
-      for (i <- (0 to 2))
-        if (0 == neighDir(i))
-          sizeArray += s"${Mapping.numPoints(9)}"; // FIXME: maxLevel
-        else
-          sizeArray += s"${Knowledge.numGhostLayers}";
+    var size : String = "";
+    //size += s"(NUM_GHOST_LAYERS + 1) * maxNumPointsPerDim * maxNumPointsPerDim";
+    var sizeArray = new ListBuffer[String]();
+    for (i <- (0 to 2))
+      if (0 == neighDir(i))
+        sizeArray += s"${Mapping.numPoints(9)}"; // FIXME: maxLevel
+      else
+        sizeArray += s"${Knowledge.numGhostLayers}";
 
-      size += sizeArray.mkString(" * ");
+    size += sizeArray.mkString(" * ");
 
-      s += s"sendBuffer_$neighName = new exa_real_t[$size];\n";
-      s += s"recvBuffer_$neighName = new exa_real_t[$size];\n";
-      //s += s"sendBuffer_$neighName = boost::shared_array<exa_real_t>(new exa_real_t[$size]);\n";
-      //s += s"recvBuffer_$neighName = boost::shared_array<exa_real_t>(new exa_real_t[$size]);\n";
-    }
-
-    s += s"\t}\n";
-
-    return s;
+    body += s"sendBuffer_$neighName = new exa_real_t[$size];\n";
+    body += s"recvBuffer_$neighName = new exa_real_t[$size];\n";
+    //s += s"sendBuffer_$neighName = boost::shared_array<exa_real_t>(new exa_real_t[$size]);\n";
+    //s += s"recvBuffer_$neighName = boost::shared_array<exa_real_t>(new exa_real_t[$size]);\n";
   }
 }
 
-class WaitForMPIReq() {
-  def toString_cpp : String = {
-    var s : String = "";
+case class WaitForMPIReq() extends Function(
+  head = s"void waitForMPIReq (MPI_Request* request)",
+  body = ListBuffer(
+    s"MPI_Status stat;",
+    s"if (MPI_ERR_IN_STATUS == MPI_Wait(request, &stat))\n{",
+    s"char msg[MPI_MAX_ERROR_STRING];",
+    s"int len;",
+    s"MPI_Error_string(stat.MPI_ERROR, msg, &len);",
+    "LOG_WARNING(\"MPI Error encountered (\" << msg << \")\");",
+    s"}",
+    s"*request = MPI_Request();")) {
 
-    s += s"void waitForMPIReq (MPI_Request* request)\n{\n";
-    s += s"MPI_Status stat;\n";
-    s += s"if (MPI_ERR_IN_STATUS == MPI_Wait(request, &stat))\n{\n";
-    s += s"char msg[MPI_MAX_ERROR_STRING];\n";
-    s += s"int len;\n";
-    s += s"MPI_Error_string(stat.MPI_ERROR, msg, &len);\n";
-    s += "LOG_WARNING(\"MPI Error encountered (\" << msg << \")\");\n";
-    s += s"}\n";
-    s += s"*request = MPI_Request();\n";
-
-    s += s"\t}\n";
-
-    return s;
-  }
+  override def duplicate = this.copy().asInstanceOf[this.type]
 }
 
 case class IndexRange(begin : Array[String] = Array("0", "0", "0"), end : Array[String] = Array("0", "0", "0"), level : Int = 0) {}
@@ -775,130 +749,124 @@ case class ExchangeDataSplitter(field : Field, maxLevel : Int) extends Function(
   override def duplicate = this.copy().asInstanceOf[this.type]
 }
 
-class ExchangeData(field : Field, level : Int) {
-  def toString_cpp : String = {
-    var s : String = "";
+case class ExchangeData(field : Field, level : Int) extends Function("", new ListBuffer()) {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+// FIXME clean-up
+  
+  head = s"void Fragment3DCube::exch${field.codeName}_$level (std::vector<boost::shared_ptr<CurFragmentType> >& fragments, unsigned int slot /*= 0*/)";
 
-    s += s"void Fragment3DCube::exch${field.codeName}_$level (std::vector<boost::shared_ptr<CurFragmentType> >& fragments, unsigned int slot /*= 0*/)\n\t{\n";
+  val fieldName = s"fragments[e]->${field.codeName}[slot][$level]";
 
-    val fieldName = s"fragments[e]->${field.codeName}[slot][$level]";
+  // NOTE: switch here
+  if (false) {
+    // simple exchange along axis
+    val neighbors = Array(
+      new NeighInfo(Array(-1, 0, 0), level), new NeighInfo(Array(1, 0, 0), level),
+      new NeighInfo(Array(0, -1, 0), level), new NeighInfo(Array(0, 1, 0), level),
+      new NeighInfo(Array(0, 0, -1), level), new NeighInfo(Array(0, 0, 1), level));
 
-    // NOTE: switch here
-    if (false) {
-      // simple exchange along axis
-      val neighbors = Array(
-        new NeighInfo(Array(-1, 0, 0), level), new NeighInfo(Array(1, 0, 0), level),
-        new NeighInfo(Array(0, -1, 0), level), new NeighInfo(Array(0, 1, 0), level),
-        new NeighInfo(Array(0, 0, -1), level), new NeighInfo(Array(0, 0, 1), level));
-
-      for (neigh <- neighbors) {
-        neigh.setIndicesWide(field);
-      }
-
-      // handle BC
-      s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
-        neighbors.map(neigh =>
-          (new TreatNeighBC(field, neigh.label, fieldToIndexBorder(neigh.dir, fieldName, level), level)).toString_cpp).toArray)).toString_cpp;
-
-      // sync duplicate values
-      for (dim <- 0 to 2) {
-        s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
-          Array(
-            (new TreatNeighSend(field, neighbors(2 * dim + 1).label,
-              neighbors(2 * dim + 1).indexBorder,
-              neighbors(2 * dim + 1).indexOpposingBorder, level)).toString_cpp))).toString_cpp;
-
-        s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
-          Array(
-            (new TreatNeighRecv(field, neighbors(2 * dim + 0).label, neighbors(2 * dim + 0).indexBorder, level)).toString_cpp))).toString_cpp;
-
-        s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
-          Array(
-            (new TreatNeighFinish(neighbors(2 * dim + 1).label)).toString_cpp))).toString_cpp;
-      }
-
-      // update ghost layers
-      for (dim <- 0 to 2) {
-        s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
-          Array(0, 1).map(dir =>
-            (new TreatNeighSend(field, neighbors(2 * dim + dir).label, neighbors(2 * dim + dir).indexInner,
-              neighbors(2 * dim + dir).indexOpposingOuter, level)).toString_cpp).toArray)).toString_cpp;
-
-        s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
-          Array(0, 1).map(dir =>
-            (new TreatNeighRecv(field, neighbors(2 * dim + dir).label, neighbors(2 * dim + dir).indexOuter, level)).toString_cpp).toArray)).toString_cpp;
-
-        s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
-          Array(0, 1).map(dir =>
-            (new TreatNeighFinish(neighbors(2 * dim + dir).label)).toString_cpp).toArray)).toString_cpp;
-      }
-    } else {
-      // 27 point communication
-      val neighbors = new ListBuffer[NeighInfo]();//FragmentClass.neighbors;
-      for (z <- -1 to 1; y <- -1 to 1; x <- -1 to 1; if (0 != x || 0 != y || 0 != z)) {
-        neighbors += new NeighInfo(Array(x, y, z), level);
-      }
-
-      for (neigh <- neighbors) {
-        neigh.setIndices(field);
-        neigh.addTreatBC(field);
-        neigh.addExchLocal;
- 
-      }
-
-      s += "int mpiRank; MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);\n";
-
-      // handle BC
-      s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
-        neighbors.map(neigh => neigh.codeTreatBC).toArray)).toString_cpp;
-        //FragmentClass.neighbors.map(neigh => neigh.getCode_TreatBC(field, level, "slot")).toArray)).toString_cpp;
-
-      
-      // sync duplicate values
-      s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
-        neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh =>
-          (new TreatNeighSend(field, neigh.label, neigh.indexBorder,
-            neigh.indexOpposingBorder, level)).toString_cpp).toArray)).toString_cpp;
-
-      s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
-        neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0).map(neigh =>
-          (new TreatNeighRecv(field, neigh.label, neigh.indexBorder, level)).toString_cpp).toArray)).toString_cpp;
-
-      s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
-        neighbors.map(neigh =>
-          (new TreatNeighFinish(neigh.label)).toString_cpp).toArray)).toString_cpp;
-
-      // update ghost layers
-      //      s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
-      //        neighbors.map(neigh =>
-      //          (new TreatNeighSend(field, neigh.label, neigh.indexInner,
-      //            neigh.indexOpposingOuter, level)).toString_cpp).toArray)).toString_cpp;
-      s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
-        neighbors.map(neigh =>
-          (new TreatNeighSendRemote(field, neigh.label, neigh.indexInner,
-            neigh.indexOpposingOuter, level)).toString_cpp).toArray)).toString_cpp;
-      s += "//BEGIN LOCAL COMMUNICATION\n";
-      s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
-        Array(
-          Array(s"exa_real_t* localMem = fragments[e]->${field.codeName}[slot][$level]->data;"),
-          neighbors.map(neigh =>
-            s"bool isValid_${neigh.label} = (FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].location && !fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].isRemote);").toArray,
-          neighbors.map(neigh =>
-            s"exa_real_t* neighMem_${neigh.label} = isValid_${neigh.label} ? fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].fragment->get${field.codeName}($level, slot)->data : 0;").toArray,
-          neighbors.map(neigh => neigh.codeExchLocal).toArray).flatten)).toString_cpp;
-      s += "//END LOCAL COMMUNICATION\n";
-
-      s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
-        neighbors.map(neigh =>
-          (new TreatNeighRecv(field, neigh.label, neigh.indexOuter, level)).toString_cpp).toArray)).toString_cpp;
-
-      s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
-        neighbors.map(neigh =>
-          (new TreatNeighFinish(neigh.label)).toString_cpp).toArray)).toString_cpp;
+    for (neigh <- neighbors) {
+      neigh.setIndicesWide(field);
     }
 
-    s += s"\t}\n";
+    // handle BC
+    body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+      neighbors.map(neigh =>
+        (new TreatNeighBC(field, neigh.label, fieldToIndexBorder(neigh.dir, fieldName, level), level)).toString_cpp).toArray)).toString_cpp;
 
-    return s;
+    // sync duplicate values
+    for (dim <- 0 to 2) {
+      body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+        Array(
+          (new TreatNeighSend(field, neighbors(2 * dim + 1).label,
+            neighbors(2 * dim + 1).indexBorder,
+            neighbors(2 * dim + 1).indexOpposingBorder, level)).toString_cpp))).toString_cpp;
+
+      body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+        Array(
+          (new TreatNeighRecv(field, neighbors(2 * dim + 0).label, neighbors(2 * dim + 0).indexBorder, level)).toString_cpp))).toString_cpp;
+
+      body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+        Array(
+          (new TreatNeighFinish(neighbors(2 * dim + 1).label)).toString_cpp))).toString_cpp;
+    }
+
+    // update ghost layers
+    for (dim <- 0 to 2) {
+      body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+        Array(0, 1).map(dir =>
+          (new TreatNeighSend(field, neighbors(2 * dim + dir).label, neighbors(2 * dim + dir).indexInner,
+            neighbors(2 * dim + dir).indexOpposingOuter, level)).toString_cpp).toArray)).toString_cpp;
+
+      body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+        Array(0, 1).map(dir =>
+          (new TreatNeighRecv(field, neighbors(2 * dim + dir).label, neighbors(2 * dim + dir).indexOuter, level)).toString_cpp).toArray)).toString_cpp;
+
+      body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+        Array(0, 1).map(dir =>
+          (new TreatNeighFinish(neighbors(2 * dim + dir).label)).toString_cpp).toArray)).toString_cpp;
+    }
+  } else {
+    // 27 point communication
+    val neighbors = new ListBuffer[NeighInfo](); //FragmentClass.neighbors;
+    for (z <- -1 to 1; y <- -1 to 1; x <- -1 to 1; if (0 != x || 0 != y || 0 != z)) {
+      neighbors += new NeighInfo(Array(x, y, z), level);
+    }
+
+    for (neigh <- neighbors) {
+      neigh.setIndices(field);
+      neigh.addTreatBC(field);
+      neigh.addExchLocal;
+
+    }
+
+    body += "int mpiRank; MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);\n";
+
+    // handle BC
+    body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+      neighbors.map(neigh => neigh.codeTreatBC).toArray)).toString_cpp;
+    //FragmentClass.neighbors.map(neigh => neigh.getCode_TreatBC(field, level, "slot")).toArray)).toString_cpp;
+
+    // sync duplicate values
+    body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+      neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh =>
+        (new TreatNeighSend(field, neigh.label, neigh.indexBorder,
+          neigh.indexOpposingBorder, level)).toString_cpp).toArray)).toString_cpp;
+
+    body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+      neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0).map(neigh =>
+        (new TreatNeighRecv(field, neigh.label, neigh.indexBorder, level)).toString_cpp).toArray)).toString_cpp;
+
+    body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+      neighbors.map(neigh =>
+        (new TreatNeighFinish(neigh.label)).toString_cpp).toArray)).toString_cpp;
+
+    // update ghost layers
+    //      s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+    //        neighbors.map(neigh =>
+    //          (new TreatNeighSend(field, neigh.label, neigh.indexInner,
+    //            neigh.indexOpposingOuter, level)).toString_cpp).toArray)).toString_cpp;
+    body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+      neighbors.map(neigh =>
+        (new TreatNeighSendRemote(field, neigh.label, neigh.indexInner,
+          neigh.indexOpposingOuter, level)).toString_cpp).toArray)).toString_cpp;
+    body += "//BEGIN LOCAL COMMUNICATION\n";
+    body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+      Array(
+        Array(s"exa_real_t* localMem = fragments[e]->${field.codeName}[slot][$level]->data;"),
+        neighbors.map(neigh =>
+          s"bool isValid_${neigh.label} = (FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].location && !fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].isRemote);").toArray,
+        neighbors.map(neigh =>
+          s"exa_real_t* neighMem_${neigh.label} = isValid_${neigh.label} ? fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].fragment->get${field.codeName}($level, slot)->data : 0;").toArray,
+        neighbors.map(neigh => neigh.codeExchLocal).toArray).flatten)).toString_cpp;
+    body += "//END LOCAL COMMUNICATION\n";
+
+    body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+      neighbors.map(neigh =>
+        (new TreatNeighRecv(field, neigh.label, neigh.indexOuter, level)).toString_cpp).toArray)).toString_cpp;
+
+    body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+      neighbors.map(neigh =>
+        (new TreatNeighFinish(neigh.label)).toString_cpp).toArray)).toString_cpp;
   }
 }

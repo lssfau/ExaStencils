@@ -58,7 +58,7 @@ abstract class Class extends Node {
   var cTorInitList : ListBuffer[String] = new ListBuffer[String];
   var cTorBody : ListBuffer[String] = new ListBuffer[String];
   var dTorBody : ListBuffer[String] = new ListBuffer[String];
-  var functions : ListBuffer[String] = new ListBuffer[String];
+  var functions : ListBuffer[Function] = new ListBuffer[Function];
 
   def toString_cpp : String = {
     var s : String = "";
@@ -88,10 +88,7 @@ abstract class Class extends Node {
   }
 }
 
-abstract class Function (
-  head : String,
-  body : ListBuffer[String])
-  extends Node {
+abstract class Function(var head : String, var body : ListBuffer[String]) extends Node {
   def toString_cpp : String = {
     var s : String = "";
 
@@ -134,7 +131,7 @@ case class FragmentClass extends Class {
 
       s += "#include \"Primitives/Fragment3DCube.h\"\n\n";
 
-      s += s"${f}\n";
+      s += s"${f.toString_cpp}\n";
 
       val writer = new PrintWriter(new File(s"C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Poisson3D/Primitives/Fragment3DCube_$i.cpp"));
       writer.write(s);
