@@ -827,6 +827,13 @@ case class ExchangeData_6(field : Field, level : Int) extends Function("", new L
   }
 }
 
+case class HandleBoundaries (neighbors : ListBuffer[NeighInfo]) extends Expression 
+{
+  override def duplicate = this.copy().asInstanceOf[this.type]
+  
+  def cpp : String = { return "NOT VALID"; }
+}
+
 case class ExchangeData_26(field : Field, level : Int) extends Function("", new ListBuffer()) {
   override def duplicate = this.copy().asInstanceOf[this.type]
   // FIXME clean-up
@@ -851,7 +858,7 @@ case class ExchangeData_26(field : Field, level : Int) extends Function("", new 
   //body += "int mpiRank; MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);\n";
 
   // handle BC
-  // TODO: body += (new LoopOverFragments(new HandleBC(field))).cpp;
+  //TODO: body += new LoopOverFragments(Array(new HandleBoundaries(neighbors)));
   body += (new LoopOverFragments(neighbors.map(neigh => neigh.codeTreatBC).toArray)).toForLoop;
   //FragmentClass.neighbors.map(neigh => neigh.getCode_TreatBC(field, level, "slot")).toArray)).cpp;
 

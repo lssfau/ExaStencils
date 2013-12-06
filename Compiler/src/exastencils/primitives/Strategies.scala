@@ -52,6 +52,22 @@ object GenCommCode extends (() => Unit) {
         Some(frag);
     }));
 
+
+    // 'actual' transformations
+    StateManager.apply(new Transformation({
+      case func : WaitForMPIReq =>
+        println("Found a WaitForMPIReq node");
+      	Some(func);
+    }));
+    
+    StateManager.apply(new Transformation({
+      case func : HandleBoundaries =>
+        println("Found a HandleBoundaries node");
+      	Some(new Scope(func.neighbors.map(neigh => neigh.codeTreatBC).toArray));//FIXME: not working
+    }));
+    
+    
+    // print
     StateManager.apply(new Transformation({
       case frag : FragmentClass =>
         frag.cpp;

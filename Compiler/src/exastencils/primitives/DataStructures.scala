@@ -12,6 +12,21 @@ case class Field(name : String, codeName : String, dataType : String, numSlots :
   override def duplicate = this.copy().asInstanceOf[this.type]
 }
 
+case class Scope(body : Array[Expression]) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def cpp : String = {
+    var s : String = "";
+
+    s += s"{\n";
+    for (stat <- body)
+      s += s"${stat.cpp}\n";
+    s += s"}\n";
+
+    return s;
+  }
+}
+
 case class ifCond(cond : Expression, trueBranch : Array[Expression], falseBranch : Array[Expression] = Array()) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
