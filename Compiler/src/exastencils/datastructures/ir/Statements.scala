@@ -9,7 +9,7 @@ abstract class Statement
 
 case class ExpressionStatement(expression : Expression) extends Statement {
   override def cpp = expression.cpp
-  override def duplicate = { this.copy(expression = Duplicate(expression)) }
+  override def duplicate = { this.copy(expression = Duplicate(expression)).asInstanceOf[this.type] }
 }
 
 case class VariableDeclarationStatement(variable : Variable, expression : Option[Expression] = None)

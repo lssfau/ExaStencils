@@ -72,9 +72,18 @@ object StateManager {
 
       if (currentSubnode.isInstanceOf[Seq[_]]) {
         var list = currentSubnode.asInstanceOf[Seq[_]]
-        val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
+        
+        var invalids = 0
+        var nodes = 0
+        var somenodes = 0
+    
+        list.foreach(p => p match {
+          case n : Node => nodes += 1
+          case n : Some[_] => if(n.get.isInstanceOf[Node]) somenodes += 1
+          case _ => invalids += 1
+        })
 
-        if (invalids.size <= 0) {
+        if (invalids <= 0) {
           var newList = list.asInstanceOf[Seq[Node]].map(listitem => applyAtNode(listitem, t).get) // FIXME asof[List[Option[Node]]]
           newList = newList.filterNot(listitem => listitem eq None)
           field.set(node, newList)
@@ -108,5 +117,9 @@ object StateManager {
         return false
       }
     }
+  }
+  
+  def apply(t : Transformation) = { // Hack
+    replace(root, t)
   }
 }
