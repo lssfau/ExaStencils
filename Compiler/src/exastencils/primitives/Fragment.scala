@@ -764,41 +764,41 @@ case class ExchangeData_6(field : Field, level : Int) extends Function("", new L
   }
 
   // handle BC
-  body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+  body += (new LoopOverFragments(
     neighbors.map(neigh =>
-      (new TreatNeighBC(field, neigh.label, fieldToIndexBorder(neigh.dir, fieldName, level), level)).toString_cpp).toArray)).toString_cpp;
+      (new TreatNeighBC(field, neigh.label, fieldToIndexBorder(neigh.dir, fieldName, level), level)).toString_cpp).toArray)).toForLoop.toString_cpp;
 
   // sync duplicate values
   for (dim <- 0 to 2) {
-    body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+    body += (new LoopOverFragments(
       Array(
         (new TreatNeighSend(field, neighbors(2 * dim + 1).label,
           neighbors(2 * dim + 1).indexBorder,
-          neighbors(2 * dim + 1).indexOpposingBorder, level)).toString_cpp))).toString_cpp;
+          neighbors(2 * dim + 1).indexOpposingBorder, level)).toString_cpp))).toForLoop.toString_cpp;
 
-    body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+    body += (new LoopOverFragments(
       Array(
-        (new TreatNeighRecv(field, neighbors(2 * dim + 0).label, neighbors(2 * dim + 0).indexBorder, level)).toString_cpp))).toString_cpp;
+        (new TreatNeighRecv(field, neighbors(2 * dim + 0).label, neighbors(2 * dim + 0).indexBorder, level)).toString_cpp))).toForLoop.toString_cpp;
 
-    body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+    body += (new LoopOverFragments(
       Array(
-        (new TreatNeighFinish(neighbors(2 * dim + 1).label)).toString_cpp))).toString_cpp;
+        (new TreatNeighFinish(neighbors(2 * dim + 1).label)).toString_cpp))).toForLoop.toString_cpp;
   }
 
   // update ghost layers
   for (dim <- 0 to 2) {
-    body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+    body += (new LoopOverFragments(
       Array(0, 1).map(dir =>
         (new TreatNeighSend(field, neighbors(2 * dim + dir).label, neighbors(2 * dim + dir).indexInner,
-          neighbors(2 * dim + dir).indexOpposingOuter, level)).toString_cpp).toArray)).toString_cpp;
+          neighbors(2 * dim + dir).indexOpposingOuter, level)).toString_cpp).toArray)).toForLoop.toString_cpp;
 
-    body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+    body += (new LoopOverFragments(
       Array(0, 1).map(dir =>
-        (new TreatNeighRecv(field, neighbors(2 * dim + dir).label, neighbors(2 * dim + dir).indexOuter, level)).toString_cpp).toArray)).toString_cpp;
+        (new TreatNeighRecv(field, neighbors(2 * dim + dir).label, neighbors(2 * dim + dir).indexOuter, level)).toString_cpp).toArray)).toForLoop.toString_cpp;
 
-    body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+    body += (new LoopOverFragments(
       Array(0, 1).map(dir =>
-        (new TreatNeighFinish(neighbors(2 * dim + dir).label)).toString_cpp).toArray)).toString_cpp;
+        (new TreatNeighFinish(neighbors(2 * dim + dir).label)).toString_cpp).toArray)).toForLoop.toString_cpp;
   }
 }
 
@@ -809,7 +809,8 @@ case class ExchangeData_26(field : Field, level : Int) extends Function("", new 
   head = s"void Fragment3DCube::exch${field.codeName}_$level (std::vector<boost::shared_ptr<CurFragmentType> >& fragments, unsigned int slot /*= 0*/)";
 
   val fieldName = s"fragments[e]->${field.codeName}[slot][$level]";
-  // 27 point communication
+
+  // TODO: get neighbors from parent
   val neighbors = new ListBuffer[NeighInfo](); //FragmentClass.neighbors;
   for (z <- -1 to 1; y <- -1 to 1; x <- -1 to 1; if (0 != x || 0 != y || 0 != z)) {
     neighbors += new NeighInfo(Array(x, y, z), level);
@@ -822,36 +823,36 @@ case class ExchangeData_26(field : Field, level : Int) extends Function("", new 
 
   }
 
-  body += "int mpiRank; MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);\n";
+  //body += "int mpiRank; MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);\n";
 
   // handle BC
-  body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
-    neighbors.map(neigh => neigh.codeTreatBC).toArray)).toString_cpp;
+  // TODO: body += (new LoopOverFragments(new HandleBC(field))).toString_cpp;
+  body += (new LoopOverFragments(neighbors.map(neigh => neigh.codeTreatBC).toArray)).toForLoop.toString_cpp;
   //FragmentClass.neighbors.map(neigh => neigh.getCode_TreatBC(field, level, "slot")).toArray)).toString_cpp;
 
   // sync duplicate values
-  body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+  body += (new LoopOverFragments(
     neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh =>
       (new TreatNeighSend(field, neigh.label, neigh.indexBorder,
-        neigh.indexOpposingBorder, level)).toString_cpp).toArray)).toString_cpp;
+        neigh.indexOpposingBorder, level)).toString_cpp).toArray)).toForLoop.toString_cpp;
 
-  body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+  body += (new LoopOverFragments(
     neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0).map(neigh =>
-      (new TreatNeighRecv(field, neigh.label, neigh.indexBorder, level)).toString_cpp).toArray)).toString_cpp;
+      (new TreatNeighRecv(field, neigh.label, neigh.indexBorder, level)).toString_cpp).toArray)).toForLoop.toString_cpp;
 
-  body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+  body += (new LoopOverFragments(
     neighbors.map(neigh =>
-      (new TreatNeighFinish(neigh.label)).toString_cpp).toArray)).toString_cpp;
+      (new TreatNeighFinish(neigh.label)).toString_cpp).toArray)).toForLoop.toString_cpp;
 
   // update ghost layers
   //      s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
   //        neighbors.map(neigh =>
   //          (new TreatNeighSend(field, neigh.label, neigh.indexInner,
   //            neigh.indexOpposingOuter, level)).toString_cpp).toArray)).toString_cpp;
-  body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+  body += (new LoopOverFragments(
     neighbors.map(neigh =>
       (new TreatNeighSendRemote(field, neigh.label, neigh.indexInner,
-        neigh.indexOpposingOuter, level)).toString_cpp).toArray)).toString_cpp;
+        neigh.indexOpposingOuter, level)).toString_cpp).toArray)).toForLoop.toString_cpp;
   body += "//BEGIN LOCAL COMMUNICATION\n";
   body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
     Array(
@@ -863,11 +864,11 @@ case class ExchangeData_26(field : Field, level : Int) extends Function("", new 
       neighbors.map(neigh => neigh.codeExchLocal).toArray).flatten)).toString_cpp;
   body += "//END LOCAL COMMUNICATION\n";
 
-  body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+  body += (new LoopOverFragments(
     neighbors.map(neigh =>
-      (new TreatNeighRecv(field, neigh.label, neigh.indexOuter, level)).toString_cpp).toArray)).toString_cpp;
+      (new TreatNeighRecv(field, neigh.label, neigh.indexOuter, level)).toString_cpp).toArray)).toForLoop.toString_cpp;
 
-  body += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
+  body += (new LoopOverFragments(
     neighbors.map(neigh =>
-      (new TreatNeighFinish(neigh.label)).toString_cpp).toArray)).toString_cpp;
+      (new TreatNeighFinish(neigh.label)).toString_cpp).toArray)).toForLoop.toString_cpp;
 }

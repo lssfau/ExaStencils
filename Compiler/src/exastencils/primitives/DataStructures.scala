@@ -7,6 +7,12 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.datastructures._
 
+case class StringNode(s : String) extends Node {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def toString_cpp : String = { return s; }
+}
+
 case class Field(name : String, codeName : String, dataType : String, numSlots : String, bcDir0 : Boolean) extends Node {
   override def duplicate = this.copy().asInstanceOf[this.type]
 }
@@ -49,6 +55,14 @@ case class forLoop(head : String, body : Array[String]) extends Node {
     s += s"}\n";
 
     return s;
+  }
+}
+
+case class LoopOverFragments(body : Array[String]) extends Node {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def toForLoop : forLoop = {
+    return forLoop(s"int e = 0; e < fragments.size(); ++e", body);
   }
 }
 
