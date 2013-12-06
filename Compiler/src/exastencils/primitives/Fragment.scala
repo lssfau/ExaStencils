@@ -7,14 +7,11 @@ import exastencils.primitives._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 
-class IsNeighValid(neigh : NeighborInfo) {
+case class IsNeighValid(neigh : NeighborInfo) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
   def cpp : String = {
-    var s : String = "";
-
-    //s += s"fragments[e]->isValidNeigh_${neigh.label}";
-    s += s"FRAG_INVALID == fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].location";
-
-    return s;
+    return s"FRAG_INVALID == fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].location"
   }
 }
 
@@ -44,12 +41,14 @@ class FieldAccess(field : Field, level : Int, slot : Any/*FIXME: Int*/, index : 
   }
 }
 
-class SetFieldToExpr(field : Field, level : Int, slot : Any/*FIXME: Int*/, indices : IndexRange, expr : String) {
+case class SetFieldToExpr(field : Field, level : Int, slot : Any/*FIXME: Int*/, indices : IndexRange, expr : String) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
   def cpp : String = {
     var s : String = "";
 
     s += (new FieldForLoop(indices, Array(
-      (new FieldAccess(field, level, slot, Mapping.access(indices.level))).cpp + s" = $expr;"))).cpp;
+      (new FieldAccess(field, level, slot, Mapping.access(indices.level))) + s" = $expr;"))).cpp;
 
     return s;
   }
@@ -107,8 +106,8 @@ class NeighborInfo(var dir : Array[Int]) {
 
     if (field.bcDir0) {
       code += (new ifCond(
-        (new IsNeighValid(this)).cpp,
-        Array((new SetFieldToExpr(field, level, slot, fieldToIndexBorder2(dir, level), "0.0")).cpp))).cpp;
+        new IsNeighValid(this),
+        Array(new SetFieldToExpr(field, level, slot, fieldToIndexBorder2(dir, level), "0.0")))).cpp;
     }
 
     return code;
@@ -455,7 +454,9 @@ object fieldToIndexBorder extends ((Array[Int], String, Int) => IndexRange) {
 }
 */
 
-class CopyLocalToBuffer(field : String, buffer : String, indices : IndexRange) {
+case class CopyLocalToBuffer(field : String, buffer : String, indices : IndexRange) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
   def cpp : String = {
     var s : String = "";
     s += "size_t entry = 0;\n";
@@ -469,7 +470,9 @@ class CopyLocalToBuffer(field : String, buffer : String, indices : IndexRange) {
   }
 };
 
-class CopyBufferToLocal(field : String, buffer : String, indices : IndexRange) {
+case class CopyBufferToLocal(field : String, buffer : String, indices : IndexRange) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
   def cpp : String = {
     var s : String = "";
     s += "size_t entry = 0;\n";
@@ -483,7 +486,9 @@ class CopyBufferToLocal(field : String, buffer : String, indices : IndexRange) {
   }
 };
 
-class CopyLocalToLocal(fieldSrc : String, indicesSrc : IndexRange, fieldDest : String, indicesDest : IndexRange) {
+case class CopyLocalToLocal(fieldSrc : String, indicesSrc : IndexRange, fieldDest : String, indicesDest : IndexRange) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
   def cpp : String = {
     var s : String = "";
 
@@ -602,11 +607,11 @@ case class TreatNeighSend(field : Field, neighName : String, indicesLocal : Inde
         (new ifCond(s"curNeigh.isRemote",
           Array(
             //"if (1 == mpiRank) LOG_NOTE(\"Sending from \" << fragments[e]->id << \" to \" << curNeigh.fragId);",
-            (new CopyLocalToBuffer(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->sendBuffer_$neighName", indicesLocal)).cpp,
-            (new SendBuffer(s"fragments[e]->sendBuffer_$neighName", s"curNeigh.remoteRank", s"((unsigned int)fragments[e]->id << 16) + ((unsigned int)curNeigh.fragId & 0x0000ffff)", true, s"fragments[e]->request_$neighName")).cpp,
+            (new CopyLocalToBuffer(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->sendBuffer_$neighName", indicesLocal)),
+            (new SendBuffer(s"fragments[e]->sendBuffer_$neighName", s"curNeigh.remoteRank", s"((unsigned int)fragments[e]->id << 16) + ((unsigned int)curNeigh.fragId & 0x0000ffff)", true, s"fragments[e]->request_$neighName")),
             s"fragments[e]->reqOutstanding_$neighName = true;"),
           Array(
-            (new CopyLocalToLocal(s"fragments[e]->${field.codeName}[slot][$level]", indicesLocal, s"curNeigh.fragment->get${field.codeName}($level, slot)", indicesNeigh)).cpp))).cpp))).cpp;
+            (new CopyLocalToLocal(s"fragments[e]->${field.codeName}[slot][$level]", indicesLocal, s"curNeigh.fragment->get${field.codeName}($level, slot)", indicesNeigh)))))))).cpp;
     return s;
   }
 }
@@ -621,8 +626,8 @@ case class TreatNeighSendRemote(field : Field, neighName : String, indicesLocal 
       Array(
         s"FragmentNeighInfo& curNeigh = fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN];",
         //"if (1 == mpiRank) LOG_NOTE(\"Sending from \" << fragments[e]->id << \" to \" << curNeigh.fragId);",
-        (new CopyLocalToBuffer(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->sendBuffer_$neighName", indicesLocal)).cpp,
-        (new SendBuffer(s"fragments[e]->sendBuffer_$neighName", s"curNeigh.remoteRank", s"((unsigned int)fragments[e]->id << 16) + ((unsigned int)curNeigh.fragId & 0x0000ffff)", true, s"fragments[e]->request_$neighName")).cpp,
+        (new CopyLocalToBuffer(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->sendBuffer_$neighName", indicesLocal)),
+        (new SendBuffer(s"fragments[e]->sendBuffer_$neighName", s"curNeigh.remoteRank", s"((unsigned int)fragments[e]->id << 16) + ((unsigned int)curNeigh.fragId & 0x0000ffff)", true, s"fragments[e]->request_$neighName")),
         s"fragments[e]->reqOutstanding_$neighName = true;"))).cpp;
     return s;
   }
@@ -654,8 +659,8 @@ case class TreatNeighRecv(field : Field, neighName : String, indices : IndexRang
           Array(
             //"if (1 == mpiRank) LOG_NOTE(\"Receiving from \" << curNeigh.fragId << \" to \" << fragments[e]->id);",
             (new RecvBuffer(s"fragments[e]->recvBuffer_$neighName", s"curNeigh.remoteRank", s"((unsigned int)curNeigh.fragId << 16) + ((unsigned int)fragments[e]->id & 0x0000ffff)",
-              s"NUM_GHOST_LAYERS * fragments[e]->${field.codeName}[slot][$level]->numDataPointsPerDim.y * fragments[e]->${field.codeName}[slot][$level]->numDataPointsPerDim.z", false)).cpp,
-            (new CopyBufferToLocal(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->recvBuffer_$neighName", indices)).cpp))).cpp))).cpp;
+              s"NUM_GHOST_LAYERS * fragments[e]->${field.codeName}[slot][$level]->numDataPointsPerDim.y * fragments[e]->${field.codeName}[slot][$level]->numDataPointsPerDim.z", false)),
+            (new CopyBufferToLocal(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->recvBuffer_$neighName", indices)))))))).cpp;
     return s;
   }
 }
@@ -688,7 +693,7 @@ case class TreatNeighBC(field : Field, neighName : String, indices : IndexRange,
       s += (new ifCond(
         s"FRAG_INVALID == fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN].location",
         Array(
-          (new SetDataZero(s"fragments[e]->${field.codeName}[slot][$level]", indices)).cpp))).cpp;
+          (new SetDataZero(s"fragments[e]->${field.codeName}[slot][$level]", indices))))).cpp;
     }
     return s;
   }
@@ -794,15 +799,15 @@ case class ExchangeData_6(field : Field, level : Int) extends Function("", new L
       Array(
         (new TreatNeighSend(field, neighbors(2 * dim + 1).label,
           neighbors(2 * dim + 1).indexBorder,
-          neighbors(2 * dim + 1).indexOpposingBorder, level)).cpp))).toForLoop;
+          neighbors(2 * dim + 1).indexOpposingBorder, level))))).toForLoop;
 
     body += (new LoopOverFragments(
       Array(
-        (new TreatNeighRecv(field, neighbors(2 * dim + 0).label, neighbors(2 * dim + 0).indexBorder, level)).cpp))).toForLoop;
+        (new TreatNeighRecv(field, neighbors(2 * dim + 0).label, neighbors(2 * dim + 0).indexBorder, level))))).toForLoop;
 
     body += (new LoopOverFragments(
       Array(
-        (new TreatNeighFinish(neighbors(2 * dim + 1).label)).cpp))).toForLoop;
+        (new TreatNeighFinish(neighbors(2 * dim + 1).label))))).toForLoop;
   }
 
   // update ghost layers
@@ -868,7 +873,7 @@ case class ExchangeData_26(field : Field, level : Int) extends Function("", new 
   //      s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
   //        neighbors.map(neigh =>
   //          (new TreatNeighSend(field, neigh.label, neigh.indexInner,
-  //            neigh.indexOpposingOuter, level)).cpp).toArray)).cpp;
+  //            neigh.indexOpposingOuter, level))).toArray));
   body += (new LoopOverFragments(
     neighbors.map(neigh =>
       (new TreatNeighSendRemote(field, neigh.label, neigh.indexInner,
