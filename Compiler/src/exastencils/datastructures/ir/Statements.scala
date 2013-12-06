@@ -7,6 +7,11 @@ import exastencils.datastructures.ir._
 abstract class Statement
   extends Node with CppPrettyPrintable
 
+case class ExpressionStatement(expression : Expression) extends Statement {
+  override def cpp = expression.cpp
+  override def duplicate = { this.copy(expression = Duplicate(expression)) }
+}
+
 case class VariableDeclarationStatement(variable : Variable, expression : Option[Expression] = None)
     extends Statement {
   override def cpp = ""
@@ -33,7 +38,7 @@ case class ForStatement(begin : VariableDeclarationStatement, end : Expression, 
   override def duplicate = { this.copy(begin = Duplicate(begin), end = Duplicate(end), inc = Duplicate(inc), statements = Duplicate(statements)).asInstanceOf[this.type] }
 }
 
-case class FunctionStatement(name : String, returntype : Datatype , arguments : List[Variable], statements : List[Statement])
+case class FunctionStatement(name : String, returntype : Datatype, arguments : List[Variable], statements : List[Statement])
     extends Statement {
   override def cpp = ""
   override def duplicate = { this.copy(returntype = Duplicate(returntype), arguments = Duplicate(arguments), statements = Duplicate(statements)).asInstanceOf[this.type] }
