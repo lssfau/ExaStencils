@@ -1,5 +1,6 @@
 package exastencils.datastructures.ir
 
+import scala.language.implicitConversions
 import exastencils.datastructures.ir._
 
 object ImplicitConversions {
