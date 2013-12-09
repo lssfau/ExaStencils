@@ -7,6 +7,9 @@ import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import scala.util.control.Exception
 
+import scala.reflect.runtime.{ universe => ru }
+import scala.reflect.runtime.{ currentMirror => rm }
+
 object StateManager {
   var root_ : Node = null //= ForStatement(VariableDeclarationStatement(Variable("i", IntegerDatatype()), Some(Constant(1))), new Constant(7), new Constant(11), List[Statement]())
   protected var collectors_ = new ListBuffer[Collector]
@@ -48,7 +51,7 @@ object StateManager {
     if (t.function.isDefinedAt(node)) t.function(node) else Some(node)
   }
 
-  protected def doReplace[T](node : Node, t : Transformation, field : java.lang.reflect.Field, oldNode : Any) = {
+  protected def doReplace[T](node : Node, t : Transformation, method : java.lang.reflect.Method, oldNode : Any) = {
     var subnode = oldNode
 
     if (subnode.isInstanceOf[Some[_]]) subnode = subnode.asInstanceOf[Some[_]].get
@@ -56,45 +59,76 @@ object StateManager {
     if (subnode.isInstanceOf[Node]) {
       var newSubnode = applyAtNode(subnode.asInstanceOf[Node], t).get
       if (newSubnode ne subnode.asInstanceOf[Node]) {
-        field.set(node, newSubnode)
+        Vars.set(node, method, newSubnode)
       }
       replace(newSubnode, t)
+    }
+  }
+
+  protected object Vars {
+    val setterSuffix = "_$eq"
+    val excludeList = List()
+
+    def apply[T](o : AnyRef) : List[java.lang.reflect.Method] = {
+      val methods = o.getClass.getMethods
+      val getters : Array[java.lang.reflect.Method] = for {
+        g <- methods; if (g.getModifiers & java.lang.reflect.Modifier.PUBLIC) == java.lang.reflect.Modifier.PUBLIC &&
+          g.getParameterTypes.size == 0 && !excludeList.contains(g.getName)
+        s <- methods; if s.getName == g.getName + setterSuffix &&
+          (s.getModifiers & java.lang.reflect.Modifier.PUBLIC) == java.lang.reflect.Modifier.PUBLIC &&
+          s.getParameterTypes.size == 1 && s.getParameterTypes()(0) == g.getReturnType
+      } yield g
+
+      getters.toList
+    }
+
+    def get[T](o : AnyRef, method : java.lang.reflect.Method) : AnyRef = {
+      method.invoke(o)
+    }
+
+    def set[T](o : AnyRef, method : java.lang.reflect.Method, value : AnyRef) : Boolean = {
+      method.invoke(o, value)
+      true
+    }
+
+    def set[T](o : AnyRef, method : String, value : AnyRef) : Boolean = {
+      val m = o.getClass.getMethods.find(p => p.getName == method)
+      if (m == None) false
+      set(o, m.get, value)
     }
   }
 
   protected def replace(node : Node, t : Transformation) : Unit = {
     enterNodeNotifyCollectors(node)
 
-    node.getClass.getDeclaredFields.foreach(field => {
-      val accessible = field.isAccessible()
-      field.setAccessible(true)
-      var currentSubnode = field.get(node)
+    Vars(node).foreach(field => {
+      val currentSubnode = Vars.get(node, field)
 
       if (currentSubnode.isInstanceOf[Seq[_]]) {
         var list = currentSubnode.asInstanceOf[Seq[_]]
-        
-        var invalids = 0
-        var nodes = 0
-        var somenodes = 0
-    
-        list.foreach(p => p match {
-          case n : Node => nodes += 1
-          case n : Some[_] => if(n.get.isInstanceOf[Node]) somenodes += 1
-          case _ => invalids += 1
-        })
-
-        if (invalids <= 0) {
+        val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
+        if (invalids.size <= 0) {
           var newList = list.asInstanceOf[Seq[Node]].map(listitem => applyAtNode(listitem, t).get) // FIXME asof[List[Option[Node]]]
-          newList = newList.filterNot(listitem => listitem eq None)
-          field.set(node, newList)
+          newList = newList.filterNot(listitem => listitem eq None) // FIXME
+          Vars.set(node, field, newList)
+          newList.foreach(f => replace(f, t))
+        }
+
+      } else if (currentSubnode.isInstanceOf[Array[_]]) {
+        var list = currentSubnode.asInstanceOf[Array[_]]
+
+        val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
+        if (invalids.size <= 0) {
+          var newList = list.asInstanceOf[Array[Node]].map(listitem => applyAtNode(listitem, t).get) // FIXME asof[List[Option[Node]]]
+          newList = newList.filterNot(listitem => listitem eq None) // FIXME
+          Vars.set(node, field, newList)
           newList.foreach(f => replace(f, t))
         }
       } else {
         doReplace(node, t, field, currentSubnode)
       }
-      field.setAccessible(accessible)
-    })
 
+    })
     leaveNodeNotifyCollectors(node)
   }
 
@@ -118,7 +152,7 @@ object StateManager {
       }
     }
   }
-  
+
   def apply(t : Transformation) = { // Hack
     replace(root, t)
   }
