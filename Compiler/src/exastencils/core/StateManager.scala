@@ -152,7 +152,7 @@ object StateManager {
 
     try {
       strategy.transformations.foreach(t => {
-        replace(root, t) // FIXME better handling if ret == false in traversal => i.e. abort traversal
+        replace(root, t)
       })
       History.commit
       return true
