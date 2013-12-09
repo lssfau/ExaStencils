@@ -90,6 +90,12 @@ object StateManager {
       if (!method.getName.endsWith(setterSuffix)) {
         set(o, method.getName, value)
       } else {
+        println("value: " + value)
+        if(!method.getParameterTypes()(0).getClass.isAssignableFrom(value.getClass)) {
+          val from = method.getParameterTypes()(0)
+          val to = value.getClass
+          throw new TransformationException(f"""Invalid assignment: Cannot assign from $from to $to for "$o"""")
+        }
         method.invoke(o, value)
         true
       }
