@@ -13,6 +13,9 @@ object Duplicate {
     t.foreach(t => duplicateList += Duplicate(t))
     duplicateList.readOnly
   }
+//  def apply[U <: Seq[_]](u : U) : U = {
+//    u
+//  }
 }
 
 trait Duplicable {

@@ -87,15 +87,15 @@ object StateManager {
     }
 
     def set[T](o : AnyRef, method : java.lang.reflect.Method, value : AnyRef) : Boolean = {
+      if(o == value) return true
       if (!method.getName.endsWith(setterSuffix)) {
         set(o, method.getName, value)
       } else {
-        println("value: " + value)
-        if(!method.getParameterTypes()(0).getClass.isAssignableFrom(value.getClass)) {
-          val from = method.getParameterTypes()(0)
-          val to = value.getClass
-          throw new TransformationException(f"""Invalid assignment: Cannot assign from $from to $to for "$o"""")
-        }
+//        if(!method.getParameterTypes()(0).getClass.isAssignableFrom(value.getClass)) {
+//          val from = method.getParameterTypes()(0)
+//          val to = value.getClass
+//          throw new TransformationException(f"""Invalid assignment: Cannot assign to $to from $from for "$o"""")
+//        }
         method.invoke(o, value)
         true
       }
