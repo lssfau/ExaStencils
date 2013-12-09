@@ -13,6 +13,7 @@ object GenCommCode extends (() => Unit) {
     println("Setting up FragmentClass");
 
     // HACK
+    //StateManager.root_ = Root(scala.collection.mutable.ListBuffer(fragment));
     StateManager.root_ = Root(List(fragment));
 
     var strategy = new Strategy("strategy");
@@ -72,12 +73,11 @@ object GenCommCode extends (() => Unit) {
     
     
     // print
-    strategy += new Transformation({
-      case frag : FragmentClass =>
-        frag.cpp;
-        Some(frag);
-    });
-
+//    strategy += new Transformation({
+//      case frag : FragmentClass =>
+//        frag.cpp;
+//        Some(frag);
+//    });
     
     strategy.apply;
     println("Done");

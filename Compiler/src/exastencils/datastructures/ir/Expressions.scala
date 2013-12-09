@@ -27,7 +27,7 @@ case class Identifier(name : String) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 }
 
-case class Variable(name : String, Type : Datatype) extends Expression {
+case class Variable(name : String, var Type : Datatype) extends Expression {
   override def cpp = name
   override def duplicate = this.copy().asInstanceOf[this.type]
 }
@@ -37,12 +37,12 @@ case class Constant(value : Any) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 }
 
-case class BinaryExpression(operator : String, left : Expression, right : Expression) extends Expression {
+case class BinaryExpression(operator : String, var left : Expression, var right : Expression) extends Expression {
   override def cpp = left.cpp + operator + right.cpp
   override def duplicate = this.copy(left = Duplicate(left), right = Duplicate(right)).asInstanceOf[this.type]
 }
 
-case class FunctionCall(name : String, arguments : Seq[Expression]) extends Expression {
+case class FunctionCall(name : String, var arguments : Seq[Expression]) extends Expression {
   override def cpp = name + "FIXME args"
   override def duplicate = this.copy(arguments = Duplicate(arguments)).asInstanceOf[this.type]
 }

@@ -87,12 +87,20 @@ object StateManager {
     }
 
     def set[T](o : AnyRef, method : java.lang.reflect.Method, value : AnyRef) : Boolean = {
-      method.invoke(o, value)
-      true
+      if (!method.getName.endsWith(setterSuffix)) {
+        set(o, method.getName, value)
+      } else {
+        method.invoke(o, value)
+        true
+      }
     }
 
     def set[T](o : AnyRef, method : String, value : AnyRef) : Boolean = {
-      val m = o.getClass.getMethods.find(p => p.getName == method)
+      var methodname = method
+      if (!methodname.endsWith(setterSuffix)) {
+        methodname += setterSuffix
+      }
+      val m = o.getClass.getMethods.find(p => p.getName == methodname)
       if (m == None) false
       set(o, m.get, value)
     }
@@ -109,7 +117,7 @@ object StateManager {
         val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
         if (invalids.size <= 0) {
           var newList = list.asInstanceOf[Seq[Node]].map(listitem => applyAtNode(listitem, t).get) // FIXME asof[List[Option[Node]]]
-          newList = newList.filterNot(listitem => listitem eq None) // FIXME
+          //          newList = newList.filterNot(listitem => listitem eq None) // FIXME
           Vars.set(node, field, newList)
           newList.foreach(f => replace(f, t))
         }
@@ -120,7 +128,7 @@ object StateManager {
         val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
         if (invalids.size <= 0) {
           var newList = list.asInstanceOf[Array[Node]].map(listitem => applyAtNode(listitem, t).get) // FIXME asof[List[Option[Node]]]
-          newList = newList.filterNot(listitem => listitem eq None) // FIXME
+          //          newList = newList.filterNot(listitem => listitem eq None) // FIXME
           Vars.set(node, field, newList)
           newList.foreach(f => replace(f, t))
         }

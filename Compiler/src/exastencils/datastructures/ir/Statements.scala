@@ -7,12 +7,12 @@ import exastencils.datastructures.ir._
 abstract class Statement
   extends Node with CppPrettyPrintable
 
-case class ExpressionStatement(expression : Expression) extends Statement {
+case class ExpressionStatement(var expression : Expression) extends Statement {
   override def cpp = expression.cpp
   override def duplicate = { this.copy(expression = Duplicate(expression)).asInstanceOf[this.type] }
 }
 
-case class VariableDeclarationStatement(variable : Variable, expression : Option[Expression] = None)
+case class VariableDeclarationStatement(var variable : Variable, var expression : Option[Expression] = None)
     extends Statement {
   override def cpp = ""
 
@@ -24,21 +24,21 @@ case class VariableDeclarationStatement(variable : Variable, expression : Option
   }
 }
 
-case class AssignmentStatement(identifier : Identifier, expression : Expression)
+case class AssignmentStatement(var identifier : Identifier, var expression : Expression)
     extends Statement {
   override def cpp = ""
 
   override def duplicate = { this.copy(identifier = Duplicate(identifier), expression = Duplicate(expression)).asInstanceOf[this.type] }
 }
 
-case class ForStatement(begin : VariableDeclarationStatement, end : Expression, inc : Expression, statements : List[Statement])
+case class ForStatement(var begin : VariableDeclarationStatement, var end : Expression, var inc : Expression, var statements : List[Statement])
     extends Statement with CppPrettyPrintable {
   override def cpp = ""
 
   override def duplicate = { this.copy(begin = Duplicate(begin), end = Duplicate(end), inc = Duplicate(inc), statements = Duplicate(statements)).asInstanceOf[this.type] }
 }
 
-case class FunctionStatement(name : String, returntype : Datatype, arguments : List[Variable], statements : List[Statement])
+case class FunctionStatement(var name : String, var returntype : Datatype, var arguments : List[Variable], var statements : List[Statement])
     extends Statement {
   override def cpp = ""
   override def duplicate = { this.copy(returntype = Duplicate(returntype), arguments = Duplicate(arguments), statements = Duplicate(statements)).asInstanceOf[this.type] }
