@@ -59,25 +59,26 @@ object GenCommCode extends (() => Unit) {
 
 
     // 'actual' transformations
-    strategy += new Transformation({
-      case func : WaitForMPIReq =>
-        println("Found a WaitForMPIReq node");
-      	Some(func);
-    });
     
+    // extend HandleBoundaries
     strategy += new Transformation({
-      case func : HandleBoundaries =>
+      case function : HandleBoundaries =>
         println("Found a HandleBoundaries node");
-      	Some(new Scope(func.neighbors.map(neigh => neigh.codeTreatBC).toArray));//FIXME: not working
+      	Some(new Scope(function.extend));
     });
-    
+
+    // replace LoopOverFragments with basic forLoops
+    strategy += new Transformation({
+      case loop : LoopOverFragments =>
+        Some(loop.toForLoop);
+    });
     
     // print
-//    strategy += new Transformation({
-//      case frag : FragmentClass =>
-//        frag.cpp;
-//        Some(frag);
-//    });
+    strategy += new Transformation({
+      case frag : FragmentClass =>
+        frag.cpp;
+        Some(frag);
+    });
     
     strategy.apply;
     println("Done");

@@ -12,7 +12,7 @@ case class Field(name : String, codeName : String, dataType : String, numSlots :
   override def duplicate = this.copy().asInstanceOf[this.type]
 }
 
-case class Scope(body : Array[Expression]) extends Expression {
+case class Scope(var body : ListBuffer[Node/*FIXME: specialization*/]) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
@@ -20,7 +20,7 @@ case class Scope(body : Array[Expression]) extends Expression {
 
     s += s"{\n";
     for (stat <- body)
-      s += s"${stat.cpp}\n";
+      s += s"${stat.asInstanceOf[Expression]/*FIXME: remove cast*/.cpp}\n";
     s += s"}\n";
 
     return s;
@@ -48,7 +48,7 @@ case class ifCond(cond : Expression, trueBranch : Array[Expression], falseBranch
   }
 }
 
-case class forLoop(head : Expression, body : Array[Expression]) extends Expression {
+case class forLoop(head : Expression, body : Array[Node/*FIXME: specialization*/]) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
@@ -61,14 +61,14 @@ case class forLoop(head : Expression, body : Array[Expression]) extends Expressi
 
     s += s"for (${head.cpp})\n{\n";
     for (stat <- body)
-      s += s"${stat.cpp}\n";
+      s += s"${stat.asInstanceOf[Expression]/*FIXME: remove cast*/.cpp}\n";
     s += s"}\n";
 
     return s;
   }
 }
 
-case class LoopOverFragments(body : Array[Expression]) extends Expression {
+case class LoopOverFragments(var body : Array[Node/*FIXME: specialization*/]) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp = "NOT VALID";

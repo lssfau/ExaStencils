@@ -791,7 +791,7 @@ case class ExchangeData_6(field : Field, level : Int) extends Function("", new L
     neighbors.map(neigh => (
       new TreatNeighBC(
         field, neigh.label, fieldToIndexBorder(
-          neigh.dir, fieldName, level), level))).toArray)).toForLoop;
+          neigh.dir, fieldName, level), level))).toArray));
 
   // sync duplicate values
   for (dim <- 0 to 2) {
@@ -799,15 +799,15 @@ case class ExchangeData_6(field : Field, level : Int) extends Function("", new L
       Array(
         (new TreatNeighSend(field, neighbors(2 * dim + 1).label,
           neighbors(2 * dim + 1).indexBorder,
-          neighbors(2 * dim + 1).indexOpposingBorder, level))))).toForLoop;
+          neighbors(2 * dim + 1).indexOpposingBorder, level)))));
 
     body += (new LoopOverFragments(
       Array(
-        (new TreatNeighRecv(field, neighbors(2 * dim + 0).label, neighbors(2 * dim + 0).indexBorder, level))))).toForLoop;
+        (new TreatNeighRecv(field, neighbors(2 * dim + 0).label, neighbors(2 * dim + 0).indexBorder, level)))));
 
     body += (new LoopOverFragments(
       Array(
-        (new TreatNeighFinish(neighbors(2 * dim + 1).label))))).toForLoop;
+        (new TreatNeighFinish(neighbors(2 * dim + 1).label)))));
   }
 
   // update ghost layers
@@ -815,15 +815,15 @@ case class ExchangeData_6(field : Field, level : Int) extends Function("", new L
     body += (new LoopOverFragments(
       Array(0, 1).map(dir =>
         (new TreatNeighSend(field, neighbors(2 * dim + dir).label, neighbors(2 * dim + dir).indexInner,
-          neighbors(2 * dim + dir).indexOpposingOuter, level))).toArray)).toForLoop;
+          neighbors(2 * dim + dir).indexOpposingOuter, level))).toArray));
 
     body += (new LoopOverFragments(
       Array(0, 1).map(dir =>
-        (new TreatNeighRecv(field, neighbors(2 * dim + dir).label, neighbors(2 * dim + dir).indexOuter, level))).toArray)).toForLoop;
+        (new TreatNeighRecv(field, neighbors(2 * dim + dir).label, neighbors(2 * dim + dir).indexOuter, level))).toArray));
 
     body += (new LoopOverFragments(
       Array(0, 1).map(dir =>
-        (new TreatNeighFinish(neighbors(2 * dim + dir).label))).toArray)).toForLoop;
+        (new TreatNeighFinish(neighbors(2 * dim + dir).label))).toArray));
   }
 }
 
@@ -832,6 +832,10 @@ case class HandleBoundaries (neighbors : ListBuffer[NeighInfo]) extends Expressi
   override def duplicate = this.copy().asInstanceOf[this.type]
   
   def cpp : String = { return "NOT VALID"; }
+
+  def extend : ListBuffer[Node] = {
+    neighbors.map(neigh => neigh.codeTreatBC);
+  }
 }
 
 case class ExchangeData_26(field : Field, level : Int) extends Function("", new ListBuffer()) {
@@ -859,22 +863,20 @@ case class ExchangeData_26(field : Field, level : Int) extends Function("", new 
 
   // handle BC
   body += new LoopOverFragments(Array(new HandleBoundaries(neighbors)));
-  //body += (new LoopOverFragments(neighbors.map(neigh => neigh.codeTreatBC).toArray)).toForLoop;
-  //FragmentClass.neighbors.map(neigh => neigh.getCode_TreatBC(field, level, "slot")).toArray)).cpp;
 
   // sync duplicate values
   body += (new LoopOverFragments(
     neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh =>
       (new TreatNeighSend(field, neigh.label, neigh.indexBorder,
-        neigh.indexOpposingBorder, level))).toArray)).toForLoop;
+        neigh.indexOpposingBorder, level))).toArray));
 
   body += (new LoopOverFragments(
     neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0).map(neigh =>
-      (new TreatNeighRecv(field, neigh.label, neigh.indexBorder, level))).toArray)).toForLoop;
+      (new TreatNeighRecv(field, neigh.label, neigh.indexBorder, level))).toArray));
 
   body += (new LoopOverFragments(
     neighbors.map(neigh =>
-      (new TreatNeighFinish(neigh.label))).toArray)).toForLoop;
+      (new TreatNeighFinish(neigh.label))).toArray));
 
   // update ghost layers
   //      s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
@@ -884,7 +886,7 @@ case class ExchangeData_26(field : Field, level : Int) extends Function("", new 
   body += (new LoopOverFragments(
     neighbors.map(neigh =>
       (new TreatNeighSendRemote(field, neigh.label, neigh.indexInner,
-        neigh.indexOpposingOuter, level))).toArray)).toForLoop;
+        neigh.indexOpposingOuter, level))).toArray));
   body += "//BEGIN LOCAL COMMUNICATION\n";
   body += (new LoopOverFragments(
     Array[Array[Expression]](
@@ -893,14 +895,14 @@ case class ExchangeData_26(field : Field, level : Int) extends Function("", new 
         StringLiteral(s"bool isValid_${neigh.label} = (FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].location && !fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].isRemote);")).toArray,
       neighbors.map(neigh =>
         StringLiteral(s"exa_real_t* neighMem_${neigh.label} = isValid_${neigh.label} ? fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].fragment->get${field.codeName}($level, slot)->data : 0;")).toArray,
-      neighbors.map(neigh => neigh.codeExchLocal).toArray).flatten)).toForLoop;
+      neighbors.map(neigh => neigh.codeExchLocal).toArray).flatten));
   body += "//END LOCAL COMMUNICATION\n";
 
   body += (new LoopOverFragments(
     neighbors.map(neigh =>
-      (new TreatNeighRecv(field, neigh.label, neigh.indexOuter, level))).toArray)).toForLoop;
+      (new TreatNeighRecv(field, neigh.label, neigh.indexOuter, level))).toArray));
 
   body += (new LoopOverFragments(
     neighbors.map(neigh =>
-      (new TreatNeighFinish(neigh.label))).toArray)).toForLoop;
+      (new TreatNeighFinish(neigh.label))).toArray));
 }
