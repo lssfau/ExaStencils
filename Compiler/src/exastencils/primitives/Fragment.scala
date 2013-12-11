@@ -88,10 +88,12 @@ class NeighborInfo(var dir : Array[Int]) {
   //  var codeExchLocal : String = "";
   //
   def addDeclarations(frag : FragmentClass) {
-    frag.declarations += StringLiteral(s"MPI_Request request_$label;");
-    frag.declarations += StringLiteral(s"bool reqOutstanding_$label;");
-    frag.cTorInitList += StringLiteral(s"reqOutstanding_$label(false)");
-
+    for (sendOrRecv <- Array("Send", "Recv")) {
+      frag.declarations += StringLiteral(s"MPI_Request request_${sendOrRecv}_$label;");
+      frag.declarations += StringLiteral(s"bool reqOutstanding_${sendOrRecv}_$label;");
+      frag.cTorInitList += StringLiteral(s"reqOutstanding_${sendOrRecv}_$label(false)");
+    }
+    
     frag.declarations += StringLiteral(s"exa_real_t* sendBuffer_$label;");
     frag.cTorInitList += StringLiteral(s"sendBuffer_$label(0)");
     frag.dTorBody += StringLiteral(s"if (sendBuffer_$label) { delete [] sendBuffer_$label; sendBuffer_$label = 0; }");
@@ -214,7 +216,7 @@ case class SetupBuffers(fields : ListBuffer[Field]) extends Function("", new Lis
     val neighName = neigh._2;
 
     //s += s"MPI_Request request_$neighName;\n";
-    body += s"reqOutstanding_$neighName = false;\n";
+    //body += s"reqOutstanding_Send_$neighName = false;\n";
 
     var size : String = "";
     //size += s"(NUM_GHOST_LAYERS + 1) * maxNumPointsPerDim * maxNumPointsPerDim";
@@ -568,7 +570,7 @@ case class SendBuffer(buffer : String, rank : String, tag : String, synchronous 
   }
 };
 
-case class RecvBuffer(buffer : String, rank : String, tag : String, size : String, synchronous : Boolean = true) extends Expression {
+case class RecvBuffer(buffer : String, rank : String, tag : String, size : String, synchronous : Boolean = true, request : String = "request") extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
@@ -578,7 +580,7 @@ case class RecvBuffer(buffer : String, rank : String, tag : String, size : Strin
     s += s"#pragma omp critical\n{\n";
 
     if (synchronous) {
-      s += "NOT IMPLEMENTED YET\n";
+      s += s"MPI_Irecv($buffer, $size, MPI_DOUBLE, $rank, $tag, MPI_COMM_WORLD, &$request);\n";
     } else {
       s += "MPI_Status stat;\n";
       s += s"if (MPI_ERR_IN_STATUS == MPI_Recv($buffer, $size, MPI_DOUBLE, $rank, $tag, MPI_COMM_WORLD, &stat))\n{\n";
@@ -608,8 +610,8 @@ case class TreatNeighSend(field : Field, neighName : String, indicesLocal : Inde
           Array(
             //"if (1 == mpiRank) LOG_NOTE(\"Sending from \" << fragments[e]->id << \" to \" << curNeigh.fragId);",
             (new CopyLocalToBuffer(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->sendBuffer_$neighName", indicesLocal)),
-            (new SendBuffer(s"fragments[e]->sendBuffer_$neighName", s"curNeigh.remoteRank", s"((unsigned int)fragments[e]->id << 16) + ((unsigned int)curNeigh.fragId & 0x0000ffff)", true, s"fragments[e]->request_$neighName")),
-            s"fragments[e]->reqOutstanding_$neighName = true;"),
+            (new SendBuffer(s"fragments[e]->sendBuffer_$neighName", s"curNeigh.remoteRank", s"((unsigned int)fragments[e]->id << 16) + ((unsigned int)curNeigh.fragId & 0x0000ffff)", true, s"fragments[e]->request_Send_$neighName")),
+            s"fragments[e]->reqOutstanding_Send_$neighName = true;"),
           Array(
             (new CopyLocalToLocal(s"fragments[e]->${field.codeName}[slot][$level]", indicesLocal, s"curNeigh.fragment->get${field.codeName}($level, slot)", indicesNeigh)))))))).cpp;
     return s;
@@ -627,8 +629,8 @@ case class TreatNeighSendRemote(field : Field, neighName : String, indicesLocal 
         s"FragmentNeighInfo& curNeigh = fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN];",
         //"if (1 == mpiRank) LOG_NOTE(\"Sending from \" << fragments[e]->id << \" to \" << curNeigh.fragId);",
         (new CopyLocalToBuffer(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->sendBuffer_$neighName", indicesLocal)),
-        (new SendBuffer(s"fragments[e]->sendBuffer_$neighName", s"curNeigh.remoteRank", s"((unsigned int)fragments[e]->id << 16) + ((unsigned int)curNeigh.fragId & 0x0000ffff)", true, s"fragments[e]->request_$neighName")),
-        s"fragments[e]->reqOutstanding_$neighName = true;"))).cpp;
+        (new SendBuffer(s"fragments[e]->sendBuffer_$neighName", s"curNeigh.remoteRank", s"((unsigned int)fragments[e]->id << 16) + ((unsigned int)curNeigh.fragId & 0x0000ffff)", true, s"fragments[e]->request_Send_$neighName")),
+        s"fragments[e]->reqOutstanding_Send_$neighName = true;"))).cpp;
     return s;
   }
 }
@@ -671,13 +673,15 @@ case class TreatNeighFinish(neighName : String) extends Expression {
   def cpp : String = {
     var s : String = "";
 
-    s += (new ifCond(s"fragments[e]->reqOutstanding_$neighName",
-      Array(
-        s"#pragma omp critical",
-        s"{",
-        s"waitForMPIReq(&fragments[e]->request_$neighName);",
-        s"}",
-        s"fragments[e]->reqOutstanding_$neighName = false;"))).cpp;
+    for (sendOrRecv <- Array("Send", "Recv")) {
+      s += (new ifCond(s"fragments[e]->reqOutstanding_${sendOrRecv}_$neighName",
+        Array(
+          s"#pragma omp critical",
+          s"{",
+          s"waitForMPIReq(&fragments[e]->request_${sendOrRecv}_$neighName);",
+          s"}",
+          s"fragments[e]->reqOutstanding_${sendOrRecv}_$neighName = false;"))).cpp;
+    }
 
     return s;
   }
@@ -898,11 +902,34 @@ case class ExchangeData_26(field : Field, level : Int) extends Function("", new 
       neighbors.map(neigh => neigh.codeExchLocal).toArray).flatten));
   body += "//END LOCAL COMMUNICATION\n";
 
+  //  body += (new LoopOverFragments(
+  //    neighbors.map(neigh =>
+  //      (new TreatNeighRecv(field, neigh.label, neigh.indexOuter, level))).toArray));
   body += (new LoopOverFragments(
     neighbors.map(neigh =>
-      (new TreatNeighRecv(field, neigh.label, neigh.indexOuter, level))).toArray));
+      (new ifCond(
+        s"FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].location",
+        Array(
+          s"FragmentNeighInfo& curNeigh = fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN];",
+          (new ifCond(s"curNeigh.isRemote",
+            Array(
+              //"if (1 == mpiRank) LOG_NOTE(\"Receiving from \" << curNeigh.fragId << \" to \" << fragments[e]->id);",
+              new RecvBuffer(s"fragments[e]->recvBuffer_${neigh.label}", s"curNeigh.remoteRank", s"((unsigned int)curNeigh.fragId << 16) + ((unsigned int)fragments[e]->id & 0x0000ffff)",
+                s"NUM_GHOST_LAYERS * fragments[e]->${field.codeName}[slot][$level]->numDataPointsPerDim.y * fragments[e]->${field.codeName}[slot][$level]->numDataPointsPerDim.z", true,
+                s"fragments[e]->request_Recv_${neigh.label}"),
+                s"fragments[e]->reqOutstanding_Recv_${neigh.label} = true;"))))))).toArray));
 
   body += (new LoopOverFragments(
     neighbors.map(neigh =>
       (new TreatNeighFinish(neigh.label))).toArray));
+
+  body += (new LoopOverFragments(
+    neighbors.map(neigh =>
+      (new ifCond(
+        s"FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].location",
+        Array(
+          s"FragmentNeighInfo& curNeigh = fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN];",
+          (new ifCond(s"curNeigh.isRemote",
+            Array(
+              (new CopyBufferToLocal(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->recvBuffer_${neigh.label}", neigh.indexOuter))))))))).toArray));
 }

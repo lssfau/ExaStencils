@@ -19,11 +19,12 @@ object GenCommCode extends (() => Unit) {
     var strategy = new Strategy("strategy");
     strategy += new Transformation({
       case frag : FragmentClass =>
+        frag.init;
+
         for (neigh <- frag.neighbors) {
           neigh.addDeclarations(frag);
         }
 
-        frag.init;
         Some(frag);
     });
 
