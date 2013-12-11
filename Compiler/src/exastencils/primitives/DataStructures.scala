@@ -16,7 +16,7 @@ case class Field(name : String, codeName : String, dataType : String, numSlots :
   override def duplicate = this.copy().asInstanceOf[this.type]
 }
 
-case class Scope(var body : ListBuffer[Node/*FIXME: specialization*/]) extends Expression {
+case class Scope(var body : ListBuffer[Node/*FIXME: specialization*/]) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
@@ -24,27 +24,34 @@ case class Scope(var body : ListBuffer[Node/*FIXME: specialization*/]) extends E
 
     s += s"{\n";
     for (stat <- body)
-      s += s"${stat.asInstanceOf[Expression]/*FIXME: remove cast*/.cpp}\n";
+      s += s"${stat.asInstanceOf[CppPrettyPrintable]/*FIXME: remove cast*/.cpp}\n";
     s += s"}\n";
 
     return s;
   }
 }
 
-case class ifCond(cond : Expression, trueBranch : Array[Statement], falseBranch : Array[Statement] = Array()) extends Expression {
+case class ifCond(cond : Expression, trueBranch : ListBuffer[Node/*FIXME: specialization*/], falseBranch : ListBuffer[Node/*FIXME: specialization*/]) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def this(cond : Expression, trueBranch : ListBuffer[Node]) = this(cond, trueBranch, ListBuffer[Node]());
+  def this(cond : Expression, trueBranch : Node) = this(cond, ListBuffer(trueBranch));
+
+  def this(cond : Expression, trueBranch : Node, falseBranch : Node) = this(cond, ListBuffer(trueBranch), ListBuffer(falseBranch));
+  def this(cond : Expression, trueBranch : ListBuffer[Node], falseBranch : Node) = this(cond, trueBranch, ListBuffer(falseBranch));
+  def this(cond : Expression, trueBranch : Node, falseBranch : ListBuffer[Node]) = this(cond, ListBuffer(trueBranch), falseBranch);
 
   def cpp : String = {
     var s : String = "";
 
     s += s"if (${cond.cpp})\n{\n";
     for (stat <- trueBranch)
-      s += s"${stat.cpp}\n";
+      s += s"${stat.asInstanceOf[CppPrettyPrintable]/*FIXME: remove cast*/.cpp}\n";
     s += s"}\n";
     if (falseBranch.length > 0) {
       s += s"else\n{\n";
       for (stat <- falseBranch)
-        s += s"${stat.cpp}\n";
+        s += s"${stat.asInstanceOf[CppPrettyPrintable]/*FIXME: remove cast*/.cpp}\n";
       s += s"}\n";
     }
 
@@ -52,7 +59,7 @@ case class ifCond(cond : Expression, trueBranch : Array[Statement], falseBranch 
   }
 }
 
-case class forLoop(head : Expression, body : Array[Node/*FIXME: specialization*/]) extends Statement {
+case class forLoop(head : Expression, body : ListBuffer[Node/*FIXME: specialization*/]) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
@@ -65,18 +72,20 @@ case class forLoop(head : Expression, body : Array[Node/*FIXME: specialization*/
 
     s += s"for (${head.cpp})\n{\n";
     for (stat <- body)
-      s += s"${stat.asInstanceOf[Expression]/*FIXME: remove cast*/.cpp}\n";
+      s += s"${stat.asInstanceOf[CppPrettyPrintable]/*FIXME: remove cast*/.cpp}\n";
     s += s"}\n";
 
     return s;
   }
 }
 
-case class LoopOverFragments(var body : Array[Node/*FIXME: specialization*/]) extends Statement {
+case class LoopOverFragments(var body : ListBuffer[Node /*FIXME: specialization*/ ]) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  def cpp = "NOT VALID";
-  
+  def this(body : Node /*FIXME: specialization*/ ) = this(ListBuffer(body));
+
+  def cpp = "NOT VALID ; CLASS = LoopOverFragments\n";
+
   def toForLoop : forLoop = {
     return forLoop(StringLiteral(s"int e = 0; e < fragments.size(); ++e"), body);
   }
@@ -84,11 +93,11 @@ case class LoopOverFragments(var body : Array[Node/*FIXME: specialization*/]) ex
 
 abstract class Class extends Expression {
   var className : String = "CLASS_NAME";
-  var declarations : ListBuffer[Expression] = new ListBuffer[Expression];
-  var cTorInitList : ListBuffer[Expression] = new ListBuffer[Expression];
-  var cTorBody : ListBuffer[Expression] = new ListBuffer[Expression];
-  var dTorBody : ListBuffer[Expression] = new ListBuffer[Expression];
-  var functions : ListBuffer[Function] = new ListBuffer[Function];
+  var declarations : ListBuffer[Expression] = ListBuffer();
+  var cTorInitList : ListBuffer[Expression] = ListBuffer();
+  var cTorBody : ListBuffer[Expression] = ListBuffer();
+  var dTorBody : ListBuffer[Expression] = ListBuffer();
+  var functions : ListBuffer[Function] = ListBuffer();
 
   def cpp : String = {
     var s : String = "";
@@ -139,8 +148,8 @@ case class FragmentClass extends Class {
 
   className = "Fragment3DCube";
 
-  var fields : ListBuffer[Field] = new ListBuffer;
-  var neighbors = new ListBuffer[NeighborInfo]();
+  var fields : ListBuffer[Field] = ListBuffer();
+  var neighbors : ListBuffer[NeighborInfo] = ListBuffer();
 
   def init = {
     for (z <- -1 to 1; y <- -1 to 1; x <- -1 to 1; if (0 != x || 0 != y || 0 != z)) {
