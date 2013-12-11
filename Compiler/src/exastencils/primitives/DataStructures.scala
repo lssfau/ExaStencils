@@ -8,6 +8,10 @@ import scala.collection.mutable.ListBuffer
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 
+trait Expandable {
+  def expand() : Node
+}
+
 case class Field(name : String, codeName : String, dataType : String, numSlots : String, bcDir0 : Boolean) extends Node {
   override def duplicate = this.copy().asInstanceOf[this.type]
 }
@@ -27,7 +31,7 @@ case class Scope(var body : ListBuffer[Node/*FIXME: specialization*/]) extends E
   }
 }
 
-case class ifCond(cond : Expression, trueBranch : Array[Expression], falseBranch : Array[Expression] = Array()) extends Expression {
+case class ifCond(cond : Expression, trueBranch : Array[Statement], falseBranch : Array[Statement] = Array()) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
@@ -48,7 +52,7 @@ case class ifCond(cond : Expression, trueBranch : Array[Expression], falseBranch
   }
 }
 
-case class forLoop(head : Expression, body : Array[Node/*FIXME: specialization*/]) extends Expression {
+case class forLoop(head : Expression, body : Array[Node/*FIXME: specialization*/]) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
@@ -68,7 +72,7 @@ case class forLoop(head : Expression, body : Array[Node/*FIXME: specialization*/
   }
 }
 
-case class LoopOverFragments(var body : Array[Node/*FIXME: specialization*/]) extends Expression {
+case class LoopOverFragments(var body : Array[Node/*FIXME: specialization*/]) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp = "NOT VALID";
@@ -114,7 +118,7 @@ abstract class Class extends Expression {
   }
 }
 
-abstract class Function(var head : Expression, var body : ListBuffer[Expression]) extends Expression {
+abstract class Function(var head : Expression, var body : ListBuffer[Statement]) extends Expression {
   def cpp : String = {
     var s : String = "";
 

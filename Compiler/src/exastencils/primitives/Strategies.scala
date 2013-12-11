@@ -61,11 +61,11 @@ object GenCommCode extends (() => Unit) {
 
     // 'actual' transformations
     
-    // extend HandleBoundaries
+    // expand applicable nodes
     strategy += new Transformation({
-      case function : HandleBoundaries =>
-        println("Found a HandleBoundaries node");
-      	Some(new Scope(function.extend));
+      case function : Expandable =>
+        println("Found an Expandable node");
+      	Some(function.expand);
     });
 
     // replace LoopOverFragments with basic forLoops
