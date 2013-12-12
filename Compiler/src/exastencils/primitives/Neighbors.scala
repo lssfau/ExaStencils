@@ -10,39 +10,38 @@ import exastencils.primitives._
 case class getNeighInfo_IsValid(var neigh : NeighInfo) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  def cpp : String = {
-    return s"curFragment.neighbor_isValid[${neigh.index}]"
-  }
+  def cpp : String = { s"curFragment.neighbor_isValid[${neigh.index}]"; }
 }
 
 case class getNeighInfo_IsRemote(var neigh : NeighInfo) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
+  def cpp : String = { s"curFragment.neighbor_isRemote[${neigh.index}]"; }
+}
+
+case class getNeighInfo_IsValidAndRemote(var neigh : NeighInfo) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
   def cpp : String = {
-    return s"curFragment.neighbor_isRemote[${neigh.index}]"
+    s"curFragment.neighbor_isRemote[${neigh.index}]"; // remote neighbors should always be valid
+    //s"curFragment.neighbor_isValid[${neigh.index}] && curFragment.neighbor_isRemote[${neigh.index}]"
   }
 }
 
 case class getNeighInfo_LocalPtr(var neigh : NeighInfo) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  def cpp : String = {
-    return s"curFragment.neighbor_localPtr[${neigh.index}]"
-  }
+  def cpp : String = { s"curFragment.neighbor_localPtr[${neigh.index}]"; }
 }
 
 case class getNeighInfo_FragmentId(var neigh : NeighInfo) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  def cpp : String = {
-    return s"curFragment.neighbor_fragmentId[${neigh.index}]"
-  }
+  def cpp : String = { s"curFragment.neighbor_fragmentId[${neigh.index}]"; }
 }
 
 case class getNeighInfo_RemoteRank(var neigh : NeighInfo) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  def cpp : String = {
-    return s"curFragment.neighbor_remoteRank[${neigh.index}]"
-  }
+  def cpp : String = { s"curFragment.neighbor_remoteRank[${neigh.index}]"; }
 }
