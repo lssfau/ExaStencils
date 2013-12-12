@@ -7,7 +7,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 
-case class MPI_Receive(var buffer : String, var size : String, var typeName : String, var rank : String, var tag : String, var request : String) extends Statement {
+case class MPI_Receive(var buffer : Expression, var size : Expression, var typeName : Expression, var rank : Expression, var tag : Expression, var request : Expression) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
@@ -16,7 +16,7 @@ case class MPI_Receive(var buffer : String, var size : String, var typeName : St
     // TODO: move omp stuff to separate class
     s += s"#pragma omp critical\n{\n";
 
-    s += s"MPI_Irecv($buffer, $size, $typeName, $rank, $tag, MPI_COMM_WORLD, &$request);\n"
+    s += s"MPI_Irecv(${buffer.cpp}, ${size.cpp}, ${typeName.cpp}, ${rank.cpp}, ${tag.cpp}, MPI_COMM_WORLD, &${request.cpp});\n"
 
     s += s"}\n";
 
@@ -33,17 +33,17 @@ case class RemoteReceive(var field : Field, var level : Any /*FIXME: Int*/ , var
     new LoopOverFragments(
       neighbors.map(neigh =>
         (new ifCond(
-          new IsNeighborValid(neigh),
+          new getNeighInfo_IsValid(neigh),
           ListBuffer[Node](
-            StringLiteral(s"FragmentNeighInfo& curNeigh = fragments[e]->neigh[${neigh.index}];"),
-            (new ifCond(new IsNeighborRemote(neigh),
+            //StringLiteral(s"FragmentNeighInfo& curNeigh = fragments[e]->neigh[${neigh.index}];"),
+            (new ifCond(new getNeighInfo_IsRemote(neigh),
               ListBuffer[Node](
                 new MPI_Receive(
                   s"fragments[e]->recvBuffer_${neigh.label}",
                   s"${Knowledge.numGhostLayers} * fragments[e]->${field.codeName}[slot][$level]->numDataPointsPerDim.y * fragments[e]->${field.codeName}[slot][$level]->numDataPointsPerDim.z",
                   s"MPI_DOUBLE",
-                  s"curNeigh.remoteRank",
-                  s"((unsigned int)curNeigh.fragId << 16) + ((unsigned int)fragments[e]->id & 0x0000ffff)",
+                  new getNeighInfo_RemoteRank(neigh),
+                  s"((unsigned int)(" + (new getNeighInfo_FragmentId(neigh)).cpp + ") << 16) + ((unsigned int)fragments[e]->id & 0x0000ffff)",
                   s"fragments[e]->request_Recv_${neigh.label}"),
                 StringLiteral(s"fragments[e]->reqOutstanding_Recv_${neigh.label} = true;"))))))) : Node).to[ListBuffer]);
   }
