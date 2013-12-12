@@ -31,11 +31,11 @@ case class RemoteReceive(var field : Field, var level : Any /*FIXME: Int*/ , var
 
   def expand : LoopOverFragments = {
     new LoopOverFragments(
-        // TODO: use for loop instead of 26 cases
+      // TODO: use for loop instead of 26 cases
       neighbors.map(neigh =>
         (new ifCond(new getNeighInfo_IsValid(neigh),
           (new ifCond(new getNeighInfo_IsRemote(neigh),
-            ListBuffer[Node](
+            ListBuffer[Statement](
               new MPI_Receive(
                 s"curFragment.recvBuffer_${neigh.label}",
                 s"curFragment.maxElemRecvBuffer_${neigh.label}",
@@ -43,6 +43,6 @@ case class RemoteReceive(var field : Field, var level : Any /*FIXME: Int*/ , var
                 new getNeighInfo_RemoteRank(neigh),
                 s"((unsigned int)(" + (new getNeighInfo_FragmentId(neigh)).cpp + ") << 16) + ((unsigned int)curFragment.id & 0x0000ffff)",
                 s"curFragment.request_Recv_${neigh.label}"),
-              StringLiteral(s"curFragment.reqOutstanding_Recv_${neigh.label} = true;")))))) : Node).to[ListBuffer]);
+              s"curFragment.reqOutstanding_Recv_${neigh.label} = true;"))))) : Statement).to[ListBuffer]);
   }
 }

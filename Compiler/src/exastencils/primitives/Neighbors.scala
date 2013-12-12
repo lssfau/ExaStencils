@@ -7,7 +7,7 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.primitives._
 
-case class getNeighInfo_IsValid(neigh : NeighInfo) extends Expression {
+case class getNeighInfo_IsValid(var neigh : NeighInfo) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
@@ -15,7 +15,7 @@ case class getNeighInfo_IsValid(neigh : NeighInfo) extends Expression {
   }
 }
 
-case class getNeighInfo_IsRemote(neigh : NeighInfo) extends Expression {
+case class getNeighInfo_IsRemote(var neigh : NeighInfo) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
@@ -23,7 +23,7 @@ case class getNeighInfo_IsRemote(neigh : NeighInfo) extends Expression {
   }
 }
 
-case class getNeighInfo_LocalPtr(neigh : NeighInfo) extends Expression {
+case class getNeighInfo_LocalPtr(var neigh : NeighInfo) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
@@ -31,7 +31,7 @@ case class getNeighInfo_LocalPtr(neigh : NeighInfo) extends Expression {
   }
 }
 
-case class getNeighInfo_FragmentId(neigh : NeighInfo) extends Expression {
+case class getNeighInfo_FragmentId(var neigh : NeighInfo) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
@@ -39,7 +39,7 @@ case class getNeighInfo_FragmentId(neigh : NeighInfo) extends Expression {
   }
 }
 
-case class getNeighInfo_RemoteRank(neigh : NeighInfo) extends Expression {
+case class getNeighInfo_RemoteRank(var neigh : NeighInfo) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {

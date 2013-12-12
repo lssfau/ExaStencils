@@ -616,10 +616,10 @@ case class TreatNeighSend(field : Field, neighName : String, indicesLocal : Inde
     var s : String = "";
     s += (new ifCond(
       s"FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN].location",
-      ListBuffer[Node](
+      ListBuffer[Statement](
         StringLiteral(s"FragmentNeighInfo& curNeigh = fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN];"),
         new ifCond(s"curNeigh.isRemote",
-          ListBuffer[Node](
+          ListBuffer[Statement](
             //"if (1 == mpiRank) LOG_NOTE(\"Sending from \" << fragments[e]->id << \" to \" << curNeigh.fragId);",
             new CopyLocalToBuffer(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->sendBuffer_$neighName", indicesLocal),
             new SendBuffer(s"fragments[e]->sendBuffer_$neighName", s"curNeigh.remoteRank", s"((unsigned int)fragments[e]->id << 16) + ((unsigned int)curNeigh.fragId & 0x0000ffff)", true, s"fragments[e]->request_Send_$neighName"),
@@ -636,7 +636,7 @@ case class TreatNeighSendRemote(field : Field, neighName : String, indicesLocal 
     var s : String = "";
     s += (new ifCond(
       s"FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN].location && fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN].isRemote",
-      ListBuffer[Node](
+      ListBuffer[Statement](
         StringLiteral(s"FragmentNeighInfo& curNeigh = fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN];"),
         //"if (1 == mpiRank) LOG_NOTE(\"Sending from \" << fragments[e]->id << \" to \" << curNeigh.fragId);",
         new CopyLocalToBuffer(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->sendBuffer_$neighName", indicesLocal),
@@ -665,10 +665,10 @@ case class TreatNeighRecv(field : Field, neighName : String, indices : IndexRang
     var s : String = "";
     s += (new ifCond(
       s"FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN].location",
-      ListBuffer[Node](
+      ListBuffer[Statement](
         StringLiteral(s"FragmentNeighInfo& curNeigh = fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN];"),
         new ifCond(s"curNeigh.isRemote",
-          ListBuffer[Node](
+          ListBuffer[Statement](
             //"if (1 == mpiRank) LOG_NOTE(\"Receiving from \" << curNeigh.fragId << \" to \" << fragments[e]->id);",
             new RecvBuffer(s"fragments[e]->recvBuffer_$neighName", s"curNeigh.remoteRank", s"((unsigned int)curNeigh.fragId << 16) + ((unsigned int)fragments[e]->id & 0x0000ffff)",
               s"NUM_GHOST_LAYERS * fragments[e]->${field.codeName}[slot][$level]->numDataPointsPerDim.y * fragments[e]->${field.codeName}[slot][$level]->numDataPointsPerDim.z", false),
@@ -685,7 +685,7 @@ case class TreatNeighFinish(neighName : String) extends Statement {
 
     for (sendOrRecv <- Array("Send", "Recv")) {
       s += (new ifCond(s"fragments[e]->reqOutstanding_${sendOrRecv}_$neighName",
-        ListBuffer[Node](
+        ListBuffer[Statement](
           StringLiteral(s"#pragma omp critical"),
           StringLiteral(s"{"),
           StringLiteral(s"waitForMPIReq(&fragments[e]->request_${sendOrRecv}_$neighName);"),
@@ -758,7 +758,7 @@ class NeighInfo(var dir : Array[Int], var level : Int, var index : Int) {
   }
 
   def addExchLocal = {
-    var stats : ListBuffer[Node] = ListBuffer();
+    var stats : ListBuffer[Statement] = ListBuffer();
     (2 to 0 by -1).toArray.map(i =>
       stats += StringLiteral(s"for (unsigned int ${dimToString(i)} = ${indexInner.begin(i)}; ${dimToString(i)} <= ${indexInner.end(i)}; ++${dimToString(i)})"));
     stats += StringLiteral(s"neighMem_$label[${Mapping.access(indexOpposingOuter.level, s"(z - (${indexInner.begin(2)}) + (${indexOpposingOuter.begin(2)}))", s"(y - (${indexInner.begin(1)}) + (${indexOpposingOuter.begin(1)}))", s"(x - (${indexInner.begin(0)}) + (${indexOpposingOuter.begin(0)}))")}]" +
@@ -804,12 +804,12 @@ case class ExchangeData_6(field : Field, level : Int) extends Function("", new L
   body += (new LoopOverFragments(
     neighbors.map(neigh => (
       new TreatNeighBC(field, neigh.label,
-        fieldToIndexBorder(neigh.dir, fieldName, level), level)).asInstanceOf[Node]).to[ListBuffer]));
+        fieldToIndexBorder(neigh.dir, fieldName, level), level)) : Statement).to[ListBuffer]));
 
   // sync duplicate values
   for (dim <- 0 to 2) {
     body += (new LoopOverFragments(
-      ListBuffer[Node](
+      ListBuffer[Statement](
         (new TreatNeighSend(field, neighbors(2 * dim + 1).label,
           neighbors(2 * dim + 1).indexBorder,
           neighbors(2 * dim + 1).indexOpposingBorder, level)))));
@@ -822,13 +822,13 @@ case class ExchangeData_6(field : Field, level : Int) extends Function("", new L
   for (dim <- 0 to 2) {
     body += new LoopOverFragments(
       Array(0, 1).map(dir => (new TreatNeighSend(field, neighbors(2 * dim + dir).label, neighbors(2 * dim + dir).indexInner,
-        neighbors(2 * dim + dir).indexOpposingOuter, level).asInstanceOf[Node])).to[ListBuffer]);
+        neighbors(2 * dim + dir).indexOpposingOuter, level) : Statement)).to[ListBuffer]);
 
     body += new LoopOverFragments(
-      Array(0, 1).map(dir => (new TreatNeighRecv(field, neighbors(2 * dim + dir).label, neighbors(2 * dim + dir).indexOuter, level).asInstanceOf[Node])).to[ListBuffer]);
+      Array(0, 1).map(dir => (new TreatNeighRecv(field, neighbors(2 * dim + dir).label, neighbors(2 * dim + dir).indexOuter, level) : Statement)).to[ListBuffer]);
 
     body += new LoopOverFragments(
-      Array(0, 1).map(dir => (new TreatNeighFinish(neighbors(2 * dim + dir).label).asInstanceOf[Node])).to[ListBuffer]);
+      Array(0, 1).map(dir => (new TreatNeighFinish(neighbors(2 * dim + dir).label) : Statement)).to[ListBuffer]);
   }
 }
 
@@ -870,15 +870,15 @@ case class ExchangeData_26(field : Field, level : Int) extends Function("", new 
   body += new LoopOverFragments(
     neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh =>
       (new TreatNeighSend(field, neigh.label, neigh.indexBorder,
-        neigh.indexOpposingBorder, level).asInstanceOf[Node])).to[ListBuffer]);
+        neigh.indexOpposingBorder, level) : Statement)).to[ListBuffer]);
 
   body += (new LoopOverFragments(
     neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0).map(neigh =>
-      (new TreatNeighRecv(field, neigh.label, neigh.indexBorder, level).asInstanceOf[Node])).to[ListBuffer]));
+      (new TreatNeighRecv(field, neigh.label, neigh.indexBorder, level) : Statement)).to[ListBuffer]));
 
   body += (new LoopOverFragments(
     neighbors.map(neigh =>
-      (new TreatNeighFinish(neigh.label).asInstanceOf[Node])).to[ListBuffer]));
+      (new TreatNeighFinish(neigh.label) : Statement)).to[ListBuffer]));
 
   // update ghost layers
   //      s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
@@ -888,16 +888,16 @@ case class ExchangeData_26(field : Field, level : Int) extends Function("", new 
   body += (new LoopOverFragments(
     neighbors.map(neigh =>
       (new TreatNeighSendRemote(field, neigh.label, neigh.indexInner,
-        neigh.indexOpposingOuter, level).asInstanceOf[Node])).to[ListBuffer]));
+        neigh.indexOpposingOuter, level) : Statement)).to[ListBuffer]));
   body += "//BEGIN LOCAL COMMUNICATION\n";
   body += (new LoopOverFragments(
-    ListBuffer[ListBuffer[Node]](
-      ListBuffer(StringLiteral(s"exa_real_t* localMem = fragments[e]->${field.codeName}[slot][$level]->data;").asInstanceOf[Node]),
+    ListBuffer[ListBuffer[Statement]](
+      ListBuffer(StringLiteral(s"exa_real_t* localMem = fragments[e]->${field.codeName}[slot][$level]->data;") : Statement),
       neighbors.map(neigh =>
-        StringLiteral(s"bool isValid_${neigh.label} = (FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].location && !fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].isRemote);").asInstanceOf[Node]).to[ListBuffer],
+        StringLiteral(s"bool isValid_${neigh.label} = (FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].location && !fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].isRemote);") : Statement).to[ListBuffer],
       neighbors.map(neigh =>
-        StringLiteral(s"exa_real_t* neighMem_${neigh.label} = isValid_${neigh.label} ? fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].fragment->get${field.codeName}($level, slot)->data : 0;").asInstanceOf[Node]).to[ListBuffer],
-      neighbors.map(neigh => neigh.codeExchLocal.asInstanceOf[Node]).to[ListBuffer]).flatten));
+        StringLiteral(s"exa_real_t* neighMem_${neigh.label} = isValid_${neigh.label} ? fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].fragment->get${field.codeName}($level, slot)->data : 0;") : Statement).to[ListBuffer],
+      neighbors.map(neigh => neigh.codeExchLocal : Statement).to[ListBuffer]).flatten));
   body += "//END LOCAL COMMUNICATION\n";
 
   //  body += (new LoopOverFragments(
@@ -921,14 +921,14 @@ case class ExchangeData_26(field : Field, level : Int) extends Function("", new 
 
   body += (new LoopOverFragments(
     neighbors.map(neigh =>
-      (new TreatNeighFinish(neigh.label).asInstanceOf[Node])).to[ListBuffer]));
+      (new TreatNeighFinish(neigh.label) : Statement)).to[ListBuffer]));
 
   body += (new LoopOverFragments(
     neighbors.map(neigh =>
       (new ifCond(
         s"FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].location",
-        ListBuffer[Node](
+        ListBuffer[Statement](
           StringLiteral(s"FragmentNeighInfo& curNeigh = fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN];"),
           new ifCond(s"curNeigh.isRemote",
-            new CopyBufferToLocal(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->recvBuffer_${neigh.label}", neigh.indexOuter))))).asInstanceOf[Node]).to[ListBuffer]));
+            new CopyBufferToLocal(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->recvBuffer_${neigh.label}", neigh.indexOuter))))) : Statement).to[ListBuffer]));
 }
