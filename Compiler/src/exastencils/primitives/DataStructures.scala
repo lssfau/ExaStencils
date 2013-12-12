@@ -5,10 +5,10 @@ import java.io.PrintWriter
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
-
-import exastencils.datastructures.ir.ImplicitConversions
+import exastencils.datastructures.ir.ImplicitConversions._
 
 trait Expandable {
   def expand() : Node
@@ -80,6 +80,29 @@ case class forLoop(var head : Expression, var body : ListBuffer[Statement]) exte
     s += s"}\n";
 
     return s;
+  }
+}
+
+case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[Statement]) extends Statement with Expandable {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def this(indices : IndexRange, body : Statement) = this(indices, ListBuffer[Statement](body));
+
+  override def cpp : String = "NOT VALID ; CLASS = LoopOverDimensions\n";
+
+  def expand : forLoop = {
+    new forLoop(s"unsigned int ${dimToString(2)} = ${indices.begin(2)}; ${dimToString(2)} <= ${indices.end(2)}; ++${dimToString(2)}",
+      new forLoop(s"unsigned int ${dimToString(1)} = ${indices.begin(1)}; ${dimToString(1)} <= ${indices.end(1)}; ++${dimToString(1)}",
+        new forLoop(s"unsigned int ${dimToString(0)} = ${indices.begin(0)}; ${dimToString(0)} <= ${indices.end(0)}; ++${dimToString(0)}",
+          body)));
+  }
+}
+
+case class FieldAccess(var field : Field, var level : Expression, var slot : Expression, var index : Expression) extends Statement {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = {
+    s"curFragment.${field.codeName}[${slot.cpp}][${level.cpp}]->data[${index.cpp}]";
   }
 }
 
