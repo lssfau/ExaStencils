@@ -101,6 +101,9 @@ class NeighborInfo(var dir : Array[Int]) {
     frag.declarations += StringLiteral(s"exa_real_t* recvBuffer_$label;");
     frag.cTorInitList += StringLiteral(s"recvBuffer_$label(0)");
     frag.dTorBody += StringLiteral(s"if (recvBuffer_$label) { delete [] recvBuffer_$label; recvBuffer_$label = 0; }");
+    
+    frag.declarations += StringLiteral(s"int maxElemRecvBuffer_$label;");
+    frag.cTorInitList += StringLiteral(s"maxElemRecvBuffer_$label(0)");
   }
 
   def getCode_TreatBC(field : Field, level : Int, slot : Any/*FIXME: Int*/) : String = {
@@ -239,6 +242,7 @@ case class SetupBuffers(fields : ListBuffer[Field]) extends Function("", new Lis
 
     body += s"sendBuffer_$neighName = new exa_real_t[$size];\n";
     body += s"recvBuffer_$neighName = new exa_real_t[$size];\n";
+    body += s"maxElemRecvBuffer_$neighName = $size;\n";
     //s += s"sendBuffer_$neighName = boost::shared_array<exa_real_t>(new exa_real_t[$size]);\n";
     //s += s"recvBuffer_$neighName = boost::shared_array<exa_real_t>(new exa_real_t[$size]);\n";
   }

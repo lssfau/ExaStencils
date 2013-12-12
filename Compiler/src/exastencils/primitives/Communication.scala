@@ -31,20 +31,18 @@ case class RemoteReceive(var field : Field, var level : Any /*FIXME: Int*/ , var
 
   def expand : LoopOverFragments = {
     new LoopOverFragments(
+        // TODO: use for loop instead of 26 cases
       neighbors.map(neigh =>
-        (new ifCond(
-          new getNeighInfo_IsValid(neigh),
-          ListBuffer[Node](
-            //StringLiteral(s"FragmentNeighInfo& curNeigh = fragments[e]->neigh[${neigh.index}];"),
-            (new ifCond(new getNeighInfo_IsRemote(neigh),
-              ListBuffer[Node](
-                new MPI_Receive(
-                  s"fragments[e]->recvBuffer_${neigh.label}",
-                  s"${Knowledge.numGhostLayers} * fragments[e]->${field.codeName}[slot][$level]->numDataPointsPerDim.y * fragments[e]->${field.codeName}[slot][$level]->numDataPointsPerDim.z",
-                  s"MPI_DOUBLE",
-                  new getNeighInfo_RemoteRank(neigh),
-                  s"((unsigned int)(" + (new getNeighInfo_FragmentId(neigh)).cpp + ") << 16) + ((unsigned int)fragments[e]->id & 0x0000ffff)",
-                  s"fragments[e]->request_Recv_${neigh.label}"),
-                StringLiteral(s"fragments[e]->reqOutstanding_Recv_${neigh.label} = true;"))))))) : Node).to[ListBuffer]);
+        (new ifCond(new getNeighInfo_IsValid(neigh),
+          (new ifCond(new getNeighInfo_IsRemote(neigh),
+            ListBuffer[Node](
+              new MPI_Receive(
+                s"curFragment.recvBuffer_${neigh.label}",
+                s"curFragment.maxElemRecvBuffer_${neigh.label}",
+                s"MPI_DOUBLE",
+                new getNeighInfo_RemoteRank(neigh),
+                s"((unsigned int)(" + (new getNeighInfo_FragmentId(neigh)).cpp + ") << 16) + ((unsigned int)curFragment.id & 0x0000ffff)",
+                s"curFragment.request_Recv_${neigh.label}"),
+              StringLiteral(s"curFragment.reqOutstanding_Recv_${neigh.label} = true;")))))) : Node).to[ListBuffer]);
   }
 }
