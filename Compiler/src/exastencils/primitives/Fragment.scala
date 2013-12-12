@@ -901,9 +901,7 @@ case class ExchangeData_26(field : Field, level : Int) extends Function("", new 
 
   body += new RemoteReceive(field, level, neighbors);
 
-  body += (new LoopOverFragments(
-    neighbors.map(neigh =>
-      (new TreatNeighFinish(neigh.label) : Statement)).to[ListBuffer]));
+  body += new FinishRemoteCommunication(neighbors);
 
   body += (new LoopOverFragments(
     neighbors.map(neigh =>

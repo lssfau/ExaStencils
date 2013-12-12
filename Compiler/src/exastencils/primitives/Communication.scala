@@ -46,3 +46,22 @@ case class RemoteReceive(var field : Field, var level : Any /*FIXME: Int*/ , var
               s"curFragment.reqOutstanding_Recv_${neigh.label} = true;"))))) : Statement).to[ListBuffer]);
   }
 }
+
+case class FinishRemoteCommunication(var neighbors : ListBuffer[NeighInfo]) extends Statement with Expandable {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = "NOT VALID ; CLASS = RemoteReceive\n";
+
+  def expand : LoopOverFragments = {
+    new LoopOverFragments(
+      neighbors.map(neigh =>
+        Array("Send", "Recv").map(sendOrRecv =>
+          (new ifCond(s"curFragment.reqOutstanding_${sendOrRecv}_${neigh.label}",
+            ListBuffer[Statement](
+              s"#pragma omp critical",
+              s"{",
+              s"waitForMPIReq(&curFragment.request_${sendOrRecv}_${neigh.label});",
+              s"}",
+              s"curFragment.reqOutstanding_${sendOrRecv}_${neigh.label} = false;")) : Statement))).flatten);
+  }
+}
