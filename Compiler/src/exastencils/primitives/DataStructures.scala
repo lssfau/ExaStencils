@@ -8,6 +8,8 @@ import scala.collection.mutable.ListBuffer
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 
+import exastencils.datastructures.ir.ImplicitConversions
+
 trait Expandable {
   def expand() : Node
 }
@@ -59,8 +61,10 @@ case class ifCond(cond : Expression, trueBranch : ListBuffer[Node/*FIXME: specia
   }
 }
 
-case class forLoop(head : Expression, body : ListBuffer[Node/*FIXME: specialization*/]) extends Statement {
+case class forLoop(head : Expression, body : ListBuffer[Node /*FIXME: specialization*/ ]) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def this(head : Expression, body : Node) = this(head, ListBuffer[Node](body));
 
   def cpp : String = {
     var s : String = "";
@@ -87,16 +91,18 @@ case class LoopOverFragments(var body : ListBuffer[Node /*FIXME: specialization*
   def cpp = "NOT VALID ; CLASS = LoopOverFragments\n";
 
   def toForLoop : forLoop = {
-    return forLoop(StringLiteral(s"int e = 0; e < fragments.size(); ++e"), body);
+    return forLoop(StringLiteral(s"int e = 0; e < fragments.size(); ++e"),
+      ListBuffer[Node](StringLiteral("Fragment3DCube& curFragment = *(fragments[e].get());"))
+        ++ body);
   }
 }
 
 abstract class Class extends Expression {
   var className : String = "CLASS_NAME";
-  var declarations : ListBuffer[Expression] = ListBuffer();
+  var declarations : ListBuffer[Statement] = ListBuffer();
   var cTorInitList : ListBuffer[Expression] = ListBuffer();
-  var cTorBody : ListBuffer[Expression] = ListBuffer();
-  var dTorBody : ListBuffer[Expression] = ListBuffer();
+  var cTorBody : ListBuffer[Statement] = ListBuffer();
+  var dTorBody : ListBuffer[Statement] = ListBuffer();
   var functions : ListBuffer[Function] = ListBuffer();
 
   def cpp : String = {
@@ -155,6 +161,19 @@ case class FragmentClass extends Class {
     for (z <- -1 to 1; y <- -1 to 1; x <- -1 to 1; if (0 != x || 0 != y || 0 != z)) {
       neighbors += new NeighborInfo(Array(x, y, z));
     }
+
+    // FIXME: use Number of neighbors // TODO: wtf can the conversion not be applied automatically?
+    declarations += ImplicitConversions.StringToStatement(s"bool neighbor_isValid[27];");
+    declarations += ImplicitConversions.StringToStatement(s"bool neighbor_isRemote[27];");
+    declarations += ImplicitConversions.StringToStatement(s"Fragment3DCube* neighbor_localPtr[27];");
+    declarations += ImplicitConversions.StringToStatement(s"exa_id_t neighbor_fragmentId[27];");
+    declarations += ImplicitConversions.StringToStatement(s"int neighbor_remoteRank[27];");
+    cTorBody += new forLoop(StringLiteral(s"unsigned int i = 0; i < 27; ++i"), ListBuffer[Node](
+      StringLiteral(s"neighbor_isValid[i] = false;"),
+      StringLiteral(s"neighbor_isRemote[i] = false;"),
+      StringLiteral(s"neighbor_localPtr[i] = NULL;"),
+      StringLiteral(s"neighbor_fragmentId[i] = -1;"),
+      StringLiteral(s"neighbor_remoteRank[i] = MPI_PROC_NULL;")));
   }
 
   override def cpp : String = {

@@ -33,10 +33,10 @@ case class RemoteReceive(var field : Field, var level : Any /*FIXME: Int*/ , var
     new LoopOverFragments(
       neighbors.map(neigh =>
         (new ifCond(
-          s"FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].location",
+          new IsNeighborValid(neigh),
           ListBuffer[Node](
-            StringLiteral(s"FragmentNeighInfo& curNeigh = fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN];"),
-            (new ifCond(s"curNeigh.isRemote",
+            StringLiteral(s"FragmentNeighInfo& curNeigh = fragments[e]->neigh[${neigh.index}];"),
+            (new ifCond(new IsNeighborRemote(neigh),
               ListBuffer[Node](
                 new MPI_Receive(
                   s"fragments[e]->recvBuffer_${neigh.label}",
@@ -45,6 +45,6 @@ case class RemoteReceive(var field : Field, var level : Any /*FIXME: Int*/ , var
                   s"curNeigh.remoteRank",
                   s"((unsigned int)curNeigh.fragId << 16) + ((unsigned int)fragments[e]->id & 0x0000ffff)",
                   s"fragments[e]->request_Recv_${neigh.label}"),
-                StringLiteral(s"fragments[e]->reqOutstanding_Recv_${neigh.label} = true;"))))))).asInstanceOf[Node]).to[ListBuffer]);
+                StringLiteral(s"fragments[e]->reqOutstanding_Recv_${neigh.label} = true;"))))))) : Node).to[ListBuffer]);
   }
 }

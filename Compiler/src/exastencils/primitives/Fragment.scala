@@ -7,7 +7,7 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.primitives._
 
-case class IsNeighValid(neigh : NeighborInfo) extends Expression {
+case class IsNeighInvalid(neigh : NeighborInfo) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
@@ -108,7 +108,7 @@ class NeighborInfo(var dir : Array[Int]) {
 
     if (field.bcDir0) {
       code += (new ifCond(
-        new IsNeighValid(this),
+        new IsNeighInvalid(this),
         new SetFieldToExpr(field, level, slot, fieldToIndexBorder2(dir, level), "0.0"))).cpp;
     }
 
@@ -158,8 +158,12 @@ case class ConnectLocalElement() extends Function(
     s"ref.location	= location;",
     s"ref.isRemote	= false;",
     s"ref.fragment	= fragment;",
-    s"ref.fragId		= fragment->getId();")) {
-  
+    s"ref.fragId		= fragment->getId();",
+    s"neighbor_isValid[location] = true;",
+    s"neighbor_isRemote[location] = false;",
+    s"neighbor_localPtr[location] = fragment.get();",
+    s"neighbor_fragmentId[location] = fragment->getId();")) {
+
   override def duplicate = this.copy().asInstanceOf[this.type]
 }
 
@@ -171,8 +175,12 @@ case class ConnectRemoteElement() extends Function(
     s"ref.isRemote	= true;",
     s"ref.fragment	= boost::shared_ptr<CurFragmentType>();",
     s"ref.fragId		= id;",
-    s"ref.remoteRank	= remoteRank;")) {
-  
+    s"ref.remoteRank	= remoteRank;",
+    s"neighbor_isValid[location] = true;",
+    s"neighbor_isRemote[location] = true;",
+    s"neighbor_fragmentId[location] = id;",
+    s"neighbor_remoteRank[location] = remoteRank;")) {
+
   override def duplicate = this.copy().asInstanceOf[this.type]
 }
 
@@ -700,7 +708,7 @@ case class TreatNeighBC(field : Field, neighName : String, indices : IndexRange,
   }
 }
 
-class NeighInfo(var dir : Array[Int], level : Int) {
+class NeighInfo(var dir : Array[Int], var level : Int, var index : Int) {
   var label : String = (2 to 0 by -1).toList.map(i => dimToString(i).toUpperCase + dirToString(dir(i))).mkString("_");
   var indexInner = new IndexRange();
   var indexOuter = new IndexRange();
@@ -779,10 +787,10 @@ case class ExchangeData_6(field : Field, level : Int) extends Function("", new L
   val fieldName = s"fragments[e]->${field.codeName}[slot][$level]";
 
   // simple exchange along axis
-  val neighbors = Array(
-    new NeighInfo(Array(-1, 0, 0), level), new NeighInfo(Array(1, 0, 0), level),
-    new NeighInfo(Array(0, -1, 0), level), new NeighInfo(Array(0, 1, 0), level),
-    new NeighInfo(Array(0, 0, -1), level), new NeighInfo(Array(0, 0, 1), level));
+  val neighbors = Array( // FIXME: indices
+    new NeighInfo(Array(-1, 0, 0), level, 4), new NeighInfo(Array(1, 0, 0), level, 22),
+    new NeighInfo(Array(0, -1, 0), level, 10), new NeighInfo(Array(0, 1, 0), level, 16),
+    new NeighInfo(Array(0, 0, -1), level, 12), new NeighInfo(Array(0, 0, 1), level, 14));
 
   for (neigh <- neighbors) {
     neigh.setIndicesWide(field);
@@ -839,7 +847,7 @@ case class ExchangeData_26(field : Field, level : Int) extends Function("", new 
   // TODO: get neighbors from parent
   val neighbors = new ListBuffer[NeighInfo](); //FragmentClass.neighbors;
   for (z <- -1 to 1; y <- -1 to 1; x <- -1 to 1; if (0 != x || 0 != y || 0 != z)) {
-    neighbors += new NeighInfo(Array(x, y, z), level);
+    neighbors += new NeighInfo(Array(x, y, z), level, (z + 1) * 9 + (y + 1) * 3 + (x + 1));
   }
 
   for (neigh <- neighbors) {
