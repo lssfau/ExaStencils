@@ -31,16 +31,6 @@ class FieldForLoop(indices : IndexRange, body : Array[String]) {
   }
 }
 
-class FieldAccess(field : Field, level : Int, slot : Any /*FIXME: Int*/ , index : String) {
-  def cpp : String = {
-    var s : String = "";
-
-    s += s"fragments[e]->${field.codeName}[$slot][$level]->data[$index]";
-
-    return s;
-  }
-}
-
 case class SetFieldToExpr(field : Field, level : Int, slot : Any /*FIXME: Int*/ , indices : IndexRange, expr : String) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
@@ -48,7 +38,7 @@ case class SetFieldToExpr(field : Field, level : Int, slot : Any /*FIXME: Int*/ 
     var s : String = "";
 
     s += (new FieldForLoop(indices, Array(
-      (new FieldAccess(field, level, slot, Mapping.access(indices.level))) + s" = $expr;"))).cpp;
+      (new FieldAccess(field, level.toString, slot.toString, Mapping.access(indices.level))) + s" = $expr;"))).cpp;
 
     return s;
   }
@@ -903,12 +893,13 @@ case class ExchangeData_26(field : Field, level : Int) extends Function("", new 
 
   body += new FinishRemoteCommunication(neighbors);
 
-  body += (new LoopOverFragments(
-    neighbors.map(neigh =>
-      (new ifCond(
-        s"FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].location",
-        ListBuffer[Statement](
-          StringLiteral(s"FragmentNeighInfo& curNeigh = fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN];"),
-          new ifCond(s"curNeigh.isRemote",
-            new CopyBufferToLocal(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->recvBuffer_${neigh.label}", neigh.indexOuter))))) : Statement).to[ListBuffer]));
+  body += new CopyFromRecvBuffer(field, ImplicitConversions.NumberToNumericLiteral(level), neighbors);
+//  body += (new LoopOverFragments(
+//    neighbors.map(neigh =>
+//      (new ifCond(
+//        s"FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].location",
+//        ListBuffer[Statement](
+//          StringLiteral(s"FragmentNeighInfo& curNeigh = fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN];"),
+//          new ifCond(s"curNeigh.isRemote",
+//            new CopyBufferToLocal(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->recvBuffer_${neigh.label}", neigh.indexOuter))))) : Statement).to[ListBuffer]));
 }

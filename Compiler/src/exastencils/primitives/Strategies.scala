@@ -60,7 +60,7 @@ object GenCommCode extends (() => Unit) {
 
     // 'actual' transformations
 
-    // expand applicable nodes
+    // expand applicable nodes - FIXME: do while changed
     strategy += new Transformation({
       case function : Expandable =>
         println("Found an Expandable node");

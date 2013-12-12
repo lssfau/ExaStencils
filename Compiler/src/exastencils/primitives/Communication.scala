@@ -47,10 +47,28 @@ case class RemoteReceive(var field : Field, var level : Any /*FIXME: Int*/ , var
   }
 }
 
+case class CopyFromRecvBuffer(var field : Field, var level : Expression, var neighbors : ListBuffer[NeighInfo]) extends Statement with Expandable {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = "NOT VALID ; CLASS = CopyFromRecvBuffer\n";
+
+  def expand : LoopOverFragments = {
+    new LoopOverFragments(
+      neighbors.map(neigh =>
+        (new ifCond(new getNeighInfo_IsValid(neigh),
+          new ifCond(new getNeighInfo_IsRemote(neigh),
+            ListBuffer[Statement](
+              s"size_t entry = 0;",
+              new LoopOverDimensions(neigh.indexOuter,
+                (new FieldAccess(field, level, "slot", Mapping.access(neigh.indexOuter.level))).cpp // FIXME: assignment statement w/o cpp call
+                  + s" = curFragment.recvBuffer_${neigh.label}[entry++];"))))) : Statement));
+  }
+}
+
 case class FinishRemoteCommunication(var neighbors : ListBuffer[NeighInfo]) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  override def cpp : String = "NOT VALID ; CLASS = RemoteReceive\n";
+  override def cpp : String = "NOT VALID ; CLASS = FinishRemoteCommunication\n";
 
   def expand : LoopOverFragments = {
     new LoopOverFragments(
