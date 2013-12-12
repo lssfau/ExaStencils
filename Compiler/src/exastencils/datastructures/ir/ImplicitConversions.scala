@@ -8,4 +8,6 @@ object ImplicitConversions {
   implicit def StringToStringLiteral(s : String) = new StringLiteral(s);
   implicit def ExpressionToExpressionStatement(e : Expression) = new ExpressionStatement(e);
   implicit def StringToStatement(s : String) = (new ExpressionStatement(new StringLiteral(s)) : Statement);
+  
+  implicit def NumberToNumericLiteral(n : Number) = new NumericLiteral(n);
 }
