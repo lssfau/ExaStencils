@@ -33,7 +33,7 @@ case class RemoteReceive(var field : Field, var level : Any /*FIXME: Int*/ , var
     new LoopOverFragments(
       // TODO: use for loop instead of 26 cases
       neighbors.map(neigh =>
-        (new ifCond(new getNeighInfo_IsValidAndRemote(neigh),
+        (new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh),
             ListBuffer[Statement](
               new MPI_Receive(
                 s"curFragment.recvBuffer_${neigh.label}",
@@ -54,7 +54,7 @@ case class CopyFromRecvBuffer(var field : Field, var level : Expression, var nei
   def expand : LoopOverFragments = {
     new LoopOverFragments(
       neighbors.map(neigh =>
-        (new ifCond(new getNeighInfo_IsValidAndRemote(neigh),
+        (new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh),
             ListBuffer[Statement](
               s"size_t entry = 0;",
               new LoopOverDimensions(neigh.indexOuter,
@@ -72,7 +72,7 @@ case class FinishRemoteCommunication(var neighbors : ListBuffer[NeighInfo]) exte
     new LoopOverFragments(
       neighbors.map(neigh =>
         Array("Send", "Recv").map(sendOrRecv =>
-          (new ifCond(s"curFragment.reqOutstanding_${sendOrRecv}_${neigh.label}",
+          (new ConditionStatement(s"curFragment.reqOutstanding_${sendOrRecv}_${neigh.label}",
             ListBuffer[Statement](
               s"#pragma omp critical",
               s"{",

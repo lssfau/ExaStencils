@@ -33,34 +33,6 @@ case class Scope(var body : ListBuffer[Statement]) extends Statement {
   }
 }
 
-case class ifCond(var cond : Expression, var trueBranch : ListBuffer[Statement], var falseBranch : ListBuffer[Statement]) extends Statement {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
-  def this(cond : Expression, trueBranch : ListBuffer[Statement]) = this(cond, trueBranch, ListBuffer[Statement]());
-  def this(cond : Expression, trueBranch : Statement) = this(cond, ListBuffer(trueBranch));
-
-  def this(cond : Expression, trueBranch : Statement, falseBranch : Statement) = this(cond, ListBuffer(trueBranch), ListBuffer(falseBranch));
-  def this(cond : Expression, trueBranch : ListBuffer[Statement], falseBranch : Statement) = this(cond, trueBranch, ListBuffer(falseBranch));
-  def this(cond : Expression, trueBranch : Statement, falseBranch : ListBuffer[Statement]) = this(cond, ListBuffer(trueBranch), falseBranch);
-
-  def cpp : String = {
-    var s : String = "";
-
-    s += s"if (${cond.cpp})\n{\n";
-    for (stat <- trueBranch)
-      s += s"${stat.cpp}\n";
-    s += s"}\n";
-    if (falseBranch.length > 0) {
-      s += s"else\n{\n";
-      for (stat <- falseBranch)
-        s += s"${stat.cpp}\n";
-      s += s"}\n";
-    }
-
-    return s;
-  }
-}
-
 case class forLoop(var head : Expression, var body : ListBuffer[Statement]) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 

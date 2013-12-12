@@ -102,7 +102,7 @@ class NeighborInfo(var dir : Array[Int]) {
     var code : String = "";
 
     if (field.bcDir0) {
-      code += (new ifCond(
+      code += (new ConditionStatement(
         new IsNeighInvalid(this),
         new SetFieldToExpr(field, level, slot, fieldToIndexBorder2(dir, level), "0.0"))).cpp;
     }
@@ -603,11 +603,11 @@ case class TreatNeighSend(field : Field, neighName : String, indicesLocal : Inde
 
   def cpp : String = {
     var s : String = "";
-    s += (new ifCond(
+    s += (new ConditionStatement(
       s"FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN].location",
       ListBuffer[Statement](
         StringLiteral(s"FragmentNeighInfo& curNeigh = fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN];"),
-        new ifCond(s"curNeigh.isRemote",
+        new ConditionStatement(s"curNeigh.isRemote",
           ListBuffer[Statement](
             //"if (1 == mpiRank) LOG_NOTE(\"Sending from \" << fragments[e]->id << \" to \" << curNeigh.fragId);",
             new CopyLocalToBuffer(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->sendBuffer_$neighName", indicesLocal),
@@ -623,7 +623,7 @@ case class TreatNeighSendRemote(field : Field, neighName : String, indicesLocal 
 
   def cpp : String = {
     var s : String = "";
-    s += (new ifCond(
+    s += (new ConditionStatement(
       s"FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN].location && fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN].isRemote",
       ListBuffer[Statement](
         StringLiteral(s"FragmentNeighInfo& curNeigh = fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN];"),
@@ -640,7 +640,7 @@ case class TreatNeighSendLocal(field : Field, neighName : String, indicesLocal :
 
   def cpp : String = {
     var s : String = "";
-    s += (new ifCond(
+    s += (new ConditionStatement(
       s"isValid_$neighName",
       new CopyLocalToLocalHACK(s"localMem", indicesLocal, s"neighMem_$neighName", indicesNeigh))).cpp;
     return s;
@@ -652,11 +652,11 @@ case class TreatNeighRecv(field : Field, neighName : String, indices : IndexRang
 
   def cpp : String = {
     var s : String = "";
-    s += (new ifCond(
+    s += (new ConditionStatement(
       s"FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN].location",
       ListBuffer[Statement](
         StringLiteral(s"FragmentNeighInfo& curNeigh = fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN];"),
-        new ifCond(s"curNeigh.isRemote",
+        new ConditionStatement(s"curNeigh.isRemote",
           ListBuffer[Statement](
             //"if (1 == mpiRank) LOG_NOTE(\"Receiving from \" << curNeigh.fragId << \" to \" << fragments[e]->id);",
             new RecvBuffer(s"fragments[e]->recvBuffer_$neighName", s"curNeigh.remoteRank", s"((unsigned int)curNeigh.fragId << 16) + ((unsigned int)fragments[e]->id & 0x0000ffff)",
@@ -673,7 +673,7 @@ case class TreatNeighFinish(neighName : String) extends Statement {
     var s : String = "";
 
     for (sendOrRecv <- Array("Send", "Recv")) {
-      s += (new ifCond(s"fragments[e]->reqOutstanding_${sendOrRecv}_$neighName",
+      s += (new ConditionStatement(s"fragments[e]->reqOutstanding_${sendOrRecv}_$neighName",
         ListBuffer[Statement](
           StringLiteral(s"#pragma omp critical"),
           StringLiteral(s"{"),
@@ -693,7 +693,7 @@ case class TreatNeighBC(field : Field, neighName : String, indices : IndexRange,
     var s : String = "";
 
     if (field.bcDir0) {
-      s += (new ifCond(
+      s += (new ConditionStatement(
         s"FRAG_INVALID == fragments[e]->neigh[FRAG_CUBE_$neighName - FRAG_CUBE_ZN_YN_XN].location",
         new SetDataZero(s"fragments[e]->${field.codeName}[slot][$level]", indices))).cpp;
     }
@@ -740,7 +740,7 @@ class NeighInfo(var dir : Array[Int], var level : Int, var index : Int) {
 
   def addTreatBC(field : Field) {
     if (field.bcDir0) {
-      codeTreatBC = new ifCond(
+      codeTreatBC = new ConditionStatement(
         s"FRAG_INVALID == fragments[e]->neigh[FRAG_CUBE_$label - FRAG_CUBE_ZN_YN_XN].location",
         new SetDataZero(s"fragments[e]->${field.codeName}[slot][$level]", indexBorder));
     }
@@ -753,7 +753,7 @@ class NeighInfo(var dir : Array[Int], var level : Int, var index : Int) {
     stats += StringLiteral(s"neighMem_$label[${Mapping.access(indexOpposingOuter.level, s"(z - (${indexInner.begin(2)}) + (${indexOpposingOuter.begin(2)}))", s"(y - (${indexInner.begin(1)}) + (${indexOpposingOuter.begin(1)}))", s"(x - (${indexInner.begin(0)}) + (${indexOpposingOuter.begin(0)}))")}]" +
       s" = localMem[${Mapping.access(indexInner.level)}];");
 
-    codeExchLocal = new ifCond(s"isValid_$label", stats);
+    codeExchLocal = new ConditionStatement(s"isValid_$label", stats);
   }
 
   // (new TreatNeighRecv(field, neigh.label, neigh.indexOuter, level)).cpp).toArray)).cpp;
