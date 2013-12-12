@@ -2,9 +2,11 @@ package exastencils.primitives
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+
 import exastencils.primitives._
 
 case class IsNeighInvalid(neigh : NeighborInfo) extends Expression {
@@ -186,13 +188,11 @@ case class SetupBuffers(fields : ListBuffer[Field]) extends Function("", new Lis
     body += s"${field.codeName}[s].reserve(getNumLevels());\n";
   }
 
-  body += s"for (unsigned int l = 0; l < NUM_LEVELS; ++l)\n{\n";
-  body += s"unsigned int numDataPoints = (1u << l) + 1 + 2 * NUM_GHOST_LAYERS;\n";
-  for (field <- fields) {
-    body += s"for (unsigned int s = 0; s < ${field.numSlots}; ++s)\n";
-    body += s"${field.codeName}[s].push_back(new PayloadContainer_1Real(Vec3u(numDataPoints, numDataPoints, numDataPoints), 1));\n";
-  }
-  body += s"}\n";
+  body += new ForLoopStatement(s"unsigned int l = 0", s"l <= ${Knowledge.maxLevel}", s"++l",
+      ListBuffer[Statement](s"unsigned int numDataPoints = (1u << l) + 1 + 2 * NUM_GHOST_LAYERS;")
+      ++ (fields.map(field => 
+        new ForLoopStatement(s"unsigned int s = 0", s"s < ${field.numSlots}", "++s",
+        		s"${field.codeName}[s].push_back(new PayloadContainer_1Real(Vec3u(numDataPoints, numDataPoints, numDataPoints), 1));") : Statement)));
 
   body += s"unsigned int maxNumPointsPerDim = (1u << (NUM_LEVELS - 1)) + 1 + 2 * NUM_GHOST_LAYERS;\n";
   body += s"recvBuffer = new exa_real_t[(NUM_GHOST_LAYERS + 1) * maxNumPointsPerDim * maxNumPointsPerDim];\n";
