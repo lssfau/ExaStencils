@@ -87,15 +87,15 @@ object StateManager {
     }
 
     def set[T](o : AnyRef, method : java.lang.reflect.Method, value : AnyRef) : Boolean = {
-      if(o == value) return true
+      if (o == value) return true
       if (!method.getName.endsWith(setterSuffix)) {
         set(o, method.getName, value)
       } else {
-//        if(!method.getParameterTypes()(0).getClass.isAssignableFrom(value.getClass)) {
-//          val from = method.getParameterTypes()(0)
-//          val to = value.getClass
-//          throw new TransformationException(f"""Invalid assignment: Cannot assign to $to from $from for "$o"""")
-//        }
+        //        if (!method.getParameterTypes()(0).getClass.isAssignableFrom(value.getClass)) {
+        //          val from = method.getParameterTypes()(0)
+        //          val to = value.getClass
+        //          throw new TransformationException(f"""Invalid assignment: Cannot assign to $to from $from for "$o"""")
+        //        }
         method.invoke(o, value)
         true
       }
@@ -130,13 +130,9 @@ object StateManager {
 
       } else if (currentSubnode.isInstanceOf[Array[_]]) {
         var list = currentSubnode.asInstanceOf[Array[_]]
-
-        val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
-        if (invalids.size <= 0) {
-          var newList = list.asInstanceOf[Array[Node]].map(listitem => applyAtNode(listitem, t).get) // FIXME asof[List[Option[Node]]]
-          //          newList = newList.filterNot(listitem => listitem eq None) // FIXME
-          Vars.set(node, field, newList)
-          newList.foreach(f => replace(f, t))
+        val arrayType = list.getClass().getComponentType()
+        if (arrayType.getGenericInterfaces().contains(classOf[Node])) {
+          WARN("Transformations involving Arrays currently not possible!")
         }
       } else {
         doReplace(node, t, field, currentSubnode)
