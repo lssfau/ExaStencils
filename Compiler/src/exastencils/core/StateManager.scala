@@ -2,10 +2,11 @@ package exastencils.core
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Stack
+import scala.util.control.Exception
+import java.lang.reflect.Method
 import exastencils.core.collectors._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
-import scala.util.control.Exception
 
 import scala.reflect.runtime.{ universe => ru }
 import scala.reflect.runtime.{ currentMirror => rm }
@@ -47,21 +48,21 @@ object StateManager {
   def unregister(c : Collector) = { collectors_ -= c }
   def unregisterAll() = { collectors_.clear }
 
-  protected def applyAtNode(node : Node, t : Transformation) : Option[Node] = {
-    if (t.function.isDefinedAt(node)) t.function(node) else Some(node)
+  protected def applyAtNode(node : Node, transformation : Transformation) : Option[Node] = {
+    if (transformation.function.isDefinedAt(node)) transformation.function(node) else Some(node)
   }
 
-  protected def doReplace[T](node : Node, t : Transformation, method : java.lang.reflect.Method, oldNode : Any) = {
+  protected def doReplace[T](node : Node, transformation : Transformation, method : Method, oldNode : Any) = {
     var subnode = oldNode
 
     if (subnode.isInstanceOf[Some[_]]) subnode = subnode.asInstanceOf[Some[_]].get
 
     if (subnode.isInstanceOf[Node]) {
-      var newSubnode = applyAtNode(subnode.asInstanceOf[Node], t).get
+      var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation).get
       if (newSubnode ne subnode.asInstanceOf[Node]) {
         Vars.set(node, method, newSubnode)
       }
-      replace(newSubnode, t)
+      replace(newSubnode, transformation)
     }
   }
 
@@ -112,7 +113,7 @@ object StateManager {
     }
   }
 
-  protected def replace(node : Node, t : Transformation) : Unit = {
+  protected def replace(node : Node, transformation : Transformation) : Unit = {
     enterNodeNotifyCollectors(node)
 
     Vars(node).foreach(field => {
@@ -122,10 +123,10 @@ object StateManager {
         var list = currentSubnode.asInstanceOf[Seq[_]]
         val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
         if (invalids.size <= 0) {
-          var newList = list.asInstanceOf[Seq[Node]].map(listitem => applyAtNode(listitem, t).get) // FIXME asof[List[Option[Node]]]
+          var newList = list.asInstanceOf[Seq[Node]].map(listitem => applyAtNode(listitem, transformation).get) // FIXME asof[List[Option[Node]]]
           //          newList = newList.filterNot(listitem => listitem eq None) // FIXME
           Vars.set(node, field, newList)
-          newList.foreach(f => replace(f, t))
+          newList.foreach(f => replace(f, transformation))
         }
 
       } else if (currentSubnode.isInstanceOf[Array[_]]) {
@@ -135,7 +136,7 @@ object StateManager {
           WARN("Transformations involving Arrays currently not possible!")
         }
       } else {
-        doReplace(node, t, field, currentSubnode)
+        doReplace(node, transformation, field, currentSubnode)
       }
 
     })
@@ -147,8 +148,8 @@ object StateManager {
     History.transaction(strategy)
 
     try {
-      strategy.transformations.foreach(t => {
-        replace(root, t)
+      strategy.transformations.foreach(transformation => {
+        replace(root, transformation)
       })
       History.commit
       return true
@@ -163,7 +164,7 @@ object StateManager {
     }
   }
 
-  def apply(t : Transformation) = { // Hack
-    replace(root, t)
+  def apply(transformation : Transformation) = { // Hack
+    replace(root, transformation)
   }
 }
