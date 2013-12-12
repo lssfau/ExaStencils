@@ -168,7 +168,7 @@ case class FragmentClass extends Class {
     declarations += ImplicitConversions.StringToStatement(s"Fragment3DCube* neighbor_localPtr[27];");
     declarations += ImplicitConversions.StringToStatement(s"exa_id_t neighbor_fragmentId[27];");
     declarations += ImplicitConversions.StringToStatement(s"int neighbor_remoteRank[27];");
-    
+
     cTorBody += new forLoop(StringLiteral(s"unsigned int i = 0; i < 27; ++i"), ListBuffer(
       ImplicitConversions.StringToStatement(s"neighbor_isValid[i] = false;"),
       ImplicitConversions.StringToStatement(s"neighbor_isRemote[i] = false;"),
@@ -183,7 +183,7 @@ case class FragmentClass extends Class {
       writer.write(super.cpp);
       writer.close();
     }
-    
+
     var i = 0;
     for (f <- functions) {
       var s : String = "";

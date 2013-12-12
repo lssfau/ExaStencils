@@ -31,7 +31,7 @@ class FieldForLoop(indices : IndexRange, body : Array[String]) {
   }
 }
 
-class FieldAccess(field : Field, level : Int, slot : Any/*FIXME: Int*/, index : String) {
+class FieldAccess(field : Field, level : Int, slot : Any /*FIXME: Int*/ , index : String) {
   def cpp : String = {
     var s : String = "";
 
@@ -41,7 +41,7 @@ class FieldAccess(field : Field, level : Int, slot : Any/*FIXME: Int*/, index : 
   }
 }
 
-case class SetFieldToExpr(field : Field, level : Int, slot : Any/*FIXME: Int*/, indices : IndexRange, expr : String) extends Statement {
+case class SetFieldToExpr(field : Field, level : Int, slot : Any /*FIXME: Int*/ , indices : IndexRange, expr : String) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
@@ -93,7 +93,7 @@ class NeighborInfo(var dir : Array[Int]) {
       frag.declarations += StringLiteral(s"bool reqOutstanding_${sendOrRecv}_$label;");
       frag.cTorInitList += StringLiteral(s"reqOutstanding_${sendOrRecv}_$label(false)");
     }
-    
+
     frag.declarations += StringLiteral(s"exa_real_t* sendBuffer_$label;");
     frag.cTorInitList += StringLiteral(s"sendBuffer_$label(0)");
     frag.dTorBody += StringLiteral(s"if (sendBuffer_$label) { delete [] sendBuffer_$label; sendBuffer_$label = 0; }");
@@ -101,12 +101,12 @@ class NeighborInfo(var dir : Array[Int]) {
     frag.declarations += StringLiteral(s"exa_real_t* recvBuffer_$label;");
     frag.cTorInitList += StringLiteral(s"recvBuffer_$label(0)");
     frag.dTorBody += StringLiteral(s"if (recvBuffer_$label) { delete [] recvBuffer_$label; recvBuffer_$label = 0; }");
-    
+
     frag.declarations += StringLiteral(s"int maxElemRecvBuffer_$label;");
     frag.cTorInitList += StringLiteral(s"maxElemRecvBuffer_$label(0)");
   }
 
-  def getCode_TreatBC(field : Field, level : Int, slot : Any/*FIXME: Int*/) : String = {
+  def getCode_TreatBC(field : Field, level : Int, slot : Any /*FIXME: Int*/ ) : String = {
     var code : String = "";
 
     if (field.bcDir0) {
@@ -129,7 +129,6 @@ class NeighborInfo(var dir : Array[Int]) {
   //            s" = localMem[${Mapping.access(indexInner.level)}];\n"))).cpp;
   //  }
 }
-
 
 object dimToString extends (Int => String) {
   def apply(dim : Int) : String = {
@@ -900,24 +899,7 @@ case class ExchangeData_26(field : Field, level : Int) extends Function("", new 
       neighbors.map(neigh => neigh.codeExchLocal : Statement).to[ListBuffer]).flatten));
   body += "//END LOCAL COMMUNICATION\n";
 
-  //  body += (new LoopOverFragments(
-  //    neighbors.map(neigh =>
-  //      (new TreatNeighRecv(field, neigh.label, neigh.indexOuter, level))).toList));
-
   body += new RemoteReceive(field, level, neighbors);
-//  body += (new LoopOverFragments(
-//    neighbors.map(neigh =>
-//      (new ifCond(
-//        s"FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].location",
-//        Array(
-//          s"FragmentNeighInfo& curNeigh = fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN];",
-//          (new ifCond(s"curNeigh.isRemote",
-//            Array(
-//              //"if (1 == mpiRank) LOG_NOTE(\"Receiving from \" << curNeigh.fragId << \" to \" << fragments[e]->id);",
-//              new RecvBuffer(s"fragments[e]->recvBuffer_${neigh.label}", s"curNeigh.remoteRank", s"((unsigned int)curNeigh.fragId << 16) + ((unsigned int)fragments[e]->id & 0x0000ffff)",
-//                s"NUM_GHOST_LAYERS * fragments[e]->${field.codeName}[slot][$level]->numDataPointsPerDim.y * fragments[e]->${field.codeName}[slot][$level]->numDataPointsPerDim.z", true,
-//                s"fragments[e]->request_Recv_${neigh.label}"),
-//                s"fragments[e]->reqOutstanding_Recv_${neigh.label} = true;"))))))).toList));
 
   body += (new LoopOverFragments(
     neighbors.map(neigh =>

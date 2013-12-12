@@ -41,7 +41,7 @@ object GenCommCode extends (() => Unit) {
       case frag : FragmentClass =>
         frag.functions += new WaitForMPIReq;
         for (field <- frag.fields) {
-          
+
           frag.functions += new ExchangeDataSplitter(field);
           for (level <- (0 to Knowledge.maxLevel)) {
             frag.functions += new ExchangeData_26(field, level);
@@ -58,14 +58,13 @@ object GenCommCode extends (() => Unit) {
         Some(frag);
     });
 
-
     // 'actual' transformations
-    
+
     // expand applicable nodes
     strategy += new Transformation({
       case function : Expandable =>
         println("Found an Expandable node");
-      	Some(function.expand);
+        Some(function.expand);
     });
 
     // replace LoopOverFragments with basic forLoops
@@ -73,17 +72,17 @@ object GenCommCode extends (() => Unit) {
       case loop : LoopOverFragments =>
         Some(loop.toForLoop);
     });
-    
+
     // print
     strategy += new Transformation({
       case frag : FragmentClass =>
         frag.cpp;
         Some(frag);
     });
-    
+
     strategy.apply;
     println("Done");
-    
+
     //println(StateManager.root_.asInstanceOf[FragmentClass].fields);
   }
 }
