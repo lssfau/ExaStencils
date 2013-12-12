@@ -68,7 +68,7 @@ case class forLoop(head : Expression, body : Array[Expression]) extends Expressi
   }
 }
 
-case class LoopOverFragments(body : Array[Expression]) extends Expression {
+case class LoopOverFragments(var body : Array[Expression]) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp = "NOT VALID";
@@ -130,7 +130,7 @@ abstract class Function(var head : Expression, var body : ListBuffer[Expression]
   }
 }
 
-case class FragmentClass extends Class {
+case class FragmentClass() extends Class {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   className = "Fragment3DCube";
