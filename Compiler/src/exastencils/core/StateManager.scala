@@ -111,9 +111,10 @@ object StateManager {
   def defaultApply(strategy : Strategy) : Boolean = {
     // start transformation transaction
     History.transaction(strategy)
-
+    DBG(s"""Applying stragety "${strategy.name}"""")
     try {
       strategy.transformations.foreach(transformation => {
+        INFO(s"""Applying stragety "${strategy.name}" :: ${transformation.name}""")
         replace(root, transformation)
       })
       History.commit
