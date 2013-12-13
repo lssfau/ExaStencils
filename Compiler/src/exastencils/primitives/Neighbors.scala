@@ -28,6 +28,12 @@ case class getNeighInfo_IsValidAndRemote(var neigh : NeighInfo) extends Expressi
   }
 }
 
+case class getNeighInfo_IsValidAndNotRemote(var neigh : NeighInfo) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def cpp : String = { s"curFragment.neighbor_isValid[${neigh.index}] && !curFragment.neighbor_isRemote[${neigh.index}]" }
+}
+
 case class getNeighInfo_LocalPtr(var neigh : NeighInfo) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 

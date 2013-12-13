@@ -7,6 +7,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 
+// TODO: move to separate file for MPI statements
 case class MPI_Receive(var buffer : Expression, var size : Expression, var typeName : Expression, var rank : Expression, var tag : Expression, var request : Expression) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
@@ -41,11 +42,34 @@ case class MPI_Send(var buffer : Expression, var size : Expression, var typeName
   }
 };
 
+case class LocalSend(var field : Field, var level : Expression, var neighbors : ListBuffer[(NeighInfo, IndexRange, IndexRange)]) extends Statement with Expandable {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = "NOT VALID ; CLASS = LocalSend\n";
+
+  def expand : LoopOverFragments = {
+    new LoopOverFragments(
+      neighbors.map(neigh =>
+        (new ConditionStatement(new getNeighInfo_IsValidAndNotRemote(neigh._1),
+          ListBuffer[Statement](
+            s"unsigned int entry = 0;",
+            new LoopOverDimensions(neigh._2,
+              (new LocalNeighborFieldAccess(
+                new getNeighInfo_LocalPtr(neigh._1), field, level, "slot", Mapping.access(neigh._3.level,
+                  s"(z - (${neigh._2.begin(2)}) + (${neigh._3.begin(2)}))",
+                  s"(y - (${neigh._2.begin(1)}) + (${neigh._3.begin(1)}))",
+                  s"(x - (${neigh._2.begin(0)}) + (${neigh._3.begin(0)}))"))).cpp
+                + " = "
+                + (new FieldAccess(field, level, "slot", Mapping.access(neigh._2.level))).cpp // FIXME: assignment statement w/o cpp call
+                + " ; ")))) : Statement));
+  }
+}
+
 case class CopyToSendBuffer_and_RemoteSend(var field : Field, var level : Expression /*FIXME: Int*/ , var neighbors : ListBuffer[(NeighInfo, IndexRange)]) extends Statement with Expandable {
   // FIXME: split this node
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  override def cpp : String = "NOT VALID ; CLASS = RemoteReceive\n";
+  override def cpp : String = "NOT VALID ; CLASS = CopyToSendBuffer_and_RemoteSend\n";
 
   def expand : LoopOverFragments = {
     new LoopOverFragments(

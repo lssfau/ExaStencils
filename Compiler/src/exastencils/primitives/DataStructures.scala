@@ -41,6 +41,14 @@ case class FieldAccess(var field : Field, var level : Expression, var slot : Exp
   }
 }
 
+case class LocalNeighborFieldAccess(var neighborPtr : Expression, var field : Field, var level : Expression, var slot : Expression, var index : Expression) extends Statement {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = {
+    s"${neighborPtr.cpp}->${field.codeName}[${slot.cpp}][${level.cpp}]->data[${index.cpp}]";
+  }
+}
+
 case class LoopOverFragments(var body : ListBuffer[Statement]) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 

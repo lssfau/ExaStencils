@@ -858,7 +858,7 @@ case class HandleBoundaries(neighbors : ListBuffer[NeighInfo]) extends Statement
 case class ExchangeData_26(field : Field, level : Int) extends AbstractFunctionStatement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  override def cpp : String = "NOT VALID ; CLASS = ExchangeData_6\n";
+  override def cpp : String = "NOT VALID ; CLASS = ExchangeData_26\n";
 
   override def expand : FunctionStatement = {
     var body = new ListBuffer[Statement];
@@ -886,11 +886,11 @@ case class ExchangeData_26(field : Field, level : Int) extends AbstractFunctionS
     body += new LoopOverFragments(new HandleBoundaries(neighbors));
 
     // sync duplicate values
-    body += new LoopOverFragments(
-      neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh =>
-        (new TreatNeighSend(field, neigh.label, neigh.indexBorder,
-          neigh.indexOpposingBorder, level) : Statement)).to[ListBuffer]);
-
+    body += new CopyToSendBuffer_and_RemoteSend(field, ImplicitConversions.NumberToNumericLiteral(level),
+      neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh => (neigh, neigh.indexBorder)));
+    body += new LocalSend(field, ImplicitConversions.NumberToNumericLiteral(level),
+      neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh => (neigh, neigh.indexBorder, neigh.indexOpposingBorder)));
+    
     body += new RemoteReceive(field, level, neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0));
 
     body += new FinishRemoteCommunication(neighbors);
@@ -899,24 +899,11 @@ case class ExchangeData_26(field : Field, level : Int) extends AbstractFunctionS
       neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0).map(neigh => (neigh, neigh.indexBorder)));
 
     // update ghost layers
-    //      s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
-    //        neighbors.map(neigh =>
-    //          (new TreatNeighSend(field, neigh.label, neigh.indexInner,
-    //            neigh.indexOpposingOuter, level))).toList));
-
     body += new CopyToSendBuffer_and_RemoteSend(field, ImplicitConversions.NumberToNumericLiteral(level),
       neighbors.map(neigh => (neigh, neigh.indexInner)));
 
-    body += "//BEGIN LOCAL COMMUNICATION\n";
-    body += (new LoopOverFragments(
-      ListBuffer[ListBuffer[Statement]](
-        ListBuffer(StringLiteral(s"exa_real_t* localMem = fragments[e]->${field.codeName}[slot][$level]->data;") : Statement),
-        neighbors.map(neigh =>
-          StringLiteral(s"bool isValid_${neigh.label} = (FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].location && !fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].isRemote);") : Statement).to[ListBuffer],
-        neighbors.map(neigh =>
-          StringLiteral(s"exa_real_t* neighMem_${neigh.label} = isValid_${neigh.label} ? fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].fragment->get${field.codeName}($level, slot)->data : 0;") : Statement).to[ListBuffer],
-        neighbors.map(neigh => neigh.codeExchLocal : Statement).to[ListBuffer]).flatten));
-    body += "//END LOCAL COMMUNICATION\n";
+    body += new LocalSend(field, ImplicitConversions.NumberToNumericLiteral(level),
+      neighbors.map(neigh => (neigh, neigh.indexInner, neigh.indexOpposingOuter)));
 
     body += new RemoteReceive(field, level, neighbors);
 
