@@ -21,7 +21,7 @@ object StateManager {
     protected class ProtocalEntry(val stateBefore : Node, val appliedStrategy : Strategy)
 
     def transaction(strategy : Strategy) = {
-      if (!current_.isEmpty) throw new Exception("Another transaction currently running!")
+      if (!current_.isEmpty) throw new StrategyException("Another transaction currently running!", strategy)
 
       current_ = Some(new ProtocalEntry(Duplicate(StateManager.root_), strategy))
     }
@@ -160,8 +160,16 @@ object StateManager {
       History.commit
       return true
     } catch {
+      case x : StrategyException => {
+        WARN(f"""Strategy "${strategy.name}" did not apply successfully""")
+        WARN(f"Message: ${x.msg}")
+        WARN(f"Rollback will be performed")
+        History.abort
+        return false
+      }
       case x : TransformationException => {
         WARN(f"""Strategy "${strategy.name}" did not apply successfully""")
+        WARN(f"""Error in Transformation ${x.transformation.name}""")
         WARN(f"Message: ${x.msg}")
         WARN(f"Rollback will be performed")
         History.abort

@@ -8,14 +8,12 @@ object Duplicate {
     if (t.isInstanceOf[Annotatable]) duplicate.asInstanceOf[Annotatable].add(t.asInstanceOf[Annotatable].getAnnotations)
     duplicate
   }
-  def apply[T <: Duplicable](t : Seq[T]) : List[T] = {
-    var duplicateList = new ListBuffer[T]
-    t.foreach(t => duplicateList += Duplicate(t))
-    duplicateList.readOnly
+  def apply[T <: Duplicable](t : List[T]) : List[T] = {
+    t.map(Duplicate(_))
   }
-//  def apply[U <: Seq[_]](u : U) : U = {
-//    u
-//  }
+  def apply[T <: Duplicable](t : ListBuffer[T]) : ListBuffer[T] = {
+    t.map(Duplicate(_))
+  }
 }
 
 trait Duplicable {
