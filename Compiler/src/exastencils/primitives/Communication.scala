@@ -1,7 +1,6 @@
 package exastencils.primitives
 
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
@@ -54,14 +53,13 @@ case class LocalSend(var field : Field, var level : Expression, var neighbors : 
           ListBuffer[Statement](
             s"unsigned int entry = 0;",
             new LoopOverDimensions(neigh._2,
-              (new LocalNeighborFieldAccess(
-                new getNeighInfo_LocalPtr(neigh._1), field, level, "slot", Mapping.access(neigh._3.level,
-                  s"(z - (${neigh._2.begin(2)}) + (${neigh._3.begin(2)}))",
-                  s"(y - (${neigh._2.begin(1)}) + (${neigh._3.begin(1)}))",
-                  s"(x - (${neigh._2.begin(0)}) + (${neigh._3.begin(0)}))"))).cpp
-                + " = "
-                + (new FieldAccess(field, level, "slot", Mapping.access(neigh._2.level))).cpp // FIXME: assignment statement w/o cpp call
-                + " ; ")))) : Statement));
+              new AssignmentStatement(
+                new LocalNeighborFieldAccess(
+                  new getNeighInfo_LocalPtr(neigh._1), field, level, "slot", Mapping.access(neigh._3.level,
+                    s"(z - (${neigh._2.begin(2)}) + (${neigh._3.begin(2)}))",
+                    s"(y - (${neigh._2.begin(1)}) + (${neigh._3.begin(1)}))",
+                    s"(x - (${neigh._2.begin(0)}) + (${neigh._3.begin(0)}))")),
+                new FieldAccess(field, level, "slot", Mapping.access(neigh._2.level))))))) : Statement));
   }
 }
 
@@ -79,8 +77,9 @@ case class CopyToSendBuffer_and_RemoteSend(var field : Field, var level : Expres
           ListBuffer[Statement](
             s"unsigned int entry = 0;",
             new LoopOverDimensions(neigh._2,
-              s"curFragment.sendBuffer_${neigh._1.label}[entry++] = "
-                + (new FieldAccess(field, level, "slot", Mapping.access(neigh._2.level))).cpp /*FIXME: assignment statement w/o cpp call*/ + s";"),
+              new AssignmentStatement(
+                s"curFragment.sendBuffer_${neigh._1.label}[entry++]",
+                new FieldAccess(field, level, "slot", Mapping.access(neigh._2.level)))),
             new MPI_Send(
               s"curFragment.sendBuffer_${neigh._1.label}",
               s"entry",
@@ -125,9 +124,10 @@ case class CopyFromRecvBuffer(var field : Field, var level : Expression, var nei
         (new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1),
           ListBuffer[Statement](
             s"unsigned int entry = 0;",
-            new LoopOverDimensions(neigh._2,
-              (new FieldAccess(field, level, "slot", Mapping.access(neigh._2.level))).cpp // FIXME: assignment statement w/o cpp call
-                + s" = curFragment.recvBuffer_${neigh._1.label}[entry++];")))) : Statement));
+            new LoopOverDimensions(neigh._2, 
+                new AssignmentStatement(
+              new FieldAccess(field, level, "slot", Mapping.access(neigh._2.level)),
+                s"curFragment.recvBuffer_${neigh._1.label}[entry++];"))))) : Statement));
   }
 }
 

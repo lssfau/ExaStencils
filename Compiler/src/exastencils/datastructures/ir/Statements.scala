@@ -44,11 +44,20 @@ case class VariableDeclarationStatement(var variable : Variable, var expression 
   }
 }
 
-case class AssignmentStatement(var identifier : Identifier, var expression : Expression)
-    extends Statement {
-  override def cpp = ""
+// Changed by Sebastian: I needed a more general version
+//case class AssignmentStatement(var identifier : Identifier, var expression : Expression)
+//    extends Statement {
+//  override def cpp = ""
+//
+//  override def duplicate = { this.copy(identifier = Duplicate(identifier), expression = Duplicate(expression)).asInstanceOf[this.type] }
+//}
 
-  override def duplicate = { this.copy(identifier = Duplicate(identifier), expression = Duplicate(expression)).asInstanceOf[this.type] }
+case class AssignmentStatement(var dest : Expression, var src : Expression) extends Statement {
+  override def duplicate = { this.copy(dest = Duplicate(dest), src = Duplicate(src)).asInstanceOf[this.type] }
+
+  override def cpp : String = {
+    (s"${dest.cpp} = ${src.cpp};");
+  }
 }
 
 case class ForLoopStatement(var begin : Expression /*changed by Sebastian - originally: VariableDeclarationStatement*/ , var end : Expression, var inc : Expression, var body : ListBuffer[Statement])

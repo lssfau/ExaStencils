@@ -33,7 +33,7 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
   }
 }
 
-case class FieldAccess(var field : Field, var level : Expression, var slot : Expression, var index : Expression) extends Statement {
+case class FieldAccess(var field : Field, var level : Expression, var slot : Expression, var index : Expression) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = {
@@ -41,7 +41,7 @@ case class FieldAccess(var field : Field, var level : Expression, var slot : Exp
   }
 }
 
-case class LocalNeighborFieldAccess(var neighborPtr : Expression, var field : Field, var level : Expression, var slot : Expression, var index : Expression) extends Statement {
+case class LocalNeighborFieldAccess(var neighborPtr : Expression, var field : Field, var level : Expression, var slot : Expression, var index : Expression) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = {
