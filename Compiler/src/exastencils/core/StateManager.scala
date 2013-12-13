@@ -132,9 +132,15 @@ object StateManager {
       } else if (currentSubnode.isInstanceOf[Array[_]]) {
         var list = currentSubnode.asInstanceOf[Array[_]]
         val arrayType = list.getClass().getComponentType()
-        if (arrayType.getGenericInterfaces().contains(classOf[Node])) {
-          WARN("Transformations involving Arrays currently not possible!")
+        val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
+        if (invalids.size <= 0) {
+          var tmpArray = list.asInstanceOf[Array[Node]].map(listitem => applyAtNode(listitem, transformation).get)
+          var newArray = java.lang.reflect.Array.newInstance(arrayType, tmpArray.length)
+          System.arraycopy(tmpArray, 0, newArray, 0, tmpArray.length)
+          Vars.set(node, field, newArray)
+          newArray.asInstanceOf[Array[Node]].foreach(f => replace(f, transformation))
         }
+
       } else {
         doReplace(node, transformation, field, currentSubnode)
       }
