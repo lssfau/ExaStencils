@@ -53,7 +53,7 @@ object GenCommCode extends (() => Unit) {
 
           frag.functions += new ExchangeDataSplitter(field);
           for (level <- (0 to Knowledge.maxLevel)) {
-            frag.functions += new ExchangeData_26(field, level);
+            frag.functions += new ExchangeData_6(field, level);
           }
         }
         Some(frag);
