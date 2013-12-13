@@ -33,28 +33,6 @@ case class Scope(var body : ListBuffer[Statement]) extends Statement {
   }
 }
 
-case class forLoop(var head : Expression, var body : ListBuffer[Statement]) extends Statement {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
-  def this(head : Expression, body : Statement) = this(head, ListBuffer[Statement](body));
-
-  def cpp : String = {
-    var s : String = "";
-
-    // HACK
-    if (StringLiteral("int e = 0; e < fragments.size(); ++e") == head) {
-      s += "#pragma omp parallel for schedule(static, 1)\n";
-    }
-
-    s += s"for (${head.cpp})\n{\n";
-    for (stat <- body)
-      s += s"${stat.cpp}\n";
-    s += s"}\n";
-
-    return s;
-  }
-}
-
 case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[Statement]) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
@@ -62,10 +40,10 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
 
   override def cpp : String = "NOT VALID ; CLASS = LoopOverDimensions\n";
 
-  def expand : forLoop = {
-    new forLoop(s"unsigned int ${dimToString(2)} = ${indices.begin(2)}; ${dimToString(2)} <= ${indices.end(2)}; ++${dimToString(2)}",
-      new forLoop(s"unsigned int ${dimToString(1)} = ${indices.begin(1)}; ${dimToString(1)} <= ${indices.end(1)}; ++${dimToString(1)}",
-        new forLoop(s"unsigned int ${dimToString(0)} = ${indices.begin(0)}; ${dimToString(0)} <= ${indices.end(0)}; ++${dimToString(0)}",
+  def expand : ForLoopStatement = {
+    new ForLoopStatement(s"unsigned int ${dimToString(2)} = ${indices.begin(2)}", s"${dimToString(2)} <= ${indices.end(2)}", s"++${dimToString(2)}",
+      new ForLoopStatement(s"unsigned int ${dimToString(1)} = ${indices.begin(1)}", s"${dimToString(1)} <= ${indices.end(1)}", s"++${dimToString(1)}",
+        new ForLoopStatement(s"unsigned int ${dimToString(0)} = ${indices.begin(0)}", s"${dimToString(0)} <= ${indices.end(0)}", s"++${dimToString(0)}",
           body)));
   }
 }
@@ -85,10 +63,13 @@ case class LoopOverFragments(var body : ListBuffer[Statement]) extends Statement
 
   def cpp = "NOT VALID ; CLASS = LoopOverFragments\n";
 
-  def toForLoop : forLoop = {
-    return forLoop(StringLiteral(s"int e = 0; e < fragments.size(); ++e"),
-      ListBuffer(ImplicitConversions.StringToStatement("Fragment3DCube& curFragment = *(fragments[e].get());"))
-        ++ body);
+  def toForLoop : Scope = {
+    new Scope(
+      ListBuffer[Statement](
+        "#pragma omp parallel for schedule(static, 1)", // FIXME: move to own Node
+        ForLoopStatement(s"int e = 0", s"e < fragments.size()", s"++e",
+          ListBuffer[Statement]("Fragment3DCube& curFragment = *(fragments[e].get());")
+            ++ body)));
   }
 }
 
@@ -157,19 +138,20 @@ case class FragmentClass extends Class {
       neighbors += new NeighborInfo(Array(x, y, z));
     }
 
-    // FIXME: use Number of neighbors // TODO: wtf can the conversion not be applied automatically?
-    declarations += ImplicitConversions.StringToStatement(s"bool neighbor_isValid[27];");
-    declarations += ImplicitConversions.StringToStatement(s"bool neighbor_isRemote[27];");
-    declarations += ImplicitConversions.StringToStatement(s"Fragment3DCube* neighbor_localPtr[27];");
-    declarations += ImplicitConversions.StringToStatement(s"exa_id_t neighbor_fragmentId[27];");
-    declarations += ImplicitConversions.StringToStatement(s"int neighbor_remoteRank[27];");
+    // FIXME: use Number of neighbors
+    declarations += s"bool neighbor_isValid[27];";
+    declarations += s"bool neighbor_isRemote[27];";
+    declarations += s"Fragment3DCube* neighbor_localPtr[27];";
+    declarations += s"exa_id_t neighbor_fragmentId[27];";
+    declarations += s"int neighbor_remoteRank[27];";
 
-    cTorBody += new forLoop(StringLiteral(s"unsigned int i = 0; i < 27; ++i"), ListBuffer(
-      ImplicitConversions.StringToStatement(s"neighbor_isValid[i] = false;"),
-      ImplicitConversions.StringToStatement(s"neighbor_isRemote[i] = false;"),
-      ImplicitConversions.StringToStatement(s"neighbor_localPtr[i] = NULL;"),
-      ImplicitConversions.StringToStatement(s"neighbor_fragmentId[i] = -1;"),
-      ImplicitConversions.StringToStatement(s"neighbor_remoteRank[i] = MPI_PROC_NULL;")));
+    cTorBody += new ForLoopStatement(s"unsigned int i = 0", s"i < 27", s"++i",
+      ListBuffer[Statement](
+        s"neighbor_isValid[i] = false;",
+        s"neighbor_isRemote[i] = false;",
+        s"neighbor_localPtr[i] = NULL;",
+        s"neighbor_fragmentId[i] = -1;",
+        s"neighbor_remoteRank[i] = MPI_PROC_NULL;"));
   }
 
   override def cpp : String = {
