@@ -9,8 +9,15 @@ abstract class Statement
   extends Node with CppPrettyPrintable with Duplicable
 
 case class ExpressionStatement(var expression : Expression) extends Statement {
-  override def cpp = expression.cpp
   override def duplicate = { this.copy(expression = Duplicate(expression)).asInstanceOf[this.type] }
+
+  override def cpp = expression.cpp
+}
+
+case class NullStatement extends Statement {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def cpp : String = ""
 }
 
 case class Scope(var body : ListBuffer[Statement]) extends Statement {

@@ -802,93 +802,59 @@ case class ExchangeData_6(field : Field, level : Int) extends AbstractFunctionSt
 
     // simple exchange along axis
     val neighbors = new ListBuffer[NeighInfo](); //FragmentClass.neighbors;
-    neighbors += new NeighInfo(Array(-1, 0, 0), level, 4);
-    neighbors += new NeighInfo(Array(+1, 0, 0), level, 22);
+    neighbors += new NeighInfo(Array(-1, 0, 0), level, 12);
+    neighbors += new NeighInfo(Array(+1, 0, 0), level, 14);
     neighbors += new NeighInfo(Array(0, -1, 0), level, 10);
     neighbors += new NeighInfo(Array(0, +1, 0), level, 16);
-    neighbors += new NeighInfo(Array(0, 0, -1), level, 12);
-    neighbors += new NeighInfo(Array(0, 0, +1), level, 14);
-
-//    val neighbors = Array( // FIXME: indices
-//      new NeighInfo(Array(-1, 0, 0), level, 4), new NeighInfo(Array(1, 0, 0), level, 22),
-//      new NeighInfo(Array(0, -1, 0), level, 10), new NeighInfo(Array(0, 1, 0), level, 16),
-//      new NeighInfo(Array(0, 0, -1), level, 12), new NeighInfo(Array(0, 0, 1), level, 14));
+    neighbors += new NeighInfo(Array(0, 0, -1), level, 4);
+    neighbors += new NeighInfo(Array(0, 0, +1), level, 22);
 
     for (neigh <- neighbors) {
       neigh.setIndicesWide(field);
     }
 
     // handle BC
-    body += (new LoopOverFragments(
-      neighbors.map(neigh => (
-        new TreatNeighBC(field, neigh.label,
-          fieldToIndexBorder(neigh.dir, fieldName, level), level)) : Statement).to[ListBuffer]));
-//    // handle BC
-//    body += new LoopOverFragments(new HandleBoundaries(neighbors));
+    body += new HandleBoundaries(field, ImplicitConversions.NumberToNumericLiteral(level),
+      neighbors.map(neigh => (neigh, neigh.indexBorder)));
 
     // sync duplicate values
     for (dim <- 0 to 2) {
-      body += (new LoopOverFragments(
-        ListBuffer[Statement](
-          (new TreatNeighSend(field, neighbors(2 * dim + 1).label,
-            neighbors(2 * dim + 1).indexBorder,
-            neighbors(2 * dim + 1).indexOpposingBorder, level)))));
+      body += new CopyToSendBuffer_and_RemoteSend(field, ImplicitConversions.NumberToNumericLiteral(level),
+        ListBuffer(neighbors(2 * dim + 1)).map(neigh => (neigh, neigh.indexBorder)));
+      body += new LocalSend(field, ImplicitConversions.NumberToNumericLiteral(level),
+        ListBuffer(neighbors(2 * dim + 1)).map(neigh => (neigh, neigh.indexBorder, neigh.indexOpposingBorder)));
 
-      body += new LoopOverFragments(new TreatNeighRecv(field, neighbors(2 * dim + 0).label, neighbors(2 * dim + 0).indexBorder, level));
-      body += new LoopOverFragments(new TreatNeighFinish(neighbors(2 * dim + 1).label));
+      body += new RemoteReceive(field, level, ListBuffer(neighbors(2 * dim + 0)));
+
+      body += new FinishRemoteCommunication(neighbors);
+
+      body += new CopyFromRecvBuffer(field, ImplicitConversions.NumberToNumericLiteral(level),
+        ListBuffer(neighbors(2 * dim + 0)).map(neigh => (neigh, neigh.indexBorder)));
     }
-//    // sync duplicate values
-//    body += new CopyToSendBuffer_and_RemoteSend(field, ImplicitConversions.NumberToNumericLiteral(level),
-//      neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh => (neigh, neigh.indexBorder)));
-//    body += new LocalSend(field, ImplicitConversions.NumberToNumericLiteral(level),
-//      neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh => (neigh, neigh.indexBorder, neigh.indexOpposingBorder)));
-//    
-//    body += new RemoteReceive(field, level, neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0));
-//
-//    body += new FinishRemoteCommunication(neighbors);
-//
-//    body += new CopyFromRecvBuffer(field, ImplicitConversions.NumberToNumericLiteral(level),
-//      neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0).map(neigh => (neigh, neigh.indexBorder)));
 
     // update ghost layers
     for (dim <- 0 to 2) {
-      body += new LoopOverFragments(
-        Array(0, 1).map(dir => (new TreatNeighSend(field, neighbors(2 * dim + dir).label, neighbors(2 * dim + dir).indexInner,
-          neighbors(2 * dim + dir).indexOpposingOuter, level) : Statement)).to[ListBuffer]);
+      var curNeighbors = ListBuffer(neighbors(2 * dim + 0), neighbors(2 * dim + 1));
 
-      body += new LoopOverFragments(
-        Array(0, 1).map(dir => (new TreatNeighRecv(field, neighbors(2 * dim + dir).label, neighbors(2 * dim + dir).indexOuter, level) : Statement)).to[ListBuffer]);
+      body += new CopyToSendBuffer_and_RemoteSend(field, ImplicitConversions.NumberToNumericLiteral(level),
+        curNeighbors.map(neigh => (neigh, neigh.indexInner)));
 
-      body += new LoopOverFragments(
-        Array(0, 1).map(dir => (new TreatNeighFinish(neighbors(2 * dim + dir).label) : Statement)).to[ListBuffer]);
+      body += new LocalSend(field, ImplicitConversions.NumberToNumericLiteral(level),
+        curNeighbors.map(neigh => (neigh, neigh.indexInner, neigh.indexOpposingOuter)));
+
+      body += new RemoteReceive(field, level, curNeighbors);
+
+      body += new FinishRemoteCommunication(curNeighbors);
+
+      body += new CopyFromRecvBuffer(field, ImplicitConversions.NumberToNumericLiteral(level),
+        curNeighbors.map(neigh => (neigh, neigh.indexOuter)));
     }
-//    // update ghost layers
-//    body += new CopyToSendBuffer_and_RemoteSend(field, ImplicitConversions.NumberToNumericLiteral(level),
-//      neighbors.map(neigh => (neigh, neigh.indexInner)));
-//
-//    body += new LocalSend(field, ImplicitConversions.NumberToNumericLiteral(level),
-//      neighbors.map(neigh => (neigh, neigh.indexInner, neigh.indexOpposingOuter)));
-//
-//    body += new RemoteReceive(field, level, neighbors);
-//
-//    body += new FinishRemoteCommunication(neighbors);
-//
-//    body += new CopyFromRecvBuffer(field, ImplicitConversions.NumberToNumericLiteral(level),
-//      neighbors.map(neigh => (neigh, neigh.indexOuter)));
- 
-    
+
+    // compile return value
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",
       ListBuffer(Variable("std::vector<boost::shared_ptr<CurFragmentType> >&", "fragments"), Variable("unsigned int", "slot")),
       body);
   }
-}
-
-case class HandleBoundaries(neighbors : ListBuffer[NeighInfo]) extends Statement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
-  def cpp : String = { return "NOT VALID ; CLASS = HandleBoundaries\n"; }
-
-  override def expand : StatementBlock = { return new StatementBlock(neighbors.map(neigh => neigh.codeTreatBC)); }
 }
 
 case class ExchangeData_26(field : Field, level : Int) extends AbstractFunctionStatement with Expandable {
@@ -919,14 +885,15 @@ case class ExchangeData_26(field : Field, level : Int) extends AbstractFunctionS
     //body += "int mpiRank; MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);\n";
 
     // handle BC
-    body += new LoopOverFragments(new HandleBoundaries(neighbors));
+    body += new HandleBoundaries(field, ImplicitConversions.NumberToNumericLiteral(level),
+      neighbors.map(neigh => (neigh, neigh.indexBorder)));
 
     // sync duplicate values
     body += new CopyToSendBuffer_and_RemoteSend(field, ImplicitConversions.NumberToNumericLiteral(level),
       neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh => (neigh, neigh.indexBorder)));
     body += new LocalSend(field, ImplicitConversions.NumberToNumericLiteral(level),
       neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh => (neigh, neigh.indexBorder, neigh.indexOpposingBorder)));
-    
+
     body += new RemoteReceive(field, level, neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0));
 
     body += new FinishRemoteCommunication(neighbors);
@@ -948,7 +915,7 @@ case class ExchangeData_26(field : Field, level : Int) extends AbstractFunctionS
     body += new CopyFromRecvBuffer(field, ImplicitConversions.NumberToNumericLiteral(level),
       neighbors.map(neigh => (neigh, neigh.indexOuter)));
 
-    // return value
+    // compile return value
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",
       ListBuffer(Variable("std::vector<boost::shared_ptr<CurFragmentType> >&", "fragments"), Variable("unsigned int", "slot")),
       body);

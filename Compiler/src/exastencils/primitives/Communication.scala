@@ -124,9 +124,9 @@ case class CopyFromRecvBuffer(var field : Field, var level : Expression, var nei
         (new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1),
           ListBuffer[Statement](
             s"unsigned int entry = 0;",
-            new LoopOverDimensions(neigh._2, 
-                new AssignmentStatement(
-              new FieldAccess(field, level, "slot", Mapping.access(neigh._2.level)),
+            new LoopOverDimensions(neigh._2,
+              new AssignmentStatement(
+                new FieldAccess(field, level, "slot", Mapping.access(neigh._2.level)),
                 s"curFragment.recvBuffer_${neigh._1.label}[entry++];"))))) : Statement));
   }
 }
