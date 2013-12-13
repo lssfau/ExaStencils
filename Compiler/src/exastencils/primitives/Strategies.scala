@@ -66,13 +66,15 @@ object GenCommCode extends (() => Unit) {
         println("Found an Expandable node");
         Some(function.expand);
     });
-
-    // replace LoopOverFragments with basic forLoops
     strategy += new Transformation({
-      case loop : LoopOverFragments =>
-        Some(loop.toForLoop);
+      case function : Expandable =>
+        println("Found an Expandable node");
+        Some(function.expand);
     });
 
+    // TODO: add function scopes for class member functions
+    
+    
     // print
     strategy += new Transformation({
       case frag : FragmentClass =>

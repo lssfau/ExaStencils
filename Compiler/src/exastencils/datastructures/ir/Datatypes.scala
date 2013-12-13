@@ -5,6 +5,11 @@ import exastencils.datastructures.ir._
 
 trait Datatype extends CppPrettyPrintable with Duplicable
 
+case class SpecialDatatype(typeName : String) extends Datatype {
+  override def cpp = typeName
+  override def duplicate = this.copy().asInstanceOf[this.type] // FIXME: check for correctness
+}
+
 case class IntegerDatatype() extends Datatype {
   override def cpp = "int"
   override def duplicate = copy.asInstanceOf[this.type]

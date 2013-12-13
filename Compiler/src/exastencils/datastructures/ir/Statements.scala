@@ -3,6 +3,7 @@ package exastencils.datastructures.ir
 import scala.collection.mutable.ListBuffer
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.primitives.Expandable
 
 abstract class Statement
   extends Node with CppPrettyPrintable
@@ -10,6 +11,25 @@ abstract class Statement
 case class ExpressionStatement(var expression : Expression) extends Statement {
   override def cpp = expression.cpp
   override def duplicate = { this.copy(expression = Duplicate(expression)).asInstanceOf[this.type] }
+}
+
+case class Scope(var body : ListBuffer[Statement]) extends Statement {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = {
+    ("\n{\n"
+      + body.map(stat => stat.cpp).mkString("\n")
+      + s"\n}\n");
+  }
+}
+
+case class StatementBlock(var body : ListBuffer[Statement]) extends Statement {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def cpp : String = {
+    (body.map(stat => stat.cpp).mkString("\n")
+      + s"\n");
+  }
 }
 
 case class VariableDeclarationStatement(var variable : Variable, var expression : Option[Expression] = None)
@@ -72,8 +92,16 @@ case class ConditionStatement(var condition : Expression, var trueBody : ListBuf
   }
 }
 
-case class FunctionStatement(var name : String, var returntype : Datatype, var arguments : List[Variable], var statements : List[Statement])
-    extends Statement {
-  override def cpp = ""
-  override def duplicate = { this.copy(returntype = Duplicate(returntype), arguments = Duplicate(arguments), statements = Duplicate(statements)).asInstanceOf[this.type] }
+abstract class AbstractFunctionStatement() extends Statement
+
+case class FunctionStatement(var returntype : Datatype, var name : String, var parameters : ListBuffer[Variable], var body : ListBuffer[Statement]) extends AbstractFunctionStatement {
+  // FIXME: override def duplicate = { this.copy(returntype = Duplicate(returntype), parameters = Duplicate(parameters), body = Duplicate(body)).asInstanceOf[this.type] }
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def cpp : String = {	// FIXME: add specialized node for parameter specification with own PP
+    (s"${returntype.cpp} $name(" + parameters.map(param => s"${param.datatype.cpp} ${param.name}").mkString(", ") + ")"
+      + "\n{\n"
+      + body.map(stat => stat.cpp).mkString("\n")
+      + s"\n}\n")
+  }
 }

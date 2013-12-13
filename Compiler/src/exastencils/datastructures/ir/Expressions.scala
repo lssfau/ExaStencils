@@ -27,7 +27,7 @@ case class Identifier(name : String) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 }
 
-case class Variable(name : String, var Type : Datatype) extends Expression {
+case class Variable(var datatype : Datatype, name : String) extends Expression {
   override def cpp = name
   override def duplicate = this.copy().asInstanceOf[this.type]
 }
