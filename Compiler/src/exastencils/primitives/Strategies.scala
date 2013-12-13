@@ -61,20 +61,20 @@ object GenCommCode extends (() => Unit) {
     // 'actual' transformations
 
     // expand applicable nodes - FIXME: do while changed
+    var expandablesFound = 0;
     strategy += new Transformation({
       case function : Expandable =>
-        println("Found an Expandable node");
+        expandablesFound += 1;
         Some(function.expand);
     });
     strategy += new Transformation({
       case function : Expandable =>
-        println("Found an Expandable node");
+        expandablesFound += 1;
         Some(function.expand);
     });
 
     // TODO: add function scopes for class member functions
-    
-    
+
     // print
     strategy += new Transformation({
       case frag : FragmentClass =>
@@ -83,6 +83,7 @@ object GenCommCode extends (() => Unit) {
     });
 
     strategy.apply;
+    println("Found " + expandablesFound + " Expandable nodes");
     println("Done");
 
     //println(StateManager.root_.asInstanceOf[FragmentClass].fields);
