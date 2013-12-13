@@ -896,17 +896,17 @@ case class ExchangeData_26(field : Field, level : Int) extends AbstractFunctionS
     body += new FinishRemoteCommunication(neighbors);
 
     body += new CopyFromRecvBuffer(field, ImplicitConversions.NumberToNumericLiteral(level),
-        neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0).map(neigh => (neigh, neigh.indexBorder)));
+      neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0).map(neigh => (neigh, neigh.indexBorder)));
 
     // update ghost layers
     //      s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
     //        neighbors.map(neigh =>
     //          (new TreatNeighSend(field, neigh.label, neigh.indexInner,
     //            neigh.indexOpposingOuter, level))).toList));
-    body += (new LoopOverFragments(
-      neighbors.map(neigh =>
-        (new TreatNeighSendRemote(field, neigh.label, neigh.indexInner,
-          neigh.indexOpposingOuter, level) : Statement)).to[ListBuffer]));
+
+    body += new CopyToSendBuffer_and_RemoteSend(field, ImplicitConversions.NumberToNumericLiteral(level),
+      neighbors.map(neigh => (neigh, neigh.indexInner)));
+
     body += "//BEGIN LOCAL COMMUNICATION\n";
     body += (new LoopOverFragments(
       ListBuffer[ListBuffer[Statement]](
@@ -923,7 +923,7 @@ case class ExchangeData_26(field : Field, level : Int) extends AbstractFunctionS
     body += new FinishRemoteCommunication(neighbors);
 
     body += new CopyFromRecvBuffer(field, ImplicitConversions.NumberToNumericLiteral(level),
-        neighbors.map(neigh => (neigh, neigh.indexOuter)));
+      neighbors.map(neigh => (neigh, neigh.indexOuter)));
 
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",
       ListBuffer(Variable("std::vector<boost::shared_ptr<CurFragmentType> >&", "fragments"), Variable("unsigned int", "slot")),

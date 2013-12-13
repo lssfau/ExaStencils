@@ -24,6 +24,50 @@ case class MPI_Receive(var buffer : Expression, var size : Expression, var typeN
   }
 };
 
+case class MPI_Send(var buffer : Expression, var size : Expression, var typeName : Expression, var rank : Expression, var tag : Expression, var request : Expression) extends Statement {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def cpp : String = {
+    var s : String = "";
+
+    // TODO: move omp stuff to separate class
+    s += s"#pragma omp critical\n{\n";
+
+    s += s"MPI_Isend(${buffer.cpp}, ${size.cpp}, ${typeName.cpp}, ${rank.cpp}, ${tag.cpp}, MPI_COMM_WORLD, &${request.cpp});\n"
+
+    s += s"}\n";
+
+    return s;
+  }
+};
+
+case class CopyToSendBuffer_and_RemoteSend(var field : Field, var level : Expression /*FIXME: Int*/ , var neighbors : ListBuffer[(NeighInfo, IndexRange)]) extends Statement with Expandable {
+  // FIXME: split this node
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = "NOT VALID ; CLASS = RemoteReceive\n";
+
+  def expand : LoopOverFragments = {
+    new LoopOverFragments(
+      // TODO: check if a for loop could be used
+      neighbors.map(neigh =>
+        new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1),
+          ListBuffer[Statement](
+            s"unsigned int entry = 0;",
+            new LoopOverDimensions(neigh._2,
+              s"curFragment.sendBuffer_${neigh._1.label}[entry++] = "
+                + (new FieldAccess(field, level, "slot", Mapping.access(neigh._2.level))).cpp /*FIXME: assignment statement w/o cpp call*/ + s";"),
+            new MPI_Send(
+              s"curFragment.sendBuffer_${neigh._1.label}",
+              s"entry",
+              s"MPI_DOUBLE",
+              new getNeighInfo_RemoteRank(neigh._1),
+              s"((unsigned int)curFragment.id << 16) + ((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1)).cpp + ") & 0x0000ffff)",
+              s"curFragment.request_Send_${neigh._1.label}"),
+            StringLiteral(s"fragments[e]->reqOutstanding_Send_${neigh._1.label} = true;"))) : Statement));
+  }
+}
+
 case class RemoteReceive(var field : Field, var level : Any /*FIXME: Int*/ , var neighbors : ListBuffer[NeighInfo]) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
@@ -31,18 +75,18 @@ case class RemoteReceive(var field : Field, var level : Any /*FIXME: Int*/ , var
 
   def expand : LoopOverFragments = {
     new LoopOverFragments(
-      // TODO: use for loop instead of 26 cases
+      // TODO: check if a for loop could be used
       neighbors.map(neigh =>
         (new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh),
-            ListBuffer[Statement](
-              new MPI_Receive(
-                s"curFragment.recvBuffer_${neigh.label}",
-                s"curFragment.maxElemRecvBuffer_${neigh.label}",
-                s"MPI_DOUBLE",
-                new getNeighInfo_RemoteRank(neigh),
-                s"((unsigned int)(" + (new getNeighInfo_FragmentId(neigh)).cpp + ") << 16) + ((unsigned int)curFragment.id & 0x0000ffff)",
-                s"curFragment.request_Recv_${neigh.label}"),
-              s"curFragment.reqOutstanding_Recv_${neigh.label} = true;"))) : Statement).to[ListBuffer]);
+          ListBuffer[Statement](
+            new MPI_Receive(
+              s"curFragment.recvBuffer_${neigh.label}",
+              s"curFragment.maxElemRecvBuffer_${neigh.label}",
+              s"MPI_DOUBLE",
+              new getNeighInfo_RemoteRank(neigh),
+              s"((unsigned int)(" + (new getNeighInfo_FragmentId(neigh)).cpp + ") << 16) + ((unsigned int)curFragment.id & 0x0000ffff)",
+              s"curFragment.request_Recv_${neigh.label}"),
+            s"curFragment.reqOutstanding_Recv_${neigh.label} = true;"))) : Statement).to[ListBuffer]);
   }
 }
 
@@ -55,11 +99,11 @@ case class CopyFromRecvBuffer(var field : Field, var level : Expression, var nei
     new LoopOverFragments(
       neighbors.map(neigh =>
         (new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1),
-            ListBuffer[Statement](
-              s"size_t entry = 0;",
-              new LoopOverDimensions(neigh._2,
-                (new FieldAccess(field, level, "slot", Mapping.access(neigh._2.level))).cpp // FIXME: assignment statement w/o cpp call
-                  + s" = curFragment.recvBuffer_${neigh._1.label}[entry++];")))) : Statement));
+          ListBuffer[Statement](
+            s"unsigned int entry = 0;",
+            new LoopOverDimensions(neigh._2,
+              (new FieldAccess(field, level, "slot", Mapping.access(neigh._2.level))).cpp // FIXME: assignment statement w/o cpp call
+                + s" = curFragment.recvBuffer_${neigh._1.label}[entry++];")))) : Statement));
   }
 }
 
@@ -81,3 +125,4 @@ case class FinishRemoteCommunication(var neighbors : ListBuffer[NeighInfo]) exte
               s"curFragment.reqOutstanding_${sendOrRecv}_${neigh.label} = false;")) : Statement))).flatten);
   }
 }
+    
