@@ -73,7 +73,34 @@ object GenCommCode extends (() => Unit) {
         Some(function.expand);
     });
 
-    // TODO: add function scopes for class member functions
+    // FIXME: requires nested strategies which currently are not available
+    // add function scopes for class member functions
+    //    strategy += new Transformation({
+    //      case c : Class =>
+    //        var strategyAddScopePrefix = new Strategy("strategyAddScopePrefix");
+    //        strategyAddScopePrefix += new Transformation({
+    //          case function : FunctionStatement =>
+    //            println("Found a member function");
+    //
+    //            // add to name
+    //
+    //            Some(function);
+    //        }, true, c)
+    //
+    //        strategyAddScopePrefix.apply;
+    //
+    //        Some(c);
+    //    });
+    strategy += new Transformation({
+      case c : Class =>
+        for (func <- c.functions) {
+          func match {
+            case f : FunctionStatement =>
+              f.name = s"${c.className}::${f.name}";
+          }
+        }
+        Some(c);
+    });
 
     // print
     strategy += new Transformation({

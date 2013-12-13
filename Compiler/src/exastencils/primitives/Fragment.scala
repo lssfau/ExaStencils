@@ -150,7 +150,7 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
   override def cpp : String = "NOT VALID ; CLASS = ConnectLocalElement\n";
 
   override def expand : FunctionStatement = {
-    FunctionStatement(new UnitDatatype(), s"Fragment3DCube::connectLocalElement", // FIXME: set prefix as class trafo 
+    FunctionStatement(new UnitDatatype(), s"connectLocalElement", // FIXME: set prefix as class trafo 
       ListBuffer(Variable("FRAGMENT_LOCATION", "location"), Variable("boost::shared_ptr<CurFragmentType>", "fragment")),
       ListBuffer(
         "ASSERT_WARNING((fragment), \"Invalid fragment pointer detected\", return);",
@@ -172,7 +172,7 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
   override def cpp : String = "NOT VALID ; CLASS = ConnectRemoteElement\n";
 
   override def expand : FunctionStatement = {
-    FunctionStatement(new UnitDatatype(), s"Fragment3DCube::connectRemoteElement",
+    FunctionStatement(new UnitDatatype(), s"connectRemoteElement",
       ListBuffer(Variable("FRAGMENT_LOCATION", "location"), Variable("exa_id_t", "id"), Variable(IntegerDatatype(), "remoteRank")),
       ListBuffer(
         s"FragmentNeighInfo& ref = neigh[location - FRAG_CUBE_ZN_YN_XN];",
@@ -241,7 +241,7 @@ case class SetupBuffers(fields : ListBuffer[Field]) extends AbstractFunctionStat
       body += s"recvBuffer_$neighName = new exa_real_t[$size];\n";
       body += s"maxElemRecvBuffer_$neighName = $size;\n";
     }
-    return FunctionStatement(new UnitDatatype(), s"Fragment3DCube::setupBuffers", ListBuffer(), body);
+    return FunctionStatement(new UnitDatatype(), s"setupBuffers", ListBuffer(), body);
   }
 }
 
@@ -779,7 +779,7 @@ case class ExchangeDataSplitter(field : Field) extends AbstractFunctionStatement
   override def cpp : String = "NOT VALID ; CLASS = ExchangeDataSplitter\n";
 
   override def expand : FunctionStatement = {
-    FunctionStatement(new UnitDatatype(), s"Fragment3DCube::exch${field.codeName}",
+    FunctionStatement(new UnitDatatype(), s"exch${field.codeName}",
       ListBuffer(Variable("std::vector<boost::shared_ptr<CurFragmentType> >&", "fragments"), Variable("unsigned int", "level"), Variable("unsigned int", "slot")),
       // FIXME: this needs to be facilitated; TODO: add SwitchStatement node
       ListBuffer(ExpressionStatement(StringLiteral(s"switch (level)\n{"))) ++
@@ -841,7 +841,7 @@ case class ExchangeData_6(field : Field, level : Int) extends AbstractFunctionSt
         Array(0, 1).map(dir => (new TreatNeighFinish(neighbors(2 * dim + dir).label) : Statement)).to[ListBuffer]);
     }
 
-    return FunctionStatement(new UnitDatatype(), s"Fragment3DCube::exch${field.codeName}_$level",
+    return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",
       ListBuffer(Variable("std::vector<boost::shared_ptr<CurFragmentType> >&", "fragments"), Variable("unsigned int", "slot")),
       body);
   }
@@ -933,7 +933,7 @@ case class ExchangeData_26(field : Field, level : Int) extends AbstractFunctionS
     //          new ifCond(s"curNeigh.isRemote",
     //            new CopyBufferToLocal(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->recvBuffer_${neigh.label}", neigh.indexOuter))))) : Statement).to[ListBuffer]));
 
-    return FunctionStatement(new UnitDatatype(), s"Fragment3DCube::exch${field.codeName}_$level",
+    return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",
       ListBuffer(Variable("std::vector<boost::shared_ptr<CurFragmentType> >&", "fragments"), Variable("unsigned int", "slot")),
       body);
   }
