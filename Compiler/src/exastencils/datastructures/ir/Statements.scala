@@ -105,3 +105,5 @@ case class FunctionStatement(var returntype : Datatype, var name : String, var p
       + s"\n}\n")
   }
 }
+
+// FIXME: add ClassStatement, AbstractClassStatement, PrettyPrinter, etc
