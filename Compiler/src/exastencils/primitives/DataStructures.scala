@@ -5,14 +5,20 @@ import java.io.PrintWriter
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
+
+trait Expandable {
+  def expand() : Node
+}
 
 case class Field(name : String, codeName : String, dataType : String, numSlots : String, bcDir0 : Boolean) extends Node {
   override def duplicate = this.copy().asInstanceOf[this.type]
 }
 
-case class Scope(body : Array[Expression]) extends Expression {
+case class Scope(var body : ListBuffer[Statement]) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
@@ -27,29 +33,10 @@ case class Scope(body : Array[Expression]) extends Expression {
   }
 }
 
-case class ifCond(cond : Expression, trueBranch : Array[Expression], falseBranch : Array[Expression] = Array()) extends Expression {
+case class forLoop(var head : Expression, var body : ListBuffer[Statement]) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  def cpp : String = {
-    var s : String = "";
-
-    s += s"if (${cond.cpp})\n{\n";
-    for (stat <- trueBranch)
-      s += s"${stat.cpp}\n";
-    s += s"}\n";
-    if (falseBranch.length > 0) {
-      s += s"else\n{\n";
-      for (stat <- falseBranch)
-        s += s"${stat.cpp}\n";
-      s += s"}\n";
-    }
-
-    return s;
-  }
-}
-
-case class forLoop(head : Expression, body : Array[Expression]) extends Expression {
-  override def duplicate = this.copy().asInstanceOf[this.type]
+  def this(head : Expression, body : Statement) = this(head, ListBuffer[Statement](body));
 
   def cpp : String = {
     var s : String = "";
@@ -68,23 +55,50 @@ case class forLoop(head : Expression, body : Array[Expression]) extends Expressi
   }
 }
 
-case class LoopOverFragments(var body : Array[Expression]) extends Expression {
+case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[Statement]) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  def cpp = "NOT VALID";
-  
+  def this(indices : IndexRange, body : Statement) = this(indices, ListBuffer[Statement](body));
+
+  override def cpp : String = "NOT VALID ; CLASS = LoopOverDimensions\n";
+
+  def expand : forLoop = {
+    new forLoop(s"unsigned int ${dimToString(2)} = ${indices.begin(2)}; ${dimToString(2)} <= ${indices.end(2)}; ++${dimToString(2)}",
+      new forLoop(s"unsigned int ${dimToString(1)} = ${indices.begin(1)}; ${dimToString(1)} <= ${indices.end(1)}; ++${dimToString(1)}",
+        new forLoop(s"unsigned int ${dimToString(0)} = ${indices.begin(0)}; ${dimToString(0)} <= ${indices.end(0)}; ++${dimToString(0)}",
+          body)));
+  }
+}
+
+case class FieldAccess(var field : Field, var level : Expression, var slot : Expression, var index : Expression) extends Statement {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = {
+    s"curFragment.${field.codeName}[${slot.cpp}][${level.cpp}]->data[${index.cpp}]";
+  }
+}
+
+case class LoopOverFragments(var body : ListBuffer[Statement]) extends Statement {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def this(body : Statement) = this(ListBuffer(body));
+
+  def cpp = "NOT VALID ; CLASS = LoopOverFragments\n";
+
   def toForLoop : forLoop = {
-    return forLoop(StringLiteral(s"int e = 0; e < fragments.size(); ++e"), body);
+    return forLoop(StringLiteral(s"int e = 0; e < fragments.size(); ++e"),
+      ListBuffer(ImplicitConversions.StringToStatement("Fragment3DCube& curFragment = *(fragments[e].get());"))
+        ++ body);
   }
 }
 
 abstract class Class extends Expression {
   var className : String = "CLASS_NAME";
-  var declarations : ListBuffer[Expression] = new ListBuffer[Expression];
-  var cTorInitList : ListBuffer[Expression] = new ListBuffer[Expression];
-  var cTorBody : ListBuffer[Expression] = new ListBuffer[Expression];
-  var dTorBody : ListBuffer[Expression] = new ListBuffer[Expression];
-  var functions : ListBuffer[Function] = new ListBuffer[Function];
+  var declarations : ListBuffer[Statement] = ListBuffer();
+  var cTorInitList : ListBuffer[Expression] = ListBuffer();
+  var cTorBody : ListBuffer[Statement] = ListBuffer();
+  var dTorBody : ListBuffer[Statement] = ListBuffer();
+  var functions : ListBuffer[Function] = ListBuffer();
 
   def cpp : String = {
     var s : String = "";
@@ -114,7 +128,7 @@ abstract class Class extends Expression {
   }
 }
 
-abstract class Function(var head : Expression, var body : ListBuffer[Expression]) extends Expression {
+abstract class Function(var head : Expression, var body : ListBuffer[Statement]) extends Expression {
   def cpp : String = {
     var s : String = "";
 
@@ -130,18 +144,32 @@ abstract class Function(var head : Expression, var body : ListBuffer[Expression]
   }
 }
 
-case class FragmentClass() extends Class {
+case class FragmentClass extends Class {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   className = "Fragment3DCube";
 
-  var fields : ListBuffer[Field] = new ListBuffer;
-  var neighbors = new ListBuffer[NeighborInfo]();
+  var fields : ListBuffer[Field] = ListBuffer();
+  var neighbors : ListBuffer[NeighborInfo] = ListBuffer();
 
   def init = {
     for (z <- -1 to 1; y <- -1 to 1; x <- -1 to 1; if (0 != x || 0 != y || 0 != z)) {
       neighbors += new NeighborInfo(Array(x, y, z));
     }
+
+    // FIXME: use Number of neighbors // TODO: wtf can the conversion not be applied automatically?
+    declarations += ImplicitConversions.StringToStatement(s"bool neighbor_isValid[27];");
+    declarations += ImplicitConversions.StringToStatement(s"bool neighbor_isRemote[27];");
+    declarations += ImplicitConversions.StringToStatement(s"Fragment3DCube* neighbor_localPtr[27];");
+    declarations += ImplicitConversions.StringToStatement(s"exa_id_t neighbor_fragmentId[27];");
+    declarations += ImplicitConversions.StringToStatement(s"int neighbor_remoteRank[27];");
+
+    cTorBody += new forLoop(StringLiteral(s"unsigned int i = 0; i < 27; ++i"), ListBuffer(
+      ImplicitConversions.StringToStatement(s"neighbor_isValid[i] = false;"),
+      ImplicitConversions.StringToStatement(s"neighbor_isRemote[i] = false;"),
+      ImplicitConversions.StringToStatement(s"neighbor_localPtr[i] = NULL;"),
+      ImplicitConversions.StringToStatement(s"neighbor_fragmentId[i] = -1;"),
+      ImplicitConversions.StringToStatement(s"neighbor_remoteRank[i] = MPI_PROC_NULL;")));
   }
 
   override def cpp : String = {
@@ -150,7 +178,7 @@ case class FragmentClass() extends Class {
       writer.write(super.cpp);
       writer.close();
     }
-    
+
     var i = 0;
     for (f <- functions) {
       var s : String = "";
