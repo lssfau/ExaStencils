@@ -13,9 +13,11 @@ object Duplicate {
     t.foreach(t => duplicateList += Duplicate(t))
     duplicateList.readOnly
   }
-//  def apply[U <: Seq[_]](u : U) : U = {
-//    u
-//  }
+  def apply[T <: Duplicable](t : ListBuffer[T]) : ListBuffer[T] = {
+    var duplicateList = new ListBuffer[T]
+    t.foreach(t => duplicateList += Duplicate(t))
+    duplicateList
+  }
 }
 
 trait Duplicable {

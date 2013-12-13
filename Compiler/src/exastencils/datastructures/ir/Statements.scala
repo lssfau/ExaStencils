@@ -5,7 +5,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 
 abstract class Statement
-  extends Node with CppPrettyPrintable
+  extends Node with CppPrettyPrintable with Duplicable
 
 case class ExpressionStatement(var expression : Expression) extends Statement {
   override def cpp = expression.cpp
@@ -33,8 +33,7 @@ case class AssignmentStatement(var identifier : Identifier, var expression : Exp
 
 case class ForLoopStatement(var begin : Expression /*changed by Sebastian - originally: VariableDeclarationStatement*/ , var end : Expression, var inc : Expression, var body : ListBuffer[Statement])
     extends Statement {
-  // FIXME: override def duplicate = { this.copy(begin = Duplicate(begin), end = Duplicate(end), inc = Duplicate(inc), body = Duplicate(body)).asInstanceOf[this.type] }
-  override def duplicate = this.copy().asInstanceOf[this.type]
+  override def duplicate = { this.copy(begin = Duplicate(begin), end = Duplicate(end), inc = Duplicate(inc), body = Duplicate(body)).asInstanceOf[this.type] }
 
   def this(begin : Expression, end : Expression, inc : Expression, body : Statement) = this(begin, end, inc, ListBuffer[Statement](body));
 
@@ -47,7 +46,7 @@ case class ForLoopStatement(var begin : Expression /*changed by Sebastian - orig
 }
 
 case class ConditionStatement(var condition : Expression, var trueBody : ListBuffer[Statement], var falseBody : ListBuffer[Statement]) extends Statement {
-  // FIXME: override def duplicate = { this.copy(condition = Duplicate(condition), trueBody = Duplicate(trueBody), falseBody = Duplicate(falseBody)).asInstanceOf[this.type] }
+  //	override def duplicate = { this.copy(condition = Duplicate(condition), trueBody = Duplicate(trueBody), falseBody = Duplicate(falseBody)).asInstanceOf[this.type] }
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def this(condition : Expression, trueBody : ListBuffer[Statement]) = this(condition, trueBody, ListBuffer[Statement]());
