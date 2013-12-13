@@ -60,8 +60,7 @@ case class AssignmentStatement(var dest : Expression, var src : Expression) exte
   }
 }
 
-case class ForLoopStatement(var begin : Expression /*changed by Sebastian - originally: VariableDeclarationStatement*/ , var end : Expression, var inc : Expression, var body : ListBuffer[Statement])
-    extends Statement {
+case class ForLoopStatement(var begin : Expression /*changed by Sebastian - originally: VariableDeclarationStatement*/ , var end : Expression, var inc : Expression, var body : ListBuffer[Statement]) extends Statement {
   override def duplicate = { this.copy(begin = Duplicate(begin), end = Duplicate(end), inc = Duplicate(inc), body = Duplicate(body)).asInstanceOf[this.type] }
 
   def this(begin : Expression, end : Expression, inc : Expression, body : Statement) = this(begin, end, inc, ListBuffer[Statement](body));
@@ -75,8 +74,7 @@ case class ForLoopStatement(var begin : Expression /*changed by Sebastian - orig
 }
 
 case class ConditionStatement(var condition : Expression, var trueBody : ListBuffer[Statement], var falseBody : ListBuffer[Statement]) extends Statement {
-  //	override def duplicate = { this.copy(condition = Duplicate(condition), trueBody = Duplicate(trueBody), falseBody = Duplicate(falseBody)).asInstanceOf[this.type] }
-  override def duplicate = this.copy().asInstanceOf[this.type]
+  override def duplicate = { this.copy(condition = Duplicate(condition), trueBody = Duplicate(trueBody), falseBody = Duplicate(falseBody)).asInstanceOf[this.type] }
 
   def this(condition : Expression, trueBody : ListBuffer[Statement]) = this(condition, trueBody, ListBuffer[Statement]());
   def this(condition : Expression, trueBranch : Statement) = this(condition, ListBuffer(trueBranch));
@@ -103,10 +101,9 @@ case class ConditionStatement(var condition : Expression, var trueBody : ListBuf
 abstract class AbstractFunctionStatement() extends Statement
 
 case class FunctionStatement(var returntype : Datatype, var name : String, var parameters : ListBuffer[Variable], var body : ListBuffer[Statement]) extends AbstractFunctionStatement {
-  // FIXME: override def duplicate = { this.copy(returntype = Duplicate(returntype), parameters = Duplicate(parameters), body = Duplicate(body)).asInstanceOf[this.type] }
-  override def duplicate = this.copy().asInstanceOf[this.type]
+  override def duplicate = { this.copy(returntype = Duplicate(returntype), parameters = Duplicate(parameters), body = Duplicate(body)).asInstanceOf[this.type] }
 
-  def cpp : String = {	// FIXME: add specialized node for parameter specification with own PP
+  def cpp : String = { // FIXME: add specialized node for parameter specification with own PP
     (s"${returntype.cpp} $name(" + parameters.map(param => s"${param.datatype.cpp} ${param.name}").mkString(", ") + ")"
       + "\n{\n"
       + body.map(stat => stat.cpp).mkString("\n")

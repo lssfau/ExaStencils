@@ -59,7 +59,7 @@ object GenCommCode extends (() => Unit) {
         Some(frag);
     });
 
-    // expand applicable nodes - FIXME: do while changed
+    // expand applicable nodes - FIXME: do while (changed)
     var expandablesFound = 0;
     strategy += new Transformation("Hoho, expanding all day...", {
       case function : Expandable =>

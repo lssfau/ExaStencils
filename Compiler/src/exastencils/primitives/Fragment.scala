@@ -912,6 +912,7 @@ case class ExchangeData_26(field : Field, level : Int) extends AbstractFunctionS
     body += new CopyFromRecvBuffer(field, ImplicitConversions.NumberToNumericLiteral(level),
       neighbors.map(neigh => (neigh, neigh.indexOuter)));
 
+    // return value
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",
       ListBuffer(Variable("std::vector<boost::shared_ptr<CurFragmentType> >&", "fragments"), Variable("unsigned int", "slot")),
       body);
