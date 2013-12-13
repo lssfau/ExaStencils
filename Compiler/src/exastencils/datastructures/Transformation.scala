@@ -2,15 +2,14 @@ package exastencils.datastructures
 
 import exastencils.core.StateManager
 
-class Transformation(f : PartialFunction[Node, Option[Node]], rec : Boolean = true, node : Node = StateManager.root) {
+class Transformation(n : String, f : PartialFunction[Node, Option[Node]], rec : Boolean = true, node : Node = StateManager.root) {
+  def name = n
   def function = f
   def recursive = rec
   def applyAt = node
 }
 
 object Transformation {
-  def apply(f : PartialFunction[Node, Option[Node]], rec : Boolean = true, node : Node = StateManager.root) =
-    new Transformation(f, rec, node)
+  def apply(n : String, f : PartialFunction[Node, Option[Node]], rec : Boolean = true, node : Node = StateManager.root) =
+    new Transformation(n, f, rec, node)
 }
-
-case class TransformationException(msg : String) extends RuntimeException(msg)
