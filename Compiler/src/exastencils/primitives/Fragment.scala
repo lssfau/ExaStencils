@@ -891,13 +891,12 @@ case class ExchangeData_26(field : Field, level : Int) extends AbstractFunctionS
         (new TreatNeighSend(field, neigh.label, neigh.indexBorder,
           neigh.indexOpposingBorder, level) : Statement)).to[ListBuffer]);
 
-    body += (new LoopOverFragments(
-      neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0).map(neigh =>
-        (new TreatNeighRecv(field, neigh.label, neigh.indexBorder, level) : Statement)).to[ListBuffer]));
+    body += new RemoteReceive(field, level, neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0));
 
-    body += (new LoopOverFragments(
-      neighbors.map(neigh =>
-        (new TreatNeighFinish(neigh.label) : Statement)).to[ListBuffer]));
+    body += new FinishRemoteCommunication(neighbors);
+
+    body += new CopyFromRecvBuffer(field, ImplicitConversions.NumberToNumericLiteral(level),
+        neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0).map(neigh => (neigh, neigh.indexBorder)));
 
     // update ghost layers
     //      s += (new forLoop(s"int e = 0; e < fragments.size(); ++e",
@@ -923,15 +922,8 @@ case class ExchangeData_26(field : Field, level : Int) extends AbstractFunctionS
 
     body += new FinishRemoteCommunication(neighbors);
 
-    body += new CopyFromRecvBuffer(field, ImplicitConversions.NumberToNumericLiteral(level), neighbors);
-    //  body += (new LoopOverFragments(
-    //    neighbors.map(neigh =>
-    //      (new ifCond(
-    //        s"FRAG_INVALID != fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN].location",
-    //        ListBuffer[Statement](
-    //          StringLiteral(s"FragmentNeighInfo& curNeigh = fragments[e]->neigh[FRAG_CUBE_${neigh.label} - FRAG_CUBE_ZN_YN_XN];"),
-    //          new ifCond(s"curNeigh.isRemote",
-    //            new CopyBufferToLocal(s"fragments[e]->${field.codeName}[slot][$level]", s"fragments[e]->recvBuffer_${neigh.label}", neigh.indexOuter))))) : Statement).to[ListBuffer]));
+    body += new CopyFromRecvBuffer(field, ImplicitConversions.NumberToNumericLiteral(level),
+        neighbors.map(neigh => (neigh, neigh.indexOuter)));
 
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",
       ListBuffer(Variable("std::vector<boost::shared_ptr<CurFragmentType> >&", "fragments"), Variable("unsigned int", "slot")),
