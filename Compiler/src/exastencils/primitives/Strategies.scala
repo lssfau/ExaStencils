@@ -17,29 +17,38 @@ object GenCommCode extends (() => Unit) {
     StateManager.root_ = Root(List(fragment));
 
     var strategy = new Strategy("strategy");
-    strategy += new Transformation({
+
+    strategy += new Transformation("Init FragmentClass", {
       case frag : FragmentClass =>
         frag.init;
-
-        for (neigh <- frag.neighbors) {
-          neigh.addDeclarations(frag);
-        }
-
         Some(frag);
     });
 
-    strategy += new Transformation({
+    strategy += new Transformation("Update FragmentClass with required neighbor declarations", {
       case frag : FragmentClass =>
-        println("Found a FragmentClass node");
+        for (neigh <- frag.neighbors) { neigh.addDeclarations(frag); }
+        Some(frag);
+    });
+
+    strategy += new Transformation("Add fields to FragmentClass", {
+      case frag : FragmentClass =>
         frag.fields += new Field("Solution", "solData", "double", "NUM_SOL_SLOTS", true);
         frag.fields += new Field("Residual", "resData", "double", "1", false);
         frag.fields += new Field("RHS", "rhsData", "double", "1", false);
         Some(frag);
     });
 
-    strategy += new Transformation({
+    strategy += new Transformation("Add basic functions to FragmentClass", {
       case frag : FragmentClass =>
         frag.functions += new WaitForMPIReq;
+        frag.functions += new ConnectLocalElement();
+        frag.functions += new ConnectRemoteElement();
+        frag.functions += new SetupBuffers(frag.fields);
+        Some(frag);
+    });
+
+    strategy += new Transformation("Add communication functions to FragmentClass", {
+      case frag : FragmentClass =>
         for (field <- frag.fields) {
 
           frag.functions += new ExchangeDataSplitter(field);
@@ -50,32 +59,21 @@ object GenCommCode extends (() => Unit) {
         Some(frag);
     });
 
-    strategy += new Transformation({
-      case frag : FragmentClass =>
-        frag.functions += new ConnectLocalElement();
-        frag.functions += new ConnectRemoteElement();
-        frag.functions += new SetupBuffers(frag.fields);
-        Some(frag);
-    });
-
-    // 'actual' transformations
-
     // expand applicable nodes - FIXME: do while changed
     var expandablesFound = 0;
-    strategy += new Transformation({
+    strategy += new Transformation("Hoho, expanding all day...", {
       case function : Expandable =>
         expandablesFound += 1;
         Some(function.expand);
     });
-    strategy += new Transformation({
+    strategy += new Transformation("Hoho, expanding all day...", {
       case function : Expandable =>
         expandablesFound += 1;
         Some(function.expand);
     });
 
     // FIXME: requires nested strategies which currently are not available
-    // add function scopes for class member functions
-    //    strategy += new Transformation({
+    //    strategy += new Transformation("Add function scope prefixes to class member functions", {
     //      case c : Class =>
     //        var strategyAddScopePrefix = new Strategy("strategyAddScopePrefix");
     //        strategyAddScopePrefix += new Transformation({
@@ -91,19 +89,16 @@ object GenCommCode extends (() => Unit) {
     //
     //        Some(c);
     //    });
-    strategy += new Transformation({
+    strategy += new Transformation("Add function scope prefixes to class member functions", {
       case c : Class =>
         for (func <- c.functions) {
-          func match {
-            case f : FunctionStatement =>
-              f.name = s"${c.className}::${f.name}";
-          }
+          func match { case f : FunctionStatement => f.name = s"${c.className}::${f.name}"; }
         }
         Some(c);
     });
 
     // print
-    strategy += new Transformation({
+    strategy += new Transformation("Pretty-Print", {
       case frag : FragmentClass =>
         frag.cpp;
         Some(frag);
