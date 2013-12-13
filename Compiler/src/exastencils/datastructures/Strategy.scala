@@ -11,7 +11,7 @@ class Strategy(val name : String) {
 
   def transformations = { trafos.readOnly }
 
-  def apply : Boolean = { StateManager.defaultApply(this) }
+  def apply : Option[StrategyResult] = { StateManager.defaultApply(this) }
 }
 
 object Strategy {
@@ -21,4 +21,8 @@ object Strategy {
     s.trafos ++= transformations
     s
   }
+}
+
+class StrategyResult(transformationResults : List[TransformationResult]) {
+  def getResults = transformationResults
 }

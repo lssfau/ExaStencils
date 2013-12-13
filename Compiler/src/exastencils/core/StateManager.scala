@@ -21,19 +21,19 @@ object StateManager {
     protected class ProtocalEntry(val stateBefore : Node, val appliedStrategy : Strategy)
 
     def transaction(strategy : Strategy) = {
-      if (!current_.isEmpty) throw new StrategyException("Another transaction currently running!", strategy)
+      if (!current_.isEmpty) throw new RuntimeException("Another transaction currently running!")
 
       current_ = Some(new ProtocalEntry(Duplicate(StateManager.root_), strategy))
     }
 
     def commit() = {
-      if (current_.isEmpty) throw new Exception("No currently running transaction!")
+      if (current_.isEmpty) throw new RuntimeException("No currently running transaction!")
       history_.push(current_.get)
       current_ = None
     }
 
     def abort() = {
-      if (current_.isEmpty) throw new Exception("No currently running transaction!")
+      if (current_.isEmpty) throw new RuntimeException("No currently running transaction!")
       root_ = current_.get.stateBefore
       current_ = None
     }
@@ -53,9 +53,24 @@ object StateManager {
   def register(c : Collector) = { Collectors.register(c) }
   def unregister(c : Collector) = { Collectors.unregister(c) }
   def unregisterAll() = { Collectors.unregisterAll }
+  
+  protected class TransformationProgress {
+    protected var matches = 0
+    protected var replacements = 0
+    def getMatches = matches
+    def getReplacements = replacements
+    def didMatch = matches += 1
+    def didReplace = replacements += 1
+  }
+  protected val progresses_ = new Stack[TransformationProgress]
 
   protected def applyAtNode(node : Node, transformation : Transformation) : Option[Node] = {
-    if (transformation.function.isDefinedAt(node)) transformation.function(node) else Some(node)
+    if (transformation.function.isDefinedAt(node)) {
+      progresses_.head.didMatch
+      transformation.function(node)
+    } else {
+      Some(node)
+    }
   }
 
   protected def doReplace(node : Node, transformation : Transformation, method : Method, oldNode : Any) = {
@@ -66,7 +81,7 @@ object StateManager {
     if (subnode.isInstanceOf[Node]) {
       var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation).get
       if (newSubnode ne subnode.asInstanceOf[Node]) {
-        Vars.set(node, method, newSubnode)
+        if(Vars.set(node, method, newSubnode)) progresses_.head.didReplace
       }
       replace(newSubnode, transformation)
     }
@@ -108,24 +123,29 @@ object StateManager {
     Collectors.notifyLeave(node)
   }
 
-  def defaultApply(strategy : Strategy) : Boolean = {
+  def defaultApply(strategy : Strategy) : Option[StrategyResult] = {
     // start transformation transaction
     History.transaction(strategy)
     DBG(s"""Applying stragety "${strategy.name}"""")
     try {
+      var results = new ListBuffer[TransformationResult]
       strategy.transformations.foreach(transformation => {
+        progresses_.push(new TransformationProgress)
         INFO(s"""Applying stragety "${strategy.name}" :: ${transformation.name}""")
         replace(root, transformation)
+        var progress = progresses_.pop
+        var result = new TransformationResult(true, progress.getMatches, progress.getReplacements)
+        results.append(result)
       })
       History.commit
-      return true
+      return Some(new StrategyResult(results.toList))
     } catch {
       case x : StrategyException => {
         WARN(f"""Strategy "${strategy.name}" did not apply successfully""")
         WARN(f"Message: ${x.msg}")
         WARN(f"Rollback will be performed")
         History.abort
-        return false
+        return None
       }
       case x : TransformationException => {
         WARN(f"""Strategy "${strategy.name}" did not apply successfully""")
@@ -133,7 +153,7 @@ object StateManager {
         WARN(f"Message: ${x.msg}")
         WARN(f"Rollback will be performed")
         History.abort
-        return false
+        return None
       }
     }
   }

@@ -13,3 +13,5 @@ object Transformation {
   def apply(n : String, f : PartialFunction[Node, Option[Node]], rec : Boolean = true, node : Node = StateManager.root) =
     new Transformation(n, f, rec, node)
 }
+
+class TransformationResult(successful : Boolean, matches : Int, replacements : Int)
