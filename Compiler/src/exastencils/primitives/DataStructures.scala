@@ -13,7 +13,7 @@ trait Expandable {
   def expand() : Node
 }
 
-case class Field(name : String, codeName : String, dataType : String, numSlots : String, bcDir0 : Boolean) extends Node {
+case class Field(name : String, codeName : String, dataType : String, numSlots : Int, bcDir0 : Boolean) extends Node {
   override def duplicate = this.copy().asInstanceOf[this.type]
 }
 

@@ -28,16 +28,16 @@ object GenerateCode_Primitives extends (() => Unit) {
 
     strategy += new Transformation("Add fields to FragmentClass", {
       case collection : FieldCollection =>
-        collection.fields += new Field("Solution", "solData", "double", "NUM_SOL_SLOTS", true);
-        collection.fields += new Field("Residual", "resData", "double", "1", false);
-        collection.fields += new Field("RHS", "rhsData", "double", "1", false);
+        collection.fields += new Field("Solution", "solData", "double", Knowledge.numSolSlots, true);
+        collection.fields += new Field("Residual", "resData", "double", 1, false);
+        collection.fields += new Field("RHS", "rhsData", "double", 1, false);
         Some(collection);
     });
 
     strategy += new Transformation("Update FragmentClass with required field declarations", {
       case frag : FragmentClass =>
         for (field <- fieldCollection.fields) {
-          frag.declarations += s"std::vector<Container*> ${field.codeName}[${field.numSlots}];";
+          frag.declarations += s"Container* ${field.codeName}[${field.numSlots}][${Knowledge.numLevels}];";
         }
         Some(frag);
     });

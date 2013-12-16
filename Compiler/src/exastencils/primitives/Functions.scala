@@ -47,7 +47,7 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
   override def cpp : String = "NOT VALID ; CLASS = ConnectLocalElement\n";
 
   override def expand : FunctionStatement = {
-    FunctionStatement(new UnitDatatype(), s"connectLocalElement", 
+    FunctionStatement(new UnitDatatype(), s"connectLocalElement",
       ListBuffer(Variable("FRAGMENT_LOCATION", "location"), Variable("boost::shared_ptr<Fragment3DCube>", "fragment")),
       ListBuffer(
         "ASSERT_WARNING((fragment), \"Invalid fragment pointer detected\", return);",
@@ -82,16 +82,13 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
   override def expand : FunctionStatement = {
     var body = ListBuffer[Statement]();
 
-    for (field <- fields) {
-      body += s"for (unsigned int s = 0; s < ${field.numSlots}; ++s)\n";
-      body += s"${field.codeName}[s].reserve(${Knowledge.maxLevel + 1});\n";
+    for (level <- 0 to Knowledge.maxLevel) {
+      for (field <- fields) {
+        for (slot <- 0 until field.numSlots) {
+          body += s"${field.codeName}[$slot][$level] = new Container(Vec3u(${Mapping.numPoints(level)}, ${Mapping.numPoints(level)}, ${Mapping.numPoints(level)}), 1);"
+        }
+      }
     }
-
-    body += new ForLoopStatement(s"unsigned int l = 0", s"l <= ${Knowledge.maxLevel}", s"++l",
-      ListBuffer[Statement](s"unsigned int numDataPoints = (1u << l) + 1 + 2 * NUM_GHOST_LAYERS;")
-        ++ (fields.map(field =>
-          new ForLoopStatement(s"unsigned int s = 0", s"s < ${field.numSlots}", "++s",
-            s"${field.codeName}[s].push_back(new Container(Vec3u(numDataPoints, numDataPoints, numDataPoints), 1));") : Statement)));
 
     for (neigh <- neighbors) {
       var size : String = "";
@@ -104,9 +101,9 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
 
       size += sizeArray.mkString(" * ");
 
-      body += s"buffer_Send[${neigh.index}] = new exa_real_t[$size];\n";
-      body += s"buffer_Recv[${neigh.index}] = new exa_real_t[$size];\n";
-      body += s"maxElemRecvBuffer[${neigh.index}] = $size;\n";
+      body += s"buffer_Send[${neigh.index}] = new exa_real_t[$size];";
+      body += s"buffer_Recv[${neigh.index}] = new exa_real_t[$size];";
+      body += s"maxElemRecvBuffer[${neigh.index}] = $size;";
     }
 
     return FunctionStatement(new UnitDatatype(), s"setupBuffers", ListBuffer(), body);
