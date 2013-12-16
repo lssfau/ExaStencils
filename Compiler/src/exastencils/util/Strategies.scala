@@ -9,7 +9,7 @@ import exastencils.util._
 object GenerateCode_Util extends (() => Unit) {
   def apply() : Unit = {
     println("Setting up Tree");
-    StateManager.root_ = Root(List(new Container, new Defines, new Log, new StdIncludes, new Stopwatch, new TypeDefs, new Vector));
+    StateManager.root_ = Root(List(new Container, new Defines, new Log, new Stopwatch, new TypeDefs, new Vector));
 
     println("Setting up Strategies");
     var strategy = new Strategy("strategy");

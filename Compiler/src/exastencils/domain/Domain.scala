@@ -24,7 +24,10 @@ case class DomainGenerated() extends Node with FilePrettyPrintable {
 
 #include <boost/shared_ptr.hpp>
 
-#include "Util/StdIncludes.h"
+#include "Util/Defines.h"
+#include "Util/Log.h"
+#include "Util/TypeDefs.h"
+
 #include "Util/Vector.h"
 
 Vec3	minPos	= Vec3(0.);

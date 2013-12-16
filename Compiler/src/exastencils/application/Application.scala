@@ -57,7 +57,10 @@ case class Poisson3D() extends Node with FilePrettyPrintable {
 #	include <omp.h>
 #endif
 
-#include "Util/StdIncludes.h"
+#include "Util/Defines.h"
+#include "Util/Log.h"
+#include "Util/TypeDefs.h"
+
 #include "Util/Vector.h"
 #include "Util/Stopwatch.h"
 
