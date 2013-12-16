@@ -66,11 +66,6 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
       ListBuffer(Variable("FRAGMENT_LOCATION", "location"), Variable("boost::shared_ptr<CurFragmentType>", "fragment")),
       ListBuffer(
         "ASSERT_WARNING((fragment), \"Invalid fragment pointer detected\", return);",
-        s"FragmentNeighInfo& ref = neigh[location - FRAG_CUBE_ZN_YN_XN];",
-        s"ref.location	= location;",
-        s"ref.isRemote	= false;",
-        s"ref.fragment	= fragment;",
-        s"ref.fragId		= fragment->getId();",
         s"neighbor_isValid[location] = true;",
         s"neighbor_isRemote[location] = false;",
         s"neighbor_localPtr[location] = fragment.get();",
@@ -87,12 +82,6 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
     FunctionStatement(new UnitDatatype(), s"connectRemoteElement",
       ListBuffer(Variable("FRAGMENT_LOCATION", "location"), Variable("exa_id_t", "id"), Variable(IntegerDatatype(), "remoteRank")),
       ListBuffer(
-        s"FragmentNeighInfo& ref = neigh[location - FRAG_CUBE_ZN_YN_XN];",
-        s"ref.location	= location;",
-        s"ref.isRemote	= true;",
-        s"ref.fragment	= boost::shared_ptr<CurFragmentType>();",
-        s"ref.fragId		= id;",
-        s"ref.remoteRank	= remoteRank;",
         s"neighbor_isValid[location] = true;",
         s"neighbor_isRemote[location] = true;",
         s"neighbor_fragmentId[location] = id;",
@@ -118,10 +107,6 @@ case class SetupBuffers(fields : ListBuffer[Field]) extends AbstractFunctionStat
         ++ (fields.map(field =>
           new ForLoopStatement(s"unsigned int s = 0", s"s < ${field.numSlots}", "++s",
             s"${field.codeName}[s].push_back(new PayloadContainer_1Real(Vec3u(numDataPoints, numDataPoints, numDataPoints), 1));") : Statement)));
-
-    body += s"unsigned int maxNumPointsPerDim = (1u << (NUM_LEVELS - 1)) + 1 + 2 * NUM_GHOST_LAYERS;\n";
-    body += s"recvBuffer = new exa_real_t[(NUM_GHOST_LAYERS + 1) * maxNumPointsPerDim * maxNumPointsPerDim];\n";
-    body += s"sendBuffer = new exa_real_t[(NUM_GHOST_LAYERS + 1) * maxNumPointsPerDim * maxNumPointsPerDim];\n";
 
     val neighbors : ListBuffer[(Array[Int], String)] = new ListBuffer();
     for (z <- -1 to 1) {
