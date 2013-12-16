@@ -114,7 +114,7 @@ case class FragmentClass extends Class with FilePrettyPrintable {
 
   className = "Fragment3DCube";
 
-  var neighbors : ListBuffer[NeighborInfo] = ListBuffer();
+  var neighbors : ListBuffer[NeighInfo] = ListBuffer();
 
   def init = {
     declarations += s"exa_id_t id;";
@@ -125,24 +125,50 @@ case class FragmentClass extends Class with FilePrettyPrintable {
     cTorArgs += s"exa_id_t id"; // FIXME: specialized nodes...
     cTorArgs += s"const Vec3& pos"; // FIXME: specialized nodes...
 
-    for (z <- -1 to 1; y <- -1 to 1; x <- -1 to 1; if (0 != x || 0 != y || 0 != z)) {
-      neighbors += new NeighborInfo(Array(x, y, z));
+    if (6 == Knowledge.fragmentCommStrategy) {
+      neighbors += new NeighInfo(Array(-1, 0, 0), -1 /*FIXME*/ , 12);
+      neighbors += new NeighInfo(Array(+1, 0, 0), -1 /*FIXME*/ , 14);
+      neighbors += new NeighInfo(Array(0, -1, 0), -1 /*FIXME*/ , 10);
+      neighbors += new NeighInfo(Array(0, +1, 0), -1 /*FIXME*/ , 16);
+      neighbors += new NeighInfo(Array(0, 0, -1), -1 /*FIXME*/ , 4);
+      neighbors += new NeighInfo(Array(0, 0, +1), -1 /*FIXME*/ , 22);
+    } else if (26 == Knowledge.fragmentCommStrategy) {
+      for (z <- -1 to 1; y <- -1 to 1; x <- -1 to 1; if (0 != x || 0 != y || 0 != z)) {
+        neighbors += new NeighInfo(Array(x, y, z), -1 /*FIXME*/ , (z + 1) * 9 + (y + 1) * 3 + (x + 1));
+      }
     }
 
-    // FIXME: use Number of neighbors
-    declarations += s"bool neighbor_isValid[27];";
-    declarations += s"bool neighbor_isRemote[27];";
-    declarations += s"Fragment3DCube* neighbor_localPtr[27];";
-    declarations += s"exa_id_t neighbor_fragmentId[27];";
-    declarations += s"int neighbor_remoteRank[27];";
+    var numNeighbors = 27; // FIXME: use actual number of neighbors
+    var cTorNeighLoopList = new ListBuffer[Statement];
+    var dTorNeighLoopList = new ListBuffer[Statement];
+    declarations += s"bool neighbor_isValid[$numNeighbors];";
+    cTorNeighLoopList += s"neighbor_isValid[i] = false;";
+    declarations += s"bool neighbor_isRemote[$numNeighbors];";
+    cTorNeighLoopList += s"neighbor_isRemote[i] = false;";
+    declarations += s"Fragment3DCube* neighbor_localPtr[$numNeighbors];";
+    cTorNeighLoopList += s"neighbor_localPtr[i] = NULL;";
+    declarations += s"exa_id_t neighbor_fragmentId[$numNeighbors];";
+    cTorNeighLoopList += s"neighbor_fragmentId[i] = -1;";
+    declarations += s"int neighbor_remoteRank[$numNeighbors];";
+    cTorNeighLoopList += s"neighbor_remoteRank[i] = MPI_PROC_NULL;";
 
-    cTorBody += new ForLoopStatement(s"unsigned int i = 0", s"i < 27", s"++i",
-      ListBuffer[Statement](
-        s"neighbor_isValid[i] = false;",
-        s"neighbor_isRemote[i] = false;",
-        s"neighbor_localPtr[i] = NULL;",
-        s"neighbor_fragmentId[i] = -1;",
-        s"neighbor_remoteRank[i] = MPI_PROC_NULL;"));
+    for (sendOrRecv <- Array("Send", "Recv")) {
+      declarations += StringLiteral(s"MPI_Request request_${sendOrRecv}[$numNeighbors];");
+      declarations += StringLiteral(s"bool reqOutstanding_${sendOrRecv}[$numNeighbors];");
+      cTorNeighLoopList += StringLiteral(s"reqOutstanding_${sendOrRecv}[i] = false;");
+
+      declarations += StringLiteral(s"exa_real_t* buffer_${sendOrRecv}[$numNeighbors];");
+      cTorNeighLoopList += StringLiteral(s"buffer_${sendOrRecv}[i] = NULL;");
+      dTorNeighLoopList += StringLiteral(s"if (buffer_${sendOrRecv}[i]) { delete [] buffer_${sendOrRecv}[i]; buffer_${sendOrRecv}[i] = 0; }");
+    }
+
+    declarations += StringLiteral(s"int maxElemRecvBuffer[$numNeighbors];");
+    cTorNeighLoopList += StringLiteral(s"maxElemRecvBuffer[i] = 0;");
+
+    cTorBody += new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i",
+      cTorNeighLoopList);
+    dTorBody += new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i",
+      dTorNeighLoopList);
   }
 
   override def cpp = "NOT VALID ; CLASS = FragmentClass\n";

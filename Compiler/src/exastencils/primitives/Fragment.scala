@@ -13,25 +13,6 @@ class NeighborInfo(var dir : Array[Int]) {
   // TODO: merge with NeighInfo
 
   var label : String = (2 to 0 by -1).toList.map(i => dimToString(i).toUpperCase + dirToString(dir(i))).mkString("_");
-
-  def addDeclarations(frag : FragmentClass) {
-    for (sendOrRecv <- Array("Send", "Recv")) {
-      frag.declarations += StringLiteral(s"MPI_Request request_${sendOrRecv}_$label;");
-      frag.declarations += StringLiteral(s"bool reqOutstanding_${sendOrRecv}_$label;");
-      frag.cTorInitList += StringLiteral(s"reqOutstanding_${sendOrRecv}_$label(false)");
-    }
-
-    frag.declarations += StringLiteral(s"exa_real_t* sendBuffer_$label;");
-    frag.cTorInitList += StringLiteral(s"sendBuffer_$label(0)");
-    frag.dTorBody += StringLiteral(s"if (sendBuffer_$label) { delete [] sendBuffer_$label; sendBuffer_$label = 0; }");
-
-    frag.declarations += StringLiteral(s"exa_real_t* recvBuffer_$label;");
-    frag.cTorInitList += StringLiteral(s"recvBuffer_$label(0)");
-    frag.dTorBody += StringLiteral(s"if (recvBuffer_$label) { delete [] recvBuffer_$label; recvBuffer_$label = 0; }");
-
-    frag.declarations += StringLiteral(s"int maxElemRecvBuffer_$label;");
-    frag.cTorInitList += StringLiteral(s"maxElemRecvBuffer_$label(0)");
-  }
 }
 
 object dimToString extends (Int => String) {
@@ -89,7 +70,7 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
   }
 }
 
-case class SetupBuffers(fields : ListBuffer[Field]) extends AbstractFunctionStatement with Expandable {
+case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuffer[NeighInfo]) extends AbstractFunctionStatement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = "NOT VALID ; CLASS = SetupBuffers\n";
@@ -108,36 +89,22 @@ case class SetupBuffers(fields : ListBuffer[Field]) extends AbstractFunctionStat
           new ForLoopStatement(s"unsigned int s = 0", s"s < ${field.numSlots}", "++s",
             s"${field.codeName}[s].push_back(new PayloadContainer_1Real(Vec3u(numDataPoints, numDataPoints, numDataPoints), 1));") : Statement)));
 
-    val neighbors : ListBuffer[(Array[Int], String)] = new ListBuffer();
-    for (z <- -1 to 1) {
-      for (y <- -1 to 1) {
-        for (x <- -1 to 1) {
-          val mod = Array("N", "0", "P")
-          if (0 != x || 0 != y || 0 != z) {
-            neighbors += ((Array(x, y, z), s"Z${mod(z + 1)}_Y${mod(y + 1)}_X${mod(x + 1)}"));
-          }
-        }
-      }
-    }
-
     for (neigh <- neighbors) {
-      val neighDir = neigh._1;
-      val neighName = neigh._2;
-
       var size : String = "";
       var sizeArray = new ListBuffer[String]();
       for (i <- (0 to 2))
-        if (0 == neighDir(i))
+        if (0 == neigh.dir(i))
           sizeArray += s"${Mapping.numPoints(Knowledge.maxLevel)}";
         else
           sizeArray += s"${Knowledge.numGhostLayers}";
 
       size += sizeArray.mkString(" * ");
 
-      body += s"sendBuffer_$neighName = new exa_real_t[$size];\n";
-      body += s"recvBuffer_$neighName = new exa_real_t[$size];\n";
-      body += s"maxElemRecvBuffer_$neighName = $size;\n";
+      body += s"buffer_Send[${neigh.index}] = new exa_real_t[$size];\n";
+      body += s"buffer_Recv[${neigh.index}] = new exa_real_t[$size];\n";
+      body += s"maxElemRecvBuffer[${neigh.index}] = $size;\n";
     }
+
     return FunctionStatement(new UnitDatatype(), s"setupBuffers", ListBuffer(), body);
   }
 }
@@ -264,7 +231,7 @@ object fieldToIndexBorder extends ((Array[Int], String, Int) => IndexRange) {
   }
 }
 
-class NeighInfo(var dir : Array[Int], var level : Int, var index : Int) {
+class NeighInfo(var dir : Array[Int], var level : Int /*FIXME: remove level*/, var index : Int) {
   // TODO: merge with NeighborInfo
 
   var label : String = (2 to 0 by -1).toList.map(i => dimToString(i).toUpperCase + dirToString(dir(i))).mkString("_");
@@ -312,7 +279,7 @@ case class ExchangeDataSplitter(field : Field) extends AbstractFunctionStatement
   }
 }
 
-case class ExchangeData_6(field : Field, level : Int) extends AbstractFunctionStatement with Expandable {
+case class ExchangeData_6(field : Field, level : Int, neighbors : ListBuffer[NeighInfo]) extends AbstractFunctionStatement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_6\n";
@@ -323,16 +290,16 @@ case class ExchangeData_6(field : Field, level : Int) extends AbstractFunctionSt
     val fieldName = s"fragments[e]->${field.codeName}[slot][$level]";
 
     // simple exchange along axis
-    // TODO: get neighbors from parent
-    val neighbors = new ListBuffer[NeighInfo]();
-    neighbors += new NeighInfo(Array(-1, 0, 0), level, 12);
-    neighbors += new NeighInfo(Array(+1, 0, 0), level, 14);
-    neighbors += new NeighInfo(Array(0, -1, 0), level, 10);
-    neighbors += new NeighInfo(Array(0, +1, 0), level, 16);
-    neighbors += new NeighInfo(Array(0, 0, -1), level, 4);
-    neighbors += new NeighInfo(Array(0, 0, +1), level, 22);
+//    val neighbors = new ListBuffer[NeighInfo]();
+//    neighbors += new NeighInfo(Array(-1, 0, 0), level, 12);
+//    neighbors += new NeighInfo(Array(+1, 0, 0), level, 14);
+//    neighbors += new NeighInfo(Array(0, -1, 0), level, 10);
+//    neighbors += new NeighInfo(Array(0, +1, 0), level, 16);
+//    neighbors += new NeighInfo(Array(0, 0, -1), level, 4);
+//    neighbors += new NeighInfo(Array(0, 0, +1), level, 22);
 
     for (neigh <- neighbors) {
+      neigh.level = level; // FIXME: remove level
       neigh.setIndicesWide(field);
     }
 
@@ -380,7 +347,7 @@ case class ExchangeData_6(field : Field, level : Int) extends AbstractFunctionSt
   }
 }
 
-case class ExchangeData_26(field : Field, level : Int) extends AbstractFunctionStatement with Expandable {
+case class ExchangeData_26(field : Field, level : Int, neighbors : ListBuffer[NeighInfo]) extends AbstractFunctionStatement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_26\n";
@@ -390,13 +357,8 @@ case class ExchangeData_26(field : Field, level : Int) extends AbstractFunctionS
 
     val fieldName = s"fragments[e]->${field.codeName}[slot][$level]";
 
-    // TODO: get neighbors from parent
-    val neighbors = new ListBuffer[NeighInfo]();
-    for (z <- -1 to 1; y <- -1 to 1; x <- -1 to 1; if (0 != x || 0 != y || 0 != z)) {
-      neighbors += new NeighInfo(Array(x, y, z), level, (z + 1) * 9 + (y + 1) * 3 + (x + 1));
-    }
-
     for (neigh <- neighbors) {
+      neigh.level = level; // FIXME: remove level
       neigh.setIndices(field);
     }
 
@@ -420,7 +382,6 @@ case class ExchangeData_26(field : Field, level : Int) extends AbstractFunctionS
     // update ghost layers
     body += new CopyToSendBuffer_and_RemoteSend(field, ImplicitConversions.NumberToNumericLiteral(level),
       neighbors.map(neigh => (neigh, neigh.indexInner)));
-
     body += new LocalSend(field, ImplicitConversions.NumberToNumericLiteral(level),
       neighbors.map(neigh => (neigh, neigh.indexInner, neigh.indexOpposingOuter)));
 

@@ -26,12 +26,6 @@ object GenCommCode extends (() => Unit) {
         Some(frag);
     });
 
-    strategy += new Transformation("Update FragmentClass with required neighbor declarations", {
-      case frag : FragmentClass =>
-        for (neigh <- frag.neighbors) { neigh.addDeclarations(frag); }
-        Some(frag);
-    });
-
     strategy += new Transformation("Add fields to FragmentClass", {
       case collection : FieldCollection =>
         collection.fields += new Field("Solution", "solData", "double", "NUM_SOL_SLOTS", true);
@@ -58,20 +52,22 @@ object GenCommCode extends (() => Unit) {
       case frag : FragmentClass =>
         frag.functions += new ConnectLocalElement();
         frag.functions += new ConnectRemoteElement();
-        frag.functions += new SetupBuffers(fieldCollection.fields);
+        frag.functions += new SetupBuffers(fieldCollection.fields, frag.neighbors);
         Some(frag);
     });
 
     strategy += new Transformation("Add communication functions to FragmentClass", {
-      case commFu : CommunicationFunctions =>
+      case frag : FragmentClass =>
         for (field <- fieldCollection.fields) {
-
-          commFu.functions += new ExchangeDataSplitter(field);
+          communicationFunctions.functions += new ExchangeDataSplitter(field);
           for (level <- (0 to Knowledge.maxLevel)) {
-            commFu.functions += new ExchangeData_6(field, level);
+            if (6 == Knowledge.fragmentCommStrategy) // FIXME: generic call pattern
+              communicationFunctions.functions += new ExchangeData_6(field, level, frag.neighbors);
+            else if (26 == Knowledge.fragmentCommStrategy)
+              communicationFunctions.functions += new ExchangeData_26(field, level, frag.neighbors);
           }
         }
-        Some(commFu);
+        Some(frag);
     });
 
     // expand applicable nodes - FIXME: do while (changed)

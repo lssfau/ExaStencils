@@ -78,16 +78,16 @@ case class CopyToSendBuffer_and_RemoteSend(var field : Field, var level : Expres
             s"unsigned int entry = 0;",
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(
-                s"curFragment.sendBuffer_${neigh._1.label}[entry++]",
+                s"curFragment.buffer_Send[${neigh._1.index}][entry++]",
                 new FieldAccess(field, level, "slot", Mapping.access(neigh._2.level)))),
             new MPI_Send(
-              s"curFragment.sendBuffer_${neigh._1.label}",
+              s"curFragment.buffer_Send[${neigh._1.index}]",
               s"entry",
               s"MPI_DOUBLE",
               new getNeighInfo_RemoteRank(neigh._1),
               s"((unsigned int)curFragment.id << 16) + ((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1)).cpp + ") & 0x0000ffff)",
-              s"curFragment.request_Send_${neigh._1.label}"),
-            StringLiteral(s"fragments[e]->reqOutstanding_Send_${neigh._1.label} = true;"))) : Statement));
+              s"curFragment.request_Send[${neigh._1.index}]"),
+            StringLiteral(s"fragments[e]->reqOutstanding_Send[${neigh._1.index}] = true;"))) : Statement));
   }
 }
 
@@ -103,13 +103,13 @@ case class RemoteReceive(var field : Field, var level : Any /*FIXME: Int*/ , var
         (new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh),
           ListBuffer[Statement](
             new MPI_Receive(
-              s"curFragment.recvBuffer_${neigh.label}",
-              s"curFragment.maxElemRecvBuffer_${neigh.label}",
+              s"curFragment.buffer_Recv[${neigh.index}]",
+              s"curFragment.maxElemRecvBuffer[${neigh.index}]",
               s"MPI_DOUBLE",
               new getNeighInfo_RemoteRank(neigh),
               s"((unsigned int)(" + (new getNeighInfo_FragmentId(neigh)).cpp + ") << 16) + ((unsigned int)curFragment.id & 0x0000ffff)",
-              s"curFragment.request_Recv_${neigh.label}"),
-            s"curFragment.reqOutstanding_Recv_${neigh.label} = true;"))) : Statement).to[ListBuffer]);
+              s"curFragment.request_Recv[${neigh.index}]"),
+            s"curFragment.reqOutstanding_Recv[${neigh.index}] = true;"))) : Statement).to[ListBuffer]);
   }
 }
 
@@ -127,7 +127,7 @@ case class CopyFromRecvBuffer(var field : Field, var level : Expression, var nei
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(
                 new FieldAccess(field, level, "slot", Mapping.access(neigh._2.level)),
-                s"curFragment.recvBuffer_${neigh._1.label}[entry++];"))))) : Statement));
+                s"curFragment.buffer_Recv[${neigh._1.index}][entry++];"))))) : Statement));
   }
 }
 
@@ -140,13 +140,13 @@ case class FinishRemoteCommunication(var neighbors : ListBuffer[NeighInfo]) exte
     new LoopOverFragments(
       neighbors.map(neigh =>
         Array("Send", "Recv").map(sendOrRecv =>
-          (new ConditionStatement(s"curFragment.reqOutstanding_${sendOrRecv}_${neigh.label}",
+          (new ConditionStatement(s"curFragment.reqOutstanding_${sendOrRecv}[${neigh.index}]",
             ListBuffer[Statement](
               s"#pragma omp critical",
               s"{",
-              s"waitForMPIReq(&curFragment.request_${sendOrRecv}_${neigh.label});",
+              s"waitForMPIReq(&curFragment.request_${sendOrRecv}[${neigh.index}]);",
               s"}",
-              s"curFragment.reqOutstanding_${sendOrRecv}_${neigh.label} = false;")) : Statement))).flatten);
+              s"curFragment.reqOutstanding_${sendOrRecv}[${neigh.index}] = false;")) : Statement))).flatten);
   }
 }
     
