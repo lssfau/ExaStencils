@@ -2,13 +2,12 @@ package exastencils.primitives
 
 import java.io.File
 import java.io.PrintWriter
-
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.l4.VariableDeclarationStatement
 
 trait Expandable {
   def expand() : Node
@@ -66,9 +65,11 @@ case class LoopOverFragments(var body : ListBuffer[Statement]) extends Statement
   }
 }
 
-abstract class Class extends Expression {
+abstract class Class extends Statement {
   var className : String = "CLASS_NAME";
   var declarations : ListBuffer[Statement] = ListBuffer();
+  // FIXME: use specialized c'tor and d'tor nodes
+  var cTorArgs : ListBuffer[Expression] = ListBuffer();
   var cTorInitList : ListBuffer[Expression] = ListBuffer();
   var cTorBody : ListBuffer[Statement] = ListBuffer();
   var dTorBody : ListBuffer[Statement] = ListBuffer();
@@ -77,26 +78,32 @@ abstract class Class extends Expression {
   def cpp : String = {
     var s : String = "";
 
+    s += s"class $className\n{\n";
+
+    s += s"public:\n";
+
     for (decl <- declarations)
       s += s"${decl.cpp}\n";
 
-    s += s"$className::$className ()\n:\n";
+    s += s"$className (${cTorArgs.map(stat => stat.cpp).mkString(", ")})\n:\n";
     s += cTorInitList.map(stat => stat.cpp).mkString(",\n");
-
     s += s"{\n"
-
     for (stat <- cTorBody)
       s += s"${stat.cpp}\n";
-
     s += s"}\n";
 
-    s += s"$className::~$className ()\n";
+    s += s"~$className ()\n";
     s += s"{\n"
-
     for (stat <- dTorBody)
       s += s"${stat.cpp}\n";
-
     s += s"}\n";
+
+    for (func <- functions) {
+      val function = func.asInstanceOf[FunctionStatement];
+      s += s"${function.returntype.cpp} ${function.name}(" + function.parameters.map(param => s"${param.datatype.cpp} ${param.name}").mkString(", ") + ");\n";
+    }
+
+    s += s"};\n";
 
     return s;
   }
@@ -107,10 +114,17 @@ case class FragmentClass extends Class {
 
   className = "Fragment3DCube";
 
-  var fields : ListBuffer[Field] = ListBuffer();
   var neighbors : ListBuffer[NeighborInfo] = ListBuffer();
 
   def init = {
+    declarations += s"exa_id_t id;";
+    declarations += s"Vec3 pos;";
+    // FIXME: set these parameters not via constructor but afterwards directly
+    cTorInitList += s"id(id)";
+    cTorInitList += s"pos(pos)";
+    cTorArgs += s"exa_id_t id"; // FIXME: specialized nodes...
+    cTorArgs += s"const Vec3& pos"; // FIXME: specialized nodes...
+
     for (z <- -1 to 1; y <- -1 to 1; x <- -1 to 1; if (0 != x || 0 != y || 0 != z)) {
       neighbors += new NeighborInfo(Array(x, y, z));
     }
@@ -133,8 +147,24 @@ case class FragmentClass extends Class {
 
   override def cpp : String = {
     {
-      val writer = new PrintWriter(new File(s"C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Poisson3D/Primitives/Fragment3DCube_TEMP.h"));
+      val writer = new PrintWriter(new File(s"C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Poisson3D/Primitives/Fragment3DCube.h"));
+
+      writer.write(
+        "#ifndef	PRIMITIVES_FRAGMENT3DCUBE_H\n"
+          + "#define	PRIMITIVES_FRAGMENT3DCUBE_H\n"
+          + "#include <vector>\n"
+          + "#pragma warning(disable : 4800)\n"
+          + "#include <mpi.h>\n"
+          + "#include <boost/smart_ptr/shared_array.hpp>\n"
+          + "#include \"Util/StdIncludes.h\"\n"
+          + "#include \"Util/Vector.h\"\n"
+          + "#include \"Container/Container.h\"\n"
+          + "#include \"Primitives/CommunicationFunctions.h\"\n");
+
       writer.write(super.cpp);
+
+      writer.write("#endif\n");
+
       writer.close();
     }
 
@@ -155,4 +185,60 @@ case class FragmentClass extends Class {
 
     return "";
   }
+}
+
+case class CommunicationFunctions extends Statement /*FIXME: Statement is required for root*/ {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  var functions : ListBuffer[AbstractFunctionStatement] = ListBuffer();
+
+  override def cpp : String = { // TODO: add special FilePrintable trait - or sth like this
+    {
+      val writer = new PrintWriter(new File(s"C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Poisson3D/Primitives/CommunicationFunctions.h"));
+
+      writer.write(
+        "#ifndef	COMMUNICATION_FUNCTIONS_H\n"
+          + "#define	COMMUNICATION_FUNCTIONS_H\n"
+          + "#pragma warning(disable : 4800)\n"
+          + "#include <mpi.h>\n"
+          + "#include \"Util/StdIncludes.h\"\n"
+          + "#include \"Util/Vector.h\"\n"
+          + "#include \"Container/Container.h\"\n"
+          + "#include \"Primitives/Fragment3DCube.h\"\n");
+
+      for (func <- functions) {
+        val function = func.asInstanceOf[FunctionStatement];
+        writer.write(s"${function.returntype.cpp} ${function.name}(" + function.parameters.map(param => s"${param.datatype.cpp} ${param.name}").mkString(", ") + ");\n");
+      }
+
+      writer.write("#endif\n");
+
+      writer.close();
+    }
+
+    var i = 0;
+    for (f <- functions) {
+      var s : String = "";
+
+      s += "#include \"Primitives/CommunicationFunctions.h\"\n\n";
+
+      s += s"${f.cpp}\n";
+
+      val writer = new PrintWriter(new File(s"C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Poisson3D/Primitives/CommunicationFunction_$i.cpp"));
+      writer.write(s);
+      writer.close();
+
+      i += 1;
+    }
+
+    return "";
+  }
+}
+
+case class FieldCollection extends Statement /*FIXME: Statement is required for root*/ {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  var fields : ListBuffer[Field] = ListBuffer();
+
+  def cpp = "NOT VALID ; CLASS = FieldCollection\n";
 }

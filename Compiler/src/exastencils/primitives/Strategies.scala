@@ -8,14 +8,16 @@ import exastencils.primitives._
 
 object GenCommCode extends (() => Unit) {
   def apply() : Unit = {
-    var fragment = new FragmentClass;
+    var fragmentClass = new FragmentClass;
+    var communicationFunctions = new CommunicationFunctions;
+    var fieldCollection = new FieldCollection;
 
-    println("Setting up FragmentClass");
+    println("Setting up Tree");
 
     // HACK
-    //StateManager.root_ = Root(scala.collection.mutable.ListBuffer(fragment));
-    StateManager.root_ = Root(List(fragment));
+    StateManager.root_ = Root(List(fragmentClass, communicationFunctions, fieldCollection));
 
+    println("Setting up Strategies");
     var strategy = new Strategy("strategy");
 
     strategy += new Transformation("Init FragmentClass", {
@@ -31,32 +33,45 @@ object GenCommCode extends (() => Unit) {
     });
 
     strategy += new Transformation("Add fields to FragmentClass", {
+      case collection : FieldCollection =>
+        collection.fields += new Field("Solution", "solData", "double", "NUM_SOL_SLOTS", true);
+        collection.fields += new Field("Residual", "resData", "double", "1", false);
+        collection.fields += new Field("RHS", "rhsData", "double", "1", false);
+        Some(collection);
+    });
+
+    strategy += new Transformation("Update FragmentClass with required field declarations", {
       case frag : FragmentClass =>
-        frag.fields += new Field("Solution", "solData", "double", "NUM_SOL_SLOTS", true);
-        frag.fields += new Field("Residual", "resData", "double", "1", false);
-        frag.fields += new Field("RHS", "rhsData", "double", "1", false);
+        for (field <- fieldCollection.fields) {
+          frag.declarations += s"ContainerList_1Real ${field.codeName}[${field.numSlots}];";
+        }
         Some(frag);
+    });
+
+    strategy += new Transformation("Add basic functions to CommunicationFunctions", {
+      case commFu : CommunicationFunctions =>
+        commFu.functions += new WaitForMPIReq;
+        Some(commFu);
     });
 
     strategy += new Transformation("Add basic functions to FragmentClass", {
       case frag : FragmentClass =>
-        frag.functions += new WaitForMPIReq;
         frag.functions += new ConnectLocalElement();
         frag.functions += new ConnectRemoteElement();
-        frag.functions += new SetupBuffers(frag.fields);
+        frag.functions += new SetupBuffers(fieldCollection.fields);
         Some(frag);
     });
 
     strategy += new Transformation("Add communication functions to FragmentClass", {
-      case frag : FragmentClass =>
-        for (field <- frag.fields) {
+      case commFu : CommunicationFunctions =>
+        for (field <- fieldCollection.fields) {
 
-          frag.functions += new ExchangeDataSplitter(field);
+          commFu.functions += new ExchangeDataSplitter(field);
           for (level <- (0 to Knowledge.maxLevel)) {
-            frag.functions += new ExchangeData_6(field, level);
+            commFu.functions += new ExchangeData_6(field, level);
           }
         }
-        Some(frag);
+        Some(commFu);
     });
 
     // expand applicable nodes - FIXME: do while (changed)
@@ -102,12 +117,15 @@ object GenCommCode extends (() => Unit) {
       case frag : FragmentClass =>
         frag.cpp;
         Some(frag);
+      case commFu : CommunicationFunctions =>
+        commFu.cpp;
+        Some(commFu);
     });
 
+    println("Applying Strategies");
     strategy.apply;
-    println("Found " + expandablesFound + " Expandable nodes");
     println("Done");
 
-    //println(StateManager.root_.asInstanceOf[FragmentClass].fields);
+    println("Found " + expandablesFound + " Expandable nodes");
   }
 }

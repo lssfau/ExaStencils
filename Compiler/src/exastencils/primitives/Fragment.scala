@@ -69,7 +69,7 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
         s"neighbor_isValid[location] = true;",
         s"neighbor_isRemote[location] = false;",
         s"neighbor_localPtr[location] = fragment.get();",
-        s"neighbor_fragmentId[location] = fragment->getId();"))
+        s"neighbor_fragmentId[location] = fragment->id;"))
   }
 }
 
@@ -99,7 +99,7 @@ case class SetupBuffers(fields : ListBuffer[Field]) extends AbstractFunctionStat
 
     for (field <- fields) {
       body += s"for (unsigned int s = 0; s < ${field.numSlots}; ++s)\n";
-      body += s"${field.codeName}[s].reserve(getNumLevels());\n";
+      body += s"${field.codeName}[s].reserve(${Knowledge.maxLevel + 1});\n";
     }
 
     body += new ForLoopStatement(s"unsigned int l = 0", s"l <= ${Knowledge.maxLevel}", s"++l",
