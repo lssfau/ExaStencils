@@ -32,7 +32,7 @@ case class ExchangeDataSplitter(field : Field) extends AbstractFunctionStatement
 
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"exch${field.codeName}",
-      ListBuffer(Variable("std::vector<boost::shared_ptr<CurFragmentType> >&", "fragments"), Variable("unsigned int", "level"), Variable("unsigned int", "slot")),
+      ListBuffer(Variable("std::vector<boost::shared_ptr<Fragment3DCube> >&", "fragments"), Variable("unsigned int", "level"), Variable("unsigned int", "slot")),
       // FIXME: this needs to be facilitated; TODO: add SwitchStatement node
       ListBuffer(ExpressionStatement(StringLiteral(s"switch (level)\n{"))) ++
         ((0 to Knowledge.maxLevel).toList.map(level =>
@@ -48,7 +48,7 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
 
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"connectLocalElement", // FIXME: set prefix as class trafo 
-      ListBuffer(Variable("FRAGMENT_LOCATION", "location"), Variable("boost::shared_ptr<CurFragmentType>", "fragment")),
+      ListBuffer(Variable("FRAGMENT_LOCATION", "location"), Variable("boost::shared_ptr<Fragment3DCube>", "fragment")),
       ListBuffer(
         "ASSERT_WARNING((fragment), \"Invalid fragment pointer detected\", return);",
         s"neighbor_isValid[location] = true;",

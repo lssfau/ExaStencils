@@ -169,7 +169,7 @@ case class ExchangeData_6(field : Field, level : Int, neighbors : ListBuffer[Nei
 
     // compile return value
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",
-      ListBuffer(Variable("std::vector<boost::shared_ptr<CurFragmentType> >&", "fragments"), Variable("unsigned int", "slot")),
+      ListBuffer(Variable("std::vector<boost::shared_ptr<Fragment3DCube> >&", "fragments"), Variable("unsigned int", "slot")),
       body);
   }
 }
@@ -221,7 +221,7 @@ case class ExchangeData_26(field : Field, level : Int, neighbors : ListBuffer[Ne
 
     // compile return value
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",
-      ListBuffer(Variable("std::vector<boost::shared_ptr<CurFragmentType> >&", "fragments"), Variable("unsigned int", "slot")),
+      ListBuffer(Variable("std::vector<boost::shared_ptr<Fragment3DCube> >&", "fragments"), Variable("unsigned int", "slot")),
       body);
   }
 }
