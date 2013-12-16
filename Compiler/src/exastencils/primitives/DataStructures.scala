@@ -109,12 +109,10 @@ abstract class Class extends Statement {
   }
 }
 
-case class CommunicationFunctions extends Statement with FilePrettyPrintable /*FIXME: Statement is required for root*/ {
+case class CommunicationFunctions extends Node with FilePrettyPrintable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   var functions : ListBuffer[AbstractFunctionStatement] = ListBuffer();
-
-  override def cpp = "NOT VALID ; CLASS = CommunicationFunctions\n";
 
   override def printToFile = {
     {
@@ -157,10 +155,8 @@ case class CommunicationFunctions extends Statement with FilePrettyPrintable /*F
   }
 }
 
-case class FieldCollection extends Statement /*FIXME: Statement is required for root*/ {
+case class FieldCollection extends Node {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   var fields : ListBuffer[Field] = ListBuffer();
-
-  def cpp = "NOT VALID ; CLASS = FieldCollection\n";
 }
