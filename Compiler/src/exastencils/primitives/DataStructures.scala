@@ -109,7 +109,7 @@ abstract class Class extends Statement {
   }
 }
 
-case class CommunicationFunctions extends Node with FilePrettyPrintable {
+case class CommunicationFunctions() extends Node with FilePrettyPrintable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   var functions : ListBuffer[AbstractFunctionStatement] = ListBuffer();
@@ -155,7 +155,7 @@ case class CommunicationFunctions extends Node with FilePrettyPrintable {
   }
 }
 
-case class FieldCollection extends Node {
+case class FieldCollection() extends Node {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   var fields : ListBuffer[Field] = ListBuffer();

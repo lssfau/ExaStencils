@@ -14,7 +14,7 @@ case class ExpressionStatement(var expression : Expression) extends Statement {
   override def cpp = expression.cpp
 }
 
-case class NullStatement extends Statement {
+case class NullStatement() extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = ""

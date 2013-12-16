@@ -11,7 +11,7 @@ import exastencils.datastructures.ir.ImplicitConversions._
 
 import exastencils.primitives._
 
-case class FragmentClass extends Class with FilePrettyPrintable {
+case class FragmentClass() extends Class with FilePrettyPrintable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   className = "Fragment3DCube";
