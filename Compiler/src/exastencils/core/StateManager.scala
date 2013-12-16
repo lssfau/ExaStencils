@@ -83,7 +83,7 @@ object StateManager {
       if (newSubnode ne subnode.asInstanceOf[Node]) {
         if(Vars.set(node, method, newSubnode)) progresses_.head.didReplace
       }
-      replace(newSubnode, transformation)
+      if(transformation.recursive) replace(newSubnode, transformation)
     }
   }
 
