@@ -1,0 +1,114 @@
+package exastencils.primitives
+
+import scala.collection.mutable.ListBuffer
+
+import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
+
+case class WaitForMPIReq() extends AbstractFunctionStatement with Expandable {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = "NOT VALID ; CLASS = WaitForMPIReq\n";
+
+  override def expand : FunctionStatement = {
+    FunctionStatement(new UnitDatatype(), s"waitForMPIReq",
+      ListBuffer(Variable("MPI_Request*", "request")),
+      ListBuffer(
+        s"MPI_Status stat;",
+        s"if (MPI_ERR_IN_STATUS == MPI_Wait(request, &stat))\n{",
+        s"char msg[MPI_MAX_ERROR_STRING];",
+        s"int len;",
+        s"MPI_Error_string(stat.MPI_ERROR, msg, &len);",
+        "LOG_WARNING(\"MPI Error encountered (\" << msg << \")\");",
+        s"}",
+        s"*request = MPI_Request();"))
+  }
+}
+
+case class ExchangeDataSplitter(field : Field) extends AbstractFunctionStatement with Expandable {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = "NOT VALID ; CLASS = ExchangeDataSplitter\n";
+
+  override def expand : FunctionStatement = {
+    FunctionStatement(new UnitDatatype(), s"exch${field.codeName}",
+      ListBuffer(Variable("std::vector<boost::shared_ptr<CurFragmentType> >&", "fragments"), Variable("unsigned int", "level"), Variable("unsigned int", "slot")),
+      // FIXME: this needs to be facilitated; TODO: add SwitchStatement node
+      ListBuffer(ExpressionStatement(StringLiteral(s"switch (level)\n{"))) ++
+        ((0 to Knowledge.maxLevel).toList.map(level =>
+          ExpressionStatement(StringLiteral(s"case $level: exch${field.codeName}_$level(fragments, slot);\nbreak;"))).toList) ++
+        ListBuffer(ExpressionStatement(StringLiteral(s"}"))))
+  }
+}
+
+case class ConnectLocalElement() extends AbstractFunctionStatement with Expandable {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = "NOT VALID ; CLASS = ConnectLocalElement\n";
+
+  override def expand : FunctionStatement = {
+    FunctionStatement(new UnitDatatype(), s"connectLocalElement", // FIXME: set prefix as class trafo 
+      ListBuffer(Variable("FRAGMENT_LOCATION", "location"), Variable("boost::shared_ptr<CurFragmentType>", "fragment")),
+      ListBuffer(
+        "ASSERT_WARNING((fragment), \"Invalid fragment pointer detected\", return);",
+        s"neighbor_isValid[location] = true;",
+        s"neighbor_isRemote[location] = false;",
+        s"neighbor_localPtr[location] = fragment.get();",
+        s"neighbor_fragmentId[location] = fragment->id;"))
+  }
+}
+
+case class ConnectRemoteElement() extends AbstractFunctionStatement with Expandable {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = "NOT VALID ; CLASS = ConnectRemoteElement\n";
+
+  override def expand : FunctionStatement = {
+    FunctionStatement(new UnitDatatype(), s"connectRemoteElement",
+      ListBuffer(Variable("FRAGMENT_LOCATION", "location"), Variable("exa_id_t", "id"), Variable(IntegerDatatype(), "remoteRank")),
+      ListBuffer(
+        s"neighbor_isValid[location] = true;",
+        s"neighbor_isRemote[location] = true;",
+        s"neighbor_fragmentId[location] = id;",
+        s"neighbor_remoteRank[location] = remoteRank;"))
+  }
+}
+
+case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = "NOT VALID ; CLASS = SetupBuffers\n";
+
+  override def expand : FunctionStatement = {
+    var body = ListBuffer[Statement]();
+
+    for (field <- fields) {
+      body += s"for (unsigned int s = 0; s < ${field.numSlots}; ++s)\n";
+      body += s"${field.codeName}[s].reserve(${Knowledge.maxLevel + 1});\n";
+    }
+
+    body += new ForLoopStatement(s"unsigned int l = 0", s"l <= ${Knowledge.maxLevel}", s"++l",
+      ListBuffer[Statement](s"unsigned int numDataPoints = (1u << l) + 1 + 2 * NUM_GHOST_LAYERS;")
+        ++ (fields.map(field =>
+          new ForLoopStatement(s"unsigned int s = 0", s"s < ${field.numSlots}", "++s",
+            s"${field.codeName}[s].push_back(new PayloadContainer_1Real(Vec3u(numDataPoints, numDataPoints, numDataPoints), 1));") : Statement)));
+
+    for (neigh <- neighbors) {
+      var size : String = "";
+      var sizeArray = new ListBuffer[String]();
+      for (i <- (0 to 2))
+        if (0 == neigh.dir(i))
+          sizeArray += s"${Mapping.numPoints(Knowledge.maxLevel)}";
+        else
+          sizeArray += s"${Knowledge.numGhostLayers}";
+
+      size += sizeArray.mkString(" * ");
+
+      body += s"buffer_Send[${neigh.index}] = new exa_real_t[$size];\n";
+      body += s"buffer_Recv[${neigh.index}] = new exa_real_t[$size];\n";
+      body += s"maxElemRecvBuffer[${neigh.index}] = $size;\n";
+    }
+
+    return FunctionStatement(new UnitDatatype(), s"setupBuffers", ListBuffer(), body);
+  }
+}
