@@ -18,21 +18,6 @@ case class Field(name : String, codeName : String, dataType : String, numSlots :
   override def duplicate = this.copy().asInstanceOf[this.type]
 }
 
-case class Scope(var body : ListBuffer[Statement]) extends Statement {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
-  def cpp : String = {
-    var s : String = "";
-
-    s += s"{\n";
-    for (stat <- body)
-      s += s"${stat.cpp}\n";
-    s += s"}\n";
-
-    return s;
-  }
-}
-
 case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[Statement]) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
@@ -48,7 +33,7 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
   }
 }
 
-case class FieldAccess(var field : Field, var level : Expression, var slot : Expression, var index : Expression) extends Statement {
+case class FieldAccess(var field : Field, var level : Expression, var slot : Expression, var index : Expression) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = {
@@ -56,15 +41,23 @@ case class FieldAccess(var field : Field, var level : Expression, var slot : Exp
   }
 }
 
-case class LoopOverFragments(var body : ListBuffer[Statement]) extends Statement {
+case class LocalNeighborFieldAccess(var neighborPtr : Expression, var field : Field, var level : Expression, var slot : Expression, var index : Expression) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = {
+    s"${neighborPtr.cpp}->${field.codeName}[${slot.cpp}][${level.cpp}]->data[${index.cpp}]";
+  }
+}
+
+case class LoopOverFragments(var body : ListBuffer[Statement]) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def this(body : Statement) = this(ListBuffer(body));
 
   def cpp = "NOT VALID ; CLASS = LoopOverFragments\n";
 
-  def toForLoop : Scope = {
-    new Scope(
+  def expand : StatementBlock = {
+    new StatementBlock(
       ListBuffer[Statement](
         "#pragma omp parallel for schedule(static, 1)", // FIXME: move to own Node
         ForLoopStatement(s"int e = 0", s"e < fragments.size()", s"++e",
@@ -79,7 +72,7 @@ abstract class Class extends Expression {
   var cTorInitList : ListBuffer[Expression] = ListBuffer();
   var cTorBody : ListBuffer[Statement] = ListBuffer();
   var dTorBody : ListBuffer[Statement] = ListBuffer();
-  var functions : ListBuffer[Function] = ListBuffer();
+  var functions : ListBuffer[AbstractFunctionStatement] = ListBuffer();
 
   def cpp : String = {
     var s : String = "";
@@ -101,22 +94,6 @@ abstract class Class extends Expression {
     s += s"{\n"
 
     for (stat <- dTorBody)
-      s += s"${stat.cpp}\n";
-
-    s += s"}\n";
-
-    return s;
-  }
-}
-
-abstract class Function(var head : Expression, var body : ListBuffer[Statement]) extends Expression {
-  def cpp : String = {
-    var s : String = "";
-
-    s += s"${head.cpp}\n";
-    s += s"{\n"
-
-    for (stat <- body)
       s += s"${stat.cpp}\n";
 
     s += s"}\n";

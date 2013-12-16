@@ -13,6 +13,12 @@ case class getNeighInfo_IsValid(var neigh : NeighInfo) extends Expression {
   def cpp : String = { s"curFragment.neighbor_isValid[${neigh.index}]"; }
 }
 
+case class getNeighInfo_IsInvalid(var neigh : NeighInfo) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def cpp : String = { s"!curFragment.neighbor_isValid[${neigh.index}]"; }
+}
+
 case class getNeighInfo_IsRemote(var neigh : NeighInfo) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
@@ -26,6 +32,12 @@ case class getNeighInfo_IsValidAndRemote(var neigh : NeighInfo) extends Expressi
     s"curFragment.neighbor_isRemote[${neigh.index}]"; // remote neighbors should always be valid
     //s"curFragment.neighbor_isValid[${neigh.index}] && curFragment.neighbor_isRemote[${neigh.index}]"
   }
+}
+
+case class getNeighInfo_IsValidAndNotRemote(var neigh : NeighInfo) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def cpp : String = { s"curFragment.neighbor_isValid[${neigh.index}] && !curFragment.neighbor_isRemote[${neigh.index}]" }
 }
 
 case class getNeighInfo_LocalPtr(var neigh : NeighInfo) extends Expression {
