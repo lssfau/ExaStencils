@@ -1,45 +1,9 @@
 package exastencils.primitives
 
 import scala.collection.mutable.ListBuffer
-import exastencils.core._
-import exastencils.datastructures._
+
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-
-// TODO: move to separate file for MPI statements
-case class MPI_Receive(var buffer : Expression, var size : Expression, var typeName : Expression, var rank : Expression, var tag : Expression, var request : Expression) extends Statement {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
-  def cpp : String = {
-    var s : String = "";
-
-    // TODO: move omp stuff to separate class
-    s += s"#pragma omp critical\n{\n";
-
-    s += s"MPI_Irecv(${buffer.cpp}, ${size.cpp}, ${typeName.cpp}, ${rank.cpp}, ${tag.cpp}, MPI_COMM_WORLD, &${request.cpp});\n"
-
-    s += s"}\n";
-
-    return s;
-  }
-};
-
-case class MPI_Send(var buffer : Expression, var size : Expression, var typeName : Expression, var rank : Expression, var tag : Expression, var request : Expression) extends Statement {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
-  def cpp : String = {
-    var s : String = "";
-
-    // TODO: move omp stuff to separate class
-    s += s"#pragma omp critical\n{\n";
-
-    s += s"MPI_Isend(${buffer.cpp}, ${size.cpp}, ${typeName.cpp}, ${rank.cpp}, ${tag.cpp}, MPI_COMM_WORLD, &${request.cpp});\n"
-
-    s += s"}\n";
-
-    return s;
-  }
-};
 
 case class LocalSend(var field : Field, var level : Expression, var neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]

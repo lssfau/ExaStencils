@@ -108,6 +108,11 @@ object GenCommCode extends (() => Unit) {
         Some(c);
     });
 
+    strategy += new Transformation("Add OMP pragmas", {
+      case target : OMP_PotentiallyCritical =>
+        Some(target.addOMPDirective);
+    });
+
     // print
     strategy += new Transformation("Pretty-Print", {
       case printable : FilePrettyPrintable =>
