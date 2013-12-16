@@ -147,7 +147,7 @@ case class FragmentClass extends Class {
 
   override def cpp : String = {
     {
-      val writer = new PrintWriter(new File(s"C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Poisson3D/Primitives/Fragment3DCube.h"));
+      val writer = new PrintWriter(new File(Globals.printPath + s"Primitives/Fragment3DCube.h"));
 
       writer.write(
         "#ifndef	PRIMITIVES_FRAGMENT3DCUBE_H\n"
@@ -176,7 +176,7 @@ case class FragmentClass extends Class {
 
       s += s"${f.cpp}\n";
 
-      val writer = new PrintWriter(new File(s"C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Poisson3D/Primitives/Fragment3DCube_$i.cpp"));
+      val writer = new PrintWriter(new File(Globals.printPath + s"Primitives/Fragment3DCube_$i.cpp"));
       writer.write(s);
       writer.close();
 
@@ -194,7 +194,7 @@ case class CommunicationFunctions extends Statement /*FIXME: Statement is requir
 
   override def cpp : String = { // TODO: add special FilePrintable trait - or sth like this
     {
-      val writer = new PrintWriter(new File(s"C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Poisson3D/Primitives/CommunicationFunctions.h"));
+      val writer = new PrintWriter(new File(Globals.printPath + s"Primitives/CommunicationFunctions.h"));
 
       writer.write(
         "#ifndef	COMMUNICATION_FUNCTIONS_H\n"
@@ -224,7 +224,7 @@ case class CommunicationFunctions extends Statement /*FIXME: Statement is requir
 
       s += s"${f.cpp}\n";
 
-      val writer = new PrintWriter(new File(s"C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Poisson3D/Primitives/CommunicationFunction_$i.cpp"));
+      val writer = new PrintWriter(new File(Globals.printPath + s"Primitives/CommunicationFunction_$i.cpp"));
       writer.write(s);
       writer.close();
 
