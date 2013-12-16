@@ -126,7 +126,7 @@ object StateManager {
   def defaultApply(strategy : Strategy) : Option[StrategyResult] = {
     // start transformation transaction
     History.transaction(strategy)
-    DBG(s"""Applying stragety "${strategy.name}"""")
+    DBG(s"""Applying strategy "${strategy.name}"""")
     try {
       var results = new ListBuffer[TransformationResult]
       strategy.transformations.foreach(transformation => {
