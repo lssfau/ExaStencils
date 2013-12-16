@@ -37,7 +37,7 @@ object GenerateCode_Primitives extends (() => Unit) {
     strategy += new Transformation("Update FragmentClass with required field declarations", {
       case frag : FragmentClass =>
         for (field <- fieldCollection.fields) {
-          frag.declarations += s"ContainerList_1Real ${field.codeName}[${field.numSlots}];";
+          frag.declarations += s"std::vector<Container*> ${field.codeName}[${field.numSlots}];";
         }
         Some(frag);
     });

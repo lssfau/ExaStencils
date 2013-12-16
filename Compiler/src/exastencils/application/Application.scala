@@ -132,7 +132,7 @@ int main (int argc, char** argv)
 	LOG_NOTE("Starting up");
 #endif
 
-	std::vector<boost::shared_ptr<CurFragmentType> >	fragments;
+	std::vector<boost::shared_ptr<Fragment3DCube> >	fragments;
 
 #ifdef USE_MPI
 	// init MPI
@@ -145,7 +145,7 @@ int main (int argc, char** argv)
 // 		MPI_Abort(MPI_COMM_WORLD, 1);
 // 	}
 
-	MPIRankType	mpiRank;
+	int	mpiRank;
 	int			mpiSize;
 	MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
 	MPI_Comm_size(MPI_COMM_WORLD, &mpiSize);
@@ -299,7 +299,7 @@ int main (int argc, char** argv)
 				initGeneratedDomain(fragments, numBlocks, numElemPerBlock);
 			/*{
 				// TODO;
-				fragments.push_back(boost::shared_ptr<CurFragmentType>(new Fragment3DCube(0, Vec3(0.))));
+				fragments.push_back(boost::shared_ptr<Fragment3DCube>(new Fragment3DCube(0, Vec3(0.))));
 
 				for (auto frag : fragments)
 				{

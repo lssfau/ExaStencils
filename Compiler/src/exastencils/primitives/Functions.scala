@@ -91,7 +91,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
       ListBuffer[Statement](s"unsigned int numDataPoints = (1u << l) + 1 + 2 * NUM_GHOST_LAYERS;")
         ++ (fields.map(field =>
           new ForLoopStatement(s"unsigned int s = 0", s"s < ${field.numSlots}", "++s",
-            s"${field.codeName}[s].push_back(new PayloadContainer_1Real(Vec3u(numDataPoints, numDataPoints, numDataPoints), 1));") : Statement)));
+            s"${field.codeName}[s].push_back(new Container(Vec3u(numDataPoints, numDataPoints, numDataPoints), 1));") : Statement)));
 
     for (neigh <- neighbors) {
       var size : String = "";
