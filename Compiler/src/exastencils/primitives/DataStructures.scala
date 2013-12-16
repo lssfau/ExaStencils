@@ -114,7 +114,7 @@ case class FragmentClass extends Class with FilePrettyPrintable {
 
   className = "Fragment3DCube";
 
-  var neighbors : ListBuffer[NeighInfo] = ListBuffer();
+  var neighbors : ListBuffer[NeighborInfo] = ListBuffer();
 
   def init = {
     declarations += s"exa_id_t id;";
@@ -126,15 +126,15 @@ case class FragmentClass extends Class with FilePrettyPrintable {
     cTorArgs += s"const Vec3& pos"; // FIXME: specialized nodes...
 
     if (6 == Knowledge.fragmentCommStrategy) {
-      neighbors += new NeighInfo(Array(-1, 0, 0), -1 /*FIXME*/ , 12);
-      neighbors += new NeighInfo(Array(+1, 0, 0), -1 /*FIXME*/ , 14);
-      neighbors += new NeighInfo(Array(0, -1, 0), -1 /*FIXME*/ , 10);
-      neighbors += new NeighInfo(Array(0, +1, 0), -1 /*FIXME*/ , 16);
-      neighbors += new NeighInfo(Array(0, 0, -1), -1 /*FIXME*/ , 4);
-      neighbors += new NeighInfo(Array(0, 0, +1), -1 /*FIXME*/ , 22);
+      neighbors += new NeighborInfo(Array(-1, 0, 0), -1 /*FIXME*/ , 12);
+      neighbors += new NeighborInfo(Array(+1, 0, 0), -1 /*FIXME*/ , 14);
+      neighbors += new NeighborInfo(Array(0, -1, 0), -1 /*FIXME*/ , 10);
+      neighbors += new NeighborInfo(Array(0, +1, 0), -1 /*FIXME*/ , 16);
+      neighbors += new NeighborInfo(Array(0, 0, -1), -1 /*FIXME*/ , 4);
+      neighbors += new NeighborInfo(Array(0, 0, +1), -1 /*FIXME*/ , 22);
     } else if (26 == Knowledge.fragmentCommStrategy) {
       for (z <- -1 to 1; y <- -1 to 1; x <- -1 to 1; if (0 != x || 0 != y || 0 != z)) {
-        neighbors += new NeighInfo(Array(x, y, z), -1 /*FIXME*/ , (z + 1) * 9 + (y + 1) * 3 + (x + 1));
+        neighbors += new NeighborInfo(Array(x, y, z), -1 /*FIXME*/ , (z + 1) * 9 + (y + 1) * 3 + (x + 1));
       }
     }
 

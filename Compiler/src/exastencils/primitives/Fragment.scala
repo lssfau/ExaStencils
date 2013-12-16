@@ -9,12 +9,6 @@ import exastencils.datastructures.ir.ImplicitConversions._
 
 import exastencils.primitives._
 
-class NeighborInfo(var dir : Array[Int]) {
-  // TODO: merge with NeighInfo
-
-  var label : String = (2 to 0 by -1).toList.map(i => dimToString(i).toUpperCase + dirToString(dir(i))).mkString("_");
-}
-
 object dimToString extends (Int => String) {
   def apply(dim : Int) : String = {
     return dim match {
@@ -70,7 +64,7 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
   }
 }
 
-case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuffer[NeighInfo]) extends AbstractFunctionStatement with Expandable {
+case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = "NOT VALID ; CLASS = SetupBuffers\n";
@@ -231,9 +225,7 @@ object fieldToIndexBorder extends ((Array[Int], String, Int) => IndexRange) {
   }
 }
 
-class NeighInfo(var dir : Array[Int], var level : Int /*FIXME: remove level*/, var index : Int) {
-  // TODO: merge with NeighborInfo
-
+class NeighborInfo(var dir : Array[Int], var level : Int /*FIXME: remove level*/ , var index : Int) {
   var label : String = (2 to 0 by -1).toList.map(i => dimToString(i).toUpperCase + dirToString(dir(i))).mkString("_");
 
   var indexInner = new IndexRange();
@@ -279,7 +271,7 @@ case class ExchangeDataSplitter(field : Field) extends AbstractFunctionStatement
   }
 }
 
-case class ExchangeData_6(field : Field, level : Int, neighbors : ListBuffer[NeighInfo]) extends AbstractFunctionStatement with Expandable {
+case class ExchangeData_6(field : Field, level : Int, neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_6\n";
@@ -290,13 +282,13 @@ case class ExchangeData_6(field : Field, level : Int, neighbors : ListBuffer[Nei
     val fieldName = s"fragments[e]->${field.codeName}[slot][$level]";
 
     // simple exchange along axis
-//    val neighbors = new ListBuffer[NeighInfo]();
-//    neighbors += new NeighInfo(Array(-1, 0, 0), level, 12);
-//    neighbors += new NeighInfo(Array(+1, 0, 0), level, 14);
-//    neighbors += new NeighInfo(Array(0, -1, 0), level, 10);
-//    neighbors += new NeighInfo(Array(0, +1, 0), level, 16);
-//    neighbors += new NeighInfo(Array(0, 0, -1), level, 4);
-//    neighbors += new NeighInfo(Array(0, 0, +1), level, 22);
+    //    val neighbors = new ListBuffer[NeighborInfo]();
+    //    neighbors += new NeighborInfo(Array(-1, 0, 0), level, 12);
+    //    neighbors += new NeighborInfo(Array(+1, 0, 0), level, 14);
+    //    neighbors += new NeighborInfo(Array(0, -1, 0), level, 10);
+    //    neighbors += new NeighborInfo(Array(0, +1, 0), level, 16);
+    //    neighbors += new NeighborInfo(Array(0, 0, -1), level, 4);
+    //    neighbors += new NeighborInfo(Array(0, 0, +1), level, 22);
 
     for (neigh <- neighbors) {
       neigh.level = level; // FIXME: remove level
@@ -347,7 +339,7 @@ case class ExchangeData_6(field : Field, level : Int, neighbors : ListBuffer[Nei
   }
 }
 
-case class ExchangeData_26(field : Field, level : Int, neighbors : ListBuffer[NeighInfo]) extends AbstractFunctionStatement with Expandable {
+case class ExchangeData_26(field : Field, level : Int, neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_26\n";

@@ -41,7 +41,7 @@ case class MPI_Send(var buffer : Expression, var size : Expression, var typeName
   }
 };
 
-case class LocalSend(var field : Field, var level : Expression, var neighbors : ListBuffer[(NeighInfo, IndexRange, IndexRange)]) extends Statement with Expandable {
+case class LocalSend(var field : Field, var level : Expression, var neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = "NOT VALID ; CLASS = LocalSend\n";
@@ -63,7 +63,7 @@ case class LocalSend(var field : Field, var level : Expression, var neighbors : 
   }
 }
 
-case class CopyToSendBuffer_and_RemoteSend(var field : Field, var level : Expression /*FIXME: Int*/ , var neighbors : ListBuffer[(NeighInfo, IndexRange)]) extends Statement with Expandable {
+case class CopyToSendBuffer_and_RemoteSend(var field : Field, var level : Expression /*FIXME: Int*/ , var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
   // FIXME: split this node
   override def duplicate = this.copy().asInstanceOf[this.type]
 
@@ -91,7 +91,7 @@ case class CopyToSendBuffer_and_RemoteSend(var field : Field, var level : Expres
   }
 }
 
-case class RemoteReceive(var field : Field, var level : Any /*FIXME: Int*/ , var neighbors : ListBuffer[NeighInfo]) extends Statement with Expandable {
+case class RemoteReceive(var field : Field, var level : Any /*FIXME: Int*/ , var neighbors : ListBuffer[NeighborInfo]) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = "NOT VALID ; CLASS = RemoteReceive\n";
@@ -113,7 +113,7 @@ case class RemoteReceive(var field : Field, var level : Any /*FIXME: Int*/ , var
   }
 }
 
-case class CopyFromRecvBuffer(var field : Field, var level : Expression, var neighbors : ListBuffer[(NeighInfo, IndexRange)]) extends Statement with Expandable {
+case class CopyFromRecvBuffer(var field : Field, var level : Expression, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = "NOT VALID ; CLASS = CopyFromRecvBuffer\n";
@@ -131,7 +131,7 @@ case class CopyFromRecvBuffer(var field : Field, var level : Expression, var nei
   }
 }
 
-case class FinishRemoteCommunication(var neighbors : ListBuffer[NeighInfo]) extends Statement with Expandable {
+case class FinishRemoteCommunication(var neighbors : ListBuffer[NeighborInfo]) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = "NOT VALID ; CLASS = FinishRemoteCommunication\n";
