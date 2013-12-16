@@ -2,6 +2,7 @@ package exastencils.core
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Stack
+import scala.collection.mutable.HashMap
 import scala.util.control.Exception
 import java.lang.reflect.Method
 import exastencils.core.collectors._
@@ -62,11 +63,11 @@ object StateManager {
     def didMatch = matches += 1
     def didReplace = replacements += 1
   }
-  protected val progresses_ = new Stack[TransformationProgress]
+  protected val progresses_ = new HashMap[Transformation, TransformationProgress]
 
   protected def applyAtNode(node : Node, transformation : Transformation) : Option[Node] = {
     if (transformation.function.isDefinedAt(node)) {
-      progresses_.head.didMatch
+      progresses_(transformation).didMatch
       transformation.function(node)
     } else {
       Some(node)
@@ -81,7 +82,7 @@ object StateManager {
     if (subnode.isInstanceOf[Node]) {
       var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation).get
       if (newSubnode ne subnode.asInstanceOf[Node]) {
-        if(Vars.set(node, method, newSubnode)) progresses_.head.didReplace
+        if(Vars.set(node, method, newSubnode)) progresses_(transformation).didReplace
       }
       if(transformation.recursive) replace(newSubnode, transformation)
     }
@@ -130,11 +131,10 @@ object StateManager {
     try {
       var results = new ListBuffer[TransformationResult]
       strategy.transformations.foreach(transformation => {
-        progresses_.push(new TransformationProgress)
+        progresses_ += ((transformation, new TransformationProgress))
         INFO(s"""Applying stragety "${strategy.name}" :: ${transformation.name}""")
         replace(root, transformation)
-        var progress = progresses_.pop
-        var result = new TransformationResult(true, progress.getMatches, progress.getReplacements)
+        var result = new TransformationResult(true, progresses_(transformation).getMatches, progresses_(transformation).getReplacements)
         results.append(result)
       })
       History.commit
