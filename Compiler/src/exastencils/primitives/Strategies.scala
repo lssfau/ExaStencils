@@ -114,12 +114,9 @@ object GenCommCode extends (() => Unit) {
 
     // print
     strategy += new Transformation("Pretty-Print", {
-      case frag : FragmentClass =>
-        frag.cpp;
-        Some(frag);
-      case commFu : CommunicationFunctions =>
-        commFu.cpp;
-        Some(commFu);
+      case printable : FilePrettyPrintable =>
+        printable.printToFile;
+        Some(printable);
     });
 
     println("Applying Strategies");

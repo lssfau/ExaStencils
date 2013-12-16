@@ -109,7 +109,7 @@ abstract class Class extends Statement {
   }
 }
 
-case class FragmentClass extends Class {
+case class FragmentClass extends Class with FilePrettyPrintable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   className = "Fragment3DCube";
@@ -145,7 +145,9 @@ case class FragmentClass extends Class {
         s"neighbor_remoteRank[i] = MPI_PROC_NULL;"));
   }
 
-  override def cpp : String = {
+  override def cpp = "NOT VALID ; CLASS = FragmentClass\n";
+
+  override def printToFile = {
     {
       val writer = new PrintWriter(new File(Globals.printPath + s"Primitives/Fragment3DCube.h"));
 
@@ -182,17 +184,17 @@ case class FragmentClass extends Class {
 
       i += 1;
     }
-
-    return "";
   }
 }
 
-case class CommunicationFunctions extends Statement /*FIXME: Statement is required for root*/ {
+case class CommunicationFunctions extends Statement with FilePrettyPrintable /*FIXME: Statement is required for root*/ {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   var functions : ListBuffer[AbstractFunctionStatement] = ListBuffer();
 
-  override def cpp : String = { // TODO: add special FilePrintable trait - or sth like this
+  override def cpp = "NOT VALID ; CLASS = CommunicationFunctions\n";
+
+  override def printToFile = {
     {
       val writer = new PrintWriter(new File(Globals.printPath + s"Primitives/CommunicationFunctions.h"));
 
@@ -230,8 +232,6 @@ case class CommunicationFunctions extends Statement /*FIXME: Statement is requir
 
       i += 1;
     }
-
-    return "";
   }
 }
 
