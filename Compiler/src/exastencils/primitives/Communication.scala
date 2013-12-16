@@ -5,7 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 
-case class LocalSend(var field : Field, var level : Expression, var neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) extends Statement with Expandable {
+case class LocalSend(var field : Field, var level : Integer, var neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = "NOT VALID ; CLASS = LocalSend\n";
@@ -19,15 +19,15 @@ case class LocalSend(var field : Field, var level : Expression, var neighbors : 
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(
                 new LocalNeighborFieldAccess(
-                  new getNeighInfo_LocalPtr(neigh._1), field, level, "slot", Mapping.access(neigh._3.level,
+                  new getNeighInfo_LocalPtr(neigh._1), field, NumberToNumericLiteral(level), "slot", Mapping.access(level,
                     s"(z - (${neigh._2.begin(2)}) + (${neigh._3.begin(2)}))",
                     s"(y - (${neigh._2.begin(1)}) + (${neigh._3.begin(1)}))",
                     s"(x - (${neigh._2.begin(0)}) + (${neigh._3.begin(0)}))")),
-                new FieldAccess(field, level, "slot", Mapping.access(neigh._2.level))))))) : Statement));
+                new FieldAccess(field, level, "slot", Mapping.access(level))))))) : Statement));
   }
 }
 
-case class CopyToSendBuffer_and_RemoteSend(var field : Field, var level : Expression /*FIXME: Int*/ , var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
+case class CopyToSendBuffer_and_RemoteSend(var field : Field, var level : Integer, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
   // FIXME: split this node
   override def duplicate = this.copy().asInstanceOf[this.type]
 
@@ -43,7 +43,7 @@ case class CopyToSendBuffer_and_RemoteSend(var field : Field, var level : Expres
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(
                 s"curFragment.buffer_Send[${neigh._1.index}][entry++]",
-                new FieldAccess(field, level, "slot", Mapping.access(neigh._2.level)))),
+                new FieldAccess(field, level, "slot", Mapping.access(level)))),
             new MPI_Send(
               s"curFragment.buffer_Send[${neigh._1.index}]",
               s"entry",
@@ -55,7 +55,7 @@ case class CopyToSendBuffer_and_RemoteSend(var field : Field, var level : Expres
   }
 }
 
-case class RemoteReceive(var field : Field, var level : Any /*FIXME: Int*/ , var neighbors : ListBuffer[NeighborInfo]) extends Statement with Expandable {
+case class RemoteReceive(var field : Field, var level : Integer, var neighbors : ListBuffer[NeighborInfo]) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = "NOT VALID ; CLASS = RemoteReceive\n";
@@ -77,7 +77,7 @@ case class RemoteReceive(var field : Field, var level : Any /*FIXME: Int*/ , var
   }
 }
 
-case class CopyFromRecvBuffer(var field : Field, var level : Expression, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
+case class CopyFromRecvBuffer(var field : Field, var level : Integer, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = "NOT VALID ; CLASS = CopyFromRecvBuffer\n";
@@ -90,7 +90,7 @@ case class CopyFromRecvBuffer(var field : Field, var level : Expression, var nei
             s"unsigned int entry = 0;",
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(
-                new FieldAccess(field, level, "slot", Mapping.access(neigh._2.level)),
+                new FieldAccess(field, level, "slot", Mapping.access(level)),
                 s"curFragment.buffer_Recv[${neigh._1.index}][entry++];"))))) : Statement));
   }
 }

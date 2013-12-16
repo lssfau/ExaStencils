@@ -1,6 +1,6 @@
 package exastencils.primitives
 
-class NeighborInfo(var dir : Array[Int], var level : Int /*FIXME: remove level*/ , var index : Int) {
+class NeighborInfo(var dir : Array[Int], var index : Int) {
   var label : String = (2 to 0 by -1).toList.map(i => dimToString(i).toUpperCase + dirToString(dir(i))).mkString("_");
 
   var indexInner = new IndexRange();
@@ -11,7 +11,7 @@ class NeighborInfo(var dir : Array[Int], var level : Int /*FIXME: remove level*/
   var indexOpposingOuter = new IndexRange();
   var indexOpposingBorder = new IndexRange();
 
-  def setIndices(field : Field) {
+  def setIndices(field : Field, level : Int) {
     indexInner = fieldToIndexInner(dir, s"fragments[e]->${field.codeName}[slot][$level]", level);
     indexOuter = fieldToIndexOuter(dir, s"fragments[e]->${field.codeName}[slot][$level]", level);
     indexBorder = fieldToIndexBorder(dir, s"fragments[e]->${field.codeName}[slot][$level]", level);
@@ -20,7 +20,7 @@ class NeighborInfo(var dir : Array[Int], var level : Int /*FIXME: remove level*/
     indexOpposingBorder = fieldToIndexBorder(dir.map(i => -i), s"fragments[e]->${field.codeName}[slot][$level]", level);
   }
 
-  def setIndicesWide(field : Field) {
+  def setIndicesWide(field : Field, level : Int) {
     indexInner = fieldToIndexInnerWide(dir, s"fragments[e]->${field.codeName}[slot][$level]", level);
     indexOuter = fieldToIndexOuterWide(dir, s"fragments[e]->${field.codeName}[slot][$level]", level);
     indexBorder = fieldToIndexBorder(dir, s"fragments[e]->${field.codeName}[slot][$level]", level);
@@ -30,7 +30,7 @@ class NeighborInfo(var dir : Array[Int], var level : Int /*FIXME: remove level*/
   }
 }
 
-case class IndexRange(begin : Array[String] = Array("0", "0", "0"), end : Array[String] = Array("0", "0", "0"), level : Int = 0) {}
+case class IndexRange(begin : Array[String] = Array("0", "0", "0"), end : Array[String] = Array("0", "0", "0")) {}
 
 object Mapping {
   def first(level : Int) : Int = {
@@ -59,8 +59,7 @@ object fieldToIndexInner extends ((Array[Int], String, Int) => IndexRange) {
         case i if dir(i) == 0 => s"${Mapping.last(level) - Knowledge.numGhostLayers}"
         case i if dir(i) < 0  => s"${Mapping.first(level) + Knowledge.numGhostLayers + Knowledge.numGhostLayers}"
         case i if dir(i) > 0  => s"${Mapping.last(level) - Knowledge.numGhostLayers - 1}"
-      }),
-      level);
+      }));
   }
 }
 
@@ -76,8 +75,7 @@ object fieldToIndexInnerWide extends ((Array[Int], String, Int) => IndexRange) {
         case i if dir(i) == 0 => s"${Mapping.last(level)}"
         case i if dir(i) < 0  => s"${Mapping.first(level) + Knowledge.numGhostLayers + Knowledge.numGhostLayers}"
         case i if dir(i) > 0  => s"${Mapping.last(level) - Knowledge.numGhostLayers - 1}"
-      }),
-      level);
+      }));
   }
 }
 
@@ -93,8 +91,7 @@ object fieldToIndexOuter extends ((Array[Int], String, Int) => IndexRange) {
         case i if dir(i) == 0 => s"${Mapping.last(level) - Knowledge.numGhostLayers}"
         case i if dir(i) < 0  => s"${Mapping.first(level) + Knowledge.numGhostLayers - 1}"
         case i if dir(i) > 0  => s"${Mapping.last(level)}"
-      }),
-      level);
+      }));
   }
 }
 
@@ -110,8 +107,7 @@ object fieldToIndexOuterWide extends ((Array[Int], String, Int) => IndexRange) {
         case i if dir(i) == 0 => s"${Mapping.last(level)}"
         case i if dir(i) < 0  => s"${Mapping.first(level) + Knowledge.numGhostLayers - 1}"
         case i if dir(i) > 0  => s"${Mapping.last(level)}"
-      }),
-      level);
+      }));
   }
 }
 
@@ -127,7 +123,6 @@ object fieldToIndexBorder extends ((Array[Int], String, Int) => IndexRange) {
         case i if dir(i) == 0 => s"${Mapping.last(level) - Knowledge.numGhostLayers}"
         case i if dir(i) < 0  => s"${Mapping.first(level) + Knowledge.numGhostLayers}"
         case i if dir(i) > 0  => s"${Mapping.last(level) - Knowledge.numGhostLayers}"
-      }),
-      level);
+      }));
   }
 }

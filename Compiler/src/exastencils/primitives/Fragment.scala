@@ -28,15 +28,15 @@ case class FragmentClass extends Class with FilePrettyPrintable {
     cTorArgs += s"const Vec3& pos"; // FIXME: specialized nodes...
 
     if (6 == Knowledge.fragmentCommStrategy) {
-      neighbors += new NeighborInfo(Array(-1, 0, 0), -1 /*FIXME*/ , 12);
-      neighbors += new NeighborInfo(Array(+1, 0, 0), -1 /*FIXME*/ , 14);
-      neighbors += new NeighborInfo(Array(0, -1, 0), -1 /*FIXME*/ , 10);
-      neighbors += new NeighborInfo(Array(0, +1, 0), -1 /*FIXME*/ , 16);
-      neighbors += new NeighborInfo(Array(0, 0, -1), -1 /*FIXME*/ , 4);
-      neighbors += new NeighborInfo(Array(0, 0, +1), -1 /*FIXME*/ , 22);
+      neighbors += new NeighborInfo(Array(-1, 0, 0), 12);
+      neighbors += new NeighborInfo(Array(+1, 0, 0), 14);
+      neighbors += new NeighborInfo(Array(0, -1, 0), 10);
+      neighbors += new NeighborInfo(Array(0, +1, 0), 16);
+      neighbors += new NeighborInfo(Array(0, 0, -1), 4);
+      neighbors += new NeighborInfo(Array(0, 0, +1), 22);
     } else if (26 == Knowledge.fragmentCommStrategy) {
       for (z <- -1 to 1; y <- -1 to 1; x <- -1 to 1; if (0 != x || 0 != y || 0 != z)) {
-        neighbors += new NeighborInfo(Array(x, y, z), -1 /*FIXME*/ , (z + 1) * 9 + (y + 1) * 3 + (x + 1));
+        neighbors += new NeighborInfo(Array(x, y, z), (z + 1) * 9 + (y + 1) * 3 + (x + 1));
       }
     }
 
@@ -115,7 +115,7 @@ case class FragmentClass extends Class with FilePrettyPrintable {
   }
 }
 
-case class ExchangeData_6(field : Field, level : Int, neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
+case class ExchangeData_6(field : Field, level : Integer, neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_6\n";
@@ -126,26 +126,25 @@ case class ExchangeData_6(field : Field, level : Int, neighbors : ListBuffer[Nei
     val fieldName = s"fragments[e]->${field.codeName}[slot][$level]";
 
     for (neigh <- neighbors) {
-      neigh.level = level; // FIXME: remove level
-      neigh.setIndicesWide(field);
+      neigh.setIndicesWide(field, level);
     }
 
     // handle BC
-    body += new HandleBoundaries(field, ImplicitConversions.NumberToNumericLiteral(level),
+    body += new HandleBoundaries(field, level,
       neighbors.map(neigh => (neigh, neigh.indexBorder)));
 
     // sync duplicate values
     for (dim <- 0 to 2) {
-      body += new CopyToSendBuffer_and_RemoteSend(field, ImplicitConversions.NumberToNumericLiteral(level),
+      body += new CopyToSendBuffer_and_RemoteSend(field, level,
         ListBuffer(neighbors(2 * dim + 1)).map(neigh => (neigh, neigh.indexBorder)));
-      body += new LocalSend(field, ImplicitConversions.NumberToNumericLiteral(level),
+      body += new LocalSend(field, level,
         ListBuffer(neighbors(2 * dim + 1)).map(neigh => (neigh, neigh.indexBorder, neigh.indexOpposingBorder)));
 
       body += new RemoteReceive(field, level, ListBuffer(neighbors(2 * dim + 0)));
 
       body += new FinishRemoteCommunication(neighbors);
 
-      body += new CopyFromRecvBuffer(field, ImplicitConversions.NumberToNumericLiteral(level),
+      body += new CopyFromRecvBuffer(field, level,
         ListBuffer(neighbors(2 * dim + 0)).map(neigh => (neigh, neigh.indexBorder)));
     }
 
@@ -153,17 +152,17 @@ case class ExchangeData_6(field : Field, level : Int, neighbors : ListBuffer[Nei
     for (dim <- 0 to 2) {
       var curNeighbors = ListBuffer(neighbors(2 * dim + 0), neighbors(2 * dim + 1));
 
-      body += new CopyToSendBuffer_and_RemoteSend(field, ImplicitConversions.NumberToNumericLiteral(level),
+      body += new CopyToSendBuffer_and_RemoteSend(field, level,
         curNeighbors.map(neigh => (neigh, neigh.indexInner)));
 
-      body += new LocalSend(field, ImplicitConversions.NumberToNumericLiteral(level),
+      body += new LocalSend(field, level,
         curNeighbors.map(neigh => (neigh, neigh.indexInner, neigh.indexOpposingOuter)));
 
       body += new RemoteReceive(field, level, curNeighbors);
 
       body += new FinishRemoteCommunication(curNeighbors);
 
-      body += new CopyFromRecvBuffer(field, ImplicitConversions.NumberToNumericLiteral(level),
+      body += new CopyFromRecvBuffer(field, level,
         curNeighbors.map(neigh => (neigh, neigh.indexOuter)));
     }
 
@@ -174,7 +173,7 @@ case class ExchangeData_6(field : Field, level : Int, neighbors : ListBuffer[Nei
   }
 }
 
-case class ExchangeData_26(field : Field, level : Int, neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
+case class ExchangeData_26(field : Field, level : Integer, neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_26\n";
@@ -185,38 +184,37 @@ case class ExchangeData_26(field : Field, level : Int, neighbors : ListBuffer[Ne
     val fieldName = s"fragments[e]->${field.codeName}[slot][$level]";
 
     for (neigh <- neighbors) {
-      neigh.level = level; // FIXME: remove level
-      neigh.setIndices(field);
+      neigh.setIndices(field, level);
     }
 
     // handle BC
-    body += new HandleBoundaries(field, ImplicitConversions.NumberToNumericLiteral(level),
+    body += new HandleBoundaries(field, level,
       neighbors.map(neigh => (neigh, neigh.indexBorder)));
 
     // sync duplicate values
-    body += new CopyToSendBuffer_and_RemoteSend(field, ImplicitConversions.NumberToNumericLiteral(level),
+    body += new CopyToSendBuffer_and_RemoteSend(field, level,
       neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh => (neigh, neigh.indexBorder)));
-    body += new LocalSend(field, ImplicitConversions.NumberToNumericLiteral(level),
+    body += new LocalSend(field, level,
       neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh => (neigh, neigh.indexBorder, neigh.indexOpposingBorder)));
 
     body += new RemoteReceive(field, level, neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0));
 
     body += new FinishRemoteCommunication(neighbors);
 
-    body += new CopyFromRecvBuffer(field, ImplicitConversions.NumberToNumericLiteral(level),
+    body += new CopyFromRecvBuffer(field, level,
       neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0).map(neigh => (neigh, neigh.indexBorder)));
 
     // update ghost layers
-    body += new CopyToSendBuffer_and_RemoteSend(field, ImplicitConversions.NumberToNumericLiteral(level),
+    body += new CopyToSendBuffer_and_RemoteSend(field, level,
       neighbors.map(neigh => (neigh, neigh.indexInner)));
-    body += new LocalSend(field, ImplicitConversions.NumberToNumericLiteral(level),
+    body += new LocalSend(field, level,
       neighbors.map(neigh => (neigh, neigh.indexInner, neigh.indexOpposingOuter)));
 
     body += new RemoteReceive(field, level, neighbors);
 
     body += new FinishRemoteCommunication(neighbors);
 
-    body += new CopyFromRecvBuffer(field, ImplicitConversions.NumberToNumericLiteral(level),
+    body += new CopyFromRecvBuffer(field, level,
       neighbors.map(neigh => (neigh, neigh.indexOuter)));
 
     // compile return value

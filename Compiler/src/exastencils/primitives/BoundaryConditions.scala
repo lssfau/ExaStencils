@@ -6,7 +6,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 
-case class HandleBoundaries(var field : Field, var level : Expression, neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
+case class HandleBoundaries(var field : Field, var level : Integer, neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = { return "NOT VALID ; CLASS = HandleBoundaries\n"; }
@@ -19,7 +19,7 @@ case class HandleBoundaries(var field : Field, var level : Expression, neighbors
           new ConditionStatement(new getNeighInfo_IsInvalid(neigh._1),
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(
-                new FieldAccess(field, level, "slot", Mapping.access(neigh._2.level)),
+                new FieldAccess(field, level, "slot", Mapping.access(level)),
                 ImplicitConversions.NumberToNumericLiteral(0.)))) : Statement));
     } else {
       return new NullStatement;

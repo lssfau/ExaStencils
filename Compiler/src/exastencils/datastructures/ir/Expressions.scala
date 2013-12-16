@@ -12,7 +12,7 @@ case class StringLiteral(value : String) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 }
 
-case class NumericLiteral(value : Number) extends Expression {
+case class NumericLiteral(value : Number/*FIXME: we should think about using a scala alternative instead of java datatypes*/) extends Expression {
   override def cpp = value.toString
   override def duplicate = this.copy().asInstanceOf[this.type]
 }

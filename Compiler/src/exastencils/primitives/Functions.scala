@@ -47,7 +47,7 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
   override def cpp : String = "NOT VALID ; CLASS = ConnectLocalElement\n";
 
   override def expand : FunctionStatement = {
-    FunctionStatement(new UnitDatatype(), s"connectLocalElement", // FIXME: set prefix as class trafo 
+    FunctionStatement(new UnitDatatype(), s"connectLocalElement", 
       ListBuffer(Variable("FRAGMENT_LOCATION", "location"), Variable("boost::shared_ptr<Fragment3DCube>", "fragment")),
       ListBuffer(
         "ASSERT_WARNING((fragment), \"Invalid fragment pointer detected\", return);",
