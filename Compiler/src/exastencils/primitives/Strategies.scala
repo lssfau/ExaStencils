@@ -6,7 +6,7 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.primitives._
 
-object GenCommCode extends (() => Unit) {
+object GenerateCode_Primitives extends (() => Unit) {
   def apply() : Unit = {
     var fragmentClass = new FragmentClass;
     var communicationFunctions = new CommunicationFunctions;
