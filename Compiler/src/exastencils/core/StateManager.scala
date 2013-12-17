@@ -93,7 +93,7 @@ object StateManager {
 
   protected def replace(node : Node, transformation : Transformation) : Unit = {
     Collectors.notifyEnter(node)
-    
+
     Vars(node).foreach(field => {
       val currentSubnode = Vars.get(node, field)
       if (currentSubnode.isInstanceOf[Seq[_]]) {
@@ -102,7 +102,9 @@ object StateManager {
         if (invalids.size <= 0) {
           var newList = list.asInstanceOf[Seq[Node]].map(listitem => applyAtNode(listitem, transformation).get) // FIXME asof[List[Option[Node]]]
           //          newList = newList.filterNot(listitem => listitem eq None) // FIXME
-          Vars.set(node, field, newList)
+          if (!Vars.set(node, field, newList)) {
+            ERROR(s"Could not set $field")
+          }
           if (transformation.recursive || progresses_(transformation).getReplacements <= 0) newList.foreach(f => replace(f, transformation))
         }
 
@@ -114,7 +116,9 @@ object StateManager {
           var tmpArray = list.asInstanceOf[Array[Node]].map(listitem => applyAtNode(listitem, transformation).get)
           var newArray = java.lang.reflect.Array.newInstance(arrayType, tmpArray.length)
           System.arraycopy(tmpArray, 0, newArray, 0, tmpArray.length)
-          Vars.set(node, field, newArray)
+          if (!Vars.set(node, field, newArray)) {
+            ERROR(s"Could not set $field")
+          }
           if (transformation.recursive || progresses_(transformation).getReplacements <= 0) newArray.asInstanceOf[Array[Node]].foreach(f => replace(f, transformation))
         }
 
@@ -131,9 +135,13 @@ object StateManager {
           var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation).get
           if (newSubnode ne subnode.asInstanceOf[Node]) {
             if (nodeIsOption) {
-              Vars.set(node, field, Some(newSubnode))
+              if (!Vars.set(node, field, newSubnode)) {
+                ERROR(s"Could not set $field")
+              }
             } else {
-              Vars.set(node, field, newSubnode)
+              if (!Vars.set(node, field, newSubnode)) {
+                ERROR(s"Could not set $field")
+              }
             }
           }
           if (transformation.recursive || progresses_(transformation).getReplacements <= 0) replace(newSubnode, transformation)
