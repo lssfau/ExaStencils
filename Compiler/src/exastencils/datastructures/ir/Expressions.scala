@@ -13,7 +13,7 @@ trait Expression extends Node with CppPrettyPrintable {
 
 case class ConcatenationExpression(var expressions : ListBuffer[Expression]) extends Expression {
   override def duplicate = this.copy(expressions = Duplicate(expressions)).asInstanceOf[this.type]
-  override def cpp = "FIXME"
+  override def cpp = expressions.map(e => e.cpp).mkString(" ")
   override def ~(exp : Expression) : ConcatenationExpression = {
     expressions += exp
     this
