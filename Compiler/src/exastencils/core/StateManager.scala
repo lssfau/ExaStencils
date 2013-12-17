@@ -135,7 +135,7 @@ object StateManager {
           var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation).get
           if (newSubnode ne subnode.asInstanceOf[Node]) {
             if (nodeIsOption) {
-              if (!Vars.set(node, field, newSubnode)) {
+              if (!Vars.set(node, field, Some(newSubnode))) {
                 ERROR(s"Could not set $field")
               }
             } else {
