@@ -11,5 +11,5 @@ object Knowledge {
 }
 
 object Globals {
-  val printPath = s"C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Generated/";
+  var printPath = s"C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Generated/";
 }
