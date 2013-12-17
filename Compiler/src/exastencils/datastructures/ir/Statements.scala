@@ -14,7 +14,7 @@ case class ExpressionStatement(var expression : Expression) extends Statement {
   override def cpp = expression.cpp
 }
 
-case class NullStatement extends Statement {
+case class NullStatement() extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = ""
@@ -26,7 +26,7 @@ case class Scope(var body : ListBuffer[Statement]) extends Statement {
   override def cpp : String = {
     ("\n{\n"
       + body.map(stat => stat.cpp).mkString("\n")
-      + s"\n}\n");
+      + s"\n}");
   }
 }
 
@@ -34,8 +34,7 @@ case class StatementBlock(var body : ListBuffer[Statement]) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
-    (body.map(stat => stat.cpp).mkString("\n")
-      + s"\n");
+    (body.map(stat => stat.cpp).mkString("\n"));
   }
 }
 
@@ -76,7 +75,7 @@ case class ForLoopStatement(var begin : Expression /*changed by Sebastian - orig
     (s"for (${begin.cpp}; ${end.cpp}; ${inc.cpp})"
       + "\n{\n"
       + body.map(stat => stat.cpp).mkString("\n")
-      + s"\n}\n");
+      + s"\n}");
   }
 }
 
@@ -94,12 +93,11 @@ case class ConditionStatement(var condition : Expression, var trueBody : ListBuf
     (s"if (${condition.cpp})"
       + "\n{\n"
       + trueBody.map(stat => stat.cpp).mkString("\n")
-      + s"\n}\n"
+      + s"\n}"
       + (if (falseBody.length > 0)
-        s"else"
-        + s"\n{\n"
+        s"\nelse\n{\n"
         + falseBody.map(stat => stat.cpp).mkString("\n")
-        + s"\n}\n";
+        + s"\n}";
       else
         ""))
   }
@@ -114,7 +112,7 @@ case class FunctionStatement(var returntype : Datatype, var name : String, var p
     (s"${returntype.cpp} $name(" + parameters.map(param => s"${param.datatype.cpp} ${param.name}").mkString(", ") + ")"
       + "\n{\n"
       + body.map(stat => stat.cpp).mkString("\n")
-      + s"\n}\n")
+      + s"\n}")
   }
 }
 

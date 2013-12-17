@@ -1,5 +1,9 @@
 package exastencils.datastructures.ir
 
+trait FilePrettyPrintable {
+  def printToFile() : Unit
+}
+
 trait CppPrettyPrintable {
   def cpp() : String
 }
