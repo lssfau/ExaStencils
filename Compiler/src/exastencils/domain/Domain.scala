@@ -54,12 +54,12 @@ case class PointToOwningRank(var pos : Expression) extends Expression with Expan
 case class AssertStatement(var check : Expression, var msg : Expression, var abort : Statement) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  override def cpp : String = "NOT VALID ; CLASS = InitGeneratedDomain\n";
+  override def cpp : String = "NOT VALID ; CLASS = AssertStatement\n";
 
   override def expand : ConditionStatement = {
     new ConditionStatement(check,
       ListBuffer[Statement](
-        s"LOG_ERROR(${msg.cpp});", // FIXME: use composition node instead of cpp
+        "LOG_ERROR(" ~ msg ~ ");",
         abort));
   }
 }
@@ -67,7 +67,7 @@ case class AssertStatement(var check : Expression, var msg : Expression, var abo
 case class ConnectFragments() extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  override def cpp : String = "NOT VALID ; CLASS = InitGeneratedDomain\n";
+  override def cpp : String = "NOT VALID ; CLASS = ConnectFragments\n";
 
   override def expand : LoopOverFragments = {
     var body = new ListBuffer[Statement];
@@ -77,20 +77,38 @@ case class ConnectFragments() extends Statement with Expandable {
       val index = (z + 1) * 9 + (y + 1) * 3 + (x + 1);
       body += new Scope(ListBuffer(
         s"Vec3 offsetPos = curFragment.pos + Vec3($x, $y, $z);",
-        s"int owningRank = ", /*This will not be expanded...*/ PointToOwningRank("offsetPos"), ";", // FIXME: include this stuff in the next line
-        new ConditionStatement(s"mpiRank == owningRank",
-          s"curFragment.connectLocalElement($index, fragmentMap["
-            + PointToFragmentId("offsetPos").cpp /* FIXME: combination node */
-            + s"]);",
+        new ConditionStatement(s"mpiRank ==" ~ PointToOwningRank("offsetPos"),
+          s"curFragment.connectLocalElement($index, fragmentMap[" ~ PointToFragmentId("offsetPos") ~ "]);",
           new ConditionStatement(PointInsideDomain(s"offsetPos"),
-            s"curFragment.connectRemoteElement($index, "
-              + PointToFragmentId("offsetPos").cpp /* FIXME: combination node */
-              + s", "
-              + PointToOwningRank("offsetPos").expand.cpp
-              + s");"))));
+            s"curFragment.connectRemoteElement($index," ~ PointToFragmentId("offsetPos").cpp ~ ","
+              ~ PointToOwningRank("offsetPos") ~ s");"))));
     }
 
     return new LoopOverFragments(body);
+  }
+}
+
+case class SetupBuffers() extends Statement with Expandable {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = "NOT VALID ; CLASS = SetupBuffers\n";
+
+  override def expand : LoopOverFragments = {
+    new LoopOverFragments("curFragment.setupBuffers();");
+  }
+}
+
+case class ValidatePrimitives() extends Statement with Expandable {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = "NOT VALID ; CLASS = ValidatePrimitives\n";
+
+//  TODO
+//  override def expand : LoopOverFragments = {
+//    new LoopOverFragments("curFragment.validate();");
+//  }
+  override def expand : NullStatement = {
+    NullStatement();
   }
 }
 
@@ -128,15 +146,11 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
         "#pragma omp parallel for schedule(static, 1) ordered", //TODO: integrate into the following loop via traits
         ForLoopStatement("int e = 0", "e < positions.size()", "++e",
           ListBuffer(
-            "boost::shared_ptr<Fragment3DCube> fragment(new Fragment3DCube("
-              + PointToFragmentId("positions[e]").cpp /* FIXME: combination node */
-              + s", positions[e]));",
+            "boost::shared_ptr<Fragment3DCube> fragment(new Fragment3DCube(" ~ PointToFragmentId("positions[e]") ~ s", positions[e]));",
             "#	pragma omp ordered",
             "{",
             "fragments.push_back(fragment);",
-            "fragmentMap["
-              + PointToFragmentId("positions[e]").cpp /* FIXME: combination node */
-              + s"] = fragment;",
+            "fragmentMap[" ~ PointToFragmentId("positions[e]").cpp ~ s"] = fragment;",
             "}")),
         ConnectFragments(),
         new LoopOverFragments(

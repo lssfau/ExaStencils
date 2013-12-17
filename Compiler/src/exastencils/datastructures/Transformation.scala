@@ -14,7 +14,7 @@ object Transformation {
     new Transformation(n, f, rec, node)
 }
 
-class TransformationResult(successful : Boolean, matches : Int, replacements : Int) {
+class TransformationResult(val successful : Boolean, val matches : Int, val replacements : Int) {
   override def toString() = {
     var s = "Transformation Result: "
     if (!successful) s += "not "
