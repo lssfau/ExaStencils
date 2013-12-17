@@ -1,9 +1,9 @@
 package exastencils.datastructures.ir
 
 import scala.collection.mutable.ListBuffer
+
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
-import exastencils.primitives.Expandable
 
 abstract class Statement
   extends Node with CppPrettyPrintable with Duplicable

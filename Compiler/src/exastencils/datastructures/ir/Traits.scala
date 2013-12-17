@@ -1,5 +1,7 @@
 package exastencils.datastructures.ir
 
+import exastencils.datastructures._
+
 trait FilePrettyPrintable {
   def printToFile() : Unit
 }
@@ -14,4 +16,8 @@ trait CudaPrettyPrintable {
 
 trait Debuggable {
   def debug() : String
+}
+
+trait Expandable {
+  def expand() : Node
 }
