@@ -42,12 +42,12 @@ case class PointToFragmentId(var pos : Expression) extends Expression {
 case class PointToOwningRank(var pos : Expression) extends Expression with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-    override def cpp : String = "NOT VALID ; CLASS = PointToOwningRank\n";
+  override def cpp : String = "NOT VALID ; CLASS = PointToOwningRank\n";
 
   override def expand : Expression = { // FIXME: use tenary op node
-    (s"(("+ PointOutsideDomain(pos).cpp + ")"
-        + s" ? (-1)"	// FIXME: use MPI symbolic constant
-        + s" : ((int)(floor(${pos.cpp}.z) * numRank.y * numRank.x + floor(${pos.cpp}.y) * numRank.x + floor(${pos.cpp}.x))))");
+    (s"((" + PointOutsideDomain(pos).cpp + ")"
+      + s" ? (-1)" // FIXME: use MPI symbolic constant
+      + s" : ((int)(floor(${pos.cpp}.z / lenRank.z) * numRank.y * numRank.x + floor(${pos.cpp}.y / lenRank.y) * numRank.x + floor(${pos.cpp}.x / lenRank.x))))");
   }
 }
 
@@ -77,16 +77,17 @@ case class ConnectFragments() extends Statement with Expandable {
       val index = (z + 1) * 9 + (y + 1) * 3 + (x + 1);
       body += new Scope(ListBuffer(
         s"Vec3 offsetPos = curFragment.pos + Vec3($x, $y, $z);",
-//        s"int ownRank = ",         PointToOwningRank("offsetPos"), ";",	// FIXME: include this stuff in the next line
-//        new ConditionStatement(s"mpiRank == ownRank",
-        new ConditionStatement(s"mpiRank == pos2OwnerRank(offsetPos)",
+        s"int owningRank = ", PointToOwningRank("offsetPos"), ";", // FIXME: include this stuff in the next line
+        new ConditionStatement(s"mpiRank == owningRank",
           s"curFragment.connectLocalElement($index, fragmentMap["
-            	+ PointToFragmentId("offsetPos").cpp /* FIXME: combination node */
-            	+ s"]);",
+            + PointToFragmentId("offsetPos").cpp /* FIXME: combination node */
+            + s"]);",
           new ConditionStatement(PointInsideDomain(s"offsetPos"),
             s"curFragment.connectRemoteElement($index, "
-            	+ PointToFragmentId("offsetPos").cpp /* FIXME: combination node */
-            	+ s", pos2OwnerRank(offsetPos));"))));
+              + PointToFragmentId("offsetPos").cpp /* FIXME: combination node */
+              + s", "
+              + PointToOwningRank("offsetPos").expand.cpp
+              + s");"))));
     }
 
     return new LoopOverFragments(body);
@@ -102,9 +103,9 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
     FunctionStatement(new UnitDatatype(), s"initGeneratedDomain",
       ListBuffer(Variable("std::vector<boost::shared_ptr<Fragment3DCube> >&", "fragments"), Variable("const Vec3u&", "numBlocks"), Variable("const Vec3u&", "numFragmentsPerBlock")),
       ListBuffer(
-        "numFrag	= numBlocks * numFragmentsPerBlock;",
-        "numRank	= numBlocks;",
-        "lenRank	= Vec3(numFragmentsPerBlock.x, numFragmentsPerBlock.y, numFragmentsPerBlock.z);",
+        "Vec3u numFrag	= numBlocks * numFragmentsPerBlock;",
+        "Vec3u numRank	= numBlocks;",
+        "Vec3 lenRank	= Vec3(numFragmentsPerBlock.x, numFragmentsPerBlock.y, numFragmentsPerBlock.z);",
         "int	mpiRank;",
         "int			numMpiProc;",
         "MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);",
@@ -115,20 +116,27 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
 
         "std::map<exa_id_t, boost::shared_ptr<Fragment3DCube> >		fragmentMap;",
 
-        "std::vector<Vec3> positions = rank2FragmentPositions(mpiRank);",
+        "std::vector<Vec3> positions;",
+        "Vec3u rankPos(mpiRank % numRank.x, (mpiRank / numRank.x) % numRank.y, mpiRank / (numRank.x * numRank.y));",
+
+        "for (exa_real_t z = rankPos.z * lenRank.z + 0.5; z <= (1 + rankPos.z) * lenRank.z - 0.5; z += 1.0)",
+        "for (exa_real_t y = rankPos.y * lenRank.y + 0.5; y <= (1 + rankPos.y) * lenRank.y - 0.5; y += 1.0)",
+        "for (exa_real_t x = rankPos.x * lenRank.x + 0.5; x <= (1 + rankPos.x) * lenRank.x - 0.5; x += 1.0)",
+        "positions.push_back(Vec3(x, y, z));",
+
         "fragments.reserve(positions.size());",
         "#pragma omp parallel for schedule(static, 1) ordered", //TODO: integrate into the following loop via traits
         ForLoopStatement("int e = 0", "e < positions.size()", "++e",
           ListBuffer(
             "boost::shared_ptr<Fragment3DCube> fragment(new Fragment3DCube("
-            	+ PointToFragmentId("positions[e]").cpp /* FIXME: combination node */
-              +s", positions[e]));",
+              + PointToFragmentId("positions[e]").cpp /* FIXME: combination node */
+              + s", positions[e]));",
             "#	pragma omp ordered",
             "{",
             "fragments.push_back(fragment);",
             "fragmentMap["
-            	+ PointToFragmentId("positions[e]").cpp /* FIXME: combination node */
-            +s"] = fragment;",
+              + PointToFragmentId("positions[e]").cpp /* FIXME: combination node */
+              + s"] = fragment;",
             "}")),
         ConnectFragments(),
         new LoopOverFragments(
@@ -141,60 +149,6 @@ case class DomainGenerated() extends Node with FilePrettyPrintable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   var statements_HACK : ListBuffer[Statement] = new ListBuffer;
-
-  statements_HACK +=
-    """
-Vec3	minPos	= Vec3(0.);
-
-Vec3u	numFrag;
-Vec3	lenFrag	= Vec3(1.);
-
-Vec3u	numRank;
-Vec3	lenRank;
-
-bool		isOutside (const Vec3& pos)
-{
-	return (pos.x < minPos.x
-		|| pos.x > minPos.x + numFrag.x * lenFrag.x
-		|| pos.y < minPos.y
-		|| pos.y > minPos.y + numFrag.y * lenFrag.y
-		|| pos.z < minPos.z
-		|| pos.z > minPos.z + numFrag.z * lenFrag.z);
-}
-
-int	pos2OwnerRank (const Vec3& pos)
-{
-	if (isOutside(pos))
-		return -1;
-
-	Vec3 rankPos = (pos - minPos) / lenRank;
-	return
-		(int)floor(rankPos.z) * numRank.y * numRank.x
-		+ (int)floor(rankPos.y) * numRank.x
-		+ (int)floor(rankPos.x);
-}
-
-exa_id_t	pos2FragmentId (const Vec3& pos)
-{
-	return 
-		(exa_id_t)floor((pos.z - minPos.z /*- 0.5 * lenFrag.z*/) / lenFrag.z) * numFrag.y * numFrag.x
-		+ (exa_id_t)floor((pos.y - minPos.y /*- 0.5 * lenFrag.y*/) / lenFrag.y) * numFrag.x
-		+ (exa_id_t)floor((pos.x - minPos.x /*- 0.5 * lenFrag.x*/) / lenFrag.x);
-}
-
-std::vector<Vec3>	rank2FragmentPositions (int mpiRank)
-{
-	Vec3u rankPos(mpiRank % numRank.x, (mpiRank / numRank.x) % numRank.y, mpiRank / (numRank.x * numRank.y));
-
-	std::vector<Vec3> posVec;
-	for (exa_real_t z = minPos.z + rankPos.z * lenRank.z + 0.5 * lenFrag.z; z <= minPos.z + (1 + rankPos.z) * lenRank.z - 0.5 * lenFrag.z; z += lenFrag.z)
-		for (exa_real_t y = minPos.y + rankPos.y * lenRank.y + 0.5 * lenFrag.y; y <= minPos.y + (1 + rankPos.y) * lenRank.y - 0.5 * lenFrag.y; y += lenFrag.y)
-			for (exa_real_t x = minPos.x + rankPos.x * lenRank.x + 0.5 * lenFrag.x; x <= minPos.x + (1 + rankPos.x) * lenRank.x - 0.5 * lenFrag.x; x += lenFrag.x)
-				posVec.push_back(Vec3(x, y, z));
-
-	return posVec;
-}
-""";
 
   statements_HACK += new InitGeneratedDomain;
 
