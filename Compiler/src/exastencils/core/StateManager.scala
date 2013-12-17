@@ -13,32 +13,46 @@ import scala.reflect.runtime.{ universe => ru }
 import scala.reflect.runtime.{ currentMirror => rm }
 
 object StateManager {
-  def root = root_
-  var root_ : Node = null //= ForStatement(VariableDeclarationStatement(Variable("i", IntegerDatatype()), Some(Constant(1))), new Constant(7), new Constant(11), List[Statement]())
+  def root = root_ // FIXME remove this
+  var root_ : Node = null // FIXME make this protected
 
   protected object History {
-    var current_ : Option[ProtocalEntry] = None
-    protected var history_ = new Stack[ProtocalEntry]
+    protected var currentEntry : Option[ProtocalEntry] = None
+    protected var history = new Stack[ProtocalEntry]
+    protected var currentToken : Option[TransactionToken] = None
+    protected var currentTokenCounter = 0
     protected class ProtocalEntry(val stateBefore : Node, val appliedStrategy : Strategy)
+    final class TransactionToken(val id : Int)
 
-    def transaction(strategy : Strategy) = {
-      if (!current_.isEmpty) throw new RuntimeException("Another transaction currently running!")
-
-      current_ = Some(new ProtocalEntry(Duplicate(StateManager.root_), strategy))
+    def transaction(strategy : Strategy) : TransactionToken = {
+      if (currentToken != None || !currentEntry.isEmpty) throw new RuntimeException("Another transaction currently running!")
+      currentEntry = Some(new ProtocalEntry(Duplicate(StateManager.root_), strategy))
+      val ret = new TransactionToken(currentTokenCounter)
+      currentToken = Some(ret)
+      return ret
     }
 
-    def commit() = {
-      if (current_.isEmpty) throw new RuntimeException("No currently running transaction!")
-      history_.push(current_.get)
-      current_ = None
+    def commit(token : TransactionToken) : Unit = {
+      if (currentToken == None || currentEntry.isEmpty) throw new RuntimeException("No currently running transaction!")
+      if (!isValid(token)) throw new RuntimeException("Wrong token supplied, transaction not committed!")
+      history.push(currentEntry.get)
+      currentEntry = None
+      currentToken = None
     }
 
-    def abort() = {
-      if (current_.isEmpty) throw new RuntimeException("No currently running transaction!")
-      root_ = current_.get.stateBefore
-      current_ = None
+    def abort(token : TransactionToken) : Unit = {
+      if (currentToken == None || currentEntry.isEmpty) throw new RuntimeException("No currently running transaction!")
+      if (!isValid(token)) throw new RuntimeException("Wrong token supplied, transaction not committed!")
+      root_ = currentEntry.get.stateBefore
+      currentEntry = None
+      currentToken = None
     }
+
+    def isValid(token : TransactionToken) = { currentToken != None && token == currentToken.get }
   }
+  def transaction(strategy : Strategy) = History.transaction(strategy)
+  def commit(token : History.TransactionToken) = History.commit(token)
+  def abort(token : History.TransactionToken) = History.abort(token)
 
   protected object Collectors {
     protected var collectors_ = new ListBuffer[Collector]
@@ -54,7 +68,7 @@ object StateManager {
   def register(c : Collector) = { Collectors.register(c) }
   def unregister(c : Collector) = { Collectors.unregister(c) }
   def unregisterAll() = { Collectors.unregisterAll }
-  
+
   protected class TransformationProgress {
     protected var matches = 0
     protected var replacements = 0
@@ -62,29 +76,18 @@ object StateManager {
     def getReplacements = replacements
     def didMatch = matches += 1
     def didReplace = replacements += 1
+    override def toString = { s"Transformation Progress: $matches match(es), $replacements replacement(s)" }
   }
   protected val progresses_ = new HashMap[Transformation, TransformationProgress]
 
   protected def applyAtNode(node : Node, transformation : Transformation) : Option[Node] = {
     if (transformation.function.isDefinedAt(node)) {
       progresses_(transformation).didMatch
-      transformation.function(node)
+      val ret = transformation.function(node)
+      if (ret.getOrElse(null) ne node) progresses_(transformation).didReplace
+      return ret
     } else {
       Some(node)
-    }
-  }
-
-  protected def doReplace(node : Node, transformation : Transformation, method : Method, oldNode : Any) = {
-    var subnode = oldNode
-
-    if (subnode.isInstanceOf[Some[_]]) subnode = subnode.asInstanceOf[Some[_]].get
-
-    if (subnode.isInstanceOf[Node]) {
-      var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation).get
-      if (newSubnode ne subnode.asInstanceOf[Node]) {
-        if(Vars.set(node, method, newSubnode)) progresses_(transformation).didReplace
-      }
-      if(transformation.recursive) replace(newSubnode, transformation)
     }
   }
 
@@ -93,7 +96,6 @@ object StateManager {
 
     Vars(node).foreach(field => {
       val currentSubnode = Vars.get(node, field)
-
       if (currentSubnode.isInstanceOf[Seq[_]]) {
         var list = currentSubnode.asInstanceOf[Seq[_]]
         val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
@@ -101,7 +103,7 @@ object StateManager {
           var newList = list.asInstanceOf[Seq[Node]].map(listitem => applyAtNode(listitem, transformation).get) // FIXME asof[List[Option[Node]]]
           //          newList = newList.filterNot(listitem => listitem eq None) // FIXME
           Vars.set(node, field, newList)
-          newList.foreach(f => replace(f, transformation))
+          if (transformation.recursive || progresses_(transformation).getReplacements <= 0) newList.foreach(f => replace(f, transformation))
         }
 
       } else if (currentSubnode.isInstanceOf[Array[_]]) {
@@ -113,53 +115,47 @@ object StateManager {
           var newArray = java.lang.reflect.Array.newInstance(arrayType, tmpArray.length)
           System.arraycopy(tmpArray, 0, newArray, 0, tmpArray.length)
           Vars.set(node, field, newArray)
-          newArray.asInstanceOf[Array[Node]].foreach(f => replace(f, transformation))
+          if (transformation.recursive || progresses_(transformation).getReplacements <= 0) newArray.asInstanceOf[Array[Node]].foreach(f => replace(f, transformation))
         }
 
       } else {
-        doReplace(node, transformation, field, currentSubnode)
+        var subnode = currentSubnode
+
+        if (subnode.isInstanceOf[Some[_]]) {
+          var somenode = subnode.asInstanceOf[Some[_]].get
+          if (somenode.isInstanceOf[Node]) subnode = somenode.asInstanceOf[Node]
+        }
+
+        if (subnode.isInstanceOf[Node]) {
+          var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation).get
+          if (newSubnode ne subnode.asInstanceOf[Node]) {
+            if (Vars.set(node, field, newSubnode)) progresses_(transformation).didReplace
+          }
+          if (transformation.recursive || progresses_(transformation).getReplacements <= 0) replace(newSubnode, transformation)
+        }
       }
 
     })
     Collectors.notifyLeave(node)
   }
 
-  def defaultApply(strategy : Strategy) : Option[StrategyResult] = {
-    // start transformation transaction
-    History.transaction(strategy)
-    DBG(s"""Applying strategy "${strategy.name}"""")
+  def apply(token : History.TransactionToken, transformation : Transformation, node : Option[Node] = None) : TransformationResult = {
+    if (!History.isValid(token)) {
+      throw new RuntimeException("Invalid transaction token for transformation ${transformation.name}")
+    }
     try {
-      var results = new ListBuffer[TransformationResult]
-      strategy.transformations.foreach(transformation => {
-        progresses_ += ((transformation, new TransformationProgress))
-        INFO(s"""Applying stragety "${strategy.name}" :: ${transformation.name}""")
-        replace(root, transformation)
-        var result = new TransformationResult(true, progresses_(transformation).getMatches, progresses_(transformation).getReplacements)
-        results.append(result)
-      })
-      History.commit
-      return Some(new StrategyResult(results.toList))
+      progresses_.+=((transformation, new TransformationProgress))
+      replace(node.getOrElse(root), transformation)
+      return new TransformationResult(true, progresses_(transformation).getMatches, progresses_(transformation).getReplacements)
     } catch {
-      case x : StrategyException => {
-        WARN(f"""Strategy "${strategy.name}" did not apply successfully""")
-        WARN(f"Message: ${x.msg}")
-        WARN(f"Rollback will be performed")
-        History.abort
-        return None
-      }
       case x : TransformationException => {
-        WARN(f"""Strategy "${strategy.name}" did not apply successfully""")
         WARN(f"""Error in Transformation ${x.transformation.name}""")
         WARN(f"Message: ${x.msg}")
         WARN(f"Rollback will be performed")
-        History.abort
-        return None
+        abort(token)
+        throw x
       }
     }
-  }
-
-  def apply(transformation : Transformation) = { // Hack
-    replace(root, transformation)
   }
 
   protected object Vars {
@@ -188,11 +184,11 @@ object StateManager {
       if (!method.getName.endsWith(setterSuffix)) {
         set(o, method.getName, value)
       } else {
-        if (!method.getParameterTypes()(0).getClass.isAssignableFrom(value.getClass)) {
-          val from = method.getParameterTypes()(0)
-          val to = value.getClass
-          throw new ValueSetException(s"""Invalid assignment: Cannot assign to $to from $from for "$o"""")
-        }
+        //        if (!method.getParameterTypes()(0).getClass.isAssignableFrom(value.getClass)) {
+        //          val from = method.getParameterTypes()(0)
+        //          val to = value.getClass
+        //          throw new ValueSetException(s"""Invalid assignment: Cannot assign to $to from $from for "$o"""")
+        //        }
         method.invoke(o, value)
         true
       }

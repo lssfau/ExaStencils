@@ -8,19 +8,19 @@ import exastencils.parsers.l4.ParserL4
 import exastencils.primitives._
 
 object Main {
-  object CountingStrategy extends Strategy("Counting") {
-    override def apply : Boolean = {
-      var constcount = 0
-      var forcount = 0
-
-//      StateManager.apply(new Transformation({ case x : Constant => constcount += 1; WARN(x); Some(x) }))
-//      StateManager.apply(new Transformation({ case a : ForStatement => forcount += 1; Some(a) }))
-
-      WARN(f"Counted $constcount consts and $forcount fors")
-
-      true
-    }
-  }
+//  object CountingStrategy extends Strategy("Counting") {
+//    override def apply : Option[StrategyResult] = {
+//      var constcount = 0
+//      var forcount = 0
+//
+////      StateManager.apply(new Transformation({ case x : Constant => constcount += 1; WARN(x); Some(x) }))
+////      StateManager.apply(new Transformation({ case a : ForStatement => forcount += 1; Some(a) }))
+//
+//      WARN(f"Counted $constcount consts and $forcount fors")
+//
+//      null
+//    }
+//  }
 
   def main(args : Array[String]) : Unit = {
     //    val newt = Duplicate(TreeManager.root)
@@ -47,19 +47,17 @@ object Main {
     //
     //    StateManager.apply(CountingStrategy)
 
-//    val p4 = new ParserL4
-//    val result = p4.parseFile("/scratch-local/schmittch/ExaStencils/ScalaExaStencil/Compiler/examples/level4_simple.exa")
-//    
-//    StateManager.root_ = result
-//
-//    
-//    println(StateManager.root_)
-//    var replacingStrategy = new Strategy("replacing")
-//    replacingStrategy += new Transformation({ case x : BinaryExpression => Some(BinaryExpression("XXX", Constant(0), Constant(0))) })
-////    replacingStrategy += new Transformation({ case x : BinaryExpression => throw TransformationException("omg") })
-//    replacingStrategy.apply
-//    
-//    println(StateManager.root_)
+    val p4 = new ParserL4
+    val result = p4.parseFile("/scratch-local/schmittch/ExaStencils/ScalaExaStencil/Compiler/examples/level4_simple.exa")
+    
+    StateManager.root_ = result
+
+    
+    println(StateManager.root_)
+    var replacingStrategy = new Strategy("replacing")
+    replacingStrategy += new Transformation("replace", { case x : BinaryExpression => println(x); Some(BinaryExpression("XXX", Constant(0), Constant(0))) })
+    replacingStrategy.apply
+    println(StateManager.root_)
 //    
 //    var positionStrategy = new Strategy("PositionStrategy")
 //    positionStrategy += new Transformation({case x : Annotatable => x.getAnnotations.foreach(a => println(x + " " + a.name + " - " + a.value)); Some(x) })
