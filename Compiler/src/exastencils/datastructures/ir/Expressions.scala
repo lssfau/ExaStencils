@@ -55,7 +55,7 @@ case class BinaryExpression(operator : String, var left : Expression, var right 
   override def duplicate = this.copy(left = Duplicate(left), right = Duplicate(right)).asInstanceOf[this.type]
 }
 
-case class FunctionCall(name : String, var arguments : List[Expression]) extends Expression {
+case class FunctionCallExpression(name : String, var arguments : List[Expression]) extends Expression {
   override def cpp = name + "FIXME args"
   override def duplicate = this.copy(arguments = Duplicate(arguments)).asInstanceOf[this.type]
 }

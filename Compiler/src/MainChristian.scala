@@ -64,7 +64,7 @@ object MainChristian {
     //    //positionStrategy.apply
 
     import exastencils.datastructures.ir._
-    val a = FunctionCall(null, null)
+    val a = FunctionCallExpression(null, null)
     val b = BinaryExpression("x", null, null)
     val c = Constant("hallo")
     val d = a ~ b ~ c
