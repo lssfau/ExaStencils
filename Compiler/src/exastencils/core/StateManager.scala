@@ -93,7 +93,7 @@ object StateManager {
 
   protected def replace(node : Node, transformation : Transformation) : Unit = {
     Collectors.notifyEnter(node)
-
+    
     Vars(node).foreach(field => {
       val currentSubnode = Vars.get(node, field)
       if (currentSubnode.isInstanceOf[Seq[_]]) {
@@ -120,14 +120,22 @@ object StateManager {
 
       } else {
         var subnode = currentSubnode
-
+        var nodeIsOption = false
         if (subnode.isInstanceOf[Some[_]]) {
+          nodeIsOption = true
           var somenode = subnode.asInstanceOf[Some[_]].get
           if (somenode.isInstanceOf[Node]) subnode = somenode.asInstanceOf[Node]
         }
 
         if (subnode.isInstanceOf[Node]) {
           var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation).get
+          if (newSubnode ne subnode.asInstanceOf[Node]) {
+            if (nodeIsOption) {
+              Vars.set(node, field, Some(newSubnode))
+            } else {
+              Vars.set(node, field, newSubnode)
+            }
+          }
           if (transformation.recursive || progresses_(transformation).getReplacements <= 0) replace(newSubnode, transformation)
         }
       }
