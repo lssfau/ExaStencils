@@ -2,12 +2,16 @@ package exastencils.primitives
 
 import java.io.File
 import java.io.PrintWriter
+
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
+
+import exastencils.knowledge._
+
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.l4.VariableDeclarationStatement
 
 trait Expandable {
   def expand() : Node

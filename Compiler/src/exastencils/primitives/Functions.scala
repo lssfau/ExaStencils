@@ -2,6 +2,8 @@ package exastencils.primitives
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.knowledge._
+
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 

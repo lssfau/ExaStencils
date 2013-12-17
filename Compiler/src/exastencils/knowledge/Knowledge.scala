@@ -1,4 +1,4 @@
-package exastencils.primitives
+package exastencils.knowledge
 
 object Knowledge {
   val numGhostLayers = 1;

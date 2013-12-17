@@ -1,9 +1,13 @@
 package exastencils.primitives
 
 import exastencils.core._
+
+import exastencils.knowledge._
+
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+
 import exastencils.primitives._
 
 object GenerateCode_Primitives extends (() => Unit) {

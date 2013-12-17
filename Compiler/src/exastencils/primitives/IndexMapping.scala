@@ -1,5 +1,7 @@
 package exastencils.primitives
 
+import exastencils.knowledge._
+
 class NeighborInfo(var dir : Array[Int], var index : Int) {
   var label : String = (2 to 0 by -1).toList.map(i => dimToString(i).toUpperCase + dirToString(dir(i))).mkString("_");
 
