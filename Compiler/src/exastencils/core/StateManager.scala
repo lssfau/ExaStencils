@@ -128,9 +128,6 @@ object StateManager {
 
         if (subnode.isInstanceOf[Node]) {
           var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation).get
-          if (newSubnode ne subnode.asInstanceOf[Node]) {
-            if (Vars.set(node, field, newSubnode)) progresses_(transformation).didReplace
-          }
           if (transformation.recursive || progresses_(transformation).getReplacements <= 0) replace(newSubnode, transformation)
         }
       }
