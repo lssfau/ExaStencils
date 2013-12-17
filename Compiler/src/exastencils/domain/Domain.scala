@@ -77,7 +77,7 @@ case class ConnectFragments() extends Statement with Expandable {
       val index = (z + 1) * 9 + (y + 1) * 3 + (x + 1);
       body += new Scope(ListBuffer(
         s"Vec3 offsetPos = curFragment.pos + Vec3($x, $y, $z);",
-        s"int owningRank = ", PointToOwningRank("offsetPos"), ";", // FIXME: include this stuff in the next line
+        s"int owningRank = ", /*This will not be expanded...*/ PointToOwningRank("offsetPos"), ";", // FIXME: include this stuff in the next line
         new ConditionStatement(s"mpiRank == owningRank",
           s"curFragment.connectLocalElement($index, fragmentMap["
             + PointToFragmentId("offsetPos").cpp /* FIXME: combination node */
