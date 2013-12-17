@@ -8,24 +8,20 @@ import exastencils.domain._
 
 object GenerateCode_Domain extends (() => Unit) {
   def apply() : Unit = {
-    println("Setting up Tree");
     StateManager.root_ = Root(List(new DomainGenerated));
 
-    println("Setting up Strategies");
-    var strategy = new Strategy("strategy");
+    var expandStrategy = new Strategy("Expanding");
 
-    // expand applicable nodes - FIXME: do while (changed)
     var expandablesFound = 0;
-    strategy += new Transformation("Hoho, expanding all day...", {
+    expandStrategy += new Transformation("Hoho, expanding all day...", {
       case function : Expandable =>
-        expandablesFound += 1;
         Some(function.expand);
     });
-    strategy += new Transformation("Hoho, expanding all day...", {
-      case function : Expandable =>
-        expandablesFound += 1;
-        Some(function.expand);
-    });
+
+    do { expandStrategy.apply; }
+    while (expandStrategy.results.last._2.replacements > 0) 
+
+    var strategy = new Strategy("strategy");
 
     // print
     strategy += new Transformation("Pretty-Print", {
@@ -34,10 +30,8 @@ object GenerateCode_Domain extends (() => Unit) {
         Some(printable);
     });
 
-    println("Applying Strategies");
     strategy.apply;
-    println("Done");
 
-    println("Found " + expandablesFound + " Expandable nodes");
+    println("Done");
   }
 }
