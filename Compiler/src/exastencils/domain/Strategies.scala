@@ -14,6 +14,19 @@ object GenerateCode_Domain extends (() => Unit) {
     println("Setting up Strategies");
     var strategy = new Strategy("strategy");
 
+    // expand applicable nodes - FIXME: do while (changed)
+    var expandablesFound = 0;
+    strategy += new Transformation("Hoho, expanding all day...", {
+      case function : Expandable =>
+        expandablesFound += 1;
+        Some(function.expand);
+    });
+    strategy += new Transformation("Hoho, expanding all day...", {
+      case function : Expandable =>
+        expandablesFound += 1;
+        Some(function.expand);
+    });
+
     // print
     strategy += new Transformation("Pretty-Print", {
       case printable : FilePrettyPrintable =>
@@ -24,5 +37,7 @@ object GenerateCode_Domain extends (() => Unit) {
     println("Applying Strategies");
     strategy.apply;
     println("Done");
+
+    println("Found " + expandablesFound + " Expandable nodes");
   }
 }

@@ -3,33 +3,147 @@ package exastencils.domain
 import java.io.PrintWriter
 import java.io.File
 
+import scala.collection.mutable.ListBuffer
+
+import exastencils.core._
+
 import exastencils.knowledge._
 
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 
+import exastencils.primitives._
+
+case class PointOutsideDomain(var pos : Expression) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def cpp : String = {
+    (s"(${pos.cpp}.x < 0.0 || ${pos.cpp}.x > numFrag.x || ${pos.cpp}.y < 0.0 || ${pos.cpp}.y > numFrag.y || ${pos.cpp}.z < 0.0 || ${pos.cpp}.z > numFrag.z)");
+  }
+}
+
+case class PointInsideDomain(var pos : Expression) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def cpp : String = {
+    (s"(${pos.cpp}.x >= 0.0 && ${pos.cpp}.x <= numFrag.x && ${pos.cpp}.y >= 0.0 && ${pos.cpp}.y <= numFrag.y && ${pos.cpp}.z >= 0.0 && ${pos.cpp}.z <= numFrag.z)");
+  }
+}
+
+case class PointToFragmentId(var pos : Expression) extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def cpp : String = {
+    (s"((exa_id_t)(floor(${pos.cpp}.z) * numFrag.y * numFrag.x + floor(${pos.cpp}.y) * numFrag.x + floor(${pos.cpp}.x)))");
+  }
+}
+
+case class PointToOwningRank(var pos : Expression) extends Expression with Expandable {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+    override def cpp : String = "NOT VALID ; CLASS = PointToOwningRank\n";
+
+  override def expand : Expression = { // FIXME: use tenary op node
+    (s"(("+ PointOutsideDomain(pos).cpp + ")"
+        + s" ? (-1)"	// FIXME: use MPI symbolic constant
+        + s" : ((int)(floor(${pos.cpp}.z) * numRank.y * numRank.x + floor(${pos.cpp}.y) * numRank.x + floor(${pos.cpp}.x))))");
+  }
+}
+
+case class AssertStatement(var check : Expression, var msg : Expression, var abort : Statement) extends Statement with Expandable {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = "NOT VALID ; CLASS = InitGeneratedDomain\n";
+
+  override def expand : ConditionStatement = {
+    new ConditionStatement(check,
+      ListBuffer[Statement](
+        s"LOG_ERROR(${msg.cpp});", // FIXME: use composition node instead of cpp
+        abort));
+  }
+}
+
+case class ConnectFragments() extends Statement with Expandable {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = "NOT VALID ; CLASS = InitGeneratedDomain\n";
+
+  override def expand : LoopOverFragments = {
+    var body = new ListBuffer[Statement];
+
+    // TODO: get actual neighbors
+    for (z <- -1 to 1; y <- -1 to 1; x <- -1 to 1; if (0 != x || 0 != y || 0 != z)) {
+      val index = (z + 1) * 9 + (y + 1) * 3 + (x + 1);
+      body += new Scope(ListBuffer(
+        s"Vec3 offsetPos = curFragment.pos + Vec3($x, $y, $z);",
+//        s"int ownRank = ",         PointToOwningRank("offsetPos"), ";",	// FIXME: include this stuff in the next line
+//        new ConditionStatement(s"mpiRank == ownRank",
+        new ConditionStatement(s"mpiRank == pos2OwnerRank(offsetPos)",
+          s"curFragment.connectLocalElement($index, fragmentMap["
+            	+ PointToFragmentId("offsetPos").cpp /* FIXME: combination node */
+            	+ s"]);",
+          new ConditionStatement(PointInsideDomain(s"offsetPos"),
+            s"curFragment.connectRemoteElement($index, "
+            	+ PointToFragmentId("offsetPos").cpp /* FIXME: combination node */
+            	+ s", pos2OwnerRank(offsetPos));"))));
+    }
+
+    return new LoopOverFragments(body);
+  }
+}
+
+case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandable {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = "NOT VALID ; CLASS = InitGeneratedDomain\n";
+
+  override def expand : FunctionStatement = {
+    FunctionStatement(new UnitDatatype(), s"initGeneratedDomain",
+      ListBuffer(Variable("std::vector<boost::shared_ptr<Fragment3DCube> >&", "fragments"), Variable("const Vec3u&", "numBlocks"), Variable("const Vec3u&", "numFragmentsPerBlock")),
+      ListBuffer(
+        "numFrag	= numBlocks * numFragmentsPerBlock;",
+        "numRank	= numBlocks;",
+        "lenRank	= Vec3(numFragmentsPerBlock.x, numFragmentsPerBlock.y, numFragmentsPerBlock.z);",
+        "int	mpiRank;",
+        "int			numMpiProc;",
+        "MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);",
+        "MPI_Comm_size(MPI_COMM_WORLD, &numMpiProc);",
+        AssertStatement("numMpiProc != numBlocks.componentProd()",
+          "\"Invalid number of MPI processes (\" << numMpiProc << \") should be \" << numBlocks.componentProd()",
+          "return;"),
+
+        "std::map<exa_id_t, boost::shared_ptr<Fragment3DCube> >		fragmentMap;",
+
+        "std::vector<Vec3> positions = rank2FragmentPositions(mpiRank);",
+        "fragments.reserve(positions.size());",
+        "#pragma omp parallel for schedule(static, 1) ordered", //TODO: integrate into the following loop via traits
+        ForLoopStatement("int e = 0", "e < positions.size()", "++e",
+          ListBuffer(
+            "boost::shared_ptr<Fragment3DCube> fragment(new Fragment3DCube("
+            	+ PointToFragmentId("positions[e]").cpp /* FIXME: combination node */
+              +s", positions[e]));",
+            "#	pragma omp ordered",
+            "{",
+            "fragments.push_back(fragment);",
+            "fragmentMap["
+            	+ PointToFragmentId("positions[e]").cpp /* FIXME: combination node */
+            +s"] = fragment;",
+            "}")),
+        ConnectFragments(),
+        new LoopOverFragments(
+          "fragments[e]->setupBuffers();" // TODO: add validation
+          )));
+  }
+}
+
 case class DomainGenerated() extends Node with FilePrettyPrintable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  override def printToFile = {
-    val writerHeader = new PrintWriter(new File(Globals.printPath + s"Domains/DomainGenerated.h"));
+  var statements_HACK : ListBuffer[Statement] = new ListBuffer;
 
-    writerHeader.write("""
-#ifndef DOMAINS_DOMAINGENERATED_H
-#define DOMAINS_DOMAINGENERATED_H
-
-#include <vector>
-#include <map>
-
-#include <boost/shared_ptr.hpp>
-
-#include "Util/Defines.h"
-#include "Util/Log.h"
-#include "Util/TypeDefs.h"
-
-#include "Util/Vector.h"
-
+  statements_HACK +=
+    """
 Vec3	minPos	= Vec3(0.);
 
 Vec3u	numFrag;
@@ -80,100 +194,29 @@ std::vector<Vec3>	rank2FragmentPositions (int mpiRank)
 
 	return posVec;
 }
+""";
 
-void generatePrimitives (int mpiRank, std::vector<boost::shared_ptr<Fragment3DCube> >& fragments, std::map<exa_id_t, boost::shared_ptr<Fragment3DCube> >& fragmentMap)
-{
-	{
-#ifdef USE_OMP
-		std::vector<Vec3> positions = rank2FragmentPositions(mpiRank);
-#	pragma omp parallel for schedule(static, 1) ordered
-		for (int ompThreadId = 0; ompThreadId < (int)positions.size(); ++ompThreadId)
-		{
-			Vec3& pos = positions[ompThreadId];
-			boost::shared_ptr<Fragment3DCube> fragment(new Fragment3DCube(pos2FragmentId(pos), pos));
-#	pragma omp ordered 
-			{
-				fragments.push_back(fragment);
-				fragmentMap[pos2FragmentId(pos)] = fragment;
-			}
-		}
-#else
-		std::vector<Vec3> positions = rank2FragmentPositions(mpiRank);
-		for (auto pos = positions.begin(); pos != positions.end(); ++pos)
-		{
-			boost::shared_ptr<Fragment3DCube> fragment(new Fragment3DCube(pos2FragmentId(*pos), *pos));
-			fragments.push_back(fragment);
-			fragmentMap[pos2FragmentId(*pos)] = fragment;
-		}
-#endif
-	}
+  statements_HACK += new InitGeneratedDomain;
 
-	// set up communication
-	for (std::map<exa_id_t, boost::shared_ptr<Fragment3DCube> >::iterator fragIt = fragmentMap.begin(); fragIt != fragmentMap.end(); ++fragIt)
-	{
-		boost::shared_ptr<Fragment3DCube> curFrag = fragIt->second;
+  override def printToFile = {
+    val writerHeader = new PrintWriter(new File(Globals.printPath + s"Domains/DomainGenerated.h"));
 
-		for (int z = -1; z <= 1; ++z)
-			for (int y = -1; y <= 1; ++y)
-				for (int x = -1; x <= 1; ++x)
-				{
-					Vec3 offset = Vec3(x, y, z);
-					FRAGMENT_LOCATION loc = (FRAGMENT_LOCATION)(FRAG_CUBE_ZN_YN_XN + (z + 1) * 9 + (y + 1) * 3 + (x + 1));
+    // TODO: add header guard semi-automatic
+    // TODO: add includes to class node or similar
+    writerHeader.write(
+      "#ifndef DOMAINS_DOMAINGENERATED_H\n"
+        + "#define DOMAINS_DOMAINGENERATED_H\n"
+        + "#include <vector>\n"
+        + "#include <map>\n"
+        + "#include <boost/shared_ptr.hpp>\n"
+        + "#include \"Util/Defines.h\"\n"
+        + "#include \"Util/Log.h\"\n"
+        + "#include \"Util/TypeDefs.h\"\n"
+        + "#include \"Util/Vector.h\"\n");
 
-					if (mpiRank == pos2OwnerRank(curFrag->pos + offset))
-						curFrag->connectLocalElement(loc, fragmentMap[pos2FragmentId(curFrag->pos + offset)]);
-					else if (!isOutside(curFrag->pos + offset))
-						curFrag->connectRemoteElement(loc, pos2FragmentId(curFrag->pos + offset), pos2OwnerRank(curFrag->pos + offset));
-				}
-	}
-}
+    writerHeader.write(statements_HACK.map(s => s.cpp).mkString("\n") + "\n");
 
-void initGeneratedDomain (std::vector<boost::shared_ptr<Fragment3DCube> >& fragments, const Vec3u& numBlocks, const Vec3u& numFragmentsPerBlock)
-{
-#ifdef USE_MPI
-	numFrag	= numBlocks * numFragmentsPerBlock;
-	numRank	= numBlocks;
-	lenRank	= Vec3(numFragmentsPerBlock.x, numFragmentsPerBlock.y, numFragmentsPerBlock.z);
-
-	// setup mpi variables
-	int	mpiRank;
-	int			numMpiProc;
-	MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
-	MPI_Comm_size(MPI_COMM_WORLD, &numMpiProc);
-
-	if (numMpiProc != numBlocks.componentProd())
-	{
-		LOG_ERROR("Invalid number of MPI processes (" << numMpiProc << ") should be " << numBlocks.componentProd());
-		return;
-	}
-
-#	ifdef VERBOSE
-	if (0 == mpiRank)
-		LOG_NOTE("Generating " << numBlocks.componentProd() << " blocks with " << numFragmentsPerBlock.componentProd() << " fragments each (" \
-		<< numFrag.componentProd() << " in total)");
-#	endif
-
-	// create temp primitive maps
-	std::map<exa_id_t, boost::shared_ptr<Fragment3DCube> >		fragmentMap;
-
-	generatePrimitives(mpiRank, fragments, fragmentMap);
-#else
-	LOG_ERROR("Not implemented!");
-#endif
-
-	// data management
-#pragma omp parallel for schedule(static, 1)
-	for (int e = 0; e < fragments.size(); ++e)
-		fragments[e]->setupBuffers();
-
-	// 	FIXME: // validation
-	// 	for (int e = 0; e < fragments.size(); ++e)
-	// 		fragments[e]->validate();
-}
-
-#endif // DOMAINS_DOMAINGENERATED_H
-""");
-
+    writerHeader.write("#endif // DOMAINS_DOMAINGENERATED_H\n");
     writerHeader.close();
   }
 

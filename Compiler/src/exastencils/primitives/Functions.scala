@@ -50,7 +50,7 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
 
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"connectLocalElement",
-      ListBuffer(Variable("FRAGMENT_LOCATION", "location"), Variable("boost::shared_ptr<Fragment3DCube>", "fragment")),
+      ListBuffer(Variable("unsigned int", "location"), Variable("boost::shared_ptr<Fragment3DCube>", "fragment")),
       ListBuffer(
         "ASSERT_WARNING((fragment), \"Invalid fragment pointer detected\", return);",
         s"neighbor_isValid[location] = true;",
@@ -67,7 +67,7 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
 
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"connectRemoteElement",
-      ListBuffer(Variable("FRAGMENT_LOCATION", "location"), Variable("exa_id_t", "id"), Variable(IntegerDatatype(), "remoteRank")),
+      ListBuffer(Variable("unsigned int", "location"), Variable("exa_id_t", "id"), Variable(IntegerDatatype(), "remoteRank")),
       ListBuffer(
         s"neighbor_isValid[location] = true;",
         s"neighbor_isRemote[location] = true;",
