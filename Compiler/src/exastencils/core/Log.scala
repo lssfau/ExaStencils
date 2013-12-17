@@ -1,18 +1,37 @@
 package exastencils.core
 
 object Log {
+  object Levels extends Enumeration {
+    type Levels = Value
+    val Error = Value(2)
+    val Warn = Value(4)
+    val Debug = Value(8)
+    val Info = Value(16)
+  }
+  import Levels._
+
+  var level : Levels = Warn
+
   def error(s : Any) = {
-    println(f"ERROR: $s")
-    sys.exit(-1)
+    if (level.id <= Error.id) {
+      println(f"ERROR: $s")
+      sys.exit(-1)
+    }
   }
   def warn(s : Any) = {
-    println(f"WARN:  $s")
+    if (level.id <= Warn.id) {
+      println(f"WARN:  $s")
+    }
   }
   def debug(s : Any) = {
-    println(f"DEBUG: $s")
+    if (level.id <= Debug.id) {
+      println(f"DEBUG: $s")
+    }
   }
   def info(s : Any) = {
-    println(f"INFO:  $s")
+    if (level.id <= Info.id) {
+      println(f"INFO:  $s")
+    }
   }
 }
 
