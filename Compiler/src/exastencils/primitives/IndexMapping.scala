@@ -45,7 +45,7 @@ object Mapping {
     return (1 << level) + 1 + 2 * Knowledge.numGhostLayers;
   }
   def access(level : Int, z : String = "z", y : String = "y", x : String = "x") : String = {
-    return s"$z * (${numPoints(level) * numPoints(level)}) + $y * ${numPoints(level)} + $x";
+    return s"$z * ${numPoints(level) * numPoints(level)} + $y * ${numPoints(level)} + $x";
   }
 }
 
