@@ -121,7 +121,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
     FunctionStatement(new UnitDatatype(), s"initGeneratedDomain",
       // FIXME: replace shared_ptr with normal pointers
       // FIXME: replace vector with fixed size array
-      ListBuffer(Variable("std::vector<boost::shared_ptr<Fragment3DCube> >&", "fragments")),
+      ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments")),
       ListBuffer(
         // TODO: move to specialized node
         "int mpiRank;",
@@ -133,7 +133,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
           "\"Invalid number of MPI processes (\" << numMpiProc << \") should be \" << " + (Knowledge.numBlocks),
           "return;"),
 
-        "std::map<exa_id_t, boost::shared_ptr<Fragment3DCube> > fragmentMap;",
+        "std::map<exa_id_t, Fragment3DCube*> fragmentMap;",
 
         "std::vector<Vec3> positions;",
         s"Vec3 rankPos(mpiRank % ${Knowledge.numBlocks_x}, (mpiRank / ${Knowledge.numBlocks_x}) % ${Knowledge.numBlocks_y}, mpiRank / ${Knowledge.numBlocks_x * Knowledge.numBlocks_y});",
@@ -145,10 +145,10 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
         ForLoopStatement("int e = 0", "e < positions.size()", "++e",
           ListBuffer(
             // FIXME: reorder
-            "boost::shared_ptr<Fragment3DCube> fragment(new Fragment3DCube());",
+            "Fragment3DCube* fragment = new Fragment3DCube();",
             "fragment->id = " ~ PointToFragmentId("positions[e]") ~ ";",
             "fragment->pos = positions[e];",
-            "#	pragma omp ordered",
+            "#	pragma omp ordered", // FIXME: remove ordered
             "{",
             "fragments[e] = fragment;",
             "fragmentMap[" ~ PointToFragmentId("positions[e]").cpp ~ s"] = fragment;",
@@ -175,7 +175,6 @@ case class DomainGenerated() extends Node with FilePrettyPrintable {
         + "#define DOMAINS_DOMAINGENERATED_H\n"
         + "#include <vector>\n"
         + "#include <map>\n"
-        + "#include <boost/shared_ptr.hpp>\n"
         + "#include \"Util/Defines.h\"\n"
         + "#include \"Util/Log.h\"\n"
         + "#include \"Util/TypeDefs.h\"\n"

@@ -51,8 +51,6 @@ case class Poisson3D() extends Node with FilePrettyPrintable {
 #include <climits>
 #include <cfloat>
 
-#include <boost/shared_ptr.hpp>
-
 #ifdef USE_OMP
 #	include <omp.h>
 #endif
@@ -134,7 +132,7 @@ int main (int argc, char** argv)
 	LOG_NOTE("Starting up");
 #endif
 
-	std::vector<boost::shared_ptr<Fragment3DCube> >	fragments;
+	std::vector<Fragment3DCube*>	fragments;
 
 #ifdef USE_MPI
 	// init MPI
@@ -611,6 +609,8 @@ int main (int argc, char** argv)
 		LOG_NOTE("Finished after " << curIt << " iterations");
 #endif
 
+  // FIXME: free primitives
+        
 	SAFE_DELETE(multiGrid);
 
 	// shutdown

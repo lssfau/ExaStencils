@@ -60,7 +60,7 @@ case class LoopOverFragments(var body : ListBuffer[Statement]) extends Statement
       ListBuffer[Statement](
         "#pragma omp parallel for schedule(static, 1) ordered", // FIXME: move to own Node // FIXME: ordered
         ForLoopStatement(s"int e = 0", s"e < fragments.size()", s"++e",
-          ListBuffer[Statement]("Fragment3DCube& curFragment = *(fragments[e].get());")
+          ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[e];")
             ++ body)));
   }
 }
