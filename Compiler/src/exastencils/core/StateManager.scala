@@ -197,11 +197,11 @@ object StateManager {
       if (!method.getName.endsWith(setterSuffix)) {
         set(o, method.getName, value)
       } else {
-        //        if (!method.getParameterTypes()(0).getClass.isAssignableFrom(value.getClass)) {
-        //          val from = method.getParameterTypes()(0)
-        //          val to = value.getClass
-        //          throw new ValueSetException(s"""Invalid assignment: Cannot assign to $to from $from for "$o"""")
-        //        }
+        if (!method.getParameterTypes()(0).isAssignableFrom(value.getClass)) {
+          val from = method.getParameterTypes()(0)
+          val to = value.getClass
+          throw new ValueSetException(s"""Invalid assignment: Cannot assign to $to from $from for "$o"""")
+        }
         method.invoke(o, value)
         true
       }
