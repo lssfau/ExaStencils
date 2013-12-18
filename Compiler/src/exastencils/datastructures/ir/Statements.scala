@@ -103,10 +103,39 @@ case class ConditionStatement(var condition : Expression, var trueBody : ListBuf
   }
 }
 
+case class CaseStatement(var toMatch : Expression, var body : ListBuffer[Statement]) extends Statement {
+  override def duplicate = { this.copy(toMatch = Duplicate(toMatch), body = Duplicate(body)).asInstanceOf[this.type] }
+
+  def this(toMatch : Expression, body : Statement) = this(toMatch, ListBuffer[Statement](body));
+
+  override def cpp : String = {
+    (s"case (${toMatch.cpp}):"
+      + "\n{\n"
+      + body.map(stat => stat.cpp).mkString("\n")
+      + s"\n} break;");
+  }
+}
+
+case class SwitchStatement(var what : Expression, var body : ListBuffer[CaseStatement]) extends Statement {
+  override def duplicate = { this.copy(what = Duplicate(what), body = Duplicate(body)).asInstanceOf[this.type] }
+
+  def this(what : Expression, body : CaseStatement) = this(what, ListBuffer[CaseStatement](body));
+
+  override def cpp : String = {
+    (s"switch (${what.cpp})"
+      + "\n{\n"
+      + body.map(stat => stat.cpp).mkString("\n")
+      + s"\n}");
+  }
+}
+
 abstract class AbstractFunctionStatement() extends Statement
 
 case class FunctionStatement(var returntype : Datatype, var name : String, var parameters : ListBuffer[Variable], var body : ListBuffer[Statement]) extends AbstractFunctionStatement {
   override def duplicate = { this.copy(returntype = Duplicate(returntype), parameters = Duplicate(parameters), body = Duplicate(body)).asInstanceOf[this.type] }
+
+  def this(returntype : Datatype, name : String, parameters : ListBuffer[Variable], body : Statement) = this(returntype, name, parameters, ListBuffer[Statement](body));
+  def this(returntype : Datatype, name : String, parameters : Variable, body : ListBuffer[Statement]) = this(returntype, name, ListBuffer[Variable](parameters), body);
 
   def cpp : String = { // FIXME: add specialized node for parameter specification with own PP
     (s"${returntype.cpp} $name(" + parameters.map(param => s"${param.datatype.cpp} ${param.name}").mkString(", ") + ")"
