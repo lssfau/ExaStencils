@@ -135,7 +135,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
 
         "std::vector<Vec3> positions;",
         s"Vec3 rankPos(mpiRank % ${Knowledge.numBlocks_x}, (mpiRank / ${Knowledge.numBlocks_x}) % ${Knowledge.numBlocks_y}, mpiRank / ${Knowledge.numBlocks_x * Knowledge.numBlocks_y});",
-        new LoopOverDimensions(IndexRange(Array("0", "0", "0"), Array(s"${Knowledge.numFragsPerBlock_x - 1}", s"${Knowledge.numFragsPerBlock_y - 1}", s"${Knowledge.numFragsPerBlock_z - 1}")),
+        new LoopOverDimensions(IndexRange(Array(0, 0, 0), Array(Knowledge.numFragsPerBlock_x - 1, Knowledge.numFragsPerBlock_y - 1, Knowledge.numFragsPerBlock_z - 1)),
           s"positions.push_back(Vec3(rankPos.x * ${Knowledge.numFragsPerBlock_x} + 0.5 + x, rankPos.y * ${Knowledge.numFragsPerBlock_y} + 0.5 + y, rankPos.z * ${Knowledge.numFragsPerBlock_z} + 0.5 + z));"),
 
         s"fragments.reserve(${Knowledge.numFragsPerBlock_x * Knowledge.numFragsPerBlock_y * Knowledge.numFragsPerBlock_z});",
