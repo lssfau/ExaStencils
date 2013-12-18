@@ -15,7 +15,7 @@ object MakefileGenerator extends BuildfileGenerator {
     })
 
     printer <<< "\t${CXX} ${CFLAGS} -o ${BINARY} "
-    PrettyPrintManager.getFiles.filter(file => file != "Makefile").foreach(file => {
+    PrettyPrintManager.getFiles.filter(file => file.endsWith(".cpp")).foreach(file => {
       printer << s"$file "
     })
     printer <<< ""
