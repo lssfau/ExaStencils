@@ -119,6 +119,8 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
 
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"initGeneratedDomain",
+      // FIXME: replace shared_ptr with normal pointers
+      // FIXME: replace vector with fixed size array
       ListBuffer(Variable("std::vector<boost::shared_ptr<Fragment3DCube> >&", "fragments")),
       ListBuffer(
         // TODO: move to specialized node
@@ -127,8 +129,8 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
         "MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);",
         "MPI_Comm_size(MPI_COMM_WORLD, &numMpiProc);",
 
-        AssertStatement(s"numMpiProc != ${Knowledge.numBlocks_x * Knowledge.numBlocks_y * Knowledge.numBlocks_z}",
-          "\"Invalid number of MPI processes (\" << numMpiProc << \") should be \" << " + (Knowledge.numBlocks_x * Knowledge.numBlocks_y * Knowledge.numBlocks_z),
+        AssertStatement(s"numMpiProc != ${Knowledge.numBlocks}",
+          "\"Invalid number of MPI processes (\" << numMpiProc << \") should be \" << " + (Knowledge.numBlocks),
           "return;"),
 
         "std::map<exa_id_t, boost::shared_ptr<Fragment3DCube> > fragmentMap;",
@@ -138,16 +140,17 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
         new LoopOverDimensions(IndexRange(Array(0, 0, 0), Array(Knowledge.numFragsPerBlock_x - 1, Knowledge.numFragsPerBlock_y - 1, Knowledge.numFragsPerBlock_z - 1)),
           s"positions.push_back(Vec3(rankPos.x * ${Knowledge.numFragsPerBlock_x} + 0.5 + x, rankPos.y * ${Knowledge.numFragsPerBlock_y} + 0.5 + y, rankPos.z * ${Knowledge.numFragsPerBlock_z} + 0.5 + z));"),
 
-        s"fragments.reserve(${Knowledge.numFragsPerBlock_x * Knowledge.numFragsPerBlock_y * Knowledge.numFragsPerBlock_z});",
+        s"fragments.resize(${Knowledge.numFragsPerBlock});",
         "#pragma omp parallel for schedule(static, 1) ordered", //TODO: integrate into the following loop via traits
         ForLoopStatement("int e = 0", "e < positions.size()", "++e",
           ListBuffer(
+            // FIXME: reorder
             "boost::shared_ptr<Fragment3DCube> fragment(new Fragment3DCube());",
             "fragment->id = " ~ PointToFragmentId("positions[e]") ~ ";",
             "fragment->pos = positions[e];",
             "#	pragma omp ordered",
             "{",
-            "fragments.push_back(fragment);",
+            "fragments[e] = fragment;",
             "fragmentMap[" ~ PointToFragmentId("positions[e]").cpp ~ s"] = fragment;",
             "}")),
         ConnectFragments(),
