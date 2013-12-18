@@ -48,7 +48,7 @@ case class LocalNeighborFieldAccess(var neighborPtr : Expression, var field : Fi
   }
 }
 
-case class LoopOverFragments(var body : ListBuffer[Statement]) extends Statement with Expandable {
+case class LoopOverFragments(var body : ListBuffer[Statement], var createFragRef : Boolean = true) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def this(body : Statement) = this(ListBuffer(body));
@@ -58,9 +58,9 @@ case class LoopOverFragments(var body : ListBuffer[Statement]) extends Statement
   def expand : StatementBlock = {
     new StatementBlock(
       ListBuffer[Statement](
-        "#pragma omp parallel for schedule(static, 1) ordered", // FIXME: move to own Node // FIXME: ordered
-        ForLoopStatement(s"int e = 0", s"e < fragments.size()", s"++e",
-          ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[e];")
+        "#pragma omp parallel for schedule(static, 1)", // FIXME: move to own Node
+        ForLoopStatement(s"int e = 0", s"e < ${Knowledge.numFragsPerBlock}", s"++e",
+          (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[e];") else ListBuffer[Statement]())
             ++ body)));
   }
 }

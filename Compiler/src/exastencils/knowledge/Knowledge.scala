@@ -8,7 +8,7 @@ object Knowledge {
   //val fragmentCommStrategy = 26;
 
   val numSolSlots = 1; // TODO: set according to smoother
-  
+
   val numFragsPerBlock_x = 3;
   val numFragsPerBlock_y = 3;
   val numFragsPerBlock_z = 3;

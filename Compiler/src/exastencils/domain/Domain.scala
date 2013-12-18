@@ -119,7 +119,6 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
 
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"initGeneratedDomain",
-      // FIXME: replace shared_ptr with normal pointers
       // FIXME: replace vector with fixed size array
       ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments")),
       ListBuffer(
@@ -141,18 +140,11 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
           s"positions.push_back(Vec3(rankPos.x * ${Knowledge.numFragsPerBlock_x} + 0.5 + x, rankPos.y * ${Knowledge.numFragsPerBlock_y} + 0.5 + y, rankPos.z * ${Knowledge.numFragsPerBlock_z} + 0.5 + z));"),
 
         s"fragments.resize(${Knowledge.numFragsPerBlock});",
-        "#pragma omp parallel for schedule(static, 1) ordered", //TODO: integrate into the following loop via traits
-        ForLoopStatement("int e = 0", "e < positions.size()", "++e",
-          ListBuffer(
-            // FIXME: reorder
-            "Fragment3DCube* fragment = new Fragment3DCube();",
-            "fragment->id = " ~ PointToFragmentId("positions[e]") ~ ";",
-            "fragment->pos = positions[e];",
-            "#	pragma omp ordered", // FIXME: remove ordered
-            "{",
-            "fragments[e] = fragment;",
-            "fragmentMap[" ~ PointToFragmentId("positions[e]").cpp ~ s"] = fragment;",
-            "}")),
+        LoopOverFragments(ListBuffer(
+          "fragments[e] = new Fragment3DCube();",
+          "fragments[e]->id = " ~ PointToFragmentId("positions[e]") ~ ";",
+          "fragments[e]->pos = positions[e];",
+          "fragmentMap[" ~ PointToFragmentId("positions[e]").cpp ~ s"] = fragments[e];"), false),
         ConnectFragments(),
         new SetupBuffers));
   }
