@@ -1,14 +1,12 @@
 package exastencils.primitives
 
 import exastencils.core._
-
 import exastencils.knowledge._
-
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-
 import exastencils.primitives._
+import exastencils.strategies._
 
 object GenerateCode_Primitives extends (() => Unit) {
   def apply() : Unit = {
@@ -74,60 +72,15 @@ object GenerateCode_Primitives extends (() => Unit) {
         Some(frag);
     });
 
-    // expand applicable nodes - FIXME: do while (changed)
-    var expandablesFound = 0;
-    strategy += new Transformation("Hoho, expanding all day...", {
-      case function : Expandable =>
-        expandablesFound += 1;
-        Some(function.expand);
-    });
-    strategy += new Transformation("Hoho, expanding all day...", {
-      case function : Expandable =>
-        expandablesFound += 1;
-        Some(function.expand);
-    });
-
-    // FIXME: requires nested strategies which currently are not available
-    //    strategy += new Transformation("Add function scope prefixes to class member functions", {
-    //      case c : Class =>
-    //        var strategyAddScopePrefix = new Strategy("strategyAddScopePrefix");
-    //        strategyAddScopePrefix += new Transformation({
-    //          case function : FunctionStatement =>
-    //            println("Found a member function");
-    //
-    //            // add to name
-    //
-    //            Some(function);
-    //        }, true, c)
-    //
-    //        strategyAddScopePrefix.apply;
-    //
-    //        Some(c);
-    //    });
-    strategy += new Transformation("Add function scope prefixes to class member functions", {
-      case c : Class =>
-        for (func <- c.functions) {
-          func match { case f : FunctionStatement => f.name = s"${c.className}::${f.name}"; }
-        }
-        Some(c);
-    });
-
-    strategy += new Transformation("Add OMP pragmas", {
-      case target : OMP_PotentiallyCritical =>
-        Some(target.addOMPDirective);
-    });
-
-    // print
-    strategy += new Transformation("Pretty-Print", {
-      case printable : FilePrettyPrintable =>
-        printable.printToFile;
-        Some(printable);
-    });
-
-    println("Applying Strategies");
     strategy.apply;
-    println("Done");
 
-    println("Found " + expandablesFound + " Expandable nodes");
+    do { ExpandStrategy.apply; }
+    while (ExpandStrategy.results.last._2.replacements > 0)
+
+    AddMemberFunctionPrefixStrategy.apply;
+
+    AddOMPStrategy.apply;
+
+    PrintStrategy.apply;
   }
 }
