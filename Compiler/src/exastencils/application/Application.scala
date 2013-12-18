@@ -19,41 +19,15 @@ case class Poisson3D() extends Node with FilePrettyPrintable {
 #ifndef	POISSON_3D_H
 #define	POISSON_3D_H
 
-//=====================================================================================================================
-//                                        _    __   ____   ____     ______   ____
-//                                       | |  / /  /  _/  / __ \   / ____/  / __ \
-//                                       | | / /   / /   / /_/ /  / __/    / /_/ /
-//                                       | |/ /  _/ /   / ____/  / /___   / _, _/
-//                                       |___/  /___/  /_/      /_____/  /_/ |_|
-//
-//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//
-/// \file	Poisson3D.h
-/// \brief	Header file for the Poisson3D application
-/// \author	Sebastian Kuckuk
-//
-//=====================================================================================================================
-
-//=====================================================================================================================
-// includes
-//=====================================================================================================================
-
 #include "Util/Defines.h"				// required to set USE_* defines
 
-#ifdef USE_MPI
-#	include <mpi.h>				// required to be included before stdio.h
-#endif
+#pragma warning(disable : 4800)
+#include <mpi.h>				// required to be included before stdio.h
 
 #include <vector>
 #include <iostream>
-#include <iomanip>
-#include <fstream>
-#include <climits>
-#include <cfloat>
 
-#ifdef USE_OMP
-#	include <omp.h>
-#endif
+#include <omp.h>
 
 #include "Util/Defines.h"
 #include "Util/Log.h"
@@ -74,26 +48,6 @@ case class Poisson3D() extends Node with FilePrettyPrintable {
     val writerSource = new PrintWriter(new File(Globals.printPath + s"Poisson3D.cpp"));
 
     writerSource.write("""
-
-//=====================================================================================================================
-//									 _____           ____  _                  _ _     
-//									| ____|_  ____ _/ ___|| |_ ___ _ __   ___(_) |___ 
-//									|  _| \ \/ / _` \___ \| __/ _ \ '_ \ / __| | / __|
-//									| |___ >  < (_| |___) | ||  __/ | | | (__| | \__ \
-//									|_____/_/\_\__,_|____/ \__\___|_| |_|\___|_|_|___/
-//
-//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//
-/// \file	Poisson3D.cpp
-/// \brief	Source file for the Poisson3D application
-/// \author	Sebastian Kuckuk
-//
-//=====================================================================================================================
-
-//=====================================================================================================================
-// includes
-//=====================================================================================================================
-
 #include "Poisson3D.h"
 
 #ifdef TIME_MEASUREMENTS
@@ -122,47 +76,18 @@ void printUsage ()
 #endif
 }
 
-/// \brief		entry point for the application; performs necessary init steps, executes a MG Poisson and cleans up
-/// \param		argc	number of given arguments
-/// \param		argv	vector of given arguments
-/// \returns	0 in case of success, an error code otherwise
 int main (int argc, char** argv)
 {
-#ifdef VERBOSE
-	LOG_NOTE("Starting up");
-#endif
-
 	std::vector<Fragment3DCube*>	fragments;
 
-#ifdef USE_MPI
-	// init MPI
 	MPI_Init(&argc, &argv);
-// 	int provided;
-// 	MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-// 	if (provided < MPI_THREAD_MULTIPLE)
-// 	{
-// 		LOG_ERROR("MPI is not thread safe and only provides " << provided);
-// 		MPI_Abort(MPI_COMM_WORLD, 1);
-// 	}
 
-	int	mpiRank;
-	int			mpiSize;
+	int mpiRank;
+	int mpiSize;
 	MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
 	MPI_Comm_size(MPI_COMM_WORLD, &mpiSize);
 
-#	ifdef VERBOSE
-	LOG_NOTE("Initializing rank " << mpiRank << " of " << mpiSize);
-#	endif
-#endif
-
-#ifdef USE_OMP
-// 	omp_set_num_threads(OMP_NUM_THREADS);
-// #	ifdef VERBOSE
-// 	LOG_NOTE("Setting number of OMP threads to " << OMP_NUM_THREADS);
-// #	endif
-#endif
-
-	// init
+	// FIXME: omp_set_num_threads(OMP_NUM_THREADS);
 
 #ifdef TIME_MEASUREMENTS
 	if (argc < 9)
@@ -170,30 +95,22 @@ int main (int argc, char** argv)
 	if (argc < 3)
 #endif
 	{
-#ifdef USE_MPI
 		if (0 == mpiRank)
 			printUsage();
 		MPI_Finalize();
-#else
-		printUsage();
-#endif
+
 		return 1;
 	}
 
 	unsigned int maxNumItSteps = atoi(argv[1]);
-#	ifdef VERBOSE
-	LOG_NOTE("Setting maxNumItSteps to " << maxNumItSteps);
-#	endif
 
 #ifdef TIME_MEASUREMENTS
 	COARSE_LEVEL				= atoi(argv[3]);
 	FINAL_LEVEL					= atoi(argv[4]);
 	if (FINAL_LEVEL >= NUM_LEVELS)
 	{
-#	ifdef USE_MPI
 		MPI_Finalize();
 		if (0 == mpiRank)
-#	endif
 			LOG_ERROR("Finest level must not be larger than " << NUM_LEVELS-1);
 		return 1;
 	}
@@ -202,61 +119,8 @@ int main (int argc, char** argv)
 	NUM_PRE_SMOOTHING_STEPS		= atoi(argv[6]);
 	NUM_POST_SMOOTHING_STEPS	= atoi(argv[7]);
 	OMEGA						= atof(argv[8]);
-
-#	ifdef VERBOSE
-	if (0 == mpiRank)
-	{
-		LOG_NOTE("Setting COARSE_LEVEL to "				<< COARSE_LEVEL);
-		LOG_NOTE("Setting FINAL_LEVEL to "				<< FINAL_LEVEL);
-		LOG_NOTE("Setting NUM_COARSE_STEPS to "			<< NUM_COARSE_STEPS);
-		LOG_NOTE("Setting NUM_PRE_SMOOTHING_STEPS to "	<< NUM_PRE_SMOOTHING_STEPS);
-		LOG_NOTE("Setting NUM_POST_SMOOTHING_STEPS to "	<< NUM_POST_SMOOTHING_STEPS);
-		LOG_NOTE("Setting OMEGA to "					<< OMEGA);
-		LOG_NOTE("Setting NUM_LSE_ENTRIES_PER_RANK to "	<< NUM_LSE_ENTRIES_PER_RANK);
-		LOG_NOTE("Setting COARSE_GRID_RANK_STRIDE to "	<< COARSE_GRID_RANK_STRIDE);
-
-#		ifdef COARSE_GRID_SOLVER_IP_SMOOTHER
-		LOG_NOTE("Using CGS \"in place smoother\"");
-#		endif
-#		ifdef COARSE_GRID_SOLVER_IP_CG
-		LOG_NOTE("Using CGS \"in place CG\"");
-#		endif
-#		ifdef COARSE_GRID_SOLVER_IP_HYPRE
-		LOG_NOTE("Using CGS \"in place Hypre\\AMG\"");
-#		endif
-#		ifdef COARSE_GRID_SOLVER_RED_HYPRE
-		LOG_NOTE("Using CGS \"reduction Hypre\\AMG\"");
-#		endif
-
-#		ifdef SMOOTHER_JACOBI
-		LOG_NOTE("Using smoother \"Jacobi\"");
-#		endif
-#		ifdef SMOOTHER_GS
-		LOG_NOTE("Using smoother \"Gauss-Seidel\"");
-#		endif
-#		ifdef SMOOTHER_GSAC
-		LOG_NOTE("Using smoother \"Gauss-Seidel with Additional Communication\"");
-#		endif
-#		ifdef SMOOTHER_GSOD
-		LOG_NOTE("Using smoother \"Gauss-Seidel of Death (with additional communication)\"");
-#		endif
-#		ifdef SMOOTHER_GSACBE
-		LOG_NOTE("Using smoother \"Gauss-Seidel Block Edition with Additional Communication\"");
-#		endif
-#		ifdef SMOOTHER_GSRS
-		LOG_NOTE("Using smoother \"Gauss-Seidel with Random Sampling\"");
-#		endif
-#		ifdef SMOOTHER_GSRB
-		LOG_NOTE("Using smoother \"Gauss-Seidel Red-Black (RBGS)\"");
-#		endif
-#		ifdef SMOOTHER_GSRBAC
-		LOG_NOTE("Using smoother \"Gauss-Seidel Red-Black (RBGS) with Additional Communication\"");
-#		endif
-	}
-#	endif
 #endif
 
-#ifdef USE_MPI
 	StopWatch setupWatch;
 
 	bool errorOccured = false;
@@ -273,25 +137,9 @@ int main (int argc, char** argv)
 		return 1;
 	}
 
-#	ifdef VERBOSE
-	if (0 == mpiRank)
-		LOG_NOTE("Domain setup took " << setupWatch.getTimeInMilliSecAndReset());
-#	endif
-#else
-	printUsage();
-	return 1;
-#endif
-
-	// init values
 	std::srand(1337);
 
-#ifdef VERBOSE
-	LOG_NOTE("Initializing fragment values");
-#endif
-
-#ifdef USE_OMP
-#	pragma omp parallel for schedule(static, 1)
-#endif
+#pragma omp parallel for schedule(static, 1)
 	for (int f = 0; f < fragments.size(); ++f)
 	{
 		for (unsigned int l = 0; l < NUM_LEVELS; ++l)
@@ -325,43 +173,15 @@ int main (int argc, char** argv)
 		}
 	}
 
-#ifdef USE_MPI
 	MPI_Barrier(MPI_COMM_WORLD);
-#endif
 
-#ifdef VERBOSE
-	LOG_NOTE("Initializing values successful");
-#endif
-
-#ifdef USE_MPI
-	if (0 == mpiRank)
-#endif
-	{
-#ifdef TIME_MEASUREMENTS
-#else
-		std::cout << "Init complete, push to start computation...\n";
-        std::string aux;
-		std::getline(std::cin, aux);
-#endif
-	}
-
-#ifdef USE_MPI
-	MPI_Barrier(MPI_COMM_WORLD);
-#endif
-
-	// create MG instance
-	MultiGrid*	multiGrid = new MultiGrid();
-
-#ifdef VERBOSE
-	LOG_NOTE("Calculating initial residual");
-#endif
+	MultiGrid* multiGrid = new MultiGrid();
 
 	exa_real_t lastRes = 0.0;
 	{
 		multiGrid->updateResidual_Node(fragments, 0, FINAL_LEVEL);
 		exa_real_t res = multiGrid->getGlobalResidual_Node(fragments, FINAL_LEVEL);
 
-#ifdef USE_MPI
 		res = res * res;
 		exa_real_t resTotal;
 
@@ -371,19 +191,9 @@ int main (int argc, char** argv)
 		resTotal = sqrt(resTotal);
 		res = resTotal;
 
-#	ifdef VERBOSE
-		if (0 == mpiRank)
-			LOG_NOTE("Initial Residual: " << res);
-#	endif
-#else
-		LOG_NOTE("Initial Residual: " << res);
-#endif
-
 		lastRes = res;
 	}
 	exa_real_t initialRes = lastRes;
-
-	// run
 
 	unsigned int curIt;
 	unsigned int solSlots[NUM_LEVELS];
@@ -400,10 +210,6 @@ int main (int argc, char** argv)
 
 	for (curIt = 0; curIt < maxNumItSteps; ++curIt)
 	{
-#ifdef VERBOSE
-		LOG_NOTE("Starting interation " << curIt);
-#endif
-		
 #ifdef TIME_MEASUREMENTS
 		stopWatch.reset();
 #endif
@@ -414,23 +220,12 @@ int main (int argc, char** argv)
 		maxTime = std::max(maxTime, tDuration);
 		meanTime += tDuration;
 #endif
-		
-		// check additional stuff every n iterations
+
+		// FIXME: res check every n cycles
  		if (0 != curIt % 1)
  			continue;
 
-#ifdef VERBOSE
-		LOG_NOTE("Updating global residual");
-#endif
-
-		// check global residual
-		//std::cout << std::endl;
-		//for (unsigned int l = COARSE_LEVEL; l < FINAL_LEVEL; ++l)
-		//	std::cout << "Iteration " << curIt << ", current residual (L2-norm), level " << l << ": " << getGlobalResidual(vertices, edges, elements, l) << std::endl;
-
 		exa_real_t res = multiGrid->getGlobalResidual_Node(fragments, FINAL_LEVEL);
-
-#ifdef USE_MPI
 		res = res * res;
 		exa_real_t resTotal;
 
@@ -440,7 +235,6 @@ int main (int argc, char** argv)
 		resTotal = sqrt(resTotal);
 		res = resTotal;
 
-//#	ifdef VERBOSE
 #		ifdef TIME_MEASUREMENTS
 		if (0 == mpiRank)
 		{
@@ -453,24 +247,9 @@ int main (int argc, char** argv)
 		if (0 == mpiRank)
 			LOG_NOTE("Iteration " << curIt << ", current residual (L2-norm), level " << FINAL_LEVEL << ": " << res);
 #		endif
-//#	endif
-#else
-#	ifdef VERBOSE
-#		ifdef TIME_MEASUREMENTS
-			LOG_NOTE("Iteration " << curIt << std::endl
-				<< "\tCurrent residual (L2-norm), level " << FINAL_LEVEL << ": " << res << std::endl
-				<< "\tRuntime for the current v-cycle: " << tDuration << std::endl
-				<< "\tReduction: " << res / lastRes);
-#		else
-		LOG_NOTE("Iteration " << curIt << ", current residual (L2-norm), level " << FINAL_LEVEL << ": " << res);
-#		endif
-#	endif
-#endif
 
 		lastRes = res;
 
-		//if (0.0 == resTotal)
-		//	break;
 		if (res < 1e-8 * initialRes)
 		{
 			++curIt;
@@ -479,15 +258,12 @@ int main (int argc, char** argv)
 	}
 
 #ifdef TIME_MEASUREMENTS
-#	ifdef USE_MPI
 	for (int c = 0; c < mpiSize; ++c)
 	{
 		MPI_Barrier(MPI_COMM_WORLD);
 		if (c == mpiRank)
 		{
-#	endif
 			double totalTime = stopWatchTotal.getTimeInMilliSecAndReset();
-
 			/*LOG_NOTE("Parameters (coarsestLvl finestLvl numCoarseSteps numPreSmoothingSteps numPostSmoothingSteps omega:");
 			LOG_NOTE(COARSE_LEVEL << " " << FINAL_LEVEL << " " << NUM_COARSE_STEPS << " " << NUM_PRE_SMOOTHING_STEPS << " " << NUM_POST_SMOOTHING_STEPS << " " << OMEGA);
 
@@ -559,7 +335,6 @@ int main (int argc, char** argv)
 				<< meanTime / (double)curIt << "\t"
 				<< minTime << "\t"
 				<< maxTime << std::endl;
-#	ifdef USE_MPI
 		}
 
 		if (1)		// if true, only the first process prints its measurements
@@ -569,37 +344,9 @@ int main (int argc, char** argv)
 	MPI_Barrier(MPI_COMM_WORLD);
 	if (0 == mpiRank)
 		std::cout << std::endl;
-#	endif
 #endif
 
-/*
-	multiGrid->communicateSolution(fragments, FINAL_LEVEL, 0);
-
-	for (int r = 0; r < mpiSize; ++r)
-	{
-		MPI_Barrier(MPI_COMM_WORLD);
-		if (r == mpiRank)
-			for (int f = 0; f < fragments.size(); ++f)
-			{
-				std::cout << "Printing element " << f << ":\n";
-				for (int z = fragments[f]->getsolData(FINAL_LEVEL, 0)->numDataPointsPerDim.z - 1; z >= 0; --z)
-				{
-					for (int y = fragments[f]->getsolData(FINAL_LEVEL, 0)->numDataPointsPerDim.y - 1; y >= 0; --y)
-					{
-						for (unsigned int x = 0; x < fragments[f]->getsolData(FINAL_LEVEL, 0)->numDataPointsPerDim.x; ++x)
-							std::cout << std::setw(10) << std::setprecision(6) << std::showpos << std::fixed << std::left << fragments[f]->getsolData(FINAL_LEVEL, 0)->getDataRef(Vec3u(x, y, z));
-						std::cout << std::endl;
-					}
-					std::cout << std::endl;
-				}
-				std::cout << std::endl;
-			}
-	}
-*/
-
-#ifdef USE_MPI
 	MPI_Barrier(MPI_COMM_WORLD);
-#endif
 
 #ifdef TIME_MEASUREMENTS
 #else
@@ -609,14 +356,9 @@ int main (int argc, char** argv)
 		LOG_NOTE("Finished after " << curIt << " iterations");
 #endif
 
-  // FIXME: free primitives
-        
+	// FIXME: free primitives
 	SAFE_DELETE(multiGrid);
-
-	// shutdown
-#ifdef USE_MPI
 	MPI_Finalize();
-#endif
 
 	return 0;
 }
