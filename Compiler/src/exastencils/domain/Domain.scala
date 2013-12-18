@@ -19,7 +19,7 @@ case class PointOutsideDomain(var pos : Expression) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
-    (s"(${pos.cpp}.x < 0.0 || ${pos.cpp}.x > numFrag.x || ${pos.cpp}.y < 0.0 || ${pos.cpp}.y > numFrag.y || ${pos.cpp}.z < 0.0 || ${pos.cpp}.z > numFrag.z)");
+    (s"(${pos.cpp}.x < 0.0 || ${pos.cpp}.x > (numBlocks.x * numFragmentsPerBlock.x) || ${pos.cpp}.y < 0.0 || ${pos.cpp}.y > (numBlocks.y * numFragmentsPerBlock.y) || ${pos.cpp}.z < 0.0 || ${pos.cpp}.z > (numBlocks.z * numFragmentsPerBlock.z))");
   }
 }
 
@@ -27,7 +27,7 @@ case class PointInsideDomain(var pos : Expression) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
-    (s"(${pos.cpp}.x >= 0.0 && ${pos.cpp}.x <= numFrag.x && ${pos.cpp}.y >= 0.0 && ${pos.cpp}.y <= numFrag.y && ${pos.cpp}.z >= 0.0 && ${pos.cpp}.z <= numFrag.z)");
+    (s"(${pos.cpp}.x >= 0.0 && ${pos.cpp}.x <= (numBlocks.x * numFragmentsPerBlock.x) && ${pos.cpp}.y >= 0.0 && ${pos.cpp}.y <= (numBlocks.y * numFragmentsPerBlock.y) && ${pos.cpp}.z >= 0.0 && ${pos.cpp}.z <= (numBlocks.z * numFragmentsPerBlock.z))");
   }
 }
 
@@ -35,7 +35,7 @@ case class PointToFragmentId(var pos : Expression) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
-    (s"((exa_id_t)(floor(${pos.cpp}.z) * numFrag.y * numFrag.x + floor(${pos.cpp}.y) * numFrag.x + floor(${pos.cpp}.x)))");
+    (s"((exa_id_t)(floor(${pos.cpp}.z) * (numBlocks.y * numFragmentsPerBlock.y) * (numBlocks.x * numFragmentsPerBlock.x) + floor(${pos.cpp}.y) * (numBlocks.x * numFragmentsPerBlock.x) + floor(${pos.cpp}.x)))");
   }
 }
 
@@ -47,7 +47,7 @@ case class PointToOwningRank(var pos : Expression) extends Expression with Expan
   override def expand : Expression = { // FIXME: use tenary op node
     (s"((" + PointOutsideDomain(pos).cpp + ")"
       + s" ? (-1)" // FIXME: use MPI symbolic constant
-      + s" : ((int)(floor(${pos.cpp}.z / lenRank.z) * numRank.y * numRank.x + floor(${pos.cpp}.y / lenRank.y) * numRank.x + floor(${pos.cpp}.x / lenRank.x))))");
+      + s" : ((int)(floor(${pos.cpp}.z / numFragmentsPerBlock.z) * numBlocks.y * numBlocks.x + floor(${pos.cpp}.y / numFragmentsPerBlock.y) * numBlocks.x + floor(${pos.cpp}.x / numFragmentsPerBlock.x))))");
   }
 }
 
@@ -103,10 +103,10 @@ case class ValidatePrimitives() extends Statement with Expandable {
 
   override def cpp : String = "NOT VALID ; CLASS = ValidatePrimitives\n";
 
-//  TODO
-//  override def expand : LoopOverFragments = {
-//    new LoopOverFragments("curFragment.validate();");
-//  }
+  //  TODO
+  //  override def expand : LoopOverFragments = {
+  //    new LoopOverFragments("curFragment.validate();");
+  //  }
   override def expand : NullStatement = {
     NullStatement();
   }
@@ -121,28 +121,24 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
     FunctionStatement(new UnitDatatype(), s"initGeneratedDomain",
       ListBuffer(Variable("std::vector<boost::shared_ptr<Fragment3DCube> >&", "fragments"), Variable("const Vec3u&", "numBlocks"), Variable("const Vec3u&", "numFragmentsPerBlock")),
       ListBuffer(
-        "Vec3u numFrag	= numBlocks * numFragmentsPerBlock;",
-        "Vec3u numRank	= numBlocks;",
-        "Vec3 lenRank	= Vec3(numFragmentsPerBlock.x, numFragmentsPerBlock.y, numFragmentsPerBlock.z);",
-        "int	mpiRank;",
-        "int			numMpiProc;",
+        // TODO: move to specialized node
+        "int mpiRank;",
+        "int numMpiProc;",
         "MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);",
         "MPI_Comm_size(MPI_COMM_WORLD, &numMpiProc);",
+
         AssertStatement("numMpiProc != numBlocks.componentProd()",
           "\"Invalid number of MPI processes (\" << numMpiProc << \") should be \" << numBlocks.componentProd()",
           "return;"),
 
-        "std::map<exa_id_t, boost::shared_ptr<Fragment3DCube> >		fragmentMap;",
+        "std::map<exa_id_t, boost::shared_ptr<Fragment3DCube> > fragmentMap;",
 
         "std::vector<Vec3> positions;",
-        "Vec3u rankPos(mpiRank % numRank.x, (mpiRank / numRank.x) % numRank.y, mpiRank / (numRank.x * numRank.y));",
+        "Vec3 rankPos(mpiRank % numBlocks.x, (mpiRank / numBlocks.x) % numBlocks.y, mpiRank / (numBlocks.x * numBlocks.y));",
+        new LoopOverDimensions(IndexRange(Array("0", "0", "0"), Array("numFragmentsPerBlock.x - 1", "numFragmentsPerBlock.y - 1", "numFragmentsPerBlock.z - 1")),
+          "positions.push_back(Vec3(rankPos.x * numFragmentsPerBlock.x + 0.5 + x, rankPos.y * numFragmentsPerBlock.y + 0.5 + y, rankPos.z * numFragmentsPerBlock.z + 0.5 + z));"),
 
-        "for (exa_real_t z = rankPos.z * lenRank.z + 0.5; z <= (1 + rankPos.z) * lenRank.z - 0.5; z += 1.0)",
-        "for (exa_real_t y = rankPos.y * lenRank.y + 0.5; y <= (1 + rankPos.y) * lenRank.y - 0.5; y += 1.0)",
-        "for (exa_real_t x = rankPos.x * lenRank.x + 0.5; x <= (1 + rankPos.x) * lenRank.x - 0.5; x += 1.0)",
-        "positions.push_back(Vec3(x, y, z));",
-
-        "fragments.reserve(positions.size());",
+        "fragments.reserve(numFragmentsPerBlock.x * numFragmentsPerBlock.y * numFragmentsPerBlock.z);",
         "#pragma omp parallel for schedule(static, 1) ordered", //TODO: integrate into the following loop via traits
         ForLoopStatement("int e = 0", "e < positions.size()", "++e",
           ListBuffer(
@@ -153,9 +149,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
             "fragmentMap[" ~ PointToFragmentId("positions[e]").cpp ~ s"] = fragment;",
             "}")),
         ConnectFragments(),
-        new LoopOverFragments(
-          "fragments[e]->setupBuffers();" // TODO: add validation
-          )));
+        new SetupBuffers));
   }
 }
 
@@ -187,5 +181,4 @@ case class DomainGenerated() extends Node with FilePrettyPrintable {
     writerHeader.write("#endif // DOMAINS_DOMAINGENERATED_H\n");
     writerHeader.close();
   }
-
 }
