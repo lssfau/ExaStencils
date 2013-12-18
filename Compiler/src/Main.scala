@@ -43,7 +43,7 @@ object Main {
     SetupFragmentClass.apply;
 
     do { ExpandStrategy.apply; }
-    while (ExpandStrategy.results.last._2.replacements > 0)
+    while (ExpandStrategy.results.last._2.replacements > 0)	// FIXME: cleaner code
 
     AddMemberFunctionPrefix.apply;
 
