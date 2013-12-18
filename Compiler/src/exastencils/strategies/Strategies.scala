@@ -1,5 +1,7 @@
 package exastencils.strategies
 
+import scala.reflect.ClassTag
+
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
@@ -7,6 +9,22 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.domain._
 import exastencils.primitives.OMP_PotentiallyCritical
 import exastencils.primitives.Class // FIXME
+
+object FindFirstOccurence {
+  def find[T : ClassTag] : Option[T] = {
+    var retVal : Option[T] = None;
+    var strategy = Strategy("Finding sth");
+    strategy += new Transformation("Find", {
+      case hit : T =>
+        retVal = Some(hit);
+        Some(hit);
+      // TODO: break
+    }, false);
+
+    strategy.apply;
+    return retVal;
+  }
+}
 
 object PrintStrategy extends Strategy("Pretty-Print") {
   this += new Transformation("Pretty-Print", {
@@ -54,5 +72,5 @@ object AddOMPPragmas extends Strategy("Adding OMP pragmas") {
   this += new Transformation("Adding OMP pragmas", {
     case target : OMP_PotentiallyCritical =>
       Some(target.addOMPDirective);
-  }/*FIXME: , false*/);
+  } /*FIXME: , false*/ );
 }

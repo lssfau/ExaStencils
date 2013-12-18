@@ -9,9 +9,8 @@ import exastencils.primitives._
 import exastencils.strategies._
 
 object SetupFragmentClass extends Strategy("Setting up fragment class") {
-  // FIXME: find fieldCollection and communicationFunctions on a different way (more robust, more readable)
-  val communicationFunctions : CommunicationFunctions = StateManager.root_.asInstanceOf[Root].statements.find(s => s.isInstanceOf[CommunicationFunctions]).get.asInstanceOf[CommunicationFunctions];
-  val fieldCollection : FieldCollection = StateManager.root_.asInstanceOf[Root].statements.find(s => s.isInstanceOf[FieldCollection]).get.asInstanceOf[FieldCollection];
+  val communicationFunctions = FindFirstOccurence.find[CommunicationFunctions].get;
+  val fieldCollection = FindFirstOccurence.find[FieldCollection].get;
 
   this += new Transformation("Initing FragmentClass", {
     case frag : FragmentClass =>

@@ -41,16 +41,16 @@ object Main {
       new Vector));
 
     SetupFragmentClass.apply;
-    
+
     do { ExpandStrategy.apply; }
     while (ExpandStrategy.results.last._2.replacements > 0)
-      
+
     AddMemberFunctionPrefix.apply;
 
     AddOMPPragmas.apply;
 
     PrintStrategy.apply;
-    
+
     println("Done!");
   }
 }
