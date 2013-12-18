@@ -59,3 +59,11 @@ case class FunctionCallExpression(name : String, var arguments : List[Expression
   override def cpp = name + "FIXME args"
   override def duplicate = this.copy(arguments = Duplicate(arguments)).asInstanceOf[this.type]
 }
+
+case class TernaryConditionExpression(var condition : Expression, var trueBody : Expression, var falseBody : Expression) extends Expression {
+  override def duplicate = { this.copy(condition = Duplicate(condition), trueBody = Duplicate(trueBody), falseBody = Duplicate(falseBody)).asInstanceOf[this.type] }
+
+  def cpp : String = {
+    (s"((${condition.cpp}) ? (${trueBody.cpp}) : (${falseBody.cpp}))");
+  }
+}

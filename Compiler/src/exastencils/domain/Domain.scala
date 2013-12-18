@@ -44,10 +44,10 @@ case class PointToOwningRank(var pos : Expression) extends Expression with Expan
 
   override def cpp : String = "NOT VALID ; CLASS = PointToOwningRank\n";
 
-  override def expand : Expression = { // FIXME: use tenary op node
-    (s"((" + PointOutsideDomain(pos).cpp + ")"
-      + s" ? (-1)" // FIXME: use MPI symbolic constant
-      + s" : ((int)(floor(${pos.cpp}.z / ${Knowledge.numFragsPerBlock_z}) * ${Knowledge.numBlocks_y * Knowledge.numBlocks_x} + floor(${pos.cpp}.y / ${Knowledge.numFragsPerBlock_y}) * ${Knowledge.numBlocks_x} + floor(${pos.cpp}.x / ${Knowledge.numFragsPerBlock_x}))))");
+  override def expand : Expression = {
+    TernaryConditionExpression(PointOutsideDomain(pos).cpp,
+      s"MPI_PROC_NULL",
+      s"(int)(floor(${pos.cpp}.z / ${Knowledge.numFragsPerBlock_z}) * ${Knowledge.numBlocks_y * Knowledge.numBlocks_x} + floor(${pos.cpp}.y / ${Knowledge.numFragsPerBlock_y}) * ${Knowledge.numBlocks_x} + floor(${pos.cpp}.x / ${Knowledge.numFragsPerBlock_x}))");
   }
 }
 
