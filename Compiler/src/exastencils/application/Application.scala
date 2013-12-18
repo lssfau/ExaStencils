@@ -299,7 +299,7 @@ int main (int argc, char** argv)
 			if (numBlocks.componentProd() != mpiSize)
 				errorOccured = true;
 			else
-				initGeneratedDomain(fragments, numBlocks, numElemPerBlock);
+				initGeneratedDomain(fragments);
 			/*{
 				// TODO;
 				fragments.push_back(boost::shared_ptr<Fragment3DCube>(new Fragment3DCube(0, Vec3(0.))));

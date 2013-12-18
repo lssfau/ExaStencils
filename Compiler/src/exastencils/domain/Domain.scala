@@ -19,7 +19,7 @@ case class PointOutsideDomain(var pos : Expression) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
-    (s"(${pos.cpp}.x < 0.0 || ${pos.cpp}.x > (numBlocks.x * numFragmentsPerBlock.x) || ${pos.cpp}.y < 0.0 || ${pos.cpp}.y > (numBlocks.y * numFragmentsPerBlock.y) || ${pos.cpp}.z < 0.0 || ${pos.cpp}.z > (numBlocks.z * numFragmentsPerBlock.z))");
+    (s"(${pos.cpp}.x < 0.0 || ${pos.cpp}.x > ${Knowledge.numFragsTotal_x} || ${pos.cpp}.y < 0.0 || ${pos.cpp}.y > ${Knowledge.numFragsTotal_y} || ${pos.cpp}.z < 0.0 || ${pos.cpp}.z > ${Knowledge.numFragsTotal_z})");
   }
 }
 
@@ -27,7 +27,7 @@ case class PointInsideDomain(var pos : Expression) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
-    (s"(${pos.cpp}.x >= 0.0 && ${pos.cpp}.x <= (numBlocks.x * numFragmentsPerBlock.x) && ${pos.cpp}.y >= 0.0 && ${pos.cpp}.y <= (numBlocks.y * numFragmentsPerBlock.y) && ${pos.cpp}.z >= 0.0 && ${pos.cpp}.z <= (numBlocks.z * numFragmentsPerBlock.z))");
+    (s"(${pos.cpp}.x >= 0.0 && ${pos.cpp}.x <= ${Knowledge.numFragsTotal_x} && ${pos.cpp}.y >= 0.0 && ${pos.cpp}.y <= ${Knowledge.numFragsTotal_y} && ${pos.cpp}.z >= 0.0 && ${pos.cpp}.z <= ${Knowledge.numFragsTotal_z})");
   }
 }
 
@@ -35,7 +35,7 @@ case class PointToFragmentId(var pos : Expression) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
-    (s"((exa_id_t)(floor(${pos.cpp}.z) * (numBlocks.y * numFragmentsPerBlock.y) * (numBlocks.x * numFragmentsPerBlock.x) + floor(${pos.cpp}.y) * (numBlocks.x * numFragmentsPerBlock.x) + floor(${pos.cpp}.x)))");
+    (s"((exa_id_t)(floor(${pos.cpp}.z) * ${Knowledge.numFragsTotal_y * Knowledge.numFragsTotal_x} + floor(${pos.cpp}.y) * ${Knowledge.numFragsTotal_x} + floor(${pos.cpp}.x)))");
   }
 }
 
@@ -47,7 +47,7 @@ case class PointToOwningRank(var pos : Expression) extends Expression with Expan
   override def expand : Expression = { // FIXME: use tenary op node
     (s"((" + PointOutsideDomain(pos).cpp + ")"
       + s" ? (-1)" // FIXME: use MPI symbolic constant
-      + s" : ((int)(floor(${pos.cpp}.z / numFragmentsPerBlock.z) * numBlocks.y * numBlocks.x + floor(${pos.cpp}.y / numFragmentsPerBlock.y) * numBlocks.x + floor(${pos.cpp}.x / numFragmentsPerBlock.x))))");
+      + s" : ((int)(floor(${pos.cpp}.z / ${Knowledge.numFragsPerBlock_z}) * ${Knowledge.numBlocks_y * Knowledge.numBlocks_x} + floor(${pos.cpp}.y / ${Knowledge.numFragsPerBlock_y}) * ${Knowledge.numBlocks_x} + floor(${pos.cpp}.x / ${Knowledge.numFragsPerBlock_x}))))");
   }
 }
 
@@ -119,7 +119,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
 
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"initGeneratedDomain",
-      ListBuffer(Variable("std::vector<boost::shared_ptr<Fragment3DCube> >&", "fragments"), Variable("const Vec3u&", "numBlocks"), Variable("const Vec3u&", "numFragmentsPerBlock")),
+      ListBuffer(Variable("std::vector<boost::shared_ptr<Fragment3DCube> >&", "fragments")),
       ListBuffer(
         // TODO: move to specialized node
         "int mpiRank;",
@@ -127,18 +127,18 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
         "MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);",
         "MPI_Comm_size(MPI_COMM_WORLD, &numMpiProc);",
 
-        AssertStatement("numMpiProc != numBlocks.componentProd()",
-          "\"Invalid number of MPI processes (\" << numMpiProc << \") should be \" << numBlocks.componentProd()",
+        AssertStatement(s"numMpiProc != ${Knowledge.numBlocks_x * Knowledge.numBlocks_y * Knowledge.numBlocks_z}",
+          "\"Invalid number of MPI processes (\" << numMpiProc << \") should be \" << " + (Knowledge.numBlocks_x * Knowledge.numBlocks_y * Knowledge.numBlocks_z),
           "return;"),
 
         "std::map<exa_id_t, boost::shared_ptr<Fragment3DCube> > fragmentMap;",
 
         "std::vector<Vec3> positions;",
-        "Vec3 rankPos(mpiRank % numBlocks.x, (mpiRank / numBlocks.x) % numBlocks.y, mpiRank / (numBlocks.x * numBlocks.y));",
-        new LoopOverDimensions(IndexRange(Array("0", "0", "0"), Array("numFragmentsPerBlock.x - 1", "numFragmentsPerBlock.y - 1", "numFragmentsPerBlock.z - 1")),
-          "positions.push_back(Vec3(rankPos.x * numFragmentsPerBlock.x + 0.5 + x, rankPos.y * numFragmentsPerBlock.y + 0.5 + y, rankPos.z * numFragmentsPerBlock.z + 0.5 + z));"),
+        s"Vec3 rankPos(mpiRank % ${Knowledge.numBlocks_x}, (mpiRank / ${Knowledge.numBlocks_x}) % ${Knowledge.numBlocks_y}, mpiRank / ${Knowledge.numBlocks_x * Knowledge.numBlocks_y});",
+        new LoopOverDimensions(IndexRange(Array("0", "0", "0"), Array(s"${Knowledge.numFragsPerBlock_x - 1}", s"${Knowledge.numFragsPerBlock_y - 1}", s"${Knowledge.numFragsPerBlock_z - 1}")),
+          s"positions.push_back(Vec3(rankPos.x * ${Knowledge.numFragsPerBlock_x} + 0.5 + x, rankPos.y * ${Knowledge.numFragsPerBlock_y} + 0.5 + y, rankPos.z * ${Knowledge.numFragsPerBlock_z} + 0.5 + z));"),
 
-        "fragments.reserve(numFragmentsPerBlock.x * numFragmentsPerBlock.y * numFragmentsPerBlock.z);",
+        s"fragments.reserve(${Knowledge.numFragsPerBlock_x * Knowledge.numFragsPerBlock_y * Knowledge.numFragsPerBlock_z});",
         "#pragma omp parallel for schedule(static, 1) ordered", //TODO: integrate into the following loop via traits
         ForLoopStatement("int e = 0", "e < positions.size()", "++e",
           ListBuffer(
