@@ -17,8 +17,6 @@ object Main {
   def main(args : Array[String]) : Unit = {
     Globals.printPath = s"C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Generated/";
 
-    //GenerateCode_Primitives();
-
     StateManager.root_ = Root(List(
       // Application
       new Poisson3D,
