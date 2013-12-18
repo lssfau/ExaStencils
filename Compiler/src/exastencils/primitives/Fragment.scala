@@ -23,12 +23,10 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
 
   def init = {
     declarations += s"exa_id_t id;";
+    cTorInitList += s"id(-1)";
+
     declarations += s"Vec3 pos;";
-    // FIXME: set these parameters not via constructor but afterwards directly
-    cTorInitList += s"id(id)";
-    cTorInitList += s"pos(pos)";
-    cTorArgs += s"exa_id_t id"; // FIXME: specialized nodes...
-    cTorArgs += s"const Vec3& pos"; // FIXME: specialized nodes...
+    cTorInitList += s"pos(0.0, 0.0, 0.0)";
 
     if (6 == Knowledge.fragmentCommStrategy) {
       neighbors += new NeighborInfo(Array(-1, 0, 0), 12);

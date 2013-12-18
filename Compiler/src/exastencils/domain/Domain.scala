@@ -142,7 +142,9 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
         "#pragma omp parallel for schedule(static, 1) ordered", //TODO: integrate into the following loop via traits
         ForLoopStatement("int e = 0", "e < positions.size()", "++e",
           ListBuffer(
-            "boost::shared_ptr<Fragment3DCube> fragment(new Fragment3DCube(" ~ PointToFragmentId("positions[e]") ~ s", positions[e]));",
+            "boost::shared_ptr<Fragment3DCube> fragment(new Fragment3DCube());",
+            "fragment->id = " ~ PointToFragmentId("positions[e]") ~ ";",
+            "fragment->pos = positions[e];",
             "#	pragma omp ordered",
             "{",
             "fragments.push_back(fragment);",
