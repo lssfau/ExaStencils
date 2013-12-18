@@ -23,7 +23,7 @@ object ExpandStrategy extends Strategy("Expanding") {
   });
 }
 
-object AddMemberFunctionPrefixStrategy extends Strategy("Addin member function prefixes") {
+object AddMemberFunctionPrefix extends Strategy("Adding member function prefixes") {
   // FIXME: requires nested strategies which currently are not available
   //    this += new Transformation("Add function scope prefixes to class member functions", {
   //      case c : Class =>
@@ -49,7 +49,7 @@ object AddMemberFunctionPrefixStrategy extends Strategy("Addin member function p
   });
 }
 
-object AddOMPStrategy extends Strategy("Adding OMP pragmas") {
+object AddOMPPragmas extends Strategy("Adding OMP pragmas") {
   // FIXME: currently this strategy is only applied to a single node per run
   this += new Transformation("Adding OMP pragmas", {
     case target : OMP_PotentiallyCritical =>
