@@ -44,10 +44,10 @@ case class PointToOwningRank(var pos : Expression) extends Expression with Expan
 
   override def cpp : String = "NOT VALID ; CLASS = PointToOwningRank\n";
 
-  override def expand : Expression = { // FIXME: use tenary op node
-    (s"((" + PointOutsideDomain(pos).cpp + ")"
-      + s" ? (-1)" // FIXME: use MPI symbolic constant
-      + s" : ((int)(floor(${pos.cpp}.z / ${Knowledge.numFragsPerBlock_z}) * ${Knowledge.numBlocks_y * Knowledge.numBlocks_x} + floor(${pos.cpp}.y / ${Knowledge.numFragsPerBlock_y}) * ${Knowledge.numBlocks_x} + floor(${pos.cpp}.x / ${Knowledge.numFragsPerBlock_x}))))");
+  override def expand : Expression = {
+    TernaryConditionExpression(PointOutsideDomain(pos).cpp,
+      s"MPI_PROC_NULL",
+      s"(int)(floor(${pos.cpp}.z / ${Knowledge.numFragsPerBlock_z}) * ${Knowledge.numBlocks_y * Knowledge.numBlocks_x} + floor(${pos.cpp}.y / ${Knowledge.numFragsPerBlock_y}) * ${Knowledge.numBlocks_x} + floor(${pos.cpp}.x / ${Knowledge.numFragsPerBlock_x}))");
   }
 }
 
@@ -119,7 +119,8 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
 
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"initGeneratedDomain",
-      ListBuffer(Variable("std::vector<boost::shared_ptr<Fragment3DCube> >&", "fragments")),
+      // FIXME: replace vector with fixed size array
+      ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments")),
       ListBuffer(
         // TODO: move to specialized node
         "int mpiRank;",
@@ -127,27 +128,23 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
         "MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);",
         "MPI_Comm_size(MPI_COMM_WORLD, &numMpiProc);",
 
-        AssertStatement(s"numMpiProc != ${Knowledge.numBlocks_x * Knowledge.numBlocks_y * Knowledge.numBlocks_z}",
-          "\"Invalid number of MPI processes (\" << numMpiProc << \") should be \" << " + (Knowledge.numBlocks_x * Knowledge.numBlocks_y * Knowledge.numBlocks_z),
+        AssertStatement(s"numMpiProc != ${Knowledge.numBlocks}",
+          "\"Invalid number of MPI processes (\" << numMpiProc << \") should be \" << " + (Knowledge.numBlocks),
           "return;"),
 
-        "std::map<exa_id_t, boost::shared_ptr<Fragment3DCube> > fragmentMap;",
+        "std::map<exa_id_t, Fragment3DCube*> fragmentMap;",
 
         "std::vector<Vec3> positions;",
         s"Vec3 rankPos(mpiRank % ${Knowledge.numBlocks_x}, (mpiRank / ${Knowledge.numBlocks_x}) % ${Knowledge.numBlocks_y}, mpiRank / ${Knowledge.numBlocks_x * Knowledge.numBlocks_y});",
-        new LoopOverDimensions(IndexRange(Array("0", "0", "0"), Array(s"${Knowledge.numFragsPerBlock_x - 1}", s"${Knowledge.numFragsPerBlock_y - 1}", s"${Knowledge.numFragsPerBlock_z - 1}")),
+        new LoopOverDimensions(IndexRange(Array(0, 0, 0), Array(Knowledge.numFragsPerBlock_x - 1, Knowledge.numFragsPerBlock_y - 1, Knowledge.numFragsPerBlock_z - 1)),
           s"positions.push_back(Vec3(rankPos.x * ${Knowledge.numFragsPerBlock_x} + 0.5 + x, rankPos.y * ${Knowledge.numFragsPerBlock_y} + 0.5 + y, rankPos.z * ${Knowledge.numFragsPerBlock_z} + 0.5 + z));"),
 
-        s"fragments.reserve(${Knowledge.numFragsPerBlock_x * Knowledge.numFragsPerBlock_y * Knowledge.numFragsPerBlock_z});",
-        "#pragma omp parallel for schedule(static, 1) ordered", //TODO: integrate into the following loop via traits
-        ForLoopStatement("int e = 0", "e < positions.size()", "++e",
-          ListBuffer(
-            "boost::shared_ptr<Fragment3DCube> fragment(new Fragment3DCube(" ~ PointToFragmentId("positions[e]") ~ s", positions[e]));",
-            "#	pragma omp ordered",
-            "{",
-            "fragments.push_back(fragment);",
-            "fragmentMap[" ~ PointToFragmentId("positions[e]").cpp ~ s"] = fragment;",
-            "}")),
+        s"fragments.resize(${Knowledge.numFragsPerBlock});",
+        LoopOverFragments(ListBuffer(
+          "fragments[e] = new Fragment3DCube();",
+          "fragments[e]->id = " ~ PointToFragmentId("positions[e]") ~ ";",
+          "fragments[e]->pos = positions[e];",
+          "fragmentMap[" ~ PointToFragmentId("positions[e]").cpp ~ s"] = fragments[e];"), false),
         ConnectFragments(),
         new SetupBuffers));
   }
@@ -170,7 +167,6 @@ case class DomainGenerated() extends Node with FilePrettyPrintable {
         + "#define DOMAINS_DOMAINGENERATED_H\n"
         + "#include <vector>\n"
         + "#include <map>\n"
-        + "#include <boost/shared_ptr.hpp>\n"
         + "#include \"Util/Defines.h\"\n"
         + "#include \"Util/Log.h\"\n"
         + "#include \"Util/TypeDefs.h\"\n"

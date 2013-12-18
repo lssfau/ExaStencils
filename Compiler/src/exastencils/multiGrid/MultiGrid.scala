@@ -27,8 +27,6 @@ case class MultiGrid() extends Node with FilePrettyPrintable {
 
 #include <vector>
 
-#include <boost/shared_ptr.hpp>
-
 #include "Util/Defines.h"
 #include "Util/Log.h"
 #include "Util/TypeDefs.h"
@@ -46,18 +44,18 @@ public:
 
 	~MultiGrid ();
 
-	void smootherIteration_Node (std::vector<boost::shared_ptr<Fragment3DCube> >& fragments, unsigned int targetSlot, unsigned int sourceSlot, unsigned int level);
-	void updateResidual_Node (std::vector<boost::shared_ptr<Fragment3DCube> >& fragments, unsigned int slot, unsigned int level);
-	void performRestriction_NodeFW (std::vector<boost::shared_ptr<Fragment3DCube> >& fragments, unsigned int levelSrc, unsigned int levelDest);
-	void performProlongation_NodeTLI (std::vector<boost::shared_ptr<Fragment3DCube> >& fragments, unsigned int slotSrc, unsigned int levelSrc, unsigned int slotDest, unsigned int levelDest);
+	void smootherIteration_Node (std::vector<Fragment3DCube*>& fragments, unsigned int targetSlot, unsigned int sourceSlot, unsigned int level);
+	void updateResidual_Node (std::vector<Fragment3DCube*>& fragments, unsigned int slot, unsigned int level);
+	void performRestriction_NodeFW (std::vector<Fragment3DCube*>& fragments, unsigned int levelSrc, unsigned int levelDest);
+	void performProlongation_NodeTLI (std::vector<Fragment3DCube*>& fragments, unsigned int slotSrc, unsigned int levelSrc, unsigned int slotDest, unsigned int levelDest);
 
-	void performVCycle (std::vector<boost::shared_ptr<Fragment3DCube> >& fragments, unsigned int level, unsigned int* solSlots);
+	void performVCycle (std::vector<Fragment3DCube*>& fragments, unsigned int level, unsigned int* solSlots);
 
-	exa_real_t getGlobalResidual_Node (std::vector<boost::shared_ptr<Fragment3DCube> >& fragments, unsigned int level);
-	void setSolZero_Node (std::vector<boost::shared_ptr<Fragment3DCube> >& fragments, unsigned int level, unsigned int slot);
+	exa_real_t getGlobalResidual_Node (std::vector<Fragment3DCube*>& fragments, unsigned int level);
+	void setSolZero_Node (std::vector<Fragment3DCube*>& fragments, unsigned int level, unsigned int slot);
 
-	void communicateSolution (std::vector<boost::shared_ptr<Fragment3DCube> >& fragments, unsigned int level, unsigned int slot);
-	void communicateResidual (std::vector<boost::shared_ptr<Fragment3DCube> >& fragments, unsigned int level);
+	void communicateSolution (std::vector<Fragment3DCube*>& fragments, unsigned int level, unsigned int slot);
+	void communicateResidual (std::vector<Fragment3DCube*>& fragments, unsigned int level);
 
 protected:
 #ifdef USE_MPI
@@ -87,7 +85,7 @@ MultiGrid::MultiGrid ()
 MultiGrid::~MultiGrid ()
 {}
 
-void MultiGrid::smootherIteration_Node (std::vector<boost::shared_ptr<Fragment3DCube> >& fragments, unsigned int targetSlot, unsigned int sourceSlot, unsigned int level)
+void MultiGrid::smootherIteration_Node (std::vector<Fragment3DCube*>& fragments, unsigned int targetSlot, unsigned int sourceSlot, unsigned int level)
 {
 	exa_real_t h = 1.0;// / (1u << level);
 	exa_real_t hSq = h * h;
@@ -223,7 +221,7 @@ void MultiGrid::smootherIteration_Node (std::vector<boost::shared_ptr<Fragment3D
 #endif
 }
 
-void MultiGrid::updateResidual_Node (std::vector<boost::shared_ptr<Fragment3DCube> >& fragments, unsigned int slot, unsigned int level)
+void MultiGrid::updateResidual_Node (std::vector<Fragment3DCube*>& fragments, unsigned int slot, unsigned int level)
 {
 	exa_real_t h = 1.0;// / (1u << level);
 	exa_real_t hSq = h * h;
@@ -259,7 +257,7 @@ void MultiGrid::updateResidual_Node (std::vector<boost::shared_ptr<Fragment3DCub
 	}
 }
 
-void MultiGrid::performRestriction_NodeFW (std::vector<boost::shared_ptr<Fragment3DCube> >& fragments, unsigned int levelSrc, unsigned int levelDest)
+void MultiGrid::performRestriction_NodeFW (std::vector<Fragment3DCube*>& fragments, unsigned int levelSrc, unsigned int levelDest)
 {
 	communicateResidual(fragments, levelSrc);
 
@@ -330,7 +328,7 @@ void MultiGrid::performRestriction_NodeFW (std::vector<boost::shared_ptr<Fragmen
 	}
 }
 
-void MultiGrid::performProlongation_NodeTLI (std::vector<boost::shared_ptr<Fragment3DCube> >& fragments, unsigned int slotSrc, unsigned int levelSrc, unsigned int slotDest, unsigned int levelDest)
+void MultiGrid::performProlongation_NodeTLI (std::vector<Fragment3DCube*>& fragments, unsigned int slotSrc, unsigned int levelSrc, unsigned int slotDest, unsigned int levelDest)
 {
 	communicateSolution(fragments, levelSrc, slotSrc);
 
@@ -424,7 +422,7 @@ void MultiGrid::performProlongation_NodeTLI (std::vector<boost::shared_ptr<Fragm
 	}
 }
 
-void MultiGrid::performVCycle (std::vector<boost::shared_ptr<Fragment3DCube> >& fragments, unsigned int level, unsigned int* solSlots)
+void MultiGrid::performVCycle (std::vector<Fragment3DCube*>& fragments, unsigned int level, unsigned int* solSlots)
 {
 #ifdef MEASURE_MG_COMPONENTS
 	StopWatch	stopWatch;
@@ -526,7 +524,7 @@ void MultiGrid::performVCycle (std::vector<boost::shared_ptr<Fragment3DCube> >& 
 		updateResidual_Node(fragments, solSlots[level] % NUM_SOL_SLOTS, level);
 }
 
-exa_real_t MultiGrid::getGlobalResidual_Node (std::vector<boost::shared_ptr<Fragment3DCube> >& fragments, unsigned int level)
+exa_real_t MultiGrid::getGlobalResidual_Node (std::vector<Fragment3DCube*>& fragments, unsigned int level)
 {
 	exa_real_t res = 0.0;
 
@@ -555,7 +553,7 @@ exa_real_t MultiGrid::getGlobalResidual_Node (std::vector<boost::shared_ptr<Frag
 	return sqrt(res);
 }
 
-void MultiGrid::setSolZero_Node (std::vector<boost::shared_ptr<Fragment3DCube> >& fragments, unsigned int level, unsigned int slot)
+void MultiGrid::setSolZero_Node (std::vector<Fragment3DCube*>& fragments, unsigned int level, unsigned int slot)
 {
 #ifdef USE_OMP
 #	pragma omp parallel for schedule(static, 1)
@@ -580,10 +578,10 @@ void MultiGrid::setSolZero_Node (std::vector<boost::shared_ptr<Fragment3DCube> >
 	}
 }
 
-void MultiGrid::communicateSolution (std::vector<boost::shared_ptr<Fragment3DCube> >& fragments, unsigned int level, unsigned int slot)
+void MultiGrid::communicateSolution (std::vector<Fragment3DCube*>& fragments, unsigned int level, unsigned int slot)
 { 	exchsolData(fragments, level, slot); }
 
-void MultiGrid::communicateResidual(std::vector<boost::shared_ptr<Fragment3DCube> >& fragments, unsigned int level)
+void MultiGrid::communicateResidual(std::vector<Fragment3DCube*>& fragments, unsigned int level)
 { 	exchresData(fragments, level, 0); }
 """);
 

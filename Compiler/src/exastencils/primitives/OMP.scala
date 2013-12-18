@@ -8,11 +8,13 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 
 trait OMP_PotentiallyCritical {
-  def addOMPDirective : Node;
+  def addOMPDirective : OMP_Critical;
 }
 
 case class OMP_Critical(var body : ListBuffer[Statement]) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def this(body : Statement) = this(ListBuffer(body));
 
   def cpp : String = {
     (s"#pragma omp critical\n{\n"

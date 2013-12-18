@@ -23,12 +23,10 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
 
   def init = {
     declarations += s"exa_id_t id;";
+    cTorInitList += s"id(-1)";
+
     declarations += s"Vec3 pos;";
-    // FIXME: set these parameters not via constructor but afterwards directly
-    cTorInitList += s"id(id)";
-    cTorInitList += s"pos(pos)";
-    cTorArgs += s"exa_id_t id"; // FIXME: specialized nodes...
-    cTorArgs += s"const Vec3& pos"; // FIXME: specialized nodes...
+    cTorInitList += s"pos(0.0, 0.0, 0.0)";
 
     if (6 == Knowledge.fragmentCommStrategy) {
       neighbors += new NeighborInfo(Array(-1, 0, 0), 12);
@@ -88,7 +86,6 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
           + "#include <vector>\n"
           + "#pragma warning(disable : 4800)\n"
           + "#include <mpi.h>\n"
-          + "#include <boost/smart_ptr/shared_array.hpp>\n"
           + "#include \"Util/Defines.h\"\n"
           + "#include \"Util/Log.h\"\n"
           + "#include \"Util/TypeDefs.h\"\n"
@@ -173,7 +170,7 @@ case class ExchangeData_6(field : Field, level : Integer, neighbors : ListBuffer
 
     // compile return value
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",
-      ListBuffer(Variable("std::vector<boost::shared_ptr<Fragment3DCube> >&", "fragments"), Variable("unsigned int", "slot")),
+      ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int", "slot")),
       body);
   }
 }
@@ -224,7 +221,7 @@ case class ExchangeData_26(field : Field, level : Integer, neighbors : ListBuffe
 
     // compile return value
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",
-      ListBuffer(Variable("std::vector<boost::shared_ptr<Fragment3DCube> >&", "fragments"), Variable("unsigned int", "slot")),
+      ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int", "slot")),
       body);
   }
 }

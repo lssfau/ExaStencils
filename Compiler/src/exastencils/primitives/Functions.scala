@@ -33,13 +33,11 @@ case class ExchangeDataSplitter(field : Field) extends AbstractFunctionStatement
   override def cpp : String = "NOT VALID ; CLASS = ExchangeDataSplitter\n";
 
   override def expand : FunctionStatement = {
-    FunctionStatement(new UnitDatatype(), s"exch${field.codeName}",
-      ListBuffer(Variable("std::vector<boost::shared_ptr<Fragment3DCube> >&", "fragments"), Variable("unsigned int", "level"), Variable("unsigned int", "slot")),
-      // FIXME: this needs to be facilitated; TODO: add SwitchStatement node
-      ListBuffer(ExpressionStatement(StringLiteral(s"switch (level)\n{"))) ++
-        ((0 to Knowledge.maxLevel).toList.map(level =>
-          ExpressionStatement(StringLiteral(s"case $level: exch${field.codeName}_$level(fragments, slot);\nbreak;"))).toList) ++
-        ListBuffer(ExpressionStatement(StringLiteral(s"}"))))
+    new FunctionStatement(new UnitDatatype(), s"exch${field.codeName}",
+      ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int", "level"), Variable("unsigned int", "slot")),
+      SwitchStatement("level",
+        (0 to Knowledge.maxLevel).to[ListBuffer].map(level =>
+          new CaseStatement(NumericLiteral(level), s"exch${field.codeName}_$level(fragments, slot);"))));
   }
 }
 
@@ -50,12 +48,12 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
 
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"connectLocalElement",
-      ListBuffer(Variable("unsigned int", "location"), Variable("boost::shared_ptr<Fragment3DCube>", "fragment")),
+      ListBuffer(Variable("unsigned int", "location"), Variable("Fragment3DCube*", "fragment")),
       ListBuffer(
         "ASSERT_WARNING((fragment), \"Invalid fragment pointer detected\", return);",
         s"neighbor_isValid[location] = true;",
         s"neighbor_isRemote[location] = false;",
-        s"neighbor_localPtr[location] = fragment.get();",
+        s"neighbor_localPtr[location] = fragment;",
         s"neighbor_fragmentId[location] = fragment->id;"))
   }
 }
