@@ -76,6 +76,7 @@ case class Poisson3D() extends Node with FilePrettyPrintable {
     val writerSource = new PrintWriter(new File(Globals.printPath + s"Poisson3D.cpp"));
 
     writerSource.write("""
+
 //=====================================================================================================================
 //									 _____           ____  _                  _ _     
 //									| ____|_  ____ _/ ___|| |_ ___ _ __   ___(_) |___ 
@@ -114,11 +115,9 @@ void printUsage ()
 	LOG_NOTE("Usage:");
 #	ifdef TIME_MEASUREMENTS
 	LOG_NOTE("\tmpirun -np (numBlocksTotal) .\\Poisson3D.exe maxNumIterations generated " \
-		<< "coarsestLvl[0] finestLvl[8] numCoarseSteps[64] numPreSmoothingSteps[2] numPostSmoothingSteps[2] omega[0.8] " \
-		<< "numBlocks_x numBlocks_y numBlocks_z numElementsPerBlock_x numElementsPerBlock_y numElementsPerBlock_z");
+		<< "coarsestLvl[0] finestLvl[8] numCoarseSteps[64] numPreSmoothingSteps[2] numPostSmoothingSteps[2] omega[0.8]");
 #	else
-	LOG_NOTE("\tmpirun -np (numBlocksTotal) .\\Poisson3D.exe maxNumIterations generated " \
-		<< "numBlocks_x numBlocks_y numBlocks_z numElementsPerBlock_x numElementsPerBlock_y numElementsPerBlock_z");
+	LOG_NOTE("\tmpirun -np (numBlocksTotal) .\\Poisson3D.exe maxNumIterations generated");
 #	endif
 #else
 	LOG_WARNING("Currently not fully implemented!");
@@ -258,61 +257,13 @@ int main (int argc, char** argv)
 	}
 #	endif
 #endif
-	
-	Vec3u numBlocks;
-	Vec3u numElemPerBlock;
 
 #ifdef USE_MPI
 	StopWatch setupWatch;
 
 	bool errorOccured = false;
 	if ("generated" == std::string(argv[2]))
-	{
-#ifdef TIME_MEASUREMENTS
-		if (argc < 15)
-			errorOccured = true;
-		else
-		{
-			numBlocks		= Vec3u(atoi(argv[9]), atoi(argv[10]), atoi(argv[11]));
-			numElemPerBlock	= Vec3u(atoi(argv[12]), atoi(argv[13]), atoi(argv[14]));
-#else
-		if (argc < 9)
-			errorOccured = true;
-		else
-		{
-			numBlocks		= Vec3u(atoi(argv[3]), atoi(argv[4]), atoi(argv[5]));
-			numElemPerBlock	= Vec3u(atoi(argv[6]), atoi(argv[7]), atoi(argv[8]));
-#endif
-
-#ifdef VERBOSE
-			LOG_NOTE("Setting numBlocks to " << numBlocks);
-			LOG_NOTE("Setting numElemPerBlock to " << numElemPerBlock);
-#endif
-
-#ifdef USE_OMP
-// 			omp_set_num_threads(numElemPerBlock.componentProd());
-// #	ifdef VERBOSE
-// 			LOG_NOTE("Resetting number of OMP threads to " << numElemPerBlock.componentProd());
-// #	endif
-#endif
-
-			if (numBlocks.componentProd() != mpiSize)
-				errorOccured = true;
-			else
-				initGeneratedDomain(fragments);
-			/*{
-				// TODO;
-				fragments.push_back(boost::shared_ptr<Fragment3DCube>(new Fragment3DCube(0, Vec3(0.))));
-
-				for (auto frag : fragments)
-				{
-					frag->setupBuffers();
-					frag->setupCommunication();
-					frag->validate();
-				}
-			}*/
-		}
-	}
+		initGeneratedDomain(fragments);
 	else
 		errorOccured = true;
 
@@ -589,12 +540,15 @@ int main (int argc, char** argv)
 #	ifdef SMOOTHER_GSRBAC
 				<< "GSRBAC" << "\t"
 #	endif
+/*
+				FIXME: set via code generation
 				<< numBlocks.x << "\t"
 				<< numBlocks.y << "\t"
 				<< numBlocks.z << "\t"
 				<< numElemPerBlock.x << "\t"
 				<< numElemPerBlock.y << "\t"
 				<< numElemPerBlock.z << "\t"
+*/
 				<< COARSE_LEVEL << "\t"
 				<< FINAL_LEVEL << "\t"
 				<< NUM_COARSE_STEPS << "\t"
@@ -666,7 +620,7 @@ int main (int argc, char** argv)
 
 	return 0;
 }
-          """);
+""");
 
     writerSource.close();
 
