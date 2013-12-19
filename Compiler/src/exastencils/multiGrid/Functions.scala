@@ -562,7 +562,7 @@ case class SetSolZero(field : Field, level : Integer) extends AbstractFunctionSt
   override def expand : FunctionStatement = {
     new FunctionStatement(new UnitDatatype(), s"setSolZero_$level", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int", "slot")),
       LoopOverFragments(ListBuffer(
-        new LoopOverDimensions(fieldToIndexInner(Array(0, 0, 0), "", level),
+        new LoopOverDimensions(fieldToIndexInner(Array(0, 0, 0), level),
           new AssignmentStatement(
             new FieldAccess(field, level, "slot", Mapping.access(level)),
             ImplicitConversions.NumberToNumericLiteral(0.0))))));
