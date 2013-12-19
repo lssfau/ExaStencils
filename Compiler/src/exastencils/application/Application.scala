@@ -175,12 +175,10 @@ int main (int argc, char** argv)
 
 	MPI_Barrier(MPI_COMM_WORLD);
 
-	MultiGrid* multiGrid = new MultiGrid();
-
 	exa_real_t lastRes = 0.0;
 	{
-		multiGrid->updateResidual_Node(fragments, 0, FINAL_LEVEL);
-		exa_real_t res = multiGrid->getGlobalResidual_Node(fragments, FINAL_LEVEL);
+		updateResidual_Node(fragments, 0, FINAL_LEVEL);
+		exa_real_t res = getGlobalResidual_Node(fragments, FINAL_LEVEL);
 
 		res = res * res;
 		exa_real_t resTotal;
@@ -213,7 +211,7 @@ int main (int argc, char** argv)
 #ifdef TIME_MEASUREMENTS
 		stopWatch.reset();
 #endif
-		multiGrid->performVCycle(fragments, FINAL_LEVEL, solSlots);
+		performVCycle(fragments, FINAL_LEVEL, solSlots);
 #ifdef TIME_MEASUREMENTS
 		double tDuration = stopWatch.getTimeInMilliSecAndReset();
 		minTime = std::min(minTime, tDuration);
@@ -225,7 +223,7 @@ int main (int argc, char** argv)
  		if (0 != curIt % 1)
  			continue;
 
-		exa_real_t res = multiGrid->getGlobalResidual_Node(fragments, FINAL_LEVEL);
+		exa_real_t res = getGlobalResidual_Node(fragments, FINAL_LEVEL);
 		res = res * res;
 		exa_real_t resTotal;
 
@@ -357,7 +355,6 @@ int main (int argc, char** argv)
 #endif
 
 	// FIXME: free primitives
-	SAFE_DELETE(multiGrid);
 	MPI_Finalize();
 
 	return 0;
