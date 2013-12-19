@@ -38,8 +38,12 @@ object Main {
       new Stopwatch,
       new Vector));
 
+    do { ExpandStrategy.apply; }
+    while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
+
     SetupFragmentClass.apply;
     SetupMultiGrid.apply;
+    SetupApplication.apply;
 
     do { ExpandStrategy.apply; }
     while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code

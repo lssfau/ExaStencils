@@ -118,7 +118,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
   override def cpp : String = "NOT VALID ; CLASS = InitGeneratedDomain\n";
 
   override def expand : FunctionStatement = {
-    FunctionStatement(new UnitDatatype(), s"initGeneratedDomain",
+    FunctionStatement(new UnitDatatype(), s"initDomain",
       // FIXME: replace vector with fixed size array
       ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments")),
       ListBuffer(

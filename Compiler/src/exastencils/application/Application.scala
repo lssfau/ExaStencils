@@ -1,119 +1,85 @@
 package exastencils.application
 
+import scala.collection.mutable.ListBuffer
 import java.io.PrintWriter
 import java.io.File
-
 import exastencils.knowledge._
-
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.primitives._
 
-case class Poisson3D() extends Node with FilePrettyPrintable {
+case class InitFields() extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  override def printToFile = {
-    val writerHeader = new PrintWriter(new File(Globals.printPath + s"Poisson3D.h"));
+  override def cpp : String = "NOT VALID ; CLASS = InitFields\n";
 
-    writerHeader.write("""
-#ifndef	POISSON_3D_H
-#define	POISSON_3D_H
+  def expandSpecial(fields : FieldCollection) : LoopOverFragments = {
+    var body : ListBuffer[Statement] = new ListBuffer;
 
-#pragma warning(disable : 4800)
-#include <mpi.h>				// required to be included before stdio.h
+    // FIXME: setting the seed here will only yield reproducible results if OMP is deactivated
+    body += s"std::srand((unsigned int)fragments[f]->id);";
 
-#include <vector>
-#include <iostream>
+    for (level <- 0 to Knowledge.maxLevel) {
+      for (field <- fields.fields) {
+        body += new LoopOverDimensions(fieldToIndexInnerWide(Array(0, 0, 0), level),
+          (0 until field.numSlots).to[ListBuffer].map(slot =>
+            new AssignmentStatement(
+              new FieldAccess(field, NumericLiteral(level), NumericLiteral(slot), Mapping.access(level)),
+              NumericLiteral(0.0)) : Statement));
+      }
+    }
 
-#include <omp.h>
+    // special treatment for the finest level 
+    for (field <- fields.fields) {
+      // FIXME: init by given parameters
+      if ("Solution" == field.name)
+        body += new LoopOverDimensions(fieldToIndexInner(Array(0, 0, 0), Knowledge.maxLevel), ListBuffer[Statement](
+          s"double val = (double)std::rand() / RAND_MAX;")
+          ++
+          (0 until field.numSlots).to[ListBuffer].map(slot =>
+            new AssignmentStatement(
+              new FieldAccess(field, NumericLiteral(Knowledge.maxLevel), NumericLiteral(slot), Mapping.access(Knowledge.maxLevel)),
+              s"val") : Statement));
+    }
 
-#include "Util/Log.h"
-
-#include "Util/Vector.h"
-#include "Util/Stopwatch.h"
-
-#include "MultiGrid/MultiGrid.h"
-
-#include "Domains/DomainGenerated.h"
-
-#endif	// POISSON_3D_H
-""");
-
-    writerHeader.close();
-
-    val writerSource = new PrintWriter(new File(Globals.printPath + s"Poisson3D.cpp"));
-
-    writerSource.write("""
-#include "Poisson3D.h"
-
-void printUsage ()
-{
-	LOG_NOTE("Usage:");
-	LOG_NOTE("\tmpirun -np (numBlocksTotal) .\\Poisson3D.exe");
+    return new LoopOverFragments(body);
+  }
 }
 
-int main (int argc, char** argv)
-{
-	std::vector<Fragment3DCube*>	fragments;
+case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
+  override def duplicate = this.copy().asInstanceOf[this.type]
 
-	MPI_Init(&argc, &argv);
+  override def cpp : String = "NOT VALID ; CLASS = Poisson3DMain\n";
 
-	int mpiRank;
-	int mpiSize;
-	MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);
-	MPI_Comm_size(MPI_COMM_WORLD, &mpiSize);
+  override def expand : FunctionStatement = {
+    new FunctionStatement("int", "main", ListBuffer(Variable("int", "argc"), Variable("char**", "argv")),
+      ListBuffer[Statement](
+        s"std::vector<Fragment3DCube*> fragments;", //FIXME: move to global space // FIXME: convert to fixed size array
 
-	// FIXME: omp_set_num_threads(OMP_NUM_THREADS);
+        s"MPI_Init(&argc, &argv);",
 
-	if (argc != 1)
-	{
-		if (0 == mpiRank)
-			printUsage();
-		MPI_Finalize();
+        // FIXME: move to specialized node
+        s"int mpiRank;",
+        s"int mpiSize;",
+        s"MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);",
+        s"MPI_Comm_size(MPI_COMM_WORLD, &mpiSize);",
 
-		return 1;
-	}
+        s"omp_set_num_threads(${Knowledge.numFragsPerBlock});",
 
-	StopWatch setupWatch;
+        new ConditionStatement(s"argc != 1", ListBuffer[Statement](
+          new ConditionStatement(s"0 == mpiRank" /*FIXME: use special condition*/ , ListBuffer[Statement](
+            "LOG_NOTE(\"Usage:\");", // FIXME: use log nodes
+            "LOG_NOTE(\"\\tmpirun -np (numBlocksTotal) .\\\\Poisson3D.exe\");")),
+          s"MPI_Finalize();",
+          s"return 1;")),
 
-  initGeneratedDomain(fragments);
+        s"StopWatch setupWatch;",
 
-	std::srand(1337);
+        s"initDomain(fragments);",
 
-#pragma omp parallel for schedule(static, 1)
-	for (int f = 0; f < fragments.size(); ++f)
-	{
-		for (unsigned int l = 0; l <= """ + s"${Knowledge.maxLevel}" + """; ++l)
-		{
-			std::srand((unsigned int)fragments[f]->id);
-
-			for (unsigned int z = 0; z < fragments[f]->solData[0][l]->numDataPointsPerDim.z; ++z)
-			for (unsigned int y = 0; y < fragments[f]->solData[0][l]->numDataPointsPerDim.y; ++y)
-			for (unsigned int x = 0; x < fragments[f]->solData[0][l]->numDataPointsPerDim.x; ++x)
-			{
-				double val;
-				if (""" + s"${Knowledge.maxLevel}" + """ != l)
-					val = 0.0;
-				else
-				{
-					val = (double)std::rand() / RAND_MAX;
-
-					// hack in Dirichlet boundary conditions
-					Vec3u first	= Vec3u(""" + s"${Knowledge.numGhostLayers}" + """);
-					Vec3u last	= fragments[f]->solData[0][l]->numDataPointsPerDim - Vec3u(1) - Vec3u(""" + s"${Knowledge.numGhostLayers}" + """);
-					if (first.z > z || first.y > y || first.x > x || last.z < z || last.y < y || last.x < x)
-						val = 0.0;
-				}
-
-				for (unsigned s = 0; s < """ + s"${Knowledge.numSolSlots}" + """; ++s)
-					fragments[f]->solData[s][l]->getDataRef(Vec3u(x, y, z)) = val;
-
-				fragments[f]->rhsData[0][l]->getDataRef(Vec3u(x, y, z)) = 0.0;
-				fragments[f]->resData[0][l]->getDataRef(Vec3u(x, y, z)) = 0.0;
-			}
-		}
-	}
-
+        new InitFields,
+        """
 	MPI_Barrier(MPI_COMM_WORLD);
 
 	double lastRes = 0.0;
@@ -206,15 +172,15 @@ int main (int argc, char** argv)
 			// if you need a more compact form of output:
 			std::cout
 
-			<< """" + s"${Knowledge.cgs}" +  """" << "\t"
-			<< """" + s"${Knowledge.smoother}" +  """" << "\t"
+			<< """" + s"${Knowledge.cgs}" + """" << "\t"
+			<< """" + s"${Knowledge.smoother}" + """" << "\t"
 
-				<< """ + s"${Knowledge.numBlocks_x}" +  """ << "\t"
-				<< """ + s"${Knowledge.numBlocks_y}" +  """ << "\t"
-				<< """ + s"${Knowledge.numBlocks_z}" +  """ << "\t"
-				<< """ + s"${Knowledge.numFragsPerBlock_x}" +  """ << "\t"
-				<< """ + s"${Knowledge.numFragsPerBlock_y}" +  """ << "\t"
-				<< """ + s"${Knowledge.numFragsPerBlock_z}" +  """ << "\t"
+				<< """ + s"${Knowledge.numBlocks_x}" + """ << "\t"
+				<< """ + s"${Knowledge.numBlocks_y}" + """ << "\t"
+				<< """ + s"${Knowledge.numBlocks_z}" + """ << "\t"
+				<< """ + s"${Knowledge.numFragsPerBlock_x}" + """ << "\t"
+				<< """ + s"${Knowledge.numFragsPerBlock_y}" + """ << "\t"
+				<< """ + s"${Knowledge.numFragsPerBlock_z}" + """ << "\t"
 
 				<< 0 << "\t"
 				
@@ -245,11 +211,36 @@ int main (int argc, char** argv)
 	MPI_Finalize();
 
 	return 0;
+
+"""));
+  }
 }
-""");
+
+case class Poisson3D() extends Node with FilePrettyPrintable {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  var functions_HACK : ListBuffer[AbstractFunctionStatement] = new ListBuffer;
+  functions_HACK += new Poisson3DMain;
+
+  override def printToFile = {
+    val writerSource = new PrintWriter(new File(Globals.printPath + s"Poisson3D.cpp"));
+
+    writerSource.write(
+      "#pragma warning(disable : 4800)\n"
+        + "#include <mpi.h>\n"
+        + "#include <vector>\n"
+        + "#include <iostream>\n"
+        + "#include <omp.h>\n"
+        + "#include \"Util/Log.h\"\n"
+        + "#include \"Util/Vector.h\"\n"
+        + "#include \"Util/Stopwatch.h\"\n"
+        + "#include \"MultiGrid/MultiGrid.h\"\n"
+        + "#include \"Domains/DomainGenerated.h\"\n");
+
+    for (function <- functions_HACK)
+      writerSource.write(function.cpp + "\n");
 
     writerSource.close();
 
   }
-
 }

@@ -477,6 +477,6 @@ case class SetSolZero(field : Field, level : Integer) extends AbstractFunctionSt
         new LoopOverDimensions(fieldToIndexInner(Array(0, 0, 0), level),
           new AssignmentStatement(
             new FieldAccess(field, level, "slot", Mapping.access(level)),
-            ImplicitConversions.NumberToNumericLiteral(0.0))))));
+            NumericLiteral(0.0))))));
   }
 }
