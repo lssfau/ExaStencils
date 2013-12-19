@@ -49,7 +49,7 @@ case class MultiGrid() extends Node with FilePrettyPrintable {
     writerSource.write("#include \"MultiGrid/MultiGrid.h\"\n");
 
     for (function <- functions_HACK)
-      writerSource.write(function.cpp);
+      writerSource.write(function.cpp + "\n");
 
     writerSource.close();
   }

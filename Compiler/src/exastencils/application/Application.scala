@@ -178,7 +178,7 @@ int main (int argc, char** argv)
 	exa_real_t lastRes = 0.0;
 	{
 		updateResidual_Node(fragments, 0, FINAL_LEVEL);
-		exa_real_t res = getGlobalResidual_Node(fragments, FINAL_LEVEL);
+		exa_real_t res = getGlobalResidual(fragments);
 
 		res = res * res;
 		exa_real_t resTotal;
@@ -223,7 +223,7 @@ int main (int argc, char** argv)
  		if (0 != curIt % 1)
  			continue;
 
-		exa_real_t res = getGlobalResidual_Node(fragments, FINAL_LEVEL);
+		exa_real_t res = getGlobalResidual(fragments);
 		res = res * res;
 		exa_real_t resTotal;
 

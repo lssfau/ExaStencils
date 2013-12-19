@@ -516,45 +516,28 @@ case class PerformVCycle() extends AbstractFunctionStatement with Expandable {
   }
 }
 
-case class GetGlobalResidual() extends AbstractFunctionStatement with Expandable {
+case class GetGlobalResidual(field : Field) extends AbstractFunctionStatement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = "NOT VALID ; CLASS = GetGlobalResidual\n";
 
   override def expand : FunctionStatement = {
-    FunctionStatement("exa_real_t", s"getGlobalResidual_Node", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int", " level")),
+    FunctionStatement("exa_real_t", s"getGlobalResidual", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments")),
       ListBuffer(
-        """
-	exa_real_t res = 0.0;
-
-#ifdef USE_OMP
-#	pragma omp parallel for reduction(+:res) schedule(static, 1)
-#endif
-	for (int f = 0; f < fragments.size(); ++f)
-	{
-		// more specialized version; usage of different data layouts (2D vs 3D, quad vs triangle, etc) would have to be incoporated by hand or generation
-		const exa_real_t*	data	= fragments[f]->resData[0][level]->getDataPtr();
-		Vec3u				dimWPad	= fragments[f]->solData[0][level]->numDataPointsPerDimWPad;
-		Vec3u				first	= fragments[f]->solData[0][level]->firstDataPoint;
-		Vec3u				last	= fragments[f]->solData[0][level]->lastDataPoint;
-
-		for (unsigned int z = first.z + NUM_GHOST_LAYERS; z <= last.z - NUM_GHOST_LAYERS; ++z)
-		{
-			for (unsigned int y = first.y + NUM_GHOST_LAYERS; y <= last.y - NUM_GHOST_LAYERS; ++y)
-			{
-				unsigned int posAbs = z * dimWPad.y * dimWPad.x + y * dimWPad.x + first.x + NUM_GHOST_LAYERS;
-				for (unsigned int x = first.x + NUM_GHOST_LAYERS; x <= last.x - NUM_GHOST_LAYERS; ++x, ++posAbs)
-					res += data[posAbs] * data[posAbs];
-			}
-		}
-	}
-
-	return sqrt(res);
-"""));
+        s"exa_real_t res = 0.0;",
+        LoopOverFragments(ListBuffer(
+          // FIXME: this currently counts duplicated values multiple times
+          new LoopOverDimensions(
+            fieldToIndexInner(Array(0, 0, 0), Knowledge.maxLevel), ListBuffer[Statement](
+              s"exa_real_t tmpRes =" ~ new FieldAccess(field, Knowledge.maxLevel, NumericLiteral(0), Mapping.access(Knowledge.maxLevel)) ~ ";",
+              s"res += tmpRes * tmpRes;"))),
+          true, "reduction(+:res)"),
+        s"return sqrt(res);"));
   }
 }
 
 case class SetSolZero(field : Field, level : Integer) extends AbstractFunctionStatement with Expandable {
+	// TODO: resolve/inline this function
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = "NOT VALID ; CLASS = SetSolZero\n";
