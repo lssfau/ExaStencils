@@ -19,8 +19,6 @@ case class Poisson3D() extends Node with FilePrettyPrintable {
 #ifndef	POISSON_3D_H
 #define	POISSON_3D_H
 
-#include "Util/Defines.h"				// required to set USE_* defines
-
 #pragma warning(disable : 4800)
 #include <mpi.h>				// required to be included before stdio.h
 
@@ -29,7 +27,6 @@ case class Poisson3D() extends Node with FilePrettyPrintable {
 
 #include <omp.h>
 
-#include "Util/Defines.h"
 #include "Util/Log.h"
 #include "Util/TypeDefs.h"
 
@@ -53,11 +50,7 @@ case class Poisson3D() extends Node with FilePrettyPrintable {
 void printUsage ()
 {
 	LOG_NOTE("Usage:");
-#ifdef TIME_MEASUREMENTS
 	LOG_NOTE("\tmpirun -np (numBlocksTotal) .\\Poisson3D.exe");
-#else
-	LOG_NOTE("\tmpirun -np (numBlocksTotal) .\\Poisson3D.exe");
-#endif
 }
 
 int main (int argc, char** argv)
@@ -147,26 +140,22 @@ int main (int argc, char** argv)
 	for (unsigned int s = 0; s <= """ + s"${Knowledge.maxLevel}" + """; ++s)
 		solSlots[s] = 0;
 
-#ifdef TIME_MEASUREMENTS
 	double minTime	= FLT_MAX;
 	double maxTime	= 0;
 	double meanTime	= 0;
 	StopWatch stopWatch;
 	StopWatch stopWatchTotal;
-#endif
 
 	for (curIt = 0; curIt < """ + s"${Knowledge.mgMaxNumIterations}" + """; ++curIt)
 	{
-#ifdef TIME_MEASUREMENTS
 		stopWatch.reset();
-#endif
+
 		performVCycle""" + s"_${Knowledge.maxLevel}" + """(fragments, solSlots);
-#ifdef TIME_MEASUREMENTS
+	
 		double tDuration = stopWatch.getTimeInMilliSecAndReset();
 		minTime = std::min(minTime, tDuration);
 		maxTime = std::max(maxTime, tDuration);
 		meanTime += tDuration;
-#endif
 
 		// FIXME: res check every n cycles
  		if (0 != curIt % 1)
@@ -182,7 +171,6 @@ int main (int argc, char** argv)
 		resTotal = sqrt(resTotal);
 		res = resTotal;
 
-#		ifdef TIME_MEASUREMENTS
 		if (0 == mpiRank)
 		{
 			LOG_NOTE("Iteration " << curIt << std::endl
@@ -190,10 +178,6 @@ int main (int argc, char** argv)
 				<< "\tRuntime for the current v-cycle: " << tDuration << std::endl
 				<< "\tReduction: " << res / lastRes);
 		}
-#		else
-		if (0 == mpiRank)
-			LOG_NOTE("Iteration " << curIt << ", current residual (L2-norm), level " << """ + s"${Knowledge.maxLevel}" + """ << ": " << res);
-#		endif
 
 		lastRes = res;
 
@@ -204,7 +188,6 @@ int main (int argc, char** argv)
 		}
 	}
 
-#ifdef TIME_MEASUREMENTS
 	for (int c = 0; c < mpiSize; ++c)
 	{
 		MPI_Barrier(MPI_COMM_WORLD);
@@ -256,15 +239,8 @@ int main (int argc, char** argv)
 	MPI_Barrier(MPI_COMM_WORLD);
 	if (0 == mpiRank)
 		std::cout << std::endl;
-#endif
 
 	MPI_Barrier(MPI_COMM_WORLD);
-
-#ifdef TIME_MEASUREMENTS
-#else
-	if (0 == mpiRank)
-		LOG_NOTE("Finished after " << curIt << " iterations");
-#endif
 
 	// FIXME: free primitives
 	MPI_Finalize();

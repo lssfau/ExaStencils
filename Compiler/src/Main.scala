@@ -34,7 +34,6 @@ object Main {
 
       // Util
       new Container,
-      new Defines,
       new Log,
       new Stopwatch,
       new TypeDefs,

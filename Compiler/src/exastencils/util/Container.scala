@@ -19,7 +19,6 @@ case class Container() extends Node with FilePrettyPrintable {
 #ifndef	CONTAINER_CONTAINER_H
 #define	CONTAINER_CONTAINER_H
 
-#include "Util/Defines.h"
 #include "Util/Log.h"
 #include "Util/TypeDefs.h"
 

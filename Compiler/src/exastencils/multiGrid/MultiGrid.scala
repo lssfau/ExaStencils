@@ -23,11 +23,9 @@ case class MultiGrid() extends Node with FilePrettyPrintable {
 
     writerHeader.write("#ifndef MULTIGRID_MULTIGRID_H\n"
       + "#define MULTIGRID_MULTIGRID_H\n"
-      + "#include \"Util/Defines.h\"\n"
       + "#pragma warning(disable : 4800)\n"
       + "#include <mpi.h>\n"
       + "#include <vector>\n"
-      + "#include \"Util/Defines.h\"\n"
       + "#include \"Util/Log.h\"\n"
       + "#include \"Util/TypeDefs.h\"\n"
       + "#include \"Util/Vector.h\"\n"

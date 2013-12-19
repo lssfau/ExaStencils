@@ -21,8 +21,6 @@ case class TypeDefs() extends Node with FilePrettyPrintable {
 
 #include <vector>
 
-#include "Util/Defines.h"
-
 class Fragment3DCube;
 class Container;
 

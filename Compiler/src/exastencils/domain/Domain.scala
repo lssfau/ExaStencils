@@ -167,7 +167,6 @@ case class DomainGenerated() extends Node with FilePrettyPrintable {
         + "#define DOMAINS_DOMAINGENERATED_H\n"
         + "#include <vector>\n"
         + "#include <map>\n"
-        + "#include \"Util/Defines.h\"\n"
         + "#include \"Util/Log.h\"\n"
         + "#include \"Util/TypeDefs.h\"\n"
         + "#include \"Util/Vector.h\"\n");
