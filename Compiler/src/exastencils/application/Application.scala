@@ -113,7 +113,7 @@ int main (int argc, char** argv)
 						val = 0.0;
 				}
 
-				for (unsigned s = 0; s < NUM_SOL_SLOTS; ++s)
+				for (unsigned s = 0; s < """ + s"${Knowledge.numSolSlots}" + """; ++s)
 					fragments[f]->solData[s][l]->getDataRef(Vec3u(x, y, z)) = val;
 
 				fragments[f]->rhsData[0][l]->getDataRef(Vec3u(x, y, z)) = 0.0;
@@ -224,53 +224,18 @@ int main (int argc, char** argv)
 			// if you need a more compact form of output:
 			std::cout
 
-#	ifdef COARSE_GRID_SOLVER_IP_SMOOTHER
-				<< "IP_SMOOTHER" << "\t"
-#	endif
-#	ifdef COARSE_GRID_SOLVER_IP_CG
-				<< "IP_CG" << "\t"
-#	endif
-#	ifdef COARSE_GRID_SOLVER_IP_HYPRE
-				<< "IP_AMG" << "\t"
-#	endif
-#	ifdef COARSE_GRID_SOLVER_RED_HYPRE
-				<< "RED_AMG" << "\t"
-#	endif
+			<< """" + s"${Knowledge.cgs}" +  """" << "\t"
+			<< """" + s"${Knowledge.smoother}" +  """" << "\t"
 
-#	ifdef SMOOTHER_JACOBI
-				<< "JAC" << "\t"
-#	endif
-#	ifdef SMOOTHER_GS
-				<< "GS" << "\t"
-#	endif
-#	ifdef SMOOTHER_GSAC
-				<< "GSAC" << "\t"
-#	endif
-#	ifdef SMOOTHER_GSOD
-				<< "GSOD" << "\t"
-#	endif
-#	ifdef SMOOTHER_GSACBE
-				<< "GSACBE" << "\t"
-#	endif
-#	ifdef SMOOTHER_GSRS
-				<< "GSRS" << "\t"
-#	endif
-#	ifdef SMOOTHER_GSRB
-				<< "GSRB" << "\t"
-#	endif
-#	ifdef SMOOTHER_GSRBAC
-				<< "GSRBAC" << "\t"
-#	endif
-/*
-				FIXME: set via code generation
-				<< numBlocks.x << "\t"
-				<< numBlocks.y << "\t"
-				<< numBlocks.z << "\t"
-				<< numElemPerBlock.x << "\t"
-				<< numElemPerBlock.y << "\t"
-				<< numElemPerBlock.z << "\t"
-*/
+				<< """ + s"${Knowledge.numBlocks_x}" +  """ << "\t"
+				<< """ + s"${Knowledge.numBlocks_y}" +  """ << "\t"
+				<< """ + s"${Knowledge.numBlocks_z}" +  """ << "\t"
+				<< """ + s"${Knowledge.numFragsPerBlock_x}" +  """ << "\t"
+				<< """ + s"${Knowledge.numFragsPerBlock_y}" +  """ << "\t"
+				<< """ + s"${Knowledge.numFragsPerBlock_z}" +  """ << "\t"
+
 				<< 0 << "\t"
+				
 				<< """ + s"${Knowledge.maxLevel}" + """ << "\t"
 				<< """ + s"${Knowledge.cgsNumSteps}" + """ << "\t"
 				<< """ + s"${Knowledge.smootherNumPre}" + """ << "\t"

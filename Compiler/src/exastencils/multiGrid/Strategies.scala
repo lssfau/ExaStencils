@@ -22,7 +22,7 @@ object SetupMultiGrid extends Strategy("Setting up multi-grid") {
     case mg : MultiGrid =>
       for (level <- (0 to Knowledge.maxLevel)) {
         // FIXME: choice by enum
-        mg.functions_HACK += new PerformSmoothingJacobi(
+        mg.functions_HACK += new PerformSmoothing(
           fieldCollection.getFieldByName("Solution").get,
           fieldCollection.getFieldByName("RHS").get,
           level);
@@ -35,7 +35,7 @@ object SetupMultiGrid extends Strategy("Setting up multi-grid") {
           level);
       }
       for (level <- (0 to Knowledge.maxLevel)) {
-        mg.functions_HACK += new PerformVCycle(fieldCollection, level);
+        mg.functions_HACK += new PerformVCycle(level);
       }
       for (level <- (0 to Knowledge.maxLevel)) {
         mg.functions_HACK += new SetSolZero(
