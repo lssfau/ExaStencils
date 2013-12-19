@@ -12,10 +12,38 @@ import exastencils.datastructures.ir.ImplicitConversions._
 
 import exastencils.primitives._
 
+case class PerformSmoothingJacobi(solutionField : Field, rhsField : Field, level : Integer) extends AbstractFunctionStatement with Expandable {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = "NOT VALID ; CLASS = PerformSmoothingJacobi\n";
+
+  override def expand : FunctionStatement = {
+    FunctionStatement(new UnitDatatype(), s"performSmoothing_$level", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int", "targetSlot"), Variable("unsigned int", "sourceSlot")),
+      ListBuffer(
+        s"exchsolData(fragments, $level, sourceSlot);",
+        new LoopOverFragments(
+          new LoopOverDimensions(
+            fieldToIndexInner(Array(0, 0, 0), level), ListBuffer[Statement](
+              AssignmentStatement(
+                // FIXME: introduce and apply stencil node
+                FieldAccess(solutionField, level, "targetSlot", Mapping.access(level)),
+                s"(1.0 - OMEGA) * " ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level))
+                  ~ s"+ OMEGA * 1.0 / 6.0 * ("
+                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "z", "y", "(x + 1)"))
+                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "z", "y", "(x - 1)"))
+                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "z", "(y + 1)", "x"))
+                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "z", "(y - 1)", "x"))
+                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(z - 1)", "y", "x"))
+                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(z + 1)", "y", "x"))
+                  ~ s"-" ~ FieldAccess(rhsField, level, "0", Mapping.access(level))
+                  ~ ")"))))));
+  }
+}
+
 case class PerformSmoothing() extends AbstractFunctionStatement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  override def cpp : String = "NOT VALID ; CLASS = Smoother\n";
+  override def cpp : String = "NOT VALID ; CLASS = PerformSmoothing\n";
 
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"smootherIteration_Node", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int", "targetSlot"), Variable("unsigned int", "sourceSlot"), Variable("unsigned int", "level")),
@@ -359,18 +387,20 @@ case class PerformVCycle(fields : FieldCollection /*TODO: check if necessary*/ ,
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"performVCycle_$level", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int*", "solSlots")),
       (if (0 == level) {
-        ListBuffer[Statement]( // TODO: choice by enum
+        ListBuffer[Statement](
+            // TODO: choice by enum
+            // FIXME: extract CGS 
           s"#ifdef COARSE_GRID_SOLVER_IP_SMOOTHER",
           s"for (unsigned int s = 0; s < NUM_COARSE_STEPS; ++s) 		{",
           s"++solSlots[COARSE_LEVEL];",
-          s"smootherIteration_Node(fragments, (solSlots[$level] + 0) % NUM_SOL_SLOTS, (solSlots[$level] - 1) % NUM_SOL_SLOTS, $level);",
+          s"performSmoothing_$level(fragments, (solSlots[$level] + 0) % NUM_SOL_SLOTS, (solSlots[$level] - 1) % NUM_SOL_SLOTS);",
           s"}",
           s"#endif")
       } else {
         ListBuffer[Statement](
           s"for (unsigned int s = 0; s < NUM_PRE_SMOOTHING_STEPS; ++s)	{",
           s"++solSlots[$level];",
-          s"smootherIteration_Node(fragments, (solSlots[$level] + 0) % NUM_SOL_SLOTS, (solSlots[$level] - 1) % NUM_SOL_SLOTS, $level);",
+          s"performSmoothing_$level(fragments, (solSlots[$level] + 0) % NUM_SOL_SLOTS, (solSlots[$level] - 1) % NUM_SOL_SLOTS);",
           s"}",
 
           s"updateResidual_$level(fragments, solSlots[$level] % NUM_SOL_SLOTS);",
@@ -385,7 +415,7 @@ case class PerformVCycle(fields : FieldCollection /*TODO: check if necessary*/ ,
 
           s"for (unsigned int s = 0; s < NUM_POST_SMOOTHING_STEPS; ++s)	{",
           s"++solSlots[$level];",
-          s"smootherIteration_Node(fragments, (solSlots[$level] + 0) % NUM_SOL_SLOTS, (solSlots[$level] - 1) % NUM_SOL_SLOTS, $level);",
+          s"performSmoothing_$level(fragments, (solSlots[$level] + 0) % NUM_SOL_SLOTS, (solSlots[$level] - 1) % NUM_SOL_SLOTS);",
           s"}")
       })
         ++ (if (Knowledge.maxLevel == level) { ListBuffer[Statement](s"updateResidual_$level(fragments, solSlots[$level] % NUM_SOL_SLOTS);") }

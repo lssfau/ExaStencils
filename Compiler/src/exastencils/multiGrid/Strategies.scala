@@ -12,7 +12,6 @@ import exastencils.primitives._
 object SetupMultiGrid extends Strategy("Setting up multi-grid") {
   this += new Transformation("Adding basic functions to multi-grid", {
     case mg : MultiGrid =>
-      mg.functions_HACK += new PerformSmoothing;
       mg.functions_HACK += new PerformRestriction;
       mg.functions_HACK += new PerformProlongation;
       Some(mg);
@@ -21,6 +20,13 @@ object SetupMultiGrid extends Strategy("Setting up multi-grid") {
   val fieldCollection = FindFirstOccurence.find[FieldCollection].get;
   this += new Transformation("Adding specialized functions to multi-grid", {
     case mg : MultiGrid =>
+      for (level <- (0 to Knowledge.maxLevel)) {
+        // FIXME: choice by enum
+        mg.functions_HACK += new PerformSmoothingJacobi(
+          fieldCollection.getFieldByName("Solution").get,
+          fieldCollection.getFieldByName("RHS").get,
+          level);
+      }
       for (level <- (0 to Knowledge.maxLevel)) {
         mg.functions_HACK += new UpdateResidual(
           fieldCollection.getFieldByName("Residual").get,
@@ -32,9 +38,12 @@ object SetupMultiGrid extends Strategy("Setting up multi-grid") {
         mg.functions_HACK += new PerformVCycle(fieldCollection, level);
       }
       for (level <- (0 to Knowledge.maxLevel)) {
-        mg.functions_HACK += new SetSolZero(fieldCollection.getFieldByName("Solution").get, level);
+        mg.functions_HACK += new SetSolZero(
+            fieldCollection.getFieldByName("Solution").get,
+            level);
       }
-      mg.functions_HACK += new GetGlobalResidual(fieldCollection.getFieldByName("Residual").get);
+      mg.functions_HACK += new GetGlobalResidual(
+          fieldCollection.getFieldByName("Residual").get);
       Some(mg);
   });
 }
