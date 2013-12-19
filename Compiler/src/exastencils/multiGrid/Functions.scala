@@ -21,7 +21,7 @@ case class PerformSmoothing() extends AbstractFunctionStatement with Expandable 
 	exa_real_t hSq = h * h;
 	exa_real_t hSqInv = 1.0 / hSq;
 
-	communicateSolution(fragments, level, sourceSlot);
+	exchsolData(fragments, level, sourceSlot);
 
 #ifdef SMOOTHER_GSOD
 	for (unsigned int smootherIteration = 0; smootherIteration < NUM_GSOD_ITERATIONS; ++smootherIteration)
@@ -105,7 +105,7 @@ case class PerformSmoothing() extends AbstractFunctionStatement with Expandable 
 			}
 
 #	ifdef USE_ADDITIONAL_SMOOTHER_COMM
-			communicateSolution(fragments, level, targetSlot);
+			exchsolData(fragments, level, targetSlot);
 #	endif
 
 			for (unsigned int z = first.z + NUM_GHOST_LAYERS; z <= last.z - NUM_GHOST_LAYERS; ++z)
@@ -166,7 +166,7 @@ case class UpdateResidual() extends AbstractFunctionStatement with Expandable {
 	exa_real_t hSq = h * h;
 	exa_real_t hSqInv = 1.0 / hSq;
 
-	communicateSolution(fragments, level, slot);
+	exchsolData(fragments, level, slot);
 
 #ifdef USE_OMP
 #	pragma omp parallel for schedule(static, 1)
@@ -207,7 +207,7 @@ case class PerformRestriction() extends AbstractFunctionStatement with Expandabl
     FunctionStatement(new UnitDatatype(), s"performRestriction_NodeFW", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int", "levelSrc"), Variable("unsigned int", "levelDest")),
       ListBuffer(
         """
-	communicateResidual(fragments, levelSrc);
+	exchresData(fragments, levelSrc, 0);
 
 #ifdef USE_OMP
 #	pragma omp parallel for schedule(static, 1)
@@ -287,7 +287,7 @@ case class PerformProlongation() extends AbstractFunctionStatement with Expandab
     FunctionStatement(new UnitDatatype(), s"performProlongation_NodeTLI", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int", "slotSrc"), Variable("unsigned int", "levelSrc"), Variable("unsigned int", "slotDest"), Variable("unsigned int", "levelDest")),
       ListBuffer(
         """
-	communicateSolution(fragments, levelSrc, slotSrc);
+	exchsolData(fragments, levelSrc, slotSrc);
 
 #ifdef USE_OMP
 #	pragma omp parallel for schedule(static, 1)

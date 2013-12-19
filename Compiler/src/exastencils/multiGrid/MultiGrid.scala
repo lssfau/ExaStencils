@@ -48,13 +48,7 @@ case class MultiGrid() extends Node with FilePrettyPrintable {
       writerHeader.write(s"${function.returntype.cpp} ${function.name}(" + function.parameters.map(param => s"${param.datatype.cpp} ${param.name}").mkString(", ") + ");\n");
     }
 
-    writerHeader.write(
-      """
-	void communicateSolution (std::vector<Fragment3DCube*>& fragments, unsigned int level, unsigned int slot);
-	void communicateResidual (std::vector<Fragment3DCube*>& fragments, unsigned int level);
-
-#endif // MULTIGRID_MULTIGRID_H
-""");
+    writerHeader.write("#endif // MULTIGRID_MULTIGRID_H\n");
 
     writerHeader.close();
 
@@ -65,17 +59,6 @@ case class MultiGrid() extends Node with FilePrettyPrintable {
     for (function <- functions_HACK)
       writerSource.write(function.cpp);
 
-    writerSource.write(
-      """
-void communicateSolution (std::vector<Fragment3DCube*>& fragments, unsigned int level, unsigned int slot)
-{ 	exchsolData(fragments, level, slot); }
-
-void communicateResidual(std::vector<Fragment3DCube*>& fragments, unsigned int level)
-{ 	exchresData(fragments, level, 0); }
-""");
-
     writerSource.close();
-
   }
-
 }
