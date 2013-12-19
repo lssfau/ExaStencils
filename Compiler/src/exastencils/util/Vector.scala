@@ -57,9 +57,9 @@ template <typename T> class TVec2;
 // typedefs
 //=====================================================================================================================
 
-typedef TVec4<exa_real_t> Vec4;				///< a 4D float vector
-typedef TVec3<exa_real_t> Vec3;				///< a 3D float vector
-typedef TVec2<exa_real_t> Vec2;				///< a 2D float vector
+typedef TVec4<double> Vec4;				///< a 4D float vector
+typedef TVec3<double> Vec3;				///< a 3D float vector
+typedef TVec2<double> Vec2;				///< a 2D float vector
 
 typedef TVec4<unsigned int> Vec4u;			///< a 4D unsigned int vector
 typedef TVec3<unsigned int> Vec3u;			///< a 3D unsigned int vector

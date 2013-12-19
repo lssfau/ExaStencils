@@ -35,7 +35,7 @@ case class PointToFragmentId(var pos : Expression) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
-    (s"((exa_id_t)(floor(${pos.cpp}.z) * ${Knowledge.numFragsTotal_y * Knowledge.numFragsTotal_x} + floor(${pos.cpp}.y) * ${Knowledge.numFragsTotal_x} + floor(${pos.cpp}.x)))");
+    (s"((size_t)(floor(${pos.cpp}.z) * ${Knowledge.numFragsTotal_y * Knowledge.numFragsTotal_x} + floor(${pos.cpp}.y) * ${Knowledge.numFragsTotal_x} + floor(${pos.cpp}.x)))");
   }
 }
 
@@ -132,7 +132,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
           "\"Invalid number of MPI processes (\" << numMpiProc << \") should be \" << " + (Knowledge.numBlocks),
           "return;"),
 
-        "std::map<exa_id_t, Fragment3DCube*> fragmentMap;",
+        "std::map<size_t, Fragment3DCube*> fragmentMap;",
 
         "std::vector<Vec3> positions;",
         s"Vec3 rankPos(mpiRank % ${Knowledge.numBlocks_x}, (mpiRank / ${Knowledge.numBlocks_x}) % ${Knowledge.numBlocks_y}, mpiRank / ${Knowledge.numBlocks_x * Knowledge.numBlocks_y});",

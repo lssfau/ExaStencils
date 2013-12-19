@@ -92,12 +92,12 @@ int main (int argc, char** argv)
 			for (unsigned int y = 0; y < fragments[f]->solData[0][l]->numDataPointsPerDim.y; ++y)
 			for (unsigned int x = 0; x < fragments[f]->solData[0][l]->numDataPointsPerDim.x; ++x)
 			{
-				exa_real_t val;
+				double val;
 				if (""" + s"${Knowledge.maxLevel}" + """ != l)
 					val = 0.0;
 				else
 				{
-					val = (exa_real_t)std::rand() / RAND_MAX;
+					val = (double)std::rand() / RAND_MAX;
 
 					// hack in Dirichlet boundary conditions
 					Vec3u first	= Vec3u(""" + s"${Knowledge.numGhostLayers}" + """);
@@ -117,13 +117,13 @@ int main (int argc, char** argv)
 
 	MPI_Barrier(MPI_COMM_WORLD);
 
-	exa_real_t lastRes = 0.0;
+	double lastRes = 0.0;
 	{
 		updateResidual""" + s"_${Knowledge.maxLevel}" + """(fragments, 0);
-		exa_real_t res = getGlobalResidual(fragments);
+		double res = getGlobalResidual(fragments);
 
 		res = res * res;
-		exa_real_t resTotal;
+		double resTotal;
 
 		MPI_Reduce(&res, &resTotal, 1, /*FIXME*/MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 		MPI_Bcast(&resTotal, 1, /*FIXME*/MPI_DOUBLE, 0, MPI_COMM_WORLD);
@@ -133,7 +133,7 @@ int main (int argc, char** argv)
 
 		lastRes = res;
 	}
-	exa_real_t initialRes = lastRes;
+	double initialRes = lastRes;
 
 	unsigned int curIt;
 	unsigned int solSlots[""" + s"${Knowledge.numLevels}" + """];
@@ -161,9 +161,9 @@ int main (int argc, char** argv)
  		if (0 != curIt % 1)
  			continue;
 
-		exa_real_t res = getGlobalResidual(fragments);
+		double res = getGlobalResidual(fragments);
 		res = res * res;
-		exa_real_t resTotal;
+		double resTotal;
 
 		MPI_Reduce(&res, &resTotal, 1, /*FIXME*/MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 		MPI_Bcast(&resTotal, 1, /*FIXME*/MPI_DOUBLE, 0, MPI_COMM_WORLD);

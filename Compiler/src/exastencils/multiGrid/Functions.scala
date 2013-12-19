@@ -84,9 +84,9 @@ case class PerformSmoothing(solutionField : Field, rhsField : Field, level : Int
     FunctionStatement(new UnitDatatype(), s"smootherIteration_Node", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int", "targetSlot"), Variable("unsigned int", "sourceSlot"), Variable("unsigned int", "level")),
       ListBuffer(
         """
-	exa_real_t h = 1.0;// / (1u << level);
-	exa_real_t hSq = h * h;
-	exa_real_t hSqInv = 1.0 / hSq;
+	double h = 1.0;// / (1u << level);
+	double hSq = h * h;
+	double hSqInv = 1.0 / hSq;
 
 	exchsolData(fragments, level, sourceSlot);
 
@@ -100,9 +100,9 @@ case class PerformSmoothing(solutionField : Field, rhsField : Field, level : Int
 		for (int f = 0; f < fragments.size(); ++f)	// unsigned wont work... really, OMP?
 		{
 			// more specialized version; usage of different data layouts (2D vs 3D, quad vs triangle, etc) would have to be incoporated by hand or generation
-			const exa_real_t*	solSrcData	= fragments[f]->solData[sourceSlot][level]->getDataPtr();
-			exa_real_t*			solDestData	= fragments[f]->solData[targetSlot][level]->getDataPtr();
-			const exa_real_t*	rhsData		= fragments[f]->rhsData[0][level]->getDataPtr();
+			const double*	solSrcData	= fragments[f]->solData[sourceSlot][level]->getDataPtr();
+			double*			solDestData	= fragments[f]->solData[targetSlot][level]->getDataPtr();
+			const double*	rhsData		= fragments[f]->rhsData[0][level]->getDataPtr();
 			Vec3u				dimWOPad	= fragments[f]->solData[0][level]->numDataPointsPerDim;
 			Vec3u				dimWPad		= fragments[f]->solData[0][level]->numDataPointsPerDimWPad;
 			Vec3u				first		= fragments[f]->solData[0][level]->firstDataPoint;
@@ -239,8 +239,8 @@ case class PerformRestriction() extends AbstractFunctionStatement with Expandabl
         new LoopOverFragments(
           """
 		// more specialized version; usage of different data layouts (2D vs 3D, quad vs triangle, etc) would have to be incoporated by hand or generation
-		const exa_real_t*	srcData		= fragments[f]->resData[0][levelSrc]->getDataPtr();
-		exa_real_t*			destData	= fragments[f]->rhsData[0][levelDest]->getDataPtr();
+		const double*	srcData		= fragments[f]->resData[0][levelSrc]->getDataPtr();
+		double*			destData	= fragments[f]->rhsData[0][levelDest]->getDataPtr();
 		Vec3u				dimWPadSrc	= fragments[f]->solData[0][levelSrc]->numDataPointsPerDimWPad;
 		Vec3u				firstSrc	= fragments[f]->solData[0][levelSrc]->firstDataPoint;
 		Vec3u				lastSrc		= fragments[f]->solData[0][levelSrc]->lastDataPoint;
@@ -313,8 +313,8 @@ case class PerformProlongation() extends AbstractFunctionStatement with Expandab
         new LoopOverFragments(
           """
 		// WARNING: assumes an odd number of data points per dimension (e.g. 2^l + 1) or a number smaller or equal to 2
-		const exa_real_t*	srcData		= fragments[f]->solData[slotSrc][levelSrc]->getDataPtr();
-		exa_real_t*			destData	= fragments[f]->solData[slotDest][levelDest]->getDataPtr();
+		const double*	srcData		= fragments[f]->solData[slotSrc][levelSrc]->getDataPtr();
+		double*			destData	= fragments[f]->solData[slotDest][levelDest]->getDataPtr();
 		Vec3u				dimWPadSrc	= fragments[f]->solData[0][levelSrc]->numDataPointsPerDimWPad;
 		Vec3u				firstSrc	= fragments[f]->solData[0][levelSrc]->firstDataPoint;
 		Vec3u				lastSrc		= fragments[f]->solData[0][levelSrc]->lastDataPoint;
@@ -451,14 +451,14 @@ case class GetGlobalResidual(field : Field) extends AbstractFunctionStatement wi
   override def cpp : String = "NOT VALID ; CLASS = GetGlobalResidual\n";
 
   override def expand : FunctionStatement = {
-    FunctionStatement("exa_real_t", s"getGlobalResidual", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments")),
+    FunctionStatement("double", s"getGlobalResidual", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments")),
       ListBuffer(
-        s"exa_real_t res = 0.0;",
+        s"double res = 0.0;",
         LoopOverFragments(ListBuffer(
           // FIXME: this currently counts duplicated values multiple times
           new LoopOverDimensions(
             fieldToIndexInner(Array(0, 0, 0), Knowledge.maxLevel), ListBuffer[Statement](
-              s"exa_real_t tmpRes =" ~ new FieldAccess(field, Knowledge.maxLevel, NumericLiteral(0), Mapping.access(Knowledge.maxLevel)) ~ ";",
+              s"double tmpRes =" ~ new FieldAccess(field, Knowledge.maxLevel, NumericLiteral(0), Mapping.access(Knowledge.maxLevel)) ~ ";",
               s"res += tmpRes * tmpRes;"))),
           true, "reduction(+:res)"),
         s"return sqrt(res);"));
