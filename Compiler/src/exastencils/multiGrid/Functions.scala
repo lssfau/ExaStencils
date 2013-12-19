@@ -385,134 +385,45 @@ case class PerformProlongation() extends AbstractFunctionStatement with Expandab
   }
 }
 
-case class PerformVCycle() extends AbstractFunctionStatement with Expandable {
+case class PerformVCycle(fields : FieldCollection /*TODO: check if necessary*/ , level : Integer) extends AbstractFunctionStatement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = "NOT VALID ; CLASS = PerformVCycle\n";
 
   override def expand : FunctionStatement = {
-    FunctionStatement(new UnitDatatype(), s"performVCycle", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int", "level"), Variable("unsigned int*", "solSlots")),
-      ListBuffer(
-        """
-#ifdef MEASURE_MG_COMPONENTS
-	StopWatch	stopWatch;
-#endif
+    FunctionStatement(new UnitDatatype(), s"performVCycle_${level}", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int*", "solSlots")),
+      (if (0 == level) {
+        ListBuffer[Statement]( // TODO: choice by enum
+          s"#ifdef COARSE_GRID_SOLVER_IP_SMOOTHER",
+          s"for (unsigned int s = 0; s < NUM_COARSE_STEPS; ++s) 		{",
+          s"++solSlots[COARSE_LEVEL];",
+          s"smootherIteration_Node(fragments, (solSlots[$level] + 0) % NUM_SOL_SLOTS, (solSlots[$level] - 1) % NUM_SOL_SLOTS, $level);",
+          s"}",
+          s"#endif")
+      } else {
+        ListBuffer[Statement](
+          s"for (unsigned int s = 0; s < NUM_PRE_SMOOTHING_STEPS; ++s)	{",
+          s"++solSlots[$level];",
+          s"smootherIteration_Node(fragments, (solSlots[$level] + 0) % NUM_SOL_SLOTS, (solSlots[$level] - 1) % NUM_SOL_SLOTS, $level);",
+          s"}",
 
-	// check for coarsest level
-	if (COARSE_LEVEL == level)
-	{
-#ifdef COARSE_GRID_SOLVER_IP_SMOOTHER
-		for (unsigned int s = 0; s < NUM_COARSE_STEPS; ++s)
-		{
-			++solSlots[COARSE_LEVEL];
-			smootherIteration_Node(fragments, (solSlots[level] + 0) % NUM_SOL_SLOTS, (solSlots[level] - 1) % NUM_SOL_SLOTS, level);
-		}
-#endif
+          s"updateResidual_Node(fragments, solSlots[$level] % NUM_SOL_SLOTS, $level);",
 
-#ifdef MEASURE_MG_COMPONENTS
-		if (0 == mpiRank)
-			LOG_NOTE("Coarse grid solving on level " << level << " required " << stopWatch.getTimeInMilliSecAndReset());
-#endif
+          s"performRestriction_NodeFW(fragments, $level, ${level - 1});",
 
-		if (FINAL_LEVEL == COARSE_LEVEL)	// no real MG, just simple Jacobi
-			updateResidual_Node(fragments, solSlots[level] % NUM_SOL_SLOTS, level);
+          s"setSolZero_${level - 1}(fragments, solSlots[${level - 1}] % NUM_SOL_SLOTS);",
 
-		return;
-	}
+          s"performVCycle_${level - 1}(fragments, solSlots);",
 
-	// not coarsest level, perform default MG step
+          s"performProlongation_NodeTLI(fragments, solSlots[${level - 1}] % NUM_SOL_SLOTS, ${level - 1}, solSlots[$level] % NUM_SOL_SLOTS, $level);",
 
-#ifdef MEASURE_MG_COMPONENTS
-	stopWatch.reset();
-#endif
-
-	// pre-smoothing
-	for (unsigned int s = 0; s < NUM_PRE_SMOOTHING_STEPS; ++s)
-	{
-		++solSlots[level];
-		smootherIteration_Node(fragments, (solSlots[level] + 0) % NUM_SOL_SLOTS, (solSlots[level] - 1) % NUM_SOL_SLOTS, level);
-	}
-
-#ifdef MEASURE_MG_COMPONENTS
-	if (0 == mpiRank)
-		LOG_NOTE("Pre-Smoothing on level " << level << " required " << stopWatch.getTimeInMilliSecAndReset());
-#endif
-
-	// residual calculation
-	updateResidual_Node(fragments, solSlots[level] % NUM_SOL_SLOTS, level);
-
-#ifdef MEASURE_MG_COMPONENTS
-	if (0 == mpiRank)
-		LOG_NOTE("Updating the residual on level " << level << " required " << stopWatch.getTimeInMilliSecAndReset());
-#endif
-
-	// restriction
-	performRestriction_NodeFW(fragments, level, level - 1);
-
-#ifdef MEASURE_MG_COMPONENTS
-	if (0 == mpiRank)
-		LOG_NOTE("Restricting on level " << level << " required " << stopWatch.getTimeInMilliSecAndReset());
-#endif
-
-	// reset solution of coarser grid
-	switch (level)
-	{
-	case (1):
-		setSolZero_0(fragments, solSlots[level - 1] % NUM_SOL_SLOTS);
-		break;
-	case (2):
-		setSolZero_1(fragments, solSlots[level - 1] % NUM_SOL_SLOTS);
-		break;
-	case (3):
-		setSolZero_2(fragments, solSlots[level - 1] % NUM_SOL_SLOTS);
-		break;
-	case (4):
-		setSolZero_3(fragments, solSlots[level - 1] % NUM_SOL_SLOTS);
-		break;
-	case (5):
-		setSolZero_4(fragments, solSlots[level - 1] % NUM_SOL_SLOTS);
-		break;
-	case (6):
-		setSolZero_5(fragments, solSlots[level - 1] % NUM_SOL_SLOTS);
-		break;
-	}
-
-#ifdef MEASURE_MG_COMPONENTS
-	if (0 == mpiRank)
-		LOG_NOTE("Resetting the solution on level " << level - 1 << " required " << stopWatch.getTimeInMilliSecAndReset());
-#endif
-
-	// solve on coarse grid
-	performVCycle(fragments, level - 1, solSlots);
-
-#ifdef MEASURE_MG_COMPONENTS
-	stopWatch.reset();
-#endif
-
-	// prolongation & correction
-	performProlongation_NodeTLI(fragments, solSlots[level - 1] % NUM_SOL_SLOTS, level - 1, solSlots[level] % NUM_SOL_SLOTS, level);
-
-#ifdef MEASURE_MG_COMPONENTS
-	if (0 == mpiRank)
-		LOG_NOTE("Prolongation on level " << level << " required " << stopWatch.getTimeInMilliSecAndReset());
-#endif
-
-	// post-smoothing
-	for (unsigned int s = 0; s < NUM_POST_SMOOTHING_STEPS; ++s)
-	{
-		++solSlots[level];
-		smootherIteration_Node(fragments, (solSlots[level] + 0) % NUM_SOL_SLOTS, (solSlots[level] - 1) % NUM_SOL_SLOTS, level);
-	}
-
-#ifdef MEASURE_MG_COMPONENTS
-	if (0 == mpiRank)
-		LOG_NOTE("Post-Smoothing on level " << level << " required " << stopWatch.getTimeInMilliSecAndReset());
-#endif
-
-	// prepare res for reduction on finest level
-	if (FINAL_LEVEL == level)
-		updateResidual_Node(fragments, solSlots[level] % NUM_SOL_SLOTS, level);
-"""));
+          s"for (unsigned int s = 0; s < NUM_POST_SMOOTHING_STEPS; ++s)	{",
+          s"++solSlots[$level];",
+          s"smootherIteration_Node(fragments, (solSlots[$level] + 0) % NUM_SOL_SLOTS, (solSlots[$level] - 1) % NUM_SOL_SLOTS, $level);",
+          s"}")
+      })
+        ++ (if (Knowledge.maxLevel == level) { ListBuffer[Statement](s"updateResidual_Node(fragments, solSlots[$level] % NUM_SOL_SLOTS, $level)") }
+        else { ListBuffer[Statement]() }));
   }
 }
 
@@ -537,7 +448,7 @@ case class GetGlobalResidual(field : Field) extends AbstractFunctionStatement wi
 }
 
 case class SetSolZero(field : Field, level : Integer) extends AbstractFunctionStatement with Expandable {
-	// TODO: resolve/inline this function
+  // TODO: resolve/inline this function
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = "NOT VALID ; CLASS = SetSolZero\n";

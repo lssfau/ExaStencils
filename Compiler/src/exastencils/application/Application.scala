@@ -211,7 +211,7 @@ int main (int argc, char** argv)
 #ifdef TIME_MEASUREMENTS
 		stopWatch.reset();
 #endif
-		performVCycle(fragments, FINAL_LEVEL, solSlots);
+		performVCycle""" + s"_${Knowledge.maxLevel}" + """(fragments, solSlots);
 #ifdef TIME_MEASUREMENTS
 		double tDuration = stopWatch.getTimeInMilliSecAndReset();
 		minTime = std::min(minTime, tDuration);
