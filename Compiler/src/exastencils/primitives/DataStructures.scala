@@ -60,8 +60,8 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var createFragRef
     new StatementBlock(
       ListBuffer[Statement](
         "#pragma omp parallel for schedule(static, 1) " + addOMPStatements, // FIXME: move to own Node
-        ForLoopStatement(s"int e = 0", s"e < ${Knowledge.numFragsPerBlock}", s"++e",
-          (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[e];") else ListBuffer[Statement]())
+        ForLoopStatement(s"int f = 0", s"f < ${Knowledge.numFragsPerBlock}", s"++f",
+          (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[f];") else ListBuffer[Statement]())
             ++ body)));
   }
 }

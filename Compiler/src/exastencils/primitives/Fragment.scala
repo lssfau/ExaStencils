@@ -125,7 +125,7 @@ case class ExchangeData_6(field : Field, level : Integer, neighbors : ListBuffer
   override def expand : FunctionStatement = {
     var body = new ListBuffer[Statement];
 
-    val fieldName = s"fragments[e]->${field.codeName}[slot][$level]";
+    val fieldName = s"curFragment.${field.codeName}[slot][$level]";
 
     for (neigh <- neighbors) {
       neigh.setIndicesWide(field, level);
@@ -183,7 +183,7 @@ case class ExchangeData_26(field : Field, level : Integer, neighbors : ListBuffe
   override def expand : FunctionStatement = {
     var body = new ListBuffer[Statement];
 
-    val fieldName = s"fragments[e]->${field.codeName}[slot][$level]";
+    val fieldName = s"curFragment.${field.codeName}[slot][$level]";
 
     for (neigh <- neighbors) {
       neigh.setIndices(field, level);

@@ -141,10 +141,10 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
 
         s"fragments.resize(${Knowledge.numFragsPerBlock});",
         LoopOverFragments(ListBuffer(
-          "fragments[e] = new Fragment3DCube();",
-          "fragments[e]->id = " ~ PointToFragmentId("positions[e]") ~ ";",
-          "fragments[e]->pos = positions[e];",
-          "fragmentMap[" ~ PointToFragmentId("positions[e]").cpp ~ s"] = fragments[e];"), false),
+          "fragments[f] = new Fragment3DCube();",
+          "fragments[f]->id = " ~ PointToFragmentId("positions[f]") ~ ";",
+          "fragments[f]->pos = positions[f];",
+          "fragmentMap[" ~ PointToFragmentId("positions[f]").cpp ~ s"] = fragments[f];"), false),
         ConnectFragments(),
         new SetupBuffers));
   }

@@ -24,6 +24,8 @@ object SetupMultiGrid extends Strategy("Setting up multi-grid") {
     case mg : MultiGrid =>
       for (level <- (0 to Knowledge.maxLevel)) {
         mg.functions_HACK += new PerformVCycle(fieldCollection, level);
+      }
+      for (level <- (0 to Knowledge.maxLevel)) {
         mg.functions_HACK += new SetSolZero(fieldCollection.getFieldByName("Solution").get, level);
       }
       mg.functions_HACK += new GetGlobalResidual(fieldCollection.getFieldByName("Residual").get);
