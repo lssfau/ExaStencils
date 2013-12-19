@@ -165,19 +165,9 @@ case class UpdateResidual() extends AbstractFunctionStatement with Expandable {
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"updateResidual_Node", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int", "slot"), Variable("unsigned int", "level")),
       ListBuffer(
-        """
-	exa_real_t h = 1.0;// / (1u << level);
-	exa_real_t hSq = h * h;
-	exa_real_t hSqInv = 1.0 / hSq;
-
-	exchsolData(fragments, level, slot);
-
-#ifdef USE_OMP
-#	pragma omp parallel for schedule(static, 1)
-#endif
-	for (int f = 0; f < fragments.size(); ++f)	// unsigned wont work... really, OMP?
-	{
-		// more specialized version; usage of different data layouts (2D vs 3D, quad vs triangle, etc) would have to be incoporated by hand or generation
+        s"exchsolData(fragments, level, slot);",
+        new LoopOverFragments(
+          """
 		const exa_real_t*	solData	= fragments[f]->solData[slot][level]->getDataPtr();
 		exa_real_t*			resData	= fragments[f]->resData[0][level]->getDataPtr();
 		const exa_real_t*	rhsData	= fragments[f]->rhsData[0][level]->getDataPtr();
@@ -197,8 +187,7 @@ case class UpdateResidual() extends AbstractFunctionStatement with Expandable {
 				- solData[posAbs - dimWPad.y * dimWPad.x] - solData[posAbs + dimWPad.y * dimWPad.x]
 				+ 6.0 * solData[posAbs];
 			}
-	}
-"""));
+""")));
   }
 }
 
@@ -210,14 +199,9 @@ case class PerformRestriction() extends AbstractFunctionStatement with Expandabl
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"performRestriction_NodeFW", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int", "levelSrc"), Variable("unsigned int", "levelDest")),
       ListBuffer(
-        """
-	exchresData(fragments, levelSrc, 0);
-
-#ifdef USE_OMP
-#	pragma omp parallel for schedule(static, 1)
-#endif
-	for (int f = 0; f < fragments.size(); ++f)
-	{
+        s"exchresData(fragments, levelSrc, 0);",
+        new LoopOverFragments(
+          """
 		// more specialized version; usage of different data layouts (2D vs 3D, quad vs triangle, etc) would have to be incoporated by hand or generation
 		const exa_real_t*	srcData		= fragments[f]->resData[0][levelSrc]->getDataPtr();
 		exa_real_t*			destData	= fragments[f]->rhsData[0][levelDest]->getDataPtr();
@@ -277,8 +261,7 @@ case class PerformRestriction() extends AbstractFunctionStatement with Expandabl
 				}
 			}
 		}
-	}
-"""));
+""")));
   }
 }
 
@@ -290,15 +273,9 @@ case class PerformProlongation() extends AbstractFunctionStatement with Expandab
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"performProlongation_NodeTLI", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int", "slotSrc"), Variable("unsigned int", "levelSrc"), Variable("unsigned int", "slotDest"), Variable("unsigned int", "levelDest")),
       ListBuffer(
-        """
-	exchsolData(fragments, levelSrc, slotSrc);
-
-#ifdef USE_OMP
-#	pragma omp parallel for schedule(static, 1)
-#endif
-	for (int f = 0; f < fragments.size(); ++f)
-	{
-		// more specialized version; usage of different data layouts (2D vs 3D, quad vs triangle, etc) would have to be incoporated by hand or generation
+        s"exchsolData(fragments, levelSrc, slotSrc);",
+        new LoopOverFragments(
+          """
 		// WARNING: assumes an odd number of data points per dimension (e.g. 2^l + 1) or a number smaller or equal to 2
 		const exa_real_t*	srcData		= fragments[f]->solData[slotSrc][levelSrc]->getDataPtr();
 		exa_real_t*			destData	= fragments[f]->solData[slotDest][levelDest]->getDataPtr();
@@ -326,8 +303,6 @@ case class PerformProlongation() extends AbstractFunctionStatement with Expandab
 					+ firstSrc.x + NUM_GHOST_LAYERS;
 				for (unsigned int x = firstDest.x + NUM_GHOST_LAYERS; x <= lastDest.x - NUM_GHOST_LAYERS; x += 2, destPos += 2, ++srcPos)
 				{
-					// TODO: extract if condition
-
 					destData[destPos] += 1.0 * (
 						srcData[srcPos]);
 
@@ -380,8 +355,7 @@ case class PerformProlongation() extends AbstractFunctionStatement with Expandab
 				}
 			}
 		}
-	}
-"""));
+""")));
   }
 }
 
@@ -391,7 +365,7 @@ case class PerformVCycle(fields : FieldCollection /*TODO: check if necessary*/ ,
   override def cpp : String = "NOT VALID ; CLASS = PerformVCycle\n";
 
   override def expand : FunctionStatement = {
-    FunctionStatement(new UnitDatatype(), s"performVCycle_${level}", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int*", "solSlots")),
+    FunctionStatement(new UnitDatatype(), s"performVCycle_$level", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int*", "solSlots")),
       (if (0 == level) {
         ListBuffer[Statement]( // TODO: choice by enum
           s"#ifdef COARSE_GRID_SOLVER_IP_SMOOTHER",
@@ -422,7 +396,7 @@ case class PerformVCycle(fields : FieldCollection /*TODO: check if necessary*/ ,
           s"smootherIteration_Node(fragments, (solSlots[$level] + 0) % NUM_SOL_SLOTS, (solSlots[$level] - 1) % NUM_SOL_SLOTS, $level);",
           s"}")
       })
-        ++ (if (Knowledge.maxLevel == level) { ListBuffer[Statement](s"updateResidual_Node(fragments, solSlots[$level] % NUM_SOL_SLOTS, $level)") }
+        ++ (if (Knowledge.maxLevel == level) { ListBuffer[Statement](s"updateResidual_Node(fragments, solSlots[$level] % NUM_SOL_SLOTS, $level);") }
         else { ListBuffer[Statement]() }));
   }
 }
