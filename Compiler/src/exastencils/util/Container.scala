@@ -33,6 +33,8 @@ public:
 	{
 		const unsigned int MULTIPLE_OF	= 8;
 		const unsigned int START_OFFSET	= 1;
+        
+        // FIXME: incorporate padding
 #ifdef ACTIVATE_PADDING
 		if (addPadding)
 		{

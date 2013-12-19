@@ -23,6 +23,13 @@ object Knowledge {
   val numFragsTotal_y : Integer = numFragsPerBlock_y * numBlocks_y;
   val numFragsTotal_z : Integer = numFragsPerBlock_z * numBlocks_z;
   val numFragsTotal : Integer = numFragsTotal_x * numFragsTotal_y * numFragsTotal_z;
+
+  val smootherOmega : Double = 1.0;
+  val smootherNumPre : Integer = 3;
+  val smootherNumPost : Integer = 3;
+  val cgsNumSteps : Integer = 64;
+
+  val mgMaxNumIterations : Integer = 1024;
 }
 
 object Globals {

@@ -44,7 +44,7 @@ object Main {
     SetupMultiGrid.apply;
 
     do { ExpandStrategy.apply; }
-    while (ExpandStrategy.results.last._2.replacements > 0)	// FIXME: cleaner code
+    while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
 
     AddMemberFunctionPrefix.apply;
 

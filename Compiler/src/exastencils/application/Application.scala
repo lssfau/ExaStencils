@@ -50,29 +50,13 @@ case class Poisson3D() extends Node with FilePrettyPrintable {
     writerSource.write("""
 #include "Poisson3D.h"
 
-#ifdef TIME_MEASUREMENTS
-	unsigned int FINAL_LEVEL				= 8;
-	unsigned int COARSE_LEVEL				= 0;
-	unsigned int NUM_COARSE_STEPS			= 64;
-	unsigned int NUM_PRE_SMOOTHING_STEPS	= 2;
-	unsigned int NUM_POST_SMOOTHING_STEPS	= 2;
-	double		 OMEGA						= 0.8;
-	unsigned int NUM_LSE_ENTRIES_PER_RANK	= 64;
-	unsigned int COARSE_GRID_RANK_STRIDE	= 4;
-#endif
-
 void printUsage ()
 {
-#ifdef USE_MPI
 	LOG_NOTE("Usage:");
-#	ifdef TIME_MEASUREMENTS
-	LOG_NOTE("\tmpirun -np (numBlocksTotal) .\\Poisson3D.exe maxNumIterations generated " \
-		<< "coarsestLvl[0] finestLvl[8] numCoarseSteps[64] numPreSmoothingSteps[2] numPostSmoothingSteps[2] omega[0.8]");
-#	else
-	LOG_NOTE("\tmpirun -np (numBlocksTotal) .\\Poisson3D.exe maxNumIterations generated");
-#	endif
+#ifdef TIME_MEASUREMENTS
+	LOG_NOTE("\tmpirun -np (numBlocksTotal) .\\Poisson3D.exe");
 #else
-	LOG_WARNING("Currently not fully implemented!");
+	LOG_NOTE("\tmpirun -np (numBlocksTotal) .\\Poisson3D.exe");
 #endif
 }
 
@@ -89,11 +73,7 @@ int main (int argc, char** argv)
 
 	// FIXME: omp_set_num_threads(OMP_NUM_THREADS);
 
-#ifdef TIME_MEASUREMENTS
-	if (argc < 9)
-#else
-	if (argc < 3)
-#endif
+	if (argc != 1)
 	{
 		if (0 == mpiRank)
 			printUsage();
@@ -101,48 +81,17 @@ int main (int argc, char** argv)
 
 		return 1;
 	}
-
-	unsigned int maxNumItSteps = atoi(argv[1]);
-
-#ifdef TIME_MEASUREMENTS
-	COARSE_LEVEL				= atoi(argv[3]);
-	FINAL_LEVEL					= atoi(argv[4]);
-	if (FINAL_LEVEL >= NUM_LEVELS)
-	{
-		MPI_Finalize();
-		if (0 == mpiRank)
-			LOG_ERROR("Finest level must not be larger than " << NUM_LEVELS-1);
-		return 1;
-	}
-
-	NUM_COARSE_STEPS			= atoi(argv[5]);
-	NUM_PRE_SMOOTHING_STEPS		= atoi(argv[6]);
-	NUM_POST_SMOOTHING_STEPS	= atoi(argv[7]);
-	OMEGA						= atof(argv[8]);
-#endif
 
 	StopWatch setupWatch;
 
-	bool errorOccured = false;
-	if ("generated" == std::string(argv[2]))
-		initGeneratedDomain(fragments);
-	else
-		errorOccured = true;
-
-	if (errorOccured)
-	{
-		if (0 == mpiRank)
-			printUsage();
-		MPI_Finalize();
-		return 1;
-	}
+  initGeneratedDomain(fragments);
 
 	std::srand(1337);
 
 #pragma omp parallel for schedule(static, 1)
 	for (int f = 0; f < fragments.size(); ++f)
 	{
-		for (unsigned int l = 0; l < NUM_LEVELS; ++l)
+		for (unsigned int l = 0; l <= """ + s"${Knowledge.maxLevel}" + """; ++l)
 		{
 			std::srand((unsigned int)fragments[f]->id);
 
@@ -151,15 +100,15 @@ int main (int argc, char** argv)
 			for (unsigned int x = 0; x < fragments[f]->solData[0][l]->numDataPointsPerDim.x; ++x)
 			{
 				exa_real_t val;
-				if (FINAL_LEVEL != l)
+				if (""" + s"${Knowledge.maxLevel}" + """ != l)
 					val = 0.0;
 				else
 				{
 					val = (exa_real_t)std::rand() / RAND_MAX;
 
 					// hack in Dirichlet boundary conditions
-					Vec3u first	= Vec3u(NUM_GHOST_LAYERS);
-					Vec3u last	= fragments[f]->solData[0][l]->numDataPointsPerDim - Vec3u(1) - Vec3u(NUM_GHOST_LAYERS);
+					Vec3u first	= Vec3u(""" + s"${Knowledge.numGhostLayers}" + """);
+					Vec3u last	= fragments[f]->solData[0][l]->numDataPointsPerDim - Vec3u(1) - Vec3u(""" + s"${Knowledge.numGhostLayers}" + """);
 					if (first.z > z || first.y > y || first.x > x || last.z < z || last.y < y || last.x < x)
 						val = 0.0;
 				}
@@ -194,8 +143,8 @@ int main (int argc, char** argv)
 	exa_real_t initialRes = lastRes;
 
 	unsigned int curIt;
-	unsigned int solSlots[NUM_LEVELS];
-	for (unsigned int s = 0; s < NUM_LEVELS; ++s)
+	unsigned int solSlots[""" + s"${Knowledge.numLevels}" + """];
+	for (unsigned int s = 0; s <= """ + s"${Knowledge.maxLevel}" + """; ++s)
 		solSlots[s] = 0;
 
 #ifdef TIME_MEASUREMENTS
@@ -206,7 +155,7 @@ int main (int argc, char** argv)
 	StopWatch stopWatchTotal;
 #endif
 
-	for (curIt = 0; curIt < maxNumItSteps; ++curIt)
+	for (curIt = 0; curIt < """ + s"${Knowledge.mgMaxNumIterations}" + """; ++curIt)
 	{
 #ifdef TIME_MEASUREMENTS
 		stopWatch.reset();
@@ -237,13 +186,13 @@ int main (int argc, char** argv)
 		if (0 == mpiRank)
 		{
 			LOG_NOTE("Iteration " << curIt << std::endl
-				<< "\tCurrent residual (L2-norm), level " << FINAL_LEVEL << ": " << res << std::endl
+				<< "\tCurrent residual (L2-norm), level " << """ + s"${Knowledge.maxLevel}" + """ << ": " << res << std::endl
 				<< "\tRuntime for the current v-cycle: " << tDuration << std::endl
 				<< "\tReduction: " << res / lastRes);
 		}
 #		else
 		if (0 == mpiRank)
-			LOG_NOTE("Iteration " << curIt << ", current residual (L2-norm), level " << FINAL_LEVEL << ": " << res);
+			LOG_NOTE("Iteration " << curIt << ", current residual (L2-norm), level " << """ + s"${Knowledge.maxLevel}" + """ << ": " << res);
 #		endif
 
 		lastRes = res;
@@ -263,7 +212,7 @@ int main (int argc, char** argv)
 		{
 			double totalTime = stopWatchTotal.getTimeInMilliSecAndReset();
 			/*LOG_NOTE("Parameters (coarsestLvl finestLvl numCoarseSteps numPreSmoothingSteps numPostSmoothingSteps omega:");
-			LOG_NOTE(COARSE_LEVEL << " " << FINAL_LEVEL << " " << NUM_COARSE_STEPS << " " << NUM_PRE_SMOOTHING_STEPS << " " << NUM_POST_SMOOTHING_STEPS << " " << OMEGA);
+			LOG_NOTE(0 << " " << """ + s"${Knowledge.maxLevel}" + """ << " " << """ + s"${Knowledge.cgsNumSteps}" + """ << " " << """ + s"${Knowledge.smootherNumPre}" + """ << " " << """ + s"${Knowledge.smootherNumPost}" + """ << " " << """ + s"${Knowledge.smootherOmega}" + """);
 
 			LOG_NOTE("Total Number of Cycles: " << curIt);
 			LOG_NOTE("Total Execution Time:   " << totalTime.count());
@@ -321,12 +270,12 @@ int main (int argc, char** argv)
 				<< numElemPerBlock.y << "\t"
 				<< numElemPerBlock.z << "\t"
 */
-				<< COARSE_LEVEL << "\t"
-				<< FINAL_LEVEL << "\t"
-				<< NUM_COARSE_STEPS << "\t"
-				<< NUM_PRE_SMOOTHING_STEPS << "\t"
-				<< NUM_POST_SMOOTHING_STEPS << "\t"
-				<< OMEGA << "\t";//std::endl;
+				<< 0 << "\t"
+				<< """ + s"${Knowledge.maxLevel}" + """ << "\t"
+				<< """ + s"${Knowledge.cgsNumSteps}" + """ << "\t"
+				<< """ + s"${Knowledge.smootherNumPre}" + """ << "\t"
+				<< """ + s"${Knowledge.smootherNumPost}" + """ << "\t"
+				<< """ + s"${Knowledge.smootherOmega}" + """ << "\t";//std::endl;
 			std::cout
 				<< curIt << "\t"
 				<< totalTime << "\t"
@@ -348,9 +297,7 @@ int main (int argc, char** argv)
 
 #ifdef TIME_MEASUREMENTS
 #else
-#	ifdef USE_MPI
 	if (0 == mpiRank)
-#	endif
 		LOG_NOTE("Finished after " << curIt << " iterations");
 #endif
 
