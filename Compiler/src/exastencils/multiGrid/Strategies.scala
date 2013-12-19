@@ -13,7 +13,6 @@ object SetupMultiGrid extends Strategy("Setting up multi-grid") {
   this += new Transformation("Adding basic functions to multi-grid", {
     case mg : MultiGrid =>
       mg.functions_HACK += new PerformSmoothing;
-      mg.functions_HACK += new UpdateResidual;
       mg.functions_HACK += new PerformRestriction;
       mg.functions_HACK += new PerformProlongation;
       Some(mg);
@@ -22,6 +21,13 @@ object SetupMultiGrid extends Strategy("Setting up multi-grid") {
   val fieldCollection = FindFirstOccurence.find[FieldCollection].get;
   this += new Transformation("Adding specialized functions to multi-grid", {
     case mg : MultiGrid =>
+      for (level <- (0 to Knowledge.maxLevel)) {
+        mg.functions_HACK += new UpdateResidual(
+          fieldCollection.getFieldByName("Residual").get,
+          fieldCollection.getFieldByName("Solution").get,
+          fieldCollection.getFieldByName("RHS").get,
+          level);
+      }
       for (level <- (0 to Knowledge.maxLevel)) {
         mg.functions_HACK += new PerformVCycle(fieldCollection, level);
       }

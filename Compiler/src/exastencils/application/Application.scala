@@ -177,7 +177,7 @@ int main (int argc, char** argv)
 
 	exa_real_t lastRes = 0.0;
 	{
-		updateResidual_Node(fragments, 0, FINAL_LEVEL);
+		updateResidual""" + s"_${Knowledge.maxLevel}" + """(fragments, 0);
 		exa_real_t res = getGlobalResidual(fragments);
 
 		res = res * res;

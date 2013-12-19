@@ -157,37 +157,29 @@ case class PerformSmoothing() extends AbstractFunctionStatement with Expandable 
   }
 }
 
-case class UpdateResidual() extends AbstractFunctionStatement with Expandable {
+case class UpdateResidual(residualField : Field, solutionField : Field, rhsField : Field, level : Integer) extends AbstractFunctionStatement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = "NOT VALID ; CLASS = UpdateResidual\n";
 
   override def expand : FunctionStatement = {
-    FunctionStatement(new UnitDatatype(), s"updateResidual_Node", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int", "slot"), Variable("unsigned int", "level")),
+    FunctionStatement(new UnitDatatype(), s"updateResidual_$level", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int", "slot")),
       ListBuffer(
-        s"exchsolData(fragments, level, slot);",
+        s"exchsolData(fragments, $level, slot);",
         new LoopOverFragments(
-          """
-		const exa_real_t*	solData	= fragments[f]->solData[slot][level]->getDataPtr();
-		exa_real_t*			resData	= fragments[f]->resData[0][level]->getDataPtr();
-		const exa_real_t*	rhsData	= fragments[f]->rhsData[0][level]->getDataPtr();
-		Vec3u				dimWPad	= fragments[f]->solData[0][level]->numDataPointsPerDimWPad;
-		Vec3u				first	= fragments[f]->solData[0][level]->firstDataPoint;
-		Vec3u				last	= fragments[f]->solData[0][level]->lastDataPoint;
-
-		for (unsigned int z = first.z + NUM_GHOST_LAYERS; z <= last.z - NUM_GHOST_LAYERS; ++z)
-			for (unsigned int y = first.y + NUM_GHOST_LAYERS; y <= last.y - NUM_GHOST_LAYERS; ++y)
-			{
-				unsigned int posAbs = z * dimWPad.y * dimWPad.x + y * dimWPad.x + first.x + NUM_GHOST_LAYERS;
-				for (unsigned int x = first.x + NUM_GHOST_LAYERS; x <= last.x - NUM_GHOST_LAYERS; ++x, ++posAbs)
-					resData[posAbs] =
-					rhsData[posAbs]
-				- solData[posAbs - 1] - solData[posAbs + 1]
-				- solData[posAbs - dimWPad.x] - solData[posAbs + dimWPad.x]
-				- solData[posAbs - dimWPad.y * dimWPad.x] - solData[posAbs + dimWPad.y * dimWPad.x]
-				+ 6.0 * solData[posAbs];
-			}
-""")));
+          new LoopOverDimensions(
+            fieldToIndexInner(Array(0, 0, 0), level), ListBuffer[Statement](
+              AssignmentStatement(
+                // FIXME: introduce and apply stencil node
+                FieldAccess(residualField, level, "0", Mapping.access(level)),
+                FieldAccess(rhsField, level, "0", Mapping.access(level))
+                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "z", "y", "(x + 1)"))
+                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "z", "y", "(x - 1)"))
+                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "z", "(y + 1)", "x"))
+                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "z", "(y - 1)", "x"))
+                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "(z - 1)", "y", "x"))
+                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "(z + 1)", "y", "x"))
+                  ~ s"+ 6.0 * " ~ FieldAccess(solutionField, level, "slot", Mapping.access(level))))))));
   }
 }
 
@@ -381,7 +373,7 @@ case class PerformVCycle(fields : FieldCollection /*TODO: check if necessary*/ ,
           s"smootherIteration_Node(fragments, (solSlots[$level] + 0) % NUM_SOL_SLOTS, (solSlots[$level] - 1) % NUM_SOL_SLOTS, $level);",
           s"}",
 
-          s"updateResidual_Node(fragments, solSlots[$level] % NUM_SOL_SLOTS, $level);",
+          s"updateResidual_$level(fragments, solSlots[$level] % NUM_SOL_SLOTS);",
 
           s"performRestriction_NodeFW(fragments, $level, ${level - 1});",
 
@@ -396,7 +388,7 @@ case class PerformVCycle(fields : FieldCollection /*TODO: check if necessary*/ ,
           s"smootherIteration_Node(fragments, (solSlots[$level] + 0) % NUM_SOL_SLOTS, (solSlots[$level] - 1) % NUM_SOL_SLOTS, $level);",
           s"}")
       })
-        ++ (if (Knowledge.maxLevel == level) { ListBuffer[Statement](s"updateResidual_Node(fragments, solSlots[$level] % NUM_SOL_SLOTS, $level);") }
+        ++ (if (Knowledge.maxLevel == level) { ListBuffer[Statement](s"updateResidual_$level(fragments, solSlots[$level] % NUM_SOL_SLOTS);") }
         else { ListBuffer[Statement]() }));
   }
 }
