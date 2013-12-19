@@ -36,7 +36,6 @@ object Main {
       new Container,
       new Log,
       new Stopwatch,
-      new TypeDefs,
       new Vector));
 
     SetupFragmentClass.apply;

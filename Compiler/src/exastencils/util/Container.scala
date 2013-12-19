@@ -20,7 +20,6 @@ case class Container() extends Node with FilePrettyPrintable {
 #define	CONTAINER_CONTAINER_H
 
 #include "Util/Log.h"
-#include "Util/TypeDefs.h"
 
 #include "Util/Vector.h"
 

@@ -87,7 +87,6 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
           + "#pragma warning(disable : 4800)\n"
           + "#include <mpi.h>\n"
           + "#include \"Util/Log.h\"\n"
-          + "#include \"Util/TypeDefs.h\"\n"
           + "#include \"Util/Vector.h\"\n"
           + "#include \"Container/Container.h\"\n");
 

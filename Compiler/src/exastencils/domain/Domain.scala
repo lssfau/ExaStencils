@@ -168,7 +168,6 @@ case class DomainGenerated() extends Node with FilePrettyPrintable {
         + "#include <vector>\n"
         + "#include <map>\n"
         + "#include \"Util/Log.h\"\n"
-        + "#include \"Util/TypeDefs.h\"\n"
         + "#include \"Util/Vector.h\"\n");
 
     writerHeader.write(statements_HACK.map(s => s.cpp).mkString("\n") + "\n");

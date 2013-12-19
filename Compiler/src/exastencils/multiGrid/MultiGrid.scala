@@ -27,7 +27,6 @@ case class MultiGrid() extends Node with FilePrettyPrintable {
       + "#include <mpi.h>\n"
       + "#include <vector>\n"
       + "#include \"Util/Log.h\"\n"
-      + "#include \"Util/TypeDefs.h\"\n"
       + "#include \"Util/Vector.h\"\n"
       + "#include \"Util/Stopwatch.h\"\n"
       + "#include \"Primitives/Fragment3DCube.h\"\n"
