@@ -41,6 +41,7 @@ object Main {
       new Vector));
 
     SetupFragmentClass.apply;
+    SetupMultiGrid.apply;
 
     do { ExpandStrategy.apply; }
     while (ExpandStrategy.results.last._2.replacements > 0)	// FIXME: cleaner code

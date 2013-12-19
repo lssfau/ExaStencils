@@ -18,14 +18,6 @@ case class MultiGrid() extends Node with FilePrettyPrintable {
 
   var functions_HACK : ListBuffer[AbstractFunctionStatement] = new ListBuffer;
 
-  functions_HACK += new PerformSmoothing;
-  functions_HACK += new UpdateResidual;
-  functions_HACK += new PerformRestriction;
-  functions_HACK += new PerformProlongation;
-  functions_HACK += new PerformVCycle;
-  functions_HACK += new GetGlobalResidual;
-  functions_HACK += new SetSolZero;
-
   override def printToFile = {
     val writerHeader = new PrintWriter(new File(Globals.printPath + s"MultiGrid/MultiGrid.h"));
 

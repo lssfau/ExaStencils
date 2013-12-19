@@ -161,4 +161,11 @@ case class FieldCollection() extends Node {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   var fields : ListBuffer[Field] = ListBuffer();
+
+  def getFieldByName(name : String) : Option[Field] = {
+    fields.find(f => f.name == name)
+  }
+  def getFieldByCodeName(codeName : String) : Option[Field] = {
+    fields.find(f => f.codeName == codeName)
+  }
 }

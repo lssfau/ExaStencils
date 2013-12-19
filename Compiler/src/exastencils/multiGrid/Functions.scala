@@ -2,11 +2,15 @@ package exastencils.multiGrid
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.core._
+
 import exastencils.knowledge._
 
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+
+import exastencils.primitives._
 
 case class PerformSmoothing() extends AbstractFunctionStatement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
@@ -451,7 +455,27 @@ case class PerformVCycle() extends AbstractFunctionStatement with Expandable {
 #endif
 
 	// reset solution of coarser grid
-	setSolZero_Node(fragments, level - 1, solSlots[level - 1] % NUM_SOL_SLOTS);
+	switch (level)
+	{
+	case (1):
+		setSolZero_0(fragments, solSlots[level - 1] % NUM_SOL_SLOTS);
+		break;
+	case (2):
+		setSolZero_1(fragments, solSlots[level - 1] % NUM_SOL_SLOTS);
+		break;
+	case (3):
+		setSolZero_2(fragments, solSlots[level - 1] % NUM_SOL_SLOTS);
+		break;
+	case (4):
+		setSolZero_3(fragments, solSlots[level - 1] % NUM_SOL_SLOTS);
+		break;
+	case (5):
+		setSolZero_4(fragments, solSlots[level - 1] % NUM_SOL_SLOTS);
+		break;
+	case (6):
+		setSolZero_5(fragments, solSlots[level - 1] % NUM_SOL_SLOTS);
+		break;
+	}
 
 #ifdef MEASURE_MG_COMPONENTS
 	if (0 == mpiRank)
@@ -530,36 +554,17 @@ case class GetGlobalResidual() extends AbstractFunctionStatement with Expandable
   }
 }
 
-case class SetSolZero() extends AbstractFunctionStatement with Expandable {
+case class SetSolZero(field : Field, level : Integer) extends AbstractFunctionStatement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = "NOT VALID ; CLASS = SetSolZero\n";
 
   override def expand : FunctionStatement = {
-    FunctionStatement(new UnitDatatype(), s"setSolZero_Node", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int", "level"), Variable("unsigned int", "slot")),
-      ListBuffer(
-        """
-#ifdef USE_OMP
-#	pragma omp parallel for schedule(static, 1)
-#endif
-	for (int e = 0; e < fragments.size(); ++e)
-	{
-		// more specialized version; usage of different data layouts (2D vs 3D, quad vs triangle, etc) would have to be incoporated by hand or generation
-		exa_real_t*			data	= fragments[e]->solData[slot][level]->getDataPtr();
-		Vec3u				dimWPad	= fragments[e]->solData[0][level]->numDataPointsPerDimWPad;
-		Vec3u				first	= fragments[e]->solData[0][level]->firstDataPoint;
-		Vec3u				last	= fragments[e]->solData[0][level]->lastDataPoint;
-
-		for (unsigned int z = first.z + NUM_GHOST_LAYERS; z <= last.z - NUM_GHOST_LAYERS; ++z)
-		{
-			for (unsigned int y = first.y + NUM_GHOST_LAYERS; y <= last.y - NUM_GHOST_LAYERS; ++y)
-			{
-				unsigned int posAbs = z * dimWPad.y * dimWPad.x + y * dimWPad.x + first.x + NUM_GHOST_LAYERS;
-				for (unsigned int x = first.x + NUM_GHOST_LAYERS; x <= last.x - NUM_GHOST_LAYERS; ++x, ++posAbs)
-					data[posAbs] = 0.0;
-			}
-		}
-	}
-"""));
+    new FunctionStatement(new UnitDatatype(), s"setSolZero_$level", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int", "slot")),
+      LoopOverFragments(ListBuffer(
+        new LoopOverDimensions(fieldToIndexInner(Array(0, 0, 0), "", level),
+          new AssignmentStatement(
+            new FieldAccess(field, level, "slot", Mapping.access(level)),
+            ImplicitConversions.NumberToNumericLiteral(0.0))))));
   }
 }
