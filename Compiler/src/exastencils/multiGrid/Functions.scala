@@ -76,7 +76,7 @@ case class PerformSmoothing(solutionField : Field, rhsField : Field, level : Int
   override def expand : AbstractFunctionStatement = {
     Knowledge.smoother match {
       case SmootherType.Jac => new PerformSmoothing_Jac(solutionField, rhsField, level)
-      case SmootherType.GS => new PerformSmoothing_GS(solutionField, rhsField, level)
+      case SmootherType.GS  => new PerformSmoothing_GS(solutionField, rhsField, level)
     }
   }
 
@@ -454,6 +454,7 @@ case class GetGlobalResidual(field : Field) extends AbstractFunctionStatement wi
     FunctionStatement("double", s"getGlobalResidual", ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments")),
       ListBuffer(
         s"double res = 0.0;",
+        s"double resTotal = 0.0;",
         LoopOverFragments(ListBuffer(
           // FIXME: this currently counts duplicated values multiple times
           new LoopOverDimensions(
@@ -461,7 +462,8 @@ case class GetGlobalResidual(field : Field) extends AbstractFunctionStatement wi
               s"double tmpRes =" ~ new FieldAccess(field, Knowledge.maxLevel, NumericLiteral(0), Mapping.access(Knowledge.maxLevel)) ~ ";",
               s"res += tmpRes * tmpRes;"))),
           true, "reduction(+:res)"),
-        s"return sqrt(res);"));
+        new MPI_Allreduce("&res", "&resTotal", NumericLiteral(1), "MPI_SUM"),
+        s"return sqrt(resTotal);"));
   }
 }
 

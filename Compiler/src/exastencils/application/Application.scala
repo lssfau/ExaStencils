@@ -57,20 +57,16 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
       ListBuffer[Statement](
         s"std::vector<Fragment3DCube*> fragments;", //FIXME: move to global space // FIXME: convert to fixed size array
 
-        s"MPI_Init(&argc, &argv);",
-
-        // FIXME: move to specialized node
-        s"int mpiRank;",
-        s"int mpiSize;",
-        s"MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);",
-        s"MPI_Comm_size(MPI_COMM_WORLD, &mpiSize);",
+        new MPI_Init,
+        new MPI_SetRankAndSize,
 
         s"omp_set_num_threads(${Knowledge.numFragsPerBlock});",
 
         new ConditionStatement(s"argc != 1", ListBuffer[Statement](
-          new ConditionStatement(s"0 == mpiRank" /*FIXME: use special condition*/ , ListBuffer[Statement](
-            "LOG_NOTE(\"Usage:\");", // FIXME: use log nodes
-            "LOG_NOTE(\"\\tmpirun -np (numBlocksTotal) .\\\\Poisson3D.exe\");")),
+          new ConditionStatement(new MPI_IsRootProc,
+            ListBuffer[Statement](
+              "LOG_NOTE(\"Usage:\");", // FIXME: use log nodes
+              "LOG_NOTE(\"\\tmpirun -np (numBlocksTotal) .\\\\Poisson3D.exe\");")),
           s"MPI_Finalize();",
           s"return 1;")),
 
@@ -79,140 +75,84 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
         s"initDomain(fragments);",
 
         new InitFields,
-        """
-	MPI_Barrier(MPI_COMM_WORLD);
 
-	double lastRes = 0.0;
-	{
-		updateResidual""" + s"_${Knowledge.maxLevel}" + """(fragments, 0);
-		double res = getGlobalResidual(fragments);
+        new MPI_Barrier,
 
-		res = res * res;
-		double resTotal;
+        s"updateResidual_${Knowledge.maxLevel}(fragments, 0);",
+        s"double lastRes = getGlobalResidual(fragments);",
+        s"double initialRes = lastRes;",
 
-		MPI_Reduce(&res, &resTotal, 1, /*FIXME*/MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-		MPI_Bcast(&resTotal, 1, /*FIXME*/MPI_DOUBLE, 0, MPI_COMM_WORLD);
+        s"unsigned int curIt;",
+        s"unsigned int solSlots[${Knowledge.numLevels}];",
+        new ForLoopStatement(s"unsigned int s = 0", s"s <= ${Knowledge.maxLevel}", "++s",
+          s"solSlots[s] = 0;"),
 
-		resTotal = sqrt(resTotal);
-		res = resTotal;
+        s"double minTime = FLT_MAX;",
+        s"double maxTime = 0;",
+        s"double meanTime = 0;",
+        s"StopWatch stopWatch;",
+        s"StopWatch stopWatchTotal;",
 
-		lastRes = res;
-	}
-	double initialRes = lastRes;
+        new ForLoopStatement(s"curIt = 0", s"curIt < ${Knowledge.mgMaxNumIterations}", s"++curIt",
+          ListBuffer[Statement](
+            s"stopWatch.reset();",
 
-	unsigned int curIt;
-	unsigned int solSlots[""" + s"${Knowledge.numLevels}" + """];
-	for (unsigned int s = 0; s <= """ + s"${Knowledge.maxLevel}" + """; ++s)
-		solSlots[s] = 0;
+            s"performVCycle_${Knowledge.maxLevel}(fragments, solSlots);",
 
-	double minTime	= FLT_MAX;
-	double maxTime	= 0;
-	double meanTime	= 0;
-	StopWatch stopWatch;
-	StopWatch stopWatchTotal;
+            s"double tDuration = stopWatch.getTimeInMilliSecAndReset();",
+            s"minTime = std::min(minTime, tDuration);",
+            s"maxTime = std::max(maxTime, tDuration);",
+            s"meanTime += tDuration;",
 
-	for (curIt = 0; curIt < """ + s"${Knowledge.mgMaxNumIterations}" + """; ++curIt)
-	{
-		stopWatch.reset();
+            s"double res = getGlobalResidual(fragments);",
 
-		performVCycle""" + s"_${Knowledge.maxLevel}" + """(fragments, solSlots);
-	
-		double tDuration = stopWatch.getTimeInMilliSecAndReset();
-		minTime = std::min(minTime, tDuration);
-		maxTime = std::max(maxTime, tDuration);
-		meanTime += tDuration;
+            new ConditionStatement(new MPI_IsRootProc,
+              "LOG_NOTE(\"Iteration \" << curIt << \"\\n\\tCurrent residual (L2-norm): \" << res << \"\\n\\tRuntime for the current v-cycle: \" << tDuration << \"\\n\\tReduction: \" << res / lastRes);"),
 
-		// FIXME: res check every n cycles
- 		if (0 != curIt % 1)
- 			continue;
+            s"lastRes = res;",
 
-		double res = getGlobalResidual(fragments);
-		res = res * res;
-		double resTotal;
+            // FIXME: set this criterion externally
+            new ConditionStatement("res < 1e-8 * initialRes", ListBuffer[Statement](
+              s"++curIt;",
+              s"break;")))),
 
-		MPI_Reduce(&res, &resTotal, 1, /*FIXME*/MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-		MPI_Bcast(&resTotal, 1, /*FIXME*/MPI_DOUBLE, 0, MPI_COMM_WORLD);
-		
-		resTotal = sqrt(resTotal);
-		res = resTotal;
+        new MPI_Barrier,
 
-		if (0 == mpiRank)
-		{
-			LOG_NOTE("Iteration " << curIt << std::endl
-				<< "\tCurrent residual (L2-norm), level " << """ + s"${Knowledge.maxLevel}" + """ << ": " << res << std::endl
-				<< "\tRuntime for the current v-cycle: " << tDuration << std::endl
-				<< "\tReduction: " << res / lastRes);
-		}
+        new ConditionStatement(new MPI_IsRootProc,
+          // FIXME: extract to separate node / think about how to determine which info to print automatically
+          // FIXME: think about a more intuitive way of printing information
+          ListBuffer[Statement](
+            s"double totalTime = stopWatchTotal.getTimeInMilliSecAndReset();",
+            "std::cout << "
+              + "\"" + Knowledge.cgs + "\\t\" << "
+              + "\"" + Knowledge.smoother + "\\t\" << "
+              + Knowledge.numBlocks_x + " << \"\\t\" << "
+              + Knowledge.numBlocks_y + " << \"\\t\" << "
+              + Knowledge.numBlocks_z + " << \"\\t\" << "
+              + Knowledge.numFragsPerBlock_x + " << \"\\t\" << "
+              + Knowledge.numFragsPerBlock_y + " << \"\\t\" << "
+              + Knowledge.numFragsPerBlock_z + " << \"\\t\" << "
+              + 0 + " << \"\\t\" << "
+              + Knowledge.maxLevel + " << \"\\t\" << "
+              + Knowledge.cgsNumSteps + " << \"\\t\" << "
+              + Knowledge.smootherNumPre + " << \"\\t\" << "
+              + Knowledge.smootherNumPost + " << \"\\t\" << "
+              + Knowledge.smootherOmega + " << \"\\t\" << "
+              + "curIt << \"\\t\" << "
+              + "totalTime << \"\\t\" << "
+              + "meanTime << \"\\t\" << "
+              + "minTime << \"\\t\" << "
+              + "maxTime << \"\\n\";")),
 
-		lastRes = res;
+        new MPI_Barrier,
 
-		if (res < 1e-8 * initialRes)
-		{
-			++curIt;
-			break;
-		}
-	}
+        new ConditionStatement(new MPI_IsRootProc,
+          s"std::cout << std::endl;"),
 
-	for (int c = 0; c < mpiSize; ++c)
-	{
-		MPI_Barrier(MPI_COMM_WORLD);
-		if (c == mpiRank)
-		{
-			double totalTime = stopWatchTotal.getTimeInMilliSecAndReset();
-			/*LOG_NOTE("Parameters (coarsestLvl finestLvl numCoarseSteps numPreSmoothingSteps numPostSmoothingSteps omega:");
-			LOG_NOTE(0 << " " << """ + s"${Knowledge.maxLevel}" + """ << " " << """ + s"${Knowledge.cgsNumSteps}" + """ << " " << """ + s"${Knowledge.smootherNumPre}" + """ << " " << """ + s"${Knowledge.smootherNumPost}" + """ << " " << """ + s"${Knowledge.smootherOmega}" + """);
+        // FIXME: free primitives
+        new MPI_Finalize,
 
-			LOG_NOTE("Total Number of Cycles: " << curIt);
-			LOG_NOTE("Total Execution Time:   " << totalTime.count());
-
-			LOG_NOTE("Mean Time per Cycle:    " << (double)meanTime.count() / (double)curIt);
-			LOG_NOTE("Min  Time per Cycle:    " << minTime.count());
-			LOG_NOTE("Max  Time per Cycle:    " << maxTime.count());*/
-
-			// if you need a more compact form of output:
-			std::cout
-
-			<< """" + s"${Knowledge.cgs}" + """" << "\t"
-			<< """" + s"${Knowledge.smoother}" + """" << "\t"
-
-				<< """ + s"${Knowledge.numBlocks_x}" + """ << "\t"
-				<< """ + s"${Knowledge.numBlocks_y}" + """ << "\t"
-				<< """ + s"${Knowledge.numBlocks_z}" + """ << "\t"
-				<< """ + s"${Knowledge.numFragsPerBlock_x}" + """ << "\t"
-				<< """ + s"${Knowledge.numFragsPerBlock_y}" + """ << "\t"
-				<< """ + s"${Knowledge.numFragsPerBlock_z}" + """ << "\t"
-
-				<< 0 << "\t"
-				
-				<< """ + s"${Knowledge.maxLevel}" + """ << "\t"
-				<< """ + s"${Knowledge.cgsNumSteps}" + """ << "\t"
-				<< """ + s"${Knowledge.smootherNumPre}" + """ << "\t"
-				<< """ + s"${Knowledge.smootherNumPost}" + """ << "\t"
-				<< """ + s"${Knowledge.smootherOmega}" + """ << "\t";//std::endl;
-			std::cout
-				<< curIt << "\t"
-				<< totalTime << "\t"
-				<< meanTime / (double)curIt << "\t"
-				<< minTime << "\t"
-				<< maxTime << std::endl;
-		}
-
-		if (1)		// if true, only the first process prints its measurements
-			break;
-	}
-	
-	MPI_Barrier(MPI_COMM_WORLD);
-	if (0 == mpiRank)
-		std::cout << std::endl;
-
-	MPI_Barrier(MPI_COMM_WORLD);
-
-	// FIXME: free primitives
-	MPI_Finalize();
-
-	return 0;
-
-"""));
+        s"return 0;"));
   }
 }
 

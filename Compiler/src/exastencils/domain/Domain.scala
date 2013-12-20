@@ -122,14 +122,10 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
       // FIXME: replace vector with fixed size array
       ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments")),
       ListBuffer(
-        // TODO: move to specialized node
-        "int mpiRank;",
-        "int numMpiProc;",
-        "MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);",
-        "MPI_Comm_size(MPI_COMM_WORLD, &numMpiProc);",
+        new MPI_SetRankAndSize,
 
-        AssertStatement(s"numMpiProc != ${Knowledge.numBlocks}",
-          "\"Invalid number of MPI processes (\" << numMpiProc << \") should be \" << " + (Knowledge.numBlocks),
+        AssertStatement(s"mpiSize != ${Knowledge.numBlocks}",
+          "\"Invalid number of MPI processes (\" << mpiSize << \") should be \" << " + (Knowledge.numBlocks),
           "return;"),
 
         "std::map<size_t, Fragment3DCube*> fragmentMap;",
