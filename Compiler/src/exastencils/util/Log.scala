@@ -2,20 +2,19 @@ package exastencils.util
 
 import java.io.PrintWriter
 import java.io.File
-
 import exastencils.knowledge._
-
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.prettyprinting._
 
 case class Log() extends Node with FilePrettyPrintable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def printToFile = {
-    val writerHeader = new PrintWriter(new File(Globals.printPath + s"Util/Log.h"));
+    val writer = PrettyPrintManager.getPrinter(s"Util/Log.h");
 
-    writerHeader.write("""
+    writer << ("""
 #ifndef	UTIL_LOG_H
 #define	UTIL_LOG_H
 
@@ -97,7 +96,7 @@ case class Log() extends Node with FilePrettyPrintable {
 #endif	// UTIL_LOG_H
 """);
 
-    writerHeader.close();
+    writer.close(); // FIXME: finalize
   }
 
 }

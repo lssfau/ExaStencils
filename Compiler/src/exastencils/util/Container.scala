@@ -2,20 +2,19 @@ package exastencils.util
 
 import java.io.PrintWriter
 import java.io.File
-
 import exastencils.knowledge._
-
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.prettyprinting._
 
 case class Container() extends Node with FilePrettyPrintable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def printToFile = {
-    val writerHeader = new PrintWriter(new File(Globals.printPath + s"Container/Container.h"));
+    val writer = PrettyPrintManager.getPrinter(s"Container/Container.h");
 
-    writerHeader.write("""
+    writer << ("""
 #ifndef	CONTAINER_CONTAINER_H
 #define	CONTAINER_CONTAINER_H
 
@@ -85,7 +84,6 @@ public:
 #endif	// CONTAINER_CONTAINER_H
 """);
 
-    writerHeader.close();
+    writer.close(); // FIXME: finalize
   }
-
 }

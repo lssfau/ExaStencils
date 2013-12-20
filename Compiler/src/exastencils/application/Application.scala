@@ -9,6 +9,7 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.primitives._
 import exastencils.mpi._
+import exastencils.prettyprinting._
 
 case class InitFields() extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
@@ -164,24 +165,24 @@ case class Poisson3D() extends Node with FilePrettyPrintable {
   functions_HACK += new Poisson3DMain;
 
   override def printToFile = {
-    val writerSource = new PrintWriter(new File(Globals.printPath + s"Poisson3D.cpp"));
+    val writer = PrettyPrintManager.getPrinter(s"Poisson3D.cpp");
 
-    writerSource.write(
+    writer << (
       "#pragma warning(disable : 4800)\n"
-        + "#include <mpi.h>\n"
-        + "#include <vector>\n"
-        + "#include <iostream>\n"
-        + "#include <omp.h>\n"
-        + "#include \"Util/Log.h\"\n"
-        + "#include \"Util/Vector.h\"\n"
-        + "#include \"Util/Stopwatch.h\"\n"
-        + "#include \"MultiGrid/MultiGrid.h\"\n"
-        + "#include \"Domains/DomainGenerated.h\"\n");
+      + "#include <mpi.h>\n"
+      + "#include <vector>\n"
+      + "#include <iostream>\n"
+      + "#include <omp.h>\n"
+      + "#include \"Util/Log.h\"\n"
+      + "#include \"Util/Vector.h\"\n"
+      + "#include \"Util/Stopwatch.h\"\n"
+      + "#include \"MultiGrid/MultiGrid.h\"\n"
+      + "#include \"Domains/DomainGenerated.h\"\n");
 
     for (function <- functions_HACK)
-      writerSource.write(function.cpp + "\n");
+      writer << function.cpp + "\n";
 
-    writerSource.close();
+    writer.close(); // FIXME: finalize
 
   }
 }

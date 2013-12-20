@@ -10,6 +10,7 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.primitives._
 import exastencils.mpi._
+import exastencils.prettyprinting._
 
 case class PointOutsideDomain(var pos : Expression) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
@@ -150,21 +151,23 @@ case class DomainGenerated() extends Node with FilePrettyPrintable {
   statements_HACK += new InitGeneratedDomain;
 
   override def printToFile = {
-    val writerHeader = new PrintWriter(new File(Globals.printPath + s"Domains/DomainGenerated.h"));
+    val writer = PrettyPrintManager.getPrinter(s"Domains/DomainGenerated.h");
 
     // TODO: add header guard semi-automatic
     // TODO: add includes to class node or similar
-    writerHeader.write(
+    writer << (
       "#ifndef DOMAINS_DOMAINGENERATED_H\n"
-        + "#define DOMAINS_DOMAINGENERATED_H\n"
-        + "#include <vector>\n"
-        + "#include <map>\n"
-        + "#include \"Util/Log.h\"\n"
-        + "#include \"Util/Vector.h\"\n");
+      + "#define DOMAINS_DOMAINGENERATED_H\n"
+      + "#include <vector>\n"
+      + "#include <map>\n"
+      + "#include \"Util/Log.h\"\n"
+      + "#include \"Util/Vector.h\"\n");
 
-    writerHeader.write(statements_HACK.map(s => s.cpp).mkString("\n") + "\n");
+    for (s <- statements_HACK)
+      writer << s.cpp + "\n";
 
-    writerHeader.write("#endif // DOMAINS_DOMAINGENERATED_H\n");
-    writerHeader.close();
+    writer << "#endif // DOMAINS_DOMAINGENERATED_H\n";
+
+    writer.close(); //FIXME: finalize
   }
 }

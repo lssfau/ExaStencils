@@ -2,20 +2,19 @@ package exastencils.util
 
 import java.io.PrintWriter
 import java.io.File
-
 import exastencils.knowledge._
-
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.prettyprinting._
 
 case class Stopwatch() extends Node with FilePrettyPrintable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def printToFile = {
-    val writerHeader = new PrintWriter(new File(Globals.printPath + s"Util/Stopwatch.h"));
+    val writer = PrettyPrintManager.getPrinter(s"Util/Stopwatch.h");
 
-    writerHeader.write("""
+    writer << ("""
 #ifndef	UTIL_STOPWATCH_H
 #define	UTIL_STOPWATCH_H
 
@@ -111,7 +110,7 @@ protected:
 #endif	// UTIL_STOPWATCH_H
 """);
 
-    writerHeader.close();
+    writer.close(); // FIXME: finalize
   }
 
 }

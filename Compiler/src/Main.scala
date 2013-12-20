@@ -15,7 +15,7 @@ import exastencils.util._
 
 object Main {
   def main(args : Array[String]) : Unit = {
-    Globals.printPath = s"C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Generated/";
+    Settings.outputPath = s"C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Generated/";
 
     StateManager.root_ = Root(List(
       // Application

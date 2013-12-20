@@ -62,7 +62,3 @@ object Knowledge {
 
   val numSolSlots : Integer = (if (SmootherType.Jac == smoother) 2 else 1);
 }
-
-object Globals {
-  var printPath = s"C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Generated/";
-}

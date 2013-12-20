@@ -2,16 +2,13 @@ package exastencils.primitives
 
 import java.io.File
 import java.io.PrintWriter
-
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core._
-
 import exastencils.knowledge._
-
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.prettyprinting._
 
 case class Field(name : String, codeName : String, dataType : String, numSlots : Int, bcDir0 : Boolean) extends Node {
   override def duplicate = this.copy().asInstanceOf[this.type]
@@ -117,39 +114,37 @@ case class CommunicationFunctions() extends Node with FilePrettyPrintable {
 
   override def printToFile = {
     {
-      val writer = new PrintWriter(new File(Globals.printPath + s"Primitives/CommunicationFunctions.h"));
+      val writer = PrettyPrintManager.getPrinter(s"Primitives/CommunicationFunctions.h");
 
-      writer.write(
-        "#ifndef	COMMUNICATION_FUNCTIONS_H\n"
-          + "#define	COMMUNICATION_FUNCTIONS_H\n"
-          + "#pragma warning(disable : 4800)\n"
-          + "#include <mpi.h>\n"
-          + "#include \"Util/Log.h\"\n"
-          + "#include \"Util/Vector.h\"\n"
-          + "#include \"Container/Container.h\"\n"
-          + "#include \"Primitives/Fragment3DCube.h\"\n");
+      writer << ("#ifndef	COMMUNICATION_FUNCTIONS_H\n"
+        + "#define	COMMUNICATION_FUNCTIONS_H\n"
+        + "#pragma warning(disable : 4800)\n"
+        + "#include <mpi.h>\n"
+        + "#include \"Util/Log.h\"\n"
+        + "#include \"Util/Vector.h\"\n"
+        + "#include \"Container/Container.h\"\n"
+        + "#include \"Primitives/Fragment3DCube.h\"\n");
 
       for (func <- functions) {
         val function = func.asInstanceOf[FunctionStatement];
-        writer.write(s"${function.returntype.cpp} ${function.name}(" + function.parameters.map(param => s"${param.datatype.cpp} ${param.name}").mkString(", ") + ");\n");
+        writer << s"${function.returntype.cpp} ${function.name}(" + function.parameters.map(param => s"${param.datatype.cpp} ${param.name}").mkString(", ") + ");\n";
       }
 
-      writer.write("#endif\n");
+      writer << "#endif\n";
 
-      writer.close();
+      writer.close(); // FIXME: finalize
     }
 
     var i = 0;
     for (f <- functions) {
       var s : String = "";
 
-      s += "#include \"Primitives/CommunicationFunctions.h\"\n\n";
+      val writer = PrettyPrintManager.getPrinter(s"Primitives/CommunicationFunction_$i.cpp");
 
-      s += s"${f.cpp}\n";
+      writer << "#include \"Primitives/CommunicationFunctions.h\"\n\n";
+      writer << f.cpp + "\n";
 
-      val writer = new PrintWriter(new File(Globals.printPath + s"Primitives/CommunicationFunction_$i.cpp"));
-      writer.write(s);
-      writer.close();
+      writer.close(); // FIXME: finalize
 
       i += 1;
     }

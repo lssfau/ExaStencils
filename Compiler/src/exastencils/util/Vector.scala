@@ -2,20 +2,19 @@ package exastencils.util
 
 import java.io.PrintWriter
 import java.io.File
-
 import exastencils.knowledge._
-
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.prettyprinting._
 
 case class Vector() extends Node with FilePrettyPrintable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def printToFile = {
-    val writerHeader = new PrintWriter(new File(Globals.printPath + s"Util/Vector.h"));
+    val writer = PrettyPrintManager.getPrinter(s"Util/Vector.h");
 
-    writerHeader.write("""
+    writer << ("""
 #ifndef	UTIL_VECTOR_H
 #define	UTIL_VECTOR_H
 
@@ -917,7 +916,7 @@ inline TVec4<T> max (const TVec4<T> &v1, const TVec4<T> &v2)
 #endif	// UTIL_VECTOR_H
 """);
 
-    writerHeader.close();
+    writer.close(); // FIXME: finalize
   }
 
 }

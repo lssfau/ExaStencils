@@ -2,16 +2,13 @@ package exastencils.multiGrid
 
 import java.io.PrintWriter
 import java.io.File
-
 import scala.collection.mutable.ListBuffer
-
 import exastencils.knowledge._
-
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-
 import exastencils.multiGrid._
+import exastencils.prettyprinting._
 
 case class MultiGrid() extends Node with FilePrettyPrintable {
   override def duplicate = this.copy().asInstanceOf[this.type]
@@ -19,9 +16,9 @@ case class MultiGrid() extends Node with FilePrettyPrintable {
   var functions_HACK : ListBuffer[AbstractFunctionStatement] = new ListBuffer;
 
   override def printToFile = {
-    val writerHeader = new PrintWriter(new File(Globals.printPath + s"MultiGrid/MultiGrid.h"));
+    val writerHeader = PrettyPrintManager.getPrinter(s"MultiGrid/MultiGrid.h");
 
-    writerHeader.write("#ifndef MULTIGRID_MULTIGRID_H\n"
+    writerHeader << ("#ifndef MULTIGRID_MULTIGRID_H\n"
       + "#define MULTIGRID_MULTIGRID_H\n"
       + "#pragma warning(disable : 4800)\n"
       + "#include <mpi.h>\n"
@@ -34,20 +31,20 @@ case class MultiGrid() extends Node with FilePrettyPrintable {
 
     for (func <- functions_HACK) {
       val function = func.asInstanceOf[FunctionStatement];
-      writerHeader.write(s"${function.returntype.cpp} ${function.name}(" + function.parameters.map(param => s"${param.datatype.cpp} ${param.name}").mkString(", ") + ");\n");
+      writerHeader << s"${function.returntype.cpp} ${function.name}(" + function.parameters.map(param => s"${param.datatype.cpp} ${param.name}").mkString(", ") + ");\n";
     }
 
-    writerHeader.write("#endif // MULTIGRID_MULTIGRID_H\n");
+    writerHeader << "#endif // MULTIGRID_MULTIGRID_H\n";
 
-    writerHeader.close();
+    writerHeader.close(); // FIXME: finalize
 
-    val writerSource = new PrintWriter(new File(Globals.printPath + s"MultiGrid/MultiGrid.cpp"));
+    val writerSource = PrettyPrintManager.getPrinter(s"MultiGrid/MultiGrid.cpp");
 
-    writerSource.write("#include \"MultiGrid/MultiGrid.h\"\n");
+    writerSource << "#include \"MultiGrid/MultiGrid.h\"\n";
 
     for (function <- functions_HACK)
-      writerSource.write(function.cpp + "\n");
+      writerSource << function.cpp + "\n";
 
-    writerSource.close();
+    writerSource.close(); // FIXME: finalize
   }
 }

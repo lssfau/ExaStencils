@@ -2,17 +2,13 @@ package exastencils.primitives
 
 import java.io.PrintWriter
 import java.io.File
-
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core._
-
 import exastencils.knowledge._
-
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-
 import exastencils.primitives._
+import exastencils.prettyprinting._
 
 case class FragmentClass() extends Class with FilePrettyPrintable {
   override def duplicate = this.copy().asInstanceOf[this.type]
@@ -78,36 +74,33 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
 
   override def printToFile = {
     {
-      val writer = new PrintWriter(new File(Globals.printPath + s"Primitives/Fragment3DCube.h"));
+      val writer = PrettyPrintManager.getPrinter(s"Primitives/Fragment3DCube.h");
 
-      writer.write(
+      writer << (
         "#ifndef	PRIMITIVES_FRAGMENT3DCUBE_H\n"
-          + "#define	PRIMITIVES_FRAGMENT3DCUBE_H\n"
-          + "#include <vector>\n"
-          + "#pragma warning(disable : 4800)\n"
-          + "#include <mpi.h>\n"
-          + "#include \"Util/Log.h\"\n"
-          + "#include \"Util/Vector.h\"\n"
-          + "#include \"Container/Container.h\"\n");
+        + "#define	PRIMITIVES_FRAGMENT3DCUBE_H\n"
+        + "#include <vector>\n"
+        + "#pragma warning(disable : 4800)\n"
+        + "#include <mpi.h>\n"
+        + "#include \"Util/Log.h\"\n"
+        + "#include \"Util/Vector.h\"\n"
+        + "#include \"Container/Container.h\"\n");
 
-      writer.write(super.cpp);
+      writer << super.cpp;
 
-      writer.write("#endif\n");
+      writer << "#endif\n";
 
-      writer.close();
+      writer.close(); // FIXME: finalize
     }
 
     var i = 0;
     for (f <- functions) {
-      var s : String = "";
+      val writer = PrettyPrintManager.getPrinter(s"Primitives/Fragment3DCube_$i.cpp");
 
-      s += "#include \"Primitives/Fragment3DCube.h\"\n\n";
+      writer << "#include \"Primitives/Fragment3DCube.h\"\n\n";
+      writer << f.cpp + "\n";
 
-      s += s"${f.cpp}\n";
-
-      val writer = new PrintWriter(new File(Globals.printPath + s"Primitives/Fragment3DCube_$i.cpp"));
-      writer.write(s);
-      writer.close();
+      writer.close(); // FIXME: finalize
 
       i += 1;
     }
