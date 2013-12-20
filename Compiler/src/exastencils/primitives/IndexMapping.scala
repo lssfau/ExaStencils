@@ -14,21 +14,21 @@ class NeighborInfo(var dir : Array[Int], var index : Int) {
   var indexOpposingBorder = new IndexRange();
 
   def setIndices(field : Field, level : Int) {
-    indexInner = fieldToIndexInner(dir, s"fragments[e]->${field.codeName}[slot][$level]", level);
-    indexOuter = fieldToIndexOuter(dir, s"fragments[e]->${field.codeName}[slot][$level]", level);
-    indexBorder = fieldToIndexBorder(dir, s"fragments[e]->${field.codeName}[slot][$level]", level);
-    indexOpposingInner = fieldToIndexInner(dir.map(i => -i), s"fragments[e]->${field.codeName}[slot][$level]", level);
-    indexOpposingOuter = fieldToIndexOuter(dir.map(i => -i), s"fragments[e]->${field.codeName}[slot][$level]", level);
-    indexOpposingBorder = fieldToIndexBorder(dir.map(i => -i), s"fragments[e]->${field.codeName}[slot][$level]", level);
+    indexInner = fieldToIndexInner(dir, level);
+    indexOuter = fieldToIndexOuter(dir, level);
+    indexBorder = fieldToIndexBorder(dir, level);
+    indexOpposingInner = fieldToIndexInner(dir.map(i => -i), level);
+    indexOpposingOuter = fieldToIndexOuter(dir.map(i => -i), level);
+    indexOpposingBorder = fieldToIndexBorder(dir.map(i => -i), level);
   }
 
   def setIndicesWide(field : Field, level : Int) {
-    indexInner = fieldToIndexInnerWide(dir, s"fragments[e]->${field.codeName}[slot][$level]", level);
-    indexOuter = fieldToIndexOuterWide(dir, s"fragments[e]->${field.codeName}[slot][$level]", level);
-    indexBorder = fieldToIndexBorder(dir, s"fragments[e]->${field.codeName}[slot][$level]", level);
-    indexOpposingInner = fieldToIndexInnerWide(dir.map(i => -i), s"fragments[e]->${field.codeName}[slot][$level]", level);
-    indexOpposingOuter = fieldToIndexOuterWide(dir.map(i => -i), s"fragments[e]->${field.codeName}[slot][$level]", level);
-    indexOpposingBorder = fieldToIndexBorder(dir.map(i => -i), s"fragments[e]->${field.codeName}[slot][$level]", level);
+    indexInner = fieldToIndexInnerWide(dir, level);
+    indexOuter = fieldToIndexOuterWide(dir, level);
+    indexBorder = fieldToIndexBorder(dir, level);
+    indexOpposingInner = fieldToIndexInnerWide(dir.map(i => -i), level);
+    indexOpposingOuter = fieldToIndexOuterWide(dir.map(i => -i), level);
+    indexOpposingBorder = fieldToIndexBorder(dir.map(i => -i), level);
   }
 }
 
@@ -45,12 +45,13 @@ object Mapping {
     return (1 << level) + 1 + 2 * Knowledge.numGhostLayers;
   }
   def access(level : Int, z : String = "z", y : String = "y", x : String = "x") : String = {
+    // FIXME: reverse order
     return s"$z * ${numPoints(level) * numPoints(level)} + $y * ${numPoints(level)} + $x";
   }
 }
 
-object fieldToIndexInner extends ((Array[Int], String, Int) => IndexRange) {
-  def apply(dir : Array[Int], field : String, level : Int) : IndexRange = {
+object fieldToIndexInner extends ((Array[Int], Int) => IndexRange) {
+  def apply(dir : Array[Int], level : Int) : IndexRange = {
     return new IndexRange(
       (0 to 2).toArray.map(i => i match {
         case i if dir(i) == 0 => (Mapping.first(level) + Knowledge.numGhostLayers)
@@ -65,8 +66,8 @@ object fieldToIndexInner extends ((Array[Int], String, Int) => IndexRange) {
   }
 }
 
-object fieldToIndexInnerWide extends ((Array[Int], String, Int) => IndexRange) {
-  def apply(dir : Array[Int], field : String, level : Int) : IndexRange = {
+object fieldToIndexInnerWide extends ((Array[Int], Int) => IndexRange) {
+  def apply(dir : Array[Int], level : Int) : IndexRange = {
     return new IndexRange(
       (0 to 2).toArray.map(i => i match {
         case i if dir(i) == 0 => (Mapping.first(level))
@@ -81,8 +82,8 @@ object fieldToIndexInnerWide extends ((Array[Int], String, Int) => IndexRange) {
   }
 }
 
-object fieldToIndexOuter extends ((Array[Int], String, Int) => IndexRange) {
-  def apply(dir : Array[Int], field : String, level : Int) : IndexRange = {
+object fieldToIndexOuter extends ((Array[Int], Int) => IndexRange) {
+  def apply(dir : Array[Int], level : Int) : IndexRange = {
     return new IndexRange(
       (0 to 2).toArray.map(i => i match {
         case i if dir(i) == 0 => (Mapping.first(level) + Knowledge.numGhostLayers)
@@ -97,8 +98,8 @@ object fieldToIndexOuter extends ((Array[Int], String, Int) => IndexRange) {
   }
 }
 
-object fieldToIndexOuterWide extends ((Array[Int], String, Int) => IndexRange) {
-  def apply(dir : Array[Int], field : String, level : Int) : IndexRange = {
+object fieldToIndexOuterWide extends ((Array[Int], Int) => IndexRange) {
+  def apply(dir : Array[Int], level : Int) : IndexRange = {
     return new IndexRange(
       (0 to 2).toArray.map(i => i match {
         case i if dir(i) == 0 => (Mapping.first(level))
@@ -113,8 +114,8 @@ object fieldToIndexOuterWide extends ((Array[Int], String, Int) => IndexRange) {
   }
 }
 
-object fieldToIndexBorder extends ((Array[Int], String, Int) => IndexRange) {
-  def apply(dir : Array[Int], field : String, level : Int) : IndexRange = {
+object fieldToIndexBorder extends ((Array[Int], Int) => IndexRange) {
+  def apply(dir : Array[Int], level : Int) : IndexRange = {
     return new IndexRange(
       (0 to 2).toArray.map(i => i match {
         case i if dir(i) == 0 => (Mapping.first(level) + Knowledge.numGhostLayers)

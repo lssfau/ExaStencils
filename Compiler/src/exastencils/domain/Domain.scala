@@ -2,18 +2,14 @@ package exastencils.domain
 
 import java.io.PrintWriter
 import java.io.File
-
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core._
-
 import exastencils.knowledge._
-
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-
 import exastencils.primitives._
+import exastencils.mpi._
 
 case class PointOutsideDomain(var pos : Expression) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
@@ -35,7 +31,7 @@ case class PointToFragmentId(var pos : Expression) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
-    (s"((exa_id_t)(floor(${pos.cpp}.z) * ${Knowledge.numFragsTotal_y * Knowledge.numFragsTotal_x} + floor(${pos.cpp}.y) * ${Knowledge.numFragsTotal_x} + floor(${pos.cpp}.x)))");
+    (s"((size_t)(floor(${pos.cpp}.z) * ${Knowledge.numFragsTotal_y * Knowledge.numFragsTotal_x} + floor(${pos.cpp}.y) * ${Knowledge.numFragsTotal_x} + floor(${pos.cpp}.x)))");
   }
 }
 
@@ -118,21 +114,17 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
   override def cpp : String = "NOT VALID ; CLASS = InitGeneratedDomain\n";
 
   override def expand : FunctionStatement = {
-    FunctionStatement(new UnitDatatype(), s"initGeneratedDomain",
+    FunctionStatement(new UnitDatatype(), s"initDomain",
       // FIXME: replace vector with fixed size array
       ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments")),
       ListBuffer(
-        // TODO: move to specialized node
-        "int mpiRank;",
-        "int numMpiProc;",
-        "MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);",
-        "MPI_Comm_size(MPI_COMM_WORLD, &numMpiProc);",
+        new MPI_SetRankAndSize,
 
-        AssertStatement(s"numMpiProc != ${Knowledge.numBlocks}",
-          "\"Invalid number of MPI processes (\" << numMpiProc << \") should be \" << " + (Knowledge.numBlocks),
+        AssertStatement(s"mpiSize != ${Knowledge.numBlocks}",
+          "\"Invalid number of MPI processes (\" << mpiSize << \") should be \" << " + (Knowledge.numBlocks),
           "return;"),
 
-        "std::map<exa_id_t, Fragment3DCube*> fragmentMap;",
+        "std::map<size_t, Fragment3DCube*> fragmentMap;",
 
         "std::vector<Vec3> positions;",
         s"Vec3 rankPos(mpiRank % ${Knowledge.numBlocks_x}, (mpiRank / ${Knowledge.numBlocks_x}) % ${Knowledge.numBlocks_y}, mpiRank / ${Knowledge.numBlocks_x * Knowledge.numBlocks_y});",
@@ -141,10 +133,10 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
 
         s"fragments.resize(${Knowledge.numFragsPerBlock});",
         LoopOverFragments(ListBuffer(
-          "fragments[e] = new Fragment3DCube();",
-          "fragments[e]->id = " ~ PointToFragmentId("positions[e]") ~ ";",
-          "fragments[e]->pos = positions[e];",
-          "fragmentMap[" ~ PointToFragmentId("positions[e]").cpp ~ s"] = fragments[e];"), false),
+          "fragments[f] = new Fragment3DCube();",
+          "fragments[f]->id = " ~ PointToFragmentId("positions[f]") ~ ";",
+          "fragments[f]->pos = positions[f];",
+          "fragmentMap[" ~ PointToFragmentId("positions[f]").cpp ~ s"] = fragments[f];"), false),
         ConnectFragments(),
         new SetupBuffers));
   }
@@ -167,9 +159,7 @@ case class DomainGenerated() extends Node with FilePrettyPrintable {
         + "#define DOMAINS_DOMAINGENERATED_H\n"
         + "#include <vector>\n"
         + "#include <map>\n"
-        + "#include \"Util/Defines.h\"\n"
         + "#include \"Util/Log.h\"\n"
-        + "#include \"Util/TypeDefs.h\"\n"
         + "#include \"Util/Vector.h\"\n");
 
     writerHeader.write(statements_HACK.map(s => s.cpp).mkString("\n") + "\n");

@@ -18,6 +18,7 @@ object SetupFragmentClass extends Strategy("Setting up fragment class") {
       Some(frag);
   });
 
+  // FIXME: move
   this += new Transformation("Adding fields to FragmentClass", {
     case collection : FieldCollection =>
       collection.fields += new Field("Solution", "solData", "double", Knowledge.numSolSlots, true);

@@ -19,9 +19,7 @@ case class Container() extends Node with FilePrettyPrintable {
 #ifndef	CONTAINER_CONTAINER_H
 #define	CONTAINER_CONTAINER_H
 
-#include "Util/Defines.h"
 #include "Util/Log.h"
-#include "Util/TypeDefs.h"
 
 #include "Util/Vector.h"
 
@@ -33,6 +31,8 @@ public:
 	{
 		const unsigned int MULTIPLE_OF	= 8;
 		const unsigned int START_OFFSET	= 1;
+        
+        // FIXME: incorporate padding
 #ifdef ACTIVATE_PADDING
 		if (addPadding)
 		{
@@ -49,7 +49,7 @@ public:
 		}
 		numDataPointsWPad		= numDataPointsPerDimWPad.componentProd();
 
-		data = new exa_real_t[numDataPointsWPad];
+		data = new double[numDataPointsWPad];
 	}
 
 	~Container ()
@@ -62,17 +62,17 @@ public:
 			+ (idx.y + firstDataPoint.y) * numDataPointsPerDimWPad.x + idx.x + firstDataPoint.x;
 	}
 
-	inline exa_real_t*	getDataPtr ()
+	inline double*	getDataPtr ()
 	{ return &data[0]; }
 
-	inline exa_real_t*	getDataPtr (const Vec3u& idx)
+	inline double*	getDataPtr (const Vec3u& idx)
 	{ return &data[getAbsIdx(idx)]; }
 
-	inline exa_real_t&	getDataRef (const Vec3u& idx)
+	inline double&	getDataRef (const Vec3u& idx)
 	{ return data[getAbsIdx(idx)]; }
 
 public:
-	exa_real_t*				data;
+	double*				data;
 
 	Vec3u			numDataPointsPerDim;
 	Vec3u			numDataPointsPerDimWPad;

@@ -1,14 +1,13 @@
 package exastencils.strategies
 
 import scala.reflect.ClassTag
-
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.domain._
-import exastencils.primitives.OMP_PotentiallyCritical
 import exastencils.primitives.Class // FIXME
+import exastencils.omp._
 
 object FindFirstOccurence {
   def find[T : ClassTag] : Option[T] = {
@@ -68,9 +67,8 @@ object AddMemberFunctionPrefix extends Strategy("Adding member function prefixes
 }
 
 object AddOMPPragmas extends Strategy("Adding OMP pragmas") {
-  // FIXME: currently this strategy is only applied to a single node per run
   this += new Transformation("Adding OMP pragmas", {
     case target : OMP_PotentiallyCritical =>
       Some(target.addOMPDirective);
-  } /*FIXME: , false*/ );
+  }, false);
 }

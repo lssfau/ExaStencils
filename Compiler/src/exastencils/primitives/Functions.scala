@@ -65,7 +65,7 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
 
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"connectRemoteElement",
-      ListBuffer(Variable("unsigned int", "location"), Variable("exa_id_t", "id"), Variable(IntegerDatatype(), "remoteRank")),
+      ListBuffer(Variable("unsigned int", "location"), Variable("size_t", "id"), Variable(IntegerDatatype(), "remoteRank")),
       ListBuffer(
         s"neighbor_isValid[location] = true;",
         s"neighbor_isRemote[location] = true;",
@@ -101,8 +101,8 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
 
       size += sizeArray.mkString(" * ");
 
-      body += s"buffer_Send[${neigh.index}] = new exa_real_t[$size];";
-      body += s"buffer_Recv[${neigh.index}] = new exa_real_t[$size];";
+      body += s"buffer_Send[${neigh.index}] = new double[$size];";
+      body += s"buffer_Recv[${neigh.index}] = new double[$size];";
       body += s"maxElemRecvBuffer[${neigh.index}] = $size;";
     }
 

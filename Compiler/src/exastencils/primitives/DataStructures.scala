@@ -48,7 +48,8 @@ case class LocalNeighborFieldAccess(var neighborPtr : Expression, var field : Fi
   }
 }
 
-case class LoopOverFragments(var body : ListBuffer[Statement], var createFragRef : Boolean = true) extends Statement with Expandable {
+case class LoopOverFragments(var body : ListBuffer[Statement], var createFragRef : Boolean = true, var addOMPStatements : String = "") extends Statement with Expandable {
+  // FIXME: find a different way to integrate additional OMP statements
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def this(body : Statement) = this(ListBuffer(body));
@@ -58,9 +59,9 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var createFragRef
   def expand : StatementBlock = {
     new StatementBlock(
       ListBuffer[Statement](
-        "#pragma omp parallel for schedule(static, 1)", // FIXME: move to own Node
-        ForLoopStatement(s"int e = 0", s"e < ${Knowledge.numFragsPerBlock}", s"++e",
-          (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[e];") else ListBuffer[Statement]())
+        "#pragma omp parallel for schedule(static, 1) " + addOMPStatements, // FIXME: move to own Node
+        ForLoopStatement(s"int f = 0", s"f < ${Knowledge.numFragsPerBlock}", s"++f",
+          (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[f];") else ListBuffer[Statement]())
             ++ body)));
   }
 }
@@ -123,9 +124,7 @@ case class CommunicationFunctions() extends Node with FilePrettyPrintable {
           + "#define	COMMUNICATION_FUNCTIONS_H\n"
           + "#pragma warning(disable : 4800)\n"
           + "#include <mpi.h>\n"
-          + "#include \"Util/Defines.h\"\n"
           + "#include \"Util/Log.h\"\n"
-          + "#include \"Util/TypeDefs.h\"\n"
           + "#include \"Util/Vector.h\"\n"
           + "#include \"Container/Container.h\"\n"
           + "#include \"Primitives/Fragment3DCube.h\"\n");
@@ -161,4 +160,11 @@ case class FieldCollection() extends Node {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   var fields : ListBuffer[Field] = ListBuffer();
+
+  def getFieldByName(name : String) : Option[Field] = {
+    fields.find(f => f.name == name)
+  }
+  def getFieldByCodeName(codeName : String) : Option[Field] = {
+    fields.find(f => f.codeName == codeName)
+  }
 }

@@ -22,7 +22,7 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
   var neighbors : ListBuffer[NeighborInfo] = ListBuffer();
 
   def init = {
-    declarations += s"exa_id_t id;";
+    declarations += s"size_t id;";
     cTorInitList += s"id(-1)";
 
     declarations += s"Vec3 pos;";
@@ -50,7 +50,7 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
     cTorNeighLoopList += s"neighbor_isRemote[i] = false;";
     declarations += s"Fragment3DCube* neighbor_localPtr[$numNeighbors];";
     cTorNeighLoopList += s"neighbor_localPtr[i] = NULL;";
-    declarations += s"exa_id_t neighbor_fragmentId[$numNeighbors];";
+    declarations += s"size_t neighbor_fragmentId[$numNeighbors];";
     cTorNeighLoopList += s"neighbor_fragmentId[i] = -1;";
     declarations += s"int neighbor_remoteRank[$numNeighbors];";
     cTorNeighLoopList += s"neighbor_remoteRank[i] = MPI_PROC_NULL;";
@@ -60,7 +60,7 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
       declarations += StringLiteral(s"bool reqOutstanding_${sendOrRecv}[$numNeighbors];");
       cTorNeighLoopList += StringLiteral(s"reqOutstanding_${sendOrRecv}[i] = false;");
 
-      declarations += StringLiteral(s"exa_real_t* buffer_${sendOrRecv}[$numNeighbors];");
+      declarations += StringLiteral(s"double* buffer_${sendOrRecv}[$numNeighbors];");
       cTorNeighLoopList += StringLiteral(s"buffer_${sendOrRecv}[i] = NULL;");
       dTorNeighLoopList += StringLiteral(s"if (buffer_${sendOrRecv}[i]) { delete [] buffer_${sendOrRecv}[i]; buffer_${sendOrRecv}[i] = 0; }");
     }
@@ -86,12 +86,9 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
           + "#include <vector>\n"
           + "#pragma warning(disable : 4800)\n"
           + "#include <mpi.h>\n"
-          + "#include \"Util/Defines.h\"\n"
           + "#include \"Util/Log.h\"\n"
-          + "#include \"Util/TypeDefs.h\"\n"
           + "#include \"Util/Vector.h\"\n"
-          + "#include \"Container/Container.h\"\n"
-          + "#include \"Primitives/CommunicationFunctions.h\"\n");
+          + "#include \"Container/Container.h\"\n");
 
       writer.write(super.cpp);
 
@@ -125,7 +122,7 @@ case class ExchangeData_6(field : Field, level : Integer, neighbors : ListBuffer
   override def expand : FunctionStatement = {
     var body = new ListBuffer[Statement];
 
-    val fieldName = s"fragments[e]->${field.codeName}[slot][$level]";
+    val fieldName = s"curFragment.${field.codeName}[slot][$level]";
 
     for (neigh <- neighbors) {
       neigh.setIndicesWide(field, level);
@@ -183,7 +180,7 @@ case class ExchangeData_26(field : Field, level : Integer, neighbors : ListBuffe
   override def expand : FunctionStatement = {
     var body = new ListBuffer[Statement];
 
-    val fieldName = s"fragments[e]->${field.codeName}[slot][$level]";
+    val fieldName = s"curFragment.${field.codeName}[slot][$level]";
 
     for (neigh <- neighbors) {
       neigh.setIndices(field, level);

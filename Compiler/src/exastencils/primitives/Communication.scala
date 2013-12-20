@@ -1,9 +1,9 @@
 package exastencils.primitives
 
 import scala.collection.mutable.ListBuffer
-
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.mpi._
 
 case class LocalSend(var field : Field, var level : Integer, var neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
@@ -51,7 +51,7 @@ case class CopyToSendBuffer_and_RemoteSend(var field : Field, var level : Intege
               new getNeighInfo_RemoteRank(neigh._1),
               s"((unsigned int)curFragment.id << 16) + ((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1)).cpp + ") & 0x0000ffff)",
               s"curFragment.request_Send[${neigh._1.index}]"),
-            StringLiteral(s"fragments[e]->reqOutstanding_Send[${neigh._1.index}] = true;"))) : Statement));
+            StringLiteral(s"curFragment.reqOutstanding_Send[${neigh._1.index}] = true;"))) : Statement));
   }
 }
 
