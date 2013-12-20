@@ -16,9 +16,9 @@ case class MultiGrid() extends Node with FilePrettyPrintable {
   var functions_HACK : ListBuffer[AbstractFunctionStatement] = new ListBuffer;
 
   override def printToFile = {
-    val writerHeader = PrettyPrintManager.getPrinter(s"MultiGrid/MultiGrid.h");
+    val writer = PrettyPrintManager.getPrinter(s"MultiGrid/MultiGrid.h");
 
-    writerHeader << ("#ifndef MULTIGRID_MULTIGRID_H\n"
+    writer << ("#ifndef MULTIGRID_MULTIGRID_H\n"
       + "#define MULTIGRID_MULTIGRID_H\n"
       + "#pragma warning(disable : 4800)\n"
       + "#include <mpi.h>\n"
@@ -31,20 +31,25 @@ case class MultiGrid() extends Node with FilePrettyPrintable {
 
     for (func <- functions_HACK) {
       val function = func.asInstanceOf[FunctionStatement];
-      writerHeader << s"${function.returntype.cpp} ${function.name}(" + function.parameters.map(param => s"${param.datatype.cpp} ${param.name}").mkString(", ") + ");\n";
+      writer << s"${function.returntype.cpp} ${function.name}(" + function.parameters.map(param => s"${param.datatype.cpp} ${param.name}").mkString(", ") + ");\n";
     }
 
-    writerHeader << "#endif // MULTIGRID_MULTIGRID_H\n";
+    writer << "#endif // MULTIGRID_MULTIGRID_H\n";
 
-    writerHeader.close(); // FIXME: finalize
+    writer.close(); // FIXME: finalize
 
-    val writerSource = PrettyPrintManager.getPrinter(s"MultiGrid/MultiGrid.cpp");
+    var i = 0;
+    for (f <- functions_HACK) {
+      var s : String = "";
 
-    writerSource << "#include \"MultiGrid/MultiGrid.h\"\n";
+      val writer = PrettyPrintManager.getPrinter(s"MultiGrid/MultiGrid_$i.cpp");
 
-    for (function <- functions_HACK)
-      writerSource << function.cpp + "\n";
+      writer << "#include \"MultiGrid/MultiGrid.h\"\n";
+      writer << f.cpp + "\n";
 
-    writerSource.close(); // FIXME: finalize
+      writer.close(); // FIXME: finalize
+
+      i += 1;
+    }
   }
 }

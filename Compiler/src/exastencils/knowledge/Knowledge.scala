@@ -27,18 +27,18 @@ object Knowledge {
   // FIXME: Integer is required to support implict conversion to NumericLiteral
 
   val numGhostLayers : Integer = 1;
-  val maxLevel : Integer = 5;
+  val maxLevel : Integer = 6;
   val numLevels : Integer = maxLevel + 1;
   val fragmentCommStrategy : Integer = 6;
   //val fragmentCommStrategy : Integer = 26;
 
-  val numFragsPerBlock_x : Integer = 3;
-  val numFragsPerBlock_y : Integer = 3;
-  val numFragsPerBlock_z : Integer = 3;
+  val numFragsPerBlock_x : Integer = 1;
+  val numFragsPerBlock_y : Integer = 1;
+  val numFragsPerBlock_z : Integer = 1;
   val numFragsPerBlock : Integer = numFragsPerBlock_x * numFragsPerBlock_y * numFragsPerBlock_z;
-  val numBlocks_x : Integer = 3;
-  val numBlocks_y : Integer = 3;
-  val numBlocks_z : Integer = 3;
+  val numBlocks_x : Integer = 16;
+  val numBlocks_y : Integer = 16;
+  val numBlocks_z : Integer = 16;
   val numBlocks : Integer = numBlocks_x * numBlocks_y * numBlocks_z;
   val numFragsTotal_x : Integer = numFragsPerBlock_x * numBlocks_x;
   val numFragsTotal_y : Integer = numFragsPerBlock_y * numBlocks_y;
@@ -48,7 +48,7 @@ object Knowledge {
   val smootherOmega : Double = 1.0;
   val smootherNumPre : Integer = 3;
   val smootherNumPost : Integer = 3;
-  val cgsNumSteps : Integer = 64;
+  val cgsNumSteps : Integer = 512;
 
   val mgMaxNumIterations : Integer = 1024;
 
