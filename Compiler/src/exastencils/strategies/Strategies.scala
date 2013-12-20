@@ -67,9 +67,8 @@ object AddMemberFunctionPrefix extends Strategy("Adding member function prefixes
 }
 
 object AddOMPPragmas extends Strategy("Adding OMP pragmas") {
-  // FIXME: currently this strategy is only applied to a single node per run
   this += new Transformation("Adding OMP pragmas", {
     case target : OMP_PotentiallyCritical =>
       Some(target.addOMPDirective);
-  } /*FIXME: , false*/ );
+  }, false);
 }

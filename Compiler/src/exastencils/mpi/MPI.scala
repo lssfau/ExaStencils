@@ -42,7 +42,7 @@ case class MPI_Receive(var buffer : Expression, var size : Expression, var typeN
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def addOMPDirective : OMP_Critical = {
-    new OMP_Critical(this.cpp); // FIXME: remove cpp
+    new OMP_Critical(this);
   }
 
   def cpp : String = {
@@ -54,7 +54,7 @@ case class MPI_Send(var buffer : Expression, var size : Expression, var typeName
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def addOMPDirective : OMP_Critical = {
-    new OMP_Critical(this.cpp); // FIXME: remove cpp
+    new OMP_Critical(this);
   }
 
   def cpp : String = {
