@@ -41,6 +41,7 @@ case class Identifier(name : String) extends Expression {
 }
 
 case class Variable(var datatype : Datatype, name : String) extends Expression {
+  // FIXME: treat static arrays
   override def cpp = name
   override def duplicate = this.copy().asInstanceOf[this.type]
 }

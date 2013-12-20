@@ -34,7 +34,7 @@ case class ExchangeDataSplitter(field : Field) extends AbstractFunctionStatement
 
   override def expand : FunctionStatement = {
     new FunctionStatement(new UnitDatatype(), s"exch${field.codeName}",
-      ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int", "level"), Variable("unsigned int", "slot")),
+      ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]"), Variable("unsigned int", "level"), Variable("unsigned int", "slot")),
       SwitchStatement("level",
         (0 to Knowledge.maxLevel).to[ListBuffer].map(level =>
           new CaseStatement(NumericLiteral(level), s"exch${field.codeName}_$level(fragments, slot);"))));

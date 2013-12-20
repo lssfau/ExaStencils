@@ -29,8 +29,8 @@ object Knowledge {
   val numGhostLayers : Integer = 1;
   val maxLevel : Integer = 6;
   val numLevels : Integer = maxLevel + 1;
-  val fragmentCommStrategy : Integer = 6;
-  //val fragmentCommStrategy : Integer = 26;
+  //val fragmentCommStrategy : Integer = 6;
+  val fragmentCommStrategy : Integer = 26;
 
   val numFragsPerBlock_x : Integer = 1;
   val numFragsPerBlock_y : Integer = 1;

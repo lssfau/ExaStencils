@@ -57,7 +57,7 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
   override def expand : FunctionStatement = {
     new FunctionStatement("int", "main", ListBuffer(Variable("int", "argc"), Variable("char**", "argv")),
       ListBuffer[Statement](
-        s"std::vector<Fragment3DCube*> fragments;", //FIXME: move to global space // FIXME: convert to fixed size array
+        s"Fragment3DCube* fragments[${Knowledge.numFragsPerBlock}];", //FIXME: move to global space
 
         new MPI_Init,
         new MPI_SetRankAndSize,
@@ -170,7 +170,6 @@ case class Poisson3D() extends Node with FilePrettyPrintable {
     writer << (
       "#pragma warning(disable : 4800)\n"
       + "#include <mpi.h>\n"
-      + "#include <vector>\n"
       + "#include <iostream>\n"
       + "#include <cstdlib>\n"
       + "#include <cfloat>\n"

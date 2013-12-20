@@ -79,7 +79,6 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
       writer << (
         "#ifndef	PRIMITIVES_FRAGMENT3DCUBE_H\n"
         + "#define	PRIMITIVES_FRAGMENT3DCUBE_H\n"
-        + "#include <vector>\n"
         + "#pragma warning(disable : 4800)\n"
         + "#include <mpi.h>\n"
         + "#include \"Util/Log.h\"\n"
@@ -160,7 +159,7 @@ case class ExchangeData_6(field : Field, level : Integer, neighbors : ListBuffer
 
     // compile return value
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",
-      ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int", "slot")),
+      ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]"), Variable("unsigned int", "slot")),
       body);
   }
 }
@@ -211,7 +210,7 @@ case class ExchangeData_26(field : Field, level : Integer, neighbors : ListBuffe
 
     // compile return value
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",
-      ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments"), Variable("unsigned int", "slot")),
+      ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]"), Variable("unsigned int", "slot")),
       body);
   }
 }

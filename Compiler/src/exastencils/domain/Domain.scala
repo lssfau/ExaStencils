@@ -116,8 +116,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
 
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"initDomain",
-      // FIXME: replace vector with fixed size array
-      ListBuffer(Variable("std::vector<Fragment3DCube*>&", "fragments")),
+      ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]")),
       ListBuffer(
         new MPI_SetRankAndSize,
 
@@ -127,17 +126,17 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
 
         "std::map<size_t, Fragment3DCube*> fragmentMap;",
 
-        "std::vector<Vec3> positions;",
+        s"Vec3 positions[${Knowledge.numFragsPerBlock}];",
+        s"unsigned int posWritePos = 0;",
         s"Vec3 rankPos(mpiRank % ${Knowledge.numBlocks_x}, (mpiRank / ${Knowledge.numBlocks_x}) % ${Knowledge.numBlocks_y}, mpiRank / ${Knowledge.numBlocks_x * Knowledge.numBlocks_y});",
         new LoopOverDimensions(IndexRange(Array(0, 0, 0), Array(Knowledge.numFragsPerBlock_x - 1, Knowledge.numFragsPerBlock_y - 1, Knowledge.numFragsPerBlock_z - 1)),
-          s"positions.push_back(Vec3(rankPos.x * ${Knowledge.numFragsPerBlock_x} + 0.5 + x, rankPos.y * ${Knowledge.numFragsPerBlock_y} + 0.5 + y, rankPos.z * ${Knowledge.numFragsPerBlock_z} + 0.5 + z));"),
+          s"positions[posWritePos++] = (Vec3(rankPos.x * ${Knowledge.numFragsPerBlock_x} + 0.5 + x, rankPos.y * ${Knowledge.numFragsPerBlock_y} + 0.5 + y, rankPos.z * ${Knowledge.numFragsPerBlock_z} + 0.5 + z));"),
 
-        s"fragments.resize(${Knowledge.numFragsPerBlock});",
         LoopOverFragments(ListBuffer(
           "fragments[f] = new Fragment3DCube();",
           "fragments[f]->id = " ~ PointToFragmentId("positions[f]") ~ ";",
           "fragments[f]->pos = positions[f];",
-          "fragmentMap[" ~ PointToFragmentId("positions[f]").cpp ~ s"] = fragments[f];"), false),
+          "fragmentMap[" ~ PointToFragmentId("positions[f]").cpp ~ s"] = fragments[f];"), false), //FIXME: this is not thread-safe :/
         ConnectFragments(),
         new SetupBuffers));
   }
@@ -158,7 +157,6 @@ case class DomainGenerated() extends Node with FilePrettyPrintable {
     writer << (
       "#ifndef DOMAINS_DOMAINGENERATED_H\n"
       + "#define DOMAINS_DOMAINGENERATED_H\n"
-      + "#include <vector>\n"
       + "#include <map>\n"
       + "#include \"Util/Log.h\"\n"
       + "#include \"Util/Vector.h\"\n");
