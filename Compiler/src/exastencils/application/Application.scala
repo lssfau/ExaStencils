@@ -8,6 +8,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.primitives._
+import exastencils.mpi._
 
 case class InitFields() extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]

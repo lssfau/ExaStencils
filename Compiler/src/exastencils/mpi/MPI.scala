@@ -1,10 +1,9 @@
-package exastencils.primitives
+package exastencils.mpi
 
 import scala.collection.mutable.ListBuffer
-
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.primitives._
+import exastencils.omp._
 
 case class MPI_IsRootProc() extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]

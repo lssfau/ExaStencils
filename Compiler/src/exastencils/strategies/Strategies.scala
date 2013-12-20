@@ -1,14 +1,13 @@
 package exastencils.strategies
 
 import scala.reflect.ClassTag
-
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.domain._
-import exastencils.primitives.OMP_PotentiallyCritical
 import exastencils.primitives.Class // FIXME
+import exastencils.omp._
 
 object FindFirstOccurence {
   def find[T : ClassTag] : Option[T] = {

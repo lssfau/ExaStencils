@@ -1,8 +1,9 @@
-package exastencils.primitives
+package exastencils.omp
 
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
+
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
