@@ -96,6 +96,7 @@ object StateManager {
 
     Vars(node).foreach(field => {
       val currentSubnode = Vars.get(node, field)
+      val previousReplacements = progresses_(transformation).getReplacements
       if (currentSubnode.isInstanceOf[Seq[_]]) {
         var list = currentSubnode.asInstanceOf[Seq[_]]
         val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
@@ -105,7 +106,7 @@ object StateManager {
           if (!Vars.set(node, field, newList)) {
             ERROR(s"Could not set $field")
           }
-          if (transformation.recursive || progresses_(transformation).getReplacements <= 0) newList.foreach(f => replace(f, transformation))
+          if (transformation.recursive || progresses_(transformation).getReplacements - previousReplacements <= 0) newList.foreach(f => replace(f, transformation))
         }
 
       } else if (currentSubnode.isInstanceOf[Array[_]]) {
@@ -119,7 +120,7 @@ object StateManager {
           if (!Vars.set(node, field, newArray)) {
             ERROR(s"Could not set $field")
           }
-          if (transformation.recursive || progresses_(transformation).getReplacements <= 0) newArray.asInstanceOf[Array[Node]].foreach(f => replace(f, transformation))
+          if (transformation.recursive || progresses_(transformation).getReplacements - previousReplacements <= 0) newArray.asInstanceOf[Array[Node]].foreach(f => replace(f, transformation))
         }
 
       } else {
@@ -144,7 +145,7 @@ object StateManager {
               }
             }
           }
-          if (transformation.recursive || progresses_(transformation).getReplacements <= 0) replace(newSubnode, transformation)
+          if (transformation.recursive || progresses_(transformation).getReplacements - previousReplacements <= 0) replace(newSubnode, transformation)
         }
       }
 
