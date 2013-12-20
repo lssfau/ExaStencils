@@ -102,11 +102,13 @@ object StateManager {
         val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
         if (invalids.size <= 0) {
           var newList = list.asInstanceOf[Seq[Node]].map(listitem => applyAtNode(listitem, transformation).get) // FIXME asof[List[Option[Node]]]
-          //          newList = newList.filterNot(listitem => listitem eq None) // FIXME
-          if (!Vars.set(node, field, newList)) {
-            ERROR(s"Could not set $field")
+          var changed = newList.diff(list)
+          if (changed.size > 0) {
+            if (!Vars.set(node, field, newList)) {
+              ERROR(s"Could not set $field")
+            }
           }
-          if (transformation.recursive || progresses_(transformation).getReplacements - previousReplacements <= 0) newList.foreach(f => replace(f, transformation))
+          if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) newList.foreach(f => replace(f, transformation))
         }
 
       } else if (currentSubnode.isInstanceOf[Array[_]]) {
@@ -115,12 +117,16 @@ object StateManager {
         val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
         if (invalids.size <= 0) {
           var tmpArray = list.asInstanceOf[Array[Node]].map(listitem => applyAtNode(listitem, transformation).get)
-          var newArray = java.lang.reflect.Array.newInstance(arrayType, tmpArray.length)
-          System.arraycopy(tmpArray, 0, newArray, 0, tmpArray.length)
-          if (!Vars.set(node, field, newArray)) {
-            ERROR(s"Could not set $field")
+          var changed = tmpArray.diff(list)
+          if (changed.size > 0) {
+            var newArray = java.lang.reflect.Array.newInstance(arrayType, tmpArray.length)
+            System.arraycopy(tmpArray, 0, newArray, 0, tmpArray.length)
+            if (!Vars.set(node, field, newArray)) {
+              ERROR(s"Could not set $field")
+            }
+
           }
-          if (transformation.recursive || progresses_(transformation).getReplacements - previousReplacements <= 0) newArray.asInstanceOf[Array[Node]].foreach(f => replace(f, transformation))
+          if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) tmpArray.asInstanceOf[Array[Node]].foreach(f => replace(f, transformation))
         }
 
       } else {
@@ -145,7 +151,7 @@ object StateManager {
               }
             }
           }
-          if (transformation.recursive || progresses_(transformation).getReplacements - previousReplacements <= 0) replace(newSubnode, transformation)
+          if (transformation.recursive) replace(newSubnode, transformation)
         }
       }
 
