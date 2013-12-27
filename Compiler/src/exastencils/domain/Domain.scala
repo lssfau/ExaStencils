@@ -11,6 +11,9 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.primitives._
 import exastencils.mpi._
 import exastencils.prettyprinting._
+import exastencils.omp.OMP_Critical
+
+// FIXME: incorporate fragLengthPerDim
 
 case class PointOutsideDomain(var pos : Expression) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
@@ -130,13 +133,14 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
         s"unsigned int posWritePos = 0;",
         s"Vec3 rankPos(mpiRank % ${Knowledge.numBlocks_x}, (mpiRank / ${Knowledge.numBlocks_x}) % ${Knowledge.numBlocks_y}, mpiRank / ${Knowledge.numBlocks_x * Knowledge.numBlocks_y});",
         new LoopOverDimensions(IndexRange(Array(0, 0, 0), Array(Knowledge.numFragsPerBlock_x - 1, Knowledge.numFragsPerBlock_y - 1, Knowledge.numFragsPerBlock_z - 1)),
-          s"positions[posWritePos++] = (Vec3(rankPos.x * ${Knowledge.numFragsPerBlock_x} + 0.5 + x, rankPos.y * ${Knowledge.numFragsPerBlock_y} + 0.5 + y, rankPos.z * ${Knowledge.numFragsPerBlock_z} + 0.5 + z));"),
+          s"positions[posWritePos++] = (Vec3(rankPos.x * ${Knowledge.numFragsPerBlock_x} + 0.5 + x, rankPos.y * ${Knowledge.numFragsPerBlock_y} + 0.5 + y, rankPos.z * ${Knowledge.numFragsPerBlock_z} + 0.5 + z));", false),
 
         LoopOverFragments(ListBuffer(
           "fragments[f] = new Fragment3DCube();",
           "fragments[f]->id = " ~ PointToFragmentId("positions[f]") ~ ";",
           "fragments[f]->pos = positions[f];",
-          "fragmentMap[" ~ PointToFragmentId("positions[f]").cpp ~ s"] = fragments[f];"), false), //FIXME: this is not thread-safe :/
+          new OMP_Critical("fragmentMap[" ~ PointToFragmentId("positions[f]").cpp ~ s"] = fragments[f];")), // FIXME: to be set automatically?
+          false),
         ConnectFragments(),
         new SetupBuffers));
   }

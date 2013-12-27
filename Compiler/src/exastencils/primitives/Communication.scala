@@ -23,7 +23,7 @@ case class LocalSend(var field : Field, var level : Integer, var neighbors : Lis
                     s"(z + ${neigh._3.begin(2) - neigh._2.begin(2)})",
                     s"(y + ${neigh._3.begin(1) - neigh._2.begin(1)})",
                     s"(x + ${neigh._3.begin(0) - neigh._2.begin(0)})")),
-                new FieldAccess(field, level, "slot", Mapping.access(level))))))) : Statement));
+                new FieldAccess(field, level, "slot", Mapping.access(level))), true)))) : Statement));
   }
 }
 
@@ -43,7 +43,7 @@ case class CopyToSendBuffer_and_RemoteSend(var field : Field, var level : Intege
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(
                 s"curFragment.buffer_Send[${neigh._1.index}][entry++]",
-                new FieldAccess(field, level, "slot", Mapping.access(level)))),
+                new FieldAccess(field, level, "slot", Mapping.access(level))), false),
             new MPI_Send(
               s"curFragment.buffer_Send[${neigh._1.index}]",
               s"entry",
@@ -91,7 +91,7 @@ case class CopyFromRecvBuffer(var field : Field, var level : Integer, var neighb
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(
                 new FieldAccess(field, level, "slot", Mapping.access(level)),
-                s"curFragment.buffer_Recv[${neigh._1.index}][entry++];"))))) : Statement));
+                s"curFragment.buffer_Recv[${neigh._1.index}][entry++];"), false)))) : Statement));
   }
 }
 

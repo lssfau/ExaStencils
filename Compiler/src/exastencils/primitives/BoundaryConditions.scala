@@ -20,7 +20,7 @@ case class HandleBoundaries(var field : Field, var level : Integer, neighbors : 
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(
                 new FieldAccess(field, level, "slot", Mapping.access(level)),
-                NumericLiteral(0.0)))) : Statement));
+                NumericLiteral(0.0)), true)) : Statement));
     } else {
       return new NullStatement;
     }

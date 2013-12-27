@@ -33,7 +33,7 @@ case class PerformSmoothing_Jac(solutionField : Field, rhsField : Field, level :
                   ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(z - 1)", "y", "x"))
                   ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(z + 1)", "y", "x"))
                   ~ s"-" ~ FieldAccess(rhsField, level, "0", Mapping.access(level))
-                  ~ ")"))))));
+                  ~ ")")), true))));
   }
 }
 
@@ -61,7 +61,7 @@ case class PerformSmoothing_GS(solutionField : Field, rhsField : Field, level : 
                   ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(z - 1)", "y", "x"))
                   ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(z + 1)", "y", "x"))
                   ~ s"-" ~ FieldAccess(rhsField, level, "0", Mapping.access(level))
-                  ~ ")"))))));
+                  ~ ")")), true))));
   }
 }
 
@@ -220,7 +220,7 @@ case class UpdateResidual(residualField : Field, solutionField : Field, rhsField
                   ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "z", "(y - 1)", "x"))
                   ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "(z - 1)", "y", "x"))
                   ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "(z + 1)", "y", "x"))
-                  ~ s"+ 6.0 * " ~ FieldAccess(solutionField, level, "slot", Mapping.access(level))))))));
+                  ~ s"+ 6.0 * " ~ FieldAccess(solutionField, level, "slot", Mapping.access(level)))), true))));
   }
 }
 
@@ -457,7 +457,7 @@ case class GetGlobalResidual(field : Field) extends AbstractFunctionStatement wi
           new LoopOverDimensions(
             fieldToIndexInner(Array(0, 0, 0), Knowledge.maxLevel), ListBuffer[Statement](
               s"double tmpRes =" ~ new FieldAccess(field, Knowledge.maxLevel, NumericLiteral(0), Mapping.access(Knowledge.maxLevel)) ~ ";",
-              s"res += tmpRes * tmpRes;"))),
+              s"res += tmpRes * tmpRes;"), false /*FIXME: use OMP reduction*/ )),
           true, "reduction(+:res)"),
         new MPI_Allreduce("&res", "&resTotal", NumericLiteral(1), "MPI_SUM"),
         s"return sqrt(resTotal);"));
@@ -476,6 +476,6 @@ case class SetSolZero(field : Field, level : Integer) extends AbstractFunctionSt
         new LoopOverDimensions(fieldToIndexInner(Array(0, 0, 0), level),
           new AssignmentStatement(
             new FieldAccess(field, level, "slot", Mapping.access(level)),
-            NumericLiteral(0.0))))));
+            NumericLiteral(0.0)), true))));
   }
 }

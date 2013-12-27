@@ -35,18 +35,18 @@ class NeighborInfo(var dir : Array[Int], var index : Int) {
 case class IndexRange(begin : Array[Int] = Array(0, 0, 0), end : Array[Int] = Array(0, 0, 0)) {}
 
 object Mapping {
-  def first(level : Int) : Int = {
+  def first(level : Int, dim : Int) : Int = {
     return 0;
   }
-  def last(level : Int) : Int = {
-    return numPoints(level) - 1;
+  def last(level : Int, dim : Int) : Int = {
+    return numPoints(level, dim) - 1;
   }
-  def numPoints(level : Int) : Int = {
-    return (1 << level) + 1 + 2 * Knowledge.numGhostLayers;
+  def numPoints(level : Int, dim : Int) : Int = {
+    return (Knowledge.fragLengthPerDim(dim) * (1 << level)) + 1 + 2 * Knowledge.numGhostLayers;
   }
   def access(level : Int, z : String = "z", y : String = "y", x : String = "x") : String = {
     // FIXME: reverse order
-    return s"$z * ${numPoints(level) * numPoints(level)} + $y * ${numPoints(level)} + $x";
+    return s"$z * ${numPoints(level, 1) * numPoints(level, 0)} + $y * ${numPoints(level, 0)} + $x";
   }
 }
 
@@ -54,14 +54,14 @@ object fieldToIndexInner extends ((Array[Int], Int) => IndexRange) {
   def apply(dir : Array[Int], level : Int) : IndexRange = {
     return new IndexRange(
       (0 to 2).toArray.map(i => i match {
-        case i if dir(i) == 0 => (Mapping.first(level) + Knowledge.numGhostLayers)
-        case i if dir(i) < 0  => (Mapping.first(level) + Knowledge.numGhostLayers + 1)
-        case i if dir(i) > 0  => (Mapping.last(level) - 2 * Knowledge.numGhostLayers)
+        case i if dir(i) == 0 => (Mapping.first(level, i) + Knowledge.numGhostLayers)
+        case i if dir(i) < 0  => (Mapping.first(level, i) + Knowledge.numGhostLayers + 1)
+        case i if dir(i) > 0  => (Mapping.last(level, i) - 2 * Knowledge.numGhostLayers)
       }),
       (0 to 2).toArray.map(i => i match {
-        case i if dir(i) == 0 => (Mapping.last(level) - Knowledge.numGhostLayers)
-        case i if dir(i) < 0  => (Mapping.first(level) + 2 * Knowledge.numGhostLayers)
-        case i if dir(i) > 0  => (Mapping.last(level) - Knowledge.numGhostLayers - 1)
+        case i if dir(i) == 0 => (Mapping.last(level, i) - Knowledge.numGhostLayers)
+        case i if dir(i) < 0  => (Mapping.first(level, i) + 2 * Knowledge.numGhostLayers)
+        case i if dir(i) > 0  => (Mapping.last(level, i) - Knowledge.numGhostLayers - 1)
       }));
   }
 }
@@ -70,14 +70,14 @@ object fieldToIndexInnerWide extends ((Array[Int], Int) => IndexRange) {
   def apply(dir : Array[Int], level : Int) : IndexRange = {
     return new IndexRange(
       (0 to 2).toArray.map(i => i match {
-        case i if dir(i) == 0 => (Mapping.first(level))
-        case i if dir(i) < 0  => (Mapping.first(level) + Knowledge.numGhostLayers + 1)
-        case i if dir(i) > 0  => (Mapping.last(level) - 2 * Knowledge.numGhostLayers)
+        case i if dir(i) == 0 => (Mapping.first(level, i))
+        case i if dir(i) < 0  => (Mapping.first(level, i) + Knowledge.numGhostLayers + 1)
+        case i if dir(i) > 0  => (Mapping.last(level, i) - 2 * Knowledge.numGhostLayers)
       }),
       (0 to 2).toArray.map(i => i match {
-        case i if dir(i) == 0 => (Mapping.last(level))
-        case i if dir(i) < 0  => (Mapping.first(level) + 2 * Knowledge.numGhostLayers)
-        case i if dir(i) > 0  => (Mapping.last(level) - Knowledge.numGhostLayers - 1)
+        case i if dir(i) == 0 => (Mapping.last(level, i))
+        case i if dir(i) < 0  => (Mapping.first(level, i) + 2 * Knowledge.numGhostLayers)
+        case i if dir(i) > 0  => (Mapping.last(level, i) - Knowledge.numGhostLayers - 1)
       }));
   }
 }
@@ -86,14 +86,14 @@ object fieldToIndexOuter extends ((Array[Int], Int) => IndexRange) {
   def apply(dir : Array[Int], level : Int) : IndexRange = {
     return new IndexRange(
       (0 to 2).toArray.map(i => i match {
-        case i if dir(i) == 0 => (Mapping.first(level) + Knowledge.numGhostLayers)
-        case i if dir(i) < 0  => (Mapping.first(level))
-        case i if dir(i) > 0  => (Mapping.last(level) - Knowledge.numGhostLayers + 1)
+        case i if dir(i) == 0 => (Mapping.first(level, i) + Knowledge.numGhostLayers)
+        case i if dir(i) < 0  => (Mapping.first(level, i))
+        case i if dir(i) > 0  => (Mapping.last(level, i) - Knowledge.numGhostLayers + 1)
       }),
       (0 to 2).toArray.map(i => i match {
-        case i if dir(i) == 0 => (Mapping.last(level) - Knowledge.numGhostLayers)
-        case i if dir(i) < 0  => (Mapping.first(level) + Knowledge.numGhostLayers - 1)
-        case i if dir(i) > 0  => (Mapping.last(level))
+        case i if dir(i) == 0 => (Mapping.last(level, i) - Knowledge.numGhostLayers)
+        case i if dir(i) < 0  => (Mapping.first(level, i) + Knowledge.numGhostLayers - 1)
+        case i if dir(i) > 0  => (Mapping.last(level, i))
       }));
   }
 }
@@ -102,14 +102,14 @@ object fieldToIndexOuterWide extends ((Array[Int], Int) => IndexRange) {
   def apply(dir : Array[Int], level : Int) : IndexRange = {
     return new IndexRange(
       (0 to 2).toArray.map(i => i match {
-        case i if dir(i) == 0 => (Mapping.first(level))
-        case i if dir(i) < 0  => (Mapping.first(level))
-        case i if dir(i) > 0  => (Mapping.last(level) - Knowledge.numGhostLayers + 1)
+        case i if dir(i) == 0 => (Mapping.first(level, i))
+        case i if dir(i) < 0  => (Mapping.first(level, i))
+        case i if dir(i) > 0  => (Mapping.last(level, i) - Knowledge.numGhostLayers + 1)
       }),
       (0 to 2).toArray.map(i => i match {
-        case i if dir(i) == 0 => (Mapping.last(level))
-        case i if dir(i) < 0  => (Mapping.first(level) + Knowledge.numGhostLayers - 1)
-        case i if dir(i) > 0  => (Mapping.last(level))
+        case i if dir(i) == 0 => (Mapping.last(level, i))
+        case i if dir(i) < 0  => (Mapping.first(level, i) + Knowledge.numGhostLayers - 1)
+        case i if dir(i) > 0  => (Mapping.last(level, i))
       }));
   }
 }
@@ -118,14 +118,14 @@ object fieldToIndexBorder extends ((Array[Int], Int) => IndexRange) {
   def apply(dir : Array[Int], level : Int) : IndexRange = {
     return new IndexRange(
       (0 to 2).toArray.map(i => i match {
-        case i if dir(i) == 0 => (Mapping.first(level) + Knowledge.numGhostLayers)
-        case i if dir(i) < 0  => (Mapping.first(level) + Knowledge.numGhostLayers)
-        case i if dir(i) > 0  => (Mapping.last(level) - Knowledge.numGhostLayers)
+        case i if dir(i) == 0 => (Mapping.first(level, i) + Knowledge.numGhostLayers)
+        case i if dir(i) < 0  => (Mapping.first(level, i) + Knowledge.numGhostLayers)
+        case i if dir(i) > 0  => (Mapping.last(level, i) - Knowledge.numGhostLayers)
       }),
       (0 to 2).toArray.map(i => i match {
-        case i if dir(i) == 0 => (Mapping.last(level) - Knowledge.numGhostLayers)
-        case i if dir(i) < 0  => (Mapping.first(level) + Knowledge.numGhostLayers)
-        case i if dir(i) > 0  => (Mapping.last(level) - Knowledge.numGhostLayers)
+        case i if dir(i) == 0 => (Mapping.last(level, i) - Knowledge.numGhostLayers)
+        case i if dir(i) < 0  => (Mapping.first(level, i) + Knowledge.numGhostLayers)
+        case i if dir(i) > 0  => (Mapping.last(level, i) - Knowledge.numGhostLayers)
       }));
   }
 }

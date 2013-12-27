@@ -85,7 +85,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
     for (level <- 0 to Knowledge.maxLevel) {
       for (field <- fields) {
         for (slot <- 0 until field.numSlots) {
-          body += s"${field.codeName}[$slot][$level] = new Container(Vec3u(${Mapping.numPoints(level)}, ${Mapping.numPoints(level)}, ${Mapping.numPoints(level)}), 1);"
+          body += s"${field.codeName}[$slot][$level] = new Container(Vec3u(${Mapping.numPoints(level, 0)}, ${Mapping.numPoints(level, 1)}, ${Mapping.numPoints(level, 2)}), 1);"
         }
       }
     }
@@ -95,7 +95,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
       var sizeArray = new ListBuffer[String]();
       for (i <- (0 to 2))
         if (0 == neigh.dir(i))
-          sizeArray += s"${Mapping.numPoints(Knowledge.maxLevel)}";
+          sizeArray += s"${Mapping.numPoints(Knowledge.maxLevel, i)}";
         else
           sizeArray += s"${Knowledge.numGhostLayers}";
 

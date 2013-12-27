@@ -28,7 +28,7 @@ case class InitFields() extends Statement {
           (0 until field.numSlots).to[ListBuffer].map(slot =>
             new AssignmentStatement(
               new FieldAccess(field, NumericLiteral(level), NumericLiteral(slot), Mapping.access(level)),
-              NumericLiteral(0.0)) : Statement));
+              NumericLiteral(0.0)) : Statement), true);
       }
     }
 
@@ -42,7 +42,7 @@ case class InitFields() extends Statement {
           (0 until field.numSlots).to[ListBuffer].map(slot =>
             new AssignmentStatement(
               new FieldAccess(field, NumericLiteral(Knowledge.maxLevel), NumericLiteral(slot), Mapping.access(Knowledge.maxLevel)),
-              s"val") : Statement));
+              s"val") : Statement), false);
     }
 
     return new LoopOverFragments(body);
@@ -57,12 +57,14 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
   override def expand : FunctionStatement = {
     new FunctionStatement("int", "main", ListBuffer(Variable("int", "argc"), Variable("char**", "argv")),
       ListBuffer[Statement](
-        s"Fragment3DCube* fragments[${Knowledge.numFragsPerBlock}];", //FIXME: move to global space
-
+        s"Fragment3DCube* fragments[${Knowledge.numFragsPerBlock}];", /*FIXME: move to global space*/
         new MPI_Init,
         new MPI_SetRankAndSize,
 
-        s"omp_set_num_threads(${Knowledge.numFragsPerBlock});",
+        (if (Knowledge.summarizeBlocks)
+          s"omp_set_num_threads(${Knowledge.fragLength});"
+        else
+          s"omp_set_num_threads(${Knowledge.numFragsPerBlock});"),
 
         new ConditionStatement(s"argc != 1", ListBuffer[Statement](
           new ConditionStatement(new MPI_IsRootProc,
