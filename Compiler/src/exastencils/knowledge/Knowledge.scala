@@ -70,7 +70,7 @@ object Knowledge {
   var smootherNumPre : Integer = 3;
   var smootherNumPost : Integer = 3;
   var cgsNumSteps : Integer = 512;
-  
+
   var mgMaxNumIterations : Integer = 1024;
 
   var cgs = CoarseGridSolverType.IP_Smoother;
@@ -84,4 +84,35 @@ object Knowledge {
   var smootherOmega : Double = (if (SmootherType.Jac == smoother) 0.8 else 1.0);
 
   var numSolSlots : Integer = (if (SmootherType.Jac == smoother) 2 else 1);
+
+  def update : Unit = {
+    numLevels = maxLevel + 1;
+
+    numBlocks = numBlocks_x * numBlocks_y * numBlocks_z;
+
+    if (summarizeBlocks) {
+      // FIXME: move to transformation
+      fragLength_x = numFragsPerBlock_x;
+      fragLength_y = numFragsPerBlock_y;
+      fragLength_z = numFragsPerBlock_z;
+
+      numFragsPerBlock_x = 1;
+      numFragsPerBlock_y = 1;
+      numFragsPerBlock_z = 1;
+    }
+
+    numFragsTotal_x = numFragsPerBlock_x * numBlocks_x;
+    numFragsTotal_y = numFragsPerBlock_y * numBlocks_y;
+    numFragsTotal_z = numFragsPerBlock_z * numBlocks_z;
+    numFragsTotal = numFragsTotal_x * numFragsTotal_y * numFragsTotal_z;
+
+    numFragsPerBlock = numFragsPerBlock_x * numFragsPerBlock_y * numFragsPerBlock_z;
+    numFragsPerBlockPerDim = Array(numFragsPerBlock_x, numFragsPerBlock_y, numFragsPerBlock_z);
+    fragLength = fragLength_x * fragLength_y * fragLength_z;
+    fragLengthPerDim = Array(fragLength_x, fragLength_y, fragLength_z);
+
+    smootherOmega = (if (SmootherType.Jac == smoother) 0.8 else 1.0);
+
+    numSolSlots = (if (SmootherType.Jac == smoother) 2 else 1);
+  }
 }
