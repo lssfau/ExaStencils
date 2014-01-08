@@ -15,7 +15,10 @@ import exastencils.util._
 
 object Main {
   def main(args : Array[String]) : Unit = {
-    Settings.outputPath = s"C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Generated/";
+    val s = new exastencils.parsers.settings.ParserSettings
+    s.parseFile(args(0))
+    val k = new exastencils.parsers.settings.ParserKnowledge
+    k.parseFile(args(1))
 
     StateManager.root_ = Root(List(
       // Application
