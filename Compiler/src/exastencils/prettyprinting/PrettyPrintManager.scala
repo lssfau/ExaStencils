@@ -23,11 +23,18 @@ object PrettyPrintManager {
     printers.getOrElse(filename, {
       var file = new java.io.File(Settings.outputPath + java.io.File.separator + filename)
       if (!file.getParentFile().exists()) file.getParentFile().mkdirs()
+      
+      exastencils.core.DBG("new file: " + file.getAbsolutePath)
 
       var printer = new PrettyPrinter(file.getAbsolutePath())
       printers += ((filename, printer))
       printer
     })
+  }
+  
+  def finish = {
+    printers.values.foreach(f => f.close())
+    Settings.buildfileGenerator.write
   }
 }
 

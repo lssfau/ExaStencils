@@ -4,7 +4,7 @@ object MakefileGenerator extends BuildfileGenerator {
   override def write : Unit = {
     val printer = PrettyPrintManager.getPrinter("Makefile")
 
-    printer <<< "CXX = g++"
+    printer <<< "CXX = mpic++"
     printer <<< "CFLAGS = -O3"
     printer <<< "BINARY = exastencils"
     printer <<< ""
@@ -19,5 +19,7 @@ object MakefileGenerator extends BuildfileGenerator {
       printer << s"$file "
     })
     printer <<< ""
+    
+    printer.close
   }
 }
