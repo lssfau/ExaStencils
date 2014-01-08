@@ -167,7 +167,7 @@ case class Poisson3D() extends Node with FilePrettyPrintable {
   functions_HACK += new Poisson3DMain;
 
   override def printToFile = {
-    val writer = PrettyPrintManager.getPrinter(s"Poisson3D.cpp");
+    val writer = PrettyprintingManager.getPrinter(s"Poisson3D.cpp");
 
     writer << (
       "#pragma warning(disable : 4800)\n"

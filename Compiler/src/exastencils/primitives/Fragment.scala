@@ -74,7 +74,7 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
 
   override def printToFile = {
     {
-      val writer = PrettyPrintManager.getPrinter(s"Primitives/Fragment3DCube.h");
+      val writer = PrettyprintingManager.getPrinter(s"Primitives/Fragment3DCube.h");
 
       writer << (
         "#ifndef	PRIMITIVES_FRAGMENT3DCUBE_H\n"
@@ -94,7 +94,7 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
 
     var i = 0;
     for (f <- functions) {
-      val writer = PrettyPrintManager.getPrinter(s"Primitives/Fragment3DCube_$i.cpp");
+      val writer = PrettyprintingManager.getPrinter(s"Primitives/Fragment3DCube_$i.cpp");
 
       writer << "#include \"Primitives/Fragment3DCube.h\"\n\n";
       writer << f.cpp + "\n";

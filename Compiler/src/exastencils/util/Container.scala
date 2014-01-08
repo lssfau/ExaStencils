@@ -12,7 +12,7 @@ case class Container() extends Node with FilePrettyPrintable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def printToFile = {
-    val writer = PrettyPrintManager.getPrinter(s"Container/Container.h");
+    val writer = PrettyprintingManager.getPrinter(s"Container/Container.h");
 
     writer << ("""
 #ifndef	CONTAINER_CONTAINER_H

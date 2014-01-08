@@ -12,7 +12,7 @@ case class Log() extends Node with FilePrettyPrintable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def printToFile = {
-    val writer = PrettyPrintManager.getPrinter(s"Util/Log.h");
+    val writer = PrettyprintingManager.getPrinter(s"Util/Log.h");
 
     writer << ("""
 #ifndef	UTIL_LOG_H

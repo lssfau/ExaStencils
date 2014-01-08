@@ -154,7 +154,7 @@ case class DomainGenerated() extends Node with FilePrettyPrintable {
   statements_HACK += new InitGeneratedDomain;
 
   override def printToFile = {
-    val writer = PrettyPrintManager.getPrinter(s"Domains/DomainGenerated.h");
+    val writer = PrettyprintingManager.getPrinter(s"Domains/DomainGenerated.h");
 
     // TODO: add header guard semi-automatic
     // TODO: add includes to class node or similar

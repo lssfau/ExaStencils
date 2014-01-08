@@ -35,5 +35,6 @@ class ParserKnowledge extends ExaParser {
   
   lazy val expr = ident ^^ { _.toString } |
   stringLit ^^ { _.toString } |
-  numericLit ^^ { _.toInt }
+  numericLit ^^ { _.toInt } |
+  booleanLit ^^ { _.toBoolean }
 }
