@@ -8,6 +8,8 @@ import scala.util.parsing.combinator.lexical._
 class ExaLexer extends StdLexical {
   // general stuff
   delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "+=", "|", "[", "]", ",")
+  
+  reserved += ("true", "false")
 
   // FIXME move to corresponding levels
   reserved += ("let", "level", "def", "return", "ToFine", "ToCoarse", "if", "else", "repeat", "Reduction", "class", "block", "public", "order", "Communicate", "decl")

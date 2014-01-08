@@ -33,8 +33,7 @@ class ParserKnowledge extends ExaParser {
   
   lazy val setting = ident ~ "=" ~ expr ^^ { case id ~ "=" ~ ex => set(exastencils.knowledge.Knowledge, id, ex) }
   
-  lazy val expr = ident ^^ { _.toString } |
-  stringLit ^^ { _.toString } |
+  lazy val expr = stringLit ^^ { _.toString } |
   numericLit ^^ { _.toInt } |
   booleanLit ^^ { _.toBoolean }
 }
