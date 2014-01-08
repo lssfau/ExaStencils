@@ -12,7 +12,7 @@ case class Vector() extends Node with FilePrettyPrintable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def printToFile = {
-    val writer = PrettyPrintManager.getPrinter(s"Util/Vector.h");
+    val writer = PrettyprintingManager.getPrinter(s"Util/Vector.h");
 
     writer << ("""
 #ifndef	UTIL_VECTOR_H

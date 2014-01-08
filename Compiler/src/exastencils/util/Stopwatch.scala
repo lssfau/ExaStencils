@@ -12,7 +12,7 @@ case class Stopwatch() extends Node with FilePrettyPrintable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def printToFile = {
-    val writer = PrettyPrintManager.getPrinter(s"Util/Stopwatch.h");
+    val writer = PrettyprintingManager.getPrinter(s"Util/Stopwatch.h");
 
     writer << ("""
 #ifndef	UTIL_STOPWATCH_H

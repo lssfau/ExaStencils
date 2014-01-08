@@ -118,7 +118,7 @@ case class CommunicationFunctions() extends Node with FilePrettyPrintable {
 
   override def printToFile = {
     {
-      val writer = PrettyPrintManager.getPrinter(s"Primitives/CommunicationFunctions.h");
+      val writer = PrettyprintingManager.getPrinter(s"Primitives/CommunicationFunctions.h");
 
       writer << ("#ifndef	COMMUNICATION_FUNCTIONS_H\n"
         + "#define	COMMUNICATION_FUNCTIONS_H\n"
@@ -143,7 +143,7 @@ case class CommunicationFunctions() extends Node with FilePrettyPrintable {
     for (f <- functions) {
       var s : String = "";
 
-      val writer = PrettyPrintManager.getPrinter(s"Primitives/CommunicationFunction_$i.cpp");
+      val writer = PrettyprintingManager.getPrinter(s"Primitives/CommunicationFunction_$i.cpp");
 
       writer << "#include \"Primitives/CommunicationFunctions.h\"\n\n";
       writer << f.cpp + "\n";

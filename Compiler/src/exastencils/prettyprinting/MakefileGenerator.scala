@@ -2,7 +2,7 @@ package exastencils.prettyprinting
 
 object MakefileGenerator extends BuildfileGenerator {
   override def write : Unit = {
-    val printer = PrettyPrintManager.getPrinter("Makefile")
+    val printer = PrettyprintingManager.getPrinter("Makefile")
 
     printer <<< "CXX = mpic++"
     printer <<< "CFLAGS = -O3"
@@ -10,12 +10,12 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< ""
     printer <<< "exastencils: "
 
-    PrettyPrintManager.getFiles.filter(file => file != "Makefile").foreach(file => {
+    PrettyprintingManager.getFiles.filter(file => file != "Makefile").foreach(file => {
       printer << s"$file "
     })
 
     printer <<< "\t${CXX} ${CFLAGS} -o ${BINARY} "
-    PrettyPrintManager.getFiles.filter(file => file.endsWith(".cpp")).foreach(file => {
+    PrettyprintingManager.getFiles.filter(file => file.endsWith(".cpp")).foreach(file => {
       printer << s"$file "
     })
     printer <<< ""

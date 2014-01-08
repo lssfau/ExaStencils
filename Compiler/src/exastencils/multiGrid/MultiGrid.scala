@@ -16,7 +16,7 @@ case class MultiGrid() extends Node with FilePrettyPrintable {
   var functions_HACK : ListBuffer[AbstractFunctionStatement] = new ListBuffer;
 
   override def printToFile = {
-    val writer = PrettyPrintManager.getPrinter(s"MultiGrid/MultiGrid.h");
+    val writer = PrettyprintingManager.getPrinter(s"MultiGrid/MultiGrid.h");
 
     writer << ("#ifndef MULTIGRID_MULTIGRID_H\n"
       + "#define MULTIGRID_MULTIGRID_H\n"
@@ -41,7 +41,7 @@ case class MultiGrid() extends Node with FilePrettyPrintable {
     for (f <- functions_HACK) {
       var s : String = "";
 
-      val writer = PrettyPrintManager.getPrinter(s"MultiGrid/MultiGrid_$i.cpp");
+      val writer = PrettyprintingManager.getPrinter(s"MultiGrid/MultiGrid_$i.cpp");
 
       writer << "#include \"MultiGrid/MultiGrid.h\"\n";
       writer << f.cpp + "\n";

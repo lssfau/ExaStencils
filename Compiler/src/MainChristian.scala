@@ -70,10 +70,10 @@ object MainChristian {
     k.parseFile(args(1))
 
 
-    import exastencils.prettyprinting.PrettyPrintManager
-    val p = PrettyPrintManager.getPrinter("hallo")
+    import exastencils.prettyprinting.PrettyprintingManager
+    val p = PrettyprintingManager.getPrinter("hallo")
     p << "blabla"
-    PrettyPrintManager.finish
+    PrettyprintingManager.finish
     
     
     import exastencils.datastructures.ir._
