@@ -29,7 +29,7 @@ class ParserKnowledge extends ExaParser {
   
   
    
-  lazy val settingsfile = { setting ~ "\n" }.* ~ setting
+  lazy val settingsfile = setting.*
   
   lazy val setting = ident ~ "=" ~ expr ^^ { case id ~ "=" ~ ex => set(exastencils.knowledge.Knowledge, id, ex) }
   
