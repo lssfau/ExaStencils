@@ -70,6 +70,12 @@ object MainChristian {
     k.parseFile(args(1))
 
 
+    import exastencils.prettyprinting.PrettyPrintManager
+    val p = PrettyPrintManager.getPrinter("hallo")
+    p << "blabla"
+    PrettyPrintManager.finish
+    
+    
     import exastencils.datastructures.ir._
     val a = FunctionCallExpression(null, null)
     val b = BinaryExpression("x", null, null)
