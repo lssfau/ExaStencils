@@ -26,18 +26,18 @@ object SmootherType extends Enumeration {
 object Knowledge {
   // FIXME: Integer is required to support implicit conversion to NumericLiteral
 
-  val numGhostLayers : Integer = 1;
-  val maxLevel : Integer = 6;
-  val numLevels : Integer = maxLevel + 1;
-  val fragmentCommStrategy : Integer = 6;
+  var numGhostLayers : Integer = 1;
+  var maxLevel : Integer = 6;
+  var numLevels : Integer = maxLevel + 1;
+  var fragmentCommStrategy : Integer = 6;
   //val fragmentCommStrategy : Integer = 26;
 
-  val summarizeBlocks : Boolean = true; // TODO: sanity check if compatible with chosen smoother
+  var summarizeBlocks : Boolean = true; // TODO: sanity check if compatible with chosen smoother
 
-  val numBlocks_x : Integer = 4;
-  val numBlocks_y : Integer = 4;
-  val numBlocks_z : Integer = 4;
-  val numBlocks : Integer = numBlocks_x * numBlocks_y * numBlocks_z;
+  var numBlocks_x : Integer = 4;
+  var numBlocks_y : Integer = 4;
+  var numBlocks_z : Integer = 4;
+  var numBlocks : Integer = numBlocks_x * numBlocks_y * numBlocks_z;
 
   var numFragsPerBlock_x : Integer = 4;
   var numFragsPerBlock_y : Integer = 4;
@@ -57,31 +57,31 @@ object Knowledge {
     numFragsPerBlock_z = 1;
   }
 
-  val numFragsTotal_x : Integer = numFragsPerBlock_x * numBlocks_x;
-  val numFragsTotal_y : Integer = numFragsPerBlock_y * numBlocks_y;
-  val numFragsTotal_z : Integer = numFragsPerBlock_z * numBlocks_z;
-  val numFragsTotal : Integer = numFragsTotal_x * numFragsTotal_y * numFragsTotal_z;
+  var numFragsTotal_x : Integer = numFragsPerBlock_x * numBlocks_x;
+  var numFragsTotal_y : Integer = numFragsPerBlock_y * numBlocks_y;
+  var numFragsTotal_z : Integer = numFragsPerBlock_z * numBlocks_z;
+  var numFragsTotal : Integer = numFragsTotal_x * numFragsTotal_y * numFragsTotal_z;
 
-  val numFragsPerBlock : Integer = numFragsPerBlock_x * numFragsPerBlock_y * numFragsPerBlock_z;
-  val numFragsPerBlockPerDim : Array[Integer] = Array(numFragsPerBlock_x, numFragsPerBlock_y, numFragsPerBlock_z);
-  val fragLength : Integer = fragLength_x * fragLength_y * fragLength_z;
-  val fragLengthPerDim : Array[Integer] = Array(fragLength_x, fragLength_y, fragLength_z);
+  var numFragsPerBlock : Integer = numFragsPerBlock_x * numFragsPerBlock_y * numFragsPerBlock_z;
+  var numFragsPerBlockPerDim : Array[Integer] = Array(numFragsPerBlock_x, numFragsPerBlock_y, numFragsPerBlock_z);
+  var fragLength : Integer = fragLength_x * fragLength_y * fragLength_z;
+  var fragLengthPerDim : Array[Integer] = Array(fragLength_x, fragLength_y, fragLength_z);
 
-  val smootherNumPre : Integer = 3;
-  val smootherNumPost : Integer = 3;
-  val cgsNumSteps : Integer = 512;
+  var smootherNumPre : Integer = 3;
+  var smootherNumPost : Integer = 3;
+  var cgsNumSteps : Integer = 512;
+  
+  var mgMaxNumIterations : Integer = 1024;
 
-  val mgMaxNumIterations : Integer = 1024;
+  var cgs = CoarseGridSolverType.IP_Smoother;
+  var smoother = SmootherType.Jac;
 
-  val cgs = CoarseGridSolverType.IP_Smoother;
-  val smoother = SmootherType.Jac;
+  var gsodNumIterations : Integer = 8;
+  var gsbeNumIterations : Integer = 12;
+  var gsbeNumWindowSize : Integer = 4;
+  var gsbeNumWindowOverlap : Integer = 1;
 
-  val gsodNumIterations : Integer = 8;
-  val gsbeNumIterations : Integer = 12;
-  val gsbeNumWindowSize : Integer = 4;
-  val gsbeNumWindowOverlap : Integer = 1;
+  var smootherOmega : Double = (if (SmootherType.Jac == smoother) 0.8 else 1.0);
 
-  val smootherOmega : Double = (if (SmootherType.Jac == smoother) 0.8 else 1.0);
-
-  val numSolSlots : Integer = (if (SmootherType.Jac == smoother) 2 else 1);
+  var numSolSlots : Integer = (if (SmootherType.Jac == smoother) 2 else 1);
 }
