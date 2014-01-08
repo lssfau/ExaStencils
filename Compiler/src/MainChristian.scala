@@ -63,12 +63,19 @@ object MainChristian {
     //    positionStrategy += new Transformation({case x : Annotatable => x.getAnnotations.foreach(a => println(x + " " + a.name + " - " + a.value)); Some(x) })
     //    //positionStrategy.apply
 
+    val s = new exastencils.parsers.settings.ParserSettings
+    s.parseFile(args(0))
+    
+    val k = new exastencils.parsers.settings.ParserKnowledge
+    k.parseFile(args(1))
+
+
     import exastencils.datastructures.ir._
     val a = FunctionCallExpression(null, null)
     val b = BinaryExpression("x", null, null)
     val c = Constant("hallo")
     val d = a ~ b ~ c
-    
+
     println(d)
   }
 }
