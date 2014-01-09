@@ -1,0 +1,30 @@
+numGhostLayers			= 1
+maxLevel				= 5
+fragmentCommStrategy	= 6
+
+summarizeBlocks			= true
+
+numBlocks_x				= 8
+numBlocks_y				= 8
+numBlocks_z				= 8
+
+numFragsPerBlock_x		= 2
+numFragsPerBlock_y		= 2
+numFragsPerBlock_z		= 2
+fragLength_x			= 1
+fragLength_y			= 1
+fragLength_z			= 1
+
+smootherNumPre			= 3
+smootherNumPost			= 3
+cgsNumSteps				= 512
+
+mgMaxNumIterations		= 1024
+
+//cgs						= CoarseGridSolverType.IP_Smoother
+//smoother				= SmootherType.Jac
+
+gsodNumIterations		= 8
+gsbeNumIterations		= 12
+gsbeNumWindowSize		= 4
+gsbeNumWindowOverlap	= 1

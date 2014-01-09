@@ -18,8 +18,8 @@ case class Stopwatch() extends Node with FilePrettyPrintable {
 #ifndef	UTIL_STOPWATCH_H
 #define	UTIL_STOPWATCH_H
 
-#define	USE_STD_CHRONO
-//#define	USE_GTOD
+//#define	USE_STD_CHRONO
+#define	USE_GTOD
 
 #ifdef USE_STD_CHRONO
 #	include <chrono>
