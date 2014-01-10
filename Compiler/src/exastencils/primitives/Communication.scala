@@ -142,14 +142,18 @@ case class FinishRemoteCommunication(var neighbors : ListBuffer[NeighborInfo]) e
 
   override def cpp : String = "NOT VALID ; CLASS = FinishRemoteCommunication\n";
 
-  def expand : LoopOverFragments = {
-    new LoopOverFragments(
-      neighbors.map(neigh =>
-        Array("Send", "Recv").map(sendOrRecv =>
-          (new ConditionStatement(s"curFragment.reqOutstanding_${sendOrRecv}[${neigh.index}]",
-            ListBuffer[Statement](
-              s"waitForMPIReq(&curFragment.request_${sendOrRecv}[${neigh.index}]);",
-              s"curFragment.reqOutstanding_${sendOrRecv}[${neigh.index}] = false;")) : Statement))).flatten);
+  def expand : Statement = {
+    "waitForMPICommunication(fragments);";
   }
+  
+//  def expand : LoopOverFragments = {
+//    new LoopOverFragments(
+//      neighbors.map(neigh =>
+//        Array("Send", "Recv").map(sendOrRecv =>
+//          (new ConditionStatement(s"curFragment.reqOutstanding_${sendOrRecv}[${neigh.index}]",
+//            ListBuffer[Statement](
+//              s"waitForMPIReq(&curFragment.request_${sendOrRecv}[${neigh.index}]);",
+//              s"curFragment.reqOutstanding_${sendOrRecv}[${neigh.index}] = false;")) : Statement))).flatten);
+//  }
 }
     

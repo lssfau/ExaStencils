@@ -27,7 +27,25 @@ case class WaitForMPIReq() extends AbstractFunctionStatement with Expandable {
   }
 }
 
+case class WaitForMPICommunication(var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = "NOT VALID ; CLASS = WaitForMPICommunication\n";
+
+  override def expand : FunctionStatement = {
+    new FunctionStatement(new UnitDatatype(), s"waitForMPICommunication", ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]")),
+      new LoopOverFragments(
+        neighbors.map(neigh =>
+          Array("Send", "Recv").map(sendOrRecv =>
+            (new ConditionStatement(s"curFragment.reqOutstanding_${sendOrRecv}[${neigh.index}]",
+              ListBuffer[Statement](
+                s"waitForMPIReq(&curFragment.request_${sendOrRecv}[${neigh.index}]);",
+                s"curFragment.reqOutstanding_${sendOrRecv}[${neigh.index}] = false;")) : Statement))).flatten));
+  }
+}
+
 case class ExchangeDataSplitter(field : Field) extends AbstractFunctionStatement with Expandable {
+  // TODO: this function will become obsolete when the MG components are fully implemented
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = "NOT VALID ; CLASS = ExchangeDataSplitter\n";

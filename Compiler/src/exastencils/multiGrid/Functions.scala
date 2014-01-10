@@ -18,7 +18,7 @@ case class PerformSmoothing_Jac(solutionField : Field, rhsField : Field, level :
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"performSmoothing_$level", ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]"), Variable("unsigned int", "targetSlot"), Variable("unsigned int", "sourceSlot")),
       ListBuffer(
-        s"exchsolData(fragments, $level, sourceSlot);",
+        s"exchsolData_$level(fragments, sourceSlot);",
         new LoopOverFragments(
           new LoopOverDimensions(
             fieldToIndexInner(Array(0, 0, 0), level), ListBuffer[Statement](
@@ -46,7 +46,7 @@ case class PerformSmoothing_GS(solutionField : Field, rhsField : Field, level : 
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"performSmoothing_$level", ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]"), Variable("unsigned int", "targetSlot"), Variable("unsigned int", "sourceSlot")),
       ListBuffer(
-        s"exchsolData(fragments, $level, sourceSlot);",
+        s"exchsolData_$level(fragments, sourceSlot);",
         new LoopOverFragments(
           new LoopOverDimensions(
             fieldToIndexInner(Array(0, 0, 0), level), ListBuffer[Statement](
@@ -207,7 +207,7 @@ case class UpdateResidual(residualField : Field, solutionField : Field, rhsField
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"updateResidual_$level", ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]"), Variable("unsigned int", "slot")),
       ListBuffer(
-        s"exchsolData(fragments, $level, slot);",
+        s"exchsolData_$level(fragments, slot);",
         new LoopOverFragments(
           new LoopOverDimensions(
             fieldToIndexInner(Array(0, 0, 0), level), ListBuffer[Statement](
