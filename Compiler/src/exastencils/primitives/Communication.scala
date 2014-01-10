@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.mpi._
+import exastencils.omp.OMP_Critical
 
 case class LocalSend(var field : Field, var level : Integer, var neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
@@ -38,20 +39,61 @@ case class CopyToSendBuffer_and_RemoteSend(var field : Field, var level : Intege
       // TODO: check if a for loop could be used
       neighbors.map(neigh =>
         new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1),
-          ListBuffer[Statement](
-            s"unsigned int entry = 0;",
-            new LoopOverDimensions(neigh._2,
-              new AssignmentStatement(
-                s"curFragment.buffer_Send[${neigh._1.index}][entry++]",
-                new FieldAccess(field, level, "slot", Mapping.access(level))), false),
-            new MPI_Send(
-              s"curFragment.buffer_Send[${neigh._1.index}]",
-              s"entry",
-              s"MPI_DOUBLE",
-              new getNeighInfo_RemoteRank(neigh._1),
-              s"((unsigned int)curFragment.id << 16) + ((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1)).cpp + ") & 0x0000ffff)",
-              s"curFragment.request_Send[${neigh._1.index}]"),
-            StringLiteral(s"curFragment.reqOutstanding_Send[${neigh._1.index}] = true;"))) : Statement));
+          //          if (neigh._2.begin(1) == neigh._2.end(1)) {
+          //            ListBuffer[Statement](
+          //              s"static bool init = false;",
+          //              s"static MPI_Datatype blockType;",
+          //              /*new OMP_Critical(ListBuffer[Statement](*/
+          //                s"if (!init) {",
+          //                s"init = true;",
+          //                s"MPI_Type_vector(" ~ NumericLiteral(neigh._2.end(2) - neigh._2.begin(2) + 1) ~ ", " ~ NumericLiteral(neigh._2.end(0) - neigh._2.begin(0) + 1) ~ ", " ~ NumericLiteral(Mapping.numPoints(level, 0) * Mapping.numPoints(level, 1)) ~ ", MPI_DOUBLE, &blockType);",
+          //                s"MPI_Type_commit(&blockType);",
+          //                s"}"/*))*/,
+          //              new MPI_Send(
+          //                s"&" ~ new FieldAccess(field, level, "slot", Mapping.access(level, neigh._2.begin)),
+          //                s"1",
+          //                s"blockType",
+          //                new getNeighInfo_RemoteRank(neigh._1),
+          //                s"((unsigned int)curFragment.id << 16) + ((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1)).cpp + ") & 0x0000ffff)",
+          //                s"curFragment.request_Send[${neigh._1.index}]"),
+          //              s"curFragment.reqOutstanding_Send[${neigh._1.index}] = true;" //new OMP_Critical(s"MPI_Type_free(&blockType);")
+          //              )
+          //          } else if (neigh._2.begin(2) == neigh._2.end(2)) {
+          //            ListBuffer[Statement](
+          //              s"static bool init = false;",
+          //              s"static MPI_Datatype blockType;",
+          //              /*new OMP_Critical(ListBuffer[Statement](*/
+          //                s"if (!init) {",
+          //                s"init = true;",
+          //                s"MPI_Type_vector("~ NumericLiteral(neigh._2.end(1) - neigh._2.begin(1) + 1) ~", "~ NumericLiteral(neigh._2.end(0) - neigh._2.begin(0) + 1) ~", "~ NumericLiteral(Mapping.numPoints(level, 0)) ~", MPI_DOUBLE, &blockType);",
+          //                s"MPI_Type_commit(&blockType);",
+          //                s"}"/*))*/,
+          //              new MPI_Send(
+          //                s"&" ~ new FieldAccess(field, level, "slot", Mapping.access(level, neigh._2.begin)),
+          //                s"1",
+          //                s"blockType",
+          //                new getNeighInfo_RemoteRank(neigh._1),
+          //                s"((unsigned int)curFragment.id << 16) + ((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1)).cpp + ") & 0x0000ffff)",
+          //                s"curFragment.request_Send[${neigh._1.index}]"),
+          //              s"curFragment.reqOutstanding_Send[${neigh._1.index}] = true;" //new OMP_Critical(s"MPI_Type_free(&blockType);")
+          //              )
+          //          } else
+          {
+            ListBuffer[Statement](
+              s"unsigned int entry = 0;",
+              new LoopOverDimensions(neigh._2,
+                new AssignmentStatement(
+                  s"curFragment.buffer_Send[${neigh._1.index}][entry++]",
+                  new FieldAccess(field, level, "slot", Mapping.access(level))), false),
+              new MPI_Send(
+                s"curFragment.buffer_Send[${neigh._1.index}]",
+                s"entry",
+                s"MPI_DOUBLE",
+                new getNeighInfo_RemoteRank(neigh._1),
+                s"((unsigned int)curFragment.id << 16) + ((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1)).cpp + ") & 0x0000ffff)",
+                s"curFragment.request_Send[${neigh._1.index}]"),
+              StringLiteral(s"curFragment.reqOutstanding_Send[${neigh._1.index}] = true;"))
+          }) : Statement), true, "NO_OMP");
   }
 }
 

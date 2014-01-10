@@ -48,6 +48,9 @@ object Mapping {
     // FIXME: reverse order
     return s"$z * ${numPoints(level, 1) * numPoints(level, 0)} + $y * ${numPoints(level, 0)} + $x";
   }
+  def access(level : Int, index : Array[Int]) : String = {
+    return s"${index(2) * numPoints(level, 1) * numPoints(level, 0) + index(1) * numPoints(level, 0) + index(0)}";
+  }
 }
 
 object fieldToIndexInner extends ((Array[Int], Int) => IndexRange) {
