@@ -10,6 +10,7 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.primitives._
 import exastencils.mpi._
 import exastencils.prettyprinting._
+import exastencils.omp._
 
 case class InitFields() extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
@@ -19,7 +20,6 @@ case class InitFields() extends Statement {
   def expandSpecial(fields : FieldCollection) : LoopOverFragments = {
     var body : ListBuffer[Statement] = new ListBuffer;
 
-    // FIXME: setting the seed here will only yield reproducible results if OMP is deactivated
     body += s"std::srand((unsigned int)fragments[f]->id);";
 
     for (level <- 0 to Knowledge.maxLevel) {
@@ -28,7 +28,7 @@ case class InitFields() extends Statement {
           (0 until field.numSlots).to[ListBuffer].map(slot =>
             new AssignmentStatement(
               new FieldAccess(field, NumericLiteral(level), NumericLiteral(slot), Mapping.access(level)),
-              NumericLiteral(0.0)) : Statement), true);
+              NumericLiteral(0.0)) : Statement)) with OMP_PotentiallyParallel;
       }
     }
 
@@ -42,7 +42,7 @@ case class InitFields() extends Statement {
           (0 until field.numSlots).to[ListBuffer].map(slot =>
             new AssignmentStatement(
               new FieldAccess(field, NumericLiteral(Knowledge.maxLevel), NumericLiteral(slot), Mapping.access(Knowledge.maxLevel)),
-              s"val") : Statement), false);
+              s"val") : Statement));
     }
 
     return new LoopOverFragments(body);

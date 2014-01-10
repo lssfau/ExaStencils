@@ -9,26 +9,33 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.prettyprinting._
+import exastencils.omp._
 
 case class Field(name : String, codeName : String, dataType : String, numSlots : Int, bcDir0 : Boolean) extends Node {
   override def duplicate = this.copy().asInstanceOf[this.type]
 }
 
-case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[Statement], var parallelizable : Boolean) extends Statement with Expandable {
+case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[Statement], var addOMPStatements : String = "") extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  def this(indices : IndexRange, body : Statement, parallelizable : Boolean) = this(indices, ListBuffer[Statement](body), parallelizable);
+  def this(indices : IndexRange, body : Statement, addOMPStatements : String) = this(indices, ListBuffer[Statement](body), addOMPStatements);
+  def this(indices : IndexRange, body : Statement) = this(indices, ListBuffer[Statement](body));
 
   override def cpp : String = "NOT VALID ; CLASS = LoopOverDimensions\n";
 
-  def expand : StatementBlock = {
-    new StatementBlock(
-      ListBuffer[Statement](
-        if (Knowledge.summarizeBlocks && parallelizable) ("#pragma omp parallel for schedule(static, 1)") else NullStatement(), // FIXME: move to own Node
-        new ForLoopStatement(/*s"unsigned -> f***ing omp*/ s"int ${dimToString(2)} = ${indices.begin(2)}", s"${dimToString(2)} <= ${indices.end(2)}", s"++${dimToString(2)}",
+  def expand : ForLoopStatement = {
+        val parallelizable = Knowledge.summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false });
+    
+        if (parallelizable)
+      new ForLoopStatement( /*s"unsigned -> f***ing omp*/ s"int ${dimToString(2)} = ${indices.begin(2)}", s"${dimToString(2)} <= ${indices.end(2)}", s"++${dimToString(2)}",
           new ForLoopStatement(s"unsigned int ${dimToString(1)} = ${indices.begin(1)}", s"${dimToString(1)} <= ${indices.end(1)}", s"++${dimToString(1)}",
             new ForLoopStatement(s"unsigned int ${dimToString(0)} = ${indices.begin(0)}", s"${dimToString(0)} <= ${indices.end(0)}", s"++${dimToString(0)}",
-              body)))));
+              body)), addOMPStatements + " schedule(static)") with OMP_PotentiallyParallel
+    else
+      new ForLoopStatement( /*s"unsigned -> f***ing omp*/ s"int ${dimToString(2)} = ${indices.begin(2)}", s"${dimToString(2)} <= ${indices.end(2)}", s"++${dimToString(2)}",
+          new ForLoopStatement(s"unsigned int ${dimToString(1)} = ${indices.begin(1)}", s"${dimToString(1)} <= ${indices.end(1)}", s"++${dimToString(1)}",
+            new ForLoopStatement(s"unsigned int ${dimToString(0)} = ${indices.begin(0)}", s"${dimToString(0)} <= ${indices.end(0)}", s"++${dimToString(0)}",
+              body)))
   }
 }
 
@@ -49,21 +56,25 @@ case class LocalNeighborFieldAccess(var neighborPtr : Expression, var field : Fi
 }
 
 case class LoopOverFragments(var body : ListBuffer[Statement], var createFragRef : Boolean = true, var addOMPStatements : String = "") extends Statement with Expandable {
-  // FIXME: find a different way to integrate additional OMP statements
-  // FIXME: don't add OMP statement if Knowledge.summarizeBlocks is false
   override def duplicate = this.copy().asInstanceOf[this.type]
 
+  def this(body : Statement, createFragRef : Boolean, addOMPStatements : String) = this(ListBuffer(body), createFragRef, addOMPStatements);
+  def this(body : Statement, createFragRef : Boolean) = this(ListBuffer(body), createFragRef);
   def this(body : Statement) = this(ListBuffer(body));
 
   def cpp = "NOT VALID ; CLASS = LoopOverFragments\n";
 
-  def expand : StatementBlock = {
-    new StatementBlock(
-      ListBuffer[Statement](
-        if (!Knowledge.summarizeBlocks && "NO_OMP" != addOMPStatements) ("#pragma omp parallel for schedule(static, 1) " + addOMPStatements) else NullStatement(), // FIXME: move to own Node
-        ForLoopStatement(s"int f = 0", s"f < ${Knowledge.numFragsPerBlock}", s"++f",
-          (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[f];") else ListBuffer[Statement]())
-            ++ body)));
+  def expand : ForLoopStatement = {
+    val parallelizable = !Knowledge.summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false });
+
+    if (parallelizable)
+      new ForLoopStatement(s"int f = 0", s"f < ${Knowledge.numFragsPerBlock}", s"++f",
+        (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[f];") else ListBuffer[Statement]())
+          ++ body, addOMPStatements + " schedule(static, 1)") with OMP_PotentiallyParallel
+    else
+      new ForLoopStatement(s"int f = 0", s"f < ${Knowledge.numFragsPerBlock}", s"++f",
+        (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[f];") else ListBuffer[Statement]())
+          ++ body)
   }
 }
 

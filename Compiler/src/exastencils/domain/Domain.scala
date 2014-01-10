@@ -12,6 +12,7 @@ import exastencils.primitives._
 import exastencils.mpi._
 import exastencils.prettyprinting._
 import exastencils.omp.OMP_Critical
+import exastencils.omp.OMP_PotentiallyParallel
 
 // FIXME: incorporate fragLengthPerDim
 
@@ -84,7 +85,7 @@ case class ConnectFragments() extends Statement with Expandable {
               ~ PointToOwningRank("offsetPos") ~ s");"))));
     }
 
-    return new LoopOverFragments(body);
+    return new LoopOverFragments(body) with OMP_PotentiallyParallel;
   }
 }
 
@@ -94,7 +95,7 @@ case class SetupBuffers() extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = SetupBuffers\n";
 
   override def expand : LoopOverFragments = {
-    new LoopOverFragments("curFragment.setupBuffers();");
+    new LoopOverFragments("curFragment.setupBuffers();") with OMP_PotentiallyParallel;
   }
 }
 
@@ -105,7 +106,7 @@ case class ValidatePrimitives() extends Statement with Expandable {
 
   //  TODO
   //  override def expand : LoopOverFragments = {
-  //    new LoopOverFragments("curFragment.validate();");
+  //    new LoopOverFragments("curFragment.validate();") with OMP_PotentiallyParallel;
   //  }
   override def expand : NullStatement = {
     NullStatement();
@@ -133,13 +134,13 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
         s"unsigned int posWritePos = 0;",
         s"Vec3 rankPos(mpiRank % ${Knowledge.numBlocks_x}, (mpiRank / ${Knowledge.numBlocks_x}) % ${Knowledge.numBlocks_y}, mpiRank / ${Knowledge.numBlocks_x * Knowledge.numBlocks_y});",
         new LoopOverDimensions(IndexRange(Array(0, 0, 0), Array(Knowledge.numFragsPerBlock_x - 1, Knowledge.numFragsPerBlock_y - 1, Knowledge.numFragsPerBlock_z - 1)),
-          s"positions[posWritePos++] = (Vec3(rankPos.x * ${Knowledge.numFragsPerBlock_x} + 0.5 + x, rankPos.y * ${Knowledge.numFragsPerBlock_y} + 0.5 + y, rankPos.z * ${Knowledge.numFragsPerBlock_z} + 0.5 + z));", false),
+          s"positions[posWritePos++] = (Vec3(rankPos.x * ${Knowledge.numFragsPerBlock_x} + 0.5 + x, rankPos.y * ${Knowledge.numFragsPerBlock_y} + 0.5 + y, rankPos.z * ${Knowledge.numFragsPerBlock_z} + 0.5 + z));"),
 
         LoopOverFragments(ListBuffer(
           "fragments[f] = new Fragment3DCube();",
           "fragments[f]->id = " ~ PointToFragmentId("positions[f]") ~ ";",
           "fragments[f]->pos = positions[f];",
-          new OMP_Critical("fragmentMap[" ~ PointToFragmentId("positions[f]").cpp ~ s"] = fragments[f];")), // FIXME: to be set automatically?
+          "fragmentMap[" ~ PointToFragmentId("positions[f]").cpp ~ s"] = fragments[f];"),
           false),
         ConnectFragments(),
         new SetupBuffers));

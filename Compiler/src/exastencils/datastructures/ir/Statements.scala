@@ -66,10 +66,11 @@ case class AssignmentStatement(var dest : Expression, var src : Expression) exte
   }
 }
 
-case class ForLoopStatement(var begin : Expression /*changed by Sebastian - originally: VariableDeclarationStatement*/ , var end : Expression, var inc : Expression, var body : ListBuffer[Statement]) extends Statement {
+case class ForLoopStatement(var begin : Expression, var end : Expression, var inc : Expression, var body : ListBuffer[Statement], var addOMPStatements : String = "") extends Statement {
   override def duplicate = { this.copy(begin = Duplicate(begin), end = Duplicate(end), inc = Duplicate(inc), body = Duplicate(body)).asInstanceOf[this.type] }
 
-  def this(begin : Expression, end : Expression, inc : Expression, body : Statement) = this(begin, end, inc, ListBuffer[Statement](body));
+  def this(begin : Expression, end : Expression, inc : Expression, body : Statement, addOMPStatements : String) = this(begin, end, inc, ListBuffer(body), addOMPStatements);
+  def this(begin : Expression, end : Expression, inc : Expression, body : Statement) = this(begin, end, inc, ListBuffer(body));
 
   override def cpp : String = {
     (s"for (${begin.cpp}; ${end.cpp}; ${inc.cpp})"

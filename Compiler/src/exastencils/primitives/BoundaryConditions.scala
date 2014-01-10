@@ -5,6 +5,7 @@ import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.omp._
 
 case class HandleBoundaries(var field : Field, var level : Integer, neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
@@ -20,7 +21,7 @@ case class HandleBoundaries(var field : Field, var level : Integer, neighbors : 
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(
                 new FieldAccess(field, level, "slot", Mapping.access(level)),
-                NumericLiteral(0.0)), true)) : Statement));
+                NumericLiteral(0.0))) with OMP_PotentiallyParallel) : Statement)) with OMP_PotentiallyParallel;
     } else {
       return new NullStatement;
     }

@@ -67,8 +67,13 @@ object AddMemberFunctionPrefix extends Strategy("Adding member function prefixes
 }
 
 object AddOMPPragmas extends Strategy("Adding OMP pragmas") {
-  this += new Transformation("Adding OMP pragmas", {
+  this += new Transformation("Adding OMP critical pragmas", {
     case target : OMP_PotentiallyCritical =>
       Some(new OMP_Critical(target));
+  }, false);
+
+  this += new Transformation("Adding OMP parallel for pragmas", {
+    case target : ForLoopStatement with OMP_PotentiallyParallel =>
+      Some(new OMP_ParallelFor(target, target.addOMPStatements));
   }, false);
 }

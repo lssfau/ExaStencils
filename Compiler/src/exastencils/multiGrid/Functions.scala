@@ -8,6 +8,7 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.primitives._
 import exastencils.mpi._
+import exastencils.omp._
 
 case class PerformSmoothing_Jac(solutionField : Field, rhsField : Field, level : Integer) extends AbstractFunctionStatement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
@@ -33,7 +34,7 @@ case class PerformSmoothing_Jac(solutionField : Field, rhsField : Field, level :
                   ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "y", "(z + 1)"))
                   ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "y", "(z - 1)"))
                   ~ s"-" ~ FieldAccess(rhsField, level, "0", Mapping.access(level))
-                  ~ ")")), true))));
+                  ~ ")"))) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel));
   }
 }
 
@@ -61,7 +62,7 @@ case class PerformSmoothing_GS(solutionField : Field, rhsField : Field, level : 
                   ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "y", "(z + 1)"))
                   ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "y", "(z - 1)"))
                   ~ s"-" ~ FieldAccess(rhsField, level, "0", Mapping.access(level))
-                  ~ ")")), true))));
+                  ~ ")")))) with OMP_PotentiallyParallel));
   }
 }
 
@@ -220,7 +221,7 @@ case class UpdateResidual(residualField : Field, solutionField : Field, rhsField
                   ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "x", "(y - 1)", "z"))
                   ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "x", "y", "(z + 1)"))
                   ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "x", "y", "(z - 1)"))
-                  ~ s"+ 6.0 * " ~ FieldAccess(solutionField, level, "slot", Mapping.access(level)))), true))));
+                  ~ s"+ 6.0 * " ~ FieldAccess(solutionField, level, "slot", Mapping.access(level))))) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel));
   }
 }
 
@@ -294,7 +295,7 @@ case class PerformRestriction() extends AbstractFunctionStatement with Expandabl
 				}
 			}
 		}
-""")));
+""") with OMP_PotentiallyParallel));
   }
 }
 
@@ -388,7 +389,7 @@ case class PerformProlongation() extends AbstractFunctionStatement with Expandab
 				}
 			}
 		}
-""")));
+""") with OMP_PotentiallyParallel));
   }
 }
 
@@ -449,16 +450,16 @@ case class GetGlobalResidual(field : Field) extends AbstractFunctionStatement wi
 
   override def expand : FunctionStatement = {
     FunctionStatement("double", s"getGlobalResidual", ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]")),
-      ListBuffer(
+      ListBuffer[Statement](
         s"double res = 0.0;",
         s"double resTotal = 0.0;",
-        LoopOverFragments(ListBuffer(
-          // FIXME: this currently counts duplicated values multiple times
-          new LoopOverDimensions(
-            fieldToIndexInner(Array(0, 0, 0), Knowledge.maxLevel), ListBuffer[Statement](
+        new LoopOverFragments(
+          new LoopOverDimensions(fieldToIndexInner(Array(0, 0, 0), Knowledge.maxLevel),
+            ListBuffer[Statement](
+              // FIXME: this currently counts duplicated values multiple times
               s"double tmpRes =" ~ new FieldAccess(field, Knowledge.maxLevel, NumericLiteral(0), Mapping.access(Knowledge.maxLevel)) ~ ";",
-              s"res += tmpRes * tmpRes;"), false /*FIXME: use OMP reduction*/ )),
-          true, "reduction(+:res)"),
+              s"res += tmpRes * tmpRes;"), "reduction(+:res)") with OMP_PotentiallyParallel,
+          true, "reduction(+:res)") with OMP_PotentiallyParallel,
         new MPI_Allreduce("&res", "&resTotal", NumericLiteral(1), "MPI_SUM"),
         s"return sqrt(resTotal);"));
   }
@@ -472,10 +473,10 @@ case class SetSolZero(field : Field, level : Integer) extends AbstractFunctionSt
 
   override def expand : FunctionStatement = {
     new FunctionStatement(new UnitDatatype(), s"setSolZero_$level", ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]"), Variable("unsigned int", "slot")),
-      LoopOverFragments(ListBuffer(
+      new LoopOverFragments(
         new LoopOverDimensions(fieldToIndexInner(Array(0, 0, 0), level),
           new AssignmentStatement(
             new FieldAccess(field, level, "slot", Mapping.access(level)),
-            NumericLiteral(0.0)), true))));
+            NumericLiteral(0.0))) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel);
   }
 }
