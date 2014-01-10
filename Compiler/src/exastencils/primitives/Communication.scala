@@ -148,11 +148,8 @@ case class FinishRemoteCommunication(var neighbors : ListBuffer[NeighborInfo]) e
         Array("Send", "Recv").map(sendOrRecv =>
           (new ConditionStatement(s"curFragment.reqOutstanding_${sendOrRecv}[${neigh.index}]",
             ListBuffer[Statement](
-              s"#pragma omp critical",
-              s"{",
               s"waitForMPIReq(&curFragment.request_${sendOrRecv}[${neigh.index}]);",
-              s"}",
-              s"curFragment.reqOutstanding_${sendOrRecv}[${neigh.index}] = false;")) : Statement))).flatten) with OMP_PotentiallyParallel;
+              s"curFragment.reqOutstanding_${sendOrRecv}[${neigh.index}] = false;")) : Statement))).flatten);
   }
 }
     
