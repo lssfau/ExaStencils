@@ -25,19 +25,21 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
     cTorInitList += s"pos(0.0, 0.0, 0.0)";
 
     if (6 == Knowledge.fragmentCommStrategy) {
-      neighbors += new NeighborInfo(Array(-1, 0, 0), 12);
-      neighbors += new NeighborInfo(Array(+1, 0, 0), 14);
-      neighbors += new NeighborInfo(Array(0, -1, 0), 10);
-      neighbors += new NeighborInfo(Array(0, +1, 0), 16);
+      neighbors += new NeighborInfo(Array(-1, 0, 0), 0);
+      neighbors += new NeighborInfo(Array(+1, 0, 0), 1);
+      neighbors += new NeighborInfo(Array(0, -1, 0), 2);
+      neighbors += new NeighborInfo(Array(0, +1, 0), 3);
       neighbors += new NeighborInfo(Array(0, 0, -1), 4);
-      neighbors += new NeighborInfo(Array(0, 0, +1), 22);
+      neighbors += new NeighborInfo(Array(0, 0, +1), 5);
     } else if (26 == Knowledge.fragmentCommStrategy) {
+      var i = 0;
       for (z <- -1 to 1; y <- -1 to 1; x <- -1 to 1; if (0 != x || 0 != y || 0 != z)) {
-        neighbors += new NeighborInfo(Array(x, y, z), (z + 1) * 9 + (y + 1) * 3 + (x + 1));
+        neighbors += new NeighborInfo(Array(x, y, z), i);
+        i+=1;
       }
     }
 
-    var numNeighbors = 27; // FIXME: use actual number of neighbors
+    var numNeighbors = Knowledge.fragmentCommStrategy;
     var cTorNeighLoopList = new ListBuffer[Statement];
     var dTorNeighLoopList = new ListBuffer[Statement];
     declarations += s"bool neighbor_isValid[$numNeighbors];";

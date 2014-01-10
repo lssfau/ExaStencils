@@ -73,15 +73,31 @@ case class ConnectFragments() extends Statement with Expandable {
   override def expand : LoopOverFragments = {
     var body = new ListBuffer[Statement];
 
-    // TODO: get actual neighbors
-    for (z <- -1 to 1; y <- -1 to 1; x <- -1 to 1; if (0 != x || 0 != y || 0 != z)) {
-      val index = (z + 1) * 9 + (y + 1) * 3 + (x + 1);
+    // TODO: get these neighbors from the fragment class
+    var neighbors : ListBuffer[NeighborInfo] = ListBuffer();
+    if (6 == Knowledge.fragmentCommStrategy) {
+      neighbors += new NeighborInfo(Array(-1, 0, 0), 0);
+      neighbors += new NeighborInfo(Array(+1, 0, 0), 1);
+      neighbors += new NeighborInfo(Array(0, -1, 0), 2);
+      neighbors += new NeighborInfo(Array(0, +1, 0), 3);
+      neighbors += new NeighborInfo(Array(0, 0, -1), 4);
+      neighbors += new NeighborInfo(Array(0, 0, +1), 5);
+    } else if (26 == Knowledge.fragmentCommStrategy) {
+      var i = 0;
+      for (z <- -1 to 1; y <- -1 to 1; x <- -1 to 1; if (0 != x || 0 != y || 0 != z)) {
+        neighbors += new NeighborInfo(Array(x, y, z), i);
+        i+=1;
+      }
+    }
+
+    for (neigh <- neighbors)
+    {
       body += new Scope(ListBuffer(
-        s"Vec3 offsetPos = curFragment.pos + Vec3($x, $y, $z);",
+        s"Vec3 offsetPos = curFragment.pos + Vec3(${neigh.dir(0)}, ${neigh.dir(1)}, ${neigh.dir(2)});",
         new ConditionStatement(s"mpiRank ==" ~ PointToOwningRank("offsetPos"),
-          s"curFragment.connectLocalElement($index, fragmentMap[" ~ PointToFragmentId("offsetPos") ~ "]);",
+          s"curFragment.connectLocalElement(${neigh.index}, fragmentMap[" ~ PointToFragmentId("offsetPos") ~ "]);",
           new ConditionStatement(PointInsideDomain(s"offsetPos"),
-            s"curFragment.connectRemoteElement($index," ~ PointToFragmentId("offsetPos").cpp ~ ","
+            s"curFragment.connectRemoteElement(${neigh.index}," ~ PointToFragmentId("offsetPos").cpp ~ ","
               ~ PointToOwningRank("offsetPos") ~ s");"))));
     }
 
