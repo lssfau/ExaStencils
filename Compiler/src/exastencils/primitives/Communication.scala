@@ -21,9 +21,9 @@ case class LocalSend(var field : Field, var level : Integer, var neighbors : Lis
               new AssignmentStatement(
                 new LocalNeighborFieldAccess(
                   new getNeighInfo_LocalPtr(neigh._1), field, NumberToNumericLiteral(level), "slot", Mapping.access(level,
-                    s"(z + ${neigh._3.begin(2) - neigh._2.begin(2)})",
+                    s"(x + ${neigh._3.begin(0) - neigh._2.begin(0)})",
                     s"(y + ${neigh._3.begin(1) - neigh._2.begin(1)})",
-                    s"(x + ${neigh._3.begin(0) - neigh._2.begin(0)})")),
+                    s"(z + ${neigh._3.begin(2) - neigh._2.begin(2)})")),
                 new FieldAccess(field, level, "slot", Mapping.access(level))), true)))) : Statement));
   }
 }

@@ -44,8 +44,7 @@ object Mapping {
   def numPoints(level : Int, dim : Int) : Int = {
     return (Knowledge.fragLengthPerDim(dim) * (1 << level)) + 1 + 2 * Knowledge.numGhostLayers;
   }
-  def access(level : Int, z : String = "z", y : String = "y", x : String = "x") : String = {
-    // FIXME: reverse order
+  def access(level : Int, x : String = "x", y : String = "y", z : String = "z") : String = {
     return s"$z * ${numPoints(level, 1) * numPoints(level, 0)} + $y * ${numPoints(level, 0)} + $x";
   }
   def access(level : Int, index : Array[Int]) : String = {

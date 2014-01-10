@@ -26,12 +26,12 @@ case class PerformSmoothing_Jac(solutionField : Field, rhsField : Field, level :
                 FieldAccess(solutionField, level, "targetSlot", Mapping.access(level)),
                 s"${1.0 - Knowledge.smootherOmega} * " ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level))
                   ~ s"+ ${Knowledge.smootherOmega} / 6.0 * ("
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "z", "y", "(x + 1)"))
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "z", "y", "(x - 1)"))
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "z", "(y + 1)", "x"))
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "z", "(y - 1)", "x"))
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(z - 1)", "y", "x"))
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(z + 1)", "y", "x"))
+                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(x + 1)", "y", "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(x - 1)", "y", "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "(y + 1)", "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "(y - 1)", "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "y", "(z + 1)"))
+                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "y", "(z - 1)"))
                   ~ s"-" ~ FieldAccess(rhsField, level, "0", Mapping.access(level))
                   ~ ")")), true))));
   }
@@ -54,12 +54,12 @@ case class PerformSmoothing_GS(solutionField : Field, rhsField : Field, level : 
                 FieldAccess(solutionField, level, "targetSlot", Mapping.access(level)),
                 s"${1.0 - Knowledge.smootherOmega} * " ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level))
                   ~ s"+ ${Knowledge.smootherOmega} / 6.0 * ("
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "z", "y", "(x + 1)"))
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "z", "y", "(x - 1)"))
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "z", "(y + 1)", "x"))
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "z", "(y - 1)", "x"))
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(z - 1)", "y", "x"))
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(z + 1)", "y", "x"))
+                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(x + 1)", "y", "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(x - 1)", "y", "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "(y + 1)", "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "(y - 1)", "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "y", "(z + 1)"))
+                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "y", "(z - 1)"))
                   ~ s"-" ~ FieldAccess(rhsField, level, "0", Mapping.access(level))
                   ~ ")")), true))));
   }
@@ -214,12 +214,12 @@ case class UpdateResidual(residualField : Field, solutionField : Field, rhsField
                 // FIXME: introduce and apply stencil node
                 FieldAccess(residualField, level, "0", Mapping.access(level)),
                 FieldAccess(rhsField, level, "0", Mapping.access(level))
-                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "z", "y", "(x + 1)"))
-                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "z", "y", "(x - 1)"))
-                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "z", "(y + 1)", "x"))
-                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "z", "(y - 1)", "x"))
-                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "(z - 1)", "y", "x"))
-                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "(z + 1)", "y", "x"))
+                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "(x + 1)", "y", "z"))
+                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "(x - 1)", "y", "z"))
+                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "x", "(y + 1)", "z"))
+                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "x", "(y - 1)", "z"))
+                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "x", "y", "(z + 1)"))
+                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "x", "y", "(z - 1)"))
                   ~ s"+ 6.0 * " ~ FieldAccess(solutionField, level, "slot", Mapping.access(level)))), true))));
   }
 }
