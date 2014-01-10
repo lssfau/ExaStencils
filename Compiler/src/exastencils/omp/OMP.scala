@@ -8,18 +8,15 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 
-trait OMP_PotentiallyCritical {
-  def addOMPDirective : OMP_Critical;
-}
+trait OMP_PotentiallyCritical
 
-case class OMP_Critical(var body : ListBuffer[Statement]) extends Statement {
+case class OMP_Critical(var body : Node) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  def this(body : Statement) = this(ListBuffer(body));
-
   def cpp : String = {
-    (s"#pragma omp critical\n{\n"
-      + body.map(stat => stat.cpp).mkString("\n")
-      + s"\n}");
+    body match {
+      case prettyPrintable : CppPrettyPrintable => s"#pragma omp critical\n{\n" + prettyPrintable.cpp + s"\n}";
+      case _                                    => "NON_PRINTABLE NODE ENCOUNTERED!";
+    }
   }
 };

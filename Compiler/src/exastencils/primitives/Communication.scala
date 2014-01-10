@@ -4,7 +4,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.mpi._
-import exastencils.omp.OMP_Critical
+import exastencils.omp._
 
 case class LocalSend(var field : Field, var level : Integer, var neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
@@ -91,7 +91,7 @@ case class CopyToSendBuffer_and_RemoteSend(var field : Field, var level : Intege
                 s"MPI_DOUBLE",
                 new getNeighInfo_RemoteRank(neigh._1),
                 s"((unsigned int)curFragment.id << 16) + ((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1)).cpp + ") & 0x0000ffff)",
-                s"curFragment.request_Send[${neigh._1.index}]"),
+                s"curFragment.request_Send[${neigh._1.index}]") with OMP_PotentiallyCritical,
               StringLiteral(s"curFragment.reqOutstanding_Send[${neigh._1.index}] = true;"))
           }) : Statement), true, "NO_OMP");
   }
@@ -114,7 +114,7 @@ case class RemoteReceive(var field : Field, var level : Integer, var neighbors :
               s"MPI_DOUBLE",
               new getNeighInfo_RemoteRank(neigh),
               s"((unsigned int)(" + (new getNeighInfo_FragmentId(neigh)).cpp + ") << 16) + ((unsigned int)curFragment.id & 0x0000ffff)",
-              s"curFragment.request_Recv[${neigh.index}]"),
+              s"curFragment.request_Recv[${neigh.index}]") with OMP_PotentiallyCritical,
             s"curFragment.reqOutstanding_Recv[${neigh.index}] = true;"))) : Statement).to[ListBuffer]);
   }
 }

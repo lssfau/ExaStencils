@@ -38,24 +38,16 @@ case class MPI_SetRankAndSize() extends Statement {
   }
 };
 
-case class MPI_Receive(var buffer : Expression, var size : Expression, var typeName : Expression, var rank : Expression, var tag : Expression, var request : Expression) extends Statement with OMP_PotentiallyCritical {
+case class MPI_Receive(var buffer : Expression, var size : Expression, var typeName : Expression, var rank : Expression, var tag : Expression, var request : Expression) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
-
-  def addOMPDirective : OMP_Critical = {
-    new OMP_Critical(this);
-  }
 
   def cpp : String = {
     (s"MPI_Irecv(${buffer.cpp}, ${size.cpp}, ${typeName.cpp}, ${rank.cpp}, ${tag.cpp}, MPI_COMM_WORLD, &${request.cpp});");
   }
 };
 
-case class MPI_Send(var buffer : Expression, var size : Expression, var typeName : Expression, var rank : Expression, var tag : Expression, var request : Expression) extends Statement with OMP_PotentiallyCritical {
+case class MPI_Send(var buffer : Expression, var size : Expression, var typeName : Expression, var rank : Expression, var tag : Expression, var request : Expression) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
-
-  def addOMPDirective : OMP_Critical = {
-    new OMP_Critical(this);
-  }
 
   def cpp : String = {
     (s"MPI_Isend(${buffer.cpp}, ${size.cpp}, ${typeName.cpp}, ${rank.cpp}, ${tag.cpp}, MPI_COMM_WORLD, &${request.cpp});");
