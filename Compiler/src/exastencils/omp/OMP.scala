@@ -10,13 +10,19 @@ import exastencils.datastructures.ir.ImplicitConversions._
 
 trait OMP_PotentiallyCritical
 
-case class OMP_Critical(var body : Node) extends Statement {
+case class OMP_Critical(var body : Any) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
-    body match {
-      case prettyPrintable : CppPrettyPrintable => s"#pragma omp critical\n{\n" + prettyPrintable.cpp + s"\n}";
-      case _                                    => "NON_PRINTABLE NODE ENCOUNTERED!";
-    }
+    s"#pragma omp critical\n{\n" +
+      (body match {
+        case prettyPrintable : CppPrettyPrintable => prettyPrintable.cpp;
+        case buf : ListBuffer[_] => buf.map(stat => stat match {	// TODO: Buffer support is currently not tested!
+          case prettyPrintable : CppPrettyPrintable => prettyPrintable.cpp;
+          case _                                    => "NON_PRINTABLE NODE ENCOUNTERED!";
+        })
+        case _ => "NON_PRINTABLE NODE ENCOUNTERED!";
+      }) +
+      s"\n}"
   }
 };

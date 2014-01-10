@@ -69,9 +69,6 @@ object AddMemberFunctionPrefix extends Strategy("Adding member function prefixes
 object AddOMPPragmas extends Strategy("Adding OMP pragmas") {
   this += new Transformation("Adding OMP pragmas", {
     case target : OMP_PotentiallyCritical =>
-      target match {
-        case node : Node => Some(new OMP_Critical(node));
-        case _           => print("TRYING TO WRAP STH WITH OMP_CRITICAL THAT IS NOT A NODE"); None;
-      }
+      Some(new OMP_Critical(target));
   }, false);
 }
