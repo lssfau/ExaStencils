@@ -2,6 +2,7 @@ package exastencils.multiGrid
 
 import scala.collection.mutable.ListBuffer
 import exastencils.core._
+import exastencils.core.collectors._
 import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
@@ -15,7 +16,7 @@ case class PerformSmoothing_Jac(solutionField : Field, rhsField : Field, level :
 
   override def cpp : String = "NOT VALID ; CLASS = PerformSmoothingJacobi\n";
 
-  override def expand : FunctionStatement = {
+  override def expand(collector : StackCollector) : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"performSmoothing_$level", ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]"), Variable("unsigned int", "targetSlot"), Variable("unsigned int", "sourceSlot")),
       ListBuffer(
         s"exchsolData_$level(fragments, sourceSlot);",
@@ -43,7 +44,7 @@ case class PerformSmoothing_GS(solutionField : Field, rhsField : Field, level : 
 
   override def cpp : String = "NOT VALID ; CLASS = PerformSmoothingJacobi\n";
 
-  override def expand : FunctionStatement = {
+  override def expand(collector : StackCollector) : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"performSmoothing_$level", ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]"), Variable("unsigned int", "targetSlot"), Variable("unsigned int", "sourceSlot")),
       ListBuffer(
         s"exchsolData_$level(fragments, sourceSlot);",
@@ -71,7 +72,7 @@ case class PerformSmoothing(solutionField : Field, rhsField : Field, level : Int
 
   override def cpp : String = "NOT VALID ; CLASS = PerformSmoothing\n";
 
-  override def expand : AbstractFunctionStatement = {
+  override def expand(collector : StackCollector) : AbstractFunctionStatement = {
     Knowledge.smoother match {
       case SmootherType.Jac => new PerformSmoothing_Jac(solutionField, rhsField, level)
       case SmootherType.GS  => new PerformSmoothing_GS(solutionField, rhsField, level)
@@ -204,7 +205,7 @@ case class UpdateResidual(residualField : Field, solutionField : Field, rhsField
 
   override def cpp : String = "NOT VALID ; CLASS = UpdateResidual\n";
 
-  override def expand : FunctionStatement = {
+  override def expand(collector : StackCollector) : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"updateResidual_$level", ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]"), Variable("unsigned int", "slot")),
       ListBuffer(
         s"exchsolData_$level(fragments, slot);",
@@ -230,7 +231,7 @@ case class PerformRestriction() extends AbstractFunctionStatement with Expandabl
 
   override def cpp : String = "NOT VALID ; CLASS = PerformRestriction\n";
 
-  override def expand : FunctionStatement = {
+  override def expand(collector : StackCollector) : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"performRestriction_NodeFW", ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]"), Variable("unsigned int", "levelSrc"), Variable("unsigned int", "levelDest")),
       ListBuffer(
         s"exchresData(fragments, levelSrc, 0);",
@@ -304,7 +305,7 @@ case class PerformProlongation() extends AbstractFunctionStatement with Expandab
 
   override def cpp : String = "NOT VALID ; CLASS = PerformProlongation\n";
 
-  override def expand : FunctionStatement = {
+  override def expand(collector : StackCollector) : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"performProlongation_NodeTLI", ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]"), Variable("unsigned int", "slotSrc"), Variable("unsigned int", "levelSrc"), Variable("unsigned int", "slotDest"), Variable("unsigned int", "levelDest")),
       ListBuffer(
         s"exchsolData(fragments, levelSrc, slotSrc);",
@@ -398,7 +399,7 @@ case class PerformCGS(level : Integer) extends AbstractFunctionStatement with Ex
 
   override def cpp : String = "NOT VALID ; CLASS = PerformVCycle\n";
 
-  override def expand : ForLoopStatement = {
+  override def expand(collector : StackCollector) : ForLoopStatement = {
     Knowledge.cgs match {
       case CoarseGridSolverType.IP_Smoother =>
         ForLoopStatement(s"unsigned int s = 0", s"s < ${Knowledge.cgsNumSteps}", s"++s", ListBuffer(
@@ -413,7 +414,7 @@ case class PerformVCycle(level : Integer) extends AbstractFunctionStatement with
 
   override def cpp : String = "NOT VALID ; CLASS = PerformVCycle\n";
 
-  override def expand : FunctionStatement = {
+  override def expand(collector : StackCollector) : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"performVCycle_$level", ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]"), Variable("unsigned int*", "solSlots")),
       (if (0 == level) {
         ListBuffer[Statement](new PerformCGS(level))
@@ -448,7 +449,7 @@ case class GetGlobalResidual(field : Field) extends AbstractFunctionStatement wi
 
   override def cpp : String = "NOT VALID ; CLASS = GetGlobalResidual\n";
 
-  override def expand : FunctionStatement = {
+  override def expand(collector : StackCollector) : FunctionStatement = {
     FunctionStatement("double", s"getGlobalResidual", ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]")),
       ListBuffer[Statement](
         s"double res = 0.0;",
@@ -471,7 +472,7 @@ case class SetSolZero(field : Field, level : Integer) extends AbstractFunctionSt
 
   override def cpp : String = "NOT VALID ; CLASS = SetSolZero\n";
 
-  override def expand : FunctionStatement = {
+  override def expand(collector : StackCollector) : FunctionStatement = {
     new FunctionStatement(new UnitDatatype(), s"setSolZero_$level", ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]"), Variable("unsigned int", "slot")),
       new LoopOverFragments(
         new LoopOverDimensions(fieldToIndexInner(Array(0, 0, 0), level),

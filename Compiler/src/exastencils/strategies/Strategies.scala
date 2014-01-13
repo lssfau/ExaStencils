@@ -1,7 +1,9 @@
 package exastencils.strategies
 
 import scala.reflect.ClassTag
+
 import exastencils.core._
+import exastencils.core.collectors._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -34,9 +36,17 @@ object PrintStrategy extends Strategy("Pretty-Print") {
 }
 
 object ExpandStrategy extends Strategy("Expanding") {
+  val collector = new StackCollector;
+
+  override  def apply = {
+    StateManager.register(collector);
+    super.apply;
+    StateManager.unregister(collector);
+  }
+  
   this += new Transformation("Hoho, expanding all day...", {
     case function : Expandable =>
-      Some(function.expand);
+      Some(function.expand(collector));
   });
 }
 

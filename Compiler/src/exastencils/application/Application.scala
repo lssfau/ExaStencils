@@ -3,6 +3,7 @@ package exastencils.application
 import scala.collection.mutable.ListBuffer
 import java.io.PrintWriter
 import java.io.File
+import exastencils.core.collectors._
 import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
@@ -54,7 +55,7 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
 
   override def cpp : String = "NOT VALID ; CLASS = Poisson3DMain\n";
 
-  override def expand : FunctionStatement = {
+  override def expand(collector : StackCollector) : FunctionStatement = {
     new FunctionStatement("int", "main", ListBuffer(Variable("int", "argc"), Variable("char**", "argv")),
       ListBuffer[Statement](
         s"Fragment3DCube* fragments[${Knowledge.numFragsPerBlock}];", /*FIXME: move to global space*/

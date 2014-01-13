@@ -1,5 +1,6 @@
 package exastencils.datastructures.ir
 
+import exastencils.core.collectors._
 import exastencils.datastructures._
 
 trait FilePrettyPrintable {
@@ -19,5 +20,5 @@ trait Debuggable {
 }
 
 trait Expandable {
-  def expand() : Node
+  def expand(collector : StackCollector) : Node
 }

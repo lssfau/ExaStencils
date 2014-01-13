@@ -2,8 +2,11 @@ package exastencils.primitives
 
 import java.io.File
 import java.io.PrintWriter
+
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
+import exastencils.core.collectors._
 import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
@@ -23,19 +26,19 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
 
   override def cpp : String = "NOT VALID ; CLASS = LoopOverDimensions\n";
 
-  def expand : ForLoopStatement = {
-        val parallelizable = Knowledge.summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false });
-    
-        if (parallelizable)
+  def expand(collector : StackCollector) : ForLoopStatement = {
+    val parallelizable = Knowledge.summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false });
+
+    if (parallelizable)
       new ForLoopStatement( /*s"unsigned -> f***ing omp*/ s"int ${dimToString(2)} = ${indices.begin(2)}", s"${dimToString(2)} <= ${indices.end(2)}", s"++${dimToString(2)}",
-          new ForLoopStatement(s"unsigned int ${dimToString(1)} = ${indices.begin(1)}", s"${dimToString(1)} <= ${indices.end(1)}", s"++${dimToString(1)}",
-            new ForLoopStatement(s"unsigned int ${dimToString(0)} = ${indices.begin(0)}", s"${dimToString(0)} <= ${indices.end(0)}", s"++${dimToString(0)}",
-              body)), addOMPStatements + " schedule(static)") with OMP_PotentiallyParallel
+        new ForLoopStatement(s"unsigned int ${dimToString(1)} = ${indices.begin(1)}", s"${dimToString(1)} <= ${indices.end(1)}", s"++${dimToString(1)}",
+          new ForLoopStatement(s"unsigned int ${dimToString(0)} = ${indices.begin(0)}", s"${dimToString(0)} <= ${indices.end(0)}", s"++${dimToString(0)}",
+            body)), addOMPStatements + " schedule(static)") with OMP_PotentiallyParallel
     else
       new ForLoopStatement( /*s"unsigned -> f***ing omp*/ s"int ${dimToString(2)} = ${indices.begin(2)}", s"${dimToString(2)} <= ${indices.end(2)}", s"++${dimToString(2)}",
-          new ForLoopStatement(s"unsigned int ${dimToString(1)} = ${indices.begin(1)}", s"${dimToString(1)} <= ${indices.end(1)}", s"++${dimToString(1)}",
-            new ForLoopStatement(s"unsigned int ${dimToString(0)} = ${indices.begin(0)}", s"${dimToString(0)} <= ${indices.end(0)}", s"++${dimToString(0)}",
-              body)))
+        new ForLoopStatement(s"unsigned int ${dimToString(1)} = ${indices.begin(1)}", s"${dimToString(1)} <= ${indices.end(1)}", s"++${dimToString(1)}",
+          new ForLoopStatement(s"unsigned int ${dimToString(0)} = ${indices.begin(0)}", s"${dimToString(0)} <= ${indices.end(0)}", s"++${dimToString(0)}",
+            body)))
   }
 }
 
@@ -64,7 +67,7 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var createFragRef
 
   def cpp = "NOT VALID ; CLASS = LoopOverFragments\n";
 
-  def expand : ForLoopStatement = {
+  def expand(collector : StackCollector) : ForLoopStatement = {
     val parallelizable = !Knowledge.summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false });
 
     if (parallelizable)

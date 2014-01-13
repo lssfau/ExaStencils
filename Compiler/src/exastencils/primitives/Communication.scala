@@ -1,6 +1,9 @@
 package exastencils.primitives
 
 import scala.collection.mutable.ListBuffer
+
+import exastencils.core._
+import exastencils.core.collectors._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.mpi._
@@ -11,7 +14,7 @@ case class LocalSend(var field : Field, var level : Integer, var neighbors : Lis
 
   override def cpp : String = "NOT VALID ; CLASS = LocalSend\n";
 
-  def expand : LoopOverFragments = {
+  def expand(collector : StackCollector) : LoopOverFragments = {
     new LoopOverFragments(
       neighbors.map(neigh =>
         (new ConditionStatement(new getNeighInfo_IsValidAndNotRemote(neigh._1),
@@ -34,7 +37,7 @@ case class CopyToSendBuffer_and_RemoteSend(var field : Field, var level : Intege
 
   override def cpp : String = "NOT VALID ; CLASS = CopyToSendBuffer_and_RemoteSend\n";
 
-  def expand : LoopOverFragments = {
+  def expand(collector : StackCollector) : LoopOverFragments = {
     new LoopOverFragments(
       // TODO: check if a for loop could be used
       neighbors.map(neigh =>
@@ -102,7 +105,7 @@ case class RemoteReceive(var field : Field, var level : Integer, var neighbors :
 
   override def cpp : String = "NOT VALID ; CLASS = RemoteReceive\n";
 
-  def expand : LoopOverFragments = {
+  def expand(collector : StackCollector) : LoopOverFragments = {
     new LoopOverFragments(
       // TODO: check if a for loop could be used
       neighbors.map(neigh =>
@@ -124,7 +127,7 @@ case class CopyFromRecvBuffer(var field : Field, var level : Integer, var neighb
 
   override def cpp : String = "NOT VALID ; CLASS = CopyFromRecvBuffer\n";
 
-  def expand : LoopOverFragments = {
+  def expand(collector : StackCollector) : LoopOverFragments = {
     new LoopOverFragments(
       neighbors.map(neigh =>
         (new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1),
@@ -142,18 +145,18 @@ case class FinishRemoteCommunication(var neighbors : ListBuffer[NeighborInfo]) e
 
   override def cpp : String = "NOT VALID ; CLASS = FinishRemoteCommunication\n";
 
-  def expand : Statement = {
+  def expand(collector : StackCollector) : Statement = {
     "waitForMPICommunication(fragments);";
   }
-  
-//  def expand : LoopOverFragments = {
-//    new LoopOverFragments(
-//      neighbors.map(neigh =>
-//        Array("Send", "Recv").map(sendOrRecv =>
-//          (new ConditionStatement(s"curFragment.reqOutstanding_${sendOrRecv}[${neigh.index}]",
-//            ListBuffer[Statement](
-//              s"waitForMPIReq(&curFragment.request_${sendOrRecv}[${neigh.index}]);",
-//              s"curFragment.reqOutstanding_${sendOrRecv}[${neigh.index}] = false;")) : Statement))).flatten);
-//  }
+
+  //  def expand(collector : StackCollector) : LoopOverFragments = {
+  //    new LoopOverFragments(
+  //      neighbors.map(neigh =>
+  //        Array("Send", "Recv").map(sendOrRecv =>
+  //          (new ConditionStatement(s"curFragment.reqOutstanding_${sendOrRecv}[${neigh.index}]",
+  //            ListBuffer[Statement](
+  //              s"waitForMPIReq(&curFragment.request_${sendOrRecv}[${neigh.index}]);",
+  //              s"curFragment.reqOutstanding_${sendOrRecv}[${neigh.index}] = false;")) : Statement))).flatten);
+  //  }
 }
     

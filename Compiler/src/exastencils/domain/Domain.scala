@@ -4,6 +4,7 @@ import java.io.PrintWriter
 import java.io.File
 import scala.collection.mutable.ListBuffer
 import exastencils.core._
+import exastencils.core.collectors._
 import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
@@ -45,7 +46,7 @@ case class PointToOwningRank(var pos : Expression) extends Expression with Expan
 
   override def cpp : String = "NOT VALID ; CLASS = PointToOwningRank\n";
 
-  override def expand : Expression = {
+  override def expand(collector : StackCollector) : Expression = {
     TernaryConditionExpression(PointOutsideDomain(pos).cpp,
       s"MPI_PROC_NULL",
       s"(int)(floor(${pos.cpp}.z / ${Knowledge.numFragsPerBlock_z}) * ${Knowledge.numBlocks_y * Knowledge.numBlocks_x} + floor(${pos.cpp}.y / ${Knowledge.numFragsPerBlock_y}) * ${Knowledge.numBlocks_x} + floor(${pos.cpp}.x / ${Knowledge.numFragsPerBlock_x}))");
@@ -57,7 +58,7 @@ case class AssertStatement(var check : Expression, var msg : Expression, var abo
 
   override def cpp : String = "NOT VALID ; CLASS = AssertStatement\n";
 
-  override def expand : ConditionStatement = {
+  override def expand(collector : StackCollector) : ConditionStatement = {
     new ConditionStatement(check,
       ListBuffer[Statement](
         "LOG_ERROR(" ~ msg ~ ");",
@@ -70,7 +71,7 @@ case class ConnectFragments() extends Statement with Expandable {
 
   override def cpp : String = "NOT VALID ; CLASS = ConnectFragments\n";
 
-  override def expand : LoopOverFragments = {
+  override def expand(collector : StackCollector) : LoopOverFragments = {
     var body = new ListBuffer[Statement];
 
     // TODO: get these neighbors from the fragment class
@@ -86,12 +87,11 @@ case class ConnectFragments() extends Statement with Expandable {
       var i = 0;
       for (z <- -1 to 1; y <- -1 to 1; x <- -1 to 1; if (0 != x || 0 != y || 0 != z)) {
         neighbors += new NeighborInfo(Array(x, y, z), i);
-        i+=1;
+        i += 1;
       }
     }
 
-    for (neigh <- neighbors)
-    {
+    for (neigh <- neighbors) {
       body += new Scope(ListBuffer(
         s"Vec3 offsetPos = curFragment.pos + Vec3(${neigh.dir(0)}, ${neigh.dir(1)}, ${neigh.dir(2)});",
         new ConditionStatement(s"mpiRank ==" ~ PointToOwningRank("offsetPos"),
@@ -110,7 +110,7 @@ case class SetupBuffers() extends Statement with Expandable {
 
   override def cpp : String = "NOT VALID ; CLASS = SetupBuffers\n";
 
-  override def expand : LoopOverFragments = {
+  override def expand(collector : StackCollector) : LoopOverFragments = {
     new LoopOverFragments("curFragment.setupBuffers();") with OMP_PotentiallyParallel;
   }
 }
@@ -121,10 +121,10 @@ case class ValidatePrimitives() extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = ValidatePrimitives\n";
 
   //  TODO
-  //  override def expand : LoopOverFragments = {
+  //  override def expand(collector : StackCollector) : LoopOverFragments = {
   //    new LoopOverFragments("curFragment.validate();") with OMP_PotentiallyParallel;
   //  }
-  override def expand : NullStatement = {
+  override def expand(collector : StackCollector) : NullStatement = {
     NullStatement();
   }
 }
@@ -134,7 +134,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
 
   override def cpp : String = "NOT VALID ; CLASS = InitGeneratedDomain\n";
 
-  override def expand : FunctionStatement = {
+  override def expand(collector : StackCollector) : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"initDomain",
       ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]")),
       ListBuffer(

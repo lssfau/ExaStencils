@@ -2,8 +2,11 @@ package exastencils.primitives
 
 import java.io.PrintWriter
 import java.io.File
+
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
+import exastencils.core.collectors._
 import exastencils.knowledge._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -35,7 +38,7 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
       var i = 0;
       for (z <- -1 to 1; y <- -1 to 1; x <- -1 to 1; if (0 != x || 0 != y || 0 != z)) {
         neighbors += new NeighborInfo(Array(x, y, z), i);
-        i+=1;
+        i += 1;
       }
     }
 
@@ -113,7 +116,7 @@ case class ExchangeData_6(field : Field, level : Integer, neighbors : ListBuffer
 
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_6\n";
 
-  override def expand : FunctionStatement = {
+  override def expand(collector : StackCollector) : FunctionStatement = {
     var body = new ListBuffer[Statement];
 
     val fieldName = s"curFragment.${field.codeName}[slot][$level]";
@@ -171,7 +174,7 @@ case class ExchangeData_26(field : Field, level : Integer, neighbors : ListBuffe
 
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_26\n";
 
-  override def expand : FunctionStatement = {
+  override def expand(collector : StackCollector) : FunctionStatement = {
     var body = new ListBuffer[Statement];
 
     val fieldName = s"curFragment.${field.codeName}[slot][$level]";

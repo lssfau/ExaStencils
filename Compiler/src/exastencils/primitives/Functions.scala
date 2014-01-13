@@ -2,8 +2,9 @@ package exastencils.primitives
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.core._
+import exastencils.core.collectors._
 import exastencils.knowledge._
-
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 
@@ -12,7 +13,7 @@ case class WaitForMPIReq() extends AbstractFunctionStatement with Expandable {
 
   override def cpp : String = "NOT VALID ; CLASS = WaitForMPIReq\n";
 
-  override def expand : FunctionStatement = {
+  override def expand(collector : StackCollector) : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"waitForMPIReq",
       ListBuffer(Variable("MPI_Request*", "request")),
       ListBuffer(
@@ -32,7 +33,7 @@ case class WaitForMPICommunication(var neighbors : ListBuffer[NeighborInfo]) ext
 
   override def cpp : String = "NOT VALID ; CLASS = WaitForMPICommunication\n";
 
-  override def expand : FunctionStatement = {
+  override def expand(collector : StackCollector) : FunctionStatement = {
     new FunctionStatement(new UnitDatatype(), s"waitForMPICommunication", ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]")),
       new LoopOverFragments(
         neighbors.map(neigh =>
@@ -50,7 +51,7 @@ case class ExchangeDataSplitter(field : Field) extends AbstractFunctionStatement
 
   override def cpp : String = "NOT VALID ; CLASS = ExchangeDataSplitter\n";
 
-  override def expand : FunctionStatement = {
+  override def expand(collector : StackCollector) : FunctionStatement = {
     new FunctionStatement(new UnitDatatype(), s"exch${field.codeName}",
       ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]"), Variable("unsigned int", "level"), Variable("unsigned int", "slot")),
       SwitchStatement("level",
@@ -64,7 +65,7 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
 
   override def cpp : String = "NOT VALID ; CLASS = ConnectLocalElement\n";
 
-  override def expand : FunctionStatement = {
+  override def expand(collector : StackCollector) : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"connectLocalElement",
       ListBuffer(Variable("unsigned int", "location"), Variable("Fragment3DCube*", "fragment")),
       ListBuffer(
@@ -81,7 +82,7 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
 
   override def cpp : String = "NOT VALID ; CLASS = ConnectRemoteElement\n";
 
-  override def expand : FunctionStatement = {
+  override def expand(collector : StackCollector) : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"connectRemoteElement",
       ListBuffer(Variable("unsigned int", "location"), Variable("size_t", "id"), Variable(IntegerDatatype(), "remoteRank")),
       ListBuffer(
@@ -97,7 +98,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
 
   override def cpp : String = "NOT VALID ; CLASS = SetupBuffers\n";
 
-  override def expand : FunctionStatement = {
+  override def expand(collector : StackCollector) : FunctionStatement = {
     var body = ListBuffer[Statement]();
 
     for (level <- 0 to Knowledge.maxLevel) {
