@@ -3,14 +3,16 @@ package exastencils.application
 import scala.collection.mutable.ListBuffer
 import java.io.PrintWriter
 import java.io.File
+import exastencils.core._
 import exastencils.core.collectors._
 import exastencils.knowledge._
+import exastencils.globals._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.primitives._
-import exastencils.mpi._
 import exastencils.prettyprinting._
+import exastencils.mpi._
 import exastencils.omp._
 
 case class InitFields() extends Statement {
@@ -56,9 +58,13 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = Poisson3DMain\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
+    // FIXME: make the next line of code more readable and robust
+    val globals : Globals = StateManager.root.asInstanceOf[Root].nodes.find(node => node.isInstanceOf[Globals]).get.asInstanceOf[Globals];
+
+    globals.variables += new VariableDeclarationStatement(new Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]"));
+
     new FunctionStatement("int", "main", ListBuffer(Variable("int", "argc"), Variable("char**", "argv")),
       ListBuffer[Statement](
-        s"Fragment3DCube* fragments[${Knowledge.numFragsPerBlock}];", /*FIXME: move to global space*/
         new MPI_Init,
         new MPI_SetRankAndSize,
 
@@ -77,14 +83,14 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
 
         s"StopWatch setupWatch;",
 
-        s"initDomain(fragments);",
+        s"initDomain();",
 
         new InitFields,
 
         new MPI_Barrier,
 
-        s"updateResidual_${Knowledge.maxLevel}(fragments, 0);",
-        s"double lastRes = getGlobalResidual(fragments);",
+        s"updateResidual_${Knowledge.maxLevel}(0);",
+        s"double lastRes = getGlobalResidual();",
         s"double initialRes = lastRes;",
 
         s"unsigned int curIt;",
@@ -102,14 +108,14 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
           ListBuffer[Statement](
             s"stopWatch.reset();",
 
-            s"performVCycle_${Knowledge.maxLevel}(fragments, solSlots);",
+            s"performVCycle_${Knowledge.maxLevel}(solSlots);",
 
             s"double tDuration = stopWatch.getTimeInMilliSecAndReset();",
             s"minTime = std::min(minTime, tDuration);",
             s"maxTime = std::max(maxTime, tDuration);",
             s"meanTime += tDuration;",
 
-            s"double res = getGlobalResidual(fragments);",
+            s"double res = getGlobalResidual();",
 
             new ConditionStatement(new MPI_IsRootProc,
               "LOG_NOTE(\"Iteration \" << curIt << \"\\n\\tCurrent residual (L2-norm): \" << res << \"\\n\\tRuntime for the current v-cycle: \" << tDuration << \"\\n\\tReduction: \" << res / lastRes);"),
@@ -177,6 +183,7 @@ case class Poisson3D() extends Node with FilePrettyPrintable {
       + "#include <cstdlib>\n"
       + "#include <cfloat>\n"
       + "#include <omp.h>\n"
+      + "#include \"Globals/Globals.h\"\n"
       + "#include \"Util/Log.h\"\n"
       + "#include \"Util/Vector.h\"\n"
       + "#include \"Util/Stopwatch.h\"\n"

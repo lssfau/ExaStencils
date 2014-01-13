@@ -38,9 +38,10 @@ case class StatementBlock(var body : ListBuffer[Statement]) extends Statement {
   }
 }
 
-case class VariableDeclarationStatement(var variable : Variable, var expression : Option[Expression] = None)
-    extends Statement {
-  override def cpp = ""
+case class VariableDeclarationStatement(var variable : Variable, var expression : Option[Expression] = None) extends Statement {
+  override def cpp = {
+    s"${variable.datatype.cpp} ${variable.name}" + (if (expression.isDefined) s" = ${expression.get.cpp};" else ";");
+  }
 
   override def duplicate = {
     if (expression != None)

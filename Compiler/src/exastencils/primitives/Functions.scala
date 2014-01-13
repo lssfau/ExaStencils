@@ -34,7 +34,7 @@ case class WaitForMPICommunication(var neighbors : ListBuffer[NeighborInfo]) ext
   override def cpp : String = "NOT VALID ; CLASS = WaitForMPICommunication\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
-    new FunctionStatement(new UnitDatatype(), s"waitForMPICommunication", ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]")),
+    new FunctionStatement(new UnitDatatype(), s"waitForMPICommunication", ListBuffer[Variable](),
       new LoopOverFragments(
         neighbors.map(neigh =>
           Array("Send", "Recv").map(sendOrRecv =>
@@ -53,10 +53,10 @@ case class ExchangeDataSplitter(field : Field) extends AbstractFunctionStatement
 
   override def expand(collector : StackCollector) : FunctionStatement = {
     new FunctionStatement(new UnitDatatype(), s"exch${field.codeName}",
-      ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]"), Variable("unsigned int", "level"), Variable("unsigned int", "slot")),
+      ListBuffer(Variable("unsigned int", "level"), Variable("unsigned int", "slot")),
       SwitchStatement("level",
         (0 to Knowledge.maxLevel).to[ListBuffer].map(level =>
-          new CaseStatement(NumericLiteral(level), s"exch${field.codeName}_$level(fragments, slot);"))));
+          new CaseStatement(NumericLiteral(level), s"exch${field.codeName}_$level(slot);"))));
   }
 }
 

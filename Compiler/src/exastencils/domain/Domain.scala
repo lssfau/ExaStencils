@@ -135,8 +135,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
   override def cpp : String = "NOT VALID ; CLASS = InitGeneratedDomain\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
-    FunctionStatement(new UnitDatatype(), s"initDomain",
-      ListBuffer(Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]")),
+    FunctionStatement(new UnitDatatype(), s"initDomain", ListBuffer(),
       ListBuffer(
         new MPI_SetRankAndSize,
 

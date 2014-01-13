@@ -22,6 +22,7 @@ case class MultiGrid() extends Node with FilePrettyPrintable {
       + "#define MULTIGRID_MULTIGRID_H\n"
       + "#pragma warning(disable : 4800)\n"
       + "#include <mpi.h>\n"
+      + "#include \"Globals/Globals.h\"\n"
       + "#include \"Util/Log.h\"\n"
       + "#include \"Util/Vector.h\"\n"
       + "#include \"Util/Stopwatch.h\"\n"

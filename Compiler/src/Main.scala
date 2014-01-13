@@ -8,6 +8,7 @@ import exastencils.domain._
 import exastencils.multiGrid._
 import exastencils.primitives._
 import exastencils.util._
+import exastencils.globals._
 import exastencils.prettyprinting.PrettyprintingManager
 
 object Main {
@@ -16,7 +17,7 @@ object Main {
     s.parseFile(args(0))
     val k = new exastencils.parsers.settings.ParserKnowledge
     k.parseFile(args(1))
-    
+
     Knowledge.update;
 
     StateManager.root_ = Root(List(
@@ -38,7 +39,10 @@ object Main {
       new Container,
       new Log,
       new Stopwatch,
-      new Vector));
+      new Vector,
+
+      // Globals
+      new Globals));
 
     do { ExpandStrategy.apply; }
     while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code

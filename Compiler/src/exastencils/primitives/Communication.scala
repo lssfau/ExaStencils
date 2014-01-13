@@ -146,7 +146,7 @@ case class FinishRemoteCommunication(var neighbors : ListBuffer[NeighborInfo]) e
   override def cpp : String = "NOT VALID ; CLASS = FinishRemoteCommunication\n";
 
   def expand(collector : StackCollector) : Statement = {
-    "waitForMPICommunication(fragments);";
+    "waitForMPICommunication();";
   }
 
   //  def expand(collector : StackCollector) : LoopOverFragments = {

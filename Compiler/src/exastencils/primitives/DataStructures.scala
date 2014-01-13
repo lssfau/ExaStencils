@@ -138,6 +138,7 @@ case class CommunicationFunctions() extends Node with FilePrettyPrintable {
         + "#define	COMMUNICATION_FUNCTIONS_H\n"
         + "#pragma warning(disable : 4800)\n"
         + "#include <mpi.h>\n"
+        + "#include \"Globals/Globals.h\"\n"
         + "#include \"Util/Log.h\"\n"
         + "#include \"Util/Vector.h\"\n"
         + "#include \"Container/Container.h\"\n"
