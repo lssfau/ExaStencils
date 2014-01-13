@@ -14,6 +14,8 @@ trait OMP_PotentiallyParallel { var addOMPStatements : String }
 case class OMP_Critical(var body : Any) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
+  // FIXME: most constructs don't need to be protected on JuQueen as a thread-safe MPI implementation exists. How should this be incorporated?
+  
   def cpp : String = {
     s"#pragma omp critical\n{ " +
       (body match {
