@@ -2,7 +2,7 @@ numGhostLayers			= 1
 maxLevel				= 5
 fragmentCommStrategy	= 26
 
-summarizeBlocks			= true
+summarizeBlocks			= false
 
 numBlocks_x				= 16
 numBlocks_y				= 16
