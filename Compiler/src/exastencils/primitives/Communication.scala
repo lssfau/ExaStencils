@@ -7,6 +7,7 @@ import exastencils.core.collectors._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.globals._
+import exastencils.knowledge._
 import exastencils.mpi._
 import exastencils.omp._
 
@@ -46,7 +47,7 @@ case class CopyToSendBuffer_and_RemoteSend(var field : Field, var level : Intege
     val globals : Globals = StateManager.root.asInstanceOf[Root].nodes.find(node => node.isInstanceOf[Globals]).get.asInstanceOf[Globals];
 
     for (neigh <- neighbors) {
-      if (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2)) {
+      if (Knowledge.useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))) {
         val mpiTypeName = s"mpiType_Send_${field.codeName}_${level}_${neigh._1.index}";
         var typeAlreadyExists : Boolean = (globals.variables.count(v => mpiTypeName == v.variable.name) > 0);
 
@@ -119,7 +120,7 @@ case class RemoteReceive(var field : Field, var level : Integer, var neighbors :
     val globals : Globals = StateManager.root.asInstanceOf[Root].nodes.find(node => node.isInstanceOf[Globals]).get.asInstanceOf[Globals];
 
     for (neigh <- neighbors) {
-      if (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2)) {
+      if (Knowledge.useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))) {
         val mpiTypeName = s"mpiType_Recv_${field.codeName}_${level}_${neigh._1.index}";
         var typeAlreadyExists : Boolean = (globals.variables.count(v => mpiTypeName == v.variable.name) > 0);
 
@@ -180,7 +181,7 @@ case class CopyFromRecvBuffer(var field : Field, var level : Integer, var neighb
 
   def expand(collector : StackCollector) : LoopOverFragments = {
     new LoopOverFragments(
-      neighbors.filterNot(neigh => neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2)).map(neigh =>
+      neighbors.filterNot(neigh => Knowledge.useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))).map(neigh =>
         (new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1),
           ListBuffer[Statement](
             s"unsigned int entry = 0;",
