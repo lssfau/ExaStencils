@@ -137,7 +137,7 @@ case class ExchangeData_6(field : Field, level : Integer, neighbors : ListBuffer
       body += new LocalSend(field, level,
         ListBuffer(neighbors(2 * dim + 1)).map(neigh => (neigh, neigh.indexBorder, neigh.indexOpposingBorder)));
 
-      body += new RemoteReceive(field, level, ListBuffer(neighbors(2 * dim + 0)));
+      body += new RemoteReceive(field, level, ListBuffer(neighbors(2 * dim + 0)).map(neigh => (neigh, neigh.indexBorder)));
 
       body += new FinishRemoteCommunication(neighbors);
 
@@ -155,12 +155,11 @@ case class ExchangeData_6(field : Field, level : Integer, neighbors : ListBuffer
       body += new LocalSend(field, level,
         curNeighbors.map(neigh => (neigh, neigh.indexInner, neigh.indexOpposingOuter)));
 
-      body += new RemoteReceive(field, level, curNeighbors);
+      body += new RemoteReceive(field, level, curNeighbors.map(neigh => (neigh, neigh.indexOuter)));
 
       body += new FinishRemoteCommunication(curNeighbors);
 
-      body += new CopyFromRecvBuffer(field, level,
-        curNeighbors.map(neigh => (neigh, neigh.indexOuter)));
+      body += new CopyFromRecvBuffer(field, level, curNeighbors.map(neigh => (neigh, neigh.indexOuter)));
     }
 
     // compile return value
@@ -194,7 +193,7 @@ case class ExchangeData_26(field : Field, level : Integer, neighbors : ListBuffe
     body += new LocalSend(field, level,
       neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh => (neigh, neigh.indexBorder, neigh.indexOpposingBorder)));
 
-    body += new RemoteReceive(field, level, neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0));
+    body += new RemoteReceive(field, level, neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0).map(neigh => (neigh, neigh.indexBorder)));
 
     body += new FinishRemoteCommunication(neighbors);
 
@@ -207,12 +206,11 @@ case class ExchangeData_26(field : Field, level : Integer, neighbors : ListBuffe
     body += new LocalSend(field, level,
       neighbors.map(neigh => (neigh, neigh.indexInner, neigh.indexOpposingOuter)));
 
-    body += new RemoteReceive(field, level, neighbors);
+    body += new RemoteReceive(field, level, neighbors.map(neigh => (neigh, neigh.indexOuter)));
 
     body += new FinishRemoteCommunication(neighbors);
 
-    body += new CopyFromRecvBuffer(field, level,
-      neighbors.map(neigh => (neigh, neigh.indexOuter)));
+    body += new CopyFromRecvBuffer(field, level, neighbors.map(neigh => (neigh, neigh.indexOuter)));
 
     // compile return value
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",
