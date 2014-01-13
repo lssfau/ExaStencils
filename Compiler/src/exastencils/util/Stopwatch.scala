@@ -109,8 +109,5 @@ protected:
 
 #endif	// UTIL_STOPWATCH_H
 """);
-
-    writer.close(); // FIXME: finalize
   }
-
 }

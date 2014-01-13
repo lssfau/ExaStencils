@@ -94,8 +94,6 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
       writer << super.cpp;
 
       writer << "#endif\n";
-
-      writer.close(); // FIXME: finalize
     }
 
     var i = 0;
@@ -104,8 +102,6 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
 
       writer << "#include \"Primitives/Fragment3DCube.h\"\n\n";
       writer << f.cpp + "\n";
-
-      writer.close(); // FIXME: finalize
 
       i += 1;
     }

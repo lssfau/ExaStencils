@@ -194,8 +194,5 @@ case class Poisson3D() extends Node with FilePrettyPrintable {
 
     for (function <- functions_HACK)
       writer << function.cpp + "\n";
-
-    writer.close(); // FIXME: finalize
-
   }
 }

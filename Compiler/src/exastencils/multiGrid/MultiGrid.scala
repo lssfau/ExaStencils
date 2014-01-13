@@ -36,8 +36,6 @@ case class MultiGrid() extends Node with FilePrettyPrintable {
 
     writer << "#endif // MULTIGRID_MULTIGRID_H\n";
 
-    writer.close(); // FIXME: finalize
-
     var i = 0;
     for (f <- functions_HACK) {
       var s : String = "";
@@ -46,8 +44,6 @@ case class MultiGrid() extends Node with FilePrettyPrintable {
 
       writer << "#include \"MultiGrid/MultiGrid.h\"\n";
       writer << f.cpp + "\n";
-
-      writer.close(); // FIXME: finalize
 
       i += 1;
     }

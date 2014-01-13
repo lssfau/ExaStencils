@@ -83,7 +83,5 @@ public:
 
 #endif	// CONTAINER_CONTAINER_H
 """);
-
-    writer.close(); // FIXME: finalize
   }
 }

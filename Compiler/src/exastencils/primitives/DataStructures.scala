@@ -150,8 +150,6 @@ case class CommunicationFunctions() extends Node with FilePrettyPrintable {
       }
 
       writer << "#endif\n";
-
-      writer.close(); // FIXME: finalize
     }
 
     var i = 0;
@@ -162,8 +160,6 @@ case class CommunicationFunctions() extends Node with FilePrettyPrintable {
 
       writer << "#include \"Primitives/CommunicationFunctions.h\"\n\n";
       writer << f.cpp + "\n";
-
-      writer.close(); // FIXME: finalize
 
       i += 1;
     }

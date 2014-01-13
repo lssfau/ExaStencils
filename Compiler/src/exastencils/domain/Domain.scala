@@ -185,7 +185,5 @@ case class DomainGenerated() extends Node with FilePrettyPrintable {
       writer << s.cpp + "\n";
 
     writer << "#endif // DOMAINS_DOMAINGENERATED_H\n";
-
-    writer.close(); //FIXME: finalize
   }
 }

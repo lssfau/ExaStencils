@@ -95,8 +95,5 @@ case class Log() extends Node with FilePrettyPrintable {
 
 #endif	// UTIL_LOG_H
 """);
-
-    writer.close(); // FIXME: finalize
   }
-
 }

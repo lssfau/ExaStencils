@@ -37,15 +37,11 @@ case class Globals() extends Node with FilePrettyPrintable {
 
     writerHeader << "#endif\n";
 
-    writerHeader.close(); // FIXME: finalize
-
     val writerSource = PrettyprintingManager.getPrinter(s"Globals/Globals.cpp");
 
     writerSource << "#include \"Globals/Globals.h\"\n\n";
     for (variable <- variables) { writerSource << s"${variable.cpp}\n"; }
 
     writerSource << initFunction.cpp + "\n";
-
-    writerSource.close(); // FIXME: finalize
   }
 }

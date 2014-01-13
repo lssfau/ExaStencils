@@ -915,8 +915,5 @@ inline TVec4<T> max (const TVec4<T> &v1, const TVec4<T> &v2)
 
 #endif	// UTIL_VECTOR_H
 """);
-
-    writer.close(); // FIXME: finalize
   }
-
 }
