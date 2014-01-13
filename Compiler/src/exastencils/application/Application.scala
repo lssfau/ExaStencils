@@ -68,6 +68,8 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
         new MPI_Init,
         new MPI_SetRankAndSize,
 
+        "initGlobals();",
+
         (if (Knowledge.summarizeBlocks)
           s"omp_set_num_threads(${Knowledge.fragLength});"
         else

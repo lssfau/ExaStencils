@@ -4,7 +4,7 @@ import scala.collection.mutable.Stack
 import exastencils.datastructures._
 
 class StackCollector extends Collector {
-  private val stack = new Stack[Node]
+  /* FIXME: I didn't want to change to much in your collector, please allow to access more than the head -- private */ val stack = new Stack[Node]
 
   def enter(node : Node) : Unit = {
     stack.push(node)
