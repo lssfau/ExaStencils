@@ -33,6 +33,7 @@ object Knowledge {
   //val fragmentCommStrategy : Integer = 26;
 
   var summarizeBlocks : Boolean = true; // TODO: sanity check if compatible with chosen smoother
+  var useOMP : Boolean = true;
 
   var numBlocks_x : Integer = 4;
   var numBlocks_y : Integer = 4;
@@ -86,6 +87,8 @@ object Knowledge {
   var numSolSlots : Integer = (if (SmootherType.Jac == smoother) 2 else 1);
 
   def update : Unit = {
+    useOMP = summarizeBlocks || (numFragsPerBlock_x != 1 || numFragsPerBlock_y != 1 || numFragsPerBlock_z != 1)
+    
     numLevels = maxLevel + 1;
 
     numBlocks = numBlocks_x * numBlocks_y * numBlocks_z;

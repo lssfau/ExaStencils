@@ -56,7 +56,9 @@ object Main {
 
     AddMemberFunctionPrefix.apply;
 
-    AddOMPPragmas.apply;
+    if (Knowledge.useOMP) {
+      AddOMPPragmas.apply;
+    }
 
     PrintStrategy.apply;
     PrettyprintingManager.finish;

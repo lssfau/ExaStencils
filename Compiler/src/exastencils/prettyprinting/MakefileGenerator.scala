@@ -1,13 +1,20 @@
 package exastencils.prettyprinting
 
+import exastencils.knowledge._
+
 object MakefileGenerator extends BuildfileGenerator {
   override def write : Unit = {
     val printer = PrettyprintingManager.getPrinter("Makefile")
 
     // TODO: switch by target hardware
-    printer <<< "CXX = mpixlcxx_r"
-    printer <<< "CFLAGS = -O3 -qhot -qarch=qp -qtune=qp -qsmp=omp -DNDEBUG"
-    printer <<< "LFLAGS = -O3 -qhot -qarch=qp -qtune=qp -qsmp=omp -DNDEBUG"	// TODO: check which flags are required
+    if (Knowledge.useOMP) {
+      printer <<< "CXX = mpixlcxx_r"
+    } else {
+      printer <<< "CXX = mpixlcxx"
+    }
+
+    printer <<< "CFLAGS = -O3 -qhot -qarch=qp -qtune=qp -DNDEBUG" + (if (Knowledge.useOMP) " -qsmp=omp" else "")
+    printer <<< "LFLAGS = -O3 -qhot -qarch=qp -qtune=qp -DNDEBUG" + (if (Knowledge.useOMP) " -qsmp=omp" else "") // TODO: check which flags are required
     printer <<< "BINARY = exastencils"
     printer <<< ""
 
