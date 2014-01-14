@@ -123,39 +123,37 @@ case class ExchangeData_6(field : Field, level : Integer, neighbors : ListBuffer
     }
 
     // handle BC
-    body += new HandleBoundaries(field, level,
-      neighbors.map(neigh => (neigh, neigh.indexBorder)));
+    body += new HandleBoundaries(field, level, neighbors.map(neigh => (neigh, neigh.indexBorder)));
 
     // sync duplicate values
     for (dim <- 0 to 2) {
-      body += new CopyToSendBuffer_and_RemoteSend(field, level,
-        ListBuffer(neighbors(2 * dim + 1)).map(neigh => (neigh, neigh.indexBorder)));
-      body += new LocalSend(field, level,
-        ListBuffer(neighbors(2 * dim + 1)).map(neigh => (neigh, neigh.indexBorder, neigh.indexOpposingBorder)));
+      val sendRemoteData = ListBuffer(neighbors(2 * dim + 1)).map(neigh => (neigh, neigh.indexBorder));
+      val sendLocalData = ListBuffer(neighbors(2 * dim + 1)).map(neigh => (neigh, neigh.indexBorder, neigh.indexOpposingBorder));
+      val recvRemoteData = ListBuffer(neighbors(2 * dim + 0)).map(neigh => (neigh, neigh.indexBorder));
 
-      body += new RemoteReceive(field, level, ListBuffer(neighbors(2 * dim + 0)).map(neigh => (neigh, neigh.indexBorder)));
+      body += new CopyToSendBuffer(field, level, sendRemoteData);
+      body += new RemoteSend(field, level, sendRemoteData);
+      body += new LocalSend(field, level, sendLocalData);
 
+      body += new RemoteReceive(field, level, recvRemoteData);
       body += new FinishRemoteCommunication(neighbors);
-
-      body += new CopyFromRecvBuffer(field, level,
-        ListBuffer(neighbors(2 * dim + 0)).map(neigh => (neigh, neigh.indexBorder)));
+      body += new CopyFromRecvBuffer(field, level, recvRemoteData);
     }
 
     // update ghost layers
     for (dim <- 0 to 2) {
       var curNeighbors = ListBuffer(neighbors(2 * dim + 0), neighbors(2 * dim + 1));
+      val sendRemoteData = curNeighbors.map(neigh => (neigh, neigh.indexInner));
+      val sendLocalData = curNeighbors.map(neigh => (neigh, neigh.indexInner, neigh.indexOpposingOuter));
+      val recvRemoteData = curNeighbors.map(neigh => (neigh, neigh.indexOuter));
 
-      body += new CopyToSendBuffer_and_RemoteSend(field, level,
-        curNeighbors.map(neigh => (neigh, neigh.indexInner)));
+      body += new CopyToSendBuffer(field, level, sendRemoteData);
+      body += new RemoteSend(field, level, sendRemoteData);
+      body += new LocalSend(field, level, sendLocalData);
 
-      body += new LocalSend(field, level,
-        curNeighbors.map(neigh => (neigh, neigh.indexInner, neigh.indexOpposingOuter)));
-
-      body += new RemoteReceive(field, level, curNeighbors.map(neigh => (neigh, neigh.indexOuter)));
-
-      body += new FinishRemoteCommunication(curNeighbors);
-
-      body += new CopyFromRecvBuffer(field, level, curNeighbors.map(neigh => (neigh, neigh.indexOuter)));
+      body += new RemoteReceive(field, level, recvRemoteData);
+      body += new FinishRemoteCommunication(neighbors);
+      body += new CopyFromRecvBuffer(field, level, recvRemoteData);
     }
 
     // compile return value
@@ -180,33 +178,37 @@ case class ExchangeData_26(field : Field, level : Integer, neighbors : ListBuffe
     }
 
     // handle BC
-    body += new HandleBoundaries(field, level,
-      neighbors.map(neigh => (neigh, neigh.indexBorder)));
+    body += new HandleBoundaries(field, level, neighbors.map(neigh => (neigh, neigh.indexBorder)));
 
     // sync duplicate values
-    body += new CopyToSendBuffer_and_RemoteSend(field, level,
-      neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh => (neigh, neigh.indexBorder)));
-    body += new LocalSend(field, level,
-      neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh => (neigh, neigh.indexBorder, neigh.indexOpposingBorder)));
+    {
+      val sendRemoteData = neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh => (neigh, neigh.indexBorder));
+      val sendLocalData = neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh => (neigh, neigh.indexBorder, neigh.indexOpposingBorder));
+      val recvRemoteData = neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0).map(neigh => (neigh, neigh.indexBorder));
 
-    body += new RemoteReceive(field, level, neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0).map(neigh => (neigh, neigh.indexBorder)));
+      body += new CopyToSendBuffer(field, level, sendRemoteData);
+      body += new RemoteSend(field, level, sendRemoteData);
+      body += new LocalSend(field, level, sendLocalData);
 
-    body += new FinishRemoteCommunication(neighbors);
-
-    body += new CopyFromRecvBuffer(field, level,
-      neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0).map(neigh => (neigh, neigh.indexBorder)));
+      body += new RemoteReceive(field, level, recvRemoteData);
+      body += new FinishRemoteCommunication(neighbors);
+      body += new CopyFromRecvBuffer(field, level, recvRemoteData);
+    }
 
     // update ghost layers
-    body += new CopyToSendBuffer_and_RemoteSend(field, level,
-      neighbors.map(neigh => (neigh, neigh.indexInner)));
-    body += new LocalSend(field, level,
-      neighbors.map(neigh => (neigh, neigh.indexInner, neigh.indexOpposingOuter)));
+    {
+      val sendRemoteData = neighbors.map(neigh => (neigh, neigh.indexInner));
+      val sendLocalData = neighbors.map(neigh => (neigh, neigh.indexInner, neigh.indexOpposingOuter));
+      val recvRemoteData = neighbors.map(neigh => (neigh, neigh.indexOuter));
 
-    body += new RemoteReceive(field, level, neighbors.map(neigh => (neigh, neigh.indexOuter)));
+      body += new CopyToSendBuffer(field, level, sendRemoteData);
+      body += new RemoteSend(field, level, sendRemoteData);
+      body += new LocalSend(field, level, sendLocalData);
 
-    body += new FinishRemoteCommunication(neighbors);
-
-    body += new CopyFromRecvBuffer(field, level, neighbors.map(neigh => (neigh, neigh.indexOuter)));
+      body += new RemoteReceive(field, level, recvRemoteData);
+      body += new FinishRemoteCommunication(neighbors);
+      body += new CopyFromRecvBuffer(field, level, recvRemoteData);
+    }
 
     // compile return value
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",

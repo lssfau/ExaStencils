@@ -11,6 +11,12 @@ trait Expression extends Node with CppPrettyPrintable {
   }
 }
 
+case class NullExpression() extends Expression {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  def cpp : String = ""
+}
+
 case class ConcatenationExpression(var expressions : ListBuffer[Expression]) extends Expression {
   override def duplicate = this.copy(expressions = Duplicate(expressions)).asInstanceOf[this.type]
   override def cpp = expressions.map(e => e.cpp).mkString(" ")
