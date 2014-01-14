@@ -1,0 +1,1 @@
+outputPath = "C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Generated_2_26_1_2x2x2_2x2x2/"
