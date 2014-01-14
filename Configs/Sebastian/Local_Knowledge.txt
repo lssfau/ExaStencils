@@ -1,4 +1,3 @@
-numGhostLayers			= 1
 maxLevel				= 5
 fragmentCommStrategy	= 6	// 26
 
