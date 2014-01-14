@@ -42,13 +42,16 @@ case class CopyToSendBuffer(var field : Field, var level : Integer, var neighbor
     // TODO: check if a for loop could be used
     var body : ListBuffer[Statement] = new ListBuffer;
 
-    new LoopOverFragments(neighbors.filterNot(neigh => Knowledge.useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))).map(neigh =>
-      new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1),
-        ListBuffer[Statement](
-          s"unsigned int entry = 0;",
-          new LoopOverDimensions(neigh._2,
-            new AssignmentStatement(s"curFragment.buffer_Send[${neigh._1.index}][entry++]",
-              new FieldAccess(field, level, "slot", Mapping.access(level)))))) : Statement)) with OMP_PotentiallyParallel;
+    new LoopOverFragments(neighbors.
+      filterNot(neigh => Knowledge.useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))).
+      filterNot(neigh => neigh._2.begin(0) == neigh._2.end(0) && neigh._2.begin(1) == neigh._2.end(1) && neigh._2.begin(2) == neigh._2.end(2)).
+      map(neigh =>
+        new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1),
+          ListBuffer[Statement](
+            s"unsigned int entry = 0;",
+            new LoopOverDimensions(neigh._2,
+              new AssignmentStatement(s"curFragment.buffer_Send[${neigh._1.index}][entry++]",
+                new FieldAccess(field, level, "slot", Mapping.access(level)))))) : Statement)) with OMP_PotentiallyParallel;
   }
 }
 
@@ -58,8 +61,10 @@ case class CopyFromRecvBuffer(var field : Field, var level : Integer, var neighb
   override def cpp : String = "NOT VALID ; CLASS = CopyFromRecvBuffer\n";
 
   def expand(collector : StackCollector) : LoopOverFragments = {
-    new LoopOverFragments(
-      neighbors.filterNot(neigh => Knowledge.useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))).map(neigh =>
+    new LoopOverFragments(neighbors.
+      filterNot(neigh => Knowledge.useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))).
+      filterNot(neigh => neigh._2.begin(0) == neigh._2.end(0) && neigh._2.begin(1) == neigh._2.end(1) && neigh._2.begin(2) == neigh._2.end(2)).
+      map(neigh =>
         (new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1),
           ListBuffer[Statement](
             s"unsigned int entry = 0;",
@@ -115,9 +120,12 @@ case class RemoteSend(var field : Field, var level : Integer, var neighbors : Li
       var cnt : Expression = new NullExpression;
       var typeName : Expression = new NullExpression;
 
-      if (Knowledge.useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))) {
+      if (neigh._2.begin(0) == neigh._2.end(0) && neigh._2.begin(1) == neigh._2.end(1) && neigh._2.begin(2) == neigh._2.end(2)) {
+        ptr = s"&" ~ new FieldAccess(field, level, "slot", Mapping.access(level, neigh._2.begin));
+        cnt = NumericLiteral(1);
+        typeName = s"MPI_DOUBLE";
+      } else if (Knowledge.useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))) {
         val mpiTypeName = addMPIDatatype(s"mpiType_Send_${field.codeName}_${level}_${neigh._1.index}", neigh._2);
-
         ptr = s"&" ~ new FieldAccess(field, level, "slot", Mapping.access(level, neigh._2.begin));
         cnt = NumericLiteral(1);
         typeName = mpiTypeName;
@@ -186,9 +194,12 @@ case class RemoteReceive(var field : Field, var level : Integer, var neighbors :
       var cnt : Expression = new NullExpression;
       var typeName : Expression = new NullExpression;
 
-      if (Knowledge.useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))) {
+      if (neigh._2.begin(0) == neigh._2.end(0) && neigh._2.begin(1) == neigh._2.end(1) && neigh._2.begin(2) == neigh._2.end(2)) {
+        ptr = s"&" ~ new FieldAccess(field, level, "slot", Mapping.access(level, neigh._2.begin));
+        cnt = NumericLiteral(1);
+        typeName = s"MPI_DOUBLE";
+      } else if (Knowledge.useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))) {
         val mpiTypeName = addMPIDatatype(s"mpiType_Recv_${field.codeName}_${level}_${neigh._1.index}", neigh._2);
-
         ptr = s"&" ~ new FieldAccess(field, level, "slot", Mapping.access(level, neigh._2.begin));
         cnt = NumericLiteral(1);
         typeName = mpiTypeName;
