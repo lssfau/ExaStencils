@@ -70,10 +70,12 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
 
         "initGlobals();",
 
-        (if (Knowledge.summarizeBlocks)
-          s"omp_set_num_threads(${Knowledge.fragLength});"
-        else
-          s"omp_set_num_threads(${Knowledge.numFragsPerBlock});"),
+        if (Knowledge.useOMP) {
+          (if (Knowledge.summarizeBlocks)
+            s"omp_set_num_threads(${Knowledge.fragLength});"
+          else
+            s"omp_set_num_threads(${Knowledge.numFragsPerBlock});")
+        } else "",
 
         new ConditionStatement(s"argc != 1", ListBuffer[Statement](
           new ConditionStatement(new MPI_IsRootProc,
@@ -184,7 +186,7 @@ case class Poisson3D() extends Node with FilePrettyPrintable {
       + "#include <iostream>\n"
       + "#include <cstdlib>\n"
       + "#include <cfloat>\n"
-      + "#include <omp.h>\n"
+      + (if (Knowledge.useOMP) "#include <omp.h>\n" else "")
       + "#include \"Globals/Globals.h\"\n"
       + "#include \"Util/Log.h\"\n"
       + "#include \"Util/Vector.h\"\n"
