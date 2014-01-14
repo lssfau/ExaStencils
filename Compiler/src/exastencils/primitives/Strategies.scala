@@ -51,7 +51,8 @@ object SetupFragmentClass extends Strategy("Setting up fragment class") {
 
   this += new Transformation("Adding communication functions to FragmentClass", {
     case frag : FragmentClass =>
-      communicationFunctions.functions += new WaitForMPICommunication(frag.neighbors);
+      communicationFunctions.functions += new WaitForMPISendOps(frag.neighbors);
+      communicationFunctions.functions += new WaitForMPIRecvOps(frag.neighbors);
       for (field <- fieldCollection.fields) {
         communicationFunctions.functions += new ExchangeDataSplitter(field);
         for (level <- (0 to Knowledge.maxLevel)) {

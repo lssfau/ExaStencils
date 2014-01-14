@@ -28,20 +28,61 @@ case class WaitForMPIReq() extends AbstractFunctionStatement with Expandable {
   }
 }
 
-case class WaitForMPICommunication(var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
+case class WaitForMPISendOps(var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  override def cpp : String = "NOT VALID ; CLASS = WaitForMPICommunication\n";
+  override def cpp : String = "NOT VALID ; CLASS = WaitForMPISendOps\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
-    new FunctionStatement(new UnitDatatype(), s"waitForMPICommunication", ListBuffer[Variable](),
-      new LoopOverFragments(
-        neighbors.map(neigh =>
-          Array("Send", "Recv").map(sendOrRecv =>
-            (new ConditionStatement(s"curFragment.reqOutstanding_${sendOrRecv}[${neigh.index}]",
+    if (Knowledge.useLoopsOverNeighbors) {
+      var minIdx = neighbors.reduce((neigh, res) => if (neigh.index < res.index) neigh else res).index;
+      var maxIdx = neighbors.reduce((neigh, res) => if (neigh.index > res.index) neigh else res).index;
+
+      new FunctionStatement(new UnitDatatype(), s"waitForMPISendOps", ListBuffer[Variable](),
+        new LoopOverFragments(
+          new ForLoopStatement(s"int i = $minIdx", s"i <= $maxIdx", "++i",
+            new ConditionStatement(s"curFragment.reqOutstanding_Send[i]",
               ListBuffer[Statement](
-                s"waitForMPIReq(&curFragment.request_${sendOrRecv}[${neigh.index}]);",
-                s"curFragment.reqOutstanding_${sendOrRecv}[${neigh.index}] = false;")) : Statement))).flatten));
+                s"waitForMPIReq(&curFragment.request_Send[i]);",
+                s"curFragment.reqOutstanding_Send[i] = false;")))));
+    } else {
+      new FunctionStatement(new UnitDatatype(), s"waitForMPISendOps", ListBuffer[Variable](),
+        new LoopOverFragments(
+          neighbors.map(neigh =>
+            new ConditionStatement(s"curFragment.reqOutstanding_Send[${neigh.index}]",
+              ListBuffer[Statement](
+                s"waitForMPIReq(&curFragment.request_Send[${neigh.index}]);",
+                s"curFragment.reqOutstanding_Send[${neigh.index}] = false;")) : Statement)));
+    }
+  }
+}
+
+case class WaitForMPIRecvOps(var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = "NOT VALID ; CLASS = WaitForMPIRecvOps\n";
+
+  override def expand(collector : StackCollector) : FunctionStatement = {
+    if (Knowledge.useLoopsOverNeighbors) {
+      var minIdx = neighbors.reduce((neigh, res) => if (neigh.index < res.index) neigh else res).index;
+      var maxIdx = neighbors.reduce((neigh, res) => if (neigh.index > res.index) neigh else res).index;
+
+      new FunctionStatement(new UnitDatatype(), s"waitForMPIRecvOps", ListBuffer[Variable](),
+        new LoopOverFragments(
+          new ForLoopStatement(s"int i = $minIdx", s"i <= $maxIdx", "++i",
+            new ConditionStatement(s"curFragment.reqOutstanding_Recv[i]",
+              ListBuffer[Statement](
+                s"waitForMPIReq(&curFragment.request_Recv[i]);",
+                s"curFragment.reqOutstanding_Recv[i] = false;")))));
+    } else {
+      new FunctionStatement(new UnitDatatype(), s"waitForMPIRecvOps", ListBuffer[Variable](),
+        new LoopOverFragments(
+          neighbors.map(neigh =>
+            new ConditionStatement(s"curFragment.reqOutstanding_Recv[${neigh.index}]",
+              ListBuffer[Statement](
+                s"waitForMPIReq(&curFragment.request_Recv[${neigh.index}]);",
+                s"curFragment.reqOutstanding_Recv[${neigh.index}] = false;")) : Statement)));
+    }
   }
 }
 

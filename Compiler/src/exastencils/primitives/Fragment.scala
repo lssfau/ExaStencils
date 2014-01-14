@@ -131,13 +131,16 @@ case class ExchangeData_6(field : Field, level : Integer, neighbors : ListBuffer
       val sendLocalData = ListBuffer(neighbors(2 * dim + 1)).map(neigh => (neigh, neigh.indexBorder, neigh.indexOpposingBorder));
       val recvRemoteData = ListBuffer(neighbors(2 * dim + 0)).map(neigh => (neigh, neigh.indexBorder));
 
+      // TODO: group the next seven lines into a separate node?
       body += new CopyToSendBuffer(field, level, sendRemoteData);
       body += new RemoteSend(field, level, sendRemoteData);
       body += new LocalSend(field, level, sendLocalData);
 
       body += new RemoteReceive(field, level, recvRemoteData);
-      body += new FinishRemoteCommunication(neighbors);
+      body += new FinishRemoteRecv(neighbors);
       body += new CopyFromRecvBuffer(field, level, recvRemoteData);
+
+      body += new FinishRemoteSend(neighbors);
     }
 
     // update ghost layers
@@ -152,8 +155,10 @@ case class ExchangeData_6(field : Field, level : Integer, neighbors : ListBuffer
       body += new LocalSend(field, level, sendLocalData);
 
       body += new RemoteReceive(field, level, recvRemoteData);
-      body += new FinishRemoteCommunication(neighbors);
+      body += new FinishRemoteRecv(neighbors);
       body += new CopyFromRecvBuffer(field, level, recvRemoteData);
+
+      body += new FinishRemoteSend(neighbors);
     }
 
     // compile return value
@@ -191,8 +196,10 @@ case class ExchangeData_26(field : Field, level : Integer, neighbors : ListBuffe
       body += new LocalSend(field, level, sendLocalData);
 
       body += new RemoteReceive(field, level, recvRemoteData);
-      body += new FinishRemoteCommunication(neighbors);
+      body += new FinishRemoteRecv(neighbors);
       body += new CopyFromRecvBuffer(field, level, recvRemoteData);
+
+      body += new FinishRemoteSend(neighbors);
     }
 
     // update ghost layers
@@ -206,8 +213,10 @@ case class ExchangeData_26(field : Field, level : Integer, neighbors : ListBuffe
       body += new LocalSend(field, level, sendLocalData);
 
       body += new RemoteReceive(field, level, recvRemoteData);
-      body += new FinishRemoteCommunication(neighbors);
+      body += new FinishRemoteRecv(neighbors);
       body += new CopyFromRecvBuffer(field, level, recvRemoteData);
+
+      body += new FinishRemoteSend(neighbors);
     }
 
     // compile return value

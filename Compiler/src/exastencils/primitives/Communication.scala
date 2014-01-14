@@ -204,24 +204,23 @@ case class RemoteReceive(var field : Field, var level : Integer, var neighbors :
   }
 }
 
-case class FinishRemoteCommunication(var neighbors : ListBuffer[NeighborInfo]) extends Statement with Expandable {
-  // FIXME: split for send and recv
+case class FinishRemoteSend(var neighbors : ListBuffer[NeighborInfo]) extends Statement with Expandable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  override def cpp : String = "NOT VALID ; CLASS = FinishRemoteCommunication\n";
+  override def cpp : String = "NOT VALID ; CLASS = FinishRemoteSend\n";
 
   def expand(collector : StackCollector) : Statement = {
-    "waitForMPICommunication();";
+    "waitForMPISendOps();";
   }
+}
 
-  //  def expand(collector : StackCollector) : LoopOverFragments = {
-  //    new LoopOverFragments(
-  //      neighbors.map(neigh =>
-  //        Array("Send", "Recv").map(sendOrRecv =>
-  //          (new ConditionStatement(s"curFragment.reqOutstanding_${sendOrRecv}[${neigh.index}]",
-  //            ListBuffer[Statement](
-  //              s"waitForMPIReq(&curFragment.request_${sendOrRecv}[${neigh.index}]);",
-  //              s"curFragment.reqOutstanding_${sendOrRecv}[${neigh.index}] = false;")) : Statement))).flatten);
-  //  }
+case class FinishRemoteRecv(var neighbors : ListBuffer[NeighborInfo]) extends Statement with Expandable {
+  override def duplicate = this.copy().asInstanceOf[this.type]
+
+  override def cpp : String = "NOT VALID ; CLASS = FinishRemoteRecv\n";
+
+  def expand(collector : StackCollector) : Statement = {
+    "waitForMPIRecvOps();";
+  }
 }
     
