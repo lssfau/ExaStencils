@@ -74,14 +74,15 @@ case class RemoteSend(var field : Field, var level : Integer, var neighbors : Li
 
   override def cpp : String = "NOT VALID ; CLASS = RemoteSend\n";
 
-  def addMPIDatatype(mpiTypeName : String, indexRange : IndexRange) : Unit = {
+  def addMPIDatatype(mpiTypeNameBase : String, indexRange : IndexRange) : String = {
     // FIXME: make the next line of code more readable and robust
     val globals : Globals = StateManager.root.asInstanceOf[Root].nodes.find(node => node.isInstanceOf[Globals]).get.asInstanceOf[Globals];
 
-    var typeAlreadyExists : Boolean = (globals.variables.count(v => mpiTypeName == v.variable.name) > 0);
+    var addToName = 0;
+    while (globals.variables.count(v => s"${mpiTypeNameBase}_${addToName}" == v.variable.name) > 0)
+      addToName += 1;
 
-    if (globals.variables.count(v => mpiTypeName == v.variable.name) > 0)
-      return ;
+    val mpiTypeName = mpiTypeNameBase + s"_${addToName}";
 
     globals.variables += new VariableDeclarationStatement(new Variable(s"MPI_Datatype", mpiTypeName));
 
@@ -101,6 +102,8 @@ case class RemoteSend(var field : Field, var level : Integer, var neighbors : Li
     globals.initFunction.body += s"MPI_Type_commit(&$mpiTypeName);";
 
     // TODO: free datatype
+
+    return mpiTypeName;
   }
 
   def expand(collector : StackCollector) : LoopOverFragments = {
@@ -113,8 +116,7 @@ case class RemoteSend(var field : Field, var level : Integer, var neighbors : Li
       var typeName : Expression = new NullExpression;
 
       if (Knowledge.useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))) {
-        val mpiTypeName = s"mpiType_Send_${field.codeName}_${level}_${neigh._1.index}";
-        addMPIDatatype(mpiTypeName, neigh._2);
+        val mpiTypeName = addMPIDatatype(s"mpiType_Send_${field.codeName}_${level}_${neigh._1.index}", neigh._2);
 
         ptr = s"&" ~ new FieldAccess(field, level, "slot", Mapping.access(level, neigh._2.begin));
         cnt = NumericLiteral(1);
@@ -143,12 +145,15 @@ case class RemoteReceive(var field : Field, var level : Integer, var neighbors :
 
   override def cpp : String = "NOT VALID ; CLASS = RemoteReceive\n";
 
-  def addMPIDatatype(mpiTypeName : String, indexRange : IndexRange) : Unit = {
+  def addMPIDatatype(mpiTypeNameBase : String, indexRange : IndexRange) : String = {
     // FIXME: make the next line of code more readable and robust
     val globals : Globals = StateManager.root.asInstanceOf[Root].nodes.find(node => node.isInstanceOf[Globals]).get.asInstanceOf[Globals];
 
-    if (globals.variables.count(v => mpiTypeName == v.variable.name) > 0)
-      return ;
+    var addToName = 0;
+    while (globals.variables.count(v => s"${mpiTypeNameBase}_${addToName}" == v.variable.name) > 0)
+      addToName += 1;
+
+    val mpiTypeName = mpiTypeNameBase + s"_${addToName}";
 
     globals.variables += new VariableDeclarationStatement(new Variable(s"MPI_Datatype", mpiTypeName));
 
@@ -168,6 +173,8 @@ case class RemoteReceive(var field : Field, var level : Integer, var neighbors :
     globals.initFunction.body += s"MPI_Type_commit(&$mpiTypeName);";
 
     // TODO: free datatype
+
+    return mpiTypeName;
   }
 
   def expand(collector : StackCollector) : LoopOverFragments = {
@@ -180,8 +187,7 @@ case class RemoteReceive(var field : Field, var level : Integer, var neighbors :
       var typeName : Expression = new NullExpression;
 
       if (Knowledge.useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))) {
-        val mpiTypeName = s"mpiType_Recv_${field.codeName}_${level}_${neigh._1.index}";
-        addMPIDatatype(mpiTypeName, neigh._2);
+        val mpiTypeName = addMPIDatatype(s"mpiType_Recv_${field.codeName}_${level}_${neigh._1.index}", neigh._2);
 
         ptr = s"&" ~ new FieldAccess(field, level, "slot", Mapping.access(level, neigh._2.begin));
         cnt = NumericLiteral(1);
