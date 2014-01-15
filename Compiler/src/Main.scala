@@ -19,21 +19,52 @@ import harald.pretty._
 
 object Main {
   def main(args : Array[String]) : Unit = {
-    // Init Code
+    // Init settings
+
     val s = new exastencils.parsers.settings.ParserSettings
     s.parseFile(args(0))
     val k = new exastencils.parsers.settings.ParserKnowledge
     k.parseFile(args(1))
 
-    Knowledge.update;
+    Knowledge.update
 
-    // Harald's Code
+    // Hack paths
 
-    val libpath = "C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/testmg/"
+    val libpath = "C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ScalaExaStencil/Compiler/src/harald/otherfiles/"
     val DSLpath = "C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ScalaExaStencil/Compiler/src/harald/testmg/"
     val problem = "testDSL"
-    val outputpath = "C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/testmg/"
+    val outputpath = Settings.outputPath
     val outputfile = "main.cpp"
+
+    // Setup tree
+    StateManager.root_ = Root(List(
+      // HACK
+      TreeManager.tree,
+
+      // Application
+      new Poisson3D,
+
+      // MultiGrid
+      new MultiGrid,
+
+      // Domain
+      new DomainGenerated,
+
+      // Primitives
+      new FragmentClass,
+      new CommunicationFunctions,
+      new FieldCollection,
+
+      // Util
+      new Container,
+      new Log,
+      new Stopwatch,
+      new Vector,
+
+      // Globals
+      new Globals));
+
+    // Harald
 
     println("read HW")
 
@@ -116,35 +147,10 @@ object Main {
     val ownfunc = new OwnFunctions(TreeManager.tree)
     ownfunc.initextFunctions
 
-    //val cufile = "main.cu" 
-    //    ExaDSL.prettycpp(sourcepath + sourcefile)
     val exadsl = new PrettyPrinter(TreeManager.tree)
     exadsl.prettycpp(libpath, outputpath + outputfile)
 
-    // Sebastian's Code
-    StateManager.root_ = Root(List(
-      // Application
-      new Poisson3D,
-
-      // MultiGrid
-      new MultiGrid,
-
-      // Domain
-      new DomainGenerated,
-
-      // Primitives
-      new FragmentClass,
-      new CommunicationFunctions,
-      new FieldCollection,
-
-      // Util
-      new Container,
-      new Log,
-      new Stopwatch,
-      new Vector,
-
-      // Globals
-      new Globals));
+    // Strategies
 
     do { ExpandStrategy.apply; }
     while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code

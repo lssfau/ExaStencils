@@ -4,9 +4,10 @@ import scala.collection.mutable.ListBuffer
 import harald.Abstract._
 import harald.Impl._
 import harald.dsl._
+import exastencils.datastructures._
 
-
-class TreeL2 {
+case class TreeL2() extends Node {
+  override def duplicate = this.copy().asInstanceOf[this.type]
   
   val exaFields: ListBuffer[AbstractField] = new ListBuffer()
   val exaOperators: ListBuffer[AbstractStencil] = new ListBuffer()
