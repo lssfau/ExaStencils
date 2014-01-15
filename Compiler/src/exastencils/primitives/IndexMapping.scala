@@ -8,6 +8,7 @@ class NeighborInfo(var dir : Array[Int], var index : Int) {
   var indexInner = new IndexRange();
   var indexOuter = new IndexRange();
   var indexBorder = new IndexRange();
+  var indexBorderWide = new IndexRange();
 
   var indexOpposingInner = new IndexRange();
   var indexOpposingOuter = new IndexRange();
@@ -17,6 +18,7 @@ class NeighborInfo(var dir : Array[Int], var index : Int) {
     indexInner = fieldToIndexInner(dir, level);
     indexOuter = fieldToIndexOuter(dir, level);
     indexBorder = fieldToIndexBorder(dir, level);
+    indexBorderWide = fieldToIndexBorderWide(dir, level);
     indexOpposingInner = fieldToIndexInner(dir.map(i => -i), level);
     indexOpposingOuter = fieldToIndexOuter(dir.map(i => -i), level);
     indexOpposingBorder = fieldToIndexBorder(dir.map(i => -i), level);
@@ -26,13 +28,14 @@ class NeighborInfo(var dir : Array[Int], var index : Int) {
     indexInner = fieldToIndexInnerWide(dir, level);
     indexOuter = fieldToIndexOuterWide(dir, level);
     indexBorder = fieldToIndexBorder(dir, level);
+    indexBorderWide = fieldToIndexBorderWide(dir, level);
     indexOpposingInner = fieldToIndexInnerWide(dir.map(i => -i), level);
     indexOpposingOuter = fieldToIndexOuterWide(dir.map(i => -i), level);
     indexOpposingBorder = fieldToIndexBorder(dir.map(i => -i), level);
   }
 }
 
-case class IndexRange(begin : Array[Int] = Array(0, 0, 0), end : Array[Int] = Array(0, 0, 0)) {}
+case class IndexRange(var begin : Array[Int] = Array(0, 0, 0), var end : Array[Int] = Array(0, 0, 0)) {}
 
 object Mapping {
   def first(level : Int, dim : Int) : Int = {
@@ -126,6 +129,21 @@ object fieldToIndexBorder extends ((Array[Int], Int) => IndexRange) {
       }),
       (0 to 2).toArray.map(i => i match {
         case i if dir(i) == 0 => (Mapping.last(level, i) - Knowledge.numGhostLayers)
+        case i if dir(i) < 0  => (Mapping.first(level, i) + Knowledge.numGhostLayers)
+        case i if dir(i) > 0  => (Mapping.last(level, i) - Knowledge.numGhostLayers)
+      }));
+  }
+}
+object fieldToIndexBorderWide extends ((Array[Int], Int) => IndexRange) {
+  def apply(dir : Array[Int], level : Int) : IndexRange = {
+    return new IndexRange(
+      (0 to 2).toArray.map(i => i match {
+        case i if dir(i) == 0 => (Mapping.first(level, i))
+        case i if dir(i) < 0  => (Mapping.first(level, i) + Knowledge.numGhostLayers)
+        case i if dir(i) > 0  => (Mapping.last(level, i) - Knowledge.numGhostLayers)
+      }),
+      (0 to 2).toArray.map(i => i match {
+        case i if dir(i) == 0 => (Mapping.last(level, i))
         case i if dir(i) < 0  => (Mapping.first(level, i) + Knowledge.numGhostLayers)
         case i if dir(i) > 0  => (Mapping.last(level, i) - Knowledge.numGhostLayers)
       }));

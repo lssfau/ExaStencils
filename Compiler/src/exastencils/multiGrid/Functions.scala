@@ -17,9 +17,50 @@ case class PerformSmoothing_Jac(solutionField : Field, rhsField : Field, level :
   override def cpp : String = "NOT VALID ; CLASS = PerformSmoothingJacobi\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
+  	if (fieldToIndexInner(Array(0, 0, 0), level).end(0) - fieldToIndexInner(Array(0, 0, 0), level).begin(0) + 1 >= Knowledge.numGhostLayers + 2)
+    //if (level >= Knowledge.maxLevel  - 1)
+    //if (false)
+ {   
+    var updates : ListBuffer[Statement] = new ListBuffer;
+    updates += s"exchsolData_$level(sourceSlot, false);";
+    updates += s"exchrhsData_$level(0, false);";
+
+    var indices : IndexRange = fieldToIndexInner(Array(0, 0, 0), level);
+    indices.begin = indices.begin.map(i => i - (Knowledge.numGhostLayers - 1));
+    indices.end = indices.end.map(i => i + (Knowledge.numGhostLayers - 1));
+
+    for (i <- 0 to (Knowledge.numGhostLayers - 1)) {
+      updates += new LoopOverFragments(
+        new LoopOverDimensions(new IndexRange(indices.begin, indices.end),
+          AssignmentStatement(
+            // FIXME: introduce and apply stencil node
+            FieldAccess(solutionField, level, "targetSlot", Mapping.access(level)),
+            s"${1.0 - Knowledge.smootherOmega} * " ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level))
+              ~ s"+ ${Knowledge.smootherOmega} / 6.0 * ("
+              ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(x + 1)", "y", "z"))
+              ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(x - 1)", "y", "z"))
+              ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "(y + 1)", "z"))
+              ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "(y - 1)", "z"))
+              ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "y", "(z + 1)"))
+              ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "y", "(z - 1)"))
+              ~ s"-" ~ FieldAccess(rhsField, level, "0", Mapping.access(level))
+              ~ ")")) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel;
+      updates += "std::swap(targetSlot, sourceSlot);";
+    updates += s"exchsolData_$level(sourceSlot, true);";
+
+      indices.begin = indices.begin.map(i => i + 1);
+      indices.end = indices.end.map(i => i - 1);
+    }
+
+    FunctionStatement(new UnitDatatype(), s"performSmoothing_$level", ListBuffer(Variable("unsigned int", "targetSlot"), Variable("unsigned int", "sourceSlot")),
+      updates);}
+else
+{
     FunctionStatement(new UnitDatatype(), s"performSmoothing_$level", ListBuffer(Variable("unsigned int", "targetSlot"), Variable("unsigned int", "sourceSlot")),
       ListBuffer(
-        s"exchsolData_$level(sourceSlot);",
+        new ForLoopStatement("int i = 0", s"i < ${Knowledge.numGhostLayers}", "++i",
+            ListBuffer[Statement](
+        s"exchsolData_$level(sourceSlot, false);",
         new LoopOverFragments(
           new LoopOverDimensions(
             fieldToIndexInner(Array(0, 0, 0), level), ListBuffer[Statement](
@@ -35,7 +76,12 @@ case class PerformSmoothing_Jac(solutionField : Field, rhsField : Field, level :
                   ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "y", "(z + 1)"))
                   ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "y", "(z - 1)"))
                   ~ s"-" ~ FieldAccess(rhsField, level, "0", Mapping.access(level))
-                  ~ ")"))) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel));
+                  ~ ")")))) with OMP_PotentiallyParallel,
+            "std::swap(targetSlot, sourceSlot);"     , 
+    s"exchsolData_$level(sourceSlot, true);"
+            ))));
+ 
+}
   }
 }
 
@@ -208,7 +254,7 @@ case class UpdateResidual(residualField : Field, solutionField : Field, rhsField
   override def expand(collector : StackCollector) : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"updateResidual_$level", ListBuffer(Variable("unsigned int", "slot")),
       ListBuffer(
-        s"exchsolData_$level(slot);",
+        s"exchsolData_$level(slot, false);",
         new LoopOverFragments(
           new LoopOverDimensions(
             fieldToIndexInner(Array(0, 0, 0), level), ListBuffer[Statement](
@@ -234,7 +280,7 @@ case class PerformRestriction() extends AbstractFunctionStatement with Expandabl
   override def expand(collector : StackCollector) : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"performRestriction_NodeFW", ListBuffer(Variable("unsigned int", "levelSrc"), Variable("unsigned int", "levelDest")),
       ListBuffer(
-        s"exchresData(levelSrc, 0);",
+        s"exchresData(levelSrc, 0, false);",
         new LoopOverFragments(
           """
 		// more specialized version; usage of different data layouts (2D vs 3D, quad vs triangle, etc) would have to be incoporated by hand or generation
@@ -308,7 +354,7 @@ case class PerformProlongation() extends AbstractFunctionStatement with Expandab
   override def expand(collector : StackCollector) : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"performProlongation_NodeTLI", ListBuffer(Variable("unsigned int", "slotSrc"), Variable("unsigned int", "levelSrc"), Variable("unsigned int", "slotDest"), Variable("unsigned int", "levelDest")),
       ListBuffer(
-        s"exchsolData(levelSrc, slotSrc);",
+        s"exchsolData(levelSrc, slotSrc, false);",
         new LoopOverFragments(
           """
 		// WARNING: assumes an odd number of data points per dimension (e.g. 2^l + 1) or a number smaller or equal to 2
@@ -420,7 +466,7 @@ case class PerformVCycle(level : Integer) extends AbstractFunctionStatement with
         ListBuffer[Statement](new PerformCGS(level))
       } else {
         ListBuffer[Statement](
-          ForLoopStatement(s"unsigned int s = 0", s"s < ${Knowledge.smootherNumPre}", s"++s", ListBuffer(
+          ForLoopStatement(s"unsigned int s = 0", s"s < ${Knowledge.smootherNumPre / Knowledge.numGhostLayers}", s"++s", ListBuffer(
             s"++solSlots[$level];",
             s"performSmoothing_$level((solSlots[$level] + 0) % ${Knowledge.numSolSlots}, (solSlots[$level] - 1) % ${Knowledge.numSolSlots});")),
 
@@ -434,7 +480,7 @@ case class PerformVCycle(level : Integer) extends AbstractFunctionStatement with
 
           s"performProlongation_NodeTLI(solSlots[${level - 1}] % ${Knowledge.numSolSlots}, ${level - 1}, solSlots[$level] % ${Knowledge.numSolSlots}, $level);",
 
-          ForLoopStatement(s"unsigned int s = 0", s"s < ${Knowledge.smootherNumPost}", s"++s", ListBuffer(
+          ForLoopStatement(s"unsigned int s = 0", s"s < ${Knowledge.smootherNumPost / Knowledge.numGhostLayers}", s"++s", ListBuffer(
             s"++solSlots[$level];",
             s"performSmoothing_$level((solSlots[$level] + 0) % ${Knowledge.numSolSlots}, (solSlots[$level] - 1) % ${Knowledge.numSolSlots});")))
       })

@@ -123,8 +123,12 @@ case class ExchangeData_6(field : Field, level : Integer, neighbors : ListBuffer
     }
 
     // handle BC
-    body += new HandleBoundaries(field, level, neighbors.map(neigh => (neigh, neigh.indexBorder)));
-
+    body += new HandleBoundaries(field, level, neighbors.map(neigh => (neigh, neigh.indexBorderWide)));
+    //if (useTemporalBlocking)
+    body += new HandleBoundaries(field, level, neighbors.map(neigh => (neigh, neigh.indexOuter)));
+    
+body += "if (!onlyHandleBC) {";
+    
     // sync duplicate values
     for (dim <- 0 to 2) {
       val sendRemoteData = ListBuffer(neighbors(2 * dim + 1)).map(neigh => (neigh, neigh.indexBorder));
@@ -161,9 +165,11 @@ case class ExchangeData_6(field : Field, level : Integer, neighbors : ListBuffer
       body += new FinishRemoteSend(neighbors);
     }
 
+body += "}";
+
     // compile return value
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",
-      ListBuffer(Variable("unsigned int", "slot")),
+      ListBuffer(Variable("unsigned int", "slot"), Variable("bool", "onlyHandleBC")),
       body);
   }
 }
@@ -183,7 +189,11 @@ case class ExchangeData_26(field : Field, level : Integer, neighbors : ListBuffe
     }
 
     // handle BC
-    body += new HandleBoundaries(field, level, neighbors.map(neigh => (neigh, neigh.indexBorder)));
+    body += new HandleBoundaries(field, level, neighbors.map(neigh => (neigh, neigh.indexBorderWide)));
+    //if (useTemporalBlocking)
+    body += new HandleBoundaries(field, level, neighbors.map(neigh => (neigh, neigh.indexOuter)));
+    
+body += "if (!onlyHandleBC) {";
 
     // sync duplicate values
     {
@@ -219,9 +229,11 @@ case class ExchangeData_26(field : Field, level : Integer, neighbors : ListBuffe
       body += new FinishRemoteSend(neighbors);
     }
 
-    // compile return value
+ body += "}";
+
+ 		// compile return value
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",
-      ListBuffer(Variable("unsigned int", "slot")),
+      ListBuffer(Variable("unsigned int", "slot"), Variable("bool", "onlyHandleBC")),
       body);
   }
 }
