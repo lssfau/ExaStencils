@@ -99,7 +99,7 @@ class PrettyPrinter(treel2 : TreeL2) {
   def prettycpp(path : String, fname: String) {
 
     //        val extlib:String = scala.io.Source.fromFile("c:/install7/eclipse/scala-SDK-3.0.1-vfinal-2.10-win32.win32.x86_64/eclipse/workspace/Multigrid/src/mylibcpp.scala").getLines.reduceLeft(_+"\n"+_)
-    val extlib: String = scala.io.Source.fromFile(path+"mglib.cpp").getLines.reduceLeft(_ + "\n" + _)
+    val extlib: String = "";// scala.io.Source.fromFile(path+"mglib.cpp").getLines.reduceLeft(_ + "\n" + _)
 
     var extlibcuda: String = ""
     var extlibmpi: String = ""
