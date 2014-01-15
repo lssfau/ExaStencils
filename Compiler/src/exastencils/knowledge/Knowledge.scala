@@ -26,7 +26,7 @@ object SmootherType extends Enumeration {
 object Knowledge {
   // FIXME: Integer is required to support implicit conversion to NumericLiteral
 
-  var numGhostLayers : Integer = 3;
+  var numGhostLayers : Integer = 1;
   var maxLevel : Integer = 6;
   var numLevels : Integer = maxLevel + 1;
   var fragmentCommStrategy : Integer = 6; //26

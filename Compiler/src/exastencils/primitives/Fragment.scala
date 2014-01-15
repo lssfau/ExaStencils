@@ -123,12 +123,8 @@ case class ExchangeData_6(field : Field, level : Integer, neighbors : ListBuffer
     }
 
     // handle BC
-    body += new HandleBoundaries(field, level, neighbors.map(neigh => (neigh, neigh.indexBorderWide)));
-    //if (useTemporalBlocking)
-    body += new HandleBoundaries(field, level, neighbors.map(neigh => (neigh, neigh.indexOuter)));
-    
-body += "if (!onlyHandleBC) {";
-    
+    body += new HandleBoundaries(field, level, neighbors.map(neigh => (neigh, neigh.indexBorder)));
+
     // sync duplicate values
     for (dim <- 0 to 2) {
       val sendRemoteData = ListBuffer(neighbors(2 * dim + 1)).map(neigh => (neigh, neigh.indexBorder));
@@ -165,11 +161,9 @@ body += "if (!onlyHandleBC) {";
       body += new FinishRemoteSend(neighbors);
     }
 
-body += "}";
-
     // compile return value
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",
-      ListBuffer(Variable("unsigned int", "slot"), Variable("bool", "onlyHandleBC")),
+      ListBuffer(Variable("unsigned int", "slot")),
       body);
   }
 }
@@ -189,11 +183,7 @@ case class ExchangeData_26(field : Field, level : Integer, neighbors : ListBuffe
     }
 
     // handle BC
-    body += new HandleBoundaries(field, level, neighbors.map(neigh => (neigh, neigh.indexBorderWide)));
-    //if (useTemporalBlocking)
-    body += new HandleBoundaries(field, level, neighbors.map(neigh => (neigh, neigh.indexOuter)));
-    
-body += "if (!onlyHandleBC) {";
+    body += new HandleBoundaries(field, level, neighbors.map(neigh => (neigh, neigh.indexBorder)));
 
     // sync duplicate values
     {
@@ -229,11 +219,9 @@ body += "if (!onlyHandleBC) {";
       body += new FinishRemoteSend(neighbors);
     }
 
- body += "}";
-
- 		// compile return value
+    // compile return value
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",
-      ListBuffer(Variable("unsigned int", "slot"), Variable("bool", "onlyHandleBC")),
+      ListBuffer(Variable("unsigned int", "slot")),
       body);
   }
 }
