@@ -101,7 +101,7 @@ object StateManager {
         var list = currentSubnode.asInstanceOf[Seq[_]]
         val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
         if (invalids.size <= 0) {
-          var newList = list.asInstanceOf[Seq[Node]].map(listitem => applyAtNode(listitem, transformation).get) // FIXME asof[List[Option[Node]]]
+          var newList = list.asInstanceOf[Seq[Node]].map(listitem => applyAtNode(listitem, transformation).getOrElse(null)).filterNot(p => p == null)
           var changed = newList.diff(list)
           if (changed.size > 0) {
             if (!Vars.set(node, field, newList)) {
@@ -116,7 +116,7 @@ object StateManager {
         val arrayType = list.getClass().getComponentType()
         val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
         if (invalids.size <= 0) {
-          var tmpArray = list.asInstanceOf[Array[Node]].map(listitem => applyAtNode(listitem, transformation).get)
+          var tmpArray = list.asInstanceOf[Array[Node]].map(listitem => applyAtNode(listitem, transformation).getOrElse(null)).filterNot(p => p == null)
           var changed = tmpArray.diff(list)
           if (changed.size > 0) {
             var newArray = java.lang.reflect.Array.newInstance(arrayType, tmpArray.length)
@@ -139,22 +139,25 @@ object StateManager {
         }
 
         if (subnode.isInstanceOf[Node]) {
-          var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation).get
-          if (newSubnode ne subnode.asInstanceOf[Node]) {
-            if (nodeIsOption) {
-              if (!Vars.set(node, field, Some(newSubnode))) {
-                ERROR(s"Could not set $field")
-              }
-            } else {
-              if (!Vars.set(node, field, newSubnode)) {
-                ERROR(s"Could not set $field")
+          var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation)
+          if (newSubnode.isEmpty) {
+            ERROR(s"Could not set $field to an empty node") // FIXME think of better way => e.g. empty dummy node
+          } else {
+            if (newSubnode.get ne subnode.asInstanceOf[Node]) {
+              if (nodeIsOption) { // node is an Option[T] => set directly
+                if (!Vars.set(node, field, newSubnode)) {
+                  ERROR(s"Could not set $field")
+                }
+              } else { // node is not an Option[T] => set inner value
+                if (!Vars.set(node, field, newSubnode.get)) {
+                  ERROR(s"Could not set $field")
+                }
               }
             }
+            if (transformation.recursive) replace(newSubnode.get, transformation)
           }
-          if (transformation.recursive) replace(newSubnode, transformation)
         }
       }
-
     })
     Collectors.notifyLeave(node)
   }
