@@ -3,6 +3,10 @@ package harald.pretty
 import java.io._
 import harald.ast.TreeL2
 import harald.dsl.DomainKnowledge
+import exastencils.core._
+import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.globals._
 import exastencils.prettyprinting._
 
 class PrettyPrinter(treel2 : TreeL2) {
@@ -35,6 +39,7 @@ class PrettyPrinter(treel2 : TreeL2) {
 
     for (extClass <- treel2.ExternalClasses)
       writer <<< "#include \"" + extClass._2.cname + ".h\""
+    writer <<< "#include \"Globals/Globals.h\""
 
     writer.write("\n")
 
@@ -63,9 +68,9 @@ class PrettyPrinter(treel2 : TreeL2) {
     // Data as global variables
     for (c <- treel2.Fields)
       writer.write(s"${c.arrname}<${c.datatype}>* ${c.name};\n")
-    //   if (DomainKnowledge.use_MPI)  
-    for (c <- treel2.GhostFields)
-      writer.write(s"${arrayname}<${c.datatype}>* ${c.name};\n")
+    if (DomainKnowledge.use_MPI)
+      for (c <- treel2.GhostFields)
+        writer.write(s"${arrayname}<${c.datatype}>* ${c.name};\n")
 
     writer.write("\n")
     for (c <- treel2.Stencils)
@@ -76,16 +81,14 @@ class PrettyPrinter(treel2 : TreeL2) {
 
     writer.write("\n")
 
+    // FIXME: this was a quick way to remove globals from the main while letting them still be available in the modules  
+    val globals : Globals = StateManager.root.asInstanceOf[Root].nodes.find(node => node.isInstanceOf[Globals]).get.asInstanceOf[Globals];
     for (g <- DomainKnowledge.global_variables) {
-      if (g.value == 0)
-        writer.write(s"${g.dtype} ${g.name}; \n")
-      else if (DomainKnowledge.use_gpu)
-        writer.write(s"#define ${g.name} ${g.value} \n")
-      else
-        writer.write(s"${g.modifier} ${g.dtype} ${g.name} = ${g.value}; \n")
+      globals.defines += new DefineStatement(s"${g.name}", Some(s"${g.value}"))
 
-      if (g.name.equals("xsize"))
-        g.v = (g.v.toFloat + 5).toInt
+      // TODO: find out what the purpose of the next two seemingly irrelevant statements was
+      //if (g.name.equals("xsize"))
+      //  g.v = (g.v.toFloat + 5).toInt
     }
 
     println(DomainKnowledge.global_variables)

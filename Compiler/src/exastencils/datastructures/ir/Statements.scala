@@ -51,6 +51,19 @@ case class VariableDeclarationStatement(var variable : Variable, var expression 
   }
 }
 
+case class DefineStatement(var name : Expression, var value : Option[Expression] = None) extends Statement {
+  override def cpp = {
+    s"#define ${name.cpp}" + (if (value.isDefined) s"  ${value.get.cpp}" else "");
+  }
+
+  override def duplicate = {
+    if (value != None)
+      DefineStatement(Duplicate(name), Some(Duplicate(value.get))).asInstanceOf[this.type]
+    else
+      DefineStatement(Duplicate(name)).asInstanceOf[this.type]
+  }
+}
+
 // Changed by Sebastian: I needed a more general version
 //case class AssignmentStatement(var identifier : Identifier, var expression : Expression)
 //    extends Statement {
