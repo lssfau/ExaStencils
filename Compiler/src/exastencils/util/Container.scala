@@ -70,6 +70,9 @@ public:
 	inline double&	getDataRef (const Vec3u& idx)
 	{ return data[getAbsIdx(idx)]; }
 
+	inline double&	getDataRef (unsigned int idx0, unsigned int idx1, unsigned int idx2)
+	{ return data[getAbsIdx(Vec3u(idx0, idx1, idx2))]; }
+
 public:
 	double*				data;
 

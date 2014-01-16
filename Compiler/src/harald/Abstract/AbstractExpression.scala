@@ -67,7 +67,7 @@ case class AbstractBinaryOp(operator: String, left: AbstractExpression, right: A
                       //  	                         return new functioncall(id1+s"[${l1}]","convolve" + e1.length + "P", lb) 
 
                       var memlistS: ListBuffer[ParameterInfo] = ListBuffer()
-                      memlistS += new ParameterInfo("solution[lev]", TreeManager.tree.ExternalClasses.get("Array").get.name + "<T>&")
+                      memlistS += new ParameterInfo("solution[lev]", TreeManager.tree.ExternalClasses.get("Array").get.name + "<T>&") // TODO: this really shouldn't be hardcoded
                       for (i <- 1 to DomainKnowledge.rule_dim())
                         memlistS += new ParameterInfo(s"i${i - 1}", "int")
                       return StencilGenerator.generateStencilConvolution(id1 + "[0]", e1.length, memlistS, "")

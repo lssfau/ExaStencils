@@ -52,7 +52,6 @@ case class AbstractFunction(fname: String, location: String, rettype: String, pa
         sizestr = "solution" + "[lev]"
         for (i <- 0 to DomainKnowledge.rule_dim() - 1)
           cpuargs += new ImplValueExpr[String](s"${sizestr}.x${i + 1}_")
-
         for (i <- 0 to DomainKnowledge.rule_dim() - 1)
           palistgpu += new ParameterInfo(s"s${i + 1}", "int")
 

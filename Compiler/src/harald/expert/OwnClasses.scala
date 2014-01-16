@@ -5,23 +5,23 @@ import harald.Impl._
 import harald.dsl._
 import harald.ast._
 
-class DataClasses(treel2: TreeL2) {
+class DataClasses(treel2 : TreeL2) {
 
   def initextClasses() {
 
     initArrayClass()
     initStencilClass()
   }
-  
+
   def initArrayClass() {
     // Array Class on CPU
 
     var ArrayClassName = "MyArray"
 
-    var memfunc: ListBuffer[ImplFunction] = ListBuffer()
-    var cmemlist: ListBuffer[ParameterInfo] = ListBuffer()
-    var idxdimmemlist: ListBuffer[String] = ListBuffer()
-    var idxdimparlist: ListBuffer[String] = ListBuffer()
+    var memfunc : ListBuffer[ImplFunction] = ListBuffer()
+    var cmemlist : ListBuffer[ParameterInfo] = ListBuffer()
+    var idxdimmemlist : ListBuffer[String] = ListBuffer()
+    var idxdimparlist : ListBuffer[String] = ListBuffer()
 
     cmemlist += new ParameterInfo("a", "T*")
     for (i <- 1 to DomainKnowledge.rule_dim()) {
@@ -30,16 +30,16 @@ class DataClasses(treel2: TreeL2) {
       cmemlist += new ParameterInfo(idxdimmemlist(i - 1), "int")
     }
 
-    var sizeidx: String = idxdimmemlist(0)
+    var sizeidx : String = idxdimmemlist(0)
     for (i <- 1 to DomainKnowledge.rule_dim() - 1)
       sizeidx = sizeidx + "*" + idxdimmemlist(i)
 
     memfunc += new ImplFunction(ArrayClassName, "", ListBuffer(new ParameterInfo("", "")), ListBuffer(new ImplStatement()), Map(), "cpu")
 
-    var memlist: ListBuffer[ParameterInfo] = ListBuffer()
+    var memlist : ListBuffer[ParameterInfo] = ListBuffer()
     for (i <- 1 to DomainKnowledge.rule_dim())
       memlist += new ParameterInfo(idxdimparlist(i - 1), "int")
-    var bodylist: ListBuffer[ImplStatement] = ListBuffer()
+    var bodylist : ListBuffer[ImplStatement] = ListBuffer()
     for (i <- 1 to DomainKnowledge.rule_dim())
       bodylist += new ImplExternalStatement(s"${idxdimmemlist(i - 1)} = ${idxdimparlist(i - 1)};")
     bodylist += new ImplExternalStatement(s"a = new T[${sizeidx}];")
@@ -50,7 +50,7 @@ class DataClasses(treel2: TreeL2) {
     for (i <- 1 to DomainKnowledge.rule_dim())
       memfunc += new ImplFunction("s" + i.toString, "int", ListBuffer(new ParameterInfo("", "")), ListBuffer(new ImplExternalStatement(s"return ${idxdimmemlist(i - 1)};")), Map(), "cpu")
 
-    var idxlin: String = IdxKnowledge.mapidxToLinear(idxdimparlist, idxdimmemlist)
+    var idxlin : String = IdxKnowledge.mapidxToLinear(idxdimparlist, idxdimmemlist)
     memfunc += new ImplFunction("operator()", "T&", memlist, ListBuffer(new ImplExternalStatement("return a[" + idxlin + "]; ")), Map(), "cpu")
 
     treel2.ExternalClasses += "Array" -> new ImplClass(ArrayClassName, "T",
@@ -60,14 +60,14 @@ class DataClasses(treel2: TreeL2) {
     // Array Class on GPU
     ArrayClassName = "MyArrayCuda"
 
-    var memfunccuda: ListBuffer[ImplFunction] = ListBuffer()
+    var memfunccuda : ListBuffer[ImplFunction] = ListBuffer()
 
     memfunccuda += new ImplFunction(ArrayClassName, "", ListBuffer(new ParameterInfo("", "")), ListBuffer(new ImplStatement()), Map(), "cpu")
 
-    var memlistcuda: ListBuffer[ParameterInfo] = ListBuffer()
+    var memlistcuda : ListBuffer[ParameterInfo] = ListBuffer()
     for (i <- 1 to DomainKnowledge.rule_dim())
       memlistcuda += new ParameterInfo(idxdimparlist(i - 1), "int")
-    var bodylistcuda: ListBuffer[ImplStatement] = ListBuffer()
+    var bodylistcuda : ListBuffer[ImplStatement] = ListBuffer()
     for (i <- 1 to DomainKnowledge.rule_dim())
       bodylistcuda += new ImplExternalStatement(s"${idxdimmemlist(i - 1)} = ${idxdimparlist(i - 1)};")
     bodylistcuda += new ImplExternalStatement(s"cudaMalloc ( ( void ** ) &a, sizeof (T) * ${sizeidx});")
@@ -82,16 +82,15 @@ class DataClasses(treel2: TreeL2) {
         memfunccuda)
     }
   }
-  
 
   def initStencilClass() {
 
     // Const Stencil Class on CPU
     var StencilClassName = "MyStencil"
 
-    var cmemlist: ListBuffer[ParameterInfo] = ListBuffer()
-    var idxdimmemlist: ListBuffer[String] = ListBuffer()
-    var idxdimparlist: ListBuffer[String] = ListBuffer()
+    var cmemlist : ListBuffer[ParameterInfo] = ListBuffer()
+    var idxdimmemlist : ListBuffer[String] = ListBuffer()
+    var idxdimparlist : ListBuffer[String] = ListBuffer()
 
     cmemlist += new ParameterInfo("a", "T*")
     for (i <- 1 to DomainKnowledge.rule_dim()) {
@@ -100,16 +99,16 @@ class DataClasses(treel2: TreeL2) {
       cmemlist += new ParameterInfo(idxdimmemlist(i - 1), "int")
     }
 
-    var sizeidx: String = idxdimmemlist(0)
+    var sizeidx : String = idxdimmemlist(0)
     for (i <- 1 to DomainKnowledge.rule_dim() - 1)
       sizeidx = sizeidx + "*" + idxdimmemlist(i)
 
-    var memlist: ListBuffer[ParameterInfo] = ListBuffer()
+    var memlist : ListBuffer[ParameterInfo] = ListBuffer()
     for (i <- 1 to DomainKnowledge.rule_dim())
       memlist += new ParameterInfo(idxdimparlist(i - 1), "int")
-    
-    var idxlin: String = IdxKnowledge.mapidxToLinear(idxdimparlist, idxdimmemlist)
-    var memfuncS: ListBuffer[ImplFunction] = ListBuffer()
+
+    var idxlin : String = IdxKnowledge.mapidxToLinear(idxdimparlist, idxdimmemlist)
+    var memfuncS : ListBuffer[ImplFunction] = ListBuffer()
 
     memfuncS += new ImplFunction(StencilClassName, "", ListBuffer(new ParameterInfo("", "")), ListBuffer(new ImplStatement()), Map(), "cpu")
     memfuncS += new ImplFunction(StencilClassName, "", ListBuffer(new ParameterInfo("s", "int")), ListBuffer(new ImplExternalStatement("size = s;entries.resize(s); ")), Map(), "cpu")
@@ -120,12 +119,12 @@ class DataClasses(treel2: TreeL2) {
     var statdiag = new ImplExternalStatement("return entries[0]; ")
     memfuncS += new ImplFunction("diag", "T", memlist, ListBuffer(statdiag), Map(), "cpu")
 
-    val stsizes: List[Int] = DomainKnowledge.rule_dim() match {
+    val stsizes : List[Int] = DomainKnowledge.rule_dim() match {
       case 2 => List(1, 5, 9)
       case 3 => List(1, 7, 27)
     }
 
-    var memlistS: ListBuffer[ParameterInfo] = ListBuffer()
+    var memlistS : ListBuffer[ParameterInfo] = ListBuffer()
     memlistS += new ParameterInfo("arr", treel2.ExternalClasses.get("Array").get.name + "<T>&")
     for (i <- 1 to DomainKnowledge.rule_dim())
       memlistS += new ParameterInfo(idxdimparlist(i - 1), "int")
@@ -185,16 +184,16 @@ class DataClasses(treel2: TreeL2) {
       memfuncS)
 
     StencilClassName = "MyStencilVar"
-    var memfuncSV: ListBuffer[ImplFunction] = ListBuffer()
+    var memfuncSV : ListBuffer[ImplFunction] = ListBuffer()
 
-    var memlistSinit: ListBuffer[ParameterInfo] = ListBuffer()
+    var memlistSinit : ListBuffer[ParameterInfo] = ListBuffer()
     for (i <- 1 to DomainKnowledge.rule_dim())
       memlistSinit += new ParameterInfo(idxdimparlist(i - 1), "int")
     memlistSinit += new ParameterInfo("s", "int")
 
     memfuncSV += new ImplFunction(StencilClassName, "", ListBuffer(new ParameterInfo("", "")), ListBuffer(new ImplStatement()), Map(), "cpu")
 
-    var bodylistSinit: ListBuffer[ImplStatement] = ListBuffer()
+    var bodylistSinit : ListBuffer[ImplStatement] = ListBuffer()
     for (i <- 1 to DomainKnowledge.rule_dim())
       bodylistSinit += new ImplExternalStatement(s"${idxdimmemlist(i - 1)} = ${idxdimparlist(i - 1)};")
     bodylistSinit += new ImplExternalStatement(s"size = s;entries.resize(${sizeidx},s); ")
@@ -202,7 +201,7 @@ class DataClasses(treel2: TreeL2) {
     memfuncSV += new ImplFunction(StencilClassName, "", memlistSinit, bodylistSinit, Map(), "cpu")
     memfuncSV += new ImplFunction("resize", "void", memlistSinit, bodylistSinit, Map(), "cpu")
 
-    var memlistSset: ListBuffer[ParameterInfo] = ListBuffer()
+    var memlistSset : ListBuffer[ParameterInfo] = ListBuffer()
     for (i <- 1 to DomainKnowledge.rule_dim())
       memlistSset += new ParameterInfo(idxdimparlist(i - 1), "int")
     memlistSset += new ParameterInfo("idx", "int")
@@ -240,7 +239,7 @@ class DataClasses(treel2: TreeL2) {
       memfuncSV += new ImplFunction("convolve" + stsizes(i).toString + "P", "T", memlistS, ListBuffer(stat), Map(), "cpu")
     }
 
-    var cmemlistS: ListBuffer[ParameterInfo] = ListBuffer()
+    var cmemlistS : ListBuffer[ParameterInfo] = ListBuffer()
 
     for (i <- 1 to DomainKnowledge.rule_dim()) {
       cmemlistS += new ParameterInfo(idxdimmemlist(i - 1), "int")
@@ -256,7 +255,7 @@ class DataClasses(treel2: TreeL2) {
 
 object StencilGenerator {
 
-  def generateStencilInterpolation(classname: String, arrname: String, idxname: String): ImplExpression = {
+  def generateStencilInterpolation(classname : String, arrname : String, idxname : String) : ImplExpression = {
 
     val idxmap = IdxKnowledge.IntStencilToidx(DomainKnowledge.rule_dim(), Math.pow(2, DomainKnowledge.rule_dim()).toInt)
     val fac = Math.pow(0.25, DomainKnowledge.rule_dim() - 1)
@@ -264,7 +263,7 @@ object StencilGenerator {
     if (!classname.equals(""))
       cstr = classname + "."
 
-    var exts: String = fac.toString + s"*(${cstr}${arrname}(" + DomainKnowledge.rule_mapfineTocoarse(s"${idxname}1+" + idxmap(0)(0).toString)
+    var exts : String = fac.toString + s"*(${cstr}${arrname}(" + DomainKnowledge.rule_mapfineTocoarse(s"${idxname}1+" + idxmap(0)(0).toString)
     for (j <- 1 to DomainKnowledge.rule_dim() - 1)
       exts += "," + DomainKnowledge.rule_mapfineTocoarse(s"${idxname}${j + 1}+" + idxmap(0)(j).toString)
     exts += ")"
@@ -285,12 +284,12 @@ object StencilGenerator {
     return statint
   }
 
-  def generateStencilInterpolationcuda(arrname: String, idxname: String): ImplExpression = {
+  def generateStencilInterpolationcuda(arrname : String, idxname : String) : ImplExpression = {
 
     val idxmap = IdxKnowledge.IntStencilToidx(DomainKnowledge.rule_dim(), Math.pow(2, DomainKnowledge.rule_dim()).toInt)
     val fac = Math.pow(0.25, DomainKnowledge.rule_dim() - 1)
 
-    var exts: String = fac.toString + s"*(${arrname}["
+    var exts : String = fac.toString + s"*(${arrname}["
     exts += IdxKnowledge.mapidxToLinear(ListBuffer(DomainKnowledge.rule_mapfineTocoarse(s"${idxname}1+" + idxmap(0)(0).toString),
       DomainKnowledge.rule_mapfineTocoarse(s"${idxname}2+" + idxmap(0)(1).toString)), ListBuffer("s1_1", "s2_1"))
     exts += "]"
@@ -309,27 +308,35 @@ object StencilGenerator {
     return statint
   }
 
-  def generateStencilConvolution(classname: String, stsize: Int, memlistS: ListBuffer[ParameterInfo], idxlin: String): ImplExpression = {
+  def generateStencilConvolution(classname : String, stsize : Int, memlistS : ListBuffer[ParameterInfo], idxlin : String) : ImplExpression = {
 
     val idxmap = IdxKnowledge.StencilToidx(DomainKnowledge.rule_dim(), stsize)
-    var exts: String = ""
+    var exts : String = ""
     var cstr = ""
     if (!classname.equals(""))
       cstr = classname + "."
 
+    var fieldName = memlistS(0).name;
+//    // HACK
+//    fieldName = fieldName match {
+//      case "solution[lev]" => "fragments[0]->solData[0][lev]->getDataRef"
+//      case "f[lev]"        => "fragments[0]->rhsData[0][lev]->getDataRef"
+//      case s : String      => s
+//    }
+
     if (idxlin.equals(""))
-      exts = s"(${cstr}entries[0]*" + memlistS(0).name + "(" + memlistS(1).name + "+" + idxmap(0)(0).toString
+      exts = s"(${cstr}entries[0]*" + fieldName + "(" + memlistS(1).name + "+" + idxmap(0)(0).toString
     else
-      exts = s"(${cstr}entries(${idxlin},0)*" + memlistS(0).name + "(" + memlistS(1).name + "+" + idxmap(0)(0).toString
+      exts = s"(${cstr}entries(${idxlin},0)*" + fieldName + "(" + memlistS(1).name + "+" + idxmap(0)(0).toString
 
     for (j <- 1 to DomainKnowledge.rule_dim() - 1)
       exts = exts + "," + memlistS(j + 1).name + "+" + idxmap(0)(j).toString
     exts = exts + ")"
     for (k <- 1 to idxmap.length - 1) {
       if (idxlin.equals(""))
-        exts = exts + s" + ${cstr}entries[" + k + "]*" + memlistS(0).name + "(" + memlistS(1).name + "+" + idxmap(k)(0).toString
+        exts = exts + s" + ${cstr}entries[" + k + "]*" + fieldName + "(" + memlistS(1).name + "+" + idxmap(k)(0).toString
       else
-        exts = exts + s" + ${cstr}entries(${idxlin},${k})*${memlistS(0).name}(${memlistS(1).name}+${idxmap(k)(0).toString}"
+        exts = exts + s" + ${cstr}entries(${idxlin},${k})*${fieldName}(${memlistS(1).name}+${idxmap(k)(0).toString}"
 
       for (j <- 1 to DomainKnowledge.rule_dim() - 1)
         exts = exts + "," + memlistS(j + 1).name + "+" + idxmap(k)(j).toString
@@ -345,10 +352,10 @@ object StencilGenerator {
     return stat
   }
 
-  def generateStencilConvolutioncuda(stsize: Int, curStencil: ImplStencil, arrname: String, arrsizeidx: Int, idxlin: String, gidx: String): ImplExpression = {
+  def generateStencilConvolutioncuda(stsize : Int, curStencil : ImplStencil, arrname : String, arrsizeidx : Int, idxlin : String, gidx : String) : ImplExpression = {
 
     val idxmap = IdxKnowledge.StencilToidx(DomainKnowledge.rule_dim(), stsize)
-    var exts: String = ""
+    var exts : String = ""
 
     // println("now in" +curStencil + " " + curStencil.sizex)
 
