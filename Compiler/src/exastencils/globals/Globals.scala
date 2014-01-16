@@ -17,7 +17,7 @@ case class Globals() extends Node with FilePrettyPrintable {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   var variables : ListBuffer[VariableDeclarationStatement] = new ListBuffer;
-  var defines : ListBuffer[DefineStatement] = new ListBuffer;	// FIXME: defines should be resolved automatically; currently this is required as an interface to Harald's prototype
+  var defines : ListBuffer[DefineStatement] = new ListBuffer; // FIXME: defines should be resolved automatically; currently this is required as an interface to Harald's prototype
   var initFunction : FunctionStatement = new FunctionStatement(new UnitDatatype, "initGlobals", new ListBuffer[Variable], new ListBuffer[Statement])
 
   override def printToFile = {

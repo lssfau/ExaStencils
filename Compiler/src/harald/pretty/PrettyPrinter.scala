@@ -1,8 +1,10 @@
 package harald.pretty
 
 import java.io._
+import scala.collection.mutable.ListBuffer
 import harald.ast.TreeL2
 import harald.dsl.DomainKnowledge
+import harald.Impl._
 import exastencils.core._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -55,6 +57,7 @@ class PrettyPrinter(treel2 : TreeL2) {
       + "#define	FUNCTIONS_H\n")
     for (extClass <- treel2.ExternalClasses)
       writerHeader <<< "#include \"" + extClass._2.cname + ".h\""
+    writerHeader <<< "#include \"Primitives/Fragment3DCube.h\""
     for (func <- treel2.Functions) {
       writerHeader <<< func._2.toString_cpp_signature;
 
@@ -100,6 +103,10 @@ class PrettyPrinter(treel2 : TreeL2) {
     writer <<< "#include \"Functions.h\"";
 
     writer.write("\n")
+
+    // BAD HACK
+    writer <<< "#include \"Poisson3D.cpp\"";
+    treel2.extfunctions.get("Main").get.body = ListBuffer[ImplStatement](new ImplExternalStatement("main2(argc, argv);\n")) ++ treel2.extfunctions.get("Main").get.body;
 
     // library classes
     writer.write(extlib)

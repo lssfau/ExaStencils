@@ -108,7 +108,7 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
         s"StopWatch stopWatch;",
         s"StopWatch stopWatchTotal;",
 
-        new ForLoopStatement(s"curIt = 0", s"curIt < ${Knowledge.mgMaxNumIterations}", s"++curIt",
+        /*new ForLoopStatement(s"curIt = 0", s"curIt < ${Knowledge.mgMaxNumIterations}", s"++curIt",
           ListBuffer[Statement](
             s"stopWatch.reset();",
 
@@ -160,7 +160,7 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
               + "maxTime << \"\\n\";")),
 
         new MPI_Barrier,
-
+				*/
         new ConditionStatement(new MPI_IsRootProc,
           s"std::cout << std::endl;"),
 
