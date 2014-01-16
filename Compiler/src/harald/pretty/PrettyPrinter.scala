@@ -54,15 +54,6 @@ class PrettyPrinter(treel2 : TreeL2) {
     // FIXME: this should be done automatically
     for (extClass <- treel2.ExternalClasses)
       extClass._2.printToFile;
-    //    writer.write(treel2.ExternalClasses.get("Array").get.toString_cpp)
-    //    writer.write("\n")
-    //    if (DomainKnowledge.use_gpu)
-    //      writer.write(treel2.ExternalClasses.get("ArrayCuda").get.toString_cpp)
-    //    writer.write("\n")
-    //    writer.write(treel2.ExternalClasses.get("Stencil").get.toString_cpp)
-    //    writer.write("\n")
-    //    writer.write(treel2.ExternalClasses.get("StencilVar").get.toString_cpp)
-    //    writer.write("\n")
 
     val arrayname : String = treel2.ExternalClasses.get("Array").get.name
     val stencilname : String = treel2.ExternalClasses.get("Stencil").get.name

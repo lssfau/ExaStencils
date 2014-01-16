@@ -76,9 +76,11 @@ class DataClasses(treel2: TreeL2) {
     memfunccuda += new ImplFunction("begin", "T*", new ListBuffer(), ListBuffer(new ImplExternalStatement("return &a[0];")), Map(), "cpu")
     memfunccuda += new ImplFunction("resize", "void", memlist, bodylistcuda, Map(), "cpu")
 
-    treel2.ExternalClasses += "ArrayCuda" -> new ImplClass(ArrayClassName, "T",
-      cmemlist,
-      memfunccuda)
+    if (DomainKnowledge.use_gpu) {
+      treel2.ExternalClasses += "ArrayCuda" -> new ImplClass(ArrayClassName, "T",
+        cmemlist,
+        memfunccuda)
+    }
   }
   
 
