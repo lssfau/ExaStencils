@@ -24,41 +24,6 @@ class PrettyPrinter(treel2 : TreeL2) {
     if (DomainKnowledge.use_gpu)
       extlibcuda = scala.io.Source.fromFile(path + "mglib.cu").getLines.reduceLeft(_ + "\n" + _)
 
-    val writer = PrettyprintingManager.getPrinter(fname)
-
-    // header	    
-    writer.write("#include <iostream>\n")
-    writer.write("#include <vector>\n")
-    writer.write("#include <complex>\n")
-    writer.write("#include <stdlib.h>\n")
-    if (DomainKnowledge.use_MPI)
-      writer.write("#include \"mpi.h\"\n")
-    if (DomainKnowledge.use_Openmp)
-      writer.write("#include \"omp.h\"\n")
-
-    if (DomainKnowledge.use_FE)
-      writer.write("#include \"Jochen/Colsamm.h\"\n")
-
-    writer <<< "#include \"Globals/Globals.h\""
-    for (extClass <- treel2.ExternalClasses)
-      writer <<< "#include \"" + extClass._2.cname + ".h\""
-    writer <<< "#include \"Functions.h\"";
-
-    writer.write("\n")
-
-    // library classes
-    writer.write(extlib)
-    writer.write("\n")
-    if (DomainKnowledge.use_gpu) {
-      writer.write(extlibcuda)
-      writer.write("\n")
-    }
-    if (DomainKnowledge.use_MPI) {
-      writer.write(extlibmpi)
-      writer.write("\n")
-    }
-    var h : String = "cpp"
-
     // FIXME: this should be done automatically
     for (extClass <- treel2.ExternalClasses)
       extClass._2.printToFile;
@@ -100,20 +65,54 @@ class PrettyPrinter(treel2 : TreeL2) {
 
       i += 1;
     }
+    for (func <- treel2.extfunctions) {
+      if ("Main" != func._1) {
+        writerHeader <<< func._2.toString_cpp_signature;
+
+        val writerSource = PrettyprintingManager.getPrinter(s"Functions_$i.cpp");
+        writerSource <<< "#include \"Functions.h\"";
+
+        writerSource <<< func._2.toString_cpp;
+
+        i += 1;
+      }
+    }
     writerHeader <<< "#endif"
 
+    val writer = PrettyprintingManager.getPrinter(fname)
+
+    // Write actual main function	    
+    writer.write("#include <iostream>\n")
+    writer.write("#include <vector>\n")
+    writer.write("#include <complex>\n")
+    writer.write("#include <stdlib.h>\n")
+    if (DomainKnowledge.use_MPI)
+      writer.write("#include \"mpi.h\"\n")
+    if (DomainKnowledge.use_Openmp)
+      writer.write("#include \"omp.h\"\n")
+
+    if (DomainKnowledge.use_FE)
+      writer.write("#include \"Jochen/Colsamm.h\"\n")
+
+    writer <<< "#include \"Globals/Globals.h\""
+    for (extClass <- treel2.ExternalClasses)
+      writer <<< "#include \"" + extClass._2.cname + ".h\""
+    writer <<< "#include \"Functions.h\"";
+
     writer.write("\n")
-    if (!DomainKnowledge.use_gpu)
-      writer.write(treel2.extfunctions.get("BC").get.toString_cpp)
+
+    // library classes
+    writer.write(extlib)
     writer.write("\n")
-    if (DomainKnowledge.use_MPI) {
-      writer.write(treel2.extfunctions.get("copyToBuffers").get.toString_cpp)
+    if (DomainKnowledge.use_gpu) {
+      writer.write(extlibcuda)
       writer.write("\n")
-      writer.write(treel2.extfunctions.get("copyFromBuffers").get.toString_cpp)
+    }
+    if (DomainKnowledge.use_MPI) {
+      writer.write(extlibmpi)
       writer.write("\n")
     }
 
-    writer.write("\n")
     writer.write(treel2.extfunctions.get("Main").get.toString_cpp)
 
     writer.close()

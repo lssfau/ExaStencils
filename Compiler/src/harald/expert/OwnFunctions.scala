@@ -251,9 +251,8 @@ class OwnFunctions(treel2 : TreeL2) {
       bcloops += generateBCidxloop(vertex1, vertex2, DomainKnowledge.pdebc_L1.get._1+"[lev]", "0", true,  lev, "BC")
     }
 
-    treel2.extfunctions += "BC" -> new ImplFunction("treatBoundary", "void", ListBuffer(new ParameterInfo("lev", "int")),
-      bcloops,Map(), "cpu")
-
+      treel2.extfunctions += "BC" -> new ImplFunction("treatBoundary", "void", ListBuffer(new ParameterInfo("lev", "int")),
+        bcloops, Map(), "cpu")
   }
   
   
@@ -302,8 +301,9 @@ class OwnFunctions(treel2 : TreeL2) {
 
     initMain()
 
-    initBC()
-    
+    if (!DomainKnowledge.use_gpu) {
+      initBC()
+    }
     if (DomainKnowledge.use_MPI) {
       initcopyToBuf()
       initcopyFromBuf()
