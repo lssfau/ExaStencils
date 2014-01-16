@@ -11,6 +11,8 @@ import exastencils.prettyprinting._
 
 class PrettyPrinter(treel2 : TreeL2) {
   def prettycpp(path : String, fname : String) {
+    val globals : Globals = StateManager.root.asInstanceOf[Root].nodes.find(node => node.isInstanceOf[Globals]).get.asInstanceOf[Globals];
+
     val extlib : String = ""; // scala.io.Source.fromFile(path+"mglib.cpp").getLines.reduceLeft(_ + "\n" + _)
 
     var extlibcuda : String = ""
@@ -37,9 +39,10 @@ class PrettyPrinter(treel2 : TreeL2) {
     if (DomainKnowledge.use_FE)
       writer.write("#include \"Jochen/Colsamm.h\"\n")
 
+    writer <<< "#include \"Globals/Globals.h\""
     for (extClass <- treel2.ExternalClasses)
       writer <<< "#include \"" + extClass._2.cname + ".h\""
-    writer <<< "#include \"Globals/Globals.h\""
+    writer <<< "#include \"Functions.h\"";
 
     writer.write("\n")
 
@@ -65,24 +68,23 @@ class PrettyPrinter(treel2 : TreeL2) {
     val nlevels : Int = DomainKnowledge.nlevels_L3.getOrElse(1)
     val pnlevels : String = nlevels.toString()
 
-    // Data as global variables
+    // publish global field variables
     for (c <- treel2.Fields)
-      writer.write(s"${c.arrname}<${c.datatype}>* ${c.name};\n")
+      globals.variables += new VariableDeclarationStatement(new Variable(s"${c.arrname}<${c.datatype}>*", s"${c.name}"))
     if (DomainKnowledge.use_MPI)
       for (c <- treel2.GhostFields)
-        writer.write(s"${arrayname}<${c.datatype}>* ${c.name};\n")
+        globals.variables += new VariableDeclarationStatement(new Variable(s"${arrayname}<${c.datatype}>*", s"${c.name}"))
 
-    writer.write("\n")
+    // publish global stencils
     for (c <- treel2.Stencils)
       if (c.weakform.equals(""))
-        writer.write(s"${stencilname}<${c.datatype}>* ${c.name};\n")
+        globals.variables += new VariableDeclarationStatement(new Variable(s"${stencilname}<${c.datatype}>*", s"${c.name}"))
       else
-        writer.write(s"${treel2.ExternalClasses.get("StencilVar").get.name}<${c.datatype}>* ${c.name};\n")
+        globals.variables += new VariableDeclarationStatement(new Variable(s"${treel2.ExternalClasses.get("StencilVar").get.name}<${c.datatype}>*", s"${c.name}"))
 
     writer.write("\n")
 
     // FIXME: this was a quick way to remove globals from the main while letting them still be available in the modules  
-    val globals : Globals = StateManager.root.asInstanceOf[Root].nodes.find(node => node.isInstanceOf[Globals]).get.asInstanceOf[Globals];
     for (g <- DomainKnowledge.global_variables) {
       globals.defines += new DefineStatement(s"${g.name}", Some(s"${g.value}"))
 
@@ -95,6 +97,24 @@ class PrettyPrinter(treel2 : TreeL2) {
     println(DomainKnowledge.global_fields.toString)
     println(DomainKnowledge.global_stencils.toString)
 
+    var i = 0;
+    val writerHeader = PrettyprintingManager.getPrinter(s"Functions.h");
+    writerHeader << ("#ifndef	FUNCTIONS_H\n"
+      + "#define	FUNCTIONS_H\n")
+    for (extClass <- treel2.ExternalClasses)
+      writerHeader <<< "#include \"" + extClass._2.cname + ".h\""
+    for (func <- treel2.Functions) {
+      writerHeader <<< func._2.toString_cpp_signature;
+
+      val writerSource = PrettyprintingManager.getPrinter(s"Functions_$i.cpp");
+      writerSource <<< "#include \"Functions.h\"";
+
+      writerSource <<< func._2.toString_cpp;
+
+      i += 1;
+    }
+    writerHeader <<< "#endif"
+
     writer.write("\n")
     if (!DomainKnowledge.use_gpu)
       writer.write(treel2.extfunctions.get("BC").get.toString_cpp)
@@ -106,18 +126,7 @@ class PrettyPrinter(treel2 : TreeL2) {
       writer.write("\n")
     }
 
-    //     var writerHeader = PrettyprintingManager.getPrinter("Functions.h");
-    //       writerHeader <<< "#include \"MyArray.h\"";
-    //
-    //    var writerSource = PrettyprintingManager.getPrinter("Functions.cpp");
-    //    writerSource <<< "#include \"Functions.h\"";
-    //    
-    //    for (c <- treel2.Functions){
-    //      writerHeader <<< c._2.toString_cpp_signature;
-    //      writerSource <<< c._2.toString_cpp;
-    //    }
-
-    for (c <- treel2.Functions) {
+    /* for (c <- treel2.Functions) {
       if (!c._2.name.equals("Application")) {
         writer.write(c._2.toString_cpp_signature)
         writer.write("\n")
@@ -143,7 +152,7 @@ class PrettyPrinter(treel2 : TreeL2) {
         writer.write(c._2.toString_cpp)
         writer.write("\n")
       }
-    }
+    }*/
 
     writer.write("\n")
     writer.write(treel2.extfunctions.get("Main").get.toString_cpp)

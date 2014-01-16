@@ -23,9 +23,11 @@ case class ImplClass(var cname : String, var templ : String, var memlist : ListB
       + "#include \"Globals/Globals.h\"\n")
 
     // FIXME: HACK
-    if ("MyStencil" == name)
+    if ("MyStencil" == name) {
       writer <<< "#include \"MyArray.h\""
-
+      writer <<< "#include <vector>"
+    }
+    
     if (!templ.equals("")) writer <<< "template<class " + templ + ">"
 
     writer << s"class $cname\n{\n"

@@ -33,6 +33,8 @@ case class Globals() extends Node with FilePrettyPrintable {
     for (define <- defines) { writerHeader << s"${define.cpp}\n"; }
 
     writerHeader << "class Fragment3DCube;\n"; // FIXME: find a way to extract necessary forward defines from variables
+    writerHeader << "template<class T> class MyArray;\n";
+    writerHeader << "template<class T> class MyStencil;\n";
 
     for (variable <- variables) { writerHeader << s"extern ${variable.cpp}\n"; }
 
