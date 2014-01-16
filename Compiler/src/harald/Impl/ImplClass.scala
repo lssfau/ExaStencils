@@ -3,31 +3,46 @@ package harald.Impl
 import scala.collection.mutable.ListBuffer
 import harald.dsl.ParameterInfo
 
-  class ImplClass(cname: String, templ: String, memlist: ListBuffer[ParameterInfo], memfunc: ListBuffer[ImplFunction]) {
-    var name: String = cname
-    var memberfunc = memfunc
-    var membervar = memlist
+import exastencils.datastructures._
+import exastencils.datastructures.ir._
+import exastencils.prettyprinting._
 
-    def toString_cpp: String = {
-      var s: String = ""
-      if (templ.equals("")) {} else {
-        s = "template<class " + templ + ">"
-      }
-      var sm: String = ""
-      for (e <- memlist)
-        sm = sm + e.toString_cpp + ";\n"
-      var smf: String = ""
-      for (e <- memfunc)
-        smf = smf + " \n" + e.toString_cpp
+case class ImplClass(var cname : String, var templ : String, var memlist : ListBuffer[ParameterInfo], var memfunc : ListBuffer[ImplFunction]) extends Node with FilePrettyPrintable {
+  override def duplicate = this.copy().asInstanceOf[this.type]
 
-      return s + " class " + cname + "{ \n public: \n" + sm + "\n " + smf + "};"
-    }
-    def costs(para: String): Map[Int,String] = {
-      var m : Map[Int,String] = Map()
-      for (b <- memfunc) {
-        m ++= b.costs(para)
-        // println(b.costs)      
-      }
-      return m
-    }
+  var name : String = cname
+  var memberfunc = memfunc
+  var membervar = memlist
+
+  override def printToFile = {
+    val writer = PrettyprintingManager.getPrinter(s"${name}.h")
+
+    writer << (
+      s"#ifndef ${name.toUpperCase()}\n"
+      + s"#define ${name.toUpperCase()}\n"
+      + "#include \"Globals/Globals.h\"\n")
+
+    // FIXME: HACK
+    if ("MyStencil" == name)
+      writer <<< "#include \"MyArray.h\""
+
+    if (!templ.equals("")) writer <<< "template<class " + templ + ">"
+
+    writer << s"class $cname\n{\n"
+    writer <<< "public:"
+    writer <<< memlist.map(mem => mem.toString_cpp + ";\n").mkString("")
+    writer <<< memfunc.map(fun => fun.toString_cpp + "\n").mkString("")
+    writer <<< "};"
+
+    writer <<< "#endif"
   }
+
+  def costs(para : String) : Map[Int, String] = {
+    var m : Map[Int, String] = Map()
+    for (b <- memfunc) {
+      m ++= b.costs(para)
+      // println(b.costs)      
+    }
+    return m
+  }
+}

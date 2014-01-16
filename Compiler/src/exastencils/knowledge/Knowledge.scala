@@ -76,7 +76,7 @@ object Knowledge {
   var mgMaxNumIterations : Integer = 1024;
 
   var cgs = CoarseGridSolverType.IP_Smoother;
-  var smoother = SmootherType.Jac;
+  var smoother = SmootherType.GS;
 
   var gsodNumIterations : Integer = 8;
   var gsbeNumIterations : Integer = 12;

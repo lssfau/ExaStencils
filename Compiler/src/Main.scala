@@ -33,7 +33,6 @@ object Main {
     val libpath = "C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ScalaExaStencil/Compiler/src/harald/otherfiles/"
     val DSLpath = "C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ScalaExaStencil/Compiler/src/harald/testmg/"
     val problem = "testDSL"
-    val outputpath = Settings.outputPath
     val outputfile = "main.cpp"
 
     // Setup tree
@@ -148,7 +147,7 @@ object Main {
     ownfunc.initextFunctions
 
     val exadsl = new PrettyPrinter(TreeManager.tree)
-    exadsl.prettycpp(libpath, outputpath + outputfile)
+    exadsl.prettycpp(libpath, outputfile)
 
     // Strategies
 
