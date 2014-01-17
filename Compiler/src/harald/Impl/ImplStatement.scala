@@ -46,7 +46,7 @@ case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : List
     var sloops : String = "{"
 
     if (runningorder.equals("rb")) {
-      // multicolor: int offset = ( i0 % 2 == 0 ? 1 : 2 ); für alle += 2 erster index 1,2 dann offset2 = ( i % 2 == offs2 ? 1 : 2 ); offset3 = ( j % 2 == offs3 ? 2 : 1 );
+      // multicolor: int offset = ( i0 % 2 == 0 ? 1 : 2 ); fï¿½r alle += 2 erster index 1,2 dann offset2 = ( i % 2 == offs2 ? 1 : 2 ); offset3 = ( j % 2 == offs3 ? 2 : 1 );
 
       for (off <- 0 to 1) {
         var wrappedBody : ListBuffer[Statement] = body; // TODO: clone?
