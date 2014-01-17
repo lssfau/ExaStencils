@@ -211,7 +211,7 @@ case class AbstractPLet(val id: String, val expr: AbstractExpression, modifier: 
 case class AbstractReturn(val expr: AbstractExpression) extends AbstractStatement {
   override def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[Statement] = {
     var ret: ListBuffer[Statement] = ListBuffer()
-    ret += new ImplReturnStatement(expr.transform(scopeparas, None, "return"))
+    ret += new ReturnStatement(expr.transform(scopeparas, None, "return"))
     return ret
   }
 

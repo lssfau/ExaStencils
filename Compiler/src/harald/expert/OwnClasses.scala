@@ -133,7 +133,7 @@ class DataClasses(treel2 : TreeL2) {
 
     for (i <- 0 to stsizes.length - 1) {
 
-      var stat = new ImplReturnStatement(StencilGenerator.generateStencilConvolution("", stsizes(i), memlistS, ""))
+      var stat = new ReturnStatement(StencilGenerator.generateStencilConvolution("", stsizes(i), memlistS, ""))
 
       /*      val idxmap = IdxKnowledge.StencilToidx(DomainKnowledge.rule_dim(), stsizes(i))
       var exts: String = s"return entries[0]*" + memlistS(0).name + "(" + memlistS(1).name + "+" + idxmap(0)(0).toString
@@ -176,7 +176,7 @@ class DataClasses(treel2 : TreeL2) {
     statint.CostInfo += "Load" -> (Math.pow(2, DomainKnowledge.rule_dim()).toInt)
     //statint.costs(ListBuffer(new ParameterInfo("","")))
 */
-    var statint = new ImplReturnStatement(StencilGenerator.generateStencilInterpolation("", "arr", "x"))
+    var statint = new ReturnStatement(StencilGenerator.generateStencilInterpolation("", "arr", "x"))
 
     memfuncS += new ImplFunction("interpolate", "T", memlistS, ListBuffer(statint), Map(), "cpu")
 
@@ -217,7 +217,7 @@ class DataClasses(treel2 : TreeL2) {
 
     for (i <- 0 to stsizes.length - 1) {
 
-      var stat = new ImplReturnStatement(StencilGenerator.generateStencilConvolution("", stsizes(i), memlistS, idxlin))
+      var stat = new ReturnStatement(StencilGenerator.generateStencilConvolution("", stsizes(i), memlistS, idxlin))
 
       /*      val idxmap = IdxKnowledge.StencilToidx(DomainKnowledge.rule_dim(), stsizes(i))
       var exts: String = s"return entries(${idxlin},0)*" + memlistS(0).name + "(" + memlistS(1).name + "+" + idxmap(0)(0).toString

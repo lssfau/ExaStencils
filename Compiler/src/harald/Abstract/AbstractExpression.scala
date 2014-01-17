@@ -6,6 +6,7 @@ import harald.Impl._
 import harald.ast.TreeManager
 import harald.expert.StencilGenerator
 import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
 
 sealed abstract class AbstractExpression {
   def value(context: Context): String
@@ -49,7 +50,7 @@ case class AbstractBinaryOp(operator: String, left: AbstractExpression, right: A
                     for (i <- 1 to DomainKnowledge.rule_dim())
                       lb += new ImplValueExpr[String]("i" + (i - 1).toString)
 
-                    return new ImplFcall(id1 + s"[0]", "interpolate", lb) //ListBuffer(new VariableInfo(id2 , new TypeInfo(id2,1), mapexpression(l2,scopeparas,modifier,"argument").toString, "argument"), new ValueExpr[String]("i0"),new ValueExpr[String]("i1")))
+                    return new MemberFunctionCallExpression(id1 + s"[0]", "interpolate", lb) //ListBuffer(new VariableInfo(id2 , new TypeInfo(id2,1), mapexpression(l2,scopeparas,modifier,"argument").toString, "argument"), new ValueExpr[String]("i0"),new ValueExpr[String]("i1")))
                   } else {
 
                     if (DomainKnowledge.use_gpu) {
@@ -117,7 +118,7 @@ case class AbstractFCall(fname: String, arglist: List[AbstractExpression]) exten
         for (i <- 1 to DomainKnowledge.rule_dim() - 1)
           expr += new ImplValueExpr[String](s"i${i}")
 
-        return new ImplFcall(args(0).cpp, fname, expr)
+        return new MemberFunctionCallExpression(args(0).cpp, fname, expr)
       }
     }
     if (fname.equals("random"))
@@ -125,7 +126,7 @@ case class AbstractFCall(fname: String, arglist: List[AbstractExpression]) exten
     if (fname.equals("fasterReduce") && DomainKnowledge.use_gpu)
       return new ImplValueExpr[String]("fasterReduce (Res[lev].begin(), solution[lev].x1_*solution[lev].x2_, f[lev].begin())") // TODO
 
-    return new ImplFcall("", fname, args)
+    return new FunctionCallExpression(fname, args)
 
   }
 }

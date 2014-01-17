@@ -68,9 +68,20 @@ case class BinaryExpression(operator : String, var left : Expression, var right 
   override def duplicate = this.copy(left = Duplicate(left), right = Duplicate(right)).asInstanceOf[this.type]
 }
 
-case class FunctionCallExpression(name : String, var arguments : List[Expression]) extends Expression {
-  override def cpp = name + "FIXME args"
-  override def duplicate = this.copy(arguments = Duplicate(arguments)).asInstanceOf[this.type]
+case class FunctionCallExpression(var name : Expression, var arguments : ListBuffer[Expression /* FIXME: more specialization*/ ]) extends Expression {
+  override def duplicate = this.copy(name = Duplicate(name), arguments = Duplicate(arguments)).asInstanceOf[this.type]
+
+  override def cpp : String = {
+    return (s"${name.cpp}(" + arguments.map(arg => arg.cpp).mkString(", ") + ")");
+  }
+}
+
+case class MemberFunctionCallExpression(var objectName : Expression, var name : Expression, var arguments : ListBuffer[Expression /* FIXME: more specialization*/ ]) extends Expression {
+  override def duplicate = this.copy(objectName = Duplicate(objectName), name = Duplicate(name), arguments = Duplicate(arguments)).asInstanceOf[this.type]
+
+  override def cpp : String = {
+    return (s"${objectName.cpp}.${name.cpp}(" + arguments.map(arg => arg.cpp).mkString(", ") + ")");
+  }
 }
 
 case class TernaryConditionExpression(var condition : Expression, var trueBody : Expression, var falseBody : Expression) extends Expression {

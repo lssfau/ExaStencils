@@ -144,6 +144,14 @@ case class SwitchStatement(var what : Expression, var body : ListBuffer[CaseStat
   }
 }
 
+case class ReturnStatement(expr : Expression) extends Statement {
+  override def duplicate = this.copy(expr = Duplicate(expr)).asInstanceOf[this.type]
+
+  override def cpp : String = {
+    return s"return ${expr.cpp};\n"
+  }
+}
+
 abstract class AbstractFunctionStatement() extends Statement
 
 case class FunctionStatement(var returntype : Datatype, var name : String, var parameters : ListBuffer[Variable], var body : ListBuffer[Statement]) extends AbstractFunctionStatement {

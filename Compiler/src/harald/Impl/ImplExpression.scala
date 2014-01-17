@@ -5,12 +5,6 @@ import harald.dsl._
 import harald.ast.TreeManager
 import exastencils.datastructures.ir._
 
-//  class Expression() extends ImplBase {
-//    override def toString = "base E"
-//    var value: String = ""
-//    def evaluate(para: ListBuffer[ParameterInfo]): Int = 0
-//  }
-
 case class ImplValueExpr[T](v : T) extends Expression() {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
@@ -100,35 +94,5 @@ case class ImplVariable(obj : String, n : String, vartype : TypeInfo, lev : Expr
         return c.value
 
     return 0
-  }
-}
-
-case class ImplFcall(obj : String, name : String, paramlist : ListBuffer[Expression]) extends Expression {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
-  override def cpp : String = {
-    var objs = obj
-    if (!objs.equals(""))
-      objs = objs + "."
-
-    var s : String = objs + name + " ( "
-    if (paramlist.length > 0)
-      s = s + paramlist(0).cpp
-    for (i <- 1 to paramlist.length - 1)
-      s = s + "," + paramlist(i).cpp
-    return s + ")\n"
-  }
-
-  def toString_cuda : String = {
-    var objs = obj
-    if (!objs.equals(""))
-      objs = objs + "."
-
-    var s : String = objs + name + " ( "
-    if (paramlist.length > 0)
-      s = s + paramlist(0).cpp
-    for (i <- 1 to paramlist.length - 1)
-      s = s + "," + paramlist(i).cpp
-    return s + ")\n"
   }
 }

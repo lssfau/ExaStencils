@@ -185,12 +185,6 @@ case class ImplAssigmentStatement(variable : ImplVariable, op : OperatorInfo, ex
   }
 }
 
-case class ImplReturnStatement(expr : Expression) extends Statement {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
-  override def cpp : String = "return " + expr.cpp + ";\n"
-}
-
 case class ImplDefinitionStatement(val name : String, val dtype : String, val value : Expression) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
