@@ -157,6 +157,8 @@ object StateManager {
                 ERROR(s"Could not set $field")
               }
             }
+            
+            if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) newMap.values.foreach(f => replace(f, transformation))
           }
         }
         case list : Array[_] => {
