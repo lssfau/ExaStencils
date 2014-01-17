@@ -27,6 +27,8 @@ object Transformation {
   // workaround since Scala's type system does not allow for real union types
   class Output[T <% Node Or List[Node]](val inner : T)
   implicit def convFromSome[O <: Node](o : Some[O]) : Output[O] = new Output(o.get)
+  implicit def convFromNode[O <: Node](o : O) : Output[O] = new Output(o)
+  implicit def convFromList(o : List[Node]) : Output[List[Node]] = new Output(o)
 
   object Output {
     def apply[T <% Node Or List[Node]](inner : T) = new Output(inner)
