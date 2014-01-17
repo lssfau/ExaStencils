@@ -4,28 +4,29 @@ import scala.collection.mutable.ListBuffer
 import harald.dsl._
 import harald.Impl._
 import harald.ast.TreeManager
+import exastencils.datastructures.ir._
 
 sealed abstract class AbstractStatement {
-  def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[ImplStatement]
+  def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[Statement]
   def getvariables(): ListBuffer[String] = ListBuffer()
 }
 
 case class AbstractCommunication(fname: String, loc: String) extends AbstractStatement {
-  override def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[ImplStatement] = {
+  override def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[Statement] = {
 
-    var ret: ListBuffer[ImplStatement] = ListBuffer()
+    var ret: ListBuffer[Statement] = ListBuffer()
     ret += new ImplCommunication(fname, loc)
     return ret
   }
 }
 
 case class AbstractPCall(fname: String, arglist: List[AbstractExpression]) extends AbstractStatement {
-  override def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[ImplStatement] = {
+  override def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[Statement] = {
     var args: ListBuffer[ImplExpression] = ListBuffer()
     for (a <- arglist)
       args += a.transform(scopeparas, None, "argument")
 
-    var ret: ListBuffer[ImplStatement] = ListBuffer()
+    var ret: ListBuffer[Statement] = ListBuffer()
     ret += new ImplPcall("", fname, args)
     return ret
   }
@@ -33,7 +34,7 @@ case class AbstractPCall(fname: String, arglist: List[AbstractExpression]) exten
 }
 case class AbstractLoop(where: String, lev: String, order: String, blocksize: String, blocksteps: String, stmts: List[AbstractStatement]) extends AbstractStatement {
 
-  override def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[ImplStatement] = {
+  override def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[Statement] = {
     val lpkn = new DomainKnowledge.LoopKnowledge(DomainKnowledge.domain_L1.get._2, where, "1")
 
     val lpendvariable: String = lev match {
@@ -66,14 +67,14 @@ case class AbstractLoop(where: String, lev: String, order: String, blocksize: St
       }
     }
 
-    var body: ListBuffer[ImplStatement] = ListBuffer()
+    var body: ListBuffer[Statement] = ListBuffer()
     for (st <- stmts) {
       var stt = st.transform(scopeparas)
       for (s <- stt)
         body += s
     }
 
-    var retl: ListBuffer[ImplStatement] = ListBuffer()
+    var retl: ListBuffer[Statement] = ListBuffer()
     retl += new Implforloop(ListBuffer(new ParameterInfo("i", "int")), start, stop, ListBuffer(blocksteps.toInt, blocksteps.toInt, blocksteps.toInt), order, blocksize.toInt, body)
     return retl
   }
@@ -87,11 +88,11 @@ case class AbstractLoop(where: String, lev: String, order: String, blocksize: St
 }
 
 case class AbstractRepeat(val expr: AbstractExpression, val stmt: List[AbstractStatement], val direction: String) extends AbstractStatement {
-  override def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[ImplStatement] = {
+  override def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[Statement] = {
 
-    var ret: ListBuffer[ImplStatement] = ListBuffer()
+    var ret: ListBuffer[Statement] = ListBuffer()
     
-    var st2: ListBuffer[ImplStatement] = ListBuffer()
+    var st2: ListBuffer[Statement] = ListBuffer()
     for (a <- stmt) {
       var stt = a.transform(scopeparas)
       for (s <- stt)
@@ -108,16 +109,16 @@ case class AbstractRepeat(val expr: AbstractExpression, val stmt: List[AbstractS
 
 }
 case class AbstractIfElse(val cond: AbstractExpression, ifstmts: List[AbstractStatement], elseifstmts: List[AbstractStatement]) extends AbstractStatement {
-  override def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[ImplStatement] = {
-    var ret: ListBuffer[ImplStatement] = ListBuffer()
-    var st1: ListBuffer[ImplStatement] = ListBuffer()
+  override def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[Statement] = {
+    var ret: ListBuffer[Statement] = ListBuffer()
+    var st1: ListBuffer[Statement] = ListBuffer()
     for (a <- ifstmts) {
       var stt = a.transform(scopeparas)
       for (s <- stt)
         st1 += s
     }
 
-    var st2: ListBuffer[ImplStatement] = ListBuffer()
+    var st2: ListBuffer[Statement] = ListBuffer()
     for (a <- elseifstmts) {
       var stt = a.transform(scopeparas)
       for (s <- stt)
@@ -138,9 +139,9 @@ case class AbstractIfElse(val cond: AbstractExpression, ifstmts: List[AbstractSt
 
 }
 case class AbstractLet(val id: String, val expr: AbstractExpression, modifier: Option[String]) extends AbstractStatement {
-  override def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[ImplStatement] = {
+  override def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[Statement] = {
 
-    var ret: ListBuffer[ImplStatement] = ListBuffer()
+    var ret: ListBuffer[Statement] = ListBuffer()
     var ti: TypeInfo = new TypeInfo(id, 0)
     var levstr: ImplExpression = new ImplExpression()
 
@@ -178,7 +179,7 @@ case class AbstractLet(val id: String, val expr: AbstractExpression, modifier: O
 }
 
 case class AbstractPLet(val id: String, val expr: AbstractExpression, modifier: Option[String]) extends AbstractStatement {
-  override def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[ImplStatement] = {
+  override def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[Statement] = {
     var ti: TypeInfo = new TypeInfo(id, 0)
     for (e <- TreeManager.tree.Fields)
       if (e.name.equals(id))
@@ -192,7 +193,7 @@ case class AbstractPLet(val id: String, val expr: AbstractExpression, modifier: 
         if (e.dtype.startsWith(TreeManager.tree.ExternalClasses.get("Array").get.name))
           ti = new TypeInfo(id, 1)
 
-    var ret: ListBuffer[ImplStatement] = ListBuffer()
+    var ret: ListBuffer[Statement] = ListBuffer()
 
     ret += new ImplAssigmentStatement(new ImplVariable("", id, ti, new ImplExpression(), "statement"), new OperatorInfo("+="), expr.transform(scopeparas, modifier, "expression"), modifier.getOrElse(""))
 
@@ -208,16 +209,16 @@ case class AbstractPLet(val id: String, val expr: AbstractExpression, modifier: 
 }
 
 case class AbstractReturn(val expr: AbstractExpression) extends AbstractStatement {
-  override def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[ImplStatement] = {
-    var ret: ListBuffer[ImplStatement] = ListBuffer()
+  override def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[Statement] = {
+    var ret: ListBuffer[Statement] = ListBuffer()
     ret += new ImplReturnStatement(expr.transform(scopeparas, None, "return"))
     return ret
   }
 
 }
 case class AbstractReduction(stmt: AbstractStatement) extends AbstractStatement {
-  override def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[ImplStatement] = {
-    var ret: ListBuffer[ImplStatement] = ListBuffer()
+  override def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[Statement] = {
+    var ret: ListBuffer[Statement] = ListBuffer()
     ret += new ImplReductionStatement(stmt.transform(scopeparas)(0))
     return ret
   }
@@ -231,8 +232,8 @@ case class AbstractReduction(stmt: AbstractStatement) extends AbstractStatement 
 
     override def toString = p.toString + " " + value.toString()
     
-    override def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[ImplStatement] = { 
-      var ret: ListBuffer[ImplStatement] = ListBuffer()
+    override def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[Statement] = { 
+      var ret: ListBuffer[Statement] = ListBuffer()
       ret += new ImplDefinitionStatement(p.name, DomainKnowledge.transform_datatype_cpp(p.dtype),value.transform(scopeparas, None, ""))
       return ret
     }

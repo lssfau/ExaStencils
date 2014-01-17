@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 import harald.Impl._
 import harald.dsl._
 import harald.ast._
+import exastencils.datastructures.ir._
 
 class DataClasses(treel2 : TreeL2) {
 
@@ -34,12 +35,12 @@ class DataClasses(treel2 : TreeL2) {
     for (i <- 1 to DomainKnowledge.rule_dim() - 1)
       sizeidx = sizeidx + "*" + idxdimmemlist(i)
 
-    memfunc += new ImplFunction(ArrayClassName, "", ListBuffer(new ParameterInfo("", "")), ListBuffer(new ImplStatement()), Map(), "cpu")
+    memfunc += new ImplFunction(ArrayClassName, "", ListBuffer(new ParameterInfo("", "")), new ListBuffer, Map(), "cpu")
 
     var memlist : ListBuffer[ParameterInfo] = ListBuffer()
     for (i <- 1 to DomainKnowledge.rule_dim())
       memlist += new ParameterInfo(idxdimparlist(i - 1), "int")
-    var bodylist : ListBuffer[ImplStatement] = ListBuffer()
+    var bodylist : ListBuffer[Statement] = ListBuffer()
     for (i <- 1 to DomainKnowledge.rule_dim())
       bodylist += new ImplExternalStatement(s"${idxdimmemlist(i - 1)} = ${idxdimparlist(i - 1)};")
     bodylist += new ImplExternalStatement(s"a = new T[${sizeidx}];")
@@ -62,12 +63,12 @@ class DataClasses(treel2 : TreeL2) {
 
     var memfunccuda : ListBuffer[ImplFunction] = ListBuffer()
 
-    memfunccuda += new ImplFunction(ArrayClassName, "", ListBuffer(new ParameterInfo("", "")), ListBuffer(new ImplStatement()), Map(), "cpu")
+    memfunccuda += new ImplFunction(ArrayClassName, "", ListBuffer(new ParameterInfo("", "")), new ListBuffer, Map(), "cpu")
 
     var memlistcuda : ListBuffer[ParameterInfo] = ListBuffer()
     for (i <- 1 to DomainKnowledge.rule_dim())
       memlistcuda += new ParameterInfo(idxdimparlist(i - 1), "int")
-    var bodylistcuda : ListBuffer[ImplStatement] = ListBuffer()
+    var bodylistcuda : ListBuffer[Statement] = ListBuffer()
     for (i <- 1 to DomainKnowledge.rule_dim())
       bodylistcuda += new ImplExternalStatement(s"${idxdimmemlist(i - 1)} = ${idxdimparlist(i - 1)};")
     bodylistcuda += new ImplExternalStatement(s"cudaMalloc ( ( void ** ) &a, sizeof (T) * ${sizeidx});")
@@ -110,7 +111,7 @@ class DataClasses(treel2 : TreeL2) {
     var idxlin : String = IdxKnowledge.mapidxToLinear(idxdimparlist, idxdimmemlist)
     var memfuncS : ListBuffer[ImplFunction] = ListBuffer()
 
-    memfuncS += new ImplFunction(StencilClassName, "", ListBuffer(new ParameterInfo("", "")), ListBuffer(new ImplStatement()), Map(), "cpu")
+    memfuncS += new ImplFunction(StencilClassName, "", ListBuffer(new ParameterInfo("", "")), new ListBuffer, Map(), "cpu")
     memfuncS += new ImplFunction(StencilClassName, "", ListBuffer(new ParameterInfo("s", "int")), ListBuffer(new ImplExternalStatement("size = s;entries.resize(s); ")), Map(), "cpu")
     memfuncS += new ImplFunction("resize", "void", ListBuffer(new ParameterInfo("s", "int")), ListBuffer(new ImplExternalStatement("size = s;entries.resize(s); ")), Map(), "cpu")
     memfuncS += new ImplFunction("set", "void", ListBuffer(new ParameterInfo("idx", "int"), new ParameterInfo("v", DomainKnowledge.datatype_L2.getOrElse("double"))), ListBuffer(new ImplExternalStatement("entries[idx] = v; ")), Map(), "cpu")
@@ -191,9 +192,9 @@ class DataClasses(treel2 : TreeL2) {
       memlistSinit += new ParameterInfo(idxdimparlist(i - 1), "int")
     memlistSinit += new ParameterInfo("s", "int")
 
-    memfuncSV += new ImplFunction(StencilClassName, "", ListBuffer(new ParameterInfo("", "")), ListBuffer(new ImplStatement()), Map(), "cpu")
+    memfuncSV += new ImplFunction(StencilClassName, "", ListBuffer(new ParameterInfo("", "")), new ListBuffer, Map(), "cpu")
 
-    var bodylistSinit : ListBuffer[ImplStatement] = ListBuffer()
+    var bodylistSinit : ListBuffer[Statement] = ListBuffer()
     for (i <- 1 to DomainKnowledge.rule_dim())
       bodylistSinit += new ImplExternalStatement(s"${idxdimmemlist(i - 1)} = ${idxdimparlist(i - 1)};")
     bodylistSinit += new ImplExternalStatement(s"size = s;entries.resize(${sizeidx},s); ")

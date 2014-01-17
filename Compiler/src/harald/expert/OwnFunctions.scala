@@ -5,6 +5,7 @@ import harald.Impl._
 import harald.ast.TreeL2
 import harald.dsl._
 import exastencils.datastructures._
+import exastencils.datastructures.ir._
 
 object InitExternalFunctions extends Strategy("Init external functions") {
   def checkifrotated(p1 : Vertex, p2 : Vertex, rot : ListBuffer[Double]) : Boolean = {
@@ -14,8 +15,7 @@ object InitExternalFunctions extends Strategy("Init external functions") {
     return true
   }
 
-  def generateBCidxloopstatement(ghostshifts : ListBuffer[Int], loopshifts : ListBuffer[Int], To : String, From : String, FromValue : Boolean, mode : String = "BC") : ImplStatement = {
-
+  def generateBCidxloopstatement(ghostshifts : ListBuffer[Int], loopshifts : ListBuffer[Int], To : String, From : String, FromValue : Boolean, mode : String = "BC") : Statement = {
     if (mode.equals("BC")) {
       var idxshift = s"i0+${ghostshifts(0)},i1+${ghostshifts(1)}"
       if (DomainKnowledge.rule_dim() == 3)
@@ -26,7 +26,6 @@ object InitExternalFunctions extends Strategy("Init external functions") {
       else
         return new ImplExternalStatement(s"${To}${DomainKnowledge.rule_idxArray_cpp()} = ${From}(${idxshift});\n")
     } else if (mode.equals("Buffer")) {
-
       var idxshift = s"i0+${ghostshifts(0)},i1+${ghostshifts(1)}"
       if (DomainKnowledge.rule_dim() == 3)
         idxshift = idxshift + s",i2+${ghostshifts(2)}"
@@ -50,10 +49,10 @@ object InitExternalFunctions extends Strategy("Init external functions") {
 
       return new ImplExternalStatement(s"${lhs} = ${rhs};\n")
     }
-    return new ImplStatement
+    return new NullStatement
   }
 
-  def generateBCidxloop(vertex1 : ListBuffer[Double], vertex2 : ListBuffer[Double], ToArray : String, FromArray : String, FromValue : Boolean = false, lev : Int = 0, mode : String = "BC") : ImplStatement = {
+  def generateBCidxloop(vertex1 : ListBuffer[Double], vertex2 : ListBuffer[Double], ToArray : String, FromArray : String, FromValue : Boolean = false, lev : Int = 0, mode : String = "BC") : Statement = {
 
     val loopshifts = IdxKnowledge.mapcoordToidxLoop(vertex1, vertex2, lev)
     var ghostshifts : ListBuffer[Int] = ListBuffer()
@@ -84,7 +83,7 @@ object InitExternalFunctions extends Strategy("Init external functions") {
     case tree : TreeL2 =>
       {
         val nlevels : Int = DomainKnowledge.nlevels_L3.getOrElse(1)
-        var body : ListBuffer[ImplStatement] = ListBuffer()
+        var body : ListBuffer[Statement] = ListBuffer()
 
         if (DomainKnowledge.use_MPI) {
           body += new ImplExternalStatement(s"int Pperiods[${DomainKnowledge.rule_dim}];\n")
@@ -228,7 +227,7 @@ object InitExternalFunctions extends Strategy("Init external functions") {
   this += new Transformation("Initing treatBoundary function", {
     case tree : TreeL2 =>
       if (!DomainKnowledge.use_gpu) {
-        var bcloops : ListBuffer[ImplStatement] = ListBuffer()
+        var bcloops : ListBuffer[Statement] = ListBuffer()
         var lev = 0
 
         for (v <- DomainKnowledge.fragments(0).vertices) {
@@ -294,7 +293,7 @@ object InitExternalFunctions extends Strategy("Init external functions") {
   this += new Transformation("Initing copyToBuffers function", {
     case tree : TreeL2 =>
       if (DomainKnowledge.use_MPI) {
-        var bcloops : ListBuffer[ImplStatement] = ListBuffer()
+        var bcloops : ListBuffer[Statement] = ListBuffer()
         var lev = 0
         var i = 0
 
@@ -317,7 +316,7 @@ object InitExternalFunctions extends Strategy("Init external functions") {
   this += new Transformation("Initing copyFromBuffers function", {
     case tree : TreeL2 =>
       {
-        var bcloops : ListBuffer[ImplStatement] = ListBuffer()
+        var bcloops : ListBuffer[Statement] = ListBuffer()
         var lev = 0
         var i = 0
 

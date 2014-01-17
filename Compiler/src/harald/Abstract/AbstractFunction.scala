@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 import harald.dsl._
 import harald.Impl._
 import harald.ast.TreeL2
+import exastencils.datastructures.ir._
 
 case class AbstractFunction(fname: String, location: String, rettype: String, paramlist: List[Param], stmts: List[AbstractStatement]) {
 
@@ -17,7 +18,7 @@ case class AbstractFunction(fname: String, location: String, rettype: String, pa
     var palist: ListBuffer[ParameterInfo] = ListBuffer()
     for (p <- paramlist)
       palist += new ParameterInfo(p.name, DomainKnowledge.transform_datatype_cpp(p.dtype))
-    var stlist: ListBuffer[ImplStatement] = ListBuffer()
+    var stlist: ListBuffer[Statement] = ListBuffer()
     var varlist: ListBuffer[String] = ListBuffer()
 
     for (st <- stmts) {
@@ -36,7 +37,7 @@ case class AbstractFunction(fname: String, location: String, rettype: String, pa
 
     } else if (location.equals("gpu")) {
 
-      var stcpulist: ListBuffer[ImplStatement] = ListBuffer()
+      var stcpulist: ListBuffer[Statement] = ListBuffer()
       //         for (st <- stmts)
       //           if (st.isInstanceOf[Loop] && !st.isInstanceOf[Reduction])
       //             stcpulist ++= st.transform(palist) 

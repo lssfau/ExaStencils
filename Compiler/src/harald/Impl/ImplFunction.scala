@@ -2,12 +2,13 @@ package harald.Impl
 
 import scala.collection.mutable.ListBuffer
 import harald.dsl.ParameterInfo
+import exastencils.datastructures.ir._
 
-  class ImplFunction(fname: String, rettype: String, paramlist: ListBuffer[ParameterInfo], bodylist: ListBuffer[ImplStatement], bodyvar: Map[String,Int], loc: String) {
+  class ImplFunction(fname: String, rettype: String, paramlist: ListBuffer[ParameterInfo], bodylist: ListBuffer[Statement], bodyvar: Map[String,Int], loc: String) {
     var name: String = fname
     var returntype: String = rettype
     var params: ListBuffer[ParameterInfo] = paramlist
-    var body: ListBuffer[ImplStatement] = bodylist
+    var body: ListBuffer[Statement] = bodylist
     var location = loc
     var bodyvariables = bodyvar
     
@@ -31,10 +32,10 @@ import harald.dsl.ParameterInfo
 
       if (location.equals("cpu"))
         for (b <- body)
-          s += b.toString_cpp
+          s += b.cpp
       else
         for (b <- body)
-          s += b.toString_cuda
+          s += b.cpp // FIXME: should be toString_cuda
 
       var sp: String = ""
       for (b <- params)
@@ -52,8 +53,8 @@ import harald.dsl.ParameterInfo
 
     def calls(lev: Int) {
       //  println("call " + fname + " " + lev)
-      for (b <- bodylist)
-        b.calls(lev)
+      //for (b <- bodylist)
+      //  b.calls(lev)
     }
     
     def costs(para: String): Map[Int,String] = {
@@ -64,7 +65,7 @@ import harald.dsl.ParameterInfo
 
       var m : Map[Int,String] = Map()
       for (b <- bodylist) {
-        m ++= b.costs(para)
+        //m ++= b.costs(para)
         // println(b.CostInfo)      
       }
       return m
@@ -75,10 +76,10 @@ import harald.dsl.ParameterInfo
 
       if (location.equals("cpu"))
         for (b <- body)
-          s += b.toString_cpp
+          s += b.cpp
       else
         for (b <- body)
-          s += b.toString_cuda
+          s += b.cpp // FIXME: should be toString_cuda
 
       return " { \n" + s + " } \n"
     }
