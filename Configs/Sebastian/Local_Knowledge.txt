@@ -3,13 +3,13 @@ fragmentCommStrategy	= 6	// 26
 
 summarizeBlocks			= false
 
-numBlocks_x				= 3
-numBlocks_y				= 3
-numBlocks_z				= 3
+numBlocks_x				= 1
+numBlocks_y				= 1
+numBlocks_z				= 1
 
-numFragsPerBlock_x		= 3
-numFragsPerBlock_y		= 3
-numFragsPerBlock_z		= 3
+numFragsPerBlock_x		= 1
+numFragsPerBlock_y		= 1
+numFragsPerBlock_z		= 1
 fragLength_x			= 1
 fragLength_y			= 1
 fragLength_z			= 1

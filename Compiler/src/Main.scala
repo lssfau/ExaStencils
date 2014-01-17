@@ -126,7 +126,6 @@ object Main {
 
     val parserl4 = new ParserL4(TreeManager.tree)
     parserl4.parse(DSLl4)
-    //TransformL4.cppfunctions.foreach(println)
 
     TreeManager.tree.transformFields
     TreeManager.tree.transformStencils
@@ -141,11 +140,16 @@ object Main {
     var dataclass = new DataClasses(TreeManager.tree)
     dataclass.initextClasses
 
-    TreeManager.tree.transformFunctions
+    var transformTree = new Strategy("Transforming tree");
+    transformTree += new Transformation("Transforming functions", {
+      case tree : TreeL2 =>
+        tree.transformFunctions
+        Some(tree);
+    });
+    transformTree.apply;
 
-    val ownfunc = new OwnFunctions(TreeManager.tree)
-    ownfunc.initextFunctions
-
+    InitExternalFunctions.apply;
+    
     val exadsl = new PrettyPrinter(TreeManager.tree)
     exadsl.prettycpp(libpath, outputfile)
 

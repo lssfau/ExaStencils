@@ -12,8 +12,7 @@ import scala.util.parsing.combinator.syntactical.StandardTokenParsers
 import Parser._
 import Generate._
 import ast.TreeManager
-import expert.DataClasses
-import expert.OwnFunctions
+import expert._
 import pretty.PrettyPrinter
 
 object mg {
@@ -139,8 +138,8 @@ object mg {
     
     TreeManager.tree.transformFunctions
     
-    val ownfunc = new OwnFunctions(TreeManager.tree)
-    ownfunc.initextFunctions
+    //val ownfunc = new OwnFunctions(TreeManager.tree)
+    //ownfunc.initextFunctions
 
 
     //		ExaDSL.pretty("c:/install7/eclipse/scala-SDK-3.0.1-vfinal-2.10-win32.win32.x86_64/eclipse/workspace/Multigrid/src/test.pretty")
