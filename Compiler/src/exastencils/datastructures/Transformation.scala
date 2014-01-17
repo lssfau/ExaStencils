@@ -7,6 +7,8 @@ class Transformation(n : String, f : PartialFunction[Node, Transformation.Output
   def function = f
   def recursive = rec
   def applyAt = node
+  
+  override def toString() = s"""Transformation "$name""""
 }
 
 object Transformation {
