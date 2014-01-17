@@ -6,6 +6,7 @@ import harald.ast.TreeL2
 import harald.dsl._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
 
 object InitExternalFunctions extends Strategy("Init external functions") {
   def checkifrotated(p1 : Vertex, p2 : Vertex, rot : ListBuffer[Double]) : Boolean = {
@@ -22,9 +23,9 @@ object InitExternalFunctions extends Strategy("Init external functions") {
         idxshift = idxshift + s",i2+${ghostshifts(2)}"
 
       if (FromValue)
-        return new ImplExternalStatement(s"${To}${DomainKnowledge.rule_idxArray_cpp()} = ${From};\n") // ${DomainKnowledge.pdebc_L1.get._2}
+        return new StringLiteral(s"${To}${DomainKnowledge.rule_idxArray_cpp()} = ${From};\n") // ${DomainKnowledge.pdebc_L1.get._2}
       else
-        return new ImplExternalStatement(s"${To}${DomainKnowledge.rule_idxArray_cpp()} = ${From}(${idxshift});\n")
+        return new StringLiteral(s"${To}${DomainKnowledge.rule_idxArray_cpp()} = ${From}(${idxshift});\n")
     } else if (mode.equals("Buffer")) {
       var idxshift = s"i0+${ghostshifts(0)},i1+${ghostshifts(1)}"
       if (DomainKnowledge.rule_dim() == 3)
@@ -47,7 +48,7 @@ object InitExternalFunctions extends Strategy("Init external functions") {
       else
         rhs = s"${From}(${idxshift})"
 
-      return new ImplExternalStatement(s"${lhs} = ${rhs};\n")
+      return new StringLiteral(s"${lhs} = ${rhs};\n")
     }
     return new NullStatement
   }
@@ -86,60 +87,60 @@ object InitExternalFunctions extends Strategy("Init external functions") {
         var body : ListBuffer[Statement] = ListBuffer()
 
         if (DomainKnowledge.use_MPI) {
-          body += new ImplExternalStatement(s"int Pperiods[${DomainKnowledge.rule_dim}];\n")
-          body += new ImplExternalStatement("MPI_Init(&argc, &argv); \n")
-          body += new ImplExternalStatement("MPI_Comm_size(MPI_COMM_WORLD, &noprocesses);\n")
-          body += new ImplExternalStatement("MPI_Comm_rank(MPI_COMM_WORLD, &rank);\n")
-          body += new ImplExternalStatement("std::cout << \"MPI rank: \" << rank << \" of \" << noprocesses << std::endl;\n")
-          body += new ImplExternalStatement(s"for (int i=0; i<${DomainKnowledge.rule_dim}; i++ )  {\n")
-          body += new ImplExternalStatement("  Pdims[i] = 0;\n")
-          body += new ImplExternalStatement("  Pcoords[i] = 0;\n")
-          body += new ImplExternalStatement("  Pperiods[i] = 0; }\n")
-          body += new ImplExternalStatement(s"MPI_Dims_create(noprocesses,${DomainKnowledge.rule_dim}, Pdims);\n")
-          body += new ImplExternalStatement(s"MPI_Cart_create(MPI_COMM_WORLD, ${DomainKnowledge.rule_dim}, Pdims, Pperiods, 0, &COMM_CART);\n")
-          body += new ImplExternalStatement(s"MPI_Cart_coords(COMM_CART, rank, ${DomainKnowledge.rule_dim}, Pcoords);\n")
-          body += new ImplExternalStatement("if (rank == 0)\n")
-          body += new ImplExternalStatement("std::cout << \" Pdims \" << Pdims[0] << \" \" << Pdims[1] ")
+          body += new StringLiteral(s"int Pperiods[${DomainKnowledge.rule_dim}];\n")
+          body += new StringLiteral("MPI_Init(&argc, &argv); \n")
+          body += new StringLiteral("MPI_Comm_size(MPI_COMM_WORLD, &noprocesses);\n")
+          body += new StringLiteral("MPI_Comm_rank(MPI_COMM_WORLD, &rank);\n")
+          body += new StringLiteral("std::cout << \"MPI rank: \" << rank << \" of \" << noprocesses << std::endl;\n")
+          body += new StringLiteral(s"for (int i=0; i<${DomainKnowledge.rule_dim}; i++ )  {\n")
+          body += new StringLiteral("  Pdims[i] = 0;\n")
+          body += new StringLiteral("  Pcoords[i] = 0;\n")
+          body += new StringLiteral("  Pperiods[i] = 0; }\n")
+          body += new StringLiteral(s"MPI_Dims_create(noprocesses,${DomainKnowledge.rule_dim}, Pdims);\n")
+          body += new StringLiteral(s"MPI_Cart_create(MPI_COMM_WORLD, ${DomainKnowledge.rule_dim}, Pdims, Pperiods, 0, &COMM_CART);\n")
+          body += new StringLiteral(s"MPI_Cart_coords(COMM_CART, rank, ${DomainKnowledge.rule_dim}, Pcoords);\n")
+          body += new StringLiteral("if (rank == 0)\n")
+          body += new StringLiteral("std::cout << \" Pdims \" << Pdims[0] << \" \" << Pdims[1] ")
           if (DomainKnowledge.rule_dim == 3)
-            body += new ImplExternalStatement(" << Pdims[2]")
-          body += new ImplExternalStatement("<< std::endl;\n")
-          body += new ImplExternalStatement("std::cout << rank << \" Pcoords \"  << Pcoords[0] << \" \" << Pcoords[1]")
+            body += new StringLiteral(" << Pdims[2]")
+          body += new StringLiteral("<< std::endl;\n")
+          body += new StringLiteral("std::cout << rank << \" Pcoords \"  << Pcoords[0] << \" \" << Pcoords[1]")
           if (DomainKnowledge.rule_dim == 3)
-            body += new ImplExternalStatement(" << Pcoords[2]")
-          body += new ImplExternalStatement("<< std::endl;\n")
-          body += new ImplExternalStatement("int l,r;\n")
+            body += new StringLiteral(" << Pcoords[2]")
+          body += new StringLiteral("<< std::endl;\n")
+          body += new StringLiteral("int l,r;\n")
 
           for (i <- 0 to DomainKnowledge.rule_dim - 1) {
-            body += new ImplExternalStatement(s"MPI_Cart_shift(COMM_CART, ${i}, 1, &l, &r);\n")
-            body += new ImplExternalStatement(s"Pnb[2*${i}]=l;\n")
-            body += new ImplExternalStatement(s"Pnb[2*${i}+1]=r;\n")
-            body += new ImplExternalStatement("std::cout << \" l \" << " + s"Pnb[2*${i}]" + "<< \" r \" << " + s"Pnb[2*${i}+1]" + " << std::endl;\n")
+            body += new StringLiteral(s"MPI_Cart_shift(COMM_CART, ${i}, 1, &l, &r);\n")
+            body += new StringLiteral(s"Pnb[2*${i}]=l;\n")
+            body += new StringLiteral(s"Pnb[2*${i}+1]=r;\n")
+            body += new StringLiteral("std::cout << \" l \" << " + s"Pnb[2*${i}]" + "<< \" r \" << " + s"Pnb[2*${i}+1]" + " << std::endl;\n")
           }
-          body += new ImplExternalStatement("MPI_Barrier(MPI_COMM_WORLD);\n")
+          body += new StringLiteral("MPI_Barrier(MPI_COMM_WORLD);\n")
         }
 
         if (DomainKnowledge.use_Openmp)
-          body += new ImplExternalStatement(s"omp_set_num_threads(${DomainKnowledge.cores_HW.get});\n")
+          body += new StringLiteral(s"omp_set_num_threads(${DomainKnowledge.cores_HW.get});\n")
 
         if (DomainKnowledge.use_gpu) {
-          body += new ImplExternalStatement("cudaSetDevice(0);\n")
-          body += new ImplExternalStatement("cudaFree(0);\n")
+          body += new StringLiteral("cudaSetDevice(0);\n")
+          body += new StringLiteral("cudaFree(0);\n")
         }
 
         for (c <- tree.Fields)
-          body += new ImplExternalStatement(s"${c.name} = new ${c.arrname}<${c.datatype}>[${nlevels}];\n")
+          body += new StringLiteral(s"${c.name} = new ${c.arrname}<${c.datatype}>[${nlevels}];\n")
         if (DomainKnowledge.use_MPI)
           for (c <- tree.GhostFields)
-            body += new ImplExternalStatement(s"${c.name} = new ${c.arrname}<${c.datatype}>[${nlevels}];\n")
+            body += new StringLiteral(s"${c.name} = new ${c.arrname}<${c.datatype}>[${nlevels}];\n")
 
         for (c <- tree.Stencils) {
           if (c.weakform.equals(""))
-            body += new ImplExternalStatement(s"${c.name} = new ${tree.ExternalClasses.get("Stencil").get.name}<${c.datatype}>[1];\n")
+            body += new StringLiteral(s"${c.name} = new ${tree.ExternalClasses.get("Stencil").get.name}<${c.datatype}>[1];\n")
           else
-            body += new ImplExternalStatement(s"${c.name} = new ${tree.ExternalClasses.get("StencilVar").get.name}<${c.datatype}>[${nlevels}];\n")
+            body += new StringLiteral(s"${c.name} = new ${tree.ExternalClasses.get("StencilVar").get.name}<${c.datatype}>[${nlevels}];\n")
 
           if ((c.sizex == 1) && (c.entries.length > 0))
-            body += new ImplExternalStatement(s"${c.name}[0].resize(${c.entries.length});\n")
+            body += new StringLiteral(s"${c.name}[0].resize(${c.entries.length});\n")
         }
 
         val setfuncarrname : String = "set"
@@ -159,7 +160,7 @@ object InitExternalFunctions extends Strategy("Init external functions") {
           if (DomainKnowledge.rule_dim() == 3)
             setst = setst + s",${c.sizez}${pdims(2)}+${c.addpoints}"
           setst = setst + ");"
-          body += new ImplExternalStatement(setst + "\n")
+          body += new StringLiteral(setst + "\n")
         }
 
         if (DomainKnowledge.use_MPI)
@@ -175,21 +176,21 @@ object InitExternalFunctions extends Strategy("Init external functions") {
               else
                 setst += ",1"
             setst = setst + ");"
-            body += new ImplExternalStatement(setst + "\n")
+            body += new StringLiteral(setst + "\n")
           }
 
         for (c <- tree.Fields)
           if (c.arrname.equals("MyArray"))
-            body += new ImplExternalStatement(s"${setfuncarrname}(0,${c.name}[0],0);\n")
+            body += new StringLiteral(s"${setfuncarrname}(0,${c.name}[0],0);\n")
           else
-            body += new ImplExternalStatement(s"${setfuncarrname + "cuda"}(0,${c.name}[0],0);\n")
+            body += new StringLiteral(s"${setfuncarrname + "cuda"}(0,${c.name}[0],0);\n")
 
         for (i <- 0 to DomainKnowledge.function_L1.length - 1)
           if (DomainKnowledge.use_gpu) {
-            body += new ImplExternalStatement(s"${setrandfuncname}(${DomainKnowledge.unknown_L1(i)._1 + "_host"}[0],${DomainKnowledge.unknown_L1(i)._2});\n")
-            body += new ImplExternalStatement(s"pushDataToDevice (${DomainKnowledge.unknown_L1(i)._1 + "_host"}[0].begin(),${DomainKnowledge.unknown_L1(i)._1}[0].begin(), ${DomainKnowledge.unknown_L1(i)._1}[0].x1_*${DomainKnowledge.unknown_L1(i)._1}[0].x2_);\n")
+            body += new StringLiteral(s"${setrandfuncname}(${DomainKnowledge.unknown_L1(i)._1 + "_host"}[0],${DomainKnowledge.unknown_L1(i)._2});\n")
+            body += new StringLiteral(s"pushDataToDevice (${DomainKnowledge.unknown_L1(i)._1 + "_host"}[0].begin(),${DomainKnowledge.unknown_L1(i)._1}[0].begin(), ${DomainKnowledge.unknown_L1(i)._1}[0].x1_*${DomainKnowledge.unknown_L1(i)._1}[0].x2_);\n")
           } else {
-            body += new ImplExternalStatement(s"${setrandfuncname}(${DomainKnowledge.unknown_L1(i)._1}[0],${DomainKnowledge.unknown_L1(i)._2});\n")
+            body += new StringLiteral(s"${setrandfuncname}(${DomainKnowledge.unknown_L1(i)._1}[0],${DomainKnowledge.unknown_L1(i)._2});\n")
           }
 
         for (c <- DomainKnowledge.global_stencils) {
@@ -198,26 +199,26 @@ object InitExternalFunctions extends Strategy("Init external functions") {
             if (DomainKnowledge.rule_dim() == 3)
               setst = setst + s",${c.sizez}+${c.addpoints}"
             setst = setst + s",${c.length});"
-            body += new ImplExternalStatement(setst + "\n")
+            body += new StringLiteral(setst + "\n")
           }
         }
 
         if (DomainKnowledge.use_FE)
-          body += new ImplExternalStatement("setdiscretizationFE(0);\n")
+          body += new StringLiteral("setdiscretizationFE(0);\n")
 
         for (c <- tree.Stencils) {
           for (i <- 0 to c.entries.length - 1)
-            body += new ImplExternalStatement(s"${c.name}[0].set(${i},${c.entries(i)});\n")
+            body += new StringLiteral(s"${c.name}[0].set(${i},${c.entries(i)});\n")
         }
 
         for (c <- tree.Functions) {
           println(c._2.name)
           if (c._2.name.equals("Application"))
-            body += new ImplExternalStatement(c._2.toString_cpp_body)
+            body += new StringLiteral(c._2.toString_cpp_body)
         }
 
         if (DomainKnowledge.use_MPI)
-          body += new ImplExternalStatement("MPI_Finalize();\n")
+          body += new StringLiteral("MPI_Finalize();\n")
 
         tree.extfunctions += "Main" -> new ImplFunction("main", "int", ListBuffer(new ParameterInfo("argc", "int"), new ParameterInfo("argv", "char**")), body, Map(), "cpu")
       }
@@ -257,9 +258,9 @@ object InitExternalFunctions extends Strategy("Init external functions") {
           }
 
           if (DomainKnowledge.pdebc_L1.get._2.equals("dn"))
-            bcloops += new ImplExternalStatement(s"${DomainKnowledge.pdebc_L1.get._1}[lev](${s}) = ${DomainKnowledge.pdebc_L1.get._1}[lev](${ghosts});\n")
+            bcloops += new StringLiteral(s"${DomainKnowledge.pdebc_L1.get._1}[lev](${s}) = ${DomainKnowledge.pdebc_L1.get._1}[lev](${ghosts});\n")
           else if (DomainKnowledge.pdebc_L1.get._2.equals("zero"))
-            bcloops += new ImplExternalStatement(s"${DomainKnowledge.pdebc_L1.get._1}[lev](${s}) = 0;\n")
+            bcloops += new StringLiteral(s"${DomainKnowledge.pdebc_L1.get._1}[lev](${s}) = 0;\n")
         }
 
         for (e <- DomainKnowledge.fragments(0).edges) {
@@ -302,7 +303,7 @@ object InitExternalFunctions extends Strategy("Init external functions") {
           val vertex1 = e.vertex1.coords
           val vertex2 = e.vertex2.coords
 
-          bcloops += new ImplExternalStatement(s"if (Pnb[${i}] >= 0)")
+          bcloops += new StringLiteral(s"if (Pnb[${i}] >= 0)")
           bcloops += generateBCidxloop(vertex1, vertex2, DomainKnowledge.pdebc_L1.get._1 + s"_ghost_edge${i}_send[0]", DomainKnowledge.pdebc_L1.get._1 + "[lev]", false, lev, "Buffer")
           i += 1
         }
@@ -325,7 +326,7 @@ object InitExternalFunctions extends Strategy("Init external functions") {
           val vertex1 = e.vertex1.coords
           val vertex2 = e.vertex2.coords
 
-          bcloops += new ImplExternalStatement(s"if (Pnb[${i}] >= 0)")
+          bcloops += new StringLiteral(s"if (Pnb[${i}] >= 0)")
           bcloops += generateBCidxloop(vertex1, vertex2, DomainKnowledge.pdebc_L1.get._1 + "[lev]", DomainKnowledge.pdebc_L1.get._1 + s"_ghost_edge${i}_recv[0]", false, lev, "Buffer")
           i += 1
         }

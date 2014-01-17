@@ -106,7 +106,7 @@ class PrettyPrinter(treel2 : TreeL2) {
 
     // BAD HACK
     writer <<< "#include \"Poisson3D.cpp\"";
-    treel2.extfunctions.get("Main").get.body = ListBuffer[Statement](new ImplExternalStatement("main2(argc, argv);\n")) ++ treel2.extfunctions.get("Main").get.body;
+    treel2.extfunctions.get("Main").get.body = ListBuffer[Statement](new StringLiteral("main2(argc, argv);\n")) ++ treel2.extfunctions.get("Main").get.body;
 
     // library classes
     writer.write(extlib)

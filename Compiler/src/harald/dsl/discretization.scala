@@ -1,9 +1,10 @@
 package harald.dsl
 
 import scala.collection.mutable.ListBuffer
-import harald.Impl.ImplFunction
-import harald.Impl.ImplExternalStatement
+import harald.Impl._
 import harald.ast.TreeL2
+import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
 
 class Discretization(treel2 : TreeL2) {
 
@@ -140,7 +141,7 @@ class Discretization(treel2 : TreeL2) {
           if (DomainKnowledge.rule_dim == 3)
             s += "}\n"
 
-          treel2.Functions += "setdiscretizationFE" -> new ImplFunction("setdiscretizationFE", "void", ListBuffer(new ParameterInfo("lev", "int")), ListBuffer(new ImplExternalStatement(s)),Map(), "cpu")
+          treel2.Functions += "setdiscretizationFE" -> new ImplFunction("setdiscretizationFE", "void", ListBuffer(new ParameterInfo("lev", "int")), ListBuffer(new StringLiteral(s)),Map(), "cpu")
         }
 
   }

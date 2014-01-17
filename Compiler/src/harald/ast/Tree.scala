@@ -5,6 +5,8 @@ import harald.Abstract._
 import harald.Impl._
 import harald.dsl._
 import exastencils.datastructures._
+import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
 
 case class TreeL2() extends Node {
   override def duplicate = this.copy().asInstanceOf[this.type]
@@ -51,14 +53,4 @@ case class TreeL2() extends Node {
 
   var ExternalClasses: collection.mutable.Map[String, ImplClass] = collection.mutable.Map()
   var extfunctions: collection.mutable.Map[String, ImplFunction] = collection.mutable.Map()
-
-   def transformFunctions2 {
-    for (f <- Functions) {
-      for (s <- f._2.body)
-        s match {
-        case ImplExternalStatement(s) => 
-        case _ =>
-      }
-    }
-  }
 }

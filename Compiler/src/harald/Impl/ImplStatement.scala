@@ -6,18 +6,6 @@ import harald.ast.TreeManager
 import harald.expert.StencilGenerator
 import exastencils.datastructures.ir._
 
-//  class ImplStatement() extends ImplBase {
-//    override def toString = ""
-//    def contains_modifier(s : String) = false
-//  }
-
-case class ImplExternalStatement(s : String) extends Statement {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
-  override def toString = s
-  override def cpp : String = s
-}
-
 case class ImplCommunication(fname : String, loc : String) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 

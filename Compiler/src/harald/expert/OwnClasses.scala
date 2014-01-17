@@ -5,6 +5,7 @@ import harald.Impl._
 import harald.dsl._
 import harald.ast._
 import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
 
 class DataClasses(treel2 : TreeL2) {
 
@@ -42,17 +43,17 @@ class DataClasses(treel2 : TreeL2) {
       memlist += new ParameterInfo(idxdimparlist(i - 1), "int")
     var bodylist : ListBuffer[Statement] = ListBuffer()
     for (i <- 1 to DomainKnowledge.rule_dim())
-      bodylist += new ImplExternalStatement(s"${idxdimmemlist(i - 1)} = ${idxdimparlist(i - 1)};")
-    bodylist += new ImplExternalStatement(s"a = new T[${sizeidx}];")
+      bodylist += new StringLiteral(s"${idxdimmemlist(i - 1)} = ${idxdimparlist(i - 1)};")
+    bodylist += new StringLiteral(s"a = new T[${sizeidx}];")
 
     memfunc += new ImplFunction(ArrayClassName, "", memlist, bodylist, Map(), "cpu")
     memfunc += new ImplFunction("resize", "void", memlist, bodylist, Map(), "cpu")
-    memfunc += new ImplFunction("begin", "T*", new ListBuffer(), ListBuffer(new ImplExternalStatement("return &a[0];")), Map(), "cpu")
+    memfunc += new ImplFunction("begin", "T*", new ListBuffer(), ListBuffer(new StringLiteral("return &a[0];")), Map(), "cpu")
     for (i <- 1 to DomainKnowledge.rule_dim())
-      memfunc += new ImplFunction("s" + i.toString, "int", ListBuffer(new ParameterInfo("", "")), ListBuffer(new ImplExternalStatement(s"return ${idxdimmemlist(i - 1)};")), Map(), "cpu")
+      memfunc += new ImplFunction("s" + i.toString, "int", ListBuffer(new ParameterInfo("", "")), ListBuffer(new StringLiteral(s"return ${idxdimmemlist(i - 1)};")), Map(), "cpu")
 
     var idxlin : String = IdxKnowledge.mapidxToLinear(idxdimparlist, idxdimmemlist)
-    memfunc += new ImplFunction("operator()", "T&", memlist, ListBuffer(new ImplExternalStatement("return a[" + idxlin + "]; ")), Map(), "cpu")
+    memfunc += new ImplFunction("operator()", "T&", memlist, ListBuffer(new StringLiteral("return a[" + idxlin + "]; ")), Map(), "cpu")
 
     treel2.ExternalClasses += "Array" -> new ImplClass(ArrayClassName, "T",
       cmemlist,
@@ -70,11 +71,11 @@ class DataClasses(treel2 : TreeL2) {
       memlistcuda += new ParameterInfo(idxdimparlist(i - 1), "int")
     var bodylistcuda : ListBuffer[Statement] = ListBuffer()
     for (i <- 1 to DomainKnowledge.rule_dim())
-      bodylistcuda += new ImplExternalStatement(s"${idxdimmemlist(i - 1)} = ${idxdimparlist(i - 1)};")
-    bodylistcuda += new ImplExternalStatement(s"cudaMalloc ( ( void ** ) &a, sizeof (T) * ${sizeidx});")
+      bodylistcuda += new StringLiteral(s"${idxdimmemlist(i - 1)} = ${idxdimparlist(i - 1)};")
+    bodylistcuda += new StringLiteral(s"cudaMalloc ( ( void ** ) &a, sizeof (T) * ${sizeidx});")
 
     memfunccuda += new ImplFunction(ArrayClassName, "", memlist, bodylistcuda, Map(), "cpu")
-    memfunccuda += new ImplFunction("begin", "T*", new ListBuffer(), ListBuffer(new ImplExternalStatement("return &a[0];")), Map(), "cpu")
+    memfunccuda += new ImplFunction("begin", "T*", new ListBuffer(), ListBuffer(new StringLiteral("return &a[0];")), Map(), "cpu")
     memfunccuda += new ImplFunction("resize", "void", memlist, bodylistcuda, Map(), "cpu")
 
     if (DomainKnowledge.use_gpu) {
@@ -112,12 +113,12 @@ class DataClasses(treel2 : TreeL2) {
     var memfuncS : ListBuffer[ImplFunction] = ListBuffer()
 
     memfuncS += new ImplFunction(StencilClassName, "", ListBuffer(new ParameterInfo("", "")), new ListBuffer, Map(), "cpu")
-    memfuncS += new ImplFunction(StencilClassName, "", ListBuffer(new ParameterInfo("s", "int")), ListBuffer(new ImplExternalStatement("size = s;entries.resize(s); ")), Map(), "cpu")
-    memfuncS += new ImplFunction("resize", "void", ListBuffer(new ParameterInfo("s", "int")), ListBuffer(new ImplExternalStatement("size = s;entries.resize(s); ")), Map(), "cpu")
-    memfuncS += new ImplFunction("set", "void", ListBuffer(new ParameterInfo("idx", "int"), new ParameterInfo("v", DomainKnowledge.datatype_L2.getOrElse("double"))), ListBuffer(new ImplExternalStatement("entries[idx] = v; ")), Map(), "cpu")
-    memfuncS += new ImplFunction("begin", "T*", new ListBuffer(), ListBuffer(new ImplExternalStatement("return &entries[0];")), Map(), "cpu")
+    memfuncS += new ImplFunction(StencilClassName, "", ListBuffer(new ParameterInfo("s", "int")), ListBuffer(new StringLiteral("size = s;entries.resize(s); ")), Map(), "cpu")
+    memfuncS += new ImplFunction("resize", "void", ListBuffer(new ParameterInfo("s", "int")), ListBuffer(new StringLiteral("size = s;entries.resize(s); ")), Map(), "cpu")
+    memfuncS += new ImplFunction("set", "void", ListBuffer(new ParameterInfo("idx", "int"), new ParameterInfo("v", DomainKnowledge.datatype_L2.getOrElse("double"))), ListBuffer(new StringLiteral("entries[idx] = v; ")), Map(), "cpu")
+    memfuncS += new ImplFunction("begin", "T*", new ListBuffer(), ListBuffer(new StringLiteral("return &entries[0];")), Map(), "cpu")
 
-    var statdiag = new ImplExternalStatement("return entries[0]; ")
+    var statdiag = new StringLiteral("return entries[0]; ")
     memfuncS += new ImplFunction("diag", "T", memlist, ListBuffer(statdiag), Map(), "cpu")
 
     val stsizes : List[Int] = DomainKnowledge.rule_dim() match {
@@ -196,8 +197,8 @@ class DataClasses(treel2 : TreeL2) {
 
     var bodylistSinit : ListBuffer[Statement] = ListBuffer()
     for (i <- 1 to DomainKnowledge.rule_dim())
-      bodylistSinit += new ImplExternalStatement(s"${idxdimmemlist(i - 1)} = ${idxdimparlist(i - 1)};")
-    bodylistSinit += new ImplExternalStatement(s"size = s;entries.resize(${sizeidx},s); ")
+      bodylistSinit += new StringLiteral(s"${idxdimmemlist(i - 1)} = ${idxdimparlist(i - 1)};")
+    bodylistSinit += new StringLiteral(s"size = s;entries.resize(${sizeidx},s); ")
 
     memfuncSV += new ImplFunction(StencilClassName, "", memlistSinit, bodylistSinit, Map(), "cpu")
     memfuncSV += new ImplFunction("resize", "void", memlistSinit, bodylistSinit, Map(), "cpu")
@@ -208,10 +209,10 @@ class DataClasses(treel2 : TreeL2) {
     memlistSset += new ParameterInfo("idx", "int")
     memlistSset += new ParameterInfo("v", DomainKnowledge.datatype_L2.getOrElse("double"))
 
-    memfuncSV += new ImplFunction("set", "void", memlistSset, ListBuffer(new ImplExternalStatement(s"entries(${idxlin},idx) = v; ")), Map(), "cpu")
-    memfuncSV += new ImplFunction("add", "void", memlistSset, ListBuffer(new ImplExternalStatement(s"entries(${idxlin},idx) += v; ")), Map(), "cpu")
+    memfuncSV += new ImplFunction("set", "void", memlistSset, ListBuffer(new StringLiteral(s"entries(${idxlin},idx) = v; ")), Map(), "cpu")
+    memfuncSV += new ImplFunction("add", "void", memlistSset, ListBuffer(new StringLiteral(s"entries(${idxlin},idx) += v; ")), Map(), "cpu")
 
-    var statdiagV = new ImplExternalStatement(s"return entries(${idxlin},0); ")
+    var statdiagV = new StringLiteral(s"return entries(${idxlin},0); ")
     memfuncSV += new ImplFunction("diag", "T", memlist, ListBuffer(statdiagV), Map(), "cpu")
 
     for (i <- 0 to stsizes.length - 1) {

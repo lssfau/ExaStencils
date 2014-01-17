@@ -5,6 +5,7 @@ import harald.dsl._
 import harald.Impl._
 import harald.ast.TreeL2
 import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
 
 case class AbstractFunction(fname: String, location: String, rettype: String, paramlist: List[Param], stmts: List[AbstractStatement]) {
 
@@ -42,7 +43,7 @@ case class AbstractFunction(fname: String, location: String, rettype: String, pa
       //           if (st.isInstanceOf[Loop] && !st.isInstanceOf[Reduction])
       //             stcpulist ++= st.transform(palist) 
 
-      stcpulist += new ImplExternalStatement(s"dim3 dimblock(${DomainKnowledge.CUDA_BLOCKSIZE(0)},${DomainKnowledge.CUDA_BLOCKSIZE(1)});\n")
+      stcpulist += new StringLiteral(s"dim3 dimblock(${DomainKnowledge.CUDA_BLOCKSIZE(0)},${DomainKnowledge.CUDA_BLOCKSIZE(1)});\n")
       //var hs = m.getOrElse("solution", 0)
       var sizestr = ""
 
@@ -60,7 +61,7 @@ case class AbstractFunction(fname: String, location: String, rettype: String, pa
         //if (hs == 0)
         sizestr = paramlist(1).name
 
-      stcpulist += new ImplExternalStatement(s"dim3 dimgrid(((${sizestr}.x1_)+dimblock.x-1)/dimblock.x,((${sizestr}.x2_)+dimblock.y-1)/dimblock.y);\n")
+      stcpulist += new StringLiteral(s"dim3 dimgrid(((${sizestr}.x1_)+dimblock.x-1)/dimblock.x,((${sizestr}.x2_)+dimblock.y-1)/dimblock.y);\n")
       //        cpuargs += new TransformL4.ValueExpr[Int](0)
 
       for (m1 <- m) {
