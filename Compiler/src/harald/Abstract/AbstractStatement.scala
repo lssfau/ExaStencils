@@ -126,13 +126,13 @@ case class AbstractIfElse(val cond: AbstractExpression, ifstmts: List[AbstractSt
     }
 
     if (cond.toString.startsWith("coarsestlevel"))
-      ret += new ImplIfelseStatement(new ImplBinaryExpr(new ImplVariable("", "lev", new TypeInfo("lev", 0), new NullExpression, "expression"),
+      ret += new ConditionStatement(new ImplBinaryExpr(new ImplVariable("", "lev", new TypeInfo("lev", 0), new NullExpression, "expression"),
         new OperatorInfo("=="),
         new ImplBinaryExpr(new ImplVariable("", "nlevels", new TypeInfo("nlevels", 0), new NullExpression, "expression"),
           new OperatorInfo("-"),
           new ImplValueExpr[Int](1))), st1, st2)
     else
-      ret += new ImplIfelseStatement(cond.transform(scopeparas, None, "condition"), st1, st2)
+      ret += new ConditionStatement(cond.transform(scopeparas, None, "condition"), st1, st2)
 
     return ret
   }

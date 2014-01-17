@@ -172,22 +172,6 @@ case class Implforloop(loopvar : ListBuffer[ParameterInfo], start : ListBuffer[E
   }*/
 }
 
-case class ImplIfelseStatement(expr : Expression, ifbody : ListBuffer[Statement], elsebody : ListBuffer[Statement]) extends Statement {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
-  var e : Expression = expr
-
-  override def cpp : String = {
-    var sif : String = ""
-    for (b <- ifbody)
-      sif += b.cpp
-    var selse : String = ""
-    for (b <- elsebody)
-      selse += b.cpp
-    return "if ( " + expr.cpp + " ) { \n" + sif + "\n } else { \n" + selse + "} \n"
-  }
-}
-
 case class ImplAssigmentStatement(variable : ImplVariable, op : OperatorInfo, expr : Expression, modifierstring : String = "") extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
