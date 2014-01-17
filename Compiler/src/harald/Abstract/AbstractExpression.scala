@@ -5,10 +5,11 @@ import harald.dsl._
 import harald.Impl._
 import harald.ast.TreeManager
 import harald.expert.StencilGenerator
+import exastencils.datastructures.ir._
 
 sealed abstract class AbstractExpression {
   def value(context: Context): String
-  def transform(scopeparas: ListBuffer[ParameterInfo], modifier: Option[String], scopetype: String): ImplExpression
+  def transform(scopeparas: ListBuffer[ParameterInfo], modifier: Option[String], scopetype: String): Expression
   def getvariables: ListBuffer[String] = ListBuffer()
 }
 
@@ -16,7 +17,7 @@ case class AbstractBinaryOp(operator: String, left: AbstractExpression, right: A
   override def value(context: Context) = left.value(context)
   override def toString = left.toString + " " + operator + " " + right.toString
 
-  override def transform(scopeparas: ListBuffer[ParameterInfo], modifier: Option[String], scopetype: String): ImplExpression = {
+  override def transform(scopeparas: ListBuffer[ParameterInfo], modifier: Option[String], scopetype: String): Expression = {
     // check for convolution M * v
     if (operator.equals("*"))
       left match {
@@ -25,7 +26,7 @@ case class AbstractBinaryOp(operator: String, left: AbstractExpression, right: A
             if (e1.name.equals(id1))
               right match {
                 case AbstractVariable(id2, l2) => {
-                  var lb: ListBuffer[ImplExpression] = new ListBuffer()
+                  var lb: ListBuffer[Expression] = new ListBuffer()
                   lb += new ImplVariable("", id2, new TypeInfo(id2, 1), l2.transform(scopeparas, modifier, "argument"), "argument") // TODO
 
                   if (modifier.getOrElse("").equals("ToCoarse")) {
@@ -96,8 +97,8 @@ case class AbstractFCall(fname: String, arglist: List[AbstractExpression]) exten
   override def value(context: Context) = "return"
   override def toString = fname + "(" + arglist.mkString(",") + ")"
 
-  override def transform(scopeparas: ListBuffer[ParameterInfo], modifier: Option[String], scopetype: String): ImplExpression = {
-    var args: ListBuffer[ImplExpression] = ListBuffer()
+  override def transform(scopeparas: ListBuffer[ParameterInfo], modifier: Option[String], scopetype: String): Expression = {
+    var args: ListBuffer[Expression] = ListBuffer()
     for (a <- arglist)
       args += a.transform(scopeparas, modifier, "argument")
 
@@ -112,15 +113,15 @@ case class AbstractFCall(fname: String, arglist: List[AbstractExpression]) exten
 
         return new ImplValueExpr[String](s"${curStencil.entries(0)}") // DataClasses.generateStencilConvolutioncuda(1,args(0).toString_cpp,"", "")
       } else {
-        var expr: ListBuffer[ImplExpression] = ListBuffer(new ImplValueExpr[String]("i0"))
+        var expr: ListBuffer[Expression] = ListBuffer(new ImplValueExpr[String]("i0"))
         for (i <- 1 to DomainKnowledge.rule_dim() - 1)
           expr += new ImplValueExpr[String](s"i${i}")
 
-        return new ImplFcall(args(0).toString_cpp, fname, expr)
+        return new ImplFcall(args(0).cpp, fname, expr)
       }
     }
     if (fname.equals("random"))
-      return new ImplValueExpr[String]("(rand()/static_cast<double>(RAND_MAX))*" + args(0).toString_cpp) // TODO
+      return new ImplValueExpr[String]("(rand()/static_cast<double>(RAND_MAX))*" + args(0).cpp) // TODO
     if (fname.equals("fasterReduce") && DomainKnowledge.use_gpu)
       return new ImplValueExpr[String]("fasterReduce (Res[lev].begin(), solution[lev].x1_*solution[lev].x2_, f[lev].begin())") // TODO
 
@@ -132,7 +133,7 @@ case class AbstractFCall(fname: String, arglist: List[AbstractExpression]) exten
 case class AbstractLiteral(text: String) extends AbstractExpression {
   override def value(context: Context) = text
   override def toString = text 
-  override def transform(scopeparas: ListBuffer[ParameterInfo], modifier: Option[String], scopetype: String): ImplExpression = {
+  override def transform(scopeparas: ListBuffer[ParameterInfo], modifier: Option[String], scopetype: String): Expression = {
     return new ImplValueExpr[String](text)
   }
 }
@@ -140,7 +141,7 @@ case class AbstractLiteral(text: String) extends AbstractExpression {
 case class AbstractStringLiteral(text: String) extends AbstractExpression {
   override def value(context: Context) = text
   override def toString = text 
-  override def transform(scopeparas: ListBuffer[ParameterInfo], modifier: Option[String], scopetype: String): ImplExpression = {
+  override def transform(scopeparas: ListBuffer[ParameterInfo], modifier: Option[String], scopetype: String): Expression = {
     return new ImplValueExpr[String]("\""+text+"\"")
   }
 }
@@ -154,7 +155,7 @@ case class AbstractVariable(id: String, lev: AbstractExpression) extends Abstrac
   }
   override def toString = id + " " + lev
 
-  override def transform(scopeparas: ListBuffer[ParameterInfo], modifier: Option[String], scopetype: String): ImplExpression = {
+  override def transform(scopeparas: ListBuffer[ParameterInfo], modifier: Option[String], scopetype: String): Expression = {
 
     var ti: TypeInfo = new TypeInfo(id, 0)
     for (e <- TreeManager.tree.Fields)
@@ -182,14 +183,14 @@ case class AbstractVariable(id: String, lev: AbstractExpression) extends Abstrac
     }
 
     //  	      	if (id.equals("coarsestlevel"))
-    //  	          return new VariableInfo("","lev " + "==" + DomainKnowledge.nlevels_L3.getOrElse(1).toString + "-1", new TypeInfo(id,0), new ImplExpression(), scopetype)
+    //  	          return new VariableInfo("","lev " + "==" + DomainKnowledge.nlevels_L3.getOrElse(1).toString + "-1", new TypeInfo(id,0), new Expression(), scopetype)
 
     if (id.contains("Stencil")) {
       ti = new TypeInfo(id, 2)
       return new ImplVariable("", id, ti, new ImplValueExpr[String]("0"), scopetype)
     }
 
-    return new ImplVariable("", id, ti, new ImplExpression(), scopetype)
+    return new ImplVariable("", id, ti, new NullExpression, scopetype)
 
   }
 

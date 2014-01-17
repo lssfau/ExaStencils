@@ -57,8 +57,8 @@ object InitExternalFunctions extends Strategy("Init external functions") {
     val loopshifts = IdxKnowledge.mapcoordToidxLoop(vertex1, vertex2, lev)
     var ghostshifts : ListBuffer[Int] = ListBuffer()
 
-    var start : ListBuffer[ImplExpression] = ListBuffer()
-    var stop : ListBuffer[ImplExpression] = ListBuffer()
+    var start : ListBuffer[Expression] = ListBuffer()
+    var stop : ListBuffer[Expression] = ListBuffer()
 
     for (i <- 0 to DomainKnowledge.rule_dim() - 1) {
       start += new ImplValueExpr[Int](IdxKnowledge.mapcoordToidxInt(vertex1, lev)(i))

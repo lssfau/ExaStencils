@@ -46,7 +46,7 @@ case class AbstractFunction(fname: String, location: String, rettype: String, pa
       //var hs = m.getOrElse("solution", 0)
       var sizestr = ""
 
-      var cpuargs: ListBuffer[ImplExpression] = ListBuffer()
+      var cpuargs: ListBuffer[Expression] = ListBuffer()
       var palistgpu: ListBuffer[ParameterInfo] = ListBuffer()
 
       if (paramlist.length == 1) {
@@ -114,11 +114,11 @@ case class AbstractFunction(fname: String, location: String, rettype: String, pa
       }
 
       if (fname.equals("GaussSeidel")) {
-        var cpuargs_call1: ListBuffer[ImplExpression] = ListBuffer()
+        var cpuargs_call1: ListBuffer[Expression] = ListBuffer()
         cpuargs_call1 ++= cpuargs
         cpuargs_call1 += new ImplValueExpr[String]("0")
         stcpulist += new ImplPcall("", fname + "cuda", cpuargs_call1)
-        var cpuargs_call2: ListBuffer[ImplExpression] = ListBuffer()
+        var cpuargs_call2: ListBuffer[Expression] = ListBuffer()
         cpuargs_call2 ++= cpuargs
         cpuargs_call2 += new ImplValueExpr[String]("1")
         stcpulist += new ImplPcall("", fname + "cuda", cpuargs_call2)

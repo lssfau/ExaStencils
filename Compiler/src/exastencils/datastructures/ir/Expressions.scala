@@ -4,11 +4,17 @@ import scala.collection.mutable.ListBuffer
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 
+import harald.dsl.ParameterInfo // TODO: to be removed
+
 trait Expression extends Node with CppPrettyPrintable {
   override def duplicate : this.type
   def ~(exp : Expression) : ConcatenationExpression = {
     new ConcatenationExpression(ListBuffer(this, exp))
   }
+
+  // FIXME: this is currently required for interop with Harald's code; to be removed after integration
+  var valu : String = ""
+  def evaluate(para : ListBuffer[ParameterInfo]) : Int = 0
 }
 
 case class NullExpression() extends Expression {

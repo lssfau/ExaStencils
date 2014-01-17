@@ -32,7 +32,7 @@ case class ImplReductionStatement(s : Statement) extends Statement {
   override def cpp : String = s"${DomainKnowledge.datatype_L2.getOrElse("double")} s = 0; \n " + s.cpp + "return s;"
 }
 
-case class Implforloop(loopvar : ListBuffer[ParameterInfo], start : ListBuffer[ImplExpression], stop : ListBuffer[ImplExpression], stepsize : ListBuffer[Int], runningorder : String, blocksize : Int, body : ListBuffer[Statement]) extends Statement {
+case class Implforloop(loopvar : ListBuffer[ParameterInfo], start : ListBuffer[Expression], stop : ListBuffer[Expression], stepsize : ListBuffer[Int], runningorder : String, blocksize : Int, body : ListBuffer[Statement]) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = {
@@ -45,7 +45,7 @@ case class Implforloop(loopvar : ListBuffer[ParameterInfo], start : ListBuffer[I
       // multicolor: int offset = ( i0 % 2 == 0 ? 1 : 2 ); für alle += 2 erster index 1,2 dann offset2 = ( i % 2 == offs2 ? 1 : 2 ); offset3 = ( j % 2 == offs3 ? 2 : 1 );
       for (i <- 0 to start.length - 1)
         if (stepsize(i) == 0)
-          sloops += s"${loopvar(0).dtype} ${loopvar(0).name}${i} = ${stop(i).toString_cpp}; \n"
+          sloops += s"${loopvar(0).dtype} ${loopvar(0).name}${i} = ${stop(i).cpp}; \n"
 
       for (i <- 0 to start.length - 1) {
         var steps = ""
@@ -62,9 +62,9 @@ case class Implforloop(loopvar : ListBuffer[ParameterInfo], start : ListBuffer[I
             else
               idx = s"(${loopvar(0).name}0+${loopvar(0).name}1)"
 
-            sloops += s"{ int offset = ( ${idx} % 2 == 0 ? 1 : 2 ); \n for ( ${loopvar(0).dtype} " + s"${loopvar(0).name}" + i + s" = offset; ${loopvar(0).name}" + i + " < " + stop(i).toString_cpp + ";" + steps + ")\n"
+            sloops += s"{ int offset = ( ${idx} % 2 == 0 ? 1 : 2 ); \n for ( ${loopvar(0).dtype} " + s"${loopvar(0).name}" + i + s" = offset; ${loopvar(0).name}" + i + " < " + stop(i).cpp + ";" + steps + ")\n"
           } else
-            sloops += "for ( int " + "i" + i + " = " + start(i).toString_cpp + "; i" + i + " < " + stop(i).toString_cpp + ";" + steps + ")\n"
+            sloops += "for ( int " + "i" + i + " = " + start(i).cpp + "; i" + i + " < " + stop(i).cpp + ";" + steps + ")\n"
       }
       sloops += " { \n" + s + "}}\n"
 
@@ -83,9 +83,9 @@ case class Implforloop(loopvar : ListBuffer[ParameterInfo], start : ListBuffer[I
             else
               idx = s"(${loopvar(0).name}0+${loopvar(0).name}1)"
 
-            sloops += s"{ int offset = ( ${idx} % 2 == 0 ? 2 : 1 ); \n for ( ${loopvar(0).dtype} " + s"${loopvar(0).name}" + i + s" = offset; ${loopvar(0).name}" + i + " < " + stop(i).toString_cpp + ";" + steps + ")\n"
+            sloops += s"{ int offset = ( ${idx} % 2 == 0 ? 2 : 1 ); \n for ( ${loopvar(0).dtype} " + s"${loopvar(0).name}" + i + s" = offset; ${loopvar(0).name}" + i + " < " + stop(i).cpp + ";" + steps + ")\n"
           } else
-            sloops += s"for ( ${loopvar(0).dtype} " + s"${loopvar(0).name}" + i + " = " + start(i).toString_cpp + s"; ${loopvar(0).name}" + i + " < " + stop(i).toString_cpp + ";" + steps + ")\n"
+            sloops += s"for ( ${loopvar(0).dtype} " + s"${loopvar(0).name}" + i + " = " + start(i).cpp + s"; ${loopvar(0).name}" + i + " < " + stop(i).cpp + ";" + steps + ")\n"
       }
       sloops += " { \n" + s + "}}\n"
 
@@ -93,7 +93,7 @@ case class Implforloop(loopvar : ListBuffer[ParameterInfo], start : ListBuffer[I
 
       for (i <- 0 to start.length - 1)
         if (stepsize(i) == 0)
-          sloops += s"${loopvar(0).dtype} ${loopvar(0).name}${i} = ${stop(i).toString_cpp}; \n"
+          sloops += s"${loopvar(0).dtype} ${loopvar(0).name}${i} = ${stop(i).cpp}; \n"
 
       for (i <- 0 to start.length - 1) {
         //        sloops += "for ( " + "i" + i + " <-" + start(i).toString + " to " + stop(i).toString + ")" 
@@ -109,9 +109,9 @@ case class Implforloop(loopvar : ListBuffer[ParameterInfo], start : ListBuffer[I
 
         if (!(stepsize(i) == 0))
           if (stepsize(i) > 0)
-            sloops += s"for ( ${loopvar(0).dtype} " + s"${loopvar(0).name}" + i + " = " + start(i).toString_cpp + s"; ${loopvar(0).name}" + i + " < " + stop(i).toString_cpp + ";" + steps + ")\n"
+            sloops += s"for ( ${loopvar(0).dtype} " + s"${loopvar(0).name}" + i + " = " + start(i).cpp + s"; ${loopvar(0).name}" + i + " < " + stop(i).cpp + ";" + steps + ")\n"
           else
-            sloops += s"for ( ${loopvar(0).dtype} ${loopvar(0).name}${i} = ${stop(i).toString_cpp} - 1; ${loopvar(0).name}${i} >= ${start(i).toString_cpp}; ${steps}) \n"
+            sloops += s"for ( ${loopvar(0).dtype} ${loopvar(0).name}${i} = ${stop(i).cpp} - 1; ${loopvar(0).name}${i} >= ${start(i).cpp}; ${steps}) \n"
       }
       sloops += " { \n" + s + "}"
     }
@@ -142,7 +142,7 @@ case class Implforloop(loopvar : ListBuffer[ParameterInfo], start : ListBuffer[I
             if (st.name.equals("RestrictionStencil"))
               curStencil = st
 
-          val exprloop : ImplExpression = StencilGenerator.generateStencilConvolutioncuda(9, curStencil, "fine", 1, "", "global_idx_2")
+          val exprloop : Expression = StencilGenerator.generateStencilConvolutioncuda(9, curStencil, "fine", 1, "", "global_idx_2")
           s += s"if (i1 >= ${start(0).toString_cpp} && i2 >= ${start(1).toString_cpp} && i1 < s1 - ${start(0).toString_cpp} && i2 < s2 - ${start(1).toString_cpp}) { \n"
           val statloop = b match {
             case ImplAssigmentStatement(variable, op, expr, mod) => new ImplAssigmentStatement(variable, op, exprloop, mod)
@@ -159,7 +159,7 @@ case class Implforloop(loopvar : ListBuffer[ParameterInfo], start : ListBuffer[I
 
           s += s"unsigned int global_idx_2 = ${IdxKnowledge.mapidxToLinear(lb, ListBuffer("s1_1", "s2_1"))};\n"
           //          println("in cuda loop" + b.cpp)
-          val exprloop : ImplExpression = StencilGenerator.generateStencilInterpolationcuda("uc", "i")
+          val exprloop : Expression = StencilGenerator.generateStencilInterpolationcuda("uc", "i")
           s += s"if (i1 >= ${start(0).toString_cpp} && i2 >= ${start(1).toString_cpp} && i1 < s1 - ${start(0).toString_cpp} && i2 < s2 - ${start(1).toString_cpp}) { \n"
           val statloop = b match {
             case ImplAssigmentStatement(variable, op, expr, mod) => new ImplAssigmentStatement(variable, op, exprloop, mod)
@@ -184,10 +184,10 @@ case class Implforloop(loopvar : ListBuffer[ParameterInfo], start : ListBuffer[I
   }*/
 }
 
-case class ImplIfelseStatement(expr : ImplExpression, ifbody : ListBuffer[Statement], elsebody : ListBuffer[Statement]) extends Statement {
+case class ImplIfelseStatement(expr : Expression, ifbody : ListBuffer[Statement], elsebody : ListBuffer[Statement]) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  var e : ImplExpression = expr
+  var e : Expression = expr
 
   override def cpp : String = {
     var sif : String = ""
@@ -196,15 +196,15 @@ case class ImplIfelseStatement(expr : ImplExpression, ifbody : ListBuffer[Statem
     var selse : String = ""
     for (b <- elsebody)
       selse += b.cpp
-    return "if ( " + expr.toString_cpp + " ) { \n" + sif + "\n } else { \n" + selse + "} \n"
+    return "if ( " + expr.cpp + " ) { \n" + sif + "\n } else { \n" + selse + "} \n"
   }
 }
 
-case class ImplAssigmentStatement(variable : ImplVariable, op : OperatorInfo, expr : ImplExpression, modifierstring : String = "") extends Statement {
+case class ImplAssigmentStatement(variable : ImplVariable, op : OperatorInfo, expr : Expression, modifierstring : String = "") extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  override def cpp : String = { variable.toString_cpp + op.toString_cpp + expr.toString_cpp + ";" }
-  def toString_cuda : String = variable.toString_cuda + op.toString_cpp + expr.toString_cuda + ";"
+  override def cpp : String = { variable.cpp + op.toString_cpp + expr.cpp + ";" }
+  def toString_cuda : String = variable.toString_cuda + op.toString_cpp + expr.cpp/*FIXME: toString_cuda*/ + ";"
   def contains_modifier(s : String) : Boolean = {
     if (modifierstring.equals(s))
       return true
@@ -213,19 +213,19 @@ case class ImplAssigmentStatement(variable : ImplVariable, op : OperatorInfo, ex
   }
 }
 
-case class ImplReturnStatement(expr : ImplExpression) extends Statement {
+case class ImplReturnStatement(expr : Expression) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  override def cpp : String = "return " + expr.toString_cpp + ";\n"
+  override def cpp : String = "return " + expr.cpp + ";\n"
 }
 
-case class ImplDefinitionStatement(val name : String, val dtype : String, val value : ImplExpression) extends Statement {
+case class ImplDefinitionStatement(val name : String, val dtype : String, val value : Expression) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  override def cpp : String = s"${dtype} ${name} = ${value.toString_cpp};\n"
+  override def cpp : String = s"${dtype} ${name} = ${value.cpp};\n"
 }
 
-case class ImplPcall(obj : String, name : String, paramlist : ListBuffer[ImplExpression]) extends Statement {
+case class ImplPcall(obj : String, name : String, paramlist : ListBuffer[Expression]) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String =
@@ -235,13 +235,13 @@ case class ImplPcall(obj : String, name : String, paramlist : ListBuffer[ImplExp
         objs = objs + "."
 
       if (name.equals("print")) {
-        if (TreeManager.tree.isinFields(paramlist(0).toString_cpp)) {
+        if (TreeManager.tree.isinFields(paramlist(0).cpp)) {
           var s : String = DomainKnowledge.rule_idxArray_cpp()
-          return "std::cout << " + paramlist(0).toString_cpp + s + " << \" \" ;"
+          return "std::cout << " + paramlist(0).cpp + s + " << \" \" ;"
         } else {
           var pstr = "std::cout << "
           for (p <- paramlist)
-            pstr += p.toString_cpp + " << \" \" << "
+            pstr += p.cpp + " << \" \" << "
           pstr += " std::endl; "
           return pstr
         }
@@ -258,16 +258,16 @@ case class ImplPcall(obj : String, name : String, paramlist : ListBuffer[ImplExp
       if (location.equals("cpu")) {
         s = objs + name + " ( "
         if (paramlist.length > 0)
-          s = s + paramlist(0).toString_cpp
+          s = s + paramlist(0).cpp
         for (i <- 1 to paramlist.length - 1)
-          s = s + "," + paramlist(i).toString_cpp
+          s = s + "," + paramlist(i).cpp
         return s + ");\n"
       } else {
         s = objs + name + "<<<dimgrid,dimblock>>> ( "
         if (paramlist.length > 0)
-          s = s + paramlist(0).toString_cpp
+          s = s + paramlist(0).cpp
         for (i <- 1 to paramlist.length - 1)
-          s = s + "," + paramlist(i).toString_cpp
+          s = s + "," + paramlist(i).cpp
         return s + ");\n"
       }
     }

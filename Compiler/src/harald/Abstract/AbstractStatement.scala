@@ -22,7 +22,7 @@ case class AbstractCommunication(fname: String, loc: String) extends AbstractSta
 
 case class AbstractPCall(fname: String, arglist: List[AbstractExpression]) extends AbstractStatement {
   override def transform(scopeparas: ListBuffer[ParameterInfo]): ListBuffer[Statement] = {
-    var args: ListBuffer[ImplExpression] = ListBuffer()
+    var args: ListBuffer[Expression] = ListBuffer()
     for (a <- arglist)
       args += a.transform(scopeparas, None, "argument")
 
@@ -48,21 +48,21 @@ case class AbstractLoop(where: String, lev: String, order: String, blocksize: St
         case DomainKnowledge.LoopKnowledge(_, "innerpoints", "1") => 1
         case DomainKnowledge.LoopKnowledge(_, "allpoints", "1") => 0
       }
-    var start: ListBuffer[ImplExpression] = ListBuffer()
+    var start: ListBuffer[Expression] = ListBuffer()
     for (i <- 1 to DomainKnowledge.rule_dim())
       start += new ImplValueExpr[Int](startidx)
 
-    var stop: ListBuffer[ImplExpression] = ListBuffer()
+    var stop: ListBuffer[Expression] = ListBuffer()
 
     lpkn match {
       case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "innerpoints", "1") => {
         for (i <- 1 to DomainKnowledge.rule_dim())
-          stop += new ImplBinaryExpr(new ImplVariable(lpendvariable, "x" + i.toString + "_", new TypeInfo(lpendvariable + "x" + i.toString, 0), new ImplExpression(), "expression"), new OperatorInfo("-"), new ImplValueExpr[Int](1))
+          stop += new ImplBinaryExpr(new ImplVariable(lpendvariable, "x" + i.toString + "_", new TypeInfo(lpendvariable + "x" + i.toString, 0), new NullExpression, "expression"), new OperatorInfo("-"), new ImplValueExpr[Int](1))
         //	                  stop += new BinaryExpr(new functioncall(lpendvariable + i.toString,ListBuffer()), new OperatorInfo("-"), new ValueExpr[Int](1)) 
       }
       case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "allpoints", "1") => {
         for (i <- 1 to DomainKnowledge.rule_dim())
-          stop += new ImplVariable(lpendvariable, "x" + i.toString + "_", new TypeInfo(lpendvariable + "x" + i.toString, 0), new ImplExpression(), "expression") //functioncall(lpendvariable + i.toString,ListBuffer())
+          stop += new ImplVariable(lpendvariable, "x" + i.toString + "_", new TypeInfo(lpendvariable + "x" + i.toString, 0), new NullExpression, "expression") //functioncall(lpendvariable + i.toString,ListBuffer())
 
       }
     }
@@ -126,9 +126,9 @@ case class AbstractIfElse(val cond: AbstractExpression, ifstmts: List[AbstractSt
     }
 
     if (cond.toString.startsWith("coarsestlevel"))
-      ret += new ImplIfelseStatement(new ImplBinaryExpr(new ImplVariable("", "lev", new TypeInfo("lev", 0), new ImplExpression(), "expression"),
+      ret += new ImplIfelseStatement(new ImplBinaryExpr(new ImplVariable("", "lev", new TypeInfo("lev", 0), new NullExpression, "expression"),
         new OperatorInfo("=="),
-        new ImplBinaryExpr(new ImplVariable("", "nlevels", new TypeInfo("nlevels", 0), new ImplExpression(), "expression"),
+        new ImplBinaryExpr(new ImplVariable("", "nlevels", new TypeInfo("nlevels", 0), new NullExpression, "expression"),
           new OperatorInfo("-"),
           new ImplValueExpr[Int](1))), st1, st2)
     else
@@ -143,7 +143,7 @@ case class AbstractLet(val id: String, val expr: AbstractExpression, modifier: O
 
     var ret: ListBuffer[Statement] = ListBuffer()
     var ti: TypeInfo = new TypeInfo(id, 0)
-    var levstr: ImplExpression = new ImplExpression()
+    var levstr: Expression = new NullExpression
 
     for (e <- TreeManager.tree.Fields)
       if (e.name.equals(id)) {
@@ -154,14 +154,14 @@ case class AbstractLet(val id: String, val expr: AbstractExpression, modifier: O
     for (e <- TreeManager.tree.Stencils)
       if (e.name.equals(id)) {
         ti = new TypeInfo(id, 2)
-        levstr = new ImplExpression()
+        levstr = new NullExpression
       }
 
     for (e <- scopeparas)
       if (e.name.equals(id))
         if (e.dtype.startsWith(TreeManager.tree.ExternalClasses.get("Array").get.name)) {
           ti = new TypeInfo(id, 1)
-          levstr = new ImplExpression()
+          levstr = new NullExpression
         }
 
     ret += new ImplAssigmentStatement(new ImplVariable("", id, ti, levstr, "statement"), new OperatorInfo("="), expr.transform(scopeparas, modifier, "expression"), modifier.getOrElse(""))
@@ -195,7 +195,7 @@ case class AbstractPLet(val id: String, val expr: AbstractExpression, modifier: 
 
     var ret: ListBuffer[Statement] = ListBuffer()
 
-    ret += new ImplAssigmentStatement(new ImplVariable("", id, ti, new ImplExpression(), "statement"), new OperatorInfo("+="), expr.transform(scopeparas, modifier, "expression"), modifier.getOrElse(""))
+    ret += new ImplAssigmentStatement(new ImplVariable("", id, ti, new NullExpression, "statement"), new OperatorInfo("+="), expr.transform(scopeparas, modifier, "expression"), modifier.getOrElse(""))
 
     return ret
   }

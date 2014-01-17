@@ -256,7 +256,7 @@ class DataClasses(treel2 : TreeL2) {
 
 object StencilGenerator {
 
-  def generateStencilInterpolation(classname : String, arrname : String, idxname : String) : ImplExpression = {
+  def generateStencilInterpolation(classname : String, arrname : String, idxname : String) : Expression = {
 
     val idxmap = IdxKnowledge.IntStencilToidx(DomainKnowledge.rule_dim(), Math.pow(2, DomainKnowledge.rule_dim()).toInt)
     val fac = Math.pow(0.25, DomainKnowledge.rule_dim() - 1)
@@ -278,14 +278,11 @@ object StencilGenerator {
     exts += ")"
 
     var statint = new ImplValueExpr[String](exts)
-    statint.CostInfo += "*" -> Map(1 -> "")
-    statint.CostInfo += "+" -> Map((Math.pow(2, DomainKnowledge.rule_dim()).toInt - 1) -> "")
-    statint.CostInfo += "Load" -> Map((Math.pow(2, DomainKnowledge.rule_dim()).toInt) -> s"${arrname}")
 
     return statint
   }
 
-  def generateStencilInterpolationcuda(arrname : String, idxname : String) : ImplExpression = {
+  def generateStencilInterpolationcuda(arrname : String, idxname : String) : Expression = {
 
     val idxmap = IdxKnowledge.IntStencilToidx(DomainKnowledge.rule_dim(), Math.pow(2, DomainKnowledge.rule_dim()).toInt)
     val fac = Math.pow(0.25, DomainKnowledge.rule_dim() - 1)
@@ -302,14 +299,11 @@ object StencilGenerator {
     exts += ")"
 
     var statint = new ImplValueExpr[String](exts)
-    statint.CostInfo += "*" -> Map(1 -> "")
-    statint.CostInfo += "+" -> Map((Math.pow(2, DomainKnowledge.rule_dim()).toInt - 1) -> "")
-    statint.CostInfo += "Load" -> Map((Math.pow(2, DomainKnowledge.rule_dim()).toInt) -> "")
 
-    return statint
+  return statint
   }
 
-  def generateStencilConvolution(classname : String, stsize : Int, memlistS : ListBuffer[ParameterInfo], idxlin : String) : ImplExpression = {
+  def generateStencilConvolution(classname : String, stsize : Int, memlistS : ListBuffer[ParameterInfo], idxlin : String) : Expression = {
 
     val idxmap = IdxKnowledge.StencilToidx(DomainKnowledge.rule_dim(), stsize)
     var exts : String = ""
@@ -346,14 +340,11 @@ object StencilGenerator {
     exts = exts + ")"
 
     var stat = new ImplValueExpr[String](exts)
-    stat.CostInfo += "*" -> Map(idxmap.length -> "")
-    stat.CostInfo += "+" -> Map((idxmap.length - 1) -> "")
-    stat.CostInfo += "Load" -> Map(idxmap.length -> s"conv_${memlistS(0).name}")
 
     return stat
   }
 
-  def generateStencilConvolutioncuda(stsize : Int, curStencil : ImplStencil, arrname : String, arrsizeidx : Int, idxlin : String, gidx : String) : ImplExpression = {
+  def generateStencilConvolutioncuda(stsize : Int, curStencil : ImplStencil, arrname : String, arrsizeidx : Int, idxlin : String, gidx : String) : Expression = {
 
     val idxmap = IdxKnowledge.StencilToidx(DomainKnowledge.rule_dim(), stsize)
     var exts : String = ""
@@ -377,9 +368,6 @@ object StencilGenerator {
     }
 
     var stat = new ImplValueExpr[String]("(" + exts + ")")
-    stat.CostInfo += "*" -> Map(idxmap.length -> "")
-    stat.CostInfo += "+" -> Map((idxmap.length - 1) -> "")
-    stat.CostInfo += "Load" -> Map(idxmap.length -> "")
 
     return stat
   }
