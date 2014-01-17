@@ -63,6 +63,19 @@ object MainChristian {
     //    positionStrategy += new Transformation({case x : Annotatable => x.getAnnotations.foreach(a => println(x + " " + a.name + " - " + a.value)); Some(x) })
     //    //positionStrategy.apply
 
+    import exastencils.datastructures.Transformation._
+    val x = new Output(new exastencils.datastructures.ir.BooleanLiteral(true))
+    val y = new Output(List(exastencils.datastructures.ir.BooleanLiteral(true)))
+    println(y)
+    
+    y.inner match {
+      case x : Node => println("node")
+      case x : List[_] => println("list")
+      case _ => println("anderes")
+    }
+    
+    sys.exit
+    
     val s = new exastencils.parsers.settings.ParserSettings
     s.parseFile(args(0))
     
@@ -81,6 +94,8 @@ object MainChristian {
     val b = BinaryExpression("x", null, null)
     val c = Constant("hallo")
     val d = a ~ b ~ c
+    
+    //val x = new Node with Debuggable
 
     println(d)
   }

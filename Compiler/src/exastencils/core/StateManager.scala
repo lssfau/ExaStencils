@@ -8,6 +8,7 @@ import java.lang.reflect.Method
 import exastencils.core.collectors._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
+import exastencils.datastructures.Transformation._
 
 import scala.reflect.runtime.{ universe => ru }
 import scala.reflect.runtime.{ currentMirror => rm }
@@ -80,14 +81,23 @@ object StateManager {
   }
   protected val progresses_ = new HashMap[Transformation, TransformationProgress]
 
-  protected def applyAtNode(node : Node, transformation : Transformation) : Option[Node] = {
+  protected def applyAtNode(node : Node, transformation : Transformation) : Transformation.Output[_] = {
     if (transformation.function.isDefinedAt(node)) {
       progresses_(transformation).didMatch
       val ret = transformation.function(node)
-      if (ret.getOrElse(null) ne node) progresses_(transformation).didReplace
+
+      def processResult[O <: Output[_]](o : O) : Unit = o.inner match {
+        case n : Node      => if(n != node) progresses_(transformation).didReplace
+        case l : List[_]   => progresses_(transformation).didReplace // FIXME count of list?!
+        case n : None.type => if(node != None) progresses_(transformation).didReplace
+        case _ => 
+      }
+      
+      processResult(ret)
+
       return ret
     } else {
-      Some(node)
+      Output(node)
     }
   }
 
@@ -97,11 +107,20 @@ object StateManager {
     Vars(node).foreach(field => {
       val currentSubnode = Vars.get(node, field)
       val previousReplacements = progresses_(transformation).getReplacements
+
       if (currentSubnode.isInstanceOf[Seq[_]]) {
         var list = currentSubnode.asInstanceOf[Seq[_]]
         val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
         if (invalids.size <= 0) {
-          var newList = list.asInstanceOf[Seq[Node]].map(listitem => applyAtNode(listitem, transformation).getOrElse(null)).filterNot(p => p == null)
+
+          def processResult[O <: Output[_]](o : O) : List[Node] = o.inner match {
+            case n : Node      => List(n)
+            case l : List[_]   => l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
+            case n : None.type => List()
+            case _ => ERROR(o); List()
+          }
+
+          var newList = list.asInstanceOf[Seq[Node]].flatMap(listitem => processResult(applyAtNode(listitem, transformation)))
           var changed = newList.diff(list)
           if (changed.size > 0) {
             if (!Vars.set(node, field, newList)) {
@@ -116,7 +135,14 @@ object StateManager {
         val arrayType = list.getClass().getComponentType()
         val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
         if (invalids.size <= 0) {
-          var tmpArray = list.asInstanceOf[Array[Node]].map(listitem => applyAtNode(listitem, transformation).getOrElse(null)).filterNot(p => p == null)
+
+          def processResult[O <: Output[_]](o : O) : List[Node] = o.inner match {
+            case n : Node      => List(n)
+            case l : List[_]   => l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
+            case n : None.type => List()
+          }
+
+          var tmpArray = list.asInstanceOf[Array[Node]].flatMap(listitem => processResult(applyAtNode(listitem, transformation)))
           var changed = tmpArray.diff(list)
           if (changed.size > 0) {
             var newArray = java.lang.reflect.Array.newInstance(arrayType, tmpArray.length)
@@ -139,23 +165,30 @@ object StateManager {
         }
 
         if (subnode.isInstanceOf[Node]) {
-          var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation)
-          if (newSubnode.isEmpty) {
-            ERROR(s"Could not set $field to an empty node") // FIXME think of better way => e.g. empty dummy node
-          } else {
-            if (newSubnode.get ne subnode.asInstanceOf[Node]) {
-              if (nodeIsOption) { // node is an Option[T] => set directly
-                if (!Vars.set(node, field, newSubnode)) {
+
+          def processResult[O <: Output[_]](o : O) = o.inner match {
+            case n : Node => {
+              if (nodeIsOption) { // node is an Option[T] => set with Some() wrapped
+                if (!Vars.set(node, field, Some(n))) {
                   ERROR(s"Could not set $field")
                 }
-              } else { // node is not an Option[T] => set inner value
-                if (!Vars.set(node, field, newSubnode.get)) {
+              } else { // node is not an Option[T] => set directly
+                if (!Vars.set(node, field, n)) {
                   ERROR(s"Could not set $field")
                 }
               }
+              if (transformation.recursive) replace(n, transformation)
             }
-            if (transformation.recursive) replace(newSubnode.get, transformation)
+            case l : List[_] => {
+              // FIXME
+            }
+            case n : None.type => {
+              ERROR(s"Could not set $field to an empty node") // FIXME think of better way => e.g. empty dummy node
+            }
           }
+
+          var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation)
+          processResult(newSubnode)
         }
       }
     })
@@ -213,6 +246,7 @@ object StateManager {
           throw new ValueSetException(s"""Invalid assignment: Cannot assign to $to from $from for "$o"""")
         }
         method.invoke(o, value)
+        //WARN("successfully set " + method.getName())
         true
       }
     }
