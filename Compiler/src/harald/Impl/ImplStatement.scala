@@ -5,6 +5,7 @@ import harald.dsl._
 import harald.ast.TreeManager
 import harald.expert.StencilGenerator
 import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
 
 case class ImplCommunication(fname : String, loc : String) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
@@ -20,10 +21,25 @@ case class ImplReductionStatement(s : Statement) extends Statement {
   override def cpp : String = s"${DomainKnowledge.datatype_L2.getOrElse("double")} s = 0; \n " + s.cpp + "return s;"
 }
 
-case class Implforloop(loopvar : ListBuffer[ParameterInfo], start : ListBuffer[Expression], stop : ListBuffer[Expression], stepsize : ListBuffer[Int], runningorder : String, blocksize : Int, body : ListBuffer[Statement]) extends Statement {
+case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : ListBuffer[Expression], var stop : ListBuffer[Expression], var stepsize : ListBuffer[Int], var runningorder : String, var blocksize : Int, var body : ListBuffer[Statement]) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
+  def stepToUpdate(step : Int, dim : Int, loopVarName : String) : String = {
+    if (0 == step)
+      return ""
+    else if (1 == step)
+      return s"++$loopVarName$dim"
+    else if (-1 == step)
+      return s"--$loopVarName$dim"
+    else if (step > 0)
+      return s"$loopVarName$dim += $step"
+    else
+      return s"$loopVarName$dim -= $step"
+  }
+
   override def cpp : String = {
+    // FIXME: make this node expandable and move mapping to expand function
+
     var s : String = ""
     for (b <- body)
       s += b.cpp
@@ -31,77 +47,46 @@ case class Implforloop(loopvar : ListBuffer[ParameterInfo], start : ListBuffer[E
 
     if (runningorder.equals("rb")) {
       // multicolor: int offset = ( i0 % 2 == 0 ? 1 : 2 ); für alle += 2 erster index 1,2 dann offset2 = ( i % 2 == offs2 ? 1 : 2 ); offset3 = ( j % 2 == offs3 ? 2 : 1 );
-      for (i <- 0 to start.length - 1)
-        if (stepsize(i) == 0)
-          sloops += s"${loopvar(0).dtype} ${loopvar(0).name}${i} = ${stop(i).cpp}; \n"
 
-      for (i <- 0 to start.length - 1) {
-        var steps = ""
-        if (i == start.length - 1)
-          steps = s"${loopvar(0).name}${i}+=2"
-        else
-          steps = s"++${loopvar(0).name}" + i
+      for (off <- 0 to 1) {
+        var wrappedBody : ListBuffer[Statement] = body; // TODO: clone?
 
-        if (!(stepsize(i) == 0))
-          if (i == start.length - 1) {
-            var idx = ""
-            if (DomainKnowledge.rule_dim() == 2)
-              idx = s"${loopvar(0).name}0"
+        for (i <- start.length - 1 to 0 by -1) /* FIXME: this loop seems to be inverted */ {
+          stepsize(i) = (if (start.length - 1 == i) 2 else 1)
+          start(start.length - 1) = "offset"
+
+          wrappedBody = ListBuffer[Statement](
+            (if (start.length - 1 == i)
+              s"int offset = 1 + (${(2 to DomainKnowledge.rule_dim()).map(i => loopvar(0).name + (i - 2)).mkString(" + ")} + $off) % 2;"
             else
-              idx = s"(${loopvar(0).name}0+${loopvar(0).name}1)"
-
-            sloops += s"{ int offset = ( ${idx} % 2 == 0 ? 1 : 2 ); \n for ( ${loopvar(0).dtype} " + s"${loopvar(0).name}" + i + s" = offset; ${loopvar(0).name}" + i + " < " + stop(i).cpp + ";" + steps + ")\n"
-          } else
-            sloops += "for ( int " + "i" + i + " = " + start(i).cpp + "; i" + i + " < " + stop(i).cpp + ";" + steps + ")\n"
+              new NullStatement),
+            new ForLoopStatement(
+              loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}$i" ~ " = " ~ start(i),
+              s"${loopvar(0).name}$i < " ~ stop(i),
+              stepToUpdate(stepsize(i), i, loopvar(0).name),
+              wrappedBody))
+        }
+        sloops += StatementBlock(wrappedBody).cpp;
       }
-      sloops += " { \n" + s + "}}\n"
-
-      for (i <- 0 to start.length - 1) {
-        var steps = ""
-        if (i == start.length - 1)
-          steps = s"${loopvar(0).name}${i}+=2"
-        else
-          steps = s"++${loopvar(0).name}" + i
-
-        if (!(stepsize(i) == 0))
-          if (i == start.length - 1) {
-            var idx = ""
-            if (DomainKnowledge.rule_dim() == 2)
-              idx = s"${loopvar(0).name}0"
-            else
-              idx = s"(${loopvar(0).name}0+${loopvar(0).name}1)"
-
-            sloops += s"{ int offset = ( ${idx} % 2 == 0 ? 2 : 1 ); \n for ( ${loopvar(0).dtype} " + s"${loopvar(0).name}" + i + s" = offset; ${loopvar(0).name}" + i + " < " + stop(i).cpp + ";" + steps + ")\n"
-          } else
-            sloops += s"for ( ${loopvar(0).dtype} " + s"${loopvar(0).name}" + i + " = " + start(i).cpp + s"; ${loopvar(0).name}" + i + " < " + stop(i).cpp + ";" + steps + ")\n"
-      }
-      sloops += " { \n" + s + "}}\n"
-
     } else { // lex
+      var wrappedBody : ListBuffer[Statement] = body; // TODO: clone?
 
-      for (i <- 0 to start.length - 1)
-        if (stepsize(i) == 0)
-          sloops += s"${loopvar(0).dtype} ${loopvar(0).name}${i} = ${stop(i).cpp}; \n"
-
-      for (i <- 0 to start.length - 1) {
-        //        sloops += "for ( " + "i" + i + " <-" + start(i).toString + " to " + stop(i).toString + ")" 
-        var steps = ""
-        if (stepsize(i) == 1)
-          steps = s"++${loopvar(0).name}" + i
-        else if (stepsize(i) == -1)
-          steps = s"--${loopvar(0).name}" + i
-        else if (stepsize(i) > 0)
-          steps = s"${loopvar(0).name}${i}+=${stepsize(i)}"
-        else
-          steps = s"${loopvar(0).name}${i}-=${stepsize(i)}"
-
-        if (!(stepsize(i) == 0))
-          if (stepsize(i) > 0)
-            sloops += s"for ( ${loopvar(0).dtype} " + s"${loopvar(0).name}" + i + " = " + start(i).cpp + s"; ${loopvar(0).name}" + i + " < " + stop(i).cpp + ";" + steps + ")\n"
-          else
-            sloops += s"for ( ${loopvar(0).dtype} ${loopvar(0).name}${i} = ${stop(i).cpp} - 1; ${loopvar(0).name}${i} >= ${start(i).cpp}; ${steps}) \n"
+      for (i <- start.length - 1 to 0 by -1) /* FIXME: this loop seems to be inverted */ {
+        if (stepsize(i) >= 0) {
+          wrappedBody = ListBuffer[Statement](new ForLoopStatement(
+            loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}$i" ~ " = " ~ start(i),
+            s"${loopvar(0).name}$i < " ~ stop(i),
+            stepToUpdate(stepsize(i), i, loopvar(0).name),
+            wrappedBody))
+        } else {
+          wrappedBody = ListBuffer[Statement](new ForLoopStatement(
+            loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}$i" ~ " = (" ~ stop(i) ~ "- 1)",
+            s"${loopvar(0).name}$i >= " ~ start(i),
+            stepToUpdate(stepsize(i), i, loopvar(0).name),
+            wrappedBody))
+        }
       }
-      sloops += " { \n" + s + "}"
+      sloops += StatementBlock(wrappedBody).cpp;
     }
 
     return sloops + "} \n"
@@ -176,7 +161,7 @@ case class ImplAssigmentStatement(variable : ImplVariable, op : OperatorInfo, ex
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = { variable.cpp + op.toString_cpp + expr.cpp + ";" }
-  def toString_cuda : String = variable.toString_cuda + op.toString_cpp + expr.cpp/*FIXME: toString_cuda*/ + ";"
+  def toString_cuda : String = variable.toString_cuda + op.toString_cpp + expr.cpp /*FIXME: toString_cuda*/ + ";"
   def contains_modifier(s : String) : Boolean = {
     if (modifierstring.equals(s))
       return true
