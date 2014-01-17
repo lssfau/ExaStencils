@@ -85,9 +85,6 @@ object StateManager {
   protected def applyAtNode(node : Node, transformation : Transformation) : Transformation.Output[_] = {
     if (transformation.function.isDefinedAt(node)) {
       progresses_(transformation).didMatch
-      println(s"node: $node")
-      println(s"trafo: ${transformation}")
-      println(s"function: ${transformation.function.apply(node)}")
       val ret = transformation.function(node)
 
       def processResult[O <: Output[_]](o : O) : Unit = o.inner match {
@@ -122,13 +119,11 @@ object StateManager {
     Collectors.notifyEnter(node)
 
     Vars(node).foreach(field => {
-      WARN(s"field: $field")
       val currentSubnode = Vars.get(node, field)
       val previousReplacements = progresses_(transformation).getReplacements
 
       currentSubnode match {
         case list : Seq[_] => {
-          WARN(s"list: $list")
           val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
           if (invalids.size <= 0) {
             var newList = list.asInstanceOf[Seq[Node]].flatMap(listitem => processOutput(applyAtNode(listitem, transformation)))
@@ -142,13 +137,21 @@ object StateManager {
           }
         }
         case map : Map[_, _] => {
-          WARN(s"@ map $map")
           val invalids = map.filterNot(p => isTransformable(p._2))
           if (invalids.size <= 0) {
+
+            def processOutput[O <: Output[_]](o : O) : Node = o.inner match {
+              case n : Node      => n
+              case l : List[_]   =>
+                ERROR("FIXME"); null //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
+              case n : None.type =>
+                ERROR("FIXME"); null //List()
+              case _             => ERROR(o); null
+            }
+
             import scala.language.existentials
-            //var newMap = map.asInstanceOf[Map[_, Node]].map({ case (k, listitem) => (k, processOutput(applyAtNode(listitem, transformation))) })
-            var newMap = map.asInstanceOf[Map[_, Node]].map({ case (k, listitem) => (k, applyAtNode(listitem, transformation)) }) // FIXME check types
-            val changed = List(8) //newMap.values.toList.diff(map.values.toList)
+            var newMap = map.asInstanceOf[Map[_, Node]].map({ case (k, listitem) => (k, processOutput(applyAtNode(listitem, transformation))) })
+            val changed = newMap.values.toList.diff(map.values.toList)
             if (changed.size > 0) {
               if (!Vars.set(node, field, newMap)) {
                 ERROR(s"Could not set $field")
@@ -173,7 +176,6 @@ object StateManager {
           }
         }
         case node : Node => {
-          WARN(s"node: $node")
           var subnode = node
           var nodeIsOption = false
           if (subnode.isInstanceOf[Some[_]]) {
@@ -261,7 +263,7 @@ object StateManager {
         if (!method.getParameterTypes()(0).isAssignableFrom(value.getClass)) {
           val from = method.getParameterTypes()(0)
           val to = value.getClass
-          throw new ValueSetException(s"""Invalid assignment: Cannot assign to $to from $from for "$o"""")
+          throw new ValueSetException(s"""Invalid assignment: Cannot assign to $to from $from for "$o", method "${method.getName}"""")
         }
         method.invoke(o, value)
         //WARN("successfully set " + method.getName())

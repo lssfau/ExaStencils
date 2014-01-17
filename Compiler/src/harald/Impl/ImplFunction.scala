@@ -4,7 +4,7 @@ import scala.collection.mutable.ListBuffer
 import harald.dsl.ParameterInfo
 import exastencils.datastructures.ir._
 
-  class ImplFunction(fname: String, rettype: String, paramlist: ListBuffer[ParameterInfo], bodylist: ListBuffer[Statement], bodyvar: Map[String,Int], loc: String) {
+  class ImplFunction(fname: String, rettype: String, paramlist: ListBuffer[ParameterInfo], bodylist: ListBuffer[Statement], bodyvar: scala.collection.mutable.Map[String,Int], loc: String) {
     var name: String = fname
     var returntype: String = rettype
     var params: ListBuffer[ParameterInfo] = paramlist

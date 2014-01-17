@@ -1,6 +1,7 @@
 package harald.Abstract
 
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Map
 import harald.dsl._
 import harald.Impl._
 import harald.ast.TreeL2
