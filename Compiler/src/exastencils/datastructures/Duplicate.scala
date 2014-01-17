@@ -14,6 +14,12 @@ object Duplicate {
   def apply[T <: Duplicable](t : ListBuffer[T]) : ListBuffer[T] = {
     t.map(Duplicate(_))
   }
+  def apply[T <: Duplicable, U](t : Map[U, T]) : Map[U, T] = {
+    t.map(Duplicate(_))
+  }
+    def apply[T <: Duplicable, U](t : (U, T)) : (U, T) = {
+    (t._1, Duplicate(t._2))
+  }
 }
 
 trait Duplicable {
