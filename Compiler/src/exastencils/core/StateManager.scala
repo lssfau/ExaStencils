@@ -87,12 +87,12 @@ object StateManager {
       val ret = transformation.function(node)
 
       def processResult[O <: Output[_]](o : O) : Unit = o.inner match {
-        case n : Node      => if(n != node) progresses_(transformation).didReplace
+        case n : Node      => if (n != node) progresses_(transformation).didReplace
         case l : List[_]   => progresses_(transformation).didReplace // FIXME count of list?!
-        case n : None.type => if(node != None) progresses_(transformation).didReplace
-        case _ => 
+        case n : None.type => if (node != None) progresses_(transformation).didReplace
+        case _             =>
       }
-      
+
       processResult(ret)
 
       return ret
@@ -108,88 +108,89 @@ object StateManager {
       val currentSubnode = Vars.get(node, field)
       val previousReplacements = progresses_(transformation).getReplacements
 
-      if (currentSubnode.isInstanceOf[Seq[_]]) {
-        var list = currentSubnode.asInstanceOf[Seq[_]]
-        val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
-        if (invalids.size <= 0) {
+      currentSubnode match {
+        case list : Seq[_] => {
+          val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
+          if (invalids.size <= 0) {
 
-          def processResult[O <: Output[_]](o : O) : List[Node] = o.inner match {
-            case n : Node      => List(n)
-            case l : List[_]   => l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
-            case n : None.type => List()
-            case _ => ERROR(o); List()
-          }
-
-          var newList = list.asInstanceOf[Seq[Node]].flatMap(listitem => processResult(applyAtNode(listitem, transformation)))
-          var changed = newList.diff(list)
-          if (changed.size > 0) {
-            if (!Vars.set(node, field, newList)) {
-              ERROR(s"Could not set $field")
-            }
-          }
-          if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) newList.foreach(f => replace(f, transformation))
-        }
-
-      } else if (currentSubnode.isInstanceOf[Array[_]]) {
-        var list = currentSubnode.asInstanceOf[Array[_]]
-        val arrayType = list.getClass().getComponentType()
-        val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
-        if (invalids.size <= 0) {
-
-          def processResult[O <: Output[_]](o : O) : List[Node] = o.inner match {
-            case n : Node      => List(n)
-            case l : List[_]   => l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
-            case n : None.type => List()
-          }
-
-          var tmpArray = list.asInstanceOf[Array[Node]].flatMap(listitem => processResult(applyAtNode(listitem, transformation)))
-          var changed = tmpArray.diff(list)
-          if (changed.size > 0) {
-            var newArray = java.lang.reflect.Array.newInstance(arrayType, tmpArray.length)
-            System.arraycopy(tmpArray, 0, newArray, 0, tmpArray.length)
-            if (!Vars.set(node, field, newArray)) {
-              ERROR(s"Could not set $field")
+            def processResult[O <: Output[_]](o : O) : List[Node] = o.inner match {
+              case n : Node      => List(n)
+              case l : List[_]   => l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
+              case n : None.type => List()
+              case _             => ERROR(o); List()
             }
 
-          }
-          if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) tmpArray.asInstanceOf[Array[Node]].foreach(f => replace(f, transformation))
-        }
-
-      } else {
-        var subnode = currentSubnode
-        var nodeIsOption = false
-        if (subnode.isInstanceOf[Some[_]]) {
-          nodeIsOption = true
-          var somenode = subnode.asInstanceOf[Some[_]].get
-          if (somenode.isInstanceOf[Node]) subnode = somenode.asInstanceOf[Node]
-        }
-
-        if (subnode.isInstanceOf[Node]) {
-
-          def processResult[O <: Output[_]](o : O) = o.inner match {
-            case n : Node => {
-              if (nodeIsOption) { // node is an Option[T] => set with Some() wrapped
-                if (!Vars.set(node, field, Some(n))) {
-                  ERROR(s"Could not set $field")
-                }
-              } else { // node is not an Option[T] => set directly
-                if (!Vars.set(node, field, n)) {
-                  ERROR(s"Could not set $field")
-                }
+            var newList = list.asInstanceOf[Seq[Node]].flatMap(listitem => processResult(applyAtNode(listitem, transformation)))
+            var changed = newList.diff(list)
+            if (changed.size > 0) {
+              if (!Vars.set(node, field, newList)) {
+                ERROR(s"Could not set $field")
               }
-              if (transformation.recursive) replace(n, transformation)
             }
-            case l : List[_] => {
-              // FIXME
+            if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) newList.foreach(f => replace(f, transformation))
+          }
+        }
+        case list : Array[_] => {
+          val arrayType = list.getClass().getComponentType()
+          val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
+          if (invalids.size <= 0) {
+
+            def processResult[O <: Output[_]](o : O) : List[Node] = o.inner match {
+              case n : Node      => List(n)
+              case l : List[_]   => l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
+              case n : None.type => List()
             }
-            case n : None.type => {
-              ERROR(s"Could not set $field to an empty node") // FIXME think of better way => e.g. empty dummy node
+
+            var tmpArray = list.asInstanceOf[Array[Node]].flatMap(listitem => processResult(applyAtNode(listitem, transformation)))
+            var changed = tmpArray.diff(list)
+            if (changed.size > 0) {
+              var newArray = java.lang.reflect.Array.newInstance(arrayType, tmpArray.length)
+              System.arraycopy(tmpArray, 0, newArray, 0, tmpArray.length)
+              if (!Vars.set(node, field, newArray)) {
+                ERROR(s"Could not set $field")
+              }
+
             }
+            if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) tmpArray.asInstanceOf[Array[Node]].foreach(f => replace(f, transformation))
+          }
+        }
+        case node : Node => {
+          var subnode = node
+          var nodeIsOption = false
+          if (subnode.isInstanceOf[Some[_]]) {
+            nodeIsOption = true
+            var somenode = subnode.asInstanceOf[Some[_]].get
+            if (somenode.isInstanceOf[Node]) subnode = somenode.asInstanceOf[Node]
           }
 
-          var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation)
-          processResult(newSubnode)
+          if (subnode.isInstanceOf[Node]) {
+
+            def processResult[O <: Output[_]](o : O) = o.inner match {
+              case n : Node => {
+                if (nodeIsOption) { // node is an Option[T] => set with Some() wrapped
+                  if (!Vars.set(node, field, Some(n))) {
+                    ERROR(s"Could not set $field")
+                  }
+                } else { // node is not an Option[T] => set directly
+                  if (!Vars.set(node, field, n)) {
+                    ERROR(s"Could not set $field")
+                  }
+                }
+                if (transformation.recursive) replace(n, transformation)
+              }
+              case l : List[_] => {
+                // FIXME
+              }
+              case n : None.type => {
+                ERROR(s"Could not set $field to an empty node") // FIXME think of better way => e.g. empty dummy node
+              }
+            }
+
+            var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation)
+            processResult(newSubnode)
+          }
         }
+        case _ => 
       }
     })
     Collectors.notifyLeave(node)
