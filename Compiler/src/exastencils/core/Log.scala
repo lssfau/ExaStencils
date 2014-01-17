@@ -14,8 +14,8 @@ object Log {
 
   def error(s : Any) = {
     if (level.id <= Error.id) {
-      println(f"ERROR: $s")
-      sys.exit(-1)
+      sys.error(f"ERROR: $s")
+      sys.exit(-1) // just to be extra sure
     }
   }
   def warn(s : Any) = {
