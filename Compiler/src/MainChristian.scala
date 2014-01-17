@@ -4,8 +4,8 @@ import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.parsers.l4
 import exastencils.parsers.l4.ParserL4
-
 import exastencils.primitives._
+import exastencils.datastructures.ir.BooleanLiteral
 
 object MainChristian {
   //  object CountingStrategy extends Strategy("Counting") {
@@ -62,6 +62,22 @@ object MainChristian {
     //    var positionStrategy = new Strategy("PositionStrategy")
     //    positionStrategy += new Transformation({case x : Annotatable => x.getAnnotations.foreach(a => println(x + " " + a.name + " - " + a.value)); Some(x) })
     //    //positionStrategy.apply
+    
+    
+    case class MapNode(var x: scala.collection.mutable.Map[String, Node]) extends Node {
+      override def duplicate = this.copy(x = Duplicate(x)).asInstanceOf[this.type]
+    }
+    
+    StateManager.root_ = MapNode(scala.collection.mutable.Map(("bla", BooleanLiteral(true)), ("bla2", StringLiteral("bla2-stringlit")), ("bla3", BooleanLiteral(true))))
+    println(StateManager.root_)
+    
+    
+    val mapnodestrat = Strategy("mapnodestrat")
+    mapnodestrat += Transformation("s1", { case x: BooleanLiteral => println(x); BooleanLiteral(false) })
+    mapnodestrat.apply
+    println(StateManager.root_)
+        
+    sys.exit
 
     import exastencils.datastructures.Transformation._
     val x = new Output(new exastencils.datastructures.ir.BooleanLiteral(true))
