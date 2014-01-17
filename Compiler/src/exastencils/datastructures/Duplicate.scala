@@ -1,6 +1,7 @@
 package exastencils.datastructures
 
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Map
 
 object Duplicate {
   def apply[T <: Duplicable](t : T) : T = {

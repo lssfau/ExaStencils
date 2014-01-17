@@ -126,7 +126,6 @@ object StateManager {
         case list : Seq[_] => {
           val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
           if (invalids.size <= 0) {
-
             var newList = list.asInstanceOf[Seq[Node]].flatMap(listitem => processOutput(applyAtNode(listitem, transformation)))
             var changed = newList.diff(list)
             if (changed.size > 0) {
@@ -138,10 +137,11 @@ object StateManager {
           }
         }
         case map : Map[_, _] => {
+          WARN(s"@ map $map")
           val invalids = map.filterNot(p => isTransformable(p._2))
           if (invalids.size <= 0) {
             var newMap = map.asInstanceOf[Map[_, Node]].map({ case (k, listitem) => (k, processOutput(applyAtNode(listitem, transformation))) })
-            var changed = newMap.values.asInstanceOf[List[Node]].diff(map.values.asInstanceOf[List[Node]])
+            val changed = newMap.values.toList.diff(map.values.toList)
             if (changed.size > 0) {
               if (!Vars.set(node, field, newMap)) {
                 ERROR(s"Could not set $field")
