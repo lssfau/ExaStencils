@@ -108,6 +108,13 @@ object StateManager {
     case _                           => false
   }
 
+  protected def processOutput[O <: Output[_]](o : O) : List[Node] = o.inner match {
+    case n : Node      => List(n)
+    case l : List[_]   => l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
+    case n : None.type => List()
+    case _             => ERROR(o); List()
+  }
+
   protected def replace(node : Node, transformation : Transformation) : Unit = {
     Collectors.notifyEnter(node)
 
@@ -120,14 +127,7 @@ object StateManager {
           val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
           if (invalids.size <= 0) {
 
-            def processResult[O <: Output[_]](o : O) : List[Node] = o.inner match {
-              case n : Node      => List(n)
-              case l : List[_]   => l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
-              case n : None.type => List()
-              case _             => ERROR(o); List()
-            }
-
-            var newList = list.asInstanceOf[Seq[Node]].flatMap(listitem => processResult(applyAtNode(listitem, transformation)))
+            var newList = list.asInstanceOf[Seq[Node]].flatMap(listitem => processOutput(applyAtNode(listitem, transformation)))
             var changed = newList.diff(list)
             if (changed.size > 0) {
               if (!Vars.set(node, field, newList)) {
@@ -140,15 +140,7 @@ object StateManager {
         case map : Map[_, _] => {
           val invalids = map.filterNot(p => isTransformable(p._2))
           if (invalids.size <= 0) {
-
-            def processResult[O <: Output[_]](o : O) : List[Node] = o.inner match {
-              case n : Node      => List(n)
-              case l : List[_]   => l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
-              case n : None.type => List()
-              case _             => ERROR(o); List()
-            }
-
-            var newMap = map.asInstanceOf[Map[_, Node]].map({ case (k, listitem) => (k, processResult(applyAtNode(listitem, transformation))) })
+            var newMap = map.asInstanceOf[Map[_, Node]].map({ case (k, listitem) => (k, processOutput(applyAtNode(listitem, transformation))) })
             var changed = newMap.values.asInstanceOf[List[Node]].diff(map.values.asInstanceOf[List[Node]])
             if (changed.size > 0) {
               if (!Vars.set(node, field, newMap)) {
@@ -161,15 +153,7 @@ object StateManager {
           val arrayType = list.getClass().getComponentType()
           val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
           if (invalids.size <= 0) {
-
-            def processResult[O <: Output[_]](o : O) : List[Node] = o.inner match {
-              case n : Node      => List(n)
-              case l : List[_]   => l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
-              case n : None.type => List()
-              case _             => ERROR(o); List()
-            }
-
-            var tmpArray = list.asInstanceOf[Array[Node]].flatMap(listitem => processResult(applyAtNode(listitem, transformation)))
+            var tmpArray = list.asInstanceOf[Array[Node]].flatMap(listitem => processOutput(applyAtNode(listitem, transformation)))
             var changed = tmpArray.diff(list)
             if (changed.size > 0) {
               var newArray = java.lang.reflect.Array.newInstance(arrayType, tmpArray.length)
@@ -177,7 +161,6 @@ object StateManager {
               if (!Vars.set(node, field, newArray)) {
                 ERROR(s"Could not set $field")
               }
-
             }
             if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) tmpArray.asInstanceOf[Array[Node]].foreach(f => replace(f, transformation))
           }
