@@ -26,10 +26,6 @@ class PrettyPrinter(treel2 : TreeL2) {
     if (DomainKnowledge.use_gpu)
       extlibcuda = scala.io.Source.fromFile(path + "mglib.cu").getLines.reduceLeft(_ + "\n" + _)
 
-    // FIXME: this should be done automatically
-    for (extClass <- treel2.ExternalClasses)
-      extClass._2.printToFile;
-
     // publish global field variables
     for (c <- treel2.Fields)
       globals.variables += new VariableDeclarationStatement(new Variable(s"${c.arrname}<${c.datatype}>*", s"${c.name}"))
