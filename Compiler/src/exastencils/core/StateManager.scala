@@ -3,6 +3,7 @@ package exastencils.core
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Stack
 import scala.collection.mutable.HashMap
+import scala.collection.mutable.Map
 import scala.util.control.Exception
 import java.lang.reflect.Method
 import exastencils.core.collectors._
@@ -101,6 +102,12 @@ object StateManager {
     }
   }
 
+  protected def isTransformable(o : Any) : Boolean = o match {
+    case x : Node                    => true
+    case x : Some[_] if (!x.isEmpty) => isTransformable(x.get)
+    case _                           => false
+  }
+
   protected def replace(node : Node, transformation : Transformation) : Unit = {
     Collectors.notifyEnter(node)
 
@@ -130,6 +137,26 @@ object StateManager {
             if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) newList.foreach(f => replace(f, transformation))
           }
         }
+        case map : Map[_, _] => {
+          val invalids = map.filterNot(p => isTransformable(p._2))
+          if (invalids.size <= 0) {
+
+            def processResult[O <: Output[_]](o : O) : List[Node] = o.inner match {
+              case n : Node      => List(n)
+              case l : List[_]   => l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
+              case n : None.type => List()
+              case _             => ERROR(o); List()
+            }
+
+            var newMap = map.asInstanceOf[Map[_, Node]].map({ case (k, listitem) => (k, processResult(applyAtNode(listitem, transformation))) })
+            var changed = newMap.values.asInstanceOf[List[Node]].diff(map.values.asInstanceOf[List[Node]])
+            if (changed.size > 0) {
+              if (!Vars.set(node, field, newMap)) {
+                ERROR(s"Could not set $field")
+              }
+            }
+          }
+        }
         case list : Array[_] => {
           val arrayType = list.getClass().getComponentType()
           val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
@@ -139,6 +166,7 @@ object StateManager {
               case n : Node      => List(n)
               case l : List[_]   => l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
               case n : None.type => List()
+              case _             => ERROR(o); List()
             }
 
             var tmpArray = list.asInstanceOf[Array[Node]].flatMap(listitem => processResult(applyAtNode(listitem, transformation)))
@@ -190,7 +218,7 @@ object StateManager {
             processResult(newSubnode)
           }
         }
-        case _ => 
+        case _ =>
       }
     })
     Collectors.notifyLeave(node)
