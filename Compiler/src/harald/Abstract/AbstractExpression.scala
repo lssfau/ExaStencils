@@ -28,7 +28,7 @@ case class AbstractBinaryOp(operator : String, left : AbstractExpression, right 
               right match {
                 case AbstractVariable(id2, l2) => {
                   var lb : ListBuffer[Expression] = new ListBuffer()
-                  lb += new ImplVariable(id2, new TypeInfo(id2, 1), l2.transform(scopeparas, modifier, "argument"), "argument") // TODO
+                  lb += new ImplVariableWLev(id2, new TypeInfo(id2, 1), l2.transform(scopeparas, modifier, "argument"), "argument") // TODO
 
                   if (modifier.getOrElse("").equals("ToCoarse")) {
 
@@ -162,13 +162,13 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
     for (e <- TreeManager.tree.Fields)
       if (e.name.equals(id)) {
         ti = new TypeInfo(id, 1)
-        return new ImplVariable(id, ti, lev.transform(scopeparas, modifier, scopetype), scopetype)
+        return new ImplVariableWLev(id, ti, lev.transform(scopeparas, modifier, scopetype), scopetype)
       }
 
     for (e <- TreeManager.tree.Stencils)
       if (e.name.equals(id)) {
         ti = new TypeInfo(id, 2)
-        return new ImplVariable(id, ti, new StringLiteral("0"), scopetype)
+        return new ImplVariableWLev(id, ti, new StringLiteral("0"), scopetype)
         /*  	              if (id.startsWith("Restriction"))
   	                return new VariableInfo("",id , ti, new ValueExpr[String]("0"), scopetype)   	           
   	              else
@@ -188,10 +188,10 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
 
     if (id.contains("Stencil")) {
       ti = new TypeInfo(id, 2)
-      return new ImplVariable(id, ti, new StringLiteral("0"), scopetype)
+      return new ImplVariableWLev(id, ti, new StringLiteral("0"), scopetype)
     }
 
-    return new ImplVariable(id, ti, new NullExpression, scopetype)
+    return new ImplVariable(id, ti, scopetype)
 
   }
 

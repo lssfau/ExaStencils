@@ -57,11 +57,11 @@ case class AbstractLoop(where : String, lev : String, order : String, blocksize 
     lpkn match {
       case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "innerpoints", "1") => {
         for (i <- 1 to DomainKnowledge.rule_dim())
-          stop += new BinaryExpression("-", new ImplVariable(lpendvariable + "." + "x" + i.toString + "_", new TypeInfo(lpendvariable + "x" + i.toString, 0), new NullExpression, "expression"), new NumericLiteral(1))
+          stop += new BinaryExpression("-", new ImplVariable(lpendvariable + "." + "x" + i.toString + "_", new TypeInfo(lpendvariable + "x" + i.toString, 0), "expression"), new NumericLiteral(1))
       }
       case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "allpoints", "1") => {
         for (i <- 1 to DomainKnowledge.rule_dim())
-          stop += new ImplVariable(lpendvariable + "." + "x" + i.toString + "_", new TypeInfo(lpendvariable + "x" + i.toString, 0), new NullExpression, "expression") //functioncall(lpendvariable + i.toString,ListBuffer())
+          stop += new ImplVariable(lpendvariable + "." + "x" + i.toString + "_", new TypeInfo(lpendvariable + "x" + i.toString, 0), "expression") //functioncall(lpendvariable + i.toString,ListBuffer())
 
       }
     }
@@ -125,8 +125,8 @@ case class AbstractIfElse(val cond : AbstractExpression, ifstmts : List[Abstract
     }
 
     if (cond.toString.startsWith("coarsestlevel"))
-      ret += new ConditionStatement(new BinaryExpression("==", new ImplVariable("lev", new TypeInfo("lev", 0), new NullExpression, "expression"),
-        new BinaryExpression("-", new ImplVariable("nlevels", new TypeInfo("nlevels", 0), new NullExpression, "expression"),
+      ret += new ConditionStatement(new BinaryExpression("==", new ImplVariable("lev", new TypeInfo("lev", 0), "expression"),
+        new BinaryExpression("-", new ImplVariable("nlevels", new TypeInfo("nlevels", 0), "expression"),
           new NumericLiteral(1))), st1, st2)
     else
       ret += new ConditionStatement(cond.transform(scopeparas, None, "condition"), st1, st2)
@@ -161,7 +161,7 @@ case class AbstractLet(val id : String, val expr : AbstractExpression, modifier 
           levstr = new NullExpression
         }
 
-    ret += new ImplAssigmentStatement(new ImplVariable(id, ti, levstr, "statement"), new OperatorInfo("="), expr.transform(scopeparas, modifier, "expression"), modifier.getOrElse(""))
+    ret += new ImplAssigmentStatement(new ImplVariableWLev(id, ti, levstr, "statement"), new OperatorInfo("="), expr.transform(scopeparas, modifier, "expression"), modifier.getOrElse(""))
 
     return ret
   }
@@ -192,7 +192,7 @@ case class AbstractPLet(val id : String, val expr : AbstractExpression, modifier
 
     var ret : ListBuffer[Statement] = ListBuffer()
 
-    ret += new ImplAssigmentStatement(new ImplVariable(id, ti, new NullExpression, "statement"), new OperatorInfo("+="), expr.transform(scopeparas, modifier, "expression"), modifier.getOrElse(""))
+    ret += new ImplAssigmentStatement(new ImplVariable(id, ti, "statement"), new OperatorInfo("+="), expr.transform(scopeparas, modifier, "expression"), modifier.getOrElse(""))
 
     return ret
   }

@@ -157,11 +157,11 @@ case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : List
   }*/
 }
 
-case class ImplAssigmentStatement(variable : ImplVariable, op : OperatorInfo, expr : Expression, modifierstring : String = "") extends Statement {
+case class ImplAssigmentStatement(variable : Expression /* FIXME: ImplVariable */ , op : OperatorInfo, expr : Expression, modifierstring : String = "") extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   override def cpp : String = { variable.cpp + op.toString_cpp + expr.cpp + ";" }
-  def toString_cuda : String = variable.toString_cuda + op.toString_cpp + expr.cpp /*FIXME: toString_cuda*/ + ";"
+  def toString_cuda : String = variable.cpp /*FIXME: toString_cuda*/ + op.toString_cpp + expr.cpp /*FIXME: toString_cuda*/ + ";"
   def contains_modifier(s : String) : Boolean = {
     if (modifierstring.equals(s))
       return true
