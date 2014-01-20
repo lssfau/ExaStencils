@@ -9,16 +9,16 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 
 sealed abstract class AbstractExpression {
-  def value(context: Context): String
-  def transform(scopeparas: ListBuffer[ParameterInfo], modifier: Option[String], scopetype: String): Expression
-  def getvariables: ListBuffer[String] = ListBuffer()
+  def value(context : Context) : String
+  def transform(scopeparas : ListBuffer[ParameterInfo], modifier : Option[String], scopetype : String) : Expression
+  def getvariables : ListBuffer[String] = ListBuffer()
 }
 
-case class AbstractBinaryOp(operator: String, left: AbstractExpression, right: AbstractExpression) extends AbstractExpression {
-  override def value(context: Context) = left.value(context)
+case class AbstractBinaryOp(operator : String, left : AbstractExpression, right : AbstractExpression) extends AbstractExpression {
+  override def value(context : Context) = left.value(context)
   override def toString = left.toString + " " + operator + " " + right.toString
 
-  override def transform(scopeparas: ListBuffer[ParameterInfo], modifier: Option[String], scopetype: String): Expression = {
+  override def transform(scopeparas : ListBuffer[ParameterInfo], modifier : Option[String], scopetype : String) : Expression = {
     // check for convolution M * v
     if (operator.equals("*"))
       left match {
@@ -27,7 +27,7 @@ case class AbstractBinaryOp(operator: String, left: AbstractExpression, right: A
             if (e1.name.equals(id1))
               right match {
                 case AbstractVariable(id2, l2) => {
-                  var lb: ListBuffer[Expression] = new ListBuffer()
+                  var lb : ListBuffer[Expression] = new ListBuffer()
                   lb += new ImplVariable("", id2, new TypeInfo(id2, 1), l2.transform(scopeparas, modifier, "argument"), "argument") // TODO
 
                   if (modifier.getOrElse("").equals("ToCoarse")) {
@@ -38,7 +38,7 @@ case class AbstractBinaryOp(operator: String, left: AbstractExpression, right: A
 
                       //return new functioncall(id1 + s"[0]", "convolve" + e1.length + "P", lb)
 
-                      var memlistS: ListBuffer[ParameterInfo] = ListBuffer()
+                      var memlistS : ListBuffer[ParameterInfo] = ListBuffer()
                       memlistS += new ParameterInfo("fine", TreeManager.tree.ExternalClasses.get("Array").get.name + "<T>&")
                       for (i <- 1 to DomainKnowledge.rule_dim())
                         memlistS += new ParameterInfo(s"2*i${i - 1}", "int")
@@ -68,7 +68,7 @@ case class AbstractBinaryOp(operator: String, left: AbstractExpression, right: A
                       // return new functioncall(id1 + s"[0]", "convolve" + e1.length + "P", lb)
                       //  	                         return new functioncall(id1+s"[${l1}]","convolve" + e1.length + "P", lb) 
 
-                      var memlistS: ListBuffer[ParameterInfo] = ListBuffer()
+                      var memlistS : ListBuffer[ParameterInfo] = ListBuffer()
                       memlistS += new ParameterInfo("solution[lev]", TreeManager.tree.ExternalClasses.get("Array").get.name + "<T>&") // TODO: this really shouldn't be hardcoded
                       for (i <- 1 to DomainKnowledge.rule_dim())
                         memlistS += new ParameterInfo(s"i${i - 1}", "int")
@@ -83,9 +83,9 @@ case class AbstractBinaryOp(operator: String, left: AbstractExpression, right: A
         case _ =>
       }
 
-    return new ImplBinaryExpr(left.transform(scopeparas, modifier, scopetype), new OperatorInfo(operator), right.transform(scopeparas, modifier, scopetype))
+    return new BinaryExpression(operator, left.transform(scopeparas, modifier, scopetype), right.transform(scopeparas, modifier, scopetype))
   }
-  override def getvariables: ListBuffer[String] = {
+  override def getvariables : ListBuffer[String] = {
     var s1 = left.getvariables
     var s2 = right.getvariables
     for (s <- s2)
@@ -94,17 +94,17 @@ case class AbstractBinaryOp(operator: String, left: AbstractExpression, right: A
   }
 }
 
-case class AbstractFCall(fname: String, arglist: List[AbstractExpression]) extends AbstractExpression {
-  override def value(context: Context) = "return"
+case class AbstractFCall(fname : String, arglist : List[AbstractExpression]) extends AbstractExpression {
+  override def value(context : Context) = "return"
   override def toString = fname + "(" + arglist.mkString(",") + ")"
 
-  override def transform(scopeparas: ListBuffer[ParameterInfo], modifier: Option[String], scopetype: String): Expression = {
-    var args: ListBuffer[Expression] = ListBuffer()
+  override def transform(scopeparas : ListBuffer[ParameterInfo], modifier : Option[String], scopetype : String) : Expression = {
+    var args : ListBuffer[Expression] = ListBuffer()
     for (a <- arglist)
       args += a.transform(scopeparas, modifier, "argument")
 
     if (fname.equals("inverse")) {
-      return new ImplBinaryExpr(new ImplValueExpr[String](s"${DomainKnowledge.datatype_L2.getOrElse("double")}(1)"), new OperatorInfo("/"), arglist(0).transform(scopeparas, modifier, "argument"))
+      return new BinaryExpression("/", new ImplValueExpr[String](s"${DomainKnowledge.datatype_L2.getOrElse("double")}(1)"), arglist(0).transform(scopeparas, modifier, "argument"))
     }
 
     if (fname.equals("diag")) {
@@ -114,7 +114,7 @@ case class AbstractFCall(fname: String, arglist: List[AbstractExpression]) exten
 
         return new ImplValueExpr[String](s"${curStencil.entries(0)}") // DataClasses.generateStencilConvolutioncuda(1,args(0).toString_cpp,"", "")
       } else {
-        var expr: ListBuffer[Expression] = ListBuffer(new ImplValueExpr[String]("i0"))
+        var expr : ListBuffer[Expression] = ListBuffer(new ImplValueExpr[String]("i0"))
         for (i <- 1 to DomainKnowledge.rule_dim() - 1)
           expr += new ImplValueExpr[String](s"i${i}")
 
@@ -131,34 +131,34 @@ case class AbstractFCall(fname: String, arglist: List[AbstractExpression]) exten
   }
 }
 
-case class AbstractLiteral(text: String) extends AbstractExpression {
-  override def value(context: Context) = text
-  override def toString = text 
-  override def transform(scopeparas: ListBuffer[ParameterInfo], modifier: Option[String], scopetype: String): Expression = {
+case class AbstractLiteral(text : String) extends AbstractExpression {
+  override def value(context : Context) = text
+  override def toString = text
+  override def transform(scopeparas : ListBuffer[ParameterInfo], modifier : Option[String], scopetype : String) : Expression = {
     return new ImplValueExpr[String](text)
   }
 }
 
-case class AbstractStringLiteral(text: String) extends AbstractExpression {
-  override def value(context: Context) = text
-  override def toString = text 
-  override def transform(scopeparas: ListBuffer[ParameterInfo], modifier: Option[String], scopetype: String): Expression = {
-    return new ImplValueExpr[String]("\""+text+"\"")
+case class AbstractStringLiteral(text : String) extends AbstractExpression {
+  override def value(context : Context) = text
+  override def toString = text
+  override def transform(scopeparas : ListBuffer[ParameterInfo], modifier : Option[String], scopetype : String) : Expression = {
+    return new ImplValueExpr[String]("\"" + text + "\"")
   }
 }
 
-case class AbstractVariable(id: String, lev: AbstractExpression) extends AbstractExpression {
-  override def value(context: Context) = {
+case class AbstractVariable(id : String, lev : AbstractExpression) extends AbstractExpression {
+  override def value(context : Context) = {
     context.resolve(id) match {
       case Some(binding) => binding.expr.value(context)
-      case None => throw new RuntimeException("Unknown identifier: " + id)
+      case None          => throw new RuntimeException("Unknown identifier: " + id)
     }
   }
   override def toString = id + " " + lev
 
-  override def transform(scopeparas: ListBuffer[ParameterInfo], modifier: Option[String], scopetype: String): Expression = {
+  override def transform(scopeparas : ListBuffer[ParameterInfo], modifier : Option[String], scopetype : String) : Expression = {
 
-    var ti: TypeInfo = new TypeInfo(id, 0)
+    var ti : TypeInfo = new TypeInfo(id, 0)
     for (e <- TreeManager.tree.Fields)
       if (e.name.equals(id)) {
         ti = new TypeInfo(id, 1)
@@ -195,7 +195,7 @@ case class AbstractVariable(id: String, lev: AbstractExpression) extends Abstrac
 
   }
 
-  override def getvariables: ListBuffer[String] = {
+  override def getvariables : ListBuffer[String] = {
     for (e <- TreeManager.tree.Fields)
       if (e.name.equals(id))
         return ListBuffer(id)

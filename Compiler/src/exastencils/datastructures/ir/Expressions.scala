@@ -13,7 +13,6 @@ trait Expression extends Node with CppPrettyPrintable {
   }
 
   // FIXME: this is currently required for interop with Harald's code; to be removed after integration
-  var valu : String = ""
   def evaluate(para : ListBuffer[ParameterInfo]) : Int = 0
 }
 
@@ -63,9 +62,11 @@ case class Constant(value : Any) extends Expression {
   override def duplicate = this.copy().asInstanceOf[this.type]
 }
 
-case class BinaryExpression(operator : String, var left : Expression, var right : Expression) extends Expression {
-  override def cpp = left.cpp + operator + right.cpp
+case class BinaryExpression(var operator : String, var left : Expression, var right : Expression) extends Expression {
   override def duplicate = this.copy(left = Duplicate(left), right = Duplicate(right)).asInstanceOf[this.type]
+  override def cpp = {
+    s"(${left.cpp} $operator ${right.cpp})";
+  }
 }
 
 case class FunctionCallExpression(var name : Expression, var arguments : ListBuffer[Expression /* FIXME: more specialization*/ ]) extends Expression {

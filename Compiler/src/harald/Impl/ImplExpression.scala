@@ -17,34 +17,6 @@ case class ImplValueExpr[T](v : T) extends Expression() {
   }
 }
 
-case class ImplBinaryExpr(left : Expression, oper : OperatorInfo, right : Expression) extends Expression() {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
-  val l = left
-  val op = oper
-  val r = right
-  //valu = l.toString + " " + op.toString + " " + r.toString
-
-  override def toString = "(" + l.toString + " " + op.toString + " " + r.toString + ")"
-  override def cpp : String = "(" + l.cpp + " " + op.toString_cpp + " " + r.cpp + ")"
-  // FIXME override def toString_cuda: String = "(" + l.toString_cuda + " " + op.cpp + " " + r.toString_cuda + ")"
-  override def evaluate(para : ListBuffer[ParameterInfo]) : Int = {
-    oper.name match {
-      case "==" => {
-        if (left.evaluate(para) == right.evaluate(para))
-          return 1
-        else
-          return 0
-      }
-      case "+" => return left.evaluate(para) + right.evaluate(para)
-      case "-" => return left.evaluate(para) - right.evaluate(para)
-      case "*" => return left.evaluate(para) * right.evaluate(para)
-      case "/" => return left.evaluate(para) / right.evaluate(para)
-      case _   => return 0
-    }
-  }
-}
-
 case class ImplVariable(obj : String, n : String, vartype : TypeInfo, lev : Expression, ScopeInfo : String) extends Expression() {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
