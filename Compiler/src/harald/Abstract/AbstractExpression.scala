@@ -169,30 +169,25 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
       if (e.name.equals(id)) {
         ti = new TypeInfo(id, 2)
         return new ImplVariableWLev(id, ti, new StringLiteral("0"), scopetype)
-        /*  	              if (id.startsWith("Restriction"))
-  	                return new VariableInfo("",id , ti, new ValueExpr[String]("0"), scopetype)   	           
-  	              else
-  	                return new VariableInfo("",id , ti, lev.transform(scopeparas,modifier,scopetype), scopetype) 
-			 */ }
+      }
 
     for (e <- scopeparas) {
-      //      println(s"inside Var : ${id}  Scope: ${e.name} ${e.dtype}\n")
       if (e.name.equals(id))
         if (e.dtype.startsWith(TreeManager.tree.ExternalClasses.get("Array").get.name)) {
           ti = new TypeInfo(id, 1)
         }
     }
 
-    //  	      	if (id.equals("coarsestlevel"))
-    //  	          return new VariableInfo("","lev " + "==" + DomainKnowledge.nlevels_L3.getOrElse(1).toString + "-1", new TypeInfo(id,0), new Expression(), scopetype)
-
     if (id.contains("Stencil")) {
       ti = new TypeInfo(id, 2)
       return new ImplVariableWLev(id, ti, new StringLiteral("0"), scopetype)
     }
 
-    return new ImplVariable(id, ti, scopetype)
-
+    ti.d match {
+      case 0 => return id
+      case 1 => return id + DomainKnowledge.rule_idxArray_cpp()
+      case 2 => id + "(Matrix (i0,i1))"
+    }
   }
 
   override def getvariables : ListBuffer[String] = {

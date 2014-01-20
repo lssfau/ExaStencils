@@ -5,6 +5,7 @@ import harald.dsl._
 import harald.Impl._
 import harald.ast.TreeManager
 import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
 
 sealed abstract class AbstractStatement {
   def transform(scopeparas : ListBuffer[ParameterInfo]) : ListBuffer[Statement]
@@ -57,12 +58,11 @@ case class AbstractLoop(where : String, lev : String, order : String, blocksize 
     lpkn match {
       case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "innerpoints", "1") => {
         for (i <- 1 to DomainKnowledge.rule_dim())
-          stop += new BinaryExpression("-", new ImplVariable(lpendvariable + "." + "x" + i.toString + "_", new TypeInfo(lpendvariable + "x" + i.toString, 0), "expression"), new NumericLiteral(1))
+          stop += new BinaryExpression("-", lpendvariable + "." + "x" + i.toString + "_", new NumericLiteral(1))
       }
       case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "allpoints", "1") => {
         for (i <- 1 to DomainKnowledge.rule_dim())
-          stop += new ImplVariable(lpendvariable + "." + "x" + i.toString + "_", new TypeInfo(lpendvariable + "x" + i.toString, 0), "expression") //functioncall(lpendvariable + i.toString,ListBuffer())
-
+          stop += lpendvariable + "." + "x" + i.toString + "_"
       }
     }
 
@@ -125,8 +125,8 @@ case class AbstractIfElse(val cond : AbstractExpression, ifstmts : List[Abstract
     }
 
     if (cond.toString.startsWith("coarsestlevel"))
-      ret += new ConditionStatement(new BinaryExpression("==", new ImplVariable("lev", new TypeInfo("lev", 0), "expression"),
-        new BinaryExpression("-", new ImplVariable("nlevels", new TypeInfo("nlevels", 0), "expression"),
+      ret += new ConditionStatement(new BinaryExpression("==", "lev",
+        new BinaryExpression("-", "nlevels",
           new NumericLiteral(1))), st1, st2)
     else
       ret += new ConditionStatement(cond.transform(scopeparas, None, "condition"), st1, st2)
@@ -192,7 +192,11 @@ case class AbstractPLet(val id : String, val expr : AbstractExpression, modifier
 
     var ret : ListBuffer[Statement] = ListBuffer()
 
-    ret += new ImplAssigmentStatement(new ImplVariable(id, ti, "statement"), new OperatorInfo("+="), expr.transform(scopeparas, modifier, "expression"), modifier.getOrElse(""))
+    ti.d match {
+      case 0 => ret += new ImplAssigmentStatement(id, new OperatorInfo("+="), expr.transform(scopeparas, modifier, "expression"), modifier.getOrElse(""))
+      case 1 => ret += new ImplAssigmentStatement(id + DomainKnowledge.rule_idxArray_cpp(), new OperatorInfo("+="), expr.transform(scopeparas, modifier, "expression"), modifier.getOrElse(""))
+      case 2 => ret += new ImplAssigmentStatement(id + "(Matrix (i0,i1))", new OperatorInfo("+="), expr.transform(scopeparas, modifier, "expression"), modifier.getOrElse(""))
+    }
 
     return ret
   }
