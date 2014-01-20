@@ -162,13 +162,12 @@ case class AbstractLet(val id : String, val expr : AbstractExpression, modifier 
         }
 
     val idAndLvl : Expression = (if ("" == levstr.cpp) id else id ~ "[" ~ levstr ~ "]")
-    ret += new ImplAssigmentStatement(
+    ret += new AssignmentStatement(
       (ti.d match {
         case 0 => idAndLvl
         case 1 => idAndLvl ~ DomainKnowledge.rule_idxArray_cpp()
         case 2 => idAndLvl ~ "(Matrix (i0,i1))"
-      }),
-      new OperatorInfo("="), expr.transform(scopeparas, modifier, "expression"), modifier.getOrElse(""))
+      }), expr.transform(scopeparas, modifier, "expression"))
 
     return ret
   }
@@ -200,9 +199,9 @@ case class AbstractPLet(val id : String, val expr : AbstractExpression, modifier
     var ret : ListBuffer[Statement] = ListBuffer()
 
     ti.d match {
-      case 0 => ret += new ImplAssigmentStatement(id, new OperatorInfo("+="), expr.transform(scopeparas, modifier, "expression"), modifier.getOrElse(""))
-      case 1 => ret += new ImplAssigmentStatement(id + DomainKnowledge.rule_idxArray_cpp(), new OperatorInfo("+="), expr.transform(scopeparas, modifier, "expression"), modifier.getOrElse(""))
-      case 2 => ret += new ImplAssigmentStatement(id + "(Matrix (i0,i1))", new OperatorInfo("+="), expr.transform(scopeparas, modifier, "expression"), modifier.getOrElse(""))
+      case 0 => ret += new AssignmentStatement(id, expr.transform(scopeparas, modifier, "expression"), "+=")
+      case 1 => ret += new AssignmentStatement(id + DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression"), "+=")
+      case 2 => ret += new AssignmentStatement(id + "(Matrix (i0,i1))", expr.transform(scopeparas, modifier, "expression"), "+=")
     }
 
     return ret
@@ -242,7 +241,7 @@ case class AbstractDefinition(val p : Param, val value : AbstractExpression) ext
 
   override def transform(scopeparas : ListBuffer[ParameterInfo]) : ListBuffer[Statement] = {
     var ret : ListBuffer[Statement] = ListBuffer()
-    ret += new ImplDefinitionStatement(p.name, DomainKnowledge.transform_datatype_cpp(p.dtype), value.transform(scopeparas, None, ""))
+    ret += new VariableDeclarationStatement(new Variable(DomainKnowledge.transform_datatype_cpp(p.dtype), p.name), Some(value.transform(scopeparas, None, "")))
     return ret
   }
 }

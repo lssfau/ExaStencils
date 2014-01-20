@@ -157,25 +157,6 @@ case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : List
   }*/
 }
 
-case class ImplAssigmentStatement(variable : Expression /* FIXME: ImplVariable */ , op : OperatorInfo, expr : Expression, modifierstring : String = "") extends Statement {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
-  override def cpp : String = { variable.cpp + op.toString_cpp + expr.cpp + ";" }
-  def toString_cuda : String = variable.cpp /*FIXME: toString_cuda*/ + op.toString_cpp + expr.cpp /*FIXME: toString_cuda*/ + ";"
-  def contains_modifier(s : String) : Boolean = {
-    if (modifierstring.equals(s))
-      return true
-    else
-      return false
-  }
-}
-
-case class ImplDefinitionStatement(val name : String, val dtype : String, val value : Expression) extends Statement {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
-  override def cpp : String = s"${dtype} ${name} = ${value.cpp};\n"
-}
-
 case class ImplPcall(obj : String, name : String, paramlist : ListBuffer[Expression]) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 

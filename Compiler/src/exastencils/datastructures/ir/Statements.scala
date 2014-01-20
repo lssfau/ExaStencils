@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
 
 abstract class Statement
   extends Node with CppPrettyPrintable with Duplicable
@@ -72,11 +73,11 @@ case class DefineStatement(var name : Expression, var value : Option[Expression]
 //  override def duplicate = { this.copy(identifier = Duplicate(identifier), expression = Duplicate(expression)).asInstanceOf[this.type] }
 //}
 
-case class AssignmentStatement(var dest : Expression, var src : Expression) extends Statement {
+case class AssignmentStatement(var dest : Expression, var src : Expression, var op : Expression = "=") extends Statement {
   override def duplicate = { this.copy(dest = Duplicate(dest), src = Duplicate(src)).asInstanceOf[this.type] }
 
   override def cpp : String = {
-    (s"${dest.cpp} = ${src.cpp};");
+    (s"${dest.cpp} ${op.cpp} ${src.cpp};");
   }
 }
 
