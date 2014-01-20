@@ -161,7 +161,14 @@ case class AbstractLet(val id : String, val expr : AbstractExpression, modifier 
           levstr = new NullExpression
         }
 
-    ret += new ImplAssigmentStatement(new ImplVariableWLev(id, ti, levstr, "statement"), new OperatorInfo("="), expr.transform(scopeparas, modifier, "expression"), modifier.getOrElse(""))
+    val idAndLvl : Expression = (if ("" == levstr.cpp) id else id ~ "[" ~ levstr ~ "]")
+    ret += new ImplAssigmentStatement(
+      (ti.d match {
+        case 0 => idAndLvl
+        case 1 => idAndLvl ~ DomainKnowledge.rule_idxArray_cpp()
+        case 2 => idAndLvl ~ "(Matrix (i0,i1))"
+      }),
+      new OperatorInfo("="), expr.transform(scopeparas, modifier, "expression"), modifier.getOrElse(""))
 
     return ret
   }

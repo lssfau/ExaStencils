@@ -28,7 +28,10 @@ case class AbstractBinaryOp(operator : String, left : AbstractExpression, right 
               right match {
                 case AbstractVariable(id2, l2) => {
                   var lb : ListBuffer[Expression] = new ListBuffer()
-                  lb += new ImplVariableWLev(id2, new TypeInfo(id2, 1), l2.transform(scopeparas, modifier, "argument"), "argument") // TODO
+                  if ("statement" == l2.transform(scopeparas, modifier, "argument") || "expression" == l2.transform(scopeparas, modifier, "argument"))
+                    lb += id2 ~ "[" ~ l2.transform(scopeparas, modifier, "argument") ~ "]"
+                  else
+                    lb += id2
 
                   if (modifier.getOrElse("").equals("ToCoarse")) {
 
@@ -161,14 +164,18 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
     var ti : TypeInfo = new TypeInfo(id, 0)
     for (e <- TreeManager.tree.Fields)
       if (e.name.equals(id)) {
-        ti = new TypeInfo(id, 1)
-        return new ImplVariableWLev(id, ti, lev.transform(scopeparas, modifier, scopetype), scopetype)
+        if ("statement" == scopetype || "expression" == scopetype)
+          return id ~ "[" ~ lev.transform(scopeparas, modifier, scopetype) ~ "]" ~ DomainKnowledge.rule_idxArray_cpp()
+        else
+          return id ~ "[" ~ lev.transform(scopeparas, modifier, scopetype) ~ "]"
       }
 
     for (e <- TreeManager.tree.Stencils)
       if (e.name.equals(id)) {
-        ti = new TypeInfo(id, 2)
-        return new ImplVariableWLev(id, ti, new StringLiteral("0"), scopetype)
+        if ("statement" == scopetype || "expression" == scopetype)
+          return id ~ "[0]" ~ "(Matrix (i0,i1))"
+        else
+          return id ~ "[0]"
       }
 
     for (e <- scopeparas) {
@@ -179,14 +186,16 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
     }
 
     if (id.contains("Stencil")) {
-      ti = new TypeInfo(id, 2)
-      return new ImplVariableWLev(id, ti, new StringLiteral("0"), scopetype)
+      if ("statement" == scopetype || "expression" == scopetype)
+        return id ~ "[0]" ~ "(Matrix (i0,i1))"
+      else
+        return id ~ "[0]"
     }
 
     ti.d match {
       case 0 => return id
       case 1 => return id + DomainKnowledge.rule_idxArray_cpp()
-      case 2 => id + "(Matrix (i0,i1))"
+      case 2 => return id + "(Matrix (i0,i1))"
     }
   }
 
