@@ -34,7 +34,7 @@ case class AbstractBinaryOp(operator : String, left : AbstractExpression, right 
 
                     if (!DomainKnowledge.use_gpu) {
                       for (i <- 1 to DomainKnowledge.rule_dim())
-                        lb += new ImplValueExpr[String](DomainKnowledge.rule_mapcoarseTofine("i" + (i - 1).toString))
+                        lb += new StringLiteral(DomainKnowledge.rule_mapcoarseTofine("i" + (i - 1).toString))
 
                       //return new functioncall(id1 + s"[0]", "convolve" + e1.length + "P", lb)
 
@@ -48,7 +48,7 @@ case class AbstractBinaryOp(operator : String, left : AbstractExpression, right 
                   } else if (modifier.getOrElse("").equals("ToFine")) {
 
                     for (i <- 1 to DomainKnowledge.rule_dim())
-                      lb += new ImplValueExpr[String]("i" + (i - 1).toString)
+                      lb += new StringLiteral("i" + (i - 1).toString)
 
                     return new MemberFunctionCallExpression(id1 + s"[0]", "interpolate", lb) //ListBuffer(new VariableInfo(id2 , new TypeInfo(id2,1), mapexpression(l2,scopeparas,modifier,"argument").toString, "argument"), new ValueExpr[String]("i0"),new ValueExpr[String]("i1")))
                   } else {
@@ -63,7 +63,7 @@ case class AbstractBinaryOp(operator : String, left : AbstractExpression, right 
 
                     } else {
                       for (i <- 1 to DomainKnowledge.rule_dim())
-                        lb += new ImplValueExpr[String]("i" + (i - 1).toString)
+                        lb += new StringLiteral("i" + (i - 1).toString)
 
                       // return new functioncall(id1 + s"[0]", "convolve" + e1.length + "P", lb)
                       //  	                         return new functioncall(id1+s"[${l1}]","convolve" + e1.length + "P", lb) 
@@ -104,7 +104,7 @@ case class AbstractFCall(fname : String, arglist : List[AbstractExpression]) ext
       args += a.transform(scopeparas, modifier, "argument")
 
     if (fname.equals("inverse")) {
-      return new BinaryExpression("/", new ImplValueExpr[String](s"${DomainKnowledge.datatype_L2.getOrElse("double")}(1)"), arglist(0).transform(scopeparas, modifier, "argument"))
+      return new BinaryExpression("/", new StringLiteral(s"${DomainKnowledge.datatype_L2.getOrElse("double")}(1)"), arglist(0).transform(scopeparas, modifier, "argument"))
     }
 
     if (fname.equals("diag")) {
@@ -112,19 +112,19 @@ case class AbstractFCall(fname : String, arglist : List[AbstractExpression]) ext
       if (DomainKnowledge.use_gpu) {
         var curStencil = TreeManager.tree.Stencils(0)
 
-        return new ImplValueExpr[String](s"${curStencil.entries(0)}") // DataClasses.generateStencilConvolutioncuda(1,args(0).toString_cpp,"", "")
+        return new StringLiteral(s"${curStencil.entries(0)}") // DataClasses.generateStencilConvolutioncuda(1,args(0).toString_cpp,"", "")
       } else {
-        var expr : ListBuffer[Expression] = ListBuffer(new ImplValueExpr[String]("i0"))
+        var expr : ListBuffer[Expression] = ListBuffer(new StringLiteral("i0"))
         for (i <- 1 to DomainKnowledge.rule_dim() - 1)
-          expr += new ImplValueExpr[String](s"i${i}")
+          expr += new StringLiteral(s"i${i}")
 
         return new MemberFunctionCallExpression(args(0).cpp, fname, expr)
       }
     }
     if (fname.equals("random"))
-      return new ImplValueExpr[String]("(rand()/static_cast<double>(RAND_MAX))*" + args(0).cpp) // TODO
+      return new StringLiteral("(rand()/static_cast<double>(RAND_MAX))*" + args(0).cpp) // TODO
     if (fname.equals("fasterReduce") && DomainKnowledge.use_gpu)
-      return new ImplValueExpr[String]("fasterReduce (Res[lev].begin(), solution[lev].x1_*solution[lev].x2_, f[lev].begin())") // TODO
+      return new StringLiteral("fasterReduce (Res[lev].begin(), solution[lev].x1_*solution[lev].x2_, f[lev].begin())") // TODO
 
     return new FunctionCallExpression(fname, args)
 
@@ -135,7 +135,7 @@ case class AbstractLiteral(text : String) extends AbstractExpression {
   override def value(context : Context) = text
   override def toString = text
   override def transform(scopeparas : ListBuffer[ParameterInfo], modifier : Option[String], scopetype : String) : Expression = {
-    return new ImplValueExpr[String](text)
+    return new StringLiteral(text)
   }
 }
 
@@ -143,7 +143,7 @@ case class AbstractStringLiteral(text : String) extends AbstractExpression {
   override def value(context : Context) = text
   override def toString = text
   override def transform(scopeparas : ListBuffer[ParameterInfo], modifier : Option[String], scopetype : String) : Expression = {
-    return new ImplValueExpr[String]("\"" + text + "\"")
+    return new StringLiteral("\"" + text + "\"")
   }
 }
 
@@ -168,7 +168,7 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
     for (e <- TreeManager.tree.Stencils)
       if (e.name.equals(id)) {
         ti = new TypeInfo(id, 2)
-        return new ImplVariable("", id, ti, new ImplValueExpr[String]("0"), scopetype)
+        return new ImplVariable("", id, ti, new StringLiteral("0"), scopetype)
         /*  	              if (id.startsWith("Restriction"))
   	                return new VariableInfo("",id , ti, new ValueExpr[String]("0"), scopetype)   	           
   	              else
@@ -188,7 +188,7 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
 
     if (id.contains("Stencil")) {
       ti = new TypeInfo(id, 2)
-      return new ImplVariable("", id, ti, new ImplValueExpr[String]("0"), scopetype)
+      return new ImplVariable("", id, ti, new StringLiteral("0"), scopetype)
     }
 
     return new ImplVariable("", id, ti, new NullExpression, scopetype)

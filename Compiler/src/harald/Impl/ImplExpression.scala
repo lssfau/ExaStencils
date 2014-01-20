@@ -5,18 +5,6 @@ import harald.dsl._
 import harald.ast.TreeManager
 import exastencils.datastructures.ir._
 
-case class ImplValueExpr[T](v : T) extends Expression() {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
-  //valu = v.toString
-  override def toString = v.toString
-  override def cpp : String = v.toString
-  def toString_cuda : String = v.toString
-  override def evaluate(para : ListBuffer[ParameterInfo]) : Int = {
-    return v.toString.toInt
-  }
-}
-
 case class ImplVariable(obj : String, n : String, vartype : TypeInfo, lev : Expression, ScopeInfo : String) extends Expression() {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
@@ -34,7 +22,7 @@ case class ImplVariable(obj : String, n : String, vartype : TypeInfo, lev : Expr
     if (!objs.equals(""))
       objs = objs + "."
 
-    if (lev.cpp/*FIXME: this mechanism is really hard to maintain*/.equals(""))
+    if (lev.cpp /*FIXME: this mechanism is really hard to maintain*/ .equals(""))
       return objs + name + lev.cpp + s
     else
       return objs + name + "[" + lev.cpp + "]" + s

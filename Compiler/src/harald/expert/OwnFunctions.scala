@@ -63,11 +63,11 @@ object InitExternalFunctions extends Strategy("Init external functions") {
     var stop : ListBuffer[Expression] = ListBuffer()
 
     for (i <- 0 to DomainKnowledge.rule_dim() - 1) {
-      start += new ImplValueExpr[Int](IdxKnowledge.mapcoordToidxInt(vertex1, lev)(i))
+      start += new NumericLiteral(IdxKnowledge.mapcoordToidxInt(vertex1, lev)(i))
       if (IdxKnowledge.mapcoordToidxInt(vertex2, lev)(i) == 0)
-        stop += new ImplValueExpr[Int](0)
+        stop += new NumericLiteral(0)
       else
-        stop += new ImplValueExpr[String](s"${DomainKnowledge.pdebc_L1.get._1 + "[lev]"}.x${i + 1}_-1")
+        stop += new StringLiteral(s"${DomainKnowledge.pdebc_L1.get._1 + "[lev]"}.x${i + 1}_-1")
 
       if (loopshifts(i) == 0) {
         if (IdxKnowledge.mapcoordToidxInt(vertex2, lev)(i) == 0)

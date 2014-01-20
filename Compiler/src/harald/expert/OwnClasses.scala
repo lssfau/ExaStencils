@@ -279,7 +279,7 @@ object StencilGenerator {
     }
     exts += ")"
 
-    var statint = new ImplValueExpr[String](exts)
+    var statint = new StringLiteral(exts)
 
     return statint
   }
@@ -300,9 +300,9 @@ object StencilGenerator {
     }
     exts += ")"
 
-    var statint = new ImplValueExpr[String](exts)
+    var statint = new StringLiteral(exts)
 
-  return statint
+    return statint
   }
 
   def generateStencilConvolution(classname : String, stsize : Int, memlistS : ListBuffer[ParameterInfo], idxlin : String) : Expression = {
@@ -314,12 +314,12 @@ object StencilGenerator {
       cstr = classname + "."
 
     var fieldName = memlistS(0).name;
-//    // HACK
-//    fieldName = fieldName match {
-//      case "solution[lev]" => "fragments[0]->solData[0][lev]->getDataRef"
-//      case "f[lev]"        => "fragments[0]->rhsData[0][lev]->getDataRef"
-//      case s : String      => s
-//    }
+    //    // HACK
+    //    fieldName = fieldName match {
+    //      case "solution[lev]" => "fragments[0]->solData[0][lev]->getDataRef"
+    //      case "f[lev]"        => "fragments[0]->rhsData[0][lev]->getDataRef"
+    //      case s : String      => s
+    //    }
 
     if (idxlin.equals(""))
       exts = s"(${cstr}entries[0]*" + fieldName + "(" + memlistS(1).name + "+" + idxmap(0)(0).toString
@@ -341,7 +341,7 @@ object StencilGenerator {
     }
     exts = exts + ")"
 
-    var stat = new ImplValueExpr[String](exts)
+    var stat = new StringLiteral(exts)
 
     return stat
   }
@@ -369,7 +369,7 @@ object StencilGenerator {
       exts = exts + "]"
     }
 
-    var stat = new ImplValueExpr[String]("(" + exts + ")")
+    var stat = new StringLiteral("(" + exts + ")")
 
     return stat
   }

@@ -50,14 +50,14 @@ case class AbstractLoop(where : String, lev : String, order : String, blocksize 
       }
     var start : ListBuffer[Expression] = ListBuffer()
     for (i <- 1 to DomainKnowledge.rule_dim())
-      start += new ImplValueExpr[Int](startidx)
+      start += new NumericLiteral(startidx)
 
     var stop : ListBuffer[Expression] = ListBuffer()
 
     lpkn match {
       case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "innerpoints", "1") => {
         for (i <- 1 to DomainKnowledge.rule_dim())
-          stop += new BinaryExpression("-", new ImplVariable(lpendvariable, "x" + i.toString + "_", new TypeInfo(lpendvariable + "x" + i.toString, 0), new NullExpression, "expression"), new ImplValueExpr[Int](1))
+          stop += new BinaryExpression("-", new ImplVariable(lpendvariable, "x" + i.toString + "_", new TypeInfo(lpendvariable + "x" + i.toString, 0), new NullExpression, "expression"), new NumericLiteral(1))
         //	                  stop += new BinaryExpr(new functioncall(lpendvariable + i.toString,ListBuffer()), new OperatorInfo("-"), new ValueExpr[Int](1)) 
       }
       case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "allpoints", "1") => {
@@ -100,9 +100,9 @@ case class AbstractRepeat(val expr : AbstractExpression, val stmt : List[Abstrac
     }
 
     if (direction.equals("up"))
-      ret += new Implforloop(ListBuffer(new ParameterInfo("i", "int")), ListBuffer(new ImplValueExpr[Int](0)), ListBuffer(expr.transform(scopeparas, None, "condition")), ListBuffer(1, 1, 1), "lex", 1, st2)
+      ret += new Implforloop(ListBuffer(new ParameterInfo("i", "int")), ListBuffer(new NumericLiteral(0)), ListBuffer(expr.transform(scopeparas, None, "condition")), ListBuffer(1, 1, 1), "lex", 1, st2)
     else
-      ret += new Implforloop(ListBuffer(new ParameterInfo("i", "int")), ListBuffer(new ImplValueExpr[Int](0)), ListBuffer(expr.transform(scopeparas, None, "condition")), ListBuffer(-1, -1, -1), "lex", 1, st2)
+      ret += new Implforloop(ListBuffer(new ParameterInfo("i", "int")), ListBuffer(new NumericLiteral(0)), ListBuffer(expr.transform(scopeparas, None, "condition")), ListBuffer(-1, -1, -1), "lex", 1, st2)
 
     return ret
   }
@@ -128,7 +128,7 @@ case class AbstractIfElse(val cond : AbstractExpression, ifstmts : List[Abstract
     if (cond.toString.startsWith("coarsestlevel"))
       ret += new ConditionStatement(new BinaryExpression("==", new ImplVariable("", "lev", new TypeInfo("lev", 0), new NullExpression, "expression"),
         new BinaryExpression("-", new ImplVariable("", "nlevels", new TypeInfo("nlevels", 0), new NullExpression, "expression"),
-          new ImplValueExpr[Int](1))), st1, st2)
+          new NumericLiteral(1))), st1, st2)
     else
       ret += new ConditionStatement(cond.transform(scopeparas, None, "condition"), st1, st2)
 
@@ -146,7 +146,7 @@ case class AbstractLet(val id : String, val expr : AbstractExpression, modifier 
     for (e <- TreeManager.tree.Fields)
       if (e.name.equals(id)) {
         ti = new TypeInfo(id, 1)
-        levstr = new ImplValueExpr[String]("lev")
+        levstr = new StringLiteral("lev")
       }
 
     for (e <- TreeManager.tree.Stencils)

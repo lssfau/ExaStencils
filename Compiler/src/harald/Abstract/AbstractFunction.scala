@@ -8,38 +8,38 @@ import harald.ast.TreeL2
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 
-case class AbstractFunction(fname: String, location: String, rettype: String, paramlist: List[Param], stmts: List[AbstractStatement]) {
+case class AbstractFunction(fname : String, location : String, rettype : String, paramlist : List[Param], stmts : List[AbstractStatement]) {
 
-  def transform(tree: TreeL2): ListBuffer[(String, ImplFunction)] = {
-    var name: String = ""
+  def transform(tree : TreeL2) : ListBuffer[(String, ImplFunction)] = {
+    var name : String = ""
     if (fname.equals(DomainKnowledge.smoother_L3.get))
       name = "smoother"
     else
       name = fname
 
-    var palist: ListBuffer[ParameterInfo] = ListBuffer()
+    var palist : ListBuffer[ParameterInfo] = ListBuffer()
     for (p <- paramlist)
       palist += new ParameterInfo(p.name, DomainKnowledge.transform_datatype_cpp(p.dtype))
-    var stlist: ListBuffer[Statement] = ListBuffer()
-    var varlist: ListBuffer[String] = ListBuffer()
+    var stlist : ListBuffer[Statement] = ListBuffer()
+    var varlist : ListBuffer[String] = ListBuffer()
 
     for (st <- stmts) {
       varlist ++= st.getvariables
       stlist ++= st.transform(palist)
     }
 
-    var m: Map[String, Int] = Map()
+    var m : Map[String, Int] = Map()
     for (v <- varlist)
       m += v -> (m.getOrElse(v, 0) + 1)
 
-    var retfunc: ListBuffer[(String, ImplFunction)] = ListBuffer()
+    var retfunc : ListBuffer[(String, ImplFunction)] = ListBuffer()
 
     if (location.equals("cpu")) {
       retfunc += name -> new ImplFunction(fname, DomainKnowledge.transform_datatype_cpp(rettype), palist, stlist, m, "cpu")
 
     } else if (location.equals("gpu")) {
 
-      var stcpulist: ListBuffer[Statement] = ListBuffer()
+      var stcpulist : ListBuffer[Statement] = ListBuffer()
       //         for (st <- stmts)
       //           if (st.isInstanceOf[Loop] && !st.isInstanceOf[Reduction])
       //             stcpulist ++= st.transform(palist) 
@@ -48,13 +48,13 @@ case class AbstractFunction(fname: String, location: String, rettype: String, pa
       //var hs = m.getOrElse("solution", 0)
       var sizestr = ""
 
-      var cpuargs: ListBuffer[Expression] = ListBuffer()
-      var palistgpu: ListBuffer[ParameterInfo] = ListBuffer()
+      var cpuargs : ListBuffer[Expression] = ListBuffer()
+      var palistgpu : ListBuffer[ParameterInfo] = ListBuffer()
 
       if (paramlist.length == 1) {
         sizestr = "solution" + "[lev]"
         for (i <- 0 to DomainKnowledge.rule_dim() - 1)
-          cpuargs += new ImplValueExpr[String](s"${sizestr}.x${i + 1}_")
+          cpuargs += new StringLiteral(s"${sizestr}.x${i + 1}_")
         for (i <- 0 to DomainKnowledge.rule_dim() - 1)
           palistgpu += new ParameterInfo(s"s${i + 1}", "int")
 
@@ -73,7 +73,7 @@ case class AbstractFunction(fname: String, location: String, rettype: String, pa
         for (e <- tree.Fields)
           if (e.name.equals(m1._1)) {
             found = true
-            cpuargs += new ImplValueExpr[String](m1._1 + "[lev].begin()")
+            cpuargs += new StringLiteral(m1._1 + "[lev].begin()")
 
             palistgpu += new ParameterInfo(s"${m1._1}", "double*")
           }
@@ -81,7 +81,7 @@ case class AbstractFunction(fname: String, location: String, rettype: String, pa
         for (e <- tree.Stencils)
           if (e.name.equals(m1._1)) {
             found = true
-            cpuargs += new ImplValueExpr[String](m1._1 + "[0].begin()")
+            cpuargs += new StringLiteral(m1._1 + "[0].begin()")
 
             palistgpu += new ParameterInfo(s"${m1._1}", "double*")
           }
@@ -93,8 +93,8 @@ case class AbstractFunction(fname: String, location: String, rettype: String, pa
         println(paramlist(i).name)
         if (paramlist(i).dtype.equals("Array")) {
           for (j <- 0 to DomainKnowledge.rule_dim() - 1)
-            cpuargs += new ImplValueExpr[String](s"${paramlist(i).name}.x${j + 1}_")
-          cpuargs += new ImplValueExpr[String](paramlist(i).name + ".begin()")
+            cpuargs += new StringLiteral(s"${paramlist(i).name}.x${j + 1}_")
+          cpuargs += new StringLiteral(paramlist(i).name + ".begin()")
 
           if (first_array == 0) {
             first_array += 1
@@ -109,25 +109,25 @@ case class AbstractFunction(fname: String, location: String, rettype: String, pa
           palistgpu += new ParameterInfo(s"${paramlist(i).name}", "double*")
 
         } else {
-          cpuargs += new ImplValueExpr[String](s"${paramlist(i).name}")
+          cpuargs += new StringLiteral(s"${paramlist(i).name}")
 
           palistgpu += new ParameterInfo(paramlist(i).name, DomainKnowledge.transform_datatype_cuda(paramlist(i).dtype))
         }
       }
 
       if (fname.equals("GaussSeidel")) {
-        var cpuargs_call1: ListBuffer[Expression] = ListBuffer()
+        var cpuargs_call1 : ListBuffer[Expression] = ListBuffer()
         cpuargs_call1 ++= cpuargs
-        cpuargs_call1 += new ImplValueExpr[String]("0")
+        cpuargs_call1 += new StringLiteral("0")
         stcpulist += new ImplPcall("", fname + "cuda", cpuargs_call1)
-        var cpuargs_call2: ListBuffer[Expression] = ListBuffer()
+        var cpuargs_call2 : ListBuffer[Expression] = ListBuffer()
         cpuargs_call2 ++= cpuargs
-        cpuargs_call2 += new ImplValueExpr[String]("1")
+        cpuargs_call2 += new StringLiteral("1")
         stcpulist += new ImplPcall("", fname + "cuda", cpuargs_call2)
       } else
         stcpulist += new ImplPcall("", fname + "cuda", cpuargs)
 
-      var palist2: ListBuffer[ParameterInfo] = ListBuffer()
+      var palist2 : ListBuffer[ParameterInfo] = ListBuffer()
       for (p <- paramlist)
         palist2 += new ParameterInfo(p.name, DomainKnowledge.transform_datatype_cpp_cuda(p.dtype))
 
