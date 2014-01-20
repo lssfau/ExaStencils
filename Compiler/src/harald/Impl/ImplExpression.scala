@@ -8,7 +8,7 @@ import exastencils.datastructures.ir._
 case class ImplValueExpr[T](v : T) extends Expression() {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  valu = v.toString
+  //valu = v.toString
   override def toString = v.toString
   override def cpp : String = v.toString
   def toString_cuda : String = v.toString
@@ -23,7 +23,7 @@ case class ImplBinaryExpr(left : Expression, oper : OperatorInfo, right : Expres
   val l = left
   val op = oper
   val r = right
-  valu = l.toString + " " + op.toString + " " + r.toString
+  //valu = l.toString + " " + op.toString + " " + r.toString
 
   override def toString = "(" + l.toString + " " + op.toString + " " + r.toString + ")"
   override def cpp : String = "(" + l.cpp + " " + op.toString_cpp + " " + r.cpp + ")"
@@ -49,7 +49,7 @@ case class ImplVariable(obj : String, n : String, vartype : TypeInfo, lev : Expr
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   val name = n
-  valu = n
+  //valu = n
 
   override def cpp : String = {
     var s : String = ""
@@ -62,7 +62,7 @@ case class ImplVariable(obj : String, n : String, vartype : TypeInfo, lev : Expr
     if (!objs.equals(""))
       objs = objs + "."
 
-    if (lev.valu.equals(""))
+    if (lev.cpp/*FIXME: this mechanism is really hard to maintain*/.equals(""))
       return objs + name + lev.cpp + s
     else
       return objs + name + "[" + lev.cpp + "]" + s
