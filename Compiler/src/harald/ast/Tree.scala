@@ -49,8 +49,6 @@ case class TreeL2() extends Node {
     for (e <- exaFunctions) yield Functions ++= e.transform(this)
   }
 
-  var callgraph: Map[String, Map[Int, Int]] = Map()
-
   var ExternalClasses: collection.mutable.Map[String, ImplClass] = collection.mutable.Map()
   var extfunctions: collection.mutable.Map[String, ImplFunction] = collection.mutable.Map()
 }
