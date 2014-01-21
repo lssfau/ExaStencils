@@ -126,8 +126,11 @@ case class AbstractIfElse(val cond : AbstractExpression, ifstmts : List[Abstract
 
     if (cond.toString.startsWith("coarsestlevel"))
       ret += new ConditionStatement(new BinaryExpression("==", "lev",
-        new BinaryExpression("-", "nlevels",
-          new NumericLiteral(1))), st1, st2)
+        // COMM_HACK
+        //        new BinaryExpression("-", "nlevels",
+        //          new NumericLiteral(1))),
+        new NumericLiteral(0)),
+        st1, st2)
     else
       ret += new ConditionStatement(cond.transform(scopeparas, None, "condition"), st1, st2)
 
@@ -135,7 +138,7 @@ case class AbstractIfElse(val cond : AbstractExpression, ifstmts : List[Abstract
   }
 
 }
-case class AbstractLet(val id : String, val expr : AbstractExpression, modifier : Option[String]) extends AbstractStatement {
+case class AbstractLet(var id : String, var expr : AbstractExpression, var modifier : Option[String]) extends AbstractStatement {
   override def transform(scopeparas : ListBuffer[ParameterInfo]) : ListBuffer[Statement] = {
 
     var ret : ListBuffer[Statement] = ListBuffer()
@@ -146,6 +149,15 @@ case class AbstractLet(val id : String, val expr : AbstractExpression, modifier 
       if (e.name.equals(id)) {
         ti = new TypeInfo(id, 1)
         levstr = new StringLiteral("lev")
+
+        // COMM_HACK
+        id match {
+          // FIXME: use FieldAccess
+          case "solution" => return ListBuffer[Statement](AssignmentStatement("fragments[0]->solData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
+          case "Res"      => return ListBuffer[Statement](AssignmentStatement("fragments[0]->resData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
+          case "f"        => return ListBuffer[Statement](AssignmentStatement("fragments[0]->rhsData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
+          case _          =>
+        }
       }
 
     for (e <- TreeManager.tree.Stencils)
@@ -156,7 +168,7 @@ case class AbstractLet(val id : String, val expr : AbstractExpression, modifier 
 
     for (e <- scopeparas)
       if (e.name.equals(id))
-        if (e.dtype.startsWith(TreeManager.tree.ExternalClasses.get("Array").get.name)) {
+        if (e.dtype.startsWith(TreeManager.tree.ExternalClasses.get("Array").get.name) || e.dtype.startsWith("Container")) {
           ti = new TypeInfo(id, 1)
           levstr = new NullExpression
         }
@@ -193,7 +205,7 @@ case class AbstractPLet(val id : String, val expr : AbstractExpression, modifier
 
     for (e <- scopeparas)
       if (e.name.equals(id))
-        if (e.dtype.startsWith(TreeManager.tree.ExternalClasses.get("Array").get.name))
+        if (e.dtype.startsWith(TreeManager.tree.ExternalClasses.get("Array").get.name) || e.dtype.startsWith("Container"))
           ti = new TypeInfo(id, 1)
 
     var ret : ListBuffer[Statement] = ListBuffer()

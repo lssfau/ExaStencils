@@ -128,7 +128,9 @@ class DataClasses(treel2 : TreeL2) {
     }
 
     var memlistS : ListBuffer[ParameterInfo] = ListBuffer()
-    memlistS += new ParameterInfo("arr", treel2.ExternalClasses.get("Array").get.name + "<T>&")
+    // COMM_HACK
+    memlistS += new ParameterInfo("arr", "Container&")
+    //memlistS += new ParameterInfo("arr", treel2.ExternalClasses.get("Array").get.name + "<T>&")
     for (i <- 1 to DomainKnowledge.rule_dim())
       memlistS += new ParameterInfo(idxdimparlist(i - 1), "int")
 
@@ -266,15 +268,19 @@ object StencilGenerator {
     if (!classname.equals(""))
       cstr = classname + "."
 
-    var exts : String = fac.toString + s"*(${cstr}${arrname}(" + DomainKnowledge.rule_mapfineTocoarse(s"${idxname}1+" + idxmap(0)(0).toString)
+    //var exts : String = fac.toString + s"*(${cstr}${arrname}(" + DomainKnowledge.rule_mapfineTocoarse(s"${idxname}1+" + idxmap(0)(0).toString)
+    var exts : String = fac.toString + s"*(${cstr}${arrname}(" + DomainKnowledge.rule_mapfineTocoarse(s"${idxname}1+" + idxmap(0)(0).toString + " + 1")
     for (j <- 1 to DomainKnowledge.rule_dim() - 1)
-      exts += "," + DomainKnowledge.rule_mapfineTocoarse(s"${idxname}${j + 1}+" + idxmap(0)(j).toString)
+      //exts += "," + DomainKnowledge.rule_mapfineTocoarse(s"${idxname}${j + 1}+" + idxmap(0)(j).toString)
+      exts += "," + DomainKnowledge.rule_mapfineTocoarse(s"${idxname}${j + 1}+" + idxmap(0)(j).toString + " + 1")
     exts += ")"
 
     for (k <- 1 to idxmap.length - 1) {
-      exts += s"+ ${arrname}(" + DomainKnowledge.rule_mapfineTocoarse(s"${idxname}1+" + idxmap(k)(0).toString)
+      //exts += s"+ ${arrname}(" + DomainKnowledge.rule_mapfineTocoarse(s"${idxname}1+" + idxmap(k)(0).toString)
+      exts += s"+ ${arrname}(" + DomainKnowledge.rule_mapfineTocoarse(s"${idxname}1+" + idxmap(k)(0).toString + " + 1")
       for (j <- 1 to DomainKnowledge.rule_dim() - 1)
-        exts += "," + DomainKnowledge.rule_mapfineTocoarse(s"${idxname}${j + 1}+" + idxmap(k)(j).toString)
+        //exts += "," + DomainKnowledge.rule_mapfineTocoarse(s"${idxname}${j + 1}+" + idxmap(k)(j).toString)
+        exts += "," + DomainKnowledge.rule_mapfineTocoarse(s"${idxname}${j + 1}+" + idxmap(k)(j).toString + " + 1")
       exts += ")"
     }
     exts += ")"
@@ -314,12 +320,13 @@ object StencilGenerator {
       cstr = classname + "."
 
     var fieldName = memlistS(0).name;
-    //    // HACK
-    //    fieldName = fieldName match {
-    //      case "solution[lev]" => "fragments[0]->solData[0][lev]->getDataRef"
-    //      case "f[lev]"        => "fragments[0]->rhsData[0][lev]->getDataRef"
-    //      case s : String      => s
-    //    }
+    // COMM_HACK
+    fieldName = fieldName match {
+      case "solution[lev]" => "fragments[0]->solData[0][lev]->getDataRef"
+      case "Res[lev]"      => "fragments[0]->resData[0][lev]->getDataRef"
+      case "f[lev]"        => "fragments[0]->rhsData[0][lev]->getDataRef"
+      case s : String      => s
+    }
 
     if (idxlin.equals(""))
       exts = s"(${cstr}entries[0]*" + fieldName + "(" + memlistS(1).name + "+" + idxmap(0)(0).toString

@@ -8,6 +8,7 @@ import harald.dsl._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.knowledge.Knowledge
 
 object InitExternalFunctions extends Strategy("Init external functions") {
   def checkifrotated(p1 : Vertex, p2 : Vertex, rot : ListBuffer[Double]) : Boolean = {
@@ -180,19 +181,20 @@ object InitExternalFunctions extends Strategy("Init external functions") {
             body += new StringLiteral(setst + "\n")
           }
 
-        for (c <- tree.Fields)
-          if (c.arrname.equals("MyArray"))
-            body += new StringLiteral(s"${setfuncarrname}(0,${c.name}[0],0);\n")
-          else
-            body += new StringLiteral(s"${setfuncarrname + "cuda"}(0,${c.name}[0],0);\n")
-
-        for (i <- 0 to DomainKnowledge.function_L1.length - 1)
-          if (DomainKnowledge.use_gpu) {
-            body += new StringLiteral(s"${setrandfuncname}(${DomainKnowledge.unknown_L1(i)._1 + "_host"}[0],${DomainKnowledge.unknown_L1(i)._2});\n")
-            body += new StringLiteral(s"pushDataToDevice (${DomainKnowledge.unknown_L1(i)._1 + "_host"}[0].begin(),${DomainKnowledge.unknown_L1(i)._1}[0].begin(), ${DomainKnowledge.unknown_L1(i)._1}[0].x1_*${DomainKnowledge.unknown_L1(i)._1}[0].x2_);\n")
-          } else {
-            body += new StringLiteral(s"${setrandfuncname}(${DomainKnowledge.unknown_L1(i)._1}[0],${DomainKnowledge.unknown_L1(i)._2});\n")
-          }
+        // COMM_HACK
+        //        for (c <- tree.Fields)
+        //          if (c.arrname.equals("MyArray"))
+        //            body += new StringLiteral(s"${setfuncarrname}(0,${c.name}[0],0);\n")
+        //          else
+        //            body += new StringLiteral(s"${setfuncarrname + "cuda"}(0,${c.name}[0],0);\n")
+        //
+        //        for (i <- 0 to DomainKnowledge.function_L1.length - 1)
+        //          if (DomainKnowledge.use_gpu) {
+        //            body += new StringLiteral(s"${setrandfuncname}(${DomainKnowledge.unknown_L1(i)._1 + "_host"}[0],${DomainKnowledge.unknown_L1(i)._2});\n")
+        //            body += new StringLiteral(s"pushDataToDevice (${DomainKnowledge.unknown_L1(i)._1 + "_host"}[0].begin(),${DomainKnowledge.unknown_L1(i)._1}[0].begin(), ${DomainKnowledge.unknown_L1(i)._1}[0].x1_*${DomainKnowledge.unknown_L1(i)._1}[0].x2_);\n")
+        //          } else {
+        //            body += new StringLiteral(s"${setrandfuncname}(${DomainKnowledge.unknown_L1(i)._1}[0],${DomainKnowledge.unknown_L1(i)._2});\n")
+        //          }
 
         for (c <- DomainKnowledge.global_stencils) {
           if (c.sizex != 1) {

@@ -44,7 +44,7 @@ class ParserL4(tree : TreeL2) extends StandardTokenParsers {
       tree.exaClasses.append(new AbstractClass(cname, templ, memb, memf)); AbstractClass(cname, templ, memb, memf)
   }
 
-  def data_type: Parser[String] = "Double" | "Int" | "Array" | "MyArray" | "Complex" | ident
+  def data_type: Parser[String] = "Double" | "Int" | "Array" | "Container" | "MyArray" | "Complex" | ident
   def return_datatype: Parser[String] = "real" | "natural" | "Unit" | "Double" | "Complex"
   def operator_type: Parser[String] = "+" | "-" | "*" | "/"
   def modifier_type: Parser[String] = "ToFine" | "ToCoarse"

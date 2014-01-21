@@ -91,7 +91,7 @@ case class AbstractFunction(fname : String, location : String, rettype : String,
 
       for (i <- 1 to paramlist.length - 1) {
         println(paramlist(i).name)
-        if (paramlist(i).dtype.equals("Array")) {
+        if (paramlist(i).dtype.equals("Array") || paramlist(i).dtype.startsWith("Container")) {
           for (j <- 0 to DomainKnowledge.rule_dim() - 1)
             cpuargs += new StringLiteral(s"${paramlist(i).name}.x${j + 1}_")
           cpuargs += new StringLiteral(paramlist(i).name + ".begin()")

@@ -54,6 +54,8 @@ class PrettyPrinter(treel2 : TreeL2) {
     for (extClass <- treel2.ExternalClasses)
       writerHeader <<< "#include \"" + extClass._2.cname + ".h\""
     writerHeader <<< "#include \"Primitives/Fragment3DCube.h\""
+    writerHeader <<< "#include \"Globals/Globals.h\""
+    writerHeader <<< "#include \"Primitives/CommunicationFunctions.h\""
     for (func <- treel2.Functions) {
       writerHeader <<< func._2.toString_cpp_signature;
 

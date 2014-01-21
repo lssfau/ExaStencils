@@ -216,6 +216,8 @@ object DomainKnowledge extends ExaKnowledge {
       case "Complex" => return "std::complex<double>"
       case "Int" => return "int"
       case "Array" => return "MyArray" + s"<${DomainKnowledge.datatype_L2.getOrElse("double")}>&" // extclasses.get("Array").get.name
+      // COMM_HACK
+      case "Container" => return "Container&"
       case _ => return "unknown type"
     }
   }

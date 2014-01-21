@@ -6,6 +6,8 @@ import harald.ast.TreeManager
 import harald.expert.StencilGenerator
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.primitives.LoopOverFragments
+import exastencils.core.collectors.StackCollector
 
 case class ImplCommunication(fname : String, loc : String) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
@@ -40,13 +42,23 @@ case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : List
   override def cpp : String = {
     // FIXME: make this node expandable and move mapping to expand function
 
+    // COMM_HACK
+    for (i <- 0 to stop.length - 1) {
+      stop(i) = stop(i).cpp match {
+        case "(solution[lev].x1_ - 1)" => "(fragments[0]->solData[0][lev]->x1_ - 1)"
+        case "(solution[lev].x2_ - 1)" => "(fragments[0]->solData[0][lev]->x2_ - 1)"
+        case "(solution[lev].x3_ - 1)" => "(fragments[0]->solData[0][lev]->x3_ - 1)"
+        case _                         => stop(i)
+      }
+    }
+
     var s : String = ""
     for (b <- body)
       s += b.cpp
-    var sloops : String = "{"
+    var sloops : String = ""
 
     if (runningorder.equals("rb")) {
-      // multicolor: int offset = ( i0 % 2 == 0 ? 1 : 2 ); f�r alle += 2 erster index 1,2 dann offset2 = ( i % 2 == offs2 ? 1 : 2 ); offset3 = ( j % 2 == offs3 ? 2 : 1 );
+      // multicolor: int offset = ( i0 % 2 == 0 ? 1 : 2 ); fuer alle += 2 erster index 1,2 dann offset2 = ( i % 2 == offs2 ? 1 : 2 ); offset3 = ( j % 2 == offs3 ? 2 : 1 );
 
       for (off <- 0 to 1) {
         var wrappedBody : ListBuffer[Statement] = body; // TODO: clone?
@@ -71,7 +83,7 @@ case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : List
     } else { // lex
       var wrappedBody : ListBuffer[Statement] = body; // TODO: clone?
 
-      for (i <- start.length - 1 to 0 by -1) /* FIXME: this loop seems to be inverted */ {
+      for (i <- 0 to start.length - 1) {
         if (stepsize(i) >= 0) {
           wrappedBody = ListBuffer[Statement](new ForLoopStatement(
             loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}$i" ~ " = " ~ start(i),
@@ -89,7 +101,8 @@ case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : List
       sloops += StatementBlock(wrappedBody).cpp;
     }
 
-    return sloops + "} \n"
+    // COMM_HACK
+    return (new LoopOverFragments(sloops, false)).expand(new StackCollector).cpp;
   }
 
   /* FIXME: reintegrate:
@@ -184,6 +197,9 @@ case class ImplPcall(obj : String, name : String, paramlist : ListBuffer[Express
       for (f <- TreeManager.tree.Functions)
         if (f._2.name.equals(name))
           location = f._2.location
+
+      // COMM_HACK
+      if ("" == location) location = "cpu"
 
       var s = ""
 

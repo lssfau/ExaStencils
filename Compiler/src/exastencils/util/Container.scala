@@ -49,6 +49,10 @@ public:
 		numDataPointsWPad		= numDataPointsPerDimWPad.componentProd();
 
 		data = new double[numDataPointsWPad];
+
+		x1_ = numDataPointsPerDim.x;
+		x2_ = numDataPointsPerDim.y;
+		x3_ = numDataPointsPerDim.z;
 	}
 
 	~Container ()
@@ -73,6 +77,9 @@ public:
 	inline double&	getDataRef (unsigned int idx0, unsigned int idx1, unsigned int idx2)
 	{ return data[getAbsIdx(Vec3u(idx0, idx1, idx2))]; }
 
+	inline double& operator()(unsigned int idx0, unsigned int idx1, unsigned int idx2)
+	{ return getDataRef(Vec3u(idx0, idx1, idx2)); }
+
 public:
 	double*				data;
 
@@ -82,6 +89,7 @@ public:
 	Vec3u			firstDataPoint;
 	Vec3u			lastDataPoint;
 
+	int				x1_, x2_, x3_;
 };
 
 #endif	// CONTAINER_CONTAINER_H

@@ -7,6 +7,7 @@ import harald.ast.TreeManager
 import harald.expert.StencilGenerator
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.primitives.FieldAccess
 
 sealed abstract class AbstractExpression {
   def value(context : Context) : String
@@ -44,7 +45,9 @@ case class AbstractBinaryOp(operator : String, left : AbstractExpression, right 
                       var memlistS : ListBuffer[ParameterInfo] = ListBuffer()
                       memlistS += new ParameterInfo("fine", TreeManager.tree.ExternalClasses.get("Array").get.name + "<T>&")
                       for (i <- 1 to DomainKnowledge.rule_dim())
-                        memlistS += new ParameterInfo(s"2*i${i - 1}", "int")
+                        // COMM_HACK
+                        //memlistS += new ParameterInfo(s"2*i${i - 1}", "int")
+                        memlistS += new ParameterInfo(s"(2*i${i - 1} - 1)", "int")
                       return StencilGenerator.generateStencilConvolution(id1 + "[0]", e1.length, memlistS, "")
                       //  	                     return new functioncall(id1+s"[${l1}]","convolve" + e1.length + "P", lb) 
                     }
@@ -164,10 +167,30 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
     var ti : TypeInfo = new TypeInfo(id, 0)
     for (e <- TreeManager.tree.Fields)
       if (e.name.equals(id)) {
-        if ("statement" == scopetype || "expression" == scopetype)
-          return id ~ "[" ~ lev.transform(scopeparas, modifier, scopetype) ~ "]" ~ DomainKnowledge.rule_idxArray_cpp()
-        else
-          return id ~ "[" ~ lev.transform(scopeparas, modifier, scopetype) ~ "]"
+        // COMM_HACK
+        return id match {
+          // FIXME: use FieldAccess
+          case "solution" => (
+            if ("statement" == scopetype || "expression" == scopetype)
+              s"fragments[0]->solData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp()
+            else
+              s"*fragments[0]->solData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]")
+          case "Res" => (
+            if ("statement" == scopetype || "expression" == scopetype)
+              s"fragments[0]->resData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp()
+            else
+              s"*fragments[0]->resData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]")
+          case "f" => (
+            if ("statement" == scopetype || "expression" == scopetype)
+              s"fragments[0]->rhsData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp()
+            else
+              s"*fragments[0]->rhsData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]")
+          case _ => (
+            if ("statement" == scopetype || "expression" == scopetype)
+              id ~ "[" ~ lev.transform(scopeparas, modifier, scopetype) ~ "]" ~ DomainKnowledge.rule_idxArray_cpp()
+            else
+              id ~ "[" ~ lev.transform(scopeparas, modifier, scopetype) ~ "]")
+        }
       }
 
     for (e <- TreeManager.tree.Stencils)
@@ -180,7 +203,7 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
 
     for (e <- scopeparas) {
       if (e.name.equals(id))
-        if (e.dtype.startsWith(TreeManager.tree.ExternalClasses.get("Array").get.name)) {
+        if (e.dtype.startsWith(TreeManager.tree.ExternalClasses.get("Array").get.name) || e.dtype.startsWith("Container")) {
           ti = new TypeInfo(id, 1)
         }
     }
