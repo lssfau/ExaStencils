@@ -8,7 +8,8 @@ import harald.dsl._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.knowledge.Knowledge
+import exastencils.knowledge._
+import exastencils.mpi._
 
 object InitExternalFunctions extends Strategy("Init external functions") {
   def checkifrotated(p1 : Vertex, p2 : Vertex, rot : ListBuffer[Double]) : Boolean = {
@@ -222,6 +223,8 @@ object InitExternalFunctions extends Strategy("Init external functions") {
 
         if (DomainKnowledge.use_MPI)
           body += new StringLiteral("MPI_Finalize();\n")
+        
+        body += (new MPI_Finalize).cpp;
 
         tree.extfunctions += "Main" -> new ImplFunction("main", "int", ListBuffer(new ParameterInfo("argc", "int"), new ParameterInfo("argv", "char**")), body, Map(), "cpu")
       }

@@ -20,7 +20,15 @@ case class ImplCommunication(fname : String, loc : String) extends Statement {
 case class ImplReductionStatement(s : Statement) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
-  override def cpp : String = s"${DomainKnowledge.datatype_L2.getOrElse("double")} s = 0; \n " + s.cpp + "return s;"
+  override def cpp : String = {
+    // COMM_HACK
+    //s"${DomainKnowledge.datatype_L2.getOrElse("double")} s = 0; \n " + s.cpp + "return s;"
+    s"${DomainKnowledge.datatype_L2.getOrElse("double")} s = 0;\n" +
+      s.cpp + "\n" +
+      "double sTotal;\n" +
+      "MPI_Allreduce(&s, &sTotal, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);\n" +
+      "return sTotal;\n"
+  }
 }
 
 case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : ListBuffer[Expression], var stop : ListBuffer[Expression], var stepsize : ListBuffer[Int], var runningorder : String, var blocksize : Int, var body : ListBuffer[Statement]) extends Statement {
@@ -183,16 +191,21 @@ case class ImplPcall(obj : String, name : String, paramlist : ListBuffer[Express
         objs = objs + "."
 
       if (name.equals("print")) {
-        if (TreeManager.tree.isinFields(paramlist(0).cpp)) {
-          var s : String = DomainKnowledge.rule_idxArray_cpp()
-          return "std::cout << " + paramlist(0).cpp + s + " << \" \" ;"
-        } else {
-          var pstr = "std::cout << "
-          for (p <- paramlist)
-            pstr += p.cpp + " << \" \" << "
-          pstr += " std::endl; "
-          return pstr
-        }
+        return (new Scope(ListBuffer[Statement](
+          "int rank;",
+          "MPI_Comm_rank(MPI_COMM_WORLD, &rank);",
+          "if (0 == rank) {",
+          (if (TreeManager.tree.isinFields(paramlist(0).cpp)) {
+            var s : String = DomainKnowledge.rule_idxArray_cpp()
+            "std::cout << " + paramlist(0).cpp + s + " << \" \" ;"
+          } else {
+            var pstr = "std::cout << "
+            for (p <- paramlist)
+              pstr += p.cpp + " << \" \" << "
+            pstr += " std::endl; "
+            pstr
+          }),
+          "}"))).cpp
       }
       //    return name + " ( " + paramlist.mkString(",") + ");\n"
 

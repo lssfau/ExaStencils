@@ -160,13 +160,13 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
               + "maxTime << \"\\n\";")),
 
         new MPI_Barrier,
-				*/
+				
         new ConditionStatement(new MPI_IsRootProc,
           s"std::cout << std::endl;"),
 
         // FIXME: free primitives
         new MPI_Finalize,
-
+        */
         s"return 0;"));
   }
 }

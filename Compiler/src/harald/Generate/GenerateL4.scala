@@ -42,12 +42,12 @@ class GenerateL4(treel2 : TreeL2) {
       writer.write("	Residual ( lev ) \n")
       if (veclength > 1) {
         for (i <- 0 to veclength - 1) {
-          writer.write(s"	${DomainKnowledge.restriction_L3.get} ( ( lev-1 ) \n")
+          writer.write(s"	${DomainKnowledge.restriction_L3.get} ( lev \n")
           writer.write(s"	           ${DomainKnowledge.function_L1(0)._1}_${i}[ ( lev-1 ) ] \n")
           writer.write(s"	           Res_${i}[lev]) \n")
         }
       } else {
-        writer.write(s"	${DomainKnowledge.restriction_L3.get} ( ( lev-1 ) \n")
+        writer.write(s"	${DomainKnowledge.restriction_L3.get} ( lev \n")
         writer.write(s"	           ${DomainKnowledge.function_L1(0)._1}[ ( lev-1 ) ] \n")
         writer.write(s"	           Res[lev]) \n")
       }
