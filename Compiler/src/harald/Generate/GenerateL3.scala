@@ -40,7 +40,7 @@ class GenerateL3(treel2 : TreeL2) {
     writer.write(s"nlevels_L3 = ${nlev} \n")
     writer.write(s"restr_order_L3 = ${order} \n")
     writer.write(s"int_order_L3 = ${order} \n")
-    writer.write("ncoarse_L3 = 10 \n")
+    writer.write("ncoarse_L3 = 512 \n")
     writer.write("nprae_L3 = 3 \n")
     writer.write("npost_L3 = 3 \n")
     writer.write("iters_L3 = 10 \n")

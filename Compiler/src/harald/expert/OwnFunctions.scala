@@ -223,7 +223,7 @@ object InitExternalFunctions extends Strategy("Init external functions") {
 
         if (DomainKnowledge.use_MPI)
           body += new StringLiteral("MPI_Finalize();\n")
-        
+
         body += (new MPI_Finalize).cpp;
 
         tree.extfunctions += "Main" -> new ImplFunction("main", "int", ListBuffer(new ParameterInfo("argc", "int"), new ParameterInfo("argv", "char**")), body, Map(), "cpu")
@@ -320,26 +320,26 @@ object InitExternalFunctions extends Strategy("Init external functions") {
       Some(tree);
   });
 
-  this += new Transformation("Initing copyFromBuffers function", {
-    case tree : TreeL2 =>
-      {
-        var bcloops : ListBuffer[Statement] = ListBuffer()
-        var lev = 0
-        var i = 0
-
-        for (e <- DomainKnowledge.fragments(0).edges) {
-
-          val vertex1 = e.vertex1.coords
-          val vertex2 = e.vertex2.coords
-
-          bcloops += new StringLiteral(s"if (Pnb[${i}] >= 0)")
-          bcloops += generateBCidxloop(vertex1, vertex2, DomainKnowledge.pdebc_L1.get._1 + "[lev]", DomainKnowledge.pdebc_L1.get._1 + s"_ghost_edge${i}_recv[0]", false, lev, "Buffer")
-          i += 1
-        }
-
-        tree.extfunctions += "copyFromBuffers" -> new ImplFunction("copyFromBuffers", "void", ListBuffer(new ParameterInfo("lev", "int")),
-          bcloops, Map(), "cpu")
-      }
-      Some(tree);
-  });
+  //  this += new Transformation("Initing copyFromBuffers function", {
+  //    case tree : TreeL2 =>
+  //      {
+  //        var bcloops : ListBuffer[Statement] = ListBuffer()
+  //        var lev = 0
+  //        var i = 0
+  //
+  //        for (e <- DomainKnowledge.fragments(0).edges) {
+  //
+  //          val vertex1 = e.vertex1.coords
+  //          val vertex2 = e.vertex2.coords
+  //
+  //          bcloops += new StringLiteral(s"if (Pnb[${i}] >= 0)")
+  //          bcloops += generateBCidxloop(vertex1, vertex2, DomainKnowledge.pdebc_L1.get._1 + "[lev]", DomainKnowledge.pdebc_L1.get._1 + s"_ghost_edge${i}_recv[0]", false, lev, "Buffer")
+  //          i += 1
+  //        }
+  //
+  //        tree.extfunctions += "copyFromBuffers" -> new ImplFunction("copyFromBuffers", "void", ListBuffer(new ParameterInfo("lev", "int")),
+  //          bcloops, Map(), "cpu")
+  //      }
+  //      Some(tree);
+  //  });
 }

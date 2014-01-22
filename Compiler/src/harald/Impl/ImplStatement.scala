@@ -111,7 +111,7 @@ case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : List
 
     // COMM_HACK
     if (start.length > 1)
-      return (new LoopOverFragments(sloops, false)).expand(new StackCollector).cpp;
+      return (new LoopOverFragments(sloops)).expand(new StackCollector).cpp;
     else
       return sloops;
   }
