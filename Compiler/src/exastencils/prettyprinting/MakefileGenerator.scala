@@ -1,5 +1,6 @@
 package exastencils.prettyprinting
 
+import exastencils.core.Settings
 import exastencils.knowledge._
 
 object MakefileGenerator extends BuildfileGenerator {
@@ -9,13 +10,15 @@ object MakefileGenerator extends BuildfileGenerator {
     // TODO: switch by target hardware
     if (Knowledge.useOMP) {
       printer <<< "CXX = mpixlcxx_r"
+      printer <<< "CFLAGS = " + Hardware.cflags_openmp
+      printer <<< "LFLAGS = " + Hardware.ldflags_openmp
     } else {
       printer <<< "CXX = mpixlcxx"
+      printer <<< "CFLAGS = " + Hardware.cflags_mpi
+      printer <<< "LFLAGS = " + Hardware.ldflags_mpi
     }
 
-    printer <<< "CFLAGS = -O3 -qhot -qarch=qp -qtune=qp -DNDEBUG" + (if (Knowledge.useOMP) " -qsmp=omp" else "")
-    printer <<< "LFLAGS = -O3 -qhot -qarch=qp -qtune=qp -DNDEBUG" + (if (Knowledge.useOMP) " -qsmp=omp" else "") // TODO: check which flags are required
-    printer <<< "BINARY = exastencils"
+    printer <<< "BINARY = " + Settings.binary
     printer <<< ""
 
     printer <<< ".PHONY: all"
