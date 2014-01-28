@@ -130,7 +130,7 @@ object StateManager {
             var changed = newList.diff(list)
             if (changed.size > 0) {
               if (!Vars.set(node, field, newList)) {
-                ERROR(s"Could not set $field")
+                ERROR(s"Could not set $field in transformation ${transformation.name}")
               }
             }
             if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) newList.foreach(f => replace(f, transformation))
@@ -154,7 +154,7 @@ object StateManager {
             val changed = newMap.values.toList.diff(map.values.toList)
             if (changed.size > 0) {
               if (!Vars.set(node, field, newMap)) {
-                ERROR(s"Could not set $field")
+                ERROR(s"Could not set $field in transformation ${transformation.name}")
               }
             }
             
@@ -171,7 +171,7 @@ object StateManager {
               var newArray = java.lang.reflect.Array.newInstance(arrayType, tmpArray.length)
               System.arraycopy(tmpArray, 0, newArray, 0, tmpArray.length)
               if (!Vars.set(node, field, newArray)) {
-                ERROR(s"Could not set $field")
+                ERROR(s"Could not set $field in transformation ${transformation.name}")
               }
             }
             if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) tmpArray.asInstanceOf[Array[Node]].foreach(f => replace(f, transformation))
@@ -191,20 +191,20 @@ object StateManager {
               case n : Node => {
                 if (nodeIsOption) { // node is an Option[T] => set with Some() wrapped
                   if (!Vars.set(node, field, Some(n))) {
-                    ERROR(s"Could not set $field")
+                    ERROR(s"Could not set $field in transformation ${transformation.name}")
                   }
                 } else { // node is not an Option[T] => set directly
                   if (!Vars.set(node, field, n)) {
-                    ERROR(s"Could not set $field")
+                    ERROR(s"Could not set $field in transformation ${transformation.name}")
                   }
                 }
                 if (transformation.recursive) replace(n, transformation)
               }
               case l : List[_] => {
-                // FIXME
+                ERROR(s"Could not replace single node by List in transformation ${transformation.name}")
               }
               case n : None.type => {
-                ERROR(s"Could not set $field to an empty node") // FIXME think of better way => e.g. empty dummy node
+                ERROR(s"Could not set $field to an empty node in transformation ${transformation.name}") // FIXME think of better way => e.g. empty dummy node
               }
             }
             var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation)
