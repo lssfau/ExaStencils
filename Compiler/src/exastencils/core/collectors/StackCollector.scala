@@ -1,20 +1,24 @@
 package exastencils.core.collectors
 
 import scala.collection.mutable.Stack
+import exastencils.core._
 import exastencils.datastructures._
 
 class StackCollector extends Collector {
-  /* FIXME: I didn't want to change to much in your collector, please allow to access more than the head -- private */ val stack = new Stack[Node]
-
+  private val stack_ = new Stack[Node]
+  
   def enter(node : Node) : Unit = {
-    stack.push(node)
+    stack_.push(node)
   }
   def leave(node : Node) : Unit = {
-    if (head != node) sys.exit(-1) // fatal error is fatal // FIXME replace this with some nicer error
-    stack.pop()
+    if (head != node) ERROR(s"StackCollector mismatch: Cannot leave(): head != $node") // fatal error is fatal
+    stack_.pop()
   }
-  def reset() : Unit = { stack.clear }
+  def reset() : Unit = { stack_.clear }
 
-  def isEmpty : Boolean = { return stack.isEmpty }
-  def head : Node = { return stack.head }
+  def isEmpty : Boolean = { return stack_.isEmpty }
+  def head : Node = { return stack_.head }
+  
+  def stack = stack_
+  def list = stack_.toList
 }

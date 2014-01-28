@@ -21,7 +21,7 @@ class ParserSettings extends ExaParser {
 
   protected def parseTokens(tokens : lexical.Scanner) : Unit = {
     phrase(settingsfile)(tokens) match {
-      case Success(e, _)   => e
+      case Success(e, _)   => 
       case Error(msg, _)   => throw new Exception("parse error: " + msg)
       case Failure(msg, _) => throw new Exception("parse failure: " + msg)
     }
