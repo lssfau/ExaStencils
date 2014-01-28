@@ -38,9 +38,11 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< ""
 
     // FIXME: header dependencies are not taken into account 
-    PrettyprintingManager.getFiles.filter(file => file.endsWith(".cpp")).foreach(file => {
-      printer <<< s"${file.replace(".cpp", ".o")}: $file"
-      printer <<< "\t${CXX} ${CFLAGS} -c -o " + file.replace(".cpp", ".o") + " -I. " + file
+    PrettyprintingManager.getPrettyprinters.filter(pp => pp.filename.endsWith(".cpp")).foreach(pp => {
+      printer << s"${pp.filename.replace(".cpp", ".o")}: ${pp.filename} "
+      pp.dependencies.foreach(dep => printer << s"${dep.filename} ")
+      printer <<< " "
+      printer <<< "\t${CXX} ${CFLAGS} -c -o " + pp.filename.replace(".cpp", ".o") + " -I. " + pp.filename
     })
     printer <<< ""
     printer <<< ""
