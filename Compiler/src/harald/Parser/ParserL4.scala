@@ -39,7 +39,7 @@ class ParserL4(tree : TreeL2) extends StandardTokenParsers {
 
   //def definitions : Parser[Definition] = { "decl" ~ ident ~ ident ~ "=" ~ expr } ^^ {case a ~ typ ~ name ~ b ~ e => exaDefinitions.append(new Definition(name, typ, e)); Definition(name, typ, e) }
 
-  def dataclasses: Parser[AbstractClass] = "class" ~ ident.? ~ ident ~ "{" ~ (paramoption+) ~ "public" ~ (multigridfunctions+) ~ "}" ^^ {
+  def dataclasses: Parser[AbstractClass] = "class" ~ ident.? ~ ident ~ "{" ~ (paramoption.+) ~ "public" ~ (multigridfunctions.+) ~ "}" ^^ {
     case a ~ templ ~ cname ~ b ~ memb ~ c ~ memf ~ d =>
       tree.exaClasses.append(new AbstractClass(cname, templ, memb, memf)); AbstractClass(cname, templ, memb, memf)
   }
@@ -51,12 +51,12 @@ class ParserL4(tree : TreeL2) extends StandardTokenParsers {
 
   def paramoption: Parser[Param] = { ident ~ ":" ~ data_type } ^^ { case k ~ eq ~ v => Param(k, v) }
 
-  def multigridfunctions: Parser[AbstractFunction] = "def" ~ ident ~ ident ~ "(" ~ (paramoption*) ~ ")" ~ ":" ~ return_datatype ~ "{" ~ (stmt+) ~ "}" ^^ {
+  def multigridfunctions: Parser[AbstractFunction] = "def" ~ ident ~ ident ~ "(" ~ (paramoption.*) ~ ")" ~ ":" ~ return_datatype ~ "{" ~ (stmt.+) ~ "}" ^^ {
     case a ~ loc ~ name ~ b ~ args ~ c ~ d ~ ret ~ e ~ body ~ f =>
       tree.exaFunctions.append(new AbstractFunction(name, loc, ret, args, body)); AbstractFunction(name, loc, ret, args, body)
   }
   
-  def stmt: Parser[AbstractStatement] = ("loop" ~ ident ~ "level" ~ ident ~ "order" ~ ident ~ "block" ~ numericLit ~ numericLit ~ (stmt+) ~ "next" ^^ {
+  def stmt: Parser[AbstractStatement] = ("loop" ~ ident ~ "level" ~ ident ~ "order" ~ ident ~ "block" ~ numericLit ~ numericLit ~ (stmt.+) ~ "next" ^^ {
     case a ~ where ~ b ~ clev ~ c ~ ord ~ d ~ bls ~ blst ~ stmts ~ e => AbstractLoop(where, clev, ord, bls, blst, stmts)
   }
     | ident ~ "=" ~ expr ~ modifier.? ^^ { case id ~ _ ~ e ~ m => AbstractLet(id, e, m) }
@@ -64,10 +64,10 @@ class ParserL4(tree : TreeL2) extends StandardTokenParsers {
     | ident ~ "(" ~ expr.* ~ ")" ^^ { case id ~ a ~ e ~ b => AbstractPCall(id, e) } 
     | "decl" ~ paramoption ~ "=" ~ expr ^^ {case a ~ para ~ b ~ e => AbstractDefinition(para, e) }
     | "return" ~ expr ^^ { case a ~ e => AbstractReturn(e) }
-    | "repeat" ~ ident ~ expr ~ (stmt+) ~ "next" ^^ { case a ~ id ~ e ~ s ~ f => AbstractRepeat(e, s, id) }
+    | "repeat" ~ ident ~ expr ~ (stmt.+) ~ "next" ^^ { case a ~ id ~ e ~ s ~ f => AbstractRepeat(e, s, id) }
     | "Reduction" ~ stmt ^^ { case a ~ s => AbstractReduction(s) }
     | "Communicate" ~ ident ~ ident ^^ { case a ~ f ~ loc => AbstractCommunication(f,loc) }
-    | "if" ~ expr ~ "{" ~ (stmt+) ~ "}" ~ "else" ~ "{" ~ (stmt+) ~ "}" ^^ {
+    | "if" ~ expr ~ "{" ~ (stmt.+) ~ "}" ~ "else" ~ "{" ~ (stmt.+) ~ "}" ^^ {
       case a ~ cond ~ b ~ ifstmts ~ c ~ d ~ e ~ elsestmts ~ f => AbstractIfElse(cond, ifstmts, elsestmts)
     })
 
