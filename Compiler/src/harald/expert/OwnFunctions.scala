@@ -130,11 +130,11 @@ object InitExternalFunctions extends Strategy("Init external functions") {
           body += new StringLiteral("cudaFree(0);\n")
         }
 
-        for (c <- tree.Fields)
-          body += new StringLiteral(s"${c.name} = new ${c.arrname}<${c.datatype}>[${nlevels}];\n")
-        if (DomainKnowledge.use_MPI)
-          for (c <- tree.GhostFields)
-            body += new StringLiteral(s"${c.name} = new ${c.arrname}<${c.datatype}>[${nlevels}];\n")
+//        for (c <- tree.Fields)
+//          body += new StringLiteral(s"${c.name} = new ${c.arrname}<${c.datatype}>[${nlevels}];\n")
+//        if (DomainKnowledge.use_MPI)
+//          for (c <- tree.GhostFields)
+//            body += new StringLiteral(s"${c.name} = new ${c.arrname}<${c.datatype}>[${nlevels}];\n")
 
         for (c <- tree.Stencils) {
           if (c.weakform.equals(""))
@@ -146,41 +146,41 @@ object InitExternalFunctions extends Strategy("Init external functions") {
             body += new StringLiteral(s"${c.name}[0].resize(${c.entries.length});\n")
         }
 
-        val setfuncarrname : String = "set"
-        val setrandfuncname : String = "setrandom"
-
-        for (c <- DomainKnowledge.global_fields) {
-          var pdims : ListBuffer[String] = ListBuffer()
-          if (DomainKnowledge.use_MPI) {
-            for (i <- 0 to 2)
-              pdims += s"/Pdims[${i}]"
-          } else {
-            for (i <- 0 to 2)
-              pdims += ""
-          }
-
-          var setst = s"${c.name}.resize(${c.sizex}${pdims(0)}+${c.addpoints},${c.sizey}${pdims(1)}+${c.addpoints}"
-          if (DomainKnowledge.rule_dim() == 3)
-            setst = setst + s",${c.sizez}${pdims(2)}+${c.addpoints}"
-          setst = setst + ");"
-          body += new StringLiteral(setst + "\n")
-        }
-
-        if (DomainKnowledge.use_MPI)
-          for (c <- DomainKnowledge.global_ghost_fields) {
-            var setst = s"${c.name}.resize(${c.sizex}+${c.addpoints}"
-            if (c.sizey > 1)
-              setst += s",${c.sizey}+${c.addpoints}"
-            else
-              setst += ",1"
-            if (DomainKnowledge.rule_dim() == 3)
-              if (c.sizez > 1)
-                setst += s",${c.sizez}+${c.addpoints}"
-              else
-                setst += ",1"
-            setst = setst + ");"
-            body += new StringLiteral(setst + "\n")
-          }
+//        val setfuncarrname : String = "set"
+//        val setrandfuncname : String = "setrandom"
+//
+//        for (c <- DomainKnowledge.global_fields) {
+//          var pdims : ListBuffer[String] = ListBuffer()
+//          if (DomainKnowledge.use_MPI) {
+//            for (i <- 0 to 2)
+//              pdims += s"/Pdims[${i}]"
+//          } else {
+//            for (i <- 0 to 2)
+//              pdims += ""
+//          }
+//
+//          var setst = s"${c.name}.resize(${c.sizex}${pdims(0)}+${c.addpoints},${c.sizey}${pdims(1)}+${c.addpoints}"
+//          if (DomainKnowledge.rule_dim() == 3)
+//            setst = setst + s",${c.sizez}${pdims(2)}+${c.addpoints}"
+//          setst = setst + ");"
+//          body += new StringLiteral(setst + "\n")
+//        }
+//
+//        if (DomainKnowledge.use_MPI)
+//          for (c <- DomainKnowledge.global_ghost_fields) {
+//            var setst = s"${c.name}.resize(${c.sizex}+${c.addpoints}"
+//            if (c.sizey > 1)
+//              setst += s",${c.sizey}+${c.addpoints}"
+//            else
+//              setst += ",1"
+//            if (DomainKnowledge.rule_dim() == 3)
+//              if (c.sizez > 1)
+//                setst += s",${c.sizez}+${c.addpoints}"
+//              else
+//                setst += ",1"
+//            setst = setst + ");"
+//            body += new StringLiteral(setst + "\n")
+//          }
 
         // COMM_HACK
         //        for (c <- tree.Fields)
