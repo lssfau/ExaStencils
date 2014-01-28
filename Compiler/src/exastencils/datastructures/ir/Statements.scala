@@ -35,7 +35,7 @@ case class StatementBlock(var body : ListBuffer[Statement]) extends Statement {
   override def duplicate = this.copy().asInstanceOf[this.type]
 
   def cpp : String = {
-    (body.map(stat => stat.cpp).mkString("\n"));
+    "{" + (body.map(stat => stat.cpp).mkString("\n")) + "}"
   }
 }
 
