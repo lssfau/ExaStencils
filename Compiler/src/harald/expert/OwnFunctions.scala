@@ -8,7 +8,8 @@ import harald.dsl._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.knowledge.Knowledge
+import exastencils.knowledge._
+import exastencils.mpi._
 
 object InitExternalFunctions extends Strategy("Init external functions") {
   def checkifrotated(p1 : Vertex, p2 : Vertex, rot : ListBuffer[Double]) : Boolean = {
@@ -129,11 +130,11 @@ object InitExternalFunctions extends Strategy("Init external functions") {
           body += new StringLiteral("cudaFree(0);\n")
         }
 
-        for (c <- tree.Fields)
-          body += new StringLiteral(s"${c.name} = new ${c.arrname}<${c.datatype}>[${nlevels}];\n")
-        if (DomainKnowledge.use_MPI)
-          for (c <- tree.GhostFields)
-            body += new StringLiteral(s"${c.name} = new ${c.arrname}<${c.datatype}>[${nlevels}];\n")
+//        for (c <- tree.Fields)
+//          body += new StringLiteral(s"${c.name} = new ${c.arrname}<${c.datatype}>[${nlevels}];\n")
+//        if (DomainKnowledge.use_MPI)
+//          for (c <- tree.GhostFields)
+//            body += new StringLiteral(s"${c.name} = new ${c.arrname}<${c.datatype}>[${nlevels}];\n")
 
         for (c <- tree.Stencils) {
           if (c.weakform.equals(""))
@@ -145,41 +146,41 @@ object InitExternalFunctions extends Strategy("Init external functions") {
             body += new StringLiteral(s"${c.name}[0].resize(${c.entries.length});\n")
         }
 
-        val setfuncarrname : String = "set"
-        val setrandfuncname : String = "setrandom"
-
-        for (c <- DomainKnowledge.global_fields) {
-          var pdims : ListBuffer[String] = ListBuffer()
-          if (DomainKnowledge.use_MPI) {
-            for (i <- 0 to 2)
-              pdims += s"/Pdims[${i}]"
-          } else {
-            for (i <- 0 to 2)
-              pdims += ""
-          }
-
-          var setst = s"${c.name}.resize(${c.sizex}${pdims(0)}+${c.addpoints},${c.sizey}${pdims(1)}+${c.addpoints}"
-          if (DomainKnowledge.rule_dim() == 3)
-            setst = setst + s",${c.sizez}${pdims(2)}+${c.addpoints}"
-          setst = setst + ");"
-          body += new StringLiteral(setst + "\n")
-        }
-
-        if (DomainKnowledge.use_MPI)
-          for (c <- DomainKnowledge.global_ghost_fields) {
-            var setst = s"${c.name}.resize(${c.sizex}+${c.addpoints}"
-            if (c.sizey > 1)
-              setst += s",${c.sizey}+${c.addpoints}"
-            else
-              setst += ",1"
-            if (DomainKnowledge.rule_dim() == 3)
-              if (c.sizez > 1)
-                setst += s",${c.sizez}+${c.addpoints}"
-              else
-                setst += ",1"
-            setst = setst + ");"
-            body += new StringLiteral(setst + "\n")
-          }
+//        val setfuncarrname : String = "set"
+//        val setrandfuncname : String = "setrandom"
+//
+//        for (c <- DomainKnowledge.global_fields) {
+//          var pdims : ListBuffer[String] = ListBuffer()
+//          if (DomainKnowledge.use_MPI) {
+//            for (i <- 0 to 2)
+//              pdims += s"/Pdims[${i}]"
+//          } else {
+//            for (i <- 0 to 2)
+//              pdims += ""
+//          }
+//
+//          var setst = s"${c.name}.resize(${c.sizex}${pdims(0)}+${c.addpoints},${c.sizey}${pdims(1)}+${c.addpoints}"
+//          if (DomainKnowledge.rule_dim() == 3)
+//            setst = setst + s",${c.sizez}${pdims(2)}+${c.addpoints}"
+//          setst = setst + ");"
+//          body += new StringLiteral(setst + "\n")
+//        }
+//
+//        if (DomainKnowledge.use_MPI)
+//          for (c <- DomainKnowledge.global_ghost_fields) {
+//            var setst = s"${c.name}.resize(${c.sizex}+${c.addpoints}"
+//            if (c.sizey > 1)
+//              setst += s",${c.sizey}+${c.addpoints}"
+//            else
+//              setst += ",1"
+//            if (DomainKnowledge.rule_dim() == 3)
+//              if (c.sizez > 1)
+//                setst += s",${c.sizez}+${c.addpoints}"
+//              else
+//                setst += ",1"
+//            setst = setst + ");"
+//            body += new StringLiteral(setst + "\n")
+//          }
 
         // COMM_HACK
         //        for (c <- tree.Fields)
@@ -222,6 +223,8 @@ object InitExternalFunctions extends Strategy("Init external functions") {
 
         if (DomainKnowledge.use_MPI)
           body += new StringLiteral("MPI_Finalize();\n")
+
+        body += (new MPI_Finalize).cpp;
 
         tree.extfunctions += "Main" -> new ImplFunction("main", "int", ListBuffer(new ParameterInfo("argc", "int"), new ParameterInfo("argv", "char**")), body, Map(), "cpu")
       }
@@ -317,26 +320,26 @@ object InitExternalFunctions extends Strategy("Init external functions") {
       Some(tree);
   });
 
-  this += new Transformation("Initing copyFromBuffers function", {
-    case tree : TreeL2 =>
-      {
-        var bcloops : ListBuffer[Statement] = ListBuffer()
-        var lev = 0
-        var i = 0
-
-        for (e <- DomainKnowledge.fragments(0).edges) {
-
-          val vertex1 = e.vertex1.coords
-          val vertex2 = e.vertex2.coords
-
-          bcloops += new StringLiteral(s"if (Pnb[${i}] >= 0)")
-          bcloops += generateBCidxloop(vertex1, vertex2, DomainKnowledge.pdebc_L1.get._1 + "[lev]", DomainKnowledge.pdebc_L1.get._1 + s"_ghost_edge${i}_recv[0]", false, lev, "Buffer")
-          i += 1
-        }
-
-        tree.extfunctions += "copyFromBuffers" -> new ImplFunction("copyFromBuffers", "void", ListBuffer(new ParameterInfo("lev", "int")),
-          bcloops, Map(), "cpu")
-      }
-      Some(tree);
-  });
+  //  this += new Transformation("Initing copyFromBuffers function", {
+  //    case tree : TreeL2 =>
+  //      {
+  //        var bcloops : ListBuffer[Statement] = ListBuffer()
+  //        var lev = 0
+  //        var i = 0
+  //
+  //        for (e <- DomainKnowledge.fragments(0).edges) {
+  //
+  //          val vertex1 = e.vertex1.coords
+  //          val vertex2 = e.vertex2.coords
+  //
+  //          bcloops += new StringLiteral(s"if (Pnb[${i}] >= 0)")
+  //          bcloops += generateBCidxloop(vertex1, vertex2, DomainKnowledge.pdebc_L1.get._1 + "[lev]", DomainKnowledge.pdebc_L1.get._1 + s"_ghost_edge${i}_recv[0]", false, lev, "Buffer")
+  //          i += 1
+  //        }
+  //
+  //        tree.extfunctions += "copyFromBuffers" -> new ImplFunction("copyFromBuffers", "void", ListBuffer(new ParameterInfo("lev", "int")),
+  //          bcloops, Map(), "cpu")
+  //      }
+  //      Some(tree);
+  //  });
 }

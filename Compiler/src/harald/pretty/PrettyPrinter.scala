@@ -51,6 +51,7 @@ class PrettyPrinter(treel2 : TreeL2) {
     val writerHeader = PrettyprintingManager.getPrinter(s"Functions.h");
     writerHeader << ("#ifndef	FUNCTIONS_H\n"
       + "#define	FUNCTIONS_H\n")
+    writerHeader <<< "#include <cstdlib>" // required for rand
     for (extClass <- treel2.ExternalClasses)
       writerHeader <<< "#include \"" + extClass._2.cname + ".h\""
     writerHeader <<< "#include \"Primitives/Fragment3DCube.h\""
@@ -103,7 +104,7 @@ class PrettyPrinter(treel2 : TreeL2) {
     writer.write("\n")
 
     // BAD HACK
-    writer <<< "#include \"Poisson3D.cpp\"";
+    writer <<< "#include \"Poisson3D.h\"";
     treel2.extfunctions.get("Main").get.body = ListBuffer[Statement](new StringLiteral("main2(argc, argv);\n")) ++ treel2.extfunctions.get("Main").get.body;
 
     // library classes
