@@ -65,54 +65,60 @@ object MainChristian {
     
     
     case class MapNode(var x: scala.collection.mutable.Map[String, Node]) extends Node {
-      override def duplicate = this.copy(x = Duplicate(x)).asInstanceOf[this.type]
+      override def duplicate = this.copy().asInstanceOf[this.type]
     }
     
     StateManager.root_ = MapNode(scala.collection.mutable.Map(("bla", BooleanLiteral(true)), ("bla2", StringLiteral("bla2-stringlit")), ("bla3", BooleanLiteral(true))))
     println(StateManager.root_)
-    
-    
-    val mapnodestrat = Strategy("mapnodestrat")
-    mapnodestrat += Transformation("s1", { case x: BooleanLiteral => println(x); BooleanLiteral(false) })
-    mapnodestrat.apply
-    println(StateManager.root_)
-        
-    sys.exit
-
-    import exastencils.datastructures.Transformation._
-    val x = new Output(new exastencils.datastructures.ir.BooleanLiteral(true))
-    val y = new Output(List(exastencils.datastructures.ir.BooleanLiteral(true)))
-    println(y)
-    
-    y.inner match {
-      case x : Node => println("node")
-      case x : List[_] => println("list")
-      case _ => println("anderes")
-    }
-    
-    sys.exit
-    
-    val s = new exastencils.parsers.settings.ParserSettings
-    s.parseFile(args(0))
-    
-    val k = new exastencils.parsers.settings.ParserKnowledge
-    k.parseFile(args(1))
-
-
-    import exastencils.prettyprinting.PrettyprintingManager
-    val p = PrettyprintingManager.getPrinter("hallo")
-    p << "blabla"
-    PrettyprintingManager.finish
-    
-    
-    import exastencils.datastructures.ir._
-    val a = FunctionCallExpression(null, null)
-    val b = BinaryExpression("x", null, null)
-    val c = Constant("hallo")
-    val d = a ~ b ~ c
-    
-    //val x = new Node with Debuggable
-
-    println(d)
+    println("eq: " + (StateManager.root_ eq StateManager.root_))
+    //val duplicated = Duplication.duplicate(StateManager.root_)
+    import com.rits.cloning.Cloner
+    val cloner = new Cloner
+    val duplicated = cloner.deepClone(StateManager.root_)
+    println("eq0: " + (StateManager.root_ eq duplicated))
+    println("eq1: " + (StateManager.root_.asInstanceOf[MapNode].x("bla") eq duplicated.asInstanceOf[MapNode].x("bla")))
+//    
+//    val mapnodestrat = Strategy("mapnodestrat")
+//    mapnodestrat += Transformation("s1", { case x: BooleanLiteral => println(x); BooleanLiteral(false) })
+//    mapnodestrat.apply
+//    println(StateManager.root_)
+//        
+//    sys.exit
+//
+//    import exastencils.datastructures.Transformation._
+//    val x = new Output(new exastencils.datastructures.ir.BooleanLiteral(true))
+//    val y = new Output(List(exastencils.datastructures.ir.BooleanLiteral(true)))
+//    println(y)
+//    
+//    y.inner match {
+//      case x : Node => println("node")
+//      case x : List[_] => println("list")
+//      case _ => println("anderes")
+//    }
+//    
+//    sys.exit
+//    
+//    val s = new exastencils.parsers.settings.ParserSettings
+//    s.parseFile(args(0))
+//    
+//    val k = new exastencils.parsers.settings.ParserKnowledge
+//    k.parseFile(args(1))
+//
+//
+//    import exastencils.prettyprinting.PrettyprintingManager
+//    val p = PrettyprintingManager.getPrinter("hallo")
+//    p << "blabla"
+//    PrettyprintingManager.finish
+//    
+//    
+//    import exastencils.datastructures.ir._
+//    val a = FunctionCallExpression(null, null)
+//    val b = BinaryExpression("x", null, null)
+//    val c = Constant("hallo")
+//    val d = a ~ b ~ c
+//    
+//    //val x = new Node with Debuggable
+//
+//    println(d)
   }
 }
