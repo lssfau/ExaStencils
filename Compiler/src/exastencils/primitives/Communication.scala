@@ -12,8 +12,6 @@ import exastencils.mpi._
 import exastencils.omp._
 
 case class LocalSend(var field : Field, var level : Integer, var neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) extends Statement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = LocalSend\n";
 
   def expand(collector : StackCollector) : LoopOverFragments = {
@@ -34,8 +32,6 @@ case class LocalSend(var field : Field, var level : Integer, var neighbors : Lis
 }
 
 case class CopyToSendBuffer(var field : Field, var level : Integer, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = CopyToSendBuffer\n";
 
   def expand(collector : StackCollector) : LoopOverFragments = {
@@ -56,8 +52,6 @@ case class CopyToSendBuffer(var field : Field, var level : Integer, var neighbor
 }
 
 case class CopyFromRecvBuffer(var field : Field, var level : Integer, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = CopyFromRecvBuffer\n";
 
   def expand(collector : StackCollector) : LoopOverFragments = {
@@ -75,8 +69,6 @@ case class CopyFromRecvBuffer(var field : Field, var level : Integer, var neighb
 }
 
 case class RemoteSend(var field : Field, var level : Integer, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = RemoteSend\n";
 
   def addMPIDatatype(mpiTypeNameBase : String, indexRange : IndexRange) : String = {
@@ -149,8 +141,6 @@ case class RemoteSend(var field : Field, var level : Integer, var neighbors : Li
 }
 
 case class RemoteReceive(var field : Field, var level : Integer, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = RemoteReceive\n";
 
   def addMPIDatatype(mpiTypeNameBase : String, indexRange : IndexRange) : String = {
@@ -222,8 +212,6 @@ case class RemoteReceive(var field : Field, var level : Integer, var neighbors :
 }
 
 case class FinishRemoteSend(var neighbors : ListBuffer[NeighborInfo]) extends Statement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = FinishRemoteSend\n";
 
   def expand(collector : StackCollector) : Statement = {
@@ -232,8 +220,6 @@ case class FinishRemoteSend(var neighbors : ListBuffer[NeighborInfo]) extends St
 }
 
 case class FinishRemoteRecv(var neighbors : ListBuffer[NeighborInfo]) extends Statement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = FinishRemoteRecv\n";
 
   def expand(collector : StackCollector) : Statement = {

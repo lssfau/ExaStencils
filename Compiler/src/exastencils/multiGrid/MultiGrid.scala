@@ -11,8 +11,6 @@ import exastencils.multiGrid._
 import exastencils.prettyprinting._
 
 case class MultiGrid() extends Node with FilePrettyPrintable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   var functions_HACK : ListBuffer[AbstractFunctionStatement] = new ListBuffer;
 
   override def printToFile = {

@@ -18,32 +18,24 @@ import exastencils.omp.OMP_PotentiallyParallel
 // FIXME: incorporate fragLengthPerDim
 
 case class PointOutsideDomain(var pos : Expression) extends Expression {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   def cpp : String = {
     (s"(${pos.cpp}.x < 0.0 || ${pos.cpp}.x > ${Knowledge.numFragsTotal_x} || ${pos.cpp}.y < 0.0 || ${pos.cpp}.y > ${Knowledge.numFragsTotal_y} || ${pos.cpp}.z < 0.0 || ${pos.cpp}.z > ${Knowledge.numFragsTotal_z})");
   }
 }
 
 case class PointInsideDomain(var pos : Expression) extends Expression {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   def cpp : String = {
     (s"(${pos.cpp}.x >= 0.0 && ${pos.cpp}.x <= ${Knowledge.numFragsTotal_x} && ${pos.cpp}.y >= 0.0 && ${pos.cpp}.y <= ${Knowledge.numFragsTotal_y} && ${pos.cpp}.z >= 0.0 && ${pos.cpp}.z <= ${Knowledge.numFragsTotal_z})");
   }
 }
 
 case class PointToFragmentId(var pos : Expression) extends Expression {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   def cpp : String = {
     (s"((size_t)(floor(${pos.cpp}.z) * ${Knowledge.numFragsTotal_y * Knowledge.numFragsTotal_x} + floor(${pos.cpp}.y) * ${Knowledge.numFragsTotal_x} + floor(${pos.cpp}.x)))");
   }
 }
 
 case class PointToOwningRank(var pos : Expression) extends Expression with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = PointToOwningRank\n";
 
   override def expand(collector : StackCollector) : Expression = {
@@ -54,8 +46,6 @@ case class PointToOwningRank(var pos : Expression) extends Expression with Expan
 }
 
 case class AssertStatement(var check : Expression, var msg : Expression, var abort : Statement) extends Statement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = AssertStatement\n";
 
   override def expand(collector : StackCollector) : ConditionStatement = {
@@ -67,8 +57,6 @@ case class AssertStatement(var check : Expression, var msg : Expression, var abo
 }
 
 case class ConnectFragments() extends Statement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = ConnectFragments\n";
 
   override def expand(collector : StackCollector) : LoopOverFragments = {
@@ -106,8 +94,6 @@ case class ConnectFragments() extends Statement with Expandable {
 }
 
 case class SetupBuffers() extends Statement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = SetupBuffers\n";
 
   override def expand(collector : StackCollector) : LoopOverFragments = {
@@ -116,8 +102,6 @@ case class SetupBuffers() extends Statement with Expandable {
 }
 
 case class ValidatePrimitives() extends Statement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = ValidatePrimitives\n";
 
   //  TODO
@@ -130,8 +114,6 @@ case class ValidatePrimitives() extends Statement with Expandable {
 }
 
 case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = InitGeneratedDomain\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
@@ -163,8 +145,6 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
 }
 
 case class DomainGenerated() extends Node with FilePrettyPrintable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   var statements_HACK : ListBuffer[Statement] = new ListBuffer;
 
   statements_HACK += new InitGeneratedDomain;

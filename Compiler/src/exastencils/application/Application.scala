@@ -16,8 +16,6 @@ import exastencils.mpi._
 import exastencils.omp._
 
 case class InitFields() extends Statement {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = InitFields\n";
 
   def expandSpecial(fields : FieldCollection) : LoopOverFragments = {
@@ -53,8 +51,6 @@ case class InitFields() extends Statement {
 }
 
 case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = Poisson3DMain\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
@@ -172,8 +168,6 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
 }
 
 case class Poisson3D() extends Node with FilePrettyPrintable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   var functions_HACK : ListBuffer[AbstractFunctionStatement] = new ListBuffer;
   functions_HACK += new Poisson3DMain;
 

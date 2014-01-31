@@ -8,8 +8,6 @@ import exastencils.datastructures.ir._
 import exastencils.prettyprinting._
 
 case class ImplClass(var cname : String, var templ : String, var memlist : ListBuffer[ParameterInfo], var memfunc : ListBuffer[ImplFunction]) extends Node with FilePrettyPrintable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   var name : String = cname
   var memberfunc = memfunc
   var membervar = memlist

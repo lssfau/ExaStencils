@@ -9,8 +9,6 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 
 case class TreeL2() extends Node {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-  
   val exaFields: ListBuffer[AbstractField] = new ListBuffer()
   val exaOperators: ListBuffer[AbstractStencil] = new ListBuffer()
 

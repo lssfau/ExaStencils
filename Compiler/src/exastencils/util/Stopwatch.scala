@@ -9,8 +9,6 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.prettyprinting._
 
 case class Stopwatch() extends Node with FilePrettyPrintable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def printToFile = {
     val writer = PrettyprintingManager.getPrinter(s"Util/Stopwatch.h");
 

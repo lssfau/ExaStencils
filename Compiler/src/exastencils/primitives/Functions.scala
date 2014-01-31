@@ -9,8 +9,6 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 
 case class WaitForMPIReq() extends AbstractFunctionStatement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = WaitForMPIReq\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
@@ -29,8 +27,6 @@ case class WaitForMPIReq() extends AbstractFunctionStatement with Expandable {
 }
 
 case class WaitForMPISendOps(var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = WaitForMPISendOps\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
@@ -58,8 +54,6 @@ case class WaitForMPISendOps(var neighbors : ListBuffer[NeighborInfo]) extends A
 }
 
 case class WaitForMPIRecvOps(var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = WaitForMPIRecvOps\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
@@ -88,8 +82,6 @@ case class WaitForMPIRecvOps(var neighbors : ListBuffer[NeighborInfo]) extends A
 
 case class ExchangeDataSplitter(field : Field) extends AbstractFunctionStatement with Expandable {
   // TODO: this function will become obsolete when the MG components are fully implemented
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = ExchangeDataSplitter\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
@@ -102,8 +94,6 @@ case class ExchangeDataSplitter(field : Field) extends AbstractFunctionStatement
 }
 
 case class ConnectLocalElement() extends AbstractFunctionStatement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = ConnectLocalElement\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
@@ -119,8 +109,6 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
 }
 
 case class ConnectRemoteElement() extends AbstractFunctionStatement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = ConnectRemoteElement\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
@@ -135,8 +123,6 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
 }
 
 case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = SetupBuffers\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {

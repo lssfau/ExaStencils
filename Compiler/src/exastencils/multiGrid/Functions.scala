@@ -12,8 +12,6 @@ import exastencils.mpi._
 import exastencils.omp._
 
 case class PerformSmoothing_Jac(solutionField : Field, rhsField : Field, level : Integer) extends AbstractFunctionStatement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = PerformSmoothingJacobi\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
@@ -40,8 +38,6 @@ case class PerformSmoothing_Jac(solutionField : Field, rhsField : Field, level :
 }
 
 case class PerformSmoothing_GS(solutionField : Field, rhsField : Field, level : Integer) extends AbstractFunctionStatement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = PerformSmoothingJacobi\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
@@ -68,8 +64,6 @@ case class PerformSmoothing_GS(solutionField : Field, rhsField : Field, level : 
 }
 
 case class PerformSmoothing(solutionField : Field, rhsField : Field, level : Integer) extends AbstractFunctionStatement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = PerformSmoothing\n";
 
   override def expand(collector : StackCollector) : AbstractFunctionStatement = {
@@ -201,8 +195,6 @@ case class PerformSmoothing(solutionField : Field, rhsField : Field, level : Int
 }
 
 case class UpdateResidual(residualField : Field, solutionField : Field, rhsField : Field, level : Integer) extends AbstractFunctionStatement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = UpdateResidual\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
@@ -227,8 +219,6 @@ case class UpdateResidual(residualField : Field, solutionField : Field, rhsField
 }
 
 case class PerformRestriction() extends AbstractFunctionStatement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = PerformRestriction\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
@@ -301,8 +291,6 @@ case class PerformRestriction() extends AbstractFunctionStatement with Expandabl
 }
 
 case class PerformProlongation() extends AbstractFunctionStatement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = PerformProlongation\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
@@ -395,8 +383,6 @@ case class PerformProlongation() extends AbstractFunctionStatement with Expandab
 }
 
 case class PerformCGS(level : Integer) extends AbstractFunctionStatement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = PerformVCycle\n";
 
   override def expand(collector : StackCollector) : ForLoopStatement = {
@@ -410,8 +396,6 @@ case class PerformCGS(level : Integer) extends AbstractFunctionStatement with Ex
 }
 
 case class PerformVCycle(level : Integer) extends AbstractFunctionStatement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = PerformVCycle\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
@@ -445,8 +429,6 @@ case class PerformVCycle(level : Integer) extends AbstractFunctionStatement with
 }
 
 case class GetGlobalResidual(field : Field) extends AbstractFunctionStatement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = GetGlobalResidual\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
@@ -467,9 +449,6 @@ case class GetGlobalResidual(field : Field) extends AbstractFunctionStatement wi
 }
 
 case class SetSolZero(field : Field, level : Integer) extends AbstractFunctionStatement with Expandable {
-  // TODO: resolve/inline this function
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = SetSolZero\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {

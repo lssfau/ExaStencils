@@ -14,9 +14,7 @@ import exastencils.primitives._
 import exastencils.prettyprinting._
 
 case class FragmentClass() extends Class with FilePrettyPrintable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
-  className = "Fragment3DCube";
+ className = "Fragment3DCube";
 
   var neighbors : ListBuffer[NeighborInfo] = ListBuffer();
 
@@ -109,8 +107,6 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
 }
 
 case class ExchangeData_6(field : Field, level : Integer, neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_6\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
@@ -169,8 +165,6 @@ case class ExchangeData_6(field : Field, level : Integer, neighbors : ListBuffer
 }
 
 case class ExchangeData_26(field : Field, level : Integer, neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_26\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {

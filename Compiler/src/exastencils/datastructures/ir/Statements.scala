@@ -7,23 +7,17 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 
 abstract class Statement
-  extends Node with CppPrettyPrintable with Duplicable
+  extends Node with CppPrettyPrintable
 
 case class ExpressionStatement(var expression : Expression) extends Statement {
-  override def duplicate = { this.copy(expression = Duplicate(expression)).asInstanceOf[this.type] }
-
   override def cpp = expression.cpp
 }
 
 case class NullStatement() extends Statement {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   def cpp : String = ""
 }
 
 case class Scope(var body : ListBuffer[Statement]) extends Statement {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = {
     ("\n{\n"
       + body.map(stat => stat.cpp).mkString("\n")
@@ -32,8 +26,6 @@ case class Scope(var body : ListBuffer[Statement]) extends Statement {
 }
 
 case class StatementBlock(var body : ListBuffer[Statement]) extends Statement {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   def cpp : String = {
     (body.map(stat => stat.cpp).mkString("\n"));
   }
@@ -43,25 +35,11 @@ case class VariableDeclarationStatement(var variable : Variable, var expression 
   override def cpp = {
     s"${variable.datatype.cpp} ${variable.name}" + (if (expression.isDefined) s" = ${expression.get.cpp};" else ";");
   }
-
-  override def duplicate = {
-    if (expression != None)
-      VariableDeclarationStatement(Duplicate(variable), Some(Duplicate(expression.get))).asInstanceOf[this.type]
-    else
-      VariableDeclarationStatement(Duplicate(variable)).asInstanceOf[this.type]
-  }
 }
 
 case class DefineStatement(var name : Expression, var value : Option[Expression] = None) extends Statement {
   override def cpp = {
     s"#define ${name.cpp}" + (if (value.isDefined) s"  ${value.get.cpp}" else "");
-  }
-
-  override def duplicate = {
-    if (value != None)
-      DefineStatement(Duplicate(name), Some(Duplicate(value.get))).asInstanceOf[this.type]
-    else
-      DefineStatement(Duplicate(name)).asInstanceOf[this.type]
   }
 }
 
@@ -74,16 +52,12 @@ case class DefineStatement(var name : Expression, var value : Option[Expression]
 //}
 
 case class AssignmentStatement(var dest : Expression, var src : Expression, var op : Expression = "=") extends Statement {
-  override def duplicate = { this.copy(dest = Duplicate(dest), src = Duplicate(src)).asInstanceOf[this.type] }
-
   override def cpp : String = {
     (s"${dest.cpp} ${op.cpp} ${src.cpp};");
   }
 }
 
 case class ForLoopStatement(var begin : Expression, var end : Expression, var inc : Expression, var body : ListBuffer[Statement], var addOMPStatements : String = "") extends Statement {
-  override def duplicate = { this.copy(begin = Duplicate(begin), end = Duplicate(end), inc = Duplicate(inc), body = Duplicate(body)).asInstanceOf[this.type] }
-
   def this(begin : Expression, end : Expression, inc : Expression, body : Statement, addOMPStatements : String) = this(begin, end, inc, ListBuffer(body), addOMPStatements);
   def this(begin : Expression, end : Expression, inc : Expression, body : Statement) = this(begin, end, inc, ListBuffer(body));
 
@@ -96,8 +70,6 @@ case class ForLoopStatement(var begin : Expression, var end : Expression, var in
 }
 
 case class ConditionStatement(var condition : Expression, var trueBody : ListBuffer[Statement], var falseBody : ListBuffer[Statement]) extends Statement {
-  override def duplicate = { this.copy(condition = Duplicate(condition), trueBody = Duplicate(trueBody), falseBody = Duplicate(falseBody)).asInstanceOf[this.type] }
-
   def this(condition : Expression, trueBody : ListBuffer[Statement]) = this(condition, trueBody, ListBuffer[Statement]());
   def this(condition : Expression, trueBranch : Statement) = this(condition, ListBuffer(trueBranch));
 
@@ -120,8 +92,6 @@ case class ConditionStatement(var condition : Expression, var trueBody : ListBuf
 }
 
 case class CaseStatement(var toMatch : Expression, var body : ListBuffer[Statement]) extends Statement {
-  override def duplicate = { this.copy(toMatch = Duplicate(toMatch), body = Duplicate(body)).asInstanceOf[this.type] }
-
   def this(toMatch : Expression, body : Statement) = this(toMatch, ListBuffer[Statement](body));
 
   override def cpp : String = {
@@ -133,8 +103,6 @@ case class CaseStatement(var toMatch : Expression, var body : ListBuffer[Stateme
 }
 
 case class SwitchStatement(var what : Expression, var body : ListBuffer[CaseStatement]) extends Statement {
-  override def duplicate = { this.copy(what = Duplicate(what), body = Duplicate(body)).asInstanceOf[this.type] }
-
   def this(what : Expression, body : CaseStatement) = this(what, ListBuffer[CaseStatement](body));
 
   override def cpp : String = {
@@ -146,8 +114,6 @@ case class SwitchStatement(var what : Expression, var body : ListBuffer[CaseStat
 }
 
 case class ReturnStatement(expr : Expression) extends Statement {
-  override def duplicate = this.copy(expr = Duplicate(expr)).asInstanceOf[this.type]
-
   override def cpp : String = {
     return s"return ${expr.cpp};\n"
   }
@@ -156,8 +122,6 @@ case class ReturnStatement(expr : Expression) extends Statement {
 abstract class AbstractFunctionStatement() extends Statement
 
 case class FunctionStatement(var returntype : Datatype, var name : String, var parameters : ListBuffer[Variable], var body : ListBuffer[Statement]) extends AbstractFunctionStatement {
-  override def duplicate = { this.copy(returntype = Duplicate(returntype), parameters = Duplicate(parameters), body = Duplicate(body)).asInstanceOf[this.type] }
-
   def this(returntype : Datatype, name : String, parameters : ListBuffer[Variable], body : Statement) = this(returntype, name, parameters, ListBuffer[Statement](body));
   def this(returntype : Datatype, name : String, parameters : Variable, body : ListBuffer[Statement]) = this(returntype, name, ListBuffer[Variable](parameters), body);
 

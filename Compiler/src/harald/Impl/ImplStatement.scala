@@ -10,16 +10,12 @@ import exastencils.primitives.LoopOverFragments
 import exastencils.core.collectors.StackCollector
 
 case class ImplCommunication(fname : String, loc : String) extends Statement {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = {
     return s"transfer(${fname},${loc});\n"
   }
 }
 
 case class ImplReductionStatement(s : Statement) extends Statement {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = {
     // COMM_HACK
     //s"${DomainKnowledge.datatype_L2.getOrElse("double")} s = 0; \n " + s.cpp + "return s;"
@@ -32,8 +28,6 @@ case class ImplReductionStatement(s : Statement) extends Statement {
 }
 
 case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : ListBuffer[Expression], var stop : ListBuffer[Expression], var stepsize : ListBuffer[Int], var runningorder : String, var blocksize : Int, var body : ListBuffer[Statement]) extends Statement {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   def stepToUpdate(step : Int, dim : Int, loopVarName : String) : String = {
     if (0 == step)
       return ""
@@ -182,8 +176,6 @@ case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : List
 }
 
 case class ImplPcall(obj : String, name : String, paramlist : ListBuffer[Expression]) extends Statement {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String =
     {
       var objs = obj

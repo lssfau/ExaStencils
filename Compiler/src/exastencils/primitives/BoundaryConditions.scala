@@ -9,8 +9,6 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.omp._
 
 case class HandleBoundaries(var field : Field, var level : Integer, neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   def cpp : String = { return "NOT VALID ; CLASS = HandleBoundaries\n"; }
 
   override def expand(collector : StackCollector) : Statement = {

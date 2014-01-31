@@ -14,13 +14,9 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.prettyprinting._
 import exastencils.omp._
 
-case class Field(name : String, codeName : String, dataType : String, numSlots : Int, bcDir0 : Boolean) extends Node {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-}
+case class Field(name : String, codeName : String, dataType : String, numSlots : Int, bcDir0 : Boolean) extends Node
 
 case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[Statement], var addOMPStatements : String = "") extends Statement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   def this(indices : IndexRange, body : Statement, addOMPStatements : String) = this(indices, ListBuffer[Statement](body), addOMPStatements);
   def this(indices : IndexRange, body : Statement) = this(indices, ListBuffer[Statement](body));
 
@@ -43,24 +39,18 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
 }
 
 case class FieldAccess(var field : Field, var level : Expression, var slot : Expression, var index : Expression) extends Expression {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = {
     s"curFragment.${field.codeName}[${slot.cpp}][${level.cpp}]->data[${index.cpp}]";
   }
 }
 
 case class LocalNeighborFieldAccess(var neighborPtr : Expression, var field : Field, var level : Expression, var slot : Expression, var index : Expression) extends Expression {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   override def cpp : String = {
     s"${neighborPtr.cpp}->${field.codeName}[${slot.cpp}][${level.cpp}]->data[${index.cpp}]";
   }
 }
 
 case class LoopOverFragments(var body : ListBuffer[Statement], var createFragRef : Boolean = true, var addOMPStatements : String = "") extends Statement with Expandable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   def this(body : Statement, createFragRef : Boolean, addOMPStatements : String) = this(ListBuffer(body), createFragRef, addOMPStatements);
   def this(body : Statement, createFragRef : Boolean) = this(ListBuffer(body), createFragRef);
   def this(body : Statement) = this(ListBuffer(body));
@@ -126,8 +116,6 @@ abstract class Class extends Statement {
 }
 
 case class CommunicationFunctions() extends Node with FilePrettyPrintable {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   var functions : ListBuffer[AbstractFunctionStatement] = ListBuffer();
 
   override def printToFile = {
@@ -167,8 +155,6 @@ case class CommunicationFunctions() extends Node with FilePrettyPrintable {
 }
 
 case class FieldCollection() extends Node {
-  override def duplicate = this.copy().asInstanceOf[this.type]
-
   var fields : ListBuffer[Field] = ListBuffer();
 
   def getFieldByName(name : String) : Option[Field] = {

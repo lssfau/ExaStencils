@@ -64,19 +64,19 @@ object MainChristian {
     //    //positionStrategy.apply
     
     
-    case class MapNode(var x: scala.collection.mutable.Map[String, Node]) extends Node {
-      override def duplicate = this.copy().asInstanceOf[this.type]
-    }
+    case class MapNode(var x: scala.collection.mutable.Map[String, Node]) extends Node
     
     StateManager.root_ = MapNode(scala.collection.mutable.Map(("bla", BooleanLiteral(true)), ("bla2", StringLiteral("bla2-stringlit")), ("bla3", BooleanLiteral(true))))
     println(StateManager.root_)
     println("eq: " + (StateManager.root_ eq StateManager.root_))
-    //val duplicated = Duplication.duplicate(StateManager.root_)
-    import com.rits.cloning.Cloner
-    val cloner = new Cloner
-    val duplicated = cloner.deepClone(StateManager.root_)
+    val duplicated = Duplicate(StateManager.root_)
     println("eq0: " + (StateManager.root_ eq duplicated))
     println("eq1: " + (StateManager.root_.asInstanceOf[MapNode].x("bla") eq duplicated.asInstanceOf[MapNode].x("bla")))
+    
+    duplicated.asInstanceOf[MapNode].x("bla2") = BooleanLiteral(false)
+    println(StateManager.root_)
+    println(duplicated)
+    
 //    
 //    val mapnodestrat = Strategy("mapnodestrat")
 //    mapnodestrat += Transformation("s1", { case x: BooleanLiteral => println(x); BooleanLiteral(false) })
