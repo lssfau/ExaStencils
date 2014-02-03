@@ -78,7 +78,7 @@ object Main {
     val parserHW = new ParserHW
     parserHW.parseAll(parserHW.exastencilsHW, DSLHW)
 
-    Hardware.initHWFeatures
+    harald.dsl/*FIXME*/.Hardware.initHWFeatures
 
     if (!new java.io.File(DSLpath + problem + "lev1.mg").exists) {
       println("Problem specification (DSL level 1) is missing!")
