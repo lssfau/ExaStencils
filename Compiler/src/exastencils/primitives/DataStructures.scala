@@ -25,16 +25,18 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
   def expand(collector : StackCollector) : ForLoopStatement = {
     val parallelizable = Knowledge.summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false });
 
+    var wrappedBody : ListBuffer[Statement] = body; // TODO: clone?
+
+    for (d <- 0 until Knowledge.dimensionality - 1) {
+      wrappedBody = ListBuffer[Statement](new ForLoopStatement(
+        s"int ${dimToString(d)} = ${indices.begin(d)}", s"${dimToString(d)} <= ${indices.end(d)}", s"++${dimToString(d)}",
+        wrappedBody));
+    }
+    val d = Knowledge.dimensionality - 1;
     if (parallelizable)
-      new ForLoopStatement( /*s"unsigned -> f***ing omp*/ s"int ${dimToString(2)} = ${indices.begin(2)}", s"${dimToString(2)} <= ${indices.end(2)}", s"++${dimToString(2)}",
-        new ForLoopStatement(s"unsigned int ${dimToString(1)} = ${indices.begin(1)}", s"${dimToString(1)} <= ${indices.end(1)}", s"++${dimToString(1)}",
-          new ForLoopStatement(s"unsigned int ${dimToString(0)} = ${indices.begin(0)}", s"${dimToString(0)} <= ${indices.end(0)}", s"++${dimToString(0)}",
-            body)), addOMPStatements + " schedule(static)") with OMP_PotentiallyParallel
+      return new ForLoopStatement(s"int ${dimToString(d)} = ${indices.begin(d)}", s"${dimToString(d)} <= ${indices.end(d)}", s"++${dimToString(d)}", wrappedBody, addOMPStatements + " schedule(static)") with OMP_PotentiallyParallel;
     else
-      new ForLoopStatement( /*s"unsigned -> f***ing omp*/ s"int ${dimToString(2)} = ${indices.begin(2)}", s"${dimToString(2)} <= ${indices.end(2)}", s"++${dimToString(2)}",
-        new ForLoopStatement(s"unsigned int ${dimToString(1)} = ${indices.begin(1)}", s"${dimToString(1)} <= ${indices.end(1)}", s"++${dimToString(1)}",
-          new ForLoopStatement(s"unsigned int ${dimToString(0)} = ${indices.begin(0)}", s"${dimToString(0)} <= ${indices.end(0)}", s"++${dimToString(0)}",
-            body)))
+      return new ForLoopStatement(s"int ${dimToString(d)} = ${indices.begin(d)}", s"${dimToString(d)} <= ${indices.end(d)}", s"++${dimToString(d)}", wrappedBody);
   }
 }
 

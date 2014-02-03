@@ -25,7 +25,8 @@ object SmootherType extends Enumeration {
 
 object Knowledge {
   // FIXME: Integer is required to support implicit conversion to NumericLiteral
-
+	var dimensionality : Integer = 3;
+  
   var numGhostLayers : Integer = 1;
   var maxLevel : Integer = 6;
   var numLevels : Integer = maxLevel + 1;
@@ -39,6 +40,7 @@ object Knowledge {
   var numBlocks_x : Integer = 4;
   var numBlocks_y : Integer = 4;
   var numBlocks_z : Integer = 4;
+  // TODO: ignore values outside the given dimensionality; also applies for other Knowledge values
   var numBlocks : Integer = numBlocks_x * numBlocks_y * numBlocks_z;
 
   var numFragsPerBlock_x : Integer = 4;

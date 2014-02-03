@@ -67,13 +67,22 @@ case class ConnectFragments() extends Statement with Expandable {
     if (6 == Knowledge.fragmentCommStrategy) {
       neighbors += new NeighborInfo(Array(-1, 0, 0), 0);
       neighbors += new NeighborInfo(Array(+1, 0, 0), 1);
-      neighbors += new NeighborInfo(Array(0, -1, 0), 2);
-      neighbors += new NeighborInfo(Array(0, +1, 0), 3);
-      neighbors += new NeighborInfo(Array(0, 0, -1), 4);
-      neighbors += new NeighborInfo(Array(0, 0, +1), 5);
+      if (Knowledge.dimensionality > 1) {
+        neighbors += new NeighborInfo(Array(0, -1, 0), 2);
+        neighbors += new NeighborInfo(Array(0, +1, 0), 3);
+      }
+      if (Knowledge.dimensionality > 2) {
+        neighbors += new NeighborInfo(Array(0, 0, -1), 4);
+        neighbors += new NeighborInfo(Array(0, 0, +1), 5);
+      }
     } else if (26 == Knowledge.fragmentCommStrategy) {
       var i = 0;
-      for (z <- -1 to 1; y <- -1 to 1; x <- -1 to 1; if (0 != x || 0 != y || 0 != z)) {
+      for (
+        z <- (if (Knowledge.dimensionality > 2) (-1 to 1) else (0 to 0));
+        y <- (if (Knowledge.dimensionality > 1) (-1 to 1) else (0 to 0));
+        x <- -1 to 1;
+        if (0 != x || 0 != y || 0 != z)
+      ) {
         neighbors += new NeighborInfo(Array(x, y, z), i);
         i += 1;
       }
@@ -131,8 +140,11 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
         s"unsigned int posWritePos = 0;",
         s"Vec3 rankPos(mpiRank % ${Knowledge.numBlocks_x}, (mpiRank / ${Knowledge.numBlocks_x}) % ${Knowledge.numBlocks_y}, mpiRank / ${Knowledge.numBlocks_x * Knowledge.numBlocks_y});",
         new LoopOverDimensions(IndexRange(Array(0, 0, 0), Array(Knowledge.numFragsPerBlock_x - 1, Knowledge.numFragsPerBlock_y - 1, Knowledge.numFragsPerBlock_z - 1)),
-          s"positions[posWritePos++] = (Vec3(rankPos.x * ${Knowledge.numFragsPerBlock_x} + 0.5 + x, rankPos.y * ${Knowledge.numFragsPerBlock_y} + 0.5 + y, rankPos.z * ${Knowledge.numFragsPerBlock_z} + 0.5 + z));"),
-
+          Knowledge.dimensionality. /*FIXME*/ toInt match { // FIXME: avoid match, write in a dimensionless matter
+            case 1 => s"positions[posWritePos++] = (Vec3(rankPos.x * ${Knowledge.numFragsPerBlock_x} + 0.5 + x, 0, 0);";
+            case 2 => s"positions[posWritePos++] = (Vec3(rankPos.x * ${Knowledge.numFragsPerBlock_x} + 0.5 + x, rankPos.y * ${Knowledge.numFragsPerBlock_y} + 0.5 + y, 0));";
+            case 3 => s"positions[posWritePos++] = (Vec3(rankPos.x * ${Knowledge.numFragsPerBlock_x} + 0.5 + x, rankPos.y * ${Knowledge.numFragsPerBlock_y} + 0.5 + y, rankPos.z * ${Knowledge.numFragsPerBlock_z} + 0.5 + z));";
+          }),
         LoopOverFragments(ListBuffer(
           "fragments[f] = new Fragment3DCube();",
           "fragments[f]->id = " ~ PointToFragmentId("positions[f]") ~ ";",

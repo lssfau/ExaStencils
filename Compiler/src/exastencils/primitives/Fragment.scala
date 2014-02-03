@@ -14,7 +14,7 @@ import exastencils.primitives._
 import exastencils.prettyprinting._
 
 case class FragmentClass() extends Class with FilePrettyPrintable {
- className = "Fragment3DCube";
+  className = "Fragment3DCube";
 
   var neighbors : ListBuffer[NeighborInfo] = ListBuffer();
 
@@ -28,19 +28,28 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
     if (6 == Knowledge.fragmentCommStrategy) {
       neighbors += new NeighborInfo(Array(-1, 0, 0), 0);
       neighbors += new NeighborInfo(Array(+1, 0, 0), 1);
-      neighbors += new NeighborInfo(Array(0, -1, 0), 2);
-      neighbors += new NeighborInfo(Array(0, +1, 0), 3);
-      neighbors += new NeighborInfo(Array(0, 0, -1), 4);
-      neighbors += new NeighborInfo(Array(0, 0, +1), 5);
+      if (Knowledge.dimensionality > 1) {
+        neighbors += new NeighborInfo(Array(0, -1, 0), 2);
+        neighbors += new NeighborInfo(Array(0, +1, 0), 3);
+      }
+      if (Knowledge.dimensionality > 2) {
+        neighbors += new NeighborInfo(Array(0, 0, -1), 4);
+        neighbors += new NeighborInfo(Array(0, 0, +1), 5);
+      }
     } else if (26 == Knowledge.fragmentCommStrategy) {
       var i = 0;
-      for (z <- -1 to 1; y <- -1 to 1; x <- -1 to 1; if (0 != x || 0 != y || 0 != z)) {
+      for (
+        z <- (if (Knowledge.dimensionality > 2) (-1 to 1) else (0 to 0));
+        y <- (if (Knowledge.dimensionality > 1) (-1 to 1) else (0 to 0));
+        x <- -1 to 1;
+        if (0 != x || 0 != y || 0 != z)
+      ) {
         neighbors += new NeighborInfo(Array(x, y, z), i);
         i += 1;
       }
     }
 
-    var numNeighbors = Knowledge.fragmentCommStrategy;
+    var numNeighbors = neighbors.size;
     var cTorNeighLoopList = new ListBuffer[Statement];
     var dTorNeighLoopList = new ListBuffer[Statement];
     declarations += s"bool neighbor_isValid[$numNeighbors];";
@@ -122,7 +131,7 @@ case class ExchangeData_6(field : Field, level : Integer, neighbors : ListBuffer
     body += new HandleBoundaries(field, level, neighbors.map(neigh => (neigh, neigh.indexBorder)));
 
     // sync duplicate values
-    for (dim <- 0 to 2) {
+    for (dim <- 0 until Knowledge.dimensionality) {
       val sendRemoteData = ListBuffer(neighbors(2 * dim + 1)).map(neigh => (neigh, neigh.indexBorder));
       val sendLocalData = ListBuffer(neighbors(2 * dim + 1)).map(neigh => (neigh, neigh.indexBorder, neigh.indexOpposingBorder));
       val recvRemoteData = ListBuffer(neighbors(2 * dim + 0)).map(neigh => (neigh, neigh.indexBorder));
@@ -140,7 +149,7 @@ case class ExchangeData_6(field : Field, level : Integer, neighbors : ListBuffer
     }
 
     // update ghost layers
-    for (dim <- 0 to 2) {
+    for (dim <- 0 until Knowledge.dimensionality) {
       var curNeighbors = ListBuffer(neighbors(2 * dim + 0), neighbors(2 * dim + 1));
       val sendRemoteData = curNeighbors.map(neigh => (neigh, neigh.indexInner));
       val sendLocalData = curNeighbors.map(neigh => (neigh, neigh.indexInner, neigh.indexOpposingOuter));

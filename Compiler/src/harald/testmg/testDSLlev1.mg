@@ -1,4 +1,4 @@
-Domain d = UnitCube
+Domain d = UnitSquare
 
 Function f = 0
 Unknown solution = 1
