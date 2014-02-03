@@ -31,7 +31,7 @@ object Knowledge {
   var maxLevel : Integer = 6;
   var numLevels : Integer = maxLevel + 1;
   var fragmentCommStrategy : Integer = 6; //26
-  var useMPIDatatypes : Boolean = false;
+  var useMPIDatatypes : Boolean = true;
   var useLoopsOverNeighbors : Boolean = true;
 
   var summarizeBlocks : Boolean = true; // TODO: sanity check if compatible with chosen smoother

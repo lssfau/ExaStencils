@@ -83,20 +83,8 @@ case class RemoteSend(var field : Field, var level : Integer, var neighbors : Li
 
     globals.variables += new VariableDeclarationStatement(new Variable(s"MPI_Datatype", mpiTypeName));
 
-    if (indexRange.begin(1) == indexRange.end(1)) {
-      globals.initFunction.body += s"MPI_Type_vector(" ~
-        NumericLiteral(indexRange.end(2) - indexRange.begin(2) + 1) ~ ", " ~
-        NumericLiteral(indexRange.end(0) - indexRange.begin(0) + 1) ~ ", " ~
-        NumericLiteral(Mapping.numPoints(level, 0) * Mapping.numPoints(level, 1)) ~
-        s", MPI_DOUBLE, &$mpiTypeName);";
-    } else if (indexRange.begin(2) == indexRange.end(2)) {
-      globals.initFunction.body += s"MPI_Type_vector(" ~
-        NumericLiteral(indexRange.end(1) - indexRange.begin(1) + 1) ~ ", " ~
-        NumericLiteral(indexRange.end(0) - indexRange.begin(0) + 1) ~ ", " ~
-        NumericLiteral(Mapping.numPoints(level, 0)) ~
-        s", MPI_DOUBLE, &$mpiTypeName);";
-    }
-    globals.initFunction.body += s"MPI_Type_commit(&$mpiTypeName);";
+    if (indexRange.begin(1) == indexRange.end(1) || indexRange.begin(2) == indexRange.end(2))
+      globals.initFunction.body += InitMPIDataType(mpiTypeName, indexRange, level);
 
     // TODO: free datatype
 
@@ -155,20 +143,8 @@ case class RemoteReceive(var field : Field, var level : Integer, var neighbors :
 
     globals.variables += new VariableDeclarationStatement(new Variable(s"MPI_Datatype", mpiTypeName));
 
-    if (indexRange.begin(1) == indexRange.end(1)) {
-      globals.initFunction.body += s"MPI_Type_vector(" ~
-        NumericLiteral(indexRange.end(2) - indexRange.begin(2) + 1) ~ ", " ~
-        NumericLiteral(indexRange.end(0) - indexRange.begin(0) + 1) ~ ", " ~
-        NumericLiteral(Mapping.numPoints(level, 0) * Mapping.numPoints(level, 1)) ~
-        s", MPI_DOUBLE, &$mpiTypeName);";
-    } else if (indexRange.begin(2) == indexRange.end(2)) {
-      globals.initFunction.body += s"MPI_Type_vector(" ~
-        NumericLiteral(indexRange.end(1) - indexRange.begin(1) + 1) ~ ", " ~
-        NumericLiteral(indexRange.end(0) - indexRange.begin(0) + 1) ~ ", " ~
-        NumericLiteral(Mapping.numPoints(level, 0)) ~
-        s", MPI_DOUBLE, &$mpiTypeName);";
-    }
-    globals.initFunction.body += s"MPI_Type_commit(&$mpiTypeName);";
+    if (indexRange.begin(1) == indexRange.end(1) || indexRange.begin(2) == indexRange.end(2))
+      globals.initFunction.body += InitMPIDataType(mpiTypeName, indexRange, level);
 
     // TODO: free datatype
 

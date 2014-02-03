@@ -1,4 +1,4 @@
-dimensionality			= 2
+dimensionality			= 3
 
 maxLevel				= 5
 fragmentCommStrategy	= 6	// 26
@@ -7,7 +7,7 @@ summarizeBlocks			= false
 
 numBlocks_x				= 3
 numBlocks_y				= 3
-numBlocks_z				= 1
+numBlocks_z				= 3
 
 numFragsPerBlock_x		= 1
 numFragsPerBlock_y		= 1
