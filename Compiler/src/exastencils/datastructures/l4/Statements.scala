@@ -59,3 +59,5 @@ case class RepeatUntilStatement(var comparison : BooleanExpression, var statemen
 
 case class FunctionCallStatement(name : String, var arguments : List[Expression]) extends Statement
 
+case class ConditionalStatement(var expression : BooleanExpression, var statements : List[Statement]) extends Statement
+
