@@ -11,7 +11,7 @@ class ExaParser extends StandardTokenParsers {
 
   def locationize[T <: Annotatable](p : => Parser[T]) : Parser[T] = Parser { in =>
     p(in) match {
-      case Success(t, in1) => Success(if (!t.hasAnnotation("location")) { t.add(new Annotation("location", in.pos)); t } else t, in1)
+      case Success(t, in1) => Success(if (!t.hasAnnotation("location")) { t.add(new Annotation("location", Some(in.pos))); t } else t, in1)
       case ns : NoSuccess  => ns
     }
   }
@@ -22,7 +22,7 @@ class ExaParser extends StandardTokenParsers {
   lazy val datatype : Parser[Datatype] =
     simpleDatatype |
       numericDatatype |
-      { "Array" ~ "(" } ~> datatype <~ ")" ^^ { case x => new ArrayDatatype(x) }
+      ("Array" ~ "[") ~> datatype <~ "]" ^^ { case x => new ArrayDatatype(x) }
 
   lazy val simpleDatatype : Parser[Datatype] =
     "Unit" ^^ { case x => new UnitDatatype } |
@@ -30,7 +30,7 @@ class ExaParser extends StandardTokenParsers {
       numericSimpleDatatype
 
   lazy val numericDatatype : Parser[Datatype] =
-    "Complex" ~> numericSimpleDatatype <~ ")" ^^ { case x => new ComplexDatatype(x) } |
+    ("Complex" ~ "[") ~> numericSimpleDatatype <~ "]" ^^ { case x => new ComplexDatatype(x) } |
       numericSimpleDatatype
 
   lazy val numericSimpleDatatype : Parser[Datatype] =
