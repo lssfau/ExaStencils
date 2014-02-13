@@ -28,6 +28,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     }
   }
 
+  var annos = new scala.collection.mutable.ListBuffer[Annotation]
+
   lazy val program = locationize(function.* ^^ { case stmts => Root(stmts) })
 
   lazy val statement : Parser[Statement] = function |
@@ -64,4 +66,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ("order" ~> ident).? ~ ("blocksize" ~> (numericLit ~ numericLit ~ numericLit)).? ~
     substatement.+ <~ "next" ^^
     { case area ~ level ~ order ~ blocksize ~ stmts => LoopOverDomainStatement(area, level, order, blocksize, stmts) })
+
+  lazy val annotation = ("@" ~> ident) ~ ("(" ~> ((ident | numericLit | stringLit | booleanLit) <~ ")")).? ^^
+    { case n ~ v => annos += new Annotation(n, v) }
 }
