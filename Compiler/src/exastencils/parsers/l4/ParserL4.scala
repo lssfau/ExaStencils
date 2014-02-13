@@ -62,10 +62,20 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
       locationize(functionCall) |
       locationize(ident ^^ { case id => Identifier(id) })
 
-  lazy val loopOverDomain = locationize(("loop" ~ "over" ~> ("domain" | "inner" | "boundary")) ~ ("level" ~> ident) ~
-    ("order" ~> ident).? ~ ("blocksize" ~> (numericLit ~ numericLit ~ numericLit)).? ~
+  lazy val comparison : PackratParser[BooleanExpression] =
+    locationize((expression ~ ("<" | "<=" | ">" | ">=") ~ expression) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
+
+  lazy val repeatUntil = locationize(
+    (("repeat" ~ "until") ~> comparison) ~ (("{" ~> statement.*) <~ "}") ^^ { case c ~ s => new RepeatUntilStatement(c, s) })
+
+  lazy val loopOverDomain = locationize(("loop" ~ "over" ~> ident) ~
+    ("levels" ~> numericLit ^^ { case x => x.toInt.asInstanceOf[Integer] }).? ~
+    ("order" ~> ident).? ~
+    ("blocksize" ~> ((numericLit ~ numericLit ~ numericLit ^^ { case x ~ y ~ z => new LoopOverDomainStatement.Blocksize3D(x.toInt, y.toInt, z.toInt) }) | (numericLit ~ numericLit ^^ { case x ~ y => new LoopOverDomainStatement.Blocksize2D(x.toInt, y.toInt) }))).? ~
     substatement.+ <~ "next" ^^
-    { case area ~ level ~ order ~ blocksize ~ stmts => LoopOverDomainStatement(area, level, order, blocksize, stmts) })
+    {
+      case area ~ levels ~ order ~ blocksize ~ stmts => LoopOverDomainStatement(area, levels, order, blocksize, stmts)
+    })
 
   lazy val annotation = ("@" ~> ident) ~ ("(" ~> ((ident | numericLit | stringLit | booleanLit) <~ ")")).? ^^
     { case n ~ v => annos += new Annotation(n, v) }
