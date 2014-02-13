@@ -1,5 +1,6 @@
 package exastencils.datastructures
 
+import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
 class Annotation(n : String, var v : Option[Any]) {
@@ -7,7 +8,7 @@ class Annotation(n : String, var v : Option[Any]) {
   def value = v
 
   def this(n : String) = this(n, None)
-  
+
   def setValue(newV : Any) = { v = Some(newV) }
   override def toString = { f"$name: $value" }
 }
@@ -23,3 +24,13 @@ trait Annotatable {
   def getAnnotation(name : String) = { annotations_.find(p => p.name == name) }
   def hasAnnotation(name : String) = { annotations_.exists(p => p.name == name) }
 }
+
+object AnnotationManager {
+  protected var names = new HashMap[String, Any => Boolean]
+
+  def allow(name : String) = names.put(name, (x : Any) => true)
+  def allow(name : String, checker : (Any => Boolean)) = names.put(name, checker)
+  def disallow(name : String) = names.-=(name)
+  def valid(name : String, value : Any) : Boolean = names.getOrElse(name, return false).apply(value)
+}
+
