@@ -2,16 +2,13 @@ package exastencils.datastructures
 
 import scala.collection.mutable.ListBuffer
 
-class Annotation(n : String, var v : Any) {
+class Annotation(n : String, var v : Option[Any]) {
   def name = n
   def value = v
 
-  def setValue(newV : Any) = { v = newV }
-
-  override def clone : Annotation = {
-    return new Annotation(n, v)
-  }
+  def this(n : String) = this(n, None)
   
+  def setValue(newV : Any) = { v = Some(newV) }
   override def toString = { f"$name: $value" }
 }
 
