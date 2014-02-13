@@ -57,3 +57,5 @@ case class FunctionStatement(name : String, var returntype : Datatype, var argum
 
 case class RepeatUntilStatement(var comparison : BooleanExpression, var statements : List[Statement]) extends Statement
 
+case class FunctionCallStatement(name : String, var arguments : List[Expression]) extends Statement
+
