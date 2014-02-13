@@ -30,15 +30,19 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   var annos = new scala.collection.mutable.ListBuffer[Annotation]
 
+  //###########################################################
+
   lazy val program = locationize(function.* ^^ { case stmts => Root(stmts) })
 
-  lazy val statement : Parser[Statement] = function |
+  lazy val statement : Parser[Statement] = repeatUntil |
     loopOverDomain |
     substatement
 
-  lazy val substatement : Parser[Statement] = locationize(ident ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(Identifier(id), exp) })
+  lazy val substatement : Parser[Statement] =
+    locationize(ident ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(Identifier(id), exp) }) |
+      locationize(functionCall ^^ { case f => FunctionCallStatement(f.name, f.arguments) })
 
-  lazy val function = locationize(("def" ~> ident) ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> datatype) ~ ("{" ~> (statement.* <~ "}")) ^^
+  lazy val function = locationize(("def" ~> ident) ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}")) ^^
     { case id ~ args ~ t ~ stmts => FunctionStatement(id, t, args.getOrElse(List[Variable]()), stmts) })
 
   lazy val functionArgumentList = (functionArgument <~ ("," | newline)).* ~ functionArgument ^^ { case args ~ arg => arg :: args }

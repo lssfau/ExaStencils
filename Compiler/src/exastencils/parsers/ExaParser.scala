@@ -25,8 +25,7 @@ class ExaParser extends StandardTokenParsers {
       ("Array" ~ "[") ~> datatype <~ "]" ^^ { case x => new ArrayDatatype(x) }
 
   lazy val simpleDatatype : Parser[Datatype] =
-    "Unit" ^^ { case x => new UnitDatatype } |
-      "String" ^^ { case x => new StringDatatype } |
+    "String" ^^ { case x => new StringDatatype } |
       numericSimpleDatatype
 
   lazy val numericDatatype : Parser[Datatype] =
@@ -36,6 +35,8 @@ class ExaParser extends StandardTokenParsers {
   lazy val numericSimpleDatatype : Parser[Datatype] =
     "Integer" ^^ { case x => new IntegerDatatype } |
       "Real" ^^ { case x => new RealDatatype }
+
+  lazy val returnDatatype = "Unit" ^^ { case x => new UnitDatatype } | datatype
 
   lazy val literal : Parser[Expression] = stringLit ^^ { case x => StringLiteral(x) } |
     numericLit ^^ { case x => NumericLiteral(x.toDouble) } | // FIXME split into integerLiteral and realLiteral
