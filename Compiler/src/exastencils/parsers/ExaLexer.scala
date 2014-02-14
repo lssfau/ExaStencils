@@ -29,8 +29,14 @@ class ExaLexer extends StdLexical {
   /*
    * language level 4 keywords
    */
+  // function keywords
+  reserved += ("def", "return")
+  
+  // declaration keywords
+  reserved += ("var", "Integer", "Real", "String", "Array", "Complex", "Unit", "Domain")
+  
   // loop keywords
-  reserved += ("loop", "over", "next", "domain", "inner", "boundary", "blocksize")
+  reserved += ("loop", "over", "next", "domain", "inner", "boundary", "blocksize", "levels")
 
   /*
    * language datatypes

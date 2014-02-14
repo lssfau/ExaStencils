@@ -6,13 +6,12 @@ import exastencils.datastructures.l4._
 
 abstract class Statement extends Node
 
-case class VariableDeclarationStatement(var variable : Variable, var expression : Option[Expression] = None)
+case class VariableDeclarationStatement(var identifier : String, var datatype : Datatype, var expression : Option[Expression] = None)
   extends Statement
 
-case class AssignmentStatement(var identifier : Identifier, var expression : Expression)
-  extends Statement
+case class DomainDeclarationStatement(name : String) extends Statement
 
-case class ForStatement(var begin : VariableDeclarationStatement, end : Expression, inc : Expression, var statements : List[Statement])
+case class AssignmentStatement(var identifier : String, var expression : Expression)
   extends Statement
 
 object LoopOverDomainStatement {
