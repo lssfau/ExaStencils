@@ -12,7 +12,7 @@ class ExaParser extends StandardTokenParsers {
   def locationize[T <: Annotatable](p : => Parser[T]) : Parser[T] = Parser { in =>
     p(in) match {
       case Success(t, in1) => Success(if (!t.hasAnnotation("location")) { t.add(new Annotation("location", Some(in.pos))); t } else t, in1)
-      case ns : NoSuccess  => ns
+      case ns : NoSuccess  => println(ns.next.pos); ns
     }
   }
 

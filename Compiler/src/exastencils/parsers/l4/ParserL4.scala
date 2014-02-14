@@ -22,9 +22,16 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   protected def parseTokens(tokens : lexical.Scanner) : Node = {
     phrase(program)(tokens) match {
-      case Success(e, _)   => e
-      case Error(msg, _)   => throw new Exception("parse error: " + msg)
-      case Failure(msg, _) => throw new Exception(s"parse failure @ ${tokens.pos}: $msg")
+      case Success(e, _) => e
+      case Error(msg, _) => throw new Exception("parse error: " + msg)
+      case Failure(msg, parser) => {
+        var sb = new StringBuilder
+        sb.append(s"Parse failure at position ${parser.pos}: $msg\n")
+        sb.append(parser.pos.longString)
+        sb.append("\n")
+
+        throw new Exception(sb.toString)
+      }
     }
   }
 
@@ -53,7 +60,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val statement : Parser[Statement] = (
     domainDeclaration
     ||| repeatUntil
-    ||| loopOverDomain
+    ||| loopOver
     ||| assignment
     ||| locationize(functionCall ^^ { case f => FunctionCallStatement(f.name, f.arguments) })
     ||| conditional)
@@ -65,7 +72,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val repeatUntil = locationize(
     (("repeat" ~ "until") ~> comparison) ~ (("{" ~> statement.+) <~ "}") ^^ { case c ~ s => RepeatUntilStatement(c, s) })
 
-  lazy val loopOverDomain = locationize(("loop" ~ "over" ~> ident) ~
+  lazy val loopOver = locationize(("loop" ~ "over" ~> loopOverArea) ~
     ("levels" ~> numericLit ^^ { case x => x.toInt.asInstanceOf[Integer] }).? ~
     ("order" ~> ident).? ~
     ("blocksize" ~> ((numericLit ~ numericLit ~ numericLit ^^ { case x ~ y ~ z => new LoopOverDomainStatement.Blocksize3D(x.toInt, y.toInt, z.toInt) }) | (numericLit ~ numericLit ^^ { case x ~ y => new LoopOverDomainStatement.Blocksize2D(x.toInt, y.toInt) }))).? ~
@@ -73,6 +80,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     {
       case area ~ levels ~ order ~ blocksize ~ stmts => LoopOverDomainStatement(area, levels, order, blocksize, stmts)
     })
+  lazy val loopOverArea = "domain" | "inner" | "boundary"
 
   lazy val assignment = locationize(ident ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(id, exp) })
 
