@@ -23,6 +23,7 @@ object LoopOverDomainStatement {
         case "domain"   => Domain
         case "inner"    => Inner
         case "boundary" => Boundary
+        case _ => throw new MatchError(s"""Invalid identifier "$key"""")
       }
     }
   }
@@ -35,6 +36,7 @@ object LoopOverDomainStatement {
       key match {
         case "lexical"  => Lexical
         case "redblack" => RedBlack
+        case _ => throw new MatchError(s"""Invalid identifier "$key"""")
       }
     }
   }
