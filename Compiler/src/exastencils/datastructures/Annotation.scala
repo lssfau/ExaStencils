@@ -13,11 +13,18 @@ class Annotation(n : String, var v : Option[Any]) {
   override def toString = { f"$name: $value" }
 }
 
+object Annotation {
+  def apply(n : String, v : Option[Any]) = new Annotation(n, v)
+  def apply(n : String) = new Annotation(n)
+}
+
 trait Annotatable {
   private val annotations_ = new ListBuffer[Annotation]
 
   def add(a : Annotation) = { annotations_ += a }
   def add(a : Seq[Annotation]) = { annotations_ ++= a }
+  def annotate(n : String, v : Option[Any]) = this.add(new Annotation(n, v))
+  def annotate(n : String) = this.add(new Annotation(n))
   def remove(a : Annotation) = { annotations_ -= a }
   def removeAnnotation(name : String) = { if (hasAnnotation(name)) remove(getAnnotation(name).get) }
   def getAnnotations = { annotations_.readOnly }
