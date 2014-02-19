@@ -2,9 +2,7 @@ package exastencils.datastructures
 
 import exastencils.core.StateManager
 
-class Transformation(val name : String, val function : PartialFunction[Node, Transformation.Output[_]], val recursive : Boolean = true, val node : Option[Node] = None) {
-  def applyAt = node
-  
+class Transformation(val name : String, val function : PartialFunction[Node, Transformation.Output[_]], val recursive : Boolean = true, val applyAtNode : Option[Node] = None) {
   override def toString() = s"""Transformation "$name""""
 }
 
@@ -33,8 +31,8 @@ object Transformation {
     def apply[T <% Node Or List[Node]](inner : T) = new Output(inner)
   }
 
-  def apply(name : String, function : PartialFunction[Node, Output[_]], recursive : Boolean = true, node : Option[Node] = None) =
-    new Transformation(name, function, recursive, node)
+  def apply(name : String, function : PartialFunction[Node, Output[_]], recursive : Boolean = true, applyAtNode : Option[Node] = None) =
+    new Transformation(name, function, recursive, applyAtNode)
 }
 
 class TransformationResult(val successful : Boolean, val matches : Int, val replacements : Int) {
