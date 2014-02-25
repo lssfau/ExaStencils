@@ -39,6 +39,12 @@ class Vector[T] (private val elements : Array[T])(implicit mf : ClassManifest[T]
   
   def +(rhs : Vector[T]) = elementwise(rhs) { (x,y) => x+y }
   def -(rhs : Vector[T]) = elementwise(rhs) { (x,y) => x-y }
+  
+  def ==(rhs : Vector[T]) =
+    (elements zip rhs.elements) forall { case (x, y) => x == y }
+  def !=(rhs : Vector[T]) = !(this == rhs)
+  
+  def isZero = elements forall {_ == num.fromInt(0)}
 }
 
 object Implicits {
@@ -51,13 +57,4 @@ class Scalar[T] (private val value : T)(implicit num : Numeric[T]) {
   import num._
   
   def *(rhs : Vector[T]) = rhs elementwise { x => value * x }
-}
-
-object Test {
-  import Implicits._
-  
-  val x :  Vector[Int] =  Vector.zero(10)
-  val y = Vector.zero[Int](9)
-  val z = x + y
-  val w = 6 * z
 }
