@@ -2,22 +2,14 @@ import exastencils.datastructures._
 import exastencils.core._
 import exastencils.smoother._
 
-object DummyNode {
-  def apply(children : Node*) = new DummyNode(children.toList)
+object DummyRoot {
+  def apply(children : Node*) = new DummyRoot(children.toList)
 }
-case class DummyNode(var children : List[Node]) extends Node
+case class DummyRoot(var children : List[Node]) extends Node
 
 object MainWuppertal extends App {
-
   
-  def foo(n : Integer, z : Integer = 1)( f : Integer => Integer ) = {
-    f(n) * z
-  }
-
-  println( foo(4, 2) { n => n * 2 } )
-
-  
-  StateManager.root_ = DummyNode(
+  StateManager.root_ = DummyRoot(
       new SmootherNode( "Gs" ))
   
   val strategy = new Strategy("Smoother")
@@ -28,7 +20,7 @@ object MainWuppertal extends App {
         DBG("Smoother name = " + s.name)
         new GsSmootherNode()
       } else {
-        ERROR("Invalid smoother " + s.name)
+        throw new Exception("Invalid smoother name: " + s.name)
         s
       }
     }
@@ -36,5 +28,5 @@ object MainWuppertal extends App {
   
   strategy.apply
   
-  println(StateManager.root_)
+  println("\nResulting tree:\n" + StateManager.root_)
 }
