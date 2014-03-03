@@ -108,7 +108,7 @@ abstract class Class extends Statement {
 
     for (func <- functions) {
       val function = func.asInstanceOf[FunctionStatement];
-      s += s"${function.returntype.cpp} ${function.name.split("::")(1) /*FIXME: handle with reason*/ }(" + function.parameters.map(param => s"${param.datatype.cpp} ${param.name}").mkString(", ") + ");\n";
+      s += s"${function.returntype.cpp} ${function.name.split("::")(1) /*FIXME: handle with reason*/ }(" + function.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n";
     }
 
     s += s"};\n";
@@ -136,7 +136,7 @@ case class CommunicationFunctions() extends Node with FilePrettyPrintable {
 
       for (func <- functions) {
         val function = func.asInstanceOf[FunctionStatement];
-        writer << s"${function.returntype.cpp} ${function.name}(" + function.parameters.map(param => s"${param.datatype.cpp} ${param.name}").mkString(", ") + ");\n";
+        writer << s"${function.returntype.cpp} ${function.name}(" + function.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n";
       }
 
       writer << "#endif\n";

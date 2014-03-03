@@ -29,7 +29,7 @@ case class MultiGrid() extends Node with FilePrettyPrintable {
 
     for (func <- functions_HACK) {
       val function = func.asInstanceOf[FunctionStatement];
-      writer << s"${function.returntype.cpp} ${function.name}(" + function.parameters.map(param => s"${param.datatype.cpp} ${param.name}").mkString(", ") + ");\n";
+      writer << s"${function.returntype.cpp} ${function.name}(" + function.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n";
     }
 
     writer << "#endif // MULTIGRID_MULTIGRID_H\n";

@@ -168,7 +168,7 @@ case class ExchangeData_6(field : Field, level : Integer, neighbors : ListBuffer
 
     // compile return value
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",
-      ListBuffer(Variable("unsigned int", "slot")),
+      ListBuffer(VariableAccess("slot", Some("unsigned int"))),
       body);
   }
 }
@@ -224,7 +224,7 @@ case class ExchangeData_26(field : Field, level : Integer, neighbors : ListBuffe
 
     // compile return value
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",
-      ListBuffer(Variable("unsigned int", "slot")),
+      ListBuffer(VariableAccess("slot", Some("unsigned int"))),
       body);
   }
 }

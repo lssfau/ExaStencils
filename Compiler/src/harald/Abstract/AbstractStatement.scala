@@ -253,7 +253,7 @@ case class AbstractDefinition(val p : Param, val value : AbstractExpression) ext
 
   override def transform(scopeparas : ListBuffer[ParameterInfo]) : ListBuffer[Statement] = {
     var ret : ListBuffer[Statement] = ListBuffer()
-    ret += new VariableDeclarationStatement(new Variable(DomainKnowledge.transform_datatype_cpp(p.dtype), p.name), Some(value.transform(scopeparas, None, "")))
+    ret += new VariableDeclarationStatement(new VariableAccess(p.name, Some(DomainKnowledge.transform_datatype_cpp(p.dtype))), Some(value.transform(scopeparas, None, "")))
     return ret
   }
 }
