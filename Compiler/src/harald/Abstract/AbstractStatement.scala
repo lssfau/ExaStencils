@@ -153,12 +153,27 @@ case class AbstractLet(var id : String, var expr : AbstractExpression, var modif
         // COMM_HACK
         id match {
           // FIXME: use FieldAccess
-          case "solution" => return ListBuffer[Statement](AssignmentStatement("fragments[0]->solData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
-          case "Res"      => return ListBuffer[Statement](AssignmentStatement("fragments[0]->resData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
-          case "f"        => return ListBuffer[Statement](AssignmentStatement("fragments[0]->rhsData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
+          case "solution" => return ListBuffer[Statement](AssignmentStatement("curFragment.solData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
+          case "Res"      => return ListBuffer[Statement](AssignmentStatement("curFragment.resData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
+          case "f"        => return ListBuffer[Statement](AssignmentStatement("curFragment.rhsData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
           case _          =>
         }
       }
+
+    // COMM_HACK
+    if ("fMinusOne" == id) {
+      id = "f"
+      ti = new TypeInfo(id, 1)
+      levstr = new StringLiteral("lev - 1")
+
+      id match {
+        // FIXME: use FieldAccess
+        case "solution" => return ListBuffer[Statement](AssignmentStatement("curFragment.solData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
+        case "Res"      => return ListBuffer[Statement](AssignmentStatement("curFragment.resData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
+        case "f"        => return ListBuffer[Statement](AssignmentStatement("curFragment.rhsData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
+        case _          =>
+      }
+    }
 
     for (e <- TreeManager.tree.Stencils)
       if (e.name.equals(id)) {
@@ -193,12 +208,24 @@ case class AbstractLet(var id : String, var expr : AbstractExpression, var modif
   }
 }
 
-case class AbstractPLet(val id : String, val expr : AbstractExpression, modifier : Option[String]) extends AbstractStatement {
+case class AbstractPLet(var id : String, val expr : AbstractExpression, modifier : Option[String]) extends AbstractStatement {
   override def transform(scopeparas : ListBuffer[ParameterInfo]) : ListBuffer[Statement] = {
     var ti : TypeInfo = new TypeInfo(id, 0)
     for (e <- TreeManager.tree.Fields)
-      if (e.name.equals(id))
+      if (e.name.equals(id)){
         ti = new TypeInfo(id, 1)
+        
+         val levstr = new StringLiteral("lev")
+
+        // COMM_HACK
+        id = id match {
+          // FIXME: use FieldAccess
+          case "solution" => ("curFragment.solData[0][" ~ levstr ~ "]->getDataRef").cpp
+          case "Res"      => ("curFragment.resData[0][" ~ levstr ~ "]->getDataRef").cpp
+          case "f"        => ("curFragment.rhsData[0][" ~ levstr ~ "]->getDataRef").cpp
+          case _          => id
+        }
+     }
     for (e <- TreeManager.tree.Stencils)
       if (e.name.equals(id))
         ti = new TypeInfo(id, 2)

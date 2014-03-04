@@ -29,10 +29,27 @@ case class AbstractBinaryOp(operator : String, left : AbstractExpression, right 
               right match {
                 case AbstractVariable(id2, l2) => {
                   var lb : ListBuffer[Expression] = new ListBuffer()
-                  if ("statement" == l2.transform(scopeparas, modifier, "argument") || "expression" == l2.transform(scopeparas, modifier, "argument"))
-                    lb += id2 ~ "[" ~ l2.transform(scopeparas, modifier, "argument") ~ "]"
-                  else
-                    lb += id2
+
+                  val levstr = l2.transform(scopeparas, modifier, scopetype)
+
+                  // COMM_HACK
+                  if ("statement" == l2.transform(scopeparas, modifier, "argument") || "expression" == l2.transform(scopeparas, modifier, "argument")) {
+                    id2 match {
+                      // FIXME: use FieldAccess
+                      case "solution" => lb += "curFragment.solData[0][" ~ levstr ~ "]->getDataRef" ~ "[" ~ l2.transform(scopeparas, modifier, "argument") ~ "]"
+                      case "Res"      => lb += "curFragment.resData[0][" ~ levstr ~ "]->getDataRef" ~ "[" ~ l2.transform(scopeparas, modifier, "argument") ~ "]"
+                      case "f"        => lb += "curFragment.rhsData[0][" ~ levstr ~ "]->getDataRef" ~ "[" ~ l2.transform(scopeparas, modifier, "argument") ~ "]"
+                      case _          => lb += id2 ~ "[" ~ l2.transform(scopeparas, modifier, "argument") ~ "]"
+                    }
+                  } else {
+                    id2 match {
+                      // FIXME: use FieldAccess
+                      case "solution" => lb += "*curFragment.solData[0][" ~ levstr ~ "]"
+                      case "Res"      => lb += "*curFragment.resData[0][" ~ levstr ~ "]"
+                      case "f"        => lb += "*curFragment.rhsData[0][" ~ levstr ~ "]"
+                      case _          => lb += id2
+                    }
+                  }
 
                   if (modifier.getOrElse("").equals("ToCoarse")) {
 
@@ -43,7 +60,10 @@ case class AbstractBinaryOp(operator : String, left : AbstractExpression, right 
                       //return new functioncall(id1 + s"[0]", "convolve" + e1.length + "P", lb)
 
                       var memlistS : ListBuffer[ParameterInfo] = ListBuffer()
-                      memlistS += new ParameterInfo("fine", TreeManager.tree.ExternalClasses.get("Array").get.name + "<T>&")
+                      // COMM_HACK
+                      //memlistS += new ParameterInfo("fine", TreeManager.tree.ExternalClasses.get("Array").get.name + "<T>&")
+                      memlistS += new ParameterInfo("Res[lev]", TreeManager.tree.ExternalClasses.get("Array").get.name + "<T>&")
+
                       for (i <- 1 to DomainKnowledge.rule_dim())
                         // COMM_HACK
                         //memlistS += new ParameterInfo(s"2*i${i - 1}", "int")
@@ -172,19 +192,19 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
           // FIXME: use FieldAccess
           case "solution" => (
             if ("statement" == scopetype || "expression" == scopetype)
-              s"fragments[0]->solData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp()
+              s"curFragment.solData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp()
             else
-              s"*fragments[0]->solData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]")
+              s"*curFragment.solData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]")
           case "Res" => (
             if ("statement" == scopetype || "expression" == scopetype)
-              s"fragments[0]->resData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp()
+              s"curFragment.resData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp()
             else
-              s"*fragments[0]->resData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]")
+              s"*curFragment.resData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]")
           case "f" => (
             if ("statement" == scopetype || "expression" == scopetype)
-              s"fragments[0]->rhsData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp()
+              s"curFragment.rhsData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp()
             else
-              s"*fragments[0]->rhsData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]")
+              s"*curFragment.rhsData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]")
           case _ => (
             if ("statement" == scopetype || "expression" == scopetype)
               id ~ "[" ~ lev.transform(scopeparas, modifier, scopetype) ~ "]" ~ DomainKnowledge.rule_idxArray_cpp()
