@@ -28,17 +28,17 @@ class PrettyPrinter(treel2 : TreeL2) {
 
     // publish global field variables
     for (c <- treel2.Fields)
-      globals.variables += new VariableDeclarationStatement(new Variable(s"${c.arrname}<${c.datatype}>*", s"${c.name}"))
+      globals.variables += new VariableDeclarationStatement(new VariableAccess(c.name, Some(s"${c.arrname}<${c.datatype}>*")))
     if (DomainKnowledge.use_MPI)
       for (c <- treel2.GhostFields)
-        globals.variables += new VariableDeclarationStatement(new Variable(s"MyArray<${c.datatype}>*", s"${c.name}"))
+        globals.variables += new VariableDeclarationStatement(new VariableAccess(c.name, Some(s"MyArray<${c.datatype}>*")))
 
     // publish global stencils
     for (c <- treel2.Stencils)
       if (c.weakform.equals(""))
-        globals.variables += new VariableDeclarationStatement(new Variable(s"MyStencil<${c.datatype}>*", s"${c.name}"))
+        globals.variables += new VariableDeclarationStatement(new VariableAccess(c.name, Some(s"MyStencil<${c.datatype}>*")))
       else
-        globals.variables += new VariableDeclarationStatement(new Variable(s"${treel2.ExternalClasses.get("StencilVar").get.name}<${c.datatype}>*", s"${c.name}"))
+        globals.variables += new VariableDeclarationStatement(new VariableAccess(c.name, Some(s"${treel2.ExternalClasses.get("StencilVar").get.name}<${c.datatype}>*")))
 
     for (g <- DomainKnowledge.global_variables)
       globals.defines += new DefineStatement(s"${g.name}", Some(s"${g.value}"))

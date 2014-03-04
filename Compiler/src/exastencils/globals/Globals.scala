@@ -16,7 +16,7 @@ import exastencils.prettyprinting._
 case class Globals() extends Node with FilePrettyPrintable {
   var variables : ListBuffer[VariableDeclarationStatement] = new ListBuffer;
   var defines : ListBuffer[DefineStatement] = new ListBuffer; // FIXME: defines should be resolved automatically; currently this is required as an interface to Harald's prototype
-  var initFunction : FunctionStatement = new FunctionStatement(new UnitDatatype, "initGlobals", new ListBuffer[Variable], new ListBuffer[Statement])
+  var initFunction : FunctionStatement = new FunctionStatement(new UnitDatatype, "initGlobals", new ListBuffer[VariableAccess], new ListBuffer[Statement])
 
   override def printToFile = {
     val writerHeader = PrettyprintingManager.getPrinter(s"Globals/Globals.h");
@@ -36,7 +36,7 @@ case class Globals() extends Node with FilePrettyPrintable {
 
     for (variable <- variables) { writerHeader << s"extern ${variable.cpp}\n"; }
 
-    writerHeader << s"${initFunction.returntype.cpp} ${initFunction.name}(" + initFunction.parameters.map(param => s"${param.datatype.cpp} ${param.name}").mkString(", ") + ");\n";
+    writerHeader << s"${initFunction.returntype.cpp} ${initFunction.name}(" + initFunction.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n";
 
     writerHeader << "#endif\n";
 

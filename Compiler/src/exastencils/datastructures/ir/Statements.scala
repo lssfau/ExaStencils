@@ -31,9 +31,9 @@ case class StatementBlock(var body : ListBuffer[Statement]) extends Statement {
   }
 }
 
-case class VariableDeclarationStatement(var variable : Variable, var expression : Option[Expression] = None) extends Statement {
+case class VariableDeclarationStatement(var variable : VariableAccess, var expression : Option[Expression] = None) extends Statement {
   override def cpp = {
-    s"${variable.datatype.cpp} ${variable.name}" + (if (expression.isDefined) s" = ${expression.get.cpp};" else ";");
+    s"${variable.dType.get.cpp} ${variable.name}" + (if (expression.isDefined) s" = ${expression.get.cpp};" else ";");
   }
 }
 
@@ -121,12 +121,12 @@ case class ReturnStatement(expr : Expression) extends Statement {
 
 abstract class AbstractFunctionStatement() extends Statement
 
-case class FunctionStatement(var returntype : Datatype, var name : String, var parameters : ListBuffer[Variable], var body : ListBuffer[Statement]) extends AbstractFunctionStatement {
-  def this(returntype : Datatype, name : String, parameters : ListBuffer[Variable], body : Statement) = this(returntype, name, parameters, ListBuffer[Statement](body));
-  def this(returntype : Datatype, name : String, parameters : Variable, body : ListBuffer[Statement]) = this(returntype, name, ListBuffer[Variable](parameters), body);
+case class FunctionStatement(var returntype : Datatype, var name : String, var parameters : ListBuffer[VariableAccess], var body : ListBuffer[Statement]) extends AbstractFunctionStatement {
+  def this(returntype : Datatype, name : String, parameters : ListBuffer[VariableAccess], body : Statement) = this(returntype, name, parameters, ListBuffer[Statement](body));
+  def this(returntype : Datatype, name : String, parameters : VariableAccess, body : ListBuffer[Statement]) = this(returntype, name, ListBuffer[VariableAccess](parameters), body);
 
   def cpp : String = { // FIXME: add specialized node for parameter specification with own PP
-    (s"${returntype.cpp} $name(" + parameters.map(param => s"${param.datatype.cpp} ${param.name}").mkString(", ") + ")"
+    (s"${returntype.cpp} $name(" + parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ")"
       + "\n{\n"
       + body.map(stat => stat.cpp).mkString("\n")
       + s"\n}")

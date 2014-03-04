@@ -81,7 +81,7 @@ case class RemoteSend(var field : Field, var level : Integer, var neighbors : Li
 
     val mpiTypeName = mpiTypeNameBase + s"_${addToName}";
 
-    globals.variables += new VariableDeclarationStatement(new Variable(s"MPI_Datatype", mpiTypeName));
+    globals.variables += new VariableDeclarationStatement(new VariableAccess(mpiTypeName, Some("MPI_Datatype")));
 
     if (indexRange.begin(1) == indexRange.end(1) || indexRange.begin(2) == indexRange.end(2))
       globals.initFunction.body += InitMPIDataType(mpiTypeName, indexRange, level);
@@ -141,7 +141,7 @@ case class RemoteReceive(var field : Field, var level : Integer, var neighbors :
 
     val mpiTypeName = mpiTypeNameBase + s"_${addToName}";
 
-    globals.variables += new VariableDeclarationStatement(new Variable(s"MPI_Datatype", mpiTypeName));
+    globals.variables += new VariableDeclarationStatement(new VariableAccess(mpiTypeName, Some("MPI_Datatype")));
 
     if (indexRange.begin(1) == indexRange.end(1) || indexRange.begin(2) == indexRange.end(2))
       globals.initFunction.body += InitMPIDataType(mpiTypeName, indexRange, level);

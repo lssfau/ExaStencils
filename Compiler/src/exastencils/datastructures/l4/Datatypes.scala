@@ -13,6 +13,6 @@ case class StringDatatype() extends Datatype
 
 case class UnitDatatype() extends Datatype
 
-case class ArrayDatatype(datatype : Datatype) extends Datatype
+case class ArrayDatatype(var datatype : Datatype) extends Datatype
 
-case class ComplexDatatype(datatype : Datatype) extends Datatype
+case class ComplexDatatype(var datatype : Datatype) extends Datatype

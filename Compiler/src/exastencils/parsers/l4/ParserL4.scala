@@ -22,46 +22,99 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   protected def parseTokens(tokens : lexical.Scanner) : Node = {
     phrase(program)(tokens) match {
-      case Success(e, _)   => e
-      case Error(msg, _)   => throw new Exception("parse error: " + msg)
-      case Failure(msg, _) => throw new Exception("parse failure: " + msg)
+      case Success(e, _) => e
+      case Error(msg, _) => throw new Exception("parse error: " + msg)
+      case Failure(msg, parser) => {
+        var sb = new StringBuilder
+        sb.append(s"Parse failure at position ${parser.pos}: $msg\n")
+        sb.append(parser.pos.longString)
+        sb.append("\n")
+
+        throw new Exception(sb.toString)
+      }
     }
   }
 
+  var annos = new scala.collection.mutable.ListBuffer[Annotation]
+
+  //###########################################################
+
+  lazy val annotation = ("@" ~> ident) ~ ("(" ~> ((ident | numericLit | stringLit | booleanLit) <~ ")")).? ^^
+    { case n ~ v => annos += new Annotation(n, v) }
+
+  //###########################################################
+
   lazy val program = locationize(function.* ^^ { case stmts => Root(stmts) })
 
-  lazy val statement : Parser[Statement] = function |
-    loopOverDomain |
-    substatement
-
-  lazy val substatement : Parser[Statement] = locationize(ident ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(Identifier(id), exp) })
-
-  lazy val function = locationize(("def" ~> ident) ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> datatype) ~ ("{" ~> (statement.* <~ "}")) ^^
+  lazy val function = locationize(("def" ~> ident) ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}")) ^^
     { case id ~ args ~ t ~ stmts => FunctionStatement(id, t, args.getOrElse(List[Variable]()), stmts) })
-
   lazy val functionArgumentList = (functionArgument <~ ("," | newline)).* ~ functionArgument ^^ { case args ~ arg => arg :: args }
   lazy val functionArgument = locationize(((ident <~ ":") ~ datatype) ^^ { case id ~ t => Variable(id, t) })
-  lazy val functionCall = locationize(ident ~ "(" ~ functionCallArgumentList.? ~ ")" ^^ { case id ~ "(" ~ args ~ ")" => FunctionCall(id, args.getOrElse(List[Expression]())) })
+  lazy val functionCall = locationize(ident ~ "(" ~ functionCallArgumentList.? ~ ")" ^^ { case id ~ "(" ~ args ~ ")" => FunctionCallExpression(id, args.getOrElse(List[Expression]())) })
   lazy val functionCallArgumentList = (expression <~ ("," | newline)).* ~ expression ^^ { case exps ~ ex => ex :: exps } // = new list(exps, ex)
 
-  lazy val expression : PackratParser[Expression] =
-    locationize((expression ~ ("+" | "-") ~ term) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) }) |
-      term
+  // ######################################
+  // ##### Statements
+  // ######################################
 
-  lazy val term : PackratParser[Expression] =
-    locationize((term ~ ("*" | "/" | "**") ~ factor) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) }) |
-      factor
+  lazy val statement : Parser[Statement] = (
+    variableDeclaration
+    ||| repeatUntil
+    ||| loopOver
+    ||| assignment
+    ||| locationize(functionCall ^^ { case f => FunctionCallStatement(f.name, f.arguments) })
+    ||| conditional)
 
-  lazy val factor : Parser[Expression] =
-    "(" ~> expression <~ ")" |
-      locationize(stringLit ^^ { case s => StringLiteral(s) }) |
-      locationize(("+" | "-").? ~ numericLit ^^ { case s ~ n => if (s == Some("-")) NumericLiteral(-n.toDouble) else NumericLiteral(n.toDouble) }) | // FIXME check and create integer/double
-      locationize(booleanLit ^^ { case s => BooleanLiteral(s.toBoolean) }) |
-      locationize(functionCall) |
-      locationize(ident ^^ { case id => Identifier(id) })
+  lazy val variableDeclaration = (
+    locationize(("var" ~> ident) <~ (":" ~ "Domain") ^^ { case id => DomainDeclarationStatement(id) })
+    ||| locationize(("var" ~> ident) ~ (":" ~> datatype) ~ ("=" ~> expression).? ^^ { case id ~ dt~exp => VariableDeclarationStatement(id, dt, exp) }))
 
-  lazy val loopOverDomain = locationize(("loop" ~ "over" ~> ("domain" | "inner" | "boundary")) ~ ("level" ~> ident) ~
-    ("order" ~> ident).? ~ ("blocksize" ~> (numericLit ~ numericLit ~ numericLit)).? ~
-    substatement.+ <~ "next" ^^
-    { case area ~ level ~ order ~ blocksize ~ stmts => LoopOverDomainStatement(area, level, order, blocksize, stmts) })
+  lazy val repeatUntil = locationize(
+    (("repeat" ~ "until") ~> comparison) ~ (("{" ~> statement.+) <~ "}") ^^ { case c ~ s => RepeatUntilStatement(c, s) })
+
+  lazy val loopOver = locationize(("loop" ~ "over" ~> loopOverArea) ~
+    ("levels" ~> numericLit ^^ { case x => x.toInt.asInstanceOf[Integer] }).? ~
+    ("order" ~> ident).? ~
+    ("blocksize" ~> ((numericLit ~ numericLit ~ numericLit ^^ { case x ~ y ~ z => new LoopOverDomainStatement.Blocksize3D(x.toInt, y.toInt, z.toInt) }) | (numericLit ~ numericLit ^^ { case x ~ y => new LoopOverDomainStatement.Blocksize2D(x.toInt, y.toInt) }))).? ~
+    ("{" ~> statement.+) <~ "}" ^^
+    {
+      case area ~ levels ~ order ~ blocksize ~ stmts => LoopOverDomainStatement(area, levels, order, blocksize, stmts)
+    })
+  lazy val loopOverArea = "domain" | "inner" | "boundary"
+
+  lazy val assignment = locationize(ident ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(id, exp) })
+
+  lazy val conditional = locationize(("if" ~> booleanexpression) ~ ("{" ~> statement.+ <~ "}") ^^ { case exp ~ stmts => ConditionalStatement(exp, stmts) })
+
+  // ######################################
+  // ##### Expressions
+  // ######################################
+
+  lazy val expression = binaryexpression | booleanexpression
+
+  lazy val binaryexpression : PackratParser[Expression] = (
+    locationize((expression ~ ("+" | "-") ~ term) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
+    | term)
+
+  lazy val term : PackratParser[Expression] = (
+    locationize((term ~ ("*" | "/" | "**") ~ factor) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
+    | factor)
+
+  lazy val factor : Parser[Expression] = (
+    "(" ~> expression <~ ")"
+    | locationize(stringLit ^^ { case s => StringLiteral(s) })
+    | locationize(("+" | "-").? ~ numericLit ^^ { case s ~ n => if (s == Some("-")) NumericLiteral(-n.toDouble) else NumericLiteral(n.toDouble) }) // FIXME check and create integer/double
+    | locationize(booleanLit ^^ { case s => BooleanLiteral(s.toBoolean) })
+    | locationize(functionCall)
+    | locationize(ident ^^ { case id => Identifier(id) }))
+
+  lazy val booleanexpression : PackratParser[BooleanExpression] = (
+    locationize(booleanexpression ~ ("||" | "&&") ~ booleanexpression ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
+    | locationize(expression ~ ("||" | "&&") ~ booleanexpression ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
+    | locationize(booleanexpression ~ ("||" | "&&") ~ expression ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
+    | comparison)
+
+  lazy val comparison : PackratParser[BooleanExpression] =
+    locationize((expression ~ ("<" | "<=" | ">" | ">=" | "==" | "!=") ~ expression) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
+
 }

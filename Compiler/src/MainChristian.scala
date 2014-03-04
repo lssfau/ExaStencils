@@ -64,18 +64,18 @@ object MainChristian {
     //    //positionStrategy.apply
     
     
-    case class MapNode(var x: scala.collection.mutable.Map[String, Node]) extends Node
-    
-    StateManager.root_ = MapNode(scala.collection.mutable.Map(("bla", BooleanLiteral(true)), ("bla2", StringLiteral("bla2-stringlit")), ("bla3", BooleanLiteral(true))))
-    println(StateManager.root_)
-    println("eq: " + (StateManager.root_ eq StateManager.root_))
-    val duplicated = Duplicate(StateManager.root_)
-    println("eq0: " + (StateManager.root_ eq duplicated))
-    println("eq1: " + (StateManager.root_.asInstanceOf[MapNode].x("bla") eq duplicated.asInstanceOf[MapNode].x("bla")))
-    
-    duplicated.asInstanceOf[MapNode].x("bla2") = BooleanLiteral(false)
-    println(StateManager.root_)
-    println(duplicated)
+//    case class MapNode(var x: scala.collection.mutable.Map[String, Node]) extends Node
+//    
+//    StateManager.root_ = MapNode(scala.collection.mutable.Map(("bla", BooleanLiteral(true)), ("bla2", StringLiteral("bla2-stringlit")), ("bla3", BooleanLiteral(true))))
+//    println(StateManager.root_)
+//    println("eq: " + (StateManager.root_ eq StateManager.root_))
+//    val duplicated = Duplicate(StateManager.root_)
+//    println("eq0: " + (StateManager.root_ eq duplicated))
+//    println("eq1: " + (StateManager.root_.asInstanceOf[MapNode].x("bla") eq duplicated.asInstanceOf[MapNode].x("bla")))
+//    
+//    duplicated.asInstanceOf[MapNode].x("bla2") = BooleanLiteral(false)
+//    println(StateManager.root_)
+//    println(duplicated)
     
 //    
 //    val mapnodestrat = Strategy("mapnodestrat")
@@ -120,5 +120,9 @@ object MainChristian {
 //    //val x = new Node with Debuggable
 //
 //    println(d)
+    
+    var parserl4 = new ParserL4
+    var x = parserl4.parseFile("/scratch-local/schmittch/ExaStencils/ScalaExaStencil/Compiler/examples/level4_simple.exa")
+    println(x)
   }
 }

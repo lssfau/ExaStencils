@@ -15,7 +15,7 @@ case class PerformSmoothing_Jac(solutionField : Field, rhsField : Field, level :
   override def cpp : String = "NOT VALID ; CLASS = PerformSmoothingJacobi\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
-    FunctionStatement(new UnitDatatype(), s"performSmoothing_$level", ListBuffer(Variable("unsigned int", "targetSlot"), Variable("unsigned int", "sourceSlot")),
+    FunctionStatement(new UnitDatatype(), s"performSmoothing_$level", ListBuffer(VariableAccess("targetSlot", Some("unsigned int")), VariableAccess("sourceSlot", Some("unsigned int"))),
       ListBuffer(
         s"exchsolData_$level(sourceSlot);",
         new LoopOverFragments(
@@ -41,7 +41,7 @@ case class PerformSmoothing_GS(solutionField : Field, rhsField : Field, level : 
   override def cpp : String = "NOT VALID ; CLASS = PerformSmoothingJacobi\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
-    FunctionStatement(new UnitDatatype(), s"performSmoothing_$level", ListBuffer(Variable("unsigned int", "targetSlot"), Variable("unsigned int", "sourceSlot")),
+    FunctionStatement(new UnitDatatype(), s"performSmoothing_$level", ListBuffer(VariableAccess("targetSlot", Some("unsigned int")), VariableAccess("sourceSlot", Some("unsigned int"))),
       ListBuffer(
         s"exchsolData_$level(sourceSlot);",
         new LoopOverFragments(
@@ -198,7 +198,7 @@ case class UpdateResidual(residualField : Field, solutionField : Field, rhsField
   override def cpp : String = "NOT VALID ; CLASS = UpdateResidual\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
-    FunctionStatement(new UnitDatatype(), s"updateResidual_$level", ListBuffer(Variable("unsigned int", "slot")),
+    FunctionStatement(new UnitDatatype(), s"updateResidual_$level", ListBuffer(VariableAccess("slot", Some("unsigned int"))),
       ListBuffer(
         s"exchsolData_$level(slot);",
         new LoopOverFragments(
@@ -222,7 +222,7 @@ case class PerformRestriction() extends AbstractFunctionStatement with Expandabl
   override def cpp : String = "NOT VALID ; CLASS = PerformRestriction\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
-    FunctionStatement(new UnitDatatype(), s"performRestriction_NodeFW", ListBuffer(Variable("unsigned int", "levelSrc"), Variable("unsigned int", "levelDest")),
+    FunctionStatement(new UnitDatatype(), s"performRestriction_NodeFW", ListBuffer(VariableAccess("levelSrc", Some("unsigned int")), VariableAccess("levelDest", Some("unsigned int"))),
       ListBuffer(
         s"exchresData(levelSrc, 0);",
         new LoopOverFragments(
@@ -294,7 +294,7 @@ case class PerformProlongation() extends AbstractFunctionStatement with Expandab
   override def cpp : String = "NOT VALID ; CLASS = PerformProlongation\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
-    FunctionStatement(new UnitDatatype(), s"performProlongation_NodeTLI", ListBuffer(Variable("unsigned int", "slotSrc"), Variable("unsigned int", "levelSrc"), Variable("unsigned int", "slotDest"), Variable("unsigned int", "levelDest")),
+    FunctionStatement(new UnitDatatype(), s"performProlongation_NodeTLI", ListBuffer(VariableAccess("slotSrc", Some("unsigned int")), VariableAccess("levelSrc", Some("unsigned int")), VariableAccess("slotDest", Some("unsigned int")), VariableAccess("levelDest", Some("unsigned int"))),
       ListBuffer(
         s"exchsolData(levelSrc, slotSrc);",
         new LoopOverFragments(
@@ -399,7 +399,7 @@ case class PerformVCycle(level : Integer) extends AbstractFunctionStatement with
   override def cpp : String = "NOT VALID ; CLASS = PerformVCycle\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
-    FunctionStatement(new UnitDatatype(), s"performVCycle_$level", ListBuffer(Variable("unsigned int*", "solSlots")),
+    FunctionStatement(new UnitDatatype(), s"performVCycle_$level", ListBuffer(VariableAccess("solSlots", Some("unsigned int*"))),
       (if (0 == level) {
         ListBuffer[Statement](new PerformCGS(level))
       } else {
@@ -452,7 +452,7 @@ case class SetSolZero(field : Field, level : Integer) extends AbstractFunctionSt
   override def cpp : String = "NOT VALID ; CLASS = SetSolZero\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
-    new FunctionStatement(new UnitDatatype(), s"setSolZero_$level", ListBuffer(Variable("unsigned int", "slot")),
+    new FunctionStatement(new UnitDatatype(), s"setSolZero_$level", ListBuffer(VariableAccess("slot", Some("unsigned int"))),
       new LoopOverFragments(
         new LoopOverDimensions(fieldToIndexInner(Array(0, 0, 0), level),
           new AssignmentStatement(

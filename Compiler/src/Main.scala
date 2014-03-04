@@ -21,17 +21,23 @@ object Main {
   def main(args : Array[String]) : Unit = {
     // Init settings
 
-    val s = new exastencils.parsers.settings.ParserSettings
-    s.parseFile(args(0))
-    val k = new exastencils.parsers.settings.ParserKnowledge
-    k.parseFile(args(1))
+    if (args.length > 1) {
+      val s = new exastencils.parsers.settings.ParserSettings
+      s.parseFile(args(0))
+    }
+    if (args.length > 2) {
+      val k = new exastencils.parsers.settings.ParserKnowledge
+      k.parseFile(args(1))
+    }
 
     Knowledge.update
 
-    // Hack paths
+    // Hack paths (relative paths should work here, too, if not, reverse this change)
 
-    val libpath = "C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ScalaExaStencil/Compiler/src/harald/otherfiles/"
-    val DSLpath = "C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ScalaExaStencil/Compiler/src/harald/testmg/"
+    //    val libpath = "C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ScalaExaStencil/Compiler/src/harald/otherfiles/"
+    //    val DSLpath = "C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ScalaExaStencil/Compiler/src/harald/testmg/"
+    val libpath = "./src/harald/otherfiles/"
+    val DSLpath = "./src/harald/testmg/"
     val problem = "testDSL"
     val outputfile = "main.cpp"
 
@@ -78,7 +84,7 @@ object Main {
     val parserHW = new ParserHW
     parserHW.parseAll(parserHW.exastencilsHW, DSLHW)
 
-    harald.dsl/*FIXME*/.Hardware.initHWFeatures
+    harald.dsl /*FIXME*/ .Hardware.initHWFeatures
 
     if (!new java.io.File(DSLpath + problem + "lev1.mg").exists) {
       println("Problem specification (DSL level 1) is missing!")
@@ -149,7 +155,7 @@ object Main {
     transformTree.apply;
 
     InitExternalFunctions.apply;
-    
+
     val exadsl = new PrettyPrinter(TreeManager.tree)
     exadsl.prettycpp(libpath, outputfile)
 

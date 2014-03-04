@@ -15,6 +15,8 @@ trait Expression extends Node with CppPrettyPrintable {
   def evaluate(para : ListBuffer[ParameterInfo]) : Int = 0
 }
 
+trait Access extends Expression
+
 case class NullExpression() extends Expression {
   def cpp : String = ""
 }
@@ -39,13 +41,22 @@ case class BooleanLiteral(value : Boolean) extends Expression {
   override def cpp = value.toString
 }
 
-case class Identifier(name : String) extends Expression {
+case class VariableAccess(name : String, dType : Option[Datatype] = None) extends Access {
   override def cpp = name
 }
 
-case class Variable(var datatype : Datatype, name : String) extends Expression {
-  // FIXME: treat static arrays
-  override def cpp = name
+case class ArrayAccess(base : Access, indices : Array[Expression]) extends Access {
+  override def cpp = base.cpp + indices.map({ expr =>
+    '[' + expr.cpp + ']'
+  }).mkString
+}
+
+case class FieldAccess_(base : Access, varAcc : VariableAccess) extends Access {
+  override def cpp = base.cpp + '.' + varAcc.cpp
+}
+
+case class DerefAccess(base : Access) extends Access {
+  override def cpp = "*(" + base.cpp + ')'
 }
 
 case class Constant(value : Any) extends Expression {
