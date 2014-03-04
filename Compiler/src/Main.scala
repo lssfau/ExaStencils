@@ -21,11 +21,11 @@ object Main {
   def main(args : Array[String]) : Unit = {
     // Init settings
 
-    if (args.length > 1) {
+    if (args.length >= 1) {
       val s = new exastencils.parsers.settings.ParserSettings
       s.parseFile(args(0))
     }
-    if (args.length > 2) {
+    if (args.length >= 2) {
       val k = new exastencils.parsers.settings.ParserKnowledge
       k.parseFile(args(1))
     }
@@ -33,11 +33,9 @@ object Main {
     Knowledge.update
 
     // Hack paths (relative paths should work here, too, if not, reverse this change)
-
-    //    val libpath = "C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ScalaExaStencil/Compiler/src/harald/otherfiles/"
-    //    val DSLpath = "C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ScalaExaStencil/Compiler/src/harald/testmg/"
-    val libpath = "./src/harald/otherfiles/"
-    val DSLpath = "./src/harald/testmg/"
+    // ... this obviously depends on the execution path which in my case is the root folder to include configs and scripts
+    val libpath = "./Compiler/src/harald/otherfiles/"
+    val DSLpath = "./Compiler/src/harald/testmg/"
     val problem = "testDSL"
     val outputfile = "main.cpp"
 
