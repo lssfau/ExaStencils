@@ -26,20 +26,24 @@ object Main {
   def main(args : Array[String]) : Unit = {
     // Init settings
 
-//    val s = new exastencils.parsers.settings.ParserSettings
-//    s.parseFile(args(0))
-//    val k = new exastencils.parsers.settings.ParserKnowledge
-//    k.parseFile(args(1))
+    if (args.length >= 1) {
+      val s = new exastencils.parsers.settings.ParserSettings
+      s.parseFile(args(0))
+    }
+    if (args.length >= 2) {
+      val k = new exastencils.parsers.settings.ParserKnowledge
+      k.parseFile(args(1))
+    }
 
     // feature model  (modified FAMA Format (http://www.isa.us.es/fama/))
-    FeatureModel.readFeatureModel("./featureModel/model_Prototype.model")
+    FeatureModel.readFeatureModel("./Compiler/featureModel/model_Prototype.model")
     var configuration = FeatureModel.getMinimalConfig
     Knowledge.update(configuration)
 
-    // Hack paths
-
-    val libpath = "C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ScalaExaStencil/Compiler/src/harald/otherfiles/"
-    val DSLpath = "E:/ScalaPrototyp/Compiler/src/harald/testmg/"
+    // Hack paths (relative paths should work here, too, if not, reverse this change)
+    // ... this obviously depends on the execution path which in my case is the root folder to include configs and scripts
+    val libpath = "./Compiler/src/harald/otherfiles/"
+    val DSLpath = "./Compiler/src/harald/testmg/"
     val problem = "testDSL"
     val outputfile = "main.cpp"
 
@@ -86,7 +90,7 @@ object Main {
     val parserHW = new ParserHW
     parserHW.parseAll(parserHW.exastencilsHW, DSLHW)
 
-    harald.dsl/*FIXME*/.Hardware.initHWFeatures
+    harald.dsl /*FIXME*/ .Hardware.initHWFeatures
 
     if (!new java.io.File(DSLpath + problem + "lev1.mg").exists) {
       println("Problem specification (DSL level 1) is missing!")
@@ -157,7 +161,7 @@ object Main {
     transformTree.apply;
 
     InitExternalFunctions.apply;
-    
+
     val exadsl = new PrettyPrinter(TreeManager.tree)
     exadsl.prettycpp(libpath, outputfile)
 

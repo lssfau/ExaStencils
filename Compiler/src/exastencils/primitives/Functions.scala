@@ -13,7 +13,7 @@ case class WaitForMPIReq() extends AbstractFunctionStatement with Expandable {
 
   override def expand(collector : StackCollector) : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"waitForMPIReq",
-      ListBuffer(Variable("MPI_Request*", "request")),
+      ListBuffer(VariableAccess("request", Some("MPI_Request*"))),
       ListBuffer(
         s"MPI_Status stat;",
         s"if (MPI_ERR_IN_STATUS == MPI_Wait(request, &stat))\n{",
@@ -34,7 +34,7 @@ case class WaitForMPISendOps(var neighbors : ListBuffer[NeighborInfo]) extends A
       var minIdx = neighbors.reduce((neigh, res) => if (neigh.index < res.index) neigh else res).index;
       var maxIdx = neighbors.reduce((neigh, res) => if (neigh.index > res.index) neigh else res).index;
 
-      new FunctionStatement(new UnitDatatype(), s"waitForMPISendOps", ListBuffer[Variable](),
+      new FunctionStatement(new UnitDatatype(), s"waitForMPISendOps", ListBuffer[VariableAccess](),
         new LoopOverFragments(
           new ForLoopStatement(s"int i = $minIdx", s"i <= $maxIdx", "++i",
             new ConditionStatement(s"curFragment.reqOutstanding_Send[i]",
@@ -42,7 +42,7 @@ case class WaitForMPISendOps(var neighbors : ListBuffer[NeighborInfo]) extends A
                 s"waitForMPIReq(&curFragment.request_Send[i]);",
                 s"curFragment.reqOutstanding_Send[i] = false;")))));
     } else {
-      new FunctionStatement(new UnitDatatype(), s"waitForMPISendOps", ListBuffer[Variable](),
+      new FunctionStatement(new UnitDatatype(), s"waitForMPISendOps", ListBuffer[VariableAccess](),
         new LoopOverFragments(
           neighbors.map(neigh =>
             new ConditionStatement(s"curFragment.reqOutstanding_Send[${neigh.index}]",
@@ -61,7 +61,7 @@ case class WaitForMPIRecvOps(var neighbors : ListBuffer[NeighborInfo]) extends A
       var minIdx = neighbors.reduce((neigh, res) => if (neigh.index < res.index) neigh else res).index;
       var maxIdx = neighbors.reduce((neigh, res) => if (neigh.index > res.index) neigh else res).index;
 
-      new FunctionStatement(new UnitDatatype(), s"waitForMPIRecvOps", ListBuffer[Variable](),
+      new FunctionStatement(new UnitDatatype(), s"waitForMPIRecvOps", ListBuffer[VariableAccess](),
         new LoopOverFragments(
           new ForLoopStatement(s"int i = $minIdx", s"i <= $maxIdx", "++i",
             new ConditionStatement(s"curFragment.reqOutstanding_Recv[i]",
@@ -69,7 +69,7 @@ case class WaitForMPIRecvOps(var neighbors : ListBuffer[NeighborInfo]) extends A
                 s"waitForMPIReq(&curFragment.request_Recv[i]);",
                 s"curFragment.reqOutstanding_Recv[i] = false;")))));
     } else {
-      new FunctionStatement(new UnitDatatype(), s"waitForMPIRecvOps", ListBuffer[Variable](),
+      new FunctionStatement(new UnitDatatype(), s"waitForMPIRecvOps", ListBuffer[VariableAccess](),
         new LoopOverFragments(
           neighbors.map(neigh =>
             new ConditionStatement(s"curFragment.reqOutstanding_Recv[${neigh.index}]",
@@ -86,7 +86,7 @@ case class ExchangeDataSplitter(field : Field) extends AbstractFunctionStatement
 
   override def expand(collector : StackCollector) : FunctionStatement = {
     new FunctionStatement(new UnitDatatype(), s"exch${field.codeName}",
-      ListBuffer(Variable("unsigned int", "level"), Variable("unsigned int", "slot")),
+      ListBuffer(VariableAccess("level", Some("unsigned int")), VariableAccess("slot", Some("unsigned int"))),
       SwitchStatement("level",
         (0 to Knowledge.maxLevel).to[ListBuffer].map(level =>
           new CaseStatement(NumericLiteral(level), s"exch${field.codeName}_$level(slot);"))));
@@ -98,7 +98,7 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
 
   override def expand(collector : StackCollector) : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"connectLocalElement",
-      ListBuffer(Variable("unsigned int", "location"), Variable("Fragment3DCube*", "fragment")),
+      ListBuffer(VariableAccess("location", Some("unsigned int")), VariableAccess("fragment", Some("Fragment3DCube*"))),
       ListBuffer(
         "ASSERT_WARNING((fragment), \"Invalid fragment pointer detected\", return);",
         s"neighbor_isValid[location] = true;",
@@ -113,7 +113,7 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
 
   override def expand(collector : StackCollector) : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"connectRemoteElement",
-      ListBuffer(Variable("unsigned int", "location"), Variable("size_t", "id"), Variable(IntegerDatatype(), "remoteRank")),
+      ListBuffer(VariableAccess("location", Some("unsigned int")), VariableAccess("id", Some("size_t")), VariableAccess("remoteRank", Some(IntegerDatatype()))),
       ListBuffer(
         s"neighbor_isValid[location] = true;",
         s"neighbor_isRemote[location] = true;",

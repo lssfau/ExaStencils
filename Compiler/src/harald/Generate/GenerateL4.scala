@@ -47,18 +47,18 @@ class GenerateL4(treel2 : TreeL2) {
           writer.write(s"	           Res_${i}[lev]) \n")
         }
       } else {
-        writer.write(s"	${DomainKnowledge.restriction_L3.get} ( lev \n")
-        writer.write(s"	           ${DomainKnowledge.function_L1(0)._1}[ ( lev-1 ) ] \n")
-        writer.write(s"	           Res[lev]) \n")
+        writer.write(s"	${DomainKnowledge.restriction_L3.get} ( lev ) \n")
+        //writer.write(s"	           ${DomainKnowledge.function_L1(0)._1}[ ( lev-1 ) ] \n")
+        //writer.write(s"	           Res[lev]) \n")
       }
       val setname = location match { case "gpu" => "setcuda" case _ => "set" }
       writer.write(s"	${setname}( ( lev-1 ) \n")
-      writer.write(s"	    ${DomainKnowledge.unknown_L1(0)._1}[ ( lev - 1 ) ] \n")
+      //writer.write(s"	    ${DomainKnowledge.unknown_L1(0)._1}[ ( lev - 1 ) ] \n")
       writer.write("	     0) \n")
       writer.write(s"	${DomainKnowledge.cycle_L3.get} ( lev-1 ) \n")
-      writer.write(s"	${DomainKnowledge.interpolation_L3.get}( lev \n")
-      writer.write(s"	                  ${DomainKnowledge.unknown_L1(0)._1}[lev] \n")
-      writer.write(s"	                  ${DomainKnowledge.unknown_L1(0)._1}[ (lev-1) ] ) \n")
+      writer.write(s"	${DomainKnowledge.interpolation_L3.get}( lev ) \n")
+      //writer.write(s"	                  ${DomainKnowledge.unknown_L1(0)._1}[lev] \n")
+      //writer.write(s"	                  ${DomainKnowledge.unknown_L1(0)._1}[ (lev-1) ] ) \n")
       writer.write("    repeat up npost \n")
       writer.write(s"		${DomainKnowledge.smoother_L3.get} ( lev ) \n")
       writer.write("  next  \n")
@@ -151,28 +151,30 @@ def cpu sqr ( lev:Int
     writer.write("\n")
 
     // COMM_HACK
-    writer.write(s"def ${location} ${DomainKnowledge.restriction_L3.get} ( lev:Int \n")
-    writer.write("               coarse:Container \n")
-    writer.write("               fine:Container) : Unit  \n")
+    writer.write(s"def ${location} ${DomainKnowledge.restriction_L3.get} ( lev:Int ) : Unit \n")
+    //writer.write("               coarse:Container \n")
+    //writer.write("               fine:Container) : Unit  \n")
     writer.write("{ \n")
     // COMM_HACK
     writer.write("  exchresData ( lev \n 0 )  \n")
-    writer.write("    loop innerpoints level coarse order lex block 1 1  \n")
-    writer.write("      coarse =  RestrictionStencil * fine | ToCoarse  \n")
+    writer.write("    loop innerpoints level solutionMinusOne order lex block 1 1  \n")
+    // COMM_HACK
+    //writer.write("      coarse =  RestrictionStencil * fine | ToCoarse  \n")
+    writer.write(s"      fMinusOne =  RestrictionStencil * fine | ToCoarse  \n")	// fMinusOne represents f [ lev - 1 ] which is not parsable :/
     writer.write("    next  \n")
     writer.write("}  \n")
 
     writer.write("\n")
 
     // COMM_HACK
-    writer.write(s"def ${location} ${DomainKnowledge.interpolation_L3.get}( lev:Int \n")
-    writer.write("                     uf:Container  \n")
-    writer.write("                     uc:Container ) : Unit \n")
+    writer.write(s"def ${location} ${DomainKnowledge.interpolation_L3.get}( lev:Int ) : Unit \n")
+    //writer.write("                     uf:Container  \n")
+    //writer.write("                     uc:Container ) : Unit \n")
     writer.write("{ \n")
     // COMM_HACK
     writer.write("  exchsolData ( (lev-1) \n 0 )  \n")
-    writer.write("    loop innerpoints level uf order lex block 1 1  \n")
-    writer.write("    uf += RestrictionStencil * uc | ToFine  \n")
+    writer.write("    loop innerpoints level lev order lex block 1 1  \n")
+    writer.write(s"    ${DomainKnowledge.unknown_L1(0)._1} += RestrictionStencil * ${DomainKnowledge.unknown_L1(0)._1} [ (lev - 1) ] | ToFine  \n")
     writer.write("    next  \n")
     writer.write("}  \n")
 
@@ -186,11 +188,11 @@ def cpu sqr ( lev:Int
       val setname = n match { case "gpu" => "setcuda" case _ => "set" }
       writer.write(s"def ${n} ${setname} ( lev:Int \n")
       // COMM_HACK
-      writer.write("          arr:Container  \n")
+      //writer.write("          arr:Container  \n")
       writer.write("          value:Int) : Unit  \n")
       writer.write("{ \n")
-      writer.write("  loop allpoints level arr order lex block 1 1  \n")
-      writer.write("      arr = value    \n")
+      writer.write("  loop allpoints level lev order lex block 1 1  \n")
+      writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1} = value    \n")
       writer.write("next  \n")
       writer.write("}  \n")
 

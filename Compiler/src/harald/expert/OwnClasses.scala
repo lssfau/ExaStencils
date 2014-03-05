@@ -322,9 +322,9 @@ object StencilGenerator {
     var fieldName = memlistS(0).name;
     // COMM_HACK
     fieldName = fieldName match {
-      case "solution[lev]" => "fragments[0]->solData[0][lev]->getDataRef"
-      case "Res[lev]"      => "fragments[0]->resData[0][lev]->getDataRef"
-      case "f[lev]"        => "fragments[0]->rhsData[0][lev]->getDataRef"
+      case "solution[lev]" => "curFragment.solData[0][lev]->getDataRef"
+      case "Res[lev]"      => "curFragment.resData[0][lev]->getDataRef"
+      case "f[lev]"        => "curFragment.rhsData[0][lev]->getDataRef"
       case s : String      => s
     }
 

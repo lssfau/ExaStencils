@@ -57,9 +57,9 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
     // FIXME: make the next line of code more readable and robust
     val globals : Globals = StateManager.root.asInstanceOf[Root].nodes.find(node => node.isInstanceOf[Globals]).get.asInstanceOf[Globals];
 
-    globals.variables += new VariableDeclarationStatement(new Variable(s"Fragment3DCube*", s"fragments[${Knowledge.numFragsPerBlock}]"));
+    globals.variables += new VariableDeclarationStatement(new VariableAccess(s"fragments[${Knowledge.numFragsPerBlock}]", Some("Fragment3DCube*")));
 
-    new FunctionStatement("int", "main" /*FIXME*/ + "2", ListBuffer(Variable("int", "argc"), Variable("char**", "argv")),
+    new FunctionStatement("int", "main" /*FIXME*/ + "2", ListBuffer(VariableAccess("argc", Some("int")), VariableAccess("argv", Some("char**"))),
       ListBuffer[Statement](
         new MPI_Init,
         new MPI_SetRankAndSize,

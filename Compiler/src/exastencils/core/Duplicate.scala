@@ -1,8 +1,6 @@
-package exastencils.datastructures
+package exastencils.core
 
 import java.lang.reflect._
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.HashMap
 
 object Duplicate {
   val cloner = new com.rits.cloning.Cloner
