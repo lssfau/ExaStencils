@@ -1,0 +1,7 @@
+Prototype : smoother cgs ;
+
+smoother : Jacobi | GaussSeidel | RedBlack_GaussSeidel ;
+
+cgs : InPlace_Smoother ;
+
+% constraints %

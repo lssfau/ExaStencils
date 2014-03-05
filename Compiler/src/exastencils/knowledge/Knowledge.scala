@@ -1,6 +1,7 @@
 package exastencils.knowledge
 
 import exastencils.knowledge._
+import exastencils.spl.Configuration
 
 object CoarseGridSolverType extends Enumeration {
   type CoarseGridSolverType = Value;
@@ -89,7 +90,20 @@ object Knowledge {
 
   var numSolSlots : Integer = (if (SmootherType.Jac == smoother) 2 else 1);
 
-  def update : Unit = {
+  def update(configuration : Configuration) : Unit = {
+    
+    
+    smoother = configuration.getFirstSelectedSubFeatureName("smoother") match {
+	  case "Jacobi"               => SmootherType.Jac
+	  case "GaussSeidel"          => SmootherType.GS
+	  case "RedBlack_GaussSeidel" => SmootherType.RBGS
+	}
+	
+    cgs = configuration.getFirstSelectedSubFeatureName("cgs") match {
+	  case "InPlace_Smoother" => CoarseGridSolverType.IP_Smoother
+	}
+    
+    
     useOMP = summarizeBlocks || (numFragsPerBlock_x != 1 || numFragsPerBlock_y != 1 || numFragsPerBlock_z != 1)
 
     numLevels = maxLevel + 1;
@@ -121,4 +135,5 @@ object Knowledge {
 
     numSolSlots = (if (SmootherType.Jac == smoother) 2 else 1);
   }
+  
 }

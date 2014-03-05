@@ -1,0 +1,12 @@
+Prototype : smoother cgs pre post ;
+
+smoother : JAC | GS | GSAC | GSRB | GSRBAC | GSACBE ;
+
+cgs : IP_CG | RED_AMG | IP_AMG ;
+
+pre : pre0 | pre1 | pre2 | pre3 | pre4 | pre5 | pre6 ;
+
+post : post0 | post1 | post2 | post3 | post4 | post5 | post6 ;
+
+% constraints %
+pre0 excludes post0;

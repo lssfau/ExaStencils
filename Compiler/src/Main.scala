@@ -16,22 +16,30 @@ import harald.Generate._
 import harald.ast._
 import harald.expert._
 import harald.pretty._
+import exastencils.spl.FeatureModel
+
+
+
+
 
 object Main {
   def main(args : Array[String]) : Unit = {
     // Init settings
 
-    val s = new exastencils.parsers.settings.ParserSettings
-    s.parseFile(args(0))
-    val k = new exastencils.parsers.settings.ParserKnowledge
-    k.parseFile(args(1))
+//    val s = new exastencils.parsers.settings.ParserSettings
+//    s.parseFile(args(0))
+//    val k = new exastencils.parsers.settings.ParserKnowledge
+//    k.parseFile(args(1))
 
-    Knowledge.update
+    // feature model  (modified FAMA Format (http://www.isa.us.es/fama/))
+    FeatureModel.readFeatureModel("./featureModel/model_Prototype.model")
+    var configuration = FeatureModel.getMinimalConfig
+    Knowledge.update(configuration)
 
     // Hack paths
 
     val libpath = "C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ScalaExaStencil/Compiler/src/harald/otherfiles/"
-    val DSLpath = "C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ScalaExaStencil/Compiler/src/harald/testmg/"
+    val DSLpath = "E:/ScalaPrototyp/Compiler/src/harald/testmg/"
     val problem = "testDSL"
     val outputfile = "main.cpp"
 
