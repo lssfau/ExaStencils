@@ -18,10 +18,6 @@ import harald.expert._
 import harald.pretty._
 import exastencils.spl.FeatureModel
 
-
-
-
-
 object Main {
   def main(args : Array[String]) : Unit = {
     // Init settings

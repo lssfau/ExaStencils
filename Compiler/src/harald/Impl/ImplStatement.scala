@@ -6,8 +6,9 @@ import harald.ast.TreeManager
 import harald.expert.StencilGenerator
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.primitives.LoopOverFragments
-import exastencils.core.collectors.StackCollector
+import exastencils.core.collectors._
+import exastencils.primitives._
+import exastencils.omp._
 
 case class ImplCommunication(fname : String, loc : String) extends Statement {
   override def cpp : String = {
@@ -43,13 +44,14 @@ case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : List
 
   override def cpp : String = {
     // FIXME: make this node expandable and move mapping to expand function
+    // FIXME: support for OMP_PotentiallyParallel is currently missing; this is partly due to the shallow expands
 
     // COMM_HACK
     for (i <- 0 to stop.length - 1) {
       stop(i) = stop(i).cpp match {
-        case "solution[lev].x1_"    => "curFragment.solData[0][lev]->x1_"
-        case "solution[lev].x2_"    => "curFragment.solData[0][lev]->x2_"
-        case "solution[lev].x3_"    => "curFragment.solData[0][lev]->x3_"
+        case "solution[lev].x1_"          => "curFragment.solData[0][lev]->x1_"
+        case "solution[lev].x2_"          => "curFragment.solData[0][lev]->x2_"
+        case "solution[lev].x3_"          => "curFragment.solData[0][lev]->x3_"
         case "(solution[lev].x1_ - 1)"    => "(curFragment.solData[0][lev]->x1_ - 1)"
         case "(solution[lev].x2_ - 1)"    => "(curFragment.solData[0][lev]->x2_ - 1)"
         case "(solution[lev].x3_ - 1)"    => "(curFragment.solData[0][lev]->x3_ - 1)"
@@ -89,24 +91,31 @@ case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : List
         sloops += StatementBlock(wrappedBody).cpp;
       }
     } else { // lex
-      var wrappedBody : ListBuffer[Statement] = body; // TODO: clone?
-
-      for (i <- 0 to start.length - 1) {
-        if (stepsize(i) >= 0) {
-          wrappedBody = ListBuffer[Statement](new ForLoopStatement(
-            loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}$i" ~ " = " ~ start(i),
-            s"${loopvar(0).name}$i < " ~ stop(i),
-            stepToUpdate(stepsize(i), i, loopvar(0).name),
-            wrappedBody))
-        } else {
-          wrappedBody = ListBuffer[Statement](new ForLoopStatement(
-            loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}$i" ~ " = (" ~ stop(i) ~ "- 1)",
-            s"${loopvar(0).name}$i >= " ~ start(i),
-            stepToUpdate(stepsize(i), i, loopvar(0).name),
-            wrappedBody))
+      // Switch for transforming with LoopOverDimensions -> FIXME: use expand functionality or similar
+      if (true && start.length > 1) {
+        // TODO: Steffan, this may be a good place to start
+        sloops += (new LoopOverDimensions_Steffan(
+          IndexRange_Steffan(start.map(i => i.cpp).toArray, stop.map(i => i.cpp).toArray),
+          body) with OMP_PotentiallyParallel /* FIXME: this is currently ignored due to a shallow expand */ ).expand(new StackCollector).cpp
+      } else {
+        var wrappedBody : ListBuffer[Statement] = body; // TODO: clone?
+        for (i <- 0 to start.length - 1) {
+          if (stepsize(i) >= 0) {
+            wrappedBody = ListBuffer[Statement](new ForLoopStatement(
+              loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}$i" ~ " = " ~ start(i),
+              s"${loopvar(0).name}$i < " ~ stop(i),
+              stepToUpdate(stepsize(i), i, loopvar(0).name),
+              wrappedBody))
+          } else {
+            wrappedBody = ListBuffer[Statement](new ForLoopStatement(
+              loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}$i" ~ " = (" ~ stop(i) ~ "- 1)",
+              s"${loopvar(0).name}$i >= " ~ start(i),
+              stepToUpdate(stepsize(i), i, loopvar(0).name),
+              wrappedBody))
+          }
         }
+        sloops += StatementBlock(wrappedBody).cpp;
       }
-      sloops += StatementBlock(wrappedBody).cpp;
     }
 
     // COMM_HACK

@@ -11,6 +11,17 @@ object dimToString extends (Int => String) {
   }
 };
 
+object dimToString_Steffan extends (Int => String) { // FIXME: required for compatibility with Harald's naming conventions; replace with regular mapping
+  def apply(dim : Int) : String = {
+    return dim match {
+      case 0 => "i0";
+      case 1 => "i1";
+      case 2 => "i2";
+      case _ => "UNKNOWN";
+    }
+  }
+};
+
 object dirToString extends (Int => String) {
   def apply(dim : Int) : String = {
     return dim match {
