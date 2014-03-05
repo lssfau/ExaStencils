@@ -45,13 +45,11 @@ case class VariableAccess(name : String, dType : Option[Datatype] = None) extend
   override def cpp = name
 }
 
-case class ArrayAccess(base : Access, indices : Array[Expression]) extends Access {
-  override def cpp = base.cpp + indices.map({ expr =>
-    '[' + expr.cpp + ']'
-  }).mkString
+case class ArrayAccess(base : Access, indices : Expression*) extends Access {
+  override def cpp = base.cpp + indices.map({ expr => '[' + expr.cpp + ']' }).mkString
 }
 
-case class FieldAccess_(base : Access, varAcc : VariableAccess) extends Access {
+case class MemberAccess(base : Access, varAcc : VariableAccess) extends Access {
   override def cpp = base.cpp + '.' + varAcc.cpp
 }
 
