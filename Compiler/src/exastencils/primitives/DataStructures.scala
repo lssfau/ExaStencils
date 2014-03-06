@@ -40,32 +40,6 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
   }
 }
 
-case class LoopOverDimensions_Steffan(var indices : IndexRange_Steffan, var body : ListBuffer[Statement], var addOMPStatements : String = "") extends Statement with Expandable { // FIXME: use regular LoopOverDimensions
-  def this(indices : IndexRange_Steffan, body : Statement, addOMPStatements : String) = this(indices, ListBuffer[Statement](body), addOMPStatements);
-  def this(indices : IndexRange_Steffan, body : Statement) = this(indices, ListBuffer[Statement](body));
-
-  override def cpp : String = "NOT VALID ; CLASS = LoopOverDimensions_Steffan\n";
-
-  def expand(collector : StackCollector) : ForLoopStatement = {
-    val parallelizable = Knowledge.summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false });
-
-    var wrappedBody : ListBuffer[Statement] = body; // TODO: clone?
-
-    for (d <- 0 until Knowledge.dimensionality - 1) {
-      wrappedBody = ListBuffer[Statement](new ForLoopStatement(
-        // FIXME: this special version uses '<' instead of '<=' to be compatible with Harald's indexing
-        s"int ${dimToString_Steffan(d)} = ${indices.begin(d)}", s"${dimToString_Steffan(d)} < ${indices.end(d)}", s"++${dimToString_Steffan(d)}",
-        wrappedBody));
-    }
-    val d = Knowledge.dimensionality - 1;
-    // FIXME: this special version uses '<' instead of '<=' to be compatible with Harald's indexing
-    if (parallelizable)
-      return new ForLoopStatement(s"int ${dimToString_Steffan(d)} = ${indices.begin(d)}", s"${dimToString_Steffan(d)} < ${indices.end(d)}", s"++${dimToString_Steffan(d)}", wrappedBody, addOMPStatements + " schedule(static)") with OMP_PotentiallyParallel;
-    else
-      return new ForLoopStatement(s"int ${dimToString_Steffan(d)} = ${indices.begin(d)}", s"${dimToString_Steffan(d)} < ${indices.end(d)}", s"++${dimToString_Steffan(d)}", wrappedBody);
-  }
-}
-
 case class FieldAccess(var field : Field, var level : Expression, var slot : Expression, var index : Expression) extends Expression {
   override def cpp : String = {
     s"curFragment.${field.codeName}[${slot.cpp}][${level.cpp}]->data[${index.cpp}]";

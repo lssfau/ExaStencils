@@ -34,8 +34,6 @@ class NeighborInfo(var dir : Array[Int], var index : Int) {
 
 case class IndexRange(begin : Array[Int] = Array(0, 0, 0), end : Array[Int] = Array(0, 0, 0)) {}
 
-case class IndexRange_Steffan(begin : Array[_ <: Any] = Array(0, 0, 0), end : Array[_ <: Any] = Array(0, 0, 0)) {} // FIXME: use regular IndexRange
-
 object Mapping {
   def first(level : Int, dim : Int) : Int = {
     return 0;

@@ -91,31 +91,24 @@ case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : List
         sloops += StatementBlock(wrappedBody).cpp;
       }
     } else { // lex
-      // Switch for transforming with LoopOverDimensions -> FIXME: use expand functionality or similar
-      if (true && start.length > 1) {
-        // TODO: Steffan, this may be a good place to start
-        sloops += (new LoopOverDimensions_Steffan(
-          IndexRange_Steffan(start.map(i => i.cpp).toArray, stop.map(i => i.cpp).toArray),
-          body) with OMP_PotentiallyParallel /* FIXME: this is currently ignored due to a shallow expand */ ).expand(new StackCollector).cpp
-      } else {
-        var wrappedBody : ListBuffer[Statement] = body; // TODO: clone?
-        for (i <- 0 to start.length - 1) {
-          if (stepsize(i) >= 0) {
-            wrappedBody = ListBuffer[Statement](new ForLoopStatement(
-              loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}$i" ~ " = " ~ start(i),
-              s"${loopvar(0).name}$i < " ~ stop(i),
-              stepToUpdate(stepsize(i), i, loopvar(0).name),
-              wrappedBody))
-          } else {
-            wrappedBody = ListBuffer[Statement](new ForLoopStatement(
-              loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}$i" ~ " = (" ~ stop(i) ~ "- 1)",
-              s"${loopvar(0).name}$i >= " ~ start(i),
-              stepToUpdate(stepsize(i), i, loopvar(0).name),
-              wrappedBody))
-          }
+      var wrappedBody : ListBuffer[Statement] = body; // TODO: clone?
+
+      for (i <- 0 to start.length - 1) {
+        if (stepsize(i) >= 0) {
+          wrappedBody = ListBuffer[Statement](new ForLoopStatement(
+            loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}$i" ~ " = " ~ start(i),
+            s"${loopvar(0).name}$i < " ~ stop(i),
+            stepToUpdate(stepsize(i), i, loopvar(0).name),
+            wrappedBody))
+        } else {
+          wrappedBody = ListBuffer[Statement](new ForLoopStatement(
+            loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}$i" ~ " = (" ~ stop(i) ~ "- 1)",
+            s"${loopvar(0).name}$i >= " ~ start(i),
+            stepToUpdate(stepsize(i), i, loopvar(0).name),
+            wrappedBody))
         }
-        sloops += StatementBlock(wrappedBody).cpp;
       }
+      sloops += StatementBlock(wrappedBody).cpp;
     }
 
     // COMM_HACK
