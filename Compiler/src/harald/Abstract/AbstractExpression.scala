@@ -15,13 +15,13 @@ sealed abstract class AbstractExpression {
   def getvariables : ListBuffer[String] = ListBuffer()
 }
 
-case class AbstractBinaryOp(operator : String, left : AbstractExpression, right : AbstractExpression) extends AbstractExpression {
+case class AbstractBinaryOp(operator : BinaryOperators.Value, left : AbstractExpression, right : AbstractExpression) extends AbstractExpression {
   override def value(context : Context) = left.value(context)
   override def toString = left.toString + " " + operator + " " + right.toString
 
   override def transform(scopeparas : ListBuffer[ParameterInfo], modifier : Option[String], scopetype : String) : Expression = {
     // check for convolution M * v
-    if (operator.equals("*"))
+    if (operator == BinaryOperators.Multiplication)
       left match {
         case AbstractVariable(id1, l1) => {
           for (e1 <- TreeManager.tree.Stencils)
@@ -130,7 +130,7 @@ case class AbstractFCall(fname : String, arglist : List[AbstractExpression]) ext
       args += a.transform(scopeparas, modifier, "argument")
 
     if (fname.equals("inverse")) {
-      return new BinaryExpression("/", new StringLiteral(s"${DomainKnowledge.datatype_L2.getOrElse("double")}(1)"), arglist(0).transform(scopeparas, modifier, "argument"))
+      return new BinaryExpression(BinaryOperators.Division, new StringLiteral(s"${DomainKnowledge.datatype_L2.getOrElse("double")}(1)"), arglist(0).transform(scopeparas, modifier, "argument"))
     }
 
     if (fname.equals("diag")) {

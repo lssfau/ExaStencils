@@ -75,14 +75,14 @@ class ParserL4(tree : TreeL2) extends StandardTokenParsers {
   def functioncall = ident ~ "(" ~ expr.* ~ ")" ^^ { case id ~ a ~ e ~ b => AbstractFCall(id, e) }
 
   def expr: Parser[AbstractExpression] =
-    (term ~ "+" ~ term) ^^ { case lhs ~ op ~ rhs => AbstractBinaryOp("+", lhs, rhs) } |
-      (term ~ "-" ~ term) ^^ { case lhs ~ op ~ rhs => AbstractBinaryOp("-", lhs, rhs) } |
+    (term ~ "+" ~ term) ^^ { case lhs ~ op ~ rhs => AbstractBinaryOp(exastencils.datastructures.ir.BinaryOperators.Addition, lhs, rhs) } |
+      (term ~ "-" ~ term) ^^ { case lhs ~ op ~ rhs => AbstractBinaryOp(exastencils.datastructures.ir.BinaryOperators.Subtraction, lhs, rhs) } |
       functioncall |
       term
 
   def term: Parser[AbstractExpression] =
-    (factor ~ "*" ~ factor) ^^ { case lhs ~ op ~ rhs => AbstractBinaryOp("*", lhs, rhs) } |
-      (factor ~ "/" ~ factor) ^^ { case lhs ~ op ~ rhs => AbstractBinaryOp("/", lhs, rhs) } |
+    (factor ~ "*" ~ factor) ^^ { case lhs ~ op ~ rhs => AbstractBinaryOp(exastencils.datastructures.ir.BinaryOperators.Multiplication, lhs, rhs) } |
+      (factor ~ "/" ~ factor) ^^ { case lhs ~ op ~ rhs => AbstractBinaryOp(exastencils.datastructures.ir.BinaryOperators.Division, lhs, rhs) } |
       factor
 
   def factor: Parser[AbstractExpression] = ("(" ~> expr <~ ")"
