@@ -115,7 +115,7 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
   }
 }
 
-case class ExchangeData_6(field : Field, level : Integer, neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
+case class ExchangeData_6(field : Field, level : Int, neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_6\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
@@ -173,7 +173,7 @@ case class ExchangeData_6(field : Field, level : Integer, neighbors : ListBuffer
   }
 }
 
-case class ExchangeData_26(field : Field, level : Integer, neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
+case class ExchangeData_26(field : Field, level : Int, neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_26\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {

@@ -4,15 +4,10 @@ import scala.collection.mutable.ListBuffer
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 
-import harald.dsl.ParameterInfo // TODO: to be removed
-
 trait Expression extends Node with CppPrettyPrintable {
   def ~(exp : Expression) : ConcatenationExpression = {
     new ConcatenationExpression(ListBuffer(this, exp))
   }
-
-  // FIXME: this is currently required for interop with Harald's code; to be removed after integration
-  def evaluate(para : ListBuffer[ParameterInfo]) : Int = 0
 }
 
 trait Access extends Expression
@@ -33,7 +28,7 @@ case class StringLiteral(value : String) extends Expression {
   override def cpp = value
 }
 
-case class NumericLiteral(value : Number /*FIXME: we should think about using a scala alternative instead of java datatypes*/ ) extends Expression {
+case class NumericLiteral[T : Numeric](value : T) extends Expression {
   override def cpp = value.toString
 }
 

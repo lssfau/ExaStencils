@@ -57,22 +57,22 @@ case class MPI_Barrier() extends Statement {
   }
 };
 
-case class InitMPIDataType(mpiTypeName : String, indexRange : IndexRange, level : Integer) extends Statement with Expandable {
+case class InitMPIDataType(mpiTypeName : String, indexRange : IndexRange, level : Int) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = InitMPIDataType\n";
 
   def expand(collector : StackCollector) : StatementBlock = {
     if (indexRange.begin(2) == indexRange.end(2)) {
       return StatementBlock(ListBuffer[Statement](s"MPI_Type_vector(" ~
-        NumericLiteral(indexRange.end(1) - indexRange.begin(1) + 1) ~ ", " ~
-        NumericLiteral(indexRange.end(0) - indexRange.begin(0) + 1) ~ ", " ~
-        NumericLiteral(Mapping.numPoints(level, 0)) ~
+        (indexRange.end(1) - indexRange.begin(1) + 1) ~ ", " ~
+        (indexRange.end(0) - indexRange.begin(0) + 1) ~ ", " ~
+        (Mapping.numPoints(level, 0)) ~
         s", MPI_DOUBLE, &$mpiTypeName);",
         s"MPI_Type_commit(&$mpiTypeName);"));
     } else if (indexRange.begin(1) == indexRange.end(1)) {
       return StatementBlock(ListBuffer[Statement](s"MPI_Type_vector(" ~
-        NumericLiteral(indexRange.end(2) - indexRange.begin(2) + 1) ~ ", " ~
-        NumericLiteral(indexRange.end(0) - indexRange.begin(0) + 1) ~ ", " ~
-        NumericLiteral(Mapping.numPoints(level, 0) * Mapping.numPoints(level, 1)) ~
+        (indexRange.end(2) - indexRange.begin(2) + 1) ~ ", " ~
+        (indexRange.end(0) - indexRange.begin(0) + 1) ~ ", " ~
+        (Mapping.numPoints(level, 0) * Mapping.numPoints(level, 1)) ~
         s", MPI_DOUBLE, &$mpiTypeName);",
         s"MPI_Type_commit(&$mpiTypeName);"));
     } else return StatementBlock(ListBuffer[Statement]());

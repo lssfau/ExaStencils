@@ -51,14 +51,14 @@ case class AbstractLoop(where : String, lev : String, order : String, blocksize 
       }
     var start : ListBuffer[Expression] = ListBuffer()
     for (i <- 1 to DomainKnowledge.rule_dim())
-      start += new NumericLiteral(startidx)
+      start += startidx
 
     var stop : ListBuffer[Expression] = ListBuffer()
 
     lpkn match {
       case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "innerpoints", "1") => {
         for (i <- 1 to DomainKnowledge.rule_dim())
-          stop += new BinaryExpression("-", lpendvariable + "." + "x" + i.toString + "_", new NumericLiteral(1))
+          stop += new BinaryExpression("-", lpendvariable + "." + "x" + i.toString + "_", 1)
       }
       case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "allpoints", "1") => {
         for (i <- 1 to DomainKnowledge.rule_dim())
@@ -99,9 +99,9 @@ case class AbstractRepeat(val expr : AbstractExpression, val stmt : List[Abstrac
     }
 
     if (direction.equals("up"))
-      ret += new Implforloop(ListBuffer(new ParameterInfo("i", "int")), ListBuffer(new NumericLiteral(0)), ListBuffer(expr.transform(scopeparas, None, "condition")), ListBuffer(1, 1, 1), "lex", 1, st2)
+      ret += new Implforloop(ListBuffer(new ParameterInfo("i", "int")), ListBuffer(0), ListBuffer(expr.transform(scopeparas, None, "condition")), ListBuffer(1, 1, 1), "lex", 1, st2)
     else
-      ret += new Implforloop(ListBuffer(new ParameterInfo("i", "int")), ListBuffer(new NumericLiteral(0)), ListBuffer(expr.transform(scopeparas, None, "condition")), ListBuffer(-1, -1, -1), "lex", 1, st2)
+      ret += new Implforloop(ListBuffer(new ParameterInfo("i", "int")), ListBuffer(0), ListBuffer(expr.transform(scopeparas, None, "condition")), ListBuffer(-1, -1, -1), "lex", 1, st2)
 
     return ret
   }
@@ -128,8 +128,8 @@ case class AbstractIfElse(val cond : AbstractExpression, ifstmts : List[Abstract
       ret += new ConditionStatement(new BinaryExpression("==", "lev",
         // COMM_HACK
         //        new BinaryExpression("-", "nlevels",
-        //          new NumericLiteral(1))),
-        new NumericLiteral(0)),
+        //          1)),
+        0),
         st1, st2)
     else
       ret += new ConditionStatement(cond.transform(scopeparas, None, "condition"), st1, st2)
@@ -212,10 +212,10 @@ case class AbstractPLet(var id : String, val expr : AbstractExpression, modifier
   override def transform(scopeparas : ListBuffer[ParameterInfo]) : ListBuffer[Statement] = {
     var ti : TypeInfo = new TypeInfo(id, 0)
     for (e <- TreeManager.tree.Fields)
-      if (e.name.equals(id)){
+      if (e.name.equals(id)) {
         ti = new TypeInfo(id, 1)
-        
-         val levstr = new StringLiteral("lev")
+
+        val levstr = new StringLiteral("lev")
 
         // COMM_HACK
         id = id match {
@@ -225,7 +225,7 @@ case class AbstractPLet(var id : String, val expr : AbstractExpression, modifier
           case "f"        => ("curFragment.rhsData[0][" ~ levstr ~ "]->getDataRef").cpp
           case _          => id
         }
-     }
+      }
     for (e <- TreeManager.tree.Stencils)
       if (e.name.equals(id))
         ti = new TypeInfo(id, 2)

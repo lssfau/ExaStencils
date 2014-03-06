@@ -43,14 +43,14 @@ object LoopOverDomainStatement {
   type Order = OrderType.Order
 
   abstract class Blocksize
-  class Blocksize2D(val X : Integer, val Y : Integer) extends Blocksize
-  class Blocksize3D(val X : Integer, val Y : Integer, val Z : Integer) extends Blocksize
+  class Blocksize2D(val X : Int, val Y : Int) extends Blocksize
+  class Blocksize3D(val X : Int, val Y : Int, val Z : Int) extends Blocksize
 
-  def apply(area : String, levels : Option[Integer], order : Option[String], blocksize : Option[Blocksize], statements : List[Statement]) =
+  def apply(area : String, levels : Option[Int], order : Option[String], blocksize : Option[Blocksize], statements : List[Statement]) =
     new LoopOverDomainStatement(AreaType.get(area), levels, OrderType.get(order.getOrElse("lexical")), blocksize.getOrElse(new Blocksize2D(1, 1)), statements)
 }
 
-case class LoopOverDomainStatement(area : LoopOverDomainStatement.Area, levels : Option[Integer], order : LoopOverDomainStatement.Order, blocksize : LoopOverDomainStatement.Blocksize, var statements : List[Statement])
+case class LoopOverDomainStatement(area : LoopOverDomainStatement.Area, levels : Option[Int], order : LoopOverDomainStatement.Order, blocksize : LoopOverDomainStatement.Blocksize, var statements : List[Statement])
   extends Statement
 
 case class FunctionStatement(name : String, var returntype : Datatype, var arguments : List[Variable], var statements : List[Statement])

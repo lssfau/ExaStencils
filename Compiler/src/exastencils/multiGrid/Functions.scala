@@ -11,7 +11,7 @@ import exastencils.primitives._
 import exastencils.mpi._
 import exastencils.omp._
 
-case class PerformSmoothing_Jac(solutionField : Field, rhsField : Field, level : Integer) extends AbstractFunctionStatement with Expandable {
+case class PerformSmoothing_Jac(solutionField : Field, rhsField : Field, level : Int) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = PerformSmoothingJacobi\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
@@ -37,7 +37,7 @@ case class PerformSmoothing_Jac(solutionField : Field, rhsField : Field, level :
   }
 }
 
-case class PerformSmoothing_GS(solutionField : Field, rhsField : Field, level : Integer) extends AbstractFunctionStatement with Expandable {
+case class PerformSmoothing_GS(solutionField : Field, rhsField : Field, level : Int) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = PerformSmoothingJacobi\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
@@ -63,7 +63,7 @@ case class PerformSmoothing_GS(solutionField : Field, rhsField : Field, level : 
   }
 }
 
-case class PerformSmoothing(solutionField : Field, rhsField : Field, level : Integer) extends AbstractFunctionStatement with Expandable {
+case class PerformSmoothing(solutionField : Field, rhsField : Field, level : Int) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = PerformSmoothing\n";
 
   override def expand(collector : StackCollector) : AbstractFunctionStatement = {
@@ -194,7 +194,7 @@ case class PerformSmoothing(solutionField : Field, rhsField : Field, level : Int
   */
 }
 
-case class UpdateResidual(residualField : Field, solutionField : Field, rhsField : Field, level : Integer) extends AbstractFunctionStatement with Expandable {
+case class UpdateResidual(residualField : Field, solutionField : Field, rhsField : Field, level : Int) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = UpdateResidual\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
@@ -382,7 +382,7 @@ case class PerformProlongation() extends AbstractFunctionStatement with Expandab
   }
 }
 
-case class PerformCGS(level : Integer) extends AbstractFunctionStatement with Expandable {
+case class PerformCGS(level : Int) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = PerformVCycle\n";
 
   override def expand(collector : StackCollector) : ForLoopStatement = {
@@ -395,7 +395,7 @@ case class PerformCGS(level : Integer) extends AbstractFunctionStatement with Ex
   }
 }
 
-case class PerformVCycle(level : Integer) extends AbstractFunctionStatement with Expandable {
+case class PerformVCycle(level : Int) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = PerformVCycle\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
@@ -440,15 +440,15 @@ case class GetGlobalResidual(field : Field) extends AbstractFunctionStatement wi
           new LoopOverDimensions(fieldToIndexInner(Array(0, 0, 0), Knowledge.maxLevel),
             ListBuffer[Statement](
               // FIXME: this currently counts duplicated values multiple times
-              s"double tmpRes =" ~ new FieldAccess(field, Knowledge.maxLevel, NumericLiteral(0), Mapping.access(Knowledge.maxLevel)) ~ ";",
+              s"double tmpRes =" ~ new FieldAccess(field, Knowledge.maxLevel, 0, Mapping.access(Knowledge.maxLevel)) ~ ";",
               s"res += tmpRes * tmpRes;"), "reduction(+:res)") with OMP_PotentiallyParallel,
           true, "reduction(+:res)") with OMP_PotentiallyParallel,
-        new MPI_Allreduce("&res", "&resTotal", NumericLiteral(1), "MPI_SUM"),
+        new MPI_Allreduce("&res", "&resTotal", 1, "MPI_SUM"),
         s"return sqrt(resTotal);"));
   }
 }
 
-case class SetSolZero(field : Field, level : Integer) extends AbstractFunctionStatement with Expandable {
+case class SetSolZero(field : Field, level : Int) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = SetSolZero\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
@@ -457,6 +457,6 @@ case class SetSolZero(field : Field, level : Integer) extends AbstractFunctionSt
         new LoopOverDimensions(fieldToIndexInner(Array(0, 0, 0), level),
           new AssignmentStatement(
             new FieldAccess(field, level, "slot", Mapping.access(level)),
-            NumericLiteral(0.0))) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel);
+            0.0)) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel);
   }
 }

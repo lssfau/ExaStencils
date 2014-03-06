@@ -8,7 +8,7 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.omp._
 
-case class HandleBoundaries(var field : Field, var level : Integer, neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
+case class HandleBoundaries(var field : Field, var level : Int, neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
   def cpp : String = { return "NOT VALID ; CLASS = HandleBoundaries\n"; }
 
   override def expand(collector : StackCollector) : Statement = {
@@ -20,7 +20,7 @@ case class HandleBoundaries(var field : Field, var level : Integer, neighbors : 
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(
                 new FieldAccess(field, level, "slot", Mapping.access(level)),
-                NumericLiteral(0.0))) with OMP_PotentiallyParallel) : Statement)) with OMP_PotentiallyParallel;
+                0.0)) with OMP_PotentiallyParallel) : Statement)) with OMP_PotentiallyParallel;
     } else {
       return new NullStatement;
     }

@@ -7,7 +7,7 @@ trait Expression extends Node
 
 case class StringLiteral(value : String) extends Expression
 
-case class NumericLiteral(value : Number) extends Expression
+case class NumericLiteral[T : Numeric](value : T) extends Expression
 
 case class BooleanLiteral(value : Boolean) extends Expression
 

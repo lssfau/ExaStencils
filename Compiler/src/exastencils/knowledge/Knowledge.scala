@@ -25,31 +25,30 @@ object SmootherType extends Enumeration {
 }
 
 object Knowledge {
-  // FIXME: Integer is required to support implicit conversion to NumericLiteral
-	var dimensionality : Integer = 3;
-  
-  var numGhostLayers : Integer = 1;
-  var maxLevel : Integer = 6;
-  var numLevels : Integer = maxLevel + 1;
-  var fragmentCommStrategy : Integer = 6; //26
+  var dimensionality : Int = 3;
+
+  var numGhostLayers : Int = 1;
+  var maxLevel : Int = 6;
+  var numLevels : Int = maxLevel + 1;
+  var fragmentCommStrategy : Int = 6; //26
   var useMPIDatatypes : Boolean = true;
   var useLoopsOverNeighbors : Boolean = true;
 
   var summarizeBlocks : Boolean = true; // TODO: sanity check if compatible with chosen smoother
   var useOMP : Boolean = true;
 
-  var numBlocks_x : Integer = 4;
-  var numBlocks_y : Integer = 4;
-  var numBlocks_z : Integer = 4;
+  var numBlocks_x : Int = 4;
+  var numBlocks_y : Int = 4;
+  var numBlocks_z : Int = 4;
   // TODO: ignore values outside the given dimensionality; also applies for other Knowledge values
-  var numBlocks : Integer = numBlocks_x * numBlocks_y * numBlocks_z;
+  var numBlocks : Int = numBlocks_x * numBlocks_y * numBlocks_z;
 
-  var numFragsPerBlock_x : Integer = 4;
-  var numFragsPerBlock_y : Integer = 4;
-  var numFragsPerBlock_z : Integer = 4;
-  var fragLength_x : Integer = 1;
-  var fragLength_y : Integer = 1;
-  var fragLength_z : Integer = 1;
+  var numFragsPerBlock_x : Int = 4;
+  var numFragsPerBlock_y : Int = 4;
+  var numFragsPerBlock_z : Int = 4;
+  var fragLength_x : Int = 1;
+  var fragLength_y : Int = 1;
+  var fragLength_z : Int = 1;
 
   if (summarizeBlocks) {
     // FIXME: move to transformation
@@ -62,48 +61,46 @@ object Knowledge {
     numFragsPerBlock_z = 1;
   }
 
-  var numFragsTotal_x : Integer = numFragsPerBlock_x * numBlocks_x;
-  var numFragsTotal_y : Integer = numFragsPerBlock_y * numBlocks_y;
-  var numFragsTotal_z : Integer = numFragsPerBlock_z * numBlocks_z;
-  var numFragsTotal : Integer = numFragsTotal_x * numFragsTotal_y * numFragsTotal_z;
+  var numFragsTotal_x : Int = numFragsPerBlock_x * numBlocks_x;
+  var numFragsTotal_y : Int = numFragsPerBlock_y * numBlocks_y;
+  var numFragsTotal_z : Int = numFragsPerBlock_z * numBlocks_z;
+  var numFragsTotal : Int = numFragsTotal_x * numFragsTotal_y * numFragsTotal_z;
 
-  var numFragsPerBlock : Integer = numFragsPerBlock_x * numFragsPerBlock_y * numFragsPerBlock_z;
-  var numFragsPerBlockPerDim : Array[Integer] = Array(numFragsPerBlock_x, numFragsPerBlock_y, numFragsPerBlock_z);
-  var fragLength : Integer = fragLength_x * fragLength_y * fragLength_z;
-  var fragLengthPerDim : Array[Integer] = Array(fragLength_x, fragLength_y, fragLength_z);
+  var numFragsPerBlock : Int = numFragsPerBlock_x * numFragsPerBlock_y * numFragsPerBlock_z;
+  var numFragsPerBlockPerDim : Array[Int] = Array(numFragsPerBlock_x, numFragsPerBlock_y, numFragsPerBlock_z);
+  var fragLength : Int = fragLength_x * fragLength_y * fragLength_z;
+  var fragLengthPerDim : Array[Int] = Array(fragLength_x, fragLength_y, fragLength_z);
 
-  var smootherNumPre : Integer = 3;
-  var smootherNumPost : Integer = 3;
-  var cgsNumSteps : Integer = 512;
+  var smootherNumPre : Int = 3;
+  var smootherNumPost : Int = 3;
+  var cgsNumSteps : Int = 512;
 
-  var mgMaxNumIterations : Integer = 1024;
+  var mgMaxNumIterations : Int = 1024;
 
   var cgs = CoarseGridSolverType.IP_Smoother;
   var smoother = SmootherType.GS;
 
-  var gsodNumIterations : Integer = 8;
-  var gsbeNumIterations : Integer = 12;
-  var gsbeNumWindowSize : Integer = 4;
-  var gsbeNumWindowOverlap : Integer = 1;
+  var gsodNumIterations : Int = 8;
+  var gsbeNumIterations : Int = 12;
+  var gsbeNumWindowSize : Int = 4;
+  var gsbeNumWindowOverlap : Int = 1;
 
   var smootherOmega : Double = (if (SmootherType.Jac == smoother) 0.8 else 1.0);
 
-  var numSolSlots : Integer = (if (SmootherType.Jac == smoother) 2 else 1);
+  var numSolSlots : Int = (if (SmootherType.Jac == smoother) 2 else 1);
 
   def update(configuration : Configuration) : Unit = {
-    
-    
+
     smoother = configuration.getFirstSelectedSubFeatureName("smoother") match {
-	  case "Jacobi"               => SmootherType.Jac
-	  case "GaussSeidel"          => SmootherType.GS
-	  case "RedBlack_GaussSeidel" => SmootherType.RBGS
-	}
-	
+      case "Jacobi"               => SmootherType.Jac
+      case "GaussSeidel"          => SmootherType.GS
+      case "RedBlack_GaussSeidel" => SmootherType.RBGS
+    }
+
     cgs = configuration.getFirstSelectedSubFeatureName("cgs") match {
-	  case "InPlace_Smoother" => CoarseGridSolverType.IP_Smoother
-	}
-    
-    
+      case "InPlace_Smoother" => CoarseGridSolverType.IP_Smoother
+    }
+
     useOMP = summarizeBlocks || (numFragsPerBlock_x != 1 || numFragsPerBlock_y != 1 || numFragsPerBlock_z != 1)
 
     numLevels = maxLevel + 1;
@@ -135,5 +132,5 @@ object Knowledge {
 
     numSolSlots = (if (SmootherType.Jac == smoother) 2 else 1);
   }
-  
+
 }

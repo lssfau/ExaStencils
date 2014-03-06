@@ -89,7 +89,7 @@ case class ExchangeDataSplitter(field : Field) extends AbstractFunctionStatement
       ListBuffer(VariableAccess("level", Some("unsigned int")), VariableAccess("slot", Some("unsigned int"))),
       SwitchStatement("level",
         (0 to Knowledge.maxLevel).to[ListBuffer].map(level =>
-          new CaseStatement(NumericLiteral(level), s"exch${field.codeName}_$level(slot);"))));
+          new CaseStatement(level, s"exch${field.codeName}_$level(slot);"))));
   }
 }
 

@@ -28,8 +28,8 @@ case class InitFields() extends Statement {
         body += new LoopOverDimensions(fieldToIndexInnerWide(Array(0, 0, 0), level),
           (0 until field.numSlots).to[ListBuffer].map(slot =>
             new AssignmentStatement(
-              new FieldAccess(field, NumericLiteral(level), NumericLiteral(slot), Mapping.access(level)),
-              NumericLiteral(0.0)) : Statement)) with OMP_PotentiallyParallel;
+              new FieldAccess(field, level, slot, Mapping.access(level)),
+              0.0) : Statement)) with OMP_PotentiallyParallel;
       }
     }
 
@@ -42,7 +42,7 @@ case class InitFields() extends Statement {
           ++
           (0 until field.numSlots).to[ListBuffer].map(slot =>
             new AssignmentStatement(
-              new FieldAccess(field, NumericLiteral(Knowledge.maxLevel), NumericLiteral(slot), Mapping.access(Knowledge.maxLevel)),
+              new FieldAccess(field, Knowledge.maxLevel, slot, Mapping.access(Knowledge.maxLevel)),
               s"val") : Statement));
     }
 
@@ -193,7 +193,7 @@ case class Poisson3D() extends Node with FilePrettyPrintable {
 
     for (function <- functions_HACK)
       writer << function.cpp + "\n";
-    
+
     writer <<< "#endif";
   }
 }
