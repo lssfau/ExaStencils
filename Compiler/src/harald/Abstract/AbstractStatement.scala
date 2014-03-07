@@ -58,7 +58,7 @@ case class AbstractLoop(where : String, lev : String, order : String, blocksize 
     lpkn match {
       case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "innerpoints", "1") => {
         for (i <- 1 to DomainKnowledge.rule_dim())
-          stop += new BinaryExpression("-", lpendvariable + "." + "x" + i.toString + "_", 1)
+          stop += new BinaryExpression(BinaryOperators.Subtraction, lpendvariable + "." + "x" + i.toString + "_", 1)
       }
       case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "allpoints", "1") => {
         for (i <- 1 to DomainKnowledge.rule_dim())
@@ -125,7 +125,7 @@ case class AbstractIfElse(val cond : AbstractExpression, ifstmts : List[Abstract
     }
 
     if (cond.toString.startsWith("coarsestlevel"))
-      ret += new ConditionStatement(new BinaryExpression("==", "lev",
+      ret += new ConditionStatement(new BinaryExpression(BinaryOperators.Eq, "lev",
         // COMM_HACK
         //        new BinaryExpression("-", "nlevels",
         //          1)),

@@ -8,6 +8,28 @@ trait Expression extends Node with CppPrettyPrintable {
   def ~(exp : Expression) : ConcatenationExpression = {
     new ConcatenationExpression(ListBuffer(this, exp))
   }
+
+  import BinaryOperators._
+  def +(other : Expression) = new BinaryExpression(Addition, this, other)
+  def -(other : Expression) = new BinaryExpression(Subtraction, this, other)
+  def *(other : Expression) = new BinaryExpression(Multiplication, this, other)
+  def /(other : Expression) = new BinaryExpression(Division, this, other)
+  def Pow(other : Expression) = new BinaryExpression(Power, this, other)
+  def Mod(other : Expression) = new BinaryExpression(Modulo, this, other)
+  def &&(other : Expression) = new BinaryExpression(AndAnd, this, other)
+  def ||(other : Expression) = new BinaryExpression(OrOr, this, other)
+  def ==(other : Expression) = new BinaryExpression(Eq, this, other)
+  def !=(other : Expression) = new BinaryExpression(Neq, this, other)
+}
+
+object BinaryOperators extends Enumeration {
+  type BinaryOperators = Value
+  val Addition, Subtraction, Multiplication, Division, Power, Modulo, AndAnd, OrOr, Eq, Neq = Value
+}
+
+object UnaryOperators extends Enumeration {
+  type UnaryOperators = Value
+  val Positive, Negative, Not = Value
 }
 
 trait Access extends Expression
@@ -40,8 +62,15 @@ case class VariableAccess(name : String, dType : Option[Datatype] = None) extend
   override def cpp = name
 }
 
-case class ArrayAccess(base : Access, indices : Expression*) extends Access {
-  override def cpp = base.cpp + indices.map({ expr => '[' + expr.cpp + ']' }).mkString
+case class ArrayAccess(base : Access, index : Expression) extends Access {
+  override def cpp = index match {
+    case ind : MultiIndex => base.cpp + ind.cpp
+    case ind : Expression => base.cpp + '[' + ind.cpp + ']'
+  }
+}
+
+case class MultiIndex(ind1 : Expression, ind2 : Expression, ind3 : Expression) extends Expression {
+  override def cpp = '[' + ind1.cpp + "][" + ind2.cpp + "][" + ind3.cpp + ']'
 }
 
 case class MemberAccess(base : Access, varAcc : VariableAccess) extends Access {
@@ -56,7 +85,11 @@ case class Constant(value : Any) extends Expression {
   override def cpp = ""
 }
 
-case class BinaryExpression(var operator : String, var left : Expression, var right : Expression) extends Expression {
+case class UnaryExpression(var operator : UnaryOperators.Value, expression : Expression) extends Expression {
+  override def cpp = { s"${operator.toString}(${expression.cpp})" }
+}
+
+case class BinaryExpression(var operator : BinaryOperators.Value, var left : Expression, var right : Expression) extends Expression {
   override def cpp = {
     s"(${left.cpp} $operator ${right.cpp})";
   }
