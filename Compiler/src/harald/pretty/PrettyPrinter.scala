@@ -26,23 +26,12 @@ class PrettyPrinter(treel2 : TreeL2) {
     if (DomainKnowledge.use_gpu)
       extlibcuda = scala.io.Source.fromFile(path + "mglib.cu").getLines.reduceLeft(_ + "\n" + _)
 
-    // publish global field variables
-    for (c <- treel2.Fields)
-      globals.variables += new VariableDeclarationStatement(new VariableAccess(c.name, Some(s"${c.arrname}<${c.datatype}>*")))
-    if (DomainKnowledge.use_MPI)
-      for (c <- treel2.GhostFields)
-        globals.variables += new VariableDeclarationStatement(new VariableAccess(c.name, Some(s"MyArray<${c.datatype}>*")))
-
     // publish global stencils
     for (c <- treel2.Stencils)
       if (c.weakform.equals(""))
         globals.variables += new VariableDeclarationStatement(new VariableAccess(c.name, Some(s"MyStencil<${c.datatype}>*")))
       else
         globals.variables += new VariableDeclarationStatement(new VariableAccess(c.name, Some(s"${treel2.ExternalClasses.get("StencilVar").get.name}<${c.datatype}>*")))
-
-    println(DomainKnowledge.global_variables)
-    println(DomainKnowledge.global_fields.toString)
-    println(DomainKnowledge.global_stencils.toString)
 
     var i = 0;
     val writerHeader = PrettyprintingManager.getPrinter(s"Functions.h");
