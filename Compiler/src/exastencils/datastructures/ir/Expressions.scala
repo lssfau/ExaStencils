@@ -3,6 +3,7 @@ package exastencils.datastructures.ir
 import scala.collection.mutable.ListBuffer
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
 
 trait Expression extends Node with CppPrettyPrintable {
   def ~(exp : Expression) : ConcatenationExpression = {
@@ -94,8 +95,17 @@ case class ArrayAccess(base : Access, index : Expression) extends Access {
   }
 }
 
-case class MultiIndex(ind1 : Expression, ind2 : Expression, ind3 : Expression) extends Expression {
-  override def cpp = '[' + ind1.cpp + "][" + ind2.cpp + "][" + ind3.cpp + ']'
+case class MultiIndex(index_0 : Expression = new NullExpression, index_1 : Expression = new NullExpression, index_2 : Expression = new NullExpression) extends Expression {
+  def this(indices : Array[Expression]) = this(indices(0), indices(1), indices(2)) // FIXME: currently requires arrays of length >= 3
+  def this(indices : Array[Int]) = this(indices(0), indices(1), indices(2)) // FIXME: currently requires arrays of length >= 3
+
+  override def cpp = '[' + index_2.cpp + "][" + index_1.cpp + "][" + index_0.cpp + ']'
+
+  def apply(i : Int) : Expression = i match {
+    case 0 => index_0
+    case 1 => index_1
+    case 2 => index_2
+  }
 }
 
 case class MemberAccess(base : Access, varAcc : VariableAccess) extends Access {

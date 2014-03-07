@@ -12,8 +12,7 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.primitives._
 import exastencils.mpi._
 import exastencils.prettyprinting._
-import exastencils.omp.OMP_Critical
-import exastencils.omp.OMP_PotentiallyParallel
+import exastencils.omp._
 
 // FIXME: incorporate fragLengthPerDim
 
@@ -139,7 +138,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
         s"Vec3 positions[${Knowledge.domain_numFragsPerBlock}];",
         s"unsigned int posWritePos = 0;",
         s"Vec3 rankPos(mpiRank % ${Knowledge.domain_numBlocks_x}, (mpiRank / ${Knowledge.domain_numBlocks_x}) % ${Knowledge.domain_numBlocks_y}, mpiRank / ${Knowledge.domain_numBlocks_x * Knowledge.domain_numBlocks_y});",
-        new LoopOverDimensions(IndexRange(Array(0, 0, 0), Array(Knowledge.domain_numFragsPerBlock_x - 1, Knowledge.domain_numFragsPerBlock_y - 1, Knowledge.domain_numFragsPerBlock_z - 1)),
+        new LoopOverDimensions(IndexRange(MultiIndex(0, 0, 0), MultiIndex(Knowledge.domain_numFragsPerBlock_x - 1, Knowledge.domain_numFragsPerBlock_y - 1, Knowledge.domain_numFragsPerBlock_z - 1)),
           Knowledge.dimensionality. /*FIXME*/ toInt match { // FIXME: avoid match, write in a dimensionless matter
             case 1 => s"positions[posWritePos++] = (Vec3(rankPos.x * ${Knowledge.domain_numFragsPerBlock_x} + 0.5 + x, 0, 0);";
             case 2 => s"positions[posWritePos++] = (Vec3(rankPos.x * ${Knowledge.domain_numFragsPerBlock_x} + 0.5 + x, rankPos.y * ${Knowledge.domain_numFragsPerBlock_y} + 0.5 + y, 0));";

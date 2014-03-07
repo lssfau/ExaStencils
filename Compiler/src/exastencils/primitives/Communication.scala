@@ -24,9 +24,9 @@ case class LocalSend(var field : Field, var level : Int, var neighbors : ListBuf
               new AssignmentStatement(
                 new LocalNeighborFieldAccess(
                   new getNeighInfo_LocalPtr(neigh._1), field, level, "slot", Mapping.access(level,
-                    s"(x + ${neigh._3.begin(0) - neigh._2.begin(0)})",
-                    s"(y + ${neigh._3.begin(1) - neigh._2.begin(1)})",
-                    s"(z + ${neigh._3.begin(2) - neigh._2.begin(2)})")),
+                    StringLiteral("x") + neigh._3.begin(0) - neigh._2.begin(0),
+                    StringLiteral("y") + neigh._3.begin(1) - neigh._2.begin(1),
+                    StringLiteral("z") + neigh._3.begin(2) - neigh._2.begin(2))),
                 new FieldAccess(field, level, "slot", Mapping.access(level)))) with OMP_PotentiallyParallel))) : Statement)) with OMP_PotentiallyParallel;
   }
 }
@@ -83,6 +83,7 @@ case class RemoteSend(var field : Field, var level : Int, var neighbors : ListBu
 
     globals.variables += new VariableDeclarationStatement(new VariableAccess(mpiTypeName, Some("MPI_Datatype")));
 
+    // FIXME: this comparison doesn't work with the new MultiIndex 
     if (indexRange.begin(1) == indexRange.end(1) || indexRange.begin(2) == indexRange.end(2))
       globals.initFunction.body += InitMPIDataType(mpiTypeName, indexRange, level);
 
@@ -100,6 +101,7 @@ case class RemoteSend(var field : Field, var level : Int, var neighbors : ListBu
       var cnt : Expression = new NullExpression;
       var typeName : Expression = new NullExpression;
 
+      // FIXME: these comparisons don't work with the new MultiIndex 
       if (neigh._2.begin(0) == neigh._2.end(0) && neigh._2.begin(1) == neigh._2.end(1) && neigh._2.begin(2) == neigh._2.end(2)) {
         ptr = s"&" ~ new FieldAccess(field, level, "slot", Mapping.access(level, neigh._2.begin));
         cnt = 1;

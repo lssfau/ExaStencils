@@ -1,6 +1,8 @@
 package exastencils.primitives
 
 import exastencils.knowledge._
+import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
 
 class NeighborInfo(var dir : Array[Int], var index : Int) {
   var label : String = (Knowledge.dimensionality - 1 to 0 by -1).toList.map(i => dimToString(i).toUpperCase + dirToString(dir(i))).mkString("_");
@@ -32,7 +34,7 @@ class NeighborInfo(var dir : Array[Int], var index : Int) {
   }
 }
 
-case class IndexRange(begin : Array[Int] = Array(0, 0, 0), end : Array[Int] = Array(0, 0, 0)) {}
+case class IndexRange(begin : MultiIndex = new MultiIndex, end : MultiIndex = new MultiIndex) {}
 
 object Mapping {
   def first(level : Int, dim : Int) : Int = {
@@ -47,102 +49,113 @@ object Mapping {
     else
       return 1;
   }
-  def access(level : Int, x : String = "x", y : String = "y", z : String = "z") : String = {
-    return (s"$x" +
-      (if (Knowledge.dimensionality > 1) s" + $y * ${numPoints(level, 0)}" else "") +
-      (if (Knowledge.dimensionality > 2) s" + $z * ${numPoints(level, 1) * numPoints(level, 0)}" else ""));
+  def access(level : Int, x : Expression = "x", y : Expression = "y", z : Expression = "z") : Expression = {
+    var exp : Expression = x;
+    if (Knowledge.dimensionality > 1) exp += y * numPoints(level, 0);
+    if (Knowledge.dimensionality > 2) exp += z * numPoints(level, 1) * numPoints(level, 0);
+    return exp;
   }
-  def access(level : Int, index : Array[Int]) : String = {
-    return s"${index(2) * numPoints(level, 1) * numPoints(level, 0) + index(1) * numPoints(level, 0) + index(0)}";
+  def access(level : Int, index : MultiIndex) : Expression = {
+    return (index(2) * numPoints(level, 1) * numPoints(level, 0) + index(1) * numPoints(level, 0) + index(0));
   }
 }
 
 object fieldToIndexInner extends ((Array[Int], Int) => IndexRange) {
   def apply(dir : Array[Int], level : Int) : IndexRange = {
     return new IndexRange(
-      (0 until Knowledge.dimensionality).toArray.map(i => i match {
-        case i if dir(i) == 0 => (Mapping.first(level, i) + Knowledge.data_numGhostLayers)
-        case i if dir(i) < 0  => (Mapping.first(level, i) + Knowledge.data_numGhostLayers + 1)
-        case i if dir(i) > 0  => (Mapping.last(level, i) - 2 * Knowledge.data_numGhostLayers)
-      }) ++
-        (Knowledge.dimensionality + 0 until 3).toArray.map(i => 0),
-      (0 until Knowledge.dimensionality).toArray.map(i => i match {
-        case i if dir(i) == 0 => (Mapping.last(level, i) - Knowledge.data_numGhostLayers)
-        case i if dir(i) < 0  => (Mapping.first(level, i) + 2 * Knowledge.data_numGhostLayers)
-        case i if dir(i) > 0  => (Mapping.last(level, i) - Knowledge.data_numGhostLayers - 1)
-      }) ++
-        (Knowledge.dimensionality + 0 until 3).toArray.map(i => 0));
+      new MultiIndex(
+        (0 until Knowledge.dimensionality).toArray.map(i => i match {
+          case i if dir(i) == 0 => (Mapping.first(level, i) + Knowledge.data_numGhostLayers)
+          case i if dir(i) < 0  => (Mapping.first(level, i) + Knowledge.data_numGhostLayers + 1)
+          case i if dir(i) > 0  => (Mapping.last(level, i) - 2 * Knowledge.data_numGhostLayers)
+        }) ++
+          (Knowledge.dimensionality + 0 until 3).toArray.map(i => 0)),
+      new MultiIndex(
+        (0 until Knowledge.dimensionality).toArray.map(i => i match {
+          case i if dir(i) == 0 => (Mapping.last(level, i) - Knowledge.data_numGhostLayers)
+          case i if dir(i) < 0  => (Mapping.first(level, i) + 2 * Knowledge.data_numGhostLayers)
+          case i if dir(i) > 0  => (Mapping.last(level, i) - Knowledge.data_numGhostLayers - 1)
+        }) ++
+          (Knowledge.dimensionality + 0 until 3).toArray.map(i => 0)));
   }
 }
 
 object fieldToIndexInnerWide extends ((Array[Int], Int) => IndexRange) {
   def apply(dir : Array[Int], level : Int) : IndexRange = {
     return new IndexRange(
-      (0 until Knowledge.dimensionality).toArray.map(i => i match {
-        case i if dir(i) == 0 => (Mapping.first(level, i))
-        case i if dir(i) < 0  => (Mapping.first(level, i) + Knowledge.data_numGhostLayers + 1)
-        case i if dir(i) > 0  => (Mapping.last(level, i) - 2 * Knowledge.data_numGhostLayers)
-      }) ++
-        (Knowledge.dimensionality + 0 until 3).toArray.map(i => 0),
-      (0 until Knowledge.dimensionality).toArray.map(i => i match {
-        case i if dir(i) == 0 => (Mapping.last(level, i))
-        case i if dir(i) < 0  => (Mapping.first(level, i) + 2 * Knowledge.data_numGhostLayers)
-        case i if dir(i) > 0  => (Mapping.last(level, i) - Knowledge.data_numGhostLayers - 1)
-      }) ++
-        (Knowledge.dimensionality + 0 until 3).toArray.map(i => 0));
+      new MultiIndex(
+        (0 until Knowledge.dimensionality).toArray.map(i => i match {
+          case i if dir(i) == 0 => (Mapping.first(level, i))
+          case i if dir(i) < 0  => (Mapping.first(level, i) + Knowledge.data_numGhostLayers + 1)
+          case i if dir(i) > 0  => (Mapping.last(level, i) - 2 * Knowledge.data_numGhostLayers)
+        }) ++
+          (Knowledge.dimensionality + 0 until 3).toArray.map(i => 0)),
+      new MultiIndex(
+        (0 until Knowledge.dimensionality).toArray.map(i => i match {
+          case i if dir(i) == 0 => (Mapping.last(level, i))
+          case i if dir(i) < 0  => (Mapping.first(level, i) + 2 * Knowledge.data_numGhostLayers)
+          case i if dir(i) > 0  => (Mapping.last(level, i) - Knowledge.data_numGhostLayers - 1)
+        }) ++
+          (Knowledge.dimensionality + 0 until 3).toArray.map(i => 0)));
   }
 }
 
 object fieldToIndexOuter extends ((Array[Int], Int) => IndexRange) {
   def apply(dir : Array[Int], level : Int) : IndexRange = {
     return new IndexRange(
-      (0 until Knowledge.dimensionality).toArray.map(i => i match {
-        case i if dir(i) == 0 => (Mapping.first(level, i) + Knowledge.data_numGhostLayers)
-        case i if dir(i) < 0  => (Mapping.first(level, i))
-        case i if dir(i) > 0  => (Mapping.last(level, i) - Knowledge.data_numGhostLayers + 1)
-      }) ++
-        (Knowledge.dimensionality + 0 until 3).toArray.map(i => 0),
-      (0 until Knowledge.dimensionality).toArray.map(i => i match {
-        case i if dir(i) == 0 => (Mapping.last(level, i) - Knowledge.data_numGhostLayers)
-        case i if dir(i) < 0  => (Mapping.first(level, i) + Knowledge.data_numGhostLayers - 1)
-        case i if dir(i) > 0  => (Mapping.last(level, i))
-      }) ++
-        (Knowledge.dimensionality + 0 until 3).toArray.map(i => 0));
+      new MultiIndex(
+        (0 until Knowledge.dimensionality).toArray.map(i => i match {
+          case i if dir(i) == 0 => (Mapping.first(level, i) + Knowledge.data_numGhostLayers)
+          case i if dir(i) < 0  => (Mapping.first(level, i))
+          case i if dir(i) > 0  => (Mapping.last(level, i) - Knowledge.data_numGhostLayers + 1)
+        }) ++
+          (Knowledge.dimensionality + 0 until 3).toArray.map(i => 0)),
+      new MultiIndex(
+        (0 until Knowledge.dimensionality).toArray.map(i => i match {
+          case i if dir(i) == 0 => (Mapping.last(level, i) - Knowledge.data_numGhostLayers)
+          case i if dir(i) < 0  => (Mapping.first(level, i) + Knowledge.data_numGhostLayers - 1)
+          case i if dir(i) > 0  => (Mapping.last(level, i))
+        }) ++
+          (Knowledge.dimensionality + 0 until 3).toArray.map(i => 0)));
   }
 }
 
 object fieldToIndexOuterWide extends ((Array[Int], Int) => IndexRange) {
   def apply(dir : Array[Int], level : Int) : IndexRange = {
     return new IndexRange(
-      (0 until Knowledge.dimensionality).toArray.map(i => i match {
-        case i if dir(i) == 0 => (Mapping.first(level, i))
-        case i if dir(i) < 0  => (Mapping.first(level, i))
-        case i if dir(i) > 0  => (Mapping.last(level, i) - Knowledge.data_numGhostLayers + 1)
-      }) ++
-        (Knowledge.dimensionality + 0 until 3).toArray.map(i => 0),
-      (0 until Knowledge.dimensionality).toArray.map(i => i match {
-        case i if dir(i) == 0 => (Mapping.last(level, i))
-        case i if dir(i) < 0  => (Mapping.first(level, i) + Knowledge.data_numGhostLayers - 1)
-        case i if dir(i) > 0  => (Mapping.last(level, i))
-      }) ++
-        (Knowledge.dimensionality + 0 until 3).toArray.map(i => 0));
+      new MultiIndex(
+        (0 until Knowledge.dimensionality).toArray.map(i => i match {
+          case i if dir(i) == 0 => (Mapping.first(level, i))
+          case i if dir(i) < 0  => (Mapping.first(level, i))
+          case i if dir(i) > 0  => (Mapping.last(level, i) - Knowledge.data_numGhostLayers + 1)
+        }) ++
+          (Knowledge.dimensionality + 0 until 3).toArray.map(i => 0)),
+      new MultiIndex(
+        (0 until Knowledge.dimensionality).toArray.map(i => i match {
+          case i if dir(i) == 0 => (Mapping.last(level, i))
+          case i if dir(i) < 0  => (Mapping.first(level, i) + Knowledge.data_numGhostLayers - 1)
+          case i if dir(i) > 0  => (Mapping.last(level, i))
+        }) ++
+          (Knowledge.dimensionality + 0 until 3).toArray.map(i => 0)));
   }
 }
 
 object fieldToIndexBorder extends ((Array[Int], Int) => IndexRange) {
   def apply(dir : Array[Int], level : Int) : IndexRange = {
     return new IndexRange(
-      (0 until Knowledge.dimensionality).toArray.map(i => i match {
-        case i if dir(i) == 0 => (Mapping.first(level, i) + Knowledge.data_numGhostLayers)
-        case i if dir(i) < 0  => (Mapping.first(level, i) + Knowledge.data_numGhostLayers)
-        case i if dir(i) > 0  => (Mapping.last(level, i) - Knowledge.data_numGhostLayers)
-      }) ++
-        (Knowledge.dimensionality + 0 until 3).toArray.map(i => 0),
-      (0 until Knowledge.dimensionality).toArray.map(i => i match {
-        case i if dir(i) == 0 => (Mapping.last(level, i) - Knowledge.data_numGhostLayers)
-        case i if dir(i) < 0  => (Mapping.first(level, i) + Knowledge.data_numGhostLayers)
-        case i if dir(i) > 0  => (Mapping.last(level, i) - Knowledge.data_numGhostLayers)
-      }) ++
-        (Knowledge.dimensionality + 0 until 3).toArray.map(i => 0));
+      new MultiIndex(
+        (0 until Knowledge.dimensionality).toArray.map(i => i match {
+          case i if dir(i) == 0 => (Mapping.first(level, i) + Knowledge.data_numGhostLayers)
+          case i if dir(i) < 0  => (Mapping.first(level, i) + Knowledge.data_numGhostLayers)
+          case i if dir(i) > 0  => (Mapping.last(level, i) - Knowledge.data_numGhostLayers)
+        }) ++
+          (Knowledge.dimensionality + 0 until 3).toArray.map(i => 0)),
+      new MultiIndex(
+        (0 until Knowledge.dimensionality).toArray.map(i => i match {
+          case i if dir(i) == 0 => (Mapping.last(level, i) - Knowledge.data_numGhostLayers)
+          case i if dir(i) < 0  => (Mapping.first(level, i) + Knowledge.data_numGhostLayers)
+          case i if dir(i) > 0  => (Mapping.last(level, i) - Knowledge.data_numGhostLayers)
+        }) ++
+          (Knowledge.dimensionality + 0 until 3).toArray.map(i => 0)));
   }
 }
