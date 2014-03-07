@@ -43,7 +43,7 @@ class GenerateL4(treel2 : TreeL2) {
       if (veclength > 1) {
         for (i <- 0 to veclength - 1) {
           writer.write(s"	${DomainKnowledge.restriction_L3.get} ( lev \n")
-          writer.write(s"	           ${DomainKnowledge.function_L1(0)._1}_${i}[ ( lev-1 ) ] \n")
+          writer.write(s"	           ${DomainKnowledge.function_L1(0)._1}_${i}[ ( lev - 1 ) ] \n")
           writer.write(s"	           Res_${i}[lev]) \n")
         }
       } else {
@@ -52,10 +52,10 @@ class GenerateL4(treel2 : TreeL2) {
         //writer.write(s"	           Res[lev]) \n")
       }
       val setname = location match { case "gpu" => "setcuda" case _ => "set" }
-      writer.write(s"	${setname}( ( lev-1 ) \n")
+      writer.write(s"	${setname}( ( lev - 1 ) \n")
       //writer.write(s"	    ${DomainKnowledge.unknown_L1(0)._1}[ ( lev - 1 ) ] \n")
       writer.write("	     0) \n")
-      writer.write(s"	${DomainKnowledge.cycle_L3.get} ( lev-1 ) \n")
+      writer.write(s"	${DomainKnowledge.cycle_L3.get} ( lev - 1 ) \n")
       writer.write(s"	${DomainKnowledge.interpolation_L3.get}( lev ) \n")
       //writer.write(s"	                  ${DomainKnowledge.unknown_L1(0)._1}[lev] \n")
       //writer.write(s"	                  ${DomainKnowledge.unknown_L1(0)._1}[ (lev-1) ] ) \n")
@@ -183,7 +183,7 @@ def cpu sqr ( lev:Int
     //writer.write("                     uc:Container ) : Unit \n")
     writer.write("{ \n")
     // COMM_HACK
-    writer.write("  exchsolData ( (lev-1) \n 0 )  \n")
+    writer.write("  exchsolData ( (lev - 1) \n 0 )  \n")
     writer.write("    loop innerpoints level lev order lex block 1 1  \n")
     writer.write(s"    ${DomainKnowledge.unknown_L1(0)._1} += RestrictionStencil * ${DomainKnowledge.unknown_L1(0)._1} [ (lev - 1) ] | ToFine  \n")
     writer.write("    next  \n")
