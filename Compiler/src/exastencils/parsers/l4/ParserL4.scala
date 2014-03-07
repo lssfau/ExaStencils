@@ -35,6 +35,13 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     }
   }
 
+  val IntRegEx = """[+-]?(\d+)""".r
+  val DoubleRegEx = """[+-]?\d+(\.\d*)?""".r
+  protected def isInt(str : String) : Boolean = {
+    val x = IntRegEx.findFirstIn(str)
+    x.getOrElse(" ") == str
+  }
+
   var annos = new scala.collection.mutable.ListBuffer[Annotation]
 
   //###########################################################
@@ -103,7 +110,9 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val factor : Parser[Expression] = (
     "(" ~> expression <~ ")"
     | locationize(stringLit ^^ { case s => StringLiteral(s) })
-    | locationize(("+" | "-").? ~ numericLit ^^ { case s ~ n => if (s == Some("-")) NumericLiteral(-n.toDouble) else NumericLiteral(n.toDouble) }) // FIXME check and create integer/double
+    | locationize(numericLit ^^ {
+      case n => if (isInt(n)) NumericLiteral(n.toInt) else NumericLiteral(n.toDouble)
+    })
     | locationize(booleanLit ^^ { case s => BooleanLiteral(s.toBoolean) })
     | locationize(functionCall)
     | locationize(ident ^^ { case id => Identifier(id) }))
