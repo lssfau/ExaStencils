@@ -12,76 +12,76 @@ import exastencils.knowledge._
 import exastencils.mpi._
 
 object InitExternalFunctions extends Strategy("Init external functions") {
-  def checkifrotated(p1 : Vertex, p2 : Vertex, rot : ListBuffer[Double]) : Boolean = {
-    for (i <- 0 to p1.coords.length - 1)
-      if (Math.abs(p2.coords(i) - (p1.coords(0) * rot(2 * i) + p1.coords(1) * rot(2 * i + 1))) > 0.0001)
-        return false
-    return true
-  }
+  //  def checkifrotated(p1 : Vertex, p2 : Vertex, rot : ListBuffer[Double]) : Boolean = {
+  //    for (i <- 0 to p1.coords.length - 1)
+  //      if (Math.abs(p2.coords(i) - (p1.coords(0) * rot(2 * i) + p1.coords(1) * rot(2 * i + 1))) > 0.0001)
+  //        return false
+  //    return true
+  //  }
 
-  def generateBCidxloopstatement(ghostshifts : ListBuffer[Int], loopshifts : ListBuffer[Int], To : String, From : String, FromValue : Boolean, mode : String = "BC") : Statement = {
-    if (mode.equals("BC")) {
-      var idxshift = s"i0+${ghostshifts(0)},i1+${ghostshifts(1)}"
-      if (DomainKnowledge.rule_dim() == 3)
-        idxshift = idxshift + s",i2+${ghostshifts(2)}"
+  //  def generateBCidxloopstatement(ghostshifts : ListBuffer[Int], loopshifts : ListBuffer[Int], To : String, From : String, FromValue : Boolean, mode : String = "BC") : Statement = {
+  //    if (mode.equals("BC")) {
+  //      var idxshift = s"i0+${ghostshifts(0)},i1+${ghostshifts(1)}"
+  //      if (DomainKnowledge.rule_dim() == 3)
+  //        idxshift = idxshift + s",i2+${ghostshifts(2)}"
+  //
+  //      if (FromValue)
+  //        return new StringLiteral(s"${To}${DomainKnowledge.rule_idxArray_cpp().cpp} = ${From};\n") // ${DomainKnowledge.pdebc_L1.get._2}
+  //      else
+  //        return new StringLiteral(s"${To}${DomainKnowledge.rule_idxArray_cpp().cpp} = ${From}(${idxshift});\n")
+  //    } else if (mode.equals("Buffer")) {
+  //      var idxshift = s"i0+${ghostshifts(0)},i1+${ghostshifts(1)}"
+  //      if (DomainKnowledge.rule_dim() == 3)
+  //        idxshift = idxshift + s",i2+${ghostshifts(2)}"
+  //
+  //      var ghostidxstr = ""
+  //      if (loopshifts(0) == 0)
+  //        ghostidxstr = ".a[i1]"
+  //      else
+  //        ghostidxstr = ".a[i0]"
+  //
+  //      var lhs = ""
+  //      var rhs = ""
+  //      if (To.contains("ghost"))
+  //        lhs = s"${To}${ghostidxstr}"
+  //      else
+  //        lhs = s"${To}${DomainKnowledge.rule_idxArray_cpp()}"
+  //      if (From.contains("ghost"))
+  //        rhs = s"${From}${ghostidxstr}"
+  //      else
+  //        rhs = s"${From}(${idxshift})"
+  //
+  //      return new StringLiteral(s"${lhs} = ${rhs};\n")
+  //    }
+  //    return new NullStatement
+  //  }
 
-      if (FromValue)
-        return new StringLiteral(s"${To}${DomainKnowledge.rule_idxArray_cpp().cpp} = ${From};\n") // ${DomainKnowledge.pdebc_L1.get._2}
-      else
-        return new StringLiteral(s"${To}${DomainKnowledge.rule_idxArray_cpp().cpp} = ${From}(${idxshift});\n")
-    } else if (mode.equals("Buffer")) {
-      var idxshift = s"i0+${ghostshifts(0)},i1+${ghostshifts(1)}"
-      if (DomainKnowledge.rule_dim() == 3)
-        idxshift = idxshift + s",i2+${ghostshifts(2)}"
-
-      var ghostidxstr = ""
-      if (loopshifts(0) == 0)
-        ghostidxstr = ".a[i1]"
-      else
-        ghostidxstr = ".a[i0]"
-
-      var lhs = ""
-      var rhs = ""
-      if (To.contains("ghost"))
-        lhs = s"${To}${ghostidxstr}"
-      else
-        lhs = s"${To}${DomainKnowledge.rule_idxArray_cpp()}"
-      if (From.contains("ghost"))
-        rhs = s"${From}${ghostidxstr}"
-      else
-        rhs = s"${From}(${idxshift})"
-
-      return new StringLiteral(s"${lhs} = ${rhs};\n")
-    }
-    return new NullStatement
-  }
-
-  def generateBCidxloop(vertex1 : ListBuffer[Double], vertex2 : ListBuffer[Double], ToArray : String, FromArray : String, FromValue : Boolean = false, lev : Int = 0, mode : String = "BC") : Statement = {
-
-    val loopshifts = IdxKnowledge.mapcoordToidxLoop(vertex1, vertex2, lev)
-    var ghostshifts : ListBuffer[Int] = ListBuffer()
-
-    var start : ListBuffer[Expression] = ListBuffer()
-    var stop : ListBuffer[Expression] = ListBuffer()
-
-    for (i <- 0 to DomainKnowledge.rule_dim() - 1) {
-      start += IdxKnowledge.mapcoordToidxInt(vertex1, lev)(i)
-      if (IdxKnowledge.mapcoordToidxInt(vertex2, lev)(i) == 0)
-        stop += 0
-      else
-        stop += new StringLiteral(s"${DomainKnowledge.pdebc_L1.get._1 + "[lev]"}.x${i + 1}_-1")
-
-      if (loopshifts(i) == 0) {
-        if (IdxKnowledge.mapcoordToidxInt(vertex2, lev)(i) == 0)
-          ghostshifts += 1
-        else
-          ghostshifts += -1
-      } else
-        ghostshifts += 0
-    }
-
-    return new Implforloop(ListBuffer(new ParameterInfo("i", "int")), start, stop, loopshifts, "lex", 1, ListBuffer(generateBCidxloopstatement(ghostshifts, loopshifts, ToArray, FromArray, FromValue, mode)))
-  }
+  //  def generateBCidxloop(vertex1 : ListBuffer[Double], vertex2 : ListBuffer[Double], ToArray : String, FromArray : String, FromValue : Boolean = false, lev : Int = 0, mode : String = "BC") : Statement = {
+  //
+  //    val loopshifts = IdxKnowledge.mapcoordToidxLoop(vertex1, vertex2, lev)
+  //    var ghostshifts : ListBuffer[Int] = ListBuffer()
+  //
+  //    var start : ListBuffer[Expression] = ListBuffer()
+  //    var stop : ListBuffer[Expression] = ListBuffer()
+  //
+  //    for (i <- 0 to DomainKnowledge.rule_dim() - 1) {
+  //      start += IdxKnowledge.mapcoordToidxInt(vertex1, lev)(i)
+  //      if (IdxKnowledge.mapcoordToidxInt(vertex2, lev)(i) == 0)
+  //        stop += 0
+  //      else
+  //        stop += new StringLiteral(s"${DomainKnowledge.pdebc_L1.get._1 + "[lev]"}.x${i + 1}_-1")
+  //
+  //      if (loopshifts(i) == 0) {
+  //        if (IdxKnowledge.mapcoordToidxInt(vertex2, lev)(i) == 0)
+  //          ghostshifts += 1
+  //        else
+  //          ghostshifts += -1
+  //      } else
+  //        ghostshifts += 0
+  //    }
+  //
+  //    return new Implforloop(ListBuffer(new ParameterInfo("i", "int")), start, stop, loopshifts, "lex", 1, ListBuffer(generateBCidxloopstatement(ghostshifts, loopshifts, ToArray, FromArray, FromValue, mode)))
+  //  }
 
   this += new Transformation("Initing main function", {
     case tree : TreeL2 =>
@@ -231,94 +231,94 @@ object InitExternalFunctions extends Strategy("Init external functions") {
       Some(tree);
   });
 
-  this += new Transformation("Initing treatBoundary function", {
-    case tree : TreeL2 =>
-      if (!DomainKnowledge.use_gpu) {
-        var bcloops : ListBuffer[Statement] = ListBuffer()
-        var lev = 0
+  //  this += new Transformation("Initing treatBoundary function", {
+  //    case tree : TreeL2 =>
+  //      if (!DomainKnowledge.use_gpu) {
+  //        var bcloops : ListBuffer[Statement] = ListBuffer()
+  //        var lev = 0
+  //
+  //        for (v <- DomainKnowledge.fragments(0).vertices) {
+  //
+  //          var ghosts = ""
+  //          var s = ""
+  //
+  //          for (i <- 0 to DomainKnowledge.rule_dim() - 1) {
+  //            var locals = ""
+  //
+  //            if (IdxKnowledge.mapcoordToidxInt(v.coords, lev)(i) == 0)
+  //              locals = "0"
+  //            else
+  //              locals = s"${DomainKnowledge.unknown_L1(0)._1}[lev].x${i + 1}_-1"
+  //
+  //            if (IdxKnowledge.mapcoordToidxInt(v.coords, lev)(i) == 0)
+  //              ghosts = ghosts + locals + "+1"
+  //            else
+  //              ghosts = ghosts + locals + "-1"
+  //
+  //            s = s + locals
+  //
+  //            if (i < DomainKnowledge.rule_dim() - 1) {
+  //              ghosts = ghosts + ","
+  //              s = s + ","
+  //            }
+  //          }
+  //
+  //          if (DomainKnowledge.pdebc_L1.get._2.equals("dn"))
+  //            bcloops += new StringLiteral(s"${DomainKnowledge.pdebc_L1.get._1}[lev](${s}) = ${DomainKnowledge.pdebc_L1.get._1}[lev](${ghosts});\n")
+  //          else if (DomainKnowledge.pdebc_L1.get._2.equals("zero"))
+  //            bcloops += new StringLiteral(s"${DomainKnowledge.pdebc_L1.get._1}[lev](${s}) = 0;\n")
+  //        }
+  //
+  //        for (e <- DomainKnowledge.fragments(0).edges) {
+  //
+  //          val vertex1 = e.vertex1.coords
+  //          val vertex2 = e.vertex2.coords
+  //
+  //          if (DomainKnowledge.pdebc_L1.get._2.equals("dn"))
+  //            bcloops += generateBCidxloop(vertex1, vertex2, DomainKnowledge.pdebc_L1.get._1 + "[lev]", DomainKnowledge.pdebc_L1.get._1 + "[lev]", false, lev)
+  //          else
+  //            bcloops += generateBCidxloop(vertex1, vertex2, DomainKnowledge.pdebc_L1.get._1 + "[lev]", "0", true, lev)
+  //        }
+  //
+  //        for (f <- DomainKnowledge.fragments(0).faces) {
+  //
+  //          val vertex1 = f.vertices(0).coords
+  //          val vertex2 = f.vertices(f.vertices.length - 1).coords // ASSUME vertices are ordered !!!
+  //
+  //          if (DomainKnowledge.pdebc_L1.get._2.equals("dn"))
+  //            bcloops += generateBCidxloop(vertex1, vertex2, DomainKnowledge.pdebc_L1.get._1 + "[lev]", DomainKnowledge.pdebc_L1.get._1 + "[lev]", false, lev, "BC")
+  //          else
+  //            bcloops += generateBCidxloop(vertex1, vertex2, DomainKnowledge.pdebc_L1.get._1 + "[lev]", "0", true, lev, "BC")
+  //        }
+  //
+  //        tree.extfunctions += "BC" -> new ImplFunction("treatBoundary", "void", ListBuffer(new ParameterInfo("lev", "int")),
+  //          bcloops, Map(), "cpu")
+  //      }
+  //      Some(tree);
+  //  });
 
-        for (v <- DomainKnowledge.fragments(0).vertices) {
-
-          var ghosts = ""
-          var s = ""
-
-          for (i <- 0 to DomainKnowledge.rule_dim() - 1) {
-            var locals = ""
-
-            if (IdxKnowledge.mapcoordToidxInt(v.coords, lev)(i) == 0)
-              locals = "0"
-            else
-              locals = s"${DomainKnowledge.unknown_L1(0)._1}[lev].x${i + 1}_-1"
-
-            if (IdxKnowledge.mapcoordToidxInt(v.coords, lev)(i) == 0)
-              ghosts = ghosts + locals + "+1"
-            else
-              ghosts = ghosts + locals + "-1"
-
-            s = s + locals
-
-            if (i < DomainKnowledge.rule_dim() - 1) {
-              ghosts = ghosts + ","
-              s = s + ","
-            }
-          }
-
-          if (DomainKnowledge.pdebc_L1.get._2.equals("dn"))
-            bcloops += new StringLiteral(s"${DomainKnowledge.pdebc_L1.get._1}[lev](${s}) = ${DomainKnowledge.pdebc_L1.get._1}[lev](${ghosts});\n")
-          else if (DomainKnowledge.pdebc_L1.get._2.equals("zero"))
-            bcloops += new StringLiteral(s"${DomainKnowledge.pdebc_L1.get._1}[lev](${s}) = 0;\n")
-        }
-
-        for (e <- DomainKnowledge.fragments(0).edges) {
-
-          val vertex1 = e.vertex1.coords
-          val vertex2 = e.vertex2.coords
-
-          if (DomainKnowledge.pdebc_L1.get._2.equals("dn"))
-            bcloops += generateBCidxloop(vertex1, vertex2, DomainKnowledge.pdebc_L1.get._1 + "[lev]", DomainKnowledge.pdebc_L1.get._1 + "[lev]", false, lev)
-          else
-            bcloops += generateBCidxloop(vertex1, vertex2, DomainKnowledge.pdebc_L1.get._1 + "[lev]", "0", true, lev)
-        }
-
-        for (f <- DomainKnowledge.fragments(0).faces) {
-
-          val vertex1 = f.vertices(0).coords
-          val vertex2 = f.vertices(f.vertices.length - 1).coords // ASSUME vertices are ordered !!!
-
-          if (DomainKnowledge.pdebc_L1.get._2.equals("dn"))
-            bcloops += generateBCidxloop(vertex1, vertex2, DomainKnowledge.pdebc_L1.get._1 + "[lev]", DomainKnowledge.pdebc_L1.get._1 + "[lev]", false, lev, "BC")
-          else
-            bcloops += generateBCidxloop(vertex1, vertex2, DomainKnowledge.pdebc_L1.get._1 + "[lev]", "0", true, lev, "BC")
-        }
-
-        tree.extfunctions += "BC" -> new ImplFunction("treatBoundary", "void", ListBuffer(new ParameterInfo("lev", "int")),
-          bcloops, Map(), "cpu")
-      }
-      Some(tree);
-  });
-
-  this += new Transformation("Initing copyToBuffers function", {
-    case tree : TreeL2 =>
-      if (DomainKnowledge.use_MPI) {
-        var bcloops : ListBuffer[Statement] = ListBuffer()
-        var lev = 0
-        var i = 0
-
-        for (e <- DomainKnowledge.fragments(0).edges) {
-
-          val vertex1 = e.vertex1.coords
-          val vertex2 = e.vertex2.coords
-
-          bcloops += new StringLiteral(s"if (Pnb[${i}] >= 0)")
-          bcloops += generateBCidxloop(vertex1, vertex2, DomainKnowledge.pdebc_L1.get._1 + s"_ghost_edge${i}_send[0]", DomainKnowledge.pdebc_L1.get._1 + "[lev]", false, lev, "Buffer")
-          i += 1
-        }
-
-        tree.extfunctions += "copyToBuffers" -> new ImplFunction("copyToBuffers", "void", ListBuffer(new ParameterInfo("lev", "int")),
-          bcloops, Map(), "cpu")
-      }
-      Some(tree);
-  });
+  //  this += new Transformation("Initing copyToBuffers function", {
+  //    case tree : TreeL2 =>
+  //      if (DomainKnowledge.use_MPI) {
+  //        var bcloops : ListBuffer[Statement] = ListBuffer()
+  //        var lev = 0
+  //        var i = 0
+  //
+  //        for (e <- DomainKnowledge.fragments(0).edges) {
+  //
+  //          val vertex1 = e.vertex1.coords
+  //          val vertex2 = e.vertex2.coords
+  //
+  //          bcloops += new StringLiteral(s"if (Pnb[${i}] >= 0)")
+  //          bcloops += generateBCidxloop(vertex1, vertex2, DomainKnowledge.pdebc_L1.get._1 + s"_ghost_edge${i}_send[0]", DomainKnowledge.pdebc_L1.get._1 + "[lev]", false, lev, "Buffer")
+  //          i += 1
+  //        }
+  //
+  //        tree.extfunctions += "copyToBuffers" -> new ImplFunction("copyToBuffers", "void", ListBuffer(new ParameterInfo("lev", "int")),
+  //          bcloops, Map(), "cpu")
+  //      }
+  //      Some(tree);
+  //  });
 
   //  this += new Transformation("Initing copyFromBuffers function", {
   //    case tree : TreeL2 =>
