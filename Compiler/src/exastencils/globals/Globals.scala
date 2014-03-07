@@ -21,9 +21,8 @@ case class Globals() extends Node with FilePrettyPrintable {
   override def printToFile = {
     val writerHeader = PrettyprintingManager.getPrinter(s"Globals/Globals.h");
 
-    writerHeader << ("#ifndef	GLOBALS_H\n"
-      + "#define	GLOBALS_H\n"
-      + "#include \"Util/Vector.h\"\n"
+    writerHeader << (
+      "#include \"Util/Vector.h\"\n"
       + "#pragma warning(disable : 4800)\n"
       + "#include <mpi.h>\n" // FIXME: find a way to extract necessary includes from variables
       );
@@ -36,8 +35,6 @@ case class Globals() extends Node with FilePrettyPrintable {
     for (variable <- variables) { writerHeader << s"extern ${variable.cpp}\n"; }
 
     writerHeader << s"${initFunction.returntype.cpp} ${initFunction.name}(" + initFunction.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n";
-
-    writerHeader << "#endif\n";
 
     val writerSource = PrettyprintingManager.getPrinter(s"Globals/Globals.cpp");
 

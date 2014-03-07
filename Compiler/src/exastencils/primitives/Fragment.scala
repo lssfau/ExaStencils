@@ -89,9 +89,7 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
       val writer = PrettyprintingManager.getPrinter(s"Primitives/Fragment3DCube.h");
 
       writer << (
-        "#ifndef	PRIMITIVES_FRAGMENT3DCUBE_H\n"
-        + "#define	PRIMITIVES_FRAGMENT3DCUBE_H\n"
-        + "#pragma warning(disable : 4800)\n"
+        "#pragma warning(disable : 4800)\n"
         + "#include <mpi.h>\n"
         + "#include \"Globals/Globals.h\"\n"
         + "#include \"Util/Log.h\"\n"
@@ -99,8 +97,6 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
         + "#include \"Container/Container.h\"\n");
 
       writer << super.cpp;
-
-      writer << "#endif\n";
     }
 
     var i = 0;

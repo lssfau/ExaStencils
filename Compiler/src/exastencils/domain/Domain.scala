@@ -163,18 +163,13 @@ case class DomainGenerated() extends Node with FilePrettyPrintable {
   override def printToFile = {
     val writer = PrettyprintingManager.getPrinter(s"Domains/DomainGenerated.h");
 
-    // TODO: add header guard semi-automatic
     // TODO: add includes to class node or similar
     writer << (
-      "#ifndef DOMAINS_DOMAINGENERATED_H\n"
-      + "#define DOMAINS_DOMAINGENERATED_H\n"
-      + "#include <map>\n"
+      "#include <map>\n"
       + "#include \"Util/Log.h\"\n"
       + "#include \"Util/Vector.h\"\n");
 
     for (s <- statements_HACK)
       writer << s.cpp + "\n";
-
-    writer << "#endif // DOMAINS_DOMAINGENERATED_H\n";
   }
 }

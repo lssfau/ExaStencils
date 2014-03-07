@@ -13,9 +13,6 @@ case class Vector() extends Node with FilePrettyPrintable {
     val writer = PrettyprintingManager.getPrinter(s"Util/Vector.h");
 
     writer << ("""
-#ifndef	UTIL_VECTOR_H
-#define	UTIL_VECTOR_H
-
 //=====================================================================================================================
 //                                        _    __   ____   ____     ______   ____
 //                                       | |  / /  /  _/  / __ \   / ____/  / __ \
@@ -910,8 +907,6 @@ inline TVec4<T> min (const TVec4<T> &v1, const TVec4<T> &v2)
 template <typename T>
 inline TVec4<T> max (const TVec4<T> &v1, const TVec4<T> &v2)
 { return TVec4<T>(std::max(v1.x, v2.x), std::max(v1.y, v2.y), std::max(v1.z, v2.z), std::max(v1.w, v2.w)); }
-
-#endif	// UTIL_VECTOR_H
 """);
   }
 }

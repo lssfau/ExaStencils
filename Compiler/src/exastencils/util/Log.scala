@@ -13,9 +13,6 @@ case class Log() extends Node with FilePrettyPrintable {
     val writer = PrettyprintingManager.getPrinter(s"Util/Log.h");
 
     writer << ("""
-#ifndef	UTIL_LOG_H
-#define	UTIL_LOG_H
-
 #include <iostream>
 
 #define LOG_NOTE(msg) \
@@ -90,8 +87,6 @@ case class Log() extends Node with FilePrettyPrintable {
 	p = NULL; \
 	} \
 }
-
-#endif	// UTIL_LOG_H
 """);
   }
 }

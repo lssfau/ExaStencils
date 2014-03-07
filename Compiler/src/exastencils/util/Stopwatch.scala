@@ -13,9 +13,6 @@ case class Stopwatch() extends Node with FilePrettyPrintable {
     val writer = PrettyprintingManager.getPrinter(s"Util/Stopwatch.h");
 
     writer << ("""
-#ifndef	UTIL_STOPWATCH_H
-#define	UTIL_STOPWATCH_H
-
 //#define	USE_STD_CHRONO
 #define	USE_GTOD
 
@@ -104,8 +101,6 @@ protected:
 	double		lastTime;		///< stores the initial point of time
 #endif
 };
-
-#endif	// UTIL_STOPWATCH_H
 """);
   }
 }

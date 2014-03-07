@@ -13,9 +13,6 @@ case class Container() extends Node with FilePrettyPrintable {
     val writer = PrettyprintingManager.getPrinter(s"Container/Container.h");
 
     writer << ("""
-#ifndef	CONTAINER_CONTAINER_H
-#define	CONTAINER_CONTAINER_H
-
 #include "Util/Log.h"
 
 #include "Util/Vector.h"
@@ -95,8 +92,6 @@ public:
 
 	int				x1_, x2_, x3_;
 };
-
-#endif	// CONTAINER_CONTAINER_H
 """);
   }
 }

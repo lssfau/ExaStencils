@@ -124,9 +124,8 @@ case class CommunicationFunctions() extends Node with FilePrettyPrintable {
     {
       val writer = PrettyprintingManager.getPrinter(s"Primitives/CommunicationFunctions.h");
 
-      writer << ("#ifndef	COMMUNICATION_FUNCTIONS_H\n"
-        + "#define	COMMUNICATION_FUNCTIONS_H\n"
-        + "#pragma warning(disable : 4800)\n"
+      writer << (
+        "#pragma warning(disable : 4800)\n"
         + "#include <mpi.h>\n"
         + "#include \"Globals/Globals.h\"\n"
         + "#include \"Util/Log.h\"\n"
@@ -138,8 +137,6 @@ case class CommunicationFunctions() extends Node with FilePrettyPrintable {
         val function = func.asInstanceOf[FunctionStatement];
         writer << s"${function.returntype.cpp} ${function.name}(" + function.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n";
       }
-
-      writer << "#endif\n";
     }
 
     var i = 0;
