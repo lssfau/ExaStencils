@@ -16,15 +16,17 @@ trait Expression extends Node with CppPrettyPrintable {
   def /(other : Expression) = new BinaryExpression(Division, this, other)
   def Pow(other : Expression) = new BinaryExpression(Power, this, other)
   def Mod(other : Expression) = new BinaryExpression(Modulo, this, other)
-  def &&(other : Expression) = new BinaryExpression(AndAnd, this, other)
-  def ||(other : Expression) = new BinaryExpression(OrOr, this, other)
-  def ==(other : Expression) = new BinaryExpression(Eq, this, other)
-  def !=(other : Expression) = new BinaryExpression(Neq, this, other)
+  def And(other : Expression) = new BinaryExpression(AndAnd, this, other)
+  def Or(other : Expression) = new BinaryExpression(OrOr, this, other)
+  def Eq(other : Expression) = new BinaryExpression(EqEq, this, other)
+  def IsNeq(other : Expression) = new BinaryExpression(NeqNeq, this, other)
+  
+  def simplify : Expression = this
 }
 
 object BinaryOperators extends Enumeration {
   type BinaryOperators = Value
-  val Addition, Subtraction, Multiplication, Division, Power, Modulo, AndAnd, OrOr, Eq, Neq = Value
+  val Addition, Subtraction, Multiplication, Division, Power, Modulo, AndAnd, OrOr, EqEq, NeqNeq = Value
 }
 
 object UnaryOperators extends Enumeration {
@@ -92,6 +94,12 @@ case class UnaryExpression(var operator : UnaryOperators.Value, expression : Exp
 case class BinaryExpression(var operator : BinaryOperators.Value, var left : Expression, var right : Expression) extends Expression {
   override def cpp = {
     s"(${left.cpp} $operator ${right.cpp})";
+  }
+  
+  override def simplify = {
+     (left, right) match {
+       case (x : NumericLiteral[_] , y : NumericLiteral[_]) => println(x ~ y); this //NumericLiteral(left.asInstanceOf[NumericLiteral[_]].Value + right.Value)
+    }
   }
 }
 
