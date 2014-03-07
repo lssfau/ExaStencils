@@ -125,7 +125,7 @@ case class AbstractIfElse(val cond : AbstractExpression, ifstmts : List[Abstract
     }
 
     if (cond.toString.startsWith("coarsestlevel"))
-      ret += new ConditionStatement(new BinaryExpression(BinaryOperators.Eq, "lev",
+      ret += new ConditionStatement(new BinaryExpression(BinaryOperators.EqEq, "lev",
         // COMM_HACK
         //        new BinaryExpression("-", "nlevels",
         //          1)),
