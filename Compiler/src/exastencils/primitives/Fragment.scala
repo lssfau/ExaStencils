@@ -25,7 +25,7 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
     declarations += s"Vec3 pos;";
     cTorInitList += s"pos(0.0, 0.0, 0.0)";
 
-    if (6 == Knowledge.fragmentCommStrategy) {
+    if (6 == Knowledge.comm_strategyFragment) {
       neighbors += new NeighborInfo(Array(-1, 0, 0), 0);
       neighbors += new NeighborInfo(Array(+1, 0, 0), 1);
       if (Knowledge.dimensionality > 1) {
@@ -36,7 +36,7 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
         neighbors += new NeighborInfo(Array(0, 0, -1), 4);
         neighbors += new NeighborInfo(Array(0, 0, +1), 5);
       }
-    } else if (26 == Knowledge.fragmentCommStrategy) {
+    } else if (26 == Knowledge.comm_strategyFragment) {
       var i = 0;
       for (
         z <- (if (Knowledge.dimensionality > 2) (-1 to 1) else (0 to 0));

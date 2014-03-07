@@ -23,7 +23,7 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
   override def cpp : String = "NOT VALID ; CLASS = LoopOverDimensions\n";
 
   def expand(collector : StackCollector) : ForLoopStatement = {
-    val parallelizable = Knowledge.summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false });
+    val parallelizable = Knowledge.domain_summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false });
 
     var wrappedBody : ListBuffer[Statement] = body; // TODO: clone?
 
@@ -60,14 +60,14 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var createFragRef
   def cpp = "NOT VALID ; CLASS = LoopOverFragments\n";
 
   def expand(collector : StackCollector) : ForLoopStatement = {
-    val parallelizable = !Knowledge.summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false });
+    val parallelizable = !Knowledge.domain_summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false });
 
     if (parallelizable)
-      new ForLoopStatement(s"int f = 0", s"f < ${Knowledge.numFragsPerBlock}", s"++f",
+      new ForLoopStatement(s"int f = 0", s"f < ${Knowledge.domain_numFragsPerBlock}", s"++f",
         (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[f];") else ListBuffer[Statement]())
           ++ body, addOMPStatements + " schedule(static, 1)") with OMP_PotentiallyParallel
     else
-      new ForLoopStatement(s"int f = 0", s"f < ${Knowledge.numFragsPerBlock}", s"++f",
+      new ForLoopStatement(s"int f = 0", s"f < ${Knowledge.domain_numFragsPerBlock}", s"++f",
         (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[f];") else ListBuffer[Statement]())
           ++ body)
   }

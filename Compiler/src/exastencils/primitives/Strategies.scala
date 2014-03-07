@@ -22,7 +22,7 @@ object SetupFragmentClass extends Strategy("Setting up fragment class") {
   // FIXME: move
   this += new Transformation("Adding fields to FragmentClass", {
     case collection : FieldCollection =>
-      collection.fields += new Field("Solution", "solData", "double", Knowledge.numSolSlots, true);
+      collection.fields += new Field("Solution", "solData", "double", Knowledge.data_numSolSlots, true);
       collection.fields += new Field("Residual", "resData", "double", 1, false);
       collection.fields += new Field("RHS", "rhsData", "double", 1, false);
       Some(collection);
@@ -57,9 +57,9 @@ object SetupFragmentClass extends Strategy("Setting up fragment class") {
       for (field <- fieldCollection.fields) {
         communicationFunctions.functions += new ExchangeDataSplitter(field);
         for (level <- (0 to Knowledge.maxLevel)) {
-          if (6 == Knowledge.fragmentCommStrategy) // FIXME: generic call pattern
+          if (6 == Knowledge.comm_strategyFragment) // FIXME: generic call pattern
             communicationFunctions.functions += new ExchangeData_6(field, level, frag.neighbors);
-          else if (26 == Knowledge.fragmentCommStrategy)
+          else if (26 == Knowledge.comm_strategyFragment)
             communicationFunctions.functions += new ExchangeData_26(field, level, frag.neighbors);
         }
       }

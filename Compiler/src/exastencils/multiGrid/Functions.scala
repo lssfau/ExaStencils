@@ -24,8 +24,8 @@ case class PerformSmoothing_Jac(solutionField : Field, rhsField : Field, level :
               AssignmentStatement(
                 // FIXME: introduce and apply stencil node
                 FieldAccess(solutionField, level, "targetSlot", Mapping.access(level)),
-                s"${1.0 - Knowledge.smootherOmega} * " ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level))
-                  ~ s"+ ${Knowledge.smootherOmega} / 6.0 * ("
+                s"${1.0 - Knowledge.mg_smoother_omega} * " ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level))
+                  ~ s"+ ${Knowledge.mg_smoother_omega} / 6.0 * ("
                   ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(x + 1)", "y", "z"))
                   ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(x - 1)", "y", "z"))
                   ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "(y + 1)", "z"))
@@ -50,8 +50,8 @@ case class PerformSmoothing_GS(solutionField : Field, rhsField : Field, level : 
               AssignmentStatement(
                 // FIXME: introduce and apply stencil node
                 FieldAccess(solutionField, level, "targetSlot", Mapping.access(level)),
-                s"${1.0 - Knowledge.smootherOmega} * " ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level))
-                  ~ s"+ ${Knowledge.smootherOmega} / 6.0 * ("
+                s"${1.0 - Knowledge.mg_smoother_omega} * " ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level))
+                  ~ s"+ ${Knowledge.mg_smoother_omega} / 6.0 * ("
                   ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(x + 1)", "y", "z"))
                   ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(x - 1)", "y", "z"))
                   ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "(y + 1)", "z"))
@@ -67,7 +67,7 @@ case class PerformSmoothing(solutionField : Field, rhsField : Field, level : Int
   override def cpp : String = "NOT VALID ; CLASS = PerformSmoothing\n";
 
   override def expand(collector : StackCollector) : AbstractFunctionStatement = {
-    Knowledge.smoother match {
+    Knowledge.mg_smoother match {
       case SmootherType.Jac => new PerformSmoothing_Jac(solutionField, rhsField, level)
       case SmootherType.GS  => new PerformSmoothing_GS(solutionField, rhsField, level)
     }
@@ -102,18 +102,18 @@ case class PerformSmoothing(solutionField : Field, rhsField : Field, level : Int
 			Vec3u				last		= fragments[f]->solData[0][level]->lastDataPoint;
 
 #ifdef SMOOTHER_GSACBE
-			Vec3u				numBlocks	= (dimWOPad - Vec3u(2 * """ + s"${Knowledge.numGhostLayers}" + """) + Vec3u(GSBE_WINDOW_SIZE - GSBE_WINDOW_OVERLAP - 1)) / Vec3u(GSBE_WINDOW_SIZE - GSBE_WINDOW_OVERLAP) + Vec3u(1);
+			Vec3u				numBlocks	= (dimWOPad - Vec3u(2 * """ + s"${Knowledge.data_numGhostLayers}" + """) + Vec3u(GSBE_WINDOW_SIZE - GSBE_WINDOW_OVERLAP - 1)) / Vec3u(GSBE_WINDOW_SIZE - GSBE_WINDOW_OVERLAP) + Vec3u(1);
 
 			for (unsigned int bz = 0; bz < numBlocks.z; ++bz)
 				for (unsigned int by = 0; by < numBlocks.y; ++by)
 					for (unsigned int bx = 0; bx < numBlocks.x; ++bx)
 					{
-						unsigned int zMin = """ + s"${Knowledge.numGhostLayers}" + """ + bz * (GSBE_WINDOW_SIZE - GSBE_WINDOW_OVERLAP);
-						unsigned int zMax = std::min(zMin + GSBE_WINDOW_SIZE, dimWOPad.z - """ + s"${Knowledge.numGhostLayers}" + """);
-						unsigned int yMin = """ + s"${Knowledge.numGhostLayers}" + """ + by * (GSBE_WINDOW_SIZE - GSBE_WINDOW_OVERLAP);
-						unsigned int yMax = std::min(yMin + GSBE_WINDOW_SIZE, dimWOPad.y - """ + s"${Knowledge.numGhostLayers}" + """);
-						unsigned int xMin = """ + s"${Knowledge.numGhostLayers}" + """ + bx * (GSBE_WINDOW_SIZE - GSBE_WINDOW_OVERLAP);
-						unsigned int xMax = std::min(xMin + GSBE_WINDOW_SIZE, dimWOPad.x - """ + s"${Knowledge.numGhostLayers}" + """);
+						unsigned int zMin = """ + s"${Knowledge.data_numGhostLayers}" + """ + bz * (GSBE_WINDOW_SIZE - GSBE_WINDOW_OVERLAP);
+						unsigned int zMax = std::min(zMin + GSBE_WINDOW_SIZE, dimWOPad.z - """ + s"${Knowledge.data_numGhostLayers}" + """);
+						unsigned int yMin = """ + s"${Knowledge.data_numGhostLayers}" + """ + by * (GSBE_WINDOW_SIZE - GSBE_WINDOW_OVERLAP);
+						unsigned int yMax = std::min(yMin + GSBE_WINDOW_SIZE, dimWOPad.y - """ + s"${Knowledge.data_numGhostLayers}" + """);
+						unsigned int xMin = """ + s"${Knowledge.data_numGhostLayers}" + """ + bx * (GSBE_WINDOW_SIZE - GSBE_WINDOW_OVERLAP);
+						unsigned int xMax = std::min(xMin + GSBE_WINDOW_SIZE, dimWOPad.x - """ + s"${Knowledge.data_numGhostLayers}" + """);
 
 						for (unsigned int i = 0; i < NUM_GSBE_ITERATIONS; ++i)
 						{
@@ -144,12 +144,12 @@ case class PerformSmoothing(solutionField : Field, rhsField : Field, level : Int
 				+ """ + s"${Knowledge.smootherOmega}" + """ * 0.25 * (solSrcData[posAbs - 1] + solSrcData[posAbs + 1] + solSrcData[posAbs - dimWPad.x] + solSrcData[posAbs + dimWPad.x] - rhsData[posAbs]);
 			}
 #elif defined (SMOOTHER_GSRB) || defined (SMOOTHER_GSRBAC)
-			for (unsigned int z = first.z + """ + s"${Knowledge.numGhostLayers}" + """; z <= last.z - """ + s"${Knowledge.numGhostLayers}" + """; ++z)
+			for (unsigned int z = first.z + """ + s"${Knowledge.data_numGhostLayers}" + """; z <= last.z - """ + s"${Knowledge.data_numGhostLayers}" + """; ++z)
 			{
-				for (unsigned int y = first.y + """ + s"${Knowledge.numGhostLayers}" + """; y <= last.y - """ + s"${Knowledge.numGhostLayers}" + """; ++y)
+				for (unsigned int y = first.y + """ + s"${Knowledge.data_numGhostLayers}" + """; y <= last.y - """ + s"${Knowledge.data_numGhostLayers}" + """; ++y)
 				{
-					unsigned int posAbs = z * dimWPad.y * dimWPad.x + y * dimWPad.x + first.x + """ + s"${Knowledge.numGhostLayers}" + """ + ((y - first.y - """ + s"${Knowledge.numGhostLayers}" + """) % 2);
-					for (unsigned int x = first.x + """ + s"${Knowledge.numGhostLayers}" + """ + ((y - first.y - """ + s"${Knowledge.numGhostLayers}" + """) % 2); x <= last.x - """ + s"${Knowledge.numGhostLayers}" + """; x += 2, posAbs += 2)
+					unsigned int posAbs = z * dimWPad.y * dimWPad.x + y * dimWPad.x + first.x + """ + s"${Knowledge.data_numGhostLayers}" + """ + ((y - first.y - """ + s"${Knowledge.data_numGhostLayers}" + """) % 2);
+					for (unsigned int x = first.x + """ + s"${Knowledge.data_numGhostLayers}" + """ + ((y - first.y - """ + s"${Knowledge.data_numGhostLayers}" + """) % 2); x <= last.x - """ + s"${Knowledge.data_numGhostLayers}" + """; x += 2, posAbs += 2)
 					{
 						solDestData[posAbs] = 
 							(1.0 - """ + s"${Knowledge.smootherOmega}" + """) * solSrcData[posAbs]
@@ -166,12 +166,12 @@ case class PerformSmoothing(solutionField : Field, rhsField : Field, level : Int
 			exchsolData(level, targetSlot);
 #	endif
 
-			for (unsigned int z = first.z + """ + s"${Knowledge.numGhostLayers}" + """; z <= last.z - """ + s"${Knowledge.numGhostLayers}" + """; ++z)
+			for (unsigned int z = first.z + """ + s"${Knowledge.data_numGhostLayers}" + """; z <= last.z - """ + s"${Knowledge.data_numGhostLayers}" + """; ++z)
 			{
-				for (unsigned int y = first.y + """ + s"${Knowledge.numGhostLayers}" + """; y <= last.y - """ + s"${Knowledge.numGhostLayers}" + """; ++y)
+				for (unsigned int y = first.y + """ + s"${Knowledge.data_numGhostLayers}" + """; y <= last.y - """ + s"${Knowledge.data_numGhostLayers}" + """; ++y)
 				{
-					unsigned int posAbs = z * dimWPad.y * dimWPad.x + y * dimWPad.x + first.x + """ + s"${Knowledge.numGhostLayers}" + """ + ((y - first.y - """ + s"${Knowledge.numGhostLayers}" + """ + 1) % 2);
-					for (unsigned int x = first.x + """ + s"${Knowledge.numGhostLayers}" + """ + ((y - first.y - """ + s"${Knowledge.numGhostLayers}" + """ + 1) % 2); x <= last.x - """ + s"${Knowledge.numGhostLayers}" + """; x += 2, posAbs += 2)
+					unsigned int posAbs = z * dimWPad.y * dimWPad.x + y * dimWPad.x + first.x + """ + s"${Knowledge.data_numGhostLayers}" + """ + ((y - first.y - """ + s"${Knowledge.data_numGhostLayers}" + """ + 1) % 2);
+					for (unsigned int x = first.x + """ + s"${Knowledge.data_numGhostLayers}" + """ + ((y - first.y - """ + s"${Knowledge.data_numGhostLayers}" + """ + 1) % 2); x <= last.x - """ + s"${Knowledge.data_numGhostLayers}" + """; x += 2, posAbs += 2)
 					{
 						solDestData[posAbs] = 
 							(1.0 - """ + s"${Knowledge.smootherOmega}" + """) * solSrcData[posAbs]
@@ -241,14 +241,14 @@ case class PerformRestriction() extends AbstractFunctionStatement with Expandabl
 		unsigned int		dyS	= dimWPadSrc.x;
 		unsigned int		dzS	= dimWPadSrc.x * dimWPadSrc.y;
 
-		for (unsigned int z = firstDest.z + """ + s"${Knowledge.numGhostLayers}" + """; z <= lastDest.z - """ + s"${Knowledge.numGhostLayers}" + """; ++z)
+		for (unsigned int z = firstDest.z + """ + s"${Knowledge.data_numGhostLayers}" + """; z <= lastDest.z - """ + s"${Knowledge.data_numGhostLayers}" + """; ++z)
 		{
-			for (unsigned int y = firstDest.y + """ + s"${Knowledge.numGhostLayers}" + """; y <= lastDest.y - """ + s"${Knowledge.numGhostLayers}" + """; ++y)
+			for (unsigned int y = firstDest.y + """ + s"${Knowledge.data_numGhostLayers}" + """; y <= lastDest.y - """ + s"${Knowledge.data_numGhostLayers}" + """; ++y)
 			{
-				unsigned int posAbs = (2 * (z - firstDest.z - """ + s"${Knowledge.numGhostLayers}" + """) + firstSrc.z + """ + s"${Knowledge.numGhostLayers}" + """) * dzS
-					+ (2 * (y - firstDest.y - """ + s"${Knowledge.numGhostLayers}" + """) + firstSrc.y + """ + s"${Knowledge.numGhostLayers}" + """) * dyS
-					+ firstSrc.x + """ + s"${Knowledge.numGhostLayers}" + """;
-				for (unsigned int x = firstDest.x + """ + s"${Knowledge.numGhostLayers}" + """; x <= lastDest.x - """ + s"${Knowledge.numGhostLayers}" + """; ++x, posAbs += 2)
+				unsigned int posAbs = (2 * (z - firstDest.z - """ + s"${Knowledge.data_numGhostLayers}" + """) + firstSrc.z + """ + s"${Knowledge.data_numGhostLayers}" + """) * dzS
+					+ (2 * (y - firstDest.y - """ + s"${Knowledge.data_numGhostLayers}" + """) + firstSrc.y + """ + s"${Knowledge.data_numGhostLayers}" + """) * dyS
+					+ firstSrc.x + """ + s"${Knowledge.data_numGhostLayers}" + """;
+				for (unsigned int x = firstDest.x + """ + s"${Knowledge.data_numGhostLayers}" + """; x <= lastDest.x - """ + s"${Knowledge.data_numGhostLayers}" + """; ++x, posAbs += 2)
 				{
 					destData[z * dimWPadDest.y * dimWPadDest.x + y * dimWPadDest.x + x] =
 						+ 1.0 * (
@@ -316,56 +316,56 @@ case class PerformProlongation() extends AbstractFunctionStatement with Expandab
 		unsigned int		dyD	= dimWPadDest.x;
 		unsigned int		dzD	= dimWPadDest.x * dimWPadDest.y;
 
-		for (unsigned int z = firstDest.z + """ + s"${Knowledge.numGhostLayers}" + """; z <= lastDest.z - """ + s"${Knowledge.numGhostLayers}" + """; z += 2)
+		for (unsigned int z = firstDest.z + """ + s"${Knowledge.data_numGhostLayers}" + """; z <= lastDest.z - """ + s"${Knowledge.data_numGhostLayers}" + """; z += 2)
 		{
-			for (unsigned int y = firstDest.y + """ + s"${Knowledge.numGhostLayers}" + """; y <= lastDest.y - """ + s"${Knowledge.numGhostLayers}" + """; y += 2)
+			for (unsigned int y = firstDest.y + """ + s"${Knowledge.data_numGhostLayers}" + """; y <= lastDest.y - """ + s"${Knowledge.data_numGhostLayers}" + """; y += 2)
 			{
-				unsigned int destPos = z * dzD + y * dyD + firstDest.x + """ + s"${Knowledge.numGhostLayers}" + """;
-				unsigned int srcPos = (((z - firstDest.z - """ + s"${Knowledge.numGhostLayers}" + """) >> 1) + firstSrc.z + """ + s"${Knowledge.numGhostLayers}" + """) * dzS
-					+ (((y - firstDest.y - """ + s"${Knowledge.numGhostLayers}" + """) >> 1) + firstSrc.y + """ + s"${Knowledge.numGhostLayers}" + """) * dyS
-					+ firstSrc.x + """ + s"${Knowledge.numGhostLayers}" + """;
-				for (unsigned int x = firstDest.x + """ + s"${Knowledge.numGhostLayers}" + """; x <= lastDest.x - """ + s"${Knowledge.numGhostLayers}" + """; x += 2, destPos += 2, ++srcPos)
+				unsigned int destPos = z * dzD + y * dyD + firstDest.x + """ + s"${Knowledge.data_numGhostLayers}" + """;
+				unsigned int srcPos = (((z - firstDest.z - """ + s"${Knowledge.data_numGhostLayers}" + """) >> 1) + firstSrc.z + """ + s"${Knowledge.data_numGhostLayers}" + """) * dzS
+					+ (((y - firstDest.y - """ + s"${Knowledge.data_numGhostLayers}" + """) >> 1) + firstSrc.y + """ + s"${Knowledge.data_numGhostLayers}" + """) * dyS
+					+ firstSrc.x + """ + s"${Knowledge.data_numGhostLayers}" + """;
+				for (unsigned int x = firstDest.x + """ + s"${Knowledge.data_numGhostLayers}" + """; x <= lastDest.x - """ + s"${Knowledge.data_numGhostLayers}" + """; x += 2, destPos += 2, ++srcPos)
 				{
 					destData[destPos] += 1.0 * (
 						srcData[srcPos]);
 
-					if (x < lastDest.x - """ + s"${Knowledge.numGhostLayers}" + """)
+					if (x < lastDest.x - """ + s"${Knowledge.data_numGhostLayers}" + """)
 						destData[destPos + dxD] += 0.5 * (
 						srcData[srcPos]
 					+ srcData[srcPos + dxS]);
 
-					if (y < lastDest.y - """ + s"${Knowledge.numGhostLayers}" + """)
+					if (y < lastDest.y - """ + s"${Knowledge.data_numGhostLayers}" + """)
 						destData[destPos + dyD] += 0.5 * (
 						srcData[srcPos]
 					+ srcData[srcPos + dyS]);
 
-					if (z < lastDest.z - """ + s"${Knowledge.numGhostLayers}" + """)
+					if (z < lastDest.z - """ + s"${Knowledge.data_numGhostLayers}" + """)
 						destData[destPos + dzD] += 0.5 * (
 						srcData[srcPos]
 					+ srcData[srcPos + dzS]);
 
-					if (x < lastDest.x - """ + s"${Knowledge.numGhostLayers}" + """ && y < lastDest.y - """ + s"${Knowledge.numGhostLayers}" + """)
+					if (x < lastDest.x - """ + s"${Knowledge.data_numGhostLayers}" + """ && y < lastDest.y - """ + s"${Knowledge.data_numGhostLayers}" + """)
 						destData[destPos + dyD + dxD] += 0.25 * (
 						srcData[srcPos]
 					+ srcData[srcPos + dxS]
 					+ srcData[srcPos + dyS]
 					+ srcData[srcPos + dyS + dxS]);
 
-					if (x < lastDest.x - """ + s"${Knowledge.numGhostLayers}" + """ && z < lastDest.z - """ + s"${Knowledge.numGhostLayers}" + """)
+					if (x < lastDest.x - """ + s"${Knowledge.data_numGhostLayers}" + """ && z < lastDest.z - """ + s"${Knowledge.data_numGhostLayers}" + """)
 						destData[destPos + dzD + dxD] += 0.25 * (
 						srcData[srcPos]
 					+ srcData[srcPos + dxS]
 					+ srcData[srcPos + dzS]
 					+ srcData[srcPos + dzS + dxS]);
 
-					if (y < lastDest.y - """ + s"${Knowledge.numGhostLayers}" + """ && z < lastDest.z - """ + s"${Knowledge.numGhostLayers}" + """)
+					if (y < lastDest.y - """ + s"${Knowledge.data_numGhostLayers}" + """ && z < lastDest.z - """ + s"${Knowledge.data_numGhostLayers}" + """)
 						destData[destPos + dzD + dyD] += 0.25 * (
 						srcData[srcPos]
 					+ srcData[srcPos + dyS]
 					+ srcData[srcPos + dzS]
 					+ srcData[srcPos + dzS + dyS]);
 
-					if (x < lastDest.x - """ + s"${Knowledge.numGhostLayers}" + """ && y < lastDest.y - """ + s"${Knowledge.numGhostLayers}" + """ && z < lastDest.z - """ + s"${Knowledge.numGhostLayers}" + """)
+					if (x < lastDest.x - """ + s"${Knowledge.data_numGhostLayers}" + """ && y < lastDest.y - """ + s"${Knowledge.data_numGhostLayers}" + """ && z < lastDest.z - """ + s"${Knowledge.data_numGhostLayers}" + """)
 						destData[destPos + dzD + dyD + dxD] += 0.125 * (
 						srcData[srcPos]
 					+ srcData[srcPos + dxS]
@@ -386,11 +386,11 @@ case class PerformCGS(level : Int) extends AbstractFunctionStatement with Expand
   override def cpp : String = "NOT VALID ; CLASS = PerformVCycle\n";
 
   override def expand(collector : StackCollector) : ForLoopStatement = {
-    Knowledge.cgs match {
+    Knowledge.mg_cgs match {
       case CoarseGridSolverType.IP_Smoother =>
-        ForLoopStatement(s"unsigned int s = 0", s"s < ${Knowledge.cgsNumSteps}", s"++s", ListBuffer(
+        ForLoopStatement(s"unsigned int s = 0", s"s < ${Knowledge.mg_cgs_numSteps}", s"++s", ListBuffer(
           s"++solSlots[0];",
-          s"performSmoothing_$level((solSlots[$level] + 0) % ${Knowledge.numSolSlots}, (solSlots[$level] - 1) % ${Knowledge.numSolSlots});"))
+          s"performSmoothing_$level((solSlots[$level] + 0) % ${Knowledge.data_numSolSlots}, (solSlots[$level] - 1) % ${Knowledge.data_numSolSlots});"))
     }
   }
 }
@@ -404,26 +404,26 @@ case class PerformVCycle(level : Int) extends AbstractFunctionStatement with Exp
         ListBuffer[Statement](new PerformCGS(level))
       } else {
         ListBuffer[Statement](
-          ForLoopStatement(s"unsigned int s = 0", s"s < ${Knowledge.smootherNumPre}", s"++s", ListBuffer(
+          ForLoopStatement(s"unsigned int s = 0", s"s < ${Knowledge.mg_smoother_numPre}", s"++s", ListBuffer(
             s"++solSlots[$level];",
-            s"performSmoothing_$level((solSlots[$level] + 0) % ${Knowledge.numSolSlots}, (solSlots[$level] - 1) % ${Knowledge.numSolSlots});")),
+            s"performSmoothing_$level((solSlots[$level] + 0) % ${Knowledge.data_numSolSlots}, (solSlots[$level] - 1) % ${Knowledge.data_numSolSlots});")),
 
-          s"updateResidual_$level(solSlots[$level] % ${Knowledge.numSolSlots});",
+          s"updateResidual_$level(solSlots[$level] % ${Knowledge.data_numSolSlots});",
 
           s"performRestriction_NodeFW($level, ${level - 1});",
 
-          s"setSolZero_${level - 1}(solSlots[${level - 1}] % ${Knowledge.numSolSlots});",
+          s"setSolZero_${level - 1}(solSlots[${level - 1}] % ${Knowledge.data_numSolSlots});",
 
           s"performVCycle_${level - 1}(solSlots);",
 
-          s"performProlongation_NodeTLI(solSlots[${level - 1}] % ${Knowledge.numSolSlots}, ${level - 1}, solSlots[$level] % ${Knowledge.numSolSlots}, $level);",
+          s"performProlongation_NodeTLI(solSlots[${level - 1}] % ${Knowledge.data_numSolSlots}, ${level - 1}, solSlots[$level] % ${Knowledge.data_numSolSlots}, $level);",
 
-          ForLoopStatement(s"unsigned int s = 0", s"s < ${Knowledge.smootherNumPost}", s"++s", ListBuffer(
+          ForLoopStatement(s"unsigned int s = 0", s"s < ${Knowledge.mg_smoother_numPost}", s"++s", ListBuffer(
             s"++solSlots[$level];",
-            s"performSmoothing_$level((solSlots[$level] + 0) % ${Knowledge.numSolSlots}, (solSlots[$level] - 1) % ${Knowledge.numSolSlots});")))
+            s"performSmoothing_$level((solSlots[$level] + 0) % ${Knowledge.data_numSolSlots}, (solSlots[$level] - 1) % ${Knowledge.data_numSolSlots});")))
       })
         ++
-        (if (Knowledge.maxLevel == level) { ListBuffer[Statement](s"updateResidual_$level(solSlots[$level] % ${Knowledge.numSolSlots});") }
+        (if (Knowledge.maxLevel == level) { ListBuffer[Statement](s"updateResidual_$level(solSlots[$level] % ${Knowledge.data_numSolSlots});") }
         else { ListBuffer[Statement]() }));
   }
 }

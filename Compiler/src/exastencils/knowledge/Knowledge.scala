@@ -25,112 +25,128 @@ object SmootherType extends Enumeration {
 }
 
 object Knowledge {
-  var dimensionality : Int = 3;
+  // === Level 1 ===  
+  var dimensionality : Int = 3; // dimensionality of the problem
 
-  var numGhostLayers : Int = 1;
-  var maxLevel : Int = 6;
-  var numLevels : Int = maxLevel + 1;
-  var fragmentCommStrategy : Int = 6; //26
-  var useMPIDatatypes : Boolean = true;
-  var useLoopsOverNeighbors : Boolean = true;
+  // TODO: check if these parameters will be necessary or can be implicitly assumed once an appropriate field collection is in place 
+  var maxLevel : Int = 6; // the finest level
+  var numLevels : Int = maxLevel + 1; // the number of levels -> this assumes that the cycle descents to the coarsest level
 
-  var summarizeBlocks : Boolean = true; // TODO: sanity check if compatible with chosen smoother
+  // --- Domain Decomposition ---
+  // specifies if fragments within one block should be aggregated 
+  // TODO: sanity check if compatible with chosen smoother
+  var domain_summarizeBlocks : Boolean = true;
+
+  // number of blocks per dimension - one block will usually be mapped to one MPI thread
+  var domain_numBlocks_x : Int = 4;
+  var domain_numBlocks_y : Int = 4;
+  var domain_numBlocks_z : Int = 4;
+  var domain_numBlocks : Int = domain_numBlocks_x * domain_numBlocks_y * domain_numBlocks_z; // TODO: ignore values outside the given dimensionality; also applies for other Knowledge values
+
+  // number of fragments in each block per dimension - this will usually be one or represent the number of OMP threads per dimension
+  var domain_numFragsPerBlock_x : Int = 4;
+  var domain_numFragsPerBlock_y : Int = 4;
+  var domain_numFragsPerBlock_z : Int = 4;
+  var domain_numFragsPerBlock : Int = domain_numFragsPerBlock_x * domain_numFragsPerBlock_y * domain_numFragsPerBlock_z;
+  var domain_numFragsPerBlockPerDim : Array[Int] = Array(domain_numFragsPerBlock_x, domain_numFragsPerBlock_y, domain_numFragsPerBlock_z);
+
+  // the length of each fragment per dimension - this will either be one or specify the length in unit-fragments, i.e. the number of aggregated fragments per dimension
+  var domain_fragLength_x : Int = 1;
+  var domain_fragLength_y : Int = 1;
+  var domain_fragLength_z : Int = 1;
+  var domain_fragLength : Int = domain_fragLength_x * domain_fragLength_y * domain_fragLength_z;
+  var domain_fragLengthPerDim : Array[Int] = Array(domain_fragLength_x, domain_fragLength_y, domain_fragLength_z);
+
+  // the total number of fragments per dimension
+  var domain_numFragsTotal_x : Int = domain_numFragsPerBlock_x * domain_numBlocks_x;
+  var domain_numFragsTotal_y : Int = domain_numFragsPerBlock_y * domain_numBlocks_y;
+  var domain_numFragsTotal_z : Int = domain_numFragsPerBlock_z * domain_numBlocks_z;
+  var domain_numFragsTotal : Int = domain_numFragsTotal_x * domain_numFragsTotal_y * domain_numFragsTotal_z;
+
+  // === Level 2 ===
+
+  // === Level 3 ===
+
+  // --- MG ---
+  var mg_maxNumIterations : Int = 1024;
+
+  // --- Smoother ---
+  var mg_smoother : SmootherType.SmootherType = SmootherType.GS;
+  var mg_smoother_numPre : Int = 3;
+  var mg_smoother_numPost : Int = 3;
+  var mg_smoother_omega : Double = (if (SmootherType.Jac == mg_smoother) 0.8 else 1.0);
+
+  // --- CGS ---
+  var mg_cgs : CoarseGridSolverType.CoarseGridSolverType = CoarseGridSolverType.IP_Smoother;
+  var mg_cgs_numSteps : Int = 512;
+
+  // === Level 4 ===
+
+  // === Post Level 4 ===
+
+  // --- Data Structures ---
+  // specifies the number of ghost layers at each boundary per field
+  var data_numGhostLayers : Int = 1;
+  // TODO: this will probably become obsolete with an appropriate field collection and/or the new level 4
+  var data_numSolSlots : Int = (if (SmootherType.Jac == mg_smoother) 2 else 1);
+
+  // --- OpenMP/Hybrid Parallelization ---
   var useOMP : Boolean = true;
 
-  var numBlocks_x : Int = 4;
-  var numBlocks_y : Int = 4;
-  var numBlocks_z : Int = 4;
-  // TODO: ignore values outside the given dimensionality; also applies for other Knowledge values
-  var numBlocks : Int = numBlocks_x * numBlocks_y * numBlocks_z;
+  // --- Communication ---
+  var comm_strategyFragment : Int = 6; //26
+  var comm_useMPIDatatypes : Boolean = true;
+  var comm_useLoopsOverNeighbors : Boolean = true;
 
-  var numFragsPerBlock_x : Int = 4;
-  var numFragsPerBlock_y : Int = 4;
-  var numFragsPerBlock_z : Int = 4;
-  var fragLength_x : Int = 1;
-  var fragLength_y : Int = 1;
-  var fragLength_z : Int = 1;
-
-  if (summarizeBlocks) {
-    // FIXME: move to transformation
-    fragLength_x = numFragsPerBlock_x;
-    fragLength_y = numFragsPerBlock_y;
-    fragLength_z = numFragsPerBlock_z;
-
-    numFragsPerBlock_x = 1;
-    numFragsPerBlock_y = 1;
-    numFragsPerBlock_z = 1;
-  }
-
-  var numFragsTotal_x : Int = numFragsPerBlock_x * numBlocks_x;
-  var numFragsTotal_y : Int = numFragsPerBlock_y * numBlocks_y;
-  var numFragsTotal_z : Int = numFragsPerBlock_z * numBlocks_z;
-  var numFragsTotal : Int = numFragsTotal_x * numFragsTotal_y * numFragsTotal_z;
-
-  var numFragsPerBlock : Int = numFragsPerBlock_x * numFragsPerBlock_y * numFragsPerBlock_z;
-  var numFragsPerBlockPerDim : Array[Int] = Array(numFragsPerBlock_x, numFragsPerBlock_y, numFragsPerBlock_z);
-  var fragLength : Int = fragLength_x * fragLength_y * fragLength_z;
-  var fragLengthPerDim : Array[Int] = Array(fragLength_x, fragLength_y, fragLength_z);
-
-  var smootherNumPre : Int = 3;
-  var smootherNumPost : Int = 3;
-  var cgsNumSteps : Int = 512;
-
-  var mgMaxNumIterations : Int = 1024;
-
-  var cgs = CoarseGridSolverType.IP_Smoother;
-  var smoother = SmootherType.GS;
-
-  var gsodNumIterations : Int = 8;
-  var gsbeNumIterations : Int = 12;
-  var gsbeNumWindowSize : Int = 4;
-  var gsbeNumWindowOverlap : Int = 1;
-
-  var smootherOmega : Double = (if (SmootherType.Jac == smoother) 0.8 else 1.0);
-
-  var numSolSlots : Int = (if (SmootherType.Jac == smoother) 2 else 1);
+  // === Obsolete ===
+  //  var gsodNumIterations : Int = 8;
+  //  var gsbeNumIterations : Int = 12;
+  //  var gsbeNumWindowSize : Int = 4;
+  //  var gsbeNumWindowOverlap : Int = 1;
 
   def update(configuration : Configuration) : Unit = {
+    // NOTE: it is required to call update at least once
 
-    smoother = configuration.getFirstSelectedSubFeatureName("smoother") match {
+    mg_smoother = configuration.getFirstSelectedSubFeatureName("smoother") match {
       case "Jacobi"               => SmootherType.Jac
       case "GaussSeidel"          => SmootherType.GS
       case "RedBlack_GaussSeidel" => SmootherType.RBGS
     }
 
-    cgs = configuration.getFirstSelectedSubFeatureName("cgs") match {
+    mg_cgs = configuration.getFirstSelectedSubFeatureName("cgs") match {
       case "InPlace_Smoother" => CoarseGridSolverType.IP_Smoother
     }
 
-    useOMP = summarizeBlocks || (numFragsPerBlock_x != 1 || numFragsPerBlock_y != 1 || numFragsPerBlock_z != 1)
+    useOMP = domain_summarizeBlocks || (domain_numFragsPerBlock_x != 1 || domain_numFragsPerBlock_y != 1 || domain_numFragsPerBlock_z != 1)
 
     numLevels = maxLevel + 1;
 
-    numBlocks = numBlocks_x * numBlocks_y * numBlocks_z;
+    domain_numBlocks = domain_numBlocks_x * domain_numBlocks_y * domain_numBlocks_z;
 
-    if (summarizeBlocks) {
+    if (domain_summarizeBlocks) {
       // FIXME: move to transformation
-      fragLength_x = numFragsPerBlock_x;
-      fragLength_y = numFragsPerBlock_y;
-      fragLength_z = numFragsPerBlock_z;
+      domain_fragLength_x = domain_numFragsPerBlock_x;
+      domain_fragLength_y = domain_numFragsPerBlock_y;
+      domain_fragLength_z = domain_numFragsPerBlock_z;
 
-      numFragsPerBlock_x = 1;
-      numFragsPerBlock_y = 1;
-      numFragsPerBlock_z = 1;
+      domain_numFragsPerBlock_x = 1;
+      domain_numFragsPerBlock_y = 1;
+      domain_numFragsPerBlock_z = 1;
     }
 
-    numFragsTotal_x = numFragsPerBlock_x * numBlocks_x;
-    numFragsTotal_y = numFragsPerBlock_y * numBlocks_y;
-    numFragsTotal_z = numFragsPerBlock_z * numBlocks_z;
-    numFragsTotal = numFragsTotal_x * numFragsTotal_y * numFragsTotal_z;
+    domain_numFragsTotal_x = domain_numFragsPerBlock_x * domain_numBlocks_x;
+    domain_numFragsTotal_y = domain_numFragsPerBlock_y * domain_numBlocks_y;
+    domain_numFragsTotal_z = domain_numFragsPerBlock_z * domain_numBlocks_z;
+    domain_numFragsTotal = domain_numFragsTotal_x * domain_numFragsTotal_y * domain_numFragsTotal_z;
 
-    numFragsPerBlock = numFragsPerBlock_x * numFragsPerBlock_y * numFragsPerBlock_z;
-    numFragsPerBlockPerDim = Array(numFragsPerBlock_x, numFragsPerBlock_y, numFragsPerBlock_z);
-    fragLength = fragLength_x * fragLength_y * fragLength_z;
-    fragLengthPerDim = Array(fragLength_x, fragLength_y, fragLength_z);
+    domain_numFragsPerBlock = domain_numFragsPerBlock_x * domain_numFragsPerBlock_y * domain_numFragsPerBlock_z;
+    domain_numFragsPerBlockPerDim = Array(domain_numFragsPerBlock_x, domain_numFragsPerBlock_y, domain_numFragsPerBlock_z);
+    domain_fragLength = domain_fragLength_x * domain_fragLength_y * domain_fragLength_z;
+    domain_fragLengthPerDim = Array(domain_fragLength_x, domain_fragLength_y, domain_fragLength_z);
 
-    smootherOmega = (if (SmootherType.Jac == smoother) 0.8 else 1.0);
+    mg_smoother_omega = (if (SmootherType.Jac == mg_smoother) 0.8 else 1.0);
 
-    numSolSlots = (if (SmootherType.Jac == smoother) 2 else 1);
+    data_numSolSlots = (if (SmootherType.Jac == mg_smoother) 2 else 1);
   }
 
 }

@@ -1,29 +1,24 @@
-maxLevel				= 5
-fragmentCommStrategy	= 26
+maxLevel					= 5
+comm_strategyFragment		= 26
 
-summarizeBlocks			= false
+domain_summarizeBlocks		= false
 
-numBlocks_x				= 8
-numBlocks_y				= 8
-numBlocks_z				= 8
+domain_numBlocks_x			= 8
+domain_numBlocks_y			= 8
+domain_numBlocks_z			= 8
 
-numFragsPerBlock_x		= 2
-numFragsPerBlock_y		= 2
-numFragsPerBlock_z		= 2
-fragLength_x			= 1
-fragLength_y			= 1
-fragLength_z			= 1
+domain_numFragsPerBlock_x	= 2
+domain_numFragsPerBlock_y	= 2
+domain_numFragsPerBlock_z	= 2
+domain_fragLength_x			= 1
+domain_fragLength_y			= 1
+domain_fragLength_z			= 1
 
-smootherNumPre			= 3
-smootherNumPost			= 3
-cgsNumSteps				= 512
+mg_smoother_numPre			= 3
+mg_smoother_numPost			= 3
+mg_cgs_numSteps				= 512
 
-mgMaxNumIterations		= 1024
+mg_maxNumIterations			= 1024
 
-//cgs						= CoarseGridSolverType.IP_Smoother
-//smoother				= SmootherType.Jac
-
-gsodNumIterations		= 8
-gsbeNumIterations		= 12
-gsbeNumWindowSize		= 4
-gsbeNumWindowOverlap	= 1
+//mg_cgs					= CoarseGridSolverType.IP_Smoother
+//mg_smoother				= SmootherType.Jac

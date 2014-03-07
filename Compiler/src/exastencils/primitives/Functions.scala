@@ -30,7 +30,7 @@ case class WaitForMPISendOps(var neighbors : ListBuffer[NeighborInfo]) extends A
   override def cpp : String = "NOT VALID ; CLASS = WaitForMPISendOps\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
-    if (Knowledge.useLoopsOverNeighbors) {
+    if (Knowledge.comm_useLoopsOverNeighbors) {
       var minIdx = neighbors.reduce((neigh, res) => if (neigh.index < res.index) neigh else res).index;
       var maxIdx = neighbors.reduce((neigh, res) => if (neigh.index > res.index) neigh else res).index;
 
@@ -57,7 +57,7 @@ case class WaitForMPIRecvOps(var neighbors : ListBuffer[NeighborInfo]) extends A
   override def cpp : String = "NOT VALID ; CLASS = WaitForMPIRecvOps\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
-    if (Knowledge.useLoopsOverNeighbors) {
+    if (Knowledge.comm_useLoopsOverNeighbors) {
       var minIdx = neighbors.reduce((neigh, res) => if (neigh.index < res.index) neigh else res).index;
       var maxIdx = neighbors.reduce((neigh, res) => if (neigh.index > res.index) neigh else res).index;
 
@@ -143,7 +143,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
         if (0 == neigh.dir(i))
           sizeArray += s"${Mapping.numPoints(Knowledge.maxLevel, i)}";
         else
-          sizeArray += s"${Knowledge.numGhostLayers}";
+          sizeArray += s"${Knowledge.data_numGhostLayers}";
 
       size += sizeArray.mkString(" * ");
 
