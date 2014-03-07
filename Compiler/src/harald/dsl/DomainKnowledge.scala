@@ -4,6 +4,8 @@ import scala.collection.mutable.ListBuffer
 import harald.Impl._
 import harald.ast.TreeL2
 import exastencils.knowledge.Knowledge
+import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
 
 object DomainKnowledge extends ExaKnowledge {
 
@@ -71,13 +73,14 @@ object DomainKnowledge extends ExaKnowledge {
   case class StencilKnowledge(val domain : String, val distype : String, val order : String, val operators : ListBuffer[String])
   case class LoopKnowledge(val domain : String, val where : String, val stride : String)
 
-  def rule_idxArray_cpp() : String = {
-    if (DomainKnowledge.fragment_L2.get._2.equals("Regular_Square"))
-      return "(i0,i1)" //List("i0","i1") //
-    else if (DomainKnowledge.fragment_L2.get._2.equals("Regular_Cube"))
-      return "(i0,i1,i2)" //List("i0","i1","i2") //
-    else
-      return "(i0)" //List("i0") // 
+  def rule_idxArray_cpp() : MultiIndex = {
+    MultiIndex("i0", "i1", "i2")
+//    if (DomainKnowledge.fragment_L2.get._2.equals("Regular_Square"))
+//      return "(i0,i1)" //List("i0","i1") //
+//    else if (DomainKnowledge.fragment_L2.get._2.equals("Regular_Cube"))
+//      return "(i0,i1,i2)" //List("i0","i1","i2") //
+//    else
+//      return "(i0)" //List("i0") // 
   }
 
   def rule_idxArray_cuda() : String = {

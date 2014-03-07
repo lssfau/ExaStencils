@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.knowledge.Knowledge
 
 trait Expression extends Node with CppPrettyPrintable {
   def ~(exp : Expression) : ConcatenationExpression = {
@@ -89,9 +90,11 @@ case class VariableAccess(name : String, dType : Option[Datatype] = None) extend
 }
 
 case class ArrayAccess(base : Access, index : Expression) extends Access {
-  override def cpp = index match {
-    case ind : MultiIndex => base.cpp + ind.cpp
-    case ind : Expression => base.cpp + '[' + ind.cpp + ']'
+  override def cpp = {
+    index match {
+      case ind : MultiIndex => base.cpp + ind.cpp
+      case ind : Expression => base.cpp + '[' + ind.cpp + ']'
+    }
   }
 }
 
@@ -99,12 +102,21 @@ case class MultiIndex(index_0 : Expression = new NullExpression, index_1 : Expre
   def this(indices : Array[Expression]) = this(indices(0), indices(1), indices(2)) // FIXME: currently requires arrays of length >= 3
   def this(indices : Array[Int]) = this(indices(0), indices(1), indices(2)) // FIXME: currently requires arrays of length >= 3
 
-  override def cpp = '[' + index_2.cpp + "][" + index_1.cpp + "][" + index_0.cpp + ']'
+  override def cpp = {
+    ( // compatibility to Harald's code
+      "("
+      + s"${index_0.cpp}"
+      + (if (Knowledge.dimensionality > 1) s", ${index_1.cpp}" else "")
+      + (if (Knowledge.dimensionality > 2) s", ${index_2.cpp}" else "")
+      + ")");
+  }
 
-  def apply(i : Int) : Expression = i match {
-    case 0 => index_0
-    case 1 => index_1
-    case 2 => index_2
+  def apply(i : Int) : Expression = {
+    i match {
+      case 0 => index_0
+      case 1 => index_1
+      case 2 => index_2
+    }
   }
 }
 

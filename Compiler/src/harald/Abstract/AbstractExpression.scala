@@ -237,8 +237,8 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
 
     ti.d match {
       case 0 => return id
-      case 1 => return id + DomainKnowledge.rule_idxArray_cpp()
-      case 2 => return id + "(Matrix (i0,i1))"
+      case 1 => return id ~ DomainKnowledge.rule_idxArray_cpp()
+      case 2 => return id ~ "(Matrix (i0,i1))"
     }
   }
 

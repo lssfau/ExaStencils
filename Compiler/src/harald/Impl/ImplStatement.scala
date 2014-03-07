@@ -196,7 +196,7 @@ case class ImplPcall(obj : String, name : String, paramlist : ListBuffer[Express
           "MPI_Comm_rank(MPI_COMM_WORLD, &rank);",
           "if (0 == rank) {",
           (if (TreeManager.tree.isinFields(paramlist(0).cpp)) {
-            var s : String = DomainKnowledge.rule_idxArray_cpp()
+            var s : String = DomainKnowledge.rule_idxArray_cpp().cpp
             "std::cout << " + paramlist(0).cpp + s + " << \" \" ;"
           } else {
             var pstr = "std::cout << "

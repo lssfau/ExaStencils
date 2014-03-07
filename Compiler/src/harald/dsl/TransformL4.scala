@@ -92,7 +92,7 @@ class TransformL4(treel2 : TreeL2) {
       if (dim == 0)
         s = "" //"Scalar" 
       else if (dim == 1) {
-        s = DomainKnowledge.rule_idxArray_cpp()
+        s = DomainKnowledge.rule_idxArray_cpp().cpp
       } else if (dim == 2)
         s = "(Matrix (i0,i1))"
 

@@ -26,9 +26,9 @@ object InitExternalFunctions extends Strategy("Init external functions") {
         idxshift = idxshift + s",i2+${ghostshifts(2)}"
 
       if (FromValue)
-        return new StringLiteral(s"${To}${DomainKnowledge.rule_idxArray_cpp()} = ${From};\n") // ${DomainKnowledge.pdebc_L1.get._2}
+        return new StringLiteral(s"${To}${DomainKnowledge.rule_idxArray_cpp().cpp} = ${From};\n") // ${DomainKnowledge.pdebc_L1.get._2}
       else
-        return new StringLiteral(s"${To}${DomainKnowledge.rule_idxArray_cpp()} = ${From}(${idxshift});\n")
+        return new StringLiteral(s"${To}${DomainKnowledge.rule_idxArray_cpp().cpp} = ${From}(${idxshift});\n")
     } else if (mode.equals("Buffer")) {
       var idxshift = s"i0+${ghostshifts(0)},i1+${ghostshifts(1)}"
       if (DomainKnowledge.rule_dim() == 3)

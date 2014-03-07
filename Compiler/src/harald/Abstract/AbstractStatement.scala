@@ -239,8 +239,8 @@ case class AbstractPLet(var id : String, val expr : AbstractExpression, modifier
 
     ti.d match {
       case 0 => ret += new AssignmentStatement(id, expr.transform(scopeparas, modifier, "expression"), "+=")
-      case 1 => ret += new AssignmentStatement(id + DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression"), "+=")
-      case 2 => ret += new AssignmentStatement(id + "(Matrix (i0,i1))", expr.transform(scopeparas, modifier, "expression"), "+=")
+      case 1 => ret += new AssignmentStatement(id ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression"), "+=")
+      case 2 => ret += new AssignmentStatement(id ~ "(Matrix (i0,i1))", expr.transform(scopeparas, modifier, "expression"), "+=")
     }
 
     return ret
