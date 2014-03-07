@@ -20,18 +20,41 @@ trait Expression extends Node with CppPrettyPrintable {
   def Or(other : Expression) = new BinaryExpression(OrOr, this, other)
   def Eq(other : Expression) = new BinaryExpression(EqEq, this, other)
   def IsNeq(other : Expression) = new BinaryExpression(NeqNeq, this, other)
-  
+
   def simplify : Expression = this
 }
 
 object BinaryOperators extends Enumeration {
   type BinaryOperators = Value
   val Addition, Subtraction, Multiplication, Division, Power, Modulo, AndAnd, OrOr, EqEq, NeqNeq = Value
+
+  import scala.language.implicitConversions
+  implicit def op2str(op : Value) : String = op match {
+    case Addition       => "+"
+    case Subtraction    => "-"
+    case Multiplication => "*"
+    case Division       => "/"
+    case Power          => "**" // FIXME
+    case Modulo         => "mod"
+    case AndAnd         => "&&"
+    case OrOr           => "||"
+    case EqEq           => "=="
+    case NeqNeq         => "!="
+    case _              => "FIXME"
+  }
 }
 
 object UnaryOperators extends Enumeration {
   type UnaryOperators = Value
   val Positive, Negative, Not = Value
+
+  import scala.language.implicitConversions
+  implicit def op2str(op : Value) : String = op match {
+    case Positive => ""
+    case Negative => "-"
+    case Not      => "!"
+    case _        => "FIXME"
+  }
 }
 
 trait Access extends Expression
@@ -93,12 +116,12 @@ case class UnaryExpression(var operator : UnaryOperators.Value, expression : Exp
 
 case class BinaryExpression(var operator : BinaryOperators.Value, var left : Expression, var right : Expression) extends Expression {
   override def cpp = {
-    s"(${left.cpp} $operator ${right.cpp})";
+    s"(${left.cpp} ${BinaryOperators.op2str(operator)} ${right.cpp})";
   }
-  
+
   override def simplify = {
-     (left, right) match {
-       case (x : NumericLiteral[_] , y : NumericLiteral[_]) => println(x ~ y); this //NumericLiteral(left.asInstanceOf[NumericLiteral[_]].Value + right.Value)
+    (left, right) match {
+      case (x : NumericLiteral[_], y : NumericLiteral[_]) => println(x ~ y); this //NumericLiteral(left.asInstanceOf[NumericLiteral[_]].Value + right.Value)
     }
   }
 }
