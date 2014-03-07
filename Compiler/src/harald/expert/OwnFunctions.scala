@@ -86,7 +86,7 @@ object InitExternalFunctions extends Strategy("Init external functions") {
   this += new Transformation("Initing main function", {
     case tree : TreeL2 =>
       {
-        val nlevels : Int = DomainKnowledge.nlevels_L3.getOrElse(1)
+        val nlevels : Int = Knowledge.numLevels
         var body : ListBuffer[Statement] = ListBuffer()
 
         if (DomainKnowledge.use_MPI) {

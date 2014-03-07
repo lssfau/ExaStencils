@@ -7,12 +7,13 @@ import harald.Impl._
 import harald.ast.TreeL2
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.knowledge._
 
 case class AbstractFunction(fname : String, location : String, rettype : String, paramlist : List[Param], stmts : List[AbstractStatement]) {
 
   def transform(tree : TreeL2) : ListBuffer[(String, ImplFunction)] = {
     var name : String = ""
-    if (fname.equals(DomainKnowledge.smoother_L3.get))
+    if (fname.equals(Knowledge.mg_smoother))
       name = "smoother"
     else
       name = fname

@@ -4,7 +4,7 @@ import java.io._
 import scala.collection.mutable.ListBuffer
 import harald.dsl.DomainKnowledge
 import harald.ast.TreeL2
-import exastencils.knowledge.Knowledge
+import exastencils.knowledge._
 
 class GenerateL4(treel2 : TreeL2) {
 
@@ -32,12 +32,12 @@ class GenerateL4(treel2 : TreeL2) {
       writer.write("{ \n")
       writer.write(" if coarsestlevel { \n")
       writer.write("repeat up ncoarse \n")
-      writer.write(s"	${DomainKnowledge.smoother_L3.get} ( lev) \n")
+      writer.write(s"	${Knowledge.mg_smoother} ( lev) \n")
       writer.write("  next  \n")
       writer.write("} else \n")
       writer.write("{ \n")
       writer.write("  repeat up nprae \n")
-      writer.write(s"	${DomainKnowledge.smoother_L3.get}( lev) \n")
+      writer.write(s"	${Knowledge.mg_smoother}( lev) \n")
       writer.write("  next  \n")
       writer.write("	Residual ( lev ) \n")
       if (veclength > 1) {
@@ -60,7 +60,7 @@ class GenerateL4(treel2 : TreeL2) {
       //writer.write(s"	                  ${DomainKnowledge.unknown_L1(0)._1}[lev] \n")
       //writer.write(s"	                  ${DomainKnowledge.unknown_L1(0)._1}[ (lev-1) ] ) \n")
       writer.write("    repeat up npost \n")
-      writer.write(s"		${DomainKnowledge.smoother_L3.get} ( lev ) \n")
+      writer.write(s"		${Knowledge.mg_smoother} ( lev ) \n")
       writer.write("  next  \n")
       writer.write("} \n")
       writer.write("} \n")
@@ -137,12 +137,23 @@ def cpu sqr ( lev:Int
       writer.write("}  \n")
     }
 
-    if (DomainKnowledge.smoother_L3.get.equals("GaussSeidel")) {
-      writer.write(s"def ${location} ${DomainKnowledge.smoother_L3.get} ( lev:Int ) : Unit  \n")
+    if (SmootherType.GS == Knowledge.mg_smoother) {
+      writer.write(s"def ${location} ${Knowledge.mg_smoother} ( lev:Int ) : Unit  \n")
       writer.write("{ \n")
       // COMM_HACK
       writer.write("  exchsolData ( lev \n 0 )  \n")
       writer.write("    loop innerpoints level lev order lex block 1 1 \n")
+      writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1} = ${DomainKnowledge.unknown_L1(0)._1} [ lev ] + ( ( ( inverse( diag(${DomainKnowledge.operator_L1(0)._1} [ lev ] ) ) ) * omega ) * ( ${DomainKnowledge.function_L1(0)._1} [ lev ] - ${DomainKnowledge.operator_L1(0)._1} [ lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ lev ] ) ) \n")
+      writer.write("    next  \n")
+      writer.write("}  \n")
+    }
+
+    if (SmootherType.RBGS == Knowledge.mg_smoother) {
+      writer.write(s"def ${location} ${Knowledge.mg_smoother} ( lev:Int ) : Unit  \n")
+      writer.write("{ \n")
+      // COMM_HACK
+      writer.write("  exchsolData ( lev \n 0 )  \n")
+      writer.write("    loop innerpoints level lev order rb block 1 1 \n")
       writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1} = ${DomainKnowledge.unknown_L1(0)._1} [ lev ] + ( ( ( inverse( diag(${DomainKnowledge.operator_L1(0)._1} [ lev ] ) ) ) * omega ) * ( ${DomainKnowledge.function_L1(0)._1} [ lev ] - ${DomainKnowledge.operator_L1(0)._1} [ lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ lev ] ) ) \n")
       writer.write("    next  \n")
       writer.write("}  \n")
@@ -160,7 +171,7 @@ def cpu sqr ( lev:Int
     writer.write("    loop innerpoints level solutionMinusOne order lex block 1 1  \n")
     // COMM_HACK
     //writer.write("      coarse =  RestrictionStencil * fine | ToCoarse  \n")
-    writer.write(s"      fMinusOne =  RestrictionStencil * fine | ToCoarse  \n")	// fMinusOne represents f [ lev - 1 ] which is not parsable :/
+    writer.write(s"      fMinusOne =  RestrictionStencil * fine | ToCoarse  \n") // fMinusOne represents f [ lev - 1 ] which is not parsable :/
     writer.write("    next  \n")
     writer.write("}  \n")
 

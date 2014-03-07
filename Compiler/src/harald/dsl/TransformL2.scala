@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 import java.io._
 import harald.Impl._
 import harald.ast.TreeL2
+import exastencils.knowledge._
 
 class TransformL2(treel2 : TreeL2) {
 
@@ -44,7 +45,7 @@ class TransformL2(treel2 : TreeL2) {
       var sx: Int = c.sizex;
       var sy: Int = c.sizey;
       var sz: Int = c.sizez;
-      for (i <- 0 to (DomainKnowledge.nlevels_L3.get - 1)) {
+      for (i <- 0 to Knowledge.maxLevel) {
         DomainKnowledge.global_fields += new ImplField(s"${c.name}[${i}]", c.datatype, c.veclength, "MyArray",sx, sy, sz, c.addpoints,0)
 
 //        if (c.name.equals("solution"))
@@ -64,7 +65,7 @@ class TransformL2(treel2 : TreeL2) {
       var sz: Int = c.sizez;
 
       if (sx != 1) {
-        for (i <- 0 to (DomainKnowledge.nlevels_L3.get - 1)) {
+        for (i <- 0 to Knowledge.maxLevel) {
           DomainKnowledge.global_stencils += new ImplStencil(s"${c.name}[${i}]", c.part, c.datatype, sx, sy, sz, c.length, c.entries, c.weakform, c.addpoints)
 
           sx = sx / 2;

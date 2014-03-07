@@ -107,10 +107,13 @@ object Knowledge {
   def update(configuration : Configuration) : Unit = {
     // NOTE: it is required to call update at least once
 
-    mg_smoother = configuration.getFirstSelectedSubFeatureName("smoother") match {
-      case "Jacobi"               => SmootherType.Jac
-      case "GaussSeidel"          => SmootherType.GS
-      case "RedBlack_GaussSeidel" => SmootherType.RBGS
+    // FIXME: disabled until Jac is supported
+    if (false) {
+      mg_smoother = configuration.getFirstSelectedSubFeatureName("smoother") match {
+        case "Jacobi"               => SmootherType.Jac
+        case "GaussSeidel"          => SmootherType.GS
+        case "RedBlack_GaussSeidel" => SmootherType.RBGS
+      }
     }
 
     mg_cgs = configuration.getFirstSelectedSubFeatureName("cgs") match {

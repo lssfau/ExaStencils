@@ -16,7 +16,7 @@ class GenerateL3(treel2 : TreeL2) {
     }
 
     writer.write("mgcomponents { \n")
-    writer.write("smoother_L3 = GaussSeidel \n")
+    //writer.write("smoother_L3 = GaussSeidel \n")
     writer.write("interpolation_L3 = interpolatecorr  \n")
     writer.write("restriction_L3 = Restrict \n")
     writer.write("coarsesolver_L3 = GaussSeidel \n")
@@ -37,14 +37,14 @@ class GenerateL3(treel2 : TreeL2) {
         order = o.order.toInt
 
     writer.write("mgparameter { \n")
-    writer.write(s"nlevels_L3 = ${nlev} \n")
+    //writer.write(s"nlevels_L3 = ${nlev} \n")
     writer.write(s"restr_order_L3 = ${order} \n")
     writer.write(s"int_order_L3 = ${order} \n")
-    writer.write("ncoarse_L3 = 512 \n")
-    writer.write("nprae_L3 = 3 \n")
-    writer.write("npost_L3 = 3 \n")
+    //writer.write("ncoarse_L3 = 512 \n")
+    //writer.write("nprae_L3 = 3 \n")
+    //writer.write("npost_L3 = 3 \n")
     writer.write("iters_L3 = 10 \n")
-    writer.write("omega_L3 = 1.0 \n")
+    //writer.write("omega_L3 = 1.0 \n")
     writer.write("accuracy_L3 = 8 \n")
     writer.write("} \n")
     writer.write("\n")
