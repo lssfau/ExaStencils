@@ -62,8 +62,15 @@ case class VariableAccess(name : String, dType : Option[Datatype] = None) extend
   override def cpp = name
 }
 
-case class ArrayAccess(base : Access, indices : Expression*) extends Access {
-  override def cpp = base.cpp + indices.map({ expr => '[' + expr.cpp + ']' }).mkString
+case class ArrayAccess(base : Access, index : Expression) extends Access {
+  override def cpp = index match {
+    case ind : MultiIndex => base.cpp + ind.cpp
+    case ind : Expression => base.cpp + '[' + ind.cpp + ']'
+  }
+}
+
+case class MultiIndex(ind1 : Expression, ind2 : Expression, ind3 : Expression) extends Expression {
+  override def cpp = '[' + ind1.cpp + "][" + ind2.cpp + "][" + ind3.cpp + ']'
 }
 
 case class MemberAccess(base : Access, varAcc : VariableAccess) extends Access {
