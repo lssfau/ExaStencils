@@ -31,12 +31,12 @@ class GenerateL4(treel2 : TreeL2) {
       writer.write(s"def cpu ${DomainKnowledge.cycle_L3.get} ( lev:Int  ) : Unit \n")
       writer.write("{ \n")
       writer.write(" if coarsestlevel { \n")
-      writer.write("repeat up ncoarse \n")
+      writer.write(s"repeat up ${Knowledge.mg_cgs_numSteps} \n")
       writer.write(s"	${Knowledge.mg_smoother} ( lev) \n")
       writer.write("  next  \n")
       writer.write("} else \n")
       writer.write("{ \n")
-      writer.write("  repeat up nprae \n")
+      writer.write(s"  repeat up ${Knowledge.mg_smoother_numPre} \n")
       writer.write(s"	${Knowledge.mg_smoother}( lev) \n")
       writer.write("  next  \n")
       writer.write("	Residual ( lev ) \n")
@@ -59,7 +59,7 @@ class GenerateL4(treel2 : TreeL2) {
       writer.write(s"	${DomainKnowledge.interpolation_L3.get}( lev ) \n")
       //writer.write(s"	                  ${DomainKnowledge.unknown_L1(0)._1}[lev] \n")
       //writer.write(s"	                  ${DomainKnowledge.unknown_L1(0)._1}[ (lev-1) ] ) \n")
-      writer.write("    repeat up npost \n")
+      writer.write(s"  repeat up ${Knowledge.mg_smoother_numPost} \n")
       writer.write(s"		${Knowledge.mg_smoother} ( lev ) \n")
       writer.write("  next  \n")
       writer.write("} \n")
@@ -143,7 +143,7 @@ def cpu sqr ( lev:Int
       // COMM_HACK
       writer.write("  exchsolData ( lev \n 0 )  \n")
       writer.write("    loop innerpoints level lev order lex block 1 1 \n")
-      writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1} = ${DomainKnowledge.unknown_L1(0)._1} [ lev ] + ( ( ( inverse( diag(${DomainKnowledge.operator_L1(0)._1} [ lev ] ) ) ) * omega ) * ( ${DomainKnowledge.function_L1(0)._1} [ lev ] - ${DomainKnowledge.operator_L1(0)._1} [ lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ lev ] ) ) \n")
+      writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1} = ${DomainKnowledge.unknown_L1(0)._1} [ lev ] + ( ( ( inverse( diag(${DomainKnowledge.operator_L1(0)._1} [ lev ] ) ) ) * ${Knowledge.mg_smoother_omega} ) * ( ${DomainKnowledge.function_L1(0)._1} [ lev ] - ${DomainKnowledge.operator_L1(0)._1} [ lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ lev ] ) ) \n")
       writer.write("    next  \n")
       writer.write("}  \n")
     }
@@ -154,7 +154,7 @@ def cpu sqr ( lev:Int
       // COMM_HACK
       writer.write("  exchsolData ( lev \n 0 )  \n")
       writer.write("    loop innerpoints level lev order rb block 1 1 \n")
-      writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1} = ${DomainKnowledge.unknown_L1(0)._1} [ lev ] + ( ( ( inverse( diag(${DomainKnowledge.operator_L1(0)._1} [ lev ] ) ) ) * omega ) * ( ${DomainKnowledge.function_L1(0)._1} [ lev ] - ${DomainKnowledge.operator_L1(0)._1} [ lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ lev ] ) ) \n")
+      writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1} = ${DomainKnowledge.unknown_L1(0)._1} [ lev ] + ( ( ( inverse( diag(${DomainKnowledge.operator_L1(0)._1} [ lev ] ) ) ) * ${Knowledge.mg_smoother_omega} ) * ( ${DomainKnowledge.function_L1(0)._1} [ lev ] - ${DomainKnowledge.operator_L1(0)._1} [ lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ lev ] ) ) \n")
       writer.write("    next  \n")
       writer.write("}  \n")
     }

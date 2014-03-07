@@ -40,9 +40,6 @@ class PrettyPrinter(treel2 : TreeL2) {
       else
         globals.variables += new VariableDeclarationStatement(new VariableAccess(c.name, Some(s"${treel2.ExternalClasses.get("StencilVar").get.name}<${c.datatype}>*")))
 
-    for (g <- DomainKnowledge.global_variables)
-      globals.defines += new DefineStatement(s"${g.name}", Some(s"${g.value}"))
-
     println(DomainKnowledge.global_variables)
     println(DomainKnowledge.global_fields.toString)
     println(DomainKnowledge.global_stencils.toString)
