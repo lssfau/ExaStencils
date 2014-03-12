@@ -60,6 +60,9 @@ object UnaryOperators extends Enumeration {
 }
 
 trait Access extends Expression
+trait Number extends Expression {
+  def value : AnyVal
+}
 
 case class NullExpression() extends Expression {
   def cpp : String = ""
@@ -77,8 +80,14 @@ case class StringLiteral(value : String) extends Expression {
   override def cpp = value
 }
 
-case class NumericLiteral[T : Numeric](value : T) extends Expression {
+case class IntegerConstant(v : Long) extends Number {
   override def cpp = value.toString
+  override def value = v
+}
+
+case class FloatConstant(v : Double) extends Number {
+  override def cpp = value.toString
+  override def value = v
 }
 
 case class BooleanLiteral(value : Boolean) extends Expression {
@@ -137,11 +146,11 @@ case class BinaryExpression(var operator : BinaryOperators.Value, var left : Exp
     s"(${left.cpp} ${BinaryOperators.op2str(operator)} ${right.cpp})";
   }
 
-  override def simplify = {
-    (left, right) match {
-      case (x : NumericLiteral[_], y : NumericLiteral[_]) => println(x ~ y); this //NumericLiteral(left.asInstanceOf[NumericLiteral[_]].Value + right.Value)
-    }
-  }
+//  override def simplify = {
+//    (left, right) match {
+//      case (x : NumericLiteral[_], y : NumericLiteral[_]) => println(x ~ y); this //NumericLiteral(left.asInstanceOf[NumericLiteral[_]].Value + right.Value)
+//    }
+//  }
 }
 
 case class FunctionCallExpression(var name : Expression, var arguments : ListBuffer[Expression /* FIXME: more specialization*/ ]) extends Expression {
