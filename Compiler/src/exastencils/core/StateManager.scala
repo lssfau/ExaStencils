@@ -112,7 +112,7 @@ object StateManager {
     case n : Node      => List(n)
     case l : List[_]   => l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
     case n : None.type => List()
-    case _             => ERROR(o); List()
+    case _             => ERROR(o)
   }
 
   protected def replace(node : Node, transformation : Transformation) : Unit = {
@@ -143,9 +143,9 @@ object StateManager {
             def processOutput[O <: Output[_]](o : O) : Node = o.inner match {
               case n : Node      => n
               case l : List[_]   =>
-                ERROR("FIXME"); null //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
+                ERROR("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
               case n : None.type =>
-                ERROR("FIXME"); null //List()
+                ERROR("FIXME") //List()
               case _             => ERROR(o); null
             }
 

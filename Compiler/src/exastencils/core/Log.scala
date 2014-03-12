@@ -13,10 +13,8 @@ object Log {
   var level : Levels = Warn
 
   def error(s : Any) = {
-    if (level.id <= Error.id) {
-      sys.error(f"ERROR: $s")
-      sys.exit(-1) // just to be extra sure
-    }
+    sys.error(f"ERROR: $s")
+    sys.exit(-1) // just to be extra sure
   }
   def warn(s : Any) = {
     if (level.id <= Warn.id) {
