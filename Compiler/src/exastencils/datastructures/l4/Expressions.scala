@@ -13,9 +13,7 @@ case class BooleanLiteral(value : Boolean) extends Expression
 
 case class Identifier(name : String) extends Expression
 
-case class Variable(name : String, Type : Datatype) extends Expression
-
-case class Constant(value : Any) extends Expression
+case class Variable(identifier : Identifier, Type : Datatype) extends Expression
 
 case class BinaryExpression(operator : String, var left : Expression, var right : Expression) extends Expression
 

@@ -128,10 +128,6 @@ case class DerefAccess(base : Access) extends Access {
   override def cpp = "*(" + base.cpp + ')'
 }
 
-case class Constant(value : Any) extends Expression {
-  override def cpp = ""
-}
-
 case class UnaryExpression(var operator : UnaryOperators.Value, expression : Expression) extends Expression {
   override def cpp = { s"${operator.toString}(${expression.cpp})" }
 }
