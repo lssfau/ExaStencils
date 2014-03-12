@@ -77,7 +77,7 @@ object Main {
 
     if (!new java.io.File(DSLpath + problem + "levHW.mg").exists) {
       println("HW specification is missing!")
-      exit(0)
+      sys.exit(0)
     }
 
     val DSLHW : String = scala.io.Source.fromFile(DSLpath + problem + "levHW.mg").getLines.reduceLeft(_ + '\n' + _)
@@ -90,7 +90,7 @@ object Main {
 
     if (!new java.io.File(DSLpath + problem + "lev1.mg").exists) {
       println("Problem specification (DSL level 1) is missing!")
-      exit(0)
+      sys.exit(0)
     }
 
     println("read PDE")

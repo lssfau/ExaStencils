@@ -1,22 +1,24 @@
 package exastencils.math
 
+import scala.reflect._
+
 object Vector {
   
   /** Creates the zero vector. */
-  def zero[T](rows : Int)(implicit mf : ClassManifest[T], num : Numeric[T]) =
+  def zero[T](rows : Int)(implicit mf : ClassTag[T], num : Numeric[T]) =
     new Vector[T](new Array[T](rows))
   
   /** Creates a constant vector. */
-  def constant[T](rows : Int, value : T)(implicit tag : ClassManifest[T], num : Numeric[T]) =
+  def constant[T](rows : Int, value : T)(implicit tag : ClassTag[T], num : Numeric[T]) =
     new Vector[T](Array.fill(rows)(value))
   
   /** Creates a vector containing ones. */
-  def ones[T](rows : Int)(implicit tag : ClassManifest[T], num : Numeric[T]) =
+  def ones[T](rows : Int)(implicit tag : ClassTag[T], num : Numeric[T]) =
     constant[T](rows, num.fromInt(1))
 }
 
 /** Numerical vector. */
-class Vector[T] (private val elements : Array[T])(implicit mf : ClassManifest[T], num : Numeric[T]) {
+class Vector[T] (private val elements : Array[T])(implicit mf : ClassTag[T], num : Numeric[T]) {
   import num._
   
   def rows = elements.length
@@ -48,6 +50,8 @@ class Vector[T] (private val elements : Array[T])(implicit mf : ClassManifest[T]
 }
 
 object Implicits {
+  import scala.language.implicitConversions
+  
   implicit def Numeric2Scalar[T](value : T)(implicit num : Numeric[T]) = 
     new Scalar[T](value)
 }

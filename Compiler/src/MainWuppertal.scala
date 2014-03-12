@@ -9,8 +9,9 @@ case class DummyRoot(var children : List[Node]) extends Node
 
 object MainWuppertal extends App {
   
-  StateManager.root_ = DummyRoot(
-      new SmootherNode( "Gs" ))
+  val v = Vector[Int](1, 2, 3)
+  
+  StateManager.root_ = DummyRoot(new SmootherNode( "Gs" ))
   
   val strategy = new Strategy("Smoother")
   
