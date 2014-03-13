@@ -61,6 +61,8 @@ object Mapping {
   }
 }
 
+// TODO: rework these mechanisms to work on a per-field basis; use new field layout
+
 object fieldToIndexInner extends ((Field, Array[Int]) => IndexRange) {
   def apply(field : Field, dir : Array[Int]) : IndexRange = {
     return new IndexRange(

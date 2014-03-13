@@ -11,6 +11,8 @@ import exastencils.primitives._
 import exastencils.mpi._
 import exastencils.omp._
 
+// TODO: think about offseting MultiIndices or stencil application nodes
+
 case class PerformSmoothing_Jac(solutionField : Field, rhsField : Field, level : Int) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = PerformSmoothingJacobi\n";
 

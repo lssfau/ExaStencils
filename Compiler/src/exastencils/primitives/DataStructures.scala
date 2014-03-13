@@ -14,6 +14,8 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.prettyprinting._
 import exastencils.omp._
 
+// TODO: Move accepted nodes to appropriate packages
+
 case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[Statement], var addOMPStatements : String = "") extends Statement with Expandable {
   def this(indices : IndexRange, body : Statement, addOMPStatements : String) = this(indices, ListBuffer[Statement](body), addOMPStatements);
   def this(indices : IndexRange, body : Statement) = this(indices, ListBuffer[Statement](body));

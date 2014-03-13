@@ -43,14 +43,6 @@ case class DefineStatement(var name : Expression, var value : Option[Expression]
   }
 }
 
-// Changed by Sebastian: I needed a more general version
-//case class AssignmentStatement(var identifier : Identifier, var expression : Expression)
-//    extends Statement {
-//  override def cpp = ""
-//
-//  override def duplicate = { this.copy(identifier = Duplicate(identifier), expression = Duplicate(expression)).asInstanceOf[this.type] }
-//}
-
 case class AssignmentStatement(var dest : Expression, var src : Expression, var op : Expression = "=") extends Statement {
   override def cpp : String = {
     (s"${dest.cpp} ${op.cpp} ${src.cpp};");

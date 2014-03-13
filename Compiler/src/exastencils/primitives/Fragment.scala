@@ -111,6 +111,8 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
   }
 }
 
+// TODO: adapt level usage of CommFunctions
+
 case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_6\n";
 
