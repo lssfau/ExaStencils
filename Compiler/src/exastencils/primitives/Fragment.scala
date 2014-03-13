@@ -111,20 +111,20 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
   }
 }
 
-case class ExchangeData_6(field : Field, level : Int, neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
+case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_6\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
     var body = new ListBuffer[Statement];
 
-    val fieldName = s"curFragment.${field.codeName}[slot][$level]";
+    val fieldName = s"curFragment.${field.codeName}[slot][${field.level}]";
 
     for (neigh <- neighbors) {
-      neigh.setIndicesWide(field, level);
+      neigh.setIndicesWide(field);
     }
 
     // handle BC
-    body += new HandleBoundaries(field, level, neighbors.map(neigh => (neigh, neigh.indexBorder)));
+    body += new HandleBoundaries(field, neighbors.map(neigh => (neigh, neigh.indexBorder)));
 
     // sync duplicate values
     for (dim <- 0 until Knowledge.dimensionality) {
@@ -133,13 +133,13 @@ case class ExchangeData_6(field : Field, level : Int, neighbors : ListBuffer[Nei
       val recvRemoteData = ListBuffer(neighbors(2 * dim + 0)).map(neigh => (neigh, neigh.indexBorder));
 
       // TODO: group the next seven lines into a separate node?
-      body += new CopyToSendBuffer(field, level, sendRemoteData);
-      body += new RemoteSend(field, level, sendRemoteData);
-      body += new LocalSend(field, level, sendLocalData);
+      body += new CopyToSendBuffer(field, field.level, sendRemoteData);
+      body += new RemoteSend(field, field.level, sendRemoteData);
+      body += new LocalSend(field, field.level, sendLocalData);
 
-      body += new RemoteReceive(field, level, recvRemoteData);
+      body += new RemoteReceive(field, field.level, recvRemoteData);
       body += new FinishRemoteRecv(neighbors);
-      body += new CopyFromRecvBuffer(field, level, recvRemoteData);
+      body += new CopyFromRecvBuffer(field, field.level, recvRemoteData);
 
       body += new FinishRemoteSend(neighbors);
     }
@@ -151,38 +151,38 @@ case class ExchangeData_6(field : Field, level : Int, neighbors : ListBuffer[Nei
       val sendLocalData = curNeighbors.map(neigh => (neigh, neigh.indexInner, neigh.indexOpposingOuter));
       val recvRemoteData = curNeighbors.map(neigh => (neigh, neigh.indexOuter));
 
-      body += new CopyToSendBuffer(field, level, sendRemoteData);
-      body += new RemoteSend(field, level, sendRemoteData);
-      body += new LocalSend(field, level, sendLocalData);
+      body += new CopyToSendBuffer(field, field.level, sendRemoteData);
+      body += new RemoteSend(field, field.level, sendRemoteData);
+      body += new LocalSend(field, field.level, sendLocalData);
 
-      body += new RemoteReceive(field, level, recvRemoteData);
+      body += new RemoteReceive(field, field.level, recvRemoteData);
       body += new FinishRemoteRecv(neighbors);
-      body += new CopyFromRecvBuffer(field, level, recvRemoteData);
+      body += new CopyFromRecvBuffer(field, field.level, recvRemoteData);
 
       body += new FinishRemoteSend(neighbors);
     }
 
     // compile return value
-    return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",
+    return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_${field.level}",
       ListBuffer(VariableAccess("slot", Some("unsigned int"))),
       body);
   }
 }
 
-case class ExchangeData_26(field : Field, level : Int, neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
+case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_26\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
     var body = new ListBuffer[Statement];
 
-    val fieldName = s"curFragment.${field.codeName}[slot][$level]";
+    val fieldName = s"curFragment.${field.codeName}[slot][${field.level}]";
 
     for (neigh <- neighbors) {
-      neigh.setIndices(field, level);
+      neigh.setIndices(field);
     }
 
     // handle BC
-    body += new HandleBoundaries(field, level, neighbors.map(neigh => (neigh, neigh.indexBorder)));
+    body += new HandleBoundaries(field, neighbors.map(neigh => (neigh, neigh.indexBorder)));
 
     // sync duplicate values
     {
@@ -190,13 +190,13 @@ case class ExchangeData_26(field : Field, level : Int, neighbors : ListBuffer[Ne
       val sendLocalData = neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh => (neigh, neigh.indexBorder, neigh.indexOpposingBorder));
       val recvRemoteData = neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0).map(neigh => (neigh, neigh.indexBorder));
 
-      body += new CopyToSendBuffer(field, level, sendRemoteData);
-      body += new RemoteSend(field, level, sendRemoteData);
-      body += new LocalSend(field, level, sendLocalData);
+      body += new CopyToSendBuffer(field, field.level, sendRemoteData);
+      body += new RemoteSend(field, field.level, sendRemoteData);
+      body += new LocalSend(field, field.level, sendLocalData);
 
-      body += new RemoteReceive(field, level, recvRemoteData);
+      body += new RemoteReceive(field, field.level, recvRemoteData);
       body += new FinishRemoteRecv(neighbors);
-      body += new CopyFromRecvBuffer(field, level, recvRemoteData);
+      body += new CopyFromRecvBuffer(field, field.level, recvRemoteData);
 
       body += new FinishRemoteSend(neighbors);
     }
@@ -207,19 +207,19 @@ case class ExchangeData_26(field : Field, level : Int, neighbors : ListBuffer[Ne
       val sendLocalData = neighbors.map(neigh => (neigh, neigh.indexInner, neigh.indexOpposingOuter));
       val recvRemoteData = neighbors.map(neigh => (neigh, neigh.indexOuter));
 
-      body += new CopyToSendBuffer(field, level, sendRemoteData);
-      body += new RemoteSend(field, level, sendRemoteData);
-      body += new LocalSend(field, level, sendLocalData);
+      body += new CopyToSendBuffer(field, field.level, sendRemoteData);
+      body += new RemoteSend(field, field.level, sendRemoteData);
+      body += new LocalSend(field, field.level, sendLocalData);
 
-      body += new RemoteReceive(field, level, recvRemoteData);
+      body += new RemoteReceive(field, field.level, recvRemoteData);
       body += new FinishRemoteRecv(neighbors);
-      body += new CopyFromRecvBuffer(field, level, recvRemoteData);
+      body += new CopyFromRecvBuffer(field, field.level, recvRemoteData);
 
       body += new FinishRemoteSend(neighbors);
     }
 
     // compile return value
-    return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_$level",
+    return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}_${field.level}",
       ListBuffer(VariableAccess("slot", Some("unsigned int"))),
       body);
   }

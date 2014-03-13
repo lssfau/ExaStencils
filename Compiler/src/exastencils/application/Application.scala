@@ -23,26 +23,24 @@ case class InitFields() extends Statement {
 
     body += s"std::srand((unsigned int)fragments[f]->id);";
 
-    for (level <- 0 to Knowledge.maxLevel) {
-      for (field <- fields.fields) {
-        body += new LoopOverDimensions(fieldToIndexInnerWide(Array(0, 0, 0), level),
-          (0 until field.numSlots).to[ListBuffer].map(slot =>
-            new AssignmentStatement(
-              new FieldAccess(field, level, slot, Mapping.access(level)),
-              0.0) : Statement)) with OMP_PotentiallyParallel;
-      }
+    for (field <- fields.fields) {
+      body += new LoopOverDimensions(fieldToIndexInnerWide(field, Array(0, 0, 0)),
+        (0 until field.numSlots).to[ListBuffer].map(slot =>
+          new AssignmentStatement(
+            new FieldAccess(field, slot, Mapping.access(field.level)),
+            0.0) : Statement)) with OMP_PotentiallyParallel;
     }
 
     // special treatment for the finest level 
     for (field <- fields.fields) {
       // FIXME: init by given parameters
-      if ("Solution" == field.name)
-        body += new LoopOverDimensions(fieldToIndexInner(Array(0, 0, 0), Knowledge.maxLevel), ListBuffer[Statement](
+      if ("Solution" == field.identifier && field.level == Knowledge.maxLevel)
+        body += new LoopOverDimensions(fieldToIndexInner(field, Array(0, 0, 0)), ListBuffer[Statement](
           s"double val = (double)std::rand() / RAND_MAX;")
           ++
           (0 until field.numSlots).to[ListBuffer].map(slot =>
             new AssignmentStatement(
-              new FieldAccess(field, Knowledge.maxLevel, slot, Mapping.access(Knowledge.maxLevel)),
+              new FieldAccess(field, slot, Mapping.access(Knowledge.maxLevel)),
               s"val") : Statement));
     }
 

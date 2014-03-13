@@ -14,8 +14,6 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.prettyprinting._
 import exastencils.omp._
 
-case class Field(name : String, codeName : String, dataType : String, numSlots : Int, bcDir0 : Boolean) extends Node
-
 case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[Statement], var addOMPStatements : String = "") extends Statement with Expandable {
   def this(indices : IndexRange, body : Statement, addOMPStatements : String) = this(indices, ListBuffer[Statement](body), addOMPStatements);
   def this(indices : IndexRange, body : Statement) = this(indices, ListBuffer[Statement](body));
@@ -40,9 +38,9 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
   }
 }
 
-case class FieldAccess(var field : Field, var level : Expression, var slot : Expression, var index : Expression) extends Expression {
+case class FieldAccess(var field : Field, var slot : Expression, var index : Expression) extends Expression {
   override def cpp : String = {
-    s"curFragment.${field.codeName}[${slot.cpp}][${level.cpp}]->data[${index.cpp}]";
+    s"curFragment.${field.codeName}[${slot.cpp}][${field.level}]->data[${index.cpp}]";
   }
 }
 
@@ -156,10 +154,10 @@ case class CommunicationFunctions() extends Node with FilePrettyPrintable {
 case class FieldCollection() extends Node {
   var fields : ListBuffer[Field] = ListBuffer();
 
-  def getFieldByName(name : String) : Option[Field] = {
-    fields.find(f => f.name == name)
+  def getFieldByIdentifier(identifier : String, level : Int) : Option[Field] = {
+    fields.find(f => f.identifier == identifier && f.level == level)
   }
-  def getFieldByCodeName(codeName : String) : Option[Field] = {
-    fields.find(f => f.codeName == codeName)
+  def getFieldByCodeName(codeName : String, level : Int) : Option[Field] = {
+    fields.find(f => f.codeName == codeName && f.level == level)
   }
 }

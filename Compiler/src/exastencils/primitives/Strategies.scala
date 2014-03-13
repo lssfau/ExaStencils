@@ -22,16 +22,25 @@ object SetupFragmentClass extends Strategy("Setting up fragment class") {
   // FIXME: move
   this += new Transformation("Adding fields to FragmentClass", {
     case collection : FieldCollection =>
-      collection.fields += new Field("Solution", "solData", "double", Knowledge.data_numSolSlots, true);
-      collection.fields += new Field("Residual", "resData", "double", 1, false);
-      collection.fields += new Field("RHS", "rhsData", "double", 1, false);
+      for (level <- 0 to Knowledge.maxLevel) {
+        collection.fields += new Field("Solution", "solData", "double",
+          (0 to 2).toArray.map(dim => new FieldLayoutPerDim(0, Knowledge.data_numGhostLayers, 1, Mapping.numInnerPoints(level, dim) - 2 /*dup*/ , 1, Knowledge.data_numGhostLayers, 0)),
+          level, Knowledge.data_numSolSlots, true);
+        collection.fields += new Field("Residual", "resData", "double",
+          (0 to 2).toArray.map(dim => new FieldLayoutPerDim(0, Knowledge.data_numGhostLayers, 1, Mapping.numInnerPoints(level, dim) - 2 /*dup*/ , 1, Knowledge.data_numGhostLayers, 0)),
+          level, 1, false);
+        collection.fields += new Field("RHS", "rhsData", "double",
+          (0 to 2).toArray.map(dim => new FieldLayoutPerDim(0, Knowledge.data_numGhostLayers, 1, Mapping.numInnerPoints(level, dim) - 2 /*dup*/ , 1, Knowledge.data_numGhostLayers, 0)),
+          level, 1, false);
+      }
       Some(collection);
   });
 
   this += new Transformation("Updating FragmentClass with required field declarations", {
     case frag : FragmentClass =>
       for (field <- fieldCollection.fields) {
-        frag.declarations += s"Container* ${field.codeName}[${field.numSlots}][${Knowledge.numLevels}];";
+        if (field.level == Knowledge.maxLevel /*QUICKFIX: only take fields on one level into consideration to avoid redefinition*/ )
+          frag.declarations += s"Container* ${field.codeName}[${field.numSlots}][${Knowledge.numLevels}];";
       }
       Some(frag);
   });
@@ -55,13 +64,12 @@ object SetupFragmentClass extends Strategy("Setting up fragment class") {
       communicationFunctions.functions += new WaitForMPISendOps(frag.neighbors);
       communicationFunctions.functions += new WaitForMPIRecvOps(frag.neighbors);
       for (field <- fieldCollection.fields) {
-        communicationFunctions.functions += new ExchangeDataSplitter(field);
-        for (level <- (0 to Knowledge.maxLevel)) {
-          if (6 == Knowledge.comm_strategyFragment) // FIXME: generic call pattern
-            communicationFunctions.functions += new ExchangeData_6(field, level, frag.neighbors);
-          else if (26 == Knowledge.comm_strategyFragment)
-            communicationFunctions.functions += new ExchangeData_26(field, level, frag.neighbors);
-        }
+        if (field.level == Knowledge.maxLevel /*QUICKFIX: only take fields on one level into consideration to avoid redefinition*/ )
+          communicationFunctions.functions += new ExchangeDataSplitter(field);
+        if (6 == Knowledge.comm_strategyFragment) // FIXME: generic call pattern
+          communicationFunctions.functions += new ExchangeData_6(field, frag.neighbors);
+        else if (26 == Knowledge.comm_strategyFragment)
+          communicationFunctions.functions += new ExchangeData_26(field, frag.neighbors);
       }
       Some(frag);
   });

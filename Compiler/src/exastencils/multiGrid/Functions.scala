@@ -20,19 +20,19 @@ case class PerformSmoothing_Jac(solutionField : Field, rhsField : Field, level :
         s"exchsolData_$level(sourceSlot);",
         new LoopOverFragments(
           new LoopOverDimensions(
-            fieldToIndexInner(Array(0, 0, 0), level), ListBuffer[Statement](
+            fieldToIndexInner(solutionField, Array(0, 0, 0)), ListBuffer[Statement](
               AssignmentStatement(
                 // FIXME: introduce and apply stencil node
-                FieldAccess(solutionField, level, "targetSlot", Mapping.access(level)),
-                s"${1.0 - Knowledge.mg_smoother_omega} * " ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level))
+                FieldAccess(solutionField, "targetSlot", Mapping.access(level)),
+                s"${1.0 - Knowledge.mg_smoother_omega} * " ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level))
                   ~ s"+ ${Knowledge.mg_smoother_omega} / 6.0 * ("
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(x + 1)", "y", "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(x - 1)", "y", "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "(y + 1)", "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "(y - 1)", "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "y", "(z + 1)"))
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "y", "(z - 1)"))
-                  ~ s"-" ~ FieldAccess(rhsField, level, "0", Mapping.access(level))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "(x + 1)", "y", "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "(x - 1)", "y", "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "x", "(y + 1)", "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "x", "(y - 1)", "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "x", "y", "(z + 1)"))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "x", "y", "(z - 1)"))
+                  ~ s"-" ~ FieldAccess(rhsField, "0", Mapping.access(level))
                   ~ ")"))) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel));
   }
 }
@@ -46,19 +46,19 @@ case class PerformSmoothing_GS(solutionField : Field, rhsField : Field, level : 
         s"exchsolData_$level(sourceSlot);",
         new LoopOverFragments(
           new LoopOverDimensions(
-            fieldToIndexInner(Array(0, 0, 0), level), ListBuffer[Statement](
+            fieldToIndexInner(solutionField, Array(0, 0, 0)), ListBuffer[Statement](
               AssignmentStatement(
                 // FIXME: introduce and apply stencil node
-                FieldAccess(solutionField, level, "targetSlot", Mapping.access(level)),
-                s"${1.0 - Knowledge.mg_smoother_omega} * " ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level))
+                FieldAccess(solutionField, "targetSlot", Mapping.access(level)),
+                s"${1.0 - Knowledge.mg_smoother_omega} * " ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level))
                   ~ s"+ ${Knowledge.mg_smoother_omega} / 6.0 * ("
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(x + 1)", "y", "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "(x - 1)", "y", "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "(y + 1)", "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "(y - 1)", "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "y", "(z + 1)"))
-                  ~ s"+" ~ FieldAccess(solutionField, level, "sourceSlot", Mapping.access(level, "x", "y", "(z - 1)"))
-                  ~ s"-" ~ FieldAccess(rhsField, level, "0", Mapping.access(level))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "(x + 1)", "y", "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "(x - 1)", "y", "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "x", "(y + 1)", "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "x", "(y - 1)", "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "x", "y", "(z + 1)"))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "x", "y", "(z - 1)"))
+                  ~ s"-" ~ FieldAccess(rhsField, "0", Mapping.access(level))
                   ~ ")")))) with OMP_PotentiallyParallel));
   }
 }
@@ -203,18 +203,18 @@ case class UpdateResidual(residualField : Field, solutionField : Field, rhsField
         s"exchsolData_$level(slot);",
         new LoopOverFragments(
           new LoopOverDimensions(
-            fieldToIndexInner(Array(0, 0, 0), level), ListBuffer[Statement](
+            fieldToIndexInner(residualField, Array(0, 0, 0)), ListBuffer[Statement](
               AssignmentStatement(
                 // FIXME: introduce and apply stencil node
-                FieldAccess(residualField, level, "0", Mapping.access(level)),
-                FieldAccess(rhsField, level, "0", Mapping.access(level))
-                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "(x + 1)", "y", "z"))
-                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "(x - 1)", "y", "z"))
-                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "x", "(y + 1)", "z"))
-                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "x", "(y - 1)", "z"))
-                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "x", "y", "(z + 1)"))
-                  ~ s"-" ~ FieldAccess(solutionField, level, "slot", Mapping.access(level, "x", "y", "(z - 1)"))
-                  ~ s"+ 6.0 * " ~ FieldAccess(solutionField, level, "slot", Mapping.access(level))))) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel));
+                FieldAccess(residualField, "0", Mapping.access(level)),
+                FieldAccess(rhsField, "0", Mapping.access(level))
+                  ~ s"-" ~ FieldAccess(solutionField, "slot", Mapping.access(level, "(x + 1)", "y", "z"))
+                  ~ s"-" ~ FieldAccess(solutionField, "slot", Mapping.access(level, "(x - 1)", "y", "z"))
+                  ~ s"-" ~ FieldAccess(solutionField, "slot", Mapping.access(level, "x", "(y + 1)", "z"))
+                  ~ s"-" ~ FieldAccess(solutionField, "slot", Mapping.access(level, "x", "(y - 1)", "z"))
+                  ~ s"-" ~ FieldAccess(solutionField, "slot", Mapping.access(level, "x", "y", "(z + 1)"))
+                  ~ s"-" ~ FieldAccess(solutionField, "slot", Mapping.access(level, "x", "y", "(z - 1)"))
+                  ~ s"+ 6.0 * " ~ FieldAccess(solutionField, "slot", Mapping.access(level))))) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel));
   }
 }
 
@@ -437,10 +437,10 @@ case class GetGlobalResidual(field : Field) extends AbstractFunctionStatement wi
         s"double res = 0.0;",
         s"double resTotal = 0.0;",
         new LoopOverFragments(
-          new LoopOverDimensions(fieldToIndexInner(Array(0, 0, 0), Knowledge.maxLevel),
+          new LoopOverDimensions(fieldToIndexInner(field, Array(0, 0, 0)),
             ListBuffer[Statement](
               // FIXME: this currently counts duplicated values multiple times
-              s"double tmpRes =" ~ new FieldAccess(field, Knowledge.maxLevel, 0, Mapping.access(Knowledge.maxLevel)) ~ ";",
+              s"double tmpRes =" ~ new FieldAccess(field, 0, Mapping.access(Knowledge.maxLevel)) ~ ";",
               s"res += tmpRes * tmpRes;"), "reduction(+:res)") with OMP_PotentiallyParallel,
           true, "reduction(+:res)") with OMP_PotentiallyParallel,
         new MPI_Allreduce("&res", "&resTotal", 1, "MPI_SUM"),
@@ -454,9 +454,9 @@ case class SetSolZero(field : Field, level : Int) extends AbstractFunctionStatem
   override def expand(collector : StackCollector) : FunctionStatement = {
     new FunctionStatement(new UnitDatatype(), s"setSolZero_$level", ListBuffer(VariableAccess("slot", Some("unsigned int"))),
       new LoopOverFragments(
-        new LoopOverDimensions(fieldToIndexInner(Array(0, 0, 0), level),
+        new LoopOverDimensions(fieldToIndexInner(field, Array(0, 0, 0)),
           new AssignmentStatement(
-            new FieldAccess(field, level, "slot", Mapping.access(level)),
+            new FieldAccess(field, "slot", Mapping.access(level)),
             0.0)) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel);
   }
 }

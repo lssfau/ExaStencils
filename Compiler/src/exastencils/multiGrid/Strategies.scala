@@ -21,30 +21,30 @@ object SetupMultiGrid extends Strategy("Setting up multi-grid") {
   val fieldCollection = FindFirstOccurence.find[FieldCollection].get;
   this += new Transformation("Adding specialized functions to multi-grid", {
     case mg : MultiGrid =>
-      for (level <- (0 to Knowledge.maxLevel)) {
+      for (level <- 0 to Knowledge.maxLevel) {
         // FIXME: choice by enum
         mg.functions_HACK += new PerformSmoothing(
-          fieldCollection.getFieldByName("Solution").get,
-          fieldCollection.getFieldByName("RHS").get,
+          fieldCollection.getFieldByIdentifier("Solution", level).get,
+          fieldCollection.getFieldByIdentifier("RHS", level).get,
           level);
       }
-      for (level <- (0 to Knowledge.maxLevel)) {
+      for (level <- 0 to Knowledge.maxLevel) {
         mg.functions_HACK += new UpdateResidual(
-          fieldCollection.getFieldByName("Residual").get,
-          fieldCollection.getFieldByName("Solution").get,
-          fieldCollection.getFieldByName("RHS").get,
+          fieldCollection.getFieldByIdentifier("Residual", level).get,
+          fieldCollection.getFieldByIdentifier("Solution", level).get,
+          fieldCollection.getFieldByIdentifier("RHS", level).get,
           level);
       }
-      for (level <- (0 to Knowledge.maxLevel)) {
+      for (level <- 0 to Knowledge.maxLevel) {
         mg.functions_HACK += new PerformVCycle(level);
       }
-      for (level <- (0 to Knowledge.maxLevel)) {
+      for (level <- 0 to Knowledge.maxLevel) {
         mg.functions_HACK += new SetSolZero(
-          fieldCollection.getFieldByName("Solution").get,
+          fieldCollection.getFieldByIdentifier("Solution", level).get,
           level);
       }
       mg.functions_HACK += new GetGlobalResidual(
-        fieldCollection.getFieldByName("Residual").get);
+        fieldCollection.getFieldByIdentifier("Residual", Knowledge.maxLevel).get);
       Some(mg);
   });
 }
