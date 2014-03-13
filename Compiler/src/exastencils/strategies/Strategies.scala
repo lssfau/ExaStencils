@@ -46,8 +46,8 @@ object ExpandStrategy extends Strategy("Expanding") {
   }
   
   this += new Transformation("Hoho, expanding all day...", {
-    case function : Expandable =>
-      Some(function.expand(collector));
+    case expandable : Expandable =>
+      Some(expandable.expand(collector));
   });
 }
 

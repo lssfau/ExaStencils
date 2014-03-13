@@ -23,16 +23,16 @@ case class PerformSmoothing_Jac(solutionField : Field, rhsField : Field, level :
             fieldToIndexInner(solutionField, Array(0, 0, 0)), ListBuffer[Statement](
               AssignmentStatement(
                 // FIXME: introduce and apply stencil node
-                FieldAccess(solutionField, "targetSlot", Mapping.access(level)),
-                s"${1.0 - Knowledge.mg_smoother_omega} * " ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level))
+                FieldAccess(solutionField, "targetSlot", DefaultLoopMultiIndex()),
+                s"${1.0 - Knowledge.mg_smoother_omega} * " ~ FieldAccess(solutionField, "sourceSlot", DefaultLoopMultiIndex())
                   ~ s"+ ${Knowledge.mg_smoother_omega} / 6.0 * ("
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "(x + 1)", "y", "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "(x - 1)", "y", "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "x", "(y + 1)", "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "x", "(y - 1)", "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "x", "y", "(z + 1)"))
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "x", "y", "(z - 1)"))
-                  ~ s"-" ~ FieldAccess(rhsField, "0", Mapping.access(level))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex(StringLiteral("x") + 1, "y", "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex("x" - 1, "y", "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex("x", StringLiteral("y") + 1, "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex("x", "y" - 1, "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex("x", "y", StringLiteral("z") + 1))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex("x", "y", "z" - 1))
+                  ~ s"-" ~ FieldAccess(rhsField, "0", DefaultLoopMultiIndex())
                   ~ ")"))) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel));
   }
 }
@@ -49,16 +49,16 @@ case class PerformSmoothing_GS(solutionField : Field, rhsField : Field, level : 
             fieldToIndexInner(solutionField, Array(0, 0, 0)), ListBuffer[Statement](
               AssignmentStatement(
                 // FIXME: introduce and apply stencil node
-                FieldAccess(solutionField, "targetSlot", Mapping.access(level)),
-                s"${1.0 - Knowledge.mg_smoother_omega} * " ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level))
+                FieldAccess(solutionField, "targetSlot", DefaultLoopMultiIndex()),
+                s"${1.0 - Knowledge.mg_smoother_omega} * " ~ FieldAccess(solutionField, "sourceSlot", DefaultLoopMultiIndex())
                   ~ s"+ ${Knowledge.mg_smoother_omega} / 6.0 * ("
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "(x + 1)", "y", "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "(x - 1)", "y", "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "x", "(y + 1)", "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "x", "(y - 1)", "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "x", "y", "(z + 1)"))
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", Mapping.access(level, "x", "y", "(z - 1)"))
-                  ~ s"-" ~ FieldAccess(rhsField, "0", Mapping.access(level))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex(StringLiteral("x") + 1, "y", "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex("x" - 1, "y", "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex("x", StringLiteral("y") + 1, "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex("x", "y" - 1, "z"))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex("x", "y", StringLiteral("z") + 1))
+                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex("x", "y", "z" - 1))
+                  ~ s"-" ~ FieldAccess(rhsField, "0", DefaultLoopMultiIndex())
                   ~ ")")))) with OMP_PotentiallyParallel));
   }
 }
@@ -206,15 +206,15 @@ case class UpdateResidual(residualField : Field, solutionField : Field, rhsField
             fieldToIndexInner(residualField, Array(0, 0, 0)), ListBuffer[Statement](
               AssignmentStatement(
                 // FIXME: introduce and apply stencil node
-                FieldAccess(residualField, "0", Mapping.access(level)),
-                FieldAccess(rhsField, "0", Mapping.access(level))
-                  ~ s"-" ~ FieldAccess(solutionField, "slot", Mapping.access(level, "(x + 1)", "y", "z"))
-                  ~ s"-" ~ FieldAccess(solutionField, "slot", Mapping.access(level, "(x - 1)", "y", "z"))
-                  ~ s"-" ~ FieldAccess(solutionField, "slot", Mapping.access(level, "x", "(y + 1)", "z"))
-                  ~ s"-" ~ FieldAccess(solutionField, "slot", Mapping.access(level, "x", "(y - 1)", "z"))
-                  ~ s"-" ~ FieldAccess(solutionField, "slot", Mapping.access(level, "x", "y", "(z + 1)"))
-                  ~ s"-" ~ FieldAccess(solutionField, "slot", Mapping.access(level, "x", "y", "(z - 1)"))
-                  ~ s"+ 6.0 * " ~ FieldAccess(solutionField, "slot", Mapping.access(level))))) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel));
+                FieldAccess(residualField, "0", DefaultLoopMultiIndex()),
+                FieldAccess(rhsField, "0", DefaultLoopMultiIndex())
+                  ~ s"-" ~ FieldAccess(solutionField, "slot", new MultiIndex(StringLiteral("x") + 1, "y", "z"))
+                  ~ s"-" ~ FieldAccess(solutionField, "slot", new MultiIndex("x" - 1, "y", "z"))
+                  ~ s"-" ~ FieldAccess(solutionField, "slot", new MultiIndex("x", StringLiteral("y") + 1, "z"))
+                  ~ s"-" ~ FieldAccess(solutionField, "slot", new MultiIndex("x", "y" - 1, "z"))
+                  ~ s"-" ~ FieldAccess(solutionField, "slot", new MultiIndex("x", "y", StringLiteral("z") + 1))
+                  ~ s"-" ~ FieldAccess(solutionField, "slot", new MultiIndex("x", "y", "z" - 1))
+                  ~ s"+ 6.0 * " ~ FieldAccess(solutionField, "slot", DefaultLoopMultiIndex())))) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel));
   }
 }
 
@@ -440,7 +440,7 @@ case class GetGlobalResidual(field : Field) extends AbstractFunctionStatement wi
           new LoopOverDimensions(fieldToIndexInner(field, Array(0, 0, 0)),
             ListBuffer[Statement](
               // FIXME: this currently counts duplicated values multiple times
-              s"double tmpRes =" ~ new FieldAccess(field, 0, Mapping.access(Knowledge.maxLevel)) ~ ";",
+              s"double tmpRes =" ~ new FieldAccess(field, 0, DefaultLoopMultiIndex()) ~ ";",
               s"res += tmpRes * tmpRes;"), "reduction(+:res)") with OMP_PotentiallyParallel,
           true, "reduction(+:res)") with OMP_PotentiallyParallel,
         new MPI_Allreduce("&res", "&resTotal", 1, "MPI_SUM"),
@@ -456,7 +456,7 @@ case class SetSolZero(field : Field, level : Int) extends AbstractFunctionStatem
       new LoopOverFragments(
         new LoopOverDimensions(fieldToIndexInner(field, Array(0, 0, 0)),
           new AssignmentStatement(
-            new FieldAccess(field, "slot", Mapping.access(level)),
+            new FieldAccess(field, "slot", DefaultLoopMultiIndex()),
             0.0)) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel);
   }
 }

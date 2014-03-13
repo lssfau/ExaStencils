@@ -27,7 +27,7 @@ case class InitFields() extends Statement {
       body += new LoopOverDimensions(fieldToIndexInnerWide(field, Array(0, 0, 0)),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           new AssignmentStatement(
-            new FieldAccess(field, slot, Mapping.access(field.level)),
+            new FieldAccess(field, slot, DefaultLoopMultiIndex()),
             0.0) : Statement)) with OMP_PotentiallyParallel;
     }
 
@@ -40,7 +40,7 @@ case class InitFields() extends Statement {
           ++
           (0 until field.numSlots).to[ListBuffer].map(slot =>
             new AssignmentStatement(
-              new FieldAccess(field, slot, Mapping.access(Knowledge.maxLevel)),
+              new FieldAccess(field, slot, DefaultLoopMultiIndex()),
               s"val") : Statement));
     }
 

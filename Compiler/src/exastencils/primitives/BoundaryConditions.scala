@@ -20,7 +20,7 @@ case class HandleBoundaries(var field : Field, var neighbors : ListBuffer[(Neigh
           new ConditionStatement(new getNeighInfo_IsInvalid(neigh._1),
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(
-                new FieldAccess(field, "slot", Mapping.access(field.level)),
+                new FieldAccess(field, "slot", DefaultLoopMultiIndex()),
                 0.0)) with OMP_PotentiallyParallel) : Statement)) with OMP_PotentiallyParallel;
     } else {
       return new NullStatement;

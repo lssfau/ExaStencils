@@ -55,14 +55,9 @@ object Mapping {
     else
       return 1;
   }
-  def access(level : Int, x : Expression = "x", y : Expression = "y", z : Expression = "z") : Expression = {
-    var exp : Expression = x;
-    if (Knowledge.dimensionality > 1) exp += y * numPoints(level, 0);
-    if (Knowledge.dimensionality > 2) exp += z * numPoints(level, 1) * numPoints(level, 0);
-    return exp;
-  }
-  def access(level : Int, index : MultiIndex) : Expression = {
-    return (index(2) * numPoints(level, 1) * numPoints(level, 0) + index(1) * numPoints(level, 0) + index(0));
+
+  def resolveMultiIdx(field : Field, index : MultiIndex) : Expression = {
+    return (index(2) * (field.layout(1).total * field.layout(0).total) + index(1) * field.layout(0).total + index(0));
   }
 }
 

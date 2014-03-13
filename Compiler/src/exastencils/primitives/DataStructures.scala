@@ -38,15 +38,37 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
   }
 }
 
-case class FieldAccess(var field : Field, var slot : Expression, var index : Expression) extends Expression {
+object DefaultLoopMultiIndex {
+  def apply() : MultiIndex = { new MultiIndex("x", "y", "z"); }
+}
+
+case class LinearizedFieldAccess(var field : Field, var slot : Expression, var index : Expression) extends Expression {
   override def cpp : String = {
     s"curFragment.${field.codeName}[${slot.cpp}][${field.level}]->data[${index.cpp}]";
   }
 }
 
-case class LocalNeighborFieldAccess(var neighborPtr : Expression, var field : Field, var level : Expression, var slot : Expression, var index : Expression) extends Expression {
+/* Christian: this code results in 'java.util.NoSuchElementException: None.get'
+case class FieldAccess(var field : Field, var slot : Expression, var index : MultiIndex) extends Expression with Expandable {
+  override def cpp : String = "NOT VALID ; CLASS = FieldAccess\n";
+
+  def expand(collector : StackCollector) : LinearizedFieldAccess = {
+    new LinearizedFieldAccess(field, slot, Mapping.resolveMultiIdx(field, index));
+  }
+}
+  
+  TEMP: replacement code as quick workaround
+  */
+case class FieldAccess(var field : Field, var slot : Expression, var index : MultiIndex) extends Expression {
   override def cpp : String = {
-    s"${neighborPtr.cpp}->${field.codeName}[${slot.cpp}][${level.cpp}]->data[${index.cpp}]";
+    (new LinearizedFieldAccess(field, slot, Mapping.resolveMultiIdx(field, index))).cpp;
+  }
+}
+
+case class LocalNeighborFieldAccess(var neighborPtr : Expression, var field : Field, var level : Expression, var slot : Expression, var index : MultiIndex) extends Expression {
+  override def cpp : String = {
+    // FIXME: expand and replace multi-index
+    s"${neighborPtr.cpp}->${field.codeName}[${slot.cpp}][${level.cpp}]->data[${Mapping.resolveMultiIdx(field, index).cpp}]";
   }
 }
 
