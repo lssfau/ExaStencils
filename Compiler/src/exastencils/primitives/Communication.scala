@@ -85,7 +85,7 @@ case class RemoteSend(var field : Field, var level : Int, var neighbors : ListBu
 
     // FIXME: this comparison doesn't work with the new MultiIndex 
     if (indexRange.begin(1) == indexRange.end(1) || indexRange.begin(2) == indexRange.end(2))
-      globals.initFunction.body += InitMPIDataType(mpiTypeName, indexRange, level);
+      globals.initFunction.body += InitMPIDataType(mpiTypeName, field, indexRange, level);
 
     // TODO: free datatype
 
@@ -146,7 +146,7 @@ case class RemoteReceive(var field : Field, var level : Int, var neighbors : Lis
     globals.variables += new VariableDeclarationStatement(new VariableAccess(mpiTypeName, Some("MPI_Datatype")));
 
     if (indexRange.begin(1) == indexRange.end(1) || indexRange.begin(2) == indexRange.end(2))
-      globals.initFunction.body += InitMPIDataType(mpiTypeName, indexRange, level);
+      globals.initFunction.body += InitMPIDataType(mpiTypeName, field, indexRange, level);
 
     // TODO: free datatype
 

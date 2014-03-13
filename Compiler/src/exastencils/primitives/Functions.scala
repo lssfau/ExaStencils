@@ -128,11 +128,16 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
   override def expand(collector : StackCollector) : FunctionStatement = {
     var body = ListBuffer[Statement]();
 
-    for (level <- 0 to Knowledge.maxLevel) {
-      for (field <- fields) {
-        for (slot <- 0 until field.numSlots) {
-          body += s"${field.codeName}[$slot][$level] = new Container(Vec3u(${Mapping.numPoints(level, 0)}, ${Mapping.numPoints(level, 1)}, ${Mapping.numPoints(level, 2)}), 1);"
-        }
+    for (field <- fields) {
+      for (slot <- 0 until field.numSlots) {
+        body += s"${field.codeName}[$slot][${field.level}] = new Container(Vec3u(${field.layout(0).total}, ${field.layout(1).total}, ${field.layout(2).total}), 1);"
+      }
+    }
+
+    var maxPointsPerLevel = Array.fill(Knowledge.numLevels)(Array(0, 0, 0))
+    for (field <- fields) {
+      for (dim <- 0 until Knowledge.dimensionality) {
+        maxPointsPerLevel(field.level)(dim) = math.max(maxPointsPerLevel(field.level)(dim), field.layout(dim).total)
       }
     }
 
@@ -141,7 +146,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
       var sizeArray = new ListBuffer[String]();
       for (i <- (0 until Knowledge.dimensionality))
         if (0 == neigh.dir(i))
-          sizeArray += s"${Mapping.numPoints(Knowledge.maxLevel, i)}";
+          sizeArray += s"${maxPointsPerLevel(Knowledge.maxLevel)(i)}";
         else
           sizeArray += s"${Knowledge.data_numGhostLayers}";
 

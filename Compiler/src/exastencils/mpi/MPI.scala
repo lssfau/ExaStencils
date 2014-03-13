@@ -6,6 +6,7 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.omp._
 import exastencils.primitives._
+import exastencils.knowledge._
 
 case class MPI_IsRootProc() extends Expression {
   def cpp : String = { s"0 == mpiRank"; }
@@ -57,7 +58,7 @@ case class MPI_Barrier() extends Statement {
   }
 };
 
-case class InitMPIDataType(mpiTypeName : String, indexRange : IndexRange, level : Int) extends Statement with Expandable {
+case class InitMPIDataType(mpiTypeName : String, field : Field, indexRange : IndexRange, level : Int) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = InitMPIDataType\n";
 
   def expand(collector : StackCollector) : StatementBlock = {
@@ -65,14 +66,14 @@ case class InitMPIDataType(mpiTypeName : String, indexRange : IndexRange, level 
       return StatementBlock(ListBuffer[Statement](s"MPI_Type_vector(" ~
         (indexRange.end(1) - indexRange.begin(1) + 1) ~ ", " ~
         (indexRange.end(0) - indexRange.begin(0) + 1) ~ ", " ~
-        (Mapping.numPoints(level, 0)) ~
+        (field.layout(0).total) ~
         s", MPI_DOUBLE, &$mpiTypeName);",
         s"MPI_Type_commit(&$mpiTypeName);"));
     } else if (indexRange.begin(1) == indexRange.end(1)) {
       return StatementBlock(ListBuffer[Statement](s"MPI_Type_vector(" ~
         (indexRange.end(2) - indexRange.begin(2) + 1) ~ ", " ~
         (indexRange.end(0) - indexRange.begin(0) + 1) ~ ", " ~
-        (Mapping.numPoints(level, 0) * Mapping.numPoints(level, 1)) ~
+        (field.layout(0).total * field.layout(1).total) ~
         s", MPI_DOUBLE, &$mpiTypeName);",
         s"MPI_Type_commit(&$mpiTypeName);"));
     } else return StatementBlock(ListBuffer[Statement]());
