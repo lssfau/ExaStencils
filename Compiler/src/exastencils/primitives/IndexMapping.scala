@@ -128,16 +128,16 @@ object fieldToIndexOuterWide extends ((Field, Array[Int]) => IndexRange) {
     return new IndexRange(
       new MultiIndex(
         (0 until Knowledge.dimensionality).toArray.map(i => i match {
-          case i if dir(i) == 0 => (Mapping.first(field.level, i))
-          case i if dir(i) < 0  => (Mapping.first(field.level, i))
-          case i if dir(i) > 0  => (Mapping.last(field.level, i) - Knowledge.data_numGhostLayers + 1)
+          case i if dir(i) == 0 => field.layout(i).idxGhostBegin
+          case i if dir(i) < 0  => field.layout(i).idxGhostBegin
+          case i if dir(i) > 0  => field.layout(i).idxGhostEnd
         }) ++
           (Knowledge.dimensionality + 0 until 3).toArray.map(i => 0)),
       new MultiIndex(
         (0 until Knowledge.dimensionality).toArray.map(i => i match {
-          case i if dir(i) == 0 => (Mapping.last(field.level, i))
-          case i if dir(i) < 0  => (Mapping.first(field.level, i) + Knowledge.data_numGhostLayers - 1)
-          case i if dir(i) > 0  => (Mapping.last(field.level, i))
+          case i if dir(i) == 0 => field.layout(i).idxGhostEnd + field.layout(i).ghostEnd - 1
+          case i if dir(i) < 0  => field.layout(i).idxGhostBegin + field.layout(i).ghostBegin - 1
+          case i if dir(i) > 0  => field.layout(i).idxGhostEnd + field.layout(i).ghostEnd - 1
         }) ++
           (Knowledge.dimensionality + 0 until 3).toArray.map(i => 0)));
   }
