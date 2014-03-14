@@ -24,7 +24,9 @@ case class InitFields() extends Statement {
     body += s"std::srand((unsigned int)fragments[f]->id);";
 
     for (field <- fields.fields) {
-      body += new LoopOverDimensions(fieldToIndexInnerWide(field, Array(0, 0, 0)),
+      body += new LoopOverDimensions(new IndexRange(
+        new MultiIndex(field.layout(0).idxGhostBegin, field.layout(1).idxGhostBegin, field.layout(2).idxGhostBegin),
+        new MultiIndex(field.layout(0).idxGhostEnd + field.layout(0).ghostEnd - 1, field.layout(1).idxGhostEnd + field.layout(1).ghostEnd - 1, field.layout(2).idxGhostEnd + field.layout(2).ghostEnd - 1)),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           new AssignmentStatement(
             new FieldAccess(field, slot, DefaultLoopMultiIndex()),
@@ -35,13 +37,15 @@ case class InitFields() extends Statement {
     for (field <- fields.fields) {
       // FIXME: init by given parameters
       if ("Solution" == field.identifier && field.level == Knowledge.maxLevel)
-        body += new LoopOverDimensions(fieldToIndexInner(field, Array(0, 0, 0)), ListBuffer[Statement](
-          s"double val = (double)std::rand() / RAND_MAX;")
-          ++
-          (0 until field.numSlots).to[ListBuffer].map(slot =>
-            new AssignmentStatement(
-              new FieldAccess(field, slot, DefaultLoopMultiIndex()),
-              s"val") : Statement));
+        body += new LoopOverDimensions(new IndexRange(
+          new MultiIndex(field.layout(0).idxDupBegin, field.layout(1).idxDupBegin, field.layout(2).idxDupBegin),
+          new MultiIndex(field.layout(0).idxDupEnd + field.layout(0).dupEnd - 1, field.layout(1).idxDupEnd + field.layout(1).dupEnd - 1, field.layout(2).idxDupEnd + field.layout(2).dupEnd - 1)),
+          ListBuffer[Statement](
+            s"double val = (double)std::rand() / RAND_MAX;") ++
+            (0 until field.numSlots).to[ListBuffer].map(slot =>
+              new AssignmentStatement(
+                new FieldAccess(field, slot, DefaultLoopMultiIndex()),
+                s"val") : Statement));
     }
 
     return new LoopOverFragments(body);

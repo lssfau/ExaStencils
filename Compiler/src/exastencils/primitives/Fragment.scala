@@ -123,10 +123,6 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
 
     val fieldName = s"curFragment.${field.codeName}[slot][${field.level}]";
 
-    for (neigh <- neighbors) {
-      neigh.setIndicesWide(field);
-    }
-
     // handle BC
     // FIXME: currently treats inner points
     body += new HandleBoundaries(field, neighbors.map(neigh => (neigh, new IndexRange(
@@ -293,10 +289,6 @@ case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) 
     var body = new ListBuffer[Statement];
 
     val fieldName = s"curFragment.${field.codeName}[slot][${field.level}]";
-
-    for (neigh <- neighbors) {
-      neigh.setIndices(field);
-    }
 
     // handle BC
     // FIXME: currently treats inner points

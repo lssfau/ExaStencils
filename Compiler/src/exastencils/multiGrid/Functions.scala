@@ -22,7 +22,9 @@ case class PerformSmoothing_Jac(solutionField : Field, rhsField : Field, level :
         s"exchsolData_$level(sourceSlot);",
         new LoopOverFragments(
           new LoopOverDimensions(
-            fieldToIndexInner(solutionField, Array(0, 0, 0)), ListBuffer[Statement](
+            new IndexRange(
+              new MultiIndex(solutionField.layout(0).idxDupBegin, solutionField.layout(1).idxDupBegin, solutionField.layout(2).idxDupBegin),
+              new MultiIndex(solutionField.layout(0).idxDupEnd + solutionField.layout(0).dupEnd - 1, solutionField.layout(1).idxDupEnd + solutionField.layout(1).dupEnd - 1, solutionField.layout(2).idxDupEnd + solutionField.layout(2).dupEnd - 1)), ListBuffer[Statement](
               AssignmentStatement(
                 // FIXME: introduce and apply stencil node
                 FieldAccess(solutionField, "targetSlot", DefaultLoopMultiIndex()),
@@ -48,7 +50,10 @@ case class PerformSmoothing_GS(solutionField : Field, rhsField : Field, level : 
         s"exchsolData_$level(sourceSlot);",
         new LoopOverFragments(
           new LoopOverDimensions(
-            fieldToIndexInner(solutionField, Array(0, 0, 0)), ListBuffer[Statement](
+            new IndexRange(
+              new MultiIndex(solutionField.layout(0).idxDupBegin, solutionField.layout(1).idxDupBegin, solutionField.layout(2).idxDupBegin),
+              new MultiIndex(solutionField.layout(0).idxDupEnd + solutionField.layout(0).dupEnd - 1, solutionField.layout(1).idxDupEnd + solutionField.layout(1).dupEnd - 1, solutionField.layout(2).idxDupEnd + solutionField.layout(2).dupEnd - 1)),
+            ListBuffer[Statement](
               AssignmentStatement(
                 // FIXME: introduce and apply stencil node
                 FieldAccess(solutionField, "targetSlot", DefaultLoopMultiIndex()),
@@ -205,7 +210,10 @@ case class UpdateResidual(residualField : Field, solutionField : Field, rhsField
         s"exchsolData_$level(slot);",
         new LoopOverFragments(
           new LoopOverDimensions(
-            fieldToIndexInner(residualField, Array(0, 0, 0)), ListBuffer[Statement](
+            new IndexRange(
+              new MultiIndex(residualField.layout(0).idxDupBegin, residualField.layout(1).idxDupBegin, residualField.layout(2).idxDupBegin),
+              new MultiIndex(residualField.layout(0).idxDupEnd + residualField.layout(0).dupEnd - 1, residualField.layout(1).idxDupEnd + residualField.layout(1).dupEnd - 1, residualField.layout(2).idxDupEnd + residualField.layout(2).dupEnd - 1)),
+            ListBuffer[Statement](
               AssignmentStatement(
                 // FIXME: introduce and apply stencil node
                 FieldAccess(residualField, "0", DefaultLoopMultiIndex()),
@@ -439,7 +447,10 @@ case class GetGlobalResidual(field : Field) extends AbstractFunctionStatement wi
         s"double res = 0.0;",
         s"double resTotal = 0.0;",
         new LoopOverFragments(
-          new LoopOverDimensions(fieldToIndexInner(field, Array(0, 0, 0)),
+          new LoopOverDimensions(
+            new IndexRange(
+              new MultiIndex(field.layout(0).idxDupBegin, field.layout(1).idxDupBegin, field.layout(2).idxDupBegin),
+              new MultiIndex(field.layout(0).idxDupEnd + field.layout(0).dupEnd - 1, field.layout(1).idxDupEnd + field.layout(1).dupEnd - 1, field.layout(2).idxDupEnd + field.layout(2).dupEnd - 1)),
             ListBuffer[Statement](
               // FIXME: this currently counts duplicated values multiple times
               s"double tmpRes =" ~ new FieldAccess(field, 0, DefaultLoopMultiIndex()) ~ ";",
@@ -456,7 +467,10 @@ case class SetSolZero(field : Field, level : Int) extends AbstractFunctionStatem
   override def expand(collector : StackCollector) : FunctionStatement = {
     new FunctionStatement(new UnitDatatype(), s"setSolZero_$level", ListBuffer(VariableAccess("slot", Some("unsigned int"))),
       new LoopOverFragments(
-        new LoopOverDimensions(fieldToIndexInner(field, Array(0, 0, 0)),
+        new LoopOverDimensions(
+          new IndexRange(
+            new MultiIndex(field.layout(0).idxDupBegin, field.layout(1).idxDupBegin, field.layout(2).idxDupBegin),
+            new MultiIndex(field.layout(0).idxDupEnd + field.layout(0).dupEnd - 1, field.layout(1).idxDupEnd + field.layout(1).dupEnd - 1, field.layout(2).idxDupEnd + field.layout(2).dupEnd - 1)),
           new AssignmentStatement(
             new FieldAccess(field, "slot", DefaultLoopMultiIndex()),
             0.0)) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel);
