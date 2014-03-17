@@ -281,8 +281,10 @@ object StateManager {
       }
       INFO(s"Setting $o :: $method to $value")
       val m = o.getClass.getMethods.find(p => p.getName == methodname)
-      if (m == None) false // FIXME why does this not work?!
-      set(o, m.get, value)
+      m match {
+        case Some(x) => set(o, x, value)
+        case None => false
+      }
     }
   }
 }
