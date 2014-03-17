@@ -111,8 +111,6 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
   }
 }
 
-// TODO: adapt level usage of CommFunctions
-
 // FIXME: Think about moving all of this information to some other source. Maybe some kind of ... DSL ... or even Level4
 
 case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
@@ -195,13 +193,13 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
           }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))));
 
       // TODO: group the next seven lines into a separate node?
-      body += new CopyToSendBuffer(field, field.level, sendRemoteData);
-      body += new RemoteSend(field, field.level, sendRemoteData);
-      body += new LocalSend(field, field.level, sendLocalData);
+      body += new CopyToSendBuffer(field, sendRemoteData);
+      body += new RemoteSend(field, sendRemoteData);
+      body += new LocalSend(field, sendLocalData);
 
-      body += new RemoteReceive(field, field.level, recvRemoteData);
+      body += new RemoteReceive(field, recvRemoteData);
       body += new FinishRemoteRecv(neighbors);
-      body += new CopyFromRecvBuffer(field, field.level, recvRemoteData);
+      body += new CopyFromRecvBuffer(field, recvRemoteData);
 
       body += new FinishRemoteSend(neighbors);
     }
@@ -264,13 +262,13 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
               case i if neigh.dir(i) > 0  => field.layout(i).idxGhostEnd + field.layout(i).ghostEnd - 1
             }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))));
 
-      body += new CopyToSendBuffer(field, field.level, sendRemoteData);
-      body += new RemoteSend(field, field.level, sendRemoteData);
-      body += new LocalSend(field, field.level, sendLocalData);
+      body += new CopyToSendBuffer(field, sendRemoteData);
+      body += new RemoteSend(field, sendRemoteData);
+      body += new LocalSend(field, sendLocalData);
 
-      body += new RemoteReceive(field, field.level, recvRemoteData);
+      body += new RemoteReceive(field, recvRemoteData);
       body += new FinishRemoteRecv(neighbors);
-      body += new CopyFromRecvBuffer(field, field.level, recvRemoteData);
+      body += new CopyFromRecvBuffer(field, recvRemoteData);
 
       body += new FinishRemoteSend(neighbors);
     }
@@ -361,13 +359,13 @@ case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) 
             case i if neigh.dir(i) > 0  => field.layout(i).idxDupEnd + field.layout(i).dupEnd - 1
           }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))));
 
-      body += new CopyToSendBuffer(field, field.level, sendRemoteData);
-      body += new RemoteSend(field, field.level, sendRemoteData);
-      body += new LocalSend(field, field.level, sendLocalData);
+      body += new CopyToSendBuffer(field, sendRemoteData);
+      body += new RemoteSend(field, sendRemoteData);
+      body += new LocalSend(field, sendLocalData);
 
-      body += new RemoteReceive(field, field.level, recvRemoteData);
+      body += new RemoteReceive(field, recvRemoteData);
       body += new FinishRemoteRecv(neighbors);
-      body += new CopyFromRecvBuffer(field, field.level, recvRemoteData);
+      body += new CopyFromRecvBuffer(field, recvRemoteData);
 
       body += new FinishRemoteSend(neighbors);
     }
@@ -429,13 +427,13 @@ case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) 
               case i if neigh.dir(i) > 0  => field.layout(i).idxGhostEnd + field.layout(i).ghostEnd - 1
             }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))));
 
-      body += new CopyToSendBuffer(field, field.level, sendRemoteData);
-      body += new RemoteSend(field, field.level, sendRemoteData);
-      body += new LocalSend(field, field.level, sendLocalData);
+      body += new CopyToSendBuffer(field, sendRemoteData);
+      body += new RemoteSend(field, sendRemoteData);
+      body += new LocalSend(field, sendLocalData);
 
-      body += new RemoteReceive(field, field.level, recvRemoteData);
+      body += new RemoteReceive(field, recvRemoteData);
       body += new FinishRemoteRecv(neighbors);
-      body += new CopyFromRecvBuffer(field, field.level, recvRemoteData);
+      body += new CopyFromRecvBuffer(field, recvRemoteData);
 
       body += new FinishRemoteSend(neighbors);
     }

@@ -11,7 +11,7 @@ import exastencils.knowledge._
 import exastencils.mpi._
 import exastencils.omp._
 
-case class LocalSend(var field : Field, var level : Int, var neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) extends Statement with Expandable {
+case class LocalSend(var field : Field, var neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = LocalSend\n";
 
   def expand(collector : StackCollector) : LoopOverFragments = {
@@ -30,7 +30,7 @@ case class LocalSend(var field : Field, var level : Int, var neighbors : ListBuf
   }
 }
 
-case class CopyToSendBuffer(var field : Field, var level : Int, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
+case class CopyToSendBuffer(var field : Field, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = CopyToSendBuffer\n";
 
   def expand(collector : StackCollector) : LoopOverFragments = {
@@ -50,7 +50,7 @@ case class CopyToSendBuffer(var field : Field, var level : Int, var neighbors : 
   }
 }
 
-case class CopyFromRecvBuffer(var field : Field, var level : Int, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
+case class CopyFromRecvBuffer(var field : Field, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = CopyFromRecvBuffer\n";
 
   def expand(collector : StackCollector) : LoopOverFragments = {
@@ -67,7 +67,7 @@ case class CopyFromRecvBuffer(var field : Field, var level : Int, var neighbors 
   }
 }
 
-case class RemoteSend(var field : Field, var level : Int, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
+case class RemoteSend(var field : Field, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = RemoteSend\n";
 
   def addMPIDatatype(mpiTypeNameBase : String, indexRange : IndexRange) : String = {
@@ -84,7 +84,7 @@ case class RemoteSend(var field : Field, var level : Int, var neighbors : ListBu
 
     // FIXME: this comparison doesn't work with the new MultiIndex 
     if (indexRange.begin(1) == indexRange.end(1) || indexRange.begin(2) == indexRange.end(2))
-      globals.initFunction.body += InitMPIDataType(mpiTypeName, field, indexRange, level);
+      globals.initFunction.body += InitMPIDataType(mpiTypeName, field, indexRange);
 
     // TODO: free datatype
 
@@ -106,7 +106,7 @@ case class RemoteSend(var field : Field, var level : Int, var neighbors : ListBu
         cnt = 1;
         typeName = s"MPI_DOUBLE";
       } else if (Knowledge.comm_useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))) {
-        val mpiTypeName = addMPIDatatype(s"mpiType_Send_${field.codeName}_${level}_${neigh._1.index}", neigh._2);
+        val mpiTypeName = addMPIDatatype(s"mpiType_Send_${field.codeName}_${field.level}_${neigh._1.index}", neigh._2);
         ptr = s"&" ~ new FieldAccess("curFragment.", field, "slot", neigh._2.begin);
         cnt = 1;
         typeName = mpiTypeName;
@@ -129,7 +129,7 @@ case class RemoteSend(var field : Field, var level : Int, var neighbors : ListBu
   }
 }
 
-case class RemoteReceive(var field : Field, var level : Int, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
+case class RemoteReceive(var field : Field, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = RemoteReceive\n";
 
   def addMPIDatatype(mpiTypeNameBase : String, indexRange : IndexRange) : String = {
@@ -145,7 +145,7 @@ case class RemoteReceive(var field : Field, var level : Int, var neighbors : Lis
     globals.variables += new VariableDeclarationStatement(new VariableAccess(mpiTypeName, Some("MPI_Datatype")));
 
     if (indexRange.begin(1) == indexRange.end(1) || indexRange.begin(2) == indexRange.end(2))
-      globals.initFunction.body += InitMPIDataType(mpiTypeName, field, indexRange, level);
+      globals.initFunction.body += InitMPIDataType(mpiTypeName, field, indexRange);
 
     // TODO: free datatype
 
@@ -166,7 +166,7 @@ case class RemoteReceive(var field : Field, var level : Int, var neighbors : Lis
         cnt = 1;
         typeName = s"MPI_DOUBLE";
       } else if (Knowledge.comm_useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))) {
-        val mpiTypeName = addMPIDatatype(s"mpiType_Recv_${field.codeName}_${level}_${neigh._1.index}", neigh._2);
+        val mpiTypeName = addMPIDatatype(s"mpiType_Recv_${field.codeName}_${field.level}_${neigh._1.index}", neigh._2);
         ptr = s"&" ~ new FieldAccess("curFragment.", field, "slot", neigh._2.begin);
         cnt = 1;
         typeName = mpiTypeName;
