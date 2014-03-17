@@ -215,7 +215,7 @@ case class AbstractPLet(var id : String, val expr : AbstractExpression, modifier
       if (e.name.equals(id)) {
         ti = new TypeInfo(id, 1)
 
-        val levstr = new StringLiteral("lev")
+        val levstr : Expression = if (level.isDefined) (new StringLiteral(level.get.toString)) else "lev"
 
         // COMM_HACK
         id = id match {
