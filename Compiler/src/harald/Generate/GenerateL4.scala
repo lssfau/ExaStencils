@@ -71,7 +71,7 @@ class GenerateL4(treel2 : TreeL2) {
       writer.write("{ \n")
       // COMM_HACK
       writer.write(s"  decl lev : Int = $lev  \n")
-      writer.write(s"  exchsolData ( $lev \n 0 )  \n")
+      writer.write(s"  exchsolData_$lev ( 0 )  \n")
       writer.write(s"loop innerpoints level lev order lex block 1 1  \n") // 'lev' has to be and identifier, ie not a number
       writer.write(s"  Res = ${DomainKnowledge.function_L1(0)._1} [ $lev ] - (${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] )  \n")
       writer.write("next \n")
