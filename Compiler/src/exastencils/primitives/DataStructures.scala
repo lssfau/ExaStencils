@@ -50,20 +50,11 @@ case class LinearizedFieldAccess(var field : Field, var slot : Expression, var i
   }
 }
 
-/* Christian: this code results in 'java.util.NoSuchElementException: None.get'
 case class FieldAccess(var field : Field, var slot : Expression, var index : MultiIndex) extends Expression with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = FieldAccess\n";
 
   def expand(collector : StackCollector) : LinearizedFieldAccess = {
     new LinearizedFieldAccess(field, slot, Mapping.resolveMultiIdx(field, index));
-  }
-}
-  
-  TEMP: replacement code as quick workaround
-  */
-case class FieldAccess(var field : Field, var slot : Expression, var index : MultiIndex) extends Expression {
-  override def cpp : String = {
-    (new LinearizedFieldAccess(field, slot, Mapping.resolveMultiIdx(field, index))).cpp;
   }
 }
 

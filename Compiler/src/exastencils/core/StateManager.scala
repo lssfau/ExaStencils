@@ -121,6 +121,7 @@ object StateManager {
     Vars(node).foreach(field => {
       val currentSubnode = Vars.get(node, field)
       val previousReplacements = progresses_(transformation).getReplacements
+      INFO(s"Statemanager::replace: node = $node, field = $field, currentSubnode = $currentSubnode")
 
       currentSubnode match {
         case list : Seq[_] => {
@@ -177,8 +178,8 @@ object StateManager {
             if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) tmpArray.asInstanceOf[Array[Node]].foreach(f => replace(f, transformation))
           }
         }
-        case node : Node => {
-          var subnode = node
+        case thisnode : Node => {
+          var subnode = thisnode
           var nodeIsOption = false
           if (subnode.isInstanceOf[Some[_]]) {
             nodeIsOption = true
@@ -258,6 +259,7 @@ object StateManager {
     }
 
     def set[T](o : AnyRef, method : java.lang.reflect.Method, value : AnyRef) : Boolean = {
+      INFO(s"Statemananger::set: $o, " + method.getName() + s" to $value")
       if (o == value) return true
       if (!method.getName.endsWith(setterSuffix)) {
         set(o, method.getName, value)
@@ -268,7 +270,6 @@ object StateManager {
           throw new ValueSetException(s"""Invalid assignment: Cannot assign to $to from $from for "$o", method "${method.getName}"""")
         }
         method.invoke(o, value)
-        //WARN("successfully set " + method.getName())
         true
       }
     }
@@ -278,9 +279,12 @@ object StateManager {
       if (!methodname.endsWith(setterSuffix)) {
         methodname += setterSuffix
       }
+      INFO(s"Setting $o :: $method to $value")
       val m = o.getClass.getMethods.find(p => p.getName == methodname)
-      if (m == None) false
-      set(o, m.get, value)
+      m match {
+        case Some(x) => set(o, x, value)
+        case None => false
+      }
     }
   }
 }
