@@ -47,15 +47,11 @@ class GenerateL4(treel2 : TreeL2) {
             }
           } else {
             writer.write(s"	${DomainKnowledge.restriction_L3.get}_$lev (  ) \n")
-            //writer.write(s"	           ${DomainKnowledge.function_L1(0)._1}[ ( lev-1 ) ] \n")
-            //writer.write(s"	           Res[lev]) \n")
           }
           val setname = location match { case "gpu" => "setcuda" case _ => "set" }
           writer.write(s"	${setname}_${lev - 1} ( 0 ) \n")
           writer.write(s"	${DomainKnowledge.cycle_L3.get}_${lev - 1} (  ) \n")
           writer.write(s"	${DomainKnowledge.interpolation_L3.get}_$lev (  ) \n")
-          //writer.write(s"	                  ${DomainKnowledge.unknown_L1(0)._1}[lev] \n")
-          //writer.write(s"	                  ${DomainKnowledge.unknown_L1(0)._1}[ (lev-1) ] ) \n")
           writer.write(s"  repeat up ${Knowledge.mg_smoother_numPost} \n")
           writer.write(s"		${Knowledge.mg_smoother}_$lev (  ) \n")
           writer.write(s"  next  \n")
@@ -72,7 +68,7 @@ class GenerateL4(treel2 : TreeL2) {
       // COMM_HACK
       writer.write(s"  decl lev : Int = $lev  \n")
       writer.write(s"  exchsolData_$lev ( 0 )  \n")
-      writer.write(s"loop innerpoints level $lev order lex block 1 1  \n") // 'lev' has to be and identifier, ie not a number
+      writer.write(s"loop innerpoints level $lev order lex block 1 1  \n")
       writer.write(s"  Res@$lev = ${DomainKnowledge.function_L1(0)._1} [ $lev ] - (${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] )  \n")
       writer.write(s"next \n")
       writer.write(s"}  \n")
@@ -80,30 +76,6 @@ class GenerateL4(treel2 : TreeL2) {
       writer.write(s"\n")
     }
 
-    /*def cpu L2Residual ( lev:Int ) : Double 
-{ 
-    Residual ( lev )
-    Reduction loop innerpoints level lev order lex block 1 1 
-        s += (Res [ lev ] ) * (Res [ lev ] ) 
-    next  
-}  
-def cpu L2Residual ( lev:Int ) : Double 
-{ 
-    Residual ( lev )
-    sqr ( lev 
-         Res [lev ] )
-    Reduction loop innerpoints level lev order lex block 1 1 
-        s += (Res [ lev ] )  
-    next  
-}  
-def cpu sqr ( lev:Int 
-          arr:Array ) : Unit  
-{ 
-  loop allpoints level arr order lex block 1 1  
-      arr = arr * arr    
-  next  
-}  
-*/
     if (location.equals("gpu")) {
       writer.write(s"def cpu L2Residual ( lev:Int ) : Double \n")
       writer.write(s"{ \n")
@@ -112,8 +84,6 @@ def cpu sqr ( lev:Int
       writer.write(s"       Res [lev ] ) \n")
       writer.write(s"return fasterReduce ( Res ) \n")
       writer.write(s"}  \n")
-
-      //  std::cout << "Res" << fasterReduce (Res[lev].begin(), solution[lev].x1_*solution[lev].x2_, f[lev].begin()) << std::endl;
 
       writer.write(s"\n")
 
@@ -174,8 +144,6 @@ def cpu sqr ( lev:Int
     for (lev <- 1 to Knowledge.maxLevel) {
       // COMM_HACK
       writer.write(s"def ${location} ${DomainKnowledge.restriction_L3.get}_$lev (  ) : Unit \n")
-      //writer.write(s"               coarse:Container \n")
-      //writer.write(s"               fine:Container) : Unit  \n")
       writer.write(s"{ \n")
       // COMM_HACK
       writer.write(s"  decl lev : Int = $lev  \n")
@@ -193,8 +161,6 @@ def cpu sqr ( lev:Int
     for (lev <- 1 to Knowledge.maxLevel) {
       // COMM_HACK
       writer.write(s"def ${location} ${DomainKnowledge.interpolation_L3.get}_$lev (  ) : Unit \n")
-      //writer.write(s"                     uf:Container  \n")
-      //writer.write(s"                     uc:Container ) : Unit \n")
       writer.write(s"{ \n")
       // COMM_HACK
       writer.write(s"  decl lev : Int = $lev  \n")
@@ -236,17 +202,6 @@ def cpu sqr ( lev:Int
     writer.write(s"} \n")
 
     writer.write(s"\n")
-    /*
-    writer.write(s"def cpu print ( lev:Int \n")
-    writer.write(s"          arr:Array) : Unit  \n")
-    writer.write(s"{ \n")
-    writer.write(s"  loop allpoints level arr order lex block 1 1  \n")
-    writer.write(s"     print ( arr )    \n")
-    writer.write(s"next  \n")
-    writer.write(s"}  \n")
-*/
-
-    // Generate Application!
 
     // COMM_HACK
     writer.write(s"def cpu Application ( ) : Unit \n")
