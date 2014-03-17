@@ -138,7 +138,7 @@ case class AbstractIfElse(val cond : AbstractExpression, ifstmts : List[Abstract
   }
 
 }
-case class AbstractLet(var id : String, var expr : AbstractExpression, var modifier : Option[String]) extends AbstractStatement {
+case class AbstractLet(var id : String, var expr : AbstractExpression, var modifier : Option[String], var level:Option[Integer]) extends AbstractStatement {
   override def transform(scopeparas : ListBuffer[ParameterInfo]) : ListBuffer[Statement] = {
 
     var ret : ListBuffer[Statement] = ListBuffer()
