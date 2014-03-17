@@ -10,7 +10,7 @@ class ParserL4(tree : TreeL2) extends StandardTokenParsers {
   
   lexical.reserved += ("let", "loop", "next", "level", "def", "Int", "Array", "Unit", "Double", "return", "ToFine", "ToCoarse", "if", "else", "repeat", "Reduction", "class", "block", "public", "Complex", "order", "Communicate","decl")
   //  lexical.reserved += ("Domain", "Function", "Unknown", "Operator", "PDE", "PDEBC") 
-  lexical.delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "+=", "|", "[", "]")
+  lexical.delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "+=", "|", "[", "]", "@")
 
   def newline: Parser[Any] = "\n" | "\r\n"
 
