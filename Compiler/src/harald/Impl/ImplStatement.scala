@@ -48,17 +48,12 @@ case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : List
 
     // COMM_HACK
     for (i <- 0 to stop.length - 1) {
-      stop(i) = stop(i).cpp match {
-        case "solution[lev].x1_"          => "curFragment.solData[0][lev]->x1_"
-        case "solution[lev].x2_"          => "curFragment.solData[0][lev]->x2_"
-        case "solution[lev].x3_"          => "curFragment.solData[0][lev]->x3_"
-        case "(solution[lev].x1_ - 1)"    => "(curFragment.solData[0][lev]->x1_ - 1)"
-        case "(solution[lev].x2_ - 1)"    => "(curFragment.solData[0][lev]->x2_ - 1)"
-        case "(solution[lev].x3_ - 1)"    => "(curFragment.solData[0][lev]->x3_ - 1)"
-        case "(solutionMinusOne.x1_ - 1)" => "(curFragment.solData[0][lev - 1]->x1_ - 1)"
-        case "(solutionMinusOne.x2_ - 1)" => "(curFragment.solData[0][lev - 1]->x2_ - 1)"
-        case "(solutionMinusOne.x3_ - 1)" => "(curFragment.solData[0][lev - 1]->x3_ - 1)"
-        case _                            => stop(i)
+      if (stop(i).cpp.length > "solution".length) {
+        if ("solution" == stop(i).cpp.substring(0, "solution".length)) {
+          stop(i) = "curFragment.solData[0]" + stop(i).cpp.substring("solution".length).replace(".", "->")
+        } else if ("(solution" == stop(i).cpp.substring(0, "(solution".length)) {
+          stop(i) = "(curFragment.solData[0]" + stop(i).cpp.substring("(solution".length).replace(".", "->")
+        }
       }
     }
 

@@ -72,7 +72,7 @@ class GenerateL4(treel2 : TreeL2) {
       // COMM_HACK
       writer.write(s"  decl lev : Int = $lev  \n")
       writer.write(s"  exchsolData_$lev ( 0 )  \n")
-      writer.write(s"loop innerpoints level lev order lex block 1 1  \n") // 'lev' has to be and identifier, ie not a number
+      writer.write(s"loop innerpoints level $lev order lex block 1 1  \n") // 'lev' has to be and identifier, ie not a number
       writer.write(s"  Res@$lev = ${DomainKnowledge.function_L1(0)._1} [ $lev ] - (${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] )  \n")
       writer.write(s"next \n")
       writer.write(s"}  \n")
@@ -135,7 +135,7 @@ def cpu sqr ( lev:Int
         // COMM_HACK
         writer.write(s"  decl lev : Int = $lev  \n")
         writer.write(s"  exchsolData_$lev ( 0 )  \n")
-        writer.write(s"    Reduction loop innerpoints level lev order lex block 1 1 \n")
+        writer.write(s"    Reduction loop innerpoints level $lev order lex block 1 1 \n")
         writer.write(s"        s += (${DomainKnowledge.function_L1(0)._1} [ $lev ]  - ${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ]) * (${DomainKnowledge.function_L1(0)._1} [ $lev ]  - ${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ]) \n")
         writer.write(s"    next  \n")
         writer.write(s"}  \n")
@@ -149,7 +149,7 @@ def cpu sqr ( lev:Int
         // COMM_HACK
         writer.write(s"  decl lev : Int = $lev  \n")
         writer.write(s"  exchsolData_$lev ( 0 )  \n")
-        writer.write(s"    loop innerpoints level lev order lex block 1 1 \n")
+        writer.write(s"    loop innerpoints level $lev order lex block 1 1 \n")
         writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1}@$lev = ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] + ( ( ( inverse( diag(${DomainKnowledge.operator_L1(0)._1} [ $lev ] ) ) ) * ${Knowledge.mg_smoother_omega} ) * ( ${DomainKnowledge.function_L1(0)._1} [ $lev ] - ${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] ) ) \n")
         writer.write(s"    next  \n")
         writer.write(s"}  \n")
@@ -162,7 +162,7 @@ def cpu sqr ( lev:Int
         // COMM_HACK
         writer.write(s"  decl lev : Int = $lev  \n")
         writer.write(s"  exchsolData_$lev ( 0 )  \n")
-        writer.write(s"    loop innerpoints level lev order rb block 1 1 \n")
+        writer.write(s"    loop innerpoints level $lev order rb block 1 1 \n")
         writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1}@$lev = ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] + ( ( ( inverse( diag(${DomainKnowledge.operator_L1(0)._1} [ $lev ] ) ) ) * ${Knowledge.mg_smoother_omega} ) * ( ${DomainKnowledge.function_L1(0)._1} [ $lev ] - ${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] ) ) \n")
         writer.write(s"    next  \n")
         writer.write(s"}  \n")
@@ -180,7 +180,7 @@ def cpu sqr ( lev:Int
       // COMM_HACK
       writer.write(s"  decl lev : Int = $lev  \n")
       writer.write(s"  exchresData_$lev ( 0 )  \n")
-      writer.write(s"    loop innerpoints level solutionMinusOne order lex block 1 1  \n")
+      writer.write(s"    loop innerpoints level ${lev - 1} order lex block 1 1  \n")
       // COMM_HACK
       //writer.write(s"      coarse =  RestrictionStencil * fine | ToCoarse  \n")
       writer.write(s"      f@${lev - 1} =  RestrictionStencil * fine | ToCoarse  \n")
@@ -199,7 +199,7 @@ def cpu sqr ( lev:Int
       // COMM_HACK
       writer.write(s"  decl lev : Int = $lev  \n")
       writer.write(s"  exchsolData_${lev - 1} ( 0 )  \n")
-      writer.write(s"    loop innerpoints level lev order lex block 1 1  \n")
+      writer.write(s"    loop innerpoints level $lev order lex block 1 1  \n")
       writer.write(s"    ${DomainKnowledge.unknown_L1(0)._1}@$lev += RestrictionStencil * ${DomainKnowledge.unknown_L1(0)._1} [ ${lev - 1} ] | ToFine  \n")
       writer.write(s"    next  \n")
       writer.write(s"}  \n")
@@ -217,7 +217,7 @@ def cpu sqr ( lev:Int
         writer.write(s"def ${n} ${setname}_$lev ( value:Int ) : Unit  \n")
         writer.write(s"{ \n")
         writer.write(s"  decl lev : Int = $lev  \n")
-        writer.write(s"  loop allpoints level lev order lex block 1 1  \n")
+        writer.write(s"  loop allpoints level $lev order lex block 1 1  \n")
         writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1}@$lev = value    \n")
         writer.write(s"next  \n")
         writer.write(s"}  \n")

@@ -38,9 +38,12 @@ case class AbstractLoop(where : String, lev : String, order : String, blocksize 
   override def transform(scopeparas : ListBuffer[ParameterInfo]) : ListBuffer[Statement] = {
     val lpkn = new DomainKnowledge.LoopKnowledge(DomainKnowledge.domain_L1.get._2, where, "1")
 
+    val levIsInt = lev.forall(c => c.isDigit)
+
     val lpendvariable : String = lev match {
-      case "lev" => DomainKnowledge.unknown_L1(0)._1 + "[lev]" // + ".s"
-      case _     => lev // + ".s"
+      case "lev"         => DomainKnowledge.unknown_L1(0)._1 + "[lev]" // + ".s"
+      case _ if levIsInt => DomainKnowledge.unknown_L1(0)._1 + s"[$lev]"
+      case _             => lev // + ".s"
     }
 
     var startidx : Int =
