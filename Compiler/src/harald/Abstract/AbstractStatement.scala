@@ -138,7 +138,7 @@ case class AbstractIfElse(val cond : AbstractExpression, ifstmts : List[Abstract
   }
 
 }
-case class AbstractLet(var id : String, var expr : AbstractExpression, var modifier : Option[String], var level:Option[Integer]) extends AbstractStatement {
+case class AbstractLet(var id : String, var expr : AbstractExpression, var modifier : Option[String], var level : Option[Integer]) extends AbstractStatement {
   override def transform(scopeparas : ListBuffer[ParameterInfo]) : ListBuffer[Statement] = {
 
     var ret : ListBuffer[Statement] = ListBuffer()
@@ -159,21 +159,6 @@ case class AbstractLet(var id : String, var expr : AbstractExpression, var modif
           case _          =>
         }
       }
-
-    // COMM_HACK
-    if ("fMinusOne" == id) {
-      id = "f"
-      ti = new TypeInfo(id, 1)
-      levstr = new StringLiteral("lev - 1")
-
-      id match {
-        // FIXME: use FieldAccess
-        case "solution" => return ListBuffer[Statement](AssignmentStatement("curFragment.solData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
-        case "Res"      => return ListBuffer[Statement](AssignmentStatement("curFragment.resData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
-        case "f"        => return ListBuffer[Statement](AssignmentStatement("curFragment.rhsData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
-        case _          =>
-      }
-    }
 
     for (e <- TreeManager.tree.Stencils)
       if (e.name.equals(id)) {

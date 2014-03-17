@@ -183,7 +183,7 @@ def cpu sqr ( lev:Int
       writer.write(s"    loop innerpoints level solutionMinusOne order lex block 1 1  \n")
       // COMM_HACK
       //writer.write(s"      coarse =  RestrictionStencil * fine | ToCoarse  \n")
-      writer.write(s"      fMinusOne@${lev - 1} =  RestrictionStencil * fine | ToCoarse  \n") // fMinusOne represents f [ lev - 1 ] which is not parsable :/
+      writer.write(s"      f@${lev - 1} =  RestrictionStencil * fine | ToCoarse  \n")
       writer.write(s"    next  \n")
       writer.write(s"}  \n")
     }
