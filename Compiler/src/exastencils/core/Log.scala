@@ -10,24 +10,24 @@ object Log {
   }
   import Levels._
 
-  var level : Levels = Warn
+  var level : Levels = Debug
 
   def error(s : Any) = {
     sys.error(f"ERROR: $s")
     sys.exit(-1) // just to be extra sure
   }
   def warn(s : Any) = {
-    if (level.id <= Warn.id) {
+    if (level.id >= Warn.id) {
       println(f"WARN:  $s")
     }
   }
   def debug(s : Any) = {
-    if (level.id <= Debug.id) {
+    if (level.id >= Debug.id) {
       println(f"DEBUG: $s")
     }
   }
   def info(s : Any) = {
-    if (level.id <= Info.id) {
+    if (level.id >= Info.id) {
       println(f"INFO:  $s")
     }
   }
