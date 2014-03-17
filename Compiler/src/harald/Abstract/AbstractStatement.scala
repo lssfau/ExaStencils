@@ -208,7 +208,7 @@ case class AbstractLet(var id : String, var expr : AbstractExpression, var modif
   }
 }
 
-case class AbstractPLet(var id : String, val expr : AbstractExpression, modifier : Option[String]) extends AbstractStatement {
+case class AbstractPLet(var id : String, val expr : AbstractExpression, modifier : Option[String], level : Option[Int]) extends AbstractStatement {
   override def transform(scopeparas : ListBuffer[ParameterInfo]) : ListBuffer[Statement] = {
     var ti : TypeInfo = new TypeInfo(id, 0)
     for (e <- TreeManager.tree.Fields)
