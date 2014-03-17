@@ -58,10 +58,13 @@ class ParserL4(tree : TreeL2) extends StandardTokenParsers {
       tree.exaFunctions.append(new AbstractFunction(name, loc, ret, args, body)); AbstractFunction(name, loc, ret, args, body)
   }
   
-  def stmt: Parser[AbstractStatement] = ("loop" ~ ident ~ "level" ~ ident ~ "order" ~ ident ~ "block" ~ numericLit ~ numericLit ~ (stmt.+) ~ "next" ^^ {
+  def stmt: Parser[AbstractStatement] = ("loop" ~ ident ~ "level" ~ (ident | numericLit) ~ "order" ~ ident ~ "block" ~ numericLit ~ numericLit ~ (stmt.+) ~ "next" ^^ {
     case a ~ where ~ b ~ clev ~ c ~ ord ~ d ~ bls ~ blst ~ stmts ~ e => AbstractLoop(where, clev, ord, bls, blst, stmts)
   }
-    | ident ~ "=" ~ expr ~ modifier.? ^^ { case id ~ _ ~ e ~ m => AbstractLet(id, e, m) }
+    | ident ~ ("@" ~> numericLit).? ~ "=" ~ expr ~ modifier.? ^^ { case id ~ l ~ _ ~ e ~ m => l match {
+      case None => AbstractLet(id, e, m, None)
+      case Some(s) => AbstractLet(id, e, m, Some(s.toInt))
+    }}
     | ident ~ "+=" ~ expr ~ modifier.? ^^ { case id ~ _ ~ e ~ m => AbstractPLet(id, e, m) }
     | ident ~ "(" ~ expr.* ~ ")" ^^ { case id ~ a ~ e ~ b => AbstractPCall(id, e) } 
     | "decl" ~ paramoption ~ "=" ~ expr ^^ {case a ~ para ~ b ~ e => AbstractDefinition(para, e) }
