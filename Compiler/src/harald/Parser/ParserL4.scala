@@ -65,7 +65,10 @@ class ParserL4(tree : TreeL2) extends StandardTokenParsers {
       case None => AbstractLet(id, e, m, None)
       case Some(s) => AbstractLet(id, e, m, Some(s.toInt))
     }}
-    | ident ~ "+=" ~ expr ~ modifier.? ^^ { case id ~ _ ~ e ~ m => AbstractPLet(id, e, m) }
+    | ident ~ ("@" ~> numericLit).? ~ "+=" ~ expr ~ modifier.? ^^ { case id ~ l ~ _ ~ e ~ m => l match {
+      case None => AbstractPLet(id, e, m, None)
+      case Some(s) => AbstractPLet(id, e, m, Some(s.toInt))
+    }}
     | ident ~ "(" ~ expr.* ~ ")" ^^ { case id ~ a ~ e ~ b => AbstractPCall(id, e) } 
     | "decl" ~ paramoption ~ "=" ~ expr ^^ {case a ~ para ~ b ~ e => AbstractDefinition(para, e) }
     | "return" ~ expr ^^ { case a ~ e => AbstractReturn(e) }
