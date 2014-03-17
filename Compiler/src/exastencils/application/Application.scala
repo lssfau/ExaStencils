@@ -29,7 +29,7 @@ case class InitFields() extends Statement {
         new MultiIndex(field.layout(0).idxGhostEnd + field.layout(0).ghostEnd - 1, field.layout(1).idxGhostEnd + field.layout(1).ghostEnd - 1, field.layout(2).idxGhostEnd + field.layout(2).ghostEnd - 1)),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           new AssignmentStatement(
-            new FieldAccess(field, slot, DefaultLoopMultiIndex()),
+            new FieldAccess("curFragment.", field, slot, DefaultLoopMultiIndex()),
             0.0) : Statement)) with OMP_PotentiallyParallel;
     }
 
@@ -44,7 +44,7 @@ case class InitFields() extends Statement {
             s"double val = (double)std::rand() / RAND_MAX;") ++
             (0 until field.numSlots).to[ListBuffer].map(slot =>
               new AssignmentStatement(
-                new FieldAccess(field, slot, DefaultLoopMultiIndex()),
+                new FieldAccess("curFragment.", field, slot, DefaultLoopMultiIndex()),
                 s"val") : Statement));
     }
 

@@ -27,16 +27,16 @@ case class PerformSmoothing_Jac(solutionField : Field, rhsField : Field, level :
               new MultiIndex(solutionField.layout(0).idxDupEnd + solutionField.layout(0).dupEnd - 1, solutionField.layout(1).idxDupEnd + solutionField.layout(1).dupEnd - 1, solutionField.layout(2).idxDupEnd + solutionField.layout(2).dupEnd - 1)), ListBuffer[Statement](
               AssignmentStatement(
                 // FIXME: introduce and apply stencil node
-                FieldAccess(solutionField, "targetSlot", DefaultLoopMultiIndex()),
-                s"${1.0 - Knowledge.mg_smoother_omega} * " ~ FieldAccess(solutionField, "sourceSlot", DefaultLoopMultiIndex())
+                FieldAccess("curFragment.", solutionField, "targetSlot", DefaultLoopMultiIndex()),
+                s"${1.0 - Knowledge.mg_smoother_omega} * " ~ FieldAccess("curFragment.", solutionField, "sourceSlot", DefaultLoopMultiIndex())
                   ~ s"+ ${Knowledge.mg_smoother_omega} / 6.0 * ("
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex(StringLiteral("x") + 1, "y", "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex("x" - 1, "y", "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex("x", StringLiteral("y") + 1, "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex("x", "y" - 1, "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex("x", "y", StringLiteral("z") + 1))
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex("x", "y", "z" - 1))
-                  ~ s"-" ~ FieldAccess(rhsField, "0", DefaultLoopMultiIndex())
+                  ~ s"+" ~ FieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex(StringLiteral("x") + 1, "y", "z"))
+                  ~ s"+" ~ FieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x" - 1, "y", "z"))
+                  ~ s"+" ~ FieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x", StringLiteral("y") + 1, "z"))
+                  ~ s"+" ~ FieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x", "y" - 1, "z"))
+                  ~ s"+" ~ FieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x", "y", StringLiteral("z") + 1))
+                  ~ s"+" ~ FieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x", "y", "z" - 1))
+                  ~ s"-" ~ FieldAccess("curFragment.", rhsField, "0", DefaultLoopMultiIndex())
                   ~ ")"))) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel));
   }
 }
@@ -56,16 +56,16 @@ case class PerformSmoothing_GS(solutionField : Field, rhsField : Field, level : 
             ListBuffer[Statement](
               AssignmentStatement(
                 // FIXME: introduce and apply stencil node
-                FieldAccess(solutionField, "targetSlot", DefaultLoopMultiIndex()),
-                s"${1.0 - Knowledge.mg_smoother_omega} * " ~ FieldAccess(solutionField, "sourceSlot", DefaultLoopMultiIndex())
+                FieldAccess("curFragment.", solutionField, "targetSlot", DefaultLoopMultiIndex()),
+                s"${1.0 - Knowledge.mg_smoother_omega} * " ~ FieldAccess("curFragment.", solutionField, "sourceSlot", DefaultLoopMultiIndex())
                   ~ s"+ ${Knowledge.mg_smoother_omega} / 6.0 * ("
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex(StringLiteral("x") + 1, "y", "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex("x" - 1, "y", "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex("x", StringLiteral("y") + 1, "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex("x", "y" - 1, "z"))
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex("x", "y", StringLiteral("z") + 1))
-                  ~ s"+" ~ FieldAccess(solutionField, "sourceSlot", new MultiIndex("x", "y", "z" - 1))
-                  ~ s"-" ~ FieldAccess(rhsField, "0", DefaultLoopMultiIndex())
+                  ~ s"+" ~ FieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex(StringLiteral("x") + 1, "y", "z"))
+                  ~ s"+" ~ FieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x" - 1, "y", "z"))
+                  ~ s"+" ~ FieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x", StringLiteral("y") + 1, "z"))
+                  ~ s"+" ~ FieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x", "y" - 1, "z"))
+                  ~ s"+" ~ FieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x", "y", StringLiteral("z") + 1))
+                  ~ s"+" ~ FieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x", "y", "z" - 1))
+                  ~ s"-" ~ FieldAccess("curFragment.", rhsField, "0", DefaultLoopMultiIndex())
                   ~ ")")))) with OMP_PotentiallyParallel));
   }
 }
@@ -216,15 +216,15 @@ case class UpdateResidual(residualField : Field, solutionField : Field, rhsField
             ListBuffer[Statement](
               AssignmentStatement(
                 // FIXME: introduce and apply stencil node
-                FieldAccess(residualField, "0", DefaultLoopMultiIndex()),
-                FieldAccess(rhsField, "0", DefaultLoopMultiIndex())
-                  ~ s"-" ~ FieldAccess(solutionField, "slot", new MultiIndex(StringLiteral("x") + 1, "y", "z"))
-                  ~ s"-" ~ FieldAccess(solutionField, "slot", new MultiIndex("x" - 1, "y", "z"))
-                  ~ s"-" ~ FieldAccess(solutionField, "slot", new MultiIndex("x", StringLiteral("y") + 1, "z"))
-                  ~ s"-" ~ FieldAccess(solutionField, "slot", new MultiIndex("x", "y" - 1, "z"))
-                  ~ s"-" ~ FieldAccess(solutionField, "slot", new MultiIndex("x", "y", StringLiteral("z") + 1))
-                  ~ s"-" ~ FieldAccess(solutionField, "slot", new MultiIndex("x", "y", "z" - 1))
-                  ~ s"+ 6.0 * " ~ FieldAccess(solutionField, "slot", DefaultLoopMultiIndex())))) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel));
+                FieldAccess("curFragment.", residualField, "0", DefaultLoopMultiIndex()),
+                FieldAccess("curFragment.", rhsField, "0", DefaultLoopMultiIndex())
+                  ~ s"-" ~ FieldAccess("curFragment.", solutionField, "slot", new MultiIndex(StringLiteral("x") + 1, "y", "z"))
+                  ~ s"-" ~ FieldAccess("curFragment.", solutionField, "slot", new MultiIndex("x" - 1, "y", "z"))
+                  ~ s"-" ~ FieldAccess("curFragment.", solutionField, "slot", new MultiIndex("x", StringLiteral("y") + 1, "z"))
+                  ~ s"-" ~ FieldAccess("curFragment.", solutionField, "slot", new MultiIndex("x", "y" - 1, "z"))
+                  ~ s"-" ~ FieldAccess("curFragment.", solutionField, "slot", new MultiIndex("x", "y", StringLiteral("z") + 1))
+                  ~ s"-" ~ FieldAccess("curFragment.", solutionField, "slot", new MultiIndex("x", "y", "z" - 1))
+                  ~ s"+ 6.0 * " ~ FieldAccess("curFragment.", solutionField, "slot", DefaultLoopMultiIndex())))) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel));
   }
 }
 
@@ -453,7 +453,7 @@ case class GetGlobalResidual(field : Field) extends AbstractFunctionStatement wi
               new MultiIndex(field.layout(0).idxDupEnd + field.layout(0).dupEnd - 1, field.layout(1).idxDupEnd + field.layout(1).dupEnd - 1, field.layout(2).idxDupEnd + field.layout(2).dupEnd - 1)),
             ListBuffer[Statement](
               // FIXME: this currently counts duplicated values multiple times
-              s"double tmpRes =" ~ new FieldAccess(field, 0, DefaultLoopMultiIndex()) ~ ";",
+              s"double tmpRes =" ~ new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) ~ ";",
               s"res += tmpRes * tmpRes;"), "reduction(+:res)") with OMP_PotentiallyParallel,
           true, "reduction(+:res)") with OMP_PotentiallyParallel,
         new MPI_Allreduce("&res", "&resTotal", 1, "MPI_SUM"),
@@ -472,7 +472,7 @@ case class SetSolZero(field : Field, level : Int) extends AbstractFunctionStatem
             new MultiIndex(field.layout(0).idxDupBegin, field.layout(1).idxDupBegin, field.layout(2).idxDupBegin),
             new MultiIndex(field.layout(0).idxDupEnd + field.layout(0).dupEnd - 1, field.layout(1).idxDupEnd + field.layout(1).dupEnd - 1, field.layout(2).idxDupEnd + field.layout(2).dupEnd - 1)),
           new AssignmentStatement(
-            new FieldAccess(field, "slot", DefaultLoopMultiIndex()),
+            new FieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()),
             0.0)) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel);
   }
 }

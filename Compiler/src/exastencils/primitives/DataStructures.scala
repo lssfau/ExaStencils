@@ -44,24 +44,17 @@ object DefaultLoopMultiIndex {
   def apply() : MultiIndex = { new MultiIndex("x", "y", "z"); }
 }
 
-case class LinearizedFieldAccess(var field : Field, var slot : Expression, var index : Expression) extends Expression {
+case class LinearizedFieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : Expression) extends Expression {
   override def cpp : String = {
-    s"curFragment.${field.codeName}[${slot.cpp}][${field.level}]->data[${index.cpp}]";
+    s"${fieldOwner.cpp}${field.codeName}[${slot.cpp}][${field.level}]->data[${index.cpp}]";
   }
 }
 
-case class FieldAccess(var field : Field, var slot : Expression, var index : MultiIndex) extends Expression with Expandable {
+case class FieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : MultiIndex) extends Expression with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = FieldAccess\n";
 
   def expand(collector : StackCollector) : LinearizedFieldAccess = {
-    new LinearizedFieldAccess(field, slot, Mapping.resolveMultiIdx(field, index));
-  }
-}
-
-case class LocalNeighborFieldAccess(var neighborPtr : Expression, var field : Field, var level : Expression, var slot : Expression, var index : MultiIndex) extends Expression {
-  override def cpp : String = {
-    // FIXME: expand and replace multi-index
-    s"${neighborPtr.cpp}->${field.codeName}[${slot.cpp}][${level.cpp}]->data[${Mapping.resolveMultiIdx(field, index).cpp}]";
+    new LinearizedFieldAccess(fieldOwner, field, slot, Mapping.resolveMultiIdx(field, index));
   }
 }
 
