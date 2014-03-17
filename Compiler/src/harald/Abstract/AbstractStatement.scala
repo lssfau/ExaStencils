@@ -148,7 +148,7 @@ case class AbstractLet(var id : String, var expr : AbstractExpression, var modif
     for (e <- TreeManager.tree.Fields)
       if (e.name.equals(id)) {
         ti = new TypeInfo(id, 1)
-        levstr = new StringLiteral("lev")
+        levstr = if (level.isDefined) (new StringLiteral(level.get.toString)) else "lev"
 
         // COMM_HACK
         id match {
