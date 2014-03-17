@@ -7,7 +7,6 @@ import harald.ast.TreeManager
 import harald.expert.StencilGenerator
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.primitives.FieldAccess
 
 sealed abstract class AbstractExpression {
   def value(context : Context) : String

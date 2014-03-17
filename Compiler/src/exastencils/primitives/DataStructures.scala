@@ -40,24 +40,6 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
   }
 }
 
-object DefaultLoopMultiIndex {
-  def apply() : MultiIndex = { new MultiIndex("x", "y", "z"); }
-}
-
-case class LinearizedFieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : Expression) extends Expression {
-  override def cpp : String = {
-    s"${fieldOwner.cpp}${field.codeName}[${slot.cpp}][${field.level}]->data[${index.cpp}]";
-  }
-}
-
-case class FieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : MultiIndex) extends Expression with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = FieldAccess\n";
-
-  def expand(collector : StackCollector) : LinearizedFieldAccess = {
-    new LinearizedFieldAccess(fieldOwner, field, slot, Mapping.resolveMultiIdx(field, index));
-  }
-}
-
 case class LoopOverFragments(var body : ListBuffer[Statement], var createFragRef : Boolean = true, var addOMPStatements : String = "") extends Statement with Expandable {
   def this(body : Statement, createFragRef : Boolean, addOMPStatements : String) = this(ListBuffer(body), createFragRef, addOMPStatements);
   def this(body : Statement, createFragRef : Boolean) = this(ListBuffer(body), createFragRef);
