@@ -193,15 +193,15 @@ class GenerateL4(treel2 : TreeL2) {
     }
 
     // COMM_HACK
-    writer.write(s"def cpu setrandom(arr:Container \n")
-    writer.write(s"               v:Int) : Unit \n")
-    writer.write(s"{ \n")
-    writer.write(s"  loop innerpoints level arr order lex block 1 1  \n")
-    writer.write(s"      arr = random(v)    \n")
-    writer.write(s"  next  \n")
-    writer.write(s"} \n")
-
-    writer.write(s"\n")
+//    writer.write(s"def cpu setrandom(arr:Container \n")
+//    writer.write(s"               v:Int) : Unit \n")
+//    writer.write(s"{ \n")
+//    writer.write(s"  loop innerpoints level arr order lex block 1 1  \n")
+//    writer.write(s"      arr = random(v)    \n")
+//    writer.write(s"  next  \n")
+//    writer.write(s"} \n")
+//
+//    writer.write(s"\n")
 
     // COMM_HACK
     writer.write(s"def cpu Application ( ) : Unit \n")
