@@ -17,9 +17,9 @@ class ParserL4(tree : TreeL2) extends StandardTokenParsers {
   def parse(input: String) {
 
     val tokens = new lexical.Scanner(input)
-    println(tokens.toString)
+    //println(tokens.toString)
     val result = phrase(exastencilsL4)(tokens)
-    println(result.toString)
+    //println(result.toString)
     result match {
       case Success(tree, _) => new Interpreter(tree).run()
 
@@ -28,9 +28,9 @@ class ParserL4(tree : TreeL2) extends StandardTokenParsers {
       }
     }
 
-    println(result.toString)
-    for (e <- tree.exaClasses)
-      println(e)
+    //println(result.toString)
+    //for (e <- tree.exaClasses)
+    //  println(e)
   }
 
   class ExaStringOption(val name: String, val value: String) {

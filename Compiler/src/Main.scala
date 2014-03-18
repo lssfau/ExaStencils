@@ -90,7 +90,7 @@ object Main {
     }
 
     val DSLHW : String = scala.io.Source.fromFile(DSLpath + problem + "levHW.mg").getLines.reduceLeft(_ + '\n' + _)
-    println(DSLHW)
+    //println(DSLHW)
 
     val parserHW = new ParserHW
     parserHW.parseAll(parserHW.exastencilsHW, DSLHW)
@@ -104,7 +104,7 @@ object Main {
 
     println("read PDE")
     val DSLl1 : String = scala.io.Source.fromFile(DSLpath + problem + "lev1.mg").getLines.reduceLeft(_ + '\n' + _)
-    println(DSLl1)
+    //println(DSLl1)
 
     val parserl1 = new ParserL1
     parserl1.parseAll(parserl1.exastencilsL1, DSLl1)
@@ -114,7 +114,7 @@ object Main {
 
     println("read discretization")
     val DSLl2 : String = scala.io.Source.fromFile(DSLpath + problem + "lev2.mg").getLines.reduceLeft(_ + _)
-    println(DSLl2)
+    //println(DSLl2)
 
     val parserl2 = new ParserL2(TreeManager.tree)
     parserl2.parseAll(parserl2.exastencilsL2, DSLl2)
@@ -127,7 +127,7 @@ object Main {
       genL3.transformL2toL3(DSLpath + problem + "lev3.mg")
 
     val DSLl3 : String = scala.io.Source.fromFile(DSLpath + problem + "lev3.mg").getLines.reduceLeft(_ + _)
-    println(DSLl3)
+    //println(DSLl3)
 
     val parserl3 = new ParserL3
     parserl3.parseAll(parserl3.exastencilsL3, DSLl3)
@@ -139,7 +139,7 @@ object Main {
       println("generate L4" + DomainKnowledge.generate_L1.getOrElse(1))
     }
     val DSLl4 : String = scala.io.Source.fromFile(DSLpath + problem + "lev4.mg").getLines.reduceLeft(_ + _)
-    println(DSLl4)
+    //println(DSLl4)
 
     val parserl4 = new ParserL4(TreeManager.tree)
     parserl4.parse(DSLl4)

@@ -216,7 +216,7 @@ object InitExternalFunctions extends Strategy("Init external functions") {
         }
 
         for (c <- tree.Functions) {
-          println(c._2.name)
+          //println(c._2.name)
           if (c._2.name.equals("Application"))
             body += new StringLiteral(c._2.toString_cpp_body)
         }

@@ -74,7 +74,7 @@ class TransformL4(treel2 : TreeL2) {
     private def walkTree(tree: List[AbstractFunction], context: Context) {
       tree match {
         case f :: rest => {
-          println(f.toString)
+          //println(f.toString)
           walkTree(rest, context)
         }
         case Nil => ()
