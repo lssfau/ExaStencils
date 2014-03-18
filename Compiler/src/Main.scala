@@ -71,6 +71,15 @@ object Main {
       // Globals
       new Globals));
 
+    // setup basic sub-nodes
+
+    do { ExpandStrategy.apply; }
+    while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
+
+    SetupFragmentClass.apply;
+    SetupMultiGrid.apply;
+    SetupApplication.apply;
+
     // Harald
 
     println("read HW")
@@ -162,13 +171,6 @@ object Main {
     exadsl.prettycpp(libpath, outputfile)
 
     // Strategies
-
-    do { ExpandStrategy.apply; }
-    while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
-
-    SetupFragmentClass.apply;
-    SetupMultiGrid.apply;
-    SetupApplication.apply;
 
     do { ExpandStrategy.apply; }
     while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
