@@ -238,15 +238,21 @@ object StateManager {
   }
 
   def findFirst[T : ClassTag](node : Node = root) : Option[T] = {
+    findFirst[T]({ x : Any => x match { case _ : T => true; case _ => false } })
+  }
+
+  def findFirst[T : ClassTag](check : Any => Boolean, node : Node = root) : Option[T] = {
     var retVal : Option[T] = None
     var t = new Transformation("StatemanagerInternalFindFirst", {
-      case hit : T =>
+      case hit : T if check(hit) =>
         retVal = Some(hit)
         new Output(hit)
     }, false)
 
+    progresses_.+=((t, new TransformationProgress))
     replace(node, t)
-    return retVal
+
+    retVal
   }
 
   protected object Vars {
