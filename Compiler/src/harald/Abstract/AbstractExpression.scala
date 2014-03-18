@@ -5,8 +5,12 @@ import harald.dsl._
 import harald.Impl._
 import harald.ast.TreeManager
 import harald.expert.StencilGenerator
+import exastencils.core._
+import exastencils.knowledge._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.primitives._
+import exastencils.core.collectors.StackCollector
 
 sealed abstract class AbstractExpression {
   def value(context : Context) : String
@@ -30,19 +34,24 @@ case class AbstractBinaryOp(operator : BinaryOperators.Value, left : AbstractExp
                   var lb : ListBuffer[Expression] = new ListBuffer()
 
                   val levstr = l2.transform(scopeparas, modifier, scopetype)
+                  val fieldCollection = StateManager.findFirst[FieldCollection]().get
 
                   // COMM_HACK
                   if ("statement" == l2.transform(scopeparas, modifier, "argument") || "expression" == l2.transform(scopeparas, modifier, "argument")) {
                     id2 match {
-                      // FIXME: use FieldAccess
-                      case "solution" => lb += "curFragment.solData[0][" ~ levstr ~ "]->getDataRef" ~ "[" ~ l2.transform(scopeparas, modifier, "argument") ~ "]"
-                      case "Res"      => lb += "curFragment.resData[0][" ~ levstr ~ "]->getDataRef" ~ "[" ~ l2.transform(scopeparas, modifier, "argument") ~ "]"
-                      case "f"        => lb += "curFragment.rhsData[0][" ~ levstr ~ "]->getDataRef" ~ "[" ~ l2.transform(scopeparas, modifier, "argument") ~ "]"
-                      case _          => lb += id2 ~ "[" ~ l2.transform(scopeparas, modifier, "argument") ~ "]"
+                      case "solution" => //lb += "curFragment.solData[0][" ~ levstr ~ "]->getDataRef" ~ "[" ~ l2.transform(scopeparas, modifier, "argument") ~ "]"
+                        val field : Field = fieldCollection.getFieldByIdentifier("Solution", levstr.cpp.toInt).get
+                        lb += new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector)
+                      case "Res" => //lb += "curFragment.resData[0][" ~ levstr ~ "]->getDataRef" ~ "[" ~ l2.transform(scopeparas, modifier, "argument") ~ "]"
+                        val field : Field = fieldCollection.getFieldByIdentifier("Residual", levstr.cpp.toInt).get
+                        lb += new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector)
+                      case "f" => //lb += "curFragment.rhsData[0][" ~ levstr ~ "]->getDataRef" ~ "[" ~ l2.transform(scopeparas, modifier, "argument") ~ "]"
+                        val field : Field = fieldCollection.getFieldByIdentifier("RHS", levstr.cpp.toInt).get
+                        lb += new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector)
+                      case _ => lb += id2 ~ "[" ~ l2.transform(scopeparas, modifier, "argument") ~ "]"
                     }
                   } else {
                     id2 match {
-                      // FIXME: use FieldAccess
                       case "solution" => lb += "*curFragment.solData[0][" ~ levstr ~ "]"
                       case "Res"      => lb += "*curFragment.resData[0][" ~ levstr ~ "]"
                       case "f"        => lb += "*curFragment.rhsData[0][" ~ levstr ~ "]"
@@ -188,27 +197,35 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
       if (e.name.equals(id)) {
         // COMM_HACK
         return id match {
-          // FIXME: use FieldAccess
           case "solution" => (
-            if ("statement" == scopetype || "expression" == scopetype)
-              s"curFragment.solData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp()
-            else
-              s"*curFragment.solData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]")
+            if ("statement" == scopetype || "expression" == scopetype) {
+              //s"curFragment.solData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp()
+              val fieldCollection = StateManager.findFirst[FieldCollection]().get
+              val field : Field = fieldCollection.getFieldByIdentifier("Solution", lev.transform(scopeparas, modifier, scopetype).cpp.toInt).get
+              new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector)
+            } else
+              s"*curFragment.solData[0][FIXME " ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]")
           case "Res" => (
-            if ("statement" == scopetype || "expression" == scopetype)
-              s"curFragment.resData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp()
-            else
-              s"*curFragment.resData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]")
+            if ("statement" == scopetype || "expression" == scopetype) {
+              //s"curFragment.resData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp()
+              val fieldCollection = StateManager.findFirst[FieldCollection]().get
+              val field : Field = fieldCollection.getFieldByIdentifier("Residual", lev.transform(scopeparas, modifier, scopetype).cpp.toInt).get
+              new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector)
+            } else
+              s"*curFragment.resData[0][FIXME " ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]")
           case "f" => (
-            if ("statement" == scopetype || "expression" == scopetype)
-              s"curFragment.rhsData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp()
-            else
-              s"*curFragment.rhsData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]")
+            if ("statement" == scopetype || "expression" == scopetype) {
+              //s"curFragment.rhsData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp()
+              val fieldCollection = StateManager.findFirst[FieldCollection]().get
+              val field : Field = fieldCollection.getFieldByIdentifier("RHS", lev.transform(scopeparas, modifier, scopetype).cpp.toInt).get
+              new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector)
+            } else
+              s"*curFragment.rhsData[0][FIXME " ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]")
           case _ => (
             if ("statement" == scopetype || "expression" == scopetype)
-              id ~ "[" ~ lev.transform(scopeparas, modifier, scopetype) ~ "]" ~ DomainKnowledge.rule_idxArray_cpp()
+              id ~ "[FIXME " ~ lev.transform(scopeparas, modifier, scopetype) ~ "]" ~ DomainKnowledge.rule_idxArray_cpp()
             else
-              id ~ "[" ~ lev.transform(scopeparas, modifier, scopetype) ~ "]")
+              id ~ "[FIXME " ~ lev.transform(scopeparas, modifier, scopetype) ~ "]")
         }
       }
 

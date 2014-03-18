@@ -9,6 +9,7 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.primitives._
 import exastencils.core._
+import exastencils.core.collectors._
 
 sealed abstract class AbstractStatement {
   def transform(scopeparas : ListBuffer[ParameterInfo]) : ListBuffer[Statement]
@@ -72,28 +73,28 @@ case class AbstractLoop(where : String, lev : String, order : String, blocksize 
       }
     }
 
-//    var startidx : Int =
-//      lpkn match {
-//
-//        case DomainKnowledge.LoopKnowledge(_, "innerpoints", "1") => 1
-//        case DomainKnowledge.LoopKnowledge(_, "allpoints", "1")   => 0
-//      }
-//    var start : ListBuffer[Expression] = ListBuffer()
-//    for (i <- 1 to DomainKnowledge.rule_dim())
-//      start += startidx
-//
-//    var stop : ListBuffer[Expression] = ListBuffer()
-//
-//    lpkn match {
-//      case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "innerpoints", "1") => {
-//        for (i <- 1 to DomainKnowledge.rule_dim())
-//          stop += (lpendvariable + "." + "x" + i.toString + "_") -  (1 + 1)
-//      }
-//      case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "allpoints", "1") => {
-//        for (i <- 1 to DomainKnowledge.rule_dim())
-//          stop += (lpendvariable + "." + "x" + i.toString + "_") - 1
-//      }
-//    }
+    //    var startidx : Int =
+    //      lpkn match {
+    //
+    //        case DomainKnowledge.LoopKnowledge(_, "innerpoints", "1") => 1
+    //        case DomainKnowledge.LoopKnowledge(_, "allpoints", "1")   => 0
+    //      }
+    //    var start : ListBuffer[Expression] = ListBuffer()
+    //    for (i <- 1 to DomainKnowledge.rule_dim())
+    //      start += startidx
+    //
+    //    var stop : ListBuffer[Expression] = ListBuffer()
+    //
+    //    lpkn match {
+    //      case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "innerpoints", "1") => {
+    //        for (i <- 1 to DomainKnowledge.rule_dim())
+    //          stop += (lpendvariable + "." + "x" + i.toString + "_") -  (1 + 1)
+    //      }
+    //      case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "allpoints", "1") => {
+    //        for (i <- 1 to DomainKnowledge.rule_dim())
+    //          stop += (lpendvariable + "." + "x" + i.toString + "_") - 1
+    //      }
+    //    }
 
     var body : ListBuffer[Statement] = ListBuffer()
     for (st <- stmts) {
@@ -178,14 +179,20 @@ case class AbstractLet(var id : String, var expr : AbstractExpression, var modif
       if (e.name.equals(id)) {
         ti = new TypeInfo(id, 1)
         levstr = if (level.isDefined) (new StringLiteral(level.get.toString)) else "lev"
+        val fieldCollection = StateManager.findFirst[FieldCollection]().get
 
         // COMM_HACK
         id match {
-          // FIXME: use FieldAccess
-          case "solution" => return ListBuffer[Statement](AssignmentStatement("curFragment.solData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
-          case "Res"      => return ListBuffer[Statement](AssignmentStatement("curFragment.resData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
-          case "f"        => return ListBuffer[Statement](AssignmentStatement("curFragment.rhsData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
-          case _          =>
+          case "solution" => //return ListBuffer[Statement](AssignmentStatement("curFragment.solData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
+            val field : Field = fieldCollection.getFieldByIdentifier("Solution", level.get).get
+            return ListBuffer[Statement](AssignmentStatement(new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector), expr.transform(scopeparas, modifier, "expression")))
+          case "Res" => //return ListBuffer[Statement](AssignmentStatement("curFragment.resData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
+            val field : Field = fieldCollection.getFieldByIdentifier("Residual", level.get).get
+            return ListBuffer[Statement](AssignmentStatement(new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector), expr.transform(scopeparas, modifier, "expression")))
+          case "f" => //return ListBuffer[Statement](AssignmentStatement("curFragment.rhsData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
+            val field : Field = fieldCollection.getFieldByIdentifier("RHS", level.get).get
+            return ListBuffer[Statement](AssignmentStatement(new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector), expr.transform(scopeparas, modifier, "expression")))
+          case _ =>
         }
       }
 
@@ -230,14 +237,21 @@ case class AbstractPLet(var id : String, val expr : AbstractExpression, modifier
         ti = new TypeInfo(id, 1)
 
         val levstr : Expression = if (level.isDefined) (new StringLiteral(level.get.toString)) else "lev"
+        val fieldCollection = StateManager.findFirst[FieldCollection]().get
 
         // COMM_HACK
         id = id match {
-          // FIXME: use FieldAccess
-          case "solution" => ("curFragment.solData[0][" ~ levstr ~ "]->getDataRef").cpp
-          case "Res"      => ("curFragment.resData[0][" ~ levstr ~ "]->getDataRef").cpp
-          case "f"        => ("curFragment.rhsData[0][" ~ levstr ~ "]->getDataRef").cpp
-          case _          => id
+          case "solution" => // ("curFragment.solData[0][" ~ levstr ~ "]->getDataRef").cpp
+            val field : Field = fieldCollection.getFieldByIdentifier("Solution", level.get).get
+            return ListBuffer[Statement](AssignmentStatement(new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector), expr.transform(scopeparas, modifier, "expression"), "+="))
+          case "Res" => //("curFragment.resData[0][" ~ levstr ~ "]->getDataRef").cpp
+            val field : Field = fieldCollection.getFieldByIdentifier("Residual", level.get).get
+            return ListBuffer[Statement](AssignmentStatement(new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector), expr.transform(scopeparas, modifier, "expression"), "+="))
+          case "f" => //("curFragment.rhsData[0][" ~ levstr ~ "]->getDataRef").cpp
+            val field : Field = fieldCollection.getFieldByIdentifier("RHS", level.get).get
+            return ListBuffer[Statement](AssignmentStatement(new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector), expr.transform(scopeparas, modifier, "expression"), "+="))
+          case _ => //id
+            return ListBuffer[Statement](new AssignmentStatement(id ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression"), "+="))
         }
       }
     for (e <- TreeManager.tree.Stencils)
