@@ -6,6 +6,9 @@ import harald.Impl._
 import harald.ast.TreeManager
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.knowledge._
+import exastencils.strategies._
+import exastencils.primitives._
 
 sealed abstract class AbstractStatement {
   def transform(scopeparas : ListBuffer[ParameterInfo]) : ListBuffer[Statement]
@@ -38,11 +41,38 @@ case class AbstractLoop(where : String, lev : String, order : String, blocksize 
   override def transform(scopeparas : ListBuffer[ParameterInfo]) : ListBuffer[Statement] = {
     val lpkn = new DomainKnowledge.LoopKnowledge(DomainKnowledge.domain_L1.get._2, where, "1")
 
+    val levIsInt = lev.forall(c => c.isDigit)
+
     val lpendvariable : String = lev match {
-      case "lev" => DomainKnowledge.unknown_L1(0)._1 + "[lev]" // + ".s"
-      case _     => lev // + ".s"
+      case "lev"         => DomainKnowledge.unknown_L1(0)._1 + "[lev]" // + ".s"
+      case _ if levIsInt => DomainKnowledge.unknown_L1(0)._1 + s"[$lev]"
+      case _             => lev // + ".s"
     }
 
+    /* Christian: java.lang.RuntimeException: Another transaction currently running!
+    val fieldCollection = FindFirstOccurence.find[FieldCollection].get
+    val solField : Field = fieldCollection.getFieldByIdentifier("Solution", lev.toInt).get
+
+    var start : ListBuffer[Expression] = ListBuffer()
+    for (i <- 0 until Knowledge.dimensionality)
+      start += (lpkn match {
+        case DomainKnowledge.LoopKnowledge(_, "innerpoints", "1") => solField.layout(i).idxDupBegin
+        case DomainKnowledge.LoopKnowledge(_, "allpoints", "1")   => solField.layout(i).idxGhostBegin
+      })
+
+    var stop : ListBuffer[Expression] = ListBuffer()
+
+    lpkn match {
+      case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "innerpoints", "1") => {
+        for (i <- 1 to DomainKnowledge.rule_dim())
+          stop += new BinaryExpression(BinaryOperators.Subtraction, lpendvariable + "." + "x" + i.toString + "_", 1)
+      }
+      case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "allpoints", "1") => {
+        for (i <- 1 to DomainKnowledge.rule_dim())
+          stop += lpendvariable + "." + "x" + i.toString + "_"
+      }
+    }
+    */
     var startidx : Int =
       lpkn match {
 
@@ -138,7 +168,7 @@ case class AbstractIfElse(val cond : AbstractExpression, ifstmts : List[Abstract
   }
 
 }
-case class AbstractLet(var id : String, var expr : AbstractExpression, var modifier : Option[String], var level:Option[Integer]) extends AbstractStatement {
+case class AbstractLet(var id : String, var expr : AbstractExpression, var modifier : Option[String], var level : Option[Integer]) extends AbstractStatement {
   override def transform(scopeparas : ListBuffer[ParameterInfo]) : ListBuffer[Statement] = {
 
     var ret : ListBuffer[Statement] = ListBuffer()
@@ -148,7 +178,7 @@ case class AbstractLet(var id : String, var expr : AbstractExpression, var modif
     for (e <- TreeManager.tree.Fields)
       if (e.name.equals(id)) {
         ti = new TypeInfo(id, 1)
-        levstr = new StringLiteral("lev")
+        levstr = if (level.isDefined) (new StringLiteral(level.get.toString)) else "lev"
 
         // COMM_HACK
         id match {
@@ -159,21 +189,6 @@ case class AbstractLet(var id : String, var expr : AbstractExpression, var modif
           case _          =>
         }
       }
-
-    // COMM_HACK
-    if ("fMinusOne" == id) {
-      id = "f"
-      ti = new TypeInfo(id, 1)
-      levstr = new StringLiteral("lev - 1")
-
-      id match {
-        // FIXME: use FieldAccess
-        case "solution" => return ListBuffer[Statement](AssignmentStatement("curFragment.solData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
-        case "Res"      => return ListBuffer[Statement](AssignmentStatement("curFragment.resData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
-        case "f"        => return ListBuffer[Statement](AssignmentStatement("curFragment.rhsData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
-        case _          =>
-      }
-    }
 
     for (e <- TreeManager.tree.Stencils)
       if (e.name.equals(id)) {
@@ -215,7 +230,7 @@ case class AbstractPLet(var id : String, val expr : AbstractExpression, modifier
       if (e.name.equals(id)) {
         ti = new TypeInfo(id, 1)
 
-        val levstr = new StringLiteral("lev")
+        val levstr : Expression = if (level.isDefined) (new StringLiteral(level.get.toString)) else "lev"
 
         // COMM_HACK
         id = id match {

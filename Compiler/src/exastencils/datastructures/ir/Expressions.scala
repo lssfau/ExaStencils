@@ -1,10 +1,12 @@
 package exastencils.datastructures.ir
 
 import scala.collection.mutable.ListBuffer
+import exastencils.core.collectors._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.knowledge.Knowledge
+import exastencils.knowledge._
+import exastencils.primitives._
 
 trait Expression extends Node with CppPrettyPrintable {
   def ~(exp : Expression) : ConcatenationExpression = {
@@ -129,6 +131,24 @@ case class MultiIndex(index_0 : Expression = new NullExpression, index_1 : Expre
   }
 }
 
+object DefaultLoopMultiIndex {
+  def apply() : MultiIndex = { new MultiIndex("x", "y", "z"); }
+}
+
+case class FieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : MultiIndex) extends Expression with Expandable {
+  override def cpp : String = "NOT VALID ; CLASS = FieldAccess\n";
+
+  def expand(collector : StackCollector) : LinearizedFieldAccess = {
+    new LinearizedFieldAccess(fieldOwner, field, slot, Mapping.resolveMultiIdx(field, index));
+  }
+}
+
+case class LinearizedFieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : Expression) extends Expression {
+  override def cpp : String = {
+    s"${fieldOwner.cpp}${field.codeName}[${slot.cpp}][${field.level}]->data[${index.cpp}]";
+  }
+}
+
 case class MemberAccess(base : Access, varAcc : VariableAccess) extends Access {
   override def cpp = base.cpp + '.' + varAcc.cpp
 }
@@ -146,11 +166,11 @@ case class BinaryExpression(var operator : BinaryOperators.Value, var left : Exp
     s"(${left.cpp} ${BinaryOperators.op2str(operator)} ${right.cpp})";
   }
 
-//  override def simplify = {
-//    (left, right) match {
-//      case (x : NumericLiteral[_], y : NumericLiteral[_]) => println(x ~ y); this //NumericLiteral(left.asInstanceOf[NumericLiteral[_]].Value + right.Value)
-//    }
-//  }
+  //  override def simplify = {
+  //    (left, right) match {
+  //      case (x : NumericLiteral[_], y : NumericLiteral[_]) => println(x ~ y); this //NumericLiteral(left.asInstanceOf[NumericLiteral[_]].Value + right.Value)
+  //    }
+  //  }
 }
 
 case class FunctionCallExpression(var name : Expression, var arguments : ListBuffer[Expression /* FIXME: more specialization*/ ]) extends Expression {

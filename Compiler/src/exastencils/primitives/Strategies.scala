@@ -24,13 +24,13 @@ object SetupFragmentClass extends Strategy("Setting up fragment class") {
     case collection : FieldCollection =>
       for (level <- 0 to Knowledge.maxLevel) {
         collection.fields += new Field("Solution", "solData", "double",
-          (0 to 2).toArray.map(dim => new FieldLayoutPerDim(0, Knowledge.data_numGhostLayers, 1, Mapping.numInnerPoints(level, dim) - 2 /*dup*/ , 1, Knowledge.data_numGhostLayers, 0)),
+          (0 to 2).toArray.map(dim => new FieldLayoutPerDim(0, Knowledge.data_numGhostLayers, 1, ((Knowledge.domain_fragLengthPerDim(dim) * (1 << level)) + 1) - 2 /*dup*/ , 1, Knowledge.data_numGhostLayers, 0)),
           level, Knowledge.data_numSolSlots, true);
         collection.fields += new Field("Residual", "resData", "double",
-          (0 to 2).toArray.map(dim => new FieldLayoutPerDim(0, Knowledge.data_numGhostLayers, 1, Mapping.numInnerPoints(level, dim) - 2 /*dup*/ , 1, Knowledge.data_numGhostLayers, 0)),
+          (0 to 2).toArray.map(dim => new FieldLayoutPerDim(0, Knowledge.data_numGhostLayers, 1, ((Knowledge.domain_fragLengthPerDim(dim) * (1 << level)) + 1) - 2 /*dup*/ , 1, Knowledge.data_numGhostLayers, 0)),
           level, 1, false);
         collection.fields += new Field("RHS", "rhsData", "double",
-          (0 to 2).toArray.map(dim => new FieldLayoutPerDim(0, Knowledge.data_numGhostLayers, 1, Mapping.numInnerPoints(level, dim) - 2 /*dup*/ , 1, Knowledge.data_numGhostLayers, 0)),
+          (0 to 2).toArray.map(dim => new FieldLayoutPerDim(0, Knowledge.data_numGhostLayers, 1, ((Knowledge.domain_fragLengthPerDim(dim) * (1 << level)) + 1) - 2 /*dup*/ , 1, Knowledge.data_numGhostLayers, 0)),
           level, 1, false);
       }
       Some(collection);
