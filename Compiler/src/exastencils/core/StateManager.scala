@@ -10,9 +10,9 @@ import exastencils.core.collectors._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.datastructures.Transformation._
-
 import scala.reflect.runtime.{ universe => ru }
 import scala.reflect.runtime.{ currentMirror => rm }
+import scala.reflect.ClassTag
 
 object StateManager {
   def root = root_ // FIXME remove this
@@ -142,12 +142,12 @@ object StateManager {
           if (invalids.size <= 0) {
 
             def processOutput[O <: Output[_]](o : O) : Node = o.inner match {
-              case n : Node      => n
-              case l : List[_]   =>
+              case n : Node => n
+              case l : List[_] =>
                 ERROR("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
               case n : None.type =>
                 ERROR("FIXME") //List()
-              case _             => ERROR(o); null
+              case _ => ERROR(o); null
             }
 
             import scala.language.existentials
@@ -158,7 +158,7 @@ object StateManager {
                 ERROR(s"Could not set $field in transformation ${transformation.name}")
               }
             }
-            
+
             if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) newMap.values.foreach(f => replace(f, transformation))
           }
         }
@@ -237,6 +237,18 @@ object StateManager {
     }
   }
 
+  def findFirst[T : ClassTag](node : Node = root) : Option[T] = {
+    var retVal : Option[T] = None
+    var t = new Transformation("StatemanagerInternalFindFirst", {
+      case hit : T =>
+        retVal = Some(hit)
+        new Output(hit)
+    }, false)
+
+    replace(node, t)
+    return retVal
+  }
+
   protected object Vars {
     val setterSuffix = "_$eq"
     val excludeList = List()
@@ -283,7 +295,7 @@ object StateManager {
       val m = o.getClass.getMethods.find(p => p.getName == methodname)
       m match {
         case Some(x) => set(o, x, value)
-        case None => false
+        case None    => false
       }
     }
   }
