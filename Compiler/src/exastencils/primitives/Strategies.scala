@@ -10,8 +10,8 @@ import exastencils.primitives._
 import exastencils.strategies._
 
 object SetupFragmentClass extends Strategy("Setting up fragment class") {
-  val communicationFunctions = FindFirstOccurence.find[CommunicationFunctions].get;
-  val fieldCollection = FindFirstOccurence.find[FieldCollection].get;
+  val communicationFunctions = StateManager.findFirst[CommunicationFunctions]().get;
+  val fieldCollection = StateManager.findFirst[FieldCollection]().get;
 
   this += new Transformation("Initing FragmentClass", {
     case frag : FragmentClass =>

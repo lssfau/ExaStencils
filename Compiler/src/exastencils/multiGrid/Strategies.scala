@@ -18,7 +18,7 @@ object SetupMultiGrid extends Strategy("Setting up multi-grid") {
       Some(mg);
   });
 
-  val fieldCollection = FindFirstOccurence.find[FieldCollection].get;
+  val fieldCollection = StateManager.findFirst[FieldCollection]().get;
   this += new Transformation("Adding specialized functions to multi-grid", {
     case mg : MultiGrid =>
       for (level <- 0 to Knowledge.maxLevel) {

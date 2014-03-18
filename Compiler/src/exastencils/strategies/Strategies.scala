@@ -12,22 +12,6 @@ import exastencils.domain._
 import exastencils.primitives.Class // FIXME
 import exastencils.omp._
 
-object FindFirstOccurence {
-  def find[T : ClassTag] : Option[T] = {
-    var retVal : Option[T] = None;
-    var strategy = Strategy("Finding sth");
-    strategy += new Transformation("Find", {
-      case hit : T =>
-        retVal = Some(hit);
-        new Output(hit);
-      // TODO: break
-    }, false);
-
-    strategy.apply;
-    return retVal;
-  }
-}
-
 object PrintStrategy extends Strategy("Pretty-Print") {
   this += new Transformation("Pretty-Print", {
     case printable : FilePrettyPrintable =>
@@ -39,12 +23,12 @@ object PrintStrategy extends Strategy("Pretty-Print") {
 object ExpandStrategy extends Strategy("Expanding") {
   val collector = new StackCollector;
 
-  override  def apply = {
+  override def apply = {
     StateManager.register(collector);
     super.apply;
     StateManager.unregister(collector);
   }
-  
+
   this += new Transformation("Hoho, expanding all day...", {
     case expandable : Expandable =>
       Some(expandable.expand(collector));
