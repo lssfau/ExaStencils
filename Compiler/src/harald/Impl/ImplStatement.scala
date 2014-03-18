@@ -79,31 +79,36 @@ case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : List
               new NullStatement),
             new ForLoopStatement(
               loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}$i" ~ " = " ~ start(i),
-              s"${loopvar(0).name}$i < " ~ stop(i),
+              s"${loopvar(0).name}$i <= " ~ stop(i),
               stepToUpdate(stepsize(i), i, loopvar(0).name),
               wrappedBody))
         }
         sloops += StatementBlock(wrappedBody).cpp;
       }
     } else { // lex
-      var wrappedBody : ListBuffer[Statement] = body; // TODO: clone?
-
-      for (i <- 0 to start.length - 1) {
-        if (stepsize(i) >= 0) {
-          wrappedBody = ListBuffer[Statement](new ForLoopStatement(
-            loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}$i" ~ " = " ~ start(i),
-            s"${loopvar(0).name}$i < " ~ stop(i),
-            stepToUpdate(stepsize(i), i, loopvar(0).name),
-            wrappedBody))
-        } else {
-          wrappedBody = ListBuffer[Statement](new ForLoopStatement(
-            loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}$i" ~ " = (" ~ stop(i) ~ "- 1)",
-            s"${loopvar(0).name}$i >= " ~ start(i),
-            stepToUpdate(stepsize(i), i, loopvar(0).name),
-            wrappedBody))
+      if (start.length > 1) {
+        sloops += LoopOverDimensions(IndexRange(new MultiIndex(start.toArray), new MultiIndex(stop.toArray)),
+          ListBuffer[Statement]("const int i0 = x;", "const int i1 = y;", "const int i2 = z;") ++ /* TODO: quick compatibility fix */ body)
+          .expand(new StackCollector).cpp
+      } else {
+        var wrappedBody : ListBuffer[Statement] = body; // TODO: clone?
+        for (i <- 0 to start.length - 1) {
+          if (stepsize(i) >= 0) {
+            wrappedBody = ListBuffer[Statement](new ForLoopStatement(
+              loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}$i" ~ " = " ~ start(i),
+              s"${loopvar(0).name}$i <= " ~ stop(i),
+              stepToUpdate(stepsize(i), i, loopvar(0).name),
+              wrappedBody))
+          } else {
+            wrappedBody = ListBuffer[Statement](new ForLoopStatement(
+              loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}$i" ~ " = " ~ stop(i),
+              s"${loopvar(0).name}$i >= " ~ start(i),
+              stepToUpdate(stepsize(i), i, loopvar(0).name),
+              wrappedBody))
+          }
         }
+        sloops += StatementBlock(wrappedBody).cpp;
       }
-      sloops += StatementBlock(wrappedBody).cpp;
     }
 
     // COMM_HACK

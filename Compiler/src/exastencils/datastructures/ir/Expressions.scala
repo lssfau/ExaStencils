@@ -110,8 +110,14 @@ case class ArrayAccess(base : Access, index : Expression) extends Access {
 }
 
 case class MultiIndex(index_0 : Expression = new NullExpression, index_1 : Expression = new NullExpression, index_2 : Expression = new NullExpression) extends Expression {
-  def this(indices : Array[Expression]) = this(indices(0), indices(1), indices(2)) // FIXME: currently requires arrays of length >= 3
-  def this(indices : Array[Int]) = this(indices(0), indices(1), indices(2)) // FIXME: currently requires arrays of length >= 3
+  def this(indices : Array[Expression]) = this(
+    if (indices.size > 0) indices(0) else new NullExpression,
+    if (indices.size > 1) indices(1) else new NullExpression,
+    if (indices.size > 2) indices(2) else new NullExpression)
+  def this(indices : Array[Int]) = this(
+    if (indices.size > 0) indices(0) else new NullExpression,
+    if (indices.size > 1) indices(1) else new NullExpression,
+    if (indices.size > 2) indices(2) else new NullExpression)
 
   override def cpp = {
     ( // compatibility to Harald's code

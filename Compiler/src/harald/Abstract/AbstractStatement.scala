@@ -7,8 +7,8 @@ import harald.ast.TreeManager
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
-import exastencils.strategies._
 import exastencils.primitives._
+import exastencils.core._
 
 sealed abstract class AbstractStatement {
   def transform(scopeparas : ListBuffer[ParameterInfo]) : ListBuffer[Statement]
@@ -49,8 +49,7 @@ case class AbstractLoop(where : String, lev : String, order : String, blocksize 
       case _             => lev // + ".s"
     }
 
-    /* Christian: java.lang.RuntimeException: Another transaction currently running!
-    val fieldCollection = FindFirstOccurence.find[FieldCollection].get
+    val fieldCollection = StateManager.findFirst[FieldCollection]().get
     val solField : Field = fieldCollection.getFieldByIdentifier("Solution", lev.toInt).get
 
     var start : ListBuffer[Expression] = ListBuffer()
@@ -64,37 +63,37 @@ case class AbstractLoop(where : String, lev : String, order : String, blocksize 
 
     lpkn match {
       case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "innerpoints", "1") => {
-        for (i <- 1 to DomainKnowledge.rule_dim())
-          stop += new BinaryExpression(BinaryOperators.Subtraction, lpendvariable + "." + "x" + i.toString + "_", 1)
+        for (i <- 0 until Knowledge.dimensionality)
+          stop += solField.layout(i).idxDupEnd + solField.layout(i).dupEnd - 1
       }
       case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "allpoints", "1") => {
-        for (i <- 1 to DomainKnowledge.rule_dim())
-          stop += lpendvariable + "." + "x" + i.toString + "_"
+        for (i <- 0 until Knowledge.dimensionality)
+          stop += solField.layout(i).idxGhostEnd + solField.layout(i).ghostEnd - 1
       }
     }
-    */
-    var startidx : Int =
-      lpkn match {
 
-        case DomainKnowledge.LoopKnowledge(_, "innerpoints", "1") => 1
-        case DomainKnowledge.LoopKnowledge(_, "allpoints", "1")   => 0
-      }
-    var start : ListBuffer[Expression] = ListBuffer()
-    for (i <- 1 to DomainKnowledge.rule_dim())
-      start += startidx
-
-    var stop : ListBuffer[Expression] = ListBuffer()
-
-    lpkn match {
-      case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "innerpoints", "1") => {
-        for (i <- 1 to DomainKnowledge.rule_dim())
-          stop += new BinaryExpression(BinaryOperators.Subtraction, lpendvariable + "." + "x" + i.toString + "_", 1)
-      }
-      case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "allpoints", "1") => {
-        for (i <- 1 to DomainKnowledge.rule_dim())
-          stop += lpendvariable + "." + "x" + i.toString + "_"
-      }
-    }
+//    var startidx : Int =
+//      lpkn match {
+//
+//        case DomainKnowledge.LoopKnowledge(_, "innerpoints", "1") => 1
+//        case DomainKnowledge.LoopKnowledge(_, "allpoints", "1")   => 0
+//      }
+//    var start : ListBuffer[Expression] = ListBuffer()
+//    for (i <- 1 to DomainKnowledge.rule_dim())
+//      start += startidx
+//
+//    var stop : ListBuffer[Expression] = ListBuffer()
+//
+//    lpkn match {
+//      case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "innerpoints", "1") => {
+//        for (i <- 1 to DomainKnowledge.rule_dim())
+//          stop += (lpendvariable + "." + "x" + i.toString + "_") -  (1 + 1)
+//      }
+//      case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "allpoints", "1") => {
+//        for (i <- 1 to DomainKnowledge.rule_dim())
+//          stop += (lpendvariable + "." + "x" + i.toString + "_") - 1
+//      }
+//    }
 
     var body : ListBuffer[Statement] = ListBuffer()
     for (st <- stmts) {
@@ -129,9 +128,9 @@ case class AbstractRepeat(val expr : AbstractExpression, val stmt : List[Abstrac
     }
 
     if (direction.equals("up"))
-      ret += new Implforloop(ListBuffer(new ParameterInfo("i", "int")), ListBuffer(0), ListBuffer(expr.transform(scopeparas, None, "condition")), ListBuffer(1, 1, 1), "lex", 1, st2)
+      ret += new Implforloop(ListBuffer(new ParameterInfo("i", "int")), ListBuffer(0), ListBuffer(expr.transform(scopeparas, None, "condition") - 1), ListBuffer(1, 1, 1), "lex", 1, st2)
     else
-      ret += new Implforloop(ListBuffer(new ParameterInfo("i", "int")), ListBuffer(0), ListBuffer(expr.transform(scopeparas, None, "condition")), ListBuffer(-1, -1, -1), "lex", 1, st2)
+      ret += new Implforloop(ListBuffer(new ParameterInfo("i", "int")), ListBuffer(0), ListBuffer(expr.transform(scopeparas, None, "condition") - 1), ListBuffer(-1, -1, -1), "lex", 1, st2)
 
     return ret
   }
