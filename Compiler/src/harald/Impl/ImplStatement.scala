@@ -87,9 +87,7 @@ case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : List
       }
     } else { // lex
       if (start.length > 1) {
-        sloops += LoopOverDimensions(IndexRange(new MultiIndex(start.toArray), new MultiIndex(stop.toArray)),
-          ListBuffer[Statement]("const int i0 = x;", "const int i1 = y;", "const int i2 = z;") ++ /* TODO: quick compatibility fix */ body)
-          .expand(new StackCollector).cpp
+        sloops += LoopOverDimensions(IndexRange(new MultiIndex(start.toArray), new MultiIndex(stop.toArray)), body).expand(new StackCollector).cpp
       } else {
         var wrappedBody : ListBuffer[Statement] = body; // TODO: clone?
         for (i <- 0 to start.length - 1) {

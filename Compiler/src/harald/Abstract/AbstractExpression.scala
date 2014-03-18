@@ -62,8 +62,8 @@ case class AbstractBinaryOp(operator : BinaryOperators.Value, left : AbstractExp
                   if (modifier.getOrElse("").equals("ToCoarse")) {
 
                     if (!DomainKnowledge.use_gpu) {
-                      for (i <- 1 to DomainKnowledge.rule_dim())
-                        lb += new StringLiteral(DomainKnowledge.rule_mapcoarseTofine("i" + (i - 1).toString))
+                      for (i <- 0 until Knowledge.dimensionality)
+                        lb += new StringLiteral(DomainKnowledge.rule_mapcoarseTofine(dimToString(i)))
 
                       //return new functioncall(id1 + s"[0]", "convolve" + e1.length + "P", lb)
 
@@ -72,17 +72,16 @@ case class AbstractBinaryOp(operator : BinaryOperators.Value, left : AbstractExp
                       //memlistS += new ParameterInfo("fine", TreeManager.tree.ExternalClasses.get("Array").get.name + "<T>&")
                       memlistS += new ParameterInfo("Res[lev]", TreeManager.tree.ExternalClasses.get("Array").get.name + "<T>&")
 
-                      for (i <- 1 to DomainKnowledge.rule_dim())
+                      for (i <- 0 until Knowledge.dimensionality)
                         // COMM_HACK
                         //memlistS += new ParameterInfo(s"2*i${i - 1}", "int")
-                        memlistS += new ParameterInfo(s"(2*i${i - 1} - 1)", "int")
+                        memlistS += new ParameterInfo(s"(2 * ${dimToString(i)} - 1)", "int")
                       return StencilGenerator.generateStencilConvolution(id1 + "[0]", e1.length, memlistS, "")
                       //  	                     return new functioncall(id1+s"[${l1}]","convolve" + e1.length + "P", lb) 
                     }
                   } else if (modifier.getOrElse("").equals("ToFine")) {
-
-                    for (i <- 1 to DomainKnowledge.rule_dim())
-                      lb += new StringLiteral("i" + (i - 1).toString)
+                    for (i <- 0 until Knowledge.dimensionality)
+                      lb += new StringLiteral(dimToString(i))
 
                     return new MemberFunctionCallExpression(id1 + s"[0]", "interpolate", lb) //ListBuffer(new VariableInfo(id2 , new TypeInfo(id2,1), mapexpression(l2,scopeparas,modifier,"argument").toString, "argument"), new ValueExpr[String]("i0"),new ValueExpr[String]("i1")))
                   } else {
@@ -96,16 +95,16 @@ case class AbstractBinaryOp(operator : BinaryOperators.Value, left : AbstractExp
                       return StencilGenerator.generateStencilConvolutioncuda(e1.length, curStencil, id2, 0, "", "global_idx")
 
                     } else {
-                      for (i <- 1 to DomainKnowledge.rule_dim())
-                        lb += new StringLiteral("i" + (i - 1).toString)
+                      for (i <- 0 until Knowledge.dimensionality)
+                        lb += new StringLiteral(dimToString(i))
 
                       // return new functioncall(id1 + s"[0]", "convolve" + e1.length + "P", lb)
                       //  	                         return new functioncall(id1+s"[${l1}]","convolve" + e1.length + "P", lb) 
 
                       var memlistS : ListBuffer[ParameterInfo] = ListBuffer()
                       memlistS += new ParameterInfo("solution[lev]", TreeManager.tree.ExternalClasses.get("Array").get.name + "<T>&") // TODO: this really shouldn't be hardcoded
-                      for (i <- 1 to DomainKnowledge.rule_dim())
-                        memlistS += new ParameterInfo(s"i${i - 1}", "int")
+                      for (i <- 0 until Knowledge.dimensionality)
+                        memlistS += new ParameterInfo(dimToString(i), "int")
                       return StencilGenerator.generateStencilConvolution(id1 + "[0]", e1.length, memlistS, "")
 
                     }
@@ -148,11 +147,11 @@ case class AbstractFCall(fname : String, arglist : List[AbstractExpression]) ext
 
         return new StringLiteral(s"${curStencil.entries(0)}") // DataClasses.generateStencilConvolutioncuda(1,args(0).toString_cpp,"", "")
       } else {
-        var expr : ListBuffer[Expression] = ListBuffer(new StringLiteral("i0"))
-        for (i <- 1 to DomainKnowledge.rule_dim() - 1)
-          expr += new StringLiteral(s"i${i}")
+        //        var expr : ListBuffer[Expression] = ListBuffer(new StringLiteral("i0"))
+        //        for (i <- 1 to DomainKnowledge.rule_dim() - 1)
+        //          expr += new StringLiteral(s"i${i}")
 
-        return new MemberFunctionCallExpression(args(0).cpp, fname, expr)
+        return new MemberFunctionCallExpression(args(0).cpp, fname, new ListBuffer[Expression])
       }
     }
     if (fname.equals("random"))

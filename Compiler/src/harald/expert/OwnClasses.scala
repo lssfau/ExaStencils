@@ -120,7 +120,7 @@ class DataClasses(treel2 : TreeL2) {
     memfuncS += new ImplFunction("begin", "T*", new ListBuffer(), ListBuffer(new StringLiteral("return &entries[0];")), Map(), "cpu")
 
     var statdiag = new StringLiteral("return entries[0]; ")
-    memfuncS += new ImplFunction("diag", "T", memlist, ListBuffer(statdiag), Map(), "cpu")
+    memfuncS += new ImplFunction("diag", "T", new ListBuffer[ParameterInfo], ListBuffer(statdiag), Map(), "cpu")
 
     val stsizes : List[Int] = DomainKnowledge.rule_dim() match {
       case 2 => List(1, 5, 9)
@@ -318,6 +318,8 @@ object StencilGenerator {
     var cstr = ""
     if (!classname.equals(""))
       cstr = classname + "."
+
+    // FIXME: this needs to be redesigned and reimplemented / this should use FieldAccess nodes
 
     var fieldName = memlistS(0).name;
     // COMM_HACK
