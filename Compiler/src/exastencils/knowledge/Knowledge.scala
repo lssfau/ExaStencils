@@ -95,7 +95,7 @@ object Knowledge {
 
   // --- Communication ---
   var comm_strategyFragment : Int = 6; //26
-  var comm_useMPIDatatypes : Boolean = true;
+  var comm_useMPIDatatypes : Boolean = false;
   var comm_useLoopsOverNeighbors : Boolean = true;
 
   // === Obsolete ===
