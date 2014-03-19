@@ -85,11 +85,11 @@ case class ExchangeDataSplitter(field : Field) extends AbstractFunctionStatement
   override def cpp : String = "NOT VALID ; CLASS = ExchangeDataSplitter\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
-    new FunctionStatement(new UnitDatatype(), s"exch${field.codeName}",
+    new FunctionStatement(new UnitDatatype(), s"exch${field.codeName.cpp}",
       ListBuffer(VariableAccess("level", Some("unsigned int")), VariableAccess("slot", Some("unsigned int"))),
       SwitchStatement("level",
         (0 to Knowledge.maxLevel).to[ListBuffer].map(level =>
-          new CaseStatement(level, s"exch${field.codeName}_$level(slot);"))));
+          new CaseStatement(level, s"exch${field.codeName.cpp}_$level(slot);"))));
   }
 }
 
@@ -130,7 +130,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
 
     for (field <- fields) {
       for (slot <- 0 until field.numSlots) {
-        body += s"${field.codeName}[$slot][${field.level}] = new Container(Vec3u(${field.layout(0).total}, ${field.layout(1).total}, ${field.layout(2).total}), 1);"
+        body += s"${field.codeName.cpp}[$slot][${field.level}] = new Container(Vec3u(${field.layout(0).total}, ${field.layout(1).total}, ${field.layout(2).total}), 1);"
       }
     }
 

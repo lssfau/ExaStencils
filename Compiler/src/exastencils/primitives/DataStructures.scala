@@ -147,7 +147,4 @@ case class FieldCollection() extends Node {
   def getFieldByIdentifier(identifier : String, level : Int) : Option[Field] = {
     fields.find(f => f.identifier == identifier && f.level == level)
   }
-  def getFieldByCodeName(codeName : String, level : Int) : Option[Field] = {
-    fields.find(f => f.codeName == codeName && f.level == level)
-  }
 }

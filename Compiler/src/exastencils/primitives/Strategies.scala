@@ -23,15 +23,10 @@ object SetupFragmentClass extends Strategy("Setting up fragment class") {
   this += new Transformation("Adding fields to FragmentClass", {
     case collection : FieldCollection =>
       for (level <- 0 to Knowledge.maxLevel) {
-        collection.fields += new Field("Solution", "solData", "double",
-          (0 to 2).toArray.map(dim => new FieldLayoutPerDim(0, Knowledge.data_numGhostLayers, 1, ((Knowledge.domain_fragLengthPerDim(dim) * (1 << level)) + 1) - 2 /*dup*/ , 1, Knowledge.data_numGhostLayers, 0)),
-          level, Knowledge.data_numSolSlots, true);
-        collection.fields += new Field("Residual", "resData", "double",
-          (0 to 2).toArray.map(dim => new FieldLayoutPerDim(0, Knowledge.data_numGhostLayers, 1, ((Knowledge.domain_fragLengthPerDim(dim) * (1 << level)) + 1) - 2 /*dup*/ , 1, Knowledge.data_numGhostLayers, 0)),
-          level, 1, false);
-        collection.fields += new Field("RHS", "rhsData", "double",
-          (0 to 2).toArray.map(dim => new FieldLayoutPerDim(0, Knowledge.data_numGhostLayers, 1, ((Knowledge.domain_fragLengthPerDim(dim) * (1 << level)) + 1) - 2 /*dup*/ , 1, Knowledge.data_numGhostLayers, 0)),
-          level, 1, false);
+        val layout = (0 to 2).toArray.map(dim => new FieldLayoutPerDim( /*if (0 == dim) 1 else */ 0, Knowledge.data_numGhostLayers, 1, ((Knowledge.domain_fragLengthPerDim(dim) * (1 << level)) + 1) - 2 /*dup*/ , 1, Knowledge.data_numGhostLayers, 0))
+        collection.fields += new Field("Solution", "solData", "double", layout, level, Knowledge.data_numSolSlots, new MultiIndex(layout.map(l => l.idxDupLeftBegin)), true);
+        collection.fields += new Field("Residual", "resData", "double", layout, level, Knowledge.data_numSolSlots, new MultiIndex(layout.map(l => l.idxDupLeftBegin)), false);
+        collection.fields += new Field("RHS", "rhsData", "double", layout, level, Knowledge.data_numSolSlots, new MultiIndex(layout.map(l => l.idxDupLeftBegin)), false);
       }
       Some(collection);
   });
@@ -40,7 +35,7 @@ object SetupFragmentClass extends Strategy("Setting up fragment class") {
     case frag : FragmentClass =>
       for (field <- fieldCollection.fields) {
         if (field.level == Knowledge.maxLevel /*QUICKFIX: only take fields on one level into consideration to avoid redefinition*/ )
-          frag.declarations += s"Container* ${field.codeName}[${field.numSlots}][${Knowledge.numLevels}];";
+          frag.declarations += s"Container* ${field.codeName.cpp}[${field.numSlots}][${Knowledge.numLevels}];";
       }
       Some(frag);
   });
