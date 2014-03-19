@@ -11,6 +11,7 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.primitives._
 import exastencils.core.collectors.StackCollector
+import exastencils.datastructures._
 
 sealed abstract class AbstractExpression {
   def value(context : Context) : String
@@ -60,24 +61,16 @@ case class AbstractBinaryOp(operator : BinaryOperators.Value, left : AbstractExp
                   }
 
                   if (modifier.getOrElse("").equals("ToCoarse")) {
-
                     if (!DomainKnowledge.use_gpu) {
                       for (i <- 0 until Knowledge.dimensionality)
                         lb += new StringLiteral(DomainKnowledge.rule_mapcoarseTofine(dimToString(i)))
 
-                      //return new functioncall(id1 + s"[0]", "convolve" + e1.length + "P", lb)
-
                       var memlistS : ListBuffer[ParameterInfo] = ListBuffer()
-                      // COMM_HACK
-                      //memlistS += new ParameterInfo("fine", TreeManager.tree.ExternalClasses.get("Array").get.name + "<T>&")
                       memlistS += new ParameterInfo("Res[lev]", TreeManager.tree.ExternalClasses.get("Array").get.name + "<T>&")
 
                       for (i <- 0 until Knowledge.dimensionality)
-                        // COMM_HACK
-                        //memlistS += new ParameterInfo(s"2*i${i - 1}", "int")
                         memlistS += new ParameterInfo(s"(2 * ${dimToString(i)} - 1)", "int")
                       return StencilGenerator.generateStencilConvolution(id1 + "[0]", e1.length, memlistS, "")
-                      //  	                     return new functioncall(id1+s"[${l1}]","convolve" + e1.length + "P", lb) 
                     }
                   } else if (modifier.getOrElse("").equals("ToFine")) {
                     for (i <- 0 until Knowledge.dimensionality)
@@ -85,29 +78,31 @@ case class AbstractBinaryOp(operator : BinaryOperators.Value, left : AbstractExp
 
                     return new MemberFunctionCallExpression(id1 + s"[0]", "interpolate", lb) //ListBuffer(new VariableInfo(id2 , new TypeInfo(id2,1), mapexpression(l2,scopeparas,modifier,"argument").toString, "argument"), new ValueExpr[String]("i0"),new ValueExpr[String]("i1")))
                   } else {
+                    // temp classes
+                    case class StencilEntry(var offset : MultiIndex, var weight : Expression) {}
+                    case class Stencil(var entries : ListBuffer[StencilEntry] = new ListBuffer) extends Node {}
+                    case class StencilConvolution(var stencil : Stencil, var field : Field) extends Expression with Expandable {
+                      override def cpp : String = "NOT VALID ; CLASS = StencilConvolution\n";
 
-                    if (DomainKnowledge.use_gpu) {
-
-                      var curStencil = TreeManager.tree.Stencils(0)
-                      for (st <- TreeManager.tree.Stencils)
-                        if (st.name.equals(e1.name))
-                          curStencil = st
-                      return StencilGenerator.generateStencilConvolutioncuda(e1.length, curStencil, id2, 0, "", "global_idx")
-
-                    } else {
-                      for (i <- 0 until Knowledge.dimensionality)
-                        lb += new StringLiteral(dimToString(i))
-
-                      // return new functioncall(id1 + s"[0]", "convolve" + e1.length + "P", lb)
-                      //  	                         return new functioncall(id1+s"[${l1}]","convolve" + e1.length + "P", lb) 
-
-                      var memlistS : ListBuffer[ParameterInfo] = ListBuffer()
-                      memlistS += new ParameterInfo("solution[lev]", TreeManager.tree.ExternalClasses.get("Array").get.name + "<T>&") // TODO: this really shouldn't be hardcoded
-                      for (i <- 0 until Knowledge.dimensionality)
-                        memlistS += new ParameterInfo(dimToString(i), "int")
-                      return StencilGenerator.generateStencilConvolution(id1 + "[0]", e1.length, memlistS, "")
-
+                      def expand(collector : StackCollector) : Expression = {
+                        stencil.entries.map(e =>
+                          e.weight * (new FieldAccess("curFragment.", field, 0, new MultiIndex(DefaultLoopMultiIndex(), e.offset, _ + _))). /*FIXME*/ expand(new StackCollector))
+                          .toArray[Expression].reduceLeft(_ + _)
+                      }
                     }
+
+                    // temp stencil
+                    var stencil = new Stencil
+                    for (i <- 0 until e1.length)
+                      stencil.entries += StencilEntry(new MultiIndex(IdxKnowledge.StencilToidx(Knowledge.dimensionality, e1.length)(i).toArray), s"$id1[0].entries[$i]")
+
+                    // find field
+                    val field : Field = fieldCollection.getFieldByIdentifier("Solution", levstr.cpp.toInt).get
+
+                    // temp conv
+                    var conv = StencilConvolution(stencil, field)
+
+                    return conv.expand(new StackCollector).cpp
                   }
                 }
                 case _ =>

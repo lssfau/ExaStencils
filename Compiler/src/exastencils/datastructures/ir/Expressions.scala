@@ -115,9 +115,13 @@ case class MultiIndex(index_0 : Expression = new NullExpression, index_1 : Expre
     if (indices.size > 1) indices(1) else new NullExpression,
     if (indices.size > 2) indices(2) else new NullExpression)
   def this(indices : Array[Int]) = this(
-    if (indices.size > 0) indices(0) else new NullExpression,
-    if (indices.size > 1) indices(1) else new NullExpression,
-    if (indices.size > 2) indices(2) else new NullExpression)
+    (if (indices.size > 0) indices(0) else new NullExpression) : Expression,
+    (if (indices.size > 1) indices(1) else new NullExpression) : Expression,
+    (if (indices.size > 2) indices(2) else new NullExpression) : Expression)
+  def this(left : MultiIndex, right : MultiIndex, f : (Expression, Expression) => Expression) = this(
+    if (!left(0).isInstanceOf[NullExpression] && !right(0).isInstanceOf[NullExpression]) { f(left(0), right(0)) } else { new NullExpression },
+    if (!left(1).isInstanceOf[NullExpression] && !right(1).isInstanceOf[NullExpression]) { f(left(1), right(1)) } else { new NullExpression },
+    if (!left(2).isInstanceOf[NullExpression] && !right(2).isInstanceOf[NullExpression]) { f(left(2), right(2)) } else { new NullExpression })
 
   override def cpp = {
     ( // compatibility to Harald's code
