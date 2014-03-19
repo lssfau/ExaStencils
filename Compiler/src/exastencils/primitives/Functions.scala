@@ -138,10 +138,10 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
     var maxCommSlidesPerLevel = Array(0, 0, 0)
     for (field <- fields) {
       for (dim <- 0 until Knowledge.dimensionality) {
-        maxPointsPerLevel(field.level)(dim) = math.max(maxPointsPerLevel(field.level)(dim), field.layout(dim).total - field.layout(dim).padBegin - field.layout(dim).padEnd)
+        maxPointsPerLevel(field.level)(dim) = math.max(maxPointsPerLevel(field.level)(dim), field.layout(dim).total - field.layout(dim).numPadLayersLeft - field.layout(dim).numPadLayersRight)
         if (Knowledge.maxLevel == field.level) {
-          maxCommSlidesPerLevel(dim) = math.max(maxCommSlidesPerLevel(dim), math.max(field.layout(dim).ghostBegin, field.layout(dim).ghostEnd))
-          maxCommSlidesPerLevel(dim) = math.max(maxCommSlidesPerLevel(dim), math.max(field.layout(dim).dupBegin, field.layout(dim).dupEnd))
+          maxCommSlidesPerLevel(dim) = math.max(maxCommSlidesPerLevel(dim), math.max(field.layout(dim).numGhostLayersLeft, field.layout(dim).numGhostLayersRight))
+          maxCommSlidesPerLevel(dim) = math.max(maxCommSlidesPerLevel(dim), math.max(field.layout(dim).numDupLayersLeft, field.layout(dim).numDupLayersRight))
         }
       }
     }

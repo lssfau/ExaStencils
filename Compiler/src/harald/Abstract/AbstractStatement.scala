@@ -56,8 +56,8 @@ case class AbstractLoop(where : String, lev : String, order : String, blocksize 
     var start : ListBuffer[Expression] = ListBuffer()
     for (i <- 0 until Knowledge.dimensionality)
       start += (lpkn match {
-        case DomainKnowledge.LoopKnowledge(_, "innerpoints", "1") => solField.layout(i).idxDupBegin
-        case DomainKnowledge.LoopKnowledge(_, "allpoints", "1")   => solField.layout(i).idxGhostBegin
+        case DomainKnowledge.LoopKnowledge(_, "innerpoints", "1") => solField.layout(i).idxDupLeftBegin
+        case DomainKnowledge.LoopKnowledge(_, "allpoints", "1")   => solField.layout(i).idxGhostLeftBegin
       })
 
     var stop : ListBuffer[Expression] = ListBuffer()
@@ -65,11 +65,11 @@ case class AbstractLoop(where : String, lev : String, order : String, blocksize 
     lpkn match {
       case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "innerpoints", "1") => {
         for (i <- 0 until Knowledge.dimensionality)
-          stop += solField.layout(i).idxDupEnd + solField.layout(i).dupEnd - 1
+          stop += solField.layout(i).idxDupRightEnd
       }
       case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "allpoints", "1") => {
         for (i <- 0 until Knowledge.dimensionality)
-          stop += solField.layout(i).idxGhostEnd + solField.layout(i).ghostEnd - 1
+          stop += solField.layout(i).idxGhostRightEnd
       }
     }
 

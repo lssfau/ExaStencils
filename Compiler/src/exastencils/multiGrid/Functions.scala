@@ -23,8 +23,8 @@ case class PerformSmoothing_Jac(solutionField : Field, rhsField : Field, level :
         new LoopOverFragments(
           new LoopOverDimensions(
             new IndexRange(
-              new MultiIndex(solutionField.layout(0).idxDupBegin, solutionField.layout(1).idxDupBegin, solutionField.layout(2).idxDupBegin),
-              new MultiIndex(solutionField.layout(0).idxDupEnd + solutionField.layout(0).dupEnd - 1, solutionField.layout(1).idxDupEnd + solutionField.layout(1).dupEnd - 1, solutionField.layout(2).idxDupEnd + solutionField.layout(2).dupEnd - 1)), ListBuffer[Statement](
+              new MultiIndex(solutionField.layout(0).idxDupLeftBegin, solutionField.layout(1).idxDupLeftBegin, solutionField.layout(2).idxDupLeftBegin),
+              new MultiIndex(solutionField.layout(0).idxDupRightEnd, solutionField.layout(1).idxDupRightEnd, solutionField.layout(2).idxDupRightEnd)), ListBuffer[Statement](
               AssignmentStatement(
                 // FIXME: introduce and apply stencil node
                 FieldAccess("curFragment.", solutionField, "targetSlot", DefaultLoopMultiIndex()),
@@ -51,8 +51,8 @@ case class PerformSmoothing_GS(solutionField : Field, rhsField : Field, level : 
         new LoopOverFragments(
           new LoopOverDimensions(
             new IndexRange(
-              new MultiIndex(solutionField.layout(0).idxDupBegin, solutionField.layout(1).idxDupBegin, solutionField.layout(2).idxDupBegin),
-              new MultiIndex(solutionField.layout(0).idxDupEnd + solutionField.layout(0).dupEnd - 1, solutionField.layout(1).idxDupEnd + solutionField.layout(1).dupEnd - 1, solutionField.layout(2).idxDupEnd + solutionField.layout(2).dupEnd - 1)),
+              new MultiIndex(solutionField.layout(0).idxDupLeftBegin, solutionField.layout(1).idxDupLeftBegin, solutionField.layout(2).idxDupLeftBegin),
+              new MultiIndex(solutionField.layout(0).idxDupRightEnd, solutionField.layout(1).idxDupRightEnd, solutionField.layout(2).idxDupRightEnd)),
             ListBuffer[Statement](
               AssignmentStatement(
                 // FIXME: introduce and apply stencil node
@@ -211,8 +211,8 @@ case class UpdateResidual(residualField : Field, solutionField : Field, rhsField
         new LoopOverFragments(
           new LoopOverDimensions(
             new IndexRange(
-              new MultiIndex(residualField.layout(0).idxDupBegin, residualField.layout(1).idxDupBegin, residualField.layout(2).idxDupBegin),
-              new MultiIndex(residualField.layout(0).idxDupEnd + residualField.layout(0).dupEnd - 1, residualField.layout(1).idxDupEnd + residualField.layout(1).dupEnd - 1, residualField.layout(2).idxDupEnd + residualField.layout(2).dupEnd - 1)),
+              new MultiIndex(residualField.layout(0).idxDupLeftBegin, residualField.layout(1).idxDupLeftBegin, residualField.layout(2).idxDupLeftBegin),
+              new MultiIndex(residualField.layout(0).idxDupRightEnd, residualField.layout(1).idxDupRightEnd, residualField.layout(2).idxDupRightEnd)),
             ListBuffer[Statement](
               AssignmentStatement(
                 // FIXME: introduce and apply stencil node
@@ -449,8 +449,8 @@ case class GetGlobalResidual(field : Field) extends AbstractFunctionStatement wi
         new LoopOverFragments(
           new LoopOverDimensions(
             new IndexRange(
-              new MultiIndex(field.layout(0).idxDupBegin, field.layout(1).idxDupBegin, field.layout(2).idxDupBegin),
-              new MultiIndex(field.layout(0).idxDupEnd + field.layout(0).dupEnd - 1, field.layout(1).idxDupEnd + field.layout(1).dupEnd - 1, field.layout(2).idxDupEnd + field.layout(2).dupEnd - 1)),
+              new MultiIndex(field.layout(0).idxDupLeftBegin, field.layout(1).idxDupLeftBegin, field.layout(2).idxDupLeftBegin),
+              new MultiIndex(field.layout(0).idxDupRightEnd, field.layout(1).idxDupRightEnd, field.layout(2).idxDupRightEnd)),
             ListBuffer[Statement](
               // FIXME: this currently counts duplicated values multiple times
               s"double tmpRes =" ~ new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) ~ ";",
@@ -469,8 +469,8 @@ case class SetSolZero(field : Field, level : Int) extends AbstractFunctionStatem
       new LoopOverFragments(
         new LoopOverDimensions(
           new IndexRange(
-            new MultiIndex(field.layout(0).idxDupBegin, field.layout(1).idxDupBegin, field.layout(2).idxDupBegin),
-            new MultiIndex(field.layout(0).idxDupEnd + field.layout(0).dupEnd - 1, field.layout(1).idxDupEnd + field.layout(1).dupEnd - 1, field.layout(2).idxDupEnd + field.layout(2).dupEnd - 1)),
+            new MultiIndex(field.layout(0).idxDupLeftBegin, field.layout(1).idxDupLeftBegin, field.layout(2).idxDupLeftBegin),
+            new MultiIndex(field.layout(0).idxDupRightEnd, field.layout(1).idxDupRightEnd, field.layout(2).idxDupRightEnd)),
           new AssignmentStatement(
             new FieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()),
             0.0)) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel);

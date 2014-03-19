@@ -25,8 +25,8 @@ case class InitFields() extends Statement {
 
     for (field <- fields.fields) {
       body += new LoopOverDimensions(new IndexRange(
-        new MultiIndex(field.layout(0).idxGhostBegin, field.layout(1).idxGhostBegin, field.layout(2).idxGhostBegin),
-        new MultiIndex(field.layout(0).idxGhostEnd + field.layout(0).ghostEnd - 1, field.layout(1).idxGhostEnd + field.layout(1).ghostEnd - 1, field.layout(2).idxGhostEnd + field.layout(2).ghostEnd - 1)),
+        new MultiIndex(field.layout(0).idxGhostLeftBegin, field.layout(1).idxGhostLeftBegin, field.layout(2).idxGhostLeftBegin),
+        new MultiIndex(field.layout(0).idxGhostRightEnd, field.layout(1).idxGhostRightEnd, field.layout(2).idxGhostRightEnd)),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           new AssignmentStatement(
             new FieldAccess("curFragment.", field, slot, DefaultLoopMultiIndex()),
@@ -38,8 +38,8 @@ case class InitFields() extends Statement {
       // FIXME: init by given parameters
       if ("Solution" == field.identifier && field.level == Knowledge.maxLevel)
         body += new LoopOverDimensions(new IndexRange(
-          new MultiIndex(field.layout(0).idxDupBegin, field.layout(1).idxDupBegin, field.layout(2).idxDupBegin),
-          new MultiIndex(field.layout(0).idxDupEnd + field.layout(0).dupEnd - 1, field.layout(1).idxDupEnd + field.layout(1).dupEnd - 1, field.layout(2).idxDupEnd + field.layout(2).dupEnd - 1)),
+          new MultiIndex(field.layout(0).idxDupLeftBegin, field.layout(1).idxDupLeftBegin, field.layout(2).idxDupLeftBegin),
+          new MultiIndex(field.layout(0).idxDupRightEnd, field.layout(1).idxDupRightEnd, field.layout(2).idxDupRightEnd)),
           ListBuffer[Statement](
             s"double val = (double)std::rand() / RAND_MAX;") ++
             (0 until field.numSlots).to[ListBuffer].map(slot =>
