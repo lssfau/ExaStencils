@@ -15,25 +15,25 @@ class FieldLayoutPerDim(
     ) {
 
   def idxPadLeftBegin = { 0 }
-  def idxPadLeftEnd = { idxPadLeftBegin + numPadLayersLeft - 1 }
+  def idxPadLeftEnd = { idxPadLeftBegin + numPadLayersLeft }
 
   def idxGhostLeftBegin = { idxPadLeftBegin + numPadLayersLeft }
-  def idxGhostLeftEnd = { idxGhostLeftBegin + numGhostLayersLeft - 1 }
+  def idxGhostLeftEnd = { idxGhostLeftBegin + numGhostLayersLeft }
 
   def idxDupLeftBegin = { idxGhostLeftBegin + numGhostLayersLeft }
-  def idxDupLeftEnd = { idxDupLeftBegin + numDupLayersLeft - 1 }
+  def idxDupLeftEnd = { idxDupLeftBegin + numDupLayersLeft }
 
   def idxInnerBegin = { idxDupLeftBegin + numDupLayersLeft }
-  def idxInnerEnd = { idxInnerBegin + numInnerLayers - 1 }
+  def idxInnerEnd = { idxInnerBegin + numInnerLayers }
 
   def idxDupRightBegin = { idxInnerBegin + numInnerLayers }
-  def idxDupRightEnd = { idxDupRightBegin + numDupLayersRight - 1 }
+  def idxDupRightEnd = { idxDupRightBegin + numDupLayersRight }
 
   def idxGhostRightBegin = { idxDupRightBegin + numDupLayersRight }
-  def idxGhostRightEnd = { idxGhostRightBegin + numGhostLayersRight - 1 }
+  def idxGhostRightEnd = { idxGhostRightBegin + numGhostLayersRight }
 
   def idxPadRightBegin = { idxGhostRightBegin + numGhostLayersRight }
-  def idxPadRightEnd = { idxPadRightBegin + numPadLayersRight - 1 }
+  def idxPadRightEnd = { idxPadRightBegin + numPadLayersRight }
 
   def total = { idxPadRightBegin + numPadLayersRight }
 }

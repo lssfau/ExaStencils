@@ -220,7 +220,7 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
           new MultiIndex(
             (0 until Knowledge.dimensionality).toArray.map(i => i match {
               case i if neigh.dir(i) == 0 => field.layout(i).idxGhostRightEnd
-              case i if neigh.dir(i) < 0  => field.layout(i).idxInnerBegin + field.layout(i).numGhostLayersLeft - 1
+              case i if neigh.dir(i) < 0  => field.layout(i).idxInnerBegin + field.layout(i).numGhostLayersLeft
               case i if neigh.dir(i) > 0  => field.layout(i).idxInnerEnd
             }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))));
         val sendLocalData = curNeighbors.map(neigh => (neigh,
@@ -234,7 +234,7 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
             new MultiIndex(
               (0 until Knowledge.dimensionality).toArray.map(i => i match {
                 case i if neigh.dir(i) == 0 => field.layout(i).idxGhostRightEnd
-                case i if neigh.dir(i) < 0  => field.layout(i).idxInnerBegin + field.layout(i).numGhostLayersLeft - 1
+                case i if neigh.dir(i) < 0  => field.layout(i).idxInnerBegin + field.layout(i).numGhostLayersLeft
                 case i if neigh.dir(i) > 0  => field.layout(i).idxInnerEnd
               }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0))),
           new IndexRange(
@@ -386,7 +386,7 @@ case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) 
         new MultiIndex(
           (0 until Knowledge.dimensionality).toArray.map(i => i match {
             case i if neigh.dir(i) == 0 => field.layout(i).idxDupRightEnd
-            case i if neigh.dir(i) < 0  => field.layout(i).idxInnerBegin + field.layout(i).numGhostLayersLeft - 1
+            case i if neigh.dir(i) < 0  => field.layout(i).idxInnerBegin + field.layout(i).numGhostLayersLeft
             case i if neigh.dir(i) > 0  => field.layout(i).idxInnerEnd
           }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))));
       val sendLocalData = neighbors.map(neigh => (neigh,
@@ -400,7 +400,7 @@ case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) 
           new MultiIndex(
             (0 until Knowledge.dimensionality).toArray.map(i => i match {
               case i if neigh.dir(i) == 0 => field.layout(i).idxDupRightEnd
-              case i if neigh.dir(i) < 0  => field.layout(i).idxInnerBegin + field.layout(i).numGhostLayersLeft - 1
+              case i if neigh.dir(i) < 0  => field.layout(i).idxInnerBegin + field.layout(i).numGhostLayersLeft
               case i if neigh.dir(i) > 0  => field.layout(i).idxInnerEnd
             }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0))),
         new IndexRange(

@@ -97,9 +97,9 @@ case class AbstractRepeat(val expr : AbstractExpression, val stmt : List[Abstrac
     }
 
     if (direction.equals("up"))
-      ret += new Implforloop(ListBuffer(new ParameterInfo("i", "int")), ListBuffer(0), ListBuffer(expr.transform(scopeparas, None, "condition") - 1), ListBuffer(1, 1, 1), "lex", 1, st2)
+      ret += new Implforloop(ListBuffer(new ParameterInfo("i", "int")), ListBuffer(0), ListBuffer(expr.transform(scopeparas, None, "condition")), ListBuffer(1, 1, 1), "lex", 1, st2)
     else
-      ret += new Implforloop(ListBuffer(new ParameterInfo("i", "int")), ListBuffer(0), ListBuffer(expr.transform(scopeparas, None, "condition") - 1), ListBuffer(-1, -1, -1), "lex", 1, st2)
+      ret += new Implforloop(ListBuffer(new ParameterInfo("i", "int")), ListBuffer(0), ListBuffer(expr.transform(scopeparas, None, "condition")), ListBuffer(-1, -1, -1), "lex", 1, st2)
 
     return ret
   }

@@ -112,7 +112,7 @@ case class RemoteSend(var field : Field, var neighbors : ListBuffer[(NeighborInf
         typeName = mpiTypeName;
       } else {
         ptr = s"curFragment.buffer_Send[${neigh._1.index}]";
-        cnt = (neigh._2.end(0) - neigh._2.begin(0) + 1) * (neigh._2.end(1) - neigh._2.begin(1) + 1) * (neigh._2.end(2) - neigh._2.begin(2) + 1);
+        cnt = (neigh._2.end(0) - neigh._2.begin(0)) * (neigh._2.end(1) - neigh._2.begin(1)) * (neigh._2.end(2) - neigh._2.begin(2));
         typeName = s"MPI_DOUBLE";
       }
 

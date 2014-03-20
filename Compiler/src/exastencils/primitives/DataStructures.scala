@@ -29,14 +29,14 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
 
     for (d <- 0 until Knowledge.dimensionality - 1) {
       wrappedBody = ListBuffer[Statement](new ForLoopStatement(
-        s"int ${dimToString(d)} = ${indices.begin(d).cpp}", s"${dimToString(d)} <= ${indices.end(d).cpp}", s"++${dimToString(d)}",
+        s"int ${dimToString(d)} = ${indices.begin(d).cpp}", s"${dimToString(d)} < ${indices.end(d).cpp}", s"++${dimToString(d)}",
         wrappedBody));
     }
     val d = Knowledge.dimensionality - 1;
     if (parallelizable)
-      return new ForLoopStatement(s"int ${dimToString(d)} = ${indices.begin(d).cpp}", s"${dimToString(d)} <= ${indices.end(d).cpp}", s"++${dimToString(d)}", wrappedBody, addOMPStatements + " schedule(static)") with OMP_PotentiallyParallel;
+      return new ForLoopStatement(s"int ${dimToString(d)} = ${indices.begin(d).cpp}", s"${dimToString(d)} < ${indices.end(d).cpp}", s"++${dimToString(d)}", wrappedBody, addOMPStatements + " schedule(static)") with OMP_PotentiallyParallel;
     else
-      return new ForLoopStatement(s"int ${dimToString(d)} = ${indices.begin(d).cpp}", s"${dimToString(d)} <= ${indices.end(d).cpp}", s"++${dimToString(d)}", wrappedBody);
+      return new ForLoopStatement(s"int ${dimToString(d)} = ${indices.begin(d).cpp}", s"${dimToString(d)} < ${indices.end(d).cpp}", s"++${dimToString(d)}", wrappedBody);
   }
 }
 
