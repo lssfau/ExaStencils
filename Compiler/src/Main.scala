@@ -154,9 +154,6 @@ object Main {
     val tfl2 = new TransformL2(TreeManager.tree)
     tfl2.setglobalobjects
 
-    var dataclass = new DataClasses(TreeManager.tree)
-    dataclass.initextClasses
-
     var transformTree = new Strategy("Transforming tree");
     transformTree += new Transformation("Transforming functions", {
       case tree : TreeL2 =>

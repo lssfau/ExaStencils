@@ -4,7 +4,6 @@ import scala.collection.mutable.ListBuffer
 import harald.dsl._
 import harald.Impl._
 import harald.ast.TreeManager
-import harald.expert.StencilGenerator
 import exastencils.core._
 import exastencils.knowledge._
 import exastencils.datastructures.ir._
@@ -269,7 +268,7 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
 
     for (e <- scopeparas) {
       if (e.name.equals(id))
-        if (e.dtype.startsWith(TreeManager.tree.ExternalClasses.get("Array").get.name) || e.dtype.startsWith("Container")) {
+        if (e.dtype.startsWith("Container")) {
           ti = new TypeInfo(id, 1)
         }
     }

@@ -3,7 +3,6 @@ package harald.Impl
 import scala.collection.mutable.ListBuffer
 import harald.dsl._
 import harald.ast.TreeManager
-import harald.expert.StencilGenerator
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.core.collectors._
