@@ -6,7 +6,7 @@ import exastencils.datastructures.ir.ImplicitConversions._
 
 object IdxKnowledge {
 
-  def mapidxToLinear(par: ListBuffer[String], mem: ListBuffer[String]): String = {
+  def mapidxToLinear(par : ListBuffer[String], mem : ListBuffer[String]) : String = {
     DomainKnowledge.rule_dim() match {
       case 1 => return s"${par(0)}"
       case 2 => return s"${par(0)}*${mem(1)} + ${par(1)}"
@@ -14,23 +14,23 @@ object IdxKnowledge {
     }
   }
 
-  def mapidxToLinearClamp(par: ListBuffer[String], mem: ListBuffer[String]): String = {
+  def mapidxToLinearClamp(par : ListBuffer[String], mem : ListBuffer[String]) : String = {
     DomainKnowledge.rule_dim() match {
       case 1 => return s"max(0, min(${par(0)}, ${mem(0)}-1))"
       case 2 => return s"max(0, min(${par(0)}, ${mem(0)}-1))*${mem(1)} + max(0, min(${par(1)}, ${mem(1)}-1))"
       case 3 => return s"max(0, min(${par(0)}, ${mem(0)}-1))*${mem(1)}*${mem(2)} + max(0, min(${par(1)}, ${mem(1)}-1))*${mem(2)} + max(0, min(${par(2)}, ${mem(2)}-1))"
     }
   }
-  
-  def StencilToidx(dim: Int, size: Int): ListBuffer[ListBuffer[Expression]] = {
+
+  def StencilToidx(dim : Int, size : Int) : ListBuffer[ListBuffer[Expression]] = {
     dim match {
       case 2 => {
         size match {
           case 1 => return ListBuffer(ListBuffer(0, 0))
           case 4 => return ListBuffer(ListBuffer(0, 0),
-              ListBuffer("((x + 1) % 2)", 0),
-              ListBuffer(0, "((y + 1) % 2)"), 
-              ListBuffer("((x + 1) % 2)", "((y + 1) % 2)"))
+            ListBuffer("((x + 1) % 2)", 0),
+            ListBuffer(0, "((y + 1) % 2)"),
+            ListBuffer("((x + 1) % 2)", "((y + 1) % 2)"))
           case 5 => return ListBuffer(ListBuffer(0, 0), ListBuffer(1, 0), ListBuffer(-1, 0), ListBuffer(0, 1), ListBuffer(0, -1))
           case 9 => return ListBuffer(ListBuffer(0, 0), ListBuffer(1, 0), ListBuffer(-1, 0), ListBuffer(0, 1), ListBuffer(0, -1), ListBuffer(-1, -1), ListBuffer(-1, 1), ListBuffer(1, -1), ListBuffer(1, 1))
         }
@@ -40,13 +40,13 @@ object IdxKnowledge {
           case 1 => return ListBuffer(ListBuffer(0, 0, 0))
           case 7 => return ListBuffer(ListBuffer(0, 0, 0), ListBuffer(1, 0, 0), ListBuffer(0, 1, 0), ListBuffer(0, 0, 1), ListBuffer(-1, 0, 0), ListBuffer(0, -1, 0), ListBuffer(0, 0, -1))
           case 8 => return ListBuffer(ListBuffer(0, 0, 0),
-              ListBuffer("((x + 1) % 2)", 0, 0),
-              ListBuffer(0, "((y + 1) % 2)", 0), 
-              ListBuffer("((x + 1) % 2)", "((y + 1) % 2)", 0), 
-              ListBuffer(0, 0, "((z + 1) % 2)"), 
-              ListBuffer("((x + 1) % 2)", 0, "((z + 1) % 2)"), 
-              ListBuffer(0, "((y + 1) % 2)", "((z + 1) % 2)"), 
-              ListBuffer("((x + 1) % 2)", "((y + 1) % 2)", "((z + 1) % 2)"))
+            ListBuffer("((x + 1) % 2)", 0, 0),
+            ListBuffer(0, "((y + 1) % 2)", 0),
+            ListBuffer("((x + 1) % 2)", "((y + 1) % 2)", 0),
+            ListBuffer(0, 0, "((z + 1) % 2)"),
+            ListBuffer("((x + 1) % 2)", 0, "((z + 1) % 2)"),
+            ListBuffer(0, "((y + 1) % 2)", "((z + 1) % 2)"),
+            ListBuffer("((x + 1) % 2)", "((y + 1) % 2)", "((z + 1) % 2)"))
           case 27 => return ListBuffer(ListBuffer(0, 0, 0), ListBuffer(1, 0, 0), ListBuffer(0, 1, 0), ListBuffer(0, 0, 1), ListBuffer(-1, 0, 0), ListBuffer(0, -1, 0), ListBuffer(0, 0, -1),
             ListBuffer(1, 1, 0), ListBuffer(1, -1, 0), ListBuffer(-1, 1, 0), ListBuffer(-1, -1, 0),
             ListBuffer(0, 1, 1), ListBuffer(0, -1, 1), ListBuffer(0, 1, -1), ListBuffer(0, -1, -1),
@@ -58,7 +58,7 @@ object IdxKnowledge {
     return ListBuffer()
   }
 
-  def IntStencilToidx(dim: Int, size: Int): ListBuffer[ListBuffer[Int]] = {
+  def IntStencilToidx(dim : Int, size : Int) : ListBuffer[ListBuffer[Int]] = {
     dim match {
       case 2 => {
         size match {
@@ -73,8 +73,8 @@ object IdxKnowledge {
     }
     return ListBuffer()
   }
-  
-  def IdxToStencilEntry(dim: Int, size: Int, idx: ListBuffer[Int]): Int = {
+
+  def IdxToStencilEntry(dim : Int, size : Int, idx : ListBuffer[Int]) : Int = {
     val stidxlist = StencilToidx(dim, size)
     var i = 0
 
@@ -84,8 +84,8 @@ object IdxKnowledge {
     return -1
   }
 
-  def mapidxTocoord(par: ListBuffer[String], lev: Int): ListBuffer[String] = {
-    var sb: ListBuffer[String] = ListBuffer()
+  def mapidxTocoord(par : ListBuffer[String], lev : Int) : ListBuffer[String] = {
+    var sb : ListBuffer[String] = ListBuffer()
     if (DomainKnowledge.domain_L1.get._2.equals("UnitSquare")) {
       for (i <- 0 to 1)
         sb += s"${par(i)}/${DomainKnowledge.arraysizes(lev)(i + 1)}"
@@ -97,8 +97,8 @@ object IdxKnowledge {
     return sb
   }
 
-  def mapidxTocoordDouble(par: ListBuffer[Int], lev: Int): ListBuffer[Double] = {
-    var sb: ListBuffer[Double] = ListBuffer()
+  def mapidxTocoordDouble(par : ListBuffer[Int], lev : Int) : ListBuffer[Double] = {
+    var sb : ListBuffer[Double] = ListBuffer()
     if (DomainKnowledge.domain_L1.get._2.equals("UnitSquare")) {
       for (i <- 0 to 1)
         sb += par(i) / DomainKnowledge.arraysizes(lev)(i + 1).toDouble
@@ -110,8 +110,8 @@ object IdxKnowledge {
     return sb
   }
 
-  def mapcoordToidxInt(par: ListBuffer[Double], lev: Int): ListBuffer[Int] = {
-    var sb: ListBuffer[Int] = ListBuffer()
+  def mapcoordToidxInt(par : ListBuffer[Double], lev : Int) : ListBuffer[Int] = {
+    var sb : ListBuffer[Int] = ListBuffer()
     if (DomainKnowledge.domain_L1.get._2.equals("UnitSquare")) {
       for (i <- 0 to 1)
         sb += (DomainKnowledge.arraysizes(lev)(i + 1) * par(i)).toInt
@@ -123,11 +123,11 @@ object IdxKnowledge {
     return sb
   }
 
-  def mapcoordToidxLoop(ulp: ListBuffer[Double], lrp: ListBuffer[Double], lev: Int): ListBuffer[Int] = {
+  def mapcoordToidxLoop(ulp : ListBuffer[Double], lrp : ListBuffer[Double], lev : Int) : ListBuffer[Int] = {
     var idxulp = mapcoordToidxInt(ulp, lev)
     var idxlrp = mapcoordToidxInt(lrp, lev)
 
-    var listdiff: ListBuffer[Int] = ListBuffer()
+    var listdiff : ListBuffer[Int] = ListBuffer()
     for (i <- 0 to idxulp.length - 1)
       if (idxulp(i) == idxlrp(i))
         listdiff += 0

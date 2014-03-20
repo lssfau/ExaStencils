@@ -61,10 +61,10 @@ case class AbstractBinaryOp(operator : BinaryOperators.Value, left : AbstractExp
                   }
 
                   if (modifier.getOrElse("").equals("ToCoarse")) {
- 
-println(e1.entries.mkString(", "))
 
-// temp classes
+                    println(e1.entries.mkString(", "))
+
+                    // temp classes
                     case class StencilEntry(var offset : MultiIndex, var weight : Expression) {}
                     case class Stencil(var entries : ListBuffer[StencilEntry] = new ListBuffer) extends Node {}
                     case class StencilConvolution(var stencil : Stencil, var field : Field, var targetIdx : MultiIndex = DefaultLoopMultiIndex()) extends Expression with Expandable {
@@ -80,7 +80,7 @@ println(e1.entries.mkString(", "))
                     // temp stencil
                     var stencil = new Stencil
                     for (i <- 0 until e1.length)
-                      stencil.entries += StencilEntry(new MultiIndex(IdxKnowledge.StencilToidx(Knowledge.dimensionality, e1.length)(i).toArray), e1.entries(i))// s"$id1[0].entries[$i]")
+                      stencil.entries += StencilEntry(new MultiIndex(IdxKnowledge.StencilToidx(Knowledge.dimensionality, e1.length)(i).toArray), e1.entries(i)) // s"$id1[0].entries[$i]")
                     // find field
                     val field : Field = fieldCollection.getFieldByIdentifier("Residual", levstr.cpp.toInt).get
 
@@ -105,7 +105,7 @@ println(e1.entries.mkString(", "))
                     // temp stencil
                     var stencil = new Stencil
                     for (i <- 0 until e1.length)
-                      stencil.entries += StencilEntry(new MultiIndex(IdxKnowledge.StencilToidx(Knowledge.dimensionality, e1.length)(i).toArray), e1.entries(i))// s"$id1[0].entries[$i]")
+                      stencil.entries += StencilEntry(new MultiIndex(IdxKnowledge.StencilToidx(Knowledge.dimensionality, e1.length)(i).toArray), e1.entries(i)) // s"$id1[0].entries[$i]")
                     // find field
                     val field : Field = fieldCollection.getFieldByIdentifier("Solution", levstr.cpp.toInt).get
 
@@ -130,7 +130,7 @@ println(e1.entries.mkString(", "))
                     // temp stencil
                     var stencil = new Stencil
                     for (i <- 0 until e1.length)
-                      stencil.entries += StencilEntry(new MultiIndex(IdxKnowledge.StencilToidx(Knowledge.dimensionality, e1.length)(i).toArray), e1.entries(i))// s"$id1[0].entries[$i]")
+                      stencil.entries += StencilEntry(new MultiIndex(IdxKnowledge.StencilToidx(Knowledge.dimensionality, e1.length)(i).toArray), e1.entries(i)) // s"$id1[0].entries[$i]")
 
                     // find field
                     val field : Field = fieldCollection.getFieldByIdentifier("Solution", levstr.cpp.toInt).get
