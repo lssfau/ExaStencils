@@ -39,7 +39,7 @@ object BinaryOperators extends Enumeration {
     case Multiplication => "*"
     case Division       => "/"
     case Power          => "**" // FIXME
-    case Modulo         => "mod"
+    case Modulo         => "%"
     case AndAnd         => "&&"
     case OrOr           => "||"
     case EqEq           => "=="
@@ -145,11 +145,19 @@ object DefaultLoopMultiIndex {
   def apply() : MultiIndex = { new MultiIndex("x", "y", "z"); }
 }
 
-case class FieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : MultiIndex) extends Expression with Expandable {
+case class DirectFieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : MultiIndex) extends Expression with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = FieldAccess\n";
 
   def expand(collector : StackCollector) : LinearizedFieldAccess = {
     new LinearizedFieldAccess(fieldOwner, field, slot, Mapping.resolveMultiIdx(field, index));
+  }
+}
+
+case class FieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : MultiIndex) extends Expression with Expandable {
+  override def cpp : String = "NOT VALID ; CLASS = FieldAccess\n";
+
+  def expand(collector : StackCollector) : LinearizedFieldAccess = {
+    new LinearizedFieldAccess(fieldOwner, field, slot, Mapping.resolveMultiIdx(field, new MultiIndex(index, field.referenceOffset, _ + _)));
   }
 }
 

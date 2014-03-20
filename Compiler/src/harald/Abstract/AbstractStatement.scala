@@ -47,8 +47,8 @@ case class AbstractLoop(where : String, lev : String, order : String, blocksize 
     var start : ListBuffer[Expression] = ListBuffer()
     for (i <- 0 until Knowledge.dimensionality)
       start += (lpkn match {
-        case DomainKnowledge.LoopKnowledge(_, "innerpoints", "1") => solField.layout(i).idxDupLeftBegin
-        case DomainKnowledge.LoopKnowledge(_, "allpoints", "1")   => solField.layout(i).idxGhostLeftBegin
+        case DomainKnowledge.LoopKnowledge(_, "innerpoints", "1") => solField.layout(i).idxDupLeftBegin - solField.referenceOffset(i)
+        case DomainKnowledge.LoopKnowledge(_, "allpoints", "1")   => solField.layout(i).idxGhostLeftBegin - solField.referenceOffset(i)
       })
 
     var stop : ListBuffer[Expression] = ListBuffer()
@@ -56,36 +56,13 @@ case class AbstractLoop(where : String, lev : String, order : String, blocksize 
     lpkn match {
       case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "innerpoints", "1") => {
         for (i <- 0 until Knowledge.dimensionality)
-          stop += solField.layout(i).idxDupRightEnd
+          stop += solField.layout(i).idxDupRightEnd - solField.referenceOffset(i)
       }
       case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "allpoints", "1") => {
         for (i <- 0 until Knowledge.dimensionality)
-          stop += solField.layout(i).idxGhostRightEnd
+          stop += solField.layout(i).idxGhostRightEnd - solField.referenceOffset(i)
       }
     }
-
-    //    var startidx : Int =
-    //      lpkn match {
-    //
-    //        case DomainKnowledge.LoopKnowledge(_, "innerpoints", "1") => 1
-    //        case DomainKnowledge.LoopKnowledge(_, "allpoints", "1")   => 0
-    //      }
-    //    var start : ListBuffer[Expression] = ListBuffer()
-    //    for (i <- 1 to DomainKnowledge.rule_dim())
-    //      start += startidx
-    //
-    //    var stop : ListBuffer[Expression] = ListBuffer()
-    //
-    //    lpkn match {
-    //      case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "innerpoints", "1") => {
-    //        for (i <- 1 to DomainKnowledge.rule_dim())
-    //          stop += (lpendvariable + "." + "x" + i.toString + "_") -  (1 + 1)
-    //      }
-    //      case DomainKnowledge.LoopKnowledge("UnitSquare" | "UnitCube", "allpoints", "1") => {
-    //        for (i <- 1 to DomainKnowledge.rule_dim())
-    //          stop += (lpendvariable + "." + "x" + i.toString + "_") - 1
-    //      }
-    //    }
 
     var body : ListBuffer[Statement] = ListBuffer()
     for (st <- stmts) {

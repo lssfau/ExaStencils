@@ -60,9 +60,6 @@ case class AbstractBinaryOp(operator : BinaryOperators.Value, left : AbstractExp
                   }
 
                   if (modifier.getOrElse("").equals("ToCoarse")) {
-
-                    println(e1.entries.mkString(", "))
-
                     // temp classes
                     case class StencilEntry(var offset : MultiIndex, var weight : Expression) {}
                     case class Stencil(var entries : ListBuffer[StencilEntry] = new ListBuffer) extends Node {}
@@ -84,7 +81,7 @@ case class AbstractBinaryOp(operator : BinaryOperators.Value, left : AbstractExp
                     val field : Field = fieldCollection.getFieldByIdentifier("Residual", levstr.cpp.toInt).get
 
                     // temp conv
-                    var conv = StencilConvolution(stencil, field, new MultiIndex((0 until Knowledge.dimensionality).toArray.map(i => (2 * (dimToString(i) : Expression) - 1) : Expression)))
+                    var conv = StencilConvolution(stencil, field, new MultiIndex((0 until Knowledge.dimensionality).toArray.map(i => (2 * (dimToString(i) : Expression)) : Expression)))
 
                     return conv.expand(new StackCollector).cpp
                   } else if (modifier.getOrElse("").equals("ToFine")) {
@@ -109,7 +106,7 @@ case class AbstractBinaryOp(operator : BinaryOperators.Value, left : AbstractExp
                     val field : Field = fieldCollection.getFieldByIdentifier("Solution", levstr.cpp.toInt).get
 
                     // temp conv
-                    var conv = StencilConvolution(stencil, field, new MultiIndex((0 until Knowledge.dimensionality).toArray.map(i => (((dimToString(i) : Expression) + 1) / 2) : Expression)))
+                    var conv = StencilConvolution(stencil, field, new MultiIndex((0 until Knowledge.dimensionality).toArray.map(i => ((dimToString(i) : Expression) / 2) : Expression)))
 
                     return conv.expand(new StackCollector).cpp
                   } else {

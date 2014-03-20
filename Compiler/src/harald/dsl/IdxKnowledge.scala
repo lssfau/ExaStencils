@@ -27,10 +27,7 @@ object IdxKnowledge {
       case 2 => {
         size match {
           case 1 => return ListBuffer(ListBuffer(0, 0))
-          case 4 => return ListBuffer(ListBuffer(0, 0),
-            ListBuffer("((x + 1) % 2)", 0),
-            ListBuffer(0, "((y + 1) % 2)"),
-            ListBuffer("((x + 1) % 2)", "((y + 1) % 2)"))
+          case 4 => return ListBuffer(ListBuffer(0, 0), ListBuffer("x" Mod 2, 0), ListBuffer(0, "y" Mod 2), ListBuffer("x" Mod 2, "y" Mod 2))
           case 5 => return ListBuffer(ListBuffer(0, 0), ListBuffer(1, 0), ListBuffer(-1, 0), ListBuffer(0, 1), ListBuffer(0, -1))
           case 9 => return ListBuffer(ListBuffer(0, 0), ListBuffer(1, 0), ListBuffer(-1, 0), ListBuffer(0, 1), ListBuffer(0, -1), ListBuffer(-1, -1), ListBuffer(-1, 1), ListBuffer(1, -1), ListBuffer(1, 1))
         }
@@ -39,14 +36,8 @@ object IdxKnowledge {
         size match {
           case 1 => return ListBuffer(ListBuffer(0, 0, 0))
           case 7 => return ListBuffer(ListBuffer(0, 0, 0), ListBuffer(1, 0, 0), ListBuffer(0, 1, 0), ListBuffer(0, 0, 1), ListBuffer(-1, 0, 0), ListBuffer(0, -1, 0), ListBuffer(0, 0, -1))
-          case 8 => return ListBuffer(ListBuffer(0, 0, 0),
-            ListBuffer("((x + 1) % 2)", 0, 0),
-            ListBuffer(0, "((y + 1) % 2)", 0),
-            ListBuffer("((x + 1) % 2)", "((y + 1) % 2)", 0),
-            ListBuffer(0, 0, "((z + 1) % 2)"),
-            ListBuffer("((x + 1) % 2)", 0, "((z + 1) % 2)"),
-            ListBuffer(0, "((y + 1) % 2)", "((z + 1) % 2)"),
-            ListBuffer("((x + 1) % 2)", "((y + 1) % 2)", "((z + 1) % 2)"))
+          case 8 => return ListBuffer(ListBuffer(0, 0, 0), ListBuffer("x" Mod 2, 0, 0), ListBuffer(0, "y" Mod 2, 0), ListBuffer("x" Mod 2, "y" Mod 2, 0),
+            ListBuffer(0, 0, "z" Mod 2), ListBuffer("x" Mod 2, 0, "z" Mod 2), ListBuffer(0, "y" Mod 2, "z" Mod 2), ListBuffer("x" Mod 2, "y" Mod 2, "z" Mod 2))
           case 27 => return ListBuffer(ListBuffer(0, 0, 0), ListBuffer(1, 0, 0), ListBuffer(0, 1, 0), ListBuffer(0, 0, 1), ListBuffer(-1, 0, 0), ListBuffer(0, -1, 0), ListBuffer(0, 0, -1),
             ListBuffer(1, 1, 0), ListBuffer(1, -1, 0), ListBuffer(-1, 1, 0), ListBuffer(-1, -1, 0),
             ListBuffer(0, 1, 1), ListBuffer(0, -1, 1), ListBuffer(0, 1, -1), ListBuffer(0, -1, -1),
