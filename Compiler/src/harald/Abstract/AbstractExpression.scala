@@ -178,11 +178,11 @@ case class AbstractFCall(fname : String, arglist : List[AbstractExpression]) ext
 
         return new StringLiteral(s"${curStencil.entries(0)}") // DataClasses.generateStencilConvolutioncuda(1,args(0).toString_cpp,"", "")
       } else {
-        //        var expr : ListBuffer[Expression] = ListBuffer(new StringLiteral("i0"))
-        //        for (i <- 1 to DomainKnowledge.rule_dim() - 1)
-        //          expr += new StringLiteral(s"i${i}")
+        // FIXME: this is only a quick hack necessary because the new stencil structure is not available here 
+        var curStencil = TreeManager.tree.Stencils(0)
+        return new StringLiteral(s"${curStencil.entries(0)}")
 
-        return new MemberFunctionCallExpression(args(0).cpp, fname, new ListBuffer[Expression])
+        //return new MemberFunctionCallExpression(args(0).cpp, fname, new ListBuffer[Expression])
       }
     }
     if (fname.equals("random"))
