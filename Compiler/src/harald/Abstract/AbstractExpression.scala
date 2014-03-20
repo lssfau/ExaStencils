@@ -61,17 +61,31 @@ case class AbstractBinaryOp(operator : BinaryOperators.Value, left : AbstractExp
                   }
 
                   if (modifier.getOrElse("").equals("ToCoarse")) {
-                    if (!DomainKnowledge.use_gpu) {
-                      for (i <- 0 until Knowledge.dimensionality)
-                        lb += new StringLiteral(DomainKnowledge.rule_mapcoarseTofine(dimToString(i)))
+                    // temp classes
+                    case class StencilEntry(var offset : MultiIndex, var weight : Expression) {}
+                    case class Stencil(var entries : ListBuffer[StencilEntry] = new ListBuffer) extends Node {}
+                    case class StencilConvolution(var stencil : Stencil, var field : Field, var targetIdx : MultiIndex = DefaultLoopMultiIndex()) extends Expression with Expandable {
+                      override def cpp : String = "NOT VALID ; CLASS = StencilConvolution\n";
 
-                      var memlistS : ListBuffer[ParameterInfo] = ListBuffer()
-                      memlistS += new ParameterInfo("Res[lev]", TreeManager.tree.ExternalClasses.get("Array").get.name + "<T>&")
-
-                      for (i <- 0 until Knowledge.dimensionality)
-                        memlistS += new ParameterInfo(s"(2 * ${dimToString(i)} - 1)", "int")
-                      return StencilGenerator.generateStencilConvolution(id1 + "[0]", e1.length, memlistS, "")
+                      def expand(collector : StackCollector) : Expression = {
+                        stencil.entries.map(e =>
+                          e.weight * (new FieldAccess("curFragment.", field, 0, new MultiIndex(targetIdx, e.offset, _ + _))). /*FIXME*/ expand(new StackCollector))
+                          .toArray[Expression].reduceLeft(_ + _)
+                      }
                     }
+
+                    // temp stencil
+                    var stencil = new Stencil
+                    for (i <- 0 until e1.length)
+                      stencil.entries += StencilEntry(new MultiIndex(IdxKnowledge.StencilToidx(Knowledge.dimensionality, e1.length)(i).toArray), s"$id1[0].entries[$i]")
+
+                    // find field
+                    val field : Field = fieldCollection.getFieldByIdentifier("Residual", levstr.cpp.toInt).get
+
+                    // temp conv
+                    var conv = StencilConvolution(stencil, field, new MultiIndex((0 until Knowledge.dimensionality).toArray.map(i => (2 * (dimToString(i) : Expression) - 1) : Expression)))
+
+                    return conv.expand(new StackCollector).cpp
                   } else if (modifier.getOrElse("").equals("ToFine")) {
                     for (i <- 0 until Knowledge.dimensionality)
                       lb += new StringLiteral(dimToString(i))

@@ -151,7 +151,7 @@ class GenerateL4(treel2 : TreeL2) {
       writer.write(s"    loop innerpoints level ${lev - 1} order lex block 1 1  \n")
       // COMM_HACK
       //writer.write(s"      coarse =  RestrictionStencil * fine | ToCoarse  \n")
-      writer.write(s"      f@${lev - 1} =  RestrictionStencil * fine | ToCoarse  \n")
+      writer.write(s"      ${DomainKnowledge.function_L1(0)._1}@${lev - 1} =  RestrictionStencil * Res [ $lev ] | ToCoarse  \n")
       writer.write(s"    next  \n")
       writer.write(s"}  \n")
     }
