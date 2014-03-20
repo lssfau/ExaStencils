@@ -33,7 +33,7 @@ class GenerateL3(treel2 : TreeL2) {
 
     var order = 1
     for (o <- treel2.exaOperators)
-      if (o.name.equals("RestrictionStencil"))
+      if (o.name.equals("RestrictionStencil") || o.name.equals("CorrectionStencil"))
         order = o.order.toInt
 
     writer.write("mgparameter { \n")

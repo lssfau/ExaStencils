@@ -1,6 +1,8 @@
 package harald.dsl
 
 import scala.collection.mutable.ListBuffer
+import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
 
 object IdxKnowledge {
 
@@ -20,7 +22,7 @@ object IdxKnowledge {
     }
   }
   
-  def StencilToidx(dim: Int, size: Int): ListBuffer[ListBuffer[Int]] = {
+  def StencilToidx(dim: Int, size: Int): ListBuffer[ListBuffer[Expression]] = {
     dim match {
       case 2 => {
         size match {
@@ -33,6 +35,14 @@ object IdxKnowledge {
         size match {
           case 1 => return ListBuffer(ListBuffer(0, 0, 0))
           case 7 => return ListBuffer(ListBuffer(0, 0, 0), ListBuffer(1, 0, 0), ListBuffer(0, 1, 0), ListBuffer(0, 0, 1), ListBuffer(-1, 0, 0), ListBuffer(0, -1, 0), ListBuffer(0, 0, -1))
+          case 8 => return ListBuffer(ListBuffer(0, 0, 0),
+              ListBuffer("((x + 1) % 2)", 0, 0),
+              ListBuffer(0, "((y + 1) % 2)", 0), 
+              ListBuffer("((x + 1) % 2)", "((y + 1) % 2)", 0), 
+              ListBuffer(0, 0, "((z + 1) % 2)"), 
+              ListBuffer("((x + 1) % 2)", 0, "((z + 1) % 2)"), 
+              ListBuffer(0, "((y + 1) % 2)", "((z + 1) % 2)"), 
+              ListBuffer("((x + 1) % 2)", "((y + 1) % 2)", "((z + 1) % 2)"))
           case 27 => return ListBuffer(ListBuffer(0, 0, 0), ListBuffer(1, 0, 0), ListBuffer(0, 1, 0), ListBuffer(0, 0, 1), ListBuffer(-1, 0, 0), ListBuffer(0, -1, 0), ListBuffer(0, 0, -1),
             ListBuffer(1, 1, 0), ListBuffer(1, -1, 0), ListBuffer(-1, 1, 0), ListBuffer(-1, -1, 0),
             ListBuffer(0, 1, 1), ListBuffer(0, -1, 1), ListBuffer(0, 1, -1), ListBuffer(0, -1, -1),

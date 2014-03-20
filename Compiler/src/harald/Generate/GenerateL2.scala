@@ -43,6 +43,7 @@ object GenerateL2 {
     for (i <- 0 to DomainKnowledge.operator_L1.length - 1)
       writer.write(s"stencil<${datatype},${matrixentries}, FD, 2>@nodes ${DomainKnowledge.operator_L1(i)._1}  \n")
     writer.write(s"stencil<${datatype},${matrixentries}, FD, 2>@nodes RestrictionStencil  \n")
+    writer.write(s"stencil<${datatype},${matrixentries}, FD, 2>@nodes CorrectionStencil  \n")
 
     writer.close()
     println("DSL level 2 was generated in " + fname)

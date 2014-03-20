@@ -166,7 +166,7 @@ class GenerateL4(treel2 : TreeL2) {
       writer.write(s"  decl lev : Int = $lev  \n")
       writer.write(s"  exchsolData_${lev - 1} ( 0 )  \n")
       writer.write(s"    loop innerpoints level $lev order lex block 1 1  \n")
-      writer.write(s"    ${DomainKnowledge.unknown_L1(0)._1}@$lev += RestrictionStencil * ${DomainKnowledge.unknown_L1(0)._1} [ ${lev - 1} ] | ToFine  \n")
+      writer.write(s"    ${DomainKnowledge.unknown_L1(0)._1}@$lev += CorrectionStencil * ${DomainKnowledge.unknown_L1(0)._1} [ ${lev - 1} ] | ToFine  \n")
       writer.write(s"    next  \n")
       writer.write(s"}  \n")
     }
