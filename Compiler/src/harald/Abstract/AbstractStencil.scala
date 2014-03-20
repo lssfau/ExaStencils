@@ -60,8 +60,8 @@ import harald.Impl._
         entries =
           stkn match {
 
-            //case DomainKnowledge.StencilKnowledge("UnitSquare", "FD", "2", ListBuffer("")) => Array[Double](1.0, 0.5, 0.5, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25)
-            //case DomainKnowledge.StencilKnowledge("UnitSquare", "FD", "1", ListBuffer("")) => Array[Double](1.0)
+            case DomainKnowledge.StencilKnowledge("UnitSquare", "FD", "2", ListBuffer("")) => Array[Double](0.25, 0.25, 0.25, 0.25)
+            case DomainKnowledge.StencilKnowledge("UnitSquare", "FD", "1", ListBuffer("")) => Array[Double](1.0)
             case DomainKnowledge.StencilKnowledge("UnitCube", "FD", "2", ListBuffer("")) => Array[Double](0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625)
           }
       }

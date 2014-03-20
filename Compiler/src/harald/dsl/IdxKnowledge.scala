@@ -27,6 +27,10 @@ object IdxKnowledge {
       case 2 => {
         size match {
           case 1 => return ListBuffer(ListBuffer(0, 0))
+          case 4 => return ListBuffer(ListBuffer(0, 0),
+              ListBuffer("((x + 1) % 2)", 0),
+              ListBuffer(0, "((y + 1) % 2)"), 
+              ListBuffer("((x + 1) % 2)", "((y + 1) % 2)"))
           case 5 => return ListBuffer(ListBuffer(0, 0), ListBuffer(1, 0), ListBuffer(-1, 0), ListBuffer(0, 1), ListBuffer(0, -1))
           case 9 => return ListBuffer(ListBuffer(0, 0), ListBuffer(1, 0), ListBuffer(-1, 0), ListBuffer(0, 1), ListBuffer(0, -1), ListBuffer(-1, -1), ListBuffer(-1, 1), ListBuffer(1, -1), ListBuffer(1, 1))
         }
