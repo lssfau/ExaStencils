@@ -12,7 +12,11 @@ case class IndexRange(begin : MultiIndex = new MultiIndex, end : MultiIndex = ne
 
 object Mapping {
   def resolveMultiIdx(field : Field, index : MultiIndex) : Expression = {
-    return (index(2) * (field.layout(1).total * field.layout(0).total) + index(1) * field.layout(0).total + index(0));
+    return Knowledge.dimensionality match {
+      case 1 => (index(0))
+      case 2 => (index(1) * field.layout(0).total + index(0));
+      case 3 => (index(2) * (field.layout(1).total * field.layout(0).total) + index(1) * field.layout(0).total + index(0));
+    }
   }
 }
 

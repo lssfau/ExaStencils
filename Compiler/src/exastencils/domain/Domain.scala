@@ -139,7 +139,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
         s"unsigned int posWritePos = 0;",
         s"Vec3 rankPos(mpiRank % ${Knowledge.domain_numBlocks_x}, (mpiRank / ${Knowledge.domain_numBlocks_x}) % ${Knowledge.domain_numBlocks_y}, mpiRank / ${Knowledge.domain_numBlocks_x * Knowledge.domain_numBlocks_y});",
         new LoopOverDimensions(IndexRange(MultiIndex(0, 0, 0), MultiIndex(Knowledge.domain_numFragsPerBlock_x, Knowledge.domain_numFragsPerBlock_y, Knowledge.domain_numFragsPerBlock_z)),
-          Knowledge.dimensionality. /*FIXME*/ toInt match { // FIXME: avoid match, write in a dimensionless matter
+          Knowledge.dimensionality match { // FIXME: avoid match, write in a dimensionless matter
             case 1 => s"positions[posWritePos++] = (Vec3(rankPos.x * ${Knowledge.domain_numFragsPerBlock_x} + 0.5 + x, 0, 0);";
             case 2 => s"positions[posWritePos++] = (Vec3(rankPos.x * ${Knowledge.domain_numFragsPerBlock_x} + 0.5 + x, rankPos.y * ${Knowledge.domain_numFragsPerBlock_y} + 0.5 + y, 0));";
             case 3 => s"positions[posWritePos++] = (Vec3(rankPos.x * ${Knowledge.domain_numFragsPerBlock_x} + 0.5 + x, rankPos.y * ${Knowledge.domain_numFragsPerBlock_y} + 0.5 + y, rankPos.z * ${Knowledge.domain_numFragsPerBlock_z} + 0.5 + z));";

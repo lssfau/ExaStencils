@@ -136,7 +136,7 @@ object Main {
     val genL4 = new GenerateL4(TreeManager.tree)
     if (!(new java.io.File(DSLpath + problem + "lev4.mg").exists) || (DomainKnowledge.generate_L1.getOrElse(1) == 1)) {
       genL4.transformL3toL4(DSLpath + problem + "lev4.mg")
-      println("generate L4" + DomainKnowledge.generate_L1.getOrElse(1))
+      println("generate L4: " + DomainKnowledge.generate_L1.getOrElse(1))
     }
     val DSLl4 : String = scala.io.Source.fromFile(DSLpath + problem + "lev4.mg").getLines.reduceLeft(_ + _)
     //println(DSLl4)

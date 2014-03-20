@@ -149,7 +149,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
     for (neigh <- neighbors) {
       var size : String = "";
       var sizeArray = new ListBuffer[String]();
-      for (i <- (0 until Knowledge.dimensionality))
+      for (i <- DimArray())
         if (0 == neigh.dir(i))
           sizeArray += s"${maxPointsPerLevel(Knowledge.maxLevel)(i)}";
         else

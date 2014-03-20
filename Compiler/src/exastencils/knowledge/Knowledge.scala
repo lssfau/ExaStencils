@@ -151,5 +151,8 @@ object Knowledge {
 
     data_numSolSlots = (if (SmootherType.Jac == mg_smoother) 2 else 1);
   }
+}
 
+object DimArray {
+  def apply () : Array[Int] = { (0 until Knowledge.dimensionality).toArray }
 }

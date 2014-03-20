@@ -46,10 +46,10 @@ case class AbstractBinaryOp(operator : BinaryOperators.Value, left : AbstractExp
                     stencil.entries += StencilEntry(new MultiIndex(IdxKnowledge.StencilToidx(Knowledge.dimensionality, e1.length)(i).toArray), e1.entries(i)) // s"$id1[0].entries[$i]")
 
                   if (modifier.getOrElse("").equals("ToCoarse")) {
-                    var conv = StencilConvolution(stencil, field, new MultiIndex((0 until Knowledge.dimensionality).toArray.map(i => (2 * (dimToString(i) : Expression)) : Expression)))
+                    var conv = StencilConvolution(stencil, field, new MultiIndex(DimArray().map(i => (2 * (dimToString(i) : Expression)) : Expression)))
                     return conv.expand(new StackCollector).cpp
                   } else if (modifier.getOrElse("").equals("ToFine")) {
-                    var conv = StencilConvolution(stencil, field, new MultiIndex((0 until Knowledge.dimensionality).toArray.map(i => ((dimToString(i) : Expression) / 2) : Expression)))
+                    var conv = StencilConvolution(stencil, field, new MultiIndex(DimArray().map(i => ((dimToString(i) : Expression) / 2) : Expression)))
                     return conv.expand(new StackCollector).cpp
                   } else {
                     var conv = StencilConvolution(stencil, field)
