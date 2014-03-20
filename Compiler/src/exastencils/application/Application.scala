@@ -91,7 +91,7 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
 
         new MPI_Barrier,
 
-        s"updateResidual_${Knowledge.maxLevel}(0);",
+        /*s"updateResidual_${Knowledge.maxLevel}(0);",
         s"double lastRes = getGlobalResidual();",
         s"double initialRes = lastRes;",
 
@@ -106,7 +106,7 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
         s"StopWatch stopWatch;",
         s"StopWatch stopWatchTotal;",
 
-        /*new ForLoopStatement(s"curIt = 0", s"curIt < ${Knowledge.mgMaxNumIterations}", s"++curIt",
+        new ForLoopStatement(s"curIt = 0", s"curIt < ${Knowledge.mgMaxNumIterations}", s"++curIt",
           ListBuffer[Statement](
             s"stopWatch.reset();",
 
