@@ -74,7 +74,6 @@ class ParserL4(tree : TreeL2) extends StandardTokenParsers {
     | "return" ~ expr ^^ { case a ~ e => AbstractReturn(e) }
     | "repeat" ~ ident ~ expr ~ (stmt.+) ~ "next" ^^ { case a ~ id ~ e ~ s ~ f => AbstractRepeat(e, s, id) }
     | "Reduction" ~ stmt ^^ { case a ~ s => AbstractReduction(s) }
-    | "Communicate" ~ ident ~ ident ^^ { case a ~ f ~ loc => AbstractCommunication(f,loc) }
     | "if" ~ expr ~ "{" ~ (stmt.+) ~ "}" ~ "else" ~ "{" ~ (stmt.+) ~ "}" ^^ {
       case a ~ cond ~ b ~ ifstmts ~ c ~ d ~ e ~ elsestmts ~ f => AbstractIfElse(cond, ifstmts, elsestmts)
     })

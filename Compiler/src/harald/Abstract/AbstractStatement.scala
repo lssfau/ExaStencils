@@ -16,15 +16,6 @@ sealed abstract class AbstractStatement {
   def getvariables() : ListBuffer[String] = ListBuffer()
 }
 
-case class AbstractCommunication(fname : String, loc : String) extends AbstractStatement {
-  override def transform(scopeparas : ListBuffer[ParameterInfo]) : ListBuffer[Statement] = {
-
-    var ret : ListBuffer[Statement] = ListBuffer()
-    ret += new ImplCommunication(fname, loc)
-    return ret
-  }
-}
-
 case class AbstractPCall(fname : String, arglist : List[AbstractExpression]) extends AbstractStatement {
   override def transform(scopeparas : ListBuffer[ParameterInfo]) : ListBuffer[Statement] = {
     var args : ListBuffer[Expression] = ListBuffer()

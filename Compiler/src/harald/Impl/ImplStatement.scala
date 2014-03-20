@@ -9,12 +9,6 @@ import exastencils.core.collectors._
 import exastencils.primitives._
 import exastencils.omp._
 
-case class ImplCommunication(fname : String, loc : String) extends Statement {
-  override def cpp : String = {
-    return s"transfer(${fname},${loc});\n"
-  }
-}
-
 case class ImplReductionStatement(s : Statement) extends Statement {
   override def cpp : String = {
     // COMM_HACK
@@ -114,70 +108,6 @@ case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : List
     else
       return sloops;
   }
-
-  /* FIXME: reintegrate:
-	override def toString_cuda : String = {
-    var s : String = ""
-
-    if (DomainKnowledge.rule_dim() == 2) {
-      s += "unsigned int i1 = blockIdx.x*blockDim.x + threadIdx.x;\n"
-      s += "unsigned int i2 = blockIdx.y*blockDim.y + threadIdx.y;\n"
-
-      s += s"unsigned int global_idx = ${IdxKnowledge.mapidxToLinear(ListBuffer("i1", "i2"), ListBuffer("s1", "s2"))};\n"
-      for (b <- body) {
-        if (b.contains_modifier("ToCoarse")) {
-          var lb : ListBuffer[String] = ListBuffer()
-          for (i <- 1 to DomainKnowledge.rule_dim())
-            lb += DomainKnowledge.rule_mapcoarseTofine("i" + (i).toString)
-
-          s += s"unsigned int global_idx_2 = ${IdxKnowledge.mapidxToLinear(lb, ListBuffer("s1_1", "s2_1"))};\n"
-          //          println("in cuda loop" + b.cpp)
-
-          var curStencil = TreeManager.tree.Stencils(0)
-          for (st <- TreeManager.tree.Stencils)
-            if (st.name.equals("RestrictionStencil"))
-              curStencil = st
-
-          val exprloop : Expression = StencilGenerator.generateStencilConvolutioncuda(9, curStencil, "fine", 1, "", "global_idx_2")
-          s += s"if (i1 >= ${start(0).toString_cpp} && i2 >= ${start(1).toString_cpp} && i1 < s1 - ${start(0).toString_cpp} && i2 < s2 - ${start(1).toString_cpp}) { \n"
-          val statloop = b match {
-            case ImplAssigmentStatement(variable, op, expr, mod) => new ImplAssigmentStatement(variable, op, exprloop, mod)
-          }
-          s += statloop.toString_cuda
-          s += "}\n"
-
-          return s
-        }
-        if (b.contains_modifier("ToFine")) {
-          var lb : ListBuffer[String] = ListBuffer()
-          for (i <- 1 to DomainKnowledge.rule_dim())
-            lb += DomainKnowledge.rule_mapcoarseTofine("i" + (i).toString)
-
-          s += s"unsigned int global_idx_2 = ${IdxKnowledge.mapidxToLinear(lb, ListBuffer("s1_1", "s2_1"))};\n"
-          //          println("in cuda loop" + b.cpp)
-          val exprloop : Expression = StencilGenerator.generateStencilInterpolationcuda("uc", "i")
-          s += s"if (i1 >= ${start(0).toString_cpp} && i2 >= ${start(1).toString_cpp} && i1 < s1 - ${start(0).toString_cpp} && i2 < s2 - ${start(1).toString_cpp}) { \n"
-          val statloop = b match {
-            case ImplAssigmentStatement(variable, op, expr, mod) => new ImplAssigmentStatement(variable, op, exprloop, mod)
-          }
-          s += statloop.toString_cuda
-          s += "}\n"
-
-          return s
-        }
-      }
-
-      s += s"if (i1 >= ${start(0).toString_cpp} && i2 >= ${start(1).toString_cpp} && i1 < s1 - ${start(0).toString_cpp} && i2 < s2 - ${start(1).toString_cpp}) { \n"
-      if (runningorder.equals("rb"))
-        s += s"if (((i1+i2)%2) == red_black) \n"
-
-      for (b <- body)
-        s += b.cpp // FIXME: inteded was toString_cuda
-      s += "}\n"
-      return s
-    } else
-      return ""
-  }*/
 }
 
 case class ImplPcall(obj : String, name : String, paramlist : ListBuffer[Expression]) extends Statement {
