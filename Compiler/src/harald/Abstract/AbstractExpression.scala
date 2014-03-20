@@ -31,109 +31,28 @@ case class AbstractBinaryOp(operator : BinaryOperators.Value, left : AbstractExp
             if (e1.name.equals(id1))
               right match {
                 case AbstractVariable(id2, l2) => {
-                  var lb : ListBuffer[Expression] = new ListBuffer()
-
                   val levstr = l2.transform(scopeparas, modifier, scopetype)
                   val fieldCollection = StateManager.findFirst[FieldCollection]().get
 
-                  // COMM_HACK
-                  if ("statement" == l2.transform(scopeparas, modifier, "argument") || "expression" == l2.transform(scopeparas, modifier, "argument")) {
-                    id2 match {
-                      case "solution" => //lb += "curFragment.solData[0][" ~ levstr ~ "]->getDataRef" ~ "[" ~ l2.transform(scopeparas, modifier, "argument") ~ "]"
-                        val field : Field = fieldCollection.getFieldByIdentifier("Solution", levstr.cpp.toInt).get
-                        lb += new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector)
-                      case "Res" => //lb += "curFragment.resData[0][" ~ levstr ~ "]->getDataRef" ~ "[" ~ l2.transform(scopeparas, modifier, "argument") ~ "]"
-                        val field : Field = fieldCollection.getFieldByIdentifier("Residual", levstr.cpp.toInt).get
-                        lb += new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector)
-                      case "f" => //lb += "curFragment.rhsData[0][" ~ levstr ~ "]->getDataRef" ~ "[" ~ l2.transform(scopeparas, modifier, "argument") ~ "]"
-                        val field : Field = fieldCollection.getFieldByIdentifier("RHS", levstr.cpp.toInt).get
-                        lb += new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector)
-                      case _ => lb += id2 ~ "[" ~ l2.transform(scopeparas, modifier, "argument") ~ "]"
-                    }
-                  } else {
-                    id2 match {
-                      case "solution" => lb += "*curFragment.solData[0][" ~ levstr ~ "]"
-                      case "Res"      => lb += "*curFragment.resData[0][" ~ levstr ~ "]"
-                      case "f"        => lb += "*curFragment.rhsData[0][" ~ levstr ~ "]"
-                      case _          => lb += id2
-                    }
+                  val field : Field = id2 match {
+                    case "solution" => fieldCollection.getFieldByIdentifier("Solution", levstr.cpp.toInt).get
+                    case "Res"      => fieldCollection.getFieldByIdentifier("Residual", levstr.cpp.toInt).get
+                    case "f"        => fieldCollection.getFieldByIdentifier("RHS", levstr.cpp.toInt).get
                   }
 
+                  // transform stencil into new format
+                  var stencil = new Stencil(e1.name)
+                  for (i <- 0 until e1.length)
+                    stencil.entries += StencilEntry(new MultiIndex(IdxKnowledge.StencilToidx(Knowledge.dimensionality, e1.length)(i).toArray), e1.entries(i)) // s"$id1[0].entries[$i]")
+
                   if (modifier.getOrElse("").equals("ToCoarse")) {
-                    // temp classes
-                    case class StencilEntry(var offset : MultiIndex, var weight : Expression) {}
-                    case class Stencil(var entries : ListBuffer[StencilEntry] = new ListBuffer) extends Node {}
-                    case class StencilConvolution(var stencil : Stencil, var field : Field, var targetIdx : MultiIndex = DefaultLoopMultiIndex()) extends Expression with Expandable {
-                      override def cpp : String = "NOT VALID ; CLASS = StencilConvolution\n";
-
-                      def expand(collector : StackCollector) : Expression = {
-                        stencil.entries.map(e =>
-                          e.weight * (new FieldAccess("curFragment.", field, 0, new MultiIndex(targetIdx, e.offset, _ + _))). /*FIXME*/ expand(new StackCollector))
-                          .toArray[Expression].reduceLeft(_ + _)
-                      }
-                    }
-
-                    // temp stencil
-                    var stencil = new Stencil
-                    for (i <- 0 until e1.length)
-                      stencil.entries += StencilEntry(new MultiIndex(IdxKnowledge.StencilToidx(Knowledge.dimensionality, e1.length)(i).toArray), e1.entries(i)) // s"$id1[0].entries[$i]")
-                    // find field
-                    val field : Field = fieldCollection.getFieldByIdentifier("Residual", levstr.cpp.toInt).get
-
-                    // temp conv
                     var conv = StencilConvolution(stencil, field, new MultiIndex((0 until Knowledge.dimensionality).toArray.map(i => (2 * (dimToString(i) : Expression)) : Expression)))
-
                     return conv.expand(new StackCollector).cpp
                   } else if (modifier.getOrElse("").equals("ToFine")) {
-                    // temp classes
-                    case class StencilEntry(var offset : MultiIndex, var weight : Expression) {}
-                    case class Stencil(var entries : ListBuffer[StencilEntry] = new ListBuffer) extends Node {}
-                    case class StencilConvolution(var stencil : Stencil, var field : Field, var targetIdx : MultiIndex = DefaultLoopMultiIndex()) extends Expression with Expandable {
-                      override def cpp : String = "NOT VALID ; CLASS = StencilConvolution\n";
-
-                      def expand(collector : StackCollector) : Expression = {
-                        stencil.entries.map(e =>
-                          e.weight * (new FieldAccess("curFragment.", field, 0, new MultiIndex(targetIdx, e.offset, _ + _))). /*FIXME*/ expand(new StackCollector))
-                          .toArray[Expression].reduceLeft(_ + _)
-                      }
-                    }
-
-                    // temp stencil
-                    var stencil = new Stencil
-                    for (i <- 0 until e1.length)
-                      stencil.entries += StencilEntry(new MultiIndex(IdxKnowledge.StencilToidx(Knowledge.dimensionality, e1.length)(i).toArray), e1.entries(i)) // s"$id1[0].entries[$i]")
-                    // find field
-                    val field : Field = fieldCollection.getFieldByIdentifier("Solution", levstr.cpp.toInt).get
-
-                    // temp conv
                     var conv = StencilConvolution(stencil, field, new MultiIndex((0 until Knowledge.dimensionality).toArray.map(i => ((dimToString(i) : Expression) / 2) : Expression)))
-
                     return conv.expand(new StackCollector).cpp
                   } else {
-                    // temp classes
-                    case class StencilEntry(var offset : MultiIndex, var weight : Expression) {}
-                    case class Stencil(var entries : ListBuffer[StencilEntry] = new ListBuffer) extends Node {}
-                    case class StencilConvolution(var stencil : Stencil, var field : Field) extends Expression with Expandable {
-                      override def cpp : String = "NOT VALID ; CLASS = StencilConvolution\n";
-
-                      def expand(collector : StackCollector) : Expression = {
-                        stencil.entries.map(e =>
-                          e.weight * (new FieldAccess("curFragment.", field, 0, new MultiIndex(DefaultLoopMultiIndex(), e.offset, _ + _))). /*FIXME*/ expand(new StackCollector))
-                          .toArray[Expression].reduceLeft(_ + _)
-                      }
-                    }
-
-                    // temp stencil
-                    var stencil = new Stencil
-                    for (i <- 0 until e1.length)
-                      stencil.entries += StencilEntry(new MultiIndex(IdxKnowledge.StencilToidx(Knowledge.dimensionality, e1.length)(i).toArray), e1.entries(i)) // s"$id1[0].entries[$i]")
-
-                    // find field
-                    val field : Field = fieldCollection.getFieldByIdentifier("Solution", levstr.cpp.toInt).get
-
-                    // temp conv
                     var conv = StencilConvolution(stencil, field)
-
                     return conv.expand(new StackCollector).cpp
                   }
                 }
