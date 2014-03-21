@@ -442,7 +442,7 @@ case class GetGlobalResidual(field : Field) extends AbstractFunctionStatement wi
   override def cpp : String = "NOT VALID ; CLASS = GetGlobalResidual\n";
 
   override def expand(collector : StackCollector) : FunctionStatement = {
-    FunctionStatement("double", s"getGlobalResidual", ListBuffer(),
+    FunctionStatement("double", s"getGlobalResidual_${field.level}", ListBuffer(),
       ListBuffer[Statement](
         s"double res = 0.0;",
         s"double resTotal = 0.0;",

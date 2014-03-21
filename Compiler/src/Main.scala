@@ -43,9 +43,6 @@ object Main {
 
     // Setup tree
     StateManager.root_ = Root(List(
-      // HACK
-      TreeManager.tree,
-
       // Application
       new Poisson3D,
 
@@ -143,11 +140,13 @@ object Main {
     val parserl4 = new ParserL4(TreeManager.tree)
     parserl4.parse(DSLl4)
 
+    // add stencils and functions to (exastencils) tree
+    
     var stencilCollection = StateManager.findFirst[StencilCollection]().get
     for (e <- TreeManager.tree.exaOperators)
       stencilCollection.stencils += e.transform
 
-     var mgNode = StateManager.findFirst[MultiGrid]().get;
+    var mgNode = StateManager.findFirst[MultiGrid]().get;
     for (e <- TreeManager.tree.exaFunctions)
       mgNode.functions_HACK += e.transformToIR
 

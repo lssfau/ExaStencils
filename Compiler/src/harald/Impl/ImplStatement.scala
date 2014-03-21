@@ -9,19 +9,21 @@ import exastencils.core.collectors._
 import exastencils.primitives._
 import exastencils.omp._
 
-case class ImplReductionStatement(s : Statement) extends Statement {
-  override def cpp : String = {
-    // COMM_HACK
-    //s"${DomainKnowledge.datatype_L2.getOrElse("double")} s = 0; \n " + s.cpp + "return s;"
-    s"${DomainKnowledge.datatype_L2.getOrElse("double")} s = 0;\n" +
-      s.cpp + "\n" +
-      "double sTotal;\n" +
-      "MPI_Allreduce(&s, &sTotal, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);\n" +
-      "return sTotal;\n"
+case class ImplReductionStatement(s : Statement) extends Statement with Expandable {
+  def cpp = "NOT VALID ; CLASS = ImplReductionStatement\n";
+
+  def expand(collector : StackCollector) : StatementBlock = {
+    var statements : ListBuffer[Statement] = new ListBuffer
+    statements += s"${DomainKnowledge.datatype_L2.getOrElse("double")} s = 0;"
+    statements += s
+    statements += "double sTotal;"
+    statements += "MPI_Allreduce(&s, &sTotal, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);"
+    statements += "return sTotal;"
+    StatementBlock(statements)
   }
 }
 
-case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : ListBuffer[Expression], var stop : ListBuffer[Expression], var stepsize : ListBuffer[Int], var runningorder : String, var blocksize : Int, var body : ListBuffer[Statement]) extends Statement {
+case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : ListBuffer[Expression], var stop : ListBuffer[Expression], var stepsize : ListBuffer[Int], var runningorder : String, var blocksize : Int, var body : ListBuffer[Statement]) extends Statement with Expandable {
   def stepToUpdate(step : Int, dim : Int, loopVarName : String) : String = {
     if (0 == step)
       return ""
@@ -35,8 +37,9 @@ case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : List
       return s"$loopVarName$dim -= $step"
   }
 
-  override def cpp : String = {
-    // FIXME: make this node expandable and move mapping to expand function
+  def cpp = "NOT VALID ; CLASS = Implforloop\n";
+
+  def expand(collector : StackCollector) : Statement = {
     // FIXME: support for OMP_PotentiallyParallel is currently missing; this is partly due to the shallow expands
 
     // COMM_HACK
@@ -50,13 +53,10 @@ case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : List
       }
     }
 
-    var s : String = ""
-    for (b <- body)
-      s += b.cpp
-    var sloops : String = ""
-
     if (runningorder.equals("rb")) {
       // multicolor: int offset = ( i0 % 2 == 0 ? 1 : 2 ); fuer alle += 2 erster index 1,2 dann offset2 = ( i % 2 == offs2 ? 1 : 2 ); offset3 = ( j % 2 == offs3 ? 2 : 1 );
+
+      var loops : ListBuffer[Statement] = new ListBuffer
 
       for (off <- 0 to 1) {
         var wrappedBody : ListBuffer[Statement] = body; // TODO: clone?
@@ -74,39 +74,35 @@ case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : List
               loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}$i" ~ " = " ~ start(i),
               s"${loopvar(0).name}$i < " ~ stop(i),
               stepToUpdate(stepsize(i), i, loopvar(0).name),
-              wrappedBody))
+              wrappedBody) /* FIXME: add OMP support */)
         }
-        sloops += StatementBlock(wrappedBody).cpp;
+
+        if (start.length > 1)
+          loops += new LoopOverFragments(wrappedBody) with OMP_PotentiallyParallel
+        else
+          loops ++= wrappedBody
       }
+
+      return StatementBlock(loops)
     } else { // lex
       if (start.length > 1) {
-        sloops += LoopOverDimensions(IndexRange(new MultiIndex(start.toArray), new MultiIndex(stop.toArray)), body).expand(new StackCollector).cpp
+        return new LoopOverFragments(new LoopOverDimensions(IndexRange(new MultiIndex(start.toArray), new MultiIndex(stop.toArray)), body) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel
       } else {
-        var wrappedBody : ListBuffer[Statement] = body; // TODO: clone?
-        for (i <- 0 to start.length - 1) {
-          if (stepsize(i) >= 0) {
-            wrappedBody = ListBuffer[Statement](new ForLoopStatement(
-              loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}$i" ~ " = " ~ start(i),
-              s"${loopvar(0).name}$i < " ~ stop(i),
-              stepToUpdate(stepsize(i), i, loopvar(0).name),
-              wrappedBody))
+          if (stepsize(0) >= 0) {
+            return new ForLoopStatement(
+              loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}0" ~ " = " ~ start(0),
+              s"${loopvar(0).name}0 < " ~ stop(0),
+              stepToUpdate(stepsize(0), 0, loopvar(0).name),
+              body)
           } else {
-            wrappedBody = ListBuffer[Statement](new ForLoopStatement(
-              loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}$i" ~ " = " ~ (stop(i) - 1),
-              s"${loopvar(0).name}$i >= " ~ start(i),
-              stepToUpdate(stepsize(i), i, loopvar(0).name),
-              wrappedBody))
+            return new ForLoopStatement(
+              loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}0" ~ " = " ~ (stop(0) - 1),
+              s"${loopvar(0).name}0 >= " ~ start(0),
+              stepToUpdate(stepsize(0), 0, loopvar(0).name),
+              body)
           }
-        }
-        sloops += StatementBlock(wrappedBody).cpp;
       }
     }
-
-    // COMM_HACK
-    if (start.length > 1)
-      return (new LoopOverFragments(sloops)).expand(new StackCollector).cpp;
-    else
-      return sloops;
   }
 }
 
