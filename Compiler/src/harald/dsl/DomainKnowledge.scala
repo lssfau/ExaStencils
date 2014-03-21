@@ -65,8 +65,6 @@ object DomainKnowledge extends ExaKnowledge {
 
   var CUDA_BLOCKSIZE : ListBuffer[Int] = ListBuffer(16, 16)
 
-  var global_stencils : ListBuffer[ImplStencil] = new ListBuffer()
-
   case class StencilKnowledge(val domain : String, val distype : String, val order : String, val operators : ListBuffer[String])
   case class LoopKnowledge(val domain : String, val where : String, val stride : String)
 

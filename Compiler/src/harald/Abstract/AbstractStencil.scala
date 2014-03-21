@@ -3,19 +3,19 @@ package harald.Abstract
 import scala.collection.mutable.ListBuffer
 import harald.dsl._
 import harald.Impl._
+import exastencils.knowledge._
+import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
 
 class AbstractStencil(val name : String, val datatype : String, val matlength1 : String, val matlength2 : String, val distype : String, val order : String, val location : String) {
 
   override def toString = "ExaOp: '" + name + "', type = '" + datatype + "', disc_type = '" + distype + "', order = '" + order + "'"
 
-  def transform : ListBuffer[ImplStencil] = {
+  def transform : Stencil = {
 
-    var stencilbuf : ListBuffer[ImplStencil] = ListBuffer()
+    var stencilbuf : ListBuffer[Stencil] = ListBuffer()
     var entries : Array[Double] = Array[Double]()
 
-    // if current Operator is the one defined on level L1
-    //   if (name.equals(DomainKnowledge.operator_L1.get._1)) {
-    // if operator == Laplacian
     var strop : ListBuffer[String] = ListBuffer()
     for (i <- 0 to DomainKnowledge.operator_L1.length - 1)
       strop += DomainKnowledge.operator_L1(i)._2
@@ -36,7 +36,6 @@ class AbstractStencil(val name : String, val datatype : String, val matlength1 :
           stlength = 27; storestencil = 1; weakform = "grad(v_())*grad(w_())"; Array[Double]()
         case _ => Array[Double]()
       }
-    // }
 
     if (name.equals("RestrictionStencil")) {
 
@@ -79,12 +78,14 @@ class AbstractStencil(val name : String, val datatype : String, val matlength1 :
       zs = DomainKnowledge.zsize_L2.getOrElse(1)
     }
 
-    if ((matlength1.toInt == 1) && (matlength2.toInt == 1))
-      stencilbuf += new ImplStencil(name, "", DomainKnowledge.transform_datatype_cpp(datatype), xs, ys, zs, stlength, entries, weakform, DomainKnowledge.rule_addpoints(location))
-    else
-      for (i <- 0 to matlength1.toInt * matlength2.toInt - 1)
-        stencilbuf += new ImplStencil(name + s"_${i}", s"${i}", DomainKnowledge.transform_datatype_cpp(datatype), xs, ys, zs, stlength, entries, weakform, DomainKnowledge.rule_addpoints(location))
-
-    return stencilbuf
+    if ((matlength1.toInt == 1) && (matlength2.toInt == 1)) {
+      var stencil = new Stencil(name)
+      for (i <- 0 until stlength)
+        stencil.entries += StencilEntry(new MultiIndex(IdxKnowledge.StencilToidx(Knowledge.dimensionality, stlength)(i).toArray), entries(i))
+      return stencil
+    } else {
+      println("FIXME: not implemented")
+      new Stencil("FIXME")
+    }
   }
 }

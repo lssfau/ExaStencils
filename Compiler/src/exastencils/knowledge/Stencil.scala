@@ -23,7 +23,7 @@ case class StencilConvolution(var stencil : Stencil, var field : Field, var targ
 
   def expand(collector : StackCollector) : Expression = {
     stencil.entries.map(e =>
-      e.weight * (new FieldAccess("curFragment.", field, 0, new MultiIndex(targetIdx, e.offset, _ + _))). /*FIXME*/ expand(new StackCollector))
+      e.weight.cpp * (new FieldAccess("curFragment.", field, 0, new MultiIndex(targetIdx, e.offset, _ + _))). /*FIXME*/ expand(new StackCollector))
       .toArray[Expression].reduceLeft(_ + _)
   }
 }

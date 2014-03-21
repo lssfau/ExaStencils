@@ -165,7 +165,7 @@ case class AbstractLet(var id : String, var expr : AbstractExpression, var modif
       }
 
     for (e <- TreeManager.tree.Stencils)
-      if (e.name.equals(id)) {
+      if (e.identifier.equals(id)) {
         ti = new TypeInfo(id, 2)
         levstr = new NullExpression
       }
@@ -223,7 +223,7 @@ case class AbstractPLet(var id : String, val expr : AbstractExpression, modifier
         }
       }
     for (e <- TreeManager.tree.Stencils)
-      if (e.name.equals(id))
+      if (e.identifier.equals(id))
         ti = new TypeInfo(id, 2)
 
     for (e <- scopeparas)

@@ -28,7 +28,7 @@ case class AbstractBinaryOp(operator : BinaryOperators.Value, left : AbstractExp
       left match {
         case AbstractVariable(id1, l1) => {
           for (e1 <- TreeManager.tree.Stencils)
-            if (e1.name.equals(id1))
+            if (e1.identifier.equals(id1))
               right match {
                 case AbstractVariable(id2, l2) => {
                   val levstr = l2.transform(scopeparas, modifier, scopetype)
@@ -40,19 +40,14 @@ case class AbstractBinaryOp(operator : BinaryOperators.Value, left : AbstractExp
                     case "f"        => fieldCollection.getFieldByIdentifier("RHS", levstr.cpp.toInt).get
                   }
 
-                  // transform stencil into new format
-                  var stencil = new Stencil(e1.name)
-                  for (i <- 0 until e1.length)
-                    stencil.entries += StencilEntry(new MultiIndex(IdxKnowledge.StencilToidx(Knowledge.dimensionality, e1.length)(i).toArray), e1.entries(i)) // s"$id1[0].entries[$i]")
-
                   if (modifier.getOrElse("").equals("ToCoarse")) {
-                    var conv = StencilConvolution(stencil, field, new MultiIndex(DimArray().map(i => (2 * (dimToString(i) : Expression)) : Expression)))
+                    var conv = StencilConvolution(e1, field, new MultiIndex(DimArray().map(i => (2 * (dimToString(i) : Expression)) : Expression)))
                     return conv.expand(new StackCollector).cpp
                   } else if (modifier.getOrElse("").equals("ToFine")) {
-                    var conv = StencilConvolution(stencil, field, new MultiIndex(DimArray().map(i => ((dimToString(i) : Expression) / 2) : Expression)))
+                    var conv = StencilConvolution(e1, field, new MultiIndex(DimArray().map(i => ((dimToString(i) : Expression) / 2) : Expression)))
                     return conv.expand(new StackCollector).cpp
                   } else {
-                    var conv = StencilConvolution(stencil, field)
+                    var conv = StencilConvolution(e1, field)
                     return conv.expand(new StackCollector).cpp
                   }
                 }
@@ -91,11 +86,11 @@ case class AbstractFCall(fname : String, arglist : List[AbstractExpression]) ext
       if (DomainKnowledge.use_gpu) {
         var curStencil = TreeManager.tree.Stencils(0)
 
-        return new StringLiteral(s"${curStencil.entries(0)}") // DataClasses.generateStencilConvolutioncuda(1,args(0).toString_cpp,"", "")
+        return new StringLiteral(curStencil.entries(0).weight.cpp) // DataClasses.generateStencilConvolutioncuda(1,args(0).toString_cpp,"", "")
       } else {
         // FIXME: this is only a quick hack necessary because the new stencil structure is not available here 
         var curStencil = TreeManager.tree.Stencils(0)
-        return new StringLiteral(s"${curStencil.entries(0)}")
+        return new StringLiteral(curStencil.entries(0).weight.cpp)
 
         //return new MemberFunctionCallExpression(args(0).cpp, fname, new ListBuffer[Expression])
       }
@@ -175,7 +170,7 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
       }
 
     for (e <- TreeManager.tree.Stencils)
-      if (e.name.equals(id)) {
+      if (e.identifier.equals(id)) {
         if ("statement" == scopetype || "expression" == scopetype)
           return id ~ "[0]" ~ "(Matrix (i0,i1))"
         else
@@ -208,7 +203,7 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
       if (e.name.equals(id))
         return ListBuffer(id)
     for (e <- TreeManager.tree.Stencils)
-      if (e.name.equals(id))
+      if (e.identifier.equals(id))
         return ListBuffer(id)
     return ListBuffer()
   }
