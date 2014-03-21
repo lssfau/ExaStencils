@@ -172,7 +172,7 @@ case class AbstractLet(var id : String, var expr : AbstractExpression, var modif
 
     for (e <- scopeparas)
       if (e.name.equals(id))
-        if (e.dtype.startsWith(TreeManager.tree.ExternalClasses.get("Array").get.name) || e.dtype.startsWith("Container")) {
+        if (e.dtype.startsWith("Container")) {
           ti = new TypeInfo(id, 1)
           levstr = new NullExpression
         }
@@ -228,7 +228,7 @@ case class AbstractPLet(var id : String, val expr : AbstractExpression, modifier
 
     for (e <- scopeparas)
       if (e.name.equals(id))
-        if (e.dtype.startsWith(TreeManager.tree.ExternalClasses.get("Array").get.name) || e.dtype.startsWith("Container"))
+        if (e.dtype.startsWith("Container"))
           ti = new TypeInfo(id, 1)
 
     var ret : ListBuffer[Statement] = ListBuffer()

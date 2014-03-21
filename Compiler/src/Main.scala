@@ -14,8 +14,6 @@ import harald.Parser._
 import harald.dsl._
 import harald.Generate._
 import harald.ast._
-import harald.expert._
-import harald.pretty._
 import exastencils.spl.FeatureModel
 
 object Main {
@@ -166,8 +164,8 @@ object Main {
     for (e <- TreeManager.tree.exaFunctions)
       mgNode.functions_HACK += e.transformToIR
 
-    val exadsl = new PrettyPrinter(TreeManager.tree)
-    exadsl.prettycpp(libpath, outputfile)
+    //val exadsl = new PrettyPrinter(TreeManager.tree)
+    //exadsl.prettycpp(libpath, outputfile)
 
     // Strategies
 
