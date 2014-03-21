@@ -76,7 +76,8 @@ class GenerateL4(treel2 : TreeL2) {
       writer.write(s"\n")
     }
 
-    if (location.equals("gpu")) {
+    /* DISABLED MG FUNCTION      
+     if (location.equals("gpu")) {
       writer.write(s"def cpu L2Residual ( lev:Int ) : Double \n")
       writer.write(s"{ \n")
       writer.write(s" Residual ( lev ) \n")
@@ -110,7 +111,7 @@ class GenerateL4(treel2 : TreeL2) {
         writer.write(s"    next  \n")
         writer.write(s"}  \n")
       }
-    }
+    }*/
 
     if (SmootherType.GS == Knowledge.mg_smoother) {
       for (lev <- 0 to Knowledge.maxLevel) {

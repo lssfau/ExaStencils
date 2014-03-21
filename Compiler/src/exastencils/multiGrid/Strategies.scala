@@ -21,6 +21,7 @@ object SetupMultiGrid extends Strategy("Setting up multi-grid") {
   val fieldCollection = StateManager.findFirst[FieldCollection]().get;
   this += new Transformation("Adding specialized functions to multi-grid", {
     case mg : MultiGrid =>
+      /* DISABLED MG FUNCTION      
       for (level <- 0 to Knowledge.maxLevel) {
         // FIXME: choice by enum
         mg.functions_HACK += new PerformSmoothing(
@@ -42,9 +43,10 @@ object SetupMultiGrid extends Strategy("Setting up multi-grid") {
         mg.functions_HACK += new SetSolZero(
           fieldCollection.getFieldByIdentifier("Solution", level).get,
           level);
-      }
+      }*/
       mg.functions_HACK += new GetGlobalResidual(
         fieldCollection.getFieldByIdentifier("Residual", Knowledge.maxLevel).get);
+
       Some(mg);
   });
 }
