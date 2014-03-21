@@ -12,28 +12,13 @@ case class TreeL2() extends Node {
   val exaFields: ListBuffer[AbstractField] = new ListBuffer()
   val exaOperators: ListBuffer[AbstractStencil] = new ListBuffer()
 
-  val Fields: ListBuffer[ImplField] = new ListBuffer()
-  val GhostFields: ListBuffer[ImplField] = new ListBuffer()
   val Stencils: ListBuffer[ImplStencil] = new ListBuffer()
 
-  def isinFields(s : String) : Boolean = {
-    for (f <- Fields)
-      if (f.name.equals(s))
-        return true
-    return false    
-  }
-  
    // transformations
   def transformStencils {
     Stencils.clear
     for (e <- exaOperators)
       Stencils ++= e.transform
-  }
-
-  def transformFields {
-    Fields.clear
-    for (e <- exaFields)
-      Fields ++= e.transform
   }
 
   val exaFunctions: ListBuffer[AbstractFunction] = new ListBuffer()

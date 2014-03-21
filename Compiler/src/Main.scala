@@ -142,30 +142,17 @@ object Main {
     val parserl4 = new ParserL4(TreeManager.tree)
     parserl4.parse(DSLl4)
 
-    TreeManager.tree.transformFields
     TreeManager.tree.transformStencils
 
     val discr = new Discretization(TreeManager.tree)
     discr.generatediscretization
 
-    DomainKnowledge.setglobalvariables
     val tfl2 = new TransformL2(TreeManager.tree)
     tfl2.setglobalobjects
-
-    /*var transformTree = new Strategy("Transforming tree");
-    transformTree += new Transformation("Transforming functions", {
-      case tree : TreeL2 =>
-        tree.transformFunctions
-        Some(tree);
-    });
-    transformTree.apply;*/
 
     var mgNode = StateManager.findFirst[MultiGrid]().get;
     for (e <- TreeManager.tree.exaFunctions)
       mgNode.functions_HACK += e.transformToIR
-
-    //val exadsl = new PrettyPrinter(TreeManager.tree)
-    //exadsl.prettycpp(libpath, outputfile)
 
     // Strategies
 

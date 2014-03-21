@@ -143,7 +143,7 @@ case class AbstractLet(var id : String, var expr : AbstractExpression, var modif
     var ti : TypeInfo = new TypeInfo(id, 0)
     var levstr : Expression = new NullExpression
 
-    for (e <- TreeManager.tree.Fields)
+    for (e <- TreeManager.tree.exaFields)
       if (e.name.equals(id)) {
         ti = new TypeInfo(id, 1)
         levstr = if (level.isDefined) (new StringLiteral(level.get.toString)) else "lev"
@@ -200,7 +200,7 @@ case class AbstractLet(var id : String, var expr : AbstractExpression, var modif
 case class AbstractPLet(var id : String, val expr : AbstractExpression, modifier : Option[String], level : Option[Int]) extends AbstractStatement {
   override def transform(scopeparas : ListBuffer[ParameterInfo]) : ListBuffer[Statement] = {
     var ti : TypeInfo = new TypeInfo(id, 0)
-    for (e <- TreeManager.tree.Fields)
+    for (e <- TreeManager.tree.exaFields)
       if (e.name.equals(id)) {
         ti = new TypeInfo(id, 1)
 

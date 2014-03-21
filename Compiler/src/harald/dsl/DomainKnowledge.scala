@@ -65,9 +65,6 @@ object DomainKnowledge extends ExaKnowledge {
 
   var CUDA_BLOCKSIZE : ListBuffer[Int] = ListBuffer(16, 16)
 
-  var global_variables : ListBuffer[ParameterInfo] = ListBuffer()
-  var global_fields : ListBuffer[ImplField] = new ListBuffer()
-  var global_ghost_fields : ListBuffer[ImplField] = new ListBuffer()
   var global_stencils : ListBuffer[ImplStencil] = new ListBuffer()
 
   case class StencilKnowledge(val domain : String, val distype : String, val order : String, val operators : ListBuffer[String])
@@ -175,31 +172,6 @@ object DomainKnowledge extends ExaKnowledge {
         new Face(List(e(3), e(4), e(9), e(10)), List(v(1), v(4), v(5), v(7))), new Face(List(e(1), e(2), e(6), e(8)), List(v(0), v(2), v(3), v(6))))
 
       fragments += new Fragment(f, e, v)
-    }
-
-  }
-
-  def setglobalvariables() {
-
-    global_variables += new ParameterInfo("xsize", "int", DomainKnowledge.xsize_L2.getOrElse(1))
-    global_variables += new ParameterInfo("ysize", "int", DomainKnowledge.ysize_L2.getOrElse(1))
-    if (DomainKnowledge.rule_dim() == 3)
-      global_variables += new ParameterInfo("zsize", "int", DomainKnowledge.zsize_L2.getOrElse(1))
-    global_variables += new ParameterInfo("nprae", "int", Knowledge.mg_smoother_numPre)
-    global_variables += new ParameterInfo("npost", "int", Knowledge.mg_smoother_numPost)
-    global_variables += new ParameterInfo("ncoarse", "int", Knowledge.mg_cgs_numSteps)
-    global_variables += new ParameterInfo("nlevels", "int", Knowledge.numLevels)
-    global_variables += new ParameterInfo("omega", "double", Knowledge.mg_smoother_omega./* FIXME: WTF? toString.*/toInt)
-
-    if (DomainKnowledge.nodes_HW.get > 1) {
-      global_variables += new ParameterInfo("rank", "int", 0)
-      global_variables += new ParameterInfo("noprocesses", "int", DomainKnowledge.nodes_HW.get, "")
-      global_variables += new ParameterInfo("COMM_CART", "MPI_Comm")
-      global_variables += new ParameterInfo(s"Pdims[${DomainKnowledge.rule_dim()}]", "int")
-      global_variables += new ParameterInfo(s"Pcoords[${DomainKnowledge.rule_dim()}]", "int")
-      val neighbors = DomainKnowledge.rule_dim() * 2
-      global_variables += new ParameterInfo(s"Pnb[${neighbors}]", "int")
-
     }
 
   }

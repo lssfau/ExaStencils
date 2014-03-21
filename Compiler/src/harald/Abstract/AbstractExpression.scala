@@ -138,7 +138,7 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
   override def transform(scopeparas : ListBuffer[ParameterInfo], modifier : Option[String], scopetype : String) : Expression = {
 
     var ti : TypeInfo = new TypeInfo(id, 0)
-    for (e <- TreeManager.tree.Fields)
+    for (e <- TreeManager.tree.exaFields)
       if (e.name.equals(id)) {
         // COMM_HACK
         return id match {
@@ -204,7 +204,7 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
   }
 
   override def getvariables : ListBuffer[String] = {
-    for (e <- TreeManager.tree.Fields)
+    for (e <- TreeManager.tree.exaFields)
       if (e.name.equals(id))
         return ListBuffer(id)
     for (e <- TreeManager.tree.Stencils)
