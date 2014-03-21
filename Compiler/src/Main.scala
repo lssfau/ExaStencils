@@ -51,6 +51,7 @@ object Main {
 
       // MultiGrid
       new MultiGrid,
+      new StencilCollection,
 
       // Domain
       new DomainGenerated,
@@ -142,7 +143,9 @@ object Main {
     val parserl4 = new ParserL4(TreeManager.tree)
     parserl4.parse(DSLl4)
 
-    TreeManager.tree.transformStencils
+    var stencilCollection = StateManager.findFirst[StencilCollection]().get
+    for (e <- TreeManager.tree.exaOperators)
+      stencilCollection.stencils += e.transform
 
     val discr = new Discretization(TreeManager.tree)
     discr.generatediscretization

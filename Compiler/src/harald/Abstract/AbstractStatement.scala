@@ -164,8 +164,8 @@ case class AbstractLet(var id : String, var expr : AbstractExpression, var modif
         }
       }
 
-    for (e <- TreeManager.tree.Stencils)
-      if (e.identifier.equals(id)) {
+    for (e <- TreeManager.tree.exaOperators)
+      if (e.name.equals(id)) {
         ti = new TypeInfo(id, 2)
         levstr = new NullExpression
       }
@@ -222,8 +222,8 @@ case class AbstractPLet(var id : String, val expr : AbstractExpression, modifier
             return ListBuffer[Statement](new AssignmentStatement(id ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression"), "+="))
         }
       }
-    for (e <- TreeManager.tree.Stencils)
-      if (e.identifier.equals(id))
+    for (e <- TreeManager.tree.exaOperators)
+      if (e.name.equals(id))
         ti = new TypeInfo(id, 2)
 
     for (e <- scopeparas)

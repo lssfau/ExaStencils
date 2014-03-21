@@ -12,16 +12,6 @@ import exastencils.knowledge._
 case class TreeL2() extends Node {
   val exaFields: ListBuffer[AbstractField] = new ListBuffer()
   val exaOperators: ListBuffer[AbstractStencil] = new ListBuffer()
-
-  val Stencils: ListBuffer[Stencil] = new ListBuffer()
-
-   // transformations
-  def transformStencils {
-    Stencils.clear
-    for (e <- exaOperators)
-      Stencils += e.transform
-  }
-
   val exaFunctions: ListBuffer[AbstractFunction] = new ListBuffer()
   val exaClasses: ListBuffer[AbstractClass] = new ListBuffer()
   val exaDefinitions: ListBuffer[AbstractDefinition] = new ListBuffer()

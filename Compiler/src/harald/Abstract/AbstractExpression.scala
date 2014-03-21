@@ -27,32 +27,36 @@ case class AbstractBinaryOp(operator : BinaryOperators.Value, left : AbstractExp
     if (operator == BinaryOperators.Multiplication)
       left match {
         case AbstractVariable(id1, l1) => {
-          for (e1 <- TreeManager.tree.Stencils)
-            if (e1.identifier.equals(id1))
-              right match {
-                case AbstractVariable(id2, l2) => {
-                  val levstr = l2.transform(scopeparas, modifier, scopetype)
-                  val fieldCollection = StateManager.findFirst[FieldCollection]().get
+          val stencilCollection = StateManager.findFirst[StencilCollection]().get
 
-                  val field : Field = id2 match {
-                    case "solution" => fieldCollection.getFieldByIdentifier("Solution", levstr.cpp.toInt).get
-                    case "Res"      => fieldCollection.getFieldByIdentifier("Residual", levstr.cpp.toInt).get
-                    case "f"        => fieldCollection.getFieldByIdentifier("RHS", levstr.cpp.toInt).get
-                  }
+          if (stencilCollection.getStencilByIdentifier(id1).isDefined) {
+            val stencil = stencilCollection.getStencilByIdentifier(id1).get
 
-                  if (modifier.getOrElse("").equals("ToCoarse")) {
-                    var conv = StencilConvolution(e1, field, new MultiIndex(DimArray().map(i => (2 * (dimToString(i) : Expression)) : Expression)))
-                    return conv.expand(new StackCollector).cpp
-                  } else if (modifier.getOrElse("").equals("ToFine")) {
-                    var conv = StencilConvolution(e1, field, new MultiIndex(DimArray().map(i => ((dimToString(i) : Expression) / 2) : Expression)))
-                    return conv.expand(new StackCollector).cpp
-                  } else {
-                    var conv = StencilConvolution(e1, field)
-                    return conv.expand(new StackCollector).cpp
-                  }
+            right match {
+              case AbstractVariable(id2, l2) => {
+                val levstr = l2.transform(scopeparas, modifier, scopetype)
+                val fieldCollection = StateManager.findFirst[FieldCollection]().get
+
+                val field : Field = id2 match {
+                  case "solution" => fieldCollection.getFieldByIdentifier("Solution", levstr.cpp.toInt).get
+                  case "Res"      => fieldCollection.getFieldByIdentifier("Residual", levstr.cpp.toInt).get
+                  case "f"        => fieldCollection.getFieldByIdentifier("RHS", levstr.cpp.toInt).get
                 }
-                case _ =>
+
+                if (modifier.getOrElse("").equals("ToCoarse")) {
+                  var conv = StencilConvolution(stencil, field, new MultiIndex(DimArray().map(i => (2 * (dimToString(i) : Expression)) : Expression)))
+                  return conv.expand(new StackCollector).cpp
+                } else if (modifier.getOrElse("").equals("ToFine")) {
+                  var conv = StencilConvolution(stencil, field, new MultiIndex(DimArray().map(i => ((dimToString(i) : Expression) / 2) : Expression)))
+                  return conv.expand(new StackCollector).cpp
+                } else {
+                  var conv = StencilConvolution(stencil, field)
+                  return conv.expand(new StackCollector).cpp
+                }
               }
+              case _ =>
+            }
+          }
         }
         case _ =>
       }
@@ -82,18 +86,9 @@ case class AbstractFCall(fname : String, arglist : List[AbstractExpression]) ext
     }
 
     if (fname.equals("diag")) {
-
-      if (DomainKnowledge.use_gpu) {
-        var curStencil = TreeManager.tree.Stencils(0)
-
-        return new StringLiteral(curStencil.entries(0).weight.cpp) // DataClasses.generateStencilConvolutioncuda(1,args(0).toString_cpp,"", "")
-      } else {
-        // FIXME: this is only a quick hack necessary because the new stencil structure is not available here 
-        var curStencil = TreeManager.tree.Stencils(0)
-        return new StringLiteral(curStencil.entries(0).weight.cpp)
-
-        //return new MemberFunctionCallExpression(args(0).cpp, fname, new ListBuffer[Expression])
-      }
+      var stencilCollection = StateManager.findFirst[StencilCollection]().get
+      var curStencil = stencilCollection.getStencilByIdentifier(arglist(0).toString.substring(0, arglist(0).toString.size - 2) /* FIXME: avoid stripping level usage */ ).get
+      return new StringLiteral(curStencil.entries(0).weight.cpp)
     }
     if (fname.equals("random"))
       return new StringLiteral("(rand()/static_cast<double>(RAND_MAX))*" + args(0).cpp) // TODO
@@ -169,8 +164,8 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
         }
       }
 
-    for (e <- TreeManager.tree.Stencils)
-      if (e.identifier.equals(id)) {
+    for (e <- TreeManager.tree.exaOperators)
+      if (e.name.equals(id)) {
         if ("statement" == scopetype || "expression" == scopetype)
           return id ~ "[0]" ~ "(Matrix (i0,i1))"
         else
@@ -202,8 +197,8 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
     for (e <- TreeManager.tree.exaFields)
       if (e.name.equals(id))
         return ListBuffer(id)
-    for (e <- TreeManager.tree.Stencils)
-      if (e.identifier.equals(id))
+    for (e <- TreeManager.tree.exaOperators)
+      if (e.name.equals(id))
         return ListBuffer(id)
     return ListBuffer()
   }
