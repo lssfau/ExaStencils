@@ -142,7 +142,7 @@ class Discretization(treel2 : TreeL2) {
           if (DomainKnowledge.rule_dim == 3)
             s += "}\n"
 
-          treel2.Functions += "setdiscretizationFE" -> new ImplFunction("setdiscretizationFE", "void", ListBuffer(new ParameterInfo("lev", "int")), ListBuffer(new StringLiteral(s)),Map(), "cpu")
+          //FIXME treel2.Functions += "setdiscretizationFE" -> new ImplFunction("setdiscretizationFE", "void", ListBuffer(new ParameterInfo("lev", "int")), ListBuffer(new StringLiteral(s)),Map(), "cpu")
         }
 
   }

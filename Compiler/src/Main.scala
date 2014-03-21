@@ -154,15 +154,17 @@ object Main {
     val tfl2 = new TransformL2(TreeManager.tree)
     tfl2.setglobalobjects
 
-    var transformTree = new Strategy("Transforming tree");
+    /*var transformTree = new Strategy("Transforming tree");
     transformTree += new Transformation("Transforming functions", {
       case tree : TreeL2 =>
         tree.transformFunctions
         Some(tree);
     });
-    transformTree.apply;
+    transformTree.apply;*/
 
-    InitExternalFunctions.apply;
+    var mgNode = StateManager.findFirst[MultiGrid]().get;
+    for (e <- TreeManager.tree.exaFunctions)
+      mgNode.functions_HACK += e.transformToIR
 
     val exadsl = new PrettyPrinter(TreeManager.tree)
     exadsl.prettycpp(libpath, outputfile)

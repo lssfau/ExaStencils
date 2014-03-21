@@ -136,31 +136,14 @@ case class ImplPcall(obj : String, name : String, paramlist : ListBuffer[Express
       }
       //    return name + " ( " + paramlist.mkString(",") + ");\n"
 
-      var location = ""
-      for (f <- TreeManager.tree.Functions)
-        if (f._2.name.equals(name))
-          location = f._2.location
-
-      // COMM_HACK
-      if ("" == location) location = "cpu"
-
       var s = ""
 
-      if (location.equals("cpu")) {
-        s = objs + name + " ( "
-        if (paramlist.length > 0)
-          s = s + paramlist(0).cpp
-        for (i <- 1 to paramlist.length - 1)
-          s = s + "," + paramlist(i).cpp
-        return s + ");\n"
-      } else {
-        s = objs + name + "<<<dimgrid,dimblock>>> ( "
-        if (paramlist.length > 0)
-          s = s + paramlist(0).cpp
-        for (i <- 1 to paramlist.length - 1)
-          s = s + "," + paramlist(i).cpp
-        return s + ");\n"
-      }
+      s = objs + name + " ( "
+      if (paramlist.length > 0)
+        s = s + paramlist(0).cpp
+      for (i <- 1 to paramlist.length - 1)
+        s = s + "," + paramlist(i).cpp
+      return s + ");\n"
     }
 
   def evaluate {}

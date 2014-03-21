@@ -61,7 +61,7 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
 
     globals.variables += new VariableDeclarationStatement(new VariableAccess(s"fragments[${Knowledge.domain_numFragsPerBlock}]", Some("Fragment3DCube*")));
 
-    new FunctionStatement("int", "main" /*FIXME*/ + "2", ListBuffer(VariableAccess("argc", Some("int")), VariableAccess("argv", Some("char**"))),
+    new FunctionStatement("int", "main", ListBuffer(VariableAccess("argc", Some("int")), VariableAccess("argv", Some("char**"))),
       ListBuffer[Statement](
         new MPI_Init,
         new MPI_SetRankAndSize,
@@ -163,8 +163,12 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
           s"std::cout << std::endl;"),
 
         // FIXME: free primitives
-        new MPI_Finalize,
         */
+
+        "Application();", // TODO: think about inlining the App
+
+        new MPI_Finalize,
+
         s"return 0;"));
   }
 }
@@ -175,8 +179,8 @@ case class Poisson3D() extends Node with FilePrettyPrintable {
 
   override def printToFile = {
     // FIXME: cpp instead of include
-    val writer = PrettyprintingManager.getPrinter(s"Poisson3D.h");
-    //val writer = PrettyprintingManager.getPrinter(s"Poisson3D.cpp");
+    //val writer = PrettyprintingManager.getPrinter(s"Poisson3D.h");
+    val writer = PrettyprintingManager.getPrinter(s"Poisson3D.cpp");
 
     writer << (
       "#pragma warning(disable : 4800)\n"

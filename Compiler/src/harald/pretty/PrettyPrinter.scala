@@ -36,28 +36,6 @@ class PrettyPrinter(treel2 : TreeL2) {
     writerHeader <<< "#include \"Primitives/Fragment3DCube.h\""
     writerHeader <<< "#include \"Globals/Globals.h\""
     writerHeader <<< "#include \"Primitives/CommunicationFunctions.h\""
-    for (func <- treel2.Functions) {
-      writerHeader <<< func._2.toString_cpp_signature;
-
-      val writerSource = PrettyprintingManager.getPrinter(s"Functions_$i.cpp");
-      writerSource <<< "#include \"Functions.h\"";
-
-      writerSource <<< func._2.toString_cpp;
-
-      i += 1;
-    }
-    for (func <- treel2.extfunctions) {
-      if ("Main" != func._1) {
-        writerHeader <<< func._2.toString_cpp_signature;
-
-        val writerSource = PrettyprintingManager.getPrinter(s"Functions_$i.cpp");
-        writerSource <<< "#include \"Functions.h\"";
-
-        writerSource <<< func._2.toString_cpp;
-
-        i += 1;
-      }
-    }
     writerHeader <<< "#endif"
 
     val writer = PrettyprintingManager.getPrinter(fname)
@@ -82,10 +60,6 @@ class PrettyPrinter(treel2 : TreeL2) {
 
     writer.write("\n")
 
-    // BAD HACK
-    writer <<< "#include \"Poisson3D.h\"";
-    treel2.extfunctions.get("Main").get.body = ListBuffer[Statement](new StringLiteral("main2(argc, argv);\n")) ++ treel2.extfunctions.get("Main").get.body;
-
     // library classes
     writer.write(extlib)
     writer.write("\n")
@@ -97,8 +71,6 @@ class PrettyPrinter(treel2 : TreeL2) {
       writer.write(extlibmpi)
       writer.write("\n")
     }
-
-    writer.write(treel2.extfunctions.get("Main").get.toString_cpp)
 
     writer.close()
   }
