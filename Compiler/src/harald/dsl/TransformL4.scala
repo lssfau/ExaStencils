@@ -4,17 +4,6 @@ import scala.collection.mutable.ListBuffer
 import harald.Abstract._
 import harald.ast.TreeL2
 
-class TransformL4(treel2 : TreeL2) {
-
-  def assignGlobalDefines {
-    /*  
-  	  for (e <- exaDefinitions) {
-  	   GlobalDefines += e.transform
-  	  }
-	 */
-  }
-}
-
 /*
   class Node(parent: Node) {
     var childs: ListBuffer[Node] = new ListBuffer()

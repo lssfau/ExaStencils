@@ -39,6 +39,4 @@ case class TreeL2() extends Node {
   val exaFunctions: ListBuffer[AbstractFunction] = new ListBuffer()
   val exaClasses: ListBuffer[AbstractClass] = new ListBuffer()
   val exaDefinitions: ListBuffer[AbstractDefinition] = new ListBuffer()
-
-  var GlobalDefines: collection.mutable.Map[String, ParameterInfo] = collection.mutable.Map()
 }
