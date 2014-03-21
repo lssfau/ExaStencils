@@ -147,13 +147,7 @@ object Main {
     for (e <- TreeManager.tree.exaOperators)
       stencilCollection.stencils += e.transform
 
-    val discr = new Discretization(TreeManager.tree)
-    discr.generatediscretization
-
-    val tfl2 = new TransformL2(TreeManager.tree)
-    tfl2.setglobalobjects
-
-    var mgNode = StateManager.findFirst[MultiGrid]().get;
+     var mgNode = StateManager.findFirst[MultiGrid]().get;
     for (e <- TreeManager.tree.exaFunctions)
       mgNode.functions_HACK += e.transformToIR
 
