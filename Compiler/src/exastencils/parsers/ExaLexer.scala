@@ -14,10 +14,10 @@ class ExaLexer extends StdLexical {
   override def token : Parser[Token] = floatingToken | super.token
 
   def floatingToken : Parser[Token] =
-    optSign ~ rep1(digit) ~ optFraction ~ optExponent ^^
+    /*optSign ~*/ rep1(digit) ~ optFraction ~ optExponent ^^
       {
-        case optSign ~ intPart ~ frac ~ exp => NumericLit(
-          optSign :: (intPart mkString "") :: frac :: exp :: Nil mkString "")
+        case /*optSign ~*/ intPart ~ frac ~ exp => NumericLit(
+          /*optSign ::*/ (intPart mkString "") :: frac :: exp :: Nil mkString "")
       }
   def chr(c : Char) = elem("", ch => ch == c)
   def sign = chr('+') | chr('-')

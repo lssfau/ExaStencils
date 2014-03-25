@@ -12,7 +12,8 @@ def somefunction(s : String, i : Integer, r : Real) : Unit {
 
 def VCycle ( lev : Integer ) : Unit 
 { 
-a = 3 * 7 + a + 1 + 5 - 3 - 9
+muh = -3+4-1
+a = 3 * 7 + a + 1 +5-3-9
 b = -9 + hallo()
 d = meck(hallo(), 7, a + b)
 

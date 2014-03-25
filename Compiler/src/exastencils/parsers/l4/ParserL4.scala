@@ -66,7 +66,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     locationize(numericLit ^^ { case l => SingleLevelSpecification(l.toInt) })
     ||| locationize(numericLit ~ "to" ~ numericLit ^^ { case b ~ _ ~ e => RangeLevelSpecification(b.toInt, e.toInt) }))
 
-  lazy val singlelevel = locationize("@" ~> numericLit ^^ { case l => println(l); SingleLevelSpecification(l.toInt) })
+  lazy val singlelevel = locationize("@" ~> numericLit ^^ { case l => SingleLevelSpecification(l.toInt) })
 
   // ######################################
   // ##### Functions
@@ -141,8 +141,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val factor : Parser[Expression] = (
     "(" ~> expression <~ ")"
     | locationize(stringLit ^^ { case s => StringLiteral(s) })
-    | locationize(numericLit ^^ {
-      case n => if (isInt(n)) NumericLiteral(n.toInt) else NumericLiteral(n.toDouble)
+    | locationize("-".? ~ numericLit ^^ {
+      case s ~ n => if (isInt(s.getOrElse("") + n)) NumericLiteral((s.getOrElse("") + n).toInt) else NumericLiteral((s.getOrElse("") + n).toDouble)
     })
     | locationize(booleanLit ^^ { case s => BooleanLiteral(s.toBoolean) })
     | locationize(functionCall)
