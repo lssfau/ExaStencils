@@ -8,7 +8,7 @@ class NeighborInfo(var dir : Array[Int], var index : Int) {
   var label : String = (Knowledge.dimensionality - 1 to 0 by -1).toList.map(i => dimToString(i).toUpperCase + dirToString(dir(i))).mkString("_");
 }
 
-case class IndexRange(begin : MultiIndex = new MultiIndex, end : MultiIndex = new MultiIndex) {}
+case class IndexRange(var begin : MultiIndex = new MultiIndex, var end : MultiIndex = new MultiIndex) {}
 
 object Mapping {
   def resolveMultiIdx(field : Field, index : MultiIndex) : Expression = {

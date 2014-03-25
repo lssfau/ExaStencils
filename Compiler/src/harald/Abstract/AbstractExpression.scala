@@ -44,14 +44,11 @@ case class AbstractBinaryOp(operator : BinaryOperators.Value, left : AbstractExp
                 }
 
                 if (modifier.getOrElse("").equals("ToCoarse")) {
-                  var conv = StencilConvolution(stencil, field, new MultiIndex(DimArray().map(i => (2 * (dimToString(i) : Expression)) : Expression)))
-                  return conv.expand(new StackCollector).cpp
+                  return StencilConvolution(stencil, field, new MultiIndex(DimArray().map(i => (2 * (dimToString(i) : Expression)) : Expression)))
                 } else if (modifier.getOrElse("").equals("ToFine")) {
-                  var conv = StencilConvolution(stencil, field, new MultiIndex(DimArray().map(i => ((dimToString(i) : Expression) / 2) : Expression)))
-                  return conv.expand(new StackCollector).cpp
+                  return StencilConvolution(stencil, field, new MultiIndex(DimArray().map(i => ((dimToString(i) : Expression) / 2) : Expression)))
                 } else {
-                  var conv = StencilConvolution(stencil, field)
-                  return conv.expand(new StackCollector).cpp
+                  return StencilConvolution(stencil, field)
                 }
               }
               case _ =>
@@ -82,16 +79,16 @@ case class AbstractFCall(fname : String, arglist : List[AbstractExpression]) ext
       args += a.transform(scopeparas, modifier, "argument")
 
     if (fname.equals("inverse")) {
-      return new BinaryExpression(BinaryOperators.Division, new StringLiteral(s"${DomainKnowledge.datatype_L2.getOrElse("double")}(1)"), arglist(0).transform(scopeparas, modifier, "argument"))
+      return (1.0 / arglist(0).transform(scopeparas, modifier, "argument"))
     }
 
     if (fname.equals("diag")) {
       var stencilCollection = StateManager.findFirst[StencilCollection]().get
       var curStencil = stencilCollection.getStencilByIdentifier(arglist(0).toString.substring(0, arglist(0).toString.size - 2) /* FIXME: avoid stripping level usage */ ).get
-      return new StringLiteral(curStencil.entries(0).weight.cpp)
+      return curStencil.entries(0).weight
     }
     if (fname.equals("random"))
-      return new StringLiteral("(rand()/static_cast<double>(RAND_MAX))*" + args(0).cpp) // TODO
+      return "(rand()/static_cast<double>(RAND_MAX))" * args(0) // TODO
     if (fname.equals("fasterReduce") && DomainKnowledge.use_gpu)
       return new StringLiteral("fasterReduce (Res[lev].begin(), solution[lev].x1_*solution[lev].x2_, f[lev].begin())") // TODO
 
@@ -105,6 +102,21 @@ case class AbstractLiteral(text : String) extends AbstractExpression {
   override def toString = text
   override def transform(scopeparas : ListBuffer[ParameterInfo], modifier : Option[String], scopetype : String) : Expression = {
     return new StringLiteral(text)
+  }
+}
+
+case class AbstractIntLiteral(value : Long) extends AbstractExpression {
+  override def value(context : Context) = value.toString
+  override def toString = value.toString
+  override def transform(scopeparas : ListBuffer[ParameterInfo], modifier : Option[String], scopetype : String) : Expression = {
+    return new IntegerConstant(value)
+  }
+}
+case class AbstractFloatLiteral(value : Double) extends AbstractExpression {
+  override def value(context : Context) = value.toString
+  override def toString = value.toString
+  override def transform(scopeparas : ListBuffer[ParameterInfo], modifier : Option[String], scopetype : String) : Expression = {
+    return new FloatConstant(value)
   }
 }
 

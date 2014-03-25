@@ -29,14 +29,14 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
 
     for (d <- 0 until Knowledge.dimensionality - 1) {
       wrappedBody = ListBuffer[Statement](new ForLoopStatement(
-        s"int ${dimToString(d)} = ${indices.begin(d).cpp}", s"${dimToString(d)} < ${indices.end(d).cpp}", s"++${dimToString(d)}",
+        s"int ${dimToString(d)} = " ~ indices.begin(d), s"${dimToString(d)} < " ~ indices.end(d), s"++${dimToString(d)}",
         wrappedBody));
     }
     val d = Knowledge.dimensionality - 1;
     if (parallelizable)
-      return new ForLoopStatement(s"int ${dimToString(d)} = ${indices.begin(d).cpp}", s"${dimToString(d)} < ${indices.end(d).cpp}", s"++${dimToString(d)}", wrappedBody, addOMPStatements + " schedule(static)") with OMP_PotentiallyParallel;
+      return new ForLoopStatement(s"int ${dimToString(d)} = " ~ indices.begin(d), s"${dimToString(d)} < " ~ indices.end(d), s"++${dimToString(d)}", wrappedBody, addOMPStatements + " schedule(static)") with OMP_PotentiallyParallel;
     else
-      return new ForLoopStatement(s"int ${dimToString(d)} = ${indices.begin(d).cpp}", s"${dimToString(d)} < ${indices.end(d).cpp}", s"++${dimToString(d)}", wrappedBody);
+      return new ForLoopStatement(s"int ${dimToString(d)} = " ~ indices.begin(d), s"${dimToString(d)} < " ~ indices.end(d), s"++${dimToString(d)}", wrappedBody);
   }
 }
 
@@ -51,11 +51,11 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var createFragRef
     val parallelizable = !Knowledge.domain_summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false });
 
     if (parallelizable)
-      new ForLoopStatement(s"int f = 0", s"f < ${Knowledge.domain_numFragsPerBlock}", s"++f",
+      new ForLoopStatement(s"int f = 0", s"f < " ~ Knowledge.domain_numFragsPerBlock, s"++f",
         (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[f];") else ListBuffer[Statement]())
           ++ body, addOMPStatements + " schedule(static, 1)") with OMP_PotentiallyParallel
     else
-      new ForLoopStatement(s"int f = 0", s"f < ${Knowledge.domain_numFragsPerBlock}", s"++f",
+      new ForLoopStatement(s"int f = 0", s"f < " ~ Knowledge.domain_numFragsPerBlock, s"++f",
         (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[f];") else ListBuffer[Statement]())
           ++ body)
   }
