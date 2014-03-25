@@ -65,8 +65,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ##### Functions
   // ######################################
 
-  lazy val function = locationize(("def" ~> ident) ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}")) ^^
-    { case id ~ args ~ t ~ stmts => FunctionStatement(id, t, args.getOrElse(List[Variable]()), stmts) })
+  lazy val function = locationize(("def" ~> ident) ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ level.? ~ ("{" ~> (statement.* <~ "}")) ^^
+    { case id ~ args ~ t ~ l ~ stmts => FunctionStatement(id, t, l, args.getOrElse(List[Variable]()), stmts) })
   lazy val functionArgumentList = (functionArgument <~ ("," | newline)).* ~ functionArgument ^^ { case args ~ arg => arg :: args }
   lazy val functionArgument = locationize(((ident <~ ":") ~ datatype) ^^ { case id ~ t => Variable(Identifier(id), t) })
   lazy val functionCall = locationize(ident ~ "(" ~ functionCallArgumentList.? ~ ")" ^^ { case id ~ "(" ~ args ~ ")" => FunctionCallExpression(id, args.getOrElse(List[Expression]())) })

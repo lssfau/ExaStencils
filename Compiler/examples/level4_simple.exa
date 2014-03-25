@@ -3,7 +3,7 @@
 Field bla<[0, 0, 0], Real>@(2 to 7, 42, 4 to 5) (bcDir = false, slots=42)
 Field blubb<[0, 0, 0], Real>@7 (bcDir = false, slots=42)
 
-def somefunction(s : String, i : Integer, r : Real) : Unit {
+def somefunction(s : String, i : Integer, r : Real) : Unit @8 {
   var x : String
   var d : Domain
    a=9
