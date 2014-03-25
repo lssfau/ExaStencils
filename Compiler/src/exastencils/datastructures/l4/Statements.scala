@@ -74,7 +74,7 @@ case class FieldDeclarationStatement(name : String, var datatype : Datatype, var
       case "ghostlayers" => ghostlayers = t.value.toInt
       case "padding"     => padding = t.value.toInt
       case "slots"       => slots = t.value.toInt
-      case "bcDir0"      => bcDir0 = t.value.toBoolean
+      case "bcDir"       => bcDir0 = t.value.toBoolean
       case _             => exastencils.core.ERROR(s"Unknown option ${t.key} = ${t.value}")
     }
   }

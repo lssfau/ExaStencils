@@ -3,6 +3,7 @@ package exastencils.parsers.l4
 import exastencils.parsers._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
+import scala.collection.mutable.ListBuffer
 
 class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParsers {
   def parse(s : String) : Node = {
@@ -46,19 +47,19 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   //###########################################################
 
-  lazy val annotation = ("@" ~> ident) ~ ("(" ~> ((ident | numericLit | stringLit | booleanLit) <~ ")")).? ^^
-    { case n ~ v => annos += new Annotation(n, v) }
+  //  lazy val annotation = ("@" ~> ident) ~ ("(" ~> ((ident | numericLit | stringLit | booleanLit) <~ ")")).? ^^
+  //    { case n ~ v => annos += new Annotation(n, v) }
 
   //###########################################################
 
   lazy val program = locationize(field.* ~ function.* ^^ { case f ~ s => Root(f, s) })
 
   lazy val level : Parser[LevelSpecification] = (
-    singlelevel
-    ||| locationize(singlelevel ~ "-" ~ singlelevel ^^ { case b ~ _ ~ e => RangeLevelSpecification(b, e) })
-    ||| locationize(level ~ "," ~ level ^^ { case a ~ _ ~ b => var l = new ListLevelSpecification(a); l.add(b); l }))
+    locationize(("@" ~ "(" ~> numericLit) ~ "-" ~ (numericLit <~ ")") ^^ { case b ~ _ ~ e => RangeLevelSpecification(b.toInt, e.toInt) })
+    ||| locationize("@" ~ "(" ~ (level <~ ",").* ~ level ~ ")" ^^ { case _ ~ _ ~ a ~ b ~ _ => var x = new ListLevelSpecification(); a.foreach(x.add(_)); x.add(b); x })
+    ||| singlelevel)
 
-  lazy val singlelevel = locationize("@" ~> numericLit ^^ { case l => SingleLevelSpecification(l.toInt) })
+  lazy val singlelevel = locationize("@" ~> numericLit ^^ { case l => println(l); SingleLevelSpecification(l.toInt) })
 
   // ######################################
   // ##### Functions
@@ -104,13 +105,17 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val conditional = locationize(("if" ~> booleanexpression) ~ ("{" ~> statement.+ <~ "}") ^^ { case exp ~ stmts => ConditionalStatement(exp, stmts) })
 
-  lazy val field = locationize(("field" ~> ident) ~ ("<" ~> index <~ ",") ~ (datatype <~ ">") ~ level.? ~ "(" ~ (tempOption <~ ",").* ~ tempOption ~ ")"
-    ^^ { case id ~ i ~ t ~ l ~ _ ~ t1 ~ t2 ~ _ => var f = FieldDeclarationStatement(id, t, i, l); t1.foreach(f.set(_)); f.set(t2); f })
+  lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> index <~ ",") ~ (datatype <~ ">") ~ level.? ~ ("(" ~> tempOptions <~ ")").?
+    ^^ { case id ~ i ~ t ~ l ~ topts => var f = FieldDeclarationStatement(id, t, i, l); topts.getOrElse(List()).foreach(f.set(_)); f })
 
-  lazy val index = ("[" ~ numericLit ~ "," ~ numericLit ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ => Index2D(n1.toInt, n2.toInt) }
-    ||| "[" ~ numericLit ~ "," ~ numericLit ~ "," ~ numericLit ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ ~ n3 ~ _ => Index3D(n1.toInt, n2.toInt, n3.toInt) })
+  lazy val index : PackratParser[Index] = (
+    locationize("[" ~ numericLit ~ "," ~ numericLit ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ => Index2D(n1.toInt, n2.toInt) })
+    ||| locationize("[" ~ numericLit ~ "," ~ numericLit ~ "," ~ numericLit ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ ~ n3 ~ _ => Index3D(n1.toInt, n2.toInt, n3.toInt) }))
 
-  lazy val tempOption = locationize(ident ~ "<-" ~ ident ^^ { case a ~ _ ~ b => TempOption(a, b) })
+  lazy val tempOptions : PackratParser[List[TempOption]] = (tempOption <~ ",").* ~ tempOption ^^ { case t1 ~ t2 => t1 :+ t2 }
+  lazy val tempOption = (locationize(ident ~ "=" ~ ident ^^ { case a ~ _ ~ b => TempOption(a, b) })
+    ||| locationize(ident ~ "=" ~ numericLit ^^ { case a ~ _ ~ b => TempOption(a, b) })
+    ||| locationize(ident ~ "=" ~ booleanLit ^^ { case a ~ _ ~ b => TempOption(a, b) }))
 
   // ######################################
   // ##### Expressions

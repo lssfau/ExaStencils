@@ -7,7 +7,7 @@ import scala.util.parsing.combinator.lexical._
   */
 class ExaLexer extends StdLexical {
   // general stuff
-  delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "+=", "|", "[", "]", ",")
+  delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "+=", "|", "[", "]", ",", "<", ">", "@")
 
   reserved += ("true", "false")
 
@@ -62,7 +62,7 @@ class ExaLexer extends StdLexical {
   reserved += ("def", "return")
 
   // declaration keywords
-  reserved += ("var", "Integer", "Real", "String", "Array", "Complex", "Unit", "Domain")
+  reserved += ("var", "Field", "Domain")
 
   // loop keywords
   reserved += ("loop", "over", "domain", "inner", "boundary", "blocksize", "levels")

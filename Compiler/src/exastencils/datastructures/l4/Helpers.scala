@@ -7,7 +7,7 @@ trait LevelSpecification extends Annotatable
 
 case class SingleLevelSpecification(level : Int) extends LevelSpecification
 
-case class RangeLevelSpecification(begin : SingleLevelSpecification, end : SingleLevelSpecification) extends LevelSpecification
+case class RangeLevelSpecification(begin : Int, end : Int) extends LevelSpecification
 
 case class ListLevelSpecification(levels : HashSet[LevelSpecification]) extends LevelSpecification {
   def this() = this(HashSet[LevelSpecification]())

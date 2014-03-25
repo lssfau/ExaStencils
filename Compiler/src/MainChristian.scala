@@ -1,128 +1,179 @@
-import exastencils.datastructures._
 import exastencils.core._
+import exastencils.knowledge._
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
-import exastencils.parsers.l4
-import exastencils.parsers.l4.ParserL4
+import exastencils.datastructures.ir._
+import exastencils.strategies._
+import exastencils.application._
+import exastencils.domain._
+import exastencils.multiGrid._
 import exastencils.primitives._
-import exastencils.datastructures.ir.BooleanLiteral
+import exastencils.util._
+import exastencils.globals._
+import exastencils.prettyprinting.PrettyprintingManager
+import harald.Parser._
+import harald.dsl._
+import harald.Generate._
+import harald.ast._
+import exastencils.spl.FeatureModel
 
 object MainChristian {
-  //  object CountingStrategy extends Strategy("Counting") {
-  //    override def apply : Option[StrategyResult] = {
-  //      var constcount = 0
-  //      var forcount = 0
-  //
-  ////      StateManager.apply(new Transformation({ case x : Constant => constcount += 1; WARN(x); Some(x) }))
-  ////      StateManager.apply(new Transformation({ case a : ForStatement => forcount += 1; Some(a) }))
-  //
-  //      WARN(f"Counted $constcount consts and $forcount fors")
-  //
-  //      null
-  //    }
-  //  }
-
   def main(args : Array[String]) : Unit = {
-    //    val newt = Duplicate(TreeManager.root)
-    //    // annotations copied?
-    //    println("original annotations")
-    //    TreeManager.root.getAnnotations.foreach(a => println(a.name + " <-> " + a.value))
-    //    println("cloned annotations")
-    //    newt.getAnnotations.foreach(a => println(a.name + " <-> " + a.value))
-
-    //    DBG("previous:")
-    //    DBG(StateManager.root)
-    //    
-    //    var replacingStrategy = new Strategy
-    //    replacingStrategy += new Transformation({case x : ConstantExpression if(x.Value == 1) => Some(ConstantExpression(3)) })
-    //    replacingStrategy += new Transformation({case x : ConstantExpression if(x.Value.isInstanceOf[Int]) => Some(ConstantExpression(x.Value.asInstanceOf[Int] * 10)) })
-    //    replacingStrategy.apply
-    //    var absvarStrategy = new Strategy
-    //    absvarStrategy += new Transformation({ case x : Variable => Some(AbstractVariable("j", x.Type)) })
-    //    absvarStrategy.apply
-    //
-    //    DBG("===========================")
-    //    DBG("after:")
-    //    DBG(StateManager.root)
-    //
-    //    StateManager.apply(CountingStrategy)
-
-    //    val p4 = new ParserL4
-    //    val result = p4.parseFile("/scratch-local/schmittch/ExaStencils/ScalaExaStencil/Compiler/examples/level4_simple.exa")
-    //    
-    //    StateManager.root_ = result
-    //
-    //    
-    //    println(StateManager.root_)
-    //    var replacingStrategy = new Strategy("replacing")
-    //    replacingStrategy += new Transformation("replace", { case x : BinaryExpression => println(x); Some(BinaryExpression("XXX", Constant(0), Constant(0))) }, false)
-    //    replacingStrategy.apply
-    //    println(StateManager.root_)
-    //    
-    //    var positionStrategy = new Strategy("PositionStrategy")
-    //    positionStrategy += new Transformation({case x : Annotatable => x.getAnnotations.foreach(a => println(x + " " + a.name + " - " + a.value)); Some(x) })
-    //    //positionStrategy.apply
     
-    
-//    case class MapNode(var x: scala.collection.mutable.Map[String, Node]) extends Node
-//    
-//    StateManager.root_ = MapNode(scala.collection.mutable.Map(("bla", BooleanLiteral(true)), ("bla2", StringLiteral("bla2-stringlit")), ("bla3", BooleanLiteral(true))))
-//    println(StateManager.root_)
-//    println("eq: " + (StateManager.root_ eq StateManager.root_))
-//    val duplicated = Duplicate(StateManager.root_)
-//    println("eq0: " + (StateManager.root_ eq duplicated))
-//    println("eq1: " + (StateManager.root_.asInstanceOf[MapNode].x("bla") eq duplicated.asInstanceOf[MapNode].x("bla")))
-//    
-//    duplicated.asInstanceOf[MapNode].x("bla2") = BooleanLiteral(false)
-//    println(StateManager.root_)
-//    println(duplicated)
-    
-//    
-//    val mapnodestrat = Strategy("mapnodestrat")
-//    mapnodestrat += Transformation("s1", { case x: BooleanLiteral => println(x); BooleanLiteral(false) })
-//    mapnodestrat.apply
-//    println(StateManager.root_)
-//        
-//    sys.exit
-//
-//    import exastencils.datastructures.Transformation._
-//    val x = new Output(new exastencils.datastructures.ir.BooleanLiteral(true))
-//    val y = new Output(List(exastencils.datastructures.ir.BooleanLiteral(true)))
-//    println(y)
-//    
-//    y.inner match {
-//      case x : Node => println("node")
-//      case x : List[_] => println("list")
-//      case _ => println("anderes")
-//    }
-//    
-//    sys.exit
-//    
-//    val s = new exastencils.parsers.settings.ParserSettings
-//    s.parseFile(args(0))
-//    
-//    val k = new exastencils.parsers.settings.ParserKnowledge
-//    k.parseFile(args(1))
-//
-//
-//    import exastencils.prettyprinting.PrettyprintingManager
-//    val p = PrettyprintingManager.getPrinter("hallo")
-//    p << "blabla"
-//    PrettyprintingManager.finish
-//    
-//    
-//    import exastencils.datastructures.ir._
-//    val a = FunctionCallExpression(null, null)
-//    val b = BinaryExpression("x", null, null)
-//    val c = Constant("hallo")
-//    val d = a ~ b ~ c
-//    
-//    //val x = new Node with Debuggable
-//
-//    println(d)
-    
+    import exastencils.parsers.l4._
     var parserl4 = new ParserL4
     var x = parserl4.parseFile("/scratch-local/schmittch/ExaStencils/ScalaExaStencil/Compiler/examples/level4_simple.exa")
     println(x)
+    
+    sys.exit(0)
+    
+    
+//    
+//    // Init settings
+//
+//    if (args.length >= 1) {
+//      val s = new exastencils.parsers.settings.ParserSettings
+//      s.parseFile(args(0))
+//    }
+//    if (args.length >= 2) {
+//      val k = new exastencils.parsers.settings.ParserKnowledge
+//      k.parseFile(args(1))
+//    }
+//
+//    // feature model  (modified FAMA Format (http://www.isa.us.es/fama/))
+//    FeatureModel.readFeatureModel("/scratch-local/schmittch/ExaStencils/ScalaExaStencil/Compiler/featureModel/model_Prototype.model")
+//    var configuration = FeatureModel.getMinimalConfig
+//    Knowledge.update(configuration)
+//
+//    // Hack paths (relative paths should work here, too, if not, reverse this change)
+//    // ... this obviously depends on the execution path which in my case is the root folder to include configs and scripts
+//    val libpath = "/scratch-local/schmittch/ExaStencils/ScalaExaStencil/Compiler/src/harald/otherfiles/"
+//    val DSLpath = "/scratch-local/schmittch/ExaStencils/ScalaExaStencil/Compiler/src/harald/testmg/"
+//    val problem = "testDSL"
+//    val outputfile = "main.cpp"
+//
+//    // Setup tree
+//    StateManager.root_ = Root(List(
+//      // Application
+//      new Poisson3D,
+//
+//      // MultiGrid
+//      new MultiGrid,
+//      new StencilCollection,
+//
+//      // Domain
+//      new DomainGenerated,
+//
+//      // Primitives
+//      new FragmentClass,
+//      new CommunicationFunctions,
+//      new FieldCollection,
+//
+//      // Util
+//      new Container,
+//      new Log,
+//      new Stopwatch,
+//      new Vector,
+//
+//      // Globals
+//      new Globals));
+//
+//    // setup basic sub-nodes
+//
+//    do { ExpandStrategy.apply; }
+//    while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
+//
+//    SetupFragmentClass.apply;
+//    SetupMultiGrid.apply;
+//    SetupApplication.apply;
+//
+//    // Harald
+//
+//    println("read HW")
+//
+//    if (!new java.io.File(DSLpath + problem + "levHW.mg").exists) {
+//      println("HW specification is missing!")
+//      sys.exit(0)
+//    }
+//
+//    val DSLHW : String = scala.io.Source.fromFile(DSLpath + problem + "levHW.mg").getLines.reduceLeft(_ + '\n' + _)
+//    //println(DSLHW)
+//
+//    val parserHW = new ParserHW
+//    parserHW.parseAll(parserHW.exastencilsHW, DSLHW)
+//
+//    harald.dsl /*FIXME*/ .Hardware.initHWFeatures
+//
+//    if (!new java.io.File(DSLpath + problem + "lev1.mg").exists) {
+//      println("Problem specification (DSL level 1) is missing!")
+//      sys.exit(0)
+//    }
+//
+//    println("read PDE")
+//    val DSLl1 : String = scala.io.Source.fromFile(DSLpath + problem + "lev1.mg").getLines.reduceLeft(_ + '\n' + _)
+//    //println(DSLl1)
+//
+//    val parserl1 = new ParserL1
+//    parserl1.parseAll(parserl1.exastencilsL1, DSLl1)
+//
+//    if (!new java.io.File(DSLpath + problem + "lev2.mg").exists || DomainKnowledge.generate_L1.getOrElse(1) == 1)
+//      GenerateL2.transformL1toL2(DSLpath + problem + "lev2.mg")
+//
+//    println("read discretization")
+//    val DSLl2 : String = scala.io.Source.fromFile(DSLpath + problem + "lev2.mg").getLines.reduceLeft(_ + _)
+//    //println(DSLl2)
+//
+//    val parserl2 = new ParserL2(TreeManager.tree)
+//    parserl2.parseAll(parserl2.exastencilsL2, DSLl2)
+//    TreeManager.tree.exaFields.foreach(println)
+//    TreeManager.tree.exaOperators.foreach(println)
+//    DomainKnowledge.initfragments
+//
+//    val genL3 = new GenerateL3(TreeManager.tree)
+//    if (!new java.io.File(DSLpath + problem + "lev3.mg").exists || DomainKnowledge.generate_L1.getOrElse(1) == 1)
+//      genL3.transformL2toL3(DSLpath + problem + "lev3.mg")
+//
+//    val DSLl3 : String = scala.io.Source.fromFile(DSLpath + problem + "lev3.mg").getLines.reduceLeft(_ + _)
+//    //println(DSLl3)
+//
+//    val parserl3 = new ParserL3
+//    parserl3.parseAll(parserl3.exastencilsL3, DSLl3)
+//    DomainKnowledge.initarraysizes
+//
+//    val genL4 = new GenerateL4(TreeManager.tree)
+//    if (!(new java.io.File(DSLpath + problem + "lev4.mg").exists) || (DomainKnowledge.generate_L1.getOrElse(1) == 1)) {
+//      genL4.transformL3toL4(DSLpath + problem + "lev4.mg")
+//      println("generate L4: " + DomainKnowledge.generate_L1.getOrElse(1))
+//    }
+//    val DSLl4 : String = scala.io.Source.fromFile(DSLpath + problem + "lev4.mg").getLines.reduceLeft(_ + _)
+//    //println(DSLl4)
+//
+//    val parserl4 = new ParserL4(TreeManager.tree)
+//    parserl4.parse(DSLl4)
+//
+//    // add stencils and functions to (exastencils) tree
+//    
+//    var stencilCollection = StateManager.findFirst[StencilCollection]().get
+//    for (e <- TreeManager.tree.exaOperators)
+//      stencilCollection.stencils += e.transform
+//
+//    var mgNode = StateManager.findFirst[MultiGrid]().get;
+//    for (e <- TreeManager.tree.exaFunctions)
+//      mgNode.functions_HACK += e.transformToIR
+//
+//    // Strategies
+//
+//    do { ExpandStrategy.apply; }
+//    while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
+//
+//    AddMemberFunctionPrefix.apply;
+//
+//    if (Knowledge.useOMP) {
+//      AddOMPPragmas.apply;
+//    }
+//
+//    PrintStrategy.apply;
+//    PrettyprintingManager.finish;
+//
+//    println("Done!");
   }
 }
