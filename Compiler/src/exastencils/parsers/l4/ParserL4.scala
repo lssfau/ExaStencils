@@ -47,17 +47,24 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   //###########################################################
 
-  //  lazy val annotation = ("@" ~> ident) ~ ("(" ~> ((ident | numericLit | stringLit | booleanLit) <~ ")")).? ^^
-  //    { case n ~ v => annos += new Annotation(n, v) }
+  lazy val annotation = ("@" ~> ident) ~ ("(" ~> ((ident | numericLit | stringLit | booleanLit) <~ ")")).? ^^
+    { case n ~ v => annos += new Annotation(n, v) }
 
   //###########################################################
 
   lazy val program = locationize(field.* ~ function.* ^^ { case f ~ s => Root(f, s) })
 
-  lazy val level : Parser[LevelSpecification] = (
-    locationize(("@" ~ "(" ~> numericLit) ~ "-" ~ (numericLit <~ ")") ^^ { case b ~ _ ~ e => RangeLevelSpecification(b.toInt, e.toInt) })
-    ||| locationize("@" ~ "(" ~ (level <~ ",").* ~ level ~ ")" ^^ { case _ ~ _ ~ a ~ b ~ _ => var x = new ListLevelSpecification(); a.foreach(x.add(_)); x.add(b); x })
-    ||| singlelevel)
+  lazy val level = (
+    singlelevel
+    ||| ("@" ~ "(" ~> levelsub) ~ ")" ^^ { case l ~ _ => l })
+
+  lazy val levelsub : Parser[LevelSpecification] = (
+    levelsubsub
+    ||| locationize((levelsubsub <~ ",").* ~ levelsubsub ^^ { case a ~ b => var x = new ListLevelSpecification(); a.foreach(x.add(_)); x.add(b); x }))
+
+  lazy val levelsubsub : Parser[LevelSpecification] = (
+    locationize(numericLit ^^ { case l => SingleLevelSpecification(l.toInt) })
+    ||| locationize(numericLit ~ "to" ~ numericLit ^^ { case b ~ _ ~ e => RangeLevelSpecification(b.toInt, e.toInt) }))
 
   lazy val singlelevel = locationize("@" ~> numericLit ^^ { case l => println(l); SingleLevelSpecification(l.toInt) })
 
