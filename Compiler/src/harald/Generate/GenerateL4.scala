@@ -30,7 +30,6 @@ class GenerateL4(treel2 : TreeL2) {
       for (lev <- 0 to Knowledge.maxLevel) {
         writer.write(s"def cpu ${DomainKnowledge.cycle_L3.get}_$lev (  ) : Unit \n")
         writer.write(s"{ \n")
-        writer.write(s"  decl lev : Int = $lev  \n")
         if (0 == lev) {
           writer.write(s"repeat up ${Knowledge.mg_cgs_numSteps} \n")
           writer.write(s"	${Knowledge.mg_smoother}_$lev (  ) \n")
@@ -66,7 +65,6 @@ class GenerateL4(treel2 : TreeL2) {
       writer.write(s"def ${location} Residual_$lev (  ) : Unit  \n")
       writer.write(s"{ \n")
       // COMM_HACK
-      writer.write(s"  decl lev : Int = $lev  \n")
       writer.write(s"  exchsolData_$lev ( 0 )  \n")
       writer.write(s"loop innerpoints level $lev order lex block 1 1  \n")
       writer.write(s"  Res@$lev = ${DomainKnowledge.function_L1(0)._1} [ $lev ] - (${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] )  \n")
@@ -104,7 +102,6 @@ class GenerateL4(treel2 : TreeL2) {
         writer.write(s"def ${location} L2Residual_$lev (  ) : Double \n")
         writer.write(s"{ \n")
         // COMM_HACK
-        writer.write(s"  decl lev : Int = $lev  \n")
         writer.write(s"  exchsolData_$lev ( 0 )  \n")
         writer.write(s"    Reduction loop innerpoints level $lev order lex block 1 1 \n")
         writer.write(s"        s += (${DomainKnowledge.function_L1(0)._1} [ $lev ]  - ${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ]) * (${DomainKnowledge.function_L1(0)._1} [ $lev ]  - ${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ]) \n")
@@ -118,7 +115,6 @@ class GenerateL4(treel2 : TreeL2) {
         writer.write(s"def ${location} ${Knowledge.mg_smoother}_$lev (  ) : Unit  \n")
         writer.write(s"{ \n")
         // COMM_HACK
-        writer.write(s"  decl lev : Int = $lev  \n")
         writer.write(s"  exchsolData_$lev ( 0 )  \n")
         writer.write(s"    loop innerpoints level $lev order lex block 1 1 \n")
         writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1}@$lev = ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] + ( ( ( inverse( diag(${DomainKnowledge.operator_L1(0)._1} [ $lev ] ) ) ) * ${Knowledge.mg_smoother_omega} ) * ( ${DomainKnowledge.function_L1(0)._1} [ $lev ] - ${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] ) ) \n")
@@ -131,7 +127,6 @@ class GenerateL4(treel2 : TreeL2) {
         writer.write(s"def ${location} ${Knowledge.mg_smoother}_$lev (  ) : Unit  \n")
         writer.write(s"{ \n")
         // COMM_HACK
-        writer.write(s"  decl lev : Int = $lev  \n")
         writer.write(s"  exchsolData_$lev ( 0 )  \n")
         writer.write(s"    loop innerpoints level $lev order rb block 1 1 \n")
         writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1}@$lev = ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] + ( ( ( inverse( diag(${DomainKnowledge.operator_L1(0)._1} [ $lev ] ) ) ) * ${Knowledge.mg_smoother_omega} ) * ( ${DomainKnowledge.function_L1(0)._1} [ $lev ] - ${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] ) ) \n")
@@ -147,7 +142,6 @@ class GenerateL4(treel2 : TreeL2) {
       writer.write(s"def ${location} ${DomainKnowledge.restriction_L3.get}_$lev (  ) : Unit \n")
       writer.write(s"{ \n")
       // COMM_HACK
-      writer.write(s"  decl lev : Int = $lev  \n")
       writer.write(s"  exchresData_$lev ( 0 )  \n")
       writer.write(s"    loop innerpoints level ${lev - 1} order lex block 1 1  \n")
       // COMM_HACK
@@ -164,7 +158,6 @@ class GenerateL4(treel2 : TreeL2) {
       writer.write(s"def ${location} ${DomainKnowledge.interpolation_L3.get}_$lev (  ) : Unit \n")
       writer.write(s"{ \n")
       // COMM_HACK
-      writer.write(s"  decl lev : Int = $lev  \n")
       writer.write(s"  exchsolData_${lev - 1} ( 0 )  \n")
       writer.write(s"    loop innerpoints level $lev order lex block 1 1  \n")
       writer.write(s"    ${DomainKnowledge.unknown_L1(0)._1}@$lev += CorrectionStencil * ${DomainKnowledge.unknown_L1(0)._1} [ ${lev - 1} ] | ToFine  \n")
@@ -183,7 +176,6 @@ class GenerateL4(treel2 : TreeL2) {
         val setname = n match { case "gpu" => "setcuda" case _ => "set" }
         writer.write(s"def ${n} ${setname}_$lev ( value:Int ) : Unit  \n")
         writer.write(s"{ \n")
-        writer.write(s"  decl lev : Int = $lev  \n")
         writer.write(s"  loop allpoints level $lev order lex block 1 1  \n")
         writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1}@$lev = value    \n")
         writer.write(s"next  \n")
