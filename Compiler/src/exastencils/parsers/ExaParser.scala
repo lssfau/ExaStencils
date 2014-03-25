@@ -19,30 +19,31 @@ class ExaParser extends StandardTokenParsers {
   lazy val listdelimiter = newline | ","
   lazy val newline = "\n" | "\r\n"
 
-  lazy val datatype : Parser[Datatype] =
-    simpleDatatype |||
-      numericDatatype |||
-      ("Array" ~ "[") ~> datatype <~ "]" ^^ { case x => new ArrayDatatype(x) }
+  lazy val datatype : Parser[Datatype] = (
+    simpleDatatype
+    ||| numericDatatype
+    ||| ("Array" ~ "[") ~> datatype <~ "]" ^^ { case x => new ArrayDatatype(x) })
 
-  lazy val simpleDatatype : Parser[Datatype] =
-    "String" ^^ { case x => new StringDatatype } |||
-      numericSimpleDatatype
+  lazy val simpleDatatype : Parser[Datatype] = (
+    "String" ^^ { case x => new StringDatatype }
+    ||| numericSimpleDatatype)
 
-  lazy val numericDatatype : Parser[Datatype] =
-    ("Complex" ~ "[") ~> numericSimpleDatatype <~ "]" ^^ { case x => new ComplexDatatype(x) } |||
-      numericSimpleDatatype
+  lazy val numericDatatype : Parser[Datatype] = (
+    ("Complex" ~ "[") ~> numericSimpleDatatype <~ "]" ^^ { case x => new ComplexDatatype(x) }
+    ||| numericSimpleDatatype)
 
-  lazy val numericSimpleDatatype : Parser[Datatype] =
-    "Integer" ^^ { case x => new IntegerDatatype } |||
-      "Real" ^^ { case x => new RealDatatype }
+  lazy val numericSimpleDatatype : Parser[Datatype] = (
+    "Integer" ^^ { case x => new IntegerDatatype }
+    ||| "Real" ^^ { case x => new RealDatatype })
 
-  lazy val returnDatatype = "Unit" ^^ { case x => new UnitDatatype } | datatype
+  lazy val returnDatatype = ("Unit" ^^ { case x => new UnitDatatype }
+    ||| datatype)
 
-  lazy val literal : Parser[Expression] = stringLit ^^ { case x => StringLiteral(x) } |||
-    numericLit ^^ { case x => NumericLiteral(x.toDouble) } ||| // FIXME split into integerLiteral and realLiteral
-    booleanLit ^^ { case x => BooleanLiteral(x.toBoolean) }
+  lazy val literal : Parser[Expression] = (stringLit ^^ { case x => StringLiteral(x) }
+    ||| numericLit ^^ { case x => NumericLiteral(x.toDouble) } // FIXME split into integerLiteral and realLiteral
+    ||| booleanLit ^^ { case x => BooleanLiteral(x.toBoolean) })
 
-  lazy val booleanLit : Parser[String] = "true" | "false"
+  lazy val booleanLit : Parser[String] = "true" ||| "false"
 
   // set members of given object obj via reflection
   def set[T](obj : AnyRef, ident : String, value : T) {
