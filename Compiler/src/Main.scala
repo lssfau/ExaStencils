@@ -155,6 +155,9 @@ object Main {
     do { ExpandStrategy.apply; }
     while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
 
+    do { SimplifyStrategy.apply; }
+    while (SimplifyStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
+
     AddMemberFunctionPrefix.apply;
 
     if (Knowledge.useOMP) {
