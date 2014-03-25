@@ -23,7 +23,7 @@ object LoopOverDomainStatement {
         case "domain"   => Domain
         case "inner"    => Inner
         case "boundary" => Boundary
-        case _ => throw new MatchError(s"""Invalid identifier "$key"""")
+        case _          => throw new MatchError(s"""Invalid identifier "$key"""")
       }
     }
   }
@@ -36,7 +36,7 @@ object LoopOverDomainStatement {
       key match {
         case "lexical"  => Lexical
         case "redblack" => RedBlack
-        case _ => throw new MatchError(s"""Invalid identifier "$key"""")
+        case _          => throw new MatchError(s"""Invalid identifier "$key"""")
       }
     }
   }
@@ -61,4 +61,20 @@ case class RepeatUntilStatement(var comparison : BooleanExpression, var statemen
 case class FunctionCallStatement(name : String, var arguments : List[Expression]) extends Statement
 
 case class ConditionalStatement(var expression : BooleanExpression, var statements : List[Statement]) extends Statement
+
+case class FieldDeclarationStatement(name : String, var datatype : Datatype, var offset : Index, var level : Option[LevelSpecification]) extends Statement {
+  var ghostlayers = 0
+  var padding = 0
+  var slots = 1
+  var bcDir0 = false
+  def set(t : TempOption) { // FIXME hack
+    t.key match {
+      case "ghostlayers" => ghostlayers = t.value.toInt
+      case "padding"     => padding = t.value.toInt
+      case "slots"       => slots = t.value.toInt
+      case "bcDir0"      => bcDir0 = t.value.toBoolean
+      case _             => exastencils.core.ERROR(s"Unknown option ${t.key} = ${t.value}")
+    }
+  }
+}
 

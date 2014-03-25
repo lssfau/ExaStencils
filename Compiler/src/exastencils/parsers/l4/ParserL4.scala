@@ -51,7 +51,18 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   //###########################################################
 
-  lazy val program = locationize(function.* ^^ { case stmts => Root(stmts) })
+  lazy val program = locationize(field.* ~ function.* ^^ { case f ~ s => Root(f, s) })
+
+  lazy val level : Parser[LevelSpecification] = (
+    singlelevel
+    ||| locationize(singlelevel ~ "-" ~ singlelevel ^^ { case b ~ _ ~ e => RangeLevelSpecification(b, e) })
+    ||| locationize(level ~ "," ~ level ^^ { case a ~ _ ~ b => var l = new ListLevelSpecification(a); l.add(b); l }))
+
+  lazy val singlelevel = locationize("@" ~> numericLit ^^ { case l => SingleLevelSpecification(l.toInt) })
+
+  // ######################################
+  // ##### Functions
+  // ######################################
 
   lazy val function = locationize(("def" ~> ident) ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}")) ^^
     { case id ~ args ~ t ~ stmts => FunctionStatement(id, t, args.getOrElse(List[Variable]()), stmts) })
@@ -92,6 +103,15 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val assignment = locationize(ident ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(id, exp) })
 
   lazy val conditional = locationize(("if" ~> booleanexpression) ~ ("{" ~> statement.+ <~ "}") ^^ { case exp ~ stmts => ConditionalStatement(exp, stmts) })
+
+  // FIXME communicate ja/nein
+  lazy val field = locationize(("field" ~> ident) ~ ("<" ~> index <~ ",") ~ (datatype <~ ">") ~ level.? ~ "(" ~ (tempOption <~ ",").* ~ tempOption ~ ")"
+    ^^ { case id ~ i ~ t ~ l ~ _ ~ t1 ~ t2 ~ _ => var f = FieldDeclarationStatement(id, t, i, l); t1.foreach(f.set(_)); f.set(t2); f })
+
+  lazy val index = ("[" ~ numericLit ~ "," ~ numericLit ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ => Index2D(n1.toInt, n2.toInt) }
+    ||| "[" ~ numericLit ~ "," ~ numericLit ~ "," ~ numericLit ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ ~ n3 ~ _ => Index3D(n1.toInt, n2.toInt, n3.toInt) })
+
+  lazy val tempOption = locationize(ident ~ "<-" ~ ident ^^ { case a ~ _ ~ b => TempOption(a, b) })
 
   // ######################################
   // ##### Expressions
