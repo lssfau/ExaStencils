@@ -4,10 +4,19 @@ import exastencils.datastructures._
 import exastencils.datastructures.l4._
 
 trait Expression extends Node
+trait Number extends Expression {
+  def value : AnyVal
+}
 
 case class StringLiteral(value : String) extends Expression
 
-case class NumericLiteral[T : Numeric](value : T) extends Expression
+case class IntegerConstant(v : Long) extends Number {
+  override def value = v
+}
+
+case class FloatConstant(v : Double) extends Number {
+  override def value = v
+}
 
 case class BooleanLiteral(value : Boolean) extends Expression
 
