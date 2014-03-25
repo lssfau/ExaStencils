@@ -63,12 +63,14 @@ case class FunctionCallStatement(name : String, var arguments : List[Expression]
 case class ConditionalStatement(var expression : BooleanExpression, var statements : List[Statement]) extends Statement
 
 case class FieldDeclarationStatement(name : String, var datatype : Datatype, var offset : Index, var level : Option[LevelSpecification]) extends Statement {
+  var communicate = false
   var ghostlayers = 0
   var padding = 0
   var slots = 1
   var bcDir0 = false
   def set(t : TempOption) { // FIXME hack
     t.key match {
+      case "communicate" => communicate = t.value.toBoolean
       case "ghostlayers" => ghostlayers = t.value.toInt
       case "padding"     => padding = t.value.toInt
       case "slots"       => slots = t.value.toInt

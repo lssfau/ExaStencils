@@ -104,7 +104,6 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val conditional = locationize(("if" ~> booleanexpression) ~ ("{" ~> statement.+ <~ "}") ^^ { case exp ~ stmts => ConditionalStatement(exp, stmts) })
 
-  // FIXME communicate ja/nein
   lazy val field = locationize(("field" ~> ident) ~ ("<" ~> index <~ ",") ~ (datatype <~ ">") ~ level.? ~ "(" ~ (tempOption <~ ",").* ~ tempOption ~ ")"
     ^^ { case id ~ i ~ t ~ l ~ _ ~ t1 ~ t2 ~ _ => var f = FieldDeclarationStatement(id, t, i, l); t1.foreach(f.set(_)); f.set(t2); f })
 
