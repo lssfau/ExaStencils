@@ -1,4 +1,4 @@
-def VCycle @(0 to 6) (  ) : Unit
+def VCycle@(0 to 6) (  ) : Unit
 { 
 //  decl lev : Int = 0  
 repeat up 512 {

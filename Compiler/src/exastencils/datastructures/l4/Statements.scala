@@ -49,7 +49,7 @@ object LoopOverDomainStatement {
 case class LoopOverDomainStatement(area : LoopOverDomainStatement.Area, level : Option[LevelSpecification], order : LoopOverDomainStatement.Order, blocksize : Option[Index], var statements : List[Statement])
   extends Statement
 
-case class FunctionStatement(name : String, var returntype : Datatype, var level : Option[LevelSpecification], var arguments : List[Variable], var statements : List[Statement])
+case class FunctionStatement(identifier : Identifier, var returntype : Datatype, var arguments : List[Variable], var statements : List[Statement])
   extends Statement
 
 case class RepeatUpStatement(number : Int, var statements : List[Statement]) extends Statement
@@ -58,7 +58,7 @@ case class RepeatUntilStatement(var comparison : BooleanExpression, var statemen
 
 case class ReductionStatement(var statement : Statement) extends Statement
 
-case class FunctionCallStatement(name : String, var arguments : List[Expression]) extends Statement
+case class FunctionCallStatement(identifier : Identifier, var arguments : List[Expression]) extends Statement
 
 case class ConditionalStatement(var expression : BooleanExpression, var statements : List[Statement]) extends Statement
 

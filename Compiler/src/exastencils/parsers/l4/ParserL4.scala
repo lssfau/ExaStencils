@@ -68,11 +68,11 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ##### Functions
   // ######################################
 
-  lazy val function = locationize(("def" ~> ident) ~ level.? ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}")) ^^
-    { case id ~ l ~ args ~ t ~ stmts => FunctionStatement(id, t, l, args.getOrElse(List[Variable]()), stmts) })
+  lazy val function = locationize(("def" ~> leveledidentifier) ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}")) ^^
+    { case id ~ args ~ t ~ stmts => FunctionStatement(id, t, args.getOrElse(List[Variable]()), stmts) })
   lazy val functionArgumentList = (functionArgument <~ ("," | newline)).* ~ functionArgument ^^ { case args ~ arg => arg :: args }
-  lazy val functionArgument = locationize((((ident ~ level.?) <~ ":") ~ datatype) ^^ { case id ~ level ~ t => Variable(new Identifier(id, level), t) })
-  lazy val functionCall = locationize(ident ~ level.? ~ "(" ~ functionCallArgumentList.? ~ ")" ^^ { case id ~ l ~ "(" ~ args ~ ")" => FunctionCallExpression(id, l, args.getOrElse(List[Expression]())) })
+  lazy val functionArgument = locationize(((leveledidentifier <~ ":") ~ datatype) ^^ { case id ~ t => Variable(id, t) })
+  lazy val functionCall = locationize(leveledidentifier ~ "(" ~ functionCallArgumentList.? ~ ")" ^^ { case id ~ "(" ~ args ~ ")" => FunctionCallExpression(id, args.getOrElse(List[Expression]())) })
   lazy val functionCallArgumentList = (expression <~ ("," | newline)).* ~ expression ^^ { case exps ~ ex => ex :: exps } // = new list(exps, ex)
 
   // ######################################
@@ -87,7 +87,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| loopOver
     ||| assignment
     ||| operatorassignment
-    ||| locationize(functionCall ^^ { case f => FunctionCallStatement(f.name, f.arguments) })
+    ||| locationize(functionCall ^^ { case f => FunctionCallStatement(f.identifier, f.arguments) })
     ||| conditional)
 
   lazy val variableDeclaration = (
@@ -112,10 +112,10 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val loopOverArea = "domain" | "inner" | "boundary"
   lazy val loverOverOrder = "lexical" | "redblack"
 
-  lazy val assignment = locationize(ident ~ level.? ~ "=" ~ expression ^^ { case id ~ level ~ "=" ~ exp => AssignmentStatement(Identifier(id, level), exp) })
+  lazy val assignment = locationize(leveledidentifier ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(id, exp) })
 
-  lazy val operatorassignment = locationize(ident ~ level.? ~ operatorassignmentoperator ~ expression ^^ {
-    case id ~ level ~ op ~ exp => AssignmentStatement(Identifier(id, level), BinaryExpression(op, Identifier(id, level), exp))
+  lazy val operatorassignment = locationize(leveledidentifier ~ operatorassignmentoperator ~ expression ^^ {
+    case id ~ op ~ exp => AssignmentStatement(id, BinaryExpression(op, id, exp))
   })
 
   lazy val operatorassignmentoperator = ("+=" ^^ { case _ => "+" }
@@ -141,6 +141,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ##### Expressions
   // ######################################
 
+  lazy val leveledidentifier = locationize(ident ~ level.? ^^ { case id ~ level => Identifier(id, level) })
+
   lazy val expression = binaryexpression | booleanexpression
 
   lazy val binaryexpression : PackratParser[Expression] = (
@@ -159,7 +161,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     })
     ||| locationize(booleanLit ^^ { case s => BooleanLiteral(s.toBoolean) })
     ||| locationize(functionCall)
-    ||| locationize(ident ~ level.? ^^ { case id ~ level => Identifier(id, level) }))
+    ||| leveledidentifier)
 
   lazy val booleanexpression : PackratParser[BooleanExpression] = (
     locationize(booleanexpression ~ ("||" ||| "&&") ~ booleanexpression ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
