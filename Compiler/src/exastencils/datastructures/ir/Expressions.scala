@@ -78,29 +78,29 @@ case class ConcatenationExpression(var expressions : ListBuffer[Expression]) ext
   }
 }
 
-case class StringLiteral(value : String) extends Expression {
+case class StringLiteral(var value : String) extends Expression {
   override def cpp = value
 }
 
-case class IntegerConstant(v : Long) extends Number {
+case class IntegerConstant(var v : Long) extends Number {
   override def cpp = value.toString
   override def value = v
 }
 
-case class FloatConstant(v : Double) extends Number {
+case class FloatConstant(var v : Double) extends Number {
   override def cpp = value.toString
   override def value = v
 }
 
-case class BooleanLiteral(value : Boolean) extends Expression {
+case class BooleanLiteral(var value : Boolean) extends Expression {
   override def cpp = value.toString
 }
 
-case class VariableAccess(name : String, dType : Option[Datatype] = None) extends Access {
+case class VariableAccess(var name : String, var dType : Option[Datatype] = None) extends Access {
   override def cpp = name
 }
 
-case class ArrayAccess(base : Access, index : Expression) extends Access {
+case class ArrayAccess(var base : Access, var index : Expression) extends Access {
   override def cpp = {
     index match {
       case ind : MultiIndex => base.cpp + ind.cpp
@@ -109,7 +109,7 @@ case class ArrayAccess(base : Access, index : Expression) extends Access {
   }
 }
 
-case class MultiIndex(index_0 : Expression = new NullExpression, index_1 : Expression = new NullExpression, index_2 : Expression = new NullExpression) extends Expression {
+case class MultiIndex(var index_0 : Expression = new NullExpression, var index_1 : Expression = new NullExpression, var index_2 : Expression = new NullExpression) extends Expression {
   def this(indices : Array[Expression]) = this(
     if (indices.size > 0) indices(0) else new NullExpression,
     if (indices.size > 1) indices(1) else new NullExpression,
@@ -167,15 +167,15 @@ case class LinearizedFieldAccess(var fieldOwner : Expression, var field : Field,
   }
 }
 
-case class MemberAccess(base : Access, varAcc : VariableAccess) extends Access {
+case class MemberAccess(var base : Access, var varAcc : VariableAccess) extends Access {
   override def cpp = base.cpp + '.' + varAcc.cpp
 }
 
-case class DerefAccess(base : Access) extends Access {
+case class DerefAccess(var base : Access) extends Access {
   override def cpp = "*(" + base.cpp + ')'
 }
 
-case class UnaryExpression(var operator : UnaryOperators.Value, expression : Expression) extends Expression {
+case class UnaryExpression(var operator : UnaryOperators.Value, var expression : Expression) extends Expression {
   override def cpp = { s"${operator.toString}(${expression.cpp})" }
 }
 
@@ -183,12 +183,6 @@ case class BinaryExpression(var operator : BinaryOperators.Value, var left : Exp
   override def cpp = {
     s"(${left.cpp} ${BinaryOperators.op2str(operator)} ${right.cpp})";
   }
-
-  //  override def simplify = {
-  //    (left, right) match {
-  //      case (x : NumericLiteral[_], y : NumericLiteral[_]) => println(x ~ y); this //NumericLiteral(left.asInstanceOf[NumericLiteral[_]].Value + right.Value)
-  //    }
-  //  }
 }
 
 case class FunctionCallExpression(var name : Expression, var arguments : ListBuffer[Expression /* FIXME: more specialization*/ ]) extends Expression {
