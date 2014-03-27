@@ -10,7 +10,7 @@ def Residual @(0 to 6) (  ) : Unit
 { 
 //  decl lev : Int = 0  
   exchsolData @(current) ( 0 )  
-loop over inner level @(current) order lexical block 1 1 {
+loop over inner level @(current) order lexical blocksize [1, 1] {
   Res @(current) = f [ 0 ] - (Lapl [ 0 ] * solution [ 0 ] )  
 }
 }  
@@ -19,7 +19,7 @@ def L2Residual @(0 to 6) (  ) : Double
 { 
 //  decl lev : Int = 0  
   exchsolData @(current) ( 0 )  
-    Reduction loop over inner level @(current) order lexical block 1 1 {
+    Reduction loop over inner level @(current) order lexical blocksize [1, 1] {
         s += (f [ 0 ]  - Lapl [ 0 ] * solution [ 0 ]) * (f [ 0 ]  - Lapl [ 0 ] * solution [ 0 ]) 
   }
 }  
@@ -28,7 +28,7 @@ def GaussSeidel @(0 to 6) (  ) : Unit
 { 
 //  decl lev : Int = 0  
   exchsolData @(current) ( 0 )  
-    loop over inner level @(current) order lexical block 1 1 {
+    loop over inner level @(current) order lexical blocksize [1, 1] {
       solution @(current) = solution [ 0 ] + ( ( ( inverse( diag(Lapl [ 0 ] ) ) ) * 1.0 ) * ( f [ 0 ] - Lapl [ 0 ] * solution [ 0 ] ) ) 
   }
 }  
@@ -37,7 +37,7 @@ def Restrict @(0 to 6) (  ) : Unit
 { 
 //  decl lev : Int = 1  
   exchresData_1 ( 0 )  
-    loop over inner level @(current) order lexical block 1 1 {
+    loop over inner level @(current) order lexical blocksize [1, 1] {
       f @(current) =  RestrictionStencil * Res [ @(current + 1) ] | ToCoarse  
     }
 }  
@@ -46,7 +46,7 @@ def interpolatecorr @(0 to 6) (  ) : Unit
 { 
 //  decl lev : Int = 1  
   exchsolData @(current) ( 0 )  
-    loop over inner level @(current) order lexical block 1 1  {
+    loop over inner level @(current) order lexical blocksize [1, 1]  {
     solution @(current + 1) += CorrectionStencil * solution [ @(current) ] | ToFine  
    }
 }  
@@ -54,7 +54,7 @@ def interpolatecorr @(0 to 6) (  ) : Unit
 def set @(0 to 6) ( value:Int ) : Unit
 { 
 //  decl lev : Int = 0  
-  loop allpoints level @(current) order lexical block 1 1 {
+  loop allpoints level @(current) order lexical blocksize [1, 1] {
       solution @(current) = value    
   }
 }  
