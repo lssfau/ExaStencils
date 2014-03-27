@@ -38,7 +38,7 @@ def GaussSeidel @(0 to 6) (  ) : Unit
 def Restrict @(1 to 6) (  ) : Unit
 { 
 //  decl lev : Int = 1  
-  exchresData_1 ( 0 )  
+  exchresData @(current) ( 0 )  
     loop over inner level @(current) order lexical blocksize [1, 1] {
       f @(coarser) =  RestrictionStencil * ToCoarser(Res @(current))  
     }
