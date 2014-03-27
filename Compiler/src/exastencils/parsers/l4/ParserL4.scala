@@ -84,6 +84,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| reduction
     ||| loopOver
     ||| assignment
+    ||| operatorassignment
     ||| locationize(functionCall ^^ { case f => FunctionCallStatement(f.name, f.arguments) })
     ||| conditional)
 
