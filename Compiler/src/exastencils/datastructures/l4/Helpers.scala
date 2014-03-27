@@ -16,6 +16,8 @@ case class ListLevelSpecification(levels : HashSet[LevelSpecification]) extends 
 }
 
 case class CurrentLevelSpecification() extends LevelSpecification
+case class CoarserLevelSpecification() extends LevelSpecification
+case class FinerLevelSpecification() extends LevelSpecification
 
 case class TempOption(val key : String, val value : String) extends Annotatable
 
