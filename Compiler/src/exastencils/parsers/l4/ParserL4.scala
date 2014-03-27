@@ -104,7 +104,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
       case area ~ level ~ order ~ blocksize ~ stmts => LoopOverDomainStatement(area, level, order, blocksize, stmts)
     })
   lazy val loopOverArea = "domain" | "inner" | "boundary"
-  lazy val loverOverOrder = "lexical"
+  lazy val loverOverOrder = "lexical" | "redblack"
 
   lazy val assignment = locationize(ident ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(id, exp) })
 
