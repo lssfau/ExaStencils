@@ -11,7 +11,7 @@ case class VariableDeclarationStatement(var identifier : String, var datatype : 
 
 case class DomainDeclarationStatement(name : String) extends Statement
 
-case class AssignmentStatement(var identifier : String, var expression : Expression)
+case class AssignmentStatement(var identifier : String, var level : Option[LevelSpecification], var expression : Expression)
   extends Statement
 
 object LoopOverDomainStatement {
