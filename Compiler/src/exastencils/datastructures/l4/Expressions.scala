@@ -20,7 +20,7 @@ case class FloatConstant(v : Double) extends Number {
 
 case class BooleanLiteral(value : Boolean) extends Expression
 
-case class Identifier(name : String) extends Expression
+case class Identifier(name : String, level : Option[LevelSpecification]) extends Expression
 
 case class Variable(identifier : Identifier, Type : Datatype) extends Expression
 

@@ -69,7 +69,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val function = locationize(("def" ~> ident) ~ level.? ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}")) ^^
     { case id ~ l ~ args ~ t ~ stmts => FunctionStatement(id, t, l, args.getOrElse(List[Variable]()), stmts) })
   lazy val functionArgumentList = (functionArgument <~ ("," | newline)).* ~ functionArgument ^^ { case args ~ arg => arg :: args }
-  lazy val functionArgument = locationize(((ident <~ ":") ~ datatype) ^^ { case id ~ t => Variable(Identifier(id), t) })
+  lazy val functionArgument = locationize((((ident ~ level.?) <~ ":") ~ datatype) ^^ { case id ~ level ~ t => Variable(new Identifier(id, level), t) })
   lazy val functionCall = locationize(ident ~ level.? ~ "(" ~ functionCallArgumentList.? ~ ")" ^^ { case id ~ l ~ "(" ~ args ~ ")" => FunctionCallExpression(id, l, args.getOrElse(List[Expression]())) })
   lazy val functionCallArgumentList = (expression <~ ("," | newline)).* ~ expression ^^ { case exps ~ ex => ex :: exps } // = new list(exps, ex)
 
@@ -144,7 +144,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     })
     ||| locationize(booleanLit ^^ { case s => BooleanLiteral(s.toBoolean) })
     ||| locationize(functionCall)
-    ||| locationize(ident ^^ { case id => Identifier(id) }))
+    ||| locationize(ident ~ level.? ^^ { case id ~ level => Identifier(id, level) }))
 
   lazy val booleanexpression : PackratParser[BooleanExpression] = (
     locationize(booleanexpression ~ ("||" ||| "&&") ~ booleanexpression ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
