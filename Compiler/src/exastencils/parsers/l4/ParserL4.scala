@@ -96,14 +96,15 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     (("repeat" ~ "until") ~> comparison) ~ (("{" ~> statement.+) <~ "}") ^^ { case c ~ s => RepeatUntilStatement(c, s) })
 
   lazy val loopOver = locationize(("loop" ~ "over" ~> loopOverArea) ~
-    ("levels" ~> numericLit ^^ { case x => x.toInt }).? ~
-    ("order" ~> ident).? ~
+    ("level" ~> level).? ~
+    ("order" ~> loverOverOrder).? ~
     ("blocksize" ~> ((numericLit ~ numericLit ~ numericLit ^^ { case x ~ y ~ z => new LoopOverDomainStatement.Blocksize3D(x.toInt, y.toInt, z.toInt) }) | (numericLit ~ numericLit ^^ { case x ~ y => new LoopOverDomainStatement.Blocksize2D(x.toInt, y.toInt) }))).? ~
     ("{" ~> statement.+) <~ "}" ^^
     {
-      case area ~ levels ~ order ~ blocksize ~ stmts => LoopOverDomainStatement(area, levels, order, blocksize, stmts)
+      case area ~ level ~ order ~ blocksize ~ stmts => LoopOverDomainStatement(area, level, order, blocksize, stmts)
     })
   lazy val loopOverArea = "domain" | "inner" | "boundary"
+  lazy val loverOverOrder = "lexical"
 
   lazy val assignment = locationize(ident ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(id, exp) })
 

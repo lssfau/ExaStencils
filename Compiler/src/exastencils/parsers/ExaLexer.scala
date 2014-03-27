@@ -65,7 +65,7 @@ class ExaLexer extends StdLexical {
   reserved += ("var", "Field", "Domain")
 
   // loop keywords
-  reserved += ("loop", "repeat", "up", "until", "over", "domain", "inner", "boundary", "blocksize", "levels")
+  reserved += ("loop", "repeat", "up", "until", "over", "domain", "inner", "boundary", "blocksize", "levels", "lex")
 
   // language datatypes
   reserved += ("Unit", "String", "Integer", "Real", "Complex", "Array")
