@@ -40,7 +40,7 @@ def Restrict @(1 to 6) (  ) : Unit
 //  decl lev : Int = 1  
   exchresData_1 ( 0 )  
     loop over inner level @(current) order lexical blocksize [1, 1] {
-      f @(coarser) =  RestrictionStencil * Res @(current) | ToCoarse  
+      f @(coarser) =  RestrictionStencil * ToCoarser(Res @(current))  
     }
 }  
 
@@ -49,7 +49,7 @@ def interpolatecorr @(1 to 6) (  ) : Unit
 //  decl lev : Int = 1  
   exchsolData @(current) ( 0 )  
     loop over inner level @(current) order lexical blocksize [1, 1]  {
-    solution @(current) += CorrectionStencil * solution @(coarser) | ToFine  
+    solution @(current) += CorrectionStencil * ToFiner(solution @(coarser))
    }
 }  
 
