@@ -56,7 +56,7 @@ case class LoopOverDomainStatement(area : LoopOverDomainStatement.Area, levels :
 case class FunctionStatement(name : String, var returntype : Datatype, var level : Option[LevelSpecification], var arguments : List[Variable], var statements : List[Statement])
   extends Statement
 
-case class RepeatUpStatement(number : Int) extends Statement
+case class RepeatUpStatement(number : Int, var statements : List[Statement]) extends Statement
 
 case class RepeatUntilStatement(var comparison : BooleanExpression, var statements : List[Statement]) extends Statement
 

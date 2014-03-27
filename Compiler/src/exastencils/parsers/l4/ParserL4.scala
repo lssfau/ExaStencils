@@ -90,7 +90,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     locationize(("var" ~> ident) <~ (":" ~ "Domain") ^^ { case id => DomainDeclarationStatement(id) })
     ||| locationize(("var" ~> ident) ~ (":" ~> datatype) ~ ("=" ~> expression).? ^^ { case id ~ dt ~ exp => VariableDeclarationStatement(id, dt, exp) }))
 
-  lazy val repeatUp = locationize(("repeat" ~ "up") ~> numericLit ^^ { case n => RepeatUpStatement(n.toInt) })
+  lazy val repeatUp = locationize(("repeat" ~ "up") ~> numericLit ~ ("{" ~> statement.+ <~ "}") ^^ { case n ~ s => RepeatUpStatement(n.toInt, s) })
 
   lazy val repeatUntil = locationize(
     (("repeat" ~ "until") ~> comparison) ~ (("{" ~> statement.+) <~ "}") ^^ { case c ~ s => RepeatUntilStatement(c, s) })
