@@ -96,8 +96,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val repeatUntil = locationize(
     (("repeat" ~ "until") ~> comparison) ~ (("{" ~> statement.+) <~ "}") ^^ { case c ~ s => RepeatUntilStatement(c, s) })
 
-    lazy val reduction = locationize(("Reduction" ~ "{") ~> statement <~ "}" ^^ { case s => ReductionStatement(s) })
-    
+  lazy val reduction = locationize(("Reduction" ~ "{") ~> statement <~ "}" ^^ { case s => ReductionStatement(s) })
+
   lazy val loopOver = locationize(("loop" ~ "over" ~> loopOverArea) ~
     ("level" ~> level).? ~
     ("order" ~> loverOverOrder).? ~
@@ -109,7 +109,16 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val loopOverArea = "domain" | "inner" | "boundary"
   lazy val loverOverOrder = "lexical" | "redblack"
 
-  lazy val assignment = locationize(ident ~ level.? ~ "=" ~ expression ^^ { case id ~ level ~ "=" ~ exp => AssignmentStatement(id, level, exp) })
+  lazy val assignment = locationize(ident ~ level.? ~ "=" ~ expression ^^ { case id ~ level ~ "=" ~ exp => AssignmentStatement(Identifier(id, level), exp) })
+
+  lazy val operatorassignment = locationize(ident ~ level.? ~ operatorassignmentoperator ~ expression ^^ {
+    case id ~ level ~ op ~ exp => AssignmentStatement(Identifier(id, level), BinaryExpression(op, Identifier(id, level), exp))
+  })
+
+  lazy val operatorassignmentoperator = ("+=" ^^ { case _ => "+" }
+    ||| "-=" ^^ { case _ => "-" }
+    ||| "*=" ^^ { case _ => "*" }
+    ||| "/=" ^^ { case _ => "/" })
 
   lazy val conditional = locationize(("if" ~> booleanexpression) ~ ("{" ~> statement.+ <~ "}") ^^ { case exp ~ stmts => ConditionalStatement(exp, stmts) })
 
