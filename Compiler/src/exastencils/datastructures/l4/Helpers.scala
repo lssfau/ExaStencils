@@ -15,6 +15,8 @@ case class ListLevelSpecification(levels : HashSet[LevelSpecification]) extends 
   def add(level : LevelSpecification) = levels += level
 }
 
+case class CurrentLevelSpecification() extends LevelSpecification
+
 case class TempOption(val key : String, val value : String) extends Annotatable
 
 trait Index extends Annotatable

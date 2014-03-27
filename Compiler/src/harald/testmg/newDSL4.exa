@@ -1,0 +1,74 @@
+def VCycle (  ) : Unit @(0 to 6)
+{ 
+//  decl lev : Int = 0  
+repeat up 512 
+	GaussSeidel @(current) (  ) 
+  next  
+} 
+
+def Residual (  ) : Unit @(0 to 6)
+{ 
+//  decl lev : Int = 0  
+  exchsolData @(current) ( 0 )  
+loop innerpoints level @(current) order lex block 1 1  
+  Res @(current) = f [ 0 ] - (Lapl [ 0 ] * solution [ 0 ] )  
+next 
+}  
+
+def L2Residual (  ) : Double @(0 to 6)
+{ 
+//  decl lev : Int = 0  
+  exchsolData @(current) ( 0 )  
+    Reduction loop innerpoints level @(current) order lex block 1 1 
+        s += (f [ 0 ]  - Lapl [ 0 ] * solution [ 0 ]) * (f [ 0 ]  - Lapl [ 0 ] * solution [ 0 ]) 
+    next  
+}  
+
+def GaussSeidel (  ) : Unit @(0 to 6)
+{ 
+//  decl lev : Int = 0  
+  exchsolData @(current) ( 0 )  
+    loop innerpoints level @(current) order lex block 1 1 
+      solution @(current) = solution [ 0 ] + ( ( ( inverse( diag(Lapl [ 0 ] ) ) ) * 1.0 ) * ( f [ 0 ] - Lapl [ 0 ] * solution [ 0 ] ) ) 
+    next  
+}  
+
+def Restrict (  ) : Unit @(0 to 6)
+{ 
+//  decl lev : Int = 1  
+  exchresData_1 ( 0 )  
+    loop innerpoints level @(current) order lex block 1 1  
+      f @(current) =  RestrictionStencil * Res [ @(current + 1) ] | ToCoarse  
+    next  
+}  
+
+def interpolatecorr (  ) : Unit @(0 to 6)
+{ 
+//  decl lev : Int = 1  
+  exchsolData @(current) ( 0 )  
+    loop innerpoints level @(current) order lex block 1 1  
+    solution @(current + 1) += CorrectionStencil * solution [ @(current) ] | ToFine  
+    next  
+}  
+
+def set ( value:Int ) : Unit @(0 to 6)
+{ 
+//  decl lev : Int = 0  
+  loop allpoints level @(current) order lex block 1 1  
+      solution @(current) = value    
+next  
+}  
+
+def Application ( ) : Unit 
+{  
+ decl res0 : Double = sqrt ( L2Residual @6 (  ) ) 
+ decl res : Double = res0 
+ decl resold : Double = 0 
+ print ( 'startingres' res0 ) 
+ repeat up 10 
+ resold = res 
+VCycle_6 (  ) 
+res = sqrt ( L2Residual_6 (  ) ) 
+print ( 'Residual:' res 'residual reduction:' (res0/res) 'convergence factor:' (res/resold) ) 
+  next  
+}  

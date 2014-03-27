@@ -56,7 +56,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| locationize((levelsubsub <~ ",").* ~ levelsubsub ^^ { case a ~ b => var x = new ListLevelSpecification(); a.foreach(x.add(_)); x.add(b); x }))
 
   lazy val levelsubsub : Parser[LevelSpecification] = (
-    locationize(numericLit ^^ { case l => SingleLevelSpecification(l.toInt) })
+    locationize("current" ^^ { case x => CurrentLevelSpecification() })
+    ||| locationize(numericLit ^^ { case l => SingleLevelSpecification(l.toInt) })
     ||| locationize(numericLit ~ "to" ~ numericLit ^^ { case b ~ _ ~ e => RangeLevelSpecification(b.toInt, e.toInt) }))
 
   lazy val singlelevel = locationize("@" ~> numericLit ^^ { case l => SingleLevelSpecification(l.toInt) })
@@ -78,6 +79,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val statement : Parser[Statement] = (
     variableDeclaration
+    ||| repeatUp
     ||| repeatUntil
     ||| loopOver
     ||| assignment
@@ -87,6 +89,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val variableDeclaration = (
     locationize(("var" ~> ident) <~ (":" ~ "Domain") ^^ { case id => DomainDeclarationStatement(id) })
     ||| locationize(("var" ~> ident) ~ (":" ~> datatype) ~ ("=" ~> expression).? ^^ { case id ~ dt ~ exp => VariableDeclarationStatement(id, dt, exp) }))
+
+  lazy val repeatUp = locationize(("repeat" ~ "up") ~> numericLit ^^ { case n => RepeatUpStatement(n.toInt) })
 
   lazy val repeatUntil = locationize(
     (("repeat" ~ "until") ~> comparison) ~ (("{" ~> statement.+) <~ "}") ^^ { case c ~ s => RepeatUntilStatement(c, s) })
