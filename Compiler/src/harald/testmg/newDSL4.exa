@@ -35,21 +35,21 @@ def GaussSeidel @(0 to 6) (  ) : Unit
   }
 }  
 
-def Restrict @(0 to 6) (  ) : Unit
+def Restrict @(1 to 6) (  ) : Unit
 { 
 //  decl lev : Int = 1  
   exchresData_1 ( 0 )  
     loop over inner level @(current) order lexical blocksize [1, 1] {
-      f @(current) =  RestrictionStencil * Res @(coarser) | ToCoarse  
+      f @(coarser) =  RestrictionStencil * Res @(current) | ToCoarse  
     }
 }  
 
-def interpolatecorr @(0 to 6) (  ) : Unit
+def interpolatecorr @(1 to 6) (  ) : Unit
 { 
 //  decl lev : Int = 1  
   exchsolData @(current) ( 0 )  
     loop over inner level @(current) order lexical blocksize [1, 1]  {
-    solution @(finer) += CorrectionStencil * solution @(current) | ToFine  
+    solution @(current) += CorrectionStencil * solution @(coarser) | ToFine  
    }
 }  
 
