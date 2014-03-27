@@ -53,24 +53,24 @@ def interpolatecorr @(1 to 6) (  ) : Unit
    }
 }  
 
-def set @(0 to 6) ( value:Int ) : Unit
+def set @(0 to 6) ( value:Integer ) : Unit
 { 
 //  decl lev : Int = 0  
-  loop allpoints level @(current) order lexical blocksize [1, 1] {
+  loop over domain level @(current) order lexical blocksize [1, 1] {
       solution @(current) = value    
   }
 }  
 
 def Application ( ) : Unit 
 {  
- decl res0 : Real = sqrt ( L2Residual @6 (  ) ) 
- decl res : Real = res0 
- decl resold : Real = 0 
- print ( 'startingres' res0 ) 
- repeat up 10 
+ var res0 : Real = sqrt ( L2Residual @6 (  ) ) 
+ var res : Real = res0 
+ var resold : Real = 0 
+ print ( 'startingres' + res0 ) 
+ repeat up 10 {
  resold = res 
-VCycle @6 (  ) 
-res = sqrt ( L2Residual @6 (  ) ) 
-print ( 'Residual:' res 'residual reduction:' (res0/res) 'convergence factor:' (res/resold) ) 
-  next  
+    VCycle @6 (  ) 
+    res = sqrt ( L2Residual @6 (  ) ) 
+    print ( 'Residual:' + res + 'residual reduction:' + (res0/res) + 'convergence factor:' + (res/resold) ) 
+  }
 }  
