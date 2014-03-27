@@ -81,6 +81,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     variableDeclaration
     ||| repeatUp
     ||| repeatUntil
+    ||| reduction
     ||| loopOver
     ||| assignment
     ||| locationize(functionCall ^^ { case f => FunctionCallStatement(f.name, f.arguments) })
@@ -95,6 +96,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val repeatUntil = locationize(
     (("repeat" ~ "until") ~> comparison) ~ (("{" ~> statement.+) <~ "}") ^^ { case c ~ s => RepeatUntilStatement(c, s) })
 
+    lazy val reduction = locationize(("Reduction" ~ "{") ~> statement <~ "}" ^^ { case s => ReductionStatement(s) })
+    
   lazy val loopOver = locationize(("loop" ~ "over" ~> loopOverArea) ~
     ("level" ~> level).? ~
     ("order" ~> loverOverOrder).? ~

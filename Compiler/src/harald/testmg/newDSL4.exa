@@ -19,8 +19,10 @@ def L2Residual @(0 to 6) (  ) : Real
 { 
 //  decl lev : Int = 0  
   exchsolData @(current) ( 0 )  
-    Reduction loop over inner level @(current) order lexical blocksize [1, 1] {
+    Reduction {
+    loop over inner level @(current) order lexical blocksize [1, 1] {
         s += (f @(current)  - Lapl @(current) * solution @(current)) * (f @(current)  - Lapl @(current) * solution @(current)) 
+  }
   }
 }  
 

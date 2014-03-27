@@ -56,6 +56,8 @@ case class RepeatUpStatement(number : Int, var statements : List[Statement]) ext
 
 case class RepeatUntilStatement(var comparison : BooleanExpression, var statements : List[Statement]) extends Statement
 
+case class ReductionStatement(var statement : Statement) extends Statement
+
 case class FunctionCallStatement(name : String, var arguments : List[Expression]) extends Statement
 
 case class ConditionalStatement(var expression : BooleanExpression, var statements : List[Statement]) extends Statement
