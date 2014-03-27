@@ -28,4 +28,4 @@ case class BinaryExpression(operator : String, var left : Expression, var right 
 
 case class BooleanExpression(operator : String, var left : Expression, var right : Expression) extends Expression
 
-case class FunctionCallExpression(name : String, var arguments : List[Expression]) extends Expression
+case class FunctionCallExpression(name : String, level : Option[LevelSpecification], var arguments : List[Expression]) extends Expression
