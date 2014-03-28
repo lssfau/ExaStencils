@@ -21,9 +21,16 @@ object MainChristian {
     
     import exastencils.parsers.l4._
     var parserl4 = new ParserL4
-    //var x = parserl4.parseFile("/scratch-local/schmittch/ExaStencils/ScalaExaStencil/Compiler/examples/level4_simple.exa")
-    var x = parserl4.parseFile("/scratch-local/schmittch/ExaStencils/ScalaExaStencil/Compiler/src/harald/testmg/newDSL4.exa")
+    var x = parserl4.parseFile("/scratch-local/schmittch/ExaStencils/ScalaExaStencil/Compiler/examples/level4_simple.exa")
+//    var x = parserl4.parseFile("/scratch-local/schmittch/ExaStencils/ScalaExaStencil/Compiler/src/harald/testmg/newDSL4.exa")
     println(x)
+    
+    StateManager.root_ = x
+    
+    var t = new exastencils.languageprocessing.l4.TransformToIr
+    t.apply
+    
+    println(StateManager.root_)
     
     sys.exit(0)
     

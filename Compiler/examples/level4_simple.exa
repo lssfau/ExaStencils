@@ -1,26 +1,23 @@
 
-
-Field bla<[0, 0, 0], Real>@(2 to 7, 42, 4 to 5) (bcDir = false, slots=42)
-Field blubb<[0, 0, 0], Real>@7 (bcDir = false, slots=42)
-
-def somefunction(s : String, i : Integer, r : Real) : Unit @8 {
-  var x : String
-  var d : Domain
-   a=9
-}
-
-
-def VCycle ( lev : Integer ) : Unit 
+def VCycle@0 (  ) : Unit
 { 
-muh = -3+4-1
-a = 3 * 7 + a + 1 +5-3-9
-b = -9 + hallo()
-d = meck(hallo(), 7, a + b)
+//  decl lev : Int = 0  
+repeat up 512 {
+  GaussSeidel @(current) (  ) 
+  }
+} 
 
-loop over inner levels 5 order redblack blocksize 1 1 1 {
-  d =    f
-  f = d
-}
-
+def VCycle@(1 to 6) (  ) : Unit {
+  repeat up 3  {
+  GaussSeidel@(current) (  ) 
+  }
+  Residual@(current) (  ) 
+  Restrict@(current) (  ) 
+  set@(coarser) ( 0 ) 
+  VCycle@(coarser) (  ) 
+  interpolatecorr@(current) (  ) 
+  repeat up 3 {
+    GaussSeidel@(current) (  ) 
+  }
 }
 
