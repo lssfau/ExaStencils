@@ -107,8 +107,8 @@ class ProgressToIr {
 
     var root = new ir.Root()
 
-    strategy += new Transformation("ConvertNodesToIr", {
-      case x : l4.FunctionStatement => root += doTransformToIr(x); x
+    strategy += new Transformation("ProgressNodesToIr", {
+      case x : l4.Statement => root += doTransformToIr(x); x
     })
 
     strategy.apply
