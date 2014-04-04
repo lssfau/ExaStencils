@@ -57,12 +57,12 @@ class TransformToIr {
     }
   }
 
-  //  def doTransformToIr()
-
-  def resolveLeveledName(id : l4.Identifier) : String = s"${id.name}__level_${id.level match {
-    case Some(x) => x.toString()
-    case None => "_"
-  }}"
+  def resolveLeveledName(id : l4.Identifier) : String = s"${id.name}__level_${
+    id.level match {
+      case Some(x) => x.toString()
+      case None    => "_"
+    }
+  }"
 
   def doTransformToIr(node : l4.Variable) : ir.VariableAccess = {
     new ir.VariableAccess(resolveLeveledName(node.identifier), Some(doTransformToIr(node.Type)))
@@ -70,7 +70,7 @@ class TransformToIr {
 
   def doTransformToIr(node : l4.Expression) : ir.Expression = {
     node match {
-      case _ => ERROR(node)
+      case _ => ERROR(s"No rule for transformation of L4 node ${node}")
     }
   }
 
@@ -87,18 +87,9 @@ class TransformToIr {
         x.statements.map(doTransformToIr(_)))
       case x : l4.FunctionCallStatement => new ir.ExpressionStatement(new ir.FunctionCallExpression(
         resolveLeveledName(x.identifier), x.arguments.map(doTransformToIr(_))))
+      case _ => ERROR(s"No rule for transformation of L4 node ${node}")
     }
   }
-
-  //  def doTransformToIr(node : Node) : Node = {
-  //    //	node match {
-  //    //	  case x : l4.FunctionStatement => ir.FunctionStatement(doTransformToIr(x.returntype),
-  //    //	      resolveLeveledName(x.identifier),
-  //    //	      x.arguments.map(doTransformToIr(_)),
-  //    //	      x.statements.map(doTransformToIr(_)))
-  //    //	}
-  //    node
-  //  }
 
   def apply() = {
     strategy += new Transformation("UnfoldLeveledFunctions", {
