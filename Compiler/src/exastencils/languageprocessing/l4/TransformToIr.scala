@@ -97,6 +97,7 @@ class TransformToIr {
         case Identifier(name, Some(level)) => level match {
           case _ => doDuplicateFunction(f, level)
         }
+        case Identifier(name, None) => f
       }
     })
 
