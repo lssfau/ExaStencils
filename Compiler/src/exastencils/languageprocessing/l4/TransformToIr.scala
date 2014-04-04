@@ -70,7 +70,11 @@ class TransformToIr {
 
   def doTransformToIr(node : l4.Expression) : ir.Expression = {
     node match {
-      case _ => ERROR(s"No rule for transformation of L4 node ${node}")
+      case l4.StringConstant(x)  => ir.StringConstant(x)
+      case l4.IntegerConstant(x) => ir.IntegerConstant(x)
+      case l4.FloatConstant(x)   => ir.FloatConstant(x)
+      case l4.BooleanConstant(x) => ir.BooleanConstant(x)
+      case _                     => ERROR(s"No rule for transformation of L4 node ${node}")
     }
   }
 
