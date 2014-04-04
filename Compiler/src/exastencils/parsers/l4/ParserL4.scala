@@ -155,11 +155,11 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val factor : Parser[Expression] = (
     "(" ~> expression <~ ")"
-    ||| locationize(stringLit ^^ { case s => StringLiteral(s) })
+    ||| locationize(stringLit ^^ { case s => StringConstant(s) })
     ||| locationize("-".? ~ numericLit ^^ {
       case s ~ n => if (isInt(s.getOrElse("") + n)) IntegerConstant((s.getOrElse("") + n).toInt) else FloatConstant((s.getOrElse("") + n).toDouble)
     })
-    ||| locationize(booleanLit ^^ { case s => BooleanLiteral(s.toBoolean) })
+    ||| locationize(booleanLit ^^ { case s => BooleanConstant(s.toBoolean) })
     ||| locationize(functionCall)
     ||| leveledidentifier)
 
