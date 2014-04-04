@@ -23,8 +23,8 @@ import exastencils.core.ImplicitConversions._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir.BinaryExpression
 
-class TransformToIr {
-  var strategy = new Strategy("TransformToIr")
+class ProgressToIr {
+  var strategy = new Strategy("ProgressToIr")
 
   def doDuplicateFunction(function : FunctionStatement, l : LevelSpecification) : List[FunctionStatement] = {
     var functions = new ListBuffer[FunctionStatement]()
@@ -74,7 +74,7 @@ class TransformToIr {
       case l4.IntegerConstant(x) => ir.IntegerConstant(x)
       case l4.FloatConstant(x)   => ir.FloatConstant(x)
       case l4.BooleanConstant(x) => ir.BooleanConstant(x)
-      case _                     => ERROR(s"No rule for transformation of L4 node ${node}")
+      case _                     => ERROR(s"No rule for progression of L4 node ${node}")
     }
   }
 
@@ -91,7 +91,7 @@ class TransformToIr {
         x.statements.map(doTransformToIr(_)))
       case x : l4.FunctionCallStatement => new ir.ExpressionStatement(new ir.FunctionCallExpression(
         resolveLeveledName(x.identifier), x.arguments.map(doTransformToIr(_))))
-      case _ => ERROR(s"No rule for transformation of L4 node ${node}")
+      case _ => ERROR(s"No rule for progression of L4 node ${node}")
     }
   }
 
