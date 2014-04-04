@@ -14,39 +14,7 @@ case class DomainDeclarationStatement(name : String) extends Statement
 case class AssignmentStatement(var identifier : Identifier, var expression : Expression)
   extends Statement
 
-object LoopOverDomainStatement {
-  object AreaType extends Enumeration {
-    type Area = Value
-    val Domain, Inner, Boundary = Value
-    def get(key : String) = {
-      key match {
-        case "domain"   => Domain
-        case "inner"    => Inner
-        case "boundary" => Boundary
-        case _          => throw new MatchError(s"""Invalid identifier "$key"""")
-      }
-    }
-  }
-  type Area = AreaType.Area
-
-  object OrderType extends Enumeration {
-    type Order = Value
-    val Lexical, RedBlack = Value
-    def get(key : String) = {
-      key match {
-        case "lexical"  => Lexical
-        case "redblack" => RedBlack
-        case _          => throw new MatchError(s"""Invalid identifier "$key"""")
-      }
-    }
-  }
-  type Order = OrderType.Order
-
-  def apply(area : String, level : Option[LevelSpecification], order : Option[String], blocksize : Option[Index], statements : List[Statement]) =
-    new LoopOverDomainStatement(AreaType.get(area), level, OrderType.get(order.getOrElse("lexical")), blocksize, statements)
-}
-
-case class LoopOverDomainStatement(area : LoopOverDomainStatement.Area, level : Option[LevelSpecification], order : LoopOverDomainStatement.Order, blocksize : Option[Index], var statements : List[Statement])
+case class LoopOverDomainStatement(area : String, blocksize : Option[Index], var statements : List[Statement])
   extends Statement
 
 case class FunctionStatement(var identifier : Identifier, var returntype : Datatype, var arguments : List[Variable], var statements : List[Statement])
@@ -80,3 +48,4 @@ case class FieldDeclarationStatement(name : String, var datatype : Datatype, var
   }
 }
 
+case class IterationSetDeclarationStatement(identifier : Identifier, begin : Index, end : Index, increment : Option[Index]) extends Statement

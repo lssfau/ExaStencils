@@ -24,7 +24,8 @@ def Residual @(0 to 6) (  ) : Unit
 { 
 //  decl lev : Int = 0  
   exchsolData @(current) ( 0 )  
-loop over inner level @(current) order lexical blocksize [1, 1] {
+  Set inner [1, 1] - [1, 1] steps [1, 1]
+loop over inner {
   Res @(current) = f @(current) - (Lapl @(current) * solution @(current) )  
 }
 }  
@@ -33,8 +34,9 @@ def L2Residual @(0 to 6) (  ) : Real
 { 
 //  decl lev : Int = 0  
   exchsolData @(current) ( 0 )  
+    Set inner [1, 1] - [1, 1] steps [1, 1]
     Reduction {
-    loop over inner level @(current) order lexical blocksize [1, 1] {
+    loop over inner {
         s += (f @(current)  - Lapl @(current) * solution @(current)) * (f @(current)  - Lapl @(current) * solution @(current)) 
   }
   }
@@ -43,8 +45,9 @@ def L2Residual @(0 to 6) (  ) : Real
 def GaussSeidel @(0 to 6) (  ) : Unit
 { 
 //  decl lev : Int = 0  
-  exchsolData @(current) ( 0 )  
-    loop over inner level @(current) order lexical blocksize [1, 1] {
+  exchsolData @(current) ( 0 )
+    Set inner [1, 1] - [1, 1] steps [1, 1]  
+    loop over inner {
       solution @(current) = solution @(current) + ( ( ( inverse( diag(Lapl @(current) ) ) ) * 1.0 ) * ( f @(current) - Lapl @(current) * solution @(current) ) ) 
   }
 }  
@@ -53,7 +56,8 @@ def Restrict @(1 to 6) (  ) : Unit
 { 
 //  decl lev : Int = 1  
   exchresData @(current) ( 0 )  
-    loop over inner level @(current) order lexical blocksize [1, 1] {
+    Set inner [1, 1] - [1, 1] steps [1, 1]
+    loop over inner {
       f @(coarser) =  RestrictionStencil * ToCoarser(Res @(current))  
     }
 }  
@@ -62,7 +66,8 @@ def interpolatecorr @(1 to 6) (  ) : Unit
 { 
 //  decl lev : Int = 1  
   exchsolData @(current) ( 0 )  
-    loop over inner level @(current) order lexical blocksize [1, 1]  {
+    Set inner [1, 1] - [1, 1] steps [1, 1]
+    loop over inner {
     solution @(current) += CorrectionStencil * ToFiner(solution @(coarser))
    }
 }  
@@ -70,7 +75,8 @@ def interpolatecorr @(1 to 6) (  ) : Unit
 def set @(0 to 6) ( value:Integer ) : Unit
 { 
 //  decl lev : Int = 0  
-  loop over domain level @(current) order lexical blocksize [1, 1] {
+  Set domain [0, 0] - [0, 0] steps [1, 1]
+  loop over domain {
       solution @(current) = value    
   }
 }  

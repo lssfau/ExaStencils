@@ -81,6 +81,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val statement : Parser[Statement] = (
     variableDeclaration
+    ||| iterationSet
     ||| repeatUp
     ||| repeatUntil
     ||| reduction
@@ -94,6 +95,9 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     locationize(("var" ~> ident) <~ (":" ~ "Domain") ^^ { case id => DomainDeclarationStatement(id) })
     ||| locationize(("var" ~> ident) ~ (":" ~> datatype) ~ ("=" ~> expression).? ^^ { case id ~ dt ~ exp => VariableDeclarationStatement(id, dt, exp) }))
 
+  lazy val iterationSet = locationize(("Set" ~> leveledidentifier) ~ index ~ ("-" ~> index) ~ ("steps" ~> index).?
+    ^^ { case id ~ begin ~ end ~ inc => IterationSetDeclarationStatement(id, begin, end, inc) })
+    
   lazy val repeatUp = locationize(("repeat" ~ "up") ~> numericLit ~ ("{" ~> statement.+ <~ "}") ^^ { case n ~ s => RepeatUpStatement(n.toInt, s) })
 
   lazy val repeatUntil = locationize(
@@ -101,15 +105,12 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val reduction = locationize(("Reduction" ~ "{") ~> statement <~ "}" ^^ { case s => ReductionStatement(s) })
 
-  lazy val loopOver = locationize(("loop" ~ "over" ~> loopOverArea) ~
-    ("level" ~> level).? ~
-    ("order" ~> loverOverOrder).? ~
+  lazy val loopOver = locationize(("loop" ~ "over" ~> ident) ~
     ("blocksize" ~> index).? ~
     ("{" ~> statement.+) <~ "}" ^^
     {
-      case area ~ level ~ order ~ blocksize ~ stmts => LoopOverDomainStatement(area, level, order, blocksize, stmts)
+      case area ~ blocksize ~ stmts => LoopOverDomainStatement(area, blocksize, stmts)
     })
-  lazy val loopOverArea = "domain" | "inner" | "boundary"
   lazy val loverOverOrder = "lexical" | "redblack"
 
   lazy val assignment = locationize(leveledidentifier ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(id, exp) })
