@@ -14,8 +14,10 @@ case class DomainDeclarationStatement(name : String) extends Statement
 case class AssignmentStatement(var identifier : Identifier, var expression : Expression)
   extends Statement
 
-case class LoopOverDomainStatement(area : String, blocksize : Option[Index], var statements : List[Statement])
+case class LoopOverDomainStatement(iterationset : String, blocksize : Option[Index], var statements : List[Statement])
   extends Statement
+
+case class IterationSetDeclarationStatement(identifier : Identifier, begin : Index, end : Index, increment : Option[Index]) extends Statement
 
 case class FunctionStatement(var identifier : Identifier, var returntype : Datatype, var arguments : List[Variable], var statements : List[Statement])
   extends Statement
@@ -47,5 +49,3 @@ case class FieldDeclarationStatement(name : String, var datatype : Datatype, var
     }
   }
 }
-
-case class IterationSetDeclarationStatement(identifier : Identifier, begin : Index, end : Index, increment : Option[Index]) extends Statement
