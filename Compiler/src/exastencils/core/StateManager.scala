@@ -237,6 +237,13 @@ object StateManager {
     }
   }
 
+  def layerChange(token : History.TransactionToken, newRoot : Node) : Unit = {
+    if (!History.isValid(token)) {
+      throw new RuntimeException("Invalid transaction token for layer change")
+    }
+    this.root_ = newRoot
+  }
+
   def findFirst[T : ClassTag](node : Node = root) : Option[T] = {
     findFirst[T]({ x : Any => x match { case _ : T => true; case _ => false } })
   }

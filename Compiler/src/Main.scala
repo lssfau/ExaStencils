@@ -42,7 +42,7 @@ object Main {
     val outputfile = "main.cpp"
 
     // Setup tree
-    StateManager.root_ = Root(List(
+    StateManager.root_ = new Root(List(
       // Application
       new Poisson3D,
 

@@ -5,7 +5,9 @@ import exastencils.datastructures.Annotatable
 
 trait LevelSpecification extends Annotatable
 
-case class SingleLevelSpecification(level : Int) extends LevelSpecification
+case class SingleLevelSpecification(level : Int) extends LevelSpecification {
+  override def toString() = level.toString
+}
 
 case class RangeLevelSpecification(begin : Int, end : Int) extends LevelSpecification
 

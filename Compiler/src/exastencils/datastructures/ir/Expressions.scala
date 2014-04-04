@@ -30,7 +30,7 @@ trait Expression extends Node with CppPrettyPrintable {
 
 object BinaryOperators extends Enumeration {
   type BinaryOperators = Value
-  val Addition, Subtraction, Multiplication, Division, Power, Modulo, AndAnd, OrOr, EqEq, NeqNeq = Value
+  val Addition, Subtraction, Multiplication, Division, Power, Modulo, AndAnd, OrOr, EqEq, NeqNeq, Lower, LowerEqual, Greater, GreaterEqual = Value
 
   import scala.language.implicitConversions
   implicit def op2str(op : Value) : String = op match {
@@ -44,6 +44,10 @@ object BinaryOperators extends Enumeration {
     case OrOr           => "||"
     case EqEq           => "=="
     case NeqNeq         => "!="
+    case Lower          => "<"
+    case LowerEqual     => "<="
+    case Greater        => ">"
+    case GreaterEqual   => ">="
     case _              => "FIXME"
   }
 }

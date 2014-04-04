@@ -30,7 +30,7 @@ object MainChristian {
     var t = new exastencils.languageprocessing.l4.TransformToIr
     t.apply
     
-    println(StateManager.root_)
+//    println(StateManager.root_)
     
     sys.exit(0)
     

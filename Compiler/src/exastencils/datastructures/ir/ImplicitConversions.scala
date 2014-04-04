@@ -3,6 +3,7 @@ package exastencils.datastructures.ir
 import scala.language.implicitConversions
 import exastencils.datastructures.ir._
 import exastencils.datastructures._
+import scala.collection.mutable.ListBuffer
 
 object ImplicitConversions {
   implicit def StringToStringLiteral(s : String) = new StringLiteral(s);
