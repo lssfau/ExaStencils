@@ -8,7 +8,7 @@ trait Number extends Expression {
   def value : AnyVal
 }
 
-case class StringLiteral(value : String) extends Expression
+case class StringConstant(value : String) extends Expression
 
 case class IntegerConstant(v : Long) extends Number {
   override def value = v
@@ -18,7 +18,7 @@ case class FloatConstant(v : Double) extends Number {
   override def value = v
 }
 
-case class BooleanLiteral(value : Boolean) extends Expression
+case class BooleanConstant(value : Boolean) extends Expression
 
 case class Identifier(name : String, level : Option[LevelSpecification]) extends Expression
 
