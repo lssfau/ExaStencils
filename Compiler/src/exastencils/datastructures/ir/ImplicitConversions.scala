@@ -6,9 +6,9 @@ import exastencils.datastructures._
 import scala.collection.mutable.ListBuffer
 
 object ImplicitConversions {
-  implicit def StringToStringLiteral(s : String) = new StringLiteral(s);
+  implicit def StringToStringLiteral(s : String) = new StringConstant(s);
   implicit def ExpressionToExpressionStatement(e : Expression) = new ExpressionStatement(e);
-  implicit def StringToStatement(s : String) = (new ExpressionStatement(new StringLiteral(s)) : Statement);
+  implicit def StringToStatement(s : String) = (new ExpressionStatement(new StringConstant(s)) : Statement);
 
   implicit def StringToDatatype(s : String) = (new SpecialDatatype(s) : Datatype);
 

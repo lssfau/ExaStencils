@@ -82,7 +82,7 @@ case class ConcatenationExpression(var expressions : ListBuffer[Expression]) ext
   }
 }
 
-case class StringLiteral(var value : String) extends Expression {
+case class StringConstant(var value : String) extends Expression {
   override def cpp = value
 }
 
@@ -96,7 +96,7 @@ case class FloatConstant(var v : Double) extends Number {
   override def value = v
 }
 
-case class BooleanLiteral(var value : Boolean) extends Expression {
+case class BooleanConstant(var value : Boolean) extends Expression {
   override def cpp = value.toString
 }
 
