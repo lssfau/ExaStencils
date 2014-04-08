@@ -24,13 +24,17 @@ trait Expression extends Node with CppPrettyPrintable {
   def Or(other : Expression) = new BinaryExpression(OrOr, this, other)
   def Eq(other : Expression) = new BinaryExpression(EqEq, this, other)
   def IsNeq(other : Expression) = new BinaryExpression(NeqNeq, this, other)
+  def <(other : Expression) = new BinaryExpression(Lower, this, other)
+  def <=(other : Expression) = new BinaryExpression(LowerEqual, this, other)
+  def >(other : Expression) = new BinaryExpression(Greater, this, other)
+  def >=(other : Expression) = new BinaryExpression(GreaterEqual, this, other)
 
   def simplify : Expression = this
 }
 
 object BinaryOperators extends Enumeration {
   type BinaryOperators = Value
-  val Addition, Subtraction, Multiplication, Division, Power, Modulo, AndAnd, OrOr, EqEq, NeqNeq = Value
+  val Addition, Subtraction, Multiplication, Division, Power, Modulo, AndAnd, OrOr, EqEq, NeqNeq, Lower, LowerEqual, Greater, GreaterEqual = Value
 
   import scala.language.implicitConversions
   implicit def op2str(op : Value) : String = op match {
@@ -44,6 +48,10 @@ object BinaryOperators extends Enumeration {
     case OrOr           => "||"
     case EqEq           => "=="
     case NeqNeq         => "!="
+    case Lower          => "<"
+    case LowerEqual     => "<="
+    case Greater        => ">"
+    case GreaterEqual   => ">="
     case _              => "FIXME"
   }
 }
@@ -186,6 +194,8 @@ case class BinaryExpression(var operator : BinaryOperators.Value, var left : Exp
 }
 
 case class FunctionCallExpression(var name : Expression, var arguments : ListBuffer[Expression /* FIXME: more specialization*/ ]) extends Expression {
+  def this(name : Expression, argument : Expression) = this(name, ListBuffer(argument))
+
   override def cpp : String = {
     return (s"${name.cpp}(" + arguments.map(arg => arg.cpp).mkString(", ") + ")");
   }
