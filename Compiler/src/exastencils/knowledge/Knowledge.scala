@@ -3,6 +3,7 @@ package exastencils.knowledge
 import exastencils.knowledge._
 import exastencils.spl.Configuration
 import harald.dsl.DomainKnowledge
+import exastencils.util._
 
 object CoarseGridSolverType extends Enumeration {
   type CoarseGridSolverType = Value
@@ -35,63 +36,68 @@ object Knowledge {
 
   // --- Domain Decomposition ---
 
-  class DomainDescription {
-    // number of blocks per dimension - one block will usually be mapped to one MPI thread
-    var numBlocks_x : Int = 3
-    var numBlocks_y : Int = 3
-    var numBlocks_z : Int = 3
-    def numBlocks : Int = {
-      numBlocks_x *
-        (if (Knowledge.dimensionality > 1) numBlocks_y else 1) *
-        (if (Knowledge.dimensionality > 2) numBlocks_z else 1)
-    }
-
-    // the total number of fragments per dimension
-    var numFragsTotal_x : Int = DomainDescription.numFragsPerBlock_x * numBlocks_x
-    var numFragsTotal_y : Int = DomainDescription.numFragsPerBlock_y * numBlocks_y
-    var numFragsTotal_z : Int = DomainDescription.numFragsPerBlock_z * numBlocks_z
-    def numFragsTotal : Int = {
-      numFragsTotal_x *
-        (if (Knowledge.dimensionality > 1) numFragsTotal_y else 1) *
-        (if (Knowledge.dimensionality > 2) numFragsTotal_z else 1)
-    }
-  }
-
-  object DomainDescription {
-    // number of fragments in each block per dimension - this will usually be one or represent the number of OMP threads per dimension
-    var numFragsPerBlock_x : Int = 3
-    var numFragsPerBlock_y : Int = 3
-    var numFragsPerBlock_z : Int = 3
-    def numFragsPerBlock : Int = {
-      numFragsPerBlock_x *
-        (if (Knowledge.dimensionality > 1) numFragsPerBlock_y else 1) *
-        (if (Knowledge.dimensionality > 2) numFragsPerBlock_z else 1)
-    }
-    def numFragsPerBlockPerDim(index : Int) : Int = {
-      Array(numFragsPerBlock_x, numFragsPerBlock_y, numFragsPerBlock_z)(index)
-    }
-
-    // the length of each fragment per dimension - this will either be one or specify the length in unit-fragments, i.e. the number of aggregated fragments per dimension
-    var fragLength_x : Int = 1
-    var fragLength_y : Int = 1
-    var fragLength_z : Int = 1
-    def fragLength : Int = {
-      fragLength_x *
-        (if (Knowledge.dimensionality > 1) fragLength_y else 1) *
-        (if (Knowledge.dimensionality > 2) fragLength_z else 1)
-    }
-    def fragLengthPerDim(index : Int) : Int = {
-      Array(fragLength_x, fragLength_y, fragLength_z)(index)
-    }
-  }
-
   // describes to (number of) domains to be used
-  var domain_numDomains : Int = 1
-  var domain_descriptions : Array[DomainDescription] = Array(new DomainDescription)
+  var domain_size : AABB = new AABB
+  var domain_numSubdomains : Int = 1
+  var domain_subdomains : Array[AABB] = Array(new AABB)
 
   // specifies if fragments within one block should be aggregated 
   // TODO: sanity check if compatible with chosen smoother
   var domain_summarizeBlocks : Boolean = true
+
+  // number of blocks per dimension - one block will usually be mapped to one MPI thread
+  var domain_numBlocks_x : Int = 3
+  var domain_numBlocks_y : Int = 3
+  var domain_numBlocks_z : Int = 3
+  def domain_numBlocks : Int = {
+    domain_numBlocks_x *
+      (if (dimensionality > 1) domain_numBlocks_y else 1) *
+      (if (dimensionality > 2) domain_numBlocks_z else 1)
+  }
+
+  // the total number of fragments per dimension
+  var domain_numFragsTotal_x : Int = domain_numFragsPerBlock_x * domain_numBlocks_x
+  var domain_numFragsTotal_y : Int = domain_numFragsPerBlock_y * domain_numBlocks_y
+  var domain_numFragsTotal_z : Int = domain_numFragsPerBlock_z * domain_numBlocks_z
+  def domain_numFragsTotal : Int = {
+    domain_numFragsTotal_x *
+      (if (dimensionality > 1) domain_numFragsTotal_y else 1) *
+      (if (dimensionality > 2) domain_numFragsTotal_z else 1)
+  }
+
+  // number of fragments in each block per dimension - this will usually be one or represent the number of OMP threads per dimension
+  var domain_numFragsPerBlock_x : Int = 3
+  var domain_numFragsPerBlock_y : Int = 3
+  var domain_numFragsPerBlock_z : Int = 3
+  def domain_numFragsPerBlock : Int = {
+    domain_numFragsPerBlock_x *
+      (if (dimensionality > 1) domain_numFragsPerBlock_y else 1) *
+      (if (dimensionality > 2) domain_numFragsPerBlock_z else 1)
+  }
+  def domain_numFragsPerBlockPerDim(index : Int) : Int = {
+    Array(domain_numFragsPerBlock_x, domain_numFragsPerBlock_y, domain_numFragsPerBlock_z)(index)
+  }
+
+  // the length of each fragment per dimension - this will either be one or specify the length in unit-fragments, i.e. the number of aggregated fragments per dimension
+  var domain_fragLength_x : Int = 1
+  var domain_fragLength_y : Int = 1
+  var domain_fragLength_z : Int = 1
+  def domain_fragLength : Int = {
+    domain_fragLength_x *
+      (if (dimensionality > 1) domain_fragLength_y else 1) *
+      (if (dimensionality > 2) domain_fragLength_z else 1)
+  }
+  def domain_fragLengthPerDim(index : Int) : Int = {
+    Array(domain_fragLength_x, domain_fragLength_y, domain_fragLength_z)(index)
+  }
+
+  // the width of each fragment per dimension in absolute coordinates
+  var domain_fragWidth_x : Double = 1
+  var domain_fragWidth_y : Double = 1
+  var domain_fragWidth_z : Double = 1
+  def domain_fragWidthPerDim(index : Int) : Double = {
+    Array(domain_fragWidth_x, domain_fragWidth_y, domain_fragWidth_z)(index)
+  }
 
   // === Level 2 ===
 
@@ -150,26 +156,28 @@ object Knowledge {
       case "InPlace_Smoother" => CoarseGridSolverType.IP_Smoother
     }
 
-    useOMP = domain_summarizeBlocks || DomainDescription.numFragsPerBlock_x != 1 || DomainDescription.numFragsPerBlock_y != 1 || DomainDescription.numFragsPerBlock_z != 1
+    useOMP = domain_summarizeBlocks || domain_numFragsPerBlock_x != 1 || domain_numFragsPerBlock_y != 1 || domain_numFragsPerBlock_z != 1
 
     numLevels = maxLevel + 1
 
     if (domain_summarizeBlocks) {
       // FIXME: move to transformation
-      DomainDescription.fragLength_x = DomainDescription.numFragsPerBlock_x
-      DomainDescription.fragLength_y = DomainDescription.numFragsPerBlock_y
-      DomainDescription.fragLength_z = DomainDescription.numFragsPerBlock_z
+      domain_fragLength_x = domain_numFragsPerBlock_x
+      domain_fragLength_y = domain_numFragsPerBlock_y
+      domain_fragLength_z = domain_numFragsPerBlock_z
 
-      DomainDescription.numFragsPerBlock_x = 1
-      DomainDescription.numFragsPerBlock_y = 1
-      DomainDescription.numFragsPerBlock_z = 1
+      domain_numFragsPerBlock_x = 1
+      domain_numFragsPerBlock_y = 1
+      domain_numFragsPerBlock_z = 1
     }
 
-    for (domain <- domain_descriptions) {
-      domain.numFragsTotal_x = DomainDescription.numFragsPerBlock_x * domain.numBlocks_x
-      domain.numFragsTotal_y = DomainDescription.numFragsPerBlock_y * domain.numBlocks_y
-      domain.numFragsTotal_z = DomainDescription.numFragsPerBlock_z * domain.numBlocks_z
-    }
+    domain_numFragsTotal_x = domain_numFragsPerBlock_x * domain_numBlocks_x
+    domain_numFragsTotal_y = domain_numFragsPerBlock_y * domain_numBlocks_y
+    domain_numFragsTotal_z = domain_numFragsPerBlock_z * domain_numBlocks_z
+
+    domain_fragWidth_x = domain_size.width(0) / domain_numFragsTotal_x
+    domain_fragWidth_y = domain_size.width(1) / domain_numFragsTotal_y
+    domain_fragWidth_z = domain_size.width(2) / domain_numFragsTotal_z
 
     mg_smoother_omega = (if (SmootherType.Jac == mg_smoother) 0.8 else 1.0)
 

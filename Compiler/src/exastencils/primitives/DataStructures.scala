@@ -51,11 +51,11 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var createFragRef
     val parallelizable = !Knowledge.domain_summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false });
 
     if (parallelizable)
-      new ForLoopStatement(s"int f = 0", s"f < " ~ Knowledge.DomainDescription.numFragsPerBlock, s"++f",
+      new ForLoopStatement(s"int f = 0", s"f < " ~ Knowledge.domain_numFragsPerBlock, s"++f",
         (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[f];") else ListBuffer[Statement]())
           ++ body, addOMPStatements + " schedule(static, 1)") with OMP_PotentiallyParallel
     else
-      new ForLoopStatement(s"int f = 0", s"f < " ~ Knowledge.DomainDescription.numFragsPerBlock, s"++f",
+      new ForLoopStatement(s"int f = 0", s"f < " ~ Knowledge.domain_numFragsPerBlock, s"++f",
         (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[f];") else ListBuffer[Statement]())
           ++ body)
   }

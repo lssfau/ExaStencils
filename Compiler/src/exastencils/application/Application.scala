@@ -59,7 +59,7 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
     // FIXME: make the next line of code more readable and robust
     val globals : Globals = StateManager.root.asInstanceOf[Root].nodes.find(node => node.isInstanceOf[Globals]).get.asInstanceOf[Globals];
 
-    globals.variables += new VariableDeclarationStatement(new VariableAccess(s"fragments[${Knowledge.DomainDescription.numFragsPerBlock}]", Some("Fragment3DCube*")));
+    globals.variables += new VariableDeclarationStatement(new VariableAccess(s"fragments[${Knowledge.domain_numFragsPerBlock}]", Some("Fragment3DCube*")));
 
     new FunctionStatement("int", "main", ListBuffer(VariableAccess("argc", Some("int")), VariableAccess("argv", Some("char**"))),
       ListBuffer[Statement](
@@ -70,9 +70,9 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
 
         if (Knowledge.useOMP) {
           (if (Knowledge.domain_summarizeBlocks)
-            s"omp_set_num_threads(${Knowledge.DomainDescription.fragLength});"
+            s"omp_set_num_threads(${Knowledge.domain_fragLength});"
           else
-            s"omp_set_num_threads(${Knowledge.DomainDescription.numFragsPerBlock});")
+            s"omp_set_num_threads(${Knowledge.domain_numFragsPerBlock});")
         } else "",
 
         new ConditionStatement(s"argc != 1", ListBuffer[Statement](
