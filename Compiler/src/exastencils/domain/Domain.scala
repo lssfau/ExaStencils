@@ -16,31 +16,31 @@ import exastencils.omp._
 
 // FIXME: incorporate fragLengthPerDim
 
-case class PointOutsideDomain(var pos : Expression) extends Expression {
+case class PointOutsideDomain(var pos : Expression, var domain : Int = 0) extends Expression {
   def cpp : String = {
-    (s"(${pos.cpp}.x < 0.0 || ${pos.cpp}.x > ${Knowledge.domain_numFragsTotal_x} || ${pos.cpp}.y < 0.0 || ${pos.cpp}.y > ${Knowledge.domain_numFragsTotal_y} || ${pos.cpp}.z < 0.0 || ${pos.cpp}.z > ${Knowledge.domain_numFragsTotal_z})");
+    (s"(${pos.cpp}.x < 0.0 || ${pos.cpp}.x > ${Knowledge.domain_descriptions(domain).numFragsTotal_x} || ${pos.cpp}.y < 0.0 || ${pos.cpp}.y > ${Knowledge.domain_descriptions(domain).numFragsTotal_y} || ${pos.cpp}.z < 0.0 || ${pos.cpp}.z > ${Knowledge.domain_descriptions(domain).numFragsTotal_z})");
   }
 }
 
-case class PointInsideDomain(var pos : Expression) extends Expression {
+case class PointInsideDomain(var pos : Expression, var domain : Int = 0) extends Expression {
   def cpp : String = {
-    (s"(${pos.cpp}.x >= 0.0 && ${pos.cpp}.x <= ${Knowledge.domain_numFragsTotal_x} && ${pos.cpp}.y >= 0.0 && ${pos.cpp}.y <= ${Knowledge.domain_numFragsTotal_y} && ${pos.cpp}.z >= 0.0 && ${pos.cpp}.z <= ${Knowledge.domain_numFragsTotal_z})");
+    (s"(${pos.cpp}.x >= 0.0 && ${pos.cpp}.x <= ${Knowledge.domain_descriptions(domain).numFragsTotal_x} && ${pos.cpp}.y >= 0.0 && ${pos.cpp}.y <= ${Knowledge.domain_descriptions(domain).numFragsTotal_y} && ${pos.cpp}.z >= 0.0 && ${pos.cpp}.z <= ${Knowledge.domain_descriptions(domain).numFragsTotal_z})");
   }
 }
 
-case class PointToFragmentId(var pos : Expression) extends Expression {
+case class PointToFragmentId(var pos : Expression, var domain : Int = 0) extends Expression {
   def cpp : String = {
-    (s"((size_t)(floor(${pos.cpp}.z) * ${Knowledge.domain_numFragsTotal_y * Knowledge.domain_numFragsTotal_x} + floor(${pos.cpp}.y) * ${Knowledge.domain_numFragsTotal_x} + floor(${pos.cpp}.x)))");
+    (s"((size_t)(floor(${pos.cpp}.z) * ${Knowledge.domain_descriptions(domain).numFragsTotal_y * Knowledge.domain_descriptions(domain).numFragsTotal_x} + floor(${pos.cpp}.y) * ${Knowledge.domain_descriptions(domain).numFragsTotal_x} + floor(${pos.cpp}.x)))");
   }
 }
 
-case class PointToOwningRank(var pos : Expression) extends Expression with Expandable {
+case class PointToOwningRank(var pos : Expression, var domain : Int = 0) extends Expression with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = PointToOwningRank\n";
 
   override def expand(collector : StackCollector) : Expression = {
     TernaryConditionExpression(PointOutsideDomain(pos).cpp,
       s"MPI_PROC_NULL",
-      s"(int)(floor(${pos.cpp}.z / ${Knowledge.domain_numFragsPerBlock_z}) * ${Knowledge.domain_numBlocks_y * Knowledge.domain_numBlocks_x} + floor(${pos.cpp}.y / ${Knowledge.domain_numFragsPerBlock_y}) * ${Knowledge.domain_numBlocks_x} + floor(${pos.cpp}.x / ${Knowledge.domain_numFragsPerBlock_x}))");
+      s"(int)(floor(${pos.cpp}.z / ${Knowledge.DomainDescription.numFragsPerBlock_z}) * ${Knowledge.domain_descriptions(domain).numBlocks_y * Knowledge.domain_descriptions(domain).numBlocks_x} + floor(${pos.cpp}.y / ${Knowledge.DomainDescription.numFragsPerBlock_y}) * ${Knowledge.domain_descriptions(domain).numBlocks_x} + floor(${pos.cpp}.x / ${Knowledge.DomainDescription.numFragsPerBlock_x}))");
   }
 }
 
@@ -129,20 +129,20 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
       ListBuffer(
         new MPI_SetRankAndSize,
 
-        AssertStatement(s"mpiSize != ${Knowledge.domain_numBlocks}",
-          "\"Invalid number of MPI processes (\" << mpiSize << \") should be \" << " + (Knowledge.domain_numBlocks),
+        AssertStatement(s"mpiSize != ${Knowledge.domain_descriptions(0 /*FIXME*/ ).numBlocks}",
+          "\"Invalid number of MPI processes (\" << mpiSize << \") should be \" << " + (Knowledge.domain_descriptions(0 /*FIXME*/ ).numBlocks),
           "return;"),
 
         "std::map<size_t, Fragment3DCube*> fragmentMap;",
 
-        s"Vec3 positions[${Knowledge.domain_numFragsPerBlock}];",
+        s"Vec3 positions[${Knowledge.DomainDescription.numFragsPerBlock}];",
         s"unsigned int posWritePos = 0;",
-        s"Vec3 rankPos(mpiRank % ${Knowledge.domain_numBlocks_x}, (mpiRank / ${Knowledge.domain_numBlocks_x}) % ${Knowledge.domain_numBlocks_y}, mpiRank / ${Knowledge.domain_numBlocks_x * Knowledge.domain_numBlocks_y});",
-        new LoopOverDimensions(IndexRange(MultiIndex(0, 0, 0), MultiIndex(Knowledge.domain_numFragsPerBlock_x, Knowledge.domain_numFragsPerBlock_y, Knowledge.domain_numFragsPerBlock_z)),
+        s"Vec3 rankPos(mpiRank % ${Knowledge.domain_descriptions(0 /*FIXME*/ ).numBlocks_x}, (mpiRank / ${Knowledge.domain_descriptions(0 /*FIXME*/ ).numBlocks_x}) % ${Knowledge.domain_descriptions(0 /*FIXME*/ ).numBlocks_y}, mpiRank / ${Knowledge.domain_descriptions(0 /*FIXME*/ ).numBlocks_x * Knowledge.domain_descriptions(0 /*FIXME*/ ).numBlocks_y});",
+        new LoopOverDimensions(IndexRange(MultiIndex(0, 0, 0), MultiIndex(Knowledge.DomainDescription.numFragsPerBlock_x, Knowledge.DomainDescription.numFragsPerBlock_y, Knowledge.DomainDescription.numFragsPerBlock_z)),
           Knowledge.dimensionality match { // FIXME: avoid match, write in a dimensionless matter
-            case 1 => s"positions[posWritePos++] = (Vec3(rankPos.x * ${Knowledge.domain_numFragsPerBlock_x} + 0.5 + x, 0, 0);";
-            case 2 => s"positions[posWritePos++] = (Vec3(rankPos.x * ${Knowledge.domain_numFragsPerBlock_x} + 0.5 + x, rankPos.y * ${Knowledge.domain_numFragsPerBlock_y} + 0.5 + y, 0));";
-            case 3 => s"positions[posWritePos++] = (Vec3(rankPos.x * ${Knowledge.domain_numFragsPerBlock_x} + 0.5 + x, rankPos.y * ${Knowledge.domain_numFragsPerBlock_y} + 0.5 + y, rankPos.z * ${Knowledge.domain_numFragsPerBlock_z} + 0.5 + z));";
+            case 1 => s"positions[posWritePos++] = (Vec3(rankPos.x * ${Knowledge.DomainDescription.numFragsPerBlock_x} + 0.5 + x, 0, 0);";
+            case 2 => s"positions[posWritePos++] = (Vec3(rankPos.x * ${Knowledge.DomainDescription.numFragsPerBlock_x} + 0.5 + x, rankPos.y * ${Knowledge.DomainDescription.numFragsPerBlock_y} + 0.5 + y, 0));";
+            case 3 => s"positions[posWritePos++] = (Vec3(rankPos.x * ${Knowledge.DomainDescription.numFragsPerBlock_x} + 0.5 + x, rankPos.y * ${Knowledge.DomainDescription.numFragsPerBlock_y} + 0.5 + y, rankPos.z * ${Knowledge.DomainDescription.numFragsPerBlock_z} + 0.5 + z));";
           }),
         LoopOverFragments(ListBuffer(
           "fragments[f] = new Fragment3DCube();",
