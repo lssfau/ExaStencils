@@ -14,82 +14,90 @@ import exastencils.mpi._
 import exastencils.prettyprinting._
 import exastencils.omp._
 
-case class PointOutsideDomain(var pos : Expression, var domain : Int = 0) extends Expression {
-  def cpp : String = {
-   s"(${pos.cpp}.x < ${Knowledge.domain_subdomains(domain).lower_x} || ${pos.cpp}.x > ${Knowledge.domain_subdomains(domain).upper_x}" +
-      s" || ${pos.cpp}.y < ${Knowledge.domain_subdomains(domain).lower_y} || ${pos.cpp}.y > ${Knowledge.domain_subdomains(domain).upper_y}" +
-      s" || ${pos.cpp}.z < ${Knowledge.domain_subdomains(domain).lower_z} || ${pos.cpp}.z > ${Knowledge.domain_subdomains(domain).upper_z})"
+case class PointOutsideDomain(var pos : Expression, var domain : Int = 0) extends Expression with Expandable {
+  override def cpp : String = "NOT VALID ; CLASS = PointOutsideDomain\n"
+
+  override def expand(collector : StackCollector) : Expression = {
+    s"(" ~
+      ((pos ~ ".x") < Knowledge.domain_subdomains(domain).lower_x) Or ((pos ~ ".x") > Knowledge.domain_subdomains(domain).upper_x) Or
+      ((pos ~ ".y") < Knowledge.domain_subdomains(domain).lower_y) Or ((pos ~ ".y") > Knowledge.domain_subdomains(domain).upper_y) Or
+      ((pos ~ ".z") < Knowledge.domain_subdomains(domain).lower_z) Or ((pos ~ ".z") > Knowledge.domain_subdomains(domain).upper_z) ~ ")"
   }
 }
 
-case class PointInsideDomain(var pos : Expression, var domain : Int = 0) extends Expression {
-  def cpp : String = {
-    s"(${pos.cpp}.x >= ${Knowledge.domain_subdomains(domain).lower_x} && ${pos.cpp}.x <= ${Knowledge.domain_subdomains(domain).upper_x}" +
-      s" && ${pos.cpp}.y >= ${Knowledge.domain_subdomains(domain).lower_y} && ${pos.cpp}.y <= ${Knowledge.domain_subdomains(domain).upper_y}" +
-      s" && ${pos.cpp}.z >= ${Knowledge.domain_subdomains(domain).lower_z} && ${pos.cpp}.z <= ${Knowledge.domain_subdomains(domain).upper_z})"
+case class PointInsideDomain(var pos : Expression, var domain : Int = 0) extends Expression with Expandable {
+  override def cpp : String = "NOT VALID ; CLASS = PointInsideDomain\n"
+
+  override def expand(collector : StackCollector) : Expression = {
+    s"(" ~
+      ((pos ~ ".x") >= Knowledge.domain_subdomains(domain).lower_x) And ((pos ~ ".x") <= Knowledge.domain_subdomains(domain).upper_x) And
+      ((pos ~ ".y") >= Knowledge.domain_subdomains(domain).lower_y) And ((pos ~ ".y") <= Knowledge.domain_subdomains(domain).upper_y) And
+      ((pos ~ ".z") >= Knowledge.domain_subdomains(domain).lower_z) And ((pos ~ ".z") <= Knowledge.domain_subdomains(domain).upper_z) ~ ")"
   }
 }
 
-case class PointToFragmentId(var pos : Expression, var domain : Int = 0) extends Expression {
-  def cpp : String = {
-    s"(((int)floor((${pos.cpp}.z - ${Knowledge.domain_size.lower_z}) / ${Knowledge.domain_fragWidth_z})) * ${Knowledge.domain_numFragsTotal_y * Knowledge.domain_numFragsTotal_x}" +
-      s" + ((int)floor((${pos.cpp}.y - ${Knowledge.domain_size.lower_y}) / ${Knowledge.domain_fragWidth_y})) * ${Knowledge.domain_numFragsTotal_x}" +
-      s" + ((int)floor((${pos.cpp}.x - ${Knowledge.domain_size.lower_x}) / ${Knowledge.domain_fragWidth_x})))"
+case class PointToFragmentId(var pos : Expression, var domain : Int = 0) extends Expression with Expandable {
+  override def cpp : String = "NOT VALID ; CLASS = PointToFragmentId\n"
+
+  override def expand(collector : StackCollector) : Expression = {
+    "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - Knowledge.domain_size.lower_z) / Knowledge.domain_fragWidth_z) * Knowledge.domain_numFragsTotal_y * Knowledge.domain_numFragsTotal_x +
+      "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - Knowledge.domain_size.lower_y) / Knowledge.domain_fragWidth_y) * Knowledge.domain_numFragsTotal_x +
+      "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - Knowledge.domain_size.lower_x) / Knowledge.domain_fragWidth_x)
   }
 }
 
 case class PointToOwningRank(var pos : Expression, var domain : Int = 0) extends Expression with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = PointToOwningRank\n";
+  override def cpp : String = "NOT VALID ; CLASS = PointToOwningRank\n"
 
   override def expand(collector : StackCollector) : Expression = {
-    TernaryConditionExpression(PointOutsideDomain(pos).cpp,
+    TernaryConditionExpression(PointOutsideDomain(pos),
       s"MPI_PROC_NULL",
-      s"(((int)floor((${pos.cpp}.z - ${Knowledge.domain_size.lower_z}) / ${Knowledge.domain_fragWidth_z})) / ${Knowledge.domain_numFragsPerBlock_z}) * ${Knowledge.domain_numBlocks_y * Knowledge.domain_numBlocks_x}"+
-      s" + (((int)floor((${pos.cpp}.y - ${Knowledge.domain_size.lower_y}) / ${Knowledge.domain_fragWidth_y})) / ${Knowledge.domain_numFragsPerBlock_y}) * ${Knowledge.domain_numBlocks_x}"+
-      s" + (((int)floor((${pos.cpp}.x - ${Knowledge.domain_size.lower_x}) / ${Knowledge.domain_fragWidth_x})) / ${Knowledge.domain_numFragsPerBlock_x})");
+      ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - Knowledge.domain_size.lower_z) / Knowledge.domain_fragWidth_z) / Knowledge.domain_numFragsPerBlock_z) * Knowledge.domain_numBlocks_y * Knowledge.domain_numBlocks_x
+        + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - Knowledge.domain_size.lower_y) / Knowledge.domain_fragWidth_y) / Knowledge.domain_numFragsPerBlock_y) * Knowledge.domain_numBlocks_x
+        + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - Knowledge.domain_size.lower_x) / Knowledge.domain_fragWidth_x) / Knowledge.domain_numFragsPerBlock_x))
   }
 }
 
 case class AssertStatement(var check : Expression, var msg : Expression, var abort : Statement) extends Statement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = AssertStatement\n";
+  override def cpp : String = "NOT VALID ; CLASS = AssertStatement\n"
 
   override def expand(collector : StackCollector) : ConditionStatement = {
     new ConditionStatement(check,
       ListBuffer[Statement](
         "LOG_ERROR(" ~ msg ~ ");",
-        abort));
+        abort))
   }
 }
 
 case class ConnectFragments() extends Statement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = ConnectFragments\n";
+  override def cpp : String = "NOT VALID ; CLASS = ConnectFragments\n"
 
   override def expand(collector : StackCollector) : LoopOverFragments = {
-    var body = new ListBuffer[Statement];
+    var body = new ListBuffer[Statement]
 
     // TODO: get these neighbors from the fragment class
-    var neighbors : ListBuffer[NeighborInfo] = ListBuffer();
+    var neighbors : ListBuffer[NeighborInfo] = ListBuffer()
     if (6 == Knowledge.comm_strategyFragment) {
-      neighbors += new NeighborInfo(Array(-1, 0, 0), 0);
-      neighbors += new NeighborInfo(Array(+1, 0, 0), 1);
+      neighbors += new NeighborInfo(Array(-1, 0, 0), 0)
+      neighbors += new NeighborInfo(Array(+1, 0, 0), 1)
       if (Knowledge.dimensionality > 1) {
-        neighbors += new NeighborInfo(Array(0, -1, 0), 2);
-        neighbors += new NeighborInfo(Array(0, +1, 0), 3);
+        neighbors += new NeighborInfo(Array(0, -1, 0), 2)
+        neighbors += new NeighborInfo(Array(0, +1, 0), 3)
       }
       if (Knowledge.dimensionality > 2) {
-        neighbors += new NeighborInfo(Array(0, 0, -1), 4);
-        neighbors += new NeighborInfo(Array(0, 0, +1), 5);
+        neighbors += new NeighborInfo(Array(0, 0, -1), 4)
+        neighbors += new NeighborInfo(Array(0, 0, +1), 5)
       }
     } else if (26 == Knowledge.comm_strategyFragment) {
-      var i = 0;
+      var i = 0
       for (
         z <- (if (Knowledge.dimensionality > 2) (-1 to 1) else (0 to 0));
         y <- (if (Knowledge.dimensionality > 1) (-1 to 1) else (0 to 0));
         x <- -1 to 1;
         if (0 != x || 0 != y || 0 != z)
       ) {
-        neighbors += new NeighborInfo(Array(x, y, z), i);
-        i += 1;
+        neighbors += new NeighborInfo(Array(x, y, z), i)
+        i += 1
       }
     }
 
@@ -99,36 +107,36 @@ case class ConnectFragments() extends Statement with Expandable {
         new ConditionStatement(s"mpiRank ==" ~ PointToOwningRank("offsetPos"),
           s"curFragment.connectLocalElement(${neigh.index}, fragmentMap[" ~ PointToFragmentId("offsetPos") ~ "]);",
           new ConditionStatement(PointInsideDomain(s"offsetPos"),
-            s"curFragment.connectRemoteElement(${neigh.index}," ~ PointToFragmentId("offsetPos").cpp ~ ","
-              ~ PointToOwningRank("offsetPos") ~ s");"))));
+            s"curFragment.connectRemoteElement(${neigh.index}," ~ PointToFragmentId("offsetPos") ~ ","
+              ~ PointToOwningRank("offsetPos") ~ s");"))))
     }
 
-    return new LoopOverFragments(body) with OMP_PotentiallyParallel;
+    return new LoopOverFragments(body) with OMP_PotentiallyParallel
   }
 }
 
 case class SetupBuffers() extends Statement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = SetupBuffers\n";
+  override def cpp : String = "NOT VALID ; CLASS = SetupBuffers\n"
 
   override def expand(collector : StackCollector) : LoopOverFragments = {
-    new LoopOverFragments("curFragment.setupBuffers();") with OMP_PotentiallyParallel;
+    new LoopOverFragments("curFragment.setupBuffers();") with OMP_PotentiallyParallel
   }
 }
 
 case class ValidatePrimitives() extends Statement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = ValidatePrimitives\n";
+  override def cpp : String = "NOT VALID ; CLASS = ValidatePrimitives\n"
 
   //  TODO
   //  override def expand(collector : StackCollector) : LoopOverFragments = {
-  //    new LoopOverFragments("curFragment.validate();") with OMP_PotentiallyParallel;
+  //    new LoopOverFragments("curFragment.validate();") with OMP_PotentiallyParallel
   //  }
   override def expand(collector : StackCollector) : NullStatement = {
-    NullStatement();
+    NullStatement()
   }
 }
 
 case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = InitGeneratedDomain\n";
+  override def cpp : String = "NOT VALID ; CLASS = InitGeneratedDomain\n"
 
   override def expand(collector : StackCollector) : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"initDomain", ListBuffer(),
@@ -145,37 +153,36 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
         s"unsigned int posWritePos = 0;",
         s"Vec3 rankPos(mpiRank % ${Knowledge.domain_numBlocks_x}, (mpiRank / ${Knowledge.domain_numBlocks_x}) % ${Knowledge.domain_numBlocks_y}, mpiRank / ${Knowledge.domain_numBlocks_x * Knowledge.domain_numBlocks_y});",
         new LoopOverDimensions(IndexRange(MultiIndex(0, 0, 0), MultiIndex(Knowledge.domain_numFragsPerBlock_x, Knowledge.domain_numFragsPerBlock_y, Knowledge.domain_numFragsPerBlock_z)),
-          Knowledge.dimensionality match { // FIXME: avoid match, write in a dimensionless matter
-            case 1 => s"positions[posWritePos++] = (Vec3((rankPos.x * ${Knowledge.domain_numFragsPerBlock_x} + 0.5 + x) * ${Knowledge.domain_fragWidth_x}, 0, 0);";
-            case 2 => s"positions[posWritePos++] = (Vec3((rankPos.x * ${Knowledge.domain_numFragsPerBlock_x} + 0.5 + x) * ${Knowledge.domain_fragWidth_x}, (rankPos.y * ${Knowledge.domain_numFragsPerBlock_y} + 0.5 + y) * ${Knowledge.domain_fragWidth_y}, 0));";
-            case 3 => s"positions[posWritePos++] = (Vec3((rankPos.x * ${Knowledge.domain_numFragsPerBlock_x} + 0.5 + x) * ${Knowledge.domain_fragWidth_x}, (rankPos.y * ${Knowledge.domain_numFragsPerBlock_y} + 0.5 + y) * ${Knowledge.domain_fragWidth_y}, (rankPos.z * ${Knowledge.domain_numFragsPerBlock_z} + 0.5 + z) * ${Knowledge.domain_fragWidth_z}));";
-          }),
+          new AssignmentStatement("positions[posWritePos++]", "Vec3("
+            ~ (("rankPos.x" : Expression) * Knowledge.domain_numFragsPerBlock_x + 0.5 + "x") * Knowledge.domain_fragWidth_x ~ ","
+            ~ (if (Knowledge.dimensionality > 1) (("rankPos.y" : Expression) * Knowledge.domain_numFragsPerBlock_y + 0.5 + "y") * Knowledge.domain_fragWidth_y else 0) ~ ","
+            ~ (if (Knowledge.dimensionality > 2) (("rankPos.z" : Expression) * Knowledge.domain_numFragsPerBlock_z + 0.5 + "z") * Knowledge.domain_fragWidth_z else 0) ~ ")")),
         LoopOverFragments(ListBuffer(
           "fragments[f] = new Fragment3DCube();",
           "fragments[f]->id = " ~ PointToFragmentId("positions[f]") ~ ";",
           "fragments[f]->pos = positions[f];",
-          "fragmentMap[" ~ PointToFragmentId("positions[f]").cpp ~ s"] = fragments[f];"),
+          "fragmentMap[" ~ PointToFragmentId("positions[f]") ~ s"] = fragments[f];"),
           false),
         ConnectFragments(),
-        new SetupBuffers));
+        new SetupBuffers))
   }
 }
 
 case class DomainGenerated() extends Node with FilePrettyPrintable {
-  var statements_HACK : ListBuffer[Statement] = new ListBuffer;
+  var statements_HACK : ListBuffer[Statement] = new ListBuffer
 
-  statements_HACK += new InitGeneratedDomain;
+  statements_HACK += new InitGeneratedDomain
 
   override def printToFile = {
-    val writer = PrettyprintingManager.getPrinter(s"Domains/DomainGenerated.h");
+    val writer = PrettyprintingManager.getPrinter(s"Domains/DomainGenerated.h")
 
     // TODO: add includes to class node or similar
     writer << (
       "#include <map>\n"
       + "#include \"Util/Log.h\"\n"
-      + "#include \"Util/Vector.h\"\n");
+      + "#include \"Util/Vector.h\"\n")
 
     for (s <- statements_HACK)
-      writer << s.cpp + "\n";
+      writer << s.cpp + "\n"
   }
 }
