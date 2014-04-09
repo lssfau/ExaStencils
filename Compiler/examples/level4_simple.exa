@@ -1,20 +1,23 @@
-def somefunction(s : String, i : Integer, r : Real) : Unit {
-  var x : String
-  var d : Domain
-   a=9
-}
 
-
-def VCycle ( lev : Integer ) : Unit 
+def VCycle@0 (  ) : Unit
 { 
-a = 3 * 7 + a+1+5-3-9
-b = -9 + hallo()
-d = meck(hallo(), 7, a + b)
-
-loop over inner levels 5 order rb blocksize 1 1 1
-  d =    f
-  f = d
-next
-
+//  decl lev : Int = 0  
+repeat up 512 {
+  GaussSeidel @(current) (  ) 
+  }
+} 
+/*
+def VCycle@(1 to 6) (  ) : Unit {
+  repeat up 3  {
+  GaussSeidel@(current) (  ) 
+  }
+  Residual@(current) (  ) 
+  Restrict@(current) (  ) 
+  set@(coarser) ( 0 ) 
+  VCycle@(coarser) (  ) 
+  interpolatecorr@(current) (  )
+  repeat up 3 {
+    GaussSeidel@(current) (  ) 
+  }
 }
-
+*/

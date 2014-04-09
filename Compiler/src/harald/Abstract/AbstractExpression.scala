@@ -90,7 +90,7 @@ case class AbstractFCall(fname : String, arglist : List[AbstractExpression]) ext
     if (fname.equals("random"))
       return "(rand()/static_cast<double>(RAND_MAX))" * args(0) // TODO
     if (fname.equals("fasterReduce") && DomainKnowledge.use_gpu)
-      return new StringLiteral("fasterReduce (Res[lev].begin(), solution[lev].x1_*solution[lev].x2_, f[lev].begin())") // TODO
+      return new StringConstant("fasterReduce (Res[lev].begin(), solution[lev].x1_*solution[lev].x2_, f[lev].begin())") // TODO
 
     return new FunctionCallExpression(fname, args)
 
@@ -101,7 +101,7 @@ case class AbstractLiteral(text : String) extends AbstractExpression {
   override def value(context : Context) = text
   override def toString = text
   override def transform(scopeparas : ListBuffer[ParameterInfo], modifier : Option[String], scopetype : String) : Expression = {
-    return new StringLiteral(text)
+    return new StringConstant(text)
   }
 }
 
@@ -124,7 +124,7 @@ case class AbstractStringLiteral(text : String) extends AbstractExpression {
   override def value(context : Context) = text
   override def toString = text
   override def transform(scopeparas : ListBuffer[ParameterInfo], modifier : Option[String], scopetype : String) : Expression = {
-    return new StringLiteral("\"" + text + "\"")
+    return new StringConstant("\"" + text + "\"")
   }
 }
 

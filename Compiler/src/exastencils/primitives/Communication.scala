@@ -23,9 +23,9 @@ case class LocalSend(var field : Field, var neighbors : ListBuffer[(NeighborInfo
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(
                 new DirectFieldAccess(new getNeighInfo_LocalPtr(neigh._1, field.domain) ~ "->", field, "slot", new MultiIndex(
-                  StringLiteral("x") + neigh._3.begin(0) - neigh._2.begin(0),
-                  StringLiteral("y") + neigh._3.begin(1) - neigh._2.begin(1),
-                  StringLiteral("z") + neigh._3.begin(2) - neigh._2.begin(2))),
+                  StringConstant("x") + neigh._3.begin(0) - neigh._2.begin(0),
+                  StringConstant("y") + neigh._3.begin(1) - neigh._2.begin(1),
+                  StringConstant("z") + neigh._3.begin(2) - neigh._2.begin(2))),
                 new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel))) : Statement)) with OMP_PotentiallyParallel;
   }
 }

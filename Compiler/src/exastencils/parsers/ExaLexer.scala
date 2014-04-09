@@ -7,17 +7,17 @@ import scala.util.parsing.combinator.lexical._
   */
 class ExaLexer extends StdLexical {
   // general stuff
-  delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "+=", "|", "[", "]", ",")
+  delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "+=", "|", "[", "]", ",", "<", ">", "@")
 
   reserved += ("true", "false")
 
   override def token : Parser[Token] = floatingToken | super.token
 
   def floatingToken : Parser[Token] =
-    optSign ~ rep1(digit) ~ optFraction ~ optExponent ^^
+    /*optSign ~*/ rep1(digit) ~ optFraction ~ optExponent ^^
       {
-        case optSign ~ intPart ~ frac ~ exp => NumericLit(
-          optSign :: (intPart mkString "") :: frac :: exp :: Nil mkString "")
+        case /*optSign ~*/ intPart ~ frac ~ exp => NumericLit(
+          /*optSign ::*/ (intPart mkString "") :: frac :: exp :: Nil mkString "")
       }
   def chr(c : Char) = elem("", ch => ch == c)
   def sign = chr('+') | chr('-')
@@ -62,13 +62,14 @@ class ExaLexer extends StdLexical {
   reserved += ("def", "return")
 
   // declaration keywords
-  reserved += ("var", "Integer", "Real", "String", "Array", "Complex", "Unit", "Domain")
+  reserved += ("var", "Field", "Domain", "Set")
 
   // loop keywords
-  reserved += ("loop", "over", "domain", "inner", "boundary", "blocksize", "levels")
+  reserved += ("loop", "repeat", "up", "until", "over", "blocksize")
 
-  /*
-   * language datatypes
-   */
+  // language datatypes
   reserved += ("Unit", "String", "Integer", "Real", "Complex", "Array")
+  
+  // other keywords
+  reserved += ("current", "coarser", "finer", "to", "steps", "END")
 }

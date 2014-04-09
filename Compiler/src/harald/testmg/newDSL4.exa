@@ -1,0 +1,96 @@
+def VCycle@0 (  ) : Unit
+{ 
+//  decl lev : Int = 0  
+repeat up 512 {
+	GaussSeidel @(current) (  ) 
+  }
+} 
+
+def VCycle@(1 to 6) (  ) : Unit {
+  repeat up 3  {
+	GaussSeidel@(current) (  ) 
+  }
+	Residual@(current) (  ) 
+	Restrict@(current) (  ) 
+	set@(coarser) ( 0 ) 
+	VCycle@(coarser) (  ) 
+	interpolatecorr@(current) (  ) 
+  repeat up 3 {
+		GaussSeidel@(current) (  ) 
+  }
+}
+
+def Residual @(0 to 6) (  ) : Unit
+{ 
+//  decl lev : Int = 0  
+  exchsolData @(current) ( 0 )  
+  Set inner [1, 1] - [1, 1] steps [1, 1]
+loop over inner {
+  Res @(current) = f @(current) - (Lapl @(current) * solution @(current) )  
+}
+}  
+
+def L2Residual @(0 to 6) (  ) : Real
+{ 
+//  decl lev : Int = 0  
+  exchsolData @(current) ( 0 )  
+    Set inner [1, 1] - [1, 1] steps [1, 1]
+    Reduction {
+    loop over inner {
+        s += (f @(current)  - Lapl @(current) * solution @(current)) * (f @(current)  - Lapl @(current) * solution @(current)) 
+  }
+  }
+}  
+
+def GaussSeidel @(0 to 6) (  ) : Unit
+{ 
+//  decl lev : Int = 0  
+  exchsolData @(current) ( 0 )
+    Set inner [1, 1] - [1, 1] steps [1, 1]  
+    loop over inner {
+      solution @(current) = solution @(current) + ( ( ( inverse( diag(Lapl @(current) ) ) ) * 1.0 ) * ( f @(current) - Lapl @(current) * solution @(current) ) ) 
+  }
+}  
+
+def Restrict @(1 to 6) (  ) : Unit
+{ 
+//  decl lev : Int = 1  
+  exchresData @(current) ( 0 )  
+    Set inner [1, 1] - [1, 1] steps [1, 1]
+    loop over inner {
+      f @(coarser) =  RestrictionStencil * ToCoarser(Res @(current))  
+    }
+}  
+
+def interpolatecorr @(1 to 6) (  ) : Unit
+{ 
+//  decl lev : Int = 1  
+  exchsolData @(current) ( 0 )  
+    Set inner [1, 1] - [1, 1] steps [1, 1]
+    loop over inner {
+    solution @(current) += CorrectionStencil * ToFiner(solution @(coarser))
+   }
+}  
+
+def set @(0 to 6) ( value:Integer ) : Unit
+{ 
+//  decl lev : Int = 0  
+  Set domain [0, 0] - [0, 0] steps [1, 1]
+  loop over domain {
+      solution @(current) = value    
+  }
+}  
+
+def Application ( ) : Unit 
+{  
+ var res0 : Real = sqrt ( L2Residual @6 (  ) ) 
+ var res : Real = res0 
+ var resold : Real = 0 
+ print ( 'startingres' + res0 ) 
+ repeat up 10 {
+ resold = res 
+    VCycle @6 (  ) 
+    res = sqrt ( L2Residual @6 (  ) ) 
+    print ( 'Residual:' + res + 'residual reduction:' + (res0/res) + 'convergence factor:' + (res/resold) ) 
+  }
+}  

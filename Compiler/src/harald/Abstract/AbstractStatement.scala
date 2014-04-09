@@ -146,7 +146,7 @@ case class AbstractLet(var id : String, var expr : AbstractExpression, var modif
     for (e <- TreeManager.tree.exaFields)
       if (e.name.equals(id)) {
         ti = new TypeInfo(id, 1)
-        levstr = if (level.isDefined) (new StringLiteral(level.get.toString)) else "lev"
+        levstr = if (level.isDefined) (new StringConstant(level.get.toString)) else "lev"
         val fieldCollection = StateManager.findFirst[FieldCollection]().get
 
         // COMM_HACK
@@ -204,7 +204,7 @@ case class AbstractPLet(var id : String, val expr : AbstractExpression, modifier
       if (e.name.equals(id)) {
         ti = new TypeInfo(id, 1)
 
-        val levstr : Expression = if (level.isDefined) (new StringLiteral(level.get.toString)) else "lev"
+        val levstr : Expression = if (level.isDefined) (new StringConstant(level.get.toString)) else "lev"
         val fieldCollection = StateManager.findFirst[FieldCollection]().get
 
         // COMM_HACK

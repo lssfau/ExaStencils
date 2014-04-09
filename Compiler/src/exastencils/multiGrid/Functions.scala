@@ -30,11 +30,11 @@ case class PerformSmoothing_Jac(solutionField : Field, rhsField : Field, level :
                 DirectFieldAccess("curFragment.", solutionField, "targetSlot", DefaultLoopMultiIndex()),
                 s"${1.0 - Knowledge.mg_smoother_omega} * " ~ DirectFieldAccess("curFragment.", solutionField, "sourceSlot", DefaultLoopMultiIndex())
                   ~ s"+ ${Knowledge.mg_smoother_omega} / 6.0 * ("
-                  ~ s"+" ~ DirectFieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex(StringLiteral("x") + 1, "y", "z"))
+                  ~ s"+" ~ DirectFieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex(StringConstant("x") + 1, "y", "z"))
                   ~ s"+" ~ DirectFieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x" - 1, "y", "z"))
-                  ~ s"+" ~ DirectFieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x", StringLiteral("y") + 1, "z"))
+                  ~ s"+" ~ DirectFieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x", StringConstant("y") + 1, "z"))
                   ~ s"+" ~ DirectFieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x", "y" - 1, "z"))
-                  ~ s"+" ~ DirectFieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x", "y", StringLiteral("z") + 1))
+                  ~ s"+" ~ DirectFieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x", "y", StringConstant("z") + 1))
                   ~ s"+" ~ DirectFieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x", "y", "z" - 1))
                   ~ s"-" ~ DirectFieldAccess("curFragment.", rhsField, "0", DefaultLoopMultiIndex())
                   ~ ")"))) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel));
@@ -59,11 +59,11 @@ case class PerformSmoothing_GS(solutionField : Field, rhsField : Field, level : 
                 DirectFieldAccess("curFragment.", solutionField, "targetSlot", DefaultLoopMultiIndex()),
                 s"${1.0 - Knowledge.mg_smoother_omega} * " ~ DirectFieldAccess("curFragment.", solutionField, "sourceSlot", DefaultLoopMultiIndex())
                   ~ s"+ ${Knowledge.mg_smoother_omega} / 6.0 * ("
-                  ~ s"+" ~ DirectFieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex(StringLiteral("x") + 1, "y", "z"))
+                  ~ s"+" ~ DirectFieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex(StringConstant("x") + 1, "y", "z"))
                   ~ s"+" ~ DirectFieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x" - 1, "y", "z"))
-                  ~ s"+" ~ DirectFieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x", StringLiteral("y") + 1, "z"))
+                  ~ s"+" ~ DirectFieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x", StringConstant("y") + 1, "z"))
                   ~ s"+" ~ DirectFieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x", "y" - 1, "z"))
-                  ~ s"+" ~ DirectFieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x", "y", StringLiteral("z") + 1))
+                  ~ s"+" ~ DirectFieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x", "y", StringConstant("z") + 1))
                   ~ s"+" ~ DirectFieldAccess("curFragment.", solutionField, "sourceSlot", new MultiIndex("x", "y", "z" - 1))
                   ~ s"-" ~ DirectFieldAccess("curFragment.", rhsField, "0", DefaultLoopMultiIndex())
                   ~ ")")))) with OMP_PotentiallyParallel));
@@ -218,11 +218,11 @@ case class UpdateResidual(residualField : Field, solutionField : Field, rhsField
                 // FIXME: introduce and apply stencil node
                 DirectFieldAccess("curFragment.", residualField, "0", DefaultLoopMultiIndex()),
                 DirectFieldAccess("curFragment.", rhsField, "0", DefaultLoopMultiIndex())
-                  ~ s"-" ~ DirectFieldAccess("curFragment.", solutionField, "slot", new MultiIndex(StringLiteral("x") + 1, "y", "z"))
+                  ~ s"-" ~ DirectFieldAccess("curFragment.", solutionField, "slot", new MultiIndex(StringConstant("x") + 1, "y", "z"))
                   ~ s"-" ~ DirectFieldAccess("curFragment.", solutionField, "slot", new MultiIndex("x" - 1, "y", "z"))
-                  ~ s"-" ~ DirectFieldAccess("curFragment.", solutionField, "slot", new MultiIndex("x", StringLiteral("y") + 1, "z"))
+                  ~ s"-" ~ DirectFieldAccess("curFragment.", solutionField, "slot", new MultiIndex("x", StringConstant("y") + 1, "z"))
                   ~ s"-" ~ DirectFieldAccess("curFragment.", solutionField, "slot", new MultiIndex("x", "y" - 1, "z"))
-                  ~ s"-" ~ DirectFieldAccess("curFragment.", solutionField, "slot", new MultiIndex("x", "y", StringLiteral("z") + 1))
+                  ~ s"-" ~ DirectFieldAccess("curFragment.", solutionField, "slot", new MultiIndex("x", "y", StringConstant("z") + 1))
                   ~ s"-" ~ DirectFieldAccess("curFragment.", solutionField, "slot", new MultiIndex("x", "y", "z" - 1))
                   ~ s"+ 6.0 * " ~ DirectFieldAccess("curFragment.", solutionField, "slot", DefaultLoopMultiIndex())))) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel));
   }
