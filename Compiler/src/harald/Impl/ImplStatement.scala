@@ -74,7 +74,7 @@ case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : List
               loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}$i" ~ " = " ~ start(i),
               s"${loopvar(0).name}$i < " ~ stop(i),
               stepToUpdate(stepsize(i), i, loopvar(0).name),
-              wrappedBody) /* FIXME: add OMP support */)
+              wrappedBody) /* FIXME: add OMP support */ )
         }
 
         if (start.length > 1)
@@ -86,21 +86,23 @@ case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : List
       return StatementBlock(loops)
     } else { // lex
       if (start.length > 1) {
-        return new LoopOverFragments(new LoopOverDimensions(IndexRange(new MultiIndex(start.toArray), new MultiIndex(stop.toArray)), body) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel
+        return new LoopOverFragments(
+          // TODO: add sth like new ConditionStatement(s"curFragment.isValidForSubdomain[${field.domain}]",
+          new LoopOverDimensions(IndexRange(new MultiIndex(start.toArray), new MultiIndex(stop.toArray)), body) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel
       } else {
-          if (stepsize(0) >= 0) {
-            return new ForLoopStatement(
-              loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}0" ~ " = " ~ start(0),
-              s"${loopvar(0).name}0 < " ~ stop(0),
-              stepToUpdate(stepsize(0), 0, loopvar(0).name),
-              body)
-          } else {
-            return new ForLoopStatement(
-              loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}0" ~ " = " ~ (stop(0) - 1),
-              s"${loopvar(0).name}0 >= " ~ start(0),
-              stepToUpdate(stepsize(0), 0, loopvar(0).name),
-              body)
-          }
+        if (stepsize(0) >= 0) {
+          return new ForLoopStatement(
+            loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}0" ~ " = " ~ start(0),
+            s"${loopvar(0).name}0 < " ~ stop(0),
+            stepToUpdate(stepsize(0), 0, loopvar(0).name),
+            body)
+        } else {
+          return new ForLoopStatement(
+            loopvar(0).dtype ~ " " ~ s"${loopvar(0).name}0" ~ " = " ~ (stop(0) - 1),
+            s"${loopvar(0).name}0 >= " ~ start(0),
+            stepToUpdate(stepsize(0), 0, loopvar(0).name),
+            body)
+        }
       }
     }
   }

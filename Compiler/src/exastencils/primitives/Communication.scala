@@ -17,12 +17,12 @@ case class LocalSend(var field : Field, var neighbors : ListBuffer[(NeighborInfo
   def expand(collector : StackCollector) : LoopOverFragments = {
     new LoopOverFragments(
       neighbors.map(neigh =>
-        (new ConditionStatement(new getNeighInfo_IsValidAndNotRemote(neigh._1),
+        (new ConditionStatement(new getNeighInfo_IsValidAndNotRemote(neigh._1, field.domain),
           ListBuffer[Statement](
             s"unsigned int entry = 0;",
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(
-                new DirectFieldAccess(new getNeighInfo_LocalPtr(neigh._1) ~ "->", field, "slot", new MultiIndex(
+                new DirectFieldAccess(new getNeighInfo_LocalPtr(neigh._1, field.domain) ~ "->", field, "slot", new MultiIndex(
                   StringLiteral("x") + neigh._3.begin(0) - neigh._2.begin(0),
                   StringLiteral("y") + neigh._3.begin(1) - neigh._2.begin(1),
                   StringLiteral("z") + neigh._3.begin(2) - neigh._2.begin(2))),
@@ -41,7 +41,7 @@ case class CopyToSendBuffer(var field : Field, var neighbors : ListBuffer[(Neigh
       filterNot(neigh => Knowledge.comm_useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))).
       filterNot(neigh => neigh._2.begin(0) == neigh._2.end(0) && neigh._2.begin(1) == neigh._2.end(1) && neigh._2.begin(2) == neigh._2.end(2)).
       map(neigh =>
-        new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1),
+        new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
           ListBuffer[Statement](
             s"unsigned int entry = 0;",
             new LoopOverDimensions(neigh._2,
@@ -58,7 +58,7 @@ case class CopyFromRecvBuffer(var field : Field, var neighbors : ListBuffer[(Nei
       filterNot(neigh => Knowledge.comm_useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))).
       filterNot(neigh => neigh._2.begin(0) == neigh._2.end(0) && neigh._2.begin(1) == neigh._2.end(1) && neigh._2.begin(2) == neigh._2.end(2)).
       map(neigh =>
-        (new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1),
+        (new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
           ListBuffer[Statement](
             s"unsigned int entry = 0;",
             new LoopOverDimensions(neigh._2,
@@ -117,10 +117,10 @@ case class RemoteSend(var field : Field, var neighbors : ListBuffer[(NeighborInf
       }
 
       body +=
-        new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1),
+        new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
           ListBuffer[Statement](
-            new MPI_Send(ptr, cnt, typeName, new getNeighInfo_RemoteRank(neigh._1),
-              s"((unsigned int)curFragment.id << 16) + ((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1)).cpp + ") & 0x0000ffff)",
+            new MPI_Send(ptr, cnt, typeName, new getNeighInfo_RemoteRank(neigh._1, field.domain),
+              s"((unsigned int)curFragment.id << 16) + ((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1, field.domain)).cpp + ") & 0x0000ffff)",
               s"curFragment.request_Send[${neigh._1.index}]") /*with OMP_PotentiallyCritical*/ ,
             s"curFragment.reqOutstanding_Send[${neigh._1.index}] = true;"));
     }
@@ -176,10 +176,10 @@ case class RemoteReceive(var field : Field, var neighbors : ListBuffer[(Neighbor
         typeName = s"MPI_DOUBLE";
       }
 
-      body += new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1),
+      body += new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
         ListBuffer[Statement](
-          new MPI_Receive(ptr, cnt, typeName, new getNeighInfo_RemoteRank(neigh._1),
-            s"((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1)).cpp + ") << 16) + ((unsigned int)curFragment.id & 0x0000ffff)",
+          new MPI_Receive(ptr, cnt, typeName, new getNeighInfo_RemoteRank(neigh._1, field.domain),
+            s"((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1, field.domain)).cpp + ") << 16) + ((unsigned int)curFragment.id & 0x0000ffff)",
             s"curFragment.request_Recv[${neigh._1.index}]") /*with OMP_PotentiallyCritical*/ ,
           s"curFragment.reqOutstanding_Recv[${neigh._1.index}] = true;"));
     }

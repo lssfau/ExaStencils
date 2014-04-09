@@ -98,13 +98,13 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
 
   override def expand(collector : StackCollector) : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"connectLocalElement",
-      ListBuffer(VariableAccess("location", Some("unsigned int")), VariableAccess("fragment", Some("Fragment3DCube*"))),
+      ListBuffer(VariableAccess("location", Some("unsigned int")), VariableAccess("fragment", Some("Fragment3DCube*")), VariableAccess("domain", Some("unsigned int"))),
       ListBuffer(
         "ASSERT_WARNING((fragment), \"Invalid fragment pointer detected\", return);",
-        s"neighbor_isValid[location] = true;",
-        s"neighbor_isRemote[location] = false;",
-        s"neighbor_localPtr[location] = fragment;",
-        s"neighbor_fragmentId[location] = fragment->id;"))
+        s"neighbor_isValid[domain][location] = true;",
+        s"neighbor_isRemote[domain][location] = false;",
+        s"neighbor_localPtr[domain][location] = fragment;",
+        s"neighbor_fragmentId[domain][location] = fragment->id;"))
   }
 }
 
@@ -113,12 +113,12 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
 
   override def expand(collector : StackCollector) : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"connectRemoteElement",
-      ListBuffer(VariableAccess("location", Some("unsigned int")), VariableAccess("id", Some("size_t")), VariableAccess("remoteRank", Some(IntegerDatatype()))),
+      ListBuffer(VariableAccess("location", Some("unsigned int")), VariableAccess("id", Some("size_t")), VariableAccess("remoteRank", Some(IntegerDatatype())), VariableAccess("domain", Some("unsigned int"))),
       ListBuffer(
-        s"neighbor_isValid[location] = true;",
-        s"neighbor_isRemote[location] = true;",
-        s"neighbor_fragmentId[location] = id;",
-        s"neighbor_remoteRank[location] = remoteRank;"))
+        s"neighbor_isValid[domain][location] = true;",
+        s"neighbor_isRemote[domain][location] = true;",
+        s"neighbor_fragmentId[domain][location] = id;",
+        s"neighbor_remoteRank[domain][location] = remoteRank;"))
   }
 }
 

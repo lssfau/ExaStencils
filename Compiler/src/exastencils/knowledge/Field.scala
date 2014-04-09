@@ -40,6 +40,7 @@ class FieldLayoutPerDim(
 
 case class Field(
   var identifier : String, // will be used to find the field
+  var domain : Int, // index of the (sub)domain the field lives on
   var codeName : Expression, // will be used in the generated source code
   var dataType : String, // represents the data type; thus it can also encode the dimensionality when using e.g. vector fields // TODO: this needs to be appropriately typed
   var layout : Array[FieldLayoutPerDim], // represents the number of data points and their distribution in each dimension

@@ -101,16 +101,18 @@ case class ConnectFragments() extends Statement with Expandable {
       }
     }
 
+    for (d <- 0 until Knowledge.domain_numSubdomains) {
+      body += AssignmentStatement(s"curFragment.isValidForSubdomain[$d]", PointInsideDomain(s"curFragment.pos", d))
+    }
+
     for (neigh <- neighbors) {
       body += new Scope(ListBuffer[Statement](
         s"Vec3 offsetPos = curFragment.pos + Vec3(${neigh.dir(0)} * ${Knowledge.domain_fragWidth_x}, ${neigh.dir(1)} * ${Knowledge.domain_fragWidth_y}, ${neigh.dir(2)} * ${Knowledge.domain_fragWidth_z});") ++
-        (0 until Knowledge.domain_numSubdomains).toArray[Int].map(i =>
-          /*set each sub-domain as active or inactive*/
-          new ConditionStatement(s"mpiRank ==" ~ PointToOwningRank("offsetPos", i),
-            s"curFragment.connectLocalElement(${neigh.index}, fragmentMap[" ~ PointToFragmentId("offsetPos") ~ "]);",
-            new ConditionStatement(PointInsideDomain(s"offsetPos", i),
-              s"curFragment.connectRemoteElement(${neigh.index}," ~ PointToFragmentId("offsetPos") ~ ","
-                ~ PointToOwningRank("offsetPos", i) ~ s");"))))
+        (0 until Knowledge.domain_numSubdomains).toArray[Int].map(d =>
+          new ConditionStatement(PointInsideDomain(s"offsetPos", d),
+            new ConditionStatement(s"mpiRank ==" ~ PointToOwningRank("offsetPos", d),
+              s"curFragment.connectLocalElement(${neigh.index}, fragmentMap[" ~ PointToFragmentId("offsetPos") ~ s"], $d);",
+              s"curFragment.connectRemoteElement(${neigh.index}," ~ PointToFragmentId("offsetPos") ~ "," ~ PointToOwningRank("offsetPos", d) ~ s", $d);"))))
     }
 
     return new LoopOverFragments(body) with OMP_PotentiallyParallel
