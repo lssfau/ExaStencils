@@ -49,7 +49,7 @@ object Main {
     var x = parserl4.parseFile("./Compiler/src/harald/testmg/newDSL4.exa")
     
     StateManager.root_ = x
-    StateManager.root_ = StateManager.root_.asInstanceOf[ProgressableToIr].progressToIr
+    StateManager.root_ = StateManager.root_.asInstanceOf[ProgressableToIr].progressToIr.asInstanceOf[Node]
 
     // Setup tree
     StateManager.root_.asInstanceOf[Root].nodes ++= List(
@@ -57,7 +57,6 @@ object Main {
       new Poisson3D,
 
       // MultiGrid
-      new MultiGrid,
       new StencilCollection,
 
       // Domain

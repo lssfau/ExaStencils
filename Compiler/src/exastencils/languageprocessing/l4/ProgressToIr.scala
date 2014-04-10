@@ -65,7 +65,7 @@ class ProgressToIr {
   }"
 
   def doTransformToIr(node : l4.Variable) : ir.VariableAccess = {
-    new ir.VariableAccess(resolveLeveledName(node.identifier), Some(doTransformToIr(node.Type)))
+    new ir.VariableAccess(resolveLeveledName(node.identifier), Some(doTransformToIr(node.datatype)))
   }
 
   def doTransformToIr(node : l4.Expression) : ir.Expression = {

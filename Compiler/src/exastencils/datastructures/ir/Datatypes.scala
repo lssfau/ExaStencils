@@ -3,7 +3,7 @@ package exastencils.datastructures.ir
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 
-trait Datatype extends CppPrettyPrintable
+trait Datatype extends Node with CppPrettyPrintable
 
 case class SpecialDatatype(typeName : String) extends Datatype {
   override def cpp = typeName

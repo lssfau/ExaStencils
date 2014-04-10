@@ -7,5 +7,5 @@ trait Debuggable {
 }
 
 trait ProgressableToIr {
-  def progressToIr : Node
+  def progressToIr : Any
 }

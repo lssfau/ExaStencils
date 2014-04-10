@@ -27,7 +27,7 @@ class GenerateL4(treel2 : TreeL2) {
       }
 
     if (DomainKnowledge.cycle_L3.get.equals("VCycle")) {
-      for (lev <- 0 to Knowledge.maxLevel) {
+      for (lev <- 1 to Knowledge.maxLevel) {
         writer.write(s"def cpu ${DomainKnowledge.cycle_L3.get}_$lev (  ) : Unit \n")
         writer.write(s"{ \n")
         if (0 == lev) {

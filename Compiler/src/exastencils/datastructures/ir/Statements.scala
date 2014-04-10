@@ -10,7 +10,7 @@ abstract class Statement
   extends Node with CppPrettyPrintable
 
 case class ExpressionStatement(var expression : Expression) extends Statement {
-  override def cpp = expression.cpp
+  override def cpp = expression.cpp + ";"
 }
 
 case class NullStatement() extends Statement {
