@@ -141,9 +141,7 @@ case class CommunicationFunctions() extends Node with FilePrettyPrintable {
   }
 }
 
-case class FieldCollection() extends Node {
-  var fields : ListBuffer[Field] = ListBuffer();
-
+case class FieldCollection(var fields : ListBuffer[Field] = ListBuffer()) extends Node {
   def getFieldByIdentifier(identifier : String, level : Int) : Option[Field] = {
     fields.find(f => f.identifier == identifier && f.level == level)
   }

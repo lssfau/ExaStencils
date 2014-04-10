@@ -1,3 +1,19 @@
+Field Solution< [1, 1, 1] , Real>@0 (bcDir = true)
+Field Residual< [1, 1, 1] , Real>@0 (bcDir = false)
+Field RHS< [1, 1, 1] , Real>@0 (bcDir = false)
+Field Solution< [1, 1, 1] , Real>@1 (bcDir = true)
+Field Residual< [1, 1, 1] , Real>@1 (bcDir = false)
+Field RHS< [1, 1, 1] , Real>@1 (bcDir = false)
+Field Solution< [1, 1, 1] , Real>@2 (bcDir = true)
+Field Residual< [1, 1, 1] , Real>@2 (bcDir = false)
+Field RHS< [1, 1, 1] , Real>@2 (bcDir = false)
+Field Solution< [1, 1, 1] , Real>@3 (bcDir = true)
+Field Residual< [1, 1, 1] , Real>@3 (bcDir = false)
+Field RHS< [1, 1, 1] , Real>@3 (bcDir = false)
+Field Solution< [1, 1, 1] , Real>@4 (bcDir = true)
+Field Residual< [1, 1, 1] , Real>@4 (bcDir = false)
+Field RHS< [1, 1, 1] , Real>@4 (bcDir = false)
+
 def VCycle@0 (  ) : Unit
 { 
 //  decl lev : Int = 0  
@@ -6,7 +22,7 @@ repeat up 512 {
   }
 } 
 
-def VCycle@(1 to 6) (  ) : Unit {
+def VCycle@(1 to 4) (  ) : Unit {
   repeat up 3  {
 	GaussSeidel@(current) (  ) 
   }
@@ -20,77 +36,77 @@ def VCycle@(1 to 6) (  ) : Unit {
   }
 }
 
-def Residual @(0 to 6) (  ) : Unit
+def Residual @(0 to 4) (  ) : Unit
 { 
 //  decl lev : Int = 0  
   exchsolData @(current) ( 0 )  
   Set inner [1, 1] - [1, 1] steps [1, 1]
 loop over inner {
-  Res @(current) = f @(current) - (Lapl @(current) * solution @(current) )  
+  Residual @(current) = RHS @(current) - (Lapl @(current) * Solution @(current) )  
 }
 }  
 
-def L2Residual @(0 to 6) (  ) : Real
+def L2Residual @(0 to 4) (  ) : Real
 { 
 //  decl lev : Int = 0  
   exchsolData @(current) ( 0 )  
     Set inner [1, 1] - [1, 1] steps [1, 1]
     Reduction {
     loop over inner {
-        s += (f @(current)  - Lapl @(current) * solution @(current)) * (f @(current)  - Lapl @(current) * solution @(current)) 
+        s += (RHS @(current)  - Lapl @(current) * Solution @(current)) * (RHS @(current)  - Lapl @(current) * Solution @(current)) 
   }
   }
 }  
 
-def GaussSeidel @(0 to 6) (  ) : Unit
+def GaussSeidel @(0 to 4) (  ) : Unit
 { 
 //  decl lev : Int = 0  
   exchsolData @(current) ( 0 )
     Set inner [1, 1] - [1, 1] steps [1, 1]  
     loop over inner {
-      solution @(current) = solution @(current) + ( ( ( inverse( diag(Lapl @(current) ) ) ) * 1.0 ) * ( f @(current) - Lapl @(current) * solution @(current) ) ) 
+      Solution @(current) = Solution @(current) + ( ( ( inverse( diag(Lapl @(current) ) ) ) * 1.0 ) * ( RHS @(current) - Lapl @(current) * Solution @(current) ) ) 
   }
 }  
 
-def Restrict @(1 to 6) (  ) : Unit
+def Restrict @(1 to 4) (  ) : Unit
 { 
 //  decl lev : Int = 1  
   exchresData @(current) ( 0 )  
     Set inner [1, 1] - [1, 1] steps [1, 1]
     loop over inner {
-      f @(coarser) =  RestrictionStencil * ToCoarser(Res @(current))  
+      RHS @(coarser) =  RestrictionStencil * ToCoarser(Residual @(current))  
     }
 }  
 
-def interpolatecorr @(1 to 6) (  ) : Unit
+def interpolatecorr @(1 to 4) (  ) : Unit
 { 
 //  decl lev : Int = 1  
   exchsolData @(current) ( 0 )  
     Set inner [1, 1] - [1, 1] steps [1, 1]
     loop over inner {
-    solution @(current) += CorrectionStencil * ToFiner(solution @(coarser))
+    Solution @(current) += CorrectionStencil * ToFiner(Solution @(coarser))
    }
 }  
 
-def set @(0 to 6) ( value:Integer ) : Unit
+def set @(0 to 4) ( value:Integer ) : Unit
 { 
 //  decl lev : Int = 0  
   Set domain [0, 0] - [0, 0] steps [1, 1]
   loop over domain {
-      solution @(current) = value    
+      Solution @(current) = value    
   }
 }  
 
 def Application ( ) : Unit 
 {  
- var res0 : Real = sqrt ( L2Residual @6 (  ) ) 
+ var res0 : Real = sqrt ( L2Residual @4 (  ) ) 
  var res : Real = res0 
  var resold : Real = 0 
  print ( 'startingres' + res0 ) 
  repeat up 10 {
  resold = res 
-    VCycle @6 (  ) 
-    res = sqrt ( L2Residual @6 (  ) ) 
-    print ( 'Residual:' + res + 'residual reduction:' + (res0/res) + 'convergence factor:' + (res/resold) ) 
+    VCycle @4 (  ) 
+    res = sqrt ( L2Residual @4 (  ) ) 
+    print ( 'Residual:' + res + 'Residual reduction:' + (res0/res) + 'convergence factor:' + (res/resold) ) 
   }
 }  

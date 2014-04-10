@@ -16,6 +16,8 @@ import harald.dsl._
 import harald.Generate._
 import harald.ast._
 import exastencils.spl.FeatureModel
+import exastencils.parsers.l4.ParserL4
+import exastencils.datastructures.l4.ProgressableToIr
 
 object Main {
   def main(args : Array[String]) : Unit = {
@@ -42,8 +44,15 @@ object Main {
     val problem = "testDSL"
     val outputfile = "main.cpp"
 
+    // HACK: this tests the new L4 capabilities
+    var parserl4 = new ParserL4
+    var x = parserl4.parseFile("./Compiler/src/harald/testmg/newDSL4.exa")
+    
+    StateManager.root_ = x
+    StateManager.root_ = StateManager.root_.asInstanceOf[ProgressableToIr].progressToIr
+
     // Setup tree
-    StateManager.root_ = new Root(List(
+    StateManager.root_.asInstanceOf[Root].nodes ++= List(
       // Application
       new Poisson3D,
 
@@ -57,7 +66,6 @@ object Main {
       // Primitives
       new FragmentClass,
       new CommunicationFunctions,
-      new FieldCollection,
 
       // Util
       new Container,
@@ -66,10 +74,10 @@ object Main {
       new Vector,
 
       // Globals
-      new Globals));
+      new Globals)
 
     // FIXME: set fields in L4
-    var fieldCollection = StateManager.findFirst[FieldCollection]().get
+    /*var fieldCollection = StateManager.findFirst[FieldCollection]().get
     for (level <- 0 to Knowledge.maxLevel) {
       { // fields requiring (ghost-layer) communication
         val layout = DimArray().map(dim => new FieldLayoutPerDim(if (0 == dim) 1 else 0, Knowledge.data_numGhostLayers, 1, ((Knowledge.domain_fragLengthPerDim(dim) * (1 << level)) + 1) - 2 /*dup*/ , 1, Knowledge.data_numGhostLayers, 0)) ++
@@ -82,7 +90,7 @@ object Main {
           (Knowledge.dimensionality until 3).toArray.map(dim => new FieldLayoutPerDim(0, 0, 0, 1, 0, 0, 0))
         fieldCollection.fields += new Field("RHS", 0, "rhsData", "double", layout, level, Knowledge.data_numSolSlots, new MultiIndex(layout.map(l => l.idxDupLeftBegin)), false);
       }
-    }
+    }*/
 
     // setup basic sub-nodes
 
@@ -154,8 +162,8 @@ object Main {
     val DSLl4 : String = scala.io.Source.fromFile(DSLpath + problem + "lev4.mg").getLines.reduceLeft(_ + _)
     //println(DSLl4)
 
-    val parserl4 = new ParserL4(TreeManager.tree)
-    parserl4.parse(DSLl4)
+    val parserl4_dep = new harald.Parser.ParserL4(TreeManager.tree)
+    parserl4_dep.parse(DSLl4)
 
     // add stencils and functions to (exastencils) tree
 
