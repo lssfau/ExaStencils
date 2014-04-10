@@ -22,9 +22,12 @@ import exastencils.datastructures.ir.ComplexDatatype
 import exastencils.core.ImplicitConversions._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir.BinaryExpression
+import exastencils.datastructures.l4.FieldDeclarationStatement
+import exastencils.datastructures.l4.FieldDeclarationStatement
+import exastencils.datastructures.l4.FieldDeclarationStatement
+import exastencils.datastructures.l4.SingleLevelSpecification
 
-class ProgressToIr {
-  var strategy = new Strategy("ProgressToIr")
+object ProgressToIr extends Strategy("ProgressToIr") {
 
   def doDuplicateFunction(function : FunctionStatement, l : LevelSpecification) : List[FunctionStatement] = {
     var functions = new ListBuffer[FunctionStatement]()
@@ -47,7 +50,7 @@ class ProgressToIr {
     return functions.toList
   }
 
-  def doTransformToIr(node : l4.Datatype) : ir.Datatype = {
+  /*  def doTransformToIr(node : l4.Datatype) : ir.Datatype = {
     node match {
       case x : l4.IntegerDatatype => new ir.IntegerDatatype
       case x : l4.StringDatatype  => new ir.StringDatatype
@@ -94,25 +97,52 @@ class ProgressToIr {
       case _ => ERROR(s"No rule for progression of L4 node ${node}")
     }
   }
-
-  def apply() = {
-    strategy += new Transformation("UnfoldLeveledFunctions", {
-      case f : FunctionStatement => f.identifier match {
-        case Identifier(name, Some(level)) => level match {
-          case _ => doDuplicateFunction(f, level)
-        }
-        case Identifier(name, None) => f
+*/
+  // def apply() = {
+  this += new Transformation("UnfoldLeveledFunctions", {
+    case f : FunctionStatement => f.identifier match {
+      case Identifier(name, Some(level)) => level match {
+        case _ => doDuplicateFunction(f, level)
       }
-    })
+      case Identifier(name, None) => f
+    }
+  })
 
-    var root = new ir.Root()
+  //    var root = new ir.Root()
 
-    strategy += new Transformation("ProgressNodesToIr", {
+  /*    strategy += new Transformation("ProgressNodesToIr", {
       case x : l4.Statement => root += doTransformToIr(x); x
     })
+*/
+  //   this.apply
+  //    println("new root:" + root)
+  // }
 
-    strategy.apply
-    println("new root:" + root)
+  def duplicateFields(field : FieldDeclarationStatement, level : LevelSpecification) : List[FieldDeclarationStatement] = {
+    var fields = new ListBuffer[FieldDeclarationStatement]()
+    level match {
+      case level : SingleLevelSpecification =>
+        fields += field
+      case level : ListLevelSpecification =>
+        level.levels.foreach(level => fields ++= duplicateFields(field, level))
+      case levels : RangeLevelSpecification =>
+        for (level <- math.min(levels.begin, levels.end) to math.max(levels.begin, levels.end)) {
+          var f = Duplicate(field)
+          f.level = Some(SingleLevelSpecification(level))
+          fields += f
+        }
+      case _ => ERROR(s"Invalid level specification for field $field: $level")
+    }
+    return fields.toList
   }
+
+  this += new Transformation("UnfoldLeveledFieldDeclarations", {
+    case field : FieldDeclarationStatement =>
+      if (field.level.isEmpty)
+        field
+      else {
+        duplicateFields(field, field.level.get)
+      }
+  })
 
 }

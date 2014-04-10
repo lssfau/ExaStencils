@@ -18,6 +18,7 @@ import harald.ast._
 import exastencils.spl.FeatureModel
 import exastencils.parsers.l4.ParserL4
 import exastencils.datastructures.l4.ProgressableToIr
+import exastencils.languageprocessing.l4.ProgressToIr
 
 object Main {
   def main(args : Array[String]) : Unit = {
@@ -46,9 +47,9 @@ object Main {
 
     // HACK: this tests the new L4 capabilities
     var parserl4 = new ParserL4
-    var x = parserl4.parseFile("./Compiler/src/harald/testmg/newDSL4.exa")
+    StateManager.root_ = parserl4.parseFile("./Compiler/src/harald/testmg/newDSL4.exa")
+    ProgressToIr.apply
     
-    StateManager.root_ = x
     StateManager.root_ = StateManager.root_.asInstanceOf[ProgressableToIr].progressToIr.asInstanceOf[Node]
 
     // Setup tree
