@@ -1,9 +1,23 @@
-Field Solution< [1, 1, 1] , Real>@(0 to 4) (bcDir = true)
-Field Residual< [1, 1, 1] , Real>@(0 to 4) (bcDir = false)
-Field RHS< [1, 1, 1] , Real>@(0 to 4) (bcDir = false)
+Field Solution< [1, 1, 1], Real>@(0 to 4) (bcDir = true)
+Field Residual< [1, 1, 1], Real>@(0 to 4) (bcDir = false)
+Field RHS< [1, 1, 1], Real>@(0 to 4) (bcDir = false)
 
 def VCycle@0 (  ) : Unit {
 	repeat up 512 {
 		GaussSeidel@0 (  )
+	}
+}
+
+def VCycle@(1 to 4) ( ) : Unit {
+	repeat up 3 {
+		GaussSeidel@(current) ( )
+	}
+	Residual@(current) ( )
+	Restrict@(current) ( )
+	set@(coarser) ( 0 )
+	VCycle@(coarser) ( )
+	interpolatecorr@(current) ( )
+	repeat up 3 {
+		GaussSeidel@(current) ( )
 	}
 }

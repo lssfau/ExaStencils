@@ -26,8 +26,8 @@ class GenerateL4(treel2 : TreeL2) {
         matlength2 = o.matlength2.toInt
       }
 
-    if (DomainKnowledge.cycle_L3.get.equals("VCycle")) {
-      for (lev <- 1 to Knowledge.maxLevel) {
+    /*if (DomainKnowledge.cycle_L3.get.equals("VCycle")) {
+      for (lev <- 0 to Knowledge.maxLevel) {
         writer.write(s"def cpu ${DomainKnowledge.cycle_L3.get}_$lev (  ) : Unit \n")
         writer.write(s"{ \n")
         if (0 == lev) {
@@ -57,7 +57,7 @@ class GenerateL4(treel2 : TreeL2) {
         }
         writer.write(s"} \n")
       }
-    }
+    }*/
 
     writer.write(s"\n")
 

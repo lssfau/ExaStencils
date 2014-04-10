@@ -11,15 +11,15 @@ abstract class Statement extends Node
 case class VariableDeclarationStatement(var identifier : String, var datatype : Datatype, var expression : Option[Expression] = None)
   extends Statement
 
-case class DomainDeclarationStatement(name : String) extends Statement
+case class DomainDeclarationStatement(var name : String) extends Statement
 
 case class AssignmentStatement(var identifier : Identifier, var expression : Expression)
   extends Statement
 
-case class LoopOverDomainStatement(iterationset : String, blocksize : Option[Index], var statements : List[Statement])
+case class LoopOverDomainStatement(var iterationset : String, var blocksize : Option[Index], var statements : List[Statement])
   extends Statement
 
-case class IterationSetDeclarationStatement(identifier : Identifier, begin : Index, end : Index, increment : Option[Index]) extends Statement
+case class IterationSetDeclarationStatement(var identifier : Identifier, var begin : Index, var end : Index, var increment : Option[Index]) extends Statement
 
 case class FunctionStatement(var identifier : Identifier, var returntype : Datatype, var arguments : List[Variable], var statements : List[Statement]) extends Statement with ProgressableToIr {
   def progressToIr : ir.AbstractFunctionStatement = {
@@ -31,7 +31,7 @@ case class FunctionStatement(var identifier : Identifier, var returntype : Datat
   }
 }
 
-case class RepeatUpStatement(number : Int, var statements : List[Statement]) extends Statement with ProgressableToIr {
+case class RepeatUpStatement(var number : Int, var statements : List[Statement]) extends Statement with ProgressableToIr {
   def progressToIr : ir.ForLoopStatement = {
     ir.ForLoopStatement( // FIXME: de-stringify
       "unsigned int someRandomIndexVar = 0", // FIXME: someRandomIndexVar
@@ -45,7 +45,7 @@ case class RepeatUntilStatement(var comparison : BooleanExpression, var statemen
 
 case class ReductionStatement(var statement : Statement) extends Statement
 
-case class FunctionCallStatement(identifier : Identifier, var arguments : List[Expression]) extends Statement with ProgressableToIr {
+case class FunctionCallStatement(var identifier : Identifier, var arguments : List[Expression]) extends Statement with ProgressableToIr {
   def progressToIr : ir.Statement /*FIXME: FunctionCallExpression*/ = {
     ir.FunctionCallExpression(identifier.progressToIr,
       arguments.map(s => s.asInstanceOf[ProgressableToIr].progressToIr.asInstanceOf[ir.Expression]).to[ListBuffer])
@@ -54,7 +54,7 @@ case class FunctionCallStatement(identifier : Identifier, var arguments : List[E
 
 case class ConditionalStatement(var expression : BooleanExpression, var statements : List[Statement]) extends Statement
 
-case class FieldDeclarationStatement(name : String, var datatype : Datatype, var offset : Index, var level : Option[LevelSpecification]) extends Statement with ProgressableToIr {
+case class FieldDeclarationStatement(var name : String, var datatype : Datatype, var offset : Index, var level : Option[LevelSpecification]) extends Statement with ProgressableToIr {
   var communicate = false
   var ghostlayers = 0
   var padding = 0

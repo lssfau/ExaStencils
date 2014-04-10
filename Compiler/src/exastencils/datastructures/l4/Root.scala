@@ -19,13 +19,13 @@ case class Root(var fields : List[FieldDeclarationStatement], var statements : L
       fieldCollection.fields += field.progressToIr
     newRoot += fieldCollection
 
-     var multiGrid=     new MultiGrid // FIXME: think about how to manage (MG/other) functions
-     for (node<- statements )
-       node match {
-       case function : FunctionStatement => multiGrid.functions_HACK += function.progressToIr
-     }
-     newRoot += multiGrid
-    
+    var multiGrid = new MultiGrid // FIXME: think about how to manage (MG/other) functions
+    for (node <- statements)
+      node match {
+        case function : FunctionStatement => multiGrid.functions_HACK += function.progressToIr
+      }
+    newRoot += multiGrid
+
     newRoot
   }
 }

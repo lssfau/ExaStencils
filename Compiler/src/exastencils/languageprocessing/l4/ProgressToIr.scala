@@ -1,54 +1,124 @@
 package exastencils.languageprocessing.l4
 
-import exastencils.datastructures.Strategy
-import exastencils.datastructures.Transformation
-import exastencils.datastructures.l4.FunctionStatement
-import exastencils.datastructures.l4.Identifier
-import exastencils.datastructures.l4.SingleLevelSpecification
-import exastencils.datastructures.l4.ListLevelSpecification
-import exastencils.datastructures.l4.LevelSpecification
-import exastencils.datastructures.l4.SingleLevelSpecification
-import exastencils.datastructures.l4.ListLevelSpecification
 import scala.collection.mutable.ListBuffer
-import exastencils.core.Duplicate
-import exastencils.datastructures.l4.RangeLevelSpecification
-import exastencils.datastructures.l4.SingleLevelSpecification
-import exastencils.datastructures.l4.SingleLevelSpecification
-import exastencils.core.ERROR
-import exastencils.datastructures.l4
-import exastencils.datastructures.ir
-import exastencils.datastructures.Node
-import exastencils.datastructures.ir.ComplexDatatype
+
+import exastencils.core._
+import exastencils.core.collectors._
 import exastencils.core.ImplicitConversions._
+import exastencils.datastructures._
+import exastencils.datastructures.l4._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.ir.BinaryExpression
-import exastencils.datastructures.l4.FieldDeclarationStatement
-import exastencils.datastructures.l4.FieldDeclarationStatement
-import exastencils.datastructures.l4.FieldDeclarationStatement
-import exastencils.datastructures.l4.SingleLevelSpecification
 
 object ProgressToIr extends Strategy("ProgressToIr") {
+  var collector = new LevelCollector
 
-  def doDuplicateFunction(function : FunctionStatement, l : LevelSpecification) : List[FunctionStatement] = {
+  override def apply = {
+    StateManager.register(collector);
+    super.apply;
+    StateManager.unregister(collector);
+  }
+
+  // unfold function declarations and calls
+  // FIXME: can this be combined into one more generic transformation?
+
+  this += new Transformation("UnfoldLeveledFunctions", {
+    case function : FunctionStatement => function.identifier match {
+      case Identifier(_, Some(level)) => duplicateFunctionDeclaration(function, level)
+      case Identifier(_, None)        => function
+    }
+    case function : FunctionCallStatement => function.identifier match {
+      case Identifier(_, Some(level)) => duplicateFunctionCall(function, level)
+      case Identifier(_, None)        => function
+    }
+  })
+
+  def duplicateFunctionDeclaration(function : FunctionStatement, level : LevelSpecification) : List[FunctionStatement] = {
     var functions = new ListBuffer[FunctionStatement]()
-    l match {
-      case x : SingleLevelSpecification => functions += function
-      case x : ListLevelSpecification => {
-        x.levels.foreach(level => {
-          functions ++= doDuplicateFunction(function, level)
-        })
+    level match {
+      case level @ (SingleLevelSpecification(_) | CurrentLevelSpecification() | CoarserLevelSpecification() | FinerLevelSpecification()) => {
+        var f = Duplicate(function)
+        f.identifier = new Identifier(f.identifier.name, Some(level))
+        functions += f
       }
-      case x : RangeLevelSpecification => {
-        for (i <- math.min(x.begin, x.end) until math.max(x.begin, x.end)) {
+      case level : ListLevelSpecification =>
+        level.levels.foreach(level => functions ++= duplicateFunctionDeclaration(function, level))
+      case level : RangeLevelSpecification =>
+        for (level <- math.min(level.begin, level.end) to math.max(level.begin, level.end)) {
           var f = Duplicate(function)
-          f.identifier = new Identifier(f.identifier.name, Some(SingleLevelSpecification(i)))
+          f.identifier = new Identifier(f.identifier.name, Some(SingleLevelSpecification(level)))
           functions += f
         }
-      }
-      case _ => ERROR(s"Invalid level specification for function $function: $l")
+      case _ => ERROR(s"Invalid level specification for function $function: $level")
     }
     return functions.toList
   }
+
+  def duplicateFunctionCall(function : FunctionCallStatement, level : LevelSpecification) : List[FunctionCallStatement] = {
+    var functions = new ListBuffer[FunctionCallStatement]()
+    level match {
+      case level @ (SingleLevelSpecification(_) | CurrentLevelSpecification() | CoarserLevelSpecification() | FinerLevelSpecification()) => {
+        var f = Duplicate(function)
+        f.identifier = new Identifier(f.identifier.name, Some(level))
+        functions += f
+      }
+      case level : ListLevelSpecification =>
+        level.levels.foreach(level => functions ++= duplicateFunctionCall(function, level))
+      case level : RangeLevelSpecification =>
+        for (level <- math.min(level.begin, level.end) to math.max(level.begin, level.end)) {
+          var f = Duplicate(function)
+          f.identifier = new Identifier(f.identifier.name, Some(SingleLevelSpecification(level)))
+          functions += f
+        }
+      case _ => ERROR(s"Invalid level specification for function $function: $level")
+    }
+    return functions.toList
+  }
+
+  // unfold level declarations
+
+  this += new Transformation("UnfoldLeveledFieldDeclarations", {
+    case field : FieldDeclarationStatement => field.level match {
+      case Some(level) => duplicateFields(field, level)
+      case _           => field
+    }
+  })
+
+  def duplicateFields(field : FieldDeclarationStatement, level : LevelSpecification) : List[FieldDeclarationStatement] = {
+    var fields = new ListBuffer[FieldDeclarationStatement]()
+    level match {
+      case level @ (SingleLevelSpecification(_) | CurrentLevelSpecification() | CoarserLevelSpecification() | FinerLevelSpecification()) => {
+        var f = Duplicate(field)
+        f.level = Some(level)
+        fields += f
+      }
+      case level : ListLevelSpecification =>
+        level.levels.foreach(level => fields ++= duplicateFields(field, level))
+      case levels : RangeLevelSpecification =>
+        for (level <- math.min(levels.begin, levels.end) to math.max(levels.begin, levels.end)) {
+          var f = Duplicate(field)
+          f.level = Some(SingleLevelSpecification(level))
+          fields += f
+        }
+      case _ => ERROR(s"Invalid level specification for field $field: $level")
+    }
+    return fields.toList
+  }
+
+  // resolve level specifications
+
+  this += new Transformation("ResolveRelativeLevelSpecifications", {
+    case level : CurrentLevelSpecification => SingleLevelSpecification(collector.curLevel)
+    case level : CoarserLevelSpecification => SingleLevelSpecification(collector.curLevel - 1) // FIXME: coarser and finer are not reliable
+    case level : FinerLevelSpecification   => SingleLevelSpecification(collector.curLevel + 1)
+
+    // FIXME: this is an ugly HACK because Some(x) cannot be matched
+    case FunctionCallStatement(Identifier(name, Some(CurrentLevelSpecification())), args) =>
+      FunctionCallStatement(Identifier(name, Some(SingleLevelSpecification(collector.curLevel))), args)
+    case FunctionCallStatement(Identifier(name, Some(CoarserLevelSpecification())), args) =>
+      FunctionCallStatement(Identifier(name, Some(SingleLevelSpecification(collector.curLevel - 1))), args)
+    case FunctionCallStatement(Identifier(name, Some(FinerLevelSpecification())), args) =>
+      FunctionCallStatement(Identifier(name, Some(SingleLevelSpecification(collector.curLevel + 1))), args)
+  })
 
   /*  def doTransformToIr(node : l4.Datatype) : ir.Datatype = {
     node match {
@@ -99,14 +169,6 @@ object ProgressToIr extends Strategy("ProgressToIr") {
   }
 */
   // def apply() = {
-  this += new Transformation("UnfoldLeveledFunctions", {
-    case f : FunctionStatement => f.identifier match {
-      case Identifier(name, Some(level)) => level match {
-        case _ => doDuplicateFunction(f, level)
-      }
-      case Identifier(name, None) => f
-    }
-  })
 
   //    var root = new ir.Root()
 
@@ -117,32 +179,5 @@ object ProgressToIr extends Strategy("ProgressToIr") {
   //   this.apply
   //    println("new root:" + root)
   // }
-
-  def duplicateFields(field : FieldDeclarationStatement, level : LevelSpecification) : List[FieldDeclarationStatement] = {
-    var fields = new ListBuffer[FieldDeclarationStatement]()
-    level match {
-      case level : SingleLevelSpecification =>
-        fields += field
-      case level : ListLevelSpecification =>
-        level.levels.foreach(level => fields ++= duplicateFields(field, level))
-      case levels : RangeLevelSpecification =>
-        for (level <- math.min(levels.begin, levels.end) to math.max(levels.begin, levels.end)) {
-          var f = Duplicate(field)
-          f.level = Some(SingleLevelSpecification(level))
-          fields += f
-        }
-      case _ => ERROR(s"Invalid level specification for field $field: $level")
-    }
-    return fields.toList
-  }
-
-  this += new Transformation("UnfoldLeveledFieldDeclarations", {
-    case field : FieldDeclarationStatement =>
-      if (field.level.isEmpty)
-        field
-      else {
-        duplicateFields(field, field.level.get)
-      }
-  })
 
 }
