@@ -17,7 +17,7 @@ case class HandleBoundaries(var field : Field, var neighbors : ListBuffer[(Neigh
     if (field.bcDir0) {
       return new LoopOverFragments(
         neighbors.map(neigh =>
-          new ConditionStatement(new getNeighInfo_IsInvalid(neigh._1),
+          new ConditionStatement(new getNeighInfo_IsInvalid(neigh._1, field.domain),
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(
                 new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()),

@@ -2,6 +2,7 @@ import exastencils.core._
 import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.strategies._
 import exastencils.application._
 import exastencils.domain._
@@ -66,6 +67,22 @@ object Main {
 
       // Globals
       new Globals));
+
+    // FIXME: set fields in L4
+    var fieldCollection = StateManager.findFirst[FieldCollection]().get
+    for (level <- 0 to Knowledge.maxLevel) {
+      { // fields requiring (ghost-layer) communication
+        val layout = DimArray().map(dim => new FieldLayoutPerDim(if (0 == dim) 1 else 0, Knowledge.data_numGhostLayers, 1, ((Knowledge.domain_fragLengthPerDim(dim) * (1 << level)) + 1) - 2 /*dup*/ , 1, Knowledge.data_numGhostLayers, 0)) ++
+          (Knowledge.dimensionality until 3).toArray.map(dim => new FieldLayoutPerDim(0, 0, 0, 1, 0, 0, 0))
+        fieldCollection.fields += new Field("Solution", 0, "solData", "double", layout, level, Knowledge.data_numSolSlots, new MultiIndex(layout.map(l => l.idxDupLeftBegin)), true);
+        fieldCollection.fields += new Field("Residual", 0, "resData", "double", layout, level, Knowledge.data_numSolSlots, new MultiIndex(layout.map(l => l.idxDupLeftBegin)), false);
+      }
+      { // fields without ghost layers
+        val layout = DimArray().map(dim => new FieldLayoutPerDim(0, 0, 1, ((Knowledge.domain_fragLengthPerDim(dim) * (1 << level)) + 1) - 2 /*dup*/ , 1, 0, 0)) ++
+          (Knowledge.dimensionality until 3).toArray.map(dim => new FieldLayoutPerDim(0, 0, 0, 1, 0, 0, 0))
+        fieldCollection.fields += new Field("RHS", 0, "rhsData", "double", layout, level, Knowledge.data_numSolSlots, new MultiIndex(layout.map(l => l.idxDupLeftBegin)), false);
+      }
+    }
 
     // setup basic sub-nodes
 
@@ -141,7 +158,7 @@ object Main {
     parserl4.parse(DSLl4)
 
     // add stencils and functions to (exastencils) tree
-    
+
     var stencilCollection = StateManager.findFirst[StencilCollection]().get
     for (e <- TreeManager.tree.exaOperators)
       stencilCollection.stencils += e.transform
