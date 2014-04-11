@@ -189,13 +189,28 @@ object Main {
 
         // HACK to realize intergrid operations
         case FunctionCallExpression(StringConstant("ToCoarser"), args) =>
-          var stencilConvolution = Duplicate (args(0).asInstanceOf[StencilConvolution])
+          var stencilConvolution = Duplicate(args(0).asInstanceOf[StencilConvolution])
           stencilConvolution.targetIdx = new MultiIndex(DimArray().map(i => (2 * (dimToString(i) : Expression)) : Expression))
           stencilConvolution
         case FunctionCallExpression(StringConstant("ToFiner"), args) =>
-          var stencilConvolution = Duplicate (args(0).asInstanceOf[StencilConvolution])
+          var stencilConvolution = Duplicate(args(0).asInstanceOf[StencilConvolution])
           stencilConvolution.targetIdx = new MultiIndex(DimArray().map(i => ((dimToString(i) : Expression) / 2) : Expression))
           stencilConvolution
+
+        // HACK to realize print function -> FIXME: needs to be reworked badly
+        case ExpressionStatement(FunctionCallExpression(StringConstant("print"), args)) =>
+          new Scope(ListBuffer[Statement](
+            "int rank;",
+            "MPI_Comm_rank(MPI_COMM_WORLD, &rank);",
+            "if (0 == rank) {",
+            {
+              var pstr : Expression = "std::cout << "
+              for (p <- args)
+                pstr ~= p ~ " << \" \" << "
+              pstr ~= " std::endl; "
+              pstr
+            },
+            "}"))
       })
     }).apply
 

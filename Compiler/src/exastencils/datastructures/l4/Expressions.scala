@@ -5,41 +5,44 @@ import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.datastructures.ir.ImplicitConversions._
 
-trait Expression extends Node
-trait Number extends Expression with ProgressableToIr {
+trait Expression extends Node with ProgressableToIr {
+  def progressToIr : ir.Expression
+}
+
+trait Number extends Expression {
   def value : AnyVal
 }
 
-case class StringConstant(var value : String) extends Expression
+case class StringConstant(var value : String) extends Expression {
+  def progressToIr : ir.StringConstant = ir.StringConstant(value)
+}
 
 case class IntegerConstant(var v : Long) extends Number {
   override def value = v
-
   def progressToIr : ir.IntegerConstant = ir.IntegerConstant(v)
 }
 
 case class FloatConstant(var v : Double) extends Number {
   override def value = v
-
   def progressToIr : ir.FloatConstant = ir.FloatConstant(v)
 }
 
-case class BooleanConstant(var value : Boolean) extends Expression with ProgressableToIr {
+case class BooleanConstant(var value : Boolean) extends Expression {
   def progressToIr : ir.BooleanConstant = ir.BooleanConstant(value)
 }
 
-abstract class Identifier(var name : String) extends Expression with ProgressableToIr
+abstract class Identifier(var name : String) extends Expression
 
 case class UnresolvedIdentifier(var name2 : String, var level : Option[LevelSpecification]) extends Identifier(name2) {
-  def progressToIr : String = "ERROR - UnresolvedIdentifier"
+  def progressToIr : ir.StringConstant = "ERROR - UnresolvedIdentifier"
 }
 
 case class BasicIdentifier(var name2 : String) extends Identifier(name2) {
-  def progressToIr : String = name
+  def progressToIr : ir.StringConstant = name
 }
 
 case class LeveledIdentifier(var name2 : String, var level : LevelSpecification) extends Identifier(name2) {
-  def progressToIr : String = {
+  def progressToIr : ir.StringConstant = {
     name + "_" + level.asInstanceOf[SingleLevelSpecification].level
   }
 }
@@ -56,23 +59,27 @@ case class StencilIdentifier(var name2 : String, var level : LevelSpecification)
   }
 }
 
-case class Variable(var identifier : Identifier, var datatype : Datatype) extends Expression with ProgressableToIr {
+case class Variable(var identifier : Identifier, var datatype : Datatype) extends Expression {
   def progressToIr : ir.VariableAccess = {
-    ir.VariableAccess(identifier.progressToIr.asInstanceOf[String /*FIXME*/ ], Some(datatype.progressToIr))
+    ir.VariableAccess(identifier.progressToIr.asInstanceOf[ir.StringConstant].value, Some(datatype.progressToIr))
   }
 }
 
-case class BinaryExpression(var operator : String, var left : Expression, var right : Expression) extends Expression with ProgressableToIr {
+case class BinaryExpression(var operator : String, var left : Expression, var right : Expression) extends Expression {
   def progressToIr : ir.BinaryExpression = {
-    ir.BinaryExpression(operator, left.asInstanceOf[ProgressableToIr].progressToIr.asInstanceOf[ir.Expression], right.asInstanceOf[ProgressableToIr].progressToIr.asInstanceOf[ir.Expression])
+    ir.BinaryExpression(operator, left.progressToIr, right.progressToIr)
   }
 }
 
-case class BooleanExpression(var operator : String, var left : Expression, var right : Expression) extends Expression
+case class BooleanExpression(var operator : String, var left : Expression, var right : Expression) extends Expression {
+  def progressToIr : ir.BinaryExpression = {
+    ir.BinaryExpression(operator, left.progressToIr, right.progressToIr)
+  }
+}
 
-case class FunctionCallExpression(var identifier : Identifier, var arguments : List[Expression]) extends Expression with ProgressableToIr {
+case class FunctionCallExpression(var identifier : Identifier, var arguments : List[Expression]) extends Expression {
   def progressToIr : ir.FunctionCallExpression = {
-    ir.FunctionCallExpression(identifier.progressToIr.asInstanceOf[String],
-      arguments.map(s => s.asInstanceOf[ProgressableToIr].progressToIr.asInstanceOf[ir.Expression]).to[ListBuffer])
+    ir.FunctionCallExpression(identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
+      arguments.map(s => s.progressToIr).to[ListBuffer])
   }
 }

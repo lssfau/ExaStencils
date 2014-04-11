@@ -7,80 +7,19 @@ import exastencils.datastructures.l4._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.primitives._
 
-abstract class Statement extends Node
-
-case class VariableDeclarationStatement(var identifier : String, var datatype : Datatype, var expression : Option[Expression] = None)
-  extends Statement
-
-case class DomainDeclarationStatement(var name : String) extends Statement
-
-case class AssignmentStatement(var identifier : Identifier, var expression : Expression) extends Statement with ProgressableToIr {
-  def progressToIr : ir.AssignmentStatement = {
-    identifier.progressToIr match {
-      case i : String => expression.asInstanceOf[ProgressableToIr].progressToIr match {
-        case e : String        => ir.AssignmentStatement(i, e)
-        case e : ir.Expression => ir.AssignmentStatement(i, e)
-      }
-      case i : ir.Expression => expression.asInstanceOf[ProgressableToIr].progressToIr match {
-        case e : String        => ir.AssignmentStatement(i, e)
-        case e : ir.Expression => ir.AssignmentStatement(i, e)
-      }
-    }
-  }
+abstract class Statement extends Node with ProgressableToIr {
+  def progressToIr : ir.Statement
 }
 
-case class LoopOverDomainStatement(var iterationSet : String, var field : FieldIdentifier, var statements : List[Statement]) extends Statement with ProgressableToIr {
-  def progressToIr : LoopOverDomain = {
-    LoopOverDomain(iterationSet,
-      field.name,
-      field.level.asInstanceOf[SingleLevelSpecification].level,
-      statements.map(s => s.asInstanceOf[ProgressableToIr].progressToIr.asInstanceOf[ir.Statement]).to[ListBuffer]) // FIXME: .to[ListBuffer]
-  }
+abstract class SpecialStatement /*TODO: think about an appropriate name*/ extends Node with ProgressableToIr {
+  def progressToIr : Node
 }
 
-case class IterationSetDeclarationStatement(var identifier : Identifier, var begin : Index, var end : Index, var increment : Option[Index]) extends Statement with ProgressableToIr {
-  def progressToIr : IterationSet = {
-    IterationSet(identifier.asInstanceOf[BasicIdentifier].progressToIr,
-      begin.progressToIr,
-      end.progressToIr,
-      (if (increment.isDefined) increment.get.progressToIr else new ir.MultiIndex(Array.fill(Knowledge.dimensionality)(1))))
-  }
+case class DomainDeclarationStatement(var name : String) extends SpecialStatement {
+  def progressToIr : ir.Expression = "FIXME: implement"
 }
 
-case class FunctionStatement(var identifier : Identifier, var returntype : Datatype, var arguments : List[Variable], var statements : List[Statement]) extends Statement with ProgressableToIr {
-  def progressToIr : ir.AbstractFunctionStatement = {
-    ir.FunctionStatement(
-      returntype.progressToIr,
-      identifier.progressToIr.asInstanceOf[String],
-      arguments.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer] 
-      statements.map(s => s.asInstanceOf[ProgressableToIr].progressToIr.asInstanceOf[ir.Statement]).to[ListBuffer]) // FIXME: .to[ListBuffer]
-  }
-}
-
-case class RepeatUpStatement(var number : Int, var statements : List[Statement]) extends Statement with ProgressableToIr {
-  def progressToIr : ir.ForLoopStatement = {
-    ir.ForLoopStatement( // FIXME: de-stringify
-      "unsigned int someRandomIndexVar = 0", // FIXME: someRandomIndexVar
-      ("someRandomIndexVar" : ir.Expression) < number,
-      "++someRandomIndexVar",
-      statements.map(s => s.asInstanceOf[ProgressableToIr].progressToIr.asInstanceOf[ir.Statement]).to[ListBuffer]) // FIXME: to[ListBuffer]
-  }
-}
-
-case class RepeatUntilStatement(var comparison : BooleanExpression, var statements : List[Statement]) extends Statement
-
-case class ReductionStatement(var statement : Statement) extends Statement
-
-case class FunctionCallStatement(var identifier : Identifier, var arguments : List[Expression]) extends Statement with ProgressableToIr {
-  def progressToIr : ir.Statement /*FIXME: FunctionCallExpression*/ = {
-    ir.FunctionCallExpression(identifier.progressToIr.asInstanceOf[String],
-      arguments.map(s => s.asInstanceOf[ProgressableToIr].progressToIr.asInstanceOf[ir.Expression]).to[ListBuffer])
-  }
-}
-
-case class ConditionalStatement(var expression : BooleanExpression, var statements : List[Statement]) extends Statement
-
-case class FieldDeclarationStatement(var name : String, var datatype : Datatype, var offset : Index, var level : Option[LevelSpecification]) extends Statement with ProgressableToIr {
+case class FieldDeclarationStatement(var name : String, var datatype : Datatype, var offset : Index, var level : Option[LevelSpecification]) extends SpecialStatement {
   var communicate = false
   var ghostlayers = 0
   var padding = 0
@@ -112,3 +51,75 @@ case class FieldDeclarationStatement(var name : String, var datatype : Datatype,
       bcDir0);
   }
 }
+
+case class IterationSetDeclarationStatement(var identifier : Identifier, var begin : Index, var end : Index, var increment : Option[Index]) extends SpecialStatement {
+  def progressToIr : IterationSet = {
+    IterationSet(identifier.asInstanceOf[BasicIdentifier].progressToIr.value,
+      begin.progressToIr,
+      end.progressToIr,
+      (if (increment.isDefined) increment.get.progressToIr else new ir.MultiIndex(Array.fill(Knowledge.dimensionality)(1))))
+  }
+}
+
+case class VariableDeclarationStatement(var identifier : Identifier, var datatype : Datatype, var expression : Option[Expression] = None) extends Statement {
+  def progressToIr : ir.VariableDeclarationStatement = {
+    ir.VariableDeclarationStatement(
+      ir.VariableAccess(identifier.progressToIr.asInstanceOf[ir.StringConstant].value, Some(datatype.progressToIr)),
+      if (expression.isDefined) Some(expression.get.progressToIr) else None)
+  }
+}
+
+case class AssignmentStatement(var identifier : Identifier, var expression : Expression) extends Statement {
+  def progressToIr : ir.AssignmentStatement = {
+    ir.AssignmentStatement(identifier.progressToIr, expression.progressToIr)
+  }
+}
+
+case class LoopOverDomainStatement(var iterationSet : String, var field : FieldIdentifier, var statements : List[Statement]) extends Statement {
+  def progressToIr : LoopOverDomain = {
+    LoopOverDomain(iterationSet,
+      field.name,
+      field.level.asInstanceOf[SingleLevelSpecification].level,
+      statements.map(s => s.progressToIr).to[ListBuffer]) // FIXME: .to[ListBuffer]
+  }
+}
+
+case class FunctionStatement(var identifier : Identifier, var returntype : Datatype, var arguments : List[Variable], var statements : List[Statement]) extends Statement {
+  def progressToIr : ir.AbstractFunctionStatement = {
+    ir.FunctionStatement(
+      returntype.progressToIr,
+      identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
+      arguments.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer] 
+      statements.map(s => s.progressToIr).to[ListBuffer]) // FIXME: .to[ListBuffer]
+  }
+}
+
+case class RepeatUpStatement(var number : Int, var statements : List[Statement]) extends Statement {
+  def progressToIr : ir.ForLoopStatement = {
+    ir.ForLoopStatement( // FIXME: de-stringify
+      "unsigned int someRandomIndexVar = 0", // FIXME: someRandomIndexVar
+      ("someRandomIndexVar" : ir.Expression) < number,
+      "++someRandomIndexVar",
+      statements.map(s => s.progressToIr).to[ListBuffer]) // FIXME: to[ListBuffer]
+  }
+}
+
+case class RepeatUntilStatement(var comparison : BooleanExpression, var statements : List[Statement]) extends Statement {
+  def progressToIr = "FIXME: implement"
+}
+
+case class ReductionStatement(var statement : Statement) extends Statement {
+  def progressToIr = "FIXME: implement"
+}
+
+case class FunctionCallStatement(var identifier : Identifier, var arguments : List[Expression]) extends Statement {
+  def progressToIr : ir.Statement /*FIXME: FunctionCallExpression*/ = {
+    ir.FunctionCallExpression(identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
+      arguments.map(s => s.progressToIr).to[ListBuffer])
+  }
+}
+
+case class ConditionalStatement(var expression : BooleanExpression, var statements : List[Statement]) extends Statement {
+  def progressToIr = "FIXME: implement"
+}
+

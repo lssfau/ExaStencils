@@ -1,9 +1,10 @@
 package exastencils.parsers.l4
 
+import scala.collection.mutable.ListBuffer
 import exastencils.parsers._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
-import scala.collection.mutable.ListBuffer
+import exastencils.datastructures.l4.Statement
 
 class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParsers {
   def parse(s : String) : Node = {
@@ -85,7 +86,6 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val statement : Parser[Statement] = (
     variableDeclaration
-    ||| iterationSet
     ||| repeatUp
     ||| repeatUntil
     ||| reduction
@@ -95,9 +95,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| locationize(functionCall ^^ { case f => FunctionCallStatement(f.identifier, f.arguments) })
     ||| conditional)
 
-  lazy val variableDeclaration = (
-    locationize(("var" ~> ident) <~ (":" ~ "Domain") ^^ { case id => DomainDeclarationStatement(id) })
-    ||| locationize(("var" ~> ident) ~ (":" ~> datatype) ~ ("=" ~> expression).? ^^ { case id ~ dt ~ exp => VariableDeclarationStatement(id, dt, exp) }))
+  lazy val domainDeclaration = (locationize(("var" ~> ident) <~ (":" ~ "Domain") ^^ { case id => DomainDeclarationStatement(id) }))
+  lazy val variableDeclaration = (locationize(("var" ~> ident) ~ (":" ~> datatype) ~ ("=" ~> expression).? ^^ { case id ~ dt ~ exp => VariableDeclarationStatement(BasicIdentifier(id), dt, exp) }))
 
   lazy val iterationSet = locationize(("Set" ~> leveledidentifier) ~ index ~ ("-" ~> index) ~ ("steps" ~> index).?
     ^^ { case id ~ begin ~ end ~ inc => IterationSetDeclarationStatement(id, begin, end, inc) })

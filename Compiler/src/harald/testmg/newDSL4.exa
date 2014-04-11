@@ -59,3 +59,16 @@ def set@(0 to 4) (value : Real) : Unit
 		Solution@(current) = value
 	}
 }
+
+def Application ( ) : Unit {
+	var res0 : Real = sqrt ( getGlobalResidual@4 (  ) )
+	var res : Real = res0
+	var resold : Real = 0
+	print ( 'startingres', res0 )
+	repeat up 10 {
+		resold = res
+		VCycle@4 (  )
+		res = sqrt ( getGlobalResidual@4 (  ) )
+		print ( 'Residual:', res, 'Residual reduction:', ( res0 / res ), 'convergence factor:', ( res / resold ) )
+	}
+}
