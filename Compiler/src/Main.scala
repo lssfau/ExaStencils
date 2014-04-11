@@ -49,7 +49,7 @@ object Main {
     var parserl4 = new ParserL4
     StateManager.root_ = parserl4.parseFile("./Compiler/src/harald/testmg/newDSL4.exa")
     ProgressToIr.apply
-    
+
     StateManager.root_ = StateManager.root_.asInstanceOf[ProgressableToIr].progressToIr.asInstanceOf[Node]
 
     // Setup tree
@@ -94,12 +94,8 @@ object Main {
 
     // setup basic sub-nodes
 
-    do { ExpandStrategy.apply; }
-    while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
-
-    SetupFragmentClass.apply;
-    SetupMultiGrid.apply;
-    SetupApplication.apply;
+    //do { ExpandStrategy.apply; }
+    //while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
 
     // Harald
 
@@ -176,6 +172,21 @@ object Main {
       mgNode.functions_HACK += e.transformToIR
 
     // Strategies
+
+    (new Strategy("FindStencilConvolutions") {
+      this += new Transformation("SearchAndMark", {
+        case BinaryExpression(BinaryOperators.Multiplication, UnresolvedStencilAccess(stencilName, stencilLevel), UnresolvedFieldAccess(fieldOwner, fieldName, fieldLevel, fieldSlot, fieldIndex)) =>
+          StencilConvolution(StateManager.findFirst[StencilCollection]().get.getStencilByIdentifier(stencilName).get,
+            StateManager.findFirst[FieldCollection]().get.getFieldByIdentifier(fieldName, fieldLevel).get)
+      })
+    }).apply
+
+    do { ExpandStrategy.apply; }
+    while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
+
+    SetupFragmentClass.apply;
+    SetupMultiGrid.apply;
+    SetupApplication.apply;
 
     do { ExpandStrategy.apply; }
     while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code

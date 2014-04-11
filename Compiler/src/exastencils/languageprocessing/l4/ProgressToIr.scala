@@ -33,9 +33,11 @@ object ProgressToIr extends Strategy("ProgressToIr") {
     case UnresolvedIdentifier(name, Some(level)) =>
       if (StateManager.root_.asInstanceOf[Root].fields.exists(f => name == f.name))
         FieldIdentifier(name, level)
+      else if ("Lapl" == name) // FIXME: stencil collection
+        StencilIdentifier(name, level)
       else
         LeveledIdentifier(name, level)
-    case UnresolvedIdentifier(name, None) => BasicIdentifier(name)
+    case UnresolvedIdentifier(name, _) => BasicIdentifier(name)
   })
 
   // unfold function declarations and calls

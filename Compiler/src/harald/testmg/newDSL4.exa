@@ -25,6 +25,13 @@ def VCycle@(1 to 4) ( ) : Unit {
 	}
 }
 
+def UpResidual@(0 to 4) ( ) : Unit {
+	exchsolData@(current) ( 0 )
+	loop over inner on Residual@(current) {
+		Residual@(current) = RHS@(current) - (Lapl@(current) * Solution@(current))
+	}
+}
+
 def set@(0 to 4) (value : Real) : Unit
 {
 	loop over domain on Solution@(current) {

@@ -55,6 +55,22 @@ object BinaryOperators extends Enumeration {
     case GreaterEqual   => ">="
     case _              => "FIXME"
   }
+  implicit def str2op(op : String) : Value = op match {
+    case "+"  => Addition
+    case "-"  => Subtraction
+    case "*"  => Multiplication
+    case "/"  => Division
+    case "**" => Power // FIXME  
+    case "%"  => Addition
+    case "&&" => AndAnd
+    case "||" => OrOr
+    case "==" => EqEq
+    case "!=" => NeqNeq
+    case "<"  => Lower
+    case "<=" => LowerEqual
+    case ">"  => Greater
+    case ">=" => GreaterEqual
+  }
 }
 
 object UnaryOperators extends Enumeration {
@@ -183,6 +199,10 @@ case class LinearizedFieldAccess(var fieldOwner : Expression, var field : Field,
   override def cpp : String = {
     s"${fieldOwner.cpp}${field.codeName.cpp}[${slot.cpp}][${field.level}]->data[${index.cpp}]";
   }
+}
+
+case class UnresolvedStencilAccess(var stencilIdentifier : String, level : Int) extends Expression {
+  override def cpp : String = "NOT VALID ; CLASS = UnresolvedStencilAccess\n";
 }
 
 case class MemberAccess(var base : Access, var varAcc : VariableAccess) extends Access {

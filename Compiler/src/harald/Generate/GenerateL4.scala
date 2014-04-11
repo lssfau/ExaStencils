@@ -61,18 +61,18 @@ class GenerateL4(treel2 : TreeL2) {
 
     writer.write(s"\n")
 
-    for (lev <- 0 to Knowledge.maxLevel) {
-      writer.write(s"def ${location} UpResidual_$lev (  ) : Unit  \n")
-      writer.write(s"{ \n")
-      // COMM_HACK
-      writer.write(s"  exchsolData_$lev ( 0 )  \n")
-      writer.write(s"loop innerpoints level $lev order lex block 1 1  \n")
-      writer.write(s"  Res@$lev = ${DomainKnowledge.function_L1(0)._1} [ $lev ] - (${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] )  \n")
-      writer.write(s"next \n")
-      writer.write(s"}  \n")
-
-      writer.write(s"\n")
-    }
+//    for (lev <- 0 to Knowledge.maxLevel) {
+//      writer.write(s"def ${location} UpResidual_$lev (  ) : Unit  \n")
+//      writer.write(s"{ \n")
+//      // COMM_HACK
+//      writer.write(s"  exchsolData_$lev ( 0 )  \n")
+//      writer.write(s"loop innerpoints level $lev order lex block 1 1  \n")
+//      writer.write(s"  Res@$lev = ${DomainKnowledge.function_L1(0)._1} [ $lev ] - (${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] )  \n")
+//      writer.write(s"next \n")
+//      writer.write(s"}  \n")
+//
+//      writer.write(s"\n")
+//    }
 
     /* DISABLED MG FUNCTION      
      if (location.equals("gpu")) {

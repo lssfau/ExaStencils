@@ -49,13 +49,23 @@ case class FieldIdentifier(var name2 : String, var level : LevelSpecification) e
   }
 }
 
-case class Variable(identifier : Identifier, datatype : Datatype) extends Expression with ProgressableToIr {
+case class StencilIdentifier(var name2 : String, var level : LevelSpecification) extends Identifier(name2) {
+  def progressToIr : ir.UnresolvedStencilAccess = {
+    ir.UnresolvedStencilAccess(name, level.asInstanceOf[SingleLevelSpecification].level)
+  }
+}
+
+case class Variable(var identifier : Identifier, var datatype : Datatype) extends Expression with ProgressableToIr {
   def progressToIr : ir.VariableAccess = {
     ir.VariableAccess(identifier.progressToIr.asInstanceOf[String /*FIXME*/ ], Some(datatype.progressToIr))
   }
 }
 
-case class BinaryExpression(operator : String, var left : Expression, var right : Expression) extends Expression
+case class BinaryExpression(var operator : String, var left : Expression, var right : Expression) extends Expression with ProgressableToIr {
+  def progressToIr : ir.BinaryExpression = {
+    ir.BinaryExpression(operator, left.asInstanceOf[ProgressableToIr].progressToIr.asInstanceOf[ir.Expression], right.asInstanceOf[ProgressableToIr].progressToIr.asInstanceOf[ir.Expression])
+  }
+}
 
 case class BooleanExpression(operator : String, var left : Expression, var right : Expression) extends Expression
 
