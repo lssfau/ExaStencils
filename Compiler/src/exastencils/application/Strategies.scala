@@ -8,6 +8,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.application._
 import exastencils.strategies._
 import exastencils.primitives._
+import exastencils.knowledge._
 
 object SetupApplication extends Strategy("Setting up application") {
   val fieldCollection = StateManager.findFirst[FieldCollection]().get;

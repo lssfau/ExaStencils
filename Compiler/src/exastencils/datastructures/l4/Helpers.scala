@@ -23,6 +23,14 @@ case class FinerLevelSpecification() extends LevelSpecification
 
 case class TempOption(val key : String, val value : String) extends Annotatable
 
-trait Index extends Annotatable
-case class Index2D(var x : Int, var y : Int) extends Index
-case class Index3D(var x : Int, var y : Int, var z : Int) extends Index
+trait Index extends Annotatable with ProgressableToIr {
+  override def progressToIr : ir.MultiIndex 
+}
+
+case class Index2D(var x : Int, var y : Int) extends Index {
+  def progressToIr : ir.MultiIndex = new ir.MultiIndex(Array(x, y))
+}
+
+case class Index3D(var x : Int, var y : Int, var z : Int) extends Index {
+  def progressToIr : ir.MultiIndex = new ir.MultiIndex(Array(x, y, z))
+}

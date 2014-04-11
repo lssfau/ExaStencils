@@ -2,9 +2,12 @@ Field Solution< [1, 1, 1], Real>@(0 to 4) (bcDir = true)
 Field Residual< [1, 1, 1], Real>@(0 to 4) (bcDir = false)
 Field RHS< [1, 1, 1], Real>@(0 to 4) (bcDir = false)
 
-def VCycle@0 (  ) : Unit {
+Set inner [1, 1, 1] - [1, 1, 1] steps [1, 1, 1]
+Set domain [0, 0, 0] - [0, 0, 0] steps [1, 1, 1]
+
+def VCycle@0 ( ) : Unit {
 	repeat up 512 {
-		GaussSeidel@0 (  )
+		GaussSeidel@0 ( )
 	}
 }
 
@@ -12,12 +15,19 @@ def VCycle@(1 to 4) ( ) : Unit {
 	repeat up 3 {
 		GaussSeidel@(current) ( )
 	}
-	Residual@(current) ( )
+	UpResidual@(current) ( )
 	Restrict@(current) ( )
 	set@(coarser) ( 0 )
 	VCycle@(coarser) ( )
 	interpolatecorr@(current) ( )
 	repeat up 3 {
 		GaussSeidel@(current) ( )
+	}
+}
+
+def set@(0 to 4) (value : Real) : Unit
+{
+	loop over domain on Solution@(current) {
+		Solution@(current) = value
 	}
 }

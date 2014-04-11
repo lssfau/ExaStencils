@@ -16,6 +16,29 @@ import exastencils.omp._
 
 // TODO: Move accepted nodes to appropriate packages
 
+case class LoopOverDomain(var iterationSetIdentifier : String, var fieldIdentifier : String, var level : Int, var body : ListBuffer[Statement]) extends Statement with Expandable {
+  override def cpp : String = "NOT VALID ; CLASS = LoopOverDomain\n";
+
+  def expand(collector : StackCollector) : Statement /*FIXME: ForLoopStatement*/ = {
+    val fieldCollection = StateManager.findFirst[FieldCollection]().get
+    val iterationSetCollection = StateManager.findFirst[IterationSetCollection]().get
+
+    val field = fieldCollection.getFieldByIdentifier(fieldIdentifier, level).get
+    val iterationSet = iterationSetCollection.getIterationSetByIdentifier(iterationSetIdentifier).get
+
+    var start : ListBuffer[Expression] = ListBuffer()
+    var stop : ListBuffer[Expression] = ListBuffer()
+    for (i <- 0 until Knowledge.dimensionality) {
+      start += field.layout(i).idxGhostLeftBegin - field.referenceOffset(i) - iterationSet.begin(i)
+      stop += field.layout(i).idxGhostRightEnd - field.referenceOffset(i) - iterationSet.end(i)
+    }
+
+    return new LoopOverFragments( // FIXME: define LoopOverFragments in L4 DSL
+      // TODO: add sth like new ConditionStatement(s"curFragment.isValidForSubdomain[${field.domain}]",
+      new LoopOverDimensions(IndexRange(new MultiIndex(start.toArray), new MultiIndex(stop.toArray)), body) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel
+  }
+}
+
 case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[Statement], var addOMPStatements : String = "") extends Statement with Expandable {
   def this(indices : IndexRange, body : Statement, addOMPStatements : String) = this(indices, ListBuffer[Statement](body), addOMPStatements);
   def this(indices : IndexRange, body : Statement) = this(indices, ListBuffer[Statement](body));
@@ -138,11 +161,5 @@ case class CommunicationFunctions() extends Node with FilePrettyPrintable {
 
       i += 1;
     }
-  }
-}
-
-case class FieldCollection(var fields : ListBuffer[Field] = ListBuffer()) extends Node {
-  def getFieldByIdentifier(identifier : String, level : Int) : Option[Field] = {
-    fields.find(f => f.identifier == identifier && f.level == level)
   }
 }

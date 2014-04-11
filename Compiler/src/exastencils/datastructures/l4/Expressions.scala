@@ -27,18 +27,31 @@ case class BooleanConstant(value : Boolean) extends Expression with Progressable
   def progressToIr : ir.BooleanConstant = ir.BooleanConstant(value)
 }
 
-case class Identifier(name : String, level : Option[LevelSpecification]) extends Expression with ProgressableToIr {
+abstract class Identifier(var name : String) extends Expression with ProgressableToIr
+
+case class UnresolvedIdentifier(var name2 : String, var level : Option[LevelSpecification]) extends Identifier(name2) {
+  def progressToIr : String = "ERROR - UnresolvedIdentifier"
+}
+
+case class BasicIdentifier(var name2 : String) extends Identifier(name2) {
+  def progressToIr : String = name
+}
+
+case class LeveledIdentifier(var name2 : String, var level : LevelSpecification) extends Identifier(name2) {
   def progressToIr : String = {
-    if (level.isEmpty)
-      name
-    else
-      name + "_" + level.get
+    name + "_" + level.asInstanceOf[SingleLevelSpecification].level
+  }
+}
+
+case class FieldIdentifier(var name2 : String, var level : LevelSpecification) extends Identifier(name2) {
+  def progressToIr : ir.UnresolvedFieldAccess = {
+    ir.UnresolvedFieldAccess("curFragment." /*FIXME*/ , name, level.asInstanceOf[SingleLevelSpecification].level, "0" /*FIXME*/ , ir.DefaultLoopMultiIndex())
   }
 }
 
 case class Variable(identifier : Identifier, datatype : Datatype) extends Expression with ProgressableToIr {
   def progressToIr : ir.VariableAccess = {
-    ir.VariableAccess(identifier.progressToIr, Some(datatype.progressToIr))
+    ir.VariableAccess(identifier.progressToIr.asInstanceOf[String /*FIXME*/ ], Some(datatype.progressToIr))
   }
 }
 

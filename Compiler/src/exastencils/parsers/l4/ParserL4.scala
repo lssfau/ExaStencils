@@ -45,7 +45,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   //###########################################################
 
-  lazy val program = locationize(field.* ~ function.* ^^ { case f ~ s => Root(f, s) })
+  lazy val program = locationize(field.* ~ iterationSet.* ~ function.* ^^ { case f ~ i ~ s => Root(f, i, s) })
 
   lazy val level = (
     singlelevel
@@ -97,7 +97,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val iterationSet = locationize(("Set" ~> leveledidentifier) ~ index ~ ("-" ~> index) ~ ("steps" ~> index).?
     ^^ { case id ~ begin ~ end ~ inc => IterationSetDeclarationStatement(id, begin, end, inc) })
-    
+
   lazy val repeatUp = locationize(("repeat" ~ "up") ~> numericLit ~ ("{" ~> statement.+ <~ "}") ^^ { case n ~ s => RepeatUpStatement(n.toInt, s) })
 
   lazy val repeatUntil = locationize(
@@ -106,10 +106,10 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val reduction = locationize(("Reduction" ~ "{") ~> statement <~ "}" ^^ { case s => ReductionStatement(s) })
 
   lazy val loopOver = locationize(("loop" ~ "over" ~> ident) ~
-    ("blocksize" ~> index).? ~
+    ("on" ~> leveledfieldidentifier) ~ // FIXME: this is all but robust / a user could break this easily
     ("{" ~> statement.+) <~ "}" ^^
     {
-      case area ~ blocksize ~ stmts => LoopOverDomainStatement(area, blocksize, stmts)
+      case area ~ field ~ stmts => LoopOverDomainStatement(area, field, stmts)
     })
 
   lazy val assignment = locationize(leveledidentifier ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(id, exp) })
@@ -141,7 +141,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ##### Expressions
   // ######################################
 
-  lazy val leveledidentifier = locationize(ident ~ level.? ^^ { case id ~ level => Identifier(id, level) })
+  lazy val leveledidentifier = locationize(ident ~ level.? ^^ { case id ~ level => UnresolvedIdentifier(id, level) })
+  lazy val leveledfieldidentifier = locationize(ident ~ level ^^ { case id ~ level => FieldIdentifier(id, level) })
 
   lazy val expression = binaryexpression | booleanexpression
 

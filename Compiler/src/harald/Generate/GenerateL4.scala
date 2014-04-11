@@ -62,7 +62,7 @@ class GenerateL4(treel2 : TreeL2) {
     writer.write(s"\n")
 
     for (lev <- 0 to Knowledge.maxLevel) {
-      writer.write(s"def ${location} Residual_$lev (  ) : Unit  \n")
+      writer.write(s"def ${location} UpResidual_$lev (  ) : Unit  \n")
       writer.write(s"{ \n")
       // COMM_HACK
       writer.write(s"  exchsolData_$lev ( 0 )  \n")
@@ -171,19 +171,19 @@ class GenerateL4(treel2 : TreeL2) {
     if (location.equals("gpu"))
       setfunclistloc += "cpu"
 
-    for (n <- setfunclistloc) {
-      for (lev <- 0 to Knowledge.maxLevel) {
-        val setname = n match { case "gpu" => "setcuda" case _ => "set" }
-        writer.write(s"def ${n} ${setname}_$lev ( value:Int ) : Unit  \n")
-        writer.write(s"{ \n")
-        writer.write(s"  loop allpoints level $lev order lex block 1 1  \n")
-        writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1}@$lev = value    \n")
-        writer.write(s"next  \n")
-        writer.write(s"}  \n")
-      }
-
-      writer.write(s"\n")
-    }
+//    for (n <- setfunclistloc) {
+//      for (lev <- 0 to Knowledge.maxLevel) {
+//        val setname = n match { case "gpu" => "setcuda" case _ => "set" }
+//        writer.write(s"def ${n} ${setname}_$lev ( value:Int ) : Unit  \n")
+//        writer.write(s"{ \n")
+//        writer.write(s"  loop allpoints level $lev order lex block 1 1  \n")
+//        writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1}@$lev = value    \n")
+//        writer.write(s"next  \n")
+//        writer.write(s"}  \n")
+//      }
+//
+//      writer.write(s"\n")
+//    }
 
     // COMM_HACK
     //    writer.write(s"def cpu setrandom(arr:Container \n")
@@ -199,7 +199,7 @@ class GenerateL4(treel2 : TreeL2) {
     // COMM_HACK
     writer.write(s"def cpu Application ( ) : Unit \n")
     writer.write(s"{  \n")
-    writer.write(s"	Residual_${Knowledge.maxLevel} (  ) \n")
+    writer.write(s"	UpResidual_${Knowledge.maxLevel} (  ) \n")
     writer.write(s" decl res0 : Double = getGlobalResidual_${Knowledge.maxLevel} (  ) \n")
     writer.write(s" decl res : Double = res0 \n")
     writer.write(s" decl resold : Double = 0 \n")
@@ -207,7 +207,7 @@ class GenerateL4(treel2 : TreeL2) {
     writer.write(s" repeat up 10 \n")
     writer.write(s" resold = res \n")
     writer.write(s"VCycle_${Knowledge.maxLevel} (  ) \n")
-    writer.write(s"	Residual_${Knowledge.maxLevel} (  ) \n")
+    writer.write(s"	UpResidual_${Knowledge.maxLevel} (  ) \n")
     writer.write(s"res = getGlobalResidual_${Knowledge.maxLevel} (  ) \n")
     writer.write(s"print ( 'Residual:' res 'residual reduction:' (res0/res) 'convergence factor:' (res/resold) ) \n")
     writer.write(s"  next  \n")

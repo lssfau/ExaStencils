@@ -1,5 +1,7 @@
 package exastencils.knowledge
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
@@ -48,3 +50,9 @@ case class Field(
   var numSlots : Int, // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
   var referenceOffset : MultiIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point 
   /*FIXME: introduce 'real' boundary conditions */ var bcDir0 : Boolean) extends Node {}
+
+case class FieldCollection(var fields : ListBuffer[Field] = ListBuffer()) extends Node {
+  def getFieldByIdentifier(identifier : String, level : Int) : Option[Field] = {
+    fields.find(f => f.identifier == identifier && f.level == level)
+  }
+}

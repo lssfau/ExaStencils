@@ -7,6 +7,7 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.primitives._
+import exastencils.core.StateManager
 
 trait Expression extends Node with CppPrettyPrintable {
   def ~(exp : Expression) : ConcatenationExpression = {
@@ -151,6 +152,15 @@ case class MultiIndex(var index_0 : Expression = new NullExpression, var index_1
 
 object DefaultLoopMultiIndex {
   def apply() : MultiIndex = { new MultiIndex("x", "y", "z"); }
+}
+
+case class UnresolvedFieldAccess(var fieldOwner : Expression, var fieldIdentifier : String, var level : Int, var slot : Expression, var index : MultiIndex) extends Expression with Expandable {
+  override def cpp : String = "NOT VALID ; CLASS = UnresolvedFieldAccess\n";
+
+  def expand(collector : StackCollector) : FieldAccess = {
+    val field = StateManager.findFirst[FieldCollection]().get.getFieldByIdentifier(fieldIdentifier, level).get
+    new FieldAccess(fieldOwner, field, slot, index)
+  }
 }
 
 case class DirectFieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : MultiIndex) extends Expression with Expandable {

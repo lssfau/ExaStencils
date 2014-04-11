@@ -1,11 +1,11 @@
 package exastencils.datastructures.l4
 
+import exastencils.knowledge._
 import exastencils.datastructures._
-import exastencils.primitives.FieldCollection
 import exastencils.multiGrid.MultiGrid
 
-case class Root(var fields : List[FieldDeclarationStatement], var statements : List[Statement]) extends Node with ProgressableToIr {
-  def this(statements : List[Statement]) = this(List(), statements)
+case class Root(var fields : List[FieldDeclarationStatement], var iterationSets : List[IterationSetDeclarationStatement], var statements : List[Statement]) extends Node with ProgressableToIr {
+  def this(statements : List[Statement]) = this(List(), List(), statements)
 
   def getFieldByIdentifier(identifier : String, level : Int) : Option[FieldDeclarationStatement] = {
     fields.find(f => f.name == identifier && f.level.getOrElse(-1) == level)
@@ -19,6 +19,11 @@ case class Root(var fields : List[FieldDeclarationStatement], var statements : L
       fieldCollection.fields += field.progressToIr
     newRoot += fieldCollection
 
+    var iterationSetCollection = new IterationSetCollection
+    for (iterationSet <- iterationSets)
+      iterationSetCollection.sets += iterationSet.progressToIr
+      newRoot += iterationSetCollection
+    
     var multiGrid = new MultiGrid // FIXME: think about how to manage (MG/other) functions
     for (node <- statements)
       node match {

@@ -18,17 +18,37 @@ object ProgressToIr extends Strategy("ProgressToIr") {
     StateManager.unregister(collector);
   }
 
+  // resolve grouped level specifications with size one, i.e. groups with only one element
+
+  this += new Transformation("ResolveGroupedLevelSpecifications", {
+    case UnresolvedIdentifier(name, Some(ListLevelSpecification(levels))) if (1 == levels.size) =>
+      UnresolvedIdentifier(name, Some(levels.head))
+    case FieldIdentifier(name, ListLevelSpecification(levels)) if (1 == levels.size) =>
+      FieldIdentifier(name, levels.head)
+  })
+
+  // resolve raw level specifications
+
+  this += new Transformation("ResolveRawLevelSpecifications", {
+    case UnresolvedIdentifier(name, Some(level)) =>
+      if (StateManager.root_.asInstanceOf[Root].fields.exists(f => name == f.name))
+        FieldIdentifier(name, level)
+      else
+        LeveledIdentifier(name, level)
+    case UnresolvedIdentifier(name, None) => BasicIdentifier(name)
+  })
+
   // unfold function declarations and calls
   // FIXME: can this be combined into one more generic transformation?
 
   this += new Transformation("UnfoldLeveledFunctions", {
     case function : FunctionStatement => function.identifier match {
-      case Identifier(_, Some(level)) => duplicateFunctionDeclaration(function, level)
-      case Identifier(_, None)        => function
+      case LeveledIdentifier(_, level) => duplicateFunctionDeclaration(function, level)
+      case BasicIdentifier(_)          => function
     }
     case function : FunctionCallStatement => function.identifier match {
-      case Identifier(_, Some(level)) => duplicateFunctionCall(function, level)
-      case Identifier(_, None)        => function
+      case LeveledIdentifier(_, level) => duplicateFunctionCall(function, level)
+      case BasicIdentifier(_)          => function
     }
   })
 
@@ -37,7 +57,7 @@ object ProgressToIr extends Strategy("ProgressToIr") {
     level match {
       case level @ (SingleLevelSpecification(_) | CurrentLevelSpecification() | CoarserLevelSpecification() | FinerLevelSpecification()) => {
         var f = Duplicate(function)
-        f.identifier = new Identifier(f.identifier.name, Some(level))
+        f.identifier = new LeveledIdentifier(f.identifier.name, level)
         functions += f
       }
       case level : ListLevelSpecification =>
@@ -45,7 +65,7 @@ object ProgressToIr extends Strategy("ProgressToIr") {
       case level : RangeLevelSpecification =>
         for (level <- math.min(level.begin, level.end) to math.max(level.begin, level.end)) {
           var f = Duplicate(function)
-          f.identifier = new Identifier(f.identifier.name, Some(SingleLevelSpecification(level)))
+          f.identifier = new LeveledIdentifier(f.identifier.name, SingleLevelSpecification(level))
           functions += f
         }
       case _ => ERROR(s"Invalid level specification for function $function: $level")
@@ -58,7 +78,7 @@ object ProgressToIr extends Strategy("ProgressToIr") {
     level match {
       case level @ (SingleLevelSpecification(_) | CurrentLevelSpecification() | CoarserLevelSpecification() | FinerLevelSpecification()) => {
         var f = Duplicate(function)
-        f.identifier = new Identifier(f.identifier.name, Some(level))
+        f.identifier = new LeveledIdentifier(f.identifier.name, level)
         functions += f
       }
       case level : ListLevelSpecification =>
@@ -66,7 +86,7 @@ object ProgressToIr extends Strategy("ProgressToIr") {
       case level : RangeLevelSpecification =>
         for (level <- math.min(level.begin, level.end) to math.max(level.begin, level.end)) {
           var f = Duplicate(function)
-          f.identifier = new Identifier(f.identifier.name, Some(SingleLevelSpecification(level)))
+          f.identifier = new LeveledIdentifier(f.identifier.name, SingleLevelSpecification(level))
           functions += f
         }
       case _ => ERROR(s"Invalid level specification for function $function: $level")
@@ -112,12 +132,18 @@ object ProgressToIr extends Strategy("ProgressToIr") {
     case level : FinerLevelSpecification   => SingleLevelSpecification(collector.curLevel + 1)
 
     // FIXME: this is an ugly HACK because Some(x) cannot be matched
-    case FunctionCallStatement(Identifier(name, Some(CurrentLevelSpecification())), args) =>
-      FunctionCallStatement(Identifier(name, Some(SingleLevelSpecification(collector.curLevel))), args)
-    case FunctionCallStatement(Identifier(name, Some(CoarserLevelSpecification())), args) =>
-      FunctionCallStatement(Identifier(name, Some(SingleLevelSpecification(collector.curLevel - 1))), args)
-    case FunctionCallStatement(Identifier(name, Some(FinerLevelSpecification())), args) =>
-      FunctionCallStatement(Identifier(name, Some(SingleLevelSpecification(collector.curLevel + 1))), args)
+    case LeveledIdentifier(name, CurrentLevelSpecification()) =>
+      LeveledIdentifier(name, SingleLevelSpecification(collector.curLevel))
+    case LeveledIdentifier(name, CoarserLevelSpecification()) =>
+      LeveledIdentifier(name, SingleLevelSpecification(collector.curLevel - 1))
+    case LeveledIdentifier(name, FinerLevelSpecification()) =>
+      LeveledIdentifier(name, SingleLevelSpecification(collector.curLevel + 1))
+    case FieldIdentifier(name, CurrentLevelSpecification()) =>
+      FieldIdentifier(name, SingleLevelSpecification(collector.curLevel))
+    case FieldIdentifier(name, CoarserLevelSpecification()) =>
+      FieldIdentifier(name, SingleLevelSpecification(collector.curLevel - 1))
+    case FieldIdentifier(name, FinerLevelSpecification()) =>
+      FieldIdentifier(name, SingleLevelSpecification(collector.curLevel + 1))
   })
 
   /*  def doTransformToIr(node : l4.Datatype) : ir.Datatype = {
