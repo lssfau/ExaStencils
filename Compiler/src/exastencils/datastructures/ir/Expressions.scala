@@ -37,7 +37,7 @@ object BinaryOperators extends Enumeration {
   val Addition, Subtraction, Multiplication, Division, Power, Modulo, AndAnd, OrOr, EqEq, NeqNeq, Lower, LowerEqual, Greater, GreaterEqual = Value
 
   import scala.language.implicitConversions
-  implicit def op2str(op : Value) : String = op match {
+  implicit def op2str(op : BinaryOperators) : String = op match {
     case Addition       => "+"
     case Subtraction    => "-"
     case Multiplication => "*"
@@ -52,8 +52,10 @@ object BinaryOperators extends Enumeration {
     case LowerEqual     => "<="
     case Greater        => ">"
     case GreaterEqual   => ">="
-    case _              => "FIXME"
+    case _              => s"ERROR: Unresolvable binary operator $op"
   }
+  
+  exastencils.core.Duplicate.registerImmutable(this.getClass())
 }
 
 object UnaryOperators extends Enumeration {
@@ -61,12 +63,14 @@ object UnaryOperators extends Enumeration {
   val Positive, Negative, Not = Value
 
   import scala.language.implicitConversions
-  implicit def op2str(op : Value) : String = op match {
+  implicit def op2str(op : UnaryOperators) : String = op match {
     case Positive => ""
     case Negative => "-"
     case Not      => "!"
-    case _        => "FIXME"
+    case _        => s"ERROR: Unresolvable unary operator $op"
   }
+  
+  exastencils.core.Duplicate.registerImmutable(this.getClass())
 }
 
 trait Access extends Expression
