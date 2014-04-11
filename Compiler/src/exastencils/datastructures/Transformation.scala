@@ -2,6 +2,7 @@ package exastencils.datastructures
 
 import exastencils.core.StateManager
 
+// FIXME extend this to PartialFunction[Any(Ref), Transformation.Output[_]]
 class Transformation(val name : String, val function : PartialFunction[Node, Transformation.Output[_]], val recursive : Boolean = true, val applyAtNode : Option[Node] = None) {
   override def toString() = s"""Transformation "$name""""
 }
