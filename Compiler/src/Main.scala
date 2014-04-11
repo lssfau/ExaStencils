@@ -181,6 +181,13 @@ object Main {
       })
     }).apply
 
+    (new Strategy("ResolveSpecialFunctions") {
+      this += new Transformation("SearchAndReplace", {
+        case FunctionCallExpression(StringConstant("diag"), args) =>
+          stencilCollection.getStencilByIdentifier(args(0).asInstanceOf[UnresolvedStencilAccess].stencilIdentifier).get.entries(0).weight
+      })
+    }).apply
+
     do { ExpandStrategy.apply; }
     while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
 

@@ -110,30 +110,30 @@ class GenerateL4(treel2 : TreeL2) {
       }
     }*/
 
-    if (SmootherType.GS == Knowledge.mg_smoother) {
-      for (lev <- 0 to Knowledge.maxLevel) {
-        writer.write(s"def ${location} ${Knowledge.mg_smoother}_$lev (  ) : Unit  \n")
-        writer.write(s"{ \n")
-        // COMM_HACK
-        writer.write(s"  exchsolData_$lev ( 0 )  \n")
-        writer.write(s"    loop innerpoints level $lev order lex block 1 1 \n")
-        writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1}@$lev = ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] + ( ( ( inverse( diag(${DomainKnowledge.operator_L1(0)._1} [ $lev ] ) ) ) * ${Knowledge.mg_smoother_omega} ) * ( ${DomainKnowledge.function_L1(0)._1} [ $lev ] - ${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] ) ) \n")
-        writer.write(s"    next  \n")
-        writer.write(s"}  \n")
-      }
-    }
-    if (SmootherType.RBGS == Knowledge.mg_smoother) {
-      for (lev <- 0 to Knowledge.maxLevel) {
-        writer.write(s"def ${location} ${Knowledge.mg_smoother}_$lev (  ) : Unit  \n")
-        writer.write(s"{ \n")
-        // COMM_HACK
-        writer.write(s"  exchsolData_$lev ( 0 )  \n")
-        writer.write(s"    loop innerpoints level $lev order rb block 1 1 \n")
-        writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1}@$lev = ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] + ( ( ( inverse( diag(${DomainKnowledge.operator_L1(0)._1} [ $lev ] ) ) ) * ${Knowledge.mg_smoother_omega} ) * ( ${DomainKnowledge.function_L1(0)._1} [ $lev ] - ${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] ) ) \n")
-        writer.write(s"    next  \n")
-        writer.write(s"}  \n")
-      }
-    }
+//    if (SmootherType.GS == Knowledge.mg_smoother) {
+//      for (lev <- 0 to Knowledge.maxLevel) {
+//        writer.write(s"def ${location} ${Knowledge.mg_smoother}_$lev (  ) : Unit  \n")
+//        writer.write(s"{ \n")
+//        // COMM_HACK
+//        writer.write(s"  exchsolData_$lev ( 0 )  \n")
+//        writer.write(s"    loop innerpoints level $lev order lex block 1 1 \n")
+//        writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1}@$lev = ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] + ( ( ( inverse( diag(${DomainKnowledge.operator_L1(0)._1} [ $lev ] ) ) ) * ${Knowledge.mg_smoother_omega} ) * ( ${DomainKnowledge.function_L1(0)._1} [ $lev ] - ${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] ) ) \n")
+//        writer.write(s"    next  \n")
+//        writer.write(s"}  \n")
+//      }
+//    }
+//    if (SmootherType.RBGS == Knowledge.mg_smoother) {
+//      for (lev <- 0 to Knowledge.maxLevel) {
+//        writer.write(s"def ${location} ${Knowledge.mg_smoother}_$lev (  ) : Unit  \n")
+//        writer.write(s"{ \n")
+//        // COMM_HACK
+//        writer.write(s"  exchsolData_$lev ( 0 )  \n")
+//        writer.write(s"    loop innerpoints level $lev order rb block 1 1 \n")
+//        writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1}@$lev = ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] + ( ( ( inverse( diag(${DomainKnowledge.operator_L1(0)._1} [ $lev ] ) ) ) * ${Knowledge.mg_smoother_omega} ) * ( ${DomainKnowledge.function_L1(0)._1} [ $lev ] - ${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] ) ) \n")
+//        writer.write(s"    next  \n")
+//        writer.write(s"}  \n")
+//      }
+//    }
 
     writer.write(s"\n")
 

@@ -25,6 +25,13 @@ def VCycle@(1 to 4) ( ) : Unit {
 	}
 }
 
+def GaussSeidel@(0 to 4) ( ) : Unit { 
+	exchsolData@(current) ( 0 )
+	loop over inner on Solution@(current) {
+		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 1.0 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
+	}
+}
+
 def UpResidual@(0 to 4) ( ) : Unit {
 	exchsolData@(current) ( 0 )
 	loop over inner on Residual@(current) {

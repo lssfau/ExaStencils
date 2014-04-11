@@ -1,5 +1,6 @@
 package exastencils.datastructures.l4
 
+import scala.collection.mutable.ListBuffer
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -9,21 +10,21 @@ trait Number extends Expression with ProgressableToIr {
   def value : AnyVal
 }
 
-case class StringConstant(value : String) extends Expression
+case class StringConstant(var value : String) extends Expression
 
-case class IntegerConstant(v : Long) extends Number {
+case class IntegerConstant(var v : Long) extends Number {
   override def value = v
 
   def progressToIr : ir.IntegerConstant = ir.IntegerConstant(v)
 }
 
-case class FloatConstant(v : Double) extends Number {
+case class FloatConstant(var v : Double) extends Number {
   override def value = v
 
   def progressToIr : ir.FloatConstant = ir.FloatConstant(v)
 }
 
-case class BooleanConstant(value : Boolean) extends Expression with ProgressableToIr {
+case class BooleanConstant(var value : Boolean) extends Expression with ProgressableToIr {
   def progressToIr : ir.BooleanConstant = ir.BooleanConstant(value)
 }
 
@@ -67,6 +68,11 @@ case class BinaryExpression(var operator : String, var left : Expression, var ri
   }
 }
 
-case class BooleanExpression(operator : String, var left : Expression, var right : Expression) extends Expression
+case class BooleanExpression(var operator : String, var left : Expression, var right : Expression) extends Expression
 
-case class FunctionCallExpression(identifier : Identifier, var arguments : List[Expression]) extends Expression
+case class FunctionCallExpression(var identifier : Identifier, var arguments : List[Expression]) extends Expression with ProgressableToIr {
+  def progressToIr : ir.FunctionCallExpression = {
+    ir.FunctionCallExpression(identifier.progressToIr.asInstanceOf[String],
+      arguments.map(s => s.asInstanceOf[ProgressableToIr].progressToIr.asInstanceOf[ir.Expression]).to[ListBuffer])
+  }
+}

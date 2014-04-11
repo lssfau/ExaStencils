@@ -75,6 +75,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val functionCall = locationize(leveledidentifier ~ "(" ~ functionCallArgumentList.? ~ ")" ^^ { case id ~ "(" ~ args ~ ")" => FunctionCallExpression(id, args.getOrElse(List[Expression]())) })
   lazy val functionCallArgumentList = (expression <~ ("," | newline)).* ~ expression ^^ { case exps ~ ex => ex :: exps } // = new list(exps, ex)
 
+  lazy val diagFunctionCall = locationize("diag" ~ "(" ~ leveledidentifier ~ ")" ^^ { case _ ~ "(" ~ what ~ ")" => FunctionCallExpression(BasicIdentifier("diag"), List[Expression](what)) })
+
   // ######################################
   // ##### Statements
   // ######################################
@@ -162,6 +164,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     })
     ||| locationize(booleanLit ^^ { case s => BooleanConstant(s.toBoolean) })
     ||| locationize(functionCall)
+    ||| locationize(diagFunctionCall)
     ||| leveledidentifier)
 
   lazy val booleanexpression : PackratParser[BooleanExpression] = (
