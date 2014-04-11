@@ -1,3 +1,4 @@
+import scala.collection.mutable.ListBuffer
 import exastencils.core._
 import exastencils.knowledge._
 import exastencils.datastructures._
@@ -185,6 +186,16 @@ object Main {
       this += new Transformation("SearchAndReplace", {
         case FunctionCallExpression(StringConstant("diag"), args) =>
           stencilCollection.getStencilByIdentifier(args(0).asInstanceOf[UnresolvedStencilAccess].stencilIdentifier).get.entries(0).weight
+
+        // HACK to realize intergrid operations
+        case FunctionCallExpression(StringConstant("ToCoarser"), args) =>
+          var stencilConvolution = Duplicate (args(0).asInstanceOf[StencilConvolution])
+          stencilConvolution.targetIdx = new MultiIndex(DimArray().map(i => (2 * (dimToString(i) : Expression)) : Expression))
+          stencilConvolution
+        case FunctionCallExpression(StringConstant("ToFiner"), args) =>
+          var stencilConvolution = Duplicate (args(0).asInstanceOf[StencilConvolution])
+          stencilConvolution.targetIdx = new MultiIndex(DimArray().map(i => ((dimToString(i) : Expression) / 2) : Expression))
+          stencilConvolution
       })
     }).apply
 

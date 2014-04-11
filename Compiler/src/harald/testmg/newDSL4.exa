@@ -39,6 +39,20 @@ def UpResidual@(0 to 4) ( ) : Unit {
 	}
 }
 
+def Restrict @(1 to 4) ( ) : Unit { 
+	exchresData@(current) ( 0 )
+	loop over inner on RHS@(coarser) {
+		RHS@(coarser) = ToCoarser ( RestrictionStencil@(current) * Residual@(current) )
+    }
+}
+
+def interpolatecorr@(1 to 4) ( ) : Unit { 
+	exchsolData@(current) ( 0 )  
+	loop over inner on Solution@(current) {
+		Solution@(current) += ToFiner ( CorrectionStencil@(current) * Solution@(coarser) )
+	}
+}
+
 def set@(0 to 4) (value : Real) : Unit
 {
 	loop over domain on Solution@(current) {

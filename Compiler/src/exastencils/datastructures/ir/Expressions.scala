@@ -53,15 +53,15 @@ object BinaryOperators extends Enumeration {
     case LowerEqual     => "<="
     case Greater        => ">"
     case GreaterEqual   => ">="
-    case _              => "FIXME"
+    case _              => "ERROR: Unresolvable BinOp " + op
   }
   implicit def str2op(op : String) : Value = op match {
     case "+"  => Addition
     case "-"  => Subtraction
     case "*"  => Multiplication
     case "/"  => Division
-    case "**" => Power // FIXME  
-    case "%"  => Addition
+    /*case "**" => Power // FIXME  
+    case "%"  => Modulo
     case "&&" => AndAnd
     case "||" => OrOr
     case "==" => EqEq
@@ -69,7 +69,7 @@ object BinaryOperators extends Enumeration {
     case "<"  => Lower
     case "<=" => LowerEqual
     case ">"  => Greater
-    case ">=" => GreaterEqual
+    case ">=" => GreaterEqual*/
   }
 }
 

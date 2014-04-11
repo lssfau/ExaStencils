@@ -137,35 +137,35 @@ class GenerateL4(treel2 : TreeL2) {
 
     writer.write(s"\n")
 
-    for (lev <- 1 to Knowledge.maxLevel) {
-      // COMM_HACK
-      writer.write(s"def ${location} ${DomainKnowledge.restriction_L3.get}_$lev (  ) : Unit \n")
-      writer.write(s"{ \n")
-      // COMM_HACK
-      writer.write(s"  exchresData_$lev ( 0 )  \n")
-      writer.write(s"    loop innerpoints level ${lev - 1} order lex block 1 1  \n")
-      // COMM_HACK
-      //writer.write(s"      coarse =  RestrictionStencil * fine | ToCoarse  \n")
-      writer.write(s"      ${DomainKnowledge.function_L1(0)._1}@${lev - 1} =  RestrictionStencil * Res [ $lev ] | ToCoarse  \n")
-      writer.write(s"    next  \n")
-      writer.write(s"}  \n")
-    }
+//    for (lev <- 1 to Knowledge.maxLevel) {
+//      // COMM_HACK
+//      writer.write(s"def ${location} ${DomainKnowledge.restriction_L3.get}_$lev (  ) : Unit \n")
+//      writer.write(s"{ \n")
+//      // COMM_HACK
+//      writer.write(s"  exchresData_$lev ( 0 )  \n")
+//      writer.write(s"    loop innerpoints level ${lev - 1} order lex block 1 1  \n")
+//      // COMM_HACK
+//      //writer.write(s"      coarse =  RestrictionStencil * fine | ToCoarse  \n")
+//      writer.write(s"      ${DomainKnowledge.function_L1(0)._1}@${lev - 1} =  RestrictionStencil * Res [ $lev ] | ToCoarse  \n")
+//      writer.write(s"    next  \n")
+//      writer.write(s"}  \n")
+//    }
+//
+//    writer.write(s"\n")
 
-    writer.write(s"\n")
-
-    for (lev <- 1 to Knowledge.maxLevel) {
-      // COMM_HACK
-      writer.write(s"def ${location} ${DomainKnowledge.interpolation_L3.get}_$lev (  ) : Unit \n")
-      writer.write(s"{ \n")
-      // COMM_HACK
-      writer.write(s"  exchsolData_${lev - 1} ( 0 )  \n")
-      writer.write(s"    loop innerpoints level $lev order lex block 1 1  \n")
-      writer.write(s"    ${DomainKnowledge.unknown_L1(0)._1}@$lev += CorrectionStencil * ${DomainKnowledge.unknown_L1(0)._1} [ ${lev - 1} ] | ToFine  \n")
-      writer.write(s"    next  \n")
-      writer.write(s"}  \n")
-    }
-
-    writer.write(s"\n")
+//    for (lev <- 1 to Knowledge.maxLevel) {
+//      // COMM_HACK
+//      writer.write(s"def ${location} ${DomainKnowledge.interpolation_L3.get}_$lev (  ) : Unit \n")
+//      writer.write(s"{ \n")
+//      // COMM_HACK
+//      writer.write(s"  exchsolData_${lev - 1} ( 0 )  \n")
+//      writer.write(s"    loop innerpoints level $lev order lex block 1 1  \n")
+//      writer.write(s"    ${DomainKnowledge.unknown_L1(0)._1}@$lev += CorrectionStencil * ${DomainKnowledge.unknown_L1(0)._1} [ ${lev - 1} ] | ToFine  \n")
+//      writer.write(s"    next  \n")
+//      writer.write(s"}  \n")
+//    }
+//
+//    writer.write(s"\n")
 
     var setfunclistloc : ListBuffer[String] = ListBuffer(s"${location}")
     if (location.equals("gpu"))
