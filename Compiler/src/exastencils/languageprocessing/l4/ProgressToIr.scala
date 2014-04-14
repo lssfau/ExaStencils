@@ -132,20 +132,6 @@ object ProgressToIr extends Strategy("ProgressToIr") {
     case level : CurrentLevelSpecification => SingleLevelSpecification(collector.curLevel)
     case level : CoarserLevelSpecification => SingleLevelSpecification(collector.curLevel - 1) // FIXME: coarser and finer are not reliable
     case level : FinerLevelSpecification   => SingleLevelSpecification(collector.curLevel + 1)
-
-    // FIXME: this is an ugly HACK because Some(x) cannot be matched
-    case LeveledIdentifier(name, CurrentLevelSpecification()) =>
-      LeveledIdentifier(name, SingleLevelSpecification(collector.curLevel))
-    case LeveledIdentifier(name, CoarserLevelSpecification()) =>
-      LeveledIdentifier(name, SingleLevelSpecification(collector.curLevel - 1))
-    case LeveledIdentifier(name, FinerLevelSpecification()) =>
-      LeveledIdentifier(name, SingleLevelSpecification(collector.curLevel + 1))
-    case FieldIdentifier(name, CurrentLevelSpecification()) =>
-      FieldIdentifier(name, SingleLevelSpecification(collector.curLevel))
-    case FieldIdentifier(name, CoarserLevelSpecification()) =>
-      FieldIdentifier(name, SingleLevelSpecification(collector.curLevel - 1))
-    case FieldIdentifier(name, FinerLevelSpecification()) =>
-      FieldIdentifier(name, SingleLevelSpecification(collector.curLevel + 1))
   })
 
   /*  def doTransformToIr(node : l4.Datatype) : ir.Datatype = {
