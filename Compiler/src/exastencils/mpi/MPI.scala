@@ -46,6 +46,13 @@ case class MPI_Send(var buffer : Expression, var size : Expression, var typeName
 };
 
 case class MPI_Allreduce(var sendbuf : Expression, var recvbuf : Expression, var count : Expression, var op : Expression) extends Statement {
+  def this(endbuf : Expression, recvbuf : Expression, count : Expression, op : BinaryOperators.Value) =
+    this(endbuf, recvbuf, count, (op match {
+      case BinaryOperators.Addition       => "MPI_SUM"
+      case BinaryOperators.Multiplication => "MPI_PROD"
+      case _                              => "FIXME"
+    }) : Expression)
+
   def cpp : String = {
     // FIXME: set data-type by typed parameter
     (s"MPI_Allreduce(${sendbuf.cpp}, ${recvbuf.cpp}, ${count.cpp}, MPI_DOUBLE, ${op.cpp}, MPI_COMM_WORLD);");

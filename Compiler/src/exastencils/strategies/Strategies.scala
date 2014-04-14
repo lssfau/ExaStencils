@@ -15,24 +15,24 @@ import exastencils.omp._
 object PrintStrategy extends Strategy("Pretty-Print") {
   this += new Transformation("Pretty-Print", {
     case printable : FilePrettyPrintable =>
-      printable.printToFile;
-      Some(printable);
-  });
+      printable.printToFile
+      Some(printable)
+  })
 }
 
 object ExpandStrategy extends Strategy("Expanding") {
-  val collector = new StackCollector;
+  val collector = new StackCollector
 
   override def apply = {
-    StateManager.register(collector);
-    super.apply;
-    StateManager.unregister(collector);
+    StateManager.register(collector)
+    super.apply
+    StateManager.unregister(collector)
   }
 
   this += new Transformation("Hoho, expanding all day...", {
     case expandable : Expandable =>
-      Some(expandable.expand(collector));
-  });
+      Some(expandable.expand(collector))
+  })
 }
 
 object SimplifyStrategy extends Strategy("Simplifying") {
@@ -121,36 +121,36 @@ object AddMemberFunctionPrefix extends Strategy("Adding member function prefixes
   // FIXME: requires nested strategies which currently are not available
   //    this += new Transformation("Add function scope prefixes to class member functions", {
   //      case c : Class =>
-  //        var strategyAddScopePrefix = new Strategy("strategyAddScopePrefix");
+  //        var strategyAddScopePrefix = new Strategy("strategyAddScopePrefix")
   //        strategyAddScopePrefix += new Transformation({
   //          case function : FunctionStatement =>
   //
-  //            function.name = s"${c.className}::${f.name}";
+  //            function.name = s"${c.className}::${f.name}"
   //
-  //            Some(function);
+  //            Some(function)
   //        }, true, c)
   //
-  //        strategyAddScopePrefix.apply;
+  //        strategyAddScopePrefix.apply
   //
-  //        Some(c);
-  //    });
+  //        Some(c)
+  //    })
   this += new Transformation("Adding function scope prefixes to class member functions", {
     case c : Class =>
       for (func <- c.functions) {
-        func match { case f : FunctionStatement => f.name = s"${c.className}::${f.name}"; }
+        func match { case f : FunctionStatement => f.name = s"${c.className}::${f.name}" }
       }
-      Some(c);
-  });
+      Some(c)
+  })
 }
 
 object AddOMPPragmas extends Strategy("Adding OMP pragmas") {
   this += new Transformation("Adding OMP critical pragmas", {
     case target : OMP_PotentiallyCritical =>
-      Some(new OMP_Critical(target));
-  }, false);
+      Some(new OMP_Critical(target))
+  }, false)
 
   this += new Transformation("Adding OMP parallel for pragmas", {
     case target : ForLoopStatement with OMP_PotentiallyParallel =>
-      Some(new OMP_ParallelFor(target, target.addOMPStatements));
-  }, false);
+      Some(new OMP_ParallelFor(target, (if (target.reduction.isDefined) target.reduction.get.getOMPClause else new NullExpression)))
+  }, false)
 }

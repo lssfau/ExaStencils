@@ -9,11 +9,11 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 
 trait OMP_PotentiallyCritical
-trait OMP_PotentiallyParallel { var addOMPStatements : String }
+trait OMP_PotentiallyParallel { var reduction : Option[Reduction] }
 
 case class OMP_Critical(var body : Any) extends Statement {
   // FIXME: most constructs don't need to be protected on JuQueen as a thread-safe MPI implementation exists. How should this be incorporated?
-  
+
   def cpp : String = {
     s"#pragma omp critical\n{ " +
       (body match {
@@ -28,8 +28,8 @@ case class OMP_Critical(var body : Any) extends Statement {
   }
 };
 
-case class OMP_ParallelFor(var body : ForLoopStatement, var addOMPStatements : String) extends Statement {
+case class OMP_ParallelFor(var body : ForLoopStatement, var addOMPStatements : Expression) extends Statement {
   def cpp : String = {
-    s"#pragma omp parallel for " + addOMPStatements + "\n" + body.cpp;
+    s"#pragma omp parallel for " + addOMPStatements.cpp + "\n" + body.cpp;
   }
 };

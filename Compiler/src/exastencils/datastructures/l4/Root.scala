@@ -22,8 +22,8 @@ case class Root(var fields : List[FieldDeclarationStatement], var iterationSets 
     var iterationSetCollection = new IterationSetCollection
     for (iterationSet <- iterationSets)
       iterationSetCollection.sets += iterationSet.progressToIr
-      newRoot += iterationSetCollection
-    
+    newRoot += iterationSetCollection
+
     var multiGrid = new MultiGrid // FIXME: think about how to manage (MG/other) functions
     for (node <- statements)
       node match {

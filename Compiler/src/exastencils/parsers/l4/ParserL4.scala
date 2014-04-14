@@ -88,7 +88,6 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     variableDeclaration
     ||| repeatUp
     ||| repeatUntil
-    ||| reduction
     ||| loopOver
     ||| assignment
     ||| operatorassignment
@@ -106,13 +105,14 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val repeatUntil = locationize(
     (("repeat" ~ "until") ~> comparison) ~ (("{" ~> statement.+) <~ "}") ^^ { case c ~ s => RepeatUntilStatement(c, s) })
 
-  lazy val reduction = locationize(("Reduction" ~ "{") ~> statement <~ "}" ^^ { case s => ReductionStatement(s) })
+  lazy val reduction = locationize((("reduction" ~ "(") ~> ("+" ||| "*")) ~ (":" ~> leveledidentifier <~ ")") ^^ { case op ~ s => ReductionStatement(op, s) })
 
   lazy val loopOver = locationize(("loop" ~ "over" ~> ident) ~
     ("on" ~> leveledfieldidentifier) ~ // FIXME: this is all but robust / a user could break this easily
+    ("with" ~> reduction).? ~ // FIXME: support other additional commands
     ("{" ~> statement.+) <~ "}" ^^
     {
-      case area ~ field ~ stmts => LoopOverDomainStatement(area, field, stmts)
+      case area ~ field ~ red ~ stmts => LoopOverDomainStatement(area, field, stmts, red)
     })
 
   lazy val assignment = locationize(leveledidentifier ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(id, exp) })

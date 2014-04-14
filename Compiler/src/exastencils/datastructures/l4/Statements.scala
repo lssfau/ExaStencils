@@ -75,12 +75,13 @@ case class AssignmentStatement(var identifier : Identifier, var expression : Exp
   }
 }
 
-case class LoopOverDomainStatement(var iterationSet : String, var field : FieldIdentifier, var statements : List[Statement]) extends Statement {
+case class LoopOverDomainStatement(var iterationSet : String, var field : FieldIdentifier, var statements : List[Statement], var reduction : Option[ReductionStatement]) extends Statement {
   def progressToIr : LoopOverDomain = {
     LoopOverDomain(iterationSet,
       field.name,
       field.level.asInstanceOf[SingleLevelSpecification].level,
-      statements.map(s => s.progressToIr).to[ListBuffer]) // FIXME: .to[ListBuffer]
+      statements.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
+      if (reduction.isDefined) Some(reduction.get.progressToIr) else None)
   }
 }
 
@@ -108,8 +109,10 @@ case class RepeatUntilStatement(var comparison : BooleanExpression, var statemen
   def progressToIr = "FIXME: implement"
 }
 
-case class ReductionStatement(var statement : Statement) extends Statement {
-  def progressToIr = "FIXME: implement"
+case class ReductionStatement(var op : String, var target : Identifier) extends SpecialStatement {
+  def progressToIr : ir.Reduction = {
+    ir.Reduction(ir.BinaryOperators.str2op(op), target.progressToIr)
+  }
 }
 
 case class FunctionCallStatement(var identifier : Identifier, var arguments : List[Expression]) extends Statement {

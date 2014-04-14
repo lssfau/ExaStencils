@@ -49,8 +49,8 @@ case class AssignmentStatement(var dest : Expression, var src : Expression, var 
   }
 }
 
-case class ForLoopStatement(var begin : Expression, var end : Expression, var inc : Expression, var body : ListBuffer[Statement], var addOMPStatements : String = "") extends Statement {
-  def this(begin : Expression, end : Expression, inc : Expression, body : Statement, addOMPStatements : String) = this(begin, end, inc, ListBuffer(body), addOMPStatements);
+case class ForLoopStatement(var begin : Expression, var end : Expression, var inc : Expression, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement {
+  def this(begin : Expression, end : Expression, inc : Expression, body : Statement, reduction : Option[Reduction]) = this(begin, end, inc, ListBuffer(body), reduction);
   def this(begin : Expression, end : Expression, inc : Expression, body : Statement) = this(begin, end, inc, ListBuffer(body));
 
   override def cpp : String = {

@@ -41,7 +41,7 @@ class ExaLexer extends StdLexical {
   }
 
   // FIXME move to corresponding levels
-  reserved += ("let", "level", "def", "return", "ToFine", "ToCoarse", "if", "else", "repeat", "Reduction", "class", "block", "public", "order", "Communicate", "decl")
+  reserved += ("let", "level", "def", "ToFine", "ToCoarse", "if", "else", "repeat", "reduction", "class", "block", "public", "order", "Communicate", "decl")
 
   /*
    * language level 1 keywords
@@ -59,13 +59,13 @@ class ExaLexer extends StdLexical {
    * language level 4 keywords
    */
   // function keywords
-  reserved += ("def", "return")
+  reserved += ("def")
 
   // declaration keywords
   reserved += ("var", "Field", "Domain", "Set")
 
   // loop keywords
-  reserved += ("loop", "repeat", "up", "until", "over", "blocksize", "on")
+  reserved += ("loop", "repeat", "up", "until", "over", "blocksize", "on", "with")
 
   // language datatypes
   reserved += ("Unit", "String", "Integer", "Real", "Complex", "Array")

@@ -454,9 +454,11 @@ case class GetGlobalResidual(field : Field) extends AbstractFunctionStatement wi
             ListBuffer[Statement](
               // FIXME: this currently counts duplicated values multiple times
               s"double tmpRes =" ~ new DirectFieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) ~ ";",
-              s"res += tmpRes * tmpRes;"), "reduction(+:res)") with OMP_PotentiallyParallel,
-          true, "reduction(+:res)") with OMP_PotentiallyParallel,
-        new MPI_Allreduce("&res", "&resTotal", 1, "MPI_SUM"),
+              s"res += tmpRes * tmpRes;"),
+            new MultiIndex(Array.fill(Knowledge.dimensionality)(1)),
+            Some(new Reduction(BinaryOperators.Addition, "res"))) with OMP_PotentiallyParallel,
+          Some(new Reduction(BinaryOperators.Addition, "res"))) with OMP_PotentiallyParallel,
+        new MPI_Allreduce("&res", "&resTotal", 1, BinaryOperators.Addition),
         s"return sqrt(resTotal);"));
   }
 }

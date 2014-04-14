@@ -2,9 +2,7 @@ package exastencils.primitives
 
 import java.io.File
 import java.io.PrintWriter
-
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core._
 import exastencils.core.collectors._
 import exastencils.knowledge._
@@ -13,10 +11,11 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.prettyprinting._
 import exastencils.omp._
+import exastencils.mpi._
 
 // TODO: Move accepted nodes to appropriate packages
 
-case class LoopOverDomain(var iterationSetIdentifier : String, var fieldIdentifier : String, var level : Int, var body : ListBuffer[Statement]) extends Statement with Expandable {
+case class LoopOverDomain(var iterationSetIdentifier : String, var fieldIdentifier : String, var level : Int, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = LoopOverDomain\n";
 
   def expand(collector : StackCollector) : Statement /*FIXME: ForLoopStatement*/ = {
@@ -35,12 +34,14 @@ case class LoopOverDomain(var iterationSetIdentifier : String, var fieldIdentifi
 
     return new LoopOverFragments( // FIXME: define LoopOverFragments in L4 DSL
       // TODO: add sth like new ConditionStatement(s"curFragment.isValidForSubdomain[${field.domain}]",
-      new LoopOverDimensions(IndexRange(new MultiIndex(start.toArray), new MultiIndex(stop.toArray)), body) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel
+      new LoopOverDimensions(IndexRange(new MultiIndex(start.toArray), new MultiIndex(stop.toArray)), body, iterationSet.increment, reduction) with OMP_PotentiallyParallel,
+      reduction) with OMP_PotentiallyParallel
   }
 }
 
-case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[Statement], var addOMPStatements : String = "") extends Statement with Expandable {
-  def this(indices : IndexRange, body : Statement, addOMPStatements : String) = this(indices, ListBuffer[Statement](body), addOMPStatements);
+case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[Statement], var stepSize : MultiIndex = new MultiIndex(Array.fill(3)(1)), var reduction : Option[Reduction] = None) extends Statement with Expandable {
+  def this(indices : IndexRange, body : Statement, stepSize : MultiIndex, reduction : Option[Reduction]) = this(indices, ListBuffer[Statement](body), stepSize, reduction);
+  def this(indices : IndexRange, body : Statement, stepSize : MultiIndex) = this(indices, ListBuffer[Statement](body), stepSize);
   def this(indices : IndexRange, body : Statement) = this(indices, ListBuffer[Statement](body));
 
   override def cpp : String = "NOT VALID ; CLASS = LoopOverDimensions\n";
@@ -52,35 +53,44 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
 
     for (d <- 0 until Knowledge.dimensionality - 1) {
       wrappedBody = ListBuffer[Statement](new ForLoopStatement(
-        s"int ${dimToString(d)} = " ~ indices.begin(d), s"${dimToString(d)} < " ~ indices.end(d), s"++${dimToString(d)}",
-        wrappedBody));
+        s"int ${dimToString(d)} = " ~ indices.begin(d), s"${dimToString(d)} < " ~ indices.end(d), s"${dimToString(d)} +=" ~ stepSize(d),
+        wrappedBody, reduction));
     }
     val d = Knowledge.dimensionality - 1;
     if (parallelizable)
-      return new ForLoopStatement(s"int ${dimToString(d)} = " ~ indices.begin(d), s"${dimToString(d)} < " ~ indices.end(d), s"++${dimToString(d)}", wrappedBody, addOMPStatements + " schedule(static)") with OMP_PotentiallyParallel;
+      return new ForLoopStatement(s"int ${dimToString(d)} = " ~ indices.begin(d), s"${dimToString(d)} < " ~ indices.end(d), s"${dimToString(d)} +=" ~ stepSize(d), wrappedBody,
+        reduction) with OMP_PotentiallyParallel;
     else
-      return new ForLoopStatement(s"int ${dimToString(d)} = " ~ indices.begin(d), s"${dimToString(d)} < " ~ indices.end(d), s"++${dimToString(d)}", wrappedBody);
+      return new ForLoopStatement(s"int ${dimToString(d)} = " ~ indices.begin(d), s"${dimToString(d)} < " ~ indices.end(d), s"${dimToString(d)} +=" ~ stepSize(d), wrappedBody,
+        reduction);
   }
 }
 
-case class LoopOverFragments(var body : ListBuffer[Statement], var createFragRef : Boolean = true, var addOMPStatements : String = "") extends Statement with Expandable {
-  def this(body : Statement, createFragRef : Boolean, addOMPStatements : String) = this(ListBuffer(body), createFragRef, addOMPStatements);
-  def this(body : Statement, createFragRef : Boolean) = this(ListBuffer(body), createFragRef);
+case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : Option[Reduction] = None, var createFragRef : Boolean = true) extends Statement with Expandable {
+  def this(body : Statement, reduction : Option[Reduction], createFragRef : Boolean) = this(ListBuffer(body), reduction, createFragRef);
+  def this(body : Statement, reduction : Option[Reduction]) = this(ListBuffer(body), reduction);
   def this(body : Statement) = this(ListBuffer(body));
 
   def cpp = "NOT VALID ; CLASS = LoopOverFragments\n";
 
-  def expand(collector : StackCollector) : ForLoopStatement = {
+  def expand(collector : StackCollector) : StatementBlock = {
     val parallelizable = !Knowledge.domain_summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false });
+    var statements = new ListBuffer[Statement]
 
     if (parallelizable)
-      new ForLoopStatement(s"int f = 0", s"f < " ~ Knowledge.domain_numFragsPerBlock, s"++f",
+      statements += new ForLoopStatement(s"int f = 0", s"f < " ~ Knowledge.domain_numFragsPerBlock, s"++f",
         (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[f];") else ListBuffer[Statement]())
-          ++ body, addOMPStatements + " schedule(static, 1)") with OMP_PotentiallyParallel
+          ++ body, reduction) with OMP_PotentiallyParallel
     else
-      new ForLoopStatement(s"int f = 0", s"f < " ~ Knowledge.domain_numFragsPerBlock, s"++f",
+      statements += new ForLoopStatement(s"int f = 0", s"f < " ~ Knowledge.domain_numFragsPerBlock, s"++f",
         (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[f];") else ListBuffer[Statement]())
-          ++ body)
+          ++ body, reduction)
+
+    if (reduction.isDefined) {
+      statements += new MPI_Allreduce("&" ~ reduction.get.target, "&" ~ reduction.get.target, 1, reduction.get.op)
+    }
+
+    StatementBlock(statements)
   }
 }
 

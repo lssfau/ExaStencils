@@ -247,3 +247,11 @@ case class TernaryConditionExpression(var condition : Expression, var trueBody :
     (s"((${condition.cpp}) ? (${trueBody.cpp}) : (${falseBody.cpp}))");
   }
 }
+
+case class Reduction(var op : BinaryOperators.Value, var target : Expression) extends Expression {
+  override def cpp : String = "NOT VALID ; CLASS = Reduction\n";
+
+  def getOMPClause : Expression = {
+    s"reduction(${BinaryOperators.op2str(op)}:" ~ target ~ ")"
+  }
+}

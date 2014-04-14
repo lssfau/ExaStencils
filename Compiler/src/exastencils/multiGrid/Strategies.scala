@@ -43,9 +43,10 @@ object SetupMultiGrid extends Strategy("Setting up multi-grid") {
         mg.functions_HACK += new SetSolZero(
           fieldCollection.getFieldByIdentifier("Solution", level).get,
           level);
-      }*/
+      }
       mg.functions_HACK += new GetGlobalResidual(
         fieldCollection.getFieldByIdentifier("Residual", Knowledge.maxLevel).get);
+      */
 
       Some(mg);
   });

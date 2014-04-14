@@ -59,9 +59,19 @@ def set@(0 to 4) (value : Real) : Unit {
 	}
 }
 
+def L2Residual@4 ( ) : Real {
+	exchsolData@(current) ( 0 )
+	var res : Real = 0
+	loop over inner on RHS@(current) with reduction( + : res ) {
+		var temp : Real = RHS@(current) - Lapl@(current) * Solution@(current)
+		res += temp * temp
+	}
+	return ( sqrt ( res ) )
+}
+
 def Application ( ) : Unit {
 	UpResidual@4 ( )
-	var res0 : Real = getGlobalResidual@4 (  )
+	var res0 : Real = L2Residual@4 (  )
 	var res : Real = res0
 	var resold : Real = 0
 	print ( '"startingres"', res0 )
@@ -69,7 +79,7 @@ def Application ( ) : Unit {
 		resold = res
 		VCycle@4 (  )
 		UpResidual@4 ( )
-		res = getGlobalResidual@4 (  )
+		res = L2Residual@4 (  )
 		print ( '"Residual:"', res, '"Residual reduction:"', ( res0 / res ), '"Convergence factor:"', ( res / resold ) )
 	}
 }

@@ -197,13 +197,21 @@ object Main {
           stencilConvolution.targetIdx = new MultiIndex(DimArray().map(i => ((dimToString(i) : Expression) / 2) : Expression))
           stencilConvolution
 
-        // HACK to realize print function -> FIXME: needs to be reworked badly
+        // HACK to realize print function -> FIXME
         case ExpressionStatement(FunctionCallExpression(StringConstant("print"), args)) =>
           new Scope(ListBuffer[Statement](
             "int rank;",
             "MPI_Comm_rank(MPI_COMM_WORLD, &rank);",
             new ConditionStatement("0 == rank",
               ("std::cout << " : Expression) ~ args.reduceLeft((l, e) => l ~ "<< \" \" <<" ~ e) ~ "<< std::endl;")))
+
+        // HACK to realize return functionality -> FIXME: move to specialized node
+        case ExpressionStatement(FunctionCallExpression(StringConstant("return"), args)) =>
+          args.size match {
+            case 0 => "return;" : Statement
+            case 1 => ("return " ~ args(0) ~ ";") : Statement
+            case _ => "ERROR - unsupported return function statement" : Statement
+          }
       })
     }).apply
 

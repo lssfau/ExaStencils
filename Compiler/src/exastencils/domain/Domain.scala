@@ -166,6 +166,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
           s"fragments[f]->id = " ~ PointToFragmentId("positions[f]") ~ ";",
           s"fragments[f]->pos = positions[f];",
           s"fragmentMap[fragments[f]->id] = fragments[f];"),
+          None,
           false),
         ConnectFragments(),
         new SetupBuffers))
