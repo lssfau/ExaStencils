@@ -202,15 +202,8 @@ object Main {
           new Scope(ListBuffer[Statement](
             "int rank;",
             "MPI_Comm_rank(MPI_COMM_WORLD, &rank);",
-            "if (0 == rank) {",
-            {
-              var pstr : Expression = "std::cout << "
-              for (p <- args)
-                pstr ~= p ~ " << \" \" << "
-              pstr ~= " std::endl; "
-              pstr
-            },
-            "}"))
+            new ConditionStatement("0 == rank",
+              ("std::cout << " : Expression) ~ args.reduceLeft((l, e) => l ~ "<< \" \" <<" ~ e) ~ "<< std::endl;")))
       })
     }).apply
 
