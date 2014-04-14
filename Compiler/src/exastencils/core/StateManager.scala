@@ -115,6 +115,41 @@ object StateManager {
     case _             => ERROR(o)
   }
 
+  def doRecursiveMatch(thisnode : Any, node : Node, field : java.lang.reflect.Method, transformation : Transformation) = {
+    var subnode = thisnode
+    var nodeIsOption = false
+    if (subnode.isInstanceOf[Some[_]]) {
+      nodeIsOption = true
+      var somenode = subnode.asInstanceOf[Some[_]].get
+      if (somenode.isInstanceOf[Node]) subnode = somenode.asInstanceOf[Node]
+    }
+
+    if (subnode.isInstanceOf[Node]) {
+      def processResult[O <: Output[_]](o : O) = o.inner match {
+        case n : Node => {
+          if (nodeIsOption) { // node is an Option[T] => set with Some() wrapped
+            if (!Vars.set(node, field, Some(n))) {
+              ERROR(s"Could not set $field in transformation ${transformation.name}")
+            }
+          } else { // node is not an Option[T] => set directly
+            if (!Vars.set(node, field, n)) {
+              ERROR(s"Could not set $field in transformation ${transformation.name}")
+            }
+          }
+          if (transformation.recursive) replace(n, transformation)
+        }
+        case l : List[_] => {
+          ERROR(s"Could not replace single node by List in transformation ${transformation.name}")
+        }
+        case n : None.type => {
+          ERROR(s"Could not set $field to an empty node in transformation ${transformation.name}") // FIXME think of better way => e.g. empty dummy node
+        }
+      }
+      var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation)
+      processResult(newSubnode)
+    }
+  }
+
   protected def replace(node : Node, transformation : Transformation) : Unit = {
     Collectors.notifyEnter(node)
 
@@ -179,37 +214,11 @@ object StateManager {
           }
         }
         case thisnode : Node => {
-          var subnode = thisnode
-          var nodeIsOption = false
-          if (subnode.isInstanceOf[Some[_]]) {
-            nodeIsOption = true
-            var somenode = subnode.asInstanceOf[Some[_]].get
-            if (somenode.isInstanceOf[Node]) subnode = somenode.asInstanceOf[Node]
-          }
-
-          if (subnode.isInstanceOf[Node]) {
-            def processResult[O <: Output[_]](o : O) = o.inner match {
-              case n : Node => {
-                if (nodeIsOption) { // node is an Option[T] => set with Some() wrapped
-                  if (!Vars.set(node, field, Some(n))) {
-                    ERROR(s"Could not set $field in transformation ${transformation.name}")
-                  }
-                } else { // node is not an Option[T] => set directly
-                  if (!Vars.set(node, field, n)) {
-                    ERROR(s"Could not set $field in transformation ${transformation.name}")
-                  }
-                }
-                if (transformation.recursive) replace(n, transformation)
-              }
-              case l : List[_] => {
-                ERROR(s"Could not replace single node by List in transformation ${transformation.name}")
-              }
-              case n : None.type => {
-                ERROR(s"Could not set $field to an empty node in transformation ${transformation.name}") // FIXME think of better way => e.g. empty dummy node
-              }
-            }
-            var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation)
-            processResult(newSubnode)
+          doRecursiveMatch(thisnode, node, field, transformation)
+        }
+        case Some(thisnode) => {
+          if (thisnode.isInstanceOf[Node]) {
+            doRecursiveMatch(Some(thisnode.asInstanceOf[Node]), node, field, transformation) // FIXME not very elegant
           }
         }
         case _ =>
