@@ -80,19 +80,6 @@ case class WaitForMPIRecvOps(var neighbors : ListBuffer[NeighborInfo]) extends A
   }
 }
 
-case class ExchangeDataSplitter(field : Field) extends AbstractFunctionStatement with Expandable {
-  // TODO: this function will become obsolete when the MG components are fully implemented
-  override def cpp : String = "NOT VALID ; CLASS = ExchangeDataSplitter\n";
-
-  override def expand(collector : StackCollector) : FunctionStatement = {
-    new FunctionStatement(new UnitDatatype(), s"exch${field.codeName.cpp}",
-      ListBuffer(VariableAccess("level", Some("unsigned int")), VariableAccess("slot", Some("unsigned int"))),
-      SwitchStatement("level",
-        (0 to Knowledge.maxLevel).to[ListBuffer].map(level =>
-          new CaseStatement(level, s"exch${field.codeName.cpp}_$level(slot);"))));
-  }
-}
-
 case class ConnectLocalElement() extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = ConnectLocalElement\n";
 
@@ -130,7 +117,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
 
     for (field <- fields) {
       for (slot <- 0 until field.numSlots) {
-        body += s"${field.codeName.cpp}[$slot][${field.level}] = new Container(Vec3u(${field.layout(0).total}, ${field.layout(1).total}, ${field.layout(2).total}), 1);"
+        body += s"${field.codeName.cpp}[$slot] = new Container(Vec3u(${field.layout(0).total}, ${field.layout(1).total}, ${field.layout(2).total}), 1);"
       }
     }
 

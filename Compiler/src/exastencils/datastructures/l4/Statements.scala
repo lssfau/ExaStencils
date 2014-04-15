@@ -50,7 +50,7 @@ case class FieldDeclarationStatement(var name : String, var datatype : Datatype,
     new Field(
       name,
       0, // FIXME: domain
-      name.toLowerCase + "Data", // HACK
+      name.toLowerCase + "Data_" + level.get.asInstanceOf[SingleLevelSpecification].level, // HACK
       datatype.progressToIr,
       layout, // FIXME: get this info from the DSL
       level.get.asInstanceOf[SingleLevelSpecification].level,
@@ -136,9 +136,9 @@ case class ReductionStatement(var op : String, var target : Identifier) extends 
 }
 
 case class FunctionCallStatement(var identifier : Identifier, var arguments : List[Expression]) extends Statement {
-  def progressToIr : ir.Statement /*FIXME: FunctionCallExpression*/ = {
-    ir.FunctionCallExpression(identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
-      arguments.map(s => s.progressToIr).to[ListBuffer])
+  def progressToIr : ir.ExpressionStatement = {
+    ir.ExpressionStatement(ir.FunctionCallExpression(identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
+      arguments.map(s => s.progressToIr).to[ListBuffer]))
   }
 }
 
