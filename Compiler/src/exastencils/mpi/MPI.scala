@@ -52,6 +52,8 @@ case class MPI_Allreduce(var sendbuf : Expression, var recvbuf : Expression, var
       case BinaryOperators.Multiplication => "MPI_PROD"
       case _                              => "FIXME"
     }) : Expression)
+  def this(buf : Expression, count : Expression, op : Expression) = this("MPI_IN_PLACE", buf, count, op)
+  def this(buf : Expression, count : Expression, op : BinaryOperators.Value) = this("MPI_IN_PLACE", buf, count, op)
 
   def cpp : String = {
     // FIXME: set data-type by typed parameter

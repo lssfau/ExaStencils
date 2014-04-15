@@ -87,7 +87,7 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
           ++ body, reduction)
 
     if (reduction.isDefined) {
-      statements += new MPI_Allreduce("&" ~ reduction.get.target, "&" ~ reduction.get.target, 1, reduction.get.op)
+      statements += new MPI_Allreduce("&" ~ reduction.get.target, 1, reduction.get.op)
     }
 
     StatementBlock(statements)
