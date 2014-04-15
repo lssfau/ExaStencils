@@ -33,7 +33,7 @@ object ProgressToIr extends Strategy("ProgressToIr") {
     case UnresolvedIdentifier(name, Some(level)) =>
       if (StateManager.root_.asInstanceOf[Root].fields.exists(f => name == f.name))
         FieldIdentifier(name, level)
-      else if ("Lapl" == name || "CorrectionStencil" == name || "RestrictionStencil" == name) // FIXME: stencil collection
+      else if (StateManager.root_.asInstanceOf[Root].stencils.exists(s => name == s.name))
         StencilIdentifier(name, level)
       else
         LeveledIdentifier(name, level)
@@ -96,7 +96,7 @@ object ProgressToIr extends Strategy("ProgressToIr") {
     return functions.toList
   }
 
-  // unfold level declarations
+  // unfold field declarations
 
   this += new Transformation("UnfoldLeveledFieldDeclarations", {
     case field : FieldDeclarationStatement => field.level match {
@@ -124,6 +124,37 @@ object ProgressToIr extends Strategy("ProgressToIr") {
       case _ => ERROR(s"Invalid level specification for field $field: $level")
     }
     return fields.toList
+  }
+
+  // unfold stencil declarations
+  // FIXME: can this be combined into one more generic transformation?
+
+  this += new Transformation("UnfoldLeveledStencilDeclarations", {
+    case stencil : StencilDeclarationStatement => stencil.level match {
+      case Some(level) => duplicateStencils(stencil, level)
+      case _           => stencil
+    }
+  })
+
+  def duplicateStencils(stencil : StencilDeclarationStatement, level : LevelSpecification) : List[StencilDeclarationStatement] = {
+    var stencils = new ListBuffer[StencilDeclarationStatement]()
+    level match {
+      case level @ (SingleLevelSpecification(_) | CurrentLevelSpecification() | CoarserLevelSpecification() | FinerLevelSpecification()) => {
+        var f = Duplicate(stencil)
+        f.level = Some(level)
+        stencils += f
+      }
+      case level : ListLevelSpecification =>
+        level.levels.foreach(level => stencils ++= duplicateStencils(stencil, level))
+      case levels : RangeLevelSpecification =>
+        for (level <- math.min(levels.begin, levels.end) to math.max(levels.begin, levels.end)) {
+          var f = Duplicate(stencil)
+          f.level = Some(SingleLevelSpecification(level))
+          stencils += f
+        }
+      case _ => ERROR(s"Invalid level specification for stencil $stencil: $level")
+    }
+    return stencils.toList
   }
 
   // resolve level specifications

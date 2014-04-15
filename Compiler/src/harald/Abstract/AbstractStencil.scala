@@ -79,13 +79,13 @@ class AbstractStencil(val name : String, val datatype : String, val matlength1 :
     }
 
     if ((matlength1.toInt == 1) && (matlength2.toInt == 1)) {
-      var stencil = new Stencil(name)
+      var stencil = new Stencil(name, 0)
       for (i <- 0 until stlength)
         stencil.entries += StencilEntry(new MultiIndex(IdxKnowledge.StencilToidx(Knowledge.dimensionality, stlength)(i).toArray), entries(i))
       return stencil
     } else {
       println("FIXME: not implemented")
-      new Stencil("FIXME")
+      new Stencil("FIXME", 0)
     }
   }
 }

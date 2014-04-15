@@ -58,9 +58,6 @@ object Main {
       // Application
       new Poisson3D,
 
-      // MultiGrid
-      new StencilCollection,
-
       // Domain
       new DomainGenerated,
 
@@ -159,25 +156,15 @@ object Main {
     val DSLl4 : String = scala.io.Source.fromFile(DSLpath + problem + "lev4.mg").getLines.reduceLeft(_ + _)
     //println(DSLl4)
 
-    val parserl4_dep = new harald.Parser.ParserL4(TreeManager.tree)
-    parserl4_dep.parse(DSLl4)
-
-    // add stencils and functions to (exastencils) tree
-
-    var stencilCollection = StateManager.findFirst[StencilCollection]().get
-    for (e <- TreeManager.tree.exaOperators)
-      stencilCollection.stencils += e.transform
-
-    var mgNode = StateManager.findFirst[MultiGrid]().get;
-    for (e <- TreeManager.tree.exaFunctions)
-      mgNode.functions_HACK += e.transformToIR
+    //    val parserl4_dep = new harald.Parser.ParserL4(TreeManager.tree)
+    //    parserl4_dep.parse(DSLl4)
 
     // Strategies
 
     (new Strategy("FindStencilConvolutions") {
       this += new Transformation("SearchAndMark", {
         case BinaryExpression(BinaryOperators.Multiplication, UnresolvedStencilAccess(stencilName, stencilLevel), UnresolvedFieldAccess(fieldOwner, fieldName, fieldLevel, fieldSlot, fieldIndex)) =>
-          StencilConvolution(StateManager.findFirst[StencilCollection]().get.getStencilByIdentifier(stencilName).get,
+          StencilConvolution(StateManager.findFirst[StencilCollection]().get.getStencilByIdentifier(stencilName, stencilLevel).get,
             StateManager.findFirst[FieldCollection]().get.getFieldByIdentifier(fieldName, fieldLevel).get)
       })
     }).apply
@@ -185,7 +172,9 @@ object Main {
     (new Strategy("ResolveSpecialFunctions") {
       this += new Transformation("SearchAndReplace", {
         case FunctionCallExpression(StringConstant("diag"), args) =>
-          stencilCollection.getStencilByIdentifier(args(0).asInstanceOf[UnresolvedStencilAccess].stencilIdentifier).get.entries(0).weight
+          StateManager.findFirst[StencilCollection]().get.getStencilByIdentifier(
+            args(0).asInstanceOf[UnresolvedStencilAccess].stencilIdentifier,
+            args(0).asInstanceOf[UnresolvedStencilAccess].level).get.entries(0).weight
 
         // HACK to realize intergrid operations
         case FunctionCallExpression(StringConstant("ToCoarser"), args) =>

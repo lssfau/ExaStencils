@@ -45,7 +45,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   //###########################################################
 
-  lazy val program = locationize(field.* ~ iterationSet.* ~ function.* ^^ { case f ~ i ~ s => Root(f, i, s) })
+  lazy val program = locationize(field.* ~ stencil.* ~ iterationSet.* ~ function.* ^^ { case f ~ s ~ i ~ ss => Root(f, s, i, ss) })
 
   lazy val level = (
     singlelevel
@@ -131,13 +131,28 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ^^ { case id ~ i ~ t ~ l ~ topts => var f = FieldDeclarationStatement(id, t, i, l); topts.getOrElse(List()).foreach(f.set(_)); f })
 
   lazy val index : PackratParser[Index] = (
-    locationize("[" ~ numericLit ~ "," ~ numericLit ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ => Index2D(n1.toInt, n2.toInt) })
-    ||| locationize("[" ~ numericLit ~ "," ~ numericLit ~ "," ~ numericLit ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ ~ n3 ~ _ => Index3D(n1.toInt, n2.toInt, n3.toInt) }))
+    // FIXME: this has to be done properly
+    locationize("[" ~ fixmeQuickIntHack ~ "," ~ fixmeQuickIntHack ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ => Index2D(n1, n2) })
+    ||| locationize("[" ~ fixmeQuickIntHack ~ "," ~ fixmeQuickIntHack ~ "," ~ fixmeQuickIntHack ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ ~ n3 ~ _ => Index3D(n1, n2, n3) }))
+
+  lazy val expressionIndex : PackratParser[ExpressionIndex] = (
+    // FIXME: this has to be done properly
+    locationize("[" ~ expression ~ "," ~ expression ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ => ExpressionIndex2D(n1, n2) })
+    ||| locationize("[" ~ expression ~ "," ~ expression ~ "," ~ expression ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ ~ n3 ~ _ => ExpressionIndex3D(n1, n2, n3) }))
+
+  lazy val fixmeQuickIntHack = (
+    (numericLit ^^ { case n => n.toInt })
+    ||| ("-" ~> numericLit ^^ { case n => -n.toInt }))
 
   lazy val tempOptions : PackratParser[List[TempOption]] = (tempOption <~ ",").* ~ tempOption ^^ { case t1 ~ t2 => t1 :+ t2 }
   lazy val tempOption = (locationize(ident ~ "=" ~ ident ^^ { case a ~ _ ~ b => TempOption(a, b) })
     ||| locationize(ident ~ "=" ~ numericLit ^^ { case a ~ _ ~ b => TempOption(a, b) })
     ||| locationize(ident ~ "=" ~ booleanLit ^^ { case a ~ _ ~ b => TempOption(a, b) }))
+
+  lazy val stencilentry = ((expressionIndex ~ ("=>" ~> factor)) ^^ { case offset ~ weight => StencilEntry(offset, weight) })
+
+  lazy val stencil = locationize(("Stencil" ~> ident) ~ level.? ~ ("{" ~> stencilentry.+ <~ "}")
+    ^^ { case id ~ level ~ entries => StencilDeclarationStatement(id, entries, level) })
 
   // ######################################
   // ##### Expressions
@@ -153,7 +168,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| term)
 
   lazy val term : PackratParser[Expression] = (
-    locationize((term ~ ("*" ||| "/" ||| "**") ~ factor) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
+    locationize((term ~ ("*" ||| "/" ||| "**" ||| "%") ~ factor) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
     ||| factor)
 
   lazy val factor : Parser[Expression] = (

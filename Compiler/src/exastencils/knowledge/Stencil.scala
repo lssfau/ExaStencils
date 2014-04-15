@@ -6,15 +6,15 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 
-case class StencilEntry(var offset : MultiIndex, var weight : Expression) {}
+case class StencilEntry(var offset : MultiIndex, var weight : Expression) extends Node {}
 
-case class Stencil(var identifier : String, var entries : ListBuffer[StencilEntry] = new ListBuffer) extends Node {}
+case class Stencil(var identifier : String, var level : Int, var entries : ListBuffer[StencilEntry] = new ListBuffer) extends Node {}
 
 case class StencilCollection() extends Node {
   var stencils : ListBuffer[Stencil] = ListBuffer();
 
-  def getStencilByIdentifier(identifier : String) : Option[Stencil] = {
-    stencils.find(f => f.identifier == identifier)
+  def getStencilByIdentifier(identifier : String, level : Int) : Option[Stencil] = {
+    stencils.find(s => s.identifier == identifier && s.level == level)
   }
 }
 

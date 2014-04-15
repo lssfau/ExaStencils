@@ -29,8 +29,8 @@ case class AbstractBinaryOp(operator : BinaryOperators.Value, left : AbstractExp
         case AbstractVariable(id1, l1) => {
           val stencilCollection = StateManager.findFirst[StencilCollection]().get
 
-          if (stencilCollection.getStencilByIdentifier(id1).isDefined) {
-            val stencil = stencilCollection.getStencilByIdentifier(id1).get
+          if (stencilCollection.getStencilByIdentifier(id1, 0).isDefined) {
+            val stencil = stencilCollection.getStencilByIdentifier(id1, 0).get
 
             right match {
               case AbstractVariable(id2, l2) => {
@@ -84,7 +84,7 @@ case class AbstractFCall(fname : String, arglist : List[AbstractExpression]) ext
 
     if (fname.equals("diag")) {
       var stencilCollection = StateManager.findFirst[StencilCollection]().get
-      var curStencil = stencilCollection.getStencilByIdentifier(arglist(0).toString.substring(0, arglist(0).toString.size - 2) /* FIXME: avoid stripping level usage */ ).get
+      var curStencil = stencilCollection.getStencilByIdentifier(arglist(0).toString.substring(0, arglist(0).toString.size - 2) /* FIXME: avoid stripping level usage */ , 0).get
       return curStencil.entries(0).weight
     }
     if (fname.equals("random"))

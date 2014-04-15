@@ -1,6 +1,7 @@
 package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
+import exastencils.knowledge
 import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
@@ -65,6 +66,18 @@ case class IterationSetDeclarationStatement(var identifier : Identifier, var beg
       begin.progressToIr,
       end.progressToIr,
       (if (increment.isDefined) increment.get.progressToIr else new ir.MultiIndex(Array.fill(Knowledge.dimensionality)(1))))
+  }
+}
+
+case class StencilEntry(var offset : ExpressionIndex, var weight : Expression) extends SpecialStatement {
+  def progressToIr : knowledge.StencilEntry = {
+    knowledge.StencilEntry(offset.progressToIr, weight.progressToIr)
+  }
+}
+
+case class StencilDeclarationStatement(var name : String, var entries : List[StencilEntry], var level : Option[LevelSpecification]) extends SpecialStatement {
+  def progressToIr : knowledge.Stencil = {
+    knowledge.Stencil(name, level.get.asInstanceOf[SingleLevelSpecification].level, entries.map(e => e.progressToIr).to[ListBuffer])
   }
 }
 

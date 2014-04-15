@@ -1,11 +1,16 @@
 package exastencils.datastructures.l4
 
+import scala.collection.mutable.ListBuffer
 import exastencils.knowledge._
 import exastencils.datastructures._
-import exastencils.multiGrid.MultiGrid
+import exastencils.multiGrid._
 
-case class Root(var fields : List[FieldDeclarationStatement], var iterationSets : List[IterationSetDeclarationStatement], var statements : List[Statement]) extends Node with ProgressableToIr {
-  def this(statements : List[Statement]) = this(List(), List(), statements)
+case class Root(var fields : List[FieldDeclarationStatement],
+    var stencils : List[StencilDeclarationStatement],
+    var iterationSets : List[IterationSetDeclarationStatement],
+    var statements : List[Statement]) extends Node with ProgressableToIr {
+
+  def this(statements : List[Statement]) = this(List(), List(), List(), statements)
 
   def getFieldByIdentifier(identifier : String, level : Int) : Option[FieldDeclarationStatement] = {
     fields.find(f => f.name == identifier && f.level.getOrElse(-1) == level)
@@ -18,6 +23,11 @@ case class Root(var fields : List[FieldDeclarationStatement], var iterationSets 
     for (field <- fields)
       fieldCollection.fields += field.progressToIr
     newRoot += fieldCollection
+
+    var stencilCollection = new StencilCollection
+    for (stencil <- stencils)
+      stencilCollection.stencils += stencil.progressToIr
+    newRoot += stencilCollection
 
     var iterationSetCollection = new IterationSetCollection
     for (iterationSet <- iterationSets)
