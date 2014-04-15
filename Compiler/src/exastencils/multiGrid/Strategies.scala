@@ -13,8 +13,10 @@ import exastencils.primitives._
 object SetupMultiGrid extends Strategy("Setting up multi-grid") {
   this += new Transformation("Adding basic functions to multi-grid", {
     case mg : MultiGrid =>
+      /* DISABLED MG FUNCTION      
       mg.functions_HACK += new PerformRestriction;
       mg.functions_HACK += new PerformProlongation;
+      */
       Some(mg);
   });
 

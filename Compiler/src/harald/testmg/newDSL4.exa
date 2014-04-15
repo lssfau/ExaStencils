@@ -1,13 +1,55 @@
-Field Solution< [1, 1, 1], Real>@(0 to 4) (bcDir = true)
-Field Residual< [1, 1, 1], Real>@(0 to 4) (bcDir = false)
-Field RHS< [1, 1, 1], Real>@(0 to 4) (bcDir = false)
+Field Solution< [1, 1, 1], Real >@(0 to 4) (bcDir = true)
+Field Residual< [1, 1, 1], Real >@(0 to 4) (bcDir = false)
+Field RHS< [1, 1, 1], Real >@(0 to 4) (bcDir = false)
+Field VecP< [1, 1, 1], Real >@0 (bcDir = false)
+Field VecGradP< [1, 1, 1], Real >@0 (bcDir = false)
 
 Set inner [1, 1, 1] - [1, 1, 1] steps [1, 1, 1]
 Set domain [0, 0, 0] - [0, 0, 0] steps [1, 1, 1]
 
 def VCycle@0 ( ) : Unit {
+	UpResidual@(current) ( )
+	exchresidualData@(current) ( 0 )
+
+	var res : Real = L2Residual@(current) ( )
+	var initialRes : Real = res
+
+	loop over inner on VecP@(current) {
+		VecP@(current) = Residual@(current)
+	}
+
 	repeat up 512 {
-		GaussSeidel@0 ( )
+		exchvecpData@(current) ( 0 )
+
+		loop over inner on VecP@(current) {
+			VecGradP@(current) = Lapl@(current) * VecP@(current)
+		}
+
+		var alphaDenom : Real = 0
+		loop over inner on VecP@(current) with reduction( + : alphaDenom ) {
+			alphaDenom += VecP@(current) * VecGradP@(current)
+		}
+
+		var alpha : Real = res * res / alphaDenom
+
+		loop over inner on Solution@(current) {
+			Solution@(current) += alpha * VecP@(current)
+			Residual@(current) -= alpha * VecGradP@(current)
+		}
+
+		var nextRes : Real = L2Residual@(current) ( )
+
+		if ( nextRes <= 0.001 * initialRes ) {
+			return ( )
+		}
+
+		var beta : Real = (nextRes * nextRes) / (res * res)
+
+		loop over inner on VecP@(current) {
+			VecP@(current) = Residual@(current) + beta * VecP@(current)
+		}
+
+		res = nextRes
 	}
 }
 
@@ -25,29 +67,29 @@ def VCycle@(1 to 4) ( ) : Unit {
 	}
 }
 
-def GaussSeidel@(0 to 4) ( ) : Unit { 
-	exchsolData@(current) ( 0 )
+def GaussSeidel@(1 to 4) ( ) : Unit { 
+	exchsolutionData@(current) ( 0 )
 	loop over inner on Solution@(current) {
 		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 1.0 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
 	}
 }
 
 def UpResidual@(0 to 4) ( ) : Unit {
-	exchsolData@(current) ( 0 )
+	exchsolutionData@(current) ( 0 )
 	loop over inner on Residual@(current) {
 		Residual@(current) = RHS@(current) - (Lapl@(current) * Solution@(current))
 	}
 }
 
 def Restrict @(1 to 4) ( ) : Unit { 
-	exchresData@(current) ( 0 )
+	exchresidualData@(current) ( 0 )
 	loop over inner on RHS@(coarser) {
 		RHS@(coarser) = ToCoarser ( RestrictionStencil@(current) * Residual@(current) )
     }
 }
 
 def interpolatecorr@(1 to 4) ( ) : Unit { 
-	exchsolData@(current) ( 0 )  
+	exchsolutionData@(current) ( 0 )  
 	loop over inner on Solution@(current) {
 		Solution@(current) += ToFiner ( CorrectionStencil@(current) * Solution@(coarser) )
 	}
@@ -59,12 +101,11 @@ def set@(0 to 4) (value : Real) : Unit {
 	}
 }
 
-def L2Residual@4 ( ) : Real {
-	exchsolData@(current) ( 0 )
+def L2Residual@(0, 4) ( ) : Real {
+	exchsolutionData@(current) ( 0 )
 	var res : Real = 0
 	loop over inner on RHS@(current) with reduction( + : res ) {
-		var temp : Real = RHS@(current) - Lapl@(current) * Solution@(current)
-		res += temp * temp
+		res += Residual@(current) * Residual@(current)
 	}
 	return ( sqrt ( res ) )
 }

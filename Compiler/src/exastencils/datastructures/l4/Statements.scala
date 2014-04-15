@@ -42,7 +42,7 @@ case class FieldDeclarationStatement(var name : String, var datatype : Datatype,
     new Field(
       name,
       0, // FIXME: domain
-      name.substring(0, 3).toLowerCase + "Data", // HACK
+      name.toLowerCase + "Data", // HACK
       "double", // FIXME: datatype,
       layout, // FIXME: get this info from the DSL
       level.get.asInstanceOf[SingleLevelSpecification].level,
@@ -123,6 +123,8 @@ case class FunctionCallStatement(var identifier : Identifier, var arguments : Li
 }
 
 case class ConditionalStatement(var expression : BooleanExpression, var statements : List[Statement]) extends Statement {
-  def progressToIr = "FIXME: implement"
+  def progressToIr : ir.ConditionStatement = {
+    new ir.ConditionStatement(expression.progressToIr, statements.map(s => s.progressToIr).to[ListBuffer])
+  }
 }
 

@@ -22,7 +22,7 @@ object SetupFragmentClass extends Strategy("Setting up fragment class") {
   this += new Transformation("Updating FragmentClass with required field declarations", {
     case frag : FragmentClass =>
       for (field <- fieldCollection.fields) {
-        if (field.level == Knowledge.maxLevel /*QUICKFIX: only take fields on one level into consideration to avoid redefinition*/ )
+        if (field.level == 0 /*QUICKFIX: only take fields on one level into consideration to avoid redefinition*/ )
           frag.declarations += s"Container* ${field.codeName.cpp}[${field.numSlots}][${Knowledge.numLevels}];";
       }
       Some(frag);
