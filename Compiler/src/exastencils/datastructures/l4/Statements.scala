@@ -37,17 +37,24 @@ case class FieldDeclarationStatement(var name : String, var datatype : Datatype,
   }
 
   def progressToIr : Field = {
-    val layout = DimArray().map(dim => new FieldLayoutPerDim(if (0 == dim) 1 else 0, Knowledge.data_numGhostLayers, 1, ((Knowledge.domain_fragLengthPerDim(dim) * (1 << level.get.asInstanceOf[SingleLevelSpecification].level)) + 1) - 2 /*dup*/ , 1, Knowledge.data_numGhostLayers, 0)) ++
+    val layout = DimArray().map(dim => new FieldLayoutPerDim(
+      if (0 == dim) padding else 0,
+      ghostlayers,
+      1,
+      ((Knowledge.domain_fragLengthPerDim(dim) * (1 << level.get.asInstanceOf[SingleLevelSpecification].level)) + 1) - 2 /*dup*/ ,
+      1,
+      ghostlayers,
+      0)) ++
       (Knowledge.dimensionality until 3).toArray.map(dim => new FieldLayoutPerDim(0, 0, 0, 1, 0, 0, 0))
     new Field(
       name,
       0, // FIXME: domain
       name.toLowerCase + "Data", // HACK
-      "double", // FIXME: datatype,
+      datatype.progressToIr,
       layout, // FIXME: get this info from the DSL
       level.get.asInstanceOf[SingleLevelSpecification].level,
       slots,
-      new ir.MultiIndex(layout.map(l => l.idxDupLeftBegin)), // FIXME: offset
+      offset.progressToIr,
       bcDir0);
   }
 }

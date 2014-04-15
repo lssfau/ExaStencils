@@ -1,10 +1,12 @@
-Field Solution< [1, 1, 1], Real >@(0 to 4) (bcDir = true)
-Field Residual< [1, 1, 1], Real >@(0 to 4) (bcDir = false)
-Field RHS< [1, 1, 1], Real >@(0 to 4) (bcDir = false)
-Field VecP< [1, 1, 1], Real >@0 (bcDir = false)
-Field VecGradP< [1, 1, 1], Real >@0 (bcDir = false)
+// FIXME: ghostlayers, padding, etc have to be left/right and have to be indices instead of ints
+Field Solution< [1, 1, 1], Real >@(0 to 4) ( ghostlayers = 1, slots = 1, bcDir = true )
+Field Residual< [1, 1, 1], Real >@(0 to 4) ( ghostlayers = 1 )
+Field RHS< [0, 0, 0], Real >@(0 to 4)
+Field VecP< [1, 1, 1], Real >@0 ( ghostlayers = 1 )
+Field VecGradP< [0, 0, 0], Real >@0
 
 Set inner [1, 1, 1] - [1, 1, 1] steps [1, 1, 1]
+Set innerForFieldsWithoutGhostLayers [0, 0, 0] - [0, 0, 0] steps [1, 1, 1]
 Set domain [0, 0, 0] - [0, 0, 0] steps [1, 1, 1]
 
 def VCycle@0 ( ) : Unit {
@@ -83,7 +85,7 @@ def UpResidual@(0 to 4) ( ) : Unit {
 
 def Restrict @(1 to 4) ( ) : Unit { 
 	exchresidualData@(current) ( 0 )
-	loop over inner on RHS@(coarser) {
+	loop over innerForFieldsWithoutGhostLayers on RHS@(coarser) {
 		RHS@(coarser) = ToCoarser ( RestrictionStencil@(current) * Residual@(current) )
     }
 }
@@ -102,9 +104,10 @@ def set@(0 to 4) (value : Real) : Unit {
 }
 
 def L2Residual@(0, 4) ( ) : Real {
-	exchsolutionData@(current) ( 0 )
+	exchresidualData@(current) ( 0 )
 	var res : Real = 0
-	loop over inner on RHS@(current) with reduction( + : res ) {
+	loop over inner on Residual@(current) with reduction( + : res ) {
+		// FIXME: this counts duplicated values multiple times
 		res += Residual@(current) * Residual@(current)
 	}
 	return ( sqrt ( res ) )

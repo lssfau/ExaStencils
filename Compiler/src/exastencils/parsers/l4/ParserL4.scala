@@ -4,7 +4,6 @@ import scala.collection.mutable.ListBuffer
 import exastencils.parsers._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
-import exastencils.datastructures.l4.Statement
 
 class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParsers {
   def parse(s : String) : Node = {
