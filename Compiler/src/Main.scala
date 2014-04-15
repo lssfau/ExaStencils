@@ -66,7 +66,6 @@ object Main {
       new CommunicationFunctions,
 
       // Util
-      new Container,
       new Log,
       new Stopwatch,
       new Vector,

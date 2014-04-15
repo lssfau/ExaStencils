@@ -19,10 +19,10 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
   var neighbors : ListBuffer[NeighborInfo] = ListBuffer()
 
   def init = {
-    declarations += s"size_t id;"
+    declarations += s"size_t id"
     cTorInitList += s"id(-1)"
 
-    declarations += s"Vec3 pos;"
+    declarations += s"Vec3 pos"
     cTorInitList += s"pos(0.0, 0.0, 0.0)"
 
     if (6 == Knowledge.comm_strategyFragment) {
@@ -49,36 +49,36 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
       }
     }
 
-    declarations += s"bool isValidForSubdomain[${Knowledge.domain_numSubdomains}];"
+    declarations += s"bool isValidForSubdomain[${Knowledge.domain_numSubdomains}]"
     new ForLoopStatement(s"unsigned int d = 0", s"d < ${Knowledge.domain_numSubdomains}", s"++d",
-        "isValidForSubdomain[d] = false;")
+        "isValidForSubdomain[d] = false")
     
     var numNeighbors = neighbors.size
     var cTorNeighLoopList = new ListBuffer[Statement]
     var dTorNeighLoopList = new ListBuffer[Statement]
-    declarations += s"bool neighbor_isValid[${Knowledge.domain_numSubdomains}][$numNeighbors];"
-    cTorNeighLoopList += s"neighbor_isValid[d][i] = false;"
-    declarations += s"bool neighbor_isRemote[${Knowledge.domain_numSubdomains}][$numNeighbors];"
-    cTorNeighLoopList += s"neighbor_isRemote[d][i] = false;"
-    declarations += s"Fragment3DCube* neighbor_localPtr[${Knowledge.domain_numSubdomains}][$numNeighbors];"
-    cTorNeighLoopList += s"neighbor_localPtr[d][i] = NULL;"
-    declarations += s"size_t neighbor_fragmentId[${Knowledge.domain_numSubdomains}][$numNeighbors];"
-    cTorNeighLoopList += s"neighbor_fragmentId[d][i] = -1;"
-    declarations += s"int neighbor_remoteRank[${Knowledge.domain_numSubdomains}][$numNeighbors];"
-    cTorNeighLoopList += s"neighbor_remoteRank[d][i] = MPI_PROC_NULL;"
+    declarations += s"bool neighbor_isValid[${Knowledge.domain_numSubdomains}][$numNeighbors]"
+    cTorNeighLoopList += s"neighbor_isValid[d][i] = false"
+    declarations += s"bool neighbor_isRemote[${Knowledge.domain_numSubdomains}][$numNeighbors]"
+    cTorNeighLoopList += s"neighbor_isRemote[d][i] = false"
+    declarations += s"Fragment3DCube* neighbor_localPtr[${Knowledge.domain_numSubdomains}][$numNeighbors]"
+    cTorNeighLoopList += s"neighbor_localPtr[d][i] = NULL"
+    declarations += s"size_t neighbor_fragmentId[${Knowledge.domain_numSubdomains}][$numNeighbors]"
+    cTorNeighLoopList += s"neighbor_fragmentId[d][i] = -1"
+    declarations += s"int neighbor_remoteRank[${Knowledge.domain_numSubdomains}][$numNeighbors]"
+    cTorNeighLoopList += s"neighbor_remoteRank[d][i] = MPI_PROC_NULL"
 
     for (sendOrRecv <- Array("Send", "Recv")) {
-      declarations += StringConstant(s"MPI_Request request_${sendOrRecv}[$numNeighbors];")
-      declarations += StringConstant(s"bool reqOutstanding_${sendOrRecv}[$numNeighbors];")
-      cTorNeighLoopList += StringConstant(s"reqOutstanding_${sendOrRecv}[i] = false;")
+      declarations += StringConstant(s"MPI_Request request_${sendOrRecv}[$numNeighbors]")
+      declarations += StringConstant(s"bool reqOutstanding_${sendOrRecv}[$numNeighbors]")
+      cTorNeighLoopList += StringConstant(s"reqOutstanding_${sendOrRecv}[i] = false")
 
       declarations += StringConstant(s"double* buffer_${sendOrRecv}[$numNeighbors];")
-      cTorNeighLoopList += StringConstant(s"buffer_${sendOrRecv}[i] = NULL;")
+      cTorNeighLoopList += StringConstant(s"buffer_${sendOrRecv}[i] = NULL")
       dTorNeighLoopList += StringConstant(s"if (buffer_${sendOrRecv}[i]) { delete [] buffer_${sendOrRecv}[i]; buffer_${sendOrRecv}[i] = 0; }")
     }
 
-    declarations += StringConstant(s"int maxElemRecvBuffer[$numNeighbors];")
-    cTorNeighLoopList += StringConstant(s"maxElemRecvBuffer[i] = 0;")
+    declarations += StringConstant(s"int maxElemRecvBuffer[$numNeighbors]")
+    cTorNeighLoopList += StringConstant(s"maxElemRecvBuffer[i] = 0")
 
     cTorBody += new ForLoopStatement(s"unsigned int d = 0", s"d < ${Knowledge.domain_numSubdomains}", s"++d",
         new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i",
@@ -98,8 +98,7 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
         + "#include <mpi.h>\n"
         + "#include \"Globals/Globals.h\"\n"
         + "#include \"Util/Log.h\"\n"
-        + "#include \"Util/Vector.h\"\n"
-        + "#include \"Container/Container.h\"\n")
+        + "#include \"Util/Vector.h\"\n")
 
       writer << super.cpp
     }

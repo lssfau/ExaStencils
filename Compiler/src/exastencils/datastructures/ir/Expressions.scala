@@ -202,7 +202,7 @@ case class FieldAccess(var fieldOwner : Expression, var field : Field, var slot 
 
 case class LinearizedFieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : Expression) extends Expression {
   override def cpp : String = {
-    s"${fieldOwner.cpp}${field.codeName.cpp}[${slot.cpp}]->data[${index.cpp}]";
+    s"${fieldOwner.cpp}${field.codeName.cpp}[${slot.cpp}][${index.cpp}]";
   }
 }
 

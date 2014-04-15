@@ -117,7 +117,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
 
     for (field <- fields) {
       for (slot <- 0 until field.numSlots) {
-        body += s"${field.codeName.cpp}[$slot] = new Container(Vec3u(${field.layout(0).total}, ${field.layout(1).total}, ${field.layout(2).total}), 1);"
+        body += new AssignmentStatement(field.codeName ~ "[" ~ slot ~ "]", ("new" : Expression) ~ field.dataType. /*FIXME*/ cpp ~ "[" ~ (field.layout(0).total * field.layout(1).total * field.layout(2).total) ~ "]")
       }
     }
 
