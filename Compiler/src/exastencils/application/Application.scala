@@ -62,36 +62,39 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
     globals.variables += new VariableDeclarationStatement(new VariableAccess(s"fragments[${Knowledge.domain_numFragsPerBlock}]", Some("Fragment3DCube*")));
 
     new FunctionStatement("int", "main", ListBuffer(VariableAccess("argc", Some("int")), VariableAccess("argv", Some("char**"))),
-      ListBuffer[Statement](
-        new MPI_Init,
-        new MPI_SetRankAndSize,
+      (if (Knowledge.useMPI)
+        ListBuffer[Statement]()
+      else ListBuffer[Statement]()) ++
+        ListBuffer[Statement](
+          new MPI_Init,
+          new MPI_SetRankAndSize,
 
-        "initGlobals();",
+          "initGlobals()",
 
-        if (Knowledge.useOMP) {
-          (if (Knowledge.domain_summarizeBlocks)
-            s"omp_set_num_threads(${Knowledge.domain_fragLength});"
-          else
-            s"omp_set_num_threads(${Knowledge.domain_numFragsPerBlock});")
-        } else "",
+          if (Knowledge.useOMP) {
+            (if (Knowledge.domain_summarizeBlocks)
+              s"omp_set_num_threads(${Knowledge.domain_fragLength})"
+            else
+              s"omp_set_num_threads(${Knowledge.domain_numFragsPerBlock})")
+          } else "",
 
-        new ConditionStatement(s"argc != 1", ListBuffer[Statement](
-          new ConditionStatement(new MPI_IsRootProc,
-            ListBuffer[Statement](
-              "LOG_NOTE(\"Usage:\");", // FIXME: use log nodes
-              "LOG_NOTE(\"\\tmpirun -np (numBlocksTotal) .\\\\Poisson3D.exe\");")),
-          s"MPI_Finalize();",
-          s"return 1;")),
+          new ConditionStatement(s"argc != 1", ListBuffer[Statement](
+            new ConditionStatement(new MPI_IsRootProc,
+              ListBuffer[Statement](
+                "LOG_NOTE(\"Usage:\")", // FIXME: use log nodes
+                "LOG_NOTE(\"\\tmpirun -np (numBlocksTotal) .\\\\Poisson3D.exe\")")),
+            new MPI_Finalize,
+            s"return 1")),
 
-        s"StopWatch setupWatch;",
+          s"StopWatch setupWatch",
 
-        s"initDomain();",
+          s"initDomain()",
 
-        new InitFields,
+          new InitFields,
 
-        new MPI_Barrier,
+          new MPI_Barrier,
 
-        /*s"updateResidual_${Knowledge.maxLevel}(0);",
+          /*s"updateResidual_${Knowledge.maxLevel}(0);",
         s"double lastRes = getGlobalResidual();",
         s"double initialRes = lastRes;",
 
@@ -165,11 +168,11 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
         // FIXME: free primitives
         */
 
-        "Application();", // TODO: think about inlining the App
+          "Application()", // TODO: think about inlining the App
 
-        new MPI_Finalize,
+          new MPI_Finalize,
 
-        s"return 0;"));
+          s"return 0"));
   }
 }
 
@@ -183,8 +186,8 @@ case class Poisson3D() extends Node with FilePrettyPrintable {
     val writer = PrettyprintingManager.getPrinter(s"Poisson3D.cpp");
 
     writer << (
-      "#pragma warning(disable : 4800)\n"
-      + "#include <mpi.h>\n"
+      (if (Knowledge.useMPI) "#pragma warning(disable : 4800)\n" else "")
+      + (if (Knowledge.useMPI) "#include <mpi.h>\n" else "")
       + "#include <iostream>\n"
       + "#include <cstdlib>\n"
       + "#include <cfloat>\n"

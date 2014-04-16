@@ -86,7 +86,7 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
         (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[f];") else ListBuffer[Statement]())
           ++ body, reduction)
 
-    if (reduction.isDefined) {
+    if (Knowledge.useMPI && reduction.isDefined) {
       statements += new MPI_Allreduce("&" ~ reduction.get.target, 1, reduction.get.op)
     }
 
@@ -146,8 +146,8 @@ case class CommunicationFunctions() extends Node with FilePrettyPrintable {
       val writer = PrettyprintingManager.getPrinter(s"Primitives/CommunicationFunctions.h");
 
       writer << (
-        "#pragma warning(disable : 4800)\n"
-        + "#include <mpi.h>\n"
+        (if (Knowledge.useMPI) "#pragma warning(disable : 4800)\n" else "")
+        + (if (Knowledge.useMPI) "#include <mpi.h>\n" else "")
         + "#include \"Globals/Globals.h\"\n"
         + "#include \"Util/Log.h\"\n"
         + "#include \"Util/Vector.h\"\n"

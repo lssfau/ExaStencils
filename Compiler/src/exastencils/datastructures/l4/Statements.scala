@@ -21,7 +21,7 @@ case class DomainDeclarationStatement(var name : String) extends SpecialStatemen
 }
 
 case class FieldDeclarationStatement(var name : String, var datatype : Datatype, var offset : Index, var level : Option[LevelSpecification]) extends SpecialStatement {
-  var communicate = false
+  var communicate = true
   var ghostlayers = 0
   var padding = 0
   var slots = 1
@@ -56,6 +56,7 @@ case class FieldDeclarationStatement(var name : String, var datatype : Datatype,
       level.get.asInstanceOf[SingleLevelSpecification].level,
       slots,
       offset.progressToIr,
+      communicate,
       bcDir0);
   }
 }

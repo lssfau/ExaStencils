@@ -105,16 +105,21 @@ case class ConnectFragments() extends Statement with Expandable {
       body += AssignmentStatement(s"curFragment.isValidForSubdomain[$d]", PointInsideDomain(s"curFragment.pos", d))
     }
 
-    for (neigh <- neighbors) {
-      body += new Scope(ListBuffer[Statement](
-        s"Vec3 offsetPos = curFragment.pos + Vec3(${neigh.dir(0)} * ${Knowledge.domain_fragWidth_x}, ${neigh.dir(1)} * ${Knowledge.domain_fragWidth_y}, ${neigh.dir(2)} * ${Knowledge.domain_fragWidth_z});") ++
-        (0 until Knowledge.domain_numSubdomains).toArray[Int].map(d =>
-          new ConditionStatement(s"curFragment.isValidForSubdomain[$d]" And PointInsideDomain(s"offsetPos", d),
-            new ConditionStatement(s"mpiRank ==" ~ PointToOwningRank("offsetPos", d),
-              s"curFragment.connectLocalElement(${neigh.index}, fragmentMap[" ~ PointToFragmentId("offsetPos") ~ s"], $d);",
-              s"curFragment.connectRemoteElement(${neigh.index}," ~ PointToFragmentId("offsetPos") ~ "," ~ PointToOwningRank("offsetPos", d) ~ s", $d);"))))
+    if (Knowledge.useMPI || Knowledge.useOMP) {
+      for (neigh <- neighbors) {
+        body += new Scope(ListBuffer[Statement](
+          s"Vec3 offsetPos = curFragment.pos + Vec3(${neigh.dir(0)} * ${Knowledge.domain_fragWidth_x}, ${neigh.dir(1)} * ${Knowledge.domain_fragWidth_y}, ${neigh.dir(2)} * ${Knowledge.domain_fragWidth_z});") ++
+          (0 until Knowledge.domain_numSubdomains).toArray[Int].map(d =>
+            new ConditionStatement(s"curFragment.isValidForSubdomain[$d]" And PointInsideDomain(s"offsetPos", d),
+              if (Knowledge.useMPI) {
+                new ConditionStatement(s"mpiRank ==" ~ PointToOwningRank("offsetPos", d),
+                  s"curFragment.connectLocalElement(${neigh.index}, fragmentMap[" ~ PointToFragmentId("offsetPos") ~ s"], $d)",
+                  s"curFragment.connectRemoteElement(${neigh.index}," ~ PointToFragmentId("offsetPos") ~ "," ~ PointToOwningRank("offsetPos", d) ~ s", $d)")
+              } else {
+                (s"curFragment.connectLocalElement(${neigh.index}, fragmentMap[" ~ PointToFragmentId("offsetPos") ~ s"], $d)") : Statement
+              })))
+      }
     }
-
     return new LoopOverFragments(body) with OMP_PotentiallyParallel
   }
 }
@@ -147,15 +152,22 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
       ListBuffer(
         new MPI_SetRankAndSize,
 
-        AssertStatement(s"mpiSize != ${Knowledge.domain_numBlocks}",
+        if (Knowledge.useMPI)
+          AssertStatement(s"mpiSize != ${Knowledge.domain_numBlocks}",
           "\"Invalid number of MPI processes (\" << mpiSize << \") should be \" << " + (Knowledge.domain_numBlocks),
-          "return;"),
+          "return")
+        else
+          new NullStatement,
 
-        "std::map<size_t, Fragment3DCube*> fragmentMap;",
+        "std::map<size_t, Fragment3DCube*> fragmentMap",
 
-        s"Vec3 positions[${Knowledge.domain_numFragsPerBlock}];",
-        s"unsigned int posWritePos = 0;",
-        s"Vec3 rankPos(mpiRank % ${Knowledge.domain_numBlocks_x}, (mpiRank / ${Knowledge.domain_numBlocks_x}) % ${Knowledge.domain_numBlocks_y}, mpiRank / ${Knowledge.domain_numBlocks_x * Knowledge.domain_numBlocks_y});",
+        s"Vec3 positions[${Knowledge.domain_numFragsPerBlock}]",
+        s"unsigned int posWritePos = 0",
+        if (Knowledge.useMPI)
+          s"Vec3 rankPos(mpiRank % ${Knowledge.domain_numBlocks_x}, (mpiRank / ${Knowledge.domain_numBlocks_x}) % ${Knowledge.domain_numBlocks_y}, mpiRank / ${Knowledge.domain_numBlocks_x * Knowledge.domain_numBlocks_y})"
+        else
+          s"Vec3 rankPos(1, 1, 1)",
+
         new LoopOverDimensions(IndexRange(MultiIndex(0, 0, 0), MultiIndex(Knowledge.domain_numFragsPerBlock_x, Knowledge.domain_numFragsPerBlock_y, Knowledge.domain_numFragsPerBlock_z)),
           new AssignmentStatement("positions[posWritePos++]", "Vec3("
             ~ (("rankPos.x" : Expression) * Knowledge.domain_numFragsPerBlock_x + 0.5 + "x") * Knowledge.domain_fragWidth_x ~ ","

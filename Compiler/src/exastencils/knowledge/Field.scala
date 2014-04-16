@@ -48,7 +48,8 @@ case class Field(
   var layout : Array[FieldLayoutPerDim], // represents the number of data points and their distribution in each dimension
   var level : Int, // the (geometric) level the field lives on 
   var numSlots : Int, // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
-  var referenceOffset : MultiIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point 
+  var referenceOffset : MultiIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
+  var requiresComm : Boolean, // specifies if data from this fields needs to be communicated between different processes
   /*FIXME: introduce 'real' boundary conditions */ var bcDir0 : Boolean) extends Node {}
 
 case class FieldCollection(var fields : ListBuffer[Field] = ListBuffer()) extends Node {

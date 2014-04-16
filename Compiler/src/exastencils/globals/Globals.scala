@@ -23,8 +23,8 @@ case class Globals() extends Node with FilePrettyPrintable {
 
     writerHeader << (
       "#include \"Util/Vector.h\"\n"
-      + "#pragma warning(disable : 4800)\n"
-      + "#include <mpi.h>\n" // FIXME: find a way to extract necessary includes from variables
+      + (if (Knowledge.useMPI) "#pragma warning(disable : 4800)\n" else "")
+      + (if (Knowledge.useMPI) "#include <mpi.h>\n" else "") // FIXME: find a way to extract necessary includes from variables
       );
 
     for (define <- defines) { writerHeader << s"${define.cpp}\n"; }

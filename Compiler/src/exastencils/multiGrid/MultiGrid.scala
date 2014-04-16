@@ -17,8 +17,8 @@ case class MultiGrid() extends Node with FilePrettyPrintable {
     val writer = PrettyprintingManager.getPrinter(s"MultiGrid/MultiGrid.h");
 
     writer << (
-      "#pragma warning(disable : 4800)\n"
-      + "#include <mpi.h>\n"
+      (if (Knowledge.useMPI) "#pragma warning(disable : 4800)\n" else "")
+      + (if (Knowledge.useMPI) "#include <mpi.h>\n" else "")
       + "#include \"Globals/Globals.h\"\n"
       + "#include \"Util/Log.h\"\n"
       + "#include \"Util/Vector.h\"\n"

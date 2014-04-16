@@ -51,8 +51,8 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
 
     declarations += s"bool isValidForSubdomain[${Knowledge.domain_numSubdomains}]"
     new ForLoopStatement(s"unsigned int d = 0", s"d < ${Knowledge.domain_numSubdomains}", s"++d",
-        "isValidForSubdomain[d] = false")
-    
+      "isValidForSubdomain[d] = false")
+
     var numNeighbors = neighbors.size
     var cTorNeighLoopList = new ListBuffer[Statement]
     var dTorNeighLoopList = new ListBuffer[Statement]
@@ -64,25 +64,28 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
     cTorNeighLoopList += s"neighbor_localPtr[d][i] = NULL"
     declarations += s"size_t neighbor_fragmentId[${Knowledge.domain_numSubdomains}][$numNeighbors]"
     cTorNeighLoopList += s"neighbor_fragmentId[d][i] = -1"
-    declarations += s"int neighbor_remoteRank[${Knowledge.domain_numSubdomains}][$numNeighbors]"
-    cTorNeighLoopList += s"neighbor_remoteRank[d][i] = MPI_PROC_NULL"
 
-    for (sendOrRecv <- Array("Send", "Recv")) {
-      declarations += StringConstant(s"MPI_Request request_${sendOrRecv}[$numNeighbors]")
-      declarations += StringConstant(s"bool reqOutstanding_${sendOrRecv}[$numNeighbors]")
-      cTorNeighLoopList += StringConstant(s"reqOutstanding_${sendOrRecv}[i] = false")
+    if (Knowledge.useMPI) {
+      declarations += s"int neighbor_remoteRank[${Knowledge.domain_numSubdomains}][$numNeighbors]"
+      cTorNeighLoopList += s"neighbor_remoteRank[d][i] = MPI_PROC_NULL"
 
-      declarations += StringConstant(s"double* buffer_${sendOrRecv}[$numNeighbors];")
-      cTorNeighLoopList += StringConstant(s"buffer_${sendOrRecv}[i] = NULL")
-      dTorNeighLoopList += StringConstant(s"if (buffer_${sendOrRecv}[i]) { delete [] buffer_${sendOrRecv}[i]; buffer_${sendOrRecv}[i] = 0; }")
+      for (sendOrRecv <- Array("Send", "Recv")) {
+        declarations += StringConstant(s"MPI_Request request_${sendOrRecv}[$numNeighbors]")
+        declarations += StringConstant(s"bool reqOutstanding_${sendOrRecv}[$numNeighbors]")
+        cTorNeighLoopList += StringConstant(s"reqOutstanding_${sendOrRecv}[i] = false")
+
+        declarations += StringConstant(s"double* buffer_${sendOrRecv}[$numNeighbors];")
+        cTorNeighLoopList += StringConstant(s"buffer_${sendOrRecv}[i] = NULL")
+        dTorNeighLoopList += StringConstant(s"if (buffer_${sendOrRecv}[i]) { delete [] buffer_${sendOrRecv}[i]; buffer_${sendOrRecv}[i] = 0; }")
+      }
+
+      declarations += StringConstant(s"int maxElemRecvBuffer[$numNeighbors]")
+      cTorNeighLoopList += StringConstant(s"maxElemRecvBuffer[i] = 0")
     }
 
-    declarations += StringConstant(s"int maxElemRecvBuffer[$numNeighbors]")
-    cTorNeighLoopList += StringConstant(s"maxElemRecvBuffer[i] = 0")
-
     cTorBody += new ForLoopStatement(s"unsigned int d = 0", s"d < ${Knowledge.domain_numSubdomains}", s"++d",
-        new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i",
-      cTorNeighLoopList))
+      new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i",
+        cTorNeighLoopList))
     dTorBody += new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i",
       dTorNeighLoopList)
   }
@@ -94,8 +97,8 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
       val writer = PrettyprintingManager.getPrinter(s"Primitives/Fragment3DCube.h")
 
       writer << (
-        "#pragma warning(disable : 4800)\n"
-        + "#include <mpi.h>\n"
+        (if (Knowledge.useMPI) "#pragma warning(disable : 4800)\n" else "")
+        + (if (Knowledge.useMPI) "#include <mpi.h>\n" else "")
         + "#include \"Globals/Globals.h\"\n"
         + "#include \"Util/Log.h\"\n"
         + "#include \"Util/Vector.h\"\n")
@@ -142,93 +145,84 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
         }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0))))))
 
     // sync duplicate values
-    if (field.layout.foldLeft(0)((old : Int, l) => old max l.numDupLayersLeft max l.numDupLayersRight) > 0) {
-      for (dim <- 0 until Knowledge.dimensionality) {
-        val sendRemoteData = ListBuffer(neighbors(2 * dim + 1)).map(neigh => (neigh, new IndexRange(
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if neigh.dir(i) == 0 => field.layout(i).idxDupLeftBegin
-              case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftBegin
-              case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightBegin
-            }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if neigh.dir(i) == 0 => field.layout(i).idxDupRightEnd
-              case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftEnd
-              case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightEnd
-            }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
-        val sendLocalData = ListBuffer(neighbors(2 * dim + 1)).map(neigh => (neigh, new IndexRange(
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if neigh.dir(i) == 0 => field.layout(i).idxDupLeftBegin
-              case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftBegin
-              case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightBegin
-            }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if neigh.dir(i) == 0 => field.layout(i).idxDupRightEnd
-              case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftEnd
-              case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightEnd
-            }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0))),
-          new IndexRange(
+    if (field.requiresComm)
+      if (field.layout.foldLeft(0)((old : Int, l) => old max l.numDupLayersLeft max l.numDupLayersRight) > 0) {
+        for (dim <- 0 until Knowledge.dimensionality) {
+          val sendRemoteData = ListBuffer(neighbors(2 * dim + 1)).map(neigh => (neigh, new IndexRange(
             new MultiIndex(
               DimArray().map(i => i match {
-                case i if -neigh.dir(i) == 0 => field.layout(i).idxDupLeftBegin
-                case i if -neigh.dir(i) < 0  => field.layout(i).idxDupLeftBegin
-                case i if -neigh.dir(i) > 0  => field.layout(i).idxDupRightBegin
+                case i if neigh.dir(i) == 0 => field.layout(i).idxDupLeftBegin
+                case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftBegin
+                case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightBegin
               }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
             new MultiIndex(
               DimArray().map(i => i match {
-                case i if -neigh.dir(i) == 0 => field.layout(i).idxDupRightEnd
-                case i if -neigh.dir(i) < 0  => field.layout(i).idxDupLeftEnd
-                case i if -neigh.dir(i) > 0  => field.layout(i).idxDupRightEnd
+                case i if neigh.dir(i) == 0 => field.layout(i).idxDupRightEnd
+                case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftEnd
+                case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightEnd
               }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
-        val recvRemoteData = ListBuffer(neighbors(2 * dim + 0)).map(neigh => (neigh, new IndexRange(
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if neigh.dir(i) == 0 => field.layout(i).idxDupLeftBegin
-              case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftBegin
-              case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightBegin
-            }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if neigh.dir(i) == 0 => field.layout(i).idxDupRightEnd
-              case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftEnd
-              case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightEnd
-            }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
+          val sendLocalData = ListBuffer(neighbors(2 * dim + 1)).map(neigh => (neigh, new IndexRange(
+            new MultiIndex(
+              DimArray().map(i => i match {
+                case i if neigh.dir(i) == 0 => field.layout(i).idxDupLeftBegin
+                case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftBegin
+                case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightBegin
+              }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
+            new MultiIndex(
+              DimArray().map(i => i match {
+                case i if neigh.dir(i) == 0 => field.layout(i).idxDupRightEnd
+                case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftEnd
+                case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightEnd
+              }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0))),
+            new IndexRange(
+              new MultiIndex(
+                DimArray().map(i => i match {
+                  case i if -neigh.dir(i) == 0 => field.layout(i).idxDupLeftBegin
+                  case i if -neigh.dir(i) < 0  => field.layout(i).idxDupLeftBegin
+                  case i if -neigh.dir(i) > 0  => field.layout(i).idxDupRightBegin
+                }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
+              new MultiIndex(
+                DimArray().map(i => i match {
+                  case i if -neigh.dir(i) == 0 => field.layout(i).idxDupRightEnd
+                  case i if -neigh.dir(i) < 0  => field.layout(i).idxDupLeftEnd
+                  case i if -neigh.dir(i) > 0  => field.layout(i).idxDupRightEnd
+                }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
+          val recvRemoteData = ListBuffer(neighbors(2 * dim + 0)).map(neigh => (neigh, new IndexRange(
+            new MultiIndex(
+              DimArray().map(i => i match {
+                case i if neigh.dir(i) == 0 => field.layout(i).idxDupLeftBegin
+                case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftBegin
+                case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightBegin
+              }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
+            new MultiIndex(
+              DimArray().map(i => i match {
+                case i if neigh.dir(i) == 0 => field.layout(i).idxDupRightEnd
+                case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftEnd
+                case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightEnd
+              }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
 
-        // TODO: group the next seven lines into a separate node?
-        body += new CopyToSendBuffer(field, sendRemoteData)
-        body += new RemoteSend(field, sendRemoteData)
-        body += new LocalSend(field, sendLocalData)
+          if (Knowledge.useMPI) {
+            body += new CopyToSendBuffer(field, sendRemoteData)
+            body += new RemoteSend(field, sendRemoteData)
+            body += new LocalSend(field, sendLocalData)
 
-        body += new RemoteReceive(field, recvRemoteData)
-        body += new FinishRemoteRecv(neighbors)
-        body += new CopyFromRecvBuffer(field, recvRemoteData)
+            body += new RemoteReceive(field, recvRemoteData)
+            body += new FinishRemoteRecv(neighbors)
+            body += new CopyFromRecvBuffer(field, recvRemoteData)
 
-        body += new FinishRemoteSend(neighbors)
+            body += new FinishRemoteSend(neighbors)
+          } else {
+            body += new LocalSend(field, sendLocalData)
+          }
+        }
       }
-    }
 
     // update ghost layers
-    if (field.layout.foldLeft(0)((old : Int, l) => old max l.numGhostLayersLeft max l.numGhostLayersRight) > 0) {
-      for (dim <- 0 until Knowledge.dimensionality) {
-        var curNeighbors = ListBuffer(neighbors(2 * dim + 0), neighbors(2 * dim + 1))
-        val sendRemoteData = curNeighbors.map(neigh => (neigh, new IndexRange(
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if neigh.dir(i) == 0 => field.layout(i).idxGhostLeftBegin
-              case i if neigh.dir(i) < 0  => field.layout(i).idxInnerBegin
-              case i if neigh.dir(i) > 0  => field.layout(i).idxInnerBegin + field.layout(i).numInnerLayers - field.layout(i).numGhostLayersRight
-            }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if neigh.dir(i) == 0 => field.layout(i).idxGhostRightEnd
-              case i if neigh.dir(i) < 0  => field.layout(i).idxInnerBegin + field.layout(i).numGhostLayersLeft
-              case i if neigh.dir(i) > 0  => field.layout(i).idxInnerEnd
-            }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
-        val sendLocalData = curNeighbors.map(neigh => (neigh,
-          new IndexRange(
+    if (field.requiresComm)
+      if (field.layout.foldLeft(0)((old : Int, l) => old max l.numGhostLayersLeft max l.numGhostLayersRight) > 0) {
+        for (dim <- 0 until Knowledge.dimensionality) {
+          var curNeighbors = ListBuffer(neighbors(2 * dim + 0), neighbors(2 * dim + 1))
+          val sendRemoteData = curNeighbors.map(neigh => (neigh, new IndexRange(
             new MultiIndex(
               DimArray().map(i => i match {
                 case i if neigh.dir(i) == 0 => field.layout(i).idxGhostLeftBegin
@@ -240,46 +234,64 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
                 case i if neigh.dir(i) == 0 => field.layout(i).idxGhostRightEnd
                 case i if neigh.dir(i) < 0  => field.layout(i).idxInnerBegin + field.layout(i).numGhostLayersLeft
                 case i if neigh.dir(i) > 0  => field.layout(i).idxInnerEnd
-              }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0))),
-          new IndexRange(
-            new MultiIndex(
-              DimArray().map(i => i match {
-                case i if -neigh.dir(i) == 0 => field.layout(i).idxGhostLeftBegin
-                case i if -neigh.dir(i) < 0  => field.layout(i).idxGhostLeftBegin
-                case i if -neigh.dir(i) > 0  => field.layout(i).idxGhostRightBegin
-              }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
-            new MultiIndex(
-              DimArray().map(i => i match {
-                case i if -neigh.dir(i) == 0 => field.layout(i).idxGhostRightEnd
-                case i if -neigh.dir(i) < 0  => field.layout(i).idxGhostLeftEnd
-                case i if -neigh.dir(i) > 0  => field.layout(i).idxGhostRightEnd
               }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
-        val recvRemoteData = curNeighbors.map(neigh => (neigh,
-          new IndexRange(
-            new MultiIndex(
-              DimArray().map(i => i match {
-                case i if neigh.dir(i) == 0 => field.layout(i).idxGhostLeftBegin
-                case i if neigh.dir(i) < 0  => field.layout(i).idxGhostLeftBegin
-                case i if neigh.dir(i) > 0  => field.layout(i).idxGhostRightBegin
-              }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
-            new MultiIndex(
-              DimArray().map(i => i match {
-                case i if neigh.dir(i) == 0 => field.layout(i).idxGhostRightEnd
-                case i if neigh.dir(i) < 0  => field.layout(i).idxGhostLeftEnd
-                case i if neigh.dir(i) > 0  => field.layout(i).idxGhostRightEnd
-              }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
+          val sendLocalData = curNeighbors.map(neigh => (neigh,
+            new IndexRange(
+              new MultiIndex(
+                DimArray().map(i => i match {
+                  case i if neigh.dir(i) == 0 => field.layout(i).idxGhostLeftBegin
+                  case i if neigh.dir(i) < 0  => field.layout(i).idxInnerBegin
+                  case i if neigh.dir(i) > 0  => field.layout(i).idxInnerBegin + field.layout(i).numInnerLayers - field.layout(i).numGhostLayersRight
+                }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
+              new MultiIndex(
+                DimArray().map(i => i match {
+                  case i if neigh.dir(i) == 0 => field.layout(i).idxGhostRightEnd
+                  case i if neigh.dir(i) < 0  => field.layout(i).idxInnerBegin + field.layout(i).numGhostLayersLeft
+                  case i if neigh.dir(i) > 0  => field.layout(i).idxInnerEnd
+                }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0))),
+            new IndexRange(
+              new MultiIndex(
+                DimArray().map(i => i match {
+                  case i if -neigh.dir(i) == 0 => field.layout(i).idxGhostLeftBegin
+                  case i if -neigh.dir(i) < 0  => field.layout(i).idxGhostLeftBegin
+                  case i if -neigh.dir(i) > 0  => field.layout(i).idxGhostRightBegin
+                }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
+              new MultiIndex(
+                DimArray().map(i => i match {
+                  case i if -neigh.dir(i) == 0 => field.layout(i).idxGhostRightEnd
+                  case i if -neigh.dir(i) < 0  => field.layout(i).idxGhostLeftEnd
+                  case i if -neigh.dir(i) > 0  => field.layout(i).idxGhostRightEnd
+                }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
+          val recvRemoteData = curNeighbors.map(neigh => (neigh,
+            new IndexRange(
+              new MultiIndex(
+                DimArray().map(i => i match {
+                  case i if neigh.dir(i) == 0 => field.layout(i).idxGhostLeftBegin
+                  case i if neigh.dir(i) < 0  => field.layout(i).idxGhostLeftBegin
+                  case i if neigh.dir(i) > 0  => field.layout(i).idxGhostRightBegin
+                }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
+              new MultiIndex(
+                DimArray().map(i => i match {
+                  case i if neigh.dir(i) == 0 => field.layout(i).idxGhostRightEnd
+                  case i if neigh.dir(i) < 0  => field.layout(i).idxGhostLeftEnd
+                  case i if neigh.dir(i) > 0  => field.layout(i).idxGhostRightEnd
+                }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
 
-        body += new CopyToSendBuffer(field, sendRemoteData)
-        body += new RemoteSend(field, sendRemoteData)
-        body += new LocalSend(field, sendLocalData)
+          if (Knowledge.useMPI) {
+            body += new CopyToSendBuffer(field, sendRemoteData)
+            body += new RemoteSend(field, sendRemoteData)
+            body += new LocalSend(field, sendLocalData)
 
-        body += new RemoteReceive(field, recvRemoteData)
-        body += new FinishRemoteRecv(neighbors)
-        body += new CopyFromRecvBuffer(field, recvRemoteData)
+            body += new RemoteReceive(field, recvRemoteData)
+            body += new FinishRemoteRecv(neighbors)
+            body += new CopyFromRecvBuffer(field, recvRemoteData)
 
-        body += new FinishRemoteSend(neighbors)
+            body += new FinishRemoteSend(neighbors)
+          } else {
+            body += new LocalSend(field, sendLocalData)
+          }
+        }
       }
-    }
 
     // compile return value
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName.cpp}",
@@ -313,88 +325,80 @@ case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) 
         }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0))))))
 
     // sync duplicate values
-    if (field.layout.foldLeft(0)((old : Int, l) => old max l.numDupLayersLeft max l.numDupLayersRight) > 0) {
-      val sendRemoteData = neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh => (neigh, new IndexRange(
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => field.layout(i).idxInnerBegin
-            case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftBegin
-            case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightBegin
-          }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => field.layout(i).idxInnerEnd
-            case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftEnd
-            case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightEnd
-          }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
-      val sendLocalData = neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh => (neigh, new IndexRange(
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => field.layout(i).idxInnerBegin
-            case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftBegin
-            case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightBegin
-          }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => field.layout(i).idxInnerEnd
-            case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftEnd
-            case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightEnd
-          }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0))),
-        new IndexRange(
+    if (field.requiresComm)
+      if (field.layout.foldLeft(0)((old : Int, l) => old max l.numDupLayersLeft max l.numDupLayersRight) > 0) {
+        val sendRemoteData = neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh => (neigh, new IndexRange(
           new MultiIndex(
             DimArray().map(i => i match {
-              case i if -neigh.dir(i) == 0 => field.layout(i).idxInnerBegin
-              case i if -neigh.dir(i) < 0  => field.layout(i).idxDupLeftBegin
-              case i if -neigh.dir(i) > 0  => field.layout(i).idxDupRightBegin
+              case i if neigh.dir(i) == 0 => field.layout(i).idxInnerBegin
+              case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftBegin
+              case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightBegin
             }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
           new MultiIndex(
             DimArray().map(i => i match {
-              case i if -neigh.dir(i) == 0 => field.layout(i).idxInnerEnd
-              case i if -neigh.dir(i) < 0  => field.layout(i).idxDupLeftEnd
-              case i if -neigh.dir(i) > 0  => field.layout(i).idxDupRightEnd
+              case i if neigh.dir(i) == 0 => field.layout(i).idxInnerEnd
+              case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftEnd
+              case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightEnd
             }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
-      val recvRemoteData = neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0).map(neigh => (neigh, new IndexRange(
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => field.layout(i).idxInnerBegin
-            case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftBegin
-            case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightBegin
-          }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => field.layout(i).idxInnerEnd
-            case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftEnd
-            case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightEnd
-          }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
+        val sendLocalData = neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh => (neigh, new IndexRange(
+          new MultiIndex(
+            DimArray().map(i => i match {
+              case i if neigh.dir(i) == 0 => field.layout(i).idxInnerBegin
+              case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftBegin
+              case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightBegin
+            }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
+          new MultiIndex(
+            DimArray().map(i => i match {
+              case i if neigh.dir(i) == 0 => field.layout(i).idxInnerEnd
+              case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftEnd
+              case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightEnd
+            }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0))),
+          new IndexRange(
+            new MultiIndex(
+              DimArray().map(i => i match {
+                case i if -neigh.dir(i) == 0 => field.layout(i).idxInnerBegin
+                case i if -neigh.dir(i) < 0  => field.layout(i).idxDupLeftBegin
+                case i if -neigh.dir(i) > 0  => field.layout(i).idxDupRightBegin
+              }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
+            new MultiIndex(
+              DimArray().map(i => i match {
+                case i if -neigh.dir(i) == 0 => field.layout(i).idxInnerEnd
+                case i if -neigh.dir(i) < 0  => field.layout(i).idxDupLeftEnd
+                case i if -neigh.dir(i) > 0  => field.layout(i).idxDupRightEnd
+              }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
+        val recvRemoteData = neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0).map(neigh => (neigh, new IndexRange(
+          new MultiIndex(
+            DimArray().map(i => i match {
+              case i if neigh.dir(i) == 0 => field.layout(i).idxInnerBegin
+              case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftBegin
+              case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightBegin
+            }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
+          new MultiIndex(
+            DimArray().map(i => i match {
+              case i if neigh.dir(i) == 0 => field.layout(i).idxInnerEnd
+              case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftEnd
+              case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightEnd
+            }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
 
-      body += new CopyToSendBuffer(field, sendRemoteData)
-      body += new RemoteSend(field, sendRemoteData)
-      body += new LocalSend(field, sendLocalData)
+        if (Knowledge.useMPI) {
+          body += new CopyToSendBuffer(field, sendRemoteData)
+          body += new RemoteSend(field, sendRemoteData)
+          body += new LocalSend(field, sendLocalData)
 
-      body += new RemoteReceive(field, recvRemoteData)
-      body += new FinishRemoteRecv(neighbors)
-      body += new CopyFromRecvBuffer(field, recvRemoteData)
+          body += new RemoteReceive(field, recvRemoteData)
+          body += new FinishRemoteRecv(neighbors)
+          body += new CopyFromRecvBuffer(field, recvRemoteData)
 
-      body += new FinishRemoteSend(neighbors)
-    }
+          body += new FinishRemoteSend(neighbors)
+        } else {
+          body += new LocalSend(field, sendLocalData)
+        }
+      }
 
     // update ghost layers
-    if (field.layout.foldLeft(0)((old : Int, l) => old max l.numGhostLayersLeft max l.numGhostLayersRight) > 0) {
-      val sendRemoteData = neighbors.map(neigh => (neigh, new IndexRange(
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => field.layout(i).idxDupLeftBegin
-            case i if neigh.dir(i) < 0  => field.layout(i).idxInnerBegin
-            case i if neigh.dir(i) > 0  => field.layout(i).idxInnerBegin + field.layout(i).numInnerLayers - field.layout(i).numGhostLayersRight
-          }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => field.layout(i).idxDupRightEnd
-            case i if neigh.dir(i) < 0  => field.layout(i).idxInnerBegin + field.layout(i).numGhostLayersLeft
-            case i if neigh.dir(i) > 0  => field.layout(i).idxInnerEnd
-          }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
-      val sendLocalData = neighbors.map(neigh => (neigh,
-        new IndexRange(
+    if (field.requiresComm)
+      if (field.layout.foldLeft(0)((old : Int, l) => old max l.numGhostLayersLeft max l.numGhostLayersRight) > 0) {
+        val sendRemoteData = neighbors.map(neigh => (neigh, new IndexRange(
           new MultiIndex(
             DimArray().map(i => i match {
               case i if neigh.dir(i) == 0 => field.layout(i).idxDupLeftBegin
@@ -406,45 +410,63 @@ case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) 
               case i if neigh.dir(i) == 0 => field.layout(i).idxDupRightEnd
               case i if neigh.dir(i) < 0  => field.layout(i).idxInnerBegin + field.layout(i).numGhostLayersLeft
               case i if neigh.dir(i) > 0  => field.layout(i).idxInnerEnd
-            }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0))),
-        new IndexRange(
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if -neigh.dir(i) == 0 => field.layout(i).idxDupLeftBegin
-              case i if -neigh.dir(i) < 0  => field.layout(i).idxGhostLeftBegin
-              case i if -neigh.dir(i) > 0  => field.layout(i).idxGhostRightBegin
-            }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if -neigh.dir(i) == 0 => field.layout(i).idxDupRightEnd
-              case i if -neigh.dir(i) < 0  => field.layout(i).idxGhostLeftEnd
-              case i if -neigh.dir(i) > 0  => field.layout(i).idxGhostRightEnd
             }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
-      val recvRemoteData = neighbors.map(neigh => (neigh,
-        new IndexRange(
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if neigh.dir(i) == 0 => field.layout(i).idxDupLeftBegin
-              case i if neigh.dir(i) < 0  => field.layout(i).idxGhostLeftBegin
-              case i if neigh.dir(i) > 0  => field.layout(i).idxGhostRightBegin
-            }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if neigh.dir(i) == 0 => field.layout(i).idxDupRightEnd
-              case i if neigh.dir(i) < 0  => field.layout(i).idxGhostLeftEnd
-              case i if neigh.dir(i) > 0  => field.layout(i).idxGhostRightEnd
-            }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
+        val sendLocalData = neighbors.map(neigh => (neigh,
+          new IndexRange(
+            new MultiIndex(
+              DimArray().map(i => i match {
+                case i if neigh.dir(i) == 0 => field.layout(i).idxDupLeftBegin
+                case i if neigh.dir(i) < 0  => field.layout(i).idxInnerBegin
+                case i if neigh.dir(i) > 0  => field.layout(i).idxInnerBegin + field.layout(i).numInnerLayers - field.layout(i).numGhostLayersRight
+              }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
+            new MultiIndex(
+              DimArray().map(i => i match {
+                case i if neigh.dir(i) == 0 => field.layout(i).idxDupRightEnd
+                case i if neigh.dir(i) < 0  => field.layout(i).idxInnerBegin + field.layout(i).numGhostLayersLeft
+                case i if neigh.dir(i) > 0  => field.layout(i).idxInnerEnd
+              }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0))),
+          new IndexRange(
+            new MultiIndex(
+              DimArray().map(i => i match {
+                case i if -neigh.dir(i) == 0 => field.layout(i).idxDupLeftBegin
+                case i if -neigh.dir(i) < 0  => field.layout(i).idxGhostLeftBegin
+                case i if -neigh.dir(i) > 0  => field.layout(i).idxGhostRightBegin
+              }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
+            new MultiIndex(
+              DimArray().map(i => i match {
+                case i if -neigh.dir(i) == 0 => field.layout(i).idxDupRightEnd
+                case i if -neigh.dir(i) < 0  => field.layout(i).idxGhostLeftEnd
+                case i if -neigh.dir(i) > 0  => field.layout(i).idxGhostRightEnd
+              }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
+        val recvRemoteData = neighbors.map(neigh => (neigh,
+          new IndexRange(
+            new MultiIndex(
+              DimArray().map(i => i match {
+                case i if neigh.dir(i) == 0 => field.layout(i).idxDupLeftBegin
+                case i if neigh.dir(i) < 0  => field.layout(i).idxGhostLeftBegin
+                case i if neigh.dir(i) > 0  => field.layout(i).idxGhostRightBegin
+              }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
+            new MultiIndex(
+              DimArray().map(i => i match {
+                case i if neigh.dir(i) == 0 => field.layout(i).idxDupRightEnd
+                case i if neigh.dir(i) < 0  => field.layout(i).idxGhostLeftEnd
+                case i if neigh.dir(i) > 0  => field.layout(i).idxGhostRightEnd
+              }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
 
-      body += new CopyToSendBuffer(field, sendRemoteData)
-      body += new RemoteSend(field, sendRemoteData)
-      body += new LocalSend(field, sendLocalData)
+        if (Knowledge.useMPI) {
+          body += new CopyToSendBuffer(field, sendRemoteData)
+          body += new RemoteSend(field, sendRemoteData)
+          body += new LocalSend(field, sendLocalData)
 
-      body += new RemoteReceive(field, recvRemoteData)
-      body += new FinishRemoteRecv(neighbors)
-      body += new CopyFromRecvBuffer(field, recvRemoteData)
+          body += new RemoteReceive(field, recvRemoteData)
+          body += new FinishRemoteRecv(neighbors)
+          body += new CopyFromRecvBuffer(field, recvRemoteData)
 
-      body += new FinishRemoteSend(neighbors)
-    }
+          body += new FinishRemoteSend(neighbors)
+        } else {
+          body += new LocalSend(field, sendLocalData)
+        }
+      }
 
     // compile return value
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName.cpp}",

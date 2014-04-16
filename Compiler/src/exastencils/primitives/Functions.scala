@@ -121,32 +121,34 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
       }
     }
 
-    var maxPointsPerLevel = Array.fill(Knowledge.numLevels)(Array(0, 0, 0))
-    var maxCommSlidesPerLevel = Array(0, 0, 0)
-    for (field <- fields) {
-      for (dim <- 0 until Knowledge.dimensionality) {
-        maxPointsPerLevel(field.level)(dim) = math.max(maxPointsPerLevel(field.level)(dim), field.layout(dim).total - field.layout(dim).numPadLayersLeft - field.layout(dim).numPadLayersRight)
-        if (Knowledge.maxLevel == field.level) {
-          maxCommSlidesPerLevel(dim) = math.max(maxCommSlidesPerLevel(dim), math.max(field.layout(dim).numGhostLayersLeft, field.layout(dim).numGhostLayersRight))
-          maxCommSlidesPerLevel(dim) = math.max(maxCommSlidesPerLevel(dim), math.max(field.layout(dim).numDupLayersLeft, field.layout(dim).numDupLayersRight))
+    if (Knowledge.useMPI) {
+      var maxPointsPerLevel = Array.fill(Knowledge.numLevels)(Array(0, 0, 0))
+      var maxCommSlidesPerLevel = Array(0, 0, 0)
+      for (field <- fields) {
+        for (dim <- 0 until Knowledge.dimensionality) {
+          maxPointsPerLevel(field.level)(dim) = math.max(maxPointsPerLevel(field.level)(dim), field.layout(dim).total - field.layout(dim).numPadLayersLeft - field.layout(dim).numPadLayersRight)
+          if (Knowledge.maxLevel == field.level) {
+            maxCommSlidesPerLevel(dim) = math.max(maxCommSlidesPerLevel(dim), math.max(field.layout(dim).numGhostLayersLeft, field.layout(dim).numGhostLayersRight))
+            maxCommSlidesPerLevel(dim) = math.max(maxCommSlidesPerLevel(dim), math.max(field.layout(dim).numDupLayersLeft, field.layout(dim).numDupLayersRight))
+          }
         }
       }
-    }
 
-    for (neigh <- neighbors) {
-      var size : String = "";
-      var sizeArray = new ListBuffer[String]();
-      for (i <- DimArray())
-        if (0 == neigh.dir(i))
-          sizeArray += s"${maxPointsPerLevel(Knowledge.maxLevel)(i)}";
-        else
-          sizeArray += s"${maxCommSlidesPerLevel(i)}";
+      for (neigh <- neighbors) {
+        var size : String = "";
+        var sizeArray = new ListBuffer[String]();
+        for (i <- DimArray())
+          if (0 == neigh.dir(i))
+            sizeArray += s"${maxPointsPerLevel(Knowledge.maxLevel)(i)}";
+          else
+            sizeArray += s"${maxCommSlidesPerLevel(i)}";
 
-      size += sizeArray.mkString(" * ");
+        size += sizeArray.mkString(" * ");
 
-      body += s"buffer_Send[${neigh.index}] = new double[$size];";
-      body += s"buffer_Recv[${neigh.index}] = new double[$size];";
-      body += s"maxElemRecvBuffer[${neigh.index}] = $size;";
+        body += s"buffer_Send[${neigh.index}] = new double[$size];";
+        body += s"buffer_Recv[${neigh.index}] = new double[$size];";
+        body += s"maxElemRecvBuffer[${neigh.index}] = $size;";
+      }
     }
 
     return FunctionStatement(new UnitDatatype(), s"setupBuffers", ListBuffer(), body);

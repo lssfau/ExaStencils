@@ -29,24 +29,30 @@ object SetupFragmentClass extends Strategy("Setting up fragment class") {
       Some(frag)
   })
 
-  this += new Transformation("Adding basic functions to CommunicationFunctions", {
-    case commFu : CommunicationFunctions =>
-      commFu.functions += new WaitForMPIReq
-      Some(commFu)
-  })
+  if (Knowledge.useMPI) {
+    this += new Transformation("Adding basic functions to CommunicationFunctions", {
+      case commFu : CommunicationFunctions =>
+        commFu.functions += new WaitForMPIReq
+        Some(commFu)
+    })
+  }
 
   this += new Transformation("Adding basic functions to FragmentClass", {
     case frag : FragmentClass =>
-      frag.functions += new ConnectLocalElement()
-      frag.functions += new ConnectRemoteElement()
+      if (Knowledge.useOMP)
+        frag.functions += new ConnectLocalElement()
+      if (Knowledge.useMPI)
+        frag.functions += new ConnectRemoteElement()
       frag.functions += new SetupBuffers(fieldCollection.fields, frag.neighbors)
       Some(frag)
   })
 
   this += new Transformation("Adding communication functions to FragmentClass", {
     case frag : FragmentClass =>
-      communicationFunctions.functions += new WaitForMPISendOps(frag.neighbors)
-      communicationFunctions.functions += new WaitForMPIRecvOps(frag.neighbors)
+      if (Knowledge.useMPI) {
+        communicationFunctions.functions += new WaitForMPISendOps(frag.neighbors)
+        communicationFunctions.functions += new WaitForMPIRecvOps(frag.neighbors)
+      }
       for (field <- fieldCollection.fields) {
         if (6 == Knowledge.comm_strategyFragment) // FIXME: generic call pattern
           communicationFunctions.functions += new ExchangeData_6(field, frag.neighbors)

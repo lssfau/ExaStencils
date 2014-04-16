@@ -20,6 +20,7 @@ import exastencils.spl.FeatureModel
 import exastencils.parsers.l4.ParserL4
 import exastencils.datastructures.l4.ProgressableToIr
 import exastencils.languageprocessing.l4.ProgressToIr
+import exastencils.mpi._
 
 object Main {
   def main(args : Array[String]) : Unit = {
@@ -188,9 +189,8 @@ object Main {
         // HACK to realize print function -> FIXME
         case ExpressionStatement(FunctionCallExpression(StringConstant("print"), args)) =>
           new Scope(ListBuffer[Statement](
-            "int rank;",
-            "MPI_Comm_rank(MPI_COMM_WORLD, &rank);",
-            new ConditionStatement("0 == rank",
+            new MPI_SetRankAndSize,
+            new ConditionStatement(new MPI_IsRootProc,
               ("std::cout << " : Expression) ~ args.reduceLeft((l, e) => l ~ "<< \" \" <<" ~ e) ~ "<< std::endl;")))
 
         // HACK to realize return functionality -> FIXME: move to specialized node
@@ -212,6 +212,20 @@ object Main {
 
     do { ExpandStrategy.apply; }
     while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
+
+    if (!Knowledge.useMPI) {
+      (new Strategy("RemoveMPIReferences") {
+        this += new Transformation("CleaningFunctions", {
+          // FIXME: should delete node, currently not fully implemented -> QUICKFIX returns empty statements
+          case _ : MPI_Barrier        => new NullStatement
+          case _ : MPI_Finalize       => new NullStatement
+          case _ : MPI_Init           => new NullStatement
+          case _ : MPI_SetRankAndSize => new NullStatement
+
+          case _ : MPI_IsRootProc     => BooleanConstant(true)
+        })
+      }).apply
+    }
 
     do { SimplifyStrategy.apply; }
     while (SimplifyStrategy.results.last._2.replacements > 0) // FIXME: cleaner code

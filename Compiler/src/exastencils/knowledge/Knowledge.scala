@@ -128,6 +128,7 @@ object Knowledge {
 
   // --- OpenMP/Hybrid Parallelization ---
   var useOMP : Boolean = true
+  var useMPI : Boolean = true
 
   // --- Communication ---
   var comm_strategyFragment : Int = 6 //26
@@ -156,7 +157,8 @@ object Knowledge {
       case "InPlace_Smoother" => CoarseGridSolverType.IP_Smoother
     }
 
-    useOMP = domain_summarizeBlocks || domain_numFragsPerBlock_x != 1 || domain_numFragsPerBlock_y != 1 || domain_numFragsPerBlock_z != 1
+    useOMP = domain_summarizeBlocks || domain_numFragsPerBlock != 1
+    useMPI = (domain_numBlocks != 1)
 
     numLevels = maxLevel + 1
 
