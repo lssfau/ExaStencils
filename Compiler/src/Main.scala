@@ -80,19 +80,19 @@ object Main {
       { // fields requiring (ghost-layer) communication
         val layout = DimArray().map(dim => new FieldLayoutPerDim(if (0 == dim) 1 else 0, Knowledge.data_numGhostLayers, 1, ((Knowledge.domain_fragLengthPerDim(dim) * (1 << level)) + 1) - 2 /*dup*/ , 1, Knowledge.data_numGhostLayers, 0)) ++
           (Knowledge.dimensionality until 3).toArray.map(dim => new FieldLayoutPerDim(0, 0, 0, 1, 0, 0, 0))
-        fieldCollection.fields += new Field("Solution", 0, "solData", "double", layout, level, Knowledge.data_numSolSlots, new MultiIndex(layout.map(l => l.idxDupLeftBegin)), true);
-        fieldCollection.fields += new Field("Residual", 0, "resData", "double", layout, level, Knowledge.data_numSolSlots, new MultiIndex(layout.map(l => l.idxDupLeftBegin)), false);
+        fieldCollection.fields += new Field("Solution", 0, "solData", "double", layout, level, Knowledge.data_numSolSlots, new MultiIndex(layout.map(l => l.idxDupLeftBegin)), true)
+        fieldCollection.fields += new Field("Residual", 0, "resData", "double", layout, level, Knowledge.data_numSolSlots, new MultiIndex(layout.map(l => l.idxDupLeftBegin)), false)
       }
       { // fields without ghost layers
         val layout = DimArray().map(dim => new FieldLayoutPerDim(0, 0, 1, ((Knowledge.domain_fragLengthPerDim(dim) * (1 << level)) + 1) - 2 /*dup*/ , 1, 0, 0)) ++
           (Knowledge.dimensionality until 3).toArray.map(dim => new FieldLayoutPerDim(0, 0, 0, 1, 0, 0, 0))
-        fieldCollection.fields += new Field("RHS", 0, "rhsData", "double", layout, level, Knowledge.data_numSolSlots, new MultiIndex(layout.map(l => l.idxDupLeftBegin)), false);
+        fieldCollection.fields += new Field("RHS", 0, "rhsData", "double", layout, level, Knowledge.data_numSolSlots, new MultiIndex(layout.map(l => l.idxDupLeftBegin)), false)
       }
     }*/
 
     // setup basic sub-nodes
 
-    //do { ExpandStrategy.apply; }
+    //do { ExpandStrategy.apply }
     //while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
 
     // Harald
@@ -191,26 +191,26 @@ object Main {
           new Scope(ListBuffer[Statement](
             new MPI_SetRankAndSize,
             new ConditionStatement(new MPI_IsRootProc,
-              ("std::cout << " : Expression) ~ args.reduceLeft((l, e) => l ~ "<< \" \" <<" ~ e) ~ "<< std::endl;")))
+              ("std::cout << " : Expression) ~ args.reduceLeft((l, e) => l ~ "<< \" \" <<" ~ e) ~ "<< std::endl")))
 
         // HACK to realize return functionality -> FIXME: move to specialized node
         case ExpressionStatement(FunctionCallExpression(StringConstant("return"), args)) =>
           args.size match {
-            case 0 => "return;" : Statement
-            case 1 => ("return " ~ args(0) ~ ";") : Statement
+            case 0 => "return" : Statement
+            case 1 => ("return " ~ args(0)) : Statement
             case _ => "ERROR - unsupported return function statement" : Statement
           }
       })
     }).apply
 
-    do { ExpandStrategy.apply; }
+    do { ExpandStrategy.apply }
     while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
 
-    SetupFragmentClass.apply;
-    SetupMultiGrid.apply;
-    SetupApplication.apply;
+    SetupFragmentClass.apply
+    SetupMultiGrid.apply
+    SetupApplication.apply
 
-    do { ExpandStrategy.apply; }
+    do { ExpandStrategy.apply }
     while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
 
     if (!Knowledge.useMPI) {
@@ -227,18 +227,18 @@ object Main {
       }).apply
     }
 
-    do { SimplifyStrategy.apply; }
+    do { SimplifyStrategy.apply }
     while (SimplifyStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
 
-    AddMemberFunctionPrefix.apply;
+    AddMemberFunctionPrefix.apply
 
     if (Knowledge.useOMP) {
-      AddOMPPragmas.apply;
+      AddOMPPragmas.apply
     }
 
-    PrintStrategy.apply;
-    PrettyprintingManager.finish;
+    PrintStrategy.apply
+    PrettyprintingManager.finish
 
-    println("Done!");
+    println("Done!")
   }
 }

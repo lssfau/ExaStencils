@@ -36,6 +36,10 @@ object ExpandStrategy extends Strategy("Expanding") {
 }
 
 object SimplifyStrategy extends Strategy("Simplifying") {
+  // FIXME: remove NullExpressions / NullStatements
+  // FIXME: remove empty functions
+  // FIXME: remove (true) conditions
+  
   this += new Transformation("Improving the quality of some horrid code...", {
     // FIXME: for re-runs only the number of replacements of the last trafo is checked, thus only one big trafo (should also improve performance)
     // TODO: extend for general data types; extend with missing cases; extend for left-right-switched cases
