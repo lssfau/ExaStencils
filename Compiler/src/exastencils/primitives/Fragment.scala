@@ -70,17 +70,17 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
       cTorNeighLoopList += s"neighbor_remoteRank[d][i] = MPI_PROC_NULL"
 
       for (sendOrRecv <- Array("Send", "Recv")) {
-        declarations += StringConstant(s"MPI_Request request_${sendOrRecv}[$numNeighbors]")
-        declarations += StringConstant(s"bool reqOutstanding_${sendOrRecv}[$numNeighbors]")
-        cTorNeighLoopList += StringConstant(s"reqOutstanding_${sendOrRecv}[i] = false")
+        declarations += s"MPI_Request request_${sendOrRecv}[$numNeighbors]"
+        declarations += s"bool reqOutstanding_${sendOrRecv}[$numNeighbors]"
+        cTorNeighLoopList += s"reqOutstanding_${sendOrRecv}[i] = false"
 
-        declarations += StringConstant(s"double* buffer_${sendOrRecv}[$numNeighbors];")
-        cTorNeighLoopList += StringConstant(s"buffer_${sendOrRecv}[i] = NULL")
-        dTorNeighLoopList += StringConstant(s"if (buffer_${sendOrRecv}[i]) { delete [] buffer_${sendOrRecv}[i]; buffer_${sendOrRecv}[i] = 0; }")
+        declarations += s"double* buffer_${sendOrRecv}[$numNeighbors]"
+        cTorNeighLoopList += s"buffer_${sendOrRecv}[i] = NULL"
+        dTorNeighLoopList += s"if (buffer_${sendOrRecv}[i]) { delete [] buffer_${sendOrRecv}[i]; buffer_${sendOrRecv}[i] = 0; }"
       }
 
-      declarations += StringConstant(s"int maxElemRecvBuffer[$numNeighbors]")
-      cTorNeighLoopList += StringConstant(s"maxElemRecvBuffer[i] = 0")
+      declarations += s"int maxElemRecvBuffer[$numNeighbors]"
+      cTorNeighLoopList += s"maxElemRecvBuffer[i] = 0"
     }
 
     cTorBody += new ForLoopStatement(s"unsigned int d = 0", s"d < ${Knowledge.domain_numSubdomains}", s"++d",

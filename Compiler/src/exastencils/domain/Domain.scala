@@ -64,7 +64,7 @@ case class AssertStatement(var check : Expression, var msg : Expression, var abo
   override def expand(collector : StackCollector) : ConditionStatement = {
     new ConditionStatement(check,
       ListBuffer[Statement](
-        "LOG_ERROR(" ~ msg ~ ");",
+        "LOG_ERROR(" ~ msg ~ ")",
         abort))
   }
 }
@@ -108,7 +108,7 @@ case class ConnectFragments() extends Statement with Expandable {
     if (Knowledge.useMPI || Knowledge.useOMP) {
       for (neigh <- neighbors) {
         body += new Scope(ListBuffer[Statement](
-          s"Vec3 offsetPos = curFragment.pos + Vec3(${neigh.dir(0)} * ${Knowledge.domain_fragWidth_x}, ${neigh.dir(1)} * ${Knowledge.domain_fragWidth_y}, ${neigh.dir(2)} * ${Knowledge.domain_fragWidth_z});") ++
+          s"Vec3 offsetPos = curFragment.pos + Vec3(${neigh.dir(0)} * ${Knowledge.domain_fragWidth_x}, ${neigh.dir(1)} * ${Knowledge.domain_fragWidth_y}, ${neigh.dir(2)} * ${Knowledge.domain_fragWidth_z})") ++
           (0 until Knowledge.domain_numSubdomains).toArray[Int].map(d =>
             new ConditionStatement(s"curFragment.isValidForSubdomain[$d]" And PointInsideDomain(s"offsetPos", d),
               if (Knowledge.useMPI) {
@@ -128,7 +128,7 @@ case class SetupBuffers() extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = SetupBuffers\n"
 
   override def expand(collector : StackCollector) : LoopOverFragments = {
-    new LoopOverFragments("curFragment.setupBuffers();") with OMP_PotentiallyParallel
+    new LoopOverFragments("curFragment.setupBuffers()") with OMP_PotentiallyParallel
   }
 }
 
@@ -174,10 +174,10 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
             ~ (if (Knowledge.dimensionality > 1) (("rankPos.y" : Expression) * Knowledge.domain_numFragsPerBlock_y + 0.5 + "y") * Knowledge.domain_fragWidth_y else 0) ~ ","
             ~ (if (Knowledge.dimensionality > 2) (("rankPos.z" : Expression) * Knowledge.domain_numFragsPerBlock_z + 0.5 + "z") * Knowledge.domain_fragWidth_z else 0) ~ ")")),
         LoopOverFragments(ListBuffer(
-          s"fragments[f] = new Fragment3DCube();",
-          s"fragments[f]->id = " ~ PointToFragmentId("positions[f]") ~ ";",
-          s"fragments[f]->pos = positions[f];",
-          s"fragmentMap[fragments[f]->id] = fragments[f];"),
+          s"fragments[f] = new Fragment3DCube()",
+          s"fragments[f]->id = " ~ PointToFragmentId("positions[f]"),
+          s"fragments[f]->pos = positions[f]",
+          s"fragmentMap[fragments[f]->id] = fragments[f]"),
           None,
           false),
         ConnectFragments(),

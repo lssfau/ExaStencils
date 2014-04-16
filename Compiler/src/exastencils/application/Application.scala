@@ -16,12 +16,12 @@ import exastencils.mpi._
 import exastencils.omp._
 
 case class InitFields() extends Statement {
-  override def cpp : String = "NOT VALID ; CLASS = InitFields\n";
+  override def cpp : String = "NOT VALID ; CLASS = InitFields\n"
 
   def expandSpecial(fields : FieldCollection) : LoopOverFragments = {
-    var body : ListBuffer[Statement] = new ListBuffer;
+    var body : ListBuffer[Statement] = new ListBuffer
 
-    body += s"std::srand((unsigned int)fragments[f]->id);";
+    body += s"std::srand((unsigned int)fragments[f]->id)"
 
     for (field <- fields.fields) {
       body += new LoopOverDimensions(new IndexRange(
@@ -30,7 +30,7 @@ case class InitFields() extends Statement {
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           new AssignmentStatement(
             new DirectFieldAccess("curFragment.", field, slot, DefaultLoopMultiIndex()),
-            0.0) : Statement)) with OMP_PotentiallyParallel;
+            0.0) : Statement)) with OMP_PotentiallyParallel
     }
 
     // special treatment for the finest level 
@@ -41,25 +41,25 @@ case class InitFields() extends Statement {
           new MultiIndex(field.layout(0).idxDupLeftBegin, field.layout(1).idxDupLeftBegin, field.layout(2).idxDupLeftBegin),
           new MultiIndex(field.layout(0).idxDupRightEnd, field.layout(1).idxDupRightEnd, field.layout(2).idxDupRightEnd)),
           ListBuffer[Statement](
-            s"double val = (double)std::rand() / RAND_MAX;") ++
+            s"double val = (double)std::rand() / RAND_MAX") ++
             (0 until field.numSlots).to[ListBuffer].map(slot =>
               new AssignmentStatement(
                 new DirectFieldAccess("curFragment.", field, slot, DefaultLoopMultiIndex()),
-                s"val") : Statement));
+                s"val") : Statement))
     }
 
-    return new LoopOverFragments(body);
+    return new LoopOverFragments(body)
   }
 }
 
 case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = Poisson3DMain\n";
+  override def cpp : String = "NOT VALID ; CLASS = Poisson3DMain\n"
 
   override def expand(collector : StackCollector) : FunctionStatement = {
     // FIXME: make the next line of code more readable and robust
-    val globals : Globals = StateManager.root.asInstanceOf[Root].nodes.find(node => node.isInstanceOf[Globals]).get.asInstanceOf[Globals];
+    val globals : Globals = StateManager.root.asInstanceOf[Root].nodes.find(node => node.isInstanceOf[Globals]).get.asInstanceOf[Globals]
 
-    globals.variables += new VariableDeclarationStatement(new VariableAccess(s"fragments[${Knowledge.domain_numFragsPerBlock}]", Some("Fragment3DCube*")));
+    globals.variables += new VariableDeclarationStatement(new VariableAccess(s"fragments[${Knowledge.domain_numFragsPerBlock}]", Some("Fragment3DCube*")))
 
     new FunctionStatement("int", "main", ListBuffer(VariableAccess("argc", Some("int")), VariableAccess("argv", Some("char**"))),
       (if (Knowledge.useMPI)
@@ -94,96 +94,22 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
 
           new MPI_Barrier,
 
-          /*s"updateResidual_${Knowledge.maxLevel}(0);",
-        s"double lastRes = getGlobalResidual();",
-        s"double initialRes = lastRes;",
-
-        s"unsigned int curIt;",
-        s"unsigned int solSlots[${Knowledge.numLevels}];",
-        new ForLoopStatement(s"unsigned int s = 0", s"s <= ${Knowledge.maxLevel}", "++s",
-          s"solSlots[s] = 0;"),
-
-        s"double minTime = FLT_MAX;",
-        s"double maxTime = 0;",
-        s"double meanTime = 0;",
-        s"StopWatch stopWatch;",
-        s"StopWatch stopWatchTotal;",
-
-        new ForLoopStatement(s"curIt = 0", s"curIt < ${Knowledge.mgMaxNumIterations}", s"++curIt",
-          ListBuffer[Statement](
-            s"stopWatch.reset();",
-
-            s"performVCycle_${Knowledge.maxLevel}(solSlots);",
-
-            s"double tDuration = stopWatch.getTimeInMilliSecAndReset();",
-            s"minTime = std::min(minTime, tDuration);",
-            s"maxTime = std::max(maxTime, tDuration);",
-            s"meanTime += tDuration;",
-
-            s"double res = getGlobalResidual();",
-
-            new ConditionStatement(new MPI_IsRootProc,
-              "LOG_NOTE(\"Iteration \" << curIt << \"\\n\\tCurrent residual (L2-norm): \" << res << \"\\n\\tRuntime for the current v-cycle: \" << tDuration << \"\\n\\tReduction: \" << res / lastRes);"),
-
-            s"lastRes = res;",
-
-            // FIXME: set this criterion externally
-            new ConditionStatement("res < 1e-8 * initialRes", ListBuffer[Statement](
-              s"++curIt;",
-              s"break;")))),
-
-        new MPI_Barrier,
-
-        new ConditionStatement(new MPI_IsRootProc,
-          // FIXME: extract to separate node / think about how to determine which info to print automatically
-          // FIXME: think about a more intuitive way of printing information
-          ListBuffer[Statement](
-            s"double totalTime = stopWatchTotal.getTimeInMilliSecAndReset();",
-            "std::cout << "
-              + "\"" + Knowledge.cgs + "\\t\" << "
-              + "\"" + Knowledge.smoother + "\\t\" << "
-              + Knowledge.numBlocks_x + " << \"\\t\" << "
-              + Knowledge.numBlocks_y + " << \"\\t\" << "
-              + Knowledge.numBlocks_z + " << \"\\t\" << "
-              + Knowledge.numFragsPerBlock_x + " << \"\\t\" << "
-              + Knowledge.numFragsPerBlock_y + " << \"\\t\" << "
-              + Knowledge.numFragsPerBlock_z + " << \"\\t\" << "
-              + 0 + " << \"\\t\" << "
-              + Knowledge.maxLevel + " << \"\\t\" << "
-              + Knowledge.cgsNumSteps + " << \"\\t\" << "
-              + Knowledge.smootherNumPre + " << \"\\t\" << "
-              + Knowledge.smootherNumPost + " << \"\\t\" << "
-              + Knowledge.smootherOmega + " << \"\\t\" << "
-              + "curIt << \"\\t\" << "
-              + "totalTime << \"\\t\" << "
-              + "meanTime << \"\\t\" << "
-              + "minTime << \"\\t\" << "
-              + "maxTime << \"\\n\";")),
-
-        new MPI_Barrier,
-				
-        new ConditionStatement(new MPI_IsRootProc,
-          s"std::cout << std::endl;"),
-
-        // FIXME: free primitives
-        */
-
           "Application()", // TODO: think about inlining the App
 
           new MPI_Finalize,
 
-          s"return 0"));
+          s"return 0"))
   }
 }
 
 case class Poisson3D() extends Node with FilePrettyPrintable {
-  var functions_HACK : ListBuffer[AbstractFunctionStatement] = new ListBuffer;
-  functions_HACK += new Poisson3DMain;
+  var functions_HACK : ListBuffer[AbstractFunctionStatement] = new ListBuffer
+  functions_HACK += new Poisson3DMain
 
   override def printToFile = {
     // FIXME: cpp instead of include
-    //val writer = PrettyprintingManager.getPrinter(s"Poisson3D.h");
-    val writer = PrettyprintingManager.getPrinter(s"Poisson3D.cpp");
+    //val writer = PrettyprintingManager.getPrinter(s"Poisson3D.h")
+    val writer = PrettyprintingManager.getPrinter(s"Poisson3D.cpp")
 
     writer << (
       (if (Knowledge.useMPI) "#pragma warning(disable : 4800)\n" else "")
@@ -197,9 +123,9 @@ case class Poisson3D() extends Node with FilePrettyPrintable {
       + "#include \"Util/Vector.h\"\n"
       + "#include \"Util/Stopwatch.h\"\n"
       + "#include \"MultiGrid/MultiGrid.h\"\n"
-      + "#include \"Domains/DomainGenerated.h\"\n");
+      + "#include \"Domains/DomainGenerated.h\"\n")
 
     for (function <- functions_HACK)
-      writer << function.cpp + "\n";
+      writer << function.cpp + "\n"
   }
 }

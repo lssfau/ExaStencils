@@ -12,30 +12,30 @@ import exastencils.mpi._
 import exastencils.omp._
 
 case class LocalSend(var field : Field, var neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) extends Statement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = LocalSend\n";
+  override def cpp : String = "NOT VALID ; CLASS = LocalSend\n"
 
   def expand(collector : StackCollector) : LoopOverFragments = {
     new LoopOverFragments(
       neighbors.map(neigh =>
         (new ConditionStatement(new getNeighInfo_IsValidAndNotRemote(neigh._1, field.domain),
           ListBuffer[Statement](
-            s"unsigned int entry = 0;",
+            s"unsigned int entry = 0",
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(
                 new DirectFieldAccess(new getNeighInfo_LocalPtr(neigh._1, field.domain) ~ "->", field, "slot", new MultiIndex(
                   StringConstant("x") + neigh._3.begin(0) - neigh._2.begin(0),
                   StringConstant("y") + neigh._3.begin(1) - neigh._2.begin(1),
                   StringConstant("z") + neigh._3.begin(2) - neigh._2.begin(2))),
-                new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel))) : Statement)) with OMP_PotentiallyParallel;
+                new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel))) : Statement)) with OMP_PotentiallyParallel
   }
 }
 
 case class CopyToSendBuffer(var field : Field, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = CopyToSendBuffer\n";
+  override def cpp : String = "NOT VALID ; CLASS = CopyToSendBuffer\n"
 
   def expand(collector : StackCollector) : LoopOverFragments = {
     // TODO: check if a for loop could be used
-    var body : ListBuffer[Statement] = new ListBuffer;
+    var body : ListBuffer[Statement] = new ListBuffer
 
     new LoopOverFragments(neighbors.
       filterNot(neigh => Knowledge.comm_useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))).
@@ -43,15 +43,15 @@ case class CopyToSendBuffer(var field : Field, var neighbors : ListBuffer[(Neigh
       map(neigh =>
         new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
           ListBuffer[Statement](
-            s"unsigned int entry = 0;",
+            s"unsigned int entry = 0",
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(s"curFragment.buffer_Send[${neigh._1.index}][entry++]",
-                new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()))))) : Statement)) with OMP_PotentiallyParallel;
+                new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()))))) : Statement)) with OMP_PotentiallyParallel
   }
 }
 
 case class CopyFromRecvBuffer(var field : Field, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = CopyFromRecvBuffer\n";
+  override def cpp : String = "NOT VALID ; CLASS = CopyFromRecvBuffer\n"
 
   def expand(collector : StackCollector) : LoopOverFragments = {
     new LoopOverFragments(neighbors.
@@ -60,60 +60,59 @@ case class CopyFromRecvBuffer(var field : Field, var neighbors : ListBuffer[(Nei
       map(neigh =>
         (new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
           ListBuffer[Statement](
-            s"unsigned int entry = 0;",
+            s"unsigned int entry = 0",
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()),
-                s"curFragment.buffer_Recv[${neigh._1.index}][entry++];"))))) : Statement)) with OMP_PotentiallyParallel;
+                s"curFragment.buffer_Recv[${neigh._1.index}][entry++]"))))) : Statement)) with OMP_PotentiallyParallel
   }
 }
 
 case class RemoteSend(var field : Field, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = RemoteSend\n";
+  override def cpp : String = "NOT VALID ; CLASS = RemoteSend\n"
 
   def addMPIDatatype(mpiTypeNameBase : String, indexRange : IndexRange) : String = {
-    // FIXME: make the next line of code more readable and robust
-    val globals : Globals = StateManager.root.asInstanceOf[Root].nodes.find(node => node.isInstanceOf[Globals]).get.asInstanceOf[Globals];
+    val globals : Globals = StateManager.findFirst[Globals]().get
 
-    var addToName = 0;
+    var addToName = 0
     while (globals.variables.count(v => s"${mpiTypeNameBase}_${addToName}" == v.variable.name) > 0)
-      addToName += 1;
+      addToName += 1
 
-    val mpiTypeName = mpiTypeNameBase + s"_${addToName}";
+    val mpiTypeName = mpiTypeNameBase + s"_${addToName}"
 
-    globals.variables += new VariableDeclarationStatement(new VariableAccess(mpiTypeName, Some("MPI_Datatype")));
+    globals.variables += new VariableDeclarationStatement(new VariableAccess(mpiTypeName, Some("MPI_Datatype")))
 
     // FIXME: this comparison doesn't work with the new MultiIndex 
     if (indexRange.begin(1) == indexRange.end(1) || indexRange.begin(2) == indexRange.end(2))
-      globals.initFunction.body += InitMPIDataType(mpiTypeName, field, indexRange);
+      globals.initFunction.body += InitMPIDataType(mpiTypeName, field, indexRange)
 
     // TODO: free datatype
 
-    return mpiTypeName;
+    return mpiTypeName
   }
 
   def expand(collector : StackCollector) : LoopOverFragments = {
     // TODO: check if a for loop could be used
-    var body : ListBuffer[Statement] = new ListBuffer;
+    var body : ListBuffer[Statement] = new ListBuffer
 
     for (neigh <- neighbors) {
-      var ptr : Expression = new NullExpression;
-      var cnt : Expression = new NullExpression;
-      var typeName : Expression = new NullExpression;
+      var ptr : Expression = new NullExpression
+      var cnt : Expression = new NullExpression
+      var typeName : Expression = new NullExpression
 
       // FIXME: these comparisons don't work with the new MultiIndex 
       if (neigh._2.begin(0) == neigh._2.end(0) && neigh._2.begin(1) == neigh._2.end(1) && neigh._2.begin(2) == neigh._2.end(2)) {
-        ptr = s"&" ~ new DirectFieldAccess("curFragment.", field, "slot", neigh._2.begin);
-        cnt = 1;
-        typeName = s"MPI_DOUBLE";
+        ptr = s"&" ~ new DirectFieldAccess("curFragment.", field, "slot", neigh._2.begin)
+        cnt = 1
+        typeName = s"MPI_DOUBLE"
       } else if (Knowledge.comm_useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))) {
-        val mpiTypeName = addMPIDatatype(s"mpiType_Send_${field.codeName.cpp}_${neigh._1.index}", neigh._2);
-        ptr = s"&" ~ new DirectFieldAccess("curFragment.", field, "slot", neigh._2.begin);
-        cnt = 1;
-        typeName = mpiTypeName;
+        val mpiTypeName = addMPIDatatype(s"mpiType_Send_${field.codeName.cpp}_${neigh._1.index}", neigh._2)
+        ptr = s"&" ~ new DirectFieldAccess("curFragment.", field, "slot", neigh._2.begin)
+        cnt = 1
+        typeName = mpiTypeName
       } else {
-        ptr = s"curFragment.buffer_Send[${neigh._1.index}]";
-        cnt = DimArray().map(i => neigh._2.end(i) - neigh._2.begin(i)).reduceLeft(_ * _);
-        typeName = s"MPI_DOUBLE";
+        ptr = s"curFragment.buffer_Send[${neigh._1.index}]"
+        cnt = DimArray().map(i => neigh._2.end(i) - neigh._2.begin(i)).reduceLeft(_ * _)
+        typeName = s"MPI_DOUBLE"
       }
 
       body +=
@@ -122,58 +121,58 @@ case class RemoteSend(var field : Field, var neighbors : ListBuffer[(NeighborInf
             new MPI_Send(ptr, cnt, typeName, new getNeighInfo_RemoteRank(neigh._1, field.domain),
               s"((unsigned int)curFragment.id << 16) + ((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1, field.domain)).cpp + ") & 0x0000ffff)",
               s"curFragment.request_Send[${neigh._1.index}]") /*with OMP_PotentiallyCritical*/ ,
-            s"curFragment.reqOutstanding_Send[${neigh._1.index}] = true;"));
+            s"curFragment.reqOutstanding_Send[${neigh._1.index}] = true"))
     }
 
-    new LoopOverFragments(body) /*with OMP_PotentiallyParallel*/ ;
+    new LoopOverFragments(body) /*with OMP_PotentiallyParallel*/
   }
 }
 
 case class RemoteReceive(var field : Field, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = RemoteReceive\n";
+  override def cpp : String = "NOT VALID ; CLASS = RemoteReceive\n"
 
   def addMPIDatatype(mpiTypeNameBase : String, indexRange : IndexRange) : String = {
     // FIXME: make the next line of code more readable and robust
-    val globals : Globals = StateManager.root.asInstanceOf[Root].nodes.find(node => node.isInstanceOf[Globals]).get.asInstanceOf[Globals];
+    val globals : Globals = StateManager.findFirst[Globals]().get
 
-    var addToName = 0;
+    var addToName = 0
     while (globals.variables.count(v => s"${mpiTypeNameBase}_${addToName}" == v.variable.name) > 0)
-      addToName += 1;
+      addToName += 1
 
-    val mpiTypeName = mpiTypeNameBase + s"_${addToName}";
+    val mpiTypeName = mpiTypeNameBase + s"_${addToName}"
 
-    globals.variables += new VariableDeclarationStatement(new VariableAccess(mpiTypeName, Some("MPI_Datatype")));
+    globals.variables += new VariableDeclarationStatement(new VariableAccess(mpiTypeName, Some("MPI_Datatype")))
 
     if (indexRange.begin(1) == indexRange.end(1) || indexRange.begin(2) == indexRange.end(2))
-      globals.initFunction.body += InitMPIDataType(mpiTypeName, field, indexRange);
+      globals.initFunction.body += InitMPIDataType(mpiTypeName, field, indexRange)
 
     // TODO: free datatype
 
-    return mpiTypeName;
+    return mpiTypeName
   }
 
   def expand(collector : StackCollector) : LoopOverFragments = {
     // TODO: check if a for loop could be used
-    var body : ListBuffer[Statement] = new ListBuffer;
+    var body : ListBuffer[Statement] = new ListBuffer
 
     for (neigh <- neighbors) {
-      var ptr : Expression = new NullExpression;
-      var cnt : Expression = new NullExpression;
-      var typeName : Expression = new NullExpression;
+      var ptr : Expression = new NullExpression
+      var cnt : Expression = new NullExpression
+      var typeName : Expression = new NullExpression
 
       if (neigh._2.begin(0) == neigh._2.end(0) && neigh._2.begin(1) == neigh._2.end(1) && neigh._2.begin(2) == neigh._2.end(2)) {
-        ptr = s"&" ~ new DirectFieldAccess("curFragment.", field, "slot", neigh._2.begin);
-        cnt = 1;
-        typeName = s"MPI_DOUBLE";
+        ptr = s"&" ~ new DirectFieldAccess("curFragment.", field, "slot", neigh._2.begin)
+        cnt = 1
+        typeName = s"MPI_DOUBLE"
       } else if (Knowledge.comm_useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))) {
-        val mpiTypeName = addMPIDatatype(s"mpiType_Recv_${field.codeName.cpp}_${neigh._1.index}", neigh._2);
-        ptr = s"&" ~ new DirectFieldAccess("curFragment.", field, "slot", neigh._2.begin);
-        cnt = 1;
-        typeName = mpiTypeName;
+        val mpiTypeName = addMPIDatatype(s"mpiType_Recv_${field.codeName.cpp}_${neigh._1.index}", neigh._2)
+        ptr = s"&" ~ new DirectFieldAccess("curFragment.", field, "slot", neigh._2.begin)
+        cnt = 1
+        typeName = mpiTypeName
       } else {
-        ptr = s"curFragment.buffer_Recv[${neigh._1.index}]";
-        cnt = s"curFragment.maxElemRecvBuffer[${neigh._1.index}]";
-        typeName = s"MPI_DOUBLE";
+        ptr = s"curFragment.buffer_Recv[${neigh._1.index}]"
+        cnt = s"curFragment.maxElemRecvBuffer[${neigh._1.index}]"
+        typeName = s"MPI_DOUBLE"
       }
 
       body += new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
@@ -181,26 +180,26 @@ case class RemoteReceive(var field : Field, var neighbors : ListBuffer[(Neighbor
           new MPI_Receive(ptr, cnt, typeName, new getNeighInfo_RemoteRank(neigh._1, field.domain),
             s"((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1, field.domain)).cpp + ") << 16) + ((unsigned int)curFragment.id & 0x0000ffff)",
             s"curFragment.request_Recv[${neigh._1.index}]") /*with OMP_PotentiallyCritical*/ ,
-          s"curFragment.reqOutstanding_Recv[${neigh._1.index}] = true;"));
+          s"curFragment.reqOutstanding_Recv[${neigh._1.index}] = true"))
     }
 
-    new LoopOverFragments(body) /*with OMP_PotentiallyParallel*/ ;
+    new LoopOverFragments(body) /*with OMP_PotentiallyParallel*/
   }
 }
 
 case class FinishRemoteSend(var neighbors : ListBuffer[NeighborInfo]) extends Statement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = FinishRemoteSend\n";
+  override def cpp : String = "NOT VALID ; CLASS = FinishRemoteSend\n"
 
   def expand(collector : StackCollector) : Statement = {
-    "waitForMPISendOps();";
+    "waitForMPISendOps()"
   }
 }
 
 case class FinishRemoteRecv(var neighbors : ListBuffer[NeighborInfo]) extends Statement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = FinishRemoteRecv\n";
+  override def cpp : String = "NOT VALID ; CLASS = FinishRemoteRecv\n"
 
   def expand(collector : StackCollector) : Statement = {
-    "waitForMPIRecvOps();";
+    "waitForMPIRecvOps()"
   }
 }
     

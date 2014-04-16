@@ -79,11 +79,11 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
 
     if (parallelizable)
       statements += new ForLoopStatement(s"int f = 0", s"f < " ~ Knowledge.domain_numFragsPerBlock, s"++f",
-        (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[f];") else ListBuffer[Statement]())
+        (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[f]") else ListBuffer[Statement]())
           ++ body, reduction) with OMP_PotentiallyParallel
     else
       statements += new ForLoopStatement(s"int f = 0", s"f < " ~ Knowledge.domain_numFragsPerBlock, s"++f",
-        (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[f];") else ListBuffer[Statement]())
+        (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[f]") else ListBuffer[Statement]())
           ++ body, reduction)
 
     if (Knowledge.useMPI && reduction.isDefined) {
