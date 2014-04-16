@@ -33,7 +33,7 @@ case class BooleanConstant(var value : Boolean) extends Expression {
 
 abstract class Identifier(var name : String) extends Expression
 
-case class UnresolvedIdentifier(var name2 : String, var level : Option[LevelSpecification]) extends Identifier(name2) {
+case class UnresolvedIdentifier(var name2 : String, var level : Option[LevelSpecification]) extends Identifier(name2) { // FIXME remove name2/re-use Identifier.name
   def progressToIr : ir.StringConstant = "ERROR - UnresolvedIdentifier"
 }
 
