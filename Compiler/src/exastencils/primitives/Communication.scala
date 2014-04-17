@@ -11,6 +11,15 @@ import exastencils.knowledge._
 import exastencils.mpi._
 import exastencils.omp._
 
+case class CommunicateStatement(var fieldName : String, var fieldLevel : Int) extends Statement with Expandable {
+  override def cpp : String = "NOT VALID ; CLASS = CommunicateStatement\n"
+
+  def expand(collector : StackCollector) : Statement = {
+    new FunctionCallExpression("exch" + StateManager.findFirst[FieldCollection]().get.getFieldByIdentifier(fieldName, fieldLevel).get.codeName /* QUICKFIX */ .cpp,
+      0 /* FIXME */ )
+  }
+}
+
 case class LocalSend(var field : Field, var neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = LocalSend\n"
 

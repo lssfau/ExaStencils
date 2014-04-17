@@ -91,7 +91,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| assignment
     ||| operatorassignment
     ||| locationize(functionCall ^^ { case f => FunctionCallStatement(f.identifier, f.arguments) })
-    ||| conditional)
+    ||| conditional
+    ||| communicateStatement)
 
   lazy val domainDeclaration = (locationize(("var" ~> ident) <~ (":" ~ "Domain") ^^ { case id => DomainDeclarationStatement(id) }))
   lazy val variableDeclaration = (locationize(("var" ~> ident) ~ (":" ~> datatype) ~ ("=" ~> expression).? ^^ { case id ~ dt ~ exp => VariableDeclarationStatement(BasicIdentifier(id), dt, exp) }))
@@ -153,6 +154,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val stencil = locationize(("Stencil" ~> ident) ~ level.? ~ ("{" ~> stencilentry.+ <~ "}")
     ^^ { case id ~ level ~ entries => StencilDeclarationStatement(id, entries, level) })
+
+  lazy val communicateStatement = locationize("communicate" ~> leveledidentifier ^^ { case field => CommunicateStatement(field) })
 
   // ######################################
   // ##### Expressions

@@ -1,9 +1,9 @@
 // FIXME: ghostlayers, padding, etc have to be left/right and have to be indices instead of ints
 Field Solution< [1, 1, 1], Real >@(0 to 4) ( ghostlayers = 1, slots = 1, bcDir = true )
 Field Residual< [1, 1, 1], Real >@(0 to 4) ( ghostlayers = 1 )
-Field RHS< [0, 0, 0], Real >@(0 to 4) ( communicate = false )
+Field RHS< [0, 0, 0], Real >@(0 to 4) ( communicates = false )
 Field VecP< [1, 1, 1], Real >@0 ( ghostlayers = 1 )
-Field VecGradP< [0, 0, 0], Real >@0 ( communicate = false )
+Field VecGradP< [0, 0, 0], Real >@0 ( communicates = false )
 
 Stencil Lapl@(0 to 4) {
 	[ 0,  0,  0] => 6
@@ -65,7 +65,7 @@ Set domain [0, 0, 0] - [0, 0, 0] steps [1, 1, 1]
 
 def VCycle@0 ( ) : Unit {
 	UpResidual@(current) ( )
-	exchresidualData@(current) ( 0 )
+	communicate Residual@(current)
 
 	var res : Real = L2Residual@(current) ( )
 	var initialRes : Real = res
@@ -75,7 +75,7 @@ def VCycle@0 ( ) : Unit {
 	}
 
 	repeat up 512 {
-		exchvecpData@(current) ( 0 )
+		communicate VecP@(current)
 
 		loop over inner on VecP@(current) {
 			VecGradP@(current) = Lapl@(current) * VecP@(current)
@@ -124,28 +124,28 @@ def VCycle@(1 to 4) ( ) : Unit {
 }
 
 def GaussSeidel@(1 to 4) ( ) : Unit { 
-	exchsolutionData@(current) ( 0 )
+	communicate Solution@(current)
 	loop over inner on Solution@(current) {
 		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 1.0 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
 	}
 }
 
 def UpResidual@(0 to 4) ( ) : Unit {
-	exchsolutionData@(current) ( 0 )
+	communicate Solution@(current)
 	loop over inner on Residual@(current) {
 		Residual@(current) = RHS@(current) - (Lapl@(current) * Solution@(current))
 	}
 }
 
 def Restrict @(1 to 4) ( ) : Unit { 
-	exchresidualData@(current) ( 0 )
+	communicate Residual@(current)
 	loop over innerForFieldsWithoutGhostLayers on RHS@(coarser) {
 		RHS@(coarser) = ToCoarser ( RestrictionStencil@(current) * Residual@(current) )
     }
 }
 
 def interpolatecorr@(1 to 4) ( ) : Unit { 
-	exchsolutionData@(current) ( 0 )  
+	communicate Solution@(current)
 	loop over inner on Solution@(current) {
 		Solution@(current) += ToFiner ( CorrectionStencil@(current) * Solution@(coarser) )
 	}
@@ -158,7 +158,7 @@ def set@(0 to 4) (value : Real) : Unit {
 }
 
 def L2Residual@(0, 4) ( ) : Real {
-	exchresidualData@(current) ( 0 )
+	communicate Residual@(current)
 	var res : Real = 0
 	loop over inner on Residual@(current) with reduction( + : res ) {
 		// FIXME: this counts duplicated values multiple times

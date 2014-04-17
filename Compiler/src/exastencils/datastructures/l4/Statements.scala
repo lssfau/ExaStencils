@@ -6,7 +6,9 @@ import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.primitives
 import exastencils.primitives._
+import exastencils.languageprocessing.l4.ProgressToIr
 
 abstract class Statement extends Node with ProgressableToIr {
   def progressToIr : ir.Statement
@@ -21,19 +23,19 @@ case class DomainDeclarationStatement(var name : String) extends SpecialStatemen
 }
 
 case class FieldDeclarationStatement(var name : String, var datatype : Datatype, var offset : Index, var level : Option[LevelSpecification]) extends SpecialStatement {
-  var communicate = true
+  var communicates = true
   var ghostlayers = 0
   var padding = 0
   var slots = 1
   var bcDir0 = false
   def set(t : TempOption) { // FIXME hack
     t.key match {
-      case "communicate" => communicate = t.value.toBoolean
-      case "ghostlayers" => ghostlayers = t.value.toInt
-      case "padding"     => padding = t.value.toInt
-      case "slots"       => slots = t.value.toInt
-      case "bcDir"       => bcDir0 = t.value.toBoolean
-      case _             => exastencils.core.ERROR(s"Unknown option ${t.key} = ${t.value}")
+      case "communicates" => communicates = t.value.toBoolean
+      case "ghostlayers"  => ghostlayers = t.value.toInt
+      case "padding"      => padding = t.value.toInt
+      case "slots"        => slots = t.value.toInt
+      case "bcDir"        => bcDir0 = t.value.toBoolean
+      case _              => exastencils.core.ERROR(s"Unknown option ${t.key} = ${t.value}")
     }
   }
 
@@ -56,7 +58,7 @@ case class FieldDeclarationStatement(var name : String, var datatype : Datatype,
       level.get.asInstanceOf[SingleLevelSpecification].level,
       slots,
       offset.progressToIr,
-      communicate,
+      communicates,
       bcDir0);
   }
 }
@@ -149,3 +151,9 @@ case class ConditionalStatement(var expression : BooleanExpression, var statemen
   }
 }
 
+case class CommunicateStatement(var identifier : Identifier) extends Statement {
+  def progressToIr : primitives.CommunicateStatement = {
+    primitives.CommunicateStatement(identifier.asInstanceOf[FieldIdentifier].name,
+      identifier.asInstanceOf[FieldIdentifier].level.asInstanceOf[SingleLevelSpecification].level)
+  }
+}

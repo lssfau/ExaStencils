@@ -41,7 +41,7 @@ class ExaLexer extends StdLexical {
   }
 
   // FIXME move to corresponding levels
-  reserved += ("let", "level", "def", "ToFine", "ToCoarse", "if", "else", "repeat", "reduction", "class", "block", "public", "order", "Communicate", "decl")
+  reserved += ("let", "level", "def", "ToFine", "ToCoarse", "if", "else", "repeat", "reduction", "class", "block", "public", "order", "communicate", "decl")
 
   /*
    * language level 1 keywords
