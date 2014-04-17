@@ -13,6 +13,9 @@ trait Expression extends Node with CppPrettyPrintable {
   def ~(exp : Expression) : ConcatenationExpression = {
     new ConcatenationExpression(ListBuffer(this, exp))
   }
+  def ~~(exp : Expression) : SpacedConcatenationExpression = {
+    new SpacedConcatenationExpression(ListBuffer(this, exp))
+  }
 
   import BinaryOperators._
   def +(other : Expression) = new BinaryExpression(Addition, this, other)
@@ -101,8 +104,16 @@ case class NullExpression() extends Expression {
 }
 
 case class ConcatenationExpression(var expressions : ListBuffer[Expression]) extends Expression {
-  override def cpp = expressions.map(e => e.cpp).mkString(" ")
+  override def cpp = expressions.map(e => e.cpp).mkString("")
   override def ~(exp : Expression) : ConcatenationExpression = {
+    expressions += exp
+    this
+  }
+}
+
+case class SpacedConcatenationExpression(var expressions : ListBuffer[Expression]) extends Expression {
+  override def cpp = expressions.map(e => e.cpp).mkString(" ")
+  override def ~~(exp : Expression) : SpacedConcatenationExpression = {
     expressions += exp
     this
   }
