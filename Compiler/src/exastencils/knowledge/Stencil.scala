@@ -1,6 +1,7 @@
 package exastencils.knowledge
 
 import scala.collection.mutable.ListBuffer
+import exastencils.core._
 import exastencils.core.collectors._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
@@ -27,3 +28,10 @@ case class StencilConvolution(var stencil : Stencil, var field : Field, var targ
   }
 }
 
+object FindStencilConvolutions extends Strategy("FindStencilConvolutions") {
+  this += new Transformation("SearchAndMark", {
+    case BinaryExpression(BinaryOperators.Multiplication, UnresolvedStencilAccess(stencilName, stencilLevel), UnresolvedFieldAccess(fieldOwner, fieldName, fieldLevel, fieldSlot, fieldIndex)) =>
+      StencilConvolution(StateManager.findFirst[StencilCollection]().get.getStencilByIdentifier(stencilName, stencilLevel).get,
+        StateManager.findFirst[FieldCollection]().get.getFieldByIdentifier(fieldName, fieldLevel).get)
+  })
+}

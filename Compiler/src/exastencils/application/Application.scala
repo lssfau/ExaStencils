@@ -107,8 +107,6 @@ case class Poisson3D() extends Node with FilePrettyPrintable {
   functions_HACK += new Poisson3DMain
 
   override def printToFile = {
-    // FIXME: cpp instead of include
-    //val writer = PrettyprintingManager.getPrinter(s"Poisson3D.h")
     val writer = PrettyprintingManager.getPrinter(s"Poisson3D.cpp")
 
     writer << (
