@@ -188,11 +188,10 @@ def Application ( ) : Unit {
 	var totalTime : Real = 0
 	repeat up 10 {
 		resold = res
-		native ( 'StopWatch stopWatch;' )
-		native ( 'stopWatch.reset();' )
+		startTimer ( stopWatch )
 		VCycle@6 (  )
 		UpResidual@6 ( )
-		native ( 'totalTime += stopWatch.getTimeInMilliSec();' )
+		stopTimer ( stopWatch, totalTime )
 		res = L2Residual@6 (  )
 		print ( '"Residual:"', res, '"Residual reduction:"', ( res0 / res ), '"Convergence factor:"', ( res / resold ) )
 	}

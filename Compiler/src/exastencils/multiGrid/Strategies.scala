@@ -91,5 +91,22 @@ object ResolveSpecialFunctions extends Strategy("ResolveSpecialFunctions") {
     // FIXME: UGLY HACK to realize native code functionality
     case FunctionCallExpression(StringConstant("native"), args) =>
       args(0).asInstanceOf[StringConstant]
+
+    // HACK to realize time measurement functionality -> FIXME: move to specialized node
+    case ExpressionStatement(FunctionCallExpression(StringConstant("startTimer"), args)) =>
+      new StatementBlock(ListBuffer[Statement](
+        "StopWatch " ~ args(0),
+        args(0) ~ ".reset()"))
+    case ExpressionStatement(FunctionCallExpression(StringConstant("stopTimer"), args)) =>
+      new Scope(ListBuffer[Statement](
+        "double timeTaken = " ~ args(0) ~ ".getTimeInMilliSec()",
+        if (Knowledge.useMPI)
+          new StatementBlock(ListBuffer[Statement](
+          new MPI_SetRankAndSize,
+          new MPI_Allreduce("&timeTaken", 1, BinaryOperators.Addition),
+          "timeTaken /= mpiSize"))
+        else
+          new NullStatement,
+        args(1) ~ " += timeTaken"))
   })
 }

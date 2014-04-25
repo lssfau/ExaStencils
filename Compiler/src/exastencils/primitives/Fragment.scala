@@ -204,14 +204,16 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
           if (Knowledge.useMPI) {
             body += new CopyToSendBuffer(field, sendRemoteData)
             body += new RemoteSend(field, sendRemoteData)
-            body += new LocalSend(field, sendLocalData)
+
+            if (Knowledge.useOMP)
+              body += new LocalSend(field, sendLocalData)
 
             body += new RemoteReceive(field, recvRemoteData)
             body += new FinishRemoteRecv(neighbors)
             body += new CopyFromRecvBuffer(field, recvRemoteData)
 
             body += new FinishRemoteSend(neighbors)
-          } else {
+          } else if (Knowledge.useOMP) {
             body += new LocalSend(field, sendLocalData)
           }
         }
@@ -280,14 +282,16 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
           if (Knowledge.useMPI) {
             body += new CopyToSendBuffer(field, sendRemoteData)
             body += new RemoteSend(field, sendRemoteData)
-            body += new LocalSend(field, sendLocalData)
+
+            if (Knowledge.useOMP)
+              body += new LocalSend(field, sendLocalData)
 
             body += new RemoteReceive(field, recvRemoteData)
             body += new FinishRemoteRecv(neighbors)
             body += new CopyFromRecvBuffer(field, recvRemoteData)
 
             body += new FinishRemoteSend(neighbors)
-          } else {
+          } else if (Knowledge.useOMP) {
             body += new LocalSend(field, sendLocalData)
           }
         }
@@ -383,14 +387,16 @@ case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) 
         if (Knowledge.useMPI) {
           body += new CopyToSendBuffer(field, sendRemoteData)
           body += new RemoteSend(field, sendRemoteData)
-          body += new LocalSend(field, sendLocalData)
+
+          if (Knowledge.useOMP)
+            body += new LocalSend(field, sendLocalData)
 
           body += new RemoteReceive(field, recvRemoteData)
           body += new FinishRemoteRecv(neighbors)
           body += new CopyFromRecvBuffer(field, recvRemoteData)
 
           body += new FinishRemoteSend(neighbors)
-        } else {
+        } else if (Knowledge.useOMP) {
           body += new LocalSend(field, sendLocalData)
         }
       }
@@ -456,14 +462,16 @@ case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) 
         if (Knowledge.useMPI) {
           body += new CopyToSendBuffer(field, sendRemoteData)
           body += new RemoteSend(field, sendRemoteData)
-          body += new LocalSend(field, sendLocalData)
+
+          if (Knowledge.useOMP)
+            body += new LocalSend(field, sendLocalData)
 
           body += new RemoteReceive(field, recvRemoteData)
           body += new FinishRemoteRecv(neighbors)
           body += new CopyFromRecvBuffer(field, recvRemoteData)
 
           body += new FinishRemoteSend(neighbors)
-        } else {
+        } else if (Knowledge.useOMP) {
           body += new LocalSend(field, sendLocalData)
         }
       }
