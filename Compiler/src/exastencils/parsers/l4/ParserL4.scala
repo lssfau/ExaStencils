@@ -47,15 +47,19 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val program = locationize(field.* ~ stencil.* ~ iterationSet.* ~ function.* ^^ { case f ~ s ~ i ~ ss => Root(f, s, i, ss) })
 
+  //###########################################################
+
   lazy val level = (
     singlelevel
-    ||| ("@" ~ "(" ~> levelsub) ~ ")" ^^ { case l ~ _ => l })
+    ||| ("@" ~ "(" ~> (levelsub ||| levelnegation ||| levellist)) ~ ")" ^^ { case l ~ _ => l })
+
+  lazy val levelnegation : Parser[LevelSpecification] = (
+    locationize((("not " ~ "(") ~> (levelsub ||| levellist)) ~ ")" ^^ { case l ~ _ => new NegatedLevelSpecification(l) }))
+
+  lazy val levellist : Parser[LevelSpecification] = (
+    locationize((levelsub <~ ",").* ~ levelsub ^^ { case a ~ b => var x = new ListLevelSpecification(); a.foreach(x.add(_)); x.add(b); x }))
 
   lazy val levelsub : Parser[LevelSpecification] = (
-    levelsubsub
-    ||| locationize((levelsubsub <~ ",").* ~ levelsubsub ^^ { case a ~ b => var x = new ListLevelSpecification(); a.foreach(x.add(_)); x.add(b); x }))
-
-  lazy val levelsubsub : Parser[LevelSpecification] = (
     locationize("current" ^^ { case _ => CurrentLevelSpecification() })
     ||| locationize("coarser" ^^ { case _ => CoarserLevelSpecification() })
     ||| locationize("finer" ^^ { case _ => FinerLevelSpecification() })

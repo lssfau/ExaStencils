@@ -22,3 +22,4 @@ case class CoarserLevelSpecification() extends LevelSpecification
 case class FinerLevelSpecification() extends LevelSpecification
 case class CoarsestLevelSpecification() extends LevelSpecification
 case class FinestLevelSpecification() extends LevelSpecification
+case class NegatedLevelSpecification(var l : LevelSpecification) extends LevelSpecification
