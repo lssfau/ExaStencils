@@ -25,5 +25,8 @@ someFunction @(coarser) (arg1, arg2)
       someFunction @(current + 1) (arg1, arg2)
   }"""))
 
+    out("@(not(finest + 3 to finest))", parser.parse("""def t @(not(finest+3 to finest)) () : Unit {
+  }"""))
+
   }
 }

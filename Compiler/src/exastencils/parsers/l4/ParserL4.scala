@@ -50,11 +50,11 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   //###########################################################
 
   lazy val level = (
-    locationize("@" ~> integerLit ^^ { case l => SingleLevelSpecification(l.toInt) })
+    locationize("@" ~> integerLit ^^ { case l => SingleLevelSpecification(l) })
     ||| ("@" ~ "(" ~> (levelsingle ||| levelnegation ||| levellist ||| levelrange ||| levelrelative)) ~ ")" ^^ { case l ~ _ => l })
 
   lazy val levelnegation = (
-    locationize((("not " ~ "(") ~> (levelsingle ||| levellist ||| levelrange)) ~ ")" ^^ { case l ~ _ => new NegatedLevelSpecification(l) }))
+    locationize((("not" ~ "(") ~> (levelsingle ||| levellist ||| levelrange ||| levelrelative)) ~ ")" ^^ { case l ~ _ => new NegatedLevelSpecification(l) }))
 
   lazy val levellist = (
     locationize((levelsingle <~ ",").* ~ levelsingle ^^ { case a ~ b => var x = new ListLevelSpecification(); a.foreach(x.add(_)); x.add(b); x }))
