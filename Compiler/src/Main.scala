@@ -161,52 +161,15 @@ object Main {
 
     // Strategies
 
-    (new Strategy("FindStencilConvolutions") {
-      this += new Transformation("SearchAndMark", {
-        case BinaryExpression(BinaryOperators.Multiplication, UnresolvedStencilAccess(stencilName, stencilLevel), UnresolvedFieldAccess(fieldOwner, fieldName, fieldLevel, fieldSlot, fieldIndex)) =>
-          StencilConvolution(StateManager.findFirst[StencilCollection]().get.getStencilByIdentifier(stencilName, stencilLevel).get,
-            StateManager.findFirst[FieldCollection]().get.getFieldByIdentifier(fieldName, fieldLevel).get)
-      })
-    }).apply
+    FindStencilConvolutions.apply
 
-    (new Strategy("ResolveSpecialFunctions") {
-      this += new Transformation("SearchAndReplace", {
-        case FunctionCallExpression(StringConstant("diag"), args) =>
-          StateManager.findFirst[StencilCollection]().get.getStencilByIdentifier(
-            args(0).asInstanceOf[UnresolvedStencilAccess].stencilIdentifier,
-            args(0).asInstanceOf[UnresolvedStencilAccess].level).get.entries(0).weight
+    ResolveSpecialFunctions.apply
 
-        // HACK to realize intergrid operations
-        case FunctionCallExpression(StringConstant("ToCoarser"), args) =>
-          var stencilConvolution = Duplicate(args(0).asInstanceOf[StencilConvolution])
-          stencilConvolution.targetIdx = new MultiIndex(DimArray().map(i => (2 * (dimToString(i) : Expression)) : Expression))
-          stencilConvolution
-        case FunctionCallExpression(StringConstant("ToFiner"), args) =>
-          var stencilConvolution = Duplicate(args(0).asInstanceOf[StencilConvolution])
-          stencilConvolution.targetIdx = new MultiIndex(DimArray().map(i => ((dimToString(i) : Expression) / 2) : Expression))
-          stencilConvolution
-
-        // HACK to realize print function -> FIXME
-        case ExpressionStatement(FunctionCallExpression(StringConstant("print"), args)) =>
-          new Scope(ListBuffer[Statement](
-            new MPI_SetRankAndSize,
-            new ConditionStatement(new MPI_IsRootProc,
-              ("std::cout << " : Expression) ~ args.reduceLeft((l, e) => l ~ "<< \" \" <<" ~ e) ~ "<< std::endl")))
-
-        // HACK to realize return functionality -> FIXME: move to specialized node
-        case ExpressionStatement(FunctionCallExpression(StringConstant("return"), args)) =>
-          args.size match {
-            case 0 => "return" : Statement
-            case 1 => ("return " ~ args(0)) : Statement
-            case _ => "ERROR - unsupported return function statement" : Statement
-          }
-      })
-    }).apply
+    SetupFragmentClass.apply
 
     do { ExpandStrategy.apply }
     while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
 
-    SetupFragmentClass.apply
     SetupMultiGrid.apply
     SetupApplication.apply
 
@@ -214,17 +177,7 @@ object Main {
     while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
 
     if (!Knowledge.useMPI) {
-      (new Strategy("RemoveMPIReferences") {
-        this += new Transformation("CleaningFunctions", {
-          // FIXME: should delete node, currently not fully implemented -> QUICKFIX returns empty statements
-          case _ : MPI_Barrier        => new NullStatement
-          case _ : MPI_Finalize       => new NullStatement
-          case _ : MPI_Init           => new NullStatement
-          case _ : MPI_SetRankAndSize => new NullStatement
-
-          case _ : MPI_IsRootProc     => BooleanConstant(true)
-        })
-      }).apply
+      RemoveMPIReferences.apply
     }
 
     do { SimplifyStrategy.apply }

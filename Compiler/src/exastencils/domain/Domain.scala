@@ -75,31 +75,7 @@ case class ConnectFragments() extends Statement with Expandable {
   override def expand(collector : StackCollector) : LoopOverFragments = {
     var body = new ListBuffer[Statement]
 
-    // TODO: get these neighbors from the fragment class
-    var neighbors : ListBuffer[NeighborInfo] = ListBuffer()
-    if (6 == Knowledge.comm_strategyFragment) {
-      neighbors += new NeighborInfo(Array(-1, 0, 0), 0)
-      neighbors += new NeighborInfo(Array(+1, 0, 0), 1)
-      if (Knowledge.dimensionality > 1) {
-        neighbors += new NeighborInfo(Array(0, -1, 0), 2)
-        neighbors += new NeighborInfo(Array(0, +1, 0), 3)
-      }
-      if (Knowledge.dimensionality > 2) {
-        neighbors += new NeighborInfo(Array(0, 0, -1), 4)
-        neighbors += new NeighborInfo(Array(0, 0, +1), 5)
-      }
-    } else if (26 == Knowledge.comm_strategyFragment) {
-      var i = 0
-      for (
-        z <- (if (Knowledge.dimensionality > 2) (-1 to 1) else (0 to 0));
-        y <- (if (Knowledge.dimensionality > 1) (-1 to 1) else (0 to 0));
-        x <- -1 to 1;
-        if (0 != x || 0 != y || 0 != z)
-      ) {
-        neighbors += new NeighborInfo(Array(x, y, z), i)
-        i += 1
-      }
-    }
+    var neighbors = StateManager.findFirst[FragmentClass]().get.neighbors
 
     for (d <- 0 until Knowledge.domain_numSubdomains) {
       body += AssignmentStatement(s"curFragment.isValidForSubdomain[$d]", PointInsideDomain(s"curFragment.pos", d))
@@ -112,9 +88,12 @@ case class ConnectFragments() extends Statement with Expandable {
           (0 until Knowledge.domain_numSubdomains).toArray[Int].map(d =>
             new ConditionStatement(s"curFragment.isValidForSubdomain[$d]" And PointInsideDomain(s"offsetPos", d),
               if (Knowledge.useMPI) {
-                new ConditionStatement(s"mpiRank ==" ~ PointToOwningRank("offsetPos", d),
+                (if (Knowledge.useOMP)
+                  new ConditionStatement(s"mpiRank ==" ~ PointToOwningRank("offsetPos", d),
                   s"curFragment.connectLocalElement(${neigh.index}, fragmentMap[" ~ PointToFragmentId("offsetPos") ~ s"], $d)",
                   s"curFragment.connectRemoteElement(${neigh.index}," ~ PointToFragmentId("offsetPos") ~ "," ~ PointToOwningRank("offsetPos", d) ~ s", $d)")
+                else
+                  s"curFragment.connectRemoteElement(${neigh.index}," ~ PointToFragmentId("offsetPos") ~ "," ~ PointToOwningRank("offsetPos", d) ~ s", $d)") : Statement
               } else {
                 (s"curFragment.connectLocalElement(${neigh.index}, fragmentMap[" ~ PointToFragmentId("offsetPos") ~ s"], $d)") : Statement
               })))

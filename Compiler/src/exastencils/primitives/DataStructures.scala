@@ -18,7 +18,15 @@ import exastencils.mpi._
 case class LoopOverDomain(var iterationSetIdentifier : String, var fieldIdentifier : String, var level : Int, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = LoopOverDomain\n";
 
+  var expCount = 0
+
   def expand(collector : StackCollector) : Statement /*FIXME: ForLoopStatement*/ = {
+    // HACK: pre-expand body
+    //if (0 == expCount) {
+    //  expCount = 1
+    //  return this
+    //}
+
     val fieldCollection = StateManager.findFirst[FieldCollection]().get
     val iterationSetCollection = StateManager.findFirst[IterationSetCollection]().get
 
@@ -32,12 +40,66 @@ case class LoopOverDomain(var iterationSetIdentifier : String, var fieldIdentifi
       stop += field.layout(i).idxGhostRightEnd - field.referenceOffset(i) - iterationSet.end(i)
     }
 
+    //    var temp = new Temp(field,
+    //      ListBuffer[NeighborInfo](
+    //        new NeighborInfo(Array(-1, 0, 0), 0),
+    //        new NeighborInfo(Array(+1, 0, 0), 1),
+    //        new NeighborInfo(Array(0, -1, 0), 2),
+    //        new NeighborInfo(Array(0, +1, 0), 3),
+    //        new NeighborInfo(Array(0, 0, -1), 4),
+    //        new NeighborInfo(Array(0, 0, +1), 5)),
+    //      new MultiIndex(start.toArray), new MultiIndex(stop.toArray), iterationSet.increment, body, reduction)
+    //
+    //    return new LoopOverFragments( // FIXME: define LoopOverFragments in L4 DSL
+    //      // TODO: add sth like new ConditionStatement(s"curFragment.isValidForSubdomain[${field.domain}]",
+    //      temp.gen,
+    //      reduction) with OMP_PotentiallyParallel
+
     return new LoopOverFragments( // FIXME: define LoopOverFragments in L4 DSL
       // TODO: add sth like new ConditionStatement(s"curFragment.isValidForSubdomain[${field.domain}]",
       new LoopOverDimensions(IndexRange(new MultiIndex(start.toArray), new MultiIndex(stop.toArray)), body, iterationSet.increment, reduction) with OMP_PotentiallyParallel,
       reduction) with OMP_PotentiallyParallel
   }
 }
+
+//class Temp(var field : Field, var neighbors : ListBuffer[NeighborInfo], var start : MultiIndex, var stop : MultiIndex, var increment : MultiIndex, var body : ListBuffer[Statement], var reduction : Option[Reduction]) {
+//
+//  def gen() : ListBuffer[Statement] = {
+//    var conditions : ListBuffer[Statement] = new ListBuffer
+//
+//    println("Starting Temp gen")
+//
+//    for (i0 <- 0 to 1)
+//      for (i1 <- 0 to 1)
+//        for (i2 <- 0 to 1)
+//          for (i3 <- 0 to 1)
+//            for (i4 <- 0 to 1)
+//              for (i5 <- 0 to 1) {
+//                var newStart = Duplicate(start)
+//                var newStop = Duplicate(stop)
+//
+//                if (0 == i0) newStart.index_0 = newStart.index_0 + increment.index_0
+//                if (0 == i1) newStop.index_0 = newStop.index_0 - increment.index_0
+//                if (0 == i2) newStart.index_1 = newStart.index_1 + increment.index_1
+//                if (0 == i3) newStop.index_1 = newStop.index_1 - increment.index_1
+//                if (0 == i4) newStart.index_2 = newStart.index_2 + increment.index_2
+//                if (0 == i5) newStop.index_2 = newStop.index_2 - increment.index_2
+//
+//                conditions += new ConditionStatement(
+//                  (if (0 == i0) getNeighInfo_IsInvalid(neighbors(0), field.domain) else getNeighInfo_IsValid(neighbors(0), field.domain))
+//                    And (if (0 == i1) getNeighInfo_IsInvalid(neighbors(1), field.domain) else getNeighInfo_IsValid(neighbors(1), field.domain))
+//                    And (if (0 == i2) getNeighInfo_IsInvalid(neighbors(2), field.domain) else getNeighInfo_IsValid(neighbors(2), field.domain))
+//                    And (if (0 == i3) getNeighInfo_IsInvalid(neighbors(3), field.domain) else getNeighInfo_IsValid(neighbors(3), field.domain))
+//                    And (if (0 == i4) getNeighInfo_IsInvalid(neighbors(4), field.domain) else getNeighInfo_IsValid(neighbors(4), field.domain))
+//                    And (if (0 == i5) getNeighInfo_IsInvalid(neighbors(5), field.domain) else getNeighInfo_IsValid(neighbors(5), field.domain)),
+//                  new LoopOverDimensions(IndexRange(newStart, newStop), Duplicate(body), Duplicate(increment), Duplicate(reduction)) with OMP_PotentiallyParallel)
+//              }
+//
+//    println("Finished Temp gen with " + conditions.size + " items")
+//
+//    conditions
+//  }
+//}
 
 case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[Statement], var stepSize : MultiIndex = new MultiIndex(Array.fill(3)(1)), var reduction : Option[Reduction] = None) extends Statement with Expandable {
   def this(indices : IndexRange, body : Statement, stepSize : MultiIndex, reduction : Option[Reduction]) = this(indices, ListBuffer[Statement](body), stepSize, reduction);
