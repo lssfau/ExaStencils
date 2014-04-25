@@ -23,3 +23,4 @@ case class FinerLevelSpecification() extends LevelSpecification
 case class CoarsestLevelSpecification() extends LevelSpecification
 case class FinestLevelSpecification() extends LevelSpecification
 case class NegatedLevelSpecification(var l : LevelSpecification) extends LevelSpecification
+case class RelativeLevelSpecification(var operator : String, var base : LevelSpecification, var offset : Int) extends LevelSpecification

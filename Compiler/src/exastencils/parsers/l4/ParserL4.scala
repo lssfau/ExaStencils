@@ -66,7 +66,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| locationize("coarsest" ^^ { case _ => CoarsestLevelSpecification() })
     ||| locationize("finest" ^^ { case _ => FinestLevelSpecification() })
     ||| locationize(numericLit ^^ { case l => SingleLevelSpecification(l.toInt) })
-    ||| locationize(numericLit ~ "to" ~ numericLit ^^ { case b ~ _ ~ e => RangeLevelSpecification(b.toInt, e.toInt) }))
+    ||| locationize(numericLit ~ "to" ~ numericLit ^^ { case b ~ _ ~ e => RangeLevelSpecification(b.toInt, e.toInt) })
+    ||| locationize(levelsub ~ ("+" ||| "-") ~ integerLit ^^ { case l ~ op ~ i => RelativeLevelSpecification(op, l, i) }))
 
   lazy val singlelevel = locationize("@" ~> numericLit ^^ { case l => SingleLevelSpecification(l.toInt) })
 
