@@ -88,9 +88,12 @@ case class ConnectFragments() extends Statement with Expandable {
           (0 until Knowledge.domain_numSubdomains).toArray[Int].map(d =>
             new ConditionStatement(s"curFragment.isValidForSubdomain[$d]" And PointInsideDomain(s"offsetPos", d),
               if (Knowledge.useMPI) {
-                new ConditionStatement(s"mpiRank ==" ~ PointToOwningRank("offsetPos", d),
+                (if (Knowledge.useOMP)
+                  new ConditionStatement(s"mpiRank ==" ~ PointToOwningRank("offsetPos", d),
                   s"curFragment.connectLocalElement(${neigh.index}, fragmentMap[" ~ PointToFragmentId("offsetPos") ~ s"], $d)",
                   s"curFragment.connectRemoteElement(${neigh.index}," ~ PointToFragmentId("offsetPos") ~ "," ~ PointToOwningRank("offsetPos", d) ~ s", $d)")
+                else
+                  s"curFragment.connectRemoteElement(${neigh.index}," ~ PointToFragmentId("offsetPos") ~ "," ~ PointToOwningRank("offsetPos", d) ~ s", $d)") : Statement
               } else {
                 (s"curFragment.connectLocalElement(${neigh.index}, fragmentMap[" ~ PointToFragmentId("offsetPos") ~ s"], $d)") : Statement
               })))
