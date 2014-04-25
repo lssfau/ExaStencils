@@ -87,5 +87,9 @@ object ResolveSpecialFunctions extends Strategy("ResolveSpecialFunctions") {
         case 1 => ("return " ~ args(0)) : Statement
         case _ => "ERROR - unsupported return function statement" : Statement
       }
+
+    // FIXME: UGLY HACK to realize native code functionality
+    case FunctionCallExpression(StringConstant("native"), args) =>
+      args(0).asInstanceOf[StringConstant]
   })
 }

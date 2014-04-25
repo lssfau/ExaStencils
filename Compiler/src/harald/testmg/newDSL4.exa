@@ -1,12 +1,12 @@
 // FIXME: ghostlayers, padding, etc have to be left/right and have to be indices instead of ints
-Field Solution< [1, 1, 1], Real >@(0 to 4) ( ghostlayers = 1, slots = 1, bcDir = true )
-Field Solution2< [1, 1, 1], Real >@(1 to 4) ( ghostlayers = 1, slots = 1, bcDir = true )
-Field Residual< [1, 1, 1], Real >@(0 to 4) ( ghostlayers = 1 )
-Field RHS< [0, 0, 0], Real >@(0 to 4) ( communicates = false )
+Field Solution< [1, 1, 1], Real >@(0 to 6) ( ghostlayers = 1, slots = 1, bcDir = true )
+Field Solution2< [1, 1, 1], Real >@(1 to 6) ( ghostlayers = 1, slots = 1, bcDir = true )
+Field Residual< [1, 1, 1], Real >@(0 to 6) ( ghostlayers = 1 )
+Field RHS< [0, 0, 0], Real >@(0 to 6) ( communicates = false )
 Field VecP< [1, 1, 1], Real >@0 ( ghostlayers = 1 )
 Field VecGradP< [0, 0, 0], Real >@0 ( communicates = false )
 
-Stencil Lapl@(0 to 4) {
+Stencil Lapl@(0 to 6) {
 	[ 0,  0,  0] => 6
 	[ 1,  0,  0] => -1
 	[-1,  0,  0] => -1
@@ -16,7 +16,7 @@ Stencil Lapl@(0 to 4) {
 	[ 0,  0, -1] => -1
 }
 
-Stencil CorrectionStencil@(0 to 4) {
+Stencil CorrectionStencil@(0 to 6) {
 	[    0,     0,     0] => 0.0625
 	[x % 2,     0,     0] => 0.0625
 	[    0, y % 2,     0] => 0.0625
@@ -27,7 +27,7 @@ Stencil CorrectionStencil@(0 to 4) {
 	[x % 2, y % 2, z % 2] => 0.0625
 }
 
-Stencil RestrictionStencil@(0 to 4) {
+Stencil RestrictionStencil@(0 to 6) {
 	[ 0,  0,  0] => 1.0
 
 	[ 0,  0, -1] => 0.5
@@ -110,7 +110,7 @@ def VCycle@0 ( ) : Unit {
 	}
 }
 
-def VCycle@(1 to 4) ( ) : Unit {
+def VCycle@(1 to 6) ( ) : Unit {
 	repeat up 3 {
 		GaussSeidel@(current) ( )
 	}
@@ -124,7 +124,7 @@ def VCycle@(1 to 4) ( ) : Unit {
 	}
 }
 
-def Jacobi@(1 to 4) ( ) : Unit {
+def Jacobi@(1 to 6) ( ) : Unit {
 	communicate Solution@(current)
 	loop over inner on Solution@(current) {
 		Solution2@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 0.8 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
@@ -135,41 +135,41 @@ def Jacobi@(1 to 4) ( ) : Unit {
 	}
 }
 
-def GaussSeidel@(1 to 4) ( ) : Unit {
+def GaussSeidel@(1 to 6) ( ) : Unit {
 	communicate Solution@(current)
 	loop over inner on Solution@(current) {
 		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 1.0 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
 	}
 }
 
-def UpResidual@(0 to 4) ( ) : Unit {
+def UpResidual@(0 to 6) ( ) : Unit {
 	communicate Solution@(current)
 	loop over inner on Residual@(current) {
 		Residual@(current) = RHS@(current) - (Lapl@(current) * Solution@(current))
 	}
 }
 
-def Restrict @(1 to 4) ( ) : Unit { 
+def Restrict @(1 to 6) ( ) : Unit { 
 	communicate Residual@(current)
 	loop over innerForFieldsWithoutGhostLayers on RHS@(coarser) {
 		RHS@(coarser) = ToCoarser ( RestrictionStencil@(current) * Residual@(current) )
     }
 }
 
-def interpolatecorr@(1 to 4) ( ) : Unit { 
+def interpolatecorr@(1 to 6) ( ) : Unit { 
 	communicate Solution@(current)
 	loop over inner on Solution@(current) {
 		Solution@(current) += ToFiner ( CorrectionStencil@(current) * Solution@(coarser) )
 	}
 }
 
-def set@(0 to 4) (value : Real) : Unit {
+def set@(0 to 6) (value : Real) : Unit {
 	loop over domain on Solution@(current) {
 		Solution@(current) = value
 	}
 }
 
-def L2Residual@(0, 4) ( ) : Real {
+def L2Residual@(0, 6) ( ) : Real {
 	communicate Residual@(current)
 	var res : Real = 0
 	loop over inner on Residual@(current) with reduction( + : res ) {
@@ -180,16 +180,21 @@ def L2Residual@(0, 4) ( ) : Real {
 }
 
 def Application ( ) : Unit {
-	UpResidual@4 ( )
-	var res0 : Real = L2Residual@4 (  )
+	UpResidual@6 ( )
+	var res0 : Real = L2Residual@6 (  )
 	var res : Real = res0
 	var resold : Real = 0
 	print ( '"startingres"', res0 )
+	var totalTime : Real = 0
 	repeat up 10 {
 		resold = res
-		VCycle@4 (  )
-		UpResidual@4 ( )
-		res = L2Residual@4 (  )
+		native ( 'StopWatch stopWatch;' )
+		native ( 'stopWatch.reset();' )
+		VCycle@6 (  )
+		UpResidual@6 ( )
+		native ( 'totalTime += stopWatch.getTimeInMilliSec();' )
+		res = L2Residual@6 (  )
 		print ( '"Residual:"', res, '"Residual reduction:"', ( res0 / res ), '"Convergence factor:"', ( res / resold ) )
 	}
+	print ( '"Mean time per vCycle: "', totalTime / 10 )
 }
