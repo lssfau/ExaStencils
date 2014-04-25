@@ -13,7 +13,7 @@ case class SingleLevelSpecification(var level : Int) extends LevelSpecification 
   override def toString() = level.toString
 }
 
-case class RangeLevelSpecification(var begin : Int, var end : Int) extends LevelSpecification with DeclarationLevelSpecification
+case class RangeLevelSpecification(var begin : LevelSpecification, var end : LevelSpecification) extends LevelSpecification with DeclarationLevelSpecification
 
 case class ListLevelSpecification(var levels : HashSet[LevelSpecification]) extends LevelSpecification with DeclarationLevelSpecification {
   def this() = this(HashSet[LevelSpecification]())

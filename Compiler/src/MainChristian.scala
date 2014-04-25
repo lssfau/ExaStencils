@@ -27,8 +27,8 @@ object MainChristian {
     
     StateManager.root_ = x
     
-    var t = new exastencils.languageprocessing.l4.ProgressToIr
-    t.apply
+//    var t = new exastencils.languageprocessing.l4.ProgressToIr
+//    t.apply
     
 //    println(StateManager.root_)
     
