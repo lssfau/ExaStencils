@@ -71,7 +71,7 @@ class ExaLexer extends StdLexical {
   reserved += ("Unit", "String", "Integer", "Real", "Complex", "Array")
 
   // other keywords
-  reserved += ("current", "coarser", "finer", "to", "steps", "END")
+  reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "steps", "END")
 
   // math keywords
   reserved += ("diag")
