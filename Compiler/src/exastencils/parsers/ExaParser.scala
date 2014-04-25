@@ -46,6 +46,10 @@ class ExaParser extends StandardTokenParsers {
   lazy val returnDatatype = ("Unit" ^^ { case x => new UnitDatatype }
     ||| datatype)
 
+  lazy val integerLit = (
+    numericLit ^^ { case n if (isInt(n)) => n.toInt }
+    ||| ("-" ~> numericLit ^^ { case n if (isInt(n)) => -n.toInt }))
+
   /*
   lazy val literal : Parser[Expression] = (stringLit ^^ { case x => StringLiteral(x) }
     ||| numericLit ^^ { case x => NumericLiteral(x.toDouble) } // FIXME split into integerLiteral and realLiteral
