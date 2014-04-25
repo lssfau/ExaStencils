@@ -16,6 +16,11 @@ class ExaParser extends StandardTokenParsers {
     x.getOrElse(" ") == str
   }
 
+  protected def isReal(str : String) : Boolean = {
+    val x = DoubleRegEx.findFirstIn(str)
+    x.getOrElse(" ") == str
+  }
+
   def locationize[T <: Annotatable](p : => Parser[T]) : Parser[T] = Parser { in =>
     p(in) match {
       case Success(t, in1) => Success(if (!t.hasAnnotation("location")) { t.add(new Annotation("location", Some(in.pos))); t } else t, in1)
@@ -50,10 +55,9 @@ class ExaParser extends StandardTokenParsers {
     numericLit ^^ { case n if (isInt(n)) => n.toInt }
     ||| ("-" ~> numericLit ^^ { case n if (isInt(n)) => -n.toInt }))
 
-  /*
-  lazy val literal : Parser[Expression] = (stringLit ^^ { case x => StringLiteral(x) }
-    ||| numericLit ^^ { case x => NumericLiteral(x.toDouble) } // FIXME split into integerLiteral and realLiteral
-    ||| booleanLit ^^ { case x => BooleanLiteral(x.toBoolean) })*/
+  lazy val realLit = (
+    numericLit ^^ { case n if (isReal(n)) => n.toDouble }
+    ||| ("-" ~> numericLit ^^ { case n if (isReal(n)) => -n.toDouble }))
 
   lazy val booleanLit : Parser[String] = "true" ||| "false"
 
