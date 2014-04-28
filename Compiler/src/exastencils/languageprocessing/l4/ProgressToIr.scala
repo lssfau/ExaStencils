@@ -84,13 +84,13 @@ object ProgressToIr extends Strategy("ProgressToIr") {
       }
       case level : ListLevelSpecification =>
         level.levels.foreach(level => functions ++= duplicateFunctionDeclaration(function, level))
-      case level : RangeLevelSpecification =>
-      //        for (level <- math.min(level.begin, level.end) to math.max(level.begin, level.end)) {
-      //          var f = Duplicate(function)
-      //          f.identifier = new LeveledIdentifier(f.identifier.name, SingleLevelSpecification(level))
-      //          functions += f
-      //        }
-      case _                               => ERROR(s"Invalid level specification for function $function: $level")
+      case level : RangeLevelSpecification => // there is no relative (e.g., "current+1") level allowed for function definitions
+        for (level <- math.min(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level) to math.max(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level)) {
+          var f = Duplicate(function)
+          f.identifier = new LeveledIdentifier(f.identifier.name, SingleLevelSpecification(level))
+          functions += f
+        }
+      case _ => ERROR(s"Invalid level specification for function $function: $level")
     }
     return functions.toList
   }
@@ -106,12 +106,13 @@ object ProgressToIr extends Strategy("ProgressToIr") {
       case level : ListLevelSpecification =>
         level.levels.foreach(level => functions ++= duplicateFunctionCall(function, level))
       case level : RangeLevelSpecification =>
-      //        for (level <- math.min(level.begin, level.end) to math.max(level.begin, level.end)) {
-      //          var f = Duplicate(function)
-      //          f.identifier = new LeveledIdentifier(f.identifier.name, SingleLevelSpecification(level))
-      //          functions += f
-      //        }
-      case _                               => ERROR(s"Invalid level specification for function $function: $level")
+      case level : RangeLevelSpecification => // all relative (e.g., "current+1") levels should have been resolved already
+        for (level <- math.min(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level) to math.max(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level)) {
+          var f = Duplicate(function)
+          f.identifier = new LeveledIdentifier(f.identifier.name, SingleLevelSpecification(level))
+          functions += f
+        }
+      case _ => ERROR(s"Invalid level specification for function $function: $level")
     }
     return functions.toList
   }
@@ -135,13 +136,13 @@ object ProgressToIr extends Strategy("ProgressToIr") {
       }
       case level : ListLevelSpecification =>
         level.levels.foreach(level => fields ++= duplicateFields(field, level))
-      case levels : RangeLevelSpecification =>
-      //        for (level <- math.min(levels.begin, levels.end) to math.max(levels.begin, levels.end)) {
-      //          var f = Duplicate(field)
-      //          f.level = Some(SingleLevelSpecification(level))
-      //          fields += f
-      //        }
-      case _                                => ERROR(s"Invalid level specification for field $field: $level")
+      case level : RangeLevelSpecification => // there is no relative (e.g., "current+1") level allowed for function definitions
+        for (level <- math.min(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level) to math.max(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level)) {
+          var f = Duplicate(field)
+          f.level = Some(SingleLevelSpecification(level))
+          fields += f
+        }
+      case _ => ERROR(s"Invalid level specification for field $field: $level")
     }
     return fields.toList
   }
@@ -166,12 +167,12 @@ object ProgressToIr extends Strategy("ProgressToIr") {
       }
       case level : ListLevelSpecification =>
         level.levels.foreach(level => stencils ++= duplicateStencils(stencil, level))
-      case levels : RangeLevelSpecification =>
-      //        for (level <- math.min(levels.begin, levels.end) to math.max(levels.begin, levels.end)) {
-      //          var f = Duplicate(stencil)
-      //          f.level = Some(SingleLevelSpecification(level))
-      //          stencils += f
-      //        }
+      case level : RangeLevelSpecification => // there is no relative (e.g., "current+1") level allowed for function definitions
+        for (level <- math.min(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level) to math.max(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level)) {
+          var f = Duplicate(stencil)
+          f.level = Some(SingleLevelSpecification(level))
+          stencils += f
+        }
       case _                                => ERROR(s"Invalid level specification for stencil $stencil: $level")
     }
     return stencils.toList
