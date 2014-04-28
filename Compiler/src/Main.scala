@@ -36,20 +36,20 @@ object Main {
     }
 
     // feature model  (modified FAMA Format (http://www.isa.us.es/fama/))
-    FeatureModel.readFeatureModel("./Compiler/featureModel/model_Prototype.model")
+    FeatureModel.readFeatureModel(Settings.basePathPrefix + "/Compiler/featureModel/model_Prototype.model")
     var configuration = FeatureModel.getMinimalConfig
     Knowledge.update(configuration)
 
     // Hack paths (relative paths should work here, too, if not, reverse this change)
     // ... this obviously depends on the execution path which in my case is the root folder to include configs and scripts
-    val libpath = "./Compiler/src/harald/otherfiles/"
-    val DSLpath = "./Compiler/src/harald/testmg/"
+    val libpath = Settings.basePathPrefix + "/Compiler/src/harald/otherfiles/"
+    val DSLpath = Settings.basePathPrefix + "/Compiler/src/harald/testmg/"
     val problem = "testDSL"
     val outputfile = "main.cpp"
 
     // HACK: this tests the new L4 capabilities
     var parserl4 = new ParserL4
-    StateManager.root_ = parserl4.parseFile("./Compiler/src/harald/testmg/newDSL4.exa")
+    StateManager.root_ = parserl4.parseFile(Settings.basePathPrefix + "/Compiler/src/harald/testmg/newDSL4.exa")
     ProgressToIr.apply
 
     StateManager.root_ = StateManager.root_.asInstanceOf[ProgressableToIr].progressToIr.asInstanceOf[Node]
