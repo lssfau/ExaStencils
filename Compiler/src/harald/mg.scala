@@ -16,12 +16,13 @@ import harald.expert._
 import harald.pretty._
 import scala.sys.process._
 import harald.Discrete._
+import exastencils.core._
 
 object mg {
 
   def main(args: Array[String]): Unit = {
 
-    val basicpath = "e:/SVN/flow/ExaScala/"
+    val basicpath = Settings.basePathPrefix + "/Compiler/src/harald/"
       
     // DOC: set paths
 
@@ -364,6 +365,8 @@ object mg {
                     if (DomainKnowledge.debugmode)
                       println(DSLl4)
 
+exit(0)
+
                     val parserl4 = new Parser.ParserL4(TreeManager.tree)
                     parserl4.parse(DSLl4)
                     //TransformL4.cppfunctions.foreach(println)
@@ -428,9 +431,9 @@ println("finished parsing")
 
                   }
 
-    val writer3 = new FileWriter(new File(DomainKnowledge.outputpath + "compile.bat"), true)
-    writer3.write("./execute.bat \n")
-    writer3.close
+//    val writer3 = new FileWriter(new File(DomainKnowledge.outputpath + "compile.bat"), true)
+//    writer3.write("./execute.bat \n")
+//    writer3.close
 
     println("finished")
 
