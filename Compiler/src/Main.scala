@@ -42,14 +42,13 @@ object Main {
 
     // Hack paths (relative paths should work here, too, if not, reverse this change)
     // ... this obviously depends on the execution path which in my case is the root folder to include configs and scripts
-    val libpath = Settings.basePathPrefix + "/Compiler/src/harald/otherfiles/"
-    val DSLpath = Settings.basePathPrefix + "/Compiler/src/harald/testmg/"
+    val DSLpath = Settings.basePathPrefix + "/Compiler/src/harald_dep/testmg/"
     val problem = "testDSL"
     val outputfile = "main.cpp"
 
     // HACK: this tests the new L4 capabilities
     var parserl4 = new ParserL4
-    StateManager.root_ = parserl4.parseFile(Settings.basePathPrefix + "/Compiler/src/harald/testmg/newDSL4.exa")
+    StateManager.root_ = parserl4.parseFile(Settings.basePathPrefix + "/Compiler/dsl/newDSL4.exa")
     ProgressToIr.apply()
 
     StateManager.root_ = StateManager.root_.asInstanceOf[ProgressableToIr].progressToIr.asInstanceOf[Node]
