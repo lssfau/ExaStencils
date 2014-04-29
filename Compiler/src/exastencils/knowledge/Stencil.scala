@@ -23,7 +23,7 @@ case class StencilCollection() extends Node {
 case class StencilConvolution(var stencil : Stencil, var field : Field, var targetIdx : MultiIndex = DefaultLoopMultiIndex()) extends Expression with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = StencilConvolution\n";
 
-  def expand(collector : StackCollector) : Expression = {
+  def expand : Expression = {
     var ret : Expression = stencil.entries.map(e => e.weight * FieldAccess("curFragment.", field, 0, new MultiIndex(targetIdx, e.offset, _ + _)))
       .toArray[Expression].reduceLeft(_ + _)
     do { SimplifyStrategy.apply(Some(ret), StateManager.History.currentToken) }

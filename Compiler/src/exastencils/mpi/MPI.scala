@@ -70,7 +70,7 @@ case class MPI_Barrier() extends Statement {
 case class InitMPIDataType(mpiTypeName : String, field : Field, indexRange : IndexRange) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = InitMPIDataType\n"
 
-  def expand(collector : StackCollector) : StatementBlock = {
+  def expand : StatementBlock = {
     if (indexRange.begin(2) == indexRange.end(2)) {
       return StatementBlock(ListBuffer[Statement](s"MPI_Type_vector(" ~
         (indexRange.end(1) - indexRange.begin(1) + 1) ~ ", " ~

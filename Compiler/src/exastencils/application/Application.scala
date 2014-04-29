@@ -55,7 +55,7 @@ case class InitFields() extends Statement {
 case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = Poisson3DMain\n"
 
-  override def expand(collector : StackCollector) : FunctionStatement = {
+  override def expand : FunctionStatement = {
     // FIXME: make the next line of code more readable and robust
     val globals : Globals = StateManager.root.asInstanceOf[Root].nodes.find(node => node.isInstanceOf[Globals]).get.asInstanceOf[Globals]
 

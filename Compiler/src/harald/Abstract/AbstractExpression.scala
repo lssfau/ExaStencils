@@ -149,7 +149,7 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
               //s"curFragment.solData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp()
               val fieldCollection = StateManager.findFirst[FieldCollection]().get
               val field : Field = fieldCollection.getFieldByIdentifier("Solution", lev.transform(scopeparas, modifier, scopetype).cpp.toInt).get
-              new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector)
+              new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand
             } else
               s"*curFragment.solData[0][FIXME " ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]")
           case "Res" => (
@@ -157,7 +157,7 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
               //s"curFragment.resData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp()
               val fieldCollection = StateManager.findFirst[FieldCollection]().get
               val field : Field = fieldCollection.getFieldByIdentifier("Residual", lev.transform(scopeparas, modifier, scopetype).cpp.toInt).get
-              new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector)
+              new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand
             } else
               s"*curFragment.resData[0][FIXME " ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]")
           case "f" => (
@@ -165,7 +165,7 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
               //s"curFragment.rhsData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp()
               val fieldCollection = StateManager.findFirst[FieldCollection]().get
               val field : Field = fieldCollection.getFieldByIdentifier("RHS", lev.transform(scopeparas, modifier, scopetype).cpp.toInt).get
-              new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector)
+              new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand
             } else
               s"*curFragment.rhsData[0][FIXME " ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]")
           case _ => (

@@ -17,7 +17,7 @@ import exastencils.omp._
 case class PointOutsideDomain(var pos : Expression, var domain : Int) extends Expression with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = PointOutsideDomain\n"
 
-  override def expand(collector : StackCollector) : Expression = {
+  override def expand : Expression = {
     s"(" ~
       ((pos ~ ".x") < Knowledge.domain_subdomains(domain).lower_x) Or ((pos ~ ".x") > Knowledge.domain_subdomains(domain).upper_x) Or
       ((pos ~ ".y") < Knowledge.domain_subdomains(domain).lower_y) Or ((pos ~ ".y") > Knowledge.domain_subdomains(domain).upper_y) Or
@@ -28,7 +28,7 @@ case class PointOutsideDomain(var pos : Expression, var domain : Int) extends Ex
 case class PointInsideDomain(var pos : Expression, var domain : Int) extends Expression with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = PointInsideDomain\n"
 
-  override def expand(collector : StackCollector) : Expression = {
+  override def expand : Expression = {
     s"(" ~
       ((pos ~ ".x") >= Knowledge.domain_subdomains(domain).lower_x) And ((pos ~ ".x") <= Knowledge.domain_subdomains(domain).upper_x) And
       ((pos ~ ".y") >= Knowledge.domain_subdomains(domain).lower_y) And ((pos ~ ".y") <= Knowledge.domain_subdomains(domain).upper_y) And
@@ -39,7 +39,7 @@ case class PointInsideDomain(var pos : Expression, var domain : Int) extends Exp
 case class PointToFragmentId(var pos : Expression) extends Expression with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = PointToFragmentId\n"
 
-  override def expand(collector : StackCollector) : Expression = {
+  override def expand : Expression = {
     "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - Knowledge.domain_size.lower_z) / Knowledge.domain_fragWidth_z) * Knowledge.domain_numFragsTotal_y * Knowledge.domain_numFragsTotal_x +
       "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - Knowledge.domain_size.lower_y) / Knowledge.domain_fragWidth_y) * Knowledge.domain_numFragsTotal_x +
       "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - Knowledge.domain_size.lower_x) / Knowledge.domain_fragWidth_x)
@@ -49,7 +49,7 @@ case class PointToFragmentId(var pos : Expression) extends Expression with Expan
 case class PointToOwningRank(var pos : Expression, var domain : Int) extends Expression with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = PointToOwningRank\n"
 
-  override def expand(collector : StackCollector) : Expression = {
+  override def expand : Expression = {
     TernaryConditionExpression(PointOutsideDomain(pos, domain),
       s"MPI_PROC_NULL",
       ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - Knowledge.domain_size.lower_z) / Knowledge.domain_fragWidth_z) / Knowledge.domain_numFragsPerBlock_z) * Knowledge.domain_numBlocks_y * Knowledge.domain_numBlocks_x
@@ -61,7 +61,7 @@ case class PointToOwningRank(var pos : Expression, var domain : Int) extends Exp
 case class AssertStatement(var check : Expression, var msg : Expression, var abort : Statement) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = AssertStatement\n"
 
-  override def expand(collector : StackCollector) : ConditionStatement = {
+  override def expand : ConditionStatement = {
     new ConditionStatement(check,
       ListBuffer[Statement](
         "LOG_ERROR(" ~ msg ~ ")",
@@ -72,7 +72,7 @@ case class AssertStatement(var check : Expression, var msg : Expression, var abo
 case class ConnectFragments() extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = ConnectFragments\n"
 
-  override def expand(collector : StackCollector) : LoopOverFragments = {
+  override def expand : LoopOverFragments = {
     var body = new ListBuffer[Statement]
 
     var neighbors = StateManager.findFirst[FragmentClass]().get.neighbors
@@ -106,7 +106,7 @@ case class ConnectFragments() extends Statement with Expandable {
 case class SetupBuffers() extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = SetupBuffers\n"
 
-  override def expand(collector : StackCollector) : LoopOverFragments = {
+  override def expand : LoopOverFragments = {
     new LoopOverFragments("curFragment.setupBuffers()") with OMP_PotentiallyParallel
   }
 }
@@ -115,10 +115,10 @@ case class ValidatePrimitives() extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = ValidatePrimitives\n"
 
   //  TODO
-  //  override def expand(collector : StackCollector) : LoopOverFragments = {
+  //  override def expand : LoopOverFragments = {
   //    new LoopOverFragments("curFragment.validate();") with OMP_PotentiallyParallel
   //  }
-  override def expand(collector : StackCollector) : NullStatement = {
+  override def expand : NullStatement = {
     NullStatement()
   }
 }
@@ -126,7 +126,7 @@ case class ValidatePrimitives() extends Statement with Expandable {
 case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = InitGeneratedDomain\n"
 
-  override def expand(collector : StackCollector) : FunctionStatement = {
+  override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"initDomain", ListBuffer(),
       ListBuffer(
         new MPI_SetRankAndSize,

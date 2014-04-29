@@ -12,7 +12,7 @@ import exastencils.omp._
 case class ImplReductionStatement(s : Statement) extends Statement with Expandable {
   def cpp = "NOT VALID ; CLASS = ImplReductionStatement\n";
 
-  def expand(collector : StackCollector) : StatementBlock = {
+  def expand : StatementBlock = {
     var statements : ListBuffer[Statement] = new ListBuffer
     statements += s"${DomainKnowledge.datatype_L2.getOrElse("double")} s = 0;"
     statements += s
@@ -39,7 +39,7 @@ case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : List
 
   def cpp = "NOT VALID ; CLASS = Implforloop\n";
 
-  def expand(collector : StackCollector) : Statement = {
+  def expand : Statement = {
     // FIXME: support for OMP_PotentiallyParallel is currently missing; this is partly due to the shallow expands
 
     // COMM_HACK

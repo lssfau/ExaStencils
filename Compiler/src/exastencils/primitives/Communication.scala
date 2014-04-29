@@ -14,7 +14,7 @@ import exastencils.omp._
 case class CommunicateStatement(var fieldName : String, var fieldLevel : Int) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = CommunicateStatement\n"
 
-  def expand(collector : StackCollector) : Statement = {
+  def expand : Statement = {
     new FunctionCallExpression("exch" + StateManager.findFirst[FieldCollection]().get.getFieldByIdentifier(fieldName, fieldLevel).get.codeName /* QUICKFIX */ .cpp,
       0 /* FIXME */ )
   }
@@ -23,7 +23,7 @@ case class CommunicateStatement(var fieldName : String, var fieldLevel : Int) ex
 case class LocalSend(var field : Field, var neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = LocalSend\n"
 
-  def expand(collector : StackCollector) : LoopOverFragments = {
+  def expand : LoopOverFragments = {
     new LoopOverFragments(
       neighbors.map(neigh =>
         (new ConditionStatement(new getNeighInfo_IsValidAndNotRemote(neigh._1, field.domain),
@@ -42,7 +42,7 @@ case class LocalSend(var field : Field, var neighbors : ListBuffer[(NeighborInfo
 case class CopyToSendBuffer(var field : Field, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = CopyToSendBuffer\n"
 
-  def expand(collector : StackCollector) : LoopOverFragments = {
+  def expand : LoopOverFragments = {
     // TODO: check if a for loop could be used
     var body : ListBuffer[Statement] = new ListBuffer
 
@@ -62,7 +62,7 @@ case class CopyToSendBuffer(var field : Field, var neighbors : ListBuffer[(Neigh
 case class CopyFromRecvBuffer(var field : Field, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = CopyFromRecvBuffer\n"
 
-  def expand(collector : StackCollector) : LoopOverFragments = {
+  def expand : LoopOverFragments = {
     new LoopOverFragments(neighbors.
       filterNot(neigh => Knowledge.comm_useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))).
       filterNot(neigh => neigh._2.begin(0) == neigh._2.end(0) && neigh._2.begin(1) == neigh._2.end(1) && neigh._2.begin(2) == neigh._2.end(2)).
@@ -99,7 +99,7 @@ case class RemoteSend(var field : Field, var neighbors : ListBuffer[(NeighborInf
     return mpiTypeName
   }
 
-  def expand(collector : StackCollector) : LoopOverFragments = {
+  def expand : LoopOverFragments = {
     // TODO: check if a for loop could be used
     var body : ListBuffer[Statement] = new ListBuffer
 
@@ -160,7 +160,7 @@ case class RemoteReceive(var field : Field, var neighbors : ListBuffer[(Neighbor
     return mpiTypeName
   }
 
-  def expand(collector : StackCollector) : LoopOverFragments = {
+  def expand : LoopOverFragments = {
     // TODO: check if a for loop could be used
     var body : ListBuffer[Statement] = new ListBuffer
 
@@ -199,7 +199,7 @@ case class RemoteReceive(var field : Field, var neighbors : ListBuffer[(Neighbor
 case class FinishRemoteSend(var neighbors : ListBuffer[NeighborInfo]) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = FinishRemoteSend\n"
 
-  def expand(collector : StackCollector) : Statement = {
+  def expand : Statement = {
     "waitForMPISendOps()"
   }
 }
@@ -207,7 +207,7 @@ case class FinishRemoteSend(var neighbors : ListBuffer[NeighborInfo]) extends St
 case class FinishRemoteRecv(var neighbors : ListBuffer[NeighborInfo]) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = FinishRemoteRecv\n"
 
-  def expand(collector : StackCollector) : Statement = {
+  def expand : Statement = {
     "waitForMPIRecvOps()"
   }
 }

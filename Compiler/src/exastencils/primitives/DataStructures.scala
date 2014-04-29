@@ -20,7 +20,7 @@ case class LoopOverDomain(var iterationSetIdentifier : String, var fieldIdentifi
 
   var expCount = 0
 
-  def expand(collector : StackCollector) : Statement /*FIXME: ForLoopStatement*/ = {
+  def expand : Statement /*FIXME: ForLoopStatement*/ = {
     // HACK: pre-expand body
     //if (0 == expCount) {
     //  expCount = 1
@@ -108,7 +108,7 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
 
   override def cpp : String = "NOT VALID ; CLASS = LoopOverDimensions\n";
 
-  def expand(collector : StackCollector) : ForLoopStatement = {
+  def expand : ForLoopStatement = {
     val parallelizable = Knowledge.domain_summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false });
 
     var wrappedBody : ListBuffer[Statement] = body; // TODO: clone?
@@ -135,7 +135,7 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
 
   def cpp = "NOT VALID ; CLASS = LoopOverFragments\n";
 
-  def expand(collector : StackCollector) : StatementBlock = {
+  def expand : StatementBlock = {
     val parallelizable = !Knowledge.domain_summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false });
     var statements = new ListBuffer[Statement]
 

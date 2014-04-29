@@ -123,7 +123,7 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
 case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_6\n"
 
-  override def expand(collector : StackCollector) : FunctionStatement = {
+  override def expand : FunctionStatement = {
     var body = new ListBuffer[Statement]
 
     val fieldName = s"curFragment.${field.codeName.cpp}[slot]"
@@ -307,7 +307,7 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
 case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_26\n"
 
-  override def expand(collector : StackCollector) : FunctionStatement = {
+  override def expand : FunctionStatement = {
     var body = new ListBuffer[Statement]
 
     val fieldName = s"curFragment.${field.codeName.cpp}[slot]"

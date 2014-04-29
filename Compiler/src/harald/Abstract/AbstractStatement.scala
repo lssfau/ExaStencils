@@ -153,13 +153,13 @@ case class AbstractLet(var id : String, var expr : AbstractExpression, var modif
         id match {
           case "solution" => //return ListBuffer[Statement](AssignmentStatement("curFragment.solData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
             val field : Field = fieldCollection.getFieldByIdentifier("Solution", level.get).get
-            return ListBuffer[Statement](AssignmentStatement(new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector), expr.transform(scopeparas, modifier, "expression")))
+            return ListBuffer[Statement](AssignmentStatement(new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand, expr.transform(scopeparas, modifier, "expression")))
           case "Res" => //return ListBuffer[Statement](AssignmentStatement("curFragment.resData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
             val field : Field = fieldCollection.getFieldByIdentifier("Residual", level.get).get
-            return ListBuffer[Statement](AssignmentStatement(new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector), expr.transform(scopeparas, modifier, "expression")))
+            return ListBuffer[Statement](AssignmentStatement(new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand, expr.transform(scopeparas, modifier, "expression")))
           case "f" => //return ListBuffer[Statement](AssignmentStatement("curFragment.rhsData[0][" ~ levstr ~ "]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression")))
             val field : Field = fieldCollection.getFieldByIdentifier("RHS", level.get).get
-            return ListBuffer[Statement](AssignmentStatement(new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector), expr.transform(scopeparas, modifier, "expression")))
+            return ListBuffer[Statement](AssignmentStatement(new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand, expr.transform(scopeparas, modifier, "expression")))
           case _ =>
         }
       }
@@ -211,13 +211,13 @@ case class AbstractPLet(var id : String, val expr : AbstractExpression, modifier
         id = id match {
           case "solution" => // ("curFragment.solData[0][" ~ levstr ~ "]->getDataRef").cpp
             val field : Field = fieldCollection.getFieldByIdentifier("Solution", level.get).get
-            return ListBuffer[Statement](AssignmentStatement(new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector), expr.transform(scopeparas, modifier, "expression"), "+="))
+            return ListBuffer[Statement](AssignmentStatement(new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand, expr.transform(scopeparas, modifier, "expression"), "+="))
           case "Res" => //("curFragment.resData[0][" ~ levstr ~ "]->getDataRef").cpp
             val field : Field = fieldCollection.getFieldByIdentifier("Residual", level.get).get
-            return ListBuffer[Statement](AssignmentStatement(new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector), expr.transform(scopeparas, modifier, "expression"), "+="))
+            return ListBuffer[Statement](AssignmentStatement(new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand, expr.transform(scopeparas, modifier, "expression"), "+="))
           case "f" => //("curFragment.rhsData[0][" ~ levstr ~ "]->getDataRef").cpp
             val field : Field = fieldCollection.getFieldByIdentifier("RHS", level.get).get
-            return ListBuffer[Statement](AssignmentStatement(new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand(new StackCollector), expr.transform(scopeparas, modifier, "expression"), "+="))
+            return ListBuffer[Statement](AssignmentStatement(new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex()) /*TODO*/ .expand, expr.transform(scopeparas, modifier, "expression"), "+="))
           case _ => //id
             return ListBuffer[Statement](new AssignmentStatement(id ~ DomainKnowledge.rule_idxArray_cpp(), expr.transform(scopeparas, modifier, "expression"), "+="))
         }

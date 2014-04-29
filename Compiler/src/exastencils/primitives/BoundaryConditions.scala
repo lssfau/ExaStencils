@@ -12,7 +12,7 @@ import exastencils.knowledge._
 case class HandleBoundaries(var field : Field, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
   def cpp : String = { return "NOT VALID ; CLASS = HandleBoundaries\n"; }
 
-  override def expand(collector : StackCollector) : Statement = {
+  override def expand : Statement = {
     // TODO: match boundary conditions
     if (field.bcDir0) {
       return new LoopOverFragments(
