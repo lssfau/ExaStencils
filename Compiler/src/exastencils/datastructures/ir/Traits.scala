@@ -20,5 +20,5 @@ trait Debuggable {
 }
 
 trait Expandable {
-  def expand(collector : StackCollector) : Node
+  def expand() : Node
 }

@@ -50,7 +50,7 @@ object Main {
     // HACK: this tests the new L4 capabilities
     var parserl4 = new ParserL4
     StateManager.root_ = parserl4.parseFile(Settings.basePathPrefix + "/Compiler/src/harald/testmg/newDSL4.exa")
-    ProgressToIr.apply
+    ProgressToIr.apply()
 
     StateManager.root_ = StateManager.root_.asInstanceOf[ProgressableToIr].progressToIr.asInstanceOf[Node]
 
@@ -161,35 +161,35 @@ object Main {
 
     // Strategies
 
-    FindStencilConvolutions.apply
+    FindStencilConvolutions.apply()
 
-    ResolveSpecialFunctions.apply
+    ResolveSpecialFunctions.apply()
 
-    SetupFragmentClass.apply
+    SetupFragmentClass.apply()
 
-    do { ExpandStrategy.apply }
+    do { ExpandStrategy.apply() }
     while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
 
-    SetupMultiGrid.apply
-    SetupApplication.apply
+    SetupMultiGrid.apply()
+    SetupApplication.apply()
 
-    do { ExpandStrategy.apply }
+    do { ExpandStrategy.apply() }
     while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
 
     if (!Knowledge.useMPI) {
-      RemoveMPIReferences.apply
+      RemoveMPIReferences.apply()
     }
 
-    do { SimplifyStrategy.apply }
+    do { SimplifyStrategy.apply() }
     while (SimplifyStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
 
-    AddMemberFunctionPrefix.apply
+    AddMemberFunctionPrefix.apply()
 
     if (Knowledge.useOMP) {
-      AddOMPPragmas.apply
+      AddOMPPragmas.apply()
     }
 
-    PrintStrategy.apply
+    PrintStrategy.apply()
     PrettyprintingManager.finish
 
     println("Done!")

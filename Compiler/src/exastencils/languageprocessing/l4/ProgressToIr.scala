@@ -12,9 +12,9 @@ import exastencils.knowledge.Knowledge
 object ProgressToIr extends Strategy("ProgressToIr") {
   var collector = new LevelCollector
 
-  override def apply = {
+  override def apply(hackedApplyAt : Option[Node] = None, hackedToken : Option[StateManager.History.TransactionToken] = None) = {
     StateManager.register(collector);
-    super.apply;
+    super.apply(hackedApplyAt, hackedToken);
     StateManager.unregister(collector);
   }
 
@@ -105,7 +105,6 @@ object ProgressToIr extends Strategy("ProgressToIr") {
       }
       case level : ListLevelSpecification =>
         level.levels.foreach(level => functions ++= duplicateFunctionCall(function, level))
-      case level : RangeLevelSpecification =>
       case level : RangeLevelSpecification => // all relative (e.g., "current+1") levels should have been resolved already
         for (level <- math.min(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level) to math.max(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level)) {
           var f = Duplicate(function)

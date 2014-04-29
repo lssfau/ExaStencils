@@ -18,10 +18,10 @@ object StateManager {
   def root = root_ // FIXME remove this
   var root_ : Node = null // FIXME make this protected
 
-  protected object History {
+  /* HACK: used to be protected */ object History {
     protected var currentEntry : Option[ProtocalEntry] = None
     protected var history = new Stack[ProtocalEntry]
-    protected var currentToken : Option[TransactionToken] = None
+    /* HACK: used to be protected */ var currentToken : Option[TransactionToken] = None
     protected var currentTokenCounter = 0
     protected class ProtocalEntry(val stateBefore : Node, val appliedStrategy : Strategy)
     final class TransactionToken(val id : Int)

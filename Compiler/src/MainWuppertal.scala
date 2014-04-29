@@ -27,7 +27,7 @@ object MainWuppertal extends App {
     }
   })
   
-  strategy.apply
+  strategy.apply()
   
   println("\nResulting tree:\n" + StateManager.root_)
 }

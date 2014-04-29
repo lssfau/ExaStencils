@@ -17,9 +17,9 @@ object Traversal {
     val s = new Strategy("Printing Strategy") {
       val collector = new exastencils.core.collectors.StackCollector;
 
-      override def apply = {
+      override def apply(hackedApplyAt : Option[Node] = None, hackedToken : Option[StateManager.History.TransactionToken] = None) = {
         StateManager.register(collector)
-        super.apply
+        super.apply(hackedApplyAt, hackedToken)
         StateManager.unregister(collector)
       }
 
@@ -30,7 +30,7 @@ object Traversal {
           Some(n)
       })
     }
-    s.apply
+    s.apply()
     sys.exit(0)
   }
 }

@@ -8,6 +8,7 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.primitives._
 import exastencils.core.StateManager
+import exastencils.strategies._
 
 trait Expression extends Node with CppPrettyPrintable {
   def ~(exp : Expression) : ConcatenationExpression = {
@@ -207,7 +208,10 @@ case class FieldAccess(var fieldOwner : Expression, var field : Field, var slot 
   override def cpp : String = "NOT VALID ; CLASS = FieldAccess\n";
 
   def expand(collector : StackCollector) : LinearizedFieldAccess = {
-    new LinearizedFieldAccess(fieldOwner, field, slot, Mapping.resolveMultiIdx(field, new MultiIndex(index, field.referenceOffset, _ + _)));
+    val ret = new LinearizedFieldAccess(fieldOwner, field, slot, Mapping.resolveMultiIdx(field, new MultiIndex(index, field.referenceOffset, _ + _)));
+    do { SimplifyStrategy.apply(Some(ret.index), StateManager.History.currentToken) }
+    while (SimplifyStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
+    ret
   }
 }
 

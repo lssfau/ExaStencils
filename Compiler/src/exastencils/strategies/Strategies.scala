@@ -23,9 +23,9 @@ object PrintStrategy extends Strategy("Pretty-Print") {
 object ExpandStrategy extends Strategy("Expanding") {
   val collector = new StackCollector
 
-  override def apply = {
+  override def apply(hackedApplyAt : Option[Node] = None, hackedToken : Option[StateManager.History.TransactionToken] = None) = {
     StateManager.register(collector)
-    super.apply
+    super.apply(hackedApplyAt, hackedToken)
     StateManager.unregister(collector)
   }
 
