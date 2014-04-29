@@ -1,9 +1,9 @@
-package harald.Parser
+package harald_dep.Parser
 
 import scala.util.parsing.combinator.syntactical.StandardTokenParsers
-import harald.dsl._
-import harald.Abstract._
-import harald.ast.TreeL2
+import harald_dep.dsl._
+import harald_dep.Abstract._
+import harald_dep.ast.TreeL2
 import exastencils.datastructures.ir.IntegerConstant
 import exastencils.datastructures.ir.FloatConstant
 

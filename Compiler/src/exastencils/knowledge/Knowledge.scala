@@ -2,7 +2,7 @@ package exastencils.knowledge
 
 import exastencils.knowledge._
 import exastencils.spl.Configuration
-import harald.dsl.DomainKnowledge
+import harald_dep.dsl.DomainKnowledge
 import exastencils.util._
 
 object CoarseGridSolverType extends Enumeration {

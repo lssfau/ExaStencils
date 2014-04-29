@@ -1,4 +1,4 @@
-package harald.dsl
+package harald_dep.dsl
 
 import scala.collection.mutable.ListBuffer
 

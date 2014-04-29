@@ -1,8 +1,8 @@
-package harald.Generate
+package harald_dep.Generate
 
 import java.io._
-import harald.dsl.DomainKnowledge
-import harald.ast.TreeL2
+import harald_dep.dsl.DomainKnowledge
+import harald_dep.ast.TreeL2
 
 class GenerateL3(treel2 : TreeL2) {
 

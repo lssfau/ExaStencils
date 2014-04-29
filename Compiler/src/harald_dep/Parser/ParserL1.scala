@@ -1,6 +1,6 @@
-package harald.Parser
+package harald_dep.Parser
 
-import harald.dsl.DomainKnowledge
+import harald_dep.dsl.DomainKnowledge
 
 class ParserL1 extends ExaParser
 {

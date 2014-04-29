@@ -1,8 +1,8 @@
-package harald.Impl
+package harald_dep.Impl
 
 import scala.collection.mutable.ListBuffer
-import harald.dsl._
-import harald.ast.TreeManager
+import harald_dep.dsl._
+import harald_dep.ast.TreeManager
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.core.collectors._

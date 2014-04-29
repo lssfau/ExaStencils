@@ -1,7 +1,7 @@
-package harald.Generate
+package harald_dep.Generate
 
 import java.io._
-import harald.dsl.DomainKnowledge
+import harald_dep.dsl.DomainKnowledge
 
 object GenerateL2 {
 

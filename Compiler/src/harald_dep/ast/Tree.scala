@@ -1,9 +1,9 @@
-package harald.ast
+package harald_dep.ast
 
 import scala.collection.mutable.ListBuffer
-import harald.Abstract._
-import harald.Impl._
-import harald.dsl._
+import harald_dep.Abstract._
+import harald_dep.Impl._
+import harald_dep.dsl._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._

@@ -1,8 +1,8 @@
-package harald.Abstract
+package harald_dep.Abstract
 
 import scala.collection.mutable.ListBuffer
-import harald.dsl._
-import harald.Impl._
+import harald_dep.dsl._
+import harald_dep.Impl._
 
 class AbstractField(val name : String, val datatype : String, val veclength : String, val location : String) {
   override def toString = "ExaField: '" + name + "', type = '" + datatype + "', location = '" + location + "'"

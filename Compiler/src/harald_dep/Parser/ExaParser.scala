@@ -1,4 +1,4 @@
-package harald.Parser
+package harald_dep.Parser
 
 import scala.util.parsing.combinator._
 

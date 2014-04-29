@@ -1,10 +1,10 @@
-package harald.Abstract
+package harald_dep.Abstract
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
-import harald.dsl._
-import harald.Impl._
-import harald.ast.TreeL2
+import harald_dep.dsl._
+import harald_dep.Impl._
+import harald_dep.ast.TreeL2
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._

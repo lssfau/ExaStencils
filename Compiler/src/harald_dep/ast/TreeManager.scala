@@ -1,4 +1,4 @@
-package harald.ast
+package harald_dep.ast
 
 object TreeManager {
 

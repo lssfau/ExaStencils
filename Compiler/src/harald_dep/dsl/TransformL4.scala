@@ -1,8 +1,8 @@
-package harald.dsl
+package harald_dep.dsl
 
 import scala.collection.mutable.ListBuffer
-import harald.Abstract._
-import harald.ast.TreeL2
+import harald_dep.Abstract._
+import harald_dep.ast.TreeL2
 
 /*
   class Node(parent: Node) {

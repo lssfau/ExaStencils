@@ -1,8 +1,8 @@
-package harald.Parser
+package harald_dep.Parser
 
-import harald.dsl._
-import harald.Abstract._
-import harald.ast.TreeL2
+import harald_dep.dsl._
+import harald_dep.Abstract._
+import harald_dep.ast.TreeL2
 
 class ParserL2(tree : TreeL2) extends ExaParser
 {

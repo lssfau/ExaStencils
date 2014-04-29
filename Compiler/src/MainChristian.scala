@@ -10,10 +10,10 @@ import exastencils.primitives._
 import exastencils.util._
 import exastencils.globals._
 import exastencils.prettyprinting.PrettyprintingManager
-import harald.Parser._
-import harald.dsl._
-import harald.Generate._
-import harald.ast._
+import harald_dep.Parser._
+import harald_dep.dsl._
+import harald_dep.Generate._
+import harald_dep.ast._
 import exastencils.spl.FeatureModel
 
 object MainChristian {
@@ -108,7 +108,7 @@ object MainChristian {
 //    val parserHW = new ParserHW
 //    parserHW.parseAll(parserHW.exastencilsHW, DSLHW)
 //
-//    harald.dsl /*FIXME*/ .Hardware.initHWFeatures
+//    harald_dep.dsl /*FIXME*/ .Hardware.initHWFeatures
 //
 //    if (!new java.io.File(DSLpath + problem + "lev1.mg").exists) {
 //      println("Problem specification (DSL level 1) is missing!")
