@@ -111,16 +111,16 @@ def VCycle@0 ( ) : Unit {
 }
 
 def VCycle@(1 to 6) ( ) : Unit {
-	repeat up 3 {
-		GaussSeidel@(current) ( )
+	repeat up 2 {
+		Jacobi@(current) ( )
 	}
 	UpResidual@(current) ( )
 	Restrict@(current) ( )
 	set@(coarser) ( 0 )
 	VCycle@(coarser) ( )
 	interpolatecorr@(current) ( )
-	repeat up 3 {
-		GaussSeidel@(current) ( )
+	repeat up 1 {
+		Jacobi@(current) ( )
 	}
 }
 
