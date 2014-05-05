@@ -90,3 +90,9 @@ def cpu icycle_1 ( ) :  Unit
 repeat up 8 
  (Jacobi_1())}  
 
+Field f < [1, 1, 1], Double >@(all) ( ghostlayers = 1, bcDir = false )
+Field u < [1, 1, 1], Double >@(all) ( ghostlayers = 1, bcDir = true )
+Field f < [1, 1, 1], Double >@(all) ( ghostlayers = 1, bcDir = false )
+Field u < [1, 1, 1], Double >@(all) ( ghostlayers = 1, bcDir = true )
+Field res < [1, 1, 1], Double >@(all) ( ghostlayers = 1, bcDir = false )
+Field res < [1, 1, 1], Double >@(all) ( ghostlayers = 1, bcDir = false )

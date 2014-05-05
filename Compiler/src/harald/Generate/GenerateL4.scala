@@ -5,14 +5,14 @@ import scala.collection.mutable.ListBuffer
 import harald.dsl.DomainKnowledge
 import harald.ast.TreeL2
 
-class GenerateL4(treel2: TreeL2) {
+class GenerateL4(treel2 : TreeL2) {
 
-  def transformL3toL4_old(fname: String) {
+  def transformL3toL4_old(fname : String) {
 
     val writer = new PrintWriter(new File(fname))
 
     var location = DomainKnowledge.hardware_HW.get
-    
+
     var hoststr = ""
     if (location.equals("gpu"))
       hoststr = "_host"
@@ -29,14 +29,14 @@ class GenerateL4(treel2: TreeL2) {
         matlength1 = o.matlength1.toInt
         matlength2 = o.matlength2.toInt
       }
-    
+
     var restrstr = "Restriction"
     var intstr = "interpolation"
-      
+
     var restrfactor = "0.25"
     if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion"))
       restrfactor = "1.0"
-        
+
     if (DomainKnowledge.cycle_L3.get.equals("VCycle") || DomainKnowledge.cycle_L3.get.equals("FASVCycle") || DomainKnowledge.cycle_L3.get.equals("FMGFASVCycle") || DomainKnowledge.cycle_L3.get.equals("FMGVCycle")) {
 
       writer.write(s"def cpu ${DomainKnowledge.cycle_L3.get}_0 ( lev:Int  ) : Unit \n")
@@ -44,22 +44,22 @@ class GenerateL4(treel2: TreeL2) {
       writer.write(" if coarsestlevel { \n")
       writer.write("repeat up i ncoarse \n")
       if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion"))
-      if (location.equals("gpu"))
-        writer.write(s" setcoeff ( lev  ${DomainKnowledge.unknown_L1(0)._1} <1> [lev] ) \n")
+        if (location.equals("gpu"))
+          writer.write(s" setcoeff ( lev  ${DomainKnowledge.unknown_L1(0)._1} <1> [lev] ) \n")
       writer.write(s"	${DomainKnowledge.smoother_L3.get} ( lev) \n")
       writer.write("  next  \n")
       writer.write("} else \n")
       writer.write("{ \n")
       writer.write("  repeat up i nprae \n")
       if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion"))
-      if (location.equals("gpu"))
-        writer.write(s" setcoeff ( lev  ${DomainKnowledge.unknown_L1(0)._1} <1> [lev] ) \n")
+        if (location.equals("gpu"))
+          writer.write(s" setcoeff ( lev  ${DomainKnowledge.unknown_L1(0)._1} <1> [lev] ) \n")
       writer.write(s"	${DomainKnowledge.smoother_L3.get}( lev) \n")
       writer.write("  next  \n")
 
       if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion"))
-      if (location.equals("gpu"))
-        writer.write(s" setcoeff ( lev  ${DomainKnowledge.unknown_L1(0)._1} <1> [lev] ) \n")
+        if (location.equals("gpu"))
+          writer.write(s" setcoeff ( lev  ${DomainKnowledge.unknown_L1(0)._1} <1> [lev] ) \n")
 
       writer.write("	Residual ( lev ) \n")
 
@@ -99,22 +99,22 @@ class GenerateL4(treel2: TreeL2) {
         if (veclength > 1)
           compstr = s"<${i}>"
 
-      if (DomainKnowledge.cycle_L3.get.equals("FASVCycle") || DomainKnowledge.cycle_L3.get.equals("FMGFASVCycle")) {
-        writer.write(s"	${restrstr} ( ( lev+1 ) \n")
-        writer.write(s"	           Res ${compstr} [ ( lev+1 ) ]  \n")
-        writer.write(s"	           ${DomainKnowledge.unknown_L1(0)._1} ${compstr} [lev] \n")
-        writer.write(s"	           ( ${restrfactor} ) ) \n")
+        if (DomainKnowledge.cycle_L3.get.equals("FASVCycle") || DomainKnowledge.cycle_L3.get.equals("FMGFASVCycle")) {
+          writer.write(s"	${restrstr} ( ( lev+1 ) \n")
+          writer.write(s"	           Res ${compstr} [ ( lev+1 ) ]  \n")
+          writer.write(s"	           ${DomainKnowledge.unknown_L1(0)._1} ${compstr} [lev] \n")
+          writer.write(s"	           ( ${restrfactor} ) ) \n")
+        }
       }
-      }
-      
+
       if (DomainKnowledge.cycle_L3.get.equals("FASVCycle") || DomainKnowledge.cycle_L3.get.equals("FMGFASVCycle"))
-         writer.write(s"	corr_FAS ( lev+1 ) \n")
-        
+        writer.write(s"	corr_FAS ( lev+1 ) \n")
+
       compstr = ""
       for (i <- 0 to veclength - 1) {
         if (veclength > 1)
           compstr = s"<${i}>"
-        
+
         writer.write(s"	${intstr}( lev \n")
         writer.write(s"	                  ${DomainKnowledge.unknown_L1(0)._1} ${compstr} [lev] \n")
         writer.write(s"	                  ${DomainKnowledge.unknown_L1(0)._1} ${compstr} [ (lev+1) ] ) \n")
@@ -123,8 +123,8 @@ class GenerateL4(treel2: TreeL2) {
 
       writer.write("    repeat up i npost \n")
       if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion"))
-      if (location.equals("gpu"))
-        writer.write(s" setcoeff ( lev  ${DomainKnowledge.unknown_L1(0)._1} <1> [lev] ) \n")
+        if (location.equals("gpu"))
+          writer.write(s" setcoeff ( lev  ${DomainKnowledge.unknown_L1(0)._1} <1> [lev] ) \n")
       writer.write(s"		${DomainKnowledge.smoother_L3.get} ( lev ) \n")
       writer.write("  next  \n")
       writer.write("} \n")
@@ -134,17 +134,17 @@ class GenerateL4(treel2: TreeL2) {
     writer.write("\n")
 
     writer.write(s"def ${location} Residual ( lev:Int ) : Unit  \n")
-    writer.write("{ \n")    
-    
-      if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion"))
+    writer.write("{ \n")
+
+    if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion"))
       if (location.equals("gpu"))
         writer.write(s" setcoeff ( lev  ${DomainKnowledge.unknown_L1(0)._1} <1> [lev] ) \n")
-      else if (location.equals("cpu"))  
+      else if (location.equals("cpu"))
         writer.write(s" setcoeff ( lev  ${DomainKnowledge.unknown_L1(0)._1}[lev] ) \n")
-        
+
     writer.write("loop innerpoints level lev order lex block 1 1  \n")
-      if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion"))
-        writer.write(s"  computeStencil ( ${DomainKnowledge.operator_L1(0)._1}  lev  index ) \n")
+    if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion"))
+      writer.write(s"  computeStencil ( ${DomainKnowledge.operator_L1(0)._1}  lev  index ) \n")
     writer.write(s"  Res = ${DomainKnowledge.function_L1(0)._1} [ lev ] - (${DomainKnowledge.operator_L1(0)._1} [ lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ lev ] )  \n")
     writer.write("next \n")
     writer.write("}  \n")
@@ -176,8 +176,8 @@ class GenerateL4(treel2: TreeL2) {
       writer.write("\n")
 
     }
-    
-      if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion")) {
+
+    if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion")) {
       writer.write(s"def ${location} setcoeff ( lev:Int \n")
       writer.write("          arr:Array) : Unit  \n")
       writer.write("{ \n")
@@ -190,14 +190,14 @@ class GenerateL4(treel2: TreeL2) {
       writer.write(s" solim = arr | Im \n")
       writer.write(s" decl sols : ${DomainKnowledge.abstracttype} = ( ( solim * solim ) * sigmakdiffinv ) \n")
       writer.write(s" decl denominv : ${DomainKnowledge.abstracttype} = (( 1.0 ) / ( (1.0) + sols)) \n")
-        writer.write("      coeff =  ( ( cos(sigma))  * denominv ) | Re  \n") // real
-        writer.write("      coeff =  ( ( sin ( sigma )) * denominv ) | Im    \n") // imag
+      writer.write("      coeff =  ( ( cos(sigma))  * denominv ) | Re  \n") // real
+      writer.write("      coeff =  ( ( sin ( sigma )) * denominv ) | Im    \n") // imag
       writer.write("next  \n")
       writer.write("}  \n")
 
       writer.write("\n")
-      }
-      
+    }
+
     /*def cpu L2Residual ( lev:Int ) : Double 
 { 
     Residual ( lev )
@@ -229,7 +229,7 @@ def cpu sqr ( lev:Int
       writer.write(" sqr ( lev  \n")
       if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion")) {
         writer.write("       Res <0> [lev ] ) \n")
-      } else 
+      } else
         writer.write("       Res [lev ] ) \n")
       writer.write("return fasterReduce ( Res ) \n")
       writer.write("}  \n")
@@ -268,11 +268,11 @@ def cpu sqr ( lev:Int
       writer.write("{ \n")
       writer.write(s"treatBoundary( ${DomainKnowledge.unknown_L1(0)._1} lev )  \n")
       if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion"))
-      if (location.equals("gpu"))
-        writer.write(s" setcoeff ( lev  ${DomainKnowledge.unknown_L1(0)._1} <1> [lev] ) \n")
-        else if (location.equals("cpu"))  
-        writer.write(s" setcoeff ( lev  ${DomainKnowledge.unknown_L1(0)._1}[lev] ) \n")
-        
+        if (location.equals("gpu"))
+          writer.write(s" setcoeff ( lev  ${DomainKnowledge.unknown_L1(0)._1} <1> [lev] ) \n")
+        else if (location.equals("cpu"))
+          writer.write(s" setcoeff ( lev  ${DomainKnowledge.unknown_L1(0)._1}[lev] ) \n")
+
       writer.write("    loop innerpoints level lev order rb block 1 1 \n")
       if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion"))
         writer.write(s"  computeStencil ( ${DomainKnowledge.operator_L1(0)._1}  lev  index ) \n")
@@ -291,11 +291,11 @@ def cpu sqr ( lev:Int
       writer.write("{ \n")
       writer.write(s"treatBoundary( ${DomainKnowledge.unknown_L1(0)._1} lev )  \n")
       if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion"))
-      if (location.equals("gpu"))
-        writer.write(s" setcoeff ( lev  ${DomainKnowledge.unknown_L1(0)._1} <1> [lev] ) \n")
-        else if (location.equals("cpu"))  
-        writer.write(s" setcoeff ( lev  ${DomainKnowledge.unknown_L1(0)._1}[lev] ) \n")
-        
+        if (location.equals("gpu"))
+          writer.write(s" setcoeff ( lev  ${DomainKnowledge.unknown_L1(0)._1} <1> [lev] ) \n")
+        else if (location.equals("cpu"))
+          writer.write(s" setcoeff ( lev  ${DomainKnowledge.unknown_L1(0)._1}[lev] ) \n")
+
       writer.write("    loop innerpoints level lev order lex block 1 1 \n")
       if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion"))
         writer.write(s"  computeStencil ( ${DomainKnowledge.operator_L1(0)._1}  lev  index ) \n")
@@ -303,16 +303,16 @@ def cpu sqr ( lev:Int
       writer.write("    next  \n")
       writer.write(s"treatBoundary( ${DomainKnowledge.unknown_L1(0)._1}_old lev )  \n")
       writer.write("}  \n")
-      
+
       writer.write(s"def ${location} ${DomainKnowledge.smoother_L3.get}_2 ( lev:Int ) : Unit  \n")
       writer.write("{ \n")
       writer.write(s"treatBoundary( ${DomainKnowledge.unknown_L1(0)._1}_old lev )  \n")
       if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion"))
-      if (location.equals("gpu"))
-        writer.write(s" setcoeff ( lev  ${DomainKnowledge.unknown_L1(0)._1}_old <1> [lev] ) \n")
-        else if (location.equals("cpu"))  
-        writer.write(s" setcoeff ( lev  ${DomainKnowledge.unknown_L1(0)._1}_old[lev] ) \n")
-        
+        if (location.equals("gpu"))
+          writer.write(s" setcoeff ( lev  ${DomainKnowledge.unknown_L1(0)._1}_old <1> [lev] ) \n")
+        else if (location.equals("cpu"))
+          writer.write(s" setcoeff ( lev  ${DomainKnowledge.unknown_L1(0)._1}_old[lev] ) \n")
+
       writer.write("    loop innerpoints level lev order lex block 1 1 \n")
       if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion"))
         writer.write(s"  computeStencil ( ${DomainKnowledge.operator_L1(0)._1}  lev  index ) \n")
@@ -358,7 +358,7 @@ def cpu sqr ( lev:Int
     }
     writer.write("\n")
 
-    var setfunclistloc: ListBuffer[String] = ListBuffer(s"${location}")
+    var setfunclistloc : ListBuffer[String] = ListBuffer(s"${location}")
     if (location.equals("gpu"))
       setfunclistloc += "cpu"
 
@@ -398,41 +398,41 @@ def cpu sqr ( lev:Int
     // println(DomainKnowledge.operator_L1(0)._2)
 
     // check solution!
-//       if (DomainKnowledge.operator_L1(0)._2(0).equals("Laplacian")) {
-      if (DomainKnowledge.rule_dim == 2) {
-        writer.write(s"    def cpu getsolution ( x:${DomainKnowledge.abstracttype}\n")
-        writer.write(s"                  y:${DomainKnowledge.abstracttype} ) :  ${DomainKnowledge.globaldatatype_L2} \n")
-        writer.write("{ \n")
-        if (DomainKnowledge.pdebc_L1.get._2.equals("zero"))
-          writer.write("  return ( sin ( MATHPI * x ) ) * ( sin ( MATHPI * y ) )\n")
-        else if (DomainKnowledge.pdebc_L1.get._2.equals("dn"))
-          writer.write("  return ( cos ( MATHPI * x ) ) * ( cos ( MATHPI * y ) )\n")
-        writer.write("}  \n")
-         
-        writer.write(s"def cpu getRHS ( x:${DomainKnowledge.abstracttype} \n")
-        writer.write(s"                  y:${DomainKnowledge.abstracttype} ) :  ${DomainKnowledge.globaldatatype_L2}  \n")
-        writer.write("{ \n")
-        if (DomainKnowledge.pdebc_L1.get._2.equals("zero"))
-          writer.write(" return ( ( 2 * ( MATHPI * MATHPI ) ) * ( ( sin ( MATHPI * x ) ) * ( sin ( MATHPI * y ) ) ) ) \n")
-        else if (DomainKnowledge.pdebc_L1.get._2.equals("dn"))
-          writer.write(" return ( ( 2 * ( MATHPI * MATHPI ) ) * ( ( cos ( MATHPI * x ) ) * ( cos ( MATHPI * y ) ) ) ) \n")
-        writer.write("}  \n")
-      } else if (DomainKnowledge.rule_dim == 3) {
-        writer.write(s"    def cpu getsolution ( x:${DomainKnowledge.abstracttype}\n")
-        writer.write(s"                  y:${DomainKnowledge.abstracttype} \n")
-        writer.write(s"                  z:${DomainKnowledge.abstracttype} ) :  ${DomainKnowledge.globaldatatype_L2} \n")
-        writer.write("{ \n")
-        writer.write("  return ( sin ( MATHPI * x ) ) * ( ( sin ( MATHPI * y ) ) * ( sin ( MATHPI * z ) ) )\n")
-        writer.write("}  \n")
+    //       if (DomainKnowledge.operator_L1(0)._2(0).equals("Laplacian")) {
+    if (DomainKnowledge.rule_dim == 2) {
+      writer.write(s"    def cpu getsolution ( x:${DomainKnowledge.abstracttype}\n")
+      writer.write(s"                  y:${DomainKnowledge.abstracttype} ) :  ${DomainKnowledge.globaldatatype_L2} \n")
+      writer.write("{ \n")
+      if (DomainKnowledge.pdebc_L1.get._2.equals("zero"))
+        writer.write("  return ( sin ( MATHPI * x ) ) * ( sin ( MATHPI * y ) )\n")
+      else if (DomainKnowledge.pdebc_L1.get._2.equals("dn"))
+        writer.write("  return ( cos ( MATHPI * x ) ) * ( cos ( MATHPI * y ) )\n")
+      writer.write("}  \n")
 
-        writer.write(s"def cpu getRHS ( x:${DomainKnowledge.abstracttype} \n")
-        writer.write(s"                  y:${DomainKnowledge.abstracttype} \n")
-        writer.write(s"                  z:${DomainKnowledge.abstracttype} ) :  ${DomainKnowledge.globaldatatype_L2} \n")
-        writer.write("{ \n")
-        writer.write(" return ( ( 3 * ( MATHPI * MATHPI ) ) * ( ( sin ( MATHPI * x ) ) * ( ( sin ( MATHPI * y ) ) * ( sin ( MATHPI * z ) ) ) ) ) \n")
-        writer.write("}  \n")
-      }
- //   }
+      writer.write(s"def cpu getRHS ( x:${DomainKnowledge.abstracttype} \n")
+      writer.write(s"                  y:${DomainKnowledge.abstracttype} ) :  ${DomainKnowledge.globaldatatype_L2}  \n")
+      writer.write("{ \n")
+      if (DomainKnowledge.pdebc_L1.get._2.equals("zero"))
+        writer.write(" return ( ( 2 * ( MATHPI * MATHPI ) ) * ( ( sin ( MATHPI * x ) ) * ( sin ( MATHPI * y ) ) ) ) \n")
+      else if (DomainKnowledge.pdebc_L1.get._2.equals("dn"))
+        writer.write(" return ( ( 2 * ( MATHPI * MATHPI ) ) * ( ( cos ( MATHPI * x ) ) * ( cos ( MATHPI * y ) ) ) ) \n")
+      writer.write("}  \n")
+    } else if (DomainKnowledge.rule_dim == 3) {
+      writer.write(s"    def cpu getsolution ( x:${DomainKnowledge.abstracttype}\n")
+      writer.write(s"                  y:${DomainKnowledge.abstracttype} \n")
+      writer.write(s"                  z:${DomainKnowledge.abstracttype} ) :  ${DomainKnowledge.globaldatatype_L2} \n")
+      writer.write("{ \n")
+      writer.write("  return ( sin ( MATHPI * x ) ) * ( ( sin ( MATHPI * y ) ) * ( sin ( MATHPI * z ) ) )\n")
+      writer.write("}  \n")
+
+      writer.write(s"def cpu getRHS ( x:${DomainKnowledge.abstracttype} \n")
+      writer.write(s"                  y:${DomainKnowledge.abstracttype} \n")
+      writer.write(s"                  z:${DomainKnowledge.abstracttype} ) :  ${DomainKnowledge.globaldatatype_L2} \n")
+      writer.write("{ \n")
+      writer.write(" return ( ( 3 * ( MATHPI * MATHPI ) ) * ( ( sin ( MATHPI * x ) ) * ( ( sin ( MATHPI * y ) ) * ( sin ( MATHPI * z ) ) ) ) ) \n")
+      writer.write("}  \n")
+    }
+    //   }
 
     writer.write("def cpu setRHS ( lev:Int ) : Unit  \n")
     writer.write("{ \n")
@@ -442,15 +442,15 @@ def cpu sqr ( lev:Int
     writer.write("   next \n")
     if (DomainKnowledge.cycle_L3.get.equals("FMGVCycle") || DomainKnowledge.cycle_L3.get.equals("FMGFASVCycle")) {
       writer.write(s" repeat up i ( ${DomainKnowledge.nlevels_L2.get} -1)  \n")
-      
-        compstr = ""
+
+      compstr = ""
       for (i <- 0 to veclength - 1) {
         if (veclength > 1)
-          compstr = s"<${i}>" 
-      writer.write(s"	${restrstr} ( ( i0+1 ) \n")
-      writer.write(s"	           f ${compstr} [ ( i0+1 ) ] \n")
-      writer.write(s"	           f ${compstr} [i0] \n")
-      writer.write(s"	           ( ${restrfactor} ) ) \n")
+          compstr = s"<${i}>"
+        writer.write(s"	${restrstr} ( ( i0+1 ) \n")
+        writer.write(s"	           f ${compstr} [ ( i0+1 ) ] \n")
+        writer.write(s"	           f ${compstr} [i0] \n")
+        writer.write(s"	           ( ${restrfactor} ) ) \n")
       }
       writer.write("   next \n")
     }
@@ -473,16 +473,16 @@ def cpu sqr ( lev:Int
     if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion"))
       if (location.equals("gpu"))
         writer.write(s" setcoeff ( 0  ${DomainKnowledge.unknown_L1(0)._1} <1> [0] ) \n")
-      else if (location.equals("cpu"))  
+      else if (location.equals("cpu"))
         writer.write(s" setcoeff ( 0  ${DomainKnowledge.unknown_L1(0)._1}[0] ) \n")
-        
+
     writer.write(s" decl res0 : ${DomainKnowledge.abstracttype} = L2Residual ( 0 ) \n")
     writer.write(s" decl res : ${DomainKnowledge.abstracttype} = res0 \n")
     writer.write(s" decl l2e : ${DomainKnowledge.abstracttype} = res0 \n")
     writer.write(s" decl resold : ${DomainKnowledge.abstracttype} = 0 \n")
     writer.write(s" decl mintiming : ${DomainKnowledge.abstracttype} = 10000 \n")
     if (DomainKnowledge.cycle_L3.get.equals("FMGVCycle") || DomainKnowledge.cycle_L3.get.equals("FMGFASVCycle"))
-      writer.write(s" decl FMGtiming : ${DomainKnowledge.abstracttype} = 0 \n")      
+      writer.write(s" decl FMGtiming : ${DomainKnowledge.abstracttype} = 0 \n")
     writer.write("setRHS ( 0 ) \n")
     writer.write(" print ( 'startingres' res0 ) \n")
     writer.write(" \n")
@@ -507,8 +507,8 @@ def cpu sqr ( lev:Int
 
     if (DomainKnowledge.cycle_L3.get.equals("FMGVCycle") || DomainKnowledge.cycle_L3.get.equals("FMGFASVCycle")) {
 
-        writer.write(s"	FMGtiming = FMGtiming + mintiming \n")
- //       writer.write(" starttimer ( ) \n")
+      writer.write(s"	FMGtiming = FMGtiming + mintiming \n")
+      //       writer.write(" starttimer ( ) \n")
       compstr = ""
       for (i <- 0 to veclength - 1) {
         if (veclength > 1)
@@ -523,10 +523,10 @@ def cpu sqr ( lev:Int
         writer.write(s"	} \n")
       }
       writer.write("  next  \n")
- //       writer.write(" stoptimer ( ) \n")
- //       writer.write(" showtimer ( ) \n")
- //       writer.write(s"	FMGtiming = FMGtiming + timing \n")
-        writer.write(s"	mintiming = FMGtiming \n")
+      //       writer.write(" stoptimer ( ) \n")
+      //       writer.write(" showtimer ( ) \n")
+      //       writer.write(s"	FMGtiming = FMGtiming + timing \n")
+      writer.write(s"	mintiming = FMGtiming \n")
     }
     writer.write("}  \n")
 
@@ -535,12 +535,12 @@ def cpu sqr ( lev:Int
       println("DSL level 4 was generated in " + fname)
   }
 
-  def transformL3toL4(fname: String) {
+  def transformL3toL4(fname : String) {
 
     val writer = new PrintWriter(new File(fname))
 
     var location = DomainKnowledge.hardware_HW.get
-    
+
     var hoststr = ""
     if (location.equals("gpu"))
       hoststr = "_host"
@@ -557,18 +557,26 @@ def cpu sqr ( lev:Int
         matlength1 = o.matlength1.toInt
         matlength2 = o.matlength2.toInt
       }
-    
+
     var restrstr = "Restriction"
     var intstr = "interpolation"
-      
+
     var restrfactor = "0.25"
     if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion"))
       restrfactor = "1.0"
-        
-    for (i <- DomainKnowledge.discr_iterations)
-      writer.write(i.printtoDSL4+"\n")
 
-     /*
+    for (i <- DomainKnowledge.discr_iterations)
+      writer.write(i.printtoDSL4 + "\n")
+
+    for (field <- treel2.exaFields)
+      writer.write(s"Field ${field.name} < [1, 1, 1], ${field.datatype} >@(all) ( ghostlayers = 1, bcDir = ${field.name.equals(DomainKnowledge.unknown_L1(0)._1)} )\n")
+
+    println("<<<--- STENCILS --->>>")
+    for (stencil <- treel2.exaOperators)
+      println(stencil)
+    println("<<<--- STENCILS --->>>")
+
+    /*
     if (DomainKnowledge.cycle_L3.get.equals("VCycle") || DomainKnowledge.cycle_L3.get.equals("FASVCycle") || DomainKnowledge.cycle_L3.get.equals("FMGFASVCycle") || DomainKnowledge.cycle_L3.get.equals("FMGVCycle")) {
 
       writer.write(s"def cpu ${DomainKnowledge.cycle_L3.get}_0 ( lev:Int  ) : Unit \n")
