@@ -62,3 +62,19 @@ object SetupFragmentClass extends Strategy("Setting up fragment class") {
       Some(frag)
   })
 }
+      
+object ResolveLoopOverDimensions extends Strategy("Resolving LoopOverDimensions nodes") {
+  this += new Transformation("Resolving", {
+    case loop : LoopOverDimensions =>
+      Some(loop.expandSpecial)
+  })
+}
+
+object LinearizeFieldAccesses extends Strategy("Linearizing FieldAccess nodes") {
+  this += new Transformation("Linearizing", {
+    case loop : DirectFieldAccess =>
+      Some(loop.linearize)
+    case loop : FieldAccess =>
+      Some(loop.linearize)
+  })
+}

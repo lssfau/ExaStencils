@@ -175,6 +175,28 @@ object Main {
     do { ExpandStrategy.apply() }
     while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
 
+    // Stefan, this should be a nice point of intersection
+
+    // Exemplary strategy to match all LoopOverDimensions nodes
+    // Just as a hint: this will also match all LoopOverDimensions used for communication purposes which may have to be filtered... 
+    object FindLoopOverDimensions extends Strategy("Finding LoopOverDimensions nodes") {
+      this += new Transformation("Searching", {
+        case loop : LoopOverDimensions =>
+          println("Found a LoopOverDimensions node!")
+          loop
+      })
+    }
+    FindLoopOverDimensions.apply()
+
+    // End of intersection 
+
+    ResolveLoopOverDimensions.apply()
+
+    LinearizeFieldAccesses.apply()
+
+    do { ExpandStrategy.apply() }
+    while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
+
     if (!Knowledge.useMPI) {
       RemoveMPIReferences.apply()
     }

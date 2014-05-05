@@ -196,18 +196,18 @@ case class UnresolvedFieldAccess(var fieldOwner : Expression, var fieldIdentifie
   }
 }
 
-case class DirectFieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : MultiIndex) extends Expression with Expandable {
+case class DirectFieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : MultiIndex) extends Expression {
   override def cpp : String = "NOT VALID ; CLASS = FieldAccess\n";
 
-  def expand : LinearizedFieldAccess = {
+  def linearize : LinearizedFieldAccess = {
     new LinearizedFieldAccess(fieldOwner, field, slot, Mapping.resolveMultiIdx(field, index));
   }
 }
 
-case class FieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : MultiIndex) extends Expression with Expandable {
+case class FieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : MultiIndex) extends Expression {
   override def cpp : String = "NOT VALID ; CLASS = FieldAccess\n";
 
-  def expand : LinearizedFieldAccess = {
+  def linearize : LinearizedFieldAccess = {
     val ret = new LinearizedFieldAccess(fieldOwner, field, slot, Mapping.resolveMultiIdx(field, new MultiIndex(index, field.referenceOffset, _ + _)));
     do { SimplifyStrategy.apply(Some(ret.index), StateManager.History.currentToken) }
     while (SimplifyStrategy.results.last._2.replacements > 0) // FIXME: cleaner code

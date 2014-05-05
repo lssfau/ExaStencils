@@ -101,14 +101,14 @@ case class LoopOverDomain(var iterationSetIdentifier : String, var fieldIdentifi
 //  }
 //}
 
-case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[Statement], var stepSize : MultiIndex = new MultiIndex(Array.fill(3)(1)), var reduction : Option[Reduction] = None) extends Statement with Expandable {
+case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[Statement], var stepSize : MultiIndex = new MultiIndex(Array.fill(3)(1)), var reduction : Option[Reduction] = None) extends Statement {
   def this(indices : IndexRange, body : Statement, stepSize : MultiIndex, reduction : Option[Reduction]) = this(indices, ListBuffer[Statement](body), stepSize, reduction);
   def this(indices : IndexRange, body : Statement, stepSize : MultiIndex) = this(indices, ListBuffer[Statement](body), stepSize);
   def this(indices : IndexRange, body : Statement) = this(indices, ListBuffer[Statement](body));
 
   override def cpp : String = "NOT VALID ; CLASS = LoopOverDimensions\n";
 
-  def expand : ForLoopStatement = {
+  def expandSpecial : ForLoopStatement = {
     val parallelizable = Knowledge.domain_summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false });
 
     var wrappedBody : ListBuffer[Statement] = body; // TODO: clone?
