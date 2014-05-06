@@ -1,15 +1,14 @@
 package exastencils.omp
 
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core._
-
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.knowledge._
 
 trait OMP_PotentiallyCritical
-trait OMP_PotentiallyParallel { var reduction : Option[Reduction] }
+trait OMP_PotentiallyParallel { var reduction : Option[Reduction]; var collapse = 1 }
 
 case class OMP_Critical(var body : Any) extends Statement {
   // FIXME: most constructs don't need to be protected on JuQueen as a thread-safe MPI implementation exists. How should this be incorporated?
@@ -28,8 +27,9 @@ case class OMP_Critical(var body : Any) extends Statement {
   }
 };
 
-case class OMP_ParallelFor(var body : ForLoopStatement, var addOMPStatements : Expression) extends Statement {
+case class OMP_ParallelFor(var body : ForLoopStatement, var addOMPStatements : Expression, var collapse : Int = 1) extends Statement {
   def cpp : String = {
-    s"#pragma omp parallel for " + addOMPStatements.cpp + "\n" + body.cpp;
+    s"#pragma omp parallel for ${addOMPStatements.cpp}${if (1 != collapse && Knowledge.versionOMP >= 3) s" collapse($collapse)" else ""}\n" +
+      body.cpp
   }
 };

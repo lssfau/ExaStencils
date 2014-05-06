@@ -1,5 +1,6 @@
 package exastencils.knowledge
 
+import exastencils.core._
 import exastencils.knowledge._
 import exastencils.spl.Configuration
 import harald_dep.dsl.DomainKnowledge
@@ -27,6 +28,9 @@ object SmootherType extends Enumeration {
 }
 
 object Knowledge {
+  // TODO: rename and move to hw knowledge?
+  var targetCompiler : String = "MSVC"
+
   // === Level 1 ===  
   var dimensionality : Int = 3 // dimensionality of the problem
 
@@ -129,6 +133,7 @@ object Knowledge {
   // --- OpenMP/Hybrid Parallelization ---
   var useOMP : Boolean = true
   var useMPI : Boolean = true
+  var versionOMP : Double = 2.0
 
   // --- Communication ---
   var comm_strategyFragment : Int = 6 //26
@@ -184,6 +189,15 @@ object Knowledge {
     mg_smoother_omega = (if (SmootherType.Jac == mg_smoother) 0.8 else 1.0)
 
     data_numSolSlots = (if (SmootherType.Jac == mg_smoother) 2 else 1)
+
+    if ("MSVC" == targetCompiler)
+      versionOMP = 2.0
+    else if ("GCC" == targetCompiler)
+      versionOMP = 4.0
+    else if ("IBMXL" == targetCompiler)
+      versionOMP = 3.0
+    else
+      ERROR("Unsupported target compiler")
   }
 }
 

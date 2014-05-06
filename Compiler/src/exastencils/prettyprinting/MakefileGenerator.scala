@@ -8,14 +8,18 @@ object MakefileGenerator extends BuildfileGenerator {
     val printer = PrettyprintingManager.getPrinter("Makefile")
 
     // TODO: switch by target hardware
-    if (Knowledge.useOMP) {
-      printer <<< "CXX = mpixlcxx_r"
-      printer <<< "CFLAGS = " + Hardware.cflags_openmp
-      printer <<< "LFLAGS = " + Hardware.ldflags_openmp
-    } else {
-      printer <<< "CXX = mpixlcxx"
-      printer <<< "CFLAGS = " + Hardware.cflags_mpi
-      printer <<< "LFLAGS = " + Hardware.ldflags_mpi
+    if ("GCC" == Knowledge.targetCompiler) {
+      // TODO
+    } else if ("IBMXL" == Knowledge.targetCompiler) {
+      if (Knowledge.useOMP) {
+        printer <<< "CXX = mpixlcxx_r"
+        printer <<< "CFLAGS = " + Hardware.cflags_openmp
+        printer <<< "LFLAGS = " + Hardware.ldflags_openmp
+      } else {
+        printer <<< "CXX = mpixlcxx"
+        printer <<< "CFLAGS = " + Hardware.cflags_mpi
+        printer <<< "LFLAGS = " + Hardware.ldflags_mpi
+      }
     }
 
     printer <<< "BINARY = " + Settings.binary

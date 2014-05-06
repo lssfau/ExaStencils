@@ -16,7 +16,7 @@ import exastencils.mpi._
 // TODO: Move accepted nodes to appropriate packages
 
 case class LoopOverDomain(var iterationSetIdentifier : String, var fieldIdentifier : String, var level : Int, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = LoopOverDomain\n";
+  override def cpp : String = "NOT VALID ; CLASS = LoopOverDomain\n"
 
   var expCount = 0
 
@@ -102,41 +102,44 @@ case class LoopOverDomain(var iterationSetIdentifier : String, var fieldIdentifi
 //}
 
 case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[Statement], var stepSize : MultiIndex = new MultiIndex(Array.fill(3)(1)), var reduction : Option[Reduction] = None) extends Statement {
-  def this(indices : IndexRange, body : Statement, stepSize : MultiIndex, reduction : Option[Reduction]) = this(indices, ListBuffer[Statement](body), stepSize, reduction);
-  def this(indices : IndexRange, body : Statement, stepSize : MultiIndex) = this(indices, ListBuffer[Statement](body), stepSize);
-  def this(indices : IndexRange, body : Statement) = this(indices, ListBuffer[Statement](body));
+  def this(indices : IndexRange, body : Statement, stepSize : MultiIndex, reduction : Option[Reduction]) = this(indices, ListBuffer[Statement](body), stepSize, reduction)
+  def this(indices : IndexRange, body : Statement, stepSize : MultiIndex) = this(indices, ListBuffer[Statement](body), stepSize)
+  def this(indices : IndexRange, body : Statement) = this(indices, ListBuffer[Statement](body))
 
-  override def cpp : String = "NOT VALID ; CLASS = LoopOverDimensions\n";
+  override def cpp : String = "NOT VALID ; CLASS = LoopOverDimensions\n"
 
   def expandSpecial : ForLoopStatement = {
-    val parallelizable = Knowledge.domain_summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false });
+    val parallelizable = Knowledge.domain_summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
 
-    var wrappedBody : ListBuffer[Statement] = body; // TODO: clone?
+    var wrappedBody : ListBuffer[Statement] = body // TODO: clone?
 
     for (d <- 0 until Knowledge.dimensionality - 1) {
       wrappedBody = ListBuffer[Statement](new ForLoopStatement(
         s"int ${dimToString(d)} = " ~ indices.begin(d), s"${dimToString(d)} < " ~ indices.end(d), s"${dimToString(d)} +=" ~ stepSize(d),
-        wrappedBody, reduction));
+        wrappedBody, reduction))
     }
-    val d = Knowledge.dimensionality - 1;
-    if (parallelizable)
-      return new ForLoopStatement(s"int ${dimToString(d)} = " ~ indices.begin(d), s"${dimToString(d)} < " ~ indices.end(d), s"${dimToString(d)} +=" ~ stepSize(d), wrappedBody,
-        reduction) with OMP_PotentiallyParallel;
-    else
-      return new ForLoopStatement(s"int ${dimToString(d)} = " ~ indices.begin(d), s"${dimToString(d)} < " ~ indices.end(d), s"${dimToString(d)} +=" ~ stepSize(d), wrappedBody,
-        reduction);
+    val d = Knowledge.dimensionality - 1
+    if (parallelizable) {
+      var ret = new ForLoopStatement(s"int ${dimToString(d)} = " ~ indices.begin(d), s"${dimToString(d)} < " ~ indices.end(d), s"${dimToString(d)} +=" ~ stepSize(d), wrappedBody,
+        reduction) with OMP_PotentiallyParallel
+      ret.collapse = Knowledge.dimensionality
+      ret
+    } else {
+      new ForLoopStatement(s"int ${dimToString(d)} = " ~ indices.begin(d), s"${dimToString(d)} < " ~ indices.end(d), s"${dimToString(d)} +=" ~ stepSize(d), wrappedBody,
+        reduction)
+    }
   }
 }
 
 case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : Option[Reduction] = None, var createFragRef : Boolean = true) extends Statement with Expandable {
-  def this(body : Statement, reduction : Option[Reduction], createFragRef : Boolean) = this(ListBuffer(body), reduction, createFragRef);
-  def this(body : Statement, reduction : Option[Reduction]) = this(ListBuffer(body), reduction);
-  def this(body : Statement) = this(ListBuffer(body));
+  def this(body : Statement, reduction : Option[Reduction], createFragRef : Boolean) = this(ListBuffer(body), reduction, createFragRef)
+  def this(body : Statement, reduction : Option[Reduction]) = this(ListBuffer(body), reduction)
+  def this(body : Statement) = this(ListBuffer(body))
 
-  def cpp = "NOT VALID ; CLASS = LoopOverFragments\n";
+  def cpp = "NOT VALID ; CLASS = LoopOverFragments\n"
 
   def expand : StatementBlock = {
-    val parallelizable = !Knowledge.domain_summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false });
+    val parallelizable = !Knowledge.domain_summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
     var statements = new ListBuffer[Statement]
 
     if (parallelizable)
@@ -157,55 +160,55 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
 }
 
 abstract class Class extends Statement {
-  var className : String = "CLASS_NAME";
-  var declarations : ListBuffer[Statement] = ListBuffer();
+  var className : String = "CLASS_NAME"
+  var declarations : ListBuffer[Statement] = ListBuffer()
   // FIXME: use specialized c'tor and d'tor nodes
-  var cTorArgs : ListBuffer[Expression] = ListBuffer();
-  var cTorInitList : ListBuffer[Expression] = ListBuffer();
-  var cTorBody : ListBuffer[Statement] = ListBuffer();
-  var dTorBody : ListBuffer[Statement] = ListBuffer();
-  var functions : ListBuffer[AbstractFunctionStatement] = ListBuffer();
+  var cTorArgs : ListBuffer[Expression] = ListBuffer()
+  var cTorInitList : ListBuffer[Expression] = ListBuffer()
+  var cTorBody : ListBuffer[Statement] = ListBuffer()
+  var dTorBody : ListBuffer[Statement] = ListBuffer()
+  var functions : ListBuffer[AbstractFunctionStatement] = ListBuffer()
 
   def cpp : String = {
-    var s : String = "";
+    var s : String = ""
 
-    s += s"class $className\n{\n";
+    s += s"class $className\n{\n"
 
-    s += s"public:\n";
+    s += s"public:\n"
 
     for (decl <- declarations)
-      s += s"${decl.cpp}\n";
+      s += s"${decl.cpp}\n"
 
-    s += s"$className (${cTorArgs.map(stat => stat.cpp).mkString(", ")})\n:\n";
-    s += cTorInitList.map(stat => stat.cpp).mkString(",\n");
+    s += s"$className (${cTorArgs.map(stat => stat.cpp).mkString(", ")})\n:\n"
+    s += cTorInitList.map(stat => stat.cpp).mkString(",\n")
     s += s"{\n"
     for (stat <- cTorBody)
-      s += s"${stat.cpp}\n";
-    s += s"}\n";
+      s += s"${stat.cpp}\n"
+    s += s"}\n"
 
-    s += s"~$className ()\n";
+    s += s"~$className ()\n"
     s += s"{\n"
     for (stat <- dTorBody)
-      s += s"${stat.cpp}\n";
-    s += s"}\n";
+      s += s"${stat.cpp}\n"
+    s += s"}\n"
 
     for (func <- functions) {
-      val function = func.asInstanceOf[FunctionStatement];
-      s += s"${function.returntype.cpp} ${function.name.split("::")(1) /*FIXME: handle with reason*/ }(" + function.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n";
+      val function = func.asInstanceOf[FunctionStatement]
+      s += s"${function.returntype.cpp} ${function.name.split("::")(1) /*FIXME: handle with reason*/ }(" + function.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n"
     }
 
-    s += s"};\n";
+    s += s"};\n"
 
-    return s;
+    return s
   }
 }
 
 case class CommunicationFunctions() extends Node with FilePrettyPrintable {
-  var functions : ListBuffer[AbstractFunctionStatement] = ListBuffer();
+  var functions : ListBuffer[AbstractFunctionStatement] = ListBuffer()
 
   override def printToFile = {
     {
-      val writer = PrettyprintingManager.getPrinter(s"Primitives/CommunicationFunctions.h");
+      val writer = PrettyprintingManager.getPrinter(s"Primitives/CommunicationFunctions.h")
 
       writer << (
         (if (Knowledge.useMPI) "#pragma warning(disable : 4800)\n" else "")
@@ -213,24 +216,24 @@ case class CommunicationFunctions() extends Node with FilePrettyPrintable {
         + "#include \"Globals/Globals.h\"\n"
         + "#include \"Util/Log.h\"\n"
         + "#include \"Util/Vector.h\"\n"
-        + "#include \"Primitives/Fragment3DCube.h\"\n");
+        + "#include \"Primitives/Fragment3DCube.h\"\n")
 
       for (func <- functions) {
-        val function = func.asInstanceOf[FunctionStatement];
-        writer << s"${function.returntype.cpp} ${function.name}(" + function.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n";
+        val function = func.asInstanceOf[FunctionStatement]
+        writer << s"${function.returntype.cpp} ${function.name}(" + function.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n"
       }
     }
 
-    var i = 0;
+    var i = 0
     for (f <- functions) {
-      var s : String = "";
+      var s : String = ""
 
-      val writer = PrettyprintingManager.getPrinter(s"Primitives/CommunicationFunction_$i.cpp");
+      val writer = PrettyprintingManager.getPrinter(s"Primitives/CommunicationFunction_$i.cpp")
 
-      writer << "#include \"Primitives/CommunicationFunctions.h\"\n\n";
-      writer << f.cpp + "\n";
+      writer << "#include \"Primitives/CommunicationFunctions.h\"\n\n"
+      writer << f.cpp + "\n"
 
-      i += 1;
+      i += 1
     }
   }
 }

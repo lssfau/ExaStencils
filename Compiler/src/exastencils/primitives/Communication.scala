@@ -51,7 +51,7 @@ case class CopyToSendBuffer(var field : Field, var neighbors : ListBuffer[(Neigh
         new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
           new LoopOverDimensions(neigh._2,
             new AssignmentStatement(s"curFragment.buffer_Send[${neigh._1.index}][" ~ Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), neigh._2.begin, _ - _), neigh._2) ~ "]",
-              new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex())))) : Statement)) with OMP_PotentiallyParallel
+              new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel) : Statement)) with OMP_PotentiallyParallel
   }
 }
 
@@ -64,11 +64,9 @@ case class CopyFromRecvBuffer(var field : Field, var neighbors : ListBuffer[(Nei
       filterNot(neigh => neigh._2.begin(0) == neigh._2.end(0) && neigh._2.begin(1) == neigh._2.end(1) && neigh._2.begin(2) == neigh._2.end(2)).
       map(neigh =>
         (new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
-          ListBuffer[Statement](
-            s"unsigned int entry = 0",
-            new LoopOverDimensions(neigh._2,
-              new AssignmentStatement(new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()),
-                s"curFragment.buffer_Recv[${neigh._1.index}][" ~ Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), neigh._2.begin, _ - _), neigh._2) ~ "]"))))) : Statement)) with OMP_PotentiallyParallel
+          new LoopOverDimensions(neigh._2,
+            new AssignmentStatement(new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()),
+              s"curFragment.buffer_Recv[${neigh._1.index}][" ~ Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), neigh._2.begin, _ - _), neigh._2) ~ "]")) with OMP_PotentiallyParallel)) : Statement)) with OMP_PotentiallyParallel
   }
 }
 
