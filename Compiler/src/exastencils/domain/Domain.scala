@@ -46,6 +46,16 @@ case class PointToFragmentId(var pos : Expression) extends Expression with Expan
   }
 }
 
+case class PointToLocalFragmentId(var pos : Expression) extends Expression with Expandable {
+  override def cpp : String = "NOT VALID ; CLASS = PointToFragmentId\n"
+
+  override def expand : Expression = {
+    (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - Knowledge.domain_size.lower_z) / Knowledge.domain_fragWidth_z)) Mod Knowledge.domain_numFragsPerBlock_z) * Knowledge.domain_numFragsPerBlock_y * Knowledge.domain_numFragsPerBlock_x +
+      (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - Knowledge.domain_size.lower_y) / Knowledge.domain_fragWidth_y)) Mod Knowledge.domain_numFragsPerBlock_y) * Knowledge.domain_numFragsPerBlock_x +
+      (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - Knowledge.domain_size.lower_x) / Knowledge.domain_fragWidth_x)) Mod Knowledge.domain_numFragsPerBlock_x)
+  }
+}
+
 case class PointToOwningRank(var pos : Expression, var domain : Int) extends Expression with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = PointToOwningRank\n"
 
@@ -91,9 +101,9 @@ case class ConnectFragments() extends Statement with Expandable {
                 (if (Knowledge.useOMP)
                   new ConditionStatement(s"mpiRank ==" ~ PointToOwningRank("offsetPos", d),
                   s"curFragment.connectLocalElement(${neigh.index}, fragmentMap[" ~ PointToFragmentId("offsetPos") ~ s"], $d)",
-                  s"curFragment.connectRemoteElement(${neigh.index}," ~ PointToFragmentId("offsetPos") ~ "," ~ PointToOwningRank("offsetPos", d) ~ s", $d)")
+                  s"curFragment.connectRemoteElement(${neigh.index}," ~ PointToLocalFragmentId("offsetPos") ~ "," ~ PointToOwningRank("offsetPos", d) ~ s", $d)")
                 else
-                  s"curFragment.connectRemoteElement(${neigh.index}," ~ PointToFragmentId("offsetPos") ~ "," ~ PointToOwningRank("offsetPos", d) ~ s", $d)") : Statement
+                  s"curFragment.connectRemoteElement(${neigh.index}," ~ PointToLocalFragmentId("offsetPos") ~ "," ~ PointToOwningRank("offsetPos", d) ~ s", $d)") : Statement
               } else {
                 (s"curFragment.connectLocalElement(${neigh.index}, fragmentMap[" ~ PointToFragmentId("offsetPos") ~ s"], $d)") : Statement
               })))
@@ -155,6 +165,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
         LoopOverFragments(ListBuffer(
           s"fragments[f] = new Fragment3DCube()",
           s"fragments[f]->id = " ~ PointToFragmentId("positions[f]"),
+          s"fragments[f]->commId = " ~ PointToLocalFragmentId("positions[f]"),
           s"fragments[f]->pos = positions[f]",
           s"fragmentMap[fragments[f]->id] = fragments[f]"),
           None,

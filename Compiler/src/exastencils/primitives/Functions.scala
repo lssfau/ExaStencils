@@ -90,7 +90,7 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
         s"neighbor_isValid[domain][location] = true",
         s"neighbor_isRemote[domain][location] = false",
         s"neighbor_localPtr[domain][location] = fragment",
-        s"neighbor_fragmentId[domain][location] = fragment->id"))
+        s"neighbor_fragCommId[domain][location] = fragment->commId"))
   }
 }
 
@@ -103,7 +103,7 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
       ListBuffer[Statement](
         s"neighbor_isValid[domain][location] = true",
         s"neighbor_isRemote[domain][location] = true",
-        s"neighbor_fragmentId[domain][location] = id",
+        s"neighbor_fragCommId[domain][location] = id",
         s"neighbor_remoteRank[domain][location] = remoteRank"))
   }
 }

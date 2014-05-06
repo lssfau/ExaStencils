@@ -21,6 +21,8 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
   def init = {
     declarations += s"size_t id"
     cTorInitList += s"id(-1)"
+    declarations += s"size_t commId"
+    cTorInitList += s"commId(-1)"
 
     declarations += s"Vec3 pos"
     cTorInitList += s"pos(0.0, 0.0, 0.0)"
@@ -62,8 +64,8 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
     cTorNeighLoopList += s"neighbor_isRemote[d][i] = false"
     declarations += s"Fragment3DCube* neighbor_localPtr[${Knowledge.domain_numSubdomains}][$numNeighbors]"
     cTorNeighLoopList += s"neighbor_localPtr[d][i] = NULL"
-    declarations += s"size_t neighbor_fragmentId[${Knowledge.domain_numSubdomains}][$numNeighbors]"
-    cTorNeighLoopList += s"neighbor_fragmentId[d][i] = -1"
+    declarations += s"size_t neighbor_fragCommId[${Knowledge.domain_numSubdomains}][$numNeighbors]"
+    cTorNeighLoopList += s"neighbor_fragCommId[d][i] = -1"
 
     if (Knowledge.useMPI) {
       declarations += s"int neighbor_remoteRank[${Knowledge.domain_numSubdomains}][$numNeighbors]"
