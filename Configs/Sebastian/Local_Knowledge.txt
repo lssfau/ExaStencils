@@ -1,9 +1,11 @@
+targetCompiler				= "MSVC"
+
 dimensionality				= 3
 
 maxLevel					= 4
 comm_strategyFragment		= 6	// 26
 
-domain_summarizeBlocks		= false
+domain_summarizeBlocks		= true
 
 domain_numBlocks_x			= 3
 domain_numBlocks_y			= 3

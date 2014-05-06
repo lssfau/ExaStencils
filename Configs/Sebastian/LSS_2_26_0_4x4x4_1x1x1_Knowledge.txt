@@ -1,3 +1,5 @@
+targetCompiler				= "GCC"
+
 maxLevel					= 5
 comm_strategyFragment		= 26
 
