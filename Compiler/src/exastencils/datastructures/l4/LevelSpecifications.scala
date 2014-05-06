@@ -28,3 +28,5 @@ case class CoarsestLevelSpecification() extends LevelSpecification with Declarat
 case class FinestLevelSpecification() extends LevelSpecification with DeclarationLevelSpecification with AccessLevelSpecification
 case class NegatedLevelSpecification(var l : LevelSpecification) extends LevelSpecification with DeclarationLevelSpecification
 case class RelativeLevelSpecification(var operator : String, var base : LevelSpecification, var offset : Int) extends LevelSpecification with DeclarationLevelSpecification with AccessLevelSpecification
+
+case class AllLevelsSpecification() extends LevelSpecification with DeclarationLevelSpecification

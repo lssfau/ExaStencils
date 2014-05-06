@@ -42,6 +42,7 @@ object ProgressToIr extends Strategy("ProgressToIr") {
 
   // resolve level identifiers "coarsest", "finest"
   this += new Transformation("ResolveIdentifierLevels", {
+    case x : AllLevelsSpecification     => RangeLevelSpecification(SingleLevelSpecification(0), SingleLevelSpecification(Knowledge.maxLevel))
     case x : CoarsestLevelSpecification => SingleLevelSpecification(0)
     case x : FinestLevelSpecification   => SingleLevelSpecification(Knowledge.maxLevel)
   })
@@ -172,7 +173,7 @@ object ProgressToIr extends Strategy("ProgressToIr") {
           f.level = Some(SingleLevelSpecification(level))
           stencils += f
         }
-      case _                                => ERROR(s"Invalid level specification for stencil $stencil: $level")
+      case _ => ERROR(s"Invalid level specification for stencil $stencil: $level")
     }
     return stencils.toList
   }
