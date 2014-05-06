@@ -32,9 +32,7 @@ case class LocalSend(var field : Field, var neighbors : ListBuffer[(NeighborInfo
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(
                 new DirectFieldAccess(new getNeighInfo_LocalPtr(neigh._1, field.domain) ~ "->", field, "slot", new MultiIndex(
-                  StringConstant("x") + neigh._3.begin(0) - neigh._2.begin(0),
-                  StringConstant("y") + neigh._3.begin(1) - neigh._2.begin(1),
-                  StringConstant("z") + neigh._3.begin(2) - neigh._2.begin(2))),
+                  new MultiIndex(DefaultLoopMultiIndex(), neigh._3.begin, _ + _), neigh._2.begin, _ - _)),
                 new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel))) : Statement)) with OMP_PotentiallyParallel
   }
 }
@@ -51,11 +49,9 @@ case class CopyToSendBuffer(var field : Field, var neighbors : ListBuffer[(Neigh
       filterNot(neigh => neigh._2.begin(0) == neigh._2.end(0) && neigh._2.begin(1) == neigh._2.end(1) && neigh._2.begin(2) == neigh._2.end(2)).
       map(neigh =>
         new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
-          ListBuffer[Statement](
-            s"unsigned int entry = 0",
-            new LoopOverDimensions(neigh._2,
-              new AssignmentStatement(s"curFragment.buffer_Send[${neigh._1.index}][entry++]",
-                new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()))))) : Statement)) with OMP_PotentiallyParallel
+          new LoopOverDimensions(neigh._2,
+            new AssignmentStatement(s"curFragment.buffer_Send[${neigh._1.index}][" ~ Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), neigh._2.begin, _ - _), neigh._2) ~ "]",
+              new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex())))) : Statement)) with OMP_PotentiallyParallel
   }
 }
 
@@ -72,7 +68,7 @@ case class CopyFromRecvBuffer(var field : Field, var neighbors : ListBuffer[(Nei
             s"unsigned int entry = 0",
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()),
-                s"curFragment.buffer_Recv[${neigh._1.index}][entry++]"))))) : Statement)) with OMP_PotentiallyParallel
+                s"curFragment.buffer_Recv[${neigh._1.index}][" ~ Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), neigh._2.begin, _ - _), neigh._2) ~ "]"))))) : Statement)) with OMP_PotentiallyParallel
   }
 }
 

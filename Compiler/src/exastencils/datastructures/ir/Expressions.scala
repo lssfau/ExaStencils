@@ -171,7 +171,7 @@ case class MultiIndex(var index_0 : Expression = new NullExpression, var index_1
       + s"${index_0.cpp}"
       + (if (Knowledge.dimensionality > 1) s", ${index_1.cpp}" else "")
       + (if (Knowledge.dimensionality > 2) s", ${index_2.cpp}" else "")
-      + ")");
+      + ")")
   }
 
   def apply(i : Int) : Expression = {
@@ -184,11 +184,11 @@ case class MultiIndex(var index_0 : Expression = new NullExpression, var index_1
 }
 
 object DefaultLoopMultiIndex {
-  def apply() : MultiIndex = { new MultiIndex("x", "y", "z"); }
+  def apply() : MultiIndex = { new MultiIndex("x", "y", "z") }
 }
 
 case class UnresolvedFieldAccess(var fieldOwner : Expression, var fieldIdentifier : String, var level : Int, var slot : Expression, var index : MultiIndex) extends Expression with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = UnresolvedFieldAccess\n";
+  override def cpp : String = "NOT VALID ; CLASS = UnresolvedFieldAccess\n"
 
   def expand : FieldAccess = {
     val field = StateManager.findFirst[FieldCollection]().get.getFieldByIdentifier(fieldIdentifier, level).get
@@ -197,32 +197,29 @@ case class UnresolvedFieldAccess(var fieldOwner : Expression, var fieldIdentifie
 }
 
 case class DirectFieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : MultiIndex) extends Expression {
-  override def cpp : String = "NOT VALID ; CLASS = FieldAccess\n";
+  override def cpp : String = "NOT VALID ; CLASS = FieldAccess\n"
 
   def linearize : LinearizedFieldAccess = {
-    new LinearizedFieldAccess(fieldOwner, field, slot, Mapping.resolveMultiIdx(field, index));
+    new LinearizedFieldAccess(fieldOwner, field, slot, Mapping.resolveMultiIdx(field, index))
   }
 }
 
 case class FieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : MultiIndex) extends Expression {
-  override def cpp : String = "NOT VALID ; CLASS = FieldAccess\n";
+  override def cpp : String = "NOT VALID ; CLASS = FieldAccess\n"
 
   def linearize : LinearizedFieldAccess = {
-    val ret = new LinearizedFieldAccess(fieldOwner, field, slot, Mapping.resolveMultiIdx(field, new MultiIndex(index, field.referenceOffset, _ + _)));
-    do { SimplifyStrategy.apply(Some(ret.index), StateManager.History.currentToken) }
-    while (SimplifyStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
-    ret
+    new LinearizedFieldAccess(fieldOwner, field, slot, Mapping.resolveMultiIdx(field, new MultiIndex(index, field.referenceOffset, _ + _)))
   }
 }
 
 case class LinearizedFieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : Expression) extends Expression {
   override def cpp : String = {
-    s"${fieldOwner.cpp}${field.codeName.cpp}[${slot.cpp}][${index.cpp}]";
+    s"${fieldOwner.cpp}${field.codeName.cpp}[${slot.cpp}][${index.cpp}]"
   }
 }
 
 case class UnresolvedStencilAccess(var stencilIdentifier : String, level : Int) extends Expression {
-  override def cpp : String = "NOT VALID ; CLASS = UnresolvedStencilAccess\n";
+  override def cpp : String = "NOT VALID ; CLASS = UnresolvedStencilAccess\n"
 }
 
 case class MemberAccess(var base : Access, var varAcc : VariableAccess) extends Access {
@@ -239,7 +236,7 @@ case class UnaryExpression(var operator : UnaryOperators.Value, var expression :
 
 case class BinaryExpression(var operator : BinaryOperators.Value, var left : Expression, var right : Expression) extends Expression {
   override def cpp = {
-    s"(${left.cpp} ${BinaryOperators.op2str(operator)} ${right.cpp})";
+    s"(${left.cpp} ${BinaryOperators.op2str(operator)} ${right.cpp})"
   }
 }
 
@@ -247,24 +244,24 @@ case class FunctionCallExpression(var name : Expression, var arguments : ListBuf
   def this(name : Expression, argument : Expression) = this(name, ListBuffer(argument))
 
   override def cpp : String = {
-    return (s"${name.cpp}(" + arguments.map(arg => arg.cpp).mkString(", ") + ")");
+    return (s"${name.cpp}(" + arguments.map(arg => arg.cpp).mkString(", ") + ")")
   }
 }
 
 case class MemberFunctionCallExpression(var objectName : Expression, var name : Expression, var arguments : ListBuffer[Expression /* FIXME: more specialization*/ ]) extends Expression {
   override def cpp : String = {
-    return (s"${objectName.cpp}.${name.cpp}(" + arguments.map(arg => arg.cpp).mkString(", ") + ")");
+    return (s"${objectName.cpp}.${name.cpp}(" + arguments.map(arg => arg.cpp).mkString(", ") + ")")
   }
 }
 
 case class TernaryConditionExpression(var condition : Expression, var trueBody : Expression, var falseBody : Expression) extends Expression {
   def cpp : String = {
-    (s"((${condition.cpp}) ? (${trueBody.cpp}) : (${falseBody.cpp}))");
+    (s"((${condition.cpp}) ? (${trueBody.cpp}) : (${falseBody.cpp}))")
   }
 }
 
 case class Reduction(var op : BinaryOperators.Value, var target : Expression) extends Expression {
-  override def cpp : String = "NOT VALID ; CLASS = Reduction\n";
+  override def cpp : String = "NOT VALID ; CLASS = Reduction\n"
 
   def getOMPClause : Expression = {
     s"reduction(${BinaryOperators.op2str(op)}:" ~ target ~ ")"
