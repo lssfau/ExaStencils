@@ -67,13 +67,13 @@ case class Variable(var identifier : Identifier, var datatype : Datatype) extend
 
 case class BinaryExpression(var operator : String, var left : Expression, var right : Expression) extends Expression {
   def progressToIr : ir.BinaryExpression = {
-    ir.BinaryExpression(operator, left.progressToIr, right.progressToIr)
+    ir.BinaryOperators.CreateExpression(operator, left.progressToIr, right.progressToIr)
   }
 }
 
 case class BooleanExpression(var operator : String, var left : Expression, var right : Expression) extends Expression {
   def progressToIr : ir.BinaryExpression = {
-    ir.BinaryExpression(operator, left.progressToIr, right.progressToIr)
+    ir.BinaryOperators.CreateExpression(operator, left.progressToIr, right.progressToIr)
   }
 }
 

@@ -44,93 +44,92 @@ object SimplifyStrategy extends Strategy("Simplifying") {
     //})
 
     //this += new Transformation("Correcting signs", {
-    case BinaryExpression(BinaryOperators.Addition, left, IntegerConstant(right)) if (right < 0) =>
+    case AdditionExpression(left, IntegerConstant(right)) if (right < 0) =>
       left - IntegerConstant(-right)
-    case BinaryExpression(BinaryOperators.Subtraction, left, IntegerConstant(right)) if (right < 0) =>
+    case SubtractionExpression(left, IntegerConstant(right)) if (right < 0) =>
       left + IntegerConstant(-right)
-    case BinaryExpression(BinaryOperators.Addition, left, FloatConstant(right)) if (right < 0) =>
+    case AdditionExpression(left, FloatConstant(right)) if (right < 0) =>
       left - FloatConstant(-right)
-    case BinaryExpression(BinaryOperators.Subtraction, left, FloatConstant(right)) if (right < 0) =>
+    case SubtractionExpression(left, FloatConstant(right)) if (right < 0) =>
       left + FloatConstant(-right)
     //})
 
     //this += new Transformation("Resolving operations on constant integers", {
-    case BinaryExpression(BinaryOperators.Addition, left : IntegerConstant, right : IntegerConstant) =>
+    case AdditionExpression(left : IntegerConstant, right : IntegerConstant) =>
       IntegerConstant(left.v + right.v)
-    case BinaryExpression(BinaryOperators.Subtraction, left : IntegerConstant, right : IntegerConstant) =>
+    case SubtractionExpression(left : IntegerConstant, right : IntegerConstant) =>
       IntegerConstant(left.v - right.v)
-    case BinaryExpression(BinaryOperators.Multiplication, left : IntegerConstant, right : IntegerConstant) =>
+    case MultiplicationExpression(left : IntegerConstant, right : IntegerConstant) =>
       IntegerConstant(left.v * right.v)
-    case BinaryExpression(BinaryOperators.Division, left : IntegerConstant, right : IntegerConstant) =>
+    case DivisionExpression(left : IntegerConstant, right : IntegerConstant) =>
       IntegerConstant(left.v / right.v)
 
-    case BinaryExpression(BinaryOperators.Addition, BinaryExpression(BinaryOperators.Addition, leftLeft, leftRight : IntegerConstant), right : IntegerConstant) =>
+    case AdditionExpression(AdditionExpression(leftLeft, leftRight : IntegerConstant), right : IntegerConstant) =>
       (leftLeft + (leftRight.v + right.v))
-    case BinaryExpression(BinaryOperators.Subtraction, BinaryExpression(BinaryOperators.Addition, leftLeft, leftRight : IntegerConstant), right : IntegerConstant) =>
+    case SubtractionExpression(AdditionExpression(leftLeft, leftRight : IntegerConstant), right : IntegerConstant) =>
       (leftLeft + (leftRight.v - right.v))
-    case BinaryExpression(BinaryOperators.Addition, BinaryExpression(BinaryOperators.Subtraction, leftLeft, leftRight : IntegerConstant), right : IntegerConstant) =>
+    case AdditionExpression(SubtractionExpression(leftLeft, leftRight : IntegerConstant), right : IntegerConstant) =>
       (leftLeft + (-leftRight.v + right.v))
-    case BinaryExpression(BinaryOperators.Subtraction, BinaryExpression(BinaryOperators.Subtraction, leftLeft, leftRight : IntegerConstant), right : IntegerConstant) =>
+    case SubtractionExpression(SubtractionExpression(leftLeft, leftRight : IntegerConstant), right : IntegerConstant) =>
       (leftLeft - (leftRight.v + right.v))
 
-    case BinaryExpression(BinaryOperators.Addition, left : FloatConstant, right : FloatConstant) =>
+    case AdditionExpression(left : FloatConstant, right : FloatConstant) =>
       FloatConstant(left.v + right.v)
-    case BinaryExpression(BinaryOperators.Subtraction, left : FloatConstant, right : FloatConstant) =>
+    case SubtractionExpression(left : FloatConstant, right : FloatConstant) =>
       FloatConstant(left.v - right.v)
-    case BinaryExpression(BinaryOperators.Multiplication, left : FloatConstant, right : FloatConstant) =>
+    case MultiplicationExpression(left : FloatConstant, right : FloatConstant) =>
       FloatConstant(left.v * right.v)
-    case BinaryExpression(BinaryOperators.Division, left : FloatConstant, right : FloatConstant) =>
+    case DivisionExpression(left : FloatConstant, right : FloatConstant) =>
       FloatConstant(left.v / right.v)
     //})
 
     //this += new Transformation("Resolving operations with 0/1", {
-    case BinaryExpression(BinaryOperators.Multiplication, left : Expression, IntegerConstant(0)) =>
+    case MultiplicationExpression(left : Expression, IntegerConstant(0)) =>
       IntegerConstant(0)
-    case BinaryExpression(BinaryOperators.Multiplication, left : Expression, FloatConstant(0.0)) =>
+    case MultiplicationExpression(left : Expression, FloatConstant(0.0)) =>
       FloatConstant(0.0)
 
-    case BinaryExpression(BinaryOperators.Multiplication, left : Expression, IntegerConstant(1)) =>
+    case MultiplicationExpression(left : Expression, IntegerConstant(1)) =>
       left
-    case BinaryExpression(BinaryOperators.Multiplication, left : Expression, FloatConstant(1.0)) =>
+    case MultiplicationExpression(left : Expression, FloatConstant(1.0)) =>
       left
 
-    case BinaryExpression(op : BinaryOperators.Value, FloatConstant(0.0), right : Expression) if (op == BinaryOperators.Multiplication || op == BinaryOperators.Division) =>
-      FloatConstant(0.0)
+    case MultiplicationExpression(FloatConstant(0.0), right : Expression)                         => FloatConstant(0.0)
+    case DivisionExpression(FloatConstant(0.0), right : Expression)                               => FloatConstant(0.0)
 
-    case BinaryExpression(op : BinaryOperators.Value, left : Expression, IntegerConstant(0)) if (op == BinaryOperators.Addition || op == BinaryOperators.Subtraction) =>
-      left
-    case BinaryExpression(op : BinaryOperators.Value, left : Expression, FloatConstant(0)) if (op == BinaryOperators.Addition || op == BinaryOperators.Subtraction) =>
-      left
+    case AdditionExpression(left : Expression, IntegerConstant(0))                                => left
+    case SubtractionExpression(left : Expression, IntegerConstant(0))                             => left
+    case AdditionExpression(left : Expression, FloatConstant(0))                                  => left
+    case SubtractionExpression(left : Expression, FloatConstant(0))                               => left
+
     //})
 
     //this += new Transformation("Applying distributive law", {
     // FIXME: the two following applications are obviously contrary -> treat with caution when extending to general data types
-    case BinaryExpression(BinaryOperators.Multiplication, BinaryExpression(BinaryOperators.Addition, leftLeft, leftRight), right : Expression) =>
-      ((leftLeft * right) + (leftRight * right))
-    case BinaryExpression(BinaryOperators.Multiplication, BinaryExpression(BinaryOperators.Subtraction, leftLeft, leftRight), right : Expression) =>
-      ((leftLeft * right) - (leftRight * right))
-    case BinaryExpression(BinaryOperators.Addition,
-      BinaryExpression(BinaryOperators.Multiplication, FloatConstant(leftLeft), leftRight),
-      BinaryExpression(BinaryOperators.Multiplication, FloatConstant(rightLeft), rightRight)) if (leftLeft == rightLeft) =>
+    case MultiplicationExpression(AdditionExpression(leftLeft, leftRight), right : Expression)    => ((leftLeft * right) + (leftRight * right))
+    case MultiplicationExpression(SubtractionExpression(leftLeft, leftRight), right : Expression) => ((leftLeft * right) - (leftRight * right))
+    case AdditionExpression(
+      MultiplicationExpression(FloatConstant(leftLeft), leftRight),
+      MultiplicationExpression(FloatConstant(rightLeft), rightRight)) if (leftLeft == rightLeft) =>
       (leftLeft * (leftRight + rightRight))
     //})
 
     //this += new Transformation("Summarize constant additions", {
-    case BinaryExpression(BinaryOperators.Addition,
-      BinaryExpression(BinaryOperators.Addition, leftLeft, IntegerConstant(leftRight)),
-      BinaryExpression(BinaryOperators.Addition, rightLeft, IntegerConstant(rightRight))) =>
+    case AdditionExpression(
+      AdditionExpression(leftLeft, IntegerConstant(leftRight)),
+      AdditionExpression(rightLeft, IntegerConstant(rightRight))) =>
       ((leftLeft + rightLeft) + (leftRight.v + rightRight.v))
-    case BinaryExpression(BinaryOperators.Addition,
-      BinaryExpression(BinaryOperators.Addition, leftLeft, IntegerConstant(leftRight)),
-      BinaryExpression(BinaryOperators.Subtraction, rightLeft, IntegerConstant(rightRight))) =>
+    case AdditionExpression(
+      AdditionExpression(leftLeft, IntegerConstant(leftRight)),
+      SubtractionExpression(rightLeft, IntegerConstant(rightRight))) =>
       ((leftLeft + rightLeft) + (leftRight.v - rightRight.v))
-    case BinaryExpression(BinaryOperators.Addition,
-      BinaryExpression(BinaryOperators.Subtraction, leftLeft, IntegerConstant(leftRight)),
-      BinaryExpression(BinaryOperators.Addition, rightLeft, IntegerConstant(rightRight))) =>
+    case AdditionExpression(
+      SubtractionExpression(leftLeft, IntegerConstant(leftRight)),
+      AdditionExpression(rightLeft, IntegerConstant(rightRight))) =>
       ((leftLeft + rightLeft) + (-leftRight.v + rightRight.v))
-    case BinaryExpression(BinaryOperators.Addition,
-      BinaryExpression(BinaryOperators.Subtraction, leftLeft, IntegerConstant(leftRight)),
-      BinaryExpression(BinaryOperators.Subtraction, rightLeft, IntegerConstant(rightRight))) =>
+    case AdditionExpression(
+      SubtractionExpression(leftLeft, IntegerConstant(leftRight)),
+      SubtractionExpression(rightLeft, IntegerConstant(rightRight))) =>
       ((leftLeft + rightLeft) - (leftRight.v + rightRight.v))
     //})
 
@@ -172,6 +171,6 @@ object AddOMPPragmas extends Strategy("Adding OMP pragmas") {
   this += new Transformation("Adding OMP parallel for pragmas", {
     case target : ForLoopStatement with OMP_PotentiallyParallel =>
       Some(new OMP_ParallelFor(new ForLoopStatement(target.begin, target.end, target.inc, target.body, target.reduction),
-          (if (target.reduction.isDefined) target.reduction.get.getOMPClause else new NullExpression), target.collapse))
+        (if (target.reduction.isDefined) target.reduction.get.getOMPClause else new NullExpression), target.collapse))
   })
 }

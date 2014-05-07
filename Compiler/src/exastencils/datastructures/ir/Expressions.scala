@@ -19,20 +19,23 @@ trait Expression extends Node with CppPrettyPrintable {
   }
 
   import BinaryOperators._
-  def +(other : Expression) = new BinaryExpression(Addition, this, other)
-  def -(other : Expression) = new BinaryExpression(Subtraction, this, other)
-  def *(other : Expression) = new BinaryExpression(Multiplication, this, other)
-  def /(other : Expression) = new BinaryExpression(Division, this, other)
-  def Pow(other : Expression) = new BinaryExpression(Power, this, other)
-  def Mod(other : Expression) = new BinaryExpression(Modulo, this, other)
-  def And(other : Expression) = new BinaryExpression(AndAnd, this, other)
-  def Or(other : Expression) = new BinaryExpression(OrOr, this, other)
-  def Eq(other : Expression) = new BinaryExpression(EqEq, this, other)
-  def IsNeq(other : Expression) = new BinaryExpression(NeqNeq, this, other)
-  def <(other : Expression) = new BinaryExpression(Lower, this, other)
-  def <=(other : Expression) = new BinaryExpression(LowerEqual, this, other)
-  def >(other : Expression) = new BinaryExpression(Greater, this, other)
-  def >=(other : Expression) = new BinaryExpression(GreaterEqual, this, other)
+  def +(other : Expression) = new AdditionExpression(this, other)
+  def -(other : Expression) = new SubtractionExpression(this, other)
+  def *(other : Expression) = new MultiplicationExpression(this, other)
+  def /(other : Expression) = new DivisionExpression(this, other)
+  def Pow(other : Expression) = new PowerExpression(this, other)
+  def Mod(other : Expression) = new ModuloExpression(this, other)
+  def Modulo(other : Expression) = new ModuloExpression(this, other)
+  def And(other : Expression) = new AndAndExpression(this, other)
+  def AndAnd(other : Expression) = new AndAndExpression(this, other)
+  def Or(other : Expression) = new OrOrExpression(this, other)
+  def OrOr(other : Expression) = new OrOrExpression(this, other)
+  def EqEq(other : Expression) = new EqEqExpression(this, other)
+  def IsNeq(other : Expression) = new NeqNeqExpression(this, other)
+  def <(other : Expression) = new LowerExpression(this, other)
+  def <=(other : Expression) = new LowerEqualExpression(this, other)
+  def >(other : Expression) = new GreaterExpression(this, other)
+  def >=(other : Expression) = new ModuloExpression(this, other)
 
   def simplify : Expression = this
 }
@@ -77,6 +80,25 @@ object BinaryOperators extends Enumeration {
     case "<=" => LowerEqual
     case ">"  => Greater
     case ">=" => GreaterEqual
+  }
+
+  def CreateExpression(op : String, left : Expression, right : Expression) : BinaryExpression = CreateExpression(str2op(op), left, right)
+  def CreateExpression(op : Value, left : Expression, right : Expression) : BinaryExpression = op match {
+    case Addition       => return new AdditionExpression(left, right)
+    case Subtraction    => return new SubtractionExpression(left, right)
+    case Multiplication => return new MultiplicationExpression(left, right)
+    case Division       => return new DivisionExpression(left, right)
+    case Modulo         => return new ModuloExpression(left, right)
+    case Power=>return new PowerExpression(left, right)
+
+    case EqEq           => return new EqEqExpression(left, right)
+    case NeqNeq=> return new NeqNeqExpression(left, right)
+    case AndAnd         => return new AndAndExpression(left, right)
+    case OrOr           => return new OrOrExpression(left, right)
+    case Lower          => return new LowerExpression(left, right)
+    case Greater        => return new GreaterExpression(left, right)
+    case LowerEqual     => return new LowerEqualExpression(left, right)
+    case GreaterEqual   => return new GreaterEqualExpression(left, right)
   }
 }
 
@@ -234,11 +256,27 @@ case class UnaryExpression(var operator : UnaryOperators.Value, var expression :
   override def cpp = { s"${operator.toString}(${expression.cpp})" }
 }
 
-case class BinaryExpression(var operator : BinaryOperators.Value, var left : Expression, var right : Expression) extends Expression {
+abstract class BinaryExpression(var operator : BinaryOperators.Value, var left : Expression, var right : Expression) extends Expression {
   override def cpp = {
-    s"(${left.cpp} ${BinaryOperators.op2str(operator)} ${right.cpp})"
+    s"(${left.cpp} ${operator} ${right.cpp})"
   }
 }
+
+case class AdditionExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.Addition, l, r)
+case class SubtractionExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.Subtraction, l, r)
+case class MultiplicationExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.Multiplication, l, r)
+case class DivisionExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.Division, l, r)
+case class ModuloExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.Modulo, l, r)
+case class PowerExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.Power, l, r)
+
+case class EqEqExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.EqEq, l, r)
+case class NeqNeqExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.NeqNeq, l, r)
+case class AndAndExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.AndAnd, l, r)
+case class OrOrExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.OrOr, l, r)
+case class LowerExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.Lower, l, r)
+case class GreaterExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.Greater, l, r)
+case class LowerEqualExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.LowerEqual, l, r)
+case class GreaterEqualExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.GreaterEqual, l, r)
 
 case class FunctionCallExpression(var name : Expression, var arguments : ListBuffer[Expression /* FIXME: more specialization*/ ]) extends Expression {
   def this(name : Expression, argument : Expression) = this(name, ListBuffer(argument))

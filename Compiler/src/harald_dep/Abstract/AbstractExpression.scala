@@ -58,7 +58,7 @@ case class AbstractBinaryOp(operator : BinaryOperators.Value, left : AbstractExp
         case _ =>
       }
 
-    return new BinaryExpression(operator, left.transform(scopeparas, modifier, scopetype), right.transform(scopeparas, modifier, scopetype))
+    return BinaryOperators.CreateExpression(operator, left.transform(scopeparas, modifier, scopetype), right.transform(scopeparas, modifier, scopetype))
   }
   override def getvariables : ListBuffer[String] = {
     var s1 = left.getvariables

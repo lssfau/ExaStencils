@@ -96,7 +96,7 @@ case class ConnectFragments() extends Statement with Expandable {
         body += new Scope(ListBuffer[Statement](
           s"Vec3 offsetPos = curFragment.pos + Vec3(${neigh.dir(0)} * ${Knowledge.domain_fragWidth_x}, ${neigh.dir(1)} * ${Knowledge.domain_fragWidth_y}, ${neigh.dir(2)} * ${Knowledge.domain_fragWidth_z})") ++
           (0 until Knowledge.domain_numSubdomains).toArray[Int].map(d =>
-            new ConditionStatement(s"curFragment.isValidForSubdomain[$d]" And PointInsideDomain(s"offsetPos", d),
+            new ConditionStatement(s"curFragment.isValidForSubdomain[$d]" AndAnd PointInsideDomain(s"offsetPos", d),
               if (Knowledge.useMPI) {
                 (if (Knowledge.useOMP)
                   new ConditionStatement(s"mpiRank ==" ~ PointToOwningRank("offsetPos", d),
