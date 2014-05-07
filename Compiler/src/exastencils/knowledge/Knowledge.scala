@@ -162,7 +162,7 @@ object Knowledge {
       case "InPlace_Smoother" => CoarseGridSolverType.IP_Smoother
     }
 
-    useOMP = (domain_summarizeBlocks && domain_fragLength != 1) || domain_numFragsPerBlock != 1
+    useOMP = domain_summarizeBlocks || domain_numFragsPerBlock != 1
     useMPI = (domain_numBlocks != 1)
 
     numLevels = maxLevel + 1

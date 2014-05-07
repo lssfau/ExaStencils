@@ -159,7 +159,7 @@ object StateManager {
       INFO(s"Statemanager::replace: node = $node, field = $field, currentSubnode = $currentSubnode")
 
       currentSubnode match {
-        case set : scala.collection.Set[_] => {
+        case set : scala.collection.mutable.Set[_] => {
           val invalids = set.filterNot(p => isTransformable(p))
           if (invalids.size <= 0) {
             def processOutput[O <: Output[_]](o : O) : Node = o.inner match {
@@ -172,8 +172,32 @@ object StateManager {
             }
 
             import scala.language.existentials
-            var newSet = set.asInstanceOf[scala.collection.Set[Node]].map({ case item => processOutput(applyAtNode(item, transformation)) })
-            val changed = newSet.diff(set.asInstanceOf[scala.collection.Set[Node]])
+            var newSet = set.asInstanceOf[scala.collection.mutable.Set[Node]].map({ case item => processOutput(applyAtNode(item, transformation)) })
+            val changed = newSet.diff(set.asInstanceOf[scala.collection.mutable.Set[Node]])
+            if (changed.size > 0) {
+              if (!Vars.set(node, field, newSet)) {
+                ERROR(s"Could not set $field in transformation ${transformation.name}")
+              }
+            }
+
+            if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) newSet.foreach(f => replace(f, transformation))
+          }
+        }
+        case set : scala.collection.immutable.Set[_] => {
+          val invalids = set.filterNot(p => isTransformable(p))
+          if (invalids.size <= 0) {
+            def processOutput[O <: Output[_]](o : O) : Node = o.inner match {
+              case n : Node => n
+              case l : List[_] =>
+                ERROR("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
+              case n : None.type =>
+                ERROR("FIXME") //List()
+              case _ => ERROR(o); null
+            }
+
+            import scala.language.existentials
+            var newSet = set.asInstanceOf[scala.collection.immutable.Set[Node]].map({ case item => processOutput(applyAtNode(item, transformation)) })
+            val changed = newSet.diff(set.asInstanceOf[scala.collection.immutable.Set[Node]])
             if (changed.size > 0) {
               if (!Vars.set(node, field, newSet)) {
                 ERROR(s"Could not set $field in transformation ${transformation.name}")
@@ -196,7 +220,7 @@ object StateManager {
             if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) newList.foreach(f => replace(f, transformation))
           }
         }
-        case map : scala.collection.Map[_, _] => {
+        case map : scala.collection.mutable.Map[_, _] => {
           val invalids = map.filterNot(p => isTransformable(p._2))
           if (invalids.size <= 0) {
 
@@ -210,7 +234,32 @@ object StateManager {
             }
 
             import scala.language.existentials
-            var newMap = map.asInstanceOf[scala.collection.Map[_, Node]].map({ case (k, listitem) => (k, processOutput(applyAtNode(listitem, transformation))) })
+            var newMap = map.asInstanceOf[scala.collection.mutable.Map[_, Node]].map({ case (k, listitem) => (k, processOutput(applyAtNode(listitem, transformation))) })
+            val changed = newMap.values.toList.diff(map.values.toList)
+            if (changed.size > 0) {
+              if (!Vars.set(node, field, newMap)) {
+                ERROR(s"Could not set $field in transformation ${transformation.name}")
+              }
+            }
+
+            if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) newMap.values.foreach(f => replace(f, transformation))
+          }
+        }
+        case map : scala.collection.immutable.Map[_, _] => {
+          val invalids = map.filterNot(p => isTransformable(p._2))
+          if (invalids.size <= 0) {
+
+            def processOutput[O <: Output[_]](o : O) : Node = o.inner match {
+              case n : Node => n
+              case l : List[_] =>
+                ERROR("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
+              case n : None.type =>
+                ERROR("FIXME") //List()
+              case _ => ERROR(o); null
+            }
+
+            import scala.language.existentials
+            var newMap = map.asInstanceOf[scala.collection.immutable.Map[_, Node]].map({ case (k, listitem) => (k, processOutput(applyAtNode(listitem, transformation))) })
             val changed = newMap.values.toList.diff(map.values.toList)
             if (changed.size > 0) {
               if (!Vars.set(node, field, newMap)) {
