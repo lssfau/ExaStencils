@@ -169,7 +169,7 @@ def set@all (value : Real) : Unit {
 	}
 }
 
-def L2Residual@(0 and 4) ( ) : Real {
+def L2Residual@(coarsest and finest) ( ) : Real {
 	communicate Residual@(current)
 	var res : Real = 0
 	loop over inner on Residual@(current) with reduction( + : res ) {
