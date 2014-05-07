@@ -51,22 +51,25 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val level = (
     locationize("@" ~> integerLit ^^ { case l => SingleLevelSpecification(l) })
+    ||| locationize("@" ~> levelsingle ^^ { case l => l })
     ||| ("@" ~ "(" ~> (levelsingle ||| levelnegation ||| levellist ||| levelrange ||| levelrelative)) ~ ")" ^^ { case l ~ _ => l })
 
   lazy val levelnegation = (
     locationize((("not" ~ "(") ~> (levelsingle ||| levellist ||| levelrange ||| levelrelative)) ~ ")" ^^ { case l ~ _ => new NegatedLevelSpecification(l) }))
 
   lazy val levellist = (
-    locationize((levelsingle <~ ",").* ~ levelsingle ^^ { case a ~ b => var x = new ListLevelSpecification(); a.foreach(x.add(_)); x.add(b); x }))
+    locationize((levelsingle <~ ",").* ~ levelsingle ^^ { case a ~ b => var x = new ListLevelSpecification(); a.foreach(x.add(_)); x.add(b); x })
+    ||| locationize((levelsingle <~ "and").* ~ levelsingle ^^ { case a ~ b => var x = new ListLevelSpecification(); a.foreach(x.add(_)); x.add(b); x }))
 
   lazy val levelrange = (
-    locationize((levelsingle ||| levelrelative) ~ "to" ~ (levelsingle ||| levelrelative) ^^ { case b ~ _ ~ e => RangeLevelSpecification(b, e) }))
+    locationize((levelsingle ||| "(" ~> levelrelative <~ ")") ~ "to" ~ (levelsingle ||| "(" ~> levelrelative <~ ")") ^^ { case b ~ _ ~ e => RangeLevelSpecification(b, e) }))
 
   lazy val levelrelative = (
     locationize(levelsingle ~ ("+" ||| "-") ~ integerLit ^^ { case l ~ op ~ i => RelativeLevelSpecification(op, l, i) }))
 
   lazy val levelsingle = (
     locationize("current" ^^ { case _ => CurrentLevelSpecification() })
+    ||| locationize("all" ^^ { case _ => AllLevelsSpecification() })
     ||| locationize("coarser" ^^ { case _ => CoarserLevelSpecification() })
     ||| locationize("finer" ^^ { case _ => FinerLevelSpecification() })
     ||| locationize("coarsest" ^^ { case _ => CoarsestLevelSpecification() })

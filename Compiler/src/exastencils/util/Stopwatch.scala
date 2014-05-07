@@ -12,21 +12,12 @@ case class Stopwatch() extends Node with FilePrettyPrintable {
   override def printToFile = {
     val writer = PrettyprintingManager.getPrinter(s"Util/Stopwatch.h");
 
-    writer << ("""
-//#define	USE_STD_CHRONO
-#define	USE_GTOD
-
-#ifdef USE_STD_CHRONO
-#	include <chrono>
-#endif
-#ifdef USE_GTOD
-#	include <sys/time.h>
-#	include <sys/types.h>
-#endif
+    if ("MSVC" == Knowledge.targetCompiler || "GCC" == Knowledge.targetCompiler) {
+      writer << ("""
+#include <chrono>
 
 class StopWatch
 {
-#ifdef USE_STD_CHRONO
 public:
 	StopWatch ()
 		: lastTime(std::chrono::high_resolution_clock::now())
@@ -66,8 +57,15 @@ public:
 
 protected:
 	std::chrono::high_resolution_clock::time_point	lastTime;		///< stores the initial point of time
-#endif
-#ifdef USE_GTOD
+};
+""")
+    } else {
+      writer << ("""
+#include <sys/time.h>
+#include <sys/types.h>
+
+class StopWatch
+{
 public:
 	StopWatch ()
 	{ reset(); }
@@ -99,8 +97,8 @@ public:
 
 protected:
 	double		lastTime;		///< stores the initial point of time
-#endif
 };
-""");
+""")
+    }
   }
 }
