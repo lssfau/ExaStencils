@@ -159,6 +159,14 @@ object StateManager {
       INFO(s"Statemanager::replace: node = $node, field = $field, currentSubnode = $currentSubnode")
 
       currentSubnode match {
+        case thisnode : Node => {
+          doRecursiveMatch(thisnode, node, field, transformation)
+        }
+        case Some(thisnode) => {
+          if (thisnode.isInstanceOf[Node]) {
+            doRecursiveMatch(Some(thisnode.asInstanceOf[Node]), node, field, transformation) // FIXME not very elegant
+          }
+        }
         case set : scala.collection.mutable.Set[_] => {
           val invalids = set.filterNot(p => isTransformable(p))
           if (invalids.size <= 0) {
@@ -173,14 +181,10 @@ object StateManager {
 
             import scala.language.existentials
             var newSet = set.asInstanceOf[scala.collection.mutable.Set[Node]].map({ case item => processOutput(applyAtNode(item, transformation)) })
-            val changed = newSet.diff(set.asInstanceOf[scala.collection.mutable.Set[Node]])
-            if (changed.size > 0) {
-              if (!Vars.set(node, field, newSet)) {
-                ERROR(s"Could not set $field in transformation ${transformation.name}")
-              }
+            if (!Vars.set(node, field, newSet)) {
+              ERROR(s"Could not set $field in transformation ${transformation.name}")
             }
-
-            if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) newSet.foreach(f => replace(f, transformation))
+            if (transformation.recursive || (!transformation.recursive && previousReplacements >= progresses_(transformation).getReplacements)) newSet.foreach(f => replace(f, transformation))
           }
         }
         case set : scala.collection.immutable.Set[_] => {
@@ -197,27 +201,20 @@ object StateManager {
 
             import scala.language.existentials
             var newSet = set.asInstanceOf[scala.collection.immutable.Set[Node]].map({ case item => processOutput(applyAtNode(item, transformation)) })
-            val changed = newSet.diff(set.asInstanceOf[scala.collection.immutable.Set[Node]])
-            if (changed.size > 0) {
-              if (!Vars.set(node, field, newSet)) {
-                ERROR(s"Could not set $field in transformation ${transformation.name}")
-              }
+            if (!Vars.set(node, field, newSet)) {
+              ERROR(s"Could not set $field in transformation ${transformation.name}")
             }
-
-            if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) newSet.foreach(f => replace(f, transformation))
+            if (transformation.recursive || (!transformation.recursive && previousReplacements >= progresses_(transformation).getReplacements)) newSet.foreach(f => replace(f, transformation))
           }
         }
         case list : Seq[_] => {
           val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
           if (invalids.size <= 0) {
             var newList = list.asInstanceOf[Seq[Node]].flatMap(listitem => processOutput(applyAtNode(listitem, transformation)))
-            var changed = newList.diff(list)
-            if (changed.size > 0) {
-              if (!Vars.set(node, field, newList)) {
-                ERROR(s"Could not set $field in transformation ${transformation.name}")
-              }
+            if (!Vars.set(node, field, newList)) {
+              ERROR(s"Could not set $field in transformation ${transformation.name}")
             }
-            if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) newList.foreach(f => replace(f, transformation))
+            if (transformation.recursive || (!transformation.recursive && previousReplacements >= progresses_(transformation).getReplacements)) newList.foreach(f => replace(f, transformation))
           }
         }
         case map : scala.collection.mutable.Map[_, _] => {
@@ -235,14 +232,10 @@ object StateManager {
 
             import scala.language.existentials
             var newMap = map.asInstanceOf[scala.collection.mutable.Map[_, Node]].map({ case (k, listitem) => (k, processOutput(applyAtNode(listitem, transformation))) })
-            val changed = newMap.values.toList.diff(map.values.toList)
-            if (changed.size > 0) {
-              if (!Vars.set(node, field, newMap)) {
-                ERROR(s"Could not set $field in transformation ${transformation.name}")
-              }
+            if (!Vars.set(node, field, newMap)) {
+              ERROR(s"Could not set $field in transformation ${transformation.name}")
             }
-
-            if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) newMap.values.foreach(f => replace(f, transformation))
+            if (transformation.recursive || (!transformation.recursive && previousReplacements >= progresses_(transformation).getReplacements)) newMap.values.foreach(f => replace(f, transformation))
           }
         }
         case map : scala.collection.immutable.Map[_, _] => {
@@ -260,14 +253,10 @@ object StateManager {
 
             import scala.language.existentials
             var newMap = map.asInstanceOf[scala.collection.immutable.Map[_, Node]].map({ case (k, listitem) => (k, processOutput(applyAtNode(listitem, transformation))) })
-            val changed = newMap.values.toList.diff(map.values.toList)
-            if (changed.size > 0) {
-              if (!Vars.set(node, field, newMap)) {
-                ERROR(s"Could not set $field in transformation ${transformation.name}")
-              }
+            if (!Vars.set(node, field, newMap)) {
+              ERROR(s"Could not set $field in transformation ${transformation.name}")
             }
-
-            if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) newMap.values.foreach(f => replace(f, transformation))
+            if (transformation.recursive || (!transformation.recursive && previousReplacements >= progresses_(transformation).getReplacements)) newMap.values.foreach(f => replace(f, transformation))
           }
         }
         case list : Array[_] => {
@@ -284,14 +273,6 @@ object StateManager {
               }
             }
             if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) tmpArray.asInstanceOf[Array[Node]].foreach(f => replace(f, transformation))
-          }
-        }
-        case thisnode : Node => {
-          doRecursiveMatch(thisnode, node, field, transformation)
-        }
-        case Some(thisnode) => {
-          if (thisnode.isInstanceOf[Node]) {
-            doRecursiveMatch(Some(thisnode.asInstanceOf[Node]), node, field, transformation) // FIXME not very elegant
           }
         }
         case _ =>
