@@ -145,8 +145,9 @@ object StateManager {
           ERROR(s"Could not set $field to an empty node in transformation ${transformation.name}") // FIXME think of better way => e.g. empty dummy node
         }
       }
+      val previousReplacements = progresses_(transformation).getReplacements
       var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation)
-      processResult(newSubnode)
+      if(previousReplacements <= progresses_(transformation).getReplacements) processResult(newSubnode)
     }
   }
 
@@ -181,7 +182,7 @@ object StateManager {
 
             import scala.language.existentials
             var newSet = set.asInstanceOf[scala.collection.mutable.Set[Node]].map({ case item => processOutput(applyAtNode(item, transformation)) })
-            if (!Vars.set(node, field, newSet)) {
+            if (previousReplacements <= progresses_(transformation).getReplacements && !Vars.set(node, field, newSet)) {
               ERROR(s"Could not set $field in transformation ${transformation.name}")
             }
             if (transformation.recursive || (!transformation.recursive && previousReplacements >= progresses_(transformation).getReplacements)) newSet.foreach(f => replace(f, transformation))
@@ -201,7 +202,7 @@ object StateManager {
 
             import scala.language.existentials
             var newSet = set.asInstanceOf[scala.collection.immutable.Set[Node]].map({ case item => processOutput(applyAtNode(item, transformation)) })
-            if (!Vars.set(node, field, newSet)) {
+            if (previousReplacements <= progresses_(transformation).getReplacements && !Vars.set(node, field, newSet)) {
               ERROR(s"Could not set $field in transformation ${transformation.name}")
             }
             if (transformation.recursive || (!transformation.recursive && previousReplacements >= progresses_(transformation).getReplacements)) newSet.foreach(f => replace(f, transformation))
@@ -211,7 +212,7 @@ object StateManager {
           val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
           if (invalids.size <= 0) {
             var newList = list.asInstanceOf[Seq[Node]].flatMap(listitem => processOutput(applyAtNode(listitem, transformation)))
-            if (!Vars.set(node, field, newList)) {
+            if (previousReplacements <= progresses_(transformation).getReplacements && !Vars.set(node, field, newList)) {
               ERROR(s"Could not set $field in transformation ${transformation.name}")
             }
             if (transformation.recursive || (!transformation.recursive && previousReplacements >= progresses_(transformation).getReplacements)) newList.foreach(f => replace(f, transformation))
@@ -232,7 +233,7 @@ object StateManager {
 
             import scala.language.existentials
             var newMap = map.asInstanceOf[scala.collection.mutable.Map[_, Node]].map({ case (k, listitem) => (k, processOutput(applyAtNode(listitem, transformation))) })
-            if (!Vars.set(node, field, newMap)) {
+            if (previousReplacements <= progresses_(transformation).getReplacements && !Vars.set(node, field, newMap)) {
               ERROR(s"Could not set $field in transformation ${transformation.name}")
             }
             if (transformation.recursive || (!transformation.recursive && previousReplacements >= progresses_(transformation).getReplacements)) newMap.values.foreach(f => replace(f, transformation))
@@ -253,7 +254,7 @@ object StateManager {
 
             import scala.language.existentials
             var newMap = map.asInstanceOf[scala.collection.immutable.Map[_, Node]].map({ case (k, listitem) => (k, processOutput(applyAtNode(listitem, transformation))) })
-            if (!Vars.set(node, field, newMap)) {
+            if (previousReplacements <= progresses_(transformation).getReplacements && !Vars.set(node, field, newMap)) {
               ERROR(s"Could not set $field in transformation ${transformation.name}")
             }
             if (transformation.recursive || (!transformation.recursive && previousReplacements >= progresses_(transformation).getReplacements)) newMap.values.foreach(f => replace(f, transformation))
