@@ -159,6 +159,30 @@ object StateManager {
       INFO(s"Statemanager::replace: node = $node, field = $field, currentSubnode = $currentSubnode")
 
       currentSubnode match {
+        case set : scala.collection.Set[_] => {
+          val invalids = set.filterNot(p => isTransformable(p))
+          if (invalids.size <= 0) {
+            def processOutput[O <: Output[_]](o : O) : Node = o.inner match {
+              case n : Node => n
+              case l : List[_] =>
+                ERROR("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
+              case n : None.type =>
+                ERROR("FIXME") //List()
+              case _ => ERROR(o); null
+            }
+
+            import scala.language.existentials
+            var newSet = set.asInstanceOf[scala.collection.Set[Node]].map({ case item => processOutput(applyAtNode(item, transformation)) })
+            val changed = newSet.diff(set.asInstanceOf[scala.collection.Set[Node]])
+            if (changed.size > 0) {
+              if (!Vars.set(node, field, newSet)) {
+                ERROR(s"Could not set $field in transformation ${transformation.name}")
+              }
+            }
+
+            if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) newSet.foreach(f => replace(f, transformation))
+          }
+        }
         case list : Seq[_] => {
           val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
           if (invalids.size <= 0) {
@@ -172,7 +196,7 @@ object StateManager {
             if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) newList.foreach(f => replace(f, transformation))
           }
         }
-        case map : Map[_, _] => {
+        case map : scala.collection.Map[_, _] => {
           val invalids = map.filterNot(p => isTransformable(p._2))
           if (invalids.size <= 0) {
 
@@ -186,7 +210,7 @@ object StateManager {
             }
 
             import scala.language.existentials
-            var newMap = map.asInstanceOf[Map[_, Node]].map({ case (k, listitem) => (k, processOutput(applyAtNode(listitem, transformation))) })
+            var newMap = map.asInstanceOf[scala.collection.Map[_, Node]].map({ case (k, listitem) => (k, processOutput(applyAtNode(listitem, transformation))) })
             val changed = newMap.values.toList.diff(map.values.toList)
             if (changed.size > 0) {
               if (!Vars.set(node, field, newMap)) {
@@ -226,6 +250,45 @@ object StateManager {
     })
     Collectors.notifyLeave(node)
   }
+
+  //  def applyTransformationAtElement(element : Node, transformation : Transformation) : Transformation.Output[_] = {
+  //    if (transformation.function.isDefinedAt(element)) {
+  //      progresses_(transformation).didMatch
+  //      val ret = transformation.function(element)
+  //
+  //      def processResult[O <: Output[_]](o : O) : Unit = o.inner match {
+  //        case n : Node      => if (n != element) progresses_(transformation).didReplace
+  //        case l : List[_]   => progresses_(transformation).didReplace // FIXME count of list?!
+  //        case n : None.type => if (element != None) progresses_(transformation).didReplace
+  //        case _             =>
+  //      }
+  //
+  //      ret.inner match {
+  //        case n : Node      => List(n)
+  //        case l : List[_]   => l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
+  //        case n : None.type => List()
+  //        case _             => ERROR(ret)
+  //      }
+  //    } else {
+  //      Output(element)
+  //    }
+  //  }  
+  //  def traverse(element : Any, transformation : Transformation) : Any = {
+  //    if (element.isInstanceOf[Node]) Collectors.notifyEnter(element.asInstanceOf[Node])
+  //    Vars(element).foreach(field => {
+  //      val currentSubnode = Vars.get(element, field)
+  //      currentSubnode match {
+  //        case n : Node                     => Vars.set(element, field, applyTransformationAtElement(n, transformation).inner)
+  //        case Some(n)                      => Vars.set(element, field, Some(traverse(n, transformation)))
+  //        case traversable : Traversable[_] => Vars.set(element, field, traversable.map(traverse(_, transformation)))
+  //        //        case map : Map[_, _]              => 
+  //        case (a, b)                       => (traverse(a, transformation), traverse(b, transformation))
+  //        case a : Array[_]                 => // FIXME
+  //        case _                            => currentSubnode
+  //      }
+  //    })
+  //    if (element.isInstanceOf[Node]) Collectors.notifyLeave(element.asInstanceOf[Node])
+  //  }
 
   def apply(token : History.TransactionToken, transformation : Transformation, node : Option[Node] = None) : TransformationResult = {
     if (!History.isValid(token)) {
@@ -275,7 +338,7 @@ object StateManager {
     val setterSuffix = "_$eq"
     val excludeList = List()
 
-    def apply[T](o : AnyRef) : List[java.lang.reflect.Method] = {
+    def apply[T](o : Any) : List[java.lang.reflect.Method] = {
       val methods = o.getClass.getMethods
       val getters : Array[java.lang.reflect.Method] = for {
         g <- methods; if (g.getModifiers & java.lang.reflect.Modifier.PUBLIC) == java.lang.reflect.Modifier.PUBLIC &&
@@ -288,11 +351,11 @@ object StateManager {
       getters.toList
     }
 
-    def get[T](o : AnyRef, method : java.lang.reflect.Method) : AnyRef = {
+    def get[T](o : Any, method : java.lang.reflect.Method) : Any = {
       method.invoke(o)
     }
 
-    def set[T](o : AnyRef, method : java.lang.reflect.Method, value : AnyRef) : Boolean = {
+    def set[T](o : Any, method : java.lang.reflect.Method, value : Any) : Boolean = {
       INFO(s"Statemananger::set: $o, " + method.getName() + s" to $value")
       if (o == value) return true
       if (!method.getName.endsWith(setterSuffix)) {
@@ -303,12 +366,12 @@ object StateManager {
           val to = value.getClass
           throw new ValueSetException(s"""Invalid assignment: Cannot assign to $to from $from for "$o", method "${method.getName}"""")
         }
-        method.invoke(o, value)
+        method.invoke(o, value.asInstanceOf[AnyRef])
         true
       }
     }
 
-    def set[T](o : AnyRef, method : String, value : AnyRef) : Boolean = {
+    def set[T](o : Any, method : String, value : Any) : Boolean = {
       var methodname = method
       if (!methodname.endsWith(setterSuffix)) {
         methodname += setterSuffix
