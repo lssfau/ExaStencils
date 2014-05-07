@@ -29,7 +29,7 @@ case class OMP_Critical(var body : Any) extends Statement {
 
 case class OMP_ParallelFor(var body : ForLoopStatement, var addOMPStatements : Expression, var collapse : Int = 1) extends Statement {
   def cpp : String = {
-    s"#pragma omp parallel for ${addOMPStatements.cpp}${if (1 != collapse && Knowledge.versionOMP >= 3) s" collapse($collapse)" else ""}\n" +
+    s"#pragma omp parallel for schedule(static) num_threads(${Knowledge.domain_fragLength.max(Knowledge.domain_numFragsPerBlock)}) ${addOMPStatements.cpp}${if (1 != collapse && Knowledge.versionOMP >= 3) s" collapse($collapse)" else ""}\n" +
       body.cpp
   }
 };
