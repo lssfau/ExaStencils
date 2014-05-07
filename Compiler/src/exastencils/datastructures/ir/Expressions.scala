@@ -38,6 +38,10 @@ trait Expression extends Node with CppPrettyPrintable {
   def >=(other : Expression) = new ModuloExpression(this, other)
 
   def simplify : Expression = this
+
+  def cppsb(sb : StringBuilder) : Unit = {
+    sb.append(this.cpp)
+  }
 }
 
 object BinaryOperators extends Enumeration {
@@ -89,10 +93,10 @@ object BinaryOperators extends Enumeration {
     case Multiplication => return new MultiplicationExpression(left, right)
     case Division       => return new DivisionExpression(left, right)
     case Modulo         => return new ModuloExpression(left, right)
-    case Power=>return new PowerExpression(left, right)
+    case Power          => return new PowerExpression(left, right)
 
     case EqEq           => return new EqEqExpression(left, right)
-    case NeqNeq=> return new NeqNeqExpression(left, right)
+    case NeqNeq         => return new NeqNeqExpression(left, right)
     case AndAnd         => return new AndAndExpression(left, right)
     case OrOr           => return new OrOrExpression(left, right)
     case Lower          => return new LowerExpression(left, right)
@@ -257,8 +261,18 @@ case class UnaryExpression(var operator : UnaryOperators.Value, var expression :
 }
 
 abstract class BinaryExpression(var operator : BinaryOperators.Value, var left : Expression, var right : Expression) extends Expression {
-  override def cpp = {
-    s"(${left.cpp} ${operator} ${right.cpp})"
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("(")
+    left.cppsb(sb)
+    sb.append(BinaryOperators.op2str(operator))
+    right.cppsb(sb)
+    sb.append(")")
   }
 }
 
