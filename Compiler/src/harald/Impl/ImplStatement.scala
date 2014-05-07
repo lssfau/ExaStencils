@@ -44,7 +44,7 @@ import harald.expert._
       var sloops: String = "{"
 
       if (runningorder.equals("rb")) {
-        // multicolor: int offset = ( i0 % 2 == 0 ? 1 : 2 ); für alle += 2 erster index 1,2 dann offset2 = ( i % 2 == offs2 ? 1 : 2 ); offset3 = ( j % 2 == offs3 ? 2 : 1 );
+        // multicolor: int offset = ( i0 % 2 == 0 ? 1 : 2 ); fï¿½r alle += 2 erster index 1,2 dann offset2 = ( i % 2 == offs2 ? 1 : 2 ); offset3 = ( j % 2 == offs3 ? 2 : 1 );
         for (i <- 0 to start.length - 1)
           if (stepsize(i) == 0)
             sloops += s"${loopvar(0).dtype} ${loopvar(0).name}${i} = ${stop(i).toString_cpp}; \n"
