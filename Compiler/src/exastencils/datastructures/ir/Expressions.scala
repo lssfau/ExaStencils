@@ -35,7 +35,7 @@ trait Expression extends Node with CppPrettyPrintable {
   def <(other : Expression) = new LowerExpression(this, other)
   def <=(other : Expression) = new LowerEqualExpression(this, other)
   def >(other : Expression) = new GreaterExpression(this, other)
-  def >=(other : Expression) = new ModuloExpression(this, other)
+  def >=(other : Expression) = new GreaterEqualExpression(this, other)
 
   def simplify : Expression = this
 
