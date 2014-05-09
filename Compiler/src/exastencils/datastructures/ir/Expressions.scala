@@ -276,21 +276,21 @@ abstract class BinaryExpression(var operator : BinaryOperators.Value, var left :
   }
 }
 
-case class AdditionExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.Addition, l, r)
-case class SubtractionExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.Subtraction, l, r)
-case class MultiplicationExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.Multiplication, l, r)
-case class DivisionExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.Division, l, r)
-case class ModuloExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.Modulo, l, r)
-case class PowerExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.Power, l, r)
+case class AdditionExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.Addition, l, r)
+case class SubtractionExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.Subtraction, l, r)
+case class MultiplicationExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.Multiplication, l, r)
+case class DivisionExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.Division, l, r)
+case class ModuloExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.Modulo, l, r)
+case class PowerExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.Power, l, r)
 
-case class EqEqExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.EqEq, l, r)
-case class NeqNeqExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.NeqNeq, l, r)
-case class AndAndExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.AndAnd, l, r)
-case class OrOrExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.OrOr, l, r)
-case class LowerExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.Lower, l, r)
-case class GreaterExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.Greater, l, r)
-case class LowerEqualExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.LowerEqual, l, r)
-case class GreaterEqualExpression(l : Expression, r : Expression) extends BinaryExpression(BinaryOperators.GreaterEqual, l, r)
+case class EqEqExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.EqEq, l, r)
+case class NeqNeqExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.NeqNeq, l, r)
+case class AndAndExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.AndAnd, l, r)
+case class OrOrExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.OrOr, l, r)
+case class LowerExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.Lower, l, r)
+case class GreaterExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.Greater, l, r)
+case class LowerEqualExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.LowerEqual, l, r)
+case class GreaterEqualExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.GreaterEqual, l, r)
 
 case class FunctionCallExpression(var name : Expression, var arguments : ListBuffer[Expression /* FIXME: more specialization*/ ]) extends Expression {
   def this(name : Expression, argument : Expression) = this(name, ListBuffer(argument))
