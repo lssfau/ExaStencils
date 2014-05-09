@@ -347,7 +347,9 @@ object StateManager {
     this.root_ = newRoot
   }
 
-  def findFirst[T : ClassTag](node : Node = root) : Option[T] = {
+  def findFirst[T : ClassTag]() : Option[T] = findFirst(root)
+  
+  def findFirst[T : ClassTag](node : Node) : Option[T] = {
     findFirst[T]({ x : Any => x match { case _ : T => true; case _ => false } })
   }
 
