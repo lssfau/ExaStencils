@@ -86,8 +86,8 @@ object BinaryOperators extends Enumeration {
     case ">=" => GreaterEqual
   }
 
-  def CreateExpression(op : String, left : Expression, right : Expression) : BinaryExpression = CreateExpression(str2op(op), left, right)
-  def CreateExpression(op : Value, left : Expression, right : Expression) : BinaryExpression = op match {
+  def CreateExpression(op : String, left : Expression, right : Expression) : Expression = CreateExpression(str2op(op), left, right)
+  def CreateExpression(op : Value, left : Expression, right : Expression) : Expression = op match {
     case Addition       => return new AdditionExpression(left, right)
     case Subtraction    => return new SubtractionExpression(left, right)
     case Multiplication => return new MultiplicationExpression(left, right)
@@ -260,7 +260,7 @@ case class UnaryExpression(var operator : UnaryOperators.Value, var expression :
   override def cpp = { s"${operator.toString}(${expression.cpp})" }
 }
 
-abstract class BinaryExpression(var operator : BinaryOperators.Value, var left : Expression, var right : Expression) extends Expression {
+case class AdditionExpression(var left : Expression, var right : Expression) extends Expression {
   override def cpp : String = {
     var sb = new StringBuilder
     cppsb(sb)
@@ -270,27 +270,220 @@ abstract class BinaryExpression(var operator : BinaryOperators.Value, var left :
   override def cppsb(sb : StringBuilder) : Unit = {
     sb.append("(")
     left.cppsb(sb)
-    sb.append(BinaryOperators.op2str(operator))
+    sb.append("+")
     right.cppsb(sb)
     sb.append(")")
   }
 }
 
-case class AdditionExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.Addition, l, r)
-case class SubtractionExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.Subtraction, l, r)
-case class MultiplicationExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.Multiplication, l, r)
-case class DivisionExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.Division, l, r)
-case class ModuloExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.Modulo, l, r)
-case class PowerExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.Power, l, r)
+case class SubtractionExpression(var left : Expression, var right : Expression) extends Expression {
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
 
-case class EqEqExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.EqEq, l, r)
-case class NeqNeqExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.NeqNeq, l, r)
-case class AndAndExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.AndAnd, l, r)
-case class OrOrExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.OrOr, l, r)
-case class LowerExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.Lower, l, r)
-case class GreaterExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.Greater, l, r)
-case class LowerEqualExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.LowerEqual, l, r)
-case class GreaterEqualExpression(var l : Expression, var r : Expression) extends BinaryExpression(BinaryOperators.GreaterEqual, l, r)
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("(")
+    left.cppsb(sb)
+    sb.append("-")
+    right.cppsb(sb)
+    sb.append(")")
+  }
+}
+
+case class MultiplicationExpression(var left : Expression, var right : Expression) extends Expression {
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("(")
+    left.cppsb(sb)
+    sb.append("*")
+    right.cppsb(sb)
+    sb.append(")")
+  }
+}
+
+case class DivisionExpression(var left : Expression, var right : Expression) extends Expression {
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("(")
+    left.cppsb(sb)
+    sb.append("/")
+    right.cppsb(sb)
+    sb.append(")")
+  }
+}
+
+case class ModuloExpression(var left : Expression, var right : Expression) extends Expression {
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("(")
+    left.cppsb(sb)
+    sb.append("%")
+    right.cppsb(sb)
+    sb.append(")")
+  }
+}
+
+case class PowerExpression(var left : Expression, var right : Expression) extends Expression {
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("pow(")
+    left.cppsb(sb)
+    sb.append(", ")
+    right.cppsb(sb)
+    sb.append(")")
+  }
+}
+
+
+case class EqEqExpression(var left : Expression, var right : Expression) extends Expression {
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("(")
+    left.cppsb(sb)
+    sb.append("==")
+    right.cppsb(sb)
+    sb.append(")")
+  }
+}
+
+case class NeqNeqExpression(var left : Expression, var right : Expression) extends Expression {
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("(")
+    left.cppsb(sb)
+    sb.append("!=")
+    right.cppsb(sb)
+    sb.append(")")
+  }
+}
+
+case class AndAndExpression(var left : Expression, var right : Expression) extends Expression {
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("(")
+    left.cppsb(sb)
+    sb.append("&&")
+    right.cppsb(sb)
+    sb.append(")")
+  }
+}
+
+case class OrOrExpression(var left : Expression, var right : Expression) extends Expression {
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("(")
+    left.cppsb(sb)
+    sb.append("||")
+    right.cppsb(sb)
+    sb.append(")")
+  }
+}
+
+case class LowerExpression(var left : Expression, var right : Expression) extends Expression {
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("(")
+    left.cppsb(sb)
+    sb.append("<")
+    right.cppsb(sb)
+    sb.append(")")
+  }
+}
+
+case class GreaterExpression(var left : Expression, var right : Expression) extends Expression {
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("(")
+    left.cppsb(sb)
+    sb.append(">")
+    right.cppsb(sb)
+    sb.append(")")
+  }
+}
+
+case class LowerEqualExpression(var left : Expression, var right : Expression) extends Expression {
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("(")
+    left.cppsb(sb)
+    sb.append("<=")
+    right.cppsb(sb)
+    sb.append(")")
+  }
+}
+
+case class GreaterEqualExpression(var left : Expression, var right : Expression) extends Expression {
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("(")
+    left.cppsb(sb)
+    sb.append(">=")
+    right.cppsb(sb)
+    sb.append(")")
+  }
+}
 
 case class FunctionCallExpression(var name : Expression, var arguments : ListBuffer[Expression /* FIXME: more specialization*/ ]) extends Expression {
   def this(name : Expression, argument : Expression) = this(name, ListBuffer(argument))
