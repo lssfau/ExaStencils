@@ -133,7 +133,10 @@ object Knowledge {
   // --- OpenMP/Hybrid Parallelization ---
   var useOMP : Boolean = true
   var useMPI : Boolean = true
-  var versionOMP : Double = 2.0
+  var omp_numThreads : Int = 1
+  var omp_version : Double = 2.0
+  var omp_useCollapse : Boolean = true
+  var omp_minWorkItemsPerThread : Int = 64
 
   // --- Communication ---
   var comm_strategyFragment : Int = 6 //26
@@ -191,13 +194,16 @@ object Knowledge {
     data_numSolSlots = (if (SmootherType.Jac == mg_smoother) 2 else 1)
 
     if ("MSVC" == targetCompiler)
-      versionOMP = 2.0
+      omp_version = 2.0
     else if ("GCC" == targetCompiler)
-      versionOMP = 4.0
+      omp_version = 4.0
     else if ("IBMXL" == targetCompiler)
-      versionOMP = 3.0
+      omp_version = 3.0
     else
       ERROR("Unsupported target compiler")
+
+    if (useOMP)
+      omp_numThreads = if (domain_summarizeBlocks) domain_fragLength else domain_numFragsPerBlock
   }
 }
 
