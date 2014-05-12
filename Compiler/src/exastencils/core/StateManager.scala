@@ -90,7 +90,6 @@ object StateManager {
       def processResult[O <: Output[_]](o : O) : Unit = o.inner match {
         case n : Node      => if (n != node) progresses_(transformation).didReplace
         case l : List[_]   => progresses_(transformation).didReplace // FIXME count of list?!
-        case n : None.type => progresses_(transformation).didReplace
         case _             =>
       }
 
@@ -111,7 +110,6 @@ object StateManager {
   protected def processOutput[O <: Output[_]](o : O) : List[Node] = o.inner match {
     case n : Node      => List(n)
     case l : List[_]   => l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
-    case n : None.type => List()
     case _             => ERROR(o)
   }
 
@@ -141,9 +139,6 @@ object StateManager {
         case l : List[_] => {
           ERROR(s"Could not replace single node by List in transformation ${transformation.name}")
         }
-        case n : None.type => {
-          ERROR(s"Could not set $field to an empty node in transformation ${transformation.name}") // FIXME think of better way => e.g. empty dummy node
-        }
       }
       val previousReplacements = progresses_(transformation).getReplacements
       var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation)
@@ -157,7 +152,7 @@ object StateManager {
     Vars(node).foreach(field => {
       val currentSubnode = Vars.get(node, field)
       val previousReplacements = progresses_(transformation).getReplacements
-      INFO(s"Statemanager::replace: node = $node, field = $field, currentSubnode = $currentSubnode")
+//      INFO(s"Statemanager::replace: node = $node, field = $field, currentSubnode = $currentSubnode")
 
       currentSubnode match {
         case thisnode : Node => {
@@ -175,8 +170,6 @@ object StateManager {
               case n : Node => n
               case l : List[_] =>
                 ERROR("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
-              case n : None.type =>
-                ERROR("FIXME") //List()
               case _ => ERROR(o); null
             }
 
@@ -195,8 +188,6 @@ object StateManager {
               case n : Node => n
               case l : List[_] =>
                 ERROR("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
-              case n : None.type =>
-                ERROR("FIXME") //List()
               case _ => ERROR(o); null
             }
 
@@ -226,8 +217,6 @@ object StateManager {
               case n : Node => n
               case l : List[_] =>
                 ERROR("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
-              case n : None.type =>
-                ERROR("FIXME") //List()
               case _ => ERROR(o); null
             }
 
@@ -247,8 +236,6 @@ object StateManager {
               case n : Node => n
               case l : List[_] =>
                 ERROR("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
-              case n : None.type =>
-                ERROR("FIXME") //List()
               case _ => ERROR(o); null
             }
 
@@ -389,7 +376,7 @@ object StateManager {
     }
 
     def set[T](o : Any, method : java.lang.reflect.Method, value : Any) : Boolean = {
-      INFO(s"Statemananger::set: $o, " + method.getName() + s" to $value")
+//      INFO(s"Statemananger::set: $o, " + method.getName() + s" to $value")
       if (o == value) return true
       if (!method.getName.endsWith(setterSuffix)) {
         set(o, method.getName, value)
@@ -409,7 +396,7 @@ object StateManager {
       if (!methodname.endsWith(setterSuffix)) {
         methodname += setterSuffix
       }
-      INFO(s"Setting $o :: $method to $value")
+//      INFO(s"Setting $o :: $method to $value")
       val m = o.getClass.getMethods.find(p => p.getName == methodname)
       m match {
         case Some(x) => set(o, x, value)
