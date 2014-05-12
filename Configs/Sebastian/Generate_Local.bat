@@ -1,2 +1,2 @@
-java.exe -cp "C:\Eclipse\configuration\org.eclipse.osgi\bundles\286\1\.cp\lib\scala-library.jar;.\Compiler\bin;.\Compiler\lib\*" Main .\Configs\Sebastian\Local_Settings.txt .\Configs\Sebastian\Local_Knowledge.txt
+java.exe -cp "C:\Eclipse\plugins\org.scala-lang.scala-library_2.11.0.v20140415-163722-cac6383e66.jar;.\Compiler\bin;.\Compiler\lib\*" Main .\Configs\Sebastian\Local_Settings.txt .\Configs\Sebastian\Local_Knowledge.txt
 
