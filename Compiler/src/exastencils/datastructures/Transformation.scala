@@ -23,22 +23,14 @@ object Transformation {
   implicit def lllr[T](t : T) = Left(Left(Left(Right(t))))
 
   // workaround since Scala's type system does not allow for real union types
-//    class Output[T <% Node Or List[Node]](val inner : T)
-//  class Output[T](t : T)(implicit val inner : T => Node Or List[Node])
-    //def foo[T <% Int](x: T) = (x: Int)`
-    //def foo[T: Has[Int]#Conversion](x: T) = (x: Int)
-   class Output[T](val inner : T)(implicit val ev:T => Node Or List[Node])
-   
+  class Output[T](val inner : T)(implicit val ev : T => Node Or List[Node])
+
   implicit def convFromSome[O <: Node](o : Some[O]) : Output[O] = new Output(o.get)
   implicit def convFromNode[O <: Node](o : O) : Output[O] = new Output(o)
   implicit def convFromList(o : List[Node]) : Output[List[Node]] = new Output(o)
 
   object Output {
-    //    def apply[T <% Node Or List[Node]](inner : T) = new Output(inner)
-//    def apply[T <% Node Or List[Node]](inner : T) = new Output(inner)
-//    def apply[T](inner : T) = new Output(inner)
-    def apply[T]( inner : T)(implicit ev:T => Node Or List[Node]) = new Output(inner)
-//    def apply[T](t:T)(implicit val inner:T => Node Or List[Node]) = new Output(inner)
+    def apply[T](inner : T)(implicit ev : T => Node Or List[Node]) = new Output(inner)
   }
 
   def apply(name : String, function : PartialFunction[Node, Output[_]], recursive : Boolean = true, applyAtNode : Option[Node] = None) =
