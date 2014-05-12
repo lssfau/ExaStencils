@@ -16,7 +16,7 @@ class ParserL4(tree : TreeL2) extends StandardTokenParsers {
 
   def newline : Parser[Any] = "\n" | "\r\n"
 
-  def parse(input : String) {
+  def parse(input : String) = {
 
     val tokens = new lexical.Scanner(input)
     //println(tokens.toString)

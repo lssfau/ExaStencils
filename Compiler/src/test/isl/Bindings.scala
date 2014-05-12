@@ -3,7 +3,7 @@ import isl.Conversions.convertLambdaToXCallback1
 import isl.Set
 
 object Bindings {
-  def main(args : Array[String]) {
+  def main(args : Array[String]) = {
 
     println("start...")
 

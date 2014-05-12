@@ -1,7 +1,7 @@
 package test.datastructures.l4
 
 class Expressions {
-	def testNumbers {
+	def testNumbers = {
 	  import exastencils.datastructures.l4._
 	  
 	  

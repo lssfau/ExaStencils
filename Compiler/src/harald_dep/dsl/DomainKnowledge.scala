@@ -70,12 +70,12 @@ object DomainKnowledge extends ExaKnowledge {
 
   def rule_idxArray_cpp() : MultiIndex = {
     MultiIndex("i0", "i1", "i2")
-//    if (DomainKnowledge.fragment_L2.get._2.equals("Regular_Square"))
-//      return "(i0,i1)" //List("i0","i1") //
-//    else if (DomainKnowledge.fragment_L2.get._2.equals("Regular_Cube"))
-//      return "(i0,i1,i2)" //List("i0","i1","i2") //
-//    else
-//      return "(i0)" //List("i0") // 
+    //    if (DomainKnowledge.fragment_L2.get._2.equals("Regular_Square"))
+    //      return "(i0,i1)" //List("i0","i1") //
+    //    else if (DomainKnowledge.fragment_L2.get._2.equals("Regular_Cube"))
+    //      return "(i0,i1,i2)" //List("i0","i1","i2") //
+    //    else
+    //      return "(i0)" //List("i0") // 
   }
 
   def rule_idxArray_cuda() : String = {
@@ -111,7 +111,7 @@ object DomainKnowledge extends ExaKnowledge {
   var arraysizes : ListBuffer[ListBuffer[Long]] = ListBuffer()
   var arraysizeslocal : ListBuffer[ListBuffer[Long]] = ListBuffer()
 
-  def initarraysizes {
+  def initarraysizes = {
     var sx : Int = xsize_L2.getOrElse(1);
     var sy : Int = ysize_L2.getOrElse(1);
     var sz : Int = zsize_L2.getOrElse(1);
@@ -144,7 +144,7 @@ object DomainKnowledge extends ExaKnowledge {
 
   var fragments : ListBuffer[Fragment] = ListBuffer()
 
-  def initfragments() {
+  def initfragments() = {
     var v : List[Vertex] = List()
     var e : List[Edge] = List()
     var f : List[Face] = List()

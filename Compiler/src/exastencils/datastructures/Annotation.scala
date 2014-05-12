@@ -27,7 +27,7 @@ trait Annotatable {
   def annotate(n : String) = this.add(new Annotation(n))
   def remove(a : Annotation) = { annotations_ -= a }
   def removeAnnotation(name : String) = { if (hasAnnotation(name)) remove(getAnnotation(name).get) }
-  def getAnnotations = { annotations_.readOnly }
+  def getAnnotations = { annotations_.toList }
   def getAnnotation(name : String) = { annotations_.find(p => p.name == name) }
   def hasAnnotation(name : String) = { annotations_.exists(p => p.name == name) }
 }

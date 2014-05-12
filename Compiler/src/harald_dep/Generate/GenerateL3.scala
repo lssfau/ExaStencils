@@ -6,13 +6,13 @@ import harald_dep.ast.TreeL2
 
 class GenerateL3(treel2 : TreeL2) {
 
-  def transformL2toL3(fname: String) {
+  def transformL2toL3(fname : String) = {
 
     val writer = new PrintWriter(new File(fname))
 
     val fragname = DomainKnowledge.domain_L1.get._2 match {
       case "UnitSquare" => "Regular_Square"
-      case "UnitCube" => "Regular_Cube"
+      case "UnitCube"   => "Regular_Cube"
     }
 
     writer.write("mgcomponents { \n")
@@ -25,7 +25,7 @@ class GenerateL3(treel2 : TreeL2) {
     writer.write("\n")
 
     var nlev = 1
-    var minsize: Int = Math.min(DomainKnowledge.xsize_L2.get, DomainKnowledge.ysize_L2.get)
+    var minsize : Int = Math.min(DomainKnowledge.xsize_L2.get, DomainKnowledge.ysize_L2.get)
     while (minsize > 2) {
       minsize /= 2
       nlev += 1

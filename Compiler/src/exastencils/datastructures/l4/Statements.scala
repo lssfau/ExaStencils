@@ -28,7 +28,7 @@ case class FieldDeclarationStatement(var name : String, var datatype : Datatype,
   var padding = 0
   var slots = 1
   var bcDir0 = false
-  def set(t : TempOption) { // FIXME hack
+  def set(t : TempOption) = { // FIXME hack
     t.key match {
       case "communicates" => communicates = t.value.toBoolean
       case "ghostlayers"  => ghostlayers = t.value.toInt

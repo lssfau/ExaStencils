@@ -62,7 +62,7 @@ class ExaParser extends StandardTokenParsers {
   lazy val booleanLit : Parser[String] = "true" ||| "false"
 
   // set members of given object obj via reflection
-  def set[T](obj : AnyRef, ident : String, value : T) {
+  def set[T](obj : AnyRef, ident : String, value : T) = {
     if (!value.equals(None))
       println("setting " + ident + " to " + value)
     else

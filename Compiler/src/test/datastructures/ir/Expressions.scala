@@ -3,10 +3,10 @@ package test.datastructures.ir
 import exastencils.datastructures.ir._
 
 class Expressions {
-  def testNumbers {
+  def testNumbers = {
 
     import exastencils.datastructures.ir.ImplicitConversions._
-    
+
     var x : Expression = FloatConstant(40) + IntegerConstant(2)
     x = x + 3
     x = 3 * 7

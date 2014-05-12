@@ -90,7 +90,7 @@ object StateManager {
       def processResult[O <: Output[_]](o : O) : Unit = o.inner match {
         case n : Node      => if (n != node) progresses_(transformation).didReplace
         case l : List[_]   => progresses_(transformation).didReplace // FIXME count of list?!
-        case n : None.type => if (node != None) progresses_(transformation).didReplace
+        case n : None.type => progresses_(transformation).didReplace
         case _             =>
       }
 

@@ -13,8 +13,8 @@ class Strategy(val name : String) {
   def add(transformation : Transformation) = transformations_ += transformation
   def +=(transformation : Transformation) = add(transformation)
 
-  def transformations = { transformations_.readOnly }
-  def results = { results_.readOnly }
+  def transformations = { transformations_.toList }
+  def results = { results_.toList }
 
   // FIXME: quick HACK to realize trafo in trafo functionality
   def apply(hackedApplyAt : Option[Node] = None, hackedToken : Option[StateManager.History.TransactionToken] = None) = {

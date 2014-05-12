@@ -7,7 +7,7 @@ import harald.dsl.DomainKnowledge
 class PrettyPrinter(treel2 : TreeL2) {
 
   // DSL level 3
-/*
+  /*
   def prettyscala(fname: String) {
 
     val extlib: String = scala.io.Source.fromFile("c:/install7/eclipse/scala-SDK-3.0.1-vfinal-2.10-win32.win32.x86_64/eclipse/workspace/Multigrid/src/mylib.scala").getLines.reduceLeft(_ + "\n" + _)
@@ -96,19 +96,19 @@ class PrettyPrinter(treel2 : TreeL2) {
     writer.close()
   }
 */
-  def prettycpp(path : String, fname: String) {
+  def prettycpp(path : String, fname : String) = {
 
     //        val extlib:String = scala.io.Source.fromFile("c:/install7/eclipse/scala-SDK-3.0.1-vfinal-2.10-win32.win32.x86_64/eclipse/workspace/Multigrid/src/mylibcpp.scala").getLines.reduceLeft(_+"\n"+_)
-    val extlib: String = scala.io.Source.fromFile(path+"mglib.cpp").getLines.reduceLeft(_ + "\n" + _)
+    val extlib : String = scala.io.Source.fromFile(path + "mglib.cpp").getLines.reduceLeft(_ + "\n" + _)
 
-    var extlibcuda: String = ""
-    var extlibmpi: String = ""
+    var extlibcuda : String = ""
+    var extlibmpi : String = ""
 
     if (DomainKnowledge.use_MPI)
-     extlibmpi = scala.io.Source.fromFile(path+"mpilib.cpp").getLines.reduceLeft(_ + "\n" + _)
+      extlibmpi = scala.io.Source.fromFile(path + "mpilib.cpp").getLines.reduceLeft(_ + "\n" + _)
 
     if (DomainKnowledge.use_gpu)
-      extlibcuda = scala.io.Source.fromFile(path+"mglib.cu").getLines.reduceLeft(_ + "\n" + _)
+      extlibcuda = scala.io.Source.fromFile(path + "mglib.cu").getLines.reduceLeft(_ + "\n" + _)
 
     val writer = new PrintWriter(new File(fname))
 
@@ -121,11 +121,11 @@ class PrettyPrinter(treel2 : TreeL2) {
     writer.write("#include <stdlib.h>\n")
     if (DomainKnowledge.use_Windows)
       writer.write("#include <Windows.h>\n")
-    else { 
+    else {
       writer.write("#include <sys/time.h>\n")
       writer.write("#include <string.h>\n")
     }
-    
+
     if (DomainKnowledge.use_MPI)
       writer.write("#include \"mpi.h\"\n")
     if (DomainKnowledge.use_Openmp)
@@ -140,14 +140,14 @@ class PrettyPrinter(treel2 : TreeL2) {
     writer.write(extlib)
     writer.write("\n")
     if (DomainKnowledge.use_gpu) {
-     writer.write(extlibcuda)
-     writer.write("\n")
+      writer.write(extlibcuda)
+      writer.write("\n")
     }
     if (DomainKnowledge.use_MPI) {
-     writer.write(extlibmpi)
-     writer.write("\n")      
+      writer.write(extlibmpi)
+      writer.write("\n")
     }
-    var h: String = "cpp"
+    var h : String = "cpp"
     //        for (e <- TransformL4.extclasses)
     //           writer.write(e._2.toString)
     writer.write("\n")
@@ -156,34 +156,34 @@ class PrettyPrinter(treel2 : TreeL2) {
     if (DomainKnowledge.use_gpu)
       writer.write(treel2.ExternalClasses.get("ArrayCuda").get.toString_cpp)
     writer.write("\n")
-//    if (DomainKnowledge.use_FE)
-      writer.write(treel2.ExternalClasses.get("Matrix").get.toString_cpp)
-    
-     var extlibdiscr: String = ""
+    //    if (DomainKnowledge.use_FE)
+    writer.write(treel2.ExternalClasses.get("Matrix").get.toString_cpp)
 
-     if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion")) {
-       extlibdiscr = scala.io.Source.fromFile(path+"discrlib.cpp").getLines.reduceLeft(_ + "\n" + _)
-       writer.write(extlibdiscr)
-       writer.write("\n") 
-     }
+    var extlibdiscr : String = ""
 
-    val arrayname: String = treel2.ExternalClasses.get("Array").get.name
-    val stencilname: String = treel2.ExternalClasses.get("Stencil").get.name
-    val nlevels: Int = DomainKnowledge.nlevels_L2.getOrElse(1)
-    val pnlevels: String = nlevels.toString()
+    if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion")) {
+      extlibdiscr = scala.io.Source.fromFile(path + "discrlib.cpp").getLines.reduceLeft(_ + "\n" + _)
+      writer.write(extlibdiscr)
+      writer.write("\n")
+    }
+
+    val arrayname : String = treel2.ExternalClasses.get("Array").get.name
+    val stencilname : String = treel2.ExternalClasses.get("Stencil").get.name
+    val nlevels : Int = DomainKnowledge.nlevels_L2.getOrElse(1)
+    val pnlevels : String = nlevels.toString()
 
     writer.write("\n")
     // Data as global variables
     for (c <- treel2.Fields) {
-       var compstr = ""
-        for (i <- 0 to c.veclength-1) {
-       if (c.veclength > 1)
-         compstr = s"${i}"
+      var compstr = ""
+      for (i <- 0 to c.veclength - 1) {
+        if (c.veclength > 1)
+          compstr = s"${i}"
         writer.write(s"${c.arrname}<${c.datatype}>* ${c.name}${compstr};\n")
-        }
+      }
     }
- //   if (DomainKnowledge.use_MPI)  
-     for (c <- treel2.GhostFields)
+    //   if (DomainKnowledge.use_MPI)  
+    for (c <- treel2.GhostFields)
       writer.write(s"${arrayname}<${c.datatype}>* ${c.name};\n")
     writer.write("\n")
 
@@ -191,101 +191,100 @@ class PrettyPrinter(treel2 : TreeL2) {
     writer.write("\n")
     writer.write(treel2.ExternalClasses.get("StencilVar").get.toString_cpp)
     writer.write("\n")
-    
+
     writer.write("\n")
     for (c <- treel2.Stencils) {
       var compstr = ""
       var cnt = 0
-      for (i1 <- 0 to c.matlength1-1)
-       for (i2 <- 0 to c.matlength1-1) {
-        if (c.matlength1*c.matlength2 != 1) 
-          compstr = s"${i1}_${i2}"
-          
-        if (c.weakform(cnt).equals(""))
-          writer.write(s"${stencilname}<${c.datatype(cnt)}>* ${c.name}${compstr};\n")
-        else
-          writer.write(s"${treel2.ExternalClasses.get("StencilVar").get.name}<${c.datatype(cnt)}>* ${c.name}${compstr};\n")        
-        cnt+=1  
-       }
-      } 
-    
+      for (i1 <- 0 to c.matlength1 - 1)
+        for (i2 <- 0 to c.matlength1 - 1) {
+          if (c.matlength1 * c.matlength2 != 1)
+            compstr = s"${i1}_${i2}"
+
+          if (c.weakform(cnt).equals(""))
+            writer.write(s"${stencilname}<${c.datatype(cnt)}>* ${c.name}${compstr};\n")
+          else
+            writer.write(s"${treel2.ExternalClasses.get("StencilVar").get.name}<${c.datatype(cnt)}>* ${c.name}${compstr};\n")
+          cnt += 1
+        }
+    }
+
     writer.write("\n")
 
     for (g <- DomainKnowledge.global_variables) {
       if (g.value == 0)
         writer.write(s"${g.dtype} ${g.name}; \n")
-      else
-        if (DomainKnowledge.use_gpu) {
-          if (g.name.contains("["))
-            writer.write(s"${g.modifier} ${g.dtype} ${g.name} = ${g.valstring}; \n")
-          else if (g.dtype.equals("int")) 
-            writer.write(s"#define ${g.name} ${g.value.toInt} \n")
-          else
-            writer.write(s"#define ${g.name} ${g.value} \n")
-         } else {
-          if (g.valstring == "")
-            writer.write(s"${g.modifier} ${g.dtype} ${g.name} = ${g.value}; \n")
-          else  
-            writer.write(s"${g.modifier} ${g.dtype} ${g.name} = ${g.valstring}; \n")
-        }
+      else if (DomainKnowledge.use_gpu) {
+        if (g.name.contains("["))
+          writer.write(s"${g.modifier} ${g.dtype} ${g.name} = ${g.valstring}; \n")
+        else if (g.dtype.equals("int"))
+          writer.write(s"#define ${g.name} ${g.value.toInt} \n")
+        else
+          writer.write(s"#define ${g.name} ${g.value} \n")
+      } else {
+        if (g.valstring == "")
+          writer.write(s"${g.modifier} ${g.dtype} ${g.name} = ${g.value}; \n")
+        else
+          writer.write(s"${g.modifier} ${g.dtype} ${g.name} = ${g.valstring}; \n")
+      }
       if (g.name.equals("xsize"))
         g.v = (g.v.toFloat + 5).toInt
     }
-    
+
     if (DomainKnowledge.debugmode) {
       println(DomainKnowledge.global_variables)
       println(DomainKnowledge.global_fields.toString)
       println(DomainKnowledge.global_stencils.toString)
     }
-    
+
     writer.write("\n")
     if (!DomainKnowledge.use_Windows)
-     writer.write(treel2.ExternalFunctions.get("usec").get.toString_cpp)
-    writer.write("\n")     
-    if (!DomainKnowledge.use_gpu) 
-     writer.write(treel2.ExternalFunctions.get("BC").get.toString_cpp)
+      writer.write(treel2.ExternalFunctions.get("usec").get.toString_cpp)
     writer.write("\n")
-     if (DomainKnowledge.use_MPI) {
-     writer.write(treel2.ExternalFunctions.get("copyToBuffers").get.toString_cpp)
+    if (!DomainKnowledge.use_gpu)
+      writer.write(treel2.ExternalFunctions.get("BC").get.toString_cpp)
     writer.write("\n")
-     writer.write(treel2.ExternalFunctions.get("copyFromBuffers").get.toString_cpp)
-    writer.write("\n")
-     }
-    if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion")) {
-    writer.write("\n")
-    if (DomainKnowledge.use_gpu)
-     writer.write(treel2.ExternalFunctions.get("computeStencil").get.toString_cuda)
-    else 
-     writer.write(treel2.ExternalFunctions.get("computeStencil").get.toString_cpp)
-    writer.write("\n")      
+    if (DomainKnowledge.use_MPI) {
+      writer.write(treel2.ExternalFunctions.get("copyToBuffers").get.toString_cpp)
+      writer.write("\n")
+      writer.write(treel2.ExternalFunctions.get("copyFromBuffers").get.toString_cpp)
+      writer.write("\n")
     }
-    
+    if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion")) {
+      writer.write("\n")
+      if (DomainKnowledge.use_gpu)
+        writer.write(treel2.ExternalFunctions.get("computeStencil").get.toString_cuda)
+      else
+        writer.write(treel2.ExternalFunctions.get("computeStencil").get.toString_cpp)
+      writer.write("\n")
+    }
+
     if (DomainKnowledge.operator_L1(0)._2(0).equals("ComplexDiffusion") && DomainKnowledge.use_gpu) {
-    writer.write("\n")
-     writer.write(treel2.ExternalFunctions.get("multcomplex1").get.toString_cuda)
-     writer.write(treel2.ExternalFunctions.get("multcomplex2").get.toString_cuda)
-     writer.write(treel2.ExternalFunctions.get("multcomplex3").get.toString_cuda)
-     writer.write(treel2.ExternalFunctions.get("multcomplex4").get.toString_cuda)
-     writer.write(treel2.ExternalFunctions.get("divcomplex").get.toString_cuda)
-     writer.write(treel2.ExternalFunctions.get("inversecomplex1").get.toString_cuda)
-     writer.write(treel2.ExternalFunctions.get("inversecomplex2").get.toString_cuda)
-    writer.write("\n")             
-     }
-    
+      writer.write("\n")
+      writer.write(treel2.ExternalFunctions.get("multcomplex1").get.toString_cuda)
+      writer.write(treel2.ExternalFunctions.get("multcomplex2").get.toString_cuda)
+      writer.write(treel2.ExternalFunctions.get("multcomplex3").get.toString_cuda)
+      writer.write(treel2.ExternalFunctions.get("multcomplex4").get.toString_cuda)
+      writer.write(treel2.ExternalFunctions.get("divcomplex").get.toString_cuda)
+      writer.write(treel2.ExternalFunctions.get("inversecomplex1").get.toString_cuda)
+      writer.write(treel2.ExternalFunctions.get("inversecomplex2").get.toString_cuda)
+      writer.write("\n")
+    }
+
     for (c <- treel2.Functions) {
-      if (!c._2.name.equals("Application")) { 
+      if (!c._2.name.equals("Application")) {
         writer.write(c._2.toString_cpp_signature)
-        writer.write("\n")      
+        writer.write("\n")
       }
     }
-    
+
     for (c <- treel2.Functions) {
       if (c._1.contains("cuda")) {
         writer.write(c._2.toString_cpp)
         writer.write("\n")
       }
     }
-    
+
     for (c <- treel2.Functions) {
       if (!c._1.equals("VCycle") && !c._1.contains("cuda") && !c._2.name.equals("Application")) {
         writer.write(c._2.toString_cpp)
@@ -305,7 +304,7 @@ class PrettyPrinter(treel2 : TreeL2) {
 
     writer.close()
   }
-/*
+  /*
   def prettycuda(fname: String) {
 
     //        val extlib:String = scala.io.Source.fromFile("c:/install7/eclipse/scala-SDK-3.0.1-vfinal-2.10-win32.win32.x86_64/eclipse/workspace/Multigrid/src/mylibcpp.scala").getLines.reduceLeft(_+"\n"+_)
