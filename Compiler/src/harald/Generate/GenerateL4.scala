@@ -7,7 +7,7 @@ import harald.ast.TreeL2
 
 class GenerateL4(treel2 : TreeL2) {
 
-  def transformL3toL4_old(fname : String) {
+  def transformL3toL4_old(fname : String) = {
 
     val writer = new PrintWriter(new File(fname))
 
@@ -535,7 +535,7 @@ def cpu sqr ( lev:Int
       println("DSL level 4 was generated in " + fname)
   }
 
-  def transformL3toL4(fname : String) {
+  def transformL3toL4(fname : String) ={
 
     val writer = new PrintWriter(new File(fname))
 

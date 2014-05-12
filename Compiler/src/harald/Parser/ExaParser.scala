@@ -7,7 +7,7 @@ class ExaParser extends JavaTokenParsers // StandardTokenParsers
 {
 
   // set members of given object obj via reflection
-  def set[T](obj: AnyRef, ident: String, value: T) {
+  def set[T](obj: AnyRef, ident: String, value: T) = {
     
     if (DomainKnowledge.debugmode)
      if (!value.equals(None))

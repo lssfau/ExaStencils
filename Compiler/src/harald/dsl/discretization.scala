@@ -8,7 +8,7 @@ import Array._
 
 class Discretization(treel2 : TreeL2) {
 
-  def generatediscretization() {
+  def generatediscretization() = {
 
     for (o <- treel2.Stencils)
       if (o.name.equals(DomainKnowledge.operator_L1(0)._1))
@@ -39,7 +39,7 @@ class Discretization(treel2 : TreeL2) {
           //    s+= s"std::vector<int> addkoeffi(${anzentr});\n"
           //    s+= s"std::vector<int> addkoeffj(${anzentr});\n"
           //    s+= s"std::vector<int> addkoeffk(${anzentr});\n"
-          var addkoeff: ListBuffer[ListBuffer[Int]] = ListBuffer()
+          var addkoeff : ListBuffer[ListBuffer[Int]] = ListBuffer()
 
           if (DomainKnowledge.fragment_L2.get._2.equals("Regular_Cube")) {
 
@@ -141,10 +141,9 @@ class Discretization(treel2 : TreeL2) {
           if (DomainKnowledge.rule_dim == 3)
             s += "}\n"
 
-          treel2.Functions += "setdiscretizationFE" -> new ImplFunction("setdiscretizationFE", "void", ListBuffer(new ParameterInfo("lev", "int")), ListBuffer(new ImplExternalStatement(s)),Map(), "cpu")
+          treel2.Functions += "setdiscretizationFE" -> new ImplFunction("setdiscretizationFE", "void", ListBuffer(new ParameterInfo("lev", "int")), ListBuffer(new ImplExternalStatement(s)), Map(), "cpu")
         }
 
   }
-  
 
 }

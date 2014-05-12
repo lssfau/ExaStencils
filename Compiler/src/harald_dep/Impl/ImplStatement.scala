@@ -141,5 +141,5 @@ case class ImplPcall(obj : String, name : String, paramlist : ListBuffer[Express
       return s + ");\n"
     }
 
-  def evaluate {}
+  def evaluate = {}
 }

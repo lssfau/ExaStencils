@@ -3,27 +3,27 @@ package harald.Generate
 import java.io._
 import harald.dsl.DomainKnowledge
 
-case class OptionsHW(platform : String, cores:Int, nodes : Int)
+case class OptionsHW(platform : String, cores : Int, nodes : Int)
 
 object GenerateHW {
-  
-  def generateall(path:String, fname:String) {
-    
+
+  def generateall(path : String, fname : String) = {
+
     var num = 0;
-    val platf = List("cpu","gpu")
-    val core = List(1,2,4)
-    val node = List(1,2)
-    
+    val platf = List("cpu", "gpu")
+    val core = List(1, 2, 4)
+    val node = List(1, 2)
+
     for (p <- platf)
-    for (c <- core)
-    for (n <- node) {
-      num = num + 1
-      transformhardwaretoHW(path+fname+p+c+n+"levHW.mg",OptionsHW(p,c,n))
-    }
-    
+      for (c <- core)
+        for (n <- node) {
+          num = num + 1
+          transformhardwaretoHW(path + fname + p + c + n + "levHW.mg", OptionsHW(p, c, n))
+        }
+
   }
-  
-  def transformhardwaretoHW(fname: String, opt : OptionsHW) {
+
+  def transformhardwaretoHW(fname : String, opt : OptionsHW) = {
 
     val writer = new PrintWriter(new File(fname))
 
@@ -35,7 +35,7 @@ object GenerateHW {
     writer.write("\n")
 
     writer.write(s"Node n {\n")
-    writer.write(s"  sockets_HW = 1\n")  
+    writer.write(s"  sockets_HW = 1\n")
     writer.write(s"}\n")
     writer.write("\n")
 

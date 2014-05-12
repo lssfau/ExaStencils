@@ -2,7 +2,7 @@ package harald.dsl
 
 object Hardware {
 
-  def initHWFeatures() {
+  def initHWFeatures() = {
     if (DomainKnowledge.cores_HW.get > 1)
       DomainKnowledge.use_Openmp = true
     else
@@ -10,12 +10,12 @@ object Hardware {
 
     if (DomainKnowledge.nodes_HW.get > 1)
       DomainKnowledge.use_MPI = true
-    else      
+    else
       DomainKnowledge.use_MPI = false
-      
+
     if (DomainKnowledge.hardware_HW.get.equals("gpu"))
-      DomainKnowledge.use_gpu = true   
-    else  
-      DomainKnowledge.use_gpu = false   
+      DomainKnowledge.use_gpu = true
+    else
+      DomainKnowledge.use_gpu = false
   }
 }

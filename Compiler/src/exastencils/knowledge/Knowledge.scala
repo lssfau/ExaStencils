@@ -58,17 +58,7 @@ object Knowledge {
       (if (dimensionality > 1) domain_numBlocks_y else 1) *
       (if (dimensionality > 2) domain_numBlocks_z else 1)
   }
-
-  // the total number of fragments per dimension
-  var domain_numFragsTotal_x : Int = domain_numFragsPerBlock_x * domain_numBlocks_x
-  var domain_numFragsTotal_y : Int = domain_numFragsPerBlock_y * domain_numBlocks_y
-  var domain_numFragsTotal_z : Int = domain_numFragsPerBlock_z * domain_numBlocks_z
-  def domain_numFragsTotal : Int = {
-    domain_numFragsTotal_x *
-      (if (dimensionality > 1) domain_numFragsTotal_y else 1) *
-      (if (dimensionality > 2) domain_numFragsTotal_z else 1)
-  }
-
+  
   // number of fragments in each block per dimension - this will usually be one or represent the number of OMP threads per dimension
   var domain_numFragsPerBlock_x : Int = 3
   var domain_numFragsPerBlock_y : Int = 3
@@ -80,6 +70,16 @@ object Knowledge {
   }
   def domain_numFragsPerBlockPerDim(index : Int) : Int = {
     Array(domain_numFragsPerBlock_x, domain_numFragsPerBlock_y, domain_numFragsPerBlock_z)(index)
+  }
+
+  // the total number of fragments per dimension
+  var domain_numFragsTotal_x : Int = domain_numFragsPerBlock_x * domain_numBlocks_x
+  var domain_numFragsTotal_y : Int = domain_numFragsPerBlock_y * domain_numBlocks_y
+  var domain_numFragsTotal_z : Int = domain_numFragsPerBlock_z * domain_numBlocks_z
+  def domain_numFragsTotal : Int = {
+    domain_numFragsTotal_x *
+      (if (dimensionality > 1) domain_numFragsTotal_y else 1) *
+      (if (dimensionality > 2) domain_numFragsTotal_z else 1)
   }
 
   // the length of each fragment per dimension - this will either be one or specify the length in unit-fragments, i.e. the number of aggregated fragments per dimension

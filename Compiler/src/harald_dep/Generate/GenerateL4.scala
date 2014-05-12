@@ -8,7 +8,7 @@ import exastencils.knowledge._
 
 class GenerateL4(treel2 : TreeL2) {
 
-  def transformL3toL4(fname : String) {
+  def transformL3toL4(fname : String) = {
 
     val writer = new PrintWriter(new File(fname))
 
@@ -61,18 +61,18 @@ class GenerateL4(treel2 : TreeL2) {
 
     writer.write(s"\n")
 
-//    for (lev <- 0 to Knowledge.maxLevel) {
-//      writer.write(s"def ${location} UpResidual_$lev (  ) : Unit  \n")
-//      writer.write(s"{ \n")
-//      // COMM_HACK
-//      writer.write(s"  exchsolData_$lev ( 0 )  \n")
-//      writer.write(s"loop innerpoints level $lev order lex block 1 1  \n")
-//      writer.write(s"  Res@$lev = ${DomainKnowledge.function_L1(0)._1} [ $lev ] - (${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] )  \n")
-//      writer.write(s"next \n")
-//      writer.write(s"}  \n")
-//
-//      writer.write(s"\n")
-//    }
+    //    for (lev <- 0 to Knowledge.maxLevel) {
+    //      writer.write(s"def ${location} UpResidual_$lev (  ) : Unit  \n")
+    //      writer.write(s"{ \n")
+    //      // COMM_HACK
+    //      writer.write(s"  exchsolData_$lev ( 0 )  \n")
+    //      writer.write(s"loop innerpoints level $lev order lex block 1 1  \n")
+    //      writer.write(s"  Res@$lev = ${DomainKnowledge.function_L1(0)._1} [ $lev ] - (${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] )  \n")
+    //      writer.write(s"next \n")
+    //      writer.write(s"}  \n")
+    //
+    //      writer.write(s"\n")
+    //    }
 
     /* DISABLED MG FUNCTION      
      if (location.equals("gpu")) {
@@ -110,80 +110,80 @@ class GenerateL4(treel2 : TreeL2) {
       }
     }*/
 
-//    if (SmootherType.GS == Knowledge.mg_smoother) {
-//      for (lev <- 0 to Knowledge.maxLevel) {
-//        writer.write(s"def ${location} ${Knowledge.mg_smoother}_$lev (  ) : Unit  \n")
-//        writer.write(s"{ \n")
-//        // COMM_HACK
-//        writer.write(s"  exchsolData_$lev ( 0 )  \n")
-//        writer.write(s"    loop innerpoints level $lev order lex block 1 1 \n")
-//        writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1}@$lev = ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] + ( ( ( inverse( diag(${DomainKnowledge.operator_L1(0)._1} [ $lev ] ) ) ) * ${Knowledge.mg_smoother_omega} ) * ( ${DomainKnowledge.function_L1(0)._1} [ $lev ] - ${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] ) ) \n")
-//        writer.write(s"    next  \n")
-//        writer.write(s"}  \n")
-//      }
-//    }
-//    if (SmootherType.RBGS == Knowledge.mg_smoother) {
-//      for (lev <- 0 to Knowledge.maxLevel) {
-//        writer.write(s"def ${location} ${Knowledge.mg_smoother}_$lev (  ) : Unit  \n")
-//        writer.write(s"{ \n")
-//        // COMM_HACK
-//        writer.write(s"  exchsolData_$lev ( 0 )  \n")
-//        writer.write(s"    loop innerpoints level $lev order rb block 1 1 \n")
-//        writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1}@$lev = ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] + ( ( ( inverse( diag(${DomainKnowledge.operator_L1(0)._1} [ $lev ] ) ) ) * ${Knowledge.mg_smoother_omega} ) * ( ${DomainKnowledge.function_L1(0)._1} [ $lev ] - ${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] ) ) \n")
-//        writer.write(s"    next  \n")
-//        writer.write(s"}  \n")
-//      }
-//    }
+    //    if (SmootherType.GS == Knowledge.mg_smoother) {
+    //      for (lev <- 0 to Knowledge.maxLevel) {
+    //        writer.write(s"def ${location} ${Knowledge.mg_smoother}_$lev (  ) : Unit  \n")
+    //        writer.write(s"{ \n")
+    //        // COMM_HACK
+    //        writer.write(s"  exchsolData_$lev ( 0 )  \n")
+    //        writer.write(s"    loop innerpoints level $lev order lex block 1 1 \n")
+    //        writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1}@$lev = ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] + ( ( ( inverse( diag(${DomainKnowledge.operator_L1(0)._1} [ $lev ] ) ) ) * ${Knowledge.mg_smoother_omega} ) * ( ${DomainKnowledge.function_L1(0)._1} [ $lev ] - ${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] ) ) \n")
+    //        writer.write(s"    next  \n")
+    //        writer.write(s"}  \n")
+    //      }
+    //    }
+    //    if (SmootherType.RBGS == Knowledge.mg_smoother) {
+    //      for (lev <- 0 to Knowledge.maxLevel) {
+    //        writer.write(s"def ${location} ${Knowledge.mg_smoother}_$lev (  ) : Unit  \n")
+    //        writer.write(s"{ \n")
+    //        // COMM_HACK
+    //        writer.write(s"  exchsolData_$lev ( 0 )  \n")
+    //        writer.write(s"    loop innerpoints level $lev order rb block 1 1 \n")
+    //        writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1}@$lev = ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] + ( ( ( inverse( diag(${DomainKnowledge.operator_L1(0)._1} [ $lev ] ) ) ) * ${Knowledge.mg_smoother_omega} ) * ( ${DomainKnowledge.function_L1(0)._1} [ $lev ] - ${DomainKnowledge.operator_L1(0)._1} [ $lev ] * ${DomainKnowledge.unknown_L1(0)._1} [ $lev ] ) ) \n")
+    //        writer.write(s"    next  \n")
+    //        writer.write(s"}  \n")
+    //      }
+    //    }
 
     writer.write(s"\n")
 
-//    for (lev <- 1 to Knowledge.maxLevel) {
-//      // COMM_HACK
-//      writer.write(s"def ${location} ${DomainKnowledge.restriction_L3.get}_$lev (  ) : Unit \n")
-//      writer.write(s"{ \n")
-//      // COMM_HACK
-//      writer.write(s"  exchresData_$lev ( 0 )  \n")
-//      writer.write(s"    loop innerpoints level ${lev - 1} order lex block 1 1  \n")
-//      // COMM_HACK
-//      //writer.write(s"      coarse =  RestrictionStencil * fine | ToCoarse  \n")
-//      writer.write(s"      ${DomainKnowledge.function_L1(0)._1}@${lev - 1} =  RestrictionStencil * Res [ $lev ] | ToCoarse  \n")
-//      writer.write(s"    next  \n")
-//      writer.write(s"}  \n")
-//    }
-//
-//    writer.write(s"\n")
+    //    for (lev <- 1 to Knowledge.maxLevel) {
+    //      // COMM_HACK
+    //      writer.write(s"def ${location} ${DomainKnowledge.restriction_L3.get}_$lev (  ) : Unit \n")
+    //      writer.write(s"{ \n")
+    //      // COMM_HACK
+    //      writer.write(s"  exchresData_$lev ( 0 )  \n")
+    //      writer.write(s"    loop innerpoints level ${lev - 1} order lex block 1 1  \n")
+    //      // COMM_HACK
+    //      //writer.write(s"      coarse =  RestrictionStencil * fine | ToCoarse  \n")
+    //      writer.write(s"      ${DomainKnowledge.function_L1(0)._1}@${lev - 1} =  RestrictionStencil * Res [ $lev ] | ToCoarse  \n")
+    //      writer.write(s"    next  \n")
+    //      writer.write(s"}  \n")
+    //    }
+    //
+    //    writer.write(s"\n")
 
-//    for (lev <- 1 to Knowledge.maxLevel) {
-//      // COMM_HACK
-//      writer.write(s"def ${location} ${DomainKnowledge.interpolation_L3.get}_$lev (  ) : Unit \n")
-//      writer.write(s"{ \n")
-//      // COMM_HACK
-//      writer.write(s"  exchsolData_${lev - 1} ( 0 )  \n")
-//      writer.write(s"    loop innerpoints level $lev order lex block 1 1  \n")
-//      writer.write(s"    ${DomainKnowledge.unknown_L1(0)._1}@$lev += CorrectionStencil * ${DomainKnowledge.unknown_L1(0)._1} [ ${lev - 1} ] | ToFine  \n")
-//      writer.write(s"    next  \n")
-//      writer.write(s"}  \n")
-//    }
-//
-//    writer.write(s"\n")
+    //    for (lev <- 1 to Knowledge.maxLevel) {
+    //      // COMM_HACK
+    //      writer.write(s"def ${location} ${DomainKnowledge.interpolation_L3.get}_$lev (  ) : Unit \n")
+    //      writer.write(s"{ \n")
+    //      // COMM_HACK
+    //      writer.write(s"  exchsolData_${lev - 1} ( 0 )  \n")
+    //      writer.write(s"    loop innerpoints level $lev order lex block 1 1  \n")
+    //      writer.write(s"    ${DomainKnowledge.unknown_L1(0)._1}@$lev += CorrectionStencil * ${DomainKnowledge.unknown_L1(0)._1} [ ${lev - 1} ] | ToFine  \n")
+    //      writer.write(s"    next  \n")
+    //      writer.write(s"}  \n")
+    //    }
+    //
+    //    writer.write(s"\n")
 
     var setfunclistloc : ListBuffer[String] = ListBuffer(s"${location}")
     if (location.equals("gpu"))
       setfunclistloc += "cpu"
 
-//    for (n <- setfunclistloc) {
-//      for (lev <- 0 to Knowledge.maxLevel) {
-//        val setname = n match { case "gpu" => "setcuda" case _ => "set" }
-//        writer.write(s"def ${n} ${setname}_$lev ( value:Int ) : Unit  \n")
-//        writer.write(s"{ \n")
-//        writer.write(s"  loop allpoints level $lev order lex block 1 1  \n")
-//        writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1}@$lev = value    \n")
-//        writer.write(s"next  \n")
-//        writer.write(s"}  \n")
-//      }
-//
-//      writer.write(s"\n")
-//    }
+    //    for (n <- setfunclistloc) {
+    //      for (lev <- 0 to Knowledge.maxLevel) {
+    //        val setname = n match { case "gpu" => "setcuda" case _ => "set" }
+    //        writer.write(s"def ${n} ${setname}_$lev ( value:Int ) : Unit  \n")
+    //        writer.write(s"{ \n")
+    //        writer.write(s"  loop allpoints level $lev order lex block 1 1  \n")
+    //        writer.write(s"      ${DomainKnowledge.unknown_L1(0)._1}@$lev = value    \n")
+    //        writer.write(s"next  \n")
+    //        writer.write(s"}  \n")
+    //      }
+    //
+    //      writer.write(s"\n")
+    //    }
 
     // COMM_HACK
     //    writer.write(s"def cpu setrandom(arr:Container \n")
@@ -196,22 +196,22 @@ class GenerateL4(treel2 : TreeL2) {
     //
     //    writer.write(s"\n")
 
-//    // COMM_HACK
-//    writer.write(s"def cpu Application ( ) : Unit \n")
-//    writer.write(s"{  \n")
-//    writer.write(s"	UpResidual_${Knowledge.maxLevel} (  ) \n")
-//    writer.write(s" decl res0 : Double = getGlobalResidual_${Knowledge.maxLevel} (  ) \n")
-//    writer.write(s" decl res : Double = res0 \n")
-//    writer.write(s" decl resold : Double = 0 \n")
-//    writer.write(s" print ( 'startingres' res0 ) \n")
-//    writer.write(s" repeat up 10 \n")
-//    writer.write(s" resold = res \n")
-//    writer.write(s"VCycle_${Knowledge.maxLevel} (  ) \n")
-//    writer.write(s"	UpResidual_${Knowledge.maxLevel} (  ) \n")
-//    writer.write(s"res = getGlobalResidual_${Knowledge.maxLevel} (  ) \n")
-//    writer.write(s"print ( 'Residual:' res 'residual reduction:' (res0/res) 'convergence factor:' (res/resold) ) \n")
-//    writer.write(s"  next  \n")
-//    writer.write(s"}  \n")
+    //    // COMM_HACK
+    //    writer.write(s"def cpu Application ( ) : Unit \n")
+    //    writer.write(s"{  \n")
+    //    writer.write(s"	UpResidual_${Knowledge.maxLevel} (  ) \n")
+    //    writer.write(s" decl res0 : Double = getGlobalResidual_${Knowledge.maxLevel} (  ) \n")
+    //    writer.write(s" decl res : Double = res0 \n")
+    //    writer.write(s" decl resold : Double = 0 \n")
+    //    writer.write(s" print ( 'startingres' res0 ) \n")
+    //    writer.write(s" repeat up 10 \n")
+    //    writer.write(s" resold = res \n")
+    //    writer.write(s"VCycle_${Knowledge.maxLevel} (  ) \n")
+    //    writer.write(s"	UpResidual_${Knowledge.maxLevel} (  ) \n")
+    //    writer.write(s"res = getGlobalResidual_${Knowledge.maxLevel} (  ) \n")
+    //    writer.write(s"print ( 'Residual:' res 'residual reduction:' (res0/res) 'convergence factor:' (res/resold) ) \n")
+    //    writer.write(s"  next  \n")
+    //    writer.write(s"}  \n")
 
     writer.close()
     println("DSL level 4 was generated in " + fname)
