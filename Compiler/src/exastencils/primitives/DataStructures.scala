@@ -109,7 +109,17 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
   override def cpp : String = "NOT VALID ; CLASS = LoopOverDimensions\n"
 
   def expandSpecial : ForLoopStatement = {
-    val parallelizable = Knowledge.domain_summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
+    var parallelizable = Knowledge.domain_summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
+
+    indices match {
+      case IndexRange(MultiIndex(xStart : IntegerConstant, yStart : IntegerConstant, zStart : IntegerConstant),
+        MultiIndex(xEnd : IntegerConstant, yEnd : IntegerConstant, zEnd : IntegerConstant)) => {
+        val totalNumPoints = (xEnd.v - xStart.v) * (yEnd.v - yStart.v) * (zEnd.v - zStart.v)
+        if (totalNumPoints <= Knowledge.omp_minWorkItemsPerThread * Knowledge.omp_numThreads)
+          parallelizable = false;
+      }
+      case _ => ;
+    }
 
     var wrappedBody : ListBuffer[Statement] = body // TODO: clone?
 

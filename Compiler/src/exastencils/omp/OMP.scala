@@ -16,20 +16,20 @@ case class OMP_Critical(var body : Any) extends Statement {
   def cpp : String = {
     s"#pragma omp critical\n{ " +
       (body match {
-        case prettyPrintable : CppPrettyPrintable => prettyPrintable.cpp;
+        case prettyPrintable : CppPrettyPrintable => prettyPrintable.cpp
         case buf : ListBuffer[_] => buf.map(stat => stat match { // TODO: Buffer support is currently not tested!
-          case prettyPrintable : CppPrettyPrintable => prettyPrintable.cpp;
-          case _                                    => "NON_PRINTABLE NODE ENCOUNTERED!";
+          case prettyPrintable : CppPrettyPrintable => prettyPrintable.cpp
+          case _                                    => "NON_PRINTABLE NODE ENCOUNTERED!"
         })
-        case _ => "NON_PRINTABLE NODE ENCOUNTERED!";
+        case _ => "NON_PRINTABLE NODE ENCOUNTERED!"
       }) +
-      s" }";
+      s" }"
   }
-};
+}
 
 case class OMP_ParallelFor(var body : ForLoopStatement, var addOMPStatements : Expression, var collapse : Int = 1) extends Statement {
   def cpp : String = {
-    s"#pragma omp parallel for schedule(static) num_threads(${Knowledge.domain_fragLength.max(Knowledge.domain_numFragsPerBlock)}) ${addOMPStatements.cpp}${if (1 != collapse && Knowledge.versionOMP >= 3) s" collapse($collapse)" else ""}\n" +
+    s"#pragma omp parallel for schedule(static) num_threads(${Knowledge.domain_fragLength.max(Knowledge.domain_numFragsPerBlock)}) ${addOMPStatements.cpp}${if (1 != collapse && Knowledge.omp_version >= 3 && Knowledge.omp_useCollapse) s" collapse($collapse)" else ""}\n" +
       body.cpp
   }
-};
+}

@@ -71,12 +71,7 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
 
           "initGlobals()",
 
-          if (Knowledge.useOMP) {
-            (if (Knowledge.domain_summarizeBlocks)
-              s"omp_set_num_threads(${Knowledge.domain_fragLength})"
-            else
-              s"omp_set_num_threads(${Knowledge.domain_numFragsPerBlock})")
-          } else "",
+          //if (Knowledge.useOMP) s"omp_set_num_threads(${Knowledge.omp_numThreads})" else "",
 
           new ConditionStatement(s"argc != 1", ListBuffer[Statement](
             new ConditionStatement(new MPI_IsRootProc,
