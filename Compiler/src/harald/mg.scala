@@ -237,7 +237,7 @@ object mg {
 
                     if (!new java.io.File(DSLpath + problem + "levHW.mg").exists) {
                       println("HW specification is missing!")
-                      exit(0)
+                      sys.exit(0)
                     }
 
                     val DSLHW: String = scala.io.Source.fromFile(DSLpath + problem + "levHW.mg").getLines.reduceLeft(_ + '\n' + _)
@@ -251,7 +251,7 @@ object mg {
 
                     if (!new java.io.File(DSLpath + problem + "lev1.mg").exists) {
                       println("Problem specification (DSL level 1) is missing!")
-                      exit(0)
+                      sys.exit(0)
                     }
 
                     if (DomainKnowledge.debugmode)
@@ -365,7 +365,7 @@ object mg {
                     if (DomainKnowledge.debugmode)
                       println(DSLl4)
 
-exit(0)
+sys.exit(0)
 
                     val parserl4 = new Parser.ParserL4(TreeManager.tree)
                     parserl4.parse(DSLl4)

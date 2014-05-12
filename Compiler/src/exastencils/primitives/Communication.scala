@@ -114,7 +114,7 @@ case class RemoteSend(var field : Field, var neighbors : ListBuffer[(NeighborInf
         typeName = mpiTypeName
       } else {
         ptr = s"curFragment.buffer_Send[${neigh._1.index}]"
-        cnt = DimArray().map(i => (neigh._2.end(i) - neigh._2.begin(i)).asInstanceOf[BinaryExpression]).reduceLeft(_ * _)
+        cnt = DimArray().map(i => (neigh._2.end(i) - neigh._2.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
         typeName = s"MPI_DOUBLE"
       }
 
