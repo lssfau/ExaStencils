@@ -9,6 +9,7 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.primitives
 import exastencils.primitives._
 import exastencils.languageprocessing.l4.ProgressToIr
+import exastencils.util._
 
 abstract class Statement extends Node with ProgressableToIr {
   def progressToIr : ir.Statement
@@ -18,8 +19,14 @@ abstract class SpecialStatement /*TODO: think about an appropriate name*/ extend
   def progressToIr : Node
 }
 
-case class DomainDeclarationStatement(var name : String) extends SpecialStatement {
-  def progressToIr : ir.Expression = "FIXME: implement"
+case class DomainDeclarationStatement(var name : String, var lower : RealIndex, var upper : RealIndex) extends SpecialStatement {
+  def progressToIr : knowledge.Domain = {
+    (lower, upper) match {
+      case (l : RealIndex2D, u : RealIndex2D) => new knowledge.Domain(name, new AABB(l.x, u.x, l.y, u.y, 0.0, 0.0))
+      case (l : RealIndex3D, u : RealIndex3D) => new knowledge.Domain(name, new AABB(l.x, u.x, l.y, u.y, l.z, u.z))
+      case _                                  => new knowledge.Domain(name, new AABB())
+    }
+  }
 }
 
 case class FieldDeclarationStatement(var name : String, var datatype : Datatype, var offset : Index, var level : Option[LevelSpecification]) extends SpecialStatement {

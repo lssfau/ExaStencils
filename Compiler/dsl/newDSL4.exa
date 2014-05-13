@@ -1,3 +1,5 @@
+Domain global< [-1, -1, -1] to [1, 1, 1] >
+
 // FIXME: ghostlayers, padding, etc have to be left/right and have to be indices instead of ints
 Field Solution< [1, 1, 1], Real >@all ( ghostlayers = 1, slots = 1, bcDir = true )
 Field Solution2< [1, 1, 1], Real >@((coarsest + 1) to finest) ( ghostlayers = 1, slots = 1, bcDir = true )

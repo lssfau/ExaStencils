@@ -17,6 +17,18 @@ case class Index3D(var x : Int, var y : Int, var z : Int) extends Index {
   def progressToIr : ir.MultiIndex = new ir.MultiIndex(Array(x, y, z))
 }
 
+trait RealIndex extends Expression {
+  override def progressToIr : ir.MultiIndex
+}
+
+case class RealIndex2D(var x : Double, var y : Double) extends RealIndex {
+  def progressToIr : ir.MultiIndex = new ir.MultiIndex(ir.FloatConstant(x), ir.FloatConstant(y))
+}
+
+case class RealIndex3D(var x : Double, var y : Double, var z : Double) extends RealIndex {
+  def progressToIr : ir.MultiIndex = new ir.MultiIndex(ir.FloatConstant(x), ir.FloatConstant(y), ir.FloatConstant(z))
+}
+
 trait ExpressionIndex extends Expression {
   override def progressToIr : ir.MultiIndex
 }

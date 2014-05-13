@@ -5,12 +5,13 @@ import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.multiGrid._
 
-case class Root(var fields : List[FieldDeclarationStatement],
+case class Root(var domains : List[DomainDeclarationStatement],
+    var fields : List[FieldDeclarationStatement],
     var stencils : List[StencilDeclarationStatement],
     var iterationSets : List[IterationSetDeclarationStatement],
     var statements : List[Statement]) extends Node with ProgressableToIr {
 
-  def this(statements : List[Statement]) = this(List(), List(), List(), statements)
+  def this(statements : List[Statement]) = this(List(), List(), List(), List(), statements)
 
   def getFieldByIdentifier(identifier : String, level : Int) : Option[FieldDeclarationStatement] = {
     fields.find(f => f.name == identifier && f.level.getOrElse(-1) == level)
@@ -18,6 +19,11 @@ case class Root(var fields : List[FieldDeclarationStatement],
 
   def progressToIr : Node = {
     var newRoot = new ir.Root
+
+    var domainCollection = new DomainCollection
+    for (domain <- domains)
+      domainCollection.domains += domain.progressToIr
+    newRoot += domainCollection
 
     var fieldCollection = new FieldCollection
     for (field <- fields)
