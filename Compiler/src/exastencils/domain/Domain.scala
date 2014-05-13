@@ -18,10 +18,14 @@ case class PointOutsideDomain(var pos : Expression, var domain : Domain) extends
   override def cpp : String = "NOT VALID ; CLASS = PointOutsideDomain\n"
 
   override def expand : Expression = {
-    s"(" ~
-      ((pos ~ ".x") < domain.size.lower_x) Or ((pos ~ ".x") > domain.size.upper_x) Or
-      ((pos ~ ".y") < domain.size.lower_y) Or ((pos ~ ".y") > domain.size.upper_y) Or
-      ((pos ~ ".z") < domain.size.lower_z) Or ((pos ~ ".z") > domain.size.upper_z) ~ ")"
+    Knowledge.dimensionality match {
+      case 1 => s"(" ~ ((pos ~ ".x") < domain.size.lower_x) Or ((pos ~ ".x") > domain.size.upper_x) ~ ")"
+      case 2 => s"(" ~ ((pos ~ ".x") < domain.size.lower_x) Or ((pos ~ ".x") > domain.size.upper_x) Or
+        ((pos ~ ".y") < domain.size.lower_y) Or ((pos ~ ".y") > domain.size.upper_y) ~ ")"
+      case 3 => s"(" ~ ((pos ~ ".x") < domain.size.lower_x) Or ((pos ~ ".x") > domain.size.upper_x) Or
+        ((pos ~ ".y") < domain.size.lower_y) Or ((pos ~ ".y") > domain.size.upper_y) Or
+        ((pos ~ ".z") < domain.size.lower_z) Or ((pos ~ ".z") > domain.size.upper_z) ~ ")"
+    }
   }
 }
 
@@ -29,10 +33,14 @@ case class PointInsideDomain(var pos : Expression, var domain : Domain) extends 
   override def cpp : String = "NOT VALID ; CLASS = PointInsideDomain\n"
 
   override def expand : Expression = {
-    s"(" ~
-      ((pos ~ ".x") >= domain.size.lower_x) And ((pos ~ ".x") <= domain.size.upper_x) And
-      ((pos ~ ".y") >= domain.size.lower_y) And ((pos ~ ".y") <= domain.size.upper_y) And
-      ((pos ~ ".z") >= domain.size.lower_z) And ((pos ~ ".z") <= domain.size.upper_z) ~ ")"
+    Knowledge.dimensionality match {
+      case 1 => s"(" ~ ((pos ~ ".x") >= domain.size.lower_x) And ((pos ~ ".x") <= domain.size.upper_x) ~ ")"
+      case 2 => s"(" ~ ((pos ~ ".x") >= domain.size.lower_x) And ((pos ~ ".x") <= domain.size.upper_x) And
+        ((pos ~ ".y") >= domain.size.lower_y) And ((pos ~ ".y") <= domain.size.upper_y) ~ ")"
+      case 3 => s"(" ~ ((pos ~ ".x") >= domain.size.lower_x) And ((pos ~ ".x") <= domain.size.upper_x) And
+        ((pos ~ ".y") >= domain.size.lower_y) And ((pos ~ ".y") <= domain.size.upper_y) And
+        ((pos ~ ".z") >= domain.size.lower_z) And ((pos ~ ".z") <= domain.size.upper_z) ~ ")"
+    }
   }
 }
 
@@ -45,9 +53,14 @@ case class PointToFragmentId(var pos : Expression) extends Expression with Expan
     val fragWidth_y = globalDomain.size.width(1) / Knowledge.domain_numFragsTotal_y
     val fragWidth_z = globalDomain.size.width(2) / Knowledge.domain_numFragsTotal_z
 
-    "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - globalDomain.size.lower_z) / fragWidth_z) * Knowledge.domain_numFragsTotal_y * Knowledge.domain_numFragsTotal_x +
-      "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - globalDomain.size.lower_y) / fragWidth_y) * Knowledge.domain_numFragsTotal_x +
-      "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - globalDomain.size.lower_x) / fragWidth_x)
+    Knowledge.dimensionality match {
+      case 1 => "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - globalDomain.size.lower_x) / fragWidth_x)
+      case 2 => "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - globalDomain.size.lower_y) / fragWidth_y) * Knowledge.domain_numFragsTotal_x +
+        "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - globalDomain.size.lower_x) / fragWidth_x)
+      case 3 => "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - globalDomain.size.lower_z) / fragWidth_z) * Knowledge.domain_numFragsTotal_y * Knowledge.domain_numFragsTotal_x +
+        "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - globalDomain.size.lower_y) / fragWidth_y) * Knowledge.domain_numFragsTotal_x +
+        "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - globalDomain.size.lower_x) / fragWidth_x)
+    }
   }
 }
 
@@ -60,9 +73,14 @@ case class PointToLocalFragmentId(var pos : Expression) extends Expression with 
     val fragWidth_y = globalDomain.size.width(1) / Knowledge.domain_numFragsTotal_y
     val fragWidth_z = globalDomain.size.width(2) / Knowledge.domain_numFragsTotal_z
 
-    (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - globalDomain.size.lower_z) / fragWidth_z)) Mod Knowledge.domain_numFragsPerBlock_z) * Knowledge.domain_numFragsPerBlock_y * Knowledge.domain_numFragsPerBlock_x +
-      (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - globalDomain.size.lower_y) / fragWidth_y)) Mod Knowledge.domain_numFragsPerBlock_y) * Knowledge.domain_numFragsPerBlock_x +
-      (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - globalDomain.size.lower_x) / fragWidth_x)) Mod Knowledge.domain_numFragsPerBlock_x)
+    Knowledge.dimensionality match {
+      case 1 => (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - globalDomain.size.lower_x) / fragWidth_x)) Mod Knowledge.domain_numFragsPerBlock_x)
+      case 2 => (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - globalDomain.size.lower_y) / fragWidth_y)) Mod Knowledge.domain_numFragsPerBlock_y) * Knowledge.domain_numFragsPerBlock_x +
+        (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - globalDomain.size.lower_x) / fragWidth_x)) Mod Knowledge.domain_numFragsPerBlock_x)
+      case 3 => (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - globalDomain.size.lower_z) / fragWidth_z)) Mod Knowledge.domain_numFragsPerBlock_z) * Knowledge.domain_numFragsPerBlock_y * Knowledge.domain_numFragsPerBlock_x +
+        (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - globalDomain.size.lower_y) / fragWidth_y)) Mod Knowledge.domain_numFragsPerBlock_y) * Knowledge.domain_numFragsPerBlock_x +
+        (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - globalDomain.size.lower_x) / fragWidth_x)) Mod Knowledge.domain_numFragsPerBlock_x)
+    }
   }
 }
 
@@ -75,11 +93,20 @@ case class PointToOwningRank(var pos : Expression, var domain : Domain) extends 
     val fragWidth_y = globalDomain.size.width(1) / Knowledge.domain_numFragsTotal_y
     val fragWidth_z = globalDomain.size.width(2) / Knowledge.domain_numFragsTotal_z
 
-    TernaryConditionExpression(PointOutsideDomain(pos, domain),
-      s"MPI_PROC_NULL",
-      ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - globalDomain.size.lower_z) / fragWidth_z) / Knowledge.domain_numFragsPerBlock_z) * Knowledge.domain_numBlocks_y * Knowledge.domain_numBlocks_x
-        + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - globalDomain.size.lower_y) / fragWidth_y) / Knowledge.domain_numFragsPerBlock_y) * Knowledge.domain_numBlocks_x
-        + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - globalDomain.size.lower_x) / fragWidth_x) / Knowledge.domain_numFragsPerBlock_x))
+    Knowledge.dimensionality match {
+      case 1 => TernaryConditionExpression(PointOutsideDomain(pos, domain),
+        s"MPI_PROC_NULL",
+        ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - globalDomain.size.lower_x) / fragWidth_x) / Knowledge.domain_numFragsPerBlock_x))
+      case 2 => TernaryConditionExpression(PointOutsideDomain(pos, domain),
+        s"MPI_PROC_NULL",
+        ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - globalDomain.size.lower_y) / fragWidth_y) / Knowledge.domain_numFragsPerBlock_y) * Knowledge.domain_numBlocks_x
+          + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - globalDomain.size.lower_x) / fragWidth_x) / Knowledge.domain_numFragsPerBlock_x))
+      case 3 => TernaryConditionExpression(PointOutsideDomain(pos, domain),
+        s"MPI_PROC_NULL",
+        ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - globalDomain.size.lower_z) / fragWidth_z) / Knowledge.domain_numFragsPerBlock_z) * Knowledge.domain_numBlocks_y * Knowledge.domain_numBlocks_x
+          + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - globalDomain.size.lower_y) / fragWidth_y) / Knowledge.domain_numFragsPerBlock_y) * Knowledge.domain_numBlocks_x
+          + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - globalDomain.size.lower_x) / fragWidth_x) / Knowledge.domain_numFragsPerBlock_x))
+    }
   }
 }
 
