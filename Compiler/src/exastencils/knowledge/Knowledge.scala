@@ -40,11 +40,6 @@ object Knowledge {
 
   // --- Domain Decomposition ---
 
-  // describes to (number of) domains to be used
-  var domain_size : AABB = new AABB
-  var domain_numSubdomains : Int = 1
-  var domain_subdomains : Array[AABB] = Array(new AABB)
-
   // specifies if fragments within one block should be aggregated 
   // TODO: sanity check if compatible with chosen smoother
   var domain_summarizeBlocks : Boolean = true
@@ -95,14 +90,6 @@ object Knowledge {
     Array(domain_fragLength_x, domain_fragLength_y, domain_fragLength_z)(index)
   }
 
-  // the width of each fragment per dimension in absolute coordinates
-  var domain_fragWidth_x : Double = 1
-  var domain_fragWidth_y : Double = 1
-  var domain_fragWidth_z : Double = 1
-  def domain_fragWidthPerDim(index : Int) : Double = {
-    Array(domain_fragWidth_x, domain_fragWidth_y, domain_fragWidth_z)(index)
-  }
-
   // === Level 2 ===
 
   // === Level 3 ===
@@ -136,7 +123,7 @@ object Knowledge {
   var omp_numThreads : Int = 1
   var omp_version : Double = 2.0
   var omp_useCollapse : Boolean = true
-  var omp_minWorkItemsPerThread : Int = 64
+  var omp_minWorkItemsPerThread : Int = 256
 
   // --- Communication ---
   var comm_strategyFragment : Int = 6 //26
@@ -184,10 +171,6 @@ object Knowledge {
     domain_numFragsTotal_x = domain_numFragsPerBlock_x * domain_numBlocks_x
     domain_numFragsTotal_y = domain_numFragsPerBlock_y * domain_numBlocks_y
     domain_numFragsTotal_z = domain_numFragsPerBlock_z * domain_numBlocks_z
-
-    domain_fragWidth_x = domain_size.width(0) / domain_numFragsTotal_x
-    domain_fragWidth_y = domain_size.width(1) / domain_numFragsTotal_y
-    domain_fragWidth_z = domain_size.width(2) / domain_numFragsTotal_z
 
     mg_smoother_omega = (if (SmootherType.Jac == mg_smoother) 0.8 else 1.0)
 

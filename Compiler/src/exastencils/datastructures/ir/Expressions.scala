@@ -168,7 +168,7 @@ case class VariableAccess(var name : String, var dType : Option[Datatype] = None
   override def cpp = name
 }
 
-case class ArrayAccess(var base : Access, var index : Expression) extends Access {
+case class ArrayAccess(var base : Expression, var index : Expression) extends Access {
   override def cpp = {
     index match {
       case ind : MultiIndex => base.cpp + ind.cpp
