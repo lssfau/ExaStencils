@@ -26,6 +26,10 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
 
     declarations += s"Vec3 pos"
     cTorInitList += s"pos(0.0, 0.0, 0.0)"
+    declarations += s"Vec3 posBegin"
+    cTorInitList += s"posBegin(0.0, 0.0, 0.0)"
+    declarations += s"Vec3 posEnd"
+    cTorInitList += s"posEnd(0.0, 0.0, 0.0)"
 
     if (6 == Knowledge.comm_strategyFragment) {
       neighbors += new NeighborInfo(Array(-1, 0, 0), 0)

@@ -189,6 +189,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
     val fragWidth_x = globalDomain.size.width(0) / Knowledge.domain_numFragsTotal_x
     val fragWidth_y = globalDomain.size.width(1) / Knowledge.domain_numFragsTotal_y
     val fragWidth_z = globalDomain.size.width(2) / Knowledge.domain_numFragsTotal_z
+    val vecDelta = "Vec3(" ~ (0.5 * fragWidth_x) ~ "," ~ (if (Knowledge.dimensionality > 1) (0.5 * fragWidth_y) else 0) ~ "," ~ (if (Knowledge.dimensionality > 2) (0.5 * fragWidth_z) else 0) ~ ")"
 
     FunctionStatement(new UnitDatatype(), s"initDomain", ListBuffer(),
       ListBuffer(
@@ -208,7 +209,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
         if (Knowledge.useMPI)
           s"Vec3 rankPos(mpiRank % ${Knowledge.domain_numBlocks_x}, (mpiRank / ${Knowledge.domain_numBlocks_x}) % ${Knowledge.domain_numBlocks_y}, mpiRank / ${Knowledge.domain_numBlocks_x * Knowledge.domain_numBlocks_y})"
         else
-          s"Vec3 rankPos(1, 1, 1)",
+          s"Vec3 rankPos(0, 0, 0)",
 
         new LoopOverDimensions(IndexRange(MultiIndex(0, 0, 0), MultiIndex(Knowledge.domain_numFragsPerBlock_x, Knowledge.domain_numFragsPerBlock_y, Knowledge.domain_numFragsPerBlock_z)),
           new AssignmentStatement("positions[posWritePos++]", "Vec3("
@@ -220,6 +221,8 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
           s"fragments[f]->id = " ~ PointToFragmentId("positions[f]"),
           s"fragments[f]->commId = " ~ PointToLocalFragmentId("positions[f]"),
           s"fragments[f]->pos = positions[f]",
+          s"fragments[f]->posBegin = " ~ ("positions[f]" - vecDelta),
+          s"fragments[f]->posEnd = " ~ (("positions[f]" : Expression) + vecDelta), // stupid string concat ...
           s"fragmentMap[fragments[f]->id] = fragments[f]"),
           None,
           false),
