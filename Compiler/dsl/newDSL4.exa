@@ -1,4 +1,4 @@
-Domain global< [-1, -1, -1] to [1, 1, 1] >
+Domain global< [0, 0, 0] to [1, 1, 1] >
 
 // FIXME: ghostlayers, padding, etc have to be left/right and have to be indices instead of ints
 Field Solution< [1, 1, 1], Real >@all ( ghostlayers = 1, slots = 1, bcDir = true )
@@ -65,6 +65,8 @@ Stencil RestrictionStencil@all {
 Set inner [1, 1, 1] - [1, 1, 1] steps [1, 1, 1]
 Set innerForFieldsWithoutGhostLayers [0, 0, 0] - [0, 0, 0] steps [1, 1, 1] // this concept might need some improvement
 Set domain [0, 0, 0] - [0, 0, 0] steps [1, 1, 1]
+Set red [1 + ((y + z) % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]
+Set black [2 - ((y + z) % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]
 
 def VCycle@coarsest ( ) : Unit {
 	UpResidual@(current) ( )
@@ -114,7 +116,7 @@ def VCycle@coarsest ( ) : Unit {
 
 def VCycle@((coarsest + 1) to finest) ( ) : Unit {
 	repeat up 2 {
-		Jacobi@(current) ( )
+		RBGS@(current) ( )
 	}
 	UpResidual@(current) ( )
 	Restrict@(current) ( )
@@ -122,7 +124,7 @@ def VCycle@((coarsest + 1) to finest) ( ) : Unit {
 	VCycle@(coarser) ( )
 	interpolatecorr@(current) ( )
 	repeat up 1 {
-		Jacobi@(current) ( )
+		RBGS@(current) ( )
 	}
 }
 
@@ -134,6 +136,17 @@ def Jacobi@((coarsest + 1) to finest) ( ) : Unit {
 	communicate Solution2@(current)
 	loop over inner on Solution@(current) {
 		Solution@(current) = Solution2@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 0.8 ) * ( RHS@(current) - Lapl@(current) * Solution2@(current) ) )
+	}
+}
+
+def RBGS@((coarsest + 1) to finest) ( ) : Unit {
+	communicate Solution@(current)
+	loop over red on Solution@(current) {
+		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 1.0 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
+	}
+	communicate Solution@(current)
+	loop over black on Solution@(current) {
+		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 1.0 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
 	}
 }
 
@@ -188,6 +201,8 @@ def Application ( ) : Unit {
 	var resold : Real = 0
 	print ( '"startingres"', res0 )
 	var totalTime : Real = 0
+	var timeToSolve : Real = 0
+	startTimer ( timeToSolveWatch )
 	repeat up 10 {
 		resold = res
 		startTimer ( stopWatch )
@@ -197,5 +212,7 @@ def Application ( ) : Unit {
 		res = L2Residual@finest (  )
 		print ( '"Residual:"', res, '"Residual reduction:"', ( res0 / res ), '"Convergence factor:"', ( res / resold ) )
 	}
+	stopTimer ( timeToSolveWatch, timeToSolve )
+	print ( '"Total time to solve: "', timeToSolve )
 	print ( '"Mean time per vCycle: "', totalTime / 10 )
 }

@@ -70,9 +70,9 @@ case class FieldDeclarationStatement(var name : String, var datatype : Datatype,
   }
 }
 
-case class IterationSetDeclarationStatement(var identifier : Identifier, var begin : Index, var end : Index, var increment : Option[Index]) extends SpecialStatement {
-  def progressToIr : IterationSet = {
-    IterationSet(identifier.asInstanceOf[BasicIdentifier].progressToIr.value,
+case class IterationSetDeclarationStatement(var identifier : Identifier, var begin : ExpressionIndex, var end : ExpressionIndex, var increment : Option[ExpressionIndex]) extends SpecialStatement {
+  def progressToIr : knowledge.IterationSet = {
+    knowledge.IterationSet(identifier.asInstanceOf[BasicIdentifier].progressToIr.value,
       begin.progressToIr,
       end.progressToIr,
       (if (increment.isDefined) increment.get.progressToIr else new ir.MultiIndex(Array.fill(Knowledge.dimensionality)(1))))
