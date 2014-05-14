@@ -2,7 +2,7 @@ Domain global< [0, 0, 0] to [1, 1, 1] >
 
 // FIXME: ghostlayers, padding, etc have to be left/right and have to be indices instead of ints
 Field Solution< [1, 1, 1], Real >@all ( ghostlayers = 1, slots = 1, bcDir = true )
-Field Solution2< [1, 1, 1], Real >@((coarsest + 1) to finest) ( ghostlayers = 1, slots = 1, bcDir = true )
+//Field Solution2< [1, 1, 1], Real >@((coarsest + 1) to finest) ( ghostlayers = 1, slots = 1, bcDir = true )
 Field Residual< [1, 1, 1], Real >@all ( ghostlayers = 1 )
 Field RHS< [0, 0, 0], Real >@all ( communicates = false )
 Field VecP< [1, 1, 1], Real >@coarsest ( ghostlayers = 1 )
@@ -116,30 +116,32 @@ def VCycle@coarsest ( ) : Unit {
 
 def VCycle@((coarsest + 1) to finest) ( ) : Unit {
 	repeat up 2 {
-		RBGS@(current) ( )
+		Smoother@(current) ( )
 	}
 	UpResidual@(current) ( )
 	Restrict@(current) ( )
 	set@(coarser) ( 0 )
 	VCycle@(coarser) ( )
 	interpolatecorr@(current) ( )
-	repeat up 1 {
-		RBGS@(current) ( )
+	repeat up 2 {
+		Smoother@(current) ( )
 	}
 }
 
-def Jacobi@((coarsest + 1) to finest) ( ) : Unit {
-	communicate Solution@(current)
-	loop over inner on Solution@(current) {
-		Solution2@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 0.8 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
-	}
-	communicate Solution2@(current)
-	loop over inner on Solution@(current) {
-		Solution@(current) = Solution2@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 0.8 ) * ( RHS@(current) - Lapl@(current) * Solution2@(current) ) )
-	}
-}
+// Jacobi
+//def Smoother@((coarsest + 1) to finest) ( ) : Unit {
+//	communicate Solution@(current)
+//	loop over inner on Solution@(current) {
+//		Solution2@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 0.8 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
+//	}
+//	communicate Solution2@(current)
+//	loop over inner on Solution@(current) {
+//		Solution@(current) = Solution2@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 0.8 ) * ( RHS@(current) - Lapl@(current) * Solution2@(current) ) )
+//	}
+//}
 
-def RBGS@((coarsest + 1) to finest) ( ) : Unit {
+// RBGS
+def Smoother@((coarsest + 1) to finest) ( ) : Unit {
 	communicate Solution@(current)
 	loop over red on Solution@(current) {
 		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 1.0 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
@@ -150,12 +152,13 @@ def RBGS@((coarsest + 1) to finest) ( ) : Unit {
 	}
 }
 
-def GaussSeidel@((coarsest + 1) to finest) ( ) : Unit {
-	communicate Solution@(current)
-	loop over inner on Solution@(current) {
-		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 1.0 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
-	}
-}
+// GS
+//def Smoother@((coarsest + 1) to finest) ( ) : Unit {
+//	communicate Solution@(current)
+//	loop over inner on Solution@(current) {
+//		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 1.0 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
+//	}
+//}
 
 def UpResidual@all ( ) : Unit {
 	communicate Solution@(current)
