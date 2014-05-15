@@ -1,24 +1,10 @@
-package logger
+package examacros
 
 object Logger {
 
   import scala.reflect.macros._
   import scala.reflect.runtime.universe._
   import scala.language.experimental.macros
-
-  object Levels extends Enumeration {
-    type Levels = Value
-    val Error = Value(2)
-    val Warn = Value(4)
-    val Debug = Value(8)
-    val Info = Value(16)
-  }
-  import Levels._
-
-  protected var current : Levels = Debug
-
-  def setLevel(level : Levels) = { current = level }
-  def getLevel() = current
 
   def error(s : AnyRef) : Unit = macro errorImpl
   def warn(s : AnyRef) : Unit = macro warnImpl
