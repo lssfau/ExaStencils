@@ -200,7 +200,7 @@ object Knowledge {
     else if ("IBMXL" == targetCompiler)
       omp_version = 3.0
     else
-      ERROR("Unsupported target compiler")
+      Logger.error("Unsupported target compiler")
 
     if (useOMP)
       omp_numThreads = if (domain_summarizeBlocks) domain_fragLength else domain_numFragsPerBlock

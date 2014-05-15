@@ -3,6 +3,7 @@
 	<name>Compiler</name>
 	<comment></comment>
 	<projects>
+		<project>CompilerMacros</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

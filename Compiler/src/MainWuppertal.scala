@@ -18,7 +18,7 @@ object MainWuppertal extends App {
   strategy += Transformation("Implement", {
     case s : SmootherNode => {
       if (s.name == "Gs") {
-        DBG("Smoother name = " + s.name)
+        Logger.debug("Smoother name = " + s.name)
         new GsSmootherNode()
       } else {
         throw new Exception("Invalid smoother name: " + s.name)

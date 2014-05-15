@@ -47,7 +47,7 @@ object PrettyprintingManager {
       var file = new java.io.File(Settings.outputPath + java.io.File.separator + filename)
       if (!file.getParentFile().exists()) file.getParentFile().mkdirs()
 
-      exastencils.core.DBG("new file: " + file.getAbsolutePath)
+      exastencils.core.Logger.debug("new file: " + file.getAbsolutePath)
 
       if (filename.endsWith(".h") || filename.endsWith(".hpp") || filename.endsWith(".hxx")) {
         var printer = new HeaderPrettyprinter(filename, file.getAbsolutePath())

@@ -58,7 +58,7 @@ object ProgressToIr extends Strategy("ProgressToIr") {
         case SingleLevelSpecification(b) => SingleLevelSpecification(calc(b, x.offset))
       }
     }
-    //case _ => ERROR("ResolveRelativeIdentifiers: fixme")
+    //case _ => Log.error("ResolveRelativeIdentifiers: fixme")
   })
 
   // unfold function declarations and calls
@@ -91,7 +91,7 @@ object ProgressToIr extends Strategy("ProgressToIr") {
           f.identifier = new LeveledIdentifier(f.identifier.name, SingleLevelSpecification(level))
           functions += f
         }
-      case _ => ERROR(s"Invalid level specification for function $function: $level")
+      case _ => Logger.error(s"Invalid level specification for function $function: $level")
     }
     return functions.toList
   }
@@ -112,7 +112,7 @@ object ProgressToIr extends Strategy("ProgressToIr") {
           f.identifier = new LeveledIdentifier(f.identifier.name, SingleLevelSpecification(level))
           functions += f
         }
-      case _ => ERROR(s"Invalid level specification for function $function: $level")
+      case _ => Logger.error(s"Invalid level specification for function $function: $level")
     }
     return functions.toList
   }
@@ -142,7 +142,7 @@ object ProgressToIr extends Strategy("ProgressToIr") {
           f.level = Some(SingleLevelSpecification(level))
           fields += f
         }
-      case _ => ERROR(s"Invalid level specification for field $field: $level")
+      case _ => Logger.error(s"Invalid level specification for field $field: $level")
     }
     return fields.toList
   }
@@ -173,7 +173,7 @@ object ProgressToIr extends Strategy("ProgressToIr") {
           f.level = Some(SingleLevelSpecification(level))
           stencils += f
         }
-      case _ => ERROR(s"Invalid level specification for stencil $stencil: $level")
+      case _ => Logger.error(s"Invalid level specification for stencil $stencil: $level")
     }
     return stencils.toList
   }
@@ -213,7 +213,7 @@ object ProgressToIr extends Strategy("ProgressToIr") {
       case l4.IntegerConstant(x) => ir.IntegerConstant(x)
       case l4.FloatConstant(x)   => ir.FloatConstant(x)
       case l4.BooleanConstant(x) => ir.BooleanConstant(x)
-      case _                     => ERROR(s"No rule for progression of L4 node ${node}")
+      case _                     => Log.error(s"No rule for progression of L4 node ${node}")
     }
   }
 
@@ -230,7 +230,7 @@ object ProgressToIr extends Strategy("ProgressToIr") {
         x.statements.map(doTransformToIr(_)))
       case x : l4.FunctionCallStatement => new ir.ExpressionStatement(new ir.FunctionCallExpression(
         resolveLeveledName(x.identifier), x.arguments.map(doTransformToIr(_))))
-      case _ => ERROR(s"No rule for progression of L4 node ${node}")
+      case _ => Log.error(s"No rule for progression of L4 node ${node}")
     }
   }
 */
