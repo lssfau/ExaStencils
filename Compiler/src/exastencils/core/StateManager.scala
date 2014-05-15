@@ -363,9 +363,9 @@ object StateManager {
       val getters : Array[java.lang.reflect.Method] = for {
         g <- methods; if (g.getModifiers & java.lang.reflect.Modifier.PUBLIC) == java.lang.reflect.Modifier.PUBLIC &&
           g.getParameterTypes.size == 0 && !excludeList.contains(g.getName)
-        s <- methods; if s.getName == g.getName + setterSuffix &&
+        s <- methods; if s.getName.startsWith(g.getName) &&
           (s.getModifiers & java.lang.reflect.Modifier.PUBLIC) == java.lang.reflect.Modifier.PUBLIC &&
-          s.getParameterTypes.size == 1 && s.getParameterTypes()(0) == g.getReturnType
+          s.getParameterTypes.size == 1 && s.getParameterTypes()(0) == g.getReturnType && s.getName == g.getName + setterSuffix
       } yield g
 
       getters.toList
