@@ -21,6 +21,8 @@ import exastencils.parsers.l4.ParserL4
 import exastencils.datastructures.l4.ProgressableToIr
 import exastencils.languageprocessing.l4.ProgressToIr
 import exastencils.mpi._
+import exastencils.polyhedron.PolyOpt
+import exastencils.polyhedron.Extractor
 
 object Main {
   def main(args : Array[String]) : Unit = {
@@ -175,20 +177,7 @@ object Main {
     do { ExpandStrategy.apply() }
     while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
 
-    // Stefan, this should be a nice point of intersection
-
-    // Exemplary strategy to match all LoopOverDimensions nodes
-    // Just as a hint: this will also match all LoopOverDimensions used for communication purposes which may have to be filtered... 
-    object FindLoopOverDimensions extends Strategy("Finding LoopOverDimensions nodes") {
-      this += new Transformation("Searching", {
-        case loop : LoopOverDimensions =>
-          println("Found a LoopOverDimensions node!")
-          loop
-      })
-    }
-    FindLoopOverDimensions.apply()
-
-    // End of intersection 
+    //    PolyOpt.apply()
 
     ResolveLoopOverDimensions.apply()
 
