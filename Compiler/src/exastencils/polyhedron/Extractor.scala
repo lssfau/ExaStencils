@@ -2,8 +2,7 @@ package exastencils.polyhedron
 
 import scala.collection.mutable.ArrayStack
 
-import exastencils.core.DBG
-import exastencils.core.WARN
+import exastencils.core.Logger
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Annotation
 import exastencils.datastructures.Node
@@ -22,7 +21,8 @@ import isl.Conversions.convertIntToVal
 import isl.Conversions.convertLambdaToXCallback1
 
 object Extractor extends Collector {
-
+  import scala.language.implicitConversions
+  
   /** implicit conversion for use in this class */
   private final implicit def convertLongToVal(l : Long) : isl.Val = new isl.Val(l.toString())
 
@@ -77,7 +77,7 @@ object Extractor extends Collector {
         case a : AssignmentStatement => enterAssign(a)
         // case s : StringConstant      => discardCurrentSCoP("string found (" + s.value + "), unsure about usage, skipping scop")
         case s : Statement           => enterStmt(s) // ensure the general Statement case is below others of its subclasses
-        case x : Any                 => DBG("[poly ex]: ignoring " + x.getClass())
+        case x : Any                 => Logger.debug("[poly ex]: ignoring " + x.getClass())
       }
   }
 
@@ -117,7 +117,7 @@ object Extractor extends Collector {
       return // no active SCoP to discard, return without action
 
     if (msg != null)
-      WARN("[poly ex] SCoP discarded:  " + msg)
+      Logger.warn("[poly ex] SCoP discarded:  " + msg)
     trash.push((scops.pop().root.asInstanceOf[LoopOverDimensions], msg))
     template = null
   }

@@ -1,7 +1,6 @@
 package exastencils.polyhedron
 
-import exastencils.core.ERROR
-import exastencils.core.DBG
+import exastencils.core.Logger
 import exastencils.core.StateManager
 import exastencils.datastructures.Strategy
 import exastencils.datastructures.Transformation
@@ -18,7 +17,7 @@ object PolyOpt extends Strategy("Polyhedral optimizations") {
     super.apply()
     StateManager.unregister(Extractor)
 
-    DBG("    SCoPs: " + Extractor.scops.size)
-    DBG("    trash: " + Extractor.trash.size)
+    Logger.debug("    SCoPs: " + Extractor.scops.size)
+    Logger.debug("    trash: " + Extractor.trash.size)
   }
 }
