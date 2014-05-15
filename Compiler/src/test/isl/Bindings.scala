@@ -1,3 +1,5 @@
+package test.isl
+
 import isl.BasicSet
 import isl.Conversions.convertLambdaToXCallback1
 import isl.Set

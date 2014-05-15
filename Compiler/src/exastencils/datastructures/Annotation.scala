@@ -16,6 +16,7 @@ class Annotation(n : String, var v : Option[Any]) {
 object Annotation {
   def apply(n : String, v : Option[Any]) = new Annotation(n, v)
   def apply(n : String) = new Annotation(n)
+  def unapply(a : Annotation) : Option[(String, Option[Any])] = Some((a.name, a.v))
 }
 
 trait Annotatable {

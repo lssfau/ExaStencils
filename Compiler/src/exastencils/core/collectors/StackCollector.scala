@@ -11,7 +11,7 @@ class StackCollector extends Collector {
     stack_.push(node)
   }
   def leave(node : Node) : Unit = {
-    if (head != node) ERROR(s"StackCollector mismatch: Cannot leave(): head != $node") // fatal error is fatal
+    if (head != node) Logger.error(s"StackCollector mismatch: Cannot leave(): head != $node") // fatal error is fatal
     stack_.pop()
   }
   def reset() : Unit = { stack_.clear }

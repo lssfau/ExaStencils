@@ -42,7 +42,7 @@ case class FieldDeclarationStatement(var name : String, var datatype : Datatype,
       case "padding"      => padding = t.value.toInt
       case "slots"        => slots = t.value.toInt
       case "bcDir"        => bcDir0 = t.value.toBoolean
-      case _              => exastencils.core.ERROR(s"Unknown option ${t.key} = ${t.value}")
+      case _              => exastencils.core.Logger.error(s"Unknown option ${t.key} = ${t.value}")
     }
   }
 

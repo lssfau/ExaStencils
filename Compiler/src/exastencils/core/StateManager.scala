@@ -110,7 +110,7 @@ object StateManager {
   protected def processOutput[O <: Output[_]](o : O) : List[Node] = o.inner match {
     case n : Node      => List(n)
     case l : List[_]   => l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
-    case _             => ERROR(o)
+    case _             => Logger.error(o)
   }
 
   def doRecursiveMatch(thisnode : Any, node : Node, field : java.lang.reflect.Method, transformation : Transformation) = {
@@ -127,17 +127,17 @@ object StateManager {
         case n : Node => {
           if (nodeIsOption) { // node is an Option[T] => set with Some() wrapped
             if (!Vars.set(node, field, Some(n))) {
-              ERROR(s"Could not set $field in transformation ${transformation.name}")
+              Logger.error(s"Could not set $field in transformation ${transformation.name}")
             }
           } else { // node is not an Option[T] => set directly
             if (!Vars.set(node, field, n)) {
-              ERROR(s"Could not set $field in transformation ${transformation.name}")
+              Logger.error(s"Could not set $field in transformation ${transformation.name}")
             }
           }
           if (transformation.recursive) replace(n, transformation)
         }
         case l : List[_] => {
-          ERROR(s"Could not replace single node by List in transformation ${transformation.name}")
+          Logger.error(s"Could not replace single node by List in transformation ${transformation.name}")
         }
       }
       val previousReplacements = progresses_(transformation).getReplacements
@@ -169,14 +169,14 @@ object StateManager {
             def processOutput[O <: Output[_]](o : O) : Node = o.inner match {
               case n : Node => n
               case l : List[_] =>
-                ERROR("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
-              case _ => ERROR(o); null
+                Logger.error("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
+              case _ => Logger.error(o); null
             }
 
             import scala.language.existentials
             var newSet = set.asInstanceOf[scala.collection.mutable.Set[Node]].map({ case item => processOutput(applyAtNode(item, transformation)) })
             if (previousReplacements <= progresses_(transformation).getReplacements && !Vars.set(node, field, newSet)) {
-              ERROR(s"Could not set $field in transformation ${transformation.name}")
+              Logger.error(s"Could not set $field in transformation ${transformation.name}")
             }
             if (transformation.recursive || (!transformation.recursive && previousReplacements >= progresses_(transformation).getReplacements)) newSet.foreach(f => replace(f, transformation))
           }
@@ -187,14 +187,14 @@ object StateManager {
             def processOutput[O <: Output[_]](o : O) : Node = o.inner match {
               case n : Node => n
               case l : List[_] =>
-                ERROR("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
-              case _ => ERROR(o); null
+                Logger.error("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
+              case _ => Logger.error(o); null
             }
 
             import scala.language.existentials
             var newSet = set.asInstanceOf[scala.collection.immutable.Set[Node]].map({ case item => processOutput(applyAtNode(item, transformation)) })
             if (previousReplacements <= progresses_(transformation).getReplacements && !Vars.set(node, field, newSet)) {
-              ERROR(s"Could not set $field in transformation ${transformation.name}")
+              Logger.error(s"Could not set $field in transformation ${transformation.name}")
             }
             if (transformation.recursive || (!transformation.recursive && previousReplacements >= progresses_(transformation).getReplacements)) newSet.foreach(f => replace(f, transformation))
           }
@@ -204,7 +204,7 @@ object StateManager {
           if (invalids.size <= 0) {
             var newList = list.asInstanceOf[Seq[Node]].flatMap(listitem => processOutput(applyAtNode(listitem, transformation)))
             if (previousReplacements <= progresses_(transformation).getReplacements && !Vars.set(node, field, newList)) {
-              ERROR(s"Could not set $field in transformation ${transformation.name}")
+              Logger.error(s"Could not set $field in transformation ${transformation.name}")
             }
             if (transformation.recursive || (!transformation.recursive && previousReplacements >= progresses_(transformation).getReplacements)) newList.foreach(f => replace(f, transformation))
           }
@@ -216,14 +216,14 @@ object StateManager {
             def processOutput[O <: Output[_]](o : O) : Node = o.inner match {
               case n : Node => n
               case l : List[_] =>
-                ERROR("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
-              case _ => ERROR(o); null
+                Logger.error("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
+              case _ => Logger.error(o); null
             }
 
             import scala.language.existentials
             var newMap = map.asInstanceOf[scala.collection.mutable.Map[_, Node]].map({ case (k, listitem) => (k, processOutput(applyAtNode(listitem, transformation))) })
             if (previousReplacements <= progresses_(transformation).getReplacements && !Vars.set(node, field, newMap)) {
-              ERROR(s"Could not set $field in transformation ${transformation.name}")
+              Logger.error(s"Could not set $field in transformation ${transformation.name}")
             }
             if (transformation.recursive || (!transformation.recursive && previousReplacements >= progresses_(transformation).getReplacements)) newMap.values.foreach(f => replace(f, transformation))
           }
@@ -235,14 +235,14 @@ object StateManager {
             def processOutput[O <: Output[_]](o : O) : Node = o.inner match {
               case n : Node => n
               case l : List[_] =>
-                ERROR("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
-              case _ => ERROR(o); null
+                Logger.error("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
+              case _ => Logger.error(o); null
             }
 
             import scala.language.existentials
             var newMap = map.asInstanceOf[scala.collection.immutable.Map[_, Node]].map({ case (k, listitem) => (k, processOutput(applyAtNode(listitem, transformation))) })
             if (previousReplacements <= progresses_(transformation).getReplacements && !Vars.set(node, field, newMap)) {
-              ERROR(s"Could not set $field in transformation ${transformation.name}")
+              Logger.error(s"Could not set $field in transformation ${transformation.name}")
             }
             if (transformation.recursive || (!transformation.recursive && previousReplacements >= progresses_(transformation).getReplacements)) newMap.values.foreach(f => replace(f, transformation))
           }
@@ -257,7 +257,7 @@ object StateManager {
               var newArray = java.lang.reflect.Array.newInstance(arrayType, tmpArray.length)
               System.arraycopy(tmpArray, 0, newArray, 0, tmpArray.length)
               if (!Vars.set(node, field, newArray)) {
-                ERROR(s"Could not set $field in transformation ${transformation.name}")
+                Logger.error(s"Could not set $field in transformation ${transformation.name}")
               }
             }
             if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) tmpArray.asInstanceOf[Array[Node]].foreach(f => replace(f, transformation))
@@ -285,7 +285,7 @@ object StateManager {
   //        case n : Node      => List(n)
   //        case l : List[_]   => l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
   //        case n : None.type => List()
-  //        case _             => ERROR(ret)
+  //        case _             => Logger.error(ret)
   //      }
   //    } else {
   //      Output(element)
@@ -318,9 +318,9 @@ object StateManager {
       return new TransformationResult(true, progresses_(transformation).getMatches, progresses_(transformation).getReplacements)
     } catch {
       case x : TransformationException => {
-        WARN(f"""Error in Transformation ${x.transformation.name}""")
-        WARN(f"Message: ${x.msg}")
-        WARN(f"Rollback will be performed")
+        Logger.warn(f"""Error in Transformation ${x.transformation.name}""")
+        Logger.warn(f"Message: ${x.msg}")
+        Logger.warn(f"Rollback will be performed")
         abort(token)
         throw x
       }
