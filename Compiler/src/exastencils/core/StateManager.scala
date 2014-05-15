@@ -88,9 +88,9 @@ object StateManager {
       val ret = transformation.function(node)
 
       def processResult[O <: Output[_]](o : O) : Unit = o.inner match {
-        case n : Node      => if (n != node) progresses_(transformation).didReplace
-        case l : List[_]   => progresses_(transformation).didReplace // FIXME count of list?!
-        case _             =>
+        case n : Node    => if (n != node) progresses_(transformation).didReplace
+        case l : List[_] => progresses_(transformation).didReplace // FIXME count of list?!
+        case _           =>
       }
 
       processResult(ret)
@@ -108,9 +108,9 @@ object StateManager {
   }
 
   protected def processOutput[O <: Output[_]](o : O) : List[Node] = o.inner match {
-    case n : Node      => List(n)
-    case l : List[_]   => l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
-    case _             => Logger.error(o)
+    case n : Node    => List(n)
+    case l : List[_] => l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
+    case _           => Logger.error(o)
   }
 
   def doRecursiveMatch(thisnode : Any, node : Node, field : java.lang.reflect.Method, transformation : Transformation) = {
@@ -142,7 +142,7 @@ object StateManager {
       }
       val previousReplacements = progresses_(transformation).getReplacements
       var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation)
-      if(previousReplacements <= progresses_(transformation).getReplacements) processResult(newSubnode)
+      if (previousReplacements <= progresses_(transformation).getReplacements) processResult(newSubnode)
     }
   }
 
@@ -152,7 +152,7 @@ object StateManager {
     Vars(node).foreach(field => {
       val currentSubnode = Vars.get(node, field)
       val previousReplacements = progresses_(transformation).getReplacements
-//      INFO(s"Statemanager::replace: node = $node, field = $field, currentSubnode = $currentSubnode")
+      Logger.info(s"Statemanager::replace: node = $node, field = $field, currentSubnode = $currentSubnode")
 
       currentSubnode match {
         case thisnode : Node => {
@@ -335,7 +335,7 @@ object StateManager {
   }
 
   def findFirst[T : ClassTag]() : Option[T] = findFirst(root)
-  
+
   def findFirst[T : ClassTag](node : Node) : Option[T] = {
     findFirst[T]({ x : Any => x match { case _ : T => true; case _ => false } })
   }
@@ -376,7 +376,7 @@ object StateManager {
     }
 
     def set[T](o : Any, method : java.lang.reflect.Method, value : Any) : Boolean = {
-//      INFO(s"Statemananger::set: $o, " + method.getName() + s" to $value")
+      Logger.info(s"Statemananger::set: $o, " + method.getName() + s" to $value")
       if (o == value) return true
       if (!method.getName.endsWith(setterSuffix)) {
         set(o, method.getName, value)
@@ -396,7 +396,7 @@ object StateManager {
       if (!methodname.endsWith(setterSuffix)) {
         methodname += setterSuffix
       }
-//      INFO(s"Setting $o :: $method to $value")
+      Logger.info(s"Setting $o :: $method to $value")
       val m = o.getClass.getMethods.find(p => p.getName == methodname)
       m match {
         case Some(x) => set(o, x, value)

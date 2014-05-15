@@ -1,32 +1,34 @@
-package examacros
+package exastencils.core
+
+import scala.reflect.macros.blackbox
 
 object Logger {
-
   import scala.reflect.macros._
   import scala.reflect.runtime.universe._
   import scala.language.experimental.macros
+  
+  // Level 1: Warn
+  // Level 2: Debug
+  // Level 4: Info
 
-  def error(s : AnyRef) : Unit = macro errorImpl
+  protected val current = 2
+  def getLevel = current
+
+  def error(s : AnyRef) = {
+    sys.error("ERROR: " + s)
+    sys.exit(-1) // just to be extra sure
+  }
+
   def warn(s : AnyRef) : Unit = macro warnImpl
   def warning(s : AnyRef) : Unit = macro warnImpl
   def debug(s : AnyRef) : Unit = macro dbgImpl
   def dbg(s : AnyRef) : Unit = macro dbgImpl
   def info(s : AnyRef) : Unit = macro infoImpl
 
-  def errorImpl(c : blackbox.Context)(s : c.Expr[AnyRef]) : c.Expr[Unit] = {
-    import c.universe._
-    c.Expr[Unit]({
-      q"""
-        sys.error("ERROR: " + $s)
-        sys.exit(-1) // just to be extra sure
-    """
-    })
-  }
-
   def warnImpl(c : blackbox.Context)(s : c.Expr[AnyRef]) : c.Expr[Unit] = {
     import c.universe._
     val result = {
-      q"""if (current.id >= Warn.id) {
+      q"""if (exastencils.core.Logger.getLevel >= 1) {
         println("WARN:  " + $s)
       }
     """
@@ -37,7 +39,7 @@ object Logger {
   def dbgImpl(c : blackbox.Context)(s : c.Expr[AnyRef]) : c.Expr[Unit] = {
     import c.universe._
     val result = {
-      q"""if (current.id >= Debug.id) {
+      q"""if (exastencils.core.Logger.getLevel >= 2) {
         println("DBG:   " + $s)
       }
     """
@@ -48,7 +50,7 @@ object Logger {
   def infoImpl(c : blackbox.Context)(s : c.Expr[AnyRef]) : c.Expr[Unit] = {
     import c.universe._
     val result = {
-      q"""if (current.id >= Info.id) {
+      q"""if (exastencils.core.Logger.getLevel >= 4) {
         println("INFO:  " + $s)
       }
     """
