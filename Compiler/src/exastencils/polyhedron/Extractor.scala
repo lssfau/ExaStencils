@@ -1,6 +1,7 @@
 package exastencils.polyhedron
 
 import scala.collection.mutable.ArrayStack
+
 import exastencils.core.Logger
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Annotation
@@ -18,11 +19,10 @@ import exastencils.knowledge.Knowledge
 import exastencils.primitives.LoopOverDimensions
 import isl.Conversions.convertIntToVal
 import isl.Conversions.convertLambdaToXCallback1
-import exastencils.primitives.LoopOverDimensions
 
 object Extractor extends Collector {
   import scala.language.implicitConversions
-
+  
   /** implicit conversion for use in this class */
   private final implicit def convertLongToVal(l : Long) : isl.Val = new isl.Val(l.toString())
 
@@ -34,7 +34,8 @@ object Extractor extends Collector {
   }
 
   /** current access node is a read/write access */
-  private var isRead, isWrite : Boolean = false
+  private var isRead : Boolean = false
+  private var isWrite : Boolean = false
 
   /** integer used to create an identifier for new statements and to determine the ordering of the statements inside the model */
   private var id : Int = 0
@@ -62,11 +63,16 @@ object Extractor extends Collector {
       case None =>
     }
 
-    // create new SCoP or replace old
-    if (node.isInstanceOf[LoopOverDimensions])
-      enterLoop(node.asInstanceOf[LoopOverDimensions])
+    node match { // create new SCoP or replace old
 
-    else if (template != null) // we have a SCoP now
+      case l : LoopOverDimensions =>
+        enterLoop(l)
+        return // node processed, nothing else to do here
+
+      case _ => // continue...
+    }
+
+    if (template != null) // we have a SCoP now
       node match {
         case a : AssignmentStatement => enterAssign(a)
         // case s : StringConstant      => discardCurrentSCoP("string found (" + s.value + "), unsure about usage, skipping scop")
@@ -94,10 +100,7 @@ object Extractor extends Collector {
 
   override def reset() : Unit = {
     template = null
-    isRead = false
-    isWrite = false
     scops.clear()
-    trash.clear()
   }
 
   /////////////////// auxiliary methodes \\\\\\\\\\\\\\\\\\\
@@ -122,11 +125,22 @@ object Extractor extends Collector {
   case class EvaluationException(msg : String) extends Exception(msg) {}
 
   private def evaluateExpression(expr : Expression) : Long = expr match {
-    case IntegerConstant(v)                                       => v
-    case AdditionExpression(l : Expression, r : Expression)       => evaluateExpression(l) + evaluateExpression(r)
-    case SubtractionExpression(l : Expression, r : Expression)    => evaluateExpression(l) - evaluateExpression(r)
-    case MultiplicationExpression(l : Expression, r : Expression) => evaluateExpression(l) * evaluateExpression(r)
-    case DivisionExpression(l : Expression, r : Expression)       => evaluateExpression(l) / evaluateExpression(r)
+
+    case IntegerConstant(v) =>
+      return v
+
+    case AdditionExpression(l : Expression, r : Expression) =>
+      return evaluateExpression(l) + evaluateExpression(r)
+
+    case SubtractionExpression(l : Expression, r : Expression) =>
+      return evaluateExpression(l) - evaluateExpression(r)
+
+    case MultiplicationExpression(l : Expression, r : Expression) =>
+      return evaluateExpression(l) * evaluateExpression(r)
+
+    case DivisionExpression(l : Expression, r : Expression) =>
+      return evaluateExpression(l) / evaluateExpression(r)
+
     case _ =>
       throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
   }

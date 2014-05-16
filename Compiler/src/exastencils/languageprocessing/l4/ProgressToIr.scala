@@ -12,9 +12,9 @@ import exastencils.knowledge.Knowledge
 object ProgressToIr extends Strategy("ProgressToIr") {
   var collector = new LevelCollector
 
-  override def apply(hackedApplyAt : Option[Node] = None, hackedToken : Option[StateManager.History.TransactionToken] = None) = {
+  override def apply(node : Option[Node] = None) = {
     StateManager.register(collector);
-    super.apply(hackedApplyAt, hackedToken);
+    super.apply(node);
     StateManager.unregister(collector);
   }
 

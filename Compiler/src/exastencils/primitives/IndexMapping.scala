@@ -19,7 +19,7 @@ object Mapping {
       case 2 => (index(1) * field.layout(0).total + index(0))
       case 3 => (index(2) * (field.layout(1).total * field.layout(0).total) + index(1) * field.layout(0).total + index(0))
     }
-    do { SimplifyStrategy.apply(Some(ret), StateManager.History.currentToken) }
+    do { SimplifyStrategy.applyStandalone(ret) }
     while (SimplifyStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
     ret
   }
@@ -30,7 +30,7 @@ object Mapping {
       case 2 => (index(1) * (aabb.end(0) - aabb.begin(0)) + index(0))
       case 3 => (index(2) * ((aabb.end(1) - aabb.begin(1)) * (aabb.end(0) - aabb.begin(0))) + index(1) * (aabb.end(0) - aabb.begin(0)) + index(0))
     }
-    do { SimplifyStrategy.apply(Some(ret), StateManager.History.currentToken) }
+    do { SimplifyStrategy.applyStandalone(ret) }
     while (SimplifyStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
     ret
   }

@@ -16,33 +16,61 @@ class Strategy(val name : String) {
   def transformations = { transformations_.toList }
   def results = { results_.toList }
 
-  // FIXME: quick HACK to realize trafo in trafo functionality
-  def apply(hackedApplyAt : Option[Node] = None, hackedToken : Option[StateManager.History.TransactionToken] = None) = {
-    val token : StateManager.History.TransactionToken =
-      (if (hackedToken.isEmpty)
-        StateManager.transaction(this)
-      else
-        hackedToken.get)
-    Logger.debug(s"""Applying strategy "${name}"""")
+  protected var token : Option[StateManager.TokenType] = None
+
+  def apply(node : Option[Node] = None) = {
+    token = Some(StateManager.transaction(this))
+
+    Logger.info(s"""Applying strategy "${name}"""")
     try {
       transformations_.foreach(transformation => {
-        Logger.info(s"""Applying strategy "${name}::${transformation.name}"""")
-        val result = StateManager.apply(token, transformation, hackedApplyAt)
-        Logger.debug(s"""Result of strategy "${name}::${transformation.name}": $result""")
-        results_ += ((transformation, result))
+        executeInternal(transformation, node)
       })
-      if (hackedToken.isEmpty)
-        StateManager.commit(token)
+      StateManager.commit(token.get)
     } catch {
       case x : TransformationException => {
         Logger.warn(s"""Strategy "${name}" did not apply successfully""")
         Logger.warn(s"""Error in Transformation ${x.transformation.name}""")
         Logger.warn(s"Message: ${x.msg}")
         Logger.warn(s"Rollback will be performed")
-        StateManager.abort(token)
+        StateManager.abort(token.get)
       }
-
     }
+  }
+
+  def execute(transformation : Transformation, node : Option[Node] = None) = {
+    Logger.info(s"""Executing nested transformation "${transformation.name}" during strategy "${name}"""")
+    executeInternal(transformation, node)
+  }
+
+  protected def executeInternal(transformation : Transformation, node : Option[Node] = None) = {
+    Logger.info(s"""Applying strategy "${name}::${transformation.name}"""")
+    val n = if (transformation.applyAtNode.isDefined) transformation.applyAtNode else node
+    val result = StateManager.apply(token.get, transformation, n)
+    Logger.debug(s"""Result of strategy "${name}::${transformation.name}": $result""")
+    results_ += ((transformation, result))
+  }
+
+  def applyStandalone(node : Node) = {
+    Logger.info(s"""Applying strategy "${name}" in standalone mode""")
+    try {
+      transformations_.foreach(transformation => {
+        executeStandaloneInternal(transformation, node)
+      })
+    } catch {
+      case x : TransformationException => {
+        Logger.warn(s"""Strategy "${name}" as standalone did not apply successfully""")
+        Logger.warn(s"""Error in Transformation ${x.transformation.name}""")
+        Logger.warn(s"Message: ${x.msg}")
+      }
+    }
+  }
+
+  protected def executeStandaloneInternal(transformation : Transformation, node : Node) = {
+    Logger.info(s"""Applying strategy "${name}::${transformation.name}" in standalone mode""")
+    val result = StateManager.applyStandalone(transformation, node)
+    Logger.debug(s"""Result of strategy "${name}::${transformation.name}" in standalone mode: $result""")
+    results_ += ((transformation, result))
   }
 }
 

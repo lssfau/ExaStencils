@@ -18,16 +18,16 @@ object StateManager {
   def root = root_ // FIXME remove this
   var root_ : Node = null // FIXME make this protected
 
-  /* HACK: used to be protected */ object History {
+  protected object History {
     protected var currentEntry : Option[ProtocalEntry] = None
     protected var history = new Stack[ProtocalEntry]
-    /* HACK: used to be protected */ var currentToken : Option[TransactionToken] = None
+    protected var currentToken : Option[TransactionToken] = None
     protected var currentTokenCounter = 0
     protected class ProtocalEntry(val stateBefore : Node, val appliedStrategy : Strategy)
     final class TransactionToken(val id : Int)
 
     def transaction(strategy : Strategy) : TransactionToken = {
-      if (currentToken != None || !currentEntry.isEmpty) throw new RuntimeException("Another transaction currently running!")
+      if (currentToken != None || !currentEntry.isEmpty) throw new RuntimeException(s"""Strategy "${strategy.name}": Another transaction currently running!""")
       currentEntry = Some(new ProtocalEntry(Duplicate(StateManager.root_), strategy))
       val ret = new TransactionToken(currentTokenCounter)
       currentToken = Some(ret)
@@ -55,6 +55,7 @@ object StateManager {
   def transaction(strategy : Strategy) = History.transaction(strategy)
   def commit(token : History.TransactionToken) = History.commit(token)
   def abort(token : History.TransactionToken) = History.abort(token)
+  type TokenType = History.TransactionToken
 
   protected object Collectors {
     protected var collectors_ = new ListBuffer[Collector]
@@ -327,11 +328,18 @@ object StateManager {
     }
   }
 
-  def layerChange(token : History.TransactionToken, newRoot : Node) : Unit = {
-    if (!History.isValid(token)) {
-      throw new RuntimeException("Invalid transaction token for layer change")
+  def applyStandalone(transformation : Transformation, node : Node) : TransformationResult = {
+    try {
+      progresses_.+=((transformation, new TransformationProgress))
+      replace(node, transformation)
+      return new TransformationResult(true, progresses_(transformation).getMatches, progresses_(transformation).getReplacements)
+    } catch {
+      case x : TransformationException => {
+        Logger.warn(f"""Error in standalone Transformation ${x.transformation.name}""")
+        Logger.warn(f"Message: ${x.msg}")
+        throw x
+      }
     }
-    this.root_ = newRoot
   }
 
   def findFirst[T : ClassTag]() : Option[T] = findFirst(root)
