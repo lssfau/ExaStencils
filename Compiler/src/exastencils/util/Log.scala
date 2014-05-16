@@ -14,6 +14,7 @@ case class Log() extends Node with FilePrettyPrintable {
 
     writer << ("""
 #include <iostream>
+#include <fstream>
 
 #define LOG_NOTE(msg) \
 { \
