@@ -45,7 +45,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   //###########################################################
 
-  lazy val program = locationize(field.* ~ stencil.* ~ iterationSet.* ~ function.* ^^ { case f ~ s ~ i ~ ss => Root(f, s, i, ss) })
+  lazy val program = locationize(domain.* ~ field.* ~ stencil.* ~ iterationSet.* ~ function.* ^^ { case d ~ f ~ s ~ i ~ ss => Root(d, f, s, i, ss) })
 
   //###########################################################
 
@@ -106,10 +106,11 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| conditional
     ||| communicateStatement)
 
-  lazy val domainDeclaration = (locationize(("var" ~> ident) <~ (":" ~ "Domain") ^^ { case id => DomainDeclarationStatement(id) }))
+  lazy val domain = (locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l ~ u => DomainDeclarationStatement(id, l, u) }))
+
   lazy val variableDeclaration = (locationize(("var" ~> ident) ~ (":" ~> datatype) ~ ("=" ~> expression).? ^^ { case id ~ dt ~ exp => VariableDeclarationStatement(BasicIdentifier(id), dt, exp) }))
 
-  lazy val iterationSet = locationize(("Set" ~> leveledidentifier) ~ index ~ ("-" ~> index) ~ ("steps" ~> index).?
+  lazy val iterationSet = locationize(("Set" ~> leveledidentifier) ~ expressionIndex ~ ("-" ~> expressionIndex) ~ ("steps" ~> expressionIndex).?
     ^^ { case id ~ begin ~ end ~ inc => IterationSetDeclarationStatement(id, begin, end, inc) })
 
   lazy val repeatUp = locationize(("repeat" ~ "up") ~> numericLit ~ ("{" ~> statement.+ <~ "}") ^^ { case n ~ s => RepeatUpStatement(n.toInt, s) })
@@ -147,6 +148,11 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     // FIXME: this has to be done properly
     locationize("[" ~ integerLit ~ "," ~ integerLit ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ => Index2D(n1, n2) })
     ||| locationize("[" ~ integerLit ~ "," ~ integerLit ~ "," ~ integerLit ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ ~ n3 ~ _ => Index3D(n1, n2, n3) }))
+
+  lazy val realIndex : PackratParser[RealIndex] = (
+    // FIXME: this has to be done properly
+    locationize("[" ~ realLit ~ "," ~ realLit ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ => RealIndex2D(n1, n2) })
+    ||| locationize("[" ~ realLit ~ "," ~ realLit ~ "," ~ realLit ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ ~ n3 ~ _ => RealIndex3D(n1, n2, n3) }))
 
   lazy val expressionIndex : PackratParser[ExpressionIndex] = (
     // FIXME: this has to be done properly

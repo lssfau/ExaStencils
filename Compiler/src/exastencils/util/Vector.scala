@@ -32,6 +32,7 @@ case class Vector() extends Node with FilePrettyPrintable {
 // includes
 //=====================================================================================================================
 
+#define _USE_MATH_DEFINES
 #include <iostream>
 #include <sstream>
 #include <string>

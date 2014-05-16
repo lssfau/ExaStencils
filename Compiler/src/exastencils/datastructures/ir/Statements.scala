@@ -18,6 +18,8 @@ case class NullStatement() extends Statement {
 }
 
 case class Scope(var body : ListBuffer[Statement]) extends Statement {
+  def this(body : Statement) = this(ListBuffer(body));
+
   override def cpp : String = {
     ("\n{\n"
       + body.map(stat => stat.cpp).mkString("\n")

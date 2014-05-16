@@ -26,6 +26,10 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
 
     declarations += s"Vec3 pos"
     cTorInitList += s"pos(0.0, 0.0, 0.0)"
+    declarations += s"Vec3 posBegin"
+    cTorInitList += s"posBegin(0.0, 0.0, 0.0)"
+    declarations += s"Vec3 posEnd"
+    cTorInitList += s"posEnd(0.0, 0.0, 0.0)"
 
     if (6 == Knowledge.comm_strategyFragment) {
       neighbors += new NeighborInfo(Array(-1, 0, 0), 0)
@@ -51,24 +55,26 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
       }
     }
 
-    declarations += s"bool isValidForSubdomain[${Knowledge.domain_numSubdomains}]"
-    new ForLoopStatement(s"unsigned int d = 0", s"d < ${Knowledge.domain_numSubdomains}", s"++d",
+    val numDomains = StateManager.findFirst[DomainCollection]().get.domains.size
+    
+    declarations += s"bool isValidForSubdomain[$numDomains]"
+    new ForLoopStatement(s"unsigned int d = 0", s"d < $numDomains", s"++d",
       "isValidForSubdomain[d] = false")
 
     var numNeighbors = neighbors.size
     var cTorNeighLoopList = new ListBuffer[Statement]
     var dTorNeighLoopList = new ListBuffer[Statement]
-    declarations += s"bool neighbor_isValid[${Knowledge.domain_numSubdomains}][$numNeighbors]"
+    declarations += s"bool neighbor_isValid[$numDomains][$numNeighbors]"
     cTorNeighLoopList += s"neighbor_isValid[d][i] = false"
-    declarations += s"bool neighbor_isRemote[${Knowledge.domain_numSubdomains}][$numNeighbors]"
+    declarations += s"bool neighbor_isRemote[$numDomains][$numNeighbors]"
     cTorNeighLoopList += s"neighbor_isRemote[d][i] = false"
-    declarations += s"Fragment3DCube* neighbor_localPtr[${Knowledge.domain_numSubdomains}][$numNeighbors]"
+    declarations += s"Fragment3DCube* neighbor_localPtr[$numDomains][$numNeighbors]"
     cTorNeighLoopList += s"neighbor_localPtr[d][i] = NULL"
-    declarations += s"size_t neighbor_fragCommId[${Knowledge.domain_numSubdomains}][$numNeighbors]"
+    declarations += s"size_t neighbor_fragCommId[$numDomains][$numNeighbors]"
     cTorNeighLoopList += s"neighbor_fragCommId[d][i] = -1"
 
     if (Knowledge.useMPI) {
-      declarations += s"int neighbor_remoteRank[${Knowledge.domain_numSubdomains}][$numNeighbors]"
+      declarations += s"int neighbor_remoteRank[$numDomains][$numNeighbors]"
       cTorNeighLoopList += s"neighbor_remoteRank[d][i] = MPI_PROC_NULL"
 
       for (sendOrRecv <- Array("Send", "Recv")) {
@@ -85,7 +91,7 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
       cTorNeighLoopList += s"maxElemRecvBuffer[i] = 0"
     }
 
-    cTorBody += new ForLoopStatement(s"unsigned int d = 0", s"d < ${Knowledge.domain_numSubdomains}", s"++d",
+    cTorBody += new ForLoopStatement(s"unsigned int d = 0", s"d < $numDomains", s"++d",
       new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i",
         cTorNeighLoopList))
     dTorBody += new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i",
