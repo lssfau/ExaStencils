@@ -10,11 +10,9 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.multiGrid._
 import exastencils.prettyprinting._
 
-case class MultiGrid() extends Node with FilePrettyPrintable {
-  var functions_HACK : ListBuffer[AbstractFunctionStatement] = new ListBuffer;
-
+case class MultiGrid(var functions : ListBuffer[AbstractFunctionStatement] = new ListBuffer) extends Node with FilePrettyPrintable {
   override def printToFile = {
-    val writer = PrettyprintingManager.getPrinter(s"MultiGrid/MultiGrid.h");
+    val writer = PrettyprintingManager.getPrinter(s"MultiGrid/MultiGrid.h")
 
     writer << (
       (if (Knowledge.useMPI) "#pragma warning(disable : 4800)\n" else "")
@@ -24,23 +22,23 @@ case class MultiGrid() extends Node with FilePrettyPrintable {
       + "#include \"Util/Vector.h\"\n"
       + "#include \"Util/Stopwatch.h\"\n"
       + "#include \"Primitives/Fragment3DCube.h\"\n"
-      + "#include \"Primitives/CommunicationFunctions.h\"\n");
+      + "#include \"Primitives/CommunicationFunctions.h\"\n")
 
-    for (func <- functions_HACK) {
-      val function = func.asInstanceOf[FunctionStatement];
-      writer << s"${function.returntype.cpp} ${function.name}(" + function.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n";
+    for (func <- functions) {
+      val function = func.asInstanceOf[FunctionStatement]
+      writer << s"${function.returntype.cpp} ${function.name}(" + function.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n"
     }
 
-    var i = 0;
-    for (f <- functions_HACK) {
-      var s : String = "";
+    var i = 0
+    for (f <- functions) {
+      var s : String = ""
 
-      val writer = PrettyprintingManager.getPrinter(s"MultiGrid/MultiGrid_$i.cpp");
+      val writer = PrettyprintingManager.getPrinter(s"MultiGrid/MultiGrid_$i.cpp")
 
-      writer << "#include \"MultiGrid/MultiGrid.h\"\n";
-      writer << f.cpp + "\n";
+      writer << "#include \"MultiGrid/MultiGrid.h\"\n"
+      writer << f.cpp + "\n"
 
-      i += 1;
+      i += 1
     }
   }
 }

@@ -43,7 +43,7 @@ case class Root(var domains : List[DomainDeclarationStatement],
     var multiGrid = new MultiGrid // FIXME: think about how to manage (MG/other) functions
     for (node <- statements)
       node match {
-        case function : FunctionStatement => multiGrid.functions_HACK += function.progressToIr
+        case function : FunctionStatement => multiGrid.functions += function.progressToIr
       }
     newRoot += multiGrid
 
