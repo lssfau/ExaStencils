@@ -37,11 +37,11 @@ object Transformation {
     new Transformation(name, function, recursive, applyAtNode)
 }
 
-class TransformationResult(val successful : Boolean, val matches : Int, val replacements : Int) {
+class TransformationResult(val successful : Boolean, val matches : Int) {
   override def toString() = {
     var s = "Transformation Result: "
     if (!successful) s += "not "
-    s += s"successful, $matches matches, $replacements replacements"
+    s += s"successful, $matches matches"
     s
   }
 }

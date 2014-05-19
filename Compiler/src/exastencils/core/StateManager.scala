@@ -20,108 +20,96 @@ object StateManager {
 
   type CheckpointIdentifier = String
   protected var checkpoints_ = new HashMap[CheckpointIdentifier, Node]
-  def checkpoint(id: CheckpointIdentifier): Unit = {
+  def checkpoint(id : CheckpointIdentifier) : Unit = {
     Logger.debug(s"""Creating checkpoint "$id"""")
     var c = Duplicate(StateManager.root_)
-    checkpoints_ += ((id, c))
+    checkpoints_ += id -> c
   }
-  def restore(id: CheckpointIdentifier): Unit = {
+  def restore(id : CheckpointIdentifier) : Unit = {
     Logger.debug(s"""Restoring to checkpoint "$id"""")
     root_ = checkpoints_.getOrElse(id, { Logger.error(s"""Could not restore to checkpoint "$id": Not found!""") })
   }
+  def listCheckpoints() = checkpoints_.keys
 
   protected object History {
     protected var history = new Stack[ProtocalEntry]
-    protected var currentToken: Option[TransactionToken] = None
+    protected var currentToken : Option[TransactionToken] = None
     protected var currentTokenCounter = 0
-    protected class ProtocalEntry(val stateBefore: Node, val appliedStrategy: Strategy)
-    final class TransactionToken(val id: Int)
+    protected class ProtocalEntry(val stateBefore : Node, val appliedStrategy : Strategy)
+    final class TransactionToken(val id : Int)
 
-    def transaction(strategy: Strategy): TransactionToken = {
+    def transaction(strategy : Strategy) : TransactionToken = {
       if (currentToken != None) throw new RuntimeException(s"""Strategy "${strategy.name}": Another transaction currently running!""")
       val ret = new TransactionToken(currentTokenCounter)
       currentToken = Some(ret)
       return ret
     }
 
-    def commit(token: TransactionToken): Unit = {
+    def commit(token : TransactionToken) : Unit = {
       if (currentToken == None) throw new RuntimeException("No currently running transaction!")
       if (!isValid(token)) throw new RuntimeException("Wrong token supplied, transaction not committed!")
       currentToken = None
     }
 
-    def abort(token: TransactionToken): Unit = {
+    def abort(token : TransactionToken) : Unit = {
       if (currentToken == None) throw new RuntimeException("No currently running transaction!")
       if (!isValid(token)) throw new RuntimeException("Wrong token supplied, transaction not committed!")
       currentToken = None
       Logger.error("Transaction has been aborted, aborting compilation...")
     }
 
-    def isValid(token: TransactionToken) = { currentToken != None && token == currentToken.get }
+    def isValid(token : TransactionToken) = { currentToken != None && token == currentToken.get }
   }
-  def transaction(strategy: Strategy) = History.transaction(strategy)
-  def commit(token: History.TransactionToken) = History.commit(token)
-  def abort(token: History.TransactionToken) = History.abort(token)
+  def transaction(strategy : Strategy) = History.transaction(strategy)
+  def commit(token : History.TransactionToken) = History.commit(token)
+  def abort(token : History.TransactionToken) = History.abort(token)
   type TokenType = History.TransactionToken
 
   protected object Collectors {
     protected var collectors_ = new ListBuffer[Collector]
 
-    def notifyEnter(node: Node) = { collectors_.foreach(c => c.enter(node)) }
-    def notifyLeave(node: Node) = { collectors_.foreach(c => c.leave(node)) }
+    def notifyEnter(node : Node) = { collectors_.foreach(c => c.enter(node)) }
+    def notifyLeave(node : Node) = { collectors_.foreach(c => c.leave(node)) }
 
-    def register(c: Collector) = { collectors_ += c }
-    def unregister(c: Collector) = { collectors_ -= c }
+    def register(c : Collector) = { collectors_ += c }
+    def unregister(c : Collector) = { collectors_ -= c }
     def unregisterAll() = { collectors_.clear }
   }
 
-  def register(c: Collector) = { Collectors.register(c) }
-  def unregister(c: Collector) = { Collectors.unregister(c) }
+  def register(c : Collector) = { Collectors.register(c) }
+  def unregister(c : Collector) = { Collectors.unregister(c) }
   def unregisterAll() = { Collectors.unregisterAll }
 
   protected class TransformationProgress {
     protected var matches = 0
-    protected var replacements = 0
     def getMatches = matches
-    def getReplacements = replacements
     def didMatch = matches += 1
-    def didReplace = replacements += 1
-    override def toString = { s"Transformation Progress: $matches match(es), $replacements replacement(s)" }
+    override def toString = { s"Transformation Progress: $matches match(es)" }
   }
   protected val progresses_ = new HashMap[Transformation, TransformationProgress]
 
-  protected def applyAtNode(node: Node, transformation: Transformation): Transformation.Output[_] = {
+  protected def applyAtNode(node : Node, transformation : Transformation) : Transformation.Output[_] = {
     if (transformation.function.isDefinedAt(node)) {
       progresses_(transformation).didMatch
-      val ret = transformation.function(node)
-
-      def processResult[O <: Output[_]](o: O): Unit = o.inner match {
-        case n: Node => if (n != node) progresses_(transformation).didReplace
-        case l: List[_] => progresses_(transformation).didReplace // FIXME count of list?!
-        case _ =>
-      }
-
-      processResult(ret)
-
-      return ret
+      return transformation.function(node)
     } else {
       Output(node)
     }
   }
 
-  protected def isTransformable(o: Any): Boolean = o match {
-    case x: Node => true
-    case x: Some[_] if (!x.isEmpty) => isTransformable(x.get)
-    case _ => false
+  protected def isTransformable(o : Any) : Boolean = o match {
+    case x : Node                    => true
+    case x : Some[_] if (!x.isEmpty) => isTransformable(x.get)
+    case _                           => false
   }
 
-  protected def processOutput[O <: Output[_]](o: O): List[Node] = o.inner match {
-    case n: Node => List(n)
-    case l: List[_] => l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
-    case _ => Logger.error(o)
+  protected def processOutput[O <: Output[_]](o : O) : List[Node] = o.inner match {
+    case n : Node    => List(n)
+    case l : List[_] => l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
+    case _           => Logger.error(o)
   }
 
-  def doRecursiveMatch(thisnode: Any, node: Node, field: java.lang.reflect.Method, transformation: Transformation) = {
+  def doRecursiveMatch(thisnode : Any, node : Node, field : java.lang.reflect.Method, transformation : Transformation) = {
     var subnode = thisnode
     var nodeIsOption = false
     if (subnode.isInstanceOf[Some[_]]) {
@@ -131,8 +119,8 @@ object StateManager {
     }
 
     if (subnode.isInstanceOf[Node]) {
-      def processResult[O <: Output[_]](o: O) = o.inner match {
-        case n: Node => {
+      def processResult[O <: Output[_]](o : O) = o.inner match {
+        case n : Node => {
           if (nodeIsOption) { // node is an Option[T] => set with Some() wrapped
             if (!Vars.set(node, field, Some(n))) {
               Logger.error(s"Could not set $field in transformation ${transformation.name}")
@@ -144,26 +132,26 @@ object StateManager {
           }
           if (transformation.recursive) replace(n, transformation)
         }
-        case l: List[_] => {
+        case l : List[_] => {
           Logger.error(s"Could not replace single node by List in transformation ${transformation.name}")
         }
       }
-      val previousReplacements = progresses_(transformation).getReplacements
+      val previousMatches = progresses_(transformation).getMatches
       var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation)
-      if (previousReplacements <= progresses_(transformation).getReplacements) processResult(newSubnode)
+      if (previousMatches <= progresses_(transformation).getMatches) processResult(newSubnode)
     }
   }
 
-  protected def replace(node: Node, transformation: Transformation): Unit = {
+  protected def replace(node : Node, transformation : Transformation) : Unit = {
     Collectors.notifyEnter(node)
 
     Vars(node).foreach(field => {
       val currentSubnode = Vars.get(node, field)
-      val previousReplacements = progresses_(transformation).getReplacements
+      val previousMatches = progresses_(transformation).getMatches
       Logger.info(s"Statemanager::replace: node = $node, field = $field, currentSubnode = $currentSubnode")
 
       currentSubnode match {
-        case thisnode: Node => {
+        case thisnode : Node => {
           doRecursiveMatch(thisnode, node, field, transformation)
         }
         case Some(thisnode) => {
@@ -171,91 +159,91 @@ object StateManager {
             doRecursiveMatch(Some(thisnode.asInstanceOf[Node]), node, field, transformation) // FIXME not very elegant
           }
         }
-        case set: scala.collection.mutable.Set[_] => {
+        case set : scala.collection.mutable.Set[_] => {
           val invalids = set.filterNot(p => isTransformable(p))
           if (invalids.size <= 0) {
-            def processOutput[O <: Output[_]](o: O): Node = o.inner match {
-              case n: Node => n
-              case l: List[_] =>
+            def processOutput[O <: Output[_]](o : O) : Node = o.inner match {
+              case n : Node => n
+              case l : List[_] =>
                 Logger.error("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
               case _ => Logger.error(o); null
             }
 
             import scala.language.existentials
             var newSet = set.asInstanceOf[scala.collection.mutable.Set[Node]].map({ case item => processOutput(applyAtNode(item, transformation)) })
-            if (previousReplacements <= progresses_(transformation).getReplacements && !Vars.set(node, field, newSet)) {
+            if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newSet)) {
               Logger.error(s"Could not set $field in transformation ${transformation.name}")
             }
-            if (transformation.recursive || (!transformation.recursive && previousReplacements >= progresses_(transformation).getReplacements)) newSet.foreach(f => replace(f, transformation))
+            if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) newSet.foreach(f => replace(f, transformation))
           }
         }
-        case set: scala.collection.immutable.Set[_] => {
+        case set : scala.collection.immutable.Set[_] => {
           val invalids = set.filterNot(p => isTransformable(p))
           if (invalids.size <= 0) {
-            def processOutput[O <: Output[_]](o: O): Node = o.inner match {
-              case n: Node => n
-              case l: List[_] =>
+            def processOutput[O <: Output[_]](o : O) : Node = o.inner match {
+              case n : Node => n
+              case l : List[_] =>
                 Logger.error("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
               case _ => Logger.error(o); null
             }
 
             import scala.language.existentials
             var newSet = set.asInstanceOf[scala.collection.immutable.Set[Node]].map({ case item => processOutput(applyAtNode(item, transformation)) })
-            if (previousReplacements <= progresses_(transformation).getReplacements && !Vars.set(node, field, newSet)) {
+            if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newSet)) {
               Logger.error(s"Could not set $field in transformation ${transformation.name}")
             }
-            if (transformation.recursive || (!transformation.recursive && previousReplacements >= progresses_(transformation).getReplacements)) newSet.foreach(f => replace(f, transformation))
+            if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) newSet.foreach(f => replace(f, transformation))
           }
         }
-        case list: Seq[_] => {
+        case list : Seq[_] => {
           val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
           if (invalids.size <= 0) {
             var newList = list.asInstanceOf[Seq[Node]].flatMap(listitem => processOutput(applyAtNode(listitem, transformation)))
-            if (previousReplacements <= progresses_(transformation).getReplacements && !Vars.set(node, field, newList)) {
+            if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newList)) {
               Logger.error(s"Could not set $field in transformation ${transformation.name}")
             }
-            if (transformation.recursive || (!transformation.recursive && previousReplacements >= progresses_(transformation).getReplacements)) newList.foreach(f => replace(f, transformation))
+            if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) newList.foreach(f => replace(f, transformation))
           }
         }
-        case map: scala.collection.mutable.Map[_, _] => {
+        case map : scala.collection.mutable.Map[_, _] => {
           val invalids = map.filterNot(p => isTransformable(p._2))
           if (invalids.size <= 0) {
 
-            def processOutput[O <: Output[_]](o: O): Node = o.inner match {
-              case n: Node => n
-              case l: List[_] =>
+            def processOutput[O <: Output[_]](o : O) : Node = o.inner match {
+              case n : Node => n
+              case l : List[_] =>
                 Logger.error("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
               case _ => Logger.error(o); null
             }
 
             import scala.language.existentials
             var newMap = map.asInstanceOf[scala.collection.mutable.Map[_, Node]].map({ case (k, listitem) => (k, processOutput(applyAtNode(listitem, transformation))) })
-            if (previousReplacements <= progresses_(transformation).getReplacements && !Vars.set(node, field, newMap)) {
+            if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newMap)) {
               Logger.error(s"Could not set $field in transformation ${transformation.name}")
             }
-            if (transformation.recursive || (!transformation.recursive && previousReplacements >= progresses_(transformation).getReplacements)) newMap.values.foreach(f => replace(f, transformation))
+            if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) newMap.values.foreach(f => replace(f, transformation))
           }
         }
-        case map: scala.collection.immutable.Map[_, _] => {
+        case map : scala.collection.immutable.Map[_, _] => {
           val invalids = map.filterNot(p => isTransformable(p._2))
           if (invalids.size <= 0) {
 
-            def processOutput[O <: Output[_]](o: O): Node = o.inner match {
-              case n: Node => n
-              case l: List[_] =>
+            def processOutput[O <: Output[_]](o : O) : Node = o.inner match {
+              case n : Node => n
+              case l : List[_] =>
                 Logger.error("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
               case _ => Logger.error(o); null
             }
 
             import scala.language.existentials
             var newMap = map.asInstanceOf[scala.collection.immutable.Map[_, Node]].map({ case (k, listitem) => (k, processOutput(applyAtNode(listitem, transformation))) })
-            if (previousReplacements <= progresses_(transformation).getReplacements && !Vars.set(node, field, newMap)) {
+            if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newMap)) {
               Logger.error(s"Could not set $field in transformation ${transformation.name}")
             }
-            if (transformation.recursive || (!transformation.recursive && previousReplacements >= progresses_(transformation).getReplacements)) newMap.values.foreach(f => replace(f, transformation))
+            if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) newMap.values.foreach(f => replace(f, transformation))
           }
         }
-        case list: Array[_] => {
+        case list : Array[_] => {
           val arrayType = list.getClass().getComponentType()
           val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
           if (invalids.size <= 0) {
@@ -316,16 +304,16 @@ object StateManager {
   //    if (element.isInstanceOf[Node]) Collectors.notifyLeave(element.asInstanceOf[Node])
   //  }
 
-  def apply(token: History.TransactionToken, transformation: Transformation, node: Option[Node] = None): TransformationResult = {
+  def apply(token : History.TransactionToken, transformation : Transformation, node : Option[Node] = None) : TransformationResult = {
     if (!History.isValid(token)) {
       throw new RuntimeException("Invalid transaction token for transformation ${transformation.name}")
     }
     try {
       progresses_.+=((transformation, new TransformationProgress))
       replace(node.getOrElse(root), transformation)
-      return new TransformationResult(true, progresses_(transformation).getMatches, progresses_(transformation).getReplacements)
+      return new TransformationResult(true, progresses_(transformation).getMatches)
     } catch {
-      case x: TransformationException => {
+      case x : TransformationException => {
         Logger.warn(f"""Error in Transformation ${x.transformation.name}""")
         Logger.warn(f"Message: ${x.msg}")
         Logger.warn(f"Rollback will be performed")
@@ -335,13 +323,13 @@ object StateManager {
     }
   }
 
-  def applyStandalone(transformation: Transformation, node: Node): TransformationResult = {
+  def applyStandalone(transformation : Transformation, node : Node) : TransformationResult = {
     try {
       progresses_.+=((transformation, new TransformationProgress))
       replace(node, transformation)
-      return new TransformationResult(true, progresses_(transformation).getMatches, progresses_(transformation).getReplacements)
+      return new TransformationResult(true, progresses_(transformation).getMatches)
     } catch {
-      case x: TransformationException => {
+      case x : TransformationException => {
         Logger.warn(f"""Error in standalone Transformation ${x.transformation.name}""")
         Logger.warn(f"Message: ${x.msg}")
         throw x
@@ -349,16 +337,16 @@ object StateManager {
     }
   }
 
-  def findFirst[T: ClassTag](): Option[T] = findFirst(root)
+  def findFirst[T : ClassTag]() : Option[T] = findFirst(root)
 
-  def findFirst[T: ClassTag](node: Node): Option[T] = {
-    findFirst[T]({ x: Any => x match { case _: T => true; case _ => false } })
+  def findFirst[T : ClassTag](node : Node) : Option[T] = {
+    findFirst[T]({ x : Any => x match { case _ : T => true; case _ => false } })
   }
 
-  def findFirst[T: ClassTag](check: Any => Boolean, node: Node = root): Option[T] = {
-    var retVal: Option[T] = None
+  def findFirst[T : ClassTag](check : Any => Boolean, node : Node = root) : Option[T] = {
+    var retVal : Option[T] = None
     var t = new Transformation("StatemanagerInternalFindFirst", {
-      case hit: T if check(hit) =>
+      case hit : T if check(hit) =>
         retVal = Some(hit)
         new Output(hit)
     }, false)
@@ -373,9 +361,9 @@ object StateManager {
     val setterSuffix = "_$eq"
     val excludeList = List()
 
-    def apply[T](o: Any): List[java.lang.reflect.Method] = {
+    def apply[T](o : Any) : List[java.lang.reflect.Method] = {
       val methods = o.getClass.getMethods
-      val getters: Array[java.lang.reflect.Method] = for {
+      val getters : Array[java.lang.reflect.Method] = for {
         g <- methods; if (g.getModifiers & java.lang.reflect.Modifier.PUBLIC) == java.lang.reflect.Modifier.PUBLIC &&
           g.getParameterTypes.size == 0 && !excludeList.contains(g.getName)
         s <- methods; if s.getName.startsWith(g.getName) &&
@@ -386,11 +374,11 @@ object StateManager {
       getters.toList
     }
 
-    def get[T](o: Any, method: java.lang.reflect.Method): Any = {
+    def get[T](o : Any, method : java.lang.reflect.Method) : Any = {
       method.invoke(o)
     }
 
-    def set[T](o: Any, method: java.lang.reflect.Method, value: Any): Boolean = {
+    def set[T](o : Any, method : java.lang.reflect.Method, value : Any) : Boolean = {
       Logger.info(s"Statemananger::set: $o, " + method.getName() + s" to $value")
       if (o == value) return true
       if (!method.getName.endsWith(setterSuffix)) {
@@ -406,7 +394,7 @@ object StateManager {
       }
     }
 
-    def set[T](o: Any, method: String, value: Any): Boolean = {
+    def set[T](o : Any, method : String, value : Any) : Boolean = {
       var methodname = method
       if (!methodname.endsWith(setterSuffix)) {
         methodname += setterSuffix
@@ -415,7 +403,7 @@ object StateManager {
       val m = o.getClass.getMethods.find(p => p.getName == methodname)
       m match {
         case Some(x) => set(o, x, value)
-        case None => false
+        case None    => false
       }
     }
   }

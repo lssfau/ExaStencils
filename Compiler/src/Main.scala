@@ -38,9 +38,9 @@ object Main {
     }
 
     // feature model  (modified FAMA Format (http://www.isa.us.es/fama/))
-    FeatureModel.readFeatureModel(Settings.basePathPrefix + "/Compiler/featureModel/model_Prototype.model")
-    var configuration = FeatureModel.getMinimalConfig
-    Knowledge.update(configuration)
+//    FeatureModel.readFeatureModel(Settings.basePathPrefix + "/Compiler/featureModel/model_Prototype.model")
+//    var configuration = FeatureModel.getMinimalConfig
+//    Knowledge.update(configuration)
 
     // Hack paths (relative paths should work here, too, if not, reverse this change)
     // ... this obviously depends on the execution path which in my case is the root folder to include configs and scripts
@@ -169,12 +169,12 @@ object Main {
     SetupFragmentClass.apply()
 
     do { ExpandStrategy.apply() }
-    while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
+    while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
 
     SetupApplication.apply()
 
     do { ExpandStrategy.apply() }
-    while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
+    while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
 
     //    PolyOpt.apply()
 
@@ -183,14 +183,14 @@ object Main {
     LinearizeFieldAccesses.apply()
 
     do { ExpandStrategy.apply() }
-    while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
+    while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
 
     if (!Knowledge.useMPI) {
       RemoveMPIReferences.apply()
     }
 
     do { SimplifyStrategy.apply() }
-    while (SimplifyStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
+    while (SimplifyStrategy.results.last._2.matches > 0) // FIXME: cleaner code
 
     AddMemberFunctionPrefix.apply()
 

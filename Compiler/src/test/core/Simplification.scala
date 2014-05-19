@@ -21,7 +21,7 @@ object Simplification {
     println(node)
 
     do { SimplifyStrategy.apply(Some(node)) }
-    while (SimplifyStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
+    while (SimplifyStrategy.results.last._2.matches > 0) // FIXME: cleaner code
 
     println(node)
   }
