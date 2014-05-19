@@ -171,7 +171,6 @@ object Main {
     do { ExpandStrategy.apply() }
     while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
 
-    SetupMultiGrid.apply()
     SetupApplication.apply()
 
     do { ExpandStrategy.apply() }

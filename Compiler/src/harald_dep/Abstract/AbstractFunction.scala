@@ -13,7 +13,7 @@ case class AbstractFunction(fname : String, location : String, rettype : String,
 
   def transformToIR() : FunctionStatement = {
     var name : String = ""
-    if (fname.equals(Knowledge.mg_smoother))
+    if (fname.equals("Jac"/*Knowledge.mg_smoother*/))
       name = "smoother"
     else
       name = fname
