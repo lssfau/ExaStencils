@@ -1,11 +1,15 @@
 package exastencils.primitives
 
 import scala.collection.mutable.ListBuffer
-
+import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.primitives._
+
+class NeighborInfo(var dir : Array[Int], var index : Int) {
+  var label : String = (Knowledge.dimensionality - 1 to 0 by -1).toList.map(i => dimToString(i).toUpperCase + dirToString(dir(i))).mkString("_")
+}
 
 case class getNeighInfo_IsValid(var neigh : NeighborInfo, var domain : Int) extends Expression {
   def cpp : String = { s"curFragment.neighbor_isValid[$domain][${neigh.index}]"; }
