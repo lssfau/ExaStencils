@@ -46,5 +46,6 @@ object Hardware {
         ldflags += " -fopenmp"
       }
     }
+    case "MSVC" => { /* nothing to do */ }
   }
 }
