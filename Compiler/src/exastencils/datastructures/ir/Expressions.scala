@@ -6,7 +6,6 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
-import exastencils.primitives._
 import exastencils.core.StateManager
 import exastencils.strategies._
 

@@ -11,18 +11,18 @@ object MainAlex {
 ////////// read feature model text + get default config    
 //    FeatureModel.readFeatureModel("E:/ScalaPrototyp/Compiler/src/exastencils/spl/featureModel/model_HSMGP_noCores.model")
     
-    FeatureModel.readFeatureModel("./featureModel/model_HSMGP_noCores_numerical.model")
-    
-
-    //FeatureModel.readFeatureModel("E:/ScalaPrototyp/ScalaExaStencil/Compiler/src/exastencils/knowledge/model.model")
-    //  FeatureModel.readFeatureModel("E:/ScalaPrototyp/ScalaExaStencil/Compiler/src/exastencils/spl/model_Small.model")
-    //    FeatureModel.readFeatureModel("E:/ScalaPrototyp/ScalaExaStencil/Compiler/src/exastencils/spl/model_HSMGP.model")
-
-    var configuration = FeatureModel.getMinimalConfig
-    println("defaultConfig: " + configuration)
-
-    
-    println(configuration.getValueOfNumericalFeature("pre"))
+//    FeatureModel.readFeatureModel("./featureModel/model_HSMGP_noCores_numerical.model")
+//    
+//
+//    //FeatureModel.readFeatureModel("E:/ScalaPrototyp/ScalaExaStencil/Compiler/src/exastencils/knowledge/model.model")
+//    //  FeatureModel.readFeatureModel("E:/ScalaPrototyp/ScalaExaStencil/Compiler/src/exastencils/spl/model_Small.model")
+//    //    FeatureModel.readFeatureModel("E:/ScalaPrototyp/ScalaExaStencil/Compiler/src/exastencils/spl/model_HSMGP.model")
+//
+//    var configuration = FeatureModel.getMinimalConfig
+//    println("defaultConfig: " + configuration)
+//
+//    
+//    println(configuration.getValueOfNumericalFeature("pre"))
     
     
     

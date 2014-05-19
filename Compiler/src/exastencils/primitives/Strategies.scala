@@ -17,7 +17,7 @@ object SetupFragmentClass extends Strategy("Setting up fragment class") {
   this += new Transformation("Initing FragmentClass", {
     case frag : FragmentClass =>
       frag.init
-      Some(frag)
+      frag
   })
 
   this += new Transformation("Updating FragmentClass with required field declarations", {
@@ -26,7 +26,7 @@ object SetupFragmentClass extends Strategy("Setting up fragment class") {
         frag.declarations += field.dataType. /*FIXME*/ cpp ~ "*" ~ field.codeName ~ s"[${field.numSlots}]"
         frag.dTorBody ++= (0 until field.numSlots).map(slot => ("delete[] " ~ field.codeName ~ s"[$slot]") : Statement).to[ListBuffer]
       }
-      Some(frag)
+      frag
   })
 
   if (Knowledge.useMPI) {
@@ -39,12 +39,12 @@ object SetupFragmentClass extends Strategy("Setting up fragment class") {
 
   this += new Transformation("Adding basic functions to FragmentClass", {
     case frag : FragmentClass =>
-      if (Knowledge.useOMP)
+      if (Knowledge.domain_canHaveLocalNeighs)
         frag.functions += new ConnectLocalElement()
-      if (Knowledge.useMPI)
+      if (Knowledge.domain_canHaveRemoteNeighs)
         frag.functions += new ConnectRemoteElement()
       frag.functions += new SetupBuffers(fieldCollection.fields, frag.neighbors)
-      Some(frag)
+      frag
   })
 
   this += new Transformation("Adding communication functions to FragmentClass", {
@@ -59,22 +59,22 @@ object SetupFragmentClass extends Strategy("Setting up fragment class") {
         else if (26 == Knowledge.comm_strategyFragment)
           communicationFunctions.functions += new ExchangeData_26(field, frag.neighbors)
       }
-      Some(frag)
+      frag
   })
 }
-      
+
 object ResolveLoopOverDimensions extends Strategy("Resolving LoopOverDimensions nodes") {
   this += new Transformation("Resolving", {
     case loop : LoopOverDimensions =>
-      Some(loop.expandSpecial)
+      loop.expandSpecial
   })
 }
 
 object LinearizeFieldAccesses extends Strategy("Linearizing FieldAccess nodes") {
   this += new Transformation("Linearizing", {
     case loop : DirectFieldAccess =>
-      Some(loop.linearize)
+      loop.linearize
     case loop : FieldAccess =>
-      Some(loop.linearize)
+      loop.linearize
   })
 }

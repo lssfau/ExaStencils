@@ -15,7 +15,7 @@ case class CommunicateStatement(var fieldName : String, var fieldLevel : Int) ex
   override def cpp : String = "NOT VALID ; CLASS = CommunicateStatement\n"
 
   def expand : Statement = {
-    new FunctionCallExpression("exch" + StateManager.findFirst[FieldCollection]().get.getFieldByIdentifier(fieldName, fieldLevel).get.codeName /* QUICKFIX */ .cpp,
+    new FunctionCallExpression("exch" ~ StateManager.findFirst[FieldCollection]().get.getFieldByIdentifier(fieldName, fieldLevel).get.codeName,
       0 /* FIXME */ )
   }
 }
@@ -28,7 +28,6 @@ case class LocalSend(var field : Field, var neighbors : ListBuffer[(NeighborInfo
       neighbors.map(neigh =>
         (new ConditionStatement(new getNeighInfo_IsValidAndNotRemote(neigh._1, field.domain),
           ListBuffer[Statement](
-            s"unsigned int entry = 0",
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(
                 new DirectFieldAccess(new getNeighInfo_LocalPtr(neigh._1, field.domain) ~ "->", field, "slot", new MultiIndex(
@@ -45,7 +44,7 @@ case class CopyToSendBuffer(var field : Field, var neighbors : ListBuffer[(Neigh
     var body : ListBuffer[Statement] = new ListBuffer
 
     new LoopOverFragments(neighbors.
-      filterNot(neigh => Knowledge.comm_useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))).
+      filterNot(neigh => Knowledge.mpi_useCustomDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))).
       filterNot(neigh => neigh._2.begin(0) == neigh._2.end(0) && neigh._2.begin(1) == neigh._2.end(1) && neigh._2.begin(2) == neigh._2.end(2)).
       map(neigh =>
         new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
@@ -60,7 +59,7 @@ case class CopyFromRecvBuffer(var field : Field, var neighbors : ListBuffer[(Nei
 
   def expand : LoopOverFragments = {
     new LoopOverFragments(neighbors.
-      filterNot(neigh => Knowledge.comm_useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))).
+      filterNot(neigh => Knowledge.mpi_useCustomDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))).
       filterNot(neigh => neigh._2.begin(0) == neigh._2.end(0) && neigh._2.begin(1) == neigh._2.end(1) && neigh._2.begin(2) == neigh._2.end(2)).
       map(neigh =>
         (new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
@@ -107,7 +106,7 @@ case class RemoteSend(var field : Field, var neighbors : ListBuffer[(NeighborInf
         ptr = s"&" ~ new DirectFieldAccess("curFragment.", field, "slot", neigh._2.begin)
         cnt = 1
         typeName = s"MPI_DOUBLE"
-      } else if (Knowledge.comm_useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))) {
+      } else if (Knowledge.mpi_useCustomDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))) {
         val mpiTypeName = addMPIDatatype(s"mpiType_Send_${field.codeName.cpp}_${neigh._1.index}", neigh._2)
         ptr = s"&" ~ new DirectFieldAccess("curFragment.", field, "slot", neigh._2.begin)
         cnt = 1
@@ -123,11 +122,11 @@ case class RemoteSend(var field : Field, var neighbors : ListBuffer[(NeighborInf
           ListBuffer[Statement](
             new MPI_Send(ptr, cnt, typeName, new getNeighInfo_RemoteRank(neigh._1, field.domain),
               s"((unsigned int)curFragment.commId << 16) + ((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1, field.domain)).cpp + ") & 0x0000ffff)",
-              s"curFragment.request_Send[${neigh._1.index}]") /*with OMP_PotentiallyCritical*/ ,
+              s"curFragment.request_Send[${neigh._1.index}]") with OMP_PotentiallyCritical,
             s"curFragment.reqOutstanding_Send[${neigh._1.index}] = true"))
     }
 
-    new LoopOverFragments(body) /*with OMP_PotentiallyParallel*/
+    new LoopOverFragments(body) with OMP_PotentiallyParallel
   }
 }
 
@@ -167,7 +166,7 @@ case class RemoteReceive(var field : Field, var neighbors : ListBuffer[(Neighbor
         ptr = s"&" ~ new DirectFieldAccess("curFragment.", field, "slot", neigh._2.begin)
         cnt = 1
         typeName = s"MPI_DOUBLE"
-      } else if (Knowledge.comm_useMPIDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))) {
+      } else if (Knowledge.mpi_useCustomDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))) {
         val mpiTypeName = addMPIDatatype(s"mpiType_Recv_${field.codeName.cpp}_${neigh._1.index}", neigh._2)
         ptr = s"&" ~ new DirectFieldAccess("curFragment.", field, "slot", neigh._2.begin)
         cnt = 1
@@ -182,11 +181,11 @@ case class RemoteReceive(var field : Field, var neighbors : ListBuffer[(Neighbor
         ListBuffer[Statement](
           new MPI_Receive(ptr, cnt, typeName, new getNeighInfo_RemoteRank(neigh._1, field.domain),
             s"((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1, field.domain)).cpp + ") << 16) + ((unsigned int)curFragment.commId & 0x0000ffff)",
-            s"curFragment.request_Recv[${neigh._1.index}]") /*with OMP_PotentiallyCritical*/ ,
+            s"curFragment.request_Recv[${neigh._1.index}]") with OMP_PotentiallyCritical,
           s"curFragment.reqOutstanding_Recv[${neigh._1.index}] = true"))
     }
 
-    new LoopOverFragments(body) /*with OMP_PotentiallyParallel*/
+    new LoopOverFragments(body) with OMP_PotentiallyParallel
   }
 }
 

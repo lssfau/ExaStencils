@@ -14,32 +14,32 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.prettyprinting._
 
 case class Globals() extends Node with FilePrettyPrintable {
-  var variables : ListBuffer[VariableDeclarationStatement] = new ListBuffer;
-  var defines : ListBuffer[DefineStatement] = new ListBuffer; // FIXME: defines should be resolved automatically; currently this is required as an interface to Harald's prototype
+  var variables : ListBuffer[VariableDeclarationStatement] = new ListBuffer
+  var defines : ListBuffer[DefineStatement] = new ListBuffer // FIXME: defines should be resolved automatically; currently this is required as an interface to Harald's prototype
   var initFunction : FunctionStatement = new FunctionStatement(new UnitDatatype, "initGlobals", new ListBuffer[VariableAccess], new ListBuffer[Statement])
 
   override def printToFile = {
-    val writerHeader = PrettyprintingManager.getPrinter(s"Globals/Globals.h");
+    val writerHeader = PrettyprintingManager.getPrinter(s"Globals/Globals.h")
 
     writerHeader << (
       "#include \"Util/Vector.h\"\n"
       + (if (Knowledge.useMPI) "#pragma warning(disable : 4800)\n" else "")
       + (if (Knowledge.useMPI) "#include <mpi.h>\n" else "") // FIXME: find a way to extract necessary includes from variables
-      );
+      )
 
-    for (define <- defines) { writerHeader << s"${define.cpp}\n"; }
+    for (define <- defines) { writerHeader << s"${define.cpp}\n" }
 
-    writerHeader << "class Fragment3DCube;\n"; // FIXME: find a way to extract necessary forward defines from variables
+    writerHeader << "class Fragment3DCube;\n" // FIXME: find a way to extract necessary forward defines from variables
 
-    for (variable <- variables) { writerHeader << s"extern ${variable.cpp}\n"; }
+    for (variable <- variables) { writerHeader << s"extern ${variable.cpp}\n" }
 
-    writerHeader << s"${initFunction.returntype.cpp} ${initFunction.name}(" + initFunction.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n";
+    writerHeader << s"${initFunction.returntype.cpp} ${initFunction.name}(" + initFunction.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n"
 
-    val writerSource = PrettyprintingManager.getPrinter(s"Globals/Globals.cpp");
+    val writerSource = PrettyprintingManager.getPrinter(s"Globals/Globals.cpp")
 
-    writerSource << "#include \"Globals/Globals.h\"\n\n";
-    for (variable <- variables) { writerSource << s"${variable.cpp}\n"; }
+    writerSource << "#include \"Globals/Globals.h\"\n\n"
+    for (variable <- variables) { writerSource << s"${variable.cpp}\n" }
 
-    writerSource << initFunction.cpp + "\n";
+    writerSource << initFunction.cpp + "\n"
   }
 }

@@ -161,97 +161,138 @@ object FeatureModel {
     try { op(p) } finally { p.close() }
   }
 
-  def readFeatureModel(file : String) : Unit = {
+//  def readFeatureModel(file : String) : Unit = {
+//
+//    try {
+//
+//      var featureModelTextRepresentation = Source.fromFile(file).mkString.split("% constraints %")
+//
+//      interpretFeatureModel(featureModelTextRepresentation(0)) // feature model section
+//
+//      if (featureModelTextRepresentation.length > 1) // file has a constraint section
+//        featureModelTextRepresentation(1).split(";").map(f => interpretCrossTreeConstraint(f));
+//
+//      updatePropertiesOfFeatures(rootFeature);
+//
+//    } catch {
+//      case ex : FileNotFoundException => println("Couldn't find feature model.")
+//      case ex : IOException           => println("IOException trying to read the model")
+//    }
+//
+//  }
 
-    try {
+//  def updatePropertiesOfFeatures(feature : Feature) : Unit = {
+//    if (!feature.isOptional) {
+//      feature.isSelectedInAllConfigs = true
+//
+//      if (parentChildRelationships.contains(feature))
+//        parentChildRelationships(feature).foreach(f => updatePropertiesOfFeatures(f))
+//    }
+//  }
 
-      //      printToFile(new File(file))(p => {
-      //    	  ("tesdt")
-      //      }) 
+//  def interpretFeatureModel(tree : String) = {
+//    var statements = tree.split(";")
+//    for (i <- 0 until statements.length - 1) {
+//      var currStatement = statements(i)
+//      currStatement = currStatement.replaceAll("%[a-zA-Z0-9\\s()]+%", "") // remove comments
+//
+//      var featureName = currStatement.split(":")(0).trim()
+//      var specialization = currStatement.split(":")(1).trim()
+//
+//      var feat : Feature = allFeatures.get(featureName).getOrElse(new Feature(featureName))
+//      allFeatures(featureName) = feat
+//
+//      // consider specialization of current feature
+//      if (specialization.contains("{")) { // numerical feature
+//        // numerical features are no parent features
+//        feat.updateNumericalValues(specialization)
+//
+//      } else {
+//        var subfeatureNames = new Array[String](0)
+//        if (specialization.contains("|")) {
+//
+//          feat.isParentOfXor = true
+//
+//          subfeatureNames = specialization.split("\\|")
+//        } else {
+//          subfeatureNames = specialization.split(" ")
+//        }
+//        var subFeatures : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
+//        for (j <- 0 until subfeatureNames.length) {
+//          var currSubFeatureName = subfeatureNames(j).trim()
+//          if (currSubFeatureName.length() > 0) {
+//
+//            var isOptional = currSubFeatureName.startsWith("[")
+//            if (isOptional)
+//              currSubFeatureName = currSubFeatureName.substring(1, currSubFeatureName.length() - 1)
+//
+//            var currSubFeature : Feature = allFeatures.get(currSubFeatureName).getOrElse(new Feature(currSubFeatureName))
+//            allFeatures(currSubFeatureName) = currSubFeature
+//            currSubFeature.isOptional = isOptional
+//
+//            subFeatures.add(currSubFeature)
+//            currSubFeature.isChild = true
+//          }
+//        }
+//        parentChildRelationships.put(feat, subFeatures);
+//      }
+//
+//    }
+//    // the feature that does not appear within one right hand side is the root
+//    FeatureModel.rootFeature = allFeatures.find(x => (!x._2.isNumerical) && (!x._2.isChild)).get._2
+//
+//  }
 
-      var featureModelTextRepresentation = Source.fromFile(file).mkString.split("% constraints %")
-
-      interpretFeatureModel(featureModelTextRepresentation(0)) // feature model section
-
-      if (featureModelTextRepresentation.length > 1) // file has a constraint section
-        featureModelTextRepresentation(1).split(";").map(f => interpretCrossTreeConstraint(f));
-
-      updatePropertiesOfFeatures(rootFeature);
-
-    } catch {
-      case ex : FileNotFoundException => println("Couldn't find feature model.")
-      case ex : IOException           => println("IOException trying to read the model")
-    }
-
-  }
-
-  def updatePropertiesOfFeatures(feature : Feature) : Unit = {
-    if (!feature.isOptional) {
-      feature.isSelectedInAllConfigs = true
-
-      if (parentChildRelationships.contains(feature))
-        parentChildRelationships(feature).foreach(f => updatePropertiesOfFeatures(f))
-    }
-  }
-
-  def interpretFeatureModel(tree : String) = {
-    var statements = tree.split(";")
-    for (i <- 0 until statements.length - 1) {
-      var currStatement = statements(i)
-      currStatement = currStatement.replaceAll("%[a-zA-Z0-9\\s()]+%", "") // remove comments
-
-      var featureName = currStatement.split(":")(0).trim()
-      var specialization = currStatement.split(":")(1).trim()
-
-      var feat : Feature = allFeatures.get(featureName).getOrElse(new Feature(featureName))
-      allFeatures(featureName) = feat
-
-      // consider specialization of current feature
-      if (specialization.contains("{")) { // numerical feature
-        // numerical features are no parent features
-        feat.updateNumericalValues(specialization)
-
-      } else {
-        var subfeatureNames = new Array[String](0)
-        if (specialization.contains("|")) {
-
-          feat.isParentOfXor = true
-
-          subfeatureNames = specialization.split("\\|")
-        } else {
-          subfeatureNames = specialization.split(" ")
-        }
-        var subFeatures : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
-        for (j <- 0 until subfeatureNames.length) {
-          var currSubFeatureName = subfeatureNames(j).trim()
-          if (currSubFeatureName.length() > 0) {
-
-            var isOptional = currSubFeatureName.startsWith("[")
-            if (isOptional)
-              currSubFeatureName = currSubFeatureName.substring(1, currSubFeatureName.length() - 1)
-
-            var currSubFeature : Feature = allFeatures.get(currSubFeatureName).getOrElse(new Feature(currSubFeatureName))
-            allFeatures(currSubFeatureName) = currSubFeature
-            currSubFeature.isOptional = isOptional
-
-            subFeatures.add(currSubFeature)
-            currSubFeature.isChild = true
-          }
-        }
-        parentChildRelationships.put(feat, subFeatures);
-      }
-
-    }
-    // the feature that does not appear within one right hand side is the root
-    FeatureModel.rootFeature = allFeatures.find(x => (!x._2.isNumerical) && (!x._2.isChild)).get._2
-
-  }
-
+  //TODO
   /**
-    *
-    *
-    * TODO currently no support of constraints between numerical and boolean features such as x + y >= 5 implies featureZ
-    */
+   * Add a feature to the feature model. (no connections between features are created) => all features are 
+   * optional features with the "root" as parent feature
+   * 
+   * Possible inputs:
+   * var enum : Type = Value1 // [Value1|Value2|Value3]
+   * var range : Int = 3 // [0-6|1] 
+   * var choose : Int = 6 // [6|26]
+   * var bool : Boolean = true // [true|false]
+   * 
+   */
+  
+  def addFeature(content: String) : Unit = {
+    var parts = content.split("//")
+    if(parts.length > 2){
+      println("WARN:  Feature not added "+content)
+      return
+    }
+    
+    var name    = parts(0).split(":")(0).trim().split(" ")(1)
+    var default = parts(0).split("=")(1).trim()
+    
+    var values = parts(1).substring(parts(1).indexOf("[")+1, parts(1).indexOf(']'))
+    
+    var feat : Feature = allFeatures.get(name).getOrElse(new Feature(name))
+    allFeatures(name) = feat
+    
+    // boolean values
+    if(default.equals("true") || default.equals("false")){
+        feat.defaultValue  = augmentString(default).toBoolean
+        return
+    }else{
+      feat.isNumerical  = true
+      feat.defaultValue = default
+    }
+    if(values.contains("-")){
+      // numerical values that are not enumerated
+      feat.hasValuesRange = true
+      
+      feat.minValue   = augmentString(values.split("[|-]")(0)).toDouble
+      feat.maxValue   = augmentString(values.split("[|-]")(1)).toDouble
+      feat.stepsize   = augmentString(values.split("[|-]")(2)).toDouble
+    }else{
+      feat.values = values.split("|")
+    }
+  }
+  
+  
+  
   def interpretCrossTreeConstraint(crossTreeConst : String) : Unit = {
     var constraint = crossTreeConst.replaceAll("%[a-zA-Z0-9\\s()]+%", "")
 

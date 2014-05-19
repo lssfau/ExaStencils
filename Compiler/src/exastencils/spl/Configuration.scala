@@ -1,8 +1,5 @@
 package exastencils.spl
 
-import exastencils.knowledge.CoarseGridSolverType
-import exastencils.knowledge.SmootherType
-
 class Configuration() {
 
   var selectedBoolFeatures : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()

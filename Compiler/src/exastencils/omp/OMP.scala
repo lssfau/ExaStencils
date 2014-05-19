@@ -10,20 +10,12 @@ import exastencils.knowledge._
 trait OMP_PotentiallyCritical
 trait OMP_PotentiallyParallel { var reduction : Option[Reduction]; var collapse = 1 }
 
-case class OMP_Critical(var body : Any) extends Statement {
-  // FIXME: most constructs don't need to be protected on JuQueen as a thread-safe MPI implementation exists. How should this be incorporated?
+case class OMP_Critical(var body : Scope) extends Statement {
+  def this(body : Statement) = this(new Scope(body))
+  def this(body : ListBuffer[Statement]) = this(new Scope(body))
 
   def cpp : String = {
-    s"#pragma omp critical\n{ " +
-      (body match {
-        case prettyPrintable : CppPrettyPrintable => prettyPrintable.cpp
-        case buf : ListBuffer[_] => buf.map(stat => stat match { // TODO: Buffer support is currently not tested!
-          case prettyPrintable : CppPrettyPrintable => prettyPrintable.cpp
-          case _                                    => "NON_PRINTABLE NODE ENCOUNTERED!"
-        })
-        case _ => "NON_PRINTABLE NODE ENCOUNTERED!"
-      }) +
-      s" }"
+    s"#pragma omp critical\n" + body.cpp
   }
 }
 

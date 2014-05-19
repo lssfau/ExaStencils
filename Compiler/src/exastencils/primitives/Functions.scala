@@ -9,7 +9,7 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 
 case class WaitForMPIReq() extends AbstractFunctionStatement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = WaitForMPIReq\n";
+  override def cpp : String = "NOT VALID ; CLASS = WaitForMPIReq\n"
 
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"waitForMPIReq",
@@ -29,7 +29,7 @@ case class WaitForMPISendOps(var neighbors : ListBuffer[NeighborInfo]) extends A
   override def cpp : String = "NOT VALID ; CLASS = WaitForMPISendOps\n"
 
   override def expand : FunctionStatement = {
-    if (Knowledge.comm_useLoopsOverNeighbors) {
+    if (Knowledge.mpi_useLoopsWherePossible) {
       var minIdx = neighbors.reduce((neigh, res) => if (neigh.index < res.index) neigh else res).index
       var maxIdx = neighbors.reduce((neigh, res) => if (neigh.index > res.index) neigh else res).index
 
@@ -56,7 +56,7 @@ case class WaitForMPIRecvOps(var neighbors : ListBuffer[NeighborInfo]) extends A
   override def cpp : String = "NOT VALID ; CLASS = WaitForMPIRecvOps\n"
 
   override def expand : FunctionStatement = {
-    if (Knowledge.comm_useLoopsOverNeighbors) {
+    if (Knowledge.mpi_useLoopsWherePossible) {
       var minIdx = neighbors.reduce((neigh, res) => if (neigh.index < res.index) neigh else res).index
       var maxIdx = neighbors.reduce((neigh, res) => if (neigh.index > res.index) neigh else res).index
 
@@ -120,7 +120,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
       }
     }
 
-    if (Knowledge.useMPI) {
+    if (Knowledge.domain_canHaveRemoteNeighs) {
       var maxPointsPerLevel = Array.fill(Knowledge.numLevels)(Array(0, 0, 0))
       var maxCommSlidesPerLevel = Array(0, 0, 0)
       for (field <- fields) {

@@ -8,6 +8,7 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.core.collectors._
 import exastencils.primitives._
 import exastencils.omp._
+import exastencils.knowledge._
 
 case class ImplReductionStatement(s : Statement) extends Statement with Expandable {
   def cpp = "NOT VALID ; CLASS = ImplReductionStatement\n";

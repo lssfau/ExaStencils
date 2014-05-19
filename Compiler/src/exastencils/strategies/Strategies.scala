@@ -1,29 +1,27 @@
 package exastencils.strategies
 
-import scala.reflect.ClassTag
-
 import exastencils.core._
 import exastencils.core.collectors._
+import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.Transformation._
 import exastencils.domain._
-import exastencils.primitives.Class // FIXME
 import exastencils.omp._
 
 object PrintStrategy extends Strategy("Pretty-Print") {
   this += new Transformation("Pretty-Print", {
     case printable : FilePrettyPrintable =>
       printable.printToFile
-      Some(printable)
+      printable
   })
 }
 
 object ExpandStrategy extends Strategy("Expanding") {
   this += new Transformation("Hoho, expanding all day...", {
     case expandable : Expandable =>
-      Some(expandable.expand)
+      expandable.expand
   })
 }
 
@@ -158,19 +156,22 @@ object AddMemberFunctionPrefix extends Strategy("Adding member function prefixes
       for (func <- c.functions) {
         func match { case f : FunctionStatement => f.name = s"${c.className}::${f.name}" }
       }
-      Some(c)
+      c
   })
 }
 
 object AddOMPPragmas extends Strategy("Adding OMP pragmas") {
-  this += new Transformation("Adding OMP critical pragmas", {
-    case target : OMP_PotentiallyCritical =>
-      Some(new OMP_Critical(target))
-  }, false)
+  if (Knowledge.omp_requiresCriticalSections)
+    this += new Transformation("Adding OMP critical pragmas", {
+      case target : OMP_PotentiallyCritical => target match {
+        case target : Scope     => new OMP_Critical(target)
+        case target : Statement => new OMP_Critical(target)
+      }
+    }, false)
 
   this += new Transformation("Adding OMP parallel for pragmas", {
     case target : ForLoopStatement with OMP_PotentiallyParallel =>
-      Some(new OMP_ParallelFor(new ForLoopStatement(target.begin, target.end, target.inc, target.body, target.reduction),
-        (if (target.reduction.isDefined) target.reduction.get.getOMPClause else new NullExpression), target.collapse))
+      new OMP_ParallelFor(new ForLoopStatement(target.begin, target.end, target.inc, target.body, target.reduction),
+        (if (target.reduction.isDefined) target.reduction.get.getOMPClause else new NullExpression), target.collapse)
   })
 }

@@ -5,27 +5,7 @@ import exastencils.knowledge._
 import exastencils.spl.Configuration
 import harald_dep.dsl.DomainKnowledge
 import exastencils.util._
-
-object CoarseGridSolverType extends Enumeration {
-  type CoarseGridSolverType = Value
-  val IP_Smoother = Value("InPlace_Smoother")
-}
-
-object SmootherType extends Enumeration {
-  type SmootherType = Value
-  val Jac = Value("Jacobi")
-  val GS = Value("GaussSeidel")
-  val RBGS = Value("RedBlack_GaussSeidel")
-
-  // TODO:
-  // GS		= Gauss-Seidel
-  // GSAC	= Gauss-Seidel with Additional Communication
-  // GSOD	= Gauss-Seidel of Death (with additional communication)
-  // GSBEAC	= Gauss-Seidel Block Edition with Additional Communication
-  // GSRS	= Gauss-Seidel with Random Sampling
-  // GSRB	= Gauss-Seidel Red-Black (RBGS)
-  // GSRBAC	= Gauss-Seidel Red-Black (RBGS) with Additional Communication
-}
+import exastencils.spl.Configuration
 
 object Knowledge {
   // TODO: rename and move to hw knowledge?
@@ -34,7 +14,7 @@ object Knowledge {
   // === Level 1 ===  
   var dimensionality : Int = 3 // dimensionality of the problem
 
-  // TODO: check if these parameters will be necessary or can be implicitly assumed once an appropriate field collection is in place 
+  // TODO: check if these parameters will be necessary or can be implicitly assumed once an appropriate field collection is in place
   var maxLevel : Int = 6 // the finest level
   var numLevels : Int = maxLevel + 1 // the number of levels -> this assumes that the cycle descents to the coarsest level
 
@@ -42,22 +22,24 @@ object Knowledge {
 
   // specifies if fragments within one block should be aggregated 
   // TODO: sanity check if compatible with chosen smoother
-  var domain_summarizeBlocks : Boolean = true
+  var domain_summarizeBlocks : Boolean = true // [true|false]
+  var domain_canHaveLocalNeighs : Boolean = true
+  var domain_canHaveRemoteNeighs : Boolean = true
 
   // number of blocks per dimension - one block will usually be mapped to one MPI thread
-  var domain_numBlocks_x : Int = 3
-  var domain_numBlocks_y : Int = 3
-  var domain_numBlocks_z : Int = 3
+  var domain_numBlocks_x : Int = 3 // [0-inf]
+  var domain_numBlocks_y : Int = 3 // [0-inf]
+  var domain_numBlocks_z : Int = 3 // [0-inf]
   def domain_numBlocks : Int = {
     domain_numBlocks_x *
       (if (dimensionality > 1) domain_numBlocks_y else 1) *
       (if (dimensionality > 2) domain_numBlocks_z else 1)
   }
-  
+
   // number of fragments in each block per dimension - this will usually be one or represent the number of OMP threads per dimension
-  var domain_numFragsPerBlock_x : Int = 3
-  var domain_numFragsPerBlock_y : Int = 3
-  var domain_numFragsPerBlock_z : Int = 3
+  var domain_numFragsPerBlock_x : Int = 3 // [0-inf]
+  var domain_numFragsPerBlock_y : Int = 3 // [0-inf]
+  var domain_numFragsPerBlock_z : Int = 3 // [0-inf]
   def domain_numFragsPerBlock : Int = {
     domain_numFragsPerBlock_x *
       (if (dimensionality > 1) domain_numFragsPerBlock_y else 1) *
@@ -94,63 +76,30 @@ object Knowledge {
 
   // === Level 3 ===
 
-  // --- MG ---
-  var mg_maxNumIterations : Int = 1024
-
-  // --- Smoother ---
-  var mg_smoother : SmootherType.SmootherType = SmootherType.GS
-  var mg_smoother_numPre : Int = 3
-  var mg_smoother_numPost : Int = 3
-  var mg_smoother_omega : Double = (if (SmootherType.Jac == mg_smoother) 0.8 else 1.0)
-
-  // --- CGS ---
-  var mg_cgs : CoarseGridSolverType.CoarseGridSolverType = CoarseGridSolverType.IP_Smoother
-  var mg_cgs_numSteps : Int = 512
-
   // === Level 4 ===
 
   // === Post Level 4 ===
 
   // --- Data Structures ---
-  // specifies the number of ghost layers at each boundary per field
-  var data_numGhostLayers : Int = 1
-  // TODO: this will probably become obsolete with an appropriate field collection and/or the new level 4
-  var data_numSolSlots : Int = (if (SmootherType.Jac == mg_smoother) 2 else 1)
 
-  // --- OpenMP/Hybrid Parallelization ---
-  var useOMP : Boolean = true
-  var useMPI : Boolean = true
+  // --- OpenMP and MPI Parallelization ---
+  var comm_strategyFragment : Int = 6 // [6|26]
+
+  // --- OpenMP Parallelization ---
+  var useOMP : Boolean = true // [true|false]
   var omp_numThreads : Int = 1
   var omp_version : Double = 2.0
-  var omp_useCollapse : Boolean = true
-  var omp_minWorkItemsPerThread : Int = 256
+  var omp_useCollapse : Boolean = true // [true|false]
+  var omp_minWorkItemsPerThread : Int = 256 // [1-inf]
+  var omp_requiresCriticalSections : Boolean = true
 
-  // --- Communication ---
-  var comm_strategyFragment : Int = 6 //26
-  var comm_useMPIDatatypes : Boolean = false
-  var comm_useLoopsOverNeighbors : Boolean = true
+  // --- MPI Parallelization ---
+  var useMPI : Boolean = true // [true|false]
+  var mpi_useCustomDatatypes : Boolean = false // [true|false]
+  var mpi_useLoopsWherePossible : Boolean = true // [true|false]
 
-  // === Obsolete ===
-  //  var gsodNumIterations : Int = 8
-  //  var gsbeNumIterations : Int = 12
-  //  var gsbeNumWindowSize : Int = 4
-  //  var gsbeNumWindowOverlap : Int = 1
-
-  def update(configuration : Configuration) : Unit = {
+  def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
-
-    // FIXME: disabled until Jac is supported
-    if (false) {
-      mg_smoother = configuration.getFirstSelectedSubFeatureName("smoother") match {
-        case "Jacobi"               => SmootherType.Jac
-        case "GaussSeidel"          => SmootherType.GS
-        case "RedBlack_GaussSeidel" => SmootherType.RBGS
-      }
-    }
-
-    mg_cgs = configuration.getFirstSelectedSubFeatureName("cgs") match {
-      case "InPlace_Smoother" => CoarseGridSolverType.IP_Smoother
-    }
 
     useOMP = (domain_summarizeBlocks && domain_fragLength != 1) || domain_numFragsPerBlock != 1
     useMPI = (domain_numBlocks != 1)
@@ -172,17 +121,17 @@ object Knowledge {
     domain_numFragsTotal_y = domain_numFragsPerBlock_y * domain_numBlocks_y
     domain_numFragsTotal_z = domain_numFragsPerBlock_z * domain_numBlocks_z
 
-    mg_smoother_omega = (if (SmootherType.Jac == mg_smoother) 0.8 else 1.0)
-
-    data_numSolSlots = (if (SmootherType.Jac == mg_smoother) 2 else 1)
+    domain_canHaveRemoteNeighs = useMPI
+    domain_canHaveLocalNeighs = (domain_numFragsPerBlock > 1)
 
     if ("MSVC" == targetCompiler)
       omp_version = 2.0
     else if ("GCC" == targetCompiler)
       omp_version = 4.0
-    else if ("IBMXL" == targetCompiler)
+    else if ("IBMXL" == targetCompiler) {
       omp_version = 3.0
-    else
+      omp_requiresCriticalSections = false
+    } else
       Logger.error("Unsupported target compiler")
 
     if (useOMP)

@@ -9,11 +9,16 @@ class Feature(name : String) {
   var isSelectedInAllConfigs = false
   
   var isParentOfXor = false
+  
+  var hasValuesRange = false
 
   var minValue = 0.0
   var maxValue = 0.0
-  var defaultValue = 0.0
+  var defaultValue : Any = null
   var stepsize = 0.0
+  
+  var values : Array[String] = null
+  
 
   var nfpValue = 0.0
 
@@ -40,10 +45,6 @@ class Feature(name : String) {
 
   }
 
-  /**
-    * TODO support \\:\\;\\| in comment section
-    *
-    */
   def updateNumericalValues(content : String) = {
     var cont = content
     this.isNumerical = true
@@ -51,8 +52,8 @@ class Feature(name : String) {
     val contArr = cont.split(",")
     this.minValue = augmentString(contArr(0).trim()).toInt
     this.maxValue = augmentString(contArr(1).trim()).toInt
-    this.stepsize = augmentString(contArr(2).trim()).toInt
-    this.defaultValue = augmentString(contArr(3).trim()).toInt
+    // FIXME this.stepsize = augmentString(contArr(2).trim()).toInt
+    this.defaultValue = augmentString(contArr(3).trim())
   }
 
 
