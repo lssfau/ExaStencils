@@ -8,7 +8,6 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.Transformation._
 import exastencils.domain._
-import exastencils.primitives.Class // FIXME
 import exastencils.omp._
 
 object PrintStrategy extends Strategy("Pretty-Print") {
