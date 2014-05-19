@@ -27,7 +27,7 @@ case class StencilConvolution(var stencil : Stencil, var field : Field, var targ
     var ret : Expression = stencil.entries.map(e => e.weight * FieldAccess("curFragment.", field, 0, new MultiIndex(targetIdx, e.offset, _ + _)))
       .toArray[Expression].reduceLeft(_ + _)
     do { SimplifyStrategy.applyStandalone(ret) }
-    while (SimplifyStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
+    while (SimplifyStrategy.results.last._2.matches > 0) // FIXME: cleaner code
     ret
   }
 }

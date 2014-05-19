@@ -169,13 +169,13 @@ object Main {
     SetupFragmentClass.apply()
 
     do { ExpandStrategy.apply() }
-    while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
+    while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
 
     SetupMultiGrid.apply()
     SetupApplication.apply()
 
     do { ExpandStrategy.apply() }
-    while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
+    while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
 
     //    PolyOpt.apply()
 
@@ -184,14 +184,14 @@ object Main {
     LinearizeFieldAccesses.apply()
 
     do { ExpandStrategy.apply() }
-    while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
+    while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
 
     if (!Knowledge.useMPI) {
       RemoveMPIReferences.apply()
     }
 
     do { SimplifyStrategy.apply() }
-    while (SimplifyStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
+    while (SimplifyStrategy.results.last._2.matches > 0) // FIXME: cleaner code
 
     AddMemberFunctionPrefix.apply()
 
