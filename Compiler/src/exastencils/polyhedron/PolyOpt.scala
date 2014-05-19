@@ -2,14 +2,14 @@ package exastencils.polyhedron
 
 import exastencils.core.Logger
 import exastencils.core.StateManager
-import exastencils.datastructures.Strategy
+import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.convFromNode
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
 import exastencils.primitives.LoopOverDimensions
 
-object PolyOpt extends Strategy("Polyhedral optimizations") {
+object PolyOpt extends DefaultStrategy("Polyhedral optimizations") {
 
   def apply() : Unit = {
     StateManager.register(Extractor)

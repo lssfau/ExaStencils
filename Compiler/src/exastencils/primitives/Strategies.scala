@@ -10,7 +10,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.primitives._
 import exastencils.strategies._
 
-object SetupFragmentClass extends Strategy("Setting up fragment class") {
+object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
   val communicationFunctions = StateManager.findFirst[CommunicationFunctions]().get
   val fieldCollection = StateManager.findFirst[FieldCollection]().get
 
@@ -63,14 +63,14 @@ object SetupFragmentClass extends Strategy("Setting up fragment class") {
   })
 }
 
-object ResolveLoopOverDimensions extends Strategy("Resolving LoopOverDimensions nodes") {
+object ResolveLoopOverDimensions extends DefaultStrategy("Resolving LoopOverDimensions nodes") {
   this += new Transformation("Resolving", {
     case loop : LoopOverDimensions =>
       loop.expandSpecial
   })
 }
 
-object LinearizeFieldAccesses extends Strategy("Linearizing FieldAccess nodes") {
+object LinearizeFieldAccesses extends DefaultStrategy("Linearizing FieldAccess nodes") {
   this += new Transformation("Linearizing", {
     case loop : DirectFieldAccess =>
       loop.linearize
