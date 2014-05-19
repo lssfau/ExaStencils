@@ -23,7 +23,7 @@ object StateManager {
   def checkpoint(id : CheckpointIdentifier) : Unit = {
     Logger.debug(s"""Creating checkpoint "$id"""")
     var c = Duplicate(StateManager.root_)
-    checkpoints_ += id -> c
+    checkpoints_ += ((id, c))
   }
   def restore(id : CheckpointIdentifier) : Unit = {
     Logger.debug(s"""Restoring to checkpoint "$id"""")
