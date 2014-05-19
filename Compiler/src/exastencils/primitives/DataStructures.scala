@@ -169,9 +169,7 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
   }
 }
 
-case class CommunicationFunctions() extends Node with FilePrettyPrintable {
-  var functions : ListBuffer[AbstractFunctionStatement] = ListBuffer()
-
+case class CommunicationFunctions(var functions : ListBuffer[AbstractFunctionStatement] = ListBuffer()) extends Node with FilePrettyPrintable {
   override def printToFile = {
     {
       val writer = PrettyprintingManager.getPrinter(s"Primitives/CommunicationFunctions.h")

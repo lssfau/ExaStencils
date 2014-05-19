@@ -73,7 +73,7 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
     declarations += s"size_t neighbor_fragCommId[$numDomains][$numNeighbors]"
     cTorNeighLoopList += s"neighbor_fragCommId[d][i] = -1"
 
-    if (Knowledge.useMPI) {
+    if (Knowledge.domain_canHaveRemoteNeighs) {
       declarations += s"int neighbor_remoteRank[$numDomains][$numNeighbors]"
       cTorNeighLoopList += s"neighbor_remoteRank[d][i] = MPI_PROC_NULL"
 
@@ -209,11 +209,11 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
                 case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightEnd
               }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
 
-          if (Knowledge.useMPI) {
+          if (Knowledge.domain_canHaveRemoteNeighs) {
             body += new CopyToSendBuffer(field, sendRemoteData)
             body += new RemoteSend(field, sendRemoteData)
 
-            if (Knowledge.useOMP)
+            if (Knowledge.domain_canHaveLocalNeighs)
               body += new LocalSend(field, sendLocalData)
 
             body += new RemoteReceive(field, recvRemoteData)
@@ -221,7 +221,7 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
             body += new CopyFromRecvBuffer(field, recvRemoteData)
 
             body += new FinishRemoteSend(neighbors)
-          } else if (Knowledge.useOMP) {
+          } else if (Knowledge.domain_canHaveLocalNeighs) {
             body += new LocalSend(field, sendLocalData)
           }
         }
@@ -287,11 +287,11 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
                   case i if neigh.dir(i) > 0  => field.layout(i).idxGhostRightEnd
                 }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
 
-          if (Knowledge.useMPI) {
+          if (Knowledge.domain_canHaveRemoteNeighs) {
             body += new CopyToSendBuffer(field, sendRemoteData)
             body += new RemoteSend(field, sendRemoteData)
 
-            if (Knowledge.useOMP)
+            if (Knowledge.domain_canHaveLocalNeighs)
               body += new LocalSend(field, sendLocalData)
 
             body += new RemoteReceive(field, recvRemoteData)
@@ -299,7 +299,7 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
             body += new CopyFromRecvBuffer(field, recvRemoteData)
 
             body += new FinishRemoteSend(neighbors)
-          } else if (Knowledge.useOMP) {
+          } else if (Knowledge.domain_canHaveLocalNeighs) {
             body += new LocalSend(field, sendLocalData)
           }
         }
@@ -392,11 +392,11 @@ case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) 
               case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightEnd
             }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
 
-        if (Knowledge.useMPI) {
+        if (Knowledge.domain_canHaveRemoteNeighs) {
           body += new CopyToSendBuffer(field, sendRemoteData)
           body += new RemoteSend(field, sendRemoteData)
 
-          if (Knowledge.useOMP)
+          if (Knowledge.domain_canHaveLocalNeighs)
             body += new LocalSend(field, sendLocalData)
 
           body += new RemoteReceive(field, recvRemoteData)
@@ -404,7 +404,7 @@ case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) 
           body += new CopyFromRecvBuffer(field, recvRemoteData)
 
           body += new FinishRemoteSend(neighbors)
-        } else if (Knowledge.useOMP) {
+        } else if (Knowledge.domain_canHaveLocalNeighs) {
           body += new LocalSend(field, sendLocalData)
         }
       }
@@ -467,11 +467,11 @@ case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) 
                 case i if neigh.dir(i) > 0  => field.layout(i).idxGhostRightEnd
               }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)))))
 
-        if (Knowledge.useMPI) {
+        if (Knowledge.domain_canHaveRemoteNeighs) {
           body += new CopyToSendBuffer(field, sendRemoteData)
           body += new RemoteSend(field, sendRemoteData)
 
-          if (Knowledge.useOMP)
+          if (Knowledge.domain_canHaveLocalNeighs)
             body += new LocalSend(field, sendLocalData)
 
           body += new RemoteReceive(field, recvRemoteData)
@@ -479,7 +479,7 @@ case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) 
           body += new CopyFromRecvBuffer(field, recvRemoteData)
 
           body += new FinishRemoteSend(neighbors)
-        } else if (Knowledge.useOMP) {
+        } else if (Knowledge.domain_canHaveLocalNeighs) {
           body += new LocalSend(field, sendLocalData)
         }
       }

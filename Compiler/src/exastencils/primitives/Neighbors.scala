@@ -12,20 +12,20 @@ class NeighborInfo(var dir : Array[Int], var index : Int) {
 }
 
 case class getNeighInfo_IsValid(var neigh : NeighborInfo, var domain : Int) extends Expression {
-  def cpp : String = { s"curFragment.neighbor_isValid[$domain][${neigh.index}]"; }
+  def cpp : String = { s"curFragment.neighbor_isValid[$domain][${neigh.index}]" }
 }
 
 case class getNeighInfo_IsInvalid(var neigh : NeighborInfo, var domain : Int) extends Expression {
-  def cpp : String = { s"!curFragment.neighbor_isValid[$domain][${neigh.index}]"; }
+  def cpp : String = { s"!curFragment.neighbor_isValid[$domain][${neigh.index}]" }
 }
 
 case class getNeighInfo_IsRemote(var neigh : NeighborInfo, var domain : Int) extends Expression {
-  def cpp : String = { s"curFragment.neighbor_isRemote[$domain][${neigh.index}]"; }
+  def cpp : String = { s"curFragment.neighbor_isRemote[$domain][${neigh.index}]" }
 }
 
 case class getNeighInfo_IsValidAndRemote(var neigh : NeighborInfo, var domain : Int) extends Expression {
   def cpp : String = {
-    s"curFragment.neighbor_isRemote[$domain][${neigh.index}]"; // remote neighbors should always be valid
+    s"curFragment.neighbor_isRemote[$domain][${neigh.index}]" // remote neighbors should always be valid
     //s"curFragment.neighbor_isValid[${neigh.index}] && curFragment.neighbor_isRemote[${neigh.index}]"
   }
 }
@@ -35,13 +35,13 @@ case class getNeighInfo_IsValidAndNotRemote(var neigh : NeighborInfo, var domain
 }
 
 case class getNeighInfo_LocalPtr(var neigh : NeighborInfo, var domain : Int) extends Expression {
-  def cpp : String = { s"curFragment.neighbor_localPtr[$domain][${neigh.index}]"; }
+  def cpp : String = { s"curFragment.neighbor_localPtr[$domain][${neigh.index}]" }
 }
 
 case class getNeighInfo_FragmentId(var neigh : NeighborInfo, var domain : Int) extends Expression {
-  def cpp : String = { s"curFragment.neighbor_fragCommId[$domain][${neigh.index}]"; }
+  def cpp : String = { s"curFragment.neighbor_fragCommId[$domain][${neigh.index}]" }
 }
 
 case class getNeighInfo_RemoteRank(var neigh : NeighborInfo, var domain : Int) extends Expression {
-  def cpp : String = { s"curFragment.neighbor_remoteRank[$domain][${neigh.index}]"; }
+  def cpp : String = { s"curFragment.neighbor_remoteRank[$domain][${neigh.index}]" }
 }

@@ -9,7 +9,7 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 
 case class WaitForMPIReq() extends AbstractFunctionStatement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = WaitForMPIReq\n";
+  override def cpp : String = "NOT VALID ; CLASS = WaitForMPIReq\n"
 
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"waitForMPIReq",
@@ -120,7 +120,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
       }
     }
 
-    if (Knowledge.useMPI) {
+    if (Knowledge.domain_canHaveRemoteNeighs) {
       var maxPointsPerLevel = Array.fill(Knowledge.numLevels)(Array(0, 0, 0))
       var maxCommSlidesPerLevel = Array(0, 0, 0)
       for (field <- fields) {

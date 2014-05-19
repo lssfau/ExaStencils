@@ -15,7 +15,7 @@ case class CommunicateStatement(var fieldName : String, var fieldLevel : Int) ex
   override def cpp : String = "NOT VALID ; CLASS = CommunicateStatement\n"
 
   def expand : Statement = {
-    new FunctionCallExpression("exch" + StateManager.findFirst[FieldCollection]().get.getFieldByIdentifier(fieldName, fieldLevel).get.codeName /* QUICKFIX */ .cpp,
+    new FunctionCallExpression("exch" ~ StateManager.findFirst[FieldCollection]().get.getFieldByIdentifier(fieldName, fieldLevel).get.codeName,
       0 /* FIXME */ )
   }
 }
@@ -28,7 +28,6 @@ case class LocalSend(var field : Field, var neighbors : ListBuffer[(NeighborInfo
       neighbors.map(neigh =>
         (new ConditionStatement(new getNeighInfo_IsValidAndNotRemote(neigh._1, field.domain),
           ListBuffer[Statement](
-            s"unsigned int entry = 0",
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(
                 new DirectFieldAccess(new getNeighInfo_LocalPtr(neigh._1, field.domain) ~ "->", field, "slot", new MultiIndex(
