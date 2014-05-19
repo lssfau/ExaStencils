@@ -5,6 +5,7 @@ import exastencils.knowledge._
 import exastencils.spl.Configuration
 import harald_dep.dsl.DomainKnowledge
 import exastencils.util._
+import exastencils.spl.Configuration
 
 object Knowledge {
   // TODO: rename and move to hw knowledge?
@@ -81,21 +82,23 @@ object Knowledge {
 
   // --- Data Structures ---
 
-  // --- OpenMP/Hybrid Parallelization ---
+  // --- OpenMP and MPI Parallelization ---
+  var comm_strategyFragment : Int = 6 // [6|26]
+
+  // --- OpenMP Parallelization ---
   var useOMP : Boolean = true // [true|false]
-  var useMPI : Boolean = true // [true|false]
   var omp_numThreads : Int = 1
   var omp_version : Double = 2.0
   var omp_useCollapse : Boolean = true // [true|false]
   var omp_minWorkItemsPerThread : Int = 256 // [1-inf]
   var omp_requiresCriticalSections : Boolean = true
 
-  // --- Communication ---
-  var comm_strategyFragment : Int = 6 // [6|26]
-  var comm_useMPIDatatypes : Boolean = false // [true|false]
-  var comm_useLoopsOverNeighbors : Boolean = true // [true|false]
+  // --- MPI Parallelization ---
+  var useMPI : Boolean = true // [true|false]
+  var mpi_useCustomDatatypes : Boolean = false // [true|false]
+  var mpi_useLoopsWherePossible : Boolean = true // [true|false]
 
-  def update(configuration : Configuration) : Unit = {
+  def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
 
     useOMP = (domain_summarizeBlocks && domain_fragLength != 1) || domain_numFragsPerBlock != 1

@@ -29,7 +29,7 @@ case class WaitForMPISendOps(var neighbors : ListBuffer[NeighborInfo]) extends A
   override def cpp : String = "NOT VALID ; CLASS = WaitForMPISendOps\n"
 
   override def expand : FunctionStatement = {
-    if (Knowledge.comm_useLoopsOverNeighbors) {
+    if (Knowledge.mpi_useLoopsWherePossible) {
       var minIdx = neighbors.reduce((neigh, res) => if (neigh.index < res.index) neigh else res).index
       var maxIdx = neighbors.reduce((neigh, res) => if (neigh.index > res.index) neigh else res).index
 
@@ -56,7 +56,7 @@ case class WaitForMPIRecvOps(var neighbors : ListBuffer[NeighborInfo]) extends A
   override def cpp : String = "NOT VALID ; CLASS = WaitForMPIRecvOps\n"
 
   override def expand : FunctionStatement = {
-    if (Knowledge.comm_useLoopsOverNeighbors) {
+    if (Knowledge.mpi_useLoopsWherePossible) {
       var minIdx = neighbors.reduce((neigh, res) => if (neigh.index < res.index) neigh else res).index
       var maxIdx = neighbors.reduce((neigh, res) => if (neigh.index > res.index) neigh else res).index
 

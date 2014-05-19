@@ -37,10 +37,12 @@ object Main {
       k.parseFile(args(1))
     }
 
+    Knowledge.update()
+
     // feature model  (modified FAMA Format (http://www.isa.us.es/fama/))
-//    FeatureModel.readFeatureModel(Settings.basePathPrefix + "/Compiler/featureModel/model_Prototype.model")
-//    var configuration = FeatureModel.getMinimalConfig
-//    Knowledge.update(configuration)
+    //    FeatureModel.readFeatureModel(Settings.basePathPrefix + "/Compiler/featureModel/model_Prototype.model")
+    //    var configuration = FeatureModel.getMinimalConfig
+    //    Knowledge.update(configuration)
 
     // Hack paths (relative paths should work here, too, if not, reverse this change)
     // ... this obviously depends on the execution path which in my case is the root folder to include configs and scripts
