@@ -88,6 +88,7 @@ object Knowledge {
   var omp_version : Double = 2.0
   var omp_useCollapse : Boolean = true // [true|false]
   var omp_minWorkItemsPerThread : Int = 256 // [1-inf]
+  var omp_requiresCriticalSections : Boolean = true
 
   // --- Communication ---
   var comm_strategyFragment : Int = 6 // [6|26]
@@ -117,16 +118,17 @@ object Knowledge {
     domain_numFragsTotal_y = domain_numFragsPerBlock_y * domain_numBlocks_y
     domain_numFragsTotal_z = domain_numFragsPerBlock_z * domain_numBlocks_z
 
-    domain_canHaveRemoteNeighs = useMPI 
+    domain_canHaveRemoteNeighs = useMPI
     domain_canHaveLocalNeighs = (domain_numFragsPerBlock > 1)
-    
+
     if ("MSVC" == targetCompiler)
       omp_version = 2.0
     else if ("GCC" == targetCompiler)
       omp_version = 4.0
-    else if ("IBMXL" == targetCompiler)
+    else if ("IBMXL" == targetCompiler) {
       omp_version = 3.0
-    else
+      omp_requiresCriticalSections = false
+    } else
       Logger.error("Unsupported target compiler")
 
     if (useOMP)

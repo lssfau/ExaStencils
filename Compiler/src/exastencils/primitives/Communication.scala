@@ -123,11 +123,11 @@ case class RemoteSend(var field : Field, var neighbors : ListBuffer[(NeighborInf
           ListBuffer[Statement](
             new MPI_Send(ptr, cnt, typeName, new getNeighInfo_RemoteRank(neigh._1, field.domain),
               s"((unsigned int)curFragment.commId << 16) + ((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1, field.domain)).cpp + ") & 0x0000ffff)",
-              s"curFragment.request_Send[${neigh._1.index}]") /*with OMP_PotentiallyCritical*/ ,
+              s"curFragment.request_Send[${neigh._1.index}]") with OMP_PotentiallyCritical,
             s"curFragment.reqOutstanding_Send[${neigh._1.index}] = true"))
     }
 
-    new LoopOverFragments(body) /*with OMP_PotentiallyParallel*/
+    new LoopOverFragments(body) with OMP_PotentiallyParallel
   }
 }
 
@@ -182,11 +182,11 @@ case class RemoteReceive(var field : Field, var neighbors : ListBuffer[(Neighbor
         ListBuffer[Statement](
           new MPI_Receive(ptr, cnt, typeName, new getNeighInfo_RemoteRank(neigh._1, field.domain),
             s"((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1, field.domain)).cpp + ") << 16) + ((unsigned int)curFragment.commId & 0x0000ffff)",
-            s"curFragment.request_Recv[${neigh._1.index}]") /*with OMP_PotentiallyCritical*/ ,
+            s"curFragment.request_Recv[${neigh._1.index}]") with OMP_PotentiallyCritical,
           s"curFragment.reqOutstanding_Recv[${neigh._1.index}] = true"))
     }
 
-    new LoopOverFragments(body) /*with OMP_PotentiallyParallel*/
+    new LoopOverFragments(body) with OMP_PotentiallyParallel
   }
 }
 
