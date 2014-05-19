@@ -10,7 +10,7 @@ import exastencils.strategies._
 import exastencils.primitives._
 import exastencils.knowledge._
 
-object SetupApplication extends Strategy("Setting up application") {
+object SetupApplication extends DefaultStrategy("Setting up application") {
   val fieldCollection = StateManager.findFirst[FieldCollection]().get;
 
   this += new Transformation("Setting up init fields", {

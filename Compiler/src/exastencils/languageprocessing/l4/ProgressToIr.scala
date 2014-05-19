@@ -9,7 +9,7 @@ import exastencils.datastructures.l4._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge.Knowledge
 
-object ProgressToIr extends Strategy("ProgressToIr") {
+object ProgressToIr extends DefaultStrategy("ProgressToIr") {
   var collector = new LevelCollector
 
   override def apply(node : Option[Node] = None) = {

@@ -13,7 +13,7 @@ object MainWuppertal extends App {
   
   StateManager.root_ = DummyRoot(new SmootherNode( "Gs" ))
   
-  val strategy = new Strategy("Smoother")
+  val strategy = DefaultStrategy("Smoother")
   
   strategy += Transformation("Implement", {
     case s : SmootherNode => {

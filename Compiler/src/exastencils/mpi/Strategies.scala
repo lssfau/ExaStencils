@@ -4,7 +4,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 
-object RemoveMPIReferences extends Strategy("RemoveMPIReferences") {
+object RemoveMPIReferences extends DefaultStrategy("RemoveMPIReferences") {
   this += new Transformation("CleaningFunctions", {
     // FIXME: should delete node, currently not fully implemented -> QUICKFIX returns empty statements
     case _ : MPI_Barrier        => new NullStatement

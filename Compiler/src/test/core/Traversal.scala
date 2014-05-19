@@ -14,7 +14,7 @@ object Traversal {
 
     StateManager.root_ = x
 
-    val s = new Strategy("Printing Strategy") {
+    val s = new DefaultStrategy("Printing Strategy") {
       val collector = new exastencils.core.collectors.StackCollector;
 
       override def apply(node : Option[Node] = None) = {
