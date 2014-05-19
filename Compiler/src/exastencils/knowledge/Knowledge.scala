@@ -22,6 +22,8 @@ object Knowledge {
   // specifies if fragments within one block should be aggregated 
   // TODO: sanity check if compatible with chosen smoother
   var domain_summarizeBlocks : Boolean = true // [true|false]
+  var domain_canHaveLocalNeighs : Boolean = true
+  var domain_canHaveRemoteNeighs : Boolean = true
 
   // number of blocks per dimension - one block will usually be mapped to one MPI thread
   var domain_numBlocks_x : Int = 3 // [0-inf]
@@ -115,6 +117,9 @@ object Knowledge {
     domain_numFragsTotal_y = domain_numFragsPerBlock_y * domain_numBlocks_y
     domain_numFragsTotal_z = domain_numFragsPerBlock_z * domain_numBlocks_z
 
+    domain_canHaveRemoteNeighs = useMPI 
+    domain_canHaveLocalNeighs = (domain_numFragsPerBlock > 1)
+    
     if ("MSVC" == targetCompiler)
       omp_version = 2.0
     else if ("GCC" == targetCompiler)

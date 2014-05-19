@@ -139,14 +139,14 @@ case class ConnectFragments() extends Statement with Expandable {
     val fragWidth_y = globalDomain.size.width(1) / Knowledge.domain_numFragsTotal_y
     val fragWidth_z = globalDomain.size.width(2) / Knowledge.domain_numFragsTotal_z
 
-    if (Knowledge.useMPI || Knowledge.useOMP) {
+    if (Knowledge.domain_canHaveLocalNeighs || Knowledge.domain_canHaveRemoteNeighs) {
       for (neigh <- neighbors) {
         body += new Scope(ListBuffer[Statement](
           s"Vec3 offsetPos = curFragment.pos + Vec3(${neigh.dir(0)} * ${fragWidth_x}, ${neigh.dir(1)} * ${fragWidth_y}, ${neigh.dir(2)} * ${fragWidth_z})") ++
           (0 until domains.size).toArray[Int].map(d =>
             new ConditionStatement(s"curFragment.isValidForSubdomain[$d]" AndAnd PointInsideDomain(s"offsetPos", domains(d)),
-              if (Knowledge.useMPI) {
-                (if (Knowledge.useOMP)
+              if (Knowledge.domain_canHaveRemoteNeighs) {
+                (if (Knowledge.domain_canHaveLocalNeighs)
                   new ConditionStatement(s"mpiRank ==" ~ PointToOwningRank("offsetPos", domains(d)),
                   s"curFragment.connectLocalElement(${neigh.index}, fragmentMap[" ~ PointToFragmentId("offsetPos") ~ s"], $d)",
                   s"curFragment.connectRemoteElement(${neigh.index}," ~ PointToLocalFragmentId("offsetPos") ~ "," ~ PointToOwningRank("offsetPos", domains(d)) ~ s", $d)")
@@ -157,7 +157,8 @@ case class ConnectFragments() extends Statement with Expandable {
               })))
       }
     }
-    return new LoopOverFragments(body) with OMP_PotentiallyParallel
+
+    new LoopOverFragments(body) with OMP_PotentiallyParallel
   }
 }
 
@@ -166,18 +167,6 @@ case class SetupBuffers() extends Statement with Expandable {
 
   override def expand : LoopOverFragments = {
     new LoopOverFragments("curFragment.setupBuffers()") with OMP_PotentiallyParallel
-  }
-}
-
-case class ValidatePrimitives() extends Statement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = ValidatePrimitives\n"
-
-  //  TODO
-  //  override def expand : LoopOverFragments = {
-  //    new LoopOverFragments("curFragment.validate();") with OMP_PotentiallyParallel
-  //  }
-  override def expand : NullStatement = {
-    NullStatement()
   }
 }
 
@@ -231,21 +220,18 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
   }
 }
 
-case class DomainGenerated() extends Node with FilePrettyPrintable {
-  var statements_HACK : ListBuffer[Statement] = new ListBuffer
-
-  statements_HACK += new InitGeneratedDomain
+case class DomainGenerated(var statements : ListBuffer[Statement] = new ListBuffer) extends Node with FilePrettyPrintable {
+  statements += new InitGeneratedDomain
 
   override def printToFile = {
     val writer = PrettyprintingManager.getPrinter(s"Domains/DomainGenerated.h")
 
-    // TODO: add includes to class node or similar
     writer << (
       "#include <map>\n"
       + "#include \"Util/Log.h\"\n"
       + "#include \"Util/Vector.h\"\n")
 
-    for (s <- statements_HACK)
+    for (s <- statements)
       writer << s.cpp + "\n"
   }
 }
