@@ -109,7 +109,7 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
   override def cpp : String = "NOT VALID ; CLASS = LoopOverDimensions\n"
 
   def expandSpecial : ForLoopStatement = {
-    var parallelizable = Knowledge.domain_summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
+    var parallelizable = Knowledge.omp_parallelizeLoopOverDimensions && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
 
     indices match {
       case IndexRange(MultiIndex(xStart : IntegerConstant, yStart : IntegerConstant, zStart : IntegerConstant),
@@ -149,7 +149,7 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
   def cpp = "NOT VALID ; CLASS = LoopOverFragments\n"
 
   def expand : StatementBlock = {
-    val parallelizable = !Knowledge.domain_summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
+    val parallelizable = Knowledge.omp_parallelizeLoopOverFragments && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
     var statements = new ListBuffer[Statement]
 
     if (parallelizable)

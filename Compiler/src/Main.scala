@@ -21,8 +21,8 @@ import exastencils.parsers.l4.ParserL4
 import exastencils.datastructures.l4.ProgressableToIr
 import exastencils.languageprocessing.l4.ProgressToIr
 import exastencils.mpi._
-import exastencils.polyhedron.PolyOpt
-import exastencils.polyhedron.Extractor
+import exastencils.omp._
+import exastencils.polyhedron._
 
 object Main {
   def main(args : Array[String]) : Unit = {
