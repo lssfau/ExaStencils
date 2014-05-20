@@ -1,7 +1,8 @@
 package exastencils.polyhedron
 
-import exastencils.datastructures.Node
 import scala.collection.mutable.HashMap
+
+import exastencils.datastructures.Node
 import exastencils.datastructures.ir.Statement
 
 class SCoP(val root : Node) {
