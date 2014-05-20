@@ -1,6 +1,7 @@
 package exastencils.polyhedron
 
 import scala.collection.mutable.ArrayStack
+import scala.language.implicitConversions
 
 import exastencils.core.Logger
 import exastencils.core.collectors.Collector
@@ -18,24 +19,28 @@ import exastencils.datastructures.ir.SubtractionExpression
 import exastencils.knowledge.Knowledge
 import exastencils.primitives.LoopOverDimensions
 import isl.Conversions.convertIntToVal
-import isl.Conversions.convertLambdaToXCallback1
 
 object Extractor extends Collector {
   import scala.language.implicitConversions
-  
+
   /** implicit conversion for use in this class */
   private final implicit def convertLongToVal(l : Long) : isl.Val = new isl.Val(l.toString())
+
+  /** constants for 1 and -1, which are needed more often later */
+  private final val POS_ONE : isl.Val = convertIntToVal(1)
+  private final val NEG_ONE : isl.Val = convertIntToVal(-1)
 
   /** constants for read/write annotations */
   private object Access extends Enumeration {
     type Access = Value
     final val ID : String = "PolyAcc"
     final val READ, WRITE, UPDATE = Value
+
+    exastencils.core.Duplicate.registerImmutable(this.getClass())
   }
 
   /** current access node is a read/write access */
-  private var isRead : Boolean = false
-  private var isWrite : Boolean = false
+  private var isRead, isWrite : Boolean = false
 
   /** integer used to create an identifier for new statements and to determine the ordering of the statements inside the model */
   private var id : Int = 0
@@ -63,16 +68,11 @@ object Extractor extends Collector {
       case None =>
     }
 
-    node match { // create new SCoP or replace old
+    // create new SCoP or replace old
+    if (node.isInstanceOf[LoopOverDimensions])
+      enterLoop(node.asInstanceOf[LoopOverDimensions])
 
-      case l : LoopOverDimensions =>
-        enterLoop(l)
-        return // node processed, nothing else to do here
-
-      case _ => // continue...
-    }
-
-    if (template != null) // we have a SCoP now
+    else if (template != null) // we have a SCoP now
       node match {
         case a : AssignmentStatement => enterAssign(a)
         // case s : StringConstant      => discardCurrentSCoP("string found (" + s.value + "), unsure about usage, skipping scop")
@@ -100,7 +100,10 @@ object Extractor extends Collector {
 
   override def reset() : Unit = {
     template = null
+    isRead = false
+    isWrite = false
     scops.clear()
+    trash.clear()
   }
 
   /////////////////// auxiliary methodes \\\\\\\\\\\\\\\\\\\
@@ -125,22 +128,11 @@ object Extractor extends Collector {
   case class EvaluationException(msg : String) extends Exception(msg) {}
 
   private def evaluateExpression(expr : Expression) : Long = expr match {
-
-    case IntegerConstant(v) =>
-      return v
-
-    case AdditionExpression(l : Expression, r : Expression) =>
-      return evaluateExpression(l) + evaluateExpression(r)
-
-    case SubtractionExpression(l : Expression, r : Expression) =>
-      return evaluateExpression(l) - evaluateExpression(r)
-
-    case MultiplicationExpression(l : Expression, r : Expression) =>
-      return evaluateExpression(l) * evaluateExpression(r)
-
-    case DivisionExpression(l : Expression, r : Expression) =>
-      return evaluateExpression(l) / evaluateExpression(r)
-
+    case IntegerConstant(v)                                       => v
+    case AdditionExpression(l : Expression, r : Expression)       => evaluateExpression(l) + evaluateExpression(r)
+    case SubtractionExpression(l : Expression, r : Expression)    => evaluateExpression(l) - evaluateExpression(r)
+    case MultiplicationExpression(l : Expression, r : Expression) => evaluateExpression(l) * evaluateExpression(r)
+    case DivisionExpression(l : Expression, r : Expression)       => evaluateExpression(l) / evaluateExpression(r)
     case _ =>
       throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
   }
@@ -161,7 +153,7 @@ object Extractor extends Collector {
     }
 
     val dims = Knowledge.dimensionality
-    template = isl.BasicSet.universe(isl.Space.setAlloc(0, dims + 1))
+    template = isl.BasicSet.universe(isl.Space.setAlloc(0, dims))
 
     val begin = loop.indices.begin
     val end = loop.indices.end
@@ -190,13 +182,13 @@ object Extractor extends Collector {
 
       // begin <= i  -->  (1)*i + (-begin) >= 0
       constr = isl.Constraint.inequalityAlloc(template.getLocalSpace())
-      constr = constr.setCoefficientVal(isl.DimType.Set, d, 1)
+      constr = constr.setCoefficientVal(isl.DimType.Set, d, POS_ONE)
       constr = constr.setConstantVal(-cur_begin)
       template = template.addConstraint(constr)
 
       // i <= end  -->  (-1)*i + (end) >= 0
       constr = isl.Constraint.inequalityAlloc(template.getLocalSpace())
-      constr = constr.setCoefficientVal(isl.DimType.Set, d, -1)
+      constr = constr.setCoefficientVal(isl.DimType.Set, d, NEG_ONE)
       constr = constr.setConstantVal(cur_end)
       template = template.addConstraint(constr)
 
@@ -206,10 +198,6 @@ object Extractor extends Collector {
 
   private def leaveLoop(loop : LoopOverDimensions) : Unit = {
     template = null
-    scops.top.schedule = isl.Map.empty(isl.Space.paramsAlloc(0))
-    scops.top.domain.foreachSet({
-      set : isl.Set => scops.top.schedule = scops.top.schedule.addMap(isl.Map.identity(set.getSpace()))
-    })
   }
 
   private def enterAssign(assign : AssignmentStatement) : Unit = {
@@ -247,20 +235,39 @@ object Extractor extends Collector {
 
   private def enterStmt(stmt : Statement) : Unit = {
 
+    val scop = scops.top
+
     val id : Int = nextId()
     val strId : String = "S" + id
+    scop.stmts.put(strId, stmt)
 
     var domain : isl.BasicSet = template
     domain = domain.setTupleName(strId)
 
-    var constr : isl.Constraint = isl.Constraint.equalityAlloc(domain.getLocalSpace())
-    constr = constr.setCoefficientVal(isl.DimType.Set, Knowledge.dimensionality, -1)
-    constr = constr.setConstantVal(id)
-    domain = domain.addConstraint(constr)
-
-    val scop = scops.top
     scop.domain = scop.domain.addSet(domain)
-    scop.stmts.put(strId, stmt)
+
+    val dim : Int = domain.dim(isl.DimType.Set)
+    val space : isl.Space = domain.getSpace().mapFromDomainAndRange(isl.Space.setAlloc(domain.dim(isl.DimType.Param), dim + 1))
+    var schedule : isl.BasicMap = isl.BasicMap.universe(space)
+    var constr : isl.Constraint = null
+
+    var d = 0
+    do {
+
+      constr = isl.Constraint.equalityAlloc(schedule.getLocalSpace())
+      constr = constr.setCoefficientVal(isl.DimType.In, d, POS_ONE)
+      constr = constr.setCoefficientVal(isl.DimType.Out, d, NEG_ONE)
+      schedule = schedule.addConstraint(constr)
+
+      d += 1
+    } while (d < dim)
+
+    constr = isl.Constraint.equalityAlloc(schedule.getLocalSpace())
+    constr = constr.setCoefficientVal(isl.DimType.Out, Knowledge.dimensionality, NEG_ONE)
+    constr = constr.setConstantVal(id)
+    schedule = schedule.addConstraint(constr)
+
+    scop.schedule = scop.schedule.addMap(schedule)
   }
 
   private def leaveStmt(stmt : Statement) : Unit = {
