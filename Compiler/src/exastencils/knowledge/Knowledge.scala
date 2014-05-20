@@ -9,7 +9,7 @@ import exastencils.spl.Configuration
 
 object Knowledge {
   // TODO: rename and move to hw knowledge?
-  var targetCompiler : String = "MSVC"
+  var targetCompiler : String = "MSVC" // the target compiler; may atm be 'MSVC', 'IBMXL' and 'GCC'
 
   // === Level 1 ===  
   var dimensionality : Int = 3 // dimensionality of the problem
@@ -22,9 +22,10 @@ object Knowledge {
 
   // specifies if fragments within one block should be aggregated 
   // TODO: sanity check if compatible with chosen smoother
-  var domain_summarizeBlocks : Boolean = true // [true|false]
-  var domain_canHaveLocalNeighs : Boolean = true
-  var domain_canHaveRemoteNeighs : Boolean = true
+  // TODO: separate from the omp parallelization strategy
+  var domain_summarizeBlocks : Boolean = true // [true|false] // if true, fragments inside one block are aggregated into one bigger fragment; this will also alter the way omp parallelization is incoporated (parallel LoopOverFragments -> parallel LoopOverDimensions)
+  var domain_canHaveLocalNeighs : Boolean = true // specifies if fragments can have local (i.e.\ shared memory) neighbors, i.e.\ if local comm is required
+  var domain_canHaveRemoteNeighs : Boolean = true // specifies if fragments can have remote (i.e.\ different mpi rank) neighbors, i.e.\ if mpi comm is required
 
   // number of blocks per dimension - one block will usually be mapped to one MPI thread
   var domain_numBlocks_x : Int = 3 // [0-inf]
@@ -83,20 +84,20 @@ object Knowledge {
   // --- Data Structures ---
 
   // --- OpenMP and MPI Parallelization ---
-  var comm_strategyFragment : Int = 6 // [6|26]
+  var comm_strategyFragment : Int = 6 // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors
 
   // --- OpenMP Parallelization ---
   var useOMP : Boolean = true // [true|false]
-  var omp_numThreads : Int = 1
-  var omp_version : Double = 2.0
-  var omp_useCollapse : Boolean = true // [true|false]
-  var omp_minWorkItemsPerThread : Int = 256 // [1-inf]
-  var omp_requiresCriticalSections : Boolean = true
+  var omp_numThreads : Int = 1 // the number of omp threads to be used; may be incorporated in omp pragmas
+  var omp_version : Double = 2.0 // the minimum version of omp supported by the chosen compiler
+  var omp_useCollapse : Boolean = true // [true|false] // if true the 'collapse' directive may be used in omp for regions; this will only be done if the minimum omp version supports this
+  var omp_minWorkItemsPerThread : Int = 256 // [1-inf] // threshold specifying which loops yield enough workload to amortize the omp overhead
+  var omp_requiresCriticalSections : Boolean = true // true if the chosen compiler / mpi version requires critical sections to be marked explicitly
 
   // --- MPI Parallelization ---
   var useMPI : Boolean = true // [true|false]
-  var mpi_useCustomDatatypes : Boolean = false // [true|false]
-  var mpi_useLoopsWherePossible : Boolean = true // [true|false]
+  var mpi_useCustomDatatypes : Boolean = false // [true|false] // allows to use custom mpi data types when reading from/ writing to fields thus circumventing temp send/ receive buffers
+  var mpi_useLoopsWherePossible : Boolean = true // [true|false] // allows to summarize some code blocks into loops in order to shorten the resulting code length
 
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
