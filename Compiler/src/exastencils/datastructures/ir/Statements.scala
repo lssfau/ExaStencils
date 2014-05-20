@@ -51,15 +51,22 @@ case class AssignmentStatement(var dest : Expression, var src : Expression, var 
   }
 }
 
-case class ForLoopStatement(var begin : Expression, var end : Expression, var inc : Expression, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement {
-  def this(begin : Expression, end : Expression, inc : Expression, body : Statement, reduction : Option[Reduction]) = this(begin, end, inc, ListBuffer(body), reduction);
-  def this(begin : Expression, end : Expression, inc : Expression, body : Statement) = this(begin, end, inc, ListBuffer(body));
+case class ForLoopStatement(var begin : Statement, var end : Expression, var inc : Statement, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement {
+  def this(begin : Statement, end : Expression, inc : Statement, body : Statement, reduction : Option[Reduction]) = this(begin, end, inc, ListBuffer(body), reduction);
+  def this(begin : Statement, end : Expression, inc : Statement, body : Statement) = this(begin, end, inc, ListBuffer(body));
 
   override def cpp : String = {
-    (s"for (${begin.cpp}; ${end.cpp}; ${inc.cpp})"
-      + "\n{\n"
-      + body.map(stat => stat.cpp).mkString("\n")
-      + s"\n}");
+
+    val sb : StringBuilder = new StringBuilder()
+    sb ++= "for (" ++= begin.cpp() += ' '; end.cppsb(sb); sb ++= "; " ++= inc.cpp()
+    if (sb.last == ';')
+      sb.deleteCharAt(sb.length - 1)
+    sb ++= ")\n{\n"
+    for (stmt <- body)
+      sb ++= stmt.cpp()
+    sb ++= "\n}"
+
+    return sb.toString()
   }
 }
 
