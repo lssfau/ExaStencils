@@ -29,47 +29,6 @@ case class DomainDeclarationStatement(var name : String, var lower : RealIndex, 
   }
 }
 
-case class FieldDeclarationStatement(var name : String, var datatype : Datatype, var offset : Index, var level : Option[LevelSpecification]) extends SpecialStatement {
-  var communicates = true
-  var ghostlayers = 0
-  var padding = 0
-  var slots = 1
-  var bcDir0 = false
-  def set(t : TempOption) = { // FIXME hack
-    t.key match {
-      case "communicates" => communicates = t.value.toBoolean
-      case "ghostlayers"  => ghostlayers = t.value.toInt
-      case "padding"      => padding = t.value.toInt
-      case "slots"        => slots = t.value.toInt
-      case "bcDir"        => bcDir0 = t.value.toBoolean
-      case _              => exastencils.core.Logger.error(s"Unknown option ${t.key} = ${t.value}")
-    }
-  }
-
-  def progressToIr : Field = {
-    val layout = DimArray().map(dim => new FieldLayoutPerDim(
-      if (0 == dim) padding else 0,
-      ghostlayers,
-      1,
-      ((Knowledge.domain_fragLengthPerDim(dim) * (1 << level.get.asInstanceOf[SingleLevelSpecification].level)) + 1) - 2 /*dup*/ ,
-      1,
-      ghostlayers,
-      0)) ++
-      (Knowledge.dimensionality until 3).toArray.map(dim => new FieldLayoutPerDim(0, 0, 0, 1, 0, 0, 0))
-    new Field(
-      name,
-      0, // FIXME: domain
-      name.toLowerCase + "Data_" + level.get.asInstanceOf[SingleLevelSpecification].level, // HACK
-      datatype.progressToIr,
-      layout, // FIXME: get this info from the DSL
-      level.get.asInstanceOf[SingleLevelSpecification].level,
-      slots,
-      offset.progressToIr,
-      communicates,
-      bcDir0);
-  }
-}
-
 case class IterationSetDeclarationStatement(var identifier : Identifier, var begin : ExpressionIndex, var end : ExpressionIndex, var increment : Option[ExpressionIndex]) extends SpecialStatement {
   def progressToIr : knowledge.IterationSet = {
     knowledge.IterationSet(identifier.asInstanceOf[BasicIdentifier].progressToIr.value,
