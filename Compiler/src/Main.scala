@@ -173,8 +173,6 @@ object Main {
     do { ExpandStrategy.apply() }
     while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
 
-    SetupApplication.apply()
-
     do { ExpandStrategy.apply() }
     while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
 

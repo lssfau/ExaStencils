@@ -34,7 +34,7 @@ case class WaitForMPISendOps(var neighbors : ListBuffer[NeighborInfo]) extends A
       var maxIdx = neighbors.reduce((neigh, res) => if (neigh.index > res.index) neigh else res).index
 
       new FunctionStatement(new UnitDatatype(), s"waitForMPISendOps", ListBuffer[VariableAccess](),
-        new LoopOverFragments(
+        new LoopOverFragments(-1,
           new ForLoopStatement(s"int i = $minIdx", s"i <= $maxIdx", "++i",
             new ConditionStatement(s"curFragment.reqOutstanding_Send[i]",
               ListBuffer[Statement](
@@ -42,7 +42,7 @@ case class WaitForMPISendOps(var neighbors : ListBuffer[NeighborInfo]) extends A
                 s"curFragment.reqOutstanding_Send[i] = false")))))
     } else {
       new FunctionStatement(new UnitDatatype(), s"waitForMPISendOps", ListBuffer[VariableAccess](),
-        new LoopOverFragments(
+        new LoopOverFragments(-1,
           neighbors.map(neigh =>
             new ConditionStatement(s"curFragment.reqOutstanding_Send[${neigh.index}]",
               ListBuffer[Statement](
@@ -61,7 +61,7 @@ case class WaitForMPIRecvOps(var neighbors : ListBuffer[NeighborInfo]) extends A
       var maxIdx = neighbors.reduce((neigh, res) => if (neigh.index > res.index) neigh else res).index
 
       new FunctionStatement(new UnitDatatype(), s"waitForMPIRecvOps", ListBuffer[VariableAccess](),
-        new LoopOverFragments(
+        new LoopOverFragments(-1,
           new ForLoopStatement(s"int i = $minIdx", s"i <= $maxIdx", "++i",
             new ConditionStatement(s"curFragment.reqOutstanding_Recv[i]",
               ListBuffer[Statement](
@@ -69,7 +69,7 @@ case class WaitForMPIRecvOps(var neighbors : ListBuffer[NeighborInfo]) extends A
                 s"curFragment.reqOutstanding_Recv[i] = false")))))
     } else {
       new FunctionStatement(new UnitDatatype(), s"waitForMPIRecvOps", ListBuffer[VariableAccess](),
-        new LoopOverFragments(
+        new LoopOverFragments(-1,
           neighbors.map(neigh =>
             new ConditionStatement(s"curFragment.reqOutstanding_Recv[${neigh.index}]",
               ListBuffer[Statement](
@@ -115,9 +115,9 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
     var body = ListBuffer[Statement]()
 
     for (field <- fields) {
-      for (slot <- 0 until field.numSlots) {
-        body += new AssignmentStatement(field.codeName ~ "[" ~ slot ~ "]", ("new" : Expression) ~~ field.dataType. /*FIXME*/ cpp ~ "[" ~ (field.layout(0).total * field.layout(1).total * field.layout(2).total) ~ "]")
-      }
+      body += new ConditionStatement(s"isValidForSubdomain[${field.domain}]",
+        (0 until field.numSlots).to[ListBuffer].map(slot =>
+          new AssignmentStatement(field.codeName ~ "[" ~ slot ~ "]", ("new" : Expression) ~~ field.dataType. /*FIXME*/ cpp ~ "[" ~ (field.layout(0).total * field.layout(1).total * field.layout(2).total) ~ "]") : Statement))
     }
 
     if (Knowledge.domain_canHaveRemoteNeighs) {
