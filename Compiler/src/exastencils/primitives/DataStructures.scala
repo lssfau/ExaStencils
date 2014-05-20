@@ -55,8 +55,7 @@ case class LoopOverDomain(var iterationSetIdentifier : String, var fieldIdentifi
     //      temp.gen,
     //      reduction) with OMP_PotentiallyParallel
 
-    return new LoopOverFragments( // FIXME: define LoopOverFragments in L4 DSL
-      // TODO: add sth like new ConditionStatement(s"curFragment.isValidForSubdomain[${field.domain}]",
+    return new LoopOverFragments(field.domain, // FIXME: define LoopOverFragments in L4 DSL
       new LoopOverDimensions(IndexRange(new MultiIndex(start.toArray), new MultiIndex(stop.toArray)), body, iterationSet.increment, reduction) with OMP_PotentiallyParallel,
       reduction) with OMP_PotentiallyParallel
   }
@@ -109,7 +108,7 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
   override def cpp : String = "NOT VALID ; CLASS = LoopOverDimensions\n"
 
   def expandSpecial : ForLoopStatement = {
-    var parallelizable = Knowledge.domain_summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
+    var parallelizable = Knowledge.omp_parallelizeLoopOverDimensions && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
 
     indices match {
       case IndexRange(MultiIndex(xStart : IntegerConstant, yStart : IntegerConstant, zStart : IntegerConstant),
@@ -141,25 +140,31 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
   }
 }
 
-case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : Option[Reduction] = None, var createFragRef : Boolean = true) extends Statement with Expandable {
-  def this(body : Statement, reduction : Option[Reduction], createFragRef : Boolean) = this(ListBuffer(body), reduction, createFragRef)
-  def this(body : Statement, reduction : Option[Reduction]) = this(ListBuffer(body), reduction)
-  def this(body : Statement) = this(ListBuffer(body))
+case class LoopOverFragments(var domain : Int, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None, var createFragRef : Boolean = true) extends Statement with Expandable {
+  def this(domain : Int, body : Statement, reduction : Option[Reduction], createFragRef : Boolean) = this(domain, ListBuffer(body), reduction, createFragRef)
+  def this(domain : Int, body : Statement, reduction : Option[Reduction]) = this(domain, ListBuffer(body), reduction)
+  def this(domain : Int, body : Statement) = this(domain, ListBuffer(body))
 
   def cpp = "NOT VALID ; CLASS = LoopOverFragments\n"
 
   def expand : StatementBlock = {
-    val parallelizable = !Knowledge.domain_summarizeBlocks && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
+    val parallelizable = Knowledge.omp_parallelizeLoopOverFragments && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
     var statements = new ListBuffer[Statement]
+
+    var modifiedBody : ListBuffer[Statement] = new ListBuffer
+    if (createFragRef)
+      modifiedBody += "Fragment3DCube& curFragment = *fragments[f]"
+    if (domain >= 0 && createFragRef)
+      modifiedBody += new ConditionStatement(s"curFragment.isValidForSubdomain[$domain]", body)
+    else
+      modifiedBody ++= body
 
     if (parallelizable)
       statements += new ForLoopStatement(s"int f = 0", s"f < " ~ Knowledge.domain_numFragsPerBlock, s"++f",
-        (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[f]") else ListBuffer[Statement]())
-          ++ body, reduction) with OMP_PotentiallyParallel
+        modifiedBody, reduction) with OMP_PotentiallyParallel
     else
       statements += new ForLoopStatement(s"int f = 0", s"f < " ~ Knowledge.domain_numFragsPerBlock, s"++f",
-        (if (createFragRef) ListBuffer[Statement]("Fragment3DCube& curFragment = *fragments[f]") else ListBuffer[Statement]())
-          ++ body, reduction)
+        modifiedBody, reduction)
 
     if (Knowledge.useMPI && reduction.isDefined) {
       statements += new MPI_Allreduce("&" ~ reduction.get.target, 1, reduction.get.op)

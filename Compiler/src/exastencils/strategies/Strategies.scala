@@ -10,7 +10,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.domain._
 import exastencils.omp._
 
-object PrintStrategy extends Strategy("Pretty-Print") {
+object PrintStrategy extends DefaultStrategy("Pretty-Print") {
   this += new Transformation("Pretty-Print", {
     case printable : FilePrettyPrintable =>
       printable.printToFile
@@ -18,14 +18,14 @@ object PrintStrategy extends Strategy("Pretty-Print") {
   })
 }
 
-object ExpandStrategy extends Strategy("Expanding") {
+object ExpandStrategy extends DefaultStrategy("Expanding") {
   this += new Transformation("Hoho, expanding all day...", {
     case expandable : Expandable =>
       expandable.expand
   })
 }
 
-object SimplifyStrategy extends Strategy("Simplifying") {
+object SimplifyStrategy extends DefaultStrategy("Simplifying") {
   // FIXME: remove NullExpressions / NullStatements
   // FIXME: remove empty functions
   // FIXME: remove (true) conditions
@@ -134,7 +134,7 @@ object SimplifyStrategy extends Strategy("Simplifying") {
   })
 }
 
-object AddMemberFunctionPrefix extends Strategy("Adding member function prefixes") {
+object AddMemberFunctionPrefix extends DefaultStrategy("Adding member function prefixes") {
   // FIXME: requires nested strategies which currently are not available
   //    this += new Transformation("Add function scope prefixes to class member functions", {
   //      case c : Class =>
@@ -157,21 +157,5 @@ object AddMemberFunctionPrefix extends Strategy("Adding member function prefixes
         func match { case f : FunctionStatement => f.name = s"${c.className}::${f.name}" }
       }
       c
-  })
-}
-
-object AddOMPPragmas extends Strategy("Adding OMP pragmas") {
-  if (Knowledge.omp_requiresCriticalSections)
-    this += new Transformation("Adding OMP critical pragmas", {
-      case target : OMP_PotentiallyCritical => target match {
-        case target : Scope     => new OMP_Critical(target)
-        case target : Statement => new OMP_Critical(target)
-      }
-    }, false)
-
-  this += new Transformation("Adding OMP parallel for pragmas", {
-    case target : ForLoopStatement with OMP_PotentiallyParallel =>
-      new OMP_ParallelFor(new ForLoopStatement(target.begin, target.end, target.inc, target.body, target.reduction),
-        (if (target.reduction.isDefined) target.reduction.get.getOMPClause else new NullExpression), target.collapse)
   })
 }

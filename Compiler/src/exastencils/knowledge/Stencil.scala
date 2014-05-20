@@ -32,7 +32,7 @@ case class StencilConvolution(var stencil : Stencil, var field : Field, var targ
   }
 }
 
-object FindStencilConvolutions extends Strategy("FindStencilConvolutions") {
+object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions") {
   this += new Transformation("SearchAndMark", {
     case MultiplicationExpression(UnresolvedStencilAccess(stencilName, stencilLevel), UnresolvedFieldAccess(fieldOwner, fieldName, fieldLevel, fieldSlot, fieldIndex)) =>
       StencilConvolution(StateManager.findFirst[StencilCollection]().get.getStencilByIdentifier(stencilName, stencilLevel).get,

@@ -11,7 +11,7 @@ object Matching {
     
     StateManager.root_ = TestRoot(Map((0, MapNode(Map(("a", BooleanConstant(true)), ("b", BooleanConstant(false)), ("c", BooleanConstant(true)))))))
 
-    var s = new Strategy("MatchingTestStrategy")
+    var s = new DefaultStrategy("MatchingTestStrategy")
     s += new Transformation("replace bools in maps", { case x : BooleanConstant => BooleanConstant(false) })
     s.apply()
     println(StateManager.root_)

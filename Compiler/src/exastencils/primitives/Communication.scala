@@ -24,7 +24,7 @@ case class LocalSend(var field : Field, var neighbors : ListBuffer[(NeighborInfo
   override def cpp : String = "NOT VALID ; CLASS = LocalSend\n"
 
   def expand : LoopOverFragments = {
-    new LoopOverFragments(
+    new LoopOverFragments(field.domain,
       neighbors.map(neigh =>
         (new ConditionStatement(new getNeighInfo_IsValidAndNotRemote(neigh._1, field.domain),
           ListBuffer[Statement](
@@ -43,7 +43,7 @@ case class CopyToSendBuffer(var field : Field, var neighbors : ListBuffer[(Neigh
     // TODO: check if a for loop could be used
     var body : ListBuffer[Statement] = new ListBuffer
 
-    new LoopOverFragments(neighbors.
+    new LoopOverFragments(field.domain, neighbors.
       filterNot(neigh => Knowledge.mpi_useCustomDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))).
       filterNot(neigh => neigh._2.begin(0) == neigh._2.end(0) && neigh._2.begin(1) == neigh._2.end(1) && neigh._2.begin(2) == neigh._2.end(2)).
       map(neigh =>
@@ -58,7 +58,7 @@ case class CopyFromRecvBuffer(var field : Field, var neighbors : ListBuffer[(Nei
   override def cpp : String = "NOT VALID ; CLASS = CopyFromRecvBuffer\n"
 
   def expand : LoopOverFragments = {
-    new LoopOverFragments(neighbors.
+    new LoopOverFragments(field.domain, neighbors.
       filterNot(neigh => Knowledge.mpi_useCustomDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))).
       filterNot(neigh => neigh._2.begin(0) == neigh._2.end(0) && neigh._2.begin(1) == neigh._2.end(1) && neigh._2.begin(2) == neigh._2.end(2)).
       map(neigh =>
@@ -126,7 +126,7 @@ case class RemoteSend(var field : Field, var neighbors : ListBuffer[(NeighborInf
             s"curFragment.reqOutstanding_Send[${neigh._1.index}] = true"))
     }
 
-    new LoopOverFragments(body) with OMP_PotentiallyParallel
+    new LoopOverFragments(field.domain, body) with OMP_PotentiallyParallel
   }
 }
 
@@ -185,7 +185,7 @@ case class RemoteReceive(var field : Field, var neighbors : ListBuffer[(Neighbor
           s"curFragment.reqOutstanding_Recv[${neigh._1.index}] = true"))
     }
 
-    new LoopOverFragments(body) with OMP_PotentiallyParallel
+    new LoopOverFragments(field.domain, body) with OMP_PotentiallyParallel
   }
 }
 

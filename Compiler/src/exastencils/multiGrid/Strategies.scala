@@ -12,7 +12,7 @@ import exastencils.strategies._
 import exastencils.primitives._
 import exastencils.mpi._
 
-object ResolveSpecialFunctions extends Strategy("ResolveSpecialFunctions") {
+object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions") {
   this += new Transformation("SearchAndReplace", {
     case FunctionCallExpression(StringConstant("diag"), args) =>
       StateManager.findFirst[StencilCollection]().get.getStencilByIdentifier(

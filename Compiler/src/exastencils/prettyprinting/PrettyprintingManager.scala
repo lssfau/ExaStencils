@@ -31,7 +31,7 @@ object PrettyprintingManager {
   }
 
   protected class HeaderPrettyprinter(filename : String, path : String) extends Prettyprinter(filename, path) {
-    protected var guard = "EXASTENCILS_" + filename.replace("/", "_").replace("""\""", "_").replace(".", "_").toUpperCase() + "_H"
+    protected var guard = "EXASTENCILS_" + filename.replace("/", "_").replace("""\""", "_").replace(".", "_").toUpperCase()
 
     <<<(s"#ifndef $guard")
     <<<(s"#define $guard")
