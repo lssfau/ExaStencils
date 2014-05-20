@@ -15,7 +15,7 @@ case class HandleBoundaries(var field : Field, var neighbors : ListBuffer[(Neigh
   override def expand : Statement = {
     // TODO: match boundary conditions
     if (field.bcDir0) {
-      return new LoopOverFragments(
+      return new LoopOverFragments(field.domain,
         neighbors.map(neigh =>
           new ConditionStatement(new getNeighInfo_IsInvalid(neigh._1, field.domain),
             new LoopOverDimensions(neigh._2,

@@ -158,7 +158,7 @@ case class ConnectFragments() extends Statement with Expandable {
       }
     }
 
-    new LoopOverFragments(body) with OMP_PotentiallyParallel
+    new LoopOverFragments(-1, body) with OMP_PotentiallyParallel
   }
 }
 
@@ -166,7 +166,7 @@ case class SetupBuffers() extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = SetupBuffers\n"
 
   override def expand : LoopOverFragments = {
-    new LoopOverFragments("curFragment.setupBuffers()") with OMP_PotentiallyParallel
+    new LoopOverFragments(-1, "curFragment.setupBuffers()") with OMP_PotentiallyParallel
   }
 }
 
@@ -205,7 +205,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
             ~ ((("rankPos.x" : Expression) * Knowledge.domain_numFragsPerBlock_x + 0.5 + "x") * fragWidth_x) + globalDomain.size.lower_x ~ ","
             ~ (if (Knowledge.dimensionality > 1) ((("rankPos.y" : Expression) * Knowledge.domain_numFragsPerBlock_y + 0.5 + "y") * fragWidth_y) + globalDomain.size.lower_y else 0) ~ ","
             ~ (if (Knowledge.dimensionality > 2) ((("rankPos.z" : Expression) * Knowledge.domain_numFragsPerBlock_z + 0.5 + "z") * fragWidth_z) + globalDomain.size.lower_z else 0) ~ ")")),
-        LoopOverFragments(ListBuffer(
+        LoopOverFragments(-1, ListBuffer(
           s"fragments[f] = new Fragment3DCube()",
           s"fragments[f]->id = " ~ PointToFragmentId("positions[f]"),
           s"fragments[f]->commId = " ~ PointToLocalFragmentId("positions[f]"),

@@ -15,29 +15,32 @@ import exastencils.prettyprinting._
 import exastencils.mpi._
 import exastencils.omp._
 
-case class InitFields() extends Statement {
+case class InitFields() extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = InitFields\n"
 
-  def expandSpecial(fields : FieldCollection) : LoopOverFragments = {
-    var body : ListBuffer[Statement] = new ListBuffer
+  def expand() : StatementBlock = {
+    val fieldCollection = StateManager.findFirst[FieldCollection]().get
+    val fields = fieldCollection.fields
+    var statements : ListBuffer[Statement] = new ListBuffer
 
-    body += s"std::srand((unsigned int)fragments[f]->id)"
-
-    for (field <- fields.fields) {
-      body += new LoopOverDimensions(new IndexRange(
-        new MultiIndex(field.layout(0).idxGhostLeftBegin, field.layout(1).idxGhostLeftBegin, field.layout(2).idxGhostLeftBegin),
-        new MultiIndex(field.layout(0).idxGhostRightEnd, field.layout(1).idxGhostRightEnd, field.layout(2).idxGhostRightEnd)),
-        (0 until field.numSlots).to[ListBuffer].map(slot =>
-          new AssignmentStatement(
-            new DirectFieldAccess("curFragment.", field, slot, DefaultLoopMultiIndex()),
-            0.0) : Statement)) with OMP_PotentiallyParallel
+    for (field <- fields) {
+      statements += new LoopOverFragments(field.domain,
+        new LoopOverDimensions(new IndexRange(
+          new MultiIndex(field.layout(0).idxGhostLeftBegin, field.layout(1).idxGhostLeftBegin, field.layout(2).idxGhostLeftBegin),
+          new MultiIndex(field.layout(0).idxGhostRightEnd, field.layout(1).idxGhostRightEnd, field.layout(2).idxGhostRightEnd)),
+          (0 until field.numSlots).to[ListBuffer].map(slot =>
+            new AssignmentStatement(
+              new DirectFieldAccess("curFragment.", field, slot, DefaultLoopMultiIndex()),
+              0.0) : Statement)) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel
     }
 
-    // special treatment for the finest level 
-    for (field <- fields.fields) {
-      // FIXME: init by given parameters
-      if ("Solution" == field.identifier && field.level == Knowledge.maxLevel)
-        body += new LoopOverDimensions(new IndexRange(
+    // FIXME: get this info from one of the DSLs
+    // special treatment for the finest solution
+    {
+      val field = fieldCollection.getFieldByIdentifier("Solution", Knowledge.maxLevel).get
+      statements += new LoopOverFragments(field.domain, ListBuffer[Statement](
+        s"std::srand((unsigned int)fragments[f]->id)",
+        new LoopOverDimensions(new IndexRange(
           new MultiIndex(field.layout(0).idxDupLeftBegin, field.layout(1).idxDupLeftBegin, field.layout(2).idxDupLeftBegin),
           new MultiIndex(field.layout(0).idxDupRightEnd, field.layout(1).idxDupRightEnd, field.layout(2).idxDupRightEnd)),
           ListBuffer[Statement](
@@ -45,10 +48,10 @@ case class InitFields() extends Statement {
             (0 until field.numSlots).to[ListBuffer].map(slot =>
               new AssignmentStatement(
                 new DirectFieldAccess("curFragment.", field, slot, DefaultLoopMultiIndex()),
-                s"val") : Statement))
+                s"val") : Statement))))
     }
 
-    return new LoopOverFragments(body)
+    StatementBlock(statements)
   }
 }
 
