@@ -22,8 +22,7 @@ object Knowledge {
 
   // specifies if fragments within one block should be aggregated 
   // TODO: sanity check if compatible with chosen smoother
-  // TODO: separate from the omp parallelization strategy
-  var domain_summarizeBlocks : Boolean = true // [true|false] // if true, fragments inside one block are aggregated into one bigger fragment; this will also alter the way omp parallelization is incoporated (parallel LoopOverFragments -> parallel LoopOverDimensions)
+  var domain_summarizeBlocks : Boolean = true // [true|false] // if true, fragments inside one block are aggregated into one bigger fragment
   var domain_canHaveLocalNeighs : Boolean = true // specifies if fragments can have local (i.e.\ shared memory) neighbors, i.e.\ if local comm is required
   var domain_canHaveRemoteNeighs : Boolean = true // specifies if fragments can have remote (i.e.\ different mpi rank) neighbors, i.e.\ if mpi comm is required
 
@@ -90,6 +89,8 @@ object Knowledge {
   var useOMP : Boolean = true // [true|false]
   var omp_numThreads : Int = 1 // the number of omp threads to be used; may be incorporated in omp pragmas
   var omp_version : Double = 2.0 // the minimum version of omp supported by the chosen compiler
+  var omp_parallelizeLoopOverFragments : Boolean = false // [true|false] // specifies if loops over fragments may be parallelized with omp if marked correspondingly
+  var omp_parallelizeLoopOverDimensions : Boolean = true // [true|false] // specifies if loops over dimensions may be parallelized with omp if marked correspondingly
   var omp_useCollapse : Boolean = true // [true|false] // if true the 'collapse' directive may be used in omp for regions; this will only be done if the minimum omp version supports this
   var omp_minWorkItemsPerThread : Int = 256 // [1-inf] // threshold specifying which loops yield enough workload to amortize the omp overhead
   var omp_requiresCriticalSections : Boolean = true // true if the chosen compiler / mpi version requires critical sections to be marked explicitly
@@ -135,8 +136,11 @@ object Knowledge {
     } else
       Logger.error("Unsupported target compiler")
 
-    if (useOMP)
+    if (useOMP) {
       omp_numThreads = if (domain_summarizeBlocks) domain_fragLength else domain_numFragsPerBlock
+      omp_parallelizeLoopOverFragments = !domain_summarizeBlocks
+      omp_parallelizeLoopOverDimensions = domain_summarizeBlocks
+    }
   }
 }
 
