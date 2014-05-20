@@ -13,6 +13,7 @@ import exastencils.strategies._
 object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
   val communicationFunctions = StateManager.findFirst[CommunicationFunctions]().get
   val fieldCollection = StateManager.findFirst[FieldCollection]().get
+  val externalFieldCollection = StateManager.findFirst[ExternalFieldCollection]().get
 
   this += new Transformation("Initing FragmentClass", {
     case frag : FragmentClass =>
@@ -61,6 +62,14 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
       }
       frag
   })
+
+  this += new Transformation("Adding external field transfer functions", {
+    case frag : FragmentClass =>
+      for (extField <- externalFieldCollection.fields) {
+        frag.functions += new SetFromExternalField(fieldCollection.getFieldByIdentifier(extField.targetFieldIdentifier, extField.level).get, extField)
+      }
+      frag
+  })
 }
 
 object ResolveLoopOverDimensions extends DefaultStrategy("Resolving LoopOverDimensions nodes") {
@@ -75,6 +84,8 @@ object LinearizeFieldAccesses extends DefaultStrategy("Linearizing FieldAccess n
     case loop : DirectFieldAccess =>
       loop.linearize
     case loop : FieldAccess =>
+      loop.linearize
+    case loop : ExternalFieldAccess =>
       loop.linearize
   })
 }

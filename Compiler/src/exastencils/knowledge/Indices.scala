@@ -9,11 +9,11 @@ import exastencils.strategies._
 case class IndexRange(var begin : MultiIndex = new MultiIndex, var end : MultiIndex = new MultiIndex) {}
 
 object Mapping {
-  def resolveMultiIdx(field : Field, index : MultiIndex) : Expression = {
+  def resolveMultiIdx(layout : Array[FieldLayoutPerDim], index : MultiIndex) : Expression = {
     val ret = Knowledge.dimensionality match {
       case 1 => (index(0))
-      case 2 => (index(1) * field.layout(0).total + index(0))
-      case 3 => (index(2) * (field.layout(1).total * field.layout(0).total) + index(1) * field.layout(0).total + index(0))
+      case 2 => (index(1) * layout(0).total + index(0))
+      case 3 => (index(2) * (layout(1).total * layout(0).total) + index(1) * layout(0).total + index(0))
     }
     do { SimplifyStrategy.applyStandalone(ret) }
     while (SimplifyStrategy.results.last._2.matches > 0) // FIXME: cleaner code

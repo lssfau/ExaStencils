@@ -56,7 +56,7 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
     }
 
     val numDomains = StateManager.findFirst[DomainCollection]().get.domains.size
-    
+
     declarations += s"bool isValidForSubdomain[$numDomains]"
     new ForLoopStatement(s"unsigned int d = 0", s"d < $numDomains", s"++d",
       "isValidForSubdomain[d] = false")
@@ -153,7 +153,7 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
         }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0))))))
 
     // sync duplicate values
-    if (field.requiresComm)
+    if (field.communicatesDuplicated) {
       if (field.layout.foldLeft(0)((old : Int, l) => old max l.numDupLayersLeft max l.numDupLayersRight) > 0) {
         for (dim <- 0 until Knowledge.dimensionality) {
           val sendRemoteData = ListBuffer(neighbors(2 * dim + 1)).map(neigh => (neigh, new IndexRange(
@@ -226,9 +226,10 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
           }
         }
       }
+    }
 
     // update ghost layers
-    if (field.requiresComm)
+    if (field.communicatesGhosts) {
       if (field.layout.foldLeft(0)((old : Int, l) => old max l.numGhostLayersLeft max l.numGhostLayersRight) > 0) {
         for (dim <- 0 until Knowledge.dimensionality) {
           var curNeighbors = ListBuffer(neighbors(2 * dim + 0), neighbors(2 * dim + 1))
@@ -304,6 +305,7 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
           }
         }
       }
+    }
 
     // compile return value
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName.cpp}",
@@ -337,7 +339,7 @@ case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) 
         }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0))))))
 
     // sync duplicate values
-    if (field.requiresComm)
+    if (field.communicatesDuplicated) {
       if (field.layout.foldLeft(0)((old : Int, l) => old max l.numDupLayersLeft max l.numDupLayersRight) > 0) {
         val sendRemoteData = neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0).map(neigh => (neigh, new IndexRange(
           new MultiIndex(
@@ -408,9 +410,10 @@ case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) 
           body += new LocalSend(field, sendLocalData)
         }
       }
+    }
 
     // update ghost layers
-    if (field.requiresComm)
+    if (field.communicatesGhosts) {
       if (field.layout.foldLeft(0)((old : Int, l) => old max l.numGhostLayersLeft max l.numGhostLayersRight) > 0) {
         val sendRemoteData = neighbors.map(neigh => (neigh, new IndexRange(
           new MultiIndex(
@@ -483,6 +486,7 @@ case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) 
           body += new LocalSend(field, sendLocalData)
         }
       }
+    }
 
     // compile return value
     return FunctionStatement(new UnitDatatype(), s"exch${field.codeName.cpp}",

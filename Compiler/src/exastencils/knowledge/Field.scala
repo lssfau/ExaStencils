@@ -46,14 +46,30 @@ case class Field(
   var codeName : Expression, // will be used in the generated source code
   var dataType : Datatype, // represents the data type; thus it can also encode the dimensionality when using e.g. vector fields
   var layout : Array[FieldLayoutPerDim], // represents the number of data points and their distribution in each dimension
+  var communicatesDuplicated : Boolean, // specifies if duplicated values need to be exchanged between processes
+  var communicatesGhosts : Boolean, // specifies if ghost layer values need to be exchanged between processes
   var level : Int, // the (geometric) level the field lives on 
   var numSlots : Int, // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
   var referenceOffset : MultiIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
-  var requiresComm : Boolean, // specifies if data from this fields needs to be communicated between different processes
-  /*FIXME: introduce 'real' boundary conditions */ var bcDir0 : Boolean) extends Node {}
+  var dirichletBC : Option[Expression] // None in case of no dirichlet BC, otherwise specifies the expression to be used for the dirichlet boundary
+  ) extends Node {}
+
+case class ExternalField(
+  var identifier : String, // will be used to find the field
+  var targetFieldIdentifier : String, // name of the (internal) field to be copied to/ from
+  var layout : Array[FieldLayoutPerDim], // represents the number of data points and their distribution in each dimension
+  var level : Int, // the (geometric) level the field lives on 
+  var referenceOffset : MultiIndex // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
+  ) extends Node {}
 
 case class FieldCollection(var fields : ListBuffer[Field] = ListBuffer()) extends Node {
   def getFieldByIdentifier(identifier : String, level : Int) : Option[Field] = {
+    fields.find(f => f.identifier == identifier && f.level == level)
+  }
+}
+
+case class ExternalFieldCollection(var fields : ListBuffer[ExternalField] = ListBuffer()) extends Node {
+  def getFieldByIdentifier(identifier : String, level : Int) : Option[ExternalField] = {
     fields.find(f => f.identifier == identifier && f.level == level)
   }
 }

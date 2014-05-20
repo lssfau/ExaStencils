@@ -225,7 +225,7 @@ case class DirectFieldAccess(var fieldOwner : Expression, var field : Field, var
   override def cpp : String = "NOT VALID ; CLASS = FieldAccess\n"
 
   def linearize : LinearizedFieldAccess = {
-    new LinearizedFieldAccess(fieldOwner, field, slot, Mapping.resolveMultiIdx(field, index))
+    new LinearizedFieldAccess(fieldOwner, field, slot, Mapping.resolveMultiIdx(field.layout, index))
   }
 }
 
@@ -233,7 +233,15 @@ case class FieldAccess(var fieldOwner : Expression, var field : Field, var slot 
   override def cpp : String = "NOT VALID ; CLASS = FieldAccess\n"
 
   def linearize : LinearizedFieldAccess = {
-    new LinearizedFieldAccess(fieldOwner, field, slot, Mapping.resolveMultiIdx(field, new MultiIndex(index, field.referenceOffset, _ + _)))
+    new LinearizedFieldAccess(fieldOwner, field, slot, Mapping.resolveMultiIdx(field.layout, new MultiIndex(index, field.referenceOffset, _ + _)))
+  }
+}
+
+case class ExternalFieldAccess(var name : Expression, var field : ExternalField, var index : MultiIndex) extends Expression {
+  override def cpp : String = "NOT VALID ; CLASS = ExternalFieldAccess\n"
+
+  def linearize : ArrayAccess = {
+    new ArrayAccess(name, Mapping.resolveMultiIdx(field.layout, index))
   }
 }
 
@@ -354,7 +362,6 @@ case class PowerExpression(var left : Expression, var right : Expression) extend
     sb.append(")")
   }
 }
-
 
 case class EqEqExpression(var left : Expression, var right : Expression) extends Expression {
   override def cpp : String = {
