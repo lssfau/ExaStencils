@@ -11,7 +11,7 @@ object MainWuppertal extends App {
   
   val v = Vector[Int](1, 2, 3)
   
-  StateManager.root_ = DummyRoot(new SmootherNode( "Gs" ))
+  StateManager.root_ = DummyRoot(new SmootherNode("Gs"))
   
   val strategy = DefaultStrategy("Smoother")
   
