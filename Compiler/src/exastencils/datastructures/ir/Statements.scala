@@ -51,15 +51,22 @@ case class AssignmentStatement(var dest : Expression, var src : Expression, var 
   }
 }
 
-case class ForLoopStatement(var begin : Expression, var end : Expression, var inc : Expression, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement {
-  def this(begin : Expression, end : Expression, inc : Expression, body : Statement, reduction : Option[Reduction]) = this(begin, end, inc, ListBuffer(body), reduction);
-  def this(begin : Expression, end : Expression, inc : Expression, body : Statement) = this(begin, end, inc, ListBuffer(body));
+case class ForLoopStatement(var begin : Statement, var end : Expression, var inc : Statement, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement {
+  def this(begin : Statement, end : Expression, inc : Statement, body : Statement, reduction : Option[Reduction]) = this(begin, end, inc, ListBuffer(body), reduction);
+  def this(begin : Statement, end : Expression, inc : Statement, body : Statement) = this(begin, end, inc, ListBuffer(body));
 
   override def cpp : String = {
-    (s"for (${begin.cpp}; ${end.cpp}; ${inc.cpp})"
-      + "\n{\n"
-      + body.map(stat => stat.cpp).mkString("\n")
-      + s"\n}");
+
+    val sb : StringBuilder = new StringBuilder()
+    sb ++= "for (" ++= begin.cpp() += ' '; end.cppsb(sb); sb ++= "; " ++= inc.cpp()
+    if (sb.last == ';')
+      sb.deleteCharAt(sb.length - 1)
+    sb ++= ")\n{\n"
+    for (stmt <- body)
+      sb ++= stmt.cpp()
+    sb ++= "\n}"
+
+    return sb.toString()
   }
 }
 
@@ -115,9 +122,9 @@ case class ReturnStatement(expr : Expression) extends Statement {
 
 abstract class AbstractFunctionStatement() extends Statement
 
-case class FunctionStatement(var returntype : Datatype, var name : String, var parameters : ListBuffer[VariableAccess], var body : ListBuffer[Statement]) extends AbstractFunctionStatement {
-  def this(returntype : Datatype, name : String, parameters : ListBuffer[VariableAccess], body : Statement) = this(returntype, name, parameters, ListBuffer[Statement](body));
-  def this(returntype : Datatype, name : String, parameters : VariableAccess, body : ListBuffer[Statement]) = this(returntype, name, ListBuffer[VariableAccess](parameters), body);
+case class FunctionStatement(var returntype : Datatype, var name : Expression, var parameters : ListBuffer[VariableAccess], var body : ListBuffer[Statement]) extends AbstractFunctionStatement {
+  def this(returntype : Datatype, name : Expression, parameters : ListBuffer[VariableAccess], body : Statement) = this(returntype, name, parameters, ListBuffer[Statement](body));
+  def this(returntype : Datatype, name : Expression, parameters : VariableAccess, body : ListBuffer[Statement]) = this(returntype, name, ListBuffer[VariableAccess](parameters), body);
 
   def cpp : String = { // FIXME: add specialized node for parameter specification with own PP
     (s"${returntype.cpp} $name(" + parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ")"

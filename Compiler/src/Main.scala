@@ -18,11 +18,12 @@ import harald_dep.Generate._
 import harald_dep.ast._
 import exastencils.spl.FeatureModel
 import exastencils.parsers.l4.ParserL4
+import exastencils.parsers.l4.ValidationL4
 import exastencils.datastructures.l4.ProgressableToIr
 import exastencils.languageprocessing.l4.ProgressToIr
 import exastencils.mpi._
-import exastencils.polyhedron.PolyOpt
-import exastencils.polyhedron.Extractor
+import exastencils.omp._
+import exastencils.polyhedron._
 
 object Main {
   def main(args : Array[String]) : Unit = {
@@ -53,6 +54,7 @@ object Main {
     // HACK: this tests the new L4 capabilities
     var parserl4 = new ParserL4
     StateManager.root_ = parserl4.parseFile(Settings.basePathPrefix + "/Compiler/dsl/newDSL4.exa")
+    ValidationL4.apply
     ProgressToIr.apply()
 
     StateManager.root_ = StateManager.root_.asInstanceOf[ProgressableToIr].progressToIr.asInstanceOf[Node]
@@ -172,8 +174,6 @@ object Main {
 
     do { ExpandStrategy.apply() }
     while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
-
-    SetupApplication.apply()
 
     do { ExpandStrategy.apply() }
     while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code

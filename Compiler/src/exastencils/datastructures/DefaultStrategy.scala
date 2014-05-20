@@ -6,7 +6,7 @@ import exastencils.core.StateManager
 import exastencils.core.Logger._
 import exastencils.core._
 
-class StrategyResult(transformationResults: List[TransformationResult]) {
+class StrategyResult(transformationResults : List[TransformationResult]) {
   def getResults = transformationResults
 }
 
@@ -21,34 +21,27 @@ class DefaultStrategy(name : String) extends Strategy(name) {
   def transformations = { transformations_.toList }
   def results = { results_.toList }
 
-  protected var token : Option[StateManager.TokenType] = None
-
   def apply(node : Option[Node] = None) : Unit = {
-    token = Some(StateManager.transaction(this))
+    transaction()
 
     Logger.info(s"""Applying strategy "${name}"""")
     try {
       transformations_.foreach(transformation => {
         executeInternal(transformation, node)
       })
-      StateManager.commit(token.get)
+      commit()
     } catch {
       case x : TransformationException => {
         Logger.warn(s"""Strategy "${name}" did not apply successfully""")
         Logger.warn(s"""Error in Transformation ${x.transformation.name}""")
         Logger.warn(s"Message: ${x.msg}")
         Logger.warn(s"Rollback will be performed")
-        StateManager.abort(token.get)
+        abort()
       }
     }
   }
 
-  protected def execute(transformation : Transformation, node : Option[Node] = None) : Unit = {
-    Logger.info(s"""Executing nested transformation "${transformation.name}" during strategy "${name}"""")
-    executeInternal(transformation, node)
-  }
-
-  protected def executeInternal(transformation : Transformation, node : Option[Node] = None) : Unit = {
+  protected override def executeInternal(transformation : Transformation, node : Option[Node] = None) : Unit = {
     Logger.info(s"""Applying strategy "${name}::${transformation.name}"""")
     val n = if (transformation.applyAtNode.isDefined) transformation.applyAtNode else node
     val result = StateManager.apply(token.get, transformation, n)

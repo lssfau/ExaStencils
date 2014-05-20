@@ -45,9 +45,14 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   //###########################################################
 
-  lazy val program = locationize(domain.* ~ field.* ~ stencil.* ~ iterationSet.* ~ function.* ^^ { case d ~ f ~ s ~ i ~ ss => Root(d, f, s, i, ss) })
+  lazy val program = locationize(domain.* ~ layout.* ~ field.* ~ stencil.* ~ iterationSet.* ~ function.* ^^
+    { case d ~ l ~ f ~ s ~ i ~ ss => Root(d, l, f, s, i, ss) })
 
   //###########################################################
+
+  // ######################################
+  // ##### Level Specifications
+  // ######################################
 
   lazy val level = (
     locationize("@" ~> integerLit ^^ { case l => SingleLevelSpecification(l) })
@@ -80,14 +85,14 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ##### Functions
   // ######################################
 
-  lazy val function = locationize(("def" ~> leveledidentifier) ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}")) ^^
+  lazy val function = locationize(("def" ~> identifierWithOptionalLevel) ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}")) ^^
     { case id ~ args ~ t ~ stmts => FunctionStatement(id, t, args.getOrElse(List[Variable]()), stmts) })
   lazy val functionArgumentList = (functionArgument <~ ("," | newline)).* ~ functionArgument ^^ { case args ~ arg => arg :: args }
   lazy val functionArgument = locationize(((ident <~ ":") ~ datatype) ^^ { case id ~ t => Variable(UnresolvedIdentifier(id, None), t) })
-  lazy val functionCall = locationize(leveledidentifier ~ "(" ~ functionCallArgumentList.? ~ ")" ^^ { case id ~ "(" ~ args ~ ")" => FunctionCallExpression(id, args.getOrElse(List[Expression]())) })
+  lazy val functionCall = locationize(identifierWithOptionalLevel ~ "(" ~ functionCallArgumentList.? ~ ")" ^^ { case id ~ "(" ~ args ~ ")" => FunctionCallExpression(id, args.getOrElse(List[Expression]())) })
   lazy val functionCallArgumentList = (expression <~ ("," | newline)).* ~ expression ^^ { case exps ~ ex => exps :+ ex }
 
-  lazy val diagFunctionCall = locationize("diag" ~ "(" ~ leveledidentifier ~ ")" ^^ { case _ ~ "(" ~ what ~ ")" => FunctionCallExpression(BasicIdentifier("diag"), List[Expression](what)) })
+  lazy val diagFunctionCall = locationize("diag" ~ "(" ~ identifierWithOptionalLevel ~ ")" ^^ { case _ ~ "(" ~ what ~ ")" => FunctionCallExpression(BasicIdentifier("diag"), List[Expression](what)) })
   lazy val toFinerFunctionCall = locationize("ToFiner" ~ "(" ~ binaryexpression ~ ")" ^^ { case _ ~ "(" ~ stencilconv ~ ")" => FunctionCallExpression(BasicIdentifier("ToFiner"), List[Expression](stencilconv)) })
   lazy val toCoarserFunctionCall = locationize("ToCoarser" ~ "(" ~ binaryexpression ~ ")" ^^ { case _ ~ "(" ~ stencilconv ~ ")" => FunctionCallExpression(BasicIdentifier("ToCoarser"), List[Expression](stencilconv)) })
 
@@ -110,7 +115,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val variableDeclaration = (locationize(("var" ~> ident) ~ (":" ~> datatype) ~ ("=" ~> expression).? ^^ { case id ~ dt ~ exp => VariableDeclarationStatement(BasicIdentifier(id), dt, exp) }))
 
-  lazy val iterationSet = locationize(("Set" ~> leveledidentifier) ~ expressionIndex ~ ("-" ~> expressionIndex) ~ ("steps" ~> expressionIndex).?
+  lazy val iterationSet = locationize(("Set" ~> identifierWithOptionalLevel) ~ expressionIndex ~ ("-" ~> expressionIndex) ~ ("steps" ~> expressionIndex).?
     ^^ { case id ~ begin ~ end ~ inc => IterationSetDeclarationStatement(id, begin, end, inc) })
 
   lazy val repeatUp = locationize(("repeat" ~ "up") ~> numericLit ~ ("{" ~> statement.+ <~ "}") ^^ { case n ~ s => RepeatUpStatement(n.toInt, s) })
@@ -118,19 +123,19 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val repeatUntil = locationize(
     (("repeat" ~ "until") ~> comparison) ~ (("{" ~> statement.+) <~ "}") ^^ { case c ~ s => RepeatUntilStatement(c, s) })
 
-  lazy val reduction = locationize((("reduction" ~ "(") ~> ("+" ||| "*")) ~ (":" ~> leveledidentifier <~ ")") ^^ { case op ~ s => ReductionStatement(op, s) })
-
   lazy val loopOver = locationize(("loop" ~ "over" ~> ident) ~
-    ("on" ~> leveledfieldidentifier) ~ // FIXME: this is all but robust / a user could break this easily
-    ("with" ~> reduction).? ~ // FIXME: support other additional commands
+    ("on" ~> identifierWithObligatoryLevel) ~ // FIXME: this is all but robust / a user could break this easily
+    ("with" ~> loopOverWithClause).? ~
     ("{" ~> statement.+) <~ "}" ^^
     {
       case area ~ field ~ red ~ stmts => LoopOverDomainStatement(area, field, stmts, red)
     })
 
-  lazy val assignment = locationize(leveledidentifier ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(id, exp) })
+  lazy val loopOverWithClause = locationize((("reduction" ~ "(") ~> ("+" ||| "*")) ~ (":" ~> identifierWithOptionalLevel <~ ")") ^^ { case op ~ s => ReductionStatement(op, s) })
 
-  lazy val operatorassignment = locationize(leveledidentifier ~ operatorassignmentoperator ~ expression ^^ {
+  lazy val assignment = locationize(identifierWithOptionalLevel ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(id, exp) })
+
+  lazy val operatorassignment = locationize(identifierWithOptionalLevel ~ operatorassignmentoperator ~ expression ^^ {
     case id ~ op ~ exp => AssignmentStatement(id, BinaryExpression(op, id, exp))
   })
 
@@ -141,21 +146,28 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val conditional = locationize(("if" ~ "(" ~> booleanexpression <~ ")") ~ ("{" ~> statement.+ <~ "}") ^^ { case exp ~ stmts => ConditionalStatement(exp, stmts) })
 
-  lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> index <~ ",") ~ (datatype <~ ">") ~ level.? ~ ("(" ~> tempOptions <~ ")").?
-    ^^ { case id ~ i ~ t ~ l ~ topts => var f = FieldDeclarationStatement(id, t, i, l); topts.getOrElse(List()).foreach(f.set(_)); f })
+  // ######################################
+  // ##### Fields & Layouts
+  // ######################################
+
+  lazy val layout = locationize(("Layout" ~> ident) ~ ("{" ~> (layoutOption).+ <~ "}") ^^ { case id ~ opts => var x = LayoutDeclarationStatement(id); x.set(opts); x })
+  lazy val layoutOption = locationize((ident <~ "=") ~ index ~ ("with" ~ "communication").? ^^ { case id ~ idx ~ comm => LayoutOption(id, idx, Some(comm.isDefined)) })
+
+  lazy val field = locationize(("Field" ~> ident) ~ "<" ~ datatype ~ ("," ~> ident) ~ ("," ~> ident) ~ ">" ~ level.? ~ ("(" ~> tempOptions <~ ")").?
+    ^^ {
+      case id ~ _ ~ dt ~ layout ~ boundary ~ _ ~ level ~ topts =>
+        var f = FieldDeclarationStatement(id, dt, layout, boundary, level); topts.getOrElse(List()).foreach(f.set(_)); f
+    })
 
   lazy val index : PackratParser[Index] = (
-    // FIXME: this has to be done properly
     locationize("[" ~ integerLit ~ "," ~ integerLit ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ => Index2D(n1, n2) })
     ||| locationize("[" ~ integerLit ~ "," ~ integerLit ~ "," ~ integerLit ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ ~ n3 ~ _ => Index3D(n1, n2, n3) }))
 
   lazy val realIndex : PackratParser[RealIndex] = (
-    // FIXME: this has to be done properly
     locationize("[" ~ realLit ~ "," ~ realLit ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ => RealIndex2D(n1, n2) })
     ||| locationize("[" ~ realLit ~ "," ~ realLit ~ "," ~ realLit ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ ~ n3 ~ _ => RealIndex3D(n1, n2, n3) }))
 
   lazy val expressionIndex : PackratParser[ExpressionIndex] = (
-    // FIXME: this has to be done properly
     locationize("[" ~ expression ~ "," ~ expression ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ => ExpressionIndex2D(n1, n2) })
     ||| locationize("[" ~ expression ~ "," ~ expression ~ "," ~ expression ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ ~ n3 ~ _ => ExpressionIndex3D(n1, n2, n3) }))
 
@@ -167,16 +179,16 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val stencilentry = ((expressionIndex ~ ("=>" ~> factor)) ^^ { case offset ~ weight => StencilEntry(offset, weight) })
 
   lazy val stencil = locationize(("Stencil" ~> ident) ~ level.? ~ ("{" ~> stencilentry.+ <~ "}")
-    ^^ { case id ~ level ~ entries => StencilDeclarationStatement(id, entries, level) })
+    ^^ { case id ~ level ~ entries => StencilDeclarationStatement(id, entries, level) }) // FIXME replace ident by identifierWith*
 
-  lazy val communicateStatement = locationize("communicate" ~> leveledidentifier ^^ { case field => CommunicateStatement(field) })
+  lazy val communicateStatement = locationize("communicate" ~> identifierWithOptionalLevel ^^ { case field => CommunicateStatement(field) })
 
   // ######################################
   // ##### Expressions
   // ######################################
 
-  lazy val leveledidentifier = locationize(ident ~ level.? ^^ { case id ~ level => UnresolvedIdentifier(id, level) })
-  lazy val leveledfieldidentifier = locationize(ident ~ level ^^ { case id ~ level => FieldIdentifier(id, level) })
+  lazy val identifierWithOptionalLevel = locationize(ident ~ level.? ^^ { case id ~ level => UnresolvedIdentifier(id, level) })
+  lazy val identifierWithObligatoryLevel = locationize(ident ~ level ^^ { case id ~ level => FieldIdentifier(id, level) })
 
   lazy val expression = binaryexpression | booleanexpression
 
@@ -189,7 +201,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| factor)
 
   lazy val factor : Parser[Expression] = (
-    "(" ~> expression <~ ")"
+    "(" ~> binaryexpression <~ ")"
     ||| locationize(stringLit ^^ { case s => StringConstant(s) })
     ||| locationize("-".? ~ numericLit ^^ {
       case s ~ n => if (isInt(s.getOrElse("") + n)) IntegerConstant((s.getOrElse("") + n).toInt) else FloatConstant((s.getOrElse("") + n).toDouble)
@@ -199,12 +211,10 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| locationize(diagFunctionCall)
     ||| locationize(toFinerFunctionCall)
     ||| locationize(toCoarserFunctionCall)
-    ||| leveledidentifier)
+    ||| identifierWithOptionalLevel)
 
   lazy val booleanexpression : PackratParser[BooleanExpression] = (
     locationize(booleanexpression ~ ("||" ||| "&&") ~ booleanexpression ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
-    ||| locationize(expression ~ ("||" ||| "&&") ~ booleanexpression ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
-    ||| locationize(booleanexpression ~ ("||" ||| "&&") ~ expression ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
     ||| comparison)
 
   lazy val comparison : PackratParser[BooleanExpression] =
