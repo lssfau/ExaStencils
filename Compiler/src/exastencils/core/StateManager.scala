@@ -27,7 +27,7 @@ object StateManager {
   }
   def restore(id : CheckpointIdentifier) : Unit = {
     Logger.debug(s"""Restoring to checkpoint "$id"""")
-    root_ = checkpoints_.getOrElse(id, { Logger.error(s"""Could not restore to checkpoint "$id": Not found!""") })
+    root_ = checkpoints_.getOrElse(id, { throw CheckpointException(s"""Could not restore to checkpoint "$id": Not found!""") })
   }
   def listCheckpoints() = checkpoints_.keys
 
@@ -39,23 +39,23 @@ object StateManager {
     final class TransactionToken(val id : Int)
 
     def transaction(strategy : Strategy) : TransactionToken = {
-      if (currentToken != None) throw new RuntimeException(s"""Strategy "${strategy.name}": Another transaction currently running!""")
+      if (currentToken != None) throw new TransactionException(s"""Strategy "${strategy.name}": Another transaction is currently running!""")
       val ret = new TransactionToken(currentTokenCounter)
       currentToken = Some(ret)
       return ret
     }
 
     def commit(token : TransactionToken) : Unit = {
-      if (currentToken == None) throw new RuntimeException("No currently running transaction!")
-      if (!isValid(token)) throw new RuntimeException("Wrong token supplied, transaction not committed!")
+      if (currentToken == None) throw new TransactionException("No currently running transaction!")
+      if (!isValid(token)) throw new TransactionException("Wrong token supplied, transaction not committed!")
       currentToken = None
     }
 
     def abort(token : TransactionToken) : Unit = {
-      if (currentToken == None) throw new RuntimeException("No currently running transaction!")
-      if (!isValid(token)) throw new RuntimeException("Wrong token supplied, transaction not committed!")
+      if (currentToken == None) throw new TransactionException("No currently running transaction!")
+      if (!isValid(token)) throw new TransactionException("Wrong token supplied, transaction not committed!")
       currentToken = None
-      Logger.error("Transaction has been aborted, aborting compilation...")
+      Logger.warning("Transaction has been aborted")
     }
 
     def isValid(token : TransactionToken) = { currentToken != None && token == currentToken.get }
@@ -123,11 +123,11 @@ object StateManager {
         case n : Node => {
           if (nodeIsOption) { // node is an Option[T] => set with Some() wrapped
             if (!Vars.set(node, field, Some(n))) {
-              Logger.error(s"Could not set $field in transformation ${transformation.name}")
+              Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
             }
           } else { // node is not an Option[T] => set directly
             if (!Vars.set(node, field, n)) {
-              Logger.error(s"Could not set $field in transformation ${transformation.name}")
+              Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
             }
           }
           if (transformation.recursive) replace(n, transformation)
@@ -148,7 +148,7 @@ object StateManager {
     Vars(node).foreach(field => {
       val currentSubnode = Vars.get(node, field)
       val previousMatches = progresses_(transformation).getMatches
-      Logger.info(s"Statemanager::replace: node = $node, field = $field, currentSubnode = $currentSubnode")
+      Logger.info(s"""Statemanager::replace: node = "$node", field = "$field", currentSubnode = "$currentSubnode"""")
 
       currentSubnode match {
         case thisnode : Node => {
@@ -190,7 +190,7 @@ object StateManager {
             import scala.language.existentials
             var newSet = set.asInstanceOf[scala.collection.immutable.Set[Node]].map({ case item => processOutput(applyAtNode(item, transformation)) })
             if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newSet)) {
-              Logger.error(s"Could not set $field in transformation ${transformation.name}")
+              Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
             }
             if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) newSet.foreach(f => replace(f, transformation))
           }
@@ -200,7 +200,7 @@ object StateManager {
           if (invalids.size <= 0) {
             var newList = list.asInstanceOf[Seq[Node]].flatMap(listitem => processOutput(applyAtNode(listitem, transformation)))
             if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newList)) {
-              Logger.error(s"Could not set $field in transformation ${transformation.name}")
+              Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
             }
             if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) newList.foreach(f => replace(f, transformation))
           }
@@ -219,7 +219,7 @@ object StateManager {
             import scala.language.existentials
             var newMap = map.asInstanceOf[scala.collection.mutable.Map[_, Node]].map({ case (k, listitem) => (k, processOutput(applyAtNode(listitem, transformation))) })
             if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newMap)) {
-              Logger.error(s"Could not set $field in transformation ${transformation.name}")
+              Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
             }
             if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) newMap.values.foreach(f => replace(f, transformation))
           }
@@ -238,7 +238,7 @@ object StateManager {
             import scala.language.existentials
             var newMap = map.asInstanceOf[scala.collection.immutable.Map[_, Node]].map({ case (k, listitem) => (k, processOutput(applyAtNode(listitem, transformation))) })
             if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newMap)) {
-              Logger.error(s"Could not set $field in transformation ${transformation.name}")
+              Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
             }
             if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) newMap.values.foreach(f => replace(f, transformation))
           }
@@ -253,7 +253,7 @@ object StateManager {
               var newArray = java.lang.reflect.Array.newInstance(arrayType, tmpArray.length)
               System.arraycopy(tmpArray, 0, newArray, 0, tmpArray.length)
               if (!Vars.set(node, field, newArray)) {
-                Logger.error(s"Could not set $field in transformation ${transformation.name}")
+                Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
               }
             }
             if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) tmpArray.asInstanceOf[Array[Node]].foreach(f => replace(f, transformation))
@@ -314,9 +314,9 @@ object StateManager {
       return new TransformationResult(true, progresses_(transformation).getMatches)
     } catch {
       case x : TransformationException => {
-        Logger.warn(f"""Error in Transformation ${x.transformation.name}""")
-        Logger.warn(f"Message: ${x.msg}")
-        Logger.warn(f"Rollback will be performed")
+        Logger.warn(s"""Error in Transformation ${x.transformation.name}""")
+        Logger.warn(s"Message: ${x.msg}")
+        Logger.warn(s"Rollback will be performed")
         abort(token)
         throw x
       }
@@ -330,8 +330,8 @@ object StateManager {
       return new TransformationResult(true, progresses_(transformation).getMatches)
     } catch {
       case x : TransformationException => {
-        Logger.warn(f"""Error in standalone Transformation ${x.transformation.name}""")
-        Logger.warn(f"Message: ${x.msg}")
+        Logger.warn(s"""Error in standalone Transformation ${x.transformation.name}""")
+        Logger.warn(s"Message: ${x.msg}")
         throw x
       }
     }
