@@ -2,6 +2,7 @@ package exastencils.matlang
 
 import exastencils.datastructures._
 import exastencils.core._
+import exastencils.math._
 
 class Assignment(val dest : Variable, val rhs : Expr) extends Node {
   
@@ -12,7 +13,13 @@ class Expr(val etype : Type) extends Node {
   
 }
 
+/** Evaluates to Nil. */
 class NilExpr(etype : Type) extends Expr(etype)
+
+class ConstantStencilExpr(val stencil : GeneralStencil[Double])
+	extends Expr(MatrixT()) {
+  
+}
 
 /** Expression that yields a matrix */
 case class FunctionCall(
@@ -23,8 +30,8 @@ case class FunctionCall(
 
 }
 
-class Function(val returnType : Type, val name : String)
-{
+class Function(val returnType : Type, val name : String) {
+  
 }
 
 class Variable(etype : Type) extends Expr(etype) {

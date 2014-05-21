@@ -1,6 +1,7 @@
 import exastencils.datastructures._
 import exastencils.core._
 import exastencils.smoother._
+import exastencils.math._
 
 object DummyRoot {
   def apply(children : Node*) = new DummyRoot(children.toList)
@@ -21,6 +22,13 @@ object MainWuppertal extends App {
   {
     import exastencils.matlang._
     
+    val st_L = GeneralStencil[Double](
+        (-1, Vector[Int](0, -1)),
+        (-1, Vector[Int](-1, 0)),
+        (4, Vector[Int](0, 0)),
+        (-1, Vector[Int](1, 0)),
+        (-1, Vector[Int](0, 1)))
+    
     val f = new Variable(FieldT())
 	val u = new Variable(FieldT())
 	val r = new Variable(FieldT())
@@ -34,12 +42,14 @@ object MainWuppertal extends App {
         List(new FunctionCall(diag, List(L))))
     
 	StateManager.root_ = DummyRoot(
+	    new Assignment(L,
+	    			   new ConstantStencilExpr(st_L)),
 	    new Assignment(r, 
 	        new FunctionCall(diff, List(
 	            f,
 	            new FunctionCall(mv, List(L, u))))),
 	    new FunctionCall(sum, List(
-	                     new FunctionCall(mv, List(L, r))))
+	                     new FunctionCall(mv, List(D_inv, r))))
      )	            
 	        
   }
