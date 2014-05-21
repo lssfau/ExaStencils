@@ -57,7 +57,7 @@ case class LayoutOption(var name : String, var value : Index, var hasCommunicati
 case class FieldDeclarationStatement(var name : String,
                                      var datatype : Datatype,
                                      var layout : String,
-                                     var boundary : BinaryExpression,
+                                     var boundary : Option[Expression],
                                      var level : Option[LevelSpecification]) extends SpecialStatement {
   var communicates = true
   var ghostlayers = 0
@@ -99,7 +99,7 @@ case class FieldDeclarationStatement(var name : String,
       level.get.asInstanceOf[SingleLevelSpecification].level,
       slots,
       layoutinstance.ghostLayers.get.progressToIr, // FIXME
-      Some(boundary) // FIXME
+      if(boundary.isDefined) Some(boundary.get.progressToIr) else None
       )
 
   }

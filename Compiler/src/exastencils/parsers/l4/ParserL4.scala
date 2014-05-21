@@ -153,11 +153,12 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val layout = locationize(("Layout" ~> ident) ~ ("{" ~> (layoutOption).+ <~ "}") ^^ { case id ~ opts => var x = LayoutDeclarationStatement(id); x.set(opts); x })
   lazy val layoutOption = locationize((ident <~ "=") ~ index ~ ("with" ~ "communication").? ^^ { case id ~ idx ~ comm => LayoutOption(id, idx, Some(comm.isDefined)) })
 
-  lazy val field = locationize(("Field" ~> ident) ~ "<" ~ datatype ~ ("," ~> ident) ~ ("," ~> binaryexpression) ~ ">" ~ level.? ~ ("(" ~> tempOptions <~ ")").?
+  lazy val field = locationize(("Field" ~> ident) ~ "<" ~ datatype ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ level.? ~ ("(" ~> tempOptions <~ ")").?
     ^^ {
       case id ~ _ ~ dt ~ layout ~ boundary ~ _ ~ level ~ topts =>
-        var f = FieldDeclarationStatement(id, dt, layout, boundary.asInstanceOf[BinaryExpression], level); topts.getOrElse(List()).foreach(f.set(_)); f
+        var f = FieldDeclarationStatement(id, dt, layout, boundary, level); topts.getOrElse(List()).foreach(f.set(_)); f
     })
+  lazy val fieldBoundary = expression ^^ { case x => Some(x) } ||| "None" ^^ { case x => None }
 
   lazy val index : PackratParser[Index] = (
     locationize("[" ~ integerLit ~ "," ~ integerLit ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ => Index2D(n1, n2) })
@@ -190,7 +191,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val identifierWithOptionalLevel = locationize(ident ~ level.? ^^ { case id ~ level => UnresolvedIdentifier(id, level) })
   lazy val identifierWithObligatoryLevel = locationize(ident ~ level ^^ { case id ~ level => FieldIdentifier(id, level) })
 
-  lazy val expression = binaryexpression | booleanexpression
+  lazy val expression : PackratParser[Expression] = binaryexpression | booleanexpression
 
   lazy val binaryexpression : PackratParser[Expression] = (
     locationize((expression ~ ("+" ||| "-") ~ term) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
