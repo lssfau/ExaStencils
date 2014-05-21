@@ -189,7 +189,7 @@ case class CommunicationFunctions(var functions : ListBuffer[AbstractFunctionSta
 
       for (func <- functions) {
         val function = func.asInstanceOf[FunctionStatement]
-        writer << s"${function.returntype.cpp} ${function.name}(" + function.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n"
+        writer << s"${function.returntype.cpp} ${function.name.cpp}(" + function.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n"
       }
     }
 

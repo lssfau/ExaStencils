@@ -3,6 +3,10 @@ package exastencils.math
 import scala.reflect._
 
 object Vector {
+
+  def apply[T](elements : T*)(implicit mf : ClassTag[T], num : Numeric[T]) = {
+    new Vector[T](elements.toArray)
+  }
   
   /** Creates the zero vector. */
   def zero[T](rows : Int)(implicit mf : ClassTag[T], num : Numeric[T]) =

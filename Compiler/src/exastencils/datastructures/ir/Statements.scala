@@ -127,7 +127,7 @@ case class FunctionStatement(var returntype : Datatype, var name : Expression, v
   def this(returntype : Datatype, name : Expression, parameters : VariableAccess, body : ListBuffer[Statement]) = this(returntype, name, ListBuffer[VariableAccess](parameters), body);
 
   def cpp : String = { // FIXME: add specialized node for parameter specification with own PP
-    (s"${returntype.cpp} $name(" + parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ")"
+    (s"${returntype.cpp} ${name.cpp}(" + parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ")"
       + "\n{\n"
       + body.map(stat => stat.cpp).mkString("\n")
       + s"\n}")

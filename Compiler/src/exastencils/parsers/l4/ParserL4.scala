@@ -153,10 +153,9 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val layout = locationize(("Layout" ~> ident) ~ ("{" ~> (layoutOption).+ <~ "}") ^^ { case id ~ opts => var x = LayoutDeclarationStatement(id); x.set(opts); x })
   lazy val layoutOption = locationize((ident <~ "=") ~ index ~ ("with" ~ "communication").? ^^ { case id ~ idx ~ comm => LayoutOption(id, idx, Some(comm.isDefined)) })
 
-  lazy val field = locationize(("Field" ~> ident) ~ "<" ~ datatype ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ level.? ~ ("(" ~> tempOptions <~ ")").?
+  lazy val field = locationize(("Field" ~> ident) ~ "<" ~ datatype ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ level.?
     ^^ {
-      case id ~ _ ~ dt ~ layout ~ boundary ~ _ ~ level ~ topts =>
-        var f = FieldDeclarationStatement(id, dt, layout, boundary, level); topts.getOrElse(List()).foreach(f.set(_)); f
+      case id ~ _ ~ dt ~ layout ~ boundary ~ _ ~ level => FieldDeclarationStatement(id, dt, layout, boundary, level)
     })
   lazy val fieldBoundary = expression ^^ { case x => Some(x) } ||| "None" ^^ { case x => None }
 
@@ -171,11 +170,6 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val expressionIndex : PackratParser[ExpressionIndex] = (
     locationize("[" ~ expression ~ "," ~ expression ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ => ExpressionIndex2D(n1, n2) })
     ||| locationize("[" ~ expression ~ "," ~ expression ~ "," ~ expression ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ ~ n3 ~ _ => ExpressionIndex3D(n1, n2, n3) }))
-
-  lazy val tempOptions : PackratParser[List[TempOption]] = (tempOption <~ ",").* ~ tempOption ^^ { case t1 ~ t2 => t1 :+ t2 }
-  lazy val tempOption = (locationize(ident ~ "=" ~ ident ^^ { case a ~ _ ~ b => TempOption(a, b) })
-    ||| locationize(ident ~ "=" ~ numericLit ^^ { case a ~ _ ~ b => TempOption(a, b) })
-    ||| locationize(ident ~ "=" ~ booleanLit ^^ { case a ~ _ ~ b => TempOption(a, b) }))
 
   lazy val stencilentry = ((expressionIndex ~ ("=>" ~> factor)) ^^ { case offset ~ weight => StencilEntry(offset, weight) })
 

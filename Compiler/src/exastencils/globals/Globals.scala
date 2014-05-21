@@ -33,7 +33,7 @@ case class Globals() extends Node with FilePrettyPrintable {
 
     for (variable <- variables) { writerHeader << s"extern ${variable.cpp}\n" }
 
-    writerHeader << s"${initFunction.returntype.cpp} ${initFunction.name}(" + initFunction.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n"
+    writerHeader << s"${initFunction.returntype.cpp} ${initFunction.name.cpp}(" + initFunction.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n"
 
     val writerSource = PrettyprintingManager.getPrinter(s"Globals/Globals.cpp")
 
