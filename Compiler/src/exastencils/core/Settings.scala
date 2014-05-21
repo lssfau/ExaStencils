@@ -6,5 +6,5 @@ object Settings {
   var outputPath : String = "/tmp/"
   var buildfileGenerator = MakefileGenerator
   var binary = "exastencils"
-  var basePathPrefix = "."
+  var basePathPrefix = ".."
 }

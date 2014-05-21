@@ -27,9 +27,9 @@ object Knowledge {
   var domain_canHaveRemoteNeighs : Boolean = true // specifies if fragments can have remote (i.e.\ different mpi rank) neighbors, i.e.\ if mpi comm is required
 
   // number of blocks per dimension - one block will usually be mapped to one MPI thread
-  var domain_numBlocks_x : Int = 3 // [0-inf]
-  var domain_numBlocks_y : Int = 3 // [0-inf]
-  var domain_numBlocks_z : Int = 3 // [0-inf]
+  var domain_numBlocks_x : Int = 3 // 0-inf
+  var domain_numBlocks_y : Int = 3 // 0-inf
+  var domain_numBlocks_z : Int = 3 // 0-inf
   def domain_numBlocks : Int = {
     domain_numBlocks_x *
       (if (dimensionality > 1) domain_numBlocks_y else 1) *
@@ -37,9 +37,9 @@ object Knowledge {
   }
 
   // number of fragments in each block per dimension - this will usually be one or represent the number of OMP threads per dimension
-  var domain_numFragsPerBlock_x : Int = 3 // [0-inf]
-  var domain_numFragsPerBlock_y : Int = 3 // [0-inf]
-  var domain_numFragsPerBlock_z : Int = 3 // [0-inf]
+  var domain_numFragsPerBlock_x : Int = 3 // 0-inf
+  var domain_numFragsPerBlock_y : Int = 3 // 0-inf
+  var domain_numFragsPerBlock_z : Int = 3 // 0-inf
   def domain_numFragsPerBlock : Int = {
     domain_numFragsPerBlock_x *
       (if (dimensionality > 1) domain_numFragsPerBlock_y else 1) *
