@@ -35,7 +35,7 @@ case class getNeighInfo_IsValidAndNotRemote(var neigh : NeighborInfo, var domain
 }
 
 case class getNeighInfo_LocalPtr(var neigh : NeighborInfo, var domain : Int) extends Expression {
-  def cpp : String = { s"curFragment.neighbor_localPtr[$domain][${neigh.index}]" }
+  def cpp : String = { s"curFragment.neighbor_localPtr[$domain][${neigh.index}]->" }
 }
 
 case class getNeighInfo_FragmentId(var neigh : NeighborInfo, var domain : Int) extends Expression {
