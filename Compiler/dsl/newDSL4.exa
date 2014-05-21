@@ -1,18 +1,19 @@
-Domain global< [-1, -1, -1] to [1, 1, 1] >
+Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >
 
 Layout BasicComm {
-	ghostLayers = [ 1, 1, 1] with communication,
-	duplicateLayers = [ 1, 1, 1] with communication
+	ghostLayers = [ 1, 1, 1 ] with communication
+	duplicateLayers = [ 1, 1, 1 ] with communication
 	// innerPoints = []
 }
 
 Layout NoComm {
-	ghostLayers = [ 0, 0, 0],
-	duplicateLayers = [ 1, 1, 1]
+	ghostLayers = [ 0, 0, 0 ]
+	duplicateLayers = [ 1, 1, 1 ]
 	// innerPoints = []
 }
 
 Field Solution< Real, BasicComm, 0.0 >@all//[2]
+//Field Solution< Real, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@all//[2]
 //Field Solution2< [1, 1, 1], Real >@((coarsest + 1) to finest) ( ghostlayers = 1, slots = 1, bcDir = true )
 Field Residual< Real, BasicComm, None >@all
 Field RHS< Real, NoComm, None >@all
