@@ -19,6 +19,16 @@ object PrintStrategy extends DefaultStrategy("Pretty-Print") {
 }
 
 object ExpandStrategy extends DefaultStrategy("Expanding") {
+  def doUntilDone(node : Option[Node] = None) = {
+    do { apply(node) }
+    while (results.last._2.matches > 0) // FIXME: cleaner code
+  }
+
+  def doUntilDoneStandalone(node : Node) = {
+    do { applyStandalone(node) }
+    while (results.last._2.matches > 0) // FIXME: cleaner code
+  }
+
   this += new Transformation("Hoho, expanding all day...", {
     case expandable : Expandable =>
       expandable.expand
@@ -29,6 +39,16 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
   // FIXME: remove NullExpressions / NullStatements
   // FIXME: remove empty functions
   // FIXME: remove (true) conditions
+
+  def doUntilDone(node : Option[Node] = None) = {
+    do { apply(node) }
+    while (results.last._2.matches > 0) // FIXME: cleaner code
+  }
+
+  def doUntilDoneStandalone(node : Node) = {
+    do { applyStandalone(node) }
+    while (results.last._2.matches > 0) // FIXME: cleaner code
+  }
 
   this += new Transformation("Improving the quality of some horrid code...", {
     // FIXME: for re-runs only the number of replacements of the last trafo is checked, thus only one big trafo (should also improve performance)
@@ -142,7 +162,6 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       SubtractionExpression(rightLeft, IntegerConstant(rightRight))) =>
       ((leftLeft + rightLeft) - (leftRight.v + rightRight.v))
     //})
-
   })
 }
 

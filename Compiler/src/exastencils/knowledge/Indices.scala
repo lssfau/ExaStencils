@@ -15,8 +15,7 @@ object Mapping {
       case 2 => (index(1) * layout(0).total + index(0))
       case 3 => (index(2) * (layout(1).total * layout(0).total) + index(1) * layout(0).total + index(0))
     }
-    do { SimplifyStrategy.applyStandalone(ret) }
-    while (SimplifyStrategy.results.last._2.matches > 0) // FIXME: cleaner code
+    SimplifyStrategy.doUntilDoneStandalone(ret)
     ret
   }
 
@@ -26,8 +25,7 @@ object Mapping {
       case 2 => (index(1) * (aabb.end(0) - aabb.begin(0)) + index(0))
       case 3 => (index(2) * ((aabb.end(1) - aabb.begin(1)) * (aabb.end(0) - aabb.begin(0))) + index(1) * (aabb.end(0) - aabb.begin(0)) + index(0))
     }
-    do { SimplifyStrategy.applyStandalone(ret) }
-    while (SimplifyStrategy.results.last._2.matches > 0) // FIXME: cleaner code
+    SimplifyStrategy.doUntilDoneStandalone(ret)
     ret
   }
 }

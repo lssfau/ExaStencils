@@ -69,11 +69,7 @@ object Main {
 
     SetupFragmentClass.apply()
 
-    do { ExpandStrategy.apply() }
-    while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
-
-    do { ExpandStrategy.apply() }
-    while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
+    ExpandStrategy.doUntilDone()
 
     //    PolyOpt.apply()
 
@@ -81,15 +77,13 @@ object Main {
 
     LinearizeFieldAccesses.apply()
 
-    do { ExpandStrategy.apply() }
-    while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
+    ExpandStrategy.doUntilDone()
 
     if (!Knowledge.useMPI) {
       RemoveMPIReferences.apply()
     }
 
-    do { SimplifyStrategy.apply() }
-    while (SimplifyStrategy.results.last._2.matches > 0) // FIXME: cleaner code
+    SimplifyStrategy.doUntilDone()
 
     AddMemberFunctionPrefix.apply()
 
