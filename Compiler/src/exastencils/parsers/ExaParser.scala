@@ -34,7 +34,7 @@ class ExaParser extends StandardTokenParsers {
   lazy val datatype : Parser[Datatype] = (
     simpleDatatype
     ||| numericDatatype
-    ||| ("Array" ~ "[") ~> datatype <~ "]" ^^ { case x => new ArrayDatatype(x) })
+    ||| "Array" ~ ("[" ~> datatype <~ "]") ~ ("[" ~> integerLit <~ "]") ^^ { case _ ~ x ~ s => new ArrayDatatype(x, s) })
 
   lazy val simpleDatatype : Parser[Datatype] = (
     "String" ^^ { case x => new StringDatatype }

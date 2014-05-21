@@ -23,8 +23,8 @@ case class UnitDatatype() extends Datatype {
   def progressToIr : ir.Datatype = new ir.UnitDatatype
 }
 
-case class ArrayDatatype(var datatype : Datatype) extends Datatype {
-  def progressToIr : ir.Datatype = new ir.ArrayDatatype(datatype.progressToIr, 0/* FIXME: COOKIE */)
+case class ArrayDatatype(var datatype : Datatype, var numElements : Int) extends Datatype {
+  def progressToIr : ir.Datatype = new ir.ArrayDatatype(datatype.progressToIr, numElements)
 }
 
 case class ComplexDatatype(var datatype : Datatype) extends Datatype {
