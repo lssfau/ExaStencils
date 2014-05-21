@@ -32,7 +32,7 @@ case class LayoutDeclarationStatement(var name : String,
 case class FieldDeclarationStatement(var name : String,
     var datatype : Datatype,
     var layout : String,
-    var boundary : String,
+    var boundary : Option[Expression],
     var level : Option[LevelSpecification]) extends SpecialStatement {
 
   var slots = 1 // FIXME: add to parser
@@ -70,6 +70,6 @@ case class FieldDeclarationStatement(var name : String,
       level.get.asInstanceOf[SingleLevelSpecification].level,
       slots,
       l4_ghostLayers.progressToIr, // TODO: this should work for now but may be adapted in the future
-      if ("None" == boundary) None else Some(boundary)) // FIXME: set this automatically
+      if(boundary.isDefined) Some(boundary.get.progressToIr) else None) // FIXME: set this automatically
   }
 }
