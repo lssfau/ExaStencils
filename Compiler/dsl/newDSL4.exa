@@ -77,11 +77,11 @@ Set inner [1, 1, 1] - [1, 1, 1] steps [1, 1, 1]
 Set innerForFieldsWithoutGhostLayers [0, 0, 0] - [0, 0, 0] steps [1, 1, 1] // this concept might need some improvement
 Set domain [0, 0, 0] - [0, 0, 0] steps [1, 1, 1]
 // 2D
-Set red [1 + (y % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]
-Set black [2 - (y % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]
+//Set red [1 + (y % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]
+//Set black [2 - (y % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]
 // 3D
-//Set red [1 + ((y + z) % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]
-//Set black [2 - ((y + z) % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]
+Set red [1 + ((y + z) % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]
+Set black [2 - ((y + z) % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]
 
 def VCycle@coarsest ( ) : Unit {
 	UpResidual@(current) ( )
