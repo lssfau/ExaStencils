@@ -41,6 +41,18 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       FloatConstant(-value.v)
     //})
 
+    //this += new Transformation("Permutating operations with constants on the 'wrong' side", {
+    case AdditionExpression(left : IntegerConstant, right : Expression) if !right.isInstanceOf[IntegerConstant] =>
+      right + left
+    case MultiplicationExpression(left : IntegerConstant, right : Expression) if !right.isInstanceOf[IntegerConstant] =>
+      right * left
+
+    case AdditionExpression(left : FloatConstant, right : Expression) if !right.isInstanceOf[FloatConstant] =>
+      right + left
+    case MultiplicationExpression(left : FloatConstant, right : Expression) if !right.isInstanceOf[FloatConstant] =>
+      right * left
+    //})
+
     //this += new Transformation("Correcting signs", {
     case AdditionExpression(left, IntegerConstant(right)) if (right < 0) =>
       left - IntegerConstant(-right)

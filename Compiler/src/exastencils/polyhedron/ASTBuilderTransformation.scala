@@ -37,9 +37,9 @@ import exastencils.datastructures.ir.UnaryOperators
 import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.VariableDeclarationStatement
 import exastencils.primitives.LoopOverDimensions
-import exastencils.primitives.dimToString
 import isl.Conversions.convertLambdaToXCallback1
 import exastencils.knowledge.Knowledge
+import exastencils.knowledge.dimToString
 
 class ASTBuilderTransformation(replaceCallback : (String, Expression, Node) => Unit)
   extends Transformation("insert optimized loop AST", new ASTBuilderFunction(replaceCallback))

@@ -32,3 +32,14 @@ object Mapping {
   }
 }
 
+object dimToString extends (Int => String) {
+  // FIXME: this is named inappropriately; move this to a global variable manager as it becomes available
+  def apply(dim : Int) : String = {
+    return dim match {
+      case 0 => "x"
+      case 1 => "y"
+      case 2 => "z"
+      case _ => "UNKNOWN"
+    }
+  }
+}
