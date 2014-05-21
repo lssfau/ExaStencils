@@ -220,8 +220,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ######################################
 
   lazy val externalField = locationize(
-    (("external" ~ "Field") ~> ident) ~ ("with" ~> "communication").? ~ "=>" ~ identifierWithOptionalLevel ^^ {
-      case extid ~ comm ~ _ ~ intid => ExternalFieldDeclarationStatement(extid, intid, comm.isDefined)
+    (("external" ~ "Field") ~> ident) ~ ("<" ~> ident <~ ">") ~ "=>" ~ identifierWithOptionalLevel ^^ {
+      case extid ~ layout ~ _ ~ intid => ExternalFieldDeclarationStatement(extid, intid, layout)
     })
 
 }
