@@ -1,13 +1,13 @@
 Domain global< [-1, -1, -1] to [1, 1, 1] >
 
 Layout BasicComm {
-	ghostLayers = [ 1, 1, 1] with communication
+	ghostLayers = [ 1, 1, 1] with communication,
 	duplicateLayers = [ 1, 1, 1] with communication
 	// innerPoints = []
 }
 
 Layout NoComm {
-	ghostLayers = [ 0, 0, 0]
+	ghostLayers = [ 0, 0, 0],
 	duplicateLayers = [ 1, 1, 1]
 	// innerPoints = []
 }
