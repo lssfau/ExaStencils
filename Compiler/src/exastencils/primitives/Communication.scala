@@ -134,7 +134,6 @@ case class RemoteReceive(var field : Field, var neighbors : ListBuffer[(Neighbor
   override def cpp : String = "NOT VALID ; CLASS = RemoteReceive\n"
 
   def addMPIDatatype(mpiTypeNameBase : String, indexRange : IndexRange) : String = {
-    // FIXME: make the next line of code more readable and robust
     val globals : Globals = StateManager.findFirst[Globals]().get
 
     var addToName = 0

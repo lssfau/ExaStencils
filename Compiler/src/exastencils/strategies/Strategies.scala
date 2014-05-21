@@ -135,26 +135,10 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
 }
 
 object AddMemberFunctionPrefix extends DefaultStrategy("Adding member function prefixes") {
-  // FIXME: requires nested strategies which currently are not available
-  //    this += new Transformation("Add function scope prefixes to class member functions", {
-  //      case c : Class =>
-  //        var strategyAddScopePrefix = new Strategy("strategyAddScopePrefix")
-  //        strategyAddScopePrefix += new Transformation({
-  //          case function : FunctionStatement =>
-  //
-  //            function.name = s"${c.className}::${f.name}"
-  //
-  //            Some(function)
-  //        }, true, c)
-  //
-  //        strategyAddScopePrefix.apply
-  //
-  //        Some(c)
-  //    })
   this += new Transformation("Adding function scope prefixes to class member functions", {
     case c : Class =>
       for (func <- c.functions) {
-        func match { case f : FunctionStatement => f.name = s"${c.className}::${f.name}" }
+        func match { case f : FunctionStatement => f.name = c.className ~ "::" ~ f.name }
       }
       c
   })

@@ -153,3 +153,18 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
     return FunctionStatement(new UnitDatatype(), s"setupBuffers", ListBuffer(), body)
   }
 }
+
+case class SetFromExternalField(var dest : Field, var src : ExternalField) extends AbstractFunctionStatement with Expandable {
+  override def cpp : String = "NOT VALID ; CLASS = SetFromExternalField\n"
+
+  override def expand : FunctionStatement = {
+    new FunctionStatement(new UnitDatatype(), "set" ~ dest.codeName,
+      ListBuffer(new VariableAccess("src", Some(PointerDatatype(dest.dataType)))),
+      ListBuffer[Statement](
+        new LoopOverDimensions(new IndexRange(
+          new MultiIndex((0 until Knowledge.dimensionality).toArray.map(i => src.layout(i).idxDupLeftBegin)),
+          new MultiIndex((0 until Knowledge.dimensionality).toArray.map(i => src.layout(i).idxDupRightEnd))),
+          new AssignmentStatement(FieldAccess(new NullExpression, dest, "slot", DefaultLoopMultiIndex()),
+            ExternalFieldAccess("src", src, DefaultLoopMultiIndex())))))
+  }
+}

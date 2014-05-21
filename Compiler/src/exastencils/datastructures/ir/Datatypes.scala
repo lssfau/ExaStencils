@@ -25,10 +25,14 @@ case class UnitDatatype() extends Datatype {
   override def cpp = "void"
 }
 
-case class ArrayDatatype(datatype : Datatype) extends Datatype {
-  override def cpp = "array of " + datatype.cpp
+case class ArrayDatatype(datatype : Datatype, size : Int) extends Datatype {
+  override def cpp = s"${datatype.cpp}[$size]"
+}
+
+case class PointerDatatype(datatype : Datatype) extends Datatype {
+  override def cpp = s"${datatype.cpp}*"
 }
 
 case class ComplexDatatype(datatype : Datatype) extends Datatype {
-  override def cpp = "complex of " + datatype.cpp
+  override def cpp = s"std::complex<${datatype.cpp}>"
 }

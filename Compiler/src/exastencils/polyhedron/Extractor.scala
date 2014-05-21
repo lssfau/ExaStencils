@@ -197,6 +197,8 @@ object Extractor extends Collector {
   }
 
   private def leaveLoop(loop : LoopOverDimensions) : Unit = {
+    if (template != null)
+      loop.annotate(PolyOpt.SCOP_ANNOT, Some(scops.top))
     template = null
   }
 

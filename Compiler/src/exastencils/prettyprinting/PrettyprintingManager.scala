@@ -37,7 +37,7 @@ object PrettyprintingManager {
     <<<(s"#define $guard")
 
     override def finish = {
-      <<<("#endif")
+      <<<("\n#endif")
       super.finish
     }
   }

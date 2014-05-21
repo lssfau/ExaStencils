@@ -1,10 +1,13 @@
 package exastencils.polyhedron
 
+import scala.annotation.elidable
+import scala.annotation.elidable.ASSERTION
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core.Logger
+import exastencils.datastructures.Annotation
 import exastencils.datastructures.Node
-import exastencils.datastructures.Strategy
 import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.convFromNode
 import exastencils.datastructures.ir.AdditionExpression
@@ -19,26 +22,41 @@ import exastencils.datastructures.ir.FunctionCallExpression
 import exastencils.datastructures.ir.GreaterEqualExpression
 import exastencils.datastructures.ir.GreaterExpression
 import exastencils.datastructures.ir.IntegerConstant
+import exastencils.datastructures.ir.IntegerDatatype
 import exastencils.datastructures.ir.LowerEqualExpression
 import exastencils.datastructures.ir.LowerExpression
 import exastencils.datastructures.ir.ModuloExpression
 import exastencils.datastructures.ir.MultiplicationExpression
 import exastencils.datastructures.ir.OrOrExpression
+import exastencils.datastructures.ir.Scope
 import exastencils.datastructures.ir.Statement
 import exastencils.datastructures.ir.StatementBlock
-import exastencils.datastructures.ir.StringConstant
 import exastencils.datastructures.ir.SubtractionExpression
 import exastencils.datastructures.ir.TernaryConditionExpression
 import exastencils.datastructures.ir.UnaryExpression
 import exastencils.datastructures.ir.UnaryOperators
 import exastencils.datastructures.ir.VariableAccess
-import isl.Conversions.convertLambdaToXCallback1
-import exastencils.primitives.dimToString
 import exastencils.datastructures.ir.VariableDeclarationStatement
+import exastencils.primitives.LoopOverDimensions
+import exastencils.primitives.dimToString
+import isl.Conversions.convertLambdaToXCallback1
 
-class ASTBuilder(val replaceCallback : (String, Expression, Node) => Unit) {
+class ASTBuilderTransformation(replaceCallback : (String, Expression, Node) => Unit)
+  extends Transformation("insert optimized loop AST", new ASTBuilderFunction(replaceCallback))
 
-  def generateAST(scop : SCoP) : Node = {
+private class ASTBuilderFunction(replaceCallback : (String, Expression, Node) => Unit)
+    extends PartialFunction[Node, Transformation.Output[_]] {
+
+  def isDefinedAt(node : Node) : Boolean = node match {
+    case loop : LoopOverDimensions => loop.hasAnnotation(PolyOpt.SCOP_ANNOT)
+    case _                         => false
+  }
+
+  def apply(node : Node) : Transformation.Output[_] = {
+
+    val annotation : Annotation = node.getAnnotation(PolyOpt.SCOP_ANNOT).get
+    node.remove(annotation)
+    val scop : SCoP = annotation.value.get.asInstanceOf[SCoP]
 
     Logger.debug("  domain:   " + scop.domain)
     Logger.debug("  schedule: " + scop.schedule)
@@ -56,14 +74,27 @@ class ASTBuilder(val replaceCallback : (String, Expression, Node) => Unit) {
     return node.getType() match {
 
       case isl.AstNodeType.NodeFor =>
-        if (node.forIsDegenerate() != 0)
-          processIslNode(node.forGetBody(), oldStmts)
-        else {
-          val it : Expression = processIslExpr(node.forGetIterator())
-          val init : Statement =
-            new VariableDeclarationStatement(it.asInstanceOf[VariableAccess], Some(processIslExpr(node.forGetInit())))
+        if (node.forIsDegenerate() != 0) {
+
+          val islIt : isl.AstExpr = node.forGetIterator()
+          assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
+          val it : VariableAccess = new VariableAccess(islIt.getId().getName(), Some(new IntegerDatatype()))
+          val decl : Statement = new VariableDeclarationStatement(it, Some(processIslExpr(node.forGetInit())))
+
+          val stmts : ListBuffer[Statement] = new ListBuffer[Statement]()
+          stmts += decl
+          stmts += processIslNode(node.forGetBody(), oldStmts)
+          new Scope(stmts)
+
+        } else {
+
+          val islIt : isl.AstExpr = node.forGetIterator()
+          assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
+          val it : VariableAccess = new VariableAccess(islIt.getId().getName(), Some(new IntegerDatatype()))
+          val init : Statement = new VariableDeclarationStatement(it, Some(processIslExpr(node.forGetInit())))
           val cond : Expression = processIslExpr(node.forGetCond())
           val incr : Statement = new AssignmentStatement(it, new AdditionExpression(it, processIslExpr(node.forGetInc())))
+
           val body : Statement = processIslNode(node.forGetBody(), oldStmts)
           body match {
             case StatementBlock(raw) => new ForLoopStatement(init, cond, incr, raw)
@@ -90,13 +121,12 @@ class ASTBuilder(val replaceCallback : (String, Expression, Node) => Unit) {
 
       case isl.AstNodeType.NodeUser =>
         val expr : isl.AstExpr = node.userGetExpr()
-        if (expr.getOpType() != isl.AstOpType.OpCall)
-          throw new PolyASTBuilderException("user node is no OpCall?!")
+        assume(expr.getOpType() == isl.AstOpType.OpCall, "user node is no OpCall?!")
         val args : Array[Expression] = processArgs(expr)
         val name : String = args(0).asInstanceOf[VariableAccess].name
         val stmt : Statement = oldStmts(name)
         var d : Int = 1
-        do {
+        do { // TODO: build declarations for old loop iterators
           replaceCallback(dimToString(d - 1), args(d), stmt)
           d += 1
         } while (d < args.length)
