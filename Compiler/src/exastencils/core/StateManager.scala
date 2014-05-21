@@ -361,7 +361,7 @@ object StateManager {
     val setterSuffix = "_$eq"
     val excludeList = List()
 
-    def apply[T](o : Any) : List[java.lang.reflect.Method] = {
+    def apply[T](o : Any) : Array[java.lang.reflect.Method] = {
       val methods = o.getClass.getMethods
       val getters : Array[java.lang.reflect.Method] = for {
         g <- methods; if (g.getModifiers & java.lang.reflect.Modifier.PUBLIC) == java.lang.reflect.Modifier.PUBLIC &&
@@ -371,7 +371,7 @@ object StateManager {
           s.getParameterTypes.size == 1 && s.getParameterTypes()(0) == g.getReturnType && s.getName == g.getName + setterSuffix
       } yield g
 
-      getters.toList
+      getters
     }
 
     def get[T](o : Any, method : java.lang.reflect.Method) : Any = {

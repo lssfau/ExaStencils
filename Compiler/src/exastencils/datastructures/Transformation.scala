@@ -2,6 +2,7 @@ package exastencils.datastructures
 
 import exastencils.core.StateManager
 import scala.collection.GenTraversableOnce
+import scala.collection.mutable.ListBuffer
 
 // FIXME extend this to PartialFunction[Any(Ref), Transformation.Output[_]]
 class Transformation(val name : String, val function : PartialFunction[Node, Transformation.Output[_]], val recursive : Boolean = true, val applyAtNode : Option[Node] = None) {
@@ -29,6 +30,7 @@ object Transformation {
   implicit def convFromSome[O <: Node](o : Some[O]) : Output[O] = new Output(o.get)
   implicit def convFromNode[O <: Node](o : O) : Output[O] = new Output(o)
   implicit def convFromList(o : List[Node]) : Output[List[Node]] = new Output(o)
+  implicit def convFromListBuffer(o : ListBuffer[Node]) : Output[ListBuffer[Node]] = new Output(o)
 
   object Output {
     def apply[T](inner : T)(implicit ev : T => Node Or GenTraversableOnce[Node]) = new Output(inner)
