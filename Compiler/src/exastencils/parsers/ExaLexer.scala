@@ -62,7 +62,7 @@ class ExaLexer extends StdLexical {
   reserved += ("def")
 
   // declaration keywords
-  reserved += ("var", "Field", "Domain", "Set", "Stencil", "Layout")
+  reserved += ("var", "Field", "Domain", "Set", "Stencil", "Layout", "external")
 
   // loop keywords
   reserved += ("loop", "repeat", "up", "until", "over", "blocksize", "on", "with")
