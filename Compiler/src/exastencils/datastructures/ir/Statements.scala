@@ -63,8 +63,8 @@ case class ForLoopStatement(var begin : Statement, var end : Expression, var inc
       sb.deleteCharAt(sb.length - 1)
     sb ++= ")\n{\n"
     for (stmt <- body)
-      sb ++= stmt.cpp()
-    sb ++= "\n}"
+      sb ++= stmt.cpp() += '\n'
+    sb += '}'
 
     return sb.toString()
   }

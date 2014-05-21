@@ -3,8 +3,6 @@ package exastencils.datastructures.l4
 import scala.collection.mutable.HashSet
 import exastencils.datastructures._
 
-case class TempOption(val key : String, val value : String) extends Annotatable
-
 trait Index extends Expression {
   override def progressToIr : ir.MultiIndex
   def apply(i : Int) : Int
