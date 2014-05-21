@@ -78,7 +78,7 @@ case class FieldDeclarationStatement(var name : String,
 case class ExternalFieldDeclarationStatement(
     var externalidentifier : String,
     var internalidentifier : Identifier,
-    var communication : Boolean) extends ExternalDeclarationStatement {
+    var layout : String) extends ExternalDeclarationStatement {
   def progressToIr = { throw new NotImplementedException }
 }
 

@@ -19,7 +19,7 @@ Field RHS< Real, NoComm, None >@all
 Field VecP< Real, BasicComm, None >@coarsest
 Field VecGradP< Real, NoComm, None >@coarsest
 
-external Field extSolution with communication => Solution @(finest)
+external Field extSolution <bla> => Solution @(finest)
 
 Stencil Lapl@all {
 	[ 0,  0,  0] => 6
