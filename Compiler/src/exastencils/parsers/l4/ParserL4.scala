@@ -174,10 +174,12 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     locationize("[" ~ expression ~ "," ~ expression ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ => ExpressionIndex2D(n1, n2) })
     ||| locationize("[" ~ expression ~ "," ~ expression ~ "," ~ expression ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ ~ n3 ~ _ => ExpressionIndex3D(n1, n2, n3) }))
 
-  lazy val stencilentry = ((expressionIndex ~ ("=>" ~> factor)) ^^ { case offset ~ weight => StencilEntry(offset, weight) })
-
-  lazy val stencil = locationize(("Stencil" ~> ident) ~ level.? ~ ("{" ~> stencilentry.+ <~ "}")
-    ^^ { case id ~ level ~ entries => StencilDeclarationStatement(id, entries, level) }) // FIXME replace ident by identifierWith*
+  lazy val stencil = locationize(("Stencil" ~> ident) ~ level.? ~ ("{" ~> stencilEntries <~ "}")
+    ^^ { case id ~ level ~ entries => StencilDeclarationStatement(id, entries, level) })
+  lazy val stencilEntries = (
+    (stencilEntry <~ ",").+ ~ stencilEntry ^^ { case entries ~ entry => entries.::(entry) }
+    ||| stencilEntry.+)
+  lazy val stencilEntry = ((expressionIndex ~ ("=>" ~> factor)) ^^ { case offset ~ weight => StencilEntry(offset, weight) })
 
   lazy val communicateStatement = locationize("communicate" ~> identifierWithOptionalLevel ^^ { case field => CommunicateStatement(field) })
 
