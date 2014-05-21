@@ -23,8 +23,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     this.execute(new Transformation("extract model", PartialFunction.empty))
     StateManager.unregister(Extractor)
 
-    Logger.debug("    SCoPs: " + Extractor.scops.size)
-    Logger.debug("    trash: " + Extractor.trash.size)
+    Logger.debug("    valid SCoPs: " + Extractor.scops.size)
+    Logger.debug("    rejected:    " + Extractor.trash.size)
 
     val replaceCallback = { (oldVar : String, newExpr : Expression, applyAt : Node) =>
       this.execute(

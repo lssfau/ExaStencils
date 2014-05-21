@@ -4,7 +4,6 @@ import scala.annotation.elidable
 import scala.annotation.elidable.ASSERTION
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core.Logger
 import exastencils.datastructures.Annotation
 import exastencils.datastructures.Node
@@ -40,6 +39,7 @@ import exastencils.datastructures.ir.VariableDeclarationStatement
 import exastencils.primitives.LoopOverDimensions
 import exastencils.primitives.dimToString
 import isl.Conversions.convertLambdaToXCallback1
+import exastencils.knowledge.Knowledge
 
 class ASTBuilderTransformation(replaceCallback : (String, Expression, Node) => Unit)
   extends Transformation("insert optimized loop AST", new ASTBuilderFunction(replaceCallback))
@@ -126,8 +126,9 @@ private class ASTBuilderFunction(replaceCallback : (String, Expression, Node) =>
         val name : String = args(0).asInstanceOf[VariableAccess].name
         val stmt : Statement = oldStmts(name)
         var d : Int = 1
+        val dims : Int = Knowledge.dimensionality
         do { // TODO: build declarations for old loop iterators
-          replaceCallback(dimToString(d - 1), args(d), stmt)
+          replaceCallback(dimToString(dims - d - 1), args(d), stmt)
           d += 1
         } while (d < args.length)
         stmt

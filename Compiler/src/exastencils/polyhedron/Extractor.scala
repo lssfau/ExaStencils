@@ -2,7 +2,6 @@ package exastencils.polyhedron
 
 import scala.collection.mutable.ArrayStack
 import scala.language.implicitConversions
-
 import exastencils.core.Logger
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Annotation
@@ -19,6 +18,7 @@ import exastencils.datastructures.ir.SubtractionExpression
 import exastencils.knowledge.Knowledge
 import exastencils.primitives.LoopOverDimensions
 import isl.Conversions.convertIntToVal
+import exastencils.datastructures.ir.MultiIndex
 
 object Extractor extends Collector {
   import scala.language.implicitConversions
@@ -152,16 +152,17 @@ object Extractor extends Collector {
       return
     }
 
-    val dims = Knowledge.dimensionality
+    val dims : Int = Knowledge.dimensionality
     template = isl.BasicSet.universe(isl.Space.setAlloc(0, dims))
 
-    val begin = loop.indices.begin
-    val end = loop.indices.end
+    val begin : MultiIndex = loop.indices.begin
+    val end : MultiIndex = loop.indices.end
 
-    var d = 0
+    var geo_dim : Int = 0
     do {
+      val loop_dim : Int = dims - geo_dim - 1
 
-      val stride = loop.stepSize(d) // TODO: remove restriction
+      val stride : Expression = loop.stepSize(geo_dim) // TODO: remove restriction
       if (!stride.isInstanceOf[IntegerConstant] || (stride.asInstanceOf[IntegerConstant].value != 1)) {
         discardCurrentSCoP("LoopOverDimensions stepSize/stride must be one (for now...), ignoring loop")
         return
@@ -170,8 +171,8 @@ object Extractor extends Collector {
       var cur_begin : Long = 0
       var cur_end : Long = 0
       try {
-        cur_begin = evaluateExpression(begin(d))
-        cur_end = evaluateExpression(end(d))
+        cur_begin = evaluateExpression(begin(geo_dim))
+        cur_end = evaluateExpression(end(geo_dim))
       } catch {
         case EvaluationException(msg) =>
           discardCurrentSCoP(msg)
@@ -182,18 +183,18 @@ object Extractor extends Collector {
 
       // begin <= i  -->  (1)*i + (-begin) >= 0
       constr = isl.Constraint.inequalityAlloc(template.getLocalSpace())
-      constr = constr.setCoefficientVal(isl.DimType.Set, d, POS_ONE)
+      constr = constr.setCoefficientVal(isl.DimType.Set, loop_dim, POS_ONE)
       constr = constr.setConstantVal(-cur_begin)
       template = template.addConstraint(constr)
 
-      // i <= end  -->  (-1)*i + (end) >= 0
+      // i < end  -->  (-1)*i + (end-1) >= 0
       constr = isl.Constraint.inequalityAlloc(template.getLocalSpace())
-      constr = constr.setCoefficientVal(isl.DimType.Set, d, NEG_ONE)
-      constr = constr.setConstantVal(cur_end)
+      constr = constr.setCoefficientVal(isl.DimType.Set, loop_dim, NEG_ONE)
+      constr = constr.setConstantVal(cur_end-1)
       template = template.addConstraint(constr)
 
-      d += 1
-    } while (d < dims)
+      geo_dim += 1
+    } while (geo_dim < dims)
   }
 
   private def leaveLoop(loop : LoopOverDimensions) : Unit = {
