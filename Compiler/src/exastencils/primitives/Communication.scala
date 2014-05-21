@@ -1,7 +1,6 @@
 package exastencils.primitives
 
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core._
 import exastencils.core.collectors._
 import exastencils.datastructures.ir._
@@ -10,6 +9,7 @@ import exastencils.globals._
 import exastencils.knowledge._
 import exastencils.mpi._
 import exastencils.omp._
+import exastencils.polyhedron._
 
 case class CommunicateStatement(var fieldName : String, var fieldLevel : Int) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = CommunicateStatement\n"
@@ -30,9 +30,9 @@ case class LocalSend(var field : Field, var neighbors : ListBuffer[(NeighborInfo
           ListBuffer[Statement](
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(
-                new DirectFieldAccess(new getNeighInfo_LocalPtr(neigh._1, field.domain) ~ "->", field, "slot", new MultiIndex(
+                new DirectFieldAccess(new getNeighInfo_LocalPtr(neigh._1, field.domain), field, "slot", new MultiIndex(
                   new MultiIndex(DefaultLoopMultiIndex(), neigh._3.begin, _ + _), neigh._2.begin, _ - _)),
-                new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel))) : Statement)) with OMP_PotentiallyParallel
+                new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel with PolyhedronAccessable))) : Statement)) with OMP_PotentiallyParallel
   }
 }
 
@@ -49,8 +49,8 @@ case class CopyToSendBuffer(var field : Field, var neighbors : ListBuffer[(Neigh
       map(neigh =>
         new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
           new LoopOverDimensions(neigh._2,
-            new AssignmentStatement(s"curFragment.buffer_Send[${neigh._1.index}][" ~ Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), neigh._2.begin, _ - _), neigh._2) ~ "]",
-              new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel) : Statement)) with OMP_PotentiallyParallel
+            new AssignmentStatement(new ArrayAccess(s"curFragment.buffer_Send[${neigh._1.index}]", Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), neigh._2.begin, _ - _), neigh._2)),
+              new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel with PolyhedronAccessable) : Statement)) with OMP_PotentiallyParallel
   }
 }
 
@@ -65,7 +65,7 @@ case class CopyFromRecvBuffer(var field : Field, var neighbors : ListBuffer[(Nei
         (new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
           new LoopOverDimensions(neigh._2,
             new AssignmentStatement(new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()),
-              s"curFragment.buffer_Recv[${neigh._1.index}][" ~ Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), neigh._2.begin, _ - _), neigh._2) ~ "]")) with OMP_PotentiallyParallel)) : Statement)) with OMP_PotentiallyParallel
+              new ArrayAccess(s"curFragment.buffer_Recv[${neigh._1.index}]", Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), neigh._2.begin, _ - _), neigh._2)))) with OMP_PotentiallyParallel with PolyhedronAccessable)) : Statement)) with OMP_PotentiallyParallel
   }
 }
 
