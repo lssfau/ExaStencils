@@ -12,7 +12,7 @@ Layout NoComm {
 	// innerPoints = []
 }
 
-Field Solution< Real, BasicComm, NULL >@all//[2]
+Field Solution< Real, BasicComm, 0.0 >@all//[2]
 //Field Solution2< [1, 1, 1], Real >@((coarsest + 1) to finest) ( ghostlayers = 1, slots = 1, bcDir = true )
 Field Residual< Real, BasicComm, None >@all
 Field RHS< Real, NoComm, None >@all

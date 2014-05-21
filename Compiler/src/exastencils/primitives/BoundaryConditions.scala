@@ -14,7 +14,7 @@ case class HandleBoundaries(var field : Field, var neighbors : ListBuffer[(Neigh
 
   override def expand : Statement = {
     if (field.dirichletBC.isDefined) {
-      return new LoopOverFragments(field.domain,
+      new LoopOverFragments(field.domain,
         neighbors.map(neigh =>
           new ConditionStatement(new getNeighInfo_IsInvalid(neigh._1, field.domain),
             new LoopOverDimensions(neigh._2,
@@ -22,7 +22,7 @@ case class HandleBoundaries(var field : Field, var neighbors : ListBuffer[(Neigh
                 new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()),
                 field.dirichletBC.get)) with OMP_PotentiallyParallel) : Statement)) with OMP_PotentiallyParallel
     } else {
-      return new NullStatement
+      new NullStatement
     }
   }
 }
