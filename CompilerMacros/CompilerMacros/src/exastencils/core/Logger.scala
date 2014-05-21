@@ -11,7 +11,7 @@ object Logger {
   // Level 2: Debug
   // Level 4: Info
 
-  protected val current = 1
+  protected val current = 2
   def getLevel = current
 
   def error(s : AnyRef) = {

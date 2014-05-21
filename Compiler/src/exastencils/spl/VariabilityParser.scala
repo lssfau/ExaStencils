@@ -65,12 +65,10 @@ object VariabilityParser {
 
     testMultiVariantGeneration("/bla/")
 
-
     config.nfpValues = testMultiVariantGeneration("/blub/")
 
+    println("!!!!!!!!!Finished!!!!!!!!")
 
-    
-    
   }
 
   def useConfiguration(configuration: Configuration) = {
@@ -85,14 +83,8 @@ object VariabilityParser {
       })
   }
 
-  def testMultiVariantGeneration(location: String) : NonFunctionalProperties = {
+  def testMultiVariantGeneration(location: String): NonFunctionalProperties = {
     Settings.outputPath = location
-
-    // Hack paths (relative paths should work here, too, if not, reverse this change)
-    // ... this obviously depends on the execution path which in my case is the root folder to include configs and scripts
-    val DSLpath = Settings.basePathPrefix + "/Compiler/src/harald_dep/testmg/"
-    val problem = "testDSL"
-    val outputfile = "main.cpp"
 
     // HACK: this tests the new L4 capabilities
     var parserl4 = new ParserL4
@@ -100,10 +92,10 @@ object VariabilityParser {
     ValidationL4.apply
     ProgressToIr.apply()
 
-    StateManager.root_ = StateManager.root_.asInstanceOf[ProgressableToIr].progressToIr.asInstanceOf[Node]
+    StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
     // Setup tree
-    StateManager.root_.asInstanceOf[Root].nodes ++= List(
+    StateManager.root_.asInstanceOf[ir.Root].nodes ++= List(
       // Application
       new Poisson3D,
 
@@ -149,11 +141,6 @@ object VariabilityParser {
       RemoveMPIReferences.apply()
     }
 
-    var i = 0
-    val s = DefaultStrategy("counting", List(Transformation("bla", { case x => i += 1; x })))
-    s.apply()
-    Logger.warn(s"counter: i = $i")
-
     do { SimplifyStrategy.apply() }
     while (SimplifyStrategy.results.last._2.matches > 0) // FIXME: cleaner code
 
@@ -163,20 +150,19 @@ object VariabilityParser {
       AddOMPPragmas.apply()
     }
 
+    { new CountingStrategy("1") }.apply()
+
     PrintStrategy.apply()
     PrettyprintingManager.finish
 
     println("Compiation Done!")
 
     // Execute program
-    
+
     //Runtime.getRuntime().exec(location+"external_program")
-    
-    
-    
-    
+
     return new NonFunctionalProperties()
-    
+
   }
 
 }
