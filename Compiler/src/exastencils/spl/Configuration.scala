@@ -5,6 +5,8 @@ class Configuration() {
   var selectedBoolFeatures: scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
   var numericalFeatureValues: scala.collection.mutable.Map[Feature, Int] = scala.collection.mutable.Map()
 
+  var nfpValues : NonFunctionalProperties = null
+  
   def selectedBoolFeaturesAsArray(): Array[exastencils.spl.Feature] = {
     return selectedBoolFeatures.toArray
   }
@@ -89,6 +91,7 @@ class Configuration() {
     var sb = new scala.collection.mutable.StringBuilder()
 
     selectedBoolFeatures.map(a => sb ++= a.identifier + " ")
+    sb ++= " | "
     numericalFeatureValues.map(a => sb ++= a._1.identifier + ": " + a._2.toInt + " ")
 
     return sb.toString
@@ -111,5 +114,8 @@ class Configuration() {
   def numberOfDifferentBooleanFeatures(otherConfiguration: Configuration): Int = {
     return (this.selectedBoolFeatures &~ otherConfiguration.selectedBoolFeatures).size + (otherConfiguration.selectedBoolFeatures &~ this.selectedBoolFeatures).size
   }
+  
+  
+  
 
 }

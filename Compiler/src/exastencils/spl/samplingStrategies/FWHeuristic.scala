@@ -1,4 +1,4 @@
-package exastencils.spl.heuristics
+package exastencils.spl.samplingStrategies
 
 import exastencils.spl._
 

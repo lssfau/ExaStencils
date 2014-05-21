@@ -8,6 +8,7 @@ import scala.Array.canBuildFrom
 import jp.kobe_u.copris.sugar.Sat4j
 import java.io.File
 import jp.kobe_u.copris.Term
+import exastencils.core.Logger
 
 object FeatureModel {
 
@@ -29,6 +30,22 @@ object FeatureModel {
 
   private[this] var solutionSpaceNoMoreUpToDate = false
 
+  def getDefaultConfig(): Configuration = {
+    if (defaultConfig != null)
+      return defaultConfig
+
+    var boolFeatures: scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
+    allFeatures.filter(x => !x._2.isNumerical && x._2.defaultValue.asInstanceOf[Boolean]).foreach(y => boolFeatures += y._2)
+
+    var numFeatures: scala.collection.mutable.Map[Feature, Int] = scala.collection.mutable.Map()
+    allFeatures.filter(x => x._2.isNumerical).foreach(f => numFeatures.put(f._2, f._2.defaultValue.asInstanceOf[Int]))
+
+    defaultConfig = new Configuration()
+    defaultConfig.readSolution(boolFeatures, numFeatures)
+
+    return defaultConfig
+  }
+
   /**
    *
    * The method returns one minimal configuration of the feature model. The minimality is defined by the number of
@@ -41,6 +58,8 @@ object FeatureModel {
   def getMinimalConfig(): Configuration = {
 
     asPropositionalFormula()
+
+    println("start finding")
 
     if (copris.find) {
 
@@ -162,88 +181,6 @@ object FeatureModel {
     try { op(p) } finally { p.close() }
   }
 
-  //  def readFeatureModel(file : String) : Unit = {
-  //
-  //    try {
-  //
-  //      var featureModelTextRepresentation = Source.fromFile(file).mkString.split("% constraints %")
-  //
-  //      interpretFeatureModel(featureModelTextRepresentation(0)) // feature model section
-  //
-  //      if (featureModelTextRepresentation.length > 1) // file has a constraint section
-  //        featureModelTextRepresentation(1).split(";").map(f => interpretCrossTreeConstraint(f));
-  //
-  //      updatePropertiesOfFeatures(rootFeature);
-  //
-  //    } catch {
-  //      case ex : FileNotFoundException => println("Couldn't find feature model.")
-  //      case ex : IOException           => println("IOException trying to read the model")
-  //    }
-  //
-  //  }
-
-  //  def updatePropertiesOfFeatures(feature : Feature) : Unit = {
-  //    if (!feature.isOptional) {
-  //      feature.isSelectedInAllConfigs = true
-  //
-  //      if (parentChildRelationships.contains(feature))
-  //        parentChildRelationships(feature).foreach(f => updatePropertiesOfFeatures(f))
-  //    }
-  //  }
-
-  //  def interpretFeatureModel(tree : String) = {
-  //    var statements = tree.split(";")
-  //    for (i <- 0 until statements.length - 1) {
-  //      var currStatement = statements(i)
-  //      currStatement = currStatement.replaceAll("%[a-zA-Z0-9\\s()]+%", "") // remove comments
-  //
-  //      var featureName = currStatement.split(":")(0).trim()
-  //      var specialization = currStatement.split(":")(1).trim()
-  //
-  //      var feat : Feature = allFeatures.get(featureName).getOrElse(new Feature(featureName))
-  //      allFeatures(featureName) = feat
-  //
-  //      // consider specialization of current feature
-  //      if (specialization.contains("{")) { // numerical feature
-  //        // numerical features are no parent features
-  //        feat.updateNumericalValues(specialization)
-  //
-  //      } else {
-  //        var subfeatureNames = new Array[String](0)
-  //        if (specialization.contains("|")) {
-  //
-  //          feat.isParentOfXor = true
-  //
-  //          subfeatureNames = specialization.split("\\|")
-  //        } else {
-  //          subfeatureNames = specialization.split(" ")
-  //        }
-  //        var subFeatures : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
-  //        for (j <- 0 until subfeatureNames.length) {
-  //          var currSubFeatureName = subfeatureNames(j).trim()
-  //          if (currSubFeatureName.length() > 0) {
-  //
-  //            var isOptional = currSubFeatureName.startsWith("[")
-  //            if (isOptional)
-  //              currSubFeatureName = currSubFeatureName.substring(1, currSubFeatureName.length() - 1)
-  //
-  //            var currSubFeature : Feature = allFeatures.get(currSubFeatureName).getOrElse(new Feature(currSubFeatureName))
-  //            allFeatures(currSubFeatureName) = currSubFeature
-  //            currSubFeature.isOptional = isOptional
-  //
-  //            subFeatures.add(currSubFeature)
-  //            currSubFeature.isChild = true
-  //          }
-  //        }
-  //        parentChildRelationships.put(feat, subFeatures);
-  //      }
-  //
-  //    }
-  //    // the feature that does not appear within one right hand side is the root
-  //    FeatureModel.rootFeature = allFeatures.find(x => (!x._2.isNumerical) && (!x._2.isChild)).get._2
-  //
-  //  }
-
   /**
    * Add one feature to the feature model. (no connections between features are created) => all features are
    * optional features with the "root feature" as parent feature
@@ -256,12 +193,8 @@ object FeatureModel {
    *
    */
 
-  def addFeature(content: String): Unit = {
+  def addFeatureL4(content: String): Unit = {
     var parts = content.split("//")
-    if (parts.length > 2) {
-      println("WARN:  Feature not added " + content)
-      return
-    }
 
     var name = parts(0).split(":")(0).trim().split(" ")(1)
     var default = parts(0).split("=")(1).trim()
@@ -269,6 +202,7 @@ object FeatureModel {
     var values = parts(1).substring(parts(1).indexOf("[") + 1, parts(1).indexOf(']'))
 
     var feat: Feature = allFeatures.get(name).getOrElse(new Feature(name))
+    feat.levelOfFeatureDefinition = 4
     allFeatures(name) = feat
 
     // boolean values
@@ -277,22 +211,20 @@ object FeatureModel {
       return
     } else {
       feat.isNumerical = true
-      feat.defaultValue = default
+      feat.defaultValue = augmentString(default).toInt
     }
     if (values.contains("-")) {
       // numerical values that are not enumerated
       feat.hasValuesRange = true
 
-      feat.minValue = (augmentString(values.split("[|-]")(0)).toDouble-1)
-      
-      
+      feat.minValue = (augmentString(values.split("[|-]")(0)).toDouble - 1)
+
       if (!values.split("[|-]")(1).equals("inf"))
         feat.maxValue = augmentString(values.split("[|-]")(1)).toDouble
-      else{
-//    FIXME    feat.maxValue = Double.MaxValue
+      else
+        //    FIXME    feat.maxValue = Double.MaxValue
         feat.maxValue = 3.0
-      }
-        
+
       if (values.contains("|"))
         feat.stepsize = augmentString(values.split("[|-]")(2)).toDouble
 
@@ -314,53 +246,49 @@ object FeatureModel {
 
   }
 
-  var noValue  : jp.kobe_u.copris.Term = Num(-1)
-  var onValue  : jp.kobe_u.copris.Term = Num(1)
-  var offValue : jp.kobe_u.copris.Term = Num(0)
+  var noValue: jp.kobe_u.copris.Term = Num(-1)
+  var onValue: jp.kobe_u.copris.Term = Num(1)
+  var offValue: jp.kobe_u.copris.Term = Num(0)
 
   def asPropositionalFormula() = {
 
-    
     //init of copris
     copris.init
 
     // FIXME:: Dirty hack because of problems in defining constraints between numerical and bool features
     // for example numerical feature x can only be selected if bool feature b is selected
-//    onValue  = FeatureModel.copris.int(Var("on"),1,1)
-//    offValue = FeatureModel.copris.int(Var("off"),0,0)
-    
+    //    onValue  = FeatureModel.copris.int(Var("on"),1,1)
+    //    offValue = FeatureModel.copris.int(Var("off"),0,0)
+
     // add all features to the copris namespace
     allFeatures.foreach(a =>
-      if (a._2.isNumerical) 
-        if(a._2.values .length > 0)
-          FeatureModel.copris.int(Var(a._1), a._2.valuesAsIntSet())
-//          print("!")
-        else
-          FeatureModel.copris.int(Var(a._1), a._2.minValue.toInt, a._2.maxValue.toInt)
+      if (a._2.isNumerical)
+        if (a._2.values.length > 0)
+        FeatureModel.copris.int(Var(a._1), a._2.valuesAsIntSet())
+      //          print("!")
+      else
+        FeatureModel.copris.int(Var(a._1), a._2.minValue.toInt, a._2.maxValue.toInt)
       //else FeatureModel.copris.bool(Bool(a._1)))
-      else 
-        FeatureModel.copris.int(Var(a._1),0,1)
-    )
-    
+      else
+        FeatureModel.copris.int(Var(a._1), 0, 1))
+
     // add semantic of optional and mandatory parent sub-feature relationships
     parentChildRelationships
       .foreach(a =>
         if (a._1.isParentOfXor)
-//          addXorRelationship(copris, a._1, a._2)
+          //          addXorRelationship(copris, a._1, a._2)
           println("TODO")
-        else  
-          addRelationship(copris, a._1, a._2)
-//           println("TODO")
-       )
-        
-//    // add cross tree constaints
-//    featureModelConstraints
-//      .foreach(const => copris.add(const.asPropositionalFormular))
+        else
+          addRelationship(copris, a._1, a._2) //           println("TODO")
+          )
+
+    //    // add cross tree constaints
+    //    featureModelConstraints
+    //      .foreach(const => copris.add(const.asPropositionalFormular))
 
     // root feature is selected
     //copris.add(Imp(TRUE, Bool(rootFeature.identifier)))
-    
-    
+
   }
 
   /**
@@ -393,25 +321,24 @@ object FeatureModel {
    */
   def addRelationship(copris: jp.kobe_u.copris.sugar.Sugar, parent: Feature, subFeatures: scala.collection.mutable.Set[Feature]) = {
 
-    for(fi <- subFeatures){
+    for (fi <- subFeatures) {
       // TODO
-      
-//      if (a.isOptional)
-        // a optional sub-feature of f -->  a => f 
-//        if(parent.isNumerical )
-//          copris.add(Imp(Bool(a.identifier), Bool(parent.identifier)))
-//        else
-          //Iff(Ge(b,1),Lt(p(1),p(2)))
-      if(!fi.isNumerical)
-    	  copris.add(Imp(Eq(Var(parent.identifier),offValue), Eq(Var(fi.identifier),offValue)))
-      else 
-          copris.add(Imp(Eq(Var(parent.identifier),offValue), Eq(Var(fi.identifier),noValue)))
-//           copris.add(Imp(Eq(Var(parent.identifier),onValue),  Gt(Var(fi.identifier),noValue)))
-//           copris.add(Imp(Eq(parent.varia,noValue), Eq(a.varia,onValue)))
-//          println(Iff(Eq(a.varia,onValue),Eq(f.varia,noValue)))
-//      else if (!a.isNumerical)
-//        // a mandatory sub-feature of f -->  a <=> f
-//        copris.add(Iff(Bool(a.identifier), Bool(f.identifier))))
+      //      if (a.isOptional)
+      // a optional sub-feature of f -->  a => f 
+      //        if(parent.isNumerical )
+      //          copris.add(Imp(Bool(a.identifier), Bool(parent.identifier)))
+      //        else
+      //Iff(Ge(b,1),Lt(p(1),p(2)))
+      if (!parent.isNumerical)
+        if (!fi.isNumerical)
+          copris.add(Imp(Eq(Var(parent.identifier), offValue), Eq(Var(fi.identifier), offValue)))
+        else
+          copris.add(Imp(Eq(Var(parent.identifier), offValue), Eq(Var(fi.identifier), noValue)))
+      else
+        Logger.warn("Parent child relationship if parent is numerical feature is not considered.")
+      //      else if (!a.isNumerical)
+      //        // a mandatory sub-feature of f -->  a <=> f
+      //        copris.add(Iff(Bool(a.identifier), Bool(f.identifier))))
     }
   }
 
@@ -452,7 +379,7 @@ object FeatureModel {
     for (a <- allFeatures) {
       if (a._1.contains("_")) {
         var parentName = a._1.substring(0, a._1.lastIndexOf("_"))
-        if (allFeatures.contains(parentName)){
+        if (allFeatures.contains(parentName)) {
           addParentChildRelationship(allFeatures(parentName), a._2)
         }
         if (featureAlias_alias_org.contains(parentName)) {
