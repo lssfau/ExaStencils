@@ -6,7 +6,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
 import sun.reflect.generics.reflectiveObjects.NotImplementedException
 
-case class LayoutOption(var name : String, var value : Index, var hasCommunication : Option[Boolean]) extends Node
+case class LayoutOption(var name : Identifier, var value : Index, var hasCommunication : Option[Boolean]) extends Node
 
 case class LayoutDeclarationStatement(var name : String,
     var ghostLayers : Option[Index] = None,
@@ -18,7 +18,7 @@ case class LayoutDeclarationStatement(var name : String,
   def set(options : List[LayoutOption]) : Unit = { options.foreach(set(_)) }
 
   def set(option : LayoutOption) : Unit = {
-    option.name match {
+    option.name.name match {
       case "ghostLayers" =>
         ghostLayers = Some(option.value)
         ghostLayersCommunication = option.hasCommunication
