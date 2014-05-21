@@ -1,106 +1,75 @@
 package exastencils.datastructures.l4
 
 import exastencils.core._
-import exastencils.knowledge.Knowledge
-import exastencils.knowledge.FieldLayoutPerDim
-import exastencils.knowledge.DimArray
-import exastencils.knowledge.Field
+import exastencils.knowledge._
+import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.Node
 
-//object LayoutDeclarationStatementBuilder {
-//  def apply(name : String, options : List[LayoutOption]) = {
-//    var ghostLayers : Option[Index] = None
-//    var ghostLayersCommunication : Option[Boolean] = None
-//    var duplicate : Option[Index] = None
-//    var duplicateCommunicate : Option[Boolean] = None
-//    var innerSize : Option[Index] = None
-//
-//    options.foreach(option => option.name match {
-//      case "ghostlayers" =>
-//        ghostLayers = Some(option.value)
-//        ghostLayersCommunication = option.hasCommunication
-//      case "duplicate" =>
-//        duplicate = Some(option.value)
-//        duplicateCommunicate = option.hasCommunication
-//      case "innerSize" => innerSize = Some(option.value)
-//    })
-//    
-//    return LayoutDeclarationStatement(name, ghostLayers, ghostLayersCommunication, duplicate, )
-//  }
-//}
+case class LayoutOption(var name : String, var value : Index, var hasCommunication : Option[Boolean]) extends Node
 
 case class LayoutDeclarationStatement(var name : String,
-                                      var ghostLayers : Option[Index] = None,
-                                      var ghostLayersCommunication : Option[Boolean] = None,
-                                      var duplicate : Option[Index] = None,
-                                      var duplicateCommunicate : Option[Boolean] = None,
-                                      var innerSize : Option[Index] = None) extends Node {
+    var ghostLayers : Option[Index] = None,
+    var ghostLayersCommunication : Option[Boolean] = None,
+    var duplicateLayers : Option[Index] = None,
+    var duplicateLayersCommunication : Option[Boolean] = None,
+    var innerPoints : Option[Index] = None) extends Node {
 
   def set(options : List[LayoutOption]) : Unit = { options.foreach(set(_)) }
 
   def set(option : LayoutOption) : Unit = {
     option.name match {
-      case "ghostlayers" =>
+      case "ghostLayers" =>
         ghostLayers = Some(option.value)
         ghostLayersCommunication = option.hasCommunication
-      case "duplicate" =>
-        duplicate = Some(option.value)
-        duplicateCommunicate = option.hasCommunication
-      case "innerSize" => innerSize = Some(option.value)
+      case "duplicateLayers" =>
+        duplicateLayers = Some(option.value)
+        duplicateLayersCommunication = option.hasCommunication
+      case "innerPoints" => innerPoints = Some(option.value)
     }
   }
 }
 
-case class LayoutOption(var name : String, var value : Index, var hasCommunication : Option[Boolean]) extends Node
-
 case class FieldDeclarationStatement(var name : String,
-                                     var datatype : Datatype,
-                                     var layout : String,
-                                     var boundary : String,
-                                     var level : Option[LevelSpecification]) extends SpecialStatement {
-  var communicates = true
-  var ghostlayers = 0
-  var padding = 0
-  var slots = 1
-  var bcDir0 = false
-  def set(t : TempOption) = { // FIXME hack
-    t.key match {
-      case "communicates" => communicates = t.value.toBoolean
-      case "ghostlayers"  => ghostlayers = t.value.toInt
-      case "padding"      => padding = t.value.toInt
-      case "slots"        => slots = t.value.toInt
-      case "bcDir"        => bcDir0 = t.value.toBoolean
-      case _              => exastencils.core.Logger.error(s"Unknown option ${t.key} = ${t.value}")
-    }
-  }
+    var datatype : Datatype,
+    var layout : String,
+    var boundary : String,
+    var level : Option[LevelSpecification]) extends SpecialStatement {
+  
+  var slots = 1 // FIXME: add to parser
 
   def progressToIr : Field = {
-    val layoutinstance = StateManager.root_.asInstanceOf[Root].getLayoutByIdentifier(layout).get
+    val l4_layout = StateManager.root_.asInstanceOf[Root].getLayoutByIdentifier(layout).get
+    val l4_ghostLayers = l4_layout.ghostLayers.getOrElse(new Index3D(1, 1, 1))
+    val l4_duplicateLayers = l4_layout.duplicateLayers.getOrElse(new Index3D(1, 1, 1))
+    val l4_innerPoints = l4_layout.innerPoints.getOrElse(new Index3D(
+      ((Knowledge.domain_fragLengthPerDim(0) * (1 << level.get.asInstanceOf[SingleLevelSpecification].level)) + 1) - 2 * l4_duplicateLayers(0),
+      ((Knowledge.domain_fragLengthPerDim(1) * (1 << level.get.asInstanceOf[SingleLevelSpecification].level)) + 1) - 2 * l4_duplicateLayers(1),
+      ((Knowledge.domain_fragLengthPerDim(2) * (1 << level.get.asInstanceOf[SingleLevelSpecification].level)) + 1) - 2 * l4_duplicateLayers(2)))
+    val l4_ghostComm = l4_layout.ghostLayersCommunication.getOrElse(false)
+    val l4_dupComm = l4_layout.duplicateLayersCommunication.getOrElse(false)
 
-    val layoutarray = DimArray().map(dim => new FieldLayoutPerDim(
-      if (0 == dim) padding else 0,
-      ghostlayers,
-      1,
-      ((Knowledge.domain_fragLengthPerDim(dim) * (1 << level.get.asInstanceOf[SingleLevelSpecification].level)) + 1) - 2 /*dup*/ ,
-      1,
-      ghostlayers,
-      0)) ++
+    val ir_layout = DimArray().map(dim => new FieldLayoutPerDim(
+      if (0 == dim) 0 else 0, // FIXME: add padding
+      l4_ghostLayers(dim),
+      l4_duplicateLayers(dim),
+      l4_innerPoints(dim),
+      l4_duplicateLayers(dim),
+      l4_ghostLayers(dim),
+      0 // FIXME: check if padding at the end will be required
+      )) ++
       (Knowledge.dimensionality until 3).toArray.map(dim => new FieldLayoutPerDim(0, 0, 0, 1, 0, 0, 0))
 
     new Field(
       name,
       0, // FIXME: domain
-      name.toLowerCase + "Data_" + level.get.asInstanceOf[SingleLevelSpecification].level, // HACK
+      name.toLowerCase + "Data_" + level.get.asInstanceOf[SingleLevelSpecification].level,
       datatype.progressToIr,
-      layoutarray,
-      layoutinstance.duplicateCommunicate.getOrElse(false), // FIXME put default elsewhere
-      layoutinstance.ghostLayersCommunication.getOrElse(false), // FIXME put default elsewhere
+      ir_layout,
+      l4_dupComm,
+      l4_ghostComm,
       level.get.asInstanceOf[SingleLevelSpecification].level,
       slots,
-      layoutinstance.ghostLayers.get.progressToIr, // FIXME
-      Some(boundary) // FIXME
-      )
-
+      l4_ghostLayers.progressToIr, // TODO: this should work for now but may be adapted in the future
+      Some(boundary))
   }
 }

@@ -1,12 +1,23 @@
 Domain global< [-1, -1, -1] to [1, 1, 1] >
 
-// FIXME: ghostlayers, padding, etc have to be left/right and have to be indices instead of ints
-Field Solution< [1, 1, 1], Real >@all ( ghostlayers = 1, slots = 1, bcDir = true )
+Layout BasicComm {
+	ghostLayers = [ 1, 1, 1] with communication
+	duplicateLayers = [ 1, 1, 1] with communication
+	// innerPoints = []
+}
+
+Layout NoComm {
+	ghostLayers = [ 0, 0, 0]
+	duplicateLayers = [ 1, 1, 1]
+	// innerPoints = []
+}
+
+Field Solution< Real, BasicComm, NULL >@all//[2]
 //Field Solution2< [1, 1, 1], Real >@((coarsest + 1) to finest) ( ghostlayers = 1, slots = 1, bcDir = true )
-Field Residual< [1, 1, 1], Real >@all ( ghostlayers = 1 )
-Field RHS< [0, 0, 0], Real >@all ( communicates = false )
-Field VecP< [1, 1, 1], Real >@coarsest ( ghostlayers = 1 )
-Field VecGradP< [0, 0, 0], Real >@coarsest ( communicates = false )
+Field Residual< Real, BasicComm, None >@all
+Field RHS< Real, NoComm, None >@all
+Field VecP< Real, BasicComm, None >@coarsest
+Field VecGradP< Real, NoComm, None >@coarsest
 
 Stencil Lapl@all {
 	[ 0,  0,  0] => 6

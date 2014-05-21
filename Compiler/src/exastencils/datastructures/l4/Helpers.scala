@@ -7,14 +7,30 @@ case class TempOption(val key : String, val value : String) extends Annotatable
 
 trait Index extends Expression {
   override def progressToIr : ir.MultiIndex
+  def apply(i : Int) : Int
 }
 
 case class Index2D(var x : Int, var y : Int) extends Index {
   def progressToIr : ir.MultiIndex = new ir.MultiIndex(Array(x, y))
+
+  def apply(i : Int) : Int = {
+    i match {
+      case 0 => x
+      case 1 => y
+    }
+  }
 }
 
 case class Index3D(var x : Int, var y : Int, var z : Int) extends Index {
   def progressToIr : ir.MultiIndex = new ir.MultiIndex(Array(x, y, z))
+
+  def apply(i : Int) : Int = {
+    i match {
+      case 0 => x
+      case 1 => y
+      case 2 => z
+    }
+  }
 }
 
 trait RealIndex extends Expression {
