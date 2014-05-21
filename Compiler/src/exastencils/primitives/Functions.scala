@@ -1,12 +1,13 @@
 package exastencils.primitives
 
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core._
 import exastencils.core.collectors._
 import exastencils.knowledge._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.omp._
+import exastencils.polyhedron._
 
 case class WaitForMPIReq() extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = WaitForMPIReq\n"
@@ -165,6 +166,6 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
           new MultiIndex((0 until Knowledge.dimensionality).toArray.map(i => src.layout(i).idxDupLeftBegin)),
           new MultiIndex((0 until Knowledge.dimensionality).toArray.map(i => src.layout(i).idxDupRightEnd))),
           new AssignmentStatement(FieldAccess(new NullExpression, dest, "slot", DefaultLoopMultiIndex()),
-            ExternalFieldAccess("src", src, DefaultLoopMultiIndex())))))
+            ExternalFieldAccess("src", src, DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel with PolyhedronAccessable))
   }
 }

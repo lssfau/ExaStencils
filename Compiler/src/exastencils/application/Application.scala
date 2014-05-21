@@ -14,6 +14,7 @@ import exastencils.primitives._
 import exastencils.prettyprinting._
 import exastencils.mpi._
 import exastencils.omp._
+import exastencils.polyhedron._
 
 case class InitFields() extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = InitFields\n"
@@ -31,7 +32,7 @@ case class InitFields() extends Statement with Expandable {
           (0 until field.numSlots).to[ListBuffer].map(slot =>
             new AssignmentStatement(
               new DirectFieldAccess("curFragment.", field, slot, DefaultLoopMultiIndex()),
-              0.0) : Statement)) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel
+              0.0) : Statement)) with OMP_PotentiallyParallel with PolyhedronAccessable) with OMP_PotentiallyParallel
     }
 
     // FIXME: get this info from one of the DSLs
@@ -44,7 +45,7 @@ case class InitFields() extends Statement with Expandable {
           new MultiIndex(field.layout(0).idxDupLeftBegin, field.layout(1).idxDupLeftBegin, field.layout(2).idxDupLeftBegin),
           new MultiIndex(field.layout(0).idxDupRightEnd, field.layout(1).idxDupRightEnd, field.layout(2).idxDupRightEnd)),
           ListBuffer[Statement](
-            s"double val = (double)std::rand() / RAND_MAX") ++
+            new AssignmentStatement("double val", "(double)std::rand()" / "RAND_MAX")) ++
             (0 until field.numSlots).to[ListBuffer].map(slot =>
               new AssignmentStatement(
                 new DirectFieldAccess("curFragment.", field, slot, DefaultLoopMultiIndex()),
