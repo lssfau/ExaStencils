@@ -153,10 +153,10 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val layout = locationize(("Layout" ~> ident) ~ ("{" ~> (layoutOption).+ <~ "}") ^^ { case id ~ opts => var x = LayoutDeclarationStatement(id); x.set(opts); x })
   lazy val layoutOption = locationize((ident <~ "=") ~ index ~ ("with" ~ "communication").? ^^ { case id ~ idx ~ comm => LayoutOption(id, idx, Some(comm.isDefined)) })
 
-  lazy val field = locationize(("Field" ~> ident) ~ "<" ~ datatype ~ ("," ~> ident) ~ ("," ~> ident) ~ ">" ~ level.? ~ ("(" ~> tempOptions <~ ")").?
+  lazy val field = locationize(("Field" ~> ident) ~ "<" ~ datatype ~ ("," ~> ident) ~ ("," ~> binaryexpression) ~ ">" ~ level.? ~ ("(" ~> tempOptions <~ ")").?
     ^^ {
       case id ~ _ ~ dt ~ layout ~ boundary ~ _ ~ level ~ topts =>
-        var f = FieldDeclarationStatement(id, dt, layout, boundary, level); topts.getOrElse(List()).foreach(f.set(_)); f
+        var f = FieldDeclarationStatement(id, dt, layout, boundary.asInstanceOf[BinaryExpression], level); topts.getOrElse(List()).foreach(f.set(_)); f
     })
 
   lazy val index : PackratParser[Index] = (
@@ -200,7 +200,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     locationize((term ~ ("*" ||| "/" ||| "**" ||| "%") ~ factor) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
     ||| factor)
 
-  lazy val factor : Parser[Expression] = (
+  lazy val factor = (
     "(" ~> binaryexpression <~ ")"
     ||| locationize(stringLit ^^ { case s => StringConstant(s) })
     ||| locationize("-".? ~ numericLit ^^ {

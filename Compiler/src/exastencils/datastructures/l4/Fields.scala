@@ -57,7 +57,7 @@ case class LayoutOption(var name : String, var value : Index, var hasCommunicati
 case class FieldDeclarationStatement(var name : String,
                                      var datatype : Datatype,
                                      var layout : String,
-                                     var boundary : String,
+                                     var boundary : BinaryExpression,
                                      var level : Option[LevelSpecification]) extends SpecialStatement {
   var communicates = true
   var ghostlayers = 0
