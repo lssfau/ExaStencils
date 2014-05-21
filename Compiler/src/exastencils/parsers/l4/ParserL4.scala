@@ -45,8 +45,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   //###########################################################
 
-  lazy val program = locationize(domain.* ~ layout.* ~ field.* ~ stencil.* ~ iterationSet.* ~ function.* ^^
-    { case d ~ l ~ f ~ s ~ i ~ ss => Root(d, l, f, s, i, ss) })
+  lazy val program = locationize(domain.* ~ layout.* ~ field.* ~ externalField.* ~ stencil.* ~ iterationSet.* ~ function.* ^^
+    { case d ~ l ~ f ~ ef ~ s ~ i ~ ss => Root(d, l, f, ef, s, i, ss) })
 
   //###########################################################
 
@@ -214,5 +214,14 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val comparison : PackratParser[BooleanExpression] =
     locationize((expression ~ ("<" ||| "<=" ||| ">" ||| ">=" ||| "==" ||| "!=") ~ expression) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
+
+  // ######################################
+  // ##### "External" Definitions
+  // ######################################
+
+  lazy val externalField = locationize(
+    (("external" ~ "Field") ~> ident) ~ ("with" ~> "communication").? ~ "=>" ~ identifierWithOptionalLevel ^^ {
+      case extid ~ comm ~ _ ~ intid => ExternalFieldDeclarationStatement(extid, intid, comm.isDefined)
+    })
 
 }
