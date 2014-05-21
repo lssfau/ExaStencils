@@ -9,11 +9,11 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException
 case class LayoutOption(var name : String, var value : Index, var hasCommunication : Option[Boolean]) extends Node
 
 case class LayoutDeclarationStatement(var name : String,
-                                      var ghostLayers : Option[Index] = None,
-                                      var ghostLayersCommunication : Option[Boolean] = None,
-                                      var duplicateLayers : Option[Index] = None,
-                                      var duplicateLayersCommunication : Option[Boolean] = None,
-                                      var innerPoints : Option[Index] = None) extends Node {
+    var ghostLayers : Option[Index] = None,
+    var ghostLayersCommunication : Option[Boolean] = None,
+    var duplicateLayers : Option[Index] = None,
+    var duplicateLayersCommunication : Option[Boolean] = None,
+    var innerPoints : Option[Index] = None) extends Node {
 
   def set(options : List[LayoutOption]) : Unit = { options.foreach(set(_)) }
 
@@ -31,10 +31,10 @@ case class LayoutDeclarationStatement(var name : String,
 }
 
 case class FieldDeclarationStatement(var name : String,
-                                     var datatype : Datatype,
-                                     var layout : String,
-                                     var boundary : Option[Expression],
-                                     var level : Option[LevelSpecification]) extends SpecialStatement {
+    var datatype : Datatype,
+    var layout : String,
+    var boundary : Option[Expression],
+    var level : Option[LevelSpecification]) extends SpecialStatement {
 
   var slots = 1 // FIXME: add to parser
 

@@ -202,9 +202,9 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
 
         new LoopOverDimensions(IndexRange(MultiIndex(0, 0, 0), MultiIndex(Knowledge.domain_numFragsPerBlock_x, Knowledge.domain_numFragsPerBlock_y, Knowledge.domain_numFragsPerBlock_z)),
           new AssignmentStatement("positions[posWritePos++]", "Vec3("
-            ~ ((("rankPos.x" : Expression) * Knowledge.domain_numFragsPerBlock_x + 0.5 + "x") * fragWidth_x) + globalDomain.size.lower_x ~ ","
-            ~ (if (Knowledge.dimensionality > 1) ((("rankPos.y" : Expression) * Knowledge.domain_numFragsPerBlock_y + 0.5 + "y") * fragWidth_y) + globalDomain.size.lower_y else 0) ~ ","
-            ~ (if (Knowledge.dimensionality > 2) ((("rankPos.z" : Expression) * Knowledge.domain_numFragsPerBlock_z + 0.5 + "z") * fragWidth_z) + globalDomain.size.lower_z else 0) ~ ")")),
+            ~ ((("rankPos.x" : Expression) * Knowledge.domain_numFragsPerBlock_x + 0.5 + dimToString(0)) * fragWidth_x) + globalDomain.size.lower_x ~ ","
+            ~ (if (Knowledge.dimensionality > 1) ((("rankPos.y" : Expression) * Knowledge.domain_numFragsPerBlock_y + 0.5 + dimToString(1)) * fragWidth_y) + globalDomain.size.lower_y else 0) ~ ","
+            ~ (if (Knowledge.dimensionality > 2) ((("rankPos.z" : Expression) * Knowledge.domain_numFragsPerBlock_z + 0.5 + dimToString(2)) * fragWidth_z) + globalDomain.size.lower_z else 0) ~ ")")),
         LoopOverFragments(-1, ListBuffer(
           s"fragments[f] = new Fragment3DCube()",
           s"fragments[f]->id = " ~ PointToFragmentId("positions[f]"),
