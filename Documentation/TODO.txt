@@ -1,0 +1,34 @@
++ Configuration Decisions -> Knowledge.scala + DOKU (Sebastian)
++ Makefile generator -> compilers and flags (Sebastian)
++ Explicit Checkpointing (Christian)
++ Feature Extraction -> possibilities (Alex/ Sebastian)
+- Generation of configurations (Alex/ Sebastian/ Christian)
+- L3 (Hannah)
+- Generate L4 (Hannah)
+- Level concept -> including/ excluding, level interfaces (all)
+- ISL integration (Stefan/ Christian/ Sebastian)
+- ISL overview (all)
+- Interface to User -> external fields and resulting functions (Sebastian/ Christian)
++ x, y, z (Sebastian)
+- L3 sets -> L4 (Hannah, Christian, Sebastian)
+- Lib/ Inc Blocks in HW Knowledge
+- reserve C keywords in lexer
+- getLevel@level
+- leveled variables
+
+- Changeable stencils
+- SetStencilCoeff (id, offset, coeff)
+- GlobalConst structure
+- Check BinOp PowerOf
+- BC will be set as fctCalls/ Expr for now
+- repeat boundary -> Exp
+- extend Repeat statement with optional ident and optional lower bound
+
+- BoundaryOffsetNode (const 0 or 1, member of FragClass)
+- case class OffsetModificationPerFrag (minOffset : Int, maxOffset : Int, modified : Expression, modifier : Expression)
+OffsetModificationPerFrag (-1, 0, IntConst(1), "curFragment.xOffStart")
+	c-> 1 + curFragment.xOffStart
+OffsetModificationPerFrag (0, 1, IntConst(1025), "curFragment.xOffEnd")
+	c-> 1025 + curFragment.xOffEnd
+
+	for (int x = 1 + curFragment.xOffStart; x < 1025 + curFragment.xOffEnd; ++x)
