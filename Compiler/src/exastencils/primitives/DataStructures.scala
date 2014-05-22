@@ -51,7 +51,7 @@ case class LoopOverDomain(var iterationSetIdentifier : String, var fieldIdentifi
     //        new NeighborInfo(Array(0, 0, +1), 5)),
     //      new MultiIndex(start.toArray), new MultiIndex(stop.toArray), iterationSet.increment, body, reduction)
     //
-    //    return new LoopOverFragments( // FIXME: define LoopOverFragments in L4 DSL
+    //    return new LoopOverFragments(field.domain, // FIXME: define LoopOverFragments in L4 DSL
     //      // TODO: add sth like new ConditionStatement(s"curFragment.isValidForSubdomain[${field.domain}]",
     //      temp.gen,
     //      reduction) with OMP_PotentiallyParallel
@@ -112,6 +112,7 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
     var parallelizable = Knowledge.omp_parallelizeLoopOverDimensions && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
 
     indices match {
+      // FIXME: adapt for 2D
       case IndexRange(MultiIndex(xStart : IntegerConstant, yStart : IntegerConstant, zStart : IntegerConstant),
         MultiIndex(xEnd : IntegerConstant, yEnd : IntegerConstant, zEnd : IntegerConstant)) => {
         val totalNumPoints = (xEnd.v - xStart.v) * (yEnd.v - yStart.v) * (zEnd.v - zStart.v)
