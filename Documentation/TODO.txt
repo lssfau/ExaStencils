@@ -1,0 +1,30 @@
+- Generation of configurations (Alex/ Sebastian/ Christian)
+- Generate L4 (Hannah)
+- Interface to User -> external fields and resulting functions (Sebastian/ Christian)
+- L3 sets -> L4 (Hannah, Christian, Sebastian)
+- Lib/ Inc Blocks in HW Knowledge
+- reserve C keywords in lexer
+- getLevel@level
+- leveled variables
+- move evalExp (Extractor) to general file/ make available
+- L4 sets -> constraints like "(x + y + z) % 2"
+- L4 constraints to ISL mapping
+- Mark loops from ISL with OMP_PotentiallyParallel
+- Mimic optimizations and criteria for OMP_PotentiallyParallel from LoopOverDomains.expand in ISL trafo
+
+- Changeable stencils
+- SetStencilCoeff (id, offset, coeff)
+- GlobalConst structure
+- Check BinOp PowerOf
+- BC will be set as fctCalls/ Expr for now
+- repeat boundary -> Exp
+- extend Repeat statement with optional ident and optional lower bound
+
+- BoundaryOffsetNode (const 0 or 1, member of FragClass)
+- case class OffsetModificationPerFrag (minOffset : Int, maxOffset : Int, modified : Expression, modifier : Expression)
+OffsetModificationPerFrag (-1, 0, IntConst(1), "curFragment.xOffStart")
+	c-> 1 + curFragment.xOffStart
+OffsetModificationPerFrag (0, 1, IntConst(1025), "curFragment.xOffEnd")
+	c-> 1025 + curFragment.xOffEnd
+
+	for (int x = 1 + curFragment.xOffStart; x < 1025 + curFragment.xOffEnd; ++x)

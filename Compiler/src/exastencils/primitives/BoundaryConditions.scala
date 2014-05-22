@@ -19,9 +19,11 @@ case class HandleBoundaries(var field : Field, var neighbors : ListBuffer[(Neigh
         neighbors.map(neigh =>
           new ConditionStatement(new getNeighInfo_IsInvalid(neigh._1, field.domain),
             new LoopOverDimensions(neigh._2,
-              new AssignmentStatement(
-                new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()),
-                field.dirichletBC.get)) with OMP_PotentiallyParallel with PolyhedronAccessable) : Statement)) with OMP_PotentiallyParallel
+              ListBuffer[Statement](
+                new InitGeomCoords(field), // FIXME: only add if really required
+                new AssignmentStatement(
+                  new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()),
+                  field.dirichletBC.get))) with OMP_PotentiallyParallel with PolyhedronAccessable) : Statement)) with OMP_PotentiallyParallel
     } else {
       new NullStatement
     }
