@@ -105,7 +105,7 @@ object StateManager {
 
   protected def processOutput[O <: Output[_]](o : O) : List[Node] = o.inner match {
     case n : Node    => List(n)
-    case l : List[_] => l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
+    case l : NodeList => l.nodes.toList // FIXME
     case _           => Logger.error(o)
   }
 
