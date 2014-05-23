@@ -36,12 +36,12 @@ import scala.util.Random
 object VariabilityParser {
   def main(args: Array[String]): Unit = {
 
-    val file = Settings.basePathPrefix + "/Compiler/src/exastencils/knowledge/Knowledge.scala"
-    readFeaturesL4(file)
+//    val file = Settings.basePathPrefix + "/Compiler/src/exastencils/knowledge/Knowledge.scala"
+//    readFeaturesL4(file)
+//
+//    generateVariant()
 
-    generateVariant()
-
-//    testMachineLearningAlgorithms
+    testMachineLearningAlgorithms
     
   }
 
@@ -83,7 +83,8 @@ object VariabilityParser {
   def testMachineLearningAlgorithms() = {
     
     // interpretieren des alten FeatueModelles
-    FeatureModel.FAMASyntax_ReadFeatureModel("./featureModel/model_HSMGP_noCores.model")
+    FeatureModel.FAMASyntax_ReadFeatureModel("./featureModel/model_HSMGP_noCores_numerical.model")
+//    FeatureModel.FAMASyntax_ReadFeatureModel("./featureModel/model_HSMGP_noCores.model")
     var pTest : PredictionTests = new PredictionTests()
     pTest.readFile("./src/exastencils/spl/test/P2D_minimalOnlyAvgTime.txt")
     var allConfigs = pTest.allConfigs .toArray[Configuration]
@@ -92,7 +93,7 @@ object VariabilityParser {
     var testConfigs : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
     
   
-    for(i <- 1 to 200){
+    for(i <- 1 to 30){
       var pos = (rand.nextDouble * pTest.allConfigs.size).toInt
       testConfigs.add(allConfigs(pos))
     }

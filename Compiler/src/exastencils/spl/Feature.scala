@@ -29,10 +29,10 @@ class Feature(name: String) {
 
     var sb = new scala.collection.mutable.StringBuilder()
 
-    sb ++= "Feature: " + identifier + "  " //+ super.toString   
-    sb ++= " isOptional " + isOptional + "\n"
+    sb ++= "Feature: " + identifier  
+    sb ++= "  isOptional: " + isOptional + "\n"
     //    + selected in all configs "+ isSelectedInAllConfigs + "\n"
-    sb ++= " isParentOfXor " + isParentOfXor
+    sb ++= " isParentOfXor: " + isParentOfXor
     if (FeatureModel.parentChildRelationships.contains(this)) {
       sb ++= " Childs: "
       FeatureModel.parentChildRelationships(this).map(sb ++= " " + _.identifier)
@@ -40,7 +40,7 @@ class Feature(name: String) {
     }
     sb ++= " isNumerical " + isNumerical + "\n"
     if (isNumerical)
-      sb ++= " minValue " + minValue + " maxValue " + maxValue + " stepsize " + stepsize + " defaultValue " + defaultValue + "\n"
+      sb ++= " minValue= " + minValue + " maxValue= " + maxValue + " stepsize= " + stepsize + " defaultValue= " + defaultValue + "\n"
 
     return sb.toString();
 
