@@ -176,7 +176,7 @@ case class ArrayAccess(var base : Expression, var index : Expression) extends Ac
   }
 }
 
-case class OffsetIndex(minOffset : Int, maxOffset : Int, index : Expression, offset : Expression) extends Expression {
+case class OffsetIndex(var minOffset : Int, var maxOffset : Int, var index : Expression, var offset : Expression) extends Expression {
   override def cpp : String = "NOT VALID ; CLASS = OffsetIndex\n"
 
   def expandSpecial : AdditionExpression = {
