@@ -6,13 +6,14 @@ object Logger {
   import scala.reflect.macros._
   import scala.reflect.runtime.universe._
   import scala.language.experimental.macros
-  
+
   // Level 1: Warn
   // Level 2: Debug
   // Level 4: Info
 
-  protected val current = 2
+  protected var current = 2
   def getLevel = current
+  def setLevel(level : Integer) = { current = level }
 
   def error(s : AnyRef) = {
     sys.error("ERROR: " + s)
