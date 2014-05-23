@@ -3,34 +3,31 @@ package exastencils.datastructures
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
-class Annotation(n : String, var v : Option[Any]) {
-  def name = n
-  def value = v
-
+sealed class Annotation(val id : String, var value : Option[Any]) {
   def this(n : String) = this(n, None)
 
-  def setValue(newV : Any) = { v = Some(newV) }
-  override def toString = { f"$name: $value" }
+  def setValue(newV : Any) = { value = Some(newV) }
+  override def toString = { f"$id: $value" }
 }
 
 object Annotation {
   def apply(n : String, v : Option[Any]) = new Annotation(n, v)
   def apply(n : String) = new Annotation(n)
-  def unapply(a : Annotation) : Option[(String, Option[Any])] = Some((a.name, a.v))
+  def unapply(a : Annotation) : Option[(String, Option[Any])] = Some((a.id, a.value))
 }
 
 trait Annotatable {
-  private val annotations_ = new ListBuffer[Annotation]
+  private val annotations_ = new HashMap[String, Annotation]
 
-  def add(a : Annotation) = { annotations_ += a }
-  def add(a : Seq[Annotation]) = { annotations_ ++= a }
+  def add(a : Annotation) :Unit  = { annotations_ += ((a.id, a)) }
+  def add(as : Seq[Annotation]) :Unit = { as.foreach(add(_)) }
   def annotate(n : String, v : Option[Any]) = this.add(new Annotation(n, v))
   def annotate(n : String) = this.add(new Annotation(n))
-  def remove(a : Annotation) = { annotations_ -= a }
-  def removeAnnotation(name : String) = { if (hasAnnotation(name)) remove(getAnnotation(name).get) }
-  def getAnnotations = { annotations_.toList }
-  def getAnnotation(name : String) = { annotations_.find(p => p.name == name) }
-  def hasAnnotation(name : String) = { annotations_.exists(p => p.name == name) }
+  def remove(a : Annotation) = { annotations_.remove(a.id) }
+  def removeAnnotation(id : String) = { annotations_.remove(id) }
+  def getAnnotations = { annotations_.values }
+  def getAnnotation(id : String) = { annotations_.get(id) }
+  def hasAnnotation(id : String) = { annotations_.contains(id) }
 }
 
 object AnnotationManager {
