@@ -100,12 +100,12 @@ private class ASTBuilderFunction(replaceCallback : (String, Expression, Node) =>
 
       case isl.AstNodeType.NodeIf =>
         val cond : Expression = processIslExpr(node.ifGetCond())
-        val then : Statement = processIslNode(node.ifGetThen(), oldStmts)
+        val thenBranch : Statement = processIslNode(node.ifGetThen(), oldStmts)
         if (node.ifHasElse() != 0) {
           val els : Statement = processIslNode(node.ifGetElse(), oldStmts)
-          new ConditionStatement(cond, then, els)
+          new ConditionStatement(cond, thenBranch, els)
         } else
-          new ConditionStatement(cond, then)
+          new ConditionStatement(cond, thenBranch)
 
       case isl.AstNodeType.NodeBlock =>
         val stmts = new ListBuffer[Statement]
