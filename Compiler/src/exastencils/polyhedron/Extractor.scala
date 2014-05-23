@@ -8,17 +8,35 @@ import exastencils.datastructures.Annotation
 import exastencils.datastructures.Node
 import exastencils.datastructures.ir.AdditionExpression
 import exastencils.datastructures.ir.AssignmentStatement
+import exastencils.datastructures.ir.BooleanConstant
+import exastencils.datastructures.ir.Datatype
 import exastencils.datastructures.ir.DivisionExpression
 import exastencils.datastructures.ir.Expression
+import exastencils.datastructures.ir.FloatConstant
 import exastencils.datastructures.ir.IntegerConstant
+import exastencils.datastructures.ir.ModuloExpression
+import exastencils.datastructures.ir.MultiIndex
 import exastencils.datastructures.ir.MultiplicationExpression
+import exastencils.datastructures.ir.PowerExpression
 import exastencils.datastructures.ir.Statement
 import exastencils.datastructures.ir.StringConstant
 import exastencils.datastructures.ir.SubtractionExpression
+import exastencils.datastructures.ir.UnaryExpression
 import exastencils.knowledge.Knowledge
 import exastencils.primitives.LoopOverDimensions
 import isl.Conversions.convertIntToVal
+import exastencils.datastructures.ir.ConcatenationExpression
+import exastencils.datastructures.ir.SpacedConcatenationExpression
 import exastencils.datastructures.ir.MultiIndex
+import exastencils.datastructures.ir.StringConstant
+import exastencils.datastructures.ir.StringConstant
+import exastencils.datastructures.ir.DirectFieldAccess
+import exastencils.knowledge.Field
+import exastencils.datastructures.ir.FieldAccess
+import exastencils.datastructures.ir.ExpressionStatement
+import exastencils.datastructures.ir.StringConstant
+import exastencils.datastructures.ir.StringConstant
+import exastencils.datastructures.ir.VariableAccess
 
 object Extractor extends Collector {
   import scala.language.implicitConversions
@@ -69,15 +87,35 @@ object Extractor extends Collector {
     }
 
     // create new SCoP or replace old
-    if (node.isInstanceOf[LoopOverDimensions])
+    if (node.isInstanceOf[LoopOverDimensions with PolyhedronAccessable])
       enterLoop(node.asInstanceOf[LoopOverDimensions])
 
     else if (template != null) // we have a SCoP now
       node match {
+
+        // process
         case a : AssignmentStatement => enterAssign(a)
-        // case s : StringConstant      => discardCurrentSCoP("string found (" + s.value + "), unsure about usage, skipping scop")
-        case s : Statement           => enterStmt(s) // ensure the general Statement case is below others of its subclasses
-        case x : Any                 => Logger.debug("[poly ex]: ignoring " + x.getClass())
+        case s : StringConstant      => //enterScalar(s)
+        case _ : VariableAccess
+          | _ : MultiIndex
+          | _ : DirectFieldAccess
+          | _ : FieldAccess => // TODO: implement
+
+        // ignore
+        case _ : Datatype // and all of its subclasses
+          | _ : IntegerConstant
+          | _ : FloatConstant
+          | _ : BooleanConstant
+          | _ : UnaryExpression
+          | _ : AdditionExpression
+          | _ : SubtractionExpression
+          | _ : MultiplicationExpression
+          | _ : DivisionExpression
+          | _ : ModuloExpression
+          | _ : PowerExpression => // nothing to do for all of them...
+
+        // deny
+        case x : Any => discardCurrentSCoP("cannot deal with " + x.getClass())
       }
   }
 
@@ -190,7 +228,7 @@ object Extractor extends Collector {
       // i < end  -->  (-1)*i + (end-1) >= 0
       constr = isl.Constraint.inequalityAlloc(template.getLocalSpace())
       constr = constr.setCoefficientVal(isl.DimType.Set, loop_dim, NEG_ONE)
-      constr = constr.setConstantVal(cur_end-1)
+      constr = constr.setConstantVal(cur_end - 1)
       template = template.addConstraint(constr)
 
       geo_dim += 1
@@ -201,6 +239,49 @@ object Extractor extends Collector {
     if (template != null)
       loop.annotate(PolyOpt.SCOP_ANNOT, Some(scops.top))
     template = null
+  }
+
+  private def enterStmt(stmt : Statement) : Unit = {
+
+    val scop = scops.top
+
+    val id : Int = nextId()
+    val strId : String = "S" + id
+    scop.stmts.put(strId, stmt)
+
+    var domain : isl.BasicSet = template
+    domain = domain.setTupleName(strId)
+
+    scop.domain = scop.domain.addSet(domain)
+
+    val dim : Int = domain.dim(isl.DimType.Set)
+    val space : isl.Space = domain.getSpace().mapFromDomainAndRange(isl.Space.setAlloc(domain.dim(isl.DimType.Param), dim + 1))
+    var schedule : isl.BasicMap = isl.BasicMap.universe(space)
+    var constr : isl.Constraint = null
+
+    var d = 0
+    do {
+
+      // in == out  -->  (1)*in + (-1)*out == 0
+      constr = isl.Constraint.equalityAlloc(schedule.getLocalSpace())
+      constr = constr.setCoefficientVal(isl.DimType.In, d, POS_ONE)
+      constr = constr.setCoefficientVal(isl.DimType.Out, d, NEG_ONE)
+      schedule = schedule.addConstraint(constr)
+
+      d += 1
+    } while (d < dim)
+
+    // out == id  -->  (-1)*out + (1)*id == 0
+    constr = isl.Constraint.equalityAlloc(schedule.getLocalSpace())
+    constr = constr.setCoefficientVal(isl.DimType.Out, Knowledge.dimensionality, NEG_ONE)
+    constr = constr.setConstantVal(id)
+    schedule = schedule.addConstraint(constr)
+
+    scop.schedule = scop.schedule.addMap(schedule)
+  }
+
+  private def leaveStmt(stmt : Statement) : Unit = {
+    // anything to do here? I guess not...
   }
 
   private def enterAssign(assign : AssignmentStatement) : Unit = {
@@ -236,44 +317,12 @@ object Extractor extends Collector {
     assign.src.removeAnnotation(Access.ID)
   }
 
-  private def enterStmt(stmt : Statement) : Unit = {
+  private def enterScalar(assign : StringConstant) : Unit = {
 
-    val scop = scops.top
-
-    val id : Int = nextId()
-    val strId : String = "S" + id
-    scop.stmts.put(strId, stmt)
-
-    var domain : isl.BasicSet = template
-    domain = domain.setTupleName(strId)
-
-    scop.domain = scop.domain.addSet(domain)
-
-    val dim : Int = domain.dim(isl.DimType.Set)
-    val space : isl.Space = domain.getSpace().mapFromDomainAndRange(isl.Space.setAlloc(domain.dim(isl.DimType.Param), dim + 1))
-    var schedule : isl.BasicMap = isl.BasicMap.universe(space)
-    var constr : isl.Constraint = null
-
-    var d = 0
-    do {
-
-      constr = isl.Constraint.equalityAlloc(schedule.getLocalSpace())
-      constr = constr.setCoefficientVal(isl.DimType.In, d, POS_ONE)
-      constr = constr.setCoefficientVal(isl.DimType.Out, d, NEG_ONE)
-      schedule = schedule.addConstraint(constr)
-
-      d += 1
-    } while (d < dim)
-
-    constr = isl.Constraint.equalityAlloc(schedule.getLocalSpace())
-    constr = constr.setCoefficientVal(isl.DimType.Out, Knowledge.dimensionality, NEG_ONE)
-    constr = constr.setConstantVal(id)
-    schedule = schedule.addConstraint(constr)
-
-    scop.schedule = scop.schedule.addMap(schedule)
   }
 
-  private def leaveStmt(stmt : Statement) : Unit = {
-    // anything to do here? I guess not...
+  private def leaveScalar(assign : AssignmentStatement) : Unit = {
+
   }
+
 }

@@ -193,7 +193,7 @@ object FeatureModel {
    *
    */
 
-  def addFeatureL4(content: String): Unit = {
+  def addFeature_KnowledgeFile(content: String): Unit = {
     var parts = content.split("//")
 
     var name = parts(0).split(":")(0).trim().split(" ")(1)
@@ -233,7 +233,7 @@ object FeatureModel {
     }
   }
 
-  def interpretCrossTreeConstraint(crossTreeConst: String): Unit = {
+  def FAMASynatx_InterpretCrossTreeConstraint(crossTreeConst: String): Unit = {
     var constraint = crossTreeConst.replaceAll("%[a-zA-Z0-9\\s()]+%", "")
 
     if (constraint.trim().length() == 0)
@@ -399,8 +399,86 @@ object FeatureModel {
       parentChildRelationships.put(parent, list)
     }
   }
-
-} 
+  
   
 
+  
+
+  def FAMASyntax_ReadFeatureModel(file: String) : Unit = {
+
+    try {
+     
+      var featureModelTextRepresentation = Source.fromFile(file).mkString.split("% constraints %")
+
+      FAMASyntax_InterpretFeatureModel(featureModelTextRepresentation(0)) // feature model section
+
+      if (featureModelTextRepresentation.length > 1) // file has a constraint section
+        featureModelTextRepresentation(1).split(";").map(f => FAMASynatx_InterpretCrossTreeConstraint(f));
+
+        
+    } catch {
+      case ex: FileNotFoundException => println("Couldn't find feature model.")
+      case ex: IOException => println("IOException trying to read the model")
+    }
+    
+    
+  }
+
+  
+  def FAMASyntax_InterpretFeatureModel(tree: String) = {
+    var statements = tree.split(";")
+    for (i <- 0 until statements.length - 1) {
+      var currStatement = statements(i)
+      currStatement = currStatement.replaceAll("%[a-zA-Z0-9\\s()]+%", "") // remove comments
+
+      var featureName = currStatement.split(":")(0).trim()
+      var specialization = currStatement.split(":")(1).trim()
+
+      
+      
+      var feat : Feature = allFeatures.get(featureName).getOrElse(new Feature(featureName))
+      allFeatures(featureName)  = feat
+
+      
+      // consider specialization of current feature
+      if (specialization.contains("{")) { // numerical feature
+        // numerical features are no parent features
+        feat.updateNumericalValues(specialization)
+
+      } else {
+        var subfeatureNames = new Array[String](0)
+        if (specialization.contains("|")) {
+
+          feat.isParentOfXor = true
+
+          subfeatureNames = specialization.split("\\|")
+        } else {
+          subfeatureNames = specialization.split(" ")
+        }
+        var subFeatures: scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
+        for (j <- 0 until subfeatureNames.length) {
+          var currSubFeatureName = subfeatureNames(j).trim()
+          if (currSubFeatureName.length() > 0) {
+
+            var isOptional = currSubFeatureName.startsWith("[")
+            if (isOptional)
+              currSubFeatureName = currSubFeatureName.substring(1, currSubFeatureName.length() - 1)
+
+            var currSubFeature : Feature = allFeatures.get(currSubFeatureName).getOrElse(new Feature(currSubFeatureName))
+            allFeatures(currSubFeatureName)  = currSubFeature
+            currSubFeature.isOptional = isOptional
+            
+            subFeatures.add(currSubFeature)
+            currSubFeature.isChild = true
+          }
+        }
+        parentChildRelationships.put(feat, subFeatures);
+      }
+
+    }
+    // the feature that does not appear within one right hand side is the root
+    FeatureModel.rootFeature = allFeatures.find(x => ( ! x._2.isNumerical ) && ( ! x._2.isChild )).get._2
+    
+  }  
+}
 
