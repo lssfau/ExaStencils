@@ -29,13 +29,3 @@ trait Annotatable {
   def getAnnotation(id : String) = { annotations_.get(id) }
   def hasAnnotation(id : String) = { annotations_.contains(id) }
 }
-
-object AnnotationManager {
-  protected var names = new HashMap[String, Any => Boolean]
-
-  def allow(name : String) = names.put(name, (x : Any) => true)
-  def allow(name : String, checker : (Any => Boolean)) = names.put(name, checker)
-  def disallow(name : String) = names.-=(name)
-  def valid(name : String, value : Any) : Boolean = names.getOrElse(name, return false).apply(value)
-}
-
