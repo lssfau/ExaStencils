@@ -162,9 +162,7 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
         return (totalNumPoints > Knowledge.omp_minWorkItemsPerThread * Knowledge.omp_numThreads)
       }
       // could not match, default is no change in parallelizability, i.e. true
-      case _ =>
-        println(indices)
-        true
+      case _ => true
     }
   }
 
