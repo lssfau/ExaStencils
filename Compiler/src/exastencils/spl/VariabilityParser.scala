@@ -25,20 +25,24 @@ import exastencils.languageprocessing.l4.ProgressToIr
 import exastencils.mpi._
 import exastencils.omp._
 import exastencils.polyhedron._
-
 import scala.io.Source
 import exastencils.core.Settings
 import exastencils.knowledge.Knowledge
 import exastencils.core.UniversalSetter
+import sun.reflect.generics.tree.Tree
+import exastencils.spl.test.PredictionTests
+import scala.util.Random
 
 object VariabilityParser {
   def main(args: Array[String]): Unit = {
 
-    val file = Settings.basePathPrefix + "/Compiler/src/exastencils/knowledge/Knowledge.scala"
-    readFeaturesL4(file)
+//    val file = Settings.basePathPrefix + "/Compiler/src/exastencils/knowledge/Knowledge.scala"
+//    readFeaturesL4(file)
+//
+//    generateVariant()
 
-    generateVariant()
-
+    testMachineLearningAlgorithms
+    
   }
 
   /**
@@ -51,7 +55,7 @@ object VariabilityParser {
     for (i <- 0 until knowledgeFile.length - 1) {
       var currStatement = knowledgeFile(i)
       if (currStatement.contains("//") && currStatement.contains("[")) {
-        FeatureModel.addFeatureL4(currStatement)
+        FeatureModel.addFeature_KnowledgeFile(currStatement)
       }
     }
     FeatureModel.createFeatureDependenciesByFeatureNames()
@@ -60,10 +64,10 @@ object VariabilityParser {
   def generateVariant() = {
     Knowledge.update()
 
+    var testConfigs : Array[Configuration] = Array()
+    
     var config = FeatureModel.getDefaultConfig()
     useConfiguration(config)
-
-    testMultiVariantGeneration("/bla/")
 
     config.nfpValues = testMultiVariantGeneration("/blub/")
 
@@ -71,6 +75,40 @@ object VariabilityParser {
 
   }
 
+  val rand : Random = new Random (1)
+  /**
+   * This method uses the old feature model syntax (FAMA like syntax) and uses the re
+   * 
+   */
+  def testMachineLearningAlgorithms() = {
+    
+    // interpretieren des alten FeatueModelles
+    FeatureModel.FAMASyntax_ReadFeatureModel("./featureModel/model_HSMGP_noCores.model")
+    var pTest : PredictionTests = new PredictionTests()
+    pTest.readFile("./src/exastencils/spl/test/P2D_minimalOnlyAvgTime.txt")
+    var allConfigs = pTest.allConfigs .toArray[Configuration]
+    
+    // verwenden einige Konfigurationen als Trainigset
+    var testConfigs : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
+    
+  
+    for(i <- 1 to 200){
+      var pos = (rand.nextDouble * pTest.allConfigs.size).toInt
+      testConfigs.add(allConfigs(pos))
+    }
+      
+
+    var forwardFeatureSelection = new ForwardFeatureSelection(15, testConfigs.toArray[Configuration])
+       forwardFeatureSelection.apply
+        
+    println("-------------------------------------------------------------------------------------")   
+    println("Overall Error "+forwardFeatureSelection.computeErrorForCombination(forwardFeatureSelection.solutionSet.toArray[scala.collection.mutable.Set[Feature]], allConfigs)) 
+       
+    // predicten of all configs
+    println("finished")
+    
+  }
+  
   def useConfiguration(configuration: Configuration) = {
     Knowledge.getClass().getDeclaredFields().foreach(f =>
       if (FeatureModel.allFeatures.contains(f.getName())) {
