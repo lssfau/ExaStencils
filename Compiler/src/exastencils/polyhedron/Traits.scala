@@ -1,3 +1,0 @@
-package exastencils.polyhedron
-
-trait PolyhedronAccessable

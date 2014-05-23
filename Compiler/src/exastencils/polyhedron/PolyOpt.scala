@@ -10,6 +10,8 @@ import exastencils.datastructures.ir.Expression
 import exastencils.datastructures.ir.StringConstant
 import exastencils.datastructures.ir.VariableAccess
 
+trait PolyhedronAccessable
+
 object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   final val SCOP_ANNOT : String = "PolySCoP"
