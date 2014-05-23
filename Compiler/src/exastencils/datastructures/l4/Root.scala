@@ -9,11 +9,12 @@ case class Root(
     var domains : List[DomainDeclarationStatement],
     var layouts : List[LayoutDeclarationStatement],
     var fields : List[FieldDeclarationStatement],
+    var externalFields : List[ExternalFieldDeclarationStatement],
     var stencils : List[StencilDeclarationStatement],
     var iterationSets : List[IterationSetDeclarationStatement],
     var statements : List[Statement]) extends Node with ProgressableToIr {
 
-  def this(statements : List[Statement]) = this(List(), List(), List(), List(), List(), statements)
+  def this(statements : List[Statement]) = this(List(), List(), List(), List(), List(), List(), statements)
 
   def getLayoutByIdentifier(identifier : String) : Option[LayoutDeclarationStatement] = {
     layouts.find(f => f.name == identifier)

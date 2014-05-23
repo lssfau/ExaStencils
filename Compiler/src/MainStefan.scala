@@ -18,8 +18,12 @@ import exastencils.omp._
 import exastencils.spl.FeatureModel
 import exastencils.polyhedron._
 
-object Main {
+object MainStefan {
   def main(args : Array[String]) : Unit = {
+
+    // for runtime measurement
+    val start : Long = System.nanoTime()
+
     // Init settings
 
     if (args.length >= 1) {
@@ -71,7 +75,7 @@ object Main {
 
     ExpandStrategy.doUntilDone()
 
-    //    PolyOpt.apply()
+    PolyOpt.apply()
 
     ResolveLoopOverDimensions.apply()
 
@@ -95,5 +99,7 @@ object Main {
     PrettyprintingManager.finish
 
     println("Done!")
+
+    println("Runtime: " + ((System.nanoTime() - start) / 1e9))
   }
 }

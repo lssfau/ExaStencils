@@ -45,8 +45,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   //###########################################################
 
-  lazy val program = locationize(domain.* ~ layout.* ~ field.* ~ stencil.* ~ iterationSet.* ~ function.* ^^
-    { case d ~ l ~ f ~ s ~ i ~ ss => Root(d, l, f, s, i, ss) })
+  lazy val program = locationize(domain.* ~ layout.* ~ field.* ~ externalField.* ~ stencil.* ~ iterationSet.* ~ function.* ^^
+    { case d ~ l ~ f ~ ef ~ s ~ i ~ ss => Root(d, l, f, ef, s, i, ss) })
 
   //###########################################################
 
@@ -150,8 +150,11 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ##### Fields & Layouts
   // ######################################
 
-  lazy val layout = locationize(("Layout" ~> ident) ~ ("{" ~> (layoutOption).+ <~ "}") ^^ { case id ~ opts => var x = LayoutDeclarationStatement(id); x.set(opts); x })
-  lazy val layoutOption = locationize((ident <~ "=") ~ index ~ ("with" ~ "communication").? ^^ { case id ~ idx ~ comm => LayoutOption(id, idx, Some(comm.isDefined)) })
+  lazy val layout = locationize(("Layout" ~> ident) ~ ("{" ~> layoutOptions <~ "}") ^^ { case id ~ opts => var x = LayoutDeclarationStatement(id); x.set(opts); x })
+  lazy val layoutOptions = (
+    (layoutOption <~ ",").* ~ layoutOption ^^ { case opts ~ opt => opts.::(opt) }
+    ||| layoutOption.+)
+  lazy val layoutOption = locationize((identifierWithOptionalLevel <~ "=") ~ index ~ ("with" ~ "communication").? ^^ { case id ~ idx ~ comm => LayoutOption(id, idx, Some(comm.isDefined)) })
 
   lazy val field = locationize(("Field" ~> ident) ~ "<" ~ datatype ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ level.?
     ^^ {
@@ -171,10 +174,12 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     locationize("[" ~ expression ~ "," ~ expression ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ => ExpressionIndex2D(n1, n2) })
     ||| locationize("[" ~ expression ~ "," ~ expression ~ "," ~ expression ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ ~ n3 ~ _ => ExpressionIndex3D(n1, n2, n3) }))
 
-  lazy val stencilentry = ((expressionIndex ~ ("=>" ~> factor)) ^^ { case offset ~ weight => StencilEntry(offset, weight) })
-
-  lazy val stencil = locationize(("Stencil" ~> ident) ~ level.? ~ ("{" ~> stencilentry.+ <~ "}")
-    ^^ { case id ~ level ~ entries => StencilDeclarationStatement(id, entries, level) }) // FIXME replace ident by identifierWith*
+  lazy val stencil = locationize(("Stencil" ~> ident) ~ level.? ~ ("{" ~> stencilEntries <~ "}")
+    ^^ { case id ~ level ~ entries => StencilDeclarationStatement(id, entries, level) })
+  lazy val stencilEntries = (
+    (stencilEntry <~ ",").+ ~ stencilEntry ^^ { case entries ~ entry => entries.::(entry) }
+    ||| stencilEntry.+)
+  lazy val stencilEntry = ((expressionIndex ~ ("=>" ~> factor)) ^^ { case offset ~ weight => StencilEntry(offset, weight) })
 
   lazy val communicateStatement = locationize("communicate" ~> identifierWithOptionalLevel ^^ { case field => CommunicateStatement(field) })
 
@@ -214,5 +219,14 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val comparison : PackratParser[BooleanExpression] =
     locationize((expression ~ ("<" ||| "<=" ||| ">" ||| ">=" ||| "==" ||| "!=") ~ expression) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
+
+  // ######################################
+  // ##### "External" Definitions
+  // ######################################
+
+  lazy val externalField = locationize(
+    (("external" ~ "Field") ~> ident) ~ ("<" ~> ident <~ ">") ~ "=>" ~ identifierWithObligatoryLevel ^^ {
+      case extid ~ layout ~ _ ~ intid => ExternalFieldDeclarationStatement(extid, intid, layout)
+    })
 
 }

@@ -1,23 +1,27 @@
-Domain global< [-1, -1, -1] to [1, 1, 1] >
+Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >
 
 Layout BasicComm {
-	ghostLayers = [ 1, 1, 1] with communication
-	duplicateLayers = [ 1, 1, 1] with communication
+	ghostLayers = [ 1, 1, 1 ] with communication
+	duplicateLayers = [ 1, 1, 1 ] with communication
 	// innerPoints = []
 }
 
 Layout NoComm {
-	ghostLayers = [ 0, 0, 0]
-	duplicateLayers = [ 1, 1, 1]
+	ghostLayers = [ 0, 0, 0 ]
+	duplicateLayers = [ 1, 1, 1 ]
 	// innerPoints = []
 }
 
-Field Solution< Real, BasicComm, NULL >@all//[2]
-//Field Solution2< [1, 1, 1], Real >@((coarsest + 1) to finest) ( ghostlayers = 1, slots = 1, bcDir = true )
+Field Solution< Real, BasicComm, 0.0 >@all//[2]
+Field Solution2< Real, BasicComm, 0.0 >@all
+//Field Solution< Real, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@all//[2]
+//Field Solution2< Real, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@all
 Field Residual< Real, BasicComm, None >@all
 Field RHS< Real, NoComm, None >@all
 Field VecP< Real, BasicComm, None >@coarsest
 Field VecGradP< Real, NoComm, None >@coarsest
+
+external Field extSolution <bla> => Solution @(finest)
 
 Stencil Lapl@all {
 	[ 0,  0,  0] => 6
@@ -77,11 +81,11 @@ Set inner [1, 1, 1] - [1, 1, 1] steps [1, 1, 1]
 Set innerForFieldsWithoutGhostLayers [0, 0, 0] - [0, 0, 0] steps [1, 1, 1] // this concept might need some improvement
 Set domain [0, 0, 0] - [0, 0, 0] steps [1, 1, 1]
 // 2D
-Set red [1 + (y % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]
-Set black [2 - (y % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]
+//Set red [1 + (y % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]
+//Set black [2 - (y % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]
 // 3D
-//Set red [1 + ((y + z) % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]
-//Set black [2 - ((y + z) % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]
+Set red [1 + ((y + z) % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]
+Set black [2 - ((y + z) % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]
 
 def VCycle@coarsest ( ) : Unit {
 	UpResidual@(current) ( )
@@ -144,28 +148,28 @@ def VCycle@((coarsest + 1) to finest) ( ) : Unit {
 }
 
 // Jacobi
-//def Smoother@((coarsest + 1) to finest) ( ) : Unit {
-//	communicate Solution@(current)
-//	loop over inner on Solution@(current) {
-//		Solution2@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 0.8 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
-//	}
-//	communicate Solution2@(current)
-//	loop over inner on Solution@(current) {
-//		Solution@(current) = Solution2@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 0.8 ) * ( RHS@(current) - Lapl@(current) * Solution2@(current) ) )
-//	}
-//}
-
-// RBGS
 def Smoother@((coarsest + 1) to finest) ( ) : Unit {
 	communicate Solution@(current)
-	loop over red on Solution@(current) {
-		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 1.0 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
+	loop over inner on Solution@(current) {
+		Solution2@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 0.8 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
 	}
-	communicate Solution@(current)
-	loop over black on Solution@(current) {
-		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 1.0 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
+	communicate Solution2@(current)
+	loop over inner on Solution@(current) {
+		Solution@(current) = Solution2@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 0.8 ) * ( RHS@(current) - Lapl@(current) * Solution2@(current) ) )
 	}
 }
+
+// RBGS
+//def Smoother@((coarsest + 1) to finest) ( ) : Unit {
+//	communicate Solution@(current)
+//	loop over red on Solution@(current) {
+//		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 1.0 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
+//	}
+//	communicate Solution@(current)
+//	loop over black on Solution@(current) {
+//		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 1.0 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
+//	}
+//}
 
 // GS
 //def Smoother@((coarsest + 1) to finest) ( ) : Unit {

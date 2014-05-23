@@ -138,18 +138,19 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
 
     // handle BC
     // FIXME: currently treats numInnerLayers points
+    // FIXME: this treats more points than required (outer halo)
     body += new HandleBoundaries(field, neighbors.map(neigh => (neigh, new IndexRange(
       new MultiIndex(
         DimArray().map(i => i match {
-          case i if neigh.dir(i) == 0 => field.layout(i).idxDupLeftBegin
-          case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftBegin
+          case i if neigh.dir(i) == 0 => field.layout(i).idxGhostLeftBegin //idxDupLeftBegin
+          case i if neigh.dir(i) < 0  => field.layout(i).idxGhostLeftBegin //idxDupLeftBegin
           case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightBegin
         }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
       new MultiIndex(
         DimArray().map(i => i match {
-          case i if neigh.dir(i) == 0 => field.layout(i).idxDupRightEnd
+          case i if neigh.dir(i) == 0 => field.layout(i).idxGhostRightEnd //idxDupRightEnd
           case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftEnd
-          case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightEnd
+          case i if neigh.dir(i) > 0  => field.layout(i).idxGhostRightEnd //idxDupRightEnd
         }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0))))))
 
     // sync duplicate values

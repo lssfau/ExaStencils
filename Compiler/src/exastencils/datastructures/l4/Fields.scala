@@ -4,8 +4,9 @@ import exastencils.core._
 import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
+import sun.reflect.generics.reflectiveObjects.NotImplementedException
 
-case class LayoutOption(var name : String, var value : Index, var hasCommunication : Option[Boolean]) extends Node
+case class LayoutOption(var name : Identifier, var value : Index, var hasCommunication : Option[Boolean]) extends Node
 
 case class LayoutDeclarationStatement(var name : String,
     var ghostLayers : Option[Index] = None,
@@ -17,7 +18,7 @@ case class LayoutDeclarationStatement(var name : String,
   def set(options : List[LayoutOption]) : Unit = { options.foreach(set(_)) }
 
   def set(option : LayoutOption) : Unit = {
-    option.name match {
+    option.name.name match {
       case "ghostLayers" =>
         ghostLayers = Some(option.value)
         ghostLayersCommunication = option.hasCommunication
@@ -70,6 +71,14 @@ case class FieldDeclarationStatement(var name : String,
       level.get.asInstanceOf[SingleLevelSpecification].level,
       slots,
       l4_ghostLayers.progressToIr, // TODO: this should work for now but may be adapted in the future
-      if(boundary.isDefined) Some(boundary.get.progressToIr) else None) // FIXME: set this automatically
+      if (boundary.isDefined) Some(boundary.get.progressToIr) else None)
   }
 }
+
+case class ExternalFieldDeclarationStatement(
+    var externalidentifier : String,
+    var internalidentifier : Identifier,
+    var layout : String) extends ExternalDeclarationStatement {
+  def progressToIr = { throw new NotImplementedException }
+}
+

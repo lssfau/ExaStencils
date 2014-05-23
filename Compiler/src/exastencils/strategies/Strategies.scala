@@ -19,6 +19,16 @@ object PrintStrategy extends DefaultStrategy("Pretty-Print") {
 }
 
 object ExpandStrategy extends DefaultStrategy("Expanding") {
+  def doUntilDone(node : Option[Node] = None) = {
+    do { apply(node) }
+    while (results.last._2.matches > 0) // FIXME: cleaner code
+  }
+
+  def doUntilDoneStandalone(node : Node) = {
+    do { applyStandalone(node) }
+    while (results.last._2.matches > 0) // FIXME: cleaner code
+  }
+
   this += new Transformation("Hoho, expanding all day...", {
     case expandable : Expandable =>
       expandable.expand
@@ -30,6 +40,16 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
   // FIXME: remove empty functions
   // FIXME: remove (true) conditions
 
+  def doUntilDone(node : Option[Node] = None) = {
+    do { apply(node) }
+    while (results.last._2.matches > 0) // FIXME: cleaner code
+  }
+
+  def doUntilDoneStandalone(node : Node) = {
+    do { applyStandalone(node) }
+    while (results.last._2.matches > 0) // FIXME: cleaner code
+  }
+
   this += new Transformation("Improving the quality of some horrid code...", {
     // FIXME: for re-runs only the number of replacements of the last trafo is checked, thus only one big trafo (should also improve performance)
     // TODO: extend for general data types; extend with missing cases; extend for left-right-switched cases
@@ -39,6 +59,18 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       IntegerConstant(-value.v)
     case UnaryExpression(UnaryOperators.Negative, FloatConstant(value)) =>
       FloatConstant(-value.v)
+    //})
+
+    //this += new Transformation("Permutating operations with constants on the 'wrong' side", {
+    case AdditionExpression(left : IntegerConstant, right : Expression) if !right.isInstanceOf[IntegerConstant] =>
+      right + left
+    case MultiplicationExpression(left : IntegerConstant, right : Expression) if !right.isInstanceOf[IntegerConstant] =>
+      right * left
+
+    case AdditionExpression(left : FloatConstant, right : Expression) if !right.isInstanceOf[FloatConstant] =>
+      right + left
+    case MultiplicationExpression(left : FloatConstant, right : Expression) if !right.isInstanceOf[FloatConstant] =>
+      right * left
     //})
 
     //this += new Transformation("Correcting signs", {
@@ -130,7 +162,6 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       SubtractionExpression(rightLeft, IntegerConstant(rightRight))) =>
       ((leftLeft + rightLeft) - (leftRight.v + rightRight.v))
     //})
-
   })
 }
 

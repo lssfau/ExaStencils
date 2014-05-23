@@ -12,6 +12,7 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.prettyprinting._
 import exastencils.omp._
 import exastencils.mpi._
+import exastencils.polyhedron._
 
 // TODO: Move accepted nodes to appropriate packages
 
@@ -50,13 +51,13 @@ case class LoopOverDomain(var iterationSetIdentifier : String, var fieldIdentifi
     //        new NeighborInfo(Array(0, 0, +1), 5)),
     //      new MultiIndex(start.toArray), new MultiIndex(stop.toArray), iterationSet.increment, body, reduction)
     //
-    //    return new LoopOverFragments( // FIXME: define LoopOverFragments in L4 DSL
+    //    return new LoopOverFragments(field.domain, // FIXME: define LoopOverFragments in L4 DSL
     //      // TODO: add sth like new ConditionStatement(s"curFragment.isValidForSubdomain[${field.domain}]",
     //      temp.gen,
     //      reduction) with OMP_PotentiallyParallel
 
     return new LoopOverFragments(field.domain, // FIXME: define LoopOverFragments in L4 DSL
-      new LoopOverDimensions(IndexRange(new MultiIndex(start.toArray), new MultiIndex(stop.toArray)), body, iterationSet.increment, reduction) with OMP_PotentiallyParallel,
+      new LoopOverDimensions(IndexRange(new MultiIndex(start.toArray), new MultiIndex(stop.toArray)), body, iterationSet.increment, reduction) with OMP_PotentiallyParallel with PolyhedronAccessable,
       reduction) with OMP_PotentiallyParallel
   }
 }
@@ -91,7 +92,7 @@ case class LoopOverDomain(var iterationSetIdentifier : String, var fieldIdentifi
 //                    And (if (0 == i3) getNeighInfo_IsInvalid(neighbors(3), field.domain) else getNeighInfo_IsValid(neighbors(3), field.domain))
 //                    And (if (0 == i4) getNeighInfo_IsInvalid(neighbors(4), field.domain) else getNeighInfo_IsValid(neighbors(4), field.domain))
 //                    And (if (0 == i5) getNeighInfo_IsInvalid(neighbors(5), field.domain) else getNeighInfo_IsValid(neighbors(5), field.domain)),
-//                  new LoopOverDimensions(IndexRange(newStart, newStop), Duplicate(body), Duplicate(increment), Duplicate(reduction)) with OMP_PotentiallyParallel)
+//                  new LoopOverDimensions(IndexRange(newStart, newStop), Duplicate(body), Duplicate(increment), Duplicate(reduction)) with OMP_PotentiallyParallel with PolyhedronAccessable)
 //              }
 //
 //    println("Finished Temp gen with " + conditions.size + " items")
@@ -111,6 +112,7 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
     var parallelizable = Knowledge.omp_parallelizeLoopOverDimensions && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
 
     indices match {
+      // FIXME: adapt for 2D
       case IndexRange(MultiIndex(xStart : IntegerConstant, yStart : IntegerConstant, zStart : IntegerConstant),
         MultiIndex(xEnd : IntegerConstant, yEnd : IntegerConstant, zEnd : IntegerConstant)) => {
         val totalNumPoints = (xEnd.v - xStart.v) * (yEnd.v - yStart.v) * (zEnd.v - zStart.v)

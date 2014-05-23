@@ -123,3 +123,5 @@ case class CommunicateStatement(var identifier : Identifier) extends Statement {
       identifier.asInstanceOf[FieldIdentifier].level.asInstanceOf[SingleLevelSpecification].level)
   }
 }
+
+trait ExternalDeclarationStatement extends Statement

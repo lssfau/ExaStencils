@@ -4,7 +4,6 @@ import scala.annotation.elidable
 import scala.annotation.elidable.ASSERTION
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core.Logger
 import exastencils.datastructures.Annotation
 import exastencils.datastructures.Node
@@ -38,8 +37,9 @@ import exastencils.datastructures.ir.UnaryOperators
 import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.VariableDeclarationStatement
 import exastencils.primitives.LoopOverDimensions
-import exastencils.primitives.dimToString
 import isl.Conversions.convertLambdaToXCallback1
+import exastencils.knowledge.Knowledge
+import exastencils.knowledge.dimToString
 
 class ASTBuilderTransformation(replaceCallback : (String, Expression, Node) => Unit)
   extends Transformation("insert optimized loop AST", new ASTBuilderFunction(replaceCallback))
@@ -48,8 +48,9 @@ private class ASTBuilderFunction(replaceCallback : (String, Expression, Node) =>
     extends PartialFunction[Node, Transformation.Output[_]] {
 
   def isDefinedAt(node : Node) : Boolean = node match {
-    case loop : LoopOverDimensions => loop.hasAnnotation(PolyOpt.SCOP_ANNOT)
-    case _                         => false
+    case loop : LoopOverDimensions with PolyhedronAccessable =>
+      loop.hasAnnotation(PolyOpt.SCOP_ANNOT)
+    case _ => false
   }
 
   def apply(node : Node) : Transformation.Output[_] = {
@@ -58,9 +59,6 @@ private class ASTBuilderFunction(replaceCallback : (String, Expression, Node) =>
     node.remove(annotation)
     val scop : SCoP = annotation.value.get.asInstanceOf[SCoP]
 
-    Logger.debug("  domain:   " + scop.domain)
-    Logger.debug("  schedule: " + scop.schedule)
-
     val islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.domain.params())
     val islNode : isl.AstNode = islBuild.astFromSchedule(scop.schedule.intersectDomain(scop.domain))
 
@@ -68,8 +66,6 @@ private class ASTBuilderFunction(replaceCallback : (String, Expression, Node) =>
   }
 
   private def processIslNode(node : isl.AstNode, oldStmts : HashMap[String, Statement]) : Statement = {
-
-    Logger.debug(node.getType())
 
     return node.getType() match {
 
@@ -126,8 +122,9 @@ private class ASTBuilderFunction(replaceCallback : (String, Expression, Node) =>
         val name : String = args(0).asInstanceOf[VariableAccess].name
         val stmt : Statement = oldStmts(name)
         var d : Int = 1
+        val dims : Int = Knowledge.dimensionality
         do { // TODO: build declarations for old loop iterators
-          replaceCallback(dimToString(d - 1), args(d), stmt)
+          replaceCallback(dimToString(dims - d), args(d), stmt)
           d += 1
         } while (d < args.length)
         stmt
@@ -137,8 +134,6 @@ private class ASTBuilderFunction(replaceCallback : (String, Expression, Node) =>
   }
 
   private def processIslExpr(expr : isl.AstExpr) : Expression = {
-
-    Logger.debug(expr.getType())
 
     return expr.getType() match { // TODO: check if ExprId contains only variable identifier
       case isl.AstExprType.ExprId    => new VariableAccess(expr.getId().getName())
@@ -150,8 +145,6 @@ private class ASTBuilderFunction(replaceCallback : (String, Expression, Node) =>
 
   /** Process an isl.AstExpr of type isl.AstExprType.ExprOp. Caller must ensure only this type of node is passed! */
   private def processIslExprOp(expr : isl.AstExpr) : Expression = {
-
-    Logger.debug(expr.getOpType())
 
     val args : Array[Expression] = processArgs(expr)
 
