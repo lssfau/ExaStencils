@@ -36,12 +36,12 @@ import scala.util.Random
 object VariabilityParser {
   def main(args: Array[String]): Unit = {
 
-//    val file = Settings.basePathPrefix + "/Compiler/src/exastencils/knowledge/Knowledge.scala"
-//    readFeaturesL4(file)
-//
-//    generateVariant()
+    val file = Settings.basePathPrefix + "/Compiler/src/exastencils/knowledge/Knowledge.scala"
+    readFeaturesL4(file)
 
-    testMachineLearningAlgorithms
+    generateVariant()
+
+//    testMachineLearningAlgorithms
     
   }
 
