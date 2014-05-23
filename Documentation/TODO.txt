@@ -1,7 +1,4 @@
-- Generation of configurations (Alex/ Sebastian/ Christian)
-- Generate L4 (Hannah)
-- Interface to User -> external fields and resulting functions (Sebastian/ Christian)
-- L3 sets -> L4 (Hannah, Christian, Sebastian)
+- External fields and resulting functions
 - Lib/ Inc Blocks in HW Knowledge
 - reserve C keywords in lexer
 - getLevel@level
@@ -12,12 +9,16 @@
 - Mark loops from ISL with OMP_PotentiallyParallel
 - Mimic optimizations and criteria for OMP_PotentiallyParallel from LoopOverDomains.expand in ISL trafo
 
+- check uniform usage over 'override' keyword
+- check 'var' usage
+
+- Inheritance of constructor arguments
+
 - Changeable stencils
 - SetStencilCoeff (id, offset, coeff)
 - GlobalConst structure
 - Check BinOp PowerOf
 - BC will be set as fctCalls/ Expr for now
-- repeat boundary -> Exp
 - extend Repeat statement with optional ident and optional lower bound
 
 - BoundaryOffsetNode (const 0 or 1, member of FragClass)

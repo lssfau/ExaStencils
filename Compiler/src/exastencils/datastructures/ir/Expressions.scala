@@ -176,6 +176,14 @@ case class ArrayAccess(var base : Expression, var index : Expression) extends Ac
   }
 }
 
+case class OffsetIndex(var minOffset : Int, var maxOffset : Int, var index : Expression, var offset : Expression) extends Expression {
+  override def cpp : String = "NOT VALID ; CLASS = OffsetIndex\n"
+
+  def expandSpecial : AdditionExpression = {
+    index + offset
+  }
+}
+
 case class MultiIndex(var index_0 : Expression = new NullExpression, var index_1 : Expression = new NullExpression, var index_2 : Expression = new NullExpression) extends Expression {
   def this(indices : Array[Expression]) = this(
     if (indices.size > 0) indices(0) else new NullExpression,

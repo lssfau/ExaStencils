@@ -3,11 +3,12 @@ package exastencils.knowledge
 import scala.collection.mutable.ListBuffer
 import exastencils.core._
 import exastencils.knowledge._
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.strategies._
 
-case class IndexRange(var begin : MultiIndex = new MultiIndex, var end : MultiIndex = new MultiIndex) {}
+case class IndexRange(var begin : MultiIndex = new MultiIndex, var end : MultiIndex = new MultiIndex) extends Node {}
 
 object Mapping {
   def resolveMultiIdx(layout : Array[FieldLayoutPerDim], index : MultiIndex) : Expression = {
@@ -57,3 +58,4 @@ case class InitGeomCoords(var field : Field) extends Statement with Expandable {
       else NullStatement()))
   }
 }
+

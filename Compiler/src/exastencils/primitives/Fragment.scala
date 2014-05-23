@@ -31,6 +31,11 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
     declarations += s"Vec3 posEnd"
     cTorInitList += s"posEnd(0.0, 0.0, 0.0)"
 
+    declarations += s"Vec3i iterationOffsetBegin"
+    cTorInitList += s"iterationOffsetBegin(1, 1, 1)"
+    declarations += s"Vec3i iterationOffsetEnd"
+    cTorInitList += s"iterationOffsetEnd(-1, -1, -1)"
+
     if (6 == Knowledge.comm_strategyFragment) {
       neighbors += new NeighborInfo(Array(-1, 0, 0), 0)
       neighbors += new NeighborInfo(Array(+1, 0, 0), 1)
@@ -142,15 +147,15 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
     body += new HandleBoundaries(field, neighbors.map(neigh => (neigh, new IndexRange(
       new MultiIndex(
         DimArray().map(i => i match {
-          case i if neigh.dir(i) == 0 => field.layout(i).idxGhostLeftBegin //idxDupLeftBegin
-          case i if neigh.dir(i) < 0  => field.layout(i).idxGhostLeftBegin //idxDupLeftBegin
+          case i if neigh.dir(i) == 0 => field.layout(i).idxDupLeftBegin //idxDupLeftBegin, idxGhostLeftBegin
+          case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftBegin //idxDupLeftBegin, idxGhostLeftBegin
           case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightBegin
         }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0)),
       new MultiIndex(
         DimArray().map(i => i match {
-          case i if neigh.dir(i) == 0 => field.layout(i).idxGhostRightEnd //idxDupRightEnd
+          case i if neigh.dir(i) == 0 => field.layout(i).idxDupRightEnd //idxDupRightEnd, idxGhostRightEnd
           case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftEnd
-          case i if neigh.dir(i) > 0  => field.layout(i).idxGhostRightEnd //idxDupRightEnd
+          case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightEnd //idxDupRightEnd, idxGhostRightEnd
         }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0))))))
 
     // sync duplicate values

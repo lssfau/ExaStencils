@@ -80,6 +80,22 @@ case class WaitForMPIRecvOps(var neighbors : ListBuffer[NeighborInfo]) extends A
   }
 }
 
+case class SetIterationOffset(var location : Expression) extends Statement with Expandable {
+  override def cpp : String = "NOT VALID ; CLASS = SetIterationOffset\n"
+
+  override def expand : SwitchStatement = {
+    // FIXME: auto-generate this case using the actual neighbors
+    // FIXME: THIS ONLY WORKS FOR COMM_STRAT 6
+    SwitchStatement(location, ListBuffer(
+      new CaseStatement(0, "iterationOffsetBegin[0] = 0"),
+      new CaseStatement(1, "iterationOffsetEnd[0] = 0"),
+      new CaseStatement(2, "iterationOffsetBegin[1] = 0"),
+      new CaseStatement(3, "iterationOffsetEnd[1] = 0"),
+      new CaseStatement(4, "iterationOffsetBegin[2] = 0"),
+      new CaseStatement(5, "iterationOffsetEnd[2] = 0")))
+  }
+}
+
 case class ConnectLocalElement() extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = ConnectLocalElement\n"
 
@@ -91,7 +107,8 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
         s"neighbor_isValid[domain][location] = true",
         s"neighbor_isRemote[domain][location] = false",
         s"neighbor_localPtr[domain][location] = fragment",
-        s"neighbor_fragCommId[domain][location] = fragment->commId"))
+        s"neighbor_fragCommId[domain][location] = fragment->commId",
+        SetIterationOffset("location")))
   }
 }
 
@@ -105,7 +122,8 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
         s"neighbor_isValid[domain][location] = true",
         s"neighbor_isRemote[domain][location] = true",
         s"neighbor_fragCommId[domain][location] = id",
-        s"neighbor_remoteRank[domain][location] = remoteRank"))
+        s"neighbor_remoteRank[domain][location] = remoteRank",
+        SetIterationOffset("location")))
   }
 }
 
