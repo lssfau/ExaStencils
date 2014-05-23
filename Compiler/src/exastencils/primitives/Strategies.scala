@@ -96,3 +96,10 @@ object LinearizeFieldAccesses extends DefaultStrategy("Linearizing FieldAccess n
       loop.linearize
   })
 }
+
+object ResolveIndexOffsets extends DefaultStrategy("Resolving OffsetIndex nodes") {
+  this += new Transformation("Resolving", {
+    case index : OffsetIndex =>
+      index.expandSpecial
+  })
+}

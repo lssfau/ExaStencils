@@ -37,8 +37,8 @@ case class LoopOverDomain(var iterationSetIdentifier : String, var fieldIdentifi
     var start : ListBuffer[Expression] = ListBuffer()
     var stop : ListBuffer[Expression] = ListBuffer()
     for (i <- 0 until Knowledge.dimensionality) {
-      start += field.layout(i).idxGhostLeftBegin - field.referenceOffset(i) + iterationSet.begin(i) + s"curFragment.iterationOffsetBegin[$i]"
-      stop += field.layout(i).idxGhostRightEnd - field.referenceOffset(i) - iterationSet.end(i) + s"curFragment.iterationOffsetEnd[$i]"
+      start += OffsetIndex(-1, 0, field.layout(i).idxGhostLeftBegin - field.referenceOffset(i) + iterationSet.begin(i), s"curFragment.iterationOffsetBegin[$i]")
+      stop += OffsetIndex(0, 1, field.layout(i).idxGhostRightEnd - field.referenceOffset(i) - iterationSet.end(i), s"curFragment.iterationOffsetEnd[$i]")
     }
 
     //    var temp = new Temp(field,

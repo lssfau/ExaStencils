@@ -75,6 +75,8 @@ object Main {
 
     ResolveLoopOverDimensions.apply()
 
+    ResolveIndexOffsets.apply()
+
     LinearizeFieldAccesses.apply()
 
     ExpandStrategy.doUntilDone()

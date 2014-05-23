@@ -57,3 +57,4 @@ case class InitGeomCoords(var field : Field) extends Statement with Expandable {
       else NullStatement()))
   }
 }
+
