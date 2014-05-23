@@ -22,24 +22,32 @@ class PredictionTests {
   def readFile(fileName : String) = {
     val fileLines = Source.fromFile(fileName).getLines.toList
 
-    var iteration = 0
-    while (iteration < fileLines.size) {
-      var currLine = fileLines(iteration)
-      var elements = currLine.split(";")
+    var lineNr = 0
+    while (lineNr < fileLines.size) {
+      var lineContent = fileLines(lineNr)
+      var elements = lineContent.split(";")
 
-      var selectedFeatures : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
-
-      for (d <- 0 until 9) {
-        selectedFeatures.add(FeatureModel.allFeatures(elements(d)))
-
+      var booleanFeatures   : scala.collection.mutable.Set[Feature]     = scala.collection.mutable.Set()
+      var numericalFeatures : scala.collection.mutable.Map[Feature,Int] = scala.collection.mutable.Map()
+      
+      
+      for (d <- 0 until elements.size-1) {
+        if(FeatureModel.allFeatures.contains(elements(d)))
+        	booleanFeatures.add(FeatureModel.allFeatures(elements(d)))
+        else{ // numerical feature
+           // TODO consider variable length of number suffix 
+        	var numFeature = FeatureModel.allFeatures(elements(d).substring(0, elements(d).length()-1))
+            var value = augmentString(elements(d).substring(elements(d).length()-1,elements(d).length())).toInt
+            numericalFeatures.put(numFeature, value)
+        }
       }
       var nfpValue = elements(9).toDouble
 
       var config = new Configuration
-      config.readSolution(selectedFeatures)
+      config.readSolution(booleanFeatures)
       config.nfpValues .times  = nfpValue
       allConfigs.add(config)
-      iteration = iteration + 1
+      lineNr = lineNr + 1
     }
   }
 
