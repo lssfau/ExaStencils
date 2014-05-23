@@ -58,6 +58,10 @@ typedef TVec4<unsigned int> Vec4u;			///< a 4D unsigned int vector
 typedef TVec3<unsigned int> Vec3u;			///< a 3D unsigned int vector
 typedef TVec2<unsigned int> Vec2u;			///< a 2D unsigned int vector
 
+typedef TVec4<int> Vec4i;			///< a 4D int vector
+typedef TVec3<int> Vec3i;			///< a 3D int vector
+typedef TVec2<int> Vec2i;			///< a 2D int vector
+
 //=====================================================================================================================
 // class
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
