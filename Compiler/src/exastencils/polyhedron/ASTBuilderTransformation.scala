@@ -48,18 +48,16 @@ private class ASTBuilderFunction(replaceCallback : (String, Expression, Node) =>
     extends PartialFunction[Node, Transformation.Output[_]] {
 
   def isDefinedAt(node : Node) : Boolean = node match {
-    case loop : LoopOverDimensions => loop.hasAnnotation(PolyOpt.SCOP_ANNOT)
-    case _                         => false
+    case loop : LoopOverDimensions with PolyhedronAccessable =>
+      loop.hasAnnotation(PolyOpt.SCOP_ANNOT)
+    case _ => false
   }
 
   def apply(node : Node) : Transformation.Output[_] = {
 
     val annotation : Annotation = node.getAnnotation(PolyOpt.SCOP_ANNOT).get
     node.remove(annotation)
-    val scop : SCoP = annotation.value.get.asInstanceOf[SCoP]
-
-    Logger.debug("  domain:   " + scop.domain)
-    Logger.debug("  schedule: " + scop.schedule)
+    val scop : SCoP = annotation.value.asInstanceOf[SCoP]
 
     val islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.domain.params())
     val islNode : isl.AstNode = islBuild.astFromSchedule(scop.schedule.intersectDomain(scop.domain))
@@ -68,8 +66,6 @@ private class ASTBuilderFunction(replaceCallback : (String, Expression, Node) =>
   }
 
   private def processIslNode(node : isl.AstNode, oldStmts : HashMap[String, Statement]) : Statement = {
-
-    Logger.debug(node.getType())
 
     return node.getType() match {
 
@@ -104,12 +100,12 @@ private class ASTBuilderFunction(replaceCallback : (String, Expression, Node) =>
 
       case isl.AstNodeType.NodeIf =>
         val cond : Expression = processIslExpr(node.ifGetCond())
-        val then : Statement = processIslNode(node.ifGetThen(), oldStmts)
+        val thenBranch : Statement = processIslNode(node.ifGetThen(), oldStmts)
         if (node.ifHasElse() != 0) {
           val els : Statement = processIslNode(node.ifGetElse(), oldStmts)
-          new ConditionStatement(cond, then, els)
+          new ConditionStatement(cond, thenBranch, els)
         } else
-          new ConditionStatement(cond, then)
+          new ConditionStatement(cond, thenBranch)
 
       case isl.AstNodeType.NodeBlock =>
         val stmts = new ListBuffer[Statement]
@@ -139,8 +135,6 @@ private class ASTBuilderFunction(replaceCallback : (String, Expression, Node) =>
 
   private def processIslExpr(expr : isl.AstExpr) : Expression = {
 
-    Logger.debug(expr.getType())
-
     return expr.getType() match { // TODO: check if ExprId contains only variable identifier
       case isl.AstExprType.ExprId    => new VariableAccess(expr.getId().getName())
       case isl.AstExprType.ExprInt   => new IntegerConstant(expr.getVal().toString().toLong)
@@ -151,8 +145,6 @@ private class ASTBuilderFunction(replaceCallback : (String, Expression, Node) =>
 
   /** Process an isl.AstExpr of type isl.AstExprType.ExprOp. Caller must ensure only this type of node is passed! */
   private def processIslExprOp(expr : isl.AstExpr) : Expression = {
-
-    Logger.debug(expr.getOpType())
 
     val args : Array[Expression] = processArgs(expr)
 

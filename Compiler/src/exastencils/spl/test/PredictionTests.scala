@@ -14,7 +14,7 @@ import java.io.FileWriter
 
 class PredictionTests {
 
-  var allConfigs : scala.collection.mutable.Map[Configuration, Double] = scala.collection.mutable.Map()
+  var allConfigs : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
 
   
   
@@ -22,100 +22,108 @@ class PredictionTests {
   def readFile(fileName : String) = {
     val fileLines = Source.fromFile(fileName).getLines.toList
 
-    var iteration = 0
-    while (iteration < fileLines.size) {
-      var currLine = fileLines(iteration)
-      var elements = currLine.split(";")
+    var lineNr = 0
+    while (lineNr < fileLines.size) {
+      var lineContent = fileLines(lineNr)
+      var elements = lineContent.split(";")
 
-      var selectedFeatures : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
-
-      for (d <- 0 until 9) {
-        selectedFeatures.add(FeatureModel.allFeatures(elements(d)))
-
+      var booleanFeatures   : scala.collection.mutable.Set[Feature]     = scala.collection.mutable.Set()
+      var numericalFeatures : scala.collection.mutable.Map[Feature,Int] = scala.collection.mutable.Map()
+      
+      
+      for (d <- 0 until elements.size-1) {
+        if(FeatureModel.allFeatures.contains(elements(d)))
+        	booleanFeatures.add(FeatureModel.allFeatures(elements(d)))
+        else{ // numerical feature
+           // TODO consider variable length of number suffix 
+        	var numFeature = FeatureModel.allFeatures(elements(d).substring(0, elements(d).length()-1))
+            var value = augmentString(elements(d).substring(elements(d).length()-1,elements(d).length())).toInt
+            numericalFeatures.put(numFeature, value)
+        }
       }
       var nfpValue = elements(9).toDouble
 
       var config = new Configuration
-      config.readSolution(selectedFeatures)
-
-      allConfigs.put(config, nfpValue)
-      iteration = iteration + 1
+      config.readSolution(booleanFeatures)
+      config.nfpValues .times  = nfpValue
+      allConfigs.add(config)
+      lineNr = lineNr + 1
     }
   }
 
-  def predictPerformanceFW(fwConfigs : scala.collection.mutable.Set[Configuration]) = {
-
-    var array = fwConfigs.toArray
-
-    var numberOfFWConfigs = 0
-
-    FeatureModel.copris.init
-
-    println("start with add fwConfigSolutions")
-    FeatureModel.allFeatures.filter(!_._2.isNumerical).foreach(x => FeatureModel.copris.int(Var(x._1), 0, 4500))
-
-    while (numberOfFWConfigs < fwConfigs.size) {
-      var currFWConfig = array(numberOfFWConfigs)
-      var selectedFeatures = currFWConfig.selectedBoolFeaturesAsArray
-
-      var nfpValue = allConfigs.filter(_._1.numberOfDifferentBooleanFeatures(currFWConfig) == 0).head._2
-
-      var constraint : Add = generateFeatureSelection(selectedFeatures)
-
-      FeatureModel.copris.add(constraint === nfpValue.toInt)
-      numberOfFWConfigs = numberOfFWConfigs + 1
-    }
-
-    if (FeatureModel.copris.find) {
-      println(FeatureModel.copris.solution)
-      interpretSolutionFW(FeatureModel.copris.solution)
-    }
-
-    predictConfigsAndMeasureDifference
-
-  }
+//  def predictPerformanceFW(fwConfigs : scala.collection.mutable.Set[Configuration]) = {
+//
+//    var array = fwConfigs.toArray
+//
+//    var numberOfFWConfigs = 0
+//
+//    FeatureModel.copris.init
+//
+//    println("start with add fwConfigSolutions")
+//    FeatureModel.allFeatures.filter(!_._2.isNumerical).foreach(x => FeatureModel.copris.int(Var(x._1), 0, 4500))
+//
+//    while (numberOfFWConfigs < fwConfigs.size) {
+//      var currFWConfig = array(numberOfFWConfigs)
+//      var selectedFeatures = currFWConfig.selectedBoolFeaturesAsArray
+//
+//      var nfpValue = allConfigs.filter(_.numberOfDifferentBooleanFeatures(currFWConfig) == 0).head._2
+//
+//      var constraint : Add = generateFeatureSelection(selectedFeatures)
+//
+//      FeatureModel.copris.add(constraint === nfpValue.toInt)
+//      numberOfFWConfigs = numberOfFWConfigs + 1
+//    }
+//
+//    if (FeatureModel.copris.find) {
+//      println(FeatureModel.copris.solution)
+//      interpretSolutionFW(FeatureModel.copris.solution)
+//    }
+//
+//    predictConfigsAndMeasureDifference
+//
+//  }
   
   
-  def predictPerformanceFWUncertainty(fwConfigs : scala.collection.mutable.Set[Configuration]) = {
-
-    var array = fwConfigs.toArray
-
-    var numberOfFWConfigs = 0
-
-    FeatureModel.copris.init
-
-    println("start with add fwConfigSolutions")
-    FeatureModel.allFeatures.filter(!_._2.isNumerical).foreach(x => FeatureModel.copris.int(Var(x._1), 0, 400))
-
-    while (numberOfFWConfigs < fwConfigs.size) {
-      var currFWConfig = array(numberOfFWConfigs)
-      var selectedFeatures = currFWConfig.selectedBoolFeaturesAsArray
-
-      println(currFWConfig)
-      
-      var nfpValue = allConfigs.filter(_._1.numberOfDifferentBooleanFeatures(currFWConfig) == 0).head._2
-
-      var constraint : Add = generateFeatureSelection(selectedFeatures)
-
-      FeatureModel.copris.add(constraint === nfpValue.toInt)
-      numberOfFWConfigs = numberOfFWConfigs + 1
-    }
-
-    var solutionNr = 0
-    println("Start solving")
-    FeatureModel.copris.find
-   
-    var solutions = FeatureModel.copris.solutions
-    //println(solutions.size)
-    
-    while(solutions.hasNext){
-      var solution = solutions.next
-      println(solution)
-      interpretSolutionFW(solution)
-      predictConfigsAndMeasureDifference(solutionNr)
-      solutionNr+=1
-    }
-  }
+//  def predictPerformanceFWUncertainty(fwConfigs : scala.collection.mutable.Set[Configuration]) = {
+//
+//    var array = fwConfigs.toArray
+//
+//    var numberOfFWConfigs = 0
+//
+//    FeatureModel.copris.init
+//
+//    println("start with add fwConfigSolutions")
+//    FeatureModel.allFeatures.filter(!_._2.isNumerical).foreach(x => FeatureModel.copris.int(Var(x._1), 0, 400))
+//
+//    while (numberOfFWConfigs < fwConfigs.size) {
+//      var currFWConfig = array(numberOfFWConfigs)
+//      var selectedFeatures = currFWConfig.selectedBoolFeaturesAsArray
+//
+//      println(currFWConfig)
+//      
+//      var nfpValue = allConfigs.filter(_._1.numberOfDifferentBooleanFeatures(currFWConfig) == 0).head._2
+//
+//      var constraint : Add = generateFeatureSelection(selectedFeatures)
+//
+//      FeatureModel.copris.add(constraint === nfpValue.toInt)
+//      numberOfFWConfigs = numberOfFWConfigs + 1
+//    }
+//
+//    var solutionNr = 0
+//    println("Start solving")
+//    FeatureModel.copris.find
+//   
+//    var solutions = FeatureModel.copris.solutions
+//    //println(solutions.size)
+//    
+//    while(solutions.hasNext){
+//      var solution = solutions.next
+//      println(solution)
+//      interpretSolutionFW(solution)
+//      predictConfigsAndMeasureDifference(solutionNr)
+//      solutionNr+=1
+//    }
+//  }
   
   
   
@@ -137,31 +145,31 @@ class PredictionTests {
   }
   
 
-  def predictConfigsAndMeasureDifference() = {
+//  def predictConfigsAndMeasureDifference() = {
+//
+//    var allPercentDifference = 0.0
+//
+//    allConfigs.foreach(currConfig => allPercentDifference += percentDifferencePredictMeasured(currConfig._1, currConfig._2))
+//
+//    println(allPercentDifference / allConfigs.size)
+//
+//  }
 
-    var allPercentDifference = 0.0
-
-    allConfigs.foreach(currConfig => allPercentDifference += percentDifferencePredictMeasured(currConfig._1, currConfig._2))
-
-    println(allPercentDifference / allConfigs.size)
-
-  }
-
-  def predictConfigsAndMeasureDifference(variantNr : Int) = {
-
-    addToFile("./FeatureValues"+variantNr+".txt", getFeatureValues)
-    
-    var allPercentDifference = 0.0
-
-    allConfigs.foreach(currConfig => allPercentDifference += percentDifferencePredictMeasured(currConfig._1, currConfig._2, variantNr))
-
-    
-    addToFile("./AllVariants.csv", variantNr+";"+(allPercentDifference / allConfigs.size)+"\n")
-    println(allPercentDifference / allConfigs.size)
-    
-    
-
-  }
+//  def predictConfigsAndMeasureDifference(variantNr : Int) = {
+//
+//    addToFile("./FeatureValues"+variantNr+".txt", getFeatureValues)
+//    
+//    var allPercentDifference = 0.0
+//
+//    allConfigs.foreach(currConfig => allPercentDifference += percentDifferencePredictMeasured(currConfig._1, currConfig._2, variantNr))
+//
+//    
+//    addToFile("./AllVariants.csv", variantNr+";"+(allPercentDifference / allConfigs.size)+"\n")
+//    println(allPercentDifference / allConfigs.size)
+//    
+//    
+//
+//  }
 
    def percentDifferencePredictMeasured(config : Configuration, measured : Double, variantNr : Int) : Double = {
 

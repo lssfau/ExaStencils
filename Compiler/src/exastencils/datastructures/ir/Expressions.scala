@@ -363,7 +363,7 @@ case class PowerExpression(var left : Expression, var right : Expression) extend
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("pow(")
+    sb.append("pow(") // FIXME: check for integer constant => use pown
     left.cppsb(sb)
     sb.append(", ")
     right.cppsb(sb)

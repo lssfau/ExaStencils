@@ -3,42 +3,31 @@ package exastencils.datastructures
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
-class Annotation(n : String, var v : Option[Any]) {
-  def name = n
-  def value = v
+sealed class Annotation(val id : String, var value : Any) {
+  def this(id : String) = this(id, None)
 
-  def this(n : String) = this(n, None)
-
-  def setValue(newV : Any) = { v = Some(newV) }
-  override def toString = { f"$name: $value" }
+  def setValue(newValue : Any) = { value = newValue }
+  override def toString = { f"Annotation: $id: $value" }
 }
 
 object Annotation {
-  def apply(n : String, v : Option[Any]) = new Annotation(n, v)
-  def apply(n : String) = new Annotation(n)
-  def unapply(a : Annotation) : Option[(String, Option[Any])] = Some((a.name, a.v))
+  def apply(id : String, value : Any) = new Annotation(id, value)
+  def apply(id : String) = new Annotation(id)
+  def unapply(annotation : Annotation) : Option[(String, Any)] = Some((annotation.id, annotation.value))
 }
 
 trait Annotatable {
-  private val annotations_ = new ListBuffer[Annotation]
+  private val annotations_ = new HashMap[String, Annotation]
 
-  def add(a : Annotation) = { annotations_ += a }
-  def add(a : Seq[Annotation]) = { annotations_ ++= a }
-  def annotate(n : String, v : Option[Any]) = this.add(new Annotation(n, v))
-  def annotate(n : String) = this.add(new Annotation(n))
-  def remove(a : Annotation) = { annotations_ -= a }
-  def removeAnnotation(name : String) = { if (hasAnnotation(name)) remove(getAnnotation(name).get) }
-  def getAnnotations = { annotations_.toList }
-  def getAnnotation(name : String) = { annotations_.find(p => p.name == name) }
-  def hasAnnotation(name : String) = { annotations_.exists(p => p.name == name) }
+  def add(annotation : Annotation) :Unit  = { annotations_ += ((annotation.id, annotation)) }
+  def add(annotations : Seq[Annotation]) :Unit = { annotations.foreach(add(_)) }
+  def annotate(annotation : Annotation) :Unit  = { annotations_ += ((annotation.id, annotation)) }
+  def annotate(id : String, value : Any) = this.add(new Annotation(id, value))
+  def annotate(id : String) = this.add(new Annotation(id))
+  def remove(annotation : Annotation) = { annotations_.remove(annotation.id) }
+  def removeAnnotation(annotation : Annotation) = { annotations_.remove(annotation.id) }
+  def removeAnnotation(id : String) = { annotations_.remove(id) }
+  def getAnnotations = { annotations_.values }
+  def getAnnotation(id : String) = { annotations_.get(id) }
+  def hasAnnotation(id : String) = { annotations_.contains(id) }
 }
-
-object AnnotationManager {
-  protected var names = new HashMap[String, Any => Boolean]
-
-  def allow(name : String) = names.put(name, (x : Any) => true)
-  def allow(name : String, checker : (Any => Boolean)) = names.put(name, checker)
-  def disallow(name : String) = names.-=(name)
-  def valid(name : String, value : Any) : Boolean = names.getOrElse(name, return false).apply(value)
-}
-

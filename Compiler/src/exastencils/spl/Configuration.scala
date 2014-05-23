@@ -5,7 +5,8 @@ class Configuration() {
   var selectedBoolFeatures: scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
   var numericalFeatureValues: scala.collection.mutable.Map[Feature, Int] = scala.collection.mutable.Map()
 
-  var nfpValues : NonFunctionalProperties = null
+  // TODO correct NFP implementation
+  var nfpValues : NonFunctionalProperties = new NonFunctionalProperties
   
   def selectedBoolFeaturesAsArray(): Array[exastencils.spl.Feature] = {
     return selectedBoolFeatures.toArray

@@ -13,6 +13,7 @@ import exastencils.datastructures.Transformation._
 import scala.reflect.runtime.{ universe => ru }
 import scala.reflect.runtime.{ currentMirror => rm }
 import scala.reflect.ClassTag
+import scala.collection.GenTraversableOnce
 
 object StateManager {
   def root = root_ // FIXME remove this
@@ -103,10 +104,10 @@ object StateManager {
     case _                           => false
   }
 
-  protected def processOutput[O <: Output[_]](o : O) : List[Node] = o.inner match {
-    case n : Node    => List(n)
+  protected def processOutput[O <: Output[_]](o : O) : GenTraversableOnce[Node] = o.inner match {
+    case n : Node     => List(n)
     case l : NodeList => l.nodes.toList // FIXME
-    case _           => Logger.error(o)
+    case _            => Logger.error(o)
   }
 
   def doRecursiveMatch(thisnode : Any, node : Node, field : java.lang.reflect.Method, transformation : Transformation) = {
@@ -132,7 +133,7 @@ object StateManager {
           }
           if (transformation.recursive) replace(n, transformation)
         }
-        case l : List[_] => {
+        case l : NodeList => {
           Logger.error(s"Could not replace single node by List in transformation ${transformation.name}")
         }
       }
@@ -164,7 +165,7 @@ object StateManager {
           if (invalids.size <= 0) {
             def processOutput[O <: Output[_]](o : O) : Node = o.inner match {
               case n : Node => n
-              case l : List[_] =>
+              case l : NodeList =>
                 Logger.error("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
               case _ => Logger.error(o); null
             }
@@ -182,7 +183,7 @@ object StateManager {
           if (invalids.size <= 0) {
             def processOutput[O <: Output[_]](o : O) : Node = o.inner match {
               case n : Node => n
-              case l : List[_] =>
+              case l : NodeList =>
                 Logger.error("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
               case _ => Logger.error(o); null
             }
@@ -211,7 +212,7 @@ object StateManager {
 
             def processOutput[O <: Output[_]](o : O) : Node = o.inner match {
               case n : Node => n
-              case l : List[_] =>
+              case l : NodeList =>
                 Logger.error("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
               case _ => Logger.error(o); null
             }
@@ -230,7 +231,7 @@ object StateManager {
 
             def processOutput[O <: Output[_]](o : O) : Node = o.inner match {
               case n : Node => n
-              case l : List[_] =>
+              case l : NodeList =>
                 Logger.error("FIXME") //l.filter(p => p.isInstanceOf[Node]).asInstanceOf[List[Node]]
               case _ => Logger.error(o); null
             }
