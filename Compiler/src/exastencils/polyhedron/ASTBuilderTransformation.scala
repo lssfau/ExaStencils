@@ -57,7 +57,7 @@ private class ASTBuilderFunction(replaceCallback : (String, Expression, Node) =>
 
     val annotation : Annotation = node.getAnnotation(PolyOpt.SCOP_ANNOT).get
     node.remove(annotation)
-    val scop : SCoP = annotation.value.get.asInstanceOf[SCoP]
+    val scop : SCoP = annotation.value.asInstanceOf[SCoP]
 
     val islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.domain.params())
     val islNode : isl.AstNode = islBuild.astFromSchedule(scop.schedule.intersectDomain(scop.domain))
