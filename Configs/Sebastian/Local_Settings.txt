@@ -1,2 +1,2 @@
-outputPath = "C:/Users/Sebastian/Documents/Visual Studio 2012/Projects/ExaStencils_DSL/Generated/"
+outputPath = "C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Generated/"
 basePathPrefix = "."
