@@ -44,11 +44,11 @@ import exastencils.knowledge.dimToString
 class ASTBuilderTransformation(replaceCallback : (String, Expression, Node) => Unit)
   extends Transformation("insert optimized loop AST", new ASTBuilderFunction(replaceCallback))
 
-private class ASTBuilderFunction(replaceCallback : (String, Expression, Node) => Unit)
+private final class ASTBuilderFunction(replaceCallback : (String, Expression, Node) => Unit)
     extends PartialFunction[Node, Transformation.Output[_]] {
 
   def isDefinedAt(node : Node) : Boolean = node match {
-    case loop : LoopOverDimensions with PolyhedronAccessable =>
+    case loop : PolyhedronAccessable =>
       loop.hasAnnotation(PolyOpt.SCOP_ANNOT)
     case _ => false
   }

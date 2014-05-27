@@ -2,6 +2,7 @@ package exastencils.polyhedron
 
 import scala.collection.mutable.ArrayStack
 import scala.language.implicitConversions
+
 import exastencils.core.Logger
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Annotation
@@ -10,8 +11,10 @@ import exastencils.datastructures.ir.AdditionExpression
 import exastencils.datastructures.ir.AssignmentStatement
 import exastencils.datastructures.ir.BooleanConstant
 import exastencils.datastructures.ir.Datatype
+import exastencils.datastructures.ir.DirectFieldAccess
 import exastencils.datastructures.ir.DivisionExpression
 import exastencils.datastructures.ir.Expression
+import exastencils.datastructures.ir.FieldAccess
 import exastencils.datastructures.ir.FloatConstant
 import exastencils.datastructures.ir.IntegerConstant
 import exastencils.datastructures.ir.ModuloExpression
@@ -22,21 +25,12 @@ import exastencils.datastructures.ir.Statement
 import exastencils.datastructures.ir.StringConstant
 import exastencils.datastructures.ir.SubtractionExpression
 import exastencils.datastructures.ir.UnaryExpression
+import exastencils.datastructures.ir.VariableAccess
 import exastencils.knowledge.Knowledge
 import exastencils.primitives.LoopOverDimensions
+import exastencils.util.EvaluateExpression
+import exastencils.util.EvaluationException
 import isl.Conversions.convertIntToVal
-import exastencils.datastructures.ir.ConcatenationExpression
-import exastencils.datastructures.ir.SpacedConcatenationExpression
-import exastencils.datastructures.ir.MultiIndex
-import exastencils.datastructures.ir.StringConstant
-import exastencils.datastructures.ir.StringConstant
-import exastencils.datastructures.ir.DirectFieldAccess
-import exastencils.knowledge.Field
-import exastencils.datastructures.ir.FieldAccess
-import exastencils.datastructures.ir.ExpressionStatement
-import exastencils.datastructures.ir.StringConstant
-import exastencils.datastructures.ir.StringConstant
-import exastencils.datastructures.ir.VariableAccess
 
 object Extractor extends Collector {
   import scala.language.implicitConversions
@@ -163,18 +157,6 @@ object Extractor extends Collector {
     template = null
   }
 
-  case class EvaluationException(msg : String) extends Exception(msg) {}
-
-  private def evaluateExpression(expr : Expression) : Long = expr match {
-    case IntegerConstant(v)                                       => v
-    case AdditionExpression(l : Expression, r : Expression)       => evaluateExpression(l) + evaluateExpression(r)
-    case SubtractionExpression(l : Expression, r : Expression)    => evaluateExpression(l) - evaluateExpression(r)
-    case MultiplicationExpression(l : Expression, r : Expression) => evaluateExpression(l) * evaluateExpression(r)
-    case DivisionExpression(l : Expression, r : Expression)       => evaluateExpression(l) / evaluateExpression(r)
-    case _ =>
-      throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
-  }
-
   /////////////////// methods for node processing \\\\\\\\\\\\\\\\\\\
 
   private def enterLoop(loop : LoopOverDimensions) : Unit = {
@@ -209,8 +191,8 @@ object Extractor extends Collector {
       var cur_begin : Long = 0
       var cur_end : Long = 0
       try {
-        cur_begin = evaluateExpression(begin(geo_dim))
-        cur_end = evaluateExpression(end(geo_dim))
+        cur_begin = EvaluateExpression.integer(begin(geo_dim))
+        cur_end = EvaluateExpression.integer(end(geo_dim))
       } catch {
         case EvaluationException(msg) =>
           discardCurrentSCoP(msg)
