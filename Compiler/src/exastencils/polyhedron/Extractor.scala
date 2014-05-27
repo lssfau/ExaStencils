@@ -82,7 +82,7 @@ object Extractor extends Collector {
 
     // create new SCoP or replace old
     if (node.isInstanceOf[LoopOverDimensions with PolyhedronAccessable])
-      enterLoop(node.asInstanceOf[LoopOverDimensions])
+      enterLoop(node.asInstanceOf[LoopOverDimensions with PolyhedronAccessable])
 
     else if (template != null) // we have a SCoP now
       node match {
@@ -161,19 +161,20 @@ object Extractor extends Collector {
 
   private def enterLoop(loop : LoopOverDimensions) : Unit = {
 
-    scops.push(new SCoP(loop))
-
     if (template != null) {
       discardCurrentSCoP("nested LoopOverDimensions?! possibly a bug? ignoring outermost")
       return
     }
+
+    scops.push(new SCoP(loop))
+
+    val dims : Int = Knowledge.dimensionality
+    template = isl.BasicSet.universe(isl.Space.setAlloc(0, dims))
+
     if (loop.reduction != None) { // TODO: support reductions
       discardCurrentSCoP("reductions not supported yet")
       return
     }
-
-    val dims : Int = Knowledge.dimensionality
-    template = isl.BasicSet.universe(isl.Space.setAlloc(0, dims))
 
     val begin : MultiIndex = loop.indices.begin
     val end : MultiIndex = loop.indices.end
