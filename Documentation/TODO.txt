@@ -9,6 +9,9 @@
 - Mark loops from ISL with OMP_PotentiallyParallel
 - Mimic optimizations and criteria for OMP_PotentiallyParallel from LoopOverDomains.expand in ISL trafo
 
+- use variable mpi communicator
+- add possiblity to set mpi communicator
+
 - check uniform usage over 'override' keyword
 - check 'var' usage
 
