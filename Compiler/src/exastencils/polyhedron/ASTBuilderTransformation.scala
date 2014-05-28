@@ -4,7 +4,7 @@ import scala.annotation.elidable
 import scala.annotation.elidable.ASSERTION
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
-import exastencils.core.Logger
+
 import exastencils.datastructures.Annotation
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
@@ -36,15 +36,15 @@ import exastencils.datastructures.ir.UnaryExpression
 import exastencils.datastructures.ir.UnaryOperators
 import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.VariableDeclarationStatement
-import exastencils.primitives.LoopOverDimensions
-import isl.Conversions.convertLambdaToXCallback1
 import exastencils.knowledge.Knowledge
 import exastencils.knowledge.dimToString
+import exastencils.primitives.LoopOverDimensions
+import isl.Conversions.convertLambdaToXCallback1
 
 class ASTBuilderTransformation(replaceCallback : (String, Expression, Node) => Unit)
   extends Transformation("insert optimized loop AST", new ASTBuilderFunction(replaceCallback))
 
-private class ASTBuilderFunction(replaceCallback : (String, Expression, Node) => Unit)
+private final class ASTBuilderFunction(replaceCallback : (String, Expression, Node) => Unit)
     extends PartialFunction[Node, Transformation.Output[_]] {
 
   def isDefinedAt(node : Node) : Boolean = node match {
