@@ -71,7 +71,6 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
       else ListBuffer[Statement]()) ++
         ListBuffer[Statement](
           new MPI_Init,
-          new MPI_SetRankAndSize,
 
           "initGlobals()",
 

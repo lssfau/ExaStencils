@@ -13,9 +13,7 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.prettyprinting._
 
-case class Globals() extends Node with FilePrettyPrintable {
-  var variables : ListBuffer[VariableDeclarationStatement] = new ListBuffer
-  var defines : ListBuffer[DefineStatement] = new ListBuffer // FIXME: defines should be resolved automatically; currently this is required as an interface to Harald's prototype
+case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = new ListBuffer) extends Node with FilePrettyPrintable {
   var initFunction : FunctionStatement = new FunctionStatement(new UnitDatatype, "initGlobals", new ListBuffer[VariableAccess], new ListBuffer[Statement])
 
   override def printToFile = {
@@ -26,8 +24,6 @@ case class Globals() extends Node with FilePrettyPrintable {
       + (if (Knowledge.useMPI) "#pragma warning(disable : 4800)\n" else "")
       + (if (Knowledge.useMPI) "#include <mpi.h>\n" else "") // FIXME: find a way to extract necessary includes from variables
       )
-
-    for (define <- defines) { writerHeader << s"${define.cpp}\n" }
 
     writerHeader << "class Fragment3DCube;\n" // FIXME: find a way to extract necessary forward defines from variables
 

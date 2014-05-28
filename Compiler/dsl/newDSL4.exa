@@ -238,5 +238,5 @@ def Application ( ) : Unit {
 	print ( '"Total time to solve: "', timeToSolve )
 	print ( '"Mean time per vCycle: "', totalTime / 10 )
 	
-	printField('"Solution.dat"', Solution@finest)
+	//printField('"Solution.dat"', Solution@finest)
 }

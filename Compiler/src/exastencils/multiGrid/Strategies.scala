@@ -52,7 +52,6 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
         "double timeTaken = " ~ args(0) ~ ".getTimeInMilliSec()",
         if (Knowledge.useMPI)
           new StatementBlock(ListBuffer[Statement](
-          new MPI_SetRankAndSize,
           new MPI_Allreduce("&timeTaken", 1, BinaryOperators.Addition),
           "timeTaken /= mpiSize"))
         else

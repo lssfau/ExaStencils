@@ -182,8 +182,6 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
 
     FunctionStatement(new UnitDatatype(), s"initDomain", ListBuffer(),
       ListBuffer(
-        new MPI_SetRankAndSize,
-
         if (Knowledge.useMPI)
           AssertStatement(s"mpiSize != ${Knowledge.domain_numBlocks}",
           "\"Invalid number of MPI processes (\" << mpiSize << \") should be \" << " + (Knowledge.domain_numBlocks),

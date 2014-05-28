@@ -10,11 +10,9 @@ import exastencils.primitives._
 case class PrintStatement(var toPrint : ListBuffer[Expression]) extends Statement with Expandable {
   def cpp : String = { return "NOT VALID ; CLASS = PrintStatement\n" }
 
-  override def expand : Scope = {
-    new Scope(ListBuffer[Statement](
-      new MPI_SetRankAndSize,
-      new ConditionStatement(new MPI_IsRootProc,
-        ("std::cout << " : Expression) ~ toPrint.reduceLeft((l, e) => l ~ "<< \" \" <<" ~ e) ~ "<< std::endl")))
+  override def expand : ConditionStatement = {
+    new ConditionStatement(new MPI_IsRootProc,
+      ("std::cout << " : Expression) ~ toPrint.reduceLeft((l, e) => l ~ "<< \" \" <<" ~ e) ~ "<< std::endl")
   }
 }
 
@@ -27,12 +25,10 @@ case class PrintFieldStatement(var filename : Expression, var field : Unresolved
     // FIXME: this calculates wrong coordinates (falsely subtracted refOffset)
     var statements : ListBuffer[Statement] = new ListBuffer
 
-    statements += new Scope(ListBuffer[Statement](
-      new MPI_SetRankAndSize,
-      new ConditionStatement(new MPI_IsRootProc,
-        ListBuffer[Statement](
-          "std::ofstream stream(" ~ filename ~ ", std::ios::trunc)",
-          "stream.close()"))))
+    statements += new ConditionStatement(new MPI_IsRootProc,
+      ListBuffer[Statement](
+        "std::ofstream stream(" ~ filename ~ ", std::ios::trunc)",
+        "stream.close()"))
 
     statements += new MPI_Sequential(ListBuffer[Statement](
       "std::ofstream stream(" ~ filename ~ ", std::ios::app)",

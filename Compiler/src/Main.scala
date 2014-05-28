@@ -63,6 +63,8 @@ object Main {
 
     // Strategies
 
+    AddDefaultGlobals.apply()
+
     FindStencilConvolutions.apply()
 
     ResolveSpecialFunctions.apply()
