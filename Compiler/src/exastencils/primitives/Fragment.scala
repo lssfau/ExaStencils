@@ -110,7 +110,9 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
       val writer = PrettyprintingManager.getPrinter(s"Primitives/Fragment3DCube.h")
 
       writer << (
-        (if (Knowledge.useMPI) "#pragma warning(disable : 4800)\n" else "")
+        "#define _USE_MATH_DEFINES\n"
+        + "#include <cmath>\n"
+        + (if (Knowledge.useMPI) "#pragma warning(disable : 4800)\n" else "")
         + (if (Knowledge.useMPI) "#include <mpi.h>\n" else "")
         + "#include \"Globals/Globals.h\"\n"
         + "#include \"Util/Log.h\"\n"

@@ -12,10 +12,10 @@ Layout NoComm {
 	// innerPoints = []
 }
 
-Field Solution< Real, BasicComm, 0.0 >@all//[2]
-Field Solution2< Real, BasicComm, 0.0 >@all
-//Field Solution< Real, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@all//[2]
-//Field Solution2< Real, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@all
+Field Solution< Real, BasicComm, 0.0 >@(coarsest to (finest - 1))
+Field Solution2< Real, BasicComm, 0.0 >@(coarsest to (finest - 1))
+Field Solution< Real, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@finest
+Field Solution2< Real, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@finest
 Field Residual< Real, BasicComm, None >@all
 Field RHS< Real, NoComm, None >@all
 Field VecP< Real, BasicComm, None >@coarsest
