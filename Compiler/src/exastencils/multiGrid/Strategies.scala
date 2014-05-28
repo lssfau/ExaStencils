@@ -7,6 +7,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.Transformation._
+import exastencils.util._
 import exastencils.multiGrid._
 import exastencils.strategies._
 import exastencils.primitives._
@@ -28,13 +29,6 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
       var stencilConvolution = Duplicate(args(0).asInstanceOf[StencilConvolution])
       stencilConvolution.targetIdx = new MultiIndex(DimArray().map(i => ((dimToString(i) : Expression) / 2) : Expression))
       stencilConvolution
-
-    // HACK to realize print function -> FIXME
-    case ExpressionStatement(FunctionCallExpression(StringConstant("print"), args)) =>
-      new Scope(ListBuffer[Statement](
-        new MPI_SetRankAndSize,
-        new ConditionStatement(new MPI_IsRootProc,
-          ("std::cout << " : Expression) ~ args.reduceLeft((l, e) => l ~ "<< \" \" <<" ~ e) ~ "<< std::endl")))
 
     // HACK to realize return functionality -> FIXME: move to specialized node
     case ExpressionStatement(FunctionCallExpression(StringConstant("return"), args)) =>
@@ -64,5 +58,11 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
         else
           new NullStatement,
         args(1) ~ " += timeTaken"))
+
+    // HACK for print functionality
+    case ExpressionStatement(FunctionCallExpression(StringConstant("print"), args)) =>
+      new PrintStatement(args)
+    case ExpressionStatement(FunctionCallExpression(StringConstant("printField"), args)) =>
+      new PrintFieldStatement(args(0), args(1).asInstanceOf[UnresolvedFieldAccess])
   })
 }

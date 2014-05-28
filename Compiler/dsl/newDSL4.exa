@@ -237,4 +237,6 @@ def Application ( ) : Unit {
 	stopTimer ( timeToSolveWatch, timeToSolve )
 	print ( '"Total time to solve: "', timeToSolve )
 	print ( '"Mean time per vCycle: "', totalTime / 10 )
+	
+	printField('"Solution.dat"', Solution@finest)
 }

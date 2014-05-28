@@ -223,9 +223,12 @@ object DefaultLoopMultiIndex {
 case class UnresolvedFieldAccess(var fieldOwner : Expression, var fieldIdentifier : String, var level : Int, var slot : Expression, var index : MultiIndex) extends Expression with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = UnresolvedFieldAccess\n"
 
+  def resolveField : Field = {
+    StateManager.findFirst[FieldCollection]().get.getFieldByIdentifier(fieldIdentifier, level).get
+  }
+
   def expand : FieldAccess = {
-    val field = StateManager.findFirst[FieldCollection]().get.getFieldByIdentifier(fieldIdentifier, level).get
-    new FieldAccess(fieldOwner, field, slot, index)
+    new FieldAccess(fieldOwner, resolveField, slot, index)
   }
 }
 
