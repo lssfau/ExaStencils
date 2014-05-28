@@ -31,11 +31,6 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
     declarations += s"Vec3 posEnd"
     cTorInitList += s"posEnd(0.0, 0.0, 0.0)"
 
-    declarations += s"Vec3i iterationOffsetBegin"
-    cTorInitList += s"iterationOffsetBegin(1, 1, 1)"
-    declarations += s"Vec3i iterationOffsetEnd"
-    cTorInitList += s"iterationOffsetEnd(-1, -1, -1)"
-
     if (6 == Knowledge.comm_strategyFragment) {
       neighbors += new NeighborInfo(Array(-1, 0, 0), 0)
       neighbors += new NeighborInfo(Array(+1, 0, 0), 1)
@@ -96,9 +91,15 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
       cTorNeighLoopList += s"maxElemRecvBuffer[i] = 0"
     }
 
+    declarations += s"Vec3i iterationOffsetBegin[$numDomains]"
+    declarations += s"Vec3i iterationOffsetEnd[$numDomains]"
+
     cTorBody += new ForLoopStatement(s"unsigned int d = 0", s"d < $numDomains", s"++d",
-      new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i",
-        cTorNeighLoopList))
+      ListBuffer[Statement](
+        "iterationOffsetBegin[d] = Vec3i(1, 1, 1)",
+        "iterationOffsetEnd[d] = Vec3i(-1, -1, -1)",
+        new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i",
+          cTorNeighLoopList)))
     dTorBody += new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i",
       dTorNeighLoopList)
   }

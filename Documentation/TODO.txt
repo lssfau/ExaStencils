@@ -12,6 +12,8 @@
 - check uniform usage over 'override' keyword
 - check 'var' usage
 
+- add one distinct communicator per (sub)domain
+
 - Inheritance of constructor arguments
 
 - Changeable stencils

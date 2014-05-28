@@ -156,10 +156,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| layoutOption.+)
   lazy val layoutOption = locationize((identifierWithOptionalLevel <~ "=") ~ index ~ ("with" ~ "communication").? ^^ { case id ~ idx ~ comm => LayoutOption(id, idx, Some(comm.isDefined)) })
 
-  lazy val field = locationize(("Field" ~> ident) ~ "<" ~ datatype ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ level.?
-    ^^ {
-      case id ~ _ ~ dt ~ layout ~ boundary ~ _ ~ level => FieldDeclarationStatement(id, dt, layout, boundary, level)
-    })
+  lazy val field = locationize(("Field" ~> ident) ~ "<" ~ datatype ~ ("," ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ level.?
+    ^^ { case id ~ _ ~ dt ~ domain ~ layout ~ boundary ~ _ ~ level => FieldDeclarationStatement(id, dt, domain, layout, boundary, level) })
   lazy val fieldBoundary = expression ^^ { case x => Some(x) } ||| "None" ^^ { case x => None }
 
   lazy val index : PackratParser[Index] = (

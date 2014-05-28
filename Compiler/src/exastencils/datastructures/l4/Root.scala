@@ -14,10 +14,21 @@ case class Root(
     var iterationSets : List[IterationSetDeclarationStatement],
     var statements : List[Statement]) extends Node with ProgressableToIr {
 
-  def this(statements : List[Statement]) = this(List(), List(), List(), List(), List(), List(), statements)
+  // set domain indices -> just number consecutively
+  {
+    var i = 0
+    for (d <- domains) {
+      d.index = i
+      i += 1
+    }
+  }
+
+  def getDomainByIdentifier(identifier : String) : Option[DomainDeclarationStatement] = {
+    domains.find(d => d.name == identifier)
+  }
 
   def getLayoutByIdentifier(identifier : String) : Option[LayoutDeclarationStatement] = {
-    layouts.find(f => f.name == identifier)
+    layouts.find(l => l.name == identifier)
   }
 
   def getFieldByIdentifier(identifier : String, level : Int) : Option[FieldDeclarationStatement] = {

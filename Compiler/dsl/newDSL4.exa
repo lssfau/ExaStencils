@@ -1,4 +1,5 @@
 Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >
+Domain smaller< [ 0.25, 0.25, 0.25 ] to [ 0.75, 0.75, 0.75 ] >
 
 Layout BasicComm {
 	ghostLayers = [ 1, 1, 1 ] with communication
@@ -12,14 +13,14 @@ Layout NoComm {
 	// innerPoints = []
 }
 
-Field Solution< Real, BasicComm, 0.0 >@(coarsest to (finest - 1))
-Field Solution2< Real, BasicComm, 0.0 >@(coarsest to (finest - 1))
-Field Solution< Real, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@finest
-Field Solution2< Real, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@finest
-Field Residual< Real, BasicComm, None >@all
-Field RHS< Real, NoComm, None >@all
-Field VecP< Real, BasicComm, None >@coarsest
-Field VecGradP< Real, NoComm, None >@coarsest
+Field Solution< Real, smaller, BasicComm, 0.0 >@(coarsest to (finest - 1))
+Field Solution2< Real, smaller, BasicComm, 0.0 >@(coarsest to (finest - 1))
+Field Solution< Real, smaller, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@finest
+Field Solution2< Real, smaller, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@finest
+Field Residual< Real, smaller, BasicComm, None >@all
+Field RHS< Real, smaller, NoComm, None >@all
+Field VecP< Real, smaller, BasicComm, None >@coarsest
+Field VecGradP< Real, smaller, NoComm, None >@coarsest
 
 external Field extSolution <bla> => Solution @(finest)
 
@@ -238,5 +239,5 @@ def Application ( ) : Unit {
 	print ( '"Total time to solve: "', timeToSolve )
 	print ( '"Mean time per vCycle: "', totalTime / 10 )
 	
-	//printField('"Solution.dat"', Solution@finest)
+	printField('"Solution.dat"', Solution@finest)
 }

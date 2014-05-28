@@ -87,12 +87,12 @@ case class SetIterationOffset(var location : Expression) extends Statement with 
     // FIXME: auto-generate this case using the actual neighbors
     // FIXME: THIS ONLY WORKS FOR COMM_STRAT 6
     SwitchStatement(location, ListBuffer(
-      new CaseStatement(0, "iterationOffsetBegin[0] = 0"),
-      new CaseStatement(1, "iterationOffsetEnd[0] = 0"),
-      new CaseStatement(2, "iterationOffsetBegin[1] = 0"),
-      new CaseStatement(3, "iterationOffsetEnd[1] = 0"),
-      new CaseStatement(4, "iterationOffsetBegin[2] = 0"),
-      new CaseStatement(5, "iterationOffsetEnd[2] = 0")))
+      new CaseStatement(0, "iterationOffsetBegin[domain][0] = 0"),
+      new CaseStatement(1, "iterationOffsetEnd[domain][0] = 0"),
+      new CaseStatement(2, "iterationOffsetBegin[domain][1] = 0"),
+      new CaseStatement(3, "iterationOffsetEnd[domain][1] = 0"),
+      new CaseStatement(4, "iterationOffsetBegin[domain][2] = 0"),
+      new CaseStatement(5, "iterationOffsetEnd[domain][2] = 0")))
   }
 }
 

@@ -32,6 +32,7 @@ case class LayoutDeclarationStatement(var name : String,
 
 case class FieldDeclarationStatement(var name : String,
     var datatype : Datatype,
+    var domain : String,
     var layout : String,
     var boundary : Option[Expression],
     var level : Option[LevelSpecification]) extends SpecialStatement {
@@ -62,7 +63,7 @@ case class FieldDeclarationStatement(var name : String,
 
     new Field(
       name,
-      0, // FIXME: domain
+      StateManager.root_.asInstanceOf[Root].getDomainByIdentifier(domain).get.index,
       name.toLowerCase + "Data_" + level.get.asInstanceOf[SingleLevelSpecification].level,
       datatype.progressToIr,
       ir_layout,

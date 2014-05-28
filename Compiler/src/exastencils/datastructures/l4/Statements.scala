@@ -19,7 +19,7 @@ abstract class SpecialStatement /*TODO: think about an appropriate name*/ extend
   def progressToIr : Node
 }
 
-case class DomainDeclarationStatement(var name : String, var lower : RealIndex, var upper : RealIndex) extends SpecialStatement {
+case class DomainDeclarationStatement(var name : String, var lower : RealIndex, var upper : RealIndex, var index : Int = 0) extends SpecialStatement {
   def progressToIr : knowledge.Domain = {
     (lower, upper) match {
       case (l : RealIndex2D, u : RealIndex2D) => new knowledge.Domain(name, new AABB(l.x, u.x, l.y, u.y, 0.0, 0.0))
