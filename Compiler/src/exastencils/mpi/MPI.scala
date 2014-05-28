@@ -95,7 +95,7 @@ case class MPI_Sequential(var body : ListBuffer[Statement]) extends Statement wi
   def expand : Scope = {
     Scope(ListBuffer[Statement](
       MPI_SetRankAndSize(),
-      ForLoopStatement("unsigned int curRank = 0", "curRank < mpiSize", "++curRank", ListBuffer[Statement](
+      ForLoopStatement("int curRank = 0", "curRank < mpiSize", "++curRank", ListBuffer[Statement](
         MPI_Barrier(),
         new ConditionStatement("mpiRank == curRank", body)))))
   }

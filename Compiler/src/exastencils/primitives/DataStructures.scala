@@ -230,7 +230,9 @@ case class CommunicationFunctions(var functions : ListBuffer[AbstractFunctionSta
       val writer = PrettyprintingManager.getPrinter(s"Primitives/CommunicationFunctions.h")
 
       writer << (
-        (if (Knowledge.useMPI) "#pragma warning(disable : 4800)\n" else "")
+        "#define _USE_MATH_DEFINES\n"
+        + "#include <cmath>\n"
+        + (if (Knowledge.useMPI) "#pragma warning(disable : 4800)\n" else "")
         + (if (Knowledge.useMPI) "#include <mpi.h>\n" else "")
         + "#include \"Globals/Globals.h\"\n"
         + "#include \"Util/Log.h\"\n"
