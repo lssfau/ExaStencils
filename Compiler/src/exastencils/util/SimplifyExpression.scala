@@ -1,28 +1,16 @@
 package exastencils.util
 
 import scala.collection.mutable.HashMap
+
 import exastencils.datastructures.ir.AdditionExpression
 import exastencils.datastructures.ir.DivisionExpression
 import exastencils.datastructures.ir.Expression
 import exastencils.datastructures.ir.FloatConstant
 import exastencils.datastructures.ir.IntegerConstant
 import exastencils.datastructures.ir.MultiplicationExpression
-import exastencils.datastructures.ir.SubtractionExpression
-import exastencils.datastructures.ir.AdditionExpression
-import exastencils.datastructures.ir.AdditionExpression
-import exastencils.datastructures.ir.SubtractionExpression
-import exastencils.datastructures.ir.AdditionExpression
-import exastencils.datastructures.ir.MultiplicationExpression
-import exastencils.datastructures.ir.AdditionExpression
-import exastencils.datastructures.ir.IntegerConstant
-import exastencils.datastructures.ir.MultiplicationExpression
-import exastencils.datastructures.ir.IntegerConstant
-import exastencils.datastructures.ir.AdditionExpression
-import exastencils.datastructures.ir.SubtractionExpression
-import exastencils.datastructures.ir.MultiplicationExpression
-import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.StringConstant
-import exastencils.datastructures.ir.DivisionExpression
+import exastencils.datastructures.ir.SubtractionExpression
+import exastencils.datastructures.ir.VariableAccess
 
 object SimplifyExpression {
 
