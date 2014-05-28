@@ -24,24 +24,24 @@ case class MPI_Finalize() extends Statement {
   }
 }
 
-case class MPI_SetRankAndSize() extends Statement {
+case class MPI_SetRankAndSize(var communicator : Expression) extends Statement {
   def cpp : String = {
     (s"int mpiRank;\n"
       + s"int mpiSize;\n"
-      + s"MPI_Comm_rank(MPI_COMM_WORLD, &mpiRank);\n"
-      + s"MPI_Comm_size(MPI_COMM_WORLD, &mpiSize);\n")
+      + s"MPI_Comm_rank(${communicator.cpp}, &mpiRank);\n"
+      + s"MPI_Comm_size(${communicator.cpp}, &mpiSize);\n")
   }
 }
 
 case class MPI_Receive(var buffer : Expression, var size : Expression, var typeName : Expression, var rank : Expression, var tag : Expression, var request : Expression) extends Statement {
   def cpp : String = {
-    (s"MPI_Irecv(${buffer.cpp}, ${size.cpp}, ${typeName.cpp}, ${rank.cpp}, ${tag.cpp}, MPI_COMM_WORLD, &${request.cpp});")
+    (s"MPI_Irecv(${buffer.cpp}, ${size.cpp}, ${typeName.cpp}, ${rank.cpp}, ${tag.cpp}, mpiCommunicator, &${request.cpp});")
   }
 }
 
 case class MPI_Send(var buffer : Expression, var size : Expression, var typeName : Expression, var rank : Expression, var tag : Expression, var request : Expression) extends Statement {
   def cpp : String = {
-    (s"MPI_Isend(${buffer.cpp}, ${size.cpp}, ${typeName.cpp}, ${rank.cpp}, ${tag.cpp}, MPI_COMM_WORLD, &${request.cpp});")
+    (s"MPI_Isend(${buffer.cpp}, ${size.cpp}, ${typeName.cpp}, ${rank.cpp}, ${tag.cpp}, mpiCommunicator, &${request.cpp});")
   }
 }
 
@@ -57,13 +57,13 @@ case class MPI_Allreduce(var sendbuf : Expression, var recvbuf : Expression, var
 
   def cpp : String = {
     // FIXME: set data-type by typed parameter
-    (s"MPI_Allreduce(${sendbuf.cpp}, ${recvbuf.cpp}, ${count.cpp}, MPI_DOUBLE, ${op.cpp}, MPI_COMM_WORLD);")
+    (s"MPI_Allreduce(${sendbuf.cpp}, ${recvbuf.cpp}, ${count.cpp}, MPI_DOUBLE, ${op.cpp}, mpiCommunicator);")
   }
 }
 
 case class MPI_Barrier() extends Statement {
   def cpp : String = {
-    (s"MPI_Barrier(MPI_COMM_WORLD);")
+    (s"MPI_Barrier(mpiCommunicator);")
   }
 }
 
