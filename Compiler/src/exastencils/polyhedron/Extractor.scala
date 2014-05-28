@@ -28,8 +28,8 @@ import exastencils.datastructures.ir.UnaryExpression
 import exastencils.datastructures.ir.VariableAccess
 import exastencils.knowledge.Knowledge
 import exastencils.primitives.LoopOverDimensions
-import exastencils.util.EvaluateExpression
 import exastencils.util.EvaluationException
+import exastencils.util.SimplifyExpression
 import isl.Conversions.convertIntToVal
 
 object Extractor extends Collector {
@@ -192,8 +192,8 @@ object Extractor extends Collector {
       var cur_begin : Long = 0
       var cur_end : Long = 0
       try {
-        cur_begin = EvaluateExpression.integer(begin(geo_dim))
-        cur_end = EvaluateExpression.integer(end(geo_dim))
+        cur_begin = SimplifyExpression.evalIntegral(begin(geo_dim))
+        cur_end = SimplifyExpression.evalIntegral(end(geo_dim))
       } catch {
         case EvaluationException(msg) =>
           discardCurrentSCoP(msg)
