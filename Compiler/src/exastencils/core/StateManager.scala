@@ -341,7 +341,7 @@ object StateManager {
   def findFirst[T : ClassTag]() : Option[T] = findFirst(root)
 
   def findFirst[T : ClassTag](node : Node) : Option[T] = {
-    findFirst[T]({ x : Any => x match { case _ : T => true; case _ => false } })
+    findFirst[T]({ x : Any => x match { case _ : T => true; case _ => false } }, node)
   }
 
   def findFirst[T : ClassTag](check : Any => Boolean, node : Node = root) : Option[T] = {
