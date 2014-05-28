@@ -11,6 +11,7 @@
 
 - use variable mpi communicator
 - add possiblity to set mpi communicator
+- add mpiRank and mpiSize to Globals for default communicator
 
 - check uniform usage over 'override' keyword
 - check 'var' usage
