@@ -107,16 +107,17 @@ object BinaryOperators extends Enumeration {
 
 object UnaryOperators extends Enumeration {
   type UnaryOperators = Value
-  val Positive, Negative, Not = Value
+  val Positive, Negative, Not, AddressOf = Value
 
   exastencils.core.Duplicate.registerImmutable(this.getClass())
 
   import scala.language.implicitConversions
   implicit def op2str(op : UnaryOperators) : String = op match {
-    case Positive => ""
-    case Negative => "-"
-    case Not      => "!"
-    case _        => "ERROR: Unresolvable UnaryOperator " + op
+    case Positive  => ""
+    case Negative  => "-"
+    case Not       => "!"
+    case AddressOf => "&"
+    case _         => "ERROR: Unresolvable UnaryOperator " + op
   }
 }
 
@@ -213,6 +214,13 @@ case class MultiIndex(var index_0 : Expression = new NullExpression, var index_1
       case 1 => index_1
       case 2 => index_2
     }
+  }
+
+  def +(that : MultiIndex) : MultiIndex = {
+    return new MultiIndex(
+      if (!this(0).isInstanceOf[NullExpression] && !that(0).isInstanceOf[NullExpression]) { this(0) + that(0) } else { new NullExpression },
+      if (!this(1).isInstanceOf[NullExpression] && !that(1).isInstanceOf[NullExpression]) { this(1) + that(1) } else { new NullExpression },
+      if (!this(2).isInstanceOf[NullExpression] && !that(2).isInstanceOf[NullExpression]) { this(2) + that(2) } else { new NullExpression })
   }
 }
 

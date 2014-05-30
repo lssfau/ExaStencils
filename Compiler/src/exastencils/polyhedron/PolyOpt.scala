@@ -29,11 +29,14 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     Logger.debug("    rejected:    " + Extractor.trash.size)
 
     val replaceCallback = { (oldVar : String, newExpr : Expression, applyAt : Node) =>
+      val oldLvl = Logger.getLevel
+      Logger.setLevel(1)
       this.execute(
         new Transformation("update loop iterator", {
           case VariableAccess(str, _) if (str == oldVar) => newExpr
           case StringConstant(str) if (str == oldVar)    => newExpr
         }), Some(applyAt))
+      Logger.setLevel(oldLvl)
     }
     this.execute(new ASTBuilderTransformation(replaceCallback))
 

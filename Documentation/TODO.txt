@@ -2,7 +2,6 @@
 - reserve C keywords in lexer
 - getLevel@level
 - leveled variables
-+ DONE (see exastencils.util.EvaluateExpression): move evalExp (Extractor) to general file/ make available
 - L4 sets -> constraints like "(x + y + z) % 2"
 - L4 constraints to ISL mapping
 - Mark loops from ISL with OMP_PotentiallyParallel
