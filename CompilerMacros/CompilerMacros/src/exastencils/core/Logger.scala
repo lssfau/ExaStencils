@@ -11,9 +11,9 @@ object Logger {
   // Level 2: Debug
   // Level 4: Info
 
-  protected var current = 2
-  def getLevel = current
-  def setLevel(level : Integer) = { current = level }
+  protected var current : Int = 2
+  def getLevel : Int = current
+  def setLevel(level : Int) = { current = level }
 
   def error(s : AnyRef) = {
     sys.error("ERROR: " + s)
@@ -59,8 +59,3 @@ object Logger {
     c.Expr[Unit](result)
   }
 }
-
-
-
-
-
