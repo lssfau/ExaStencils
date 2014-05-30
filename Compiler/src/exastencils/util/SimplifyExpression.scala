@@ -8,6 +8,7 @@ import exastencils.datastructures.ir.Expression
 import exastencils.datastructures.ir.FloatConstant
 import exastencils.datastructures.ir.IntegerConstant
 import exastencils.datastructures.ir.MultiplicationExpression
+import exastencils.datastructures.ir.OffsetIndex
 import exastencils.datastructures.ir.StringConstant
 import exastencils.datastructures.ir.SubtractionExpression
 import exastencils.datastructures.ir.VariableAccess
@@ -82,6 +83,11 @@ object SimplifyExpression {
         for ((name : String, value : Long) <- evalIntegralAffine(r))
           res(name) = res.get(name).getOrElse(0L) + value
 
+      case OffsetIndex(_, _, ind, off) =>
+        res = evalIntegralAffine(ind)
+        for ((name : String, value : Long) <- evalIntegralAffine(off))
+          res(name) = res.get(name).getOrElse(0L) + value
+
       case SubtractionExpression(l, r) =>
         res = evalIntegralAffine(l)
         for ((name : String, value : Long) <- evalIntegralAffine(r))
@@ -103,13 +109,16 @@ object SimplifyExpression {
           res(name) = value * coeff
 
       case DivisionExpression(l, r) =>
-        res = evalIntegralAffine(l)
         val mapR = evalIntegralAffine(r)
         if (!(mapR.size == 1 && mapR.contains(constName)))
           throw new EvaluationException("only constant divisor allowed")
         val div : Long = mapR(constName)
+        res = evalIntegralAffine(l)
         for ((name : String, value : Long) <- res)
-          res(name) = value / div
+          if (value % div == 0)
+            res(name) = value / div
+          else
+            throw new EvaluationException("cannot handle division yet")
 
       case _ =>
         throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
