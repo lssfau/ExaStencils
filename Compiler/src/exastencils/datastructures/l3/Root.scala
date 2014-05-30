@@ -14,6 +14,7 @@ case class Root() extends Node {
   var testBC : Boolean = true
   var testExtFields : Boolean = true
   var printFieldAtEnd : Boolean = false
+  var genSetableStencil : Boolean = true
 
   def printToL4(filename : String) : Unit = {
     var printer = new java.io.PrintWriter(filename)
@@ -101,26 +102,50 @@ case class Root() extends Node {
     }
 
     // Stencils
-    Knowledge.dimensionality match {
-      case 2 => {
-        printer.println("Stencil Lapl@all {")
-        printer.println("\t[ 0,  0] => 4")
-        printer.println("\t[ 1,  0] => -1")
-        printer.println("\t[-1,  0] => -1")
-        printer.println("\t[ 0,  1] => -1")
-        printer.println("\t[ 0, -1] => -1")
-        printer.println("}")
+    if (genSetableStencil) {
+      Knowledge.dimensionality match {
+        case 2 => {
+          printer.println("Stencil Lapl@all {")
+          printer.println("\t[ 0,  0] => Lapl_Coeff_0_0")
+          printer.println("\t[ 1,  0] => Lapl_Coeff_P1_0")
+          printer.println("\t[-1,  0] => Lapl_Coeff_N1_0")
+          printer.println("\t[ 0,  1] => Lapl_Coeff_0_P1")
+          printer.println("\t[ 0, -1] => Lapl_Coeff_0_N1")
+          printer.println("}")
+        }
+        case 3 =>
+          printer.println("Stencil Lapl@all {")
+          printer.println("\t[ 0,  0,  0] => Lapl_Coeff_0_0_0")
+          printer.println("\t[ 1,  0,  0] => Lapl_Coeff_P1_0_0")
+          printer.println("\t[-1,  0,  0] => Lapl_Coeff_N1_0_0")
+          printer.println("\t[ 0,  1,  0] => Lapl_Coeff_0_P1_0")
+          printer.println("\t[ 0, -1,  0] => Lapl_Coeff_0_N1_0")
+          printer.println("\t[ 0,  0,  1] => Lapl_Coeff_0_0_P1")
+          printer.println("\t[ 0,  0, -1] => Lapl_Coeff_0_0_N1")
+          printer.println("}")
       }
-      case 3 =>
-        printer.println("Stencil Lapl@all {")
-        printer.println("\t[ 0,  0,  0] => 6")
-        printer.println("\t[ 1,  0,  0] => -1")
-        printer.println("\t[-1,  0,  0] => -1")
-        printer.println("\t[ 0,  1,  0] => -1")
-        printer.println("\t[ 0, -1,  0] => -1")
-        printer.println("\t[ 0,  0,  1] => -1")
-        printer.println("\t[ 0,  0, -1] => -1")
-        printer.println("}")
+    } else {
+      Knowledge.dimensionality match {
+        case 2 => {
+          printer.println("Stencil Lapl@all {")
+          printer.println("\t[ 0,  0] => 4")
+          printer.println("\t[ 1,  0] => -1")
+          printer.println("\t[-1,  0] => -1")
+          printer.println("\t[ 0,  1] => -1")
+          printer.println("\t[ 0, -1] => -1")
+          printer.println("}")
+        }
+        case 3 =>
+          printer.println("Stencil Lapl@all {")
+          printer.println("\t[ 0,  0,  0] => 6")
+          printer.println("\t[ 1,  0,  0] => -1")
+          printer.println("\t[-1,  0,  0] => -1")
+          printer.println("\t[ 0,  1,  0] => -1")
+          printer.println("\t[ 0, -1,  0] => -1")
+          printer.println("\t[ 0,  0,  1] => -1")
+          printer.println("\t[ 0,  0, -1] => -1")
+          printer.println("}")
+      }
     }
 
     Knowledge.dimensionality match {
@@ -225,6 +250,26 @@ case class Root() extends Node {
     // Globals
     printer.println("Globals {")
     printer.println(s"\tvar omega : Real = $omega")
+    if (genSetableStencil) {
+      Knowledge.dimensionality match {
+        case 2 => {
+          printer.println("\tvar Lapl_Coeff_0_0 : Real")
+          printer.println("\tvar Lapl_Coeff_P1_0 : Real")
+          printer.println("\tvar Lapl_Coeff_N1_0 : Real")
+          printer.println("\tvar Lapl_Coeff_0_P1 : Real")
+          printer.println("\tvar Lapl_Coeff_0_N1 : Real")
+        }
+        case 3 => {
+          printer.println("\tvar Lapl_Coeff_0_0_0 : Real")
+          printer.println("\tvar Lapl_Coeff_P1_0_0 : Real")
+          printer.println("\tvar Lapl_Coeff_N1_0_0 : Real")
+          printer.println("\tvar Lapl_Coeff_0_P1_0 : Real")
+          printer.println("\tvar Lapl_Coeff_0_N1_0 : Real")
+          printer.println("\tvar Lapl_Coeff_0_0_P1 : Real")
+          printer.println("\tvar Lapl_Coeff_0_0_N1 : Real")
+        }
+      }
+    }
     printer.println("}")
     printer.println
 
@@ -373,7 +418,28 @@ def set@all (value : Real) : Unit {
     printer.println
 
     // Application
-    printer.println("""def Application ( ) : Unit {
+    printer.println("def Application ( ) : Unit {")
+        if (genSetableStencil) {
+      Knowledge.dimensionality match {
+        case 2 => {
+          printer.println("\tLapl_Coeff_0_0 = -4")
+          printer.println("\tLapl_Coeff_P1_0 = 1")
+          printer.println("\tLapl_Coeff_N1_0 = 1")
+          printer.println("\tLapl_Coeff_0_P1 = 1")
+          printer.println("\tLapl_Coeff_0_N1 = 1")
+        }
+        case 3 => {
+          printer.println("\tLapl_Coeff_0_0_0 = -6")
+          printer.println("\tLapl_Coeff_P1_0_0 = 1")
+          printer.println("\tLapl_Coeff_N1_0_0 = 1")
+          printer.println("\tLapl_Coeff_0_P1_0 = 1")
+          printer.println("\tLapl_Coeff_0_N1_0 = 1")
+          printer.println("\tLapl_Coeff_0_0_P1 = 1")
+          printer.println("\tLapl_Coeff_0_0_N1 = 1")
+        }
+      }
+    }
+printer.println("""
 	UpResidual@finest ( )
 	var res0 : Real = L2Residual@finest (  )
 	var res : Real = res0
