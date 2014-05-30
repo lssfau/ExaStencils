@@ -27,7 +27,7 @@ case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = ne
 
     writerHeader << "class Fragment3DCube;\n" // FIXME: find a way to extract necessary forward defines from variables
 
-    for (variable <- variables) { writerHeader << s"extern ${variable.cpp}\n" }
+    for (variable <- variables) { writerHeader << s"extern ${variable.cpp_onlyDeclaration}\n" }
 
     writerHeader << s"${initFunction.returntype.cpp} ${initFunction.name.cpp}(" + initFunction.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n"
 

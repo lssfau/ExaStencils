@@ -10,6 +10,7 @@ import exastencils.primitives
 import exastencils.primitives._
 import exastencils.languageprocessing.l4.ProgressToIr
 import exastencils.util._
+import exastencils.globals._
 
 abstract class Statement extends Node with ProgressableToIr {
   def progressToIr : ir.Statement
@@ -47,6 +48,12 @@ case class StencilEntry(var offset : ExpressionIndex, var weight : Expression) e
 case class StencilDeclarationStatement(var name : String, var entries : List[StencilEntry], var level : Option[LevelSpecification]) extends SpecialStatement {
   def progressToIr : knowledge.Stencil = {
     knowledge.Stencil(name, level.get.asInstanceOf[SingleLevelSpecification].level, entries.map(e => e.progressToIr).to[ListBuffer])
+  }
+}
+
+case class GlobalDeclarationStatement(var entries : List[VariableDeclarationStatement]) extends SpecialStatement {
+  def progressToIr : Globals = {
+    new Globals(entries.to[ListBuffer].map(e => e.progressToIr))
   }
 }
 

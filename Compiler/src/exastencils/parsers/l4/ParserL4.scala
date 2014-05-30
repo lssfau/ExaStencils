@@ -45,8 +45,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   //###########################################################
 
-  lazy val program = locationize(domain.* ~ layout.* ~ field.* ~ externalField.* ~ stencil.* ~ iterationSet.* ~ function.* ^^
-    { case d ~ l ~ f ~ ef ~ s ~ i ~ ss => Root(d, l, f, ef, s, i, ss) })
+  lazy val program = locationize(domain.* ~ layout.* ~ field.* ~ externalField.* ~ stencil.* ~ iterationSet.* ~ globals.? ~ function.* ^^
+    { case d ~ l ~ f ~ ef ~ s ~ i ~ g ~ ss => Root(d, l, f, ef, s, i, g.getOrElse(new GlobalDeclarationStatement(List())), ss) })
 
   //###########################################################
 
@@ -145,6 +145,13 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| "/=" ^^ { case _ => "/" })
 
   lazy val conditional = locationize(("if" ~ "(" ~> booleanexpression <~ ")") ~ ("{" ~> statement.+ <~ "}") ^^ { case exp ~ stmts => ConditionalStatement(exp, stmts) })
+
+  // ######################################
+  // ##### Globals
+  // ######################################
+
+  lazy val globals = locationize(("Globals" ~> "{" ~> variableDeclaration.* <~ "}")
+    ^^ { case entries => GlobalDeclarationStatement(entries) })
 
   // ######################################
   // ##### Fields & Layouts

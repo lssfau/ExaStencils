@@ -36,7 +36,7 @@ object Main {
     // HACK: this will setup a dummy L4 DSL file
     StateManager.root_ = new l3.Root
     StateManager.root_.asInstanceOf[l3.Root].printToL4(Settings.basePathPrefix + "/Compiler/dsl/Layer4.exa")
-    
+
     // HACK: this tests the new L4 capabilities
     var parserl4 = new ParserL4
     StateManager.root_ = parserl4.parseFile(Settings.basePathPrefix + "/Compiler/dsl/Layer4.exa")
@@ -61,10 +61,7 @@ object Main {
       // Util
       new Log,
       new Stopwatch,
-      new Vector,
-
-      // Globals
-      new Globals)
+      new Vector)
 
     // Strategies
 

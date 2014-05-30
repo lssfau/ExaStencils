@@ -12,6 +12,7 @@ case class Root(
     var externalFields : List[ExternalFieldDeclarationStatement],
     var stencils : List[StencilDeclarationStatement],
     var iterationSets : List[IterationSetDeclarationStatement],
+    var globals : GlobalDeclarationStatement,
     var statements : List[Statement]) extends Node with ProgressableToIr {
 
   // set domain indices -> just number consecutively
@@ -62,6 +63,8 @@ case class Root(
     for (iterationSet <- iterationSets)
       iterationSetCollection.sets += iterationSet.progressToIr
     newRoot += iterationSetCollection
+
+    newRoot += globals.progressToIr
 
     var multiGrid = new MultiGrid // FIXME: think about how to manage (MG/other) functions
     for (node <- statements)

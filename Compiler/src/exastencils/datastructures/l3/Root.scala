@@ -10,6 +10,7 @@ case class Root() extends Node {
   var cgs : String = "CG" // CG
   var numPre : Int = 2 // has to be divisible by 2 for Jac
   var numPost : Int = 4 // has to be divisible by 2 for Jac
+  var omega : Double = (if ("Jac" == smoother) 0.8 else 1.0)
   var testBC : Boolean = true
   var testExtFields : Boolean = true
   var printFieldAtEnd : Boolean = false
@@ -221,6 +222,12 @@ case class Root() extends Node {
     }
     printer.println
 
+    // Globals
+    printer.println("Globals {")
+    printer.println(s"\tvar omega : Real = $omega")
+    printer.println("}")
+    printer.println
+
     // CGS
     printer.println("""def VCycle@coarsest ( ) : Unit {
 	UpResidual@(current) ( )
@@ -295,29 +302,29 @@ case class Root() extends Node {
 def Smoother@((coarsest + 1) to finest) ( ) : Unit {
 	communicate Solution@(current)
 	loop over inner on Solution@(current) {
-		Solution2@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 0.8 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
+		Solution2@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * omega ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
 	}
 	communicate Solution2@(current)
 	loop over inner on Solution@(current) {
-		Solution@(current) = Solution2@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 0.8 ) * ( RHS@(current) - Lapl@(current) * Solution2@(current) ) )
+		Solution@(current) = Solution2@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * omega ) * ( RHS@(current) - Lapl@(current) * Solution2@(current) ) )
 	}
 }""")
       case "RBGS" => printer.println("""// RBGS
 def Smoother@((coarsest + 1) to finest) ( ) : Unit {
 	communicate Solution@(current)
 	loop over red on Solution@(current) {
-		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 1.0 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
+		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * omega ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
 	}
 	communicate Solution@(current)
 	loop over black on Solution@(current) {
-		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 1.0 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
+		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * omega ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
 	}
 }""")
       case "GS" => printer.println("""// GS
 def Smoother@((coarsest + 1) to finest) ( ) : Unit {
 	communicate Solution@(current)
 	loop over inner on Solution@(current) {
-		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 1.0 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
+		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * omega ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
 	}
 }""")
     }
