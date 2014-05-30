@@ -111,18 +111,18 @@ case class FieldDeclarationStatement(var name : String,
 }
 
 case class ExternalFieldDeclarationStatement(
-    var externalidentifier : String,
-    var internalidentifier : FieldIdentifier,
-    var layout : String) extends ExternalDeclarationStatement {
+    var extIdentifier : String,
+    var correspondingField : FieldIdentifier,
+    var extLayout : String) extends ExternalDeclarationStatement {
 
   def progressToIr : knowledge.ExternalField = {
-    val l4_layout = StateManager.root_.asInstanceOf[Root].getLayoutByIdentifier(layout).get
-    val ir_layout = l4_layout.progressToIr(internalidentifier.level.asInstanceOf[SingleLevelSpecification].level)
+    val l4_layout = StateManager.root_.asInstanceOf[Root].getLayoutByIdentifier(extLayout).get
+    val ir_layout = l4_layout.progressToIr(correspondingField.level.asInstanceOf[SingleLevelSpecification].level)
 
-    new knowledge.ExternalField(externalidentifier,
-      internalidentifier.name2,
+    new knowledge.ExternalField(extIdentifier,
+      correspondingField.name,
       ir_layout,
-      internalidentifier.level.asInstanceOf[SingleLevelSpecification].level,
+      correspondingField.level.asInstanceOf[SingleLevelSpecification].level,
       l4_layout.l4_ghostLayers.progressToIr // TODO: this should work for now but may be adapted in the future)
       )
   }
