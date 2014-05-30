@@ -37,17 +37,17 @@ case class UnresolvedIdentifier(var name2 : String, var level : Option[LevelSpec
   def progressToIr : ir.StringConstant = "ERROR - UnresolvedIdentifier"
 }
 
-case class BasicIdentifier(var name2 : String) extends Identifier(name2) {
+case class BasicIdentifier(override var name : String) extends Identifier(name) {
   def progressToIr : ir.StringConstant = name
 }
 
-case class LeveledIdentifier(var name2 : String, var level : LevelSpecification) extends Identifier(name2) {
+case class LeveledIdentifier(override var name : String, var level : LevelSpecification) extends Identifier(name) {
   def progressToIr : ir.StringConstant = {
     name + "_" + level.asInstanceOf[SingleLevelSpecification].level
   }
 }
 
-case class FieldIdentifier(var name2 : String, var level : LevelSpecification) extends Identifier(name2) {
+case class FieldIdentifier(override var name : String, var level : LevelSpecification) extends Identifier(name) {
   def progressNameToIr : ir.StringConstant = {
     name + "_" + level.asInstanceOf[SingleLevelSpecification].level
   }
@@ -57,7 +57,7 @@ case class FieldIdentifier(var name2 : String, var level : LevelSpecification) e
   }
 }
 
-case class StencilIdentifier(var name2 : String, var level : LevelSpecification) extends Identifier(name2) {
+case class StencilIdentifier(override var name : String, var level : LevelSpecification) extends Identifier(name) {
   def progressToIr : ir.UnresolvedStencilAccess = {
     ir.UnresolvedStencilAccess(name, level.asInstanceOf[SingleLevelSpecification].level)
   }
