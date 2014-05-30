@@ -10,14 +10,14 @@
 
 - check uniform usage over 'override' keyword
 - check 'var' usage
+- check ';' usage
+
+- add val to l4 => extend DataType and/or VariableDeclarationStatement
 
 - add one distinct communicator per (sub)domain
 
-- Inheritance of constructor arguments
-
 - Changeable stencils
 - SetStencilCoeff (id, offset, coeff)
-- GlobalConst structure
 - Check BinOp PowerOf
 - BC will be set as fctCalls/ Expr for now
 - extend Repeat statement with optional ident and optional lower bound
