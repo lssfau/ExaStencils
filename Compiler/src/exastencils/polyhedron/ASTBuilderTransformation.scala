@@ -1,11 +1,8 @@
 package exastencils.polyhedron
 
-import scala.annotation.elidable
-import scala.annotation.elidable.ASSERTION
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
-import exastencils.datastructures.Annotation
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.convFromNode
@@ -55,9 +52,11 @@ private final class ASTBuilderFunction(replaceCallback : (String, Expression, No
 
   def apply(node : Node) : Transformation.Output[_] = {
 
-    val annotation : Annotation = node.getAnnotation(PolyOpt.SCOP_ANNOT).get
-    node.remove(annotation)
-    val scop : SCoP = annotation.value.asInstanceOf[SCoP]
+    val scop : SCoP = node.removeAnnotation(PolyOpt.SCOP_ANNOT).get.value.asInstanceOf[SCoP]
+
+    //    Logger.debug("create AST for model:")
+    //    Logger.debug("    Domain:   " + scop.domain)
+    //    Logger.debug("    Schedule: " + scop.schedule)
 
     val islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.domain.params())
     val islNode : isl.AstNode = islBuild.astFromSchedule(scop.schedule.intersectDomain(scop.domain))

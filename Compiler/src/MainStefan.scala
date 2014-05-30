@@ -1,22 +1,34 @@
-import scala.collection.mutable.ListBuffer
-import exastencils.core._
-import exastencils.knowledge._
-import exastencils.parsers.l4._
-import exastencils.languageprocessing.l4._
-import exastencils.datastructures._
-import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.prettyprinting._
-import exastencils.globals._
-import exastencils.strategies._
-import exastencils.application._
-import exastencils.domain._
-import exastencils.multiGrid._
-import exastencils.primitives._
-import exastencils.util._
-import exastencils.mpi._
-import exastencils.omp._
-import exastencils.spl.FeatureModel
-import exastencils.polyhedron._
+import exastencils.application.Poisson3D
+import exastencils.core.Settings
+import exastencils.core.StateManager
+import exastencils.datastructures.Node
+import exastencils.datastructures.ir
+import exastencils.datastructures.l4
+import exastencils.domain.DomainGenerated
+import exastencils.globals.Globals
+import exastencils.knowledge.FindStencilConvolutions
+import exastencils.knowledge.Knowledge
+import exastencils.languageprocessing.l4.ProgressToIr
+import exastencils.mpi.RemoveMPIReferences
+import exastencils.multiGrid.ResolveSpecialFunctions
+import exastencils.omp.AddOMPPragmas
+import exastencils.parsers.l4.ParserL4
+import exastencils.parsers.l4.ValidationL4
+import exastencils.polyhedron.PolyOpt
+import exastencils.prettyprinting.PrettyprintingManager
+import exastencils.primitives.CommunicationFunctions
+import exastencils.primitives.FragmentClass
+import exastencils.primitives.LinearizeFieldAccesses
+import exastencils.primitives.ResolveIndexOffsets
+import exastencils.primitives.ResolveLoopOverDimensions
+import exastencils.primitives.SetupFragmentClass
+import exastencils.strategies.AddMemberFunctionPrefix
+import exastencils.strategies.ExpandStrategy
+import exastencils.strategies.PrintStrategy
+import exastencils.strategies.SimplifyStrategy
+import exastencils.util.Log
+import exastencils.util.Stopwatch
+import exastencils.util.Vector
 
 object MainStefan {
   def main(args : Array[String]) : Unit = {
@@ -75,9 +87,35 @@ object MainStefan {
 
     ExpandStrategy.doUntilDone()
 
+    //    new DefaultStrategy("TestStrategy") {
+    //      this += new Transformation("test", {
+    //        case acc : DirectFieldAccess =>
+    //          println("DirectFieldAccess")
+    //          println(acc.field.identifier + " " + acc.field.level)
+    //          println(acc.field.codeName.cpp)
+    //          println()
+    //          acc
+    //        case acc : FieldAccess =>
+    //          println("FieldAccess")
+    //          println(acc.field.identifier + " " + acc.field.level)
+    //          println(acc.field.codeName.cpp)
+    //          println()
+    //          acc
+    //        case acc : ExternalFieldAccess =>
+    //          println("ExternalFieldAccess")
+    //          println(acc.field.identifier + " " + acc.field.level)
+    //          println(acc.field.targetFieldIdentifier)
+    //          println()
+    //          acc
+    //      })
+    //    }.apply()
+    //    return
+
     PolyOpt.apply()
 
     ResolveLoopOverDimensions.apply()
+
+    ResolveIndexOffsets.apply()
 
     LinearizeFieldAccesses.apply()
 
