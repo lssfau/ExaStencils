@@ -6,16 +6,16 @@ import exastencils.datastructures._
 import exastencils.multiGrid._
 
 case class Root() extends Node {
-  var smoother : String = "Jac" // Jac | GS | RBGS
+  var smoother : String = "Jac" // Jac | GS | RBGS // NOTE: RBGS might not fully work until conditional updating is implemented
   var cgs : String = "CG" // CG
   var numPre : Int = 2 // has to be divisible by 2 for Jac
   var numPost : Int = 4 // has to be divisible by 2 for Jac
   var omega : Double = (if ("Jac" == smoother) 0.8 else 1.0)
-  var testBC : Boolean = true
-  var testExtFields : Boolean = true
+  var testBC : Boolean = false // NOTE: the tested bc will only be reasonable for 2D cases
+  var testExtFields : Boolean = false
   var printFieldAtEnd : Boolean = false
   var genSetableStencil : Boolean = false
-  var omegaViaGlobals : Boolean = true
+  var omegaViaGlobals : Boolean = false
 
   def printToL4(filename : String) : Unit = {
     var printer = new java.io.PrintWriter(filename)
