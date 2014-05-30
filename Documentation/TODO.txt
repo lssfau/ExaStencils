@@ -1,4 +1,3 @@
-- External fields and resulting functions
 - Lib/ Inc Blocks in HW Knowledge
 - reserve C keywords in lexer
 - getLevel@level
