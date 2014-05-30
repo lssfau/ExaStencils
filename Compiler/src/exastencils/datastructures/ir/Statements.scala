@@ -18,42 +18,46 @@ case class NullStatement() extends Statement {
 }
 
 case class Scope(var body : ListBuffer[Statement]) extends Statement {
-  def this(body : Statement) = this(ListBuffer(body));
+  def this(body : Statement) = this(ListBuffer(body))
 
   override def cpp : String = {
     ("\n{\n"
       + body.map(stat => stat.cpp).mkString("\n")
-      + s"\n}");
+      + s"\n}")
   }
 }
 
 case class StatementBlock(var body : ListBuffer[Statement]) extends Statement {
   def cpp : String = {
-    (body.map(stat => stat.cpp).mkString("\n"));
+    (body.map(stat => stat.cpp).mkString("\n"))
   }
 }
 
 case class VariableDeclarationStatement(var variable : VariableAccess, var expression : Option[Expression] = None) extends Statement {
   override def cpp = {
-    s"${variable.dType.get.cpp} ${variable.name}" + (if (expression.isDefined) s" = ${expression.get.cpp};" else ";");
+    s"${variable.dType.get.cpp} ${variable.name}" + (if (expression.isDefined) s" = ${expression.get.cpp};" else ";")
+  }
+
+  def cpp_onlyDeclaration = {
+    s"${variable.dType.get.cpp} ${variable.name};"
   }
 }
 
 case class DefineStatement(var name : Expression, var value : Option[Expression] = None) extends Statement {
   override def cpp = {
-    s"#define ${name.cpp}" + (if (value.isDefined) s"  ${value.get.cpp}" else "");
+    s"#define ${name.cpp}" + (if (value.isDefined) s"  ${value.get.cpp}" else "")
   }
 }
 
 case class AssignmentStatement(var dest : Expression, var src : Expression, var op : Expression = "=") extends Statement {
   override def cpp : String = {
-    (s"${dest.cpp} ${op.cpp} ${src.cpp};");
+    (s"${dest.cpp} ${op.cpp} ${src.cpp};")
   }
 }
 
 case class ForLoopStatement(var begin : Statement, var end : Expression, var inc : Statement, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement {
-  def this(begin : Statement, end : Expression, inc : Statement, body : Statement, reduction : Option[Reduction]) = this(begin, end, inc, ListBuffer(body), reduction);
-  def this(begin : Statement, end : Expression, inc : Statement, body : Statement) = this(begin, end, inc, ListBuffer(body));
+  def this(begin : Statement, end : Expression, inc : Statement, body : Statement, reduction : Option[Reduction]) = this(begin, end, inc, ListBuffer(body), reduction)
+  def this(begin : Statement, end : Expression, inc : Statement, body : Statement) = this(begin, end, inc, ListBuffer(body))
 
   override def cpp : String = {
 
@@ -71,12 +75,12 @@ case class ForLoopStatement(var begin : Statement, var end : Expression, var inc
 }
 
 case class ConditionStatement(var condition : Expression, var trueBody : ListBuffer[Statement], var falseBody : ListBuffer[Statement]) extends Statement {
-  def this(condition : Expression, trueBody : ListBuffer[Statement]) = this(condition, trueBody, ListBuffer[Statement]());
-  def this(condition : Expression, trueBranch : Statement) = this(condition, ListBuffer(trueBranch));
+  def this(condition : Expression, trueBody : ListBuffer[Statement]) = this(condition, trueBody, ListBuffer[Statement]())
+  def this(condition : Expression, trueBranch : Statement) = this(condition, ListBuffer(trueBranch))
 
-  def this(condition : Expression, trueBranch : Statement, falseBranch : Statement) = this(condition, ListBuffer(trueBranch), ListBuffer(falseBranch));
-  def this(condition : Expression, trueBody : ListBuffer[Statement], falseBranch : Statement) = this(condition, trueBody, ListBuffer(falseBranch));
-  def this(condition : Expression, trueBranch : Statement, falseBody : ListBuffer[Statement]) = this(condition, ListBuffer(trueBranch), falseBody);
+  def this(condition : Expression, trueBranch : Statement, falseBranch : Statement) = this(condition, ListBuffer(trueBranch), ListBuffer(falseBranch))
+  def this(condition : Expression, trueBody : ListBuffer[Statement], falseBranch : Statement) = this(condition, trueBody, ListBuffer(falseBranch))
+  def this(condition : Expression, trueBranch : Statement, falseBody : ListBuffer[Statement]) = this(condition, ListBuffer(trueBranch), falseBody)
 
   def cpp : String = {
     (s"if (${condition.cpp})"
@@ -86,31 +90,31 @@ case class ConditionStatement(var condition : Expression, var trueBody : ListBuf
       + (if (falseBody.length > 0)
         s"\nelse\n{\n"
         + falseBody.map(stat => stat.cpp).mkString("\n")
-        + s"\n}";
+        + s"\n}"
       else
         ""))
   }
 }
 
 case class CaseStatement(var toMatch : Expression, var body : ListBuffer[Statement]) extends Statement {
-  def this(toMatch : Expression, body : Statement) = this(toMatch, ListBuffer[Statement](body));
+  def this(toMatch : Expression, body : Statement) = this(toMatch, ListBuffer[Statement](body))
 
   override def cpp : String = {
     (s"case (${toMatch.cpp}):"
       + "\n{\n"
       + body.map(stat => stat.cpp).mkString("\n")
-      + s"\n} break;");
+      + s"\n} break;")
   }
 }
 
 case class SwitchStatement(var what : Expression, var body : ListBuffer[CaseStatement]) extends Statement {
-  def this(what : Expression, body : CaseStatement) = this(what, ListBuffer[CaseStatement](body));
+  def this(what : Expression, body : CaseStatement) = this(what, ListBuffer[CaseStatement](body))
 
   override def cpp : String = {
     (s"switch (${what.cpp})"
       + "\n{\n"
       + body.map(stat => stat.cpp).mkString("\n")
-      + s"\n}");
+      + s"\n}")
   }
 }
 
@@ -123,8 +127,8 @@ case class ReturnStatement(expr : Expression) extends Statement {
 abstract class AbstractFunctionStatement() extends Statement
 
 case class FunctionStatement(var returntype : Datatype, var name : Expression, var parameters : ListBuffer[VariableAccess], var body : ListBuffer[Statement]) extends AbstractFunctionStatement {
-  def this(returntype : Datatype, name : Expression, parameters : ListBuffer[VariableAccess], body : Statement) = this(returntype, name, parameters, ListBuffer[Statement](body));
-  def this(returntype : Datatype, name : Expression, parameters : VariableAccess, body : ListBuffer[Statement]) = this(returntype, name, ListBuffer[VariableAccess](parameters), body);
+  def this(returntype : Datatype, name : Expression, parameters : ListBuffer[VariableAccess], body : Statement) = this(returntype, name, parameters, ListBuffer[Statement](body))
+  def this(returntype : Datatype, name : Expression, parameters : VariableAccess, body : ListBuffer[Statement]) = this(returntype, name, ListBuffer[VariableAccess](parameters), body)
 
   def cpp : String = { // FIXME: add specialized node for parameter specification with own PP
     (s"${returntype.cpp} ${name.cpp}(" + parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ")"
