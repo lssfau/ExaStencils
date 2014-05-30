@@ -14,7 +14,8 @@ case class Root() extends Node {
   var testBC : Boolean = true
   var testExtFields : Boolean = true
   var printFieldAtEnd : Boolean = false
-  var genSetableStencil : Boolean = true
+  var genSetableStencil : Boolean = false
+  var omegaViaGlobals : Boolean = true
 
   def printToL4(filename : String) : Unit = {
     var printer = new java.io.PrintWriter(filename)
@@ -249,7 +250,8 @@ case class Root() extends Node {
 
     // Globals
     printer.println("Globals {")
-    printer.println(s"\tvar omega : Real = $omega")
+    if (omegaViaGlobals)
+      printer.println(s"\tvar omega : Real = $omega")
     if (genSetableStencil) {
       Knowledge.dimensionality match {
         case 2 => {
@@ -342,36 +344,40 @@ case class Root() extends Node {
     printer.println
 
     // Smoother
+    val omegaToPrint = (if (omegaViaGlobals) "omega" else omega)
     smoother match {
-      case "Jac" => printer.println("""// Jacobi
-def Smoother@((coarsest + 1) to finest) ( ) : Unit {
-	communicate Solution@(current)
-	loop over inner on Solution@(current) {
-		Solution2@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * omega ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
-	}
-	communicate Solution2@(current)
-	loop over inner on Solution@(current) {
-		Solution@(current) = Solution2@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * omega ) * ( RHS@(current) - Lapl@(current) * Solution2@(current) ) )
-	}
-}""")
-      case "RBGS" => printer.println("""// RBGS
-def Smoother@((coarsest + 1) to finest) ( ) : Unit {
-	communicate Solution@(current)
-	loop over red on Solution@(current) {
-		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * omega ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
-	}
-	communicate Solution@(current)
-	loop over black on Solution@(current) {
-		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * omega ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
-	}
-}""")
-      case "GS" => printer.println("""// GS
-def Smoother@((coarsest + 1) to finest) ( ) : Unit {
-	communicate Solution@(current)
-	loop over inner on Solution@(current) {
-		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * omega ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
-	}
-}""")
+      case "Jac" => {
+        printer.println("def Smoother@((coarsest + 1) to finest) ( ) : Unit {")
+        printer.println("\tcommunicate Solution@(current)")
+        printer.println("\tloop over inner on Solution@(current) {")
+        printer.println(s"\t\tSolution2@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * $omegaToPrint ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )")
+        printer.println("\t}")
+        printer.println("\tcommunicate Solution2@(current)")
+        printer.println("\tloop over inner on Solution@(current) {")
+        printer.println(s"\t\tSolution@(current) = Solution2@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * $omegaToPrint ) * ( RHS@(current) - Lapl@(current) * Solution2@(current) ) )")
+        printer.println("\t}")
+        printer.println("}")
+      }
+      case "RBGS" => {
+        printer.println("def Smoother@((coarsest + 1) to finest) ( ) : Unit {")
+        printer.println("\tcommunicate Solution@(current)")
+        printer.println("\tloop over red on Solution@(current) {")
+        printer.println(s"\t\tSolution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * $omegaToPrint ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )")
+        printer.println("\t}")
+        printer.println("\tcommunicate Solution@(current)")
+        printer.println("\tloop over black on Solution@(current) {")
+        printer.println(s"\t\tSolution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * $omegaToPrint ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )")
+        printer.println("\t}")
+        printer.println("}")
+      }
+      case "GS" => {
+        printer.println("def Smoother@((coarsest + 1) to finest) ( ) : Unit {")
+        printer.println("\tcommunicate Solution@(current)")
+        printer.println("\tloop over inner on Solution@(current) {")
+        printer.println(s"\t\tSolution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * $omegaToPrint ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )")
+        printer.println("\t}")
+        printer.println("}")
+      }
     }
     printer.println
 
@@ -419,7 +425,7 @@ def set@all (value : Real) : Unit {
 
     // Application
     printer.println("def Application ( ) : Unit {")
-        if (genSetableStencil) {
+    if (genSetableStencil) {
       Knowledge.dimensionality match {
         case 2 => {
           printer.println("\tLapl_Coeff_0_0 = -4")
@@ -439,7 +445,7 @@ def set@all (value : Real) : Unit {
         }
       }
     }
-printer.println("""
+    printer.println("""
 	UpResidual@finest ( )
 	var res0 : Real = L2Residual@finest (  )
 	var res : Real = res0
