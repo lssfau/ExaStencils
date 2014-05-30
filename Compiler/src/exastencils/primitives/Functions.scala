@@ -178,7 +178,7 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
 
   override def expand : FunctionStatement = {
     new FunctionStatement(new UnitDatatype(), "set" ~ dest.codeName,
-      ListBuffer(new VariableAccess("src", Some(PointerDatatype(dest.dataType)))),
+      ListBuffer(new VariableAccess("src", Some(PointerDatatype(dest.dataType))), new VariableAccess("slot", Some(new IntegerDatatype))),
       ListBuffer[Statement](
         new LoopOverDimensions(new IndexRange(
           new MultiIndex((0 until Knowledge.dimensionality).toArray.map(i => src.layout(i).idxDupLeftBegin)),

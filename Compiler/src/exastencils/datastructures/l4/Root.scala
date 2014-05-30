@@ -49,7 +49,8 @@ case class Root(
     newRoot += fieldCollection
 
     var extFieldCollection = new ExternalFieldCollection
-    // FIXME: Somewhere here the externalField collection needs to be filled
+    for (extField <- externalFields)
+      extFieldCollection.fields += extField.progressToIr
     newRoot += extFieldCollection
 
     var stencilCollection = new StencilCollection

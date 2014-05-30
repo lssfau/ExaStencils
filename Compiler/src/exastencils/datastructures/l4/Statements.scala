@@ -124,4 +124,4 @@ case class CommunicateStatement(var identifier : Identifier) extends Statement {
   }
 }
 
-trait ExternalDeclarationStatement extends Statement
+trait ExternalDeclarationStatement extends SpecialStatement

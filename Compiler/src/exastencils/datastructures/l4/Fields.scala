@@ -1,6 +1,7 @@
 package exastencils.datastructures.l4
 
 import exastencils.core._
+import exastencils.knowledge
 import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -28,6 +29,57 @@ case class LayoutDeclarationStatement(var name : String,
       case "innerPoints" => innerPoints = Some(option.value)
     }
   }
+
+  var default_ghostLayers : Index = Knowledge.dimensionality match {
+    case 2 => new Index2D(1, 1)
+    case 3 => new Index3D(1, 1, 1)
+  }
+  var l4_ghostLayers : Index = default_ghostLayers
+  var default_duplicateLayers : Index = Knowledge.dimensionality match {
+    case 2 => new Index2D(1, 1)
+    case 3 => new Index3D(1, 1, 1)
+  }
+  var l4_duplicateLayers : Index = default_duplicateLayers
+  var default_innerPoints : Index = Knowledge.dimensionality match {
+    // needs to be overwritten later
+    case 2 => new Index2D(1, 1)
+    case 3 => new Index3D(1, 1, 1)
+  }
+  var l4_innerPoints : Index = default_innerPoints
+  var default_ghostComm : Boolean = false
+  var l4_ghostComm : Boolean = default_ghostComm
+  var default_dupComm : Boolean = false
+  var l4_dupComm : Boolean = default_dupComm
+
+  def progressToIr(level : Int) : Array[knowledge.FieldLayoutPerDim] = {
+    l4_ghostLayers = ghostLayers.getOrElse(default_ghostLayers)
+    l4_duplicateLayers = duplicateLayers.getOrElse(new Index3D(1, 1, 1))
+
+    default_innerPoints = Knowledge.dimensionality match {
+      case 2 => new Index2D(
+        ((Knowledge.domain_fragLengthPerDim(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
+        ((Knowledge.domain_fragLengthPerDim(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1))
+      case 3 => new Index3D(
+        ((Knowledge.domain_fragLengthPerDim(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
+        ((Knowledge.domain_fragLengthPerDim(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1),
+        ((Knowledge.domain_fragLengthPerDim(2) * (1 << level)) + 1) - 2 * l4_duplicateLayers(2))
+    }
+    l4_innerPoints = innerPoints.getOrElse(default_innerPoints)
+
+    l4_ghostComm = ghostLayersCommunication.getOrElse(default_ghostComm)
+    l4_dupComm = duplicateLayersCommunication.getOrElse(default_dupComm)
+
+    DimArray().map(dim => new knowledge.FieldLayoutPerDim(
+      if (0 == dim) 0 else 0, // FIXME: add padding
+      l4_ghostLayers(dim),
+      l4_duplicateLayers(dim),
+      l4_innerPoints(dim),
+      l4_duplicateLayers(dim),
+      l4_ghostLayers(dim),
+      0 // FIXME: check if padding at the end will be required
+      )) ++
+      (Knowledge.dimensionality until 3).toArray.map(dim => new knowledge.FieldLayoutPerDim(0, 0, 0, 1, 0, 0, 0))
+  }
 }
 
 case class FieldDeclarationStatement(var name : String,
@@ -39,65 +91,40 @@ case class FieldDeclarationStatement(var name : String,
 
   var slots = 1 // FIXME: add to parser
 
-  def progressToIr : Field = {
+  def progressToIr : knowledge.Field = {
     val l4_layout = StateManager.root_.asInstanceOf[Root].getLayoutByIdentifier(layout).get
+    val ir_layout = l4_layout.progressToIr(level.get.asInstanceOf[SingleLevelSpecification].level)
 
-    val default_l4_ghostLayers = Knowledge.dimensionality match {
-      case 2 => new Index2D(1, 1)
-      case 3 => new Index3D(1, 1, 1)
-    }
-    val l4_ghostLayers = l4_layout.ghostLayers.getOrElse(default_l4_ghostLayers)
-
-    val default_l4_duplicateLayers = Knowledge.dimensionality match {
-      case 2 => new Index2D(1, 1)
-      case 3 => new Index3D(1, 1, 1)
-    }
-    val l4_duplicateLayers = l4_layout.duplicateLayers.getOrElse(new Index3D(1, 1, 1))
-
-    val default_l4_innerPoints = Knowledge.dimensionality match {
-      case 2 => new Index2D(
-        ((Knowledge.domain_fragLengthPerDim(0) * (1 << level.get.asInstanceOf[SingleLevelSpecification].level)) + 1) - 2 * l4_duplicateLayers(0),
-        ((Knowledge.domain_fragLengthPerDim(1) * (1 << level.get.asInstanceOf[SingleLevelSpecification].level)) + 1) - 2 * l4_duplicateLayers(1))
-      case 3 => new Index3D(
-        ((Knowledge.domain_fragLengthPerDim(0) * (1 << level.get.asInstanceOf[SingleLevelSpecification].level)) + 1) - 2 * l4_duplicateLayers(0),
-        ((Knowledge.domain_fragLengthPerDim(1) * (1 << level.get.asInstanceOf[SingleLevelSpecification].level)) + 1) - 2 * l4_duplicateLayers(1),
-        ((Knowledge.domain_fragLengthPerDim(2) * (1 << level.get.asInstanceOf[SingleLevelSpecification].level)) + 1) - 2 * l4_duplicateLayers(2))
-    }
-    val l4_innerPoints = l4_layout.innerPoints.getOrElse(default_l4_innerPoints)
-      
-    val l4_ghostComm = l4_layout.ghostLayersCommunication.getOrElse(false)
-    val l4_dupComm = l4_layout.duplicateLayersCommunication.getOrElse(false)
-
-    val ir_layout = DimArray().map(dim => new FieldLayoutPerDim(
-      if (0 == dim) 0 else 0, // FIXME: add padding
-      l4_ghostLayers(dim),
-      l4_duplicateLayers(dim),
-      l4_innerPoints(dim),
-      l4_duplicateLayers(dim),
-      l4_ghostLayers(dim),
-      0 // FIXME: check if padding at the end will be required
-      )) ++
-      (Knowledge.dimensionality until 3).toArray.map(dim => new FieldLayoutPerDim(0, 0, 0, 1, 0, 0, 0))
-
-    new Field(
+    new knowledge.Field(
       name,
       StateManager.root_.asInstanceOf[Root].getDomainByIdentifier(domain).get.index,
       name.toLowerCase + "Data_" + level.get.asInstanceOf[SingleLevelSpecification].level,
       datatype.progressToIr,
       ir_layout,
-      l4_dupComm,
-      l4_ghostComm,
+      l4_layout.l4_dupComm,
+      l4_layout.l4_ghostComm,
       level.get.asInstanceOf[SingleLevelSpecification].level,
       slots,
-      l4_ghostLayers.progressToIr, // TODO: this should work for now but may be adapted in the future
+      l4_layout.l4_ghostLayers.progressToIr, // TODO: this should work for now but may be adapted in the future
       if (boundary.isDefined) Some(boundary.get.progressToIr) else None)
   }
 }
 
 case class ExternalFieldDeclarationStatement(
     var externalidentifier : String,
-    var internalidentifier : Identifier,
+    var internalidentifier : FieldIdentifier,
     var layout : String) extends ExternalDeclarationStatement {
-  def progressToIr = { throw new NotImplementedException }
+
+  def progressToIr : knowledge.ExternalField = {
+    val l4_layout = StateManager.root_.asInstanceOf[Root].getLayoutByIdentifier(layout).get
+    val ir_layout = l4_layout.progressToIr(internalidentifier.level.asInstanceOf[SingleLevelSpecification].level)
+
+    new knowledge.ExternalField(externalidentifier,
+      internalidentifier.name2,
+      ir_layout,
+      internalidentifier.level.asInstanceOf[SingleLevelSpecification].level,
+      l4_layout.l4_ghostLayers.progressToIr // TODO: this should work for now but may be adapted in the future)
+      )
+  }
 }
 

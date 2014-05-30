@@ -48,6 +48,10 @@ case class LeveledIdentifier(var name2 : String, var level : LevelSpecification)
 }
 
 case class FieldIdentifier(var name2 : String, var level : LevelSpecification) extends Identifier(name2) {
+  def progressNameToIr : ir.StringConstant = {
+    name + "_" + level.asInstanceOf[SingleLevelSpecification].level
+  }
+
   def progressToIr : ir.UnresolvedFieldAccess = {
     ir.UnresolvedFieldAccess("curFragment." /*FIXME*/ , name, level.asInstanceOf[SingleLevelSpecification].level, "0" /*FIXME*/ , ir.DefaultLoopMultiIndex())
   }
