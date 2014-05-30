@@ -6,117 +6,209 @@ import exastencils.datastructures._
 import exastencils.multiGrid._
 
 case class Root() extends Node {
+  var smoother : String = "Jac" // Jac | GS | RBGS
+  var cgs : String = "CG" // CG
+  var numPre : Int = 2 // has to be divisible by 2 for Jac
+  var numPost : Int = 4 // has to be divisible by 2 for Jac
+  var testBC : Boolean = true
+  var testExtFields : Boolean = false
+  var printFieldAtEnd : Boolean = false
 
   def printToL4(filename : String) : Unit = {
     var printer = new java.io.PrintWriter(filename)
 
     // Domains
-    printer.println("Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >")
+    Knowledge.dimensionality match {
+      case 2 => {
+        printer.println("Domain global< [ 0, 0 ] to [ 1, 1 ] >")
+      }
+      case 3 => {
+        printer.println("Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >")
+      }
+    }
     printer.println
 
     // Layouts
-    printer.write("""
-Layout BasicComm {
+    Knowledge.dimensionality match {
+      case 2 => {
+        printer.println("""Layout BasicComm {
+	ghostLayers = [ 1, 1 ] with communication
+	duplicateLayers = [ 1, 1 ] with communication
+	// innerPoints = []
+}""")
+        printer.println("""Layout NoComm {
+	ghostLayers = [ 0, 0 ]
+	duplicateLayers = [ 1, 1 ]
+	// innerPoints = []
+}""")
+      }
+
+      case 3 => {
+        printer.println("""Layout BasicComm {
 	ghostLayers = [ 1, 1, 1 ] with communication
 	duplicateLayers = [ 1, 1, 1 ] with communication
 	// innerPoints = []
-}
-
-Layout NoComm {
+}""")
+        printer.println("""Layout NoComm {
 	ghostLayers = [ 0, 0, 0 ]
 	duplicateLayers = [ 1, 1, 1 ]
 	// innerPoints = []
 }""")
+      }
+    }
     printer.println
 
     // Fields 
-    printer.println("Field Solution< Real, global, BasicComm, 0.0 >@(coarsest to (finest - 1))")
-    printer.println("Field Solution2< Real, global, BasicComm, 0.0 >@(coarsest to (finest - 1))")
-    printer.println("Field Solution< Real, global, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@finest")
-    printer.println("Field Solution2< Real, global, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@finest")
+    if (testBC) {
+      printer.println("Field Solution< Real, global, BasicComm, 0.0 >@(coarsest to (finest - 1))")
+      printer.println("Field Solution2< Real, global, BasicComm, 0.0 >@(coarsest to (finest - 1))")
+      if ("Jac" == smoother) {
+        printer.println("Field Solution< Real, global, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@finest")
+        printer.println("Field Solution2< Real, global, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@finest")
+      }
+    } else {
+      printer.println("Field Solution< Real, global, BasicComm, 0 >@all")
+      if ("Jac" == smoother)
+        printer.println("Field Solution2< Real, global, BasicComm, 0 >@all")
+    }
     printer.println("Field Residual< Real, global, BasicComm, None >@all")
     printer.println("Field RHS< Real, global, NoComm, None >@all")
-    printer.println("Field VecP< Real, global, BasicComm, None >@coarsest")
-    printer.println("Field VecGradP< Real, global, NoComm, None >@coarsest")
+    if ("CG" == cgs) {
+      printer.println("Field VecP< Real, global, BasicComm, None >@coarsest")
+      printer.println("Field VecGradP< Real, global, NoComm, None >@coarsest")
+    }
     printer.println
 
     // External Fields
-    printer.println("external Field extSolution <bla> => Solution @(finest)")
-    printer.println
+    if (testExtFields) {
+      printer.println("external Field extSolution <bla> => Solution @(finest)")
+      printer.println
+    }
 
     // Stencils
-    printer.write("""
-Stencil Lapl@all {
-	[ 0,  0,  0] => 6
-	[ 1,  0,  0] => -1
-	[-1,  0,  0] => -1
-	[ 0,  1,  0] => -1
-	[ 0, -1,  0] => -1
-	[ 0,  0,  1] => -1
-	[ 0,  0, -1] => -1
-}
+    Knowledge.dimensionality match {
+      case 2 => {
+        printer.println("Stencil Lapl@all {")
+        printer.println("\t[ 0,  0] => 4")
+        printer.println("\t[ 1,  0] => -1")
+        printer.println("\t[-1,  0] => -1")
+        printer.println("\t[ 0,  1] => -1")
+        printer.println("\t[ 0, -1] => -1")
+        printer.println("}")
+      }
+      case 3 =>
+        printer.println("Stencil Lapl@all {")
+        printer.println("\t[ 0,  0,  0] => 6")
+        printer.println("\t[ 1,  0,  0] => -1")
+        printer.println("\t[-1,  0,  0] => -1")
+        printer.println("\t[ 0,  1,  0] => -1")
+        printer.println("\t[ 0, -1,  0] => -1")
+        printer.println("\t[ 0,  0,  1] => -1")
+        printer.println("\t[ 0,  0, -1] => -1")
+        printer.println("}")
+    }
 
-Stencil CorrectionStencil@all {
-	[    0,     0,     0] => 0.0625
-	[x % 2,     0,     0] => 0.0625
-	[    0, y % 2,     0] => 0.0625
-	[x % 2, y % 2,     0] => 0.0625
-	[    0,     0, z % 2] => 0.0625
-	[x % 2,     0, z % 2] => 0.0625
-	[    0, y % 2, z % 2] => 0.0625
-	[x % 2, y % 2, z % 2] => 0.0625
-}
+    Knowledge.dimensionality match {
+      case 2 => {
+        printer.println("Stencil CorrectionStencil@all {")
+        printer.println("\t[    0,     0] => 0.25")
+        printer.println("\t[x % 2,     0] => 0.25")
+        printer.println("\t[    0, y % 2] => 0.25")
+        printer.println("\t[x % 2, y % 2] => 0.25")
+        printer.println("}")
+      }
+      case 3 => {
+        printer.println("Stencil CorrectionStencil@all {")
+        printer.println("\t[    0,     0,     0] => 0.0625")
+        printer.println("\t[x % 2,     0,     0] => 0.0625")
+        printer.println("\t[    0, y % 2,     0] => 0.0625")
+        printer.println("\t[x % 2, y % 2,     0] => 0.0625")
+        printer.println("\t[    0,     0, z % 2] => 0.0625")
+        printer.println("\t[x % 2,     0, z % 2] => 0.0625")
+        printer.println("\t[    0, y % 2, z % 2] => 0.0625")
+        printer.println("\t[x % 2, y % 2, z % 2] => 0.0625")
+        printer.println("}")
+      }
+    }
 
-Stencil RestrictionStencil@all {
-	[ 0,  0,  0] => 1.0
+    Knowledge.dimensionality match {
+      case 2 => {
+        printer.println("Stencil RestrictionStencil@all {")
+        printer.println("\t[ 0,  0] => 1.0")
 
-	[ 0,  0, -1] => 0.5
-	[ 0,  0,  1] => 0.5
-	[ 0, -1,  0] => 0.5
-	[ 0,  1,  0] => 0.5
-	[-1,  0,  0] => 0.5
-	[ 1,  0,  0] => 0.5
+        printer.println("\t[ 0, -1] => 0.5")
+        printer.println("\t[ 0,  1] => 0.5")
+        printer.println("\t[-1,  0] => 0.5")
+        printer.println("\t[ 1,  0] => 0.5")
 
-	[ 0, -1,  1] => 0.25
-	[ 0, -1, -1] => 0.25
-	[ 0,  1,  1] => 0.25
-	[ 0,  1, -1] => 0.25
-	[-1,  0,  1] => 0.25
-	[-1,  0, -1] => 0.25
-	[ 1,  0,  1] => 0.25
-	[ 1,  0, -1] => 0.25
-	[-1, -1,  0] => 0.25
-	[-1,  1,  0] => 0.25
-	[ 1, -1,  0] => 0.25
-	[ 1,  1,  0] => 0.25
+        printer.println("\t[-1, -1] => 0.25")
+        printer.println("\t[-1,  1] => 0.25")
+        printer.println("\t[ 1, -1] => 0.25")
+        printer.println("\t[ 1,  1] => 0.25")
+        printer.println("}")
+      }
+      case 3 => {
+        printer.println("Stencil RestrictionStencil@all {")
+        printer.println("\t[ 0,  0,  0] => 1.0")
 
-	[-1, -1,  1] => 0.125
-	[-1, -1, -1] => 0.125
-	[-1,  1,  1] => 0.125
-	[-1,  1, -1] => 0.125
-	[ 1, -1,  1] => 0.125
-	[ 1, -1, -1] => 0.125
-	[ 1,  1,  1] => 0.125
-	[ 1,  1, -1] => 0.125
-}""")
+        printer.println("\t[ 0,  0, -1] => 0.5")
+        printer.println("\t[ 0,  0,  1] => 0.5")
+        printer.println("\t[ 0, -1,  0] => 0.5")
+        printer.println("\t[ 0,  1,  0] => 0.5")
+        printer.println("\t[-1,  0,  0] => 0.5")
+        printer.println("\t[ 1,  0,  0] => 0.5")
+
+        printer.println("\t[ 0, -1,  1] => 0.25")
+        printer.println("\t[ 0, -1, -1] => 0.25")
+        printer.println("\t[ 0,  1,  1] => 0.25")
+        printer.println("\t[ 0,  1, -1] => 0.25")
+        printer.println("\t[-1,  0,  1] => 0.25")
+        printer.println("\t[-1,  0, -1] => 0.25")
+        printer.println("\t[ 1,  0,  1] => 0.25")
+        printer.println("\t[ 1,  0, -1] => 0.25")
+        printer.println("\t[-1, -1,  0] => 0.25")
+        printer.println("\t[-1,  1,  0] => 0.25")
+        printer.println("\t[ 1, -1,  0] => 0.25")
+        printer.println("\t[ 1,  1,  0] => 0.25")
+
+        printer.println("\t[-1, -1,  1] => 0.125")
+        printer.println("\t[-1, -1, -1] => 0.125")
+        printer.println("\t[-1,  1,  1] => 0.125")
+        printer.println("\t[-1,  1, -1] => 0.125")
+        printer.println("\t[ 1, -1,  1] => 0.125")
+        printer.println("\t[ 1, -1, -1] => 0.125")
+        printer.println("\t[ 1,  1,  1] => 0.125")
+        printer.println("\t[ 1,  1, -1] => 0.125")
+        printer.println("}")
+      }
+    }
     printer.println
 
     // Iteration Sets
-    printer.write("""
-Set inner [1, 1, 1] - [1, 1, 1] steps [1, 1, 1]
-Set innerForFieldsWithoutGhostLayers [0, 0, 0] - [0, 0, 0] steps [1, 1, 1] // this concept might need some improvement
-Set domain [0, 0, 0] - [0, 0, 0] steps [1, 1, 1]
-// 2D
-//Set red [1 + (y % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]
-//Set black [2 - (y % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]
-// 3D
-Set red [1 + ((y + z) % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]
-Set black [2 - ((y + z) % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]""")
+    Knowledge.dimensionality match {
+      case 2 => {
+        printer.println("Set inner [1, 1] - [1, 1] steps [1, 1]")
+        printer.println("Set innerForFieldsWithoutGhostLayers [0, 0] - [0, 0] steps [1, 1] // this concept might need some improvement")
+        printer.println("Set domain [0, 0] - [0, 0] steps [1, 1]")
+        if ("RBGS" == smoother) {
+          printer.println("Set red [1 + (y % 2), 1] - [1, 1] steps [2, 1]")
+          printer.println("Set black [2 - (y % 2), 1] - [1, 1] steps [2, 1]")
+        }
+      }
+      case 3 => {
+        printer.println("Set inner [1, 1, 1] - [1, 1, 1] steps [1, 1, 1]")
+        printer.println("Set innerForFieldsWithoutGhostLayers [0, 0, 0] - [0, 0, 0] steps [1, 1, 1] // this concept might need some improvement")
+        printer.println("Set domain [0, 0, 0] - [0, 0, 0] steps [1, 1, 1]")
+        if ("RBGS" == smoother) {
+          printer.println("Set red [1 + ((y + z) % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]")
+          printer.println("Set black [2 - ((y + z) % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]")
+        }
+      }
+    }
     printer.println
 
     // CGS
-    printer.write("""
-def VCycle@coarsest ( ) : Unit {
+    printer.println("""def VCycle@coarsest ( ) : Unit {
 	UpResidual@(current) ( )
 	communicate Residual@(current)
 
@@ -164,25 +256,28 @@ def VCycle@coarsest ( ) : Unit {
     printer.println
 
     // Cycle
-    printer.write("""
-def VCycle@((coarsest + 1) to finest) ( ) : Unit {
-	repeat up 2 {
-		Smoother@(current) ( )
-	}
-	UpResidual@(current) ( )
-	Restrict@(current) ( )
-	set@(coarser) ( 0 )
-	VCycle@(coarser) ( )
-	interpolatecorr@(current) ( )
-	repeat up 2 {
-		Smoother@(current) ( )
-	}
-}""")
+    if ("Jac" == smoother) {
+      numPre /= 2
+      numPost /= 2
+    }
+    printer.println("def VCycle@((coarsest + 1) to finest) ( ) : Unit {")
+    printer.println(s"	repeat up $numPre {")
+    printer.println("		Smoother@(current) ( )")
+    printer.println("	}")
+    printer.println("	UpResidual@(current) ( )")
+    printer.println("	Restrict@(current) ( )")
+    printer.println("	set@(coarser) ( 0 )")
+    printer.println("	VCycle@(coarser) ( )")
+    printer.println("	interpolatecorr@(current) ( )")
+    printer.println(s"	repeat up $numPost {")
+    printer.println("		Smoother@(current) ( )")
+    printer.println("	}")
+    printer.println("}")
     printer.println
 
     // Smoother
-    printer.write("""
-// Jacobi
+    smoother match {
+      case "Jac" => printer.println("""// Jacobi
 def Smoother@((coarsest + 1) to finest) ( ) : Unit {
 	communicate Solution@(current)
 	loop over inner on Solution@(current) {
@@ -192,46 +287,44 @@ def Smoother@((coarsest + 1) to finest) ( ) : Unit {
 	loop over inner on Solution@(current) {
 		Solution@(current) = Solution2@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 0.8 ) * ( RHS@(current) - Lapl@(current) * Solution2@(current) ) )
 	}
-}
-
-// RBGS
-//def Smoother@((coarsest + 1) to finest) ( ) : Unit {
-//	communicate Solution@(current)
-//	loop over red on Solution@(current) {
-//		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 1.0 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
-//	}
-//	communicate Solution@(current)
-//	loop over black on Solution@(current) {
-//		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 1.0 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
-//	}
-//}
-
-// GS
-//def Smoother@((coarsest + 1) to finest) ( ) : Unit {
-//	communicate Solution@(current)
-//	loop over inner on Solution@(current) {
-//		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 1.0 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
-//	}
-//}""")
+}""")
+      case "RBGS" => printer.println("""// RBGS
+def Smoother@((coarsest + 1) to finest) ( ) : Unit {
+	communicate Solution@(current)
+	loop over red on Solution@(current) {
+		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 1.0 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
+	}
+	communicate Solution@(current)
+	loop over black on Solution@(current) {
+		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 1.0 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
+	}
+}""")
+      case "GS" => printer.println("""// GS
+def Smoother@((coarsest + 1) to finest) ( ) : Unit {
+	communicate Solution@(current)
+	loop over inner on Solution@(current) {
+		Solution@(current) = Solution@(current) + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * 1.0 ) * ( RHS@(current) - Lapl@(current) * Solution@(current) ) )
+	}
+}""")
+    }
     printer.println
 
     // Other MG Functions
-    printer.write("""
-def UpResidual@all ( ) : Unit {
+    printer.println("""def UpResidual@all ( ) : Unit {
 	communicate Solution@(current)
 	loop over inner on Residual@(current) {
 		Residual@(current) = RHS@(current) - (Lapl@(current) * Solution@(current))
 	}
-}
+}""")
 
-def Restrict @((coarsest + 1) to finest) ( ) : Unit { 
+    printer.println("""def Restrict @((coarsest + 1) to finest) ( ) : Unit { 
 	communicate Residual@(current)
 	loop over innerForFieldsWithoutGhostLayers on RHS@(coarser) {
 		RHS@(coarser) = ToCoarser ( RestrictionStencil@(current) * Residual@(current) )
     }
-}
+}""")
 
-def interpolatecorr@((coarsest + 1) to finest) ( ) : Unit { 
+    printer.println("""def interpolatecorr@((coarsest + 1) to finest) ( ) : Unit { 
 	communicate Solution@(current)
 	loop over inner on Solution@(current) {
 		Solution@(current) += ToFiner ( CorrectionStencil@(current) * Solution@(coarser) )
@@ -240,14 +333,14 @@ def interpolatecorr@((coarsest + 1) to finest) ( ) : Unit {
     printer.println
 
     // Util Functions
-    printer.write("""
+    printer.println("""
 def set@all (value : Real) : Unit {
 	loop over domain on Solution@(current) {
 		Solution@(current) = value
 	}
-}
+}""")
 
-def L2Residual@(coarsest and finest) ( ) : Real {
+    printer.println("""def L2Residual@(coarsest and finest) ( ) : Real {
 	communicate Residual@(current)
 	var res : Real = 0
 	loop over inner on Residual@(current) with reduction( + : res ) {
@@ -259,8 +352,7 @@ def L2Residual@(coarsest and finest) ( ) : Real {
     printer.println
 
     // Application
-    printer.write("""
-def Application ( ) : Unit {
+    printer.println("""def Application ( ) : Unit {
 	UpResidual@finest ( )
 	var res0 : Real = L2Residual@finest (  )
 	var res : Real = res0
@@ -281,10 +373,11 @@ def Application ( ) : Unit {
 	stopTimer ( timeToSolveWatch, timeToSolve )
 	print ( '"Total time to solve: "', timeToSolve )
 	print ( '"Mean time per vCycle: "', totalTime / 10 )
-	
-	printField('"Solution.dat"', Solution@finest)
-}
-""")
+        """)
+
+    if (printFieldAtEnd)
+      printer.println("printField('\"Solution.dat\"', Solution@finest)")
+    printer.println("}")
     printer.println
 
     printer.close()

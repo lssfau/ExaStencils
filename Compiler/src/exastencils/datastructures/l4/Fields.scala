@@ -41,12 +41,30 @@ case class FieldDeclarationStatement(var name : String,
 
   def progressToIr : Field = {
     val l4_layout = StateManager.root_.asInstanceOf[Root].getLayoutByIdentifier(layout).get
-    val l4_ghostLayers = l4_layout.ghostLayers.getOrElse(new Index3D(1, 1, 1))
+
+    val default_l4_ghostLayers = Knowledge.dimensionality match {
+      case 2 => new Index2D(1, 1)
+      case 3 => new Index3D(1, 1, 1)
+    }
+    val l4_ghostLayers = l4_layout.ghostLayers.getOrElse(default_l4_ghostLayers)
+
+    val default_l4_duplicateLayers = Knowledge.dimensionality match {
+      case 2 => new Index2D(1, 1)
+      case 3 => new Index3D(1, 1, 1)
+    }
     val l4_duplicateLayers = l4_layout.duplicateLayers.getOrElse(new Index3D(1, 1, 1))
-    val l4_innerPoints = l4_layout.innerPoints.getOrElse(new Index3D(
-      ((Knowledge.domain_fragLengthPerDim(0) * (1 << level.get.asInstanceOf[SingleLevelSpecification].level)) + 1) - 2 * l4_duplicateLayers(0),
-      ((Knowledge.domain_fragLengthPerDim(1) * (1 << level.get.asInstanceOf[SingleLevelSpecification].level)) + 1) - 2 * l4_duplicateLayers(1),
-      ((Knowledge.domain_fragLengthPerDim(2) * (1 << level.get.asInstanceOf[SingleLevelSpecification].level)) + 1) - 2 * l4_duplicateLayers(2)))
+
+    val default_l4_innerPoints = Knowledge.dimensionality match {
+      case 2 => new Index2D(
+        ((Knowledge.domain_fragLengthPerDim(0) * (1 << level.get.asInstanceOf[SingleLevelSpecification].level)) + 1) - 2 * l4_duplicateLayers(0),
+        ((Knowledge.domain_fragLengthPerDim(1) * (1 << level.get.asInstanceOf[SingleLevelSpecification].level)) + 1) - 2 * l4_duplicateLayers(1))
+      case 3 => new Index3D(
+        ((Knowledge.domain_fragLengthPerDim(0) * (1 << level.get.asInstanceOf[SingleLevelSpecification].level)) + 1) - 2 * l4_duplicateLayers(0),
+        ((Knowledge.domain_fragLengthPerDim(1) * (1 << level.get.asInstanceOf[SingleLevelSpecification].level)) + 1) - 2 * l4_duplicateLayers(1),
+        ((Knowledge.domain_fragLengthPerDim(2) * (1 << level.get.asInstanceOf[SingleLevelSpecification].level)) + 1) - 2 * l4_duplicateLayers(2))
+    }
+    val l4_innerPoints = l4_layout.innerPoints.getOrElse(default_l4_innerPoints)
+      
     val l4_ghostComm = l4_layout.ghostLayersCommunication.getOrElse(false)
     val l4_dupComm = l4_layout.duplicateLayersCommunication.getOrElse(false)
 
