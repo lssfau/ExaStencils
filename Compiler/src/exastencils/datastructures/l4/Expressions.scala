@@ -31,23 +31,23 @@ case class BooleanConstant(var value : Boolean) extends Expression {
   def progressToIr : ir.BooleanConstant = ir.BooleanConstant(value)
 }
 
-abstract class Identifier(var name : String) extends Expression
+abstract class Identifier() extends Expression { var name : String }
 
-case class UnresolvedIdentifier(var name2 : String, var level : Option[LevelSpecification]) extends Identifier(name2) { // FIXME remove name2/re-use Identifier.name
+case class UnresolvedIdentifier(var name : String, var level : Option[LevelSpecification]) extends Identifier {
   def progressToIr : ir.StringConstant = "ERROR - UnresolvedIdentifier"
 }
 
-case class BasicIdentifier(override var name : String) extends Identifier(name) {
+case class BasicIdentifier(var name : String) extends Identifier {
   def progressToIr : ir.StringConstant = name
 }
 
-case class LeveledIdentifier(override var name : String, var level : LevelSpecification) extends Identifier(name) {
+case class LeveledIdentifier(var name : String, var level : LevelSpecification) extends Identifier {
   def progressToIr : ir.StringConstant = {
     name + "_" + level.asInstanceOf[SingleLevelSpecification].level
   }
 }
 
-case class FieldIdentifier(override var name : String, var level : LevelSpecification) extends Identifier(name) {
+case class FieldIdentifier(var name : String, var level : LevelSpecification) extends Identifier {
   def progressNameToIr : ir.StringConstant = {
     name + "_" + level.asInstanceOf[SingleLevelSpecification].level
   }
@@ -57,7 +57,7 @@ case class FieldIdentifier(override var name : String, var level : LevelSpecific
   }
 }
 
-case class StencilIdentifier(override var name : String, var level : LevelSpecification) extends Identifier(name) {
+case class StencilIdentifier(var name : String, var level : LevelSpecification) extends Identifier {
   def progressToIr : ir.UnresolvedStencilAccess = {
     ir.UnresolvedStencilAccess(name, level.asInstanceOf[SingleLevelSpecification].level)
   }
