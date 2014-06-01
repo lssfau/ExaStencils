@@ -1,31 +1,28 @@
+General:
 - Lib/ Inc Blocks in HW Knowledge
 - reserve C keywords in lexer
-- getLevel@level
-- leveled variables
-- L4 sets -> constraints like "(x + y + z) % 2"
-- L4 constraints to ISL mapping
-- Mark loops from ISL with OMP_PotentiallyParallel
-- Mimic optimizations and criteria for OMP_PotentiallyParallel from LoopOverDomains.expand in ISL trafo
 
 - check uniform usage over 'override' keyword
 - check 'var' usage
 - check ';' usage
 
+L3:
+
+L4:
+- getLevel@level
+- leveled variables
 - add val to l4 => extend DataType and/or VariableDeclarationStatement
 
-- add one distinct communicator per (sub)domain
-
-- Changeable stencils
-- SetStencilCoeff (id, offset, coeff)
 - Check BinOp PowerOf
-- BC will be set as fctCalls/ Expr for now
 - extend Repeat statement with optional ident and optional lower bound
 
-- BoundaryOffsetNode (const 0 or 1, member of FragClass)
-- case class OffsetModificationPerFrag (minOffset : Int, maxOffset : Int, modified : Expression, modifier : Expression)
-OffsetModificationPerFrag (-1, 0, IntConst(1), "curFragment.xOffStart")
-	c-> 1 + curFragment.xOffStart
-OffsetModificationPerFrag (0, 1, IntConst(1025), "curFragment.xOffEnd")
-	c-> 1025 + curFragment.xOffEnd
+- SetStencilCoeff (id, offset, coeff)
+- StencilFields/ CoeffFields
 
-	for (int x = 1 + curFragment.xOffStart; x < 1025 + curFragment.xOffEnd; ++x)
+IR:
+- add one distinct communicator per (sub)domain
+
+ISL:
+- L4 constraints to ISL mapping
+- Mark loops from ISL with OMP_PotentiallyParallel
+- Mimic optimizations and criteria for OMP_PotentiallyParallel from LoopOverDomains.expand in ISL trafo
