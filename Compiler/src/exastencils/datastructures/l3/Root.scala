@@ -16,6 +16,7 @@ case class Root() extends Node {
   var printFieldAtEnd : Boolean = false
   var genSetableStencil : Boolean = false
   var omegaViaGlobals : Boolean = false
+  var initSolWithRand : Boolean = !testBC
 
   def printToL4(filename : String) : Unit = {
     var printer = new java.io.PrintWriter(filename)
@@ -423,6 +424,28 @@ def set@all (value : Real) : Unit {
 }""")
     printer.println
 
+    // initField functions
+    printer.println("def initSolution ( ) : Unit {")
+    if (initSolWithRand) {
+      // FIXME: this loop needs to be marked as non-parallelizable somehow
+      // FIXME: make results more reproducible via sth like 'std::srand((unsigned int)fragments[f]->id)'
+      printer.println("\tloop over inner on Solution@finest {")
+      printer.println("\t\tSolution@finest = native('((double)std::rand()/RAND_MAX)')")
+      printer.println("\t}")
+    } else {
+      printer.println("\tloop over inner on Solution@finest {")
+      printer.println("\t\tSolution@finest = 0")
+      printer.println("\t}")
+    }
+    printer.println("}")
+
+    printer.println("def initRHS ( ) : Unit {")
+    printer.println("\tloop over innerForFieldsWithoutGhostLayers on RHS@finest {")
+    printer.println("\t\tRHS@finest = 0")
+    printer.println("\t}")
+    printer.println("}")
+    printer.println
+
     // Application
     printer.println("def Application ( ) : Unit {")
     if (genSetableStencil) {
@@ -446,6 +469,8 @@ def set@all (value : Real) : Unit {
       }
     }
     printer.println("""
+	initRHS ( )
+	initSolution ( )
 	UpResidual@finest ( )
 	var res0 : Real = L2Residual@finest (  )
 	var res : Real = res0

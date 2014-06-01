@@ -35,23 +35,6 @@ case class InitFields() extends Statement with Expandable {
               0.0) : Statement)) with OMP_PotentiallyParallel with PolyhedronAccessable) with OMP_PotentiallyParallel
     }
 
-    // FIXME: get this info from one of the DSLs
-    // special treatment for the finest solution
-    {
-      val field = fieldCollection.getFieldByIdentifier("Solution", Knowledge.maxLevel).get
-      statements += new LoopOverFragments(field.domain, ListBuffer[Statement](
-        s"std::srand((unsigned int)fragments[f]->id)",
-        new LoopOverDimensions(new IndexRange(
-          new MultiIndex(field.layout(0).idxDupLeftBegin, field.layout(1).idxDupLeftBegin, field.layout(2).idxDupLeftBegin),
-          new MultiIndex(field.layout(0).idxDupRightEnd, field.layout(1).idxDupRightEnd, field.layout(2).idxDupRightEnd)),
-          ListBuffer[Statement](
-            new AssignmentStatement("double val", "(double)std::rand()" / "RAND_MAX")) ++
-            (0 until field.numSlots).to[ListBuffer].map(slot =>
-              new AssignmentStatement(
-                new DirectFieldAccess("curFragment.", field, slot, DefaultLoopMultiIndex()),
-                s"val") : Statement))))
-    }
-
     StatementBlock(statements)
   }
 }
@@ -88,7 +71,7 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
 
           s"initDomain()",
 
-          new InitFields,
+          (if (Knowledge.data_initAllFieldsWithZero) new InitFields else new NullStatement),
 
           new MPI_Barrier,
 
