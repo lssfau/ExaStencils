@@ -6,7 +6,7 @@ import exastencils.datastructures._
 import exastencils.multiGrid._
 
 case class Root() extends Node {
-  var smoother : String = "Jac" // Jac | GS | RBGS // NOTE: RBGS might not fully work until conditional updating is implemented
+  var smoother : String = "Jac" // Jac | GS | RBGS
   var cgs : String = "CG" // CG
   var numPre : Int = 2 // has to be divisible by 2 for Jac
   var numPost : Int = 4 // has to be divisible by 2 for Jac
@@ -17,6 +17,7 @@ case class Root() extends Node {
   var genSetableStencil : Boolean = false
   var omegaViaGlobals : Boolean = false
   var initSolWithRand : Boolean = !testBC
+  var genRBSetsWithConditions : Boolean = true
 
   def printToL4(filename : String) : Unit = {
     var printer = new java.io.PrintWriter(filename)
@@ -79,9 +80,9 @@ case class Root() extends Node {
     // Fields 
     if (testBC) {
       printer.println("Field Solution< Real, global, BasicComm, 0.0 >@(coarsest to (finest - 1))")
-      printer.println("Field Solution2< Real, global, BasicComm, 0.0 >@(coarsest to (finest - 1))")
+      printer.println("Field Solution< Real, global, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@finest")
       if ("Jac" == smoother) {
-        printer.println("Field Solution< Real, global, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@finest")
+        printer.println("Field Solution2< Real, global, BasicComm, 0.0 >@(coarsest to (finest - 1))")
         printer.println("Field Solution2< Real, global, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@finest")
       }
     } else {
@@ -233,8 +234,13 @@ case class Root() extends Node {
         printer.println("Set innerForFieldsWithoutGhostLayers [0, 0] - [0, 0] steps [1, 1] // this concept might need some improvement")
         printer.println("Set domain [0, 0] - [0, 0] steps [1, 1]")
         if ("RBGS" == smoother) {
-          printer.println("Set red [1 + (y % 2), 1] - [1, 1] steps [2, 1]")
-          printer.println("Set black [2 - (y % 2), 1] - [1, 1] steps [2, 1]")
+          if (genRBSetsWithConditions) {
+            printer.println("Set red [1, 1] - [1, 1] steps [1, 1] with 0 == ((x + y) % 2)")
+            printer.println("Set black [1, 1] - [1, 1] steps [1, 1] with 1 == ((x + y) % 2)")
+          } else {
+            printer.println("Set red [1 + (y % 2), 1] - [1, 1] steps [2, 1]")
+            printer.println("Set black [2 - (y % 2), 1] - [1, 1] steps [2, 1]")
+          }
         }
       }
       case 3 => {
@@ -242,8 +248,13 @@ case class Root() extends Node {
         printer.println("Set innerForFieldsWithoutGhostLayers [0, 0, 0] - [0, 0, 0] steps [1, 1, 1] // this concept might need some improvement")
         printer.println("Set domain [0, 0, 0] - [0, 0, 0] steps [1, 1, 1]")
         if ("RBGS" == smoother) {
-          printer.println("Set red [1 + ((y + z) % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]")
-          printer.println("Set black [2 - ((y + z) % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]")
+          if (genRBSetsWithConditions) {
+            printer.println("Set red [1, 1, 1] - [1, 1, 1] steps [1, 1, 1] with 0 == ((x + y + z) % 2)")
+            printer.println("Set black [1, 1, 1] - [1, 1, 1] steps [1, 1, 1] with 1 == ((x + y + z) % 2)")
+          } else {
+            printer.println("Set red [1 + ((y + z) % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]")
+            printer.println("Set black [2 - ((y + z) % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]")
+          }
         }
       }
     }

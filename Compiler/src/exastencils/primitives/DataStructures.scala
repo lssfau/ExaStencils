@@ -43,12 +43,17 @@ case class LoopOverDomain(var iterationSetIdentifier : String, var fieldIdentifi
     SimplifyStrategy.doUntilDoneStandalone(indexRange)
 
     new LoopOverFragments(field.domain, // FIXME: define LoopOverFragments in L4 DSL
-      new LoopOverDimensions(indexRange, body, iterationSet.increment, reduction) with OMP_PotentiallyParallel with PolyhedronAccessable,
+      new LoopOverDimensions(indexRange, body, iterationSet.increment, reduction, iterationSet.condition) with OMP_PotentiallyParallel with PolyhedronAccessable,
       reduction) with OMP_PotentiallyParallel
   }
 }
 
-case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[Statement], var stepSize : MultiIndex = new MultiIndex(Array.fill(3)(1)), var reduction : Option[Reduction] = None) extends Statement {
+case class LoopOverDimensions(var indices : IndexRange,
+    var body : ListBuffer[Statement],
+    var stepSize : MultiIndex = new MultiIndex(Array.fill(3)(1)),
+    var reduction : Option[Reduction] = None,
+    var condition : Option[Expression] = None) extends Statement {
+  def this(indices : IndexRange, body : Statement, stepSize : MultiIndex, reduction : Option[Reduction], condition : Option[Expression]) = this(indices, ListBuffer[Statement](body), stepSize, reduction, condition)
   def this(indices : IndexRange, body : Statement, stepSize : MultiIndex, reduction : Option[Reduction]) = this(indices, ListBuffer[Statement](body), stepSize, reduction)
   def this(indices : IndexRange, body : Statement, stepSize : MultiIndex) = this(indices, ListBuffer[Statement](body), stepSize)
   def this(indices : IndexRange, body : Statement) = this(indices, ListBuffer[Statement](body))
@@ -110,7 +115,11 @@ case class LoopOverDimensions(var indices : IndexRange, var body : ListBuffer[St
     var parallelizable = Knowledge.omp_parallelizeLoopOverDimensions && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
     parallelizable = parallelizable && parallelizationIsReasonable
 
-    var wrappedBody : ListBuffer[Statement] = body // TODO: clone?
+    var wrappedBody : ListBuffer[Statement] = (
+      if (condition.isDefined)
+        ListBuffer[Statement](new ConditionStatement(condition.get, body))
+      else
+        body)
 
     for (d <- 0 until Knowledge.dimensionality - 1) {
       wrappedBody = ListBuffer[Statement](new ForLoopStatement(

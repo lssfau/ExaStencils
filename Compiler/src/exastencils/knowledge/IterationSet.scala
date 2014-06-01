@@ -9,7 +9,8 @@ import exastencils.datastructures.ir._
 case class IterationSet(var identifier : String,
     var begin : MultiIndex,
     var end : MultiIndex,
-    var increment : MultiIndex) extends Node {}
+    var increment : MultiIndex,
+    var condition : Option[Expression]) extends Node {}
 
 case class IterationSetCollection(var sets : ListBuffer[IterationSet] = ListBuffer()) extends Node {
   def getIterationSetByIdentifier(identifier : String) : Option[IterationSet] = {
