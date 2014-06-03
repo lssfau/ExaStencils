@@ -1,7 +1,8 @@
 package exastencils.polyhedron
 
 import scala.collection.mutable.ArrayStack
-import scala.collection.mutable.HashMap
+import scala.collection.mutable.HashSet
+import scala.collection.mutable.Set
 import scala.collection.mutable.StringBuilder
 import scala.language.implicitConversions
 
@@ -13,17 +14,23 @@ import exastencils.datastructures.ir.AdditionExpression
 import exastencils.datastructures.ir.ArrayAccess
 import exastencils.datastructures.ir.AssignmentStatement
 import exastencils.datastructures.ir.BooleanConstant
-import exastencils.datastructures.ir.Datatype
 import exastencils.datastructures.ir.DirectFieldAccess
 import exastencils.datastructures.ir.DivisionExpression
+import exastencils.datastructures.ir.EqEqExpression
 import exastencils.datastructures.ir.Expression
 import exastencils.datastructures.ir.ExpressionStatement
 import exastencils.datastructures.ir.FieldAccess
 import exastencils.datastructures.ir.FloatConstant
+import exastencils.datastructures.ir.GreaterEqualExpression
+import exastencils.datastructures.ir.GreaterExpression
 import exastencils.datastructures.ir.IntegerConstant
+import exastencils.datastructures.ir.LowerEqualExpression
+import exastencils.datastructures.ir.LowerExpression
 import exastencils.datastructures.ir.ModuloExpression
 import exastencils.datastructures.ir.MultiIndex
 import exastencils.datastructures.ir.MultiplicationExpression
+import exastencils.datastructures.ir.NeqNeqExpression
+import exastencils.datastructures.ir.OffsetIndex
 import exastencils.datastructures.ir.PowerExpression
 import exastencils.datastructures.ir.Statement
 import exastencils.datastructures.ir.StatementBlock
@@ -32,23 +39,19 @@ import exastencils.datastructures.ir.SubtractionExpression
 import exastencils.datastructures.ir.UnaryExpression
 import exastencils.datastructures.ir.VariableAccess
 import exastencils.knowledge.Field
-import exastencils.knowledge.IndexRange
 import exastencils.knowledge.Knowledge
 import exastencils.knowledge.dimToString
 import exastencils.primitives.LoopOverDimensions
-import exastencils.util.EvaluationException
-import exastencils.util.SimplifyExpression
-import isl.Conversions.convertIntToVal
 
 object Extractor extends Collector {
   import scala.language.implicitConversions
 
   /** implicit conversion for use in this class */
-  private final implicit def convertLongToVal(l : Long) : isl.Val = new isl.Val(l.toString())
+  //  private final implicit def convertLongToVal(l : Long) : isl.Val = new isl.Val(l.toString())
 
   /** constants for 1 and -1, which are needed more often later */
-  private final val POS_ONE : isl.Val = convertIntToVal(1)
-  private final val NEG_ONE : isl.Val = convertIntToVal(-1)
+  //  private final val POS_ONE : isl.Val = convertIntToVal(1)
+  //  private final val NEG_ONE : isl.Val = convertIntToVal(-1)
 
   /** constants for read/write annotations */
   private object Access extends Enumeration {
@@ -69,17 +72,93 @@ object Extractor extends Collector {
   private var skip : Boolean = false
 
   /** integer used to create an identifier for new statements and to determine the ordering of the statements inside the model */
-  private var id : Int = 0
+  //  private var id : Int = 0
 
   /** all found static control parts */
   val scops = new ArrayStack[SCoP]
   val trash = new ArrayStack[(Node, String)] // TODO: debug; remove
 
   /** template for current iteration domain */
-  private var template : isl.BasicSet = null
+  //  private var template : isl.BasicSet = null
+
+  private object curSCoP {
+
+    object curStmt {
+
+      private var id_ : Int = -1
+      private var label_ : String = null
+
+      def exists() : Boolean = { label_ != null }
+      def label() : String = { label_ }
+      def id() : Int = { id_ }
+      def leave() : Unit = { label_ = null }
+      def next() : this.type = {
+        id_ += 1
+        label_ = "S" + id_
+        return this
+      }
+    }
+
+    private var scop_ : SCoP = null
+    private var loopVars_ : String = null
+    private var setTemplate_ : String = null
+    private var mapTemplate_ : String = null
+
+    private final val formatterResult : java.lang.StringBuilder = new java.lang.StringBuilder()
+    private final val formatter = new java.util.Formatter(formatterResult)
+
+    def create(root : Node, loopVars : String, setTempl : String, mapTempl : String) : Unit = {
+      this.scop_ = new SCoP(root)
+      this.loopVars_ = loopVars
+      this.setTemplate_ = setTempl
+      this.mapTemplate_ = mapTempl
+    }
+
+    def exists() : Boolean = {
+      return scop_ != null
+    }
+
+    def get() : SCoP = {
+      return scop_
+    }
+
+    def loopVars() : String = {
+      return loopVars_
+    }
+
+    def buildIslSet(tupleName : String) : isl.Set = {
+      formatterResult.delete(0, Int.MaxValue)
+      formatter.format(setTemplate_, tupleName)
+      return new isl.Set(formatterResult.toString())
+    }
+
+    def buildIslMap(inTupleName : String, outTupleName : String, out : String) : isl.Map = {
+      formatterResult.delete(0, Int.MaxValue)
+      formatter.format(mapTemplate_, inTupleName, outTupleName, out)
+      return new isl.Map(formatterResult.toString())
+    }
+
+    def finish() : SCoP = {
+      val res = scop_
+      discard()
+      return res
+    }
+
+    def discard(msg : String = null) : Unit = {
+      if (msg != null) {
+        Logger.debug("[poly ex] SCoP discarded:  " + msg)
+        trash.push((if (scop_ != null) scop_.root else null, msg))
+      }
+      scop_ = null
+      loopVars_ = null
+      setTemplate_ = null
+      mapTemplate_ = null
+      curStmt.leave()
+    }
+  }
 
   /** iteration domain of current statement (when below a statement node) */
-  private var curStmtDomain : isl.BasicSet = null
+  //  private var curStmtDomain : isl.BasicSet = null
 
   /////////////////// Collector methods \\\\\\\\\\\\\\\\\\\
 
@@ -103,27 +182,56 @@ object Extractor extends Collector {
     if (skip)
       return
 
-    // create new SCoP or replace old
-    if (node.isInstanceOf[LoopOverDimensions with PolyhedronAccessable])
-      enterLoop(node.asInstanceOf[LoopOverDimensions with PolyhedronAccessable])
+    if (!curSCoP.exists())
+      node match {
+        case loop : LoopOverDimensions with PolyhedronAccessable =>
+          loop.indices.annotate(SKIP_ANNOT)
+          loop.stepSize.annotate(SKIP_ANNOT)
+          enterLoop(loop)
 
-    else if (template != null) // we have a SCoP now
+        case _ =>
+      }
+
+    else
       node match {
 
         // process
-        case a : AssignmentStatement                        => enterAssign(a)
-        case StringConstant(varName)                        => enterScalarAccess(varName)
-        case VariableAccess(varName, _)                     => enterScalarAccess(varName)
-        case ArrayAccess(StringConstant(varName), index)    => enterArrayAccess(varName, index)
-        case ArrayAccess(VariableAccess(varName, _), index) => enterArrayAccess(varName, index)
-        case DirectFieldAccess(owner, field, slot, index)   => enterFieldAccess(owner, field, slot, index)
-        case FieldAccess(owner, field, slot, index)         => enterFieldAccess(owner, field, slot, index + field.referenceOffset)
+        case a : AssignmentStatement =>
+          a.op.annotate(SKIP_ANNOT)
+          enterAssign(a)
+
+        case StringConstant(varName) =>
+          enterScalarAccess(varName)
+
+        case VariableAccess(varName, _) =>
+          enterScalarAccess(varName)
+
+        case ArrayAccess(array @ StringConstant(varName), index) =>
+          array.annotate(SKIP_ANNOT)
+          index.annotate(SKIP_ANNOT)
+          enterArrayAccess(varName, index)
+
+        case ArrayAccess(array @ VariableAccess(varName, _), index) =>
+          array.annotate(SKIP_ANNOT)
+          index.annotate(SKIP_ANNOT)
+          enterArrayAccess(varName, index)
+
+        case DirectFieldAccess(owner, field, slot, index) =>
+          owner.annotate(SKIP_ANNOT)
+          field.annotate(SKIP_ANNOT)
+          slot.annotate(SKIP_ANNOT)
+          index.annotate(SKIP_ANNOT)
+          enterFieldAccess(owner, field, slot, index)
+
+        case FieldAccess(owner, field, slot, index) =>
+          owner.annotate(SKIP_ANNOT)
+          field.annotate(SKIP_ANNOT)
+          slot.annotate(SKIP_ANNOT)
+          index.annotate(SKIP_ANNOT)
+          enterFieldAccess(owner, field, slot, index, field.referenceOffset)
 
         // ignore
-        case _ : Datatype // and all of its subclasses
-          | _ : StatementBlock
-          | _ : MultiIndex
-          | _ : IndexRange
+        case _ : StatementBlock
           | _ : IntegerConstant
           | _ : FloatConstant
           | _ : BooleanConstant
@@ -136,8 +244,8 @@ object Extractor extends Collector {
           | _ : PowerExpression => // nothing to do for all of them...
 
         // deny
-        case e : ExpressionStatement => discardCurrentSCoP("ExprStmt: " + e.cpp)
-        case x : Any                 => discardCurrentSCoP("cannot deal with " + x.getClass())
+        case e : ExpressionStatement => curSCoP.discard("cannot deal with ExprStmt: " + e.cpp)
+        case x : Any                 => curSCoP.discard("cannot deal with " + x.getClass())
       }
   }
 
@@ -152,170 +260,353 @@ object Extractor extends Collector {
       skip = false
 
     node match {
-      case l : LoopOverDimensions                   => leaveLoop(l)
-      case a : AssignmentStatement                  => leaveAssign(a)
-      case _ : StringConstant                       => leaveScalarAccess()
-      case _ : VariableAccess                       => leaveScalarAccess()
-      case _ : ArrayAccess                          => leaveArrayAccess()
-      case DirectFieldAccess(owner, field, slot, _) => leaveFieldAccess(owner, field, slot)
-      case FieldAccess(owner, field, slot, _)       => leaveFieldAccess(owner, field, slot)
-      case _                                        =>
+      case l : LoopOverDimensions  => leaveLoop(l)
+      case _ : AssignmentStatement => leaveAssign()
+      case _ : StringConstant      => leaveScalarAccess()
+      case _ : VariableAccess      => leaveScalarAccess()
+      case _ : ArrayAccess         => leaveArrayAccess()
+      case _ : DirectFieldAccess   => leaveFieldAccess()
+      case _ : FieldAccess         => leaveFieldAccess()
+      case _                       =>
     }
   }
 
   override def reset() : Unit = {
-    template = null
+    curSCoP.discard()
     isRead = false
     isWrite = false
+    skip = false
     scops.clear()
     trash.clear()
   }
 
   /////////////////// auxiliary methodes \\\\\\\\\\\\\\\\\\\
 
-  private def nextId() : Int = {
-    id += 1
-    return id
+  private def extractConstraints(expr : Expression, constraints : StringBuilder, vars : Set[String] = null) : Boolean = {
+
+    var bool : Boolean = false
+
+    expr match {
+
+      case StringConstant(name) =>
+        val clean : String = replaceSpecial(new StringBuilder(name)).toString()
+        if (vars != null)
+          vars.add(clean)
+        constraints.append(clean)
+
+      case VariableAccess(name, _) =>
+        val clean : String = replaceSpecial(new StringBuilder(name)).toString()
+        if (vars != null)
+          vars.add(clean)
+        constraints.append(clean)
+
+      case IntegerConstant(i) =>
+        constraints.append(java.lang.Long.toString(i))
+
+      case OffsetIndex(_, _, ind, off) =>
+        constraints.append('(')
+        bool |= extractConstraints(ind, constraints, vars)
+        constraints.append('+')
+        bool |= extractConstraints(off, constraints, vars)
+        constraints.append(')')
+
+      case AdditionExpression(l, r) =>
+        constraints.append('(')
+        bool |= extractConstraints(l, constraints, vars)
+        constraints.append('+')
+        bool |= extractConstraints(r, constraints, vars)
+        constraints.append(')')
+
+      case SubtractionExpression(l, r) =>
+        constraints.append('(')
+        bool |= extractConstraints(l, constraints, vars)
+        constraints.append('-')
+        bool |= extractConstraints(r, constraints, vars)
+        constraints.append(')')
+
+      case MultiplicationExpression(l, r) =>
+        constraints.append('(')
+        bool |= extractConstraints(l, constraints, vars)
+        constraints.append('*')
+        bool |= extractConstraints(r, constraints, vars)
+        constraints.append(')')
+
+      case DivisionExpression(l, r) =>
+        constraints.append("floord(")
+        bool |= extractConstraints(l, constraints, vars)
+        constraints.append(',')
+        bool |= extractConstraints(r, constraints, vars)
+        constraints.append(')')
+
+      case ModuloExpression(l, r) =>
+        constraints.append('(')
+        bool |= extractConstraints(l, constraints, vars)
+        constraints.append("% ") // blank after % is needed to prevent creating unwanted labels in format string
+        bool |= extractConstraints(r, constraints, vars)
+        constraints.append(')')
+
+      case LowerExpression(l, r) =>
+        extractConstraints(l, constraints, vars)
+        constraints.append('<')
+        extractConstraints(r, constraints, vars)
+        bool = true
+
+      case LowerEqualExpression(l, r) =>
+        extractConstraints(l, constraints, vars)
+        constraints.append("<=")
+        extractConstraints(r, constraints, vars)
+        bool = true
+
+      case GreaterEqualExpression(l, r) =>
+        extractConstraints(l, constraints, vars)
+        constraints.append(">=")
+        extractConstraints(r, constraints, vars)
+        bool = true
+
+      case GreaterExpression(l, r) =>
+        extractConstraints(l, constraints, vars)
+        constraints.append('>')
+        extractConstraints(r, constraints, vars)
+        bool = true
+
+      case EqEqExpression(l, r) =>
+        extractConstraints(l, constraints, vars)
+        constraints.append('=')
+        extractConstraints(r, constraints, vars)
+        bool = true
+
+      case NeqNeqExpression(l, r) =>
+        extractConstraints(l, constraints, vars)
+        constraints.append("!=")
+        extractConstraints(r, constraints, vars)
+        bool = true
+
+      case _ => throw new ExtractionException("unknown expression: " + expr.getClass() + " - " + expr.cpp())
+    }
+
+    return bool
   }
 
-  /** discard current SCoP (top of stack scops) and print a warning massage */
-  private def discardCurrentSCoP(msg : String) : Unit = {
+  case class ExtractionException(msg : String) extends Exception(msg)
 
-    if (msg != null)
-      Logger.debug("[poly ex] SCoP discarded:  " + msg)
-    if (template != null) {
-      trash.push((scops.pop().root, msg))
-      template = null
+  private def replaceSpecial(str : String) : String = {
+    return replaceSpecial(new StringBuilder(str)).toString()
+  }
+
+  private def replaceSpecial(str : StringBuilder) : StringBuilder = {
+
+    var i : Int = 0
+    while (i < str.length) {
+      str(i) match {
+        case '.' | '[' | ']' | '(' | ')' | '-' | '>' => str(i) = '_'
+        case _                                       =>
+      }
+      i += 1
     }
+
+    return str
   }
 
   /////////////////// methods for node processing \\\\\\\\\\\\\\\\\\\
 
   private def enterLoop(loop : LoopOverDimensions) : Unit = {
 
-    if (template != null) {
-      discardCurrentSCoP("nested LoopOverDimensions?! possibly a bug? ignoring outermost")
-      return
-    }
-
-    if (loop.reduction != None) { // TODO: support reductions
-      discardCurrentSCoP("reductions not supported yet")
+    if (loop.reduction.isDefined) { // TODO: support reductions
+      curSCoP.discard("reductions not supported yet")
       return
     }
 
     val dims : Int = Knowledge.dimensionality
-    var domain : isl.BasicSet = isl.BasicSet.universe(isl.Space.setAlloc(0, dims))
-    val nameToPos = new HashMap[String, (isl.DimType, Int)]()
-    var d : Int = 0
-    do {
-      nameToPos(dimToString(d)) = (isl.DimType.Set, dims - d - 1)
-      d += 1
-    } while (d < dims)
 
     val begin : MultiIndex = loop.indices.begin
     val end : MultiIndex = loop.indices.end
 
-    d = 0
-    do {
-      val stride : Expression = loop.stepSize(d) // TODO: remove restriction
-      if (!stride.isInstanceOf[IntegerConstant] || (stride.asInstanceOf[IntegerConstant].value != 1)) {
-        discardCurrentSCoP("LoopOverDimensions stepSize/stride must be one (for now...), ignoring loop")
-        return
-      }
+    val params : Set[String] = new HashSet[String]()
+    val loopVars : ArrayStack[String] = new ArrayStack[String]()
+    val constrs : StringBuilder = new StringBuilder()
 
-      val (curBegin, curEnd) : (HashMap[String, Long], HashMap[String, Long]) =
-        try {
-          (SimplifyExpression.evalIntegralAffine(begin(d)), SimplifyExpression.evalIntegralAffine(end(d)))
-        } catch {
-          case EvaluationException(msg) =>
-            discardCurrentSCoP("evaluating loop bounds: " + msg)
-            return
-        }
-
-      // count nr of new params and set stub in name mapping
-      var nrParam : Int = 0
-      for (name : String <- curBegin.keys if (name != SimplifyExpression.constName && !nameToPos.contains(name))) {
-        nameToPos(name) = null
-        nrParam += 1
-      }
-      for (name : String <- curEnd.keys if (name != SimplifyExpression.constName && !nameToPos.contains(name))) {
-        nameToPos(name) = null
-        nrParam += 1
-      }
-
-      // replace stub in mapping and set name in domain
-      var i : Int = domain.dim(isl.DimType.Param)
-      domain = domain.addDims(isl.DimType.Param, nrParam)
-      for ((name : String, pos) <- nameToPos if (pos == null)) {
-        nameToPos(name) = (isl.DimType.Param, i)
-        domain = domain.setDimName(isl.DimType.Param, i, name)
+    var bool : Boolean = false
+    try {
+      var i : Int = 0
+      do {
+        bool |= extractConstraints(begin(i), constrs, params)
+        constrs.append("<=")
+        constrs.append(dimToString(i))
+        constrs.append('<')
+        bool |= extractConstraints(end(i), constrs, params)
+        constrs.append(',')
+        loopVars.push(dimToString(i))
         i += 1
-      }
+      } while (i < dims)
+    } catch {
+      case ExtractionException(msg) =>
+        curSCoP.discard(msg)
+        return
+    }
+    if (bool) {
+      curSCoP.discard("loop bounds contain (in)equalities")
+      return
+    }
 
-      val (dimType : isl.DimType, pos : Int) = nameToPos(dimToString(d))
-      var constraint : isl.Constraint = null
-      var const : Option[Long] = null
+    if (loop.condition.isDefined)
+      extractConstraints(loop.condition.get, constrs)
+    else
+      constrs.deleteCharAt(constrs.length - 1)
 
-      // begin <= i  -->  (1)*i + (-begin) >= 0
-      constraint = isl.Constraint.inequalityAlloc(domain.getLocalSpace())
-      constraint = constraint.setCoefficientVal(dimType, pos, POS_ONE)
-      const = curBegin.remove(SimplifyExpression.constName)
-      if (const.isDefined)
-        constraint = constraint.setConstantVal(-const.get)
-      for ((name : String, value : Long) <- curBegin) {
-        var (beginDimType : isl.DimType, beginPos : Int) = nameToPos(name)
-        constraint = constraint.setCoefficientVal(beginDimType, beginPos, -value)
-      }
-      domain = domain.addConstraint(constraint)
+    // remove variables from params set
+    for (v <- loopVars)
+      params.remove(v)
 
-      // i < end  -->  (-1)*i + (end-1) >= 0
-      constraint = isl.Constraint.inequalityAlloc(domain.getLocalSpace())
-      constraint = constraint.setCoefficientVal(dimType, pos, NEG_ONE)
-      const = curEnd.remove(SimplifyExpression.constName)
-      constraint = constraint.setConstantVal(const.getOrElse(0L) - 1)
-      for ((name : String, value : Long) <- curEnd) {
-        var (beginDimType : isl.DimType, beginPos : Int) = nameToPos(name)
-        constraint = constraint.setCoefficientVal(beginDimType, beginPos, value)
-      }
-      domain = domain.addConstraint(constraint)
+    val templateBuilder : StringBuilder = new StringBuilder()
+    templateBuilder.append('[')
+    for (p <- params)
+      templateBuilder.append(p).append(',')
+    if (!params.isEmpty)
+      templateBuilder.deleteCharAt(templateBuilder.length - 1)
+    templateBuilder.append("]->{%s[")
+    for (v <- loopVars)
+      templateBuilder.append(v).append(',')
+    templateBuilder.setCharAt(templateBuilder.length - 1, ']')
 
-      d += 1
-    } while (d < dims)
+    // finish for set
+    val tmp : Int = templateBuilder.length
+    templateBuilder.append(':')
+    templateBuilder.append(constrs)
+    templateBuilder.append('}')
+    val setTemplate : String = templateBuilder.toString()
 
-    loop.indices.annotate(SKIP_ANNOT)
-    loop.stepSize.annotate(SKIP_ANNOT)
+    // remove last and finish for map
+    templateBuilder.delete(tmp, templateBuilder.length)
+    templateBuilder.append("->%s[%s]}")
+    val mapTemplate : String = templateBuilder.toString()
 
-    scops.push(new SCoP(loop, nameToPos, domain.getSpace().params()))
-    template = domain
+    curSCoP.create(loop, loopVars.mkString(","), setTemplate, mapTemplate)
   }
 
+  //  private def enterLoop(loop : LoopOverDimensions) : Unit = {
+  //
+  //    if (template != null)
+  //      discardCurrentSCoP("nested LoopOverDimensions?! possibly a bug? ignoring outermost")
+  //
+  //    if (loop.reduction.isDefined) { // TODO: support reductions
+  //      discardCurrentSCoP("reductions not supported yet")
+  //      return
+  //    }
+  //
+  //    if (loop.condition.isDefined) { // TODO: implement
+  //      discardCurrentSCoP("conditions in loops not supported yet")
+  //      return
+  //    }
+  //
+  //    val dims : Int = Knowledge.dimensionality
+  //    var domain : isl.BasicSet = isl.BasicSet.universe(isl.Space.setAlloc(0, dims))
+  //    val nameToPos = new HashMap[String, (isl.DimType, Int)]()
+  //    var d : Int = 0
+  //    do {
+  //      nameToPos(dimToString(d)) = (isl.DimType.Set, dims - d - 1)
+  //      d += 1
+  //    } while (d < dims)
+  //
+  //    val begin : MultiIndex = loop.indices.begin
+  //    val end : MultiIndex = loop.indices.end
+  //
+  //    d = 0
+  //    do {
+  //      val stride : Expression = loop.stepSize(d) // TODO: remove restriction
+  //      if (!stride.isInstanceOf[IntegerConstant] || (stride.asInstanceOf[IntegerConstant].value != 1)) {
+  //        discardCurrentSCoP("LoopOverDimensions stepSize/stride must be one (for now...), ignoring loop")
+  //        return
+  //      }
+  //
+  //      val (curBegin, curEnd) : (HashMap[String, Long], HashMap[String, Long]) =
+  //        try {
+  //          (SimplifyExpression.evalIntegralAffine(begin(d)), SimplifyExpression.evalIntegralAffine(end(d)))
+  //        } catch {
+  //          case EvaluationException(msg) =>
+  //            discardCurrentSCoP("evaluating loop bounds: " + msg)
+  //            return
+  //        }
+  //
+  //      // count nr of new params and set stub in name mapping
+  //      var nrParam : Int = 0
+  //      for (name : String <- curBegin.keys if (name != SimplifyExpression.constName && !nameToPos.contains(name))) {
+  //        nameToPos(name) = null
+  //        nrParam += 1
+  //      }
+  //      for (name : String <- curEnd.keys if (name != SimplifyExpression.constName && !nameToPos.contains(name))) {
+  //        nameToPos(name) = null
+  //        nrParam += 1
+  //      }
+  //
+  //      // replace stub in mapping and set name in domain
+  //      var i : Int = domain.dim(isl.DimType.Param)
+  //      domain = domain.addDims(isl.DimType.Param, nrParam)
+  //      for ((name : String, pos) <- nameToPos if (pos == null)) {
+  //        nameToPos(name) = (isl.DimType.Param, i)
+  //        domain = domain.setDimName(isl.DimType.Param, i, name)
+  //        i += 1
+  //      }
+  //
+  //      val (dimType : isl.DimType, pos : Int) = nameToPos(dimToString(d))
+  //      var constraint : isl.Constraint = null
+  //      var const : Option[Long] = null
+  //
+  //      // begin <= i  -->  (1)*i + (-begin) >= 0
+  //      constraint = isl.Constraint.inequalityAlloc(domain.getLocalSpace())
+  //      constraint = constraint.setCoefficientVal(dimType, pos, POS_ONE)
+  //      const = curBegin.remove(SimplifyExpression.constName)
+  //      if (const.isDefined)
+  //        constraint = constraint.setConstantVal(-const.get)
+  //      for ((name : String, value : Long) <- curBegin) {
+  //        var (beginDimType : isl.DimType, beginPos : Int) = nameToPos(name)
+  //        constraint = constraint.setCoefficientVal(beginDimType, beginPos, -value)
+  //      }
+  //      domain = domain.addConstraint(constraint)
+  //
+  //      // i < end  -->  (-1)*i + (end-1) >= 0
+  //      constraint = isl.Constraint.inequalityAlloc(domain.getLocalSpace())
+  //      constraint = constraint.setCoefficientVal(dimType, pos, NEG_ONE)
+  //      const = curEnd.remove(SimplifyExpression.constName)
+  //      constraint = constraint.setConstantVal(const.getOrElse(0L) - 1)
+  //      for ((name : String, value : Long) <- curEnd) {
+  //        var (beginDimType : isl.DimType, beginPos : Int) = nameToPos(name)
+  //        constraint = constraint.setCoefficientVal(beginDimType, beginPos, value)
+  //      }
+  //      domain = domain.addConstraint(constraint)
+  //
+  //      d += 1
+  //    } while (d < dims)
+  //
+  //    loop.indices.annotate(SKIP_ANNOT)
+  //    loop.stepSize.annotate(SKIP_ANNOT)
+  //
+  //    scops.push(new SCoP(loop, nameToPos, domain.getSpace().params()))
+  //    template = domain
+  //  }
+
   private def leaveLoop(loop : LoopOverDimensions) : Unit = {
-    if (template != null)
-      loop.annotate(PolyOpt.SCOP_ANNOT, scops.top)
-    template = null
+    val scop = curSCoP.finish()
+    if (scop != null) {
+      loop.annotate(PolyOpt.SCOP_ANNOT, scop)
+      scops.push(scop)
+    }
   }
 
   private def enterStmt(stmt : Statement) : Unit = {
 
-    val scop = scops.top
+    val scop : SCoP = curSCoP.get()
 
-    val id : Int = nextId()
-    val strId : String = "S" + id
-    scop.stmts.put(strId, stmt)
+    val label : String = curSCoP.curStmt.next().label()
+    scop.stmts.put(label, stmt)
 
-    curStmtDomain = template.setTupleName(strId)
-
-    scop.domain = scop.domain.addSet(curStmtDomain)
-
-    var schedule : isl.BasicMap = isl.BasicMap.identity(curStmtDomain.getSpace().mapFromSet())
-    schedule = schedule.add(isl.DimType.Out, 1) // this also drops all names from out (which is required here)
-    schedule = schedule.fixVal(isl.DimType.Out, schedule.dim(isl.DimType.Out) - 1, id)
-
-    scop.schedule = scop.schedule.addMap(schedule)
+    val domain = curSCoP.buildIslSet(label)
+    scop.domain = if (scop.domain == null) domain else scop.domain.addSet(domain)
+    val schedule = curSCoP.buildIslMap(label, "", curSCoP.loopVars() + ',' + curSCoP.curStmt.id())
+    scop.schedule = if (scop.schedule == null) schedule else scop.schedule.addMap(schedule)
   }
 
   private def leaveStmt() : Unit = {
-    curStmtDomain = null
+    curSCoP.curStmt.leave()
   }
 
   private def enterAssign(assign : AssignmentStatement) : Unit = {
@@ -323,7 +614,7 @@ object Extractor extends Collector {
     enterStmt(assign) // as an assignment is also a statement
 
     if (isRead || isWrite) {
-      discardCurrentSCoP("nested assignments are not supported (yet...); skipping scop")
+      curSCoP.discard("nested assignments are not supported (yet...?); skipping scop")
       return
     }
 
@@ -336,16 +627,14 @@ object Extractor extends Collector {
         assign.dest.annotate(Access.ANNOT, Some(Access.UPDATE))
 
       case _ =>
-        discardCurrentSCoP("unrecognized assignment operator: " + assign.op)
+        curSCoP.discard("unrecognized assignment operator: " + assign.op)
         return
     }
 
     assign.src.annotate(Access.ANNOT, Some(Access.READ))
-    assign.op.annotate(SKIP_ANNOT)
   }
 
-  private def leaveAssign(assign : AssignmentStatement) : Unit = {
-
+  private def leaveAssign() : Unit = {
     leaveStmt() // as an assignment is also a statement
   }
 
@@ -356,24 +645,26 @@ object Extractor extends Collector {
     while (i > 0) {
       i -= 1
       varName.charAt(i) match {
-        case '=' | '+' | '-' | '*' | '/' =>
-          discardCurrentSCoP("expression in StringConstant found: " + varName)
+        case '=' | '+' | '-' | '*' | '/' | '[' | '(' =>
+          curSCoP.discard("expression in StringConstant found: " + varName)
           return
         case _ =>
       }
     }
 
-    val scop : SCoP = scops.top
+    if (!curSCoP.curStmt.exists() || (!isRead && !isWrite)) {
+      curSCoP.discard("misplaced access expression?")
+      return
+    }
 
-    val paramDim : Int = curStmtDomain.dim(isl.DimType.Param)
-    val space : isl.Space = curStmtDomain.getSpace().fromDomain()
-    var access : isl.BasicMap = isl.BasicMap.universe(space)
-    access = access.setTupleName(isl.DimType.Out, varName)
+    val scop : SCoP = curSCoP.get()
+
+    var access : isl.Map = curSCoP.buildIslMap(curSCoP.curStmt.label(), varName, "")
 
     if (isRead)
-      scop.reads = scop.reads.addMap(access)
+      scop.reads = if (scop.reads == null) access else scop.reads.addMap(access)
     if (isWrite)
-      scop.writes = scop.writes.addMap(access)
+      scop.writes = if (scop.writes == null) access else scop.writes.addMap(access)
   }
 
   private def leaveScalarAccess() : Unit = {
@@ -382,83 +673,55 @@ object Extractor extends Collector {
 
   private def enterArrayAccess(name : String, index : Expression) : Unit = {
 
-    val mIndex : MultiIndex = index match {
-      case mInd : MultiIndex => mInd
-      case _                 => null
+    if (!curSCoP.curStmt.exists() || (!isRead && !isWrite)) {
+      curSCoP.discard("misplaced access expression?")
+      return
     }
 
-    val scop : SCoP = scops.top
+    val scop : SCoP = curSCoP.get()
 
-    val fieldDim : Int = if (mIndex != null) Knowledge.dimensionality else 1
-    val space : isl.Space = curStmtDomain.getSpace().fromDomain().addDims(isl.DimType.Out, fieldDim)
-    var access : isl.BasicMap = isl.BasicMap.universe(space)
-    access = access.setTupleName(isl.DimType.Out, name)
-
-    var i : Int = 0
-    do {
-      val aff : HashMap[String, Long] =
-        try {
-          SimplifyExpression.evalIntegralAffine(if (mIndex != null) mIndex(i) else index)
-        } catch {
-          case EvaluationException(msg) =>
-            discardCurrentSCoP("evaluating access expression: " + msg)
-            return
+    var bool : Boolean = false
+    val indB : StringBuilder = new StringBuilder()
+    index match {
+      case mInd : MultiIndex =>
+        for (i <- mInd) {
+          bool |= extractConstraints(i, indB)
+          indB.append(',')
         }
+        indB.deleteCharAt(indB.length - 1)
+      case ind =>
+        bool |= extractConstraints(ind, indB)
+    }
+    if (bool) {
+      curSCoP.discard("array access contains (in)equalities")
+      return
+    }
 
-      var constr : isl.Constraint = isl.Constraint.equalityAlloc(access.getLocalSpace())
-      constr = constr.setCoefficientVal(isl.DimType.Out, i, NEG_ONE)
-      val const = aff.remove(SimplifyExpression.constName)
-      if (const.isDefined)
-        constr = constr.setConstantVal(const.get)
-      for ((name : String, value : Long) <- aff) {
-        var (dimType : isl.DimType, pos : Int) = scop.nameToPos(name)
-        if (dimType == isl.DimType.Set)
-          dimType = isl.DimType.In
-        constr = constr.setCoefficientVal(dimType, pos, value)
-      }
-      access = access.addConstraint(constr)
-
-      i += 1
-    } while (i < fieldDim)
+    var access : isl.Map = curSCoP.buildIslMap(curSCoP.curStmt.label(), replaceSpecial(name), indB.toString())
 
     if (isRead)
-      scop.reads = scop.reads.addMap(access)
+      scop.reads = if (scop.reads == null) access else scop.reads.addMap(access)
     if (isWrite)
-      scop.writes = scop.writes.addMap(access)
+      scop.writes = if (scop.writes == null) access else scop.writes.addMap(access)
   }
 
   private def leaveArrayAccess() {
     // nothing to do here...
   }
 
-  private def enterFieldAccess(owner : Expression, field : Field, slot : Expression, index : MultiIndex) : Unit = {
+  private def enterFieldAccess(owner : Expression, field : Field, slot : Expression, index : MultiIndex, offset : MultiIndex = null) : Unit = {
 
-    owner.annotate(SKIP_ANNOT)
-    field.annotate(SKIP_ANNOT)
-    slot.annotate(SKIP_ANNOT)
-
-    val name : StringBuilder = new StringBuilder
+    val name : StringBuilder = new StringBuilder()
 
     owner.cppsb(name)
     field.codeName.cppsb(name)
-    //    name += '_'
-    name += '['
+    name += '_'
     slot.cppsb(name)
-    name += ']'
 
-    //    var i : Int = 0
-    //    while (i < name.length) {
-    //      name(i) match {
-    //        case '.' | '[' | ']' | '(' | ')' => name(i) = '_'
-    //        case _                           =>
-    //      }
-    //      i += 1
-    //    }
-
-    enterArrayAccess(name.toString(), index)
+    enterArrayAccess(name.toString(), if (offset == null) index else index + offset)
   }
 
-  private def leaveFieldAccess(owner : Expression, field : Field, slot : Expression) : Unit = {
+  private def leaveFieldAccess() : Unit = {
     leaveArrayAccess()
   }
 }

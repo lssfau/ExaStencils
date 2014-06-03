@@ -3,9 +3,10 @@ import exastencils.core.Settings
 import exastencils.core.StateManager
 import exastencils.datastructures.Node
 import exastencils.datastructures.ir
+import exastencils.datastructures.l3
 import exastencils.datastructures.l4
 import exastencils.domain.DomainGenerated
-import exastencils.globals.Globals
+import exastencils.globals.AddDefaultGlobals
 import exastencils.knowledge.FindStencilConvolutions
 import exastencils.knowledge.Knowledge
 import exastencils.languageprocessing.l4.ProgressToIr
@@ -49,12 +50,17 @@ object MainStefan {
 
     Knowledge.update()
 
+    // HACK: this will setup a dummy L4 DSL file
+    StateManager.root_ = new l3.Root
+    StateManager.root_.asInstanceOf[l3.Root].printToL4(Settings.basePathPrefix + "/Compiler/dsl/Layer4.exa")
+
     // HACK: this tests the new L4 capabilities
     var parserl4 = new ParserL4
-    StateManager.root_ = parserl4.parseFile(Settings.basePathPrefix + "/Compiler/dsl/newDSL4.exa")
+    StateManager.root_ = parserl4.parseFile(Settings.basePathPrefix + "/Compiler/dsl/Layer4.exa")
     ValidationL4.apply
     ProgressToIr.apply()
 
+    // TODO: integrate the next line into the ProgressToIr Strategy
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
     // Setup tree
@@ -72,12 +78,11 @@ object MainStefan {
       // Util
       new Log,
       new Stopwatch,
-      new Vector,
-
-      // Globals
-      new Globals)
+      new Vector)
 
     // Strategies
+
+    AddDefaultGlobals.apply()
 
     FindStencilConvolutions.apply()
 

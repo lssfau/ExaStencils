@@ -122,7 +122,7 @@ private final class ASTBuilderFunction(replaceCallback : (String, Expression, No
         val stmt : Statement = oldStmts(name)
         var d : Int = 1
         val dims : Int = Knowledge.dimensionality
-        do { // TODO: build declarations for old loop iterators
+        do {
           replaceCallback(dimToString(dims - d), args(d), stmt)
           d += 1
         } while (d < args.length)
