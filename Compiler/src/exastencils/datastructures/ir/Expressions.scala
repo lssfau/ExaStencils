@@ -185,7 +185,11 @@ case class OffsetIndex(var minOffset : Int, var maxOffset : Int, var index : Exp
   }
 }
 
-case class MultiIndex(var index_0 : Expression = new NullExpression, var index_1 : Expression = new NullExpression, var index_2 : Expression = new NullExpression) extends Expression {
+case class MultiIndex(
+  var index_0 : Expression = new NullExpression,
+  var index_1 : Expression = new NullExpression,
+  var index_2 : Expression = new NullExpression)
+    extends Expression with Traversable[Expression] {
   def this(indices : Array[Expression]) = this(
     if (indices.size > 0) indices(0) else new NullExpression,
     if (indices.size > 1) indices(1) else new NullExpression,
@@ -221,6 +225,15 @@ case class MultiIndex(var index_0 : Expression = new NullExpression, var index_1
       if (!this(0).isInstanceOf[NullExpression] && !that(0).isInstanceOf[NullExpression]) { this(0) + that(0) } else { new NullExpression },
       if (!this(1).isInstanceOf[NullExpression] && !that(1).isInstanceOf[NullExpression]) { this(1) + that(1) } else { new NullExpression },
       if (!this(2).isInstanceOf[NullExpression] && !that(2).isInstanceOf[NullExpression]) { this(2) + that(2) } else { new NullExpression })
+  }
+
+  override def foreach[U](f : Expression => U) : Unit = {
+    val dim : Int = Knowledge.dimensionality
+    var i : Int = 0
+    do {
+      f(this(i))
+      i += 1
+    } while (i < dim)
   }
 }
 
