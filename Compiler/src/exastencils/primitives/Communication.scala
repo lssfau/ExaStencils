@@ -122,8 +122,8 @@ case class RemoteSend(var field : Field, var neighbors : ListBuffer[(NeighborInf
           ListBuffer[Statement](
             new MPI_Send(ptr, cnt, typeName, new getNeighInfo_RemoteRank(neigh._1, field.domain),
               s"((unsigned int)curFragment.commId << 16) + ((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1, field.domain)).cpp + ") & 0x0000ffff)",
-              s"curFragment.request_Send[${neigh._1.index}]") with OMP_PotentiallyCritical,
-            "curFragment." ~ FragCommMember("reqOutstanding", field, "Send") ~ s"[${neigh._1.index}] = true"))
+              FragCommMember("mpiRequest", field, "Send") ~ s"[${neigh._1.index}]") with OMP_PotentiallyCritical,
+            FragCommMember("reqOutstanding", field, "Send") ~ s"[${neigh._1.index}] = true"))
     }
 
     new LoopOverFragments(field.domain, body) with OMP_PotentiallyParallel
@@ -180,8 +180,8 @@ case class RemoteReceive(var field : Field, var neighbors : ListBuffer[(Neighbor
         ListBuffer[Statement](
           new MPI_Receive(ptr, cnt, typeName, new getNeighInfo_RemoteRank(neigh._1, field.domain),
             s"((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1, field.domain)).cpp + ") << 16) + ((unsigned int)curFragment.commId & 0x0000ffff)",
-            s"curFragment.request_Recv[${neigh._1.index}]") with OMP_PotentiallyCritical,
-          s"curFragment." ~ FragCommMember("reqOutstanding", field, "Recv") ~ s"[${neigh._1.index}] = true"))
+            FragCommMember("mpiRequest", field, "Recv") ~ s"[${neigh._1.index}]") with OMP_PotentiallyCritical,
+          FragCommMember("reqOutstanding", field, "Recv") ~ s"[${neigh._1.index}] = true"))
     }
 
     new LoopOverFragments(field.domain, body) with OMP_PotentiallyParallel
@@ -199,17 +199,17 @@ case class FinishRemoteSend(var neighbors : ListBuffer[NeighborInfo], var field 
 
       new LoopOverFragments(-1,
         new ForLoopStatement(s"int i = $minIdx", s"i <= $maxIdx", "++i",
-          new ConditionStatement("curFragment." ~ FragCommMember("reqOutstanding", field, "Send") ~ s"[i]",
+          new ConditionStatement(FragCommMember("reqOutstanding", field, "Send") ~ s"[i]",
             ListBuffer[Statement](
-              s"waitForMPIReq(&curFragment.request_Send[i])",
-              "curFragment." ~ FragCommMember("reqOutstanding", field, "Send") ~ s"[i] = false"))))
+              WaitForMPIReq(FragCommMember("mpiRequest", field, "Send") ~ s"[i]"),
+              FragCommMember("reqOutstanding", field, "Send") ~ s"[i] = false"))))
     } else {
       new LoopOverFragments(-1,
         neighbors.map(neigh =>
-          new ConditionStatement("curFragment." ~ FragCommMember("reqOutstanding", field, "Send") ~ s"[${neigh.index}]",
+          new ConditionStatement(FragCommMember("reqOutstanding", field, "Send") ~ s"[${neigh.index}]",
             ListBuffer[Statement](
-              s"waitForMPIReq(&curFragment.request_Send[${neigh.index}])",
-              "curFragment." ~ FragCommMember("reqOutstanding", field, "Send") ~ s"[${neigh.index}] = false")) : Statement))
+              WaitForMPIReq(FragCommMember("mpiRequest", field, "Send") ~ s"[${neigh.index}]"),
+              FragCommMember("reqOutstanding", field, "Send") ~ s"[${neigh.index}] = false")) : Statement))
     }
   }
 }
@@ -225,18 +225,25 @@ case class FinishRemoteRecv(var neighbors : ListBuffer[NeighborInfo], var field 
 
       new LoopOverFragments(-1,
         new ForLoopStatement(s"int i = $minIdx", s"i <= $maxIdx", "++i",
-          new ConditionStatement("curFragment." ~ FragCommMember("reqOutstanding", field, "Recv") ~ s"[i]",
+          new ConditionStatement(FragCommMember("reqOutstanding", field, "Recv") ~ s"[i]",
             ListBuffer[Statement](
-              s"waitForMPIReq(&curFragment.request_Recv[i])",
-              "curFragment." ~ FragCommMember("reqOutstanding", field, "Recv") ~ s"[i] = false"))))
+              WaitForMPIReq(FragCommMember("mpiRequest", field, "Recv") ~ s"[i]"),
+              FragCommMember("reqOutstanding", field, "Recv") ~ s"[i] = false"))))
     } else {
       new LoopOverFragments(-1,
         neighbors.map(neigh =>
-          new ConditionStatement("curFragment." ~ FragCommMember("reqOutstanding", field, "Recv") ~ s"[${neigh.index}]",
+          new ConditionStatement(FragCommMember("reqOutstanding", field, "Recv") ~ s"[${neigh.index}]",
             ListBuffer[Statement](
-              s"waitForMPIReq(&curFragment.request_Recv[${neigh.index}])",
-              "curFragment." ~ FragCommMember("reqOutstanding", field, "Recv") ~ s"[${neigh.index}] = false")) : Statement))
+              WaitForMPIReq(FragCommMember("mpiRequest", field, "Recv") ~ s"[${neigh.index}]"),
+              FragCommMember("reqOutstanding", field, "Recv") ~ s"[${neigh.index}] = false")) : Statement))
     }
   }
 }
-    
+
+case class WaitForMPIReq(var request : Expression) extends Statement with Expandable {
+  override def cpp : String = "NOT VALID ; CLASS = WaitForMPIReq\n"
+
+  def expand : Statement = {
+    "waitForMPIReq(&" ~ request ~ ")"
+  }
+}

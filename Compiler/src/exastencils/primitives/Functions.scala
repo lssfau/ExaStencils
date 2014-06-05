@@ -9,7 +9,7 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.omp._
 import exastencils.polyhedron._
 
-case class WaitForMPIReq() extends AbstractFunctionStatement with Expandable {
+case class WaitForMPIRequestFunc() extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = WaitForMPIReq\n"
 
   override def expand : FunctionStatement = {

@@ -44,7 +44,7 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
   if (Knowledge.useMPI) {
     this += new Transformation("Adding basic functions to CommunicationFunctions", {
       case commFu : CommunicationFunctions =>
-        commFu.functions += new WaitForMPIReq
+        commFu.functions += new WaitForMPIRequestFunc
         Some(commFu)
     })
   }
@@ -61,10 +61,10 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
 
   this += new Transformation("Adding communication functions to FragmentClass", {
     case frag : FragmentClass =>
-//      if (Knowledge.useMPI) {
-//        communicationFunctions.get.functions += new WaitForMPISendOps(frag.neighbors)
-//        communicationFunctions.get.functions += new WaitForMPIRecvOps(frag.neighbors)
-//      }
+      //      if (Knowledge.useMPI) {
+      //        communicationFunctions.get.functions += new WaitForMPISendOps(frag.neighbors)
+      //        communicationFunctions.get.functions += new WaitForMPIRecvOps(frag.neighbors)
+      //      }
       for (field <- fieldCollection.get.fields) {
         Knowledge.comm_strategyFragment match {
           case 6  => communicationFunctions.get.functions += new ExchangeData_6(field, frag.neighbors)
@@ -100,8 +100,9 @@ object AddFragmentMember extends DefaultStrategy("Adding members for fragment co
 
   this += new Transformation("Collecting", {
     case mem : FragCommMember =>
-      declarationMap += (mem.resolveName -> new VariableDeclarationStatement(ArrayDatatype(mem.resolveDataType, numNeighbors), mem.resolveName))
-      ctorMap += (mem.resolveName -> new AssignmentStatement(new ArrayAccess(mem.resolveName, "i"), mem.resolveDefValue))
+      declarationMap += (mem.resolveName -> mem.getDeclaration(numNeighbors))
+      if (mem.getCtor("i").isDefined)
+        ctorMap += (mem.resolveName -> mem.getCtor("i").get)
       mem
   })
 

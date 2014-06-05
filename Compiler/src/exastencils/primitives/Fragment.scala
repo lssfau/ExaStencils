@@ -109,8 +109,6 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
     cTorNeighLoopList += s"neighbor_remoteRank[d][i] = MPI_PROC_NULL"
 
     for (sendOrRecv <- Array("Send", "Recv")) {
-      declarations += s"MPI_Request request_${sendOrRecv}[$numNeighbors]"
-
       declarations += s"double* buffer_${sendOrRecv}[$numNeighbors]"
       cTorNeighLoopList += s"buffer_${sendOrRecv}[i] = NULL"
       dTorNeighLoopList += s"if (buffer_${sendOrRecv}[i]) { delete [] buffer_${sendOrRecv}[i]; buffer_${sendOrRecv}[i] = 0; }"
