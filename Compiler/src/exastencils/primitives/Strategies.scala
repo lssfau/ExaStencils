@@ -22,9 +22,13 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
     super.apply(node)
   }
 
-  this += new Transformation("Initing FragmentClass", {
+  this += new Transformation("Setting up FragmentClass", {
     case frag : FragmentClass =>
-      frag.init
+      frag.setupNeighbors
+      frag.setupDefaultMembers
+      frag.setupBasicNeighborhoodMembers
+      if (Knowledge.domain_canHaveRemoteNeighs)
+        frag.setupRemoteNeighborhoodMembers
       frag
   })
 

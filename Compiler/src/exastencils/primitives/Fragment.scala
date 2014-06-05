@@ -18,7 +18,39 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
 
   var neighbors : ListBuffer[NeighborInfo] = ListBuffer()
 
-  def init = {
+  def setupNeighbors() : Unit = {
+    Knowledge.comm_strategyFragment match {
+      case 6 => {
+        neighbors += new NeighborInfo(Array(-1, 0, 0), 0)
+        neighbors += new NeighborInfo(Array(+1, 0, 0), 1)
+        if (Knowledge.dimensionality > 1) {
+          neighbors += new NeighborInfo(Array(0, -1, 0), 2)
+          neighbors += new NeighborInfo(Array(0, +1, 0), 3)
+        }
+        if (Knowledge.dimensionality > 2) {
+          neighbors += new NeighborInfo(Array(0, 0, -1), 4)
+          neighbors += new NeighborInfo(Array(0, 0, +1), 5)
+        }
+      }
+      case 26 => {
+        var i = 0
+        for (
+          z <- (if (Knowledge.dimensionality > 2) (-1 to 1) else (0 to 0));
+          y <- (if (Knowledge.dimensionality > 1) (-1 to 1) else (0 to 0));
+          x <- -1 to 1;
+          if (0 != x || 0 != y || 0 != z)
+        ) {
+          neighbors += new NeighborInfo(Array(x, y, z), i)
+          i += 1
+        }
+      }
+    }
+  }
+
+  def setupDefaultMembers() : Unit = {
+    val numDomains = StateManager.findFirst[DomainCollection]().get.domains.size
+
+    // TODO: employ variable name manager
     declarations += s"size_t id"
     cTorInitList += s"id(-1)"
     declarations += s"size_t commId"
@@ -31,37 +63,23 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
     declarations += s"Vec3 posEnd"
     cTorInitList += s"posEnd(0.0, 0.0, 0.0)"
 
-    if (6 == Knowledge.comm_strategyFragment) {
-      neighbors += new NeighborInfo(Array(-1, 0, 0), 0)
-      neighbors += new NeighborInfo(Array(+1, 0, 0), 1)
-      if (Knowledge.dimensionality > 1) {
-        neighbors += new NeighborInfo(Array(0, -1, 0), 2)
-        neighbors += new NeighborInfo(Array(0, +1, 0), 3)
-      }
-      if (Knowledge.dimensionality > 2) {
-        neighbors += new NeighborInfo(Array(0, 0, -1), 4)
-        neighbors += new NeighborInfo(Array(0, 0, +1), 5)
-      }
-    } else if (26 == Knowledge.comm_strategyFragment) {
-      var i = 0
-      for (
-        z <- (if (Knowledge.dimensionality > 2) (-1 to 1) else (0 to 0));
-        y <- (if (Knowledge.dimensionality > 1) (-1 to 1) else (0 to 0));
-        x <- -1 to 1;
-        if (0 != x || 0 != y || 0 != z)
-      ) {
-        neighbors += new NeighborInfo(Array(x, y, z), i)
-        i += 1
-      }
-    }
+    declarations += s"Vec3i iterationOffsetBegin[$numDomains]"
+    declarations += s"Vec3i iterationOffsetEnd[$numDomains]"
 
+    cTorBody += new ForLoopStatement(s"unsigned int d = 0", s"d < $numDomains", s"++d",
+      ListBuffer[Statement](
+        "iterationOffsetBegin[d] = Vec3i(1, 1, 1)",
+        "iterationOffsetEnd[d] = Vec3i(-1, -1, -1)"))
+  }
+
+  def setupBasicNeighborhoodMembers() : Unit = {
     val numDomains = StateManager.findFirst[DomainCollection]().get.domains.size
+    val numNeighbors = neighbors.size
 
     declarations += s"bool isValidForSubdomain[$numDomains]"
-    new ForLoopStatement(s"unsigned int d = 0", s"d < $numDomains", s"++d",
+    dTorBody += new ForLoopStatement(s"unsigned int d = 0", s"d < $numDomains", s"++d",
       "isValidForSubdomain[d] = false")
 
-    var numNeighbors = neighbors.size
     var cTorNeighLoopList = new ListBuffer[Statement]
     var dTorNeighLoopList = new ListBuffer[Statement]
     declarations += s"bool neighbor_isValid[$numDomains][$numNeighbors]"
@@ -73,33 +91,39 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
     declarations += s"size_t neighbor_fragCommId[$numDomains][$numNeighbors]"
     cTorNeighLoopList += s"neighbor_fragCommId[d][i] = -1"
 
-    if (Knowledge.domain_canHaveRemoteNeighs) {
-      declarations += s"int neighbor_remoteRank[$numDomains][$numNeighbors]"
-      cTorNeighLoopList += s"neighbor_remoteRank[d][i] = MPI_PROC_NULL"
+    cTorBody += new ForLoopStatement(s"unsigned int d = 0", s"d < $numDomains", s"++d",
+      new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i",
+        cTorNeighLoopList))
+    dTorBody += new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i",
+      dTorNeighLoopList)
+  }
 
-      for (sendOrRecv <- Array("Send", "Recv")) {
-        declarations += s"MPI_Request request_${sendOrRecv}[$numNeighbors]"
-        declarations += s"bool reqOutstanding_${sendOrRecv}[$numNeighbors]"
-        cTorNeighLoopList += s"reqOutstanding_${sendOrRecv}[i] = false"
+  def setupRemoteNeighborhoodMembers : Unit = {
+    val numDomains = StateManager.findFirst[DomainCollection]().get.domains.size
+    val numNeighbors = neighbors.size
 
-        declarations += s"double* buffer_${sendOrRecv}[$numNeighbors]"
-        cTorNeighLoopList += s"buffer_${sendOrRecv}[i] = NULL"
-        dTorNeighLoopList += s"if (buffer_${sendOrRecv}[i]) { delete [] buffer_${sendOrRecv}[i]; buffer_${sendOrRecv}[i] = 0; }"
-      }
+    var cTorNeighLoopList = new ListBuffer[Statement]
+    var dTorNeighLoopList = new ListBuffer[Statement]
 
-      declarations += s"int maxElemRecvBuffer[$numNeighbors]"
-      cTorNeighLoopList += s"maxElemRecvBuffer[i] = 0"
+    declarations += s"int neighbor_remoteRank[$numDomains][$numNeighbors]"
+    cTorNeighLoopList += s"neighbor_remoteRank[d][i] = MPI_PROC_NULL"
+
+    for (sendOrRecv <- Array("Send", "Recv")) {
+      declarations += s"MPI_Request request_${sendOrRecv}[$numNeighbors]"
+      declarations += s"bool reqOutstanding_${sendOrRecv}[$numNeighbors]"
+      cTorNeighLoopList += s"reqOutstanding_${sendOrRecv}[i] = false"
+
+      declarations += s"double* buffer_${sendOrRecv}[$numNeighbors]"
+      cTorNeighLoopList += s"buffer_${sendOrRecv}[i] = NULL"
+      dTorNeighLoopList += s"if (buffer_${sendOrRecv}[i]) { delete [] buffer_${sendOrRecv}[i]; buffer_${sendOrRecv}[i] = 0; }"
     }
 
-    declarations += s"Vec3i iterationOffsetBegin[$numDomains]"
-    declarations += s"Vec3i iterationOffsetEnd[$numDomains]"
+    declarations += s"int maxElemRecvBuffer[$numNeighbors]"
+    cTorNeighLoopList += s"maxElemRecvBuffer[i] = 0"
 
     cTorBody += new ForLoopStatement(s"unsigned int d = 0", s"d < $numDomains", s"++d",
-      ListBuffer[Statement](
-        "iterationOffsetBegin[d] = Vec3i(1, 1, 1)",
-        "iterationOffsetEnd[d] = Vec3i(-1, -1, -1)",
-        new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i",
-          cTorNeighLoopList)))
+      new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i",
+        cTorNeighLoopList))
     dTorBody += new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i",
       dTorNeighLoopList)
   }
