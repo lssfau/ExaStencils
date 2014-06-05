@@ -85,14 +85,11 @@ object Main {
 
     ExpandStrategy.doUntilDone()
 
-    if (!Knowledge.useMPI) {
-      RemoveMPIReferences.apply()
-    }
+    if (!Knowledge.useMPI) RemoveMPIReferences.apply()
 
     SimplifyStrategy.doUntilDone()
 
     AddFragmentMember.apply()
-
     AddMemberFunctionPrefix.apply()
 
     if (Knowledge.useOMP) {

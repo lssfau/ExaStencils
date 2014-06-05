@@ -152,19 +152,16 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
         }
       }
 
+      body += "Fragment3DCube& curFragment = *this" // FIXME
+
       for (neigh <- neighbors) {
-        var size : String = ""
-        var sizeArray = new ListBuffer[String]()
+        var size : Int = 1
         for (i <- DimArray())
           if (0 == neigh.dir(i))
-            sizeArray += s"${maxPointsPerLevel(Knowledge.maxLevel)(i)}"
+            size *= maxPointsPerLevel(Knowledge.maxLevel)(i)
           else
-            sizeArray += s"${maxCommSlidesPerLevel(i)}"
+            size *= maxCommSlidesPerLevel(i)
 
-        size += sizeArray.mkString(" * ")
-
-        body += s"buffer_Send[${neigh.index}] = new double[$size]"
-        body += s"buffer_Recv[${neigh.index}] = new double[$size]"
         body += s"maxElemRecvBuffer[${neigh.index}] = $size"
       }
     }

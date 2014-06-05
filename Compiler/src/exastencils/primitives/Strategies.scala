@@ -103,6 +103,8 @@ object AddFragmentMember extends DefaultStrategy("Adding members for fragment co
       declarationMap += (mem.resolveName -> mem.getDeclaration(numNeighbors))
       if (mem.getCtor("i").isDefined)
         ctorMap += (mem.resolveName -> mem.getCtor("i").get)
+      if (mem.getDtor("i").isDefined)
+        dtorMap += (mem.resolveName -> mem.getDtor("i").get)
       mem
   })
 
@@ -115,6 +117,14 @@ object AddFragmentMember extends DefaultStrategy("Adding members for fragment co
       if (!dtorMap.isEmpty)
         frag.dTorBody += new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i", dtorMap.map(_._2).to[ListBuffer])
       frag
+  })
+
+  this += new Transformation("Extending SetupBuffers function", {
+    // FIXME: this kind of matching is awkward, I want trafos that don't return nodes
+    case func : FunctionStatement if (("setupBuffers" : Expression) == func.name) =>
+      for (buf <- FragMember_TmpBuffer.sizes) // FIXME: anonymous tuple members make this code really hard to read
+        func.body += new AssignmentStatement(new ArrayAccess(buf._1._1, buf._1._2), s"new double[${buf._2}]")
+      func
   })
 }
 

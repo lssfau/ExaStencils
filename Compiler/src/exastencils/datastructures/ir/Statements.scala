@@ -37,7 +37,7 @@ case class VariableDeclarationStatement(var dataType : Datatype, var name : Stri
   override def cpp = {
     (dataType match {
       case ArrayDatatype(dt, size) => s"${dt.cpp} ${name}[$size]" // TODO: think about sth less hacky
-      case _ => s"${dataType.cpp} ${name}"
+      case _                       => s"${dataType.cpp} ${name}"
     }) + (if (expression.isDefined) s" = ${expression.get.cpp};" else ";")
   }
 

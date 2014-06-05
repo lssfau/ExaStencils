@@ -1,11 +1,17 @@
 package exastencils.primitives
 
+import scala.collection.mutable.ListBuffer
 import exastencils.knowledge._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.util._
 
-case class FragCommMember(var name : String, var field : Field, var direction : String) extends Expression {
+abstract class FragCommMember() extends Expression {
   override def cpp : String = "curFragment." + resolveName
+
+  def resolveName : String
+  def resolveDataType : Datatype
+  def resolveDefValue : Option[Expression] = None
 
   def getDeclaration(numNeighbors : Int) : VariableDeclarationStatement = {
     new VariableDeclarationStatement(ArrayDatatype(resolveDataType, numNeighbors), resolveName)
@@ -18,32 +24,49 @@ case class FragCommMember(var name : String, var field : Field, var direction : 
       None
   }
 
-  def resolveName : String = {
-    var ret = name match {
-      case "reqOutstanding" => s"reqOutstanding_${direction}"
-      case "mpiRequest"     => s"mpiRequest_${direction}"
-      case _                => s"UNRECOGNIZED VARIABLE name"
-    }
+  def getDtor(neighIdx : Expression) : Option[Statement] = None
+}
 
+abstract class FragCommMemberWithPostfix extends FragCommMember {
+  var field : Field
+  def resolvePostfix = {
     if (Knowledge.comm_sepCommStructsPerField)
-      ret += s"_${field.identifier}"
-
-    ret
+      s"_${field.identifier}"
+    else
+      ""
   }
+}
 
-  def resolveDataType : Datatype = {
-    name match {
-      case "reqOutstanding" => new BooleanDatatype
-      case "mpiRequest"     => "MPI_Request"
-      case _                => new UnitDatatype
-    }
+case class FragMember_ReqOutstanding(var field : Field, var direction : String) extends FragCommMemberWithPostfix {
+  override def resolveName = s"reqOutstanding_${direction}" + resolvePostfix
+  override def resolveDataType = new BooleanDatatype
+  override def resolveDefValue = Some(false)
+}
+
+case class FragMember_MpiRequest(var field : Field, var direction : String) extends FragCommMemberWithPostfix {
+  override def resolveName = s"mpiRequest_${direction}" + resolvePostfix
+  override def resolveDataType = "MPI_Request"
+}
+
+object FragMember_TmpBuffer {
+  var sizes : Map[(String, Int), Long] = Map()
+  def update(name : String, size : Long, neighIdx : Int) = {
+    sizes += ((name, neighIdx) -> (size max sizes.getOrElse((name, neighIdx), 0)))
   }
+}
 
-  def resolveDefValue : Option[Expression] = {
-    name match {
-      case "reqOutstanding" => Some(false)
-      case "mpiRequest"     => None
-      case _                => None
-    }
+case class FragMember_TmpBuffer(var field : Field, var direction : String, var size : Expression, var neighIdx : Int) extends FragCommMemberWithPostfix {
+  import FragMember_TmpBuffer._
+  update(resolveName, SimplifyExpression.evalIntegral(size), neighIdx)
+
+  override def resolveName = s"buffer_${direction}" + resolvePostfix
+  override def resolveDataType = new PointerDatatype(field.dataType)
+  override def resolveDefValue = Some(0)
+
+  override def getDtor(neighIdx : Expression) : Option[Statement] = {
+    Some(new ConditionStatement(new ArrayAccess(resolveName, neighIdx),
+      ListBuffer[Statement](
+        "delete []" ~~ new ArrayAccess(resolveName, neighIdx),
+        new AssignmentStatement(new ArrayAccess(resolveName, neighIdx), 0))))
   }
 }
