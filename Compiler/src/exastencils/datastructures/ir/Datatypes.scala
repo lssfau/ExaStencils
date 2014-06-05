@@ -9,6 +9,14 @@ case class SpecialDatatype(typeName : String) extends Datatype {
   override def cpp = typeName
 }
 
+case class UnitDatatype() extends Datatype {
+  override def cpp = "void"
+}
+
+case class BooleanDatatype() extends Datatype {
+  override def cpp = "bool"
+}
+
 case class IntegerDatatype() extends Datatype {
   override def cpp = "int"
 }
@@ -19,10 +27,6 @@ case class RealDatatype() extends Datatype {
 
 case class StringDatatype() extends Datatype {
   override def cpp = "std::string"
-}
-
-case class UnitDatatype() extends Datatype {
-  override def cpp = "void"
 }
 
 case class ArrayDatatype(datatype : Datatype, size : Int) extends Datatype {
