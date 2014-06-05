@@ -91,6 +91,8 @@ object Main {
 
     SimplifyStrategy.doUntilDone()
 
+    AddFragmentMember.apply()
+
     AddMemberFunctionPrefix.apply()
 
     if (Knowledge.useOMP) {

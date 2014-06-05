@@ -33,14 +33,15 @@ case class StatementBlock(var body : ListBuffer[Statement]) extends Statement {
   }
 }
 
-case class VariableDeclarationStatement(var variable : VariableAccess, var expression : Option[Expression] = None) extends Statement {
+case class VariableDeclarationStatement(var dataType : Datatype, var name : String, var expression : Option[Expression] = None) extends Statement {
   override def cpp = {
-    s"${variable.dType.get.cpp} ${variable.name}" + (if (expression.isDefined) s" = ${expression.get.cpp};" else ";")
+    (dataType match {
+      case ArrayDatatype(dt, size) => s"${dt.cpp} ${name}[$size]" // TODO: think about sth less hacky
+      case _ => s"${dataType.cpp} ${name}"
+    }) + (if (expression.isDefined) s" = ${expression.get.cpp};" else ";")
   }
 
-  def cpp_onlyDeclaration = {
-    s"${variable.dType.get.cpp} ${variable.name};"
-  }
+  def cpp_onlyDeclaration = { VariableDeclarationStatement(dataType, name, None).cpp }
 }
 
 case class DefineStatement(var name : Expression, var value : Option[Expression] = None) extends Statement {

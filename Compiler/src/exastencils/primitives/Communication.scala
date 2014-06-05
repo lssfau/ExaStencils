@@ -76,12 +76,12 @@ case class RemoteSend(var field : Field, var neighbors : ListBuffer[(NeighborInf
     val globals : Globals = StateManager.findFirst[Globals]().get
 
     var addToName = 0
-    while (globals.variables.count(v => s"${mpiTypeNameBase}_${addToName}" == v.variable.name) > 0)
+    while (globals.variables.count(v => s"${mpiTypeNameBase}_${addToName}" == v.name) > 0)
       addToName += 1
 
     val mpiTypeName = mpiTypeNameBase + s"_${addToName}"
 
-    globals.variables += new VariableDeclarationStatement(new VariableAccess(mpiTypeName, Some("MPI_Datatype")))
+    globals.variables += new VariableDeclarationStatement("MPI_Datatype", mpiTypeName)
 
     // FIXME: this comparison doesn't work with the new MultiIndex 
     if (indexRange.begin(1) == indexRange.end(1) || indexRange.begin(2) == indexRange.end(2))
@@ -123,7 +123,7 @@ case class RemoteSend(var field : Field, var neighbors : ListBuffer[(NeighborInf
             new MPI_Send(ptr, cnt, typeName, new getNeighInfo_RemoteRank(neigh._1, field.domain),
               s"((unsigned int)curFragment.commId << 16) + ((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1, field.domain)).cpp + ") & 0x0000ffff)",
               s"curFragment.request_Send[${neigh._1.index}]") with OMP_PotentiallyCritical,
-            s"curFragment.reqOutstanding_Send[${neigh._1.index}] = true"))
+            "curFragment." ~ FragCommMember("reqOutstanding", field, "Send") ~ s"[${neigh._1.index}] = true"))
     }
 
     new LoopOverFragments(field.domain, body) with OMP_PotentiallyParallel
@@ -137,12 +137,12 @@ case class RemoteReceive(var field : Field, var neighbors : ListBuffer[(Neighbor
     val globals : Globals = StateManager.findFirst[Globals]().get
 
     var addToName = 0
-    while (globals.variables.count(v => s"${mpiTypeNameBase}_${addToName}" == v.variable.name) > 0)
+    while (globals.variables.count(v => s"${mpiTypeNameBase}_${addToName}" == v.name) > 0)
       addToName += 1
 
     val mpiTypeName = mpiTypeNameBase + s"_${addToName}"
 
-    globals.variables += new VariableDeclarationStatement(new VariableAccess(mpiTypeName, Some("MPI_Datatype")))
+    globals.variables += new VariableDeclarationStatement("MPI_Datatype", mpiTypeName)
 
     if (indexRange.begin(1) == indexRange.end(1) || indexRange.begin(2) == indexRange.end(2))
       globals.initFunction.body += InitMPIDataType(mpiTypeName, field, indexRange)
@@ -181,7 +181,7 @@ case class RemoteReceive(var field : Field, var neighbors : ListBuffer[(Neighbor
           new MPI_Receive(ptr, cnt, typeName, new getNeighInfo_RemoteRank(neigh._1, field.domain),
             s"((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1, field.domain)).cpp + ") << 16) + ((unsigned int)curFragment.commId & 0x0000ffff)",
             s"curFragment.request_Recv[${neigh._1.index}]") with OMP_PotentiallyCritical,
-          s"curFragment.reqOutstanding_Recv[${neigh._1.index}] = true"))
+          s"curFragment." ~ FragCommMember("reqOutstanding", field, "Recv") ~ s"[${neigh._1.index}] = true"))
     }
 
     new LoopOverFragments(field.domain, body) with OMP_PotentiallyParallel

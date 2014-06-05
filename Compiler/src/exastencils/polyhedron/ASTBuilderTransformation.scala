@@ -74,7 +74,7 @@ private final class ASTBuilderFunction(replaceCallback : (String, Expression, No
           val islIt : isl.AstExpr = node.forGetIterator()
           assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
           val it : VariableAccess = new VariableAccess(islIt.getId().getName(), Some(new IntegerDatatype()))
-          val decl : Statement = new VariableDeclarationStatement(it, Some(processIslExpr(node.forGetInit())))
+          val decl : Statement = new VariableDeclarationStatement(new IntegerDatatype(), islIt.getId().getName(), Some(processIslExpr(node.forGetInit())))
 
           val stmts : ListBuffer[Statement] = new ListBuffer[Statement]()
           stmts += decl
@@ -86,7 +86,7 @@ private final class ASTBuilderFunction(replaceCallback : (String, Expression, No
           val islIt : isl.AstExpr = node.forGetIterator()
           assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
           val it : VariableAccess = new VariableAccess(islIt.getId().getName(), Some(new IntegerDatatype()))
-          val init : Statement = new VariableDeclarationStatement(it, Some(processIslExpr(node.forGetInit())))
+          val init : Statement = new VariableDeclarationStatement(new IntegerDatatype(), islIt.getId().getName(), Some(processIslExpr(node.forGetInit())))
           val cond : Expression = processIslExpr(node.forGetCond())
           val incr : Statement = new AssignmentStatement(it, new AdditionExpression(it, processIslExpr(node.forGetInc())))
 

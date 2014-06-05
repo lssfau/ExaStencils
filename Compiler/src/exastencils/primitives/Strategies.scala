@@ -84,6 +84,39 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
   })
 }
 
+object AddFragmentMember extends DefaultStrategy("Adding members for fragment communication") {
+  var declarationMap : Map[String, Statement] = Map()
+  var ctorMap : Map[String, Statement] = Map()
+  var dtorMap : Map[String, Statement] = Map()
+
+  var numNeighbors : Int = 0
+  var numDomains : Int = 0
+
+  override def apply(node : Option[Node] = None) = {
+    numNeighbors = StateManager.findFirst[FragmentClass]().get.neighbors.size
+    numDomains = StateManager.findFirst[DomainCollection]().get.domains.size
+    super.apply(node)
+  }
+
+  this += new Transformation("Collecting", {
+    case mem : FragCommMember =>
+      declarationMap += (mem.resolveName -> new VariableDeclarationStatement(ArrayDatatype(mem.resolveDataType, numNeighbors), mem.resolveName))
+      ctorMap += (mem.resolveName -> new AssignmentStatement(new ArrayAccess(mem.resolveName, "i"), mem.resolveDefValue))
+      mem
+  })
+
+  this += new Transformation("Adding", {
+    case frag : FragmentClass =>
+      for (decl <- declarationMap)
+        frag.declarations += decl._2
+      if (!ctorMap.isEmpty)
+        frag.cTorBody += new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i", ctorMap.map(_._2).to[ListBuffer])
+      if (!dtorMap.isEmpty)
+        frag.dTorBody += new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i", dtorMap.map(_._2).to[ListBuffer])
+      frag
+  })
+}
+
 object ResolveLoopOverDimensions extends DefaultStrategy("Resolving LoopOverDimensions nodes") {
   this += new Transformation("Resolving", {
     case loop : LoopOverDimensions =>

@@ -60,8 +60,8 @@ case class GlobalDeclarationStatement(var entries : List[VariableDeclarationStat
 
 case class VariableDeclarationStatement(var identifier : Identifier, var datatype : Datatype, var expression : Option[Expression] = None) extends Statement {
   def progressToIr : ir.VariableDeclarationStatement = {
-    ir.VariableDeclarationStatement(
-      ir.VariableAccess(identifier.progressToIr.asInstanceOf[ir.StringConstant].value, Some(datatype.progressToIr)),
+    ir.VariableDeclarationStatement(datatype.progressToIr,
+      identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
       if (expression.isDefined) Some(expression.get.progressToIr) else None)
   }
 }
