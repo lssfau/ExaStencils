@@ -139,33 +139,6 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
           new AssignmentStatement(field.codeName ~ "[" ~ slot ~ "]", ("new" : Expression) ~~ field.dataType. /*FIXME*/ cpp ~ "[" ~ (field.layout(0).total * field.layout(1).total * field.layout(2).total) ~ "]") : Statement))
     }
 
-    if (Knowledge.domain_canHaveRemoteNeighs) {
-      var maxPointsPerLevel = Array.fill(Knowledge.numLevels)(Array(0, 0, 0))
-      var maxCommSlidesPerLevel = Array(0, 0, 0)
-      for (field <- fields) {
-        for (dim <- 0 until Knowledge.dimensionality) {
-          maxPointsPerLevel(field.level)(dim) = math.max(maxPointsPerLevel(field.level)(dim), field.layout(dim).total - field.layout(dim).numPadLayersLeft - field.layout(dim).numPadLayersRight)
-          if (Knowledge.maxLevel == field.level) {
-            maxCommSlidesPerLevel(dim) = math.max(maxCommSlidesPerLevel(dim), math.max(field.layout(dim).numGhostLayersLeft, field.layout(dim).numGhostLayersRight))
-            maxCommSlidesPerLevel(dim) = math.max(maxCommSlidesPerLevel(dim), math.max(field.layout(dim).numDupLayersLeft, field.layout(dim).numDupLayersRight))
-          }
-        }
-      }
-
-      body += "Fragment3DCube& curFragment = *this" // FIXME
-
-      for (neigh <- neighbors) {
-        var size : Int = 1
-        for (i <- DimArray())
-          if (0 == neigh.dir(i))
-            size *= maxPointsPerLevel(Knowledge.maxLevel)(i)
-          else
-            size *= maxCommSlidesPerLevel(i)
-
-        body += s"maxElemRecvBuffer[${neigh.index}] = $size"
-      }
-    }
-
     return FunctionStatement(new UnitDatatype(), s"setupBuffers", ListBuffer(), body)
   }
 }

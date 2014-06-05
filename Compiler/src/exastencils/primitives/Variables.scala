@@ -37,27 +37,33 @@ abstract class FragCommMemberWithPostfix extends FragCommMember {
   }
 }
 
-case class FragMember_ReqOutstanding(var field : Field, var direction : String) extends FragCommMemberWithPostfix {
+case class FragMember_ReqOutstanding(var field : Field, var direction : String, var neighIdx : Expression) extends FragCommMemberWithPostfix {
+  override def cpp : String = super.cpp + s"[${neighIdx.cpp}]"
+
   override def resolveName = s"reqOutstanding_${direction}" + resolvePostfix
   override def resolveDataType = new BooleanDatatype
   override def resolveDefValue = Some(false)
 }
 
-case class FragMember_MpiRequest(var field : Field, var direction : String) extends FragCommMemberWithPostfix {
+case class FragMember_MpiRequest(var field : Field, var direction : String, var neighIdx : Expression) extends FragCommMemberWithPostfix {
+  override def cpp : String = super.cpp + s"[${neighIdx.cpp}]"
+
   override def resolveName = s"mpiRequest_${direction}" + resolvePostfix
   override def resolveDataType = "MPI_Request"
 }
 
 object FragMember_TmpBuffer {
-  var sizes : Map[(String, Int), Long] = Map()
-  def update(name : String, size : Long, neighIdx : Int) = {
+  var sizes : Map[(String, Int), Int] = Map()
+  def update(name : String, size : Int, neighIdx : Int) = {
     sizes += ((name, neighIdx) -> (size max sizes.getOrElse((name, neighIdx), 0)))
   }
 }
 
-case class FragMember_TmpBuffer(var field : Field, var direction : String, var size : Expression, var neighIdx : Int) extends FragCommMemberWithPostfix {
+case class FragMember_TmpBuffer(var field : Field, var direction : String, var size : Expression, var neighIdx : Expression) extends FragCommMemberWithPostfix {
   import FragMember_TmpBuffer._
-  update(resolveName, SimplifyExpression.evalIntegral(size), neighIdx)
+  update(resolveName, SimplifyExpression.evalIntegral(size).toInt, SimplifyExpression.evalIntegral(neighIdx).toInt)
+
+  override def cpp : String = super.cpp + s"[${neighIdx.cpp}]"
 
   override def resolveName = s"buffer_${direction}" + resolvePostfix
   override def resolveDataType = new PointerDatatype(field.dataType)

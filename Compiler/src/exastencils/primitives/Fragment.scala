@@ -108,9 +108,6 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
     declarations += s"int neighbor_remoteRank[$numDomains][$numNeighbors]"
     cTorNeighLoopList += s"neighbor_remoteRank[d][i] = MPI_PROC_NULL"
 
-    declarations += s"int maxElemRecvBuffer[$numNeighbors]"
-    cTorNeighLoopList += s"maxElemRecvBuffer[i] = 0"
-
     cTorBody += new ForLoopStatement(s"unsigned int d = 0", s"d < $numDomains", s"++d",
       new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i",
         cTorNeighLoopList))
