@@ -188,19 +188,55 @@ case class RemoteReceive(var field : Field, var neighbors : ListBuffer[(Neighbor
   }
 }
 
-case class FinishRemoteSend(var neighbors : ListBuffer[NeighborInfo]) extends Statement with Expandable {
+case class FinishRemoteSend(var neighbors : ListBuffer[NeighborInfo], var field : Field) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = FinishRemoteSend\n"
 
   def expand : Statement = {
-    "waitForMPISendOps()"
+    //"waitForMPISendOps()"
+    if (Knowledge.mpi_useLoopsWherePossible) {
+      var minIdx = neighbors.reduce((neigh, res) => if (neigh.index < res.index) neigh else res).index
+      var maxIdx = neighbors.reduce((neigh, res) => if (neigh.index > res.index) neigh else res).index
+
+      new LoopOverFragments(-1,
+        new ForLoopStatement(s"int i = $minIdx", s"i <= $maxIdx", "++i",
+          new ConditionStatement("curFragment." ~ FragCommMember("reqOutstanding", field, "Send") ~ s"[i]",
+            ListBuffer[Statement](
+              s"waitForMPIReq(&curFragment.request_Send[i])",
+              "curFragment." ~ FragCommMember("reqOutstanding", field, "Send") ~ s"[i] = false"))))
+    } else {
+      new LoopOverFragments(-1,
+        neighbors.map(neigh =>
+          new ConditionStatement("curFragment." ~ FragCommMember("reqOutstanding", field, "Send") ~ s"[${neigh.index}]",
+            ListBuffer[Statement](
+              s"waitForMPIReq(&curFragment.request_Send[${neigh.index}])",
+              "curFragment." ~ FragCommMember("reqOutstanding", field, "Send") ~ s"[${neigh.index}] = false")) : Statement))
+    }
   }
 }
 
-case class FinishRemoteRecv(var neighbors : ListBuffer[NeighborInfo]) extends Statement with Expandable {
+case class FinishRemoteRecv(var neighbors : ListBuffer[NeighborInfo], var field : Field) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = FinishRemoteRecv\n"
 
   def expand : Statement = {
-    "waitForMPIRecvOps()"
+    //"waitForMPIRecvOps()"
+    if (Knowledge.mpi_useLoopsWherePossible) {
+      var minIdx = neighbors.reduce((neigh, res) => if (neigh.index < res.index) neigh else res).index
+      var maxIdx = neighbors.reduce((neigh, res) => if (neigh.index > res.index) neigh else res).index
+
+      new LoopOverFragments(-1,
+        new ForLoopStatement(s"int i = $minIdx", s"i <= $maxIdx", "++i",
+          new ConditionStatement("curFragment." ~ FragCommMember("reqOutstanding", field, "Recv") ~ s"[i]",
+            ListBuffer[Statement](
+              s"waitForMPIReq(&curFragment.request_Recv[i])",
+              "curFragment." ~ FragCommMember("reqOutstanding", field, "Recv") ~ s"[i] = false"))))
+    } else {
+      new LoopOverFragments(-1,
+        neighbors.map(neigh =>
+          new ConditionStatement("curFragment." ~ FragCommMember("reqOutstanding", field, "Recv") ~ s"[${neigh.index}]",
+            ListBuffer[Statement](
+              s"waitForMPIReq(&curFragment.request_Recv[${neigh.index}])",
+              "curFragment." ~ FragCommMember("reqOutstanding", field, "Recv") ~ s"[${neigh.index}] = false")) : Statement))
+    }
   }
 }
     

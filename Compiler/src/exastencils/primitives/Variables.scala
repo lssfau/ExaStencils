@@ -8,10 +8,15 @@ case class FragCommMember(var name : String, var field : Field, var direction : 
   override def cpp : String = resolveName
 
   def resolveName : String = {
-    name match {
+    var ret = name match {
       case "reqOutstanding" => s"reqOutstanding_${direction}"
       case _                => s"UNRECOGNIZED VARIABLE name"
     }
+
+    if (Knowledge.comm_sepCommStructsPerField)
+      ret += s"_${field.identifier}"
+
+    ret
   }
 
   def resolveDataType : Datatype = {
@@ -27,8 +32,4 @@ case class FragCommMember(var name : String, var field : Field, var direction : 
       case _                => 0
     }
   }
-}
-
-object VariableManager {
-
 }

@@ -85,7 +85,10 @@ object Knowledge {
 
   // --- OpenMP and MPI Parallelization ---
   var comm_strategyFragment : Int = 6 // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors
+var comm_sepCommStructsPerField : Boolean = true
 
+
+  
   // --- OpenMP Parallelization ---
   var useOMP : Boolean = true // [true|false]
   var omp_numThreads : Int = 1 // the number of omp threads to be used; may be incorporated in omp pragmas

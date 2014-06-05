@@ -61,15 +61,15 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
 
   this += new Transformation("Adding communication functions to FragmentClass", {
     case frag : FragmentClass =>
-      if (Knowledge.useMPI) {
-        communicationFunctions.get.functions += new WaitForMPISendOps(frag.neighbors)
-        communicationFunctions.get.functions += new WaitForMPIRecvOps(frag.neighbors)
-      }
+//      if (Knowledge.useMPI) {
+//        communicationFunctions.get.functions += new WaitForMPISendOps(frag.neighbors)
+//        communicationFunctions.get.functions += new WaitForMPIRecvOps(frag.neighbors)
+//      }
       for (field <- fieldCollection.get.fields) {
-        if (6 == Knowledge.comm_strategyFragment) // FIXME: generic call pattern
-          communicationFunctions.get.functions += new ExchangeData_6(field, frag.neighbors)
-        else if (26 == Knowledge.comm_strategyFragment)
-          communicationFunctions.get.functions += new ExchangeData_26(field, frag.neighbors)
+        Knowledge.comm_strategyFragment match {
+          case 6  => communicationFunctions.get.functions += new ExchangeData_6(field, frag.neighbors)
+          case 26 => communicationFunctions.get.functions += new ExchangeData_26(field, frag.neighbors)
+        }
       }
       frag
   })

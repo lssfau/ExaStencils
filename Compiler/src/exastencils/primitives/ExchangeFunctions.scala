@@ -98,10 +98,10 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
               body += new LocalSend(field, sendLocalData)
 
             body += new RemoteReceive(field, recvRemoteData)
-            body += new FinishRemoteRecv(neighbors)
+            body += new FinishRemoteRecv(neighbors, field)
             body += new CopyFromRecvBuffer(field, recvRemoteData)
 
-            body += new FinishRemoteSend(neighbors)
+            body += new FinishRemoteSend(neighbors, field)
           } else if (Knowledge.domain_canHaveLocalNeighs) {
             body += new LocalSend(field, sendLocalData)
           }
@@ -177,10 +177,10 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
               body += new LocalSend(field, sendLocalData)
 
             body += new RemoteReceive(field, recvRemoteData)
-            body += new FinishRemoteRecv(neighbors)
+            body += new FinishRemoteRecv(neighbors, field)
             body += new CopyFromRecvBuffer(field, recvRemoteData)
 
-            body += new FinishRemoteSend(neighbors)
+            body += new FinishRemoteSend(neighbors, field)
           } else if (Knowledge.domain_canHaveLocalNeighs) {
             body += new LocalSend(field, sendLocalData)
           }
@@ -283,10 +283,10 @@ case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) 
             body += new LocalSend(field, sendLocalData)
 
           body += new RemoteReceive(field, recvRemoteData)
-          body += new FinishRemoteRecv(neighbors)
+          body += new FinishRemoteRecv(neighbors, field)
           body += new CopyFromRecvBuffer(field, recvRemoteData)
 
-          body += new FinishRemoteSend(neighbors)
+          body += new FinishRemoteSend(neighbors, field)
         } else if (Knowledge.domain_canHaveLocalNeighs) {
           body += new LocalSend(field, sendLocalData)
         }
@@ -359,10 +359,10 @@ case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) 
             body += new LocalSend(field, sendLocalData)
 
           body += new RemoteReceive(field, recvRemoteData)
-          body += new FinishRemoteRecv(neighbors)
+          body += new FinishRemoteRecv(neighbors, field)
           body += new CopyFromRecvBuffer(field, recvRemoteData)
 
-          body += new FinishRemoteSend(neighbors)
+          body += new FinishRemoteSend(neighbors, field)
         } else if (Knowledge.domain_canHaveLocalNeighs) {
           body += new LocalSend(field, sendLocalData)
         }
