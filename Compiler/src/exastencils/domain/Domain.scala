@@ -48,7 +48,7 @@ case class PointToFragmentId(var pos : Expression) extends Expression with Expan
   override def cpp : String = "NOT VALID ; CLASS = PointToFragmentId\n"
 
   override def expand : Expression = {
-    val globalDomain = StateManager.findFirst[DomainCollection]().get.getDomainByIdentifier("global").get
+    val globalDomain = DomainCollection.getDomainByIdentifier("global").get
     val fragWidth_x = globalDomain.size.width(0) / Knowledge.domain_numFragsTotal_x
     val fragWidth_y = globalDomain.size.width(1) / Knowledge.domain_numFragsTotal_y
     val fragWidth_z = globalDomain.size.width(2) / Knowledge.domain_numFragsTotal_z
@@ -68,7 +68,7 @@ case class PointToLocalFragmentId(var pos : Expression) extends Expression with 
   override def cpp : String = "NOT VALID ; CLASS = PointToFragmentId\n"
 
   override def expand : Expression = {
-    val globalDomain = StateManager.findFirst[DomainCollection]().get.getDomainByIdentifier("global").get
+    val globalDomain = DomainCollection.getDomainByIdentifier("global").get
     val fragWidth_x = globalDomain.size.width(0) / Knowledge.domain_numFragsTotal_x
     val fragWidth_y = globalDomain.size.width(1) / Knowledge.domain_numFragsTotal_y
     val fragWidth_z = globalDomain.size.width(2) / Knowledge.domain_numFragsTotal_z
@@ -88,7 +88,7 @@ case class PointToOwningRank(var pos : Expression, var domain : Domain) extends 
   override def cpp : String = "NOT VALID ; CLASS = PointToOwningRank\n"
 
   override def expand : Expression = {
-    val globalDomain = StateManager.findFirst[DomainCollection]().get.getDomainByIdentifier("global").get
+    val globalDomain = DomainCollection.getDomainByIdentifier("global").get
     val fragWidth_x = globalDomain.size.width(0) / Knowledge.domain_numFragsTotal_x
     val fragWidth_y = globalDomain.size.width(1) / Knowledge.domain_numFragsTotal_y
     val fragWidth_z = globalDomain.size.width(2) / Knowledge.domain_numFragsTotal_z
@@ -128,8 +128,8 @@ case class ConnectFragments() extends Statement with Expandable {
     var body = new ListBuffer[Statement]
 
     val neighbors = StateManager.findFirst[FragmentClass]().get.neighbors
-    val domains = StateManager.findFirst[DomainCollection]().get.domains
-    val globalDomain = StateManager.findFirst[DomainCollection]().get.getDomainByIdentifier("global").get
+    val domains = DomainCollection.domains
+    val globalDomain = DomainCollection.getDomainByIdentifier("global").get
 
     for (d <- 0 until domains.size) {
       body += AssignmentStatement(FragMember_IsValidForSubdomain(d), PointInsideDomain(s"curFragment.pos", domains(d)))
@@ -174,7 +174,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
   override def cpp : String = "NOT VALID ; CLASS = InitGeneratedDomain\n"
 
   override def expand : FunctionStatement = {
-    val globalDomain = StateManager.findFirst[DomainCollection]().get.getDomainByIdentifier("global").get
+    val globalDomain = DomainCollection.getDomainByIdentifier("global").get
     val fragWidth_x = globalDomain.size.width(0) / Knowledge.domain_numFragsTotal_x
     val fragWidth_y = globalDomain.size.width(1) / Knowledge.domain_numFragsTotal_y
     val fragWidth_z = globalDomain.size.width(2) / Knowledge.domain_numFragsTotal_z

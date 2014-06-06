@@ -20,8 +20,7 @@ case class InitFields() extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = InitFields\n"
 
   def expand() : StatementBlock = {
-    val fieldCollection = StateManager.findFirst[FieldCollection]().get
-    val fields = fieldCollection.fields
+    val fields = FieldCollection.fields
     var statements : ListBuffer[Statement] = new ListBuffer
 
     for (field <- fields) {

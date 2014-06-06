@@ -159,7 +159,7 @@ object MainChristian {
 //
 //    // add stencils and functions to (exastencils) tree
 //    
-//    var stencilCollection = StateManager.findFirst[StencilCollection]().get
+//    var stencilCollection = StencilCollection
 //    for (e <- TreeManager.tree.exaOperators)
 //      stencilCollection.stencils += e.transform
 //

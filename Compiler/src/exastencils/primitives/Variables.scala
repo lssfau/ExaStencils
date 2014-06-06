@@ -15,41 +15,31 @@ abstract class FragCommMember(var canBePerDomain : Boolean, var canBePerField : 
   def resolveDefValue : Option[Expression] = None
 
   def getDeclaration() : VariableDeclarationStatement = {
-    val numDomains = StateManager.findFirst[DomainCollection]().get.domains.size
-    val numFields = StateManager.findFirst[FieldCollection]().get.fields.size
-    val numLevels = Knowledge.numLevels
-    val numNeighbors = StateManager.findFirst[FragmentClass]().get.neighbors.size
-
     var dt : Datatype = resolveDataType
 
     if (canBePerDomain && Knowledge.comm_sepCommStructsPerDomain && Knowledge.comm_useCommArraysPerDomain)
-      dt = ArrayDatatype(dt, numDomains)
+      dt = ArrayDatatype(dt, DomainCollection.domains.size)
     if (canBePerField && Knowledge.comm_sepCommStructsPerField && Knowledge.comm_useCommArraysPerField)
-      dt = ArrayDatatype(dt, numFields)
+      dt = ArrayDatatype(dt, FieldCollection.fields.size)
     if (canBePerLevel && Knowledge.comm_sepCommStructsPerLevel && Knowledge.comm_useCommArraysPerLevel)
-      dt = ArrayDatatype(dt, numLevels)
+      dt = ArrayDatatype(dt, Knowledge.numLevels)
     if (canBePerNeigh && Knowledge.comm_sepCommStructsPerNeigh && Knowledge.comm_useCommArraysPerNeigh)
-      dt = ArrayDatatype(dt, numNeighbors)
+      dt = ArrayDatatype(dt, StateManager.findFirst[FragmentClass]().get.neighbors.size)
 
     new VariableDeclarationStatement(dt, resolveName)
   }
 
   def wrapInLoops(body : Statement) : Statement = {
-    val numDomains = StateManager.findFirst[DomainCollection]().get.domains.size
-    val numFields = StateManager.findFirst[FieldCollection]().get.fields.size
-    val numLevels = Knowledge.numLevels
-    val numNeighbors = StateManager.findFirst[FragmentClass]().get.neighbors.size
-
     var wrappedBody = body
 
     if (canBePerDomain && Knowledge.comm_sepCommStructsPerDomain && Knowledge.comm_useCommArraysPerDomain)
-      wrappedBody = new ForLoopStatement(s"unsigned int d = 0", s"d < $numDomains", s"++d", wrappedBody)
+      wrappedBody = new ForLoopStatement(s"unsigned int d = 0", s"d < ${DomainCollection.domains.size}", s"++d", wrappedBody)
     if (canBePerField && Knowledge.comm_sepCommStructsPerField && Knowledge.comm_useCommArraysPerField)
-      wrappedBody = new ForLoopStatement(s"unsigned int f = 0", s"f < $numFields", s"++f", wrappedBody)
+      wrappedBody = new ForLoopStatement(s"unsigned int f = 0", s"f < ${FieldCollection.fields.size}", s"++f", wrappedBody)
     if (canBePerLevel && Knowledge.comm_sepCommStructsPerLevel && Knowledge.comm_useCommArraysPerLevel)
-      wrappedBody = new ForLoopStatement(s"unsigned int l = 0", s"l < $numLevels", s"++l", wrappedBody)
+      wrappedBody = new ForLoopStatement(s"unsigned int l = 0", s"l < ${Knowledge.numLevels}", s"++l", wrappedBody)
     if (canBePerNeigh && Knowledge.comm_sepCommStructsPerNeigh && Knowledge.comm_useCommArraysPerNeigh)
-      wrappedBody = new ForLoopStatement(s"unsigned int n = 0", s"n < $numNeighbors", s"++n", wrappedBody)
+      wrappedBody = new ForLoopStatement(s"unsigned int n = 0", s"n < ${StateManager.findFirst[FragmentClass]().get.neighbors.size}", s"++n", wrappedBody)
 
     wrappedBody
   }

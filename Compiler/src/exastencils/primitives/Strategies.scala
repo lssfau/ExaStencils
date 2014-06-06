@@ -13,13 +13,9 @@ import exastencils.strategies._
 
 object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
   var communicationFunctions : Option[CommunicationFunctions] = None
-  var fieldCollection : Option[FieldCollection] = None
-  var externalFieldCollection : Option[ExternalFieldCollection] = None
 
   override def apply(node : Option[Node] = None) = {
     communicationFunctions = StateManager.findFirst[CommunicationFunctions]()
-    fieldCollection = StateManager.findFirst[FieldCollection]()
-    externalFieldCollection = StateManager.findFirst[ExternalFieldCollection]()
     super.apply(node)
   }
 
@@ -32,7 +28,7 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
 
   this += new Transformation("Updating FragmentClass with required field declarations", {
     case frag : FragmentClass =>
-      for (field <- fieldCollection.get.fields) {
+      for (field <- FieldCollection.fields) {
         frag.declarations += field.dataType. /*FIXME*/ cpp ~ "*" ~ field.codeName ~ s"[${field.numSlots}]"
         frag.dTorBody ++= (0 until field.numSlots).map(slot => ("delete[] " ~ field.codeName ~ s"[$slot]") : Statement).to[ListBuffer]
       }
@@ -53,7 +49,7 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
         frag.functions += new ConnectLocalElement()
       if (Knowledge.domain_canHaveRemoteNeighs)
         frag.functions += new ConnectRemoteElement()
-      frag.functions += new SetupBuffers(fieldCollection.get.fields, frag.neighbors)
+      frag.functions += new SetupBuffers(FieldCollection.fields, frag.neighbors)
       frag
   })
 
@@ -63,7 +59,7 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
       //        communicationFunctions.get.functions += new WaitForMPISendOps(frag.neighbors)
       //        communicationFunctions.get.functions += new WaitForMPIRecvOps(frag.neighbors)
       //      }
-      for (field <- fieldCollection.get.fields) {
+      for (field <- FieldCollection.fields) {
         Knowledge.comm_strategyFragment match {
           case 6  => communicationFunctions.get.functions += new ExchangeData_6(field, frag.neighbors)
           case 26 => communicationFunctions.get.functions += new ExchangeData_26(field, frag.neighbors)
@@ -74,9 +70,9 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
 
   this += new Transformation("Adding external field transfer functions", {
     case frag : FragmentClass =>
-      for (extField <- externalFieldCollection.get.fields) {
-        frag.functions += new GetFromExternalField(fieldCollection.get.getFieldByIdentifier(extField.targetFieldIdentifier, extField.level).get, extField)
-        frag.functions += new SetFromExternalField(fieldCollection.get.getFieldByIdentifier(extField.targetFieldIdentifier, extField.level).get, extField)
+      for (extField <- ExternalFieldCollection.fields) {
+        frag.functions += new GetFromExternalField(FieldCollection.getFieldByIdentifier(extField.targetFieldIdentifier, extField.level).get, extField)
+        frag.functions += new SetFromExternalField(FieldCollection.getFieldByIdentifier(extField.targetFieldIdentifier, extField.level).get, extField)
       }
       frag
   })

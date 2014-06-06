@@ -48,7 +48,7 @@ case class FragmentClass() extends Class("Fragment3DCube") with FilePrettyPrinta
   }
 
   def setupDefaultMembers() : Unit = {
-    val numDomains = StateManager.findFirst[DomainCollection]().get.domains.size
+    val numDomains = DomainCollection.domains.size
 
     // TODO: employ variable name manager
     declarations += s"size_t id"

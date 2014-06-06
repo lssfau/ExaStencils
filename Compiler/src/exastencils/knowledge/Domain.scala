@@ -7,9 +7,11 @@ import exastencils.datastructures.ir._
 import exastencils.util._
 
 case class Domain(var identifier : String,
-    var size : AABB) extends Node {}
+  var size : AABB) {}
 
-case class DomainCollection(var domains : ListBuffer[Domain] = ListBuffer()) extends Node {
+object DomainCollection {
+  var domains : ListBuffer[Domain] = ListBuffer()
+
   def getDomainByIdentifier(identifier : String) : Option[Domain] = {
     domains.find(d => d.identifier == identifier)
   }

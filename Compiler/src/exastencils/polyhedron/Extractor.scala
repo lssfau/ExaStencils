@@ -218,14 +218,14 @@ object Extractor extends Collector {
 
         case DirectFieldAccess(owner, field, slot, index) =>
           owner.annotate(SKIP_ANNOT)
-          field.annotate(SKIP_ANNOT)
+          //field.annotate(SKIP_ANNOT)
           slot.annotate(SKIP_ANNOT)
           index.annotate(SKIP_ANNOT)
           enterFieldAccess(owner, field, slot, index)
 
         case FieldAccess(owner, field, slot, index) =>
           owner.annotate(SKIP_ANNOT)
-          field.annotate(SKIP_ANNOT)
+          //field.annotate(SKIP_ANNOT)
           slot.annotate(SKIP_ANNOT)
           index.annotate(SKIP_ANNOT)
           enterFieldAccess(owner, field, slot, index, field.referenceOffset)

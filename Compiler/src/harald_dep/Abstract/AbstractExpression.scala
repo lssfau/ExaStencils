@@ -27,7 +27,7 @@ case class AbstractBinaryOp(operator : BinaryOperators.Value, left : AbstractExp
     if (operator == BinaryOperators.Multiplication)
       left match {
         case AbstractVariable(id1, l1) => {
-          val stencilCollection = StateManager.findFirst[StencilCollection]().get
+          val stencilCollection = StencilCollection
 
           if (stencilCollection.getStencilByIdentifier(id1, 0).isDefined) {
             val stencil = stencilCollection.getStencilByIdentifier(id1, 0).get
@@ -35,7 +35,7 @@ case class AbstractBinaryOp(operator : BinaryOperators.Value, left : AbstractExp
             right match {
               case AbstractVariable(id2, l2) => {
                 val levstr = l2.transform(scopeparas, modifier, scopetype)
-                val fieldCollection = StateManager.findFirst[FieldCollection]().get
+                val fieldCollection = FieldCollection
 
                 val field : Field = id2 match {
                   case "solution" => fieldCollection.getFieldByIdentifier("Solution", levstr.cpp.toInt).get
@@ -83,7 +83,7 @@ case class AbstractFCall(fname : String, arglist : List[AbstractExpression]) ext
     }
 
     if (fname.equals("diag")) {
-      var stencilCollection = StateManager.findFirst[StencilCollection]().get
+      var stencilCollection = StencilCollection
       var curStencil = stencilCollection.getStencilByIdentifier(arglist(0).toString.substring(0, arglist(0).toString.size - 2) /* FIXME: avoid stripping level usage */ , 0).get
       return curStencil.entries(0).weight
     }
@@ -147,7 +147,7 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
           case "solution" => (
             if ("statement" == scopetype || "expression" == scopetype) {
               //s"curFragment.solData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp()
-              val fieldCollection = StateManager.findFirst[FieldCollection]().get
+              val fieldCollection = FieldCollection
               val field : Field = fieldCollection.getFieldByIdentifier("Solution", lev.transform(scopeparas, modifier, scopetype).cpp.toInt).get
               new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex())
             } else
@@ -155,7 +155,7 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
           case "Res" => (
             if ("statement" == scopetype || "expression" == scopetype) {
               //s"curFragment.resData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp()
-              val fieldCollection = StateManager.findFirst[FieldCollection]().get
+              val fieldCollection = FieldCollection
               val field : Field = fieldCollection.getFieldByIdentifier("Residual", lev.transform(scopeparas, modifier, scopetype).cpp.toInt).get
               new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex())
             } else
@@ -163,7 +163,7 @@ case class AbstractVariable(id : String, lev : AbstractExpression) extends Abstr
           case "f" => (
             if ("statement" == scopetype || "expression" == scopetype) {
               //s"curFragment.rhsData[0][" ~ lev.transform(scopeparas, modifier, scopetype) ~ s"]->getDataRef" ~ DomainKnowledge.rule_idxArray_cpp()
-              val fieldCollection = StateManager.findFirst[FieldCollection]().get
+              val fieldCollection = FieldCollection
               val field : Field = fieldCollection.getFieldByIdentifier("RHS", lev.transform(scopeparas, modifier, scopetype).cpp.toInt).get
               new FieldAccess("curFragment.", field, 0, DefaultLoopMultiIndex())
             } else

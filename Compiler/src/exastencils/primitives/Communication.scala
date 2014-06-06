@@ -15,7 +15,7 @@ case class CommunicateStatement(var fieldName : String, var fieldLevel : Int) ex
   override def cpp : String = "NOT VALID ; CLASS = CommunicateStatement\n"
 
   def expand : Statement = {
-    new FunctionCallExpression("exch" ~ StateManager.findFirst[FieldCollection]().get.getFieldByIdentifier(fieldName, fieldLevel).get.codeName,
+    new FunctionCallExpression("exch" ~ FieldCollection.getFieldByIdentifier(fieldName, fieldLevel).get.codeName,
       0 /* FIXME */ )
   }
 }

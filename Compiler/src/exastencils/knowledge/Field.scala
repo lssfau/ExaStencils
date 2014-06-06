@@ -52,7 +52,7 @@ case class Field(
   var numSlots : Int, // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
   var referenceOffset : MultiIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
   var dirichletBC : Option[Expression] // None in case of no dirichlet BC, otherwise specifies the expression to be used for the dirichlet boundary
-  ) extends Node {}
+  ) {}
 
 case class ExternalField(
   var identifier : String, // will be used to find the field
@@ -60,15 +60,19 @@ case class ExternalField(
   var layout : Array[FieldLayoutPerDim], // represents the number of data points and their distribution in each dimension
   var level : Int, // the (geometric) level the field lives on 
   var referenceOffset : MultiIndex // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
-  ) extends Node {}
+  ) {}
 
-case class FieldCollection(var fields : ListBuffer[Field] = ListBuffer()) extends Node {
+object FieldCollection {
+  var fields : ListBuffer[Field] = ListBuffer()
+
   def getFieldByIdentifier(identifier : String, level : Int) : Option[Field] = {
     fields.find(f => f.identifier == identifier && f.level == level)
   }
 }
 
-case class ExternalFieldCollection(var fields : ListBuffer[ExternalField] = ListBuffer()) extends Node {
+object ExternalFieldCollection {
+  var fields : ListBuffer[ExternalField] = ListBuffer()
+
   def getFieldByIdentifier(identifier : String, level : Int) : Option[ExternalField] = {
     fields.find(f => f.identifier == identifier && f.level == level)
   }
