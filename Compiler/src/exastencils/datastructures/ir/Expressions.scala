@@ -107,18 +107,12 @@ object BinaryOperators extends Enumeration {
 
 object UnaryOperators extends Enumeration {
   type UnaryOperators = Value
-  val Positive, Negative, Not, AddressOf = Value
+  val Positive = Value("")
+  val Negative = Value("-")
+  val Not = Value("!")
+  val AddressOf = Value("&")
 
   exastencils.core.Duplicate.registerImmutable(this.getClass())
-
-  import scala.language.implicitConversions
-  implicit def op2str(op : UnaryOperators) : String = op match {
-    case Positive  => ""
-    case Negative  => "-"
-    case Not       => "!"
-    case AddressOf => "&"
-    case _         => "ERROR: Unresolvable UnaryOperator " + op
-  }
 }
 
 trait Access extends Expression
