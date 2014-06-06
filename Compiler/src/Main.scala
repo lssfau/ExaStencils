@@ -1,4 +1,7 @@
+import java.util.Locale
+
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
 import exastencils.knowledge._
 import exastencils.parsers.l4._
@@ -20,6 +23,8 @@ import exastencils.polyhedron._
 
 object Main {
   def main(args : Array[String]) : Unit = {
+    Locale.setDefault(Locale.ENGLISH) // EPIC -.-
+
     // Init settings
 
     if (args.length >= 1) {
@@ -75,7 +80,7 @@ object Main {
 
     ExpandStrategy.doUntilDone()
 
-    //    PolyOpt.apply()
+    PolyOpt.apply()
 
     ResolveLoopOverDimensions.apply()
 

@@ -150,7 +150,7 @@ case class IntegerConstant(var v : Long) extends Number {
 }
 
 case class FloatConstant(var v : Double) extends Number {
-  override def cpp = value.toString
+  override def cpp = "%e".format(value)
   override def value = v
 }
 
