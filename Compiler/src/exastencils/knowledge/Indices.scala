@@ -49,12 +49,12 @@ case class InitGeomCoords(var field : Field) extends Statement with Expandable {
 
   override def expand : StatementBlock = {
     new StatementBlock(ListBuffer[Statement](
-      "const double xPos = " ~ (("(double)" ~ ("x" - field.referenceOffset.index_0) / (field.layout(0).idxDupRightEnd - field.layout(0).idxDupLeftBegin - 1)) * "(curFragment.posEnd.x - curFragment.posBegin.x)" + "curFragment.posBegin.x"),
+      AssignmentStatement("const double xPos", (("(double)" ~ ("x" - field.referenceOffset.index_0) / (field.layout(0).idxDupRightEnd - field.layout(0).idxDupLeftBegin - 1)) * "(curFragment.posEnd.x - curFragment.posBegin.x)" + "curFragment.posBegin.x")),
       if (Knowledge.dimensionality > 1)
-        "const double yPos = " ~ (("(double)" ~ ("y" - field.referenceOffset.index_1) / (field.layout(1).idxDupRightEnd - field.layout(1).idxDupLeftBegin - 1)) * "(curFragment.posEnd.y - curFragment.posBegin.y)" + "curFragment.posBegin.y")
+        AssignmentStatement("const double yPos", (("(double)" ~ ("y" - field.referenceOffset.index_1) / (field.layout(1).idxDupRightEnd - field.layout(1).idxDupLeftBegin - 1)) * "(curFragment.posEnd.y - curFragment.posBegin.y)" + "curFragment.posBegin.y"))
       else NullStatement(),
       if (Knowledge.dimensionality > 2)
-        "const double zPos = " ~ (("(double)" ~ ("z" - field.referenceOffset.index_2) / (field.layout(2).idxDupRightEnd - field.layout(2).idxDupLeftBegin - 1)) * "(curFragment.posEnd.z - curFragment.posBegin.z)" + "curFragment.posBegin.z")
+        AssignmentStatement("const double zPos", (("(double)" ~ ("z" - field.referenceOffset.index_2) / (field.layout(2).idxDupRightEnd - field.layout(2).idxDupLeftBegin - 1)) * "(curFragment.posEnd.z - curFragment.posBegin.z)" + "curFragment.posBegin.z"))
       else NullStatement()))
   }
 }
