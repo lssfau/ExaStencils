@@ -1,0 +1,2 @@
+outputPath = "E:\ExaStencils\Generated\Generated\"
+basePathPrefix = ".."
