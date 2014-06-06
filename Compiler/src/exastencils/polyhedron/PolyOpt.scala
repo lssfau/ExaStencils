@@ -1,5 +1,7 @@
 package exastencils.polyhedron
 
+import scala.collection.mutable.ArrayStack
+
 import exastencils.core.Logger
 import exastencils.core.StateManager
 import exastencils.datastructures.CustomStrategy
@@ -21,12 +23,57 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     this.transaction()
     Logger.info("Applying strategy " + name)
 
-    StateManager.register(Extractor)
-    this.execute(new Transformation("extract model", PartialFunction.empty))
-    StateManager.unregister(Extractor)
+    val scops : ArrayStack[Scop] = extractPolyModel()
+    for (scop <- scops)
+      computeDependences(scop)
+    recreateAndInsertAST()
 
-    Logger.debug("    valid SCoPs: " + Extractor.scops.size)
-    Logger.debug("    rejected:    " + Extractor.trash.size)
+    this.commit()
+  }
+
+  private def extractPolyModel() : ArrayStack[Scop] = {
+
+    val extr = new Extractor()
+    StateManager.register(extr)
+    this.execute(new Transformation("extract model", PartialFunction.empty))
+    StateManager.unregister(extr)
+
+    val scops : ArrayStack[Scop] = extr.scops
+
+    Logger.debug("    valid SCoPs: " + scops.size)
+    Logger.debug("    rejected:    " + extr.trash.size)
+
+    return scops
+  }
+
+  private def computeDependences(scop : Scop) : Unit = {
+
+    val empty = isl.UnionMap.empty(scop.writes.getSpace())
+    val depArr = new Array[isl.UnionMap](1)
+
+    if (scop.writes != null) {
+
+      // output
+      scop.writes.computeFlow(scop.writes, empty, scop.schedule,
+        depArr, null, null, null)
+      scop.deps = depArr(0)
+
+      if (scop.reads != null) {
+
+        // flow
+        scop.reads.computeFlow(scop.writes, empty, scop.schedule,
+          depArr, null, null, null)
+        scop.deps = scop.deps.union(depArr(0))
+
+        // anti
+        scop.writes.computeFlow(scop.reads, empty, scop.schedule,
+          depArr, null, null, null)
+        scop.deps = scop.deps.union(depArr(0))
+      }
+    }
+  }
+
+  private def recreateAndInsertAST() : Unit = {
 
     val replaceCallback = { (oldVar : String, newExpr : Expression, applyAt : Node) =>
       val oldLvl = Logger.getLevel
@@ -39,7 +86,5 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       Logger.setLevel(oldLvl)
     }
     this.execute(new ASTBuilderTransformation(replaceCallback))
-
-    this.commit()
   }
 }
