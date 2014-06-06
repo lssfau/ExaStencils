@@ -86,17 +86,18 @@ object Knowledge {
   // --- OpenMP and MPI Parallelization ---
   var comm_strategyFragment : Int = 6 // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors
 
-  var comm_sepCommStructsPerDomain : Boolean = true
-  var comm_useCommArraysPerDomain : Boolean = true
+  // TODO: check in how far the following parameters can be adapted by the SPL 
+  var comm_sepCommStructsPerDomain : Boolean = true // specifies if communication variables that could be domain specific are handled separately
+  var comm_useCommArraysPerDomain : Boolean = true // specifies if domain specific variables are summarized in array form
 
-  var comm_sepCommStructsPerField : Boolean = false
-  var comm_useCommArraysPerField : Boolean = false
+  var comm_sepCommStructsPerField : Boolean = false // specifies if communication variables that could be field specific are handled separately
+  var comm_useCommArraysPerField : Boolean = false // specifies if domain field variables are summarized in array form
 
-  var comm_sepCommStructsPerLevel : Boolean = false
-  var comm_useCommArraysPerLevel : Boolean = true
+  var comm_sepCommStructsPerLevel : Boolean = false // specifies if communication variables that could be level specific are handled separately
+  var comm_useCommArraysPerLevel : Boolean = true // specifies if domain level variables are summarized in array form
 
-  var comm_sepCommStructsPerNeigh : Boolean = true
-  var comm_useCommArraysPerNeigh : Boolean = true
+  var comm_sepCommStructsPerNeigh : Boolean = true // specifies if communication variables that could be neighbor specific are handled separately
+  var comm_useCommArraysPerNeigh : Boolean = true // specifies if neighbor specific variables are summarized in array form
 
   // --- OpenMP Parallelization ---
   var useOMP : Boolean = true // [true|false]
