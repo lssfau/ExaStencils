@@ -104,10 +104,11 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
       ListBuffer(VariableAccess("location", Some("unsigned int")), VariableAccess("fragment", Some("Fragment3DCube*")), VariableAccess("domain", Some("unsigned int"))),
       ListBuffer[Statement](
         "ASSERT_WARNING((fragment), \"Invalid fragment pointer detected\", return)",
-        s"neighbor_isValid[domain][location] = true",
-        s"neighbor_isRemote[domain][location] = false",
-        s"neighbor_localPtr[domain][location] = fragment",
-        s"neighbor_fragCommId[domain][location] = fragment->commId",
+        "Fragment3DCube& curFragment = *this", // HACK
+        AssignmentStatement(FragMember_NeighborIsValid("domain", "location"), true),
+        AssignmentStatement(FragMember_NeighborIsRemote("domain", "location"), false),
+        AssignmentStatement(FragMember_NeighborLocalPtr("domain", "location"), "fragment"),
+        AssignmentStatement(FragMember_NeighborFragCommId("domain", "location"), "fragment->commId"),
         SetIterationOffset("location")))
   }
 }
@@ -119,10 +120,11 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
     FunctionStatement(new UnitDatatype(), s"connectRemoteElement",
       ListBuffer(VariableAccess("location", Some("unsigned int")), VariableAccess("id", Some("size_t")), VariableAccess("remoteRank", Some(IntegerDatatype())), VariableAccess("domain", Some("unsigned int"))),
       ListBuffer[Statement](
-        s"neighbor_isValid[domain][location] = true",
-        s"neighbor_isRemote[domain][location] = true",
-        s"neighbor_fragCommId[domain][location] = id",
-        s"neighbor_remoteRank[domain][location] = remoteRank",
+        "Fragment3DCube& curFragment = *this", // HACK
+        AssignmentStatement(FragMember_NeighborIsValid("domain", "location"), true),
+        AssignmentStatement(FragMember_NeighborIsRemote("domain", "location"), true),
+        AssignmentStatement(FragMember_NeighborFragCommId("domain", "location"), "id"),
+        AssignmentStatement(FragMember_NeighborRemoteRank("domain", "location"), "remoteRank"),
         SetIterationOffset("location")))
   }
 }
@@ -133,8 +135,10 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
   override def expand : FunctionStatement = {
     var body = ListBuffer[Statement]()
 
+    body += "Fragment3DCube& curFragment = *this" // HACK
+
     for (field <- fields) {
-      body += new ConditionStatement(s"isValidForSubdomain[${field.domain}]",
+      body += new ConditionStatement(FragMember_IsValidForSubdomain(field.domain),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           new AssignmentStatement(field.codeName ~ "[" ~ slot ~ "]", ("new" : Expression) ~~ field.dataType. /*FIXME*/ cpp ~ "[" ~ (field.layout(0).total * field.layout(1).total * field.layout(2).total) ~ "]") : Statement))
     }

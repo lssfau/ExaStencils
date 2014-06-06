@@ -123,3 +123,51 @@ case class FragMember_TmpBuffer(var field : Field, var direction : String, var s
         new AssignmentStatement(resolveAccess(resolveName, field.domain, field.identifier /*FIXME: use idx*/ , field.level, neighIdx), 0)))))
   }
 }
+
+case class FragMember_IsValidForSubdomain(var domain : Expression) extends FragCommMember(true, false, false, false) {
+  override def cpp : String = "curFragment." + resolveAccess(resolveName, domain, new NullExpression, new NullExpression, new NullExpression).cpp
+
+  override def resolveName = s"isValidForSubdomain" + resolvePostfix(domain.cpp, "", "", "")
+  override def resolveDataType = new BooleanDatatype
+  override def resolveDefValue = Some(false)
+}
+
+case class FragMember_NeighborIsValid(var domain : Expression, var neighIdx : Expression) extends FragCommMember(true, false, false, true) {
+  override def cpp : String = "curFragment." + resolveAccess(resolveName, domain, new NullExpression, new NullExpression, neighIdx).cpp
+
+  override def resolveName = s"neighbor_isValid" + resolvePostfix(domain.cpp, "", "", neighIdx.cpp)
+  override def resolveDataType = new BooleanDatatype
+  override def resolveDefValue = Some(false)
+}
+
+case class FragMember_NeighborIsRemote(var domain : Expression, var neighIdx : Expression) extends FragCommMember(true, false, false, true) {
+  override def cpp : String = "curFragment." + resolveAccess(resolveName, domain, new NullExpression, new NullExpression, neighIdx).cpp
+
+  override def resolveName = s"neighbor_isRemote" + resolvePostfix(domain.cpp, "", "", neighIdx.cpp)
+  override def resolveDataType = new BooleanDatatype
+  override def resolveDefValue = Some(false)
+}
+
+case class FragMember_NeighborLocalPtr(var domain : Expression, var neighIdx : Expression) extends FragCommMember(true, false, false, true) {
+  override def cpp : String = "curFragment." + resolveAccess(resolveName, domain, new NullExpression, new NullExpression, neighIdx).cpp
+
+  override def resolveName = s"neighbor_localPtr" + resolvePostfix(domain.cpp, "", "", neighIdx.cpp)
+  override def resolveDataType = new PointerDatatype("Fragment3DCube")
+  override def resolveDefValue = Some(0)
+}
+
+case class FragMember_NeighborFragCommId(var domain : Expression, var neighIdx : Expression) extends FragCommMember(true, false, false, true) {
+  override def cpp : String = "curFragment." + resolveAccess(resolveName, domain, new NullExpression, new NullExpression, neighIdx).cpp
+
+  override def resolveName = s"neighbor_fragCommId" + resolvePostfix(domain.cpp, "", "", neighIdx.cpp)
+  override def resolveDataType = "size_t"
+  override def resolveDefValue = Some(-1)
+}
+
+case class FragMember_NeighborRemoteRank(var domain : Expression, var neighIdx : Expression) extends FragCommMember(true, false, false, true) {
+  override def cpp : String = "curFragment." + resolveAccess(resolveName, domain, new NullExpression, new NullExpression, neighIdx).cpp
+
+  override def resolveName = s"neighbor_remoteRank" + resolvePostfix(domain.cpp, "", "", neighIdx.cpp)
+  override def resolveDataType = new IntegerDatatype
+  override def resolveDefValue = Some("MPI_PROC_NULL")
+}

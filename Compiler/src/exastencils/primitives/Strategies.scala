@@ -27,9 +27,6 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
     case frag : FragmentClass =>
       frag.setupNeighbors
       frag.setupDefaultMembers
-      frag.setupBasicNeighborhoodMembers
-      if (Knowledge.domain_canHaveRemoteNeighs)
-        frag.setupRemoteNeighborhoodMembers
       frag
   })
 

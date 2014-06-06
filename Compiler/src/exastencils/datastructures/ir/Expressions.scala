@@ -296,7 +296,7 @@ case class DerefAccess(var base : Access) extends Access {
 }
 
 case class UnaryExpression(var operator : UnaryOperators.Value, var expression : Expression) extends Expression {
-  override def cpp = { s"${operator.toString}(${expression.cpp})" }
+  override def cpp = { s"${UnaryOperators.op2str(operator)}(${expression.cpp})" }
 }
 
 case class AdditionExpression(var left : Expression, var right : Expression) extends Expression {

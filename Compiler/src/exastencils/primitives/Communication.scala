@@ -30,7 +30,7 @@ case class LocalSend(var field : Field, var neighbors : ListBuffer[(NeighborInfo
           ListBuffer[Statement](
             new LoopOverDimensions(neigh._2,
               new AssignmentStatement(
-                new DirectFieldAccess(new getNeighInfo_LocalPtr(neigh._1, field.domain), field, "slot", new MultiIndex(
+                new DirectFieldAccess(new getNeighInfo_LocalPtr(neigh._1, field.domain) ~ "->", field, "slot", new MultiIndex(
                   new MultiIndex(DefaultLoopMultiIndex(), neigh._3.begin, _ + _), neigh._2.begin, _ - _)),
                 new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel with PolyhedronAccessable))) : Statement)) with OMP_PotentiallyParallel
   }
@@ -123,7 +123,7 @@ case class RemoteSend(var field : Field, var neighbors : ListBuffer[(NeighborInf
         new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
           ListBuffer[Statement](
             new MPI_Send(ptr, cnt, typeName, new getNeighInfo_RemoteRank(neigh._1, field.domain),
-              s"((unsigned int)curFragment.commId << 16) + ((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1, field.domain)).cpp + ") & 0x0000ffff)",
+              s"((unsigned int)curFragment.commId << 16) + ((unsigned int)(" ~ getNeighInfo_FragmentId(neigh._1, field.domain) ~ ") & 0x0000ffff)",
               FragMember_MpiRequest(field, "Send", neigh._1.index)) with OMP_PotentiallyCritical,
             AssignmentStatement(FragMember_ReqOutstanding(field, "Send", neigh._1.index), true)))
     }
@@ -181,7 +181,7 @@ case class RemoteReceive(var field : Field, var neighbors : ListBuffer[(Neighbor
       body += new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
         ListBuffer[Statement](
           new MPI_Receive(ptr, cnt, typeName, new getNeighInfo_RemoteRank(neigh._1, field.domain),
-            s"((unsigned int)(" + (new getNeighInfo_FragmentId(neigh._1, field.domain)).cpp + ") << 16) + ((unsigned int)curFragment.commId & 0x0000ffff)",
+            "((unsigned int)(" ~ getNeighInfo_FragmentId(neigh._1, field.domain) ~ ") << 16) + ((unsigned int)curFragment.commId & 0x0000ffff)",
             FragMember_MpiRequest(field, "Recv", neigh._1.index)) with OMP_PotentiallyCritical,
           AssignmentStatement(FragMember_ReqOutstanding(field, "Recv", neigh._1.index), true)))
     }

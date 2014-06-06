@@ -13,8 +13,8 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.primitives._
 import exastencils.prettyprinting._
 
-case class FragmentClass() extends Class with FilePrettyPrintable {
-  className = "Fragment3DCube"
+case class FragmentClass() extends Class("Fragment3DCube") with FilePrettyPrintable {
+  override def cpp = "NOT VALID ; CLASS = FragmentClass\n"
 
   var neighbors : ListBuffer[NeighborInfo] = ListBuffer()
 
@@ -53,7 +53,7 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
     // TODO: employ variable name manager
     declarations += s"size_t id"
     cTorInitList += s"id(-1)"
-    declarations += s"size_t commId"
+    declarations += s"int commId"
     cTorInitList += s"commId(-1)"
 
     declarations += s"Vec3 pos"
@@ -71,51 +71,6 @@ case class FragmentClass() extends Class with FilePrettyPrintable {
         "iterationOffsetBegin[d] = Vec3i(1, 1, 1)",
         "iterationOffsetEnd[d] = Vec3i(-1, -1, -1)"))
   }
-
-  def setupBasicNeighborhoodMembers() : Unit = {
-    val numDomains = StateManager.findFirst[DomainCollection]().get.domains.size
-    val numNeighbors = neighbors.size
-
-    declarations += s"bool isValidForSubdomain[$numDomains]"
-    dTorBody += new ForLoopStatement(s"unsigned int d = 0", s"d < $numDomains", s"++d",
-      "isValidForSubdomain[d] = false")
-
-    var cTorNeighLoopList = new ListBuffer[Statement]
-    var dTorNeighLoopList = new ListBuffer[Statement]
-    declarations += s"bool neighbor_isValid[$numDomains][$numNeighbors]"
-    cTorNeighLoopList += s"neighbor_isValid[d][i] = false"
-    declarations += s"bool neighbor_isRemote[$numDomains][$numNeighbors]"
-    cTorNeighLoopList += s"neighbor_isRemote[d][i] = false"
-    declarations += s"Fragment3DCube* neighbor_localPtr[$numDomains][$numNeighbors]"
-    cTorNeighLoopList += s"neighbor_localPtr[d][i] = NULL"
-    declarations += s"size_t neighbor_fragCommId[$numDomains][$numNeighbors]"
-    cTorNeighLoopList += s"neighbor_fragCommId[d][i] = -1"
-
-    cTorBody += new ForLoopStatement(s"unsigned int d = 0", s"d < $numDomains", s"++d",
-      new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i",
-        cTorNeighLoopList))
-    dTorBody += new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i",
-      dTorNeighLoopList)
-  }
-
-  def setupRemoteNeighborhoodMembers : Unit = {
-    val numDomains = StateManager.findFirst[DomainCollection]().get.domains.size
-    val numNeighbors = neighbors.size
-
-    var cTorNeighLoopList = new ListBuffer[Statement]
-    var dTorNeighLoopList = new ListBuffer[Statement]
-
-    declarations += s"int neighbor_remoteRank[$numDomains][$numNeighbors]"
-    cTorNeighLoopList += s"neighbor_remoteRank[d][i] = MPI_PROC_NULL"
-
-    cTorBody += new ForLoopStatement(s"unsigned int d = 0", s"d < $numDomains", s"++d",
-      new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i",
-        cTorNeighLoopList))
-    dTorBody += new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i",
-      dTorNeighLoopList)
-  }
-
-  override def cpp = "NOT VALID ; CLASS = FragmentClass\n"
 
   override def printToFile = {
     {
