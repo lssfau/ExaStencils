@@ -2,6 +2,7 @@ package exastencils.primitives
 
 import scala.collection.mutable.ListBuffer
 import exastencils.core._
+import exastencils.util._
 import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
@@ -89,22 +90,13 @@ object AddFragmentMember extends DefaultStrategy("Adding members for fragment co
   var ctorMap : Map[String, Statement] = Map()
   var dtorMap : Map[String, Statement] = Map()
 
-  var numNeighbors : Int = 0
-  var numDomains : Int = 0
-
-  override def apply(node : Option[Node] = None) = {
-    numNeighbors = StateManager.findFirst[FragmentClass]().get.neighbors.size
-    numDomains = StateManager.findFirst[DomainCollection]().get.domains.size
-    super.apply(node)
-  }
-
   this += new Transformation("Collecting", {
-    case mem : FragCommMember =>
-      declarationMap += (mem.resolveName -> mem.getDeclaration(numNeighbors))
-      if (mem.getCtor("i").isDefined)
-        ctorMap += (mem.resolveName -> mem.getCtor("i").get)
-      if (mem.getDtor("i").isDefined)
-        dtorMap += (mem.resolveName -> mem.getDtor("i").get)
+    case mem : FragCommMember => // TODO: don't overwrite for performance reasons
+      declarationMap += (mem.resolveName -> mem.getDeclaration)
+      if (mem.getCtor().isDefined)
+        ctorMap += (mem.resolveName -> mem.getCtor().get)
+      if (mem.getDtor().isDefined)
+        dtorMap += (mem.resolveName -> mem.getDtor().get)
       mem
   })
 
@@ -113,17 +105,28 @@ object AddFragmentMember extends DefaultStrategy("Adding members for fragment co
       for (decl <- declarationMap)
         frag.declarations += decl._2
       if (!ctorMap.isEmpty)
-        frag.cTorBody += new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i", ctorMap.map(_._2).to[ListBuffer])
+        frag.cTorBody ++= ctorMap.map(_._2)
       if (!dtorMap.isEmpty)
-        frag.dTorBody += new ForLoopStatement(s"unsigned int i = 0", s"i < $numNeighbors", s"++i", dtorMap.map(_._2).to[ListBuffer])
+        frag.dTorBody ++= dtorMap.map(_._2)
       frag
+  })
+
+  var bufferSizes : Map[Expression, Int] = Map()
+
+  this += new Transformation("Collecting buffer sizes", {
+    case buf : FragMember_TmpBuffer =>
+      val size = SimplifyExpression.evalIntegral(buf.size).toInt
+      val id = buf.resolveAccess(buf.resolveName, new NullExpression, buf.field.identifier /*FIXME: id*/ , buf.field.level, buf.neighIdx)
+      bufferSizes += (id -> (size max bufferSizes.getOrElse(id, 0)))
+      buf
   })
 
   this += new Transformation("Extending SetupBuffers function", {
     // FIXME: this kind of matching is awkward, I want trafos that don't return nodes
     case func : FunctionStatement if (("setupBuffers" : Expression) == func.name) =>
-      for (buf <- FragMember_TmpBuffer.sizes) // FIXME: anonymous tuple members make this code really hard to read
-        func.body += new AssignmentStatement(new ArrayAccess(buf._1._1, buf._1._2), s"new double[${buf._2}]")
+      for (buf <- bufferSizes) {
+        func.body += new AssignmentStatement(buf._1, s"new double[${buf._2}]")
+      }
       func
   })
 }

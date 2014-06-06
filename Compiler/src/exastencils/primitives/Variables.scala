@@ -1,78 +1,125 @@
 package exastencils.primitives
 
 import scala.collection.mutable.ListBuffer
+import exastencils.core._
 import exastencils.knowledge._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.util._
 
-abstract class FragCommMember() extends Expression {
+abstract class FragCommMember(var canBePerDomain : Boolean, var canBePerField : Boolean, var canBePerLevel : Boolean, var canBePerNeigh : Boolean) extends Expression {
   override def cpp : String = "curFragment." + resolveName
 
   def resolveName : String
   def resolveDataType : Datatype
   def resolveDefValue : Option[Expression] = None
 
-  def getDeclaration(numNeighbors : Int) : VariableDeclarationStatement = {
-    new VariableDeclarationStatement(ArrayDatatype(resolveDataType, numNeighbors), resolveName)
+  def getDeclaration() : VariableDeclarationStatement = {
+    val numDomains = StateManager.findFirst[DomainCollection]().get.domains.size
+    val numFields = StateManager.findFirst[FieldCollection]().get.fields.size
+    val numLevels = Knowledge.numLevels
+    val numNeighbors = StateManager.findFirst[FragmentClass]().get.neighbors.size
+
+    var dt : Datatype = resolveDataType
+
+    if (canBePerDomain && Knowledge.comm_sepCommStructsPerDomain && Knowledge.comm_useCommArraysPerDomain)
+      dt = ArrayDatatype(dt, numDomains)
+    if (canBePerField && Knowledge.comm_sepCommStructsPerField && Knowledge.comm_useCommArraysPerField)
+      dt = ArrayDatatype(dt, numFields)
+    if (canBePerLevel && Knowledge.comm_sepCommStructsPerLevel && Knowledge.comm_useCommArraysPerLevel)
+      dt = ArrayDatatype(dt, numLevels)
+    if (canBePerNeigh && Knowledge.comm_sepCommStructsPerNeigh && Knowledge.comm_useCommArraysPerNeigh)
+      dt = ArrayDatatype(dt, numNeighbors)
+
+    new VariableDeclarationStatement(dt, resolveName)
   }
 
-  def getCtor(neighIdx : Expression) : Option[Statement] = {
+  def wrapInLoops(body : Statement) : Statement = {
+    val numDomains = StateManager.findFirst[DomainCollection]().get.domains.size
+    val numFields = StateManager.findFirst[FieldCollection]().get.fields.size
+    val numLevels = Knowledge.numLevels
+    val numNeighbors = StateManager.findFirst[FragmentClass]().get.neighbors.size
+
+    var wrappedBody = body
+
+    if (canBePerDomain && Knowledge.comm_sepCommStructsPerDomain && Knowledge.comm_useCommArraysPerDomain)
+      wrappedBody = new ForLoopStatement(s"unsigned int d = 0", s"d < $numDomains", s"++d", wrappedBody)
+    if (canBePerField && Knowledge.comm_sepCommStructsPerField && Knowledge.comm_useCommArraysPerField)
+      wrappedBody = new ForLoopStatement(s"unsigned int f = 0", s"f < $numFields", s"++f", wrappedBody)
+    if (canBePerLevel && Knowledge.comm_sepCommStructsPerLevel && Knowledge.comm_useCommArraysPerLevel)
+      wrappedBody = new ForLoopStatement(s"unsigned int l = 0", s"l < $numLevels", s"++l", wrappedBody)
+    if (canBePerNeigh && Knowledge.comm_sepCommStructsPerNeigh && Knowledge.comm_useCommArraysPerNeigh)
+      wrappedBody = new ForLoopStatement(s"unsigned int n = 0", s"n < $numNeighbors", s"++n", wrappedBody)
+
+    wrappedBody
+  }
+
+  def getCtor() : Option[Statement] = {
     if (resolveDefValue.isDefined)
-      Some(AssignmentStatement(new ArrayAccess(resolveName, neighIdx), resolveDefValue.get))
+      Some(wrapInLoops(AssignmentStatement(resolveAccess(resolveName, "d", "f", "l", "n"), resolveDefValue.get)))
     else
       None
   }
 
-  def getDtor(neighIdx : Expression) : Option[Statement] = None
-}
+  def getDtor() : Option[Statement] = None
 
-abstract class FragCommMemberWithPostfix extends FragCommMember {
-  var field : Field
-  def resolvePostfix = {
-    if (Knowledge.comm_sepCommStructsPerField)
-      s"_${field.identifier}"
-    else
-      ""
+  def resolvePostfix(domain : String, field : String, level : String, neigh : String) : String = {
+    var postfix : String = ""
+
+    if (canBePerDomain && Knowledge.comm_sepCommStructsPerDomain && !Knowledge.comm_useCommArraysPerDomain)
+      postfix += "_" + domain
+    if (canBePerField && Knowledge.comm_sepCommStructsPerField && !Knowledge.comm_useCommArraysPerField)
+      postfix += "_" + field
+    if (canBePerLevel && Knowledge.comm_sepCommStructsPerLevel && !Knowledge.comm_useCommArraysPerLevel)
+      postfix += "_" + level
+    if (canBePerNeigh && Knowledge.comm_sepCommStructsPerNeigh && !Knowledge.comm_useCommArraysPerNeigh)
+      postfix += "_" + neigh
+
+    postfix
+  }
+
+  def resolveAccess(baseAccess : Expression, domain : Expression, field : Expression, level : Expression, neigh : Expression) : Expression = {
+    var access = baseAccess
+
+    if (canBePerDomain && Knowledge.comm_sepCommStructsPerDomain && Knowledge.comm_useCommArraysPerDomain)
+      access = new ArrayAccess(access, domain)
+    if (canBePerField && Knowledge.comm_sepCommStructsPerField && Knowledge.comm_useCommArraysPerField)
+      access = new ArrayAccess(access, field)
+    if (canBePerLevel && Knowledge.comm_sepCommStructsPerLevel && Knowledge.comm_useCommArraysPerLevel)
+      access = new ArrayAccess(access, level)
+    if (canBePerNeigh && Knowledge.comm_sepCommStructsPerNeigh && Knowledge.comm_useCommArraysPerNeigh)
+      access = new ArrayAccess(access, neigh)
+
+    access
   }
 }
 
-case class FragMember_ReqOutstanding(var field : Field, var direction : String, var neighIdx : Expression) extends FragCommMemberWithPostfix {
-  override def cpp : String = super.cpp + s"[${neighIdx.cpp}]"
+case class FragMember_ReqOutstanding(var field : Field, var direction : String, var neighIdx : Expression) extends FragCommMember(false, true, true, true) {
+  override def cpp : String = "curFragment." + resolveAccess(resolveName, new NullExpression, field.identifier /*FIXME: id*/ , field.level, neighIdx).cpp
 
-  override def resolveName = s"reqOutstanding_${direction}" + resolvePostfix
+  override def resolveName = s"reqOutstanding_${direction}" + resolvePostfix("", field.identifier, field.level.toString, neighIdx.cpp)
   override def resolveDataType = new BooleanDatatype
   override def resolveDefValue = Some(false)
 }
 
-case class FragMember_MpiRequest(var field : Field, var direction : String, var neighIdx : Expression) extends FragCommMemberWithPostfix {
-  override def cpp : String = super.cpp + s"[${neighIdx.cpp}]"
+case class FragMember_MpiRequest(var field : Field, var direction : String, var neighIdx : Expression) extends FragCommMember(false, true, true, true) {
+  override def cpp : String = "curFragment." + resolveAccess(resolveName, new NullExpression, field.identifier /*FIXME: id*/ , field.level, neighIdx).cpp
 
-  override def resolveName = s"mpiRequest_${direction}" + resolvePostfix
+  override def resolveName = s"mpiRequest_${direction}" + resolvePostfix("", field.identifier, field.level.toString, neighIdx.cpp)
   override def resolveDataType = "MPI_Request"
 }
 
-object FragMember_TmpBuffer {
-  var sizes : Map[(String, Int), Int] = Map()
-  def update(name : String, size : Int, neighIdx : Int) = {
-    sizes += ((name, neighIdx) -> (size max sizes.getOrElse((name, neighIdx), 0)))
-  }
-}
+case class FragMember_TmpBuffer(var field : Field, var direction : String, var size : Expression, var neighIdx : Expression) extends FragCommMember(false, true, true, true) {
+  override def cpp : String = "curFragment." + resolveAccess(resolveName, new NullExpression, field.identifier /*FIXME: id*/ , field.level, neighIdx).cpp
 
-case class FragMember_TmpBuffer(var field : Field, var direction : String, var size : Expression, var neighIdx : Expression) extends FragCommMemberWithPostfix {
-  import FragMember_TmpBuffer._
-  update(resolveName, SimplifyExpression.evalIntegral(size).toInt, SimplifyExpression.evalIntegral(neighIdx).toInt)
-
-  override def cpp : String = super.cpp + s"[${neighIdx.cpp}]"
-
-  override def resolveName = s"buffer_${direction}" + resolvePostfix
+  override def resolveName = s"buffer_${direction}" + resolvePostfix("", field.identifier, field.level.toString, neighIdx.cpp)
   override def resolveDataType = new PointerDatatype(field.dataType)
   override def resolveDefValue = Some(0)
 
-  override def getDtor(neighIdx : Expression) : Option[Statement] = {
-    Some(new ConditionStatement(new ArrayAccess(resolveName, neighIdx),
+  override def getDtor() : Option[Statement] = {
+    Some(wrapInLoops(new ConditionStatement(resolveAccess(resolveName, field.domain, field.identifier /*FIXME: use idx*/ , field.level, neighIdx),
       ListBuffer[Statement](
-        "delete []" ~~ new ArrayAccess(resolveName, neighIdx),
-        new AssignmentStatement(new ArrayAccess(resolveName, neighIdx), 0))))
+        "delete []" ~~ resolveAccess(resolveName, field.domain, field.identifier /*FIXME: use idx*/ , field.level, neighIdx),
+        new AssignmentStatement(resolveAccess(resolveName, field.domain, field.identifier /*FIXME: use idx*/ , field.level, neighIdx), 0)))))
   }
 }

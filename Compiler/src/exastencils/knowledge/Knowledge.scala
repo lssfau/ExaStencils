@@ -85,7 +85,18 @@ object Knowledge {
 
   // --- OpenMP and MPI Parallelization ---
   var comm_strategyFragment : Int = 6 // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors
-  var comm_sepCommStructsPerField : Boolean = true
+
+  var comm_sepCommStructsPerDomain : Boolean = false
+  var comm_useCommArraysPerDomain : Boolean = true
+
+  var comm_sepCommStructsPerField : Boolean = false
+  var comm_useCommArraysPerField : Boolean = false
+
+  var comm_sepCommStructsPerLevel : Boolean = false
+  var comm_useCommArraysPerLevel : Boolean = true
+
+  var comm_sepCommStructsPerNeigh : Boolean = true
+  var comm_useCommArraysPerNeigh : Boolean = true
 
   // --- OpenMP Parallelization ---
   var useOMP : Boolean = true // [true|false]

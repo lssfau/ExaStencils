@@ -5,6 +5,24 @@ import exastencils.datastructures.ir._
 
 trait Datatype extends Node with CppPrettyPrintable
 
+object ResolveDatatypePre {
+  def apply(dataType : Datatype) : String = {
+    dataType match {
+      case ArrayDatatype(dt, size) => ResolveDatatypePre(dt)
+      case _                       => dataType.cpp
+    }
+  }
+}
+
+object ResolveDatatypePost {
+  def apply(dataType : Datatype) : String = {
+    dataType match {
+      case ArrayDatatype(dt, size) => ResolveDatatypePost(dt) + s"[$size]"
+      case _                       => ""
+    }
+  }
+}
+
 case class SpecialDatatype(typeName : String) extends Datatype {
   override def cpp = typeName
 }
