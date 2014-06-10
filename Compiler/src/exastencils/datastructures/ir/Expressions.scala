@@ -150,7 +150,7 @@ case class IntegerConstant(var v : Long) extends Number {
 }
 
 case class FloatConstant(var v : Double) extends Number {
-  override def cpp = "%e".format(value)
+  override def cpp = String.format(java.util.Locale.US, "%e", Double.box(value)) // ensure the compiler can parse the string
   override def value = v
 }
 
