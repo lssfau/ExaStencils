@@ -161,7 +161,3 @@ object Knowledge {
     }
   }
 }
-
-object DimArray {
-  def apply() : Array[Int] = { (0 until Knowledge.dimensionality).toArray }
-}

@@ -49,7 +49,7 @@ case class CopyToSendBuffer(var field : Field, var neighbors : ListBuffer[(Neigh
       map(neigh =>
         new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
           new LoopOverDimensions(neigh._2,
-            new AssignmentStatement(new ArrayAccess(FragMember_TmpBuffer(field, "Send", DimArray().map(i => (neigh._2.end(i) - neigh._2.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _), neigh._1.index),
+            new AssignmentStatement(new ArrayAccess(FragMember_TmpBuffer(field, "Send", DimArrayHigher().map(i => (neigh._2.end(i) - neigh._2.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _), neigh._1.index),
               Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), neigh._2.begin, _ - _), neigh._2)),
               new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel with PolyhedronAccessable) : Statement)) with OMP_PotentiallyParallel
   }
@@ -66,7 +66,7 @@ case class CopyFromRecvBuffer(var field : Field, var neighbors : ListBuffer[(Nei
         (new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
           new LoopOverDimensions(neigh._2,
             new AssignmentStatement(new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()),
-              new ArrayAccess(FragMember_TmpBuffer(field, "Recv", DimArray().map(i => (neigh._2.end(i) - neigh._2.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _), neigh._1.index),
+              new ArrayAccess(FragMember_TmpBuffer(field, "Recv", DimArrayHigher().map(i => (neigh._2.end(i) - neigh._2.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _), neigh._1.index),
                 Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), neigh._2.begin, _ - _), neigh._2)))) with OMP_PotentiallyParallel with PolyhedronAccessable)) : Statement)) with OMP_PotentiallyParallel
   }
 }
@@ -114,7 +114,7 @@ case class RemoteSend(var field : Field, var neighbors : ListBuffer[(NeighborInf
         cnt = 1
         typeName = mpiTypeName
       } else {
-        cnt = DimArray().map(i => (neigh._2.end(i) - neigh._2.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
+        cnt = DimArrayHigher().map(i => (neigh._2.end(i) - neigh._2.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
         ptr = FragMember_TmpBuffer(field, "Send", cnt, neigh._1.index)
         typeName = s"MPI_DOUBLE"
       }
@@ -173,7 +173,7 @@ case class RemoteReceive(var field : Field, var neighbors : ListBuffer[(Neighbor
         cnt = 1
         typeName = mpiTypeName
       } else {
-        cnt = DimArray().map(i => (neigh._2.end(i) - neigh._2.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
+        cnt = DimArrayHigher().map(i => (neigh._2.end(i) - neigh._2.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
         ptr = FragMember_TmpBuffer(field, "Recv", cnt, neigh._1.index)
         typeName = s"MPI_DOUBLE"
       }

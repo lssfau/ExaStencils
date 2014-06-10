@@ -61,14 +61,14 @@ case class LoopOverDimensions(var indices : IndexRange,
     indices match {
       // basic version assuming Integer constants
       // 2D
-      case IndexRange(MultiIndex(xStart : IntegerConstant, yStart : IntegerConstant, _ : NullExpression),
-        MultiIndex(xEnd : IntegerConstant, yEnd : IntegerConstant, _ : NullExpression)) => {
+      case IndexRange(MultiIndex(xStart : IntegerConstant, yStart : IntegerConstant, _ : NullExpression, _),
+        MultiIndex(xEnd : IntegerConstant, yEnd : IntegerConstant, _ : NullExpression, _)) => {
         val totalNumPoints = (xEnd.v - xStart.v) * (yEnd.v - yStart.v)
         return (totalNumPoints > Knowledge.omp_minWorkItemsPerThread * Knowledge.omp_numThreads)
       }
       // 3D
-      case IndexRange(MultiIndex(xStart : IntegerConstant, yStart : IntegerConstant, zStart : IntegerConstant),
-        MultiIndex(xEnd : IntegerConstant, yEnd : IntegerConstant, zEnd : IntegerConstant)) => {
+      case IndexRange(MultiIndex(xStart : IntegerConstant, yStart : IntegerConstant, zStart : IntegerConstant, _),
+        MultiIndex(xEnd : IntegerConstant, yEnd : IntegerConstant, zEnd : IntegerConstant, _)) => {
         val totalNumPoints = (xEnd.v - xStart.v) * (yEnd.v - yStart.v) * (zEnd.v - zStart.v)
         return (totalNumPoints > Knowledge.omp_minWorkItemsPerThread * Knowledge.omp_numThreads)
       }
@@ -79,11 +79,11 @@ case class LoopOverDimensions(var indices : IndexRange,
         MultiIndex(
           OffsetIndex(xStartOffMin, xStartOffMax, xStart : IntegerConstant, _),
           OffsetIndex(yStartOffMin, yStartOffMax, yStart : IntegerConstant, _),
-          _ : NullExpression),
+          _ : NullExpression, _),
         MultiIndex(
           OffsetIndex(xEndOffMin, xEndOffMax, xEnd : IntegerConstant, _),
           OffsetIndex(yEndOffMin, yEndOffMax, yEnd : IntegerConstant, _),
-          _ : NullExpression)) => {
+          _ : NullExpression, _)) => {
         val totalNumPoints = (((xEnd.v + xEndOffMax) - (xStart.v + xStartOffMin))
           * ((yEnd.v + yEndOffMax) - (yStart.v + yStartOffMin)))
         return (totalNumPoints > Knowledge.omp_minWorkItemsPerThread * Knowledge.omp_numThreads)
@@ -93,11 +93,11 @@ case class LoopOverDimensions(var indices : IndexRange,
         MultiIndex(
           OffsetIndex(xStartOffMin, xStartOffMax, xStart : IntegerConstant, _),
           OffsetIndex(yStartOffMin, yStartOffMax, yStart : IntegerConstant, _),
-          OffsetIndex(zStartOffMin, zStartOffMax, zStart : IntegerConstant, _)),
+          OffsetIndex(zStartOffMin, zStartOffMax, zStart : IntegerConstant, _), _),
         MultiIndex(
           OffsetIndex(xEndOffMin, xEndOffMax, xEnd : IntegerConstant, _),
           OffsetIndex(yEndOffMin, yEndOffMax, yEnd : IntegerConstant, _),
-          OffsetIndex(zEndOffMin, zEndOffMax, zEnd : IntegerConstant, _))) => {
+          OffsetIndex(zEndOffMin, zEndOffMax, zEnd : IntegerConstant, _), _)) => {
         val totalNumPoints = (((xEnd.v + xEndOffMax) - (xStart.v + xStartOffMin))
           * ((yEnd.v + yEndOffMax) - (yStart.v + yStartOffMin))
           * ((zEnd.v + zEndOffMax) - (zStart.v + zStartOffMin)))

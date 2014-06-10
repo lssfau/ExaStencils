@@ -1,6 +1,8 @@
 package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
+import exastencils.knowledge
+import exastencils.knowledge.Knowledge
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -53,7 +55,23 @@ case class FieldIdentifier(var name : String, var level : LevelSpecification) ex
   }
 
   def progressToIr : ir.UnresolvedFieldAccess = {
-    ir.UnresolvedFieldAccess("curFragment." /*FIXME*/ , name, level.asInstanceOf[SingleLevelSpecification].level, "0" /*FIXME*/ , ir.DefaultLoopMultiIndex())
+    var multiIndex = ir.DefaultLoopMultiIndex()
+    multiIndex(Knowledge.dimensionality) = 0
+    ir.UnresolvedFieldAccess("curFragment." /*FIXME*/ , name, level.asInstanceOf[SingleLevelSpecification].level, "0" /*FIXME*/ , multiIndex)
+  }
+}
+
+case class VectorFieldAccess(var field : FieldIdentifier, var index : Int) extends Identifier {
+  var name = field.name //compliance with Identifier
+
+  def progressNameToIr : ir.StringConstant = {
+    field.progressNameToIr
+  }
+
+  def progressToIr : ir.UnresolvedFieldAccess = {
+    var access = field.progressToIr
+    access.index(Knowledge.dimensionality) = index
+    access
   }
 }
 

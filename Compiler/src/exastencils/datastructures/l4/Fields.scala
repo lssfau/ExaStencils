@@ -77,8 +77,7 @@ case class LayoutDeclarationStatement(var name : String,
       l4_duplicateLayers(dim),
       l4_ghostLayers(dim),
       0 // FIXME: check if padding at the end will be required
-      )) ++
-      (Knowledge.dimensionality until 3).toArray.map(dim => new knowledge.FieldLayoutPerDim(0, 0, 0, 1, 0, 0, 0))
+      ))
   }
 }
 
@@ -93,7 +92,12 @@ case class FieldDeclarationStatement(var name : String,
 
   def progressToIr : knowledge.Field = {
     val l4_layout = StateManager.root_.asInstanceOf[Root].getLayoutByIdentifier(layout).get
-    val ir_layout = l4_layout.progressToIr(level.get.asInstanceOf[SingleLevelSpecification].level)
+
+    var ir_layout = l4_layout.progressToIr(level.get.asInstanceOf[SingleLevelSpecification].level)
+    ir_layout ++= Array(new knowledge.FieldLayoutPerDim(0, 0, 0, datatype.progressToIr.resolveFlattendSize, 0, 0, 0))
+
+    var refOffset = l4_layout.l4_ghostLayers.progressToIr // TODO: this should work for now but may be adapted in the future
+    refOffset(Knowledge.dimensionality) = 0
 
     new knowledge.Field(
       name,
@@ -105,7 +109,7 @@ case class FieldDeclarationStatement(var name : String,
       l4_layout.l4_ghostComm,
       level.get.asInstanceOf[SingleLevelSpecification].level,
       slots,
-      l4_layout.l4_ghostLayers.progressToIr, // TODO: this should work for now but may be adapted in the future
+      refOffset,
       if (boundary.isDefined) Some(boundary.get.progressToIr) else None)
   }
 }

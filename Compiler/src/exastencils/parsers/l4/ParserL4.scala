@@ -133,7 +133,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val loopOverWithClause = locationize((("reduction" ~ "(") ~> ("+" ||| "*")) ~ (":" ~> identifierWithOptionalLevel <~ ")") ^^ { case op ~ s => ReductionStatement(op, s) })
 
-  lazy val assignment = locationize(identifierWithOptionalLevel ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(id, exp) })
+  lazy val assignment = locationize(identifierWithOptionalLevel ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(id, exp) }
+    ||| vectorFieldAccess ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(id, exp) })
 
   lazy val operatorassignment = locationize(identifierWithOptionalLevel ~ operatorassignmentoperator ~ expression ^^ {
     case id ~ op ~ exp => AssignmentStatement(id, BinaryExpression(op, id, exp))
@@ -187,6 +188,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val stencilEntry = ((expressionIndex ~ ("=>" ~> factor)) ^^ { case offset ~ weight => StencilEntry(offset, weight) })
 
   lazy val communicateStatement = locationize("communicate" ~> identifierWithOptionalLevel ^^ { case field => CommunicateStatement(field) })
+
+  lazy val vectorFieldAccess = locationize(identifierWithObligatoryLevel ~ ("[" ~> integerLit <~ "]") ^^ { case field ~ index => VectorFieldAccess(field, index) })
 
   // ######################################
   // ##### Expressions

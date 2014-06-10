@@ -2,7 +2,7 @@ package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
 import exastencils.knowledge
-import exastencils.knowledge._
+import exastencils.knowledge.Knowledge
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -42,7 +42,9 @@ case class IterationSetDeclarationStatement(var identifier : Identifier, var beg
 
 case class StencilEntry(var offset : ExpressionIndex, var weight : Expression) extends SpecialStatement {
   def progressToIr : knowledge.StencilEntry = {
-    knowledge.StencilEntry(offset.progressToIr, weight.progressToIr)
+    var off = offset.progressToIr
+    if (off(Knowledge.dimensionality).isInstanceOf[ir.NullExpression]) off(Knowledge.dimensionality) = 0
+    knowledge.StencilEntry(off, weight.progressToIr)
   }
 }
 
