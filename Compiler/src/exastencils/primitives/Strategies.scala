@@ -29,7 +29,7 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
   this += new Transformation("Updating FragmentClass with required field declarations", {
     case frag : FragmentClass =>
       for (field <- FieldCollection.fields) {
-        frag.declarations += field.dataType. /*FIXME*/ cpp ~ "*" ~ field.codeName ~ s"[${field.numSlots}]"
+        frag.declarations += VariableDeclarationStatement(ArrayDatatype(PointerDatatype(field.dataType.resolveUnderlyingDatatype), field.numSlots), field.codeName)
         frag.dTorBody ++= (0 until field.numSlots).map(slot => ("delete[] " ~ field.codeName ~ s"[$slot]") : Statement).to[ListBuffer]
       }
       frag

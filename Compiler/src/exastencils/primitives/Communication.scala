@@ -109,7 +109,7 @@ case class RemoteSend(var field : Field, var neighbors : ListBuffer[(NeighborInf
         cnt = 1
         typeName = s"MPI_DOUBLE"
       } else if (Knowledge.mpi_useCustomDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))) {
-        val mpiTypeName = addMPIDatatype(s"mpiType_Send_${field.codeName.cpp}_${neigh._1.index}", neigh._2)
+        val mpiTypeName = addMPIDatatype(s"mpiType_Send_${field.codeName}_${neigh._1.index}", neigh._2)
         ptr = s"&" ~ new DirectFieldAccess("curFragment.", field, "slot", neigh._2.begin)
         cnt = 1
         typeName = mpiTypeName
@@ -168,7 +168,7 @@ case class RemoteReceive(var field : Field, var neighbors : ListBuffer[(Neighbor
         cnt = 1
         typeName = s"MPI_DOUBLE"
       } else if (Knowledge.mpi_useCustomDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))) {
-        val mpiTypeName = addMPIDatatype(s"mpiType_Recv_${field.codeName.cpp}_${neigh._1.index}", neigh._2)
+        val mpiTypeName = addMPIDatatype(s"mpiType_Recv_${field.codeName}_${neigh._1.index}", neigh._2)
         ptr = s"&" ~ new DirectFieldAccess("curFragment.", field, "slot", neigh._2.begin)
         cnt = 1
         typeName = mpiTypeName

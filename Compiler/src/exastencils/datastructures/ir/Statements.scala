@@ -38,7 +38,7 @@ case class VariableDeclarationStatement(var dataType : Datatype, var name : Stri
   def this(variable : VariableAccess, expression : Option[Expression]) = this(variable.dType.get, variable.name, expression)
   def this(variable : VariableAccess) = this(variable.dType.get, variable.name, None)
 
-  override def cpp = ResolveDatatypePre(dataType) + " " + name + ResolveDatatypePost(dataType) + (if (expression.isDefined) s" = ${expression.get.cpp};" else ";")
+  override def cpp = dataType.resolveUnderlyingDatatype.cpp + " " + name + dataType.resolvePostscript + (if (expression.isDefined) s" = ${expression.get.cpp};" else ";")
   def cpp_onlyDeclaration = { VariableDeclarationStatement(dataType, name, None).cpp }
 }
 

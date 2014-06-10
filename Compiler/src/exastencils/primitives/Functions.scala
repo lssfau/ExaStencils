@@ -138,9 +138,11 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
     body += "Fragment3DCube& curFragment = *this" // HACK
 
     for (field <- fields) {
+      var numDataPoints = field.layout(0).total * field.layout(1).total * field.layout(2).total * field.dataType.resolveFlattendSize
       body += new ConditionStatement(FragMember_IsValidForSubdomain(field.domain),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
-          new AssignmentStatement(field.codeName ~ "[" ~ slot ~ "]", ("new" : Expression) ~~ field.dataType. /*FIXME*/ cpp ~ "[" ~ (field.layout(0).total * field.layout(1).total * field.layout(2).total) ~ "]") : Statement))
+          new AssignmentStatement(new ArrayAccess(field.codeName, slot),
+            ("new" : Expression) ~~ field.dataType.resolveUnderlyingDatatype. /*FIXME*/ cpp ~ "[" ~ numDataPoints ~ "]") : Statement))
     }
 
     return FunctionStatement(new UnitDatatype(), s"setupBuffers", ListBuffer(), body)

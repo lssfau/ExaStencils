@@ -3,22 +3,25 @@ package exastencils.datastructures.ir
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 
-trait Datatype extends Node with CppPrettyPrintable
-
-object ResolveDatatypePre {
-  def apply(dataType : Datatype) : String = {
-    dataType match {
-      case ArrayDatatype(dt, size) => ResolveDatatypePre(dt)
-      case _                       => dataType.cpp
+trait Datatype extends Node with CppPrettyPrintable {
+  def resolveUnderlyingDatatype : Datatype = {
+    this match {
+      case ArrayDatatype(dt, size) => dt.resolveUnderlyingDatatype
+      case dt                      => dt
     }
   }
-}
 
-object ResolveDatatypePost {
-  def apply(dataType : Datatype) : String = {
-    dataType match {
-      case ArrayDatatype(dt, size) => ResolveDatatypePost(dt) + s"[$size]"
+  def resolvePostscript : String = {
+    this match {
+      case ArrayDatatype(dt, size) => dt.resolvePostscript + s"[$size]"
       case _                       => ""
+    }
+  }
+
+  def resolveFlattendSize : Int = {
+    this match {
+      case ArrayDatatype(dt, size) => dt.resolveFlattendSize * size
+      case _                       => 1
     }
   }
 }

@@ -14,7 +14,7 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
   override def expand : FunctionStatement = {
     var body = new ListBuffer[Statement]
 
-    val fieldName = s"curFragment.${field.codeName.cpp}[slot]"
+    val fieldName = s"curFragment.${field.codeName}[slot]"
 
     // handle BC
     // FIXME: currently treats numInnerLayers points
@@ -189,7 +189,7 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
     }
 
     // compile return value
-    return FunctionStatement(new UnitDatatype(), s"exch${field.codeName.cpp}",
+    return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}",
       ListBuffer(VariableAccess("slot", Some("unsigned int"))),
       body)
   }
@@ -201,7 +201,7 @@ case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) 
   override def expand : FunctionStatement = {
     var body = new ListBuffer[Statement]
 
-    val fieldName = s"curFragment.${field.codeName.cpp}[slot]"
+    val fieldName = s"curFragment.${field.codeName}[slot]"
 
     // handle BC
     // FIXME: currently treats numInnerLayers points
@@ -370,7 +370,7 @@ case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) 
     }
 
     // compile return value
-    return FunctionStatement(new UnitDatatype(), s"exch${field.codeName.cpp}",
+    return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}",
       ListBuffer(VariableAccess("slot", Some("unsigned int"))),
       body)
   }
