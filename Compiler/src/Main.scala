@@ -80,7 +80,8 @@ object Main {
 
     ExpandStrategy.doUntilDone()
 
-    PolyOpt.apply()
+    if (Knowledge.poly_usePolyOpt)
+    	PolyOpt.apply()
 
     ResolveLoopOverDimensions.apply()
 

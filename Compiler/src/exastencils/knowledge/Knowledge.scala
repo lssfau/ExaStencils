@@ -115,6 +115,9 @@ object Knowledge {
   var mpi_useLoopsWherePossible : Boolean = true // [true|false] // allows to summarize some code blocks into loops in order to shorten the resulting code length
   var mpi_defaultCommunicator : String = "MPI_COMM_WORLD" // sets the initial communicator used by most MPI operations
 
+  // --- Polyhedron Optimization ---
+  var poly_usePolyOpt : Boolean = true // [true|false] 
+
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
 
