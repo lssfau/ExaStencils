@@ -3,7 +3,6 @@ package exastencils.polyhedron
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core.Logger
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
@@ -41,11 +40,12 @@ import exastencils.knowledge.dimToString
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.primitives.LoopOverDimensions
 import isl.Conversions.convertLambdaToXCallback1
+import exastencils.datastructures.ir.Scope
 
-class ASTBuilderTransformation(replaceCallback : (String, Expression, Node) => Unit)
+class ASTBuilderTransformation(replaceCallback : (HashMap[String, Expression], Node) => Unit)
   extends Transformation("insert optimized loop AST", new ASTBuilderFunction(replaceCallback))
 
-private final class ASTBuilderFunction(replaceCallback : (String, Expression, Node) => Unit)
+private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expression], Node) => Unit)
     extends PartialFunction[Node, Transformation.Output[_]] {
 
   private final val ZERO_VAL : isl.Val = isl.Val.zero()
@@ -100,13 +100,26 @@ private final class ASTBuilderFunction(replaceCallback : (String, Expression, No
       })
     }
 
-    try {
-      processIslNode(islNode)
-    } catch {
-      case PolyASTBuilderException(msg) =>
-        Logger.debug("[poly] cannot create AST from model:  " + msg)
-        node
+    var nju : Statement =
+      try {
+        processIslNode(islNode)
+      } catch {
+        case PolyASTBuilderException(msg) =>
+          Logger.debug("[poly ast] cannot create AST from model:  " + msg)
+          return node
+      }
+
+    if (!scop.decls.isEmpty) {
+      val scopeList = new ListBuffer[Statement]
+      for (decl <- scop.decls) {
+        decl.expression = None
+        scopeList += decl
+      }
+      scopeList += nju
+      nju = new Scope(scopeList)
     }
+
+    return nju
   }
 
   private def processIslNode(node : isl.AstNode) : Statement = {
@@ -174,10 +187,12 @@ private final class ASTBuilderFunction(replaceCallback : (String, Expression, No
         val stmt : Statement = oldStmts(name)
         var d : Int = 1
         val dims : Int = Knowledge.dimensionality
+        val repl = new HashMap[String, Expression]()
         do {
-          replaceCallback(dimToString(dims - d), args(d), stmt)
+          repl.put(dimToString(dims - d), args(d))
           d += 1
         } while (d < args.length)
+        replaceCallback(repl, stmt)
         stmt
 
       case isl.AstNodeType.NodeError => throw new PolyASTBuilderException("NodeError found...")

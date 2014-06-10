@@ -1,7 +1,6 @@
 package exastencils.polyhedron
 
 import scala.collection.mutable.ArrayStack
-
 import exastencils.core.Logger
 import exastencils.core.StateManager
 import exastencils.datastructures.CustomStrategy
@@ -11,12 +10,13 @@ import exastencils.datastructures.Transformation.convFromNode
 import exastencils.datastructures.ir.Expression
 import exastencils.datastructures.ir.StringConstant
 import exastencils.datastructures.ir.VariableAccess
+import scala.collection.mutable.HashMap
 
 trait PolyhedronAccessable
 
 object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
-  final val SCOP_ANNOT : String = "PolySCoP"
+  final val SCOP_ANNOT : String = "PolyScop"
 
   override def apply() : Unit = {
 
@@ -75,13 +75,13 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   private def recreateAndInsertAST() : Unit = {
 
-    val replaceCallback = { (oldVar : String, newExpr : Expression, applyAt : Node) =>
+    val replaceCallback = { (repl : HashMap[String, Expression], applyAt : Node) =>
       val oldLvl = Logger.getLevel
       Logger.setLevel(1)
       this.execute(
         new Transformation("update loop iterator", {
-          case VariableAccess(str, _) if (str == oldVar) => newExpr
-          case StringConstant(str) if (str == oldVar)    => newExpr
+          case old @ VariableAccess(str, _) => repl.getOrElse(str, old)
+          case old @ StringConstant(str)    => repl.getOrElse(str, old)
         }), Some(applyAt))
       Logger.setLevel(oldLvl)
     }

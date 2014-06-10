@@ -5,7 +5,6 @@ import scala.collection.mutable.HashSet
 import scala.collection.mutable.Set
 import scala.collection.mutable.StringBuilder
 import scala.language.implicitConversions
-
 import exastencils.core.Logger
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Annotation
@@ -43,6 +42,14 @@ import exastencils.knowledge.Field
 import exastencils.knowledge.Knowledge
 import exastencils.knowledge.dimToString
 import exastencils.primitives.LoopOverDimensions
+import exastencils.datastructures.ir.VariableDeclarationStatement
+import exastencils.datastructures.ir.VariableDeclarationStatement
+import exastencils.datastructures.ir.VariableDeclarationStatement
+import exastencils.datastructures.ir.AssignmentStatement
+import exastencils.datastructures.ir.AssignmentStatement
+import exastencils.datastructures.ir.VariableAccess
+import com.sun.javafx.css.Declaration
+import exastencils.datastructures.ir.VariableDeclarationStatement
 
 class Extractor extends Collector {
   import scala.language.implicitConversions
@@ -120,15 +127,15 @@ class Extractor extends Collector {
       formatter.format(setTemplate_, tupleName)
       val set = new isl.Set(formatterResult.toString())
       // TODO: remove
-      //      val f = classOf[isl.UnionSet].getDeclaredField("ptr")
-      //      f.setAccessible(true)
-      //      if (f.get(set).asInstanceOf[com.sun.jna.PointerType] == null) {
-      //        println()
-      //        println("======================================================")
-      //        println(setTemplate_)
-      //        println(tupleName)
-      //        println()
-      //      }
+      val f = classOf[isl.UnionSet].getDeclaredField("ptr")
+      f.setAccessible(true)
+      if (f.get(set).asInstanceOf[com.sun.jna.PointerType] == null) {
+        println()
+        println("======================================================")
+        println(setTemplate_)
+        println(tupleName)
+        println()
+      }
       return set
     }
 
@@ -138,17 +145,17 @@ class Extractor extends Collector {
       formatter.format(mapTemplate_, inTupleName, outTupleName, out)
       val map = new isl.Map(formatterResult.toString())
       // TODO: remove
-      //      val f = classOf[isl.UnionMap].getDeclaredField("ptr")
-      //      f.setAccessible(true)
-      //      if (f.get(map).asInstanceOf[com.sun.jna.PointerType] == null) {
-      //        println()
-      //        println("======================================================")
-      //        println(mapTemplate_)
-      //        println(inTupleName)
-      //        println(outTupleName)
-      //        println(out)
-      //        println()
-      //      }
+      val f = classOf[isl.UnionMap].getDeclaredField("ptr")
+      f.setAccessible(true)
+      if (f.get(map).asInstanceOf[com.sun.jna.PointerType] == null) {
+        println()
+        println("======================================================")
+        println(mapTemplate_)
+        println(inTupleName)
+        println(outTupleName)
+        println(out)
+        println()
+      }
       return map
     }
 
@@ -160,7 +167,7 @@ class Extractor extends Collector {
 
     def discard(msg : String = null) : Unit = {
       if (msg != null) {
-        Logger.debug("[poly ex] SCoP discarded:  " + msg)
+        Logger.debug("[poly extr] Scop discarded:  " + msg)
         trash.push((if (scop_ != null) scop_.root else null, msg))
       }
       scop_ = null
@@ -176,7 +183,7 @@ class Extractor extends Collector {
   override def enter(node : Node) : Unit = {
 
     node.getAnnotation(Access.ANNOT) match {
-      case Some(Annotation(_, Some(acc))) =>
+      case Some(Annotation(_, acc)) =>
         acc match {
           case Access.READ  => isRead = true
           case Access.WRITE => isWrite = true
@@ -233,17 +240,19 @@ class Extractor extends Collector {
 
         case DirectFieldAccess(owner, field, slot, index) =>
           owner.annotate(SKIP_ANNOT)
-          //field.annotate(SKIP_ANNOT)
           slot.annotate(SKIP_ANNOT)
           index.annotate(SKIP_ANNOT)
           enterFieldAccess(owner, field, slot, index)
 
         case FieldAccess(owner, field, slot, index) =>
           owner.annotate(SKIP_ANNOT)
-          //field.annotate(SKIP_ANNOT)
           slot.annotate(SKIP_ANNOT)
           index.annotate(SKIP_ANNOT)
           enterFieldAccess(owner, field, slot, index, field.referenceOffset)
+
+        case d : VariableDeclarationStatement =>
+          d.dataType.annotate(SKIP_ANNOT)
+          enterDecl(d)
 
         // ignore
         case _ : StatementBlock
@@ -275,14 +284,15 @@ class Extractor extends Collector {
       skip = false
 
     node match {
-      case l : LoopOverDimensions  => leaveLoop(l)
-      case _ : AssignmentStatement => leaveAssign()
-      case _ : StringConstant      => leaveScalarAccess()
-      case _ : VariableAccess      => leaveScalarAccess()
-      case _ : ArrayAccess         => leaveArrayAccess()
-      case _ : DirectFieldAccess   => leaveFieldAccess()
-      case _ : FieldAccess         => leaveFieldAccess()
-      case _                       =>
+      case l : LoopOverDimensions           => leaveLoop(l)
+      case _ : AssignmentStatement          => leaveAssign()
+      case _ : StringConstant               => leaveScalarAccess()
+      case _ : VariableAccess               => leaveScalarAccess()
+      case _ : ArrayAccess                  => leaveArrayAccess()
+      case _ : DirectFieldAccess            => leaveFieldAccess()
+      case _ : FieldAccess                  => leaveFieldAccess()
+      case _ : VariableDeclarationStatement => leaveDecl()
+      case _                                =>
     }
   }
 
@@ -545,17 +555,17 @@ class Extractor extends Collector {
     assign.op match {
 
       case StringConstant("=") =>
-        assign.dest.annotate(Access.ANNOT, Some(Access.WRITE))
+        assign.dest.annotate(Access.ANNOT, Access.WRITE)
 
       case StringConstant("+=") | StringConstant("-=") | StringConstant("*=") | StringConstant("/=") =>
-        assign.dest.annotate(Access.ANNOT, Some(Access.UPDATE))
+        assign.dest.annotate(Access.ANNOT, Access.UPDATE)
 
       case _ =>
         curScop.discard("unrecognized assignment operator: " + assign.op)
         return
     }
 
-    assign.src.annotate(Access.ANNOT, Some(Access.READ))
+    assign.src.annotate(Access.ANNOT, Access.READ)
   }
 
   private def leaveAssign() : Unit = {
@@ -569,7 +579,7 @@ class Extractor extends Collector {
     while (i > 0) {
       i -= 1
       varName.charAt(i) match {
-        case '=' | '+' | '-' | '*' | '/' | '[' | '(' | '.' =>
+        case '=' | '+' | '-' | '*' | '/' | '[' | '(' | ' ' =>
           curScop.discard("expression in StringConstant found: " + varName)
           return
         case _ =>
@@ -583,7 +593,7 @@ class Extractor extends Collector {
 
     val scop : Scop = curScop.get()
 
-    var access : isl.Map = curScop.buildIslMap(curScop.curStmt.label(), varName, "")
+    var access : isl.Map = curScop.buildIslMap(curScop.curStmt.label(), replaceSpecial(varName), "")
 
     if (isRead)
       scop.reads = if (scop.reads == null) access else scop.reads.addMap(access)
@@ -647,5 +657,31 @@ class Extractor extends Collector {
 
   private def leaveFieldAccess() : Unit = {
     leaveArrayAccess()
+  }
+
+  private def enterDecl(decl : VariableDeclarationStatement) : Unit = {
+
+    if (isRead || isWrite) {
+      curScop.discard("nested assignments are not supported (yet...?); skipping scop")
+      return
+    }
+
+    if (decl.expression.isDefined) {
+      val stmt = new AssignmentStatement(
+        new VariableAccess(decl.name, Some(decl.dataType)), decl.expression.get, new StringConstant("="))
+      enterStmt(stmt) // as a declaration is also a statement
+      decl.expression.get.annotate(Access.ANNOT, Access.READ)
+      isWrite = true
+      enterScalarAccess(decl.name)
+      isWrite = false
+    }
+
+    curScop.get().decls += decl
+  }
+
+  private def leaveDecl() : Unit = {
+
+    leaveScalarAccess()
+    leaveStmt()
   }
 }
