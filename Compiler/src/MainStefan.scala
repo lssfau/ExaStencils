@@ -17,6 +17,7 @@ import exastencils.parsers.l4.ParserL4
 import exastencils.parsers.l4.ValidationL4
 import exastencils.polyhedron.PolyOpt
 import exastencils.prettyprinting.PrettyprintingManager
+import exastencils.primitives.AddFragmentMember
 import exastencils.primitives.CommunicationFunctions
 import exastencils.primitives.FragmentClass
 import exastencils.primitives.LinearizeFieldAccesses
@@ -126,17 +127,16 @@ object MainStefan {
 
     ExpandStrategy.doUntilDone()
 
-    if (!Knowledge.useMPI) {
+    if (!Knowledge.useMPI)
       RemoveMPIReferences.apply()
-    }
 
     SimplifyStrategy.doUntilDone()
 
+    AddFragmentMember.apply()
     AddMemberFunctionPrefix.apply()
 
-    if (Knowledge.useOMP) {
+    if (Knowledge.useOMP)
       AddOMPPragmas.apply()
-    }
 
     PrintStrategy.apply()
     PrettyprintingManager.finish
