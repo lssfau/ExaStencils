@@ -45,9 +45,6 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   //###########################################################
 
-  //  lazy val program = locationize(domain.* ~ layout.* ~ field.* ~ externalField.* ~ stencil.* ~ iterationSet.* ~ globals.* ~ function.* ^^
-  //    { case d ~ l ~ f ~ ef ~ s ~ i ~ g ~ ss => Root(d, l, f, ef, s, i, g, ss) })
-
   lazy val program = definition.* ^^ { case d => Root(d) }
 
   lazy val definition = domain ||| layout ||| field ||| externalField ||| stencil ||| iterationSet ||| globals ||| function
