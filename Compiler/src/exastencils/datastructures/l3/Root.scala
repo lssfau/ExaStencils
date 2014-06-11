@@ -130,6 +130,7 @@ case class Root() extends Node {
     // Coeff/StencilFields
     if (genStencilFields) {
       printer.println(s"Field LaplCoeff< Array[Real][${2 * Knowledge.dimensionality + 1}], global, NoComm, None >@all")
+      printer.println(s"StencilField Lapl< LaplCoeff => LaplStencil >@all")
       printer.println
     }
 
@@ -140,19 +141,20 @@ case class Root() extends Node {
     }
 
     // Stencils
+    if (genStencilFields)
+      printer.println("Stencil LaplStencil@all {")
+    else
+      printer.println("Stencil Lapl@all {")
     if (genSetableStencil) {
       Knowledge.dimensionality match {
         case 2 => {
-          printer.println("Stencil Lapl@all {")
           printer.println("\t[ 0,  0] => Lapl_Coeff_0_0")
           printer.println("\t[ 1,  0] => Lapl_Coeff_P1_0")
           printer.println("\t[-1,  0] => Lapl_Coeff_N1_0")
           printer.println("\t[ 0,  1] => Lapl_Coeff_0_P1")
           printer.println("\t[ 0, -1] => Lapl_Coeff_0_N1")
-          printer.println("}")
         }
         case 3 =>
-          printer.println("Stencil Lapl@all {")
           printer.println("\t[ 0,  0,  0] => Lapl_Coeff_0_0_0")
           printer.println("\t[ 1,  0,  0] => Lapl_Coeff_P1_0_0")
           printer.println("\t[-1,  0,  0] => Lapl_Coeff_N1_0_0")
@@ -160,21 +162,17 @@ case class Root() extends Node {
           printer.println("\t[ 0, -1,  0] => Lapl_Coeff_0_N1_0")
           printer.println("\t[ 0,  0,  1] => Lapl_Coeff_0_0_P1")
           printer.println("\t[ 0,  0, -1] => Lapl_Coeff_0_0_N1")
-          printer.println("}")
       }
     } else {
       Knowledge.dimensionality match {
         case 2 => {
-          printer.println("Stencil Lapl@all {")
           printer.println("\t[ 0,  0] => 4")
           printer.println("\t[ 1,  0] => -1")
           printer.println("\t[-1,  0] => -1")
           printer.println("\t[ 0,  1] => -1")
           printer.println("\t[ 0, -1] => -1")
-          printer.println("}")
         }
         case 3 =>
-          printer.println("Stencil Lapl@all {")
           printer.println("\t[ 0,  0,  0] => 6")
           printer.println("\t[ 1,  0,  0] => -1")
           printer.println("\t[-1,  0,  0] => -1")
@@ -182,9 +180,9 @@ case class Root() extends Node {
           printer.println("\t[ 0, -1,  0] => -1")
           printer.println("\t[ 0,  0,  1] => -1")
           printer.println("\t[ 0,  0, -1] => -1")
-          printer.println("}")
       }
     }
+    printer.println("}")
 
     Knowledge.dimensionality match {
       case 2 => {
@@ -323,58 +321,58 @@ case class Root() extends Node {
     printer.println
 
     // CGS
-        printer.println(s"def VCycle@coarsest ( ) : Unit {")
-     for (vecDim <- 0 until numVecDims)
-           printer.println(s"\tVCycle_$vecDim@(current) ( )")
+    printer.println(s"def VCycle@coarsest ( ) : Unit {")
+    for (vecDim <- 0 until numVecDims)
+      printer.println(s"\tVCycle_$vecDim@(current) ( )")
     printer.println(s"}")
 
-     for (vecDim <- 0 until numVecDims){
-    printer.println(s"def VCycle_$vecDim@coarsest ( ) : Unit {")
-    printer.println(s"\tUpResidual@(current) ( )")
-    printer.println(s"\tcommunicate Residual@(current)")
+    for (vecDim <- 0 until numVecDims) {
+      printer.println(s"def VCycle_$vecDim@coarsest ( ) : Unit {")
+      printer.println(s"\tUpResidual@(current) ( )")
+      printer.println(s"\tcommunicate Residual@(current)")
 
-    printer.println(s"\tvar res : Real = L2Residual_$vecDim@(current) ( )")
-    printer.println(s"\tvar initialRes : Real = res")
+      printer.println(s"\tvar res : Real = L2Residual_$vecDim@(current) ( )")
+      printer.println(s"\tvar initialRes : Real = res")
 
-    printer.println(s"\tloop over inner on VecP@(current) {")
-    printer.println(s"\t\tVecP@(current) = ${residualFields("current")(vecDim)}")
-    printer.println(s"\t}")
+      printer.println(s"\tloop over inner on VecP@(current) {")
+      printer.println(s"\t\tVecP@(current) = ${residualFields("current")(vecDim)}")
+      printer.println(s"\t}")
 
-    printer.println(s"\trepeat up 512 {")
-    printer.println(s"\t\tcommunicate VecP@(current)")
+      printer.println(s"\trepeat up 512 {")
+      printer.println(s"\t\tcommunicate VecP@(current)")
 
-    printer.println(s"\t\tloop over inner on VecP@(current) {")
-    printer.println(s"\t\t\tVecGradP@(current) = Lapl@(current) * VecP@(current)")
-    printer.println(s"\t\t}")
+      printer.println(s"\t\tloop over inner on VecP@(current) {")
+      printer.println(s"\t\t\tVecGradP@(current) = Lapl@(current) * VecP@(current)")
+      printer.println(s"\t\t}")
 
-    printer.println(s"\t\tvar alphaDenom : Real = 0")
-    printer.println(s"\t\tloop over inner on VecP@(current) with reduction( + : alphaDenom ) {")
-    printer.println(s"\t\t\talphaDenom += VecP@(current) * VecGradP@(current)")
-    printer.println(s"\t\t}")
+      printer.println(s"\t\tvar alphaDenom : Real = 0")
+      printer.println(s"\t\tloop over inner on VecP@(current) with reduction( + : alphaDenom ) {")
+      printer.println(s"\t\t\talphaDenom += VecP@(current) * VecGradP@(current)")
+      printer.println(s"\t\t}")
 
-    printer.println(s"\t\tvar alpha : Real = res * res / alphaDenom")
+      printer.println(s"\t\tvar alpha : Real = res * res / alphaDenom")
 
-    printer.println(s"\t\tloop over inner on Solution@(current) {")
-    printer.println(s"\t\t\t${solutionFields("current")(vecDim)} += alpha * VecP@(current)")
-    printer.println(s"\t\t\t${residualFields("current")(vecDim)} -= alpha * VecGradP@(current)")
-    printer.println(s"\t\t}")
+      printer.println(s"\t\tloop over inner on Solution@(current) {")
+      printer.println(s"\t\t\t${solutionFields("current")(vecDim)} += alpha * VecP@(current)")
+      printer.println(s"\t\t\t${residualFields("current")(vecDim)} -= alpha * VecGradP@(current)")
+      printer.println(s"\t\t}")
 
-    printer.println(s"\t\tvar nextRes : Real = L2Residual_$vecDim@(current) ( )")
+      printer.println(s"\t\tvar nextRes : Real = L2Residual_$vecDim@(current) ( )")
 
-    printer.println(s"\t\tif ( nextRes <= 0.001 * initialRes ) {")
-    printer.println(s"\t\t\treturn ( )")
-    printer.println(s"\t\t}")
+      printer.println(s"\t\tif ( nextRes <= 0.001 * initialRes ) {")
+      printer.println(s"\t\t\treturn ( )")
+      printer.println(s"\t\t}")
 
-    printer.println(s"\t\tvar beta : Real = (nextRes * nextRes) / (res * res)")
+      printer.println(s"\t\tvar beta : Real = (nextRes * nextRes) / (res * res)")
 
-    printer.println(s"\t\tloop over inner on VecP@(current) {")
-    printer.println(s"\t\t\tVecP@(current) = ${residualFields("current")(vecDim)} + beta * VecP@(current)")
-    printer.println(s"\t\t}")
+      printer.println(s"\t\tloop over inner on VecP@(current) {")
+      printer.println(s"\t\t\tVecP@(current) = ${residualFields("current")(vecDim)} + beta * VecP@(current)")
+      printer.println(s"\t\t}")
 
-    printer.println(s"\t\tres = nextRes")
-    printer.println(s"\t}")
-    printer.println(s"}")
-     }
+      printer.println(s"\t\tres = nextRes")
+      printer.println(s"\t}")
+      printer.println(s"}")
+    }
     printer.println
 
     // Cycle
@@ -483,7 +481,7 @@ case class Root() extends Node {
       printer.println(s"\t\tres += ${residualFields("current")(vecDim)} * ${residualFields("current")(vecDim)}")
       printer.println("\t}")
       printer.println("\treturn ( sqrt ( res ) )")
-      printer.println("\t}")
+      printer.println("}")
       printer.println
     }
 
@@ -518,20 +516,36 @@ case class Root() extends Node {
     if (genStencilFields) {
       printer.println("def initLapl@all ( ) : Unit {")
       printer.println("\tloop over innerForFieldsWithoutGhostLayers on LaplCoeff@current {")
-      printer.println("\t\tLaplCoeff@current[0] = 6")
-      printer.println("\t\tLaplCoeff@current[1] = -1")
-      printer.println("\t\tLaplCoeff@current[2] = -1")
-      printer.println("\t\tLaplCoeff@current[3] = -1")
-      printer.println("\t\tLaplCoeff@current[4] = -1")
-      printer.println("\t\tLaplCoeff@current[5] = -1")
-      printer.println("\t\tLaplCoeff@current[6] = -1")
-      //    printer.println("\t\tLaplCoeff@current[ 0,  0,  0] = 6")
-      //    printer.println("\t\tLaplCoeff@current[ 1,  0,  0] = -1")
-      //    printer.println("\t\tLaplCoeff@current[-1,  0,  0] = -1")
-      //    printer.println("\t\tLaplCoeff@current[ 0,  1,  0] = -1")
-      //    printer.println("\t\tLaplCoeff@current[ 0, -1,  0] = -1")
-      //    printer.println("\t\tLaplCoeff@current[ 0,  0,  1] = -1")
-      //    printer.println("\t\tLaplCoeff@current[ 0,  0, -1] = -1")
+      Knowledge.dimensionality match {
+        case 2 => {
+          printer.println("\t\tLaplCoeff@current[0] = 4")
+          printer.println("\t\tLaplCoeff@current[1] = -1")
+          printer.println("\t\tLaplCoeff@current[2] = -1")
+          printer.println("\t\tLaplCoeff@current[3] = -1")
+          printer.println("\t\tLaplCoeff@current[4] = -1")
+          //    printer.println("\t\tLaplCoeff@current[ 0,  0] = 4")
+          //    printer.println("\t\tLaplCoeff@current[ 1,  0] = -1")
+          //    printer.println("\t\tLaplCoeff@current[-1,  0] = -1")
+          //    printer.println("\t\tLaplCoeff@current[ 0,  1] = -1")
+          //    printer.println("\t\tLaplCoeff@current[ 0, -1] = -1")
+        }
+        case 3 => {
+          printer.println("\t\tLaplCoeff@current[0] = 6")
+          printer.println("\t\tLaplCoeff@current[1] = -1")
+          printer.println("\t\tLaplCoeff@current[2] = -1")
+          printer.println("\t\tLaplCoeff@current[3] = -1")
+          printer.println("\t\tLaplCoeff@current[4] = -1")
+          printer.println("\t\tLaplCoeff@current[5] = -1")
+          printer.println("\t\tLaplCoeff@current[6] = -1")
+          //    printer.println("\t\tLaplCoeff@current[ 0,  0,  0] = 6")
+          //    printer.println("\t\tLaplCoeff@current[ 1,  0,  0] = -1")
+          //    printer.println("\t\tLaplCoeff@current[-1,  0,  0] = -1")
+          //    printer.println("\t\tLaplCoeff@current[ 0,  1,  0] = -1")
+          //    printer.println("\t\tLaplCoeff@current[ 0, -1,  0] = -1")
+          //    printer.println("\t\tLaplCoeff@current[ 0,  0,  1] = -1")
+          //    printer.println("\t\tLaplCoeff@current[ 0,  0, -1] = -1")
+        }
+      }
       printer.println("\t}")
       printer.println("}")
     }
@@ -560,6 +574,11 @@ case class Root() extends Node {
           printer.println("\tLapl_Coeff_0_0_N1 = 1")
         }
       }
+    }
+
+    if (genStencilFields) {
+      for (lvl <- 0 to Knowledge.maxLevel)
+        printer.println(s"\tinitLapl@$lvl ( )")
     }
 
     printer.println("\tinitRHS ( )")

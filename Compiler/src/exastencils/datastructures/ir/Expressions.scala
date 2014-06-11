@@ -297,6 +297,10 @@ case class UnresolvedStencilAccess(var stencilIdentifier : String, level : Int) 
   override def cpp : String = "NOT VALID ; CLASS = UnresolvedStencilAccess\n"
 }
 
+case class UnresolvedStencilFieldAccess(var stencilFieldIdentifier : String, level : Int) extends Expression {
+  override def cpp : String = "NOT VALID ; CLASS = UnresolvedStencilFieldAccess\n"
+}
+
 case class MemberAccess(var base : Access, var varAcc : VariableAccess) extends Access {
   override def cpp = base.cpp + '.' + varAcc.cpp
 }

@@ -45,8 +45,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   //###########################################################
 
-  lazy val program = locationize(domain.* ~ layout.* ~ field.* ~ externalField.* ~ stencil.* ~ iterationSet.* ~ globals.? ~ function.* ^^
-    { case d ~ l ~ f ~ ef ~ s ~ i ~ g ~ ss => Root(d, l, f, ef, s, i, g.getOrElse(new GlobalDeclarationStatement(List())), ss) })
+  lazy val program = locationize(domain.* ~ layout.* ~ field.* ~ stencilField.* ~ externalField.* ~ stencil.* ~ iterationSet.* ~ globals.? ~ function.* ^^
+    { case d ~ l ~ f ~ sf ~ ef ~ s ~ i ~ g ~ ss => Root(d, l, f, sf, ef, s, i, g.getOrElse(new GlobalDeclarationStatement(List())), ss) })
 
   //###########################################################
 
@@ -190,6 +190,9 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val communicateStatement = locationize("communicate" ~> identifierWithOptionalLevel ^^ { case field => CommunicateStatement(field) })
 
   lazy val vectorFieldAccess = locationize(identifierWithObligatoryLevel ~ ("[" ~> integerLit <~ "]") ^^ { case field ~ index => VectorFieldAccess(field, index) })
+
+  lazy val stencilField = locationize(("StencilField" ~> ident) ~ ("<" ~> ident <~ "=>") ~ (ident <~ ">") ~ level.?
+    ^^ { case sf ~ f ~ s ~ l => StencilFieldDeclarationStatement(sf, f, s, l) })
 
   // ######################################
   // ##### Expressions

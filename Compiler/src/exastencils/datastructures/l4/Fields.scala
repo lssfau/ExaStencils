@@ -114,6 +114,14 @@ case class FieldDeclarationStatement(var name : String,
   }
 }
 
+case class StencilFieldDeclarationStatement(var name : String, var fieldName : String, var stencilName : String, var level : Option[LevelSpecification]) extends ExternalDeclarationStatement {
+  def progressToIr : knowledge.StencilField = {
+    new knowledge.StencilField(name,
+      FieldCollection.getFieldByIdentifier(fieldName, level.get.asInstanceOf[SingleLevelSpecification].level).get,
+      StencilCollection.getStencilByIdentifier(stencilName, level.get.asInstanceOf[SingleLevelSpecification].level).get)
+  }
+}
+
 case class ExternalFieldDeclarationStatement(
     var extIdentifier : String,
     var correspondingField : FieldIdentifier,

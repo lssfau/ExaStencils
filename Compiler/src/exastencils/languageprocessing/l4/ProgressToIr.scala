@@ -35,6 +35,8 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
         FieldIdentifier(name, level)
       else if (StateManager.root_.asInstanceOf[Root].stencils.exists(s => name == s.name))
         StencilIdentifier(name, level)
+      else if (StateManager.root_.asInstanceOf[Root].stencilFields.exists(s => name == s.name))
+        StencilFieldIdentifier(name, level)
       else
         LeveledIdentifier(name, level)
     case UnresolvedIdentifier(name, _) => BasicIdentifier(name)
@@ -145,6 +147,36 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
       case _ => Logger.error(s"Invalid level specification for field $field: $level")
     }
     return fields.toList
+  }
+
+  // unfold stencil field declarations
+
+  this += new Transformation("UnfoldLeveledStencilFieldDeclarations", {
+    case stencilField : StencilFieldDeclarationStatement => stencilField.level match {
+      case Some(level) => duplicateStencilFields(stencilField, level)
+      case _           => stencilField
+    }
+  })
+
+  def duplicateStencilFields(stencilField : StencilFieldDeclarationStatement, level : LevelSpecification) : List[StencilFieldDeclarationStatement] = {
+    var stencilFields = new ListBuffer[StencilFieldDeclarationStatement]()
+    level match {
+      case level @ (SingleLevelSpecification(_) | CurrentLevelSpecification() | CoarserLevelSpecification() | FinerLevelSpecification()) => {
+        var f = Duplicate(stencilField)
+        f.level = Some(level)
+        stencilFields += f
+      }
+      case level : ListLevelSpecification =>
+        level.levels.foreach(level => stencilFields ++= duplicateStencilFields(stencilField, level))
+      case level : RangeLevelSpecification => // there is no relative (e.g., "current+1") level allowed for function definitions
+        for (level <- math.min(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level) to math.max(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level)) {
+          var f = Duplicate(stencilField)
+          f.level = Some(SingleLevelSpecification(level))
+          stencilFields += f
+        }
+      case _ => Logger.error(s"Invalid level specification for stencilField $stencilField: $level")
+    }
+    return stencilFields.toList
   }
 
   // unfold stencil declarations

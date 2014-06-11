@@ -81,6 +81,12 @@ case class StencilIdentifier(var name : String, var level : LevelSpecification) 
   }
 }
 
+case class StencilFieldIdentifier(var name : String, var level : LevelSpecification) extends Identifier {
+  def progressToIr : ir.UnresolvedStencilFieldAccess = {
+    ir.UnresolvedStencilFieldAccess(name, level.asInstanceOf[SingleLevelSpecification].level)
+  }
+}
+
 case class Variable(var identifier : Identifier, var datatype : Datatype) extends Expression {
   def progressToIr : ir.VariableAccess = {
     ir.VariableAccess(identifier.progressToIr.asInstanceOf[ir.StringConstant].value, Some(datatype.progressToIr))

@@ -9,6 +9,7 @@ case class Root(
     var domains : List[DomainDeclarationStatement],
     var layouts : List[LayoutDeclarationStatement],
     var fields : List[FieldDeclarationStatement],
+    var stencilFields : List[StencilFieldDeclarationStatement],
     var externalFields : List[ExternalFieldDeclarationStatement],
     var stencils : List[StencilDeclarationStatement],
     var iterationSets : List[IterationSetDeclarationStatement],
@@ -47,13 +48,17 @@ case class Root(
     for (field <- fields)
       FieldCollection.fields += field.progressToIr
 
-    ExternalFieldCollection.fields.clear
-    for (extField <- externalFields)
-      ExternalFieldCollection.fields += extField.progressToIr
-
     StencilCollection.stencils.clear
     for (stencil <- stencils)
       StencilCollection.stencils += stencil.progressToIr
+
+    StencilFieldCollection.stencilFields.clear
+    for (stencilField <- stencilFields)
+      StencilFieldCollection.stencilFields += stencilField.progressToIr
+
+    ExternalFieldCollection.fields.clear
+    for (extField <- externalFields)
+      ExternalFieldCollection.fields += extField.progressToIr
 
     IterationSetCollection.sets.clear
     for (iterationSet <- iterationSets)
