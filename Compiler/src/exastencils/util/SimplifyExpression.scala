@@ -1,14 +1,17 @@
 package exastencils.util
 
 import scala.collection.mutable.HashMap
+import scala.collection.mutable.ListBuffer
 
 import exastencils.datastructures.ir.AdditionExpression
 import exastencils.datastructures.ir.DivisionExpression
 import exastencils.datastructures.ir.Expression
 import exastencils.datastructures.ir.FloatConstant
 import exastencils.datastructures.ir.IntegerConstant
+import exastencils.datastructures.ir.IntegerDatatype
+import exastencils.datastructures.ir.ModuloExpression
 import exastencils.datastructures.ir.MultiplicationExpression
-import exastencils.datastructures.ir.OffsetIndex
+import exastencils.datastructures.ir.NullExpression
 import exastencils.datastructures.ir.StringConstant
 import exastencils.datastructures.ir.SubtractionExpression
 import exastencils.datastructures.ir.VariableAccess
@@ -49,54 +52,64 @@ object SimplifyExpression {
     * Constant string that is used to hold the additive constant of an affine expression in the result map of
     * evalIntegralAffine(Expression).
     */
-  final val constName : String = ""
+  final val constName : Expression = NullExpression()
 
   /**
-    * Evaluates an affine integral expression.
-    * No float or boolean constants are allowed and the expression must be affine.
+    * Evaluates and (implicitly) simplifies an integral expression.
+    * No float or boolean constants are allowed.
     * (Otherwise an EvaluationException is thrown.)
     *
-    * Returns a map from all present variables to their corresponding coefficients.
+    * Returns a sum from all present summands to their corresponding coefficients.
     * The additive constant is stored beside the string specified by the field SimplifyExpression.constName.
     * The given expression is equivalent to: map(constName) + \sum_{n \in names} map(n) * n
     */
-  def evalIntegralAffine(expr : Expression) : HashMap[String, Long] = {
+  def extractIntegralSum(expr : Expression) : HashMap[Expression, Long] = {
 
-    var res : HashMap[String, Long] = null
+    var res : HashMap[Expression, Long] = null
+
+    // prevent concurrent modification: use the following two buffers
+    val rem = new ListBuffer[Expression]()
+    val add = new ListBuffer[(Expression, Long)]()
 
     expr match {
 
       case IntegerConstant(i) =>
-        res = new HashMap[String, Long]()
-        res(constName) = i
+        res = new HashMap[Expression, Long]()
+        if (i != 0)
+          res(constName) = i
 
       case VariableAccess(varName, _) =>
-        res = new HashMap[String, Long]()
-        res(varName) = 1
+        res = new HashMap[Expression, Long]()
+        res(VariableAccess(varName, Some(IntegerDatatype()))) = 1L
 
       case StringConstant(varName) =>
-        res = new HashMap[String, Long]()
-        res(varName) = 1
+        res = new HashMap[Expression, Long]()
+        res(VariableAccess(varName, Some(IntegerDatatype()))) = 1L
 
       case AdditionExpression(l, r) =>
-        res = evalIntegralAffine(l)
-        for ((name : String, value : Long) <- evalIntegralAffine(r))
-          res(name) = res.get(name).getOrElse(0L) + value
-
-      case OffsetIndex(_, _, ind, off) =>
-        res = evalIntegralAffine(ind)
-        for ((name : String, value : Long) <- evalIntegralAffine(off))
-          res(name) = res.get(name).getOrElse(0L) + value
+        res = extractIntegralSum(l)
+        for ((name : Expression, value : Long) <- extractIntegralSum(r)) {
+          val r = res.getOrElse(name, 0L) + value
+          if (r == 0L)
+            res.remove(name)
+          else
+            res(name) = r
+        }
 
       case SubtractionExpression(l, r) =>
-        res = evalIntegralAffine(l)
-        for ((name : String, value : Long) <- evalIntegralAffine(r))
-          res(name) = res.get(name).getOrElse(0L) - value
+        res = extractIntegralSum(l)
+        for ((name : Expression, value : Long) <- extractIntegralSum(r)) {
+          val r = res.getOrElse(name, 0L) - value
+          if (r == 0L)
+            res.remove(name)
+          else
+            res(name) = r
+        }
 
       case MultiplicationExpression(l, r) =>
-        val mapL = evalIntegralAffine(l)
-        val mapR = evalIntegralAffine(r)
-        var coeff : Long = 1
+        val mapL = extractIntegralSum(l)
+        val mapR = extractIntegralSum(r)
+        var coeff : Long = 1L
         if (mapL.size == 1 && mapL.contains(constName)) {
           coeff = mapL(constName)
           res = mapR
@@ -104,25 +117,80 @@ object SimplifyExpression {
           coeff = mapR(constName)
           res = mapL
         } else
-          throw new EvaluationException("non-constant * non-constant is not affine anymore")
-        for ((name : String, value : Long) <- res)
-          res(name) = value * coeff
+          throw new EvaluationException("non-constant * non-constant is not yet implemented")
+        if (coeff == 0L)
+          res.clear()
+        else
+          for ((name : Expression, value : Long) <- res)
+            res(name) = value * coeff
 
       case DivisionExpression(l, r) =>
-        val mapR = evalIntegralAffine(r)
+        val mapR = extractIntegralSum(r)
+        if (!(mapR.size == 1 && mapR.contains(constName)))
+          throw new EvaluationException("only constant divisor allowed yet")
+        val div : Long = mapR(constName)
+        res = extractIntegralSum(l)
+        for ((name : Expression, value : Long) <- res)
+          if (value % div == 0L)
+            res(name) = value / div
+          else {
+            rem += name
+            if (value == 1L)
+              add += ((DivisionExpression(name, IntegerConstant(div)), 1L))
+            else
+              add += ((DivisionExpression(MultiplicationExpression(IntegerConstant(value), name), IntegerConstant(div)), 1L))
+          }
+
+      case ModuloExpression(l, r) =>
+        val mapR = extractIntegralSum(r)
         if (!(mapR.size == 1 && mapR.contains(constName)))
           throw new EvaluationException("only constant divisor allowed")
-        val div : Long = mapR(constName)
-        res = evalIntegralAffine(l)
-        for ((name : String, value : Long) <- res)
-          if (value % div == 0)
-            res(name) = value / div
-          else
-            throw new EvaluationException("cannot handle division yet")
+        val mod : Long = mapR(constName)
+        res = extractIntegralSum(l)
+        for ((name : Expression, value : Long) <- res) {
+          rem += name
+          add += ((ModuloExpression(MultiplicationExpression(IntegerConstant(value), name), IntegerConstant(mod)), 1L))
+        }
 
       case _ =>
         throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
     }
+
+    for (r : Expression <- rem)
+      res.remove(r)
+    for ((e, v) <- add) {
+      val r = res.getOrElse(e, 0L) + v
+      if (r == 0L)
+        res.remove(e)
+      else
+        res(e) = r
+    }
+
+    return res
+  }
+
+  /**
+    * Takes the output from extractIntegralSum(..) and recreates an AST for this sum.
+    */
+  def recreateExpressionFromSum(map : HashMap[Expression, Long]) : Expression = {
+
+    if (map.isEmpty)
+      return new IntegerConstant(0)
+
+    var res : Expression = null
+    val const : Option[Long] = map.remove(constName)
+    if (const.isDefined)
+      res = IntegerConstant(const.get)
+    for ((expr : Expression, value : Long) <- map) {
+      val summand : Expression = if (value == 1L) expr else MultiplicationExpression(IntegerConstant(value), expr)
+      if (res == null)
+        res = summand
+      else
+        res = AdditionExpression(res, summand)
+    }
+
+    if (res == null)
+      res = IntegerConstant(0)
 
     return res
   }
