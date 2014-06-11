@@ -13,6 +13,7 @@ import exastencils.languageprocessing.l4.ProgressToIr
 import exastencils.mpi.RemoveMPIReferences
 import exastencils.multiGrid.ResolveSpecialFunctions
 import exastencils.omp.AddOMPPragmas
+import exastencils.optimization.AddressPrecalculation
 import exastencils.parsers.l4.ParserL4
 import exastencils.parsers.l4.ValidationL4
 import exastencils.polyhedron.PolyOpt
@@ -124,6 +125,23 @@ object MainStefan {
     ResolveIndexOffsets.apply()
 
     LinearizeFieldAccesses.apply()
+
+    //    new exastencils.datastructures.DefaultStrategy("TestStrategy") {
+    //      this += new exastencils.datastructures.Transformation("test", {
+    //        case a : exastencils.datastructures.ir.ArrayAccess =>
+    //          println("=======================================================================================")
+    //          println(a.index.cpp())
+    //          println(exastencils.util.SimplifyExpression.extractIntegralSum(a.index))
+    //          a
+    //        case a : exastencils.datastructures.ir.LinearizedFieldAccess =>
+    //          println("=======================================================================================")
+    //          println(a.index.cpp())
+    //          println(exastencils.util.SimplifyExpression.extractIntegralSum(a.index))
+    //          a
+    //      })
+    //    }.apply()
+    //    return
+    AddressPrecalculation.apply()
 
     ExpandStrategy.doUntilDone()
 
