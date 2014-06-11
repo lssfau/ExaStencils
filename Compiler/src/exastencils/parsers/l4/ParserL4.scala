@@ -48,6 +48,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val program = locationize(domain.* ~ layout.* ~ field.* ~ externalField.* ~ stencil.* ~ iterationSet.* ~ globals.? ~ function.* ^^
     { case d ~ l ~ f ~ ef ~ s ~ i ~ g ~ ss => Root(d, l, f, ef, s, i, g.getOrElse(new GlobalDeclarationStatement(List())), ss) })
 
+    
   //###########################################################
 
   // ######################################
@@ -126,14 +127,14 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val loopOver = locationize(("loop" ~ "over" ~> ident) ~
     ("on" ~> fieldAccess) ~ // FIXME: this is all but robust / a user could break this easily
     ("with" ~> loopOverWithClause).? ~
-    ("{" ~> statement.+) <~ "}" ^^
+    ("{" ~> statement.+ <~ "}") ^^
     {
       case area ~ field ~ red ~ stmts => LoopOverDomainStatement(area, field, stmts, red)
     })
 
   lazy val loopOverWithClause = locationize((("reduction" ~ "(") ~> ("+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => ReductionStatement(op, s) })
 
-  lazy val assignment = locationize((identifierWithOptionalLevel | fieldAccess) ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(id, exp) })
+  lazy val assignment = locationize((identifierWithOptionalLevel ||| fieldAccess) ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(id, exp) })
 
   lazy val operatorassignment = locationize(identifierWithOptionalLevel ~ operatorassignmentoperator ~ expression ^^ {
     case id ~ op ~ exp => AssignmentStatement(id, BinaryExpression(op, id, exp))
