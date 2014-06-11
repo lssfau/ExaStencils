@@ -23,11 +23,8 @@ case class LoopOverDomain(var iterationSetIdentifier : String, var fieldIdentifi
   var expCount = 0
 
   def expand : Statement /*FIXME: ForLoopStatement*/ = {
-    val fieldCollection = StateManager.findFirst[FieldCollection]().get
-    val iterationSetCollection = StateManager.findFirst[IterationSetCollection]().get
-
-    val field = fieldCollection.getFieldByIdentifier(fieldIdentifier, level).get
-    val iterationSet = iterationSetCollection.getIterationSetByIdentifier(iterationSetIdentifier).get
+    val field = FieldCollection.getFieldByIdentifier(fieldIdentifier, level).get
+    val iterationSet = IterationSetCollection.getIterationSetByIdentifier(iterationSetIdentifier).get
 
     var start : ListBuffer[Expression] = ListBuffer()
     var stop : ListBuffer[Expression] = ListBuffer()
@@ -154,7 +151,7 @@ case class LoopOverFragments(var domain : Int, var body : ListBuffer[Statement],
     if (createFragRef)
       modifiedBody += "Fragment3DCube& curFragment = *fragments[f]"
     if (domain >= 0 && createFragRef)
-      modifiedBody += new ConditionStatement(s"curFragment.isValidForSubdomain[$domain]", body)
+      modifiedBody += new ConditionStatement(FragMember_IsValidForSubdomain(domain), body)
     else
       modifiedBody ++= body
 

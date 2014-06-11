@@ -9,7 +9,7 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.omp._
 import exastencils.polyhedron._
 
-case class WaitForMPIReq() extends AbstractFunctionStatement with Expandable {
+case class WaitForMPIRequestFunc() extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = WaitForMPIReq\n"
 
   override def expand : FunctionStatement = {
@@ -104,10 +104,11 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
       ListBuffer(VariableAccess("location", Some("unsigned int")), VariableAccess("fragment", Some("Fragment3DCube*")), VariableAccess("domain", Some("unsigned int"))),
       ListBuffer[Statement](
         "ASSERT_WARNING((fragment), \"Invalid fragment pointer detected\", return)",
-        s"neighbor_isValid[domain][location] = true",
-        s"neighbor_isRemote[domain][location] = false",
-        s"neighbor_localPtr[domain][location] = fragment",
-        s"neighbor_fragCommId[domain][location] = fragment->commId",
+        "Fragment3DCube& curFragment = *this", // HACK
+        AssignmentStatement(FragMember_NeighborIsValid("domain", "location"), true),
+        AssignmentStatement(FragMember_NeighborIsRemote("domain", "location"), false),
+        AssignmentStatement(FragMember_NeighborLocalPtr("domain", "location"), "fragment"),
+        AssignmentStatement(FragMember_NeighborFragCommId("domain", "location"), "fragment->commId"),
         SetIterationOffset("location")))
   }
 }
@@ -119,10 +120,11 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
     FunctionStatement(new UnitDatatype(), s"connectRemoteElement",
       ListBuffer(VariableAccess("location", Some("unsigned int")), VariableAccess("id", Some("size_t")), VariableAccess("remoteRank", Some(IntegerDatatype())), VariableAccess("domain", Some("unsigned int"))),
       ListBuffer[Statement](
-        s"neighbor_isValid[domain][location] = true",
-        s"neighbor_isRemote[domain][location] = true",
-        s"neighbor_fragCommId[domain][location] = id",
-        s"neighbor_remoteRank[domain][location] = remoteRank",
+        "Fragment3DCube& curFragment = *this", // HACK
+        AssignmentStatement(FragMember_NeighborIsValid("domain", "location"), true),
+        AssignmentStatement(FragMember_NeighborIsRemote("domain", "location"), true),
+        AssignmentStatement(FragMember_NeighborFragCommId("domain", "location"), "id"),
+        AssignmentStatement(FragMember_NeighborRemoteRank("domain", "location"), "remoteRank"),
         SetIterationOffset("location")))
   }
 }
@@ -133,40 +135,12 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
   override def expand : FunctionStatement = {
     var body = ListBuffer[Statement]()
 
+    body += "Fragment3DCube& curFragment = *this" // HACK
+
     for (field <- fields) {
-      body += new ConditionStatement(s"isValidForSubdomain[${field.domain}]",
+      body += new ConditionStatement(FragMember_IsValidForSubdomain(field.domain),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           new AssignmentStatement(field.codeName ~ "[" ~ slot ~ "]", ("new" : Expression) ~~ field.dataType. /*FIXME*/ cpp ~ "[" ~ (field.layout(0).total * field.layout(1).total * field.layout(2).total) ~ "]") : Statement))
-    }
-
-    if (Knowledge.domain_canHaveRemoteNeighs) {
-      var maxPointsPerLevel = Array.fill(Knowledge.numLevels)(Array(0, 0, 0))
-      var maxCommSlidesPerLevel = Array(0, 0, 0)
-      for (field <- fields) {
-        for (dim <- 0 until Knowledge.dimensionality) {
-          maxPointsPerLevel(field.level)(dim) = math.max(maxPointsPerLevel(field.level)(dim), field.layout(dim).total - field.layout(dim).numPadLayersLeft - field.layout(dim).numPadLayersRight)
-          if (Knowledge.maxLevel == field.level) {
-            maxCommSlidesPerLevel(dim) = math.max(maxCommSlidesPerLevel(dim), math.max(field.layout(dim).numGhostLayersLeft, field.layout(dim).numGhostLayersRight))
-            maxCommSlidesPerLevel(dim) = math.max(maxCommSlidesPerLevel(dim), math.max(field.layout(dim).numDupLayersLeft, field.layout(dim).numDupLayersRight))
-          }
-        }
-      }
-
-      for (neigh <- neighbors) {
-        var size : String = ""
-        var sizeArray = new ListBuffer[String]()
-        for (i <- DimArray())
-          if (0 == neigh.dir(i))
-            sizeArray += s"${maxPointsPerLevel(Knowledge.maxLevel)(i)}"
-          else
-            sizeArray += s"${maxCommSlidesPerLevel(i)}"
-
-        size += sizeArray.mkString(" * ")
-
-        body += s"buffer_Send[${neigh.index}] = new double[$size]"
-        body += s"buffer_Recv[${neigh.index}] = new double[$size]"
-        body += s"maxElemRecvBuffer[${neigh.index}] = $size"
-      }
     }
 
     return FunctionStatement(new UnitDatatype(), s"setupBuffers", ListBuffer(), body)

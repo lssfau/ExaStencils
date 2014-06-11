@@ -15,11 +15,10 @@ import exastencils.mpi._
 
 object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions") {
   this += new Transformation("SearchAndReplace", {
-    case FunctionCallExpression(StringConstant("diag"), args) => { println(args)
-      StateManager.findFirst[StencilCollection]().get.getStencilByIdentifier(
+    case FunctionCallExpression(StringConstant("diag"), args) =>
+      StencilCollection.getStencilByIdentifier(
         args(0).asInstanceOf[UnresolvedStencilAccess].stencilIdentifier,
         args(0).asInstanceOf[UnresolvedStencilAccess].level).get.entries(0).weight
-  }
 
     // HACK to realize intergrid operations
     case FunctionCallExpression(StringConstant("ToCoarser"), args) =>

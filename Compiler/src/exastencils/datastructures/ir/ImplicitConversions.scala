@@ -12,6 +12,8 @@ object ImplicitConversions {
 
   implicit def StringToDatatype(s : String) = (new SpecialDatatype(s) : Datatype);
 
+  implicit def BooleanToBooleanConstant(b : Boolean) = BooleanConstant(b)
+
   implicit def NumberToIntegerConstant(n : Int) = IntegerConstant(n)
   implicit def NumberToIntegerConstant(n : Long) = IntegerConstant(n)
   implicit def NumberToFloatConstant(n : Float) = FloatConstant(n)

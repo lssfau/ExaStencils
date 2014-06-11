@@ -41,7 +41,7 @@ case class AbstractLoop(where : String, lev : String, order : String, blocksize 
       case _             => lev // + ".s"
     }
 
-    val fieldCollection = StateManager.findFirst[FieldCollection]().get
+    val fieldCollection = FieldCollection
     val solField : Field = fieldCollection.getFieldByIdentifier("Solution", lev.toInt).get
 
     var start : ListBuffer[Expression] = ListBuffer()
@@ -147,7 +147,7 @@ case class AbstractLet(var id : String, var expr : AbstractExpression, var modif
       if (e.name.equals(id)) {
         ti = new TypeInfo(id, 1)
         levstr = if (level.isDefined) (new StringConstant(level.get.toString)) else "lev"
-        val fieldCollection = StateManager.findFirst[FieldCollection]().get
+        val fieldCollection = FieldCollection
 
         // COMM_HACK
         id match {
@@ -205,7 +205,7 @@ case class AbstractPLet(var id : String, val expr : AbstractExpression, modifier
         ti = new TypeInfo(id, 1)
 
         val levstr : Expression = if (level.isDefined) (new StringConstant(level.get.toString)) else "lev"
-        val fieldCollection = StateManager.findFirst[FieldCollection]().get
+        val fieldCollection = FieldCollection
 
         // COMM_HACK
         id = id match {
@@ -276,7 +276,7 @@ case class AbstractDefinition(val p : Param, val value : AbstractExpression) ext
 
   override def transform(scopeparas : ListBuffer[ParameterInfo]) : ListBuffer[Statement] = {
     var ret : ListBuffer[Statement] = ListBuffer()
-    ret += new VariableDeclarationStatement(new VariableAccess(p.name, Some(DomainKnowledge.transform_datatype_cpp(p.dtype))), Some(value.transform(scopeparas, None, "")))
+    ret += new VariableDeclarationStatement(DomainKnowledge.transform_datatype_cpp(p.dtype), p.name, Some(value.transform(scopeparas, None, "")))
     return ret
   }
 }

@@ -8,11 +8,11 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.strategies._
 
-case class StencilEntry(var offset : MultiIndex, var weight : Expression) extends Node {}
+case class StencilEntry(var offset : MultiIndex, var weight : Expression) {}
 
-case class Stencil(var identifier : String, var level : Int, var entries : ListBuffer[StencilEntry] = new ListBuffer) extends Node {}
+case class Stencil(var identifier : String, var level : Int, var entries : ListBuffer[StencilEntry] = new ListBuffer) {}
 
-case class StencilCollection() extends Node {
+object StencilCollection {
   var stencils : ListBuffer[Stencil] = ListBuffer();
 
   def getStencilByIdentifier(identifier : String, level : Int) : Option[Stencil] = {
@@ -34,7 +34,7 @@ case class StencilConvolution(var stencil : Stencil, var field : Field, var targ
 object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions") {
   this += new Transformation("SearchAndMark", {
     case MultiplicationExpression(UnresolvedStencilAccess(stencilName, stencilLevel), UnresolvedFieldAccess(fieldOwner, fieldName, fieldLevel, fieldSlot, fieldIndex)) =>
-      StencilConvolution(StateManager.findFirst[StencilCollection]().get.getStencilByIdentifier(stencilName, stencilLevel).get,
-        StateManager.findFirst[FieldCollection]().get.getFieldByIdentifier(fieldName, fieldLevel).get)
+      StencilConvolution(StencilCollection.getStencilByIdentifier(stencilName, stencilLevel).get,
+        FieldCollection.getFieldByIdentifier(fieldName, fieldLevel).get)
   })
 }

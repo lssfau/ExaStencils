@@ -86,6 +86,19 @@ object Knowledge {
   // --- OpenMP and MPI Parallelization ---
   var comm_strategyFragment : Int = 6 // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors
 
+  // TODO: check in how far the following parameters can be adapted by the SPL 
+  var comm_sepCommStructsPerDomain : Boolean = true // specifies if communication variables that could be domain specific are handled separately
+  var comm_useCommArraysPerDomain : Boolean = true // specifies if domain specific variables are summarized in array form
+
+  var comm_sepCommStructsPerField : Boolean = false // specifies if communication variables that could be field specific are handled separately
+  var comm_useCommArraysPerField : Boolean = false // specifies if domain field variables are summarized in array form
+
+  var comm_sepCommStructsPerLevel : Boolean = false // specifies if communication variables that could be level specific are handled separately
+  var comm_useCommArraysPerLevel : Boolean = true // specifies if domain level variables are summarized in array form
+
+  var comm_sepCommStructsPerNeigh : Boolean = true // specifies if communication variables that could be neighbor specific are handled separately
+  var comm_useCommArraysPerNeigh : Boolean = true // specifies if neighbor specific variables are summarized in array form
+
   // --- OpenMP Parallelization ---
   var useOMP : Boolean = true // [true|false]
   var omp_numThreads : Int = 1 // the number of omp threads to be used; may be incorporated in omp pragmas

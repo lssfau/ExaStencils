@@ -107,18 +107,12 @@ object BinaryOperators extends Enumeration {
 
 object UnaryOperators extends Enumeration {
   type UnaryOperators = Value
-  val Positive, Negative, Not, AddressOf = Value
+  val Positive = Value("")
+  val Negative = Value("-")
+  val Not = Value("!")
+  val AddressOf = Value("&")
 
   exastencils.core.Duplicate.registerImmutable(this.getClass())
-
-  import scala.language.implicitConversions
-  implicit def op2str(op : UnaryOperators) : String = op match {
-    case Positive  => ""
-    case Negative  => "-"
-    case Not       => "!"
-    case AddressOf => "&"
-    case _         => "ERROR: Unresolvable UnaryOperator " + op
-  }
 }
 
 trait Access extends Expression
@@ -156,7 +150,7 @@ case class IntegerConstant(var v : Long) extends Number {
 }
 
 case class FloatConstant(var v : Double) extends Number {
-  override def cpp = value.toString
+  override def cpp = String.format(java.util.Locale.US, "%e", Double.box(value)) // ensure the compiler can parse the string
   override def value = v
 }
 
@@ -245,7 +239,7 @@ case class UnresolvedFieldAccess(var fieldOwner : Expression, var fieldIdentifie
   override def cpp : String = "NOT VALID ; CLASS = UnresolvedFieldAccess\n"
 
   def resolveField : Field = {
-    StateManager.findFirst[FieldCollection]().get.getFieldByIdentifier(fieldIdentifier, level).get
+    FieldCollection.getFieldByIdentifier(fieldIdentifier, level).get
   }
 
   override def expand : FieldAccess = {
@@ -296,7 +290,7 @@ case class DerefAccess(var base : Access) extends Access {
 }
 
 case class UnaryExpression(var operator : UnaryOperators.Value, var expression : Expression) extends Expression {
-  override def cpp = { s"${operator.toString}(${expression.cpp})" }
+  override def cpp = { s"$operator(${expression.cpp})" }
 }
 
 case class AdditionExpression(var left : Expression, var right : Expression) extends Expression {

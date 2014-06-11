@@ -20,8 +20,7 @@ case class InitFields() extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = InitFields\n"
 
   def expand() : StatementBlock = {
-    val fieldCollection = StateManager.findFirst[FieldCollection]().get
-    val fields = fieldCollection.fields
+    val fields = FieldCollection.fields
     var statements : ListBuffer[Statement] = new ListBuffer
 
     for (field <- fields) {
@@ -46,7 +45,7 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
     // FIXME: make the next line of code more readable and robust
     val globals : Globals = StateManager.root.asInstanceOf[Root].nodes.find(node => node.isInstanceOf[Globals]).get.asInstanceOf[Globals]
 
-    globals.variables += new VariableDeclarationStatement(new VariableAccess(s"fragments[${Knowledge.domain_numFragsPerBlock}]", Some("Fragment3DCube*")))
+    globals.variables += new VariableDeclarationStatement("Fragment3DCube*", s"fragments[${Knowledge.domain_numFragsPerBlock}]")
 
     new FunctionStatement("int", "main", ListBuffer(VariableAccess("argc", Some("int")), VariableAccess("argv", Some("char**"))),
       (if (Knowledge.useMPI)

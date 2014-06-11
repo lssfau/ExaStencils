@@ -2,8 +2,7 @@ package exastencils.datastructures.ir
 
 import scala.collection.mutable.ListBuffer
 
-abstract class Class extends Statement {
-  var className : String = "CLASS_NAME"
+abstract class Class(var className : String = "CLASS_NAME") extends Statement {
   var declarations : ListBuffer[Statement] = ListBuffer()
   // FIXME: use specialized c'tor and d'tor nodes
   var cTorArgs : ListBuffer[Expression] = ListBuffer()

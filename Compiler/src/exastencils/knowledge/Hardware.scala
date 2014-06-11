@@ -38,7 +38,7 @@ object Hardware {
       if (Knowledge.useMPI) {
         compiler = "mpicxx"
       } else {
-        compiler = "gcc"
+        compiler = "g++"
       }
 
       if (Knowledge.useOMP) {

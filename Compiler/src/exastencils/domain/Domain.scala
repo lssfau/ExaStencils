@@ -48,7 +48,7 @@ case class PointToFragmentId(var pos : Expression) extends Expression with Expan
   override def cpp : String = "NOT VALID ; CLASS = PointToFragmentId\n"
 
   override def expand : Expression = {
-    val globalDomain = StateManager.findFirst[DomainCollection]().get.getDomainByIdentifier("global").get
+    val globalDomain = DomainCollection.getDomainByIdentifier("global").get
     val fragWidth_x = globalDomain.size.width(0) / Knowledge.domain_numFragsTotal_x
     val fragWidth_y = globalDomain.size.width(1) / Knowledge.domain_numFragsTotal_y
     val fragWidth_z = globalDomain.size.width(2) / Knowledge.domain_numFragsTotal_z
@@ -68,7 +68,7 @@ case class PointToLocalFragmentId(var pos : Expression) extends Expression with 
   override def cpp : String = "NOT VALID ; CLASS = PointToFragmentId\n"
 
   override def expand : Expression = {
-    val globalDomain = StateManager.findFirst[DomainCollection]().get.getDomainByIdentifier("global").get
+    val globalDomain = DomainCollection.getDomainByIdentifier("global").get
     val fragWidth_x = globalDomain.size.width(0) / Knowledge.domain_numFragsTotal_x
     val fragWidth_y = globalDomain.size.width(1) / Knowledge.domain_numFragsTotal_y
     val fragWidth_z = globalDomain.size.width(2) / Knowledge.domain_numFragsTotal_z
@@ -88,7 +88,7 @@ case class PointToOwningRank(var pos : Expression, var domain : Domain) extends 
   override def cpp : String = "NOT VALID ; CLASS = PointToOwningRank\n"
 
   override def expand : Expression = {
-    val globalDomain = StateManager.findFirst[DomainCollection]().get.getDomainByIdentifier("global").get
+    val globalDomain = DomainCollection.getDomainByIdentifier("global").get
     val fragWidth_x = globalDomain.size.width(0) / Knowledge.domain_numFragsTotal_x
     val fragWidth_y = globalDomain.size.width(1) / Knowledge.domain_numFragsTotal_y
     val fragWidth_z = globalDomain.size.width(2) / Knowledge.domain_numFragsTotal_z
@@ -128,11 +128,11 @@ case class ConnectFragments() extends Statement with Expandable {
     var body = new ListBuffer[Statement]
 
     val neighbors = StateManager.findFirst[FragmentClass]().get.neighbors
-    val domains = StateManager.findFirst[DomainCollection]().get.domains
-    val globalDomain = StateManager.findFirst[DomainCollection]().get.getDomainByIdentifier("global").get
+    val domains = DomainCollection.domains
+    val globalDomain = DomainCollection.getDomainByIdentifier("global").get
 
     for (d <- 0 until domains.size) {
-      body += AssignmentStatement(s"curFragment.isValidForSubdomain[$d]", PointInsideDomain(s"curFragment.pos", domains(d)))
+      body += AssignmentStatement(FragMember_IsValidForSubdomain(d), PointInsideDomain(s"curFragment.pos", domains(d)))
     }
 
     val fragWidth_x = globalDomain.size.width(0) / Knowledge.domain_numFragsTotal_x
@@ -144,7 +144,7 @@ case class ConnectFragments() extends Statement with Expandable {
         body += new Scope(ListBuffer[Statement](
           s"Vec3 offsetPos = curFragment.pos + Vec3(${neigh.dir(0)} * ${fragWidth_x}, ${neigh.dir(1)} * ${fragWidth_y}, ${neigh.dir(2)} * ${fragWidth_z})") ++
           (0 until domains.size).toArray[Int].map(d =>
-            new ConditionStatement(s"curFragment.isValidForSubdomain[$d]" AndAnd PointInsideDomain(s"offsetPos", domains(d)),
+            new ConditionStatement(FragMember_IsValidForSubdomain(d) AndAnd PointInsideDomain(s"offsetPos", domains(d)),
               if (Knowledge.domain_canHaveRemoteNeighs) {
                 (if (Knowledge.domain_canHaveLocalNeighs)
                   new ConditionStatement(s"mpiRank ==" ~ PointToOwningRank("offsetPos", domains(d)),
@@ -174,7 +174,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
   override def cpp : String = "NOT VALID ; CLASS = InitGeneratedDomain\n"
 
   override def expand : FunctionStatement = {
-    val globalDomain = StateManager.findFirst[DomainCollection]().get.getDomainByIdentifier("global").get
+    val globalDomain = DomainCollection.getDomainByIdentifier("global").get
     val fragWidth_x = globalDomain.size.width(0) / Knowledge.domain_numFragsTotal_x
     val fragWidth_y = globalDomain.size.width(1) / Knowledge.domain_numFragsTotal_y
     val fragWidth_z = globalDomain.size.width(2) / Knowledge.domain_numFragsTotal_z

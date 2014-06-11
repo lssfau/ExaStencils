@@ -17,7 +17,7 @@ abstract class Statement extends Node with ProgressableToIr {
 }
 
 abstract class SpecialStatement /*TODO: think about an appropriate name*/ extends Node with ProgressableToIr {
-  def progressToIr : Node
+  def progressToIr : Any
 }
 
 case class DomainDeclarationStatement(var name : String, var lower : RealIndex, var upper : RealIndex, var index : Int = 0) extends SpecialStatement {
@@ -60,8 +60,8 @@ case class GlobalDeclarationStatement(var entries : List[VariableDeclarationStat
 
 case class VariableDeclarationStatement(var identifier : Identifier, var datatype : Datatype, var expression : Option[Expression] = None) extends Statement {
   def progressToIr : ir.VariableDeclarationStatement = {
-    ir.VariableDeclarationStatement(
-      ir.VariableAccess(identifier.progressToIr.asInstanceOf[ir.StringConstant].value, Some(datatype.progressToIr)),
+    ir.VariableDeclarationStatement(datatype.progressToIr,
+      identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
       if (expression.isDefined) Some(expression.get.progressToIr) else None)
   }
 }
