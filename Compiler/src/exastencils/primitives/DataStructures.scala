@@ -17,21 +17,18 @@ import exastencils.strategies.SimplifyStrategy
 
 // TODO: Move accepted nodes to appropriate packages
 
-case class LoopOverDomain(var iterationSetIdentifier : String, var fieldIdentifier : String, var level : Int, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement with Expandable {
+case class LoopOverDomain(var iterationSet : IterationSet, var field : Field, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = LoopOverDomain\n"
 
   var expCount = 0
 
   def expand : Statement /*FIXME: ForLoopStatement*/ = {
-    val field = FieldCollection.getFieldByIdentifier(fieldIdentifier, level).get
-    val iterationSet = IterationSetCollection.getIterationSetByIdentifier(iterationSetIdentifier).get
-
     var start : ListBuffer[Expression] = ListBuffer()
     var stop : ListBuffer[Expression] = ListBuffer()
     for (i <- 0 until Knowledge.dimensionality) {
       // Stefan: exchange the following 2 lines for const loop boundaries
-      start += OffsetIndex(0, 1, field.layout(i).idxGhostLeftBegin - field.referenceOffset(i) + iterationSet.begin(i), s"curFragment.iterationOffsetBegin[${field.domain}][$i]")
-      stop += OffsetIndex(-1, 0, field.layout(i).idxGhostRightEnd - field.referenceOffset(i) - iterationSet.end(i), s"curFragment.iterationOffsetEnd[${field.domain}][$i]")
+      start += OffsetIndex(0, 1, field.layout(i).idxGhostLeftBegin - field.referenceOffset(i) + iterationSet.begin(i), s"curFragment.iterationOffsetBegin[${field.domain.index}][$i]")
+      stop += OffsetIndex(-1, 0, field.layout(i).idxGhostRightEnd - field.referenceOffset(i) - iterationSet.end(i), s"curFragment.iterationOffsetEnd[${field.domain.index}][$i]")
       //      start += field.layout(i).idxGhostLeftBegin - field.referenceOffset(i) + iterationSet.begin(i)
       //      stop += field.layout(i).idxGhostRightEnd - field.referenceOffset(i) - iterationSet.end(i)
     }
@@ -39,7 +36,7 @@ case class LoopOverDomain(var iterationSetIdentifier : String, var fieldIdentifi
     var indexRange = IndexRange(new MultiIndex(start.toArray), new MultiIndex(stop.toArray))
     SimplifyStrategy.doUntilDoneStandalone(indexRange)
 
-    new LoopOverFragments(field.domain, // FIXME: define LoopOverFragments in L4 DSL
+    new LoopOverFragments(field.domain.index, // FIXME: define LoopOverFragments in L4 DSL
       new LoopOverDimensions(Knowledge.dimensionality, indexRange, body, iterationSet.increment, reduction, iterationSet.condition) with OMP_PotentiallyParallel with PolyhedronAccessable,
       reduction) with OMP_PotentiallyParallel
   }

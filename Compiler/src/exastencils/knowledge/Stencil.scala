@@ -61,11 +61,9 @@ case class StencilFieldConvolution(var stencilField : StencilField, var field : 
 
 object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions") {
   this += new Transformation("SearchAndMark", {
-    case MultiplicationExpression(UnresolvedStencilAccess(stencilName, stencilLevel), UnresolvedFieldAccess(fieldOwner, fieldName, fieldLevel, fieldSlot, fieldIndex)) =>
-      StencilConvolution(StencilCollection.getStencilByIdentifier(stencilName, stencilLevel).get,
-        FieldCollection.getFieldByIdentifier(fieldName, fieldLevel).get, fieldIndex)
-    case MultiplicationExpression(UnresolvedStencilFieldAccess(stencilFieldName, stencilFieldLevel), UnresolvedFieldAccess(fieldOwner, fieldName, fieldLevel, fieldSlot, fieldIndex)) =>
-      StencilFieldConvolution(StencilFieldCollection.getStencilFieldByIdentifier(stencilFieldName, stencilFieldLevel).get,
-        FieldCollection.getFieldByIdentifier(fieldName, fieldLevel).get, fieldIndex)
+    case MultiplicationExpression(StencilAccess(stencil), FieldAccess(fieldOwner, field, fieldSlot, fieldIndex)) =>
+      StencilConvolution(stencil, field, fieldIndex)
+    case MultiplicationExpression(StencilFieldAccess(stencilField), FieldAccess(fieldOwner, field, fieldSlot, fieldIndex)) =>
+      StencilFieldConvolution(stencilField, field, fieldIndex)
   })
 }

@@ -54,10 +54,17 @@ case class FieldIdentifier(var name : String, var level : LevelSpecification) ex
     name + "_" + level.asInstanceOf[SingleLevelSpecification].level
   }
 
-  def progressToIr : ir.UnresolvedFieldAccess = {
+  def resolveField : knowledge.Field = {
+    knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
+  }
+
+  def progressToIr : ir.FieldAccess = {
     var multiIndex = ir.DefaultLoopMultiIndex()
     multiIndex(Knowledge.dimensionality) = 0
-    ir.UnresolvedFieldAccess("curFragment." /*FIXME*/ , name, level.asInstanceOf[SingleLevelSpecification].level, "0" /*FIXME*/ , multiIndex)
+    ir.FieldAccess("curFragment." /*FIXME*/ ,
+      knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get,
+      0, /*FIXME*/
+      multiIndex)
   }
 }
 
@@ -68,7 +75,7 @@ case class VectorFieldAccess(var field : FieldIdentifier, var index : Int) exten
     field.progressNameToIr
   }
 
-  def progressToIr : ir.UnresolvedFieldAccess = {
+  def progressToIr : ir.FieldAccess = {
     var access = field.progressToIr
     access.index(Knowledge.dimensionality) = index
     access
@@ -76,14 +83,14 @@ case class VectorFieldAccess(var field : FieldIdentifier, var index : Int) exten
 }
 
 case class StencilIdentifier(var name : String, var level : LevelSpecification) extends Identifier {
-  def progressToIr : ir.UnresolvedStencilAccess = {
-    ir.UnresolvedStencilAccess(name, level.asInstanceOf[SingleLevelSpecification].level)
+  def progressToIr : ir.StencilAccess = {
+    ir.StencilAccess(knowledge.StencilCollection.getStencilByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get)
   }
 }
 
 case class StencilFieldIdentifier(var name : String, var level : LevelSpecification) extends Identifier {
-  def progressToIr : ir.UnresolvedStencilFieldAccess = {
-    ir.UnresolvedStencilFieldAccess(name, level.asInstanceOf[SingleLevelSpecification].level)
+  def progressToIr : ir.StencilFieldAccess = {
+    ir.StencilFieldAccess(knowledge.StencilFieldCollection.getStencilFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get)
   }
 }
 

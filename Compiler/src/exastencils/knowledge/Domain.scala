@@ -7,6 +7,7 @@ import exastencils.datastructures.ir._
 import exastencils.util._
 
 case class Domain(var identifier : String,
+  var index : Int,
   var size : AABB) {}
 
 object DomainCollection {

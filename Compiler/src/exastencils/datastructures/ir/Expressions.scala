@@ -251,18 +251,6 @@ object DefaultLoopMultiIndex {
   }
 }
 
-case class UnresolvedFieldAccess(var fieldOwner : Expression, var fieldIdentifier : String, var level : Int, var slot : Expression, var index : MultiIndex) extends Expression with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = UnresolvedFieldAccess\n"
-
-  def resolveField : Field = {
-    FieldCollection.getFieldByIdentifier(fieldIdentifier, level).get
-  }
-
-  def expand : FieldAccess = {
-    new FieldAccess(fieldOwner, resolveField, slot, index)
-  }
-}
-
 case class DirectFieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : MultiIndex) extends Expression {
   override def cpp : String = "NOT VALID ; CLASS = FieldAccess\n"
 
@@ -293,12 +281,12 @@ case class LinearizedFieldAccess(var fieldOwner : Expression, var field : Field,
   }
 }
 
-case class UnresolvedStencilAccess(var stencilIdentifier : String, level : Int) extends Expression {
-  override def cpp : String = "NOT VALID ; CLASS = UnresolvedStencilAccess\n"
+case class StencilAccess(var stencil : Stencil) extends Expression {
+  override def cpp : String = "NOT VALID ; CLASS = StencilAccess\n"
 }
 
-case class UnresolvedStencilFieldAccess(var stencilFieldIdentifier : String, level : Int) extends Expression {
-  override def cpp : String = "NOT VALID ; CLASS = UnresolvedStencilFieldAccess\n"
+case class StencilFieldAccess(var stencilField : StencilField) extends Expression {
+  override def cpp : String = "NOT VALID ; CLASS = StencilFieldAccess\n"
 }
 
 case class MemberAccess(var base : Access, var varAcc : VariableAccess) extends Access {

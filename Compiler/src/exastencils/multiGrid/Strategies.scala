@@ -17,13 +17,12 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
   this += new Transformation("SearchAndReplace", {
     case FunctionCallExpression(StringConstant("diag"), args) =>
       args(0) match {
-        case access : UnresolvedStencilAccess =>
-          StencilCollection.getStencilByIdentifier(access.stencilIdentifier, access.level).get.entries(0).weight
-        case access : UnresolvedStencilFieldAccess => {
-          val stencilField = StencilFieldCollection.getStencilFieldByIdentifier(access.stencilFieldIdentifier, access.level).get
+        case access : StencilAccess =>
+          access.stencil.entries(0).weight
+        case access : StencilFieldAccess => {
           var index = DefaultLoopMultiIndex()
           index(Knowledge.dimensionality) = 0
-          new FieldAccess("curFragment.", stencilField.field, 0 /*FIXME*/ , index)
+          new FieldAccess("curFragment.", access.stencilField.field, 0 /*FIXME*/ , index)
         }
       }
 
@@ -71,6 +70,6 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
     case ExpressionStatement(FunctionCallExpression(StringConstant("print"), args)) =>
       new PrintStatement(args)
     case ExpressionStatement(FunctionCallExpression(StringConstant("printField"), args)) =>
-      new PrintFieldStatement(args(0), args(1).asInstanceOf[UnresolvedFieldAccess])
+      new PrintFieldStatement(args(0), args(1).asInstanceOf[FieldAccess].field)
   })
 }

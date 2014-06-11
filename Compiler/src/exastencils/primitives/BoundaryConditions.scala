@@ -26,9 +26,9 @@ case class HandleBoundaries(var field : Field, var neighbors : ListBuffer[(Neigh
           field.dirichletBC.get)
       }
 
-      new LoopOverFragments(field.domain,
+      new LoopOverFragments(field.domain.index,
         neighbors.map(neigh =>
-          new ConditionStatement(new getNeighInfo_IsInvalid(neigh._1, field.domain),
+          new ConditionStatement(new getNeighInfo_IsInvalid(neigh._1, field.domain.index),
             new LoopOverDimensions(Knowledge.dimensionality, neigh._2, statements) with OMP_PotentiallyParallel with PolyhedronAccessable) : Statement)) with OMP_PotentiallyParallel
     } else {
       new NullStatement

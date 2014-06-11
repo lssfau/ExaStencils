@@ -101,7 +101,7 @@ case class FieldDeclarationStatement(var name : String,
 
     new knowledge.Field(
       name,
-      StateManager.root_.asInstanceOf[Root].getDomainByIdentifier(domain).get.index,
+      DomainCollection.getDomainByIdentifier(domain).get,
       name.toLowerCase + "Data_" + level.get.asInstanceOf[SingleLevelSpecification].level,
       datatype.progressToIr,
       ir_layout,
@@ -132,7 +132,7 @@ case class ExternalFieldDeclarationStatement(
     val ir_layout = l4_layout.progressToIr(correspondingField.level.asInstanceOf[SingleLevelSpecification].level)
 
     new knowledge.ExternalField(extIdentifier,
-      correspondingField.name,
+      correspondingField.resolveField,
       ir_layout,
       correspondingField.level.asInstanceOf[SingleLevelSpecification].level,
       l4_layout.l4_ghostLayers.progressToIr // TODO: this should work for now but may be adapted in the future)

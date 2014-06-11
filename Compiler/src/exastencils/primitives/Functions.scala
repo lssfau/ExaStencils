@@ -139,7 +139,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
 
     for (field <- fields) {
       var numDataPoints = field.layout(0).total * field.layout(1).total * field.layout(2).total * field.dataType.resolveFlattendSize
-      body += new ConditionStatement(FragMember_IsValidForSubdomain(field.domain),
+      body += new ConditionStatement(FragMember_IsValidForSubdomain(field.domain.index),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           new AssignmentStatement(new ArrayAccess(field.codeName, slot),
             ("new" : Expression) ~~ field.dataType.resolveUnderlyingDatatype. /*FIXME*/ cpp ~ "[" ~ numDataPoints ~ "]") : Statement))

@@ -24,7 +24,7 @@ case class InitFields() extends Statement with Expandable {
     var statements : ListBuffer[Statement] = new ListBuffer
 
     for (field <- fields) {
-      statements += new LoopOverFragments(field.domain,
+      statements += new LoopOverFragments(field.domain.index,
         new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
           new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => field.layout(i).idxGhostLeftBegin)),
           new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => field.layout(i).idxGhostRightEnd))),

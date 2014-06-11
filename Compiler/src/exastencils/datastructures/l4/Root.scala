@@ -40,26 +40,32 @@ case class Root(
   def progressToIr : Node = {
     var newRoot = new ir.Root
 
+    // Domains
     DomainCollection.domains.clear
     for (domain <- domains)
       DomainCollection.domains += domain.progressToIr
 
+    // Fields => requires Domains
     FieldCollection.fields.clear
     for (field <- fields)
       FieldCollection.fields += field.progressToIr
 
+    // Stencils
     StencilCollection.stencils.clear
     for (stencil <- stencils)
       StencilCollection.stencils += stencil.progressToIr
 
+    // StencilFields => requires Fields and Stencils
     StencilFieldCollection.stencilFields.clear
     for (stencilField <- stencilFields)
       StencilFieldCollection.stencilFields += stencilField.progressToIr
 
+    // ExternalFields => requires Fields
     ExternalFieldCollection.fields.clear
     for (extField <- externalFields)
       ExternalFieldCollection.fields += extField.progressToIr
 
+    // IterationSets
     IterationSetCollection.sets.clear
     for (iterationSet <- iterationSets)
       IterationSetCollection.sets += iterationSet.progressToIr

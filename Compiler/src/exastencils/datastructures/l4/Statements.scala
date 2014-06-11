@@ -11,6 +11,7 @@ import exastencils.primitives._
 import exastencils.languageprocessing.l4.ProgressToIr
 import exastencils.util._
 import exastencils.globals._
+import exastencils.knowledge.IterationSetCollection
 
 abstract class Statement extends Node with ProgressableToIr {
   def progressToIr : ir.Statement
@@ -23,9 +24,9 @@ abstract class SpecialStatement /*TODO: think about an appropriate name*/ extend
 case class DomainDeclarationStatement(var name : String, var lower : RealIndex, var upper : RealIndex, var index : Int = 0) extends SpecialStatement {
   def progressToIr : knowledge.Domain = {
     (lower, upper) match {
-      case (l : RealIndex2D, u : RealIndex2D) => new knowledge.Domain(name, new AABB(l.x, u.x, l.y, u.y, 0.0, 0.0))
-      case (l : RealIndex3D, u : RealIndex3D) => new knowledge.Domain(name, new AABB(l.x, u.x, l.y, u.y, l.z, u.z))
-      case _                                  => new knowledge.Domain(name, new AABB())
+      case (l : RealIndex2D, u : RealIndex2D) => new knowledge.Domain(name, index, new AABB(l.x, u.x, l.y, u.y, 0.0, 0.0))
+      case (l : RealIndex3D, u : RealIndex3D) => new knowledge.Domain(name, index, new AABB(l.x, u.x, l.y, u.y, l.z, u.z))
+      case _                                  => new knowledge.Domain(name, index, new AABB())
     }
   }
 }
@@ -76,9 +77,8 @@ case class AssignmentStatement(var identifier : Identifier, var expression : Exp
 
 case class LoopOverDomainStatement(var iterationSet : String, var field : FieldIdentifier, var statements : List[Statement], var reduction : Option[ReductionStatement]) extends Statement {
   def progressToIr : LoopOverDomain = {
-    LoopOverDomain(iterationSet,
-      field.name,
-      field.level.asInstanceOf[SingleLevelSpecification].level,
+    LoopOverDomain(IterationSetCollection.getIterationSetByIdentifier(iterationSet).get,
+      field.resolveField,
       statements.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
       if (reduction.isDefined) Some(reduction.get.progressToIr) else None)
   }

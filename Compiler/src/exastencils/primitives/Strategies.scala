@@ -71,8 +71,8 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
   this += new Transformation("Adding external field transfer functions", {
     case frag : FragmentClass =>
       for (extField <- ExternalFieldCollection.fields) {
-        frag.functions += new GetFromExternalField(FieldCollection.getFieldByIdentifier(extField.targetFieldIdentifier, extField.level).get, extField)
-        frag.functions += new SetFromExternalField(FieldCollection.getFieldByIdentifier(extField.targetFieldIdentifier, extField.level).get, extField)
+        frag.functions += new GetFromExternalField(extField.targetField, extField)
+        frag.functions += new SetFromExternalField(extField.targetField, extField)
       }
       frag
   })
