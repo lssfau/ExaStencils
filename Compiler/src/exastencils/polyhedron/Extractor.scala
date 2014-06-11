@@ -5,6 +5,7 @@ import scala.collection.mutable.HashSet
 import scala.collection.mutable.Set
 import scala.collection.mutable.StringBuilder
 import scala.language.implicitConversions
+
 import exastencils.core.Logger
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Annotation
@@ -38,18 +39,13 @@ import exastencils.datastructures.ir.StringConstant
 import exastencils.datastructures.ir.SubtractionExpression
 import exastencils.datastructures.ir.UnaryExpression
 import exastencils.datastructures.ir.VariableAccess
+import exastencils.datastructures.ir.VariableDeclarationStatement
 import exastencils.knowledge.Field
 import exastencils.knowledge.Knowledge
 import exastencils.knowledge.dimToString
 import exastencils.primitives.LoopOverDimensions
-import exastencils.datastructures.ir.VariableDeclarationStatement
-import exastencils.datastructures.ir.VariableDeclarationStatement
-import exastencils.datastructures.ir.VariableDeclarationStatement
-import exastencils.datastructures.ir.AssignmentStatement
-import exastencils.datastructures.ir.AssignmentStatement
-import exastencils.datastructures.ir.VariableAccess
-import com.sun.javafx.css.Declaration
-import exastencils.datastructures.ir.VariableDeclarationStatement
+import isl.UnionMap
+import isl.UnionSet
 
 class Extractor extends Collector {
   import scala.language.implicitConversions
