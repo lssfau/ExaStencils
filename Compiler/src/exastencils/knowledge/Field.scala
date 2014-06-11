@@ -75,5 +75,5 @@ case class ExternalFieldCollection(var fields : ListBuffer[ExternalField] = List
 }
 
 case class SlotAccess(var expr : Expression) extends Expression {
-  override def cpp = "[" + expr.cpp + "]"
+  override def cpp = expr.cpp
 }
