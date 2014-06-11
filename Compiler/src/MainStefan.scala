@@ -13,10 +13,12 @@ import exastencils.languageprocessing.l4.ProgressToIr
 import exastencils.mpi.RemoveMPIReferences
 import exastencils.multiGrid.ResolveSpecialFunctions
 import exastencils.omp.AddOMPPragmas
+import exastencils.optimization.AddressPrecalculation
 import exastencils.parsers.l4.ParserL4
 import exastencils.parsers.l4.ValidationL4
 import exastencils.polyhedron.PolyOpt
 import exastencils.prettyprinting.PrettyprintingManager
+import exastencils.primitives.AddFragmentMember
 import exastencils.primitives.CommunicationFunctions
 import exastencils.primitives.FragmentClass
 import exastencils.primitives.LinearizeFieldAccesses
@@ -124,19 +126,35 @@ object MainStefan {
 
     LinearizeFieldAccesses.apply()
 
+    //    new exastencils.datastructures.DefaultStrategy("TestStrategy") {
+    //      this += new exastencils.datastructures.Transformation("test", {
+    //        case a : exastencils.datastructures.ir.ArrayAccess =>
+    //          println("=======================================================================================")
+    //          println(a.index.cpp())
+    //          println(exastencils.util.SimplifyExpression.extractIntegralSum(a.index))
+    //          a
+    //        case a : exastencils.datastructures.ir.LinearizedFieldAccess =>
+    //          println("=======================================================================================")
+    //          println(a.index.cpp())
+    //          println(exastencils.util.SimplifyExpression.extractIntegralSum(a.index))
+    //          a
+    //      })
+    //    }.apply()
+    //    return
+    AddressPrecalculation.apply()
+
     ExpandStrategy.doUntilDone()
 
-    if (!Knowledge.useMPI) {
+    if (!Knowledge.useMPI)
       RemoveMPIReferences.apply()
-    }
 
     SimplifyStrategy.doUntilDone()
 
+    AddFragmentMember.apply()
     AddMemberFunctionPrefix.apply()
 
-    if (Knowledge.useOMP) {
+    if (Knowledge.useOMP)
       AddOMPPragmas.apply()
-    }
 
     PrintStrategy.apply()
     PrettyprintingManager.finish

@@ -5,9 +5,6 @@ dimensionality				= 3
 maxLevel					= 8
 comm_strategyFragment		= 6	// 26
 
-useMPI = false
-useOMP = true
-
 domain_summarizeBlocks		= true
 
 domain_numBlocks_x			= 1

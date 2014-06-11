@@ -1,16 +1,19 @@
 package exastencils.polyhedron
 
 import scala.collection.mutable.HashMap
+import scala.collection.mutable.ListBuffer
 
 import exastencils.datastructures.Node
 import exastencils.datastructures.ir.Expression
 import exastencils.datastructures.ir.Statement
+import exastencils.datastructures.ir.VariableDeclarationStatement
 
 class Scop(val root : Node) {
 
   var domain : isl.UnionSet = null
   var schedule : isl.UnionMap = null
-  val stmts : HashMap[String, Statement] = new HashMap[String, Statement]
+  val stmts = new HashMap[String, Statement]
+  val decls = new ListBuffer[VariableDeclarationStatement]
 
   var reads, writes : isl.UnionMap = null
 
