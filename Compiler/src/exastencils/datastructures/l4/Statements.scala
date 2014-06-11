@@ -106,9 +106,9 @@ case class RepeatUntilStatement(var comparison : BooleanExpression, var statemen
   def progressToIr = "FIXME: implement"
 }
 
-case class ReductionStatement(var op : String, var target : Identifier) extends SpecialStatement {
+case class ReductionStatement(var op : String, var target : String) extends SpecialStatement {
   def progressToIr : ir.Reduction = {
-    ir.Reduction(ir.BinaryOperators.str2op(op), target.progressToIr)
+    ir.Reduction(ir.BinaryOperators.str2op(op), target)
   }
 }
 

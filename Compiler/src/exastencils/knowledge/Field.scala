@@ -73,3 +73,7 @@ case class ExternalFieldCollection(var fields : ListBuffer[ExternalField] = List
     fields.find(f => f.identifier == identifier && f.level == level)
   }
 }
+
+case class SlotAccess(var expr : Expression) extends Expression {
+  override def cpp = "[" + expr.cpp + "]"
+}

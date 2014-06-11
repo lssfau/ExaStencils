@@ -92,7 +92,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val functionCall = locationize(identifierWithOptionalLevel ~ "(" ~ functionCallArgumentList.? ~ ")" ^^ { case id ~ "(" ~ args ~ ")" => FunctionCallExpression(id, args.getOrElse(List[Expression]())) })
   lazy val functionCallArgumentList = (expression <~ ("," | newline)).* ~ expression ^^ { case exps ~ ex => exps :+ ex }
 
-  lazy val diagFunctionCall = locationize("diag" ~ "(" ~ identifierWithOptionalLevel ~ ")" ^^ { case _ ~ "(" ~ what ~ ")" => FunctionCallExpression(BasicIdentifier("diag"), List[Expression](what)) })
+  lazy val diagFunctionCall = locationize("diag" ~ "(" ~ fieldAccess ~ ")" ^^ { case _ ~ "(" ~ what ~ ")" => FunctionCallExpression(BasicIdentifier("diag"), List[Expression](what)) })
   lazy val toFinerFunctionCall = locationize("ToFiner" ~ "(" ~ binaryexpression ~ ")" ^^ { case _ ~ "(" ~ stencilconv ~ ")" => FunctionCallExpression(BasicIdentifier("ToFiner"), List[Expression](stencilconv)) })
   lazy val toCoarserFunctionCall = locationize("ToCoarser" ~ "(" ~ binaryexpression ~ ")" ^^ { case _ ~ "(" ~ stencilconv ~ ")" => FunctionCallExpression(BasicIdentifier("ToCoarser"), List[Expression](stencilconv)) })
 
@@ -124,16 +124,16 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     (("repeat" ~ "until") ~> comparison) ~ (("{" ~> statement.+) <~ "}") ^^ { case c ~ s => RepeatUntilStatement(c, s) })
 
   lazy val loopOver = locationize(("loop" ~ "over" ~> ident) ~
-    ("on" ~> identifierWithObligatoryLevel) ~ // FIXME: this is all but robust / a user could break this easily
+    ("on" ~> fieldAccess) ~ // FIXME: this is all but robust / a user could break this easily
     ("with" ~> loopOverWithClause).? ~
     ("{" ~> statement.+) <~ "}" ^^
     {
       case area ~ field ~ red ~ stmts => LoopOverDomainStatement(area, field, stmts, red)
     })
 
-  lazy val loopOverWithClause = locationize((("reduction" ~ "(") ~> ("+" ||| "*")) ~ (":" ~> identifierWithOptionalLevel <~ ")") ^^ { case op ~ s => ReductionStatement(op, s) })
+  lazy val loopOverWithClause = locationize((("reduction" ~ "(") ~> ("+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => ReductionStatement(op, s) })
 
-  lazy val assignment = locationize(identifierWithOptionalLevel ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(id, exp) })
+  lazy val assignment = locationize((identifierWithOptionalLevel | fieldAccess) ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(id, exp) })
 
   lazy val operatorassignment = locationize(identifierWithOptionalLevel ~ operatorassignmentoperator ~ expression ^^ {
     case id ~ op ~ exp => AssignmentStatement(id, BinaryExpression(op, id, exp))
@@ -161,10 +161,10 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val layoutOptions = (
     (layoutOption <~ ",").* ~ layoutOption ^^ { case opts ~ opt => opts.::(opt) }
     ||| layoutOption.+)
-  lazy val layoutOption = locationize((identifierWithOptionalLevel <~ "=") ~ index ~ ("with" ~ "communication").? ^^ { case id ~ idx ~ comm => LayoutOption(id, idx, Some(comm.isDefined)) })
+  lazy val layoutOption = locationize((ident <~ "=") ~ index ~ ("with" ~ "communication").? ^^ { case id ~ idx ~ comm => LayoutOption(id, idx, Some(comm.isDefined)) })
 
-  lazy val field = locationize(("Field" ~> ident) ~ "<" ~ datatype ~ ("," ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ level.?
-    ^^ { case id ~ _ ~ dt ~ domain ~ layout ~ boundary ~ _ ~ level => FieldDeclarationStatement(id, dt, domain, layout, boundary, level) })
+  lazy val field = locationize(("Field" ~> ident) ~ "<" ~ datatype ~ ("," ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~("[" ~> integerLit <~ "]").? ~ level.?
+    ^^ { case id ~ _ ~ dt ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level => FieldDeclarationStatement(id, dt, domain, layout, boundary, level, slots.getOrElse(1).toInt) })
   lazy val fieldBoundary = expression ^^ { case x => Some(x) } ||| "None" ^^ { case x => None }
 
   lazy val index : PackratParser[Index] = (
@@ -186,14 +186,17 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| stencilEntry.+)
   lazy val stencilEntry = ((expressionIndex ~ ("=>" ~> factor)) ^^ { case offset ~ weight => StencilEntry(offset, weight) })
 
-  lazy val communicateStatement = locationize("communicate" ~> identifierWithOptionalLevel ^^ { case field => CommunicateStatement(field) })
+  lazy val communicateStatement = locationize("communicate" ~> fieldAccess ^^ { case field => CommunicateStatement(field) })
+  
+  lazy val slotaccess = locationize("[" ~> binaryexpression <~ "]" ^^ { case s => SlotAccess(s) })
 
   // ######################################
   // ##### Expressions
   // ######################################
 
   lazy val identifierWithOptionalLevel = locationize(ident ~ level.? ^^ { case id ~ level => UnresolvedIdentifier(id, level) })
-  lazy val identifierWithObligatoryLevel = locationize(ident ~ level ^^ { case id ~ level => FieldIdentifier(id, level) })
+  
+  lazy val fieldAccess = locationize(ident ~ slotaccess.? ~ level ^^ { case id ~ slot ~ level => FieldIdentifier(id, slot, level) })
 
   lazy val expression : PackratParser[Expression] = binaryexpression | booleanexpression
 
@@ -216,7 +219,9 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| locationize(diagFunctionCall)
     ||| locationize(toFinerFunctionCall)
     ||| locationize(toCoarserFunctionCall)
-    ||| identifierWithOptionalLevel)
+    ||| identifierWithOptionalLevel
+    ||| fieldAccess
+    )
 
   lazy val booleanexpression : PackratParser[BooleanExpression] = (
     locationize(booleanexpression ~ ("||" ||| "&&") ~ booleanexpression ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
@@ -230,7 +235,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ######################################
 
   lazy val externalField = locationize(
-    (("external" ~ "Field") ~> ident) ~ ("<" ~> ident <~ ">") ~ "=>" ~ identifierWithObligatoryLevel ^^ {
+    (("external" ~ "Field") ~> ident) ~ ("<" ~> ident <~ ">") ~ "=>" ~ fieldAccess ^^ {
       case extid ~ layout ~ _ ~ intid => ExternalFieldDeclarationStatement(extid, intid, layout)
     })
 

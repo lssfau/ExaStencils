@@ -23,8 +23,8 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
   this += new Transformation("ResolveGroupedLevelSpecifications", {
     case UnresolvedIdentifier(name, Some(ListLevelSpecification(levels))) if (1 == levels.size) =>
       UnresolvedIdentifier(name, Some(levels.head))
-    case FieldIdentifier(name, ListLevelSpecification(levels)) if (1 == levels.size) =>
-      FieldIdentifier(name, levels.head)
+    case FieldIdentifier(name, slots, ListLevelSpecification(levels)) if (1 == levels.size) =>
+      FieldIdentifier(name, slots, levels.head)
   })
 
   // resolve raw level specifications
@@ -32,11 +32,18 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
   this += new Transformation("ResolveRawLevelSpecifications", {
     case UnresolvedIdentifier(name, Some(level)) =>
       if (StateManager.root_.asInstanceOf[Root].fields.exists(f => name == f.name))
-        FieldIdentifier(name, level)
+        FieldIdentifier(name, Some(SlotAccess(IntegerConstant(0))), level)
       else if (StateManager.root_.asInstanceOf[Root].stencils.exists(s => name == s.name))
         StencilIdentifier(name, level)
       else
         LeveledIdentifier(name, level)
+    case FieldIdentifier(name, None, level) => // FIXME this is not pretty :(
+      if (StateManager.root_.asInstanceOf[Root].fields.exists(f => name == f.name))
+        FieldIdentifier(name, Some(SlotAccess(IntegerConstant(0))), level)
+      else if (StateManager.root_.asInstanceOf[Root].stencils.exists(s => name == s.name))
+        StencilIdentifier(name, level)
+      else
+        LeveledIdentifier(name, level)      
     case UnresolvedIdentifier(name, _) => BasicIdentifier(name)
   })
 
