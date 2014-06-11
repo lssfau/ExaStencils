@@ -28,7 +28,8 @@ case class LocalSend(var field : Field, var neighbors : ListBuffer[(NeighborInfo
       neighbors.map(neigh =>
         (new ConditionStatement(new getNeighInfo_IsValidAndNotRemote(neigh._1, field.domain),
           ListBuffer[Statement](
-            new LoopOverDimensions(neigh._2,
+            new LoopOverDimensions(Knowledge.dimensionality + 1,
+              neigh._2,
               new AssignmentStatement(
                 new DirectFieldAccess(new getNeighInfo_LocalPtr(neigh._1, field.domain) ~ "->", field, "slot", new MultiIndex(
                   new MultiIndex(DefaultLoopMultiIndex(), neigh._3.begin, _ + _), neigh._2.begin, _ - _)),
@@ -48,7 +49,8 @@ case class CopyToSendBuffer(var field : Field, var neighbors : ListBuffer[(Neigh
       filterNot(neigh => neigh._2.begin(0) == neigh._2.end(0) && neigh._2.begin(1) == neigh._2.end(1) && neigh._2.begin(2) == neigh._2.end(2)).
       map(neigh =>
         new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
-          new LoopOverDimensions(neigh._2,
+          new LoopOverDimensions(Knowledge.dimensionality + 1,
+            neigh._2,
             new AssignmentStatement(new ArrayAccess(FragMember_TmpBuffer(field, "Send", DimArrayHigher().map(i => (neigh._2.end(i) - neigh._2.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _), neigh._1.index),
               Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), neigh._2.begin, _ - _), neigh._2)),
               new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel with PolyhedronAccessable) : Statement)) with OMP_PotentiallyParallel
@@ -64,7 +66,8 @@ case class CopyFromRecvBuffer(var field : Field, var neighbors : ListBuffer[(Nei
       filterNot(neigh => neigh._2.begin(0) == neigh._2.end(0) && neigh._2.begin(1) == neigh._2.end(1) && neigh._2.begin(2) == neigh._2.end(2)).
       map(neigh =>
         (new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
-          new LoopOverDimensions(neigh._2,
+          new LoopOverDimensions(Knowledge.dimensionality + 1,
+            neigh._2,
             new AssignmentStatement(new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()),
               new ArrayAccess(FragMember_TmpBuffer(field, "Recv", DimArrayHigher().map(i => (neigh._2.end(i) - neigh._2.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _), neigh._1.index),
                 Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), neigh._2.begin, _ - _), neigh._2)))) with OMP_PotentiallyParallel with PolyhedronAccessable)) : Statement)) with OMP_PotentiallyParallel

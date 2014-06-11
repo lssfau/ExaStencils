@@ -156,9 +156,9 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
     new FunctionStatement(new UnitDatatype(), "get" ~ src.codeName,
       ListBuffer(new VariableAccess("dest", Some(PointerDatatype(src.dataType))), new VariableAccess("slot", Some(new IntegerDatatype))),
       ListBuffer[Statement](
-        new LoopOverDimensions(new IndexRange(
-          new MultiIndex((0 until Knowledge.dimensionality).toArray.map(i => dest.layout(i).idxDupLeftBegin)),
-          new MultiIndex((0 until Knowledge.dimensionality).toArray.map(i => dest.layout(i).idxDupRightEnd))),
+        new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
+          new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => dest.layout(i).idxDupLeftBegin)),
+          new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => dest.layout(i).idxDupRightEnd))),
           new AssignmentStatement(ExternalFieldAccess("dest", dest, DefaultLoopMultiIndex()),
             FieldAccess(new NullExpression, src, "slot", DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel with PolyhedronAccessable))
   }
@@ -171,9 +171,9 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
     new FunctionStatement(new UnitDatatype(), "set" ~ dest.codeName,
       ListBuffer(new VariableAccess("src", Some(PointerDatatype(dest.dataType))), new VariableAccess("slot", Some(new IntegerDatatype))),
       ListBuffer[Statement](
-        new LoopOverDimensions(new IndexRange(
-          new MultiIndex((0 until Knowledge.dimensionality).toArray.map(i => src.layout(i).idxDupLeftBegin)),
-          new MultiIndex((0 until Knowledge.dimensionality).toArray.map(i => src.layout(i).idxDupRightEnd))),
+        new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
+          new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => src.layout(i).idxDupLeftBegin)),
+          new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => src.layout(i).idxDupRightEnd))),
           new AssignmentStatement(FieldAccess(new NullExpression, dest, "slot", DefaultLoopMultiIndex()),
             ExternalFieldAccess("src", src, DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel with PolyhedronAccessable))
   }

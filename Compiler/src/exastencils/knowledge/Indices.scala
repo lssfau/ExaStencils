@@ -49,6 +49,7 @@ object dimToString extends (Int => String) {
       case 0 => "x"
       case 1 => "y"
       case 2 => "z"
+      case 3 => "w"
       case _ => "UNKNOWN"
     }
   }

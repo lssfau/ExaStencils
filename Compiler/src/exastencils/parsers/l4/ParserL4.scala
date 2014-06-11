@@ -136,9 +136,9 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val assignment = locationize(identifierWithOptionalLevel ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(id, exp) }
     ||| vectorFieldAccess ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(id, exp) })
 
-  lazy val operatorassignment = locationize(identifierWithOptionalLevel ~ operatorassignmentoperator ~ expression ^^ {
-    case id ~ op ~ exp => AssignmentStatement(id, BinaryExpression(op, id, exp))
-  })
+  lazy val operatorassignment = locationize(
+    identifierWithOptionalLevel ~ operatorassignmentoperator ~ expression ^^ { case id ~ op ~ exp => AssignmentStatement(id, BinaryExpression(op, id, exp)) }
+      ||| vectorFieldAccess ~ operatorassignmentoperator ~ expression ^^ { case id ~ op ~ exp => AssignmentStatement(id, BinaryExpression(op, id, exp)) })
 
   lazy val operatorassignmentoperator = ("+=" ^^ { case _ => "+" }
     ||| "-=" ^^ { case _ => "-" }
@@ -219,7 +219,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| locationize(diagFunctionCall)
     ||| locationize(toFinerFunctionCall)
     ||| locationize(toCoarserFunctionCall)
-    ||| identifierWithOptionalLevel)
+    ||| locationize(identifierWithOptionalLevel)
+    ||| locationize(vectorFieldAccess))
 
   lazy val booleanexpression : PackratParser[BooleanExpression] = (
     locationize(booleanexpression ~ ("||" ||| "&&") ~ booleanexpression ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })

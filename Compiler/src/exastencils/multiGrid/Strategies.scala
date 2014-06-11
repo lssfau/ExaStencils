@@ -23,13 +23,13 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
     // HACK to realize intergrid operations
     case FunctionCallExpression(StringConstant("ToCoarser"), args) =>
       var stencilConvolution = Duplicate(args(0).asInstanceOf[StencilConvolution])
-      for (i <- 0 until Knowledge.dimensionality)
-        stencilConvolution.targetIdx(i) = 2 * (dimToString(i) : Expression)
+      for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
+        stencilConvolution.targetIdx(i) = 2 * stencilConvolution.targetIdx(i)
       stencilConvolution
     case FunctionCallExpression(StringConstant("ToFiner"), args) =>
       var stencilConvolution = Duplicate(args(0).asInstanceOf[StencilConvolution])
-      for (i <- 0 until Knowledge.dimensionality)
-        stencilConvolution.targetIdx(i) = dimToString(i) / 2
+      for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
+        stencilConvolution.targetIdx(i) = stencilConvolution.targetIdx(i) / 2
       stencilConvolution
 
     // HACK to realize return functionality -> FIXME: move to specialized node

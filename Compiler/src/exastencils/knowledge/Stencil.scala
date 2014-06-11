@@ -35,6 +35,6 @@ object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions"
   this += new Transformation("SearchAndMark", {
     case MultiplicationExpression(UnresolvedStencilAccess(stencilName, stencilLevel), UnresolvedFieldAccess(fieldOwner, fieldName, fieldLevel, fieldSlot, fieldIndex)) =>
       StencilConvolution(StencilCollection.getStencilByIdentifier(stencilName, stencilLevel).get,
-        FieldCollection.getFieldByIdentifier(fieldName, fieldLevel).get)
+        FieldCollection.getFieldByIdentifier(fieldName, fieldLevel).get, fieldIndex)
   })
 }

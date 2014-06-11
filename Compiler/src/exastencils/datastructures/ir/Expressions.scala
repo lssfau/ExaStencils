@@ -244,9 +244,9 @@ case class MultiIndex(
 object DefaultLoopMultiIndex {
   def apply() : MultiIndex = {
     Knowledge.dimensionality match {
-      case 1 => new MultiIndex(dimToString(0), 0)
-      case 2 => new MultiIndex(dimToString(0), dimToString(1), 0)
-      case 3 => new MultiIndex(dimToString(0), dimToString(1), dimToString(2), 0)
+      case 1 => new MultiIndex(dimToString(0), dimToString(1))
+      case 2 => new MultiIndex(dimToString(0), dimToString(1), dimToString(2))
+      case 3 => new MultiIndex(dimToString(0), dimToString(1), dimToString(2), dimToString(3))
     }
   }
 }

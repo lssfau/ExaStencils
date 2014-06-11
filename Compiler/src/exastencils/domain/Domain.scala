@@ -198,7 +198,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
         else
           s"Vec3 rankPos(0, 0, 0)",
 
-        new LoopOverDimensions(IndexRange(MultiIndex(0, 0, 0), MultiIndex(Knowledge.domain_numFragsPerBlock_x, Knowledge.domain_numFragsPerBlock_y, Knowledge.domain_numFragsPerBlock_z)),
+        new LoopOverDimensions(Knowledge.dimensionality, IndexRange(MultiIndex(0, 0, 0), MultiIndex(Knowledge.domain_numFragsPerBlock_x, Knowledge.domain_numFragsPerBlock_y, Knowledge.domain_numFragsPerBlock_z)),
           new AssignmentStatement("positions[posWritePos++]", "Vec3("
             ~ ((("rankPos.x" : Expression) * Knowledge.domain_numFragsPerBlock_x + 0.5 + dimToString(0)) * fragWidth_x) + globalDomain.size.lower_x ~ ","
             ~ (if (Knowledge.dimensionality > 1) ((("rankPos.y" : Expression) * Knowledge.domain_numFragsPerBlock_y + 0.5 + dimToString(1)) * fragWidth_y) + globalDomain.size.lower_y else 0) ~ ","

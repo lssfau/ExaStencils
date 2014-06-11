@@ -103,7 +103,7 @@ case class FragMember_TmpBuffer(var field : Field, var direction : String, var s
   override def cpp : String = "curFragment." + resolveAccess(resolveName, new NullExpression, field.identifier /*FIXME: id*/ , field.level, neighIdx).cpp
 
   override def resolveName = s"buffer_${direction}" + resolvePostfix("", field.identifier, field.level.toString, neighIdx.cpp)
-  override def resolveDataType = new PointerDatatype(field.dataType)
+  override def resolveDataType = new PointerDatatype(field.dataType.resolveUnderlyingDatatype)
   override def resolveDefValue = Some(0)
 
   override def getDtor() : Option[Statement] = {

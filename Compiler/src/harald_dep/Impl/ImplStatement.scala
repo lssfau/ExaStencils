@@ -89,7 +89,7 @@ case class Implforloop(var loopvar : ListBuffer[ParameterInfo], var start : List
       if (start.length > 1) {
         return new LoopOverFragments(-1,
           // TODO: add sth like new ConditionStatement(s"curFragment.isValidForSubdomain[${field.domain}]",
-          new LoopOverDimensions(IndexRange(new MultiIndex(start.toArray), new MultiIndex(stop.toArray)), body) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel
+          new LoopOverDimensions(Knowledge.dimensionality, IndexRange(new MultiIndex(start.toArray), new MultiIndex(stop.toArray)), body) with OMP_PotentiallyParallel) with OMP_PotentiallyParallel
       } else {
         if (stepsize(0) >= 0) {
           return new ForLoopStatement(
