@@ -48,7 +48,6 @@ import exastencils.datastructures.ir.VariableDeclarationStatement
 import exastencils.datastructures.ir.AssignmentStatement
 import exastencils.datastructures.ir.AssignmentStatement
 import exastencils.datastructures.ir.VariableAccess
-import com.sun.javafx.css.Declaration
 import exastencils.datastructures.ir.VariableDeclarationStatement
 
 class Extractor extends Collector {
