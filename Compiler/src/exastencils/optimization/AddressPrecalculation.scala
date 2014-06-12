@@ -62,10 +62,10 @@ private final object AnnotateLoopsAndAccesses extends Collector {
 
   private def generateName(fa : LinearizedFieldAccess) : String = {
     val res = new StringBuilder()
-    fa.fieldOwner.cppsb(res)
-    res ++= fa.field.codeName
+    fa.fieldSelection.prefix.cppsb(res)
+    res ++= fa.fieldSelection.codeName
     res.append('_')
-    fa.slot.cppsb(res)
+    fa.fieldSelection.slot.cppsb(res)
     var i : Int = 0
     while (i < res.size) {
       res(i) match {
@@ -152,7 +152,7 @@ private final object AnnotateLoopsAndAccesses extends Collector {
           ompLoop = l
         node.annotate(OMP_LOOP_ANNOT, ompLoop)
 
-      case f @ LinearizedFieldAccess(owner, field, slot, index) if !decls.isEmpty =>
+      case f @ LinearizedFieldAccess(fieldSelection, index) if !decls.isEmpty =>
         var name : String = generateName(f)
         val (decl : HashMap[String, (Expression, HashMap[Expression, Long])], loopVar) = decls.top
         val (in : Expression, outMap : HashMap[Expression, Long]) = splitIndex(index, loopVar)
@@ -161,7 +161,7 @@ private final object AnnotateLoopsAndAccesses extends Collector {
           name = "pointer_" + count
           count += 1
         }
-        decl.put(name, (new LinearizedFieldAccess(owner, field, slot, SimplifyExpression.recreateExpressionFromSum(outMap)), outMap))
+        decl.put(name, (new LinearizedFieldAccess(fieldSelection, SimplifyExpression.recreateExpressionFromSum(outMap)), outMap))
         f.annotate(REPL_ANNOT, new ArrayAccess(new VariableAccess(name), in))
 
       case a @ ArrayAccess(base, index) if !decls.isEmpty =>

@@ -30,30 +30,55 @@ object StencilFieldCollection {
   }
 }
 
-case class StencilConvolution(var stencil : Stencil, var field : FieldSelection, var targetIdx : MultiIndex = DefaultLoopMultiIndex()) extends Expression with Expandable {
+case class StencilFieldSelection(
+    var prefix : Expression,
+    var stencilField : StencilField,
+    var slot : Expression,
+    var arrayIndex : Int) extends Node {
+
+  def toFieldSelection = {
+    new FieldSelection(prefix, field, slot, arrayIndex)
+  }
+
+  // shortcuts to stencilField members
+  def field = stencilField.field
+  def stencil = stencilField.stencil
+
+  // shortcuts to Field members
+  def codeName = field.codeName
+  def dataType = field.dataType
+  def layout = field.layout
+  def level = field.level
+  def referenceOffset = field.referenceOffset
+}
+
+case class StencilConvolution(var stencil : Stencil, var fieldAccess : FieldAccess) extends Expression with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = StencilConvolution\n"
 
+  def resolveEntry(idx : Int) : Expression = {
+    stencil.entries(idx).weight * new FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + stencil.entries(idx).offset)
+  }
+
   def expand : Expression = {
-    var ret : Expression = stencil.entries.map(e => e.weight * FieldAccess("curFragment.", field.field, field.slot, new MultiIndex(targetIdx, e.offset, _ + _)))
-      .toArray[Expression].reduceLeft(_ + _)
+    var ret : Expression = (0 until stencil.entries.size).toArray.map(idx => resolveEntry(idx)).toArray[Expression].reduceLeft(_ + _)
     SimplifyStrategy.doUntilDoneStandalone(ret)
     ret
   }
 }
 
-case class StencilFieldConvolution(var stencilField : StencilField, var field : Field, var targetIdx : MultiIndex = DefaultLoopMultiIndex()) extends Expression with Expandable {
+case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, var fieldAccess : FieldAccess) extends Expression with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = StencilConvolution\n"
 
   def resolveEntry(idx : Int) : Expression = {
-    var stencilFieldIdx = Duplicate(targetIdx)
+    var stencilFieldIdx = Duplicate(stencilFieldAccess.index)
     stencilFieldIdx(Knowledge.dimensionality) = idx
 
-    FieldAccess("curFragment.", stencilField.field, 0 /*FIXME*/ , stencilFieldIdx) *
-      FieldAccess("curFragment.", field, 0 /*FIXME*/ , new MultiIndex(targetIdx, stencilField.stencil.entries(idx).offset, _ + _))
+    FieldAccess(stencilFieldAccess.stencilFieldSelection.toFieldSelection, stencilFieldIdx) *
+      new FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + stencilFieldAccess.stencilFieldSelection.stencil.entries(idx).offset)
   }
 
   def expand : Expression = {
-    var ret : Expression = (0 until stencilField.stencil.entries.size).toArray.map(idx => resolveEntry(idx)).toArray[Expression].reduceLeft(_ + _)
+    var ret : Expression = (0 until stencilFieldAccess.stencilFieldSelection.stencil.entries.size).toArray.map(idx => resolveEntry(idx)).toArray[Expression].reduceLeft(_ + _)
     SimplifyStrategy.doUntilDoneStandalone(ret)
     ret
   }
@@ -61,9 +86,9 @@ case class StencilFieldConvolution(var stencilField : StencilField, var field : 
 
 object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions") {
   this += new Transformation("SearchAndMark", {
-    case MultiplicationExpression(StencilAccess(stencil), FieldAccess(fieldOwner, field, fieldSlot, fieldIndex)) =>
-      StencilConvolution(stencil, FieldSelection(field, field.level, fieldSlot, 0 /*FIXME*/ ), fieldIndex)
-    case MultiplicationExpression(StencilFieldAccess(stencilField), FieldAccess(fieldOwner, field, fieldSlot, fieldIndex)) =>
-      StencilFieldConvolution(stencilField, field, fieldIndex)
+    case MultiplicationExpression(StencilAccess(stencil), fieldAccess : FieldAccess) =>
+      StencilConvolution(stencil, fieldAccess)
+    case MultiplicationExpression(stencilFieldAccess : StencilFieldAccess, fieldAccess : FieldAccess) =>
+      StencilFieldConvolution(stencilFieldAccess, fieldAccess)
   })
 }

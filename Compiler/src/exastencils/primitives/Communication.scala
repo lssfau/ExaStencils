@@ -30,9 +30,9 @@ case class LocalSend(var field : Field, var neighbors : ListBuffer[(NeighborInfo
             new LoopOverDimensions(Knowledge.dimensionality + 1,
               neigh._2,
               new AssignmentStatement(
-                new DirectFieldAccess(new getNeighInfo_LocalPtr(neigh._1, field.domain.index) ~ "->", field, "slot", new MultiIndex(
+                new DirectFieldAccess(FieldSelection(new getNeighInfo_LocalPtr(neigh._1, field.domain.index) ~ "->", field, "slot", -1), new MultiIndex(
                   new MultiIndex(DefaultLoopMultiIndex(), neigh._3.begin, _ + _), neigh._2.begin, _ - _)),
-                new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel with PolyhedronAccessable))) : Statement)) with OMP_PotentiallyParallel
+                new DirectFieldAccess(FieldSelection("curFragment.", field, "slot", -1), DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel with PolyhedronAccessable))) : Statement)) with OMP_PotentiallyParallel
   }
 }
 
@@ -52,7 +52,7 @@ case class CopyToSendBuffer(var field : Field, var neighbors : ListBuffer[(Neigh
             neigh._2,
             new AssignmentStatement(new ArrayAccess(FragMember_TmpBuffer(field, "Send", DimArrayHigher().map(i => (neigh._2.end(i) - neigh._2.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _), neigh._1.index),
               Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), neigh._2.begin, _ - _), neigh._2)),
-              new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel with PolyhedronAccessable) : Statement)) with OMP_PotentiallyParallel
+              new DirectFieldAccess(FieldSelection("curFragment.", field, "slot", -1), DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel with PolyhedronAccessable) : Statement)) with OMP_PotentiallyParallel
   }
 }
 
@@ -67,7 +67,7 @@ case class CopyFromRecvBuffer(var field : Field, var neighbors : ListBuffer[(Nei
         (new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain.index),
           new LoopOverDimensions(Knowledge.dimensionality + 1,
             neigh._2,
-            new AssignmentStatement(new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()),
+            new AssignmentStatement(new DirectFieldAccess(FieldSelection("curFragment.", field, "slot", -1), DefaultLoopMultiIndex()),
               new ArrayAccess(FragMember_TmpBuffer(field, "Recv", DimArrayHigher().map(i => (neigh._2.end(i) - neigh._2.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _), neigh._1.index),
                 Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), neigh._2.begin, _ - _), neigh._2)))) with OMP_PotentiallyParallel with PolyhedronAccessable)) : Statement)) with OMP_PotentiallyParallel
   }
@@ -107,12 +107,12 @@ case class RemoteSend(var field : Field, var neighbors : ListBuffer[(NeighborInf
 
       // FIXME: these comparisons don't work with the new MultiIndex 
       if (neigh._2.begin(0) == neigh._2.end(0) && neigh._2.begin(1) == neigh._2.end(1) && neigh._2.begin(2) == neigh._2.end(2)) {
-        ptr = s"&" ~ new DirectFieldAccess("curFragment.", field, "slot", neigh._2.begin)
+        ptr = s"&" ~ new DirectFieldAccess(FieldSelection("curFragment.", field, "slot", -1), neigh._2.begin)
         cnt = 1
         typeName = s"MPI_DOUBLE"
       } else if (Knowledge.mpi_useCustomDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))) {
         val mpiTypeName = addMPIDatatype(s"mpiType_Send_${field.codeName}_${neigh._1.index}", neigh._2)
-        ptr = s"&" ~ new DirectFieldAccess("curFragment.", field, "slot", neigh._2.begin)
+        ptr = s"&" ~ new DirectFieldAccess(FieldSelection("curFragment.", field, "slot", -1), neigh._2.begin)
         cnt = 1
         typeName = mpiTypeName
       } else {
@@ -166,12 +166,12 @@ case class RemoteReceive(var field : Field, var neighbors : ListBuffer[(Neighbor
       var typeName : Expression = new NullExpression
 
       if (neigh._2.begin(0) == neigh._2.end(0) && neigh._2.begin(1) == neigh._2.end(1) && neigh._2.begin(2) == neigh._2.end(2)) {
-        ptr = s"&" ~ new DirectFieldAccess("curFragment.", field, "slot", neigh._2.begin)
+        ptr = s"&" ~ new DirectFieldAccess(FieldSelection("curFragment.", field, "slot", -1), neigh._2.begin)
         cnt = 1
         typeName = s"MPI_DOUBLE"
       } else if (Knowledge.mpi_useCustomDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))) {
         val mpiTypeName = addMPIDatatype(s"mpiType_Recv_${field.codeName}_${neigh._1.index}", neigh._2)
-        ptr = s"&" ~ new DirectFieldAccess("curFragment.", field, "slot", neigh._2.begin)
+        ptr = s"&" ~ new DirectFieldAccess(FieldSelection("curFragment.", field, "slot", -1), neigh._2.begin)
         cnt = 1
         typeName = mpiTypeName
       } else {

@@ -57,10 +57,18 @@ case class Field(
 }
 
 case class FieldSelection(
-  var field : Field,
-  var level : Int,
-  var slot : Expression,
-  var arrayIndex : Int) {}
+    var prefix : Expression,
+    var field : Field,
+    var slot : Expression,
+    var arrayIndex : Int) extends Node {
+
+  // shortcuts to Field members
+  def codeName = field.codeName
+  def dataType = field.dataType
+  def layout = field.layout
+  def level = field.level
+  def referenceOffset = field.referenceOffset
+}
 
 object FieldCollection {
   var fields : ListBuffer[Field] = ListBuffer()

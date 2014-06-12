@@ -5,7 +5,6 @@ import scala.collection.mutable.HashSet
 import scala.collection.mutable.Set
 import scala.collection.mutable.StringBuilder
 import scala.language.implicitConversions
-
 import exastencils.core.Logger
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Annotation
@@ -46,6 +45,7 @@ import exastencils.knowledge.dimToString
 import exastencils.primitives.LoopOverDimensions
 import isl.UnionMap
 import isl.UnionSet
+import exastencils.knowledge.FieldSelection
 
 class Extractor extends Collector {
   import scala.language.implicitConversions
@@ -234,17 +234,13 @@ class Extractor extends Collector {
           index.annotate(SKIP_ANNOT)
           enterArrayAccess(varName, index)
 
-        case DirectFieldAccess(owner, field, slot, index) =>
-          owner.annotate(SKIP_ANNOT)
-          slot.annotate(SKIP_ANNOT)
+        case DirectFieldAccess(fieldSelection, index) =>
           index.annotate(SKIP_ANNOT)
-          enterFieldAccess(owner, field, slot, index)
+          enterFieldAccess(fieldSelection, index)
 
-        case FieldAccess(owner, field, slot, index) =>
-          owner.annotate(SKIP_ANNOT)
-          slot.annotate(SKIP_ANNOT)
+        case FieldAccess(fieldSelection, index) =>
           index.annotate(SKIP_ANNOT)
-          enterFieldAccess(owner, field, slot, index, field.referenceOffset)
+          enterFieldAccess(fieldSelection, index, fieldSelection.referenceOffset)
 
         case d : VariableDeclarationStatement =>
           d.dataType.annotate(SKIP_ANNOT)
@@ -639,14 +635,14 @@ class Extractor extends Collector {
     // nothing to do here...
   }
 
-  private def enterFieldAccess(owner : Expression, field : Field, slot : Expression, index : MultiIndex, offset : MultiIndex = null) : Unit = {
+  private def enterFieldAccess(fieldSelection : FieldSelection, index : MultiIndex, offset : MultiIndex = null) : Unit = {
 
     val name : StringBuilder = new StringBuilder()
 
-    owner.cppsb(name)
-    name ++= field.codeName
+    fieldSelection.prefix.cppsb(name)
+    name ++= fieldSelection.codeName
     name += '_'
-    slot.cppsb(name)
+    fieldSelection.slot.cppsb(name)
 
     enterArrayAccess(name.toString(), if (offset == null) index else index + offset)
   }

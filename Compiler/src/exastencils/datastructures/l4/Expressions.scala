@@ -62,9 +62,12 @@ case class FieldIdentifier(var name : String, var slot : Option[SlotAccess], var
   def progressToIr : ir.FieldAccess = {
     var multiIndex = ir.DefaultLoopMultiIndex()
     multiIndex(Knowledge.dimensionality) = 0
-    ir.FieldAccess("curFragment." /*FIXME*/ ,
-      knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get,
-      slot.getOrElse(SlotAccess(IntegerConstant(0))).expr.progressToIr,
+    ir.FieldAccess(
+      knowledge.FieldSelection(
+        "curFragment." /*FIXME*/ ,
+        knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get,
+        slot.getOrElse(SlotAccess(IntegerConstant(0))).expr.progressToIr,
+        0),
       multiIndex)
   }
 }
@@ -78,6 +81,7 @@ case class VectorFieldAccess(var field : FieldIdentifier, var index : Int) exten
 
   def progressToIr : ir.FieldAccess = {
     var access = field.progressToIr
+    access.fieldSelection.arrayIndex = index
     access.index(Knowledge.dimensionality) = index
     access
   }
@@ -91,7 +95,13 @@ case class StencilIdentifier(var name : String, var level : LevelSpecification) 
 
 case class StencilFieldIdentifier(var name : String, var level : LevelSpecification) extends Identifier {
   def progressToIr : ir.StencilFieldAccess = {
-    ir.StencilFieldAccess(knowledge.StencilFieldCollection.getStencilFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get)
+    ir.StencilFieldAccess(
+      knowledge.StencilFieldSelection(
+        "curFragment." /*FIXME*/ ,
+        knowledge.StencilFieldCollection.getStencilFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get,
+        0 /*FIXME*/ ,
+        -1),
+      ir.DefaultLoopMultiIndex())
   }
 }
 

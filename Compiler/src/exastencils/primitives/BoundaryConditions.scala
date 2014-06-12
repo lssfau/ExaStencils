@@ -22,7 +22,7 @@ case class HandleBoundaries(var field : Field, var neighbors : ListBuffer[(Neigh
         var index = DefaultLoopMultiIndex()
         index(Knowledge.dimensionality) = vecDim
         statements += new AssignmentStatement(
-          new DirectFieldAccess("curFragment.", field, "slot", index),
+          new DirectFieldAccess(FieldSelection("curFragment.", field, "slot", vecDim), index),
           field.dirichletBC.get)
       }
 

@@ -12,6 +12,7 @@ import exastencils.multiGrid._
 import exastencils.strategies._
 import exastencils.primitives._
 import exastencils.mpi._
+import exastencils.datastructures.ir.FieldAccess
 
 object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions") {
   this += new Transformation("SearchAndReplace", {
@@ -20,9 +21,9 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
         case access : StencilAccess =>
           access.stencil.entries(0).weight
         case access : StencilFieldAccess => {
-          var index = DefaultLoopMultiIndex()
-          index(Knowledge.dimensionality) = 0
-          new FieldAccess("curFragment.", access.stencilField.field, 0 /*FIXME*/ , index)
+          var index = Duplicate(access.index)
+          index(Knowledge.dimensionality) = 0 // FIXME: this assumes the center entry to be in pos 0
+          new FieldAccess(FieldSelection(access.stencilFieldSelection.prefix, access.stencilFieldSelection.field, access.stencilFieldSelection.slot, 0), index)
         }
       }
 
@@ -30,12 +31,12 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
     case FunctionCallExpression(StringConstant("ToCoarser"), args) =>
       var stencilConvolution = Duplicate(args(0).asInstanceOf[StencilConvolution])
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
-        stencilConvolution.targetIdx(i) = 2 * stencilConvolution.targetIdx(i)
+        stencilConvolution.fieldAccess.index(i) = 2 * stencilConvolution.fieldAccess.index(i)
       stencilConvolution
     case FunctionCallExpression(StringConstant("ToFiner"), args) =>
       var stencilConvolution = Duplicate(args(0).asInstanceOf[StencilConvolution])
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
-        stencilConvolution.targetIdx(i) = stencilConvolution.targetIdx(i) / 2
+        stencilConvolution.fieldAccess.index(i) = stencilConvolution.fieldAccess.index(i) / 2
       stencilConvolution
 
     // HACK to realize return functionality -> FIXME: move to specialized node
@@ -70,6 +71,6 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
     case ExpressionStatement(FunctionCallExpression(StringConstant("print"), args)) =>
       new PrintStatement(args)
     case ExpressionStatement(FunctionCallExpression(StringConstant("printField"), args)) =>
-      new PrintFieldStatement(args(0), args(1).asInstanceOf[FieldAccess].field)
+      new PrintFieldStatement(args(0), args(1).asInstanceOf[FieldAccess].fieldSelection)
   })
 }

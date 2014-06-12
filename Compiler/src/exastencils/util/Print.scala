@@ -16,7 +16,7 @@ case class PrintStatement(var toPrint : ListBuffer[Expression]) extends Statemen
   }
 }
 
-case class PrintFieldStatement(var filename : Expression, var field : Field) extends Statement with Expandable {
+case class PrintFieldStatement(var filename : Expression, var field : FieldSelection) extends Statement with Expandable {
   def cpp : String = { return "NOT VALID ; CLASS = PrintFieldStatement\n" }
 
   override def expand : StatementBlock = {
@@ -33,13 +33,13 @@ case class PrintFieldStatement(var filename : Expression, var field : Field) ext
     statements += new MPI_Sequential(ListBuffer[Statement](
       "std::ofstream stream(" ~ filename ~ ", std::ios::app)",
       new LoopOverDomain(IterationSetCollection.getIterationSetByIdentifier("inner").get, /* FIXME */
-        field,
+        field.field,
         ListBuffer[Statement](
-          new InitGeomCoords(field),
+          new InitGeomCoords(field.field),
           ("stream << xPos << \" \"" +
             (if (Knowledge.dimensionality > 1) " << yPos << \" \"" else "") +
             (if (Knowledge.dimensionality > 2) " << zPos << \" \"" else "") +
-            " << " : Expression) ~ new FieldAccess("curFragment.", field, 0 /* FIXME */ , DefaultLoopMultiIndex()) ~ " << std::endl")),
+            " << " : Expression) ~ new FieldAccess(field, DefaultLoopMultiIndex()) ~ " << std::endl")),
       "stream.close()"))
 
     new StatementBlock(statements)

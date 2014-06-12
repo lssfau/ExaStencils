@@ -251,19 +251,19 @@ object DefaultLoopMultiIndex {
   }
 }
 
-case class DirectFieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : MultiIndex) extends Expression {
+case class DirectFieldAccess(var fieldSelection : FieldSelection, var index : MultiIndex) extends Expression {
   override def cpp : String = "NOT VALID ; CLASS = FieldAccess\n"
 
   def linearize : LinearizedFieldAccess = {
-    new LinearizedFieldAccess(fieldOwner, field, slot, Mapping.resolveMultiIdx(field.layout, index))
+    new LinearizedFieldAccess(fieldSelection, Mapping.resolveMultiIdx(fieldSelection.layout, index))
   }
 }
 
-case class FieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : MultiIndex) extends Expression {
+case class FieldAccess(var fieldSelection : FieldSelection, var index : MultiIndex) extends Expression {
   override def cpp : String = "NOT VALID ; CLASS = FieldAccess\n"
 
   def linearize : LinearizedFieldAccess = {
-    new LinearizedFieldAccess(fieldOwner, field, slot, Mapping.resolveMultiIdx(field.layout, new MultiIndex(index, field.referenceOffset, _ + _)))
+    new LinearizedFieldAccess(fieldSelection, Mapping.resolveMultiIdx(fieldSelection.layout, new MultiIndex(index, fieldSelection.referenceOffset, _ + _)))
   }
 }
 
@@ -275,9 +275,9 @@ case class ExternalFieldAccess(var name : Expression, var field : ExternalField,
   }
 }
 
-case class LinearizedFieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : Expression) extends Expression {
+case class LinearizedFieldAccess(var fieldSelection : FieldSelection, var index : Expression) extends Expression {
   override def cpp : String = {
-    s"${fieldOwner.cpp}${field.codeName}[${slot.cpp}][${index.cpp}]"
+    s"${fieldSelection.prefix.cpp}${fieldSelection.codeName}[${fieldSelection.slot.cpp}][${index.cpp}]"
   }
 }
 
@@ -285,7 +285,7 @@ case class StencilAccess(var stencil : Stencil) extends Expression {
   override def cpp : String = "NOT VALID ; CLASS = StencilAccess\n"
 }
 
-case class StencilFieldAccess(var stencilField : StencilField) extends Expression {
+case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection, var index : MultiIndex) extends Expression {
   override def cpp : String = "NOT VALID ; CLASS = StencilFieldAccess\n"
 }
 
