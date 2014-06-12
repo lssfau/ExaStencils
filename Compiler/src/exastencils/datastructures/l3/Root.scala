@@ -11,7 +11,7 @@ case class Root() extends Node {
   var numPre : Int = 2 // has to be divisible by 2 for Jac
   var numPost : Int = 4 // has to be divisible by 2 for Jac
   var omega : Double = (if ("Jac" == smoother) 0.8 else 1.0)
-  var testBC : Boolean = false // NOTE: the tested bc will only be reasonable for 2D cases
+  var testBC : Boolean = true // NOTE: the tested bc will only be reasonable for 2D cases
   var testExtFields : Boolean = false
   var printFieldAtEnd : Boolean = false
   var genSetableStencil : Boolean = false
@@ -21,18 +21,19 @@ case class Root() extends Node {
   var useVecFields : Boolean = false // attempts to solve Poisson's equation for (numVecDims)D vectors; atm all three components are solved independently
   var numVecDims = (if (useVecFields) 2 else 1)
   var genStencilFields : Boolean = false
+  var useSlotsForJac : Boolean = true
 
   def solutionFields(level : String) = {
     if (useVecFields)
-      (0 until numVecDims).toArray.map(d => s"Solution@$level[$d]")
+      (0 until numVecDims).toArray.map(d => s"Solution${if (useSlotsForJac) "[0]" else ""}@$level[$d]")
     else
-      Array(s"Solution@$level")
+      Array(s"Solution${if (useSlotsForJac) "[0]" else ""}@$level")
   }
   def solution2Fields(level : String) = {
     if (useVecFields)
-      (0 until numVecDims).toArray.map(d => s"Solution2@$level[$d]")
+      (0 until numVecDims).toArray.map(d => s"Solution${if (useSlotsForJac) "[1]" else "2"}@$level[$d]")
     else
-      Array(s"Solution2@$level")
+      Array(s"Solution${if (useSlotsForJac) "[1]" else "2"}@$level")
   }
   def residualFields(level : String) = {
     if (useVecFields)
@@ -108,16 +109,31 @@ case class Root() extends Node {
     // Fields
     var fieldDatatype = (if (useVecFields) s"Array[Real][$numVecDims]" else "Real")
     if (testBC) {
-      printer.println(s"Field Solution< $fieldDatatype, global, BasicComm, 0.0 >@(coarsest to (finest - 1))")
-      printer.println(s"Field Solution< $fieldDatatype, global, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@finest")
       if ("Jac" == smoother) {
-        printer.println(s"Field Solution2< $fieldDatatype, global, BasicComm, 0.0 >@(coarsest to (finest - 1))")
-        printer.println(s"Field Solution2< $fieldDatatype, global, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@finest")
+        if (useSlotsForJac) {
+          printer.println(s"Field Solution< $fieldDatatype, global, BasicComm, 0.0 >[2]@(coarsest to (finest - 1))")
+          printer.println(s"Field Solution< $fieldDatatype, global, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >[2]@finest")
+        } else {
+          printer.println(s"Field Solution< $fieldDatatype, global, BasicComm, 0.0 >@(coarsest to (finest - 1))")
+          printer.println(s"Field Solution< $fieldDatatype, global, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@finest")
+          printer.println(s"Field Solution2< $fieldDatatype, global, BasicComm, 0.0 >@(coarsest to (finest - 1))")
+          printer.println(s"Field Solution2< $fieldDatatype, global, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@finest")
+        }
+      } else {
+        printer.println(s"Field Solution< $fieldDatatype, global, BasicComm, 0.0 >@(coarsest to (finest - 1))")
+        printer.println(s"Field Solution< $fieldDatatype, global, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@finest")
       }
     } else {
-      printer.println(s"Field Solution< $fieldDatatype, global, BasicComm, 0 >@all")
-      if ("Jac" == smoother)
-        printer.println(s"Field Solution2< $fieldDatatype, global, BasicComm, 0 >@all")
+      if ("Jac" == smoother) {
+        if (useSlotsForJac) {
+          printer.println(s"Field Solution< $fieldDatatype, global, BasicComm, 0.0 >[2]@all")
+        } else {
+          printer.println(s"Field Solution< $fieldDatatype, global, BasicComm, 0.0 >@all")
+          printer.println(s"Field Solution2< $fieldDatatype, global, BasicComm, 0.0 >@all")
+        }
+      } else {
+        printer.println(s"Field Solution< $fieldDatatype, global, BasicComm, 0.0 >@all")
+      }
     }
     printer.println(s"Field Residual< $fieldDatatype, global, BasicComm, None >@all")
     printer.println(s"Field RHS< $fieldDatatype, global, NoComm, None >@all")
@@ -399,18 +415,18 @@ case class Root() extends Node {
     val omegaToPrint = (if (omegaViaGlobals) "omega" else omega)
     smoother match {
       case "Jac" => {
-        printer.println("def Smoother@((coarsest + 1) to finest) ( ) : Unit {")
-        printer.println("\tcommunicate Solution@(current)")
-        printer.println("\tloop over inner on Solution@(current) {")
+        printer.println(s"def Smoother@((coarsest + 1) to finest) ( ) : Unit {")
+        printer.println(s"\tcommunicate Solution${if (useSlotsForJac) "[0]" else ""}@(current)")
+        printer.println(s"\tloop over inner on Solution@(current) {")
         for (vecDim <- 0 until numVecDims)
           printer.println(s"\t\t${solution2Fields("current")(vecDim)} = ${solutionFields("current")(vecDim)} + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * $omegaToPrint ) * ( ${rhsFields("current")(vecDim)} - Lapl@(current) * ${solutionFields("current")(vecDim)} ) )")
-        printer.println("\t}")
-        printer.println("\tcommunicate Solution2@(current)")
-        printer.println("\tloop over inner on Solution@(current) {")
+        printer.println(s"\t}")
+        printer.println(s"\tcommunicate Solution${if (useSlotsForJac) "[1]" else "2"}@(current)")
+        printer.println(s"\tloop over inner on Solution@(current) {")
         for (vecDim <- 0 until numVecDims)
           printer.println(s"\t\t${solutionFields("current")(vecDim)} = ${solution2Fields("current")(vecDim)} + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * $omegaToPrint ) * ( ${rhsFields("current")(vecDim)} - Lapl@(current) * ${solution2Fields("current")(vecDim)} ) )")
-        printer.println("\t}")
-        printer.println("}")
+        printer.println(s"\t}")
+        printer.println(s"}")
       }
       case "RBGS" => {
         printer.println("def Smoother@((coarsest + 1) to finest) ( ) : Unit {")
