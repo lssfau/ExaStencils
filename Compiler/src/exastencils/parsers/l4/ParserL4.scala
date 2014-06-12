@@ -51,14 +51,17 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   //###########################################################
 
+  lazy val identifierWithOptionalLevel = locationize(ident ~ level.?
+    ^^ { case id ~ level => if (level.isDefined) LeveledIdentifier(id, level.get) else BasicIdentifier(id) })
+
   // ######################################
   // ##### Level Specifications
   // ######################################
 
   lazy val level = (
     locationize("@" ~> integerLit ^^ { case l => SingleLevelSpecification(l) })
-    ||| locationize("@" ~> levelsingle ^^ { case l => l })
-    ||| ("@" ~ "(" ~> (levelsingle ||| levelnegation ||| levellist ||| levelrange ||| levelrelative)) ~ ")" ^^ { case l ~ _ => l })
+    ||| locationize("@" ~> (levelsingle ||| levelall) ^^ { case l => l })
+    ||| locationize("@" ~ "(" ~> (levelsingle ||| levelall ||| levelnegation ||| levellist ||| levelrange ||| levelrelative)) ~ ")" ^^ { case l ~ _ => l })
 
   lazy val levelnegation = (
     locationize((("not" ~ "(") ~> (levelsingle ||| levellist ||| levelrange ||| levelrelative)) ~ ")" ^^ { case l ~ _ => new NegatedLevelSpecification(l) }))
@@ -73,9 +76,10 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val levelrelative = (
     locationize(levelsingle ~ ("+" ||| "-") ~ integerLit ^^ { case l ~ op ~ i => RelativeLevelSpecification(op, l, i) }))
 
+  lazy val levelall = locationize("all" ^^ { case _ => AllLevelsSpecification() })
+
   lazy val levelsingle = (
     locationize("current" ^^ { case _ => CurrentLevelSpecification() })
-    ||| locationize("all" ^^ { case _ => AllLevelsSpecification() })
     ||| locationize("coarser" ^^ { case _ => CoarserLevelSpecification() })
     ||| locationize("finer" ^^ { case _ => FinerLevelSpecification() })
     ||| locationize("coarsest" ^^ { case _ => CoarsestLevelSpecification() })
@@ -89,13 +93,13 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val function = locationize(("def" ~> identifierWithOptionalLevel) ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}")) ^^
     { case id ~ args ~ t ~ stmts => FunctionStatement(id, t, args.getOrElse(List[Variable]()), stmts) })
   lazy val functionArgumentList = (functionArgument <~ ("," | newline)).* ~ functionArgument ^^ { case args ~ arg => arg :: args }
-  lazy val functionArgument = locationize(((ident <~ ":") ~ datatype) ^^ { case id ~ t => Variable(UnresolvedIdentifier(id, None), t) })
-  lazy val functionCall = locationize(identifierWithOptionalLevel ~ "(" ~ functionCallArgumentList.? ~ ")" ^^ { case id ~ "(" ~ args ~ ")" => FunctionCallExpression(id, args.getOrElse(List[Expression]())) })
+  lazy val functionArgument = locationize(((ident <~ ":") ~ datatype) ^^ { case id ~ t => Variable(BasicIdentifier(id), t) })
+  lazy val functionCall = locationize((flatAccess ||| leveledAccess) ~ "(" ~ functionCallArgumentList.? ~ ")" ^^ { case id ~ "(" ~ args ~ ")" => FunctionCallExpression(id, args.getOrElse(List[Expression]())) })
   lazy val functionCallArgumentList = (expression <~ ("," | newline)).* ~ expression ^^ { case exps ~ ex => exps :+ ex }
 
-  lazy val diagFunctionCall = locationize("diag" ~ "(" ~ identifierWithOptionalLevel ~ ")" ^^ { case _ ~ "(" ~ what ~ ")" => FunctionCallExpression(BasicIdentifier("diag"), List[Expression](what)) })
-  lazy val toFinerFunctionCall = locationize("ToFiner" ~ "(" ~ binaryexpression ~ ")" ^^ { case _ ~ "(" ~ stencilconv ~ ")" => FunctionCallExpression(BasicIdentifier("ToFiner"), List[Expression](stencilconv)) })
-  lazy val toCoarserFunctionCall = locationize("ToCoarser" ~ "(" ~ binaryexpression ~ ")" ^^ { case _ ~ "(" ~ stencilconv ~ ")" => FunctionCallExpression(BasicIdentifier("ToCoarser"), List[Expression](stencilconv)) })
+  lazy val diagFunctionCall = locationize("diag" ~ "(" ~ (stencilLikeAccess ||| stencilFieldLikeAccess) ~ ")" ^^ { case _ ~ "(" ~ what ~ ")" => FunctionCallExpression(BasicAccess("diag"), List[Expression](what)) })
+  lazy val toFinerFunctionCall = locationize("ToFiner" ~ "(" ~ binaryexpression ~ ")" ^^ { case _ ~ "(" ~ stencilconv ~ ")" => FunctionCallExpression(BasicAccess("ToFiner"), List[Expression](stencilconv)) })
+  lazy val toCoarserFunctionCall = locationize("ToCoarser" ~ "(" ~ binaryexpression ~ ")" ^^ { case _ ~ "(" ~ stencilconv ~ ")" => FunctionCallExpression(BasicAccess("ToCoarser"), List[Expression](stencilconv)) })
 
   // ######################################
   // ##### Statements
@@ -108,54 +112,42 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| loopOver
     ||| assignment
     ||| operatorassignment
-    ||| locationize(functionCall ^^ { case f => FunctionCallStatement(f.identifier, f.arguments) })
+    ||| locationize(functionCall ^^ { case f => FunctionCallStatement(f) })
     ||| conditional
     ||| communicateStatement)
 
-  lazy val domain = (locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l ~ u => DomainDeclarationStatement(id, l, u) }))
-
   lazy val variableDeclaration = (locationize(("var" ~> ident) ~ (":" ~> datatype) ~ ("=" ~> expression).? ^^ { case id ~ dt ~ exp => VariableDeclarationStatement(BasicIdentifier(id), dt, exp) }))
 
-  lazy val iterationSet = locationize(("Set" ~> identifierWithOptionalLevel) ~ expressionIndex ~ ("-" ~> expressionIndex) ~ ("steps" ~> expressionIndex).? ~ ("with" ~> booleanexpression).?
-    ^^ { case id ~ begin ~ end ~ inc ~ cond => IterationSetDeclarationStatement(id, begin, end, inc, cond) })
-
   lazy val repeatUp = locationize(("repeat" ~ "up") ~> numericLit ~ ("{" ~> statement.+ <~ "}") ^^ { case n ~ s => RepeatUpStatement(n.toInt, s) })
-
   lazy val repeatUntil = locationize(
     (("repeat" ~ "until") ~> comparison) ~ (("{" ~> statement.+) <~ "}") ^^ { case c ~ s => RepeatUntilStatement(c, s) })
 
-  lazy val loopOver = locationize(("loop" ~ "over" ~> ident) ~
-    ("on" ~> fieldAccess) ~ // FIXME: this is all but robust / a user could break this easily
-    ("with" ~> loopOverWithClause).? ~
-    ("{" ~> statement.+ <~ "}") ^^
-    {
-      case area ~ field ~ red ~ stmts => LoopOverDomainStatement(area, field, stmts, red)
-    })
-
+  lazy val loopOver = locationize(("loop" ~ "over" ~> ident) ~ ("on" ~> fieldLikeAccess) ~ ("with" ~> loopOverWithClause).? ~ ("{" ~> statement.+ <~ "}") ^^
+    { case area ~ field ~ red ~ stmts => LoopOverDomainStatement(area, field.resolveToFieldAccess, stmts, red) })
   lazy val loopOverWithClause = locationize((("reduction" ~ "(") ~> ("+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => ReductionStatement(op, s) })
 
-  lazy val assignment = locationize((identifierWithOptionalLevel ||| fieldAccess ||| vectorFieldAccess) ~ "=" ~ expression ^^ { case id ~ "=" ~ exp => AssignmentStatement(id, exp) })
-
-  lazy val operatorassignment = locationize((identifierWithOptionalLevel ||| fieldAccess ||| vectorFieldAccess) ~ operatorassignmentoperator ~ expression
-    ^^ { case id ~ op ~ exp => AssignmentStatement(id, BinaryExpression(op, id, exp)) })
-
-  lazy val operatorassignmentoperator = ("+=" ^^ { case _ => "+" }
-    ||| "-=" ^^ { case _ => "-" }
-    ||| "*=" ^^ { case _ => "*" }
-    ||| "/=" ^^ { case _ => "/" })
+  lazy val assignment = locationize((flatAccess ||| fieldLikeAccess) ~ "=" ~ expression ^^ { case id ~ op ~ exp => AssignmentStatement(id, exp, op) })
+  lazy val operatorassignment = locationize((flatAccess ||| fieldLikeAccess) ~ ("+=" ||| "-=" ||| "*=" ||| "/=") ~ expression
+    ^^ { case id ~ op ~ exp => AssignmentStatement(id, exp, op) })
 
   lazy val conditional = locationize(("if" ~ "(" ~> booleanexpression <~ ")") ~ ("{" ~> statement.+ <~ "}") ^^ { case exp ~ stmts => ConditionalStatement(exp, stmts) })
+
+  lazy val communicateStatement = locationize("communicate" ~> fieldLikeAccess ^^ { case access => CommunicateStatement(access.resolveToFieldAccess) })
 
   // ######################################
   // ##### Globals
   // ######################################
 
-  lazy val globals = locationize(("Globals" ~> "{" ~> variableDeclaration.* <~ "}")
-    ^^ { case entries => GlobalDeclarationStatement(entries) })
+  lazy val globals = locationize(("Globals" ~> "{" ~> variableDeclaration.* <~ "}") ^^ { case entries => GlobalDeclarationStatement(entries) })
 
   // ######################################
-  // ##### Fields & Layouts
+  // ##### Object Declarations
   // ######################################
+
+  lazy val domain = (locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l ~ u => DomainDeclarationStatement(id, l, u) }))
+
+  lazy val iterationSet = locationize(("Set" ~> identifierWithOptionalLevel) ~ expressionIndex ~ ("-" ~> expressionIndex) ~ ("steps" ~> expressionIndex).? ~ ("with" ~> booleanexpression).?
+    ^^ { case id ~ begin ~ end ~ inc ~ cond => IterationSetDeclarationStatement(id, begin, end, inc, cond) })
 
   lazy val layout = locationize(("Layout" ~> ident) ~ ("{" ~> layoutOptions <~ "}") ^^ { case id ~ opts => var x = LayoutDeclarationStatement(id); x.set(opts); x })
   lazy val layoutOptions = (
@@ -186,22 +178,43 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| stencilEntry.+)
   lazy val stencilEntry = ((expressionIndex ~ ("=>" ~> factor)) ^^ { case offset ~ weight => StencilEntry(offset, weight) })
 
-  lazy val communicateStatement = locationize("communicate" ~> fieldAccess ^^ { case field => CommunicateStatement(field) })
-
-  lazy val slotaccess = locationize("[" ~> binaryexpression <~ "]" ^^ { case s => SlotAccess(s) })
-
-  lazy val vectorFieldAccess = locationize(fieldAccess ~ ("[" ~> integerLit <~ "]") ^^ { case field ~ index => VectorFieldAccess(field, index) })
-
   lazy val stencilField = locationize(("StencilField" ~> ident) ~ ("<" ~> ident <~ "=>") ~ (ident <~ ">") ~ level.?
     ^^ { case sf ~ f ~ s ~ l => StencilFieldDeclarationStatement(sf, f, s, l) })
 
   // ######################################
-  // ##### Expressions
+  // ##### "External" Definitions
   // ######################################
 
-  lazy val identifierWithOptionalLevel = locationize(ident ~ level.? ^^ { case id ~ level => UnresolvedIdentifier(id, level) })
+  lazy val externalField = locationize((("external" ~ "Field") ~> ident) ~ ("<" ~> ident <~ ">") ~ "=>" ~ fieldLikeAccess
+    ^^ { case extid ~ layout ~ _ ~ intid => ExternalFieldDeclarationStatement(extid, intid.resolveToFieldAccess, layout) })
 
-  lazy val fieldAccess = locationize(ident ~ slotaccess.? ~ level ^^ { case id ~ slot ~ level => FieldIdentifier(id, slot, level) })
+  // ######################################
+  // ##### Object Access
+  // ######################################
+
+  lazy val slotAccess = locationize("[" ~> binaryexpression <~ "]" ^^ { case s => s })
+
+  lazy val levelAccess = (
+    locationize("@" ~> levelsingle ^^ { case l => l })
+    ||| locationize("@" ~ "(" ~> levelsingle <~ ")" ^^ { case l => l }))
+
+  lazy val flatAccess = locationize(ident
+    ^^ { case id => UnresolvedAccess(id, None, None, None) })
+  lazy val leveledAccess = locationize(ident ~ levelAccess
+    ^^ { case id ~ level => UnresolvedAccess(id, Some(level), None, None) })
+  lazy val fieldLikeAccess = locationize(ident ~ slotAccess.? ~ levelAccess ~ ("[" ~> integerLit <~ "]").?
+    ^^ { case id ~ slot ~ level ~ arrayIndex => UnresolvedAccess(id, Some(level), slot, arrayIndex) })
+  lazy val stencilLikeAccess = locationize(ident ~ levelAccess
+    ^^ { case id ~ level => UnresolvedAccess(id, Some(level), None, None) })
+  lazy val stencilFieldLikeAccess = locationize(ident ~ slotAccess.? ~ levelAccess.?
+    ^^ { case id ~ slot ~ level => UnresolvedAccess(id, level, slot, None) })
+
+  lazy val genericAccess = locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("[" ~> integerLit <~ "]").?
+    ^^ { case id ~ slot ~ level ~ arrayIndex => UnresolvedAccess(id, level, slot, arrayIndex) })
+
+  // ######################################
+  // ##### Expressions
+  // ######################################
 
   lazy val expression : PackratParser[Expression] = binaryexpression | booleanexpression
 
@@ -216,17 +229,15 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val factor = (
     "(" ~> binaryexpression <~ ")"
     ||| locationize(stringLit ^^ { case s => StringConstant(s) })
-    ||| locationize("-".? ~ numericLit ^^ {
-      case s ~ n => if (isInt(s.getOrElse("") + n)) IntegerConstant((s.getOrElse("") + n).toInt) else FloatConstant((s.getOrElse("") + n).toDouble)
-    })
+    ||| locationize("-".? ~ numericLit ^^ { case s ~ n => if (isInt(s.getOrElse("") + n)) IntegerConstant((s.getOrElse("") + n).toInt) else FloatConstant((s.getOrElse("") + n).toDouble) })
     ||| locationize(booleanLit ^^ { case s => BooleanConstant(s.toBoolean) })
     ||| locationize(functionCall)
     ||| locationize(diagFunctionCall)
     ||| locationize(toFinerFunctionCall)
     ||| locationize(toCoarserFunctionCall)
-    ||| locationize(identifierWithOptionalLevel)
-    ||| locationize(fieldAccess)
-    ||| locationize(vectorFieldAccess))
+    ||| locationize(fieldLikeAccess)
+    ||| locationize(stencilLikeAccess)
+    ||| locationize(stencilFieldLikeAccess))
 
   lazy val booleanexpression : PackratParser[BooleanExpression] = (
     locationize(booleanexpression ~ ("||" ||| "&&") ~ booleanexpression ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
@@ -234,14 +245,4 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val comparison : PackratParser[BooleanExpression] =
     locationize((expression ~ ("<" ||| "<=" ||| ">" ||| ">=" ||| "==" ||| "!=") ~ expression) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
-
-  // ######################################
-  // ##### "External" Definitions
-  // ######################################
-
-  lazy val externalField = locationize(
-    (("external" ~ "Field") ~> ident) ~ ("<" ~> ident <~ ">") ~ "=>" ~ fieldAccess ^^ {
-      case extid ~ layout ~ _ ~ intid => ExternalFieldDeclarationStatement(extid, intid, layout)
-    })
-
 }

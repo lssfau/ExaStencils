@@ -9,7 +9,7 @@ trait LevelSpecification extends Node with Annotatable
 trait DeclarationLevelSpecification // can be used for declarations, e.g., functions
 trait AccessLevelSpecification // can be used for accesses, e.g., in fields or function calls
 
-case class SingleLevelSpecification(var level : Int) extends LevelSpecification {
+case class SingleLevelSpecification(var level : Int) extends LevelSpecification with DeclarationLevelSpecification with AccessLevelSpecification {
   override def toString() = level.toString
 }
 

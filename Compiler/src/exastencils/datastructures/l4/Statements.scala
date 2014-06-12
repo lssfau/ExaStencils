@@ -70,13 +70,13 @@ case class VariableDeclarationStatement(var identifier : Identifier, var datatyp
   }
 }
 
-case class AssignmentStatement(var identifier : Identifier, var expression : Expression) extends Statement {
+case class AssignmentStatement(var dest : Access, var src : Expression, var op : String) extends Statement {
   def progressToIr : ir.AssignmentStatement = {
-    ir.AssignmentStatement(identifier.progressToIr, expression.progressToIr)
+    ir.AssignmentStatement(dest.progressToIr, src.progressToIr, op)
   }
 }
 
-case class LoopOverDomainStatement(var iterationSet : String, var field : FieldIdentifier, var statements : List[Statement], var reduction : Option[ReductionStatement]) extends Statement {
+case class LoopOverDomainStatement(var iterationSet : String, var field : FieldAccess, var statements : List[Statement], var reduction : Option[ReductionStatement]) extends Statement {
   def progressToIr : LoopOverDomain = {
     LoopOverDomain(IterationSetCollection.getIterationSetByIdentifier(iterationSet).get,
       field.resolveField,
@@ -115,10 +115,9 @@ case class ReductionStatement(var op : String, var target : String) extends Spec
   }
 }
 
-case class FunctionCallStatement(var identifier : Identifier, var arguments : List[Expression]) extends Statement {
+case class FunctionCallStatement(var call : FunctionCallExpression) extends Statement {
   def progressToIr : ir.ExpressionStatement = {
-    ir.ExpressionStatement(ir.FunctionCallExpression(identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
-      arguments.map(s => s.progressToIr).to[ListBuffer]))
+    ir.ExpressionStatement(call.progressToIr)
   }
 }
 
@@ -128,12 +127,11 @@ case class ConditionalStatement(var expression : BooleanExpression, var statemen
   }
 }
 
-case class CommunicateStatement(var identifier : Identifier) extends Statement {
+case class CommunicateStatement(var field : FieldAccess) extends Statement {
   def progressToIr : primitives.CommunicateStatement = {
-    val field = identifier.asInstanceOf[FieldIdentifier]
     primitives.CommunicateStatement(
       FieldCollection.getFieldByIdentifier(field.name, field.level.asInstanceOf[SingleLevelSpecification].level).get,
-      field.slot.getOrElse(SlotAccess(IntegerConstant(0))).expr.progressToIr)
+      field.slot.progressToIr)
   }
 }
 

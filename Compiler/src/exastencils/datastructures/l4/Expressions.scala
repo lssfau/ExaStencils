@@ -34,23 +34,28 @@ case class BooleanConstant(var value : Boolean) extends Expression {
   def progressToIr : ir.BooleanConstant = ir.BooleanConstant(value)
 }
 
-abstract class Identifier() extends Expression { var name : String }
+abstract class Access() extends Expression {}
 
-case class UnresolvedIdentifier(var name : String, var level : Option[LevelSpecification]) extends Identifier {
-  def progressToIr : ir.StringConstant = "ERROR - UnresolvedIdentifier"
+case class UnresolvedAccess(var identifier : String, var level : Option[AccessLevelSpecification], var slot : Option[Expression], var arrayIndex : Option[Int]) extends Access {
+  def progressToIr : ir.StringConstant = "ERROR - Unresolved Access"
+
+  def resolveToBasicOrLeveledAccess = if (level.isDefined) LeveledAccess(identifier, level.get) else BasicAccess(identifier)
+  def resolveToFieldAccess = FieldAccess(identifier, level.get, slot.getOrElse(IntegerConstant(0)), arrayIndex.getOrElse(0))
+  def resolveToStencilAccess = StencilAccess(identifier, level.get)
+  def resolveToStencilFieldAccess = StencilFieldAccess(identifier, level.get, slot.getOrElse(IntegerConstant(0)))
 }
 
-case class BasicIdentifier(var name : String) extends Identifier {
+case class BasicAccess(var name : String) extends Access {
   def progressToIr : ir.StringConstant = name
 }
 
-case class LeveledIdentifier(var name : String, var level : LevelSpecification) extends Identifier {
+case class LeveledAccess(var name : String, var level : AccessLevelSpecification) extends Access {
   def progressToIr : ir.StringConstant = {
     name + "_" + level.asInstanceOf[SingleLevelSpecification].level
   }
 }
 
-case class FieldIdentifier(var name : String, var slot : Option[SlotAccess], var level : LevelSpecification) extends Identifier {
+case class FieldAccess(var name : String, var level : AccessLevelSpecification, var slot : Expression, var arrayIndex : Int) extends Access {
   def progressNameToIr : ir.StringConstant = {
     name + "_" + level.asInstanceOf[SingleLevelSpecification].level
   }
@@ -61,47 +66,44 @@ case class FieldIdentifier(var name : String, var slot : Option[SlotAccess], var
 
   def progressToIr : ir.FieldAccess = {
     var multiIndex = ir.DefaultLoopMultiIndex()
-    multiIndex(Knowledge.dimensionality) = 0
+    multiIndex(Knowledge.dimensionality) = arrayIndex
     ir.FieldAccess(
       knowledge.FieldSelection(
         "curFragment." /*FIXME*/ ,
         knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get,
-        slot.getOrElse(SlotAccess(IntegerConstant(0))).expr.progressToIr,
+        slot.progressToIr,
         0),
       multiIndex)
   }
 }
 
-case class VectorFieldAccess(var field : FieldIdentifier, var index : Int) extends Identifier {
-  var name = field.name //compliance with Identifier
-
-  def progressNameToIr : ir.StringConstant = {
-    field.progressNameToIr
-  }
-
-  def progressToIr : ir.FieldAccess = {
-    var access = field.progressToIr
-    access.fieldSelection.arrayIndex = index
-    access.index(Knowledge.dimensionality) = index
-    access
-  }
-}
-
-case class StencilIdentifier(var name : String, var level : LevelSpecification) extends Identifier {
+case class StencilAccess(var name : String, var level : AccessLevelSpecification) extends Access {
   def progressToIr : ir.StencilAccess = {
     ir.StencilAccess(knowledge.StencilCollection.getStencilByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get)
   }
 }
 
-case class StencilFieldIdentifier(var name : String, var level : LevelSpecification) extends Identifier {
+case class StencilFieldAccess(var name : String, var level : AccessLevelSpecification, var slot : Expression) extends Access {
   def progressToIr : ir.StencilFieldAccess = {
     ir.StencilFieldAccess(
       knowledge.StencilFieldSelection(
         "curFragment." /*FIXME*/ ,
         knowledge.StencilFieldCollection.getStencilFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get,
-        0 /*FIXME*/ ,
+        slot.progressToIr,
         -1),
       ir.DefaultLoopMultiIndex())
+  }
+}
+
+abstract class Identifier() extends Expression { var name : String }
+
+case class BasicIdentifier(var name : String) extends Identifier {
+  def progressToIr : ir.StringConstant = name
+}
+
+case class LeveledIdentifier(var name : String, var level : LevelSpecification) extends Identifier {
+  def progressToIr : ir.StringConstant = {
+    name + "_" + level.asInstanceOf[SingleLevelSpecification].level
   }
 }
 
@@ -123,7 +125,7 @@ case class BooleanExpression(var operator : String, var left : Expression, var r
   }
 }
 
-case class FunctionCallExpression(var identifier : Identifier, var arguments : List[Expression]) extends Expression {
+case class FunctionCallExpression(var identifier : Access, var arguments : List[Expression]) extends Expression {
   def progressToIr : ir.FunctionCallExpression = {
     ir.FunctionCallExpression(identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
       arguments.map(s => s.progressToIr).to[ListBuffer])

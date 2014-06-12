@@ -123,7 +123,7 @@ case class StencilFieldDeclarationStatement(var name : String, var fieldName : S
 
 case class ExternalFieldDeclarationStatement(
     var extIdentifier : String,
-    var correspondingField : FieldIdentifier,
+    var correspondingField : FieldAccess,
     var extLayout : String) extends ExternalDeclarationStatement {
 
   override def progressToIr : knowledge.ExternalField = {
