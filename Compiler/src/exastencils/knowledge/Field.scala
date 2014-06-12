@@ -56,13 +56,11 @@ case class Field(
   def vectorSize = dataType.resolveFlattendSize
 }
 
-case class ExternalField(
-  var identifier : String, // will be used to find the field
-  var targetField : Field, // the (internal) field to be copied to/ from
-  var layout : Array[FieldLayoutPerDim], // represents the number of data points and their distribution in each dimension
-  var level : Int, // the (geometric) level the field lives on 
-  var referenceOffset : MultiIndex // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
-  ) {}
+case class FieldSelection(
+  var field : Field,
+  var level : Int,
+  var slot : Expression,
+  var arrayIndex : Int) {}
 
 object FieldCollection {
   var fields : ListBuffer[Field] = ListBuffer()
@@ -71,6 +69,14 @@ object FieldCollection {
     fields.find(f => f.identifier == identifier && f.level == level)
   }
 }
+
+case class ExternalField(
+  var identifier : String, // will be used to find the field
+  var targetField : Field, // the (internal) field to be copied to/ from
+  var layout : Array[FieldLayoutPerDim], // represents the number of data points and their distribution in each dimension
+  var level : Int, // the (geometric) level the field lives on 
+  var referenceOffset : MultiIndex // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
+  ) {}
 
 object ExternalFieldCollection {
   var fields : ListBuffer[ExternalField] = ListBuffer()

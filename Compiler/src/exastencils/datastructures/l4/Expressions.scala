@@ -6,6 +6,7 @@ import exastencils.knowledge.Knowledge
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.languageprocessing.l4.ProgressToIr
 
 trait Expression extends Node with ProgressableToIr {
   def progressToIr : ir.Expression
@@ -63,7 +64,7 @@ case class FieldIdentifier(var name : String, var slot : Option[SlotAccess], var
     multiIndex(Knowledge.dimensionality) = 0
     ir.FieldAccess("curFragment." /*FIXME*/ ,
       knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get,
-      0, /*FIXME*/
+      slot.getOrElse(SlotAccess(IntegerConstant(0))).expr.progressToIr,
       multiIndex)
   }
 }

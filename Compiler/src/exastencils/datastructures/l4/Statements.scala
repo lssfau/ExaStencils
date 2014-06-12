@@ -12,6 +12,7 @@ import exastencils.languageprocessing.l4.ProgressToIr
 import exastencils.util._
 import exastencils.globals._
 import exastencils.knowledge.IterationSetCollection
+import exastencils.knowledge.FieldCollection
 
 abstract class Statement extends Node with ProgressableToIr {
   def progressToIr : ir.Statement
@@ -129,8 +130,10 @@ case class ConditionalStatement(var expression : BooleanExpression, var statemen
 
 case class CommunicateStatement(var identifier : Identifier) extends Statement {
   def progressToIr : primitives.CommunicateStatement = {
-    primitives.CommunicateStatement(identifier.asInstanceOf[FieldIdentifier].name,
-      identifier.asInstanceOf[FieldIdentifier].level.asInstanceOf[SingleLevelSpecification].level)
+    val field = identifier.asInstanceOf[FieldIdentifier]
+    primitives.CommunicateStatement(
+      FieldCollection.getFieldByIdentifier(field.name, field.level.asInstanceOf[SingleLevelSpecification].level).get,
+      field.slot.getOrElse(SlotAccess(IntegerConstant(0))).expr.progressToIr)
   }
 }
 
