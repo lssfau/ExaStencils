@@ -44,6 +44,8 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
         FieldIdentifier(name, Some(SlotAccess(IntegerConstant(0))), level)
       else if (StateManager.root_.asInstanceOf[Root].stencils.exists(s => name == s.name))
         StencilIdentifier(name, level)
+      else if (StateManager.root_.asInstanceOf[Root].stencilFields.exists(s => name == s.name))
+        StencilFieldIdentifier(name, level)
       else
         LeveledIdentifier(name, level)      
     case UnresolvedIdentifier(name, _) => BasicIdentifier(name)
