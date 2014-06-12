@@ -2,10 +2,8 @@ package exastencils.knowledge
 
 import exastencils.core._
 import exastencils.knowledge._
-import exastencils.spl.Configuration
-import harald_dep.dsl.DomainKnowledge
 import exastencils.util._
-import exastencils.spl.Configuration
+import exastencils.spl._
 
 object Knowledge {
   // TODO: rename and move to hw knowledge?

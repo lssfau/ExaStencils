@@ -10,10 +10,6 @@ import exastencils.primitives._
 import exastencils.util._
 import exastencils.globals._
 import exastencils.prettyprinting.PrettyprintingManager
-import harald_dep.Parser._
-import harald_dep.dsl._
-import harald_dep.Generate._
-import harald_dep.ast._
 import exastencils.spl.FeatureModel
 
 object MainChristian {
