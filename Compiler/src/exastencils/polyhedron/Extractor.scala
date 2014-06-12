@@ -635,7 +635,7 @@ class Extractor extends Collector {
       scop.writes = if (scop.writes == null) access else scop.writes.addMap(access)
   }
 
-  private def leaveArrayAccess() {
+  private def leaveArrayAccess() : Unit = {
     // nothing to do here...
   }
 

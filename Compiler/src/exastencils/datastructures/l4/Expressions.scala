@@ -49,7 +49,7 @@ case class LeveledIdentifier(var name : String, var level : LevelSpecification) 
   }
 }
 
-case class FieldIdentifier(var name : String, var level : LevelSpecification) extends Identifier {
+case class FieldIdentifier(var name : String, var slot : Option[SlotAccess], var level : LevelSpecification) extends Identifier {
   def progressNameToIr : ir.StringConstant = {
     name + "_" + level.asInstanceOf[SingleLevelSpecification].level
   }

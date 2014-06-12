@@ -7,19 +7,19 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
 import sun.reflect.generics.reflectiveObjects.NotImplementedException
 
-case class LayoutOption(var name : Identifier, var value : Index, var hasCommunication : Option[Boolean]) extends Node
+case class LayoutOption(var name : String, var value : Index, var hasCommunication : Option[Boolean]) extends Node
 
 case class LayoutDeclarationStatement(var name : String,
-    var ghostLayers : Option[Index] = None,
-    var ghostLayersCommunication : Option[Boolean] = None,
-    var duplicateLayers : Option[Index] = None,
-    var duplicateLayersCommunication : Option[Boolean] = None,
-    var innerPoints : Option[Index] = None) extends Node {
+                                      var ghostLayers : Option[Index] = None,
+                                      var ghostLayersCommunication : Option[Boolean] = None,
+                                      var duplicateLayers : Option[Index] = None,
+                                      var duplicateLayersCommunication : Option[Boolean] = None,
+                                      var innerPoints : Option[Index] = None) extends Node {
 
   def set(options : List[LayoutOption]) : Unit = { options.foreach(set(_)) }
 
   def set(option : LayoutOption) : Unit = {
-    option.name.name match {
+    option.name match {
       case "ghostLayers" =>
         ghostLayers = Some(option.value)
         ghostLayersCommunication = option.hasCommunication
@@ -82,15 +82,14 @@ case class LayoutDeclarationStatement(var name : String,
 }
 
 case class FieldDeclarationStatement(var name : String,
-    var datatype : Datatype,
-    var domain : String,
-    var layout : String,
-    var boundary : Option[Expression],
-    var level : Option[LevelSpecification]) extends SpecialStatement {
+                                     var datatype : Datatype,
+                                     var domain : String,
+                                     var layout : String,
+                                     var boundary : Option[Expression],
+                                     var level : Option[LevelSpecification],
+                                     var slots : Integer) extends SpecialStatement {
 
-  var slots = 1 // FIXME: add to parser
-
-  def progressToIr : knowledge.Field = {
+  override def progressToIr : knowledge.Field = {
     val l4_layout = StateManager.root_.asInstanceOf[Root].getLayoutByIdentifier(layout).get
 
     var ir_layout = l4_layout.progressToIr(level.get.asInstanceOf[SingleLevelSpecification].level)
@@ -127,7 +126,7 @@ case class ExternalFieldDeclarationStatement(
     var correspondingField : FieldIdentifier,
     var extLayout : String) extends ExternalDeclarationStatement {
 
-  def progressToIr : knowledge.ExternalField = {
+  override def progressToIr : knowledge.ExternalField = {
     val l4_layout = StateManager.root_.asInstanceOf[Root].getLayoutByIdentifier(extLayout).get
     val ir_layout = l4_layout.progressToIr(correspondingField.level.asInstanceOf[SingleLevelSpecification].level)
 
@@ -140,3 +139,6 @@ case class ExternalFieldDeclarationStatement(
   }
 }
 
+case class SlotAccess(var expr : Expression) extends Expression {
+  override def progressToIr = new knowledge.SlotAccess(expr.progressToIr)
+}

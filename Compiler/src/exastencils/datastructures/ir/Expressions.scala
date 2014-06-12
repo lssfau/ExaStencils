@@ -540,7 +540,7 @@ case class MemberFunctionCallExpression(var objectName : Expression, var name : 
 }
 
 case class TernaryConditionExpression(var condition : Expression, var trueBody : Expression, var falseBody : Expression) extends Expression {
-  def cpp : String = {
+  override def cpp : String = {
     (s"((${condition.cpp}) ? (${trueBody.cpp}) : (${falseBody.cpp}))")
   }
 }
