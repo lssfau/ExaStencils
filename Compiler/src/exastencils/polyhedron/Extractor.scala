@@ -44,8 +44,6 @@ import exastencils.knowledge.Field
 import exastencils.knowledge.Knowledge
 import exastencils.knowledge.dimToString
 import exastencils.primitives.LoopOverDimensions
-import isl.UnionMap
-import isl.UnionSet
 
 class Extractor extends Collector {
   import scala.language.implicitConversions
