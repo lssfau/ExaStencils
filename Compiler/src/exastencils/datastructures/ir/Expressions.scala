@@ -182,28 +182,32 @@ case class OffsetIndex(var minOffset : Int, var maxOffset : Int, var index : Exp
 case class MultiIndex(
   var index_0 : Expression = new NullExpression,
   var index_1 : Expression = new NullExpression,
-  var index_2 : Expression = new NullExpression)
+  var index_2 : Expression = new NullExpression,
+  var index_3 : Expression = new NullExpression)
     extends Expression with Traversable[Expression] {
   def this(indices : Array[Expression]) = this(
     if (indices.size > 0) indices(0) else new NullExpression,
     if (indices.size > 1) indices(1) else new NullExpression,
-    if (indices.size > 2) indices(2) else new NullExpression)
+    if (indices.size > 2) indices(2) else new NullExpression,
+    if (indices.size > 3) indices(3) else new NullExpression)
   def this(indices : Array[Int]) = this(
     (if (indices.size > 0) indices(0) else new NullExpression) : Expression,
     (if (indices.size > 1) indices(1) else new NullExpression) : Expression,
-    (if (indices.size > 2) indices(2) else new NullExpression) : Expression)
+    (if (indices.size > 2) indices(2) else new NullExpression) : Expression,
+    (if (indices.size > 3) indices(3) else new NullExpression) : Expression)
   def this(left : MultiIndex, right : MultiIndex, f : (Expression, Expression) => Expression) = this(
     if (!left(0).isInstanceOf[NullExpression] && !right(0).isInstanceOf[NullExpression]) { f(left(0), right(0)) } else { new NullExpression },
     if (!left(1).isInstanceOf[NullExpression] && !right(1).isInstanceOf[NullExpression]) { f(left(1), right(1)) } else { new NullExpression },
-    if (!left(2).isInstanceOf[NullExpression] && !right(2).isInstanceOf[NullExpression]) { f(left(2), right(2)) } else { new NullExpression })
+    if (!left(2).isInstanceOf[NullExpression] && !right(2).isInstanceOf[NullExpression]) { f(left(2), right(2)) } else { new NullExpression },
+    if (!left(3).isInstanceOf[NullExpression] && !right(3).isInstanceOf[NullExpression]) { f(left(3), right(3)) } else { new NullExpression })
 
   override def cpp = {
-    ( // compatibility to Harald's code
-      "("
+    ("["
       + s"${index_0.cpp}"
-      + (if (Knowledge.dimensionality > 1) s", ${index_1.cpp}" else "")
-      + (if (Knowledge.dimensionality > 2) s", ${index_2.cpp}" else "")
-      + ")")
+      + (if (!index_1.isInstanceOf[NullExpression]) s", ${index_1.cpp}" else "")
+      + (if (!index_2.isInstanceOf[NullExpression]) s", ${index_2.cpp}" else "")
+      + (if (!index_3.isInstanceOf[NullExpression]) s", ${index_3.cpp}" else "")
+      + "]")
   }
 
   def apply(i : Int) : Expression = {
@@ -211,17 +215,23 @@ case class MultiIndex(
       case 0 => index_0
       case 1 => index_1
       case 2 => index_2
+      case 3 => index_3
     }
   }
 
-  def +(that : MultiIndex) : MultiIndex = {
-    return new MultiIndex(
-      if (!this(0).isInstanceOf[NullExpression] && !that(0).isInstanceOf[NullExpression]) { this(0) + that(0) } else { new NullExpression },
-      if (!this(1).isInstanceOf[NullExpression] && !that(1).isInstanceOf[NullExpression]) { this(1) + that(1) } else { new NullExpression },
-      if (!this(2).isInstanceOf[NullExpression] && !that(2).isInstanceOf[NullExpression]) { this(2) + that(2) } else { new NullExpression })
+  def update(i : Int, up : Expression) : Unit = {
+    i match {
+      case 0 => index_0 = up
+      case 1 => index_1 = up
+      case 2 => index_2 = up
+      case 3 => index_3 = up
+    }
   }
 
+  def +(that : MultiIndex) : MultiIndex = new MultiIndex(this, that, _ + _)
+
   override def foreach[U](f : Expression => U) : Unit = {
+    // TODO: check functionality for vector fields
     val dim : Int = Knowledge.dimensionality
     var i : Int = 0
     do {
@@ -232,18 +242,12 @@ case class MultiIndex(
 }
 
 object DefaultLoopMultiIndex {
-  def apply() : MultiIndex = { new MultiIndex(dimToString(0), dimToString(1), dimToString(2)) }
-}
-
-case class UnresolvedFieldAccess(var fieldOwner : Expression, var fieldIdentifier : String, var level : Int, var slot : Expression, var index : MultiIndex) extends Expression with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = UnresolvedFieldAccess\n"
-
-  def resolveField : Field = {
-    FieldCollection.getFieldByIdentifier(fieldIdentifier, level).get
-  }
-
-  override def expand : FieldAccess = {
-    new FieldAccess(fieldOwner, resolveField, slot, index)
+  def apply() : MultiIndex = {
+    Knowledge.dimensionality match {
+      case 1 => new MultiIndex(dimToString(0), dimToString(1))
+      case 2 => new MultiIndex(dimToString(0), dimToString(1), dimToString(2))
+      case 3 => new MultiIndex(dimToString(0), dimToString(1), dimToString(2), dimToString(3))
+    }
   }
 }
 
@@ -273,12 +277,16 @@ case class ExternalFieldAccess(var name : Expression, var field : ExternalField,
 
 case class LinearizedFieldAccess(var fieldOwner : Expression, var field : Field, var slot : Expression, var index : Expression) extends Expression {
   override def cpp : String = {
-    s"${fieldOwner.cpp}${field.codeName.cpp}[${slot.cpp}][${index.cpp}]"
+    s"${fieldOwner.cpp}${field.codeName}[${slot.cpp}][${index.cpp}]"
   }
 }
 
-case class UnresolvedStencilAccess(var stencilIdentifier : String, level : Int) extends Expression {
-  override def cpp : String = "NOT VALID ; CLASS = UnresolvedStencilAccess\n"
+case class StencilAccess(var stencil : Stencil) extends Expression {
+  override def cpp : String = "NOT VALID ; CLASS = StencilAccess\n"
+}
+
+case class StencilFieldAccess(var stencilField : StencilField) extends Expression {
+  override def cpp : String = "NOT VALID ; CLASS = StencilFieldAccess\n"
 }
 
 case class MemberAccess(var base : Access, var varAcc : VariableAccess) extends Access {

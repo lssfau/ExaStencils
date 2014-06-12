@@ -41,22 +41,24 @@ class FieldLayoutPerDim(
 }
 
 case class Field(
-  var identifier : String, // will be used to find the field
-  var domain : Int, // index of the (sub)domain the field lives on
-  var codeName : Expression, // will be used in the generated source code
-  var dataType : Datatype, // represents the data type; thus it can also encode the dimensionality when using e.g. vector fields
-  var layout : Array[FieldLayoutPerDim], // represents the number of data points and their distribution in each dimension
-  var communicatesDuplicated : Boolean, // specifies if duplicated values need to be exchanged between processes
-  var communicatesGhosts : Boolean, // specifies if ghost layer values need to be exchanged between processes
-  var level : Int, // the (geometric) level the field lives on 
-  var numSlots : Int, // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
-  var referenceOffset : MultiIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
-  var dirichletBC : Option[Expression] // None in case of no dirichlet BC, otherwise specifies the expression to be used for the dirichlet boundary
-  ) {}
+    var identifier : String, // will be used to find the field
+    var domain : Domain, // the (sub)domain the field lives on
+    var codeName : String, // will be used in the generated source code
+    var dataType : Datatype, // represents the data type; thus it can also encode the dimensionality when using e.g. vector fields
+    var layout : Array[FieldLayoutPerDim], // represents the number of data points and their distribution in each dimension
+    var communicatesDuplicated : Boolean, // specifies if duplicated values need to be exchanged between processes
+    var communicatesGhosts : Boolean, // specifies if ghost layer values need to be exchanged between processes
+    var level : Int, // the (geometric) level the field lives on 
+    var numSlots : Int, // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
+    var referenceOffset : MultiIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
+    var dirichletBC : Option[Expression] // None in case of no dirichlet BC, otherwise specifies the expression to be used for the dirichlet boundary
+    ) {
+  def vectorSize = dataType.resolveFlattendSize
+}
 
 case class ExternalField(
   var identifier : String, // will be used to find the field
-  var targetFieldIdentifier : String, // name of the (internal) field to be copied to/ from
+  var targetField : Field, // the (internal) field to be copied to/ from
   var layout : Array[FieldLayoutPerDim], // represents the number of data points and their distribution in each dimension
   var level : Int, // the (geometric) level the field lives on 
   var referenceOffset : MultiIndex // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point

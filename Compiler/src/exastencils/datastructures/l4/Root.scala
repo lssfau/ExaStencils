@@ -10,6 +10,7 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
   var domains : ListBuffer[DomainDeclarationStatement] = new ListBuffer()
   var layouts : ListBuffer[LayoutDeclarationStatement] = new ListBuffer()
   var fields : ListBuffer[FieldDeclarationStatement] = new ListBuffer()
+  var stencilFields : ListBuffer[StencilFieldDeclarationStatement] = new ListBuffer()
   var externalFields : ListBuffer[ExternalFieldDeclarationStatement] = new ListBuffer()
   var stencils : ListBuffer[StencilDeclarationStatement] = new ListBuffer()
   var iterationSets : ListBuffer[IterationSetDeclarationStatement] = new ListBuffer()
@@ -21,6 +22,7 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
       case p : DomainDeclarationStatement        => domains.+=(p)
       case p : LayoutDeclarationStatement        => layouts.+=(p)
       case p : FieldDeclarationStatement         => fields.+=(p)
+      case p : StencilFieldDeclarationStatement  => stencilFields.+=(p)
       case p : ExternalFieldDeclarationStatement => externalFields.+=(p)
       case p : StencilDeclarationStatement       => stencils.+=(p)
       case p : IterationSetDeclarationStatement  => iterationSets.+=(p)
@@ -51,27 +53,37 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
   def progressToIr : Node = {
     var newRoot = new ir.Root
 
+    // Domains
     DomainCollection.domains.clear
     for (domain <- domains)
       DomainCollection.domains += domain.progressToIr
 
+    // Fields => requires Domains
     FieldCollection.fields.clear
     for (field <- fields)
       FieldCollection.fields += field.progressToIr
 
-    ExternalFieldCollection.fields.clear
-    for (extField <- externalFields)
-      ExternalFieldCollection.fields += extField.progressToIr
-
+    // Stencils
     StencilCollection.stencils.clear
     for (stencil <- stencils)
       StencilCollection.stencils += stencil.progressToIr
 
+    // StencilFields => requires Fields and Stencils
+    StencilFieldCollection.stencilFields.clear
+    for (stencilField <- stencilFields)
+      StencilFieldCollection.stencilFields += stencilField.progressToIr
+
+    // ExternalFields => requires Fields
+    ExternalFieldCollection.fields.clear
+    for (extField <- externalFields)
+      ExternalFieldCollection.fields += extField.progressToIr
+
+    // IterationSets
     IterationSetCollection.sets.clear
     for (iterationSet <- iterationSets)
       IterationSetCollection.sets += iterationSet.progressToIr
 
-    globals.foreach(f => newRoot += f.progressToIr)
+    globals.foreach(f => newRoot += f.progressToIr) // FIXME: this will generate multiple Global instances...
 
     var multiGrid = new MultiGrid // FIXME: think about how to manage (MG/other) functions
     for (node <- statements)

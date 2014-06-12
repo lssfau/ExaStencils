@@ -63,7 +63,7 @@ private final object AnnotateLoopsAndAccesses extends Collector {
   private def generateName(fa : LinearizedFieldAccess) : String = {
     val res = new StringBuilder()
     fa.fieldOwner.cppsb(res)
-    fa.field.codeName.cppsb(res)
+    res ++= fa.field.codeName
     res.append('_')
     fa.slot.cppsb(res)
     var i : Int = 0

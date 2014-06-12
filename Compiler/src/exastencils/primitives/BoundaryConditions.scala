@@ -15,15 +15,21 @@ case class HandleBoundaries(var field : Field, var neighbors : ListBuffer[(Neigh
 
   override def expand : Statement = {
     if (field.dirichletBC.isDefined) {
-      new LoopOverFragments(field.domain,
+      var statements : ListBuffer[Statement] = ListBuffer()
+
+      statements += new InitGeomCoords(field) // FIXME: only add if really required
+      for (vecDim <- 0 until field.vectorSize) { // FIXME: this works for now, but users may want to specify bc's per vector element
+        var index = DefaultLoopMultiIndex()
+        index(Knowledge.dimensionality) = vecDim
+        statements += new AssignmentStatement(
+          new DirectFieldAccess("curFragment.", field, "slot", index),
+          field.dirichletBC.get)
+      }
+
+      new LoopOverFragments(field.domain.index,
         neighbors.map(neigh =>
-          new ConditionStatement(new getNeighInfo_IsInvalid(neigh._1, field.domain),
-            new LoopOverDimensions(neigh._2,
-              ListBuffer[Statement](
-                new InitGeomCoords(field), // FIXME: only add if really required
-                new AssignmentStatement(
-                  new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()),
-                  field.dirichletBC.get))) with OMP_PotentiallyParallel with PolyhedronAccessable) : Statement)) with OMP_PotentiallyParallel
+          new ConditionStatement(new getNeighInfo_IsInvalid(neigh._1, field.domain.index),
+            new LoopOverDimensions(Knowledge.dimensionality, neigh._2, statements) with OMP_PotentiallyParallel with PolyhedronAccessable) : Statement)) with OMP_PotentiallyParallel
     } else {
       new NullStatement
     }

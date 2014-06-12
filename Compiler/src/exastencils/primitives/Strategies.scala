@@ -29,7 +29,7 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
   this += new Transformation("Updating FragmentClass with required field declarations", {
     case frag : FragmentClass =>
       for (field <- FieldCollection.fields) {
-        frag.declarations += field.dataType. /*FIXME*/ cpp ~ "*" ~ field.codeName ~ s"[${field.numSlots}]"
+        frag.declarations += VariableDeclarationStatement(ArrayDatatype(PointerDatatype(field.dataType.resolveUnderlyingDatatype), field.numSlots), field.codeName)
         frag.dTorBody ++= (0 until field.numSlots).map(slot => ("delete[] " ~ field.codeName ~ s"[$slot]") : Statement).to[ListBuffer]
       }
       frag
@@ -71,8 +71,8 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
   this += new Transformation("Adding external field transfer functions", {
     case frag : FragmentClass =>
       for (extField <- ExternalFieldCollection.fields) {
-        frag.functions += new GetFromExternalField(FieldCollection.getFieldByIdentifier(extField.targetFieldIdentifier, extField.level).get, extField)
-        frag.functions += new SetFromExternalField(FieldCollection.getFieldByIdentifier(extField.targetFieldIdentifier, extField.level).get, extField)
+        frag.functions += new GetFromExternalField(extField.targetField, extField)
+        frag.functions += new SetFromExternalField(extField.targetField, extField)
       }
       frag
   })

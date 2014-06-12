@@ -1,6 +1,8 @@
 package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
+import exastencils.knowledge
+import exastencils.knowledge.Knowledge
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -52,14 +54,43 @@ case class FieldIdentifier(var name : String, var slot : Option[SlotAccess], var
     name + "_" + level.asInstanceOf[SingleLevelSpecification].level
   }
 
-  def progressToIr : ir.UnresolvedFieldAccess = {
-    ir.UnresolvedFieldAccess("curFragment." /*FIXME*/ , name, level.asInstanceOf[SingleLevelSpecification].level, if(slot.isDefined) slot.get.progressToIr else 0, ir.DefaultLoopMultiIndex())
+  def resolveField : knowledge.Field = {
+    knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
+  }
+
+  def progressToIr : ir.FieldAccess = {
+    var multiIndex = ir.DefaultLoopMultiIndex()
+    multiIndex(Knowledge.dimensionality) = 0
+    ir.FieldAccess("curFragment." /*FIXME*/ ,
+      knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get,
+      0, /*FIXME*/
+      multiIndex)
+  }
+}
+
+case class VectorFieldAccess(var field : FieldIdentifier, var index : Int) extends Identifier {
+  var name = field.name //compliance with Identifier
+
+  def progressNameToIr : ir.StringConstant = {
+    field.progressNameToIr
+  }
+
+  def progressToIr : ir.FieldAccess = {
+    var access = field.progressToIr
+    access.index(Knowledge.dimensionality) = index
+    access
   }
 }
 
 case class StencilIdentifier(var name : String, var level : LevelSpecification) extends Identifier {
-  def progressToIr : ir.UnresolvedStencilAccess = {
-    ir.UnresolvedStencilAccess(name, level.asInstanceOf[SingleLevelSpecification].level)
+  def progressToIr : ir.StencilAccess = {
+    ir.StencilAccess(knowledge.StencilCollection.getStencilByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get)
+  }
+}
+
+case class StencilFieldIdentifier(var name : String, var level : LevelSpecification) extends Identifier {
+  def progressToIr : ir.StencilFieldAccess = {
+    ir.StencilFieldAccess(knowledge.StencilFieldCollection.getStencilFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get)
   }
 }
 

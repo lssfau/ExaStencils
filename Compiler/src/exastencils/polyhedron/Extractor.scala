@@ -642,7 +642,7 @@ class Extractor extends Collector {
     val name : StringBuilder = new StringBuilder()
 
     owner.cppsb(name)
-    field.codeName.cppsb(name)
+    name ++= field.codeName
     name += '_'
     slot.cppsb(name)
 

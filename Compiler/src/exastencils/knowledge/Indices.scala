@@ -13,9 +13,10 @@ case class IndexRange(var begin : MultiIndex = new MultiIndex, var end : MultiIn
 object Mapping {
   def resolveMultiIdx(layout : Array[FieldLayoutPerDim], index : MultiIndex) : Expression = {
     val ret = Knowledge.dimensionality match {
-      case 1 => (index(0))
-      case 2 => (index(1) * layout(0).total + index(0))
-      case 3 => (index(2) * (layout(1).total * layout(0).total) + index(1) * layout(0).total + index(0))
+      case 0 => (index(0))
+      case 1 => (index(1) * layout(0).total + index(0))
+      case 2 => (index(2) * (layout(1).total * layout(0).total) + index(1) * layout(0).total + index(0))
+      case 3 => (index(3) * (layout(2).total * layout(1).total * layout(0).total) + index(2) * (layout(1).total * layout(0).total) + index(1) * layout(0).total + index(0))
     }
     SimplifyStrategy.doUntilDoneStandalone(ret)
     ret
@@ -23,13 +24,22 @@ object Mapping {
 
   def resolveMultiIdx(index : MultiIndex, aabb : IndexRange) : Expression = {
     val ret = Knowledge.dimensionality match {
-      case 1 => (index(0))
-      case 2 => (index(1) * (aabb.end(0) - aabb.begin(0)) + index(0))
-      case 3 => (index(2) * ((aabb.end(1) - aabb.begin(1)) * (aabb.end(0) - aabb.begin(0))) + index(1) * (aabb.end(0) - aabb.begin(0)) + index(0))
+      case 0 => (index(0))
+      case 1 => (index(1) * (aabb.end(0) - aabb.begin(0)) + index(0))
+      case 2 => (index(2) * ((aabb.end(1) - aabb.begin(1)) * (aabb.end(0) - aabb.begin(0))) + index(1) * (aabb.end(0) - aabb.begin(0)) + index(0))
+      case 3 => (index(3) * ((aabb.end(2) - aabb.begin(2)) * (aabb.end(1) - aabb.begin(1)) * (aabb.end(0) - aabb.begin(0))) + index(2) * ((aabb.end(1) - aabb.begin(1)) * (aabb.end(0) - aabb.begin(0))) + index(1) * (aabb.end(0) - aabb.begin(0)) + index(0))
     }
     SimplifyStrategy.doUntilDoneStandalone(ret)
     ret
   }
+}
+
+object DimArray {
+  def apply() : Array[Int] = { (0 until Knowledge.dimensionality).toArray }
+}
+
+object DimArrayHigher {
+  def apply() : Array[Int] = { (0 until Knowledge.dimensionality + 1).toArray }
 }
 
 object dimToString extends (Int => String) {
@@ -39,6 +49,7 @@ object dimToString extends (Int => String) {
       case 0 => "x"
       case 1 => "y"
       case 2 => "z"
+      case 3 => "w"
       case _ => "UNKNOWN"
     }
   }

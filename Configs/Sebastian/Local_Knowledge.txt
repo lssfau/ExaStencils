@@ -17,3 +17,5 @@ domain_numFragsPerBlock_z	= 3
 domain_fragLength_x			= 1
 domain_fragLength_y			= 1
 domain_fragLength_z			= 1
+
+poly_usePolyOpt				= false

@@ -16,18 +16,26 @@ import exastencils.mpi._
 object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions") {
   this += new Transformation("SearchAndReplace", {
     case FunctionCallExpression(StringConstant("diag"), args) =>
-      StencilCollection.getStencilByIdentifier(
-        args(0).asInstanceOf[UnresolvedStencilAccess].stencilIdentifier,
-        args(0).asInstanceOf[UnresolvedStencilAccess].level).get.entries(0).weight
+      args(0) match {
+        case access : StencilAccess =>
+          access.stencil.entries(0).weight
+        case access : StencilFieldAccess => {
+          var index = DefaultLoopMultiIndex()
+          index(Knowledge.dimensionality) = 0
+          new FieldAccess("curFragment.", access.stencilField.field, 0 /*FIXME*/ , index)
+        }
+      }
 
     // HACK to realize intergrid operations
     case FunctionCallExpression(StringConstant("ToCoarser"), args) =>
       var stencilConvolution = Duplicate(args(0).asInstanceOf[StencilConvolution])
-      stencilConvolution.targetIdx = new MultiIndex(DimArray().map(i => (2 * (dimToString(i) : Expression)) : Expression))
+      for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
+        stencilConvolution.targetIdx(i) = 2 * stencilConvolution.targetIdx(i)
       stencilConvolution
     case FunctionCallExpression(StringConstant("ToFiner"), args) =>
       var stencilConvolution = Duplicate(args(0).asInstanceOf[StencilConvolution])
-      stencilConvolution.targetIdx = new MultiIndex(DimArray().map(i => ((dimToString(i) : Expression) / 2) : Expression))
+      for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
+        stencilConvolution.targetIdx(i) = stencilConvolution.targetIdx(i) / 2
       stencilConvolution
 
     // HACK to realize return functionality -> FIXME: move to specialized node
@@ -62,6 +70,6 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
     case ExpressionStatement(FunctionCallExpression(StringConstant("print"), args)) =>
       new PrintStatement(args)
     case ExpressionStatement(FunctionCallExpression(StringConstant("printField"), args)) =>
-      new PrintFieldStatement(args(0), args(1).asInstanceOf[UnresolvedFieldAccess])
+      new PrintFieldStatement(args(0), args(1).asInstanceOf[FieldAccess].field)
   })
 }

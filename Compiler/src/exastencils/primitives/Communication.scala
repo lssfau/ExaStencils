@@ -24,13 +24,14 @@ case class LocalSend(var field : Field, var neighbors : ListBuffer[(NeighborInfo
   override def cpp : String = "NOT VALID ; CLASS = LocalSend\n"
 
   def expand : LoopOverFragments = {
-    new LoopOverFragments(field.domain,
+    new LoopOverFragments(field.domain.index,
       neighbors.map(neigh =>
-        (new ConditionStatement(new getNeighInfo_IsValidAndNotRemote(neigh._1, field.domain),
+        (new ConditionStatement(new getNeighInfo_IsValidAndNotRemote(neigh._1, field.domain.index),
           ListBuffer[Statement](
-            new LoopOverDimensions(neigh._2,
+            new LoopOverDimensions(Knowledge.dimensionality + 1,
+              neigh._2,
               new AssignmentStatement(
-                new DirectFieldAccess(new getNeighInfo_LocalPtr(neigh._1, field.domain) ~ "->", field, "slot", new MultiIndex(
+                new DirectFieldAccess(new getNeighInfo_LocalPtr(neigh._1, field.domain.index) ~ "->", field, "slot", new MultiIndex(
                   new MultiIndex(DefaultLoopMultiIndex(), neigh._3.begin, _ + _), neigh._2.begin, _ - _)),
                 new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel with PolyhedronAccessable))) : Statement)) with OMP_PotentiallyParallel
   }
@@ -43,13 +44,14 @@ case class CopyToSendBuffer(var field : Field, var neighbors : ListBuffer[(Neigh
     // TODO: check if a for loop could be used
     var body : ListBuffer[Statement] = new ListBuffer
 
-    new LoopOverFragments(field.domain, neighbors.
+    new LoopOverFragments(field.domain.index, neighbors.
       filterNot(neigh => Knowledge.mpi_useCustomDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))).
       filterNot(neigh => neigh._2.begin(0) == neigh._2.end(0) && neigh._2.begin(1) == neigh._2.end(1) && neigh._2.begin(2) == neigh._2.end(2)).
       map(neigh =>
-        new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
-          new LoopOverDimensions(neigh._2,
-            new AssignmentStatement(new ArrayAccess(FragMember_TmpBuffer(field, "Send", DimArray().map(i => (neigh._2.end(i) - neigh._2.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _), neigh._1.index),
+        new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain.index),
+          new LoopOverDimensions(Knowledge.dimensionality + 1,
+            neigh._2,
+            new AssignmentStatement(new ArrayAccess(FragMember_TmpBuffer(field, "Send", DimArrayHigher().map(i => (neigh._2.end(i) - neigh._2.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _), neigh._1.index),
               Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), neigh._2.begin, _ - _), neigh._2)),
               new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel with PolyhedronAccessable) : Statement)) with OMP_PotentiallyParallel
   }
@@ -59,14 +61,15 @@ case class CopyFromRecvBuffer(var field : Field, var neighbors : ListBuffer[(Nei
   override def cpp : String = "NOT VALID ; CLASS = CopyFromRecvBuffer\n"
 
   def expand : LoopOverFragments = {
-    new LoopOverFragments(field.domain, neighbors.
+    new LoopOverFragments(field.domain.index, neighbors.
       filterNot(neigh => Knowledge.mpi_useCustomDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))).
       filterNot(neigh => neigh._2.begin(0) == neigh._2.end(0) && neigh._2.begin(1) == neigh._2.end(1) && neigh._2.begin(2) == neigh._2.end(2)).
       map(neigh =>
-        (new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
-          new LoopOverDimensions(neigh._2,
+        (new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain.index),
+          new LoopOverDimensions(Knowledge.dimensionality + 1,
+            neigh._2,
             new AssignmentStatement(new DirectFieldAccess("curFragment.", field, "slot", DefaultLoopMultiIndex()),
-              new ArrayAccess(FragMember_TmpBuffer(field, "Recv", DimArray().map(i => (neigh._2.end(i) - neigh._2.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _), neigh._1.index),
+              new ArrayAccess(FragMember_TmpBuffer(field, "Recv", DimArrayHigher().map(i => (neigh._2.end(i) - neigh._2.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _), neigh._1.index),
                 Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), neigh._2.begin, _ - _), neigh._2)))) with OMP_PotentiallyParallel with PolyhedronAccessable)) : Statement)) with OMP_PotentiallyParallel
   }
 }
@@ -109,26 +112,26 @@ case class RemoteSend(var field : Field, var neighbors : ListBuffer[(NeighborInf
         cnt = 1
         typeName = s"MPI_DOUBLE"
       } else if (Knowledge.mpi_useCustomDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))) {
-        val mpiTypeName = addMPIDatatype(s"mpiType_Send_${field.codeName.cpp}_${neigh._1.index}", neigh._2)
+        val mpiTypeName = addMPIDatatype(s"mpiType_Send_${field.codeName}_${neigh._1.index}", neigh._2)
         ptr = s"&" ~ new DirectFieldAccess("curFragment.", field, "slot", neigh._2.begin)
         cnt = 1
         typeName = mpiTypeName
       } else {
-        cnt = DimArray().map(i => (neigh._2.end(i) - neigh._2.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
+        cnt = DimArrayHigher().map(i => (neigh._2.end(i) - neigh._2.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
         ptr = FragMember_TmpBuffer(field, "Send", cnt, neigh._1.index)
         typeName = s"MPI_DOUBLE"
       }
 
       body +=
-        new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
+        new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain.index),
           ListBuffer[Statement](
-            new MPI_Send(ptr, cnt, typeName, new getNeighInfo_RemoteRank(neigh._1, field.domain),
-              s"((unsigned int)curFragment.commId << 16) + ((unsigned int)(" ~ getNeighInfo_FragmentId(neigh._1, field.domain) ~ ") & 0x0000ffff)",
+            new MPI_Send(ptr, cnt, typeName, new getNeighInfo_RemoteRank(neigh._1, field.domain.index),
+              s"((unsigned int)curFragment.commId << 16) + ((unsigned int)(" ~ getNeighInfo_FragmentId(neigh._1, field.domain.index) ~ ") & 0x0000ffff)",
               FragMember_MpiRequest(field, "Send", neigh._1.index)) with OMP_PotentiallyCritical,
             AssignmentStatement(FragMember_ReqOutstanding(field, "Send", neigh._1.index), true)))
     }
 
-    new LoopOverFragments(field.domain, body) with OMP_PotentiallyParallel
+    new LoopOverFragments(field.domain.index, body) with OMP_PotentiallyParallel
   }
 }
 
@@ -168,25 +171,25 @@ case class RemoteReceive(var field : Field, var neighbors : ListBuffer[(Neighbor
         cnt = 1
         typeName = s"MPI_DOUBLE"
       } else if (Knowledge.mpi_useCustomDatatypes && (neigh._2.begin(1) == neigh._2.end(1) || neigh._2.begin(2) == neigh._2.end(2))) {
-        val mpiTypeName = addMPIDatatype(s"mpiType_Recv_${field.codeName.cpp}_${neigh._1.index}", neigh._2)
+        val mpiTypeName = addMPIDatatype(s"mpiType_Recv_${field.codeName}_${neigh._1.index}", neigh._2)
         ptr = s"&" ~ new DirectFieldAccess("curFragment.", field, "slot", neigh._2.begin)
         cnt = 1
         typeName = mpiTypeName
       } else {
-        cnt = DimArray().map(i => (neigh._2.end(i) - neigh._2.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
+        cnt = DimArrayHigher().map(i => (neigh._2.end(i) - neigh._2.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
         ptr = FragMember_TmpBuffer(field, "Recv", cnt, neigh._1.index)
         typeName = s"MPI_DOUBLE"
       }
 
-      body += new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain),
+      body += new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain.index),
         ListBuffer[Statement](
-          new MPI_Receive(ptr, cnt, typeName, new getNeighInfo_RemoteRank(neigh._1, field.domain),
-            "((unsigned int)(" ~ getNeighInfo_FragmentId(neigh._1, field.domain) ~ ") << 16) + ((unsigned int)curFragment.commId & 0x0000ffff)",
+          new MPI_Receive(ptr, cnt, typeName, new getNeighInfo_RemoteRank(neigh._1, field.domain.index),
+            "((unsigned int)(" ~ getNeighInfo_FragmentId(neigh._1, field.domain.index) ~ ") << 16) + ((unsigned int)curFragment.commId & 0x0000ffff)",
             FragMember_MpiRequest(field, "Recv", neigh._1.index)) with OMP_PotentiallyCritical,
           AssignmentStatement(FragMember_ReqOutstanding(field, "Recv", neigh._1.index), true)))
     }
 
-    new LoopOverFragments(field.domain, body) with OMP_PotentiallyParallel
+    new LoopOverFragments(field.domain.index, body) with OMP_PotentiallyParallel
   }
 }
 

@@ -103,14 +103,14 @@ case class FragMember_TmpBuffer(var field : Field, var direction : String, var s
   override def cpp : String = "curFragment." + resolveAccess(resolveName, new NullExpression, field.identifier /*FIXME: id*/ , field.level, neighIdx).cpp
 
   override def resolveName = s"buffer_${direction}" + resolvePostfix("", field.identifier, field.level.toString, neighIdx.cpp)
-  override def resolveDataType = new PointerDatatype(field.dataType)
+  override def resolveDataType = new PointerDatatype(field.dataType.resolveUnderlyingDatatype)
   override def resolveDefValue = Some(0)
 
   override def getDtor() : Option[Statement] = {
-    Some(wrapInLoops(new ConditionStatement(resolveAccess(resolveName, field.domain, field.identifier /*FIXME: use idx*/ , field.level, neighIdx),
+    Some(wrapInLoops(new ConditionStatement(resolveAccess(resolveName, field.domain.index, field.identifier /*FIXME: use idx*/ , field.level, neighIdx),
       ListBuffer[Statement](
-        "delete []" ~~ resolveAccess(resolveName, field.domain, field.identifier /*FIXME: use idx*/ , field.level, neighIdx),
-        new AssignmentStatement(resolveAccess(resolveName, field.domain, field.identifier /*FIXME: use idx*/ , field.level, neighIdx), 0)))))
+        "delete []" ~~ resolveAccess(resolveName, field.domain.index, field.identifier /*FIXME: use idx*/ , field.level, neighIdx),
+        new AssignmentStatement(resolveAccess(resolveName, field.domain.index, field.identifier /*FIXME: use idx*/ , field.level, neighIdx), 0)))))
   }
 }
 
