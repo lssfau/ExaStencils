@@ -235,10 +235,12 @@ class Extractor extends Collector {
           enterArrayAccess(varName, index)
 
         case DirectFieldAccess(fieldSelection, index) =>
+          fieldSelection.annotate(SKIP_ANNOT)
           index.annotate(SKIP_ANNOT)
           enterFieldAccess(fieldSelection, index)
 
         case FieldAccess(fieldSelection, index) =>
+          fieldSelection.annotate(SKIP_ANNOT)
           index.annotate(SKIP_ANNOT)
           enterFieldAccess(fieldSelection, index, fieldSelection.referenceOffset)
 
@@ -640,7 +642,7 @@ class Extractor extends Collector {
     val name : StringBuilder = new StringBuilder()
 
     fieldSelection.prefix.cppsb(name)
-    name ++= fieldSelection.codeName
+    name.append(fieldSelection.codeName)
     name += '_'
     fieldSelection.slot.cppsb(name)
 
