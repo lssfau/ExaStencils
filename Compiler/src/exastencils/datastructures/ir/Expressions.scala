@@ -232,12 +232,11 @@ case class MultiIndex(
 
   override def foreach[U](f : Expression => U) : Unit = {
     // TODO: check functionality for vector fields
-    val dim : Int = Knowledge.dimensionality
     var i : Int = 0
     do {
       f(this(i))
       i += 1
-    } while (i < dim)
+    } while (i < 4 && this(i) != NullExpression())
   }
 }
 
