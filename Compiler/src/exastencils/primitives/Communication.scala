@@ -10,6 +10,7 @@ import exastencils.knowledge._
 import exastencils.mpi._
 import exastencils.omp._
 import exastencils.polyhedron._
+import exastencils.strategies.SimplifyStrategy
 
 case class CommunicateStatement(var field : FieldSelection) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = CommunicateStatement\n"
@@ -121,6 +122,8 @@ case class RemoteSend(var field : Field, var neighbors : ListBuffer[(NeighborInf
         typeName = s"MPI_DOUBLE"
       }
 
+      SimplifyStrategy.doUntilDoneStandalone(cnt)
+
       body +=
         new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain.index),
           ListBuffer[Statement](
@@ -179,6 +182,8 @@ case class RemoteReceive(var field : Field, var neighbors : ListBuffer[(Neighbor
         ptr = FragMember_TmpBuffer(field, "Recv", cnt, neigh._1.index)
         typeName = s"MPI_DOUBLE"
       }
+
+      SimplifyStrategy.doUntilDoneStandalone(cnt)
 
       body += new ConditionStatement(new getNeighInfo_IsValidAndRemote(neigh._1, field.domain.index),
         ListBuffer[Statement](

@@ -196,10 +196,10 @@ case class MultiIndex(
     (if (indices.size > 2) indices(2) else new NullExpression) : Expression,
     (if (indices.size > 3) indices(3) else new NullExpression) : Expression)
   def this(left : MultiIndex, right : MultiIndex, f : (Expression, Expression) => Expression) = this(
-    if (!left(0).isInstanceOf[NullExpression] && !right(0).isInstanceOf[NullExpression]) { f(left(0), right(0)) } else { new NullExpression },
-    if (!left(1).isInstanceOf[NullExpression] && !right(1).isInstanceOf[NullExpression]) { f(left(1), right(1)) } else { new NullExpression },
-    if (!left(2).isInstanceOf[NullExpression] && !right(2).isInstanceOf[NullExpression]) { f(left(2), right(2)) } else { new NullExpression },
-    if (!left(3).isInstanceOf[NullExpression] && !right(3).isInstanceOf[NullExpression]) { f(left(3), right(3)) } else { new NullExpression })
+    if (!left(0).isInstanceOf[NullExpression] && !right(0).isInstanceOf[NullExpression]) { Duplicate(f(left(0), right(0))) } else { new NullExpression },
+    if (!left(1).isInstanceOf[NullExpression] && !right(1).isInstanceOf[NullExpression]) { Duplicate(f(left(1), right(1))) } else { new NullExpression },
+    if (!left(2).isInstanceOf[NullExpression] && !right(2).isInstanceOf[NullExpression]) { Duplicate(f(left(2), right(2))) } else { new NullExpression },
+    if (!left(3).isInstanceOf[NullExpression] && !right(3).isInstanceOf[NullExpression]) { Duplicate(f(left(3), right(3))) } else { new NullExpression })
 
   override def cpp = {
     ("["
