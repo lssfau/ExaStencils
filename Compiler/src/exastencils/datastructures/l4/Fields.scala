@@ -10,11 +10,11 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException
 case class LayoutOption(var name : String, var value : Index, var hasCommunication : Option[Boolean]) extends Node
 
 case class LayoutDeclarationStatement(var name : String,
-                                      var ghostLayers : Option[Index] = None,
-                                      var ghostLayersCommunication : Option[Boolean] = None,
-                                      var duplicateLayers : Option[Index] = None,
-                                      var duplicateLayersCommunication : Option[Boolean] = None,
-                                      var innerPoints : Option[Index] = None) extends Node {
+    var ghostLayers : Option[Index] = None,
+    var ghostLayersCommunication : Option[Boolean] = None,
+    var duplicateLayers : Option[Index] = None,
+    var duplicateLayersCommunication : Option[Boolean] = None,
+    var innerPoints : Option[Index] = None) extends Node {
 
   def set(options : List[LayoutOption]) : Unit = { options.foreach(set(_)) }
 
@@ -82,12 +82,12 @@ case class LayoutDeclarationStatement(var name : String,
 }
 
 case class FieldDeclarationStatement(var name : String,
-                                     var datatype : Datatype,
-                                     var domain : String,
-                                     var layout : String,
-                                     var boundary : Option[Expression],
-                                     var level : Option[LevelSpecification],
-                                     var slots : Integer) extends SpecialStatement {
+    var datatype : Datatype,
+    var domain : String,
+    var layout : String,
+    var boundary : Option[Expression],
+    var level : Option[LevelSpecification],
+    var slots : Integer) extends SpecialStatement {
 
   override def progressToIr : knowledge.Field = {
     val l4_layout = StateManager.root_.asInstanceOf[Root].getLayoutByIdentifier(layout).get
@@ -137,8 +137,4 @@ case class ExternalFieldDeclarationStatement(
       l4_layout.l4_ghostLayers.progressToIr // TODO: this should work for now but may be adapted in the future)
       )
   }
-}
-
-case class SlotAccess(var expr : Expression) extends Expression {
-  override def progressToIr = new knowledge.SlotAccess(expr.progressToIr)
 }

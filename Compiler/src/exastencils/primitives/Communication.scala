@@ -11,11 +11,11 @@ import exastencils.mpi._
 import exastencils.omp._
 import exastencils.polyhedron._
 
-case class CommunicateStatement(var field : Field, var slot : Expression) extends Statement with Expandable {
+case class CommunicateStatement(var field : FieldSelection) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = CommunicateStatement\n"
 
   def expand : Statement = {
-    new FunctionCallExpression("exch" ~ field.codeName, slot)
+    new FunctionCallExpression("exch" ~ field.codeName, field.slot)
   }
 }
 

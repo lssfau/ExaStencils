@@ -129,9 +129,7 @@ case class ConditionalStatement(var expression : BooleanExpression, var statemen
 
 case class CommunicateStatement(var field : FieldAccess) extends Statement {
   def progressToIr : primitives.CommunicateStatement = {
-    primitives.CommunicateStatement(
-      FieldCollection.getFieldByIdentifier(field.name, field.level.asInstanceOf[SingleLevelSpecification].level).get,
-      field.slot.progressToIr)
+    primitives.CommunicateStatement(field.progressToIr.fieldSelection)
   }
 }
 
