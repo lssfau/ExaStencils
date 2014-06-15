@@ -51,19 +51,34 @@ object AddressPrecalculation extends CustomStrategy("Perform address precalculat
   }
 }
 
+class ArrayBases(val arrayName : String) {
+  private val inits = new HashMap[HashMap[Expression, Long], (String, Expression)]()
+  private var idCount = 0
+
+  def getName(initVec : HashMap[Expression, Long], initExpr : => Expression) : String = {
+    inits.getOrElseUpdate(initVec, { idCount += 1; (arrayName + "_p" + idCount, initExpr) })._1
+  }
+
+  def getDecls(decls : ListBuffer[Statement]) : Unit = {
+    for ((_, (name : String, init : Expression)) <- inits)
+      decls += new VariableDeclarationStatement(
+        PointerDatatype(RealDatatype()), name, Some(new UnaryExpression(UnaryOperators.AddressOf, init)))
+  }
+}
+
 private final object AnnotateLoopsAndAccesses extends Collector {
 
   final val DECLS_ANNOT = "Decls"
   final val REPL_ANNOT = "Replace"
   final val OMP_LOOP_ANNOT = "OMPLoop"
 
-  val decls = new ArrayStack[(HashMap[String, (Expression, HashMap[Expression, Long])], String)]()
+  val decls = new ArrayStack[(HashMap[String, ArrayBases], String)]()
   var ompLoop : ForLoopStatement = null // save omp loop to lessen collapse value, if needed
 
   private def generateName(fa : LinearizedFieldAccess) : String = {
     val res = new StringBuilder()
     fa.fieldSelection.prefix.cppsb(res)
-    res ++= fa.fieldSelection.codeName
+    res.append(fa.fieldSelection.codeName)
     res.append('_')
     fa.fieldSelection.slot.cppsb(res)
     var i : Int = 0
@@ -142,7 +157,7 @@ private final object AnnotateLoopsAndAccesses extends Collector {
 
     node match {
       case l : ForLoopStatement =>
-        val d = new HashMap[String, (Expression, HashMap[Expression, Long])]()
+        val d = new HashMap[String, ArrayBases]()
         l.begin match {
           case VariableDeclarationStatement(_, name, _) => decls.push((d, name))
           case _                                        => decls.push((d, null))
@@ -154,26 +169,20 @@ private final object AnnotateLoopsAndAccesses extends Collector {
 
       case f @ LinearizedFieldAccess(fieldSelection, index) if !decls.isEmpty =>
         var name : String = generateName(f)
-        val (decl : HashMap[String, (Expression, HashMap[Expression, Long])], loopVar) = decls.top
+        val (decl : HashMap[String, ArrayBases], loopVar) = decls.top
         val (in : Expression, outMap : HashMap[Expression, Long]) = splitIndex(index, loopVar)
-        val old : Option[(Expression, HashMap[Expression, Long])] = decl.get(name)
-        if (old.isDefined && old.get._2 != outMap) {
-          name = "pointer_" + count
-          count += 1
-        }
-        decl.put(name, (new LinearizedFieldAccess(fieldSelection, SimplifyExpression.recreateExpressionFromSum(outMap)), outMap))
+        val bases : ArrayBases = decl.getOrElseUpdate(name, new ArrayBases(name))
+        name = bases.getName(outMap,
+          new LinearizedFieldAccess(fieldSelection, SimplifyExpression.recreateExpressionFromSum(outMap)))
         f.annotate(REPL_ANNOT, new ArrayAccess(new VariableAccess(name), in))
 
       case a @ ArrayAccess(base, index) if !decls.isEmpty =>
         var name : String = generateName(base)
-        val (decl : HashMap[String, (Expression, HashMap[Expression, Long])], loopVar) = decls.top
+        val (decl : HashMap[String, ArrayBases], loopVar) = decls.top
         val (in : Expression, outMap : HashMap[Expression, Long]) = splitIndex(index, loopVar)
-        val old : Option[(Expression, HashMap[Expression, Long])] = decl.get(name)
-        if (old.isDefined && old.get._2 != outMap) {
-          name = "pointer_" + count
-          count += 1
-        }
-        decl.put(name, (new ArrayAccess(base, SimplifyExpression.recreateExpressionFromSum(outMap)), outMap))
+        val bases : ArrayBases = decl.getOrElseUpdate(name, new ArrayBases(name))
+        name = bases.getName(outMap,
+          new ArrayAccess(base, SimplifyExpression.recreateExpressionFromSum(outMap)))
         a.annotate(REPL_ANNOT, new ArrayAccess(new VariableAccess(name), in))
 
       case _ => // ignore
@@ -209,7 +218,7 @@ private final object IntegrateAnnotations extends PartialFunction[Node, Transfor
 
     else {
       val decls = node.removeAnnotation(AnnotateLoopsAndAccesses.DECLS_ANNOT).get.value
-        .asInstanceOf[HashMap[String, (Expression, HashMap[Expression, Long])]]
+        .asInstanceOf[HashMap[String, ArrayBases]]
       if (decls.isEmpty)
         return node
 
@@ -219,9 +228,8 @@ private final object IntegrateAnnotations extends PartialFunction[Node, Transfor
       if (parLoop != null) parLoop.collapse = Math.max(1, parLoop.collapse - 1)
 
       val stmts = new ListBuffer[Statement]()
-      for ((name : String, (expr : Expression, _)) <- decls)
-        stmts += new VariableDeclarationStatement(
-          PointerDatatype(RealDatatype()), name, Some(new UnaryExpression(UnaryOperators.AddressOf, expr)))
+      for ((_, bases : ArrayBases) <- decls)
+        bases.getDecls(stmts)
 
       stmts += node.asInstanceOf[Statement]
       return new Scope(stmts)
