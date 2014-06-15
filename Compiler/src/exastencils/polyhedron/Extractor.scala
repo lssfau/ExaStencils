@@ -25,6 +25,7 @@ import exastencils.datastructures.ir.FloatConstant
 import exastencils.datastructures.ir.GreaterEqualExpression
 import exastencils.datastructures.ir.GreaterExpression
 import exastencils.datastructures.ir.IntegerConstant
+import exastencils.datastructures.ir.IntegerDatatype
 import exastencils.datastructures.ir.LowerEqualExpression
 import exastencils.datastructures.ir.LowerExpression
 import exastencils.datastructures.ir.ModuloExpression
@@ -41,11 +42,8 @@ import exastencils.datastructures.ir.UnaryExpression
 import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.VariableDeclarationStatement
 import exastencils.knowledge.FieldSelection
-import exastencils.knowledge.Knowledge
 import exastencils.knowledge.dimToString
 import exastencils.primitives.LoopOverDimensions
-import isl.UnionMap
-import isl.UnionSet
 
 class Extractor extends Collector {
   import scala.language.implicitConversions
@@ -91,16 +89,20 @@ class Extractor extends Collector {
     }
 
     private var scop_ : Scop = null
-    private var loopVars_ : String = null
+    private var modelLoopVars_ : String = null
+    private var origLoopVars_ : ArrayStack[String] = null
     private var setTemplate_ : String = null
     private var mapTemplate_ : String = null
 
     private final val formatterResult : java.lang.StringBuilder = new java.lang.StringBuilder()
     private final val formatter = new java.util.Formatter(formatterResult)
 
-    def create(root : Node, loopVars : String, setTempl : String, mapTempl : String) : Unit = {
+    def create(root : Node, origLoopVars : ArrayStack[String],
+      modelLoopVars : String, setTempl : String, mapTempl : String) : Unit = {
+
       this.scop_ = new Scop(root)
-      this.loopVars_ = loopVars
+      this.modelLoopVars_ = modelLoopVars
+      this.origLoopVars_ = origLoopVars
       this.setTemplate_ = setTempl
       this.mapTemplate_ = mapTempl
     }
@@ -113,8 +115,12 @@ class Extractor extends Collector {
       return scop_
     }
 
-    def loopVars() : String = {
-      return loopVars_
+    def modelLoopVars() : String = {
+      return modelLoopVars_
+    }
+
+    def origLoopVars() : ArrayStack[String] = {
+      return origLoopVars_
     }
 
     // [..] -> { %s[..] : .. }
@@ -123,15 +129,15 @@ class Extractor extends Collector {
       formatter.format(setTemplate_, tupleName)
       val set = new isl.Set(formatterResult.toString())
       // TODO: remove
-      val f = classOf[isl.UnionSet].getDeclaredField("ptr")
-      f.setAccessible(true)
-      if (f.get(set).asInstanceOf[com.sun.jna.PointerType] == null) {
-        println()
-        println("======================================================")
-        println(setTemplate_)
-        println(tupleName)
-        println()
-      }
+      //      val f = classOf[isl.UnionSet].getDeclaredField("ptr")
+      //      f.setAccessible(true)
+      //      if (f.get(set).asInstanceOf[com.sun.jna.PointerType] == null) {
+      //        println()
+      //        println("======================================================")
+      //        println(setTemplate_)
+      //        println(tupleName)
+      //        println()
+      //      }
       return set
     }
 
@@ -141,17 +147,17 @@ class Extractor extends Collector {
       formatter.format(mapTemplate_, inTupleName, outTupleName, out)
       val map = new isl.Map(formatterResult.toString())
       // TODO: remove
-      val f = classOf[isl.UnionMap].getDeclaredField("ptr")
-      f.setAccessible(true)
-      if (f.get(map).asInstanceOf[com.sun.jna.PointerType] == null) {
-        println()
-        println("======================================================")
-        println(mapTemplate_)
-        println(inTupleName)
-        println(outTupleName)
-        println(out)
-        println()
-      }
+      //      val f = classOf[isl.UnionMap].getDeclaredField("ptr")
+      //      f.setAccessible(true)
+      //      if (f.get(map).asInstanceOf[com.sun.jna.PointerType] == null) {
+      //        println()
+      //        println("======================================================")
+      //        println(mapTemplate_)
+      //        println(inTupleName)
+      //        println(outTupleName)
+      //        println(out)
+      //        println()
+      //      }
       return map
     }
 
@@ -167,7 +173,8 @@ class Extractor extends Collector {
         trash.push((if (scop_ != null) scop_.root else null, msg))
       }
       scop_ = null
-      loopVars_ = null
+      modelLoopVars_ = null
+      origLoopVars_ = null
       setTemplate_ = null
       mapTemplate_ = null
       curStmt.leave()
@@ -444,15 +451,17 @@ class Extractor extends Collector {
         return
       }
 
-    val dims : Int = Knowledge.dimensionality
+    val dims : Int = loop.numDimensions
 
     val begin : MultiIndex = loop.indices.begin
     val end : MultiIndex = loop.indices.end
     val loopVarExps : MultiIndex = DefaultLoopMultiIndex.apply()
 
-    val params : Set[String] = new HashSet[String]()
-    val loopVars : ArrayStack[String] = new ArrayStack[String]()
-    val constrs : StringBuilder = new StringBuilder()
+    val params = new HashSet[String]()
+    val modelLoopVars = new ArrayStack[String]()
+    val constrs = new StringBuilder()
+
+    val origLoopVars = new ArrayStack[String]()
 
     var bool : Boolean = false
     try {
@@ -464,7 +473,9 @@ class Extractor extends Collector {
         constrs.append('<')
         bool |= extractConstraints(end(i), constrs, true, params)
         constrs.append(" and ")
-        loopVars.push(ScopNameMapping.expr2id(loopVarExps(i)))
+        val lVar : String = dimToString(i)
+        modelLoopVars.push(ScopNameMapping.expr2id(VariableAccess(lVar, Some(IntegerDatatype()))))
+        origLoopVars.push(lVar)
         i += 1
       } while (i < dims)
     } catch {
@@ -483,7 +494,7 @@ class Extractor extends Collector {
       constrs.delete(constrs.length - 5, Int.MaxValue)
 
     // remove variables from params set
-    for (v <- loopVars)
+    for (v <- modelLoopVars)
       params.remove(v)
 
     val templateBuilder : StringBuilder = new StringBuilder()
@@ -493,7 +504,7 @@ class Extractor extends Collector {
     if (!params.isEmpty)
       templateBuilder.deleteCharAt(templateBuilder.length - 1)
     templateBuilder.append("]->{%s[")
-    for (v <- loopVars)
+    for (v <- modelLoopVars)
       templateBuilder.append(v).append(',')
     templateBuilder.setCharAt(templateBuilder.length - 1, ']')
 
@@ -509,7 +520,8 @@ class Extractor extends Collector {
     templateBuilder.append("->%s[%s]}")
     val mapTemplate : String = templateBuilder.toString()
 
-    curScop.create(loop, loopVars.mkString(","), setTemplate, mapTemplate)
+    origLoopVars.result() // reverses the stack
+    curScop.create(loop, origLoopVars, modelLoopVars.mkString(","), setTemplate, mapTemplate)
   }
 
   private def leaveLoop(loop : LoopOverDimensions) : Unit = {
@@ -525,11 +537,11 @@ class Extractor extends Collector {
     val scop : Scop = curScop.get()
 
     val label : String = curScop.curStmt.next().label()
-    scop.stmts.put(label, stmt)
+    scop.stmts.put(label, (stmt, curScop.origLoopVars()))
 
     val domain = curScop.buildIslSet(label)
     scop.domain = if (scop.domain == null) domain else scop.domain.addSet(domain)
-    val schedule = curScop.buildIslMap(label, "", curScop.loopVars() + ',' + curScop.curStmt.id())
+    val schedule = curScop.buildIslMap(label, "", curScop.modelLoopVars() + ',' + curScop.curStmt.id())
     scop.schedule = if (scop.schedule == null) schedule else scop.schedule.addMap(schedule)
   }
 
@@ -643,7 +655,7 @@ class Extractor extends Collector {
 
     fieldSelection.prefix.cppsb(name)
     name.append(fieldSelection.codeName)
-    name += '_'
+    name.append('_')
     fieldSelection.slot.cppsb(name)
 
     enterArrayAccess(name.toString(), if (offset == null) index else index + offset)

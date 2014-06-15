@@ -93,6 +93,20 @@ object MainStefan {
     SetupFragmentClass.apply()
 
     ExpandStrategy.doUntilDone()
+    //////////////////////////////////////////////////////////////////////////////
+    //    val test = new java.util.IdentityHashMap[Node, Any]()
+    //    new exastencils.datastructures.DefaultStrategy("TestStrategy") {
+    //      this += new exastencils.datastructures.Transformation("test", {
+    //        case n =>
+    //          if (test.containsKey(n))
+    //            println("error: " + n.getClass() + "   " + n)
+    //          test.put(n, null)
+    //          n
+    //      })
+    //    }.apply()
+    //    println("ende...")
+    //    return
+    //////////////////////////////////////////////////////////////////////////////
 
     //    new DefaultStrategy("TestStrategy") {
     //      this += new Transformation("test", {
@@ -126,21 +140,6 @@ object MainStefan {
 
     LinearizeFieldAccesses.apply()
 
-    //    new exastencils.datastructures.DefaultStrategy("TestStrategy") {
-    //      this += new exastencils.datastructures.Transformation("test", {
-    //        case a : exastencils.datastructures.ir.ArrayAccess =>
-    //          println("=======================================================================================")
-    //          println(a.index.cpp())
-    //          println(exastencils.util.SimplifyExpression.extractIntegralSum(a.index))
-    //          a
-    //        case a : exastencils.datastructures.ir.LinearizedFieldAccess =>
-    //          println("=======================================================================================")
-    //          println(a.index.cpp())
-    //          println(exastencils.util.SimplifyExpression.extractIntegralSum(a.index))
-    //          a
-    //      })
-    //    }.apply()
-    //    return
     AddressPrecalculation.apply()
 
     ExpandStrategy.doUntilDone()

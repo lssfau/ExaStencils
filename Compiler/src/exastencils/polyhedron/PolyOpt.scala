@@ -1,6 +1,8 @@
 package exastencils.polyhedron
 
 import scala.collection.mutable.ArrayStack
+import scala.collection.mutable.HashMap
+
 import exastencils.core.Logger
 import exastencils.core.StateManager
 import exastencils.datastructures.CustomStrategy
@@ -10,7 +12,6 @@ import exastencils.datastructures.Transformation.convFromNode
 import exastencils.datastructures.ir.Expression
 import exastencils.datastructures.ir.StringConstant
 import exastencils.datastructures.ir.VariableAccess
-import scala.collection.mutable.HashMap
 
 trait PolyhedronAccessable
 
@@ -24,8 +25,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     Logger.info("Applying strategy " + name)
 
     val scops : ArrayStack[Scop] = extractPolyModel()
-    for (scop <- scops)
+    for (scop <- scops) {
       computeDependences(scop)
+      //      optimize(scop)
+    }
     recreateAndInsertAST()
 
     this.commit()
@@ -71,6 +74,14 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         scop.deps = scop.deps.union(depArr(0))
       }
     }
+  }
+
+  private def optimize(scop : Scop) : Unit = {
+
+    val njuSched = scop.domain.computeSchedule(scop.deps, scop.deps)
+    println("===================================================================")
+    println(scop.schedule)
+    println(njuSched)
   }
 
   private def recreateAndInsertAST() : Unit = {

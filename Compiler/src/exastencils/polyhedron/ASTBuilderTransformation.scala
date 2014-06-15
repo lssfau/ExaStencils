@@ -1,8 +1,10 @@
 package exastencils.polyhedron
 
+import scala.collection.mutable.ArrayStack
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core.Logger
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
@@ -35,12 +37,9 @@ import exastencils.datastructures.ir.UnaryExpression
 import exastencils.datastructures.ir.UnaryOperators
 import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.VariableDeclarationStatement
-import exastencils.knowledge.Knowledge
-import exastencils.knowledge.dimToString
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.primitives.LoopOverDimensions
 import isl.Conversions.convertLambdaToXCallback1
-import exastencils.datastructures.ir.Scope
 
 class ASTBuilderTransformation(replaceCallback : (HashMap[String, Expression], Node) => Unit)
   extends Transformation("insert optimized loop AST", new ASTBuilderFunction(replaceCallback))
@@ -51,7 +50,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
   private final val ZERO_VAL : isl.Val = isl.Val.zero()
   private final val ONE_VAL : isl.Val = isl.Val.one()
 
-  private var oldStmts : HashMap[String, Statement] = null
+  private var oldStmts : HashMap[String, (Statement, ArrayStack[String])] = null
   private var seqDims : HashSet[String] = null
   private var parallelize : Boolean = false
 
@@ -128,7 +127,6 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
 
       case isl.AstNodeType.NodeFor =>
         if (node.forIsDegenerate() != 0) {
-
           val islIt : isl.AstExpr = node.forGetIterator()
           assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
           val it : VariableAccess = VariableAccess(islIt.getId().getName(), Some(IntegerDatatype()))
@@ -137,7 +135,6 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
           Scope(ListBuffer[Statement](decl, processIslNode(node.forGetBody())))
 
         } else {
-
           val islIt : isl.AstExpr = node.forGetIterator()
           assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
           val itStr : String = islIt.getId().getName()
@@ -184,14 +181,14 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
         assume(expr.getOpType() == isl.AstOpType.OpCall, "user node is no OpCall?!")
         val args : Array[Expression] = processArgs(expr)
         val name : String = args(0).asInstanceOf[StringConstant].value
-        val stmt : Statement = oldStmts(name)
+        val (stmt : Statement, loopVars : ArrayStack[String]) = oldStmts(name)
         var d : Int = 1
-        val dims : Int = Knowledge.dimensionality
         val repl = new HashMap[String, Expression]()
         do {
-          repl.put(dimToString(dims - d), args(d))
+          repl.put(loopVars(loopVars.size - d), args(d))
           d += 1
         } while (d < args.length)
+
         replaceCallback(repl, stmt)
         stmt
 
