@@ -81,7 +81,7 @@ object Main {
     ExpandStrategy.doUntilDone()
 
     if (Knowledge.poly_usePolyOpt)
-    	PolyOpt.apply()
+      PolyOpt.apply()
 
     ResolveLoopOverDimensions.apply()
 
@@ -91,12 +91,15 @@ object Main {
 
     ExpandStrategy.doUntilDone()
 
-    if (!Knowledge.useMPI) RemoveMPIReferences.apply()
+    if (!Knowledge.useMPI)
+      RemoveMPIReferences.apply()
 
     SimplifyStrategy.doUntilDone()
 
     AddFragmentMember.apply()
     AddMemberFunctionPrefix.apply()
+    if (Knowledge.useMPI)
+      AddMPIDatatypes.apply()
 
     if (Knowledge.useOMP) {
       AddOMPPragmas.apply()

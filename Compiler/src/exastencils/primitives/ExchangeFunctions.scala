@@ -8,7 +8,7 @@ import exastencils.datastructures.ir.ImplicitConversions._
 
 // FIXME: Think about moving all of this information to some other source. Maybe some kind of ... DSL ... or even Level4
 
-case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
+case class ExchangeData_6(var field : Field, var fieldSelection : FieldSelection, var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_6\n"
 
   override def expand : FunctionStatement = {
@@ -91,17 +91,11 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
               }) ++ Array(field.vectorSize)))))
 
           if (Knowledge.domain_canHaveRemoteNeighs) {
-            body += new CopyToSendBuffer(field, sendRemoteData)
-            body += new RemoteSend(field, sendRemoteData)
-
+            body += new RemoteSends(fieldSelection, sendRemoteData, true, false)
             if (Knowledge.domain_canHaveLocalNeighs)
               body += new LocalSend(field, sendLocalData)
-
-            body += new RemoteReceive(field, recvRemoteData)
-            body += new FinishRemoteRecv(neighbors, field)
-            body += new CopyFromRecvBuffer(field, recvRemoteData)
-
-            body += new FinishRemoteSend(neighbors, field)
+            body += new RemoteRecvs(fieldSelection, recvRemoteData, true, true)
+            body += new RemoteSends(fieldSelection, sendRemoteData, false, true)
           } else if (Knowledge.domain_canHaveLocalNeighs) {
             body += new LocalSend(field, sendLocalData)
           }
@@ -170,17 +164,11 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
                 }) ++ Array(field.vectorSize)))))
 
           if (Knowledge.domain_canHaveRemoteNeighs) {
-            body += new CopyToSendBuffer(field, sendRemoteData)
-            body += new RemoteSend(field, sendRemoteData)
-
+            body += new RemoteSends(fieldSelection, sendRemoteData, true, false)
             if (Knowledge.domain_canHaveLocalNeighs)
               body += new LocalSend(field, sendLocalData)
-
-            body += new RemoteReceive(field, recvRemoteData)
-            body += new FinishRemoteRecv(neighbors, field)
-            body += new CopyFromRecvBuffer(field, recvRemoteData)
-
-            body += new FinishRemoteSend(neighbors, field)
+            body += new RemoteRecvs(fieldSelection, recvRemoteData, true, true)
+            body += new RemoteSends(fieldSelection, sendRemoteData, false, true)
           } else if (Knowledge.domain_canHaveLocalNeighs) {
             body += new LocalSend(field, sendLocalData)
           }
@@ -195,7 +183,7 @@ case class ExchangeData_6(field : Field, neighbors : ListBuffer[NeighborInfo]) e
   }
 }
 
-case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
+case class ExchangeData_26(var field : Field, var fieldSelection : FieldSelection, var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_26\n"
 
   override def expand : FunctionStatement = {
@@ -276,17 +264,11 @@ case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) 
             }) ++ Array(field.vectorSize)))))
 
         if (Knowledge.domain_canHaveRemoteNeighs) {
-          body += new CopyToSendBuffer(field, sendRemoteData)
-          body += new RemoteSend(field, sendRemoteData)
-
+          body += new RemoteSends(fieldSelection, sendRemoteData, true, false)
           if (Knowledge.domain_canHaveLocalNeighs)
             body += new LocalSend(field, sendLocalData)
-
-          body += new RemoteReceive(field, recvRemoteData)
-          body += new FinishRemoteRecv(neighbors, field)
-          body += new CopyFromRecvBuffer(field, recvRemoteData)
-
-          body += new FinishRemoteSend(neighbors, field)
+          body += new RemoteRecvs(fieldSelection, recvRemoteData, true, true)
+          body += new RemoteSends(fieldSelection, sendRemoteData, false, true)
         } else if (Knowledge.domain_canHaveLocalNeighs) {
           body += new LocalSend(field, sendLocalData)
         }
@@ -352,17 +334,11 @@ case class ExchangeData_26(field : Field, neighbors : ListBuffer[NeighborInfo]) 
               }) ++ Array(field.vectorSize)))))
 
         if (Knowledge.domain_canHaveRemoteNeighs) {
-          body += new CopyToSendBuffer(field, sendRemoteData)
-          body += new RemoteSend(field, sendRemoteData)
-
+          body += new RemoteSends(fieldSelection, sendRemoteData, true, false)
           if (Knowledge.domain_canHaveLocalNeighs)
             body += new LocalSend(field, sendLocalData)
-
-          body += new RemoteReceive(field, recvRemoteData)
-          body += new FinishRemoteRecv(neighbors, field)
-          body += new CopyFromRecvBuffer(field, recvRemoteData)
-
-          body += new FinishRemoteSend(neighbors, field)
+          body += new RemoteRecvs(fieldSelection, recvRemoteData, true, true)
+          body += new RemoteSends(fieldSelection, sendRemoteData, false, true)
         } else if (Knowledge.domain_canHaveLocalNeighs) {
           body += new LocalSend(field, sendLocalData)
         }

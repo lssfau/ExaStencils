@@ -7,6 +7,8 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.omp._
 import exastencils.primitives._
 import exastencils.knowledge._
+import exastencils.strategies.SimplifyStrategy
+import exastencils.util.SimplifyExpression
 
 case class MPI_IsRootProc() extends Expression {
   def cpp : String = { s"0 == mpiRank" }
@@ -33,15 +35,15 @@ case class MPI_SetRankAndSize(var communicator : Expression) extends Statement {
   }
 }
 
-case class MPI_Receive(var buffer : Expression, var size : Expression, var typeName : Expression, var rank : Expression, var tag : Expression, var request : Expression) extends Statement {
+case class MPI_Receive(var buffer : Expression, var size : Expression, var datatype : Datatype, var rank : Expression, var tag : Expression, var request : Expression) extends Statement {
   def cpp : String = {
-    (s"MPI_Irecv(${buffer.cpp}, ${size.cpp}, ${typeName.cpp}, ${rank.cpp}, ${tag.cpp}, mpiCommunicator, &${request.cpp});")
+    (s"MPI_Irecv(${buffer.cpp}, ${size.cpp}, ${datatype.cpp_mpi}, ${rank.cpp}, ${tag.cpp}, mpiCommunicator, &${request.cpp});")
   }
 }
 
-case class MPI_Send(var buffer : Expression, var size : Expression, var typeName : Expression, var rank : Expression, var tag : Expression, var request : Expression) extends Statement {
+case class MPI_Send(var buffer : Expression, var size : Expression, var datatype : Datatype, var rank : Expression, var tag : Expression, var request : Expression) extends Statement {
   def cpp : String = {
-    (s"MPI_Isend(${buffer.cpp}, ${size.cpp}, ${typeName.cpp}, ${rank.cpp}, ${tag.cpp}, mpiCommunicator, &${request.cpp});")
+    (s"MPI_Isend(${buffer.cpp}, ${size.cpp}, ${datatype.cpp_mpi}, ${rank.cpp}, ${tag.cpp}, mpiCommunicator, &${request.cpp});")
   }
 }
 
@@ -65,6 +67,43 @@ case class MPI_Barrier() extends Statement {
   def cpp : String = {
     (s"MPI_Barrier(mpiCommunicator);")
   }
+}
+
+case class MPI_DataType(var field : FieldSelection, var indices : IndexRange) extends Datatype {
+  override def cpp = generateName
+  override def cpp_mpi = generateName
+
+  var count : Int = 0
+  var blocklen : Int = 0
+  var stride : Int = 0
+
+  if (1 == SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2))) {
+    count = SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1)).toInt
+    blocklen = SimplifyExpression.evalIntegral(indices.end(0) - indices.begin(0)).toInt
+    stride = field.layout(0).total
+  } else if (1 == SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1))) {
+    count = SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2)).toInt
+    blocklen = SimplifyExpression.evalIntegral(indices.end(0) - indices.begin(0)).toInt
+    stride = field.layout(0).total * field.layout(1).total
+  }
+
+  def generateName : String = {
+    s"mpiDatatype_${count}_${blocklen}_${stride}"
+  }
+
+  def generateDecl : VariableDeclarationStatement = {
+    VariableDeclarationStatement("MPI_Datatype", generateName)
+  }
+
+  def generateCtor : ListBuffer[Statement] = {
+    ListBuffer[Statement](
+      s"MPI_Type_vector($count, $blocklen, $stride, MPI_DOUBLE, &${generateName})",
+      s"MPI_Type_commit(&${generateName})")
+  }
+}
+
+object MPI_DataType {
+
 }
 
 case class InitMPIDataType(mpiTypeName : String, field : Field, indexRange : IndexRange) extends Statement with Expandable {

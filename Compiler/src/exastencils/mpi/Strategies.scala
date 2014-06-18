@@ -1,8 +1,10 @@
 package exastencils.mpi
 
+import scala.collection.mutable.HashMap
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.globals.Globals
 
 object RemoveMPIReferences extends DefaultStrategy("RemoveMPIReferences") {
   this += new Transformation("CleaningFunctions", {
@@ -14,4 +16,31 @@ object RemoveMPIReferences extends DefaultStrategy("RemoveMPIReferences") {
 
     case _ : MPI_IsRootProc     => BooleanConstant(true)
   })
+}
+
+object AddMPIDatatypes extends DefaultStrategy("AddMPIDatatypes") {
+  var datatypes : HashMap[String, MPI_DataType] = HashMap()
+
+  override def apply(node : Option[Node] = None) = {
+    datatypes.clear
+    super.apply(node)
+  }
+
+  this += new Transformation("Looking for data types", {
+    case dt : MPI_DataType => {
+      datatypes(dt.generateName) = dt
+      dt
+    }
+  })
+
+  this += new Transformation("Adding declaration and init code", {
+    case globals : Globals => {
+      for (dt <- datatypes) {
+        globals.variables += dt._2.generateDecl
+        globals.initFunction.body ++= dt._2.generateCtor
+        // TODO: free datatype
+      }
+      globals
+    }
+  }, false)
 }

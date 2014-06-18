@@ -61,8 +61,12 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
       //      }
       for (field <- FieldCollection.fields) {
         Knowledge.comm_strategyFragment match {
-          case 6  => communicationFunctions.get.functions += new ExchangeData_6(field, frag.neighbors)
-          case 26 => communicationFunctions.get.functions += new ExchangeData_26(field, frag.neighbors)
+          case 6  => communicationFunctions.get.functions += new ExchangeData_6(field,
+              FieldSelection("curFragment.", field, "slot", -1),
+              frag.neighbors)
+          case 26 => communicationFunctions.get.functions += new ExchangeData_26(field, 
+              FieldSelection("curFragment.", field, "slot", -1),
+              frag.neighbors)
         }
       }
       frag
