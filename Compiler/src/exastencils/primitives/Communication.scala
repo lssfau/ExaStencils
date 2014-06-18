@@ -159,7 +159,7 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
     //      var minIdx = neighbors.reduce((neigh, res) => if (neigh.index < res.index) neigh else res).index
     //      var maxIdx = neighbors.reduce((neigh, res) => if (neigh.index > res.index) neigh else res).index
     //        new ForLoopStatement(s"int i = $minIdx", s"i <= $maxIdx", "++i", ...)
-    if (false) // useSeparatePrimLoops
+    if (Knowledge.comm_useFragmentLoopsForEachOp)
       StatementBlock(ListBuffer[Statement](
         if (start) new LoopOverFragments(field.field.domain.index, neighbors.map(neigh => genCopy(neigh._1, neigh._2, true))) with OMP_PotentiallyParallel else new NullStatement,
         if (start) new LoopOverFragments(field.field.domain.index, neighbors.map(neigh => genTransfer(neigh._1, neigh._2, true))) with OMP_PotentiallyParallel else new NullStatement,
@@ -210,7 +210,7 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
     //      var minIdx = neighbors.reduce((neigh, res) => if (neigh.index < res.index) neigh else res).index
     //      var maxIdx = neighbors.reduce((neigh, res) => if (neigh.index > res.index) neigh else res).index
     //        new ForLoopStatement(s"int i = $minIdx", s"i <= $maxIdx", "++i", ...)
-    if (false) // useSeparatePrimLoops
+    if (Knowledge.comm_useFragmentLoopsForEachOp)
       StatementBlock(ListBuffer[Statement](
         if (start) new LoopOverFragments(field.field.domain.index, neighbors.map(neigh => genTransfer(neigh._1, neigh._2, true))) with OMP_PotentiallyParallel else new NullStatement,
         if (end) new LoopOverFragments(field.field.domain.index, neighbors.map(neigh => genWait(neigh._1))) else new NullStatement,
