@@ -140,7 +140,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
     return node.getType() match {
 
       case isl.AstNodeType.NodeFor =>
-        if (node.forIsDegenerate() != 0) {
+        if (node.forIsDegenerate() != 0) { // if (node.forIsDegenerate())
           val islIt : isl.AstExpr = node.forGetIterator()
           assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
           val it : VariableAccess = VariableAccess(islIt.getId().getName(), Some(IntegerDatatype()))

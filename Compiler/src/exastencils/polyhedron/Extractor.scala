@@ -576,7 +576,9 @@ class Extractor extends Collector {
     while (i > 0) {
       i -= 1
       varName.charAt(i) match {
-        case '=' | '+' | '-' | '*' | '/' | '[' | '(' | ' ' =>
+        case '=' | '+' | '*' | '/' | '[' | '(' | ' ' =>
+          throw new ExtractionException("expression in StringConstant found: " + varName)
+        case '-' if varName.charAt(i + 1) != '>' =>
           throw new ExtractionException("expression in StringConstant found: " + varName)
         case _ =>
       }
@@ -588,7 +590,7 @@ class Extractor extends Collector {
     // is access to loop variable?
     if (curScop.origLoopVars.contains(varName)) {
       if (isWrite)
-        throw new ExtractionException("write to loop variabel found")
+        throw new ExtractionException("write to loop variable found")
       return
     }
 
