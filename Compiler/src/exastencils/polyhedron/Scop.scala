@@ -18,7 +18,16 @@ class Scop(val root : Node) {
 
   var reads, writes : isl.UnionMap = null
 
-  var deps : isl.UnionMap = null
+  object deps {
+    var flow : isl.UnionMap = null
+    var anti : isl.UnionMap = null
+    var input : isl.UnionMap = null
+    var output : isl.UnionMap = null
+
+    def validity() : isl.UnionMap = {
+      return flow.union(anti).union(output)
+    }
+  }
 }
 
 object ScopNameMapping {
