@@ -4,6 +4,8 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 
 trait Datatype extends Node with CppPrettyPrintable {
+  def cpp_mpi : String
+  
   def resolveUnderlyingDatatype : Datatype = {
     this match {
       case ArrayDatatype(dt, size) => dt.resolveUnderlyingDatatype
@@ -28,36 +30,45 @@ trait Datatype extends Node with CppPrettyPrintable {
 
 case class SpecialDatatype(typeName : String) extends Datatype {
   override def cpp = typeName
+  override def cpp_mpi = typeName
 }
 
 case class UnitDatatype() extends Datatype {
   override def cpp = "void"
+  override def cpp_mpi = s"INVALID DATATYPE: $cpp"
 }
 
 case class BooleanDatatype() extends Datatype {
   override def cpp = "bool"
+  override def cpp_mpi = s"INVALID DATATYPE: $cpp"
 }
 
 case class IntegerDatatype() extends Datatype {
   override def cpp = "int"
+  override def cpp_mpi = "MPI_INT"
 }
 
 case class RealDatatype() extends Datatype {
   override def cpp = "double"
+  override def cpp_mpi = "MPI_DOUBLE"
 }
 
 case class StringDatatype() extends Datatype {
   override def cpp = "std::string"
+  override def cpp_mpi = "MPI::CHAR"
 }
 
 case class ArrayDatatype(datatype : Datatype, size : Int) extends Datatype {
   override def cpp = s"${datatype.cpp}[$size]"
+  override def cpp_mpi = s"INVALID DATATYPE: $cpp"
 }
 
 case class PointerDatatype(datatype : Datatype) extends Datatype {
   override def cpp = s"${datatype.cpp}*"
+  override def cpp_mpi = s"INVALID DATATYPE: $cpp"
 }
 
 case class ComplexDatatype(datatype : Datatype) extends Datatype {
   override def cpp = s"std::complex<${datatype.cpp}>"
+  override def cpp_mpi = s"INVALID DATATYPE: $cpp"
 }
