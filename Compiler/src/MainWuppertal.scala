@@ -50,7 +50,9 @@ object MainWuppertal extends App {
 	            new FunctionCall(mv, List(L, u))))),
 	    new FunctionCall(sum, List(
 	                     new FunctionCall(mv, List(D_inv, r))))
-     )	            
+     )
+     
+     
 	        
   }
   
