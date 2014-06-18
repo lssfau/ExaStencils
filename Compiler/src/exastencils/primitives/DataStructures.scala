@@ -14,6 +14,7 @@ import exastencils.omp._
 import exastencils.mpi._
 import exastencils.polyhedron._
 import exastencils.strategies.SimplifyStrategy
+import exastencils.optimization.PrecalcAddresses
 
 // TODO: Move accepted nodes to appropriate packages
 
@@ -153,17 +154,17 @@ case class LoopOverDimensions(var numDimensions : Int,
     for (d <- 0 until numDimensions - 1) {
       wrappedBody = ListBuffer[Statement](new ForLoopStatement(
         s"int ${dimToString(d)} = " ~ indices.begin(d), s"${dimToString(d)} < " ~ indices.end(d), s"${dimToString(d)} +=" ~ stepSize(d),
-        wrappedBody, reduction))
+        wrappedBody, reduction) with PrecalcAddresses)
     }
     val d = numDimensions - 1
     if (parallelizable) {
       var ret = new ForLoopStatement(s"int ${dimToString(d)} = " ~ indices.begin(d), s"${dimToString(d)} < " ~ indices.end(d), s"${dimToString(d)} +=" ~ stepSize(d), wrappedBody,
-        reduction) with OMP_PotentiallyParallel
+        reduction) with PrecalcAddresses with OMP_PotentiallyParallel
       ret.collapse = numDimensions
       ret
     } else {
       new ForLoopStatement(s"int ${dimToString(d)} = " ~ indices.begin(d), s"${dimToString(d)} < " ~ indices.end(d), s"${dimToString(d)} +=" ~ stepSize(d), wrappedBody,
-        reduction)
+        reduction) with PrecalcAddresses
     }
   }
 }

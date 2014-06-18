@@ -17,8 +17,18 @@ class Scop(val root : Node) {
   val decls = new ListBuffer[VariableDeclarationStatement]
 
   var reads, writes : isl.UnionMap = null
+  var deadAfterScop : isl.UnionSet = null
 
-  var deps : isl.UnionMap = null
+  object deps {
+    var flow : isl.UnionMap = null
+    var anti : isl.UnionMap = null
+    var input : isl.UnionMap = null
+    var output : isl.UnionMap = null
+
+    def validity() : isl.UnionMap = {
+      return flow.union(anti).union(output)
+    }
+  }
 }
 
 object ScopNameMapping {

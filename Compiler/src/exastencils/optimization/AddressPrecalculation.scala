@@ -34,6 +34,8 @@ import exastencils.datastructures.ir.VariableDeclarationStatement
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.util.SimplifyExpression
 
+trait PrecalcAddresses
+
 object AddressPrecalculation extends CustomStrategy("Perform address precalculation") {
 
   override def apply() : Unit = {
@@ -156,7 +158,7 @@ private final object AnnotateLoopsAndAccesses extends Collector {
   override def enter(node : Node) : Unit = {
 
     node match {
-      case l : ForLoopStatement =>
+      case l : ForLoopStatement with PrecalcAddresses =>
         val d = new HashMap[String, ArrayBases]()
         l.begin match {
           case VariableDeclarationStatement(_, name, _) => decls.push((d, name))
@@ -191,7 +193,7 @@ private final object AnnotateLoopsAndAccesses extends Collector {
 
   override def leave(node : Node) : Unit = {
     node match {
-      case l : ForLoopStatement =>
+      case l : ForLoopStatement with PrecalcAddresses =>
         if (l eq ompLoop)
           ompLoop = null
         decls.pop()
