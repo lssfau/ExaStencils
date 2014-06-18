@@ -17,6 +17,7 @@ class Scop(val root : Node) {
   val decls = new ListBuffer[VariableDeclarationStatement]
 
   var reads, writes : isl.UnionMap = null
+  var deadAfterScop : isl.UnionSet = null
 
   object deps {
     var flow : isl.UnionMap = null

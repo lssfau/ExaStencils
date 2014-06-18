@@ -569,7 +569,7 @@ class Extractor extends Collector {
     leaveStmt() // as an assignment is also a statement
   }
 
-  private def enterScalarAccess(varName : String) : Unit = {
+  private def enterScalarAccess(varName : String, deadAfterScop : Boolean = false) : Unit = {
 
     // hack: filter out code
     var i : Int = varName.length()
@@ -600,6 +600,11 @@ class Extractor extends Collector {
       scop.reads = if (scop.reads == null) access else scop.reads.addMap(access)
     if (isWrite)
       scop.writes = if (scop.writes == null) access else scop.writes.addMap(access)
+
+    if (deadAfterScop) {
+      val dead : isl.Set = curScop.buildIslSet(curScop.curStmt.label())
+      scop.deadAfterScop = if (scop.deadAfterScop == null) dead else scop.deadAfterScop.addSet(dead)
+    }
   }
 
   private def leaveScalarAccess() : Unit = {
@@ -668,7 +673,7 @@ class Extractor extends Collector {
       enterStmt(stmt) // as a declaration is also a statement
       decl.expression.get.annotate(Access.ANNOT, Access.READ)
       isWrite = true
-      enterScalarAccess(decl.name)
+      enterScalarAccess(decl.name, true)
       isWrite = false
     }
 

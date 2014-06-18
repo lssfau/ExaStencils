@@ -88,6 +88,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   private def deadCodeElimination(scop : Scop) : Unit = {
 
     var live = scop.writes.intersectDomain(scop.domain).reverse().lexmax().range()
+    if (scop.deadAfterScop != null)
+      live = live.subtract(scop.deadAfterScop)
     live = live.union(scop.deps.flow.domain().intersect(scop.domain))
 
     scop.domain = live
