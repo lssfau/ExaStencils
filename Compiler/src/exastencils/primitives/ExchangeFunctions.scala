@@ -8,18 +8,18 @@ import exastencils.datastructures.ir.ImplicitConversions._
 
 // FIXME: Think about moving all of this information to some other source. Maybe some kind of ... DSL ... or even Level4
 
-case class ExchangeData_6(var field : Field, var fieldSelection : FieldSelection, var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
+case class ExchangeData_6(var fieldSelection : FieldSelection, var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_6\n"
 
   override def expand : FunctionStatement = {
     var body = new ListBuffer[Statement]
 
-    val fieldName = s"curFragment.${field.codeName}[slot]"
+    val field = fieldSelection.field
 
     // handle BC
     // FIXME: currently treats numInnerLayers points
     // FIXME: this treats more points than required (outer halo)
-    body += new HandleBoundaries(field, neighbors.map(neigh => (neigh, new IndexRange(
+    body += new HandleBoundaries(fieldSelection, neighbors.map(neigh => (neigh, new IndexRange(
       new MultiIndex(
         DimArray().map(i => i match {
           case i if neigh.dir(i) == 0 => field.layout(i).idxDupLeftBegin //idxDupLeftBegin, idxGhostLeftBegin
@@ -93,11 +93,11 @@ case class ExchangeData_6(var field : Field, var fieldSelection : FieldSelection
           if (Knowledge.domain_canHaveRemoteNeighs) {
             body += new RemoteSends(fieldSelection, sendRemoteData, true, false)
             if (Knowledge.domain_canHaveLocalNeighs)
-              body += new LocalSend(field, sendLocalData)
+              body += new LocalSend(fieldSelection, sendLocalData)
             body += new RemoteRecvs(fieldSelection, recvRemoteData, true, true)
             body += new RemoteSends(fieldSelection, sendRemoteData, false, true)
           } else if (Knowledge.domain_canHaveLocalNeighs) {
-            body += new LocalSend(field, sendLocalData)
+            body += new LocalSend(fieldSelection, sendLocalData)
           }
         }
       }
@@ -166,34 +166,34 @@ case class ExchangeData_6(var field : Field, var fieldSelection : FieldSelection
           if (Knowledge.domain_canHaveRemoteNeighs) {
             body += new RemoteSends(fieldSelection, sendRemoteData, true, false)
             if (Knowledge.domain_canHaveLocalNeighs)
-              body += new LocalSend(field, sendLocalData)
+              body += new LocalSend(fieldSelection, sendLocalData)
             body += new RemoteRecvs(fieldSelection, recvRemoteData, true, true)
             body += new RemoteSends(fieldSelection, sendRemoteData, false, true)
           } else if (Knowledge.domain_canHaveLocalNeighs) {
-            body += new LocalSend(field, sendLocalData)
+            body += new LocalSend(fieldSelection, sendLocalData)
           }
         }
       }
     }
 
     // compile return value
-    return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}",
+    return FunctionStatement(new UnitDatatype(), s"exch${fieldSelection.codeName}",
       ListBuffer(VariableAccess("slot", Some("unsigned int"))),
       body)
   }
 }
 
-case class ExchangeData_26(var field : Field, var fieldSelection : FieldSelection, var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
+case class ExchangeData_26(var fieldSelection : FieldSelection, var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_26\n"
 
   override def expand : FunctionStatement = {
     var body = new ListBuffer[Statement]
 
-    val fieldName = s"curFragment.${field.codeName}[slot]"
+    val field = fieldSelection.field
 
     // handle BC
     // FIXME: currently treats numInnerLayers points
-    body += new HandleBoundaries(field, neighbors.map(neigh => (neigh, new IndexRange(
+    body += new HandleBoundaries(fieldSelection, neighbors.map(neigh => (neigh, new IndexRange(
       new MultiIndex(
         DimArray().map(i => i match {
           case i if neigh.dir(i) == 0 => field.layout(i).idxDupLeftBegin
@@ -266,11 +266,11 @@ case class ExchangeData_26(var field : Field, var fieldSelection : FieldSelectio
         if (Knowledge.domain_canHaveRemoteNeighs) {
           body += new RemoteSends(fieldSelection, sendRemoteData, true, false)
           if (Knowledge.domain_canHaveLocalNeighs)
-            body += new LocalSend(field, sendLocalData)
+            body += new LocalSend(fieldSelection, sendLocalData)
           body += new RemoteRecvs(fieldSelection, recvRemoteData, true, true)
           body += new RemoteSends(fieldSelection, sendRemoteData, false, true)
         } else if (Knowledge.domain_canHaveLocalNeighs) {
-          body += new LocalSend(field, sendLocalData)
+          body += new LocalSend(fieldSelection, sendLocalData)
         }
       }
     }
@@ -336,17 +336,17 @@ case class ExchangeData_26(var field : Field, var fieldSelection : FieldSelectio
         if (Knowledge.domain_canHaveRemoteNeighs) {
           body += new RemoteSends(fieldSelection, sendRemoteData, true, false)
           if (Knowledge.domain_canHaveLocalNeighs)
-            body += new LocalSend(field, sendLocalData)
+            body += new LocalSend(fieldSelection, sendLocalData)
           body += new RemoteRecvs(fieldSelection, recvRemoteData, true, true)
           body += new RemoteSends(fieldSelection, sendRemoteData, false, true)
         } else if (Knowledge.domain_canHaveLocalNeighs) {
-          body += new LocalSend(field, sendLocalData)
+          body += new LocalSend(fieldSelection, sendLocalData)
         }
       }
     }
 
     // compile return value
-    return FunctionStatement(new UnitDatatype(), s"exch${field.codeName}",
+    return FunctionStatement(new UnitDatatype(), s"exch${fieldSelection.codeName}",
       ListBuffer(VariableAccess("slot", Some("unsigned int"))),
       body)
   }

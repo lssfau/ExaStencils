@@ -10,29 +10,28 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.omp._
 import exastencils.polyhedron._
 
-case class HandleBoundaries(var field : Field, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
+case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
   def cpp : String = { return "NOT VALID ; CLASS = HandleBoundaries\n" }
 
   def setupDirichlet : ListBuffer[Statement] = {
     var statements : ListBuffer[Statement] = ListBuffer()
 
-    statements += new InitGeomCoords(field) // FIXME: only add if really required
-    for (vecDim <- 0 until field.vectorSize) { // FIXME: this works for now, but users may want to specify bc's per vector element
+    statements += new InitGeomCoords(field.field) // FIXME: only add if really required
+    for (vecDim <- 0 until field.field.vectorSize) { // FIXME: this works for now, but users may want to specify bc's per vector element
       var index = DefaultLoopMultiIndex()
       index(Knowledge.dimensionality) = vecDim
-      statements += new AssignmentStatement(
-        new DirectFieldAccess(FieldSelection("curFragment.", field, "slot", vecDim), index),
-        Duplicate(field.dirichletBC.get))
+      var fieldSel = new FieldSelection(field.prefix, field.field, field.slot, vecDim)
+      statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index), Duplicate(field.field.dirichletBC.get))
     }
 
     statements
   }
 
   override def expand : Statement = {
-    if (field.dirichletBC.isDefined) {
-      new LoopOverFragments(field.domain.index,
+    if (field.field.dirichletBC.isDefined) {
+      new LoopOverFragments(field.domainIndex,
         neighbors.map(neigh =>
-          new ConditionStatement(new getNeighInfo_IsInvalid(neigh._1, field.domain.index),
+          new ConditionStatement(new getNeighInfo_IsInvalid(neigh._1, field.domainIndex),
             new LoopOverDimensions(Knowledge.dimensionality, neigh._2, setupDirichlet) with OMP_PotentiallyParallel with PolyhedronAccessable) : Statement)) with OMP_PotentiallyParallel
     } else {
       new NullStatement

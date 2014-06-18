@@ -68,6 +68,9 @@ case class FieldSelection(
   def layout = field.layout
   def level = field.level
   def referenceOffset = field.referenceOffset
+  
+  // other shortcuts
+  def domainIndex = field.domain.index
 }
 
 object FieldCollection {
