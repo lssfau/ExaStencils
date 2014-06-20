@@ -25,6 +25,9 @@ object Main {
   def main(args : Array[String]) : Unit = {
     Locale.setDefault(Locale.ENGLISH) // EPIC -.-
 
+    // for runtime measurement
+    val start : Long = System.nanoTime()
+
     // Init settings
 
     if (args.length >= 1) {
@@ -109,5 +112,7 @@ object Main {
     PrettyprintingManager.finish
 
     println("Done!")
+
+    println("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
   }
 }
