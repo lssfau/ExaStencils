@@ -96,7 +96,7 @@ object Knowledge {
   var comm_useCommArraysPerField : Boolean = false // specifies if domain field variables are summarized in array form
 
   var comm_sepCommStructsPerLevel : Boolean = false // specifies if communication variables that could be level specific are handled separately
-  var comm_useCommArraysPerLevel : Boolean = true // specifies if domain level variables are summarized in array form
+  var comm_useCommArraysPerLevel : Boolean = false // specifies if domain level variables are summarized in array form
 
   var comm_sepCommStructsPerNeigh : Boolean = true // specifies if communication variables that could be neighbor specific are handled separately
   var comm_useCommArraysPerNeigh : Boolean = true // specifies if neighbor specific variables are summarized in array form

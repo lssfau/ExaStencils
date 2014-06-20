@@ -23,7 +23,7 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
         case access : StencilFieldAccess => {
           var index = Duplicate(access.index)
           index(Knowledge.dimensionality) = 0 // FIXME: this assumes the center entry to be in pos 0
-          new FieldAccess(FieldSelection(access.stencilFieldSelection.prefix, access.stencilFieldSelection.field, access.stencilFieldSelection.slot, 0), index)
+          new FieldAccess(FieldSelection(access.stencilFieldSelection.field, access.stencilFieldSelection.slot, 0, access.stencilFieldSelection.fragIdx), index)
         }
       }
 

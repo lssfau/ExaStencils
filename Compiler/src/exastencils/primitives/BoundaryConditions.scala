@@ -20,7 +20,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
     for (vecDim <- 0 until field.field.vectorSize) { // FIXME: this works for now, but users may want to specify bc's per vector element
       var index = DefaultLoopMultiIndex()
       index(Knowledge.dimensionality) = vecDim
-      var fieldSel = new FieldSelection(field.prefix, field.field, field.slot, vecDim)
+      var fieldSel = new FieldSelection(field.field, field.slot, vecDim, field.fragIdx)
       statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index), Duplicate(field.field.dirichletBC.get))
     }
 

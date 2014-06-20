@@ -8,6 +8,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.strategies._
+import exastencils.primitives._
 
 trait Expression extends Node with CppPrettyPrintable {
   def ~(exp : Expression) : ConcatenationExpression = {
@@ -274,9 +275,11 @@ case class ExternalFieldAccess(var name : Expression, var field : ExternalField,
   }
 }
 
-case class LinearizedFieldAccess(var fieldSelection : FieldSelection, var index : Expression) extends Expression {
-  override def cpp : String = {
-    s"${fieldSelection.prefix.cpp}${fieldSelection.codeName}[${fieldSelection.slot.cpp}][${index.cpp}]"
+case class LinearizedFieldAccess(var fieldSelection : FieldSelection, var index : Expression) extends Expression with Expandable {
+  override def cpp : String = "NOT VALID ; CLASS = ExternalFieldAccess\n"
+
+  override def expand : Expression = {
+    new FragMember_Field(fieldSelection.field, fieldSelection.fragIdx) ~ s"[${fieldSelection.slot.cpp}][${index.cpp}]"
   }
 }
 

@@ -148,7 +148,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
       body += new LoopOverFragments(field.domain.index,
         //new ConditionStatement(FragMember_IsValidForSubdomain(field.domain.index),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
-          new AssignmentStatement(new ArrayAccess("curFragment." ~ field.codeName, slot),
+          new AssignmentStatement(new ArrayAccess(new FragMember_Field(field), slot),
             ("new" : Expression) ~~ field.dataType.resolveUnderlyingDatatype. /*FIXME*/ cpp ~ "[" ~ numDataPoints ~ "]") : Statement)) with OMP_PotentiallyParallel
     }
 
@@ -168,7 +168,7 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
           new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => dest.layout(i).idxDupLeftBegin)),
           new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => dest.layout(i).idxDupRightEnd))),
           new AssignmentStatement(ExternalFieldAccess("dest", dest, DefaultLoopMultiIndex()),
-            FieldAccess(FieldSelection(new NullExpression, src, "slot", -1), DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel with PolyhedronAccessable))
+            FieldAccess(FieldSelection(src, "slot", -1), DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel with PolyhedronAccessable))
   }
 }
 
@@ -183,7 +183,7 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
         new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
           new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => src.layout(i).idxDupLeftBegin)),
           new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => src.layout(i).idxDupRightEnd))),
-          new AssignmentStatement(FieldAccess(FieldSelection(new NullExpression, dest, "slot", -1), DefaultLoopMultiIndex()),
+          new AssignmentStatement(FieldAccess(FieldSelection(dest, "slot", -1), DefaultLoopMultiIndex()),
             ExternalFieldAccess("src", src, DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel with PolyhedronAccessable))
   }
 }

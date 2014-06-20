@@ -170,3 +170,23 @@ case class FragMember_NeighborRemoteRank(var domain : Expression, var neighIdx :
   override def resolveDataType = new IntegerDatatype
   override def resolveDefValue = Some("MPI_PROC_NULL")
 }
+
+case class FragMember_Field(var field : Field, var fragmentIdx : Expression = "fragmentIdx") extends FragCommMember(true, false, false, true, false) {
+  override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, new NullExpression, field.level, new NullExpression).cpp
+
+  override def resolveName = /*s"fieldData"*/ field.codeName + resolvePostfix(fragmentIdx.cpp, "", "", field.level.toString, "")
+  override def resolveDataType = new PointerDatatype(field.dataType.resolveUnderlyingDatatype)
+  override def resolveDefValue = Some(0)
+
+  override def getDeclaration() : VariableDeclarationStatement = {
+    var dec = super.getDeclaration
+    dec.dataType = new ArrayDatatype(dec.dataType, field.numSlots)
+    dec
+  }
+
+  override def getCtor() : Option[Statement] = {
+    Some(wrapInLoops(StatementBlock(
+      (0 until field.numSlots).to[ListBuffer].map(slot =>
+        AssignmentStatement(resolveAccess(resolveName, "fragmentIdx", "domainIdx", "fieldIdx", "level", "neighIdx") ~ s"[$slot]", resolveDefValue.get) : Statement))))
+  }
+}

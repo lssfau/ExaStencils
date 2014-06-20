@@ -31,13 +31,13 @@ object StencilFieldCollection {
 }
 
 case class StencilFieldSelection(
-    var prefix : Expression,
     var stencilField : StencilField,
     var slot : Expression,
-    var arrayIndex : Int) extends Node {
+    var arrayIndex : Int,
+    var fragIdx : Expression = "fragmentIdx") extends Node {
 
   def toFieldSelection = {
-    new FieldSelection(prefix, field, slot, arrayIndex)
+    new FieldSelection(field, slot, arrayIndex, fragIdx)
   }
 
   // shortcuts to stencilField members

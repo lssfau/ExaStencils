@@ -69,7 +69,6 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
     multiIndex(Knowledge.dimensionality) = arrayIndex
     ir.FieldAccess(
       knowledge.FieldSelection(
-        "curFragment." /*FIXME*/ ,
         knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get,
         slot.progressToIr,
         0),
@@ -87,7 +86,6 @@ case class StencilFieldAccess(var name : String, var level : AccessLevelSpecific
   def progressToIr : ir.StencilFieldAccess = {
     ir.StencilFieldAccess(
       knowledge.StencilFieldSelection(
-        "curFragment." /*FIXME*/ ,
         knowledge.StencilFieldCollection.getStencilFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get,
         slot.progressToIr,
         -1),

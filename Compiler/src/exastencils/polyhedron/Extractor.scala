@@ -641,7 +641,7 @@ class Extractor extends Collector {
 
     val name : StringBuilder = new StringBuilder()
 
-    fieldSelection.prefix.cppsb(name)
+    // FIXME : UPDATE
     name.append(fieldSelection.codeName)
     name += '_'
     fieldSelection.slot.cppsb(name)

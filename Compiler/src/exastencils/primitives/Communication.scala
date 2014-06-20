@@ -32,9 +32,9 @@ case class LocalSend(var field : FieldSelection, var neighbors : ListBuffer[(Nei
             new LoopOverDimensions(Knowledge.dimensionality + 1,
               neigh._2,
               new AssignmentStatement(
-                new DirectFieldAccess(FieldSelection(new getNeighInfo_LocalPtr(neigh._1, field.domainIndex) ~ "->", field.field, field.slot, -1), new MultiIndex(
+                new DirectFieldAccess(FieldSelection(field.field, field.slot, -1, new getNeighInfo_LocalPtr(neigh._1, field.domainIndex) ~ "->commId"), new MultiIndex(
                   new MultiIndex(DefaultLoopMultiIndex(), neigh._3.begin, _ + _), neigh._2.begin, _ - _)),
-                new DirectFieldAccess(FieldSelection("curFragment.", field.field, field.slot, -1), DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel with PolyhedronAccessable))) : Statement)) with OMP_PotentiallyParallel
+                new DirectFieldAccess(FieldSelection(field.field, field.slot, -1), DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel with PolyhedronAccessable))) : Statement)) with OMP_PotentiallyParallel
   }
 }
 
@@ -57,7 +57,7 @@ case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborI
   def expand : Statement = {
     val tmpBufAccess = new ArrayAccess(FragMember_TmpBuffer(field.field, "Send", indices.getSizeHigher, neighbor.index),
       Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), indices.begin, _ - _), indices))
-    val fieldAccess = new DirectFieldAccess(FieldSelection("curFragment.", field.field, field.slot, -1), DefaultLoopMultiIndex())
+    val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.slot, -1), DefaultLoopMultiIndex())
 
     new LoopOverDimensions(Knowledge.dimensionality + 1, indices, new AssignmentStatement(tmpBufAccess, fieldAccess)) with OMP_PotentiallyParallel with PolyhedronAccessable
   }
@@ -69,7 +69,7 @@ case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : Neighbo
   def expand : Statement = {
     val tmpBufAccess = new ArrayAccess(FragMember_TmpBuffer(field.field, "Recv", indices.getSizeHigher, neighbor.index),
       Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), indices.begin, _ - _), indices))
-    val fieldAccess = new DirectFieldAccess(FieldSelection("curFragment.", field.field, field.slot, -1), DefaultLoopMultiIndex())
+    val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.slot, -1), DefaultLoopMultiIndex())
 
     new LoopOverDimensions(Knowledge.dimensionality + 1, indices, new AssignmentStatement(fieldAccess, tmpBufAccess)) with OMP_PotentiallyParallel with PolyhedronAccessable
   }

@@ -28,14 +28,14 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
       frag
   })
 
-  this += new Transformation("Updating FragmentClass with required field declarations", {
-    case frag : FragmentClass =>
-      for (field <- FieldCollection.fields) {
-        frag.declarations += VariableDeclarationStatement(ArrayDatatype(PointerDatatype(field.dataType.resolveUnderlyingDatatype), field.numSlots), field.codeName)
-        frag.dTorBody ++= (0 until field.numSlots).map(slot => ("delete[] " ~ field.codeName ~ s"[$slot]") : Statement).to[ListBuffer]
-      }
-      frag
-  })
+//  this += new Transformation("Updating FragmentClass with required field declarations", {
+//    case frag : FragmentClass =>
+//      for (field <- FieldCollection.fields) {
+//        frag.declarations += VariableDeclarationStatement(ArrayDatatype(PointerDatatype(field.dataType.resolveUnderlyingDatatype), field.numSlots), field.codeName)
+//        frag.dTorBody ++= (0 until field.numSlots).map(slot => ("delete[] " ~ field.codeName ~ s"[$slot]") : Statement).to[ListBuffer]
+//      }
+//      frag
+//  })
 
   if (Knowledge.useMPI) {
     this += new Transformation("Adding basic functions to CommunicationFunctions", {
@@ -63,8 +63,8 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
       //      }
       for (field <- FieldCollection.fields) {
         Knowledge.comm_strategyFragment match {
-          case 6  => communicationFunctions.get.functions += new ExchangeData_6(FieldSelection("curFragment.", field, "slot", -1), frag.neighbors)
-          case 26 => communicationFunctions.get.functions += new ExchangeData_26(FieldSelection("curFragment.", field, "slot", -1), frag.neighbors)
+          case 6  => communicationFunctions.get.functions += new ExchangeData_6(FieldSelection(field, "slot", -1), frag.neighbors)
+          case 26 => communicationFunctions.get.functions += new ExchangeData_26(FieldSelection(field, "slot", -1), frag.neighbors)
         }
       }
       frag

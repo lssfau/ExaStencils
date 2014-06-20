@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
 
 class FieldLayoutPerDim(
     var numPadLayersLeft : Int, // number of padding data points added to the left (/ lower / front) side of the field
@@ -57,10 +58,10 @@ case class Field(
 }
 
 case class FieldSelection(
-    var prefix : Expression,
     var field : Field,
     var slot : Expression,
-    var arrayIndex : Int) extends Node {
+    var arrayIndex : Int,
+    var fragIdx : Expression = "fragmentIdx") extends Node {
 
   // shortcuts to Field members
   def codeName = field.codeName
@@ -68,7 +69,7 @@ case class FieldSelection(
   def layout = field.layout
   def level = field.level
   def referenceOffset = field.referenceOffset
-  
+
   // other shortcuts
   def domainIndex = field.domain.index
 }
