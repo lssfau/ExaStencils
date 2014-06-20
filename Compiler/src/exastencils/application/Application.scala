@@ -40,6 +40,7 @@ case class InitFields() extends Statement with Expandable {
 
 case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = Poisson3DMain\n"
+  override def cpp_decl = cpp
 
   override def expand : FunctionStatement = {
     // FIXME: make the next line of code more readable and robust

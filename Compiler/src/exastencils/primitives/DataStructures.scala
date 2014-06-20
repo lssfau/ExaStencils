@@ -181,17 +181,17 @@ case class LoopOverFragments(var domain : Int, var body : ListBuffer[Statement],
 
     var modifiedBody : ListBuffer[Statement] = new ListBuffer
     if (createFragRef)
-      modifiedBody += "Fragment3DCube& curFragment = *fragments[f]"
+      modifiedBody += "Fragment3DCube& curFragment = *fragments[fragmentIdx]"
     if (domain >= 0 && createFragRef)
       modifiedBody += new ConditionStatement(FragMember_IsValidForSubdomain(domain), body)
     else
       modifiedBody ++= body
 
     if (parallelizable)
-      statements += new ForLoopStatement(s"int f = 0", s"f < " ~ Knowledge.domain_numFragsPerBlock, s"++f",
+      statements += new ForLoopStatement(s"int fragmentIdx = 0", s"fragmentIdx < " ~ Knowledge.domain_numFragsPerBlock, s"++fragmentIdx",
         modifiedBody, reduction) with OMP_PotentiallyParallel
     else
-      statements += new ForLoopStatement(s"int f = 0", s"f < " ~ Knowledge.domain_numFragsPerBlock, s"++f",
+      statements += new ForLoopStatement(s"int fragmentIdx = 0", s"fragmentIdx < " ~ Knowledge.domain_numFragsPerBlock, s"++fragmentIdx",
         modifiedBody, reduction)
 
     if (Knowledge.useMPI && reduction.isDefined) {

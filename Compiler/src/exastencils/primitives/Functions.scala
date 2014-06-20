@@ -11,6 +11,7 @@ import exastencils.polyhedron._
 
 case class WaitForMPIRequestFunc() extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = WaitForMPIReq\n"
+  override def cpp_decl : String = cpp
 
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"waitForMPIReq",
@@ -28,6 +29,7 @@ case class WaitForMPIRequestFunc() extends AbstractFunctionStatement with Expand
 
 case class WaitForMPISendOps(var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = WaitForMPISendOps\n"
+  override def cpp_decl : String = cpp
 
   override def expand : FunctionStatement = {
     if (Knowledge.mpi_useLoopsWherePossible) {
@@ -55,6 +57,7 @@ case class WaitForMPISendOps(var neighbors : ListBuffer[NeighborInfo]) extends A
 
 case class WaitForMPIRecvOps(var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = WaitForMPIRecvOps\n"
+  override def cpp_decl : String = cpp
 
   override def expand : FunctionStatement = {
     if (Knowledge.mpi_useLoopsWherePossible) {
@@ -98,6 +101,7 @@ case class SetIterationOffset(var location : Expression) extends Statement with 
 
 case class ConnectLocalElement() extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = ConnectLocalElement\n"
+  override def cpp_decl : String = cpp
 
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"connectLocalElement",
@@ -105,6 +109,7 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
       ListBuffer[Statement](
         "ASSERT_WARNING((fragment), \"Invalid fragment pointer detected\", return)",
         "Fragment3DCube& curFragment = *this", // HACK
+        "int fragmentIdx = curFragment.commId", // HACK
         AssignmentStatement(FragMember_NeighborIsValid("domain", "location"), true),
         AssignmentStatement(FragMember_NeighborIsRemote("domain", "location"), false),
         AssignmentStatement(FragMember_NeighborLocalPtr("domain", "location"), "fragment"),
@@ -115,12 +120,14 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
 
 case class ConnectRemoteElement() extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = ConnectRemoteElement\n"
+  override def cpp_decl : String = cpp
 
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"connectRemoteElement",
       ListBuffer(VariableAccess("location", Some("unsigned int")), VariableAccess("id", Some("size_t")), VariableAccess("remoteRank", Some(IntegerDatatype())), VariableAccess("domain", Some("unsigned int"))),
       ListBuffer[Statement](
         "Fragment3DCube& curFragment = *this", // HACK
+        "int fragmentIdx = curFragment.commId", // HACK
         AssignmentStatement(FragMember_NeighborIsValid("domain", "location"), true),
         AssignmentStatement(FragMember_NeighborIsRemote("domain", "location"), true),
         AssignmentStatement(FragMember_NeighborFragCommId("domain", "location"), "id"),
@@ -131,18 +138,18 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
 
 case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = SetupBuffers\n"
+  override def cpp_decl : String = cpp
 
   override def expand : FunctionStatement = {
     var body = ListBuffer[Statement]()
 
-    body += "Fragment3DCube& curFragment = *this" // HACK
-
     for (field <- fields) {
       var numDataPoints = field.layout(0).total * field.layout(1).total * field.layout(2).total * field.dataType.resolveFlattendSize
-      body += new ConditionStatement(FragMember_IsValidForSubdomain(field.domain.index),
+      body += new LoopOverFragments(field.domain.index,
+        //new ConditionStatement(FragMember_IsValidForSubdomain(field.domain.index),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
-          new AssignmentStatement(new ArrayAccess(field.codeName, slot),
-            ("new" : Expression) ~~ field.dataType.resolveUnderlyingDatatype. /*FIXME*/ cpp ~ "[" ~ numDataPoints ~ "]") : Statement))
+          new AssignmentStatement(new ArrayAccess("curFragment." ~ field.codeName, slot),
+            ("new" : Expression) ~~ field.dataType.resolveUnderlyingDatatype. /*FIXME*/ cpp ~ "[" ~ numDataPoints ~ "]") : Statement)) with OMP_PotentiallyParallel
     }
 
     return FunctionStatement(new UnitDatatype(), s"setupBuffers", ListBuffer(), body)
@@ -151,6 +158,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
 
 case class GetFromExternalField(var src : Field, var dest : ExternalField) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = SetFromExternalField\n"
+  override def cpp_decl : String = cpp
 
   override def expand : FunctionStatement = {
     new FunctionStatement(new UnitDatatype(), "get" ~ src.codeName,
@@ -166,6 +174,7 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
 
 case class SetFromExternalField(var dest : Field, var src : ExternalField) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = SetFromExternalField\n"
+  override def cpp_decl : String = cpp
 
   override def expand : FunctionStatement = {
     new FunctionStatement(new UnitDatatype(), "set" ~ dest.codeName,

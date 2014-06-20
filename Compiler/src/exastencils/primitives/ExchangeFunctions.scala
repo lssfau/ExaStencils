@@ -10,6 +10,7 @@ import exastencils.datastructures.ir.ImplicitConversions._
 
 case class ExchangeData_6(var fieldSelection : FieldSelection, var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_6\n"
+  override def cpp_decl = cpp
 
   override def expand : FunctionStatement = {
     var body = new ListBuffer[Statement]
@@ -185,6 +186,7 @@ case class ExchangeData_6(var fieldSelection : FieldSelection, var neighbors : L
 
 case class ExchangeData_26(var fieldSelection : FieldSelection, var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_26\n"
+  override def cpp_decl = cpp
 
   override def expand : FunctionStatement = {
     var body = new ListBuffer[Statement]

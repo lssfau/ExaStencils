@@ -34,13 +34,14 @@ object AddMPIDatatypes extends DefaultStrategy("AddMPIDatatypes") {
   })
 
   this += new Transformation("Adding declaration and init code", {
-    case globals : Globals => {
-      for (dt <- datatypes) {
+    case globals : Globals =>
+      for (dt <- datatypes)
         globals.variables += dt._2.generateDecl
-        globals.initFunction.body ++= dt._2.generateCtor
-        // TODO: free datatype
-      }
+      // TODO: free datatype
       globals
-    }
-  }, false)
+    case func : FunctionStatement if (("initGlobals" : Expression) == func.name) =>
+      for (dt <- datatypes)
+        func.body ++= dt._2.generateCtor
+      func
+  })
 }

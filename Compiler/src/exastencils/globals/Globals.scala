@@ -14,7 +14,7 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.prettyprinting._
 
 case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = new ListBuffer) extends Node with FilePrettyPrintable {
-  var initFunction : FunctionStatement = new FunctionStatement(new UnitDatatype, "initGlobals", new ListBuffer[VariableAccess], new ListBuffer[Statement])
+  var functions : ListBuffer[AbstractFunctionStatement] = ListBuffer(new FunctionStatement(new UnitDatatype, "initGlobals", new ListBuffer[VariableAccess], new ListBuffer[Statement]))
 
   override def printToFile = {
     val writerHeader = PrettyprintingManager.getPrinter(s"Globals/Globals.h")
@@ -23,19 +23,34 @@ case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = ne
       "#include \"Util/Vector.h\"\n"
       + (if (Knowledge.useMPI) "#pragma warning(disable : 4800)\n" else "")
       + (if (Knowledge.useMPI) "#include <mpi.h>\n" else "") // FIXME: find a way to extract necessary includes from variables
-      )
+      + "#include \"Primitives/Fragment3DCube.h\"\n")
 
     writerHeader << "class Fragment3DCube;\n" // FIXME: find a way to extract necessary forward defines from variables
 
     for (variable <- variables) { writerHeader << s"extern ${variable.cpp_onlyDeclaration}\n" }
 
-    writerHeader << s"${initFunction.returntype.cpp} ${initFunction.name.cpp}(" + initFunction.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n"
+    for (func <- functions)
+      writerHeader << func.cpp_decl
 
-    val writerSource = PrettyprintingManager.getPrinter(s"Globals/Globals.cpp")
+    var i = 0;
+    {
+      val writerSource = PrettyprintingManager.getPrinter(s"Globals/Globals_$i.cpp")
 
-    writerSource << "#include \"Globals/Globals.h\"\n\n"
-    for (variable <- variables) { writerSource << s"${variable.cpp}\n" }
+      writerSource << "#include \"Globals/Globals.h\"\n\n"
+      for (variable <- variables) { writerSource << s"${variable.cpp}\n" }
 
-    writerSource << initFunction.cpp + "\n"
+      i += 1
+    }
+
+    for (func <- functions) {
+      var s : String = ""
+
+      val writerSource = PrettyprintingManager.getPrinter(s"Globals/Globals_$i.cpp")
+
+      writerSource << "#include \"Globals/Globals.h\"\n\n"
+      writerSource << func.cpp + "\n"
+
+      i += 1
+    }
   }
 }

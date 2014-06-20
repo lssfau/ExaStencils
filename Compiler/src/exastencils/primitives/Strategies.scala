@@ -3,6 +3,7 @@ package exastencils.primitives
 import scala.collection.mutable.ListBuffer
 import exastencils.core._
 import exastencils.util._
+import exastencils.globals._
 import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
@@ -10,6 +11,7 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.Transformation._
 import exastencils.primitives._
 import exastencils.strategies._
+import exastencils.omp._
 
 object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
   var communicationFunctions : Option[CommunicationFunctions] = None
@@ -49,7 +51,7 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
         frag.functions += new ConnectLocalElement()
       if (Knowledge.domain_canHaveRemoteNeighs)
         frag.functions += new ConnectRemoteElement()
-      frag.functions += new SetupBuffers(FieldCollection.fields, frag.neighbors)
+      StateManager.findFirst[Globals]().get.functions += new SetupBuffers(FieldCollection.fields, frag.neighbors)
       frag
   })
 
@@ -79,29 +81,53 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
 }
 
 object AddFragmentMember extends DefaultStrategy("Adding members for fragment communication") {
-  var declarationMap : Map[String, Statement] = Map()
+  var declarationMap_fragment : Map[String, VariableDeclarationStatement] = Map()
+  var ctorMap_fragment : Map[String, Statement] = Map()
+  var dtorMap_fragment : Map[String, Statement] = Map()
+  var declarationMap : Map[String, VariableDeclarationStatement] = Map()
   var ctorMap : Map[String, Statement] = Map()
   var dtorMap : Map[String, Statement] = Map()
 
   this += new Transformation("Collecting", {
     case mem : FragCommMember => // TODO: don't overwrite for performance reasons
-      declarationMap += (mem.resolveName -> mem.getDeclaration)
-      if (mem.getCtor().isDefined)
-        ctorMap += (mem.resolveName -> mem.getCtor().get)
-      if (mem.getDtor().isDefined)
-        dtorMap += (mem.resolveName -> mem.getDtor().get)
+      if (!mem.canBePerFragment) {
+        declarationMap_fragment += (mem.resolveName -> mem.getDeclaration)
+        if (mem.getCtor().isDefined)
+          ctorMap_fragment += (mem.resolveName -> mem.getCtor().get)
+        if (mem.getDtor().isDefined)
+          dtorMap_fragment += (mem.resolveName -> mem.getDtor().get)
+      } else {
+        declarationMap += (mem.resolveName -> mem.getDeclaration)
+        if (mem.getCtor().isDefined)
+          ctorMap += (mem.resolveName -> mem.getCtor().get)
+        if (mem.getDtor().isDefined)
+          dtorMap += (mem.resolveName -> mem.getDtor().get)
+      }
       mem
   })
 
-  this += new Transformation("Adding", {
+  this += new Transformation("Adding to fragment class", {
     case frag : FragmentClass =>
-      for (decl <- declarationMap)
+      for (decl <- declarationMap_fragment)
         frag.declarations += decl._2
-      if (!ctorMap.isEmpty)
-        frag.cTorBody ++= ctorMap.map(_._2)
-      if (!dtorMap.isEmpty)
-        frag.dTorBody ++= dtorMap.map(_._2)
+      if (!ctorMap_fragment.isEmpty)
+        frag.cTorBody ++= ctorMap_fragment.map(_._2)
+      if (!dtorMap_fragment.isEmpty)
+        frag.dTorBody ++= dtorMap_fragment.map(_._2)
       frag
+  })
+
+  this += new Transformation("Adding to globals", {
+    case globals : Globals =>
+      for (decl <- declarationMap)
+        globals.variables += decl._2
+      globals
+    case func : FunctionStatement if (("initGlobals" : Expression) == func.name) =>
+      func.body ++= ctorMap.map(_._2)
+      func
+    // FIXME: globals d'tor
+    //if (!dtorMap.isEmpty)
+    //  globals.dTorBody ++= dtorMap.map(_._2)
   })
 
   var bufferSizes : Map[Expression, Int] = Map()
@@ -109,7 +135,7 @@ object AddFragmentMember extends DefaultStrategy("Adding members for fragment co
   this += new Transformation("Collecting buffer sizes", {
     case buf : FragMember_TmpBuffer =>
       val size = SimplifyExpression.evalIntegral(buf.size).toInt
-      val id = buf.resolveAccess(buf.resolveName, new NullExpression, buf.field.identifier /*FIXME: id*/ , buf.field.level, buf.neighIdx)
+      val id = buf.resolveAccess(buf.resolveName, "fragmentIdx", new NullExpression, buf.field.identifier /*FIXME: id*/ , buf.field.level, buf.neighIdx)
       bufferSizes += (id -> (size max bufferSizes.getOrElse(id, 0)))
       buf
   })
@@ -117,9 +143,8 @@ object AddFragmentMember extends DefaultStrategy("Adding members for fragment co
   this += new Transformation("Extending SetupBuffers function", {
     // FIXME: this kind of matching is awkward, I want trafos that don't return nodes
     case func : FunctionStatement if (("setupBuffers" : Expression) == func.name) =>
-      for (buf <- bufferSizes) {
-        func.body += new AssignmentStatement(buf._1, s"new double[${buf._2}]")
-      }
+      func.body += new ForLoopStatement(s"int fragmentIdx = 0", s"fragmentIdx < " ~ Knowledge.domain_numFragsPerBlock, s"++fragmentIdx",
+        bufferSizes.map(buf => new AssignmentStatement(buf._1, s"new double[${buf._2}]") : Statement).to[ListBuffer]) with OMP_PotentiallyParallel
       func
   })
 }

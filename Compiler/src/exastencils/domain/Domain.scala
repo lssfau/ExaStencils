@@ -162,16 +162,9 @@ case class ConnectFragments() extends Statement with Expandable {
   }
 }
 
-case class SetupBuffers() extends Statement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = SetupBuffers\n"
-
-  override def expand : LoopOverFragments = {
-    new LoopOverFragments(-1, "curFragment.setupBuffers()") with OMP_PotentiallyParallel
-  }
-}
-
 case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = InitGeneratedDomain\n"
+  override def cpp_decl = cpp
 
   override def expand : FunctionStatement = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
@@ -204,17 +197,18 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
             ~ (if (Knowledge.dimensionality > 1) ((("rankPos.y" : Expression) * Knowledge.domain_numFragsPerBlock_y + 0.5 + dimToString(1)) * fragWidth_y) + globalDomain.size.lower_y else 0) ~ ","
             ~ (if (Knowledge.dimensionality > 2) ((("rankPos.z" : Expression) * Knowledge.domain_numFragsPerBlock_z + 0.5 + dimToString(2)) * fragWidth_z) + globalDomain.size.lower_z else 0) ~ ")")),
         LoopOverFragments(-1, ListBuffer(
-          s"fragments[f] = new Fragment3DCube()",
-          s"fragments[f]->id = " ~ PointToFragmentId("positions[f]"),
-          s"fragments[f]->commId = " ~ PointToLocalFragmentId("positions[f]"),
-          s"fragments[f]->pos = positions[f]",
-          s"fragments[f]->posBegin = " ~ ("positions[f]" - vecDelta),
-          s"fragments[f]->posEnd = " ~ (("positions[f]" : Expression) + vecDelta), // stupid string concat ...
-          s"fragmentMap[fragments[f]->id] = fragments[f]"),
+          s"fragments[fragmentIdx] = new Fragment3DCube()",
+          s"fragments[fragmentIdx]->id = " ~ PointToFragmentId("positions[fragmentIdx]"),
+          s"fragments[fragmentIdx]->commId = " ~ PointToLocalFragmentId("positions[fragmentIdx]"),
+          s"fragments[fragmentIdx]->pos = positions[fragmentIdx]",
+          s"fragments[fragmentIdx]->posBegin = " ~ ("positions[fragmentIdx]" - vecDelta),
+          s"fragments[fragmentIdx]->posEnd = " ~ (("positions[fragmentIdx]" : Expression) + vecDelta), // stupid string concat ...
+          s"fragmentMap[fragments[fragmentIdx]->id] = fragments[fragmentIdx]"),
           None,
           false),
         ConnectFragments(),
-        new SetupBuffers))
+        "setupBuffers()" // FIXME: move to app
+        ))
   }
 }
 

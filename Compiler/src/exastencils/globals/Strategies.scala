@@ -13,13 +13,14 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
     case globals : Globals =>
       if (Knowledge.useMPI) {
         globals.variables += new VariableDeclarationStatement("MPI_Comm", "mpiCommunicator")
-        globals.initFunction.body += "mpiCommunicator = " + Knowledge.mpi_defaultCommunicator
-
         globals.variables += new VariableDeclarationStatement(new IntegerDatatype, "mpiRank")
-        globals.initFunction.body += "MPI_Comm_rank(mpiCommunicator, &mpiRank)"
         globals.variables += new VariableDeclarationStatement(new IntegerDatatype, "mpiSize")
-        globals.initFunction.body += "MPI_Comm_size(mpiCommunicator, &mpiSize)"
       }
       globals
+    case func : FunctionStatement if (("initGlobals" : Expression) == func.name) =>
+      func.body += "mpiCommunicator = " + Knowledge.mpi_defaultCommunicator
+      func.body += "MPI_Comm_rank(mpiCommunicator, &mpiRank)"
+      func.body += "MPI_Comm_size(mpiCommunicator, &mpiSize)"
+      func
   })
 }
