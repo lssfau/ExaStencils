@@ -167,13 +167,3 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     //})
   })
 }
-
-object AddMemberFunctionPrefix extends DefaultStrategy("Adding member function prefixes") {
-  this += new Transformation("Adding function scope prefixes to class member functions", {
-    case c : Class =>
-      for (func <- c.functions) {
-        func match { case f : FunctionStatement => f.name = c.className ~ "::" ~ f.name }
-      }
-      c
-  })
-}

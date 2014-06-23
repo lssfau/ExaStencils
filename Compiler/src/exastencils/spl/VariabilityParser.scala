@@ -138,7 +138,6 @@ object VariabilityParser {
       new DomainGenerated,
 
       // Primitives
-      new FragmentClass,
       new CommunicationFunctions,
 
       // Util
@@ -155,7 +154,7 @@ object VariabilityParser {
 
     ResolveSpecialFunctions.apply()
 
-    SetupFragmentClass.apply()
+    SetupFragment.apply()
 
     do { ExpandStrategy.apply() }
     while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
@@ -179,7 +178,7 @@ object VariabilityParser {
     do { SimplifyStrategy.apply() }
     while (SimplifyStrategy.results.last._2.matches > 0) // FIXME: cleaner code
 
-    AddMemberFunctionPrefix.apply()
+    AddInternalVariables.apply()
 
     if (Knowledge.useOMP) {
       AddOMPPragmas.apply()

@@ -18,14 +18,12 @@ import exastencils.parsers.l4.ParserL4
 import exastencils.parsers.l4.ValidationL4
 import exastencils.polyhedron.PolyOpt
 import exastencils.prettyprinting.PrettyprintingManager
-import exastencils.primitives.AddFragmentMember
 import exastencils.primitives.CommunicationFunctions
-import exastencils.primitives.FragmentClass
 import exastencils.primitives.LinearizeFieldAccesses
 import exastencils.primitives.ResolveIndexOffsets
 import exastencils.primitives.ResolveLoopOverDimensions
-import exastencils.primitives.SetupFragmentClass
-import exastencils.strategies.AddMemberFunctionPrefix
+import exastencils.primitives.SetupFragment
+import exastencils.primitives.AddInternalVariables
 import exastencils.strategies.ExpandStrategy
 import exastencils.strategies.PrintStrategy
 import exastencils.strategies.SimplifyStrategy
@@ -74,7 +72,6 @@ object MainStefan {
       new DomainGenerated,
 
       // Primitives
-      new FragmentClass,
       new CommunicationFunctions,
 
       // Util
@@ -90,7 +87,7 @@ object MainStefan {
 
     ResolveSpecialFunctions.apply()
 
-    SetupFragmentClass.apply()
+    SetupFragment.apply()
 
     ExpandStrategy.doUntilDone()
 
@@ -150,8 +147,7 @@ object MainStefan {
 
     SimplifyStrategy.doUntilDone()
 
-    AddFragmentMember.apply()
-    AddMemberFunctionPrefix.apply()
+    AddInternalVariables.apply()
 
     if (Knowledge.useOMP)
       AddOMPPragmas.apply()

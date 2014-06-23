@@ -1,19 +1,16 @@
-package exastencils.primitives
+package exastencils.knowledge
 
-import java.io.PrintWriter
-import java.io.File
 import scala.collection.mutable.ListBuffer
-import exastencils.core._
-import exastencils.core.collectors._
-import exastencils.knowledge._
-import exastencils.datastructures._
-import exastencils.datastructures.ir._
-import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.primitives._
-import exastencils.prettyprinting._
 
-case class FragmentClass(var neighbors : ListBuffer[NeighborInfo] = ListBuffer()) extends Node {
+import exastencils.datastructures._
+import exastencils.primitives._
+
+object Fragment {
+  var neighbors : ListBuffer[NeighborInfo] = ListBuffer()
+
   def setupNeighbors() : Unit = {
+    neighbors.clear
+
     Knowledge.comm_strategyFragment match {
       case 6 => {
         neighbors += new NeighborInfo(Array(-1, 0, 0), 0)

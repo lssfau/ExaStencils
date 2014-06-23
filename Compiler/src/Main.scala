@@ -63,7 +63,6 @@ object Main {
       new DomainGenerated,
 
       // Primitives
-      new FragmentClass,
       new CommunicationFunctions,
 
       // Util
@@ -79,7 +78,7 @@ object Main {
 
     ResolveSpecialFunctions.apply()
 
-    SetupFragmentClass.apply()
+    SetupFragment.apply()
 
     ExpandStrategy.doUntilDone()
 
@@ -99,8 +98,8 @@ object Main {
 
     SimplifyStrategy.doUntilDone()
 
-    AddFragmentMember.apply()
-    AddMemberFunctionPrefix.apply()
+    AddInternalVariables.apply()
+    
     if (Knowledge.useMPI)
       AddMPIDatatypes.apply()
 

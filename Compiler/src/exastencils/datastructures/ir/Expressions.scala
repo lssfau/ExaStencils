@@ -527,7 +527,7 @@ case class GreaterEqualExpression(var left : Expression, var right : Expression)
   }
 }
 
-case class FunctionCallExpression(var name : Expression, var arguments : ListBuffer[Expression /* FIXME: more specialization*/ ]) extends Expression {
+case class FunctionCallExpression(var name : Expression, var arguments : ListBuffer[Expression]) extends Expression {
   def this(name : Expression, argument : Expression) = this(name, ListBuffer(argument))
 
   override def cpp : String = {
@@ -535,7 +535,7 @@ case class FunctionCallExpression(var name : Expression, var arguments : ListBuf
   }
 }
 
-case class MemberFunctionCallExpression(var objectName : Expression, var name : Expression, var arguments : ListBuffer[Expression /* FIXME: more specialization*/ ]) extends Expression {
+case class MemberFunctionCallExpression(var objectName : Expression, var name : Expression, var arguments : ListBuffer[Expression]) extends Expression {
   override def cpp : String = {
     return (s"${objectName.cpp}.${name.cpp}(" + arguments.map(arg => arg.cpp).mkString(", ") + ")")
   }

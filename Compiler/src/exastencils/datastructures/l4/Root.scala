@@ -36,6 +36,12 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
       d.index = i
       i += 1
     }
+    // set field indices -> just number consecutively
+    i = 0
+    for (f <- fields) {
+      f.index = i
+      i += 1
+    }
   }
 
   def getDomainByIdentifier(identifier : String) : Option[DomainDeclarationStatement] = {

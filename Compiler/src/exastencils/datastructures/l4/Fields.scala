@@ -87,7 +87,8 @@ case class FieldDeclarationStatement(var name : String,
     var layout : String,
     var boundary : Option[Expression],
     var level : Option[LevelSpecification],
-    var slots : Integer) extends SpecialStatement {
+    var slots : Integer,
+    var index : Int = 0) extends SpecialStatement {
 
   override def progressToIr : knowledge.Field = {
     val l4_layout = StateManager.root_.asInstanceOf[Root].getLayoutByIdentifier(layout).get
@@ -100,6 +101,7 @@ case class FieldDeclarationStatement(var name : String,
 
     new knowledge.Field(
       name,
+      index,
       DomainCollection.getDomainByIdentifier(domain).get,
       name.toLowerCase + "Data_" + level.get.asInstanceOf[SingleLevelSpecification].level,
       datatype.progressToIr,

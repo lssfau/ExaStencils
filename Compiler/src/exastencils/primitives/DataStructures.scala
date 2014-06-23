@@ -27,8 +27,8 @@ case class LoopOverDomain(var iterationSet : IterationSet, var field : Field, va
     var stop : ListBuffer[Expression] = ListBuffer()
     for (i <- 0 until Knowledge.dimensionality) {
       // Stefan: exchange the following 2 lines for const loop boundaries
-      start += OffsetIndex(0, 1, field.layout(i).idxGhostLeftBegin - field.referenceOffset(i) + iterationSet.begin(i),  ArrayAccess(iv.IterationOffsetBegin(field.domain.index ),i))
-      stop += OffsetIndex(-1, 0, field.layout(i).idxGhostRightEnd - field.referenceOffset(i) - iterationSet.end(i),ArrayAccess(iv.IterationOffsetEnd(field.domain.index ),i))
+      start += OffsetIndex(0, 1, field.layout(i).idxGhostLeftBegin - field.referenceOffset(i) + iterationSet.begin(i), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), i))
+      stop += OffsetIndex(-1, 0, field.layout(i).idxGhostRightEnd - field.referenceOffset(i) - iterationSet.end(i), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), i))
       //      start += field.layout(i).idxGhostLeftBegin - field.referenceOffset(i) + iterationSet.begin(i)
       //      stop += field.layout(i).idxGhostRightEnd - field.referenceOffset(i) - iterationSet.end(i)
     }
@@ -168,8 +168,7 @@ case class LoopOverDimensions(var numDimensions : Int,
   }
 }
 
-case class LoopOverFragments(var domain : Int, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None, var createFragRef : Boolean = true) extends Statement with Expandable {
-  def this(domain : Int, body : Statement, reduction : Option[Reduction], createFragRef : Boolean) = this(domain, ListBuffer(body), reduction, createFragRef)
+case class LoopOverFragments(var domain : Int, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement with Expandable {
   def this(domain : Int, body : Statement, reduction : Option[Reduction]) = this(domain, ListBuffer(body), reduction)
   def this(domain : Int, body : Statement) = this(domain, ListBuffer(body))
 
@@ -180,9 +179,7 @@ case class LoopOverFragments(var domain : Int, var body : ListBuffer[Statement],
     var statements = new ListBuffer[Statement]
 
     var modifiedBody : ListBuffer[Statement] = new ListBuffer
-//    if (createFragRef)
-//      modifiedBody += "Fragment3DCube& curFragment = *fragments[fragmentIdx]"
-    if (domain >= 0 && createFragRef)
+    if (domain >= 0)
       modifiedBody += new ConditionStatement(iv.IsValidForSubdomain(domain), body)
     else
       modifiedBody ++= body
@@ -195,7 +192,7 @@ case class LoopOverFragments(var domain : Int, var body : ListBuffer[Statement],
         modifiedBody, reduction)
 
     if (Knowledge.useMPI && reduction.isDefined) {
-      statements += new MPI_Allreduce("&" ~ reduction.get.target, 1, reduction.get.op)
+      statements += new MPI_Allreduce("&" ~ reduction.get.target, new RealDatatype, 1, reduction.get.op) // FIXME: get dt and cnt from reduction
     }
 
     StatementBlock(statements)

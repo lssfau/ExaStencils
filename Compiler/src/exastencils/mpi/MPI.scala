@@ -47,19 +47,18 @@ case class MPI_Send(var buffer : Expression, var size : Expression, var datatype
   }
 }
 
-case class MPI_Allreduce(var sendbuf : Expression, var recvbuf : Expression, var count : Expression, var op : Expression) extends Statement {
-  def this(endbuf : Expression, recvbuf : Expression, count : Expression, op : BinaryOperators.Value) =
-    this(endbuf, recvbuf, count, (op match {
+case class MPI_Allreduce(var sendbuf : Expression, var recvbuf : Expression, var datatype : Datatype, var count : Expression, var op : Expression) extends Statement {
+  def this(sendbuf : Expression, recvbuf : Expression, datatype : Datatype, count : Expression, op : BinaryOperators.Value) =
+    this(sendbuf, recvbuf, datatype, count, (op match {
       case BinaryOperators.Addition       => "MPI_SUM"
       case BinaryOperators.Multiplication => "MPI_PROD"
       case _                              => "FIXME"
     }) : Expression)
-  def this(buf : Expression, count : Expression, op : Expression) = this("MPI_IN_PLACE", buf, count, op)
-  def this(buf : Expression, count : Expression, op : BinaryOperators.Value) = this("MPI_IN_PLACE", buf, count, op)
+  def this(buf : Expression, datatype : Datatype, count : Expression, op : Expression) = this("MPI_IN_PLACE", buf, datatype, count, op)
+  def this(buf : Expression, datatype : Datatype, count : Expression, op : BinaryOperators.Value) = this("MPI_IN_PLACE", buf, datatype, count, op)
 
   def cpp : String = {
-    // FIXME: set data-type by typed parameter
-    (s"MPI_Allreduce(${sendbuf.cpp}, ${recvbuf.cpp}, ${count.cpp}, MPI_DOUBLE, ${op.cpp}, mpiCommunicator);")
+    (s"MPI_Allreduce(${sendbuf.cpp}, ${recvbuf.cpp}, ${count.cpp}, ${datatype.cpp_mpi}, ${op.cpp}, mpiCommunicator);")
   }
 }
 
@@ -77,7 +76,7 @@ case class MPI_DataType(var field : FieldSelection, var indices : IndexRange) ex
   var blocklen : Int = 0
   var stride : Int = 0
 
-  // this assumes that the conditions implied by 'shouldBeUsed' are fullfilled 
+  // this assumes that the conditions implied by 'shouldBeUsed' are fulfilled 
   if (1 == SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2))) {
     count = SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1)).toInt
     blocklen = SimplifyExpression.evalIntegral(indices.end(0) - indices.begin(0)).toInt

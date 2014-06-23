@@ -127,7 +127,7 @@ case class ConnectFragments() extends Statement with Expandable {
   override def expand : LoopOverFragments = {
     var body = new ListBuffer[Statement]
 
-    val neighbors = StateManager.findFirst[FragmentClass]().get.neighbors
+    val neighbors = Fragment.neighbors
     val domains = DomainCollection.domains
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
 
@@ -203,9 +203,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
           AssignmentStatement(iv.CommId(), PointToLocalFragmentId("positions[fragmentIdx]")),
           AssignmentStatement(iv.PrimitivePosition(), s"positions[fragmentIdx]"),
           AssignmentStatement(iv.PrimitivePositionBegin(), s"positions[fragmentIdx]" - vecDelta),
-          AssignmentStatement(iv.PrimitivePositionEnd(), (s"positions[fragmentIdx]" : Expression) + vecDelta)), // stupid string concat ...
-          None,
-          false),
+          AssignmentStatement(iv.PrimitivePositionEnd(), (s"positions[fragmentIdx]" : Expression) + vecDelta))), // stupid string concat ...
         ConnectFragments(),
         "setupBuffers()" // FIXME: move to app
         ))

@@ -27,75 +27,81 @@ case class WaitForMPIRequestFunc() extends AbstractFunctionStatement with Expand
   }
 }
 
-case class WaitForMPISendOps(var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = WaitForMPISendOps\n"
-  override def cpp_decl : String = cpp
-
-  override def expand : FunctionStatement = {
-    if (Knowledge.mpi_useLoopsWherePossible) {
-      var minIdx = neighbors.reduce((neigh, res) => if (neigh.index < res.index) neigh else res).index
-      var maxIdx = neighbors.reduce((neigh, res) => if (neigh.index > res.index) neigh else res).index
-
-      new FunctionStatement(new UnitDatatype(), s"waitForMPISendOps", ListBuffer[VariableAccess](),
-        new LoopOverFragments(-1,
-          new ForLoopStatement(s"int i = $minIdx", s"i <= $maxIdx", "++i",
-            new ConditionStatement(s"curFragment.reqOutstanding_Send[i]",
-              ListBuffer[Statement](
-                s"waitForMPIReq(&curFragment.request_Send[i])",
-                s"curFragment.reqOutstanding_Send[i] = false")))))
-    } else {
-      new FunctionStatement(new UnitDatatype(), s"waitForMPISendOps", ListBuffer[VariableAccess](),
-        new LoopOverFragments(-1,
-          neighbors.map(neigh =>
-            new ConditionStatement(s"curFragment.reqOutstanding_Send[${neigh.index}]",
-              ListBuffer[Statement](
-                s"waitForMPIReq(&curFragment.request_Send[${neigh.index}])",
-                s"curFragment.reqOutstanding_Send[${neigh.index}] = false")) : Statement)))
-    }
-  }
-}
-
-case class WaitForMPIRecvOps(var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = WaitForMPIRecvOps\n"
-  override def cpp_decl : String = cpp
-
-  override def expand : FunctionStatement = {
-    if (Knowledge.mpi_useLoopsWherePossible) {
-      var minIdx = neighbors.reduce((neigh, res) => if (neigh.index < res.index) neigh else res).index
-      var maxIdx = neighbors.reduce((neigh, res) => if (neigh.index > res.index) neigh else res).index
-
-      new FunctionStatement(new UnitDatatype(), s"waitForMPIRecvOps", ListBuffer[VariableAccess](),
-        new LoopOverFragments(-1,
-          new ForLoopStatement(s"int i = $minIdx", s"i <= $maxIdx", "++i",
-            new ConditionStatement(s"curFragment.reqOutstanding_Recv[i]",
-              ListBuffer[Statement](
-                s"waitForMPIReq(&curFragment.request_Recv[i])",
-                s"curFragment.reqOutstanding_Recv[i] = false")))))
-    } else {
-      new FunctionStatement(new UnitDatatype(), s"waitForMPIRecvOps", ListBuffer[VariableAccess](),
-        new LoopOverFragments(-1,
-          neighbors.map(neigh =>
-            new ConditionStatement(s"curFragment.reqOutstanding_Recv[${neigh.index}]",
-              ListBuffer[Statement](
-                s"waitForMPIReq(&curFragment.request_Recv[${neigh.index}])",
-                s"curFragment.reqOutstanding_Recv[${neigh.index}] = false")) : Statement)))
-    }
-  }
-}
+//case class WaitForMPISendOps(var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
+//  override def cpp : String = "NOT VALID ; CLASS = WaitForMPISendOps\n"
+//  override def cpp_decl : String = cpp
+//
+//  override def expand : FunctionStatement = {
+//    if (Knowledge.mpi_useLoopsWherePossible) {
+//      var minIdx = neighbors.reduce((neigh, res) => if (neigh.index < res.index) neigh else res).index
+//      var maxIdx = neighbors.reduce((neigh, res) => if (neigh.index > res.index) neigh else res).index
+//
+//      new FunctionStatement(new UnitDatatype(), s"waitForMPISendOps", ListBuffer[VariableAccess](),
+//        new LoopOverFragments(-1,
+//          new ForLoopStatement(s"int i = $minIdx", s"i <= $maxIdx", "++i",
+//            new ConditionStatement(s"curFragment.reqOutstanding_Send[i]",
+//              ListBuffer[Statement](
+//                s"waitForMPIReq(&curFragment.request_Send[i])",
+//                s"curFragment.reqOutstanding_Send[i] = false")))))
+//    } else {
+//      new FunctionStatement(new UnitDatatype(), s"waitForMPISendOps", ListBuffer[VariableAccess](),
+//        new LoopOverFragments(-1,
+//          neighbors.map(neigh =>
+//            new ConditionStatement(s"curFragment.reqOutstanding_Send[${neigh.index}]",
+//              ListBuffer[Statement](
+//                s"waitForMPIReq(&curFragment.request_Send[${neigh.index}])",
+//                s"curFragment.reqOutstanding_Send[${neigh.index}] = false")) : Statement)))
+//    }
+//  }
+//}
+//
+//case class WaitForMPIRecvOps(var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
+//  override def cpp : String = "NOT VALID ; CLASS = WaitForMPIRecvOps\n"
+//  override def cpp_decl : String = cpp
+//
+//  override def expand : FunctionStatement = {
+//    if (Knowledge.mpi_useLoopsWherePossible) {
+//      var minIdx = neighbors.reduce((neigh, res) => if (neigh.index < res.index) neigh else res).index
+//      var maxIdx = neighbors.reduce((neigh, res) => if (neigh.index > res.index) neigh else res).index
+//
+//      new FunctionStatement(new UnitDatatype(), s"waitForMPIRecvOps", ListBuffer[VariableAccess](),
+//        new LoopOverFragments(-1,
+//          new ForLoopStatement(s"int i = $minIdx", s"i <= $maxIdx", "++i",
+//            new ConditionStatement(s"curFragment.reqOutstanding_Recv[i]",
+//              ListBuffer[Statement](
+//                s"waitForMPIReq(&curFragment.request_Recv[i])",
+//                s"curFragment.reqOutstanding_Recv[i] = false")))))
+//    } else {
+//      new FunctionStatement(new UnitDatatype(), s"waitForMPIRecvOps", ListBuffer[VariableAccess](),
+//        new LoopOverFragments(-1,
+//          neighbors.map(neigh =>
+//            new ConditionStatement(s"curFragment.reqOutstanding_Recv[${neigh.index}]",
+//              ListBuffer[Statement](
+//                s"waitForMPIReq(&curFragment.request_Recv[${neigh.index}])",
+//                s"curFragment.reqOutstanding_Recv[${neigh.index}] = false")) : Statement)))
+//    }
+//  }
+//}
 
 case class SetIterationOffset(var location : Expression, var domain : Expression, var fragment : Expression) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = SetIterationOffset\n"
 
   override def expand : SwitchStatement = {
-    // FIXME: auto-generate this case using the actual neighbors
-    // FIXME: THIS ONLY WORKS FOR COMM_STRAT 6
-    SwitchStatement(location, ListBuffer(
-      new CaseStatement(0, AssignmentStatement(ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 0), 0)),
-      new CaseStatement(1, AssignmentStatement(ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 0), 0)),
-      new CaseStatement(2, AssignmentStatement(ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 1), 0)),
-      new CaseStatement(3, AssignmentStatement(ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 1), 0)),
-      new CaseStatement(4, AssignmentStatement(ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 2), 0)),
-      new CaseStatement(5, AssignmentStatement(ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 2), 0))))
+    var cases : ListBuffer[CaseStatement] = ListBuffer()
+
+    for (neigh <- Fragment.neighbors) {
+      // neighbor directions are always 3D vectors; invalid directions are not part of the given collection
+      neigh.dir match {
+        case Array(-1, 0, 0) => cases += new CaseStatement(neigh.index, AssignmentStatement(ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 0), 0))
+        case Array(1, 0, 0)  => cases += new CaseStatement(neigh.index, AssignmentStatement(ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 0), 0))
+        case Array(0, -1, 0) => cases += new CaseStatement(neigh.index, AssignmentStatement(ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 1), 0))
+        case Array(0, 1, 0)  => cases += new CaseStatement(neigh.index, AssignmentStatement(ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 1), 0))
+        case Array(0, 0, -1) => cases += new CaseStatement(neigh.index, AssignmentStatement(ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 2), 0))
+        case Array(0, 0, 1)  => cases += new CaseStatement(neigh.index, AssignmentStatement(ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 2), 0))
+      }
+    }
+
+    SwitchStatement(location, cases)
   }
 }
 
@@ -149,7 +155,6 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
     for (field <- fields) {
       var numDataPoints = field.layout(0).total * field.layout(1).total * field.layout(2).total * field.dataType.resolveFlattendSize
       body += new LoopOverFragments(field.domain.index,
-        //new ConditionStatement(FragMember_IsValidForSubdomain(field.domain.index),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           new AssignmentStatement(new iv.FieldData(field, slot),
             ("new" : Expression) ~~ field.dataType.resolveUnderlyingDatatype. /*FIXME*/ cpp ~ "[" ~ numDataPoints ~ "]") : Statement)) with OMP_PotentiallyParallel

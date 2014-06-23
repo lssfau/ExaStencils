@@ -12,14 +12,14 @@ import exastencils.datastructures.Transformation._
 import exastencils.primitives._
 import exastencils.strategies._
 import exastencils.omp._
-import exastencils.multiGrid.MultiGrid
+import exastencils.multiGrid._
 
-object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
-  this += new Transformation("Setting up FragmentClass", {
-    case frag : FragmentClass =>
-      frag.setupNeighbors
-      frag
-  })
+object SetupFragment extends DefaultStrategy("Setting up fragment") {
+  override def apply(node : Option[Node] = None) = {
+    Fragment.setupNeighbors
+    StateManager.findFirst[Globals]().get.functions += new SetupBuffers(FieldCollection.fields, Fragment.neighbors)
+    super.apply(node)
+  }
 
   this += new Transformation("Adding relevant functions to CommunicationFunctions", {
     case commFu : CommunicationFunctions =>
@@ -29,28 +29,14 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
         commFu.functions += new ConnectLocalElement()
       if (Knowledge.domain_canHaveRemoteNeighs)
         commFu.functions += new ConnectRemoteElement()
-      commFu
-  })
-
-  this += new Transformation("Adding relevant functions to Globals", {
-    case frag : FragmentClass =>
-      StateManager.findFirst[Globals]().get.functions += new SetupBuffers(FieldCollection.fields, frag.neighbors)
-      frag
-  })
-
-  this += new Transformation("Adding communication functions to FragmentClass", {
-    case frag : FragmentClass =>
-      //      if (Knowledge.useMPI) {
-      //        communicationFunctions.get.functions += new WaitForMPISendOps(frag.neighbors)
-      //        communicationFunctions.get.functions += new WaitForMPIRecvOps(frag.neighbors)
-      //      }
       for (field <- FieldCollection.fields) {
         Knowledge.comm_strategyFragment match {
-          case 6  => StateManager.findFirst[CommunicationFunctions]().get.functions += new ExchangeData_6(FieldSelection(field, "slot", -1), frag.neighbors)
-          case 26 => StateManager.findFirst[CommunicationFunctions]().get.functions += new ExchangeData_26(FieldSelection(field, "slot", -1), frag.neighbors)
+          case 6  => commFu.functions += new ExchangeData_6(FieldSelection(field, "slot", -1), Fragment.neighbors)
+          case 26 => commFu.functions += new ExchangeData_26(FieldSelection(field, "slot", -1), Fragment.neighbors)
         }
       }
-      frag
+
+      commFu
   })
 
   this += new Transformation("Adding external field transfer functions", {
@@ -63,7 +49,7 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
   })
 }
 
-object AddFragmentMember extends DefaultStrategy("Adding members for fragment communication") {
+object AddInternalVariables extends DefaultStrategy("Adding internal variables") {
   var declarationMap : Map[String, VariableDeclarationStatement] = Map()
   var ctorMap : Map[String, Statement] = Map()
   var dtorMap : Map[String, Statement] = Map()
@@ -96,7 +82,7 @@ object AddFragmentMember extends DefaultStrategy("Adding members for fragment co
   this += new Transformation("Collecting buffer sizes", {
     case buf : iv.TmpBuffer =>
       val size = SimplifyExpression.evalIntegral(buf.size).toInt
-      val id = buf.resolveAccess(buf.resolveName, "fragmentIdx", new NullExpression, buf.field.identifier /*FIXME: id*/ , buf.field.level, buf.neighIdx)
+      val id = buf.resolveAccess(buf.resolveName, "fragmentIdx", new NullExpression, buf.field.index, buf.field.level, buf.neighIdx)
       bufferSizes += (id -> (size max bufferSizes.getOrElse(id, 0)))
       buf
   })
