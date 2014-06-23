@@ -13,7 +13,7 @@ import exastencils.prettyprinting._
 import exastencils.omp._
 import exastencils.mpi._
 import exastencils.polyhedron._
-import exastencils.strategies.SimplifyStrategy
+import exastencils.strategies._
 
 // TODO: Move accepted nodes to appropriate packages
 
@@ -27,8 +27,8 @@ case class LoopOverDomain(var iterationSet : IterationSet, var field : Field, va
     var stop : ListBuffer[Expression] = ListBuffer()
     for (i <- 0 until Knowledge.dimensionality) {
       // Stefan: exchange the following 2 lines for const loop boundaries
-      start += OffsetIndex(0, 1, field.layout(i).idxGhostLeftBegin - field.referenceOffset(i) + iterationSet.begin(i), s"curFragment.iterationOffsetBegin[${field.domain.index}][$i]")
-      stop += OffsetIndex(-1, 0, field.layout(i).idxGhostRightEnd - field.referenceOffset(i) - iterationSet.end(i), s"curFragment.iterationOffsetEnd[${field.domain.index}][$i]")
+      start += OffsetIndex(0, 1, field.layout(i).idxGhostLeftBegin - field.referenceOffset(i) + iterationSet.begin(i),  ArrayAccess(iv.IterationOffsetBegin(field.domain.index ),i))
+      stop += OffsetIndex(-1, 0, field.layout(i).idxGhostRightEnd - field.referenceOffset(i) - iterationSet.end(i),ArrayAccess(iv.IterationOffsetEnd(field.domain.index ),i))
       //      start += field.layout(i).idxGhostLeftBegin - field.referenceOffset(i) + iterationSet.begin(i)
       //      stop += field.layout(i).idxGhostRightEnd - field.referenceOffset(i) - iterationSet.end(i)
     }
@@ -180,8 +180,8 @@ case class LoopOverFragments(var domain : Int, var body : ListBuffer[Statement],
     var statements = new ListBuffer[Statement]
 
     var modifiedBody : ListBuffer[Statement] = new ListBuffer
-    if (createFragRef)
-      modifiedBody += "Fragment3DCube& curFragment = *fragments[fragmentIdx]"
+//    if (createFragRef)
+//      modifiedBody += "Fragment3DCube& curFragment = *fragments[fragmentIdx]"
     if (domain >= 0 && createFragRef)
       modifiedBody += new ConditionStatement(iv.IsValidForSubdomain(domain), body)
     else
@@ -214,8 +214,7 @@ case class CommunicationFunctions(var functions : ListBuffer[AbstractFunctionSta
         + (if (Knowledge.useMPI) "#include <mpi.h>\n" else "")
         + "#include \"Globals/Globals.h\"\n"
         + "#include \"Util/Log.h\"\n"
-        + "#include \"Util/Vector.h\"\n"
-        + "#include \"Primitives/Fragment3DCube.h\"\n")
+        + "#include \"Util/Vector.h\"\n")
 
       for (func <- functions) {
         val function = func.asInstanceOf[FunctionStatement]

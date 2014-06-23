@@ -148,15 +148,7 @@ case class NeighborIsRemote(var domain : Expression, var neighIdx : Expression, 
   override def resolveDefValue = Some(false)
 }
 
-case class NeighborLocalPtr(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, true, false, false, true) {
-  override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
-
-  override def resolveName = s"neighbor_localPtr" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
-  override def resolveDataType = new PointerDatatype("Fragment3DCube")
-  override def resolveDefValue = Some(0)
-}
-
-case class NeighborFragCommId(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, true, false, false, true) {
+case class NeighborFragLocalId(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, true, false, false, true) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
 
   override def resolveName = s"neighbor_fragCommId" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
@@ -205,4 +197,60 @@ case class FieldData(var field : Field, var slot : Expression, var fragmentIdx :
     val access = (if (this.field.numSlots > 1) new ArrayAccess(baseAccess, slot) else baseAccess)
     super.resolveAccess(access, fragment, domain, field, level, neigh)
   }
+}
+
+case class PrimitiveId(var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, false, false, false, false) {
+  override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, new NullExpression, new NullExpression, new NullExpression).cpp
+
+  override def resolveName = s"primitiveId" + resolvePostfix(fragmentIdx.cpp, "", "", "", "")
+  override def resolveDataType = "size_t"
+  override def resolveDefValue = Some(-1)
+}
+
+case class CommId(var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, false, false, false, false) {
+  override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, new NullExpression, new NullExpression, new NullExpression).cpp
+
+  override def resolveName = s"commId" + resolvePostfix(fragmentIdx.cpp, "", "", "", "")
+  override def resolveDataType = new IntegerDatatype
+  override def resolveDefValue = Some(-1)
+}
+
+case class PrimitivePosition(var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, false, false, false, false) {
+  override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, new NullExpression, new NullExpression, new NullExpression).cpp
+
+  override def resolveName = s"pos" + resolvePostfix(fragmentIdx.cpp, "", "", "", "")
+  override def resolveDataType = "Vec3"
+  override def resolveDefValue = Some("Vec3(0, 0, 0)")
+}
+
+case class PrimitivePositionBegin(var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, false, false, false, false) {
+  override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, new NullExpression, new NullExpression, new NullExpression).cpp
+
+  override def resolveName = s"posBegin" + resolvePostfix(fragmentIdx.cpp, "", "", "", "")
+  override def resolveDataType = "Vec3"
+  override def resolveDefValue = Some("Vec3(0, 0, 0)")
+}
+
+case class PrimitivePositionEnd(var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, false, false, false, false) {
+  override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, new NullExpression, new NullExpression, new NullExpression).cpp
+
+  override def resolveName = s"posEnd" + resolvePostfix(fragmentIdx.cpp, "", "", "", "")
+  override def resolveDataType = "Vec3"
+  override def resolveDefValue = Some("Vec3(0, 0, 0)")
+}
+
+case class IterationOffsetBegin(var domain : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, true, false, false, false) {
+  override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, new NullExpression).cpp
+
+  override def resolveName = s"iterationOffsetBegin" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", "")
+  override def resolveDataType = "Vec3i"
+  override def resolveDefValue = Some("Vec3i(1, 1, 1)")
+}
+
+case class IterationOffsetEnd(var domain : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, true, false, false, false) {
+  override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, new NullExpression).cpp
+
+  override def resolveName = s"iterationOffsetEnd" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", "")
+  override def resolveDataType = "Vec3i"
+  override def resolveDefValue = Some("Vec3i(-1, -1, -1)")
 }

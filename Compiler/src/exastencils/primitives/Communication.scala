@@ -32,7 +32,7 @@ case class LocalSend(var field : FieldSelection, var neighbors : ListBuffer[(Nei
             new LoopOverDimensions(Knowledge.dimensionality + 1,
               neigh._2,
               new AssignmentStatement(
-                new DirectFieldAccess(FieldSelection(field.field, field.slot, -1, new getNeighInfo_LocalPtr(neigh._1, field.domainIndex) ~ "->commId"), new MultiIndex(
+                new DirectFieldAccess(FieldSelection(field.field, field.slot, -1, new getNeighInfo_LocalId(neigh._1, field.domainIndex)), new MultiIndex(
                   new MultiIndex(DefaultLoopMultiIndex(), neigh._3.begin, _ + _), neigh._2.begin, _ - _)),
                 new DirectFieldAccess(FieldSelection(field.field, field.slot, -1), DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel with PolyhedronAccessable))) : Statement)) with OMP_PotentiallyParallel
   }
@@ -68,7 +68,7 @@ case class RemoteSend(var field : FieldSelection, var neighbor : NeighborInfo, v
   def expand : Statement = {
     StatementBlock(ListBuffer[Statement](
       new MPI_Send(src, numDataPoints, datatype, new getNeighInfo_RemoteRank(neighbor, field.domainIndex),
-        s"((unsigned int)curFragment.commId << 16) + ((unsigned int)(" ~ getNeighInfo_FragmentId(neighbor, field.domainIndex) ~ ") & 0x0000ffff)",
+        s"((unsigned int)" ~ iv.CommId() ~ " << 16) + ((unsigned int)(" ~ getNeighInfo_LocalId(neighbor, field.domainIndex) ~ ") & 0x0000ffff)",
         iv.MpiRequest(field.field, "Send", neighbor.index)) with OMP_PotentiallyCritical,
       AssignmentStatement(iv.ReqOutstanding(field.field, "Send", neighbor.index), true)))
   }
@@ -80,7 +80,7 @@ case class RemoteRecv(var field : FieldSelection, var neighbor : NeighborInfo, v
   def expand : Statement = {
     StatementBlock(ListBuffer[Statement](
       new MPI_Receive(dest, numDataPoints, datatype, new getNeighInfo_RemoteRank(neighbor, field.domainIndex),
-        "((unsigned int)(" ~ getNeighInfo_FragmentId(neighbor, field.domainIndex) ~ ") << 16) + ((unsigned int)curFragment.commId & 0x0000ffff)",
+        "((unsigned int)(" ~ getNeighInfo_LocalId(neighbor, field.domainIndex) ~ ") << 16) + ((unsigned int)" ~ iv.CommId() ~ " & 0x0000ffff)",
         iv.MpiRequest(field.field, "Recv", neighbor.index)) with OMP_PotentiallyCritical,
       AssignmentStatement(iv.ReqOutstanding(field.field, "Recv", neighbor.index), true)))
   }

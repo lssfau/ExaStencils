@@ -132,7 +132,7 @@ case class ConnectFragments() extends Statement with Expandable {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
 
     for (d <- 0 until domains.size) {
-      body += AssignmentStatement(iv.IsValidForSubdomain(d), PointInsideDomain(s"curFragment.pos", domains(d)))
+      body += AssignmentStatement(iv.IsValidForSubdomain(d), PointInsideDomain(iv.PrimitivePosition(), domains(d)))
     }
 
     val fragWidth_x = globalDomain.size.width(0) / Knowledge.domain_numFragsTotal_x
@@ -142,19 +142,23 @@ case class ConnectFragments() extends Statement with Expandable {
     if (Knowledge.domain_canHaveLocalNeighs || Knowledge.domain_canHaveRemoteNeighs) {
       for (neigh <- neighbors) {
         body += new Scope(ListBuffer[Statement](
-          s"Vec3 offsetPos = curFragment.pos + Vec3(${neigh.dir(0)} * ${fragWidth_x}, ${neigh.dir(1)} * ${fragWidth_y}, ${neigh.dir(2)} * ${fragWidth_z})") ++
+          AssignmentStatement(s"Vec3 offsetPos", iv.PrimitivePosition() + s"Vec3(${neigh.dir(0)} * ${fragWidth_x}, ${neigh.dir(1)} * ${fragWidth_y}, ${neigh.dir(2)} * ${fragWidth_z})")) ++
           (0 until domains.size).toArray[Int].map(d =>
             new ConditionStatement(iv.IsValidForSubdomain(d) AndAnd PointInsideDomain(s"offsetPos", domains(d)),
-              if (Knowledge.domain_canHaveRemoteNeighs) {
-                (if (Knowledge.domain_canHaveLocalNeighs)
+              (if (Knowledge.domain_canHaveRemoteNeighs) {
+                if (Knowledge.domain_canHaveLocalNeighs)
                   new ConditionStatement(s"mpiRank ==" ~ PointToOwningRank("offsetPos", domains(d)),
-                  s"curFragment.connectLocalElement(${neigh.index}, fragmentMap[" ~ PointToFragmentId("offsetPos") ~ s"], $d)",
-                  s"curFragment.connectRemoteElement(${neigh.index}," ~ PointToLocalFragmentId("offsetPos") ~ "," ~ PointToOwningRank("offsetPos", domains(d)) ~ s", $d)")
+                    FunctionCallExpression("connectLocalElement", ListBuffer[Expression](
+                      "fragmentIdx", PointToLocalFragmentId("offsetPos"), neigh.index, d)),
+                    FunctionCallExpression("connectRemoteElement", ListBuffer[Expression](
+                      "fragmentIdx", PointToLocalFragmentId("offsetPos"), PointToOwningRank("offsetPos", domains(d)), neigh.index, d)))
                 else
-                  s"curFragment.connectRemoteElement(${neigh.index}," ~ PointToLocalFragmentId("offsetPos") ~ "," ~ PointToOwningRank("offsetPos", domains(d)) ~ s", $d)") : Statement
+                  FunctionCallExpression("connectRemoteElement", ListBuffer[Expression](
+                    "fragmentIdx", PointToLocalFragmentId("offsetPos"), PointToOwningRank("offsetPos", domains(d)), neigh.index, d))
               } else {
-                (s"curFragment.connectLocalElement(${neigh.index}, fragmentMap[" ~ PointToFragmentId("offsetPos") ~ s"], $d)") : Statement
-              })))
+                FunctionCallExpression("connectLocalElement", ListBuffer[Expression](
+                  "fragmentIdx", PointToLocalFragmentId("offsetPos"), neigh.index, d))
+              }) : Statement)))
       }
     }
 
@@ -182,8 +186,6 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
         else
           new NullStatement,
 
-        "std::map<size_t, Fragment3DCube*> fragmentMap",
-
         s"Vec3 positions[${Knowledge.domain_numFragsPerBlock}]",
         s"unsigned int posWritePos = 0",
         if (Knowledge.useMPI)
@@ -197,13 +199,11 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
             ~ (if (Knowledge.dimensionality > 1) ((("rankPos.y" : Expression) * Knowledge.domain_numFragsPerBlock_y + 0.5 + dimToString(1)) * fragWidth_y) + globalDomain.size.lower_y else 0) ~ ","
             ~ (if (Knowledge.dimensionality > 2) ((("rankPos.z" : Expression) * Knowledge.domain_numFragsPerBlock_z + 0.5 + dimToString(2)) * fragWidth_z) + globalDomain.size.lower_z else 0) ~ ")")),
         LoopOverFragments(-1, ListBuffer(
-          s"fragments[fragmentIdx] = new Fragment3DCube()",
-          s"fragments[fragmentIdx]->id = " ~ PointToFragmentId("positions[fragmentIdx]"),
-          s"fragments[fragmentIdx]->commId = " ~ PointToLocalFragmentId("positions[fragmentIdx]"),
-          s"fragments[fragmentIdx]->pos = positions[fragmentIdx]",
-          s"fragments[fragmentIdx]->posBegin = " ~ ("positions[fragmentIdx]" - vecDelta),
-          s"fragments[fragmentIdx]->posEnd = " ~ (("positions[fragmentIdx]" : Expression) + vecDelta), // stupid string concat ...
-          s"fragmentMap[fragments[fragmentIdx]->id] = fragments[fragmentIdx]"),
+          AssignmentStatement(iv.PrimitiveId(), PointToFragmentId("positions[fragmentIdx]")),
+          AssignmentStatement(iv.CommId(), PointToLocalFragmentId("positions[fragmentIdx]")),
+          AssignmentStatement(iv.PrimitivePosition(), s"positions[fragmentIdx]"),
+          AssignmentStatement(iv.PrimitivePositionBegin(), s"positions[fragmentIdx]" - vecDelta),
+          AssignmentStatement(iv.PrimitivePositionEnd(), (s"positions[fragmentIdx]" : Expression) + vecDelta)), // stupid string concat ...
           None,
           false),
         ConnectFragments(),

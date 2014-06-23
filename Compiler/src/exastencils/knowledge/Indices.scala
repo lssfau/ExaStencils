@@ -71,12 +71,15 @@ case class InitGeomCoords(var field : Field) extends Statement with Expandable {
 
   override def expand : StatementBlock = {
     new StatementBlock(ListBuffer[Statement](
-      VariableDeclarationStatement(new RealDatatype, "xPos", Some(("x" - field.referenceOffset.index_0) / FloatConstant(field.layout(0).idxDupRightEnd - field.layout(0).idxDupLeftBegin - 1) * ("curFragment.posEnd.x" - "curFragment.posBegin.x") + "curFragment.posBegin.x")),
+      VariableDeclarationStatement(new RealDatatype, "xPos", Some(("x" - field.referenceOffset.index_0) / FloatConstant(field.layout(0).idxDupRightEnd - field.layout(0).idxDupLeftBegin - 1)
+        * (ArrayAccess(iv.PrimitivePositionEnd(), 0) - ArrayAccess(iv.PrimitivePositionBegin(), 0)) + ArrayAccess(iv.PrimitivePositionBegin(), 0))),
       if (Knowledge.dimensionality > 1)
-        VariableDeclarationStatement(new RealDatatype, "yPos", Some(("y" - field.referenceOffset.index_1) / FloatConstant(field.layout(1).idxDupRightEnd - field.layout(1).idxDupLeftBegin - 1) * ("curFragment.posEnd.y" - "curFragment.posBegin.y") + "curFragment.posBegin.y"))
+        VariableDeclarationStatement(new RealDatatype, "yPos", Some(("y" - field.referenceOffset.index_1) / FloatConstant(field.layout(1).idxDupRightEnd - field.layout(1).idxDupLeftBegin - 1)
+        * (ArrayAccess(iv.PrimitivePositionEnd(), 1) - ArrayAccess(iv.PrimitivePositionBegin(), 1)) + ArrayAccess(iv.PrimitivePositionBegin(), 1)))
       else NullStatement(),
       if (Knowledge.dimensionality > 2)
-        VariableDeclarationStatement(new RealDatatype, "zPos", Some(("z" - field.referenceOffset.index_2) / FloatConstant(field.layout(2).idxDupRightEnd - field.layout(2).idxDupLeftBegin - 1) * ("curFragment.posEnd.z" - "curFragment.posBegin.z") + "curFragment.posBegin.z"))
+        VariableDeclarationStatement(new RealDatatype, "zPos", Some(("z" - field.referenceOffset.index_2) / FloatConstant(field.layout(2).idxDupRightEnd - field.layout(2).idxDupLeftBegin - 1)
+        * (ArrayAccess(iv.PrimitivePositionEnd(), 2) - ArrayAccess(iv.PrimitivePositionBegin(), 2)) + ArrayAccess(iv.PrimitivePositionBegin(), 2)))
       else NullStatement()))
   }
 }

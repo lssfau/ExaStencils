@@ -51,19 +51,11 @@ case class getNeighInfo_IsValidAndNotRemote(var neigh : NeighborInfo, var domain
   }
 }
 
-case class getNeighInfo_LocalPtr(var neigh : NeighborInfo, var domain : Int) extends Expression with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = getNeighInfo_LocalPtr\n"
-
-  override def expand : Expression = {
-    iv.NeighborLocalPtr(domain, neigh.index)
-  }
-}
-
-case class getNeighInfo_FragmentId(var neigh : NeighborInfo, var domain : Int) extends Expression with Expandable {
+case class getNeighInfo_LocalId(var neigh : NeighborInfo, var domain : Int) extends Expression with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = getNeighInfo_FragmentId\n"
 
   override def expand : Expression = {
-    iv.NeighborFragCommId(domain, neigh.index)
+    iv.NeighborFragLocalId(domain, neigh.index)
   }
 }
 

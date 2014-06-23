@@ -83,19 +83,19 @@ case class WaitForMPIRecvOps(var neighbors : ListBuffer[NeighborInfo]) extends A
   }
 }
 
-case class SetIterationOffset(var location : Expression) extends Statement with Expandable {
+case class SetIterationOffset(var location : Expression, var domain : Expression, var fragment : Expression) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = SetIterationOffset\n"
 
   override def expand : SwitchStatement = {
     // FIXME: auto-generate this case using the actual neighbors
     // FIXME: THIS ONLY WORKS FOR COMM_STRAT 6
     SwitchStatement(location, ListBuffer(
-      new CaseStatement(0, "iterationOffsetBegin[domain][0] = 0"),
-      new CaseStatement(1, "iterationOffsetEnd[domain][0] = 0"),
-      new CaseStatement(2, "iterationOffsetBegin[domain][1] = 0"),
-      new CaseStatement(3, "iterationOffsetEnd[domain][1] = 0"),
-      new CaseStatement(4, "iterationOffsetBegin[domain][2] = 0"),
-      new CaseStatement(5, "iterationOffsetEnd[domain][2] = 0")))
+      new CaseStatement(0, AssignmentStatement(ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 0), 0)),
+      new CaseStatement(1, AssignmentStatement(ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 0), 0)),
+      new CaseStatement(2, AssignmentStatement(ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 1), 0)),
+      new CaseStatement(3, AssignmentStatement(ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 1), 0)),
+      new CaseStatement(4, AssignmentStatement(ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 2), 0)),
+      new CaseStatement(5, AssignmentStatement(ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 2), 0))))
   }
 }
 
@@ -105,16 +105,16 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
 
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"connectLocalElement",
-      ListBuffer(VariableAccess("location", Some("unsigned int")), VariableAccess("fragment", Some("Fragment3DCube*")), VariableAccess("domain", Some("unsigned int"))),
+      ListBuffer(
+        VariableAccess("localFragId", Some("size_t")),
+        VariableAccess("localNeighId", Some("size_t")),
+        VariableAccess("location", Some(IntegerDatatype())),
+        VariableAccess("domain", Some(IntegerDatatype()))),
       ListBuffer[Statement](
-        "ASSERT_WARNING((fragment), \"Invalid fragment pointer detected\", return)",
-        "Fragment3DCube& curFragment = *this", // HACK
-        "int fragmentIdx = curFragment.commId", // HACK
-        AssignmentStatement(iv.NeighborIsValid("domain", "location"), true),
-        AssignmentStatement(iv.NeighborIsRemote("domain", "location"), false),
-        AssignmentStatement(iv.NeighborLocalPtr("domain", "location"), "fragment"),
-        AssignmentStatement(iv.NeighborFragCommId("domain", "location"), "fragment->commId"),
-        SetIterationOffset("location")))
+        AssignmentStatement(iv.NeighborIsValid("domain", "location", "localFragId"), true),
+        AssignmentStatement(iv.NeighborIsRemote("domain", "location", "localFragId"), false),
+        AssignmentStatement(iv.NeighborFragLocalId("domain", "location", "localFragId"), "localNeighId"),
+        SetIterationOffset("location", "domain", "localFragId")))
   }
 }
 
@@ -124,15 +124,18 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
 
   override def expand : FunctionStatement = {
     FunctionStatement(new UnitDatatype(), s"connectRemoteElement",
-      ListBuffer(VariableAccess("location", Some("unsigned int")), VariableAccess("id", Some("size_t")), VariableAccess("remoteRank", Some(IntegerDatatype())), VariableAccess("domain", Some("unsigned int"))),
+      ListBuffer(
+        VariableAccess("localFragId", Some("size_t")),
+        VariableAccess("localNeighId", Some("size_t")),
+        VariableAccess("remoteRank", Some(IntegerDatatype())),
+        VariableAccess("location", Some(IntegerDatatype())),
+        VariableAccess("domain", Some(IntegerDatatype()))),
       ListBuffer[Statement](
-        "Fragment3DCube& curFragment = *this", // HACK
-        "int fragmentIdx = curFragment.commId", // HACK
-        AssignmentStatement(iv.NeighborIsValid("domain", "location"), true),
-        AssignmentStatement(iv.NeighborIsRemote("domain", "location"), true),
-        AssignmentStatement(iv.NeighborFragCommId("domain", "location"), "id"),
-        AssignmentStatement(iv.NeighborRemoteRank("domain", "location"), "remoteRank"),
-        SetIterationOffset("location")))
+        AssignmentStatement(iv.NeighborIsValid("domain", "location", "localFragId"), true),
+        AssignmentStatement(iv.NeighborIsRemote("domain", "location", "localFragId"), true),
+        AssignmentStatement(iv.NeighborFragLocalId("domain", "location", "localFragId"), "localNeighId"),
+        AssignmentStatement(iv.NeighborRemoteRank("domain", "location", "localFragId"), "remoteRank"),
+        SetIterationOffset("location", "domain", "localFragId")))
   }
 }
 

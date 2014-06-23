@@ -21,7 +21,6 @@ case class MultiGrid(var functions : ListBuffer[AbstractFunctionStatement] = new
       + "#include \"Util/Log.h\"\n"
       + "#include \"Util/Vector.h\"\n"
       + "#include \"Util/Stopwatch.h\"\n"
-      + "#include \"Primitives/Fragment3DCube.h\"\n"
       + "#include \"Primitives/CommunicationFunctions.h\"\n")
 
     for (func <- functions) {

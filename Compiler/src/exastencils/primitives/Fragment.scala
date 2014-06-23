@@ -2,22 +2,17 @@ package exastencils.primitives
 
 import java.io.PrintWriter
 import java.io.File
-
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core._
 import exastencils.core.collectors._
 import exastencils.knowledge._
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.primitives._
 import exastencils.prettyprinting._
 
-case class FragmentClass() extends Class("Fragment3DCube") with FilePrettyPrintable {
-  override def cpp = "NOT VALID ; CLASS = FragmentClass\n"
-
-  var neighbors : ListBuffer[NeighborInfo] = ListBuffer()
-
+case class FragmentClass(var neighbors : ListBuffer[NeighborInfo] = ListBuffer()) extends Node {
   def setupNeighbors() : Unit = {
     Knowledge.comm_strategyFragment match {
       case 6 => {
@@ -44,56 +39,6 @@ case class FragmentClass() extends Class("Fragment3DCube") with FilePrettyPrinta
           i += 1
         }
       }
-    }
-  }
-
-  def setupDefaultMembers() : Unit = {
-    val numDomains = DomainCollection.domains.size
-
-    // TODO: employ variable name manager
-    declarations += s"size_t id"
-    cTorInitList += s"id(-1)"
-    declarations += s"int commId"
-    cTorInitList += s"commId(-1)"
-
-    declarations += s"Vec3 pos"
-    cTorInitList += s"pos(0.0, 0.0, 0.0)"
-    declarations += s"Vec3 posBegin"
-    cTorInitList += s"posBegin(0.0, 0.0, 0.0)"
-    declarations += s"Vec3 posEnd"
-    cTorInitList += s"posEnd(0.0, 0.0, 0.0)"
-
-    declarations += s"Vec3i iterationOffsetBegin[$numDomains]"
-    declarations += s"Vec3i iterationOffsetEnd[$numDomains]"
-
-    cTorBody += new ForLoopStatement(s"unsigned int d = 0", s"d < $numDomains", s"++d",
-      ListBuffer[Statement](
-        "iterationOffsetBegin[d] = Vec3i(1, 1, 1)",
-        "iterationOffsetEnd[d] = Vec3i(-1, -1, -1)"))
-  }
-
-  override def printToFile = {
-    {
-      val writer = PrettyprintingManager.getPrinter(s"Primitives/Fragment3DCube.h")
-
-      writer << (
-        (if (Knowledge.useMPI) "#pragma warning(disable : 4800)\n" else "")
-        + (if (Knowledge.useMPI) "#include <mpi.h>\n" else "")
-        + "#include \"Globals/Globals.h\"\n"
-        + "#include \"Util/Log.h\"\n"
-        + "#include \"Util/Vector.h\"\n")
-
-      writer << super.cpp
-    }
-
-    var i = 0
-    for (f <- functions) {
-      val writer = PrettyprintingManager.getPrinter(s"Primitives/Fragment3DCube_$i.cpp")
-
-      writer << "#include \"Primitives/Fragment3DCube.h\"\n\n"
-      writer << f.cpp + "\n"
-
-      i += 1
     }
   }
 }

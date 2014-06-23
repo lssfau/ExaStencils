@@ -23,9 +23,7 @@ case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = ne
       "#include \"Util/Vector.h\"\n"
       + (if (Knowledge.useMPI) "#pragma warning(disable : 4800)\n" else "")
       + (if (Knowledge.useMPI) "#include <mpi.h>\n" else "") // FIXME: find a way to extract necessary includes from variables
-      + "#include \"Primitives/Fragment3DCube.h\"\n")
-
-    writerHeader << "class Fragment3DCube;\n" // FIXME: find a way to extract necessary forward defines from variables
+      )
 
     for (variable <- variables) { writerHeader << s"extern ${variable.cpp_onlyDeclaration}\n" }
 
