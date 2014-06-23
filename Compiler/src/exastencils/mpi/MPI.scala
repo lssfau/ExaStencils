@@ -77,6 +77,7 @@ case class MPI_DataType(var field : FieldSelection, var indices : IndexRange) ex
   var blocklen : Int = 0
   var stride : Int = 0
 
+  // this assumes that the conditions implied by 'shouldBeUsed' are fullfilled 
   if (1 == SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2))) {
     count = SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1)).toInt
     blocklen = SimplifyExpression.evalIntegral(indices.end(0) - indices.begin(0)).toInt
@@ -103,7 +104,18 @@ case class MPI_DataType(var field : FieldSelection, var indices : IndexRange) ex
 }
 
 object MPI_DataType {
-
+  def shouldBeUsed(indices : IndexRange) : Boolean = {
+    if (!Knowledge.mpi_useCustomDatatypes)
+      false
+    else
+      Knowledge.dimensionality match {
+        case 2 => (
+          1 == SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1)) || 1 == SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2)))
+        case 3 => (
+          1 == SimplifyExpression.evalIntegral(indices.end(3) - indices.begin(3)) &&
+          (1 == SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1)) || 1 == SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2))))
+      }
+  }
 }
 
 case class InitMPIDataType(mpiTypeName : String, field : Field, indexRange : IndexRange) extends Statement with Expandable {

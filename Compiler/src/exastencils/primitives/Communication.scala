@@ -38,19 +38,6 @@ case class LocalSend(var field : FieldSelection, var neighbors : ListBuffer[(Nei
   }
 }
 
-object useMPIDatatype {
-  def apply(indices : IndexRange) : Boolean = {
-    if (!Knowledge.mpi_useCustomDatatypes)
-      false
-    else
-      Knowledge.dimensionality match {
-        case 2 => (
-          1 == SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1))
-          || 1 == SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2)))
-      }
-  }
-}
-
 case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborInfo, var indices : IndexRange) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = CopyToSendBuffer\n"
 
@@ -127,7 +114,7 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
   override def cpp : String = "NOT VALID ; CLASS = RemoteSends\n"
 
   def genCopy(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
-    if (!useMPIDatatype(indices) && SimplifyExpression.evalIntegral(indices.getSizeHigher) > 1) {
+    if (!MPI_DataType.shouldBeUsed(indices) && SimplifyExpression.evalIntegral(indices.getSizeHigher) > 1) {
       var body = CopyToSendBuffer(field, neighbor, indices)
       if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
     } else {
@@ -139,7 +126,7 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
     var body = {
       if (1 == SimplifyExpression.evalIntegral(indices.getSizeHigher)) {
         RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, new RealDatatype)
-      } else if (useMPIDatatype(indices)) {
+      } else if (MPI_DataType.shouldBeUsed(indices)) {
         RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, MPI_DataType(field, indices))
       } else {
         var cnt = DimArrayHigher().map(i => (indices.end(i) - indices.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
@@ -178,7 +165,7 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
   override def cpp : String = "NOT VALID ; CLASS = RemoteRecvs\n"
 
   def genCopy(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
-    if (!useMPIDatatype(indices) && SimplifyExpression.evalIntegral(indices.getSizeHigher) > 1) {
+    if (!MPI_DataType.shouldBeUsed(indices) && SimplifyExpression.evalIntegral(indices.getSizeHigher) > 1) {
       var body = CopyFromRecvBuffer(field, neighbor, indices)
       if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
     } else {
@@ -190,7 +177,7 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
     var body = {
       if (1 == SimplifyExpression.evalIntegral(indices.getSizeHigher)) {
         RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, new RealDatatype)
-      } else if (useMPIDatatype(indices)) {
+      } else if (MPI_DataType.shouldBeUsed(indices)) {
         RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, MPI_DataType(field, indices))
       } else {
         var cnt = DimArrayHigher().map(i => (indices.end(i) - indices.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
