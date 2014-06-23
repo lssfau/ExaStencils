@@ -1,8 +1,11 @@
 package exastencils.polyhedron
 
+import scala.collection.mutable.ArrayStack
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.ListBuffer
+
+import exastencils.core.Duplicate
 import exastencils.core.Logger
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
@@ -35,12 +38,10 @@ import exastencils.datastructures.ir.UnaryExpression
 import exastencils.datastructures.ir.UnaryOperators
 import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.VariableDeclarationStatement
-import exastencils.knowledge.Knowledge
-import exastencils.knowledge.dimToString
 import exastencils.omp.OMP_PotentiallyParallel
+import exastencils.optimization.PrecalcAddresses
 import exastencils.primitives.LoopOverDimensions
 import isl.Conversions.convertLambdaToXCallback1
-import exastencils.datastructures.ir.Scope
 
 class ASTBuilderTransformation(replaceCallback : (HashMap[String, Expression], Node) => Unit)
   extends Transformation("insert optimized loop AST", new ASTBuilderFunction(replaceCallback))
@@ -51,7 +52,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
   private final val ZERO_VAL : isl.Val = isl.Val.zero()
   private final val ONE_VAL : isl.Val = isl.Val.one()
 
-  private var oldStmts : HashMap[String, Statement] = null
+  private var oldStmts : HashMap[String, (Statement, ArrayStack[String])] = null
   private var seqDims : HashSet[String] = null
   private var parallelize : Boolean = false
 
@@ -69,15 +70,27 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
     //    Logger.debug("    Domain:   " + scop.domain)
     //    Logger.debug("    Schedule: " + scop.schedule)
 
-    val islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.domain.params())
+    var islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.domain.params())
+    var option = new StringBuilder()
+    option.append("{[i0")
+    var i : Int = 1
+    val dims : Int = scop.schedule.sample().dim(isl.DimType.Out)
+    while (i < dims) {
+      option.append(",i").append(i)
+      i += 1
+    }
+    option.append("]->separate[x]}")
+    islBuild = islBuild.setOptions(new isl.UnionMap(option.toString()))
     val islNode : isl.AstNode = islBuild.astFromSchedule(scop.schedule.intersectDomain(scop.domain))
 
     oldStmts = scop.stmts
+    seqDims = null
+    parallelize = false
     if (scop.root.asInstanceOf[LoopOverDimensions].parallelizationIsReasonable) {
       parallelize = true
       seqDims = new HashSet[String]()
 
-      scop.deps.foreachMap({ dep : isl.Map =>
+      scop.deps.validity().foreachMap({ dep : isl.Map =>
         val directions = dep.deltas()
         val universe : isl.Set = isl.BasicSet.universe(directions.getSpace())
         val dim : Int = universe.dim(isl.DimType.Set)
@@ -127,8 +140,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
     return node.getType() match {
 
       case isl.AstNodeType.NodeFor =>
-        if (node.forIsDegenerate() != 0) {
-
+        if (node.forIsDegenerate() != 0) { // if (node.forIsDegenerate())
           val islIt : isl.AstExpr = node.forGetIterator()
           assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
           val it : VariableAccess = VariableAccess(islIt.getId().getName(), Some(IntegerDatatype()))
@@ -137,7 +149,6 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
           Scope(ListBuffer[Statement](decl, processIslNode(node.forGetBody())))
 
         } else {
-
           val islIt : isl.AstExpr = node.forGetIterator()
           assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
           val itStr : String = islIt.getId().getName()
@@ -152,13 +163,13 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
           parallelize |= parNow // restore overall parallelization level
           if (parNow)
             body match {
-              case StatementBlock(raw) => new ForLoopStatement(init, cond, incr, raw) with OMP_PotentiallyParallel
-              case _                   => new ForLoopStatement(init, cond, incr, body) with OMP_PotentiallyParallel
+              case StatementBlock(raw) => new ForLoopStatement(init, cond, incr, raw) with PrecalcAddresses with OMP_PotentiallyParallel
+              case _                   => new ForLoopStatement(init, cond, incr, body) with PrecalcAddresses with OMP_PotentiallyParallel
             }
           else
             body match {
-              case StatementBlock(raw) => new ForLoopStatement(init, cond, incr, raw)
-              case _                   => new ForLoopStatement(init, cond, incr, body)
+              case StatementBlock(raw) => new ForLoopStatement(init, cond, incr, raw) with PrecalcAddresses
+              case _                   => new ForLoopStatement(init, cond, incr, body) with PrecalcAddresses
             }
         }
 
@@ -184,14 +195,15 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
         assume(expr.getOpType() == isl.AstOpType.OpCall, "user node is no OpCall?!")
         val args : Array[Expression] = processArgs(expr)
         val name : String = args(0).asInstanceOf[StringConstant].value
-        val stmt : Statement = oldStmts(name)
+        val (oldStmt : Statement, loopVars : ArrayStack[String]) = oldStmts(name)
+        val stmt : Statement = Duplicate(oldStmt)
         var d : Int = 1
-        val dims : Int = Knowledge.dimensionality
         val repl = new HashMap[String, Expression]()
         do {
-          repl.put(dimToString(dims - d), args(d))
+          repl.put(loopVars(loopVars.size - d), args(d))
           d += 1
         } while (d < args.length)
+
         replaceCallback(repl, stmt)
         stmt
 
@@ -219,7 +231,9 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
 
     return expr.getOpType() match {
       case isl.AstOpType.OpAndThen if n == 2 => AndAndExpression(args(0), args(1))
+      case isl.AstOpType.OpAnd if n == 2     => AndAndExpression(args(0), args(1))
       case isl.AstOpType.OpOrElse if n == 2  => OrOrExpression(args(0), args(1))
+      case isl.AstOpType.OpOr if n == 2      => OrOrExpression(args(0), args(1))
       case isl.AstOpType.OpMax if n == 2     => FunctionCallExpression(StringConstant("std::max"), ListBuffer(args : _*))
       case isl.AstOpType.OpMin if n == 2     => FunctionCallExpression(StringConstant("std::min"), ListBuffer(args : _*))
       case isl.AstOpType.OpMinus if n == 1   => UnaryExpression(UnaryOperators.Negative, args(0))

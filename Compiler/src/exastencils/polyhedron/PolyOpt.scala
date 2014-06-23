@@ -1,6 +1,8 @@
 package exastencils.polyhedron
 
 import scala.collection.mutable.ArrayStack
+import scala.collection.mutable.HashMap
+
 import exastencils.core.Logger
 import exastencils.core.StateManager
 import exastencils.datastructures.CustomStrategy
@@ -10,7 +12,6 @@ import exastencils.datastructures.Transformation.convFromNode
 import exastencils.datastructures.ir.Expression
 import exastencils.datastructures.ir.StringConstant
 import exastencils.datastructures.ir.VariableAccess
-import scala.collection.mutable.HashMap
 
 trait PolyhedronAccessable
 
@@ -24,8 +25,11 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     Logger.info("Applying strategy " + name)
 
     val scops : ArrayStack[Scop] = extractPolyModel()
-    for (scop <- scops)
+    for (scop <- scops) {
       computeDependences(scop)
+      deadCodeElimination(scop)
+      //      optimize(scop)
+    }
     recreateAndInsertAST()
 
     this.commit()
@@ -51,26 +55,58 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val empty = isl.UnionMap.empty(scop.writes.getSpace())
     val depArr = new Array[isl.UnionMap](1)
 
-    if (scop.writes != null) {
+    // output
+    scop.writes.computeFlow(scop.writes, empty, scop.schedule,
+      depArr, null, null, null) // output params
+    scop.deps.output = depArr(0)
 
-      // output
-      scop.writes.computeFlow(scop.writes, empty, scop.schedule,
-        depArr, null, null, null)
-      scop.deps = depArr(0)
+    if (scop.reads != null) {
 
-      if (scop.reads != null) {
+      // input
+      scop.reads.computeFlow(scop.reads, empty, scop.schedule,
+        depArr, null, null, null) // output params
+      scop.deps.input = depArr(0)
 
-        // flow
-        scop.reads.computeFlow(scop.writes, empty, scop.schedule,
-          depArr, null, null, null)
-        scop.deps = scop.deps.union(depArr(0))
+      // flow
+      scop.reads.computeFlow(scop.writes, empty, scop.schedule,
+        depArr, null, null, null) // output params
+      scop.deps.flow = depArr(0)
 
-        // anti
-        scop.writes.computeFlow(scop.reads, empty, scop.schedule,
-          depArr, null, null, null)
-        scop.deps = scop.deps.union(depArr(0))
-      }
+      // anti
+      scop.writes.computeFlow(scop.reads, empty, scop.schedule,
+        depArr, null, null, null) // output params
+      scop.deps.anti = depArr(0)
+
+    } else {
+      val noDeps = isl.UnionMap.empty(scop.deps.output.getSpace())
+      scop.deps.input = noDeps
+      scop.deps.flow = noDeps
+      scop.deps.anti = noDeps
     }
+  }
+
+  private def deadCodeElimination(scop : Scop) : Unit = {
+
+    var live = scop.writes.intersectDomain(scop.domain).reverse().lexmax().range()
+    if (scop.deadAfterScop != null)
+      live = live.subtract(scop.deadAfterScop)
+    live = live.union(scop.deps.flow.domain().intersect(scop.domain))
+
+    scop.domain = live
+  }
+
+  private def optimize(scop : Scop) : Unit = {
+
+    val validity : isl.UnionMap = scop.deps.validity()
+    val proximity : isl.UnionMap = scop.deps.input
+
+    val njuSched = scop.domain.computeSchedule(validity, proximity)
+    println("===================================================================")
+    println(scop.schedule)
+    println(njuSched)
+    println(scop.domain)
+    println(scop.reads)
+    println(scop.writes)
   }
 
   private def recreateAndInsertAST() : Unit = {

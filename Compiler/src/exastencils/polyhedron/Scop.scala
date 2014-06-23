@@ -1,5 +1,6 @@
 package exastencils.polyhedron
 
+import scala.collection.mutable.ArrayStack
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
@@ -12,12 +13,22 @@ class Scop(val root : Node) {
 
   var domain : isl.UnionSet = null
   var schedule : isl.UnionMap = null
-  val stmts = new HashMap[String, Statement]
+  val stmts = new HashMap[String, (Statement, ArrayStack[String])]
   val decls = new ListBuffer[VariableDeclarationStatement]
 
   var reads, writes : isl.UnionMap = null
+  var deadAfterScop : isl.UnionSet = null
 
-  var deps : isl.UnionMap = null
+  object deps {
+    var flow : isl.UnionMap = null
+    var anti : isl.UnionMap = null
+    var input : isl.UnionMap = null
+    var output : isl.UnionMap = null
+
+    def validity() : isl.UnionMap = {
+      return flow.union(anti).union(output)
+    }
+  }
 }
 
 object ScopNameMapping {
