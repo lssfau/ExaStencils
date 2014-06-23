@@ -433,12 +433,12 @@ case class Root() extends Node {
         printer.println("\tcommunicate Solution@(current)")
         printer.println("\tloop over red on Solution@(current) {")
         for (vecDim <- 0 until numVecDims)
-          printer.println(s"\t\tSolution@(current) = ${solutionFields("current")(vecDim)} + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * $omegaToPrint ) * ( ${rhsFields("current")(vecDim)} - Lapl@(current) * ${solutionFields("current")(vecDim)} ) )")
+          printer.println(s"\t\t${solutionFields("current")(vecDim)} = ${solutionFields("current")(vecDim)} + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * $omegaToPrint ) * ( ${rhsFields("current")(vecDim)} - Lapl@(current) * ${solutionFields("current")(vecDim)} ) )")
         printer.println("\t}")
         printer.println("\tcommunicate Solution@(current)")
         printer.println("\tloop over black on Solution@(current) {")
         for (vecDim <- 0 until numVecDims)
-          printer.println(s"\t\tSolution@(current) = ${solutionFields("current")(vecDim)} + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * $omegaToPrint ) * ( ${rhsFields("current")(vecDim)} - Lapl@(current) * ${solutionFields("current")(vecDim)} ) )")
+          printer.println(s"\t\t${solutionFields("current")(vecDim)} = ${solutionFields("current")(vecDim)} + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * $omegaToPrint ) * ( ${rhsFields("current")(vecDim)} - Lapl@(current) * ${solutionFields("current")(vecDim)} ) )")
         printer.println("\t}")
         printer.println("}")
       }
@@ -447,7 +447,7 @@ case class Root() extends Node {
         printer.println("\tcommunicate Solution@(current)")
         printer.println("\tloop over inner on Solution@(current) {")
         for (vecDim <- 0 until numVecDims)
-          printer.println(s"\t\tSolution@(current) = ${solutionFields("current")(vecDim)} + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * $omegaToPrint ) * ( ${rhsFields("current")(vecDim)} - Lapl@(current) * ${solutionFields("current")(vecDim)} ) )")
+          printer.println(s"\t\t${solutionFields("current")(vecDim)} = ${solutionFields("current")(vecDim)} + ( ( ( 1.0 / diag ( Lapl@(current) ) ) * $omegaToPrint ) * ( ${rhsFields("current")(vecDim)} - Lapl@(current) * ${solutionFields("current")(vecDim)} ) )")
         printer.println("\t}")
         printer.println("}")
       }

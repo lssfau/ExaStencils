@@ -71,7 +71,7 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
       knowledge.FieldSelection(
         knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get,
         slot.progressToIr,
-        0),
+        arrayIndex),
       multiIndex)
   }
 }

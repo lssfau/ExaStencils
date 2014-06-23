@@ -237,7 +237,7 @@ case class ExchangeData_26(var fieldSelection : FieldSelection, var neighbors : 
               case i if neigh.dir(i) == 0 => field.layout(i).idxInnerEnd
               case i if neigh.dir(i) < 0  => field.layout(i).idxDupLeftEnd
               case i if neigh.dir(i) > 0  => field.layout(i).idxDupRightEnd
-            }) ++ (Knowledge.dimensionality until 3).toArray.map(i => 0))),
+            }) ++ Array(field.vectorSize))),
           new IndexRange(
             new MultiIndex(
               DimArray().map(i => i match {
