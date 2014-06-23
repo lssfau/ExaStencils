@@ -171,22 +171,37 @@ case class FragMember_NeighborRemoteRank(var domain : Expression, var neighIdx :
   override def resolveDefValue = Some("MPI_PROC_NULL")
 }
 
-case class FragMember_Field(var field : Field, var fragmentIdx : Expression = "fragmentIdx") extends FragCommMember(true, false, false, true, false) {
+case class FragMember_FieldData(var field : Field, var slot : Expression, var fragmentIdx : Expression = "fragmentIdx") extends FragCommMember(true, false, false, true, false) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, new NullExpression, field.level, new NullExpression).cpp
 
-  override def resolveName = /*s"fieldData"*/ field.codeName + resolvePostfix(fragmentIdx.cpp, "", "", field.level.toString, "")
-  override def resolveDataType = new PointerDatatype(field.dataType.resolveUnderlyingDatatype)
+  override def resolveName = field.codeName + resolvePostfix(fragmentIdx.cpp, "", "", field.level.toString, "")
+
+  override def resolveDataType = {
+    if (field.numSlots > 1)
+      new ArrayDatatype(new PointerDatatype(field.dataType.resolveUnderlyingDatatype), field.numSlots)
+    else
+      new PointerDatatype(field.dataType.resolveUnderlyingDatatype)
+  }
+
   override def resolveDefValue = Some(0)
 
-  override def getDeclaration() : VariableDeclarationStatement = {
-    var dec = super.getDeclaration
-    dec.dataType = new ArrayDatatype(dec.dataType, field.numSlots)
-    dec
+  override def wrapInLoops(body : Statement) : Statement = {
+    var wrappedBody = super.wrapInLoops(body)
+    if (field.numSlots > 1)
+      wrappedBody = new ForLoopStatement(s"unsigned int slot = 0", s"slot < ${field.numSlots}", s"++slot", wrappedBody)
+    wrappedBody
   }
 
   override def getCtor() : Option[Statement] = {
-    Some(wrapInLoops(StatementBlock(
-      (0 until field.numSlots).to[ListBuffer].map(slot =>
-        AssignmentStatement(resolveAccess(resolveName, "fragmentIdx", "domainIdx", "fieldIdx", "level", "neighIdx") ~ s"[$slot]", resolveDefValue.get) : Statement))))
+    val origSlot = slot
+    slot = "slot"
+    val ret = Some(wrapInLoops(AssignmentStatement(resolveAccess(resolveName, "fragmentIdx", "domainIdx", "fieldIdx", "level", "neighIdx"), resolveDefValue.get)))
+    slot = origSlot
+    ret
+  }
+
+  override def resolveAccess(baseAccess : Expression, fragment : Expression, domain : Expression, field : Expression, level : Expression, neigh : Expression) : Expression = {
+    val access = (if (this.field.numSlots > 1) new ArrayAccess(baseAccess, slot) else baseAccess)
+    super.resolveAccess(access, fragment, domain, field, level, neigh)
   }
 }

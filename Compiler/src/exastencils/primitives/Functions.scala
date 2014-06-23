@@ -148,7 +148,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
       body += new LoopOverFragments(field.domain.index,
         //new ConditionStatement(FragMember_IsValidForSubdomain(field.domain.index),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
-          new AssignmentStatement(new ArrayAccess(new FragMember_Field(field), slot),
+          new AssignmentStatement(new FragMember_FieldData(field, slot),
             ("new" : Expression) ~~ field.dataType.resolveUnderlyingDatatype. /*FIXME*/ cpp ~ "[" ~ numDataPoints ~ "]") : Statement)) with OMP_PotentiallyParallel
     }
 
