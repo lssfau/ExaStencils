@@ -27,12 +27,12 @@ case class LocalSend(var field : FieldSelection, var neighbors : ListBuffer[(Nei
   def expand : LoopOverFragments = {
     new LoopOverFragments(field.domainIndex,
       neighbors.map(neigh =>
-        (new ConditionStatement(new getNeighInfo_IsValidAndNotRemote(neigh._1, field.domainIndex),
+        (new ConditionStatement(iv.NeighborIsValid(field.domainIndex, neigh._1.index) AndAnd UnaryExpression(UnaryOperators.Not, iv.NeighborIsRemote(field.domainIndex, neigh._1.index)),
           ListBuffer[Statement](
             new LoopOverDimensions(Knowledge.dimensionality + 1,
               neigh._2,
               new AssignmentStatement(
-                new DirectFieldAccess(FieldSelection(field.field, field.slot, -1, new getNeighInfo_LocalId(neigh._1, field.domainIndex)), new MultiIndex(
+                new DirectFieldAccess(FieldSelection(field.field, field.slot, -1, iv.NeighborFragLocalId(field.domainIndex, neigh._1.index)), new MultiIndex(
                   new MultiIndex(DefaultLoopMultiIndex(), neigh._3.begin, _ + _), neigh._2.begin, _ - _)),
                 new DirectFieldAccess(FieldSelection(field.field, field.slot, -1), DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel with PolyhedronAccessable))) : Statement)) with OMP_PotentiallyParallel
   }
@@ -67,8 +67,8 @@ case class RemoteSend(var field : FieldSelection, var neighbor : NeighborInfo, v
 
   def expand : Statement = {
     StatementBlock(ListBuffer[Statement](
-      new MPI_Send(src, numDataPoints, datatype, new getNeighInfo_RemoteRank(neighbor, field.domainIndex),
-        s"((unsigned int)" ~ iv.CommId() ~ " << 16) + ((unsigned int)(" ~ getNeighInfo_LocalId(neighbor, field.domainIndex) ~ ") & 0x0000ffff)",
+      new MPI_Send(src, numDataPoints, datatype, iv.NeighborRemoteRank(field.domainIndex, neighbor.index),
+        s"((unsigned int)" ~ iv.CommId() ~ " << 16) + ((unsigned int)(" ~ iv.NeighborFragLocalId(field.domainIndex, neighbor.index) ~ ") & 0x0000ffff)",
         iv.MpiRequest(field.field, "Send", neighbor.index)) with OMP_PotentiallyCritical,
       AssignmentStatement(iv.ReqOutstanding(field.field, "Send", neighbor.index), true)))
   }
@@ -79,8 +79,8 @@ case class RemoteRecv(var field : FieldSelection, var neighbor : NeighborInfo, v
 
   def expand : Statement = {
     StatementBlock(ListBuffer[Statement](
-      new MPI_Receive(dest, numDataPoints, datatype, new getNeighInfo_RemoteRank(neighbor, field.domainIndex),
-        "((unsigned int)(" ~ getNeighInfo_LocalId(neighbor, field.domainIndex) ~ ") << 16) + ((unsigned int)" ~ iv.CommId() ~ " & 0x0000ffff)",
+      new MPI_Receive(dest, numDataPoints, datatype, iv.NeighborRemoteRank(field.domainIndex, neighbor.index),
+        "((unsigned int)(" ~ iv.NeighborFragLocalId(field.domainIndex, neighbor.index) ~ ") << 16) + ((unsigned int)" ~ iv.CommId() ~ " & 0x0000ffff)",
         iv.MpiRequest(field.field, "Recv", neighbor.index)) with OMP_PotentiallyCritical,
       AssignmentStatement(iv.ReqOutstanding(field.field, "Recv", neighbor.index), true)))
   }
@@ -106,7 +106,8 @@ abstract class RemoteTransfers extends Statement with Expandable {
   def genTransfer(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement
 
   def wrapCond(neighbor : NeighborInfo, body : ListBuffer[Statement]) : Statement = {
-    new ConditionStatement(new getNeighInfo_IsValidAndRemote(neighbor, field.domainIndex), body)
+    new ConditionStatement(iv.NeighborIsValid(field.domainIndex, neighbor.index) AndAnd iv.NeighborIsRemote(field.domainIndex, neighbor.index),
+      body)
   }
 }
 

@@ -1,9 +1,22 @@
 package exastencils.knowledge
 
 import scala.collection.mutable.ListBuffer
-
 import exastencils.datastructures._
-import exastencils.primitives._
+
+class NeighborInfo(var dir : Array[Int], var index : Int) {
+  var label : String = (Knowledge.dimensionality - 1 to 0 by -1).toList.map(i => dimToString(i).toUpperCase + dirToString(dir(i))).mkString("_")
+}
+
+object dirToString extends (Int => String) {
+  def apply(dim : Int) : String = {
+    return dim match {
+      case -1 => "N"
+      case 0  => "0"
+      case 1  => "P"
+      case _  => "UNKNOWN"
+    }
+  }
+}
 
 object Fragment {
   var neighbors : ListBuffer[NeighborInfo] = ListBuffer()
