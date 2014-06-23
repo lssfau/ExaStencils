@@ -37,11 +37,14 @@ object AddMPIDatatypes extends DefaultStrategy("AddMPIDatatypes") {
     case globals : Globals =>
       for (dt <- datatypes)
         globals.variables += dt._2.generateDecl
-      // TODO: free datatype
       globals
     case func : FunctionStatement if (("initGlobals" : Expression) == func.name) =>
       for (dt <- datatypes)
         func.body ++= dt._2.generateCtor
+      func
+    case func : FunctionStatement if (("destroyGlobals" : Expression) == func.name) =>
+      for (dt <- datatypes)
+        func.body ++= dt._2.generateDtor
       func
   })
 }

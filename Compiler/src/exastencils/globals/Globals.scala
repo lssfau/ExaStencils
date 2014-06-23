@@ -14,7 +14,9 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.prettyprinting._
 
 case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = new ListBuffer) extends Node with FilePrettyPrintable {
-  var functions : ListBuffer[AbstractFunctionStatement] = ListBuffer(new FunctionStatement(new UnitDatatype, "initGlobals", new ListBuffer[VariableAccess], new ListBuffer[Statement]))
+  var functions : ListBuffer[AbstractFunctionStatement] = ListBuffer(
+      new FunctionStatement(new UnitDatatype, "initGlobals", new ListBuffer[VariableAccess], new ListBuffer[Statement]),
+      new FunctionStatement(new UnitDatatype, "destroyGlobals", new ListBuffer[VariableAccess], new ListBuffer[Statement])      )
 
   override def printToFile = {
     val writerHeader = PrettyprintingManager.getPrinter(s"Globals/Globals.h")

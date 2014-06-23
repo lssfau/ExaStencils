@@ -1,6 +1,7 @@
 package exastencils.primitives
 
 import scala.collection.mutable.ListBuffer
+import scala.collection.SortedMap
 import exastencils.core._
 import exastencils.util._
 import exastencils.globals._
@@ -13,6 +14,7 @@ import exastencils.primitives._
 import exastencils.strategies._
 import exastencils.omp._
 import exastencils.multiGrid._
+import scala.collection.immutable.TreeMap
 
 object SetupFragment extends DefaultStrategy("Setting up fragment") {
   override def apply(node : Option[Node] = None) = {
@@ -50,9 +52,9 @@ object SetupFragment extends DefaultStrategy("Setting up fragment") {
 }
 
 object AddInternalVariables extends DefaultStrategy("Adding internal variables") {
-  var declarationMap : Map[String, VariableDeclarationStatement] = Map()
-  var ctorMap : Map[String, Statement] = Map()
-  var dtorMap : Map[String, Statement] = Map()
+  var declarationMap : TreeMap[String, VariableDeclarationStatement] = TreeMap()
+  var ctorMap : TreeMap[String, Statement] = TreeMap()
+  var dtorMap : TreeMap[String, Statement] = TreeMap()
 
   this += new Transformation("Collecting", {
     case mem : iv.InternalVariable => // TODO: don't overwrite for performance reasons
@@ -72,12 +74,12 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
     case func : FunctionStatement if (("initGlobals" : Expression) == func.name) =>
       func.body ++= ctorMap.map(_._2)
       func
-    // FIXME: globals d'tor
-    //if (!dtorMap.isEmpty)
-    //  globals.dTorBody ++= dtorMap.map(_._2)
+    case func : FunctionStatement if (("destroyGlobals" : Expression) == func.name) =>
+      func.body ++= dtorMap.map(_._2)
+      func
   })
 
-  var bufferSizes : Map[Expression, Int] = Map()
+  var bufferSizes : TreeMap[Expression, Int] = TreeMap()(Ordering.by(_.cpp))
 
   this += new Transformation("Collecting buffer sizes", {
     case buf : iv.TmpBuffer =>

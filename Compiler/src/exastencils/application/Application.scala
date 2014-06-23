@@ -75,6 +75,8 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
 
           "Application()", // TODO: think about inlining the App
 
+          "destroyGlobals()",
+          
           new MPI_Finalize,
 
           s"return 0"))

@@ -100,6 +100,11 @@ case class MPI_DataType(var field : FieldSelection, var indices : IndexRange) ex
       s"MPI_Type_vector($count, $blocklen, $stride, MPI_DOUBLE, &${generateName})",
       s"MPI_Type_commit(&${generateName})")
   }
+
+  def generateDtor : ListBuffer[Statement] = {
+    ListBuffer[Statement](
+      s"MPI_Type_free(&${generateName})")
+  }
 }
 
 object MPI_DataType {

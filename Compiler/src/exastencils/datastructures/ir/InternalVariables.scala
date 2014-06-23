@@ -117,10 +117,10 @@ case class TmpBuffer(var field : Field, var direction : String, var size : Expre
   override def resolveDefValue = Some(0)
 
   override def getDtor() : Option[Statement] = {
-    Some(wrapInLoops(new ConditionStatement(resolveAccess(resolveName, new NullExpression, field.domain.index, field.index, field.level, neighIdx),
+    Some(wrapInLoops(new ConditionStatement(resolveAccess(resolveName, fragmentIdx, new NullExpression, field.index, field.level, neighIdx),
       ListBuffer[Statement](
-        "delete []" ~~ resolveAccess(resolveName, new NullExpression, field.domain.index, field.index, field.level, neighIdx),
-        new AssignmentStatement(resolveAccess(resolveName, new NullExpression, field.domain.index, field.index, field.level, neighIdx), 0)))))
+        "delete []" ~~ resolveAccess(resolveName, fragmentIdx, new NullExpression, field.index, field.level, neighIdx),
+        new AssignmentStatement(resolveAccess(resolveName, fragmentIdx, new NullExpression, field.index, field.level, neighIdx), 0)))))
   }
 }
 
@@ -189,6 +189,17 @@ case class FieldData(var field : Field, var slot : Expression, var fragmentIdx :
     val origSlot = slot
     slot = "slot"
     val ret = Some(wrapInLoops(AssignmentStatement(resolveAccess(resolveName, "fragmentIdx", "domainIdx", "fieldIdx", "level", "neighIdx"), resolveDefValue.get)))
+    slot = origSlot
+    ret
+  }
+
+  override def getDtor() : Option[Statement] = {
+    val origSlot = slot
+    slot = "slot"
+    val ret = Some(wrapInLoops(new ConditionStatement(resolveAccess(resolveName, "fragmentIdx", "domainIdx", "fieldIdx", "level", "neighIdx"),
+      ListBuffer[Statement](
+        "delete []" ~~ resolveAccess(resolveName, "fragmentIdx", "domainIdx", "fieldIdx", "level", "neighIdx"),
+        new AssignmentStatement(resolveAccess(resolveName, "fragmentIdx", "domainIdx", "fieldIdx", "level", "neighIdx"), 0)))))
     slot = origSlot
     ret
   }
