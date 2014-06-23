@@ -132,7 +132,7 @@ case class ConnectFragments() extends Statement with Expandable {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
 
     for (d <- 0 until domains.size) {
-      body += AssignmentStatement(FragMember_IsValidForSubdomain(d), PointInsideDomain(s"curFragment.pos", domains(d)))
+      body += AssignmentStatement(iv.IsValidForSubdomain(d), PointInsideDomain(s"curFragment.pos", domains(d)))
     }
 
     val fragWidth_x = globalDomain.size.width(0) / Knowledge.domain_numFragsTotal_x
@@ -144,7 +144,7 @@ case class ConnectFragments() extends Statement with Expandable {
         body += new Scope(ListBuffer[Statement](
           s"Vec3 offsetPos = curFragment.pos + Vec3(${neigh.dir(0)} * ${fragWidth_x}, ${neigh.dir(1)} * ${fragWidth_y}, ${neigh.dir(2)} * ${fragWidth_z})") ++
           (0 until domains.size).toArray[Int].map(d =>
-            new ConditionStatement(FragMember_IsValidForSubdomain(d) AndAnd PointInsideDomain(s"offsetPos", domains(d)),
+            new ConditionStatement(iv.IsValidForSubdomain(d) AndAnd PointInsideDomain(s"offsetPos", domains(d)),
               if (Knowledge.domain_canHaveRemoteNeighs) {
                 (if (Knowledge.domain_canHaveLocalNeighs)
                   new ConditionStatement(s"mpiRank ==" ~ PointToOwningRank("offsetPos", domains(d)),

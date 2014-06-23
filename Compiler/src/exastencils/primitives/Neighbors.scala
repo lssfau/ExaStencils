@@ -15,7 +15,7 @@ case class getNeighInfo_IsValid(var neigh : NeighborInfo, var domain : Int) exte
   override def cpp : String = "NOT VALID ; CLASS = getNeighInfo_IsValid\n"
 
   override def expand : Expression = {
-    FragMember_NeighborIsValid(domain, neigh.index)
+    iv.NeighborIsValid(domain, neigh.index)
   }
 }
 
@@ -23,7 +23,7 @@ case class getNeighInfo_IsInvalid(var neigh : NeighborInfo, var domain : Int) ex
   override def cpp : String = "NOT VALID ; CLASS = getNeighInfo_IsInvalid\n"
 
   override def expand : Expression = {
-    UnaryExpression(UnaryOperators.Not, FragMember_NeighborIsValid(domain, neigh.index))
+    UnaryExpression(UnaryOperators.Not, iv.NeighborIsValid(domain, neigh.index))
   }
 }
 
@@ -31,7 +31,7 @@ case class getNeighInfo_IsRemote(var neigh : NeighborInfo, var domain : Int) ext
   override def cpp : String = "NOT VALID ; CLASS = getNeighInfo_IsRemote\n"
 
   override def expand : Expression = {
-    FragMember_NeighborIsRemote(domain, neigh.index)
+    iv.NeighborIsRemote(domain, neigh.index)
   }
 }
 
@@ -39,7 +39,7 @@ case class getNeighInfo_IsValidAndRemote(var neigh : NeighborInfo, var domain : 
   override def cpp : String = "NOT VALID ; CLASS = getNeighInfo_IsValidAndRemote\n"
 
   override def expand : Expression = {
-    FragMember_NeighborIsValid(domain, neigh.index) AndAnd FragMember_NeighborIsRemote(domain, neigh.index)
+    iv.NeighborIsValid(domain, neigh.index) AndAnd iv.NeighborIsRemote(domain, neigh.index)
   }
 }
 
@@ -47,7 +47,7 @@ case class getNeighInfo_IsValidAndNotRemote(var neigh : NeighborInfo, var domain
   override def cpp : String = "NOT VALID ; CLASS = getNeighInfo_IsValidAndNotRemote\n"
 
   override def expand : Expression = {
-    FragMember_NeighborIsValid(domain, neigh.index) AndAnd UnaryExpression(UnaryOperators.Not, FragMember_NeighborIsRemote(domain, neigh.index))
+    iv.NeighborIsValid(domain, neigh.index) AndAnd UnaryExpression(UnaryOperators.Not, iv.NeighborIsRemote(domain, neigh.index))
   }
 }
 
@@ -55,7 +55,7 @@ case class getNeighInfo_LocalPtr(var neigh : NeighborInfo, var domain : Int) ext
   override def cpp : String = "NOT VALID ; CLASS = getNeighInfo_LocalPtr\n"
 
   override def expand : Expression = {
-    FragMember_NeighborLocalPtr(domain, neigh.index)
+    iv.NeighborLocalPtr(domain, neigh.index)
   }
 }
 
@@ -63,7 +63,7 @@ case class getNeighInfo_FragmentId(var neigh : NeighborInfo, var domain : Int) e
   override def cpp : String = "NOT VALID ; CLASS = getNeighInfo_FragmentId\n"
 
   override def expand : Expression = {
-    FragMember_NeighborFragCommId(domain, neigh.index)
+    iv.NeighborFragCommId(domain, neigh.index)
   }
 }
 
@@ -71,9 +71,6 @@ case class getNeighInfo_RemoteRank(var neigh : NeighborInfo, var domain : Int) e
   override def cpp : String = "NOT VALID ; CLASS = getNeighInfo_RemoteRank\n"
 
   override def expand : Expression = {
-    FragMember_NeighborRemoteRank(domain, neigh.index)
+    iv.NeighborRemoteRank(domain, neigh.index)
   }
 }
-
-        
-

@@ -55,7 +55,7 @@ case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborI
   override def cpp : String = "NOT VALID ; CLASS = CopyToSendBuffer\n"
 
   def expand : Statement = {
-    val tmpBufAccess = new ArrayAccess(FragMember_TmpBuffer(field.field, "Send", indices.getSizeHigher, neighbor.index),
+    val tmpBufAccess = new ArrayAccess(iv.TmpBuffer(field.field, "Send", indices.getSizeHigher, neighbor.index),
       Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), indices.begin, _ - _), indices))
     val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.slot, -1), DefaultLoopMultiIndex())
 
@@ -67,7 +67,7 @@ case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : Neighbo
   override def cpp : String = "NOT VALID ; CLASS = CopyFromRecvBuffer\n"
 
   def expand : Statement = {
-    val tmpBufAccess = new ArrayAccess(FragMember_TmpBuffer(field.field, "Recv", indices.getSizeHigher, neighbor.index),
+    val tmpBufAccess = new ArrayAccess(iv.TmpBuffer(field.field, "Recv", indices.getSizeHigher, neighbor.index),
       Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), indices.begin, _ - _), indices))
     val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.slot, -1), DefaultLoopMultiIndex())
 
@@ -82,8 +82,8 @@ case class RemoteSend(var field : FieldSelection, var neighbor : NeighborInfo, v
     StatementBlock(ListBuffer[Statement](
       new MPI_Send(src, numDataPoints, datatype, new getNeighInfo_RemoteRank(neighbor, field.domainIndex),
         s"((unsigned int)curFragment.commId << 16) + ((unsigned int)(" ~ getNeighInfo_FragmentId(neighbor, field.domainIndex) ~ ") & 0x0000ffff)",
-        FragMember_MpiRequest(field.field, "Send", neighbor.index)) with OMP_PotentiallyCritical,
-      AssignmentStatement(FragMember_ReqOutstanding(field.field, "Send", neighbor.index), true)))
+        iv.MpiRequest(field.field, "Send", neighbor.index)) with OMP_PotentiallyCritical,
+      AssignmentStatement(iv.ReqOutstanding(field.field, "Send", neighbor.index), true)))
   }
 }
 
@@ -94,8 +94,8 @@ case class RemoteRecv(var field : FieldSelection, var neighbor : NeighborInfo, v
     StatementBlock(ListBuffer[Statement](
       new MPI_Receive(dest, numDataPoints, datatype, new getNeighInfo_RemoteRank(neighbor, field.domainIndex),
         "((unsigned int)(" ~ getNeighInfo_FragmentId(neighbor, field.domainIndex) ~ ") << 16) + ((unsigned int)curFragment.commId & 0x0000ffff)",
-        FragMember_MpiRequest(field.field, "Recv", neighbor.index)) with OMP_PotentiallyCritical,
-      AssignmentStatement(FragMember_ReqOutstanding(field.field, "Recv", neighbor.index), true)))
+        iv.MpiRequest(field.field, "Recv", neighbor.index)) with OMP_PotentiallyCritical,
+      AssignmentStatement(iv.ReqOutstanding(field.field, "Recv", neighbor.index), true)))
   }
 }
 
@@ -104,10 +104,10 @@ case class WaitForTransfer(var field : FieldSelection, var neighbor : NeighborIn
 
   def expand : Statement = {
     new ConditionStatement(
-      FragMember_ReqOutstanding(field.field, direction, neighbor.index),
+      iv.ReqOutstanding(field.field, direction, neighbor.index),
       ListBuffer[Statement](
-        new WaitForMPIReq(FragMember_MpiRequest(field.field, direction, neighbor.index)) with OMP_PotentiallyCritical,
-        AssignmentStatement(FragMember_ReqOutstanding(field.field, direction, neighbor.index), false)))
+        new WaitForMPIReq(iv.MpiRequest(field.field, direction, neighbor.index)) with OMP_PotentiallyCritical,
+        AssignmentStatement(iv.ReqOutstanding(field.field, direction, neighbor.index), false)))
   }
 }
 
@@ -144,7 +144,7 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
       } else {
         var cnt = DimArrayHigher().map(i => (indices.end(i) - indices.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
         SimplifyStrategy.doUntilDoneStandalone(cnt)
-        RemoteSend(field, neighbor, FragMember_TmpBuffer(field.field, "Send", cnt, neighbor.index), cnt, new RealDatatype)
+        RemoteSend(field, neighbor, iv.TmpBuffer(field.field, "Send", cnt, neighbor.index), cnt, new RealDatatype)
       }
     }
     if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
@@ -195,7 +195,7 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
       } else {
         var cnt = DimArrayHigher().map(i => (indices.end(i) - indices.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
         SimplifyStrategy.doUntilDoneStandalone(cnt)
-        RemoteRecv(field, neighbor, FragMember_TmpBuffer(field.field, "Recv", cnt, neighbor.index), cnt, new RealDatatype)
+        RemoteRecv(field, neighbor, iv.TmpBuffer(field.field, "Recv", cnt, neighbor.index), cnt, new RealDatatype)
       }
     }
     if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body

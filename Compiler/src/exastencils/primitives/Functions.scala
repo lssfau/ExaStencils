@@ -110,10 +110,10 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
         "ASSERT_WARNING((fragment), \"Invalid fragment pointer detected\", return)",
         "Fragment3DCube& curFragment = *this", // HACK
         "int fragmentIdx = curFragment.commId", // HACK
-        AssignmentStatement(FragMember_NeighborIsValid("domain", "location"), true),
-        AssignmentStatement(FragMember_NeighborIsRemote("domain", "location"), false),
-        AssignmentStatement(FragMember_NeighborLocalPtr("domain", "location"), "fragment"),
-        AssignmentStatement(FragMember_NeighborFragCommId("domain", "location"), "fragment->commId"),
+        AssignmentStatement(iv.NeighborIsValid("domain", "location"), true),
+        AssignmentStatement(iv.NeighborIsRemote("domain", "location"), false),
+        AssignmentStatement(iv.NeighborLocalPtr("domain", "location"), "fragment"),
+        AssignmentStatement(iv.NeighborFragCommId("domain", "location"), "fragment->commId"),
         SetIterationOffset("location")))
   }
 }
@@ -128,10 +128,10 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
       ListBuffer[Statement](
         "Fragment3DCube& curFragment = *this", // HACK
         "int fragmentIdx = curFragment.commId", // HACK
-        AssignmentStatement(FragMember_NeighborIsValid("domain", "location"), true),
-        AssignmentStatement(FragMember_NeighborIsRemote("domain", "location"), true),
-        AssignmentStatement(FragMember_NeighborFragCommId("domain", "location"), "id"),
-        AssignmentStatement(FragMember_NeighborRemoteRank("domain", "location"), "remoteRank"),
+        AssignmentStatement(iv.NeighborIsValid("domain", "location"), true),
+        AssignmentStatement(iv.NeighborIsRemote("domain", "location"), true),
+        AssignmentStatement(iv.NeighborFragCommId("domain", "location"), "id"),
+        AssignmentStatement(iv.NeighborRemoteRank("domain", "location"), "remoteRank"),
         SetIterationOffset("location")))
   }
 }
@@ -148,7 +148,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
       body += new LoopOverFragments(field.domain.index,
         //new ConditionStatement(FragMember_IsValidForSubdomain(field.domain.index),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
-          new AssignmentStatement(new FragMember_FieldData(field, slot),
+          new AssignmentStatement(new iv.FieldData(field, slot),
             ("new" : Expression) ~~ field.dataType.resolveUnderlyingDatatype. /*FIXME*/ cpp ~ "[" ~ numDataPoints ~ "]") : Statement)) with OMP_PotentiallyParallel
     }
 

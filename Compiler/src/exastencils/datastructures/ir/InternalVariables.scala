@@ -1,4 +1,4 @@
-package exastencils.primitives
+package exastencils.datastructures.ir.iv
 
 import scala.collection.mutable.ListBuffer
 import exastencils.core._
@@ -6,8 +6,9 @@ import exastencils.knowledge._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.util._
+import exastencils.primitives._
 
-abstract class FragCommMember(var canBePerFragment : Boolean, var canBePerDomain : Boolean, var canBePerField : Boolean, var canBePerLevel : Boolean, var canBePerNeigh : Boolean) extends Expression {
+abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDomain : Boolean, var canBePerField : Boolean, var canBePerLevel : Boolean, var canBePerNeigh : Boolean) extends Expression {
   override def cpp : String = "curFragment." + resolveName
 
   def resolveName : String
@@ -93,7 +94,7 @@ abstract class FragCommMember(var canBePerFragment : Boolean, var canBePerDomain
   }
 }
 
-case class FragMember_ReqOutstanding(var field : Field, var direction : String, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends FragCommMember(true, false, true, true, true) {
+case class ReqOutstanding(var field : Field, var direction : String, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, false, true, true, true) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, field.identifier /*FIXME: id*/ , field.level, neighIdx).cpp
 
   override def resolveName = s"reqOutstanding_${direction}" + resolvePostfix(fragmentIdx.cpp, "", field.identifier, field.level.toString, neighIdx.cpp)
@@ -101,14 +102,14 @@ case class FragMember_ReqOutstanding(var field : Field, var direction : String, 
   override def resolveDefValue = Some(false)
 }
 
-case class FragMember_MpiRequest(var field : Field, var direction : String, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends FragCommMember(true, false, true, true, true) {
+case class MpiRequest(var field : Field, var direction : String, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, false, true, true, true) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, field.identifier /*FIXME: id*/ , field.level, neighIdx).cpp
 
   override def resolveName = s"mpiRequest_${direction}" + resolvePostfix(fragmentIdx.cpp, "", field.identifier, field.level.toString, neighIdx.cpp)
   override def resolveDataType = "MPI_Request"
 }
 
-case class FragMember_TmpBuffer(var field : Field, var direction : String, var size : Expression, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends FragCommMember(true, false, true, true, true) {
+case class TmpBuffer(var field : Field, var direction : String, var size : Expression, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, false, true, true, true) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, field.identifier /*FIXME: id*/ , field.level, neighIdx).cpp
 
   override def resolveName = s"buffer_${direction}" + resolvePostfix(fragmentIdx.cpp, "", field.identifier, field.level.toString, neighIdx.cpp)
@@ -123,7 +124,7 @@ case class FragMember_TmpBuffer(var field : Field, var direction : String, var s
   }
 }
 
-case class FragMember_IsValidForSubdomain(var domain : Expression, var fragmentIdx : Expression = "fragmentIdx") extends FragCommMember(true, true, false, false, false) {
+case class IsValidForSubdomain(var domain : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, true, false, false, false) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, new NullExpression).cpp
 
   override def resolveName = s"isValidForSubdomain" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", "")
@@ -131,7 +132,7 @@ case class FragMember_IsValidForSubdomain(var domain : Expression, var fragmentI
   override def resolveDefValue = Some(false)
 }
 
-case class FragMember_NeighborIsValid(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends FragCommMember(true, true, false, false, true) {
+case class NeighborIsValid(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, true, false, false, true) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
 
   override def resolveName = s"neighbor_isValid" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
@@ -139,7 +140,7 @@ case class FragMember_NeighborIsValid(var domain : Expression, var neighIdx : Ex
   override def resolveDefValue = Some(false)
 }
 
-case class FragMember_NeighborIsRemote(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends FragCommMember(true, true, false, false, true) {
+case class NeighborIsRemote(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, true, false, false, true) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
 
   override def resolveName = s"neighbor_isRemote" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
@@ -147,7 +148,7 @@ case class FragMember_NeighborIsRemote(var domain : Expression, var neighIdx : E
   override def resolveDefValue = Some(false)
 }
 
-case class FragMember_NeighborLocalPtr(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends FragCommMember(true, true, false, false, true) {
+case class NeighborLocalPtr(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, true, false, false, true) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
 
   override def resolveName = s"neighbor_localPtr" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
@@ -155,7 +156,7 @@ case class FragMember_NeighborLocalPtr(var domain : Expression, var neighIdx : E
   override def resolveDefValue = Some(0)
 }
 
-case class FragMember_NeighborFragCommId(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends FragCommMember(true, true, false, false, true) {
+case class NeighborFragCommId(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, true, false, false, true) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
 
   override def resolveName = s"neighbor_fragCommId" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
@@ -163,7 +164,7 @@ case class FragMember_NeighborFragCommId(var domain : Expression, var neighIdx :
   override def resolveDefValue = Some(-1)
 }
 
-case class FragMember_NeighborRemoteRank(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends FragCommMember(true, true, false, false, true) {
+case class NeighborRemoteRank(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, true, false, false, true) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
 
   override def resolveName = s"neighbor_remoteRank" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
@@ -171,7 +172,7 @@ case class FragMember_NeighborRemoteRank(var domain : Expression, var neighIdx :
   override def resolveDefValue = Some("MPI_PROC_NULL")
 }
 
-case class FragMember_FieldData(var field : Field, var slot : Expression, var fragmentIdx : Expression = "fragmentIdx") extends FragCommMember(true, false, false, true, false) {
+case class FieldData(var field : Field, var slot : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, false, false, true, false) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, new NullExpression, field.level, new NullExpression).cpp
 
   override def resolveName = field.codeName + resolvePostfix(fragmentIdx.cpp, "", "", field.level.toString, "")

@@ -279,7 +279,7 @@ case class LinearizedFieldAccess(var fieldSelection : FieldSelection, var index 
   override def cpp : String = "NOT VALID ; CLASS = ExternalFieldAccess\n"
 
   override def expand : Expression = {
-    new ArrayAccess(FragMember_FieldData(fieldSelection.field, fieldSelection.slot, fieldSelection.fragIdx), index.cpp)
+    new ArrayAccess(iv.FieldData(fieldSelection.field, fieldSelection.slot, fieldSelection.fragIdx), index.cpp)
   }
 }
 

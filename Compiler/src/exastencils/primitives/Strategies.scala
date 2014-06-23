@@ -28,15 +28,6 @@ object SetupFragmentClass extends DefaultStrategy("Setting up fragment class") {
       frag
   })
 
-//  this += new Transformation("Updating FragmentClass with required field declarations", {
-//    case frag : FragmentClass =>
-//      for (field <- FieldCollection.fields) {
-//        frag.declarations += VariableDeclarationStatement(ArrayDatatype(PointerDatatype(field.dataType.resolveUnderlyingDatatype), field.numSlots), field.codeName)
-//        frag.dTorBody ++= (0 until field.numSlots).map(slot => ("delete[] " ~ field.codeName ~ s"[$slot]") : Statement).to[ListBuffer]
-//      }
-//      frag
-//  })
-
   if (Knowledge.useMPI) {
     this += new Transformation("Adding basic functions to CommunicationFunctions", {
       case commFu : CommunicationFunctions =>
@@ -89,7 +80,7 @@ object AddFragmentMember extends DefaultStrategy("Adding members for fragment co
   var dtorMap : Map[String, Statement] = Map()
 
   this += new Transformation("Collecting", {
-    case mem : FragCommMember => // TODO: don't overwrite for performance reasons
+    case mem : iv.InternalVariable => // TODO: don't overwrite for performance reasons
       if (!mem.canBePerFragment) {
         declarationMap_fragment += (mem.resolveName -> mem.getDeclaration)
         if (mem.getCtor().isDefined)
@@ -133,7 +124,7 @@ object AddFragmentMember extends DefaultStrategy("Adding members for fragment co
   var bufferSizes : Map[Expression, Int] = Map()
 
   this += new Transformation("Collecting buffer sizes", {
-    case buf : FragMember_TmpBuffer =>
+    case buf : iv.TmpBuffer =>
       val size = SimplifyExpression.evalIntegral(buf.size).toInt
       val id = buf.resolveAccess(buf.resolveName, "fragmentIdx", new NullExpression, buf.field.identifier /*FIXME: id*/ , buf.field.level, buf.neighIdx)
       bufferSizes += (id -> (size max bufferSizes.getOrElse(id, 0)))

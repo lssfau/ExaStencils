@@ -183,7 +183,7 @@ case class LoopOverFragments(var domain : Int, var body : ListBuffer[Statement],
     if (createFragRef)
       modifiedBody += "Fragment3DCube& curFragment = *fragments[fragmentIdx]"
     if (domain >= 0 && createFragRef)
-      modifiedBody += new ConditionStatement(FragMember_IsValidForSubdomain(domain), body)
+      modifiedBody += new ConditionStatement(iv.IsValidForSubdomain(domain), body)
     else
       modifiedBody ++= body
 
