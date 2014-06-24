@@ -1,7 +1,7 @@
 package exastencils.primitives
 
 import scala.collection.mutable.ListBuffer
-import scala.collection.SortedMap
+import scala.collection.immutable.TreeMap
 import exastencils.core._
 import exastencils.util._
 import exastencils.globals._
@@ -10,11 +10,9 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.Transformation._
-import exastencils.primitives._
 import exastencils.strategies._
 import exastencils.omp._
 import exastencils.multiGrid._
-import scala.collection.immutable.TreeMap
 
 object SetupFragment extends DefaultStrategy("Setting up fragment") {
   override def apply(node : Option[Node] = None) = {

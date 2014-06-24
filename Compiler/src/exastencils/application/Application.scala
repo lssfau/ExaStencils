@@ -1,8 +1,6 @@
 package exastencils.application
 
 import scala.collection.mutable.ListBuffer
-import java.io.PrintWriter
-import java.io.File
 import exastencils.core._
 import exastencils.core.collectors._
 import exastencils.knowledge._
@@ -10,7 +8,6 @@ import exastencils.globals._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.primitives._
 import exastencils.prettyprinting._
 import exastencils.mpi._
 import exastencils.omp._
@@ -76,7 +73,7 @@ case class Poisson3DMain() extends AbstractFunctionStatement with Expandable {
           "Application()", // TODO: think about inlining the App
 
           "destroyGlobals()",
-          
+
           new MPI_Finalize,
 
           s"return 0"))

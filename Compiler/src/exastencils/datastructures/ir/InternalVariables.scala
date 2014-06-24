@@ -6,7 +6,6 @@ import exastencils.knowledge._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.util._
-import exastencils.primitives._
 
 abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDomain : Boolean, var canBePerField : Boolean, var canBePerLevel : Boolean, var canBePerNeigh : Boolean) extends Expression {
   override def cpp : String = resolveName

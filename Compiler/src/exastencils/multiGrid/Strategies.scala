@@ -6,13 +6,10 @@ import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.Transformation._
 import exastencils.util._
 import exastencils.multiGrid._
 import exastencils.strategies._
-import exastencils.primitives._
 import exastencils.mpi._
-import exastencils.datastructures.ir.FieldAccess
 
 object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions") {
   this += new Transformation("SearchAndReplace", {

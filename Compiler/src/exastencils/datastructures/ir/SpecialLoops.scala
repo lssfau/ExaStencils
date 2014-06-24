@@ -1,22 +1,18 @@
-package exastencils.primitives
+package exastencils.datastructures.ir
 
-import java.io.File
-import java.io.PrintWriter
 import scala.collection.mutable.ListBuffer
-import exastencils.core._
-import exastencils.core.collectors._
+//import exastencils.core._
+//import exastencils.core.collectors._
 import exastencils.knowledge._
-import exastencils.datastructures._
-import exastencils.datastructures.ir._
+//import exastencils.datastructures._
+//import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.prettyprinting._
+import exastencils.strategies._
 import exastencils.omp._
 import exastencils.mpi._
 import exastencils.polyhedron._
-import exastencils.strategies._
-import exastencils.optimization.PrecalcAddresses
-
-// TODO: Move accepted nodes to appropriate packages
+import exastencils.optimization._
 
 case class LoopOverDomain(var iterationSet : IterationSet, var field : Field, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = LoopOverDomain\n"
@@ -197,39 +193,5 @@ case class LoopOverFragments(var domain : Int, var body : ListBuffer[Statement],
     }
 
     StatementBlock(statements)
-  }
-}
-
-case class CommunicationFunctions(var functions : ListBuffer[AbstractFunctionStatement] = ListBuffer()) extends Node with FilePrettyPrintable {
-  override def printToFile = {
-    {
-      val writer = PrettyprintingManager.getPrinter(s"Primitives/CommunicationFunctions.h")
-
-      writer << (
-        "#define _USE_MATH_DEFINES\n"
-        + "#include <cmath>\n"
-        + (if (Knowledge.useMPI) "#pragma warning(disable : 4800)\n" else "")
-        + (if (Knowledge.useMPI) "#include <mpi.h>\n" else "")
-        + "#include \"Globals/Globals.h\"\n"
-        + "#include \"Util/Log.h\"\n"
-        + "#include \"Util/Vector.h\"\n")
-
-      for (func <- functions) {
-        val function = func.asInstanceOf[FunctionStatement]
-        writer << s"${function.returntype.cpp} ${function.name.cpp}(" + function.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n"
-      }
-    }
-
-    var i = 0
-    for (f <- functions) {
-      var s : String = ""
-
-      val writer = PrettyprintingManager.getPrinter(s"Primitives/CommunicationFunction_$i.cpp")
-
-      writer << "#include \"Primitives/CommunicationFunctions.h\"\n\n"
-      writer << f.cpp + "\n"
-
-      i += 1
-    }
   }
 }

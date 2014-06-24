@@ -5,10 +5,9 @@ import exastencils.core.collectors._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.omp._
-import exastencils.primitives._
 import exastencils.knowledge._
-import exastencils.strategies.SimplifyStrategy
-import exastencils.util.SimplifyExpression
+import exastencils.strategies._
+import exastencils.util._
 
 case class MPI_IsRootProc() extends Expression {
   def cpp : String = { s"0 == mpiRank" }

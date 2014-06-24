@@ -23,6 +23,7 @@ import exastencils.datastructures.ir.GreaterEqualExpression
 import exastencils.datastructures.ir.GreaterExpression
 import exastencils.datastructures.ir.IntegerConstant
 import exastencils.datastructures.ir.IntegerDatatype
+import exastencils.datastructures.ir.LoopOverDimensions
 import exastencils.datastructures.ir.LowerEqualExpression
 import exastencils.datastructures.ir.LowerExpression
 import exastencils.datastructures.ir.ModuloExpression
@@ -40,8 +41,6 @@ import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.VariableDeclarationStatement
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.optimization.PrecalcAddresses
-import exastencils.primitives.LoopOverDimensions
-import isl.Conversions.convertLambdaToXCallback1
 
 class ASTBuilderTransformation(replaceCallback : (HashMap[String, Expression], Node) => Unit)
   extends Transformation("insert optimized loop AST", new ASTBuilderFunction(replaceCallback))

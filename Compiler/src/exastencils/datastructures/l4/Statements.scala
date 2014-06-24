@@ -7,12 +7,9 @@ import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.primitives
-import exastencils.primitives._
 import exastencils.languageprocessing.l4.ProgressToIr
 import exastencils.util._
 import exastencils.globals._
-import exastencils.knowledge.IterationSetCollection
-import exastencils.knowledge.FieldCollection
 
 abstract class Statement extends Node with ProgressableToIr {
   def progressToIr : ir.Statement
@@ -77,8 +74,8 @@ case class AssignmentStatement(var dest : Access, var src : Expression, var op :
 }
 
 case class LoopOverDomainStatement(var iterationSet : String, var field : FieldAccess, var statements : List[Statement], var reduction : Option[ReductionStatement]) extends Statement {
-  def progressToIr : LoopOverDomain = {
-    LoopOverDomain(IterationSetCollection.getIterationSetByIdentifier(iterationSet).get,
+  def progressToIr : ir.LoopOverDomain = {
+    ir.LoopOverDomain(knowledge.IterationSetCollection.getIterationSetByIdentifier(iterationSet).get,
       field.resolveField,
       statements.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
       if (reduction.isDefined) Some(reduction.get.progressToIr) else None)

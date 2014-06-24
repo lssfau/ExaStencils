@@ -8,7 +8,6 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.strategies._
-import exastencils.primitives._
 
 trait Expression extends Node with CppPrettyPrintable {
   def ~(exp : Expression) : ConcatenationExpression = {

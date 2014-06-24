@@ -5,7 +5,6 @@ import exastencils.knowledge._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.mpi._
-import exastencils.primitives._
 
 case class PrintStatement(var toPrint : ListBuffer[Expression]) extends Statement with Expandable {
   def cpp : String = { return "NOT VALID ; CLASS = PrintStatement\n" }

@@ -3,8 +3,10 @@ package exastencils.primitives
 import scala.collection.mutable.ListBuffer
 import exastencils.core._
 import exastencils.core.collectors._
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.prettyprinting._
 import exastencils.globals._
 import exastencils.knowledge._
 import exastencils.mpi._
@@ -216,5 +218,39 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
 case class WaitForMPIReq(var request : Expression) extends Statement {
   override def cpp : String = {
     s"waitForMPIReq(&${request.cpp});"
+  }
+}
+
+case class CommunicationFunctions(var functions : ListBuffer[AbstractFunctionStatement] = ListBuffer()) extends Node with FilePrettyPrintable {
+  override def printToFile = {
+    {
+      val writer = PrettyprintingManager.getPrinter(s"Primitives/CommunicationFunctions.h")
+
+      writer << (
+        "#define _USE_MATH_DEFINES\n"
+        + "#include <cmath>\n"
+        + (if (Knowledge.useMPI) "#pragma warning(disable : 4800)\n" else "")
+        + (if (Knowledge.useMPI) "#include <mpi.h>\n" else "")
+        + "#include \"Globals/Globals.h\"\n"
+        + "#include \"Util/Log.h\"\n"
+        + "#include \"Util/Vector.h\"\n")
+
+      for (func <- functions) {
+        val function = func.asInstanceOf[FunctionStatement]
+        writer << s"${function.returntype.cpp} ${function.name.cpp}(" + function.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n"
+      }
+    }
+
+    var i = 0
+    for (f <- functions) {
+      var s : String = ""
+
+      val writer = PrettyprintingManager.getPrinter(s"Primitives/CommunicationFunction_$i.cpp")
+
+      writer << "#include \"Primitives/CommunicationFunctions.h\"\n\n"
+      writer << f.cpp + "\n"
+
+      i += 1
+    }
   }
 }
