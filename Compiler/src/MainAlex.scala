@@ -24,9 +24,8 @@ import exastencils.mpi._
 import exastencils.omp._
 import exastencils.polyhedron._
 
-
 object MainAlex {
-   def main(args : Array[String]) : Unit = {
+  def main(args : Array[String]) : Unit = {
     // Init settings
 
     if (args.length >= 1) {
@@ -38,7 +37,7 @@ object MainAlex {
       k.parseFile(args(1))
     }
 
-//    Knowledge.update()
+    //    Knowledge.update()
 
     // feature model  (modified FAMA Format (http://www.isa.us.es/fama/))
     //    FeatureModel.readFeatureModel(Settings.basePathPrefix + "/Compiler/featureModel/model_Prototype.model")
@@ -61,10 +60,8 @@ object MainAlex {
 
     // Setup tree
     StateManager.root_.asInstanceOf[Root].nodes ++= List(
-      // Domain
-      new DomainGenerated,
-
-      // Primitives
+      // FunctionCollections
+      new DomainFunctions,
       new CommunicationFunctions,
 
       // Util
@@ -98,63 +95,63 @@ object MainAlex {
 
     // Harald
 
-//    println("read HW")
-//
-//    if (!new java.io.File(DSLpath + problem + "levHW.mg").exists) {
-//      println("HW specification is missing!")
-//      sys.exit(0)
-//    }
-//
-//    val DSLHW : String = scala.io.Source.fromFile(DSLpath + problem + "levHW.mg").getLines.reduceLeft(_ + '\n' + _)
-//    //println(DSLHW)
-//
-//    val parserHW = new ParserHW
-//    parserHW.parseAll(parserHW.exastencilsHW, DSLHW)
-//
-//    harald_dep.dsl /*FIXME*/ .Hardware.initHWFeatures
-//
-//    if (!new java.io.File(DSLpath + problem + "lev1.mg").exists) {
-//      println("Problem specification (DSL level 1) is missing!")
-//      sys.exit(0)
-//    }
-//
-//    println("read PDE")
-//    val DSLl1 : String = scala.io.Source.fromFile(DSLpath + problem + "lev1.mg").getLines.reduceLeft(_ + '\n' + _)
-//    //println(DSLl1)
-//
-//    val parserl1 = new ParserL1
-//    parserl1.parseAll(parserl1.exastencilsL1, DSLl1)
-//
-//    if (!new java.io.File(DSLpath + problem + "lev2.mg").exists || DomainKnowledge.generate_L1.getOrElse(1) == 1)
-//      GenerateL2.transformL1toL2(DSLpath + problem + "lev2.mg")
-//
-//    println("read discretization")
-//    val DSLl2 : String = scala.io.Source.fromFile(DSLpath + problem + "lev2.mg").getLines.reduceLeft(_ + _)
-//    //println(DSLl2)
-//
-//    val parserl2 = new ParserL2(TreeManager.tree)
-//    parserl2.parseAll(parserl2.exastencilsL2, DSLl2)
-//    TreeManager.tree.exaFields.foreach(println)
-//    TreeManager.tree.exaOperators.foreach(println)
-//    DomainKnowledge.initfragments
-//
-//    val genL3 = new GenerateL3(TreeManager.tree)
-//    if (!new java.io.File(DSLpath + problem + "lev3.mg").exists || DomainKnowledge.generate_L1.getOrElse(1) == 1)
-//      genL3.transformL2toL3(DSLpath + problem + "lev3.mg")
-//
-//    val DSLl3 : String = scala.io.Source.fromFile(DSLpath + problem + "lev3.mg").getLines.reduceLeft(_ + _)
-//    //println(DSLl3)
-//
-//    val parserl3 = new ParserL3
-//    parserl3.parseAll(parserl3.exastencilsL3, DSLl3)
-//    DomainKnowledge.initarraysizes
-//
-//    val genL4 = new GenerateL4(TreeManager.tree)
-//    if (!(new java.io.File(DSLpath + problem + "lev4.mg").exists) || (DomainKnowledge.generate_L1.getOrElse(1) == 1)) {
-//      genL4.transformL3toL4(DSLpath + problem + "lev4.mg")
-//      println("generate L4: " + DomainKnowledge.generate_L1.getOrElse(1))
-//    }
-//    val DSLl4 : String = scala.io.Source.fromFile(DSLpath + problem + "lev4.mg").getLines.reduceLeft(_ + _)
+    //    println("read HW")
+    //
+    //    if (!new java.io.File(DSLpath + problem + "levHW.mg").exists) {
+    //      println("HW specification is missing!")
+    //      sys.exit(0)
+    //    }
+    //
+    //    val DSLHW : String = scala.io.Source.fromFile(DSLpath + problem + "levHW.mg").getLines.reduceLeft(_ + '\n' + _)
+    //    //println(DSLHW)
+    //
+    //    val parserHW = new ParserHW
+    //    parserHW.parseAll(parserHW.exastencilsHW, DSLHW)
+    //
+    //    harald_dep.dsl /*FIXME*/ .Hardware.initHWFeatures
+    //
+    //    if (!new java.io.File(DSLpath + problem + "lev1.mg").exists) {
+    //      println("Problem specification (DSL level 1) is missing!")
+    //      sys.exit(0)
+    //    }
+    //
+    //    println("read PDE")
+    //    val DSLl1 : String = scala.io.Source.fromFile(DSLpath + problem + "lev1.mg").getLines.reduceLeft(_ + '\n' + _)
+    //    //println(DSLl1)
+    //
+    //    val parserl1 = new ParserL1
+    //    parserl1.parseAll(parserl1.exastencilsL1, DSLl1)
+    //
+    //    if (!new java.io.File(DSLpath + problem + "lev2.mg").exists || DomainKnowledge.generate_L1.getOrElse(1) == 1)
+    //      GenerateL2.transformL1toL2(DSLpath + problem + "lev2.mg")
+    //
+    //    println("read discretization")
+    //    val DSLl2 : String = scala.io.Source.fromFile(DSLpath + problem + "lev2.mg").getLines.reduceLeft(_ + _)
+    //    //println(DSLl2)
+    //
+    //    val parserl2 = new ParserL2(TreeManager.tree)
+    //    parserl2.parseAll(parserl2.exastencilsL2, DSLl2)
+    //    TreeManager.tree.exaFields.foreach(println)
+    //    TreeManager.tree.exaOperators.foreach(println)
+    //    DomainKnowledge.initfragments
+    //
+    //    val genL3 = new GenerateL3(TreeManager.tree)
+    //    if (!new java.io.File(DSLpath + problem + "lev3.mg").exists || DomainKnowledge.generate_L1.getOrElse(1) == 1)
+    //      genL3.transformL2toL3(DSLpath + problem + "lev3.mg")
+    //
+    //    val DSLl3 : String = scala.io.Source.fromFile(DSLpath + problem + "lev3.mg").getLines.reduceLeft(_ + _)
+    //    //println(DSLl3)
+    //
+    //    val parserl3 = new ParserL3
+    //    parserl3.parseAll(parserl3.exastencilsL3, DSLl3)
+    //    DomainKnowledge.initarraysizes
+    //
+    //    val genL4 = new GenerateL4(TreeManager.tree)
+    //    if (!(new java.io.File(DSLpath + problem + "lev4.mg").exists) || (DomainKnowledge.generate_L1.getOrElse(1) == 1)) {
+    //      genL4.transformL3toL4(DSLpath + problem + "lev4.mg")
+    //      println("generate L4: " + DomainKnowledge.generate_L1.getOrElse(1))
+    //    }
+    //    val DSLl4 : String = scala.io.Source.fromFile(DSLpath + problem + "lev4.mg").getLines.reduceLeft(_ + _)
     //println(DSLl4)
 
     //    val parserl4_dep = new harald_dep.Parser.ParserL4(TreeManager.tree)

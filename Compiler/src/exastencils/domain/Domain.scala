@@ -209,38 +209,17 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
   }
 }
 
-case class DomainGenerated(var functions : ListBuffer[AbstractFunctionStatement] = new ListBuffer) extends Node with FilePrettyPrintable {
+case class DomainFunctions() extends FunctionCollection("Domains/DomainGenerated",
+  (if (Knowledge.useMPI)
+    ListBuffer("#pragma warning(disable : 4800)", "#include <mpi.h>")
+  else
+    ListBuffer())
+    ++
+    ListBuffer(
+      "#include \"Globals/Globals.h\"",
+      "#include \"Util/Log.h\"",
+      "#include \"Util/Vector.h\"",
+      "#include \"Primitives/CommunicationFunctions.h\"")) {
+
   functions += new InitGeneratedDomain
-
-  override def printToFile = {
-    {
-      val writer = PrettyprintingManager.getPrinter(s"Domains/DomainGenerated.h")
-
-      writer << (
-        (if (Knowledge.useMPI) "#pragma warning(disable : 4800)\n" else "")
-        + (if (Knowledge.useMPI) "#include <mpi.h>\n" else "")
-        + "#include \"Globals/Globals.h\"\n"
-        + "#include \"Util/Log.h\"\n"
-        + "#include \"Util/Vector.h\"\n"
-        + "#include \"Primitives/CommunicationFunctions.h\"\n")
-
-      for (func <- functions) {
-        val function = func.asInstanceOf[FunctionStatement]
-        writer << s"${function.returntype.cpp} ${function.name.cpp}(" + function.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n"
-      }
-    }
-
-    var i = 0
-    for (f <- functions) {
-      var s : String = ""
-
-      val writer = PrettyprintingManager.getPrinter(s"Domains/DomainGenerated_$i.cpp")
-
-      writer << "#include \"Domains/DomainGenerated.h\"\n\n"
-      writer << f.cpp + "\n"
-
-      i += 1
-    }
-  }
-
 }

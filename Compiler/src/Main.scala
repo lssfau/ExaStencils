@@ -55,10 +55,8 @@ object Main {
 
     // Setup tree
     StateManager.root_.asInstanceOf[ir.Root].nodes ++= List(
-      // Domain
-      new DomainGenerated,
-
-      // Primitives
+      // FunctionCollections
+      new DomainFunctions,
       new CommunicationFunctions,
 
       // Util

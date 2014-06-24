@@ -29,22 +29,22 @@ import exastencils.spl.test.PredictionTests
 import scala.util.Random
 
 object VariabilityParser {
-  def main(args: Array[String]): Unit = {
+  def main(args : Array[String]) : Unit = {
 
-//    val file = Settings.basePathPrefix + "/Compiler/src/exastencils/knowledge/Knowledge.scala"
-//    readFeaturesL4(file)
-//
-//    generateVariant()
+    //    val file = Settings.basePathPrefix + "/Compiler/src/exastencils/knowledge/Knowledge.scala"
+    //    readFeaturesL4(file)
+    //
+    //    generateVariant()
 
     testMachineLearningAlgorithms
-    
+
   }
 
   /**
-   * Splits the given file and adds all features (defined by lines with an // [...]) to the feature model
-   *
-   */
-  def readFeaturesL4(fileName: String) = {
+    * Splits the given file and adds all features (defined by lines with an // [...]) to the feature model
+    *
+    */
+  def readFeaturesL4(fileName : String) = {
     var knowledgeFile = Source.fromFile(fileName).mkString.split("\n")
 
     for (i <- 0 until knowledgeFile.length - 1) {
@@ -60,7 +60,7 @@ object VariabilityParser {
     Knowledge.update()
 
     var testConfigs : Array[Configuration] = Array()
-    
+
     var config = FeatureModel.getDefaultConfig()
     useConfiguration(config)
 
@@ -70,42 +70,40 @@ object VariabilityParser {
 
   }
 
-  val rand : Random = new Random (1)
+  val rand : Random = new Random(1)
   /**
-   * This method uses the old feature model syntax (FAMA like syntax) and uses the re
-   * 
-   */
+    * This method uses the old feature model syntax (FAMA like syntax) and uses the re
+    *
+    */
   def testMachineLearningAlgorithms() = {
-    
+
     // interpretieren des alten FeatueModelles
     FeatureModel.FAMASyntax_ReadFeatureModel("./featureModel/model_HSMGP_noCores_numerical.model")
-//    FeatureModel.FAMASyntax_ReadFeatureModel("./featureModel/model_HSMGP_noCores.model")
+    //    FeatureModel.FAMASyntax_ReadFeatureModel("./featureModel/model_HSMGP_noCores.model")
     var pTest : PredictionTests = new PredictionTests()
     pTest.readFile("./src/exastencils/spl/test/P2D_minimalOnlyAvgTime.txt")
-    var allConfigs = pTest.allConfigs .toArray[Configuration]
-    
+    var allConfigs = pTest.allConfigs.toArray[Configuration]
+
     // verwenden einige Konfigurationen als Trainigset
     var testConfigs : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
-    
-  
-    for(i <- 1 to 30){
+
+    for (i <- 1 to 30) {
       var pos = (rand.nextDouble * pTest.allConfigs.size).toInt
       testConfigs.add(allConfigs(pos))
     }
-      
 
     var forwardFeatureSelection = new ForwardFeatureSelection(15, testConfigs.toArray[Configuration])
-       forwardFeatureSelection.apply
-        
-    println("-------------------------------------------------------------------------------------")   
-    println("Overall Error "+forwardFeatureSelection.computeErrorForCombination(forwardFeatureSelection.solutionSet.toArray[scala.collection.mutable.Set[Feature]], allConfigs)) 
-       
+    forwardFeatureSelection.apply
+
+    println("-------------------------------------------------------------------------------------")
+    println("Overall Error " + forwardFeatureSelection.computeErrorForCombination(forwardFeatureSelection.solutionSet.toArray[scala.collection.mutable.Set[Feature]], allConfigs))
+
     // predicten of all configs
     println("finished")
-    
+
   }
-  
-  def useConfiguration(configuration: Configuration) = {
+
+  def useConfiguration(configuration : Configuration) = {
     Knowledge.getClass().getDeclaredFields().foreach(f =>
       if (FeatureModel.allFeatures.contains(f.getName())) {
         var feature = FeatureModel.allFeatures(f.getName())
@@ -117,7 +115,7 @@ object VariabilityParser {
       })
   }
 
-  def testMultiVariantGeneration(location: String): NonFunctionalProperties = {
+  def testMultiVariantGeneration(location : String) : NonFunctionalProperties = {
     Settings.outputPath = location
 
     // HACK: this tests the new L4 capabilities
@@ -130,10 +128,8 @@ object VariabilityParser {
 
     // Setup tree
     StateManager.root_.asInstanceOf[ir.Root].nodes ++= List(
-      // Domain
-      new DomainGenerated,
-
-      // Primitives
+      // FunctionCollections
+      new DomainFunctions,
       new CommunicationFunctions,
 
       // Util

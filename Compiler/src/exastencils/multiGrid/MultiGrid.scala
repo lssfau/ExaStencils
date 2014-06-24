@@ -35,38 +35,20 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
   }
 }
 
-case class MultiGrid(var functions : ListBuffer[AbstractFunctionStatement] = new ListBuffer) extends Node with FilePrettyPrintable {
+case class MultiGridFunctions() extends FunctionCollection("MultiGrid/MultiGrid",
+  (if (Knowledge.useMPI)
+    ListBuffer("#pragma warning(disable : 4800)", "#include <mpi.h>")
+  else
+    ListBuffer())
+    ++
+    ListBuffer(
+      "#include \"Globals/Globals.h\"",
+      "#include \"Util/Log.h\"",
+      "#include \"Util/Vector.h\"",
+      "#include \"Util/Stopwatch.h\"",
+      "#include \"Primitives/CommunicationFunctions.h\"",
+      "#include \"Domains/DomainGenerated.h\"")) {
+
   if (Knowledge.data_initAllFieldsWithZero)
     functions += new InitFieldsWithZero
-
-  override def printToFile = {
-    val writer = PrettyprintingManager.getPrinter(s"MultiGrid/MultiGrid.h")
-
-    writer << (
-      (if (Knowledge.useMPI) "#pragma warning(disable : 4800)\n" else "")
-      + (if (Knowledge.useMPI) "#include <mpi.h>\n" else "")
-      + "#include \"Globals/Globals.h\"\n"
-      + "#include \"Util/Log.h\"\n"
-      + "#include \"Util/Vector.h\"\n"
-      + "#include \"Util/Stopwatch.h\"\n"
-      + "#include \"Primitives/CommunicationFunctions.h\"\n"
-      + "#include \"Domains/DomainGenerated.h\"\n")
-
-    for (func <- functions) {
-      val function = func.asInstanceOf[FunctionStatement]
-      writer << s"${function.returntype.cpp} ${function.name.cpp}(" + function.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n"
-    }
-
-    var i = 0
-    for (f <- functions) {
-      var s : String = ""
-
-      val writer = PrettyprintingManager.getPrinter(s"MultiGrid/MultiGrid_$i.cpp")
-
-      writer << "#include \"MultiGrid/MultiGrid.h\"\n"
-      writer << f.cpp + "\n"
-
-      i += 1
-    }
-  }
 }

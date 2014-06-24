@@ -221,36 +221,17 @@ case class WaitForMPIReq(var request : Expression) extends Statement {
   }
 }
 
-case class CommunicationFunctions(var functions : ListBuffer[AbstractFunctionStatement] = ListBuffer()) extends Node with FilePrettyPrintable {
-  override def printToFile = {
-    {
-      val writer = PrettyprintingManager.getPrinter(s"Primitives/CommunicationFunctions.h")
-
-      writer << (
-        "#define _USE_MATH_DEFINES\n"
-        + "#include <cmath>\n"
-        + (if (Knowledge.useMPI) "#pragma warning(disable : 4800)\n" else "")
-        + (if (Knowledge.useMPI) "#include <mpi.h>\n" else "")
-        + "#include \"Globals/Globals.h\"\n"
-        + "#include \"Util/Log.h\"\n"
-        + "#include \"Util/Vector.h\"\n")
-
-      for (func <- functions) {
-        val function = func.asInstanceOf[FunctionStatement]
-        writer << s"${function.returntype.cpp} ${function.name.cpp}(" + function.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n"
-      }
-    }
-
-    var i = 0
-    for (f <- functions) {
-      var s : String = ""
-
-      val writer = PrettyprintingManager.getPrinter(s"Primitives/CommunicationFunction_$i.cpp")
-
-      writer << "#include \"Primitives/CommunicationFunctions.h\"\n\n"
-      writer << f.cpp + "\n"
-
-      i += 1
-    }
-  }
-}
+case class CommunicationFunctions() extends FunctionCollection("Primitives/CommunicationFunctions",
+  ListBuffer(
+    "#define _USE_MATH_DEFINES",
+    "#include <cmath>")
+    ++
+    (if (Knowledge.useMPI)
+      ListBuffer("#pragma warning(disable : 4800)", "#include <mpi.h>")
+    else
+      ListBuffer())
+    ++
+    ListBuffer(
+      "#include \"Globals/Globals.h\"",
+      "#include \"Util/Log.h\"",
+      "#include \"Util/Vector.h\"")) {}

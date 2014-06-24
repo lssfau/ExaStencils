@@ -91,7 +91,7 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
 
     globals.foreach(f => newRoot += f.progressToIr) // FIXME: this will generate multiple Global instances...
 
-    var multiGrid = new MultiGrid // FIXME: think about how to manage (MG/other) functions
+    var multiGrid = new MultiGridFunctions // FIXME: think about how to manage (MG/other) functions
     for (node <- statements)
       node match {
         case function : FunctionStatement => multiGrid.functions += function.progressToIr

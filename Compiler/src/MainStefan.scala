@@ -4,7 +4,7 @@ import exastencils.datastructures.Node
 import exastencils.datastructures.ir
 import exastencils.datastructures.l3
 import exastencils.datastructures.l4
-import exastencils.domain.DomainGenerated
+import exastencils.domain.DomainFunctions
 import exastencils.globals.AddDefaultGlobals
 import exastencils.knowledge.FindStencilConvolutions
 import exastencils.knowledge.Knowledge
@@ -17,12 +17,12 @@ import exastencils.parsers.l4.ParserL4
 import exastencils.parsers.l4.ValidationL4
 import exastencils.polyhedron.PolyOpt
 import exastencils.prettyprinting.PrettyprintingManager
+import exastencils.primitives.AddInternalVariables
 import exastencils.primitives.CommunicationFunctions
 import exastencils.primitives.LinearizeFieldAccesses
 import exastencils.primitives.ResolveIndexOffsets
 import exastencils.primitives.ResolveLoopOverDimensions
 import exastencils.primitives.SetupFragment
-import exastencils.primitives.AddInternalVariables
 import exastencils.strategies.ExpandStrategy
 import exastencils.strategies.PrintStrategy
 import exastencils.strategies.SimplifyStrategy
@@ -64,8 +64,9 @@ object MainStefan {
 
     // Setup tree
     StateManager.root_.asInstanceOf[ir.Root].nodes ++= List(
-      // Domain
-      new DomainGenerated,
+      // FunctionCollections
+      new DomainFunctions,
+      new CommunicationFunctions,
 
       // Primitives
       new CommunicationFunctions,
