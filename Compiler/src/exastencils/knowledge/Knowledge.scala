@@ -119,6 +119,7 @@ object Knowledge {
 
   // --- Polyhedron Optimization ---
   var poly_usePolyOpt : Boolean = true // [true|false] 
+  var poly_useAddressPrecalc : Boolean = true // [true|false]
 
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once

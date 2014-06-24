@@ -1,7 +1,5 @@
 import java.util.Locale
-
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core._
 import exastencils.knowledge._
 import exastencils.parsers.l4._
@@ -19,6 +17,7 @@ import exastencils.mpi._
 import exastencils.omp._
 import exastencils.spl.FeatureModel
 import exastencils.polyhedron._
+import exastencils.optimization._
 
 object Main {
   def main(args : Array[String]) : Unit = {
@@ -84,6 +83,9 @@ object Main {
     ResolveIndexOffsets.apply()
 
     LinearizeFieldAccesses.apply()
+
+    if (Knowledge.poly_useAddressPrecalc)
+      AddressPrecalculation.apply()
 
     ExpandStrategy.doUntilDone()
 
