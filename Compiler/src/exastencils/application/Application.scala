@@ -27,7 +27,7 @@ case class InitFields() extends Statement with Expandable {
           new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => field.layout(i).idxGhostRightEnd))),
           (0 until field.numSlots).to[ListBuffer].map(slot =>
             new AssignmentStatement(
-              new DirectFieldAccess(FieldSelection(field, slot, -1), DefaultLoopMultiIndex()),
+              new DirectFieldAccess(FieldSelection(field, slot, -1), LoopOverDimensions.defIt),
               0.0) : Statement)) with OMP_PotentiallyParallel with PolyhedronAccessable) with OMP_PotentiallyParallel
     }
 

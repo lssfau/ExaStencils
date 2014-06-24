@@ -65,7 +65,7 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
   }
 
   def progressToIr : ir.FieldAccess = {
-    var multiIndex = ir.DefaultLoopMultiIndex()
+    var multiIndex = ir.LoopOverDimensions.defIt
     multiIndex(Knowledge.dimensionality) = arrayIndex
     ir.FieldAccess(
       knowledge.FieldSelection(
@@ -89,7 +89,7 @@ case class StencilFieldAccess(var name : String, var level : AccessLevelSpecific
         knowledge.StencilFieldCollection.getStencilFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get,
         slot.progressToIr,
         -1),
-      ir.DefaultLoopMultiIndex())
+      ir.LoopOverDimensions.defIt)
   }
 }
 

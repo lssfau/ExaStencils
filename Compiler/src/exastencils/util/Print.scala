@@ -38,7 +38,7 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
           ("stream << xPos << \" \"" +
             (if (Knowledge.dimensionality > 1) " << yPos << \" \"" else "") +
             (if (Knowledge.dimensionality > 2) " << zPos << \" \"" else "") +
-            " << " : Expression) ~ new FieldAccess(field, DefaultLoopMultiIndex()) ~ " << std::endl")),
+            " << " : Expression) ~ new FieldAccess(field, LoopOverDimensions.defIt) ~ " << std::endl")),
       "stream.close()"))
 
     new StatementBlock(statements)

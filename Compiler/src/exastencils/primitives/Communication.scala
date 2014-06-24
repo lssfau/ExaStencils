@@ -35,8 +35,8 @@ case class LocalSend(var field : FieldSelection, var neighbors : ListBuffer[(Nei
               neigh._2,
               new AssignmentStatement(
                 new DirectFieldAccess(FieldSelection(field.field, field.slot, -1, iv.NeighborFragLocalId(field.domainIndex, neigh._1.index)), new MultiIndex(
-                  new MultiIndex(DefaultLoopMultiIndex(), neigh._3.begin, _ + _), neigh._2.begin, _ - _)),
-                new DirectFieldAccess(FieldSelection(field.field, field.slot, -1), DefaultLoopMultiIndex()))) with OMP_PotentiallyParallel with PolyhedronAccessable))) : Statement)) with OMP_PotentiallyParallel
+                  new MultiIndex(LoopOverDimensions.defIt, neigh._3.begin, _ + _), neigh._2.begin, _ - _)),
+                new DirectFieldAccess(FieldSelection(field.field, field.slot, -1), LoopOverDimensions.defIt))) with OMP_PotentiallyParallel with PolyhedronAccessable))) : Statement)) with OMP_PotentiallyParallel
   }
 }
 
@@ -45,8 +45,8 @@ case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborI
 
   def expand : Statement = {
     val tmpBufAccess = new ArrayAccess(iv.TmpBuffer(field.field, "Send", indices.getSizeHigher, neighbor.index),
-      Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), indices.begin, _ - _), indices))
-    val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.slot, -1), DefaultLoopMultiIndex())
+      Mapping.resolveMultiIdx(new MultiIndex(LoopOverDimensions.defIt, indices.begin, _ - _), indices))
+    val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.slot, -1), LoopOverDimensions.defIt)
 
     new LoopOverDimensions(Knowledge.dimensionality + 1, indices, new AssignmentStatement(tmpBufAccess, fieldAccess)) with OMP_PotentiallyParallel with PolyhedronAccessable
   }
@@ -57,8 +57,8 @@ case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : Neighbo
 
   def expand : Statement = {
     val tmpBufAccess = new ArrayAccess(iv.TmpBuffer(field.field, "Recv", indices.getSizeHigher, neighbor.index),
-      Mapping.resolveMultiIdx(new MultiIndex(DefaultLoopMultiIndex(), indices.begin, _ - _), indices))
-    val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.slot, -1), DefaultLoopMultiIndex())
+      Mapping.resolveMultiIdx(new MultiIndex(LoopOverDimensions.defIt, indices.begin, _ - _), indices))
+    val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.slot, -1), LoopOverDimensions.defIt)
 
     new LoopOverDimensions(Knowledge.dimensionality + 1, indices, new AssignmentStatement(fieldAccess, tmpBufAccess)) with OMP_PotentiallyParallel with PolyhedronAccessable
   }

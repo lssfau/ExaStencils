@@ -240,16 +240,6 @@ case class MultiIndex(
   }
 }
 
-object DefaultLoopMultiIndex {
-  def apply() : MultiIndex = {
-    Knowledge.dimensionality match {
-      case 1 => new MultiIndex(dimToString(0), dimToString(1))
-      case 2 => new MultiIndex(dimToString(0), dimToString(1), dimToString(2))
-      case 3 => new MultiIndex(dimToString(0), dimToString(1), dimToString(2), dimToString(3))
-    }
-  }
-}
-
 case class DirectFieldAccess(var fieldSelection : FieldSelection, var index : MultiIndex) extends Expression {
   override def cpp : String = "NOT VALID ; CLASS = FieldAccess\n"
 

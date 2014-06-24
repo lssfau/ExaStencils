@@ -36,13 +36,13 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
 
     // NOTE: reverse order due to wrapping
     if (canBePerNeigh && Knowledge.comm_sepCommStructsPerNeigh && Knowledge.comm_useCommArraysPerNeigh && Fragment.neighbors.size > 1)
-      wrappedBody = new ForLoopStatement(s"unsigned int neighIdx = 0", s"neighIdx < ${Fragment.neighbors.size}", s"++neighIdx", wrappedBody)
+      wrappedBody = new LoopOverNeighbors(wrappedBody)
     if (canBePerLevel && Knowledge.comm_sepCommStructsPerLevel && Knowledge.comm_useCommArraysPerLevel && Knowledge.numLevels > 1)
-      wrappedBody = new ForLoopStatement(s"unsigned int level = 0", s"level < ${Knowledge.numLevels}", s"++level", wrappedBody)
+      wrappedBody = new LoopOverLevels(wrappedBody)
     if (canBePerField && Knowledge.comm_sepCommStructsPerField && Knowledge.comm_useCommArraysPerField && FieldCollection.fields.size > 1)
-      wrappedBody = new ForLoopStatement(s"unsigned int fieldIdx = 0", s"fieldIdx < ${FieldCollection.fields.size}", s"++fieldIdx", wrappedBody)
+      wrappedBody = new LoopOverFields(wrappedBody)
     if (canBePerDomain && Knowledge.comm_sepCommStructsPerDomain && Knowledge.comm_useCommArraysPerDomain && DomainCollection.domains.size > 1)
-      wrappedBody = new ForLoopStatement(s"unsigned int domainIdx = 0", s"domainIdx < ${DomainCollection.domains.size}", s"++domainIdx", wrappedBody)
+      wrappedBody = new LoopOverDomains(wrappedBody)
     if (canBePerFragment && Knowledge.comm_useCommArraysPerFragment && Knowledge.domain_numFragsPerBlock > 1)
       wrappedBody = new LoopOverFragments(-1, wrappedBody)
 
@@ -51,7 +51,7 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
 
   def getCtor() : Option[Statement] = {
     if (resolveDefValue.isDefined)
-      Some(wrapInLoops(AssignmentStatement(resolveAccess(resolveName, LoopOverFragments.defIt, "domainIdx", "fieldIdx", "level", "neighIdx"), resolveDefValue.get)))
+      Some(wrapInLoops(AssignmentStatement(resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt), resolveDefValue.get)))
     else
       None
   }
@@ -187,7 +187,7 @@ case class FieldData(var field : Field, var slot : Expression, var fragmentIdx :
   override def getCtor() : Option[Statement] = {
     val origSlot = slot
     slot = "slot"
-    val ret = Some(wrapInLoops(AssignmentStatement(resolveAccess(resolveName, LoopOverFragments.defIt, "domainIdx", "fieldIdx", "level", "neighIdx"), resolveDefValue.get)))
+    val ret = Some(wrapInLoops(AssignmentStatement(resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt), resolveDefValue.get)))
     slot = origSlot
     ret
   }
@@ -195,10 +195,10 @@ case class FieldData(var field : Field, var slot : Expression, var fragmentIdx :
   override def getDtor() : Option[Statement] = {
     val origSlot = slot
     slot = "slot"
-    val ret = Some(wrapInLoops(new ConditionStatement(resolveAccess(resolveName, LoopOverFragments.defIt, "domainIdx", "fieldIdx", "level", "neighIdx"),
+    val ret = Some(wrapInLoops(new ConditionStatement(resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt),
       ListBuffer[Statement](
-        "delete []" ~~ resolveAccess(resolveName, LoopOverFragments.defIt, "domainIdx", "fieldIdx", "level", "neighIdx"),
-        new AssignmentStatement(resolveAccess(resolveName, LoopOverFragments.defIt, "domainIdx", "fieldIdx", "level", "neighIdx"), 0)))))
+        "delete []" ~~ resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt),
+        new AssignmentStatement(resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt), 0)))))
     slot = origSlot
     ret
   }

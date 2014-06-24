@@ -14,7 +14,6 @@ import exastencils.datastructures.ir.AdditionExpression
 import exastencils.datastructures.ir.ArrayAccess
 import exastencils.datastructures.ir.AssignmentStatement
 import exastencils.datastructures.ir.BooleanConstant
-import exastencils.datastructures.ir.DefaultLoopMultiIndex
 import exastencils.datastructures.ir.DirectFieldAccess
 import exastencils.datastructures.ir.DivisionExpression
 import exastencils.datastructures.ir.EqEqExpression
@@ -456,7 +455,7 @@ class Extractor extends Collector {
 
     val begin : MultiIndex = loop.indices.begin
     val end : MultiIndex = loop.indices.end
-    val loopVarExps : MultiIndex = DefaultLoopMultiIndex.apply()
+    val loopVarExps : MultiIndex = LoopOverDimensions.defIt
 
     val params = new HashSet[String]()
     val modelLoopVars = new ArrayStack[String]()

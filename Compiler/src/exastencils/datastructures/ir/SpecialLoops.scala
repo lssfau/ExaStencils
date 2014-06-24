@@ -35,6 +35,16 @@ case class LoopOverDomain(var iterationSet : IterationSet, var field : Field, va
   }
 }
 
+object LoopOverDimensions {
+  def defIt = {
+    Knowledge.dimensionality match {
+      case 1 => new MultiIndex(dimToString(0), dimToString(1))
+      case 2 => new MultiIndex(dimToString(0), dimToString(1), dimToString(2))
+      case 3 => new MultiIndex(dimToString(0), dimToString(1), dimToString(2), dimToString(3))
+    }
+  }
+}
+
 case class LoopOverDimensions(var numDimensions : Int,
     var indices : IndexRange,
     var body : ListBuffer[Statement],
@@ -193,6 +203,70 @@ case class LoopOverFragments(var domain : Int, var body : ListBuffer[Statement],
     }
 
     StatementBlock(statements)
+  }
+}
+
+object LoopOverDomains { def defIt = "domainIdx" }
+
+case class LoopOverDomains(var body : ListBuffer[Statement]) extends Statement with Expandable {
+  def this(body : Statement) = this(ListBuffer(body))
+
+  def cpp = "NOT VALID ; CLASS = LoopOverDomains\n"
+
+  def expand : ForLoopStatement = {
+    new ForLoopStatement(
+      VariableDeclarationStatement(new IntegerDatatype, LoopOverDomains.defIt, Some(0)),
+      new LowerExpression(LoopOverDomains.defIt, Knowledge.domain_numFragsPerBlock),
+      AssignmentStatement(LoopOverDomains.defIt, 1, "+="),
+      body)
+  }
+}
+
+object LoopOverFields { def defIt = "fieldIdx" }
+
+case class LoopOverFields(var body : ListBuffer[Statement]) extends Statement with Expandable {
+  def this(body : Statement) = this(ListBuffer(body))
+
+  def cpp = "NOT VALID ; CLASS = LoopOverFields\n"
+
+  def expand : ForLoopStatement = {
+    new ForLoopStatement(
+      VariableDeclarationStatement(new IntegerDatatype, LoopOverFields.defIt, Some(0)),
+      new LowerExpression(LoopOverFields.defIt, FieldCollection.fields.size),
+      AssignmentStatement(LoopOverFields.defIt, 1, "+="),
+      body)
+  }
+}
+
+object LoopOverLevels { def defIt = "levelIdx" }
+
+case class LoopOverLevels(var body : ListBuffer[Statement]) extends Statement with Expandable {
+  def this(body : Statement) = this(ListBuffer(body))
+
+  def cpp = "NOT VALID ; CLASS = LoopOverLevels\n"
+
+  def expand : ForLoopStatement = {
+    new ForLoopStatement(
+      VariableDeclarationStatement(new IntegerDatatype, LoopOverLevels.defIt, Some(0)),
+      new LowerExpression(LoopOverLevels.defIt, Knowledge.numLevels),
+      AssignmentStatement(LoopOverLevels.defIt, 1, "+="),
+      body)
+  }
+}
+
+object LoopOverNeighbors { def defIt = "neighborIdx" }
+
+case class LoopOverNeighbors(var body : ListBuffer[Statement]) extends Statement with Expandable {
+  def this(body : Statement) = this(ListBuffer(body))
+
+  def cpp = "NOT VALID ; CLASS = LoopOverNeighbors\n"
+
+  def expand : ForLoopStatement = {
+    new ForLoopStatement(
+      VariableDeclarationStatement(new IntegerDatatype, LoopOverNeighbors.defIt, Some(0)),
+      new LowerExpression(LoopOverNeighbors.defIt, Fragment.neighbors.size),
+      AssignmentStatement(LoopOverNeighbors.defIt, 1, "+="),
+      body)
   }
 }
 

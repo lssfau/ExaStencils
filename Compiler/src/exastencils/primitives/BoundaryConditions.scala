@@ -18,7 +18,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
 
     statements += new InitGeomCoords(field.field) // FIXME: only add if really required
     for (vecDim <- 0 until field.field.vectorSize) { // FIXME: this works for now, but users may want to specify bc's per vector element
-      var index = DefaultLoopMultiIndex()
+      var index = LoopOverDimensions.defIt
       index(Knowledge.dimensionality) = vecDim
       var fieldSel = new FieldSelection(field.field, field.slot, vecDim, field.fragIdx)
       statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index), Duplicate(field.field.dirichletBC.get))
