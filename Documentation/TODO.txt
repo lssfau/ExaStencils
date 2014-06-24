@@ -1,17 +1,18 @@
 Concept:
 - Find a way to express dependencies between different trafos (must occur after x and must occur before y, etc) and ideally implement an according scheduler/ optimizer
+- Use nodes by reference or apply deep copy? -> automatically apply duplicate for subclasses of node; all other objects (esp fields, stencils and other knowledge objects) should be copied by reference
 
-General:
+Framework:
 - Lib/ Inc Blocks in HW Knowledge
 - reserve C keywords in lexer
 
 - find a way to eliminate StatementBlocks, etc without breaking expand functionality
+- add possibility to specify trafos, that don't exchange nodes, i.e. read-only or only node-internal modification; goal is not having to return a result (for more readability and deep matches)
+- add delete node functionality
 
 - check uniform usage over 'override' keyword
 - check 'var' usage
 - check ';' usage
-
-- Add possibility to specify trafos, that don't exchange nodes, i.e. read-only or only node-internal modification; goal is not having to return a result (for more readability and deep matches)
 
 L3:
 
@@ -24,11 +25,9 @@ L4:
 - extend Repeat statement with optional ident and optional lower bound
 
 - SetStencilCoeff (id, offset, coeff)
-- StencilFields/ CoeffFields
 
 IR:
 - add one distinct communicator per (sub)domain
-- add special node to express 'curFragment.'
 
 ISL:
 - L4 constraints to ISL mapping
