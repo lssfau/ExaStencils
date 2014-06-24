@@ -7,7 +7,6 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.strategies._
-import exastencils.application._
 import exastencils.domain._
 import exastencils.multiGrid._
 import exastencils.primitives._
@@ -131,9 +130,6 @@ object VariabilityParser {
 
     // Setup tree
     StateManager.root_.asInstanceOf[ir.Root].nodes ++= List(
-      // Application
-      new Poisson3D,
-
       // Domain
       new DomainGenerated,
 

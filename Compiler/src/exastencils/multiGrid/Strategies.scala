@@ -69,5 +69,17 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
       new PrintStatement(args)
     case ExpressionStatement(FunctionCallExpression(StringConstant("printField"), args)) =>
       new PrintFieldStatement(args(0), args(1).asInstanceOf[FieldAccess].fieldSelection)
+
+    // FIXME: HACK to realize application functionality
+    case func : FunctionStatement if (StringConstant("Application") == func.name) => {
+      func.returntype = new UnitDatatype
+      func.name = "main"
+      func.parameters = ListBuffer(VariableAccess("argc", Some("int")), VariableAccess("argv", Some("char**"))) ++ func.parameters
+      if (Knowledge.useMPI) {
+        func.body.prepend(new MPI_Init)
+        func.body.append(new MPI_Finalize)
+      }
+      func
+    }
   })
 }

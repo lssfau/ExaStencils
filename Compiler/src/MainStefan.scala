@@ -1,4 +1,3 @@
-import exastencils.application.Poisson3D
 import exastencils.core.Settings
 import exastencils.core.StateManager
 import exastencils.datastructures.Node
@@ -65,9 +64,6 @@ object MainStefan {
 
     // Setup tree
     StateManager.root_.asInstanceOf[ir.Root].nodes ++= List(
-      // Application
-      new Poisson3D,
-
       // Domain
       new DomainGenerated,
 
