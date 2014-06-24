@@ -99,13 +99,17 @@ object Main {
     SimplifyStrategy.doUntilDone()
 
     AddInternalVariables.apply()
-    
+
     if (Knowledge.useMPI)
       AddMPIDatatypes.apply()
 
     if (Knowledge.useOMP) {
       AddOMPPragmas.apply()
     }
+
+    // one last time
+    ExpandStrategy.doUntilDone()
+    SimplifyStrategy.doUntilDone()
 
     PrintStrategy.apply()
     PrettyprintingManager.finish

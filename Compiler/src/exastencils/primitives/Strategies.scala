@@ -82,7 +82,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   this += new Transformation("Collecting buffer sizes", {
     case buf : iv.TmpBuffer =>
       val size = SimplifyExpression.evalIntegral(buf.size).toInt
-      val id = buf.resolveAccess(buf.resolveName, "fragmentIdx", new NullExpression, buf.field.index, buf.field.level, buf.neighIdx)
+      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, new NullExpression, buf.field.index, buf.field.level, buf.neighIdx)
       bufferSizes += (id -> (size max bufferSizes.getOrElse(id, 0)))
       buf
   })
@@ -90,8 +90,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   this += new Transformation("Extending SetupBuffers function", {
     // FIXME: this kind of matching is awkward, I want trafos that don't return nodes
     case func : FunctionStatement if (("setupBuffers" : Expression) == func.name) =>
-      func.body += new ForLoopStatement(s"int fragmentIdx = 0", s"fragmentIdx < " ~ Knowledge.domain_numFragsPerBlock, s"++fragmentIdx",
-        bufferSizes.map(buf => new AssignmentStatement(buf._1, s"new double[${buf._2}]") : Statement).to[ListBuffer]) with OMP_PotentiallyParallel
+      func.body += new LoopOverFragments(-1, bufferSizes.map(buf => new AssignmentStatement(buf._1, s"new double[${buf._2}]") : Statement).to[ListBuffer]) with OMP_PotentiallyParallel
       func
   })
 }

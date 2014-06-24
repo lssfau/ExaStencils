@@ -34,7 +34,7 @@ case class StencilFieldSelection(
     var stencilField : StencilField,
     var slot : Expression,
     var arrayIndex : Int,
-    var fragIdx : Expression = "fragmentIdx") extends Node {
+    var fragIdx : Expression = LoopOverFragments.defIt) extends Node {
 
   def toFieldSelection = {
     new FieldSelection(field, slot, arrayIndex, fragIdx)

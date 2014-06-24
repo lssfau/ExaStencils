@@ -1,11 +1,7 @@
 package exastencils.datastructures.ir
 
 import scala.collection.mutable.ListBuffer
-//import exastencils.core._
-//import exastencils.core.collectors._
 import exastencils.knowledge._
-//import exastencils.datastructures._
-//import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.prettyprinting._
 import exastencils.strategies._
@@ -165,7 +161,11 @@ case class LoopOverDimensions(var numDimensions : Int,
   }
 }
 
+object LoopOverFragments { def defIt = "fragmentIdx" }
+
 case class LoopOverFragments(var domain : Int, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement with Expandable {
+  import LoopOverFragments._
+
   def this(domain : Int, body : Statement, reduction : Option[Reduction]) = this(domain, ListBuffer(body), reduction)
   def this(domain : Int, body : Statement) = this(domain, ListBuffer(body))
 
@@ -182,10 +182,10 @@ case class LoopOverFragments(var domain : Int, var body : ListBuffer[Statement],
       modifiedBody ++= body
 
     if (parallelizable)
-      statements += new ForLoopStatement(s"int fragmentIdx = 0", s"fragmentIdx < " ~ Knowledge.domain_numFragsPerBlock, s"++fragmentIdx",
+      statements += new ForLoopStatement(s"int $defIt = 0", s"$defIt < " ~ Knowledge.domain_numFragsPerBlock, s"++$defIt",
         modifiedBody, reduction) with OMP_PotentiallyParallel
     else
-      statements += new ForLoopStatement(s"int fragmentIdx = 0", s"fragmentIdx < " ~ Knowledge.domain_numFragsPerBlock, s"++fragmentIdx",
+      statements += new ForLoopStatement(s"int $defIt = 0", s"$defIt < " ~ Knowledge.domain_numFragsPerBlock, s"++$defIt",
         modifiedBody, reduction)
 
     if (Knowledge.useMPI && reduction.isDefined) {
@@ -195,3 +195,4 @@ case class LoopOverFragments(var domain : Int, var body : ListBuffer[Statement],
     StatementBlock(statements)
   }
 }
+

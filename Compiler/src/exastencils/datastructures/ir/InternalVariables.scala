@@ -44,14 +44,14 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
     if (canBePerDomain && Knowledge.comm_sepCommStructsPerDomain && Knowledge.comm_useCommArraysPerDomain && DomainCollection.domains.size > 1)
       wrappedBody = new ForLoopStatement(s"unsigned int domainIdx = 0", s"domainIdx < ${DomainCollection.domains.size}", s"++domainIdx", wrappedBody)
     if (canBePerFragment && Knowledge.comm_useCommArraysPerFragment && Knowledge.domain_numFragsPerBlock > 1)
-      wrappedBody = new ForLoopStatement(s"unsigned int fragmentIdx = 0", s"fragmentIdx < ${Knowledge.domain_numFragsPerBlock}", s"++fragmentIdx", wrappedBody)
+      wrappedBody = new LoopOverFragments(-1, wrappedBody)
 
     wrappedBody
   }
 
   def getCtor() : Option[Statement] = {
     if (resolveDefValue.isDefined)
-      Some(wrapInLoops(AssignmentStatement(resolveAccess(resolveName, "fragmentIdx", "domainIdx", "fieldIdx", "level", "neighIdx"), resolveDefValue.get)))
+      Some(wrapInLoops(AssignmentStatement(resolveAccess(resolveName, LoopOverFragments.defIt, "domainIdx", "fieldIdx", "level", "neighIdx"), resolveDefValue.get)))
     else
       None
   }
@@ -93,7 +93,7 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
   }
 }
 
-case class ReqOutstanding(var field : Field, var direction : String, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, false, true, true, true) {
+case class ReqOutstanding(var field : Field, var direction : String, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, true) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, field.index, field.level, neighIdx).cpp
 
   override def resolveName = s"reqOutstanding_${direction}" + resolvePostfix(fragmentIdx.cpp, "", field.index.toString, field.level.toString, neighIdx.cpp)
@@ -101,14 +101,14 @@ case class ReqOutstanding(var field : Field, var direction : String, var neighId
   override def resolveDefValue = Some(false)
 }
 
-case class MpiRequest(var field : Field, var direction : String, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, false, true, true, true) {
+case class MpiRequest(var field : Field, var direction : String, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, true) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, field.index, field.level, neighIdx).cpp
 
   override def resolveName = s"mpiRequest_${direction}" + resolvePostfix(fragmentIdx.cpp, "", field.index.toString, field.level.toString, neighIdx.cpp)
   override def resolveDataType = "MPI_Request"
 }
 
-case class TmpBuffer(var field : Field, var direction : String, var size : Expression, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, false, true, true, true) {
+case class TmpBuffer(var field : Field, var direction : String, var size : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, true) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, field.index, field.level, neighIdx).cpp
 
   override def resolveName = s"buffer_${direction}" + resolvePostfix(fragmentIdx.cpp, "", field.index.toString, field.level.toString, neighIdx.cpp)
@@ -123,7 +123,7 @@ case class TmpBuffer(var field : Field, var direction : String, var size : Expre
   }
 }
 
-case class IsValidForSubdomain(var domain : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, true, false, false, false) {
+case class IsValidForSubdomain(var domain : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, true, false, false, false) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, new NullExpression).cpp
 
   override def resolveName = s"isValidForSubdomain" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", "")
@@ -131,7 +131,7 @@ case class IsValidForSubdomain(var domain : Expression, var fragmentIdx : Expres
   override def resolveDefValue = Some(false)
 }
 
-case class NeighborIsValid(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, true, false, false, true) {
+case class NeighborIsValid(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, true, false, false, true) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
 
   override def resolveName = s"neighbor_isValid" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
@@ -139,7 +139,7 @@ case class NeighborIsValid(var domain : Expression, var neighIdx : Expression, v
   override def resolveDefValue = Some(false)
 }
 
-case class NeighborIsRemote(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, true, false, false, true) {
+case class NeighborIsRemote(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, true, false, false, true) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
 
   override def resolveName = s"neighbor_isRemote" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
@@ -147,7 +147,7 @@ case class NeighborIsRemote(var domain : Expression, var neighIdx : Expression, 
   override def resolveDefValue = Some(false)
 }
 
-case class NeighborFragLocalId(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, true, false, false, true) {
+case class NeighborFragLocalId(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, true, false, false, true) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
 
   override def resolveName = s"neighbor_fragCommId" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
@@ -155,7 +155,7 @@ case class NeighborFragLocalId(var domain : Expression, var neighIdx : Expressio
   override def resolveDefValue = Some(-1)
 }
 
-case class NeighborRemoteRank(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, true, false, false, true) {
+case class NeighborRemoteRank(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, true, false, false, true) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
 
   override def resolveName = s"neighbor_remoteRank" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
@@ -163,7 +163,7 @@ case class NeighborRemoteRank(var domain : Expression, var neighIdx : Expression
   override def resolveDefValue = Some("MPI_PROC_NULL")
 }
 
-case class FieldData(var field : Field, var slot : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, false, false, true, false) {
+case class FieldData(var field : Field, var slot : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, true, false) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, new NullExpression, field.level, new NullExpression).cpp
 
   override def resolveName = field.codeName + resolvePostfix(fragmentIdx.cpp, "", "", field.level.toString, "")
@@ -187,7 +187,7 @@ case class FieldData(var field : Field, var slot : Expression, var fragmentIdx :
   override def getCtor() : Option[Statement] = {
     val origSlot = slot
     slot = "slot"
-    val ret = Some(wrapInLoops(AssignmentStatement(resolveAccess(resolveName, "fragmentIdx", "domainIdx", "fieldIdx", "level", "neighIdx"), resolveDefValue.get)))
+    val ret = Some(wrapInLoops(AssignmentStatement(resolveAccess(resolveName, LoopOverFragments.defIt, "domainIdx", "fieldIdx", "level", "neighIdx"), resolveDefValue.get)))
     slot = origSlot
     ret
   }
@@ -195,10 +195,10 @@ case class FieldData(var field : Field, var slot : Expression, var fragmentIdx :
   override def getDtor() : Option[Statement] = {
     val origSlot = slot
     slot = "slot"
-    val ret = Some(wrapInLoops(new ConditionStatement(resolveAccess(resolveName, "fragmentIdx", "domainIdx", "fieldIdx", "level", "neighIdx"),
+    val ret = Some(wrapInLoops(new ConditionStatement(resolveAccess(resolveName, LoopOverFragments.defIt, "domainIdx", "fieldIdx", "level", "neighIdx"),
       ListBuffer[Statement](
-        "delete []" ~~ resolveAccess(resolveName, "fragmentIdx", "domainIdx", "fieldIdx", "level", "neighIdx"),
-        new AssignmentStatement(resolveAccess(resolveName, "fragmentIdx", "domainIdx", "fieldIdx", "level", "neighIdx"), 0)))))
+        "delete []" ~~ resolveAccess(resolveName, LoopOverFragments.defIt, "domainIdx", "fieldIdx", "level", "neighIdx"),
+        new AssignmentStatement(resolveAccess(resolveName, LoopOverFragments.defIt, "domainIdx", "fieldIdx", "level", "neighIdx"), 0)))))
     slot = origSlot
     ret
   }
@@ -209,7 +209,7 @@ case class FieldData(var field : Field, var slot : Expression, var fragmentIdx :
   }
 }
 
-case class PrimitiveId(var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, false, false, false, false) {
+case class PrimitiveId(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, new NullExpression, new NullExpression, new NullExpression).cpp
 
   override def resolveName = s"primitiveId" + resolvePostfix(fragmentIdx.cpp, "", "", "", "")
@@ -217,7 +217,7 @@ case class PrimitiveId(var fragmentIdx : Expression = "fragmentIdx") extends Int
   override def resolveDefValue = Some(-1)
 }
 
-case class CommId(var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, false, false, false, false) {
+case class CommId(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, new NullExpression, new NullExpression, new NullExpression).cpp
 
   override def resolveName = s"commId" + resolvePostfix(fragmentIdx.cpp, "", "", "", "")
@@ -225,7 +225,7 @@ case class CommId(var fragmentIdx : Expression = "fragmentIdx") extends Internal
   override def resolveDefValue = Some(-1)
 }
 
-case class PrimitivePosition(var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, false, false, false, false) {
+case class PrimitivePosition(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, new NullExpression, new NullExpression, new NullExpression).cpp
 
   override def resolveName = s"pos" + resolvePostfix(fragmentIdx.cpp, "", "", "", "")
@@ -233,7 +233,7 @@ case class PrimitivePosition(var fragmentIdx : Expression = "fragmentIdx") exten
   override def resolveDefValue = Some("Vec3(0, 0, 0)")
 }
 
-case class PrimitivePositionBegin(var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, false, false, false, false) {
+case class PrimitivePositionBegin(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, new NullExpression, new NullExpression, new NullExpression).cpp
 
   override def resolveName = s"posBegin" + resolvePostfix(fragmentIdx.cpp, "", "", "", "")
@@ -241,7 +241,7 @@ case class PrimitivePositionBegin(var fragmentIdx : Expression = "fragmentIdx") 
   override def resolveDefValue = Some("Vec3(0, 0, 0)")
 }
 
-case class PrimitivePositionEnd(var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, false, false, false, false) {
+case class PrimitivePositionEnd(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, new NullExpression, new NullExpression, new NullExpression).cpp
 
   override def resolveName = s"posEnd" + resolvePostfix(fragmentIdx.cpp, "", "", "", "")
@@ -249,7 +249,7 @@ case class PrimitivePositionEnd(var fragmentIdx : Expression = "fragmentIdx") ex
   override def resolveDefValue = Some("Vec3(0, 0, 0)")
 }
 
-case class IterationOffsetBegin(var domain : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, true, false, false, false) {
+case class IterationOffsetBegin(var domain : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, true, false, false, false) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, new NullExpression).cpp
 
   override def resolveName = s"iterationOffsetBegin" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", "")
@@ -257,7 +257,7 @@ case class IterationOffsetBegin(var domain : Expression, var fragmentIdx : Expre
   override def resolveDefValue = Some("Vec3i(1, 1, 1)")
 }
 
-case class IterationOffsetEnd(var domain : Expression, var fragmentIdx : Expression = "fragmentIdx") extends InternalVariable(true, true, false, false, false) {
+case class IterationOffsetEnd(var domain : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, true, false, false, false) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, new NullExpression).cpp
 
   override def resolveName = s"iterationOffsetEnd" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", "")

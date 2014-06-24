@@ -62,7 +62,7 @@ case class FieldSelection(
     var field : Field,
     var slot : Expression,
     var arrayIndex : Int,
-    var fragIdx : Expression = "fragmentIdx") extends Node {
+    var fragIdx : Expression = LoopOverFragments.defIt) extends Node {
 
   // shortcuts to Field members
   def codeName = field.codeName
