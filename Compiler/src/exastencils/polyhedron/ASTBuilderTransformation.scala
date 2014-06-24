@@ -41,6 +41,7 @@ import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.VariableDeclarationStatement
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.optimization.PrecalcAddresses
+import isl.Conversions.convertLambdaToXCallback1
 
 class ASTBuilderTransformation(replaceCallback : (HashMap[String, Expression], Node) => Unit)
   extends Transformation("insert optimized loop AST", new ASTBuilderFunction(replaceCallback))

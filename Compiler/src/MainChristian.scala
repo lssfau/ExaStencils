@@ -3,7 +3,6 @@ import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.strategies._
-import exastencils.application._
 import exastencils.domain._
 import exastencils.multiGrid._
 import exastencils.primitives._
