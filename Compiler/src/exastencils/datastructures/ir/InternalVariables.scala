@@ -18,15 +18,15 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
   def getDeclaration() : VariableDeclarationStatement = {
     var dt : Datatype = resolveDataType
 
-    if (canBePerFragment && Knowledge.comm_useCommArraysPerFragment)
+    if (canBePerFragment && Knowledge.comm_useCommArraysPerFragment && Knowledge.domain_numFragsPerBlock > 1)
       dt = ArrayDatatype(dt, Knowledge.domain_numFragsPerBlock)
-    if (canBePerDomain && Knowledge.comm_sepCommStructsPerDomain && Knowledge.comm_useCommArraysPerDomain)
+    if (canBePerDomain && Knowledge.comm_sepCommStructsPerDomain && Knowledge.comm_useCommArraysPerDomain && DomainCollection.domains.size > 1)
       dt = ArrayDatatype(dt, DomainCollection.domains.size)
-    if (canBePerField && Knowledge.comm_sepCommStructsPerField && Knowledge.comm_useCommArraysPerField)
+    if (canBePerField && Knowledge.comm_sepCommStructsPerField && Knowledge.comm_useCommArraysPerField && FieldCollection.fields.size > 1)
       dt = ArrayDatatype(dt, FieldCollection.fields.size)
-    if (canBePerLevel && Knowledge.comm_sepCommStructsPerLevel && Knowledge.comm_useCommArraysPerLevel)
+    if (canBePerLevel && Knowledge.comm_sepCommStructsPerLevel && Knowledge.comm_useCommArraysPerLevel && Knowledge.numLevels > 1)
       dt = ArrayDatatype(dt, Knowledge.numLevels)
-    if (canBePerNeigh && Knowledge.comm_sepCommStructsPerNeigh && Knowledge.comm_useCommArraysPerNeigh)
+    if (canBePerNeigh && Knowledge.comm_sepCommStructsPerNeigh && Knowledge.comm_useCommArraysPerNeigh && Fragment.neighbors.size > 1)
       dt = ArrayDatatype(dt, Fragment.neighbors.size)
 
     new VariableDeclarationStatement(dt, resolveName)
@@ -36,15 +36,15 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
     var wrappedBody = body
 
     // NOTE: reverse order due to wrapping
-    if (canBePerNeigh && Knowledge.comm_sepCommStructsPerNeigh && Knowledge.comm_useCommArraysPerNeigh)
+    if (canBePerNeigh && Knowledge.comm_sepCommStructsPerNeigh && Knowledge.comm_useCommArraysPerNeigh && Fragment.neighbors.size > 1)
       wrappedBody = new ForLoopStatement(s"unsigned int neighIdx = 0", s"neighIdx < ${Fragment.neighbors.size}", s"++neighIdx", wrappedBody)
-    if (canBePerLevel && Knowledge.comm_sepCommStructsPerLevel && Knowledge.comm_useCommArraysPerLevel)
+    if (canBePerLevel && Knowledge.comm_sepCommStructsPerLevel && Knowledge.comm_useCommArraysPerLevel && Knowledge.numLevels > 1)
       wrappedBody = new ForLoopStatement(s"unsigned int level = 0", s"level < ${Knowledge.numLevels}", s"++level", wrappedBody)
-    if (canBePerField && Knowledge.comm_sepCommStructsPerField && Knowledge.comm_useCommArraysPerField)
+    if (canBePerField && Knowledge.comm_sepCommStructsPerField && Knowledge.comm_useCommArraysPerField && FieldCollection.fields.size > 1)
       wrappedBody = new ForLoopStatement(s"unsigned int fieldIdx = 0", s"fieldIdx < ${FieldCollection.fields.size}", s"++fieldIdx", wrappedBody)
-    if (canBePerDomain && Knowledge.comm_sepCommStructsPerDomain && Knowledge.comm_useCommArraysPerDomain)
+    if (canBePerDomain && Knowledge.comm_sepCommStructsPerDomain && Knowledge.comm_useCommArraysPerDomain && DomainCollection.domains.size > 1)
       wrappedBody = new ForLoopStatement(s"unsigned int domainIdx = 0", s"domainIdx < ${DomainCollection.domains.size}", s"++domainIdx", wrappedBody)
-    if (canBePerFragment && Knowledge.comm_useCommArraysPerFragment)
+    if (canBePerFragment && Knowledge.comm_useCommArraysPerFragment && Knowledge.domain_numFragsPerBlock > 1)
       wrappedBody = new ForLoopStatement(s"unsigned int fragmentIdx = 0", s"fragmentIdx < ${Knowledge.domain_numFragsPerBlock}", s"++fragmentIdx", wrappedBody)
 
     wrappedBody
@@ -62,15 +62,15 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
   def resolvePostfix(domain : String, fragment : String, field : String, level : String, neigh : String) : String = {
     var postfix : String = ""
 
-    if (canBePerFragment && !Knowledge.comm_useCommArraysPerDomain)
+    if (canBePerFragment && !Knowledge.comm_useCommArraysPerDomain && Knowledge.domain_numFragsPerBlock > 1)
       postfix += "_" + fragment
-    if (canBePerDomain && Knowledge.comm_sepCommStructsPerDomain && !Knowledge.comm_useCommArraysPerDomain)
+    if (canBePerDomain && Knowledge.comm_sepCommStructsPerDomain && !Knowledge.comm_useCommArraysPerDomain && DomainCollection.domains.size > 1)
       postfix += "_" + domain
-    if (canBePerField && Knowledge.comm_sepCommStructsPerField && !Knowledge.comm_useCommArraysPerField)
+    if (canBePerField && Knowledge.comm_sepCommStructsPerField && !Knowledge.comm_useCommArraysPerField && FieldCollection.fields.size > 1)
       postfix += "_" + field
-    if (canBePerLevel && Knowledge.comm_sepCommStructsPerLevel && !Knowledge.comm_useCommArraysPerLevel)
+    if (canBePerLevel && Knowledge.comm_sepCommStructsPerLevel && !Knowledge.comm_useCommArraysPerLevel && Knowledge.numLevels > 1)
       postfix += "_" + level
-    if (canBePerNeigh && Knowledge.comm_sepCommStructsPerNeigh && !Knowledge.comm_useCommArraysPerNeigh)
+    if (canBePerNeigh && Knowledge.comm_sepCommStructsPerNeigh && !Knowledge.comm_useCommArraysPerNeigh && Fragment.neighbors.size > 1)
       postfix += "_" + neigh
 
     postfix
@@ -79,15 +79,15 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
   def resolveAccess(baseAccess : Expression, fragment : Expression, domain : Expression, field : Expression, level : Expression, neigh : Expression) : Expression = {
     var access = baseAccess
 
-    if (canBePerFragment && Knowledge.comm_useCommArraysPerFragment)
+    if (canBePerFragment && Knowledge.comm_useCommArraysPerFragment && Knowledge.domain_numFragsPerBlock > 1)
       access = new ArrayAccess(access, fragment)
-    if (canBePerDomain && Knowledge.comm_sepCommStructsPerDomain && Knowledge.comm_useCommArraysPerDomain)
+    if (canBePerDomain && Knowledge.comm_sepCommStructsPerDomain && Knowledge.comm_useCommArraysPerDomain && DomainCollection.domains.size > 1)
       access = new ArrayAccess(access, domain)
-    if (canBePerField && Knowledge.comm_sepCommStructsPerField && Knowledge.comm_useCommArraysPerField)
+    if (canBePerField && Knowledge.comm_sepCommStructsPerField && Knowledge.comm_useCommArraysPerField && FieldCollection.fields.size > 1)
       access = new ArrayAccess(access, field)
-    if (canBePerLevel && Knowledge.comm_sepCommStructsPerLevel && Knowledge.comm_useCommArraysPerLevel)
+    if (canBePerLevel && Knowledge.comm_sepCommStructsPerLevel && Knowledge.comm_useCommArraysPerLevel && Knowledge.numLevels > 1)
       access = new ArrayAccess(access, level)
-    if (canBePerNeigh && Knowledge.comm_sepCommStructsPerNeigh && Knowledge.comm_useCommArraysPerNeigh)
+    if (canBePerNeigh && Knowledge.comm_sepCommStructsPerNeigh && Knowledge.comm_useCommArraysPerNeigh && Fragment.neighbors.size > 1)
       access = new ArrayAccess(access, neigh)
 
     access
