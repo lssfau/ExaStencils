@@ -571,6 +571,16 @@ case class Root() extends Node {
     // Application
     printer.println("def Application ( ) : Unit {")
 
+    printer.println("\tvar setupTime : Real = 0")
+    printer.println("\tstartTimer ( setupWatch )")
+
+    printer.println("\tinitGlobals ( )")
+    printer.println("\tinitDomain ( )")
+    printer.println("\tinitFieldsWithZero ( )")
+
+    printer.println("\tstopTimer ( setupWatch, setupTime )")
+    printer.println("\tprint ( '\"Total time to setup: \"', setupTime )")
+
     if (genSetableStencil) {
       Knowledge.dimensionality match {
         case 2 => {
@@ -625,7 +635,10 @@ case class Root() extends Node {
     printer.println("\tprint ( '\"Mean time per vCycle: \"', totalTime / 10 )")
 
     if (printFieldAtEnd)
-      printer.println("printField('\"Solution.dat\"', Solution@finest)")
+      printer.println("\tprintField ( '\"Solution.dat\"', Solution@finest )")
+
+    printer.println("\tdestroyGlobals ( )")
+
     printer.println("}")
     printer.println
 
