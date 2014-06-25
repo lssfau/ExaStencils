@@ -18,9 +18,11 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
       }
       globals
     case func : FunctionStatement if (("initGlobals" : Expression) == func.name) =>
-      func.body += "mpiCommunicator = " + Knowledge.mpi_defaultCommunicator
-      func.body += "MPI_Comm_rank(mpiCommunicator, &mpiRank)"
-      func.body += "MPI_Comm_size(mpiCommunicator, &mpiSize)"
+      if (Knowledge.useMPI) {
+        func.body += "mpiCommunicator = " + Knowledge.mpi_defaultCommunicator
+        func.body += "MPI_Comm_rank(mpiCommunicator, &mpiRank)"
+        func.body += "MPI_Comm_size(mpiCommunicator, &mpiSize)"
+      }
       func
   })
 }
