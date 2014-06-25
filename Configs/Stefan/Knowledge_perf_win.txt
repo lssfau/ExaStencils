@@ -17,3 +17,7 @@ domain_numFragsPerBlock_z	= 1
 domain_fragLength_x			= 1
 domain_fragLength_y			= 1
 domain_fragLength_z			= 1
+
+mpi_useCustomDatatypes		= true
+poly_usePolyOpt				= true
+poly_useAddressPrecalc		= true

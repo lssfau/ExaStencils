@@ -29,6 +29,7 @@ import exastencils.strategies.SimplifyStrategy
 import exastencils.util.Log
 import exastencils.util.Stopwatch
 import exastencils.util.Vector
+import exastencils.mpi.AddMPIDatatypes
 
 object MainStefan {
   def main(args : Array[String]) : Unit = {
@@ -66,9 +67,6 @@ object MainStefan {
     StateManager.root_.asInstanceOf[ir.Root].nodes ++= List(
       // FunctionCollections
       new DomainFunctions,
-      new CommunicationFunctions,
-
-      // Primitives
       new CommunicationFunctions,
 
       // Util
@@ -126,7 +124,8 @@ object MainStefan {
     //    }.apply()
     //    return
 
-    PolyOpt.apply()
+    if (Knowledge.poly_usePolyOpt)
+      PolyOpt.apply()
 
     ResolveLoopOverDimensions.apply()
 
@@ -134,7 +133,8 @@ object MainStefan {
 
     LinearizeFieldAccesses.apply()
 
-    AddressPrecalculation.apply()
+    if (Knowledge.poly_useAddressPrecalc)
+      AddressPrecalculation.apply()
 
     ExpandStrategy.doUntilDone()
 
@@ -145,8 +145,16 @@ object MainStefan {
 
     AddInternalVariables.apply()
 
-    if (Knowledge.useOMP)
+    if (Knowledge.useMPI)
+      AddMPIDatatypes.apply()
+
+    if (Knowledge.useOMP) {
       AddOMPPragmas.apply()
+    }
+
+    // one last time
+    ExpandStrategy.doUntilDone()
+    SimplifyStrategy.doUntilDone()
 
     PrintStrategy.apply()
     PrettyprintingManager.finish
