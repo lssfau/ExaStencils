@@ -7,8 +7,14 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.util._
 
-abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDomain : Boolean, var canBePerField : Boolean, var canBePerLevel : Boolean, var canBePerNeigh : Boolean) extends Expression {
+abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDomain : Boolean, var canBePerField : Boolean, var canBePerLevel : Boolean, var canBePerNeighbor : Boolean) extends Expression {
   override def cpp : String = resolveName
+
+  def usesFragmentArrays : Boolean = true
+  def usesDomainArrays : Boolean = true
+  def usesFieldArrays : Boolean = true
+  def usesLevelArrays : Boolean = true
+  def usesNeighborArrays : Boolean = true
 
   def resolveName : String
   def resolveDataType : Datatype
@@ -17,15 +23,15 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
   def getDeclaration() : VariableDeclarationStatement = {
     var dt : Datatype = resolveDataType
 
-    if (canBePerFragment && Knowledge.comm_useCommArraysPerFragment && Knowledge.domain_numFragsPerBlock > 1)
+    if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragsPerBlock > 1)
       dt = ArrayDatatype(dt, Knowledge.domain_numFragsPerBlock)
-    if (canBePerDomain && Knowledge.comm_sepCommStructsPerDomain && Knowledge.comm_useCommArraysPerDomain && DomainCollection.domains.size > 1)
+    if (canBePerDomain && usesDomainArrays && DomainCollection.domains.size > 1)
       dt = ArrayDatatype(dt, DomainCollection.domains.size)
-    if (canBePerField && Knowledge.comm_sepCommStructsPerField && Knowledge.comm_useCommArraysPerField && FieldCollection.fields.size > 1)
+    if (canBePerField && usesFieldArrays && FieldCollection.fields.size > 1)
       dt = ArrayDatatype(dt, FieldCollection.fields.size)
-    if (canBePerLevel && Knowledge.comm_sepCommStructsPerLevel && Knowledge.comm_useCommArraysPerLevel && Knowledge.numLevels > 1)
+    if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1)
       dt = ArrayDatatype(dt, Knowledge.numLevels)
-    if (canBePerNeigh && Knowledge.comm_sepCommStructsPerNeigh && Knowledge.comm_useCommArraysPerNeigh && Fragment.neighbors.size > 1)
+    if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
       dt = ArrayDatatype(dt, Fragment.neighbors.size)
 
     new VariableDeclarationStatement(dt, resolveName)
@@ -35,15 +41,15 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
     var wrappedBody = body
 
     // NOTE: reverse order due to wrapping
-    if (canBePerNeigh && Knowledge.comm_sepCommStructsPerNeigh && Knowledge.comm_useCommArraysPerNeigh && Fragment.neighbors.size > 1)
+    if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
       wrappedBody = new LoopOverNeighbors(wrappedBody)
-    if (canBePerLevel && Knowledge.comm_sepCommStructsPerLevel && Knowledge.comm_useCommArraysPerLevel && Knowledge.numLevels > 1)
+    if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1)
       wrappedBody = new LoopOverLevels(wrappedBody)
-    if (canBePerField && Knowledge.comm_sepCommStructsPerField && Knowledge.comm_useCommArraysPerField && FieldCollection.fields.size > 1)
+    if (canBePerField && usesFieldArrays && FieldCollection.fields.size > 1)
       wrappedBody = new LoopOverFields(wrappedBody)
-    if (canBePerDomain && Knowledge.comm_sepCommStructsPerDomain && Knowledge.comm_useCommArraysPerDomain && DomainCollection.domains.size > 1)
+    if (canBePerDomain && usesDomainArrays && DomainCollection.domains.size > 1)
       wrappedBody = new LoopOverDomains(wrappedBody)
-    if (canBePerFragment && Knowledge.comm_useCommArraysPerFragment && Knowledge.domain_numFragsPerBlock > 1)
+    if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragsPerBlock > 1)
       wrappedBody = new LoopOverFragments(-1, wrappedBody)
 
     wrappedBody
@@ -58,18 +64,18 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
 
   def getDtor() : Option[Statement] = None
 
-  def resolvePostfix(domain : String, fragment : String, field : String, level : String, neigh : String) : String = {
+  def resolvePostfix(fragment : String, domain : String, field : String, level : String, neigh : String) : String = {
     var postfix : String = ""
 
-    if (canBePerFragment && !Knowledge.comm_useCommArraysPerDomain && Knowledge.domain_numFragsPerBlock > 1)
+    if (canBePerFragment && !usesFragmentArrays && Knowledge.domain_numFragsPerBlock > 1)
       postfix += "_" + fragment
-    if (canBePerDomain && Knowledge.comm_sepCommStructsPerDomain && !Knowledge.comm_useCommArraysPerDomain && DomainCollection.domains.size > 1)
+    if (canBePerDomain && !usesDomainArrays && DomainCollection.domains.size > 1)
       postfix += "_" + domain
-    if (canBePerField && Knowledge.comm_sepCommStructsPerField && !Knowledge.comm_useCommArraysPerField && FieldCollection.fields.size > 1)
+    if (canBePerField && !usesFieldArrays && FieldCollection.fields.size > 1)
       postfix += "_" + field
-    if (canBePerLevel && Knowledge.comm_sepCommStructsPerLevel && !Knowledge.comm_useCommArraysPerLevel && Knowledge.numLevels > 1)
+    if (canBePerLevel && !usesLevelArrays && Knowledge.numLevels > 1)
       postfix += "_" + level
-    if (canBePerNeigh && Knowledge.comm_sepCommStructsPerNeigh && !Knowledge.comm_useCommArraysPerNeigh && Fragment.neighbors.size > 1)
+    if (canBePerNeighbor && !usesNeighborArrays && Fragment.neighbors.size > 1)
       postfix += "_" + neigh
 
     postfix
@@ -78,22 +84,36 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
   def resolveAccess(baseAccess : Expression, fragment : Expression, domain : Expression, field : Expression, level : Expression, neigh : Expression) : Expression = {
     var access = baseAccess
 
-    if (canBePerFragment && Knowledge.comm_useCommArraysPerFragment && Knowledge.domain_numFragsPerBlock > 1)
+    if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragsPerBlock > 1)
       access = new ArrayAccess(access, fragment)
-    if (canBePerDomain && Knowledge.comm_sepCommStructsPerDomain && Knowledge.comm_useCommArraysPerDomain && DomainCollection.domains.size > 1)
+    if (canBePerDomain && usesDomainArrays && DomainCollection.domains.size > 1)
       access = new ArrayAccess(access, domain)
-    if (canBePerField && Knowledge.comm_sepCommStructsPerField && Knowledge.comm_useCommArraysPerField && FieldCollection.fields.size > 1)
+    if (canBePerField && usesFieldArrays && FieldCollection.fields.size > 1)
       access = new ArrayAccess(access, field)
-    if (canBePerLevel && Knowledge.comm_sepCommStructsPerLevel && Knowledge.comm_useCommArraysPerLevel && Knowledge.numLevels > 1)
+    if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1)
       access = new ArrayAccess(access, level)
-    if (canBePerNeigh && Knowledge.comm_sepCommStructsPerNeigh && Knowledge.comm_useCommArraysPerNeigh && Fragment.neighbors.size > 1)
+    if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
       access = new ArrayAccess(access, neigh)
 
     access
   }
 }
 
-case class ReqOutstanding(var field : Field, var direction : String, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, true) {
+abstract class CommVariable extends InternalVariable(Knowledge.comm_sepDataByFragment, false, Knowledge.comm_useFieldArrays, Knowledge.comm_useLevelArrays, Knowledge.comm_useNeighborArrays) {
+  override def usesFragmentArrays : Boolean = Knowledge.comm_useFragmentArrays
+  override def usesDomainArrays : Boolean = Knowledge.comm_useDomainArrays
+  override def usesFieldArrays : Boolean = Knowledge.comm_useFieldArrays
+  override def usesLevelArrays : Boolean = Knowledge.comm_useLevelArrays
+  override def usesNeighborArrays : Boolean = Knowledge.comm_useNeighborArrays
+}
+
+abstract class NeighInfoVariable extends InternalVariable(true, true, false, false, true) {
+  override def usesFragmentArrays : Boolean = true
+  override def usesDomainArrays : Boolean = true
+  override def usesNeighborArrays : Boolean = true
+}
+
+case class ReqOutstanding(var field : Field, var direction : String, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, field.index, field.level, neighIdx).cpp
 
   override def resolveName = s"reqOutstanding_${direction}" + resolvePostfix(fragmentIdx.cpp, "", field.index.toString, field.level.toString, neighIdx.cpp)
@@ -101,14 +121,14 @@ case class ReqOutstanding(var field : Field, var direction : String, var neighId
   override def resolveDefValue = Some(false)
 }
 
-case class MpiRequest(var field : Field, var direction : String, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, true) {
+case class MpiRequest(var field : Field, var direction : String, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, field.index, field.level, neighIdx).cpp
 
   override def resolveName = s"mpiRequest_${direction}" + resolvePostfix(fragmentIdx.cpp, "", field.index.toString, field.level.toString, neighIdx.cpp)
   override def resolveDataType = "MPI_Request"
 }
 
-case class TmpBuffer(var field : Field, var direction : String, var size : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, true) {
+case class TmpBuffer(var field : Field, var direction : String, var size : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, field.index, field.level, neighIdx).cpp
 
   override def resolveName = s"buffer_${direction}" + resolvePostfix(fragmentIdx.cpp, "", field.index.toString, field.level.toString, neighIdx.cpp)
@@ -123,6 +143,38 @@ case class TmpBuffer(var field : Field, var direction : String, var size : Expre
   }
 }
 
+case class NeighborIsValid(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends NeighInfoVariable {
+  override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
+
+  override def resolveName = s"neighbor_isValid" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
+  override def resolveDataType = new BooleanDatatype
+  override def resolveDefValue = Some(false)
+}
+
+case class NeighborIsRemote(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends NeighInfoVariable {
+  override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
+
+  override def resolveName = s"neighbor_isRemote" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
+  override def resolveDataType = new BooleanDatatype
+  override def resolveDefValue = Some(false)
+}
+
+case class NeighborFragLocalId(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends NeighInfoVariable {
+  override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
+
+  override def resolveName = s"neighbor_fragCommId" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
+  override def resolveDataType = "size_t"
+  override def resolveDefValue = Some(-1)
+}
+
+case class NeighborRemoteRank(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends NeighInfoVariable {
+  override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
+
+  override def resolveName = s"neighbor_remoteRank" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
+  override def resolveDataType = new IntegerDatatype
+  override def resolveDefValue = Some("MPI_PROC_NULL")
+}
+
 case class IsValidForSubdomain(var domain : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, true, false, false, false) {
   override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, new NullExpression).cpp
 
@@ -131,42 +183,13 @@ case class IsValidForSubdomain(var domain : Expression, var fragmentIdx : Expres
   override def resolveDefValue = Some(false)
 }
 
-case class NeighborIsValid(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, true, false, false, true) {
-  override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
+case class FieldData(var field : Field, var slot : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, false) {
+  override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, new NullExpression).cpp
 
-  override def resolveName = s"neighbor_isValid" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
-  override def resolveDataType = new BooleanDatatype
-  override def resolveDefValue = Some(false)
-}
+  override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 
-case class NeighborIsRemote(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, true, false, false, true) {
-  override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
-
-  override def resolveName = s"neighbor_isRemote" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
-  override def resolveDataType = new BooleanDatatype
-  override def resolveDefValue = Some(false)
-}
-
-case class NeighborFragLocalId(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, true, false, false, true) {
-  override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
-
-  override def resolveName = s"neighbor_fragCommId" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
-  override def resolveDataType = "size_t"
-  override def resolveDefValue = Some(-1)
-}
-
-case class NeighborRemoteRank(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, true, false, false, true) {
-  override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
-
-  override def resolveName = s"neighbor_remoteRank" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
-  override def resolveDataType = new IntegerDatatype
-  override def resolveDefValue = Some("MPI_PROC_NULL")
-}
-
-case class FieldData(var field : Field, var slot : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, true, false) {
-  override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, new NullExpression, field.level, new NullExpression).cpp
-
-  override def resolveName = field.codeName + resolvePostfix(fragmentIdx.cpp, "", "", field.level.toString, "")
+  override def resolveName = (if (!Knowledge.data_useFieldNamesAsIdx && 1 == field.numSlots) s"fieldData" else "slottedFieldData") +
+    resolvePostfix(fragmentIdx.cpp, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, field.level.toString, "")
 
   override def resolveDataType = {
     if (field.numSlots > 1)

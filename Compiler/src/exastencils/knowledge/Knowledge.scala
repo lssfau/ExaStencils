@@ -80,26 +80,24 @@ object Knowledge {
 
   // --- Data Structures ---
   var data_initAllFieldsWithZero : Boolean = true // specifies if all data points in all fields on all levels should initially be set zero (before the l4 initField functions are applied)
+  var data_useFieldNamesAsIdx : Boolean = true // specifies if generated data field names should hold the clear text field identifier 
 
   // --- OpenMP and MPI Parallelization ---
   var comm_strategyFragment : Int = 6 // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors
-
   var comm_useFragmentLoopsForEachOp : Boolean = true // [true|false] // specifies if comm ops (buffer copy, send/ recv, wait) should each be aggregated and handled in distinct fragment loops 
 
-  // TODO: check in how far the following parameters can be adapted by the SPL 
-  var comm_useCommArraysPerFragment : Boolean = true // specifies if fragment specific variables are summarized in array form
+  // TODO: check in how far the following parameters can be adapted by the SPL
+  var comm_sepDataByFragment : Boolean = true // specifies if communication variables that could be fragment specific are handled separately
+  var comm_sepDataByDomain : Boolean = false // specifies if communication variables that could be domain specific are handled separately
+  var comm_sepDataByField : Boolean = false // specifies if communication variables that could be field specific are handled separately
+  var comm_sepDataByLevel : Boolean = false // specifies if communication variables that could be level specific are handled separately
+  var comm_sepDataByNeighbor : Boolean = true // specifies if communication variables that could be neighbor specific are handled separately
 
-  var comm_sepCommStructsPerDomain : Boolean = true // specifies if communication variables that could be domain specific are handled separately
-  var comm_useCommArraysPerDomain : Boolean = true // specifies if domain specific variables are summarized in array form
-
-  var comm_sepCommStructsPerField : Boolean = false // specifies if communication variables that could be field specific are handled separately
-  var comm_useCommArraysPerField : Boolean = false // specifies if domain field variables are summarized in array form
-
-  var comm_sepCommStructsPerLevel : Boolean = false // specifies if communication variables that could be level specific are handled separately
-  var comm_useCommArraysPerLevel : Boolean = false // specifies if domain level variables are summarized in array form
-
-  var comm_sepCommStructsPerNeigh : Boolean = true // specifies if communication variables that could be neighbor specific are handled separately
-  var comm_useCommArraysPerNeigh : Boolean = true // specifies if neighbor specific variables are summarized in array form
+  var comm_useFragmentArrays : Boolean = true // specifies if fragment specific variables are summarized in array form
+  var comm_useDomainArrays : Boolean = true // specifies if domain specific variables are summarized in array form
+  var comm_useFieldArrays : Boolean = false // specifies if domain field variables are summarized in array form
+  var comm_useLevelArrays : Boolean = false // specifies if domain level variables are summarized in array form
+  var comm_useNeighborArrays : Boolean = true // specifies if neighbor specific variables are summarized in array form
 
   // --- OpenMP Parallelization ---
   var useOMP : Boolean = true // [true|false]
