@@ -1,5 +1,6 @@
 package exastencils.optimization
 
+import scala.collection.immutable.StringLike
 import scala.collection.mutable.ArrayStack
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
@@ -31,6 +32,7 @@ import exastencils.datastructures.ir.UnaryExpression
 import exastencils.datastructures.ir.UnaryOperators
 import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.VariableDeclarationStatement
+import exastencils.datastructures.ir.iv.FieldData
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.util.SimplifyExpression
 
@@ -61,7 +63,7 @@ class ArrayBases(val arrayName : String) {
     inits.getOrElseUpdate(initVec, { idCount += 1; (arrayName + "_p" + idCount, initExpr) })._1
   }
 
-  def getDecls(decls : ListBuffer[Statement]) : Unit = {
+  def addToDecls(decls : ListBuffer[Statement]) : Unit = {
     for ((_, (name : String, init : Expression)) <- inits)
       decls += new VariableDeclarationStatement(
         PointerDatatype(RealDatatype()), name, Some(new UnaryExpression(UnaryOperators.AddressOf, init)))
@@ -78,33 +80,23 @@ private final object AnnotateLoopsAndAccesses extends Collector {
   var ompLoop : ForLoopStatement = null // save omp loop to lessen collapse value, if needed
 
   private def generateName(fa : LinearizedFieldAccess) : String = {
-    val res = new StringBuilder()
-    // FIXME: update
-    res.append(fa.fieldSelection.codeName)
-    res.append('_')
-    fa.fieldSelection.slot.cppsb(res)
-    var i : Int = 0
-    while (i < res.size) {
-      res(i) match {
-        case '.' | '[' => res(i) = '_'
-        case _         =>
-      }
-      i += 1
-    }
-    return res.toString()
+    return filter(FieldData(fa.fieldSelection.field, fa.fieldSelection.slot, fa.fieldSelection.fragIdx).cpp())
   }
 
   private def generateName(expr : Expression) : String = {
-    val res = new StringBuilder
-    expr.cppsb(res)
-    var i : Int = 0
-    while (i < res.size) {
-      res(i) match {
-        case '.' | '[' => res(i) = '_'
-        case _         =>
+    val cpp = new StringBuilder()
+    expr.cppsb(cpp)
+    return filter(cpp)
+  }
+
+  private def filter(cpp : StringLike[_]) : String = {
+    val res = new StringBuilder()
+    for (c : Char <- cpp)
+      c match {
+        case '.' | '[' => res.append('_')
+        case ']'       =>
+        case _         => res.append(c)
       }
-      i += 1
-    }
     return res.toString()
   }
 
@@ -178,7 +170,8 @@ private final object AnnotateLoopsAndAccesses extends Collector {
           new LinearizedFieldAccess(fieldSelection, SimplifyExpression.recreateExpressionFromSum(outMap)))
         f.annotate(REPL_ANNOT, new ArrayAccess(new VariableAccess(name), in))
 
-      case a @ ArrayAccess(base, index) if !decls.isEmpty =>
+      // ArrayAccess with a constant index only cannot be optimized further
+      case a @ ArrayAccess(base, index) if !decls.isEmpty && !index.isInstanceOf[IntegerConstant] =>
         var name : String = generateName(base)
         val (decl : HashMap[String, ArrayBases], loopVar) = decls.top
         val (in : Expression, outMap : HashMap[Expression, Long]) = splitIndex(index, loopVar)
@@ -225,13 +218,12 @@ private final object IntegrateAnnotations extends PartialFunction[Node, Transfor
         return node
 
       // lessen collapse, if available (we insert new statements and therefore the code is not perfectly nested anymore)
-      val parLoop : OMP_PotentiallyParallel = node.removeAnnotation(AnnotateLoopsAndAccesses.OMP_LOOP_ANNOT).get.value
-        .asInstanceOf[OMP_PotentiallyParallel]
+      val parLoop = node.removeAnnotation(AnnotateLoopsAndAccesses.OMP_LOOP_ANNOT).get.value.asInstanceOf[OMP_PotentiallyParallel]
       if (parLoop != null) parLoop.collapse = Math.max(1, parLoop.collapse - 1)
 
       val stmts = new ListBuffer[Statement]()
       for ((_, bases : ArrayBases) <- decls)
-        bases.getDecls(stmts)
+        bases.addToDecls(stmts)
 
       stmts += node.asInstanceOf[Statement]
       return new Scope(stmts)

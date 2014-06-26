@@ -1,5 +1,7 @@
 package exastencils.polyhedron
 
+import scala.annotation.elidable
+import scala.annotation.elidable.ASSERTION
 import scala.collection.mutable.ArrayStack
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.HashSet

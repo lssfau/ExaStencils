@@ -41,6 +41,9 @@ import exastencils.datastructures.ir.SubtractionExpression
 import exastencils.datastructures.ir.UnaryExpression
 import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.VariableDeclarationStatement
+import exastencils.datastructures.ir.iv.FieldData
+import exastencils.datastructures.ir.iv.PrimitivePositionBegin
+import exastencils.datastructures.ir.iv.PrimitivePositionEnd
 import exastencils.knowledge.FieldSelection
 import exastencils.knowledge.dimToString
 
@@ -243,6 +246,16 @@ class Extractor extends Collector {
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(varName, index)
 
+          case ArrayAccess(ppVec : PrimitivePositionBegin, index) =>
+            ppVec.annotate(SKIP_ANNOT)
+            index.annotate(SKIP_ANNOT)
+            enterArrayAccess(ppVec.cpp(), index)
+
+          case ArrayAccess(ppVec : PrimitivePositionEnd, index) =>
+            ppVec.annotate(SKIP_ANNOT)
+            index.annotate(SKIP_ANNOT)
+            enterArrayAccess(ppVec.cpp(), index)
+
           case DirectFieldAccess(fieldSelection, index) =>
             fieldSelection.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
@@ -329,6 +342,12 @@ class Extractor extends Collector {
 
       case varAcc : VariableAccess =>
         val islStr : String = ScopNameMapping.expr2id(varAcc)
+        if (vars != null)
+          vars.add(islStr)
+        constraints.append(islStr)
+
+      case array : ArrayAccess =>
+        val islStr : String = ScopNameMapping.expr2id(array)
         if (vars != null)
           vars.add(islStr)
         constraints.append(islStr)
@@ -649,14 +668,8 @@ class Extractor extends Collector {
 
   private def enterFieldAccess(fieldSelection : FieldSelection, index : MultiIndex, offset : MultiIndex = null) : Unit = {
 
-    val name : StringBuilder = new StringBuilder()
-
-    // FIXME : UPDATE
-    name.append(fieldSelection.codeName)
-    name.append('_')
-    fieldSelection.slot.cppsb(name)
-
-    enterArrayAccess(name.toString(), if (offset == null) index else index + offset)
+    val name : String = FieldData(fieldSelection.field, fieldSelection.slot, fieldSelection.fragIdx).cpp()
+    enterArrayAccess(name, if (offset == null) index else index + offset)
   }
 
   private def leaveFieldAccess() : Unit = {
