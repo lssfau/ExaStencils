@@ -188,7 +188,7 @@ case class FieldData(var field : Field, var slot : Expression, var fragmentIdx :
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 
-  override def resolveName = (if (!Knowledge.data_useFieldNamesAsIdx && 1 == field.numSlots) s"fieldData" else "slottedFieldData") +
+  override def resolveName = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +
     resolvePostfix(fragmentIdx.cpp, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, field.level.toString, "")
 
   override def resolveDataType = {

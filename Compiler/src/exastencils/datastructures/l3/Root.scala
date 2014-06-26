@@ -11,16 +11,16 @@ case class Root() extends Node {
   var numPre : Int = 2 // has to be divisible by 2 for Jac
   var numPost : Int = 4 // has to be divisible by 2 for Jac
   var omega : Double = (if ("Jac" == smoother) 0.8 else 1.0)
-  var testBC : Boolean = false // NOTE: the tested bc will only be reasonable for 2D cases
+  var testBC : Boolean = true // NOTE: the tested bc will only be reasonable for 2D cases
   var testExtFields : Boolean = false
   var printFieldAtEnd : Boolean = false
   var genSetableStencil : Boolean = false
   var omegaViaGlobals : Boolean = false
   var initSolWithRand : Boolean = !testBC
   var genRBSetsWithConditions : Boolean = true
-  var useVecFields : Boolean = false // attempts to solve Poisson's equation for (numVecDims)D vectors; atm all three components are solved independently
+  var useVecFields : Boolean = true // attempts to solve Poisson's equation for (numVecDims)D vectors; atm all three components are solved independently
   var numVecDims = (if (useVecFields) 2 else 1)
-  var genStencilFields : Boolean = false
+  var genStencilFields : Boolean = true
   var useSlotsForJac : Boolean = true
 
   def solutionFields(level : String) = {
