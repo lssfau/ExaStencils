@@ -234,4 +234,5 @@ case class CommunicationFunctions() extends FunctionCollection("Primitives/Commu
     ListBuffer(
       "#include \"Globals/Globals.h\"",
       "#include \"Util/Log.h\"",
-      "#include \"Util/Vector.h\"")) {}
+      "#include \"Util/Vector.h\"",
+      "#include \"MultiGrid/MultiGrid.h\"")) {}
