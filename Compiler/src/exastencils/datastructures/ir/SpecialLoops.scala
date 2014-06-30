@@ -216,7 +216,7 @@ case class LoopOverDomains(var body : ListBuffer[Statement]) extends Statement w
   def expand : ForLoopStatement = {
     new ForLoopStatement(
       VariableDeclarationStatement(new IntegerDatatype, LoopOverDomains.defIt, Some(0)),
-      new LowerExpression(LoopOverDomains.defIt, Knowledge.domain_numFragsPerBlock),
+      new LowerExpression(LoopOverDomains.defIt, DomainCollection.domains.size),
       AssignmentStatement(LoopOverDomains.defIt, 1, "+="),
       body)
   }
