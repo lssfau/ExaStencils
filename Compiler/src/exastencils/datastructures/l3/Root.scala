@@ -6,6 +6,8 @@ import exastencils.datastructures._
 import exastencils.multiGrid._
 
 case class Root() extends Node {
+  var kelvin : Boolean = false
+
   var smoother : String = "Jac" // Jac | GS | RBGS
   var cgs : String = "CG" // CG
   var numPre : Int = 2 // has to be divisible by 2 for Jac
@@ -18,7 +20,7 @@ case class Root() extends Node {
   var omegaViaGlobals : Boolean = false
   var initSolWithRand : Boolean = !testBC
   var genRBSetsWithConditions : Boolean = true
-  var useVecFields : Boolean = true // attempts to solve Poisson's equation for (numVecDims)D vectors; atm all three components are solved independently
+  var useVecFields : Boolean = false // attempts to solve Poisson's equation for (numVecDims)D vectors; atm all three components are solved independently
   var numVecDims = (if (useVecFields) 2 else 1)
   var genStencilFields : Boolean = true
   var useSlotsForJac : Boolean = true
@@ -55,6 +57,9 @@ case class Root() extends Node {
     Knowledge.dimensionality match {
       case 2 => {
         printer.println("Domain global< [ 0, 0 ] to [ 1, 1 ] >")
+        if (kelvin)
+          printer.println(s"Domain innerDom< [ ${0.0 + (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_x - 0)}, ${0.0 + (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_y - 0)} ] " +
+            s"to [ ${1.0 - (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_x - 0)}, ${1.0 - (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_y - 0)} ] >")
       }
       case 3 => {
         printer.println("Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >")
@@ -108,20 +113,23 @@ case class Root() extends Node {
 
     // Fields
     var fieldDatatype = (if (useVecFields) s"Array[Real][$numVecDims]" else "Real")
-    if (testBC) {
+    if (testBC || kelvin) {
+      var bc = (
+        if (kelvin) "bcSol(xPos, yPos)"
+        else "sin ( M_PI * xPos ) * sinh ( M_PI * yPos )")
       if ("Jac" == smoother) {
         if (useSlotsForJac) {
           printer.println(s"Field Solution< $fieldDatatype, global, BasicComm, 0.0 >[2]@(coarsest to (finest - 1))")
-          printer.println(s"Field Solution< $fieldDatatype, global, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >[2]@finest")
+          printer.println(s"Field Solution< $fieldDatatype, global, BasicComm, $bc >[2]@finest")
         } else {
           printer.println(s"Field Solution< $fieldDatatype, global, BasicComm, 0.0 >@(coarsest to (finest - 1))")
-          printer.println(s"Field Solution< $fieldDatatype, global, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@finest")
+          printer.println(s"Field Solution< $fieldDatatype, global, BasicComm, $bc >@finest")
           printer.println(s"Field Solution2< $fieldDatatype, global, BasicComm, 0.0 >@(coarsest to (finest - 1))")
-          printer.println(s"Field Solution2< $fieldDatatype, global, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@finest")
+          printer.println(s"Field Solution2< $fieldDatatype, global, BasicComm, $bc >@finest")
         }
       } else {
         printer.println(s"Field Solution< $fieldDatatype, global, BasicComm, 0.0 >@(coarsest to (finest - 1))")
-        printer.println(s"Field Solution< $fieldDatatype, global, BasicComm, sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) >@finest")
+        printer.println(s"Field Solution< $fieldDatatype, global, BasicComm, $bc >@finest")
       }
     } else {
       if ("Jac" == smoother) {
@@ -142,6 +150,16 @@ case class Root() extends Node {
       printer.println(s"Field VecGradP< $fieldDatatype, global, NoComm, None >@coarsest")
     }
     printer.println
+
+    if (kelvin) {
+      printer.println("def bcSol (xPos : Real, yPos : Real) : Real {")
+      printer.println("\tif ( yPos >= 1.0 ) { return ( UN ) }")
+      printer.println("\tif ( xPos >= 1.0 ) { return ( UE ) }")
+      printer.println("\tif ( yPos <= 0.0 ) { return ( US ) }")
+      printer.println("\tif ( xPos <= 0.0 ) { return ( UW ) }")
+      printer.println("\treturn ( 0.0 )")
+      printer.println("}")
+    }
 
     // Coeff/StencilFields
     if (genStencilFields) {
@@ -332,6 +350,19 @@ case class Root() extends Node {
           printer.println("\tvar Lapl_Coeff_0_0_N1 : Real")
         }
       }
+    }
+    if (kelvin) {
+      // Dir BC
+      printer.println("\tvar UN : Real = 1")
+      printer.println("\tvar US : Real = 10")
+      printer.println("\tvar UE : Real = 5")
+      printer.println("\tvar UW : Real = 3")
+      // other parameters
+      printer.println("\tvar alpha : Integer = 2")
+      printer.println("\tvar sigma : Real = 0.3")
+      printer.println("\tvar lambda : Real = 0.1")
+      printer.println("\tvar nu : Real = 1 // alpha - dim/2")
+      printer.println("\tvar kappa : Real = sqrt( 8 * nu ) / ( lambda )")
     }
     printer.println("}")
     printer.println
@@ -567,6 +598,51 @@ case class Root() extends Node {
     }
 
     printer.println
+
+    // Kelvin
+    if (kelvin) {
+      printer.println("def gamma ( x : Real ) : Real {")
+      printer.println("\t// implementation of the gamma function")
+      printer.println("\treturn ( x )")
+      printer.println("}")
+      printer.println
+
+      printer.println("def gmrf_spde ( ) : Unit {")
+      printer.println("\tvar tau2 : Real = gamma ( nu ) / ( gamma ( nu + 0.5 ) * (( 4.0 * M_PI ) ** ( d / 2.0 )) * ( kappa ** ( 2 * nu )) * sigma * sigma )")
+      printer.println("\tloop over innerForFieldsWithoutGhostLayers on Stoc_RHS@finest {")
+      printer.println("\t\tStoc_RHS@finest = randn ( ) // normal random generator")
+      printer.println("\t}")
+      printer.println("\tcommunicate Stoc_RHS@finest")
+      printer.println("\tUpResidualGMRF@finest ( )")
+      printer.println("\tvar res0 : Real = L2ResidualGMRF@finest ( )")
+      printer.println("\tvar res : Real = res0")
+      printer.println("\tvar resold : Real = 0")
+      printer.println("\trepeat up 10 {")
+      printer.println("\t\tresold = res")
+      printer.println("\t\tVCycleGMRF@finest ( )")
+      printer.println("\t\tUpResidualGMRF@finest ( )")
+      printer.println("\t\tres = L2ResidualGMRF@finest ( )")
+      printer.println("\t}")
+      printer.println("\tloop over inner on gmrf@finest {")
+      printer.println("\tgmrf@finest = ( 1.0 / sqrt ( tau2 )) * gmrf@finest")
+      printer.println("\t}")
+      printer.println("}")
+
+      printer.println
+
+      printer.println("def pdesolve ( ) : Unit {")
+      printer.println("\tUpResidual@finest ( )")
+      printer.println("\tvar res0 : Real = L2Residual@finest ( )")
+      printer.println("\tvar res : Real = res0")
+      printer.println("\tvar resold : Real = 0")
+      printer.println("\trepeat up 10 {")
+      printer.println("\t\tresold = res")
+      printer.println("\t\tVCycle@finest ( )")
+      printer.println("\t\tUpResidual@finest ( )")
+      printer.println("\t\tres = L2Residual@finest ( )")
+      printer.println("\t}")
+      printer.println("}")
+    }
 
     // Application
     printer.println("def Application ( ) : Unit {")
