@@ -64,7 +64,7 @@ case class ForLoopStatement(var begin : Statement, var end : Expression, var inc
     sb ++= "for (" ++= begin.cpp() += ' '; end.cppsb(sb); sb ++= "; " ++= inc.cpp()
     if (sb.last == ';')
       sb.deleteCharAt(sb.length - 1)
-    sb ++= ")\n{\n"
+    sb ++= ") {\n"
     for (stmt <- body)
       sb ++= stmt.cpp() += '\n'
     sb += '}'
@@ -82,12 +82,11 @@ case class ConditionStatement(var condition : Expression, var trueBody : ListBuf
   def this(condition : Expression, trueBranch : Statement, falseBody : ListBuffer[Statement]) = this(condition, ListBuffer(trueBranch), falseBody)
 
   def cpp : String = {
-    (s"if (${condition.cpp})"
-      + "\n{\n"
+    (s"if (${condition.cpp}) {\n"
       + trueBody.map(stat => stat.cpp).mkString("\n")
       + s"\n}"
       + (if (falseBody.length > 0)
-        s"\nelse\n{\n"
+        s" else {\n"
         + falseBody.map(stat => stat.cpp).mkString("\n")
         + s"\n}"
       else
@@ -99,8 +98,7 @@ case class CaseStatement(var toMatch : Expression, var body : ListBuffer[Stateme
   def this(toMatch : Expression, body : Statement) = this(toMatch, ListBuffer[Statement](body))
 
   override def cpp : String = {
-    (s"case (${toMatch.cpp}):"
-      + "\n{\n"
+    (s"case (${toMatch.cpp}): {\n"
       + body.map(stat => stat.cpp).mkString("\n")
       + s"\n} break;")
   }
@@ -110,8 +108,7 @@ case class SwitchStatement(var what : Expression, var body : ListBuffer[CaseStat
   def this(what : Expression, body : CaseStatement) = this(what, ListBuffer[CaseStatement](body))
 
   override def cpp : String = {
-    (s"switch (${what.cpp})"
-      + "\n{\n"
+    (s"switch (${what.cpp}) {\n"
       + body.map(stat => stat.cpp).mkString("\n")
       + s"\n}")
   }
@@ -132,8 +129,7 @@ case class FunctionStatement(var returntype : Datatype, var name : Expression, v
   def this(returntype : Datatype, name : Expression, parameters : VariableAccess, body : ListBuffer[Statement]) = this(returntype, name, ListBuffer[VariableAccess](parameters), body)
 
   override def cpp : String = { // FIXME: add specialized node for parameter specification with own PP
-    (s"${returntype.cpp} ${name.cpp}(" + parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ")"
-      + "\n{\n"
+    (s"${returntype.cpp} ${name.cpp}(" + parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ") {\n"
       + body.map(stat => stat.cpp).mkString("\n")
       + s"\n}")
   }
