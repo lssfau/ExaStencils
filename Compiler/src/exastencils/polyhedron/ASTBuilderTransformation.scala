@@ -72,27 +72,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
     //    Logger.debug("    Domain:   " + scop.domain)
     //    Logger.debug("    Schedule: " + scop.schedule)
 
-    var dims : Int = 0
-    scop.schedule.foreachMap({
-      sched : isl.Map => dims = math.max(dims, sched.dim(isl.DimType.Out))
-    })
-    var islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.domain.params())
-    var option = new StringBuilder()
-    var itersId : isl.IdList = isl.IdList.alloc(dims)
-    option.append("{[")
-    var i : Int = 0
-    while (i < dims) {
-      option.append('i').append(i).append(',')
-      itersId = itersId.add(isl.Id.alloc(scop.njuLoopVars(i), null))
-      i += 1
-    }
-    option.deleteCharAt(option.length - 1) // remove last ','
-    option.append("]->separate[x]}")
-    islBuild = islBuild.setOptions(new isl.UnionMap(option.toString()))
-    islBuild = islBuild.setIterators(itersId)
-    val islNode : isl.AstNode = islBuild.astFromSchedule(scop.schedule.intersectDomain(scop.domain))
-
-    oldStmts = scop.stmts
+    // find all sequential loops
     seqDims = null
     parallelize = false
     if (scop.parallelize) {
@@ -109,25 +89,39 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
         val directions = dep.deltas()
         val universe : isl.Set = isl.BasicSet.universe(directions.getSpace())
         val dim : Int = universe.dim(isl.DimType.Set)
-        var i = 0
-        while (i < dim) {
-
+        for (i <- 0 until dim) {
           var seq = universe
-          var j = 0
-          while (j < i) {
+          for (j <- 0 until i)
             seq = seq.fixVal(isl.DimType.Set, j, ZERO_VAL)
-            j += 1
-          }
           seq = seq.lowerBoundVal(isl.DimType.Set, i, ONE_VAL)
 
           if (!seq.intersect(directions).isEmpty())
             seqDims.add(scop.njuLoopVars(i))
-
-          i += 1
         }
       })
     }
 
+    // compute schedule dims
+    var dims : Int = 0
+    scop.schedule.foreachMap({
+      sched : isl.Map => dims = math.max(dims, sched.dim(isl.DimType.Out))
+    })
+
+    // build AST generation options
+    var options : isl.UnionMap = isl.UnionMap.empty(isl.Space.alloc(0, dims, 1).setTupleName(isl.DimType.Out, "separate"))
+
+    // build iterators list
+    var itersId : isl.IdList = isl.IdList.alloc(dims)
+    for (i <- 0 until dims)
+      itersId = itersId.add(isl.Id.alloc(scop.njuLoopVars(i), null))
+
+    oldStmts = scop.stmts
+
+    // build AST
+    var islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.domain.params())
+//    islBuild = islBuild.setOptions(options)
+    islBuild = islBuild.setIterators(itersId)
+    val islNode : isl.AstNode = islBuild.astFromSchedule(scop.schedule.intersectDomain(scop.domain))
     var nju : Statement =
       try {
         processIslNode(islNode)
@@ -137,6 +131,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
           return node
       }
 
+    // add comment (for debugging) and (eventually) declarations outside loop nest
     val comment = new CommentStatement("Statements in this Scop: " + scop.stmts.keySet.mkString(", "))
     if (!scop.decls.isEmpty) {
       val scopeList = new ListBuffer[Statement]
@@ -215,12 +210,9 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
         val name : String = args(0).asInstanceOf[StringConstant].value
         val (oldStmt : Statement, loopVars : ArrayBuffer[String]) = oldStmts(name)
         val stmt : Statement = Duplicate(oldStmt)
-        var d : Int = 1
         val repl = new HashMap[String, Expression]()
-        do {
+        for (d <- 1 until args.length)
           repl.put(loopVars(loopVars.size - d), args(d))
-          d += 1
-        } while (d < args.length)
 
         replaceCallback(repl, stmt)
         stmt
@@ -285,11 +277,8 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
 
     val nArgs : Int = expr.getOpNArg()
     val args = new Array[Expression](nArgs)
-    var i : Int = 0;
-    while (i < nArgs) {
+    for (i <- 0 until nArgs)
       args(i) = processIslExpr(expr.getOpArg(i))
-      i += 1
-    }
 
     return args
   }
