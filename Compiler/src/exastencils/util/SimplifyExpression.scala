@@ -2,7 +2,6 @@ package exastencils.util
 
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
-
 import exastencils.datastructures.ir.AdditionExpression
 import exastencils.datastructures.ir.DivisionExpression
 import exastencils.datastructures.ir.Expression
@@ -15,6 +14,8 @@ import exastencils.datastructures.ir.NullExpression
 import exastencils.datastructures.ir.StringConstant
 import exastencils.datastructures.ir.SubtractionExpression
 import exastencils.datastructures.ir.VariableAccess
+import exastencils.datastructures.ir.UnaryExpression
+import exastencils.datastructures.ir.UnaryOperators
 
 object SimplifyExpression {
 
@@ -85,6 +86,11 @@ object SimplifyExpression {
       case StringConstant(varName) =>
         res = new HashMap[Expression, Long]()
         res(VariableAccess(varName, Some(IntegerDatatype()))) = 1L
+
+      case UnaryExpression(UnaryOperators.Negative, expr) =>
+        res = extractIntegralSum(expr)
+        for ((name : Expression, value : Long) <- extractIntegralSum(expr))
+          res(name) = -value
 
       case AdditionExpression(l, r) =>
         res = extractIntegralSum(l)
