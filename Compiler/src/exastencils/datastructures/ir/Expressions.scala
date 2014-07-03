@@ -1,13 +1,17 @@
 package exastencils.datastructures.ir
 
 import scala.collection.mutable.ListBuffer
-import exastencils.core._
-import exastencils.core.collectors._
-import exastencils.knowledge._
-import exastencils.datastructures._
-import exastencils.datastructures.ir._
-import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.strategies._
+import scala.language.implicitConversions
+
+import exastencils.core.Duplicate
+import exastencils.datastructures.Node
+import exastencils.datastructures.ir.ImplicitConversions.NumberToIntegerConstant
+import exastencils.datastructures.ir.ImplicitConversions.StringToStringLiteral
+import exastencils.knowledge.ExternalField
+import exastencils.knowledge.FieldSelection
+import exastencils.knowledge.Mapping
+import exastencils.knowledge.Stencil
+import exastencils.knowledge.StencilFieldSelection
 
 trait Expression extends Node with CppPrettyPrintable {
   def ~(exp : Expression) : ConcatenationExpression = {
@@ -202,12 +206,12 @@ case class MultiIndex(
     if (!left(3).isInstanceOf[NullExpression] && !right(3).isInstanceOf[NullExpression]) { Duplicate(f(left(3), right(3))) } else { new NullExpression })
 
   override def cpp = {
-    ("["
-      + s"${index_0.cpp}"
+    ('['
+      + index_0.cpp
       + (if (!index_1.isInstanceOf[NullExpression]) s", ${index_1.cpp}" else "")
       + (if (!index_2.isInstanceOf[NullExpression]) s", ${index_2.cpp}" else "")
       + (if (!index_3.isInstanceOf[NullExpression]) s", ${index_3.cpp}" else "")
-      + "]")
+      + ']')
   }
 
   def apply(i : Int) : Expression = {
@@ -285,11 +289,11 @@ case class MemberAccess(var base : Access, var varAcc : VariableAccess) extends 
 }
 
 case class DerefAccess(var base : Access) extends Access {
-  override def cpp = "*(" + base.cpp + ')'
+  override def cpp = "(*" + base.cpp + ')'
 }
 
 case class UnaryExpression(var operator : UnaryOperators.Value, var expression : Expression) extends Expression {
-  override def cpp = { s"$operator(${expression.cpp})" }
+  override def cpp = { '(' + operator.toString() + expression.cpp + ')' }
 }
 
 case class AdditionExpression(var left : Expression, var right : Expression) extends Expression {
@@ -300,11 +304,11 @@ case class AdditionExpression(var left : Expression, var right : Expression) ext
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("(")
+    sb.append('(')
     left.cppsb(sb)
-    sb.append("+")
+    sb.append('+')
     right.cppsb(sb)
-    sb.append(")")
+    sb.append(')')
   }
 }
 
@@ -316,11 +320,11 @@ case class SubtractionExpression(var left : Expression, var right : Expression) 
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("(")
+    sb.append('(')
     left.cppsb(sb)
-    sb.append("-")
+    sb.append('-')
     right.cppsb(sb)
-    sb.append(")")
+    sb.append(')')
   }
 }
 
@@ -332,11 +336,11 @@ case class MultiplicationExpression(var left : Expression, var right : Expressio
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("(")
+    sb.append('(')
     left.cppsb(sb)
-    sb.append("*")
+    sb.append('*')
     right.cppsb(sb)
-    sb.append(")")
+    sb.append(')')
   }
 }
 
@@ -348,11 +352,11 @@ case class DivisionExpression(var left : Expression, var right : Expression) ext
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("(")
+    sb.append('(')
     left.cppsb(sb)
-    sb.append("/")
+    sb.append('/')
     right.cppsb(sb)
-    sb.append(")")
+    sb.append(')')
   }
 }
 
@@ -364,11 +368,11 @@ case class ModuloExpression(var left : Expression, var right : Expression) exten
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("(")
+    sb.append('(')
     left.cppsb(sb)
-    sb.append("%")
+    sb.append('%')
     right.cppsb(sb)
-    sb.append(")")
+    sb.append(')')
   }
 }
 
@@ -384,7 +388,7 @@ case class PowerExpression(var left : Expression, var right : Expression) extend
     left.cppsb(sb)
     sb.append(", ")
     right.cppsb(sb)
-    sb.append(")")
+    sb.append(')')
   }
 }
 
@@ -396,11 +400,11 @@ case class EqEqExpression(var left : Expression, var right : Expression) extends
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("(")
+    sb.append('(')
     left.cppsb(sb)
     sb.append("==")
     right.cppsb(sb)
-    sb.append(")")
+    sb.append(')')
   }
 }
 
@@ -412,11 +416,11 @@ case class NeqNeqExpression(var left : Expression, var right : Expression) exten
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("(")
+    sb.append('(')
     left.cppsb(sb)
     sb.append("!=")
     right.cppsb(sb)
-    sb.append(")")
+    sb.append(')')
   }
 }
 
@@ -428,11 +432,11 @@ case class AndAndExpression(var left : Expression, var right : Expression) exten
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("(")
+    sb.append('(')
     left.cppsb(sb)
     sb.append("&&")
     right.cppsb(sb)
-    sb.append(")")
+    sb.append(')')
   }
 }
 
@@ -444,11 +448,11 @@ case class OrOrExpression(var left : Expression, var right : Expression) extends
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("(")
+    sb.append('(')
     left.cppsb(sb)
     sb.append("||")
     right.cppsb(sb)
-    sb.append(")")
+    sb.append(')')
   }
 }
 
@@ -460,11 +464,11 @@ case class LowerExpression(var left : Expression, var right : Expression) extend
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("(")
+    sb.append('(')
     left.cppsb(sb)
-    sb.append("<")
+    sb.append('<')
     right.cppsb(sb)
-    sb.append(")")
+    sb.append(')')
   }
 }
 
@@ -476,11 +480,11 @@ case class GreaterExpression(var left : Expression, var right : Expression) exte
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("(")
+    sb.append('(')
     left.cppsb(sb)
-    sb.append(">")
+    sb.append('>')
     right.cppsb(sb)
-    sb.append(")")
+    sb.append(')')
   }
 }
 
@@ -492,11 +496,11 @@ case class LowerEqualExpression(var left : Expression, var right : Expression) e
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("(")
+    sb.append('(')
     left.cppsb(sb)
     sb.append("<=")
     right.cppsb(sb)
-    sb.append(")")
+    sb.append(')')
   }
 }
 
@@ -508,11 +512,11 @@ case class GreaterEqualExpression(var left : Expression, var right : Expression)
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("(")
+    sb.append('(')
     left.cppsb(sb)
     sb.append(">=")
     right.cppsb(sb)
-    sb.append(")")
+    sb.append(')')
   }
 }
 
@@ -520,7 +524,7 @@ case class FunctionCallExpression(var name : Expression, var arguments : ListBuf
   def this(name : Expression, argument : Expression) = this(name, ListBuffer(argument))
 
   override def cpp : String = {
-    return (s"${name.cpp}(" + arguments.map(arg => arg.cpp).mkString(", ") + ")")
+    return (s"${name.cpp}(" + arguments.map(arg => arg.cpp).mkString(", ") + ')')
   }
 }
 
@@ -540,19 +544,19 @@ case class InitializerList(var arguments : ListBuffer[Expression]) extends Expre
       sb.append(", ")
     }
     val l : Int = sb.length
-    sb.replace(l-2, l, " }")
+    sb.replace(l - 2, l, " }")
   }
 }
 
 case class MemberFunctionCallExpression(var objectName : Expression, var name : Expression, var arguments : ListBuffer[Expression]) extends Expression {
   override def cpp : String = {
-    return (s"${objectName.cpp}.${name.cpp}(" + arguments.map(arg => arg.cpp).mkString(", ") + ")")
+    return (s"${objectName.cpp}.${name.cpp}(" + arguments.map(arg => arg.cpp).mkString(", ") + ')')
   }
 }
 
 case class TernaryConditionExpression(var condition : Expression, var trueBody : Expression, var falseBody : Expression) extends Expression {
   override def cpp : String = {
-    (s"((${condition.cpp}) ? (${trueBody.cpp}) : (${falseBody.cpp}))")
+    (s"(${condition.cpp} ? ${trueBody.cpp} : ${falseBody.cpp})")
   }
 }
 
