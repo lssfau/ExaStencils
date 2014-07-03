@@ -31,5 +31,6 @@ IR:
 
 ISL:
 - L4 constraints to ISL mapping
-- Mark loops from ISL with OMP_PotentiallyParallel
-- Mimic optimizations and criteria for OMP_PotentiallyParallel from LoopOverDomains.expand in ISL trafo
+- add tiling
+- add vectorization
+- long term: reduce optimization runtime
