@@ -31,7 +31,7 @@ class Scop(val root : Node, val parallelize : Boolean) {
     var output : isl.UnionMap = null
 
     def validity() : isl.UnionMap = {
-      return flow.union(anti).union(output)
+      return Isl.simplify(flow.union(anti).union(output))
     }
   }
 

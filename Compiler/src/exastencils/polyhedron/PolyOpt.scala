@@ -27,6 +27,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
     val scops : ArrayStack[Scop] = extractPolyModel()
     for (scop <- scops) {
+      simplifyModel(scop)
       computeDependences(scop)
       deadCodeElimination(scop)
       optimize(scop)
@@ -49,6 +50,31 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     Logger.debug("    rejected:    " + extr.trash.size)
 
     return scops
+  }
+
+  private def simplifyModel(scop : Scop) : Unit = {
+
+    if (scop.domain != null)
+      scop.domain = Isl.simplify(scop.domain)
+    if (scop.schedule != null)
+      scop.schedule = Isl.simplify(scop.schedule)
+
+    if (scop.reads != null)
+      scop.reads = Isl.simplify(scop.reads)
+    if (scop.writes != null)
+      scop.writes = Isl.simplify(scop.writes)
+
+    if (scop.deadAfterScop != null)
+      scop.deadAfterScop = Isl.simplify(scop.deadAfterScop)
+
+    if (scop.deps.flow != null)
+      scop.deps.flow = Isl.simplify(scop.deps.flow)
+    if (scop.deps.anti != null)
+      scop.deps.anti = Isl.simplify(scop.deps.anti)
+    if (scop.deps.input != null)
+      scop.deps.input = Isl.simplify(scop.deps.input)
+    if (scop.deps.output != null)
+      scop.deps.output = Isl.simplify(scop.deps.output)
   }
 
   private def computeDependences(scop : Scop) : Unit = {
