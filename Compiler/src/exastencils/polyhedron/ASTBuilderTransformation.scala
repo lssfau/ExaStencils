@@ -1,11 +1,9 @@
 package exastencils.polyhedron
 
-import scala.annotation.elidable
-import scala.annotation.elidable.ASSERTION
-import scala.collection.mutable.ArrayStack
+import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.HashMap
-import scala.collection.mutable.HashSet
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.TreeSet
 
 import exastencils.core.Duplicate
 import exastencils.core.Logger
@@ -15,6 +13,7 @@ import exastencils.datastructures.Transformation.convFromNode
 import exastencils.datastructures.ir.AdditionExpression
 import exastencils.datastructures.ir.AndAndExpression
 import exastencils.datastructures.ir.AssignmentStatement
+import exastencils.datastructures.ir.CommentStatement
 import exastencils.datastructures.ir.ConditionStatement
 import exastencils.datastructures.ir.DivisionExpression
 import exastencils.datastructures.ir.EqEqExpression
@@ -23,6 +22,7 @@ import exastencils.datastructures.ir.ForLoopStatement
 import exastencils.datastructures.ir.FunctionCallExpression
 import exastencils.datastructures.ir.GreaterEqualExpression
 import exastencils.datastructures.ir.GreaterExpression
+import exastencils.datastructures.ir.InitializerList
 import exastencils.datastructures.ir.IntegerConstant
 import exastencils.datastructures.ir.IntegerDatatype
 import exastencils.datastructures.ir.LoopOverDimensions
@@ -43,7 +43,7 @@ import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.VariableDeclarationStatement
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.optimization.PrecalcAddresses
-import isl.Conversions.convertLambdaToXCallback1
+import isl.Conversions.convertLambdaToVoidCallback1
 
 class ASTBuilderTransformation(replaceCallback : (HashMap[String, Expression], Node) => Unit)
   extends Transformation("insert optimized loop AST", new ASTBuilderFunction(replaceCallback))
@@ -54,8 +54,8 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
   private final val ZERO_VAL : isl.Val = isl.Val.zero()
   private final val ONE_VAL : isl.Val = isl.Val.one()
 
-  private var oldStmts : HashMap[String, (Statement, ArrayStack[String])] = null
-  private var seqDims : HashSet[String] = null
+  private var oldStmts : HashMap[String, (Statement, ArrayBuffer[String])] = null
+  private var seqDims : TreeSet[String] = null
   private var parallelize : Boolean = false
 
   def isDefinedAt(node : Node) : Boolean = node match {
@@ -72,27 +72,40 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
     //    Logger.debug("    Domain:   " + scop.domain)
     //    Logger.debug("    Schedule: " + scop.schedule)
 
+    var dims : Int = 0
+    scop.schedule.foreachMap({
+      sched : isl.Map => dims = math.max(dims, sched.dim(isl.DimType.Out))
+    })
     var islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.domain.params())
     var option = new StringBuilder()
-    option.append("{[i0")
-    var i : Int = 1
-    val dims : Int = scop.schedule.sample().dim(isl.DimType.Out)
+    var itersId : isl.IdList = isl.IdList.alloc(dims)
+    option.append("{[")
+    var i : Int = 0
     while (i < dims) {
-      option.append(",i").append(i)
+      option.append('i').append(i).append(',')
+      itersId = itersId.add(isl.Id.alloc(scop.njuLoopVars(i), null))
       i += 1
     }
+    option.deleteCharAt(option.length - 1) // remove last ','
     option.append("]->separate[x]}")
     islBuild = islBuild.setOptions(new isl.UnionMap(option.toString()))
+    islBuild = islBuild.setIterators(itersId)
     val islNode : isl.AstNode = islBuild.astFromSchedule(scop.schedule.intersectDomain(scop.domain))
 
     oldStmts = scop.stmts
     seqDims = null
     parallelize = false
-    if (scop.root.asInstanceOf[LoopOverDimensions].parallelizationIsReasonable) {
+    if (scop.parallelize) {
       parallelize = true
-      seqDims = new HashSet[String]()
+      seqDims = new TreeSet[String]()
+      for (i <- scop.noParDims)
+        seqDims += scop.njuLoopVars(i)
 
-      scop.deps.validity().foreachMap({ dep : isl.Map =>
+      var deps : isl.UnionMap = scop.deps.validity()
+      deps = deps.applyDomain(scop.schedule)
+      deps = deps.applyRange(scop.schedule)
+
+      deps.foreachMap({ dep : isl.Map =>
         val directions = dep.deltas()
         val universe : isl.Set = isl.BasicSet.universe(directions.getSpace())
         val dim : Int = universe.dim(isl.DimType.Set)
@@ -108,7 +121,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
           seq = seq.lowerBoundVal(isl.DimType.Set, i, ONE_VAL)
 
           if (!seq.intersect(directions).isEmpty())
-            seqDims.add(seq.getDimName(isl.DimType.Set, i))
+            seqDims.add(scop.njuLoopVars(i))
 
           i += 1
         }
@@ -124,15 +137,18 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
           return node
       }
 
+    val comment = new CommentStatement("Statements in this Scop: " + scop.stmts.keySet.mkString(", "))
     if (!scop.decls.isEmpty) {
       val scopeList = new ListBuffer[Statement]
       for (decl <- scop.decls) {
         decl.expression = None
         scopeList += decl
       }
+      scopeList += comment
       scopeList += nju
       nju = new Scope(scopeList)
-    }
+    } else
+      nju = new StatementBlock(ListBuffer[Statement](comment, nju))
 
     return nju
   }
@@ -197,7 +213,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
         assume(expr.getOpType() == isl.AstOpType.OpCall, "user node is no OpCall?!")
         val args : Array[Expression] = processArgs(expr)
         val name : String = args(0).asInstanceOf[StringConstant].value
-        val (oldStmt : Statement, loopVars : ArrayStack[String]) = oldStmts(name)
+        val (oldStmt : Statement, loopVars : ArrayBuffer[String]) = oldStmts(name)
         val stmt : Statement = Duplicate(oldStmt)
         var d : Int = 1
         val repl = new HashMap[String, Expression]()
@@ -236,8 +252,6 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
       case isl.AstOpType.OpAnd if n == 2     => AndAndExpression(args(0), args(1))
       case isl.AstOpType.OpOrElse if n == 2  => OrOrExpression(args(0), args(1))
       case isl.AstOpType.OpOr if n == 2      => OrOrExpression(args(0), args(1))
-      case isl.AstOpType.OpMax if n == 2     => FunctionCallExpression(StringConstant("std::max"), ListBuffer(args : _*))
-      case isl.AstOpType.OpMin if n == 2     => FunctionCallExpression(StringConstant("std::min"), ListBuffer(args : _*))
       case isl.AstOpType.OpMinus if n == 1   => UnaryExpression(UnaryOperators.Negative, args(0))
       case isl.AstOpType.OpAdd if n == 2     => AdditionExpression(args(0), args(1))
       case isl.AstOpType.OpSub if n == 2     => SubtractionExpression(args(0), args(1))
@@ -252,6 +266,10 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
       case isl.AstOpType.OpLt if n == 2      => LowerExpression(args(0), args(1))
       case isl.AstOpType.OpGe if n == 2      => GreaterEqualExpression(args(0), args(1))
       case isl.AstOpType.OpGt if n == 2      => GreaterExpression(args(0), args(1))
+      case isl.AstOpType.OpMax if n >= 2 =>
+        FunctionCallExpression(StringConstant("std::max"), ListBuffer(InitializerList(ListBuffer(args : _*))))
+      case isl.AstOpType.OpMin if n >= 2 =>
+        FunctionCallExpression(StringConstant("std::min"), ListBuffer(InitializerList(ListBuffer(args : _*))))
 
       case isl.AstOpType.OpCall if n >= 1 =>
         val fArgs = ListBuffer[Expression](args : _*)

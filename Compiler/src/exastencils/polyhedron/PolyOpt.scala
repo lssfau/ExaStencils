@@ -12,6 +12,7 @@ import exastencils.datastructures.Transformation.convFromNode
 import exastencils.datastructures.ir.Expression
 import exastencils.datastructures.ir.StringConstant
 import exastencils.datastructures.ir.VariableAccess
+import isl.Conversions.convertLambdaToVoidCallback1
 
 trait PolyhedronAccessable
 
@@ -28,7 +29,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     for (scop <- scops) {
       computeDependences(scop)
       deadCodeElimination(scop)
-      //      optimize(scop)
+      optimize(scop)
     }
     recreateAndInsertAST()
 
@@ -61,20 +62,27 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     scop.deps.output = depArr(0)
 
     if (scop.reads != null) {
+      var readArrays : isl.UnionMap = empty
+      // input dependences on scalars are irrelevant
+      scop.reads.foreachMap({
+        read : isl.Map =>
+          if (read.dim(isl.DimType.Out) > 0)
+            readArrays = readArrays.addMap(read)
+      })
 
       // input
-      scop.reads.computeFlow(scop.reads, empty, scop.schedule,
-        depArr, null, null, null) // output params
+      readArrays.computeFlow(readArrays, empty, scop.schedule,
+        depArr, null, null, null) // output params (C-style)
       scop.deps.input = depArr(0)
 
       // flow
       scop.reads.computeFlow(scop.writes, empty, scop.schedule,
-        depArr, null, null, null) // output params
+        depArr, null, null, null) // output params (C-style)
       scop.deps.flow = depArr(0)
 
       // anti
       scop.writes.computeFlow(scop.reads, empty, scop.schedule,
-        depArr, null, null, null) // output params
+        depArr, null, null, null) // output params (C-style)
       scop.deps.anti = depArr(0)
 
     } else {
@@ -93,20 +101,52 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     live = live.union(scop.deps.flow.domain().intersect(scop.domain))
 
     scop.domain = live
+
+    // update schedule, accesses and dependencies
+    scop.schedule = scop.schedule.intersectDomain(live)
+    if (scop.reads != null)
+      scop.reads = scop.reads.intersectDomain(live)
+    if (scop.writes != null)
+      scop.writes = scop.writes.intersectDomain(live)
+    if (scop.deps.flow != null)
+      scop.deps.flow = scop.deps.flow.intersectDomain(live)
+    if (scop.deps.anti != null)
+      scop.deps.anti = scop.deps.anti.intersectDomain(live)
+    if (scop.deps.output != null)
+      scop.deps.output = scop.deps.output.intersectDomain(live)
+    if (scop.deps.input != null)
+      scop.deps.input = scop.deps.input.intersectDomain(live)
   }
 
   private def optimize(scop : Scop) : Unit = {
 
-    val validity : isl.UnionMap = scop.deps.validity()
-    val proximity : isl.UnionMap = scop.deps.input
+    var schedConstr : isl.ScheduleConstraints = isl.ScheduleConstraints.onDomain(scop.domain)
 
-    val njuSched = scop.domain.computeSchedule(validity, proximity)
-    println("===================================================================")
-    println(scop.schedule)
-    println(njuSched)
-    println(scop.domain)
-    println(scop.reads)
-    println(scop.writes)
+    schedConstr = schedConstr.setValidity(scop.deps.validity())
+    //    schedConstr = schedConstr.setCoincidence(coincidence)
+    schedConstr = schedConstr.setProximity(scop.deps.input)
+
+    val schedule : isl.Schedule = schedConstr.computeSchedule()
+    scop.noParDims.clear()
+    //    if (scop.parallelize) {
+    //      var v : isl.Vec = isl.Vec.alloc(3)
+    //      v = v.setElementVal(0, 1000000)
+    //      v = v.setElementVal(1, 32)
+    //      v = v.setElementVal(2, 1000000)
+    //      var tiled : Boolean = false
+    //      schedule.foreachBand({
+    //        band : isl.Band =>
+    //          if (band.nMember() == 3) {
+    //            band.tile(v)
+    //            tiled = true
+    //          }
+    //      })
+    //      if (tiled)
+    //        scop.noParDims += 0 += 2 // only one value per dim
+    //    }
+
+    scop.schedule = schedule.getMap()
+    scop.updateLoopVars()
   }
 
   private def recreateAndInsertAST() : Unit = {

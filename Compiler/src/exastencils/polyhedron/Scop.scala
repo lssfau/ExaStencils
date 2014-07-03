@@ -1,20 +1,25 @@
 package exastencils.polyhedron
 
-import scala.collection.mutable.ArrayStack
+import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.TreeSet
 
 import exastencils.datastructures.Node
 import exastencils.datastructures.ir.Expression
 import exastencils.datastructures.ir.Statement
 import exastencils.datastructures.ir.VariableDeclarationStatement
+import isl.Conversions.convertLambdaToVoidCallback1
 
-class Scop(val root : Node) {
+class Scop(val root : Node, val parallelize : Boolean) {
 
   var domain : isl.UnionSet = null
   var schedule : isl.UnionMap = null
-  val stmts = new HashMap[String, (Statement, ArrayStack[String])]
-  val decls = new ListBuffer[VariableDeclarationStatement]
+  val stmts = new HashMap[String, (Statement, ArrayBuffer[String])]()
+  val decls = new ListBuffer[VariableDeclarationStatement]()
+
+  val njuLoopVars = new ArrayBuffer[String]()
+  val noParDims = new TreeSet[Int]()
 
   var reads, writes : isl.UnionMap = null
   var deadAfterScop : isl.UnionSet = null
@@ -27,6 +32,19 @@ class Scop(val root : Node) {
 
     def validity() : isl.UnionMap = {
       return flow.union(anti).union(output)
+    }
+  }
+
+  def updateLoopVars() : Unit = {
+    njuLoopVars.clear()
+    var maxOut : Int = 0
+    schedule.foreachMap({
+      sched : isl.Map => maxOut = math.max(maxOut, sched.dim(isl.DimType.Out))
+    })
+    var i : Int = 0
+    while (i < maxOut) {
+      njuLoopVars += "i" + i
+      i += 1
     }
   }
 }
