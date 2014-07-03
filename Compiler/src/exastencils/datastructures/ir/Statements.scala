@@ -48,6 +48,12 @@ case class DefineStatement(var name : Expression, var value : Option[Expression]
   }
 }
 
+case class CommentStatement(var comment : String) extends Statement {
+  override def cpp = {
+    "/* " + comment + " */"
+  }
+}
+
 case class AssignmentStatement(var dest : Expression, var src : Expression, var op : Expression = "=") extends Statement {
   override def cpp : String = {
     (s"${dest.cpp} ${op.cpp} ${src.cpp};")
