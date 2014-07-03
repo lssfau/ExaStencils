@@ -524,6 +524,26 @@ case class FunctionCallExpression(var name : Expression, var arguments : ListBuf
   }
 }
 
+case class InitializerList(var arguments : ListBuffer[Expression]) extends Expression {
+  def this(argument : Expression) = this(ListBuffer(argument))
+
+  override def cpp : String = {
+    val sb = new StringBuilder()
+    cppsb(sb)
+    return sb.toString()
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("{ ")
+    for (arg <- arguments) {
+      arg.cppsb(sb)
+      sb.append(", ")
+    }
+    val l : Int = sb.length
+    sb.replace(l-2, l, " }")
+  }
+}
+
 case class MemberFunctionCallExpression(var objectName : Expression, var name : Expression, var arguments : ListBuffer[Expression]) extends Expression {
   override def cpp : String = {
     return (s"${objectName.cpp}.${name.cpp}(" + arguments.map(arg => arg.cpp).mkString(", ") + ")")
