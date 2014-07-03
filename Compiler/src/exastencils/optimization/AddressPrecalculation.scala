@@ -110,13 +110,14 @@ private final object AnnotateLoopsAndAccesses extends Collector {
 
     def containsLoopVar(expr : Expression) : Boolean =
       expr match {
-        case AdditionExpression(l, r)       => containsLoopVar(l) || containsLoopVar(r)
-        case SubtractionExpression(l, r)    => containsLoopVar(l) || containsLoopVar(r)
-        case MultiplicationExpression(l, r) => containsLoopVar(l) || containsLoopVar(r)
-        case DivisionExpression(l, r)       => containsLoopVar(l) || containsLoopVar(r)
-        case ModuloExpression(l, r)         => containsLoopVar(l) || containsLoopVar(r)
-        case StringConstant(str)            => str == loopVar
-        case VariableAccess(str, _)         => str == loopVar
+        case AdditionExpression(l, r)                       => containsLoopVar(l) || containsLoopVar(r)
+        case SubtractionExpression(l, r)                    => containsLoopVar(l) || containsLoopVar(r)
+        case MultiplicationExpression(l, r)                 => containsLoopVar(l) || containsLoopVar(r)
+        case DivisionExpression(l, r)                       => containsLoopVar(l) || containsLoopVar(r)
+        case ModuloExpression(l, r)                         => containsLoopVar(l) || containsLoopVar(r)
+        case UnaryExpression(UnaryOperators.Negative, expr) => containsLoopVar(expr)
+        case StringConstant(str)                            => str == loopVar
+        case VariableAccess(str, _)                         => str == loopVar
         case _ : Datatype
           | _ : IntegerConstant => false
       }
