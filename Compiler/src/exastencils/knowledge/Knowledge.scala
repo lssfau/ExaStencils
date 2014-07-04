@@ -80,7 +80,9 @@ object Knowledge {
 
   // --- Data Structures ---
   var data_initAllFieldsWithZero : Boolean = true // specifies if all data points in all fields on all levels should initially be set zero (before the l4 initField functions are applied)
-  var data_useFieldNamesAsIdx : Boolean = true // specifies if generated data field names should hold the clear text field identifier 
+  var data_useFieldNamesAsIdx : Boolean = true // specifies if generated data field names should hold the clear text field identifier
+
+  var data_addPrePadding : Boolean = true // specifies if additional padding at the beginning of the field is required (e.g. to ensure correct alignment for SIMD accesses)
 
   // --- OpenMP and MPI Parallelization ---
   var comm_strategyFragment : Int = 6 // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors

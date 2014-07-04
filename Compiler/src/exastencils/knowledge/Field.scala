@@ -54,7 +54,7 @@ case class Field(
     var numSlots : Int, // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
     var referenceOffset : MultiIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
     var dirichletBC : Option[Expression], // None in case of no dirichlet BC, otherwise specifies the expression to be used for the dirichlet boundary
-    var alignmentPadding : Expression // specifies the padding of the field to ensure datapoints are correct aligned for SIMD accesses
+    var alignmentPadding : Expression // specifies an additional padding at the beginning of the field in order to ensure correct alignment for SIMD accesses
     ) {
   def vectorSize = dataType.resolveFlattendSize
 }

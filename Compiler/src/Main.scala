@@ -71,7 +71,7 @@ object Main {
 
     ResolveSpecialFunctions.apply()
 
-    SetupFragment.apply()
+    SetupFragment.apply() // Stefan: This adds the setupBuffer func which will be exapanded using the field info in the next expand step 
 
     ExpandStrategy.doUntilDone()
 

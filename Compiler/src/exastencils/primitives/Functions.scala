@@ -154,11 +154,20 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
     var body = ListBuffer[Statement]()
 
     for (field <- fields) {
-      var numDataPoints = field.layout(0).total * field.layout(1).total * field.layout(2).total * field.dataType.resolveFlattendSize
-      body += new LoopOverFragments(field.domain.index,
-        (0 until field.numSlots).to[ListBuffer].map(slot =>
-          new AssignmentStatement(new iv.FieldData(field, slot),
-            ("new" : Expression) ~~ field.dataType.resolveUnderlyingDatatype. /*FIXME*/ cpp ~ "[" ~ numDataPoints ~ "]") : Statement)) with OMP_PotentiallyParallel
+      var numDataPoints : Expression = field.layout(0).total * field.layout(1).total * field.layout(2).total * field.dataType.resolveFlattendSize
+      if (Knowledge.data_addPrePadding)
+        numDataPoints += field.alignmentPadding
+
+      var statements : ListBuffer[Statement] = ListBuffer()
+
+      for (slot <- 0 until field.numSlots) {
+        statements += new AssignmentStatement(iv.FieldData(field, slot),
+          ("new" : Expression) ~~ field.dataType.resolveUnderlyingDatatype. /*FIXME*/ cpp ~ "[" ~ numDataPoints ~ "]")
+        if (Knowledge.data_addPrePadding)
+          statements += new AssignmentStatement(iv.FieldData(field, slot), iv.FieldData(field, slot) + field.alignmentPadding)
+      }
+
+      body += new LoopOverFragments(field.domain.index, statements) with OMP_PotentiallyParallel
     }
 
     return FunctionStatement(new UnitDatatype(), s"setupBuffers", ListBuffer(), body)

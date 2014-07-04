@@ -218,10 +218,14 @@ case class FieldData(var field : Field, var slot : Expression, var fragmentIdx :
   override def getDtor() : Option[Statement] = {
     val origSlot = slot
     slot = "slot"
-    val ret = Some(wrapInLoops(new ConditionStatement(resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt),
-      ListBuffer[Statement](
-        "delete []" ~~ resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt),
-        new AssignmentStatement(resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt), 0)))))
+    var access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
+
+    val ret = Some(wrapInLoops(
+      new ConditionStatement(access,
+        ListBuffer[Statement](
+          if (Knowledge.data_addPrePadding) AssignmentStatement(access, access - field.alignmentPadding) else new NullStatement,
+          "delete []" ~~ access,
+          new AssignmentStatement(access, 0)))))
     slot = origSlot
     ret
   }
