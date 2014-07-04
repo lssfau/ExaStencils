@@ -5,6 +5,7 @@ import exastencils.knowledge
 import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir.NullExpression
 import sun.reflect.generics.reflectiveObjects.NotImplementedException
 
 case class LayoutOption(var name : String, var value : Index, var hasCommunication : Option[Boolean]) extends Node
@@ -111,7 +112,8 @@ case class FieldDeclarationStatement(var name : String,
       level.get.asInstanceOf[SingleLevelSpecification].level,
       slots,
       refOffset,
-      if (boundary.isDefined) Some(boundary.get.progressToIr) else None)
+      if (boundary.isDefined) Some(boundary.get.progressToIr) else None,
+      NullExpression()) // TODO: specify correct alignmentPadding
   }
 }
 

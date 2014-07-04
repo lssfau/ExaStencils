@@ -148,9 +148,8 @@ object MainStefan {
     if (Knowledge.useMPI)
       AddMPIDatatypes.apply()
 
-    if (Knowledge.useOMP) {
+    if (Knowledge.useOMP)
       AddOMPPragmas.apply()
-    }
 
     // one last time
     ExpandStrategy.doUntilDone()

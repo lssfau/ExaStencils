@@ -1,5 +1,6 @@
 package exastencils.polyhedron
 
+import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.ArrayStack
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.Set
@@ -21,6 +22,7 @@ import exastencils.datastructures.ir.Expression
 import exastencils.datastructures.ir.ExpressionStatement
 import exastencils.datastructures.ir.FieldAccess
 import exastencils.datastructures.ir.FloatConstant
+import exastencils.datastructures.ir.FunctionCallExpression
 import exastencils.datastructures.ir.GreaterEqualExpression
 import exastencils.datastructures.ir.GreaterExpression
 import exastencils.datastructures.ir.IntegerConstant
@@ -47,11 +49,11 @@ import exastencils.datastructures.ir.iv.PrimitivePositionEnd
 import exastencils.knowledge.FieldSelection
 import exastencils.knowledge.dimToString
 
-class Extractor extends Collector {
-  import scala.language.implicitConversions
+/** Object for all "static" attributes */
+object Extractor {
 
   /** constants for read/write annotations */
-  private object Access extends Enumeration {
+  private final object Access extends Enumeration {
     type Access = Value
     final val ANNOT : String = "PolyAcc"
     final val READ, WRITE, UPDATE = Value
@@ -59,11 +61,38 @@ class Extractor extends Collector {
     exastencils.core.Duplicate.registerImmutable(this.getClass())
   }
 
+  /** annotation id used to indicate that this subtree should be skipped */
+  private final val SKIP_ANNOT : String = "PolySkip"
+
+  /** set of all functions that are allowed in a scop */
+  private final val allowedFunctions : HashSet[String] = {
+    val a = new HashSet[String]()
+    a.add("sin")
+    a.add("cos")
+    a.add("tan")
+    a.add("sinh")
+    a.add("cosh")
+    a.add("tanh")
+    a
+  }
+
+  /** set of symbolic constants that must not be modeled as read accesses */
+  private final val symbolicConstants : HashSet[String] = {
+    val c = new HashSet[String]()
+    c.add("M_PI")
+    c
+  }
+}
+
+class Extractor extends Collector {
+
+  /** import all "static" attributes to allow an unqualified access */
+  import exastencils.polyhedron.Extractor.SKIP_ANNOT
+  import exastencils.polyhedron.Extractor.Access
+  import exastencils.polyhedron.Extractor.allowedFunctions
+
   /** current access node is a read/write access */
   private var isRead, isWrite : Boolean = false
-
-  /** annotation id used to indicate that this subtree should be skipped */
-  final val SKIP_ANNOT : String = "PolySkip"
 
   /** indicates, if the current subtree should be skipped */
   private var skip : Boolean = false
@@ -92,17 +121,17 @@ class Extractor extends Collector {
 
     private var scop_ : Scop = null
     private var modelLoopVars_ : String = null
-    private var origLoopVars_ : ArrayStack[String] = null
+    private var origLoopVars_ : ArrayBuffer[String] = null
     private var setTemplate_ : String = null
     private var mapTemplate_ : String = null
 
     private final val formatterResult : java.lang.StringBuilder = new java.lang.StringBuilder()
     private final val formatter = new java.util.Formatter(formatterResult)
 
-    def create(root : Node, origLoopVars : ArrayStack[String],
+    def create(root : LoopOverDimensions, origLoopVars : ArrayBuffer[String],
       modelLoopVars : String, setTempl : String, mapTempl : String) : Unit = {
 
-      this.scop_ = new Scop(root)
+      this.scop_ = new Scop(root, root.parallelizationIsReasonable)
       this.modelLoopVars_ = modelLoopVars
       this.origLoopVars_ = origLoopVars
       this.setTemplate_ = setTempl
@@ -121,7 +150,7 @@ class Extractor extends Collector {
       return modelLoopVars_
     }
 
-    def origLoopVars() : ArrayStack[String] = {
+    def origLoopVars() : ArrayBuffer[String] = {
       return origLoopVars_
     }
 
@@ -271,6 +300,9 @@ class Extractor extends Collector {
             enterDecl(d)
 
           // ignore
+          case FunctionCallExpression(fun @ StringConstant(name), _) if (allowedFunctions.contains(name)) =>
+            fun.annotate(SKIP_ANNOT)
+
           case _ : StatementBlock
             | _ : IntegerConstant
             | _ : FloatConstant
@@ -284,9 +316,10 @@ class Extractor extends Collector {
             | _ : PowerExpression => // nothing to do for all of them...
 
           // deny
-          case e : ExpressionStatement => throw new ExtractionException("cannot deal with ExprStmt: " + e.cpp)
-          case ArrayAccess(a, _)       => throw new ExtractionException("ArrayAccess to base " + a.getClass() + " not yet implemented")
-          case x : Any                 => throw new ExtractionException("cannot deal with " + x.getClass())
+          case e : ExpressionStatement    => throw new ExtractionException("cannot deal with ExprStmt: " + e.cpp)
+          case ArrayAccess(a, _)          => throw new ExtractionException("ArrayAccess to base " + a.getClass() + " not yet implemented")
+          case f : FunctionCallExpression => throw new ExtractionException("function call not in set of allowed ones: " + f.cpp())
+          case x : Any                    => throw new ExtractionException("cannot deal with " + x.getClass())
         }
     } catch {
       case ExtractionException(msg) => curScop.discard(msg)
@@ -480,7 +513,7 @@ class Extractor extends Collector {
     val modelLoopVars = new ArrayStack[String]()
     val constrs = new StringBuilder()
 
-    val origLoopVars = new ArrayStack[String]()
+    val origLoopVars = new ArrayBuffer[String]()
 
     var bool : Boolean = false
     var i : Int = 0
@@ -493,7 +526,7 @@ class Extractor extends Collector {
       constrs.append(" and ")
       val lVar : String = dimToString(i)
       modelLoopVars.push(ScopNameMapping.expr2id(VariableAccess(lVar, Some(IntegerDatatype()))))
-      origLoopVars.push(lVar)
+      origLoopVars += lVar
       i += 1
     } while (i < dims)
 
@@ -532,13 +565,13 @@ class Extractor extends Collector {
     templateBuilder.append("->%s[%s]}")
     val mapTemplate : String = templateBuilder.toString()
 
-    origLoopVars.result() // reverses the stack
     curScop.create(loop, origLoopVars, modelLoopVars.mkString(","), setTemplate, mapTemplate)
   }
 
   private def leaveLoop(loop : LoopOverDimensions) : Unit = {
     val scop = curScop.finish()
     if (scop != null) {
+      scop.updateLoopVars()
       loop.annotate(PolyOpt.SCOP_ANNOT, scop)
       scops.push(scop)
     }
@@ -622,7 +655,7 @@ class Extractor extends Collector {
       scop.writes = if (scop.writes == null) access else scop.writes.addMap(access)
 
     if (deadAfterScop) {
-      val dead : isl.Set = curScop.buildIslSet(curScop.curStmt.label())
+      val dead : isl.Set = access.domain()
       scop.deadAfterScop = if (scop.deadAfterScop == null) dead else scop.deadAfterScop.addSet(dead)
     }
   }

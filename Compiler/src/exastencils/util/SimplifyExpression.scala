@@ -14,6 +14,8 @@ import exastencils.datastructures.ir.MultiplicationExpression
 import exastencils.datastructures.ir.NullExpression
 import exastencils.datastructures.ir.StringConstant
 import exastencils.datastructures.ir.SubtractionExpression
+import exastencils.datastructures.ir.UnaryExpression
+import exastencils.datastructures.ir.UnaryOperators
 import exastencils.datastructures.ir.VariableAccess
 
 object SimplifyExpression {
@@ -68,8 +70,8 @@ object SimplifyExpression {
     var res : HashMap[Expression, Long] = null
 
     // prevent concurrent modification: use the following two buffers
-    val rem = new ListBuffer[Expression]()
-    val add = new ListBuffer[(Expression, Long)]()
+    val remove = new ListBuffer[Expression]()
+    var add : Expression = null
 
     expr match {
 
@@ -85,6 +87,11 @@ object SimplifyExpression {
       case StringConstant(varName) =>
         res = new HashMap[Expression, Long]()
         res(VariableAccess(varName, Some(IntegerDatatype()))) = 1L
+
+      case UnaryExpression(UnaryOperators.Negative, expr) =>
+        res = extractIntegralSum(expr)
+        for ((name : Expression, value : Long) <- extractIntegralSum(expr))
+          res(name) = -value
 
       case AdditionExpression(l, r) =>
         res = extractIntegralSum(l)
@@ -130,16 +137,22 @@ object SimplifyExpression {
           throw new EvaluationException("only constant divisor allowed yet")
         val div : Long = mapR(constName)
         res = extractIntegralSum(l)
-        for ((name : Expression, value : Long) <- res)
+        for ((name : Expression, value : Long) <- res) {
           if (value % div == 0L)
             res(name) = value / div
           else {
-            rem += name
-            if (value == 1L)
-              add += ((DivisionExpression(name, IntegerConstant(div)), 1L))
-            else
-              add += ((DivisionExpression(MultiplicationExpression(IntegerConstant(value), name), IntegerConstant(div)), 1L))
+            remove += name
+            val njuSummand : Expression =
+              value match {
+                case 1L  => name
+                case -1L => UnaryExpression(UnaryOperators.Negative, name)
+                case _   => MultiplicationExpression(IntegerConstant(value), name)
+              }
+            add = if (add == null) njuSummand else AdditionExpression(add, njuSummand)
           }
+        }
+        if (add != null)
+          add = DivisionExpression(add, IntegerConstant(div))
 
       case ModuloExpression(l, r) =>
         val mapR = extractIntegralSum(r)
@@ -148,22 +161,33 @@ object SimplifyExpression {
         val mod : Long = mapR(constName)
         res = extractIntegralSum(l)
         for ((name : Expression, value : Long) <- res) {
-          rem += name
-          add += ((ModuloExpression(MultiplicationExpression(IntegerConstant(value), name), IntegerConstant(mod)), 1L))
+          remove += name
+          if (value % mod != 0L) {
+            val njuSummand : Expression =
+              value match {
+                case 1L  => name
+                case -1L => UnaryExpression(UnaryOperators.Negative, name)
+                case _   => MultiplicationExpression(IntegerConstant(value), name)
+              }
+            add = if (add == null) njuSummand else AdditionExpression(add, njuSummand)
+          }
         }
+        if (add != null)
+          add = ModuloExpression(add, IntegerConstant(mod))
 
       case _ =>
         throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
     }
 
-    for (r : Expression <- rem)
+    for (r : Expression <- remove)
       res.remove(r)
-    for ((e, v) <- add) {
-      val r = res.getOrElse(e, 0L) + v
+
+    if (add != null) {
+      val r = res.getOrElse(add, 0L) + 1L
       if (r == 0L)
-        res.remove(e)
+        res.remove(add)
       else
-        res(e) = r
+        res(add) = r
     }
 
     return res
@@ -182,7 +206,12 @@ object SimplifyExpression {
     if (const.isDefined)
       res = IntegerConstant(const.get)
     for ((expr : Expression, value : Long) <- map) {
-      val summand : Expression = if (value == 1L) expr else MultiplicationExpression(IntegerConstant(value), expr)
+      val summand : Expression =
+        value match {
+          case 1L  => expr
+          case -1L => UnaryExpression(UnaryOperators.Negative, expr)
+          case _   => MultiplicationExpression(IntegerConstant(value), expr)
+        }
       if (res == null)
         res = summand
       else
