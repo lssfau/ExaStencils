@@ -7,10 +7,40 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.strategies._
+import exastencils.util._
 
 case class StencilEntry(var offset : MultiIndex, var weight : Expression) {}
 
-case class Stencil(var identifier : String, var level : Int, var entries : ListBuffer[StencilEntry] = new ListBuffer) {}
+case class Stencil(var identifier : String, var level : Int, var entries : ListBuffer[StencilEntry] = new ListBuffer) {
+  def getReach(dim : Int) : Int = {
+    var reach : Int = 0
+    // get max reach
+    for (e <- entries) {
+      reach = reach max SimplifyExpression.evalIntegral(e.offset(dim)).toInt
+    }
+    reach
+  }
+
+  def printStencil() : Unit = {
+    println(s"Stencil $identifier:")
+    println
+
+    for (z <- -getReach(2) to getReach(2)) {
+      for (y <- -getReach(1) to getReach(1)) {
+        for (x <- -getReach(0) to getReach(0))
+          print("\t" +
+            entries.find(
+              e => e.offset match {
+                case MultiIndex(IntegerConstant(xOff), IntegerConstant(yOff), IntegerConstant(zOff), _) if (x == xOff && y == yOff && z == zOff) => true
+                case _ => false
+              }).getOrElse(StencilEntry(new MultiIndex, 0)).weight.cpp)
+        println
+      }
+      println
+      println
+    }
+  }
+}
 
 object StencilCollection {
   var stencils : ListBuffer[Stencil] = ListBuffer()
