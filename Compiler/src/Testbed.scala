@@ -7,6 +7,7 @@ import exastencils.knowledge._
 import exastencils.primitives._
 import exastencils.strategies._
 import exastencils.datastructures._
+import exastencils.util._
 
 object Testbed {
   def test : Unit = {
@@ -26,7 +27,115 @@ object Testbed {
     //////////////////////////////////////////////////////////////////////////////
   }
 
+  def rap(A : Stencil, P : Stencil) : Stencil = {
+    case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight : Stencil) extends Expression {
+      override def cpp : String = "NOT VALID ; CLASS = StencilStencilConvolution\n"
+
+      def expand : Stencil = {
+
+        var entries : ListBuffer[StencilEntry] = ListBuffer()
+
+        for (re <- stencilRight.entries) {
+          for (le <- stencilLeft.entries) {
+            var combOff : MultiIndex = re.offset + le.offset
+            var combCoeff : Expression = (re.weight * le.weight)
+            SimplifyStrategy.doUntilDoneStandalone(combOff)
+            SimplifyStrategy.doUntilDoneStandalone(combCoeff)
+            var addToEntry = entries.find(e => e.offset match { case o if (combOff == o) => true; case _ => false })
+            if (addToEntry.isDefined) {
+              combCoeff += addToEntry.get.weight
+              SimplifyStrategy.doUntilDoneStandalone(combCoeff)
+              addToEntry.get.weight = combCoeff
+            } else entries += new StencilEntry(combOff, combCoeff)
+          }
+        }
+
+        new Stencil(stencilLeft.identifier + "_" + stencilRight.identifier, stencilLeft.level, entries)
+      }
+    }
+
+    var AP : Stencil = StencilStencilConvolution(A, P).expand
+    AP.printStencil
+
+    var RAP : Stencil = {
+
+      var entries : ListBuffer[StencilEntry] = ListBuffer()
+
+      for (re <- AP.entries) {
+        for (le <- P.entries) {
+          var combOff : MultiIndex = re.offset + le.offset
+          var combCoeff : Expression = (re.weight * le.weight)
+
+          var valid = true
+          for (d <- 0 until Knowledge.dimensionality) {
+            if (0 != SimplifyExpression.evalIntegral(combOff(d)) % 2) valid = false
+            combOff(d) /= 2
+          }
+
+          if (valid) {
+            SimplifyStrategy.doUntilDoneStandalone(combOff)
+            SimplifyStrategy.doUntilDoneStandalone(combCoeff)
+            var addToEntry = entries.find(e => e.offset match { case o if (combOff == o) => true; case _ => false })
+            if (addToEntry.isDefined) {
+              combCoeff += addToEntry.get.weight
+              SimplifyStrategy.doUntilDoneStandalone(combCoeff)
+              addToEntry.get.weight = SimplifyExpression.evalFloating(combCoeff)
+              //              combCoeff += addToEntry.get.weight
+              //              SimplifyStrategy.doUntilDoneStandalone(combCoeff)
+              //              addToEntry.get.weight = combCoeff
+            } else entries += new StencilEntry(combOff, combCoeff)
+          }
+        }
+      }
+
+      new Stencil(P.identifier + "_" + AP.identifier, P.level, entries)
+    }
+    RAP
+  }
+
   def main(args : Array[String]) : Unit = {
+    Knowledge.dimensionality = 2
+
+    var A : Stencil = new Stencil("A", 4,
+      if (true) {
+        ListBuffer(
+          new StencilEntry(MultiIndex(0, 0, 0), 4.0),
+          new StencilEntry(MultiIndex(-1, 0, 0), -1.0),
+          new StencilEntry(MultiIndex(1, 0, 0), -1.0),
+          new StencilEntry(MultiIndex(0, -1, 0), -1.0),
+          new StencilEntry(MultiIndex(0, 1, 0), -1.0))
+      } else {
+        ListBuffer(
+          new StencilEntry(MultiIndex(0, 0, 0), "C"),
+          new StencilEntry(MultiIndex(-1, 0, 0), "W"),
+          new StencilEntry(MultiIndex(1, 0, 0), "E"),
+          new StencilEntry(MultiIndex(0, -1, 0), "S"),
+          new StencilEntry(MultiIndex(0, 1, 0), "N"))
+      })
+
+    var P : Stencil = new Stencil("P", 4, ListBuffer(
+      new StencilEntry(MultiIndex(0, 0, 0), 1.0),
+      new StencilEntry(MultiIndex(-1, 0, 0), 0.5),
+      new StencilEntry(MultiIndex(1, 0, 0), 0.5),
+      new StencilEntry(MultiIndex(0, -1, 0), 0.5),
+      new StencilEntry(MultiIndex(0, 1, 0), 0.5),
+      new StencilEntry(MultiIndex(-1, -1, 0), 0.25),
+      new StencilEntry(MultiIndex(-1, 1, 0), 0.25),
+      new StencilEntry(MultiIndex(1, -1, 0), 0.25),
+      new StencilEntry(MultiIndex(1, 1, 0), 0.25)))
+
+    A.printStencil
+    P.printStencil
+
+    var RAP = A
+
+    for (i <- 0 until 10) {
+      RAP = rap(RAP, P)
+      RAP.printStencil
+    }
+
+    return
+
     {
       var statements : ListBuffer[Statement] = ListBuffer()
 
@@ -41,8 +150,7 @@ object Testbed {
 
       test
     }
-    
-    
+
     /*  val index = new MultiIndex(1, 2, 3)
   val aabb = new IndexRange(new MultiIndex(0, 0, 0), new MultiIndex(33, 33, 33))
 
