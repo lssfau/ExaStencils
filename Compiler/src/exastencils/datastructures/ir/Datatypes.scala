@@ -5,7 +5,7 @@ import exastencils.datastructures.ir._
 
 trait Datatype extends Node with CppPrettyPrintable {
   def cpp_mpi : String
-  
+
   def resolveUnderlyingDatatype : Datatype = {
     this match {
       case ArrayDatatype(dt, size) => dt.resolveUnderlyingDatatype
@@ -51,6 +51,11 @@ case class IntegerDatatype() extends Datatype {
 case class RealDatatype() extends Datatype {
   override def cpp = "double"
   override def cpp_mpi = "MPI_DOUBLE"
+}
+
+case class SIMD_RealDatatype() extends Datatype {
+  override def cpp = "__m256d" // TODO: match system
+  override def cpp_mpi = "INVALID DATATYPE: " + cpp
 }
 
 case class StringDatatype() extends Datatype {
