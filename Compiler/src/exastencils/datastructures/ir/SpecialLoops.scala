@@ -154,19 +154,23 @@ case class LoopOverDimensions(var numDimensions : Int,
         body)
 
     for (d <- 0 until numDimensions - 1) {
-      wrappedBody = ListBuffer[Statement](new ForLoopStatement(
-        s"int ${dimToString(d)} = " ~ indices.begin(d), s"${dimToString(d)} < " ~ indices.end(d), s"${dimToString(d)} +=" ~ stepSize(d),
-        wrappedBody, reduction) with PrecalcAddresses)
+      val it = VariableAccess(dimToString(d), Some(IntegerDatatype()))
+      val decl = VariableDeclarationStatement(IntegerDatatype(), dimToString(d), Some(indices.begin(d)))
+      val cond = LowerExpression(it, indices.end(d))
+      val incr = AssignmentStatement(it, stepSize(d), "+=")
+      wrappedBody = ListBuffer[Statement](new ForLoopStatement(decl, cond, incr, wrappedBody, reduction) with OptimizationHint)
     }
     val d = numDimensions - 1
+    val it = VariableAccess(dimToString(d), Some(IntegerDatatype()))
+    val decl = VariableDeclarationStatement(IntegerDatatype(), dimToString(d), Some(indices.begin(d)))
+    val cond = LowerExpression(it, indices.end(d))
+    val incr = AssignmentStatement(it, stepSize(d), "+=")
     if (parallelizable) {
-      var ret = new ForLoopStatement(s"int ${dimToString(d)} = " ~ indices.begin(d), s"${dimToString(d)} < " ~ indices.end(d), s"${dimToString(d)} +=" ~ stepSize(d), wrappedBody,
-        reduction) with PrecalcAddresses with OMP_PotentiallyParallel
+      val ret = new ForLoopStatement(decl, cond, incr, wrappedBody, reduction) with OptimizationHint with OMP_PotentiallyParallel
       ret.collapse = numDimensions
       ret
     } else {
-      new ForLoopStatement(s"int ${dimToString(d)} = " ~ indices.begin(d), s"${dimToString(d)} < " ~ indices.end(d), s"${dimToString(d)} +=" ~ stepSize(d), wrappedBody,
-        reduction) with PrecalcAddresses
+      new ForLoopStatement(decl, cond, incr, wrappedBody, reduction) with OptimizationHint
     }
   }
 }
