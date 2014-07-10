@@ -2,7 +2,6 @@ package exastencils.util
 
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
-
 import exastencils.datastructures.ir.AdditionExpression
 import exastencils.datastructures.ir.DivisionExpression
 import exastencils.datastructures.ir.Expression
@@ -17,6 +16,7 @@ import exastencils.datastructures.ir.SubtractionExpression
 import exastencils.datastructures.ir.UnaryExpression
 import exastencils.datastructures.ir.UnaryOperators
 import exastencils.datastructures.ir.VariableAccess
+import exastencils.datastructures.ir.IntegerConstant
 
 object SimplifyExpression {
 
@@ -198,13 +198,10 @@ object SimplifyExpression {
     */
   def recreateExpressionFromSum(map : HashMap[Expression, Long]) : Expression = {
 
-    if (map.isEmpty)
-      return new IntegerConstant(0)
-
     var res : Expression = null
     val const : Option[Long] = map.remove(constName)
     if (const.isDefined)
-      res = IntegerConstant(const.get)
+      res = IntegerConstant(const.getOrElse(0L))
     for ((expr : Expression, value : Long) <- map) {
       val summand : Expression =
         value match {
@@ -212,14 +209,11 @@ object SimplifyExpression {
           case -1L => UnaryExpression(UnaryOperators.Negative, expr)
           case _   => MultiplicationExpression(IntegerConstant(value), expr)
         }
-      if (res == null)
-        res = summand
-      else
-        res = AdditionExpression(res, summand)
+      res = if (res == null) summand else AdditionExpression(res, summand)
     }
 
     if (res == null)
-      res = IntegerConstant(0)
+      res = IntegerConstant(0L)
 
     return res
   }

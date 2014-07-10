@@ -42,7 +42,7 @@ import exastencils.datastructures.ir.UnaryOperators
 import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.VariableDeclarationStatement
 import exastencils.omp.OMP_PotentiallyParallel
-import exastencils.optimization.PrecalcAddresses
+import exastencils.optimization.OptimizationHint
 import isl.Conversions.convertLambdaToVoidCallback1
 
 class ASTBuilderTransformation(replaceCallback : (HashMap[String, Expression], Node) => Unit)
@@ -108,7 +108,17 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
     })
 
     // build AST generation options
-    var options : isl.UnionMap = isl.UnionMap.empty(isl.Space.alloc(0, dims, 1).setTupleName(isl.DimType.Out, "separate"))
+    val options = new StringBuilder()
+    options.append("[")
+    for (i <- 0 until dims)
+      options.append('i').append(i).append(',')
+    options.deleteCharAt(options.length - 1).append(']')
+    val scheduleDomain : String = options.toString()
+    options.clear()
+    options.append('{')
+    // prevent guard inside loops
+    options.append(scheduleDomain).append(" -> separate[x]")
+    options.append('}')
 
     // build iterators list
     var itersId : isl.IdList = isl.IdList.alloc(dims)
@@ -119,7 +129,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
 
     // build AST
     var islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.domain.params())
-//    islBuild = islBuild.setOptions(options)
+    islBuild = islBuild.setOptions(isl.UnionMap.readFromStr(options.toString()))
     islBuild = islBuild.setIterators(itersId)
     val islNode : isl.AstNode = islBuild.astFromSchedule(scop.schedule.intersectDomain(scop.domain))
     var nju : Statement =
@@ -135,7 +145,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
     val comment = new CommentStatement("Statements in this Scop: " + scop.stmts.keySet.mkString(", "))
     if (!scop.decls.isEmpty) {
       val scopeList = new ListBuffer[Statement]
-      for (decl <- scop.decls) {
+      for (decl : VariableDeclarationStatement <- scop.decls) {
         decl.expression = None
         scopeList += decl
       }
@@ -153,11 +163,10 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
     return node.getType() match {
 
       case isl.AstNodeType.NodeFor =>
-        if (node.forIsDegenerate() != 0) { // if (node.forIsDegenerate())
+        if (node.forIsDegenerate()) {
           val islIt : isl.AstExpr = node.forGetIterator()
           assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
-          val it : VariableAccess = VariableAccess(islIt.getId().getName(), Some(IntegerDatatype()))
-          val decl : Statement = new VariableDeclarationStatement(it, Some(processIslExpr(node.forGetInit())))
+          val decl : Statement = VariableDeclarationStatement(IntegerDatatype(), islIt.getId().getName(), Some(processIslExpr(node.forGetInit())))
 
           Scope(ListBuffer[Statement](decl, processIslNode(node.forGetBody())))
 
@@ -166,30 +175,30 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
           assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
           val itStr : String = islIt.getId().getName()
           val parNow : Boolean = parallelize && !seqDims.contains(itStr)
-          parallelize &= !parNow // if code must be parallelized, then now (parNow) xor later (parallelize)
+          parallelize &= !parNow // if code must be parallelized, then now (parNow) XOR later (parallelize)
           val it : VariableAccess = VariableAccess(itStr, Some(IntegerDatatype()))
-          val init : Statement = new VariableDeclarationStatement(it, Some(processIslExpr(node.forGetInit())))
+          val init : Statement = VariableDeclarationStatement(IntegerDatatype(), itStr, Some(processIslExpr(node.forGetInit())))
           val cond : Expression = processIslExpr(node.forGetCond())
-          val incr : Statement = AssignmentStatement(it, AdditionExpression(it, processIslExpr(node.forGetInc())))
+          val incr : Statement = AssignmentStatement(it, processIslExpr(node.forGetInc()), StringConstant("+="))
 
           val body : Statement = processIslNode(node.forGetBody())
           parallelize |= parNow // restore overall parallelization level
           if (parNow)
             body match {
-              case StatementBlock(raw) => new ForLoopStatement(init, cond, incr, raw) with PrecalcAddresses with OMP_PotentiallyParallel
-              case _                   => new ForLoopStatement(init, cond, incr, body) with PrecalcAddresses with OMP_PotentiallyParallel
+              case StatementBlock(raw) => new ForLoopStatement(init, cond, incr, raw) with OptimizationHint with OMP_PotentiallyParallel
+              case _                   => new ForLoopStatement(init, cond, incr, body) with OptimizationHint with OMP_PotentiallyParallel
             }
           else
             body match {
-              case StatementBlock(raw) => new ForLoopStatement(init, cond, incr, raw) with PrecalcAddresses
-              case _                   => new ForLoopStatement(init, cond, incr, body) with PrecalcAddresses
+              case StatementBlock(raw) => new ForLoopStatement(init, cond, incr, raw) with OptimizationHint
+              case _                   => new ForLoopStatement(init, cond, incr, body) with OptimizationHint
             }
         }
 
       case isl.AstNodeType.NodeIf =>
         val cond : Expression = processIslExpr(node.ifGetCond())
         val thenBranch : Statement = processIslNode(node.ifGetThen())
-        if (node.ifHasElse() != 0) {
+        if (node.ifHasElse()) {
           val els : Statement = processIslNode(node.ifGetElse())
           new ConditionStatement(cond, thenBranch, els)
         } else
