@@ -5,7 +5,6 @@ import scala.language.implicitConversions
 
 import exastencils.core.Duplicate
 import exastencils.datastructures.Node
-import exastencils.datastructures.ir.ImplicitConversions.NumberToIntegerConstant
 import exastencils.datastructures.ir.ImplicitConversions.StringToStringLiteral
 import exastencils.knowledge.ExternalField
 import exastencils.knowledge.FieldSelection
@@ -195,15 +194,20 @@ case class MultiIndex(
   var index_3 : Expression = new NullExpression)
     extends Expression with Traversable[Expression] {
   def this(indices : Array[Expression]) = this(
-    if (indices.size > 0) indices(0) else new NullExpression,
-    if (indices.size > 1) indices(1) else new NullExpression,
-    if (indices.size > 2) indices(2) else new NullExpression,
-    if (indices.size > 3) indices(3) else new NullExpression)
+    if (indices.length > 0) indices(0) else new NullExpression,
+    if (indices.length > 1) indices(1) else new NullExpression,
+    if (indices.length > 2) indices(2) else new NullExpression,
+    if (indices.length > 3) indices(3) else new NullExpression)
   def this(indices : Array[Int]) = this(
-    (if (indices.size > 0) indices(0) else new NullExpression) : Expression,
-    (if (indices.size > 1) indices(1) else new NullExpression) : Expression,
-    (if (indices.size > 2) indices(2) else new NullExpression) : Expression,
-    (if (indices.size > 3) indices(3) else new NullExpression) : Expression)
+    (if (indices.length > 0) IntegerConstant(indices(0)) else new NullExpression) : Expression,
+    (if (indices.length > 1) IntegerConstant(indices(1)) else new NullExpression) : Expression,
+    (if (indices.length > 2) IntegerConstant(indices(2)) else new NullExpression) : Expression,
+    (if (indices.length > 3) IntegerConstant(indices(3)) else new NullExpression) : Expression)
+  def this(names : String*) = this(
+    (if (names.size > 0) VariableAccess(names(0), Some(IntegerDatatype())) else new NullExpression) : Expression,
+    (if (names.size > 1) VariableAccess(names(1), Some(IntegerDatatype())) else new NullExpression) : Expression,
+    (if (names.size > 2) VariableAccess(names(2), Some(IntegerDatatype())) else new NullExpression) : Expression,
+    (if (names.size > 3) VariableAccess(names(3), Some(IntegerDatatype())) else new NullExpression) : Expression)
   def this(left : MultiIndex, right : MultiIndex, f : (Expression, Expression) => Expression) = this(
     if (!left(0).isInstanceOf[NullExpression] && !right(0).isInstanceOf[NullExpression]) { Duplicate(f(left(0), right(0))) } else { new NullExpression },
     if (!left(1).isInstanceOf[NullExpression] && !right(1).isInstanceOf[NullExpression]) { Duplicate(f(left(1), right(1))) } else { new NullExpression },
