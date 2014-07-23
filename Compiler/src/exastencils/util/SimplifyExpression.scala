@@ -2,7 +2,6 @@ package exastencils.util
 
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
-
 import exastencils.datastructures.ir.AdditionExpression
 import exastencils.datastructures.ir.DivisionExpression
 import exastencils.datastructures.ir.Expression
@@ -17,6 +16,7 @@ import exastencils.datastructures.ir.SubtractionExpression
 import exastencils.datastructures.ir.UnaryExpression
 import exastencils.datastructures.ir.UnaryOperators
 import exastencils.datastructures.ir.VariableAccess
+import exastencils.datastructures.ir.ModuloExpression
 
 object SimplifyExpression {
 
@@ -31,6 +31,7 @@ object SimplifyExpression {
     case SubtractionExpression(l : Expression, r : Expression)    => evalIntegral(l) - evalIntegral(r)
     case MultiplicationExpression(l : Expression, r : Expression) => evalIntegral(l) * evalIntegral(r)
     case DivisionExpression(l : Expression, r : Expression)       => evalIntegral(l) / evalIntegral(r)
+    case ModuloExpression(l : Expression, r : Expression)         => evalIntegral(l) % evalIntegral(r)
     case _ =>
       throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
   }

@@ -67,13 +67,15 @@ object Main {
 
     AddDefaultGlobals.apply()
 
-    FindStencilConvolutions.apply()
-
-    ResolveSpecialFunctions.apply()
-
     SetupFragment.apply() // Stefan: This adds the setupBuffer func which will be exapanded using the field info in the next expand step 
 
-    ExpandStrategy.doUntilDone()
+    var numConvFound = 1;
+    while (numConvFound > 0) {
+      FindStencilConvolutions.apply()
+      ResolveSpecialFunctions.apply()
+      numConvFound = FindStencilConvolutions.results.last._2.matches
+      ExpandStrategy.doUntilDone()
+    }
 
     if (Knowledge.poly_usePolyOpt)
       PolyOpt.apply()

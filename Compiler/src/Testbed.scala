@@ -27,34 +27,73 @@ object Testbed {
     //////////////////////////////////////////////////////////////////////////////
   }
 
-  def rap(A : Stencil, P : Stencil) : Stencil = {
-    case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight : Stencil) extends Expression {
-      override def cpp : String = "NOT VALID ; CLASS = StencilStencilConvolution\n"
+  object ResolveCoordinates0 extends DefaultStrategy("ResolveCoordinates0") {
+    var replacement : MultiIndex = LoopOverDimensions.defIt
 
-      def expand : Stencil = {
-
-        var entries : ListBuffer[StencilEntry] = ListBuffer()
-
-        for (re <- stencilRight.entries) {
-          for (le <- stencilLeft.entries) {
-            var combOff : MultiIndex = re.offset + le.offset
-            var combCoeff : Expression = (re.weight * le.weight)
-            SimplifyStrategy.doUntilDoneStandalone(combOff)
-            SimplifyStrategy.doUntilDoneStandalone(combCoeff)
-            var addToEntry = entries.find(e => e.offset match { case o if (combOff == o) => true; case _ => false })
-            if (addToEntry.isDefined) {
-              combCoeff += addToEntry.get.weight
-              SimplifyStrategy.doUntilDoneStandalone(combCoeff)
-              addToEntry.get.weight = combCoeff
-            } else entries += new StencilEntry(combOff, combCoeff)
-          }
-        }
-
-        new Stencil(stencilLeft.identifier + "_" + stencilRight.identifier, stencilLeft.level, entries)
-      }
+    Knowledge.dimensionality match {
+      case 1 => this += new Transformation("SearchAndReplace", {
+        case StringConstant("x0") => replacement(0)
+      })
+      case 2 => this += new Transformation("SearchAndReplace", {
+        case StringConstant("x0") => replacement(0)
+        case StringConstant("y0") => replacement(1)
+      })
+      case 3 => this += new Transformation("SearchAndReplace", {
+        case StringConstant("x0") => replacement(0)
+        case StringConstant("y0") => replacement(1)
+        case StringConstant("z0") => replacement(2)
+      })
     }
+  }
 
-    var AP : Stencil = StencilStencilConvolution(A, P).expand
+  def rap(R : Stencil, A : Stencil, P : Stencil) : Stencil = {
+
+    var RAP = StencilStencilConvolution(A, R).expand.stencil
+    //    for (e <- RAP.entries)
+    //      println(e.offset.cpp + "\t>>\t" + e.weight.cpp)
+
+    RAP = StencilStencilConvolution(P, RAP).expand.stencil
+
+    //var RAP : Stencil = StencilStencilConvolution(P, StencilStencilConvolution(A, R).expand).expand
+
+    for (e <- RAP.entries)
+      println(e.offset.cpp + "\t>>\t" + e.weight.cpp)
+
+    /*{
+      var entries : ListBuffer[StencilEntry] = ListBuffer()
+
+      for (re <- AP.entries) {
+        for (le <- P.entries) {
+          var rightOffset = Duplicate(re.offset)
+          var leftOffset = Duplicate(le.offset)
+          for (d <- 0 until Knowledge.dimensionality)
+            leftOffset(d) = dimToString(d) / 2 + leftOffset(d)
+
+          var combOff = leftOffset
+          ResolveCoordinates.replacement = rightOffset
+          ResolveCoordinates.apply(Some(combOff))
+
+          var combCoeff : Expression = (re.weight * le.weight)
+          SimplifyStrategy.doUntilDoneStandalone(combOff)
+          SimplifyStrategy.doUntilDoneStandalone(combCoeff)
+          var addToEntry = entries.find(e => e.offset match { case o if (combOff == o) => true; case _ => false })
+          if (addToEntry.isDefined) {
+            combCoeff += addToEntry.get.weight
+            SimplifyStrategy.doUntilDoneStandalone(combCoeff)
+            addToEntry.get.weight = combCoeff
+          } else entries += new StencilEntry(combOff, combCoeff)
+        }
+      }
+
+      new Stencil(P.identifier + "_" + AP.identifier, P.level, entries)
+    }*/
+
+    //    for (e <- RAP.entries) {
+    //      ResolveCoordinates0.replacement = MultiIndex(0, 0, 0, 0)
+    //      ResolveCoordinates0.apply(Some(e.offset))
+    //    }
+
+    /*var AP : Stencil = StencilStencilConvolution(A, P).expand
     AP.printStencil
 
     var RAP : Stencil = {
@@ -89,15 +128,26 @@ object Testbed {
       }
 
       new Stencil(P.identifier + "_" + AP.identifier, P.level, entries)
-    }
+    }*/
     RAP
   }
 
   def main(args : Array[String]) : Unit = {
     Knowledge.dimensionality = 2
 
-    var A : Stencil = new Stencil("A", 4,
-      if (true) {
+    var A : Stencil = new Stencil("A", 5,
+      if (false) {
+        ListBuffer(
+          new StencilEntry(MultiIndex(0, 0, 0), 3.0),
+          new StencilEntry(MultiIndex(-1, 0, 0), -0.5),
+          new StencilEntry(MultiIndex(1, 0, 0), -0.5),
+          new StencilEntry(MultiIndex(0, -1, 0), -0.5),
+          new StencilEntry(MultiIndex(0, 1, 0), -0.5),
+          new StencilEntry(MultiIndex(-1, -1, 0), -0.25),
+          new StencilEntry(MultiIndex(-1, 1, 0), -0.25),
+          new StencilEntry(MultiIndex(1, -1, 0), -0.25),
+          new StencilEntry(MultiIndex(1, 1, 0), -0.25))
+      } else if (true) {
         ListBuffer(
           new StencilEntry(MultiIndex(0, 0, 0), 4.0),
           new StencilEntry(MultiIndex(-1, 0, 0), -1.0),
@@ -113,7 +163,7 @@ object Testbed {
           new StencilEntry(MultiIndex(0, 1, 0), "N"))
       })
 
-    var P : Stencil = new Stencil("P", 4, ListBuffer(
+    var R : Stencil = new Stencil("R", 4, ListBuffer(
       new StencilEntry(MultiIndex(0, 0, 0), 1.0),
       new StencilEntry(MultiIndex(-1, 0, 0), 0.5),
       new StencilEntry(MultiIndex(1, 0, 0), 0.5),
@@ -124,13 +174,21 @@ object Testbed {
       new StencilEntry(MultiIndex(1, -1, 0), 0.25),
       new StencilEntry(MultiIndex(1, 1, 0), 0.25)))
 
+    var P : Stencil = new Stencil("P", 4, ListBuffer(
+      new StencilEntry(MultiIndex(0, 0, 0), 0.25),
+      new StencilEntry(MultiIndex("x" Mod 2, 0, 0), 0.25),
+      new StencilEntry(MultiIndex(0, "y" Mod 2, 0), 0.25),
+      new StencilEntry(MultiIndex("x" Mod 2, "y" Mod 2, 0), 0.25)))
+
+    R.printStencil
     A.printStencil
-    P.printStencil
+    //P.printStencil
 
     var RAP = A
 
-    for (i <- 0 until 10) {
-      RAP = rap(RAP, P)
+    for (i <- 0 until 1) {
+      RAP.level = R.level + 1
+      RAP = rap(R, RAP, P)
       RAP.printStencil
     }
 

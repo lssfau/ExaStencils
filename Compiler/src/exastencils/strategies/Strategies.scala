@@ -96,6 +96,8 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       IntegerConstant(left.v * right.v)
     case DivisionExpression(left : IntegerConstant, right : IntegerConstant) =>
       IntegerConstant(left.v / right.v)
+    case ModuloExpression(left : IntegerConstant, right : IntegerConstant) =>
+      IntegerConstant(left.v % right.v)
 
     case AdditionExpression(AdditionExpression(leftLeft, leftRight : IntegerConstant), right : IntegerConstant) =>
       (leftLeft + (leftRight.v + right.v))

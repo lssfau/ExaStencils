@@ -114,11 +114,56 @@ case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, 
   }
 }
 
+case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight : Stencil) extends Expression with Expandable {
+  override def cpp : String = "NOT VALID ; CLASS = StencilStencilConvolution\n"
+
+  def expand : StencilAccess = {
+    var entries : ListBuffer[StencilEntry] = ListBuffer()
+
+    for (re <- stencilRight.entries) {
+      for (le <- stencilLeft.entries) {
+        var rightOffset = Duplicate(re.offset)
+        //            if (stencilRight.level < stencilLeft.level) {
+        //              for (d <- 0 until Knowledge.dimensionality)
+        //                rightOffset(d) = (dimToString(d) : Expression) * 2 + rightOffset(d)
+        //            }
+
+        var leftOffset = Duplicate(le.offset)
+        if (stencilRight.level > stencilLeft.level) {
+          for (d <- 0 until Knowledge.dimensionality)
+            leftOffset(d) = (dimToString(d) : Expression) / 2 + leftOffset(d)
+        } else {
+          for (d <- 0 until Knowledge.dimensionality)
+            leftOffset(d) = (dimToString(d) : Expression) + leftOffset(d)
+        }
+
+        var combOff = leftOffset
+        ResolveCoordinates.replacement = rightOffset
+        ResolveCoordinates.applyStandalone(combOff)
+
+        var combCoeff : Expression = (re.weight * le.weight)
+        SimplifyStrategy.doUntilDoneStandalone(combOff)
+        SimplifyStrategy.doUntilDoneStandalone(combCoeff)
+        var addToEntry = entries.find(e => e.offset match { case o if (combOff == o) => true; case _ => false })
+        if (addToEntry.isDefined) {
+          combCoeff += addToEntry.get.weight
+          SimplifyStrategy.doUntilDoneStandalone(combCoeff)
+          addToEntry.get.weight = combCoeff
+        } else entries += new StencilEntry(combOff, combCoeff)
+      }
+    }
+
+    StencilAccess(Stencil(stencilLeft.identifier + "_" + stencilRight.identifier, stencilLeft.level, entries))
+  }
+}
+
 object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions") {
   this += new Transformation("SearchAndMark", {
     case MultiplicationExpression(StencilAccess(stencil), fieldAccess : FieldAccess) =>
       StencilConvolution(stencil, fieldAccess)
     case MultiplicationExpression(stencilFieldAccess : StencilFieldAccess, fieldAccess : FieldAccess) =>
       StencilFieldConvolution(stencilFieldAccess, fieldAccess)
+    case MultiplicationExpression(StencilAccess(stencilLeft), StencilAccess(stencilRight)) =>
+      StencilStencilConvolution(stencilLeft, stencilRight)
   })
 }

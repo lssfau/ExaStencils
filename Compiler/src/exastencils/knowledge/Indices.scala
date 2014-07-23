@@ -84,3 +84,22 @@ case class InitGeomCoords(var field : Field) extends Statement with Expandable {
   }
 }
 
+object ResolveCoordinates extends DefaultStrategy("ResolveCoordinates") {
+  var replacement : MultiIndex = LoopOverDimensions.defIt
+
+  Knowledge.dimensionality match {
+    case 1 => this += new Transformation("SearchAndReplace", {
+      case StringConstant("x") => replacement(0)
+    })
+    case 2 => this += new Transformation("SearchAndReplace", {
+      case StringConstant("x") => replacement(0)
+      case StringConstant("y") => replacement(1)
+    })
+    case 3 => this += new Transformation("SearchAndReplace", {
+      case StringConstant("x") => replacement(0)
+      case StringConstant("y") => replacement(1)
+      case StringConstant("z") => replacement(2)
+    })
+  }
+}
+
