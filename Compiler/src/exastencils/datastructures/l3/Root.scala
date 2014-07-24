@@ -51,6 +51,16 @@ case class Root() extends Node {
       Array(s"RHS@$level")
   }
 
+  def stencilAccess : String = {
+    if (testStencilStencil) {
+      if (genStencilFields)
+        s"( CorrectionStencil@current * ( ToCoarser ( Laplace@finer ) * RestrictionStencil@current ) )"
+      else
+        s"( CorrectionStencil@current * ( Laplace@finer * RestrictionStencil@current ) )"
+    } else
+      "Laplace@current"
+  }
+
   def printToL4(filename : String) : Unit = {
     var printer = new java.io.PrintWriter(filename)
 
@@ -390,7 +400,7 @@ case class Root() extends Node {
       printer.println(s"\t\tcommunicate VecP@(current)")
 
       printer.println(s"\t\tloop over inner on VecP@(current) {")
-      printer.println(s"\t\t\tVecGradP@(current) = Laplace@(current) * VecP@(current)")
+      printer.println(s"\t\t\tVecGradP@(current) = $stencilAccess * VecP@(current)")
       printer.println(s"\t\t}")
 
       printer.println(s"\t\tvar alphaDenom : Real = 0")
@@ -447,7 +457,11 @@ case class Root() extends Node {
     val omegaToPrint = (if (omegaViaGlobals) "omega" else omega)
     smoother match {
       case "Jac" => {
-        printer.println(s"def Smoother@((coarsest + 1) to finest) ( ) : Unit {")
+        if (testStencilStencil)
+          printer.println(s"def Smoother@finest ( ) : Unit {")
+        else
+          printer.println(s"def Smoother@((coarsest + 1) to finest) ( ) : Unit {")
+
         printer.println(s"\tcommunicate Solution${if (useSlotsForJac) "[0]" else ""}@(current)")
         printer.println(s"\tloop over inner on Solution@(current) {")
         for (vecDim <- 0 until numVecDims)
@@ -459,9 +473,28 @@ case class Root() extends Node {
           printer.println(s"\t\t${solutionFields("current")(vecDim)} = ${solution2Fields("current")(vecDim)} + ( ( ( 1.0 / diag ( Laplace@(current) ) ) * $omegaToPrint ) * ( ${rhsFields("current")(vecDim)} - Laplace@(current) * ${solution2Fields("current")(vecDim)} ) )")
         printer.println(s"\t}")
         printer.println(s"}")
+
+        if (testStencilStencil) {
+          printer.println(s"def Smoother@((coarsest + 1) to (finest - 1)) ( ) : Unit {")
+          printer.println(s"\tcommunicate Solution${if (useSlotsForJac) "[0]" else ""}@(current)")
+          printer.println(s"\tloop over inner on Solution@(current) {")
+          for (vecDim <- 0 until numVecDims)
+            printer.println(s"\t\t${solution2Fields("current")(vecDim)} = ${solutionFields("current")(vecDim)} + ( ( ( 1.0 / diag ( $stencilAccess ) ) * $omegaToPrint ) * ( ${rhsFields("current")(vecDim)} - ( $stencilAccess * ${solutionFields("current")(vecDim)} ) ) )")
+          printer.println(s"\t}")
+          printer.println(s"\tcommunicate Solution${if (useSlotsForJac) "[1]" else "2"}@(current)")
+          printer.println(s"\tloop over inner on Solution@(current) {")
+          for (vecDim <- 0 until numVecDims)
+            printer.println(s"\t\t${solutionFields("current")(vecDim)} = ${solution2Fields("current")(vecDim)} + ( ( ( 1.0 / diag ( $stencilAccess ) ) * $omegaToPrint ) * ( ${rhsFields("current")(vecDim)} - ( $stencilAccess * ${solution2Fields("current")(vecDim)} ) ) )")
+          printer.println(s"\t}")
+          printer.println(s"}")
+        }
       }
       case "RBGS" => {
-        printer.println("def Smoother@((coarsest + 1) to finest) ( ) : Unit {")
+        if (testStencilStencil)
+          printer.println(s"def Smoother@finest ( ) : Unit {")
+        else
+          printer.println(s"def Smoother@((coarsest + 1) to finest) ( ) : Unit {")
+
         printer.println("\tcommunicate Solution@(current)")
         printer.println("\tloop over red on Solution@(current) {")
         for (vecDim <- 0 until numVecDims)
@@ -473,24 +506,53 @@ case class Root() extends Node {
           printer.println(s"\t\t${solutionFields("current")(vecDim)} = ${solutionFields("current")(vecDim)} + ( ( ( 1.0 / diag ( Laplace@(current) ) ) * $omegaToPrint ) * ( ${rhsFields("current")(vecDim)} - Laplace@(current) * ${solutionFields("current")(vecDim)} ) )")
         printer.println("\t}")
         printer.println("}")
+
+        if (testStencilStencil) {
+          printer.println(s"def Smoother@((coarsest + 1) to (finest - 1)) ( ) : Unit {")
+          printer.println("\tcommunicate Solution@(current)")
+          printer.println("\tloop over red on Solution@(current) {")
+          for (vecDim <- 0 until numVecDims)
+            printer.println(s"\t\t${solutionFields("current")(vecDim)} = ${solutionFields("current")(vecDim)} + ( ( ( 1.0 / diag ( $stencilAccess ) ) * $omegaToPrint ) * ( ${rhsFields("current")(vecDim)} - $stencilAccess * ${solutionFields("current")(vecDim)} ) )")
+          printer.println("\t}")
+          printer.println("\tcommunicate Solution@(current)")
+          printer.println("\tloop over black on Solution@(current) {")
+          for (vecDim <- 0 until numVecDims)
+            printer.println(s"\t\t${solutionFields("current")(vecDim)} = ${solutionFields("current")(vecDim)} + ( ( ( 1.0 / diag ( $stencilAccess ) ) * $omegaToPrint ) * ( ${rhsFields("current")(vecDim)} - $stencilAccess * ${solutionFields("current")(vecDim)} ) )")
+          printer.println("\t}")
+          printer.println("}")
+        }
       }
       case "GS" => {
-        printer.println("def Smoother@((coarsest + 1) to finest) ( ) : Unit {")
+        if (testStencilStencil)
+          printer.println(s"def Smoother@finest ( ) : Unit {")
+        else
+          printer.println(s"def Smoother@((coarsest + 1) to finest) ( ) : Unit {")
+
         printer.println("\tcommunicate Solution@(current)")
         printer.println("\tloop over inner on Solution@(current) {")
         for (vecDim <- 0 until numVecDims)
           printer.println(s"\t\t${solutionFields("current")(vecDim)} = ${solutionFields("current")(vecDim)} + ( ( ( 1.0 / diag ( Laplace@(current) ) ) * $omegaToPrint ) * ( ${rhsFields("current")(vecDim)} - Laplace@(current) * ${solutionFields("current")(vecDim)} ) )")
         printer.println("\t}")
         printer.println("}")
+
+        if (testStencilStencil) {
+          printer.println(s"def Smoother@((coarsest + 1) to (finest - 1)) ( ) : Unit {")
+          printer.println("\tcommunicate Solution@(current)")
+          printer.println("\tloop over inner on Solution@(current) {")
+          for (vecDim <- 0 until numVecDims)
+            printer.println(s"\t\t${solutionFields("current")(vecDim)} = ${solutionFields("current")(vecDim)} + ( ( ( 1.0 / diag ( Laplace@(current) ) ) * $omegaToPrint ) * ( ${rhsFields("current")(vecDim)} - $stencilAccess * ${solutionFields("current")(vecDim)} ) )")
+          printer.println("\t}")
+          printer.println("}")
+        }
       }
     }
     printer.println
 
     // Other MG Functions
     if (testStencilStencil)
-    printer.println("def UpResidual@finest ( ) : Unit {")
+      printer.println("def UpResidual@finest ( ) : Unit {")
     else
-    printer.println("def UpResidual@all ( ) : Unit {")
+      printer.println("def UpResidual@all ( ) : Unit {")
     printer.println("\tcommunicate Solution@(current)")
     printer.println("\tloop over inner on Residual@(current) {")
     for (vecDim <- 0 until numVecDims)
@@ -498,16 +560,16 @@ case class Root() extends Node {
     printer.println("\t}")
     printer.println("}")
 
-        if (testStencilStencil){
-    printer.println("def UpResidual@(coarsest to (finest - 1)) ( ) : Unit {")
-    printer.println("\tcommunicate Solution@(current)")
-    printer.println("\tloop over inner on Residual@(current) {")
-    for (vecDim <- 0 until numVecDims)
-      printer.println(s"\t\t${residualFields("current")(vecDim)} = ${rhsFields("current")(vecDim)} - ((CorrectionStencil@current * ( ToCoarser ( Laplace@finer ) * RestrictionStencil@current)) * ${solutionFields("current")(vecDim)})")
-    printer.println("\t}")
-    printer.println("}")
-}
-    
+    if (testStencilStencil) {
+      printer.println("def UpResidual@(coarsest to (finest - 1)) ( ) : Unit {")
+      printer.println("\tcommunicate Solution@(current)")
+      printer.println("\tloop over inner on Residual@(current) {")
+      for (vecDim <- 0 until numVecDims)
+        printer.println(s"\t\t${residualFields("current")(vecDim)} = ${rhsFields("current")(vecDim)} - ($stencilAccess * ${solutionFields("current")(vecDim)})")
+      printer.println("\t}")
+      printer.println("}")
+    }
+
     printer.println("def Restriction@((coarsest + 1) to finest) ( ) : Unit {")
     printer.println("\tcommunicate Residual@(current)")
     printer.println("\tloop over innerForFieldsWithoutGhostLayers on RHS@(coarser) {")

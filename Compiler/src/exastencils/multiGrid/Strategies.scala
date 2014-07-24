@@ -13,16 +13,24 @@ import exastencils.mpi._
 
 object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions") {
   this += new Transformation("SearchAndReplace", {
-    case FunctionCallExpression(StringConstant("diag"), args) =>
-      args(0) match {
-        case access : StencilAccess =>
-          access.stencil.entries(0).weight
-        case access : StencilFieldAccess => {
-          var index = Duplicate(access.index)
-          index(Knowledge.dimensionality) = 0 // FIXME: this assumes the center entry to be in pos 0
-          new FieldAccess(FieldSelection(access.stencilFieldSelection.field, access.stencilFieldSelection.slot, 0, access.stencilFieldSelection.fragIdx), index)
-        }
+    case FunctionCallExpression(StringConstant("diag"), args) => args(0) match {
+      case access : StencilAccess =>
+        access.stencil.entries.find(e => {
+          var ret = true
+          for (dim <- 0 until Knowledge.dimensionality)
+            ret &= (IntegerConstant(0) == e.offset(dim))
+          ret
+        }).get.weight
+      case access : StencilFieldAccess => {
+        var index = Duplicate(access.index)
+        index(Knowledge.dimensionality) = 0 // FIXME: this assumes the center entry to be in pos 0
+        new FieldAccess(FieldSelection(access.stencilFieldSelection.field, access.stencilFieldSelection.slot, 0, access.stencilFieldSelection.fragIdx), index)
       }
+      case _ => {
+        println("WARN: diag with unknown arg")
+        FunctionCallExpression(StringConstant("diag"), args)
+      }
+    }
 
     // HACK to realize intergrid operations
     case FunctionCallExpression(StringConstant("ToCoarser"), args) => args(0) match {
