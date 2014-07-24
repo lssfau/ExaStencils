@@ -25,16 +25,46 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
       }
 
     // HACK to realize intergrid operations
-    case FunctionCallExpression(StringConstant("ToCoarser"), args) =>
-      var stencilConvolution = Duplicate(args(0).asInstanceOf[StencilConvolution])
-      for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
-        stencilConvolution.fieldAccess.index(i) = 2 * stencilConvolution.fieldAccess.index(i)
-      stencilConvolution
-    case FunctionCallExpression(StringConstant("ToFiner"), args) =>
-      var stencilConvolution = Duplicate(args(0).asInstanceOf[StencilConvolution])
-      for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
-        stencilConvolution.fieldAccess.index(i) = stencilConvolution.fieldAccess.index(i) / 2
-      stencilConvolution
+    case FunctionCallExpression(StringConstant("ToCoarser"), args) => args(0) match {
+      case conv : StencilConvolution => {
+        var stencilConvolution = Duplicate(conv)
+        for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
+          stencilConvolution.fieldAccess.index(i) = 2 * stencilConvolution.fieldAccess.index(i)
+        stencilConvolution
+      }
+      case access : FieldAccess => {
+        var fieldAccess = Duplicate(access)
+        for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
+          fieldAccess.index(i) = 2 * fieldAccess.index(i)
+        fieldAccess
+      }
+      case access : StencilFieldAccess => {
+        var stencilFieldAccess = Duplicate(access)
+        for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
+          stencilFieldAccess.index(i) = 2 * stencilFieldAccess.index(i)
+        stencilFieldAccess
+      }
+    }
+    case FunctionCallExpression(StringConstant("ToFiner"), args) => args(0) match {
+      case conv : StencilConvolution => {
+        var stencilConvolution = Duplicate(conv)
+        for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
+          stencilConvolution.fieldAccess.index(i) = stencilConvolution.fieldAccess.index(i) / 2
+        stencilConvolution
+      }
+      case access : FieldAccess => {
+        var fieldAccess = Duplicate(access)
+        for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
+          fieldAccess.index(i) = fieldAccess.index(i) / 2
+        fieldAccess
+      }
+      case access : StencilFieldAccess => {
+        var stencilFieldAccess = Duplicate(access)
+        for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
+          stencilFieldAccess.index(i) = stencilFieldAccess.index(i) / 2
+        stencilFieldAccess
+      }
+    }
 
     // HACK to realize return functionality -> FIXME: move to specialized node
     case ExpressionStatement(FunctionCallExpression(StringConstant("return"), args)) =>

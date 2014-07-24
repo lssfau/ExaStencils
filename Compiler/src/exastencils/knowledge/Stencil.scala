@@ -165,5 +165,11 @@ object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions"
       StencilFieldConvolution(stencilFieldAccess, fieldAccess)
     case MultiplicationExpression(StencilAccess(stencilLeft), StencilAccess(stencilRight)) =>
       StencilStencilConvolution(stencilLeft, stencilRight)
+    case MultiplicationExpression(stencilLeft : StencilFieldAccess, StencilAccess(stencilRight)) =>
+      StencilStencilConvolution(stencilLeft.buildStencil, stencilRight)
+    case MultiplicationExpression(StencilAccess(stencilLeft), stencilRight : StencilFieldAccess) =>
+      StencilStencilConvolution(stencilLeft, stencilRight.buildStencil)
+    case MultiplicationExpression(stencilLeft : StencilFieldAccess, stencilRight : StencilFieldAccess) =>
+      StencilStencilConvolution(stencilLeft.buildStencil, stencilRight.buildStencil)
   })
 }

@@ -22,7 +22,7 @@ case class Root() extends Node {
   var genRBSetsWithConditions : Boolean = true
   var useVecFields : Boolean = false // attempts to solve Poisson's equation for (numVecDims)D vectors; atm all three components are solved independently
   var numVecDims = (if (useVecFields) 2 else 1)
-  var genStencilFields : Boolean = false
+  var genStencilFields : Boolean = true
   var useSlotsForJac : Boolean = true
   var testStencilStencil : Boolean = true
 
@@ -503,7 +503,7 @@ case class Root() extends Node {
     printer.println("\tcommunicate Solution@(current)")
     printer.println("\tloop over inner on Residual@(current) {")
     for (vecDim <- 0 until numVecDims)
-      printer.println(s"\t\t${residualFields("current")(vecDim)} = ${rhsFields("current")(vecDim)} - ((CorrectionStencil@current * (Laplace@finer * RestrictionStencil@current)) * ${solutionFields("current")(vecDim)})")
+      printer.println(s"\t\t${residualFields("current")(vecDim)} = ${rhsFields("current")(vecDim)} - ((CorrectionStencil@current * ( ToCoarser ( Laplace@finer ) * RestrictionStencil@current)) * ${solutionFields("current")(vecDim)})")
     printer.println("\t}")
     printer.println("}")
 }
@@ -512,7 +512,7 @@ case class Root() extends Node {
     printer.println("\tcommunicate Residual@(current)")
     printer.println("\tloop over innerForFieldsWithoutGhostLayers on RHS@(coarser) {")
     for (vecDim <- 0 until numVecDims)
-      printer.println(s"\t\t${rhsFields("coarser")(vecDim)} = ToCoarser ( RestrictionStencil@(current) * ${residualFields("current")(vecDim)} )")
+      printer.println(s"\t\t${rhsFields("coarser")(vecDim)} = RestrictionStencil@(current) * ToCoarser ( ${residualFields("current")(vecDim)} )")
     printer.println("\t}")
     printer.println("}")
 
@@ -520,7 +520,7 @@ case class Root() extends Node {
     printer.println("\tcommunicate Solution@(current)")
     printer.println("\tloop over inner on Solution@(current) {")
     for (vecDim <- 0 until numVecDims)
-      printer.println(s"\t\t${solutionFields("current")(vecDim)} += ToFiner ( CorrectionStencil@(current) * ${solutionFields("coarser")(vecDim)} )")
+      printer.println(s"\t\t${solutionFields("current")(vecDim)} += CorrectionStencil@(current) * ToFiner ( ${solutionFields("coarser")(vecDim)} )")
     printer.println("\t}")
     printer.println("}")
     printer.println

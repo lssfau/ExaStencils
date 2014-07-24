@@ -1,17 +1,11 @@
 package exastencils.datastructures.ir
 
 import scala.collection.mutable.ListBuffer
-import scala.language.implicitConversions
-
-import exastencils.core.Duplicate
-import exastencils.datastructures.Node
-import exastencils.datastructures.ir.ImplicitConversions.NumberToIntegerConstant
-import exastencils.datastructures.ir.ImplicitConversions.StringToStringLiteral
-import exastencils.knowledge.ExternalField
-import exastencils.knowledge.FieldSelection
-import exastencils.knowledge.Mapping
-import exastencils.knowledge.Stencil
-import exastencils.knowledge.StencilFieldSelection
+import exastencils.core._
+import exastencils.datastructures._
+import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.knowledge._
 
 trait Expression extends Node with CppPrettyPrintable {
   def ~(exp : Expression) : ConcatenationExpression = {
@@ -282,6 +276,16 @@ case class StencilAccess(var stencil : Stencil) extends Expression {
 
 case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection, var index : MultiIndex) extends Expression {
   override def cpp : String = "NOT VALID ; CLASS = StencilFieldAccess\n"
+
+  def buildStencil : Stencil = {
+    var entries : ListBuffer[StencilEntry] = ListBuffer()
+    for (e <- 0 until stencilFieldSelection.stencil.entries.size) {
+      var stencilFieldIdx = Duplicate(index)
+      stencilFieldIdx(Knowledge.dimensionality) = e
+      entries += new StencilEntry(stencilFieldSelection.stencil.entries(e).offset, new FieldAccess(stencilFieldSelection.toFieldSelection, stencilFieldIdx))
+    }
+    new Stencil("GENERATED_PLACEHOLDER_STENCIL", stencilFieldSelection.stencil.level, entries)
+  }
 }
 
 case class MemberAccess(var base : Access, var varAcc : VariableAccess) extends Access {
