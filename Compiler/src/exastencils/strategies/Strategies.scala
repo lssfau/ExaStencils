@@ -64,6 +64,17 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       FloatConstant(-value.v)
     //})
 
+    //this += new Transformation("Resolving operations with mixed data types", {
+    case AdditionExpression(left : IntegerConstant, right : FloatConstant) =>
+      FloatConstant(left.v + right.v)
+    case SubtractionExpression(left : IntegerConstant, right : FloatConstant) =>
+      FloatConstant(left.v - right.v)
+    case MultiplicationExpression(left : IntegerConstant, right : FloatConstant) =>
+      FloatConstant(left.v * right.v)
+    case DivisionExpression(left : IntegerConstant, right : FloatConstant) =>
+      FloatConstant(left.v / right.v)
+    //})
+
     //this += new Transformation("Permutating operations with constants on the 'wrong' side", {
     case AdditionExpression(left : IntegerConstant, right : Expression) if !right.isInstanceOf[IntegerConstant] =>
       right + left

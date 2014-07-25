@@ -216,6 +216,12 @@ case class Root() extends Node {
           printer.println("\t[-1,  0] => -1.0")
           printer.println("\t[ 0,  1] => -1.0")
           printer.println("\t[ 0, -1] => -1.0")
+          if (testStencilStencil) {
+            printer.println("\t[-1, -1] => 0.0")
+            printer.println("\t[-1,  1] => 0.0")
+            printer.println("\t[ 1, -1] => 0.0")
+            printer.println("\t[ 1,  1] => 0.0")
+          }
         }
         case 3 =>
           printer.println("\t[ 0,  0,  0] => 6.0")
@@ -225,6 +231,29 @@ case class Root() extends Node {
           printer.println("\t[ 0, -1,  0] => -1.0")
           printer.println("\t[ 0,  0,  1] => -1.0")
           printer.println("\t[ 0,  0, -1] => -1.0")
+          if (testStencilStencil) {
+            printer.println("\t[ 0, -1,  1] => 0.0")
+            printer.println("\t[ 0, -1, -1] => 0.0")
+            printer.println("\t[ 0,  1,  1] => 0.0")
+            printer.println("\t[ 0,  1, -1] => 0.0")
+            printer.println("\t[-1,  0,  1] => 0.0")
+            printer.println("\t[-1,  0, -1] => 0.0")
+            printer.println("\t[ 1,  0,  1] => 0.0")
+            printer.println("\t[ 1,  0, -1] => 0.0")
+            printer.println("\t[-1, -1,  0] => 0.0")
+            printer.println("\t[-1,  1,  0] => 0.0")
+            printer.println("\t[ 1, -1,  0] => 0.0")
+            printer.println("\t[ 1,  1,  0] => 0.0")
+
+            printer.println("\t[-1, -1,  1] => 0.0")
+            printer.println("\t[-1, -1, -1] => 0.0")
+            printer.println("\t[-1,  1,  1] => 0.0")
+            printer.println("\t[-1,  1, -1] => 0.0")
+            printer.println("\t[ 1, -1,  1] => 0.0")
+            printer.println("\t[ 1, -1, -1] => 0.0")
+            printer.println("\t[ 1,  1,  1] => 0.0")
+            printer.println("\t[ 1,  1, -1] => 0.0")
+          }
       }
     }
     printer.println("}")
@@ -457,7 +486,7 @@ case class Root() extends Node {
     val omegaToPrint = (if (omegaViaGlobals) "omega" else omega)
     smoother match {
       case "Jac" => {
-        if (testStencilStencil)
+        if (testStencilStencil && !genStencilFields)
           printer.println(s"def Smoother@finest ( ) : Unit {")
         else
           printer.println(s"def Smoother@((coarsest + 1) to finest) ( ) : Unit {")
@@ -474,7 +503,7 @@ case class Root() extends Node {
         printer.println(s"\t}")
         printer.println(s"}")
 
-        if (testStencilStencil) {
+        if (testStencilStencil && !genStencilFields) {
           printer.println(s"def Smoother@((coarsest + 1) to (finest - 1)) ( ) : Unit {")
           printer.println(s"\tcommunicate Solution${if (useSlotsForJac) "[0]" else ""}@(current)")
           printer.println(s"\tloop over inner on Solution@(current) {")
@@ -490,7 +519,7 @@ case class Root() extends Node {
         }
       }
       case "RBGS" => {
-        if (testStencilStencil)
+        if (testStencilStencil && !genStencilFields)
           printer.println(s"def Smoother@finest ( ) : Unit {")
         else
           printer.println(s"def Smoother@((coarsest + 1) to finest) ( ) : Unit {")
@@ -507,7 +536,7 @@ case class Root() extends Node {
         printer.println("\t}")
         printer.println("}")
 
-        if (testStencilStencil) {
+        if (testStencilStencil && !genStencilFields) {
           printer.println(s"def Smoother@((coarsest + 1) to (finest - 1)) ( ) : Unit {")
           printer.println("\tcommunicate Solution@(current)")
           printer.println("\tloop over red on Solution@(current) {")
@@ -523,7 +552,7 @@ case class Root() extends Node {
         }
       }
       case "GS" => {
-        if (testStencilStencil)
+        if (testStencilStencil && !genStencilFields)
           printer.println(s"def Smoother@finest ( ) : Unit {")
         else
           printer.println(s"def Smoother@((coarsest + 1) to finest) ( ) : Unit {")
@@ -535,7 +564,7 @@ case class Root() extends Node {
         printer.println("\t}")
         printer.println("}")
 
-        if (testStencilStencil) {
+        if (testStencilStencil && !genStencilFields) {
           printer.println(s"def Smoother@((coarsest + 1) to (finest - 1)) ( ) : Unit {")
           printer.println("\tcommunicate Solution@(current)")
           printer.println("\tloop over inner on Solution@(current) {")
@@ -549,7 +578,7 @@ case class Root() extends Node {
     printer.println
 
     // Other MG Functions
-    if (testStencilStencil)
+    if (testStencilStencil && !genStencilFields)
       printer.println("def UpResidual@finest ( ) : Unit {")
     else
       printer.println("def UpResidual@all ( ) : Unit {")
@@ -560,7 +589,7 @@ case class Root() extends Node {
     printer.println("\t}")
     printer.println("}")
 
-    if (testStencilStencil) {
+    if (testStencilStencil && !genStencilFields) {
       printer.println("def UpResidual@(coarsest to (finest - 1)) ( ) : Unit {")
       printer.println("\tcommunicate Solution@(current)")
       printer.println("\tloop over inner on Residual@(current) {")
@@ -637,7 +666,10 @@ case class Root() extends Node {
     printer.println("}")
 
     if (genStencilFields) {
-      printer.println("def InitLaplace@all ( ) : Unit {")
+      if (testStencilStencil)
+        printer.println("def InitLaplace@finest ( ) : Unit {")
+      else
+        printer.println("def InitLaplace@all ( ) : Unit {")
       printer.println("\tloop over innerForFieldsWithoutGhostLayers on LaplaceCoeff@current {")
       Knowledge.dimensionality match {
         case 2 => {
@@ -673,6 +705,14 @@ case class Root() extends Node {
       }
       printer.println("\t}")
       printer.println("}")
+
+      if (testStencilStencil) {
+        printer.println("def InitLaplace@(coarsest to (finest - 1)) ( ) : Unit {")
+        printer.println("\tloop over innerForFieldsWithoutGhostLayers on LaplaceCoeff@current {")
+        printer.println(s"\t\tLaplace@current = ( CorrectionStencil@current * ( ToCoarser ( Laplace@finer ) * RestrictionStencil@current ) )")
+        printer.println("\t}")
+        printer.println("}")
+      }
     }
 
     printer.println
@@ -756,7 +796,7 @@ case class Root() extends Node {
     }
 
     if (genStencilFields) {
-      for (lvl <- 0 to Knowledge.maxLevel)
+      for (lvl <- Knowledge.maxLevel to 0 by -1)
         printer.println(s"\tInitLaplace@$lvl ( )")
     }
 

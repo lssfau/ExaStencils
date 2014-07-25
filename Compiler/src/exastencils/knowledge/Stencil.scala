@@ -190,7 +190,7 @@ object MapStencilAssignments extends DefaultStrategy("MapStencilAssignments") {
         var coeff : Expression = 0
         for (e <- stencilRight.entries) {
           if (e.offset == stencilLeft.entries(idx).offset)
-            coeff = e.weight
+            coeff += e.weight
         }
         statements += new AssignmentStatement(new FieldAccess(fieldSelection, fieldIndex), coeff)
       }
