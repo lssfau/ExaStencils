@@ -26,7 +26,6 @@ import exastencils.datastructures.ir.FunctionCallExpression
 import exastencils.datastructures.ir.GreaterEqualExpression
 import exastencils.datastructures.ir.GreaterExpression
 import exastencils.datastructures.ir.IntegerConstant
-import exastencils.datastructures.ir.IntegerDatatype
 import exastencils.datastructures.ir.LoopOverDimensions
 import exastencils.datastructures.ir.LowerEqualExpression
 import exastencils.datastructures.ir.LowerExpression
@@ -531,9 +530,9 @@ class Extractor extends Collector {
       constrs.append('<')
       bool |= extractConstraints(end(i), constrs, true, paramConstrs, params)
       constrs.append(" and ")
-      val lVar : String = dimToString(i)
-      modelLoopVars.push(ScopNameMapping.expr2id(VariableAccess(lVar, Some(IntegerDatatype()))))
-      origLoopVars += lVar
+      val lVar : Expression = loopVarExps(i)
+      modelLoopVars.push(ScopNameMapping.expr2id(lVar))
+      origLoopVars += lVar.asInstanceOf[VariableAccess].name
       i += 1
     } while (i < dims)
 
