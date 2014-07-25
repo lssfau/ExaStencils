@@ -173,3 +173,29 @@ object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions"
       StencilStencilConvolution(stencilLeft.buildStencil, stencilRight.buildStencil)
   })
 }
+
+object MapStencilAssignments extends DefaultStrategy("MapStencilAssignments") {
+  this += new Transformation("SearchAndMark", {
+    case AssignmentStatement(stencilFieldAccess : StencilFieldAccess, StencilAccess(stencil), "=") => {
+      var statements : ListBuffer[Statement] = ListBuffer()
+
+      val stencilRight = stencil
+      val stencilLeft = stencilFieldAccess.stencilFieldSelection.stencil
+
+      for (idx <- 0 until stencilLeft.entries.size) {
+        var fieldSelection = stencilFieldAccess.stencilFieldSelection.toFieldSelection
+        fieldSelection.arrayIndex = idx
+        var fieldIndex = Duplicate(stencilFieldAccess.index)
+        fieldIndex(Knowledge.dimensionality) = idx
+        var coeff : Expression = 0
+        for (e <- stencilRight.entries) {
+          if (e.offset == stencilLeft.entries(idx).offset)
+            coeff = e.weight
+        }
+        statements += new AssignmentStatement(new FieldAccess(fieldSelection, fieldIndex), coeff)
+      }
+
+      StatementBlock(statements)
+    }
+  })
+}

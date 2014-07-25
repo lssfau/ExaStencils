@@ -77,6 +77,8 @@ object Main {
       ExpandStrategy.doUntilDone()
     }
 
+    MapStencilAssignments.apply()
+    
     if (Knowledge.poly_usePolyOpt)
       PolyOpt.apply()
 

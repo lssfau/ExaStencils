@@ -54,9 +54,9 @@ case class CommentStatement(var comment : String) extends Statement {
   }
 }
 
-case class AssignmentStatement(var dest : Expression, var src : Expression, var op : Expression = "=") extends Statement {
+case class AssignmentStatement(var dest : Expression, var src : Expression, var op : String = "=") extends Statement {
   override def cpp : String = {
-    (s"${dest.cpp} ${op.cpp} ${src.cpp};")
+    (s"${dest.cpp} $op ${src.cpp};")
   }
 }
 

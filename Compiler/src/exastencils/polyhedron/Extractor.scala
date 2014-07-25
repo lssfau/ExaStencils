@@ -256,7 +256,6 @@ class Extractor extends Collector {
 
           // process
           case a : AssignmentStatement =>
-            a.op.annotate(SKIP_ANNOT)
             enterAssign(a)
 
           case StringConstant(varName) =>
@@ -603,10 +602,10 @@ class Extractor extends Collector {
 
     assign.op match {
 
-      case StringConstant("=") =>
+      case "=" =>
         assign.dest.annotate(Access.ANNOT, Access.WRITE)
 
-      case StringConstant("+=") | StringConstant("-=") | StringConstant("*=") | StringConstant("/=") =>
+      case "+=" | "-=" | "*=" | "/=" =>
         assign.dest.annotate(Access.ANNOT, Access.UPDATE)
 
       case _ =>
@@ -716,7 +715,7 @@ class Extractor extends Collector {
 
     if (decl.expression.isDefined) {
       val stmt = new AssignmentStatement(
-        new VariableAccess(decl.name, Some(decl.dataType)), decl.expression.get, new StringConstant("="))
+        new VariableAccess(decl.name, Some(decl.dataType)), decl.expression.get, "=")
       enterStmt(stmt) // as a declaration is also a statement
       decl.expression.get.annotate(Access.ANNOT, Access.READ)
       isWrite = true
