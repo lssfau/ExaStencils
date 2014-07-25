@@ -61,9 +61,11 @@ object SimplifyExpression {
     * No float or boolean constants are allowed.
     * (Otherwise an EvaluationException is thrown.)
     *
-    * Returns a sum from all present summands to their corresponding coefficients.
+    * Returns a map from all present summands to their corresponding coefficients.
     * The additive constant is stored beside the string specified by the field SimplifyExpression.constName.
     * The given expression is equivalent to: map(constName) + \sum_{n \in names} map(n) * n
+    *
+    * Only VariableAccess nodes are used as keys. (NO StringConstant)
     */
   def extractIntegralSum(expr : Expression) : HashMap[Expression, Long] = {
 
@@ -86,7 +88,7 @@ object SimplifyExpression {
 
       case StringConstant(varName) =>
         res = new HashMap[Expression, Long]()
-        res(VariableAccess(varName, Some(IntegerDatatype()))) = 1L
+        res(VariableAccess(varName, Some(IntegerDatatype()))) = 1L // ONLY VariableAccess in res keys, NO StringConstant
 
       case UnaryExpression(UnaryOperators.Negative, expr) =>
         res = extractIntegralSum(expr)
