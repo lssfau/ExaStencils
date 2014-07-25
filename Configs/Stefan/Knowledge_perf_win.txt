@@ -20,4 +20,6 @@ domain_fragLength_z			= 1
 
 mpi_useCustomDatatypes		= true
 poly_usePolyOpt				= true
-poly_useAddressPrecalc		= true
+opt_useAddressPrecalc		= true
+opt_vectorize				= true
+data_addPrePadding			= false // not needed currently

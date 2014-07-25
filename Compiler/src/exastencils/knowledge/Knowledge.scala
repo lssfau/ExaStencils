@@ -118,8 +118,14 @@ object Knowledge {
   var mpi_defaultCommunicator : String = "MPI_COMM_WORLD" // sets the initial communicator used by most MPI operations
 
   // --- Polyhedron Optimization ---
-  var poly_usePolyOpt : Boolean = true // [true|false] 
-  var poly_useAddressPrecalc : Boolean = true // [true|false]
+  var poly_usePolyOpt : Boolean = true // [true|false]
+  var poly_tileSize_x : Int = 1000000 // 1-inf // TODO: Alex
+  var poly_tileSize_y : Int = 32 // 1-inf // TODO: Alex
+  var poly_tileSize_z : Int = 1000000 // 1-inf // TODO: Alex
+
+  // --- Other Optimizations ---
+  var opt_useAddressPrecalc : Boolean = true // [true|false]
+  var opt_vectorize : Boolean = true // [true|false]
 
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once

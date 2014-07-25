@@ -7,6 +7,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir.NullExpression
 import sun.reflect.generics.reflectiveObjects.NotImplementedException
+import exastencils.optimization.Vectorization
 
 case class LayoutOption(var name : String, var value : Index, var hasCommunication : Option[Boolean]) extends Node
 
@@ -70,15 +71,22 @@ case class LayoutDeclarationStatement(var name : String,
     l4_ghostComm = ghostLayersCommunication.getOrElse(default_ghostComm)
     l4_dupComm = duplicateLayersCommunication.getOrElse(default_dupComm)
 
-    DimArray().map(dim => new knowledge.FieldLayoutPerDim(
-      if (0 == dim) 0 else 0, // FIXME: add padding
-      l4_ghostLayers(dim),
-      l4_duplicateLayers(dim),
-      l4_innerPoints(dim),
-      l4_duplicateLayers(dim),
-      l4_ghostLayers(dim),
-      0 // FIXME: check if padding at the end will be required
-      ))
+    val layouts : Array[knowledge.FieldLayoutPerDim] =
+      DimArray().map(dim => new knowledge.FieldLayoutPerDim(
+        0, // default, only first requires != 0
+        l4_ghostLayers(dim),
+        l4_duplicateLayers(dim),
+        l4_innerPoints(dim),
+        l4_duplicateLayers(dim),
+        l4_ghostLayers(dim),
+        0 // default, only first requires != 0
+        ))
+    // TODO: check if padding works properly (for vectorization)
+    // add padding only for innermost dimension
+    val innerLayout : knowledge.FieldLayoutPerDim = layouts(0)
+    innerLayout.numPadLayersLeft = (Vectorization.TMP_VS - innerLayout.idxDupLeftBegin % Vectorization.TMP_VS) % Vectorization.TMP_VS
+    innerLayout.numPadLayersRight = (Vectorization.TMP_VS - innerLayout.total % Vectorization.TMP_VS) % Vectorization.TMP_VS
+    return layouts
   }
 }
 
@@ -97,7 +105,9 @@ case class FieldDeclarationStatement(var name : String,
     var ir_layout = l4_layout.progressToIr(level.get.asInstanceOf[SingleLevelSpecification].level)
     ir_layout ++= Array(new knowledge.FieldLayoutPerDim(0, 0, 0, datatype.progressToIr.resolveFlattendSize, 0, 0, 0))
 
-    var refOffset = l4_layout.l4_ghostLayers.progressToIr // TODO: this should work for now but may be adapted in the future
+    var refOffset = new ir.MultiIndex // TODO: this should work for now but may be adapted in the future
+    for (dim <- 0 until Knowledge.dimensionality)
+      refOffset(dim) = ir_layout(dim).idxDupLeftBegin
     refOffset(Knowledge.dimensionality) = 0
 
     new knowledge.Field(

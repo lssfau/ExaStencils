@@ -231,8 +231,17 @@ case class CommunicationFunctions() extends FunctionCollection("Primitives/Commu
     else
       ListBuffer())
     ++
+    (if (Knowledge.opt_vectorize)
+      ListBuffer("#include <immintrin.h>")
+    else
+      ListBuffer())
+    ++
+    (if (Knowledge.poly_usePolyOpt)
+      ListBuffer("#include <algorithm>")
+    else
+      ListBuffer())
+    ++
     ListBuffer(
-      "#include <algorithm>",
       "#include \"Globals/Globals.h\"",
       "#include \"Util/Log.h\"",
       "#include \"Util/Vector.h\"",

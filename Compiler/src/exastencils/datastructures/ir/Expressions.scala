@@ -11,6 +11,7 @@ import exastencils.knowledge.FieldSelection
 import exastencils.knowledge.Mapping
 import exastencils.knowledge.Stencil
 import exastencils.knowledge.StencilFieldSelection
+import exastencils.optimization.Vectorization
 
 trait Expression extends Node with CppPrettyPrintable {
   def ~(exp : Expression) : ConcatenationExpression = {
@@ -612,6 +613,20 @@ case class SIMD_LoadExpression(var mem : Expression, var aligned : Boolean) exte
   }
 }
 
+case class SIMD_Load1Expression(var mem : Expression) extends Expression {
+  override def cpp : String = {
+    val sb = new StringBuilder()
+    cppsb(sb)
+    return sb.toString()
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("_mm256_broadcast_sd(")
+    mem.cppsb(sb)
+    sb.append(')')
+  }
+}
+
 case class SIMD_AdditionExpression(var left : Expression, var right : Expression) extends Expression {
   override def cpp : String = {
     var sb = new StringBuilder
@@ -660,7 +675,8 @@ case class SIMD_MultiplicationExpression(var left : Expression, var right : Expr
   }
 }
 
-case class SIMD_MultiplyAddExpression(var factor1 : Expression, var factor2 : Expression, var summand : Expression) extends Expression {
+case class SIMD_MultiplyAddExpression(var factor1 : Expression, var factor2 : Expression,
+    var summand : Expression) extends Expression {
   override def cpp : String = {
     var sb = new StringBuilder
     cppsb(sb)
@@ -668,8 +684,7 @@ case class SIMD_MultiplyAddExpression(var factor1 : Expression, var factor2 : Ex
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("_mm256_add_pd(")
-    sb.append("_mm256_mul_pd(")
+    sb.append("_mm256_add_pd(_mm256_mul_pd(")
     factor1.cppsb(sb)
     sb.append(", ")
     factor2.cppsb(sb)
@@ -679,7 +694,8 @@ case class SIMD_MultiplyAddExpression(var factor1 : Expression, var factor2 : Ex
   }
 }
 
-case class SIMD_MultiplySubExpression(var factor1 : Expression, var factor2 : Expression, var summand : Expression) extends Expression {
+case class SIMD_MultiplySubExpression(var factor1 : Expression, var factor2 : Expression,
+    var summand : Expression) extends Expression {
   override def cpp : String = {
     var sb = new StringBuilder
     cppsb(sb)
@@ -687,8 +703,7 @@ case class SIMD_MultiplySubExpression(var factor1 : Expression, var factor2 : Ex
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("_mm256_sub_pd(")
-    sb.append("_mm256_mul_pd(")
+    sb.append("_mm256_sub_pd(_mm256_mul_pd(")
     factor1.cppsb(sb)
     sb.append(", ")
     factor2.cppsb(sb)
@@ -716,5 +731,27 @@ case class SIMD_DivisionExpression(var left : Expression, var right : Expression
 
 case class SIMD_FloatConstantExpression(var value : Double) extends Expression {
   // ensure the compiler can parse the string
-  override def cpp = String.format(java.util.Locale.US, "_mm256_set1_pd(%e)", Double.box(value))
+  override def cpp() : String = {
+    return String.format(java.util.Locale.US, "_mm256_set1_pd(%e)", Double.box(value))
+  }
+}
+
+case class SIMD_Scalar2VectorExpression(var scalar : String, var dType : Datatype,
+    var increment : Boolean) extends Expression {
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    if (increment) {
+      sb.append("_mm256_set_pd(")
+      for (i <- Vectorization.TMP_VS - 1 to 1 by -1)
+        sb.append(scalar).append('+').append(i).append(',')
+      sb.append(scalar).append(')')
+
+    } else
+      sb.append("_mm256_set1_pd(").append(scalar).append(')')
+  }
 }
