@@ -137,6 +137,11 @@ object MainStefan {
 
     ExpandStrategy.doUntilDone()
 
+    if (!Knowledge.useMPI)
+      RemoveMPIReferences.apply()
+
+    SimplifyStrategy.doUntilDone()
+
     if (Knowledge.opt_useAddressPrecalc)
       AddressPrecalculation.apply()
 
@@ -144,11 +149,6 @@ object MainStefan {
       TypeInference.apply()
       Vectorization.apply()
     }
-
-    if (!Knowledge.useMPI)
-      RemoveMPIReferences.apply()
-
-    SimplifyStrategy.doUntilDone()
 
     AddInternalVariables.apply()
 
