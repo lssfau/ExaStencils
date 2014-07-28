@@ -200,20 +200,20 @@ case class Root() extends Node {
     } else {
       Knowledge.dimensionality match {
         case 2 => {
-          printer.println("\t[ 0,  0] => 4")
-          printer.println("\t[ 1,  0] => -1")
-          printer.println("\t[-1,  0] => -1")
-          printer.println("\t[ 0,  1] => -1")
-          printer.println("\t[ 0, -1] => -1")
+          printer.println("\t[ 0,  0] => 4.")
+          printer.println("\t[ 1,  0] => -1.")
+          printer.println("\t[-1,  0] => -1.")
+          printer.println("\t[ 0,  1] => -1.")
+          printer.println("\t[ 0, -1] => -1.")
         }
         case 3 =>
-          printer.println("\t[ 0,  0,  0] => 6")
-          printer.println("\t[ 1,  0,  0] => -1")
-          printer.println("\t[-1,  0,  0] => -1")
-          printer.println("\t[ 0,  1,  0] => -1")
-          printer.println("\t[ 0, -1,  0] => -1")
-          printer.println("\t[ 0,  0,  1] => -1")
-          printer.println("\t[ 0,  0, -1] => -1")
+          printer.println("\t[ 0,  0,  0] => 6.")
+          printer.println("\t[ 1,  0,  0] => -1.")
+          printer.println("\t[-1,  0,  0] => -1.")
+          printer.println("\t[ 0,  1,  0] => -1.")
+          printer.println("\t[ 0, -1,  0] => -1.")
+          printer.println("\t[ 0,  0,  1] => -1.")
+          printer.println("\t[ 0,  0, -1] => -1.")
       }
     }
     printer.println("}")
