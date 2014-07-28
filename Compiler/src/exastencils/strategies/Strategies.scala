@@ -98,13 +98,13 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       IntegerConstant(left.v / right.v)
 
     case AdditionExpression(AdditionExpression(leftLeft, leftRight : IntegerConstant), right : IntegerConstant) =>
-      (leftLeft + (leftRight.v + right.v))
+      (leftLeft + IntegerConstant(leftRight.v + right.v))
     case SubtractionExpression(AdditionExpression(leftLeft, leftRight : IntegerConstant), right : IntegerConstant) =>
-      (leftLeft + (leftRight.v - right.v))
+      (leftLeft + IntegerConstant(leftRight.v - right.v))
     case AdditionExpression(SubtractionExpression(leftLeft, leftRight : IntegerConstant), right : IntegerConstant) =>
-      (leftLeft + (-leftRight.v + right.v))
+      (leftLeft + IntegerConstant(-leftRight.v + right.v))
     case SubtractionExpression(SubtractionExpression(leftLeft, leftRight : IntegerConstant), right : IntegerConstant) =>
-      (leftLeft - (leftRight.v + right.v))
+      (leftLeft - IntegerConstant(leftRight.v + right.v))
 
     case AdditionExpression(left : FloatConstant, right : FloatConstant) =>
       FloatConstant(left.v + right.v)
@@ -114,6 +114,18 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       FloatConstant(left.v * right.v)
     case DivisionExpression(left : FloatConstant, right : FloatConstant) =>
       FloatConstant(left.v / right.v)
+
+    case AdditionExpression(AdditionExpression(leftLeft, leftRight : FloatConstant), right : FloatConstant) =>
+      (leftLeft + FloatConstant(leftRight.v + right.v))
+    case SubtractionExpression(AdditionExpression(leftLeft, leftRight : FloatConstant), right : FloatConstant) =>
+      (leftLeft + FloatConstant(leftRight.v - right.v))
+    case AdditionExpression(SubtractionExpression(leftLeft, leftRight : FloatConstant), right : FloatConstant) =>
+      (leftLeft + FloatConstant(-leftRight.v + right.v))
+    case SubtractionExpression(SubtractionExpression(leftLeft, leftRight : FloatConstant), right : FloatConstant) =>
+      (leftLeft - FloatConstant(leftRight.v + right.v))
+
+    case MultiplicationExpression(MultiplicationExpression(leftLeft, leftRight : FloatConstant), right : FloatConstant) =>
+      leftLeft * (leftRight.v * right.v)
     //})
 
     //this += new Transformation("Resolving operations with 0/1", {
