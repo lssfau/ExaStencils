@@ -15,5 +15,6 @@ object Duplicate {
   def registerImmutable(t : Class[_]) = cloner.registerImmutable(t)
   def registerConstant(t : Class[_], field : String) = cloner.registerConstant(t, field)
   def registerConstant(field : Any) = cloner.registerConstant(field)
-}
 
+  cloner.registerImmutable(None.getClass()) // prevent cloning of None (which could result in None != None)
+}
