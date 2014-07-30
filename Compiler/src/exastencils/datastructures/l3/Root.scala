@@ -1,10 +1,8 @@
 package exastencils.datastructures.l3
 
-import scala.collection.mutable.ListBuffer
-import exastencils.knowledge._
+import exastencils.core._
 import exastencils.datastructures._
-import exastencils.multiGrid._
-import exastencils.core.Settings
+import exastencils.knowledge._
 
 case class Root() extends Node {
   var kelvin : Boolean = false
@@ -407,41 +405,41 @@ case class Root() extends Node {
   def addCGS(printer : java.io.PrintWriter, postfix : String) = {
     printer.println(s"def VCycle$postfix@coarsest ( ) : Unit {")
     for (vecDim <- 0 until numVecDims)
-      printer.println(s"\tVCycle${postfix}_$vecDim@(current) ( )")
+      printer.println(s"\tVCycle${postfix}_$vecDim@current ( )")
     printer.println(s"}")
 
     for (vecDim <- 0 until numVecDims) {
       printer.println(s"def VCycle${postfix}_$vecDim@coarsest ( ) : Unit {")
-      printer.println(s"\tUpResidual$postfix@(current) ( )")
-      printer.println(s"\tcommunicate Residual$postfix@(current)")
+      printer.println(s"\tUpResidual$postfix@current ( )")
+      printer.println(s"\tcommunicate Residual$postfix@current")
 
-      printer.println(s"\tvar res : Real = L2Residual${postfix}_$vecDim@(current) ( )")
+      printer.println(s"\tvar res : Real = L2Residual${postfix}_$vecDim@current ( )")
       printer.println(s"\tvar initialRes : Real = res")
 
-      printer.println(s"\tloop over inner on VecP$postfix@(current) {")
-      printer.println(s"\t\tVecP$postfix@(current) = ${residualFields("current", postfix)(vecDim)}")
+      printer.println(s"\tloop over inner on VecP$postfix@current {")
+      printer.println(s"\t\tVecP$postfix@current = ${residualFields("current", postfix)(vecDim)}")
       printer.println(s"\t}")
 
       printer.println(s"\trepeat up 512 {")
-      printer.println(s"\t\tcommunicate VecP$postfix@(current)")
+      printer.println(s"\t\tcommunicate VecP$postfix@current")
 
-      printer.println(s"\t\tloop over inner on VecP$postfix@(current) {")
-      printer.println(s"\t\t\tVecGradP$postfix@(current) = ${stencilAccess(postfix)} * VecP$postfix@(current)")
+      printer.println(s"\t\tloop over inner on VecP$postfix@current {")
+      printer.println(s"\t\t\tVecGradP$postfix@current = ${stencilAccess(postfix)} * VecP$postfix@current")
       printer.println(s"\t\t}")
 
       printer.println(s"\t\tvar alphaDenom : Real = 0")
-      printer.println(s"\t\tloop over inner on VecP$postfix@(current) with reduction( + : alphaDenom ) {")
-      printer.println(s"\t\t\talphaDenom += VecP$postfix@(current) * VecGradP$postfix@(current)")
+      printer.println(s"\t\tloop over inner on VecP$postfix@current with reduction( + : alphaDenom ) {")
+      printer.println(s"\t\t\talphaDenom += VecP$postfix@current * VecGradP$postfix@current")
       printer.println(s"\t\t}")
 
       printer.println(s"\t\tvar alpha : Real = res * res / alphaDenom")
 
-      printer.println(s"\t\tloop over inner on Solution$postfix@(current) {")
-      printer.println(s"\t\t\t${solutionFields("current", postfix)(vecDim)} += alpha * VecP$postfix@(current)")
-      printer.println(s"\t\t\t${residualFields("current", postfix)(vecDim)} -= alpha * VecGradP$postfix@(current)")
+      printer.println(s"\t\tloop over inner on Solution$postfix@current {")
+      printer.println(s"\t\t\t${solutionFields("current", postfix)(vecDim)} += alpha * VecP$postfix@current")
+      printer.println(s"\t\t\t${residualFields("current", postfix)(vecDim)} -= alpha * VecGradP$postfix@current")
       printer.println(s"\t\t}")
 
-      printer.println(s"\t\tvar nextRes : Real = L2Residual${postfix}_$vecDim@(current) ( )")
+      printer.println(s"\t\tvar nextRes : Real = L2Residual${postfix}_$vecDim@current ( )")
 
       printer.println(s"\t\tif ( nextRes <= 0.001 * initialRes ) {")
       printer.println(s"\t\t\treturn ( )")
@@ -449,8 +447,8 @@ case class Root() extends Node {
 
       printer.println(s"\t\tvar beta : Real = (nextRes * nextRes) / (res * res)")
 
-      printer.println(s"\t\tloop over inner on VecP$postfix@(current) {")
-      printer.println(s"\t\t\tVecP$postfix@(current) = ${residualFields("current", postfix)(vecDim)} + beta * VecP$postfix@(current)")
+      printer.println(s"\t\tloop over inner on VecP$postfix@current {")
+      printer.println(s"\t\t\tVecP$postfix@current = ${residualFields("current", postfix)(vecDim)} + beta * VecP$postfix@current")
       printer.println(s"\t\t}")
 
       printer.println(s"\t\tres = nextRes")
@@ -467,15 +465,15 @@ case class Root() extends Node {
     }
     printer.println(s"def VCycle$postfix@((coarsest + 1) to finest) ( ) : Unit {")
     printer.println(s"\trepeat up $numPre {")
-    printer.println(s"\t\tSmoother$postfix@(current) ( )")
+    printer.println(s"\t\tSmoother$postfix@current ( )")
     printer.println(s"\t}")
-    printer.println(s"\tUpResidual$postfix@(current) ( )")
-    printer.println(s"\tRestriction$postfix@(current) ( )")
-    printer.println(s"\tSetSolution$postfix@(coarser) ( 0 )")
-    printer.println(s"\tVCycle$postfix@(coarser) ( )")
-    printer.println(s"\tCorrection$postfix@(current) ( )")
+    printer.println(s"\tUpResidual$postfix@current ( )")
+    printer.println(s"\tRestriction$postfix@current ( )")
+    printer.println(s"\tSetSolution$postfix@coarser ( 0 )")
+    printer.println(s"\tVCycle$postfix@coarser ( )")
+    printer.println(s"\tCorrection$postfix@current ( )")
     printer.println(s"\trepeat up $numPost {")
-    printer.println(s"\t\tSmoother$postfix@(current) ( )")
+    printer.println(s"\t\tSmoother$postfix@current ( )")
     printer.println(s"\t}")
     printer.println(s"}")
     printer.println
@@ -490,27 +488,27 @@ case class Root() extends Node {
         else
           printer.println(s"def Smoother$postfix@((coarsest + 1) to finest) ( ) : Unit {")
 
-        printer.println(s"\tcommunicate Solution$postfix${if (useSlotsForJac) "[0]" else ""}@(current)")
-        printer.println(s"\tloop over inner on Solution$postfix@(current) {")
+        printer.println(s"\tcommunicate Solution$postfix${if (useSlotsForJac) "[0]" else ""}@current")
+        printer.println(s"\tloop over inner on Solution$postfix@current {")
         for (vecDim <- 0 until numVecDims)
-          printer.println(s"\t\t${solution2Fields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace$postfix@(current) ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace$postfix@(current) * ${solutionFields(s"current", postfix)(vecDim)} ) )")
+          printer.println(s"\t\t${solution2Fields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace$postfix@current ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace$postfix@current * ${solutionFields(s"current", postfix)(vecDim)} ) )")
         printer.println(s"\t}")
-        printer.println(s"\tcommunicate Solution${if (useSlotsForJac) s"$postfix[1]" else s"2$postfix"}@(current)")
-        printer.println(s"\tloop over inner on Solution$postfix@(current) {")
+        printer.println(s"\tcommunicate Solution${if (useSlotsForJac) s"$postfix[1]" else s"2$postfix"}@current")
+        printer.println(s"\tloop over inner on Solution$postfix@current {")
         for (vecDim <- 0 until numVecDims)
-          printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solution2Fields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace$postfix@(current) ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace$postfix@(current) * ${solution2Fields(s"current", postfix)(vecDim)} ) )")
+          printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solution2Fields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace$postfix@current ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace$postfix@current * ${solution2Fields(s"current", postfix)(vecDim)} ) )")
         printer.println(s"\t}")
         printer.println(s"}")
 
         if (testStencilStencil && !genStencilFields) {
           printer.println(s"def Smoother$postfix@((coarsest + 1) to (finest - 1)) ( ) : Unit {")
-          printer.println(s"\tcommunicate Solution$postfix${if (useSlotsForJac) "[0]" else ""}@(current)")
-          printer.println(s"\tloop over inner on Solution$postfix@(current) {")
+          printer.println(s"\tcommunicate Solution$postfix${if (useSlotsForJac) "[0]" else ""}@current")
+          printer.println(s"\tloop over inner on Solution$postfix@current {")
           for (vecDim <- 0 until numVecDims)
             printer.println(s"\t\t${solution2Fields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( ${stencilAccess(postfix)} ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - ( ${stencilAccess(postfix)} * ${solutionFields(s"current", postfix)(vecDim)} ) ) )")
           printer.println(s"\t}")
-          printer.println(s"\tcommunicate Solution${if (useSlotsForJac) s"$postfix[1]" else s"2$postfix"}@(current)")
-          printer.println(s"\tloop over inner on Solution$postfix@(current) {")
+          printer.println(s"\tcommunicate Solution${if (useSlotsForJac) s"$postfix[1]" else s"2$postfix"}@current")
+          printer.println(s"\tloop over inner on Solution$postfix@current {")
           for (vecDim <- 0 until numVecDims)
             printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solution2Fields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( ${stencilAccess(postfix)} ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - ( ${stencilAccess(postfix)} * ${solution2Fields(s"current", postfix)(vecDim)} ) ) )")
           printer.println(s"\t}")
@@ -523,27 +521,27 @@ case class Root() extends Node {
         else
           printer.println(s"def Smoother$postfix@((coarsest + 1) to finest) ( ) : Unit {")
 
-        printer.println(s"\tcommunicate Solution$postfix@(current)")
-        printer.println(s"\tloop over red on Solution$postfix@(current) {")
+        printer.println(s"\tcommunicate Solution$postfix@current")
+        printer.println(s"\tloop over red on Solution$postfix@current {")
         for (vecDim <- 0 until numVecDims)
-          printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace$postfix@(current) ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace$postfix@(current) * ${solutionFields(s"current", postfix)(vecDim)} ) )")
+          printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace$postfix@current ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace$postfix@current * ${solutionFields(s"current", postfix)(vecDim)} ) )")
         printer.println(s"\t}")
-        printer.println(s"\tcommunicate Solution$postfix@(current)")
-        printer.println(s"\tloop over black on Solution$postfix@(current) {")
+        printer.println(s"\tcommunicate Solution$postfix@current")
+        printer.println(s"\tloop over black on Solution$postfix@current {")
         for (vecDim <- 0 until numVecDims)
-          printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace$postfix@(current) ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace$postfix@(current) * ${solutionFields(s"current", postfix)(vecDim)} ) )")
+          printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace$postfix@current ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace$postfix@current * ${solutionFields(s"current", postfix)(vecDim)} ) )")
         printer.println(s"\t}")
         printer.println(s"}")
 
         if (testStencilStencil && !genStencilFields) {
           printer.println(s"def Smoother$postfix@((coarsest + 1) to (finest - 1)) ( ) : Unit {")
-          printer.println(s"\tcommunicate Solution$postfix@(current)")
-          printer.println(s"\tloop over red on Solution$postfix@(current) {")
+          printer.println(s"\tcommunicate Solution$postfix@current")
+          printer.println(s"\tloop over red on Solution$postfix@current {")
           for (vecDim <- 0 until numVecDims)
             printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( ${stencilAccess(postfix)} ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - ${stencilAccess(postfix)} * ${solutionFields(s"current", postfix)(vecDim)} ) )")
           printer.println(s"\t}")
-          printer.println(s"\tcommunicate Solution$postfix@(current)")
-          printer.println(s"\tloop over black on Solution$postfix@(current) {")
+          printer.println(s"\tcommunicate Solution$postfix@current")
+          printer.println(s"\tloop over black on Solution$postfix@current {")
           for (vecDim <- 0 until numVecDims)
             printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( ${stencilAccess(postfix)} ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - ${stencilAccess(postfix)} * ${solutionFields(s"current", postfix)(vecDim)} ) )")
           printer.println(s"\t}")
@@ -556,17 +554,17 @@ case class Root() extends Node {
         else
           printer.println(s"def Smoother$postfix@((coarsest + 1) to finest) ( ) : Unit {")
 
-        printer.println(s"\tcommunicate Solution$postfix@(current)")
-        printer.println(s"\tloop over inner on Solution$postfix@(current) {")
+        printer.println(s"\tcommunicate Solution$postfix@current")
+        printer.println(s"\tloop over inner on Solution$postfix@current {")
         for (vecDim <- 0 until numVecDims)
-          printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace$postfix@(current) ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace$postfix@(current) * ${solutionFields(s"current", postfix)(vecDim)} ) )")
+          printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace$postfix@current ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace$postfix@current * ${solutionFields(s"current", postfix)(vecDim)} ) )")
         printer.println(s"\t}")
         printer.println(s"}")
 
         if (testStencilStencil && !genStencilFields) {
           printer.println(s"def Smoother$postfix@((coarsest + 1) to (finest - 1)) ( ) : Unit {")
-          printer.println(s"\tcommunicate Solution$postfix@(current)")
-          printer.println(s"\tloop over inner on Solution$postfix@(current) {")
+          printer.println(s"\tcommunicate Solution$postfix@current")
+          printer.println(s"\tloop over inner on Solution$postfix@current {")
           for (vecDim <- 0 until numVecDims)
             printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( ${stencilAccess(postfix)} ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - ${stencilAccess(postfix)} * ${solutionFields(s"current", postfix)(vecDim)} ) )")
           printer.println(s"\t}")
@@ -582,17 +580,17 @@ case class Root() extends Node {
       printer.println(s"def UpResidual$postfix@finest ( ) : Unit {")
     else
       printer.println(s"def UpResidual$postfix@all ( ) : Unit {")
-    printer.println(s"\tcommunicate Solution$postfix@(current)")
-    printer.println(s"\tloop over inner on Residual$postfix@(current) {")
+    printer.println(s"\tcommunicate Solution$postfix@current")
+    printer.println(s"\tloop over inner on Residual$postfix@current {")
     for (vecDim <- 0 until numVecDims)
-      printer.println(s"\t\t${residualFields(s"current", postfix)(vecDim)} = ${rhsFields(s"current", postfix)(vecDim)} - (Laplace$postfix@(current) * ${solutionFields(s"current", postfix)(vecDim)})")
+      printer.println(s"\t\t${residualFields(s"current", postfix)(vecDim)} = ${rhsFields(s"current", postfix)(vecDim)} - (Laplace$postfix@current * ${solutionFields(s"current", postfix)(vecDim)})")
     printer.println(s"\t}")
     printer.println(s"}")
 
     if (testStencilStencil && !genStencilFields) {
       printer.println(s"def UpResidual$postfix@(coarsest to (finest - 1)) ( ) : Unit {")
-      printer.println(s"\tcommunicate Solution$postfix@(current)")
-      printer.println(s"\tloop over inner on Residual$postfix@(current) {")
+      printer.println(s"\tcommunicate Solution$postfix@current")
+      printer.println(s"\tloop over inner on Residual$postfix@current {")
       for (vecDim <- 0 until numVecDims)
         printer.println(s"\t\t${residualFields(s"current", postfix)(vecDim)} = ${rhsFields(s"current", postfix)(vecDim)} - (${stencilAccess(postfix)} * ${solutionFields(s"current", postfix)(vecDim)})")
       printer.println(s"\t}")
@@ -602,20 +600,20 @@ case class Root() extends Node {
 
   def addRestriction(printer : java.io.PrintWriter, postfix : String) = {
     printer.println(s"def Restriction$postfix@((coarsest + 1) to finest) ( ) : Unit {")
-    printer.println(s"\tcommunicate Residual$postfix@(current)")
-    printer.println(s"\tloop over innerForFieldsWithoutGhostLayers on RHS$postfix@(coarser) {")
+    printer.println(s"\tcommunicate Residual$postfix@current")
+    printer.println(s"\tloop over innerForFieldsWithoutGhostLayers on RHS$postfix@coarser {")
     for (vecDim <- 0 until numVecDims)
-      printer.println(s"\t\t${rhsFields(s"coarser", postfix)(vecDim)} = RestrictionStencil@(current) * ToCoarser ( ${residualFields(s"current", postfix)(vecDim)} )")
+      printer.println(s"\t\t${rhsFields(s"coarser", postfix)(vecDim)} = RestrictionStencil@current * ToCoarser ( ${residualFields(s"current", postfix)(vecDim)} )")
     printer.println(s"\t}")
     printer.println(s"}")
   }
 
   def addCorrection(printer : java.io.PrintWriter, postfix : String) = {
     printer.println(s"def Correction$postfix@((coarsest + 1) to finest) ( ) : Unit {")
-    printer.println(s"\tcommunicate Solution$postfix@(current)")
-    printer.println(s"\tloop over inner on Solution$postfix@(current) {")
+    printer.println(s"\tcommunicate Solution$postfix@current")
+    printer.println(s"\tloop over inner on Solution$postfix@current {")
     for (vecDim <- 0 until numVecDims)
-      printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} += CorrectionStencil@(current) * ToFiner ( ${solutionFields(s"coarser", postfix)(vecDim)} )")
+      printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} += CorrectionStencil@current * ToFiner ( ${solutionFields(s"coarser", postfix)(vecDim)} )")
     printer.println(s"\t}")
     printer.println(s"}")
     printer.println
@@ -623,7 +621,7 @@ case class Root() extends Node {
 
   def addUtilFunctions(printer : java.io.PrintWriter, postfix : String) = {
     printer.println(s"def SetSolution$postfix@all (value : Real) : Unit {")
-    printer.println(s"\tloop over domain on Solution$postfix@(current) {")
+    printer.println(s"\tloop over domain on Solution$postfix@current {")
     for (vecDim <- 0 until numVecDims)
       printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = value")
     printer.println(s"\t}")
@@ -631,9 +629,9 @@ case class Root() extends Node {
 
     for (vecDim <- 0 until numVecDims) {
       printer.println(s"def L2Residual${postfix}_$vecDim@(coarsest and finest) ( ) : Real {")
-      printer.println(s"\tcommunicate Residual$postfix@(current)")
+      printer.println(s"\tcommunicate Residual$postfix@current")
       printer.println(s"\tvar res : Real = 0")
-      printer.println(s"\tloop over inner on Residual$postfix@(current) with reduction( + : res ) {")
+      printer.println(s"\tloop over inner on Residual$postfix@current with reduction( + : res ) {")
       printer.println(s"\t\t// FIXME: this counts duplicated values multiple times")
       printer.println(s"\t\tres += ${residualFields(s"current", postfix)(vecDim)} * ${residualFields(s"current", postfix)(vecDim)}")
       printer.println(s"\t}")
