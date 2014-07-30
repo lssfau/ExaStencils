@@ -1,23 +1,21 @@
 import java.util.Locale
-import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
-import exastencils.knowledge._
-import exastencils.parsers.l4._
-import exastencils.languageprocessing.l4._
 import exastencils.datastructures._
-import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.prettyprinting._
-import exastencils.globals._
-import exastencils.strategies._
 import exastencils.domain._
-import exastencils.multiGrid._
-import exastencils.primitives._
-import exastencils.util._
+import exastencils.globals._
+import exastencils.knowledge._
+import exastencils.languageprocessing.l4._
 import exastencils.mpi._
+import exastencils.multiGrid._
 import exastencils.omp._
-import exastencils.spl.FeatureModel
-import exastencils.polyhedron._
 import exastencils.optimization._
+import exastencils.parsers.l4._
+import exastencils.polyhedron._
+import exastencils.prettyprinting._
+import exastencils.primitives._
+import exastencils.strategies._
+import exastencils.util._
 
 object Main {
   def main(args : Array[String]) : Unit = {
@@ -78,7 +76,7 @@ object Main {
     }
 
     MapStencilAssignments.apply()
-    
+
     if (Knowledge.poly_usePolyOpt)
       PolyOpt.apply()
 
@@ -88,15 +86,21 @@ object Main {
 
     LinearizeFieldAccesses.apply()
 
-    if (Knowledge.opt_useAddressPrecalc)
-      AddressPrecalculation.apply()
-
     ExpandStrategy.doUntilDone()
 
     if (!Knowledge.useMPI)
       RemoveMPIReferences.apply()
 
     SimplifyStrategy.doUntilDone()
+
+    if (Knowledge.opt_useAddressPrecalc)
+      AddressPrecalculation.apply()
+
+    // doesn't seem to work yet
+    //    if (Knowledge.opt_vectorize) {
+    //      TypeInference.apply()
+    //      Vectorization.apply()
+    //    }
 
     AddInternalVariables.apply()
 

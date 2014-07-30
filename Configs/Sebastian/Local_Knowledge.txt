@@ -21,3 +21,4 @@ domain_fragLength_z			= 1
 mpi_useCustomDatatypes		= true
 poly_usePolyOpt				= false
 opt_useAddressPrecalc		= false
+opt_vectorize				= false
