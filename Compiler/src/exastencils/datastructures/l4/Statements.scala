@@ -103,7 +103,9 @@ case class RepeatUpStatement(var number : Int, var statements : List[Statement])
 }
 
 case class RepeatUntilStatement(var comparison : BooleanExpression, var statements : List[Statement]) extends Statement {
-  def progressToIr = "FIXME: implement"
+  def progressToIr : ir.WhileLoopStatement = {
+    ir.WhileLoopStatement(ir.UnaryExpression(ir.UnaryOperators.Not, comparison.progressToIr), statements.map(s => s.progressToIr).to[ListBuffer])
+  }
 }
 
 case class ReductionStatement(var op : String, var target : String) extends SpecialStatement {

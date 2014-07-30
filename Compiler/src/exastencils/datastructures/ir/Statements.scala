@@ -60,12 +60,21 @@ case class AssignmentStatement(var dest : Expression, var src : Expression, var 
   }
 }
 
+case class WhileLoopStatement(var comparison : Expression, var body : ListBuffer[Statement]) extends Statement {
+  def this(comparison : Expression, body : Statement) = this(comparison, ListBuffer(body))
+
+  override def cpp : String = {
+    (s"while (${comparison.cpp}) {\n"
+      + body.map(s => s.cpp).mkString("\n")
+      + "\n}")
+  }
+}
+
 case class ForLoopStatement(var begin : Statement, var end : Expression, var inc : Statement, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement {
   def this(begin : Statement, end : Expression, inc : Statement, body : Statement, reduction : Option[Reduction]) = this(begin, end, inc, ListBuffer(body), reduction)
   def this(begin : Statement, end : Expression, inc : Statement, body : Statement) = this(begin, end, inc, ListBuffer(body))
 
   override def cpp : String = {
-
     val sb : StringBuilder = new StringBuilder()
     sb ++= "for (" ++= begin.cpp() += ' '; end.cppsb(sb); sb ++= "; " ++= inc.cpp()
     if (sb.last == ';')
