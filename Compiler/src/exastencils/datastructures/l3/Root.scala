@@ -4,9 +4,10 @@ import scala.collection.mutable.ListBuffer
 import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.multiGrid._
+import exastencils.core.Settings
 
 case class Root() extends Node {
-  var kelvin : Boolean = true
+  var kelvin : Boolean = false
 
   var smoother : String = "Jac" // Jac | GS | RBGS
   var cgs : String = "CG" // CG
@@ -24,7 +25,7 @@ case class Root() extends Node {
   var numVecDims = (if (useVecFields) 2 else 1)
   var genStencilFields : Boolean = true
   var useSlotsForJac : Boolean = true
-  var testStencilStencil : Boolean = true
+  var testStencilStencil : Boolean = false
 
   def solutionFields(level : String, postfix : String = "") = {
     if (useVecFields)
@@ -150,7 +151,7 @@ case class Root() extends Node {
   def addStencilFields(printer : java.io.PrintWriter, postfix : String, domain : String = "global") = {
     if (genStencilFields) {
       printer.println(s"Field LaplaceCoeff$postfix< Array[Real][${2 * Knowledge.dimensionality + 1}], $domain, NoComm, None >@all")
-      printer.println(s"StencilField Laplace$postfix< LaplaceCoeff => LaplaceStencil >@all")
+      printer.println(s"StencilField Laplace$postfix< LaplaceCoeff$postfix => LaplaceStencil >@all")
       printer.println
     }
   }
@@ -303,6 +304,28 @@ case class Root() extends Node {
       }
     }
     printer.println
+
+    if (kelvin) {
+      printer.println("Stencil TransferStencil_Center@all {")
+      printer.println("\t[ 0,  0] => 1.0")
+      printer.println("}")
+      printer.println("Stencil TransferStencil_Left@all {")
+      printer.println("\t[ 0,  0] => 0.5")
+      printer.println("\t[-1,  0] => 0.5")
+      printer.println("}")
+      printer.println("Stencil TransferStencil_Right@all {")
+      printer.println("\t[ 0,  0] => 0.5")
+      printer.println("\t[ 1,  0] => 0.5")
+      printer.println("}")
+      printer.println("Stencil TransferStencil_Up@all {")
+      printer.println("\t[ 0,  0] => 0.5")
+      printer.println("\t[ 0,  1] => 0.5")
+      printer.println("}")
+      printer.println("Stencil TransferStencil_Down@all {")
+      printer.println("\t[ 0,  0] => 0.5")
+      printer.println("\t[ 0, -1] => 0.5")
+      printer.println("}")
+    }
   }
 
   def addIterationSets(printer : java.io.PrintWriter) = {
@@ -470,12 +493,12 @@ case class Root() extends Node {
         printer.println(s"\tcommunicate Solution$postfix${if (useSlotsForJac) "[0]" else ""}@(current)")
         printer.println(s"\tloop over inner on Solution$postfix@(current) {")
         for (vecDim <- 0 until numVecDims)
-          printer.println(s"\t\t${solution2Fields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace@(current) ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace@(current) * ${solutionFields(s"current", postfix)(vecDim)} ) )")
+          printer.println(s"\t\t${solution2Fields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace$postfix@(current) ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace$postfix@(current) * ${solutionFields(s"current", postfix)(vecDim)} ) )")
         printer.println(s"\t}")
         printer.println(s"\tcommunicate Solution${if (useSlotsForJac) s"$postfix[1]" else s"2$postfix"}@(current)")
         printer.println(s"\tloop over inner on Solution$postfix@(current) {")
         for (vecDim <- 0 until numVecDims)
-          printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solution2Fields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace@(current) ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace@(current) * ${solution2Fields(s"current", postfix)(vecDim)} ) )")
+          printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solution2Fields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace$postfix@(current) ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace$postfix@(current) * ${solution2Fields(s"current", postfix)(vecDim)} ) )")
         printer.println(s"\t}")
         printer.println(s"}")
 
@@ -503,12 +526,12 @@ case class Root() extends Node {
         printer.println(s"\tcommunicate Solution$postfix@(current)")
         printer.println(s"\tloop over red on Solution$postfix@(current) {")
         for (vecDim <- 0 until numVecDims)
-          printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace@(current) ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace@(current) * ${solutionFields(s"current", postfix)(vecDim)} ) )")
+          printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace$postfix@(current) ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace$postfix@(current) * ${solutionFields(s"current", postfix)(vecDim)} ) )")
         printer.println(s"\t}")
         printer.println(s"\tcommunicate Solution$postfix@(current)")
         printer.println(s"\tloop over black on Solution$postfix@(current) {")
         for (vecDim <- 0 until numVecDims)
-          printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace@(current) ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace@(current) * ${solutionFields(s"current", postfix)(vecDim)} ) )")
+          printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace$postfix@(current) ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace$postfix@(current) * ${solutionFields(s"current", postfix)(vecDim)} ) )")
         printer.println(s"\t}")
         printer.println(s"}")
 
@@ -536,7 +559,7 @@ case class Root() extends Node {
         printer.println(s"\tcommunicate Solution$postfix@(current)")
         printer.println(s"\tloop over inner on Solution$postfix@(current) {")
         for (vecDim <- 0 until numVecDims)
-          printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace@(current) ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace@(current) * ${solutionFields(s"current", postfix)(vecDim)} ) )")
+          printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace$postfix@(current) ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace$postfix@(current) * ${solutionFields(s"current", postfix)(vecDim)} ) )")
         printer.println(s"\t}")
         printer.println(s"}")
 
@@ -545,7 +568,7 @@ case class Root() extends Node {
           printer.println(s"\tcommunicate Solution$postfix@(current)")
           printer.println(s"\tloop over inner on Solution$postfix@(current) {")
           for (vecDim <- 0 until numVecDims)
-            printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace@(current) ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - ${stencilAccess(postfix)} * ${solutionFields(s"current", postfix)(vecDim)} ) )")
+            printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( ${stencilAccess(postfix)} ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - ${stencilAccess(postfix)} * ${solutionFields(s"current", postfix)(vecDim)} ) )")
           printer.println(s"\t}")
           printer.println(s"}")
         }
@@ -562,7 +585,7 @@ case class Root() extends Node {
     printer.println(s"\tcommunicate Solution$postfix@(current)")
     printer.println(s"\tloop over inner on Residual$postfix@(current) {")
     for (vecDim <- 0 until numVecDims)
-      printer.println(s"\t\t${residualFields(s"current", postfix)(vecDim)} = ${rhsFields(s"current", postfix)(vecDim)} - (Laplace@(current) * ${solutionFields(s"current", postfix)(vecDim)})")
+      printer.println(s"\t\t${residualFields(s"current", postfix)(vecDim)} = ${rhsFields(s"current", postfix)(vecDim)} - (Laplace$postfix@(current) * ${solutionFields(s"current", postfix)(vecDim)})")
     printer.println(s"\t}")
     printer.println(s"}")
 
@@ -656,7 +679,7 @@ case class Root() extends Node {
       printer.println(s"\tloop over innerForFieldsWithoutGhostLayers on LaplaceCoeff$postfix@current {")
       Knowledge.dimensionality match {
         case 2 => {
-          printer.println(s"\t\tLaplace$postfix@current = LaplaceStencil@current")
+          printer.println(s"\t\tLaplace$postfix@current = LaplaceStencil$postfix@current")
           //    printer.println(s"\t\tLaplaceCoeff$postfix@current[0] = 4")
           //    printer.println(s"\t\tLaplaceCoeff$postfix@current[1] = -1")
           //    printer.println(s"\t\tLaplaceCoeff$postfix@current[2] = -1")
@@ -669,7 +692,7 @@ case class Root() extends Node {
           //    printer.println(s"\t\tLaplaceCoeff$postfix@current[ 0, -1] = -1")
         }
         case 3 => {
-          printer.println(s"\t\tLaplace$postfix@current = LaplaceStencil@current")
+          printer.println(s"\t\tLaplace$postfix@current = LaplaceStencil$postfix@current")
           //    printer.println(s"\t\tLaplaceCoeff$postfix@current[0] = 6")
           //    printer.println(s"\t\tLaplaceCoeff$postfix@current[1] = -1")
           //    printer.println(s"\t\tLaplaceCoeff$postfix@current[2] = -1")
@@ -703,6 +726,11 @@ case class Root() extends Node {
 
   def printToL4(filename : String) : Unit = {
     var printer = new java.io.PrintWriter(filename)
+
+    if (kelvin) {
+      Settings.additionalIncludes += "#include <random>"
+      Settings.additionalIncludes += "#include <functional>"
+    }
 
     // Domains
     Knowledge.dimensionality match {
@@ -796,12 +824,33 @@ case class Root() extends Node {
 
     // Kelvin
     if (kelvin) {
-      printer.println("def gamma ( x : Real ) : Real {")
-      printer.println("\treturn ( tgamma ( x ) )")
-      printer.println("}")
-      printer.println
+      //      printer.println("def gamma ( z : Real ) : Real {")
+      //      //printer.println("\treturn ( tgamma ( x ) )")
+      //
+      //      printer.println("\tvar g : Real = 0.5772156649")
+      //      printer.println("\tvar zi : Real = floor ( z )")
+      //      printer.println("\tvar zf : Real = z - zi")
+      //      printer.println("\tvar retVal : Real = zf * exp ( g * zf )")
+      //      printer.println("\tvar x : Real = 1.0")
+      //      printer.println("\tvar n : Integer = 0")
+      //      printer.println("\trepeat until x >= ( 1.0 - 1e-12 ) {")
+      //      printer.println("\t\tn += 1")
+      //      printer.println("\t\tx = (1 + zf / n) * exp ( ( -1.0 * zf ) / n )")
+      //      printer.println("\t\tretVal *= x")
+      //      printer.println("\t}")
+      //      printer.println("\tretVal = 1.0 / retVal")
+      //      printer.println("\tnative ( \"for (double y = 0.0; y < zi - 0.5; ++y) {\" ) ")
+      //      printer.println("\tretVal *= y + zf")
+      //      printer.println("\tnative ( \"}\" ) ")
+      //      printer.println("\treturn ( retVal )")
+      //      printer.println("}")
+      //      printer.println
 
-      printer.println("def gmrf_spde ( ) : Unit {")
+      printer.println("def solve_GMRF ( ) : Unit {")
+      printer.println("\tnative ( \"std::default_random_engine generator;\" )")
+      printer.println("\tnative ( \"std::uniform_int_distribution<int> distribution(0,1);\" )")
+      printer.println("\tnative ( \"auto randn = std::bind ( distribution, generator );\" )")
+
       printer.println("\tvar tau2 : Real = gamma ( nu ) / ( gamma ( nu + 0.5 ) * (( 4.0 * M_PI ) ** ( dim / 2.0 )) * ( kappa ** ( 2 * nu )) * sigma * sigma )")
       printer.println("\tloop over innerForFieldsWithoutGhostLayers on RHS_GMRF@finest {")
       printer.println("\t\tRHS_GMRF@finest = randn ( ) // normal random generator")
@@ -811,28 +860,16 @@ case class Root() extends Node {
       printer.println("\tvar res0 : Real = L2Residual_GMRF_0@finest ( )")
       printer.println("\tvar res : Real = res0")
       printer.println("\tvar resold : Real = 0")
+      printer.println("\tprint ( '\"Starting residual:\"', res0 )")
       printer.println("\trepeat up 10 {")
       printer.println("\t\tresold = res")
       printer.println("\t\tVCycle_GMRF@finest ( )")
       printer.println("\t\tUpResidual_GMRF@finest ( )")
       printer.println("\t\tres = L2Residual_GMRF_0@finest ( )")
+      printer.println("\t\tprint ( '\"Residual:\"', res, '\"Residual reduction:\"', ( res0 / res ), '\"Convergence factor:\"', ( res / resold ) )")
       printer.println("\t}")
       printer.println("\tloop over inner on Solution_GMRF@finest {")
-      printer.println("\tSolution_GMRF@finest *= 1.0 / sqrt ( tau2 )")
-      printer.println("\t}")
-      printer.println("}")
-      printer.println
-
-      printer.println("def pdesolve ( ) : Unit {")
-      printer.println("\tUpResidual@finest ( )")
-      printer.println("\tvar res0 : Real = L2Residual_0@finest ( )")
-      printer.println("\tvar res : Real = res0")
-      printer.println("\tvar resold : Real = 0")
-      printer.println("\trepeat up 10 {")
-      printer.println("\t\tresold = res")
-      printer.println("\t\tVCycle@finest ( )")
-      printer.println("\t\tUpResidual@finest ( )")
-      printer.println("\t\tres = L2Residual_0@finest ( )")
+      printer.println("\t\tSolution_GMRF@finest *= 1.0 / sqrt ( tau2 )")
       printer.println("\t}")
       printer.println("}")
       printer.println
@@ -872,9 +909,35 @@ case class Root() extends Node {
       }
     }
 
-    if (genStencilFields) {
-      for (lvl <- Knowledge.maxLevel to 0 by -1)
-        printer.println(s"\tInitLaplace@$lvl ( )")
+    if (kelvin) {
+      if (genStencilFields) {
+        for (lvl <- Knowledge.maxLevel to 0 by -1)
+          printer.println(s"\tInitLaplace_GMRF@$lvl ( )")
+      }
+      printer.println("\tInitRHS_GMRF ( )")
+      printer.println("\tInitSolution_GMRF ( )")
+      printer.println("\tsolve_GMRF ( )")
+    }
+
+    if (kelvin) {
+      // setup stencils for the actual PDE
+      printer.println("\tloop over innerForFieldsWithoutGhostLayers on LaplaceCoeff_GMRF@finest {")
+      printer.println("\t\tLaplaceCoeff@finest[0] = TransferStencil_Center@finest * Solution_GMRF@finest")
+      printer.println("\t\tLaplaceCoeff@finest[1] = TransferStencil_Right@finest * Solution_GMRF@finest")
+      printer.println("\t\tLaplaceCoeff@finest[2] = TransferStencil_Left@finest * Solution_GMRF@finest")
+      printer.println("\t\tLaplaceCoeff@finest[3] = TransferStencil_Up@finest * Solution_GMRF@finest")
+      printer.println("\t\tLaplaceCoeff@finest[4] = TransferStencil_Down@finest * Solution_GMRF@finest")
+      printer.println("\t}")
+
+      if (genStencilFields) {
+        for (lvl <- Knowledge.maxLevel - 1 to 0 by -1)
+          printer.println(s"\tInitLaplace@$lvl ( )")
+      }
+    } else {
+      if (genStencilFields) {
+        for (lvl <- Knowledge.maxLevel to 0 by -1)
+          printer.println(s"\tInitLaplace@$lvl ( )")
+      }
     }
 
     printer.println("\tInitRHS ( )")
