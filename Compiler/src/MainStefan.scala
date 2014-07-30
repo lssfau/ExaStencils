@@ -9,10 +9,13 @@ import exastencils.globals.AddDefaultGlobals
 import exastencils.knowledge.FindStencilConvolutions
 import exastencils.knowledge.Knowledge
 import exastencils.languageprocessing.l4.ProgressToIr
+import exastencils.mpi.AddMPIDatatypes
 import exastencils.mpi.RemoveMPIReferences
 import exastencils.multiGrid.ResolveSpecialFunctions
 import exastencils.omp.AddOMPPragmas
 import exastencils.optimization.AddressPrecalculation
+import exastencils.optimization.TypeInference
+import exastencils.optimization.Vectorization
 import exastencils.parsers.l4.ParserL4
 import exastencils.parsers.l4.ValidationL4
 import exastencils.polyhedron.PolyOpt
@@ -29,7 +32,6 @@ import exastencils.strategies.SimplifyStrategy
 import exastencils.util.Log
 import exastencils.util.Stopwatch
 import exastencils.util.Vector
-import exastencils.mpi.AddMPIDatatypes
 
 object MainStefan {
   def main(args : Array[String]) : Unit = {
@@ -133,15 +135,20 @@ object MainStefan {
 
     LinearizeFieldAccesses.apply()
 
-    if (Knowledge.poly_useAddressPrecalc)
-      AddressPrecalculation.apply()
-
     ExpandStrategy.doUntilDone()
 
     if (!Knowledge.useMPI)
       RemoveMPIReferences.apply()
 
     SimplifyStrategy.doUntilDone()
+
+    if (Knowledge.opt_useAddressPrecalc)
+      AddressPrecalculation.apply()
+
+    if (Knowledge.opt_vectorize) {
+      TypeInference.apply()
+      Vectorization.apply()
+    }
 
     AddInternalVariables.apply()
 

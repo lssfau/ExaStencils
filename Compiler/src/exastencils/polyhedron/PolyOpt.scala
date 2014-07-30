@@ -12,6 +12,8 @@ import exastencils.datastructures.Transformation.convFromNode
 import exastencils.datastructures.ir.Expression
 import exastencils.datastructures.ir.StringConstant
 import exastencils.datastructures.ir.VariableAccess
+import exastencils.knowledge.Knowledge
+import isl.Conversions.convertIntToVal
 import isl.Conversions.convertLambdaToVoidCallback1
 
 trait PolyhedronAccessable
@@ -31,6 +33,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       computeDependences(scop)
       deadCodeElimination(scop)
       optimize(scop)
+      simplifyModel(scop)
+      //      prepareVectorization(scop)
     }
     recreateAndInsertAST()
 
@@ -154,26 +158,62 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
     val schedule : isl.Schedule = schedConstr.computeSchedule()
     scop.noParDims.clear()
-    //    if (scop.parallelize) {
-    //      var v : isl.Vec = isl.Vec.alloc(3)
-    //      v = v.setElementVal(0, 1000000)
-    //      v = v.setElementVal(1, 32)
-    //      v = v.setElementVal(2, 1000000)
-    //      var tiled : Boolean = false
-    //      schedule.foreachBand({
-    //        band : isl.Band =>
-    //          if (band.nMember() == 3) {
-    //            band.tile(v)
-    //            tiled = true
-    //          }
-    //      })
-    //      if (tiled)
-    //        scop.noParDims += 0 += 2 // only one value per dim
-    //    }
+    if (scop.parallelize) {
+      var v : isl.Vec = isl.Vec.alloc(3)
+      v = v.setElementVal(0, Knowledge.poly_tileSize_z)
+      v = v.setElementVal(1, Knowledge.poly_tileSize_y)
+      v = v.setElementVal(2, Knowledge.poly_tileSize_x)
+      var tiled : Boolean = false
+      schedule.foreachBand({
+        band : isl.Band =>
+          if (band.nMember() == 3) {
+            band.tile(v)
+            tiled = true
+          }
+      })
+      if (tiled)
+        scop.noParDims += 0 += 2 // only one value per dim
+    }
 
     scop.schedule = schedule.getMap()
     scop.updateLoopVars()
   }
+
+  //  private def prepareVectorization(scop : Scop) : Unit = {
+  //
+  //    val accesses : isl.UnionMap =
+  //      if (scop.reads == null)
+  //        scop.writes.applyDomain(scop.schedule)
+  //      else
+  //        scop.reads.union(scop.writes).applyDomain(scop.schedule)
+  //    val schedDims : Int = accesses.sample().dim(isl.DimType.In)
+  //    val vect = new Array[Boolean](schedDims)
+  //    val nonVect = new Array[Boolean](schedDims)
+  //    accesses.foreachMap({ accs : isl.Map =>
+  //      accs.foreachBasicMap({ acc : isl.BasicMap =>
+  //        acc.foreachConstraint({ constr : isl.Constraint =>
+  //          val accessDims : Int = constr.dim(isl.DimType.Out)
+  //          if (accessDims != 0) {
+  //            val v : isl.Val = constr.getCoefficientVal(isl.DimType.Out, accessDims - 1)
+  //            if (v.isZero()) {
+  //              var anyOut : Boolean = false
+  //              for (i <- 0 to accessDims - 2)
+  //                anyOut = anyOut || !constr.getCoefficientVal(isl.DimType.Out, i).isZero()
+  //              if (anyOut)
+  //                for (i <- 0 until constr.dim(isl.DimType.In))
+  //                  if (!constr.getCoefficientVal(isl.DimType.In, i).isZero())
+  //                    nonVect(i) = true
+  //
+  //            } else if (v.isOne())
+  //              vect(schedDims - 1) = true
+  //
+  //            else
+  //              nonVect(schedDims - 1) = true
+  //          }
+  //        }); ()
+  //      }); ()
+  //    })
+  //  }
 
   private def recreateAndInsertAST() : Unit = {
 

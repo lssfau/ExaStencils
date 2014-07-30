@@ -88,7 +88,7 @@ object Main {
 
     LinearizeFieldAccesses.apply()
 
-    if (Knowledge.poly_useAddressPrecalc)
+    if (Knowledge.opt_useAddressPrecalc)
       AddressPrecalculation.apply()
 
     ExpandStrategy.doUntilDone()

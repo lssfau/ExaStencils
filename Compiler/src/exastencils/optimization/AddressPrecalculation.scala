@@ -36,18 +36,21 @@ import exastencils.datastructures.ir.iv.FieldData
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.util.SimplifyExpression
 
-trait PrecalcAddresses
-
 object AddressPrecalculation extends CustomStrategy("Perform address precalculation") {
+
+  private[optimization] final val DECLS_ANNOT = "Decls"
+  private[optimization] final val REPL_ANNOT = "Replace"
+  private[optimization] final val OMP_LOOP_ANNOT = "OMPLoop"
 
   override def apply() : Unit = {
 
     this.transaction()
     Logger.info("Applying strategy " + name)
 
-    StateManager.register(AnnotateLoopsAndAccesses)
+    val annotate = new AnnotateLoopsAndAccesses()
+    StateManager.register(annotate)
     this.execute(new Transformation("Find relevant loops and accesses", PartialFunction.empty))
-    StateManager.unregister(AnnotateLoopsAndAccesses)
+    StateManager.unregister(annotate)
 
     this.execute(new Transformation("Optimize", IntegrateAnnotations))
 
@@ -55,7 +58,8 @@ object AddressPrecalculation extends CustomStrategy("Perform address precalculat
   }
 }
 
-class ArrayBases(val arrayName : String) {
+private final class ArrayBases(val arrayName : String) {
+
   private val inits = new HashMap[HashMap[Expression, Long], (String, Expression)]()
   private var idCount = 0
 
@@ -63,25 +67,22 @@ class ArrayBases(val arrayName : String) {
     inits.getOrElseUpdate(initVec, { idCount += 1; (arrayName + "_p" + idCount, initExpr) })._1
   }
 
-  def addToDecls(decls : ListBuffer[Statement]) : Unit = {
+  def addToDecls(decls : ListBuffer[Node]) : Unit = {
     for ((_, (name : String, init : Expression)) <- inits)
       decls += new VariableDeclarationStatement(
         PointerDatatype(RealDatatype()), name, Some(new UnaryExpression(UnaryOperators.AddressOf, init)))
   }
 }
 
-private final object AnnotateLoopsAndAccesses extends Collector {
+private final class AnnotateLoopsAndAccesses extends Collector {
+  import AddressPrecalculation._
 
-  final val DECLS_ANNOT = "Decls"
-  final val REPL_ANNOT = "Replace"
-  final val OMP_LOOP_ANNOT = "OMPLoop"
+  private val decls = new ArrayStack[(HashMap[String, ArrayBases], String)]()
+  private var ompLoop : ForLoopStatement = null // save omp loop to lessen collapse value, if needed
 
-  val decls = new ArrayStack[(HashMap[String, ArrayBases], String)]()
-  var ompLoop : ForLoopStatement = null // save omp loop to lessen collapse value, if needed
-
-  private def generateName(fa : LinearizedFieldAccess) : String = {
-    return filter(FieldData(fa.fieldSelection.field, fa.fieldSelection.slot, fa.fieldSelection.fragIdx).cpp())
-  }
+  //  private def generateName(fa : LinearizedFieldAccess) : String = {
+  //    return filter(FieldData(fa.fieldSelection.field, fa.fieldSelection.slot, fa.fieldSelection.fragIdx).cpp())
+  //  }
 
   private def generateName(expr : Expression) : String = {
     val cpp = new StringBuilder()
@@ -151,25 +152,27 @@ private final object AnnotateLoopsAndAccesses extends Collector {
   override def enter(node : Node) : Unit = {
 
     node match {
-      case l : ForLoopStatement with PrecalcAddresses =>
+      case l : ForLoopStatement with OptimizationHint =>
         val d = new HashMap[String, ArrayBases]()
         l.begin match {
           case VariableDeclarationStatement(_, name, _) => decls.push((d, name))
-          case _                                        => decls.push((d, null))
+          case _ =>
+            Logger.dbg("[addr precalc]  cannot determine loop variable name, begin of ForLoopStatement is no VariableDeclarationStatement")
+            decls.push((d, null))
         }
         node.annotate(DECLS_ANNOT, d)
         if (ompLoop == null && l.isInstanceOf[OMP_PotentiallyParallel])
           ompLoop = l
         node.annotate(OMP_LOOP_ANNOT, ompLoop)
 
-      case f @ LinearizedFieldAccess(fieldSelection, index) if !decls.isEmpty =>
-        var name : String = generateName(f)
-        val (decl : HashMap[String, ArrayBases], loopVar) = decls.top
-        val (in : Expression, outMap : HashMap[Expression, Long]) = splitIndex(index, loopVar)
-        val bases : ArrayBases = decl.getOrElseUpdate(name, new ArrayBases(name))
-        name = bases.getName(outMap,
-          new LinearizedFieldAccess(fieldSelection, SimplifyExpression.recreateExpressionFromSum(outMap)))
-        f.annotate(REPL_ANNOT, new ArrayAccess(new VariableAccess(name), in))
+      //      case f @ LinearizedFieldAccess(fieldSelection, index) if !decls.isEmpty =>
+      //        var name : String = generateName(f)
+      //        val (decl : HashMap[String, ArrayBases], loopVar) = decls.top
+      //        val (in : Expression, outMap : HashMap[Expression, Long]) = splitIndex(index, loopVar)
+      //        val bases : ArrayBases = decl.getOrElseUpdate(name, new ArrayBases(name))
+      //        name = bases.getName(outMap,
+      //          new LinearizedFieldAccess(fieldSelection, SimplifyExpression.recreateExpressionFromSum(outMap)))
+      //        f.annotate(REPL_ANNOT, new ArrayAccess(new VariableAccess(name), in))
 
       // ArrayAccess with a constant index only cannot be optimized further
       case a @ ArrayAccess(base, index) if !decls.isEmpty && !index.isInstanceOf[IntegerConstant] =>
@@ -187,7 +190,7 @@ private final object AnnotateLoopsAndAccesses extends Collector {
 
   override def leave(node : Node) : Unit = {
     node match {
-      case l : ForLoopStatement with PrecalcAddresses =>
+      case l : ForLoopStatement with OptimizationHint =>
         if (l eq ompLoop)
           ompLoop = null
         decls.pop()
@@ -201,33 +204,34 @@ private final object AnnotateLoopsAndAccesses extends Collector {
 }
 
 private final object IntegrateAnnotations extends PartialFunction[Node, Transformation.Output[_]] {
+  import AddressPrecalculation._
 
   def isDefinedAt(node : Node) : Boolean = {
-    node.hasAnnotation(AnnotateLoopsAndAccesses.DECLS_ANNOT) || node.hasAnnotation(AnnotateLoopsAndAccesses.REPL_ANNOT)
+    return node.hasAnnotation(DECLS_ANNOT) || node.hasAnnotation(REPL_ANNOT)
   }
 
   def apply(node : Node) : Transformation.Output[_] = {
 
-    val annot = node.removeAnnotation(AnnotateLoopsAndAccesses.REPL_ANNOT)
+    val annot = node.removeAnnotation(REPL_ANNOT)
     if (annot.isDefined)
       return annot.get.value.asInstanceOf[Node]
 
     else {
-      val decls = node.removeAnnotation(AnnotateLoopsAndAccesses.DECLS_ANNOT).get.value
+      val decls = node.removeAnnotation(DECLS_ANNOT).get.value
         .asInstanceOf[HashMap[String, ArrayBases]]
       if (decls.isEmpty)
         return node
 
       // lessen collapse, if available (we insert new statements and therefore the code is not perfectly nested anymore)
-      val parLoop = node.removeAnnotation(AnnotateLoopsAndAccesses.OMP_LOOP_ANNOT).get.value.asInstanceOf[OMP_PotentiallyParallel]
+      val parLoop = node.removeAnnotation(OMP_LOOP_ANNOT).get.value.asInstanceOf[OMP_PotentiallyParallel]
       if (parLoop != null) parLoop.collapse = Math.max(1, parLoop.collapse - 1)
 
-      val stmts = new ListBuffer[Statement]()
+      val stmts = new ListBuffer[Node]()
       for ((_, bases : ArrayBases) <- decls)
         bases.addToDecls(stmts)
 
       stmts += node.asInstanceOf[Statement]
-      return new Scope(stmts)
+      return stmts
     }
   }
 }

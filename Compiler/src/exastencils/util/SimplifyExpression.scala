@@ -16,7 +16,7 @@ import exastencils.datastructures.ir.SubtractionExpression
 import exastencils.datastructures.ir.UnaryExpression
 import exastencils.datastructures.ir.UnaryOperators
 import exastencils.datastructures.ir.VariableAccess
-import exastencils.datastructures.ir.ModuloExpression
+import exastencils.datastructures.ir.IntegerConstant
 
 object SimplifyExpression {
 
@@ -62,9 +62,11 @@ object SimplifyExpression {
     * No float or boolean constants are allowed.
     * (Otherwise an EvaluationException is thrown.)
     *
-    * Returns a sum from all present summands to their corresponding coefficients.
+    * Returns a map from all present summands to their corresponding coefficients.
     * The additive constant is stored beside the string specified by the field SimplifyExpression.constName.
     * The given expression is equivalent to: map(constName) + \sum_{n \in names} map(n) * n
+    *
+    * Only VariableAccess nodes are used as keys. (NO StringConstant)
     */
   def extractIntegralSum(expr : Expression) : HashMap[Expression, Long] = {
 
@@ -87,7 +89,7 @@ object SimplifyExpression {
 
       case StringConstant(varName) =>
         res = new HashMap[Expression, Long]()
-        res(VariableAccess(varName, Some(IntegerDatatype()))) = 1L
+        res(VariableAccess(varName, Some(IntegerDatatype()))) = 1L // ONLY VariableAccess in res keys, NO StringConstant
 
       case UnaryExpression(UnaryOperators.Negative, expr) =>
         res = extractIntegralSum(expr)
@@ -199,13 +201,10 @@ object SimplifyExpression {
     */
   def recreateExpressionFromSum(map : HashMap[Expression, Long]) : Expression = {
 
-    if (map.isEmpty)
-      return new IntegerConstant(0)
-
     var res : Expression = null
     val const : Option[Long] = map.remove(constName)
     if (const.isDefined)
-      res = IntegerConstant(const.get)
+      res = IntegerConstant(const.getOrElse(0L))
     for ((expr : Expression, value : Long) <- map) {
       val summand : Expression =
         value match {
@@ -213,14 +212,11 @@ object SimplifyExpression {
           case -1L => UnaryExpression(UnaryOperators.Negative, expr)
           case _   => MultiplicationExpression(IntegerConstant(value), expr)
         }
-      if (res == null)
-        res = summand
-      else
-        res = AdditionExpression(res, summand)
+      res = if (res == null) summand else AdditionExpression(res, summand)
     }
 
     if (res == null)
-      res = IntegerConstant(0)
+      res = IntegerConstant(0L)
 
     return res
   }

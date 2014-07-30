@@ -32,8 +32,8 @@ object Hardware {
       }
     }
     case "GCC" => {
-      cflags = "-O3 -DNDEBUG -std=c++11"
-      ldflags = "-O3 -DNDEBUG -std=c++11"
+      cflags = "-O3 -march=native -DNDEBUG -std=c++11"
+      ldflags = "-O3 -march=native -DNDEBUG -std=c++11"
 
       if (Knowledge.useMPI) {
         compiler = "mpicxx"

@@ -1,11 +1,12 @@
 package exastencils.datastructures.ir
 
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
+import exastencils.optimization._
 
 trait Expression extends Node with CppPrettyPrintable {
   def ~(exp : Expression) : ConcatenationExpression = {
@@ -43,7 +44,7 @@ trait Expression extends Node with CppPrettyPrintable {
 
 object BinaryOperators extends Enumeration {
   type BinaryOperators = Value
-  val Addition, Subtraction, Multiplication, Division, Power, Modulo, AndAnd, OrOr, EqEq, NeqNeq, Lower, LowerEqual, Greater, GreaterEqual = Value
+  val Addition, Subtraction, Multiplication, Division, Power, Modulo, AndAnd, OrOr, EqEq, NeqNeq, Lower, LowerEqual, Greater, GreaterEqual, BitwiseAnd = Value
 
   exastencils.core.Duplicate.registerImmutable(this.getClass())
 
@@ -63,6 +64,7 @@ object BinaryOperators extends Enumeration {
     case LowerEqual     => "<="
     case Greater        => ">"
     case GreaterEqual   => ">="
+    case BitwiseAnd     => "&"
     case _              => "ERROR: Unresolvable BinaryOperator " + op
   }
 
@@ -81,6 +83,7 @@ object BinaryOperators extends Enumeration {
     case "<=" => LowerEqual
     case ">"  => Greater
     case ">=" => GreaterEqual
+    case "&"  => BitwiseAnd
   }
 
   def CreateExpression(op : String, left : Expression, right : Expression) : Expression = CreateExpression(str2op(op), left, right)
@@ -100,6 +103,8 @@ object BinaryOperators extends Enumeration {
     case Greater        => return new GreaterExpression(left, right)
     case LowerEqual     => return new LowerEqualExpression(left, right)
     case GreaterEqual   => return new GreaterEqualExpression(left, right)
+
+    case BitwiseAnd     => return new BitwiseAndExpression(left, right)
   }
 }
 
@@ -109,6 +114,7 @@ object UnaryOperators extends Enumeration {
   val Negative = Value("-")
   val Not = Value("!")
   val AddressOf = Value("&")
+  val BitwiseNegation = Value("~")
 
   exastencils.core.Duplicate.registerImmutable(this.getClass())
 }
@@ -184,15 +190,20 @@ case class MultiIndex(
   var index_3 : Expression = new NullExpression)
     extends Expression with Traversable[Expression] {
   def this(indices : Array[Expression]) = this(
-    if (indices.size > 0) indices(0) else new NullExpression,
-    if (indices.size > 1) indices(1) else new NullExpression,
-    if (indices.size > 2) indices(2) else new NullExpression,
-    if (indices.size > 3) indices(3) else new NullExpression)
+    if (indices.length > 0) indices(0) else new NullExpression,
+    if (indices.length > 1) indices(1) else new NullExpression,
+    if (indices.length > 2) indices(2) else new NullExpression,
+    if (indices.length > 3) indices(3) else new NullExpression)
   def this(indices : Array[Int]) = this(
-    (if (indices.size > 0) indices(0) else new NullExpression) : Expression,
-    (if (indices.size > 1) indices(1) else new NullExpression) : Expression,
-    (if (indices.size > 2) indices(2) else new NullExpression) : Expression,
-    (if (indices.size > 3) indices(3) else new NullExpression) : Expression)
+    (if (indices.length > 0) IntegerConstant(indices(0)) else new NullExpression) : Expression,
+    (if (indices.length > 1) IntegerConstant(indices(1)) else new NullExpression) : Expression,
+    (if (indices.length > 2) IntegerConstant(indices(2)) else new NullExpression) : Expression,
+    (if (indices.length > 3) IntegerConstant(indices(3)) else new NullExpression) : Expression)
+  def this(names : String*) = this(
+    (if (names.size > 0) VariableAccess(names(0), Some(IntegerDatatype())) else new NullExpression) : Expression,
+    (if (names.size > 1) VariableAccess(names(1), Some(IntegerDatatype())) else new NullExpression) : Expression,
+    (if (names.size > 2) VariableAccess(names(2), Some(IntegerDatatype())) else new NullExpression) : Expression,
+    (if (names.size > 3) VariableAccess(names(3), Some(IntegerDatatype())) else new NullExpression) : Expression)
   def this(left : MultiIndex, right : MultiIndex, f : (Expression, Expression) => Expression) = this(
     if (!left(0).isInstanceOf[NullExpression] && !right(0).isInstanceOf[NullExpression]) { Duplicate(f(left(0), right(0))) } else { new NullExpression },
     if (!left(1).isInstanceOf[NullExpression] && !right(1).isInstanceOf[NullExpression]) { Duplicate(f(left(1), right(1))) } else { new NullExpression },
@@ -266,7 +277,7 @@ case class LinearizedFieldAccess(var fieldSelection : FieldSelection, var index 
   override def cpp : String = "NOT VALID ; CLASS = ExternalFieldAccess\n"
 
   override def expand : Expression = {
-    new ArrayAccess(new iv.FieldData(fieldSelection.field, fieldSelection.slot, fieldSelection.fragIdx), index.cpp)
+    new ArrayAccess(new iv.FieldData(fieldSelection.field, fieldSelection.slot, fieldSelection.fragIdx), index)
   }
 }
 
@@ -524,6 +535,22 @@ case class GreaterEqualExpression(var left : Expression, var right : Expression)
   }
 }
 
+case class BitwiseAndExpression(var left : Expression, var right : Expression) extends Expression {
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append('(')
+    left.cppsb(sb)
+    sb.append('&')
+    right.cppsb(sb)
+    sb.append(')')
+  }
+}
+
 case class FunctionCallExpression(var name : Expression, var arguments : ListBuffer[Expression]) extends Expression {
   def this(name : Expression, argument : Expression) = this(name, ListBuffer(argument))
 
@@ -569,5 +596,167 @@ case class Reduction(var op : BinaryOperators.Value, var target : Expression) ex
 
   def getOMPClause : Expression = {
     s"reduction(${BinaryOperators.op2str(op)}:" ~ target ~ ")"
+  }
+}
+
+// TODO: determine instruction according to target architecture
+
+case class SIMD_LoadExpression(var mem : Expression, var aligned : Boolean) extends Expression {
+  override def cpp : String = {
+    val sb = new StringBuilder()
+    cppsb(sb)
+    return sb.toString()
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    if (aligned)
+      sb.append("_mm256_load_pd(")
+    else
+      sb.append("_mm256_loadu_pd(")
+    mem.cppsb(sb)
+    sb.append(')')
+  }
+}
+
+case class SIMD_Load1Expression(var mem : Expression) extends Expression {
+  override def cpp : String = {
+    val sb = new StringBuilder()
+    cppsb(sb)
+    return sb.toString()
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("_mm256_broadcast_sd(")
+    mem.cppsb(sb)
+    sb.append(')')
+  }
+}
+
+case class SIMD_AdditionExpression(var left : Expression, var right : Expression) extends Expression {
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("_mm256_add_pd(")
+    left.cppsb(sb)
+    sb.append(", ")
+    right.cppsb(sb)
+    sb.append(')')
+  }
+}
+
+case class SIMD_SubtractionExpression(var left : Expression, var right : Expression) extends Expression {
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("_mm256_sub_pd(")
+    left.cppsb(sb)
+    sb.append(", ")
+    right.cppsb(sb)
+    sb.append(')')
+  }
+}
+
+case class SIMD_MultiplicationExpression(var left : Expression, var right : Expression) extends Expression {
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("_mm256_mul_pd(")
+    left.cppsb(sb)
+    sb.append(", ")
+    right.cppsb(sb)
+    sb.append(')')
+  }
+}
+
+case class SIMD_MultiplyAddExpression(var factor1 : Expression, var factor2 : Expression,
+    var summand : Expression) extends Expression {
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("_mm256_add_pd(_mm256_mul_pd(")
+    factor1.cppsb(sb)
+    sb.append(", ")
+    factor2.cppsb(sb)
+    sb.append("), ")
+    summand.cppsb(sb)
+    sb.append(')')
+  }
+}
+
+case class SIMD_MultiplySubExpression(var factor1 : Expression, var factor2 : Expression,
+    var summand : Expression) extends Expression {
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("_mm256_sub_pd(_mm256_mul_pd(")
+    factor1.cppsb(sb)
+    sb.append(", ")
+    factor2.cppsb(sb)
+    sb.append("), ")
+    summand.cppsb(sb)
+    sb.append(')')
+  }
+}
+
+case class SIMD_DivisionExpression(var left : Expression, var right : Expression) extends Expression {
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    sb.append("_mm256_div_pd(")
+    left.cppsb(sb)
+    sb.append(", ")
+    right.cppsb(sb)
+    sb.append(')')
+  }
+}
+
+case class SIMD_FloatConstantExpression(var value : Double) extends Expression {
+  // ensure the compiler can parse the string
+  override def cpp() : String = {
+    return String.format(java.util.Locale.US, "_mm256_set1_pd(%e)", Double.box(value))
+  }
+}
+
+case class SIMD_Scalar2VectorExpression(var scalar : String, var dType : Datatype,
+    var increment : Boolean) extends Expression {
+  override def cpp : String = {
+    var sb = new StringBuilder
+    cppsb(sb)
+    return sb.toString
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    if (increment) {
+      sb.append("_mm256_set_pd(")
+      for (i <- Vectorization.TMP_VS - 1 to 1 by -1)
+        sb.append(scalar).append('+').append(i).append(',')
+      sb.append(scalar).append(')')
+
+    } else
+      sb.append("_mm256_set1_pd(").append(scalar).append(')')
   }
 }

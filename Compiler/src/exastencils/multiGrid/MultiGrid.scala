@@ -1,10 +1,14 @@
 package exastencils.multiGrid
 
+import java.io.PrintWriter
+import java.io.File
 import scala.collection.mutable.ListBuffer
-
+import exastencils.knowledge._
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.knowledge._
+import exastencils.multiGrid._
+import exastencils.prettyprinting._
 import exastencils.omp._
 import exastencils.polyhedron._
 
@@ -33,12 +37,22 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
 
 case class MultiGridFunctions() extends FunctionCollection("MultiGrid/MultiGrid",
   ListBuffer("#include \"Globals/Globals.h\"") ++
-    (if (Knowledge.useMPI)
-      ListBuffer("#pragma warning(disable : 4800)", "#include <mpi.h>")
+  (if (Knowledge.useMPI)
+    ListBuffer("#pragma warning(disable : 4800)", "#include <mpi.h>")
+  else
+    ListBuffer())
+    ++
+    (if (Knowledge.opt_vectorize)
+      ListBuffer("#include <immintrin.h>")
     else
       ListBuffer())
-    ++ ListBuffer(
-      "#include <algorithm>",
+    ++
+    (if (Knowledge.poly_usePolyOpt)
+      ListBuffer("#include <algorithm>")
+    else
+      ListBuffer())
+    ++
+    ListBuffer(
       "#include \"Util/Log.h\"",
       "#include \"Util/Vector.h\"",
       "#include \"Util/Stopwatch.h\"",
