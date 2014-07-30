@@ -2,6 +2,7 @@ package exastencils.optimization
 
 import scala.collection.mutable.ArrayStack
 import scala.collection.mutable.HashMap
+
 import exastencils.core.Logger
 import exastencils.core.StateManager
 import exastencils.core.collectors.Collector
@@ -18,8 +19,6 @@ import exastencils.datastructures.ir.Scope
 import exastencils.datastructures.ir.StringConstant
 import exastencils.datastructures.ir.SwitchStatement
 import exastencils.datastructures.ir.VariableAccess
-import exastencils.datastructures.ir.VariableDeclarationStatement
-import exastencils.datastructures.ir.CppPrettyPrintable
 import exastencils.datastructures.ir.VariableDeclarationStatement
 
 object TypeInference extends CustomStrategy("Type inference") {
@@ -44,6 +43,8 @@ object TypeInference extends CustomStrategy("Type inference") {
 
 private final class AnnotateStringConstants extends Collector {
   import TypeInference._
+
+  this.reset()
 
   private final val START_COND_BLOCK_ANNOT = "FirstElse"
 
@@ -74,6 +75,7 @@ private final class AnnotateStringConstants extends Collector {
 
     def reset() : Unit = {
       scopes.clear()
+      this.enterScope() // for global scope
     }
   }
 
