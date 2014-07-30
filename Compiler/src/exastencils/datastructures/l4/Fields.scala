@@ -114,7 +114,7 @@ case class FieldDeclarationStatement(var name : String,
       refOffset,
       if (boundary.isDefined) Some(boundary.get.progressToIr) else None,
       if (Knowledge.data_addPrePadding)
-        4 - (ir_layout(0).idxDupLeftBegin + ir.ArrayAccess(new ir.iv.IterationOffsetBegin(domain), 0)) // TODO: specify correct alignmentPadding
+        4 - (ir_layout(0).idxDupLeftBegin + ir.ArrayAccess(new ir.iv.IterationOffsetBegin(DomainCollection.getDomainByIdentifier(domain).get.index), 0)) // TODO: specify correct alignmentPadding
       else
         NullExpression())
   }

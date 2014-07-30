@@ -1,6 +1,8 @@
 package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
+
+import exastencils.core.Logger._
 import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.multiGrid._
@@ -45,15 +47,22 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
   }
 
   def getDomainByIdentifier(identifier : String) : Option[DomainDeclarationStatement] = {
-    domains.find(d => d.name == identifier)
+    val ret = domains.find(d => d.name == identifier)
+    if (ret.isEmpty) warn(s"L4 domain $identifier was not found")
+    ret
+
   }
 
   def getLayoutByIdentifier(identifier : String) : Option[LayoutDeclarationStatement] = {
-    layouts.find(l => l.name == identifier)
+    val ret = layouts.find(l => l.name == identifier)
+    if (ret.isEmpty) warn(s"L4 layout $identifier was not found")
+    ret
   }
 
   def getFieldByIdentifier(identifier : String, level : Int) : Option[FieldDeclarationStatement] = {
-    fields.find(f => f.name == identifier && f.level.getOrElse(-1) == level)
+    val ret = fields.find(f => f.name == identifier && f.level.getOrElse(-1) == level)
+    if (ret.isEmpty) warn(s"L4 field $identifier on level $level was not found")
+    ret
   }
 
   def progressToIr : Node = {

@@ -2,6 +2,7 @@ package exastencils.knowledge
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.core.Logger._
 import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
@@ -80,7 +81,9 @@ object FieldCollection {
   var fields : ListBuffer[Field] = ListBuffer()
 
   def getFieldByIdentifier(identifier : String, level : Int) : Option[Field] = {
-    fields.find(f => f.identifier == identifier && f.level == level)
+    val ret = fields.find(f => f.identifier == identifier && f.level == level)
+    if (ret.isEmpty) warn(s"Field $identifier on level $level was not found")
+    ret
   }
 }
 
@@ -96,6 +99,8 @@ object ExternalFieldCollection {
   var fields : ListBuffer[ExternalField] = ListBuffer()
 
   def getFieldByIdentifier(identifier : String, level : Int) : Option[ExternalField] = {
-    fields.find(f => f.identifier == identifier && f.level == level)
+    val ret = fields.find(f => f.identifier == identifier && f.level == level)
+    if (ret.isEmpty) warn(s"External field $identifier on level $level was not found")
+    ret
   }
 }

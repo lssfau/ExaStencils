@@ -87,6 +87,19 @@ case class InitGeomCoords(var field : Field) extends Statement with Expandable {
 object ResolveCoordinates extends DefaultStrategy("ResolveCoordinates") {
   var replacement : MultiIndex = LoopOverDimensions.defIt
 
+  def doUntilDone(node : Option[Node] = None) = {
+    do { apply(node) }
+    while (results.last._2.matches > 0) // FIXME: cleaner code
+  }
+
+  def doUntilDoneStandalone(node : Node) = {
+    val oldLvl = Logger.getLevel
+    Logger.setLevel(1)
+    do { applyStandalone(node) }
+    while (results.last._2.matches > 0) // FIXME: cleaner code
+    Logger.setLevel(oldLvl)
+  }
+
   Knowledge.dimensionality match {
     case 1 => this += new Transformation("SearchAndReplace", {
       case StringConstant("x") => replacement(0)

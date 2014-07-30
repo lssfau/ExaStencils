@@ -1,7 +1,9 @@
 package exastencils.knowledge
 
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
+import exastencils.core.Logger._
 import exastencils.core.collectors._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
@@ -46,7 +48,9 @@ object StencilCollection {
   var stencils : ListBuffer[Stencil] = ListBuffer()
 
   def getStencilByIdentifier(identifier : String, level : Int) : Option[Stencil] = {
-    stencils.find(s => s.identifier == identifier && s.level == level)
+    val ret = stencils.find(s => s.identifier == identifier && s.level == level)
+    if (ret.isEmpty) warn(s"Stencil $identifier on level $level was not found")
+    ret
   }
 }
 
@@ -56,7 +60,9 @@ object StencilFieldCollection {
   var stencilFields : ListBuffer[StencilField] = ListBuffer()
 
   def getStencilFieldByIdentifier(identifier : String, level : Int) : Option[StencilField] = {
-    stencilFields.find(s => s.identifier == identifier && s.field.level == level)
+    val ret = stencilFields.find(s => s.identifier == identifier && s.field.level == level)
+    if (ret.isEmpty) warn(s"StencilField $identifier on level $level was not found")
+    ret
   }
 }
 
@@ -139,7 +145,7 @@ case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight
 
         var combOff = leftOffset
         ResolveCoordinates.replacement = rightOffset
-        ResolveCoordinates.applyStandalone(combOff)
+        ResolveCoordinates.doUntilDoneStandalone(combOff)
 
         var combCoeff : Expression = (re.weight * le.weight)
         SimplifyStrategy.doUntilDoneStandalone(combOff)
