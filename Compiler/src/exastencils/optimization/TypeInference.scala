@@ -20,6 +20,7 @@ import exastencils.datastructures.ir.StringConstant
 import exastencils.datastructures.ir.SwitchStatement
 import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.VariableDeclarationStatement
+import exastencils.datastructures.ir.WhileLoopStatement
 
 object TypeInference extends CustomStrategy("Type inference") {
 
@@ -143,6 +144,7 @@ private final class AnnotateStringConstants extends Collector {
 
       case _ : Scope
         | _ : ForLoopStatement
+        | _ : WhileLoopStatement
         | _ : FunctionStatement
         | _ : SwitchStatement
         | _ : CaseStatement =>
