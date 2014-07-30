@@ -1,5 +1,7 @@
 package exastencils.core
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.prettyprinting.MakefileGenerator
 
 object Settings {
@@ -7,4 +9,5 @@ object Settings {
   var buildfileGenerator = MakefileGenerator
   var binary = "exastencils"
   var basePathPrefix = ".."
+  var additionalIncludes : ListBuffer[String] = ListBuffer()
 }
