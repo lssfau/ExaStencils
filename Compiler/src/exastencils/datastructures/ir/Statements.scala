@@ -90,26 +90,6 @@ case class SIMD_StoreStatement(var mem : Expression, var value : Expression, var
   }
 }
 
-case class SIMD_Store1Statement(var mem : Expression, var value : Expression, var aligned : Boolean) extends Statement {
-  override def cpp : String = {
-    val sb = new StringBuilder()
-    cppsb(sb)
-    return sb.toString()
-  }
-
-  // TODO: determine instruction according to target architecture
-  def cppsb(sb : StringBuilder) : Unit = {
-    if (aligned)
-      sb.append("_mm256_store_pd(")
-    else
-      sb.append("_mm256_storeu_pd(")
-    mem.cppsb(sb)
-    sb.append(", ")
-    value.cppsb(sb)
-    sb.append(");")
-  }
-}
-
 case class ForLoopStatement(var begin : Statement, var end : Expression, var inc : Statement, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement {
   def this(begin : Statement, end : Expression, inc : Statement, body : Statement, reduction : Option[Reduction]) = this(begin, end, inc, ListBuffer(body), reduction)
   def this(begin : Statement, end : Expression, inc : Statement, body : Statement) = this(begin, end, inc, ListBuffer(body))
