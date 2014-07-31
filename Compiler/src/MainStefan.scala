@@ -8,13 +8,16 @@ import exastencils.domain.DomainFunctions
 import exastencils.globals.AddDefaultGlobals
 import exastencils.knowledge.FindStencilConvolutions
 import exastencils.knowledge.Knowledge
+import exastencils.knowledge.MapStencilAssignments
 import exastencils.languageprocessing.l4.ProgressToIr
 import exastencils.mpi.AddMPIDatatypes
 import exastencils.mpi.RemoveMPIReferences
 import exastencils.multiGrid.ResolveSpecialFunctions
 import exastencils.omp.AddOMPPragmas
 import exastencils.optimization.AddressPrecalculation
+import exastencils.optimization.SimplifyFloatExpressions
 import exastencils.optimization.TypeInference
+import exastencils.optimization.Unrolling
 import exastencils.optimization.Vectorization
 import exastencils.parsers.l4.ParserL4
 import exastencils.parsers.l4.ValidationL4
@@ -80,13 +83,18 @@ object MainStefan {
 
     AddDefaultGlobals.apply()
 
-    FindStencilConvolutions.apply()
-
-    ResolveSpecialFunctions.apply()
-
     SetupFragment.apply()
 
-    ExpandStrategy.doUntilDone()
+    var numConvFound = 1;
+    while (numConvFound > 0) {
+      FindStencilConvolutions.apply()
+      ResolveSpecialFunctions.apply()
+      numConvFound = FindStencilConvolutions.results.last._2.matches
+      ExpandStrategy.doUntilDone()
+    }
+
+    MapStencilAssignments.apply()
+
     //////////////////////////////////////////////////////////////////////////////
     //    val test = new java.util.IdentityHashMap[Node, Any]()
     //    new exastencils.datastructures.DefaultStrategy("TestStrategy") {
@@ -145,10 +153,16 @@ object MainStefan {
     if (Knowledge.opt_useAddressPrecalc)
       AddressPrecalculation.apply()
 
-    if (Knowledge.opt_vectorize) {
+    if (Knowledge.opt_vectorize || Knowledge.opt_unroll > 1)
       TypeInference.apply()
+
+    SimplifyFloatExpressions.apply()
+
+    if (Knowledge.opt_vectorize)
       Vectorization.apply()
-    }
+
+    if (Knowledge.opt_unroll > 1)
+      Unrolling.apply()
 
     AddInternalVariables.apply()
 
