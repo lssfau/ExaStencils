@@ -2,7 +2,9 @@ package exastencils.util
 
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
+
 import exastencils.datastructures.ir.AdditionExpression
+import exastencils.datastructures.ir.ArrayAccess
 import exastencils.datastructures.ir.DivisionExpression
 import exastencils.datastructures.ir.Expression
 import exastencils.datastructures.ir.FloatConstant
@@ -11,12 +13,12 @@ import exastencils.datastructures.ir.IntegerDatatype
 import exastencils.datastructures.ir.ModuloExpression
 import exastencils.datastructures.ir.MultiplicationExpression
 import exastencils.datastructures.ir.NullExpression
+import exastencils.datastructures.ir.RealDatatype
 import exastencils.datastructures.ir.StringConstant
 import exastencils.datastructures.ir.SubtractionExpression
 import exastencils.datastructures.ir.UnaryExpression
 import exastencils.datastructures.ir.UnaryOperators
 import exastencils.datastructures.ir.VariableAccess
-import exastencils.datastructures.ir.IntegerConstant
 
 object SimplifyExpression {
 
@@ -56,13 +58,6 @@ object SimplifyExpression {
     * evalIntegralAffine(Expression).
     */
   final val constName : Expression = NullExpression()
-
-  def simplifyIntegralSum(expr : Expression) : Expression = {
-    extractIntegralSum(expr).map(e => e._1 match {
-      case _ : NullExpression => IntegerConstant(e._2)
-      case _                  => e._1 * IntegerConstant(e._2)
-    }).reduceRight((left, right) => left + right)
-  }
 
   /**
     * Evaluates and (implicitly) simplifies an integral expression.
@@ -206,12 +201,14 @@ object SimplifyExpression {
   /**
     * Takes the output from extractIntegralSum(..) and recreates an AST for this sum.
     */
-  def recreateExpressionFromSum(map : HashMap[Expression, Long]) : Expression = {
+  def recreateExprFromIntSum(map : HashMap[Expression, Long]) : Expression = {
 
     var res : Expression = null
     val const : Option[Long] = map.remove(constName)
-    if (const.isDefined)
-      res = IntegerConstant(const.getOrElse(0L))
+
+    if (map.isEmpty)
+      return IntegerConstant(const.getOrElse(0L))
+
     for ((expr : Expression, value : Long) <- map) {
       val summand : Expression =
         value match {
@@ -222,10 +219,163 @@ object SimplifyExpression {
       res = if (res == null) summand else AdditionExpression(res, summand)
     }
 
-    if (res == null)
-      res = IntegerConstant(0L)
+    if (const.isDefined)
+      res = AdditionExpression(res, IntegerConstant(const.get))
 
     return res
+  }
+
+  def simplifyIntegralExpr(expr : Expression) : Expression = {
+    return recreateExprFromIntSum(extractIntegralSum(expr))
+  }
+
+  /**
+    * Evaluates and (implicitly) simplifies an floating-point expression.
+    * No boolean constants are allowed.
+    * (Otherwise an EvaluationException is thrown.)
+    *
+    * Returns a map from all present summands to their corresponding coefficients.
+    * The additive constant is stored beside the string specified by the field SimplifyExpression.constName.
+    * The given expression is equivalent to: map(constName) + \sum_{n \in names} map(n) * n
+    *
+    * Only VariableAccess and ArrayAccess nodes are used as keys. (NO StringConstant)
+    */
+  def extractFloatingSum(expr : Expression) : HashMap[Expression, Double] = {
+
+    var res : HashMap[Expression, Double] = null
+
+    expr match {
+
+      case IntegerConstant(i) =>
+        res = new HashMap[Expression, Double]()
+        if (i != 0)
+          res(constName) = i
+
+      case FloatConstant(d) =>
+        res = new HashMap[Expression, Double]()
+        if (d != 0)
+          res(constName) = d
+
+      case VariableAccess(varName, _) =>
+        res = new HashMap[Expression, Double]()
+        res(VariableAccess(varName, Some(RealDatatype()))) = 1d
+
+      case StringConstant(varName) =>
+        res = new HashMap[Expression, Double]()
+        res(VariableAccess(varName, Some(RealDatatype()))) = 1d // ONLY VariableAccess in res keys, NO StringConstant
+
+      case aAcc : ArrayAccess =>
+        res = new HashMap[Expression, Double]()
+        res(aAcc) = 1d // ONLY VariableAccess in res keys, NO StringConstant
+
+      case UnaryExpression(UnaryOperators.Negative, expr) =>
+        res = extractFloatingSum(expr)
+        for ((name : Expression, value : Double) <- extractFloatingSum(expr))
+          res(name) = -value
+
+      case AdditionExpression(l, r) =>
+        res = extractFloatingSum(l)
+        for ((name : Expression, value : Double) <- extractFloatingSum(r)) {
+          val r = res.getOrElse(name, 0d) + value
+          if (r == 0d)
+            res.remove(name)
+          else
+            res(name) = r
+        }
+
+      case SubtractionExpression(l, r) =>
+        res = extractFloatingSum(l)
+        for ((name : Expression, value : Double) <- extractFloatingSum(r)) {
+          val r = res.getOrElse(name, 0d) - value
+          if (r == 0d)
+            res.remove(name)
+          else
+            res(name) = r
+        }
+
+      case MultiplicationExpression(l, r) =>
+        val mapL = extractFloatingSum(l)
+        val mapR = extractFloatingSum(r)
+        var coeff : Double = 1d
+        if (mapL.size == 1 && mapL.contains(constName)) {
+          coeff = mapL(constName)
+          res = mapR
+        } else if (mapR.size == 1 && mapR.contains(constName)) {
+          coeff = mapR(constName)
+          res = mapL
+        } else
+          throw new EvaluationException("non-constant * non-constant is not yet implemented")
+        if (coeff == 0d)
+          res.clear()
+        else
+          for ((name : Expression, value : Double) <- res)
+            res(name) = value * coeff
+
+      case DivisionExpression(l, r) =>
+        val mapR = extractFloatingSum(r)
+        if (!(mapR.size == 1 && mapR.contains(constName)))
+          throw new EvaluationException("only constant divisor allowed yet")
+        val div : Double = mapR(constName)
+        res = extractFloatingSum(l)
+        for ((name : Expression, value : Double) <- res)
+          res(name) = value / div
+
+      case ModuloExpression(l, r) =>
+        val mapR = extractFloatingSum(r)
+        if (!(mapR.size == 1 && mapR.contains(constName)))
+          throw new EvaluationException("only constant divisor allowed")
+        val mod : Double = mapR(constName)
+        res = extractFloatingSum(l)
+        for ((name : Expression, value : Double) <- res)
+          res(name) = value % mod
+
+      case _ =>
+        throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
+    }
+
+    return res
+  }
+
+  /**
+    * Takes the output from extractFloatingSum(..) and recreates an AST for this sum.
+    */
+  def recreateExprFromFloatSum(map : HashMap[Expression, Double]) : Expression = {
+
+    var res : Expression = null
+    val const : Option[Double] = map.remove(constName)
+
+    if (map.isEmpty)
+      return FloatConstant(const.getOrElse(0d))
+
+    // use distributive property
+    val reverse = new HashMap[Double, Expression]()
+    for ((njuExpr : Expression, value : Double) <- map) {
+      val expr : Option[Expression] = reverse.get(value)
+      reverse(value) =
+        if (expr.isDefined)
+          AdditionExpression(expr.get, njuExpr)
+        else
+          njuExpr
+    }
+
+    for ((value : Double, expr : Expression) <- reverse) {
+      val summand : Expression =
+        value match {
+          case 1d  => expr
+          case -1d => UnaryExpression(UnaryOperators.Negative, expr)
+          case _   => MultiplicationExpression(FloatConstant(value), expr)
+        }
+      res = if (res == null) summand else AdditionExpression(res, summand)
+    }
+
+    if (const.isDefined)
+      res = AdditionExpression(res, FloatConstant(const.get))
+
+    return res
+  }
+
+  def simplifyFloatingExpr(expr : Expression) : Expression = {
+    return recreateExprFromFloatSum(extractFloatingSum(expr))
   }
 }
 

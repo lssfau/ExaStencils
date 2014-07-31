@@ -35,7 +35,7 @@ object Mapping {
       SimplifyStrategy.doUntilDoneStandalone(ret)
       ret
     } else {
-      SimplifyExpression.simplifyIntegralSum(ret)
+      SimplifyExpression.simplifyIntegralExpr(ret)
     }
   }
 
@@ -50,7 +50,7 @@ object Mapping {
       SimplifyStrategy.doUntilDoneStandalone(ret)
       ret
     } else {
-      SimplifyExpression.simplifyIntegralSum(ret)
+      SimplifyExpression.simplifyIntegralExpr(ret)
     }
   }
 }
