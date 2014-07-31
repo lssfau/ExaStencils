@@ -57,6 +57,13 @@ object SimplifyExpression {
     */
   final val constName : Expression = NullExpression()
 
+  def simplifyIntegralSum(expr : Expression) : Expression = {
+    extractIntegralSum(expr).map(e => e._1 match {
+      case _ : NullExpression => IntegerConstant(e._2)
+      case _                  => e._1 * IntegerConstant(e._2)
+    }).reduceRight((left, right) => left + right)
+  }
+
   /**
     * Evaluates and (implicitly) simplifies an integral expression.
     * No float or boolean constants are allowed.

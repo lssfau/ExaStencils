@@ -96,11 +96,10 @@ object Main {
     if (Knowledge.opt_useAddressPrecalc)
       AddressPrecalculation.apply()
 
-    // doesn't seem to work yet
-    //    if (Knowledge.opt_vectorize) {
-    //      TypeInference.apply()
-    //      Vectorization.apply()
-    //    }
+    if (Knowledge.opt_vectorize) {
+      TypeInference.apply()
+      Vectorization.apply()
+    }
 
     AddInternalVariables.apply()
 

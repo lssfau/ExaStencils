@@ -1,12 +1,14 @@
 package exastencils.knowledge
 
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
-import exastencils.knowledge._
 import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.strategies._
+import exastencils.util._
 
 case class IndexRange(var begin : MultiIndex = new MultiIndex, var end : MultiIndex = new MultiIndex) extends Node {
   def getSize : Expression = {
@@ -29,8 +31,12 @@ object Mapping {
       case 2 => (index(2) * (layout(1).total * layout(0).total) + index(1) * layout(0).total + index(0))
       case 3 => (index(3) * (layout(2).total * layout(1).total * layout(0).total) + index(2) * (layout(1).total * layout(0).total) + index(1) * layout(0).total + index(0))
     }
-    SimplifyStrategy.doUntilDoneStandalone(ret)
-    ret
+    if (false) {
+      SimplifyStrategy.doUntilDoneStandalone(ret)
+      ret
+    } else {
+      SimplifyExpression.simplifyIntegralSum(ret)
+    }
   }
 
   def resolveMultiIdx(index : MultiIndex, aabb : IndexRange) : Expression = {
@@ -40,8 +46,12 @@ object Mapping {
       case 2 => (index(2) * ((aabb.end(1) - aabb.begin(1)) * (aabb.end(0) - aabb.begin(0))) + index(1) * (aabb.end(0) - aabb.begin(0)) + index(0))
       case 3 => (index(3) * ((aabb.end(2) - aabb.begin(2)) * (aabb.end(1) - aabb.begin(1)) * (aabb.end(0) - aabb.begin(0))) + index(2) * ((aabb.end(1) - aabb.begin(1)) * (aabb.end(0) - aabb.begin(0))) + index(1) * (aabb.end(0) - aabb.begin(0)) + index(0))
     }
-    SimplifyStrategy.doUntilDoneStandalone(ret)
-    ret
+    if (false) {
+      SimplifyStrategy.doUntilDoneStandalone(ret)
+      ret
+    } else {
+      SimplifyExpression.simplifyIntegralSum(ret)
+    }
   }
 }
 

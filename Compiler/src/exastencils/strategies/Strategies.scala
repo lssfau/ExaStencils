@@ -1,14 +1,10 @@
 package exastencils.strategies
 
 import exastencils.core._
-import exastencils.core.collectors._
-import exastencils.knowledge._
 import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.Transformation._
-import exastencils.domain._
-import exastencils.omp._
 
 object PrintStrategy extends DefaultStrategy("Pretty-Print") {
   this += new Transformation("Pretty-Print", {
