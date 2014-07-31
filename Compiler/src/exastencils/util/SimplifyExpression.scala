@@ -304,7 +304,8 @@ object SimplifyExpression {
           coeff = mapR(constName)
           res = mapL
         } else
-          throw new EvaluationException("non-constant * non-constant is not yet implemented")
+          throw new EvaluationException("non-constant * non-constant is not yet implemented:  " +
+            l.cpp() + "  *  " + r.cpp())
         if (coeff == 0d)
           res.clear()
         else
@@ -314,7 +315,8 @@ object SimplifyExpression {
       case DivisionExpression(l, r) =>
         val mapR = extractFloatingSum(r)
         if (!(mapR.size == 1 && mapR.contains(constName)))
-          throw new EvaluationException("only constant divisor allowed yet")
+          throw new EvaluationException("only constant divisor allowed yet:  " +
+            l.cpp() + "  /  " + r.cpp())
         val div : Double = mapR(constName)
         res = extractFloatingSum(l)
         for ((name : Expression, value : Double) <- res)
@@ -323,14 +325,15 @@ object SimplifyExpression {
       case ModuloExpression(l, r) =>
         val mapR = extractFloatingSum(r)
         if (!(mapR.size == 1 && mapR.contains(constName)))
-          throw new EvaluationException("only constant divisor allowed")
+          throw new EvaluationException("only constant divisor allowed" +
+            l.cpp() + "  %  " + r.cpp())
         val mod : Double = mapR(constName)
         res = extractFloatingSum(l)
         for ((name : Expression, value : Double) <- res)
           res(name) = value % mod
 
       case _ =>
-        throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
+        throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass() + " in " + expr.cpp())
     }
 
     return res

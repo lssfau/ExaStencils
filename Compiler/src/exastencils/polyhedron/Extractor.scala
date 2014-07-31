@@ -85,6 +85,8 @@ object Extractor {
 
 class Extractor extends Collector {
 
+  private final val DEBUG : Boolean = false
+
   /** import all "static" attributes to allow an unqualified access */
   import exastencils.polyhedron.Extractor._
 
@@ -156,16 +158,6 @@ class Extractor extends Collector {
       formatterResult.delete(0, Int.MaxValue)
       formatter.format(setTemplate_, tupleName)
       val set = new isl.Set(formatterResult.toString())
-      // TODO: remove
-      //      val f = classOf[isl.UnionSet].getDeclaredField("ptr")
-      //      f.setAccessible(true)
-      //      if (f.get(set).asInstanceOf[com.sun.jna.PointerType] == null) {
-      //        println()
-      //        println("======================================================")
-      //        println(setTemplate_)
-      //        println(tupleName)
-      //        println()
-      //      }
       return set
     }
 
@@ -174,18 +166,6 @@ class Extractor extends Collector {
       formatterResult.delete(0, Int.MaxValue)
       formatter.format(mapTemplate_, inTupleName, outTupleName, out)
       val map = new isl.Map(formatterResult.toString())
-      // TODO: remove
-      //      val f = classOf[isl.UnionMap].getDeclaredField("ptr")
-      //      f.setAccessible(true)
-      //      if (f.get(map).asInstanceOf[com.sun.jna.PointerType] == null) {
-      //        println()
-      //        println("======================================================")
-      //        println(mapTemplate_)
-      //        println(inTupleName)
-      //        println(outTupleName)
-      //        println(out)
-      //        println()
-      //      }
       return map
     }
 
@@ -197,7 +177,8 @@ class Extractor extends Collector {
 
     def discard(msg : String = null) : Unit = {
       if (msg != null) {
-        Logger.debug("[poly extr] Scop discarded:  " + msg)
+        if (DEBUG)
+          Logger.debug("[poly extr] Scop discarded:  " + msg)
         trash.push((if (scop_ != null) scop_.root else null, msg))
       }
       scop_ = null
