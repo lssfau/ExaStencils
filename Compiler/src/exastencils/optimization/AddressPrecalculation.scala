@@ -80,10 +80,6 @@ private final class AnnotateLoopsAndAccesses extends Collector {
   private val decls = new ArrayStack[(HashMap[String, ArrayBases], String)]()
   private var ompLoop : ForLoopStatement = null // save omp loop to lessen collapse value, if needed
 
-  //  private def generateName(fa : LinearizedFieldAccess) : String = {
-  //    return filter(FieldData(fa.fieldSelection.field, fa.fieldSelection.slot, fa.fieldSelection.fragIdx).cpp())
-  //  }
-
   private def generateName(expr : Expression) : String = {
     val cpp = new StringBuilder()
     expr.cppsb(cpp)
@@ -129,7 +125,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     for ((expr, _) <- outMap)
       inMap.remove(expr)
 
-    return (SimplifyExpression.recreateExpressionFromSum(inMap), outMap)
+    return (SimplifyExpression.recreateExprFromIntSum(inMap), outMap)
   }
 
   private var count : Int = 0
@@ -165,15 +161,6 @@ private final class AnnotateLoopsAndAccesses extends Collector {
           ompLoop = l
         node.annotate(OMP_LOOP_ANNOT, ompLoop)
 
-      //      case f @ LinearizedFieldAccess(fieldSelection, index) if !decls.isEmpty =>
-      //        var name : String = generateName(f)
-      //        val (decl : HashMap[String, ArrayBases], loopVar) = decls.top
-      //        val (in : Expression, outMap : HashMap[Expression, Long]) = splitIndex(index, loopVar)
-      //        val bases : ArrayBases = decl.getOrElseUpdate(name, new ArrayBases(name))
-      //        name = bases.getName(outMap,
-      //          new LinearizedFieldAccess(fieldSelection, SimplifyExpression.recreateExpressionFromSum(outMap)))
-      //        f.annotate(REPL_ANNOT, new ArrayAccess(new VariableAccess(name), in))
-
       // ArrayAccess with a constant index only cannot be optimized further
       case a @ ArrayAccess(base, index) if !decls.isEmpty && !index.isInstanceOf[IntegerConstant] =>
         var name : String = generateName(base)
@@ -181,7 +168,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         val (in : Expression, outMap : HashMap[Expression, Long]) = splitIndex(index, loopVar)
         val bases : ArrayBases = decl.getOrElseUpdate(name, new ArrayBases(name))
         name = bases.getName(outMap,
-          new ArrayAccess(base, SimplifyExpression.recreateExpressionFromSum(outMap)))
+          new ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(outMap)))
         a.annotate(REPL_ANNOT, new ArrayAccess(new VariableAccess(name), in))
 
       case _ => // ignore
