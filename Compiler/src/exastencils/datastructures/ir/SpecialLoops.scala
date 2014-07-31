@@ -144,8 +144,8 @@ case class LoopOverDimensions(var numDimensions : Int,
   }
 
   def expandSpecial : ForLoopStatement = {
-    var parallelizable = Knowledge.omp_parallelizeLoopOverDimensions && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
-    parallelizable = parallelizable && parallelizationIsReasonable
+    val parallelizable = Knowledge.omp_parallelizeLoopOverDimensions && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
+    val parallelize = parallelizable && parallelizationIsReasonable
 
     var wrappedBody : ListBuffer[Statement] = (
       if (condition.isDefined)
@@ -153,25 +153,26 @@ case class LoopOverDimensions(var numDimensions : Int,
       else
         body)
 
-    for (d <- 0 until numDimensions - 1) {
+    var ret : ForLoopStatement with OptimizationHint = null
+    for (d <- 0 until numDimensions) {
       val it = VariableAccess(dimToString(d), Some(IntegerDatatype()))
       val decl = VariableDeclarationStatement(IntegerDatatype(), dimToString(d), Some(indices.begin(d)))
       val cond = LowerExpression(it, indices.end(d))
       val incr = AssignmentStatement(it, stepSize(d), "+=")
-      wrappedBody = ListBuffer[Statement](new ForLoopStatement(decl, cond, incr, wrappedBody, reduction) with OptimizationHint)
+      if (parallelize && d == numDimensions - 1) {
+        val omp = new ForLoopStatement(decl, cond, incr, wrappedBody, reduction) with OptimizationHint with OMP_PotentiallyParallel
+        omp.collapse = numDimensions
+        ret = omp
+      } else {
+        ret = new ForLoopStatement(decl, cond, incr, wrappedBody, reduction) with OptimizationHint
+        wrappedBody = ListBuffer[Statement](ret)
+      }
+      // set optimization hints
+      ret.isInnermost = d == 0
+      ret.isParallel = parallelizable
     }
-    val d = numDimensions - 1
-    val it = VariableAccess(dimToString(d), Some(IntegerDatatype()))
-    val decl = VariableDeclarationStatement(IntegerDatatype(), dimToString(d), Some(indices.begin(d)))
-    val cond = LowerExpression(it, indices.end(d))
-    val incr = AssignmentStatement(it, stepSize(d), "+=")
-    if (parallelizable) {
-      val ret = new ForLoopStatement(decl, cond, incr, wrappedBody, reduction) with OptimizationHint with OMP_PotentiallyParallel
-      ret.collapse = numDimensions
-      ret
-    } else {
-      new ForLoopStatement(decl, cond, incr, wrappedBody, reduction) with OptimizationHint
-    }
+
+    return ret
   }
 }
 

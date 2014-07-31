@@ -11,6 +11,7 @@ import exastencils.core.collectors.Collector
 import exastencils.datastructures.CustomStrategy
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
+import exastencils.datastructures.Transformation.convFromListBuffer
 import exastencils.datastructures.Transformation.convFromNode
 import exastencils.datastructures.ir.AdditionExpression
 import exastencils.datastructures.ir.ArrayAccess
@@ -19,12 +20,10 @@ import exastencils.datastructures.ir.DivisionExpression
 import exastencils.datastructures.ir.Expression
 import exastencils.datastructures.ir.ForLoopStatement
 import exastencils.datastructures.ir.IntegerConstant
-import exastencils.datastructures.ir.LinearizedFieldAccess
 import exastencils.datastructures.ir.ModuloExpression
 import exastencils.datastructures.ir.MultiplicationExpression
 import exastencils.datastructures.ir.PointerDatatype
 import exastencils.datastructures.ir.RealDatatype
-import exastencils.datastructures.ir.Scope
 import exastencils.datastructures.ir.Statement
 import exastencils.datastructures.ir.StringConstant
 import exastencils.datastructures.ir.SubtractionExpression
@@ -32,7 +31,6 @@ import exastencils.datastructures.ir.UnaryExpression
 import exastencils.datastructures.ir.UnaryOperators
 import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.VariableDeclarationStatement
-import exastencils.datastructures.ir.iv.FieldData
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.util.SimplifyExpression
 
@@ -148,7 +146,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
   override def enter(node : Node) : Unit = {
 
     node match {
-      case l : ForLoopStatement with OptimizationHint =>
+      case l : ForLoopStatement with OptimizationHint if (l.isInnermost) =>
         val d = new HashMap[String, ArrayBases]()
         l.begin match {
           case VariableDeclarationStatement(_, name, _) => decls.push((d, name))
@@ -177,7 +175,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
 
   override def leave(node : Node) : Unit = {
     node match {
-      case l : ForLoopStatement with OptimizationHint =>
+      case l : ForLoopStatement with OptimizationHint if (l.isInnermost) =>
         if (l eq ompLoop)
           ompLoop = null
         decls.pop()
