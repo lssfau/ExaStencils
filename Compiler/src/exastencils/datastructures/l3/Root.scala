@@ -21,9 +21,9 @@ case class Root() extends Node {
   var genRBSetsWithConditions : Boolean = true
   var useVecFields : Boolean = false // attempts to solve Poisson's equation for (numVecDims)D vectors; atm all three components are solved independently
   var numVecDims = (if (useVecFields) 2 else 1)
-  var genStencilFields : Boolean = true
+  var genStencilFields : Boolean = true || kelvin
   var useSlotsForJac : Boolean = true
-  var testStencilStencil : Boolean = false
+  var testStencilStencil : Boolean = false || kelvin
 
   def solutionFields(level : String, postfix : String = "") = {
     if (useVecFields)
@@ -305,23 +305,27 @@ case class Root() extends Node {
 
     if (kelvin) {
       printer.println("Stencil TransferStencil_Center@all {")
-      printer.println("\t[ 0,  0] => 1.0")
+      printer.println("\t[ 0,  0] => 2.0")
+      printer.println("\t[-1,  0] => 0.5")
+      printer.println("\t[ 1,  0] => 0.5")
+      printer.println("\t[ 0,  1] => 0.5")
+      printer.println("\t[ 0, -1] => 0.5")
       printer.println("}")
       printer.println("Stencil TransferStencil_Left@all {")
-      printer.println("\t[ 0,  0] => 0.5")
-      printer.println("\t[-1,  0] => 0.5")
+      printer.println("\t[ 0,  0] => -0.5")
+      printer.println("\t[-1,  0] => -0.5")
       printer.println("}")
       printer.println("Stencil TransferStencil_Right@all {")
-      printer.println("\t[ 0,  0] => 0.5")
-      printer.println("\t[ 1,  0] => 0.5")
+      printer.println("\t[ 0,  0] => -0.5")
+      printer.println("\t[ 1,  0] => -0.5")
       printer.println("}")
       printer.println("Stencil TransferStencil_Up@all {")
-      printer.println("\t[ 0,  0] => 0.5")
-      printer.println("\t[ 0,  1] => 0.5")
+      printer.println("\t[ 0,  0] => -0.5")
+      printer.println("\t[ 0,  1] => -0.5")
       printer.println("}")
       printer.println("Stencil TransferStencil_Down@all {")
-      printer.println("\t[ 0,  0] => 0.5")
-      printer.println("\t[ 0, -1] => 0.5")
+      printer.println("\t[ 0,  0] => -0.5")
+      printer.println("\t[ 0, -1] => -0.5")
       printer.println("}")
     }
   }
