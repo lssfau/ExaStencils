@@ -1,6 +1,7 @@
 package exastencils.core
 
 import java.lang.reflect._
+import scala.collection.immutable.Nil
 
 object Duplicate {
   val cloner = new com.rits.cloning.Cloner
@@ -16,5 +17,7 @@ object Duplicate {
   def registerConstant(t : Class[_], field : String) = cloner.registerConstant(t, field)
   def registerConstant(field : Any) = cloner.registerConstant(field)
 
-  cloner.registerImmutable(None.getClass()) // prevent cloning of None (which could result in None != None)
+  // prevent cloning of some immutable objects of the scala library (otherwise something goes boom)
+  cloner.registerImmutable(None.getClass())
+  cloner.registerImmutable(Nil.getClass())
 }
