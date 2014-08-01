@@ -31,14 +31,12 @@ import exastencils.datastructures.ir.UnaryExpression
 import exastencils.datastructures.ir.UnaryOperators
 import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.VariableDeclarationStatement
-import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.util.SimplifyExpression
 
 object AddressPrecalculation extends CustomStrategy("Perform address precalculation") {
 
   private[optimization] final val DECLS_ANNOT = "Decls"
   private[optimization] final val REPL_ANNOT = "Replace"
-  private[optimization] final val OMP_LOOP_ANNOT = "OMPLoop"
 
   override def apply() : Unit = {
 
@@ -76,7 +74,6 @@ private final class AnnotateLoopsAndAccesses extends Collector {
   import AddressPrecalculation._
 
   private val decls = new ArrayStack[(HashMap[String, ArrayBases], String)]()
-  private var ompLoop : ForLoopStatement = null // save omp loop to lessen collapse value, if needed
 
   private def generateName(expr : Expression) : String = {
     val cpp = new StringBuilder()
@@ -155,9 +152,6 @@ private final class AnnotateLoopsAndAccesses extends Collector {
             decls.push((d, null))
         }
         node.annotate(DECLS_ANNOT, d)
-        if (ompLoop == null && l.isInstanceOf[OMP_PotentiallyParallel])
-          ompLoop = l
-        node.annotate(OMP_LOOP_ANNOT, ompLoop)
 
       // ArrayAccess with a constant index only cannot be optimized further
       case a @ ArrayAccess(base, index) if !decls.isEmpty && !index.isInstanceOf[IntegerConstant] =>
@@ -176,8 +170,6 @@ private final class AnnotateLoopsAndAccesses extends Collector {
   override def leave(node : Node) : Unit = {
     node match {
       case l : ForLoopStatement with OptimizationHint if (l.isInnermost) =>
-        if (l eq ompLoop)
-          ompLoop = null
         decls.pop()
       case _ => // ignore
     }
@@ -206,10 +198,6 @@ private final object IntegrateAnnotations extends PartialFunction[Node, Transfor
         .asInstanceOf[HashMap[String, ArrayBases]]
       if (decls.isEmpty)
         return node
-
-      // lessen collapse, if available (we insert new statements and therefore the code is not perfectly nested anymore)
-      val parLoop = node.removeAnnotation(OMP_LOOP_ANNOT).get.value.asInstanceOf[OMP_PotentiallyParallel]
-      if (parLoop != null) parLoop.collapse = Math.max(1, parLoop.collapse - 1)
 
       val stmts = new ListBuffer[Node]()
       for ((_, bases : ArrayBases) <- decls)
