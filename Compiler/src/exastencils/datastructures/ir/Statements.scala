@@ -90,6 +90,38 @@ case class SIMD_StoreStatement(var mem : Expression, var value : Expression, var
   }
 }
 
+case class SIMD_HorizontalAddStatement(var dest : Expression, var src : Expression, var op : String = "=") extends Statement {
+  override def cpp : String = {
+    val sb = new StringBuilder()
+    sb.append("{\n")
+    sb.append(" __m256d v = ")
+    src.cppsb(sb)
+    sb.append(";\n")
+    sb.append(" __m256d h = _mm256_hadd_pd(v,v);\n ")
+    dest.cppsb(sb)
+    sb.append(' ').append(op)
+    sb.append(" _mm_cvtsd_f64(_mm_add_pd(_mm256_extractf128_pd(h,1), _mm256_castpd256_pd128(h)));\n")
+    sb.append('}')
+    return sb.toString()
+  }
+}
+
+case class SIMD_HorizontalMulStatement(var dest : Expression, var src : Expression, var op : String = "=") extends Statement {
+  override def cpp : String = {
+    val sb = new StringBuilder()
+    sb.append("{\n")
+    sb.append(" __m256d v = ")
+    src.cppsb(sb)
+    sb.append(";\n")
+    sb.append(" __m128d w = _mm_mul_pd(_mm256_extractf128_pd(v,1), _mm256_castpd256_pd128(v));\n ")
+    dest.cppsb(sb)
+    sb.append(' ').append(op)
+    sb.append(" _mm_cvtsd_f64(_mm_mul_pd(w, _mm_permute_pd(w, 1)));\n")
+    sb.append('}')
+    return sb.toString()
+  }
+}
+
 case class ForLoopStatement(var begin : Statement, var end : Expression, var inc : Statement, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement {
   def this(begin : Statement, end : Expression, inc : Statement, body : Statement, reduction : Option[Reduction]) = this(begin, end, inc, ListBuffer(body), reduction)
   def this(begin : Statement, end : Expression, inc : Statement, body : Statement) = this(begin, end, inc, ListBuffer(body))

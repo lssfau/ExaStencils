@@ -13,6 +13,7 @@ import exastencils.datastructures.Transformation.convFromNode
 import exastencils.datastructures.ir.AdditionExpression
 import exastencils.datastructures.ir.ArrayAccess
 import exastencils.datastructures.ir.AssignmentStatement
+import exastencils.datastructures.ir.BinaryOperators
 import exastencils.datastructures.ir.BitwiseAndExpression
 import exastencils.datastructures.ir.CommentStatement
 import exastencils.datastructures.ir.DivisionExpression
@@ -25,9 +26,12 @@ import exastencils.datastructures.ir.LowerEqualExpression
 import exastencils.datastructures.ir.LowerExpression
 import exastencils.datastructures.ir.MultiplicationExpression
 import exastencils.datastructures.ir.NullStatement
+import exastencils.datastructures.ir.Reduction
 import exastencils.datastructures.ir.SIMD_AdditionExpression
 import exastencils.datastructures.ir.SIMD_DivisionExpression
-import exastencils.datastructures.ir.SIMD_FloatConstantExpression
+import exastencils.datastructures.ir.SIMD_FloatConstant
+import exastencils.datastructures.ir.SIMD_HorizontalAddStatement
+import exastencils.datastructures.ir.SIMD_HorizontalMulStatement
 import exastencils.datastructures.ir.SIMD_Load1Expression
 import exastencils.datastructures.ir.SIMD_LoadExpression
 import exastencils.datastructures.ir.SIMD_MultiplicationExpression
@@ -89,7 +93,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         VariableDeclarationStatement(IntegerDatatype(), itName, Some(lBound)),
         condition,
         AssignmentStatement(VariableAccess(itName2, Some(IntegerDatatype())), assignExpr, assignOp),
-        body, None) //
+        body, reduction) //
         if (itName == itName2) =>
 
         val uBoundExcl : Expression =
@@ -110,16 +114,16 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
           case "+=" =>
             assignExpr match {
-              case IntegerConstant(1) => vectorizeLoop(itName, lBound, uBoundExcl, body)
+              case IntegerConstant(1) => vectorizeLoop(itName, lBound, uBoundExcl, body, reduction)
               case _                  => throw new VectorizationException("loop increment 1 required for vectorization")
             }
 
           case "=" =>
             assignExpr match {
               case AdditionExpression(IntegerConstant(1), VariableAccess(v, Some(IntegerDatatype()))) if v == itName =>
-                vectorizeLoop(itName, lBound, uBoundExcl, body)
+                vectorizeLoop(itName, lBound, uBoundExcl, body, reduction)
               case AdditionExpression(VariableAccess(v, Some(IntegerDatatype())), IntegerConstant(1)) if v == itName =>
-                vectorizeLoop(itName, lBound, uBoundExcl, body)
+                vectorizeLoop(itName, lBound, uBoundExcl, body, reduction)
               case _ => throw new VectorizationException("loop increment 1 required for vectorization")
             }
 
@@ -180,21 +184,51 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
   }
 
   private def vectorizeLoop(itName : String, begin : Expression, endExcl : Expression,
-    body : ListBuffer[Statement]) : Transformation.Output[_] = {
+    body : ListBuffer[Statement], reduction : Option[Reduction]) : Transformation.Output[_] = {
 
     val ctx = new LoopCtx(itName)
+    var postLoopStmt : Statement = null
+    if (reduction.isDefined) {
+      val target = reduction.get.target
+      val operator = reduction.get.op
+
+      val (vecTmp, _) : (String, Boolean) = ctx.getName(target)
+      val identityElem : Expression =
+        operator match {
+          case BinaryOperators.Addition       => SIMD_FloatConstant(0.0)
+          case BinaryOperators.Subtraction    => SIMD_FloatConstant(0.0)
+          case BinaryOperators.Multiplication => SIMD_FloatConstant(1.0)
+          case _ =>
+            throw new VectorizationException("unknown reduction operator:  " + operator)
+        }
+      ctx.preLoopStmts += VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp, Some(identityElem))
+
+      val vecTmpAcc = VariableAccess(vecTmp, Some(SIMD_RealDatatype()))
+      postLoopStmt =
+        operator match {
+          case BinaryOperators.Addition | BinaryOperators.Subtraction =>
+            SIMD_HorizontalAddStatement(target, vecTmpAcc, "+=")
+          case BinaryOperators.Multiplication =>
+            SIMD_HorizontalMulStatement(target, vecTmpAcc, "*=")
+        }
+    }
+
     for (stmt <- body)
       vectorizeStmt(stmt, ctx)
 
     def itVar = VariableAccess(itName, Some(IntegerDatatype()))
     val res = new ListBuffer[Node]()
+
     res += new VariableDeclarationStatement(IntegerDatatype(), itName, Some(begin))
+
     res += new ForLoopStatement(NullStatement(),
       LowerExpression(itVar, BitwiseAndExpression(AdditionExpression(begin, IntegerConstant(Vectorization.TMP_VS - 1)),
         UnaryExpression(UnaryOperators.BitwiseNegation, IntegerConstant(Vectorization.TMP_VS - 1)))),
       AssignmentStatement(itVar, IntegerConstant(1), "+="),
       Duplicate(body))
+
     res ++= ctx.preLoopStmts
+
     val vectLoop = new ForLoopStatement(NullStatement(),
       LowerExpression(itVar, SubtractionExpression(endExcl, IntegerConstant(Vectorization.TMP_VS - 1))),
       AssignmentStatement(itVar, IntegerConstant(Vectorization.TMP_VS), "+="),
@@ -203,6 +237,10 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     vectLoop.isParallel = true
     vectLoop.annotate(Unrolling.NO_REM_ANNOT, Vectorization.TMP_VS - 1)
     res += vectLoop
+
+    if (postLoopStmt != null)
+      res += postLoopStmt
+
     res += new ForLoopStatement(NullStatement(),
       LowerExpression(itVar, endExcl),
       AssignmentStatement(itVar, IntegerConstant(1), "+="),
@@ -309,15 +347,13 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
       case FloatConstant(value) =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp)
-          ctx.preLoopStmts += VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp,
-            Some(SIMD_FloatConstantExpression(value)))
+          ctx.preLoopStmts += VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp, Some(SIMD_FloatConstant(value)))
         VariableAccess(vecTmp, Some(SIMD_RealDatatype()))
 
       case IntegerConstant(value) => // TODO: ensure type safety
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp)
-          ctx.preLoopStmts += VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp,
-            Some(SIMD_FloatConstantExpression(value)))
+          ctx.preLoopStmts += VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp, Some(SIMD_FloatConstant(value)))
         VariableAccess(vecTmp, Some(SIMD_RealDatatype()))
 
       case UnaryExpression(UnaryOperators.Negative, expr) =>

@@ -748,7 +748,7 @@ case class SIMD_DivisionExpression(var left : Expression, var right : Expression
   }
 }
 
-case class SIMD_FloatConstantExpression(var value : Double) extends Expression {
+case class SIMD_FloatConstant(var value : Double) extends Expression {
   // ensure the compiler can parse the string
   override def cpp() : String = {
     return String.format(java.util.Locale.US, "_mm256_set1_pd(%e)", Double.box(value))
