@@ -5,12 +5,15 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.core.Duplicate
 import exastencils.core.Logger
+import exastencils.core.StateManager
+import exastencils.core.collectors.Collector
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation.convFromListBuffer
 import exastencils.datastructures.Transformation.convFromNode
 import exastencils.datastructures.ir.AdditionExpression
+import exastencils.datastructures.ir.ArrayAccess
 import exastencils.datastructures.ir.AssignmentStatement
 import exastencils.datastructures.ir.CommentStatement
 import exastencils.datastructures.ir.Expression
@@ -28,6 +31,7 @@ import exastencils.datastructures.ir.SubtractionExpression
 import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.VariableDeclarationStatement
 import exastencils.knowledge.Knowledge
+import exastencils.util.SimplifyExpression
 
 object Unrolling extends DefaultStrategy("Loop unrolling") {
 
@@ -155,15 +159,12 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     val replaceStrat = new UpdateLoopVarAndNames(itVar)
     val dups = new ListBuffer[Iterator[Statement]]()
 
-    val oldLvl = Logger.getLevel
-    Logger.setLevel(1)
     for (i <- 1L until Knowledge.opt_unroll) {
       val dup = Duplicate(body)
       replaceStrat.offset = i * oldInc
       replaceStrat.applyStandalone(StatementBlock(dup))
       dups += dup.iterator.filterNot(s => s.isInstanceOf[CommentStatement])
     }
-    Logger.setLevel(oldLvl)
 
     if (Knowledge.opt_unroll_interleave) {
       njuBody = new ListBuffer[Statement]()
@@ -208,5 +209,25 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
         decl.name += "_" + offset
         decl
     })
+
+    private object IndexCleaner extends Collector {
+      override def enter(node : Node) : Unit = {}
+      override def leave(node : Node) : Unit = {
+        node match {
+          case a : ArrayAccess => a.index = SimplifyExpression.simplifyIntegralExpr(a.index)
+          case _               =>
+        }
+      }
+      override def reset() : Unit = {}
+    }
+
+    override def applyStandalone(node : Node) : Unit = {
+      val oldLvl = Logger.getLevel
+      Logger.setLevel(1)
+      StateManager.register(IndexCleaner) // clean index expressions after modification in replaceStrat
+      super.applyStandalone(node)
+      StateManager.unregister(IndexCleaner)
+      Logger.setLevel(oldLvl)
+    }
   }
 }
