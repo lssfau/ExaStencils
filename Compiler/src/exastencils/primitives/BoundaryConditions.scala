@@ -16,7 +16,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
   def setupDirichlet : ListBuffer[Statement] = {
     var statements : ListBuffer[Statement] = ListBuffer()
 
-    statements += new InitGeomCoords(field.field) // FIXME: only add if really required
+    statements += new InitGeomCoords(field.field, true) // FIXME: only add if really required
     for (vecDim <- 0 until field.field.vectorSize) { // FIXME: this works for now, but users may want to specify bc's per vector element
       var index = LoopOverDimensions.defIt
       index(Knowledge.dimensionality) = vecDim

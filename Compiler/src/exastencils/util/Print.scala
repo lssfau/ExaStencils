@@ -21,7 +21,6 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
   override def expand : StatementBlock = {
     // FIXME: this has to be adapted for non-mpi
     // FIXME: this will use OMP parallelization and Poly transformation
-    // FIXME: this calculates wrong coordinates (falsely subtracted refOffset)
     var statements : ListBuffer[Statement] = new ListBuffer
 
     statements += new ConditionStatement(new MPI_IsRootProc,
@@ -29,16 +28,18 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
         "std::ofstream stream(" ~ filename ~ ", std::ios::trunc)",
         "stream.close()"))
 
+    var access = new FieldAccess(field, LoopOverDimensions.defIt)
+    access.index(Knowledge.dimensionality) = 0
     statements += new MPI_Sequential(ListBuffer[Statement](
       "std::ofstream stream(" ~ filename ~ ", std::ios::app)",
       new LoopOverDomain(IterationSetCollection.getIterationSetByIdentifier("inner").get, /* FIXME */
         field.field,
         ListBuffer[Statement](
-          new InitGeomCoords(field.field),
+          new InitGeomCoords(field.field, false),
           ("stream << xPos << \" \"" +
             (if (Knowledge.dimensionality > 1) " << yPos << \" \"" else "") +
             (if (Knowledge.dimensionality > 2) " << zPos << \" \"" else "") +
-            " << " : Expression) ~ new FieldAccess(field, LoopOverDimensions.defIt) ~ " << std::endl")),
+            " << " : Expression) ~ access ~ " << std::endl")),
       "stream.close()"))
 
     new StatementBlock(statements)

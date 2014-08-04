@@ -17,13 +17,13 @@ case class Root() extends Node {
   var printFieldAtEnd : Boolean = false
   var genSetableStencil : Boolean = false
   var omegaViaGlobals : Boolean = false
-  var initSolWithRand : Boolean = !testBC
+  var initSolWithRand : Boolean = !testBC && !kelvin
   var genRBSetsWithConditions : Boolean = true
   var useVecFields : Boolean = false // attempts to solve Poisson's equation for (numVecDims)D vectors; atm all three components are solved independently
   var numVecDims = (if (useVecFields) 2 else 1)
   var genStencilFields : Boolean = true || kelvin
   var useSlotsForJac : Boolean = true
-  var testStencilStencil : Boolean = false || kelvin
+  var testStencilStencil : Boolean = true || kelvin
 
   def solutionFields(level : String, postfix : String = "") = {
     if (useVecFields)
@@ -58,6 +58,21 @@ case class Root() extends Node {
         s"( CorrectionStencil@current * ( Laplace$postfix@finer * RestrictionStencil@current ) )"
     } else
       s"Laplace$postfix@current"
+  }
+
+  def addDomains(printer : java.io.PrintWriter) = {
+    Knowledge.dimensionality match {
+      case 2 => {
+        printer.println("Domain global< [ 0, 0 ] to [ 1, 1 ] >")
+        if (kelvin)
+          printer.println(s"Domain innerDom< [ ${0.0 + (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_x - 0)}, ${0.0 + (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_y - 0)} ] " +
+            s"to [ ${1.0 - (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_x - 0)}, ${1.0 - (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_y - 0)} ] >")
+      }
+      case 3 => {
+        printer.println("Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >")
+      }
+    }
+    printer.println
   }
 
   def addLayouts(printer : java.io.PrintWriter) = {
@@ -105,60 +120,67 @@ case class Root() extends Node {
     printer.println
   }
 
-  def addFields(printer : java.io.PrintWriter, postfix : String) = {
+  def addFields(printer : java.io.PrintWriter, postfix : String, domain : String) = {
     var fieldDatatype = (if (useVecFields) s"Array[Real][$numVecDims]" else "Real")
-    if (testBC || kelvin) {
+    if (testBC || (kelvin && "" == postfix)) {
       var bc = (
-        if (kelvin) "bcSol(xPos, yPos)"
+        if (kelvin && "" == postfix) "bcSol(xPos, yPos)"
         else "sin ( M_PI * xPos ) * sinh ( M_PI * yPos )")
       if ("Jac" == smoother) {
         if (useSlotsForJac) {
-          printer.println(s"Field Solution$postfix< $fieldDatatype, global, BasicComm, 0.0 >[2]@(coarsest to (finest - 1))")
-          printer.println(s"Field Solution$postfix< $fieldDatatype, global, BasicComm, $bc >[2]@finest")
+          printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >[2]@(coarsest to (finest - 1))")
+          printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, BasicComm, $bc >[2]@finest")
         } else {
-          printer.println(s"Field Solution$postfix< $fieldDatatype, global, BasicComm, 0.0 >@(coarsest to (finest - 1))")
-          printer.println(s"Field Solution$postfix< $fieldDatatype, global, BasicComm, $bc >@finest")
-          printer.println(s"Field Solution2$postfix< $fieldDatatype, global, BasicComm, 0.0 >@(coarsest to (finest - 1))")
-          printer.println(s"Field Solution2$postfix< $fieldDatatype, global, BasicComm, $bc >@finest")
+          printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >@(coarsest to (finest - 1))")
+          printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, BasicComm, $bc >@finest")
+          printer.println(s"Field Solution2$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >@(coarsest to (finest - 1))")
+          printer.println(s"Field Solution2$postfix< $fieldDatatype, $domain, BasicComm, $bc >@finest")
         }
       } else {
-        printer.println(s"Field Solution$postfix< $fieldDatatype, global, BasicComm, 0.0 >@(coarsest to (finest - 1))")
-        printer.println(s"Field Solution$postfix< $fieldDatatype, global, BasicComm, $bc >@finest")
+        printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >@(coarsest to (finest - 1))")
+        printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, BasicComm, $bc >@finest")
       }
     } else {
       if ("Jac" == smoother) {
         if (useSlotsForJac) {
-          printer.println(s"Field Solution$postfix< $fieldDatatype, global, BasicComm, 0.0 >[2]@all")
+          printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >[2]@all")
         } else {
-          printer.println(s"Field Solution$postfix< $fieldDatatype, global, BasicComm, 0.0 >@all")
-          printer.println(s"Field Solution2$postfix< $fieldDatatype, global, BasicComm, 0.0 >@all")
+          printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >@all")
+          printer.println(s"Field Solution2$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >@all")
         }
       } else {
-        printer.println(s"Field Solution$postfix< $fieldDatatype, global, BasicComm, 0.0 >@all")
+        printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >@all")
       }
     }
-    printer.println(s"Field Residual$postfix< $fieldDatatype, global, BasicComm, None >@all")
-    printer.println(s"Field RHS$postfix< $fieldDatatype, global, NoComm, None >@all")
+    printer.println(s"Field Residual$postfix< $fieldDatatype, $domain, BasicComm, None >@all")
+    if (kelvin && "_GMRF" == postfix) {
+      printer.println(s"Field RHS$postfix< $fieldDatatype, $domain, NoComm, 0.0 >@finest")
+      printer.println(s"Field RHS$postfix< $fieldDatatype, $domain, NoComm, None >@(coarsest to (finest - 1))")
+    } else
+      printer.println(s"Field RHS$postfix< $fieldDatatype, $domain, NoComm, None >@all")
     if ("CG" == cgs) {
-      printer.println(s"Field VecP$postfix< $fieldDatatype, global, BasicComm, None >@coarsest")
-      printer.println(s"Field VecGradP$postfix< $fieldDatatype, global, NoComm, None >@coarsest")
+      printer.println(s"Field VecP$postfix< $fieldDatatype, $domain, BasicComm, None >@coarsest")
+      printer.println(s"Field VecGradP$postfix< $fieldDatatype, $domain, NoComm, None >@coarsest")
     }
     printer.println
   }
 
-  def addStencilFields(printer : java.io.PrintWriter, postfix : String, domain : String = "global") = {
+  def addStencilFields(printer : java.io.PrintWriter, postfix : String, domain : String) = {
     if (genStencilFields) {
-      printer.println(s"Field LaplaceCoeff$postfix< Array[Real][${2 * Knowledge.dimensionality + 1}], $domain, NoComm, None >@all")
-      printer.println(s"StencilField Laplace$postfix< LaplaceCoeff$postfix => LaplaceStencil >@all")
+      if (testStencilStencil)
+        printer.println(s"Field LaplaceCoeff$postfix< Array[Real][${var res = 1; for (i <- 0 until Knowledge.dimensionality) res *= 3; res}], $domain, BasicComm, 0.0 >@all")
+      else
+        printer.println(s"Field LaplaceCoeff$postfix< Array[Real][${2 * Knowledge.dimensionality + 1}], $domain, NoComm, None >@all")
+      printer.println(s"StencilField Laplace$postfix< LaplaceCoeff$postfix => LaplaceStencil$postfix >@all")
       printer.println
     }
   }
 
-  def addStencils(printer : java.io.PrintWriter) = {
+  def addLaplaceStencil(printer : java.io.PrintWriter, postfix : String) = {
     if (genStencilFields)
-      printer.println("Stencil LaplaceStencil@all {")
+      printer.println(s"Stencil LaplaceStencil$postfix@all {")
     else
-      printer.println("Stencil Laplace@all {")
+      printer.println(s"Stencil Laplace$postfix@all {")
     if (genSetableStencil) {
       Knowledge.dimensionality match {
         case 2 => {
@@ -180,7 +202,10 @@ case class Root() extends Node {
     } else {
       Knowledge.dimensionality match {
         case 2 => {
-          printer.println("\t[ 0,  0] => 4.0")
+          if (kelvin && "_GMRF" == postfix)
+            printer.println("\t[ 0,  0] => (4.0 + kappa)")
+          else
+            printer.println("\t[ 0,  0] => 4.0")
           printer.println("\t[ 1,  0] => -1.0")
           printer.println("\t[-1,  0] => -1.0")
           printer.println("\t[ 0,  1] => -1.0")
@@ -226,7 +251,9 @@ case class Root() extends Node {
       }
     }
     printer.println("}")
+  }
 
+  def addDefaultStencils(printer : java.io.PrintWriter) = {
     Knowledge.dimensionality match {
       case 2 => {
         printer.println("Stencil CorrectionStencil@all {")
@@ -428,7 +455,10 @@ case class Root() extends Node {
       printer.println(s"\t\tcommunicate VecP$postfix@current")
 
       printer.println(s"\t\tloop over inner on VecP$postfix@current {")
-      printer.println(s"\t\t\tVecGradP$postfix@current = ${stencilAccess(postfix)} * VecP$postfix@current")
+      if (testStencilStencil && !genStencilFields)
+        printer.println(s"\t\t\tVecGradP$postfix@current = ${stencilAccess(postfix)} * VecP$postfix@current")
+      else
+        printer.println(s"\t\t\tVecGradP$postfix@current = Laplace$postfix@current * VecP$postfix@current")
       printer.println(s"\t\t}")
 
       printer.println(s"\t\tvar alphaDenom : Real = 0")
@@ -652,13 +682,13 @@ case class Root() extends Node {
       // FIXME: make results more reproducible via sth like 'std::srand((unsigned int)fragments[f]->id)'
       printer.println(s"\tloop over inner on Solution$postfix@finest {")
       for (vecDim <- 0 until numVecDims) {
-        printer.println(s"\t\t${solutionFields(s"finest")(vecDim)} = native('((double)std::rand()/RAND_MAX)')")
+        printer.println(s"\t\t${solutionFields(s"finest", postfix)(vecDim)} = native('((double)std::rand()/RAND_MAX)')")
       }
       printer.println(s"\t}")
     } else {
       printer.println(s"\tloop over inner on Solution$postfix@finest {")
       for (vecDim <- 0 until numVecDims) {
-        printer.println(s"\t\t${solutionFields(s"finest")(vecDim)} = 0")
+        printer.println(s"\t\t${solutionFields(s"finest", postfix)(vecDim)} = 0")
       }
       printer.println(s"\t}")
     }
@@ -668,17 +698,19 @@ case class Root() extends Node {
     printer.println(s"def InitRHS$postfix ( ) : Unit {")
     printer.println(s"\tloop over innerForFieldsWithoutGhostLayers on RHS$postfix@finest {")
     for (vecDim <- 0 until numVecDims) {
-      printer.println(s"\t\t${rhsFields(s"finest")(vecDim)} = 0")
+      printer.println(s"\t\t${rhsFields(s"finest", postfix)(vecDim)} = 0")
     }
     printer.println(s"\t}")
     printer.println(s"}")
 
     if (genStencilFields) {
-      if (testStencilStencil)
+      if (testStencilStencil) {
         printer.println(s"def InitLaplace$postfix@finest ( ) : Unit {")
-      else
+        printer.println(s"\tloop over inner on LaplaceCoeff$postfix@current {")
+      } else {
         printer.println(s"def InitLaplace$postfix@all ( ) : Unit {")
-      printer.println(s"\tloop over innerForFieldsWithoutGhostLayers on LaplaceCoeff$postfix@current {")
+        printer.println(s"\tloop over innerForFieldsWithoutGhostLayers on LaplaceCoeff$postfix@current {")
+      }
       Knowledge.dimensionality match {
         case 2 => {
           printer.println(s"\t\tLaplace$postfix@current = LaplaceStencil$postfix@current")
@@ -716,8 +748,14 @@ case class Root() extends Node {
 
       if (testStencilStencil) {
         printer.println(s"def InitLaplace$postfix@(coarsest to (finest - 1)) ( ) : Unit {")
-        printer.println(s"\tloop over innerForFieldsWithoutGhostLayers on LaplaceCoeff$postfix@current {")
-        printer.println(s"\t\tLaplace$postfix@current = ( CorrectionStencil@current * ( ToCoarser ( Laplace$postfix@finer ) * RestrictionStencil@current ) )")
+        printer.println(s"\tcommunicate LaplaceCoeff$postfix@finer")
+        printer.println(s"\tloop over inner on LaplaceCoeff$postfix@current {")
+        if (false && kelvin) { // hack injection
+          for (i <- 0 until 9)
+            printer.println(s"\t\tLaplaceCoeff$postfix@current[$i] = ToCoarser ( LaplaceCoeff$postfix@finer[$i] )")
+        } else {
+          printer.println(s"\t\tLaplace$postfix@current = ( CorrectionStencil@current * ( ToCoarser ( Laplace$postfix@finer ) * RestrictionStencil@current ) )")
+        }
         printer.println(s"\t}")
         printer.println(s"}")
       }
@@ -732,42 +770,33 @@ case class Root() extends Node {
     if (kelvin) {
       Settings.additionalIncludes += "#include <random>"
       Settings.additionalIncludes += "#include <functional>"
+      Settings.additionalIncludes += "#include \"Util/Gamma.h\""
     }
 
     // Domains
-    Knowledge.dimensionality match {
-      case 2 => {
-        printer.println("Domain global< [ 0, 0 ] to [ 1, 1 ] >")
-        if (kelvin)
-          printer.println(s"Domain innerDom< [ ${0.0 + (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_x - 0)}, ${0.0 + (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_y - 0)} ] " +
-            s"to [ ${1.0 - (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_x - 0)}, ${1.0 - (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_y - 0)} ] >")
-      }
-      case 3 => {
-        printer.println("Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >")
-      }
-    }
-    printer.println
+    addDomains(printer)
 
     // Layouts
     addLayouts(printer)
 
     // Fields
-    addFields(printer, "")
+    addFields(printer, "", "innerDom")
     if (kelvin)
-      addFields(printer, "_GMRF")
+      addFields(printer, "_GMRF", "global")
 
     if (kelvin) {
-      printer.println("def bcSol (xPos : Real, yPos : Real) : Real {")
-      printer.println("\tif ( yPos >= 1.0 ) { return ( UN ) }")
-      printer.println("\tif ( xPos >= 1.0 ) { return ( UE ) }")
-      printer.println("\tif ( yPos <= 0.0 ) { return ( US ) }")
-      printer.println("\tif ( xPos <= 0.0 ) { return ( UW ) }")
-      printer.println("\treturn ( 0.0 )")
-      printer.println("}")
+      printer.println(s"def bcSol (xPos : Real, yPos : Real) : Real {")
+      printer.println(s"\tif ( yPos >= ${1.0 - (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_y - 0)} ) { return ( UN ) }")
+      printer.println(s"\tif ( xPos >= ${1.0 - (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_x - 0)} ) { return ( UE ) }")
+      printer.println(s"\tif ( yPos <= ${0.0 + (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_y - 0)} ) { return ( US ) }")
+      printer.println(s"\tif ( xPos <= ${0.0 + (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_x - 0)} ) { return ( UW ) }")
+      printer.println(s"\treturn ( 0.0 )")
+      printer.println(s"}")
+      printer.println
     }
 
     // Coeff/StencilFields
-    addStencilFields(printer, "", "global")
+    addStencilFields(printer, "", "innerDom")
     if (kelvin)
       addStencilFields(printer, "_GMRF", "global")
 
@@ -778,7 +807,9 @@ case class Root() extends Node {
     }
 
     // Stencils
-    addStencils(printer)
+    addLaplaceStencil(printer, "")
+    addLaplaceStencil(printer, "_GMRF")
+    addDefaultStencils(printer)
 
     // Iteration Sets
     addIterationSets(printer)
@@ -849,31 +880,32 @@ case class Root() extends Node {
       //      printer.println
 
       printer.println("def solve_GMRF ( ) : Unit {")
-      printer.println("\tnative ( \"std::default_random_engine generator;\" )")
-      printer.println("\tnative ( \"std::uniform_int_distribution<int> distribution(0,1);\" )")
-      printer.println("\tnative ( \"auto randn = std::bind ( distribution, generator );\" )")
+      printer.println("\tnative ( \"std::srand(mpiRank)\" )")
+      printer.println("\tnative ( \"std::default_random_engine generator\" )")
+      printer.println("\tnative ( \"std::normal_distribution<double> distribution(0.0, 1.0)\" )")
+      printer.println("\tnative ( \"auto randn = std::bind ( distribution, generator )\" )")
 
-      printer.println("\tvar tau2 : Real = gamma ( nu ) / ( gamma ( nu + 0.5 ) * (( 4.0 * M_PI ) ** ( dim / 2.0 )) * ( kappa ** ( 2 * nu )) * sigma * sigma )")
-      printer.println("\tloop over innerForFieldsWithoutGhostLayers on RHS_GMRF@finest {")
-      printer.println("\t\tRHS_GMRF@finest = randn ( ) // normal random generator")
-      printer.println("\t}")
-      printer.println("\tcommunicate RHS_GMRF@finest")
-      printer.println("\tUpResidual_GMRF@finest ( )")
-      printer.println("\tvar res0 : Real = L2Residual_GMRF_0@finest ( )")
-      printer.println("\tvar res : Real = res0")
-      printer.println("\tvar resold : Real = 0")
+      printer.println(s"\tvar tau2 : Real = gamma ( nu ) / ( gamma ( nu + 0.5 ) * (( 4.0 * M_PI ) ** ( dim / 2.0 )) * ( kappa ** ( 2 * nu )) * sigma * sigma )")
+      printer.println(s"\tloop over innerForFieldsWithoutGhostLayers on RHS_GMRF@finest {")
+      printer.println(s"\t\tRHS_GMRF@finest = randn ( ) / ${Knowledge.domain_numFragsTotal_x * (1 << Knowledge.maxLevel)}")
+      printer.println(s"\t}")
+      printer.println(s"\tcommunicate RHS_GMRF@finest")
+      printer.println(s"\tUpResidual_GMRF@finest ( )")
+      printer.println(s"\tvar res0 : Real = L2Residual_GMRF_0@finest ( )")
+      printer.println(s"\tvar res : Real = res0")
+      printer.println(s"\tvar resold : Real = 0")
       printer.println("\tprint ( '\"Starting residual:\"', res0 )")
-      printer.println("\trepeat up 10 {")
-      printer.println("\t\tresold = res")
-      printer.println("\t\tVCycle_GMRF@finest ( )")
-      printer.println("\t\tUpResidual_GMRF@finest ( )")
-      printer.println("\t\tres = L2Residual_GMRF_0@finest ( )")
+      printer.println(s"\trepeat up 10 {")
+      printer.println(s"\t\tresold = res")
+      printer.println(s"\t\tVCycle_GMRF@finest ( )")
+      printer.println(s"\t\tUpResidual_GMRF@finest ( )")
+      printer.println(s"\t\tres = L2Residual_GMRF_0@finest ( )")
       printer.println("\t\tprint ( '\"Residual:\"', res, '\"Residual reduction:\"', ( res0 / res ), '\"Convergence factor:\"', ( res / resold ) )")
-      printer.println("\t}")
-      printer.println("\tloop over inner on Solution_GMRF@finest {")
-      printer.println("\t\tSolution_GMRF@finest *= 1.0 / sqrt ( tau2 )")
-      printer.println("\t}")
-      printer.println("}")
+      printer.println(s"\t}")
+      printer.println(s"\tloop over inner on Solution_GMRF@finest {")
+      printer.println(s"\t\tSolution_GMRF@finest = exp ( Solution_GMRF@finest / sqrt ( tau2 ) )")
+      printer.println(s"\t}")
+      printer.println(s"}")
       printer.println
     }
 
@@ -923,7 +955,7 @@ case class Root() extends Node {
 
     if (kelvin) {
       // setup stencils for the actual PDE
-      printer.println("\tloop over innerForFieldsWithoutGhostLayers on LaplaceCoeff_GMRF@finest {")
+      printer.println("\tloop over inner on LaplaceCoeff@finest {")
       printer.println("\t\tLaplaceCoeff@finest[0] = TransferStencil_Center@finest * Solution_GMRF@finest")
       printer.println("\t\tLaplaceCoeff@finest[1] = TransferStencil_Right@finest * Solution_GMRF@finest")
       printer.println("\t\tLaplaceCoeff@finest[2] = TransferStencil_Left@finest * Solution_GMRF@finest")
@@ -968,6 +1000,17 @@ case class Root() extends Node {
     printer.println("\tstopTimer ( timeToSolveWatch, timeToSolve )")
     printer.println("\tprint ( '\"Total time to solve: \"', timeToSolve )")
     printer.println("\tprint ( '\"Mean time per vCycle: \"', totalTime / 10 )")
+
+    if (kelvin) {
+      val numPoints = (Knowledge.domain_numFragsTotal_x - 2) * (1 << Knowledge.maxLevel)
+      printer.println(s"\tvar solNorm : Real = 0.0")
+      printer.println(s"\tloop over inner on Solution@finest with reduction( + : solNorm ) {")
+      printer.println(s"\t\t// FIXME: this counts duplicated values multiple times")
+      printer.println(s"\t\tsolNorm += ${solutionFields(s"finest", "")(0)} * ${solutionFields(s"finest", "")(0)}")
+      printer.println(s"\t}")
+      printer.println(s"\tsolNorm = ( sqrt ( solNorm ) ) / ${numPoints * numPoints}")
+      printer.println("\tprint ( '\"Norm of the solution: \"', solNorm )")
+    }
 
     if (printFieldAtEnd)
       printer.println("\tprintField ( '\"Solution.dat\"', Solution@finest )")
