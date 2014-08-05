@@ -12,7 +12,7 @@ import exastencils.datastructures.ir.PointerDatatype
 import exastencils.datastructures.ir.RealDatatype
 import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.VariableDeclarationStatement
-import exastencils.datastructures.ir.iv.FieldData
+import exastencils.datastructures.ir.iv
 import exastencils.util.EvaluationException
 import exastencils.util.SimplifyExpression
 
@@ -37,7 +37,7 @@ object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expre
       a.src = simplify(src)
       a
 
-    case a @ AssignmentStatement(ArrayAccess(fd : FieldData, _), src, op) //
+    case a @ AssignmentStatement(ArrayAccess(fd : iv.FieldData, _), src, op) //
     if (fd.field.dataType.resolveUnderlyingDatatype == RealDatatype()) =>
       a.src = simplify(src)
       a
