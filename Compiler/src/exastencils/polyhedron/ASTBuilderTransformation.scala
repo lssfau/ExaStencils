@@ -54,9 +54,10 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
   private final val ZERO_VAL : isl.Val = isl.Val.zero()
   private final val ONE_VAL : isl.Val = isl.Val.one()
 
+  private val loopStmts = new HashMap[String, ListBuffer[ForLoopStatement with OptimizationHint]]()
   private var oldStmts : HashMap[String, (Statement, ArrayBuffer[String])] = null
   private var seqDims : TreeSet[String] = null
-  private var parallelize : Boolean = false
+  private var parallelize_omp : Boolean = false
 
   def isDefinedAt(node : Node) : Boolean = node match {
     case loop : LoopOverDimensions with PolyhedronAccessable =>
@@ -68,38 +69,30 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
 
     val scop : Scop = node.removeAnnotation(PolyOpt.SCOP_ANNOT).get.value.asInstanceOf[Scop]
 
-    //    Logger.debug("create AST for model:")
-    //    Logger.debug("    Domain:   " + scop.domain)
-    //    Logger.debug("    Schedule: " + scop.schedule)
-
     // find all sequential loops
-    seqDims = null
-    parallelize = false
-    if (scop.parallelize) {
-      parallelize = true
-      seqDims = new TreeSet[String]()
-      for (i <- scop.noParDims)
-        seqDims += scop.njuLoopVars(i)
+    parallelize_omp = scop.parallelize
+    seqDims = new TreeSet[String]()
+    for (i <- scop.noParDims)
+      seqDims += scop.njuLoopVars(i)
 
-      var deps : isl.UnionMap = scop.deps.validity()
-      deps = deps.applyDomain(scop.schedule)
-      deps = deps.applyRange(scop.schedule)
+    var deps : isl.UnionMap = scop.deps.validity()
+    deps = deps.applyDomain(scop.schedule)
+    deps = deps.applyRange(scop.schedule)
 
-      deps.foreachMap({ dep : isl.Map =>
-        val directions = dep.deltas()
-        val universe : isl.Set = isl.BasicSet.universe(directions.getSpace())
-        val dim : Int = universe.dim(isl.DimType.Set)
-        for (i <- 0 until dim) {
-          var seq = universe
-          for (j <- 0 until i)
-            seq = seq.fixVal(isl.DimType.Set, j, ZERO_VAL)
-          seq = seq.lowerBoundVal(isl.DimType.Set, i, ONE_VAL)
+    deps.foreachMap({ dep : isl.Map =>
+      val directions = dep.deltas()
+      val universe : isl.Set = isl.BasicSet.universe(directions.getSpace())
+      val dim : Int = universe.dim(isl.DimType.Set)
+      for (i <- 0 until dim) {
+        var seq = universe
+        for (j <- 0 until i)
+          seq = seq.fixVal(isl.DimType.Set, j, ZERO_VAL)
+        seq = seq.lowerBoundVal(isl.DimType.Set, i, ONE_VAL)
 
-          if (!seq.intersect(directions).isEmpty())
-            seqDims.add(scop.njuLoopVars(i))
-        }
-      })
-    }
+        if (!seq.intersect(directions).isEmpty())
+          seqDims += scop.njuLoopVars(i)
+      }
+    })
 
     // compute schedule dims
     var dims : Int = 0
@@ -125,6 +118,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
     for (i <- 0 until dims)
       itersId = itersId.add(isl.Id.alloc(scop.njuLoopVars(i), null))
 
+    loopStmts.clear()
     oldStmts = scop.stmts
 
     // build AST
@@ -140,6 +134,18 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
           Logger.debug("[poly ast] cannot create AST from model:  " + msg)
           return node
       }
+
+    // mark innermost loops
+    var i : Int = scop.njuLoopVars.size - 1
+    while (i >= 0) {
+      var innermostLoops = loopStmts.get(scop.njuLoopVars(i))
+      if (innermostLoops.isDefined) {
+        for (l <- innermostLoops.get)
+          l.isInnermost = true
+        i = 0 // break
+      }
+      i -= 1
+    }
 
     // add comment (for debugging) and (eventually) declarations outside loop nest
     val comment = new CommentStatement("Statements in this Scop: " + scop.stmts.keySet.mkString(", "))
@@ -174,25 +180,29 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
           val islIt : isl.AstExpr = node.forGetIterator()
           assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
           val itStr : String = islIt.getId().getName()
-          val parNow : Boolean = parallelize && !seqDims.contains(itStr)
-          parallelize &= !parNow // if code must be parallelized, then now (parNow) XOR later (parallelize)
+          val parOMP : Boolean = parallelize_omp && !seqDims.contains(itStr)
+          parallelize_omp &= !parOMP // if code must be parallelized, then now (parNow) XOR later (parallelize)
           val it : VariableAccess = VariableAccess(itStr, Some(IntegerDatatype()))
           val init : Statement = VariableDeclarationStatement(IntegerDatatype(), itStr, Some(processIslExpr(node.forGetInit())))
           val cond : Expression = processIslExpr(node.forGetCond())
           val incr : Statement = AssignmentStatement(it, processIslExpr(node.forGetInc()), "+=")
 
           val body : Statement = processIslNode(node.forGetBody())
-          parallelize |= parNow // restore overall parallelization level
-          if (parNow)
-            body match {
-              case StatementBlock(raw) => new ForLoopStatement(init, cond, incr, raw) with OptimizationHint with OMP_PotentiallyParallel
-              case _                   => new ForLoopStatement(init, cond, incr, body) with OptimizationHint with OMP_PotentiallyParallel
-            }
-          else
-            body match {
-              case StatementBlock(raw) => new ForLoopStatement(init, cond, incr, raw) with OptimizationHint
-              case _                   => new ForLoopStatement(init, cond, incr, body) with OptimizationHint
-            }
+          parallelize_omp |= parOMP // restore overall parallelization level
+          val loop : ForLoopStatement with OptimizationHint =
+            if (parOMP)
+              body match {
+                case StatementBlock(raw) => new ForLoopStatement(init, cond, incr, raw) with OptimizationHint with OMP_PotentiallyParallel
+                case _                   => new ForLoopStatement(init, cond, incr, body) with OptimizationHint with OMP_PotentiallyParallel
+              }
+            else
+              body match {
+                case StatementBlock(raw) => new ForLoopStatement(init, cond, incr, raw) with OptimizationHint
+                case _                   => new ForLoopStatement(init, cond, incr, body) with OptimizationHint
+              }
+          loop.isParallel = seqDims != null && !seqDims.contains(itStr)
+          loopStmts.getOrElseUpdate(itStr, new ListBuffer()) += loop
+          loop
         }
 
       case isl.AstNodeType.NodeIf =>

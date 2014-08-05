@@ -1,3 +1,6 @@
 package exastencils.optimization
 
-trait OptimizationHint
+trait OptimizationHint {
+  var isParallel : Boolean = false
+  var isInnermost : Boolean = false
+}

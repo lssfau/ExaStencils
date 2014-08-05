@@ -2,11 +2,9 @@ package exastencils.optimization
 
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core.Duplicate
 import exastencils.core.Logger
-import exastencils.core.StateManager
-import exastencils.core.collectors.Collector
-import exastencils.datastructures.CustomStrategy
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
@@ -15,6 +13,7 @@ import exastencils.datastructures.Transformation.convFromNode
 import exastencils.datastructures.ir.AdditionExpression
 import exastencils.datastructures.ir.ArrayAccess
 import exastencils.datastructures.ir.AssignmentStatement
+import exastencils.datastructures.ir.BinaryOperators
 import exastencils.datastructures.ir.BitwiseAndExpression
 import exastencils.datastructures.ir.CommentStatement
 import exastencils.datastructures.ir.DivisionExpression
@@ -27,86 +26,51 @@ import exastencils.datastructures.ir.LowerEqualExpression
 import exastencils.datastructures.ir.LowerExpression
 import exastencils.datastructures.ir.MultiplicationExpression
 import exastencils.datastructures.ir.NullStatement
+import exastencils.datastructures.ir.Reduction
 import exastencils.datastructures.ir.SIMD_AdditionExpression
 import exastencils.datastructures.ir.SIMD_DivisionExpression
-import exastencils.datastructures.ir.SIMD_FloatConstantExpression
+import exastencils.datastructures.ir.SIMD_FloatConstant
+import exastencils.datastructures.ir.SIMD_HorizontalAddStatement
+import exastencils.datastructures.ir.SIMD_HorizontalMulStatement
 import exastencils.datastructures.ir.SIMD_Load1Expression
 import exastencils.datastructures.ir.SIMD_LoadExpression
 import exastencils.datastructures.ir.SIMD_MultiplicationExpression
 import exastencils.datastructures.ir.SIMD_MultiplyAddExpression
 import exastencils.datastructures.ir.SIMD_MultiplySubExpression
+import exastencils.datastructures.ir.SIMD_NegateExpresseion
 import exastencils.datastructures.ir.SIMD_RealDatatype
+import exastencils.datastructures.ir.SIMD_Scalar2VectorExpression
 import exastencils.datastructures.ir.SIMD_StoreStatement
 import exastencils.datastructures.ir.SIMD_SubtractionExpression
 import exastencils.datastructures.ir.Statement
-import exastencils.datastructures.ir.StringConstant
+import exastencils.datastructures.ir.StatementBlock
 import exastencils.datastructures.ir.SubtractionExpression
 import exastencils.datastructures.ir.UnaryExpression
 import exastencils.datastructures.ir.UnaryOperators
 import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.VariableDeclarationStatement
 import exastencils.util.SimplifyExpression
-import exastencils.datastructures.ir.VariableDeclarationStatement
-import exastencils.datastructures.ir.SIMD_RealDatatype
-import exastencils.datastructures.ir.SIMD_Scalar2VectorExpression
-import exastencils.datastructures.ir.RealDatatype
-import exastencils.datastructures.ir.SIMD_RealDatatype
-import exastencils.datastructures.ir.StatementBlock
-import exastencils.datastructures.ir.FunctionCallExpression
 
-object Vectorization extends CustomStrategy("Vectorization") {
+object Vectorization extends DefaultStrategy("Vectorization") {
 
   final val TMP_VS : Int = 4 // TODO: replace with actual hardware info
 
-  private[optimization] final val VECT_ANNOT = "Vectorize"
-
-  override def apply() : Unit = {
-
-    this.transaction()
-    Logger.info("Applying strategy " + name)
-
-    val annotate = new AnnotateLoops()
-    StateManager.register(annotate)
-    this.execute(new Transformation("find loops", PartialFunction.empty))
-    StateManager.unregister(annotate)
-
-    this.execute(new Transformation("optimize", VectorizeAnnotated))
-
-    this.commit()
-  }
-}
-
-private final class AnnotateLoops extends Collector {
-
-  private var innerLoop : Boolean = false
-
-  def enter(n : Node) : Unit = {
-    innerLoop = innerLoop || n.isInstanceOf[ForLoopStatement with OptimizationHint]
-  }
-
-  def leave(n : Node) : Unit = {
-    if (!innerLoop)
-      return
-
-    n match {
-      case loop : ForLoopStatement with OptimizationHint =>
-        innerLoop = false
-        loop.annotate(Vectorization.VECT_ANNOT)
-      case _ =>
-    }
-  }
-
-  def reset() : Unit = {
-    innerLoop = false
-  }
+  this += new Transformation("optimize", VectorizeInnermost)
 }
 
 private final case class VectorizationException(msg : String) extends Exception(msg)
 
-private final object VectorizeAnnotated extends PartialFunction[Node, Transformation.Output[_]] {
+private final object VectorizeInnermost extends PartialFunction[Node, Transformation.Output[_]] {
+
+  private final val DEBUG : Boolean = false
 
   def isDefinedAt(node : Node) : Boolean = {
-    return node.hasAnnotation(Vectorization.VECT_ANNOT)
+    return node match {
+      case loop : ForLoopStatement with OptimizationHint =>
+        loop.isInnermost && loop.isParallel
+      case _ =>
+        false
+    }
   }
 
   def apply(node : Node) : Transformation.Output[_] = {
@@ -115,7 +79,8 @@ private final object VectorizeAnnotated extends PartialFunction[Node, Transforma
       vectorizeLoop(node.asInstanceOf[ForLoopStatement])
     } catch {
       case VectorizationException(msg) =>
-        Logger.debug("[vect]  unable to vectorize loop: " + msg)
+        if (DEBUG)
+          Logger.debug("[vect]  unable to vectorize loop: " + msg)
         node
     }
   }
@@ -127,51 +92,38 @@ private final object VectorizeAnnotated extends PartialFunction[Node, Transforma
       case ForLoopStatement(
         VariableDeclarationStatement(IntegerDatatype(), itName, Some(lBound)),
         condition,
-        AssignmentStatement(assignVar, assignExpr, assignOp),
-        body, None) //
-        =>
+        AssignmentStatement(VariableAccess(itName2, Some(IntegerDatatype())), assignExpr, assignOp),
+        body, reduction) //
+        if (itName == itName2) =>
 
-        assignVar match {
-          case VariableAccess(v, _) if (v == itName) =>
-          case StringConstant(v) if (v == itName)    =>
-          case _ =>
-            throw new VectorizationException("initialized variable is not incremented in inc loop header")
-        }
+        val uBoundExcl : Expression =
+          condition match {
 
-        var uBoundExcl : Expression = null
-        condition match {
+            case LowerExpression(VariableAccess(boundsName, Some(IntegerDatatype())),
+              upperBoundExcl) if (itName == boundsName) =>
+              upperBoundExcl
 
-          case LowerExpression(VariableAccess(boundsName, _), upperBoundExcl) if (itName == boundsName) =>
-            uBoundExcl = upperBoundExcl
-          case LowerExpression(StringConstant(boundsName), upperBoundExcl) if (itName == boundsName) =>
-            uBoundExcl = upperBoundExcl
+            case LowerEqualExpression(VariableAccess(boundsName, Some(IntegerDatatype())),
+              upperBoundIncl) if (itName == boundsName) =>
+              AdditionExpression(upperBoundIncl, IntegerConstant(1))
 
-          case LowerEqualExpression(VariableAccess(boundsName, _), upperBoundIncl) if (itName == boundsName) =>
-            uBoundExcl = AdditionExpression(upperBoundIncl, IntegerConstant(1))
-          case LowerEqualExpression(StringConstant(boundsName), upperBoundIncl) if (itName == boundsName) =>
-            uBoundExcl = AdditionExpression(upperBoundIncl, IntegerConstant(1))
-
-          case _ => throw new VectorizationException("no upper bound")
-        }
+            case _ => throw new VectorizationException("no upper bound")
+          }
 
         assignOp match {
 
           case "+=" =>
             assignExpr match {
-              case IntegerConstant(1) => vectorizeLoop(itName, lBound, uBoundExcl, body)
+              case IntegerConstant(1) => vectorizeLoop(itName, lBound, uBoundExcl, body, reduction)
               case _                  => throw new VectorizationException("loop increment 1 required for vectorization")
             }
 
           case "=" =>
             assignExpr match {
-              case AdditionExpression(IntegerConstant(1), VariableAccess(v, _)) if v == itName =>
-                vectorizeLoop(itName, lBound, uBoundExcl, body)
-              case AdditionExpression(VariableAccess(v, _), IntegerConstant(1)) if v == itName =>
-                vectorizeLoop(itName, lBound, uBoundExcl, body)
-              case AdditionExpression(IntegerConstant(1), StringConstant(v)) if v == itName =>
-                vectorizeLoop(itName, lBound, uBoundExcl, body)
-              case AdditionExpression(StringConstant(v), IntegerConstant(1)) if v == itName =>
-                vectorizeLoop(itName, lBound, uBoundExcl, body)
+              case AdditionExpression(IntegerConstant(1), VariableAccess(v, Some(IntegerDatatype()))) if v == itName =>
+                vectorizeLoop(itName, lBound, uBoundExcl, body, reduction)
+              case AdditionExpression(VariableAccess(v, Some(IntegerDatatype())), IntegerConstant(1)) if v == itName =>
+                vectorizeLoop(itName, lBound, uBoundExcl, body, reduction)
               case _ => throw new VectorizationException("loop increment 1 required for vectorization")
             }
 
@@ -232,26 +184,64 @@ private final object VectorizeAnnotated extends PartialFunction[Node, Transforma
   }
 
   private def vectorizeLoop(itName : String, begin : Expression, endExcl : Expression,
-    body : ListBuffer[Statement]) : Transformation.Output[_] = {
+    body : ListBuffer[Statement], reduction : Option[Reduction]) : Transformation.Output[_] = {
 
     val ctx = new LoopCtx(itName)
+    var postLoopStmt : Statement = null
+    if (reduction.isDefined) {
+      val target = reduction.get.target
+      val operator = reduction.get.op
+
+      val (vecTmp, _) : (String, Boolean) = ctx.getName(target)
+      val identityElem : Expression =
+        operator match {
+          case BinaryOperators.Addition       => SIMD_FloatConstant(0.0)
+          case BinaryOperators.Subtraction    => SIMD_FloatConstant(0.0)
+          case BinaryOperators.Multiplication => SIMD_FloatConstant(1.0)
+          case _ =>
+            throw new VectorizationException("unknown reduction operator:  " + operator)
+        }
+      ctx.preLoopStmts += VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp, Some(identityElem))
+
+      val vecTmpAcc = VariableAccess(vecTmp, Some(SIMD_RealDatatype()))
+      postLoopStmt =
+        operator match {
+          case BinaryOperators.Addition | BinaryOperators.Subtraction =>
+            SIMD_HorizontalAddStatement(target, vecTmpAcc, "+=")
+          case BinaryOperators.Multiplication =>
+            SIMD_HorizontalMulStatement(target, vecTmpAcc, "*=")
+        }
+    }
+
     for (stmt <- body)
       vectorizeStmt(stmt, ctx)
 
     def itVar = VariableAccess(itName, Some(IntegerDatatype()))
     val res = new ListBuffer[Node]()
-    res += VariableDeclarationStatement(IntegerDatatype(), itName, Some(begin))
-    res += ForLoopStatement(NullStatement(),
+
+    res += new VariableDeclarationStatement(IntegerDatatype(), itName, Some(begin))
+
+    res += new ForLoopStatement(NullStatement(),
       LowerExpression(itVar, BitwiseAndExpression(AdditionExpression(begin, IntegerConstant(Vectorization.TMP_VS - 1)),
         UnaryExpression(UnaryOperators.BitwiseNegation, IntegerConstant(Vectorization.TMP_VS - 1)))),
       AssignmentStatement(itVar, IntegerConstant(1), "+="),
       Duplicate(body))
+
     res ++= ctx.preLoopStmts
-    res += ForLoopStatement(NullStatement(),
-      LowerExpression(itVar, SubtractionExpression(endExcl, IntegerConstant(Vectorization.TMP_VS))),
+
+    val vectLoop = new ForLoopStatement(NullStatement(),
+      LowerExpression(itVar, SubtractionExpression(endExcl, IntegerConstant(Vectorization.TMP_VS - 1))),
       AssignmentStatement(itVar, IntegerConstant(Vectorization.TMP_VS), "+="),
-      ctx.vectStmts)
-    res += ForLoopStatement(NullStatement(),
+      ctx.vectStmts) with OptimizationHint
+    vectLoop.isInnermost = true
+    vectLoop.isParallel = true
+    vectLoop.annotate(Unrolling.NO_REM_ANNOT, Vectorization.TMP_VS - 1)
+    res += vectLoop
+
+    if (postLoopStmt != null)
+      res += postLoopStmt
+
+    res += new ForLoopStatement(NullStatement(),
       LowerExpression(itVar, endExcl),
       AssignmentStatement(itVar, IntegerConstant(1), "+="),
       body) // old AST will be replaced completely, so we can reuse the body once here (we cloned above)
@@ -301,18 +291,23 @@ private final object VectorizeAnnotated extends PartialFunction[Node, Transforma
           var access1 : Boolean = true
           for ((expr, value) <- ind)
             expr match {
-              case VariableAccess(name, _) if (name == ctx.itName) =>
+              case VariableAccess(name, Some(IntegerDatatype())) if (name == ctx.itName) =>
                 if (value == 1L) access1 = false
                 else throw new VectorizationException("no linear memory access")
 
               case _ =>
-                val containsLoopVar = new DefaultStrategy("")
-                containsLoopVar += new Transformation("", {
+                val containsLoopVar = new DefaultStrategy("Ensure linear memory access")
+                containsLoopVar += new Transformation("seaching...", {
                   case node @ VariableAccess(name, _) if (name == ctx.itName) =>
                     throw new VectorizationException("no linear memory access")
-                  case node => node
                 })
-                containsLoopVar.applyStandalone(expr)
+                val oldLvl = Logger.getLevel
+                Logger.setLevel(1)
+                try {
+                  containsLoopVar.applyStandalone(expr)
+                } finally {
+                  Logger.setLevel(oldLvl)
+                }
             }
 
           // TODO: ensure grid alignment first
@@ -352,16 +347,17 @@ private final object VectorizeAnnotated extends PartialFunction[Node, Transforma
       case FloatConstant(value) =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp)
-          ctx.preLoopStmts += VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp,
-            Some(SIMD_FloatConstantExpression(value)))
+          ctx.preLoopStmts += VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp, Some(SIMD_FloatConstant(value)))
         VariableAccess(vecTmp, Some(SIMD_RealDatatype()))
 
       case IntegerConstant(value) => // TODO: ensure type safety
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp)
-          ctx.preLoopStmts += VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp,
-            Some(SIMD_FloatConstantExpression(value)))
+          ctx.preLoopStmts += VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp, Some(SIMD_FloatConstant(value)))
         VariableAccess(vecTmp, Some(SIMD_RealDatatype()))
+
+      case UnaryExpression(UnaryOperators.Negative, expr) =>
+        SIMD_NegateExpresseion(vectorizeExpr(expr, ctx))
 
       case AdditionExpression(MultiplicationExpression(factor1, factor2), summand) =>
         SIMD_MultiplyAddExpression(vectorizeExpr(factor1, ctx), vectorizeExpr(factor2, ctx), vectorizeExpr(summand, ctx))

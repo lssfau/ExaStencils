@@ -1,7 +1,6 @@
 package exastencils.util
 
 import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
 
 import exastencils.datastructures.ir.AdditionExpression
 import exastencils.datastructures.ir.ArrayAccess
@@ -74,10 +73,6 @@ object SimplifyExpression {
 
     var res : HashMap[Expression, Long] = null
 
-    // prevent concurrent modification: use the following two buffers
-    val remove = new ListBuffer[Expression]()
-    var add : Expression = null
-
     expr match {
 
       case IntegerConstant(i) =>
@@ -137,62 +132,39 @@ object SimplifyExpression {
             res(name) = value * coeff
 
       case DivisionExpression(l, r) =>
-        val mapR = extractIntegralSum(r)
-        if (!(mapR.size == 1 && mapR.contains(constName)))
+        val tmp = extractIntegralSum(r)
+        if (!(tmp.size == 1 && tmp.contains(constName)))
           throw new EvaluationException("only constant divisor allowed yet")
-        val div : Long = mapR(constName)
-        res = extractIntegralSum(l)
-        for ((name : Expression, value : Long) <- res) {
-          if (value % div == 0L)
-            res(name) = value / div
-          else {
-            remove += name
-            val njuSummand : Expression =
-              value match {
-                case 1L  => name
-                case -1L => UnaryExpression(UnaryOperators.Negative, name)
-                case _   => MultiplicationExpression(IntegerConstant(value), name)
-              }
-            add = if (add == null) njuSummand else AdditionExpression(add, njuSummand)
-          }
+        val div : Long = tmp(constName)
+        tmp.clear()
+        res = new HashMap[Expression, Long]()
+        val mapL = extractIntegralSum(l)
+        for ((name : Expression, value : Long) <- mapL)
+          if (value % div == 0L) res.put(name, value / div)
+          else tmp.put(name, value)
+        val dividend = recreateExprFromIntSum(tmp)
+        val (name, update) : (Expression, Long) = dividend match {
+          case IntegerConstant(x) => (constName, x / div)
+          case _                  => (DivisionExpression(dividend, IntegerConstant(div)), 1L)
         }
-        if (add != null)
-          add = DivisionExpression(add, IntegerConstant(div))
+        val njuVal : Long = res.get(name).getOrElse(0L) + update
+        if (njuVal == 0) res.remove(name)
+        else res.put(name, njuVal)
 
       case ModuloExpression(l, r) =>
-        val mapR = extractIntegralSum(r)
-        if (!(mapR.size == 1 && mapR.contains(constName)))
+        val tmp = extractIntegralSum(r)
+        if (!(tmp.size == 1 && tmp.contains(constName)))
           throw new EvaluationException("only constant divisor allowed")
-        val mod : Long = mapR(constName)
-        res = extractIntegralSum(l)
-        for ((name : Expression, value : Long) <- res) {
-          remove += name
-          if (value % mod != 0L) {
-            val njuSummand : Expression =
-              value match {
-                case 1L  => name
-                case -1L => UnaryExpression(UnaryOperators.Negative, name)
-                case _   => MultiplicationExpression(IntegerConstant(value), name)
-              }
-            add = if (add == null) njuSummand else AdditionExpression(add, njuSummand)
-          }
+        val mod : Long = tmp(constName)
+        res = new HashMap[Expression, Long]()
+        val dividend = recreateExprFromIntSum(extractIntegralSum(l).filter(elem => elem._2 % mod != 0L))
+        dividend match {
+          case IntegerConstant(x) => res.put(constName, x % mod)
+          case _                  => res.put(ModuloExpression(dividend, IntegerConstant(mod)), 1L)
         }
-        if (add != null)
-          add = ModuloExpression(add, IntegerConstant(mod))
 
       case _ =>
         throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
-    }
-
-    for (r : Expression <- remove)
-      res.remove(r)
-
-    if (add != null) {
-      val r = res.getOrElse(add, 0L) + 1L
-      if (r == 0L)
-        res.remove(add)
-      else
-        res(add) = r
     }
 
     return res
@@ -210,17 +182,30 @@ object SimplifyExpression {
       return IntegerConstant(const.getOrElse(0L))
 
     for ((expr : Expression, value : Long) <- map) {
-      val summand : Expression =
-        value match {
+      if (res == null) {
+        res = value match {
           case 1L  => expr
           case -1L => UnaryExpression(UnaryOperators.Negative, expr)
           case _   => MultiplicationExpression(IntegerConstant(value), expr)
         }
-      res = if (res == null) summand else AdditionExpression(res, summand)
+      } else {
+        val (summand, negative) : (Expression, Boolean) =
+          value match {
+            case 1L  => (expr, false)
+            case -1L => (expr, true)
+            case _   => (MultiplicationExpression(IntegerConstant(math.abs(value)), expr), value < 0)
+          }
+        res =
+          if (negative) SubtractionExpression(res, summand)
+          else AdditionExpression(res, summand)
+      }
     }
 
     if (const.isDefined)
-      res = AdditionExpression(res, IntegerConstant(const.get))
+      res = if (const.get >= 0)
+        AdditionExpression(res, IntegerConstant(const.get))
+      else
+        SubtractionExpression(res, IntegerConstant(-const.get))
 
     return res
   }
@@ -304,7 +289,8 @@ object SimplifyExpression {
           coeff = mapR(constName)
           res = mapL
         } else
-          throw new EvaluationException("non-constant * non-constant is not yet implemented")
+          throw new EvaluationException("non-constant * non-constant is not yet implemented:  " +
+            l.cpp() + "  *  " + r.cpp())
         if (coeff == 0d)
           res.clear()
         else
@@ -314,7 +300,7 @@ object SimplifyExpression {
       case DivisionExpression(l, r) =>
         val mapR = extractFloatingSum(r)
         if (!(mapR.size == 1 && mapR.contains(constName)))
-          throw new EvaluationException("only constant divisor allowed yet")
+          throw new EvaluationException("only constant divisor allowed yet:  " + l.cpp() + "  /  " + r.cpp())
         val div : Double = mapR(constName)
         res = extractFloatingSum(l)
         for ((name : Expression, value : Double) <- res)
@@ -323,14 +309,15 @@ object SimplifyExpression {
       case ModuloExpression(l, r) =>
         val mapR = extractFloatingSum(r)
         if (!(mapR.size == 1 && mapR.contains(constName)))
-          throw new EvaluationException("only constant divisor allowed")
+          throw new EvaluationException("only constant divisor allowed" +
+            l.cpp() + "  %  " + r.cpp())
         val mod : Double = mapR(constName)
         res = extractFloatingSum(l)
         for ((name : Expression, value : Double) <- res)
           res(name) = value % mod
 
       case _ =>
-        throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
+        throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass() + " in " + expr.cpp())
     }
 
     return res
@@ -359,13 +346,23 @@ object SimplifyExpression {
     }
 
     for ((value : Double, expr : Expression) <- reverse) {
-      val summand : Expression =
-        value match {
+      if (res == null) {
+        res = value match {
           case 1d  => expr
           case -1d => UnaryExpression(UnaryOperators.Negative, expr)
           case _   => MultiplicationExpression(FloatConstant(value), expr)
         }
-      res = if (res == null) summand else AdditionExpression(res, summand)
+      } else {
+        val (summand, negative) : (Expression, Boolean) =
+          value match {
+            case 1d  => (expr, false)
+            case -1d => (expr, true)
+            case _   => (MultiplicationExpression(FloatConstant(math.abs(value)), expr), value < 0)
+          }
+        res =
+          if (negative) SubtractionExpression(res, summand)
+          else AdditionExpression(res, summand)
+      }
     }
 
     if (const.isDefined)

@@ -90,23 +90,35 @@ case class SIMD_StoreStatement(var mem : Expression, var value : Expression, var
   }
 }
 
-case class SIMD_Store1Statement(var mem : Expression, var value : Expression, var aligned : Boolean) extends Statement {
+case class SIMD_HorizontalAddStatement(var dest : Expression, var src : Expression, var op : String = "=") extends Statement {
   override def cpp : String = {
     val sb = new StringBuilder()
-    cppsb(sb)
+    sb.append("{\n")
+    sb.append(" __m256d v = ")
+    src.cppsb(sb)
+    sb.append(";\n")
+    sb.append(" __m256d h = _mm256_hadd_pd(v,v);\n ")
+    dest.cppsb(sb)
+    sb.append(' ').append(op)
+    sb.append(" _mm_cvtsd_f64(_mm_add_pd(_mm256_extractf128_pd(h,1), _mm256_castpd256_pd128(h)));\n")
+    sb.append('}')
     return sb.toString()
   }
+}
 
-  // TODO: determine instruction according to target architecture
-  def cppsb(sb : StringBuilder) : Unit = {
-    if (aligned)
-      sb.append("_mm256_store_pd(")
-    else
-      sb.append("_mm256_storeu_pd(")
-    mem.cppsb(sb)
-    sb.append(", ")
-    value.cppsb(sb)
-    sb.append(");")
+case class SIMD_HorizontalMulStatement(var dest : Expression, var src : Expression, var op : String = "=") extends Statement {
+  override def cpp : String = {
+    val sb = new StringBuilder()
+    sb.append("{\n")
+    sb.append(" __m256d v = ")
+    src.cppsb(sb)
+    sb.append(";\n")
+    sb.append(" __m128d w = _mm_mul_pd(_mm256_extractf128_pd(v,1), _mm256_castpd256_pd128(v));\n ")
+    dest.cppsb(sb)
+    sb.append(' ').append(op)
+    sb.append(" _mm_cvtsd_f64(_mm_mul_pd(w, _mm_permute_pd(w, 1)));\n")
+    sb.append('}')
+    return sb.toString()
   }
 }
 

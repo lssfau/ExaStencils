@@ -148,20 +148,20 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case MultiplicationExpression(left : Expression, FloatConstant(1.0)) =>
       left
 
-    case MultiplicationExpression(FloatConstant(0.0), right : Expression)                         => FloatConstant(0.0)
-    case DivisionExpression(FloatConstant(0.0), right : Expression)                               => FloatConstant(0.0)
+    case MultiplicationExpression(FloatConstant(0.0), right : Expression) => FloatConstant(0.0)
+    case DivisionExpression(FloatConstant(0.0), right : Expression)       => FloatConstant(0.0)
 
-    case AdditionExpression(left : Expression, IntegerConstant(0))                                => left
-    case SubtractionExpression(left : Expression, IntegerConstant(0))                             => left
-    case AdditionExpression(left : Expression, FloatConstant(0))                                  => left
-    case SubtractionExpression(left : Expression, FloatConstant(0))                               => left
+    case AdditionExpression(left : Expression, IntegerConstant(0))        => left
+    case SubtractionExpression(left : Expression, IntegerConstant(0))     => left
+    case AdditionExpression(left : Expression, FloatConstant(0))          => left
+    case SubtractionExpression(left : Expression, FloatConstant(0))       => left
 
     //})
 
     //this += new Transformation("Applying distributive law", {
     // FIXME: the two following applications are obviously contrary -> treat with caution when extending to general data types
-    case MultiplicationExpression(AdditionExpression(leftLeft, leftRight), right : Expression)    => ((leftLeft * right) + (leftRight * right))
-    case MultiplicationExpression(SubtractionExpression(leftLeft, leftRight), right : Expression) => ((leftLeft * right) - (leftRight * right))
+    //    case MultiplicationExpression(AdditionExpression(leftLeft, leftRight), right : Expression)    => ((leftLeft * right) + (leftRight * right))
+    //    case MultiplicationExpression(SubtractionExpression(leftLeft, leftRight), right : Expression) => ((leftLeft * right) - (leftRight * right))
     case AdditionExpression(
       MultiplicationExpression(FloatConstant(leftLeft), leftRight),
       MultiplicationExpression(FloatConstant(rightLeft), rightRight)) if (leftLeft == rightLeft) =>

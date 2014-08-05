@@ -104,7 +104,7 @@ object Knowledge {
   // --- OpenMP Parallelization ---
   var useOMP : Boolean = true // [true|false]
   var omp_numThreads : Int = 1 // the number of omp threads to be used; may be incorporated in omp pragmas
-  var omp_version : Double = 2.0 // the minimum version of omp supported by the chosen compiler
+  var omp_version : Double = 2.0 // the maximum version of omp supported by the chosen compiler
   var omp_parallelizeLoopOverFragments : Boolean = false // [true|false] // specifies if loops over fragments may be parallelized with omp if marked correspondingly
   var omp_parallelizeLoopOverDimensions : Boolean = true // [true|false] // specifies if loops over dimensions may be parallelized with omp if marked correspondingly
   var omp_useCollapse : Boolean = true // [true|false] // if true the 'collapse' directive may be used in omp for regions; this will only be done if the minimum omp version supports this
@@ -119,13 +119,15 @@ object Knowledge {
 
   // --- Polyhedron Optimization ---
   var poly_usePolyOpt : Boolean = true // [true|false]
-  var poly_tileSize_x : Int = 1000000 // 1-inf // TODO: Alex
-  var poly_tileSize_y : Int = 32 // 1-inf // TODO: Alex
-  var poly_tileSize_z : Int = 1000000 // 1-inf // TODO: Alex
+  var poly_tileSize_x : Int = 1000000 // 32-inf // TODO: Alex
+  var poly_tileSize_y : Int = 32 // 16-inf // TODO: Alex
+  var poly_tileSize_z : Int = 1000000 // 16-inf // TODO: Alex
 
   // --- Other Optimizations ---
   var opt_useAddressPrecalc : Boolean = true // [true|false]
   var opt_vectorize : Boolean = true // [true|false]
+  var opt_unroll : Int = 4 // 1-8
+  var opt_unroll_interleave : Boolean = true // [true|false]
 
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
