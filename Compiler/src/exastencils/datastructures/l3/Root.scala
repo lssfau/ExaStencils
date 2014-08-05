@@ -63,10 +63,13 @@ case class Root() extends Node {
   def addDomains(printer : java.io.PrintWriter) = {
     Knowledge.dimensionality match {
       case 2 => {
-        printer.println("Domain global< [ 0, 0 ] to [ 1, 1 ] >")
-        if (kelvin)
-          printer.println(s"Domain innerDom< [ ${0.0 + (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_x - 0)}, ${0.0 + (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_y - 0)} ] " +
-            s"to [ ${1.0 - (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_x - 0)}, ${1.0 - (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_y - 0)} ] >")
+        if (kelvin) {
+          printer.println(s"Domain global< [ ${0.0 - (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_x - 2)}, ${0.0 - (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_y - 2)} ] " +
+            s"to [ ${1.0 + (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_x - 2)}, ${1.0 + (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_y - 2)} ] >")
+          printer.println("Domain innerDom< [ 0, 0 ] to [ 1, 1 ] >")
+        } else {
+          printer.println("Domain global< [ 0, 0 ] to [ 1, 1 ] >")
+        }
       }
       case 3 => {
         printer.println("Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >")
@@ -786,10 +789,10 @@ case class Root() extends Node {
 
     if (kelvin) {
       printer.println(s"def bcSol (xPos : Real, yPos : Real) : Real {")
-      printer.println(s"\tif ( yPos >= ${1.0 - (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_y - 0)} ) { return ( UN ) }")
-      printer.println(s"\tif ( xPos >= ${1.0 - (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_x - 0)} ) { return ( UE ) }")
-      printer.println(s"\tif ( yPos <= ${0.0 + (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_y - 0)} ) { return ( US ) }")
-      printer.println(s"\tif ( xPos <= ${0.0 + (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_x - 0)} ) { return ( UW ) }")
+      printer.println(s"\tif ( yPos >= 1.0 ) { return ( UN ) }")
+      printer.println(s"\tif ( xPos >= 1.0 ) { return ( UE ) }")
+      printer.println(s"\tif ( yPos <= 0.0 ) { return ( US ) }")
+      printer.println(s"\tif ( xPos <= 0.0 ) { return ( UW ) }")
       printer.println(s"\treturn ( 0.0 )")
       printer.println(s"}")
       printer.println
@@ -857,35 +860,13 @@ case class Root() extends Node {
 
     // Kelvin
     if (kelvin) {
-      //      printer.println("def gamma ( z : Real ) : Real {")
-      //      //printer.println("\treturn ( tgamma ( x ) )")
-      //
-      //      printer.println("\tvar g : Real = 0.5772156649")
-      //      printer.println("\tvar zi : Real = floor ( z )")
-      //      printer.println("\tvar zf : Real = z - zi")
-      //      printer.println("\tvar retVal : Real = zf * exp ( g * zf )")
-      //      printer.println("\tvar x : Real = 1.0")
-      //      printer.println("\tvar n : Integer = 0")
-      //      printer.println("\trepeat until x >= ( 1.0 - 1e-12 ) {")
-      //      printer.println("\t\tn += 1")
-      //      printer.println("\t\tx = (1 + zf / n) * exp ( ( -1.0 * zf ) / n )")
-      //      printer.println("\t\tretVal *= x")
-      //      printer.println("\t}")
-      //      printer.println("\tretVal = 1.0 / retVal")
-      //      printer.println("\tnative ( \"for (double y = 0.0; y < zi - 0.5; ++y) {\" ) ")
-      //      printer.println("\tretVal *= y + zf")
-      //      printer.println("\tnative ( \"}\" ) ")
-      //      printer.println("\treturn ( retVal )")
-      //      printer.println("}")
-      //      printer.println
-
       printer.println("def solve_GMRF ( ) : Unit {")
       printer.println("\tnative ( \"std::srand(mpiRank)\" )")
       printer.println("\tnative ( \"std::default_random_engine generator\" )")
       printer.println("\tnative ( \"std::normal_distribution<double> distribution(0.0, 1.0)\" )")
       printer.println("\tnative ( \"auto randn = std::bind ( distribution, generator )\" )")
 
-      printer.println(s"\tvar tau2 : Real = gamma ( nu ) / ( gamma ( nu + 0.5 ) * (( 4.0 * M_PI ) ** ( dim / 2.0 )) * ( kappa ** ( 2 * nu )) * sigma * sigma )")
+      printer.println(s"\tvar tau2 : Real = myGamma ( nu ) / ( myGamma ( nu + 0.5 ) * (( 4.0 * M_PI ) ** ( dim / 2.0 )) * ( kappa ** ( 2 * nu )) * sigma * sigma )")
       printer.println(s"\tloop over innerForFieldsWithoutGhostLayers on RHS_GMRF@finest {")
       printer.println(s"\t\tRHS_GMRF@finest = randn ( ) / ${Knowledge.domain_numFragsTotal_x * (1 << Knowledge.maxLevel)}")
       printer.println(s"\t}")
@@ -1002,13 +983,12 @@ case class Root() extends Node {
     printer.println("\tprint ( '\"Mean time per vCycle: \"', totalTime / 10 )")
 
     if (kelvin) {
-      val numPoints = (Knowledge.domain_numFragsTotal_x - 2) * (1 << Knowledge.maxLevel)
       printer.println(s"\tvar solNorm : Real = 0.0")
       printer.println(s"\tloop over inner on Solution@finest with reduction( + : solNorm ) {")
       printer.println(s"\t\t// FIXME: this counts duplicated values multiple times")
       printer.println(s"\t\tsolNorm += ${solutionFields(s"finest", "")(0)} * ${solutionFields(s"finest", "")(0)}")
       printer.println(s"\t}")
-      printer.println(s"\tsolNorm = ( sqrt ( solNorm ) ) / ${numPoints * numPoints}")
+      printer.println(s"\tsolNorm = ( sqrt ( solNorm ) ) / ${(Knowledge.domain_numFragsTotal_x - 2) * (1 << Knowledge.maxLevel) - 1}")
       printer.println("\tprint ( '\"Norm of the solution: \"', solNorm )")
     }
 
