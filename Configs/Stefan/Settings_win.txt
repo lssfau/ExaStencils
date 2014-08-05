@@ -1,2 +1,2 @@
-outputPath = "E:\ExaStencils\Generated\Generated\"
+outputPath = "C:\Users\Stefan\work\Generated\Generated"
 basePathPrefix = ".."
