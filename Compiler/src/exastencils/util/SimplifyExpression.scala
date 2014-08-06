@@ -246,6 +246,8 @@ object SimplifyExpression {
         res(VariableAccess(varName, Some(RealDatatype()))) = 1d
 
       case StringConstant(varName) =>
+        if (varName.contains("std::rand")) // HACK
+          throw new EvaluationException("don't optimze code containing a call to std::rand")
         res = new HashMap[Expression, Double]()
         res(VariableAccess(varName, Some(RealDatatype()))) = 1d // ONLY VariableAccess in res keys, NO StringConstant
 
