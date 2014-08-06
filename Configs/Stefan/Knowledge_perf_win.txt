@@ -1,5 +1,6 @@
 targetCompiler				= "MSVC"
 targetCompilerVersion		= 18
+simd_instructionSet			= "AVX"
 
 dimensionality				= 3
 

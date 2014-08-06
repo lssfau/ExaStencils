@@ -84,8 +84,8 @@ case class LayoutDeclarationStatement(var name : String,
     // TODO: check if padding works properly (for vectorization)
     // add padding only for innermost dimension
     val innerLayout : knowledge.FieldLayoutPerDim = layouts(0)
-    innerLayout.numPadLayersLeft = (Vectorization.TMP_VS - innerLayout.idxDupLeftBegin % Vectorization.TMP_VS) % Vectorization.TMP_VS
-    innerLayout.numPadLayersRight = (Vectorization.TMP_VS - innerLayout.total % Vectorization.TMP_VS) % Vectorization.TMP_VS
+    innerLayout.numPadLayersLeft = (Knowledge.simd_vectorSize - innerLayout.idxDupLeftBegin % Knowledge.simd_vectorSize) % Knowledge.simd_vectorSize
+    innerLayout.numPadLayersRight = (Knowledge.simd_vectorSize - innerLayout.total % Knowledge.simd_vectorSize) % Knowledge.simd_vectorSize
     return layouts
   }
 }

@@ -2,6 +2,7 @@ package exastencils.datastructures.ir
 
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.knowledge.Knowledge
 
 trait Datatype extends Node with CppPrettyPrintable {
   def cpp_mpi : String
@@ -54,7 +55,13 @@ case class RealDatatype() extends Datatype {
 }
 
 case class SIMD_RealDatatype() extends Datatype {
-  override def cpp = "__m256d" // TODO: match system
+  override def cpp = {
+    Knowledge.simd_instructionSet match {
+      case "SSE3"         => "__m128d"
+      case "AVX" | "AVX2" => "__m256d"
+    }
+  }
+
   override def cpp_mpi = "INVALID DATATYPE: " + cpp
 }
 

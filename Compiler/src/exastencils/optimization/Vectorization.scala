@@ -2,7 +2,6 @@ package exastencils.optimization
 
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core.Duplicate
 import exastencils.core.Logger
 import exastencils.datastructures.DefaultStrategy
@@ -50,11 +49,9 @@ import exastencils.datastructures.ir.UnaryOperators
 import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.VariableDeclarationStatement
 import exastencils.util.SimplifyExpression
+import exastencils.knowledge.Knowledge
 
 object Vectorization extends DefaultStrategy("Vectorization") {
-
-  final val TMP_VS : Int = 4 // TODO: replace with actual hardware info
-
   this += new Transformation("optimize", VectorizeInnermost)
 }
 
@@ -222,20 +219,20 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     res += new VariableDeclarationStatement(IntegerDatatype(), itName, Some(begin))
 
     res += new ForLoopStatement(NullStatement(),
-      LowerExpression(itVar, BitwiseAndExpression(AdditionExpression(begin, IntegerConstant(Vectorization.TMP_VS - 1)),
-        UnaryExpression(UnaryOperators.BitwiseNegation, IntegerConstant(Vectorization.TMP_VS - 1)))),
+      LowerExpression(itVar, BitwiseAndExpression(AdditionExpression(begin, IntegerConstant(Knowledge.simd_vectorSize - 1)),
+        UnaryExpression(UnaryOperators.BitwiseNegation, IntegerConstant(Knowledge.simd_vectorSize - 1)))),
       AssignmentStatement(itVar, IntegerConstant(1), "+="),
       Duplicate(body))
 
     res ++= ctx.preLoopStmts
 
     val vectLoop = new ForLoopStatement(NullStatement(),
-      LowerExpression(itVar, SubtractionExpression(endExcl, IntegerConstant(Vectorization.TMP_VS - 1))),
-      AssignmentStatement(itVar, IntegerConstant(Vectorization.TMP_VS), "+="),
+      LowerExpression(itVar, SubtractionExpression(endExcl, IntegerConstant(Knowledge.simd_vectorSize - 1))),
+      AssignmentStatement(itVar, IntegerConstant(Knowledge.simd_vectorSize), "+="),
       ctx.vectStmts) with OptimizationHint
     vectLoop.isInnermost = true
     vectLoop.isParallel = true
-    vectLoop.annotate(Unrolling.NO_REM_ANNOT, Vectorization.TMP_VS - 1)
+    vectLoop.annotate(Unrolling.NO_REM_ANNOT, Knowledge.simd_vectorSize - 1)
     res += vectLoop
 
     if (postLoopStmt != null)

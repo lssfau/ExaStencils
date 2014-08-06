@@ -669,7 +669,7 @@ case class Reduction(var op : BinaryOperators.Value, var target : Expression) ex
   }
 }
 
-// TODO: determine instruction according to target architecture
+//////////////////////////// SIMD Expressions \\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 case class SIMD_LoadExpression(var mem : Expression, var aligned : Boolean) extends Expression {
   override def cpp : String = {
@@ -679,10 +679,20 @@ case class SIMD_LoadExpression(var mem : Expression, var aligned : Boolean) exte
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    if (aligned)
-      sb.append("_mm256_load_pd(")
-    else
-      sb.append("_mm256_loadu_pd(")
+    Knowledge.simd_instructionSet match {
+      case "SSE3" =>
+        if (aligned)
+          sb.append("_mm_load_pd")
+        else
+          sb.append("_mm_loadu_pd")
+
+      case "AVX" | "AVX2" =>
+        if (aligned)
+          sb.append("_mm256_load_pd")
+        else
+          sb.append("_mm256_loadu_pd")
+    }
+    sb.append('(')
     mem.cppsb(sb)
     sb.append(')')
   }
@@ -696,7 +706,11 @@ case class SIMD_Load1Expression(var mem : Expression) extends Expression {
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("_mm256_broadcast_sd(")
+    Knowledge.simd_instructionSet match {
+      case "SSE3"         => sb.append("_mm_load1_pd")
+      case "AVX" | "AVX2" => sb.append("_mm256_broadcast_sd")
+    }
+    sb.append('(')
     mem.cppsb(sb)
     sb.append(')')
   }
@@ -710,9 +724,17 @@ case class SIMD_NegateExpresseion(var vect : Expression) extends Expression {
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("_mm256_xor_pd(")
-    vect.cppsb(sb)
-    sb.append(", _mm256_set1_pd(-0.f))")
+    Knowledge.simd_instructionSet match {
+      case "SSE3" =>
+        sb.append("_mm_xor_pd(")
+        vect.cppsb(sb)
+        sb.append(", _mm_set1_pd(-0.f))")
+
+      case "AVX" | "AVX2" =>
+        sb.append("_mm256_xor_pd(")
+        vect.cppsb(sb)
+        sb.append(", _mm256_set1_pd(-0.f))")
+    }
   }
 }
 
@@ -724,7 +746,11 @@ case class SIMD_AdditionExpression(var left : Expression, var right : Expression
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("_mm256_add_pd(")
+    Knowledge.simd_instructionSet match {
+      case "SSE3"         => sb.append("_mm_add_pd")
+      case "AVX" | "AVX2" => sb.append("_mm256_add_pd")
+    }
+    sb.append('(')
     left.cppsb(sb)
     sb.append(", ")
     right.cppsb(sb)
@@ -740,7 +766,11 @@ case class SIMD_SubtractionExpression(var left : Expression, var right : Express
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("_mm256_sub_pd(")
+    Knowledge.simd_instructionSet match {
+      case "SSE3"         => sb.append("_mm_sub_pd")
+      case "AVX" | "AVX2" => sb.append("_mm256_sub_pd")
+    }
+    sb.append('(')
     left.cppsb(sb)
     sb.append(", ")
     right.cppsb(sb)
@@ -756,7 +786,11 @@ case class SIMD_MultiplicationExpression(var left : Expression, var right : Expr
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("_mm256_mul_pd(")
+    Knowledge.simd_instructionSet match {
+      case "SSE3"         => sb.append("_mm_mul_pd")
+      case "AVX" | "AVX2" => sb.append("_mm256_mul_pd")
+    }
+    sb.append('(')
     left.cppsb(sb)
     sb.append(", ")
     right.cppsb(sb)
@@ -773,13 +807,34 @@ case class SIMD_MultiplyAddExpression(var factor1 : Expression, var factor2 : Ex
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("_mm256_add_pd(_mm256_mul_pd(")
-    factor1.cppsb(sb)
-    sb.append(", ")
-    factor2.cppsb(sb)
-    sb.append("), ")
-    summand.cppsb(sb)
-    sb.append(')')
+    Knowledge.simd_instructionSet match {
+      case "SSE3" =>
+        sb.append("_mm_add_pd(_mm_mul_pd(")
+        factor1.cppsb(sb)
+        sb.append(", ")
+        factor2.cppsb(sb)
+        sb.append("), ")
+        summand.cppsb(sb)
+        sb.append(')')
+
+      case "AVX" =>
+        sb.append("_mm256_add_pd(_mm256_mul_pd(")
+        factor1.cppsb(sb)
+        sb.append(", ")
+        factor2.cppsb(sb)
+        sb.append("), ")
+        summand.cppsb(sb)
+        sb.append(')')
+
+      case "AVX2" =>
+        sb.append("_mm256_fmadd_pd(")
+        factor1.cppsb(sb)
+        sb.append(", ")
+        factor2.cppsb(sb)
+        sb.append(", ")
+        summand.cppsb(sb)
+        sb.append(')')
+    }
   }
 }
 
@@ -792,13 +847,34 @@ case class SIMD_MultiplySubExpression(var factor1 : Expression, var factor2 : Ex
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("_mm256_sub_pd(_mm256_mul_pd(")
-    factor1.cppsb(sb)
-    sb.append(", ")
-    factor2.cppsb(sb)
-    sb.append("), ")
-    summand.cppsb(sb)
-    sb.append(')')
+    Knowledge.simd_instructionSet match {
+      case "SSE3" =>
+        sb.append("_mm_sub_pd(_mm_mul_pd(")
+        factor1.cppsb(sb)
+        sb.append(", ")
+        factor2.cppsb(sb)
+        sb.append("), ")
+        summand.cppsb(sb)
+        sb.append(')')
+
+      case "AVX" =>
+        sb.append("_mm256_sub_pd(_mm256_mul_pd(")
+        factor1.cppsb(sb)
+        sb.append(", ")
+        factor2.cppsb(sb)
+        sb.append("), ")
+        summand.cppsb(sb)
+        sb.append(')')
+
+      case "AVX2" =>
+        sb.append("_mm256_fmsub_pd(")
+        factor1.cppsb(sb)
+        sb.append(", ")
+        factor2.cppsb(sb)
+        sb.append(", ")
+        summand.cppsb(sb)
+        sb.append(')')
+    }
   }
 }
 
@@ -810,7 +886,11 @@ case class SIMD_DivisionExpression(var left : Expression, var right : Expression
   }
 
   override def cppsb(sb : StringBuilder) : Unit = {
-    sb.append("_mm256_div_pd(")
+    Knowledge.simd_instructionSet match {
+      case "SSE3"         => sb.append("_mm_div_pd")
+      case "AVX" | "AVX2" => sb.append("_mm256_div_pd")
+    }
+    sb.append(')')
     left.cppsb(sb)
     sb.append(", ")
     right.cppsb(sb)
@@ -821,7 +901,12 @@ case class SIMD_DivisionExpression(var left : Expression, var right : Expression
 case class SIMD_FloatConstant(var value : Double) extends Expression {
   // ensure the compiler can parse the string
   override def cpp() : String = {
-    return String.format(java.util.Locale.US, "_mm256_set1_pd(%e)", Double.box(value))
+    return String.format(java.util.Locale.US,
+      Knowledge.simd_instructionSet match {
+        case "SSE3"         => "_mm_set1_pd(%e)"
+        case "AVX" | "AVX2" => "_mm256_set1_pd(%e)"
+      },
+      Double.box(value))
   }
 }
 
@@ -835,12 +920,21 @@ case class SIMD_Scalar2VectorExpression(var scalar : String, var dType : Datatyp
 
   override def cppsb(sb : StringBuilder) : Unit = {
     if (increment) {
-      sb.append("_mm256_set_pd(")
-      for (i <- Vectorization.TMP_VS - 1 to 1 by -1)
+      Knowledge.simd_instructionSet match {
+        case "SSE3"         => sb.append("_mm_set_pd")
+        case "AVX" | "AVX2" => sb.append("_mm256_set_pd")
+      }
+      sb.append('(')
+      for (i <- Knowledge.simd_vectorSize - 1 to 1 by -1)
         sb.append(scalar).append('+').append(i).append(',')
       sb.append(scalar).append(')')
 
-    } else
-      sb.append("_mm256_set1_pd(").append(scalar).append(')')
+    } else {
+      Knowledge.simd_instructionSet match {
+        case "SSE3"         => sb.append("_mm_set1_pd")
+        case "AVX" | "AVX2" => sb.append("_mm256_set1_pd")
+      }
+      sb.append('(').append(scalar).append(')')
+    }
   }
 }

@@ -11,6 +11,9 @@ object Knowledge {
   var targetCompilerVersion : Int = 0 // major version of the target compiler
   var targetCompilerVersionMinor : Int = 0 // minor version of the target compiler
 
+  var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2"
+  var simd_vectorSize : Int = 4 // number of vector elements for SIMD instructions (currently only double precision)
+
   // === Level 1 ===  
   var dimensionality : Int = 3 // dimensionality of the problem
 
@@ -178,5 +181,11 @@ object Knowledge {
       omp_parallelizeLoopOverFragments = !domain_summarizeBlocks
       omp_parallelizeLoopOverDimensions = domain_summarizeBlocks
     }
+
+    simd_vectorSize =
+      simd_instructionSet match {
+        case "SSE3"         => 2
+        case "AVX" | "AVX2" => 4
+      }
   }
 }
