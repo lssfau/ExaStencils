@@ -551,11 +551,76 @@ case class BitwiseAndExpression(var left : Expression, var right : Expression) e
   }
 }
 
+private object MinMaxPrinter {
+  def cppsb(sb : StringBuilder, args : ListBuffer[Expression], method : String) : Unit = {
+    if (args.length == 1)
+      args(0).cppsb(sb)
+
+    else if (Knowledge.supports_initializerList) {
+      sb.append(method).append("({ ")
+      for (arg <- args) {
+        arg.cppsb(sb)
+        sb.append(", ")
+      }
+      val l : Int = sb.length
+      sb.replace(l - 2, l, " }")
+
+    } else {
+      val it : Iterator[Expression] = args.iterator
+      for (i <- 0 until args.length - 1)
+        sb.append(method).append('(')
+      it.next().cppsb(sb)
+      while (it.hasNext) {
+        sb.append(", ")
+        it.next().cppsb(sb)
+        sb.append(')')
+      }
+    }
+  }
+}
+
+case class MinimumExpression(var args : ListBuffer[Expression]) extends Expression {
+  override def cpp : String = {
+    val sb = new StringBuilder()
+    cppsb(sb)
+    return sb.toString()
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    MinMaxPrinter.cppsb(sb, args, "std::min")
+  }
+}
+
+case class MaximumExpression(var args : ListBuffer[Expression]) extends Expression {
+  override def cpp : String = {
+    val sb = new StringBuilder()
+    cppsb(sb)
+    return sb.toString()
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    MinMaxPrinter.cppsb(sb, args, "std::max")
+  }
+}
+
 case class FunctionCallExpression(var name : Expression, var arguments : ListBuffer[Expression]) extends Expression {
   def this(name : Expression, argument : Expression) = this(name, ListBuffer(argument))
 
   override def cpp : String = {
-    return (s"${name.cpp}(" + arguments.map(arg => arg.cpp).mkString(", ") + ')')
+    val sb = new StringBuilder()
+    cppsb(sb)
+    return sb.toString()
+  }
+
+  override def cppsb(sb : StringBuilder) : Unit = {
+    name.cppsb(sb)
+    sb.append('(')
+    for (arg <- arguments) {
+      arg.cppsb(sb)
+      sb.append(", ")
+    }
+    val l : Int = sb.length
+    sb.replace(l - 2, l, ")")
   }
 }
 

@@ -8,6 +8,8 @@ import exastencils.spl._
 object Knowledge {
   // TODO: rename and move to hw knowledge?
   var targetCompiler : String = "MSVC" // the target compiler; may atm be 'MSVC', 'IBMXL' and 'GCC'
+  var targetCompilerVersion : Int = 0 // major version of the target compiler
+  var targetCompilerVersionMinor : Int = 0 // minor version of the target compiler
 
   // === Level 1 ===  
   var dimensionality : Int = 3 // dimensionality of the problem
@@ -77,6 +79,9 @@ object Knowledge {
   // === Level 4 ===
 
   // === Post Level 4 ===
+
+  // --- Compiler Capabilities ---
+  var supports_initializerList = false // indicates if the compiler supports initializer lists (e.g. for std::min)
 
   // --- Data Structures ---
   var data_initAllFieldsWithZero : Boolean = true // specifies if all data points in all fields on all levels should initially be set zero (before the l4 initField functions are applied)
@@ -155,13 +160,16 @@ object Knowledge {
     domain_canHaveRemoteNeighs = useMPI
     domain_canHaveLocalNeighs = (domain_numFragsPerBlock > 1)
 
-    if ("MSVC" == targetCompiler)
+    if ("MSVC" == targetCompiler) {
       omp_version = 2.0
-    else if ("GCC" == targetCompiler)
+      supports_initializerList = targetCompilerVersion >= 18
+    } else if ("GCC" == targetCompiler) {
       omp_version = 4.0
-    else if ("IBMXL" == targetCompiler) {
+      supports_initializerList = targetCompilerVersion > 4 || (targetCompilerVersion == 4 && targetCompilerVersionMinor >= 5)
+    } else if ("IBMXL" == targetCompiler) {
       omp_version = 3.0
       omp_requiresCriticalSections = false
+      supports_initializerList = false // TODO: does it support initializer lists? since which version?
     } else
       Logger.error("Unsupported target compiler")
 

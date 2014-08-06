@@ -1,4 +1,5 @@
 targetCompiler				= "MSVC"
+targetCompilerVersion		= 18
 
 dimensionality				= 3
 

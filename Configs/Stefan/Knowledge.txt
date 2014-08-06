@@ -1,4 +1,6 @@
 targetCompiler				= "GCC"
+targetCompilerVersion		= 4
+targetCompilerVersionMinor	= 9
 
 dimensionality				= 3
 

@@ -1,5 +1,7 @@
 package exastencils.polyhedron
 
+import scala.annotation.elidable
+import scala.annotation.elidable.ASSERTION
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
@@ -22,12 +24,13 @@ import exastencils.datastructures.ir.ForLoopStatement
 import exastencils.datastructures.ir.FunctionCallExpression
 import exastencils.datastructures.ir.GreaterEqualExpression
 import exastencils.datastructures.ir.GreaterExpression
-import exastencils.datastructures.ir.InitializerList
 import exastencils.datastructures.ir.IntegerConstant
 import exastencils.datastructures.ir.IntegerDatatype
 import exastencils.datastructures.ir.LoopOverDimensions
 import exastencils.datastructures.ir.LowerEqualExpression
 import exastencils.datastructures.ir.LowerExpression
+import exastencils.datastructures.ir.MaximumExpression
+import exastencils.datastructures.ir.MinimumExpression
 import exastencils.datastructures.ir.ModuloExpression
 import exastencils.datastructures.ir.MultiplicationExpression
 import exastencils.datastructures.ir.OrOrExpression
@@ -277,10 +280,8 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
       case isl.AstOpType.OpLt if n == 2      => LowerExpression(args(0), args(1))
       case isl.AstOpType.OpGe if n == 2      => GreaterEqualExpression(args(0), args(1))
       case isl.AstOpType.OpGt if n == 2      => GreaterExpression(args(0), args(1))
-      case isl.AstOpType.OpMax if n >= 2 =>
-        FunctionCallExpression(StringConstant("std::max"), ListBuffer(InitializerList(ListBuffer(args : _*))))
-      case isl.AstOpType.OpMin if n >= 2 =>
-        FunctionCallExpression(StringConstant("std::min"), ListBuffer(InitializerList(ListBuffer(args : _*))))
+      case isl.AstOpType.OpMax if n >= 2     => MaximumExpression(ListBuffer(args : _*))
+      case isl.AstOpType.OpMin if n >= 2     => MinimumExpression(ListBuffer(args : _*))
 
       case isl.AstOpType.OpCall if n >= 1 =>
         val fArgs = ListBuffer[Expression](args : _*)
