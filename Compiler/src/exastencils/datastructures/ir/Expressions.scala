@@ -565,7 +565,7 @@ private object MinMaxPrinter {
         sb.append(", ")
       }
       val l : Int = sb.length
-      sb.replace(l - 2, l, " }")
+      sb.replace(l - 2, l, " })")
 
     } else {
       val it : Iterator[Expression] = args.iterator
