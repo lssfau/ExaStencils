@@ -617,12 +617,15 @@ case class FunctionCallExpression(var name : Expression, var arguments : ListBuf
   override def cppsb(sb : StringBuilder) : Unit = {
     name.cppsb(sb)
     sb.append('(')
-    for (arg <- arguments) {
-      arg.cppsb(sb)
-      sb.append(", ")
+    if (!arguments.isEmpty) {
+      val it : Iterator[Expression] = arguments.iterator
+      it.next().cppsb(sb)
+      while (it.hasNext) {
+        sb.append(", ")
+        it.next().cppsb(sb)
+      }
     }
-    val l : Int = sb.length
-    sb.replace(l - 2, l, ")")
+    sb.append(')')
   }
 }
 
