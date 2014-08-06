@@ -132,19 +132,19 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     scop.domain = live
 
     // update schedule, accesses and dependencies
-    scop.schedule = scop.schedule.intersectDomain(live)
-    if (scop.reads != null)
-      scop.reads = scop.reads.intersectDomain(live)
-    if (scop.writes != null)
-      scop.writes = scop.writes.intersectDomain(live)
-    if (scop.deps.flow != null)
-      scop.deps.flow = scop.deps.flow.intersectDomain(live)
-    if (scop.deps.anti != null)
-      scop.deps.anti = scop.deps.anti.intersectDomain(live)
-    if (scop.deps.output != null)
-      scop.deps.output = scop.deps.output.intersectDomain(live)
-    if (scop.deps.input != null)
-      scop.deps.input = scop.deps.input.intersectDomain(live)
+    //    scop.schedule = scop.schedule.intersectDomain(live)
+    //    if (scop.reads != null)
+    //      scop.reads = scop.reads.intersectDomain(live)
+    //    if (scop.writes != null)
+    //      scop.writes = scop.writes.intersectDomain(live)
+    //    if (scop.deps.flow != null)
+    //      scop.deps.flow = scop.deps.flow.intersectDomain(live)
+    //    if (scop.deps.anti != null)
+    //      scop.deps.anti = scop.deps.anti.intersectDomain(live)
+    //    if (scop.deps.output != null)
+    //      scop.deps.output = scop.deps.output.intersectDomain(live)
+    //    if (scop.deps.input != null)
+    //      scop.deps.input = scop.deps.input.intersectDomain(live)
   }
 
   private def optimize(scop : Scop) : Unit = {
@@ -163,15 +163,30 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       v = v.setElementVal(1, Knowledge.poly_tileSize_y)
       v = v.setElementVal(2, Knowledge.poly_tileSize_x)
       var tiled : Boolean = false
-      schedule.foreachBand({
+      schedule.foreachBand({ // TODO
         band : isl.Band =>
           if (band.nMember() == 3) {
             band.tile(v)
             tiled = true
           }
       })
-      if (tiled)
-        scop.noParDims += 0 += 2 // only one value per dim
+      if (tiled) { // filter dimensions with too few iterations
+        val fragSize : Int = 1 << Knowledge.maxLevel // roughly
+        var loopIterations_x : Int = fragSize
+        var loopIterations_y : Int = fragSize
+        var loopIterations_z : Int = fragSize
+        if (Knowledge.domain_summarizeBlocks) {
+          loopIterations_x *= Knowledge.domain_numFragsPerBlock_x
+          loopIterations_y *= Knowledge.domain_numFragsPerBlock_y
+          loopIterations_z *= Knowledge.domain_numFragsPerBlock_z
+        }
+        if (loopIterations_z / Knowledge.poly_tileSize_z < Knowledge.omp_numThreads)
+          scop.noParDims += 0
+        if (loopIterations_y / Knowledge.poly_tileSize_y < Knowledge.omp_numThreads)
+          scop.noParDims += 1
+        if (loopIterations_x / Knowledge.poly_tileSize_x < Knowledge.omp_numThreads)
+          scop.noParDims += 2
+      }
     }
 
     scop.schedule = schedule.getMap()
