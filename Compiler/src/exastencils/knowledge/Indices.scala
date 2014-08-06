@@ -76,20 +76,26 @@ object dimToString extends (Int => String) {
   }
 }
 
-case class InitGeomCoords(var field : Field) extends Statement with Expandable {
+case class InitGeomCoords(var field : Field, var directCoords : Boolean) extends Statement with Expandable {
   def cpp : String = { return "NOT VALID ; CLASS = InitGeomCoords\n" }
 
   override def expand : StatementBlock = {
     new StatementBlock(ListBuffer[Statement](
-      VariableDeclarationStatement(new RealDatatype, "xPos", Some(("x" - field.referenceOffset.index_0) / FloatConstant(field.layout(0).idxDupRightEnd - field.layout(0).idxDupLeftBegin - 1)
-        * (ArrayAccess(iv.PrimitivePositionEnd(), 0) - ArrayAccess(iv.PrimitivePositionBegin(), 0)) + ArrayAccess(iv.PrimitivePositionBegin(), 0))),
+      VariableDeclarationStatement(new RealDatatype, "xPos", Some(
+        (if (directCoords) ("x" - field.referenceOffset.index_0) else ("x" : Expression))
+          / FloatConstant(field.layout(0).idxDupRightEnd - field.layout(0).idxDupLeftBegin - 1)
+          * (ArrayAccess(iv.PrimitivePositionEnd(), 0) - ArrayAccess(iv.PrimitivePositionBegin(), 0)) + ArrayAccess(iv.PrimitivePositionBegin(), 0))),
       if (Knowledge.dimensionality > 1)
-        VariableDeclarationStatement(new RealDatatype, "yPos", Some(("y" - field.referenceOffset.index_1) / FloatConstant(field.layout(1).idxDupRightEnd - field.layout(1).idxDupLeftBegin - 1)
-        * (ArrayAccess(iv.PrimitivePositionEnd(), 1) - ArrayAccess(iv.PrimitivePositionBegin(), 1)) + ArrayAccess(iv.PrimitivePositionBegin(), 1)))
+        VariableDeclarationStatement(new RealDatatype, "yPos", Some(
+        (if (directCoords) ("y" - field.referenceOffset.index_1) else ("y" : Expression))
+          / FloatConstant(field.layout(1).idxDupRightEnd - field.layout(1).idxDupLeftBegin - 1)
+          * (ArrayAccess(iv.PrimitivePositionEnd(), 1) - ArrayAccess(iv.PrimitivePositionBegin(), 1)) + ArrayAccess(iv.PrimitivePositionBegin(), 1)))
       else NullStatement(),
       if (Knowledge.dimensionality > 2)
-        VariableDeclarationStatement(new RealDatatype, "zPos", Some(("z" - field.referenceOffset.index_2) / FloatConstant(field.layout(2).idxDupRightEnd - field.layout(2).idxDupLeftBegin - 1)
-        * (ArrayAccess(iv.PrimitivePositionEnd(), 2) - ArrayAccess(iv.PrimitivePositionBegin(), 2)) + ArrayAccess(iv.PrimitivePositionBegin(), 2)))
+        VariableDeclarationStatement(new RealDatatype, "zPos", Some(
+        (if (directCoords) ("z" - field.referenceOffset.index_2) else ("z" : Expression))
+          / FloatConstant(field.layout(2).idxDupRightEnd - field.layout(2).idxDupLeftBegin - 1)
+          * (ArrayAccess(iv.PrimitivePositionEnd(), 2) - ArrayAccess(iv.PrimitivePositionBegin(), 2)) + ArrayAccess(iv.PrimitivePositionBegin(), 2)))
       else NullStatement()))
   }
 }

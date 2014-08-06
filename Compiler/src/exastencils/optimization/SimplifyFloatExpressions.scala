@@ -47,9 +47,11 @@ object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expre
     try {
       return SimplifyExpression.simplifyFloatingExpr(expr)
     } catch {
-      case EvaluationException(msg) =>
-        if (DEBUG)
-          Logger.debug("[simplify]  cannot simplify float expression: " + msg)
+      case x : EvaluationException =>
+        {
+          if (DEBUG)
+            Logger.debug("[simplify]  cannot simplify float expression: " + x.msg)
+        }
         return expr
     }
   }

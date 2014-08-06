@@ -293,7 +293,9 @@ case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection,
     for (e <- 0 until stencilFieldSelection.stencil.entries.size) {
       var stencilFieldIdx = Duplicate(index)
       stencilFieldIdx(Knowledge.dimensionality) = e
-      entries += new StencilEntry(stencilFieldSelection.stencil.entries(e).offset, new FieldAccess(stencilFieldSelection.toFieldSelection, stencilFieldIdx))
+      var fieldSel = stencilFieldSelection.toFieldSelection
+      fieldSel.arrayIndex = e
+      entries += new StencilEntry(stencilFieldSelection.stencil.entries(e).offset, new FieldAccess(fieldSel, stencilFieldIdx))
     }
     new Stencil("GENERATED_PLACEHOLDER_STENCIL", stencilFieldSelection.stencil.level, entries)
   }

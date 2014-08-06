@@ -163,6 +163,52 @@ case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight
   }
 }
 
+case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, var stencilRight : Stencil) extends Expression with Expandable {
+  override def cpp : String = "NOT VALID ; CLASS = StencilFieldStencilConvolution\n"
+
+  def expand : StencilAccess = {
+    var entries : ListBuffer[StencilEntry] = ListBuffer()
+
+    for (re <- stencilRight.entries) {
+      for (e <- 0 until stencilLeft.stencilFieldSelection.stencil.entries.size) {
+        var stencilFieldIdx = Duplicate(stencilLeft.index)
+        stencilFieldIdx(Knowledge.dimensionality) = e
+        for (dim <- 0 until Knowledge.dimensionality)
+          stencilFieldIdx(dim) += re.offset(dim)
+        var fieldSel = stencilLeft.stencilFieldSelection.toFieldSelection
+        fieldSel.arrayIndex = e
+
+        var rightOffset = Duplicate(re.offset)
+
+        var leftOffset = Duplicate(stencilLeft.stencilFieldSelection.stencil.entries(e).offset)
+        if (stencilRight.level > stencilLeft.stencilFieldSelection.stencil.level) {
+          for (d <- 0 until Knowledge.dimensionality)
+            leftOffset(d) = (dimToString(d) : Expression) / 2 + leftOffset(d)
+        } else {
+          for (d <- 0 until Knowledge.dimensionality)
+            leftOffset(d) = (dimToString(d) : Expression) + leftOffset(d)
+        }
+
+        var combOff = leftOffset
+        ResolveCoordinates.replacement = rightOffset
+        ResolveCoordinates.doUntilDoneStandalone(combOff)
+
+        var combCoeff : Expression = (re.weight * new FieldAccess(fieldSel, stencilFieldIdx))
+        SimplifyStrategy.doUntilDoneStandalone(combOff)
+        SimplifyStrategy.doUntilDoneStandalone(combCoeff)
+        var addToEntry = entries.find(e => e.offset match { case o if (combOff == o) => true; case _ => false })
+        if (addToEntry.isDefined) {
+          combCoeff += addToEntry.get.weight
+          SimplifyStrategy.doUntilDoneStandalone(combCoeff)
+          addToEntry.get.weight = combCoeff
+        } else entries += new StencilEntry(combOff, combCoeff)
+      }
+    }
+
+    StencilAccess(Stencil(stencilLeft.stencilFieldSelection.stencil.identifier + "_" + stencilRight.identifier, stencilLeft.stencilFieldSelection.stencil.level, entries))
+  }
+}
+
 object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions") {
   this += new Transformation("SearchAndMark", {
     case MultiplicationExpression(StencilAccess(stencil), fieldAccess : FieldAccess) =>
@@ -172,21 +218,21 @@ object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions"
     case MultiplicationExpression(StencilAccess(stencilLeft), StencilAccess(stencilRight)) =>
       StencilStencilConvolution(stencilLeft, stencilRight)
     case MultiplicationExpression(stencilLeft : StencilFieldAccess, StencilAccess(stencilRight)) =>
-      StencilStencilConvolution(stencilLeft.buildStencil, stencilRight)
-    case MultiplicationExpression(StencilAccess(stencilLeft), stencilRight : StencilFieldAccess) =>
-      StencilStencilConvolution(stencilLeft, stencilRight.buildStencil)
-    case MultiplicationExpression(stencilLeft : StencilFieldAccess, stencilRight : StencilFieldAccess) =>
-      StencilStencilConvolution(stencilLeft.buildStencil, stencilRight.buildStencil)
+      StencilFieldStencilConvolution(stencilLeft, stencilRight)
+    //    case MultiplicationExpression(StencilAccess(stencilLeft), stencilRight : StencilFieldAccess) => TODO
+    //    case MultiplicationExpression(stencilLeft : StencilFieldAccess, stencilRight : StencilFieldAccess) => TODO
   })
 }
 
 object MapStencilAssignments extends DefaultStrategy("MapStencilAssignments") {
   this += new Transformation("SearchAndMark", {
-    case AssignmentStatement(stencilFieldAccess : StencilFieldAccess, StencilAccess(stencil), "=") => {
+    case AssignmentStatement(stencilFieldAccess : StencilFieldAccess, StencilAccess(stencil), op) => {
       var statements : ListBuffer[Statement] = ListBuffer()
 
       val stencilRight = stencil
       val stencilLeft = stencilFieldAccess.stencilFieldSelection.stencil
+
+      val flipEntries = false
 
       for (idx <- 0 until stencilLeft.entries.size) {
         var fieldSelection = stencilFieldAccess.stencilFieldSelection.toFieldSelection
@@ -195,10 +241,22 @@ object MapStencilAssignments extends DefaultStrategy("MapStencilAssignments") {
         fieldIndex(Knowledge.dimensionality) = idx
         var coeff : Expression = 0
         for (e <- stencilRight.entries) {
-          if (e.offset == stencilLeft.entries(idx).offset)
-            coeff += e.weight
+          if (flipEntries) {
+            if ((0 until Knowledge.dimensionality).map(dim =>
+              (SimplifyExpression.evalIntegral(e.offset(dim)) == -SimplifyExpression.evalIntegral(stencilLeft.entries(idx).offset(dim))))
+              .reduceLeft((a, b) => a && b))
+              coeff += e.weight
+          } else {
+            if (e.offset == stencilLeft.entries(idx).offset)
+              coeff += e.weight
+          }
         }
-        statements += new AssignmentStatement(new FieldAccess(fieldSelection, fieldIndex), coeff)
+
+        if (flipEntries)
+          for (dim <- 0 until Knowledge.dimensionality)
+            fieldIndex(dim) -= stencilLeft.entries(idx).offset(dim)
+
+        statements += new AssignmentStatement(new FieldAccess(fieldSelection, fieldIndex), coeff, op)
       }
 
       StatementBlock(statements)
