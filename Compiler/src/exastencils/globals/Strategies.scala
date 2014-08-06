@@ -22,6 +22,7 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
         func.body += "mpiCommunicator = " + Knowledge.mpi_defaultCommunicator
         func.body += "MPI_Comm_rank(mpiCommunicator, &mpiRank)"
         func.body += "MPI_Comm_size(mpiCommunicator, &mpiSize)"
+        func.body += "std::srand(mpiRank)"
       }
       func
   })
