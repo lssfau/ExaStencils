@@ -5,7 +5,7 @@ import exastencils.datastructures._
 import exastencils.knowledge._
 
 case class Root() extends Node {
-  var kelvin : Boolean = false
+  var kelvin : Boolean = false // NOTE: currently only works for 2D
   var numSamples : Int = 10 // only required for kelvin
 
   var smoother : String = "Jac" // Jac | GS | RBGS
