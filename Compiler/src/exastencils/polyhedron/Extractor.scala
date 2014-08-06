@@ -46,6 +46,7 @@ import exastencils.datastructures.ir.iv.FieldData
 import exastencils.datastructures.ir.iv.PrimitivePositionBegin
 import exastencils.datastructures.ir.iv.PrimitivePositionEnd
 import exastencils.knowledge.FieldSelection
+import exastencils.knowledge.Knowledge
 import exastencils.knowledge.dimToString
 
 /** Object for all "static" attributes */
@@ -130,7 +131,7 @@ class Extractor extends Collector {
     def create(root : LoopOverDimensions, origLoopVars : ArrayBuffer[String],
       modelLoopVars : String, setTempl : String, mapTempl : String) : Unit = {
 
-      this.scop_ = new Scop(root, root.parallelizationIsReasonable)
+      this.scop_ = new Scop(root, Knowledge.omp_parallelizeLoopOverDimensions && root.parallelizationIsReasonable)
       this.modelLoopVars_ = modelLoopVars
       this.origLoopVars_ = origLoopVars
       this.setTemplate_ = setTempl
