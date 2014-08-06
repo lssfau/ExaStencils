@@ -5,7 +5,8 @@ import exastencils.datastructures._
 import exastencils.knowledge._
 
 case class Root() extends Node {
-  var kelvin : Boolean = false
+  var kelvin : Boolean = false // NOTE: currently only works for 2D
+  var numSamples : Int = 10 // only required for kelvin
 
   var smoother : String = "Jac" // Jac | GS | RBGS
   var cgs : String = "CG" // CG
@@ -155,6 +156,10 @@ case class Root() extends Node {
         printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >@all")
       }
     }
+
+    if (kelvin && "" == postfix)
+      printer.println(s"Field SolutionMean< $fieldDatatype, $domain, NoComm, None >@all")
+
     printer.println(s"Field Residual$postfix< $fieldDatatype, $domain, BasicComm, None >@all")
     if (kelvin && "_GMRF" == postfix) {
       printer.println(s"Field RHS$postfix< $fieldDatatype, $domain, NoComm, 0.0 >@finest")
@@ -767,6 +772,81 @@ case class Root() extends Node {
     printer.println
   }
 
+  def addSolveFunction(printer : java.io.PrintWriter) = {
+    printer.println("def Solve ( ) : Unit {")
+    printer.println("\tUpResidual@finest ( )")
+    for (vecDim <- 0 until numVecDims) {
+      printer.println(s"\tvar resStart_$vecDim : Real = L2Residual_$vecDim@finest (  )")
+      printer.println(s"\tvar res_$vecDim : Real = resStart_$vecDim")
+      printer.println(s"\tvar resOld_$vecDim : Real = 0")
+      printer.println("\tprint ( '\"" + s"Starting residual at $vecDim" + "\"', " + s"resStart_$vecDim )")
+    }
+    printer.println("\tvar totalTime : Real = 0")
+    printer.println("\tvar timeToSolve : Real = 0")
+    printer.println("\tstartTimer ( timeToSolveWatch )")
+    printer.println("\tvar numIt : Integer = 0")
+    printer.println("\trepeat until res_0 < 1.0e-8 {")
+    printer.println("\t\tnumIt += 1")
+    printer.println("\t\tstartTimer ( stopWatch )")
+    printer.println("\t\tVCycle@finest (  )")
+    printer.println("\t\tUpResidual@finest ( )")
+    printer.println("\t\tstopTimer ( stopWatch, totalTime )")
+    for (vecDim <- 0 until numVecDims) {
+      printer.println(s"\t\tresOld_$vecDim = res_$vecDim")
+      printer.println(s"\t\tres_$vecDim = L2Residual_$vecDim@finest (  )")
+      printer.println("\t\tprint ( '\"" + s"Residual at $vecDim:" + "\"', " + s"res_$vecDim" + ", '\"Residual reduction:\"', " + s"( resStart_$vecDim / res_$vecDim ), " + "'\"Convergence factor:\"', " + s"( res_$vecDim / resOld_$vecDim ) )")
+    }
+    printer.println("\t}")
+    printer.println("\tstopTimer ( timeToSolveWatch, timeToSolve )")
+    printer.println("\tprint ( '\"Total time to solve in\"', numIt, '\"steps :\"', timeToSolve )")
+    printer.println("\tprint ( '\"Mean time per vCycle: \"', totalTime / numIt )")
+    printer.println(s"}")
+    printer.println
+
+    if (kelvin) {
+      printer.println("def Solve_GMRF ( ) : Unit {")
+      printer.println("\tnative ( \"static int sample = 0\" )")
+      printer.println("\tnative ( \"std::default_random_engine generator(mpiRank + sample++)\" )")
+      printer.println("\tnative ( \"std::normal_distribution<double> distribution(0.0, 1.0)\" )")
+      printer.println("\tnative ( \"auto randn = std::bind ( distribution, generator )\" )")
+
+      printer.println(s"\tvar tau2 : Real = myGamma ( nu ) / ( myGamma ( nu + 0.5 ) * (( 4.0 * M_PI ) ** ( dim / 2.0 )) * ( kappa ** ( 2 * nu )) * sigma * sigma )")
+      printer.println(s"\tloop over innerForFieldsWithoutGhostLayers on RHS_GMRF@finest {")
+      printer.println(s"\t\tRHS_GMRF@finest = randn ( ) / ${Knowledge.domain_numFragsTotal_x * (1 << Knowledge.maxLevel)}")
+      printer.println(s"\t}")
+      printer.println(s"\tcommunicate RHS_GMRF@finest")
+
+      printer.println(s"\tUpResidual_GMRF@finest ( )")
+      printer.println(s"\tvar resStart : Real = L2Residual_GMRF_0@finest ( )")
+      printer.println(s"\tvar res : Real = resStart")
+      printer.println(s"\tvar resOld : Real = 0")
+      printer.println("\tprint ( '\"Starting residual:\"', resStart )")
+      printer.println("\tvar totalTime : Real = 0")
+      printer.println("\tvar timeToSolve : Real = 0")
+      printer.println("\tstartTimer ( timeToSolveWatch )")
+      printer.println("\tvar numIt : Integer = 0")
+      printer.println("\trepeat until res < 1.0e-8 {")
+      printer.println("\t\tnumIt += 1")
+      printer.println("\t\tstartTimer ( stopWatch )")
+      printer.println("\t\tVCycle_GMRF@finest (  )")
+      printer.println("\t\tUpResidual_GMRF@finest ( )")
+      printer.println("\t\tstopTimer ( stopWatch, totalTime )")
+      printer.println(s"\t\tresOld = res")
+      printer.println(s"\t\tres = L2Residual_GMRF_0@finest ( )")
+      printer.println("\t\tprint ( '\"Residual:\"', res, '\"Residual reduction:\"', ( resStart / res ), '\"Convergence factor:\"', ( res / resOld ) )")
+      printer.println("\t}")
+      printer.println("\tstopTimer ( timeToSolveWatch, timeToSolve )")
+      printer.println("\tprint ( '\"Total time to solve in\"', numIt, '\"steps :\"', timeToSolve )")
+      printer.println("\tprint ( '\"Mean time per vCycle: \"', totalTime / numIt )")
+
+      printer.println(s"\tloop over inner on Solution_GMRF@finest {")
+      printer.println(s"\t\tSolution_GMRF@finest = exp ( Solution_GMRF@finest / sqrt ( tau2 ) )")
+      printer.println(s"\t}")
+      printer.println(s"}")
+      printer.println
+    }
+  }
+
   def printToL4(filename : String) : Unit = {
     var printer = new java.io.PrintWriter(filename)
 
@@ -783,9 +863,12 @@ case class Root() extends Node {
     addLayouts(printer)
 
     // Fields
-    addFields(printer, "", "innerDom")
-    if (kelvin)
+    if (kelvin) {
+      addFields(printer, "", "innerDom")
       addFields(printer, "_GMRF", "global")
+    } else {
+      addFields(printer, "", "global")
+    }
 
     if (kelvin) {
       printer.println(s"def bcSol (xPos : Real, yPos : Real) : Real {")
@@ -799,9 +882,12 @@ case class Root() extends Node {
     }
 
     // Coeff/StencilFields
-    addStencilFields(printer, "", "innerDom")
-    if (kelvin)
+    if (kelvin) {
+      addStencilFields(printer, "", "innerDom")
       addStencilFields(printer, "_GMRF", "global")
+    } else {
+      addStencilFields(printer, "", "global")
+    }
 
     // External Fields
     if (testExtFields) {
@@ -859,36 +945,7 @@ case class Root() extends Node {
       addInitFields(printer, "_GMRF")
 
     // Kelvin
-    if (kelvin) {
-      printer.println("def solve_GMRF ( ) : Unit {")
-      printer.println("\tnative ( \"std::srand(mpiRank)\" )")
-      printer.println("\tnative ( \"std::default_random_engine generator\" )")
-      printer.println("\tnative ( \"std::normal_distribution<double> distribution(0.0, 1.0)\" )")
-      printer.println("\tnative ( \"auto randn = std::bind ( distribution, generator )\" )")
-
-      printer.println(s"\tvar tau2 : Real = myGamma ( nu ) / ( myGamma ( nu + 0.5 ) * (( 4.0 * M_PI ) ** ( dim / 2.0 )) * ( kappa ** ( 2 * nu )) * sigma * sigma )")
-      printer.println(s"\tloop over innerForFieldsWithoutGhostLayers on RHS_GMRF@finest {")
-      printer.println(s"\t\tRHS_GMRF@finest = randn ( ) / ${Knowledge.domain_numFragsTotal_x * (1 << Knowledge.maxLevel)}")
-      printer.println(s"\t}")
-      printer.println(s"\tcommunicate RHS_GMRF@finest")
-      printer.println(s"\tUpResidual_GMRF@finest ( )")
-      printer.println(s"\tvar res0 : Real = L2Residual_GMRF_0@finest ( )")
-      printer.println(s"\tvar res : Real = res0")
-      printer.println(s"\tvar resold : Real = 0")
-      printer.println("\tprint ( '\"Starting residual:\"', res0 )")
-      printer.println(s"\trepeat up 10 {")
-      printer.println(s"\t\tresold = res")
-      printer.println(s"\t\tVCycle_GMRF@finest ( )")
-      printer.println(s"\t\tUpResidual_GMRF@finest ( )")
-      printer.println(s"\t\tres = L2Residual_GMRF_0@finest ( )")
-      printer.println("\t\tprint ( '\"Residual:\"', res, '\"Residual reduction:\"', ( res0 / res ), '\"Convergence factor:\"', ( res / resold ) )")
-      printer.println(s"\t}")
-      printer.println(s"\tloop over inner on Solution_GMRF@finest {")
-      printer.println(s"\t\tSolution_GMRF@finest = exp ( Solution_GMRF@finest / sqrt ( tau2 ) )")
-      printer.println(s"\t}")
-      printer.println(s"}")
-      printer.println
-    }
+    addSolveFunction(printer)
 
     // Application
     printer.println("def Application ( ) : Unit {")
@@ -925,13 +982,19 @@ case class Root() extends Node {
     }
 
     if (kelvin) {
+      printer.println("\tvar timeSamples : Real = 0")
+      printer.println("\tstartTimer ( timeSamplesWatch )")
+      printer.println(s"\trepeat up $numSamples {")
+    }
+
+    if (kelvin) {
       if (genStencilFields) {
         for (lvl <- Knowledge.maxLevel to 0 by -1)
           printer.println(s"\tInitLaplace_GMRF@$lvl ( )")
       }
       printer.println("\tInitRHS_GMRF ( )")
       printer.println("\tInitSolution_GMRF ( )")
-      printer.println("\tsolve_GMRF ( )")
+      printer.println("\tSolve_GMRF ( )")
     }
 
     if (kelvin) {
@@ -957,34 +1020,28 @@ case class Root() extends Node {
 
     printer.println("\tInitRHS ( )")
     printer.println("\tInitSolution ( )")
-    printer.println("\tUpResidual@finest ( )")
-    for (vecDim <- 0 until numVecDims) {
-      printer.println(s"\tvar resStart_$vecDim : Real = L2Residual_$vecDim@finest (  )")
-      printer.println(s"\tvar res_$vecDim : Real = resStart_$vecDim")
-      printer.println(s"\tvar resOld_$vecDim : Real = 0")
-      printer.println("\tprint ( '\"" + s"Starting residual at $vecDim" + "\"', " + s"resStart_$vecDim )")
-    }
-    printer.println("\tvar totalTime : Real = 0")
-    printer.println("\tvar timeToSolve : Real = 0")
-    printer.println("\tstartTimer ( timeToSolveWatch )")
-    printer.println("\trepeat up 10 {")
-    printer.println("\t\tstartTimer ( stopWatch )")
-    printer.println("\t\tVCycle@finest (  )")
-    printer.println("\t\tUpResidual@finest ( )")
-    printer.println("\t\tstopTimer ( stopWatch, totalTime )")
-    for (vecDim <- 0 until numVecDims) {
-      printer.println(s"\t\tresOld_$vecDim = res_$vecDim")
-      printer.println(s"\t\tres_$vecDim = L2Residual_$vecDim@finest (  )")
-      printer.println("\t\tprint ( '\"" + s"Residual at $vecDim:" + "\"', " + s"res_$vecDim" + ", '\"Residual reduction:\"', " + s"( resStart_$vecDim / res_$vecDim ), " + "'\"Convergence factor:\"', " + s"( res_$vecDim / resOld_$vecDim ) )")
-    }
-    printer.println("\t}")
-    printer.println("\tstopTimer ( timeToSolveWatch, timeToSolve )")
-    printer.println("\tprint ( '\"Total time to solve: \"', timeToSolve )")
-    printer.println("\tprint ( '\"Mean time per vCycle: \"', totalTime / 10 )")
+    printer.println("\tSolve ( )")
 
     if (kelvin) {
+      printer.println(s"\tloop over innerForFieldsWithoutGhostLayers on SolutionMean@finest {")
+      printer.println(s"\t\tSolutionMean@finest += ${solutionFields(s"finest", "")(0)}")
+      printer.println(s"\t}")
+    }
+
+    if (kelvin) {
+      printer.println("\t}")
+      printer.println("\tstopTimer ( timeSamplesWatch, timeSamples )")
+      printer.println("\tprint ( '\"Total time to solve: \"', timeSamples )")
+      printer.println("\tprint ( '\"Mean time per sample: \"', " + s"timeSamples / $numSamples )")
+    }
+
+    if (kelvin) {
+      printer.println(s"\tloop over innerForFieldsWithoutGhostLayers on SolutionMean@finest {")
+      printer.println(s"\t\tSolutionMean@finest /= $numSamples")
+      printer.println(s"\t}")
+
       printer.println(s"\tvar solNorm : Real = 0.0")
-      printer.println(s"\tloop over inner on Solution@finest with reduction( + : solNorm ) {")
+      printer.println(s"\tloop over inner on SolutionMean@finest with reduction( + : solNorm ) {")
       printer.println(s"\t\t// FIXME: this counts duplicated values multiple times")
       printer.println(s"\t\tsolNorm += ${solutionFields(s"finest", "")(0)} * ${solutionFields(s"finest", "")(0)}")
       printer.println(s"\t}")
@@ -992,8 +1049,12 @@ case class Root() extends Node {
       printer.println("\tprint ( '\"Norm of the solution: \"', solNorm )")
     }
 
-    if (printFieldAtEnd)
-      printer.println("\tprintField ( '\"Solution.dat\"', Solution@finest )")
+    if (printFieldAtEnd) {
+      if (kelvin)
+        printer.println("\tprintField ( '\"Solution.dat\"', SolutionMean@finest )")
+      else
+        printer.println("\tprintField ( '\"Solution.dat\"', Solution@finest )")
+    }
 
     printer.println("\tdestroyGlobals ( )")
 
