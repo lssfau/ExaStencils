@@ -97,7 +97,7 @@ object Extractor {
 
 class Extractor extends Collector {
 
-  private final val DEBUG : Boolean = true
+  private final val DEBUG : Boolean = false
 
   /** import all "static" attributes to allow an unqualified access */
   import exastencils.polyhedron.Extractor._
