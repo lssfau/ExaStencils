@@ -20,8 +20,12 @@ domain_fragLength_x			= 1
 domain_fragLength_y			= 1
 domain_fragLength_z			= 1
 
-mpi_useCustomDatatypes		= true
 poly_usePolyOpt				= true
+poly_tileSize_x				= 1000000
+poly_tileSize_y				= 32
+poly_tileSize_z				= 1000000
 opt_useAddressPrecalc		= true
 opt_vectorize				= true
+opt_unroll					= true
+opt_unroll_interleave		= true
 data_addPrePadding			= false // not needed currently
