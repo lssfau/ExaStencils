@@ -25,6 +25,7 @@ import exastencils.datastructures.ir.IntegerDatatype
 import exastencils.datastructures.ir.LowerEqualExpression
 import exastencils.datastructures.ir.LowerExpression
 import exastencils.datastructures.ir.NullStatement
+import exastencils.datastructures.ir.Scope
 import exastencils.datastructures.ir.Statement
 import exastencils.datastructures.ir.StatementBlock
 import exastencils.datastructures.ir.SubtractionExpression
@@ -82,7 +83,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
         return node
     }
 
-    val res = new ListBuffer[Node]()
+    val res = new ListBuffer[Statement]()
     if (njuBegin != null)
       res += njuBegin
     res += loop // update fields later
@@ -94,7 +95,11 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     loop.inc = njuIncr
     loop.body = duplicateStmts(loop.body, itVar, oldInc)
 
-    return res
+    if (loop.hasAnnotation(InScope.ANNOT))
+      return res.asInstanceOf[ListBuffer[Node]] // HACK
+
+    loop.annotate(InScope.ANNOT)
+    return new Scope(res)
   }
 
   private def updateIncrement(inc : Statement) : (Statement, String, Long) = {

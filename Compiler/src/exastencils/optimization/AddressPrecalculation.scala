@@ -24,6 +24,7 @@ import exastencils.datastructures.ir.ModuloExpression
 import exastencils.datastructures.ir.MultiplicationExpression
 import exastencils.datastructures.ir.PointerDatatype
 import exastencils.datastructures.ir.RealDatatype
+import exastencils.datastructures.ir.Scope
 import exastencils.datastructures.ir.Statement
 import exastencils.datastructures.ir.StringConstant
 import exastencils.datastructures.ir.SubtractionExpression
@@ -63,7 +64,7 @@ private final class ArrayBases(val arrayName : String) {
     inits.getOrElseUpdate(initVec, { idCount += 1; (arrayName + "_p" + idCount, initExpr) })._1
   }
 
-  def addToDecls(decls : ListBuffer[Node]) : Unit = {
+  def addToDecls(decls : ListBuffer[Statement]) : Unit = {
     for ((_, (name : String, init : Expression)) <- inits)
       decls += new VariableDeclarationStatement(
         PointerDatatype(RealDatatype()), name, Some(new UnaryExpression(UnaryOperators.AddressOf, init)))
@@ -199,12 +200,16 @@ private final object IntegrateAnnotations extends PartialFunction[Node, Transfor
       if (decls.isEmpty)
         return node
 
-      val stmts = new ListBuffer[Node]()
+      val stmts = new ListBuffer[Statement]()
       for ((_, bases : ArrayBases) <- decls)
         bases.addToDecls(stmts)
 
       stmts += node.asInstanceOf[Statement]
-      return stmts
+      if (node.hasAnnotation(InScope.ANNOT))
+        return stmts.asInstanceOf[ListBuffer[Node]] // HACK
+
+      node.annotate(InScope.ANNOT)
+      return new Scope(stmts)
     }
   }
 }

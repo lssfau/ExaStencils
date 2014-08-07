@@ -2,6 +2,7 @@ package exastencils.optimization
 
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core.Duplicate
 import exastencils.core.Logger
 import exastencils.datastructures.DefaultStrategy
@@ -41,6 +42,7 @@ import exastencils.datastructures.ir.SIMD_RealDatatype
 import exastencils.datastructures.ir.SIMD_Scalar2VectorExpression
 import exastencils.datastructures.ir.SIMD_StoreStatement
 import exastencils.datastructures.ir.SIMD_SubtractionExpression
+import exastencils.datastructures.ir.Scope
 import exastencils.datastructures.ir.Statement
 import exastencils.datastructures.ir.StatementBlock
 import exastencils.datastructures.ir.SubtractionExpression
@@ -48,8 +50,8 @@ import exastencils.datastructures.ir.UnaryExpression
 import exastencils.datastructures.ir.UnaryOperators
 import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.VariableDeclarationStatement
-import exastencils.util.SimplifyExpression
 import exastencils.knowledge.Knowledge
+import exastencils.util.SimplifyExpression
 
 object Vectorization extends DefaultStrategy("Vectorization") {
   this += new Transformation("optimize", VectorizeInnermost)
@@ -93,6 +95,8 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         body, reduction) //
         if (itName == itName2) =>
 
+        val isInScope : Boolean = loop.hasAnnotation(InScope.ANNOT)
+
         val uBoundExcl : Expression =
           condition match {
 
@@ -111,16 +115,16 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
           case "+=" =>
             assignExpr match {
-              case IntegerConstant(1) => vectorizeLoop(itName, lBound, uBoundExcl, body, reduction)
+              case IntegerConstant(1) => vectorizeLoop(itName, lBound, uBoundExcl, body, reduction, isInScope)
               case _                  => throw new VectorizationException("loop increment 1 required for vectorization")
             }
 
           case "=" =>
             assignExpr match {
               case AdditionExpression(IntegerConstant(1), VariableAccess(v, Some(IntegerDatatype()))) if v == itName =>
-                vectorizeLoop(itName, lBound, uBoundExcl, body, reduction)
+                vectorizeLoop(itName, lBound, uBoundExcl, body, reduction, isInScope)
               case AdditionExpression(VariableAccess(v, Some(IntegerDatatype())), IntegerConstant(1)) if v == itName =>
-                vectorizeLoop(itName, lBound, uBoundExcl, body, reduction)
+                vectorizeLoop(itName, lBound, uBoundExcl, body, reduction, isInScope)
               case _ => throw new VectorizationException("loop increment 1 required for vectorization")
             }
 
@@ -181,7 +185,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
   }
 
   private def vectorizeLoop(itName : String, begin : Expression, endExcl : Expression,
-    body : ListBuffer[Statement], reduction : Option[Reduction]) : Transformation.Output[_] = {
+    body : ListBuffer[Statement], reduction : Option[Reduction], isInScope : Boolean) : Transformation.Output[_] = {
 
     val ctx = new LoopCtx(itName)
     var postLoopStmt : Statement = null
@@ -214,7 +218,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
       vectorizeStmt(stmt, ctx)
 
     def itVar = VariableAccess(itName, Some(IntegerDatatype()))
-    val res = new ListBuffer[Node]()
+    val res = new ListBuffer[Statement]()
 
     res += new VariableDeclarationStatement(IntegerDatatype(), itName, Some(begin))
 
@@ -233,6 +237,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     vectLoop.isInnermost = true
     vectLoop.isParallel = true
     vectLoop.annotate(Unrolling.NO_REM_ANNOT, Knowledge.simd_vectorSize - 1)
+    vectLoop.annotate(InScope.ANNOT)
     res += vectLoop
 
     if (postLoopStmt != null)
@@ -243,7 +248,10 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
       AssignmentStatement(itVar, IntegerConstant(1), "+="),
       body) // old AST will be replaced completely, so we can reuse the body once here (we cloned above)
 
-    return res
+    if (isInScope)
+      return res.asInstanceOf[ListBuffer[Node]] // HACK
+    else
+      return new Scope(res)
   }
 
   private def vectorizeStmt(stmt : Statement, ctx : LoopCtx) : Unit = {
