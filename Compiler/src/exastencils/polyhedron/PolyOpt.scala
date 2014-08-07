@@ -139,7 +139,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       live = live.subtract(scop.deadAfterScop)
     live = live.union(scop.deps.flow.domain().intersect(scop.domain))
 
-    scop.domain = live
+    if (!scop.domain.isEqual(live)) // the new one could be more complex, so keep old ;)
+      scop.domain = live
 
     // update schedule, accesses and dependencies
     //    scop.schedule = scop.schedule.intersectDomain(live)
