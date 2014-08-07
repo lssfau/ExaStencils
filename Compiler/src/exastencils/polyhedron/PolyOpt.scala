@@ -40,6 +40,16 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     this.commit()
   }
 
+  /** Register the name of a side-effect free function, that is safe to be used inside a scop. */
+  def registerSideeffectFree(functionName : String) : Unit = {
+    Extractor.registerSideeffectFree(functionName)
+  }
+
+  /** Register the name of a symbolic constant, that is not modified inside a scop. */
+  def registerSymbolicConstant(constName : String) : Unit = {
+    Extractor.registerSymbolicConstant(constName)
+  }
+
   private def extractPolyModel() : ArrayStack[Scop] = {
 
     val extr = new Extractor()

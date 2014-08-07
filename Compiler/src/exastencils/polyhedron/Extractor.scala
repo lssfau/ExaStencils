@@ -33,6 +33,7 @@ import exastencils.datastructures.ir.ModuloExpression
 import exastencils.datastructures.ir.MultiIndex
 import exastencils.datastructures.ir.MultiplicationExpression
 import exastencils.datastructures.ir.NeqNeqExpression
+import exastencils.datastructures.ir.NullStatement
 import exastencils.datastructures.ir.OffsetIndex
 import exastencils.datastructures.ir.PowerExpression
 import exastencils.datastructures.ir.Statement
@@ -42,9 +43,7 @@ import exastencils.datastructures.ir.SubtractionExpression
 import exastencils.datastructures.ir.UnaryExpression
 import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.VariableDeclarationStatement
-import exastencils.datastructures.ir.iv.FieldData
-import exastencils.datastructures.ir.iv.PrimitivePositionBegin
-import exastencils.datastructures.ir.iv.PrimitivePositionEnd
+import exastencils.datastructures.ir.iv
 import exastencils.knowledge.FieldSelection
 import exastencils.knowledge.Knowledge
 import exastencils.knowledge.dimToString
@@ -64,7 +63,7 @@ object Extractor {
   /** annotation id used to indicate that this subtree should be skipped */
   private final val SKIP_ANNOT : String = "PolySkip"
 
-  /** set of all functions that are allowed in a scop */
+  /** set of all functions that are allowed in a scop (these must not have side effects) */
   private final val allowedFunctions : HashSet[String] = {
     val a = new HashSet[String]()
     a.add("sin")
@@ -73,20 +72,32 @@ object Extractor {
     a.add("sinh")
     a.add("cosh")
     a.add("tanh")
+    a.add("exp")
+    a.add("sqrt")
     a
   }
 
-  /** set of symbolic constants that must not be modeled as read accesses */
+  /** set of symbolic constants that must not be modeled as read accesses (these must be constant inside a scop) */
   private final val symbolicConstants : HashSet[String] = {
     val c = new HashSet[String]()
     c.add("M_PI")
     c
   }
+
+  /** Register the name of a side-effect free function, that is safe to be used inside a scop. */
+  def registerSideeffectFree(functionName : String) : Unit = {
+    allowedFunctions.add(functionName)
+  }
+
+  /** Register the name of a symbolic constant, that is not modified inside a scop. */
+  def registerSymbolicConstant(constName : String) : Unit = {
+    symbolicConstants.add(constName)
+  }
 }
 
 class Extractor extends Collector {
 
-  private final val DEBUG : Boolean = false
+  private final val DEBUG : Boolean = true
 
   /** import all "static" attributes to allow an unqualified access */
   import exastencils.polyhedron.Extractor._
@@ -253,15 +264,20 @@ class Extractor extends Collector {
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(varName, index)
 
-          case ArrayAccess(ppVec : PrimitivePositionBegin, index) =>
+          case ArrayAccess(ppVec : iv.PrimitivePositionBegin, index) =>
             ppVec.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(ppVec.cpp(), index)
 
-          case ArrayAccess(ppVec : PrimitivePositionEnd, index) =>
+          case ArrayAccess(ppVec : iv.PrimitivePositionEnd, index) =>
             ppVec.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(ppVec.cpp(), index)
+
+          case ArrayAccess(tmp : iv.TmpBuffer, index) =>
+            tmp.annotate(SKIP_ANNOT)
+            index.annotate(SKIP_ANNOT)
+            enterArrayAccess(tmp.cpp(), index)
 
           case DirectFieldAccess(fieldSelection, index) =>
             fieldSelection.annotate(SKIP_ANNOT)
@@ -291,7 +307,8 @@ class Extractor extends Collector {
             | _ : MultiplicationExpression
             | _ : DivisionExpression
             | _ : ModuloExpression
-            | _ : PowerExpression => // nothing to do for all of them...
+            | _ : PowerExpression
+            | _ : NullStatement => // nothing to do for all of them...
 
           // deny
           case e : ExpressionStatement    => throw new ExtractionException("cannot deal with ExprStmt: " + e.cpp)
@@ -690,7 +707,7 @@ class Extractor extends Collector {
 
   private def enterFieldAccess(fieldSelection : FieldSelection, index : MultiIndex, offset : MultiIndex = null) : Unit = {
 
-    val name : String = FieldData(fieldSelection.field, fieldSelection.slot, fieldSelection.fragIdx).cpp()
+    val name : String = iv.FieldData(fieldSelection.field, fieldSelection.slot, fieldSelection.fragIdx).cpp()
     enterArrayAccess(name, if (offset == null) index else index + offset)
   }
 
