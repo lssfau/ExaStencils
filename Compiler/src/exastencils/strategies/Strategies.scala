@@ -1,5 +1,7 @@
 package exastencils.strategies
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
@@ -186,5 +188,21 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       SubtractionExpression(rightLeft, IntegerConstant(rightRight))) =>
       ((leftLeft + rightLeft) - (leftRight.v + rightRight.v))
     //})
+
+    case loop @ ForLoopStatement(_, _, _, body, _) if (body.length == 1 && body(0).isInstanceOf[Scope]) =>
+      loop.body = loop.body(0).asInstanceOf[Scope].body
+      loop
+
+    case loop @ ForLoopStatement(_, _, _, body, _) if (body.length == 1 && body(0).isInstanceOf[StatementBlock]) =>
+      loop.body = loop.body(0).asInstanceOf[StatementBlock].body
+      loop
+
+    case scope @ Scope(body) if (body.length == 1 && body(0).isInstanceOf[Scope]) =>
+      scope.body = scope.body(0).asInstanceOf[Scope].body
+      scope
+
+    case scope @ Scope(body) if (body.length == 1 && body(0).isInstanceOf[StatementBlock]) =>
+      scope.body = scope.body(0).asInstanceOf[StatementBlock].body
+      scope
   })
 }
