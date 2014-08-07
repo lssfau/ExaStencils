@@ -47,10 +47,12 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
 
   private final val DEBUG : Boolean = false
 
+  private final val SKIP_ANNOT : String = "UnRSkip"
+
   def isDefinedAt(node : Node) : Boolean = {
     return node match {
       case loop : ForLoopStatement with OptimizationHint =>
-        loop.isInnermost
+        loop.isInnermost && !loop.removeAnnotation(SKIP_ANNOT).isDefined
       case _ =>
         false
     }
@@ -99,6 +101,8 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
       return res.asInstanceOf[ListBuffer[Node]] // HACK
 
     loop.annotate(InScope.ANNOT)
+    for (stmt <- res)
+      stmt.annotate(SKIP_ANNOT)
     return new Scope(res)
   }
 
@@ -191,7 +195,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
   private class UpdateLoopVarAndNames(itVar : String)
       extends DefaultStrategy("Add loop var offset and rename declarations") {
 
-    private final val SKIP_ANNOT = "unr skip"
+    private final val SKIP_ANNOT = "UpLVSkip"
     private val rename = new HashSet[String]()
 
     var offset : Long = 0
