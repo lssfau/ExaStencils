@@ -890,7 +890,7 @@ case class SIMD_DivisionExpression(var left : Expression, var right : Expression
       case "SSE3"         => sb.append("_mm_div_pd")
       case "AVX" | "AVX2" => sb.append("_mm256_div_pd")
     }
-    sb.append(')')
+    sb.append('(')
     left.cppsb(sb)
     sb.append(", ")
     right.cppsb(sb)
