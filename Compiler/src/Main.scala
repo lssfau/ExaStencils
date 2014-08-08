@@ -96,19 +96,24 @@ object Main {
     if (Knowledge.opt_useAddressPrecalc)
       AddressPrecalculation.apply()
 
-    if (Knowledge.opt_vectorize) {
+    if (Knowledge.opt_vectorize || Knowledge.opt_unroll > 1)
       TypeInference.apply()
+
+    SimplifyFloatExpressions.apply()
+
+    if (Knowledge.opt_vectorize)
       Vectorization.apply()
-    }
+
+    if (Knowledge.opt_unroll > 1)
+      Unrolling.apply()
 
     AddInternalVariables.apply()
 
     if (Knowledge.useMPI)
       AddMPIDatatypes.apply()
 
-    if (Knowledge.useOMP) {
+    if (Knowledge.useOMP)
       AddOMPPragmas.apply()
-    }
 
     // one last time
     ExpandStrategy.doUntilDone()
