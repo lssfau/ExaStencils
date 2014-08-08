@@ -194,21 +194,6 @@ object Testbed {
 
     return
 
-    {
-      var statements : ListBuffer[Statement] = ListBuffer()
-
-      var t0 : Statement = new IntegerConstant(42)
-      var t1 : Statement = new IntegerConstant(42)
-      //statements += t0
-      statements += t0
-      statements += t1
-
-      var root = StatementBlock(statements)
-      StateManager.root_ = root
-
-      test
-    }
-
     /*  val index = new MultiIndex(1, 2, 3)
   val aabb = new IndexRange(new MultiIndex(0, 0, 0), new MultiIndex(33, 33, 33))
 
@@ -496,7 +481,7 @@ object Testbed {
 }  // tet_gs_coeff
 """
 
-    var root = StatementBlock(statements)
+    var root = Scope(statements)
 
     StateManager.root_ = root
 

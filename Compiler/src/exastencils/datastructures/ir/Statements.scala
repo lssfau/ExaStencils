@@ -2,8 +2,8 @@ package exastencils.datastructures.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.datastructures.Node
-import exastencils.knowledge.Knowledge
+import exastencils.datastructures._
+import exastencils.knowledge._
 
 abstract class Statement
   extends Node with CppPrettyPrintable

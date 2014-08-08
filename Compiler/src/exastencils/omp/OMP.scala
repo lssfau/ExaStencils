@@ -1,10 +1,8 @@
 package exastencils.omp
 
 import scala.collection.mutable.ListBuffer
-import exastencils.core._
-import exastencils.datastructures._
+
 import exastencils.datastructures.ir._
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 
 trait OMP_PotentiallyCritical
@@ -34,19 +32,13 @@ case class OMP_ParallelFor(var body : ForLoopStatement, var addOMPStatements : E
         return res // no more than one statement allowed: not perfectly nested anymore, return last valid collapse level
       stmts =
         filtered(0) match {
-          case b : StatementBlock => b.body
-          case s : Scope          => s.body
-
-          case l : ForLoopStatement =>
-            res += 1
-            l.body
-
-          case _ =>
-            return res // any other statement: not perfectly nested anymore, return last valid collapse level
+          case s : Scope            => s.body
+          case l : ForLoopStatement => { res += 1; l.body }
+          case _                    => return res // any other statement: not perfectly nested anymore, return last valid collapse level
         }
     }
 
-    return res // res == collapse now
+    res // res == collapse now
   }
 
   def cpp : String = {

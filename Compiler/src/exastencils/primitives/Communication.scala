@@ -65,24 +65,24 @@ case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : Neighbo
 case class RemoteSend(var field : FieldSelection, var neighbor : NeighborInfo, var src : Expression, var numDataPoints : Expression, var datatype : Datatype) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = RemoteSend\n"
 
-  def expand : Output[Statement] = {
-    StatementBlock(ListBuffer[Statement](
+  def expand : Output[StatementList] = {
+    ListBuffer[Statement](
       new MPI_Send(src, numDataPoints, datatype, iv.NeighborRemoteRank(field.domainIndex, neighbor.index),
         s"((unsigned int)" ~ iv.CommId() ~ " << 16) + ((unsigned int)(" ~ iv.NeighborFragLocalId(field.domainIndex, neighbor.index) ~ ") & 0x0000ffff)",
         iv.MpiRequest(field.field, "Send", neighbor.index)) with OMP_PotentiallyCritical,
-      AssignmentStatement(iv.ReqOutstanding(field.field, "Send", neighbor.index), true)))
+      AssignmentStatement(iv.ReqOutstanding(field.field, "Send", neighbor.index), true))
   }
 }
 
 case class RemoteRecv(var field : FieldSelection, var neighbor : NeighborInfo, var dest : Expression, var numDataPoints : Expression, var datatype : Datatype) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = RemoteRecv\n"
 
-  def expand : Output[Statement] = {
-    StatementBlock(ListBuffer[Statement](
+  def expand : Output[StatementList] = {
+    ListBuffer[Statement](
       new MPI_Receive(dest, numDataPoints, datatype, iv.NeighborRemoteRank(field.domainIndex, neighbor.index),
         "((unsigned int)(" ~ iv.NeighborFragLocalId(field.domainIndex, neighbor.index) ~ ") << 16) + ((unsigned int)" ~ iv.CommId() ~ " & 0x0000ffff)",
         iv.MpiRequest(field.field, "Recv", neighbor.index)) with OMP_PotentiallyCritical,
-      AssignmentStatement(iv.ReqOutstanding(field.field, "Recv", neighbor.index), true)))
+      AssignmentStatement(iv.ReqOutstanding(field.field, "Recv", neighbor.index), true))
   }
 }
 

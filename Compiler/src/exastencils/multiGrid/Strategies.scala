@@ -1,15 +1,15 @@
 package exastencils.multiGrid
 
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
-import exastencils.knowledge._
 import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.util._
-import exastencils.multiGrid._
-import exastencils.strategies._
+import exastencils.knowledge._
 import exastencils.mpi._
+import exastencils.util._
 
 object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions") {
   this += new Transformation("SearchAndReplace", {
@@ -88,18 +88,14 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
 
     // HACK to realize time measurement functionality -> FIXME: move to specialized node
     case ExpressionStatement(FunctionCallExpression(StringConstant("startTimer"), args)) =>
-      new StatementBlock(ListBuffer[Statement](
+      ListBuffer[Statement](
         "StopWatch " ~ args(0),
-        args(0) ~ ".reset()"))
+        args(0) ~ ".reset()")
     case ExpressionStatement(FunctionCallExpression(StringConstant("stopTimer"), args)) =>
       new Scope(ListBuffer[Statement](
         "double timeTaken = " ~ args(0) ~ ".getTimeInMilliSec()",
-        if (Knowledge.useMPI)
-          new StatementBlock(ListBuffer[Statement](
-          new MPI_Allreduce("&timeTaken", new RealDatatype, 1, BinaryOperators.Addition),
-          "timeTaken /= mpiSize"))
-        else
-          new NullStatement,
+        (if (Knowledge.useMPI) new MPI_Allreduce("&timeTaken", new RealDatatype, 1, BinaryOperators.Addition) else new NullStatement),
+        (if (Knowledge.useMPI) "timeTaken /= mpiSize" else new NullStatement),
         args(1) ~ " += timeTaken"))
 
     // HACK for print functionality

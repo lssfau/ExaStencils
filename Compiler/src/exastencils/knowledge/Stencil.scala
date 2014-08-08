@@ -259,7 +259,7 @@ object MapStencilAssignments extends DefaultStrategy("MapStencilAssignments") {
         statements += new AssignmentStatement(new FieldAccess(fieldSelection, fieldIndex), coeff, op)
       }
 
-      StatementBlock(statements)
+      statements
     }
   })
 }
