@@ -3,10 +3,12 @@ package exastencils.datastructures.l3
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.knowledge._
+import exastencils.polyhedron._
 
 case class Root() extends Node {
   var kelvin : Boolean = false // NOTE: currently only works for 2D
   var numSamples : Int = 10 // only required for kelvin
+  var numHaloFrags : Int = 2 // only required for kelvin
 
   var smoother : String = "Jac" // Jac | GS | RBGS
   var cgs : String = "CG" // CG
@@ -65,8 +67,8 @@ case class Root() extends Node {
     Knowledge.dimensionality match {
       case 2 => {
         if (kelvin) {
-          printer.println(s"Domain global< [ ${0.0 - (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_x - 2)}, ${0.0 - (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_y - 2)} ] " +
-            s"to [ ${1.0 + (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_x - 2)}, ${1.0 + (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_y - 2)} ] >")
+          printer.println(s"Domain global< [ ${0.0 - numHaloFrags * (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_x - 2 * numHaloFrags)}, ${0.0 - numHaloFrags * (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_y - 2 * numHaloFrags)} ] " +
+            s"to [ ${1.0 + numHaloFrags * (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_x - 2 * numHaloFrags)}, ${1.0 + numHaloFrags * (1.0 - 0.0) / (Knowledge.domain_numFragsTotal_y - 2 * numHaloFrags)} ] >")
           printer.println("Domain innerDom< [ 0, 0 ] to [ 1, 1 ] >")
         } else {
           printer.println("Domain global< [ 0, 0 ] to [ 1, 1 ] >")
@@ -812,7 +814,7 @@ case class Root() extends Node {
 
       printer.println(s"\tvar tau2 : Real = myGamma ( nu ) / ( myGamma ( nu + 0.5 ) * (( 4.0 * M_PI ) ** ( dim / 2.0 )) * ( kappa ** ( 2 * nu )) * sigma * sigma )")
       printer.println(s"\tloop over innerForFieldsWithoutGhostLayers on RHS_GMRF@finest {")
-      printer.println(s"\t\tRHS_GMRF@finest = randn ( ) / ${Knowledge.domain_numFragsTotal_x * (1 << Knowledge.maxLevel)}")
+      printer.println(s"\t\tRHS_GMRF@finest = randn ( ) / ${(Knowledge.domain_numFragsTotal_x - 2 * numHaloFrags) * (1 << Knowledge.maxLevel)}")
       printer.println(s"\t}")
       printer.println(s"\tcommunicate RHS_GMRF@finest")
 
@@ -871,6 +873,7 @@ case class Root() extends Node {
     }
 
     if (kelvin) {
+      PolyOpt.registerSideeffectFree("bcSol")
       printer.println(s"def bcSol (xPos : Real, yPos : Real) : Real {")
       printer.println(s"\tif ( yPos >= 1.0 ) { return ( UN ) }")
       printer.println(s"\tif ( xPos >= 1.0 ) { return ( UE ) }")
@@ -944,7 +947,7 @@ case class Root() extends Node {
     if (kelvin)
       addInitFields(printer, "_GMRF")
 
-    // Kelvin
+    // Solver
     addSolveFunction(printer)
 
     // Application
@@ -1045,7 +1048,7 @@ case class Root() extends Node {
       printer.println(s"\t\t// FIXME: this counts duplicated values multiple times")
       printer.println(s"\t\tsolNorm += ${solutionFields(s"finest", "")(0)} * ${solutionFields(s"finest", "")(0)}")
       printer.println(s"\t}")
-      printer.println(s"\tsolNorm = ( sqrt ( solNorm ) ) / ${(Knowledge.domain_numFragsTotal_x - 2) * (1 << Knowledge.maxLevel) - 1}")
+      printer.println(s"\tsolNorm = ( sqrt ( solNorm ) ) / ${(Knowledge.domain_numFragsTotal_x - 2 * numHaloFrags) * (1 << Knowledge.maxLevel) - 1}")
       printer.println("\tprint ( '\"Norm of the solution: \"', solNorm )")
     }
 
