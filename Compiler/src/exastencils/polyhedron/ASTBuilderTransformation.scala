@@ -36,7 +36,6 @@ import exastencils.datastructures.ir.MultiplicationExpression
 import exastencils.datastructures.ir.OrOrExpression
 import exastencils.datastructures.ir.Scope
 import exastencils.datastructures.ir.Statement
-import exastencils.datastructures.ir.StatementBlock
 import exastencils.datastructures.ir.StringConstant
 import exastencils.datastructures.ir.SubtractionExpression
 import exastencils.datastructures.ir.TernaryConditionExpression
@@ -160,11 +159,9 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
       }
       scopeList += comment
       scopeList += nju
-      nju = new Scope(scopeList)
+      return new Scope(scopeList)
     } else
-      nju = new StatementBlock(ListBuffer[Statement](comment, nju))
-
-    return nju
+      return ListBuffer[Statement](comment, nju)
   }
 
   private def processIslNode(node : isl.AstNode) : Statement = {
@@ -195,12 +192,12 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
           val loop : ForLoopStatement with OptimizationHint =
             if (parOMP)
               body match {
-                case StatementBlock(raw) => new ForLoopStatement(init, cond, incr, raw) with OptimizationHint with OMP_PotentiallyParallel
+                case Scope(raw) => new ForLoopStatement(init, cond, incr, raw) with OptimizationHint with OMP_PotentiallyParallel
                 case _                   => new ForLoopStatement(init, cond, incr, body) with OptimizationHint with OMP_PotentiallyParallel
               }
             else
               body match {
-                case StatementBlock(raw) => new ForLoopStatement(init, cond, incr, raw) with OptimizationHint
+                case Scope(raw) => new ForLoopStatement(init, cond, incr, raw) with OptimizationHint
                 case _                   => new ForLoopStatement(init, cond, incr, body) with OptimizationHint
               }
           loop.isParallel = seqDims != null && !seqDims.contains(itStr)
@@ -223,7 +220,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
         if (stmts.length == 1)
           stmts(0)
         else
-          new StatementBlock(stmts)
+          new Scope(stmts)
 
       case isl.AstNodeType.NodeUser =>
         val expr : isl.AstExpr = node.userGetExpr()

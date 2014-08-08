@@ -8,6 +8,7 @@ import exastencils.core.Logger
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
+import exastencils.datastructures.Transformation.convFromList
 import exastencils.datastructures.Transformation.convFromNode
 import exastencils.datastructures.ir.AdditionExpression
 import exastencils.datastructures.ir.ArrayAccess
@@ -43,7 +44,6 @@ import exastencils.datastructures.ir.SIMD_StoreStatement
 import exastencils.datastructures.ir.SIMD_SubtractionExpression
 import exastencils.datastructures.ir.Scope
 import exastencils.datastructures.ir.Statement
-import exastencils.datastructures.ir.StatementBlock
 import exastencils.datastructures.ir.SubtractionExpression
 import exastencils.datastructures.ir.UnaryExpression
 import exastencils.datastructures.ir.UnaryOperators
@@ -248,7 +248,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
       body) // old AST will be replaced completely, so we can reuse the body once here (we cloned above)
 
     if (isInScope)
-      return res.asInstanceOf[ListBuffer[Node]] // HACK
+      return res
     else
       return new Scope(res)
   }
@@ -273,10 +273,6 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         val rhsVec = vectorizeExpr(source, ctx.setLoad())
         val lhsVec = vectorizeExpr(lhsSca, ctx.setStore())
         ctx.vectStmts += AssignmentStatement(lhsVec, rhsVec, "=")
-
-      case StatementBlock(stmts : ListBuffer[Statement]) =>
-        for (s <- stmts)
-          vectorizeStmt(s, ctx)
 
       case _ => throw new VectorizationException("cannot deal with " + stmt.getClass() + "; " + stmt.cpp())
     }

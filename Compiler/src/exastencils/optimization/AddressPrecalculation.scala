@@ -205,7 +205,7 @@ private final object IntegrateAnnotations extends PartialFunction[Node, Transfor
 
       stmts += node.asInstanceOf[Statement]
       if (node.hasAnnotation(InScope.ANNOT))
-        return stmts.asInstanceOf[ListBuffer[Node]] // HACK
+        return stmts
 
       node.annotate(InScope.ANNOT)
       return new Scope(stmts)

@@ -37,7 +37,6 @@ import exastencils.datastructures.ir.NullStatement
 import exastencils.datastructures.ir.OffsetIndex
 import exastencils.datastructures.ir.PowerExpression
 import exastencils.datastructures.ir.Statement
-import exastencils.datastructures.ir.StatementBlock
 import exastencils.datastructures.ir.StringConstant
 import exastencils.datastructures.ir.SubtractionExpression
 import exastencils.datastructures.ir.UnaryExpression
@@ -297,8 +296,7 @@ class Extractor extends Collector {
           case FunctionCallExpression(fun @ StringConstant(name), _) if (allowedFunctions.contains(name)) =>
             fun.annotate(SKIP_ANNOT)
 
-          case _ : StatementBlock
-            | _ : IntegerConstant
+          case _ : IntegerConstant
             | _ : FloatConstant
             | _ : BooleanConstant
             | _ : UnaryExpression

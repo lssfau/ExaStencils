@@ -26,12 +26,6 @@ case class Scope(var body : ListBuffer[Statement]) extends Statement {
   }
 }
 
-case class StatementBlock(var body : ListBuffer[Statement]) extends Statement {
-  def cpp : String = {
-    (body.map(stat => stat.cpp).mkString("\n"))
-  }
-}
-
 case class VariableDeclarationStatement(var dataType : Datatype, var name : String, var expression : Option[Expression] = None) extends Statement {
   // interface to the old way to define VariableDeclarationStatements
   def this(variable : VariableAccess, expression : Option[Expression]) = this(variable.dType.get, variable.name, expression)

@@ -26,7 +26,6 @@ import exastencils.datastructures.ir.LowerExpression
 import exastencils.datastructures.ir.NullStatement
 import exastencils.datastructures.ir.Scope
 import exastencils.datastructures.ir.Statement
-import exastencils.datastructures.ir.StatementBlock
 import exastencils.datastructures.ir.SubtractionExpression
 import exastencils.datastructures.ir.VariableAccess
 import exastencils.datastructures.ir.VariableDeclarationStatement
@@ -97,7 +96,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     loop.body = duplicateStmts(loop.body, itVar, oldInc)
 
     if (loop.hasAnnotation(InScope.ANNOT))
-      return res.asInstanceOf[ListBuffer[Node]] // HACK
+      return res
 
     loop.annotate(InScope.ANNOT)
     for (stmt <- res)
@@ -170,7 +169,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     for (i <- 1L until Knowledge.opt_unroll) {
       val dup = Duplicate(body)
       replaceStrat.offset = i * oldInc
-      replaceStrat.applyStandalone(StatementBlock(dup))
+      replaceStrat.applyStandalone(Scope(dup))
       dups += dup.iterator.filterNot(s => s.isInstanceOf[CommentStatement])
     }
 
