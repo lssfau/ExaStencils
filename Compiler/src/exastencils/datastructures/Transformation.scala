@@ -29,8 +29,10 @@ object Transformation {
 
   implicit def convFromSome[O <: Node](o : Some[O]) : Output[O] = new Output(o.get)
   implicit def convFromNode[O <: Node](o : O) : Output[O] = new Output(o)
-  implicit def convFromList(o : List[Node]) : Output[NodeList] = new Output(new NodeList(o))
-  implicit def convFromListBuffer(o : ListBuffer[Node]) : Output[NodeList] = new Output(new NodeList(o))
+  // FIXME: the next line is currently tested, the 2 lines after that should be obsolete now
+  implicit def convFromList[N <: Node, L[X] <: GenTraversableOnce[X]](o : L[N]) : Output[NodeList] = new Output(new NodeList(o))
+  //implicit def convFromList(o : List[Node]) : Output[NodeList] = new Output(new NodeList(o))
+  //implicit def convFromListBuffer(o : ListBuffer[Node]) : Output[NodeList] = new Output(new NodeList(o))
 
   object Output {
     def apply[T](inner : T)(implicit ev : T => Node Or NodeList) = new Output(inner)
