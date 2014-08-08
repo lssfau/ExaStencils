@@ -362,7 +362,7 @@ object StateManager {
     val setterSuffix = "_$eq"
     val excludeList = List()
 
-    def apply[T](o : Any) : Array[java.lang.reflect.Method] = {
+    def apply[T](o : AnyRef) : Array[java.lang.reflect.Method] = {
       val methods = o.getClass.getMethods
       val getters : Array[java.lang.reflect.Method] = for {
         g <- methods; if (g.getModifiers & java.lang.reflect.Modifier.PUBLIC) == java.lang.reflect.Modifier.PUBLIC &&
@@ -375,13 +375,13 @@ object StateManager {
       getters
     }
 
-    def get[T](o : Any, method : java.lang.reflect.Method) : Any = {
+    def get[T](o : AnyRef, method : java.lang.reflect.Method) : AnyRef = {
       method.invoke(o)
     }
 
-    def set[T](o : Any, method : java.lang.reflect.Method, value : Any) : Boolean = {
+    def set[T](o : AnyRef, method : java.lang.reflect.Method, value : AnyRef) : Boolean = {
       Logger.info(s"Statemananger::set: $o, " + method.getName() + s" to $value")
-      //if (o == value) return true // FIXME
+      if (o eq value) return true // FIXME
       if (!method.getName.endsWith(setterSuffix)) {
         set(o, method.getName, value)
       } else {
@@ -395,7 +395,7 @@ object StateManager {
       }
     }
 
-    def set[T](o : Any, method : String, value : Any) : Boolean = {
+    def set[T](o : AnyRef, method : String, value : AnyRef) : Boolean = {
       var methodname = method
       if (!methodname.endsWith(setterSuffix)) {
         methodname += setterSuffix
