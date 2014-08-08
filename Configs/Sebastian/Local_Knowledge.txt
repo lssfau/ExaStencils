@@ -1,4 +1,5 @@
 targetCompiler				= "MSVC"
+simd_instructionSet			= "SSE3"
 
 dimensionality				= 2
 
@@ -18,7 +19,8 @@ domain_fragLength_x			= 1
 domain_fragLength_y			= 1
 domain_fragLength_z			= 1
 
-mpi_useCustomDatatypes		= true
+mpi_useCustomDatatypes		= false
 poly_usePolyOpt				= false
 opt_useAddressPrecalc		= false
 opt_vectorize				= false
+opt_unroll					= 1

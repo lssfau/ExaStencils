@@ -1,0 +1,2 @@
+outputPath = "\\i10home\home-staff\kuckuk\Exa\Kelvin"
+basePathPrefix = "."
