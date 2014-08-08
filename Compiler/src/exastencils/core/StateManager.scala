@@ -381,7 +381,6 @@ object StateManager {
 
     def set[T](o : AnyRef, method : java.lang.reflect.Method, value : AnyRef) : Boolean = {
       Logger.info(s"Statemananger::set: $o, " + method.getName() + s" to $value")
-      if (o eq value) return true // FIXME
       if (!method.getName.endsWith(setterSuffix)) {
         set(o, method.getName, value)
       } else {
