@@ -1,13 +1,13 @@
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
-import exastencils.prettyprinting._
+import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
-import exastencils.primitives._
+import exastencils.prettyprinting._
 import exastencils.strategies._
-import exastencils.datastructures._
-import exastencils.util._
 
 object Testbed {
   def test : Unit = {
@@ -48,11 +48,11 @@ object Testbed {
 
   def rap(R : Stencil, A : Stencil, P : Stencil) : Stencil = {
 
-    var RAP = StencilStencilConvolution(A, R).expand.stencil
+    var RAP = StencilStencilConvolution(A, R).expand.inner.stencil
     //    for (e <- RAP.entries)
     //      println(e.offset.cpp + "\t>>\t" + e.weight.cpp)
 
-    RAP = StencilStencilConvolution(P, RAP).expand.stencil
+    RAP = StencilStencilConvolution(P, RAP).expand.inner.stencil
 
     //var RAP : Stencil = StencilStencilConvolution(P, StencilStencilConvolution(A, R).expand).expand
 

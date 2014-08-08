@@ -1,12 +1,12 @@
 package exastencils.mpi
 
 import scala.collection.mutable.ListBuffer
-import exastencils.core.collectors._
+
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.omp._
+import exastencils.datastructures.ir.StatementList
 import exastencils.knowledge._
-import exastencils.strategies._
 import exastencils.util._
 
 case class MPI_IsRootProc() extends Expression {
@@ -124,29 +124,29 @@ object MPI_DataType {
 case class InitMPIDataType(mpiTypeName : String, field : Field, indexRange : IndexRange) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = InitMPIDataType\n"
 
-  def expand : StatementBlock = {
+  def expand : Output[StatementList] = {
     if (indexRange.begin(2) == indexRange.end(2)) {
-      return StatementBlock(ListBuffer[Statement](s"MPI_Type_vector(" ~
+      ListBuffer[Statement](s"MPI_Type_vector(" ~
         (indexRange.end(1) - indexRange.begin(1) + 1) ~ ", " ~
         (indexRange.end(0) - indexRange.begin(0) + 1) ~ ", " ~
         (field.layout(0).total) ~
         s", MPI_DOUBLE, &$mpiTypeName)",
-        s"MPI_Type_commit(&$mpiTypeName)"))
+        s"MPI_Type_commit(&$mpiTypeName)")
     } else if (indexRange.begin(1) == indexRange.end(1)) {
-      return StatementBlock(ListBuffer[Statement](s"MPI_Type_vector(" ~
+      ListBuffer[Statement](s"MPI_Type_vector(" ~
         (indexRange.end(2) - indexRange.begin(2) + 1) ~ ", " ~
         (indexRange.end(0) - indexRange.begin(0) + 1) ~ ", " ~
         (field.layout(0).total * field.layout(1).total) ~
         s", MPI_DOUBLE, &$mpiTypeName)",
-        s"MPI_Type_commit(&$mpiTypeName)"))
-    } else return StatementBlock(ListBuffer[Statement]())
+        s"MPI_Type_commit(&$mpiTypeName)")
+    } else return ListBuffer[Statement]()
   }
 }
 
 case class MPI_Sequential(var body : ListBuffer[Statement]) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = MPI_Sequential\n"
 
-  def expand : ForLoopStatement = {
+  def expand : Output[ForLoopStatement] = {
     ForLoopStatement("int curRank = 0", "curRank < mpiSize", "++curRank", ListBuffer[Statement](
       MPI_Barrier(),
       new ConditionStatement("mpiRank == curRank", body)))

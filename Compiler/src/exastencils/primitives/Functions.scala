@@ -1,11 +1,11 @@
 package exastencils.primitives
 
 import scala.collection.mutable.ListBuffer
-import exastencils.core._
-import exastencils.core.collectors._
-import exastencils.knowledge._
+
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.knowledge._
 import exastencils.omp._
 import exastencils.polyhedron._
 
@@ -13,7 +13,7 @@ case class WaitForMPIRequestFunc() extends AbstractFunctionStatement with Expand
   override def cpp : String = "NOT VALID ; CLASS = WaitForMPIReq\n"
   override def cpp_decl : String = cpp
 
-  override def expand : FunctionStatement = {
+  override def expand : Output[FunctionStatement] = {
     FunctionStatement(new UnitDatatype(), s"waitForMPIReq",
       ListBuffer(VariableAccess("request", Some("MPI_Request*"))),
       ListBuffer[Statement](
@@ -86,7 +86,7 @@ case class WaitForMPIRequestFunc() extends AbstractFunctionStatement with Expand
 case class SetIterationOffset(var location : Expression, var domain : Expression, var fragment : Expression) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = SetIterationOffset\n"
 
-  override def expand : SwitchStatement = {
+  override def expand : Output[SwitchStatement] = {
     var cases : ListBuffer[CaseStatement] = ListBuffer()
 
     for (neigh <- Fragment.neighbors) {
@@ -110,7 +110,7 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
   override def cpp : String = "NOT VALID ; CLASS = ConnectLocalElement\n"
   override def cpp_decl : String = cpp
 
-  override def expand : FunctionStatement = {
+  override def expand : Output[FunctionStatement] = {
     FunctionStatement(new UnitDatatype(), s"connectLocalElement",
       ListBuffer(
         VariableAccess("localFragId", Some("size_t")),
@@ -129,7 +129,7 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
   override def cpp : String = "NOT VALID ; CLASS = ConnectRemoteElement\n"
   override def cpp_decl : String = cpp
 
-  override def expand : FunctionStatement = {
+  override def expand : Output[FunctionStatement] = {
     FunctionStatement(new UnitDatatype(), s"connectRemoteElement",
       ListBuffer(
         VariableAccess("localFragId", Some("size_t")),
@@ -150,7 +150,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
   override def cpp : String = "NOT VALID ; CLASS = SetupBuffers\n"
   override def cpp_decl : String = cpp
 
-  override def expand : FunctionStatement = {
+  override def expand : Output[FunctionStatement] = {
     var body = ListBuffer[Statement]()
 
     for (field <- fields) {
@@ -178,7 +178,7 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
   override def cpp : String = "NOT VALID ; CLASS = SetFromExternalField\n"
   override def cpp_decl : String = cpp
 
-  override def expand : FunctionStatement = {
+  override def expand : Output[FunctionStatement] = {
     new FunctionStatement(new UnitDatatype(), "get" ~ src.codeName,
       ListBuffer(new VariableAccess("dest", Some(PointerDatatype(src.dataType))), new VariableAccess("slot", Some(new IntegerDatatype))),
       ListBuffer[Statement](
@@ -194,7 +194,7 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
   override def cpp : String = "NOT VALID ; CLASS = SetFromExternalField\n"
   override def cpp_decl : String = cpp
 
-  override def expand : FunctionStatement = {
+  override def expand : Output[FunctionStatement] = {
     new FunctionStatement(new UnitDatatype(), "set" ~ dest.codeName,
       ListBuffer(new VariableAccess("src", Some(PointerDatatype(dest.dataType))), new VariableAccess("slot", Some(new IntegerDatatype))),
       ListBuffer[Statement](

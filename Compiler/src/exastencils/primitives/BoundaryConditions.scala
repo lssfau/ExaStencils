@@ -1,12 +1,12 @@
 package exastencils.primitives
 
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
-import exastencils.core.collectors._
-import exastencils.knowledge._
-import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.knowledge._
 import exastencils.omp._
 import exastencils.polyhedron._
 
@@ -27,7 +27,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
     statements
   }
 
-  override def expand : Statement = {
+  override def expand : Output[Statement] = {
     if (field.field.dirichletBC.isDefined) {
       new LoopOverFragments(field.domainIndex,
         neighbors.map(neigh =>

@@ -4,8 +4,8 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
 import exastencils.core.Logger._
-import exastencils.core.collectors._
 import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.strategies._
@@ -95,7 +95,7 @@ case class StencilConvolution(var stencil : Stencil, var fieldAccess : FieldAcce
     stencil.entries(idx).weight * new FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + stencil.entries(idx).offset)
   }
 
-  def expand : Expression = {
+  def expand : Output[Expression] = {
     var ret : Expression = (0 until stencil.entries.size).toArray.map(idx => resolveEntry(idx)).toArray[Expression].reduceLeft(_ + _)
     SimplifyStrategy.doUntilDoneStandalone(ret)
     ret
@@ -113,7 +113,7 @@ case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, 
       new FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + stencilFieldAccess.stencilFieldSelection.stencil.entries(idx).offset)
   }
 
-  def expand : Expression = {
+  def expand : Output[Expression] = {
     var ret : Expression = (0 until stencilFieldAccess.stencilFieldSelection.stencil.entries.size).toArray.map(idx => resolveEntry(idx)).toArray[Expression].reduceLeft(_ + _)
     SimplifyStrategy.doUntilDoneStandalone(ret)
     ret
@@ -123,7 +123,7 @@ case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, 
 case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight : Stencil) extends Expression with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = StencilStencilConvolution\n"
 
-  def expand : StencilAccess = {
+  def expand : Output[StencilAccess] = {
     var entries : ListBuffer[StencilEntry] = ListBuffer()
 
     for (re <- stencilRight.entries) {
@@ -166,7 +166,7 @@ case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight
 case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, var stencilRight : Stencil) extends Expression with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = StencilFieldStencilConvolution\n"
 
-  def expand : StencilAccess = {
+  def expand : Output[StencilAccess] = {
     var entries : ListBuffer[StencilEntry] = ListBuffer()
 
     for (re <- stencilRight.entries) {

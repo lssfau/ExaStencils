@@ -2,9 +2,10 @@ package exastencils.primitives
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.knowledge._
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.knowledge._
 
 // FIXME: Think about moving all of this information to some other source. Maybe some kind of ... DSL ... or even Level4
 
@@ -12,7 +13,7 @@ case class ExchangeData_6(var fieldSelection : FieldSelection, var neighbors : L
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_6\n"
   override def cpp_decl = cpp
 
-  override def expand : FunctionStatement = {
+  override def expand : Output[FunctionStatement] = {
     var body = new ListBuffer[Statement]
 
     val field = fieldSelection.field
@@ -188,7 +189,7 @@ case class ExchangeData_26(var fieldSelection : FieldSelection, var neighbors : 
   override def cpp : String = "NOT VALID ; CLASS = ExchangeData_26\n"
   override def cpp_decl = cpp
 
-  override def expand : FunctionStatement = {
+  override def expand : Output[FunctionStatement] = {
     var body = new ListBuffer[Statement]
 
     val field = fieldSelection.field

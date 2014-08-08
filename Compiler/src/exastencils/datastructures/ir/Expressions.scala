@@ -1,12 +1,13 @@
 package exastencils.datastructures.ir
 
 import scala.collection.mutable.ListBuffer
+import scala.language.implicitConversions
 
 import exastencils.core._
 import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
-import exastencils.optimization._
 
 trait Expression extends Node with CppPrettyPrintable {
   def ~(exp : Expression) : ConcatenationExpression = {
@@ -276,7 +277,7 @@ case class ExternalFieldAccess(var name : Expression, var field : ExternalField,
 case class LinearizedFieldAccess(var fieldSelection : FieldSelection, var index : Expression) extends Expression with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = ExternalFieldAccess\n"
 
-  override def expand : Expression = {
+  override def expand : Output[Expression] = {
     new ArrayAccess(new iv.FieldData(fieldSelection.field, fieldSelection.slot, fieldSelection.fragIdx), index)
   }
 }

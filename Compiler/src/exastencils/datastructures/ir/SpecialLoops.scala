@@ -1,21 +1,22 @@
 package exastencils.datastructures.ir
 
 import scala.collection.mutable.ListBuffer
-import exastencils.knowledge._
+
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.prettyprinting._
-import exastencils.strategies._
-import exastencils.omp._
+import exastencils.knowledge._
 import exastencils.mpi._
-import exastencils.polyhedron._
+import exastencils.omp._
 import exastencils.optimization._
+import exastencils.polyhedron._
+import exastencils.strategies._
 
 case class LoopOverDomain(var iterationSet : IterationSet, var field : Field, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = LoopOverDomain\n"
 
   var expCount = 0
 
-  def expand : Statement /*FIXME: ForLoopStatement*/ = {
+  def expand : Output[Statement] /*FIXME: ForLoopStatement*/ = {
     var start : ListBuffer[Expression] = ListBuffer()
     var stop : ListBuffer[Expression] = ListBuffer()
     for (i <- 0 until Knowledge.dimensionality) {
@@ -186,7 +187,7 @@ case class LoopOverFragments(var domain : Int, var body : ListBuffer[Statement],
 
   def cpp = "NOT VALID ; CLASS = LoopOverFragments\n"
 
-  def expand : StatementBlock = {
+  def expand : Output[StatementList] = {
     val parallelizable = Knowledge.omp_parallelizeLoopOverFragments && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
     var statements = new ListBuffer[Statement]
 
@@ -207,7 +208,7 @@ case class LoopOverFragments(var domain : Int, var body : ListBuffer[Statement],
       statements += new MPI_Allreduce("&" ~ reduction.get.target, new RealDatatype, 1, reduction.get.op) // FIXME: get dt and cnt from reduction
     }
 
-    StatementBlock(statements)
+    statements
   }
 }
 
@@ -218,7 +219,7 @@ case class LoopOverDomains(var body : ListBuffer[Statement]) extends Statement w
 
   def cpp = "NOT VALID ; CLASS = LoopOverDomains\n"
 
-  def expand : ForLoopStatement = {
+  def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
       VariableDeclarationStatement(new IntegerDatatype, LoopOverDomains.defIt, Some(0)),
       new LowerExpression(LoopOverDomains.defIt, DomainCollection.domains.size),
@@ -234,7 +235,7 @@ case class LoopOverFields(var body : ListBuffer[Statement]) extends Statement wi
 
   def cpp = "NOT VALID ; CLASS = LoopOverFields\n"
 
-  def expand : ForLoopStatement = {
+  def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
       VariableDeclarationStatement(new IntegerDatatype, LoopOverFields.defIt, Some(0)),
       new LowerExpression(LoopOverFields.defIt, FieldCollection.fields.size),
@@ -250,7 +251,7 @@ case class LoopOverLevels(var body : ListBuffer[Statement]) extends Statement wi
 
   def cpp = "NOT VALID ; CLASS = LoopOverLevels\n"
 
-  def expand : ForLoopStatement = {
+  def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
       VariableDeclarationStatement(new IntegerDatatype, LoopOverLevels.defIt, Some(0)),
       new LowerExpression(LoopOverLevels.defIt, Knowledge.numLevels),
@@ -266,7 +267,7 @@ case class LoopOverNeighbors(var body : ListBuffer[Statement]) extends Statement
 
   def cpp = "NOT VALID ; CLASS = LoopOverNeighbors\n"
 
-  def expand : ForLoopStatement = {
+  def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
       VariableDeclarationStatement(new IntegerDatatype, LoopOverNeighbors.defIt, Some(0)),
       new LowerExpression(LoopOverNeighbors.defIt, Fragment.neighbors.size),

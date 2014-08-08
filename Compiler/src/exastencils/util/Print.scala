@@ -1,15 +1,18 @@
 package exastencils.util
 
 import scala.collection.mutable.ListBuffer
-import exastencils.knowledge._
+
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir.StatementList
+import exastencils.knowledge._
 import exastencils.mpi._
 
 case class PrintStatement(var toPrint : ListBuffer[Expression]) extends Statement with Expandable {
   def cpp : String = { return "NOT VALID ; CLASS = PrintStatement\n" }
 
-  override def expand : ConditionStatement = {
+  override def expand : Output[ConditionStatement] = {
     new ConditionStatement(new MPI_IsRootProc,
       ("std::cout << " : Expression) ~ toPrint.reduceLeft((l, e) => l ~ "<< \" \" <<" ~ e) ~ "<< std::endl")
   }
@@ -18,10 +21,10 @@ case class PrintStatement(var toPrint : ListBuffer[Expression]) extends Statemen
 case class PrintFieldStatement(var filename : Expression, var field : FieldSelection) extends Statement with Expandable {
   def cpp : String = { return "NOT VALID ; CLASS = PrintFieldStatement\n" }
 
-  override def expand : StatementBlock = {
+  override def expand : Output[StatementList] = {
     // FIXME: this has to be adapted for non-mpi
     // FIXME: this will use OMP parallelization and Poly transformation
-    var statements : ListBuffer[Statement] = new ListBuffer
+    var statements : ListBuffer[Statement] = ListBuffer()
 
     statements += new ConditionStatement(new MPI_IsRootProc,
       ListBuffer[Statement](
@@ -42,6 +45,6 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
             " << " : Expression) ~ access ~ " << std::endl")),
       "stream.close()"))
 
-    new StatementBlock(statements)
+    statements
   }
 }

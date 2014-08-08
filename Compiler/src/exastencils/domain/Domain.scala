@@ -1,22 +1,17 @@
 package exastencils.domain
 
-import java.io.PrintWriter
-import java.io.File
 import scala.collection.mutable.ListBuffer
-import exastencils.core._
-import exastencils.core.collectors._
-import exastencils.knowledge._
-import exastencils.datastructures._
+
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.mpi._
-import exastencils.prettyprinting._
+import exastencils.knowledge._
 import exastencils.omp._
 
 case class PointOutsideDomain(var pos : Expression, var domain : Domain) extends Expression with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = PointOutsideDomain\n"
 
-  override def expand : Expression = {
+  override def expand : Output[Expression] = {
     Knowledge.dimensionality match {
       case 1 => s"(" ~ ((pos ~ ".x") < domain.size.lower_x) Or ((pos ~ ".x") > domain.size.upper_x) ~ ")"
       case 2 => s"(" ~ ((pos ~ ".x") < domain.size.lower_x) Or ((pos ~ ".x") > domain.size.upper_x) Or
@@ -31,7 +26,7 @@ case class PointOutsideDomain(var pos : Expression, var domain : Domain) extends
 case class PointInsideDomain(var pos : Expression, var domain : Domain) extends Expression with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = PointInsideDomain\n"
 
-  override def expand : Expression = {
+  override def expand : Output[Expression] = {
     Knowledge.dimensionality match {
       case 1 => s"(" ~ ((pos ~ ".x") >= domain.size.lower_x) And ((pos ~ ".x") <= domain.size.upper_x) ~ ")"
       case 2 => s"(" ~ ((pos ~ ".x") >= domain.size.lower_x) And ((pos ~ ".x") <= domain.size.upper_x) And
@@ -46,7 +41,7 @@ case class PointInsideDomain(var pos : Expression, var domain : Domain) extends 
 case class PointToFragmentId(var pos : Expression) extends Expression with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = PointToFragmentId\n"
 
-  override def expand : Expression = {
+  override def expand : Output[Expression] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
     val fragWidth_x = globalDomain.size.width(0) / Knowledge.domain_numFragsTotal_x
     val fragWidth_y = globalDomain.size.width(1) / Knowledge.domain_numFragsTotal_y
@@ -66,7 +61,7 @@ case class PointToFragmentId(var pos : Expression) extends Expression with Expan
 case class PointToLocalFragmentId(var pos : Expression) extends Expression with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = PointToFragmentId\n"
 
-  override def expand : Expression = {
+  override def expand : Output[Expression] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
     val fragWidth_x = globalDomain.size.width(0) / Knowledge.domain_numFragsTotal_x
     val fragWidth_y = globalDomain.size.width(1) / Knowledge.domain_numFragsTotal_y
@@ -86,7 +81,7 @@ case class PointToLocalFragmentId(var pos : Expression) extends Expression with 
 case class PointToOwningRank(var pos : Expression, var domain : Domain) extends Expression with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = PointToOwningRank\n"
 
-  override def expand : Expression = {
+  override def expand : Output[Expression] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
     val fragWidth_x = globalDomain.size.width(0) / Knowledge.domain_numFragsTotal_x
     val fragWidth_y = globalDomain.size.width(1) / Knowledge.domain_numFragsTotal_y
@@ -112,7 +107,7 @@ case class PointToOwningRank(var pos : Expression, var domain : Domain) extends 
 case class AssertStatement(var check : Expression, var msg : Expression, var abort : Statement) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = AssertStatement\n"
 
-  override def expand : ConditionStatement = {
+  override def expand : Output[ConditionStatement] = {
     new ConditionStatement(check,
       ListBuffer[Statement](
         "LOG_ERROR(" ~ msg ~ ")",
@@ -123,7 +118,7 @@ case class AssertStatement(var check : Expression, var msg : Expression, var abo
 case class ConnectFragments() extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = ConnectFragments\n"
 
-  override def expand : LoopOverFragments = {
+  override def expand : Output[LoopOverFragments] = {
     var body = new ListBuffer[Statement]
 
     val neighbors = Fragment.neighbors
@@ -169,7 +164,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
   override def cpp : String = "NOT VALID ; CLASS = InitGeneratedDomain\n"
   override def cpp_decl = cpp
 
-  override def expand : FunctionStatement = {
+  override def expand : Output[FunctionStatement] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
     val fragWidth_x = globalDomain.size.width(0) / Knowledge.domain_numFragsTotal_x
     val fragWidth_y = globalDomain.size.width(1) / Knowledge.domain_numFragsTotal_y

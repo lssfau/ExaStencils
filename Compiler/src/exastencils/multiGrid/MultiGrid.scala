@@ -1,14 +1,11 @@
 package exastencils.multiGrid
 
-import java.io.PrintWriter
-import java.io.File
 import scala.collection.mutable.ListBuffer
-import exastencils.knowledge._
-import exastencils.datastructures._
+
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.multiGrid._
-import exastencils.prettyprinting._
+import exastencils.knowledge._
 import exastencils.omp._
 import exastencils.polyhedron._
 
@@ -16,7 +13,7 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
   override def cpp : String = "NOT VALID ; CLASS = InitFieldsWithZero\n"
   override def cpp_decl : String = cpp
 
-  def expand() : FunctionStatement = {
+  def expand() : Output[FunctionStatement] = {
     val fields = FieldCollection.fields
     var statements : ListBuffer[Statement] = new ListBuffer
 
@@ -37,10 +34,10 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
 
 case class MultiGridFunctions() extends FunctionCollection("MultiGrid/MultiGrid",
   ListBuffer("#include \"Globals/Globals.h\"") ++
-  (if (Knowledge.useMPI)
-    ListBuffer("#pragma warning(disable : 4800)", "#include <mpi.h>")
-  else
-    ListBuffer())
+    (if (Knowledge.useMPI)
+      ListBuffer("#pragma warning(disable : 4800)", "#include <mpi.h>")
+    else
+      ListBuffer())
     ++
     (if (Knowledge.opt_vectorize)
       ListBuffer("#include <immintrin.h>")

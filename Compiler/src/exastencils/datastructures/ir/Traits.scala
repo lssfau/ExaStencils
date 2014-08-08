@@ -20,5 +20,5 @@ trait Debuggable {
 }
 
 trait Expandable {
-  def expand() : Node
+  def expand() : Transformation.Output[_]
 }
