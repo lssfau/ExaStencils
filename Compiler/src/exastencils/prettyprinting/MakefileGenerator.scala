@@ -8,7 +8,7 @@ object MakefileGenerator extends BuildfileGenerator {
     val printer = PrettyprintingManager.getPrinter("Makefile")
 
     val filesToConsider = PrettyprintingManager.getFiles ++ Settings.additionalFiles
-    val cppFileNames = filesToConsider.filter(file => file.endsWith(".cpp"))
+    val cppFileNames = filesToConsider.filter(file => file.endsWith(".cpp")).toList.sorted
 
     printer <<< "CXX = " + Hardware.compiler
     printer <<< "CFLAGS = " + Hardware.cflags + " " + Hardware.addcflags
@@ -36,7 +36,7 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< ""
     printer <<< ""
 
-    PrettyprintingManager.getPrettyprinters.filter(pp => pp.filename.endsWith(".cpp")).foreach(pp => {
+    PrettyprintingManager.getPrettyprinters.filter(pp => pp.filename.endsWith(".cpp")).toList.sortBy(f => f.filename).foreach(pp => {
       printer << s"${pp.filename.replace(".cpp", ".o")}: ${pp.filename} "
       pp.dependencies.foreach(dep => printer << s"${dep.filename} ")
       printer <<< " "
@@ -44,7 +44,7 @@ object MakefileGenerator extends BuildfileGenerator {
     })
 
     // no information about dependecies => just compiling is the best we can do
-    Settings.additionalFiles.filter(file => file.endsWith(".cpp")).foreach(file => {
+    Settings.additionalFiles.filter(file => file.endsWith(".cpp")).toList.sorted.foreach(file => {
       printer <<< s"${file.replace(".cpp", ".o")}: ${file} "
       printer <<< "\t${CXX} ${CFLAGS} -c -o " + file.replace(".cpp", ".o") + " -I. " + file
     })
