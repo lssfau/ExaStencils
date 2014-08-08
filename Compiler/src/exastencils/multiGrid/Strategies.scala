@@ -87,16 +87,35 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
       args(0).asInstanceOf[StringConstant]
 
     // HACK to realize time measurement functionality -> FIXME: move to specialized node
-    case ExpressionStatement(FunctionCallExpression(StringConstant("startTimer"), args)) =>
-      ListBuffer[Statement](
-        "StopWatch " ~ args(0),
-        args(0) ~ ".reset()")
-    case ExpressionStatement(FunctionCallExpression(StringConstant("stopTimer"), args)) =>
-      new Scope(ListBuffer[Statement](
-        "double timeTaken = " ~ args(0) ~ ".getTimeInMilliSec()",
-        (if (Knowledge.useMPI) new MPI_Allreduce("&timeTaken", new RealDatatype, 1, BinaryOperators.Addition) else new NullStatement),
-        (if (Knowledge.useMPI) "timeTaken /= mpiSize" else new NullStatement),
-        args(1) ~ " += timeTaken"))
+    case FunctionCallExpression(StringConstant("startTimer"), args) =>
+      if (Knowledge.testNewTimers)
+        iv.Timer(args(0)) ~ ".Start()"
+      else
+        ListBuffer[Statement](
+          "StopWatch " ~ args(0),
+          args(0) ~ ".reset()")
+
+    case FunctionCallExpression(StringConstant("stopTimer"), args) =>
+      if (Knowledge.testNewTimers)
+        iv.Timer(args(0)) ~ ".Stop()"
+      else
+        new Scope(ListBuffer[Statement](
+          "double timeTaken = " ~ args(0) ~ ".getTimeInMilliSec()",
+          (if (Knowledge.useMPI) new MPI_Allreduce("&timeTaken", new RealDatatype, 1, BinaryOperators.Addition) else new NullStatement),
+          (if (Knowledge.useMPI) "timeTaken /= mpiSize" else new NullStatement),
+          args(1) ~ " += timeTaken"))
+
+    case FunctionCallExpression(StringConstant("addFromTimer"), args) =>
+      if (Knowledge.testNewTimers)
+        args(1) ~ " += " ~ iv.Timer(args(0)) ~ ".getTotalTimeInMilliSec()"
+      else
+        StringConstant("Not supported: addFromTimer")
+
+    case FunctionCallExpression(StringConstant("getMeanFromTimer"), args) =>
+      if (Knowledge.testNewTimers)
+        iv.Timer(args(0)) ~ ".getMeanTime()"
+      else
+        StringConstant("Not supported: getMeanFromTimer")
 
     // HACK for print functionality
     case ExpressionStatement(FunctionCallExpression(StringConstant("print"), args)) =>
@@ -109,6 +128,15 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
       func.returntype = new IntegerDatatype
       func.name = "main"
       func.parameters = ListBuffer(VariableAccess("argc", Some("int")), VariableAccess("argv", Some("char**"))) ++ func.parameters
+      //if (true) {
+      //func.body.append(new ConditionStatement(new MPI_IsRootProc,
+      //  """#ifdef TRACK_CALLS
+      //CallTracker::PrintCallStack();
+      //#endif"""))
+      //func.body.append("""#ifdef TRACK_CALLS
+      //CallTracker::ClearCallStack();
+      //#endif""")
+      //}
       if (Knowledge.useMPI) {
         func.body.prepend(new MPI_Init)
         func.body.append(new MPI_Finalize)

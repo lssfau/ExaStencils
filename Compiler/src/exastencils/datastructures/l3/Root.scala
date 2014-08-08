@@ -24,9 +24,9 @@ case class Root() extends Node {
   var genRBSetsWithConditions : Boolean = true
   var useVecFields : Boolean = false // attempts to solve Poisson's equation for (numVecDims)D vectors; atm all three components are solved independently
   var numVecDims = (if (useVecFields) 2 else 1)
-  var genStencilFields : Boolean = true || kelvin
+  var genStencilFields : Boolean = false || kelvin
   var useSlotsForJac : Boolean = true
-  var testStencilStencil : Boolean = true || kelvin
+  var testStencilStencil : Boolean = false || kelvin
 
   def solutionFields(level : String, postfix : String = "") = {
     if (useVecFields)
@@ -792,14 +792,24 @@ case class Root() extends Node {
     printer.println("\t\tstartTimer ( stopWatch )")
     printer.println("\t\tVCycle@finest (  )")
     printer.println("\t\tUpResidual@finest ( )")
-    printer.println("\t\tstopTimer ( stopWatch, totalTime )")
+    if (Knowledge.testNewTimers) {
+      printer.println("\tstopTimer ( stopWatch )")
+      printer.println("\taddFromTimer ( stopWatch, totalTime )")
+    } else {
+      printer.println("\t\tstopTimer ( stopWatch, totalTime )")
+    }
     for (vecDim <- 0 until numVecDims) {
       printer.println(s"\t\tresOld_$vecDim = res_$vecDim")
       printer.println(s"\t\tres_$vecDim = L2Residual_$vecDim@finest (  )")
       printer.println("\t\tprint ( '\"" + s"Residual at $vecDim:" + "\"', " + s"res_$vecDim" + ", '\"Residual reduction:\"', " + s"( resStart_$vecDim / res_$vecDim ), " + "'\"Convergence factor:\"', " + s"( res_$vecDim / resOld_$vecDim ) )")
     }
     printer.println("\t}")
-    printer.println("\tstopTimer ( timeToSolveWatch, timeToSolve )")
+    if (Knowledge.testNewTimers) {
+      printer.println("\tstopTimer ( timeToSolveWatch )")
+      printer.println("\taddFromTimer ( timeToSolveWatch, timeToSolve )")
+    } else {
+      printer.println("\tstopTimer ( timeToSolveWatch, timeToSolve )")
+    }
     printer.println("\tprint ( '\"Total time to solve in\"', numIt, '\"steps :\"', timeToSolve )")
     printer.println("\tprint ( '\"Mean time per vCycle: \"', totalTime / numIt )")
     printer.println(s"}")
@@ -832,12 +842,22 @@ case class Root() extends Node {
       printer.println("\t\tstartTimer ( stopWatch )")
       printer.println("\t\tVCycle_GMRF@finest (  )")
       printer.println("\t\tUpResidual_GMRF@finest ( )")
-      printer.println("\t\tstopTimer ( stopWatch, totalTime )")
+      if (Knowledge.testNewTimers) {
+        printer.println("\t\tstopTimer ( stopWatch )")
+        printer.println("\t\taddFromTimer ( stopWatch, totalTime )")
+      } else {
+        printer.println("\t\tstopTimer ( stopWatch, totalTime )")
+      }
       printer.println(s"\t\tresOld = res")
       printer.println(s"\t\tres = L2Residual_GMRF_0@finest ( )")
       printer.println("\t\tprint ( '\"Residual:\"', res, '\"Residual reduction:\"', ( resStart / res ), '\"Convergence factor:\"', ( res / resOld ) )")
       printer.println("\t}")
-      printer.println("\tstopTimer ( timeToSolveWatch, timeToSolve )")
+      if (Knowledge.testNewTimers) {
+        printer.println("\tstopTimer ( timeToSolveWatch )")
+        printer.println("\taddFromTimer ( timeToSolveWatch, timeToSolve )")
+      } else {
+        printer.println("\tstopTimer ( timeToSolveWatch, timeToSolve )")
+      }
       printer.println("\tprint ( '\"Total time to solve in\"', numIt, '\"steps :\"', timeToSolve )")
       printer.println("\tprint ( '\"Mean time per vCycle: \"', totalTime / numIt )")
 
@@ -851,6 +871,11 @@ case class Root() extends Node {
 
   def printToL4(filename : String) : Unit = {
     var printer = new java.io.PrintWriter(filename)
+
+    if (Knowledge.testNewTimers) {
+      Settings.additionalFiles += "Util/StopWatch.h"
+      Settings.additionalFiles += "Util/StopWatch.cpp"
+    }
 
     if (kelvin) {
       // TODO: set these settings via the settings file as soon as the required functionality is implemented
@@ -965,7 +990,12 @@ case class Root() extends Node {
     printer.println("\tinitDomain ( )")
     printer.println("\tinitFieldsWithZero ( )")
 
-    printer.println("\tstopTimer ( setupWatch, setupTime )")
+    if (Knowledge.testNewTimers) {
+      printer.println("\tstopTimer ( setupWatch )")
+      printer.println("\taddFromTimer ( setupWatch, setupTime )")
+    } else {
+      printer.println("\tstopTimer ( setupWatch, setupTime )")
+    }
     printer.println("\tprint ( '\"Total time to setup: \"', setupTime )")
 
     if (genSetableStencil) {
@@ -1038,7 +1068,12 @@ case class Root() extends Node {
 
     if (kelvin) {
       printer.println("\t}")
-      printer.println("\tstopTimer ( timeSamplesWatch, timeSamples )")
+      if (Knowledge.testNewTimers) {
+        printer.println("\tstopTimer ( timeSamplesWatch )")
+        printer.println("\taddFromTimer ( timeSamplesWatch, timeSamples )")
+      } else {
+        printer.println("\tstopTimer ( timeSamplesWatch, timeSamples )")
+      }
       printer.println("\tprint ( '\"Total time to solve: \"', timeSamples )")
       printer.println("\tprint ( '\"Mean time per sample: \"', " + s"timeSamples / $numSamples )")
     }

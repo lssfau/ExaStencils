@@ -137,6 +137,9 @@ object Knowledge {
   var opt_unroll : Int = 1 // 1-8
   var opt_unroll_interleave : Boolean = true // [true|false]
 
+  // testing
+  var testNewTimers : Boolean = false // this is to enable the usage of some new, currently highly experimental, timer classes; requires that the timer classes are provided
+
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
 

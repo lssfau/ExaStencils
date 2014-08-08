@@ -1,11 +1,10 @@
 package exastencils.datastructures.ir.iv
 
 import scala.collection.mutable.ListBuffer
-import exastencils.core._
-import exastencils.knowledge._
+
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.util._
+import exastencils.knowledge._
 
 abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDomain : Boolean, var canBePerField : Boolean, var canBePerLevel : Boolean, var canBePerNeighbor : Boolean) extends Expression {
   override def cpp : String = resolveName
@@ -111,6 +110,10 @@ abstract class NeighInfoVariable extends InternalVariable(true, true, false, fal
   override def usesFragmentArrays : Boolean = true
   override def usesDomainArrays : Boolean = true
   override def usesNeighborArrays : Boolean = true
+}
+
+abstract class UnduplicatedVariable extends InternalVariable(false, false, false, false, false) {
+  override def cpp : String = resolveName
 }
 
 case class ReqOutstanding(var field : Field, var direction : String, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
@@ -290,4 +293,13 @@ case class IterationOffsetEnd(var domain : Expression, var fragmentIdx : Express
   override def resolveName = s"iterationOffsetEnd" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", "")
   override def resolveDataType = "Vec3i"
   override def resolveDefValue = Some("Vec3i(-1, -1, -1)")
+}
+
+case class Timer(var name : Expression) extends UnduplicatedVariable {
+  override def resolveName = s"timer_" + name.cpp
+  override def resolveDataType = "TimerWrapper"
+
+  override def getCtor() : Option[Statement] = {
+    Some(AssignmentStatement(resolveName ~ "._name", "\"" ~ name ~ "\""))
+  }
 }

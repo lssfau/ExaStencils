@@ -23,6 +23,9 @@ case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = ne
       + (if (Knowledge.useMPI) "#include <mpi.h>\n" else "") // FIXME: find a way to extract necessary includes from variables
       )
 
+    if (Knowledge.testNewTimers)
+      writerHeader <<< "#include \"Util/Stopwatch.h\""
+
     for (inc <- Settings.additionalIncludes)
       writerHeader <<< inc
 
