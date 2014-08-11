@@ -2,6 +2,7 @@ package exastencils.polyhedron
 
 import scala.collection.mutable.ArrayStack
 import scala.collection.mutable.HashMap
+import scala.collection.mutable.TreeSet
 
 import exastencils.core.Logger
 import exastencils.core.StateManager
@@ -22,6 +23,16 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   final val SCOP_ANNOT : String = "PolyScop"
 
+  /** Register the name of a side-effect free function, that is safe to be used inside a scop. */
+  def registerSideeffectFree(functionName : String) : Unit = {
+    Extractor.registerSideeffectFree(functionName)
+  }
+
+  /** Register the name of a symbolic constant, that is not modified inside a scop. */
+  def registerSymbolicConstant(constName : String) : Unit = {
+    Extractor.registerSymbolicConstant(constName)
+  }
+
   override def apply() : Unit = {
 
     this.transaction()
@@ -32,22 +43,13 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       simplifyModel(scop)
       computeDependences(scop)
       deadCodeElimination(scop)
+      handleReduction(scop)
       optimize(scop)
       simplifyModel(scop)
     }
     recreateAndInsertAST()
 
     this.commit()
-  }
-
-  /** Register the name of a side-effect free function, that is safe to be used inside a scop. */
-  def registerSideeffectFree(functionName : String) : Unit = {
-    Extractor.registerSideeffectFree(functionName)
-  }
-
-  /** Register the name of a symbolic constant, that is not modified inside a scop. */
-  def registerSymbolicConstant(constName : String) : Unit = {
-    Extractor.registerSymbolicConstant(constName)
   }
 
   private def extractPolyModel() : ArrayStack[Scop] = {
@@ -156,6 +158,30 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     //      scop.deps.output = scop.deps.output.intersectDomain(live)
     //    if (scop.deps.input != null)
     //      scop.deps.input = scop.deps.input.intersectDomain(live)
+  }
+
+  private def handleReduction(scop : Scop) : Unit = {
+
+    if (scop.reduction.isEmpty)
+      return
+
+    val name : String = Extractor.replaceSpecial(scop.reduction.get.target.cpp())
+    val stmts = new TreeSet[String]()
+    scop.writes.foreachMap({ map : isl.Map =>
+      if (map.getTupleName(isl.DimType.Out) == name)
+        stmts += map.getTupleName(isl.DimType.In)
+    } : isl.Map => Unit)
+
+    var toRemove = isl.UnionMap.empty(scop.deps.flow.getSpace())
+    scop.deps.flow.foreachMap({ dep : isl.Map =>
+      if (stmts.contains(dep.getTupleName(isl.DimType.In)))
+        toRemove = toRemove.addMap(isl.Map.identity(dep.getSpace()).complement())
+    } : isl.Map => Unit)
+    scop.deps.flow = scop.deps.flow.subtract(toRemove)
+    // filter others too, as we do not have an ordering between read and write in the same statement
+    scop.deps.anti = scop.deps.anti.subtract(toRemove)
+    scop.deps.input = scop.deps.input.subtract(toRemove)
+    scop.deps.output = scop.deps.output.subtract(toRemove)
   }
 
   private def optimize(scop : Scop) : Unit = {
