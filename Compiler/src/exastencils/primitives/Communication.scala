@@ -13,12 +13,8 @@ import exastencils.polyhedron._
 import exastencils.strategies._
 import exastencils.util._
 
-case class CommunicateStatement(var field : FieldSelection) extends Statement with Expandable {
+case class CommunicateStatement(var field : FieldSelection, var op : String) extends Statement {
   override def cpp : String = "NOT VALID ; CLASS = CommunicateStatement\n"
-
-  def expand : Output[Statement] = {
-    (new FunctionCallExpression("exch" ~ field.codeName, field.slot)) : Statement
-  }
 }
 
 case class LocalSend(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) extends Statement with Expandable {
@@ -38,11 +34,11 @@ case class LocalSend(var field : FieldSelection, var neighbors : ListBuffer[(Nei
   }
 }
 
-case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborInfo, var indices : IndexRange) extends Statement with Expandable {
+case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborInfo, var indices : IndexRange, var concurrencyId : Int) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = CopyToSendBuffer\n"
 
   def expand : Output[Statement] = {
-    val tmpBufAccess = new ArrayAccess(iv.TmpBuffer(field.field, "Send", indices.getSizeHigher, neighbor.index),
+    val tmpBufAccess = new ArrayAccess(iv.TmpBuffer(field.field, s"Send_${concurrencyId}", indices.getSizeHigher, neighbor.index),
       Mapping.resolveMultiIdx(new MultiIndex(LoopOverDimensions.defIt, indices.begin, _ - _), indices))
     val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.slot, -1), LoopOverDimensions.defIt)
 
@@ -50,11 +46,11 @@ case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborI
   }
 }
 
-case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : NeighborInfo, var indices : IndexRange) extends Statement with Expandable {
+case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : NeighborInfo, var indices : IndexRange, var concurrencyId : Int) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = CopyFromRecvBuffer\n"
 
   def expand : Output[Statement] = {
-    val tmpBufAccess = new ArrayAccess(iv.TmpBuffer(field.field, "Recv", indices.getSizeHigher, neighbor.index),
+    val tmpBufAccess = new ArrayAccess(iv.TmpBuffer(field.field, s"Recv_${concurrencyId}", indices.getSizeHigher, neighbor.index),
       Mapping.resolveMultiIdx(new MultiIndex(LoopOverDimensions.defIt, indices.begin, _ - _), indices))
     val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.slot, -1), LoopOverDimensions.defIt)
 
@@ -62,27 +58,27 @@ case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : Neighbo
   }
 }
 
-case class RemoteSend(var field : FieldSelection, var neighbor : NeighborInfo, var src : Expression, var numDataPoints : Expression, var datatype : Datatype) extends Statement with Expandable {
+case class RemoteSend(var field : FieldSelection, var neighbor : NeighborInfo, var src : Expression, var numDataPoints : Expression, var datatype : Datatype, var concurrencyId : Int) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = RemoteSend\n"
 
   def expand : Output[StatementList] = {
     ListBuffer[Statement](
       new MPI_Send(src, numDataPoints, datatype, iv.NeighborRemoteRank(field.domainIndex, neighbor.index),
-        s"((unsigned int)" ~ iv.CommId() ~ " << 16) + ((unsigned int)(" ~ iv.NeighborFragLocalId(field.domainIndex, neighbor.index) ~ ") & 0x0000ffff)",
-        iv.MpiRequest(field.field, "Send", neighbor.index)) with OMP_PotentiallyCritical,
-      AssignmentStatement(iv.ReqOutstanding(field.field, "Send", neighbor.index), true))
+        GeneratedMPITag(iv.CommId(), iv.NeighborFragLocalId(field.domainIndex, neighbor.index), concurrencyId),
+        iv.MpiRequest(field.field, s"Send_${concurrencyId}", neighbor.index)) with OMP_PotentiallyCritical,
+      AssignmentStatement(iv.ReqOutstanding(field.field, s"Send_${concurrencyId}", neighbor.index), true))
   }
 }
 
-case class RemoteRecv(var field : FieldSelection, var neighbor : NeighborInfo, var dest : Expression, var numDataPoints : Expression, var datatype : Datatype) extends Statement with Expandable {
+case class RemoteRecv(var field : FieldSelection, var neighbor : NeighborInfo, var dest : Expression, var numDataPoints : Expression, var datatype : Datatype, var concurrencyId : Int) extends Statement with Expandable {
   override def cpp : String = "NOT VALID ; CLASS = RemoteRecv\n"
 
   def expand : Output[StatementList] = {
     ListBuffer[Statement](
       new MPI_Receive(dest, numDataPoints, datatype, iv.NeighborRemoteRank(field.domainIndex, neighbor.index),
-        "((unsigned int)(" ~ iv.NeighborFragLocalId(field.domainIndex, neighbor.index) ~ ") << 16) + ((unsigned int)" ~ iv.CommId() ~ " & 0x0000ffff)",
-        iv.MpiRequest(field.field, "Recv", neighbor.index)) with OMP_PotentiallyCritical,
-      AssignmentStatement(iv.ReqOutstanding(field.field, "Recv", neighbor.index), true))
+        GeneratedMPITag(iv.NeighborFragLocalId(field.domainIndex, neighbor.index), iv.CommId(), concurrencyId),
+        iv.MpiRequest(field.field, s"Recv_${concurrencyId}", neighbor.index)) with OMP_PotentiallyCritical,
+      AssignmentStatement(iv.ReqOutstanding(field.field, s"Recv_${concurrencyId}", neighbor.index), true))
   }
 }
 
@@ -111,12 +107,12 @@ abstract class RemoteTransfers extends Statement with Expandable {
   }
 }
 
-case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)], var start : Boolean, var end : Boolean) extends RemoteTransfers {
+case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)], var start : Boolean, var end : Boolean, var concurrencyId : Int) extends RemoteTransfers {
   override def cpp : String = "NOT VALID ; CLASS = RemoteSends\n"
 
   def genCopy(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
     if (!MPI_DataType.shouldBeUsed(indices) && SimplifyExpression.evalIntegral(indices.getSizeHigher) > 1) {
-      var body = CopyToSendBuffer(field, neighbor, indices)
+      var body = CopyToSendBuffer(field, neighbor, indices, concurrencyId)
       if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
     } else {
       new NullStatement
@@ -126,20 +122,20 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
   def genTransfer(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
     var body = {
       if (1 == SimplifyExpression.evalIntegral(indices.getSizeHigher)) {
-        RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, new RealDatatype)
+        RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, new RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(indices)) {
-        RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, MPI_DataType(field, indices))
+        RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, MPI_DataType(field, indices), concurrencyId)
       } else {
         var cnt = DimArrayHigher().map(i => (indices.end(i) - indices.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
         SimplifyStrategy.doUntilDoneStandalone(cnt)
-        RemoteSend(field, neighbor, iv.TmpBuffer(field.field, "Send", cnt, neighbor.index), cnt, new RealDatatype)
+        RemoteSend(field, neighbor, iv.TmpBuffer(field.field, s"Send_${concurrencyId}", cnt, neighbor.index), cnt, new RealDatatype, concurrencyId)
       }
     }
     if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
   }
 
   def genWait(neighbor : NeighborInfo) : Statement = {
-    new WaitForTransfer(field, neighbor, "Send")
+    new WaitForTransfer(field, neighbor, s"Send_${concurrencyId}")
   }
 
   def expand : Output[StatementList] = {
@@ -162,12 +158,12 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
   }
 }
 
-case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)], var start : Boolean, var end : Boolean) extends RemoteTransfers {
+case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)], var start : Boolean, var end : Boolean, var concurrencyId : Int) extends RemoteTransfers {
   override def cpp : String = "NOT VALID ; CLASS = RemoteRecvs\n"
 
   def genCopy(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
     if (!MPI_DataType.shouldBeUsed(indices) && SimplifyExpression.evalIntegral(indices.getSizeHigher) > 1) {
-      var body = CopyFromRecvBuffer(field, neighbor, indices)
+      var body = CopyFromRecvBuffer(field, neighbor, indices, concurrencyId)
       if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
     } else {
       new NullStatement
@@ -177,20 +173,20 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
   def genTransfer(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
     var body = {
       if (1 == SimplifyExpression.evalIntegral(indices.getSizeHigher)) {
-        RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, new RealDatatype)
+        RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, new RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(indices)) {
-        RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, MPI_DataType(field, indices))
+        RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, MPI_DataType(field, indices), concurrencyId)
       } else {
         var cnt = DimArrayHigher().map(i => (indices.end(i) - indices.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
         SimplifyStrategy.doUntilDoneStandalone(cnt)
-        RemoteRecv(field, neighbor, iv.TmpBuffer(field.field, "Recv", cnt, neighbor.index), cnt, new RealDatatype)
+        RemoteRecv(field, neighbor, iv.TmpBuffer(field.field, s"Recv_${concurrencyId}", cnt, neighbor.index), cnt, new RealDatatype, concurrencyId)
       }
     }
     if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
   }
 
   def genWait(neighbor : NeighborInfo) : Statement = {
-    new WaitForTransfer(field, neighbor, "Recv")
+    new WaitForTransfer(field, neighbor, s"Recv_${concurrencyId}")
   }
 
   def expand : Output[StatementList] = {
@@ -219,6 +215,14 @@ case class WaitForMPIReq(var request : Expression) extends Statement {
   }
 }
 
+case class GeneratedMPITag(var from : Expression, var to : Expression, var concurrencyId : Int) extends Expression with Expandable {
+  override def cpp : String = "NOT VALID ; CLASS = RemoteSend\n"
+
+  def expand : Output[Expression] = {
+    ("((unsigned int)" ~ from ~ " << 20)") + ("((unsigned int)(" ~ to ~ ") << 10)") + concurrencyId
+  }
+}
+
 case class CommunicationFunctions() extends FunctionCollection("Primitives/CommunicationFunctions",
   ListBuffer(
     "#define _USE_MATH_DEFINES",
@@ -243,4 +247,4 @@ case class CommunicationFunctions() extends FunctionCollection("Primitives/Commu
       "#include \"Globals/Globals.h\"",
       "#include \"Util/Log.h\"",
       "#include \"Util/Vector.h\"",
-      "#include \"MultiGrid/MultiGrid.h\"")) {}
+      "#include \"MultiGrid/MultiGrid.h\""))

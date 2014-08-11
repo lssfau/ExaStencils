@@ -8,6 +8,7 @@ import exastencils.prettyprinting._
 class FunctionCollection(var baseName : String,
     var includes : ListBuffer[String],
     var functions : ListBuffer[AbstractFunctionStatement] = ListBuffer()) extends Node with FilePrettyPrintable {
+
   override def printToFile = {
     {
       val writer = PrettyprintingManager.getPrinter(s"${baseName}.h")

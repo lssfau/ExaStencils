@@ -1,9 +1,11 @@
 package exastencils.parsers.l4
 
-import scala.collection.mutable.ListBuffer
-import exastencils.parsers._
+import scala.collection.immutable.PagedSeq
+import scala.util.parsing.input.PagedSeqReader
+
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
+import exastencils.parsers._
 
 class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParsers {
   def parse(s : String) : Node = {
@@ -11,9 +13,6 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   }
 
   def parseFile(filename : String) : Node = {
-    import scala.util.parsing.input._
-    import scala.collection.immutable.PagedSeq
-
     val lines = io.Source.fromFile(filename).getLines
     val reader = new PagedSeqReader(PagedSeq.fromLines(lines))
     val scanner = new lexical.Scanner(reader)
@@ -132,7 +131,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val conditional = locationize(("if" ~ "(" ~> booleanexpression <~ ")") ~ ("{" ~> statement.+ <~ "}") ^^ { case exp ~ stmts => ConditionalStatement(exp, stmts) })
 
-  lazy val communicateStatement = locationize("communicate" ~> fieldLikeAccess ^^ { case access => CommunicateStatement(access.resolveToFieldAccess) })
+  lazy val communicateStatement = locationize((("begin" ||| "finish").? <~ "communicate") ~ fieldLikeAccess ^^ { case op ~ access => CommunicateStatement(access.resolveToFieldAccess, op.getOrElse("both")) })
 
   // ######################################
   // ##### Globals

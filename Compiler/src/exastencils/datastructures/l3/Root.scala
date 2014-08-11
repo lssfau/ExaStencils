@@ -15,7 +15,7 @@ case class Root() extends Node {
   var numPre : Int = 2 // has to be divisible by 2 for Jac
   var numPost : Int = 4 // has to be divisible by 2 for Jac
   var omega : Double = (if ("Jac" == smoother) 0.8 else 1.0)
-  var testBC : Boolean = true && !kelvin // NOTE: the tested bc will only be reasonable for 2D cases
+  var testBC : Boolean = false && !kelvin // NOTE: the tested bc will only be reasonable for 2D cases
   var testExtFields : Boolean = false
   var printFieldAtEnd : Boolean = false
   var genSetableStencil : Boolean = false
@@ -27,6 +27,7 @@ case class Root() extends Node {
   var genStencilFields : Boolean = false || kelvin
   var useSlotsForJac : Boolean = true
   var testStencilStencil : Boolean = false || kelvin
+  var testCommCompOverlap : Boolean = false // NOTE: overlap will not work when using commStrategy 6
 
   def solutionFields(level : String, postfix : String = "") = {
     if (useVecFields)
@@ -644,7 +645,11 @@ case class Root() extends Node {
 
   def addRestriction(printer : java.io.PrintWriter, postfix : String) = {
     printer.println(s"def Restriction$postfix@((coarsest + 1) to finest) ( ) : Unit {")
-    printer.println(s"\tcommunicate Residual$postfix@current")
+    if (testCommCompOverlap) {
+      printer.println(s"\tbegin communicate Residual$postfix@current")
+      printer.println(s"\tfinish communicate Residual$postfix@current")
+    } else
+      printer.println(s"\tcommunicate Residual$postfix@current")
     printer.println(s"\tloop over innerForFieldsWithoutGhostLayers on RHS$postfix@coarser {")
     for (vecDim <- 0 until numVecDims)
       printer.println(s"\t\t${rhsFields(s"coarser", postfix)(vecDim)} = RestrictionStencil@current * ToCoarser ( ${residualFields(s"current", postfix)(vecDim)} )")

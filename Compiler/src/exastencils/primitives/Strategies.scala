@@ -21,24 +21,6 @@ object SetupFragment extends DefaultStrategy("Setting up fragment") {
     super.apply(node)
   }
 
-  this += new Transformation("Adding relevant functions to CommunicationFunctions", {
-    case commFu : CommunicationFunctions =>
-      if (Knowledge.useMPI && Knowledge.domain_canHaveRemoteNeighs)
-        commFu.functions += new WaitForMPIRequestFunc
-      if (Knowledge.domain_canHaveLocalNeighs)
-        commFu.functions += new ConnectLocalElement()
-      if (Knowledge.domain_canHaveRemoteNeighs)
-        commFu.functions += new ConnectRemoteElement()
-      for (field <- FieldCollection.fields) {
-        Knowledge.comm_strategyFragment match {
-          case 6  => commFu.functions += new ExchangeData_6(FieldSelection(field, "slot", -1), Fragment.neighbors)
-          case 26 => commFu.functions += new ExchangeData_26(FieldSelection(field, "slot", -1), Fragment.neighbors)
-        }
-      }
-
-      commFu
-  })
-
   this += new Transformation("Adding external field transfer functions", {
     case multiGrid : MultiGridFunctions =>
       for (extField <- ExternalFieldCollection.fields) {

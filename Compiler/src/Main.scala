@@ -1,16 +1,18 @@
 import java.util.Locale
 
+import exastencils.communication._
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.domain._
-import exastencils.globals._
+import exastencils.domain.DomainFunctions
+import exastencils.globals.AddDefaultGlobals
 import exastencils.knowledge._
-import exastencils.languageprocessing.l4._
+import exastencils.languageprocessing.l4.ProgressToIr
 import exastencils.mpi._
-import exastencils.multiGrid._
+import exastencils.multiGrid.ResolveSpecialFunctions
 import exastencils.omp._
 import exastencils.optimization._
-import exastencils.parsers.l4._
+import exastencils.parsers.l4.ParserL4
+import exastencils.parsers.l4.ValidationL4
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.primitives._
@@ -66,6 +68,7 @@ object Main {
     AddDefaultGlobals.apply()
 
     SetupFragment.apply() // Stefan: This adds the setupBuffer func which will be exapanded using the field info in the next expand step 
+    SetupCommunication.apply()
 
     var numConvFound = 1;
     while (numConvFound > 0) {
