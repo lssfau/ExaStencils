@@ -87,7 +87,7 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
       args(0).asInstanceOf[StringConstant]
 
     // HACK to realize time measurement functionality -> FIXME: move to specialized node
-    case FunctionCallExpression(StringConstant("startTimer"), args) =>
+    case ExpressionStatement(FunctionCallExpression(StringConstant("startTimer"), args)) =>
       if (Knowledge.testNewTimers)
         iv.Timer(args(0)) ~ ".Start()"
       else
@@ -95,7 +95,7 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
           "StopWatch " ~ args(0),
           args(0) ~ ".reset()")
 
-    case FunctionCallExpression(StringConstant("stopTimer"), args) =>
+    case ExpressionStatement(FunctionCallExpression(StringConstant("stopTimer"), args)) =>
       if (Knowledge.testNewTimers)
         iv.Timer(args(0)) ~ ".Stop()"
       else
@@ -105,13 +105,13 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
           (if (Knowledge.useMPI) "timeTaken /= mpiSize" else new NullStatement),
           args(1) ~ " += timeTaken"))
 
-    case FunctionCallExpression(StringConstant("addFromTimer"), args) =>
+    case ExpressionStatement(FunctionCallExpression(StringConstant("addFromTimer"), args)) =>
       if (Knowledge.testNewTimers)
         args(1) ~ " += " ~ iv.Timer(args(0)) ~ ".getTotalTimeInMilliSec()"
       else
         StringConstant("Not supported: addFromTimer")
 
-    case FunctionCallExpression(StringConstant("getMeanFromTimer"), args) =>
+    case ExpressionStatement(FunctionCallExpression(StringConstant("getMeanFromTimer"), args)) =>
       if (Knowledge.testNewTimers)
         iv.Timer(args(0)) ~ ".getMeanTime()"
       else
