@@ -11,6 +11,7 @@ import exastencils.core.Duplicate
 import exastencils.core.Logger
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
+import exastencils.datastructures.Transformation.convFromList
 import exastencils.datastructures.Transformation.convFromNode
 import exastencils.datastructures.ir.AdditionExpression
 import exastencils.datastructures.ir.AndAndExpression
@@ -34,6 +35,7 @@ import exastencils.datastructures.ir.MinimumExpression
 import exastencils.datastructures.ir.ModuloExpression
 import exastencils.datastructures.ir.MultiplicationExpression
 import exastencils.datastructures.ir.OrOrExpression
+import exastencils.datastructures.ir.Reduction
 import exastencils.datastructures.ir.Scope
 import exastencils.datastructures.ir.Statement
 import exastencils.datastructures.ir.StringConstant
@@ -60,6 +62,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
   private var oldStmts : HashMap[String, (Statement, ArrayBuffer[String])] = null
   private var seqDims : TreeSet[String] = null
   private var parallelize_omp : Boolean = false
+  private var reduction : Option[Reduction] = None
 
   def isDefinedAt(node : Node) : Boolean = node match {
     case loop : LoopOverDimensions with PolyhedronAccessable =>
@@ -70,6 +73,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
   def apply(node : Node) : Transformation.Output[_] = {
 
     val scop : Scop = node.removeAnnotation(PolyOpt.SCOP_ANNOT).get.value.asInstanceOf[Scop]
+    reduction = scop.reduction
 
     // find all sequential loops
     parallelize_omp = scop.parallelize
@@ -192,13 +196,13 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
           val loop : ForLoopStatement with OptimizationHint =
             if (parOMP)
               body match {
-                case Scope(raw) => new ForLoopStatement(init, cond, incr, raw) with OptimizationHint with OMP_PotentiallyParallel
-                case _                   => new ForLoopStatement(init, cond, incr, body) with OptimizationHint with OMP_PotentiallyParallel
+                case Scope(raw) => new ForLoopStatement(init, cond, incr, raw, reduction) with OptimizationHint with OMP_PotentiallyParallel
+                case _          => new ForLoopStatement(init, cond, incr, body, reduction) with OptimizationHint with OMP_PotentiallyParallel
               }
             else
               body match {
-                case Scope(raw) => new ForLoopStatement(init, cond, incr, raw) with OptimizationHint
-                case _                   => new ForLoopStatement(init, cond, incr, body) with OptimizationHint
+                case Scope(raw) => new ForLoopStatement(init, cond, incr, raw, reduction) with OptimizationHint
+                case _          => new ForLoopStatement(init, cond, incr, body, reduction) with OptimizationHint
               }
           loop.isParallel = seqDims != null && !seqDims.contains(itStr)
           loopStmts.getOrElseUpdate(itStr, new ListBuffer()) += loop

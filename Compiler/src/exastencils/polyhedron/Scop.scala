@@ -7,11 +7,13 @@ import scala.collection.mutable.TreeSet
 
 import exastencils.datastructures.Node
 import exastencils.datastructures.ir.Expression
+import exastencils.datastructures.ir.Reduction
 import exastencils.datastructures.ir.Statement
 import exastencils.datastructures.ir.VariableDeclarationStatement
 import isl.Conversions.convertLambdaToVoidCallback1
 
-class Scop(val root : Node, val parallelize : Boolean) {
+class Scop(val root : Node, val parallelize : Boolean, val reduction : Option[Reduction],
+    val origIterationCount : Array[Long]) {
 
   var domain : isl.UnionSet = null
   var schedule : isl.UnionMap = null
@@ -61,7 +63,7 @@ object ScopNameMapping {
 
   def expr2id(expr : Expression) : String = {
     val exprStr : String = expr.cpp()
-    return exprStr2idMap.getOrElse(exprStr, {
+    return exprStr2idMap.getOrElseUpdate(exprStr, {
       val id : String =
         if (exprStr.size < 5)
           exprStr
@@ -71,8 +73,7 @@ object ScopNameMapping {
           s
         }
       id2exprMap.put(id, expr)
-      exprStr2idMap.put(exprStr, id)
-      return id
+      id
     })
   }
 }

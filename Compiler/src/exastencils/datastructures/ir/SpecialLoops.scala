@@ -59,89 +59,94 @@ case class LoopOverDimensions(var numDimensions : Int,
 
   override def cpp : String = "NOT VALID ; CLASS = LoopOverDimensions\n"
 
-  def parallelizationIsReasonable : Boolean = {
+  def maxIterationCount() : Array[Long] = {
     numDimensions match {
       case 2 => indices match {
         // basic version assuming Integer constants
-        case IndexRange(MultiIndex(xStart : IntegerConstant, yStart : IntegerConstant, _, _),
-          MultiIndex(xEnd : IntegerConstant, yEnd : IntegerConstant, _, _)) => {
-          val totalNumPoints = (xEnd.v - xStart.v) * (yEnd.v - yStart.v)
-          return (totalNumPoints > Knowledge.omp_minWorkItemsPerThread * Knowledge.omp_numThreads)
-        }
+        case IndexRange(MultiIndex(IntegerConstant(xStart), IntegerConstant(yStart), _, _),
+          MultiIndex(IntegerConstant(xEnd), IntegerConstant(yEnd), _, _)) =>
+          Array(xEnd - xStart, yEnd - yStart)
+
         // extended version assuming OffsetIndex nodes with Integer constants
         // INFO: this uses the maximum number of points as criteria as this defines the case displaying the upper performance bound
         case IndexRange(
           MultiIndex(
-            OffsetIndex(xStartOffMin, xStartOffMax, xStart : IntegerConstant, _),
-            OffsetIndex(yStartOffMin, yStartOffMax, yStart : IntegerConstant, _),
-            _, _),
+            OffsetIndex(xStartOffMin, _, IntegerConstant(xStart), _),
+            OffsetIndex(yStartOffMin, _, IntegerConstant(yStart), _), _, _),
           MultiIndex(
-            OffsetIndex(xEndOffMin, xEndOffMax, xEnd : IntegerConstant, _),
-            OffsetIndex(yEndOffMin, yEndOffMax, yEnd : IntegerConstant, _),
-            _, _)) => {
-          val totalNumPoints = (((xEnd.v + xEndOffMax) - (xStart.v + xStartOffMin))
-            * ((yEnd.v + yEndOffMax) - (yStart.v + yStartOffMin)))
-          return (totalNumPoints > Knowledge.omp_minWorkItemsPerThread * Knowledge.omp_numThreads)
-        }
-        // could not match, default is no change in parallelizability, i.e. true
-        case _ => true
+            OffsetIndex(_, xEndOffMax, IntegerConstant(xEnd), _),
+            OffsetIndex(_, yEndOffMax, IntegerConstant(yEnd), _), _, _)) =>
+          Array((xEnd + xEndOffMax) - (xStart + xStartOffMin),
+            (yEnd + yEndOffMax) - (yStart + yStartOffMin))
+
+        // could not match
+        case _ => null
       }
+
       case 3 => indices match {
         // basic version assuming Integer constants
-        case IndexRange(MultiIndex(xStart : IntegerConstant, yStart : IntegerConstant, zStart : IntegerConstant, _),
-          MultiIndex(xEnd : IntegerConstant, yEnd : IntegerConstant, zEnd : IntegerConstant, _)) => {
-          val totalNumPoints = (xEnd.v - xStart.v) * (yEnd.v - yStart.v) * (zEnd.v - zStart.v)
-          return (totalNumPoints > Knowledge.omp_minWorkItemsPerThread * Knowledge.omp_numThreads)
-        }
+        case IndexRange(MultiIndex(IntegerConstant(xStart), IntegerConstant(yStart), IntegerConstant(zStart), _),
+          MultiIndex(IntegerConstant(xEnd), IntegerConstant(yEnd), IntegerConstant(zEnd), _)) =>
+          Array(xEnd - xStart, yEnd - yStart, zEnd - zStart)
+
         // extended version assuming OffsetIndex nodes with Integer constants
         // INFO: this uses the maximum number of points as criteria as this defines the case displaying the upper performance bound
         case IndexRange(
           MultiIndex(
-            OffsetIndex(xStartOffMin, xStartOffMax, xStart : IntegerConstant, _),
-            OffsetIndex(yStartOffMin, yStartOffMax, yStart : IntegerConstant, _),
-            OffsetIndex(zStartOffMin, zStartOffMax, zStart : IntegerConstant, _), _),
+            OffsetIndex(xStartOffMin, _, IntegerConstant(xStart), _),
+            OffsetIndex(yStartOffMin, _, IntegerConstant(yStart), _),
+            OffsetIndex(zStartOffMin, _, IntegerConstant(zStart), _), _),
           MultiIndex(
-            OffsetIndex(xEndOffMin, xEndOffMax, xEnd : IntegerConstant, _),
-            OffsetIndex(yEndOffMin, yEndOffMax, yEnd : IntegerConstant, _),
-            OffsetIndex(zEndOffMin, zEndOffMax, zEnd : IntegerConstant, _), _)) => {
-          val totalNumPoints = (((xEnd.v + xEndOffMax) - (xStart.v + xStartOffMin))
-            * ((yEnd.v + yEndOffMax) - (yStart.v + yStartOffMin))
-            * ((zEnd.v + zEndOffMax) - (zStart.v + zStartOffMin)))
-          return (totalNumPoints > Knowledge.omp_minWorkItemsPerThread * Knowledge.omp_numThreads)
-        }
-        // could not match, default is no change in parallelizability, i.e. true
-        case _ => true
+            OffsetIndex(_, xEndOffMax, IntegerConstant(xEnd), _),
+            OffsetIndex(_, yEndOffMax, IntegerConstant(yEnd), _),
+            OffsetIndex(_, zEndOffMax, IntegerConstant(zEnd), _), _)) =>
+          Array((xEnd + xEndOffMax) - (xStart + xStartOffMin),
+            (yEnd + yEndOffMax) - (yStart + yStartOffMin),
+            (zEnd + zEndOffMax) - (zStart + zStartOffMin))
+
+        // could not match
+        case _ => null
       }
+
       case 4 => indices match {
         // basic version assuming Integer constants
-        case IndexRange(MultiIndex(xStart : IntegerConstant, yStart : IntegerConstant, zStart : IntegerConstant, wStart : IntegerConstant),
-          MultiIndex(xEnd : IntegerConstant, yEnd : IntegerConstant, zEnd : IntegerConstant, wEnd : IntegerConstant)) => {
-          val totalNumPoints = (xEnd.v - xStart.v) * (yEnd.v - yStart.v) * (zEnd.v - zStart.v) * (wEnd.v - wStart.v)
-          return (totalNumPoints > Knowledge.omp_minWorkItemsPerThread * Knowledge.omp_numThreads)
-        }
+        case IndexRange(MultiIndex(IntegerConstant(xStart), IntegerConstant(yStart), IntegerConstant(zStart), IntegerConstant(wStart)),
+          MultiIndex(IntegerConstant(xEnd), IntegerConstant(yEnd), IntegerConstant(zEnd), IntegerConstant(wEnd))) =>
+          Array(xEnd - xStart, yEnd - yStart, zEnd - zStart, wEnd - wStart)
+
         // extended version assuming OffsetIndex nodes with Integer constants
         // INFO: this uses the maximum number of points as criteria as this defines the case displaying the upper performance bound
         case IndexRange(
           MultiIndex(
-            OffsetIndex(xStartOffMin, xStartOffMax, xStart : IntegerConstant, _),
-            OffsetIndex(yStartOffMin, yStartOffMax, yStart : IntegerConstant, _),
-            OffsetIndex(zStartOffMin, zStartOffMax, zStart : IntegerConstant, _),
-            OffsetIndex(wStartOffMin, wStartOffMax, wStart : IntegerConstant, _)),
+            OffsetIndex(xStartOffMin, _, IntegerConstant(xStart), _),
+            OffsetIndex(yStartOffMin, _, IntegerConstant(yStart), _),
+            OffsetIndex(zStartOffMin, _, IntegerConstant(zStart), _),
+            OffsetIndex(wStartOffMin, _, IntegerConstant(wStart), _)),
           MultiIndex(
-            OffsetIndex(xEndOffMin, xEndOffMax, xEnd : IntegerConstant, _),
-            OffsetIndex(yEndOffMin, yEndOffMax, yEnd : IntegerConstant, _),
-            OffsetIndex(zEndOffMin, zEndOffMax, zEnd : IntegerConstant, _),
-            OffsetIndex(wEndOffMin, wEndOffMax, wEnd : IntegerConstant, _))) => {
-          val totalNumPoints = (((xEnd.v + xEndOffMax) - (xStart.v + xStartOffMin))
-            * ((yEnd.v + yEndOffMax) - (yStart.v + yStartOffMin))
-            * ((zEnd.v + zEndOffMax) - (zStart.v + zStartOffMin))
-            * ((wEnd.v + zEndOffMax) - (wStart.v + wStartOffMin)))
-          return (totalNumPoints > Knowledge.omp_minWorkItemsPerThread * Knowledge.omp_numThreads)
-        }
-        // could not match, default is no change in parallelizability, i.e. true
-        case _ => true
+            OffsetIndex(_, xEndOffMax, IntegerConstant(xEnd), _),
+            OffsetIndex(_, yEndOffMax, IntegerConstant(yEnd), _),
+            OffsetIndex(_, zEndOffMax, IntegerConstant(zEnd), _),
+            OffsetIndex(_, wEndOffMax, IntegerConstant(wEnd), _))) =>
+          Array((xEnd + xEndOffMax) - (xStart + xStartOffMin),
+            (yEnd + yEndOffMax) - (yStart + yStartOffMin),
+            (zEnd + zEndOffMax) - (zStart + zStartOffMin),
+            (wEnd + wEndOffMax) - (wStart + wStartOffMin))
+
+        // could not match
+        case _ => null
       }
     }
+  }
+
+  def parallelizationIsReasonable : Boolean = {
+    val maxItCount = maxIterationCount()
+    if (maxItCount == null)
+      return true // cannot determine iteration count, default is no change in parallelizability, i.e. true
+
+    var totalNumPoints : Long = 1
+    for (i <- maxItCount)
+      totalNumPoints *= i
+    return (totalNumPoints > Knowledge.omp_minWorkItemsPerThread * Knowledge.omp_numThreads)
   }
 
   def expandSpecial : ForLoopStatement = {
