@@ -196,5 +196,19 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case scope @ Scope(body) if (body.length == 1 && body(0).isInstanceOf[Scope]) =>
       scope.body = scope.body(0).asInstanceOf[Scope].body
       scope
+
+    case EqEqExpression(left : IntegerConstant, right : IntegerConstant)         => BooleanConstant(left.value == right.value)
+    case NeqNeqExpression(left : IntegerConstant, right : IntegerConstant)       => BooleanConstant(left.value != right.value)
+    case LowerExpression(left : IntegerConstant, right : IntegerConstant)        => BooleanConstant(left.value < right.value)
+    case LowerEqualExpression(left : IntegerConstant, right : IntegerConstant)   => BooleanConstant(left.value <= right.value)
+    case GreaterExpression(left : IntegerConstant, right : IntegerConstant)      => BooleanConstant(left.value > right.value)
+    case GreaterEqualExpression(left : IntegerConstant, right : IntegerConstant) => BooleanConstant(left.value >= right.value)
+
+    case AndAndExpression(left : BooleanConstant, right : BooleanConstant)       => BooleanConstant(left.value && right.value)
+    case OrOrExpression(left : BooleanConstant, right : BooleanConstant)         => BooleanConstant(left.value || right.value)
+
+    case ConditionStatement(BooleanConstant(true), body, _)                      => body
+    case ConditionStatement(BooleanConstant(false), _, ListBuffer())             => NullStatement()
+    case ConditionStatement(BooleanConstant(false), _, body)                     => body
   })
 }

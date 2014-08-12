@@ -67,6 +67,8 @@ object Main {
 
     AddDefaultGlobals.apply()
 
+    SimplifyStrategy.doUntilDone() // removes (conditional) calls to communication functions that are not possible
+
     SetupFragment.apply() // Stefan: This adds the setupBuffer func which will be exapanded using the field info in the next expand step 
     SetupCommunication.apply()
 

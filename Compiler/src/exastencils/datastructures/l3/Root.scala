@@ -637,8 +637,10 @@ case class Root() extends Node {
       printer.println(s"\t\t${residualFields(s"current", postfix)(vecDim)} = ${rhsFields(s"current", postfix)(vecDim)} - (Laplace$postfix@current * ${solutionFields(s"current", postfix)(vecDim)})")
     printer.println(s"\t}")
     if (testCommCompOverlap) {
+      printer.println(s"\tif ( levels@current > levels@coarsest ) {") // TODO: merge to one condition as soon as supported by l4 parser
       printer.println(s"\tif ( startComm > 0 ) {")
       printer.println(s"\t\tbegin communicate Residual$postfix@current")
+      printer.println(s"\t}")
       printer.println(s"\t}")
     }
     printer.println(s"}")
@@ -651,8 +653,10 @@ case class Root() extends Node {
         printer.println(s"\t\t${residualFields(s"current", postfix)(vecDim)} = ${rhsFields(s"current", postfix)(vecDim)} - (${stencilAccess(postfix)} * ${solutionFields(s"current", postfix)(vecDim)})")
       printer.println(s"\t}")
       if (testCommCompOverlap) {
+        printer.println(s"\tif ( levels@current > levels@coarsest ) {") // TODO: merge to one condition as soon as supported by l4 parser
         printer.println(s"\tif ( startComm > 0 ) {")
         printer.println(s"\t\tbegin communicate Residual$postfix@current")
+        printer.println(s"\t}")
         printer.println(s"\t}")
       }
       printer.println(s"}")

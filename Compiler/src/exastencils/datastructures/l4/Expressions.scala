@@ -50,8 +50,11 @@ case class BasicAccess(var name : String) extends Access {
 }
 
 case class LeveledAccess(var name : String, var level : AccessLevelSpecification) extends Access {
-  def progressToIr : ir.StringConstant = {
-    name + "_" + level.asInstanceOf[SingleLevelSpecification].level
+  def progressToIr : ir.Expression = {
+    if ("levels" == name) // TODO: incorporate this into the parser?
+      ir.IntegerConstant(level.asInstanceOf[SingleLevelSpecification].level)
+    else
+      ir.StringConstant(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
   }
 }
 
