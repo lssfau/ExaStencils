@@ -283,8 +283,8 @@ class Extractor extends Collector {
     def create(root : LoopOverDimensions, origLoopVars : ArrayBuffer[String],
       modelLoopVars : String, setTempl : String, mapTempl : String) : Unit = {
 
-      this.scop_ = new Scop(root, Knowledge.omp_parallelizeLoopOverDimensions && root.parallelizationIsReasonable)
-      this.scop_.reduction = root.reduction
+      this.scop_ = new Scop(root, Knowledge.omp_parallelizeLoopOverDimensions && root.parallelizationIsReasonable,
+        root.reduction, root.maxIterationCount())
       this.modelLoopVars_ = modelLoopVars
       this.origLoopVars_ = origLoopVars
       this.setTemplate_ = setTempl

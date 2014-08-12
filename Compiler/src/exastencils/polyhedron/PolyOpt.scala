@@ -195,34 +195,47 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val schedule : isl.Schedule = schedConstr.computeSchedule()
     scop.noParDims.clear()
     if (scop.parallelize) {
-      var v : isl.Vec = isl.Vec.alloc(3)
-      v = v.setElementVal(0, Knowledge.poly_tileSize_z)
-      v = v.setElementVal(1, Knowledge.poly_tileSize_y)
-      v = v.setElementVal(2, Knowledge.poly_tileSize_x)
-      var tiled : Boolean = false
-      schedule.foreachBand({ // TODO
+      var v2 : isl.Vec = isl.Vec.alloc(2)
+      v2 = v2.setElementVal(0, Knowledge.poly_tileSize_y)
+      v2 = v2.setElementVal(1, Knowledge.poly_tileSize_x)
+      var v3 : isl.Vec = isl.Vec.alloc(3)
+      v3 = v3.setElementVal(0, Knowledge.poly_tileSize_z)
+      v3 = v3.setElementVal(1, Knowledge.poly_tileSize_y)
+      v3 = v3.setElementVal(2, Knowledge.poly_tileSize_x)
+      var v4 : isl.Vec = isl.Vec.alloc(4)
+      v4 = v4.setElementVal(0, Knowledge.poly_tileSize_w)
+      v4 = v4.setElementVal(1, Knowledge.poly_tileSize_z)
+      v4 = v4.setElementVal(2, Knowledge.poly_tileSize_y)
+      v4 = v4.setElementVal(3, Knowledge.poly_tileSize_x)
+      var tiled : Int = 0
+      schedule.foreachBand({
         band : isl.Band =>
-          if (band.nMember() == 3) {
-            band.tile(v)
-            tiled = true
+          var prefix : Int = 0
+          band.getPrefixSchedule().foreachMap({ map : isl.Map =>
+            if (!map.range().isSingleton())
+              prefix = math.max(prefix, map.dim(isl.DimType.Out))
+          })
+          if (prefix == 0) {
+            tiled = band.nMember()
+            tiled match {
+              case 2 => band.tile(v2)
+              case 3 => band.tile(v3)
+              case 4 => band.tile(v4)
+              case _ =>
+            }
           }
-      })
-      if (tiled) { // filter dimensions with too few iterations
-        val fragSize : Int = 1 << Knowledge.maxLevel // roughly
-        var loopIterations_x : Int = fragSize
-        var loopIterations_y : Int = fragSize
-        var loopIterations_z : Int = fragSize
-        if (Knowledge.domain_summarizeBlocks) {
-          loopIterations_x *= Knowledge.domain_numFragsPerBlock_x
-          loopIterations_y *= Knowledge.domain_numFragsPerBlock_y
-          loopIterations_z *= Knowledge.domain_numFragsPerBlock_z
+      } : isl.Band => Unit)
+      val threads = Knowledge.omp_numThreads
+      for (i <- 0 until tiled) {
+        val tileSize = i match {
+          case 0 => Knowledge.poly_tileSize_x
+          case 1 => Knowledge.poly_tileSize_y
+          case 2 => Knowledge.poly_tileSize_z
+          case 3 => Knowledge.poly_tileSize_w
         }
-        if (loopIterations_z / Knowledge.poly_tileSize_z < Knowledge.omp_numThreads)
-          scop.noParDims += 0
-        if (loopIterations_y / Knowledge.poly_tileSize_y < Knowledge.omp_numThreads)
-          scop.noParDims += 1
-        if (loopIterations_x / Knowledge.poly_tileSize_x < Knowledge.omp_numThreads)
-          scop.noParDims += 2
+        val tiles : Long = scop.origIterationCount(i) / tileSize
+        if (tiles != threads && tiles < 2 * threads)
+          scop.noParDims += tiled - i - 1
       }
     }
 

@@ -130,6 +130,7 @@ object Knowledge {
   var poly_tileSize_x : Int = 1000000 // 32-inf // TODO: Alex
   var poly_tileSize_y : Int = 1000000 // 16-inf // TODO: Alex
   var poly_tileSize_z : Int = 1000000 // 16-inf // TODO: Alex
+  var poly_tileSize_w : Int = 1000000 // 16-inf // TODO: Alex
 
   // --- Other Optimizations ---
   var opt_useAddressPrecalc : Boolean = false // [true|false]

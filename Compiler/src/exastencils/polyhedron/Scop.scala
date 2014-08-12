@@ -12,7 +12,8 @@ import exastencils.datastructures.ir.Statement
 import exastencils.datastructures.ir.VariableDeclarationStatement
 import isl.Conversions.convertLambdaToVoidCallback1
 
-class Scop(val root : Node, val parallelize : Boolean) {
+class Scop(val root : Node, val parallelize : Boolean, val reduction : Option[Reduction],
+    val origIterationCount : Array[Long]) {
 
   var domain : isl.UnionSet = null
   var schedule : isl.UnionMap = null
@@ -24,8 +25,6 @@ class Scop(val root : Node, val parallelize : Boolean) {
 
   var reads, writes : isl.UnionMap = null
   var deadAfterScop : isl.UnionSet = null
-
-  var reduction : Option[Reduction] = None
 
   object deps {
     var flow : isl.UnionMap = null
