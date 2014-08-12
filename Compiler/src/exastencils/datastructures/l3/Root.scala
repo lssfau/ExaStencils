@@ -27,7 +27,7 @@ case class Root() extends Node {
   var genStencilFields : Boolean = false || kelvin
   var useSlotsForJac : Boolean = true
   var testStencilStencil : Boolean = false || kelvin
-  var testCommCompOverlap : Boolean = false // NOTE: overlap will not work when using commStrategy 6
+  var testCommCompOverlap : Boolean = true // NOTE: overlap will not work when using commStrategy 6
 
   def solutionFields(level : String, postfix : String = "") = {
     if (useVecFields)
@@ -452,7 +452,10 @@ case class Root() extends Node {
 
     for (vecDim <- 0 until numVecDims) {
       printer.println(s"def VCycle${postfix}_$vecDim@coarsest ( ) : Unit {")
-      printer.println(s"\tUpResidual$postfix@current ( )")
+      if (testCommCompOverlap)
+        printer.println(s"\tUpResidual@current ( 0 )")
+      else
+        printer.println(s"\tUpResidual@current ( )")
       printer.println(s"\tcommunicate Residual$postfix@current")
 
       printer.println(s"\tvar res : Real = L2Residual${postfix}_$vecDim@current ( )")
@@ -512,7 +515,10 @@ case class Root() extends Node {
     printer.println(s"\trepeat up $numPre {")
     printer.println(s"\t\tSmoother$postfix@current ( )")
     printer.println(s"\t}")
-    printer.println(s"\tUpResidual$postfix@current ( )")
+    if (testCommCompOverlap)
+      printer.println(s"\tUpResidual$postfix@current ( 1 )")
+    else
+      printer.println(s"\tUpResidual$postfix@current ( )")
     printer.println(s"\tRestriction$postfix@current ( )")
     printer.println(s"\tSetSolution$postfix@coarser ( 0 )")
     printer.println(s"\tVCycle$postfix@coarser ( )")
@@ -621,34 +627,43 @@ case class Root() extends Node {
   }
 
   def addUpResidual(printer : java.io.PrintWriter, postfix : String) = {
-    if (testStencilStencil && !genStencilFields)
-      printer.println(s"def UpResidual$postfix@finest ( ) : Unit {")
-    else
-      printer.println(s"def UpResidual$postfix@all ( ) : Unit {")
+    val levels = if (testStencilStencil && !genStencilFields) "finest" else "all"
+    val params = if (testCommCompOverlap) "startComm : Integer" else ""
+
+    printer.println(s"def UpResidual$postfix@$levels ( $params ) : Unit {")
     printer.println(s"\tcommunicate Solution$postfix@current")
     printer.println(s"\tloop over inner on Residual$postfix@current {")
     for (vecDim <- 0 until numVecDims)
       printer.println(s"\t\t${residualFields(s"current", postfix)(vecDim)} = ${rhsFields(s"current", postfix)(vecDim)} - (Laplace$postfix@current * ${solutionFields(s"current", postfix)(vecDim)})")
     printer.println(s"\t}")
+    if (testCommCompOverlap) {
+      printer.println(s"\tif ( startComm > 0 ) {")
+      printer.println(s"\t\tbegin communicate Residual$postfix@current")
+      printer.println(s"\t}")
+    }
     printer.println(s"}")
 
     if (testStencilStencil && !genStencilFields) {
-      printer.println(s"def UpResidual$postfix@(coarsest to (finest - 1)) ( ) : Unit {")
+      printer.println(s"def UpResidual$postfix@(coarsest to (finest - 1)) ( $params ) : Unit {")
       printer.println(s"\tcommunicate Solution$postfix@current")
       printer.println(s"\tloop over inner on Residual$postfix@current {")
       for (vecDim <- 0 until numVecDims)
         printer.println(s"\t\t${residualFields(s"current", postfix)(vecDim)} = ${rhsFields(s"current", postfix)(vecDim)} - (${stencilAccess(postfix)} * ${solutionFields(s"current", postfix)(vecDim)})")
       printer.println(s"\t}")
+      if (testCommCompOverlap) {
+        printer.println(s"\tif ( startComm > 0 ) {")
+        printer.println(s"\t\tbegin communicate Residual$postfix@current")
+        printer.println(s"\t}")
+      }
       printer.println(s"}")
     }
   }
 
   def addRestriction(printer : java.io.PrintWriter, postfix : String) = {
     printer.println(s"def Restriction$postfix@((coarsest + 1) to finest) ( ) : Unit {")
-    if (testCommCompOverlap) {
-      printer.println(s"\tbegin communicate Residual$postfix@current")
+    if (testCommCompOverlap)
       printer.println(s"\tfinish communicate Residual$postfix@current")
-    } else
+    else
       printer.println(s"\tcommunicate Residual$postfix@current")
     printer.println(s"\tloop over innerForFieldsWithoutGhostLayers on RHS$postfix@coarser {")
     for (vecDim <- 0 until numVecDims)
@@ -781,7 +796,10 @@ case class Root() extends Node {
 
   def addSolveFunction(printer : java.io.PrintWriter) = {
     printer.println("def Solve ( ) : Unit {")
-    printer.println("\tUpResidual@finest ( )")
+    if (testCommCompOverlap)
+      printer.println("\tUpResidual@finest ( ( 0 ) )")
+    else
+      printer.println("\tUpResidual@finest ( )")
     for (vecDim <- 0 until numVecDims) {
       printer.println(s"\tvar resStart_$vecDim : Real = L2Residual_$vecDim@finest (  )")
       printer.println(s"\tvar res_$vecDim : Real = resStart_$vecDim")
@@ -796,7 +814,10 @@ case class Root() extends Node {
     printer.println("\t\tnumIt += 1")
     printer.println("\t\tstartTimer ( stopWatch )")
     printer.println("\t\tVCycle@finest (  )")
-    printer.println("\t\tUpResidual@finest ( )")
+    if (testCommCompOverlap)
+      printer.println("\t\tUpResidual@finest ( 0 )")
+    else
+      printer.println("\t\tUpResidual@finest ( )")
     if (Knowledge.testNewTimers) {
       printer.println("\tstopTimer ( stopWatch )")
       printer.println("\taddFromTimer ( stopWatch, totalTime )")
@@ -833,7 +854,10 @@ case class Root() extends Node {
       printer.println(s"\t}")
       printer.println(s"\tcommunicate RHS_GMRF@finest")
 
-      printer.println(s"\tUpResidual_GMRF@finest ( )")
+      if (testCommCompOverlap)
+        printer.println(s"\tUpResidual_GMRF@finest ( 0 )")
+      else
+        printer.println(s"\tUpResidual_GMRF@finest ( )")
       printer.println(s"\tvar resStart : Real = L2Residual_GMRF_0@finest ( )")
       printer.println(s"\tvar res : Real = resStart")
       printer.println(s"\tvar resOld : Real = 0")
@@ -846,7 +870,10 @@ case class Root() extends Node {
       printer.println("\t\tnumIt += 1")
       printer.println("\t\tstartTimer ( stopWatch )")
       printer.println("\t\tVCycle_GMRF@finest (  )")
-      printer.println("\t\tUpResidual_GMRF@finest ( )")
+      if (testCommCompOverlap)
+        printer.println(s"\tUpResidual_GMRF@finest ( 0 )")
+      else
+        printer.println(s"\tUpResidual_GMRF@finest ( )")
       if (Knowledge.testNewTimers) {
         printer.println("\t\tstopTimer ( stopWatch )")
         printer.println("\t\taddFromTimer ( stopWatch, totalTime )")
