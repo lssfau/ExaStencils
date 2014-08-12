@@ -152,3 +152,21 @@ case class MPI_Sequential(var body : ListBuffer[Statement]) extends Statement wi
       new ConditionStatement("mpiRank == curRank", body)))
   }
 }
+
+case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandable {
+  override def cpp : String = "NOT VALID ; CLASS = WaitForMPIReq\n"
+  override def cpp_decl : String = cpp
+
+  override def expand : Output[FunctionStatement] = {
+    FunctionStatement(new UnitDatatype(), s"waitForMPIReq",
+      ListBuffer(VariableAccess("request", Some("MPI_Request*"))),
+      ListBuffer[Statement](
+        s"MPI_Status stat",
+        new ConditionStatement("MPI_ERR_IN_STATUS == MPI_Wait(request, &stat)", ListBuffer[Statement](
+          s"char msg[MPI_MAX_ERROR_STRING]",
+          s"int len",
+          s"MPI_Error_string(stat.MPI_ERROR, msg, &len)",
+          "LOG_WARNING(\"MPI Error encountered (\" << msg << \")\")")),
+        s"*request = MPI_Request()"))
+  }
+}

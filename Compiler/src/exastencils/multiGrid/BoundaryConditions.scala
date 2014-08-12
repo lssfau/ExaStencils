@@ -1,4 +1,4 @@
-package exastencils.primitives
+package exastencils.multiGrid
 
 import scala.collection.mutable.ListBuffer
 

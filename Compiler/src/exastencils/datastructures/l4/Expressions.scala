@@ -1,12 +1,9 @@
 package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
-import exastencils.knowledge
-import exastencils.knowledge.Knowledge
+
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
-import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.languageprocessing.l4.ProgressToIr
+import exastencils.knowledge
 
 trait Expression extends Node with ProgressableToIr {
   def progressToIr : ir.Expression
@@ -37,7 +34,7 @@ case class BooleanConstant(var value : Boolean) extends Expression {
 abstract class Access() extends Expression {}
 
 case class UnresolvedAccess(var identifier : String, var level : Option[AccessLevelSpecification], var slot : Option[Expression], var arrayIndex : Option[Int]) extends Access {
-  def progressToIr : ir.StringConstant = "ERROR - Unresolved Access"
+  def progressToIr : ir.StringConstant = ir.StringConstant("ERROR - Unresolved Access")
 
   def resolveToBasicOrLeveledAccess = if (level.isDefined) LeveledAccess(identifier, level.get) else BasicAccess(identifier)
   def resolveToFieldAccess = FieldAccess(identifier, level.get, slot.getOrElse(IntegerConstant(0)), arrayIndex.getOrElse(0))
@@ -46,7 +43,7 @@ case class UnresolvedAccess(var identifier : String, var level : Option[AccessLe
 }
 
 case class BasicAccess(var name : String) extends Access {
-  def progressToIr : ir.StringConstant = name
+  def progressToIr : ir.StringConstant = ir.StringConstant(name)
 }
 
 case class LeveledAccess(var name : String, var level : AccessLevelSpecification) extends Access {
@@ -60,7 +57,7 @@ case class LeveledAccess(var name : String, var level : AccessLevelSpecification
 
 case class FieldAccess(var name : String, var level : AccessLevelSpecification, var slot : Expression, var arrayIndex : Int) extends Access {
   def progressNameToIr : ir.StringConstant = {
-    name + "_" + level.asInstanceOf[SingleLevelSpecification].level
+    ir.StringConstant(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
   }
 
   def resolveField : knowledge.Field = {
@@ -69,7 +66,7 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
 
   def progressToIr : ir.FieldAccess = {
     var multiIndex = ir.LoopOverDimensions.defIt
-    multiIndex(Knowledge.dimensionality) = arrayIndex
+    multiIndex(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(arrayIndex)
     ir.FieldAccess(
       knowledge.FieldSelection(
         knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get,
@@ -99,12 +96,12 @@ case class StencilFieldAccess(var name : String, var level : AccessLevelSpecific
 abstract class Identifier() extends Expression { var name : String }
 
 case class BasicIdentifier(var name : String) extends Identifier {
-  def progressToIr : ir.StringConstant = name
+  def progressToIr : ir.StringConstant = ir.StringConstant(name)
 }
 
 case class LeveledIdentifier(var name : String, var level : LevelSpecification) extends Identifier {
   def progressToIr : ir.StringConstant = {
-    name + "_" + level.asInstanceOf[SingleLevelSpecification].level
+    ir.StringConstant(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
   }
 }
 
@@ -128,7 +125,7 @@ case class BooleanExpression(var operator : String, var left : Expression, var r
 
 case class FunctionCallExpression(var identifier : Access, var arguments : List[Expression]) extends Expression {
   def progressToIr : ir.FunctionCallExpression = {
-    ir.FunctionCallExpression(identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
+    ir.FunctionCallExpression(ir.StringConstant(identifier.progressToIr.asInstanceOf[ir.StringConstant].value),
       arguments.map(s => s.progressToIr).to[ListBuffer])
   }
 }

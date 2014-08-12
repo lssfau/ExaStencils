@@ -1,7 +1,6 @@
 package exastencils.datastructures.ir
 
 import scala.collection.mutable.ListBuffer
-import scala.language.implicitConversions
 
 import exastencils.core._
 import exastencils.datastructures._
@@ -49,7 +48,6 @@ object BinaryOperators extends Enumeration {
 
   exastencils.core.Duplicate.registerImmutable(this.getClass())
 
-  import scala.language.implicitConversions
   implicit def op2str(op : BinaryOperators) : String = op match {
     case Addition       => "+"
     case Subtraction    => "-"

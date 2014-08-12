@@ -1,40 +1,20 @@
-import exastencils.core.Settings
-import exastencils.core.StateManager
-import exastencils.datastructures.Node
-import exastencils.datastructures.ir
-import exastencils.datastructures.l3
-import exastencils.datastructures.l4
-import exastencils.domain.DomainFunctions
-import exastencils.globals.AddDefaultGlobals
-import exastencils.knowledge.FindStencilConvolutions
-import exastencils.knowledge.Knowledge
-import exastencils.knowledge.MapStencilAssignments
+import exastencils.communication._
+import exastencils.core._
+import exastencils.data._
+import exastencils.datastructures._
+import exastencils.domain._
+import exastencils.globals._
+import exastencils.knowledge._
 import exastencils.languageprocessing.l4.ProgressToIr
-import exastencils.mpi.AddMPIDatatypes
-import exastencils.mpi.RemoveMPIReferences
-import exastencils.multiGrid.ResolveSpecialFunctions
-import exastencils.omp.AddOMPPragmas
-import exastencils.optimization.AddressPrecalculation
-import exastencils.optimization.SimplifyFloatExpressions
-import exastencils.optimization.TypeInference
-import exastencils.optimization.Unrolling
-import exastencils.optimization.Vectorization
-import exastencils.parsers.l4.ParserL4
-import exastencils.parsers.l4.ValidationL4
-import exastencils.polyhedron.PolyOpt
-import exastencils.prettyprinting.PrettyprintingManager
-import exastencils.primitives.AddInternalVariables
-import exastencils.primitives.CommunicationFunctions
-import exastencils.primitives.LinearizeFieldAccesses
-import exastencils.primitives.ResolveIndexOffsets
-import exastencils.primitives.ResolveLoopOverDimensions
-import exastencils.primitives.SetupFragment
-import exastencils.strategies.ExpandStrategy
-import exastencils.strategies.PrintStrategy
-import exastencils.strategies.SimplifyStrategy
-import exastencils.util.Log
-import exastencils.util.Stopwatch
-import exastencils.util.Vector
+import exastencils.mpi._
+import exastencils.multiGrid._
+import exastencils.omp._
+import exastencils.optimization._
+import exastencils.parsers.l4._
+import exastencils.polyhedron._
+import exastencils.prettyprinting._
+import exastencils.strategies._
+import exastencils.util._
 
 object MainStefan {
   def main(args : Array[String]) : Unit = {
@@ -83,7 +63,7 @@ object MainStefan {
 
     AddDefaultGlobals.apply()
 
-    SetupFragment.apply()
+    SetupDataStructures.apply()
 
     var numConvFound = 1;
     while (numConvFound > 0) {

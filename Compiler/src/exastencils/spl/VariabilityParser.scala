@@ -1,32 +1,24 @@
 package exastencils.spl
 
-import scala.collection.mutable.ListBuffer
+import scala.io.Source
+import scala.util.Random
+
+import exastencils.communication._
 import exastencils.core._
-import exastencils.knowledge._
+import exastencils.data._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
-import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.strategies._
 import exastencils.domain._
-import exastencils.multiGrid._
-import exastencils.primitives._
-import exastencils.util._
 import exastencils.globals._
-import exastencils.prettyprinting.PrettyprintingManager
-import exastencils.parsers.l4.ParserL4
-import exastencils.parsers.l4.ValidationL4
-import exastencils.datastructures.l4.ProgressableToIr
+import exastencils.knowledge._
 import exastencils.languageprocessing.l4.ProgressToIr
 import exastencils.mpi._
+import exastencils.multiGrid._
 import exastencils.omp._
-import exastencils.polyhedron._
-import scala.io.Source
-import exastencils.core.Settings
-import exastencils.knowledge.Knowledge
-import exastencils.core.UniversalSetter
-import sun.reflect.generics.tree.Tree
+import exastencils.parsers.l4._
+import exastencils.prettyprinting._
 import exastencils.spl.test.PredictionTests
-import scala.util.Random
+import exastencils.strategies._
+import exastencils.util._
 
 object VariabilityParser {
   def main(args : Array[String]) : Unit = {
@@ -146,7 +138,7 @@ object VariabilityParser {
 
     ResolveSpecialFunctions.apply()
 
-    SetupFragment.apply()
+    SetupDataStructures.apply()
 
     do { ExpandStrategy.apply() }
     while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code

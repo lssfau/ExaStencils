@@ -1,28 +1,18 @@
-import scala.collection.mutable.ListBuffer
+import exastencils.communication._
 import exastencils.core._
-import exastencils.knowledge._
+import exastencils.data._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
-import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.strategies._
 import exastencils.domain._
-import exastencils.multiGrid._
-import exastencils.primitives._
-import exastencils.util._
 import exastencils.globals._
-import exastencils.prettyprinting.PrettyprintingManager
-//import harald_dep.Parser._
-//import harald_dep.dsl._
-//import harald_dep.Generate._
-//import harald_dep.ast._
-import exastencils.spl.FeatureModel
-import exastencils.parsers.l4.ParserL4
-import exastencils.parsers.l4.ValidationL4
-import exastencils.datastructures.l4.ProgressableToIr
+import exastencils.knowledge._
 import exastencils.languageprocessing.l4.ProgressToIr
 import exastencils.mpi._
+import exastencils.multiGrid._
 import exastencils.omp._
-import exastencils.polyhedron._
+import exastencils.parsers.l4._
+import exastencils.prettyprinting._
+import exastencils.strategies._
+import exastencils.util._
 
 object MainAlex {
   def main(args : Array[String]) : Unit = {
@@ -56,10 +46,10 @@ object MainAlex {
     ValidationL4.apply
     ProgressToIr.apply()
 
-    StateManager.root_ = StateManager.root_.asInstanceOf[ProgressableToIr].progressToIr.asInstanceOf[Node]
+    StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
     // Setup tree
-    StateManager.root_.asInstanceOf[Root].nodes ++= List(
+    StateManager.root_.asInstanceOf[ir.Root].nodes ++= List(
       // FunctionCollections
       new DomainFunctions,
       new CommunicationFunctions,
@@ -163,7 +153,7 @@ object MainAlex {
 
     ResolveSpecialFunctions.apply()
 
-    SetupFragment.apply()
+    SetupDataStructures.apply()
 
     do { ExpandStrategy.apply() }
     while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code

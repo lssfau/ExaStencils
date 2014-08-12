@@ -8,6 +8,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
+import exastencils.mpi._
 import exastencils.primitives._
 
 object SetupCommunication extends DefaultStrategy("Setting up communication") {
@@ -19,7 +20,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
     addedFunctions.clear
 
     if (Knowledge.useMPI && Knowledge.domain_canHaveRemoteNeighs)
-      commFunctions.functions += new WaitForMPIRequestFunc
+      commFunctions.functions += new MPI_WaitForRequest
     if (Knowledge.domain_canHaveLocalNeighs)
       commFunctions.functions += new ConnectLocalElement()
     if (Knowledge.domain_canHaveRemoteNeighs)

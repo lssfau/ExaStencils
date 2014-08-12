@@ -1,4 +1,4 @@
-package exastencils.primitives
+package exastencils.communication
 
 import scala.collection.mutable.ListBuffer
 
@@ -214,37 +214,3 @@ case class WaitForMPIReq(var request : Expression) extends Statement {
     s"waitForMPIReq(&${request.cpp});"
   }
 }
-
-case class GeneratedMPITag(var from : Expression, var to : Expression, var concurrencyId : Int) extends Expression with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = RemoteSend\n"
-
-  def expand : Output[Expression] = {
-    ("((unsigned int)" ~ from ~ " << 20)") + ("((unsigned int)(" ~ to ~ ") << 10)") + concurrencyId
-  }
-}
-
-case class CommunicationFunctions() extends FunctionCollection("Primitives/CommunicationFunctions",
-  ListBuffer(
-    "#define _USE_MATH_DEFINES",
-    "#include <cmath>")
-    ++
-    (if (Knowledge.useMPI)
-      ListBuffer("#pragma warning(disable : 4800)", "#include <mpi.h>")
-    else
-      ListBuffer())
-    ++
-    (if (Knowledge.opt_vectorize)
-      ListBuffer("#include <immintrin.h>")
-    else
-      ListBuffer())
-    ++
-    (if (Knowledge.poly_usePolyOpt)
-      ListBuffer("#include <algorithm>")
-    else
-      ListBuffer())
-    ++
-    ListBuffer(
-      "#include \"Globals/Globals.h\"",
-      "#include \"Util/Log.h\"",
-      "#include \"Util/Vector.h\"",
-      "#include \"MultiGrid/MultiGrid.h\""))

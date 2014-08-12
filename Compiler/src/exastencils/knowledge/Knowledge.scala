@@ -1,8 +1,6 @@
 package exastencils.knowledge
 
 import exastencils.core._
-import exastencils.knowledge._
-import exastencils.util._
 import exastencils.spl._
 
 object Knowledge {

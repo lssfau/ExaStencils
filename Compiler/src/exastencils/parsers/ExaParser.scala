@@ -1,7 +1,6 @@
 package exastencils.parsers
 
-import scala.util.parsing.combinator._
-import scala.util.parsing.combinator.syntactical._
+import scala.util.parsing.combinator.syntactical.StandardTokenParsers
 
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
