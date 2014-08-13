@@ -184,6 +184,31 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     scop.deps.output = scop.deps.output.subtract(toRemove)
   }
 
+  private final lazy val tileVec2D : isl.Vec = {
+    var v2 : isl.Vec = isl.Vec.alloc(2)
+    v2 = v2.setElementVal(0, if (Knowledge.poly_tileOuterLoop) Knowledge.poly_tileSize_y else 1000000000)
+    v2 = v2.setElementVal(0, 1000000000)
+    v2 = v2.setElementVal(1, Knowledge.poly_tileSize_x)
+    v2
+  }
+
+  private final lazy val tileVec3D : isl.Vec = {
+    var v3 : isl.Vec = isl.Vec.alloc(3)
+    v3 = v3.setElementVal(0, if (Knowledge.poly_tileOuterLoop) Knowledge.poly_tileSize_z else 1000000000)
+    v3 = v3.setElementVal(1, Knowledge.poly_tileSize_y)
+    v3 = v3.setElementVal(2, Knowledge.poly_tileSize_x)
+    v3
+  }
+
+  private final lazy val tileVec4D : isl.Vec = {
+    var v4 : isl.Vec = isl.Vec.alloc(4)
+    v4 = v4.setElementVal(0, if (Knowledge.poly_tileOuterLoop) Knowledge.poly_tileSize_w else 1000000000)
+    v4 = v4.setElementVal(1, Knowledge.poly_tileSize_z)
+    v4 = v4.setElementVal(2, Knowledge.poly_tileSize_y)
+    v4 = v4.setElementVal(3, Knowledge.poly_tileSize_x)
+    v4
+  }
+
   private def optimize(scop : Scop) : Unit = {
 
     var schedConstr : isl.ScheduleConstraints = isl.ScheduleConstraints.onDomain(scop.domain)
@@ -195,18 +220,6 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val schedule : isl.Schedule = schedConstr.computeSchedule()
     scop.noParDims.clear()
     if (scop.parallelize) {
-      var v2 : isl.Vec = isl.Vec.alloc(2)
-      v2 = v2.setElementVal(0, Knowledge.poly_tileSize_y)
-      v2 = v2.setElementVal(1, Knowledge.poly_tileSize_x)
-      var v3 : isl.Vec = isl.Vec.alloc(3)
-      v3 = v3.setElementVal(0, Knowledge.poly_tileSize_z)
-      v3 = v3.setElementVal(1, Knowledge.poly_tileSize_y)
-      v3 = v3.setElementVal(2, Knowledge.poly_tileSize_x)
-      var v4 : isl.Vec = isl.Vec.alloc(4)
-      v4 = v4.setElementVal(0, Knowledge.poly_tileSize_w)
-      v4 = v4.setElementVal(1, Knowledge.poly_tileSize_z)
-      v4 = v4.setElementVal(2, Knowledge.poly_tileSize_y)
-      v4 = v4.setElementVal(3, Knowledge.poly_tileSize_x)
       var tiled : Int = 0
       schedule.foreachBand({
         band : isl.Band =>
@@ -218,9 +231,9 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
           if (prefix == 0) {
             tiled = band.nMember()
             tiled match {
-              case 2 => band.tile(v2)
-              case 3 => band.tile(v3)
-              case 4 => band.tile(v4)
+              case 2 => band.tile(tileVec2D)
+              case 3 => band.tile(tileVec3D)
+              case 4 => band.tile(tileVec4D)
               case _ =>
             }
           }
@@ -237,6 +250,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         if (tiles != threads && tiles < 2 * threads)
           scop.noParDims += tiled - i - 1
       }
+      if (tiled > 0 && !Knowledge.poly_tileOuterLoop)
+        scop.noParDims += 0
     }
 
     scop.schedule = schedule.getMap()
