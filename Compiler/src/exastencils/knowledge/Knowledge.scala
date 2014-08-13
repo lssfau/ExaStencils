@@ -125,10 +125,11 @@ object Knowledge {
 
   // --- Polyhedron Optimization ---
   var poly_usePolyOpt : Boolean = false // [true|false]
-  var poly_tileSize_x : Int = 1000000 // 32-inf // TODO: Alex
-  var poly_tileSize_y : Int = 1000000 // 16-inf // TODO: Alex
-  var poly_tileSize_z : Int = 1000000 // 16-inf // TODO: Alex
-  var poly_tileSize_w : Int = 1000000 // 16-inf // TODO: Alex
+  var poly_tileSize_x : Int = 1000000000 // 32-inf // TODO: Alex
+  var poly_tileSize_y : Int = 1000000000 // 16-inf // TODO: Alex
+  var poly_tileSize_z : Int = 1000000000 // 16-inf // TODO: Alex
+  var poly_tileSize_w : Int = 1000000000 // 16-inf // TODO: Alex
+  var poly_tileOuterLoop : Boolean = false // [true|false] // specify separately if the outermost loop should be tiled
 
   // --- Other Optimizations ---
   var opt_useAddressPrecalc : Boolean = false // [true|false]

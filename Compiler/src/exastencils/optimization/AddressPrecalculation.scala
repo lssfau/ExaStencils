@@ -5,32 +5,11 @@ import scala.collection.mutable.ArrayStack
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
-import exastencils.core.Logger
-import exastencils.core.StateManager
+import exastencils.core._
 import exastencils.core.collectors.Collector
-import exastencils.datastructures.CustomStrategy
-import exastencils.datastructures.Node
-import exastencils.datastructures.Transformation
-import exastencils.datastructures.Transformation.convFromNode
-import exastencils.datastructures.ir.AdditionExpression
-import exastencils.datastructures.ir.ArrayAccess
-import exastencils.datastructures.ir.Datatype
-import exastencils.datastructures.ir.DivisionExpression
-import exastencils.datastructures.ir.Expression
-import exastencils.datastructures.ir.ForLoopStatement
-import exastencils.datastructures.ir.IntegerConstant
-import exastencils.datastructures.ir.ModuloExpression
-import exastencils.datastructures.ir.MultiplicationExpression
-import exastencils.datastructures.ir.PointerDatatype
-import exastencils.datastructures.ir.RealDatatype
-import exastencils.datastructures.ir.Scope
-import exastencils.datastructures.ir.Statement
-import exastencils.datastructures.ir.StringConstant
-import exastencils.datastructures.ir.SubtractionExpression
-import exastencils.datastructures.ir.UnaryExpression
-import exastencils.datastructures.ir.UnaryOperators
-import exastencils.datastructures.ir.VariableAccess
-import exastencils.datastructures.ir.VariableDeclarationStatement
+import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
+import exastencils.datastructures.ir._
 import exastencils.util.SimplifyExpression
 
 object AddressPrecalculation extends CustomStrategy("Perform address precalculation") {
@@ -76,9 +55,9 @@ private final class AnnotateLoopsAndAccesses extends Collector {
   private val decls = new ArrayStack[(HashMap[String, ArrayBases], String)]()
 
   private def generateName(expr : Expression) : String = {
-    val cpp = new StringBuilder()
-    expr.cppsb(cpp)
-    return filter(cpp)
+    val cpp = new CppStream()
+    cpp << expr
+    return filter(cpp.toString())
   }
 
   private def filter(cpp : StringLike[_]) : String = {

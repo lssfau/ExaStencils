@@ -10,7 +10,7 @@ import exastencils.omp._
 import exastencils.polyhedron._
 
 case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = SetupBuffers\n"
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = SetupBuffers\n"
   override def cpp_decl : String = cpp
 
   override def expand : Output[FunctionStatement] = {
@@ -38,7 +38,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
 }
 
 case class GetFromExternalField(var src : Field, var dest : ExternalField) extends AbstractFunctionStatement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = SetFromExternalField\n"
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = SetFromExternalField\n"
   override def cpp_decl : String = cpp
 
   override def expand : Output[FunctionStatement] = {
@@ -54,7 +54,7 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
 }
 
 case class SetFromExternalField(var dest : Field, var src : ExternalField) extends AbstractFunctionStatement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = SetFromExternalField\n"
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = SetFromExternalField\n"
   override def cpp_decl : String = cpp
 
   override def expand : Output[FunctionStatement] = {

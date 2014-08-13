@@ -34,7 +34,7 @@ case class CommunicationFunctions() extends FunctionCollection("Primitives/Commu
       "#include \"MultiGrid/MultiGrid.h\""))
 
 case class SetIterationOffset(var location : Expression, var domain : Expression, var fragment : Expression) extends Statement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = SetIterationOffset\n"
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = SetIterationOffset\n"
 
   override def expand : Output[SwitchStatement] = {
     var cases : ListBuffer[CaseStatement] = ListBuffer()
@@ -57,7 +57,7 @@ case class SetIterationOffset(var location : Expression, var domain : Expression
 }
 
 case class ConnectLocalElement() extends AbstractFunctionStatement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = ConnectLocalElement\n"
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = ConnectLocalElement\n"
   override def cpp_decl : String = cpp
 
   override def expand : Output[FunctionStatement] = {
@@ -76,7 +76,7 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
 }
 
 case class ConnectRemoteElement() extends AbstractFunctionStatement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = ConnectRemoteElement\n"
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = ConnectRemoteElement\n"
   override def cpp_decl : String = cpp
 
   override def expand : Output[FunctionStatement] = {

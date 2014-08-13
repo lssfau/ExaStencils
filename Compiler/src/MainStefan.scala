@@ -63,9 +63,12 @@ object MainStefan {
 
     AddDefaultGlobals.apply()
 
-    SetupDataStructures.apply()
+    SimplifyStrategy.doUntilDone() // removes (conditional) calls to communication functions that are not possible
 
-    var numConvFound = 1;
+    SetupDataStructures.apply() // Stefan: This adds the setupBuffer func which will be exapanded using the field info in the next expand step 
+    SetupCommunication.apply()
+
+    var numConvFound = 1
     while (numConvFound > 0) {
       FindStencilConvolutions.apply()
       ResolveSpecialFunctions.apply()
@@ -74,45 +77,6 @@ object MainStefan {
     }
 
     MapStencilAssignments.apply()
-
-    //////////////////////////////////////////////////////////////////////////////
-    //    val test = new java.util.IdentityHashMap[Node, Any]()
-    //    new exastencils.datastructures.DefaultStrategy("TestStrategy") {
-    //      this += new exastencils.datastructures.Transformation("test", {
-    //        case n =>
-    //          if (test.containsKey(n))
-    //            println("error: " + n.getClass() + "   " + n)
-    //          test.put(n, null)
-    //          n
-    //      })
-    //    }.apply()
-    //    println("ende...")
-    //    return
-    //////////////////////////////////////////////////////////////////////////////
-
-    //    new DefaultStrategy("TestStrategy") {
-    //      this += new Transformation("test", {
-    //        case acc : DirectFieldAccess =>
-    //          println("DirectFieldAccess")
-    //          println(acc.field.identifier + " " + acc.field.level)
-    //          println(acc.field.codeName.cpp)
-    //          println()
-    //          acc
-    //        case acc : FieldAccess =>
-    //          println("FieldAccess")
-    //          println(acc.field.identifier + " " + acc.field.level)
-    //          println(acc.field.codeName.cpp)
-    //          println()
-    //          acc
-    //        case acc : ExternalFieldAccess =>
-    //          println("ExternalFieldAccess")
-    //          println(acc.field.identifier + " " + acc.field.level)
-    //          println(acc.field.targetFieldIdentifier)
-    //          println()
-    //          acc
-    //      })
-    //    }.apply()
-    //    return
 
     if (Knowledge.poly_usePolyOpt)
       PolyOpt.apply()

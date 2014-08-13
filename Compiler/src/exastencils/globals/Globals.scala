@@ -39,7 +39,7 @@ case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = ne
       val writerSource = PrettyprintingManager.getPrinter(s"Globals/Globals_$i.cpp")
 
       writerSource << "#include \"Globals/Globals.h\"\n\n"
-      for (variable <- variables) { writerSource << s"${variable.cpp}\n" }
+      for (variable <- variables) { writerSource << s"${variable.cpp()}\n" }
 
       i += 1
     }

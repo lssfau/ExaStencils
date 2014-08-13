@@ -10,7 +10,7 @@ import exastencils.knowledge._
 import exastencils.mpi._
 
 case class PrintStatement(var toPrint : ListBuffer[Expression]) extends Statement with Expandable {
-  def cpp : String = { return "NOT VALID ; CLASS = PrintStatement\n" }
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = PrintStatement\n"
 
   override def expand : Output[ConditionStatement] = {
     new ConditionStatement(new MPI_IsRootProc,
@@ -19,7 +19,7 @@ case class PrintStatement(var toPrint : ListBuffer[Expression]) extends Statemen
 }
 
 case class PrintFieldStatement(var filename : Expression, var field : FieldSelection) extends Statement with Expandable {
-  def cpp : String = { return "NOT VALID ; CLASS = PrintFieldStatement\n" }
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = PrintFieldStatement\n"
 
   override def expand : Output[StatementList] = {
     // FIXME: this has to be adapted for non-mpi

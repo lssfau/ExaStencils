@@ -450,7 +450,7 @@ class Extractor extends Collector {
             | _ : NullStatement => // nothing to do for all of them...
 
           // deny
-          case e : ExpressionStatement    => throw new ExtractionException("cannot deal with ExprStmt: " + e.cpp)
+          case e : ExpressionStatement    => throw new ExtractionException("cannot deal with ExprStmt: " + e.cpp())
           case ArrayAccess(a, _)          => throw new ExtractionException("ArrayAccess to base " + a.getClass() + " not yet implemented")
           case f : FunctionCallExpression => throw new ExtractionException("function call not in set of allowed ones: " + f.cpp())
           case x : Any                    => throw new ExtractionException("cannot deal with " + x.getClass())

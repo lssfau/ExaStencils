@@ -15,7 +15,7 @@ case class ExchangeDataFunction(var fieldSelection : FieldSelection,
     var neighbors : ListBuffer[NeighborInfo],
     var begin : Boolean,
     var finish : Boolean) extends AbstractFunctionStatement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = ExchangeDataFunction\n"
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = ExchangeDataFunction\n"
   override def cpp_decl = cpp
 
   def genIndicesBoundaryHandling() : ListBuffer[(NeighborInfo, IndexRange)] = {

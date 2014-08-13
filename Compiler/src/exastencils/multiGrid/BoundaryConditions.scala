@@ -11,7 +11,7 @@ import exastencils.omp._
 import exastencils.polyhedron._
 
 case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
-  def cpp : String = { return "NOT VALID ; CLASS = HandleBoundaries\n" }
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = HandleBoundaries\n"
 
   def setupDirichlet : ListBuffer[Statement] = {
     var statements : ListBuffer[Statement] = ListBuffer()

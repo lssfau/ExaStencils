@@ -12,9 +12,7 @@ case class OMP_Critical(var body : Scope) extends Statement {
   def this(body : Statement) = this(new Scope(body))
   def this(body : ListBuffer[Statement]) = this(new Scope(body))
 
-  def cpp : String = {
-    "#pragma omp critical\n" + body.cpp
-  }
+  override def cpp(out : CppStream) : Unit = out << "#pragma omp critical\n" << body
 }
 
 case class OMP_ParallelFor(var body : ForLoopStatement, var addOMPStatements : Expression, var collapse : Int = 1) extends Statement {
@@ -41,16 +39,11 @@ case class OMP_ParallelFor(var body : ForLoopStatement, var addOMPStatements : E
     res // res == collapse now
   }
 
-  def cpp : String = {
-    val sb = new StringBuilder()
-    sb.append("#pragma omp parallel for schedule(static) num_threads(")
-    sb.append(math.max(Knowledge.domain_fragLength, Knowledge.domain_numFragsPerBlock))
-    sb.append(") ")
-    addOMPStatements.cppsb(sb)
+  def cpp(out : CppStream) : Unit = {
+    out << "#pragma omp parallel for schedule(static) num_threads("
+    out << math.max(Knowledge.domain_fragLength, Knowledge.domain_numFragsPerBlock) << ") " << addOMPStatements
     if (collapse > 1 && Knowledge.omp_version >= 3 && Knowledge.omp_useCollapse)
-      sb.append(" collapse(").append(getCollapseLvl()).append(')')
-    sb.append("\n")
-    sb.append(body.cpp)
-    return sb.toString()
+      out << " collapse(" << getCollapseLvl() << ')'
+    out << '\n' << body
   }
 }
