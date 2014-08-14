@@ -35,7 +35,7 @@ trait Expression extends Node with CppPrettyPrintable {
   def >(other : Expression) = new GreaterExpression(this, other)
   def >=(other : Expression) = new GreaterEqualExpression(this, other)
 
-  def simplify : Expression = this
+  def simplify : Expression = this // TODO: is this needed?
 }
 
 object BinaryOperators extends Enumeration {
