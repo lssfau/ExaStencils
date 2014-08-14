@@ -6,11 +6,8 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.TreeSet
 
 import exastencils.datastructures.Node
-import exastencils.datastructures.ir.Expression
-import exastencils.datastructures.ir.Reduction
-import exastencils.datastructures.ir.Statement
-import exastencils.datastructures.ir.VariableDeclarationStatement
-import isl.Conversions.convertLambdaToVoidCallback1
+import exastencils.datastructures.ir._
+import isl.Conversions._
 
 class Scop(val root : Node, val parallelize : Boolean, val reduction : Option[Reduction],
     val origIterationCount : Array[Long]) {

@@ -1,7 +1,5 @@
 package exastencils.polyhedron
 
-import scala.annotation.elidable
-import scala.annotation.elidable.ASSERTION
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
@@ -11,43 +9,11 @@ import exastencils.core.Duplicate
 import exastencils.core.Logger
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
-import exastencils.datastructures.Transformation.convFromList
-import exastencils.datastructures.Transformation.convFromNode
-import exastencils.datastructures.ir.AdditionExpression
-import exastencils.datastructures.ir.AndAndExpression
-import exastencils.datastructures.ir.AssignmentStatement
-import exastencils.datastructures.ir.CommentStatement
-import exastencils.datastructures.ir.ConditionStatement
-import exastencils.datastructures.ir.DivisionExpression
-import exastencils.datastructures.ir.EqEqExpression
-import exastencils.datastructures.ir.Expression
-import exastencils.datastructures.ir.ForLoopStatement
-import exastencils.datastructures.ir.FunctionCallExpression
-import exastencils.datastructures.ir.GreaterEqualExpression
-import exastencils.datastructures.ir.GreaterExpression
-import exastencils.datastructures.ir.IntegerConstant
-import exastencils.datastructures.ir.IntegerDatatype
-import exastencils.datastructures.ir.LoopOverDimensions
-import exastencils.datastructures.ir.LowerEqualExpression
-import exastencils.datastructures.ir.LowerExpression
-import exastencils.datastructures.ir.MaximumExpression
-import exastencils.datastructures.ir.MinimumExpression
-import exastencils.datastructures.ir.ModuloExpression
-import exastencils.datastructures.ir.MultiplicationExpression
-import exastencils.datastructures.ir.OrOrExpression
-import exastencils.datastructures.ir.Reduction
-import exastencils.datastructures.ir.Scope
-import exastencils.datastructures.ir.Statement
-import exastencils.datastructures.ir.StringConstant
-import exastencils.datastructures.ir.SubtractionExpression
-import exastencils.datastructures.ir.TernaryConditionExpression
-import exastencils.datastructures.ir.UnaryExpression
-import exastencils.datastructures.ir.UnaryOperators
-import exastencils.datastructures.ir.VariableAccess
-import exastencils.datastructures.ir.VariableDeclarationStatement
+import exastencils.datastructures.Transformation._
+import exastencils.datastructures.ir._
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.optimization.OptimizationHint
-import isl.Conversions.convertLambdaToVoidCallback1
+import isl.Conversions._
 
 class ASTBuilderTransformation(replaceCallback : (HashMap[String, Expression], Node) => Unit)
   extends Transformation("insert optimized loop AST", new ASTBuilderFunction(replaceCallback))

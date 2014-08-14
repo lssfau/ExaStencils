@@ -3,16 +3,8 @@ package exastencils.optimization
 import exastencils.core.Logger
 import exastencils.datastructures.DefaultStrategy
 import exastencils.datastructures.Transformation
-import exastencils.datastructures.Transformation.convFromNode
-import exastencils.datastructures.ir.ArrayAccess
-import exastencils.datastructures.ir.ArrayDatatype
-import exastencils.datastructures.ir.AssignmentStatement
-import exastencils.datastructures.ir.Expression
-import exastencils.datastructures.ir.PointerDatatype
-import exastencils.datastructures.ir.RealDatatype
-import exastencils.datastructures.ir.VariableAccess
-import exastencils.datastructures.ir.VariableDeclarationStatement
-import exastencils.datastructures.ir.iv
+import exastencils.datastructures.Transformation._
+import exastencils.datastructures.ir._
 import exastencils.util.EvaluationException
 import exastencils.util.SimplifyExpression
 

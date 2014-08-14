@@ -9,13 +9,10 @@ import exastencils.core.StateManager
 import exastencils.datastructures.CustomStrategy
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
-import exastencils.datastructures.Transformation.convFromNode
-import exastencils.datastructures.ir.Expression
-import exastencils.datastructures.ir.StringConstant
-import exastencils.datastructures.ir.VariableAccess
+import exastencils.datastructures.Transformation._
+import exastencils.datastructures.ir._
 import exastencils.knowledge.Knowledge
-import isl.Conversions.convertIntToVal
-import isl.Conversions.convertLambdaToVoidCallback1
+import isl.Conversions._
 
 trait PolyhedronAccessable
 

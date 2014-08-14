@@ -9,18 +9,8 @@ import exastencils.core.collectors.Collector
 import exastencils.datastructures.CustomStrategy
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
-import exastencils.datastructures.Transformation.convFromNode
-import exastencils.datastructures.ir.CaseStatement
-import exastencils.datastructures.ir.ConditionStatement
-import exastencils.datastructures.ir.Datatype
-import exastencils.datastructures.ir.ForLoopStatement
-import exastencils.datastructures.ir.FunctionStatement
-import exastencils.datastructures.ir.Scope
-import exastencils.datastructures.ir.StringConstant
-import exastencils.datastructures.ir.SwitchStatement
-import exastencils.datastructures.ir.VariableAccess
-import exastencils.datastructures.ir.VariableDeclarationStatement
-import exastencils.datastructures.ir.WhileLoopStatement
+import exastencils.datastructures.Transformation._
+import exastencils.datastructures.ir._
 
 object TypeInference extends CustomStrategy("Type inference") {
 
