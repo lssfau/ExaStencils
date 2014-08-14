@@ -307,7 +307,7 @@ object StateManager {
 
   def apply(token : History.TransactionToken, transformation : Transformation, node : Option[Node] = None) : TransformationResult = {
     if (!History.isValid(token)) {
-      throw new RuntimeException("Invalid transaction token for transformation ${transformation.name}")
+      throw new RuntimeException(s"Invalid transaction token for transformation ${transformation.name}")
     }
     try {
       progresses_.+=((transformation, new TransformationProgress))
