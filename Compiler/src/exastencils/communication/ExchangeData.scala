@@ -36,64 +36,122 @@ case class ExchangeDataFunction(var fieldSelection : FieldSelection,
   }
 
   def genIndicesDuplicateRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
-    curNeighbors.map(neigh => (neigh, new IndexRange(
-      new MultiIndex(
-        DimArray().map(i => i match {
-          case i if neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxDupLeftBegin
-          case i if neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftBegin
-          case i if neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightBegin
-        }) ++ Array(0)),
-      new MultiIndex(
-        DimArray().map(i => i match {
-          case i if neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxDupRightEnd
-          case i if neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftEnd
-          case i if neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightEnd
-        }) ++ Array(fieldSelection.field.vectorSize)))))
-  }
-
-  def genIndicesDuplicateLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange, IndexRange)] = {
-    curNeighbors.map(neigh => (neigh, new IndexRange(
-      new MultiIndex(
-        DimArray().map(i => i match {
-          case i if neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxDupLeftBegin
-          case i if neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftBegin
-          case i if neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightBegin
-        }) ++ Array(0)),
-      new MultiIndex(
-        DimArray().map(i => i match {
-          case i if neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxDupRightEnd
-          case i if neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftEnd
-          case i if neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightEnd
-        }) ++ Array(fieldSelection.field.vectorSize))),
-      new IndexRange(
+    Knowledge.comm_strategyFragment match {
+      case 6 => curNeighbors.map(neigh => (neigh, new IndexRange(
         new MultiIndex(
           DimArray().map(i => i match {
-            case i if -neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxDupLeftBegin
-            case i if -neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftBegin
-            case i if -neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightBegin
+            case i if neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxDupLeftBegin
+            case i if neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftBegin
+            case i if neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightBegin
           }) ++ Array(0)),
         new MultiIndex(
           DimArray().map(i => i match {
-            case i if -neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxDupRightEnd
-            case i if -neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftEnd
-            case i if -neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightEnd
+            case i if neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxDupRightEnd
+            case i if neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftEnd
+            case i if neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightEnd
           }) ++ Array(fieldSelection.field.vectorSize)))))
+      case 26 => curNeighbors.map(neigh => (neigh, new IndexRange(
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxInnerBegin
+            case i if neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftBegin
+            case i if neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightBegin
+          }) ++ Array(0)),
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxInnerEnd
+            case i if neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftEnd
+            case i if neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightEnd
+          }) ++ Array(fieldSelection.field.vectorSize)))))
+    }
+  }
+
+  def genIndicesDuplicateLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange, IndexRange)] = {
+    Knowledge.comm_strategyFragment match {
+      case 6 => curNeighbors.map(neigh => (neigh, new IndexRange(
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxDupLeftBegin
+            case i if neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftBegin
+            case i if neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightBegin
+          }) ++ Array(0)),
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxDupRightEnd
+            case i if neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftEnd
+            case i if neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightEnd
+          }) ++ Array(fieldSelection.field.vectorSize))),
+        new IndexRange(
+          new MultiIndex(
+            DimArray().map(i => i match {
+              case i if -neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxDupLeftBegin
+              case i if -neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftBegin
+              case i if -neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightBegin
+            }) ++ Array(0)),
+          new MultiIndex(
+            DimArray().map(i => i match {
+              case i if -neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxDupRightEnd
+              case i if -neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftEnd
+              case i if -neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightEnd
+            }) ++ Array(fieldSelection.field.vectorSize)))))
+      case 26 => curNeighbors.map(neigh => (neigh, new IndexRange(
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxInnerBegin
+            case i if neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftBegin
+            case i if neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightBegin
+          }) ++ Array(0)),
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxInnerEnd
+            case i if neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftEnd
+            case i if neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightEnd
+          }) ++ Array(fieldSelection.field.vectorSize))),
+        new IndexRange(
+          new MultiIndex(
+            DimArray().map(i => i match {
+              case i if -neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxInnerBegin
+              case i if -neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftBegin
+              case i if -neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightBegin
+            }) ++ Array(0)),
+          new MultiIndex(
+            DimArray().map(i => i match {
+              case i if -neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxInnerEnd
+              case i if -neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftEnd
+              case i if -neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightEnd
+            }) ++ Array(fieldSelection.field.vectorSize)))))
+    }
   }
 
   def genIndicesDuplicateRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
-    curNeighbors.map(neigh => (neigh, new IndexRange(
-      new MultiIndex(
-        DimArray().map(i => i match {
-          case i if neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxDupLeftBegin
-          case i if neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftBegin
-          case i if neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightBegin
-        }) ++ Array(0)),
-      new MultiIndex(
-        DimArray().map(i => i match {
-          case i if neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxDupRightEnd
-          case i if neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftEnd
-          case i if neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightEnd
-        }) ++ Array(fieldSelection.field.vectorSize)))))
+    Knowledge.comm_strategyFragment match {
+      case 6 => curNeighbors.map(neigh => (neigh, new IndexRange(
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxDupLeftBegin
+            case i if neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftBegin
+            case i if neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightBegin
+          }) ++ Array(0)),
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxDupRightEnd
+            case i if neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftEnd
+            case i if neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightEnd
+          }) ++ Array(fieldSelection.field.vectorSize)))))
+      case 26 => curNeighbors.map(neigh => (neigh, new IndexRange(
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxInnerBegin
+            case i if neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftBegin
+            case i if neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightBegin
+          }) ++ Array(0)),
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if neigh.dir(i) == 0 => fieldSelection.field.layout(i).idxInnerEnd
+            case i if neigh.dir(i) < 0  => fieldSelection.field.layout(i).idxDupLeftEnd
+            case i if neigh.dir(i) > 0  => fieldSelection.field.layout(i).idxDupRightEnd
+          }) ++ Array(fieldSelection.field.vectorSize)))))
+    }
   }
 
   def genIndicesGhostRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
@@ -229,21 +287,45 @@ case class ExchangeDataFunction(var fieldSelection : FieldSelection,
     if (field.communicatesDuplicated) {
       val concurrencyId = (if (begin && finish) 0 else 0)
       if (field.layout.foldLeft(0)((old : Int, l) => old max l.numDupLayersLeft max l.numDupLayersRight) > 0) {
-        var sendNeighbors = neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0)
-        var recvNeighbors = neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0)
-        if (Knowledge.domain_canHaveRemoteNeighs) {
-          if (begin) {
-            body += new RemoteSends(fieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId)
-            if (Knowledge.domain_canHaveLocalNeighs)
-              body += new LocalSend(fieldSelection, genIndicesDuplicateLocalSend(sendNeighbors))
+        Knowledge.comm_strategyFragment match {
+          case 6 => {
+            for (dim <- 0 until Knowledge.dimensionality) {
+              var sendNeighbors = ListBuffer(neighbors(2 * dim + 0))
+              var recvNeighbors = ListBuffer(neighbors(2 * dim + 1))
+              if (Knowledge.domain_canHaveRemoteNeighs) {
+                if (begin) {
+                  body += new RemoteSends(fieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId)
+                  if (Knowledge.domain_canHaveLocalNeighs)
+                    body += new LocalSend(fieldSelection, genIndicesDuplicateLocalSend(sendNeighbors))
+                }
+                if (finish) {
+                  body += new RemoteRecvs(fieldSelection, genIndicesDuplicateRemoteRecv(recvNeighbors), true, true, concurrencyId)
+                  body += new RemoteSends(fieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId)
+                }
+              } else if (Knowledge.domain_canHaveLocalNeighs) {
+                if (begin)
+                  body += new LocalSend(fieldSelection, genIndicesDuplicateLocalSend(sendNeighbors))
+              }
+            }
           }
-          if (finish) {
-            body += new RemoteRecvs(fieldSelection, genIndicesDuplicateRemoteRecv(recvNeighbors), true, true, concurrencyId)
-            body += new RemoteSends(fieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId)
+          case 26 => {
+            var sendNeighbors = neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0)
+            var recvNeighbors = neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0)
+            if (Knowledge.domain_canHaveRemoteNeighs) {
+              if (begin) {
+                body += new RemoteSends(fieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId)
+                if (Knowledge.domain_canHaveLocalNeighs)
+                  body += new LocalSend(fieldSelection, genIndicesDuplicateLocalSend(sendNeighbors))
+              }
+              if (finish) {
+                body += new RemoteRecvs(fieldSelection, genIndicesDuplicateRemoteRecv(recvNeighbors), true, true, concurrencyId)
+                body += new RemoteSends(fieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId)
+              }
+            } else if (Knowledge.domain_canHaveLocalNeighs) {
+              if (begin)
+                body += new LocalSend(fieldSelection, genIndicesDuplicateLocalSend(sendNeighbors))
+            }
           }
-        } else if (Knowledge.domain_canHaveLocalNeighs) {
-          if (begin)
-            body += new LocalSend(fieldSelection, genIndicesDuplicateLocalSend(sendNeighbors))
         }
       }
     }

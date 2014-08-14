@@ -27,7 +27,7 @@ case class Root() extends Node {
   var genStencilFields : Boolean = false || kelvin
   var useSlotsForJac : Boolean = true
   var testStencilStencil : Boolean = false || kelvin
-  var testCommCompOverlap : Boolean = true // NOTE: overlap will not work when using commStrategy 6
+  var testCommCompOverlap : Boolean = false // NOTE: overlap will not work when using commStrategy 6
 
   def solutionFields(level : String, postfix : String = "") = {
     if (useVecFields)
@@ -453,9 +453,9 @@ case class Root() extends Node {
     for (vecDim <- 0 until numVecDims) {
       printer.println(s"def VCycle${postfix}_$vecDim@coarsest ( ) : Unit {")
       if (testCommCompOverlap)
-        printer.println(s"\tUpResidual@current ( 0 )")
+        printer.println(s"\tUpResidual$postfix@current ( 0 )")
       else
-        printer.println(s"\tUpResidual@current ( )")
+        printer.println(s"\tUpResidual$postfix@current ( )")
       printer.println(s"\tcommunicate Residual$postfix@current")
 
       printer.println(s"\tvar res : Real = L2Residual${postfix}_$vecDim@current ( )")
@@ -1122,7 +1122,7 @@ case class Root() extends Node {
       printer.println(s"\tvar solNorm : Real = 0.0")
       printer.println(s"\tloop over inner on SolutionMean@finest with reduction( + : solNorm ) {")
       printer.println(s"\t\t// FIXME: this counts duplicated values multiple times")
-      printer.println(s"\t\tsolNorm += ${solutionFields(s"finest", "")(0)} * ${solutionFields(s"finest", "")(0)}")
+      printer.println(s"\t\tsolNorm += SolutionMean@finest * SolutionMean@finest")
       printer.println(s"\t}")
       printer.println(s"\tsolNorm = ( sqrt ( solNorm ) ) / ${(Knowledge.domain_numFragsTotal_x - 2 * numHaloFrags) * (1 << Knowledge.maxLevel) - 1}")
       printer.println("\tprint ( '\"Norm of the solution: \"', solNorm )")
