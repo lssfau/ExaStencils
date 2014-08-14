@@ -1,6 +1,7 @@
 package exastencils.datastructures.ir
 
 object ImplicitConversions {
+  import scala.language.implicitConversions
   implicit def StringToStringLiteral(s : String) = new StringConstant(s);
   implicit def ExpressionToExpressionStatement(e : Expression) = new ExpressionStatement(e);
   implicit def StringToStatement(s : String) = (new ExpressionStatement(new StringConstant(s)) : Statement);
