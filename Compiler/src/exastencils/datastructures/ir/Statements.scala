@@ -12,7 +12,8 @@ case class ExpressionStatement(var expression : Expression) extends Statement {
   override def cpp(out : CppStream) : Unit = out << expression.cpp << ';'
 }
 
-case class NullStatement() extends Statement {
+case object NullStatement extends Statement {
+	exastencils.core.Duplicate.registerConstant(this)
   def cpp(out : CppStream) : Unit = out << ';'
 }
 

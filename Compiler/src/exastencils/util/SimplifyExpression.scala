@@ -56,7 +56,7 @@ object SimplifyExpression {
     * Constant string that is used to hold the additive constant of an affine expression in the result map of
     * evalIntegralAffine(Expression).
     */
-  final val constName : Expression = NullExpression()
+  final val constName : Expression = NullExpression
 
   /**
     * Evaluates and (implicitly) simplifies an integral expression.

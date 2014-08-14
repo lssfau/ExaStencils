@@ -197,6 +197,14 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       scope.body = scope.body(0).asInstanceOf[Scope].body
       scope
 
+    case cond @ ConditionStatement(_, trueBody, _) if (trueBody.length == 1 && trueBody(0).isInstanceOf[Scope]) =>
+      cond.trueBody = trueBody(0).asInstanceOf[Scope].body
+      cond
+
+    case cond @ ConditionStatement(_, _, falseBody) if (falseBody.length == 1 && falseBody(0).isInstanceOf[Scope]) =>
+      cond.falseBody = falseBody(0).asInstanceOf[Scope].body
+      cond
+
     case EqEqExpression(left : IntegerConstant, right : IntegerConstant)         => BooleanConstant(left.value == right.value)
     case NeqNeqExpression(left : IntegerConstant, right : IntegerConstant)       => BooleanConstant(left.value != right.value)
     case LowerExpression(left : IntegerConstant, right : IntegerConstant)        => BooleanConstant(left.value < right.value)
@@ -208,7 +216,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case OrOrExpression(left : BooleanConstant, right : BooleanConstant)         => BooleanConstant(left.value || right.value)
 
     case ConditionStatement(BooleanConstant(true), body, _)                      => body
-    case ConditionStatement(BooleanConstant(false), _, ListBuffer())             => NullStatement()
+    case ConditionStatement(BooleanConstant(false), _, body) if (body.isEmpty)   => NullStatement
     case ConditionStatement(BooleanConstant(false), _, body)                     => body
   })
 }

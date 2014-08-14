@@ -100,7 +100,8 @@ trait Number extends Expression {
   def value : AnyVal
 }
 
-case class NullExpression() extends Expression {
+case object NullExpression extends Expression {
+	exastencils.core.Duplicate.registerConstant(this)
   override def cpp(out : CppStream) : Unit = ()
 }
 
@@ -165,31 +166,31 @@ case class OffsetIndex(var minOffset : Int, var maxOffset : Int, var index : Exp
 }
 
 case class MultiIndex(
-  var index_0 : Expression = new NullExpression,
-  var index_1 : Expression = new NullExpression,
-  var index_2 : Expression = new NullExpression,
-  var index_3 : Expression = new NullExpression)
+  var index_0 : Expression = null,
+  var index_1 : Expression = null,
+  var index_2 : Expression = null,
+  var index_3 : Expression = null)
     extends Expression with Iterable[Expression] {
   def this(indices : Array[Expression]) = this(
-    if (indices.length > 0) indices(0) else new NullExpression,
-    if (indices.length > 1) indices(1) else new NullExpression,
-    if (indices.length > 2) indices(2) else new NullExpression,
-    if (indices.length > 3) indices(3) else new NullExpression)
+    if (indices.length > 0) indices(0) else null,
+    if (indices.length > 1) indices(1) else null,
+    if (indices.length > 2) indices(2) else null,
+    if (indices.length > 3) indices(3) else null)
   def this(indices : Array[Int]) = this(
-    (if (indices.length > 0) IntegerConstant(indices(0)) else new NullExpression) : Expression,
-    (if (indices.length > 1) IntegerConstant(indices(1)) else new NullExpression) : Expression,
-    (if (indices.length > 2) IntegerConstant(indices(2)) else new NullExpression) : Expression,
-    (if (indices.length > 3) IntegerConstant(indices(3)) else new NullExpression) : Expression)
+    (if (indices.length > 0) IntegerConstant(indices(0)) else null) : Expression,
+    (if (indices.length > 1) IntegerConstant(indices(1)) else null) : Expression,
+    (if (indices.length > 2) IntegerConstant(indices(2)) else null) : Expression,
+    (if (indices.length > 3) IntegerConstant(indices(3)) else null) : Expression)
   def this(names : String*) = this(
-    (if (names.size > 0) VariableAccess(names(0), Some(IntegerDatatype())) else new NullExpression) : Expression,
-    (if (names.size > 1) VariableAccess(names(1), Some(IntegerDatatype())) else new NullExpression) : Expression,
-    (if (names.size > 2) VariableAccess(names(2), Some(IntegerDatatype())) else new NullExpression) : Expression,
-    (if (names.size > 3) VariableAccess(names(3), Some(IntegerDatatype())) else new NullExpression) : Expression)
+    (if (names.size > 0) VariableAccess(names(0), Some(IntegerDatatype())) else null) : Expression,
+    (if (names.size > 1) VariableAccess(names(1), Some(IntegerDatatype())) else null) : Expression,
+    (if (names.size > 2) VariableAccess(names(2), Some(IntegerDatatype())) else null) : Expression,
+    (if (names.size > 3) VariableAccess(names(3), Some(IntegerDatatype())) else null) : Expression)
   def this(left : MultiIndex, right : MultiIndex, f : (Expression, Expression) => Expression) = this(
-    if (!left(0).isInstanceOf[NullExpression] && !right(0).isInstanceOf[NullExpression]) { Duplicate(f(left(0), right(0))) } else { new NullExpression },
-    if (!left(1).isInstanceOf[NullExpression] && !right(1).isInstanceOf[NullExpression]) { Duplicate(f(left(1), right(1))) } else { new NullExpression },
-    if (!left(2).isInstanceOf[NullExpression] && !right(2).isInstanceOf[NullExpression]) { Duplicate(f(left(2), right(2))) } else { new NullExpression },
-    if (!left(3).isInstanceOf[NullExpression] && !right(3).isInstanceOf[NullExpression]) { Duplicate(f(left(3), right(3))) } else { new NullExpression })
+    if (left(0) != null && right(0) != null) { Duplicate(f(left(0), right(0))) } else null,
+    if (left(1) != null && right(1) != null) { Duplicate(f(left(1), right(1))) } else null,
+    if (left(2) != null && right(2) != null) { Duplicate(f(left(2), right(2))) } else null,
+    if (left(3) != null && right(3) != null) { Duplicate(f(left(3), right(3))) } else null)
 
   override def cpp(out : CppStream) : Unit = {
     out << '[' <<< (this, ", ") << ']'
@@ -218,7 +219,7 @@ case class MultiIndex(
   override def iterator() : scala.collection.Iterator[Expression] = {
     return new Iterator[Expression]() {
       private var pointer : Int = 0
-      override def hasNext : Boolean = pointer < 4 && apply(pointer) != NullExpression()
+      override def hasNext : Boolean = pointer < 4 && apply(pointer) != null
       override def next() : Expression = {
         val res = apply(pointer)
         pointer += 1

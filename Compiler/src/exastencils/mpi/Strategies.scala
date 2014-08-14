@@ -15,10 +15,10 @@ import exastencils.util._
 object RemoveMPIReferences extends DefaultStrategy("RemoveMPIReferences") {
   this += new Transformation("CleaningFunctions", {
     // FIXME: should delete node, currently not fully implemented -> QUICKFIX returns empty statements
-    case _ : MPI_Barrier        => new NullStatement
-    case _ : MPI_Finalize       => new NullStatement
-    case _ : MPI_Init           => new NullStatement
-    case _ : MPI_SetRankAndSize => new NullStatement
+    case _ : MPI_Barrier        => NullStatement
+    case _ : MPI_Finalize       => NullStatement
+    case _ : MPI_Init           => NullStatement
+    case _ : MPI_SetRankAndSize => NullStatement
 
     case _ : MPI_IsRootProc     => BooleanConstant(true)
   })
@@ -88,7 +88,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   this += new Transformation("Collecting buffer sizes", {
     case buf : iv.TmpBuffer =>
       val size = SimplifyExpression.evalIntegral(buf.size).toInt
-      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, new NullExpression, buf.field.index, buf.field.level, buf.neighIdx)
+      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, buf.field.index, buf.field.level, buf.neighIdx)
       bufferSizes += (id -> (size max bufferSizes.getOrElse(id, 0)))
       buf
   })

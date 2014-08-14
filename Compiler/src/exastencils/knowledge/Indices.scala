@@ -91,13 +91,13 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean) extends
         (if (directCoords) ("y" - field.referenceOffset.index_1) else ("y" : Expression))
           / FloatConstant(field.layout(1).idxDupRightEnd - field.layout(1).idxDupLeftBegin - 1)
           * (ArrayAccess(iv.PrimitivePositionEnd(), 1) - ArrayAccess(iv.PrimitivePositionBegin(), 1)) + ArrayAccess(iv.PrimitivePositionBegin(), 1)))
-      else NullStatement(),
+      else NullStatement,
       if (Knowledge.dimensionality > 2)
         VariableDeclarationStatement(new RealDatatype, "zPos", Some(
         (if (directCoords) ("z" - field.referenceOffset.index_2) else ("z" : Expression))
           / FloatConstant(field.layout(2).idxDupRightEnd - field.layout(2).idxDupLeftBegin - 1)
           * (ArrayAccess(iv.PrimitivePositionEnd(), 2) - ArrayAccess(iv.PrimitivePositionBegin(), 2)) + ArrayAccess(iv.PrimitivePositionBegin(), 2)))
-      else NullStatement())
+      else NullStatement)
   }
 }
 

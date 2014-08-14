@@ -415,7 +415,7 @@ class Extractor extends Collector {
             | _ : DivisionExpression
             | _ : ModuloExpression
             | _ : PowerExpression
-            | _ : NullStatement => // nothing to do for all of them...
+            | NullStatement => // nothing to do for all of them...
 
           // deny
           case e : ExpressionStatement    => throw new ExtractionException("cannot deal with ExprStmt: " + e.cpp())

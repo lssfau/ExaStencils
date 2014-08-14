@@ -71,9 +71,9 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
       res += njuBegin
     res += loop // update fields later
     if (oldOffset == 0)
-      res += new ForLoopStatement(NullStatement(), Duplicate(loop.end),
+      res += new ForLoopStatement(NullStatement, Duplicate(loop.end),
         Duplicate(loop.inc), Duplicate(loop.body), Duplicate(loop.reduction))
-    loop.begin = new NullStatement()
+    loop.begin = NullStatement
     loop.end = njuEnd
     loop.inc = njuIncr
     loop.body = duplicateStmts(loop.body, itVar, oldInc)
@@ -137,7 +137,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
 
   private def updateBegin(begin : Statement, itVar : String) : Statement = {
     return begin match {
-      case NullStatement() => null
+      case NullStatement => null
       case decl @ VariableDeclarationStatement(IntegerDatatype(), itVar2, Some(init)) if (itVar == itVar2) => decl
       case _ => throw new UnrollException("cannot interpret loop begin: " + begin.cpp())
     }

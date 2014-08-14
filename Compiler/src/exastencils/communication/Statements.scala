@@ -115,7 +115,7 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
       var body = CopyToSendBuffer(field, neighbor, indices, concurrencyId)
       if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
     } else {
-      new NullStatement
+      NullStatement
     }
   }
 
@@ -145,16 +145,16 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
     //        new ForLoopStatement(s"int i = $minIdx", s"i <= $maxIdx", "++i", ...)
     if (Knowledge.comm_useFragmentLoopsForEachOp)
       ListBuffer[Statement](
-        if (start) new LoopOverFragments(field.domainIndex, neighbors.map(neigh => genCopy(neigh._1, neigh._2, true))) with OMP_PotentiallyParallel else new NullStatement,
-        if (start) new LoopOverFragments(field.domainIndex, neighbors.map(neigh => genTransfer(neigh._1, neigh._2, true))) with OMP_PotentiallyParallel else new NullStatement,
-        if (end) new LoopOverFragments(field.domainIndex, neighbors.map(neigh => genWait(neigh._1))) else new NullStatement)
+        if (start) new LoopOverFragments(field.domainIndex, neighbors.map(neigh => genCopy(neigh._1, neigh._2, true))) with OMP_PotentiallyParallel else NullStatement,
+        if (start) new LoopOverFragments(field.domainIndex, neighbors.map(neigh => genTransfer(neigh._1, neigh._2, true))) with OMP_PotentiallyParallel else NullStatement,
+        if (end) new LoopOverFragments(field.domainIndex, neighbors.map(neigh => genWait(neigh._1))) else NullStatement)
     else
       ListBuffer[Statement](
         new LoopOverFragments(field.domainIndex, neighbors.map(neigh =>
           wrapCond(neigh._1, ListBuffer(
-            if (start) genCopy(neigh._1, neigh._2, false) else NullStatement(),
-            if (start) genTransfer(neigh._1, neigh._2, false) else NullStatement(),
-            if (end) genWait(neigh._1) else NullStatement())))) with OMP_PotentiallyParallel)
+            if (start) genCopy(neigh._1, neigh._2, false) else NullStatement,
+            if (start) genTransfer(neigh._1, neigh._2, false) else NullStatement,
+            if (end) genWait(neigh._1) else NullStatement)))) with OMP_PotentiallyParallel)
   }
 }
 
@@ -166,7 +166,7 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
       var body = CopyFromRecvBuffer(field, neighbor, indices, concurrencyId)
       if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
     } else {
-      new NullStatement
+      NullStatement
     }
   }
 
@@ -196,16 +196,16 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
     //        new ForLoopStatement(s"int i = $minIdx", s"i <= $maxIdx", "++i", ...)
     if (Knowledge.comm_useFragmentLoopsForEachOp)
       ListBuffer[Statement](
-        if (start) new LoopOverFragments(field.domainIndex, neighbors.map(neigh => genTransfer(neigh._1, neigh._2, true))) with OMP_PotentiallyParallel else new NullStatement,
-        if (end) new LoopOverFragments(field.domainIndex, neighbors.map(neigh => genWait(neigh._1))) else new NullStatement,
-        if (end) new LoopOverFragments(field.domainIndex, neighbors.map(neigh => genCopy(neigh._1, neigh._2, true))) with OMP_PotentiallyParallel else new NullStatement)
+        if (start) new LoopOverFragments(field.domainIndex, neighbors.map(neigh => genTransfer(neigh._1, neigh._2, true))) with OMP_PotentiallyParallel else NullStatement,
+        if (end) new LoopOverFragments(field.domainIndex, neighbors.map(neigh => genWait(neigh._1))) else NullStatement,
+        if (end) new LoopOverFragments(field.domainIndex, neighbors.map(neigh => genCopy(neigh._1, neigh._2, true))) with OMP_PotentiallyParallel else NullStatement)
     else
       ListBuffer[Statement](
         new LoopOverFragments(field.domainIndex, neighbors.map(neigh =>
           wrapCond(neigh._1, ListBuffer(
-            if (start) genTransfer(neigh._1, neigh._2, false) else NullStatement(),
-            if (end) genWait(neigh._1) else NullStatement(),
-            if (end) genCopy(neigh._1, neigh._2, false) else NullStatement())))) with OMP_PotentiallyParallel)
+            if (start) genTransfer(neigh._1, neigh._2, false) else NullStatement,
+            if (end) genWait(neigh._1) else NullStatement,
+            if (end) genCopy(neigh._1, neigh._2, false) else NullStatement)))) with OMP_PotentiallyParallel)
   }
 }
 

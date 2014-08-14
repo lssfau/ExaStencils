@@ -101,8 +101,8 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
       else
         new Scope(ListBuffer[Statement](
           "double timeTaken = " ~ args(0) ~ ".getTimeInMilliSec()",
-          (if (Knowledge.useMPI) new MPI_Allreduce("&timeTaken", new RealDatatype, 1, BinaryOperators.Addition) else new NullStatement),
-          (if (Knowledge.useMPI) "timeTaken /= mpiSize" else new NullStatement),
+          (if (Knowledge.useMPI) new MPI_Allreduce("&timeTaken", new RealDatatype, 1, BinaryOperators.Addition) else NullStatement),
+          (if (Knowledge.useMPI) "timeTaken /= mpiSize" else NullStatement),
           args(1) ~ " += timeTaken"))
 
     case ExpressionStatement(FunctionCallExpression(StringConstant("addFromTimer"), args)) =>

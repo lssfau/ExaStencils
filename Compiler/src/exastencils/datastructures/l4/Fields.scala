@@ -126,7 +126,7 @@ case class FieldDeclarationStatement(var name : String,
       if (Knowledge.data_addPrePadding)
         4 - (ir_layout(0).idxDupLeftBegin + ir.ArrayAccess(new ir.iv.IterationOffsetBegin(DomainCollection.getDomainByIdentifier(domain).get.index), 0)) // TODO: specify correct alignmentPadding
       else
-        NullExpression())
+        NullExpression)
   }
 }
 

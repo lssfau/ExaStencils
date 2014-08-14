@@ -178,7 +178,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
           "\"Invalid number of MPI processes (\" << mpiSize << \") should be \" << " + (Knowledge.domain_numBlocks),
           "return")
         else
-          new NullStatement,
+          NullStatement,
 
         s"Vec3 positions[${Knowledge.domain_numFragsPerBlock}]",
         s"unsigned int posWritePos = 0",

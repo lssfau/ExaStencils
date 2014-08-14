@@ -182,7 +182,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
     res += new VariableDeclarationStatement(IntegerDatatype(), itName, Some(begin))
 
-    res += new ForLoopStatement(NullStatement(),
+    res += new ForLoopStatement(NullStatement,
       LowerExpression(itVar, BitwiseAndExpression(AdditionExpression(begin, IntegerConstant(Knowledge.simd_vectorSize - 1)),
         UnaryExpression(UnaryOperators.BitwiseNegation, IntegerConstant(Knowledge.simd_vectorSize - 1)))),
       AssignmentStatement(itVar, IntegerConstant(1), "+="),
@@ -190,7 +190,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
     res ++= ctx.preLoopStmts
 
-    val vectLoop = new ForLoopStatement(NullStatement(),
+    val vectLoop = new ForLoopStatement(NullStatement,
       LowerExpression(itVar, SubtractionExpression(endExcl, IntegerConstant(Knowledge.simd_vectorSize - 1))),
       AssignmentStatement(itVar, IntegerConstant(Knowledge.simd_vectorSize), "+="),
       ctx.vectStmts) with OptimizationHint
@@ -203,7 +203,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     if (postLoopStmt != null)
       res += postLoopStmt
 
-    res += new ForLoopStatement(NullStatement(),
+    res += new ForLoopStatement(NullStatement,
       LowerExpression(itVar, endExcl),
       AssignmentStatement(itVar, IntegerConstant(1), "+="),
       body) // old AST will be replaced completely, so we can reuse the body once here (we cloned above)

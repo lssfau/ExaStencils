@@ -16,6 +16,6 @@ object AddOMPPragmas extends DefaultStrategy("Adding OMP pragmas") {
   this += new Transformation("Adding OMP parallel for pragmas", {
     case target : ForLoopStatement with OMP_PotentiallyParallel =>
       new OMP_ParallelFor(new ForLoopStatement(target.begin, target.end, target.inc, target.body, target.reduction),
-        (if (target.reduction.isDefined) target.reduction.get.getOMPClause else new NullExpression), target.collapse)
+        (if (target.reduction.isDefined) target.reduction.get.getOMPClause else NullExpression), target.collapse)
   })
 }

@@ -39,7 +39,7 @@ case class IterationSetDeclarationStatement(var identifier : Identifier, var beg
 case class StencilEntry(var offset : ExpressionIndex, var weight : Expression) extends SpecialStatement {
   def progressToIr : knowledge.StencilEntry = {
     var off = offset.progressToIr
-    if (off(knowledge.Knowledge.dimensionality).isInstanceOf[ir.NullExpression]) off(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(0)
+    if (off(knowledge.Knowledge.dimensionality) == null) off(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(0)
     knowledge.StencilEntry(off, weight.progressToIr)
   }
 }
