@@ -58,9 +58,11 @@ object BinaryOperators extends Enumeration {
 
   exastencils.core.Duplicate.registerImmutable(this.getClass())
 
-  implicit def str2op(op : String) : Value = BinaryOperators.withName(op)
+  //  Conversions for Enumeration:
+  // BinaryOperators -> String:  op.toString()
+  // String -> BinaryOperators:  BinaryOperators.withName(op)
 
-  def CreateExpression(op : String, left : Expression, right : Expression) : Expression = CreateExpression(str2op(op), left, right)
+  def CreateExpression(op : String, left : Expression, right : Expression) : Expression = CreateExpression(withName(op), left, right)
   def CreateExpression(op : Value, left : Expression, right : Expression) : Expression = op match {
     case Addition       => return new AdditionExpression(left, right)
     case Subtraction    => return new SubtractionExpression(left, right)
