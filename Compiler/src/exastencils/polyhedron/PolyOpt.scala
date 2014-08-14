@@ -187,7 +187,6 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   private final lazy val tileVec2D : isl.Vec = {
     var v2 : isl.Vec = isl.Vec.alloc(2)
     v2 = v2.setElementVal(0, if (Knowledge.poly_tileOuterLoop) Knowledge.poly_tileSize_y else 1000000000)
-    v2 = v2.setElementVal(0, 1000000000)
     v2 = v2.setElementVal(1, Knowledge.poly_tileSize_x)
     v2
   }
