@@ -372,8 +372,6 @@ case class Root() extends Node {
     Knowledge.dimensionality match {
       case 2 => {
         printer.println("Set inner [0, 0] - [0, 0] steps [1, 1]")
-        printer.println("Set innerForFieldsWithoutGhostLayers [0, 0] - [0, 0] steps [1, 1] // this concept might need some improvement")
-        printer.println("Set domain [0, 0] - [0, 0] steps [1, 1]")
         if ("RBGS" == smoother) {
           if (genRBSetsWithConditions) {
             printer.println("Set red [0, 0] - [0, 0] steps [1, 1] with 0 == ((x + y) % 2)")
@@ -385,16 +383,14 @@ case class Root() extends Node {
         }
       }
       case 3 => {
-        printer.println("Set inner [1, 1, 1] - [1, 1, 1] steps [1, 1, 1]")
-        printer.println("Set innerForFieldsWithoutGhostLayers [0, 0, 0] - [0, 0, 0] steps [1, 1, 1] // this concept might need some improvement")
-        printer.println("Set domain [0, 0, 0] - [0, 0, 0] steps [1, 1, 1]")
+        printer.println("Set inner [0, 0, 0] - [0, 0, 0] steps [1, 1, 1]")
         if ("RBGS" == smoother) {
           if (genRBSetsWithConditions) {
-            printer.println("Set red [1, 1, 1] - [1, 1, 1] steps [1, 1, 1] with 0 == ((x + y + z) % 2)")
-            printer.println("Set black [1, 1, 1] - [1, 1, 1] steps [1, 1, 1] with 1 == ((x + y + z) % 2)")
+            printer.println("Set red [0, 0, 0] - [0, 0, 0] steps [1, 1, 1] with 0 == ((x + y + z) % 2)")
+            printer.println("Set black [0, 0, 0] - [0, 0, 0] steps [1, 1, 1] with 1 == ((x + y + z) % 2)")
           } else {
-            printer.println("Set red [1 + ((y + z) % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]")
-            printer.println("Set black [2 - ((y + z) % 2), 1, 1] - [1, 1, 1] steps [2, 1, 1]")
+            printer.println("Set red [0 + ((y + z) % 2), 0, 0] - [0, 0, 0] steps [2, 1, 1]")
+            printer.println("Set black [1 - ((y + z) % 2), 0, 0] - [0, 0, 0] steps [2, 1, 1]")
           }
         }
       }
@@ -669,7 +665,7 @@ case class Root() extends Node {
       printer.println(s"\tfinish communicate Residual$postfix@current")
     else
       printer.println(s"\tcommunicate Residual$postfix@current")
-    printer.println(s"\tloop over innerForFieldsWithoutGhostLayers on RHS$postfix@coarser {")
+    printer.println(s"\tloop over inner on RHS$postfix@coarser {")
     for (vecDim <- 0 until numVecDims)
       printer.println(s"\t\t${rhsFields(s"coarser", postfix)(vecDim)} = RestrictionStencil@current * ToCoarser ( ${residualFields(s"current", postfix)(vecDim)} )")
     printer.println(s"\t}")
@@ -689,7 +685,7 @@ case class Root() extends Node {
 
   def addUtilFunctions(printer : java.io.PrintWriter, postfix : String) = {
     printer.println(s"def SetSolution$postfix@all (value : Real) : Unit {")
-    printer.println(s"\tloop over domain on Solution$postfix@current {")
+    printer.println(s"\tloop over inner on Solution$postfix@current {")
     for (vecDim <- 0 until numVecDims)
       printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = value")
     printer.println(s"\t}")
@@ -730,7 +726,7 @@ case class Root() extends Node {
     printer.println(s"}")
 
     printer.println(s"def InitRHS$postfix ( ) : Unit {")
-    printer.println(s"\tloop over innerForFieldsWithoutGhostLayers on RHS$postfix@finest {")
+    printer.println(s"\tloop over inner on RHS$postfix@finest {")
     for (vecDim <- 0 until numVecDims) {
       printer.println(s"\t\t${rhsFields(s"finest", postfix)(vecDim)} = 0")
     }
@@ -743,7 +739,7 @@ case class Root() extends Node {
         printer.println(s"\tloop over inner on LaplaceCoeff$postfix@current {")
       } else {
         printer.println(s"def InitLaplace$postfix@all ( ) : Unit {")
-        printer.println(s"\tloop over innerForFieldsWithoutGhostLayers on LaplaceCoeff$postfix@current {")
+        printer.println(s"\tloop over inner on LaplaceCoeff$postfix@current {")
       }
       Knowledge.dimensionality match {
         case 2 => {
@@ -853,7 +849,7 @@ case class Root() extends Node {
       printer.println("\tnative ( \"auto randn = std::bind ( distribution, generator )\" )")
 
       printer.println(s"\tvar tau2 : Real = myGamma ( nu ) / ( myGamma ( nu + 0.5 ) * (( 4.0 * M_PI ) ** ( dim / 2.0 )) * ( kappa ** ( 2 * nu )) * sigma * sigma )")
-      printer.println(s"\tloop over innerForFieldsWithoutGhostLayers on RHS_GMRF@finest {")
+      printer.println(s"\tloop over inner on RHS_GMRF@finest {")
       printer.println(s"\t\tRHS_GMRF@finest = randn ( ) / ${(Knowledge.domain_numFragsTotal_x - 2 * numHaloFrags) * (1 << Knowledge.maxLevel)}")
       printer.println(s"\t}")
       printer.println(s"\tcommunicate RHS_GMRF@finest")
@@ -1097,7 +1093,7 @@ case class Root() extends Node {
     printer.println("\tSolve ( )")
 
     if (kelvin) {
-      printer.println(s"\tloop over innerForFieldsWithoutGhostLayers on SolutionMean@finest {")
+      printer.println(s"\tloop over inner on SolutionMean@finest {")
       printer.println(s"\t\tSolutionMean@finest += ${solutionFields(s"finest", "")(0)}")
       printer.println(s"\t}")
     }
@@ -1115,7 +1111,7 @@ case class Root() extends Node {
     }
 
     if (kelvin) {
-      printer.println(s"\tloop over innerForFieldsWithoutGhostLayers on SolutionMean@finest {")
+      printer.println(s"\tloop over inner on SolutionMean@finest {")
       printer.println(s"\t\tSolutionMean@finest /= $numSamples")
       printer.println(s"\t}")
 
