@@ -145,7 +145,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val domain = (locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l ~ u => DomainDeclarationStatement(id, l, u) }))
 
-  lazy val iterationSet = locationize(("Set" ~> identifierWithOptionalLevel) ~ expressionIndex ~ ("-" ~> expressionIndex) ~ ("steps" ~> expressionIndex).? ~ ("with" ~> booleanexpression).?
+  lazy val iterationSet = locationize(("Set" ~> identifierWithOptionalLevel) ~ expressionIndex ~ ("-" ~> expressionIndex).? ~ ("steps" ~> expressionIndex).? ~ ("with" ~> booleanexpression).?
     ^^ { case id ~ begin ~ end ~ inc ~ cond => IterationSetDeclarationStatement(id, begin, end, inc, cond) })
 
   lazy val layout = locationize(("Layout" ~> ident) ~ ("{" ~> layoutOptions <~ "}") ^^ { case id ~ opts => var x = LayoutDeclarationStatement(id); x.set(opts); x })

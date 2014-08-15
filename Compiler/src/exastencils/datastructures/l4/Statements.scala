@@ -26,11 +26,11 @@ case class DomainDeclarationStatement(var name : String, var lower : RealIndex, 
   }
 }
 
-case class IterationSetDeclarationStatement(var identifier : Identifier, var begin : ExpressionIndex, var end : ExpressionIndex, var increment : Option[ExpressionIndex], var condition : Option[BooleanExpression]) extends SpecialStatement {
+case class IterationSetDeclarationStatement(var identifier : Identifier, var begin : ExpressionIndex, var end : Option[ExpressionIndex], var increment : Option[ExpressionIndex], var condition : Option[BooleanExpression]) extends SpecialStatement {
   def progressToIr : knowledge.IterationSet = {
     knowledge.IterationSet(identifier.asInstanceOf[BasicIdentifier].progressToIr.value,
       begin.progressToIr,
-      end.progressToIr,
+      if (end.isDefined) end.get.progressToIr else begin.progressToIr,
       (if (increment.isDefined) increment.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(1))),
       (if (condition.isDefined) Some(condition.get.progressToIr) else None))
   }

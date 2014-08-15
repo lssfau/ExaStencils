@@ -21,7 +21,7 @@ case class Root() extends Node {
   var genSetableStencil : Boolean = false
   var omegaViaGlobals : Boolean = false
   var initSolWithRand : Boolean = !testBC && !kelvin
-  var genRBSetsWithConditions : Boolean = true
+  var genRBSetsWithConditions : Boolean = true // due to the boundary offsets, NOT using conditions leads to a color mismatch at primitive boundaries and thus to a reduced convergence rate
   var useVecFields : Boolean = false // attempts to solve Poisson's equation for (numVecDims)D vectors; atm all three components are solved independently
   var numVecDims = (if (useVecFields) 2 else 1)
   var genStencilFields : Boolean = false || kelvin
@@ -371,11 +371,11 @@ case class Root() extends Node {
   def addIterationSets(printer : java.io.PrintWriter) = {
     Knowledge.dimensionality match {
       case 2 => {
-        printer.println("Set inner [0, 0] - [0, 0] steps [1, 1]")
+        printer.println("Set inner [0, 0]")
         if ("RBGS" == smoother) {
           if (genRBSetsWithConditions) {
-            printer.println("Set red [0, 0] - [0, 0] steps [1, 1] with 0 == ((x + y) % 2)")
-            printer.println("Set black [0, 0] - [0, 0] steps [1, 1] with 1 == ((x + y) % 2)")
+            printer.println("Set red [0, 0] with 0 == ((x + y) % 2)")
+            printer.println("Set black [0, 0] with 1 == ((x + y) % 2)")
           } else {
             printer.println("Set red [0 + (y % 2), 0] - [0, 0] steps [2, 1]")
             printer.println("Set black [1 - (y % 2), 0] - [0, 0] steps [2, 1]")
@@ -383,11 +383,11 @@ case class Root() extends Node {
         }
       }
       case 3 => {
-        printer.println("Set inner [0, 0, 0] - [0, 0, 0] steps [1, 1, 1]")
+        printer.println("Set inner [0, 0, 0]")
         if ("RBGS" == smoother) {
           if (genRBSetsWithConditions) {
-            printer.println("Set red [0, 0, 0] - [0, 0, 0] steps [1, 1, 1] with 0 == ((x + y + z) % 2)")
-            printer.println("Set black [0, 0, 0] - [0, 0, 0] steps [1, 1, 1] with 1 == ((x + y + z) % 2)")
+            printer.println("Set red [0, 0, 0] with 0 == ((x + y + z) % 2)")
+            printer.println("Set black [0, 0, 0] with 1 == ((x + y + z) % 2)")
           } else {
             printer.println("Set red [0 + ((y + z) % 2), 0, 0] - [0, 0, 0] steps [2, 1, 1]")
             printer.println("Set black [1 - ((y + z) % 2), 0, 0] - [0, 0, 0] steps [2, 1, 1]")
