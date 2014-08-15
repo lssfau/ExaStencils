@@ -21,10 +21,10 @@ case class LoopOverDomain(var iterationSet : IterationSet, var field : Field, va
     var stop : ListBuffer[Expression] = ListBuffer()
     for (i <- 0 until Knowledge.dimensionality) {
       // Stefan: exchange the following 2 lines for const loop boundaries
-      start += OffsetIndex(0, 1, field.layout(i).idxGhostLeftBegin - field.referenceOffset(i) + iterationSet.begin(i), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), i))
-      stop += OffsetIndex(-1, 0, field.layout(i).idxGhostRightEnd - field.referenceOffset(i) - iterationSet.end(i), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), i))
-      //      start += field.layout(i).idxGhostLeftBegin - field.referenceOffset(i) + iterationSet.begin(i)
-      //      stop += field.layout(i).idxGhostRightEnd - field.referenceOffset(i) - iterationSet.end(i)
+      start += OffsetIndex(0, 1, field.layout(i).idxDupLeftBegin - field.referenceOffset(i) + iterationSet.begin(i), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), i))
+      stop += OffsetIndex(-1, 0, field.layout(i).idxDupRightEnd - field.referenceOffset(i) - iterationSet.end(i), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), i))
+      //      start += field.layout(i).idxDupLeftBegin - field.referenceOffset(i) + iterationSet.begin(i)
+      //      stop += field.layout(i).idxDupRightEnd - field.referenceOffset(i) - iterationSet.end(i)
     }
 
     var indexRange = IndexRange(new MultiIndex(start.toArray), new MultiIndex(stop.toArray))

@@ -371,16 +371,16 @@ case class Root() extends Node {
   def addIterationSets(printer : java.io.PrintWriter) = {
     Knowledge.dimensionality match {
       case 2 => {
-        printer.println("Set inner [1, 1] - [1, 1] steps [1, 1]")
+        printer.println("Set inner [0, 0] - [0, 0] steps [1, 1]")
         printer.println("Set innerForFieldsWithoutGhostLayers [0, 0] - [0, 0] steps [1, 1] // this concept might need some improvement")
         printer.println("Set domain [0, 0] - [0, 0] steps [1, 1]")
         if ("RBGS" == smoother) {
           if (genRBSetsWithConditions) {
-            printer.println("Set red [1, 1] - [1, 1] steps [1, 1] with 0 == ((x + y) % 2)")
-            printer.println("Set black [1, 1] - [1, 1] steps [1, 1] with 1 == ((x + y) % 2)")
+            printer.println("Set red [0, 0] - [0, 0] steps [1, 1] with 0 == ((x + y) % 2)")
+            printer.println("Set black [0, 0] - [0, 0] steps [1, 1] with 1 == ((x + y) % 2)")
           } else {
-            printer.println("Set red [1 + (y % 2), 1] - [1, 1] steps [2, 1]")
-            printer.println("Set black [2 - (y % 2), 1] - [1, 1] steps [2, 1]")
+            printer.println("Set red [0 + (y % 2), 0] - [0, 0] steps [2, 1]")
+            printer.println("Set black [1 - (y % 2), 0] - [0, 0] steps [2, 1]")
           }
         }
       }
