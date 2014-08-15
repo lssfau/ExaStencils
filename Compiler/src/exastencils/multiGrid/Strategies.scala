@@ -89,7 +89,7 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
     // HACK to realize time measurement functionality -> FIXME: move to specialized node
     case ExpressionStatement(FunctionCallExpression(StringConstant("startTimer"), args)) =>
       if (Knowledge.testNewTimers)
-        iv.Timer(args(0)) ~ ".Start()"
+        ExpressionStatement(iv.Timer(args(0)) ~ ".Start()")
       else
         ListBuffer[Statement](
           "StopWatch " ~ args(0),
@@ -97,7 +97,7 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
 
     case ExpressionStatement(FunctionCallExpression(StringConstant("stopTimer"), args)) =>
       if (Knowledge.testNewTimers)
-        iv.Timer(args(0)) ~ ".Stop()"
+        ExpressionStatement(iv.Timer(args(0)) ~ ".Stop()")
       else
         new Scope(ListBuffer[Statement](
           "double timeTaken = " ~ args(0) ~ ".getTimeInMilliSec()",
@@ -105,17 +105,23 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
           (if (Knowledge.useMPI) "timeTaken /= mpiSize" else NullStatement),
           args(1) ~ " += timeTaken"))
 
-    case ExpressionStatement(FunctionCallExpression(StringConstant("addFromTimer"), args)) =>
+    case FunctionCallExpression(StringConstant("addFromTimer"), args) =>
       if (Knowledge.testNewTimers)
         args(1) ~ " += " ~ iv.Timer(args(0)) ~ ".getTotalTimeInMilliSec()"
       else
         StringConstant("Not supported: addFromTimer")
 
-    case ExpressionStatement(FunctionCallExpression(StringConstant("getMeanFromTimer"), args)) =>
+    case FunctionCallExpression(StringConstant("getMeanFromTimer"), args) =>
       if (Knowledge.testNewTimers)
-        iv.Timer(args(0)) ~ ".getMeanTime()"
+        iv.Timer(args(0)) ~ ".getMeanTimeInMilliSec()"
       else
         StringConstant("Not supported: getMeanFromTimer")
+
+    case FunctionCallExpression(StringConstant("getTotalFromTimer"), args) =>
+      if (Knowledge.testNewTimers)
+        iv.Timer(args(0)) ~ ".getTotalTimeInMilliSec()"
+      else
+        StringConstant("Not supported: getTotalFromTimer")
 
     // HACK for print functionality
     case ExpressionStatement(FunctionCallExpression(StringConstant("print"), args)) =>

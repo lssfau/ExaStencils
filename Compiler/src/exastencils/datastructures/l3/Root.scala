@@ -28,6 +28,10 @@ case class Root() extends Node {
   var useSlotsForJac : Boolean = true
   var testStencilStencil : Boolean = false || kelvin
   var testCommCompOverlap : Boolean = false // NOTE: overlap will not work when using commStrategy 6
+  var genTimersPerFunction : Boolean = true && Knowledge.testNewTimers
+  var genTimersPerLevel : Boolean = true && Knowledge.testNewTimers
+  var genTimersForComm : Boolean = true && !testCommCompOverlap && Knowledge.testNewTimers
+  var genCommTimersPerLevel : Boolean = false && genTimersForComm && Knowledge.testNewTimers
 
   def solutionFields(level : String, postfix : String = "") = {
     if (useVecFields)
@@ -452,7 +456,11 @@ case class Root() extends Node {
         printer.println(s"\tUpResidual$postfix@current ( 0 )")
       else
         printer.println(s"\tUpResidual$postfix@current ( )")
+      if (genTimersForComm)
+        printer.println(s"\tstartTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
       printer.println(s"\tcommunicate Residual$postfix@current")
+      if (genTimersForComm)
+        printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
 
       printer.println(s"\tvar res : Real = L2Residual${postfix}_$vecDim@current ( )")
       printer.println(s"\tvar initialRes : Real = res")
@@ -462,7 +470,11 @@ case class Root() extends Node {
       printer.println(s"\t}")
 
       printer.println(s"\trepeat up 512 {")
+      if (genTimersForComm)
+        printer.println(s"\tstartTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
       printer.println(s"\t\tcommunicate VecP$postfix@current")
+      if (genTimersForComm)
+        printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
 
       printer.println(s"\t\tloop over inner on VecP$postfix@current {")
       if (testStencilStencil && !genStencilFields)
@@ -508,20 +520,52 @@ case class Root() extends Node {
       numPost /= 2
     }
     printer.println(s"def VCycle$postfix@((coarsest + 1) to finest) ( ) : Unit {")
+
+    if (genTimersPerFunction)
+      printer.println(s"\tstartTimer ( preSmoothTimer$postfix${if (genTimersPerLevel) "@current" else ""} )")
     printer.println(s"\trepeat up $numPre {")
     printer.println(s"\t\tSmoother$postfix@current ( )")
     printer.println(s"\t}")
+    if (genTimersPerFunction)
+      printer.println(s"\tstopTimer ( preSmoothTimer$postfix${if (genTimersPerLevel) "@current" else ""} )")
+
+    if (genTimersPerFunction)
+      printer.println(s"\tstartTimer ( upResidualTimer$postfix${if (genTimersPerLevel) "@current" else ""} )")
     if (testCommCompOverlap)
       printer.println(s"\tUpResidual$postfix@current ( 1 )")
     else
       printer.println(s"\tUpResidual$postfix@current ( )")
+    if (genTimersPerFunction)
+      printer.println(s"\tstopTimer ( upResidualTimer$postfix${if (genTimersPerLevel) "@current" else ""} )")
+
+    if (genTimersPerFunction)
+      printer.println(s"\tstartTimer ( restrictionTimer$postfix${if (genTimersPerLevel) "@current" else ""} )")
     printer.println(s"\tRestriction$postfix@current ( )")
+    if (genTimersPerFunction)
+      printer.println(s"\tstopTimer ( restrictionTimer$postfix${if (genTimersPerLevel) "@current" else ""} )")
+
+    if (genTimersPerFunction)
+      printer.println(s"\tstartTimer ( setSolutionTimer$postfix${if (genTimersPerLevel) "@current" else ""} )")
     printer.println(s"\tSetSolution$postfix@coarser ( 0 )")
+    if (genTimersPerFunction)
+      printer.println(s"\tstopTimer ( setSolutionTimer$postfix${if (genTimersPerLevel) "@current" else ""} )")
+
     printer.println(s"\tVCycle$postfix@coarser ( )")
+
+    if (genTimersPerFunction)
+      printer.println(s"\tstartTimer ( correctionTimer$postfix${if (genTimersPerLevel) "@current" else ""} )")
     printer.println(s"\tCorrection$postfix@current ( )")
+    if (genTimersPerFunction)
+      printer.println(s"\tstopTimer ( correctionTimer$postfix${if (genTimersPerLevel) "@current" else ""} )")
+
+    if (genTimersPerFunction)
+      printer.println(s"\tstartTimer ( postSmoothTimer$postfix${if (genTimersPerLevel) "@current" else ""} )")
     printer.println(s"\trepeat up $numPost {")
     printer.println(s"\t\tSmoother$postfix@current ( )")
     printer.println(s"\t}")
+    if (genTimersPerFunction)
+      printer.println(s"\tstopTimer ( postSmoothTimer$postfix${if (genTimersPerLevel) "@current" else ""} )")
+
     printer.println(s"}")
     printer.println
   }
@@ -535,12 +579,20 @@ case class Root() extends Node {
         else
           printer.println(s"def Smoother$postfix@((coarsest + 1) to finest) ( ) : Unit {")
 
+        if (genTimersForComm)
+          printer.println(s"\tstartTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
         printer.println(s"\tcommunicate Solution$postfix${if (useSlotsForJac) "[0]" else ""}@current")
+        if (genTimersForComm)
+          printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
         printer.println(s"\tloop over inner on Solution$postfix@current {")
         for (vecDim <- 0 until numVecDims)
           printer.println(s"\t\t${solution2Fields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace$postfix@current ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace$postfix@current * ${solutionFields(s"current", postfix)(vecDim)} ) )")
         printer.println(s"\t}")
+        if (genTimersForComm)
+          printer.println(s"\tstartTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
         printer.println(s"\tcommunicate Solution${if (useSlotsForJac) s"$postfix[1]" else s"2$postfix"}@current")
+        if (genTimersForComm)
+          printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
         printer.println(s"\tloop over inner on Solution$postfix@current {")
         for (vecDim <- 0 until numVecDims)
           printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solution2Fields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace$postfix@current ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace$postfix@current * ${solution2Fields(s"current", postfix)(vecDim)} ) )")
@@ -549,12 +601,20 @@ case class Root() extends Node {
 
         if (testStencilStencil && !genStencilFields) {
           printer.println(s"def Smoother$postfix@((coarsest + 1) to (finest - 1)) ( ) : Unit {")
+          if (genTimersForComm)
+            printer.println(s"\tstartTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
           printer.println(s"\tcommunicate Solution$postfix${if (useSlotsForJac) "[0]" else ""}@current")
+          if (genTimersForComm)
+            printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
           printer.println(s"\tloop over inner on Solution$postfix@current {")
           for (vecDim <- 0 until numVecDims)
             printer.println(s"\t\t${solution2Fields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( ${stencilAccess(postfix)} ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - ( ${stencilAccess(postfix)} * ${solutionFields(s"current", postfix)(vecDim)} ) ) )")
           printer.println(s"\t}")
+          if (genTimersForComm)
+            printer.println(s"\tstartTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
           printer.println(s"\tcommunicate Solution${if (useSlotsForJac) s"$postfix[1]" else s"2$postfix"}@current")
+          if (genTimersForComm)
+            printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
           printer.println(s"\tloop over inner on Solution$postfix@current {")
           for (vecDim <- 0 until numVecDims)
             printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solution2Fields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( ${stencilAccess(postfix)} ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - ( ${stencilAccess(postfix)} * ${solution2Fields(s"current", postfix)(vecDim)} ) ) )")
@@ -568,12 +628,21 @@ case class Root() extends Node {
         else
           printer.println(s"def Smoother$postfix@((coarsest + 1) to finest) ( ) : Unit {")
 
+        if (genTimersForComm)
+          printer.println(s"\tstartTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
         printer.println(s"\tcommunicate Solution$postfix@current")
+        if (genTimersForComm)
+          printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
+        printer.println(s"\tloop over inner on Solution$postfix@current {")
         printer.println(s"\tloop over red on Solution$postfix@current {")
         for (vecDim <- 0 until numVecDims)
           printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace$postfix@current ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace$postfix@current * ${solutionFields(s"current", postfix)(vecDim)} ) )")
         printer.println(s"\t}")
+        if (genTimersForComm)
+          printer.println(s"\tstartTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
         printer.println(s"\tcommunicate Solution$postfix@current")
+        if (genTimersForComm)
+          printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
         printer.println(s"\tloop over black on Solution$postfix@current {")
         for (vecDim <- 0 until numVecDims)
           printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace$postfix@current ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace$postfix@current * ${solutionFields(s"current", postfix)(vecDim)} ) )")
@@ -582,12 +651,20 @@ case class Root() extends Node {
 
         if (testStencilStencil && !genStencilFields) {
           printer.println(s"def Smoother$postfix@((coarsest + 1) to (finest - 1)) ( ) : Unit {")
+          if (genTimersForComm)
+            printer.println(s"\tstartTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
           printer.println(s"\tcommunicate Solution$postfix@current")
+          if (genTimersForComm)
+            printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
           printer.println(s"\tloop over red on Solution$postfix@current {")
           for (vecDim <- 0 until numVecDims)
             printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( ${stencilAccess(postfix)} ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - ${stencilAccess(postfix)} * ${solutionFields(s"current", postfix)(vecDim)} ) )")
           printer.println(s"\t}")
+          if (genTimersForComm)
+            printer.println(s"\tstartTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
           printer.println(s"\tcommunicate Solution$postfix@current")
+          if (genTimersForComm)
+            printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
           printer.println(s"\tloop over black on Solution$postfix@current {")
           for (vecDim <- 0 until numVecDims)
             printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( ${stencilAccess(postfix)} ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - ${stencilAccess(postfix)} * ${solutionFields(s"current", postfix)(vecDim)} ) )")
@@ -601,7 +678,11 @@ case class Root() extends Node {
         else
           printer.println(s"def Smoother$postfix@((coarsest + 1) to finest) ( ) : Unit {")
 
+        if (genTimersForComm)
+          printer.println(s"\tstartTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
         printer.println(s"\tcommunicate Solution$postfix@current")
+        if (genTimersForComm)
+          printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
         printer.println(s"\tloop over inner on Solution$postfix@current {")
         for (vecDim <- 0 until numVecDims)
           printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( Laplace$postfix@current ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - Laplace$postfix@current * ${solutionFields(s"current", postfix)(vecDim)} ) )")
@@ -610,7 +691,11 @@ case class Root() extends Node {
 
         if (testStencilStencil && !genStencilFields) {
           printer.println(s"def Smoother$postfix@((coarsest + 1) to (finest - 1)) ( ) : Unit {")
+          if (genTimersForComm)
+            printer.println(s"\tstartTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
           printer.println(s"\tcommunicate Solution$postfix@current")
+          if (genTimersForComm)
+            printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
           printer.println(s"\tloop over inner on Solution$postfix@current {")
           for (vecDim <- 0 until numVecDims)
             printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} = ${solutionFields(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( ${stencilAccess(postfix)} ) ) * $omegaToPrint ) * ( ${rhsFields(s"current", postfix)(vecDim)} - ${stencilAccess(postfix)} * ${solutionFields(s"current", postfix)(vecDim)} ) )")
@@ -627,7 +712,11 @@ case class Root() extends Node {
     val params = if (testCommCompOverlap) "startComm : Integer" else ""
 
     printer.println(s"def UpResidual$postfix@$levels ( $params ) : Unit {")
+    if (genTimersForComm)
+      printer.println(s"\tstartTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
     printer.println(s"\tcommunicate Solution$postfix@current")
+    if (genTimersForComm)
+      printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
     printer.println(s"\tloop over inner on Residual$postfix@current {")
     for (vecDim <- 0 until numVecDims)
       printer.println(s"\t\t${residualFields(s"current", postfix)(vecDim)} = ${rhsFields(s"current", postfix)(vecDim)} - (Laplace$postfix@current * ${solutionFields(s"current", postfix)(vecDim)})")
@@ -643,7 +732,11 @@ case class Root() extends Node {
 
     if (testStencilStencil && !genStencilFields) {
       printer.println(s"def UpResidual$postfix@(coarsest to (finest - 1)) ( $params ) : Unit {")
+      if (genTimersForComm)
+        printer.println(s"\tstartTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
       printer.println(s"\tcommunicate Solution$postfix@current")
+      if (genTimersForComm)
+        printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
       printer.println(s"\tloop over inner on Residual$postfix@current {")
       for (vecDim <- 0 until numVecDims)
         printer.println(s"\t\t${residualFields(s"current", postfix)(vecDim)} = ${rhsFields(s"current", postfix)(vecDim)} - (${stencilAccess(postfix)} * ${solutionFields(s"current", postfix)(vecDim)})")
@@ -663,8 +756,13 @@ case class Root() extends Node {
     printer.println(s"def Restriction$postfix@((coarsest + 1) to finest) ( ) : Unit {")
     if (testCommCompOverlap)
       printer.println(s"\tfinish communicate Residual$postfix@current")
-    else
+    else {
+      if (genTimersForComm)
+        printer.println(s"\tstartTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
       printer.println(s"\tcommunicate Residual$postfix@current")
+      if (genTimersForComm)
+        printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
+    }
     printer.println(s"\tloop over inner on RHS$postfix@coarser {")
     for (vecDim <- 0 until numVecDims)
       printer.println(s"\t\t${rhsFields(s"coarser", postfix)(vecDim)} = RestrictionStencil@current * ToCoarser ( ${residualFields(s"current", postfix)(vecDim)} )")
@@ -674,7 +772,11 @@ case class Root() extends Node {
 
   def addCorrection(printer : java.io.PrintWriter, postfix : String) = {
     printer.println(s"def Correction$postfix@((coarsest + 1) to finest) ( ) : Unit {")
+    if (genTimersForComm)
+      printer.println(s"\tstartTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
     printer.println(s"\tcommunicate Solution$postfix@current")
+    if (genTimersForComm)
+      printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
     printer.println(s"\tloop over inner on Solution$postfix@current {")
     for (vecDim <- 0 until numVecDims)
       printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} += CorrectionStencil@current * ToFiner ( ${solutionFields(s"coarser", postfix)(vecDim)} )")
@@ -693,7 +795,11 @@ case class Root() extends Node {
 
     for (vecDim <- 0 until numVecDims) {
       printer.println(s"def L2Residual${postfix}_$vecDim@(coarsest and finest) ( ) : Real {")
+      if (genTimersForComm)
+        printer.println(s"\tstartTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
       printer.println(s"\tcommunicate Residual$postfix@current")
+      if (genTimersForComm)
+        printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
       printer.println(s"\tvar res : Real = 0")
       printer.println(s"\tloop over inner on Residual$postfix@current with reduction( + : res ) {")
       printer.println(s"\t\t// FIXME: this counts duplicated values multiple times")
@@ -778,7 +884,11 @@ case class Root() extends Node {
 
       if (testStencilStencil) {
         printer.println(s"def InitLaplace$postfix@(coarsest to (finest - 1)) ( ) : Unit {")
+        if (genTimersForComm)
+          printer.println(s"\tstartTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
         printer.println(s"\tcommunicate LaplaceCoeff$postfix@finer")
+        if (genTimersForComm)
+          printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
         printer.println(s"\tloop over inner on LaplaceCoeff$postfix@current {")
         if (false && kelvin) { // hack injection
           for (i <- 0 until 9)
@@ -852,7 +962,11 @@ case class Root() extends Node {
       printer.println(s"\tloop over inner on RHS_GMRF@finest {")
       printer.println(s"\t\tRHS_GMRF@finest = randn ( ) / ${(Knowledge.domain_numFragsTotal_x - 2 * numHaloFrags) * (1 << Knowledge.maxLevel)}")
       printer.println(s"\t}")
+      if (genTimersForComm)
+        printer.println(s"\tstartTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
       printer.println(s"\tcommunicate RHS_GMRF@finest")
+      if (genTimersForComm)
+        printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
 
       if (testCommCompOverlap)
         printer.println(s"\tUpResidual_GMRF@finest ( 0 )")
@@ -1129,6 +1243,35 @@ case class Root() extends Node {
         printer.println("\tprintField ( '\"Solution.dat\"', SolutionMean@finest )")
       else
         printer.println("\tprintField ( '\"Solution.dat\"', Solution@finest )")
+    }
+
+    if (Knowledge.testNewTimers) {
+      if (genTimersPerFunction) {
+        for (
+          func <- Array(
+            ("preSmooth", "pre-smoothing"),
+            ("upResidual", "updating residual"),
+            ("restriction", "restricting"),
+            ("setSolution", "setting solution"),
+            ("correction", "prolongating and correcting"),
+            ("postSmooth", "post-smoothing"))
+        ) {
+          if (genTimersPerLevel) {
+            for (level <- 0 to Knowledge.maxLevel)
+              printer.println("\tprint ( '\"" + s"Total time spent on level $level in ${func._2}: " + "\"', " + s"getTotalFromTimer ( ${func._1}Timer@$level ) )")
+          } else {
+            printer.println("\tprint ( '\"" + s"Total time spent in ${func._2}: " + "\"', " + s"getTotalFromTimer ( ${func._1}Timer ) )")
+          }
+        }
+      }
+      if (genTimersForComm) {
+        if (genCommTimersPerLevel) {
+          for (level <- 0 to Knowledge.maxLevel)
+            printer.println("\tprint ( '\"" + s"Total time spent communicating on level $level: " + "\"', " + s"getTotalFromTimer ( commTimer@$level ) )")
+        } else {
+          printer.println("\tprint ( '\"" + s"Total time spent communicating: " + "\"', " + s"getTotalFromTimer ( commTimer ) )")
+        }
+      }
     }
 
     printer.println("\tdestroyGlobals ( )")
