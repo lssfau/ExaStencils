@@ -6,28 +6,38 @@ import exastencils.knowledge._
 import exastencils.polyhedron._
 
 case class Root() extends Node {
+  /// Student project - Kelvin
   var kelvin : Boolean = false // NOTE: currently only works for 2D
   var numSamples : Int = 10 // only required for kelvin
   var numHaloFrags : Int = 2 // only required for kelvin
 
+  /// SPL connected
   var smoother : String = "Jac" // Jac | GS | RBGS
   var cgs : String = "CG" // CG
   var numPre : Int = 2 // has to be divisible by 2 for Jac
   var numPost : Int = 4 // has to be divisible by 2 for Jac
   var omega : Double = (if ("Jac" == smoother) 0.8 else 1.0)
+  var testStencilStencil : Boolean = false || kelvin
+  var genStencilFields : Boolean = false || kelvin
+  var testCommCompOverlap : Boolean = false // NOTE: overlap will not work when using commStrategy 6
+  var genRBSetsWithConditions : Boolean = true // NOTE: due to the boundary offsets, NOT using conditions leads to a color mismatch at primitive boundaries and thus to a reduced convergence rate
+  var useSlotsForJac : Boolean = true
+
+  /// functionality test
   var testBC : Boolean = false && !kelvin // NOTE: the tested bc will only be reasonable for 2D cases
   var testExtFields : Boolean = false
-  var printFieldAtEnd : Boolean = false
-  var genSetableStencil : Boolean = false
   var omegaViaGlobals : Boolean = false
-  var initSolWithRand : Boolean = !testBC && !kelvin
-  var genRBSetsWithConditions : Boolean = true // due to the boundary offsets, NOT using conditions leads to a color mismatch at primitive boundaries and thus to a reduced convergence rate
-  var useVecFields : Boolean = false // attempts to solve Poisson's equation for (numVecDims)D vectors; atm all three components are solved independently
+  var genSetableStencil : Boolean = false && !kelvin
+  var useVecFields : Boolean = false && !kelvin // attempts to solve Poisson's equation for (numVecDims)D vectors; atm all three components are solved independently
+
+  /// optional features  
+  var printFieldAtEnd : Boolean = false
+  var initSolWithRand : Boolean = true && !testBC && !kelvin
+
+  /// not to be changed
   var numVecDims = (if (useVecFields) 2 else 1)
-  var genStencilFields : Boolean = false || kelvin
-  var useSlotsForJac : Boolean = true
-  var testStencilStencil : Boolean = false || kelvin
-  var testCommCompOverlap : Boolean = false // NOTE: overlap will not work when using commStrategy 6
+
+  // Student project - Oleg
   var genTimersPerFunction : Boolean = true && Knowledge.testNewTimers
   var genTimersPerLevel : Boolean = true && Knowledge.testNewTimers
   var genTimersForComm : Boolean = true && !testCommCompOverlap && Knowledge.testNewTimers
