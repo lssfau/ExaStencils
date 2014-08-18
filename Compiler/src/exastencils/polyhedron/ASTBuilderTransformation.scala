@@ -75,9 +75,12 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
     // build AST generation options
     val options = new StringBuilder()
     options.append("[")
-    for (i <- 0 until dims)
-      options.append('i').append(i).append(',')
-    options.deleteCharAt(options.length - 1).append(']')
+    if (dims > 0) {
+      for (i <- 0 until dims)
+        options.append('i').append(i).append(',')
+      options.deleteCharAt(options.length - 1)
+    }
+    options.append(']')
     val scheduleDomain : String = options.toString()
     options.clear()
     options.append('{')
