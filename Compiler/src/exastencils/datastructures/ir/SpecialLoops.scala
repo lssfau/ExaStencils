@@ -1,6 +1,8 @@
 package exastencils.datastructures.ir
 
 import scala.collection.mutable.ListBuffer
+
+import exastencils.core.collectors.StackCollector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
@@ -9,7 +11,6 @@ import exastencils.omp._
 import exastencils.optimization._
 import exastencils.polyhedron._
 import exastencils.strategies._
-import exastencils.core.collectors.StackCollector
 
 case class LoopOverPoints(var field : Field, var startOffset : MultiIndex, var endOffset : MultiIndex, var increment : MultiIndex, var contracting : Int,
     var body : ListBuffer[Statement], var reduction : Option[Reduction] = None, var condition : Option[Expression] = None) extends Statement {

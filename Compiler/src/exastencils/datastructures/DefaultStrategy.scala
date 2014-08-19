@@ -1,9 +1,7 @@
 package exastencils.datastructures
 
 import scala.collection.mutable.ListBuffer
-import scala.collection.immutable.Set
-import exastencils.core.StateManager
-import exastencils.core.Logger._
+
 import exastencils.core._
 
 class StrategyResult(transformationResults : List[TransformationResult]) {

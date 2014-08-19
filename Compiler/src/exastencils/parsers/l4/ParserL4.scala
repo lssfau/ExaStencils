@@ -2,6 +2,7 @@ package exastencils.parsers.l4
 
 import scala.collection.immutable.PagedSeq
 import scala.util.parsing.input.PagedSeqReader
+
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.parsers._
@@ -123,7 +124,6 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val loopOverFragments = locationize(("loop" ~ "over" ~ "fragments") ~ ("with" ~> reductionClause).? ~ ("{" ~> statement.+ <~ "}") ^^
     { case _ ~ red ~ stmts => LoopOverFragmentsStatement(stmts, red) })
-  // loop over $field where $cond starting $index ending $index stepping $step contracting $number with reduction $red
   lazy val loopOver = locationize(("loop" ~ "over" ~> fieldLikeAccess) ~
     ("where" ~> booleanexpression).? ~
     ("starting" ~> expressionIndex).? ~

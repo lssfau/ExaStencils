@@ -1,7 +1,5 @@
 package exastencils.strategies
 
-import scala.collection.mutable.ListBuffer
-
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._

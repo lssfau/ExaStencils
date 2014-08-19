@@ -1,13 +1,13 @@
 package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
+
 import exastencils.communication
 import exastencils.datastructures._
 import exastencils.globals._
 import exastencils.knowledge
-import exastencils.util._
-import exastencils.knowledge.Knowledge
 import exastencils.omp
+import exastencils.util._
 
 abstract class Statement extends Node with ProgressableToIr {
   def progressToIr : ir.Statement
@@ -76,9 +76,9 @@ case class LoopOverPointsStatement(var field : FieldAccess, var condition : Opti
     var statements : List[Statement], var reduction : Option[ReductionStatement]) extends Statement {
   def progressToIr : ir.LoopOverPoints = {
     ir.LoopOverPoints(field.resolveField,
-      if (startOffset.isDefined) startOffset.get.progressToIr else new ir.MultiIndex(Array.fill(Knowledge.dimensionality)(0)),
-      if (endOffset.isDefined) endOffset.get.progressToIr else new ir.MultiIndex(Array.fill(Knowledge.dimensionality)(0)),
-      if (increment.isDefined) increment.get.progressToIr else new ir.MultiIndex(Array.fill(Knowledge.dimensionality)(1)),
+      if (startOffset.isDefined) startOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
+      if (endOffset.isDefined) endOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
+      if (increment.isDefined) increment.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(1)),
       if (contracting.isDefined) contracting.get else 1,
       statements.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
       if (reduction.isDefined) Some(reduction.get.progressToIr) else None,

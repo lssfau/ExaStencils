@@ -1,12 +1,13 @@
 package exastencils.core.collectors
 
 import scala.collection.mutable.Stack
+
 import exastencils.core._
 import exastencils.datastructures._
 
 class StackCollector extends Collector {
   private val stack_ = new Stack[Node]
-  
+
   def enter(node : Node) : Unit = {
     stack_.push(node)
   }
@@ -18,7 +19,7 @@ class StackCollector extends Collector {
 
   def isEmpty : Boolean = { return stack_.isEmpty }
   def head : Node = { return stack_.head }
-  
+
   def stack = stack_
   def list = stack_.toList
 }

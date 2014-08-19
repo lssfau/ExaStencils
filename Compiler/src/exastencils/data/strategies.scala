@@ -1,13 +1,13 @@
 package exastencils.data
 
 import exastencils.core._
+import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.globals._
 import exastencils.knowledge._
 import exastencils.multiGrid._
-import exastencils.core.collectors.StackCollector
 
 object SetupDataStructures extends DefaultStrategy("Setting up fragment") {
   override def apply(node : Option[Node] = None) = {
