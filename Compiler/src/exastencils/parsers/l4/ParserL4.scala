@@ -121,11 +121,18 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val repeatUntil = locationize(
     (("repeat" ~ "until") ~> comparison) ~ (("{" ~> statement.+) <~ "}") ^^ { case c ~ s => RepeatUntilStatement(c, s) })
 
-  lazy val loopOverFragments = locationize(("loop" ~ "over" ~ "fragments") ~ ("with" ~> loopOverWithClause).? ~ ("{" ~> statement.+ <~ "}") ^^
+  lazy val loopOverFragments = locationize(("loop" ~ "over" ~ "fragments") ~ ("with" ~> reductionClause).? ~ ("{" ~> statement.+ <~ "}") ^^
     { case _ ~ red ~ stmts => LoopOverFragmentsStatement(stmts, red) })
-  lazy val loopOver = locationize(("loop" ~ "over" ~> ident) ~ ("on" ~> fieldLikeAccess) ~ ("with" ~> loopOverWithClause).? ~ ("{" ~> statement.+ <~ "}") ^^
-    { case area ~ field ~ red ~ stmts => LoopOverPointsStatement(area, field.resolveToFieldAccess, stmts, red) })
-  lazy val loopOverWithClause = locationize((("reduction" ~ "(") ~> ("+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => ReductionStatement(op, s) })
+  // loop over $field where $cond starting $index ending $index stepping $step with reduction $red
+  lazy val loopOver = locationize(("loop" ~ "over" ~> fieldLikeAccess) ~
+    ("where" ~> booleanexpression).? ~
+    ("starting" ~> expressionIndex).? ~
+    ("ending" ~> expressionIndex).? ~
+    ("stepping" ~> expressionIndex).? ~
+    ("with" ~> reductionClause).? ~
+    ("{" ~> statement.+ <~ "}") ^^
+    { case field ~ cond ~ startOff ~ endOff ~ inc ~ red ~ stmts => LoopOverPointsStatement(field.resolveToFieldAccess, cond, startOff, endOff, inc, stmts, red) })
+  lazy val reductionClause = locationize((("reduction" ~ "(") ~> ("+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => ReductionStatement(op, s) })
 
   lazy val assignment = locationize((flatAccess ||| fieldLikeAccess) ~ "=" ~ expression ^^ { case id ~ op ~ exp => AssignmentStatement(id, exp, op) })
   lazy val operatorassignment = locationize((flatAccess ||| fieldLikeAccess) ~ ("+=" ||| "-=" ||| "*=" ||| "/=") ~ expression

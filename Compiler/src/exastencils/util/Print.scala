@@ -23,7 +23,6 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
 
   override def expand : Output[StatementList] = {
     // FIXME: this has to be adapted for non-mpi
-    // FIXME: this will use OMP parallelization and Poly transformation
     var statements : ListBuffer[Statement] = ListBuffer()
 
     statements += new ConditionStatement(new MPI_IsRootProc,
@@ -34,16 +33,20 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
     var access = new FieldAccess(field, LoopOverDimensions.defIt)
     access.index(Knowledge.dimensionality) = 0
     statements += new MPI_Sequential(ListBuffer[Statement](
-      "std::ofstream stream(" ~ filename ~ ", std::ios::app)",
-      new LoopOverPoints(IterationSetCollection.getIterationSetByIdentifier("inner").get, /* FIXME */
-        field.field,
-        ListBuffer[Statement](
-          new InitGeomCoords(field.field, false),
-          ("stream << xPos << \" \"" +
-            (if (Knowledge.dimensionality > 1) " << yPos << \" \"" else "") +
-            (if (Knowledge.dimensionality > 2) " << zPos << \" \"" else "") +
-            " << " : Expression) ~ access ~ " << std::endl")),
-      "stream.close()"))
+      new LoopOverFragments(
+        new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
+          ListBuffer[Statement](
+            "std::ofstream stream(" ~ filename ~ ", std::ios::app)",
+            new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
+              new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => field.layout(i).idxDupLeftBegin)),
+              new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => field.layout(i).idxDupRightEnd))),
+              ListBuffer[Statement](
+                new InitGeomCoords(field.field, false),
+                ("stream << xPos << \" \"" +
+                  (if (Knowledge.dimensionality > 1) " << yPos << \" \"" else "") +
+                  (if (Knowledge.dimensionality > 2) " << zPos << \" \"" else "") +
+                  " << " : Expression) ~ access ~ " << std::endl")),
+            "stream.close()")))))
 
     statements
   }

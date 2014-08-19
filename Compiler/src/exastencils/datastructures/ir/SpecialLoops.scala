@@ -11,12 +11,13 @@ import exastencils.polyhedron._
 import exastencils.strategies._
 import exastencils.core.collectors.StackCollector
 
-case class LoopOverPoints(var iterationSet : IterationSet, var field : Field, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement {
+case class LoopOverPoints(var field : Field, var startOffset : MultiIndex, var endOffset : MultiIndex, var increment : MultiIndex,
+    var body : ListBuffer[Statement], var reduction : Option[Reduction] = None, var condition : Option[Expression] = None) extends Statement {
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPoints\n"
 
   def expandSpecial(collector : StackCollector) : Output[Statement] = {
     val insideFragLoop = collector.stack.map(node => node match { case loop : LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
-    val innerLoop = LoopOverPointsInOneFragment(field.domain.index, iterationSet, field, body, reduction)
+    val innerLoop = LoopOverPointsInOneFragment(field.domain.index, field, startOffset, endOffset, increment, body, reduction, condition)
 
     if (insideFragLoop)
       innerLoop
@@ -25,21 +26,23 @@ case class LoopOverPoints(var iterationSet : IterationSet, var field : Field, va
   }
 }
 
-case class LoopOverPointsInOneFragment(var domain : Int, var iterationSet : IterationSet, var field : Field, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement with Expandable {
+case class LoopOverPointsInOneFragment(var domain : Int, var field : Field,
+    var startOffset : MultiIndex, var endOffset : MultiIndex, var increment : MultiIndex,
+    var body : ListBuffer[Statement], var reduction : Option[Reduction] = None, var condition : Option[Expression] = None) extends Statement with Expandable {
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPointsInOneFragment\n"
 
   def expand : Output[Statement] = {
     var start : ListBuffer[Expression] = ListBuffer()
     var stop : ListBuffer[Expression] = ListBuffer()
     for (i <- 0 until Knowledge.dimensionality) {
-      start += OffsetIndex(0, 1, field.layout(i).idxDupLeftBegin - field.referenceOffset(i) + iterationSet.begin(i), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), i))
-      stop += OffsetIndex(-1, 0, field.layout(i).idxDupRightEnd - field.referenceOffset(i) - iterationSet.end(i), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), i))
+      start += OffsetIndex(0, 1, field.layout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), i))
+      stop += OffsetIndex(-1, 0, field.layout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), i))
     }
 
     var indexRange = IndexRange(new MultiIndex(start.toArray), new MultiIndex(stop.toArray))
     SimplifyStrategy.doUntilDoneStandalone(indexRange)
 
-    var ret : Statement = new LoopOverDimensions(Knowledge.dimensionality, indexRange, body, iterationSet.increment, reduction, iterationSet.condition) with OMP_PotentiallyParallel with PolyhedronAccessable
+    var ret : Statement = new LoopOverDimensions(Knowledge.dimensionality, indexRange, body, increment, reduction, condition) with OMP_PotentiallyParallel with PolyhedronAccessable
     if (domain >= 0)
       new ConditionStatement(iv.IsValidForSubdomain(domain), ret)
     else
