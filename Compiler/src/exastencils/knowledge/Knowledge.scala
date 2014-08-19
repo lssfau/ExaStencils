@@ -137,8 +137,45 @@ object Knowledge {
   var opt_unroll : Int = 1 // 1-8
   var opt_unroll_interleave : Boolean = true // [true|false]
 
-  // testing
+  /// BEGIN HACK config options for generating L4 DSL file
+  /// Student project - Kelvin
+  var kelvin : Boolean = false // NOTE: currently only works for 2D
+  var numSamples : Int = 10 // only required for kelvin
+  var numHaloFrags : Int = 2 // only required for kelvin
+
+  /// SPL connected
+  var smoother : String = "Jac" // Jac | GS | RBGS
+  var cgs : String = "CG" // CG
+  var numPre : Int = 2 // has to be divisible by 2 for Jac
+  var numPost : Int = 4 // has to be divisible by 2 for Jac
+  var omega : Double = (if ("Jac" == smoother) 0.8 else 1.0)
+  var testStencilStencil : Boolean = false || kelvin
+  var genStencilFields : Boolean = false || kelvin
+  var testCommCompOverlap : Boolean = false // NOTE: overlap will not work when using commStrategy 6
+  var genRBSetsWithConditions : Boolean = true // NOTE: due to the boundary offsets, NOT using conditions leads to a color mismatch at primitive boundaries and thus to a reduced convergence rate
+  var useSlotsForJac : Boolean = true
+
+  /// functionality test
+  var testBC : Boolean = true && (2 == dimensionality) && !kelvin // NOTE: the tested bc will only be reasonable for 2D cases
+  var testExtFields : Boolean = false
+  var omegaViaGlobals : Boolean = false
+  var genSetableStencil : Boolean = false && !kelvin
+  var useVecFields : Boolean = false && !kelvin // attempts to solve Poisson's equation for (numVecDims)D vectors; atm all three components are solved independently
+  var numVecDims = (if (useVecFields) 2 else 1)
+  var testFragLoops = true
+  var testDomainEmbedding = true && !kelvin
+
+  /// optional features  
+  var printFieldAtEnd : Boolean = false || kelvin
+  var initSolWithRand : Boolean = true && !testBC && !kelvin
+
+  // Student project - Oleg
   var testNewTimers : Boolean = false // this is to enable the usage of some new, currently highly experimental, timer classes; requires that the timer classes are provided
+  var genTimersPerFunction : Boolean = true && testNewTimers
+  var genTimersPerLevel : Boolean = true && testNewTimers
+  var genTimersForComm : Boolean = true && !testCommCompOverlap && testNewTimers
+  var genCommTimersPerLevel : Boolean = false && genTimersForComm && testNewTimers
+  /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
