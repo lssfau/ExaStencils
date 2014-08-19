@@ -842,9 +842,13 @@ case class Root() extends Node {
       if (genTimersForComm)
         printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
     }
+    if (testFragLoops)
+      printer.println(s"\tloop over fragments {")
     printer.println(s"\tloop over RHS$postfix@coarser {")
     for (vecDim <- 0 until numVecDims)
       printer.println(s"\t\t${rhsFields(s"coarser", postfix)(vecDim)} = RestrictionStencil@current * ToCoarser ( ${residualFields(s"current", postfix)(vecDim)} )")
+    if (testFragLoops)
+      printer.println(s"\t}")
     printer.println(s"\t}")
     printer.println(s"}")
   }
@@ -856,10 +860,14 @@ case class Root() extends Node {
     printer.println(s"\tcommunicate Solution$postfix@current")
     if (genTimersForComm)
       printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
+    if (testFragLoops)
+      printer.println(s"\tloop over fragments {")
     printer.println(s"\tloop over Solution$postfix@current {")
     for (vecDim <- 0 until numVecDims)
       printer.println(s"\t\t${solutionFields(s"current", postfix)(vecDim)} += CorrectionStencil@current * ToFiner ( ${solutionFields(s"coarser", postfix)(vecDim)} )")
     printer.println(s"\t}")
+    if (testFragLoops)
+      printer.println(s"\t}")
     printer.println(s"}")
     printer.println
   }
@@ -880,10 +888,14 @@ case class Root() extends Node {
       if (genTimersForComm)
         printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
       printer.println(s"\tvar res : Real = 0")
+      if (testFragLoops)
+        printer.println(s"\tloop over fragments with reduction( + : res ) {")
       printer.println(s"\tloop over Residual$postfix@current with reduction( + : res ) {")
       printer.println(s"\t\t// FIXME: this counts duplicated values multiple times")
       printer.println(s"\t\tres += ${residualFields(s"current", postfix)(vecDim)} * ${residualFields(s"current", postfix)(vecDim)}")
       printer.println(s"\t}")
+      if (testFragLoops)
+        printer.println(s"\t}")
       printer.println(s"\treturn ( sqrt ( res ) )")
       printer.println(s"}")
       printer.println

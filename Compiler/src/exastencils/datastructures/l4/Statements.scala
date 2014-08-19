@@ -7,6 +7,7 @@ import exastencils.globals._
 import exastencils.knowledge
 import exastencils.util._
 import exastencils.knowledge.Knowledge
+import exastencils.omp
 
 abstract class Statement extends Node with ProgressableToIr {
   def progressToIr : ir.Statement
@@ -86,8 +87,8 @@ case class LoopOverPointsStatement(var field : FieldAccess, var condition : Opti
 
 case class LoopOverFragmentsStatement(var statements : List[Statement], var reduction : Option[ReductionStatement]) extends Statement {
   def progressToIr : ir.LoopOverFragments = {
-    ir.LoopOverFragments(statements.map(s => s.progressToIr).to[ListBuffer],
-      if (reduction.isDefined) Some(reduction.get.progressToIr) else None)
+    new ir.LoopOverFragments(statements.map(s => s.progressToIr).to[ListBuffer],
+      if (reduction.isDefined) Some(reduction.get.progressToIr) else None) with omp.OMP_PotentiallyParallel
   }
 }
 
