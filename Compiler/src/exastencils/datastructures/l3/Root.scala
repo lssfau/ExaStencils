@@ -24,18 +24,16 @@ case class Root() extends Node {
   var useSlotsForJac : Boolean = true
 
   /// functionality test
-  var testBC : Boolean = false && !kelvin // NOTE: the tested bc will only be reasonable for 2D cases
+  var testBC : Boolean = true && (2 == Knowledge.dimensionality) && !kelvin // NOTE: the tested bc will only be reasonable for 2D cases
   var testExtFields : Boolean = false
   var omegaViaGlobals : Boolean = false
   var genSetableStencil : Boolean = false && !kelvin
   var useVecFields : Boolean = false && !kelvin // attempts to solve Poisson's equation for (numVecDims)D vectors; atm all three components are solved independently
+  var numVecDims = (if (useVecFields) 2 else 1)
 
   /// optional features  
-  var printFieldAtEnd : Boolean = false
+  var printFieldAtEnd : Boolean = false || kelvin
   var initSolWithRand : Boolean = true && !testBC && !kelvin
-
-  /// not to be changed
-  var numVecDims = (if (useVecFields) 2 else 1)
 
   // Student project - Oleg
   var genTimersPerFunction : Boolean = true && Knowledge.testNewTimers

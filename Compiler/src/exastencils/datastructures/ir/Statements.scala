@@ -13,7 +13,7 @@ case class ExpressionStatement(var expression : Expression) extends Statement {
 }
 
 case object NullStatement extends Statement {
-	exastencils.core.Duplicate.registerConstant(this)
+  exastencils.core.Duplicate.registerConstant(this)
   def cpp(out : CppStream) : Unit = out << ';'
 }
 
@@ -170,7 +170,7 @@ case class SIMD_HorizontalAddStatement(var dest : Expression, var src : Expressi
     Knowledge.simd_instructionSet match {
       case "SSE3" =>
         out << " __m128d v = " << src << ";\n"
-        out << dest << '_' << op << " _mm_cvtsd_f64(_mm_hadd_pd(v,v));\n"
+        out << dest << ' ' << op << " _mm_cvtsd_f64(_mm_hadd_pd(v,v));\n"
 
       case "AVX" | "AVX2" =>
         out << " __m256d v = " << src << ";\n"
