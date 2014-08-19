@@ -70,6 +70,7 @@ object Main {
 
     SetupDataStructures.apply() // Stefan: This adds the setupBuffer func which will be exapanded using the field info in the next expand step 
     SetupCommunication.apply()
+    ResolveLoopOverPoints.apply()
 
     var numConvFound = 1
     while (numConvFound > 0) {

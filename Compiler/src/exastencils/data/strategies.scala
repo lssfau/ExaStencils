@@ -7,6 +7,7 @@ import exastencils.datastructures.ir._
 import exastencils.globals._
 import exastencils.knowledge._
 import exastencils.multiGrid._
+import exastencils.core.collectors.StackCollector
 
 object SetupDataStructures extends DefaultStrategy("Setting up fragment") {
   override def apply(node : Option[Node] = None) = {
@@ -47,5 +48,20 @@ object ResolveLoopOverDimensions extends DefaultStrategy("Resolving LoopOverDime
   this += new Transformation("Resolving", {
     case loop : LoopOverDimensions =>
       loop.expandSpecial
+  })
+}
+
+object ResolveLoopOverPoints extends DefaultStrategy("Resolving ResolveLoopOverPoints nodes") {
+  val collector = new StackCollector
+
+  override def apply(node : Option[Node] = None) : Unit = {
+    StateManager.register(collector)
+    super.apply(node)
+    StateManager.unregister(collector)
+  }
+
+  this += new Transformation("Resolving", {
+    case loop : LoopOverPoints =>
+      loop.expandSpecial(collector)
   })
 }

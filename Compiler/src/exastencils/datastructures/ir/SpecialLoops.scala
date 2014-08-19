@@ -1,7 +1,6 @@
 package exastencils.datastructures.ir
 
 import scala.collection.mutable.ListBuffer
-
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
@@ -10,29 +9,38 @@ import exastencils.omp._
 import exastencils.optimization._
 import exastencils.polyhedron._
 import exastencils.strategies._
+import exastencils.core.collectors.StackCollector
 
-case class LoopOverDomain(var iterationSet : IterationSet, var field : Field, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LoopOverDomain\n"
+case class LoopOverPoints(var iterationSet : IterationSet, var field : Field, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement {
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPoints\n"
 
-  var expCount = 0
+  def expandSpecial(collector : StackCollector) : Output[Statement] = {
+    val insideFragLoop = collector.stack.map(node => node match { case loop : LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
+    if (insideFragLoop) {
+      LoopOverPointsInOneFragment(iterationSet, field, body, reduction)
+    } else {
+      new LoopOverFragments(field.domain.index,
+        LoopOverPointsInOneFragment(iterationSet, field, body, reduction),
+        reduction) with OMP_PotentiallyParallel
+    }
+  }
+}
 
-  def expand : Output[Statement] /*FIXME: ForLoopStatement*/ = {
+case class LoopOverPointsInOneFragment(var iterationSet : IterationSet, var field : Field, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement with Expandable {
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPointsInOneFragment\n"
+
+  def expand : Output[LoopOverDimensions] = {
     var start : ListBuffer[Expression] = ListBuffer()
     var stop : ListBuffer[Expression] = ListBuffer()
     for (i <- 0 until Knowledge.dimensionality) {
-      // Stefan: exchange the following 2 lines for const loop boundaries
       start += OffsetIndex(0, 1, field.layout(i).idxDupLeftBegin - field.referenceOffset(i) + iterationSet.begin(i), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), i))
       stop += OffsetIndex(-1, 0, field.layout(i).idxDupRightEnd - field.referenceOffset(i) - iterationSet.end(i), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), i))
-      //      start += field.layout(i).idxDupLeftBegin - field.referenceOffset(i) + iterationSet.begin(i)
-      //      stop += field.layout(i).idxDupRightEnd - field.referenceOffset(i) - iterationSet.end(i)
     }
 
     var indexRange = IndexRange(new MultiIndex(start.toArray), new MultiIndex(stop.toArray))
     SimplifyStrategy.doUntilDoneStandalone(indexRange)
 
-    new LoopOverFragments(field.domain.index, // FIXME: define LoopOverFragments in L4 DSL
-      new LoopOverDimensions(Knowledge.dimensionality, indexRange, body, iterationSet.increment, reduction, iterationSet.condition) with OMP_PotentiallyParallel with PolyhedronAccessable,
-      reduction) with OMP_PotentiallyParallel
+    new LoopOverDimensions(Knowledge.dimensionality, indexRange, body, iterationSet.increment, reduction, iterationSet.condition) with OMP_PotentiallyParallel with PolyhedronAccessable
   }
 }
 

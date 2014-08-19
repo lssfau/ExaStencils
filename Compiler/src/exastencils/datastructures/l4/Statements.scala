@@ -70,11 +70,18 @@ case class AssignmentStatement(var dest : Access, var src : Expression, var op :
   }
 }
 
-case class LoopOverDomainStatement(var iterationSet : String, var field : FieldAccess, var statements : List[Statement], var reduction : Option[ReductionStatement]) extends Statement {
-  def progressToIr : ir.LoopOverDomain = {
-    ir.LoopOverDomain(knowledge.IterationSetCollection.getIterationSetByIdentifier(iterationSet).get,
+case class LoopOverPointsStatement(var iterationSet : String, var field : FieldAccess, var statements : List[Statement], var reduction : Option[ReductionStatement]) extends Statement {
+  def progressToIr : ir.LoopOverPoints = {
+    ir.LoopOverPoints(knowledge.IterationSetCollection.getIterationSetByIdentifier(iterationSet).get,
       field.resolveField,
       statements.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
+      if (reduction.isDefined) Some(reduction.get.progressToIr) else None)
+  }
+}
+
+case class LoopOverFragmentsStatement(var statements : List[Statement], var reduction : Option[ReductionStatement]) extends Statement {
+  def progressToIr : ir.LoopOverFragments = {
+    ir.LoopOverFragments(-1, statements.map(s => s.progressToIr).to[ListBuffer],
       if (reduction.isDefined) Some(reduction.get.progressToIr) else None)
   }
 }

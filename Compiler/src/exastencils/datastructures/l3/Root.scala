@@ -30,6 +30,7 @@ case class Root() extends Node {
   var genSetableStencil : Boolean = false && !kelvin
   var useVecFields : Boolean = false && !kelvin // attempts to solve Poisson's equation for (numVecDims)D vectors; atm all three components are solved independently
   var numVecDims = (if (useVecFields) 2 else 1)
+  var testFragLoops = true
 
   /// optional features  
   var printFieldAtEnd : Boolean = false || kelvin
@@ -725,10 +726,15 @@ case class Root() extends Node {
     printer.println(s"\tcommunicate Solution$postfix@current")
     if (genTimersForComm)
       printer.println(s"\tstopTimer ( commTimer${if (genCommTimersPerLevel) "@current" else ""} )")
+    if (testFragLoops)
+      printer.println(s"\tloop over fragments {")
     printer.println(s"\tloop over inner on Residual$postfix@current {")
     for (vecDim <- 0 until numVecDims)
       printer.println(s"\t\t${residualFields(s"current", postfix)(vecDim)} = ${rhsFields(s"current", postfix)(vecDim)} - (Laplace$postfix@current * ${solutionFields(s"current", postfix)(vecDim)})")
     printer.println(s"\t}")
+    if (testFragLoops)
+      printer.println(s"\t}")
+
     if (testCommCompOverlap) {
       printer.println(s"\tif ( levels@current > levels@coarsest ) {") // TODO: merge to one condition as soon as supported by l4 parser
       printer.println(s"\tif ( startComm > 0 ) {")

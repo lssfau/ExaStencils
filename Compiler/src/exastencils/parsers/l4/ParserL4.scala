@@ -2,7 +2,6 @@ package exastencils.parsers.l4
 
 import scala.collection.immutable.PagedSeq
 import scala.util.parsing.input.PagedSeqReader
-
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.parsers._
@@ -109,6 +108,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| repeatUp
     ||| repeatUntil
     ||| loopOver
+    ||| loopOverFragments
     ||| assignment
     ||| operatorassignment
     ||| locationize(functionCall ^^ { case f => FunctionCallStatement(f) })
@@ -121,8 +121,10 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val repeatUntil = locationize(
     (("repeat" ~ "until") ~> comparison) ~ (("{" ~> statement.+) <~ "}") ^^ { case c ~ s => RepeatUntilStatement(c, s) })
 
+  lazy val loopOverFragments = locationize(("loop" ~ "over" ~ "fragments") ~ ("with" ~> loopOverWithClause).? ~ ("{" ~> statement.+ <~ "}") ^^
+    { case _ ~ red ~ stmts => LoopOverFragmentsStatement(stmts, red) })
   lazy val loopOver = locationize(("loop" ~ "over" ~> ident) ~ ("on" ~> fieldLikeAccess) ~ ("with" ~> loopOverWithClause).? ~ ("{" ~> statement.+ <~ "}") ^^
-    { case area ~ field ~ red ~ stmts => LoopOverDomainStatement(area, field.resolveToFieldAccess, stmts, red) })
+    { case area ~ field ~ red ~ stmts => LoopOverPointsStatement(area, field.resolveToFieldAccess, stmts, red) })
   lazy val loopOverWithClause = locationize((("reduction" ~ "(") ~> ("+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => ReductionStatement(op, s) })
 
   lazy val assignment = locationize((flatAccess ||| fieldLikeAccess) ~ "=" ~ expression ^^ { case id ~ op ~ exp => AssignmentStatement(id, exp, op) })

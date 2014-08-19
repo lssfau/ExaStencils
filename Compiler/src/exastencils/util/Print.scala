@@ -35,7 +35,7 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
     access.index(Knowledge.dimensionality) = 0
     statements += new MPI_Sequential(ListBuffer[Statement](
       "std::ofstream stream(" ~ filename ~ ", std::ios::app)",
-      new LoopOverDomain(IterationSetCollection.getIterationSetByIdentifier("inner").get, /* FIXME */
+      new LoopOverPoints(IterationSetCollection.getIterationSetByIdentifier("inner").get, /* FIXME */
         field.field,
         ListBuffer[Statement](
           new InitGeomCoords(field.field, false),
