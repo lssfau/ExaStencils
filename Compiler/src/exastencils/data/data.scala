@@ -30,7 +30,9 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
           statements += new AssignmentStatement(iv.FieldData(field, slot), iv.FieldData(field, slot) + field.alignmentPadding)
       }
 
-      body += new LoopOverFragments(field.domain.index, statements) with OMP_PotentiallyParallel
+      body += new LoopOverFragments(
+        new ConditionStatement(iv.IsValidForSubdomain(field.domain.index),
+          statements)) with OMP_PotentiallyParallel
     }
 
     return FunctionStatement(new UnitDatatype(), s"setupBuffers", ListBuffer(), body)

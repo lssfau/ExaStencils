@@ -18,14 +18,15 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
     var statements : ListBuffer[Statement] = new ListBuffer
 
     for (field <- fields) {
-      statements += new LoopOverFragments(field.domain.index,
-        new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
-          new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => field.layout(i).idxGhostLeftBegin)),
-          new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => field.layout(i).idxGhostRightEnd))),
-          (0 until field.numSlots).to[ListBuffer].map(slot =>
-            new AssignmentStatement(
-              new DirectFieldAccess(FieldSelection(field, slot, -1), LoopOverDimensions.defIt),
-              0.0) : Statement)) with OMP_PotentiallyParallel with PolyhedronAccessable) with OMP_PotentiallyParallel
+      statements += new LoopOverFragments(
+        new ConditionStatement(iv.IsValidForSubdomain(field.domain.index),
+          new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
+            new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => field.layout(i).idxGhostLeftBegin)),
+            new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => field.layout(i).idxGhostRightEnd))),
+            (0 until field.numSlots).to[ListBuffer].map(slot =>
+              new AssignmentStatement(
+                new DirectFieldAccess(FieldSelection(field, slot, -1), LoopOverDimensions.defIt),
+                0.0) : Statement)) with OMP_PotentiallyParallel with PolyhedronAccessable)) with OMP_PotentiallyParallel
     }
 
     new FunctionStatement(new UnitDatatype, s"initFieldsWithZero", ListBuffer[VariableAccess](), statements)

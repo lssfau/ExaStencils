@@ -21,16 +21,17 @@ case class LocalSend(var field : FieldSelection, var neighbors : ListBuffer[(Nei
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LocalSend\n"
 
   def expand : Output[LoopOverFragments] = {
-    new LoopOverFragments(field.domainIndex,
-      neighbors.map(neigh =>
-        (new ConditionStatement(iv.NeighborIsValid(field.domainIndex, neigh._1.index) AndAnd UnaryExpression(UnaryOperators.Not, iv.NeighborIsRemote(field.domainIndex, neigh._1.index)),
-          ListBuffer[Statement](
-            new LoopOverDimensions(Knowledge.dimensionality + 1,
-              neigh._2,
-              new AssignmentStatement(
-                new DirectFieldAccess(FieldSelection(field.field, field.slot, -1, iv.NeighborFragLocalId(field.domainIndex, neigh._1.index)), new MultiIndex(
-                  new MultiIndex(LoopOverDimensions.defIt, neigh._3.begin, _ + _), neigh._2.begin, _ - _)),
-                new DirectFieldAccess(FieldSelection(field.field, field.slot, -1), LoopOverDimensions.defIt))) with OMP_PotentiallyParallel with PolyhedronAccessable))) : Statement)) with OMP_PotentiallyParallel
+    new LoopOverFragments(
+      new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
+        neighbors.map(neigh =>
+          (new ConditionStatement(iv.NeighborIsValid(field.domainIndex, neigh._1.index) AndAnd UnaryExpression(UnaryOperators.Not, iv.NeighborIsRemote(field.domainIndex, neigh._1.index)),
+            ListBuffer[Statement](
+              new LoopOverDimensions(Knowledge.dimensionality + 1,
+                neigh._2,
+                new AssignmentStatement(
+                  new DirectFieldAccess(FieldSelection(field.field, field.slot, -1, iv.NeighborFragLocalId(field.domainIndex, neigh._1.index)), new MultiIndex(
+                    new MultiIndex(LoopOverDimensions.defIt, neigh._3.begin, _ + _), neigh._2.begin, _ - _)),
+                  new DirectFieldAccess(FieldSelection(field.field, field.slot, -1), LoopOverDimensions.defIt))) with OMP_PotentiallyParallel with PolyhedronAccessable))) : Statement))) with OMP_PotentiallyParallel
   }
 }
 
@@ -145,16 +146,26 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
     //        new ForLoopStatement(s"int i = $minIdx", s"i <= $maxIdx", "++i", ...)
     if (Knowledge.comm_useFragmentLoopsForEachOp)
       ListBuffer[Statement](
-        if (start) new LoopOverFragments(field.domainIndex, neighbors.map(neigh => genCopy(neigh._1, neigh._2, true))) with OMP_PotentiallyParallel else NullStatement,
-        if (start) new LoopOverFragments(field.domainIndex, neighbors.map(neigh => genTransfer(neigh._1, neigh._2, true))) with OMP_PotentiallyParallel else NullStatement,
-        if (end) new LoopOverFragments(field.domainIndex, neighbors.map(neigh => genWait(neigh._1))) else NullStatement)
+        if (start) new LoopOverFragments(
+          new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
+            neighbors.map(neigh => genCopy(neigh._1, neigh._2, true)))) with OMP_PotentiallyParallel
+        else NullStatement,
+        if (start) new LoopOverFragments(
+          new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
+            neighbors.map(neigh => genTransfer(neigh._1, neigh._2, true)))) with OMP_PotentiallyParallel
+        else NullStatement,
+        if (end) new LoopOverFragments(
+          new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
+            neighbors.map(neigh => genWait(neigh._1))))
+        else NullStatement)
     else
       ListBuffer[Statement](
-        new LoopOverFragments(field.domainIndex, neighbors.map(neigh =>
-          wrapCond(neigh._1, ListBuffer(
-            if (start) genCopy(neigh._1, neigh._2, false) else NullStatement,
-            if (start) genTransfer(neigh._1, neigh._2, false) else NullStatement,
-            if (end) genWait(neigh._1) else NullStatement)))) with OMP_PotentiallyParallel)
+        new LoopOverFragments(
+          new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex), neighbors.map(neigh =>
+            wrapCond(neigh._1, ListBuffer(
+              if (start) genCopy(neigh._1, neigh._2, false) else NullStatement,
+              if (start) genTransfer(neigh._1, neigh._2, false) else NullStatement,
+              if (end) genWait(neigh._1) else NullStatement))))) with OMP_PotentiallyParallel)
   }
 }
 
@@ -196,16 +207,26 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
     //        new ForLoopStatement(s"int i = $minIdx", s"i <= $maxIdx", "++i", ...)
     if (Knowledge.comm_useFragmentLoopsForEachOp)
       ListBuffer[Statement](
-        if (start) new LoopOverFragments(field.domainIndex, neighbors.map(neigh => genTransfer(neigh._1, neigh._2, true))) with OMP_PotentiallyParallel else NullStatement,
-        if (end) new LoopOverFragments(field.domainIndex, neighbors.map(neigh => genWait(neigh._1))) else NullStatement,
-        if (end) new LoopOverFragments(field.domainIndex, neighbors.map(neigh => genCopy(neigh._1, neigh._2, true))) with OMP_PotentiallyParallel else NullStatement)
+        if (start) new LoopOverFragments(
+          new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
+            neighbors.map(neigh => genTransfer(neigh._1, neigh._2, true)))) with OMP_PotentiallyParallel
+        else NullStatement,
+        if (end) new LoopOverFragments(
+          new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
+            neighbors.map(neigh => genWait(neigh._1))))
+        else NullStatement,
+        if (end) new LoopOverFragments(
+          new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
+            neighbors.map(neigh => genCopy(neigh._1, neigh._2, true)))) with OMP_PotentiallyParallel
+        else NullStatement)
     else
       ListBuffer[Statement](
-        new LoopOverFragments(field.domainIndex, neighbors.map(neigh =>
-          wrapCond(neigh._1, ListBuffer(
-            if (start) genTransfer(neigh._1, neigh._2, false) else NullStatement,
-            if (end) genWait(neigh._1) else NullStatement,
-            if (end) genCopy(neigh._1, neigh._2, false) else NullStatement)))) with OMP_PotentiallyParallel)
+        new LoopOverFragments(
+          new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex), neighbors.map(neigh =>
+            wrapCond(neigh._1, ListBuffer(
+              if (start) genTransfer(neigh._1, neigh._2, false) else NullStatement,
+              if (end) genWait(neigh._1) else NullStatement,
+              if (end) genCopy(neigh._1, neigh._2, false) else NullStatement))))) with OMP_PotentiallyParallel)
   }
 }
 

@@ -31,6 +31,7 @@ case class Root() extends Node {
   var useVecFields : Boolean = false && !kelvin // attempts to solve Poisson's equation for (numVecDims)D vectors; atm all three components are solved independently
   var numVecDims = (if (useVecFields) 2 else 1)
   var testFragLoops = true
+  var testDomainEmbedding = true && !kelvin
 
   /// optional features  
   var printFieldAtEnd : Boolean = false || kelvin
@@ -86,10 +87,16 @@ case class Root() extends Node {
           printer.println("Domain innerDom< [ 0, 0 ] to [ 1, 1 ] >")
         } else {
           printer.println("Domain global< [ 0, 0 ] to [ 1, 1 ] >")
+          if (testDomainEmbedding)
+            printer.println(s"Domain innerDom< [ ${0.0 + 1.0 / Knowledge.domain_numFragsTotal_x}, ${0.0 + 1.0 / Knowledge.domain_numFragsTotal_y} ] " +
+              s"to [ ${1.0 - 1.0 / Knowledge.domain_numFragsTotal_x}, ${1.0 - 1.0 / Knowledge.domain_numFragsTotal_y} ] >")
         }
       }
       case 3 => {
         printer.println("Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >")
+        if (testDomainEmbedding)
+          printer.println(s"Domain innerDom< [ ${0.0 + 1.0 / Knowledge.domain_numFragsTotal_x}, ${0.0 + 1.0 / Knowledge.domain_numFragsTotal_y} ], ${0.0 + 1.0 / Knowledge.domain_numFragsTotal_z} ] " +
+            s"to [ ${1.0 - 1.0 / Knowledge.domain_numFragsTotal_x}, ${1.0 - 1.0 / Knowledge.domain_numFragsTotal_y} ], ${1.0 - 1.0 / Knowledge.domain_numFragsTotal_z} ] >")
       }
     }
     printer.println
@@ -1059,7 +1066,7 @@ case class Root() extends Node {
       addFields(printer, "", "innerDom")
       addFields(printer, "_GMRF", "global")
     } else {
-      addFields(printer, "", "global")
+      addFields(printer, "", if (testDomainEmbedding) "innerDom" else "global")
     }
 
     if (kelvin) {
@@ -1079,7 +1086,7 @@ case class Root() extends Node {
       addStencilFields(printer, "", "innerDom")
       addStencilFields(printer, "_GMRF", "global")
     } else {
-      addStencilFields(printer, "", "global")
+      addStencilFields(printer, "", if (testDomainEmbedding) "innerDom" else "global")
     }
 
     // External Fields

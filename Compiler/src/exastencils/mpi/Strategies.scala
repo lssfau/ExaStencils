@@ -96,7 +96,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   this += new Transformation("Extending SetupBuffers function", {
     // FIXME: this kind of matching is awkward, I want trafos that don't return nodes
     case func : FunctionStatement if (("setupBuffers" : Expression) == func.name) =>
-      func.body += new LoopOverFragments(-1, bufferSizes.map(buf => new AssignmentStatement(buf._1, s"new double[${buf._2}]") : Statement).to[ListBuffer]) with OMP_PotentiallyParallel
+      func.body += new LoopOverFragments(bufferSizes.map(buf => new AssignmentStatement(buf._1, s"new double[${buf._2}]") : Statement).to[ListBuffer]) with OMP_PotentiallyParallel
       func
   })
 }

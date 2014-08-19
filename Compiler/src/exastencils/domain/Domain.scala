@@ -156,7 +156,7 @@ case class ConnectFragments() extends Statement with Expandable {
       }
     }
 
-    new LoopOverFragments(-1, body) with OMP_PotentiallyParallel
+    new LoopOverFragments(body) with OMP_PotentiallyParallel
   }
 }
 
@@ -192,7 +192,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
             ~ ((("rankPos.x" : Expression) * Knowledge.domain_numFragsPerBlock_x + 0.5 + dimToString(0)) * fragWidth_x) + globalDomain.size.lower_x ~ ","
             ~ (if (Knowledge.dimensionality > 1) ((("rankPos.y" : Expression) * Knowledge.domain_numFragsPerBlock_y + 0.5 + dimToString(1)) * fragWidth_y) + globalDomain.size.lower_y else 0) ~ ","
             ~ (if (Knowledge.dimensionality > 2) ((("rankPos.z" : Expression) * Knowledge.domain_numFragsPerBlock_z + 0.5 + dimToString(2)) * fragWidth_z) + globalDomain.size.lower_z else 0) ~ ")")),
-        LoopOverFragments(-1, ListBuffer(
+        LoopOverFragments(ListBuffer(
           AssignmentStatement(iv.PrimitiveId(), PointToFragmentId(s"positions[${LoopOverFragments.defIt}]")),
           AssignmentStatement(iv.CommId(), PointToLocalFragmentId(s"positions[${LoopOverFragments.defIt}]")),
           AssignmentStatement(iv.PrimitivePosition(), s"positions[${LoopOverFragments.defIt}]"),

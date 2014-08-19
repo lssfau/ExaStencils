@@ -49,7 +49,7 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
     if (canBePerDomain && usesDomainArrays && DomainCollection.domains.size > 1)
       wrappedBody = new LoopOverDomains(wrappedBody)
     if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragsPerBlock > 1)
-      wrappedBody = new LoopOverFragments(-1, wrappedBody)
+      wrappedBody = new LoopOverFragments(wrappedBody)
 
     wrappedBody
   }

@@ -16,20 +16,19 @@ case class LoopOverPoints(var iterationSet : IterationSet, var field : Field, va
 
   def expandSpecial(collector : StackCollector) : Output[Statement] = {
     val insideFragLoop = collector.stack.map(node => node match { case loop : LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
-    if (insideFragLoop) {
-      LoopOverPointsInOneFragment(iterationSet, field, body, reduction)
-    } else {
-      new LoopOverFragments(field.domain.index,
-        LoopOverPointsInOneFragment(iterationSet, field, body, reduction),
-        reduction) with OMP_PotentiallyParallel
-    }
+    val innerLoop = LoopOverPointsInOneFragment(field.domain.index, iterationSet, field, body, reduction)
+
+    if (insideFragLoop)
+      innerLoop
+    else
+      new LoopOverFragments(innerLoop, reduction) with OMP_PotentiallyParallel
   }
 }
 
-case class LoopOverPointsInOneFragment(var iterationSet : IterationSet, var field : Field, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement with Expandable {
+case class LoopOverPointsInOneFragment(var domain : Int, var iterationSet : IterationSet, var field : Field, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement with Expandable {
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPointsInOneFragment\n"
 
-  def expand : Output[LoopOverDimensions] = {
+  def expand : Output[Statement] = {
     var start : ListBuffer[Expression] = ListBuffer()
     var stop : ListBuffer[Expression] = ListBuffer()
     for (i <- 0 until Knowledge.dimensionality) {
@@ -40,7 +39,11 @@ case class LoopOverPointsInOneFragment(var iterationSet : IterationSet, var fiel
     var indexRange = IndexRange(new MultiIndex(start.toArray), new MultiIndex(stop.toArray))
     SimplifyStrategy.doUntilDoneStandalone(indexRange)
 
-    new LoopOverDimensions(Knowledge.dimensionality, indexRange, body, iterationSet.increment, reduction, iterationSet.condition) with OMP_PotentiallyParallel with PolyhedronAccessable
+    var ret : Statement = new LoopOverDimensions(Knowledge.dimensionality, indexRange, body, iterationSet.increment, reduction, iterationSet.condition) with OMP_PotentiallyParallel with PolyhedronAccessable
+    if (domain >= 0)
+      new ConditionStatement(iv.IsValidForSubdomain(domain), ret)
+    else
+      ret
   }
 }
 
@@ -192,11 +195,11 @@ case class LoopOverDimensions(var numDimensions : Int,
 
 object LoopOverFragments { def defIt = "fragmentIdx" }
 
-case class LoopOverFragments(var domain : Int, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement with Expandable {
+case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement with Expandable {
   import LoopOverFragments._
 
-  def this(domain : Int, body : Statement, reduction : Option[Reduction]) = this(domain, ListBuffer(body), reduction)
-  def this(domain : Int, body : Statement) = this(domain, ListBuffer(body))
+  def this(body : Statement, reduction : Option[Reduction]) = this(ListBuffer(body), reduction)
+  def this(body : Statement) = this(ListBuffer(body))
 
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LoopOverFragments\n"
 
@@ -204,18 +207,12 @@ case class LoopOverFragments(var domain : Int, var body : ListBuffer[Statement],
     val parallelizable = Knowledge.omp_parallelizeLoopOverFragments && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
     var statements = new ListBuffer[Statement]
 
-    var modifiedBody : ListBuffer[Statement] = new ListBuffer
-    if (domain >= 0)
-      modifiedBody += new ConditionStatement(iv.IsValidForSubdomain(domain), body)
-    else
-      modifiedBody ++= body
-
     if (parallelizable)
       statements += new ForLoopStatement(s"int $defIt = 0", s"$defIt < " ~ Knowledge.domain_numFragsPerBlock, s"++$defIt",
-        modifiedBody, reduction) with OMP_PotentiallyParallel
+        body, reduction) with OMP_PotentiallyParallel
     else
       statements += new ForLoopStatement(s"int $defIt = 0", s"$defIt < " ~ Knowledge.domain_numFragsPerBlock, s"++$defIt",
-        modifiedBody, reduction)
+        body, reduction)
 
     if (Knowledge.useMPI && reduction.isDefined) {
       statements += new MPI_Allreduce("&" ~ reduction.get.target, new RealDatatype, 1, reduction.get.op) // FIXME: get dt and cnt from reduction
