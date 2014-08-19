@@ -123,15 +123,18 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val loopOverFragments = locationize(("loop" ~ "over" ~ "fragments") ~ ("with" ~> reductionClause).? ~ ("{" ~> statement.+ <~ "}") ^^
     { case _ ~ red ~ stmts => LoopOverFragmentsStatement(stmts, red) })
-  // loop over $field where $cond starting $index ending $index stepping $step with reduction $red
+  // loop over $field where $cond starting $index ending $index stepping $step contracting $number with reduction $red
   lazy val loopOver = locationize(("loop" ~ "over" ~> fieldLikeAccess) ~
     ("where" ~> booleanexpression).? ~
     ("starting" ~> expressionIndex).? ~
     ("ending" ~> expressionIndex).? ~
     ("stepping" ~> expressionIndex).? ~
+    ("contracting" ~> numericLit).? ~
     ("with" ~> reductionClause).? ~
-    ("{" ~> statement.+ <~ "}") ^^
-    { case field ~ cond ~ startOff ~ endOff ~ inc ~ red ~ stmts => LoopOverPointsStatement(field.resolveToFieldAccess, cond, startOff, endOff, inc, stmts, red) })
+    ("{" ~> statement.+ <~ "}") ^^ {
+      case field ~ cond ~ startOff ~ endOff ~ inc ~ contr ~ red ~ stmts =>
+        LoopOverPointsStatement(field.resolveToFieldAccess, cond, startOff, endOff, inc, if (contr.isDefined) Some(contr.get.toInt) else None, stmts, red)
+    })
   lazy val reductionClause = locationize((("reduction" ~ "(") ~> ("+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => ReductionStatement(op, s) })
 
   lazy val assignment = locationize((flatAccess ||| fieldLikeAccess) ~ "=" ~ expression ^^ { case id ~ op ~ exp => AssignmentStatement(id, exp, op) })

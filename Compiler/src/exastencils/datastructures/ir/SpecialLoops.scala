@@ -11,13 +11,13 @@ import exastencils.polyhedron._
 import exastencils.strategies._
 import exastencils.core.collectors.StackCollector
 
-case class LoopOverPoints(var field : Field, var startOffset : MultiIndex, var endOffset : MultiIndex, var increment : MultiIndex,
+case class LoopOverPoints(var field : Field, var startOffset : MultiIndex, var endOffset : MultiIndex, var increment : MultiIndex, var contracting : Int,
     var body : ListBuffer[Statement], var reduction : Option[Reduction] = None, var condition : Option[Expression] = None) extends Statement {
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPoints\n"
 
   def expandSpecial(collector : StackCollector) : Output[Statement] = {
     val insideFragLoop = collector.stack.map(node => node match { case loop : LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
-    val innerLoop = LoopOverPointsInOneFragment(field.domain.index, field, startOffset, endOffset, increment, body, reduction, condition)
+    val innerLoop = LoopOverPointsInOneFragment(field.domain.index, field, startOffset, endOffset, increment, contracting, body, reduction, condition)
 
     if (insideFragLoop)
       innerLoop
@@ -27,7 +27,7 @@ case class LoopOverPoints(var field : Field, var startOffset : MultiIndex, var e
 }
 
 case class LoopOverPointsInOneFragment(var domain : Int, var field : Field,
-    var startOffset : MultiIndex, var endOffset : MultiIndex, var increment : MultiIndex,
+    var startOffset : MultiIndex, var endOffset : MultiIndex, var increment : MultiIndex, var contracting : Int,
     var body : ListBuffer[Statement], var reduction : Option[Reduction] = None, var condition : Option[Expression] = None) extends Statement with Expandable {
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPointsInOneFragment\n"
 
