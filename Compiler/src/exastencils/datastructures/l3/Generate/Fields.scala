@@ -5,22 +5,32 @@ import exastencils.knowledge._
 object Fields {
   def solution(level : String, postfix : String = "") = {
     if (Knowledge.useVecFields)
-      (0 until Knowledge.numVecDims).toArray.map(d => s"Solution${if (Knowledge.useSlotsForJac) "[0]" else ""}@$level[$d]")
+      (0 until Knowledge.numVecDims).toArray.map(d => s"Solution$postfix${if (Knowledge.useSlotsForJac) "[0]" else ""}@$level[$d]")
     else
       Array(s"Solution$postfix${if (Knowledge.useSlotsForJac) "[0]" else ""}@$level")
   }
+
   def solution2(level : String, postfix : String = "") = {
     if (Knowledge.useVecFields)
-      (0 until Knowledge.numVecDims).toArray.map(d => s"Solution${if (Knowledge.useSlotsForJac) "[1]" else "2"}@$level[$d]")
+      (0 until Knowledge.numVecDims).toArray.map(d => s"Solution$postfix${if (Knowledge.useSlotsForJac) "[1]" else "2"}@$level[$d]")
     else
       Array(s"Solution${if (Knowledge.useSlotsForJac) s"$postfix[1]" else s"2$postfix"}@$level")
   }
+
+  def solutionSlotted(level : String, slot : String, postfix : String = "") = {
+    if (Knowledge.useVecFields)
+      (0 until Knowledge.numVecDims).toArray.map(d => s"Solution$postfix[$slot]@$level[$d]")
+    else
+      Array(s"Solution$postfix[$slot]@$level")
+  }
+
   def residual(level : String, postfix : String = "") = {
     if (Knowledge.useVecFields)
       (0 until Knowledge.numVecDims).toArray.map(d => s"Residual$postfix@$level[$d]")
     else
       Array(s"Residual$postfix@$level")
   }
+
   def rhs(level : String, postfix : String = "") = {
     if (Knowledge.useVecFields)
       (0 until Knowledge.numVecDims).toArray.map(d => s"RHS$postfix@$level[$d]")

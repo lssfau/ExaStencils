@@ -6,19 +6,35 @@ object Smoothers {
   def omegaToPrint = (if (Knowledge.omegaViaGlobals) "omega" else Knowledge.omega)
 
   def addBodyJac(printer : java.io.PrintWriter, postfix : String, stencil : String) = {
-    Communication.exch(printer, s"Solution$postfix${if (Knowledge.useSlotsForJac) "[0]" else ""}@current")
 
-    printer.println(s"\tloop over Solution$postfix@current {")
-    for (vecDim <- 0 until Knowledge.numVecDims)
-      printer.println(s"\t\t${Fields.solution2(s"current", postfix)(vecDim)} = ${Fields.solution(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( $stencil ) ) * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solution(s"current", postfix)(vecDim)} ) )")
-    printer.println(s"\t}")
+    if (Knowledge.useSlotVariables && Knowledge.useSlotsForJac) {
+      printer.println(s"\tVariable solSlot : Integer = 0")
 
-    Communication.exch(printer, s"Solution${if (Knowledge.useSlotsForJac) s"$postfix[1]" else s"2$postfix"}@current")
+      printer.println(s"\trepeat 2 times {")
+      Communication.exch(printer, s"Solution$postfix[solSlot]@current")
 
-    printer.println(s"\tloop over Solution$postfix@current {")
-    for (vecDim <- 0 until Knowledge.numVecDims)
-      printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)} = ${Fields.solution2(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( $stencil ) ) * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solution2(s"current", postfix)(vecDim)} ) )")
-    printer.println(s"\t}")
+      printer.println(s"\t\tloop over Solution$postfix@current {")
+      for (vecDim <- 0 until Knowledge.numVecDims)
+        printer.println(s"\t\t\t${Fields.solutionSlotted(s"current", "(solSlot + 1) % 2", postfix)(vecDim)} = ${Fields.solutionSlotted(s"current", "(solSlot + 0) % 2", postfix)(vecDim)} + ( ( ( 1.0 / diag ( $stencil ) ) * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solutionSlotted(s"current", "(solSlot + 0) % 2", postfix)(vecDim)} ) )")
+      printer.println(s"\t\t}")
+
+      printer.println(s"\tsolSlot += 1")
+      printer.println(s"\t}")
+    } else {
+      Communication.exch(printer, s"Solution$postfix${if (Knowledge.useSlotsForJac) "[0]" else ""}@current")
+
+      printer.println(s"\tloop over Solution$postfix@current {")
+      for (vecDim <- 0 until Knowledge.numVecDims)
+        printer.println(s"\t\t${Fields.solution2(s"current", postfix)(vecDim)} = ${Fields.solution(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( $stencil ) ) * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solution(s"current", postfix)(vecDim)} ) )")
+      printer.println(s"\t}")
+
+      Communication.exch(printer, s"Solution${if (Knowledge.useSlotsForJac) s"$postfix[1]" else s"2$postfix"}@current")
+
+      printer.println(s"\tloop over Solution$postfix@current {")
+      for (vecDim <- 0 until Knowledge.numVecDims)
+        printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)} = ${Fields.solution2(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( $stencil ) ) * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solution2(s"current", postfix)(vecDim)} ) )")
+      printer.println(s"\t}")
+    }
   }
 
   def addBodyRBGS(printer : java.io.PrintWriter, postfix : String, stencil : String) = {

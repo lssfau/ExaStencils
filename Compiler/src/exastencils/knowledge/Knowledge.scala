@@ -154,6 +154,7 @@ object Knowledge {
   var testCommCompOverlap : Boolean = false // NOTE: overlap will not work when using commStrategy 6
   var genRBSetsWithConditions : Boolean = true // NOTE: due to the boundary offsets, NOT using conditions leads to a color mismatch at primitive boundaries and thus to a reduced convergence rate
   var useSlotsForJac : Boolean = true
+  var useSlotVariables : Boolean = true && useSlotsForJac
 
   /// functionality test
   var testBC : Boolean = true && (2 == dimensionality) && !kelvin // NOTE: the tested bc will only be reasonable for 2D cases
