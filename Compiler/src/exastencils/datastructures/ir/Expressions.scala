@@ -2,8 +2,8 @@ package exastencils.datastructures.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.core.Duplicate
-import exastencils.datastructures.Node
+import exastencils.core._
+import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
@@ -34,8 +34,6 @@ trait Expression extends Node with CppPrettyPrintable {
   def <=(other : Expression) = new LowerEqualExpression(this, other)
   def >(other : Expression) = new GreaterExpression(this, other)
   def >=(other : Expression) = new GreaterEqualExpression(this, other)
-
-  def simplify : Expression = this // TODO: is this needed?
 }
 
 object BinaryOperators extends Enumeration {
@@ -101,7 +99,7 @@ trait Number extends Expression {
 }
 
 case object NullExpression extends Expression {
-	exastencils.core.Duplicate.registerConstant(this)
+  exastencils.core.Duplicate.registerConstant(this)
   override def cpp(out : CppStream) : Unit = ()
 }
 

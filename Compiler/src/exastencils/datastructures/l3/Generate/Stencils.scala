@@ -6,7 +6,7 @@ object Stencils {
   def access(postfix : String) : String = {
     if (Knowledge.testStencilStencil) {
       if (Knowledge.genStencilFields)
-        s"( CorrectionStencil@current * ( ToCoarser ( Laplace$postfix@finer ) * RestrictionStencil@current ) )"
+        s"( CorrectionStencil@current * ( Laplace$postfix@finer * RestrictionStencil@current ) )"
       else
         s"( CorrectionStencil@current * ( Laplace$postfix@finer * RestrictionStencil@current ) )"
     } else

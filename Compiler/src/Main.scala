@@ -70,16 +70,18 @@ object Main {
 
     SetupDataStructures.apply() // Stefan: This adds the setupBuffer func which will be exapanded using the field info in the next expand step 
     SetupCommunication.apply()
+
     ResolveLoopOverPoints.apply()
+    ResolveIntergridIndices.apply()
 
     var numConvFound = 1
     while (numConvFound > 0) {
       FindStencilConvolutions.apply()
-      ResolveSpecialFunctions.apply()
       numConvFound = FindStencilConvolutions.results.last._2.matches
       ExpandStrategy.doUntilDone()
     }
 
+    ResolveSpecialFunctions.apply()
     MapStencilAssignments.apply()
 
     if (Knowledge.poly_usePolyOpt)

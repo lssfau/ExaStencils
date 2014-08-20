@@ -81,9 +81,9 @@ object InitFields {
         printer.println(s"\tloop over LaplaceCoeff$postfix@current {")
         if (false && Knowledge.kelvin) { // hack injection
           for (i <- 0 until 9)
-            printer.println(s"\t\tLaplaceCoeff$postfix@current[$i] = ToCoarser ( LaplaceCoeff$postfix@finer[$i] )")
+            printer.println(s"\t\tLaplaceCoeff$postfix@current[$i] = LaplaceCoeff$postfix@finer[$i]")
         } else {
-          printer.println(s"\t\tLaplace$postfix@current = ( CorrectionStencil@current * ( ToCoarser ( Laplace$postfix@finer ) * RestrictionStencil@current ) )")
+          printer.println(s"\t\tLaplace$postfix@current = ( CorrectionStencil@current * ( Laplace$postfix@finer * RestrictionStencil@current ) )")
         }
         printer.println(s"\t}")
         printer.println(s"}")

@@ -11,7 +11,7 @@ object Correction {
       printer.println(s"\tloop over fragments {")
     printer.println(s"\tloop over Solution$postfix@current {")
     for (vecDim <- 0 until Knowledge.numVecDims)
-      printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)} += CorrectionStencil@current * ToFiner ( ${Fields.solution(s"coarser", postfix)(vecDim)} )")
+      printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)} += CorrectionStencil@current * ${Fields.solution(s"coarser", postfix)(vecDim)}")
     printer.println(s"\t}")
     if (Knowledge.testFragLoops)
       printer.println(s"\t}")

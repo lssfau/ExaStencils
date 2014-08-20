@@ -3,6 +3,7 @@ package exastencils.multiGrid
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
+import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
@@ -10,6 +11,54 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.mpi._
 import exastencils.util._
+
+object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices") {
+  val collector = new StackCollector
+
+  override def apply(node : Option[Node] = None) : Unit = {
+    StateManager.register(collector)
+    super.apply(node)
+    StateManager.unregister(collector)
+  }
+
+  def getCurrentLevel : Int = {
+    for (n <- collector.list)
+      n match {
+        case loop : LoopOverPoints              => return loop.field.level
+        case loop : LoopOverPointsInOneFragment => return loop.field.level
+        case _                                  =>
+      }
+    Logger.dbg("Unable to find wrapping loop")
+    0
+  }
+
+  this += new Transformation("ModifyIndices", {
+    case access : FieldAccess if access.fieldSelection.level < getCurrentLevel => {
+      var fieldAccess = Duplicate(access)
+      for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
+        fieldAccess.index(i) = fieldAccess.index(i) / 2
+      fieldAccess
+    }
+    case access : FieldAccess if access.fieldSelection.level > getCurrentLevel => {
+      var fieldAccess = Duplicate(access)
+      for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
+        fieldAccess.index(i) = 2 * fieldAccess.index(i)
+      fieldAccess
+    }
+    case access : StencilFieldAccess if access.stencilFieldSelection.level < getCurrentLevel => {
+      var stencilFieldAccess = Duplicate(access)
+      for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
+        stencilFieldAccess.index(i) = stencilFieldAccess.index(i) / 2
+      stencilFieldAccess
+    }
+    case access : StencilFieldAccess if access.stencilFieldSelection.level > getCurrentLevel => {
+      var stencilFieldAccess = Duplicate(access)
+      for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
+        stencilFieldAccess.index(i) = 2 * stencilFieldAccess.index(i)
+      stencilFieldAccess
+    }
+  })
+}
 
 object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions") {
   this += new Transformation("SearchAndReplace", {
@@ -29,48 +78,6 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
       case _ => {
         println("WARN: diag with unknown arg")
         FunctionCallExpression(StringConstant("diag"), args)
-      }
-    }
-
-    // HACK to realize intergrid operations
-    case FunctionCallExpression(StringConstant("ToCoarser"), args) => args(0) match {
-      case conv : StencilConvolution => {
-        var stencilConvolution = Duplicate(conv)
-        for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
-          stencilConvolution.fieldAccess.index(i) = 2 * stencilConvolution.fieldAccess.index(i)
-        stencilConvolution
-      }
-      case access : FieldAccess => {
-        var fieldAccess = Duplicate(access)
-        for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
-          fieldAccess.index(i) = 2 * fieldAccess.index(i)
-        fieldAccess
-      }
-      case access : StencilFieldAccess => {
-        var stencilFieldAccess = Duplicate(access)
-        for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
-          stencilFieldAccess.index(i) = 2 * stencilFieldAccess.index(i)
-        stencilFieldAccess
-      }
-    }
-    case FunctionCallExpression(StringConstant("ToFiner"), args) => args(0) match {
-      case conv : StencilConvolution => {
-        var stencilConvolution = Duplicate(conv)
-        for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
-          stencilConvolution.fieldAccess.index(i) = stencilConvolution.fieldAccess.index(i) / 2
-        stencilConvolution
-      }
-      case access : FieldAccess => {
-        var fieldAccess = Duplicate(access)
-        for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
-          fieldAccess.index(i) = fieldAccess.index(i) / 2
-        fieldAccess
-      }
-      case access : StencilFieldAccess => {
-        var stencilFieldAccess = Duplicate(access)
-        for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
-          stencilFieldAccess.index(i) = stencilFieldAccess.index(i) / 2
-        stencilFieldAccess
       }
     }
 

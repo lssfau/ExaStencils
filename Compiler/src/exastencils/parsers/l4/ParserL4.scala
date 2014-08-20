@@ -97,8 +97,6 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val functionCallArgumentList = (expression <~ ("," | newline)).* ~ expression ^^ { case exps ~ ex => exps :+ ex }
 
   lazy val diagFunctionCall = locationize("diag" ~ "(" ~ binaryexpression ~ ")" ^^ { case _ ~ "(" ~ expr ~ ")" => FunctionCallExpression(BasicAccess("diag"), List[Expression](expr)) })
-  lazy val toFinerFunctionCall = locationize("ToFiner" ~ "(" ~ binaryexpression ~ ")" ^^ { case _ ~ "(" ~ expr ~ ")" => FunctionCallExpression(BasicAccess("ToFiner"), List[Expression](expr)) })
-  lazy val toCoarserFunctionCall = locationize("ToCoarser" ~ "(" ~ binaryexpression ~ ")" ^^ { case _ ~ "(" ~ expr ~ ")" => FunctionCallExpression(BasicAccess("ToCoarser"), List[Expression](expr)) })
 
   // ######################################
   // ##### Statements
@@ -248,8 +246,6 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| locationize(booleanLit ^^ { case s => BooleanConstant(s.toBoolean) })
     ||| locationize(functionCall)
     ||| locationize(diagFunctionCall)
-    ||| locationize(toFinerFunctionCall)
-    ||| locationize(toCoarserFunctionCall)
     ||| locationize(fieldLikeAccess)
     ||| locationize(stencilLikeAccess)
     ||| locationize(stencilFieldLikeAccess))

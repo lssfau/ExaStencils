@@ -14,7 +14,7 @@ object Restriction {
       printer.println(s"\tloop over fragments {")
     printer.println(s"\tloop over RHS$postfix@coarser {")
     for (vecDim <- 0 until Knowledge.numVecDims)
-      printer.println(s"\t\t${Fields.rhs(s"coarser", postfix)(vecDim)} = RestrictionStencil@current * ToCoarser ( ${Fields.residual(s"current", postfix)(vecDim)} )")
+      printer.println(s"\t\t${Fields.rhs(s"coarser", postfix)(vecDim)} = RestrictionStencil@current * ${Fields.residual(s"current", postfix)(vecDim)}")
     if (Knowledge.testFragLoops)
       printer.println(s"\t}")
     printer.println(s"\t}")

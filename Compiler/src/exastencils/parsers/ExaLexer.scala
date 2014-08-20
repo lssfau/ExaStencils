@@ -87,7 +87,4 @@ class ExaLexer extends StdLexical {
 
   // obsolete keywords
   reserved += ("steps")
-
-  // testing keywords
-  reserved += ("ToFine", "ToCoarse")
 }
