@@ -39,6 +39,8 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
   def apply(node : Node) : Transformation.Output[_] = {
 
     val scop : Scop = node.removeAnnotation(PolyOpt.SCOP_ANNOT).get.value.asInstanceOf[Scop]
+    if (scop.remove)
+      return NullStatement
     reduction = scop.reduction
 
     // find all sequential loops
@@ -85,7 +87,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
     options.clear()
     options.append('{')
     // prevent guard inside loops
-    options.append(scheduleDomain).append(" -> separate[x]")
+    options.append(scheduleDomain).append(" -> separate[xxx]")
     options.append('}')
 
     // build iterators list
@@ -100,13 +102,20 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
     var islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.domain.params())
     islBuild = islBuild.setOptions(isl.UnionMap.readFromStr(options.toString()))
     islBuild = islBuild.setIterators(itersId)
-    val islNode : isl.AstNode = islBuild.astFromSchedule(scop.schedule.intersectDomain(scop.domain))
+    var scattering : isl.UnionMap = Isl.simplify(scop.schedule.intersectDomain(scop.domain))
+    val islNode : isl.AstNode = islBuild.astFromSchedule(scattering)
     var nju : Statement =
       try {
         processIslNode(islNode)
       } catch {
         case PolyASTBuilderException(msg) =>
           Logger.debug("[poly ast] cannot create AST from model:  " + msg)
+          // remove all annotations for the merged scops, as they are invalid now
+          var s : Scop = scop.nextMerge
+          while (s != null) {
+            s.root.removeAnnotation(PolyOpt.SCOP_ANNOT)
+            s = s.nextMerge
+          }
           return node
       }
 
@@ -117,7 +126,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
       if (innermostLoops.isDefined) {
         for (l <- innermostLoops.get)
           l.isInnermost = true
-        i = 0 // break
+        i = -1 // break
       }
       i -= 1
     }
@@ -128,7 +137,8 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
       val scopeList = new ListBuffer[Statement]
       for (decl : VariableDeclarationStatement <- scop.decls) {
         decl.expression = None
-        scopeList += decl
+        if (!scopeList.contains(decl)) // only add if not yet available
+          scopeList += decl
       }
       scopeList += comment
       scopeList += nju

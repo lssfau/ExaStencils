@@ -12,6 +12,9 @@ import isl.Conversions._
 class Scop(val root : Node, val parallelize : Boolean, val reduction : Option[Reduction],
     val origIterationCount : Array[Long]) {
 
+  var nextMerge : Scop = null
+  var remove : Boolean = false
+
   var domain : isl.UnionSet = null
   var schedule : isl.UnionMap = null
   val stmts = new HashMap[String, (Statement, ArrayBuffer[String])]()
