@@ -121,7 +121,7 @@ case class SwitchStatement(var what : Expression, var body : ListBuffer[CaseStat
   }
 }
 
-case class ReturnStatement(expr : Expression) extends Statement {
+case class ReturnStatement(var expr : Expression) extends Statement {
   override def cpp(out : CppStream) : Unit = out << "return " << expr << ';'
 }
 
