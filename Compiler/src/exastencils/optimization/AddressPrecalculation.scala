@@ -79,19 +79,24 @@ private final class AnnotateLoopsAndAccesses extends Collector {
 
     val inMap : HashMap[Expression, Long] = SimplifyExpression.extractIntegralSum(ind)
 
-    def containsLoopVar(expr : Expression) : Boolean =
-      expr match {
-        case AdditionExpression(l, r)                       => containsLoopVar(l) || containsLoopVar(r)
-        case SubtractionExpression(l, r)                    => containsLoopVar(l) || containsLoopVar(r)
-        case MultiplicationExpression(l, r)                 => containsLoopVar(l) || containsLoopVar(r)
-        case DivisionExpression(l, r)                       => containsLoopVar(l) || containsLoopVar(r)
-        case ModuloExpression(l, r)                         => containsLoopVar(l) || containsLoopVar(r)
-        case UnaryExpression(UnaryOperators.Negative, expr) => containsLoopVar(expr)
-        case StringConstant(str)                            => str == loopVar
-        case VariableAccess(str, _)                         => str == loopVar
-        case _ : Datatype
-          | _ : IntegerConstant => false
+    def containsLoopVar(expr : Expression) : Boolean = {
+      var res : Boolean = false
+      val contLoopVar = new DefaultStrategy("Anonymous") {
+        this += new Transformation("contains loop var", {
+          case strC : StringConstant =>
+            res |= strC.value == loopVar
+            strC
+          case varA : VariableAccess =>
+            res |= varA.name == loopVar
+            varA
+        })
       }
+      val oldLvl = Logger.getLevel
+      Logger.setLevel(1)
+      contLoopVar.applyStandalone(new ReturnStatement(expr)) // wrap to ensure ALL nodes of expr are visited
+      Logger.setLevel(oldLvl)
+      return res
+    }
 
     for ((expr, value) <- inMap)
       if (expr != SimplifyExpression.constName && !containsLoopVar(expr))
