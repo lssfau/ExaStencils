@@ -20,8 +20,8 @@ object Domains {
       case 3 => {
         printer.println("Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >")
         if (Knowledge.testDomainEmbedding)
-          printer.println(s"Domain innerDom< [ ${0.0 + 1.0 / Knowledge.domain_numFragsTotal_x}, ${0.0 + 1.0 / Knowledge.domain_numFragsTotal_y} ], ${0.0 + 1.0 / Knowledge.domain_numFragsTotal_z} ] " +
-            s"to [ ${1.0 - 1.0 / Knowledge.domain_numFragsTotal_x}, ${1.0 - 1.0 / Knowledge.domain_numFragsTotal_y} ], ${1.0 - 1.0 / Knowledge.domain_numFragsTotal_z} ] >")
+          printer.println(s"Domain innerDom< [ ${0.0 + 1.0 / Knowledge.domain_numFragsTotal_x}, ${0.0 + 1.0 / Knowledge.domain_numFragsTotal_y}, ${0.0 + 1.0 / Knowledge.domain_numFragsTotal_z} ] " +
+            s"to [ ${1.0 - 1.0 / Knowledge.domain_numFragsTotal_x}, ${1.0 - 1.0 / Knowledge.domain_numFragsTotal_y}, ${1.0 - 1.0 / Knowledge.domain_numFragsTotal_z} ] >")
       }
     }
     printer.println
