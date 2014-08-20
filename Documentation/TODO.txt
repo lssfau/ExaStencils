@@ -5,8 +5,8 @@ Concept:
 Framework:
 - Lib/ Inc Blocks in HW Knowledge
 - reserve C keywords in lexer
+- Extend Settings parser to support floating point numbers
 
-- find a way to eliminate StatementBlocks, etc without breaking expand functionality
 - add possibility to specify trafos, that don't exchange nodes, i.e. read-only or only node-internal modification; goal is not having to return a result (for more readability and deep matches)
 - add delete node functionality
 
@@ -17,12 +17,8 @@ Framework:
 L3:
 
 L4:
-- getLevel@level
 - leveled variables
-- add val to l4 => extend DataType and/or VariableDeclarationStatement
-
-- Check BinOp PowerOf
-- extend Repeat statement with optional ident and optional lower bound
+- add Value/Val to l4 => extend DataType and/or VariableDeclarationStatement
 
 - SetStencilCoeff (id, offset, coeff)
 
