@@ -11,6 +11,7 @@ import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.knowledge.Knowledge
+import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.util.SimplifyExpression
 
 object Vectorization extends DefaultStrategy("Vectorization") {
@@ -75,16 +76,16 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
           case "+=" =>
             assignExpr match {
-              case IntegerConstant(1) => vectorizeLoop(itName, lBound, uBoundExcl, body, reduction, isInScope)
+              case IntegerConstant(1) => vectorizeLoop(loop, itName, lBound, uBoundExcl, body, reduction, isInScope)
               case _                  => throw new VectorizationException("loop increment 1 required for vectorization")
             }
 
           case "=" =>
             assignExpr match {
               case AdditionExpression(IntegerConstant(1), VariableAccess(v, Some(IntegerDatatype()))) if v == itName =>
-                vectorizeLoop(itName, lBound, uBoundExcl, body, reduction, isInScope)
+                vectorizeLoop(loop, itName, lBound, uBoundExcl, body, reduction, isInScope)
               case AdditionExpression(VariableAccess(v, Some(IntegerDatatype())), IntegerConstant(1)) if v == itName =>
-                vectorizeLoop(itName, lBound, uBoundExcl, body, reduction, isInScope)
+                vectorizeLoop(loop, itName, lBound, uBoundExcl, body, reduction, isInScope)
               case _ => throw new VectorizationException("loop increment 1 required for vectorization")
             }
 
@@ -144,7 +145,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     }
   }
 
-  private def vectorizeLoop(itName : String, begin : Expression, endExcl : Expression,
+  private def vectorizeLoop(oldLoop : ForLoopStatement, itName : String, begin : Expression, endExcl : Expression,
     body : ListBuffer[Statement], reduction : Option[Reduction], isInScope : Boolean) : Transformation.Output[_] = {
 
     val ctx = new LoopCtx(itName)
@@ -190,15 +191,18 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
     res ++= ctx.preLoopStmts
 
-    val vectLoop = new ForLoopStatement(NullStatement,
-      LowerExpression(itVar, SubtractionExpression(endExcl, IntegerConstant(Knowledge.simd_vectorSize - 1))),
-      AssignmentStatement(itVar, IntegerConstant(Knowledge.simd_vectorSize), "+="),
-      ctx.vectStmts) with OptimizationHint
-    vectLoop.isInnermost = true
-    vectLoop.isParallel = true
-    vectLoop.annotate(Unrolling.NO_REM_ANNOT, Knowledge.simd_vectorSize - 1)
-    vectLoop.annotate(InScope.ANNOT)
-    res += vectLoop
+    // reuse oldLoop to preserve all traits
+    // set first value (again) to allow omp parallelization
+    oldLoop.begin = AssignmentStatement(itVar, BitwiseAndExpression(AdditionExpression(begin, IntegerConstant(Knowledge.simd_vectorSize - 1)),
+      UnaryExpression(UnaryOperators.BitwiseNegation, IntegerConstant(Knowledge.simd_vectorSize - 1))))
+    oldLoop.end = LowerExpression(itVar, SubtractionExpression(endExcl, IntegerConstant(Knowledge.simd_vectorSize - 1)))
+    oldLoop.inc = AssignmentStatement(itVar, IntegerConstant(Knowledge.simd_vectorSize), "+=")
+    oldLoop.body = ctx.vectStmts
+    oldLoop.annotate(Unrolling.NO_REM_ANNOT, Knowledge.simd_vectorSize - 1)
+    oldLoop.annotate(InScope.ANNOT)
+    if (oldLoop.isInstanceOf[OMP_PotentiallyParallel]) // allow omp parallelization
+      oldLoop.asInstanceOf[OMP_PotentiallyParallel].addOMPStatements += "lastprivate(" + itVar.name + ')'
+    res += oldLoop
 
     if (postLoopStmt != null)
       res += postLoopStmt
@@ -215,15 +219,12 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
   }
 
   private def vectorizeStmt(stmt : Statement, ctx : LoopCtx) : Unit = {
-
-    if (stmt.isInstanceOf[CommentStatement]) {
-      ctx.vectStmts += stmt
-      return // nothing else to do for a simple comment
-    }
-
-    ctx.vectStmts += new CommentStatement(stmt.cpp())
     stmt match {
+      case CommentStatement(str) =>
+        ctx.vectStmts += CommentStatement(str) // new instance
+
       case AssignmentStatement(lhsSca, rhsSca, assOp) =>
+        ctx.vectStmts += new CommentStatement(stmt.cpp())
         val source = assOp match {
           case "="  => rhsSca
           case "+=" => AdditionExpression(lhsSca, rhsSca)
@@ -234,12 +235,11 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         val rhsVec = vectorizeExpr(source, ctx.setLoad())
         val lhsVec = vectorizeExpr(lhsSca, ctx.setStore())
         ctx.vectStmts += AssignmentStatement(lhsVec, rhsVec, "=")
+        ctx.vectStmts ++= ctx.storesTmp
+        ctx.storesTmp.clear()
 
       case _ => throw new VectorizationException("cannot deal with " + stmt.getClass() + "; " + stmt.cpp())
     }
-
-    ctx.vectStmts ++= ctx.storesTmp
-    ctx.storesTmp.clear()
   }
 
   private def vectorizeExpr(expr : Expression, ctx : LoopCtx) : Expression = {

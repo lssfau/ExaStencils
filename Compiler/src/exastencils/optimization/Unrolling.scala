@@ -13,6 +13,7 @@ import exastencils.datastructures.Transformation
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.knowledge.Knowledge
+import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.util.SimplifyExpression
 
 object Unrolling extends DefaultStrategy("Loop unrolling") {
@@ -45,7 +46,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     val annot = node.removeAnnotation(Unrolling.NO_REM_ANNOT)
     val oldOffset : Int = if (annot.isDefined) annot.get.value.asInstanceOf[Int] else 0
 
-    var njuBegin : Statement = null
+    var njuBegin : VariableDeclarationStatement = null
     var njuEnd : Expression = null
     var njuIncr : Statement = null
     var itVar : String = null
@@ -67,13 +68,19 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     }
 
     val res = new ListBuffer[Statement]()
-    if (njuBegin != null)
+    if (njuBegin != null) {
+      if (loop.isInstanceOf[OMP_PotentiallyParallel]) { // allow omp parallelization
+        loop.asInstanceOf[OMP_PotentiallyParallel].addOMPStatements += "lastprivate(" + itVar + ')'
+        loop.begin = AssignmentStatement(VariableAccess(itVar, Some(IntegerDatatype())), njuBegin.expression.get, "=")
+        njuBegin.expression = None
+      } else
+        loop.begin = NullStatement // only remove if we add a new declaration before
       res += njuBegin
+    }
     res += loop // update fields later
     if (oldOffset == 0)
       res += new ForLoopStatement(NullStatement, Duplicate(loop.end),
         Duplicate(loop.inc), Duplicate(loop.body), Duplicate(loop.reduction))
-    loop.begin = NullStatement
     loop.end = njuEnd
     loop.inc = njuIncr
     loop.body = duplicateStmts(loop.body, itVar, oldInc)
@@ -135,10 +142,15 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     }
   }
 
-  private def updateBegin(begin : Statement, itVar : String) : Statement = {
+  private def updateBegin(begin : Statement, itVar : String) : VariableDeclarationStatement = {
     return begin match {
-      case NullStatement => null
-      case decl @ VariableDeclarationStatement(IntegerDatatype(), itVar2, Some(init)) if (itVar == itVar2) => decl
+      case NullStatement =>
+        null
+      case acc @ AssignmentStatement(VariableAccess(itVar2, Some(IntegerDatatype())), init, _) if (itVar == itVar2) =>
+        null
+      case decl @ VariableDeclarationStatement(IntegerDatatype(), itVar2, Some(init)) if (itVar == itVar2) =>
+        decl
+
       case _ => throw new UnrollException("cannot interpret loop begin: " + begin.cpp())
     }
   }

@@ -1,5 +1,7 @@
 package exastencils.omp
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
@@ -15,7 +17,9 @@ object AddOMPPragmas extends DefaultStrategy("Adding OMP pragmas") {
 
   this += new Transformation("Adding OMP parallel for pragmas", {
     case target : ForLoopStatement with OMP_PotentiallyParallel =>
+      if (target.reduction.isDefined)
+        target.addOMPStatements += target.reduction.get.getOMPClause
       new OMP_ParallelFor(new ForLoopStatement(target.begin, target.end, target.inc, target.body, target.reduction),
-        (if (target.reduction.isDefined) target.reduction.get.getOMPClause else NullExpression), target.collapse)
+        target.addOMPStatements, target.collapse)
   })
 }
