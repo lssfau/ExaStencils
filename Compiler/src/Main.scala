@@ -103,8 +103,7 @@ object Main {
     if (Knowledge.opt_useAddressPrecalc)
       AddressPrecalculation.apply()
 
-    if (Knowledge.opt_vectorize || Knowledge.opt_unroll > 1)
-      TypeInference.apply()
+    TypeInference.apply()
 
     SimplifyFloatExpressions.apply()
 
