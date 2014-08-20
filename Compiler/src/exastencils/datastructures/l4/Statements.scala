@@ -103,13 +103,24 @@ case class FunctionStatement(var identifier : Identifier, var returntype : Datat
   }
 }
 
-case class RepeatUpStatement(var number : Int, var statements : List[Statement]) extends Statement {
+case class RepeatUpStatement(var number : Int, var iterator : Option[Access], var statements : List[Statement]) extends Statement {
   def progressToIr : ir.ForLoopStatement = {
-    ir.ForLoopStatement( // FIXME: de-stringify
-      ir.ExpressionStatement(ir.StringConstant("unsigned int someRandomIndexVar = 0")), // FIXME: someRandomIndexVar
-      ir.StringConstant("someRandomIndexVar") < ir.IntegerConstant(number),
-      ir.ExpressionStatement(ir.StringConstant("++someRandomIndexVar")),
-      statements.map(s => s.progressToIr).to[ListBuffer]) // FIXME: to[ListBuffer]
+    if (iterator.isDefined) {
+      val loopVar = iterator.get.progressToIr
+      ir.ForLoopStatement(
+        ir.AssignmentStatement(loopVar, ir.IntegerConstant(0)),
+        loopVar < ir.IntegerConstant(number),
+        ir.AssignmentStatement(loopVar, ir.IntegerConstant(1), "+="),
+        statements.map(s => s.progressToIr).to[ListBuffer]) // FIXME: to[ListBuffer]    
+    } else {
+      val loopVar = ir.StringConstant("someRandomIndexVar") // FIXME: someRandomIndexVar
+      ir.ForLoopStatement(
+        ir.VariableDeclarationStatement(ir.IntegerDatatype(), loopVar.value, Some(ir.IntegerConstant(0))),
+        loopVar < ir.IntegerConstant(number),
+        ir.AssignmentStatement(loopVar, ir.IntegerConstant(1), "+="),
+        statements.map(s => s.progressToIr).to[ListBuffer]) // FIXME: to[ListBuffer]    
+    }
+
   }
 }
 

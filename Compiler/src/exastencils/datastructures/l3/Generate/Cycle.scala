@@ -8,11 +8,11 @@ object Cycle {
       Knowledge.numPre /= 2
       Knowledge.numPost /= 2
     }
-    printer.println(s"def VCycle$postfix@((coarsest + 1) to finest) ( ) : Unit {")
+    printer.println(s"Function VCycle$postfix@((coarsest + 1) to finest) ( ) : Unit {")
 
     if (Knowledge.genTimersPerFunction)
       printer.println(s"\tstartTimer ( preSmoothTimer$postfix${if (Knowledge.genTimersPerLevel) "@current" else ""} )")
-    printer.println(s"\trepeat up ${Knowledge.numPre} {")
+    printer.println(s"\trepeat ${Knowledge.numPre} times {")
     printer.println(s"\t\tSmoother$postfix@current ( )")
     printer.println(s"\t}")
     if (Knowledge.genTimersPerFunction)
@@ -49,7 +49,7 @@ object Cycle {
 
     if (Knowledge.genTimersPerFunction)
       printer.println(s"\tstartTimer ( postSmoothTimer$postfix${if (Knowledge.genTimersPerLevel) "@current" else ""} )")
-    printer.println(s"\trepeat up ${Knowledge.numPost} {")
+    printer.println(s"\trepeat ${Knowledge.numPost} times {")
     printer.println(s"\t\tSmoother$postfix@current ( )")
     printer.println(s"\t}")
     if (Knowledge.genTimersPerFunction)

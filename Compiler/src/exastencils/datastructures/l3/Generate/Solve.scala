@@ -4,21 +4,21 @@ import exastencils.knowledge._
 
 object Solve {
   def addFunction(printer : java.io.PrintWriter) = {
-    printer.println("def Solve ( ) : Unit {")
+    printer.println("Function Solve ( ) : Unit {")
     if (Knowledge.testCommCompOverlap)
       printer.println("\tUpResidual@finest ( ( 0 ) )")
     else
       printer.println("\tUpResidual@finest ( )")
     for (vecDim <- 0 until Knowledge.numVecDims) {
-      printer.println(s"\tvar resStart_$vecDim : Real = L2Residual_$vecDim@finest (  )")
-      printer.println(s"\tvar res_$vecDim : Real = resStart_$vecDim")
-      printer.println(s"\tvar resOld_$vecDim : Real = 0")
+      printer.println(s"\tVariable resStart_$vecDim : Real = L2Residual_$vecDim@finest (  )")
+      printer.println(s"\tVariable res_$vecDim : Real = resStart_$vecDim")
+      printer.println(s"\tVariable resOld_$vecDim : Real = 0")
       printer.println("\tprint ( '\"" + s"Starting residual at $vecDim" + "\"', " + s"resStart_$vecDim )")
     }
-    printer.println("\tvar totalTime : Real = 0")
-    printer.println("\tvar timeToSolve : Real = 0")
+    printer.println("\tVariable totalTime : Real = 0")
+    printer.println("\tVariable timeToSolve : Real = 0")
     printer.println("\tstartTimer ( timeToSolveWatch )")
-    printer.println("\tvar numIt : Integer = 0")
+    printer.println("\tVariable numIt : Integer = 0")
     printer.println("\trepeat until res_0 < 1.0e-8 {")
     printer.println("\t\tnumIt += 1")
     printer.println("\t\tstartTimer ( stopWatch )")
@@ -51,13 +51,13 @@ object Solve {
     printer.println
 
     if (Knowledge.kelvin) {
-      printer.println("def Solve_GMRF ( ) : Unit {")
+      printer.println("Function Solve_GMRF ( ) : Unit {")
       printer.println("\tnative ( \"static int sample = 0\" )")
       printer.println("\tnative ( \"std::default_random_engine generator(mpiRank + sample++)\" )")
       printer.println("\tnative ( \"std::normal_distribution<double> distribution(0.0, 1.0)\" )")
       printer.println("\tnative ( \"auto randn = std::bind ( distribution, generator )\" )")
 
-      printer.println(s"\tvar tau2 : Real = myGamma ( nu ) / ( myGamma ( nu + 0.5 ) * (( 4.0 * M_PI ) ** ( dim / 2.0 )) * ( kappa ** ( 2 * nu )) * sigma * sigma )")
+      printer.println(s"\tVariable tau2 : Real = myGamma ( nu ) / ( myGamma ( nu + 0.5 ) * (( 4.0 * M_PI ) ** ( dim / 2.0 )) * ( kappa ** ( 2 * nu )) * sigma * sigma )")
       printer.println(s"\tloop over RHS_GMRF@finest {")
       printer.println(s"\t\tRHS_GMRF@finest = randn ( ) / ${(Knowledge.domain_numFragsTotal_x - 2 * Knowledge.numHaloFrags) * (1 << Knowledge.maxLevel)}")
       printer.println(s"\t}")
@@ -68,14 +68,14 @@ object Solve {
         printer.println(s"\tUpResidual_GMRF@finest ( 0 )")
       else
         printer.println(s"\tUpResidual_GMRF@finest ( )")
-      printer.println(s"\tvar resStart : Real = L2Residual_GMRF_0@finest ( )")
-      printer.println(s"\tvar res : Real = resStart")
-      printer.println(s"\tvar resOld : Real = 0")
+      printer.println(s"\tVariable resStart : Real = L2Residual_GMRF_0@finest ( )")
+      printer.println(s"\tVariable res : Real = resStart")
+      printer.println(s"\tVariable resOld : Real = 0")
       printer.println("\tprint ( '\"Starting residual:\"', resStart )")
-      printer.println("\tvar totalTime : Real = 0")
-      printer.println("\tvar timeToSolve : Real = 0")
+      printer.println("\tVariable totalTime : Real = 0")
+      printer.println("\tVariable timeToSolve : Real = 0")
       printer.println("\tstartTimer ( timeToSolveWatch )")
-      printer.println("\tvar numIt : Integer = 0")
+      printer.println("\tVariable numIt : Integer = 0")
       printer.println("\trepeat until res < 1.0e-8 {")
       printer.println("\t\tnumIt += 1")
       printer.println("\t\tstartTimer ( stopWatch )")

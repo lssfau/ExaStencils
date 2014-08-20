@@ -28,12 +28,12 @@ object Residual {
     val levels = if (Knowledge.testStencilStencil && !Knowledge.genStencilFields) "finest" else "all"
     val params = if (Knowledge.testCommCompOverlap) "startComm : Integer" else ""
 
-    printer.println(s"def UpResidual$postfix@$levels ( $params ) : Unit {")
+    printer.println(s"Function UpResidual$postfix@$levels ( $params ) : Unit {")
     addUpdateBody(printer, postfix, s"Laplace$postfix@current")
     printer.println(s"}")
 
     if (Knowledge.testStencilStencil && !Knowledge.genStencilFields) {
-      printer.println(s"def UpResidual$postfix@(coarsest to (finest - 1)) ( $params ) : Unit {")
+      printer.println(s"Function UpResidual$postfix@(coarsest to (finest - 1)) ( $params ) : Unit {")
       addUpdateBody(printer, postfix, Stencils.access(postfix))
       printer.println(s"}")
     }
@@ -41,10 +41,10 @@ object Residual {
 
   def addReductionFunction(printer : java.io.PrintWriter, postfix : String) = {
     for (vecDim <- 0 until Knowledge.numVecDims) {
-      printer.println(s"def L2Residual${postfix}_$vecDim@(coarsest and finest) ( ) : Real {")
+      printer.println(s"Function L2Residual${postfix}_$vecDim@(coarsest and finest) ( ) : Real {")
       Communication.exch(printer, s"Residual$postfix@current")
 
-      printer.println(s"\tvar res : Real = 0")
+      printer.println(s"\tVariable res : Real = 0")
       if (Knowledge.testFragLoops)
         printer.println(s"\tloop over fragments with reduction( + : res ) {")
       printer.println(s"\tloop over Residual$postfix@current with reduction( + : res ) {")

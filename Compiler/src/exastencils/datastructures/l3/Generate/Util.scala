@@ -4,7 +4,7 @@ import exastencils.knowledge._
 
 object Util {
   def addFunctions(printer : java.io.PrintWriter, postfix : String) = {
-    printer.println(s"def SetSolution$postfix@all (value : Real) : Unit {")
+    printer.println(s"Function SetSolution$postfix@all (value : Real) : Unit {")
     printer.println(s"\tloop over Solution$postfix@current {")
     for (vecDim <- 0 until Knowledge.numVecDims)
       printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)} = value")

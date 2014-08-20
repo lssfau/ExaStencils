@@ -4,9 +4,9 @@ import exastencils.knowledge._
 
 object Application {
   def addFunction(printer : java.io.PrintWriter) = {
-    printer.println("def Application ( ) : Unit {")
+    printer.println("Function Application ( ) : Unit {")
 
-    printer.println("\tvar setupTime : Real = 0")
+    printer.println("\tVariable setupTime : Real = 0")
     printer.println("\tstartTimer ( setupWatch )")
 
     printer.println("\tinitGlobals ( )")
@@ -43,9 +43,9 @@ object Application {
     }
 
     if (Knowledge.kelvin) {
-      printer.println("\tvar timeSamples : Real = 0")
+      printer.println("\tVariable timeSamples : Real = 0")
       printer.println("\tstartTimer ( timeSamplesWatch )")
-      printer.println(s"\trepeat up ${Knowledge.numSamples} {")
+      printer.println(s"\trepeat ${Knowledge.numSamples} times {")
     }
 
     if (Knowledge.kelvin) {
@@ -106,7 +106,7 @@ object Application {
       printer.println(s"\t\tSolutionMean@finest /= ${Knowledge.numSamples}")
       printer.println(s"\t}")
 
-      printer.println(s"\tvar solNorm : Real = 0.0")
+      printer.println(s"\tVariable solNorm : Real = 0.0")
       printer.println(s"\tloop over SolutionMean@finest with reduction( + : solNorm ) {")
       printer.println(s"\t\t// FIXME: this counts duplicated values multiple times")
       printer.println(s"\t\tsolNorm += SolutionMean@finest * SolutionMean@finest")

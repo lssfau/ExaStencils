@@ -89,7 +89,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ##### Functions
   // ######################################
 
-  lazy val function = locationize(("def" ~> identifierWithOptionalLevel) ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}")) ^^
+  lazy val function = locationize((("Fun" ||| "Fct" ||| "Function") ~> identifierWithOptionalLevel) ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}")) ^^
     { case id ~ args ~ t ~ stmts => FunctionStatement(id, t, args.getOrElse(List[Variable]()), stmts) })
   lazy val functionArgumentList = (functionArgument <~ ("," | newline)).* ~ functionArgument ^^ { case args ~ arg => arg :: args }
   lazy val functionArgument = locationize(((ident <~ ":") ~ datatype) ^^ { case id ~ t => Variable(BasicIdentifier(id), t) })
@@ -106,7 +106,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val statement : Parser[Statement] = (
     variableDeclaration
-    ||| repeatUp
+    ||| repeatNTimes
     ||| repeatUntil
     ||| loopOver
     ||| loopOverFragments
@@ -116,11 +116,13 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| conditional
     ||| communicateStatement)
 
-  lazy val variableDeclaration = (locationize(("var" ~> ident) ~ (":" ~> datatype) ~ ("=" ~> expression).? ^^ { case id ~ dt ~ exp => VariableDeclarationStatement(BasicIdentifier(id), dt, exp) }))
+  lazy val variableDeclaration = (locationize((("Var" ||| "Variable") ~> ident) ~ (":" ~> datatype) ~ ("=" ~> expression).?
+    ^^ { case id ~ dt ~ exp => VariableDeclarationStatement(BasicIdentifier(id), dt, exp) }))
 
-  lazy val repeatUp = locationize(("repeat" ~ "up") ~> numericLit ~ ("{" ~> statement.+ <~ "}") ^^ { case n ~ s => RepeatUpStatement(n.toInt, s) })
-  lazy val repeatUntil = locationize(
-    (("repeat" ~ "until") ~> comparison) ~ (("{" ~> statement.+) <~ "}") ^^ { case c ~ s => RepeatUntilStatement(c, s) })
+  lazy val repeatNTimes = locationize(("repeat" ~> numericLit <~ "times") ~ ("count" ~> (flatAccess ||| leveledAccess)).? ~ ("{" ~> statement.+ <~ "}") ^^
+    { case n ~ i ~ s => RepeatUpStatement(n.toInt, i, s) })
+  lazy val repeatUntil = locationize((("repeat" ~ "until") ~> comparison) ~ (("{" ~> statement.+) <~ "}") ^^
+    { case c ~ s => RepeatUntilStatement(c, s) })
 
   lazy val loopOverFragments = locationize(("loop" ~ "over" ~ "fragments") ~ ("with" ~> reductionClause).? ~ ("{" ~> statement.+ <~ "}") ^^
     { case _ ~ red ~ stmts => LoopOverFragmentsStatement(stmts, red) })
@@ -141,9 +143,11 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val operatorassignment = locationize((flatAccess ||| fieldLikeAccess) ~ ("+=" ||| "-=" ||| "*=" ||| "/=") ~ expression
     ^^ { case id ~ op ~ exp => AssignmentStatement(id, exp, op) })
 
-  lazy val conditional = locationize(("if" ~ "(" ~> booleanexpression <~ ")") ~ ("{" ~> statement.+ <~ "}") ^^ { case exp ~ stmts => ConditionalStatement(exp, stmts) })
+  lazy val conditional = locationize(("if" ~ "(" ~> booleanexpression <~ ")") ~ ("{" ~> statement.+ <~ "}")
+    ^^ { case exp ~ stmts => ConditionalStatement(exp, stmts) })
 
-  lazy val communicateStatement = locationize((("begin" ||| "finish").? <~ "communicate") ~ fieldLikeAccess ^^ { case op ~ access => CommunicateStatement(access.resolveToFieldAccess, op.getOrElse("both")) })
+  lazy val communicateStatement = locationize((("begin" ||| "finish").? <~ "communicate") ~ fieldLikeAccess
+    ^^ { case op ~ access => CommunicateStatement(access.resolveToFieldAccess, op.getOrElse("both")) })
 
   // ######################################
   // ##### Globals

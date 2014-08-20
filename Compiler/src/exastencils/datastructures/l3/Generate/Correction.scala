@@ -4,7 +4,7 @@ import exastencils.knowledge._
 
 object Correction {
   def addFunction(printer : java.io.PrintWriter, postfix : String) = {
-    printer.println(s"def Correction$postfix@((coarsest + 1) to finest) ( ) : Unit {")
+    printer.println(s"Function Correction$postfix@((coarsest + 1) to finest) ( ) : Unit {")
     Communication.exch(printer, s"Solution$postfix@current")
 
     if (Knowledge.testFragLoops)

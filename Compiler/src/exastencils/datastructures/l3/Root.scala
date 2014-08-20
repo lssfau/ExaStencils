@@ -41,7 +41,7 @@ case class Root() extends Node {
 
     if (Knowledge.kelvin) {
       PolyOpt.registerSideeffectFree("bcSol")
-      printer.println(s"def bcSol (xPos : Real, yPos : Real) : Real {")
+      printer.println(s"Function bcSol (xPos : Real, yPos : Real) : Real {")
       printer.println(s"\tif ( yPos >= 1.0 ) { return ( UN ) }")
       printer.println(s"\tif ( xPos >= 1.0 ) { return ( UE ) }")
       printer.println(s"\tif ( yPos <= 0.0 ) { return ( US ) }")

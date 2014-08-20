@@ -80,14 +80,14 @@ object Smoothers {
     }
 
     if (Knowledge.testStencilStencil && !Knowledge.genStencilFields)
-      printer.println(s"def Smoother$postfix@finest ( ) : Unit {")
+      printer.println(s"Function Smoother$postfix@finest ( ) : Unit {")
     else
-      printer.println(s"def Smoother$postfix@((coarsest + 1) to finest) ( ) : Unit {")
+      printer.println(s"Function Smoother$postfix@((coarsest + 1) to finest) ( ) : Unit {")
     bodyFunction(s"Laplace$postfix@current")
     printer.println(s"}")
 
     if (Knowledge.testStencilStencil && !Knowledge.genStencilFields) {
-      printer.println(s"def Smoother$postfix@((coarsest + 1) to (finest - 1)) ( ) : Unit {")
+      printer.println(s"Function Smoother$postfix@((coarsest + 1) to (finest - 1)) ( ) : Unit {")
       bodyFunction(Stencils.access(postfix))
       printer.println(s"}")
     }

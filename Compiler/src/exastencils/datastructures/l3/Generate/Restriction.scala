@@ -4,7 +4,7 @@ import exastencils.knowledge._
 
 object Restriction {
   def addFunction(printer : java.io.PrintWriter, postfix : String) = {
-    printer.println(s"def Restriction$postfix@((coarsest + 1) to finest) ( ) : Unit {")
+    printer.println(s"Function Restriction$postfix@((coarsest + 1) to finest) ( ) : Unit {")
     if (Knowledge.testCommCompOverlap)
       printer.println(s"\tfinish communicate Residual$postfix@current")
     else
