@@ -88,6 +88,10 @@ object SimplifyExpression {
         res = new HashMap[Expression, Long]()
         res(VariableAccess(varName, Some(IntegerDatatype()))) = 1L // ONLY VariableAccess in res keys, NO StringConstant
 
+      case acc : ArrayAccess =>
+        res = new HashMap[Expression, Long]()
+        res(acc) = 1L
+
       case UnaryExpression(UnaryOperators.Negative, expr) =>
         res = extractIntegralSum(expr)
         for ((name : Expression, value : Long) <- extractIntegralSum(expr))
@@ -211,7 +215,12 @@ object SimplifyExpression {
   }
 
   def simplifyIntegralExpr(expr : Expression) : Expression = {
-    return recreateExprFromIntSum(extractIntegralSum(expr))
+    try {
+      return recreateExprFromIntSum(extractIntegralSum(expr))
+    } catch {
+      case EvaluationException(msg) =>
+        throw new EvaluationException(msg + ";  in " + expr.cpp())
+    }
   }
 
   /**
@@ -253,7 +262,7 @@ object SimplifyExpression {
 
       case aAcc : ArrayAccess =>
         res = new HashMap[Expression, Double]()
-        res(aAcc) = 1d // ONLY VariableAccess in res keys, NO StringConstant
+        res(aAcc) = 1d
 
       case UnaryExpression(UnaryOperators.Negative, expr) =>
         res = extractFloatingSum(expr)
@@ -374,7 +383,12 @@ object SimplifyExpression {
   }
 
   def simplifyFloatingExpr(expr : Expression) : Expression = {
-    return recreateExprFromFloatSum(extractFloatingSum(expr))
+    try {
+      return recreateExprFromFloatSum(extractFloatingSum(expr))
+    } catch {
+      case EvaluationException(msg) =>
+        throw new EvaluationException(msg + ";  in " + expr.cpp())
+    }
   }
 }
 
