@@ -90,7 +90,9 @@ private final class AnnotateStringConstants extends Collector {
 
       case VariableAccess(name, Some(ty)) =>
         val inferred = SymbolTable.findType(name)
-        if (ty != inferred)
+        if (inferred == null)
+          Logger.warn("[Type inference]  declaration to " + name + " missing?")
+        else if (ty != inferred)
           Logger.warn("[Type inference]  inferred type (" + inferred + ") different from actual type stored in node (" + ty + "); ignoring")
 
       case FunctionStatement(_, _, params, _) =>
