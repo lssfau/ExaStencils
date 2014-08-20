@@ -7,7 +7,7 @@ import scala.util.parsing.combinator.lexical.StdLexical
   */
 class ExaLexer extends StdLexical {
   // general stuff
-  delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "**", "%", "+=", "-=", "*=", "/=", "|", "[", "]", ",", "<", ">", "<=", ">=", "@", "=>", "!=", "==")
+  delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "**", "%", "+=", "-=", "*=", "/=", "|", "[", "]", ",", "<", ">", "<=", ">=", "@", "=>", "!=", "==", "&&", "||")
 
   reserved += ("true", "false")
 
@@ -74,7 +74,7 @@ class ExaLexer extends StdLexical {
   reserved += ("Unit", "String", "Integer", "Real", "Complex", "Array")
 
   // level specification keywords
-  reserved += ("levels", "current", "coarser", "finer", "coarsest", "finest", "to", "not", "all", "and")
+  reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "all", "and")
 
   // layout and field keywords
   reserved += ("with", "communication", "None")

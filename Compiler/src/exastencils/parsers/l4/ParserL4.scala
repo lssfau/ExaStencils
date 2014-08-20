@@ -229,6 +229,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ##### Expressions
   // ######################################
 
+  // FIXME: Christian: this needs a make-over
   lazy val expression : PackratParser[Expression] = binaryexpression | booleanexpression
 
   lazy val binaryexpression : PackratParser[Expression] = (
@@ -246,9 +247,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| locationize(booleanLit ^^ { case s => BooleanConstant(s.toBoolean) })
     ||| locationize(functionCall)
     ||| locationize(diagFunctionCall)
-    ||| locationize(fieldLikeAccess)
-    ||| locationize(stencilLikeAccess)
-    ||| locationize(stencilFieldLikeAccess))
+    ||| locationize(genericAccess))
 
   lazy val booleanexpression : PackratParser[BooleanExpression] = (
     locationize(booleanexpression ~ ("||" ||| "&&") ~ booleanexpression ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })

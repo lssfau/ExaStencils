@@ -210,8 +210,13 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case GreaterExpression(left : IntegerConstant, right : IntegerConstant)      => BooleanConstant(left.value > right.value)
     case GreaterEqualExpression(left : IntegerConstant, right : IntegerConstant) => BooleanConstant(left.value >= right.value)
 
-    case AndAndExpression(left : BooleanConstant, right : BooleanConstant)       => BooleanConstant(left.value && right.value)
-    case OrOrExpression(left : BooleanConstant, right : BooleanConstant)         => BooleanConstant(left.value || right.value)
+    case AndAndExpression(BooleanConstant(true), right : Expression)             => right
+    case AndAndExpression(BooleanConstant(false), right : Expression)            => BooleanConstant(false)
+    case OrOrExpression(BooleanConstant(true), right : Expression)               => BooleanConstant(true)
+    case OrOrExpression(BooleanConstant(false), right : Expression)              => right
+
+    case AndAndExpression(left : Expression, right : BooleanConstant)            => AndAndExpression(right, left)
+    case OrOrExpression(left : Expression, right : BooleanConstant)              => OrOrExpression(right, left)
 
     case ConditionStatement(BooleanConstant(true), body, _)                      => body
     case ConditionStatement(BooleanConstant(false), _, body) if (body.isEmpty)   => NullStatement

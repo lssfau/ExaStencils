@@ -16,10 +16,8 @@ object Residual {
       printer.println(s"\t}")
 
     if (Knowledge.testCommCompOverlap) {
-      printer.println(s"\tif ( levels@current > levels@coarsest ) {") // TODO: merge to one condition as soon as supported by l4 parser
-      printer.println(s"\tif ( startComm > 0 ) {")
+      printer.println(s"\tif ( levels@current > levels@coarsest && startComm > 0 ) {")
       printer.println(s"\t\tbegin communicate Residual$postfix@current")
-      printer.println(s"\t}")
       printer.println(s"\t}")
     }
   }
@@ -47,7 +45,7 @@ object Residual {
       printer.println(s"\tVariable res : Real = 0")
       if (Knowledge.testFragLoops)
         printer.println(s"\tloop over fragments with reduction( + : res ) {")
-      printer.println(s"\tloop over Residual$postfix@current with reduction( + : res ) {")
+      printer.println(s"\tloop over Residual$postfix@current where x > 0 && y > 0 ${if (Knowledge.dimensionality > 2) "&& z > 0 " else ""}with reduction( + : res ) {")
       printer.println(s"\t\t// FIXME: this counts duplicated values multiple times")
       printer.println(s"\t\tres += ${Fields.residual(s"current", postfix)(vecDim)} * ${Fields.residual(s"current", postfix)(vecDim)}")
       printer.println(s"\t}")

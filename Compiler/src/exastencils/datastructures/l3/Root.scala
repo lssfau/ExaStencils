@@ -67,7 +67,8 @@ case class Root() extends Node {
 
     // Stencils
     Stencils.addLaplaceStencil(printer, "")
-    Stencils.addLaplaceStencil(printer, "_GMRF")
+    if (Knowledge.kelvin)
+      Stencils.addLaplaceStencil(printer, "_GMRF")
     Stencils.addDefaultStencils(printer)
 
     // Iteration Sets
