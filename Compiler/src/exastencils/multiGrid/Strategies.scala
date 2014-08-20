@@ -3,7 +3,7 @@ package exastencils.multiGrid
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
-import exastencils.core.collectors.StackCollector
+import exastencils.core.collectors.IRLevelCollector
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
@@ -13,7 +13,7 @@ import exastencils.mpi._
 import exastencils.util._
 
 object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices") {
-  val collector = new StackCollector
+  val collector = new IRLevelCollector
 
   override def apply(node : Option[Node] = None) : Unit = {
     StateManager.register(collector)
@@ -21,37 +21,26 @@ object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices"
     StateManager.unregister(collector)
   }
 
-  def getCurrentLevel : Int = {
-    for (n <- collector.list)
-      n match {
-        case loop : LoopOverPoints              => return loop.field.level
-        case loop : LoopOverPointsInOneFragment => return loop.field.level
-        case _                                  =>
-      }
-    Logger.dbg("Unable to find wrapping loop")
-    0
-  }
-
   this += new Transformation("ModifyIndices", {
-    case access : FieldAccess if access.fieldSelection.level < getCurrentLevel => {
+    case access : FieldAccess if access.fieldSelection.level < collector.getCurrentLevel => {
       var fieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         fieldAccess.index(i) = fieldAccess.index(i) / 2
       fieldAccess
     }
-    case access : FieldAccess if access.fieldSelection.level > getCurrentLevel => {
+    case access : FieldAccess if access.fieldSelection.level > collector.getCurrentLevel => {
       var fieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         fieldAccess.index(i) = 2 * fieldAccess.index(i)
       fieldAccess
     }
-    case access : StencilFieldAccess if access.stencilFieldSelection.level < getCurrentLevel => {
+    case access : StencilFieldAccess if access.stencilFieldSelection.level < collector.getCurrentLevel => {
       var stencilFieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         stencilFieldAccess.index(i) = stencilFieldAccess.index(i) / 2
       stencilFieldAccess
     }
-    case access : StencilFieldAccess if access.stencilFieldSelection.level > getCurrentLevel => {
+    case access : StencilFieldAccess if access.stencilFieldSelection.level > collector.getCurrentLevel => {
       var stencilFieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         stencilFieldAccess.index(i) = 2 * stencilFieldAccess.index(i)

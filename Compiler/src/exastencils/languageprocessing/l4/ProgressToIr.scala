@@ -1,16 +1,16 @@
 package exastencils.languageprocessing.l4
 
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
-import exastencils.core.collectors._
-import exastencils.core.ImplicitConversions._
+import exastencils.core.collectors.L4LevelCollector
 import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.l4._
-import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.knowledge.Knowledge
+import exastencils.knowledge._
 
 object ProgressToIr extends DefaultStrategy("ProgressToIr") {
-  var collector = new LevelCollector
+  var collector = new L4LevelCollector
 
   override def apply(node : Option[Node] = None) = {
     StateManager.register(collector);
@@ -164,9 +164,9 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
   // resolve level specifications
 
   this += new Transformation("ResolveRelativeLevelSpecifications", {
-    case level : CurrentLevelSpecification => SingleLevelSpecification(collector.curLevel)
-    case level : CoarserLevelSpecification => SingleLevelSpecification(collector.curLevel - 1) // FIXME: coarser and finer are not reliable
-    case level : FinerLevelSpecification   => SingleLevelSpecification(collector.curLevel + 1)
+    case level : CurrentLevelSpecification => SingleLevelSpecification(collector.getCurrentLevel)
+    case level : CoarserLevelSpecification => SingleLevelSpecification(collector.getCurrentLevel - 1) // FIXME: coarser and finer are not reliable
+    case level : FinerLevelSpecification   => SingleLevelSpecification(collector.getCurrentLevel + 1)
   })
 
   // resolve accesses
