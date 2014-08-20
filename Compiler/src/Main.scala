@@ -83,6 +83,7 @@ object Main {
 
     ResolveSpecialFunctions.apply()
     MapStencilAssignments.apply()
+    ExpandStrategy.doUntilDone()
 
     if (Knowledge.poly_usePolyOpt)
       PolyOpt.apply()

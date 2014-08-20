@@ -62,7 +62,7 @@ object Fields {
     }
 
     if (Knowledge.kelvin && "" == postfix)
-      printer.println(s"Field SolutionMean< $fieldDatatype, $domain, NoComm, None >@all")
+      printer.println(s"Field SolutionMean< $fieldDatatype, $domain, NoComm, bcSol(xPos, yPos) >@all")
 
     printer.println(s"Field Residual$postfix< $fieldDatatype, $domain, BasicComm, None >@all")
     if (Knowledge.kelvin && "_GMRF" == postfix) {

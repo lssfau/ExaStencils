@@ -106,9 +106,9 @@ object Application {
       printer.println(s"\t\tSolutionMean@finest /= ${Knowledge.numSamples}")
       printer.println(s"\t}")
 
+      printer.println(s"\tcommunicate SolutionMean@finest")
       printer.println(s"\tVariable solNorm : Real = 0.0")
-      printer.println(s"\tloop over SolutionMean@finest with reduction( + : solNorm ) {")
-      printer.println(s"\t\t// FIXME: this counts duplicated values multiple times")
+      printer.println(s"\tloop over SolutionMean@finest where x > 0 && y > 0 ${if (Knowledge.dimensionality > 2) "&& z > 0 " else ""}with reduction( + : solNorm ) {")
       printer.println(s"\t\tsolNorm += SolutionMean@finest * SolutionMean@finest")
       printer.println(s"\t}")
       printer.println(s"\tsolNorm = ( sqrt ( solNorm ) ) / ${(Knowledge.domain_numFragsTotal_x - 2 * Knowledge.numHaloFrags) * (1 << Knowledge.maxLevel) - 1}")

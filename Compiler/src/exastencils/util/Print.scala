@@ -38,8 +38,8 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
           ListBuffer[Statement](
             "std::ofstream stream(" ~ filename ~ ", std::ios::app)",
             new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
-              new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => field.layout(i).idxDupLeftBegin)),
-              new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => field.layout(i).idxDupRightEnd))),
+              new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => (field.layout(i).idxDupLeftBegin - field.referenceOffset(i)) : Expression)),
+              new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => (field.layout(i).idxDupRightEnd - field.referenceOffset(i)) : Expression))),
               ListBuffer[Statement](
                 new InitGeomCoords(field.field, false),
                 ("stream << xPos << \" \"" +

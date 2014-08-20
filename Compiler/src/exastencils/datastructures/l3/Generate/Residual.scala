@@ -46,7 +46,6 @@ object Residual {
       if (Knowledge.testFragLoops)
         printer.println(s"\tloop over fragments with reduction( + : res ) {")
       printer.println(s"\tloop over Residual$postfix@current where x > 0 && y > 0 ${if (Knowledge.dimensionality > 2) "&& z > 0 " else ""}with reduction( + : res ) {")
-      printer.println(s"\t\t// FIXME: this counts duplicated values multiple times")
       printer.println(s"\t\tres += ${Fields.residual(s"current", postfix)(vecDim)} * ${Fields.residual(s"current", postfix)(vecDim)}")
       printer.println(s"\t}")
       if (Knowledge.testFragLoops)
