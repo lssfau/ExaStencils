@@ -12,6 +12,8 @@ object Knowledge {
   var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2"
   var simd_vectorSize : Int = 4 // number of vector elements for SIMD instructions (currently only double precision)
 
+  var useFasterExpand : Boolean = true
+
   // === Level 1 ===  
   var dimensionality : Int = 3 // dimensionality of the problem
 

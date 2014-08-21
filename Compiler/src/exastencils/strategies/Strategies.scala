@@ -5,6 +5,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import scala.collection.mutable.ListBuffer
 
 object PrintStrategy extends DefaultStrategy("Pretty-Print") {
   this += new Transformation("Pretty-Print", {
@@ -26,8 +27,41 @@ object ExpandStrategy extends DefaultStrategy("Expanding") {
   }
 
   this += new Transformation("Hoho, expanding all day...", {
-    case expandable : Expandable =>
-      expandable.expand
+    case expandable : Expandable => expandable.expand
+  })
+}
+
+object ExpandOnePassStrategy extends DefaultStrategy("Expanding") { // TODO: this strategy becomes somewhat obsolete as soon as trafos implement the required behavior directly 
+  this += new Transformation("Hoho, expanding all day...", {
+    case expandable : Expandable => {
+      var nodes : ListBuffer[Node] = ListBuffer()
+      nodes += expandable
+      var expandedSth = false
+      do {
+        expandedSth = false
+        for (n <- 0 until nodes.length) {
+          if (!expandedSth) {
+            if (nodes(n).isInstanceOf[Expandable]) {
+              var output = nodes(n).asInstanceOf[Expandable].expand
+              output.inner match {
+                case single : Node => nodes.update(n, single)
+                case list : NodeList => {
+                  val split = nodes.splitAt(n)
+                  split._2.remove(0)
+                  nodes = split._1 ++ list.nodes ++ split._2
+                }
+              }
+              expandedSth = true
+            }
+          }
+        }
+      } while (expandedSth)
+
+      if (nodes.length == 1)
+        nodes(0)
+      else
+        nodes
+    }
   })
 }
 

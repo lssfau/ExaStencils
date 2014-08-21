@@ -81,11 +81,17 @@ object Main {
     while (numConvFound > 0) {
       FindStencilConvolutions.apply()
       numConvFound = FindStencilConvolutions.results.last._2.matches
-      ExpandStrategy.doUntilDone()
+      if (Knowledge.useFasterExpand)
+        ExpandOnePassStrategy.apply()
+      else
+        ExpandStrategy.doUntilDone()
     }
 
     MapStencilAssignments.apply()
-    ExpandStrategy.doUntilDone()
+    if (Knowledge.useFasterExpand)
+      ExpandOnePassStrategy.apply()
+    else
+      ExpandStrategy.doUntilDone()
 
     if (Knowledge.poly_usePolyOpt)
       PolyOpt.apply()
@@ -96,7 +102,10 @@ object Main {
 
     LinearizeFieldAccesses.apply()
 
-    ExpandStrategy.doUntilDone()
+    if (Knowledge.useFasterExpand)
+      ExpandOnePassStrategy.apply()
+    else
+      ExpandStrategy.doUntilDone()
 
     if (!Knowledge.useMPI)
       RemoveMPIReferences.apply()
@@ -125,7 +134,10 @@ object Main {
       AddOMPPragmas.apply()
 
     // one last time
-    ExpandStrategy.doUntilDone()
+    if (Knowledge.useFasterExpand)
+      ExpandOnePassStrategy.apply()
+    else
+      ExpandStrategy.doUntilDone()
     SimplifyStrategy.doUntilDone()
 
     PrintStrategy.apply()
