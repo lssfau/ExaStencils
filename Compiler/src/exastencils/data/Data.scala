@@ -83,6 +83,6 @@ case class AdvanceSlot(var slot : iv.CurrentSlot) extends Statement {
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = AdvanceSlot\n"
 
   def expandSpecial : Statement = {
-    AssignmentStatement(slot, (slot + 1) Mod slot.field.numSlots + slot.field.numSlots) // accounting for negative offsets in the ring buffer
+    AssignmentStatement(slot, ((slot + 1) Mod slot.field.numSlots) + slot.field.numSlots) // accounting for negative offsets in the ring buffer
   }
 }
