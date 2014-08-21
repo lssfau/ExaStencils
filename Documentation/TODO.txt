@@ -14,6 +14,8 @@ Framework:
 - check 'var' usage
 - check ';' usage
 
+- think about adding the functionality to check files before writing against existing versions to reduce compile time afterwards
+
 L3:
 
 L4:
@@ -21,6 +23,10 @@ L4:
 - add Value/Val to l4 => extend DataType and/or VariableDeclarationStatement
 
 - SetStencilCoeff (id, offset, coeff)
+
+- allow specification of the number of layers to be exchanged
+- allow specification of regions (dup, ghost) to be exchanged
+- separate bc from comm
 
 IR:
 - add one distinct communicator per (sub)domain
