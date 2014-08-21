@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
 import exastencils.core.collectors.IRLevelCollector
+import exastencils.data._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
@@ -68,6 +69,10 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
         println("WARN: diag with unknown arg")
         FunctionCallExpression(StringConstant("diag"), args)
       }
+    }
+
+    case ExpressionStatement(FunctionCallExpression(StringConstant("advance"), args)) => {
+      AdvanceSlot(iv.CurrentSlot(args(0).asInstanceOf[FieldAccess].fieldSelection.field))
     }
 
     // HACK to realize return functionality -> FIXME: move to specialized node

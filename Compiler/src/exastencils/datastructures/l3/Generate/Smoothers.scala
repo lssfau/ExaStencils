@@ -8,18 +8,14 @@ object Smoothers {
   def addBodyJac(printer : java.io.PrintWriter, postfix : String, stencil : String) = {
 
     if (Knowledge.useSlotVariables && Knowledge.useSlotsForJac) {
-      printer.println(s"\tVariable solSlot : Integer = 0")
-
-      printer.println(s"\trepeat 2 times {")
-      Communication.exch(printer, s"Solution$postfix[solSlot]@current")
+      Communication.exch(printer, s"Solution$postfix[curSlot]@current")
 
       printer.println(s"\t\tloop over Solution$postfix@current {")
       for (vecDim <- 0 until Knowledge.numVecDims)
-        printer.println(s"\t\t\t${Fields.solutionSlotted(s"current", "(solSlot + 1) % 2", postfix)(vecDim)} = ${Fields.solutionSlotted(s"current", "(solSlot + 0) % 2", postfix)(vecDim)} + ( ( ( 1.0 / diag ( $stencil ) ) * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solutionSlotted(s"current", "(solSlot + 0) % 2", postfix)(vecDim)} ) )")
+        printer.println(s"\t\t\t${Fields.solutionSlotted(s"current", "nextSlot", postfix)(vecDim)} = ${Fields.solutionSlotted(s"current", "curSlot", postfix)(vecDim)} + ( ( ( 1.0 / diag ( $stencil ) ) * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solutionSlotted(s"current", "curSlot", postfix)(vecDim)} ) )")
       printer.println(s"\t\t}")
 
-      printer.println(s"\tsolSlot += 1")
-      printer.println(s"\t}")
+      printer.println(s"\tadvance ( Solution$postfix@current )")
     } else {
       Communication.exch(printer, s"Solution$postfix${if (Knowledge.useSlotsForJac) "[0]" else ""}@current")
 

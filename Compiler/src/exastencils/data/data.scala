@@ -70,3 +70,19 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
             ExternalFieldAccess("src", src, LoopOverDimensions.defIt))) with OMP_PotentiallyParallel with PolyhedronAccessable))
   }
 }
+
+case class SlotAccess(var slot : iv.CurrentSlot, var offset : Int) extends Expression {
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = SlotAccess\n"
+
+  def expandSpecial : Expression = {
+    (slot + offset) Mod slot.field.numSlots
+  }
+}
+
+case class AdvanceSlot(var slot : iv.CurrentSlot) extends Statement {
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = AdvanceSlot\n"
+
+  def expandSpecial : Statement = {
+    AssignmentStatement(slot, (slot + 1) Mod slot.field.numSlots + slot.field.numSlots) // accounting for negative offsets in the ring buffer
+  }
+}

@@ -303,3 +303,13 @@ case class Timer(var name : Expression) extends UnduplicatedVariable {
     Some(AssignmentStatement(resolveName ~ "._name", "\"" ~ name ~ "\""))
   }
 }
+
+case class CurrentSlot(var field : Field) extends InternalVariable(false, false, true, true, false) {
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, NullExpression, NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, NullExpression)
+
+  override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
+
+  override def resolveName = s"curSlot" + resolvePostfix("", "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, field.level.toString, "")
+  override def resolveDataType = "int"
+  override def resolveDefValue = Some(field.numSlots) // accounting for negative offsets in the ring buffer
+}

@@ -10,13 +10,13 @@ object InitFields {
       // FIXME: make results more reproducible via sth like 'std::srand((unsigned int)fragments[f]->id)'
       printer.println(s"\tloop over Solution$postfix@finest {")
       for (vecDim <- 0 until Knowledge.numVecDims) {
-        printer.println(s"\t\t${Fields.solution(s"finest", postfix)(vecDim)} = native('((double)std::rand()/RAND_MAX)')")
+        printer.println(s"\t\t${Fields.solutionSlotted(s"finest", "curSlot", postfix)(vecDim)} = native('((double)std::rand()/RAND_MAX)')")
       }
       printer.println(s"\t}")
     } else {
       printer.println(s"\tloop over Solution$postfix@finest {")
       for (vecDim <- 0 until Knowledge.numVecDims) {
-        printer.println(s"\t\t${Fields.solution(s"finest", postfix)(vecDim)} = 0")
+        printer.println(s"\t\t${Fields.solutionSlotted(s"finest", "curSlot", postfix)(vecDim)} = 0")
       }
       printer.println(s"\t}")
     }

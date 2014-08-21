@@ -1,13 +1,10 @@
 package exastencils.datastructures.l4
 
 import exastencils.core._
-import exastencils.knowledge
-import exastencils.knowledge._
 import exastencils.datastructures._
+import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.ir.NullExpression
-import sun.reflect.generics.reflectiveObjects.NotImplementedException
-import exastencils.optimization.Vectorization
+import exastencils.knowledge
 
 case class LayoutOption(var name : String, var value : Index, var hasCommunication : Option[Boolean]) extends Node
 
@@ -32,17 +29,17 @@ case class LayoutDeclarationStatement(var name : String,
     }
   }
 
-  var default_ghostLayers : Index = Knowledge.dimensionality match {
+  var default_ghostLayers : Index = knowledge.Knowledge.dimensionality match {
     case 2 => new Index2D(1, 1)
     case 3 => new Index3D(1, 1, 1)
   }
   var l4_ghostLayers : Index = default_ghostLayers
-  var default_duplicateLayers : Index = Knowledge.dimensionality match {
+  var default_duplicateLayers : Index = knowledge.Knowledge.dimensionality match {
     case 2 => new Index2D(1, 1)
     case 3 => new Index3D(1, 1, 1)
   }
   var l4_duplicateLayers : Index = default_duplicateLayers
-  var default_innerPoints : Index = Knowledge.dimensionality match {
+  var default_innerPoints : Index = knowledge.Knowledge.dimensionality match {
     // needs to be overwritten later
     case 2 => new Index2D(1, 1)
     case 3 => new Index3D(1, 1, 1)
@@ -57,14 +54,14 @@ case class LayoutDeclarationStatement(var name : String,
     l4_ghostLayers = ghostLayers.getOrElse(default_ghostLayers)
     l4_duplicateLayers = duplicateLayers.getOrElse(new Index3D(1, 1, 1))
 
-    default_innerPoints = Knowledge.dimensionality match {
+    default_innerPoints = knowledge.Knowledge.dimensionality match {
       case 2 => new Index2D(
-        ((Knowledge.domain_fragLengthPerDim(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
-        ((Knowledge.domain_fragLengthPerDim(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1))
+        ((knowledge.Knowledge.domain_fragLengthPerDim(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
+        ((knowledge.Knowledge.domain_fragLengthPerDim(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1))
       case 3 => new Index3D(
-        ((Knowledge.domain_fragLengthPerDim(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
-        ((Knowledge.domain_fragLengthPerDim(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1),
-        ((Knowledge.domain_fragLengthPerDim(2) * (1 << level)) + 1) - 2 * l4_duplicateLayers(2))
+        ((knowledge.Knowledge.domain_fragLengthPerDim(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
+        ((knowledge.Knowledge.domain_fragLengthPerDim(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1),
+        ((knowledge.Knowledge.domain_fragLengthPerDim(2) * (1 << level)) + 1) - 2 * l4_duplicateLayers(2))
     }
     l4_innerPoints = innerPoints.getOrElse(default_innerPoints)
 
@@ -72,7 +69,7 @@ case class LayoutDeclarationStatement(var name : String,
     l4_dupComm = duplicateLayersCommunication.getOrElse(default_dupComm)
 
     val layouts : Array[knowledge.FieldLayoutPerDim] =
-      DimArray().map(dim => new knowledge.FieldLayoutPerDim(
+      knowledge.DimArray().map(dim => new knowledge.FieldLayoutPerDim(
         0, // default, only first requires != 0
         l4_ghostLayers(dim),
         l4_duplicateLayers(dim),
@@ -84,8 +81,8 @@ case class LayoutDeclarationStatement(var name : String,
     // TODO: check if padding works properly (for vectorization)
     // add padding only for innermost dimension
     val innerLayout : knowledge.FieldLayoutPerDim = layouts(0)
-    innerLayout.numPadLayersLeft = (Knowledge.simd_vectorSize - innerLayout.idxDupLeftBegin % Knowledge.simd_vectorSize) % Knowledge.simd_vectorSize
-    innerLayout.numPadLayersRight = (Knowledge.simd_vectorSize - innerLayout.total % Knowledge.simd_vectorSize) % Knowledge.simd_vectorSize
+    innerLayout.numPadLayersLeft = (knowledge.Knowledge.simd_vectorSize - innerLayout.idxDupLeftBegin % knowledge.Knowledge.simd_vectorSize) % knowledge.Knowledge.simd_vectorSize
+    innerLayout.numPadLayersRight = (knowledge.Knowledge.simd_vectorSize - innerLayout.total % knowledge.Knowledge.simd_vectorSize) % knowledge.Knowledge.simd_vectorSize
     return layouts
   }
 }
@@ -106,14 +103,14 @@ case class FieldDeclarationStatement(var name : String,
     ir_layout ++= Array(new knowledge.FieldLayoutPerDim(0, 0, 0, datatype.progressToIr.resolveFlattendSize, 0, 0, 0))
 
     var refOffset = new ir.MultiIndex // TODO: this should work for now but may be adapted in the future
-    for (dim <- 0 until Knowledge.dimensionality)
+    for (dim <- 0 until knowledge.Knowledge.dimensionality)
       refOffset(dim) = ir_layout(dim).idxDupLeftBegin
-    refOffset(Knowledge.dimensionality) = 0
+    refOffset(knowledge.Knowledge.dimensionality) = 0
 
     new knowledge.Field(
       name,
       index,
-      DomainCollection.getDomainByIdentifier(domain).get,
+      knowledge.DomainCollection.getDomainByIdentifier(domain).get,
       name.toLowerCase + "Data_" + level.get.asInstanceOf[SingleLevelSpecification].level,
       datatype.progressToIr,
       ir_layout,
@@ -123,8 +120,8 @@ case class FieldDeclarationStatement(var name : String,
       slots,
       refOffset,
       if (boundary.isDefined) Some(boundary.get.progressToIr) else None,
-      if (Knowledge.data_addPrePadding)
-        4 - (ir_layout(0).idxDupLeftBegin + ir.ArrayAccess(new ir.iv.IterationOffsetBegin(DomainCollection.getDomainByIdentifier(domain).get.index), 0)) // TODO: specify correct alignmentPadding
+      if (knowledge.Knowledge.data_addPrePadding)
+        4 - (ir_layout(0).idxDupLeftBegin + ir.ArrayAccess(new ir.iv.IterationOffsetBegin(knowledge.DomainCollection.getDomainByIdentifier(domain).get.index), 0)) // TODO: specify correct alignmentPadding
       else
         NullExpression)
   }
@@ -133,8 +130,8 @@ case class FieldDeclarationStatement(var name : String,
 case class StencilFieldDeclarationStatement(var name : String, var fieldName : String, var stencilName : String, var level : Option[LevelSpecification]) extends ExternalDeclarationStatement {
   def progressToIr : knowledge.StencilField = {
     new knowledge.StencilField(name,
-      FieldCollection.getFieldByIdentifier(fieldName, level.get.asInstanceOf[SingleLevelSpecification].level).get,
-      StencilCollection.getStencilByIdentifier(stencilName, level.get.asInstanceOf[SingleLevelSpecification].level).get)
+      knowledge.FieldCollection.getFieldByIdentifier(fieldName, level.get.asInstanceOf[SingleLevelSpecification].level).get,
+      knowledge.StencilCollection.getStencilByIdentifier(stencilName, level.get.asInstanceOf[SingleLevelSpecification].level).get)
   }
 }
 

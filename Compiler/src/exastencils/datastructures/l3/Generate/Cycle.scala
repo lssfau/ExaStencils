@@ -4,7 +4,7 @@ import exastencils.knowledge._
 
 object Cycle {
   def addCycle(printer : java.io.PrintWriter, postfix : String) = {
-    if ("Jac" == Knowledge.smoother) {
+    if ("Jac" == Knowledge.smoother && !Knowledge.useSlotVariables) {
       Knowledge.numPre /= 2
       Knowledge.numPost /= 2
     }

@@ -7,7 +7,7 @@ object Util {
     printer.println(s"Function SetSolution$postfix@all (value : Real) : Unit {")
     printer.println(s"\tloop over Solution$postfix@current {")
     for (vecDim <- 0 until Knowledge.numVecDims)
-      printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)} = value")
+      printer.println(s"\t\t${Fields.solutionSlotted(s"current", "curSlot", postfix)(vecDim)} = value")
     printer.println(s"\t}")
     printer.println(s"}")
   }

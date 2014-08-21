@@ -65,3 +65,10 @@ object ResolveLoopOverPoints extends DefaultStrategy("Resolving ResolveLoopOverP
       loop.expandSpecial(collector)
   })
 }
+
+object ResolveSlotOperationsStrategy extends DefaultStrategy("ResolveSlotOperations") {
+  this += new Transformation("SearchAndReplace", {
+    case slotAccess : SlotAccess   => slotAccess.expandSpecial
+    case advanceSlot : AdvanceSlot => advanceSlot.expandSpecial
+  })
+}

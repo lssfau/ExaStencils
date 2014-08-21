@@ -4,13 +4,13 @@ import exastencils.knowledge._
 
 object Residual {
   def addUpdateBody(printer : java.io.PrintWriter, postfix : String, stencil : String) = {
-    Communication.exch(printer, s"Solution$postfix@current")
+    Communication.exch(printer, s"Solution$postfix[curSlot]@current")
 
     if (Knowledge.testFragLoops)
       printer.println(s"\tloop over fragments {")
     printer.println(s"\tloop over Residual$postfix@current {")
     for (vecDim <- 0 until Knowledge.numVecDims)
-      printer.println(s"\t\t${Fields.residual(s"current", postfix)(vecDim)} = ${Fields.rhs(s"current", postfix)(vecDim)} - ($stencil * ${Fields.solution(s"current", postfix)(vecDim)})")
+      printer.println(s"\t\t${Fields.residual(s"current", postfix)(vecDim)} = ${Fields.rhs(s"current", postfix)(vecDim)} - ($stencil * ${Fields.solutionSlotted(s"current", "curSlot", postfix)(vecDim)})")
     printer.println(s"\t}")
     if (Knowledge.testFragLoops)
       printer.println(s"\t}")

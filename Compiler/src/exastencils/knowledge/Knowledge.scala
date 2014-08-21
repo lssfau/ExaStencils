@@ -146,8 +146,8 @@ object Knowledge {
   /// SPL connected
   var smoother : String = "Jac" // Jac | GS | RBGS
   var cgs : String = "CG" // CG
-  var numPre : Int = 2 // has to be divisible by 2 for Jac
-  var numPost : Int = 4 // has to be divisible by 2 for Jac
+  var numPre : Int = 3 // has to be divisible by 2 for Jac if useSlotsForJac or useSlotVariables are disabled
+  var numPost : Int = 3 // has to be divisible by 2 for Jac if useSlotsForJac or useSlotVariables are disabled
   var omega : Double = (if ("Jac" == smoother) 0.8 else 1.0)
   var testStencilStencil : Boolean = false || kelvin
   var genStencilFields : Boolean = false || kelvin

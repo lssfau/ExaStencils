@@ -68,8 +68,11 @@ object Main {
 
     SimplifyStrategy.doUntilDone() // removes (conditional) calls to communication functions that are not possible
 
-    SetupDataStructures.apply() // Stefan: This adds the setupBuffer func which will be exapanded using the field info in the next expand step 
+    SetupDataStructures.apply()
     SetupCommunication.apply()
+
+    ResolveSpecialFunctions.apply()
+    ResolveSlotOperationsStrategy.apply()
 
     ResolveLoopOverPoints.apply()
     ResolveIntergridIndices.apply()
@@ -81,7 +84,6 @@ object Main {
       ExpandStrategy.doUntilDone()
     }
 
-    ResolveSpecialFunctions.apply()
     MapStencilAssignments.apply()
     ExpandStrategy.doUntilDone()
 

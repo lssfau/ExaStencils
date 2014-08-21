@@ -2,6 +2,7 @@ package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.data
 import exastencils.datastructures._
 import exastencils.knowledge
 
@@ -67,12 +68,17 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
   def progressToIr : ir.FieldAccess = {
     var multiIndex = ir.LoopOverDimensions.defIt
     multiIndex(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(arrayIndex)
-    ir.FieldAccess(
-      knowledge.FieldSelection(
-        knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get,
-        slot.progressToIr,
-        arrayIndex),
-      multiIndex)
+    val field = knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
+    val resolvedSlot = if (1 == field.numSlots) ir.IntegerConstant(0) else slot match {
+      // TODO: these keywords are up to discussion
+      // TODO: detect these keywords directly in the parser? Add specialized node(s)?
+      case BasicAccess("curSlot")  => data.SlotAccess(ir.iv.CurrentSlot(field), 0)
+      case BasicAccess("nextSlot") => data.SlotAccess(ir.iv.CurrentSlot(field), 1)
+      case BasicAccess("prevSlot") => data.SlotAccess(ir.iv.CurrentSlot(field), -1)
+      case _                       => slot.progressToIr
+    }
+
+    ir.FieldAccess(knowledge.FieldSelection(field, resolvedSlot, arrayIndex), multiIndex)
   }
 }
 
