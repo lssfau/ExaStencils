@@ -217,6 +217,9 @@ class Extractor extends Collector {
   /** indicates, if the current subtree should be skipped */
   private var skip : Boolean = false
 
+  /** indicates if a new scop starting at the next node can be merged with the last one */
+  private var mergeScops : Boolean = false
+
   /** all found static control parts */
   val scops = new ArrayStack[Scop]
   val trash = new ArrayStack[(Node, String)] // TODO: debug; remove
@@ -249,10 +252,12 @@ class Extractor extends Collector {
     private final val formatter = new java.util.Formatter(formatterResult)
 
     def create(root : LoopOverDimensions, origLoopVars : ArrayBuffer[String],
-      modelLoopVars : String, setTempl : String, mapTempl : String) : Unit = {
+      modelLoopVars : String, setTempl : String, mapTempl : String, mergeWithPrev : Boolean) : Unit = {
 
       this.scop_ = new Scop(root, Knowledge.omp_parallelizeLoopOverDimensions && root.parallelizationIsReasonable,
         root.reduction, root.maxIterationCount())
+      if (mergeWithPrev)
+        scops.top.nextMerge = this.scop_
       this.modelLoopVars_ = modelLoopVars
       this.origLoopVars_ = origLoopVars
       this.setTemplate_ = setTempl
@@ -316,6 +321,9 @@ class Extractor extends Collector {
 
   override def enter(node : Node) : Unit = {
 
+    val merge : Boolean = mergeScops
+    mergeScops = false
+
     node.getAnnotation(Access.ANNOT) match {
       case Some(Annotation(_, acc)) =>
         acc match {
@@ -344,7 +352,7 @@ class Extractor extends Collector {
               loop.condition.get.annotate(SKIP_ANNOT)
             if (loop.reduction.isDefined)
               loop.reduction.get.annotate(SKIP_ANNOT)
-            enterLoop(loop)
+            enterLoop(loop, merge)
 
           case _ =>
         }
@@ -456,13 +464,14 @@ class Extractor extends Collector {
     isRead = false
     isWrite = false
     skip = false
+    mergeScops = false
     scops.clear()
     trash.clear()
   }
 
   /////////////////// methods for node processing \\\\\\\\\\\\\\\\\\\
 
-  private def enterLoop(loop : LoopOverDimensions) : Unit = {
+  private def enterLoop(loop : LoopOverDimensions, mergeWithPrev : Boolean) : Unit = {
 
     for (step <- loop.stepSize)
       if (step != IntegerConstant(1))
@@ -533,7 +542,7 @@ class Extractor extends Collector {
     templateBuilder.append("->%s[%s]}")
     val mapTemplate : String = templateBuilder.toString()
 
-    curScop.create(loop, origLoopVars, modelLoopVars.mkString(","), setTemplate, mapTemplate)
+    curScop.create(loop, origLoopVars, modelLoopVars.mkString(","), setTemplate, mapTemplate, mergeWithPrev)
   }
 
   private def leaveLoop(loop : LoopOverDimensions) : Unit = {
@@ -542,6 +551,7 @@ class Extractor extends Collector {
       scop.updateLoopVars()
       loop.annotate(PolyOpt.SCOP_ANNOT, scop)
       scops.push(scop)
+      mergeScops = true
     }
   }
 

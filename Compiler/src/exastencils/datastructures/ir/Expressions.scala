@@ -405,8 +405,10 @@ case class TernaryConditionExpression(var condition : Expression, var trueBody :
 case class Reduction(var op : BinaryOperators.Value, var target : Expression) extends Expression {
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = Reduction\n"
 
-  def getOMPClause : Expression = {
-    s"reduction(${op}:" ~ target ~ ")"
+  def getOMPClause : String = {
+    val str = new CppStream()
+    str << "reduction(" << op << ':' << target << ')'
+    return str.toString()
   }
 }
 

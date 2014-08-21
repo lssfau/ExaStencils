@@ -36,7 +36,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     Logger.info("Applying strategy " + name)
 
     val scops : ArrayStack[Scop] = extractPolyModel()
-    for (scop <- scops) {
+    for (scop <- scops if (!scop.remove)) {
+      mergeScops(scop)
       simplifyModel(scop)
       computeDependences(scop)
       deadCodeElimination(scop)
@@ -47,21 +48,6 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     recreateAndInsertAST()
 
     this.commit()
-  }
-
-  private def extractPolyModel() : ArrayStack[Scop] = {
-
-    val extr = new Extractor()
-    StateManager.register(extr)
-    this.execute(new Transformation("extract model", PartialFunction.empty))
-    StateManager.unregister(extr)
-
-    val scops : ArrayStack[Scop] = extr.scops
-
-    Logger.debug("    valid SCoPs: " + scops.size)
-    Logger.debug("    rejected:    " + extr.trash.size)
-
-    return scops
   }
 
   private def simplifyModel(scop : Scop) : Unit = {
@@ -87,6 +73,72 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       scop.deps.input = Isl.simplify(scop.deps.input)
     if (scop.deps.output != null)
       scop.deps.output = Isl.simplify(scop.deps.output)
+  }
+
+  private def extractPolyModel() : ArrayStack[Scop] = {
+
+    val extr = new Extractor()
+    StateManager.register(extr)
+    this.execute(new Transformation("extract model", PartialFunction.empty))
+    StateManager.unregister(extr)
+
+    val scops : ArrayStack[Scop] = extr.scops
+
+    Logger.debug("    valid SCoPs: " + scops.size)
+    Logger.debug("    rejected:    " + extr.trash.size)
+
+    return scops
+  }
+
+  private def mergeScops(scop : Scop) {
+    var toMerge : Scop = scop.nextMerge
+    var i : Int = 0
+    scop.schedule = insertCst(scop.schedule, i)
+    while (toMerge != null) {
+      i += 1
+      scop.domain = union(scop.domain, toMerge.domain)
+      scop.schedule = union(scop.schedule, insertCst(toMerge.schedule, i))
+      scop.stmts ++= toMerge.stmts
+      scop.decls ++= toMerge.decls
+      scop.reads = union(scop.reads, toMerge.reads)
+      scop.writes = union(scop.writes, toMerge.writes)
+      scop.deadAfterScop = union(scop.deadAfterScop, toMerge.deadAfterScop)
+      scop.deps.flow = union(scop.deps.flow, toMerge.deps.flow)
+      scop.deps.anti = union(scop.deps.anti, toMerge.deps.anti)
+      scop.deps.input = union(scop.deps.input, toMerge.deps.input)
+      scop.deps.output = union(scop.deps.output, toMerge.deps.output)
+      toMerge.remove = true
+      toMerge = toMerge.nextMerge
+    }
+    scop.updateLoopVars()
+  }
+
+  private def insertCst(sched : isl.UnionMap, i : Int) : isl.UnionMap = {
+    var s = isl.UnionMap.empty(sched.getSpace())
+    sched.foreachMap({
+      map : isl.Map =>
+        var nju = map.insertDims(isl.DimType.Out, 0, 1)
+        s = s.addMap(nju.fixVal(isl.DimType.Out, 0, i))
+    })
+    return s
+  }
+
+  private def union(a : isl.UnionSet, b : isl.UnionSet) : isl.UnionSet = {
+    (a, b) match {
+      case (null, null) => null
+      case (x, null)    => x
+      case (null, y)    => y
+      case (x, y)       => x.union(y)
+    }
+  }
+
+  private def union(a : isl.UnionMap, b : isl.UnionMap) : isl.UnionMap = {
+    (a, b) match {
+      case (null, null) => null
+      case (x, null)    => x
+      case (null, y)    => y
+      case (x, y)       => x.union(y)
+    }
   }
 
   private def computeDependences(scop : Scop) : Unit = {
