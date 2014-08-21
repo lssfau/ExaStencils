@@ -117,8 +117,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val variableDeclaration = (locationize((("Var" ||| "Variable") ~> ident) ~ (":" ~> datatype) ~ ("=" ~> expression).?
     ^^ { case id ~ dt ~ exp => VariableDeclarationStatement(BasicIdentifier(id), dt, exp) }))
 
-  lazy val repeatNTimes = locationize(("repeat" ~> numericLit <~ "times") ~ ("count" ~> (flatAccess ||| leveledAccess)).? ~ ("{" ~> statement.+ <~ "}") ^^
-    { case n ~ i ~ s => RepeatUpStatement(n.toInt, i, s) })
+  lazy val repeatNTimes = locationize(("repeat" ~> numericLit <~ "times") ~ ("count" ~> (flatAccess ||| leveledAccess)).? ~ ("with" ~> "contraction").? ~ ("{" ~> statement.+ <~ "}") ^^
+    { case n ~ i ~ c ~ s => RepeatUpStatement(n.toInt, i, if (c.isDefined) true else false, s) })
   lazy val repeatUntil = locationize((("repeat" ~ "until") ~> comparison) ~ (("{" ~> statement.+) <~ "}") ^^
     { case c ~ s => RepeatUntilStatement(c, s) })
 
@@ -129,11 +129,10 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ("starting" ~> expressionIndex).? ~
     ("ending" ~> expressionIndex).? ~
     ("stepping" ~> expressionIndex).? ~
-    ("contracting" ~> numericLit).? ~
     ("with" ~> reductionClause).? ~
     ("{" ~> statement.+ <~ "}") ^^ {
-      case field ~ cond ~ startOff ~ endOff ~ inc ~ contr ~ red ~ stmts =>
-        LoopOverPointsStatement(field.resolveToFieldAccess, cond, startOff, endOff, inc, if (contr.isDefined) Some(contr.get.toInt) else None, stmts, red)
+      case field ~ cond ~ startOff ~ endOff ~ inc ~ red ~ stmts =>
+        LoopOverPointsStatement(field.resolveToFieldAccess, cond, startOff, endOff, inc, stmts, red)
     })
   lazy val reductionClause = locationize((("reduction" ~ "(") ~> ("+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => ReductionStatement(op, s) })
 

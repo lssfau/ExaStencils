@@ -12,9 +12,11 @@ object Cycle {
 
     if (Knowledge.genTimersPerFunction)
       printer.println(s"\tstartTimer ( preSmoothTimer$postfix${if (Knowledge.genTimersPerLevel) "@current" else ""} )")
-    printer.println(s"\trepeat ${Knowledge.numPre} times {")
+    if (!Knowledge.testTempBlocking)
+      printer.println(s"\trepeat ${Knowledge.numPre} times {")
     printer.println(s"\t\tSmoother$postfix@current ( )")
-    printer.println(s"\t}")
+    if (!Knowledge.testTempBlocking)
+      printer.println(s"\t}")
     if (Knowledge.genTimersPerFunction)
       printer.println(s"\tstopTimer ( preSmoothTimer$postfix${if (Knowledge.genTimersPerLevel) "@current" else ""} )")
 
@@ -49,9 +51,11 @@ object Cycle {
 
     if (Knowledge.genTimersPerFunction)
       printer.println(s"\tstartTimer ( postSmoothTimer$postfix${if (Knowledge.genTimersPerLevel) "@current" else ""} )")
-    printer.println(s"\trepeat ${Knowledge.numPost} times {")
+    if (!Knowledge.testTempBlocking)
+      printer.println(s"\trepeat ${Knowledge.numPost} times {")
     printer.println(s"\t\tSmoother$postfix@current ( )")
-    printer.println(s"\t}")
+    if (!Knowledge.testTempBlocking)
+      printer.println(s"\t}")
     if (Knowledge.genTimersPerFunction)
       printer.println(s"\tstopTimer ( postSmoothTimer$postfix${if (Knowledge.genTimersPerLevel) "@current" else ""} )")
 

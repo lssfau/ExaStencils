@@ -64,8 +64,8 @@ class ExaLexer extends StdLexical {
   reserved += ("Domain", "Layout", "Field", "Stencil", "StencilField", "Set", "external", "Globals")
 
   // loop keywords
-  reserved += ("repeat", "times", "count")
-  reserved += ("loop", "until", "over", "fragments", "where", "starting", "ending", "stepping", "with", "reduction")
+  reserved += ("repeat", "times", "count", "with", "contraction")
+  reserved += ("loop", "until", "over", "fragments", "where", "starting", "ending", "stepping", "reduction")
 
   // condition keywords
   reserved += ("if", "else")

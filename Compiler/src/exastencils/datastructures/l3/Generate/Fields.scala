@@ -46,28 +46,28 @@ object Fields {
         else "sin ( M_PI * xPos ) * sinh ( M_PI * yPos )")
       if ("Jac" == Knowledge.smoother) {
         if (Knowledge.useSlotsForJac) {
-          printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >[2]@(coarsest to (finest - 1))")
-          printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, BasicComm, $bc >[2]@finest")
+          printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, CommFullTempBlockable, 0.0 >[2]@(coarsest to (finest - 1))")
+          printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, CommFullTempBlockable, $bc >[2]@finest")
         } else {
-          printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >@(coarsest to (finest - 1))")
-          printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, BasicComm, $bc >@finest")
-          printer.println(s"Field Solution2$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >@(coarsest to (finest - 1))")
-          printer.println(s"Field Solution2$postfix< $fieldDatatype, $domain, BasicComm, $bc >@finest")
+          printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, CommFullTempBlockable, 0.0 >@(coarsest to (finest - 1))")
+          printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, CommFullTempBlockable, $bc >@finest")
+          printer.println(s"Field Solution2$postfix< $fieldDatatype, $domain, CommFullTempBlockable, 0.0 >@(coarsest to (finest - 1))")
+          printer.println(s"Field Solution2$postfix< $fieldDatatype, $domain, CommFullTempBlockable, $bc >@finest")
         }
       } else {
-        printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >@(coarsest to (finest - 1))")
-        printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, BasicComm, $bc >@finest")
+        printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, CommFullTempBlockable, 0.0 >@(coarsest to (finest - 1))")
+        printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, CommFullTempBlockable, $bc >@finest")
       }
     } else {
       if ("Jac" == Knowledge.smoother) {
         if (Knowledge.useSlotsForJac) {
-          printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >[2]@all")
+          printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, CommFullTempBlockable, 0.0 >[2]@all")
         } else {
-          printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >@all")
-          printer.println(s"Field Solution2$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >@all")
+          printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, CommFullTempBlockable, 0.0 >@all")
+          printer.println(s"Field Solution2$postfix< $fieldDatatype, $domain, CommFullTempBlockable, 0.0 >@all")
         }
       } else {
-        printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >@all")
+        printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, CommFullTempBlockable, 0.0 >@all")
       }
     }
 
@@ -76,10 +76,10 @@ object Fields {
 
     printer.println(s"Field Residual$postfix< $fieldDatatype, $domain, BasicComm, None >@all")
     if (Knowledge.kelvin && "_GMRF" == postfix) {
-      printer.println(s"Field RHS$postfix< $fieldDatatype, $domain, NoComm, 0.0 >@finest")
-      printer.println(s"Field RHS$postfix< $fieldDatatype, $domain, NoComm, None >@(coarsest to (finest - 1))")
+      printer.println(s"Field RHS$postfix< $fieldDatatype, $domain, CommPartTempBlockable, 0.0 >@finest")
+      printer.println(s"Field RHS$postfix< $fieldDatatype, $domain, CommPartTempBlockable, None >@(coarsest to (finest - 1))")
     } else
-      printer.println(s"Field RHS$postfix< $fieldDatatype, $domain, NoComm, None >@all")
+      printer.println(s"Field RHS$postfix< $fieldDatatype, $domain, CommPartTempBlockable, None >@all")
     if ("CG" == Knowledge.cgs) {
       printer.println(s"Field VecP$postfix< $fieldDatatype, $domain, BasicComm, None >@coarsest")
       printer.println(s"Field VecGradP$postfix< $fieldDatatype, $domain, NoComm, None >@coarsest")

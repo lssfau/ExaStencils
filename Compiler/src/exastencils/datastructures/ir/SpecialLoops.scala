@@ -3,6 +3,7 @@ package exastencils.datastructures.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core.collectors.StackCollector
+import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
@@ -12,13 +13,49 @@ import exastencils.optimization._
 import exastencils.polyhedron._
 import exastencils.strategies._
 
-case class LoopOverPoints(var field : Field, var startOffset : MultiIndex, var endOffset : MultiIndex, var increment : MultiIndex, var contracting : Int,
+case class ContractingLoop(var begin : Statement, var end : Expression, var inc : Statement, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement {
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = ContractingLoop\n"
+
+  var contractingIt : Expression = "ERROR"
+
+  object AdaptLoopOffsets extends DefaultStrategy("Adapting loop offsets") {
+    this += new Transformation("SearchAndAdapt", {
+      case loop : LoopOverPoints => {
+        for (dim <- 0 until Knowledge.dimensionality) {
+          loop.startOffset(dim) -= contractingIt * (1 - ArrayAccess(iv.IterationOffsetBegin(loop.field.domain.index), dim))
+          loop.endOffset(dim) += contractingIt * (1 + ArrayAccess(iv.IterationOffsetEnd(loop.field.domain.index), dim))
+        }
+        loop
+      }
+      case loop : LoopOverPointsInOneFragment => {
+        for (dim <- 0 until Knowledge.dimensionality) {
+          loop.startOffset(dim) -= contractingIt * (1 - ArrayAccess(iv.IterationOffsetBegin(loop.field.domain.index), dim))
+          loop.endOffset(dim) += contractingIt * (1 + ArrayAccess(iv.IterationOffsetEnd(loop.field.domain.index), dim))
+        }
+        loop
+      }
+    })
+  }
+
+  def expandSpecial : Output[ForLoopStatement] = {
+    contractingIt = begin match {
+      case s : AssignmentStatement          => s.dest
+      case s : VariableDeclarationStatement => s.name
+    }
+    contractingIt = (end.asInstanceOf[LowerExpression].right - 1) - contractingIt
+
+    AdaptLoopOffsets.applyStandalone(this)
+    ForLoopStatement(begin, end, inc, body, reduction)
+  }
+}
+
+case class LoopOverPoints(var field : Field, var startOffset : MultiIndex, var endOffset : MultiIndex, var increment : MultiIndex,
     var body : ListBuffer[Statement], var reduction : Option[Reduction] = None, var condition : Option[Expression] = None) extends Statement {
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPoints\n"
 
   def expandSpecial(collector : StackCollector) : Output[Statement] = {
     val insideFragLoop = collector.stack.map(node => node match { case loop : LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
-    val innerLoop = LoopOverPointsInOneFragment(field.domain.index, field, startOffset, endOffset, increment, contracting, body, reduction, condition)
+    val innerLoop = LoopOverPointsInOneFragment(field.domain.index, field, startOffset, endOffset, increment, body, reduction, condition)
 
     if (insideFragLoop)
       innerLoop
@@ -28,7 +65,7 @@ case class LoopOverPoints(var field : Field, var startOffset : MultiIndex, var e
 }
 
 case class LoopOverPointsInOneFragment(var domain : Int, var field : Field,
-    var startOffset : MultiIndex, var endOffset : MultiIndex, var increment : MultiIndex, var contracting : Int,
+    var startOffset : MultiIndex, var endOffset : MultiIndex, var increment : MultiIndex,
     var body : ListBuffer[Statement], var reduction : Option[Reduction] = None, var condition : Option[Expression] = None) extends Statement with Expandable {
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPointsInOneFragment\n"
 

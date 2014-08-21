@@ -72,14 +72,13 @@ case class AssignmentStatement(var dest : Access, var src : Expression, var op :
 }
 
 case class LoopOverPointsStatement(var field : FieldAccess, var condition : Option[BooleanExpression],
-    var startOffset : Option[ExpressionIndex], var endOffset : Option[ExpressionIndex], var increment : Option[ExpressionIndex], var contracting : Option[Int],
+    var startOffset : Option[ExpressionIndex], var endOffset : Option[ExpressionIndex], var increment : Option[ExpressionIndex],
     var statements : List[Statement], var reduction : Option[ReductionStatement]) extends Statement {
   def progressToIr : ir.LoopOverPoints = {
     ir.LoopOverPoints(field.resolveField,
       if (startOffset.isDefined) startOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
       if (endOffset.isDefined) endOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
       if (increment.isDefined) increment.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(1)),
-      if (contracting.isDefined) contracting.get else 1,
       statements.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
       if (reduction.isDefined) Some(reduction.get.progressToIr) else None,
       if (condition.isDefined) Some(condition.get.progressToIr) else None)
@@ -103,24 +102,27 @@ case class FunctionStatement(var identifier : Identifier, var returntype : Datat
   }
 }
 
-case class RepeatUpStatement(var number : Int, var iterator : Option[Access], var statements : List[Statement]) extends Statement {
-  def progressToIr : ir.ForLoopStatement = {
+case class RepeatUpStatement(var number : Int, var iterator : Option[Access], var contraction : Boolean, var statements : List[Statement]) extends Statement {
+  def LoopType = if (contraction) ir.ContractingLoop else ir.ForLoopStatement
+
+  def progressToIr : ir.Statement = {
     if (iterator.isDefined) {
       val loopVar = iterator.get.progressToIr
-      ir.ForLoopStatement(
+      LoopType(
         ir.AssignmentStatement(loopVar, ir.IntegerConstant(0)),
         loopVar < ir.IntegerConstant(number),
         ir.AssignmentStatement(loopVar, ir.IntegerConstant(1), "+="),
-        statements.map(s => s.progressToIr).to[ListBuffer]) // FIXME: to[ListBuffer]    
+        statements.map(s => s.progressToIr).to[ListBuffer],
+        None) // FIXME: to[ListBuffer]    
     } else {
       val loopVar = ir.StringConstant("someRandomIndexVar") // FIXME: someRandomIndexVar
-      ir.ForLoopStatement(
+      LoopType(
         ir.VariableDeclarationStatement(ir.IntegerDatatype(), loopVar.value, Some(ir.IntegerConstant(0))),
         loopVar < ir.IntegerConstant(number),
         ir.AssignmentStatement(loopVar, ir.IntegerConstant(1), "+="),
-        statements.map(s => s.progressToIr).to[ListBuffer]) // FIXME: to[ListBuffer]    
+        statements.map(s => s.progressToIr).to[ListBuffer],
+        None) // FIXME: to[ListBuffer]    
     }
-
   }
 }
 

@@ -72,3 +72,10 @@ object ResolveSlotOperationsStrategy extends DefaultStrategy("ResolveSlotOperati
     case advanceSlot : AdvanceSlot => advanceSlot.expandSpecial
   })
 }
+
+object ResolveContractingLoop extends DefaultStrategy("Resolving ContractingLoop nodes") {
+  this += new Transformation("Resolving", {
+    case loop : ContractingLoop =>
+      loop.expandSpecial
+  })
+}

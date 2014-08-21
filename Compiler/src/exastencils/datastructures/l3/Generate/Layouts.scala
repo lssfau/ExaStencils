@@ -9,13 +9,31 @@ object Layouts {
         printer.println("Layout BasicComm {")
         printer.println("\tghostLayers = [ 1, 1 ] with communication")
         printer.println("\tduplicateLayers = [ 1, 1 ] with communication")
-        printer.println("\t// innerPoints = []")
         printer.println("}")
+
+        printer.println(s"Layout CommFullTempBlockable {")
+        if (Knowledge.testTempBlocking)
+          printer.println(s"\tghostLayers = [ ${Knowledge.numPre}, ${Knowledge.numPre} ] with communication")
+        else
+          printer.println(s"\tghostLayers = [ 1, 1 ] with communication")
+        printer.println(s"\tduplicateLayers = [ 1, 1 ] with communication")
+        printer.println(s"}")
+
+        if (Knowledge.testTempBlocking) {
+          printer.println(s"Layout CommPartTempBlockable {")
+          if (Knowledge.numPre > 1)
+            printer.println(s"\tghostLayers = [ ${Knowledge.numPre - 1}, ${Knowledge.numPre - 1} ] with communication")
+          else
+            printer.println("\tghostLayers = [ 0, 0 ]")
+          printer.println(s"\tduplicateLayers = [ 1, 1 ] with communication")
+          printer.println(s"}")
+        }
+
         printer.println("Layout NoComm {")
         printer.println("\tghostLayers = [ 0, 0 ]")
         printer.println("\tduplicateLayers = [ 1, 1 ]")
-        printer.println("\t// innerPoints = []")
         printer.println("}")
+
         if (Knowledge.testExtFields) {
           printer.println("Layout ExtSolLayout {")
           printer.println("\tghostLayers = [ 0, 0 ]")
@@ -29,13 +47,31 @@ object Layouts {
         printer.println("Layout BasicComm {")
         printer.println("\tghostLayers = [ 1, 1, 1 ] with communication")
         printer.println("\tduplicateLayers = [ 1, 1, 1 ] with communication")
-        printer.println("\t// innerPoints = []")
         printer.println("}")
+
+        printer.println(s"Layout CommFullTempBlockable {")
+        if (Knowledge.testTempBlocking)
+          printer.println(s"\tghostLayers = [ ${Knowledge.numPre}, ${Knowledge.numPre}, ${Knowledge.numPre} ] with communication")
+        else
+          printer.println(s"\tghostLayers = [ 1, 1, 1 ] with communication")
+        printer.println(s"\tduplicateLayers = [ 1, 1, 1 ] with communication")
+        printer.println(s"}")
+
+        if (Knowledge.testTempBlocking) {
+          printer.println(s"Layout CommPartTempBlockable {")
+          if (Knowledge.numPre > 1)
+            printer.println(s"\tghostLayers = [ ${Knowledge.numPre - 1}, ${Knowledge.numPre - 1}, ${Knowledge.numPre - 1} ] with communication")
+          else
+            printer.println("\tghostLayers = [ 0, 0, 0 ]")
+          printer.println(s"\tduplicateLayers = [ 1, 1, 1 ] with communication")
+          printer.println(s"}")
+        }
+
         printer.println("Layout NoComm {")
         printer.println("\tghostLayers = [ 0, 0, 0 ]")
         printer.println("\tduplicateLayers = [ 1, 1, 1 ]")
-        printer.println("\t// innerPoints = []")
         printer.println("}")
+
         if (Knowledge.testExtFields) {
           printer.println("Layout ExtSolLayout {")
           printer.println("\tghostLayers = [ 0, 0, 0 ]")

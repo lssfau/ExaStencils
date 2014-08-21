@@ -157,6 +157,7 @@ object Knowledge {
   var genRBSetsWithConditions : Boolean = true // NOTE: due to the boundary offsets, NOT using conditions leads to a color mismatch at primitive boundaries and thus to a reduced convergence rate
   var useSlotsForJac : Boolean = true
   var useSlotVariables : Boolean = true && useSlotsForJac
+  var testTempBlocking : Boolean = true && (numPre == numPost) // NOTE: currently only works with GS
 
   /// functionality test
   var testBC : Boolean = true && (2 == dimensionality) && !kelvin // NOTE: the tested bc will only be reasonable for 2D cases
@@ -166,7 +167,7 @@ object Knowledge {
   var useVecFields : Boolean = false && !kelvin // attempts to solve Poisson's equation for (numVecDims)D vectors; atm all three components are solved independently
   var numVecDims = (if (useVecFields) 2 else 1)
   var testFragLoops = true
-  var testDomainEmbedding = true && !kelvin
+  var testDomainEmbedding = false && !kelvin
 
   /// optional features  
   var printFieldAtEnd : Boolean = false || kelvin

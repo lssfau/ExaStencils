@@ -75,6 +75,7 @@ object Main {
 
     ResolveLoopOverPoints.apply()
     ResolveIntergridIndices.apply()
+    ResolveContractingLoop.apply()
 
     var numConvFound = 1
     while (numConvFound > 0) {
