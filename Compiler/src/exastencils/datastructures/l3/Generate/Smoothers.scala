@@ -10,10 +10,10 @@ object Smoothers {
     if (Knowledge.useSlotVariables && Knowledge.useSlotsForJac) {
       Communication.exch(printer, s"Solution$postfix[curSlot]@current")
 
-      printer.println(s"\t\tloop over Solution$postfix@current {")
+      printer.println(s"\tloop over Solution$postfix@current {")
       for (vecDim <- 0 until Knowledge.numVecDims)
-        printer.println(s"\t\t\t${Fields.solutionSlotted(s"current", "nextSlot", postfix)(vecDim)} = ${Fields.solutionSlotted(s"current", "curSlot", postfix)(vecDim)} + ( ( ( 1.0 / diag ( $stencil ) ) * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solutionSlotted(s"current", "curSlot", postfix)(vecDim)} ) )")
-      printer.println(s"\t\t}")
+        printer.println(s"\t\t${Fields.solutionSlotted(s"current", "nextSlot", postfix)(vecDim)} = ${Fields.solutionSlotted(s"current", "curSlot", postfix)(vecDim)} + ( ( ( 1.0 / diag ( $stencil ) ) * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solutionSlotted(s"current", "curSlot", postfix)(vecDim)} ) )")
+      printer.println(s"\t}")
 
       printer.println(s"\tadvance ( Solution$postfix@current )")
     } else {
