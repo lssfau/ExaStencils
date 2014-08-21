@@ -72,7 +72,6 @@ object Main {
     SetupCommunication.apply()
 
     ResolveSpecialFunctions.apply()
-    ResolveSlotOperationsStrategy.apply()
 
     ResolveLoopOverPoints.apply()
     ResolveIntergridIndices.apply()
@@ -97,9 +96,9 @@ object Main {
       PolyOpt.apply()
 
     ResolveLoopOverDimensions.apply()
+    ResolveSlotOperationsStrategy.apply()
 
     ResolveIndexOffsets.apply()
-
     LinearizeFieldAccesses.apply()
 
     if (Knowledge.useFasterExpand)
