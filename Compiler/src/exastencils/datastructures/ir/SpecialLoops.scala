@@ -30,7 +30,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
     object AdaptFieldSlots extends DefaultStrategy("Adapt field slots") {
       this += new Transformation("now", {
         case fs @ FieldSelection(field, SlotAccess(slot, offset), _, _) =>
-          fs.slot = new SlotAccess(slot, offset + fieldOffset(field))
+          fs.slot = new SlotAccess(slot, offset + fieldOffset.getOrElse(field, 0))
           fs
       })
     }
