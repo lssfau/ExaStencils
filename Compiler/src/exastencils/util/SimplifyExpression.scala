@@ -121,11 +121,11 @@ object SimplifyExpression {
         val mapL = extractIntegralSum(l)
         val mapR = extractIntegralSum(r)
         var coeff : Long = 1L
-        if (mapL.size == 1 && mapL.contains(constName)) {
-          coeff = mapL(constName)
+        if ((mapL.size == 1 && mapL.contains(constName)) || mapL.isEmpty) {
+          coeff = mapL.getOrElse(constName, 0L)
           res = mapR
-        } else if (mapR.size == 1 && mapR.contains(constName)) {
-          coeff = mapR(constName)
+        } else if ((mapR.size == 1 && mapR.contains(constName)) || mapR.isEmpty) {
+          coeff = mapR.getOrElse(constName, 0L)
           res = mapL
         } else
           throw new EvaluationException("non-constant * non-constant is not yet implemented")
@@ -137,6 +137,8 @@ object SimplifyExpression {
 
       case DivisionExpression(l, r) =>
         val tmp = extractIntegralSum(r)
+        if (tmp.isEmpty)
+          throw new EvaluationException("BOOM! (divide by zero)")
         if (!(tmp.size == 1 && tmp.contains(constName)))
           throw new EvaluationException("only constant divisor allowed yet")
         val div : Long = tmp(constName)
@@ -157,6 +159,8 @@ object SimplifyExpression {
 
       case ModuloExpression(l, r) =>
         val tmp = extractIntegralSum(r)
+        if (tmp.isEmpty)
+          throw new EvaluationException("BOOM! (divide by zero)")
         if (!(tmp.size == 1 && tmp.contains(constName)))
           throw new EvaluationException("only constant divisor allowed")
         val mod : Long = tmp(constName)
