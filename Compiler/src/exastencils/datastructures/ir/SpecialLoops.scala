@@ -1,8 +1,11 @@
 package exastencils.datastructures.ir
 
+import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
+import exastencils.core._
 import exastencils.core.collectors.StackCollector
+import exastencils.data._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -13,39 +16,58 @@ import exastencils.optimization._
 import exastencils.polyhedron._
 import exastencils.strategies._
 
-case class ContractingLoop(var begin : Statement, var end : Expression, var inc : Statement, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement {
+case class ContractingLoop(var number : Int, var iterator : Option[Expression], var statements : ListBuffer[Statement]) extends Statement {
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = ContractingLoop\n"
 
-  var contractingIt : Expression = "ERROR"
-
-  object AdaptLoopOffsets extends DefaultStrategy("Adapting loop offsets") {
-    this += new Transformation("SearchAndAdapt", {
-      case loop : LoopOverPoints => {
-        for (dim <- 0 until Knowledge.dimensionality) {
-          loop.startOffset(dim) -= contractingIt * (1 - ArrayAccess(iv.IterationOffsetBegin(loop.field.domain.index), dim))
-          loop.endOffset(dim) += contractingIt * (1 + ArrayAccess(iv.IterationOffsetEnd(loop.field.domain.index), dim))
-        }
-        loop
-      }
-      case loop : LoopOverPointsInOneFragment => {
-        for (dim <- 0 until Knowledge.dimensionality) {
-          loop.startOffset(dim) -= contractingIt * (1 - ArrayAccess(iv.IterationOffsetBegin(loop.field.domain.index), dim))
-          loop.endOffset(dim) += contractingIt * (1 + ArrayAccess(iv.IterationOffsetEnd(loop.field.domain.index), dim))
-        }
-        loop
-      }
-    })
+  private def extendBounds(start : MultiIndex, end : MultiIndex, extent : Int, field : Field) : Unit = {
+    for (dim <- 0 until Knowledge.dimensionality) {
+      start(dim) -= IntegerConstant(extent) * (1 - ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
+      end(dim) += IntegerConstant(extent) * (1 + ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim))
+    }
   }
 
-  def expandSpecial : Output[ForLoopStatement] = {
-    contractingIt = begin match {
-      case s : AssignmentStatement          => s.dest
-      case s : VariableDeclarationStatement => s.name
+  private def updateSlots(stmts : ListBuffer[Statement], fieldOffset : HashMap[Field, Int]) : Unit = {
+    object AdaptFieldSlots extends DefaultStrategy("Adapt field slots") {
+      this += new Transformation("now", {
+        case fs @ FieldSelection(field, SlotAccess(slot, offset), _, _) =>
+          fs.slot = new SlotAccess(slot, offset + fieldOffset(field))
+          fs
+      })
     }
-    contractingIt = (end.asInstanceOf[LowerExpression].right - 1) - contractingIt
+    val oldLvl = Logger.getLevel
+    Logger.setLevel(1)
+    AdaptFieldSlots.applyStandalone(new Scope(stmts))
+    Logger.setLevel(oldLvl)
+  }
 
-    AdaptLoopOffsets.applyStandalone(this)
-    ForLoopStatement(begin, end, inc, body, reduction)
+  def expandSpecial : Output[NodeList] = {
+    val res = new ListBuffer[Statement]()
+    val fieldOffset = new HashMap[Field, Int]()
+    for (i <- 1 to number)
+      for (stmt <- statements)
+        stmt match {
+          case AdvanceSlot(iv.CurrentSlot(field)) =>
+            fieldOffset(field) = fieldOffset.getOrElse(field, 0) + 1
+
+          case loop : LoopOverPoints =>
+            val nju = Duplicate(loop)
+            extendBounds(nju.startOffset, nju.endOffset, (number - i) * 1, loop.field) // TODO: currently independent from used stencils
+            updateSlots(nju.body, fieldOffset)
+            res += nju
+
+          case loop : LoopOverPointsInOneFragment =>
+            val nju = Duplicate(loop)
+            extendBounds(nju.startOffset, nju.endOffset, (number - i) * 1, loop.field) // TODO: currently independent from used stencils
+            updateSlots(nju.body, fieldOffset)
+            res += nju
+        }
+
+    for ((field, offset) <- fieldOffset) {
+      val slot = new iv.CurrentSlot(field)
+      res += AssignmentStatement(slot, (slot + offset) Mod slot.field.numSlots)
+    }
+
+    return res
   }
 }
 
@@ -70,14 +92,14 @@ case class LoopOverPointsInOneFragment(var domain : Int, var field : Field,
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPointsInOneFragment\n"
 
   def expand : Output[Statement] = {
-    var start : ListBuffer[Expression] = ListBuffer()
-    var stop : ListBuffer[Expression] = ListBuffer()
+    var start = new MultiIndex()
+    var stop = new MultiIndex()
     for (i <- 0 until Knowledge.dimensionality) {
-      start += OffsetIndex(0, 1, field.layout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), i))
-      stop += OffsetIndex(-1, 0, field.layout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), i))
+      start(i) = OffsetIndex(0, 1, field.layout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), i))
+      stop(i) = OffsetIndex(-1, 0, field.layout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), i))
     }
 
-    var indexRange = IndexRange(new MultiIndex(start.toArray), new MultiIndex(stop.toArray))
+    var indexRange = IndexRange(start, stop)
     SimplifyStrategy.doUntilDoneStandalone(indexRange)
 
     var ret : Statement = new LoopOverDimensions(Knowledge.dimensionality, indexRange, body, increment, reduction, condition) with OMP_PotentiallyParallel with PolyhedronAccessable

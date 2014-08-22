@@ -311,5 +311,5 @@ case class CurrentSlot(var field : Field) extends InternalVariable(false, false,
 
   override def resolveName = s"curSlot" + resolvePostfix("", "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, field.level.toString, "")
   override def resolveDataType = "int"
-  override def resolveDefValue = Some(field.numSlots) // accounting for negative offsets in the ring buffer
+  override def resolveDefValue = Some(IntegerConstant(0))
 }

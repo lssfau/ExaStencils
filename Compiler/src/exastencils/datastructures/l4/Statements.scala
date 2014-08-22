@@ -102,27 +102,29 @@ case class FunctionStatement(var identifier : Identifier, var returntype : Datat
   }
 }
 
-case class RepeatUpStatement(var number : Int, var iterator : Option[Access], var contraction : Boolean, var statements : List[Statement]) extends Statement {
-  def LoopType = if (contraction) ir.ContractingLoop else ir.ForLoopStatement
+case class RepeatUpStatement(var number : Int, var iterator : Option[Access], var contraction : Boolean,
+    var statements : List[Statement]) extends Statement {
 
   def progressToIr : ir.Statement = {
-    if (iterator.isDefined) {
-      val loopVar = iterator.get.progressToIr
-      LoopType(
-        ir.AssignmentStatement(loopVar, ir.IntegerConstant(0)),
-        loopVar < ir.IntegerConstant(number),
-        ir.AssignmentStatement(loopVar, ir.IntegerConstant(1), "+="),
-        statements.map(s => s.progressToIr).to[ListBuffer],
-        None) // FIXME: to[ListBuffer]    
-    } else {
-      val loopVar = ir.StringConstant("someRandomIndexVar") // FIXME: someRandomIndexVar
-      LoopType(
-        ir.VariableDeclarationStatement(ir.IntegerDatatype(), loopVar.value, Some(ir.IntegerConstant(0))),
-        loopVar < ir.IntegerConstant(number),
-        ir.AssignmentStatement(loopVar, ir.IntegerConstant(1), "+="),
-        statements.map(s => s.progressToIr).to[ListBuffer],
-        None) // FIXME: to[ListBuffer]    
-    }
+    if (contraction)
+      // FIXME: to[ListBuffer]
+      return new ir.ContractingLoop(number, iterator.map(i => i.progressToIr), statements.map(s => s.progressToIr).to[ListBuffer])
+
+    val (loopVar, begin) =
+      if (iterator.isDefined) {
+        val lv = iterator.get.progressToIr
+        (lv, ir.AssignmentStatement(lv, ir.IntegerConstant(0)))
+      } else {
+        val lv = "someRandomIndexVar" // FIXME: someRandomIndexVar
+        (ir.StringConstant(lv), ir.VariableDeclarationStatement(ir.IntegerDatatype(), lv, Some(ir.IntegerConstant(0))))
+      }
+
+    return ir.ForLoopStatement(
+      begin,
+      loopVar < ir.IntegerConstant(number),
+      ir.AssignmentStatement(loopVar, ir.IntegerConstant(1), "+="),
+      statements.map(s => s.progressToIr).to[ListBuffer], // FIXME: to[ListBuffer]
+      None)
   }
 }
 

@@ -72,10 +72,16 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
 }
 
 case class SlotAccess(var slot : iv.CurrentSlot, var offset : Int) extends Expression {
+
+  // ensure: 0 <= offset < slot.field.numSlots
+  offset %= slot.field.numSlots
+  if (offset < 0)
+    offset += slot.field.numSlots
+
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = SlotAccess\n"
 
   def expandSpecial : Expression = {
-    (slot + offset) Mod slot.field.numSlots
+    (slot + offset) Mod slot.field.numSlots // offset is always positive
   }
 }
 
@@ -83,6 +89,6 @@ case class AdvanceSlot(var slot : iv.CurrentSlot) extends Statement {
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = AdvanceSlot\n"
 
   def expandSpecial : Statement = {
-    AssignmentStatement(slot, ((slot + 1) Mod slot.field.numSlots) + slot.field.numSlots) // accounting for negative offsets in the ring buffer
+    AssignmentStatement(slot, (slot + 1) Mod slot.field.numSlots) // slot never contains negative values (currently)
   }
 }
