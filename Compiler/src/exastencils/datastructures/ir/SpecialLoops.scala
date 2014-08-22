@@ -26,11 +26,16 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
     }
   }
 
-  private def updateSlots(stmts : ListBuffer[Statement], fieldOffset : HashMap[Field, Int]) : Unit = {
+  private type FieldKey = (String, Int)
+  private def FieldKey(field : Field) : FieldKey = {
+    return (field.identifier, field.level)
+  }
+
+  private def updateSlots(stmts : ListBuffer[Statement], fieldOffset : HashMap[FieldKey, Int]) : Unit = {
     object AdaptFieldSlots extends DefaultStrategy("Adapt field slots") {
       this += new Transformation("now", {
         case fs @ FieldSelection(field, SlotAccess(slot, offset), _, _) =>
-          fs.slot = new SlotAccess(slot, offset + fieldOffset.getOrElse(field, 0))
+          fs.slot = new SlotAccess(slot, offset + fieldOffset.getOrElse(FieldKey(field), 0))
           fs
       })
     }
@@ -42,12 +47,15 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
 
   def expandSpecial : Output[NodeList] = {
     val res = new ListBuffer[Statement]()
-    val fieldOffset = new HashMap[Field, Int]()
+    val fieldOffset = new HashMap[FieldKey, Int]()
+    val fields = new HashMap[FieldKey, Field]()
     for (i <- 1 to number)
       for (stmt <- statements)
         stmt match {
           case AdvanceSlot(iv.CurrentSlot(field)) =>
-            fieldOffset(field) = fieldOffset.getOrElse(field, 0) + 1
+            val fKey = FieldKey(field)
+            fieldOffset(fKey) = fieldOffset.getOrElse(fKey, 0) + 1
+            fields(fKey) = field
 
           case loop : LoopOverPoints =>
             val nju = Duplicate(loop)
@@ -62,8 +70,8 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
             res += nju
         }
 
-    for ((field, offset) <- fieldOffset) {
-      val slot = new iv.CurrentSlot(field)
+    for ((fKey, offset) <- fieldOffset) {
+      val slot = new iv.CurrentSlot(fields(fKey))
       res += AssignmentStatement(slot, (slot + offset) Mod slot.field.numSlots)
     }
 
