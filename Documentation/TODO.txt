@@ -33,6 +33,4 @@ IR:
 
 ISL:
 - L4 constraints to ISL mapping
-- add tiling
-- add vectorization
 - long term: reduce optimization runtime
