@@ -313,3 +313,16 @@ case class CurrentSlot(var field : Field, var fragmentIdx : Expression = LoopOve
   override def resolveDataType = "int"
   override def resolveDefValue = Some(IntegerConstant(0))
 }
+
+case class IndexFromField(var field : Field, var level : Expression, var indexId : String) extends InternalVariable(false, false, true, true, false) {
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, NullExpression, NullExpression, field.identifier, level, NullExpression)
+
+  override def usesFieldArrays : Boolean = false
+  override def usesLevelArrays : Boolean = true
+
+  override def resolveName = s"idx$indexId" + resolvePostfix("", "", field.identifier, level.cpp, "")
+  override def resolveDataType = s"Vec${Knowledge.dimensionality}i"
+  override def resolveDefValue = Some(s"Vec${Knowledge.dimensionality}i(${
+    (0 until Knowledge.dimensionality).map(i => field.layout(i).idxById(indexId)).mkString(", ")
+  })")
+}

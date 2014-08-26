@@ -40,6 +40,26 @@ class FieldLayoutPerDim(
   def idxPadRightEnd = { idxPadRightBegin + numPadLayersRight }
 
   def total = { idxPadRightBegin + numPadLayersRight }
+
+  def idxById(id : String) = {
+    id match {
+      case "PLB" => idxPadLeftBegin
+      case "PLE" => idxPadLeftEnd
+      case "GLB" => idxGhostLeftBegin
+      case "GLE" => idxGhostLeftEnd
+      case "DLB" => idxDupLeftBegin
+      case "DLE" => idxDupLeftEnd
+      case "IB"  => idxInnerBegin
+      case "IE"  => idxInnerEnd
+      case "DRB" => idxDupRightBegin
+      case "DRE" => idxDupRightEnd
+      case "GRB" => idxGhostRightBegin
+      case "GRE" => idxGhostRightEnd
+      case "PRB" => idxPadRightBegin
+      case "PRE" => idxPadRightEnd
+      case "TOT" => total
+    }
+  }
 }
 
 case class Field(
