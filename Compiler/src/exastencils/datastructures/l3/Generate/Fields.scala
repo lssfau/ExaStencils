@@ -74,12 +74,13 @@ object Fields {
     if (Knowledge.kelvin && "" == postfix)
       printer.println(s"Field SolutionMean< $fieldDatatype, $domain, NoComm, bcSol(xPos, yPos) >@all")
 
+    val rhsLayout = if (Knowledge.testTempBlocking) "CommPartTempBlockable" else "NoComm"
     printer.println(s"Field Residual$postfix< $fieldDatatype, $domain, BasicComm, None >@all")
     if (Knowledge.kelvin && "_GMRF" == postfix) {
-      printer.println(s"Field RHS$postfix< $fieldDatatype, $domain, CommPartTempBlockable, 0.0 >@finest")
-      printer.println(s"Field RHS$postfix< $fieldDatatype, $domain, CommPartTempBlockable, None >@(coarsest to (finest - 1))")
+      printer.println(s"Field RHS$postfix< $fieldDatatype, $domain, $rhsLayout, 0.0 >@finest")
+      printer.println(s"Field RHS$postfix< $fieldDatatype, $domain, $rhsLayout, None >@(coarsest to (finest - 1))")
     } else
-      printer.println(s"Field RHS$postfix< $fieldDatatype, $domain, CommPartTempBlockable, None >@all")
+      printer.println(s"Field RHS$postfix< $fieldDatatype, $domain, $rhsLayout, None >@all")
     if ("CG" == Knowledge.cgs) {
       printer.println(s"Field VecP$postfix< $fieldDatatype, $domain, BasicComm, None >@coarsest")
       printer.println(s"Field VecGradP$postfix< $fieldDatatype, $domain, NoComm, None >@coarsest")
