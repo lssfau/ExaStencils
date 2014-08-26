@@ -304,12 +304,12 @@ case class Timer(var name : Expression) extends UnduplicatedVariable {
   }
 }
 
-case class CurrentSlot(var field : Field) extends InternalVariable(false, false, true, true, false) {
-  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, NullExpression, NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, NullExpression)
+case class CurrentSlot(var field : Field, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, false) {
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, NullExpression)
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 
-  override def resolveName = s"curSlot" + resolvePostfix("", "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, field.level.toString, "")
+  override def resolveName = s"curSlot" + resolvePostfix(fragmentIdx.cpp, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, field.level.toString, "")
   override def resolveDataType = "int"
   override def resolveDefValue = Some(IntegerConstant(0))
 }

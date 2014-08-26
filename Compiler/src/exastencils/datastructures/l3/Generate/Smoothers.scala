@@ -5,13 +5,13 @@ import exastencils.knowledge._
 object Smoothers {
   def omegaToPrint = (if (Knowledge.omegaViaGlobals) "omega" else Knowledge.omega)
 
-  def addBodyBefore(printer : java.io.PrintWriter) = {
+  def addBodyBefore(printer : java.io.PrintWriter, postfix : String) = {
     if (Knowledge.testFragLoops)
       printer.println(s"\tloop over fragments {")
     if (Knowledge.testTempBlocking)
       printer.println(s"\trepeat ${Knowledge.numPre} times with contraction {")
   }
-  def addBodyAfter(printer : java.io.PrintWriter) = {
+  def addBodyAfter(printer : java.io.PrintWriter, postfix : String) = {
     if (Knowledge.testTempBlocking)
       printer.println(s"\t}")
     if (Knowledge.testFragLoops)
@@ -24,7 +24,7 @@ object Smoothers {
       if (Knowledge.testTempBlocking)
         Communication.exch(printer, s"RHS$postfix@current")
 
-      addBodyBefore(printer)
+      addBodyBefore(printer, postfix)
 
       printer.println(s"\tloop over Solution$postfix@current {")
       for (vecDim <- 0 until Knowledge.numVecDims)
@@ -32,7 +32,7 @@ object Smoothers {
       printer.println(s"\t}")
       printer.println(s"\tadvance ( Solution$postfix@current )")
 
-      addBodyAfter(printer)
+      addBodyAfter(printer, postfix)
     } else {
       Communication.exch(printer, s"Solution$postfix${if (Knowledge.useSlotsForJac) "[0]" else ""}@current")
 
@@ -97,14 +97,14 @@ object Smoothers {
     if (Knowledge.testTempBlocking)
       Communication.exch(printer, s"RHS$postfix@current")
 
-    addBodyBefore(printer)
+    addBodyBefore(printer, postfix)
 
     printer.println(s"\tloop over Solution$postfix@current {")
     for (vecDim <- 0 until Knowledge.numVecDims)
       printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)} = ${Fields.solution(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( $stencil ) ) * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solution(s"current", postfix)(vecDim)} ) )")
     printer.println(s"\t}")
 
-    addBodyAfter(printer)
+    addBodyAfter(printer, postfix)
   }
 
   def addFunction(printer : java.io.PrintWriter, postfix : String) = {

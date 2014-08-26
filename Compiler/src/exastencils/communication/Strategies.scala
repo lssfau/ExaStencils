@@ -3,6 +3,7 @@ package exastencils.communication
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
+import exastencils.data._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
@@ -44,6 +45,11 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         commFunctions.functions += ExchangeDataFunction(fieldSelection, Fragment.neighbors,
           "begin" == commStatement.op || "both" == commStatement.op,
           "finish" == commStatement.op || "both" == commStatement.op)
+      }
+
+      commStatement.field.slot match {
+        case SlotAccess(slot, _) if StringConstant(LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
+        case _ =>
       }
 
       (new FunctionCallExpression(functionName, commStatement.field.slot)) : Statement

@@ -1,7 +1,6 @@
 package exastencils.multiGrid
 
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core._
 import exastencils.core.collectors.IRLevelCollector
 import exastencils.data._
@@ -12,6 +11,10 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.mpi._
 import exastencils.util._
+import exastencils.core.collectors.StackCollector
+import exastencils.datastructures.l4.BinaryExpression
+import exastencils.omp.OMP_Barrier
+import exastencils.omp.OMP_Barrier
 
 object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices") {
   val collector = new IRLevelCollector
@@ -51,6 +54,14 @@ object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices"
 }
 
 object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions") {
+  var collector = new StackCollector
+
+  override def apply(node : Option[Node] = None) : Unit = {
+    StateManager.register(collector)
+    super.apply(node)
+    StateManager.unregister(collector)
+  }
+
   this += new Transformation("SearchAndReplace", {
     case FunctionCallExpression(StringConstant("diag"), args) => args(0) match {
       case access : StencilAccess =>
@@ -72,7 +83,17 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
     }
 
     case ExpressionStatement(FunctionCallExpression(StringConstant("advance"), args)) => {
-      AdvanceSlot(iv.CurrentSlot(args(0).asInstanceOf[FieldAccess].fieldSelection.field))
+      //      if (Knowledge.useOMP && !Knowledge.domain_summarizeBlocks && collector.stack.map(node => node match { case _ : LoopOverFragments => true; case _ => false }).fold(false)((a, b) => a || b))
+      //        ListBuffer[Statement](
+      //          OMP_Barrier(),
+      //          new ConditionStatement(EqEqExpression(0, LoopOverFragments.defIt),
+      //            AdvanceSlot(iv.CurrentSlot(args(0).asInstanceOf[FieldAccess].fieldSelection.field))),
+      //          OMP_Barrier())
+      if (collector.stack.map(node => node match { case _ : LoopOverFragments => true; case _ => false }).fold(false)((a, b) => a || b))
+        AdvanceSlot(new iv.CurrentSlot(args(0).asInstanceOf[FieldAccess].fieldSelection.field, LoopOverFragments.defIt))
+      else
+        new LoopOverFragments(
+          AdvanceSlot(new iv.CurrentSlot(args(0).asInstanceOf[FieldAccess].fieldSelection.field, LoopOverFragments.defIt)))
     }
 
     // HACK to realize return functionality -> FIXME: move to specialized node

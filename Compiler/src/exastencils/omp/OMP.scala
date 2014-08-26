@@ -8,6 +8,10 @@ import exastencils.knowledge._
 trait OMP_PotentiallyCritical
 trait OMP_PotentiallyParallel { var reduction : Option[Reduction]; var addOMPStatements = new ListBuffer[String](); var collapse = 1 }
 
+case class OMP_Barrier() extends Statement {
+  override def cpp(out : CppStream) : Unit = out << "#pragma omp barrier"
+}
+
 case class OMP_Critical(var body : Scope) extends Statement {
   def this(body : Statement) = this(new Scope(body))
   def this(body : ListBuffer[Statement]) = this(new Scope(body))
