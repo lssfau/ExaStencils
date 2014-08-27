@@ -1,10 +1,8 @@
 package test.core
 
-import exastencils.core._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
-import exastencils.primitives._
 import exastencils.strategies._
 
 object Simplification {
