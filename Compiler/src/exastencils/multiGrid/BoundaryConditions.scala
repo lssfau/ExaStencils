@@ -15,11 +15,11 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
 
   def setupDirichlet : ListBuffer[Statement] = {
     var statements : ListBuffer[Statement] = ListBuffer()
-
-    if (StateManager.findFirst(node => node match {
+    if (StateManager.findFirst[Any]((node : Any) => node match {
       case StringConstant(sc) if "xPos" == sc || "yPos" == sc || "zPos" == sc => true
+      case VariableAccess(sc, _) if "xPos" == sc || "yPos" == sc || "zPos" == sc => true
       case _ => false
-    }).isDefined) {
+    }, field.field.dirichletBC.get).isDefined) {
       statements += new InitGeomCoords(field.field, true)
     }
 

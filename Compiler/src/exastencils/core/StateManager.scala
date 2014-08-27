@@ -1,19 +1,15 @@
 package exastencils.core
 
+import scala.collection.GenTraversableOnce
+import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Stack
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.Map
-import scala.util.control.Exception
-import java.lang.reflect.Method
-import exastencils.core.collectors._
-import exastencils.datastructures._
-import exastencils.datastructures.l4._
-import exastencils.datastructures.Transformation._
-import scala.reflect.runtime.{ universe => ru }
-import scala.reflect.runtime.{ currentMirror => rm }
+import scala.language.existentials
 import scala.reflect.ClassTag
-import scala.collection.GenTraversableOnce
+
+import exastencils.core.collectors.Collector
+import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
 
 object StateManager {
   def root = root_ // FIXME remove this
@@ -344,13 +340,13 @@ object StateManager {
     findFirst[T]({ x : Any => x match { case _ : T => true; case _ => false } }, node)
   }
 
-  def findFirst[T : ClassTag](check : Any => Boolean, node : Node = root) : Option[T] = {
+  def findFirst[T : ClassTag](check : T => Boolean, node : Node = root) : Option[T] = {
     var retVal : Option[T] = None
     var t = new Transformation("StatemanagerInternalFindFirst", {
       case hit : T if check(hit) =>
         retVal = Some(hit)
         new Output(hit)
-    }, false)
+    }) //, false) -> FIXME: Christian, currently it only works when enabling recursive matching
 
     progresses_.+=((t, new TransformationProgress))
     replace(node, t)
