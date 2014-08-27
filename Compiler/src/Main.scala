@@ -146,5 +146,6 @@ object Main {
     println("Done!")
 
     println("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
+    (new CountingStrategy("number of printed nodes")).apply()
   }
 }
