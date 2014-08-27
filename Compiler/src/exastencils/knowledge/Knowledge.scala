@@ -162,7 +162,7 @@ object Knowledge {
   var testTempBlocking : Boolean = false && (numPre == numPost) // NOTE: currently only works with GS
 
   /// functionality test
-  var testBC : Boolean = true && (2 == dimensionality) && !kelvin // NOTE: the tested bc will only be reasonable for 2D cases
+  var testBC : Boolean = false && (2 == dimensionality) && !kelvin // NOTE: the tested bc will only be reasonable for 2D cases
   var testExtFields : Boolean = false
   var omegaViaGlobals : Boolean = false
   var genSetableStencil : Boolean = false && !kelvin

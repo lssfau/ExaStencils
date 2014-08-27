@@ -78,7 +78,7 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
       case _                       => slot.progressToIr
     }
 
-    ir.FieldAccess(knowledge.FieldSelection(field, resolvedSlot, arrayIndex), multiIndex)
+    ir.FieldAccess(knowledge.FieldSelection(field, ir.IntegerConstant(field.level), resolvedSlot, arrayIndex), multiIndex)
   }
 }
 
@@ -93,6 +93,7 @@ case class StencilFieldAccess(var name : String, var level : AccessLevelSpecific
     ir.StencilFieldAccess(
       knowledge.StencilFieldSelection(
         knowledge.StencilFieldCollection.getStencilFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get,
+        ir.IntegerConstant(level.asInstanceOf[SingleLevelSpecification].level),
         slot.progressToIr,
         -1),
       ir.LoopOverDimensions.defIt)

@@ -679,7 +679,7 @@ class Extractor extends Collector {
 
   private def enterFieldAccess(fieldSelection : FieldSelection, index : MultiIndex, offset : MultiIndex = null) : Unit = {
 
-    val name : String = iv.FieldData(fieldSelection.field, fieldSelection.slot, fieldSelection.fragIdx).cpp()
+    val name : String = iv.FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx).cpp()
     enterArrayAccess(name, if (offset == null) index else index + offset)
   }
 

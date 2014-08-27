@@ -73,11 +73,11 @@ case class MPI_DataType(var field : FieldSelection, var indices : IndexRange) ex
   if (1 == SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2))) {
     count = SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1)).toInt
     blocklen = SimplifyExpression.evalIntegral(indices.end(0) - indices.begin(0)).toInt
-    stride = field.layout(0).total
+    stride = field.layout(0).evalTotal
   } else if (1 == SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1))) {
     count = SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2)).toInt
     blocklen = SimplifyExpression.evalIntegral(indices.end(0) - indices.begin(0)).toInt
-    stride = field.layout(0).total * field.layout(1).total
+    stride = field.layout(0).evalTotal * field.layout(1).evalTotal
   }
 
   def generateName : String = {

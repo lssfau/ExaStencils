@@ -1,8 +1,10 @@
 package exastencils.multiGrid
 
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
 import exastencils.core.collectors.IRLevelCollector
+import exastencils.core.collectors.StackCollector
 import exastencils.data._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
@@ -11,10 +13,6 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.mpi._
 import exastencils.util._
-import exastencils.core.collectors.StackCollector
-import exastencils.datastructures.l4.BinaryExpression
-import exastencils.omp.OMP_Barrier
-import exastencils.omp.OMP_Barrier
 
 object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices") {
   val collector = new IRLevelCollector
@@ -26,25 +24,25 @@ object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices"
   }
 
   this += new Transformation("ModifyIndices", {
-    case access : FieldAccess if access.fieldSelection.level < collector.getCurrentLevel => {
+    case access : FieldAccess if SimplifyExpression.evalIntegral(access.fieldSelection.level) < collector.getCurrentLevel => {
       var fieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         fieldAccess.index(i) = fieldAccess.index(i) / 2
       fieldAccess
     }
-    case access : FieldAccess if access.fieldSelection.level > collector.getCurrentLevel => {
+    case access : FieldAccess if SimplifyExpression.evalIntegral(access.fieldSelection.level) > collector.getCurrentLevel => {
       var fieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         fieldAccess.index(i) = 2 * fieldAccess.index(i)
       fieldAccess
     }
-    case access : StencilFieldAccess if access.stencilFieldSelection.level < collector.getCurrentLevel => {
+    case access : StencilFieldAccess if SimplifyExpression.evalIntegral(access.stencilFieldSelection.level) < collector.getCurrentLevel => {
       var stencilFieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         stencilFieldAccess.index(i) = stencilFieldAccess.index(i) / 2
       stencilFieldAccess
     }
-    case access : StencilFieldAccess if access.stencilFieldSelection.level > collector.getCurrentLevel => {
+    case access : StencilFieldAccess if SimplifyExpression.evalIntegral(access.stencilFieldSelection.level) > collector.getCurrentLevel => {
       var stencilFieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         stencilFieldAccess.index(i) = 2 * stencilFieldAccess.index(i)
@@ -74,7 +72,7 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
       case access : StencilFieldAccess => {
         var index = Duplicate(access.index)
         index(Knowledge.dimensionality) = 0 // FIXME: this assumes the center entry to be in pos 0
-        new FieldAccess(FieldSelection(access.stencilFieldSelection.field, access.stencilFieldSelection.slot, 0, access.stencilFieldSelection.fragIdx), index)
+        new FieldAccess(FieldSelection(access.stencilFieldSelection.field, access.stencilFieldSelection.level, access.stencilFieldSelection.slot, 0, access.stencilFieldSelection.fragIdx), index)
       }
       case _ => {
         println("WARN: diag with unknown arg")

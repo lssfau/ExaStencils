@@ -10,7 +10,6 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.mpi._
-import exastencils.primitives._
 
 object SetupCommunication extends DefaultStrategy("Setting up communication") {
   var commFunctions : CommunicationFunctions = CommunicationFunctions()
@@ -32,7 +31,13 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
 
   this += new Transformation("Adding and linking communication functions", {
     case commStatement : CommunicateStatement => {
-      val functionName = (commStatement.op match {
+      val functionName = (if (Knowledge.comm_useLevelIndependentFcts)
+        commStatement.op match {
+        case "begin"  => s"beginExch${commStatement.field.field.identifier}"
+        case "finish" => s"finishExch${commStatement.field.field.identifier}"
+        case "both"   => s"exch${commStatement.field.field.identifier}"
+      }
+      else commStatement.op match {
         case "begin"  => s"beginExch${commStatement.field.codeName}"
         case "finish" => s"finishExch${commStatement.field.codeName}"
         case "both"   => s"exch${commStatement.field.codeName}"
@@ -52,7 +57,10 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         case _ =>
       }
 
-      (new FunctionCallExpression(functionName, commStatement.field.slot)) : Statement
+      if (Knowledge.comm_useLevelIndependentFcts)
+        (new FunctionCallExpression(functionName, ListBuffer[Expression](commStatement.field.slot, commStatement.field.level))) : Statement
+      else
+        (new FunctionCallExpression(functionName, commStatement.field.slot)) : Statement
     }
   })
 }

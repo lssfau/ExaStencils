@@ -186,13 +186,13 @@ case class IsValidForSubdomain(var domain : Expression, var fragmentIdx : Expres
   override def resolveDefValue = Some(false)
 }
 
-case class FieldData(var field : Field, var slot : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, false) {
-  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, NullExpression)
+case class FieldData(var field : Field, var level : Expression, var slot : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, false) {
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, level, NullExpression)
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 
   override def resolveName = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +
-    resolvePostfix(fragmentIdx.cpp, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, field.level.toString, "")
+    resolvePostfix(fragmentIdx.cpp, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, level.cpp, "")
 
   override def resolveDataType = {
     if (field.numSlots > 1)
@@ -314,15 +314,29 @@ case class CurrentSlot(var field : Field, var fragmentIdx : Expression = LoopOve
   override def resolveDefValue = Some(IntegerConstant(0))
 }
 
-case class IndexFromField(var field : Field, var level : Expression, var indexId : String) extends InternalVariable(false, false, true, true, false) {
-  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, NullExpression, NullExpression, field.identifier, level, NullExpression)
+case class IndexFromField(var fieldIdentifier : String, var level : Expression, var indexId : String) extends InternalVariable(false, false, true, true, false) {
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, NullExpression, NullExpression, fieldIdentifier, level, NullExpression)
 
   override def usesFieldArrays : Boolean = false
   override def usesLevelArrays : Boolean = true
 
-  override def resolveName = s"idx$indexId" + resolvePostfix("", "", field.identifier, level.cpp, "")
+  override def resolveName = s"idx$indexId" + resolvePostfix("", "", fieldIdentifier, level.cpp, "")
   override def resolveDataType = s"Vec${Knowledge.dimensionality}i"
-  override def resolveDefValue = Some(s"Vec${Knowledge.dimensionality}i(${
-    (0 until Knowledge.dimensionality).map(i => field.layout(i).idxById(indexId)).mkString(", ")
-  })")
+
+  override def getCtor() : Option[Statement] = {
+    var statements : ListBuffer[Statement] = ListBuffer()
+    val oldLev = level
+    for (l <- 0 to Knowledge.maxLevel) {
+      level = l
+      val field = FieldCollection.getFieldByIdentifier(fieldIdentifier, l, true)
+      if (field.isDefined) {
+        statements += AssignmentStatement(resolveAccess(resolveName, NullExpression, NullExpression, fieldIdentifier, level, NullExpression),
+          s"Vec${Knowledge.dimensionality}i(${
+            (0 until Knowledge.dimensionality).map(i => field.get.layout(i).idxById(indexId).cpp).mkString(", ")
+          })")
+      }
+    }
+    level = oldLev
+    Some(Scope(statements))
+  }
 }

@@ -16,11 +16,17 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
   def setupDirichlet : ListBuffer[Statement] = {
     var statements : ListBuffer[Statement] = ListBuffer()
 
-    statements += new InitGeomCoords(field.field, true) // FIXME: only add if really required
+    if (StateManager.findFirst(node => node match {
+      case StringConstant(sc) if "xPos" == sc || "yPos" == sc || "zPos" == sc => true
+      case _ => false
+    }).isDefined) {
+      statements += new InitGeomCoords(field.field, true)
+    }
+
     for (vecDim <- 0 until field.field.vectorSize) { // FIXME: this works for now, but users may want to specify bc's per vector element
       var index = LoopOverDimensions.defIt
       index(Knowledge.dimensionality) = vecDim
-      var fieldSel = new FieldSelection(field.field, field.slot, vecDim, field.fragIdx)
+      var fieldSel = new FieldSelection(field.field, field.level, field.slot, vecDim, field.fragIdx)
       statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index), Duplicate(field.field.dirichletBC.get))
     }
 

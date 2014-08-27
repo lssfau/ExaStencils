@@ -4,11 +4,13 @@ import scala.collection.immutable.TreeMap
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
+import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.globals._
+import exastencils.knowledge._
 import exastencils.omp._
 import exastencils.util._
 
@@ -83,20 +85,38 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       func
   })
 
-  var bufferSizes : TreeMap[Expression, Int] = TreeMap()(Ordering.by(_.cpp))
+  var bufferSizes : TreeMap[Expression, Expression] = TreeMap()(Ordering.by(_.cpp))
 
   this += new Transformation("Collecting buffer sizes", {
     case buf : iv.TmpBuffer =>
-      val size = SimplifyExpression.evalIntegral(buf.size).toInt
       val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, buf.field.index, buf.field.level, buf.neighIdx)
-      bufferSizes += (id -> (size max bufferSizes.getOrElse(id, 0)))
+      if (Knowledge.comm_useLevelIndependentFcts) {
+        if (bufferSizes.contains(id))
+          bufferSizes.get(id).get.asInstanceOf[MaximumExpression].args += Duplicate(buf.size)
+        else
+          bufferSizes += (id -> MaximumExpression(ListBuffer(Duplicate(buf.size))))
+      } else {
+        val size = SimplifyExpression.evalIntegral(buf.size).toLong
+        bufferSizes += (id -> (size max bufferSizes.getOrElse(id, IntegerConstant(0)).asInstanceOf[IntegerConstant].v))
+      }
       buf
   })
 
   this += new Transformation("Extending SetupBuffers function", {
     // FIXME: this kind of matching is awkward, I want trafos that don't return nodes
-    case func : FunctionStatement if (("setupBuffers" : Expression) == func.name) =>
-      func.body += new LoopOverFragments(bufferSizes.map(buf => new AssignmentStatement(buf._1, s"new double[${buf._2}]") : Statement).to[ListBuffer]) with OMP_PotentiallyParallel
+    case func : FunctionStatement if (("setupBuffers" : Expression) == func.name) => {
+      if (Knowledge.comm_useLevelIndependentFcts) {
+        val s = new DefaultStrategy("Replacing level specifications")
+        s += new Transformation("Search and replace", {
+          case StringConstant("level")    => Knowledge.maxLevel : Expression
+          case VariableAccess("level", _) => Knowledge.maxLevel : Expression
+        })
+        for (buf <- bufferSizes)
+          s.applyStandalone(buf._2)
+      }
+
+      func.body += new LoopOverFragments(bufferSizes.map(buf => new AssignmentStatement(buf._1, "new double[" ~ buf._2 ~ "]") : Statement).to[ListBuffer]) with OMP_PotentiallyParallel
       func
+    }
   })
 }

@@ -69,11 +69,12 @@ object StencilFieldCollection {
 case class StencilFieldSelection(
     var stencilField : StencilField,
     var slot : Expression,
+    var level : Expression,
     var arrayIndex : Int,
     var fragIdx : Expression = LoopOverFragments.defIt) extends Node {
 
   def toFieldSelection = {
-    new FieldSelection(field, slot, arrayIndex, fragIdx)
+    new FieldSelection(field, level, slot, arrayIndex, fragIdx)
   }
 
   // shortcuts to stencilField members
@@ -84,7 +85,6 @@ case class StencilFieldSelection(
   def codeName = field.codeName
   def dataType = field.dataType
   def layout = field.layout
-  def level = field.level
   def referenceOffset = field.referenceOffset
 }
 

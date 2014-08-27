@@ -34,7 +34,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
   private def updateSlots(stmts : ListBuffer[Statement], fieldOffset : HashMap[FieldKey, Int]) : Unit = {
     object AdaptFieldSlots extends DefaultStrategy("Adapt field slots") {
       this += new Transformation("now", {
-        case fs @ FieldSelection(field, SlotAccess(slot, offset), _, _) =>
+        case fs @ FieldSelection(field, level, SlotAccess(slot, offset), _, _) =>
           fs.slot = new SlotAccess(slot, offset + fieldOffset.getOrElse(FieldKey(field), 0))
           fs
       })

@@ -255,7 +255,7 @@ case class LinearizedFieldAccess(var fieldSelection : FieldSelection, var index 
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = ExternalFieldAccess\n"
 
   override def expand : Output[Expression] = {
-    new ArrayAccess(new iv.FieldData(fieldSelection.field, fieldSelection.slot, fieldSelection.fragIdx), index)
+    new ArrayAccess(new iv.FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx), index)
   }
 }
 

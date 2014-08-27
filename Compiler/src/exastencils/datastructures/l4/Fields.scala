@@ -2,8 +2,6 @@ package exastencils.datastructures.l4
 
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge
 
 case class LayoutOption(var name : String, var value : Index, var hasCommunication : Option[Boolean]) extends Node
@@ -82,7 +80,10 @@ case class LayoutDeclarationStatement(var name : String,
     // add padding only for innermost dimension
     val innerLayout : knowledge.FieldLayoutPerDim = layouts(0)
     innerLayout.numPadLayersLeft = (knowledge.Knowledge.simd_vectorSize - innerLayout.idxDupLeftBegin % knowledge.Knowledge.simd_vectorSize) % knowledge.Knowledge.simd_vectorSize
-    innerLayout.numPadLayersRight = (knowledge.Knowledge.simd_vectorSize - innerLayout.total % knowledge.Knowledge.simd_vectorSize) % knowledge.Knowledge.simd_vectorSize
+    innerLayout.numPadLayersRight = (knowledge.Knowledge.simd_vectorSize - innerLayout.evalTotal % knowledge.Knowledge.simd_vectorSize) % knowledge.Knowledge.simd_vectorSize
+    for (layout <- layouts) // update total after potentially changing padding
+      layout.total = ir.IntegerConstant(layout.evalTotal)
+
     return layouts
   }
 }
@@ -104,8 +105,8 @@ case class FieldDeclarationStatement(var name : String,
 
     var refOffset = new ir.MultiIndex // TODO: this should work for now but may be adapted in the future
     for (dim <- 0 until knowledge.Knowledge.dimensionality)
-      refOffset(dim) = ir_layout(dim).idxDupLeftBegin
-    refOffset(knowledge.Knowledge.dimensionality) = 0
+      refOffset(dim) = ir.IntegerConstant(ir_layout(dim).idxDupLeftBegin)
+    refOffset(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(0)
 
     new knowledge.Field(
       name,
@@ -121,9 +122,11 @@ case class FieldDeclarationStatement(var name : String,
       refOffset,
       if (boundary.isDefined) Some(boundary.get.progressToIr) else None,
       if (knowledge.Knowledge.data_addPrePadding)
-        4 - (ir_layout(0).idxDupLeftBegin + ir.ArrayAccess(new ir.iv.IterationOffsetBegin(knowledge.DomainCollection.getDomainByIdentifier(domain).get.index), 0)) // TODO: specify correct alignmentPadding
+        ir.IntegerConstant(4) - (ir.IntegerConstant(ir_layout(0).idxDupLeftBegin) +
+        ir.ArrayAccess(new ir.iv.IterationOffsetBegin(ir.IntegerConstant(knowledge.DomainCollection.getDomainByIdentifier(domain).get.index)),
+          ir.IntegerConstant(0))) // TODO: specify correct alignmentPadding
       else
-        NullExpression)
+        ir.NullExpression)
   }
 }
 

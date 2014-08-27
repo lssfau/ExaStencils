@@ -29,9 +29,9 @@ case class LocalSend(var field : FieldSelection, var neighbors : ListBuffer[(Nei
               new LoopOverDimensions(Knowledge.dimensionality + 1,
                 neigh._2,
                 new AssignmentStatement(
-                  new DirectFieldAccess(FieldSelection(field.field, field.slot, -1, iv.NeighborFragLocalId(field.domainIndex, neigh._1.index)), new MultiIndex(
+                  new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, -1, iv.NeighborFragLocalId(field.domainIndex, neigh._1.index)), new MultiIndex(
                     new MultiIndex(LoopOverDimensions.defIt, neigh._3.begin, _ + _), neigh._2.begin, _ - _)),
-                  new DirectFieldAccess(FieldSelection(field.field, field.slot, -1), LoopOverDimensions.defIt))) with OMP_PotentiallyParallel with PolyhedronAccessable))) : Statement))) with OMP_PotentiallyParallel
+                  new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, -1), LoopOverDimensions.defIt))) with OMP_PotentiallyParallel with PolyhedronAccessable))) : Statement))) with OMP_PotentiallyParallel
   }
 }
 
@@ -41,7 +41,7 @@ case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborI
   def expand : Output[Statement] = {
     val tmpBufAccess = new ArrayAccess(iv.TmpBuffer(field.field, s"Send_${concurrencyId}", indices.getSizeHigher, neighbor.index),
       Mapping.resolveMultiIdx(new MultiIndex(LoopOverDimensions.defIt, indices.begin, _ - _), indices))
-    val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.slot, -1), LoopOverDimensions.defIt)
+    val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, -1), LoopOverDimensions.defIt)
 
     new LoopOverDimensions(Knowledge.dimensionality + 1, indices, new AssignmentStatement(tmpBufAccess, fieldAccess)) with OMP_PotentiallyParallel with PolyhedronAccessable
   }
@@ -53,7 +53,7 @@ case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : Neighbo
   def expand : Output[Statement] = {
     val tmpBufAccess = new ArrayAccess(iv.TmpBuffer(field.field, s"Recv_${concurrencyId}", indices.getSizeHigher, neighbor.index),
       Mapping.resolveMultiIdx(new MultiIndex(LoopOverDimensions.defIt, indices.begin, _ - _), indices))
-    val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.slot, -1), LoopOverDimensions.defIt)
+    val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, -1), LoopOverDimensions.defIt)
 
     new LoopOverDimensions(Knowledge.dimensionality + 1, indices, new AssignmentStatement(fieldAccess, tmpBufAccess)) with OMP_PotentiallyParallel with PolyhedronAccessable
   }
@@ -112,7 +112,7 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = RemoteSends\n"
 
   def genCopy(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
-    if (!MPI_DataType.shouldBeUsed(indices) && SimplifyExpression.evalIntegral(indices.getSizeHigher) > 1) {
+    if (Knowledge.comm_useLevelIndependentFcts || (!MPI_DataType.shouldBeUsed(indices) && SimplifyExpression.evalIntegral(indices.getSizeHigher) > 1)) {
       var body = CopyToSendBuffer(field, neighbor, indices, concurrencyId)
       if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
     } else {
@@ -122,7 +122,7 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
 
   def genTransfer(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
     var body = {
-      if (1 == SimplifyExpression.evalIntegral(indices.getSizeHigher)) {
+      if (!Knowledge.comm_useLevelIndependentFcts && 1 == SimplifyExpression.evalIntegral(indices.getSizeHigher)) {
         RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, new RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(indices)) {
         RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, MPI_DataType(field, indices), concurrencyId)
@@ -173,7 +173,7 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = RemoteRecvs\n"
 
   def genCopy(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
-    if (!MPI_DataType.shouldBeUsed(indices) && SimplifyExpression.evalIntegral(indices.getSizeHigher) > 1) {
+    if (Knowledge.comm_useLevelIndependentFcts || (!MPI_DataType.shouldBeUsed(indices) && SimplifyExpression.evalIntegral(indices.getSizeHigher) > 1)) {
       var body = CopyFromRecvBuffer(field, neighbor, indices, concurrencyId)
       if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
     } else {
@@ -183,7 +183,7 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
 
   def genTransfer(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
     var body = {
-      if (1 == SimplifyExpression.evalIntegral(indices.getSizeHigher)) {
+      if (!Knowledge.comm_useLevelIndependentFcts && 1 == SimplifyExpression.evalIntegral(indices.getSizeHigher)) {
         RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, new RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(indices)) {
         RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, MPI_DataType(field, indices), concurrencyId)

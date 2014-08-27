@@ -24,10 +24,10 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
       var statements : ListBuffer[Statement] = ListBuffer()
 
       for (slot <- 0 until field.numSlots) {
-        statements += new AssignmentStatement(iv.FieldData(field, slot),
+        statements += new AssignmentStatement(iv.FieldData(field, field.level, slot),
           ("new" : Expression) ~~ field.dataType.resolveUnderlyingDatatype. /*FIXME*/ cpp ~ "[" ~ numDataPoints ~ "]")
         if (Knowledge.data_addPrePadding)
-          statements += new AssignmentStatement(iv.FieldData(field, slot), iv.FieldData(field, slot) + field.alignmentPadding)
+          statements += new AssignmentStatement(iv.FieldData(field, field.level, slot), iv.FieldData(field, field.level, slot) + field.alignmentPadding)
       }
 
       body += new LoopOverFragments(
@@ -51,7 +51,7 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
           new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => dest.layout(i).idxDupLeftBegin)),
           new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => dest.layout(i).idxDupRightEnd))),
           new AssignmentStatement(ExternalFieldAccess("dest", dest, LoopOverDimensions.defIt),
-            FieldAccess(FieldSelection(src, "slot", -1), LoopOverDimensions.defIt))) with OMP_PotentiallyParallel with PolyhedronAccessable))
+            FieldAccess(FieldSelection(src, src.level, "slot", -1), LoopOverDimensions.defIt))) with OMP_PotentiallyParallel with PolyhedronAccessable))
   }
 }
 
@@ -66,7 +66,7 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
         new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
           new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => src.layout(i).idxDupLeftBegin)),
           new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => src.layout(i).idxDupRightEnd))),
-          new AssignmentStatement(FieldAccess(FieldSelection(dest, "slot", -1), LoopOverDimensions.defIt),
+          new AssignmentStatement(FieldAccess(FieldSelection(dest, dest.level, "slot", -1), LoopOverDimensions.defIt),
             ExternalFieldAccess("src", src, LoopOverDimensions.defIt))) with OMP_PotentiallyParallel with PolyhedronAccessable))
   }
 }

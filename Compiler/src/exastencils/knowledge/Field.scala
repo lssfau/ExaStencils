@@ -39,9 +39,10 @@ class FieldLayoutPerDim(
   def idxPadRightBegin = { idxGhostRightBegin + numGhostLayersRight }
   def idxPadRightEnd = { idxPadRightBegin + numPadLayersRight }
 
-  def total = { idxPadRightBegin + numPadLayersRight }
+  def evalTotal = { idxPadRightEnd }
+  var total : Expression = evalTotal
 
-  def idxById(id : String) = {
+  def idxById(id : String) : Expression = {
     id match {
       case "PLB" => idxPadLeftBegin
       case "PLE" => idxPadLeftEnd
@@ -82,6 +83,7 @@ case class Field(
 
 case class FieldSelection(
     var field : Field,
+    var level : Expression,
     var slot : Expression,
     var arrayIndex : Int,
     var fragIdx : Expression = LoopOverFragments.defIt) extends Node {
@@ -90,7 +92,6 @@ case class FieldSelection(
   def codeName = field.codeName
   def dataType = field.dataType
   def layout = field.layout
-  def level = field.level
   def referenceOffset = field.referenceOffset
 
   // other shortcuts
@@ -100,9 +101,9 @@ case class FieldSelection(
 object FieldCollection {
   var fields : ListBuffer[Field] = ListBuffer()
 
-  def getFieldByIdentifier(identifier : String, level : Int) : Option[Field] = {
+  def getFieldByIdentifier(identifier : String, level : Int, suppressError : Boolean = false) : Option[Field] = {
     val ret = fields.find(f => f.identifier == identifier && f.level == level)
-    if (ret.isEmpty) warn(s"Field $identifier on level $level was not found")
+    if (!suppressError && ret.isEmpty) warn(s"Field $identifier on level $level was not found")
     ret
   }
 }
