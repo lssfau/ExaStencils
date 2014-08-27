@@ -153,85 +153,125 @@ object Knowledge {
   var numPre : Int = 3 // has to be divisible by 2 for Jac if useSlotsForJac or useSlotVariables are disabled
   var numPost : Int = 3 // has to be divisible by 2 for Jac if useSlotsForJac or useSlotVariables are disabled
   var omega : Double = (if ("Jac" == smoother) 0.8 else 1.0)
-  var testStencilStencil : Boolean = false || kelvin
-  var genStencilFields : Boolean = false || kelvin
-  var testCommCompOverlap : Boolean = false // NOTE: overlap will not work when using commStrategy 6
-  var genRBSetsWithConditions : Boolean = true // NOTE: due to the boundary offsets, NOT using conditions leads to a color mismatch at primitive boundaries and thus to a reduced convergence rate
+  var testStencilStencil : Boolean = false
+  var genStencilFields : Boolean = false
+  var testCommCompOverlap : Boolean = false
+  var genRBSetsWithConditions : Boolean = true
   var useSlotsForJac : Boolean = true
-  var useSlotVariables : Boolean = true && useSlotsForJac
-  var testTempBlocking : Boolean = false && (numPre == numPost) // NOTE: currently only works with GS
+  var useSlotVariables : Boolean = true
+  var testTempBlocking : Boolean = false
 
   /// functionality test
-  var testBC : Boolean = false && (2 == dimensionality) && !kelvin // NOTE: the tested bc will only be reasonable for 2D cases
+  var testBC : Boolean = true
   var testExtFields : Boolean = false
   var omegaViaGlobals : Boolean = false
-  var genSetableStencil : Boolean = false && !kelvin
-  var useVecFields : Boolean = false && !kelvin // attempts to solve Poisson's equation for (numVecDims)D vectors; atm all three components are solved independently
+  var genSetableStencil : Boolean = false
+  var useVecFields : Boolean = false // attempts to solve Poisson's equation for (numVecDims)D vectors; atm all components are solved independently
   var numVecDims = (if (useVecFields) 2 else 1)
   var testFragLoops = true
-  var testDomainEmbedding = false && !kelvin
+  var testDomainEmbedding = false
 
   /// optional features  
-  var printFieldAtEnd : Boolean = false || kelvin
-  var initSolWithRand : Boolean = true && !testBC && !kelvin
+  var printFieldAtEnd : Boolean = false
+  var initSolWithRand : Boolean = true
 
   // Student project - Oleg
   var testNewTimers : Boolean = false // this is to enable the usage of some new, currently highly experimental, timer classes; requires that the timer classes are provided
-  var genTimersPerFunction : Boolean = true && testNewTimers
-  var genTimersPerLevel : Boolean = true && testNewTimers
-  var genTimersForComm : Boolean = true && !testCommCompOverlap && testNewTimers
-  var genCommTimersPerLevel : Boolean = false && genTimersForComm && testNewTimers
+  var genTimersPerFunction : Boolean = false
+  var genTimersPerLevel : Boolean = false
+  var genTimersForComm : Boolean = false
+  var genCommTimersPerLevel : Boolean = false
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
 
-    useOMP = (domain_summarizeBlocks && domain_fragLength != 1) || domain_numFragsPerBlock != 1
-    useMPI = (domain_numBlocks != 1)
+    Constraints.updateValue(useOMP, (domain_summarizeBlocks && domain_fragLength != 1) || domain_numFragsPerBlock != 1)
+    Constraints.updateValue(useMPI, (domain_numBlocks != 1))
 
-    numLevels = maxLevel + 1
+    Constraints.updateValue(numLevels, maxLevel + 1)
 
     if (domain_summarizeBlocks) {
-      // FIXME: move to transformation
-      domain_fragLength_x = domain_numFragsPerBlock_x
-      domain_fragLength_y = domain_numFragsPerBlock_y
-      domain_fragLength_z = domain_numFragsPerBlock_z
+      Constraints.updateValue(domain_fragLength_x, domain_numFragsPerBlock_x)
+      Constraints.updateValue(domain_fragLength_y, domain_numFragsPerBlock_y)
+      Constraints.updateValue(domain_fragLength_z, domain_numFragsPerBlock_z)
 
-      domain_numFragsPerBlock_x = 1
-      domain_numFragsPerBlock_y = 1
-      domain_numFragsPerBlock_z = 1
+      Constraints.updateValue(domain_numFragsPerBlock_x, 1)
+      Constraints.updateValue(domain_numFragsPerBlock_y, 1)
+      Constraints.updateValue(domain_numFragsPerBlock_z, 1)
     }
 
-    domain_numFragsTotal_x = domain_numFragsPerBlock_x * domain_numBlocks_x
-    domain_numFragsTotal_y = domain_numFragsPerBlock_y * domain_numBlocks_y
-    domain_numFragsTotal_z = domain_numFragsPerBlock_z * domain_numBlocks_z
+    Constraints.updateValue(domain_numFragsTotal_x, domain_numFragsPerBlock_x * domain_numBlocks_x)
+    Constraints.updateValue(domain_numFragsTotal_y, domain_numFragsPerBlock_y * domain_numBlocks_y)
+    Constraints.updateValue(domain_numFragsTotal_z, domain_numFragsPerBlock_z * domain_numBlocks_z)
 
-    domain_canHaveRemoteNeighs = useMPI
-    domain_canHaveLocalNeighs = (domain_numFragsPerBlock > 1)
+    Constraints.updateValue(domain_canHaveRemoteNeighs, useMPI)
+    Constraints.updateValue(domain_canHaveLocalNeighs, (domain_numFragsPerBlock > 1))
 
     if ("MSVC" == targetCompiler) {
-      omp_version = 2.0
-      supports_initializerList = targetCompilerVersion >= 18
+      Constraints.updateValue(omp_version, 2.0)
+      Constraints.updateValue(supports_initializerList, targetCompilerVersion >= 18)
     } else if ("GCC" == targetCompiler) {
-      omp_version = 4.0
-      supports_initializerList = targetCompilerVersion > 4 || (targetCompilerVersion == 4 && targetCompilerVersionMinor >= 5)
+      Constraints.updateValue(omp_version, 4.0)
+      Constraints.updateValue(supports_initializerList, targetCompilerVersion > 4 || (targetCompilerVersion == 4 && targetCompilerVersionMinor >= 5))
     } else if ("IBMXL" == targetCompiler) {
-      omp_version = 3.0
-      omp_requiresCriticalSections = false
-      supports_initializerList = false // TODO: does it support initializer lists? since which version?
+      Constraints.updateValue(omp_version, 3.0)
+      Constraints.updateValue(omp_requiresCriticalSections, false)
+      Constraints.updateValue(supports_initializerList, false) // TODO: does it support initializer lists? since which version?
     } else
       Logger.error("Unsupported target compiler")
 
     if (useOMP) {
-      omp_numThreads = if (domain_summarizeBlocks) domain_fragLength else domain_numFragsPerBlock
-      omp_parallelizeLoopOverFragments = !domain_summarizeBlocks
-      omp_parallelizeLoopOverDimensions = domain_summarizeBlocks
+      if (domain_summarizeBlocks) Constraints.updateValue(omp_numThreads, domain_fragLength) else Constraints.updateValue(omp_numThreads, domain_numFragsPerBlock)
+      Constraints.updateValue(omp_parallelizeLoopOverFragments, !domain_summarizeBlocks)
+      Constraints.updateValue(omp_parallelizeLoopOverDimensions, domain_summarizeBlocks)
     }
 
-    simd_vectorSize =
-      simd_instructionSet match {
-        case "SSE3"         => 2
-        case "AVX" | "AVX2" => 4
-      }
+    simd_instructionSet match {
+      case "SSE3"         => Constraints.updateValue(simd_vectorSize, 2)
+      case "AVX" | "AVX2" => Constraints.updateValue(simd_vectorSize, 4)
+    }
+
+    // update constraints
+    Constraints.condEnsureValue(numPre, numPre - (numPre % 2), "Jac" == smoother && !useSlotsForJac && !useSlotVariables,
+      "Number of pre-smoothing steps has to be divisible by 2")
+    Constraints.condEnsureValue(numPost, numPost - (numPost % 2), "Jac" == smoother && !useSlotsForJac && !useSlotVariables,
+      "Number of post-smoothing steps has to be divisible by 2")
+
+    if ("Jac" == smoother) Constraints.updateValue(omega, 0.8) else Constraints.updateValue(omega, 1.0)
+
+    Constraints.condEnsureValue(testStencilStencil, true, kelvin, "required by kelvin")
+    Constraints.condEnsureValue(genStencilFields, true, kelvin, "required by kelvin")
+    Constraints.condEnsureValue(printFieldAtEnd, true, kelvin, "required by kelvin")
+    Constraints.condEnsureValue(testBC, false, kelvin, "not compatible with kelvin")
+    Constraints.condEnsureValue(genSetableStencil, false, kelvin, "not compatible with kelvin")
+    Constraints.condEnsureValue(useVecFields, false, kelvin, "not compatible with kelvin")
+    Constraints.condEnsureValue(testDomainEmbedding, false, kelvin, "not compatible with kelvin")
+    Constraints.condEnsureValue(initSolWithRand, false, kelvin, "not compatible with kelvin")
+
+    Constraints.condEnsureValue(testCommCompOverlap, false, 26 != comm_strategyFragment, "invalid comm_strategyFragment")
+
+    Constraints.condWarn("RBGS" == smoother && !genRBSetsWithConditions,
+      s"Currently NOT using genRBSetsWithConditions leads to a color mismatch at primitive boundaries and thus to a reduced convergence rate")
+
+    Constraints.condEnsureValue(useSlotVariables, false, !useSlotsForJac, "invalid if not using useSlotsForJac")
+    Constraints.condEnsureValue(testTempBlocking, false, numPre != numPost, "numPre and numPost have to be equal")
+    Constraints.condWarn("GS" != smoother && testTempBlocking, "testTempBlocking currently only works with GS")
+
+    Constraints.condEnsureValue(testBC, false, 2 != dimensionality, "testBC is only valid for 2D problems")
+    Constraints.condEnsureValue(initSolWithRand, true, !testBC, "initial solution of zero corresponds to the exact solution if testBC is false")
+    Constraints.condEnsureValue(initSolWithRand, false, testBC, "testBC requires initial solution of zero")
+
+    if (useVecFields) Constraints.updateValue(numVecDims, 2) else Constraints.updateValue(numVecDims, 1)
+
+    Constraints.condEnsureValue(genTimersPerFunction, false, !testNewTimers, "requires testNewTimers to be activated")
+    Constraints.condEnsureValue(genTimersPerLevel, false, !testNewTimers, "requires testNewTimers to be activated")
+    Constraints.condEnsureValue(genTimersForComm, false, !testNewTimers, "requires testNewTimers to be activated")
+    Constraints.condEnsureValue(genCommTimersPerLevel, false, !testNewTimers, "requires testNewTimers to be activated")
+
+    Constraints.condEnsureValue(genTimersForComm, false, testCommCompOverlap, "timers for overlapping communication are not yet supported")
+    Constraints.condEnsureValue(genCommTimersPerLevel, false, !genTimersForComm, "requires genTimersForComm to be activated")
+
+    Constraints.condEnsureValue(comm_useLevelIndependentFcts, false, testBC, "level independent communication functions are not compatible with non-trivial boundary conditions")
   }
 }
