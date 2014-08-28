@@ -7,13 +7,13 @@ object Correction {
     printer.println(s"Function Correction$postfix@((coarsest + 1) to finest) ( ) : Unit {")
     Communication.exch(printer, s"Solution$postfix@current")
 
-    if (Knowledge.testFragLoops)
+    if (Knowledge.l3tmp_genFragLoops)
       printer.println(s"\tloop over fragments {")
     printer.println(s"\tloop over Solution$postfix@current {")
-    for (vecDim <- 0 until Knowledge.numVecDims)
+    for (vecDim <- 0 until Knowledge.l3tmp_numVecDims)
       printer.println(s"\t\t${Fields.solutionSlotted(s"current", "curSlot", postfix)(vecDim)} += CorrectionStencil@current * ${Fields.solutionSlotted(s"coarser", "curSlot", postfix)(vecDim)}")
     printer.println(s"\t}")
-    if (Knowledge.testFragLoops)
+    if (Knowledge.l3tmp_genFragLoops)
       printer.println(s"\t}")
     printer.println(s"}")
     printer.println

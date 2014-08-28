@@ -19,8 +19,8 @@ class ForwardFeatureSelection(numInterations : Int , measurements: Array[Configu
     notConsider.add("Prototype")
     notConsider.add("post")
     notConsider.add("pre")
-    notConsider.add("cgs")
-    notConsider.add("smoother")
+    notConsider.add("l3tmp_cgs")
+    notConsider.add("l3tmp_smoother")
 
     // create projection of feature to id for later identification of feature with greatest impact
     FeatureModel.allFeatures.filter(x => !notConsider.contains(x._2.identifier)).foreach(x => featureIdMap.put(x._2, featureIdMap.size))

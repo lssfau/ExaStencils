@@ -108,7 +108,7 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
 
     // HACK to realize time measurement functionality -> FIXME: move to specialized node
     case ExpressionStatement(FunctionCallExpression(StringConstant("startTimer"), args)) =>
-      if (Knowledge.testNewTimers)
+      if (Knowledge.l3tmp_genAdvancedTimers)
         ExpressionStatement(iv.Timer(args(0)) ~ ".Start()")
       else
         ListBuffer[Statement](
@@ -116,7 +116,7 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
           args(0) ~ ".reset()")
 
     case ExpressionStatement(FunctionCallExpression(StringConstant("stopTimer"), args)) =>
-      if (Knowledge.testNewTimers)
+      if (Knowledge.l3tmp_genAdvancedTimers)
         ExpressionStatement(iv.Timer(args(0)) ~ ".Stop()")
       else
         new Scope(ListBuffer[Statement](
@@ -126,19 +126,19 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
           args(1) ~ " += timeTaken"))
 
     case FunctionCallExpression(StringConstant("addFromTimer"), args) =>
-      if (Knowledge.testNewTimers)
+      if (Knowledge.l3tmp_genAdvancedTimers)
         args(1) ~ " += " ~ iv.Timer(args(0)) ~ ".getTotalTimeInMilliSec()"
       else
         StringConstant("Not supported: addFromTimer")
 
     case FunctionCallExpression(StringConstant("getMeanFromTimer"), args) =>
-      if (Knowledge.testNewTimers)
+      if (Knowledge.l3tmp_genAdvancedTimers)
         iv.Timer(args(0)) ~ ".getMeanTimeInMilliSec()"
       else
         StringConstant("Not supported: getMeanFromTimer")
 
     case FunctionCallExpression(StringConstant("getTotalFromTimer"), args) =>
-      if (Knowledge.testNewTimers)
+      if (Knowledge.l3tmp_genAdvancedTimers)
         iv.Timer(args(0)) ~ ".getTotalTimeInMilliSec()"
       else
         StringConstant("Not supported: getTotalFromTimer")

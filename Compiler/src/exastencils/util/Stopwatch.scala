@@ -7,7 +7,7 @@ import exastencils.prettyprinting._
 
 case class Stopwatch() extends Node with FilePrettyPrintable {
   override def printToFile : Unit = {
-    if (Knowledge.testNewTimers) return // prevent overwritting of experimental timer files
+    if (Knowledge.l3tmp_genAdvancedTimers) return // prevent overwritting of experimental timer files
 
     val writer = PrettyprintingManager.getPrinter(s"Util/Stopwatch.h");
 

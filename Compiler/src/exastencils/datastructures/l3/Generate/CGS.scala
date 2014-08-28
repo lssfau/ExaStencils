@@ -5,13 +5,13 @@ import exastencils.knowledge._
 object CGS {
   def addFunction(printer : java.io.PrintWriter, postfix : String) = {
     printer.println(s"Function VCycle$postfix@coarsest ( ) : Unit {")
-    for (vecDim <- 0 until Knowledge.numVecDims)
+    for (vecDim <- 0 until Knowledge.l3tmp_numVecDims)
       printer.println(s"\tVCycle${postfix}_$vecDim@current ( )")
     printer.println(s"}")
 
-    for (vecDim <- 0 until Knowledge.numVecDims) {
+    for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
       printer.println(s"Function VCycle${postfix}_$vecDim@coarsest ( ) : Unit {")
-      if (Knowledge.testCommCompOverlap)
+      if (Knowledge.l3tmp_genAsyncCommunication)
         printer.println(s"\tUpResidual$postfix@current ( 0 )")
       else
         printer.println(s"\tUpResidual$postfix@current ( )")
@@ -30,7 +30,7 @@ object CGS {
       Communication.exch(printer, s"VecP$postfix@current")
 
       printer.println(s"\t\tloop over VecP$postfix@current {")
-      if (Knowledge.testStencilStencil && !Knowledge.genStencilFields)
+      if (Knowledge.l3tmp_genStencilStencilConv && !Knowledge.l3tmp_genStencilFields)
         printer.println(s"\t\t\tVecGradP$postfix@current = ${Stencils.access(postfix)} * VecP$postfix@current")
       else
         printer.println(s"\t\t\tVecGradP$postfix@current = Laplace$postfix@current * VecP$postfix@current")

@@ -9,12 +9,12 @@ case class Root() extends Node {
   def printToL4(filename : String) : Unit = {
     var printer = new java.io.PrintWriter(filename)
 
-    if (Knowledge.testNewTimers) {
+    if (Knowledge.l3tmp_genAdvancedTimers) {
       Settings.additionalFiles += "Util/StopWatch.h"
       Settings.additionalFiles += "Util/StopWatch.cpp"
     }
 
-    if (Knowledge.kelvin) {
+    if (Knowledge.l3tmp_kelvin) {
       // TODO: set these settings via the settings file as soon as the required functionality is implemented
 
       Settings.additionalIncludes += "#include <random>"
@@ -32,14 +32,14 @@ case class Root() extends Node {
     Layouts.addLayouts(printer)
 
     // Fields
-    if (Knowledge.kelvin) {
+    if (Knowledge.l3tmp_kelvin) {
       Fields.addFields(printer, "", "innerDom")
       Fields.addFields(printer, "_GMRF", "global")
     } else {
-      Fields.addFields(printer, "", if (Knowledge.testDomainEmbedding) "innerDom" else "global")
+      Fields.addFields(printer, "", if (Knowledge.l3tmp_genEmbeddedDomain) "innerDom" else "global")
     }
 
-    if (Knowledge.kelvin) {
+    if (Knowledge.l3tmp_kelvin) {
       PolyOpt.registerSideeffectFree("bcSol")
       printer.println(s"Function bcSol (xPos : Real, yPos : Real) : Real {")
       printer.println(s"\tif ( yPos >= 1.0 ) { return ( UN ) }")
@@ -52,22 +52,22 @@ case class Root() extends Node {
     }
 
     // Coeff/StencilFields
-    if (Knowledge.kelvin) {
+    if (Knowledge.l3tmp_kelvin) {
       StencilFields.addStencilFields(printer, "", "innerDom")
       StencilFields.addStencilFields(printer, "_GMRF", "global")
     } else {
-      StencilFields.addStencilFields(printer, "", if (Knowledge.testDomainEmbedding) "innerDom" else "global")
+      StencilFields.addStencilFields(printer, "", if (Knowledge.l3tmp_genEmbeddedDomain) "innerDom" else "global")
     }
 
     // External Fields
-    if (Knowledge.testExtFields) {
+    if (Knowledge.l3tmp_genExtFields) {
       printer.println("external Field extSolution <ExtSolLayout> => Solution@(finest)")
       printer.println
     }
 
     // Stencils
     Stencils.addLaplaceStencil(printer, "")
-    if (Knowledge.kelvin)
+    if (Knowledge.l3tmp_kelvin)
       Stencils.addLaplaceStencil(printer, "_GMRF")
     Stencils.addDefaultStencils(printer)
 
@@ -79,43 +79,43 @@ case class Root() extends Node {
 
     // CGS
     CGS.addFunction(printer, "")
-    if (Knowledge.kelvin)
+    if (Knowledge.l3tmp_kelvin)
       CGS.addFunction(printer, "_GMRF")
 
     // Cycle
     Cycle.addCycle(printer, "")
-    if (Knowledge.kelvin)
+    if (Knowledge.l3tmp_kelvin)
       Cycle.addCycle(printer, "_GMRF")
 
     // Smoother
     Smoothers.addFunction(printer, "")
-    if (Knowledge.kelvin)
+    if (Knowledge.l3tmp_kelvin)
       Smoothers.addFunction(printer, "_GMRF")
 
     // Other MG Functions
     Residual.addUpdateFunction(printer, "")
     Residual.addReductionFunction(printer, "")
-    if (Knowledge.kelvin) {
+    if (Knowledge.l3tmp_kelvin) {
       Residual.addUpdateFunction(printer, "_GMRF")
       Residual.addReductionFunction(printer, "_GMRF")
     }
 
     Restriction.addFunction(printer, "")
-    if (Knowledge.kelvin)
+    if (Knowledge.l3tmp_kelvin)
       Restriction.addFunction(printer, "_GMRF")
 
     Correction.addFunction(printer, "")
-    if (Knowledge.kelvin)
+    if (Knowledge.l3tmp_kelvin)
       Correction.addFunction(printer, "_GMRF")
 
     // Util Functions
     Util.addFunctions(printer, "")
-    if (Knowledge.kelvin)
+    if (Knowledge.l3tmp_kelvin)
       Util.addFunctions(printer, "_GMRF")
 
     // initField functions
     InitFields.addFunction(printer, "")
-    if (Knowledge.kelvin)
+    if (Knowledge.l3tmp_kelvin)
       InitFields.addFunction(printer, "_GMRF")
 
     // Solver

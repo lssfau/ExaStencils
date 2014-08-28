@@ -6,7 +6,7 @@ object Util {
   def addFunctions(printer : java.io.PrintWriter, postfix : String) = {
     printer.println(s"Function SetSolution$postfix@all (value : Real) : Unit {")
     printer.println(s"\tloop over Solution$postfix@current {")
-    for (vecDim <- 0 until Knowledge.numVecDims)
+    for (vecDim <- 0 until Knowledge.l3tmp_numVecDims)
       printer.println(s"\t\t${Fields.solutionSlotted(s"current", "curSlot", postfix)(vecDim)} = value")
     printer.println(s"\t}")
     printer.println(s"}")

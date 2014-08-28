@@ -5,17 +5,17 @@ import exastencils.knowledge._
 object InitFields {
   def addFunction(printer : java.io.PrintWriter, postfix : String) = {
     printer.println(s"Function InitSolution$postfix ( ) : Unit {")
-    if (Knowledge.initSolWithRand) {
+    if (Knowledge.l3tmp_initSolWithRand) {
       // FIXME: this loop needs to be marked as non-parallelizable somehow
       // FIXME: make results more reproducible via sth like 'std::srand((unsigned int)fragments[f]->id)'
       printer.println(s"\tloop over Solution$postfix@finest {")
-      for (vecDim <- 0 until Knowledge.numVecDims) {
+      for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
         printer.println(s"\t\t${Fields.solutionSlotted(s"finest", "curSlot", postfix)(vecDim)} = native('((double)std::rand()/RAND_MAX)')")
       }
       printer.println(s"\t}")
     } else {
       printer.println(s"\tloop over Solution$postfix@finest {")
-      for (vecDim <- 0 until Knowledge.numVecDims) {
+      for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
         printer.println(s"\t\t${Fields.solutionSlotted(s"finest", "curSlot", postfix)(vecDim)} = 0")
       }
       printer.println(s"\t}")
@@ -25,14 +25,14 @@ object InitFields {
 
     printer.println(s"Function InitRHS$postfix ( ) : Unit {")
     printer.println(s"\tloop over RHS$postfix@finest {")
-    for (vecDim <- 0 until Knowledge.numVecDims) {
+    for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
       printer.println(s"\t\t${Fields.rhs(s"finest", postfix)(vecDim)} = 0")
     }
     printer.println(s"\t}")
     printer.println(s"}")
 
-    if (Knowledge.genStencilFields) {
-      if (Knowledge.testStencilStencil) {
+    if (Knowledge.l3tmp_genStencilFields) {
+      if (Knowledge.l3tmp_genStencilStencilConv) {
         printer.println(s"Function InitLaplace$postfix@finest ( ) : Unit {")
         printer.println(s"\tloop over LaplaceCoeff$postfix@current {")
       } else {
@@ -74,12 +74,12 @@ object InitFields {
       printer.println(s"\t}")
       printer.println(s"}")
 
-      if (Knowledge.testStencilStencil) {
+      if (Knowledge.l3tmp_genStencilStencilConv) {
         printer.println(s"Function InitLaplace$postfix@(coarsest to (finest - 1)) ( ) : Unit {")
         Communication.exch(printer, s"LaplaceCoeff$postfix@finer")
 
         printer.println(s"\tloop over LaplaceCoeff$postfix@current {")
-        if (false && Knowledge.kelvin) { // hack injection
+        if (false && Knowledge.l3tmp_kelvin) { // hack injection
           for (i <- 0 until 9)
             printer.println(s"\t\tLaplaceCoeff$postfix@current[$i] = LaplaceCoeff$postfix@finer[$i]")
         } else {

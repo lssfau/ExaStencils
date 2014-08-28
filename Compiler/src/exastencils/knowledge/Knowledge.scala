@@ -24,7 +24,7 @@ object Knowledge {
   // --- Domain Decomposition ---
 
   // specifies if fragments within one block should be aggregated 
-  // TODO: sanity check if compatible with chosen smoother
+  // TODO: sanity check if compatible with chosen l3tmp_smoother
   var domain_summarizeBlocks : Boolean = true // [true|false] // if true, fragments inside one block are aggregated into one bigger fragment
   var domain_canHaveLocalNeighs : Boolean = true // specifies if fragments can have local (i.e.\ shared memory) neighbors, i.e.\ if local comm is required
   var domain_canHaveRemoteNeighs : Boolean = true // specifies if fragments can have remote (i.e.\ different mpi rank) neighbors, i.e.\ if mpi comm is required
@@ -142,45 +142,46 @@ object Knowledge {
   var opt_unroll_interleave : Boolean = true // [true|false]
 
   /// BEGIN HACK config options for generating L4 DSL file
-  /// Student project - Kelvin
-  var kelvin : Boolean = false // NOTE: currently only works for 2D
-  var numSamples : Int = 10 // only required for kelvin
-  var numHaloFrags : Int = 2 // only required for kelvin
-
   /// SPL connected
-  var smoother : String = "Jac" // Jac | GS | RBGS
-  var cgs : String = "CG" // CG
-  var numPre : Int = 3 // has to be divisible by 2 for Jac if useSlotsForJac or useSlotVariables are disabled
-  var numPost : Int = 3 // has to be divisible by 2 for Jac if useSlotsForJac or useSlotVariables are disabled
-  var omega : Double = (if ("Jac" == smoother) 0.8 else 1.0)
-  var testStencilStencil : Boolean = false
-  var genStencilFields : Boolean = false
-  var testCommCompOverlap : Boolean = false
-  var genRBSetsWithConditions : Boolean = true
-  var useSlotsForJac : Boolean = true
-  var useSlotVariables : Boolean = true
-  var testTempBlocking : Boolean = false
+  var l3tmp_smoother : String = "Jac" // [Jac|GS|RBGS] // the l3tmp_smoother to be generated
+  var l3tmp_cgs : String = "CG" // [CG] // the coarse grid solver to be generated
+  var l3tmp_numPre : Int = 3 // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
+  var l3tmp_numPost : Int = 3 // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
+  var l3tmp_omega : Double = (if ("Jac" == l3tmp_smoother) 0.8 else 1.0) // [0.1-10.0] // the relaxation parameter to be used for the l3tmp_smoother
+  var l3tmp_genStencilStencilConv : Boolean = false // [true|false] // tests stencil-stencil convolutions by using RAP instead of A
+  var l3tmp_genStencilFields : Boolean = false // [true|false] // generates stencil fields that are used to store stencils of A (or RAP if l3tmp_genStencilStencilConv is true)
+  var l3tmp_genAsyncCommunication : Boolean = false // [true|false] // replaces some sync communication statements in the L4 DSL file with their async counterparts 
+  var l3tmp_genTemporalBlocking : Boolean = false // [true|false] // adds the necessary statements to the L4 DSL file to implement temporal blocking; adapts field layouts as well
+  var l3tmp_useConditionsForRBGS : Boolean = true // [true|false] // uses conditions to realize red-black patterns (as opposed to adapted offsets and strides)
+  var l3tmp_useSlotsForJac : Boolean = true // [true|false] // uses sloted solution fields for Jacobi (as opposed to multiple distinct fields)
+  var l3tmp_useSlotVariables : Boolean = true // [true|false] // uses slot variables (curSlot, nextSlot, prevSlot) for access to slotted solution fields; allows for odd number of smoothing steps
 
   /// functionality test
-  var testBC : Boolean = true
-  var testExtFields : Boolean = false
-  var omegaViaGlobals : Boolean = false
-  var genSetableStencil : Boolean = false
-  var useVecFields : Boolean = false // attempts to solve Poisson's equation for (numVecDims)D vectors; atm all components are solved independently
-  var numVecDims = (if (useVecFields) 2 else 1)
-  var testFragLoops = true
-  var testDomainEmbedding = false
+  var l3tmp_genFunctionBC : Boolean = true // uses some basic 2D diriclet boundary conditions with function value 
+  var l3tmp_genExtFields : Boolean = false // adds one or more external fields to the L4 DSL file to test generation of subsequent functions
+  var l3tmp_genGlobalOmega : Boolean = false // treats l3tmp_omega as a global (modifiable) parameter 
+  var l3tmp_genSetableStencil : Boolean = false // generates stencil weights as global variables instead of constant values
+  var l3tmp_genVectorFields : Boolean = false // attempts to solve Poisson's equation for (l3tmp_numVecDims)D vectors; all components are solved independently
+  var l3tmp_numVecDims : Int = (if (l3tmp_genVectorFields) 2 else 1) // number of components the PDE is to be solved for
+  var l3tmp_genFragLoops : Boolean = true // adds fragment loops to the L4 DSL file
+  var l3tmp_genEmbeddedDomain : Boolean = false // adds a second domain to perform all computations on; the new domain is one fragment smaller on each boundary 
 
-  /// optional features  
-  var printFieldAtEnd : Boolean = false
-  var initSolWithRand : Boolean = true
+  /// optional features
+  var l3tmp_printFieldAtEnd : Boolean = false // prints the solution field at the end of the application (or the mean solution in l3tmp_kelvin's case)
+  var l3tmp_initSolWithRand : Boolean = true // initializes the solution on the finest level with random values
 
-  // Student project - Oleg
-  var testNewTimers : Boolean = false // this is to enable the usage of some new, currently highly experimental, timer classes; requires that the timer classes are provided
-  var genTimersPerFunction : Boolean = false
-  var genTimersPerLevel : Boolean = false
-  var genTimersForComm : Boolean = false
-  var genCommTimersPerLevel : Boolean = false
+  /// Student project - Kelvin
+  var l3tmp_kelvin : Boolean = false // NOTE: currently only works for 2D
+  var l3tmp_kelvin_numSamples : Int = 10 // only required for l3tmp_kelvin; number of samples to be evaluated
+  var l3tmp_kelvin_numHaloFrags : Int = 2 // only required for l3tmp_kelvin; number of halo fragments used to implement the open boundary approximation  
+
+  /// Student project - Oleg
+  var l3tmp_genAdvancedTimers : Boolean = false // this is to enable the usage of some new, currently highly experimental, timer classes; requires that the timer classes are provided
+  var l3tmp_genTimersPerFunction : Boolean = false // generates different timers for each function in the mg cycle
+  var l3tmp_genTimersPerLevel : Boolean = false // generates different timers for each (mg) level
+  var l3tmp_genTimersForComm : Boolean = false // generates additional timers for the communication
+  var l3tmp_genCommTimersPerLevel : Boolean = false // generates different communication timers for each level 
+
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {
@@ -233,45 +234,48 @@ object Knowledge {
     }
 
     // update constraints
-    Constraints.condEnsureValue(numPre, numPre - (numPre % 2), "Jac" == smoother && !useSlotsForJac && !useSlotVariables,
+    Constraints.condEnsureValue(l3tmp_numPre, l3tmp_numPre - (l3tmp_numPre % 2), "Jac" == l3tmp_smoother && !l3tmp_useSlotsForJac && !l3tmp_useSlotVariables,
       "Number of pre-smoothing steps has to be divisible by 2")
-    Constraints.condEnsureValue(numPost, numPost - (numPost % 2), "Jac" == smoother && !useSlotsForJac && !useSlotVariables,
+    Constraints.condEnsureValue(l3tmp_numPost, l3tmp_numPost - (l3tmp_numPost % 2), "Jac" == l3tmp_smoother && !l3tmp_useSlotsForJac && !l3tmp_useSlotVariables,
       "Number of post-smoothing steps has to be divisible by 2")
 
-    if ("Jac" == smoother) Constraints.updateValue(omega, 0.8) else Constraints.updateValue(omega, 1.0)
+    Constraints.condEnsureValue(l3tmp_numPre, 2, 0 == l3tmp_numPre && 0 == l3tmp_numPost, "(l3tmp_numPre + l3tmp_numPost) must be larger than zero")
 
-    Constraints.condEnsureValue(testStencilStencil, true, kelvin, "required by kelvin")
-    Constraints.condEnsureValue(genStencilFields, true, kelvin, "required by kelvin")
-    Constraints.condEnsureValue(printFieldAtEnd, true, kelvin, "required by kelvin")
-    Constraints.condEnsureValue(testBC, false, kelvin, "not compatible with kelvin")
-    Constraints.condEnsureValue(genSetableStencil, false, kelvin, "not compatible with kelvin")
-    Constraints.condEnsureValue(useVecFields, false, kelvin, "not compatible with kelvin")
-    Constraints.condEnsureValue(testDomainEmbedding, false, kelvin, "not compatible with kelvin")
-    Constraints.condEnsureValue(initSolWithRand, false, kelvin, "not compatible with kelvin")
+    if ("Jac" == l3tmp_smoother) Constraints.updateValue(l3tmp_omega, 0.8) else Constraints.updateValue(l3tmp_omega, 1.0)
 
-    Constraints.condEnsureValue(testCommCompOverlap, false, 26 != comm_strategyFragment, "invalid comm_strategyFragment")
+    Constraints.condEnsureValue(l3tmp_genStencilStencilConv, true, l3tmp_kelvin, "required by l3tmp_kelvin")
+    Constraints.condEnsureValue(l3tmp_genStencilFields, true, l3tmp_kelvin, "required by l3tmp_kelvin")
+    Constraints.condEnsureValue(l3tmp_printFieldAtEnd, true, l3tmp_kelvin, "required by l3tmp_kelvin")
+    Constraints.condEnsureValue(l3tmp_genFunctionBC, false, l3tmp_kelvin, "not compatible with l3tmp_kelvin")
+    Constraints.condEnsureValue(l3tmp_genSetableStencil, false, l3tmp_kelvin, "not compatible with l3tmp_kelvin")
+    Constraints.condEnsureValue(l3tmp_genVectorFields, false, l3tmp_kelvin, "not compatible with l3tmp_kelvin")
+    Constraints.condEnsureValue(l3tmp_genEmbeddedDomain, false, l3tmp_kelvin, "not compatible with l3tmp_kelvin")
+    Constraints.condEnsureValue(l3tmp_initSolWithRand, false, l3tmp_kelvin, "not compatible with l3tmp_kelvin")
 
-    Constraints.condWarn("RBGS" == smoother && !genRBSetsWithConditions,
-      s"Currently NOT using genRBSetsWithConditions leads to a color mismatch at primitive boundaries and thus to a reduced convergence rate")
+    Constraints.condEnsureValue(l3tmp_genAsyncCommunication, false, 26 != comm_strategyFragment, "invalid comm_strategyFragment")
 
-    Constraints.condEnsureValue(useSlotVariables, false, !useSlotsForJac, "invalid if not using useSlotsForJac")
-    Constraints.condEnsureValue(testTempBlocking, false, numPre != numPost, "numPre and numPost have to be equal")
-    Constraints.condWarn("GS" != smoother && testTempBlocking, "testTempBlocking currently only works with GS")
+    Constraints.condWarn("RBGS" == l3tmp_smoother && !l3tmp_useConditionsForRBGS,
+      s"Currently NOT using l3tmp_useConditionsForRBGS leads to a color mismatch at primitive boundaries and thus to a reduced convergence rate")
 
-    Constraints.condEnsureValue(testBC, false, 2 != dimensionality, "testBC is only valid for 2D problems")
-    Constraints.condEnsureValue(initSolWithRand, true, !testBC, "initial solution of zero corresponds to the exact solution if testBC is false")
-    Constraints.condEnsureValue(initSolWithRand, false, testBC, "testBC requires initial solution of zero")
+    Constraints.condEnsureValue(l3tmp_useSlotVariables, false, !l3tmp_useSlotsForJac, "invalid if not using l3tmp_useSlotsForJac")
+    Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_numPre != l3tmp_numPost, "l3tmp_numPre and l3tmp_numPost have to be equal")
+    Constraints.condWarn("GS" != l3tmp_smoother && l3tmp_genTemporalBlocking, "l3tmp_genTemporalBlocking currently only works with GS")
 
-    if (useVecFields) Constraints.updateValue(numVecDims, 2) else Constraints.updateValue(numVecDims, 1)
+    Constraints.condEnsureValue(l3tmp_genFunctionBC, false, 2 != dimensionality, "l3tmp_genFunctionBC is only valid for 2D problems")
+    Constraints.condEnsureValue(l3tmp_initSolWithRand, true, !l3tmp_genFunctionBC, "initial solution of zero corresponds to the exact solution if l3tmp_genFunctionBC is false")
+    Constraints.condEnsureValue(l3tmp_initSolWithRand, false, l3tmp_genFunctionBC, "l3tmp_genFunctionBC requires initial solution of zero")
 
-    Constraints.condEnsureValue(genTimersPerFunction, false, !testNewTimers, "requires testNewTimers to be activated")
-    Constraints.condEnsureValue(genTimersPerLevel, false, !testNewTimers, "requires testNewTimers to be activated")
-    Constraints.condEnsureValue(genTimersForComm, false, !testNewTimers, "requires testNewTimers to be activated")
-    Constraints.condEnsureValue(genCommTimersPerLevel, false, !testNewTimers, "requires testNewTimers to be activated")
+    if (l3tmp_genVectorFields) Constraints.updateValue(l3tmp_numVecDims, 2) else Constraints.updateValue(l3tmp_numVecDims, 1)
 
-    Constraints.condEnsureValue(genTimersForComm, false, testCommCompOverlap, "timers for overlapping communication are not yet supported")
-    Constraints.condEnsureValue(genCommTimersPerLevel, false, !genTimersForComm, "requires genTimersForComm to be activated")
+    Constraints.condEnsureValue(l3tmp_genTimersPerFunction, false, !l3tmp_genAdvancedTimers, "requires l3tmp_genAdvancedTimers to be activated")
+    Constraints.condEnsureValue(l3tmp_genTimersPerLevel, false, !l3tmp_genAdvancedTimers, "requires l3tmp_genAdvancedTimers to be activated")
+    Constraints.condEnsureValue(l3tmp_genTimersForComm, false, !l3tmp_genAdvancedTimers, "requires l3tmp_genAdvancedTimers to be activated")
+    Constraints.condEnsureValue(l3tmp_genCommTimersPerLevel, false, !l3tmp_genAdvancedTimers, "requires l3tmp_genAdvancedTimers to be activated")
 
-    Constraints.condEnsureValue(comm_useLevelIndependentFcts, false, testBC, "level independent communication functions are not compatible with non-trivial boundary conditions")
+    Constraints.condEnsureValue(l3tmp_genTimersForComm, false, l3tmp_genAsyncCommunication, "timers for overlapping communication are not yet supported")
+    Constraints.condEnsureValue(l3tmp_genCommTimersPerLevel, false, !l3tmp_genTimersForComm, "requires l3tmp_genTimersForComm to be activated")
+
+    Constraints.condEnsureValue(comm_useLevelIndependentFcts, false, l3tmp_genFunctionBC, "level independent communication functions are not compatible with non-trivial boundary conditions")
+    Constraints.condEnsureValue(mpi_useCustomDatatypes, false, comm_useLevelIndependentFcts, "MPI data types cannot be used in combination with level independent communication functions yet")
   }
 }

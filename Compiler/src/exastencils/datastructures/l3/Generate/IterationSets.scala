@@ -9,8 +9,8 @@ object IterationSets {
     Knowledge.dimensionality match {
       case 2 => {
         printer.println("Set inner [0, 0]")
-        if ("RBGS" == Knowledge.smoother) {
-          if (Knowledge.genRBSetsWithConditions) {
+        if ("RBGS" == Knowledge.l3tmp_smoother) {
+          if (Knowledge.l3tmp_useConditionsForRBGS) {
             printer.println("Set red [0, 0] with 0 == ((x + y) % 2)")
             printer.println("Set black [0, 0] with 1 == ((x + y) % 2)")
           } else {
@@ -21,8 +21,8 @@ object IterationSets {
       }
       case 3 => {
         printer.println("Set inner [0, 0, 0]")
-        if ("RBGS" == Knowledge.smoother) {
-          if (Knowledge.genRBSetsWithConditions) {
+        if ("RBGS" == Knowledge.l3tmp_smoother) {
+          if (Knowledge.l3tmp_useConditionsForRBGS) {
             printer.println("Set red [0, 0, 0] with 0 == ((x + y + z) % 2)")
             printer.println("Set black [0, 0, 0] with 1 == ((x + y + z) % 2)")
           } else {

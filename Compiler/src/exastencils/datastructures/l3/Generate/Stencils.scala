@@ -4,8 +4,8 @@ import exastencils.knowledge._
 
 object Stencils {
   def access(postfix : String) : String = {
-    if (Knowledge.testStencilStencil) {
-      if (Knowledge.genStencilFields)
+    if (Knowledge.l3tmp_genStencilStencilConv) {
+      if (Knowledge.l3tmp_genStencilFields)
         s"( CorrectionStencil@current * ( Laplace$postfix@finer * RestrictionStencil@current ) )"
       else
         s"( CorrectionStencil@current * ( Laplace$postfix@finer * RestrictionStencil@current ) )"
@@ -14,11 +14,11 @@ object Stencils {
   }
 
   def addLaplaceStencil(printer : java.io.PrintWriter, postfix : String) = {
-    if (Knowledge.genStencilFields)
+    if (Knowledge.l3tmp_genStencilFields)
       printer.println(s"Stencil LaplaceStencil$postfix@all {")
     else
       printer.println(s"Stencil Laplace$postfix@all {")
-    if (Knowledge.genSetableStencil) {
+    if (Knowledge.l3tmp_genSetableStencil) {
       Knowledge.dimensionality match {
         case 2 => {
           printer.println("\t[ 0,  0] => Laplace_Coeff_0_0")
@@ -39,7 +39,7 @@ object Stencils {
     } else {
       Knowledge.dimensionality match {
         case 2 => {
-          if (Knowledge.kelvin && "_GMRF" == postfix)
+          if (Knowledge.l3tmp_kelvin && "_GMRF" == postfix)
             printer.println("\t[ 0,  0] => (4.0 + kappa)")
           else
             printer.println("\t[ 0,  0] => 4.0")
@@ -47,7 +47,7 @@ object Stencils {
           printer.println("\t[-1,  0] => -1.0")
           printer.println("\t[ 0,  1] => -1.0")
           printer.println("\t[ 0, -1] => -1.0")
-          if (Knowledge.testStencilStencil) {
+          if (Knowledge.l3tmp_genStencilStencilConv) {
             printer.println("\t[-1, -1] => 0.0")
             printer.println("\t[-1,  1] => 0.0")
             printer.println("\t[ 1, -1] => 0.0")
@@ -62,7 +62,7 @@ object Stencils {
           printer.println("\t[ 0, -1,  0] => -1.0")
           printer.println("\t[ 0,  0,  1] => -1.0")
           printer.println("\t[ 0,  0, -1] => -1.0")
-          if (Knowledge.testStencilStencil) {
+          if (Knowledge.l3tmp_genStencilStencilConv) {
             printer.println("\t[ 0, -1,  1] => 0.0")
             printer.println("\t[ 0, -1, -1] => 0.0")
             printer.println("\t[ 0,  1,  1] => 0.0")
@@ -167,7 +167,7 @@ object Stencils {
     }
     printer.println
 
-    if (Knowledge.kelvin) {
+    if (Knowledge.l3tmp_kelvin) {
       printer.println("Stencil TransferStencil_Center@all {")
       printer.println("\t[ 0,  0] => 2.0")
       printer.println("\t[-1,  0] => 0.5")

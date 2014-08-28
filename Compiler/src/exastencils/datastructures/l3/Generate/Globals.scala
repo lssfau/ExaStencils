@@ -5,9 +5,9 @@ import exastencils.knowledge._
 object Globals {
   def addGlobals(printer : java.io.PrintWriter) = {
     printer.println("Globals {")
-    if (Knowledge.omegaViaGlobals)
-      printer.println(s"\tVariable omega : Real = ${Knowledge.omega}")
-    if (Knowledge.genSetableStencil) {
+    if (Knowledge.l3tmp_genGlobalOmega)
+      printer.println(s"\tVariable l3tmp_omega : Real = ${Knowledge.l3tmp_omega}")
+    if (Knowledge.l3tmp_genSetableStencil) {
       Knowledge.dimensionality match {
         case 2 => {
           printer.println("\tVariable Laplace_Coeff_0_0 : Real")
@@ -27,7 +27,7 @@ object Globals {
         }
       }
     }
-    if (Knowledge.kelvin) {
+    if (Knowledge.l3tmp_kelvin) {
       // Dir BC
       printer.println("\tVariable UN : Real = 1")
       printer.println("\tVariable US : Real = 10")
