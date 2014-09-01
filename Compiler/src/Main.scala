@@ -93,6 +93,8 @@ object Main {
     else
       ExpandStrategy.doUntilDone()
 
+    MergeConditions.apply()
+
     if (Knowledge.poly_usePolyOpt)
       PolyOpt.apply()
 
