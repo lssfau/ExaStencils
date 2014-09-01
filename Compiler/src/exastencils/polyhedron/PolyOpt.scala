@@ -90,12 +90,17 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     return scops
   }
 
-  private def mergeScops(scop : Scop) {
+  private def mergeScops(scop : Scop) : Unit = {
     var toMerge : Scop = scop.nextMerge
     var i : Int = 0
     scop.schedule = insertCst(scop.schedule, i)
     while (toMerge != null) {
       i += 1
+      if (scop.reduction != toMerge.reduction) {
+        Logger.warn("[PolyOpt]  cannot merge two loops with different reduction clauses (maybe a bug in previous generation?)")
+        scop.nextMerge = null
+        return
+      }
       scop.domain = union(scop.domain, toMerge.domain)
       scop.schedule = union(scop.schedule, insertCst(toMerge.schedule, i))
       scop.stmts ++= toMerge.stmts
@@ -107,6 +112,9 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       scop.deps.anti = union(scop.deps.anti, toMerge.deps.anti)
       scop.deps.input = union(scop.deps.input, toMerge.deps.input)
       scop.deps.output = union(scop.deps.output, toMerge.deps.output)
+      if (scop.origIterationCount == null && toMerge.origIterationCount != null)
+        scop.origIterationCount = toMerge.origIterationCount
+      scop.parallelize &= toMerge.parallelize
       toMerge.remove = true
       toMerge = toMerge.nextMerge
     }
@@ -233,31 +241,27 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     scop.deps.output = scop.deps.output.subtract(toRemove)
   }
 
-  private final lazy val tileVec2D : isl.Vec = {
-    var v2 : isl.Vec = isl.Vec.alloc(2)
-    v2 = v2.setElementVal(0, if (Knowledge.poly_tileOuterLoop) Knowledge.poly_tileSize_y else 1000000000)
-    v2 = v2.setElementVal(1, Knowledge.poly_tileSize_x)
-    v2
-  }
+  private final val tileSizes = Array(Knowledge.poly_tileSize_x, Knowledge.poly_tileSize_y, Knowledge.poly_tileSize_z, Knowledge.poly_tileSize_w)
+  //  private final val tileSizes = Array(Knowledge.poly_tileSize_y, Knowledge.poly_tileSize_z, Knowledge.poly_tileSize_w)
 
-  private final lazy val tileVec3D : isl.Vec = {
-    var v3 : isl.Vec = isl.Vec.alloc(3)
-    v3 = v3.setElementVal(0, if (Knowledge.poly_tileOuterLoop) Knowledge.poly_tileSize_z else 1000000000)
-    v3 = v3.setElementVal(1, Knowledge.poly_tileSize_y)
-    v3 = v3.setElementVal(2, Knowledge.poly_tileSize_x)
-    v3
-  }
-
-  private final lazy val tileVec4D : isl.Vec = {
-    var v4 : isl.Vec = isl.Vec.alloc(4)
-    v4 = v4.setElementVal(0, if (Knowledge.poly_tileOuterLoop) Knowledge.poly_tileSize_w else 1000000000)
-    v4 = v4.setElementVal(1, Knowledge.poly_tileSize_z)
-    v4 = v4.setElementVal(2, Knowledge.poly_tileSize_y)
-    v4 = v4.setElementVal(3, Knowledge.poly_tileSize_x)
-    v4
+  private def getTileVec(dims : Int, itCount : Array[Long]) : isl.Vec = {
+    var vec = isl.Vec.alloc(dims)
+    val iind : Int = tileSizes.length - 1
+    for (i <- 0 until dims) {
+      var tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(iind - i) else 1000000000
+      tileSize = math.min(tileSize, itCount(i).toInt + 20) // TODO: "+ 20" (heuristics)
+      vec = vec.setElementVal(i, tileSize)
+    }
+    return vec
   }
 
   private def optimize(scop : Scop) : Unit = {
+
+    //    if (scop.nextMerge != null) {
+    //      println("val dom = new isl.UnionSet(\"" + scop.domain + "\")")
+    //      println("val depsVal = new isl.UnionMap(\"" + scop.deps.validity() + "\")")
+    //      println("val depsInp = new isl.UnionMap(\"" + scop.deps.input + "\")")
+    //    }
 
     var schedConstr : isl.ScheduleConstraints = isl.ScheduleConstraints.onDomain(scop.domain)
 
@@ -278,12 +282,14 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
           })
           if (prefix == 0) {
             tiled = band.nMember()
-            tiled match {
-              case 2 => band.tile(tileVec2D)
-              case 3 => band.tile(tileVec3D)
-              case 4 => band.tile(tileVec4D)
-              case _ =>
-            }
+            if (2 <= tiled && tiled <= 4)
+              band.tile(getTileVec(tiled, scop.origIterationCount))
+            //            if (3 <= tiled && tiled <= 4) {
+            //              tiled -= 1
+            //              band.split(tiled)
+            //              band.tile(getTileVec(tiled, scop.origIterationCount))
+            //            } else
+            //              tiled = 0
           }
       } : isl.Band => Unit)
       val threads = Knowledge.omp_numThreads

@@ -9,8 +9,8 @@ import exastencils.datastructures.Node
 import exastencils.datastructures.ir._
 import isl.Conversions._
 
-class Scop(val root : Node, val parallelize : Boolean, val reduction : Option[Reduction],
-    val origIterationCount : Array[Long]) {
+class Scop(val root : Node, var parallelize : Boolean, var reduction : Option[Reduction],
+    var origIterationCount : Array[Long]) {
 
   var nextMerge : Scop = null
   var remove : Boolean = false

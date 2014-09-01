@@ -8,12 +8,11 @@ import scala.collection.mutable.StringBuilder
 
 import exastencils.core.Logger
 import exastencils.core.collectors.Collector
+import exastencils.data.SlotAccess
 import exastencils.datastructures.Annotation
 import exastencils.datastructures.Node
 import exastencils.datastructures.ir._
-import exastencils.knowledge.FieldSelection
-import exastencils.knowledge.Knowledge
-import exastencils.knowledge.dimToString
+import exastencils.knowledge._
 
 /** Object for all "static" attributes */
 object Extractor {
@@ -145,36 +144,63 @@ object Extractor {
         extractConstraints(l, constraints, formatString, paramConstr, vars)
         constraints.append('<')
         extractConstraints(r, constraints, formatString, paramConstr, vars)
+        constraints.append(')')
         bool = true
 
       case LowerEqualExpression(l, r) =>
+        constraints.append('(')
         extractConstraints(l, constraints, formatString, paramConstr, vars)
         constraints.append("<=")
         extractConstraints(r, constraints, formatString, paramConstr, vars)
+        constraints.append(')')
         bool = true
 
       case GreaterEqualExpression(l, r) =>
+        constraints.append('(')
         extractConstraints(l, constraints, formatString, paramConstr, vars)
         constraints.append(">=")
         extractConstraints(r, constraints, formatString, paramConstr, vars)
+        constraints.append(')')
         bool = true
 
       case GreaterExpression(l, r) =>
+        constraints.append('(')
         extractConstraints(l, constraints, formatString, paramConstr, vars)
         constraints.append('>')
         extractConstraints(r, constraints, formatString, paramConstr, vars)
+        constraints.append(')')
         bool = true
 
       case EqEqExpression(l, r) =>
+        constraints.append('(')
         extractConstraints(l, constraints, formatString, paramConstr, vars)
         constraints.append('=')
         extractConstraints(r, constraints, formatString, paramConstr, vars)
+        constraints.append(')')
         bool = true
 
       case NeqNeqExpression(l, r) =>
+        constraints.append('(')
         extractConstraints(l, constraints, formatString, paramConstr, vars)
         constraints.append("!=")
         extractConstraints(r, constraints, formatString, paramConstr, vars)
+        constraints.append(')')
+        bool = true
+
+      case AndAndExpression(l, r) =>
+        constraints.append('(')
+        extractConstraints(l, constraints, formatString, paramConstr, vars)
+        constraints.append(" and ")
+        extractConstraints(r, constraints, formatString, paramConstr, vars)
+        constraints.append(')')
+        bool = true
+
+      case OrOrExpression(l, r) =>
+        constraints.append('(')
+        extractConstraints(l, constraints, formatString, paramConstr, vars)
+        constraints.append(" or ")
+        extractConstraints(r, constraints, formatString, paramConstr, vars)
+        constraints.append(')')
         bool = true
 
       case _ => throw new ExtractionException("unknown expression: " + expr.getClass() + " - " + expr.cpp())
@@ -677,10 +703,17 @@ class Extractor extends Collector {
     // nothing to do here...
   }
 
-  private def enterFieldAccess(fieldSelection : FieldSelection, index : MultiIndex, offset : MultiIndex = null) : Unit = {
+  private def enterFieldAccess(fSel : FieldSelection, index : MultiIndex, offset : MultiIndex = null) : Unit = {
 
-    val name : String = iv.FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx).cpp()
-    enterArrayAccess(name, if (offset == null) index else index + offset)
+    val name = new StringBuilder("field")
+    name.append('_').append(fSel.field.identifier).append(fSel.field.level)
+    name.append("_l").append(fSel.level.cpp()).append('a').append(fSel.arrayIndex)
+    name.append('_').append(fSel.fragIdx.cpp()).append('_')
+    fSel.slot match {
+      case SlotAccess(_, offset) => name.append('s').append(offset)
+      case s                     => name.append(s.cpp())
+    }
+    enterArrayAccess(name.toString(), if (offset != null) index + offset else index)
   }
 
   private def leaveFieldAccess() : Unit = {
