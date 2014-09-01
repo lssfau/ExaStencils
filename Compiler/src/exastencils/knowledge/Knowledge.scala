@@ -256,7 +256,6 @@ object Knowledge {
 
     Constraints.condEnsureValue(useSlotVariables, false, !useSlotsForJac, "invalid if not using useSlotsForJac")
     Constraints.condEnsureValue(testTempBlocking, false, numPre != numPost, "numPre and numPost have to be equal")
-    Constraints.condWarn("GS" != smoother && testTempBlocking, "testTempBlocking currently only works with GS")
 
     Constraints.condEnsureValue(testBC, false, 2 != dimensionality, "testBC is only valid for 2D problems")
     Constraints.condEnsureValue(initSolWithRand, true, !testBC, "initial solution of zero corresponds to the exact solution if testBC is false")
