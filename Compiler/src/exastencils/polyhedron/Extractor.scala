@@ -3,6 +3,7 @@ package exastencils.polyhedron
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.ArrayStack
 import scala.collection.mutable.HashSet
+import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
 import scala.collection.mutable.StringBuilder
 
@@ -247,8 +248,8 @@ class Extractor extends Collector {
   private var mergeScops : Boolean = false
 
   /** all found static control parts */
-  val scops = new ArrayStack[Scop]
-  val trash = new ArrayStack[(Node, String)] // TODO: debug; remove
+  val scops = new ArrayBuffer[Scop](256)
+  val trash = new ArrayBuffer[(Node, String)] // TODO: debug; remove
 
   private object curScop {
 
@@ -283,7 +284,7 @@ class Extractor extends Collector {
       this.scop_ = new Scop(root, Knowledge.omp_parallelizeLoopOverDimensions && root.parallelizationIsReasonable,
         root.reduction, root.maxIterationCount())
       if (mergeWithPrev)
-        scops.top.nextMerge = this.scop_
+        scops.last.nextMerge = this.scop_
       this.modelLoopVars_ = modelLoopVars
       this.origLoopVars_ = origLoopVars
       this.setTemplate_ = setTempl
@@ -332,7 +333,7 @@ class Extractor extends Collector {
       if (msg != null) {
         if (DEBUG)
           Logger.debug("[poly extr] Scop discarded:  " + msg)
-        trash.push((if (scop_ != null) scop_.root else null, msg))
+        trash += ((if (scop_ != null) scop_.root else null, msg))
       }
       scop_ = null
       modelLoopVars_ = null
@@ -576,7 +577,7 @@ class Extractor extends Collector {
     if (scop != null) {
       scop.updateLoopVars()
       loop.annotate(PolyOpt.SCOP_ANNOT, scop)
-      scops.push(scop)
+      scops += scop
       mergeScops = true
     }
   }
