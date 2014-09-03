@@ -101,6 +101,19 @@ object Extractor {
             paramConstr.append('(').append(min).append("<=")
             paramConstr.append(ScopNameMapping.expr2id(off))
             paramConstr.append("<=").append(max).append(')')
+
+          case MultiplicationExpression(IntegerConstant(c), arr : ArrayAccess) =>
+            paramConstr.append(" and ")
+            paramConstr.append('(').append(min).append("<=").append(c).append('*')
+            paramConstr.append(ScopNameMapping.expr2id(arr))
+            paramConstr.append("<=").append(max).append(')')
+
+          case MultiplicationExpression(arr : ArrayAccess, IntegerConstant(c)) =>
+            paramConstr.append(" and ")
+            paramConstr.append('(').append(min).append("<=").append(c).append('*')
+            paramConstr.append(ScopNameMapping.expr2id(arr))
+            paramConstr.append("<=").append(max).append(')')
+
           case _ =>
         }
 
