@@ -375,6 +375,7 @@ object StateManager {
             s.getParameterTypes.size == 1 && s.getParameterTypes()(0) == g.getReturnType && s.getName == g.getName + setterSuffix
         } yield (g, s)
 
+        Logger.info(s"""StateManager::Vars: Caching ${vars.length} members of class "${o.getClass.getName()}"""")
         vars
       })
     }
