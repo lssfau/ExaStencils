@@ -34,5 +34,5 @@ opt_unroll					= 4
 opt_unroll_interleave		= true
 data_addPrePadding			= false // not needed currently
 
-smoother = "Jac"
-testTempBlocking = true
+l3tmp_smoother = "Jac"
+l3tmp_genTemporalBlocking = true
