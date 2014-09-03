@@ -263,7 +263,7 @@ object Knowledge {
     Constraints.condWarn("GS" != l3tmp_smoother && l3tmp_genTemporalBlocking, "l3tmp_genTemporalBlocking currently only works with GS")
 
     Constraints.condEnsureValue(l3tmp_genFunctionBC, false, 2 != dimensionality, "l3tmp_genFunctionBC is only valid for 2D problems")
-    Constraints.condEnsureValue(l3tmp_initSolWithRand, true, !l3tmp_genFunctionBC, "initial solution of zero corresponds to the exact solution if l3tmp_genFunctionBC is false")
+    Constraints.condEnsureValue(l3tmp_initSolWithRand, true, !l3tmp_genFunctionBC && !l3tmp_kelvin, "initial solution of zero corresponds to the exact solution if l3tmp_genFunctionBC is false")
     Constraints.condEnsureValue(l3tmp_initSolWithRand, false, l3tmp_genFunctionBC, "l3tmp_genFunctionBC requires initial solution of zero")
 
     if (l3tmp_genVectorFields) Constraints.updateValue(l3tmp_numVecDims, 2) else Constraints.updateValue(l3tmp_numVecDims, 1)
