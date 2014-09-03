@@ -19,7 +19,7 @@ class ASTBuilderTransformation(replaceCallback : (HashMap[String, Expression], N
   extends Transformation("insert optimized loop AST", new ASTBuilderFunction(replaceCallback))
 
 private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expression], Node) => Unit)
-    extends PartialFunction[Node, Transformation.Output[_]] {
+    extends PartialFunction[Node, Transformation.OutputType] {
 
   private final val ZERO_VAL : isl.Val = isl.Val.zero()
   private final val ONE_VAL : isl.Val = isl.Val.one()
@@ -36,7 +36,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
     case _ => false
   }
 
-  def apply(node : Node) : Transformation.Output[_] = {
+  def apply(node : Node) : Transformation.OutputType = {
 
     val scop : Scop = node.removeAnnotation(PolyOpt.SCOP_ANNOT).get.value.asInstanceOf[Scop]
     if (scop.remove)

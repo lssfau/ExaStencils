@@ -7,5 +7,5 @@ trait Debuggable {
 }
 
 trait Expandable {
-  def expand() : Transformation.Output[_]
+  def expand() : Transformation.OutputType
 }

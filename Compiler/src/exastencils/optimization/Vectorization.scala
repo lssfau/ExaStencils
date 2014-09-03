@@ -20,7 +20,7 @@ object Vectorization extends DefaultStrategy("Vectorization") {
 
 private final case class VectorizationException(msg : String) extends Exception(msg)
 
-private final object VectorizeInnermost extends PartialFunction[Node, Transformation.Output[_]] {
+private final object VectorizeInnermost extends PartialFunction[Node, Transformation.OutputType] {
 
   private final val DEBUG : Boolean = false
 
@@ -33,7 +33,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     }
   }
 
-  def apply(node : Node) : Transformation.Output[_] = {
+  def apply(node : Node) : Transformation.OutputType = {
 
     return try {
       vectorizeLoop(node.asInstanceOf[ForLoopStatement])
@@ -45,7 +45,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     }
   }
 
-  private def vectorizeLoop(loop : ForLoopStatement) : Transformation.Output[_] = {
+  private def vectorizeLoop(loop : ForLoopStatement) : Transformation.OutputType = {
 
     // excessive testing if loop header allows vectorization
     return loop match {
@@ -146,7 +146,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
   }
 
   private def vectorizeLoop(oldLoop : ForLoopStatement, itName : String, begin : Expression, endExcl : Expression,
-    body : ListBuffer[Statement], reduction : Option[Reduction], isInScope : Boolean) : Transformation.Output[_] = {
+    body : ListBuffer[Statement], reduction : Option[Reduction], isInScope : Boolean) : Transformation.OutputType = {
 
     val ctx = new LoopCtx(itName)
     var postLoopStmt : Statement = null
