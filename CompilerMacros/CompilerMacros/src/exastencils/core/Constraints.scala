@@ -10,10 +10,10 @@ object Constraints {
   def getLevel : Int = Logger.getLevel
   def setLevel(level : Int) = { Logger.setLevel(level) }
 
-  def updateValue(param : Any, value : Any) = macro updateValueImpl
-  def condWarn(cond : Boolean, msg : AnyRef) = macro condWarnImpl
-  def condEnsureValue(param : Any, value : Any, cond : Boolean, msg : AnyRef) = macro condEnsureValueImpl
-  def condEnsureValue(param : Any, value : Any, cond : Boolean) = macro condEnsureValueImpl2
+  def updateValue(param : Any, value : Any) : Unit = macro updateValueImpl
+  def condWarn(cond : Boolean, msg : AnyRef) : Unit = macro condWarnImpl
+  def condEnsureValue(param : Any, value : Any, cond : Boolean, msg : AnyRef) : Unit = macro condEnsureValueImpl
+  def condEnsureValue(param : Any, value : Any, cond : Boolean) : Unit = macro condEnsureValueImpl2
 
   def updateValueImpl(c : blackbox.Context)(param : c.Expr[Any], value : c.Expr[Any]) : c.Expr[Unit] = {
     import c.universe._
