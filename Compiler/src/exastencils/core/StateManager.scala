@@ -386,30 +386,13 @@ object StateManager {
 
     def set[T](o : AnyRef, method : java.lang.reflect.Method, value : AnyRef) : Boolean = {
       Logger.info(s"Statemananger::set: $o, " + method.getName() + s" to $value")
-      if (!method.getName.endsWith(setterSuffix)) {
-        set(o, method.getName, value)
-      } else {
-        if (!method.getParameterTypes()(0).isAssignableFrom(value.getClass)) {
-          val from = method.getParameterTypes()(0)
-          val to = value.getClass
-          throw new ValueSetException(s"""Invalid assignment: Cannot assign to $to from $from for "$o", method "${method.getName}"""")
-        }
-        method.invoke(o, value.asInstanceOf[AnyRef])
-        true
+      if (!method.getParameterTypes()(0).isAssignableFrom(value.getClass)) {
+        val from = method.getParameterTypes()(0)
+        val to = value.getClass
+        throw new ValueSetException(s"""Invalid assignment: Cannot assign to $to from $from for "$o", method "${method.getName}"""")
       }
-    }
-
-    def set[T](o : AnyRef, method : String, value : AnyRef) : Boolean = {
-      var methodname = method
-      if (!methodname.endsWith(setterSuffix)) {
-        methodname += setterSuffix
-      }
-      Logger.info(s"Setting $o :: $method to $value")
-      val m = o.getClass.getMethods.find(p => p.getName == methodname)
-      m match {
-        case Some(x) => set(o, x, value)
-        case None    => false
-      }
+      method.invoke(o, value.asInstanceOf[AnyRef])
+      true
     }
   }
 }
