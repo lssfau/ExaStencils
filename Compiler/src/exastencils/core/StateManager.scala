@@ -365,14 +365,13 @@ object StateManager {
 
     def apply[T](o : AnyRef) : Array[(java.lang.reflect.Method, java.lang.reflect.Method)] = {
       cache.getOrElseUpdate(o.getClass(), {
-
         val methods = o.getClass.getMethods
         val vars : Array[(java.lang.reflect.Method, java.lang.reflect.Method)] = for {
           g <- methods; if (g.getModifiers & java.lang.reflect.Modifier.PUBLIC) == java.lang.reflect.Modifier.PUBLIC &&
             g.getParameterTypes.size == 0 && !excludeList.contains(g.getName)
           s <- methods; if s.getName.startsWith(g.getName) &&
             (s.getModifiers & java.lang.reflect.Modifier.PUBLIC) == java.lang.reflect.Modifier.PUBLIC &&
-            s.getParameterTypes.size == 1 && s.getParameterTypes()(0) == g.getReturnType && s.getName == g.getName + setterSuffix
+            s.getParameterTypes.size == 1 && classOf[Node].getClass().isAssignableFrom(s.getParameterTypes()(0).getClass()) && s.getParameterTypes()(0) == g.getReturnType && s.getName == g.getName + setterSuffix
         } yield (g, s)
 
         Logger.info(s"""StateManager::Vars: Caching ${vars.length} members of class "${o.getClass.getName()}"""")
