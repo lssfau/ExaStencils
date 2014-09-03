@@ -75,7 +75,6 @@ object Main {
 
     ResolveLoopOverPoints.apply()
     ResolveIntergridIndices.apply()
-    ResolveContractingLoop.apply()
 
     var numConvFound = 1
     while (numConvFound > 0) {
@@ -86,6 +85,8 @@ object Main {
       else
         ExpandStrategy.doUntilDone()
     }
+
+    ResolveContractingLoop.apply()
 
     MapStencilAssignments.apply()
     if (Knowledge.useFasterExpand)
