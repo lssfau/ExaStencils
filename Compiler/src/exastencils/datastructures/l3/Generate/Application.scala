@@ -81,6 +81,18 @@ object Application {
 
     printer.println("\tInitRHS ( )")
     printer.println("\tInitSolution ( )")
+
+    // FIXME: quick hack to fix problems with non-trivial bc's and temporal blocking
+    if (Knowledge.l3tmp_genTemporalBlocking && "Jac" == Knowledge.l3tmp_smoother) {
+      if (Knowledge.l3tmp_useSlotsForJac) {
+        Communication.exch(printer, s"Solution[0]@finest")
+        Communication.exch(printer, s"Solution[1]@finest")
+      } else {
+        Communication.exch(printer, s"Solution@finest")
+        Communication.exch(printer, s"Solution2@finest")
+      }
+    }
+
     printer.println("\tSolve ( )")
 
     if (Knowledge.l3tmp_kelvin) {
