@@ -106,7 +106,9 @@ object StateManager {
     case _            => Logger.error(o)
   }
 
-  def doRecursiveMatch(thisnode : Any, node : Node, field : java.lang.reflect.Method, transformation : Transformation) = {
+  def doRecursiveMatch(thisnode : Any, node : Node, pair : (java.lang.reflect.Method, java.lang.reflect.Method), transformation : Transformation) = {
+    val getter = pair._1
+    val setter = pair._2
     var subnode = thisnode
     var nodeIsOption = false
     if (subnode.isInstanceOf[Some[_]]) {
@@ -119,12 +121,12 @@ object StateManager {
       def processResult[O <: Output[_]](o : O) = o.inner match {
         case n : Node => {
           if (nodeIsOption) { // node is an Option[T] => set with Some() wrapped
-            if (!Vars.set(node, field, Some(n))) {
-              Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
+            if (!Vars.set(node, setter, Some(n))) {
+              Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
             }
           } else { // node is not an Option[T] => set directly
-            if (!Vars.set(node, field, n)) {
-              Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
+            if (!Vars.set(node, setter, n)) {
+              Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
             }
           }
           if (transformation.recursive) replace(n, transformation)
@@ -142,18 +144,20 @@ object StateManager {
   protected def replace(node : Node, transformation : Transformation) : Unit = {
     Collectors.notifyEnter(node)
 
-    Vars(node).foreach(field => {
-      val currentSubnode = Vars.get(node, field)
+    Vars(node).foreach(pair => {
+      val getter = pair._1
+      val setter = pair._2
+      val currentSubnode = Vars.get(node, getter)
       val previousMatches = progresses_(transformation).getMatches
-      Logger.info(s"""Statemanager::replace: node = "$node", field = "$field", currentSubnode = "$currentSubnode"""")
+      Logger.info(s"""Statemanager::replace: node = "$node", field = "$getter", currentSubnode = "$currentSubnode"""")
 
       currentSubnode match {
         case thisnode : Node => {
-          doRecursiveMatch(thisnode, node, field, transformation)
+          doRecursiveMatch(thisnode, node, pair, transformation)
         }
         case Some(thisnode) => {
           if (thisnode.isInstanceOf[Node]) {
-            doRecursiveMatch(Some(thisnode.asInstanceOf[Node]), node, field, transformation) // FIXME not very elegant
+            doRecursiveMatch(Some(thisnode.asInstanceOf[Node]), node, pair, transformation) // FIXME not very elegant
           }
         }
         case set : scala.collection.mutable.Set[_] => {
@@ -168,8 +172,8 @@ object StateManager {
 
             import scala.language.existentials
             var newSet = set.asInstanceOf[scala.collection.mutable.Set[Node]].map({ case item => processOutput(applyAtNode(item, transformation)) })
-            if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newSet)) {
-              Logger.error(s"Could not set $field in transformation ${transformation.name}")
+            if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, setter, newSet)) {
+              Logger.error(s"Could not set $getter in transformation ${transformation.name}")
             }
             if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) newSet.foreach(f => replace(f, transformation))
           }
@@ -186,8 +190,8 @@ object StateManager {
 
             import scala.language.existentials
             var newSet = set.asInstanceOf[scala.collection.immutable.Set[Node]].map({ case item => processOutput(applyAtNode(item, transformation)) })
-            if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newSet)) {
-              Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
+            if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, setter, newSet)) {
+              Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
             }
             if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) newSet.foreach(f => replace(f, transformation))
           }
@@ -196,8 +200,8 @@ object StateManager {
           val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
           if (invalids.size <= 0) {
             var newList = list.asInstanceOf[Seq[Node]].flatMap(listitem => processOutput(applyAtNode(listitem, transformation)))
-            if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newList)) {
-              Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
+            if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, setter, newList)) {
+              Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
             }
             if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) newList.foreach(f => replace(f, transformation))
           }
@@ -215,8 +219,8 @@ object StateManager {
 
             import scala.language.existentials
             var newMap = map.asInstanceOf[scala.collection.mutable.Map[_, Node]].map({ case (k, listitem) => (k, processOutput(applyAtNode(listitem, transformation))) })
-            if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newMap)) {
-              Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
+            if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, setter, newMap)) {
+              Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
             }
             if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) newMap.values.foreach(f => replace(f, transformation))
           }
@@ -234,8 +238,8 @@ object StateManager {
 
             import scala.language.existentials
             var newMap = map.asInstanceOf[scala.collection.immutable.Map[_, Node]].map({ case (k, listitem) => (k, processOutput(applyAtNode(listitem, transformation))) })
-            if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newMap)) {
-              Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
+            if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, setter, newMap)) {
+              Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
             }
             if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) newMap.values.foreach(f => replace(f, transformation))
           }
@@ -249,8 +253,8 @@ object StateManager {
             if (changed.size > 0) {
               var newArray = java.lang.reflect.Array.newInstance(arrayType, tmpArray.length)
               System.arraycopy(tmpArray, 0, newArray, 0, tmpArray.length)
-              if (!Vars.set(node, field, newArray)) {
-                Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
+              if (!Vars.set(node, setter, newArray)) {
+                Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
               }
             }
             if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) tmpArray.asInstanceOf[Array[Node]].foreach(f => replace(f, transformation))
@@ -355,20 +359,25 @@ object StateManager {
   }
 
   protected object Vars {
-    val setterSuffix = "_$eq"
-    val excludeList = List()
+    protected var cache = new HashMap[Class[_ <: AnyRef], Array[(java.lang.reflect.Method, java.lang.reflect.Method)]]
+    protected val setterSuffix = "_$eq"
+    protected val excludeList = List()
 
-    def apply[T](o : AnyRef) : Array[java.lang.reflect.Method] = {
-      val methods = o.getClass.getMethods
-      val getters : Array[java.lang.reflect.Method] = for {
-        g <- methods; if (g.getModifiers & java.lang.reflect.Modifier.PUBLIC) == java.lang.reflect.Modifier.PUBLIC &&
-          g.getParameterTypes.size == 0 && !excludeList.contains(g.getName)
-        s <- methods; if s.getName.startsWith(g.getName) &&
-          (s.getModifiers & java.lang.reflect.Modifier.PUBLIC) == java.lang.reflect.Modifier.PUBLIC &&
-          s.getParameterTypes.size == 1 && s.getParameterTypes()(0) == g.getReturnType && s.getName == g.getName + setterSuffix
-      } yield g
+    def apply[T](o : AnyRef) : Array[(java.lang.reflect.Method, java.lang.reflect.Method)] = {
+      cache.getOrElseUpdate(o.getClass(), {
 
-      getters
+        val methods = o.getClass.getMethods
+        val vars : Array[(java.lang.reflect.Method, java.lang.reflect.Method)] = for {
+          g <- methods; if (g.getModifiers & java.lang.reflect.Modifier.PUBLIC) == java.lang.reflect.Modifier.PUBLIC &&
+            g.getParameterTypes.size == 0 && !excludeList.contains(g.getName)
+          s <- methods; if s.getName.startsWith(g.getName) &&
+            (s.getModifiers & java.lang.reflect.Modifier.PUBLIC) == java.lang.reflect.Modifier.PUBLIC &&
+            s.getParameterTypes.size == 1 && s.getParameterTypes()(0) == g.getReturnType && s.getName == g.getName + setterSuffix
+        } yield (g, s)
+
+        Logger.info(s"""StateManager::Vars: Caching ${vars.length} members of class "${o.getClass.getName()}"""")
+        vars
+      })
     }
 
     def get[T](o : AnyRef, method : java.lang.reflect.Method) : AnyRef = {

@@ -33,3 +33,6 @@ opt_vectorize				= true
 opt_unroll					= 4
 opt_unroll_interleave		= true
 data_addPrePadding			= false // not needed currently
+
+smoother = "Jac"
+testTempBlocking = true

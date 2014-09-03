@@ -65,32 +65,78 @@ object MainStefan {
 
     SimplifyStrategy.doUntilDone() // removes (conditional) calls to communication functions that are not possible
 
-    SetupDataStructures.apply() // Stefan: This adds the setupBuffer func which will be exapanded using the field info in the next expand step 
+    SetupDataStructures.apply()
     SetupCommunication.apply()
+
+    ResolveSpecialFunctions.apply()
 
     ResolveLoopOverPoints.apply()
     ResolveIntergridIndices.apply()
+    ResolveContractingLoop.apply()
 
     var numConvFound = 1
     while (numConvFound > 0) {
       FindStencilConvolutions.apply()
       numConvFound = FindStencilConvolutions.results.last._2.matches
-      ExpandStrategy.doUntilDone()
+      if (Knowledge.useFasterExpand)
+        ExpandOnePassStrategy.apply()
+      else
+        ExpandStrategy.doUntilDone()
     }
 
-    ResolveSpecialFunctions.apply()
     MapStencilAssignments.apply()
+    if (Knowledge.useFasterExpand)
+      ExpandOnePassStrategy.apply()
+    else
+      ExpandStrategy.doUntilDone()
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //    var doMagic = false
+    //    var cp : exastencils.datastructures.ir.LoopOverDimensions = null
+    //    val DebugColl = new exastencils.core.collectors.Collector {
+    //      def enter(node : exastencils.datastructures.Node) : Unit =
+    //        node match {
+    //          case f : exastencils.datastructures.ir.FunctionStatement =>
+    //            doMagic = f.name == exastencils.datastructures.ir.StringConstant("Smoother_8")
+    //          case _ =>
+    //        }
+    //      def leave(node : exastencils.datastructures.Node) : Unit =
+    //        node match {
+    //          case f : exastencils.datastructures.ir.FunctionStatement =>
+    //            doMagic = false
+    //          case _ =>
+    //        }
+    //      def reset() : Unit = doMagic = false
+    //    }
+    //    val DebugStrat = new exastencils.datastructures.DefaultStrategy("debug")
+    //    DebugStrat += new exastencils.datastructures.Transformation("blub!", {
+    //      case l : exastencils.datastructures.ir.LoopOverDimensions if (doMagic) =>
+    //        if (cp == null) {
+    //          cp = exastencils.core.Duplicate(l)
+    //          l
+    //        } else
+    //          scala.collection.mutable.ListBuffer(cp, l)
+    //    })
+    //    StateManager.register(DebugColl)
+    //    DebugStrat.apply()
+    //    StateManager.unregister(DebugColl)
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    MergeConditions.apply()
 
     if (Knowledge.poly_usePolyOpt)
       PolyOpt.apply()
 
     ResolveLoopOverDimensions.apply()
+    ResolveSlotOperationsStrategy.apply()
 
     ResolveIndexOffsets.apply()
-
     LinearizeFieldAccesses.apply()
 
-    ExpandStrategy.doUntilDone()
+    if (Knowledge.useFasterExpand)
+      ExpandOnePassStrategy.apply()
+    else
+      ExpandStrategy.doUntilDone()
 
     if (!Knowledge.useMPI)
       RemoveMPIReferences.apply()
@@ -119,7 +165,10 @@ object MainStefan {
       AddOMPPragmas.apply()
 
     // one last time
-    ExpandStrategy.doUntilDone()
+    if (Knowledge.useFasterExpand)
+      ExpandOnePassStrategy.apply()
+    else
+      ExpandStrategy.doUntilDone()
     SimplifyStrategy.doUntilDone()
 
     PrintStrategy.apply()
