@@ -20,7 +20,7 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
 
 private final case class UnrollException(msg : String) extends Exception(msg)
 
-private final object UnrollInnermost extends PartialFunction[Node, Transformation.Output[_]] {
+private final object UnrollInnermost extends PartialFunction[Node, Transformation.OutputType] {
 
   private final val DEBUG : Boolean = false
 
@@ -35,7 +35,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     }
   }
 
-  def apply(node : Node) : Transformation.Output[_] = {
+  def apply(node : Node) : Transformation.OutputType = {
 
     val loop = node.asInstanceOf[ForLoopStatement with OptimizationHint]
     val annot : Option[Annotation] = node.removeAnnotation(Unrolling.NO_REM_ANNOT)

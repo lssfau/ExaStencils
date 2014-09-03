@@ -15,7 +15,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
 
   def setupDirichlet : ListBuffer[Statement] = {
     var statements : ListBuffer[Statement] = ListBuffer()
-    if (StateManager.findFirst[Any]((node : Any) => node match {
+    if (StateManager.findFirst[AnyRef]((node : Any) => node match {
       case StringConstant(sc) if "xPos" == sc || "yPos" == sc || "zPos" == sc => true
       case VariableAccess(sc, _) if "xPos" == sc || "yPos" == sc || "zPos" == sc => true
       case _ => false

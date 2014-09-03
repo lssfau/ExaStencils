@@ -6,10 +6,10 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Stack
 import scala.language.existentials
 import scala.reflect.ClassTag
-
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
+import java.lang.reflect.Method
 
 object StateManager {
   def root = root_ // FIXME remove this
@@ -85,7 +85,7 @@ object StateManager {
   }
   protected val progresses_ = new HashMap[Transformation, TransformationProgress]
 
-  protected def applyAtNode(node : Node, transformation : Transformation) : Transformation.Output[_] = {
+  protected def applyAtNode(node : Node, transformation : Transformation) : Transformation.OutputType = {
     if (transformation.function.isDefinedAt(node)) {
       progresses_(transformation).didMatch
       return transformation.function(node)
@@ -100,13 +100,13 @@ object StateManager {
     case _                           => false
   }
 
-  protected def processOutput[O <: Output[_]](o : O) : GenTraversableOnce[Node] = o.inner match {
+  protected def processOutput[O <: OutputType](o : O) : GenTraversableOnce[Node] = o.inner match {
     case n : Node     => List(n)
     case l : NodeList => l.nodes.toList // FIXME
     case _            => Logger.error(o)
   }
 
-  def doRecursiveMatch(thisnode : Any, node : Node, pair : (java.lang.reflect.Method, java.lang.reflect.Method), transformation : Transformation) = {
+  def doRecursiveMatch(thisnode : Any, node : Node, pair : (Method, Method), transformation : Transformation) = {
     val getter = pair._1
     val setter = pair._2
     var subnode = thisnode
@@ -118,7 +118,7 @@ object StateManager {
     }
 
     if (subnode.isInstanceOf[Node]) {
-      def processResult[O <: Output[_]](o : O) = o.inner match {
+      def processResult[O <: OutputType](o : O) = o.inner match {
         case n : Node => {
           if (nodeIsOption) { // node is an Option[T] => set with Some() wrapped
             if (!Vars.set(node, setter, Some(n))) {
@@ -338,13 +338,13 @@ object StateManager {
     }
   }
 
-  def findFirst[T : ClassTag]() : Option[T] = findFirst(root)
+  def findFirst[T <: AnyRef : ClassTag]() : Option[T] = findFirst(root)
 
-  def findFirst[T : ClassTag](node : Node) : Option[T] = {
+  def findFirst[T <: AnyRef : ClassTag](node : Node) : Option[T] = {
     findFirst[T]({ x : Any => x match { case _ : T => true; case _ => false } }, node)
   }
 
-  def findFirst[T : ClassTag](check : T => Boolean, node : Node = root) : Option[T] = {
+  def findFirst[T <: AnyRef : ClassTag](check : T => Boolean, node : Node = root) : Option[T] = {
     var retVal : Option[T] = None
     var t = new Transformation("StatemanagerInternalFindFirst", {
       case hit : T if check(hit) =>
@@ -386,11 +386,11 @@ object StateManager {
 
     def set[T](o : AnyRef, method : java.lang.reflect.Method, value : AnyRef) : Boolean = {
       Logger.info(s"Statemananger::set: $o, " + method.getName() + s" to $value")
-      if (!method.getParameterTypes()(0).isAssignableFrom(value.getClass)) {
-        val from = method.getParameterTypes()(0)
-        val to = value.getClass
-        throw new ValueSetException(s"""Invalid assignment: Cannot assign to $to from $from for "$o", method "${method.getName}"""")
-      }
+//      if (!method.getParameterTypes()(0).isAssignableFrom(value.getClass)) {
+//        val from = method.getParameterTypes()(0)
+//        val to = value.getClass
+//        throw new ValueSetException(s"""Invalid assignment: Cannot assign to $to from $from for "$o", method "${method.getName}"""")
+//      }
       method.invoke(o, value.asInstanceOf[AnyRef])
       true
     }

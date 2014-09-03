@@ -164,14 +164,14 @@ private final class AnnotateLoopsAndAccesses extends Collector {
   }
 }
 
-private final object IntegrateAnnotations extends PartialFunction[Node, Transformation.Output[_]] {
+private final object IntegrateAnnotations extends PartialFunction[Node, Transformation.OutputType] {
   import AddressPrecalculation._
 
   def isDefinedAt(node : Node) : Boolean = {
     return node.hasAnnotation(DECLS_ANNOT) || node.hasAnnotation(REPL_ANNOT)
   }
 
-  def apply(node : Node) : Transformation.Output[_] = {
+  def apply(node : Node) : Transformation.OutputType = {
 
     val annot = node.removeAnnotation(REPL_ANNOT)
     if (annot.isDefined)

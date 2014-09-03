@@ -151,14 +151,14 @@ private final class AnnotateStringConstants extends Collector {
   }
 }
 
-private final object CreateVariableAccesses extends PartialFunction[Node, Transformation.Output[_]] {
+private final object CreateVariableAccesses extends PartialFunction[Node, Transformation.OutputType] {
   import TypeInference._
 
   def isDefinedAt(node : Node) : Boolean = {
     return (node.isInstanceOf[StringConstant] || node.isInstanceOf[VariableAccess]) && node.hasAnnotation(TYPE_ANNOT)
   }
 
-  def apply(node : Node) : Transformation.Output[_] = {
+  def apply(node : Node) : Transformation.OutputType = {
 
     val typee : Datatype = node.removeAnnotation(TYPE_ANNOT).get.value.asInstanceOf[Datatype]
     val varr : String =
