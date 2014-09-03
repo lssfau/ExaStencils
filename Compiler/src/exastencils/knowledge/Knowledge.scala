@@ -30,9 +30,9 @@ object Knowledge {
   var domain_canHaveRemoteNeighs : Boolean = true // specifies if fragments can have remote (i.e.\ different mpi rank) neighbors, i.e.\ if mpi comm is required
 
   // number of blocks per dimension - one block will usually be mapped to one MPI thread
-  var domain_numBlocks_x : Int = 3 // 0-inf
-  var domain_numBlocks_y : Int = 3 // 0-inf
-  var domain_numBlocks_z : Int = 3 // 0-inf
+  var domain_numBlocks_x : Int = 3 // [0-inf]
+  var domain_numBlocks_y : Int = 3 // [0-inf]
+  var domain_numBlocks_z : Int = 3 // [0-inf]
   def domain_numBlocks : Int = {
     domain_numBlocks_x *
       (if (dimensionality > 1) domain_numBlocks_y else 1) *
@@ -40,9 +40,9 @@ object Knowledge {
   }
 
   // number of fragments in each block per dimension - this will usually be one or represent the number of OMP threads per dimension
-  var domain_numFragsPerBlock_x : Int = 3 // 0-inf
-  var domain_numFragsPerBlock_y : Int = 3 // 0-inf
-  var domain_numFragsPerBlock_z : Int = 3 // 0-inf
+  var domain_numFragsPerBlock_x : Int = 3 // [0-inf]
+  var domain_numFragsPerBlock_y : Int = 3 // [0-inf]
+  var domain_numFragsPerBlock_z : Int = 3 // [0-inf]
   def domain_numFragsPerBlock : Int = {
     domain_numFragsPerBlock_x *
       (if (dimensionality > 1) domain_numFragsPerBlock_y else 1) *
@@ -75,13 +75,13 @@ object Knowledge {
     Array(domain_fragLength_x, domain_fragLength_y, domain_fragLength_z)(index)
   }
 
-  // === Level 2 ===
+  // === Layer 2 ===
 
-  // === Level 3 ===
+  // === Layer 3 ===
 
-  // === Level 4 ===
+  // === Layer 4 ===
 
-  // === Post Level 4 ===
+  // === Post Layer 4 ===
 
   // --- Compiler Capabilities ---
   var supports_initializerList = false // indicates if the compiler supports initializer lists (e.g. for std::min)
@@ -171,7 +171,7 @@ object Knowledge {
   var l3tmp_initSolWithRand : Boolean = true // initializes the solution on the finest level with random values
 
   /// Student project - Kelvin
-  var l3tmp_kelvin : Boolean = false // NOTE: currently only works for 2D
+  var l3tmp_kelvin : Boolean = false // currently only works for 2D
   var l3tmp_kelvin_numSamples : Int = 10 // only required for l3tmp_kelvin; number of samples to be evaluated
   var l3tmp_kelvin_numHaloFrags : Int = 2 // only required for l3tmp_kelvin; number of halo fragments used to implement the open boundary approximation  
 
@@ -243,6 +243,7 @@ object Knowledge {
 
     if ("Jac" == l3tmp_smoother) Constraints.updateValue(l3tmp_omega, 0.8) else Constraints.updateValue(l3tmp_omega, 1.0)
 
+    Constraints.condEnsureValue(dimensionality, 2, l3tmp_kelvin, "only 2D is supported for l3tmp_kelvin")
     Constraints.condEnsureValue(l3tmp_genStencilStencilConv, true, l3tmp_kelvin, "required by l3tmp_kelvin")
     Constraints.condEnsureValue(l3tmp_genStencilFields, true, l3tmp_kelvin, "required by l3tmp_kelvin")
     Constraints.condEnsureValue(l3tmp_printFieldAtEnd, true, l3tmp_kelvin, "required by l3tmp_kelvin")
