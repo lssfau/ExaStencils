@@ -15,6 +15,7 @@ import exastencils.omp._
 import exastencils.optimization._
 import exastencils.polyhedron._
 import exastencils.strategies._
+import exastencils.util.SimplifyExpression
 
 case class ContractingLoop(var number : Int, var iterator : Option[Expression], var statements : ListBuffer[Statement]) extends Statement {
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = ContractingLoop\n"
@@ -23,6 +24,23 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
     for (dim <- 0 until Knowledge.dimensionality) {
       start(dim) -= IntegerConstant(extent) * (1 - ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
       end(dim) += IntegerConstant(extent) * (1 + ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim))
+    }
+  }
+
+  // IMPORTANT: must match and extend all possible bounds for LoopOverDimensions inside a ContractingLoop
+  private def extendBounds(expr : Expression, extent : Int) : Expression = {
+    expr match {
+      case oInd @ OffsetIndex(0, 1, _, ArrayAccess(_ : iv.IterationOffsetBegin, _)) =>
+        oInd.maxOffset += extent
+        oInd.index = SimplifyExpression.simplifyIntegralExpr(oInd.index - extent)
+        oInd.offset = SimplifyExpression.simplifyIntegralExpr(oInd.offset * (extent + 1))
+        oInd
+
+      case oInd @ OffsetIndex(-1, 0, _, ArrayAccess(_ : iv.IterationOffsetEnd, _)) =>
+        oInd.minOffset -= extent
+        oInd.index = SimplifyExpression.simplifyIntegralExpr(oInd.index + extent)
+        oInd.offset = SimplifyExpression.simplifyIntegralExpr(oInd.offset * (extent + 1))
+        oInd
     }
   }
 
@@ -45,10 +63,21 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
     Logger.setLevel(oldLvl)
   }
 
+  private def processLoopOverDimensions(l : LoopOverDimensions, extent : Int, fieldOffset : HashMap[FieldKey, Int]) : LoopOverDimensions = {
+    val nju : LoopOverDimensions = Duplicate(l)
+    for (dim <- 0 until Knowledge.dimensionality) {
+      nju.indices.begin(dim) = extendBounds(nju.indices.begin(dim), extent)
+      nju.indices.end(dim) = extendBounds(nju.indices.end(dim), extent)
+    }
+    updateSlots(nju.body, fieldOffset)
+    return nju
+  }
+
   def expandSpecial : Output[NodeList] = {
     val res = new ListBuffer[Statement]()
     val fieldOffset = new HashMap[FieldKey, Int]()
     val fields = new HashMap[FieldKey, Field]()
+    var condStmt : ConditionStatement = null
     for (i <- 1 to number)
       for (stmt <- statements)
         stmt match {
@@ -57,11 +86,17 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
             fieldOffset(fKey) = fieldOffset.getOrElse(fKey, 0) + 1
             fields(fKey) = field
 
-          case loop : LoopOverPoints =>
-            val nju = Duplicate(loop)
-            extendBounds(nju.startOffset, nju.endOffset, (number - i) * 1, loop.field) // TODO: currently independent from used stencils
-            updateSlots(nju.body, fieldOffset)
-            res += nju
+          case cStmt @ ConditionStatement(cond, ListBuffer(l : LoopOverDimensions), ListBuffer()) =>
+            val nju = processLoopOverDimensions(l, (number - i) * 1, fieldOffset) // TODO: currently independent from used stencils (const factor 1)
+            if (condStmt == null || cond != condStmt.condition) {
+              condStmt = Duplicate(cStmt)
+              condStmt.trueBody.clear()
+              res += condStmt
+            }
+            condStmt.trueBody += nju
+
+          case l : LoopOverDimensions =>
+            res += processLoopOverDimensions(l, (number - i) * 1, fieldOffset) // TODO: currently independent from used stencils (const factor 1)
 
           case loop : LoopOverPointsInOneFragment =>
             val nju = Duplicate(loop)
@@ -71,8 +106,8 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
         }
 
     for ((fKey, offset) <- fieldOffset) {
-      val slot = new iv.CurrentSlot(fields(fKey))
-      res += AssignmentStatement(slot, (slot + offset) Mod slot.field.numSlots)
+      val field = fields(fKey)
+      res += AssignmentStatement(iv.CurrentSlot(field), (iv.CurrentSlot(field) + offset) Mod field.numSlots)
     }
 
     return res

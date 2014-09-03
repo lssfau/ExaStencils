@@ -1,14 +1,12 @@
 package exastencils.polyhedron
 
-import scala.collection.mutable.ArrayStack
+import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.TreeSet
 
 import exastencils.core.Logger
 import exastencils.core.StateManager
-import exastencils.datastructures.CustomStrategy
-import exastencils.datastructures.Node
-import exastencils.datastructures.Transformation
+import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.knowledge.Knowledge
@@ -35,7 +33,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     this.transaction()
     Logger.info("Applying strategy " + name)
 
-    val scops : ArrayStack[Scop] = extractPolyModel()
+    val scops : Seq[Scop] = extractPolyModel()
     for (scop <- scops if (!scop.remove)) {
       mergeScops(scop)
       simplifyModel(scop)
@@ -75,14 +73,14 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       scop.deps.output = Isl.simplify(scop.deps.output)
   }
 
-  private def extractPolyModel() : ArrayStack[Scop] = {
+  private def extractPolyModel() : Seq[Scop] = {
 
     val extr = new Extractor()
     StateManager.register(extr)
     this.execute(new Transformation("extract model", PartialFunction.empty))
     StateManager.unregister(extr)
 
-    val scops : ArrayStack[Scop] = extr.scops
+    val scops : Seq[Scop] = extr.scops
 
     Logger.debug("    valid SCoPs: " + scops.size)
     Logger.debug("    rejected:    " + extr.trash.size)

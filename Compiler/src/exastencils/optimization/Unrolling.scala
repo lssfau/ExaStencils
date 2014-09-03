@@ -3,14 +3,9 @@ package exastencils.optimization
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.ListBuffer
 
-import exastencils.core.Duplicate
-import exastencils.core.Logger
-import exastencils.core.StateManager
+import exastencils.core._
 import exastencils.core.collectors.Collector
-import exastencils.datastructures.DefaultStrategy
-import exastencils.datastructures.Node
-import exastencils.datastructures.Transformation
-import exastencils.datastructures.Transformation._
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge.Knowledge
 import exastencils.omp.OMP_PotentiallyParallel
@@ -42,8 +37,8 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
 
   def apply(node : Node) : Transformation.Output[_] = {
 
-    val loop : ForLoopStatement = node.asInstanceOf[ForLoopStatement]
-    val annot = node.removeAnnotation(Unrolling.NO_REM_ANNOT)
+    val loop = node.asInstanceOf[ForLoopStatement with OptimizationHint]
+    val annot : Option[Annotation] = node.removeAnnotation(Unrolling.NO_REM_ANNOT)
     val oldOffset : Int = if (annot.isDefined) annot.get.value.asInstanceOf[Int] else 0
 
     var njuBegin : VariableDeclarationStatement = null
@@ -83,7 +78,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
         Duplicate(loop.inc), Duplicate(loop.body), Duplicate(loop.reduction))
     loop.end = njuEnd
     loop.inc = njuIncr
-    loop.body = duplicateStmts(loop.body, itVar, oldInc)
+    loop.body = duplicateStmts(loop.body, itVar, oldInc, loop.isParallel)
 
     if (loop.hasAnnotation(InScope.ANNOT))
       return res
@@ -155,7 +150,8 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     }
   }
 
-  private def duplicateStmts(body : ListBuffer[Statement], itVar : String, oldInc : Long) : ListBuffer[Statement] = {
+  private def duplicateStmts(body : ListBuffer[Statement], itVar : String, oldInc : Long,
+    isParallel : Boolean) : ListBuffer[Statement] = {
 
     var njuBody : ListBuffer[Statement] = null
     val replaceStrat = new UpdateLoopVarAndNames(itVar)
@@ -168,7 +164,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
       dups += dup.iterator.filterNot(s => s.isInstanceOf[CommentStatement])
     }
 
-    if (Knowledge.opt_unroll_interleave) {
+    if (Knowledge.opt_unroll_interleave && isParallel) {
       njuBody = new ListBuffer[Statement]()
       for (stmt <- body) {
         njuBody += stmt // reuse original statement

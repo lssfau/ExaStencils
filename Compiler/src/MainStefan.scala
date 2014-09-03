@@ -72,7 +72,6 @@ object MainStefan {
 
     ResolveLoopOverPoints.apply()
     ResolveIntergridIndices.apply()
-    ResolveContractingLoop.apply()
 
     var numConvFound = 1
     while (numConvFound > 0) {
@@ -83,6 +82,8 @@ object MainStefan {
       else
         ExpandStrategy.doUntilDone()
     }
+
+    ResolveContractingLoop.apply()
 
     MapStencilAssignments.apply()
     if (Knowledge.useFasterExpand)
@@ -177,5 +178,6 @@ object MainStefan {
     println("Done!")
 
     println("Runtime: " + ((System.nanoTime() - start) / 1e9))
+    (new CountingStrategy("number of printed nodes")).apply()
   }
 }
