@@ -174,15 +174,9 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
           parallelize_omp |= parOMP // restore overall parallelization level
           val loop : ForLoopStatement with OptimizationHint =
             if (parOMP)
-              body match {
-                case Scope(raw) => new ForLoopStatement(init, cond, incr, raw, reduction) with OptimizationHint with OMP_PotentiallyParallel
-                case _          => new ForLoopStatement(init, cond, incr, body, reduction) with OptimizationHint with OMP_PotentiallyParallel
-              }
+              new ForLoopStatement(init, cond, incr, body, reduction) with OptimizationHint with OMP_PotentiallyParallel
             else
-              body match {
-                case Scope(raw) => new ForLoopStatement(init, cond, incr, raw, reduction) with OptimizationHint
-                case _          => new ForLoopStatement(init, cond, incr, body, reduction) with OptimizationHint
-              }
+              new ForLoopStatement(init, cond, incr, body, reduction) with OptimizationHint
           loop.isParallel = seqDims != null && !seqDims.contains(itStr)
           loopStmts.getOrElseUpdate(itStr, new ListBuffer()) += loop
           loop
@@ -200,10 +194,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
       case isl.AstNodeType.NodeBlock =>
         val stmts = new ListBuffer[Statement]
         node.blockGetChildren().foreach({ stmt : isl.AstNode => stmts += processIslNode(stmt); () })
-        if (stmts.length == 1)
-          stmts(0)
-        else
-          new Scope(stmts)
+        new Scope(stmts)
 
       case isl.AstNodeType.NodeUser =>
         val expr : isl.AstExpr = node.userGetExpr()

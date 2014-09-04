@@ -80,10 +80,6 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     loop.inc = njuIncr
     loop.body = duplicateStmts(loop.body, itVar, oldInc, loop.isParallel)
 
-    if (loop.hasAnnotation(InScope.ANNOT))
-      return res
-
-    loop.annotate(InScope.ANNOT)
     for (stmt <- res)
       stmt.annotate(SKIP_ANNOT)
     return new Scope(res)

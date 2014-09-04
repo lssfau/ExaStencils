@@ -56,8 +56,6 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         body, reduction) //
         if (itName == itName2) =>
 
-        val isInScope : Boolean = loop.hasAnnotation(InScope.ANNOT)
-
         val uBoundExcl : Expression =
           condition match {
 
@@ -76,16 +74,16 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
           case "+=" =>
             assignExpr match {
-              case IntegerConstant(1) => vectorizeLoop(loop, itName, lBound, uBoundExcl, body, reduction, isInScope)
+              case IntegerConstant(1) => vectorizeLoop(loop, itName, lBound, uBoundExcl, body, reduction)
               case _                  => throw new VectorizationException("loop increment 1 required for vectorization")
             }
 
           case "=" =>
             assignExpr match {
               case AdditionExpression(IntegerConstant(1), VariableAccess(v, Some(IntegerDatatype()))) if v == itName =>
-                vectorizeLoop(loop, itName, lBound, uBoundExcl, body, reduction, isInScope)
+                vectorizeLoop(loop, itName, lBound, uBoundExcl, body, reduction)
               case AdditionExpression(VariableAccess(v, Some(IntegerDatatype())), IntegerConstant(1)) if v == itName =>
-                vectorizeLoop(loop, itName, lBound, uBoundExcl, body, reduction, isInScope)
+                vectorizeLoop(loop, itName, lBound, uBoundExcl, body, reduction)
               case _ => throw new VectorizationException("loop increment 1 required for vectorization")
             }
 
@@ -146,7 +144,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
   }
 
   private def vectorizeLoop(oldLoop : ForLoopStatement, itName : String, begin : Expression, endExcl : Expression,
-    body : ListBuffer[Statement], reduction : Option[Reduction], isInScope : Boolean) : Transformation.OutputType = {
+    body : ListBuffer[Statement], reduction : Option[Reduction]) : Transformation.OutputType = {
 
     val ctx = new LoopCtx(itName)
     var postLoopStmt : Statement = null
@@ -169,9 +167,9 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
       postLoopStmt =
         operator match {
           case BinaryOperators.Addition | BinaryOperators.Subtraction =>
-            SIMD_HorizontalAddStatement(target, vecTmpAcc, "+=")
+            SIMD_HorizontalAddStatement(Duplicate(target), vecTmpAcc, "+=")
           case BinaryOperators.Multiplication =>
-            SIMD_HorizontalMulStatement(target, vecTmpAcc, "*=")
+            SIMD_HorizontalMulStatement(Duplicate(target), vecTmpAcc, "*=")
         }
     }
 
@@ -182,10 +180,14 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     val res = new ListBuffer[Statement]()
 
     res += new VariableDeclarationStatement(IntegerDatatype(), itName, Some(begin))
+    val upperAligned = BitwiseAndExpression(AdditionExpression(Duplicate(begin), IntegerConstant(Knowledge.simd_vectorSize - 1)),
+      UnaryExpression(UnaryOperators.BitwiseNegation, IntegerConstant(Knowledge.simd_vectorSize - 1))) // until aligned
+    val upperName = "_upper"
+    res += new VariableDeclarationStatement(IntegerDatatype(), upperName, Some(MinimumExpression(ListBuffer(upperAligned, Duplicate(endExcl)))))
+    def upper = VariableAccess(upperName, Some(IntegerDatatype()))
 
     res += new ForLoopStatement(NullStatement,
-      LowerExpression(itVar, BitwiseAndExpression(AdditionExpression(begin, IntegerConstant(Knowledge.simd_vectorSize - 1)),
-        UnaryExpression(UnaryOperators.BitwiseNegation, IntegerConstant(Knowledge.simd_vectorSize - 1)))),
+      LowerExpression(itVar, upper),
       AssignmentStatement(itVar, IntegerConstant(1), "+="),
       Duplicate(body))
 
@@ -193,29 +195,26 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
     // reuse oldLoop to preserve all traits
     // set first value (again) to allow omp parallelization
-    oldLoop.begin = AssignmentStatement(itVar, BitwiseAndExpression(AdditionExpression(begin, IntegerConstant(Knowledge.simd_vectorSize - 1)),
-      UnaryExpression(UnaryOperators.BitwiseNegation, IntegerConstant(Knowledge.simd_vectorSize - 1))))
-    oldLoop.end = LowerExpression(itVar, SubtractionExpression(endExcl, IntegerConstant(Knowledge.simd_vectorSize - 1)))
+    oldLoop.begin = AssignmentStatement(itVar, upperAligned)
+    res += AssignmentStatement(upper, SubtractionExpression(Duplicate(endExcl), IntegerConstant(Knowledge.simd_vectorSize - 1)), "=")
+    oldLoop.end = LowerExpression(itVar, upper)
     oldLoop.inc = AssignmentStatement(itVar, IntegerConstant(Knowledge.simd_vectorSize), "+=")
     oldLoop.body = ctx.vectStmts
     oldLoop.annotate(Unrolling.NO_REM_ANNOT, Knowledge.simd_vectorSize - 1)
-    oldLoop.annotate(InScope.ANNOT)
     if (oldLoop.isInstanceOf[OMP_PotentiallyParallel]) // allow omp parallelization
-      oldLoop.asInstanceOf[OMP_PotentiallyParallel].addOMPStatements += "lastprivate(" + itVar.name + ')'
+      oldLoop.asInstanceOf[OMP_PotentiallyParallel].addOMPStatements += "lastprivate(" + itName + ')'
     res += oldLoop
 
     if (postLoopStmt != null)
       res += postLoopStmt
 
+    res += AssignmentStatement(upper, endExcl, "=")
     res += new ForLoopStatement(NullStatement,
-      LowerExpression(itVar, endExcl),
+      LowerExpression(itVar, upper),
       AssignmentStatement(itVar, IntegerConstant(1), "+="),
       body) // old AST will be replaced completely, so we can reuse the body once here (we cloned above)
 
-    if (isInScope)
-      return res
-    else
-      return new Scope(res)
+    return new Scope(res)
   }
 
   private def vectorizeStmt(stmt : Statement, ctx : LoopCtx) : Unit = {
