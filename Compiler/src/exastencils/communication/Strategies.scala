@@ -30,37 +30,80 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
   }
 
   this += new Transformation("Adding and linking communication functions", {
-    case commStatement : CommunicateStatement => {
-      val functionName = (if (Knowledge.comm_useLevelIndependentFcts)
-        commStatement.op match {
-        case "begin"  => s"beginExch${commStatement.field.field.identifier}"
-        case "finish" => s"finishExch${commStatement.field.field.identifier}"
-        case "both"   => s"exch${commStatement.field.field.identifier}"
+    case communicateStatement : CommunicateStatement => {
+      var commDup = false;
+      var dupBegin = 0; var dupEnd = 0
+      var commGhost = false
+      var ghostBegin = 0; var ghostEnd = 0
+
+      if (communicateStatement.targets.exists(t => "all" == t.target)) {
+        val target = communicateStatement.targets.find(t => "all" == t.target).get
+        commDup = true; dupBegin = target.begin.getOrElse(-1); dupEnd = target.end.getOrElse(-1)
+        commGhost = true; ghostBegin = target.begin.getOrElse(-1); ghostEnd = target.end.getOrElse(-1)
       }
-      else commStatement.op match {
-        case "begin"  => s"beginExch${commStatement.field.codeName}"
-        case "finish" => s"finishExch${commStatement.field.codeName}"
-        case "both"   => s"exch${commStatement.field.codeName}"
-      })
+      if (communicateStatement.targets.exists(t => "dup" == t.target)) {
+        val target = communicateStatement.targets.find(t => "dup" == t.target).get
+        commDup = true; dupBegin = target.begin.getOrElse(-1); dupEnd = target.end.getOrElse(-1)
+      }
+      if (communicateStatement.targets.exists(t => "ghost" == t.target)) {
+        val target = communicateStatement.targets.find(t => "ghost" == t.target).get
+        commGhost = true; ghostBegin = target.begin.getOrElse(-1); ghostEnd = target.end.getOrElse(-1)
+      }
+
+      val functionName = (if (Knowledge.comm_useLevelIndependentFcts)
+        communicateStatement.op match {
+        case "begin"  => s"beginExch${communicateStatement.field.field.identifier}"
+        case "finish" => s"finishExch${communicateStatement.field.field.identifier}"
+        case "both"   => s"exch${communicateStatement.field.field.identifier}"
+      }
+      else communicateStatement.op match {
+        case "begin"  => s"beginExch${communicateStatement.field.codeName}"
+        case "finish" => s"finishExch${communicateStatement.field.codeName}"
+        case "both"   => s"exch${communicateStatement.field.codeName}"
+      }) +
+        communicateStatement.targets.map(t => t.target).mkString("_")
 
       if (!addedFunctions.contains(functionName)) {
         addedFunctions += functionName
-        var fieldSelection = Duplicate(commStatement.field)
+        var fieldSelection = Duplicate(communicateStatement.field)
         fieldSelection.slot = "slot"
-        commFunctions.functions += ExchangeDataFunction(fieldSelection, Fragment.neighbors,
-          "begin" == commStatement.op || "both" == commStatement.op,
-          "finish" == commStatement.op || "both" == commStatement.op)
+        commFunctions.functions += ExchangeDataFunction(functionName,
+          fieldSelection, Fragment.neighbors,
+          "begin" == communicateStatement.op || "both" == communicateStatement.op,
+          "finish" == communicateStatement.op || "both" == communicateStatement.op,
+          commDup, dupBegin, dupEnd,
+          commGhost, ghostBegin, ghostEnd)
       }
 
-      commStatement.field.slot match {
+      communicateStatement.field.slot match {
         case SlotAccess(slot, _) if StringConstant(LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
         case _ =>
       }
 
       if (Knowledge.comm_useLevelIndependentFcts)
-        (new FunctionCallExpression(functionName, ListBuffer[Expression](commStatement.field.slot, commStatement.field.level))) : Statement
+        (new FunctionCallExpression(functionName, ListBuffer[Expression](communicateStatement.field.slot, communicateStatement.field.level))) : Statement
       else
-        (new FunctionCallExpression(functionName, commStatement.field.slot)) : Statement
+        (new FunctionCallExpression(functionName, communicateStatement.field.slot)) : Statement
+    }
+    case applyBCsStatement : ApplyBCsStatement => {
+      val functionName = if (Knowledge.comm_useLevelIndependentFcts) s"applyBCs${applyBCsStatement.field.field.identifier}" else s"applyBCs${applyBCsStatement.field.codeName}"
+
+      if (!addedFunctions.contains(functionName)) {
+        addedFunctions += functionName
+        var fieldSelection = Duplicate(applyBCsStatement.field)
+        fieldSelection.slot = "slot"
+        commFunctions.functions += ApplyBCsFunction(functionName, fieldSelection, Fragment.neighbors)
+      }
+
+      applyBCsStatement.field.slot match {
+        case SlotAccess(slot, _) if StringConstant(LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
+        case _ =>
+      }
+
+      if (Knowledge.comm_useLevelIndependentFcts)
+        (new FunctionCallExpression(functionName, ListBuffer[Expression](applyBCsStatement.field.slot, applyBCsStatement.field.level))) : Statement
+      else
+        (new FunctionCallExpression(functionName, applyBCsStatement.field.slot)) : Statement
     }
   })
 }

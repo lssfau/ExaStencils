@@ -82,14 +82,18 @@ object Application {
     printer.println("\tInitRHS ( )")
     printer.println("\tInitSolution ( )")
 
-    // FIXME: quick hack to fix problems with non-trivial bc's and temporal blocking
-    if (Knowledge.l3tmp_genTemporalBlocking && "Jac" == Knowledge.l3tmp_smoother) {
-      if (Knowledge.l3tmp_useSlotsForJac) {
-        Communication.exch(printer, s"Solution[0]@finest")
-        Communication.exch(printer, s"Solution[1]@finest")
+    // TODO: add other fields here if bc handling is required
+    for (lvl <- 0 to Knowledge.maxLevel) {
+      if ("Jac" == Knowledge.l3tmp_smoother) {
+        if (Knowledge.l3tmp_useSlotsForJac) {
+          Communication.applyBCs(printer, s"Solution[0]@$lvl")
+          Communication.applyBCs(printer, s"Solution[1]@$lvl")
+        } else {
+          Communication.applyBCs(printer, s"Solution@$lvl")
+          Communication.applyBCs(printer, s"Solution2@$lvl")
+        }
       } else {
-        Communication.exch(printer, s"Solution@finest")
-        Communication.exch(printer, s"Solution2@finest")
+        Communication.applyBCs(printer, s"Solution@$lvl")
       }
     }
 

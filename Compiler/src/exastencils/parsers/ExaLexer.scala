@@ -79,8 +79,11 @@ class ExaLexer extends StdLexical {
   // layout and field keywords
   reserved += ("with", "communication", "None")
 
+  // boundary condition keywords
+  reserved += ("apply", "bc", "to")
+
   // communication keywords
-  reserved += ("begin", "finish", "communicate")
+  reserved += ("begin", "finish", "communicate", "communicating", "dup", "ghost")
 
   // math keywords
   reserved += ("diag")

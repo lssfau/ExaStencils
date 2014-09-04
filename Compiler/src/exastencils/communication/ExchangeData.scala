@@ -11,12 +11,11 @@ import exastencils.multiGrid._
 
 // FIXME: Think about moving all of this index information to some other source. Maybe some kind of ... DSL ... or even Layer4
 
-case class ExchangeDataFunction(var fieldSelection : FieldSelection,
-    var neighbors : ListBuffer[NeighborInfo],
-    var begin : Boolean,
-    var finish : Boolean) extends AbstractFunctionStatement with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = ExchangeDataFunction\n"
-  override def cpp_decl = cpp
+abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Expandable {
+  var fieldSelection : FieldSelection
+
+  def compileName : String
+  def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[Statement]
 
   def resolveIndex(indexId : String, dim : Int) : Expression = {
     if (Knowledge.comm_useLevelIndependentFcts)
@@ -25,22 +24,72 @@ case class ExchangeDataFunction(var fieldSelection : FieldSelection,
       fieldSelection.field.layout(dim).idxById(indexId)
   }
 
-  def genIndicesBoundaryHandling() : ListBuffer[(NeighborInfo, IndexRange)] = {
+  override def expand : Output[FunctionStatement] = {
+    var body = new ListBuffer[Statement]
+
+    val updatedFieldSelection = if (Knowledge.comm_useLevelIndependentFcts) {
+      val updatedFieldSelection = Duplicate(fieldSelection)
+      for (dim <- 0 until Knowledge.dimensionality)
+        updatedFieldSelection.field.layout(dim).total = ArrayAccess(iv.IndexFromField(fieldSelection.field.identifier, "level", "TOT"), dim)
+      updatedFieldSelection.level = "level"
+      updatedFieldSelection
+    } else {
+      fieldSelection
+    }
+
+    FunctionStatement(new UnitDatatype(), compileName,
+      if (Knowledge.comm_useLevelIndependentFcts)
+        ListBuffer(VariableAccess("slot", Some("unsigned int")), VariableAccess("level", Some("unsigned int")))
+      else
+        ListBuffer(VariableAccess("slot", Some("unsigned int"))),
+      compileBody(updatedFieldSelection))
+  }
+}
+
+case class ApplyBCsFunction(var name : String, var fieldSelection : FieldSelection, var neighbors : ListBuffer[NeighborInfo]) extends FieldBoundaryFunction {
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = ApplyBCsFunction\n"
+  override def cpp_decl = cpp
+
+  def genIndicesBoundaryHandling(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
     // FIXME: this works for now, but might be adapted later to incorporate different regions of boundary handling
-    neighbors.map(neigh => (neigh, new IndexRange(
+    curNeighbors.map(neigh => (neigh, new IndexRange(
       new MultiIndex(
         DimArray().map(i => i match {
-          case i if neigh.dir(i) == 0 => resolveIndex("DLB", i) //idxDupLeftBegin, idxGhostLeftBegin
-          case i if neigh.dir(i) < 0  => resolveIndex("DLB", i) //idxDupLeftBegin, idxGhostLeftBegin
+          case i if neigh.dir(i) == 0 => resolveIndex("GLB", i) // DLB, GLB
+          case i if neigh.dir(i) < 0  => resolveIndex("DLB", i) // DLB, GLB
           case i if neigh.dir(i) > 0  => resolveIndex("DRB", i)
         }) ++ Array(0 : Expression)),
       new MultiIndex(
         DimArray().map(i => i match {
-          case i if neigh.dir(i) == 0 => resolveIndex("DRE", i) //idxDupRightEnd, idxGhostRightEnd
+          case i if neigh.dir(i) == 0 => resolveIndex("GRE", i) // DRE, GRE
           case i if neigh.dir(i) < 0  => resolveIndex("DLE", i)
-          case i if neigh.dir(i) > 0  => resolveIndex("DRE", i) //idxDupRightEnd, idxGhostRightEnd
+          case i if neigh.dir(i) > 0  => resolveIndex("DRE", i) // DRE, GRE
         }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
   }
+
+  override def compileName : String = name
+  override def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[Statement] = {
+    var body = new ListBuffer[Statement]
+
+    val boundaryNeighs = neighbors.filter(neigh => 1 == {
+      var numNonZeros = 0
+      for (dim <- 0 until Knowledge.dimensionality)
+        if (0 != neigh.dir(dim))
+          numNonZeros += 1
+      numNonZeros
+    })
+    body += new HandleBoundaries(updatedFieldSelection, genIndicesBoundaryHandling(boundaryNeighs))
+
+    body
+  }
+}
+
+case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSelection, var neighbors : ListBuffer[NeighborInfo],
+    var begin : Boolean, var finish : Boolean,
+    var dupLayerExch : Boolean, var dupLayerBegin : Int, var dupLayerEnd : Int,
+    var ghostLayerExch : Boolean, var ghostLayerBegin : Int, var ghostLayerEnd : Int) extends FieldBoundaryFunction {
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = ExchangeDataFunction\n"
+  override def cpp_decl = cpp
 
   def genIndicesDuplicateRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
     Knowledge.comm_strategyFragment match {
@@ -282,25 +331,17 @@ case class ExchangeDataFunction(var fieldSelection : FieldSelection,
     }
   }
 
-  override def expand : Output[FunctionStatement] = {
+  override def compileName : String = name
+  override def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[Statement] = {
     var body = new ListBuffer[Statement]
-
-    val updatedFieldSelection = if (Knowledge.comm_useLevelIndependentFcts) {
-      val updatedFieldSelection = Duplicate(fieldSelection)
-      for (dim <- 0 until Knowledge.dimensionality)
-        updatedFieldSelection.field.layout(dim).total = ArrayAccess(iv.IndexFromField(fieldSelection.field.identifier, "level", "TOT"), dim)
-      updatedFieldSelection.level = "level"
-      updatedFieldSelection
-    } else {
-      fieldSelection
-    }
     val field = updatedFieldSelection.field
 
-    if (begin)
-      body += new HandleBoundaries(updatedFieldSelection, genIndicesBoundaryHandling)
+    // FIXME: adapt indices
+    // if (begin < 0) reset begin
+    // if (end < 0) reset end
 
     // sync duplicate values
-    if (field.communicatesDuplicated) {
+    if (dupLayerExch && field.communicatesDuplicated) {
       val concurrencyId = (if (begin && finish) 0 else 0)
       if (field.layout.foldLeft(0)((old : Int, l) => old max l.numDupLayersLeft max l.numDupLayersRight) > 0) {
         Knowledge.comm_strategyFragment match {
@@ -347,7 +388,7 @@ case class ExchangeDataFunction(var fieldSelection : FieldSelection,
     }
 
     // update ghost layers
-    if (field.communicatesGhosts) {
+    if (ghostLayerExch && field.communicatesGhosts) {
       val concurrencyId = (if (begin && finish) 0 else 1)
       if (field.layout.foldLeft(0)((old : Int, l) => old max l.numGhostLayersLeft max l.numGhostLayersRight) > 0) {
         Knowledge.comm_strategyFragment match {
@@ -390,22 +431,6 @@ case class ExchangeDataFunction(var fieldSelection : FieldSelection,
       }
     }
 
-    // compile function
-    var name = (
-      if (begin && finish) "exch"
-      else if (begin) "beginExch"
-      else if (finish) "finishExch"
-      else "ERROR")
-    if (Knowledge.comm_useLevelIndependentFcts)
-      name += fieldSelection.field.identifier
-    else
-      name += fieldSelection.codeName
-
-    FunctionStatement(new UnitDatatype(), name,
-      if (Knowledge.comm_useLevelIndependentFcts)
-        ListBuffer(VariableAccess("slot", Some("unsigned int")), VariableAccess("level", Some("unsigned int")))
-      else
-        ListBuffer(VariableAccess("slot", Some("unsigned int"))),
-      body)
+    body
   }
 }

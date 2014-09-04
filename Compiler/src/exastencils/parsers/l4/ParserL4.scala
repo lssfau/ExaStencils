@@ -112,6 +112,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| operatorassignment
     ||| locationize(functionCall ^^ { case f => FunctionCallStatement(f) })
     ||| conditional
+    ||| applyBCsStatement
     ||| communicateStatement)
 
   lazy val variableDeclaration = (locationize((("Var" ||| "Variable") ~> ident) ~ (":" ~> datatype) ~ ("=" ~> expression).?
@@ -143,8 +144,12 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val conditional = locationize(("if" ~ "(" ~> booleanexpression <~ ")") ~ ("{" ~> statement.+ <~ "}")
     ^^ { case exp ~ stmts => ConditionalStatement(exp, stmts) })
 
-  lazy val communicateStatement = locationize((("begin" ||| "finish").? <~ "communicate") ~ fieldLikeAccess
-    ^^ { case op ~ access => CommunicateStatement(access.resolveToFieldAccess, op.getOrElse("both")) })
+  lazy val applyBCsStatement = locationize(("apply" ~ "bc" ~ "to") ~> fieldLikeAccess
+    ^^ { case access => ApplyBCsStatement(access.resolveToFieldAccess) })
+  lazy val communicateStatement = locationize((("begin" ||| "finish").? <~ ("communicate" ||| "communicating")) ~ communicateTarget.* ~ (("of").? ~> fieldLikeAccess)
+    ^^ { case op ~ targets ~ access => CommunicateStatement(access.resolveToFieldAccess, op.getOrElse("both"), targets) })
+  lazy val communicateTarget = locationize(("all" ||| "dup" ||| "ghost") ~ numericLit.? ~ ("to" ~> numericLit).? // inclucive indices
+    ^^ { case target ~ start ~ end => CommunicateTarget(target, if (start.isDefined) Some(start.get.toInt) else None, if (end.isDefined) Some(end.get.toInt) else None) })
 
   // ######################################
   // ##### Globals

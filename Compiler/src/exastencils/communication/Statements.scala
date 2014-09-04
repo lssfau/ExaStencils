@@ -13,8 +13,16 @@ import exastencils.polyhedron._
 import exastencils.strategies._
 import exastencils.util._
 
-case class CommunicateStatement(var field : FieldSelection, var op : String) extends Statement {
+case class CommunicateTarget(var target : String, var begin : Option[Int], var end : Option[Int]) extends Expression {
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = CommunicateTarget\n"
+}
+
+case class CommunicateStatement(var field : FieldSelection, var op : String, var targets : ListBuffer[CommunicateTarget]) extends Statement {
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = CommunicateStatement\n"
+}
+
+case class ApplyBCsStatement(var field : FieldSelection) extends Statement {
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = ApplyBCsStatement\n"
 }
 
 case class LocalSend(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) extends Statement with Expandable {
