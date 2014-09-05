@@ -33,8 +33,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     this.transaction()
     Logger.info("Applying strategy " + name)
 
-//    isl.Options.setTileScaleTileLoops(false)
-//    isl.Options.setTileShiftPointLoops(false)
+    isl.Options.setTileScaleTileLoops(false)
+    isl.Options.setTileShiftPointLoops(false)
 
     val scops : Seq[Scop] = extractPolyModel()
     for (scop <- scops if (!scop.remove)) {
