@@ -15,6 +15,10 @@ object StateManager {
   def root = root_ // FIXME remove this
   var root_ : Node = null // FIXME make this protected
 
+  // ###############################################################################################
+  // #### Checkpointing ############################################################################
+  // ###############################################################################################
+
   type CheckpointIdentifier = String
   protected var checkpoints_ = new HashMap[CheckpointIdentifier, Node]
   def checkpoint(id : CheckpointIdentifier) : Unit = {
@@ -62,6 +66,10 @@ object StateManager {
   def abort(token : History.TransactionToken) = History.abort(token)
   type TokenType = History.TransactionToken
 
+  // ###############################################################################################
+  // #### Collectors ###############################################################################
+  // ###############################################################################################
+
   protected object Collectors {
     protected var collectors_ = new ListBuffer[Collector]
 
@@ -77,6 +85,10 @@ object StateManager {
   def unregister(c : Collector) = { Collectors.unregister(c) }
   def unregisterAll() = { Collectors.unregisterAll }
 
+  // ###############################################################################################
+  // #### Transformationen & Matching ##############################################################
+  // ###############################################################################################
+
   protected class TransformationProgress {
     protected var matches = 0
     def getMatches = matches
@@ -85,13 +97,28 @@ object StateManager {
   }
   protected val progresses_ = new HashMap[Transformation, TransformationProgress]
 
+  /** Dummy node that is used internally to signal that a Transformation did not match a given node */
   protected case object NoMatch extends Node
+
+  /**
+    * Function that is called by applyAtNode in case there was no match
+    *
+    *  @param node Not used. Its existence, however, is enforced by Scala.
+    *  @return An Output instance carrying the dummy node
+    */
   protected def NoMatchFunction(node : Node) : Transformation.OutputType = {
-    return NoMatch
+    return NoMatch // return dummy node
   }
 
+  /**
+    * Apply the transformation function to a given node
+    *
+    *  @param node The node the Transformation is to be applied to
+    *  @param transformation The Transformation to be applied
+    *  @return An Output instance carrying the result of the transformation or NoMatch is the transformation could not be applied
+    */
   protected def applyAtNode(node : Node, transformation : Transformation) : Transformation.OutputType = {
-    val output = transformation.function.applyOrElse(node, NoMatchFunction)
+    val output = transformation.function.applyOrElse(node, NoMatchFunction) // use applyOrElse because Scala's documentation claims it is implement more efficiently
     output.inner match {
       case NoMatch =>
       case _       => progresses_(transformation).didMatch
@@ -99,6 +126,12 @@ object StateManager {
     output
   }
 
+  /**
+    * The main Transformation & replacement function
+    *
+    *  @param node The node the Transformation is to be applied to
+    *  @param transformation The Transformation to be applied
+    */
   protected def replace(node : Node, transformation : Transformation) : Unit = {
     Collectors.notifyEnter(node)
 
@@ -295,6 +328,14 @@ object StateManager {
     Collectors.notifyLeave(node)
   }
 
+  /**
+    * Apply a Transformation to the current program state
+    *
+    *  @param token A TransactionToken to lock the program state for other Transformations
+    *  @param transformation The Transformation to be applied
+    *  @param node An optional node that is treated as the starting point ("root") for the Transaction
+    *  @return Statistics about matches
+    */
   def apply(token : History.TransactionToken, transformation : Transformation, node : Option[Node] = None) : TransformationResult = {
     if (!History.isValid(token)) {
       throw new RuntimeException(s"Invalid transaction token for transformation ${transformation.name}")
@@ -314,6 +355,15 @@ object StateManager {
     }
   }
 
+  /**
+    * Apply a Transformation to the current program state without supplying a TransactionToken
+    *
+    *  Warning: This is dangerous and not encouraged!
+    *
+    *  @param transformation The Transformation to be applied
+    *  @param node An optional node that is treated as the starting point ("root") for the Transaction
+    *  @return Statistics about matches
+    */
   def applyStandalone(transformation : Transformation, node : Node) : TransformationResult = {
     try {
       progresses_.+=((transformation, new TransformationProgress))
