@@ -99,56 +99,6 @@ object StateManager {
     output
   }
 
-  def doRecursiveMatch(thisnode : Any, node : Node, pair : (Method, Method), transformation : Transformation) = {
-    val getter = pair._1
-    val setter = pair._2
-    var subnode = thisnode
-    var nodeIsOption = false
-    if (subnode.isInstanceOf[Some[_]]) {
-      nodeIsOption = true
-      var somenode = subnode.asInstanceOf[Some[_]].get
-      if (somenode.isInstanceOf[Node]) subnode = somenode.asInstanceOf[Node]
-    }
-
-    if (subnode.isInstanceOf[Node]) {
-      def processResult[O <: OutputType](o : O) = o.inner match {
-        case NoMatch => {
-          // no match => do nothing, i.e., do not replace node
-          if (transformation.recursive) {
-            replace(subnode.asInstanceOf[Node], transformation) // FIXME reihenfolge ...
-          }
-        }
-        case n : Node => {
-          if (nodeIsOption) { // node is an Option[T] => set with Some() wrapped
-            if (!Vars.set(node, setter, Some(n))) {
-              Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
-            }
-          } else { // node is not an Option[T] => set directly
-            if (!Vars.set(node, setter, n)) {
-              Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
-            }
-          }
-          if (transformation.recursive) {
-            replace(n, transformation) // FIXME reihenfolge ...
-          }
-        }
-        case l : NodeList => {
-          Logger.error(s"Could not replace single node by List in transformation ${transformation.name}")
-        }
-        case None => {
-          if (nodeIsOption) {
-            if (!Vars.set(node, setter, None)) {
-              Logger.error(s"""Could not set "$getter" to "None" in transformation ${transformation.name}""")
-            }
-          }
-        }
-      }
-      val previousMatches = progresses_(transformation).getMatches
-      var newSubnode = applyAtNode(subnode.asInstanceOf[Node], transformation)
-      if (previousMatches <= progresses_(transformation).getMatches) processResult(newSubnode)
-    }
-  }
-
   protected def replace(node : Node, transformation : Transformation) : Unit = {
     Collectors.notifyEnter(node)
 
@@ -165,12 +115,47 @@ object StateManager {
         // #### Standard nodes ###########################################################################
         // ###############################################################################################
         case n : Node => {
-          doRecursiveMatch(n, node, pair, transformation) // FIXME improve recursion
-        }
-        case Some(n) => {
-          if (n.isInstanceOf[Node]) { // need to check separately for instanceOf[Node] because of type erasure
-            doRecursiveMatch(Some(n.asInstanceOf[Node]), node, pair, transformation) // FIXME improve recursion
+          val ret = applyAtNode(n, transformation).inner
+          var nextNode = ret
+
+          ret match {
+            case NoMatch => nextNode = n // do nothing, but set next node for recursive matching
+            case m : Node => {
+              if (!Vars.set(node, setter, m)) {
+                Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
+              }
+            }
+            case m : NodeList => Logger.error("not possible")
+            case None         => Logger.error("not possible")
           }
+
+          // Apply transformation to sub-elements
+          if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
+            replace(nextNode.asInstanceOf[Node], transformation) // can safely downcast because of type matching above erroring out for unfitting types
+          }
+        }
+        case Some(any) => any match {
+          case n : Node => {
+            val ret = applyAtNode(n, transformation).inner
+            var nextNode = ret
+
+            ret match {
+              case NoMatch => nextNode = n // do nothing, but set next node for recursive matching
+              case m : Node => {
+                if (!Vars.set(node, setter, Some(m))) {
+                  Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
+                }
+              }
+              case m : NodeList => Logger.error("not possible")
+              case None         => Logger.error("not possible")
+            }
+
+            // Apply transformation to sub-elements
+            if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
+              replace(nextNode.asInstanceOf[Node], transformation) // can safely downcast because of type matching above erroring out for unfitting types
+            }
+          }
+          case _ => // "any" is not of type Node, thus not interesting to us
         }
         // ###############################################################################################
         // #### Sets #####################################################################################
@@ -304,12 +289,11 @@ object StateManager {
         //            if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) tmpArray.asInstanceOf[Array[Node]].foreach(f => replace(f, transformation))
         //          }
         //        }
-        case _ =>
+        case _ => // 
       }
     })
     Collectors.notifyLeave(node)
   }
-
 
   def apply(token : History.TransactionToken, transformation : Transformation, node : Option[Node] = None) : TransformationResult = {
     if (!History.isValid(token)) {
