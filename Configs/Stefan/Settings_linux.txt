@@ -1,2 +1,2 @@
-outputPath = "E:\tmp\ExaStencils\"
+outputPath = "/home/kronast/work/Generated/"
 basePathPrefix = ".."
