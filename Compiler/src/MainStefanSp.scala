@@ -1,5 +1,3 @@
-import java.util.Locale
-
 import exastencils.communication._
 import exastencils.core._
 import exastencils.data._
@@ -18,9 +16,8 @@ import exastencils.prettyprinting._
 import exastencils.strategies._
 import exastencils.util._
 
-object Main {
+object MainStefanSp {
   def main(args : Array[String]) : Unit = {
-    Locale.setDefault(Locale.ENGLISH) // EPIC -.-
 
     // for runtime measurement
     val start : Long = System.nanoTime()
@@ -38,13 +35,9 @@ object Main {
 
     Knowledge.update()
 
-    // HACK: this will setup a dummy L4 DSL file
-    StateManager.root_ = new l3.Root
-    StateManager.root_.asInstanceOf[l3.Root].printToL4(Settings.basePathPrefix + "/Compiler/dsl/Layer4.exa")
-
     // HACK: this tests the new L4 capabilities
     var parserl4 = new ParserL4
-    StateManager.root_ = parserl4.parseFile(Settings.basePathPrefix + "/Compiler/dsl/Layer4.exa")
+    StateManager.root_ = parserl4.parseFile(Settings.basePathPrefix + "/Compiler/dsl/Layer4Stefan.exa")
     ValidationL4.apply
     ProgressToIr.apply()
 
@@ -149,7 +142,7 @@ object Main {
 
     println("Done!")
 
-    println("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
+    println("Runtime: " + ((System.nanoTime() - start) / 1e9))
     (new CountingStrategy("number of printed nodes")).apply()
   }
 }

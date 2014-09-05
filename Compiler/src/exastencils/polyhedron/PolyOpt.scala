@@ -33,6 +33,9 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     this.transaction()
     Logger.info("Applying strategy " + name)
 
+    isl.Options.setTileScaleTileLoops(false)
+    isl.Options.setTileShiftPointLoops(false)
+
     val scops : Seq[Scop] = extractPolyModel()
     for (scop <- scops if (!scop.remove)) {
       mergeScops(scop)
@@ -89,6 +92,15 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   }
 
   private def mergeScops(scop : Scop) : Unit = {
+
+//    if (scop.nextMerge != null) { // XXX !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//      var x = scop.nextMerge
+//      while (x.nextMerge != null)
+//        x = x.nextMerge
+//      println("val dom = new isl.UnionSet(\"" + Isl.simplify(x.domain) + "\")")
+//      println()
+//    }
+
     var toMerge : Scop = scop.nextMerge
     var i : Int = 0
     scop.schedule = insertCst(scop.schedule, i)
@@ -244,10 +256,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   private def getTileVec(dims : Int, itCount : Array[Long]) : isl.Vec = {
     var vec = isl.Vec.alloc(dims)
-    val iind : Int = tileSizes.length - 1
+    val iind : Int = dims - 1
     for (i <- 0 until dims) {
       var tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(iind - i) else 1000000000
-      tileSize = math.min(tileSize, itCount(i).toInt + 20) // TODO: "+ 20" (heuristics)
+//      tileSize = math.min(tileSize, itCount(i).toInt + 20) // TODO: "+ 20" (heuristics)
       vec = vec.setElementVal(i, tileSize)
     }
     return vec
@@ -259,6 +271,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     //      println("val dom = new isl.UnionSet(\"" + scop.domain + "\")")
     //      println("val depsVal = new isl.UnionMap(\"" + scop.deps.validity() + "\")")
     //      println("val depsInp = new isl.UnionMap(\"" + scop.deps.input + "\")")
+    //      println()
     //    }
 
     var schedConstr : isl.ScheduleConstraints = isl.ScheduleConstraints.onDomain(scop.domain)
