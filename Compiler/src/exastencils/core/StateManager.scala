@@ -81,18 +81,42 @@ object StateManager {
     def unregisterAll() = { collectors_.clear }
   }
 
+  /**
+    * Register a Collector with StateManager
+    *
+    *  @param c The Collector to be added
+    */
   def register(c : Collector) = { Collectors.register(c) }
+
+  /**
+    * Unregister a Collector from StateManager
+    *
+    *  @param c The Collector be removed
+    */
   def unregister(c : Collector) = { Collectors.unregister(c) }
+
+  /** Unregister all currently registered Collectors from StateManager */
   def unregisterAll() = { Collectors.unregisterAll }
 
   // ###############################################################################################
   // #### Transformationen & Matching ##############################################################
   // ###############################################################################################
 
+  /** Class that holds statistics about a Transformation */
   protected class TransformationProgress {
+    /** Number of times a Transformation could be matched and applied */
     protected var matches = 0
+
+    /**
+      * Returns the number of matches
+      *
+      *  @return The number of matches
+      */
     def getMatches = matches
+
+    /** Increases the number of matches by 1 */
     def didMatch = matches += 1
+
     override def toString = { s"Transformation Progress: $matches match(es)" }
   }
   protected val progresses_ = new HashMap[Transformation, TransformationProgress]
