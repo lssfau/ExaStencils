@@ -30,13 +30,13 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
   private var parallelize_omp : Boolean = false
   private var reduction : Option[Reduction] = None
 
-  def isDefinedAt(node : Node) : Boolean = node match {
+  override def isDefinedAt(node : Node) : Boolean = node match {
     case loop : LoopOverDimensions with PolyhedronAccessable =>
       loop.hasAnnotation(PolyOpt.SCOP_ANNOT)
     case _ => false
   }
 
-  def apply(node : Node) : Transformation.OutputType = {
+  override def apply(node : Node) : Transformation.OutputType = {
 
     val scop : Scop = node.removeAnnotation(PolyOpt.SCOP_ANNOT).get.value.asInstanceOf[Scop]
     if (scop.remove)
