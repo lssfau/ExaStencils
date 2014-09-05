@@ -34,6 +34,9 @@ object MergeConditions extends DefaultStrategy("Fuse Conditions") {
       }
     }
     override def apply(node : Node) : Transformation.OutputType = {
+      val cond = node.asInstanceOf[ConditionStatement]
+      mergeInto.trueBody ++= cond.trueBody
+      mergeInto.falseBody ++= cond.falseBody
       return NullStatement
     }
   })
