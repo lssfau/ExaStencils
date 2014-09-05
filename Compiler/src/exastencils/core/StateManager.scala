@@ -220,9 +220,20 @@ object StateManager {
         case set : scala.collection.mutable.Set[_] => {
           var newSet = set.flatMap(f => f match {
             case n : Node => applyAtNode(n, transformation).inner match {
-              case NoMatch         => List(n) // no match occured => use old element 
-              case newN : Node     => List(newN) // element of type Node was returned => use it
-              case newN : NodeList => newN.nodes // elements of type Node were returned => use them
+              case NoMatch =>
+                replace(n, transformation); List(n) // no match occured => use old element 
+              case newN : Node => {
+                if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
+                  replace(newN, transformation) // Recursive call for new element
+                }
+                List(newN) // element of type Node was returned => use it
+              }
+              case newN : NodeList => {
+                if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
+                  newN.nodes.foreach(replace(_, transformation)) // recursive call for new elements
+                }
+                newN.nodes // elements of type Node were returned => use them
+              }
             }
             case _ => List(f) // current element "f" is not of interest to us - put it back into (new) set
           })
@@ -230,34 +241,30 @@ object StateManager {
           if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, setter, newSet)) {
             Logger.error(s"Could not set $getter in transformation ${transformation.name}")
           }
-
-          // Apply transformation to sub-elements
-          if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
-            newSet.foreach(f => f match {
-              case n : Node => replace(n, transformation)
-              case _        =>
-            })
-          }
         }
         case set : scala.collection.immutable.Set[_] => {
           var newSet = set.flatMap(f => f match {
             case n : Node => applyAtNode(n, transformation).inner match {
-              case NoMatch         => List(n) // no match occured => use old element 
-              case newN : Node     => List(newN) // element of type Node was returned => use it
-              case newN : NodeList => newN.nodes // elements of type Node were returned => use them
+              case NoMatch =>
+                replace(n, transformation); List(n) // no match occured => use old element 
+              case newN : Node => {
+                if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
+                  replace(newN, transformation) // Recursive call for new element
+                }
+                List(newN) // element of type Node was returned => use it
+              }
+              case newN : NodeList => {
+                if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
+                  newN.nodes.foreach(replace(_, transformation)) // recursive call for new elements
+                }
+                newN.nodes // elements of type Node were returned => use them
+              }
             }
             case _ => List(f)
           })
 
           if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, setter, newSet)) {
             Logger.error(s"Could not set $getter in transformation ${transformation.name}")
-          }
-
-          if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
-            newSet.foreach(f => f match {
-              case n : Node => replace(n, transformation)
-              case _        =>
-            })
           }
         }
         // ###############################################################################################
@@ -266,22 +273,26 @@ object StateManager {
         case seq : Seq[_] => {
           var newSeq = seq.flatMap(f => f match {
             case n : Node => applyAtNode(n, transformation).inner match {
-              case NoMatch         => List(n) // no match occured => use old element 
-              case newN : Node     => List(newN) // element of type Node was returned => use it
-              case newN : NodeList => newN.nodes // elements of type Node were returned => use them
+              case NoMatch =>
+                replace(n, transformation); List(n) // no match occured => use old element 
+              case newN : Node => {
+                if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
+                  replace(newN, transformation) // Recursive call for new element
+                }
+                List(newN) // element of type Node was returned => use it
+              }
+              case newN : NodeList => {
+                if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
+                  newN.nodes.foreach(replace(_, transformation)) // recursive call for new elements
+                }
+                newN.nodes // elements of type Node were returned => use them
+              }
             }
             case _ => List(f)
           })
 
           if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, setter, newSeq)) {
             Logger.error(s"Could not set $getter in transformation ${transformation.name}")
-          }
-
-          if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
-            newSeq.foreach(f => f match {
-              case n : Node => replace(n, transformation)
-              case _        =>
-            })
           }
         }
         // ###############################################################################################
@@ -290,44 +301,40 @@ object StateManager {
         case map : scala.collection.mutable.Map[_, _] => {
           var newMap = map.map(f => f match {
             case n : Node => applyAtNode(n, transformation).inner match {
-              case NoMatch         => n // no match occured => use old element 
-              case newN : Node     => newN // element of type Node was returned => use it
+              case NoMatch =>
+                replace(n, transformation); n // no match occured => use old element 
+              case newN : Node => {
+                if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
+                  replace(newN, transformation) // Recursive call for new element
+                }
+                newN // element of type Node was returned => use it
+              }
               case newN : NodeList => Logger.error("fixme")
             }
-            case _ => f
           })
 
           if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, setter, newMap)) {
             Logger.error(s"Could not set $getter in transformation ${transformation.name}")
-          }
-
-          if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
-            newMap.foreach(f => f match {
-              case n : Node => replace(n, transformation)
-              case _        =>
-            })
           }
         }
         // Unfortunately mutable and immutable set have no common supertype
         case map : scala.collection.immutable.Map[_, _] => {
           var newMap = map.map(f => f match {
             case n : Node => applyAtNode(n, transformation).inner match {
-              case NoMatch         => n // no match occured => use old element 
-              case newN : Node     => newN // element of type Node was returned => use it
+              case NoMatch =>
+                replace(n, transformation); n // no match occured => use old element 
+              case newN : Node => {
+                if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
+                  replace(newN, transformation) // Recursive call for new element
+                }
+                newN // element of type Node was returned => use it
+              }
               case newN : NodeList => Logger.error("fixme")
             }
-            case _ => f
           })
 
           if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, setter, newMap)) {
             Logger.error(s"Could not set $getter in transformation ${transformation.name}")
-          }
-
-          if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
-            newMap.foreach(f => f match {
-              case n : Node => replace(n, transformation)
-              case _        =>
-            })
           }
         }
         //        case list : Array[_] => {
