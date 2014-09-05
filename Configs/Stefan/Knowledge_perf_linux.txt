@@ -30,9 +30,11 @@ poly_tileSize_w				= 1000000
 poly_tileOuterLoop			= false
 opt_useAddressPrecalc		= true
 opt_vectorize				= true
-opt_unroll					= 4
-opt_unroll_interleave		= false
+opt_unroll					= 2
+opt_unroll_interleave		= true
 data_addPrePadding			= false // not needed currently
 
-l3tmp_smoother = "Jac"
+l3tmp_smoother	= "Jac"
+l3tmp_numPre	= 5
+l3tmp_numPost	= 5
 l3tmp_genTemporalBlocking = true

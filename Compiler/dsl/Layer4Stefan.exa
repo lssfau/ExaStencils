@@ -38,10 +38,10 @@ Globals {
 Function SmootherT() : Unit {
 	loop over fragments {
 		repeat 5 times with contraction {
-			loop over Solution@finest {
-				Solution[nextSlot]@finest = Solution[curSlot]@finest + (1.0 / diag(Laplace@finest) * 0.8 * (RHS@finest - Laplace@finest * Solution[curSlot]@finest))
+			loop over SolutionT@finest {
+				SolutionT[nextSlot]@finest = SolutionT[curSlot]@finest + (1.0 / diag(Laplace@finest) * 0.8 * (RHST@finest - Laplace@finest * SolutionT[curSlot]@finest))
 			}
-			advance(Solution@finest)
+			advance(SolutionT@finest)
 		}
 	}
 }
@@ -88,9 +88,7 @@ Function BenchmarkT() : Unit {
 	}
 	stopTimer(benchTimer, time)
 	print('"Runtime: "', time)
-	Variable mlups : Real = 0.0
-	mlups = (LUPs() * 20) / time
-	print('"MLUPs: "', mlups)
+	print('"MLUPs: "', (LUPs() * 20) / time / 1e3)
 }
 
 Function Benchmark() : Unit {
@@ -106,9 +104,7 @@ Function Benchmark() : Unit {
 	}
 	stopTimer(benchTimer, time)
 	print('"Runtime: "', time)
-	Variable mlups : Real = 0.0
-	mlups = (LUPs() * 20) / time
-	print('"MLUPs: "', mlups)
+	print('"MLUPs: "', (LUPs() * 20) / time / 1e3)
 }
 
 Function Application() : Unit {
@@ -117,9 +113,9 @@ Function Application() : Unit {
 	initGlobals()
 	initDomain()
 	initFieldsWithZero()
+	InitAll()
 	stopTimer(setupWatch, setupTime)
 	print('"Total time to setup: "', setupTime)
-	InitAll()
 	Benchmark()
 	BenchmarkT()
 	destroyGlobals()
