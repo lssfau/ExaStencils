@@ -17,21 +17,24 @@ object MergeConditions extends DefaultStrategy("Fuse Conditions") {
     StateManager.unregister(collector)
   }
 
-  this += new Transformation("now", {
-    case cond : ConditionStatement =>
-      if ((collector.head eq parent) && (cond.condition == mergeInto.condition)) {
-        mergeInto.trueBody ++= cond.trueBody
-        mergeInto.falseBody ++= cond.falseBody
-        NullStatement
-      } else {
-        parent = collector.head
-        mergeInto = cond
-        cond
+  this += new Transformation("now", new PartialFunction[Node, Transformation.OutputType] {
+    override def isDefinedAt(node : Node) : Boolean = {
+      node match {
+        case cStmt : ConditionStatement =>
+          val remove : Boolean = (collector.head eq parent) && (cStmt.condition == mergeInto.condition)
+          if (!remove) {
+            parent = collector.head
+            mergeInto = cStmt
+          }
+          remove
+        case _ =>
+          parent = null
+          mergeInto = null
+          false
       }
-
-    case n =>
-      parent = null
-      mergeInto = null
-      n
+    }
+    override def apply(node : Node) : Transformation.OutputType = {
+      return NullStatement
+    }
   })
 }
