@@ -2,6 +2,7 @@ package exastencils.communication
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -13,7 +14,14 @@ import exastencils.polyhedron._
 import exastencils.strategies._
 import exastencils.util._
 
-case class CommunicateTarget(var target : String, var begin : Option[Int], var end : Option[Int]) extends Expression {
+case class CommunicateTarget(var target : String, var begin : Option[MultiIndex], var end : Option[MultiIndex]) extends Expression {
+  if (begin.isDefined && !end.isDefined) end = {
+    var newEnd = Duplicate(begin.get)
+    for (dim <- 0 until Knowledge.dimensionality)
+      newEnd(dim) += 1
+    Some(newEnd)
+  }
+
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = CommunicateTarget\n"
 }
 

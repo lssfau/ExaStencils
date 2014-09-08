@@ -83,7 +83,7 @@ class ExaLexer extends StdLexical {
   reserved += ("apply", "bc", "to")
 
   // communication keywords
-  reserved += ("begin", "finish", "communicate", "communicating", "dup", "ghost")
+  reserved += ("begin", "finish", "communicate", "communicating", "dup", "ghost", "of")
 
   // math keywords
   reserved += ("diag")

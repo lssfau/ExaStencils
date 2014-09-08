@@ -148,8 +148,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ^^ { case access => ApplyBCsStatement(access.resolveToFieldAccess) })
   lazy val communicateStatement = locationize((("begin" ||| "finish").? <~ ("communicate" ||| "communicating")) ~ communicateTarget.* ~ (("of").? ~> fieldLikeAccess)
     ^^ { case op ~ targets ~ access => CommunicateStatement(access.resolveToFieldAccess, op.getOrElse("both"), targets) })
-  lazy val communicateTarget = locationize(("all" ||| "dup" ||| "ghost") ~ numericLit.? ~ ("to" ~> numericLit).? // inclucive indices
-    ^^ { case target ~ start ~ end => CommunicateTarget(target, if (start.isDefined) Some(start.get.toInt) else None, if (end.isDefined) Some(end.get.toInt) else None) })
+  lazy val communicateTarget = locationize(("all" ||| "dup" ||| "ghost") ~ index.? ~ ("to" ~> index).? // inclucive indices
+    ^^ { case target ~ start ~ end => CommunicateTarget(target, start, end) })
 
   // ######################################
   // ##### Globals

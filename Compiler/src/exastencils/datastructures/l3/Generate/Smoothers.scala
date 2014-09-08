@@ -20,9 +20,9 @@ object Smoothers {
 
   def addBodyJac(printer : java.io.PrintWriter, postfix : String, stencil : String) = {
     if (Knowledge.l3tmp_useSlotVariables && Knowledge.l3tmp_useSlotsForJac) {
-      Communication.exch(printer, s"Solution$postfix[curSlot]@current")
+      Communication.exch(printer, s"Solution$postfix[curSlot]@current", "ghost")
       if (Knowledge.l3tmp_genTemporalBlocking)
-        Communication.exch(printer, s"RHS$postfix@current")
+        Communication.exch(printer, s"RHS$postfix@current", "ghost")
 
       addBodyBefore(printer, postfix)
 

@@ -4,10 +4,12 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.communication
 
-case class CommunicateTarget(var target : String, var begin : Option[Int], var end : Option[Int]) extends Expression {
+case class CommunicateTarget(var target : String, var begin : Option[Index], var end : Option[Index]) extends Expression {
   def progressToIr : communication.CommunicateTarget = {
-    if (begin.isDefined && !end.isDefined) end = Some(begin.get + 0)
-    communication.CommunicateTarget(target, begin, end)
+    communication.CommunicateTarget(
+      target,
+      if (begin.isDefined) Some(begin.get.progressToIr) else None,
+      if (end.isDefined) Some(end.get.progressToIr) else None)
   }
 }
 
