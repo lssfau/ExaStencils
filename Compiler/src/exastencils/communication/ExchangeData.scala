@@ -24,6 +24,19 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
       fieldSelection.field.layout(dim).idxById(indexId)
   }
 
+  def vecFieldIndexBegin = {
+    if (fieldSelection.arrayIndex >= 0)
+      Array(fieldSelection.arrayIndex : Expression)
+    else
+      Array(0 : Expression)
+  }
+  def vecFieldIndexEnd = {
+    if (fieldSelection.arrayIndex >= 0)
+      Array((fieldSelection.arrayIndex + 1) : Expression)
+    else
+      Array(fieldSelection.field.vectorSize : Expression)
+  }
+
   override def expand : Output[FunctionStatement] = {
     var body = new ListBuffer[Statement]
 
@@ -58,13 +71,13 @@ case class ApplyBCsFunction(var name : String, var fieldSelection : FieldSelecti
           case i if neigh.dir(i) == 0 => resolveIndex("GLB", i) // DLB, GLB
           case i if neigh.dir(i) < 0  => resolveIndex("DLB", i) // DLB, GLB
           case i if neigh.dir(i) > 0  => resolveIndex("DRB", i)
-        }) ++ Array(0 : Expression)),
+        }) ++ vecFieldIndexBegin),
       new MultiIndex(
         DimArray().map(i => i match {
           case i if neigh.dir(i) == 0 => resolveIndex("GRE", i) // DRE, GRE
           case i if neigh.dir(i) < 0  => resolveIndex("DLE", i)
           case i if neigh.dir(i) > 0  => resolveIndex("DRE", i) // DRE, GRE
-        }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
+        }) ++ vecFieldIndexEnd))))
   }
 
   override def compileName : String = name
@@ -101,7 +114,7 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
           }
           case i if neigh.dir(i) < 0 => resolveIndex("DLB", i) + dupLayerBegin(i)
           case i if neigh.dir(i) > 0 => resolveIndex("DRE", i) - dupLayerEnd(i)
-        }) ++ Array(0 : Expression)),
+        }) ++ vecFieldIndexBegin),
       new MultiIndex(
         DimArray().map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
@@ -110,7 +123,7 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
           }
           case i if neigh.dir(i) < 0 => resolveIndex("DLB", i) + dupLayerEnd(i)
           case i if neigh.dir(i) > 0 => resolveIndex("DRE", i) - dupLayerBegin(i)
-        }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
+        }) ++ vecFieldIndexEnd))))
   }
 
   def genIndicesDuplicateLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange, IndexRange)] = {
@@ -123,7 +136,7 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
           }
           case i if neigh.dir(i) < 0 => resolveIndex("DLB", i) + dupLayerBegin(i)
           case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) - dupLayerEnd(i)
-        }) ++ Array(0 : Expression)),
+        }) ++ vecFieldIndexBegin),
       new MultiIndex(
         DimArray().map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
@@ -132,7 +145,7 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
           }
           case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) + dupLayerEnd(i)
           case i if neigh.dir(i) > 0 => resolveIndex("DRE", i) - dupLayerBegin(i)
-        }) ++ Array(fieldSelection.field.vectorSize : Expression))),
+        }) ++ vecFieldIndexEnd)),
       new IndexRange(
         new MultiIndex(
           DimArray().map(i => i match {
@@ -142,7 +155,7 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
             }
             case i if -neigh.dir(i) < 0 => resolveIndex("DLB", i) - dupLayerEnd(i)
             case i if -neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
-          }) ++ Array(0 : Expression)),
+          }) ++ vecFieldIndexBegin),
         new MultiIndex(
           DimArray().map(i => i match {
             case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
@@ -151,7 +164,7 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
             }
             case i if -neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
             case i if -neigh.dir(i) > 0 => resolveIndex("DRE", i) + dupLayerEnd(i)
-          }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
+          }) ++ vecFieldIndexEnd))))
   }
 
   def genIndicesDuplicateRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
@@ -164,7 +177,7 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
           }
           case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
           case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
-        }) ++ Array(0 : Expression)),
+        }) ++ vecFieldIndexBegin),
       new MultiIndex(
         DimArray().map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
@@ -173,7 +186,7 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
           }
           case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
           case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
-        }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
+        }) ++ vecFieldIndexEnd))))
   }
 
   def genIndicesGhostRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
@@ -186,7 +199,7 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
           }
           case i if neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerBegin(i)
           case i if neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerEnd(i)
-        }) ++ Array(0 : Expression)),
+        }) ++ vecFieldIndexBegin),
       new MultiIndex(
         DimArray().map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
@@ -195,7 +208,7 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
           }
           case i if neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerEnd(i)
           case i if neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerBegin(i)
-        }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
+        }) ++ vecFieldIndexEnd))))
   }
 
   def genIndicesGhostLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange, IndexRange)] = {
@@ -209,7 +222,7 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
             }
             case i if neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerBegin(i)
             case i if neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerEnd(i)
-          }) ++ Array(0 : Expression)),
+          }) ++ vecFieldIndexBegin),
         new MultiIndex(
           DimArray().map(i => i match {
             case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
@@ -218,7 +231,7 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
             }
             case i if neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerEnd(i)
             case i if neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerBegin(i)
-          }) ++ Array(fieldSelection.field.vectorSize : Expression))),
+          }) ++ vecFieldIndexEnd)),
       new IndexRange(
         new MultiIndex(
           DimArray().map(i => i match {
@@ -228,7 +241,7 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
             }
             case i if -neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerEnd(i)
             case i if -neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerBegin(i)
-          }) ++ Array(0 : Expression)),
+          }) ++ vecFieldIndexBegin),
         new MultiIndex(
           DimArray().map(i => i match {
             case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
@@ -237,7 +250,7 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
             }
             case i if -neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerBegin(i)
             case i if -neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerEnd(i)
-          }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
+          }) ++ vecFieldIndexEnd))))
   }
 
   def genIndicesGhostRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
@@ -250,7 +263,7 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
           }
           case i if neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerEnd(i)
           case i if neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerBegin(i)
-        }) ++ Array(0 : Expression)),
+        }) ++ vecFieldIndexBegin),
       new MultiIndex(
         DimArray().map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
@@ -259,7 +272,7 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
           }
           case i if neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerBegin(i)
           case i if neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerEnd(i)
-        }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
+        }) ++ vecFieldIndexEnd))))
   }
 
   override def compileName : String = name

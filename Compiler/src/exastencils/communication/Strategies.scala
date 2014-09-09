@@ -59,7 +59,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         ghostEnd = target.end.getOrElse(new MultiIndex((0 until Knowledge.dimensionality).toArray.map(dim => communicateStatement.field.layout(dim).numGhostLayersLeft)))
       }
 
-      val functionName = (if (Knowledge.comm_useLevelIndependentFcts)
+      val functionName = ((if (Knowledge.comm_useLevelIndependentFcts)
         communicateStatement.op match {
         case "begin"  => s"beginExch${communicateStatement.field.field.identifier}"
         case "finish" => s"finishExch${communicateStatement.field.field.identifier}"
@@ -69,14 +69,15 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         case "begin"  => s"beginExch${communicateStatement.field.codeName}"
         case "finish" => s"finishExch${communicateStatement.field.codeName}"
         case "both"   => s"exch${communicateStatement.field.codeName}"
-      }) +
-        communicateStatement.targets.map(t => s"${t.target}_${
+      })
+        + s"_${if (communicateStatement.field.arrayIndex >= 0) communicateStatement.field.arrayIndex else "a"}_"
+        + communicateStatement.targets.map(t => s"${t.target}_${
           val begin : MultiIndex = t.begin.getOrElse(new MultiIndex(Array.fill(Knowledge.dimensionality)("a" : Expression)))
           (0 until Knowledge.dimensionality).toArray.map(dim => begin(dim).cpp).mkString("_")
         }_${
           val end : MultiIndex = t.end.getOrElse(new MultiIndex(Array.fill(Knowledge.dimensionality)("a" : Expression)))
           (0 until Knowledge.dimensionality).toArray.map(dim => end(dim).cpp).mkString("_")
-        }").mkString("_")
+        }").mkString("_"))
 
       if (!addedFunctions.contains(functionName)) {
         addedFunctions += functionName

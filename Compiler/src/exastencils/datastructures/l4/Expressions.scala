@@ -38,7 +38,7 @@ case class UnresolvedAccess(var identifier : String, var level : Option[AccessLe
   def progressToIr : ir.StringConstant = ir.StringConstant("ERROR - Unresolved Access")
 
   def resolveToBasicOrLeveledAccess = if (level.isDefined) LeveledAccess(identifier, level.get) else BasicAccess(identifier)
-  def resolveToFieldAccess = FieldAccess(identifier, level.get, slot.getOrElse(IntegerConstant(0)), arrayIndex.getOrElse(0))
+  def resolveToFieldAccess = FieldAccess(identifier, level.get, slot.getOrElse(IntegerConstant(0)), arrayIndex.getOrElse(-1))
   def resolveToStencilAccess = StencilAccess(identifier, level.get)
   def resolveToStencilFieldAccess = StencilFieldAccess(identifier, level.get, slot.getOrElse(IntegerConstant(0)), arrayIndex.getOrElse(-1))
 }
@@ -67,7 +67,8 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
 
   def progressToIr : ir.FieldAccess = {
     var multiIndex = ir.LoopOverDimensions.defIt
-    multiIndex(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(arrayIndex)
+    multiIndex(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(if (arrayIndex >= 0) arrayIndex else 0)
+
     val field = knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
     val resolvedSlot = if (1 == field.numSlots) ir.IntegerConstant(0) else slot match {
       // TODO: these keywords are up to discussion

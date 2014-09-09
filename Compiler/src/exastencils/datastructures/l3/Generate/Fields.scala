@@ -82,8 +82,8 @@ object Fields {
     } else
       printer.println(s"Field RHS$postfix< $fieldDatatype, $domain, $rhsLayout, None >@all")
     if ("CG" == Knowledge.l3tmp_cgs) {
-      printer.println(s"Field VecP$postfix< $fieldDatatype, $domain, BasicComm, None >@coarsest")
-      printer.println(s"Field VecGradP$postfix< $fieldDatatype, $domain, NoComm, None >@coarsest")
+      printer.println(s"Field VecP$postfix< Real, $domain, BasicComm, None >@coarsest")
+      printer.println(s"Field VecGradP$postfix< Real, $domain, NoComm, None >@coarsest")
     }
     printer.println
   }

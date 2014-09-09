@@ -22,12 +22,13 @@ case class ApplyBCsStatement(var field : FieldAccess) extends Statement {
 case class CommunicateStatement(var field : FieldAccess, var op : String, var targets : List[CommunicateTarget]) extends Statement {
   def progressToIr : communication.CommunicateStatement = {
     val progressedTargets : ListBuffer[communication.CommunicateTarget] = ListBuffer()
+    val progressedField = field.progressToIr.fieldSelection
+
     if (targets.isEmpty)
       progressedTargets += CommunicateTarget("all", None, None).progressToIr
     else
-      for (t <- targets)
-        progressedTargets += t.progressToIr
+      for (t <- targets) progressedTargets += t.progressToIr
 
-    communication.CommunicateStatement(field.progressToIr.fieldSelection, op, progressedTargets)
+    communication.CommunicateStatement(progressedField, op, progressedTargets)
   }
 }
