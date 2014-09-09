@@ -80,9 +80,11 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     loop.inc = njuIncr
     loop.body = duplicateStmts(loop.body, itVar, oldInc, loop.isParallel)
 
-    for (stmt <- res)
-      stmt.annotate(SKIP_ANNOT)
-    return new Scope(res)
+    loop.annotate(SKIP_ANNOT)
+    if (njuBegin != null)
+      return new Scope(res)
+    else
+      return res
   }
 
   private def updateIncrement(inc : Statement) : (Statement, String, Long) = {
