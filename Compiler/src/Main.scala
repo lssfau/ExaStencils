@@ -121,7 +121,6 @@ object Main {
     TypeInference.apply()
 
     SimplifyFloatExpressions.apply()
-    SimplifyStrategy.doUntilDone()
 
     if (Knowledge.opt_vectorize)
       Vectorization.apply()
