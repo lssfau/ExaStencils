@@ -92,243 +92,174 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
   override def cpp_decl = cpp
 
   def genIndicesDuplicateRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
-    Knowledge.comm_strategyFragment match {
-      case 6 => curNeighbors.map(neigh => (neigh, new IndexRange(
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => resolveIndex("DLB", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("DLB", i) + dupLayerBegin(i)
-            case i if neigh.dir(i) > 0  => resolveIndex("DRE", i) - dupLayerEnd(i)
-          }) ++ Array(0 : Expression)),
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => resolveIndex("DRE", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("DLB", i) + dupLayerEnd(i)
-            case i if neigh.dir(i) > 0  => resolveIndex("DRE", i) - dupLayerBegin(i)
-          }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
-      case 26 => curNeighbors.map(neigh => (neigh, new IndexRange(
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => resolveIndex("IB", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("DLB", i)
-            case i if neigh.dir(i) > 0  => resolveIndex("DRB", i)
-          }) ++ Array(0 : Expression)),
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => resolveIndex("IE", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("DLE", i)
-            case i if neigh.dir(i) > 0  => resolveIndex("DRE", i)
-          }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
-    }
+    curNeighbors.map(neigh => (neigh, new IndexRange(
+      new MultiIndex(
+        DimArray().map(i => i match {
+          case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+            case 6  => resolveIndex("DLB", i)
+            case 26 => resolveIndex("IB", i)
+          }
+          case i if neigh.dir(i) < 0 => resolveIndex("DLB", i) + dupLayerBegin(i)
+          case i if neigh.dir(i) > 0 => resolveIndex("DRE", i) - dupLayerEnd(i)
+        }) ++ Array(0 : Expression)),
+      new MultiIndex(
+        DimArray().map(i => i match {
+          case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+            case 6  => resolveIndex("DRE", i)
+            case 26 => resolveIndex("IE", i)
+          }
+          case i if neigh.dir(i) < 0 => resolveIndex("DLB", i) + dupLayerEnd(i)
+          case i if neigh.dir(i) > 0 => resolveIndex("DRE", i) - dupLayerBegin(i)
+        }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
   }
 
   def genIndicesDuplicateLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange, IndexRange)] = {
-    Knowledge.comm_strategyFragment match {
-      case 6 => curNeighbors.map(neigh => (neigh, new IndexRange(
+    curNeighbors.map(neigh => (neigh, new IndexRange(
+      new MultiIndex(
+        DimArray().map(i => i match {
+          case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+            case 6  => resolveIndex("DLB", i)
+            case 26 => resolveIndex("IB", i)
+          }
+          case i if neigh.dir(i) < 0 => resolveIndex("DLB", i) + dupLayerBegin(i)
+          case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) - dupLayerEnd(i)
+        }) ++ Array(0 : Expression)),
+      new MultiIndex(
+        DimArray().map(i => i match {
+          case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+            case 6  => resolveIndex("DRE", i)
+            case 26 => resolveIndex("IE", i)
+          }
+          case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) + dupLayerEnd(i)
+          case i if neigh.dir(i) > 0 => resolveIndex("DRE", i) - dupLayerBegin(i)
+        }) ++ Array(fieldSelection.field.vectorSize : Expression))),
+      new IndexRange(
         new MultiIndex(
           DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => resolveIndex("DLB", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("DLB", i) + dupLayerBegin(i)
-            case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) - dupLayerEnd(i)
+            case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+              case 6  => resolveIndex("DLB", i)
+              case 26 => resolveIndex("IB", i)
+            }
+            case i if -neigh.dir(i) < 0 => resolveIndex("DLB", i) - dupLayerEnd(i)
+            case i if -neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
           }) ++ Array(0 : Expression)),
         new MultiIndex(
           DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => resolveIndex("DRE", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) + dupLayerEnd(i)
-            case i if neigh.dir(i) > 0  => resolveIndex("DRE", i) - dupLayerBegin(i)
-          }) ++ Array(fieldSelection.field.vectorSize : Expression))),
-        new IndexRange(
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if -neigh.dir(i) == 0 => resolveIndex("DLB", i)
-              case i if -neigh.dir(i) < 0  => resolveIndex("DLB", i) - dupLayerEnd(i)
-              case i if -neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
-            }) ++ Array(0 : Expression)),
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if -neigh.dir(i) == 0 => resolveIndex("DRE", i)
-              case i if -neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
-              case i if -neigh.dir(i) > 0  => resolveIndex("DRE", i) + dupLayerEnd(i)
-            }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
-      case 26 => curNeighbors.map(neigh => (neigh, new IndexRange(
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => resolveIndex("IB", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("DLB", i)
-            case i if neigh.dir(i) > 0  => resolveIndex("DRB", i)
-          }) ++ Array(0 : Expression)),
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => resolveIndex("IE", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("DLE", i)
-            case i if neigh.dir(i) > 0  => resolveIndex("DRE", i)
-          }) ++ Array(fieldSelection.field.vectorSize : Expression))),
-        new IndexRange(
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if -neigh.dir(i) == 0 => resolveIndex("IB", i)
-              case i if -neigh.dir(i) < 0  => resolveIndex("DLB", i)
-              case i if -neigh.dir(i) > 0  => resolveIndex("DRB", i)
-            }) ++ Array(0 : Expression)),
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if -neigh.dir(i) == 0 => resolveIndex("IE", i)
-              case i if -neigh.dir(i) < 0  => resolveIndex("DLE", i)
-              case i if -neigh.dir(i) > 0  => resolveIndex("DRE", i)
-            }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
-    }
+            case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+              case 6  => resolveIndex("DRE", i)
+              case 26 => resolveIndex("IE", i)
+            }
+            case i if -neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
+            case i if -neigh.dir(i) > 0 => resolveIndex("DRE", i) + dupLayerEnd(i)
+          }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
   }
 
   def genIndicesDuplicateRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
-    Knowledge.comm_strategyFragment match {
-      case 6 => curNeighbors.map(neigh => (neigh, new IndexRange(
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => resolveIndex("DLB", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
-            case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
-          }) ++ Array(0 : Expression)),
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => resolveIndex("DRE", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
-            case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
-          }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
-      case 26 => curNeighbors.map(neigh => (neigh, new IndexRange(
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => resolveIndex("IB", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("DLB", i)
-            case i if neigh.dir(i) > 0  => resolveIndex("DRB", i)
-          }) ++ Array(0 : Expression)),
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => resolveIndex("IE", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("DLE", i)
-            case i if neigh.dir(i) > 0  => resolveIndex("DRE", i)
-          }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
-    }
+    curNeighbors.map(neigh => (neigh, new IndexRange(
+      new MultiIndex(
+        DimArray().map(i => i match {
+          case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+            case 6  => resolveIndex("DLB", i)
+            case 26 => resolveIndex("IB", i)
+          }
+          case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
+          case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
+        }) ++ Array(0 : Expression)),
+      new MultiIndex(
+        DimArray().map(i => i match {
+          case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+            case 6  => resolveIndex("DRE", i)
+            case 26 => resolveIndex("IE", i)
+          }
+          case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
+          case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
+        }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
   }
 
   def genIndicesGhostRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
-    Knowledge.comm_strategyFragment match {
-      case 6 => curNeighbors.map(neigh => (neigh, new IndexRange(
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => resolveIndex("GLB", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerBegin(i)
-            case i if neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerEnd(i)
-          }) ++ Array(0 : Expression)),
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => resolveIndex("GRE", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerEnd(i)
-            case i if neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerBegin(i)
-          }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
-      case 26 => curNeighbors.map(neigh => (neigh, new IndexRange(
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => resolveIndex("DLB", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("IB", i)
-            case i if neigh.dir(i) > 0  => resolveIndex("IE", i) - (resolveIndex("GRE", i) - resolveIndex("GRB", i))
-          }) ++ Array(0 : Expression)),
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => resolveIndex("DRE", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("IB", i) + (resolveIndex("GLE", i) - resolveIndex("GLB", i))
-            case i if neigh.dir(i) > 0  => resolveIndex("IE", i)
-          }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
-    }
+    curNeighbors.map(neigh => (neigh, new IndexRange(
+      new MultiIndex(
+        DimArray().map(i => i match {
+          case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+            case 6  => resolveIndex("GLB", i)
+            case 26 => resolveIndex("DLB", i)
+          }
+          case i if neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerBegin(i)
+          case i if neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerEnd(i)
+        }) ++ Array(0 : Expression)),
+      new MultiIndex(
+        DimArray().map(i => i match {
+          case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+            case 6  => resolveIndex("GRE", i)
+            case 26 => resolveIndex("DRE", i)
+          }
+          case i if neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerEnd(i)
+          case i if neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerBegin(i)
+        }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
   }
 
   def genIndicesGhostLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange, IndexRange)] = {
-    Knowledge.comm_strategyFragment match {
-      case 6 => curNeighbors.map(neigh => (neigh,
-        new IndexRange(
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if neigh.dir(i) == 0 => resolveIndex("GLB", i)
-              case i if neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerBegin(i)
-              case i if neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerEnd(i)
-            }) ++ Array(0 : Expression)),
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if neigh.dir(i) == 0 => resolveIndex("GRE", i)
-              case i if neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerEnd(i)
-              case i if neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerBegin(i)
-            }) ++ Array(fieldSelection.field.vectorSize : Expression))),
-        new IndexRange(
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if -neigh.dir(i) == 0 => resolveIndex("GLB", i)
-              case i if -neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerEnd(i)
-              case i if -neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerBegin(i)
-            }) ++ Array(0 : Expression)),
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if -neigh.dir(i) == 0 => resolveIndex("GRE", i)
-              case i if -neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerBegin(i)
-              case i if -neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerEnd(i)
-            }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
-      case 26 => curNeighbors.map(neigh => (neigh,
-        new IndexRange(
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if neigh.dir(i) == 0 => resolveIndex("DLB", i)
-              case i if neigh.dir(i) < 0  => resolveIndex("IB", i)
-              case i if neigh.dir(i) > 0  => resolveIndex("IE", i) - (resolveIndex("GRE", i) - resolveIndex("GRB", i))
-            }) ++ Array(0 : Expression)),
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if neigh.dir(i) == 0 => resolveIndex("DRE", i)
-              case i if neigh.dir(i) < 0  => resolveIndex("IB", i) + (resolveIndex("GLE", i) - resolveIndex("GLB", i))
-              case i if neigh.dir(i) > 0  => resolveIndex("IE", i)
-            }) ++ Array(fieldSelection.field.vectorSize : Expression))),
-        new IndexRange(
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if -neigh.dir(i) == 0 => resolveIndex("DLB", i)
-              case i if -neigh.dir(i) < 0  => resolveIndex("GLB", i)
-              case i if -neigh.dir(i) > 0  => resolveIndex("GRB", i)
-            }) ++ Array(0 : Expression)),
-          new MultiIndex(
-            DimArray().map(i => i match {
-              case i if -neigh.dir(i) == 0 => resolveIndex("DRE", i)
-              case i if -neigh.dir(i) < 0  => resolveIndex("GLE", i)
-              case i if -neigh.dir(i) > 0  => resolveIndex("GRE", i)
-            }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
-    }
+    curNeighbors.map(neigh => (neigh,
+      new IndexRange(
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+              case 6  => resolveIndex("GLB", i)
+              case 26 => resolveIndex("DLB", i)
+            }
+            case i if neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerBegin(i)
+            case i if neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerEnd(i)
+          }) ++ Array(0 : Expression)),
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+              case 6  => resolveIndex("GRE", i)
+              case 26 => resolveIndex("DRE", i)
+            }
+            case i if neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerEnd(i)
+            case i if neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerBegin(i)
+          }) ++ Array(fieldSelection.field.vectorSize : Expression))),
+      new IndexRange(
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+              case 6  => resolveIndex("GLB", i)
+              case 26 => resolveIndex("DLB", i)
+            }
+            case i if -neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerEnd(i)
+            case i if -neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerBegin(i)
+          }) ++ Array(0 : Expression)),
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+              case 6  => resolveIndex("GRE", i)
+              case 26 => resolveIndex("DRE", i)
+            }
+            case i if -neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerBegin(i)
+            case i if -neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerEnd(i)
+          }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
   }
 
   def genIndicesGhostRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
-    Knowledge.comm_strategyFragment match {
-      case 6 => curNeighbors.map(neigh => (neigh, new IndexRange(
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => resolveIndex("GLB", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerEnd(i)
-            case i if neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerBegin(i)
-          }) ++ Array(0 : Expression)),
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => resolveIndex("GRE", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerBegin(i)
-            case i if neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerEnd(i)
-          }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
-      case 26 => curNeighbors.map(neigh => (neigh, new IndexRange(
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => resolveIndex("DLB", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("GLB", i)
-            case i if neigh.dir(i) > 0  => resolveIndex("GRB", i)
-          }) ++ Array(0 : Expression)),
-        new MultiIndex(
-          DimArray().map(i => i match {
-            case i if neigh.dir(i) == 0 => resolveIndex("DRE", i)
-            case i if neigh.dir(i) < 0  => resolveIndex("GLE", i)
-            case i if neigh.dir(i) > 0  => resolveIndex("GRE", i)
-          }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
-    }
+    curNeighbors.map(neigh => (neigh, new IndexRange(
+      new MultiIndex(
+        DimArray().map(i => i match {
+          case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+            case 6  => resolveIndex("GLB", i)
+            case 26 => resolveIndex("DLB", i)
+          }
+          case i if neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerEnd(i)
+          case i if neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerBegin(i)
+        }) ++ Array(0 : Expression)),
+      new MultiIndex(
+        DimArray().map(i => i match {
+          case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+            case 6  => resolveIndex("GRE", i)
+            case 26 => resolveIndex("DRE", i)
+          }
+          case i if neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerBegin(i)
+          case i if neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerEnd(i)
+        }) ++ Array(fieldSelection.field.vectorSize : Expression)))))
   }
 
   override def compileName : String = name

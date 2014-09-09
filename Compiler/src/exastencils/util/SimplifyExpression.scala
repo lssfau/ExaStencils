@@ -1,23 +1,9 @@
 package exastencils.util
 
 import scala.collection.mutable.HashMap
+import scala.collection.mutable.ListBuffer
 
-import exastencils.datastructures.ir.AdditionExpression
-import exastencils.datastructures.ir.ArrayAccess
-import exastencils.datastructures.ir.DivisionExpression
-import exastencils.datastructures.ir.Expression
-import exastencils.datastructures.ir.FloatConstant
-import exastencils.datastructures.ir.IntegerConstant
-import exastencils.datastructures.ir.IntegerDatatype
-import exastencils.datastructures.ir.ModuloExpression
-import exastencils.datastructures.ir.MultiplicationExpression
-import exastencils.datastructures.ir.NullExpression
-import exastencils.datastructures.ir.RealDatatype
-import exastencils.datastructures.ir.StringConstant
-import exastencils.datastructures.ir.SubtractionExpression
-import exastencils.datastructures.ir.UnaryExpression
-import exastencils.datastructures.ir.UnaryOperators
-import exastencils.datastructures.ir.VariableAccess
+import exastencils.datastructures.ir._
 
 object SimplifyExpression {
 
@@ -33,6 +19,8 @@ object SimplifyExpression {
     case MultiplicationExpression(l : Expression, r : Expression) => evalIntegral(l) * evalIntegral(r)
     case DivisionExpression(l : Expression, r : Expression)       => evalIntegral(l) / evalIntegral(r)
     case ModuloExpression(l : Expression, r : Expression)         => evalIntegral(l) % evalIntegral(r)
+    case MinimumExpression(l : ListBuffer[Expression])            => l.map(e => evalIntegral(e)).reduce((l, r) => l min r)
+    case MaximumExpression(l : ListBuffer[Expression])            => l.map(e => evalIntegral(e)).reduce((l, r) => l max r)
     case _ =>
       throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
   }
@@ -48,6 +36,8 @@ object SimplifyExpression {
     case SubtractionExpression(l : Expression, r : Expression)    => evalFloating(l) - evalFloating(r)
     case MultiplicationExpression(l : Expression, r : Expression) => evalFloating(l) * evalFloating(r)
     case DivisionExpression(l : Expression, r : Expression)       => evalFloating(l) / evalFloating(r)
+    case MinimumExpression(l : ListBuffer[Expression])            => l.map(e => evalFloating(e)).reduce((l, r) => l min r)
+    case MaximumExpression(l : ListBuffer[Expression])            => l.map(e => evalFloating(e)).reduce((l, r) => l max r)
     case _ =>
       throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
   }
@@ -170,6 +160,18 @@ object SimplifyExpression {
           case IntegerConstant(x) => res.put(constName, x % mod)
           case _                  => res.put(ModuloExpression(dividend, IntegerConstant(mod)), 1L)
         }
+
+      case me : MinimumExpression =>
+        res = new HashMap[Expression, Long]()
+        val evaled = evalIntegral(me)
+        if (evaled != 0)
+          res(constName) = evaled
+
+      case me : MaximumExpression =>
+        res = new HashMap[Expression, Long]()
+        val evaled = evalIntegral(me)
+        if (evaled != 0)
+          res(constName) = evaled
 
       case _ =>
         throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
@@ -330,6 +332,18 @@ object SimplifyExpression {
         res = extractFloatingSum(l)
         for ((name : Expression, value : Double) <- res)
           res(name) = value % mod
+
+      case me : MinimumExpression =>
+        res = new HashMap[Expression, Double]()
+        val evaled = evalFloating(me)
+        if (evaled != 0)
+          res(constName) = evaled
+
+      case me : MaximumExpression =>
+        res = new HashMap[Expression, Double]()
+        val evaled = evalFloating(me)
+        if (evaled != 0)
+          res(constName) = evaled
 
       case _ =>
         throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass() + " in " + expr.cpp())
