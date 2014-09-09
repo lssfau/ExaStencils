@@ -20,7 +20,7 @@ object Residual {
 
     if (Knowledge.l3tmp_genAsyncCommunication) {
       printer.println(s"\tif ( levels@current > levels@coarsest && startComm > 0 ) {")
-      printer.println(s"\t\tbegin communicate Residual$postfix@current")
+      printer.println(s"\t\tbegin communicate Residual$postfix@current", "ghost")
       printer.println(s"\t}")
     }
   }

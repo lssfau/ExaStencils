@@ -71,12 +71,12 @@ case class ApplyBCsFunction(var name : String, var fieldSelection : FieldSelecti
   override def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[Statement] = {
     var body = new ListBuffer[Statement]
 
-    val boundaryNeighs = neighbors.filter(neigh => 1 == {
+    val boundaryNeighs = neighbors.filter(neigh => {
       var numNonZeros = 0
       for (dim <- 0 until Knowledge.dimensionality)
         if (0 != neigh.dir(dim))
           numNonZeros += 1
-      numNonZeros
+      (1 == numNonZeros)
     })
     body += new HandleBoundaries(updatedFieldSelection, genIndicesBoundaryHandling(boundaryNeighs))
 

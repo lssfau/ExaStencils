@@ -6,9 +6,9 @@ object Restriction {
   def addFunction(printer : java.io.PrintWriter, postfix : String) = {
     printer.println(s"Function Restriction$postfix@((coarsest + 1) to finest) ( ) : Unit {")
     if (Knowledge.l3tmp_genAsyncCommunication)
-      printer.println(s"\tfinish communicate Residual$postfix@current")
+      printer.println(s"\tfinish communicate Residual$postfix@current", "ghost")
     else
-      Communication.exch(printer, s"Residual$postfix@current")
+      Communication.exch(printer, s"Residual$postfix@current", "ghost")
 
     if (Knowledge.l3tmp_genFragLoops)
       printer.println(s"\tloop over fragments {")

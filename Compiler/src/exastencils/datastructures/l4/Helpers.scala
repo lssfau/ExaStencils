@@ -1,6 +1,5 @@
 package exastencils.datastructures.l4
 
-import scala.collection.mutable.HashSet
 import exastencils.datastructures._
 
 trait Index extends Expression {
