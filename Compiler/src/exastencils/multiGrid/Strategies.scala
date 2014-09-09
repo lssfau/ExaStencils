@@ -37,6 +37,7 @@ object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices"
       fieldAccess
     }
     case access : StencilFieldAccess if SimplifyExpression.evalIntegral(access.stencilFieldSelection.level) < collector.getCurrentLevel => {
+      println(collector.getCurrentLevel + " : " + access.stencilFieldSelection.level + " : " + access.stencilFieldSelection.field.level)
       var stencilFieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         stencilFieldAccess.index(i) = stencilFieldAccess.index(i) / 2
@@ -51,7 +52,7 @@ object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices"
   })
 }
 
-object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions") {
+object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
   var collector = new StackCollector
 
   override def apply(node : Option[Node] = None) : Unit = {
@@ -79,7 +80,19 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
         FunctionCallExpression(StringConstant("diag"), args)
       }
     }
+  })
+}
 
+object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions") {
+  var collector = new StackCollector
+
+  override def apply(node : Option[Node] = None) : Unit = {
+    StateManager.register(collector)
+    super.apply(node)
+    StateManager.unregister(collector)
+  }
+
+  this += new Transformation("SearchAndReplace", {
     case ExpressionStatement(FunctionCallExpression(StringConstant("advance"), args)) => {
       //      if (Knowledge.useOMP && !Knowledge.domain_summarizeBlocks && collector.stack.map(node => node match { case _ : LoopOverFragments => true; case _ => false }).fold(false)((a, b) => a || b))
       //        ListBuffer[Statement](

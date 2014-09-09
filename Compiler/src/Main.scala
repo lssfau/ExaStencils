@@ -86,6 +86,7 @@ object Main {
         ExpandStrategy.doUntilDone()
     }
 
+    ResolveDiagFunction.apply()
     ResolveContractingLoop.apply()
 
     MapStencilAssignments.apply()

@@ -68,8 +68,8 @@ object StencilFieldCollection {
 
 case class StencilFieldSelection(
     var stencilField : StencilField,
-    var slot : Expression,
     var level : Expression,
+    var slot : Expression,
     var arrayIndex : Int,
     var fragIdx : Expression = LoopOverFragments.defIt) extends Node {
 

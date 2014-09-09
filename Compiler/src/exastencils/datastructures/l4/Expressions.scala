@@ -40,7 +40,7 @@ case class UnresolvedAccess(var identifier : String, var level : Option[AccessLe
   def resolveToBasicOrLeveledAccess = if (level.isDefined) LeveledAccess(identifier, level.get) else BasicAccess(identifier)
   def resolveToFieldAccess = FieldAccess(identifier, level.get, slot.getOrElse(IntegerConstant(0)), arrayIndex.getOrElse(0))
   def resolveToStencilAccess = StencilAccess(identifier, level.get)
-  def resolveToStencilFieldAccess = StencilFieldAccess(identifier, level.get, slot.getOrElse(IntegerConstant(0)))
+  def resolveToStencilFieldAccess = StencilFieldAccess(identifier, level.get, slot.getOrElse(IntegerConstant(0)), arrayIndex.getOrElse(-1))
 }
 
 case class BasicAccess(var name : String) extends Access {
@@ -88,15 +88,19 @@ case class StencilAccess(var name : String, var level : AccessLevelSpecification
   }
 }
 
-case class StencilFieldAccess(var name : String, var level : AccessLevelSpecification, var slot : Expression) extends Access {
+case class StencilFieldAccess(var name : String, var level : AccessLevelSpecification, var slot : Expression, var arrayIndex : Int) extends Access {
   def progressToIr : ir.StencilFieldAccess = {
-    ir.StencilFieldAccess(
-      knowledge.StencilFieldSelection(
-        knowledge.StencilFieldCollection.getStencilFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get,
-        ir.IntegerConstant(level.asInstanceOf[SingleLevelSpecification].level),
-        slot.progressToIr,
-        -1),
-      ir.LoopOverDimensions.defIt)
+    val field = knowledge.StencilFieldCollection.getStencilFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
+    val resolvedSlot = if (1 == field.field.numSlots) ir.IntegerConstant(0) else slot match {
+      // TODO: these keywords are up to discussion
+      // TODO: detect these keywords directly in the parser? Add specialized node(s)?
+      case BasicAccess("curSlot")  => data.SlotAccess(ir.iv.CurrentSlot(field.field), 0)
+      case BasicAccess("nextSlot") => data.SlotAccess(ir.iv.CurrentSlot(field.field), 1)
+      case BasicAccess("prevSlot") => data.SlotAccess(ir.iv.CurrentSlot(field.field), -1)
+      case _                       => slot.progressToIr
+    }
+
+    ir.StencilFieldAccess(knowledge.StencilFieldSelection(field, ir.IntegerConstant(field.field.level), resolvedSlot, arrayIndex), ir.LoopOverDimensions.defIt)
   }
 }
 

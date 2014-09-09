@@ -265,7 +265,8 @@ object Knowledge {
     Constraints.condEnsureValue(l3tmp_initSolWithRand, true, !l3tmp_genFunctionBC && !l3tmp_kelvin, "initial solution of zero corresponds to the exact solution if l3tmp_genFunctionBC is false")
     Constraints.condEnsureValue(l3tmp_initSolWithRand, false, l3tmp_genFunctionBC, "l3tmp_genFunctionBC requires initial solution of zero")
 
-    if (l3tmp_genVectorFields) Constraints.updateValue(l3tmp_numVecDims, 2) else Constraints.updateValue(l3tmp_numVecDims, 1)
+    Constraints.condEnsureValue(l3tmp_numVecDims, 1, !l3tmp_genVectorFields, "vector dimensions larger than 1 are only allowed in conjunction with vector fields")
+    Constraints.condEnsureValue(l3tmp_numVecDims, 2, l3tmp_genVectorFields && l3tmp_numVecDims <= 1, "vector dimensions must be larger than 1 when using vector fields")
 
     Constraints.condEnsureValue(l3tmp_genTimersPerFunction, false, !l3tmp_genAdvancedTimers, "requires l3tmp_genAdvancedTimers to be activated")
     Constraints.condEnsureValue(l3tmp_genTimersPerLevel, false, !l3tmp_genAdvancedTimers, "requires l3tmp_genAdvancedTimers to be activated")
