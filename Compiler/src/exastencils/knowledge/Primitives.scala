@@ -1,7 +1,6 @@
 package exastencils.knowledge
 
 import scala.collection.mutable.ListBuffer
-import exastencils.datastructures._
 
 class NeighborInfo(var dir : Array[Int], var index : Int) {
   var label : String = (Knowledge.dimensionality - 1 to 0 by -1).toList.map(i => dimToString(i).toUpperCase + dirToString(dir(i))).mkString("_")
