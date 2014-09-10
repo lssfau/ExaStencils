@@ -119,7 +119,7 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
         DimArray().map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
             case 6  => resolveIndex("DRE", i)
-            case 26 => resolveIndex("IE", i)
+            case 26 => resolveIndex("DRE", i)
           }
           case i if neigh.dir(i) < 0 => resolveIndex("DLB", i) + dupLayerEnd(i)
           case i if neigh.dir(i) > 0 => resolveIndex("DRE", i) - dupLayerBegin(i)
@@ -141,7 +141,7 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
         DimArray().map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
             case 6  => resolveIndex("DRE", i)
-            case 26 => resolveIndex("IE", i)
+            case 26 => resolveIndex("DRE", i)
           }
           case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) + dupLayerEnd(i)
           case i if neigh.dir(i) > 0 => resolveIndex("DRE", i) - dupLayerBegin(i)
@@ -160,7 +160,7 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
           DimArray().map(i => i match {
             case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("DRE", i)
-              case 26 => resolveIndex("IE", i)
+              case 26 => resolveIndex("DRE", i)
             }
             case i if -neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
             case i if -neigh.dir(i) > 0 => resolveIndex("DRE", i) + dupLayerEnd(i)
@@ -182,7 +182,7 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
         DimArray().map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
             case 6  => resolveIndex("DRE", i)
-            case 26 => resolveIndex("IE", i)
+            case 26 => resolveIndex("DRE", i)
           }
           case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
           case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
@@ -287,8 +287,8 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
         Knowledge.comm_strategyFragment match {
           case 6 => {
             for (dim <- 0 until Knowledge.dimensionality) {
-              var sendNeighbors = ListBuffer(neighbors(2 * dim + 0))
-              var recvNeighbors = ListBuffer(neighbors(2 * dim + 1))
+              var recvNeighbors = ListBuffer(neighbors(2 * dim + 0))
+              var sendNeighbors = ListBuffer(neighbors(2 * dim + 1))
               if (Knowledge.domain_canHaveRemoteNeighs) {
                 if (begin) {
                   body += new RemoteSends(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId)
