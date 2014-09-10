@@ -16,7 +16,7 @@ object CGS {
       else
         printer.println(s"\tUpResidual$postfix@current ( )")
 
-      Communication.exch(printer, s"Residual$postfix@current[$vecDim]")
+      Communication.exch(printer, Fields.residual("current", postfix)(vecDim))
 
       printer.println(s"\tVariable res : Real = L2Residual${postfix}_$vecDim@current ( )")
       printer.println(s"\tVariable initialRes : Real = res")
