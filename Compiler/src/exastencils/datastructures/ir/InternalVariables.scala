@@ -226,7 +226,6 @@ case class FieldData(var field : Field, var level : Expression, var slot : Expre
     val ret = Some(wrapInLoops(
       new ConditionStatement(access,
         ListBuffer[Statement](
-          if (Knowledge.data_addPrePadding) AssignmentStatement(access, access - field.alignmentPadding) else NullStatement,
           "delete []" ~~ access,
           new AssignmentStatement(access, 0)))))
     slot = origSlot

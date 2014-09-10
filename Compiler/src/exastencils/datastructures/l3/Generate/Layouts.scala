@@ -6,10 +6,25 @@ object Layouts {
   def addLayouts(printer : java.io.PrintWriter) = {
     Knowledge.dimensionality match {
       case 2 => {
+        printer.println("Layout NoComm {")
+        printer.println("\tghostLayers = [ 0, 0 ]")
+        printer.println("\tduplicateLayers = [ 1, 1 ]")
+        printer.println("}")
+
         printer.println("Layout BasicComm {")
         printer.println("\tghostLayers = [ 1, 1 ] with communication")
         printer.println("\tduplicateLayers = [ 1, 1 ] with communication")
         printer.println("}")
+
+        printer.println(s"Layout CommPartTempBlockable {")
+        if (Knowledge.l3tmp_genTemporalBlocking) {
+          printer.println(s"\tghostLayers = [ ${Knowledge.l3tmp_numPre - 1}, ${Knowledge.l3tmp_numPre - 1} ] with communication")
+          printer.println(s"\tduplicateLayers = [ 1, 1 ] with communication")
+        } else {
+          printer.println("\tghostLayers = [ 0, 0 ]")
+          printer.println("\tduplicateLayers = [ 1, 1 ]")
+        }
+        printer.println(s"}")
 
         printer.println(s"Layout CommFullTempBlockable {")
         if (Knowledge.l3tmp_genTemporalBlocking)
@@ -18,21 +33,6 @@ object Layouts {
           printer.println(s"\tghostLayers = [ 1, 1 ] with communication")
         printer.println(s"\tduplicateLayers = [ 1, 1 ] with communication")
         printer.println(s"}")
-
-        if (Knowledge.l3tmp_genTemporalBlocking) {
-          printer.println(s"Layout CommPartTempBlockable {")
-          if (Knowledge.l3tmp_numPre > 1)
-            printer.println(s"\tghostLayers = [ ${Knowledge.l3tmp_numPre - 1}, ${Knowledge.l3tmp_numPre - 1} ] with communication")
-          else
-            printer.println("\tghostLayers = [ 0, 0 ]")
-          printer.println(s"\tduplicateLayers = [ 1, 1 ] with communication")
-          printer.println(s"}")
-        }
-
-        printer.println("Layout NoComm {")
-        printer.println("\tghostLayers = [ 0, 0 ]")
-        printer.println("\tduplicateLayers = [ 1, 1 ]")
-        printer.println("}")
 
         if (Knowledge.l3tmp_genExtFields) {
           printer.println("Layout ExtSolLayout {")
@@ -44,10 +44,25 @@ object Layouts {
       }
 
       case 3 => {
+        printer.println("Layout NoComm {")
+        printer.println("\tghostLayers = [ 0, 0, 0 ]")
+        printer.println("\tduplicateLayers = [ 1, 1, 1 ]")
+        printer.println("}")
+
         printer.println("Layout BasicComm {")
         printer.println("\tghostLayers = [ 1, 1, 1 ] with communication")
         printer.println("\tduplicateLayers = [ 1, 1, 1 ] with communication")
         printer.println("}")
+
+        printer.println(s"Layout CommPartTempBlockable {")
+        if (Knowledge.l3tmp_genTemporalBlocking) {
+          printer.println(s"\tghostLayers = [ ${Knowledge.l3tmp_numPre - 1}, ${Knowledge.l3tmp_numPre - 1}, ${Knowledge.l3tmp_numPre - 1} ] with communication")
+          printer.println(s"\tduplicateLayers = [ 1, 1, 1 ] with communication")
+        } else {
+          printer.println("\tghostLayers = [ 0, 0, 0 ]")
+          printer.println("\tduplicateLayers = [ 1, 1, 1 ]")
+        }
+        printer.println(s"}")
 
         printer.println(s"Layout CommFullTempBlockable {")
         if (Knowledge.l3tmp_genTemporalBlocking)
@@ -56,21 +71,6 @@ object Layouts {
           printer.println(s"\tghostLayers = [ 1, 1, 1 ] with communication")
         printer.println(s"\tduplicateLayers = [ 1, 1, 1 ] with communication")
         printer.println(s"}")
-
-        if (Knowledge.l3tmp_genTemporalBlocking) {
-          printer.println(s"Layout CommPartTempBlockable {")
-          if (Knowledge.l3tmp_numPre > 1)
-            printer.println(s"\tghostLayers = [ ${Knowledge.l3tmp_numPre - 1}, ${Knowledge.l3tmp_numPre - 1}, ${Knowledge.l3tmp_numPre - 1} ] with communication")
-          else
-            printer.println("\tghostLayers = [ 0, 0, 0 ]")
-          printer.println(s"\tduplicateLayers = [ 1, 1, 1 ] with communication")
-          printer.println(s"}")
-        }
-
-        printer.println("Layout NoComm {")
-        printer.println("\tghostLayers = [ 0, 0, 0 ]")
-        printer.println("\tduplicateLayers = [ 1, 1, 1 ]")
-        printer.println("}")
 
         if (Knowledge.l3tmp_genExtFields) {
           printer.println("Layout ExtSolLayout {")

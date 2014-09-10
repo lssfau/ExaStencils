@@ -90,7 +90,7 @@ object Knowledge {
   var data_initAllFieldsWithZero : Boolean = true // specifies if all data points in all fields on all levels should initially be set zero (before the l4 initField functions are applied)
   var data_useFieldNamesAsIdx : Boolean = true // specifies if generated data field names should hold the clear text field identifier
 
-  var data_addPrePadding : Boolean = true // specifies if additional padding at the beginning of the field is required (e.g. to ensure correct alignment for SIMD accesses)
+  var data_addPrePadding : Boolean = false // TODO: currently removed due to problems with level-dependent layouts; specifies if additional padding at the beginning of the field is required (e.g. to ensure correct alignment for SIMD accesses)
 
   // --- OpenMP and MPI Parallelization ---
   var comm_strategyFragment : Int = 6 // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors
@@ -152,6 +152,7 @@ object Knowledge {
   var l3tmp_genStencilFields : Boolean = false // [true|false] // generates stencil fields that are used to store stencils of A (or RAP if l3tmp_genStencilStencilConv is true)
   var l3tmp_genAsyncCommunication : Boolean = false // [true|false] // replaces some sync communication statements in the L4 DSL file with their async counterparts 
   var l3tmp_genTemporalBlocking : Boolean = false // [true|false] // adds the necessary statements to the L4 DSL file to implement temporal blocking; adapts field layouts as well
+  var l3tmp_tempBlockingMinLevel : Int = 1 // [0|maxLevel] // specifies a threshold for adding temporal blocking to generated l4 files; only levels larger or equal to this threshold are blocked
   var l3tmp_useConditionsForRBGS : Boolean = true // [true|false] // uses conditions to realize red-black patterns (as opposed to adapted offsets and strides)
   var l3tmp_useSlotsForJac : Boolean = true // [true|false] // uses sloted solution fields for Jacobi (as opposed to multiple distinct fields)
   var l3tmp_useSlotVariables : Boolean = true // [true|false] // uses slot variables (curSlot, nextSlot, prevSlot) for access to slotted solution fields; allows for odd number of smoothing steps
@@ -259,7 +260,14 @@ object Knowledge {
       s"Currently NOT using l3tmp_useConditionsForRBGS leads to a color mismatch at primitive boundaries and thus to a reduced convergence rate")
 
     Constraints.condEnsureValue(l3tmp_useSlotVariables, false, !l3tmp_useSlotsForJac, "invalid if not using l3tmp_useSlotsForJac")
+    Constraints.condEnsureValue(l3tmp_numPost, l3tmp_numPre, l3tmp_genTemporalBlocking, "l3tmp_numPre and l3tmp_numPost have to be equal")
     Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_numPre != l3tmp_numPost, "l3tmp_numPre and l3tmp_numPost have to be equal")
+    Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, math.ceil(math.log(l3tmp_numPre) / math.log(2)).toInt,
+      l3tmp_genTemporalBlocking && l3tmp_tempBlockingMinLevel < math.ceil(math.log(l3tmp_numPre) / math.log(2)).toInt,
+      "temporal blocking requires a sufficient count of inner layers")
+    Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, 1, l3tmp_genTemporalBlocking && l3tmp_tempBlockingMinLevel < 1, "l3tmp_tempBlockingMinLevel must be larger than zero (no blocking on the coarsest level possible)")
+    Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, maxLevel, l3tmp_genTemporalBlocking && l3tmp_tempBlockingMinLevel > maxLevel, "l3tmp_tempBlockingMinLevel must be smaller or equal to maxLevel to enable temporal blocking")
+    Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, 1, !l3tmp_genTemporalBlocking, "l3tmp_tempBlockingMinLevel reset to default for deactivated l3tmp_genTemporalBlocking")
 
     Constraints.condEnsureValue(l3tmp_genFunctionBC, false, 2 != dimensionality, "l3tmp_genFunctionBC is only valid for 2D problems")
     Constraints.condEnsureValue(l3tmp_initSolWithRand, true, !l3tmp_genFunctionBC && !l3tmp_kelvin, "initial solution of zero corresponds to the exact solution if l3tmp_genFunctionBC is false")

@@ -3,19 +3,13 @@ package exastencils.datastructures.l3
 import exastencils.knowledge._
 
 object Cycle {
-  def addCycle(printer : java.io.PrintWriter, postfix : String) = {
-    if ("Jac" == Knowledge.l3tmp_smoother && !Knowledge.l3tmp_useSlotVariables) {
-      Knowledge.l3tmp_numPre /= 2
-      Knowledge.l3tmp_numPost /= 2
-    }
-    printer.println(s"Function VCycle$postfix@((coarsest + 1) to finest) ( ) : Unit {")
-
+  def printBody(printer : java.io.PrintWriter, postfix : String, tempBlocking : Boolean) = {
     if (Knowledge.l3tmp_genTimersPerFunction)
       printer.println(s"\tstartTimer ( preSmoothTimer$postfix${if (Knowledge.l3tmp_genTimersPerLevel) "@current" else ""} )")
-    if (!Knowledge.l3tmp_genTemporalBlocking)
+    if (!tempBlocking)
       printer.println(s"\trepeat ${Knowledge.l3tmp_numPre} times {")
     printer.println(s"\t\tSmoother$postfix@current ( )")
-    if (!Knowledge.l3tmp_genTemporalBlocking)
+    if (!tempBlocking)
       printer.println(s"\t}")
     if (Knowledge.l3tmp_genTimersPerFunction)
       printer.println(s"\tstopTimer ( preSmoothTimer$postfix${if (Knowledge.l3tmp_genTimersPerLevel) "@current" else ""} )")
@@ -51,15 +45,36 @@ object Cycle {
 
     if (Knowledge.l3tmp_genTimersPerFunction)
       printer.println(s"\tstartTimer ( postSmoothTimer$postfix${if (Knowledge.l3tmp_genTimersPerLevel) "@current" else ""} )")
-    if (!Knowledge.l3tmp_genTemporalBlocking)
+    if (!tempBlocking)
       printer.println(s"\trepeat ${Knowledge.l3tmp_numPost} times {")
     printer.println(s"\t\tSmoother$postfix@current ( )")
-    if (!Knowledge.l3tmp_genTemporalBlocking)
+    if (!tempBlocking)
       printer.println(s"\t}")
     if (Knowledge.l3tmp_genTimersPerFunction)
       printer.println(s"\tstopTimer ( postSmoothTimer$postfix${if (Knowledge.l3tmp_genTimersPerLevel) "@current" else ""} )")
+  }
 
-    printer.println(s"}")
+  def addCycle(printer : java.io.PrintWriter, postfix : String) = {
+    if ("Jac" == Knowledge.l3tmp_smoother && !Knowledge.l3tmp_useSlotVariables) {
+      Knowledge.l3tmp_numPre /= 2
+      Knowledge.l3tmp_numPost /= 2
+    }
+
+    if (Knowledge.l3tmp_genTemporalBlocking) {
+      if (Knowledge.l3tmp_tempBlockingMinLevel > 1) {
+        printer.println(s"Function VCycle$postfix@((coarsest + 1) to ${Knowledge.l3tmp_tempBlockingMinLevel - 1}) ( ) : Unit {")
+        printBody(printer, postfix, false)
+        printer.println(s"}")
+      }
+      printer.println(s"Function VCycle$postfix@(${Knowledge.l3tmp_tempBlockingMinLevel} to finest) ( ) : Unit {")
+      printBody(printer, postfix, true)
+      printer.println(s"}")
+    } else {
+      printer.println(s"Function VCycle$postfix@((coarsest + 1) to finest) ( ) : Unit {")
+      printBody(printer, postfix, false)
+      printer.println(s"}")
+    }
+
     printer.println
   }
 }

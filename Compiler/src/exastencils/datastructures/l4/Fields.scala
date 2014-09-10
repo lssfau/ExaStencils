@@ -120,13 +120,7 @@ case class FieldDeclarationStatement(var name : String,
       level.get.asInstanceOf[SingleLevelSpecification].level,
       slots,
       refOffset,
-      if (boundary.isDefined) Some(boundary.get.progressToIr) else None,
-      if (knowledge.Knowledge.data_addPrePadding)
-        ir.IntegerConstant(4) - (ir.IntegerConstant(ir_layout(0).idxDupLeftBegin) +
-        ir.ArrayAccess(new ir.iv.IterationOffsetBegin(ir.IntegerConstant(knowledge.DomainCollection.getDomainByIdentifier(domain).get.index)),
-          ir.IntegerConstant(0))) // TODO: specify correct alignmentPadding
-      else
-        ir.NullExpression)
+      if (boundary.isDefined) Some(boundary.get.progressToIr) else None)
   }
 }
 

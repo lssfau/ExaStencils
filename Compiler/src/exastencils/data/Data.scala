@@ -18,16 +18,13 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
 
     for (field <- fields) {
       var numDataPoints : Expression = field.layout(0).total * field.layout(1).total * field.layout(2).total * field.dataType.resolveFlattendSize
-      if (Knowledge.data_addPrePadding)
-        numDataPoints += field.alignmentPadding
-
       var statements : ListBuffer[Statement] = ListBuffer()
 
       for (slot <- 0 until field.numSlots) {
         statements += new AssignmentStatement(iv.FieldData(field, field.level, slot),
           ("new" : Expression) ~~ field.dataType.resolveUnderlyingDatatype. /*FIXME*/ cpp ~ "[" ~ numDataPoints ~ "]")
         if (Knowledge.data_addPrePadding)
-          statements += new AssignmentStatement(iv.FieldData(field, field.level, slot), iv.FieldData(field, field.level, slot) + field.alignmentPadding)
+          statements += new AssignmentStatement(iv.FieldData(field, field.level, slot), iv.FieldData(field, field.level, slot))
       }
 
       body += new LoopOverFragments(
