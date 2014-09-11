@@ -53,9 +53,9 @@ object Knowledge {
   }
 
   // the total number of fragments per dimension
-  var domain_numFragsTotal_x : Int = domain_numFragsPerBlock_x * domain_numBlocks_x
-  var domain_numFragsTotal_y : Int = domain_numFragsPerBlock_y * domain_numBlocks_y
-  var domain_numFragsTotal_z : Int = domain_numFragsPerBlock_z * domain_numBlocks_z
+  def domain_numFragsTotal_x : Int = domain_numFragsPerBlock_x * domain_numBlocks_x
+  def domain_numFragsTotal_y : Int = domain_numFragsPerBlock_y * domain_numBlocks_y
+  def domain_numFragsTotal_z : Int = domain_numFragsPerBlock_z * domain_numBlocks_z
   def domain_numFragsTotal : Int = {
     domain_numFragsTotal_x *
       (if (dimensionality > 1) domain_numFragsTotal_y else 1) *
@@ -193,19 +193,17 @@ object Knowledge {
 
     Constraints.updateValue(numLevels, maxLevel + 1)
 
-    if (domain_summarizeBlocks) {
-      Constraints.updateValue(domain_fragLength_x, domain_numFragsPerBlock_x)
-      Constraints.updateValue(domain_fragLength_y, domain_numFragsPerBlock_y)
-      Constraints.updateValue(domain_fragLength_z, domain_numFragsPerBlock_z)
-
-      Constraints.updateValue(domain_numFragsPerBlock_x, 1)
-      Constraints.updateValue(domain_numFragsPerBlock_y, 1)
-      Constraints.updateValue(domain_numFragsPerBlock_z, 1)
-    }
-
-    Constraints.updateValue(domain_numFragsTotal_x, domain_numFragsPerBlock_x * domain_numBlocks_x)
-    Constraints.updateValue(domain_numFragsTotal_y, domain_numFragsPerBlock_y * domain_numBlocks_y)
-    Constraints.updateValue(domain_numFragsTotal_z, domain_numFragsPerBlock_z * domain_numBlocks_z)
+    // constraints for enabled domain_summarizeBlocks
+    // TODO: remove domain_summarizeBlocks flag and replace functionality with correctly setting resulting parameters
+    Constraints.condEnsureValue(domain_fragLength_x, domain_fragLength_x * domain_numFragsPerBlock_x, domain_summarizeBlocks && domain_numFragsPerBlock_x > 1,
+      "domain_fragLength_x needs to be equal to the initial domain_numFragsPerBlock_x")
+    Constraints.condEnsureValue(domain_numFragsPerBlock_x, 1, domain_summarizeBlocks, "domain_numFragsPerBlock_x has to be equal to 1 for aggregated fragments")
+    Constraints.condEnsureValue(domain_fragLength_y, domain_fragLength_y * domain_numFragsPerBlock_y, domain_summarizeBlocks && domain_numFragsPerBlock_y > 1,
+      "domain_fragLength_y needs to be equal to the initial domain_numFragsPerBlock_y")
+    Constraints.condEnsureValue(domain_numFragsPerBlock_y, 1, domain_summarizeBlocks, "domain_numFragsPerBlock_y has to be equal to 1 for aggregated fragments")
+    Constraints.condEnsureValue(domain_fragLength_z, domain_fragLength_z * domain_numFragsPerBlock_z, domain_summarizeBlocks && domain_numFragsPerBlock_z > 1,
+      "domain_fragLength_z needs to be equal to the initial domain_numFragsPerBlock_z")
+    Constraints.condEnsureValue(domain_numFragsPerBlock_z, 1, domain_summarizeBlocks, "domain_numFragsPerBlock_z has to be equal to 1 for aggregated fragments")
 
     Constraints.updateValue(domain_canHaveRemoteNeighs, useMPI)
     Constraints.updateValue(domain_canHaveLocalNeighs, (domain_numFragsPerBlock > 1))
