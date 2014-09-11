@@ -52,6 +52,10 @@ object Smoothers {
 
   def addBodyRBGS(printer : java.io.PrintWriter, postfix : String, stencil : String, tempBlocking : Boolean) = {
     Communication.exch(printer, s"Solution$postfix@current")
+    if (tempBlocking)
+      Communication.exch(printer, s"RHS$postfix@current")
+
+    addBodyBefore(printer, postfix, tempBlocking)
 
     Knowledge.dimensionality match {
       case 2 => {
@@ -71,7 +75,9 @@ object Smoothers {
       printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)} = ${Fields.solution(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( $stencil ) ) * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solution(s"current", postfix)(vecDim)} ) )")
     printer.println(s"\t}")
 
-    Communication.exch(printer, s"Solution$postfix@current")
+    if (!tempBlocking)
+      Communication.exch(printer, s"Solution$postfix@current")
+    // FIXME: else
 
     Knowledge.dimensionality match {
       case 2 => {
@@ -90,6 +96,8 @@ object Smoothers {
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims)
       printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)} = ${Fields.solution(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( $stencil ) ) * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solution(s"current", postfix)(vecDim)} ) )")
     printer.println(s"\t}")
+
+    addBodyAfter(printer, postfix, tempBlocking)
   }
 
   def addBodyGS(printer : java.io.PrintWriter, postfix : String, stencil : String, tempBlocking : Boolean) = {
