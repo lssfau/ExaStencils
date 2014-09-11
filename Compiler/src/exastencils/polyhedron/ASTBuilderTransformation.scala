@@ -30,13 +30,13 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
   private var parallelize_omp : Boolean = false
   private var reduction : Option[Reduction] = None
 
-  def isDefinedAt(node : Node) : Boolean = node match {
+  override def isDefinedAt(node : Node) : Boolean = node match {
     case loop : LoopOverDimensions with PolyhedronAccessable =>
       loop.hasAnnotation(PolyOpt.SCOP_ANNOT)
     case _ => false
   }
 
-  def apply(node : Node) : Transformation.OutputType = {
+  override def apply(node : Node) : Transformation.OutputType = {
 
     val scop : Scop = node.removeAnnotation(PolyOpt.SCOP_ANNOT).get.value.asInstanceOf[Scop]
     if (scop.remove)
@@ -104,7 +104,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
     islBuild = islBuild.setIterators(itersId)
     var scattering : isl.UnionMap = Isl.simplify(scop.schedule.intersectDomain(scop.domain))
     val islNode : isl.AstNode = islBuild.astFromSchedule(scattering)
-    var nju : Statement =
+    var nju : ListBuffer[Statement] =
       try {
         processIslNode(islNode)
       } catch {
@@ -133,6 +133,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
 
     // add comment (for debugging) and (eventually) declarations outside loop nest
     val comment = new CommentStatement("Statements in this Scop: " + scop.stmts.keySet.mkString(", "))
+    nju.+=:(comment) // "comment +=: nju" works too, but both versions are equally horrible
     if (!scop.decls.isEmpty) {
       val scopeList = new ListBuffer[Statement]
       for (decl : VariableDeclarationStatement <- scop.decls) {
@@ -140,14 +141,13 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
         if (!scopeList.contains(decl)) // only add if not yet available
           scopeList += decl
       }
-      scopeList += comment
-      scopeList += nju
+      scopeList ++= nju
       return new Scope(scopeList)
     } else
-      return ListBuffer[Statement](comment, nju)
+      return nju
   }
 
-  private def processIslNode(node : isl.AstNode) : Statement = {
+  private def processIslNode(node : isl.AstNode) : ListBuffer[Statement] = {
 
     return node.getType() match {
 
@@ -156,8 +156,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
           val islIt : isl.AstExpr = node.forGetIterator()
           assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
           val decl : Statement = VariableDeclarationStatement(IntegerDatatype(), islIt.getId().getName(), Some(processIslExpr(node.forGetInit())))
-
-          Scope(ListBuffer[Statement](decl, processIslNode(node.forGetBody())))
+          processIslNode(node.forGetBody()).+=:(decl)
 
         } else {
           val islIt : isl.AstExpr = node.forGetIterator()
@@ -170,40 +169,31 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
           val cond : Expression = processIslExpr(node.forGetCond())
           val incr : Statement = AssignmentStatement(it, processIslExpr(node.forGetInc()), "+=")
 
-          val body : Statement = processIslNode(node.forGetBody())
+          val body : ListBuffer[Statement] = processIslNode(node.forGetBody())
           parallelize_omp |= parOMP // restore overall parallelization level
           val loop : ForLoopStatement with OptimizationHint =
             if (parOMP)
-              body match {
-                case Scope(raw) => new ForLoopStatement(init, cond, incr, raw, reduction) with OptimizationHint with OMP_PotentiallyParallel
-                case _          => new ForLoopStatement(init, cond, incr, body, reduction) with OptimizationHint with OMP_PotentiallyParallel
-              }
+              new ForLoopStatement(init, cond, incr, body, reduction) with OptimizationHint with OMP_PotentiallyParallel
             else
-              body match {
-                case Scope(raw) => new ForLoopStatement(init, cond, incr, raw, reduction) with OptimizationHint
-                case _          => new ForLoopStatement(init, cond, incr, body, reduction) with OptimizationHint
-              }
+              new ForLoopStatement(init, cond, incr, body, reduction) with OptimizationHint
           loop.isParallel = seqDims != null && !seqDims.contains(itStr)
           loopStmts.getOrElseUpdate(itStr, new ListBuffer()) += loop
-          loop
+          ListBuffer[Statement](loop)
         }
 
       case isl.AstNodeType.NodeIf =>
         val cond : Expression = processIslExpr(node.ifGetCond())
-        val thenBranch : Statement = processIslNode(node.ifGetThen())
+        val thenBranch : ListBuffer[Statement] = processIslNode(node.ifGetThen())
         if (node.ifHasElse()) {
-          val els : Statement = processIslNode(node.ifGetElse())
-          new ConditionStatement(cond, thenBranch, els)
+          val els : ListBuffer[Statement] = processIslNode(node.ifGetElse())
+          ListBuffer[Statement](new ConditionStatement(cond, thenBranch, els))
         } else
-          new ConditionStatement(cond, thenBranch)
+          ListBuffer[Statement](new ConditionStatement(cond, thenBranch))
 
       case isl.AstNodeType.NodeBlock =>
         val stmts = new ListBuffer[Statement]
-        node.blockGetChildren().foreach({ stmt : isl.AstNode => stmts += processIslNode(stmt); () })
-        if (stmts.length == 1)
-          stmts(0)
-        else
-          new Scope(stmts)
+        node.blockGetChildren().foreach({ stmt : isl.AstNode => stmts ++= processIslNode(stmt); () })
+        stmts
 
       case isl.AstNodeType.NodeUser =>
         val expr : isl.AstExpr = node.userGetExpr()
@@ -217,7 +207,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
           repl.put(loopVars(loopVars.size - d), args(d))
 
         replaceCallback(repl, stmt)
-        stmt
+        ListBuffer[Statement](stmt)
 
       case isl.AstNodeType.NodeError => throw new PolyASTBuilderException("NodeError found...")
     }

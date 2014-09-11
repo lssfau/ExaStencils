@@ -188,10 +188,6 @@ private final object IntegrateAnnotations extends PartialFunction[Node, Transfor
         bases.addToDecls(stmts)
 
       stmts += node.asInstanceOf[Statement]
-      if (node.hasAnnotation(InScope.ANNOT))
-        return stmts
-
-      node.annotate(InScope.ANNOT)
       return new Scope(stmts)
     }
   }

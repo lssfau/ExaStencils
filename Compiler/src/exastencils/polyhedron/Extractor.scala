@@ -385,7 +385,7 @@ class Extractor extends Collector {
     try {
       if (!curScop.exists())
         node match {
-          case loop : LoopOverDimensions with PolyhedronAccessable =>
+          case loop : LoopOverDimensions with PolyhedronAccessable if (loop.parallelizationIsReasonable) =>
             loop.indices.annotate(SKIP_ANNOT)
             loop.stepSize.annotate(SKIP_ANNOT)
             if (loop.condition.isDefined)
