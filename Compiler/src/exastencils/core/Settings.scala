@@ -8,7 +8,7 @@ object Settings {
   var outputPath : String = "/tmp/"
   var buildfileGenerator: BuildfileGenerator = MakefileGenerator
   var binary : String = "exastencils"
-  val basePathPrefix : String = "."
+  var basePathPrefix : String = ".."
   var l4file : String = null
   def getL4file : String = if (l4file != null) l4file else basePathPrefix + "/Compiler/dsl/Layer4.exa"
   var additionalIncludes : ListBuffer[String] = ListBuffer()
