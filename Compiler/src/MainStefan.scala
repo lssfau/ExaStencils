@@ -2,6 +2,7 @@ import exastencils.communication._
 import exastencils.core._
 import exastencils.data._
 import exastencils.datastructures._
+import exastencils.datastructures.ir._
 import exastencils.domain._
 import exastencils.globals._
 import exastencils.knowledge._
@@ -37,11 +38,11 @@ object MainStefan {
 
     // HACK: this will setup a dummy L4 DSL file
     StateManager.root_ = new l3.Root
-    StateManager.root_.asInstanceOf[l3.Root].printToL4(Settings.basePathPrefix + "/Compiler/dsl/Layer4.exa")
+    StateManager.root_.asInstanceOf[l3.Root].printToL4(Settings.getL4file)
 
     // HACK: this tests the new L4 capabilities
     var parserl4 = new ParserL4
-    StateManager.root_ = parserl4.parseFile(Settings.basePathPrefix + "/Compiler/dsl/Layer4.exa")
+    StateManager.root_ = parserl4.parseFile(Settings.getL4file)
     ValidationL4.apply
     ProgressToIr.apply()
 
@@ -83,6 +84,7 @@ object MainStefan {
         ExpandStrategy.doUntilDone()
     }
 
+    ResolveDiagFunction.apply()
     ResolveContractingLoop.apply()
 
     MapStencilAssignments.apply()
@@ -132,6 +134,16 @@ object MainStefan {
     ResolveSlotOperationsStrategy.apply()
 
     ResolveIndexOffsets.apply()
+    //    val DebugStrat = new exastencils.datastructures.DefaultStrategy("debug")
+    //    DebugStrat += new exastencils.datastructures.Transformation("blub!", {
+    //      case fa : FieldAccess =>
+    //        println(fa.fieldSelection.codeName)
+    //        fa
+    //      case dfa : DirectFieldAccess =>
+    //        println(dfa.fieldSelection.codeName)
+    //        dfa
+    //    })
+    //    DebugStrat.apply()
     LinearizeFieldAccesses.apply()
 
     if (Knowledge.useFasterExpand)

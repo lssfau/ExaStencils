@@ -40,11 +40,11 @@ object Main {
 
     // HACK: this will setup a dummy L4 DSL file
     StateManager.root_ = new l3.Root
-    StateManager.root_.asInstanceOf[l3.Root].printToL4(Settings.basePathPrefix + "/Compiler/dsl/Layer4.exa")
+    StateManager.root_.asInstanceOf[l3.Root].printToL4(Settings.getL4file)
 
     // HACK: this tests the new L4 capabilities
     var parserl4 = new ParserL4
-    StateManager.root_ = parserl4.parseFile(Settings.basePathPrefix + "/Compiler/dsl/Layer4.exa")
+    StateManager.root_ = parserl4.parseFile(Settings.getL4file)
     ValidationL4.apply
     ProgressToIr.apply()
 
