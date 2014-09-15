@@ -59,26 +59,4 @@ class ExaParser extends StandardTokenParsers {
     ||| ("-" ~> numericLit ^^ { case n if (isReal(n)) => -n.toDouble }))
 
   lazy val booleanLit : Parser[String] = "true" ||| "false"
-
-  // set members of given object obj via reflection
-  def set[T](obj : AnyRef, ident : String, value : T) = {
-    if (!value.equals(None))
-      println("setting " + ident + " to " + value)
-    else
-      println("variable " + ident)
-    val field = obj.getClass.getDeclaredField(ident)
-    val accessible = field.isAccessible
-    field.setAccessible(true)
-
-    if (field.get(obj).getClass.equals(None.getClass())) {
-      // Field is Option[T]
-      obj.getClass.getMethods.find(_.getName == ident + "_$eq").get.invoke(obj, Option[T](value))
-    } else {
-      // field is POSO - set directly
-      obj.getClass.getMethods.find(_.getName == ident + "_$eq").get.invoke(obj, value.asInstanceOf[Object])
-    }
-
-    field.setAccessible(accessible)
-  }
-
 }

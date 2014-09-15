@@ -2,6 +2,7 @@ package exastencils.parsers.settings
 
 import exastencils.parsers.ExaParser
 import scala.util.parsing.combinator._
+import exastencils.core.UniversalSetter
 
 class ParserSettings extends ExaParser {
   def parse(s : String) : Unit = {
@@ -31,7 +32,7 @@ class ParserSettings extends ExaParser {
    
   lazy val settingsfile = setting.*
   
-  lazy val setting = ident ~ "=" ~ expr ^^ { case id ~ "=" ~ ex => set(exastencils.core.Settings, id, ex) }
+  lazy val setting = ident ~ "=" ~ expr ^^ { case id ~ "=" ~ ex => UniversalSetter(exastencils.core.Settings, id, ex) }
   
   lazy val expr = stringLit ^^ { _.toString } |
   numericLit ^^ { _.toInt } |
