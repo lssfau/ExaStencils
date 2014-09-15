@@ -26,7 +26,10 @@ case class DomainDeclarationStatement(var name : String, var lower : RealIndex, 
   }
 }
 
-case class IterationSetDeclarationStatement(var identifier : Identifier, var begin : ExpressionIndex, var end : Option[ExpressionIndex], var increment : Option[ExpressionIndex], var condition : Option[BooleanExpression]) extends SpecialStatement {
+case class IterationSetDeclarationStatement(var identifier : Identifier,
+    var begin : ExpressionIndex, var end : Option[ExpressionIndex],
+    var increment : Option[ExpressionIndex],
+    var condition : Option[Expression]) extends SpecialStatement {
   def progressToIr : knowledge.IterationSet = {
     knowledge.IterationSet(identifier.asInstanceOf[BasicIdentifier].progressToIr.value,
       begin.progressToIr,
@@ -64,12 +67,12 @@ case class VariableDeclarationStatement(var identifier : Identifier, var datatyp
   }
 }
 
-case class ValueDeclarationStatement(var Identifier:Identifier, var datatype:Datatype, var expression:Expression) extends Statement {
-//  def progressToIr : ir.ValueDeclarationStatement = {
-//    ir.ValueDeclarationStatement(datatype.progressToIr,
-//      identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
-//      expression.get.progressToIr
-//  }
+case class ValueDeclarationStatement(var Identifier : Identifier, var datatype : Datatype, var expression : Expression) extends Statement {
+  //  def progressToIr : ir.ValueDeclarationStatement = {
+  //    ir.ValueDeclarationStatement(datatype.progressToIr,
+  //      identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
+  //      expression.get.progressToIr
+  //  }
   def progressToIr : ir.Statement = ir.NullStatement
 }
 
@@ -79,9 +82,13 @@ case class AssignmentStatement(var dest : Access, var src : Expression, var op :
   }
 }
 
-case class LoopOverPointsStatement(var field : FieldAccess, var condition : Option[BooleanExpression],
-    var startOffset : Option[ExpressionIndex], var endOffset : Option[ExpressionIndex], var increment : Option[ExpressionIndex],
-    var statements : List[Statement], var reduction : Option[ReductionStatement]) extends Statement {
+case class LoopOverPointsStatement(
+    var field : FieldAccess, var condition : Option[Expression],
+    var startOffset : Option[ExpressionIndex],
+    var endOffset : Option[ExpressionIndex],
+    var increment : Option[ExpressionIndex],
+    var statements : List[Statement],
+    var reduction : Option[ReductionStatement]) extends Statement {
   def progressToIr : ir.LoopOverPoints = {
     ir.LoopOverPoints(field.resolveField,
       if (startOffset.isDefined) startOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
@@ -111,7 +118,7 @@ case class FunctionStatement(var identifier : Identifier, var returntype : Datat
 }
 
 case class RepeatUpStatement(var number : Int, var iterator : Option[Access], var contraction : Boolean,
-    var statements : List[Statement]) extends Statement {
+                             var statements : List[Statement]) extends Statement {
 
   def progressToIr : ir.Statement = {
     if (contraction)
@@ -154,7 +161,7 @@ case class FunctionCallStatement(var call : FunctionCallExpression) extends Stat
   }
 }
 
-case class ConditionalStatement(var expression : BooleanExpression, var statements : List[Statement]) extends Statement {
+case class ConditionalStatement(var expression : Expression, var statements : List[Statement]) extends Statement {
   def progressToIr : ir.ConditionStatement = {
     new ir.ConditionStatement(expression.progressToIr, statements.map(s => s.progressToIr).to[ListBuffer])
   }

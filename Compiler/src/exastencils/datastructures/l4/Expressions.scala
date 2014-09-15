@@ -130,6 +130,12 @@ case class BooleanExpression(var operator : String, var left : Expression, var r
   }
 }
 
+case class UnaryBooleanExpression(var operator : String, var exp : Expression) extends Expression {
+  def progressToIr : ir.Expression = {
+    ir.BinaryOperators.CreateExpression(operator, exp.progressToIr, null) // second argument is ignored
+  }
+}
+
 case class FunctionCallExpression(var identifier : Access, var arguments : List[Expression]) extends Expression {
   def progressToIr : ir.FunctionCallExpression = {
     ir.FunctionCallExpression(ir.StringConstant(identifier.progressToIr.asInstanceOf[ir.StringConstant].value),

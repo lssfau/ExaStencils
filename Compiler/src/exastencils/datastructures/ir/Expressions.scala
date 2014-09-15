@@ -44,8 +44,10 @@ object BinaryOperators extends Enumeration {
   val Division = Value("/")
   val Power = Value("**") // FIXME
   val Modulo = Value("%")
+  
   val AndAnd = Value("&&")
   val OrOr = Value("||")
+  val Negation = Value("!")
   val EqEq = Value("==")
   val NeqNeq = Value("!=")
   val Lower = Value("<")
@@ -66,18 +68,18 @@ object BinaryOperators extends Enumeration {
     case Subtraction    => return new SubtractionExpression(left, right)
     case Multiplication => return new MultiplicationExpression(left, right)
     case Division       => return new DivisionExpression(left, right)
-    case Modulo         => return new ModuloExpression(left, right)
     case Power          => return new PowerExpression(left, right)
-
-    case EqEq           => return new EqEqExpression(left, right)
-    case NeqNeq         => return new NeqNeqExpression(left, right)
+    case Modulo         => return new ModuloExpression(left, right)
+    
     case AndAnd         => return new AndAndExpression(left, right)
     case OrOr           => return new OrOrExpression(left, right)
+    case Negation       => return new NegationExpression(left)
+    case EqEq           => return new EqEqExpression(left, right)
+    case NeqNeq         => return new NeqNeqExpression(left, right)
     case Lower          => return new LowerExpression(left, right)
-    case Greater        => return new GreaterExpression(left, right)
     case LowerEqual     => return new LowerEqualExpression(left, right)
+    case Greater        => return new GreaterExpression(left, right)
     case GreaterEqual   => return new GreaterEqualExpression(left, right)
-
     case BitwiseAnd     => return new BitwiseAndExpression(left, right)
   }
 }
@@ -329,6 +331,10 @@ case class AndAndExpression(var left : Expression, var right : Expression) exten
 
 case class OrOrExpression(var left : Expression, var right : Expression) extends Expression {
   override def cpp(out : CppStream) : Unit = out << '(' << left << "||" << right << ')'
+}
+
+case class NegationExpression(var left : Expression) extends Expression {
+  override def cpp(out : CppStream) : Unit = out << '!' << '(' << left << ')'
 }
 
 case class LowerExpression(var left : Expression, var right : Expression) extends Expression {
