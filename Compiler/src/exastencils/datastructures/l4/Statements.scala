@@ -76,7 +76,7 @@ case class VariableDeclarationStatement(var identifier : Identifier, var datatyp
   }
 }
 
-case class ValueDeclarationStatement(var Identifier : Identifier, var datatype : Datatype, var expression : Expression) extends Statement {
+case class ValueDeclarationStatement(var identifier : Identifier, var datatype : Datatype, var expression : Expression) extends Statement {
   //  def progressToIr : ir.ValueDeclarationStatement = {
   //    ir.ValueDeclarationStatement(datatype.progressToIr,
   //      identifier.progressToIr.asInstanceOf[ir.StringConstant].value,

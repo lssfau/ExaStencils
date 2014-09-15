@@ -116,11 +116,11 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| applyBCsStatement
     ||| communicateStatement)
 
-  lazy val variableDeclaration = (locationize((("Var" ||| "Variable") ~> ident) ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
-    ^^ { case id ~ dt ~ exp => VariableDeclarationStatement(BasicIdentifier(id), dt, exp) }))
+  lazy val variableDeclaration = (locationize((("Var" ||| "Variable") ~> identifierWithOptionalLevel) ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
+    ^^ { case id ~ dt ~ exp => VariableDeclarationStatement(id, dt, exp) }))
 
-  lazy val valueDeclaration = (locationize((("Val" ||| "Value") ~> ident) ~ (":" ~> datatype) ~ ("=" ~> binaryexpression)
-    ^^ { case id ~ dt ~ exp => ValueDeclarationStatement(BasicIdentifier(id), dt, exp) }))
+  lazy val valueDeclaration = (locationize((("Val" ||| "Value") ~> identifierWithOptionalLevel) ~ (":" ~> datatype) ~ ("=" ~> binaryexpression)
+    ^^ { case id ~ dt ~ exp => ValueDeclarationStatement(id, dt, exp) }))
 
   lazy val repeatNTimes = locationize(("repeat" ~> numericLit <~ "times") ~ ("count" ~> (flatAccess ||| leveledAccess)).? ~ ("with" ~> "contraction").? ~ ("{" ~> statement.+ <~ "}") ^^
     { case n ~ i ~ c ~ s => RepeatUpStatement(n.toInt, i, c.isDefined, s) })

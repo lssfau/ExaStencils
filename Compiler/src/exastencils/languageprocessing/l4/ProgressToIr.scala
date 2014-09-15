@@ -54,6 +54,59 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
     //case _ => Log.error("ResolveRelativeIdentifiers: fixme")
   })
 
+  this += new Transformation("UnfoldValuesAndVariables", {
+    case value : ValueDeclarationStatement => value.identifier match {
+      case LeveledIdentifier(_, level) => duplicateValueDeclaration(value, level)
+      case BasicIdentifier(_)          => value
+    }
+    case variable : VariableDeclarationStatement => variable.identifier match {
+      case LeveledIdentifier(_, level) => duplicateVariableDeclaration(variable, level)
+      case BasicIdentifier(_)          => variable
+    }
+  })
+
+  def duplicateValueDeclaration(value : ValueDeclarationStatement, level : LevelSpecification) : List[ValueDeclarationStatement] = {
+    var values = new ListBuffer[ValueDeclarationStatement]()
+    level match {
+      case level @ (SingleLevelSpecification(_) | CurrentLevelSpecification() | CoarserLevelSpecification() | FinerLevelSpecification()) => {
+        var f = Duplicate(value)
+        f.identifier = new LeveledIdentifier(f.identifier.name, level)
+        values += f
+      }
+      case level : ListLevelSpecification =>
+        level.levels.foreach(level => values ++= duplicateValueDeclaration(value, level))
+      case level : RangeLevelSpecification => // there is no relative (e.g., "current+1") level allowed for function definitions
+        for (level <- math.min(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level) to math.max(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level)) {
+          var f = Duplicate(value)
+          f.identifier = new LeveledIdentifier(f.identifier.name, SingleLevelSpecification(level))
+          values += f
+        }
+      case _ => Logger.error(s"Invalid level specification for Value $value: $level")
+    }
+    return values.toList
+  }
+
+  def duplicateVariableDeclaration(variable : VariableDeclarationStatement, level : LevelSpecification) : List[VariableDeclarationStatement] = {
+    var variables = new ListBuffer[VariableDeclarationStatement]()
+    level match {
+      case level @ (SingleLevelSpecification(_) | CurrentLevelSpecification() | CoarserLevelSpecification() | FinerLevelSpecification()) => {
+        var f = Duplicate(variable)
+        f.identifier = new LeveledIdentifier(f.identifier.name, level)
+        variables += f
+      }
+      case level : ListLevelSpecification =>
+        level.levels.foreach(level => variables ++= duplicateVariableDeclaration(variable, level))
+      case level : RangeLevelSpecification => // there is no relative (e.g., "current+1") level allowed for function definitions
+        for (level <- math.min(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level) to math.max(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level)) {
+          var f = Duplicate(variable)
+          f.identifier = new LeveledIdentifier(f.identifier.name, SingleLevelSpecification(level))
+          variables += f
+        }
+      case _ => Logger.error(s"Invalid level specification for Variable $variable: $level")
+    }
+    return variables.toList
+  }
+
   // unfold function declarations and calls
   // FIXME: can this be combined into one more generic transformation?
 
