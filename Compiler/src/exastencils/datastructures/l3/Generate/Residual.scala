@@ -4,7 +4,10 @@ import exastencils.knowledge._
 
 object Residual {
   def addUpdateBody(printer : java.io.PrintWriter, postfix : String, stencil : String) = {
-    Communication.exch(printer, s"Solution$postfix[curSlot]@current")
+    if (Knowledge.l3tmp_genTemporalBlocking)
+      Communication.exch(printer, s"Solution$postfix[curSlot]@current", s"dup ghost [ ${Array.fill(Knowledge.dimensionality)(0).mkString(", ")} ]")
+    else
+      Communication.exch(printer, s"Solution$postfix[curSlot]@current")
 
     if (Knowledge.l3tmp_genFragLoops)
       printer.println(s"\tloop over fragments {")
@@ -17,7 +20,7 @@ object Residual {
 
     if (Knowledge.l3tmp_genAsyncCommunication) {
       printer.println(s"\tif ( levels@current > levels@coarsest && startComm > 0 ) {")
-      printer.println(s"\t\tbegin communicate Residual$postfix@current")
+      printer.println(s"\t\tbegin communicate Residual$postfix@current", "ghost")
       printer.println(s"\t}")
     }
   }
@@ -40,7 +43,6 @@ object Residual {
   def addReductionFunction(printer : java.io.PrintWriter, postfix : String) = {
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
       printer.println(s"Function L2Residual${postfix}_$vecDim@(coarsest and finest) ( ) : Real {")
-      Communication.exch(printer, s"Residual$postfix@current")
 
       printer.println(s"\tVariable res : Real = 0")
       if (Knowledge.l3tmp_genFragLoops)

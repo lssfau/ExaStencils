@@ -225,8 +225,9 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       loop.body = loop.body(0).asInstanceOf[Scope].body
       loop
 
-    case scope @ Scope(body) if (body.filter(s => s.isInstanceOf[VariableDeclarationStatement]).isEmpty) =>
-      scope.body // no declarations inside, remove scope
+    case scope @ Scope(body) if (body.length == 1 && body(0).isInstanceOf[Scope]) =>
+      scope.body = scope.body(0).asInstanceOf[Scope].body
+      scope
 
     case cond @ ConditionStatement(_, trueBody, _) if (trueBody.length == 1 && trueBody(0).isInstanceOf[Scope]) =>
       cond.trueBody = trueBody(0).asInstanceOf[Scope].body

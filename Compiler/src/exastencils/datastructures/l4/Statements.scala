@@ -2,7 +2,6 @@ package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.communication
 import exastencils.datastructures._
 import exastencils.globals._
 import exastencils.knowledge
@@ -149,12 +148,6 @@ case class FunctionCallStatement(var call : FunctionCallExpression) extends Stat
 case class ConditionalStatement(var expression : BooleanExpression, var statements : List[Statement]) extends Statement {
   def progressToIr : ir.ConditionStatement = {
     new ir.ConditionStatement(expression.progressToIr, statements.map(s => s.progressToIr).to[ListBuffer])
-  }
-}
-
-case class CommunicateStatement(var field : FieldAccess, var op : String) extends Statement {
-  def progressToIr : communication.CommunicateStatement = {
-    communication.CommunicateStatement(field.progressToIr.fieldSelection, op)
   }
 }
 

@@ -15,7 +15,7 @@ import exastencils.omp._
 import exastencils.optimization._
 import exastencils.polyhedron._
 import exastencils.strategies._
-import exastencils.util.SimplifyExpression
+import exastencils.util._
 
 case class ContractingLoop(var number : Int, var iterator : Option[Expression], var statements : ListBuffer[Statement]) extends Statement {
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = ContractingLoop\n"

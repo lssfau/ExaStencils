@@ -81,6 +81,22 @@ object Application {
 
     printer.println("\tInitRHS ( )")
     printer.println("\tInitSolution ( )")
+
+    // TODO: add other fields here if bc handling is required
+    for (lvl <- 0 to Knowledge.maxLevel) {
+      if ("Jac" == Knowledge.l3tmp_smoother) {
+        if (Knowledge.l3tmp_useSlotsForJac) {
+          Communication.applyBCs(printer, s"Solution[0]@$lvl")
+          Communication.applyBCs(printer, s"Solution[1]@$lvl")
+        } else {
+          Communication.applyBCs(printer, s"Solution@$lvl")
+          Communication.applyBCs(printer, s"Solution2@$lvl")
+        }
+      } else {
+        Communication.applyBCs(printer, s"Solution@$lvl")
+      }
+    }
+
     printer.println("\tSolve ( )")
 
     if (Knowledge.l3tmp_kelvin) {

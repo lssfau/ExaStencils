@@ -37,7 +37,7 @@ Globals {
 
 Function SmootherT() : Unit {
 	loop over fragments {
-		repeat 5 times with contraction {
+		repeat 3 times with contraction {
 			loop over SolutionT@finest {
 				SolutionT[nextSlot]@finest = SolutionT[curSlot]@finest + (1.0 / diag(Laplace@finest) * 0.8 * (RHST@finest - Laplace@finest * SolutionT[curSlot]@finest))
 			}
@@ -69,10 +69,12 @@ Function InitAll ( ) : Unit {
 	}
 }
 
-Function LUPs() : Integer {
-	Variable combinedFrags : Integer = 4
-	Variable fragSize : Integer = 257 * 257 * 257
-	return(combinedFrags * fragSize)
+Function LUPs() : Real {
+	Variable combinedFrags_x : Integer = 2
+	Variable combinedFrags_y : Integer = 2
+	Variable combinedFrags_z : Integer = 2
+	Variable dimSize : Integer = 256
+	return((combinedFrags_x * dimSize + 1) * (combinedFrags_y * dimSize + 1) * (combinedFrags_z * dimSize + 1))
 }
 
 Function BenchmarkT() : Unit {
@@ -83,12 +85,12 @@ Function BenchmarkT() : Unit {
 	print('"Starting benchmark (temporal blocking)"')
 	Variable time : Real = 0
 	startTimer(benchTimer)
-	repeat 4 times {
+	repeat 7 times {
 		SmootherT()
 	}
 	stopTimer(benchTimer, time)
 	print('"Runtime: "', time)
-	print('"MLUPs: "', (LUPs() * 20) / time / 1e3)
+	print('"MLUPs: "', (LUPs() * 21) / time / 1e3)
 }
 
 Function Benchmark() : Unit {

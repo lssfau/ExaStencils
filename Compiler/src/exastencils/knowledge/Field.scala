@@ -3,7 +3,6 @@ package exastencils.knowledge
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core.Logger._
-import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -75,8 +74,7 @@ case class Field(
     var level : Int, // the (geometric) level the field lives on 
     var numSlots : Int, // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
     var referenceOffset : MultiIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
-    var dirichletBC : Option[Expression], // None in case of no dirichlet BC, otherwise specifies the expression to be used for the dirichlet boundary
-    var alignmentPadding : Expression // specifies an additional padding at the beginning of the field in order to ensure correct alignment for SIMD accesses
+    var dirichletBC : Option[Expression] // None in case of no dirichlet BC, otherwise specifies the expression to be used for the dirichlet boundary
     ) {
   def vectorSize = dataType.resolveFlattendSize
 }
