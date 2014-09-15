@@ -345,6 +345,9 @@ object StateManager {
             Logger.error(s"Could not set $getter in transformation ${transformation.name}")
           }
         }
+        case list : Array[_] => {
+          Logger.warn("Arrays are currently not supported for matching!")
+        }
         //        case list : Array[_] => {
         //          val arrayType = list.getClass().getComponentType()
         //          val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
