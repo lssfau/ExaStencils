@@ -182,12 +182,11 @@ object StateManager {
                 Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
               }
             }
-//            case m : NodeList if m.nodes.size == 1 => {
-//              if (!Vars.set(node, setter, m.nodes.toSeq(0))) {
-//                Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
-//              }
-//            }
-            case m : NodeList => Logger.error(s"""not possible: trafo=$transformation\n$node\n$getter\n$n\n$m""")
+            case m : NodeList if m.nodes.size == 1 => {
+              if (!Vars.set(node, setter, m.nodes.toSeq(0))) {
+                Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
+              }
+            }
             case None         => Logger.error("not possible")
           }
 
@@ -208,12 +207,11 @@ object StateManager {
                   Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
                 }
               }
-//              case m : NodeList if m.nodes.size == 1 => {
-//                if (!Vars.set(node, setter, Some(m.nodes.toSeq(0)))) {
-//                  Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
-//                }
-//              }
-              case m : NodeList => Logger.error("not possible")
+              case m : NodeList if m.nodes.size == 1 => {
+                if (!Vars.set(node, setter, Some(m.nodes.toSeq(0)))) {
+                  Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
+                }
+              }
               case None         => Logger.error("not possible")
             }
 
