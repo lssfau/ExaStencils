@@ -182,7 +182,7 @@ object StateManager {
                 Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
               }
             }
-            case m : NodeList if m.nodes.size == 1 => {
+            case m : NodeList if m.nodes.size == 1 => { // Only valid if list contains a single element
               if (!Vars.set(node, setter, m.nodes.toSeq(0))) {
                 Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
               }
@@ -207,7 +207,7 @@ object StateManager {
                   Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
                 }
               }
-              case m : NodeList if m.nodes.size == 1 => {
+              case m : NodeList if m.nodes.size == 1 => { // Only valid if list contains a single element
                 if (!Vars.set(node, setter, Some(m.nodes.toSeq(0)))) {
                   Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
                 }
