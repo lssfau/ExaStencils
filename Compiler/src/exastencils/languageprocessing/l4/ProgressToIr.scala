@@ -22,6 +22,27 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
     StateManager.unregister(valueCollector)
   }
 
+  def doDuplicate[T <: HasIdentifier](t : T, level : LevelSpecification) : List[T] = {
+    var ts = new ListBuffer[T]()
+    level match {
+      case level @ (SingleLevelSpecification(_) | CurrentLevelSpecification() | CoarserLevelSpecification() | FinerLevelSpecification()) => {
+        var f = Duplicate(t)
+        f.identifier = new LeveledIdentifier(f.identifier.name, level)
+        ts += f
+      }
+      case level : ListLevelSpecification =>
+        level.levels.foreach(level => ts ++= doDuplicate(t, level))
+      case level : RangeLevelSpecification => // there is no relative (e.g., "current+1") level allowed for function definitions
+        for (level <- math.min(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level) to math.max(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level)) {
+          var f = Duplicate(t)
+          f.identifier = new LeveledIdentifier(f.identifier.name, SingleLevelSpecification(level))
+          ts += f
+        }
+      case _ => Logger.error(s"Invalid level specification for Value $t: $level")
+    }
+    return ts.toList
+  }
+
   // resolve values in expressions by replacing them with their expression => let SimplifyStrategy do the work
   this += new Transformation("ResolveValuesInExpressions", {
     case x : UnresolvedAccess if (x.level == None && x.slot == None && x.arrayIndex == None) => {
@@ -56,11 +77,11 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
 
   this += new Transformation("UnfoldValuesAndVariables", {
     case value : ValueDeclarationStatement => value.identifier match {
-      case LeveledIdentifier(_, level) => duplicateValueDeclaration(value, level)
+      case LeveledIdentifier(_, level) => doDuplicate(value, level)//duplicateValueDeclaration(value, level)
       case BasicIdentifier(_)          => value
     }
     case variable : VariableDeclarationStatement => variable.identifier match {
-      case LeveledIdentifier(_, level) => duplicateVariableDeclaration(variable, level)
+      case LeveledIdentifier(_, level) => doDuplicate(variable, level)//duplicateVariableDeclaration(variable, level)
       case BasicIdentifier(_)          => variable
     }
   })
@@ -112,7 +133,7 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
 
   this += new Transformation("UnfoldLeveledFunctions", {
     case function : FunctionStatement => function.identifier match {
-      case LeveledIdentifier(_, level) => duplicateFunctionDeclaration(function, level)
+      case LeveledIdentifier(_, level) => doDuplicate(function, level) //duplicateFunctionDeclaration(function, level)
       case BasicIdentifier(_)          => function
     }
   })

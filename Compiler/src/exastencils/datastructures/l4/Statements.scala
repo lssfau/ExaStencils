@@ -16,6 +16,10 @@ abstract class SpecialStatement /*TODO: think about an appropriate name*/ extend
   def progressToIr : Any
 }
 
+trait HasIdentifier {
+  var identifier : Identifier
+}
+
 case class DomainDeclarationStatement(var name : String, var lower : RealIndex, var upper : RealIndex, var index : Int = 0) extends SpecialStatement {
   def progressToIr : knowledge.Domain = {
     (lower, upper) match {
@@ -62,13 +66,13 @@ case class GlobalDeclarationStatement(var values : List[ValueDeclarationStatemen
       case x : VariableDeclarationStatement => true
       case _                                => false
     }).asInstanceOf[List[VariableDeclarationStatement]])
-  
+
   def progressToIr : Globals = {
     new Globals(variables.to[ListBuffer].map(e => e.progressToIr))
   }
 }
 
-case class VariableDeclarationStatement(var identifier : Identifier, var datatype : Datatype, var expression : Option[Expression] = None) extends Statement {
+case class VariableDeclarationStatement(var identifier : Identifier, var datatype : Datatype, var expression : Option[Expression] = None) extends Statement with HasIdentifier {
   def progressToIr : ir.VariableDeclarationStatement = {
     ir.VariableDeclarationStatement(datatype.progressToIr,
       identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
@@ -76,7 +80,7 @@ case class VariableDeclarationStatement(var identifier : Identifier, var datatyp
   }
 }
 
-case class ValueDeclarationStatement(var identifier : Identifier, var datatype : Datatype, var expression : Expression) extends Statement {
+case class ValueDeclarationStatement(var identifier : Identifier, var datatype : Datatype, var expression : Expression) extends Statement with HasIdentifier {
   //  def progressToIr : ir.ValueDeclarationStatement = {
   //    ir.ValueDeclarationStatement(datatype.progressToIr,
   //      identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
@@ -116,7 +120,7 @@ case class LoopOverFragmentsStatement(var statements : List[Statement], var redu
   }
 }
 
-case class FunctionStatement(var identifier : Identifier, var returntype : Datatype, var arguments : List[Variable], var statements : List[Statement]) extends Statement {
+case class FunctionStatement(var identifier : Identifier, var returntype : Datatype, var arguments : List[Variable], var statements : List[Statement]) extends Statement with HasIdentifier {
   def progressToIr : ir.AbstractFunctionStatement = {
     ir.FunctionStatement(
       returntype.progressToIr,
