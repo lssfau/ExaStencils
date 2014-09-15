@@ -4,19 +4,34 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
 import exastencils.core.collectors.L4LevelCollector
+import exastencils.core.collectors.L4ValueCollector
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.l4._
 import exastencils.knowledge._
 
 object ProgressToIr extends DefaultStrategy("ProgressToIr") {
-  var collector = new L4LevelCollector
+  var levelCollector = new L4LevelCollector
+  var valueCollector = new L4ValueCollector
 
   override def apply(node : Option[Node] = None) = {
-    StateManager.register(collector);
+    StateManager.register(levelCollector)
+    StateManager.register(valueCollector)
     super.apply(node);
-    StateManager.unregister(collector);
+    StateManager.unregister(levelCollector)
+    StateManager.unregister(valueCollector)
   }
+
+  // resolve values in expressions by replacing them with their expression => let SimplifyStrategy do the work
+  this += new Transformation("ResolveValuesInExpressions", {
+    case x : UnresolvedAccess if (x.level == None && x.slot == None && x.arrayIndex == None) => {
+      var value = valueCollector.getValue(x.identifier)
+      value match {
+        case None => { Logger.info(s"""Did not resolve identifier ${x.identifier} as no matching Val was found"""); x }
+        case _    => value.get
+      }
+    }
+  })
 
   // resolve level identifiers "coarsest", "finest"
   this += new Transformation("ResolveIdentifierLevels", {
@@ -164,9 +179,9 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
   // resolve level specifications
 
   this += new Transformation("ResolveRelativeLevelSpecifications", {
-    case level : CurrentLevelSpecification => SingleLevelSpecification(collector.getCurrentLevel)
-    case level : CoarserLevelSpecification => SingleLevelSpecification(collector.getCurrentLevel - 1) // FIXME: coarser and finer are not reliable
-    case level : FinerLevelSpecification   => SingleLevelSpecification(collector.getCurrentLevel + 1)
+    case level : CurrentLevelSpecification => SingleLevelSpecification(levelCollector.getCurrentLevel)
+    case level : CoarserLevelSpecification => SingleLevelSpecification(levelCollector.getCurrentLevel - 1) // FIXME: coarser and finer are not reliable
+    case level : FinerLevelSpecification   => SingleLevelSpecification(levelCollector.getCurrentLevel + 1)
   })
 
   // resolve accesses

@@ -64,6 +64,15 @@ case class VariableDeclarationStatement(var identifier : Identifier, var datatyp
   }
 }
 
+case class ValueDeclarationStatement(var Identifier:Identifier, var datatype:Datatype, var expression:Expression) extends Statement {
+//  def progressToIr : ir.ValueDeclarationStatement = {
+//    ir.ValueDeclarationStatement(datatype.progressToIr,
+//      identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
+//      expression.get.progressToIr
+//  }
+  def progressToIr : ir.Statement = ir.NullStatement
+}
+
 case class AssignmentStatement(var dest : Access, var src : Expression, var op : String) extends Statement {
   def progressToIr : ir.AssignmentStatement = {
     ir.AssignmentStatement(dest.progressToIr, src.progressToIr, op)

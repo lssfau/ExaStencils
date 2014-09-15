@@ -104,6 +104,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val statement : Parser[Statement] = (
     variableDeclaration
+    ||| valueDeclaration
     ||| repeatNTimes
     ||| repeatUntil
     ||| loopOver
@@ -117,6 +118,9 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val variableDeclaration = (locationize((("Var" ||| "Variable") ~> ident) ~ (":" ~> datatype) ~ ("=" ~> expression).?
     ^^ { case id ~ dt ~ exp => VariableDeclarationStatement(BasicIdentifier(id), dt, exp) }))
+
+  lazy val valueDeclaration = (locationize((("Val" ||| "Value") ~> ident) ~ (":" ~> datatype) ~ ("=" ~> expression)
+    ^^ { case id ~ dt ~ exp => ValueDeclarationStatement(BasicIdentifier(id), dt, exp) }))
 
   lazy val repeatNTimes = locationize(("repeat" ~> numericLit <~ "times") ~ ("count" ~> (flatAccess ||| leveledAccess)).? ~ ("with" ~> "contraction").? ~ ("{" ~> statement.+ <~ "}") ^^
     { case n ~ i ~ c ~ s => RepeatUpStatement(n.toInt, i, c.isDefined, s) })
