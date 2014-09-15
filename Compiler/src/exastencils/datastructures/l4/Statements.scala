@@ -27,9 +27,9 @@ case class DomainDeclarationStatement(var name : String, var lower : RealIndex, 
 }
 
 case class IterationSetDeclarationStatement(var identifier : Identifier,
-    var begin : ExpressionIndex, var end : Option[ExpressionIndex],
-    var increment : Option[ExpressionIndex],
-    var condition : Option[Expression]) extends SpecialStatement {
+                                            var begin : ExpressionIndex, var end : Option[ExpressionIndex],
+                                            var increment : Option[ExpressionIndex],
+                                            var condition : Option[Expression]) extends SpecialStatement {
   def progressToIr : knowledge.IterationSet = {
     knowledge.IterationSet(identifier.asInstanceOf[BasicIdentifier].progressToIr.value,
       begin.progressToIr,
@@ -53,9 +53,18 @@ case class StencilDeclarationStatement(var name : String, var entries : List[Ste
   }
 }
 
-case class GlobalDeclarationStatement(var entries : List[VariableDeclarationStatement]) extends SpecialStatement {
+case class GlobalDeclarationStatement(var values : List[ValueDeclarationStatement], var variables : List[VariableDeclarationStatement]) extends SpecialStatement {
+  def this(entries : List[Statement]) = this(entries.filter(_ match {
+    case x : ValueDeclarationStatement => true
+    case _                             => false
+  }).asInstanceOf[List[ValueDeclarationStatement]],
+    entries.filter(_ match {
+      case x : VariableDeclarationStatement => true
+      case _                                => false
+    }).asInstanceOf[List[VariableDeclarationStatement]])
+  
   def progressToIr : Globals = {
-    new Globals(entries.to[ListBuffer].map(e => e.progressToIr))
+    new Globals(variables.to[ListBuffer].map(e => e.progressToIr))
   }
 }
 

@@ -159,7 +159,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ##### Globals
   // ######################################
 
-  lazy val globals = locationize(("Globals" ~> "{" ~> variableDeclaration.* <~ "}") ^^ { case entries => GlobalDeclarationStatement(entries) })
+  lazy val globals = locationize(("Globals" ~> "{" ~> globalEntry.* <~ "}") ^^ { case entries => new GlobalDeclarationStatement(entries) })
+  lazy val globalEntry : PackratParser[Statement] = locationize(valueDeclaration ||| variableDeclaration)
 
   // ######################################
   // ##### Object Declarations

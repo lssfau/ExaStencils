@@ -23,16 +23,13 @@ case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = ne
       + (if (Knowledge.useMPI) "#include <mpi.h>\n" else "") // FIXME: find a way to extract necessary includes from variables
       )
 
-    if (Knowledge.l3tmp_genAdvancedTimers)
-      writerHeader <<< "#include \"Util/Stopwatch.h\""
+    if (Knowledge.l3tmp_genAdvancedTimers) { writerHeader <<< "#include \"Util/Stopwatch.h\"" }
 
-    for (inc <- Settings.additionalIncludes)
-      writerHeader <<< inc
+    for (inc <- Settings.additionalIncludes) { writerHeader <<< inc }
 
     for (variable <- variables) { writerHeader << s"extern ${variable.cpp_onlyDeclaration}\n" }
 
-    for (func <- functions)
-      writerHeader << func.cpp_decl
+    for (func <- functions) { writerHeader << func.cpp_decl }
 
     var i = 0;
     {

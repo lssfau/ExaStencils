@@ -7,14 +7,16 @@ import scala.collection.mutable.HashMap
 
 class L4ValueCollector extends Collector {
   //  private var curLevel = -1
+  private var global : GlobalDeclarationStatement = null
   private var values = new HashMap[String, Expression]()
 
   override def enter(node : Node) : Unit = {
     node match {
-      case x : FunctionStatement         => values.clear()
-      case x : ValueDeclarationStatement => values.+=((x.Identifier.name, x.expression))
+      case x : GlobalDeclarationStatement => global = x
+      case x : FunctionStatement          => values.clear()
+      case x : ValueDeclarationStatement  => values.+=((x.Identifier.name, x.expression))
       //      case FunctionStatement(LeveledIdentifier(_, SingleLevelSpecification(level)), _, _, _) => curLevel = level
-      case _                             =>
+      case _                              =>
     }
   }
 
@@ -32,7 +34,15 @@ class L4ValueCollector extends Collector {
   }
 
   def getValue(name : String) : Option[Expression] = {
-    values.get(name)
+    var decl : Option[ValueDeclarationStatement] = None
+    if(global != null) {
+      decl = global.values.find(_.Identifier.name == name)
+    }
+    if(decl.isDefined) {
+      Some(decl.get.expression)
+    } else {
+      values.get(name)
+    }
   }
 
   //  def getCurrentLevel : Int = {
