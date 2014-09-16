@@ -32,7 +32,7 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
       }
       case level : ListLevelSpecification =>
         level.levels.foreach(level => ts ++= doDuplicate(t, level))
-      case level : RangeLevelSpecification => // there is no relative (e.g., "current+1") level allowed for function definitions
+      case level : RangeLevelSpecification =>
         for (level <- math.min(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level) to math.max(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level)) {
           var f = Duplicate(t)
           f.identifier = new LeveledIdentifier(f.identifier.name, SingleLevelSpecification(level))
