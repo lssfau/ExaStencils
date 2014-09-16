@@ -10,7 +10,12 @@ object Knowledge {
   var targetCompilerVersionMinor : Int = 0 // minor version of the target compiler
 
   var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2"
-  var simd_vectorSize : Int = 4 // number of vector elements for SIMD instructions (currently only double precision)
+  def simd_vectorSize : Int = { // number of vector elements for SIMD instructions (currently only double precision)
+    simd_instructionSet match {
+      case "SSE3"         => 2
+      case "AVX" | "AVX2" => 4
+    }
+  }
 
   var useFasterExpand : Boolean = true
 
@@ -19,61 +24,41 @@ object Knowledge {
 
   // TODO: check if these parameters will be necessary or can be implicitly assumed once an appropriate field collection is in place
   var maxLevel : Int = 6 // the finest level
-  var numLevels : Int = maxLevel + 1 // the number of levels -> this assumes that the cycle descents to the coarsest level
+  def numLevels : Int = (maxLevel + 1) // the number of levels -> this assumes that the cycle descents to the coarsest level
 
   // --- Domain Decomposition ---
 
   // specifies if fragments within one block should be aggregated 
   // TODO: sanity check if compatible with chosen l3tmp_smoother
   var domain_summarizeBlocks : Boolean = true // [true|false] // if true, fragments inside one block are aggregated into one bigger fragment
-  var domain_canHaveLocalNeighs : Boolean = true // specifies if fragments can have local (i.e.\ shared memory) neighbors, i.e.\ if local comm is required
-  var domain_canHaveRemoteNeighs : Boolean = true // specifies if fragments can have remote (i.e.\ different mpi rank) neighbors, i.e.\ if mpi comm is required
+  def domain_canHaveLocalNeighs : Boolean = (domain_numFragsPerBlock > 1) // specifies if fragments can have local (i.e.\ shared memory) neighbors, i.e.\ if local comm is required
+  def domain_canHaveRemoteNeighs : Boolean = (useMPI) // specifies if fragments can have remote (i.e.\ different mpi rank) neighbors, i.e.\ if mpi comm is required
 
   // number of blocks per dimension - one block will usually be mapped to one MPI thread
   var domain_numBlocks_x : Int = 3 // [0-inf]
   var domain_numBlocks_y : Int = 3 // [0-inf]
   var domain_numBlocks_z : Int = 3 // [0-inf]
-  def domain_numBlocks : Int = {
-    domain_numBlocks_x *
-      (if (dimensionality > 1) domain_numBlocks_y else 1) *
-      (if (dimensionality > 2) domain_numBlocks_z else 1)
-  }
+  def domain_numBlocks : Int = domain_numBlocks_x * domain_numBlocks_y * domain_numBlocks_z
 
   // number of fragments in each block per dimension - this will usually be one or represent the number of OMP threads per dimension
   var domain_numFragsPerBlock_x : Int = 3 // [0-inf]
   var domain_numFragsPerBlock_y : Int = 3 // [0-inf]
   var domain_numFragsPerBlock_z : Int = 3 // [0-inf]
-  def domain_numFragsPerBlock : Int = {
-    domain_numFragsPerBlock_x *
-      (if (dimensionality > 1) domain_numFragsPerBlock_y else 1) *
-      (if (dimensionality > 2) domain_numFragsPerBlock_z else 1)
-  }
-  def domain_numFragsPerBlockPerDim(index : Int) : Int = {
-    Array(domain_numFragsPerBlock_x, domain_numFragsPerBlock_y, domain_numFragsPerBlock_z)(index)
-  }
+  def domain_numFragsPerBlock : Int = domain_numFragsPerBlock_x * domain_numFragsPerBlock_y * domain_numFragsPerBlock_z
+  def domain_numFragsPerBlockPerDim(index : Int) : Int = Array(domain_numFragsPerBlock_x, domain_numFragsPerBlock_y, domain_numFragsPerBlock_z)(index)
 
   // the total number of fragments per dimension
   def domain_numFragsTotal_x : Int = domain_numFragsPerBlock_x * domain_numBlocks_x
   def domain_numFragsTotal_y : Int = domain_numFragsPerBlock_y * domain_numBlocks_y
   def domain_numFragsTotal_z : Int = domain_numFragsPerBlock_z * domain_numBlocks_z
-  def domain_numFragsTotal : Int = {
-    domain_numFragsTotal_x *
-      (if (dimensionality > 1) domain_numFragsTotal_y else 1) *
-      (if (dimensionality > 2) domain_numFragsTotal_z else 1)
-  }
+  def domain_numFragsTotal : Int = domain_numFragsTotal_x * domain_numFragsTotal_y * domain_numFragsTotal_z
 
   // the length of each fragment per dimension - this will either be one or specify the length in unit-fragments, i.e. the number of aggregated fragments per dimension
   var domain_fragLength_x : Int = 1
   var domain_fragLength_y : Int = 1
   var domain_fragLength_z : Int = 1
-  def domain_fragLength : Int = {
-    domain_fragLength_x *
-      (if (dimensionality > 1) domain_fragLength_y else 1) *
-      (if (dimensionality > 2) domain_fragLength_z else 1)
-  }
-  def domain_fragLengthPerDim(index : Int) : Int = {
-    Array(domain_fragLength_x, domain_fragLength_y, domain_fragLength_z)(index)
-  }
+  def domain_fragLength : Int = domain_fragLength_x * domain_fragLength_y * domain_fragLength_z
+  def domain_fragLengthPerDim(index : Int) : Int = Array(domain_fragLength_x, domain_fragLength_y, domain_fragLength_z)(index)
 
   // === Layer 2 ===
 
@@ -84,7 +69,14 @@ object Knowledge {
   // === Post Layer 4 ===
 
   // --- Compiler Capabilities ---
-  var supports_initializerList = false // indicates if the compiler supports initializer lists (e.g. for std::min)
+  def supports_initializerList = { // indicates if the compiler supports initializer lists (e.g. for std::min)
+    targetCompiler match {
+      case "MSVC"  => targetCompilerVersion >= 18
+      case "GCC"   => targetCompilerVersion > 4 || (targetCompilerVersion == 4 && targetCompilerVersionMinor >= 5)
+      case "IBMXL" => false // TODO: does it support initializer lists? since which version?
+      case _       => Logger.error("Unsupported target compiler"); false
+    }
+  }
 
   // --- Data Structures ---
   var data_initAllFieldsWithZero : Boolean = true // specifies if all data points in all fields on all levels should initially be set zero (before the l4 initField functions are applied)
@@ -114,12 +106,26 @@ object Knowledge {
   // --- OpenMP Parallelization ---
   var useOMP : Boolean = true // [true|false]
   var omp_numThreads : Int = 1 // the number of omp threads to be used; may be incorporated in omp pragmas
-  var omp_version : Double = 2.0 // the maximum version of omp supported by the chosen compiler
+  def omp_version : Double = { // the maximum version of omp supported by the chosen compiler
+    targetCompiler match {
+      case "MSVC"  => 2.0
+      case "GCC"   => 4.0
+      case "IBMXL" => 3.0
+      case _       => Logger.error("Unsupported target compiler"); 0.0
+    }
+  }
   var omp_parallelizeLoopOverFragments : Boolean = false // [true|false] // specifies if loops over fragments may be parallelized with omp if marked correspondingly
   var omp_parallelizeLoopOverDimensions : Boolean = true // [true|false] // specifies if loops over dimensions may be parallelized with omp if marked correspondingly
   var omp_useCollapse : Boolean = true // [true|false] // if true the 'collapse' directive may be used in omp for regions; this will only be done if the minimum omp version supports this
   var omp_minWorkItemsPerThread : Int = 400 // [1-inf] // threshold specifying which loops yield enough workload to amortize the omp overhead
-  var omp_requiresCriticalSections : Boolean = true // true if the chosen compiler / mpi version requires critical sections to be marked explicitly
+  def omp_requiresCriticalSections : Boolean = { // true if the chosen compiler / mpi version requires critical sections to be marked explicitly
+    targetCompiler match {
+      case "MSVC"  => true
+      case "GCC"   => true
+      case "IBMXL" => false
+      case _       => Logger.error("Unsupported target compiler"); true
+    }
+  }
 
   // --- MPI Parallelization ---
   var useMPI : Boolean = true // [true|false]
@@ -191,7 +197,12 @@ object Knowledge {
     Constraints.updateValue(useOMP, (domain_summarizeBlocks && domain_fragLength != 1) || domain_numFragsPerBlock != 1)
     Constraints.updateValue(useMPI, (domain_numBlocks != 1))
 
-    Constraints.updateValue(numLevels, maxLevel + 1)
+    Constraints.condEnsureValue(domain_numBlocks_y, 1, dimensionality < 2, "domain_numBlocks_y must be set to 1 for problems with a dimensionality smaller 2")
+    Constraints.condEnsureValue(domain_numBlocks_z, 1, dimensionality < 3, "domain_numBlocks_z must be set to 1 for problems with a dimensionality smaller 3")
+    Constraints.condEnsureValue(domain_numFragsPerBlock_y, 1, dimensionality < 2, "domain_numFragsPerBlock_y must be set to 1 for problems with a dimensionality smaller 2")
+    Constraints.condEnsureValue(domain_numFragsPerBlock_z, 1, dimensionality < 3, "domain_numFragsPerBlock_z must be set to 1 for problems with a dimensionality smaller 3")
+    Constraints.condEnsureValue(domain_fragLength_y, 1, dimensionality < 2, "domain_fragLength_y must be set to 1 for problems with a dimensionality smaller 2")
+    Constraints.condEnsureValue(domain_fragLength_z, 1, dimensionality < 3, "domain_fragLength_z must be set to 1 for problems with a dimensionality smaller 3")
 
     // constraints for enabled domain_summarizeBlocks
     // TODO: remove domain_summarizeBlocks flag and replace functionality with correctly setting resulting parameters
@@ -205,32 +216,9 @@ object Knowledge {
       "domain_fragLength_z needs to be equal to the initial domain_numFragsPerBlock_z")
     Constraints.condEnsureValue(domain_numFragsPerBlock_z, 1, domain_summarizeBlocks, "domain_numFragsPerBlock_z has to be equal to 1 for aggregated fragments")
 
-    Constraints.updateValue(domain_canHaveRemoteNeighs, useMPI)
-    Constraints.updateValue(domain_canHaveLocalNeighs, (domain_numFragsPerBlock > 1))
-
-    if ("MSVC" == targetCompiler) {
-      Constraints.updateValue(omp_version, 2.0)
-      Constraints.updateValue(supports_initializerList, targetCompilerVersion >= 18)
-    } else if ("GCC" == targetCompiler) {
-      Constraints.updateValue(omp_version, 4.0)
-      Constraints.updateValue(supports_initializerList, targetCompilerVersion > 4 || (targetCompilerVersion == 4 && targetCompilerVersionMinor >= 5))
-    } else if ("IBMXL" == targetCompiler) {
-      Constraints.updateValue(omp_version, 3.0)
-      Constraints.updateValue(omp_requiresCriticalSections, false)
-      Constraints.updateValue(supports_initializerList, false) // TODO: does it support initializer lists? since which version?
-    } else
-      Logger.error("Unsupported target compiler")
-
-    if (useOMP) {
-      if (domain_summarizeBlocks) Constraints.updateValue(omp_numThreads, domain_fragLength) else Constraints.updateValue(omp_numThreads, domain_numFragsPerBlock)
-      Constraints.updateValue(omp_parallelizeLoopOverFragments, !domain_summarizeBlocks)
-      Constraints.updateValue(omp_parallelizeLoopOverDimensions, domain_summarizeBlocks)
-    }
-
-    simd_instructionSet match {
-      case "SSE3"         => Constraints.updateValue(simd_vectorSize, 2)
-      case "AVX" | "AVX2" => Constraints.updateValue(simd_vectorSize, 4)
-    }
+    Constraints.updateValue(omp_numThreads, (if (useOMP) 1 else (if (domain_summarizeBlocks) domain_fragLength else domain_numFragsPerBlock)) : Int)
+    Constraints.updateValue(omp_parallelizeLoopOverFragments, useOMP && !domain_summarizeBlocks)
+    Constraints.updateValue(omp_parallelizeLoopOverDimensions, useOMP && domain_summarizeBlocks)
 
     // update constraints
     Constraints.condEnsureValue(l3tmp_numPre, l3tmp_numPre - (l3tmp_numPre % 2), "Jac" == l3tmp_smoother && !l3tmp_useSlotsForJac && !l3tmp_useSlotVariables,
