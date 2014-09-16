@@ -43,6 +43,8 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
     return ts.toList
   }
 
+  // ###################################################################################################################
+
   // resolve values in expressions by replacing them with their expression => let SimplifyStrategy do the work
   this += new Transformation("ResolveValuesInExpressions", {
     case x : UnresolvedAccess if (x.level == None && x.slot == None && x.arrayIndex == None) => {
@@ -72,16 +74,15 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
         case SingleLevelSpecification(b) => SingleLevelSpecification(calc(b, x.offset))
       }
     }
-    //case _ => Log.error("ResolveRelativeIdentifiers: fixme")
   })
 
   this += new Transformation("UnfoldValuesAndVariables", {
     case value : ValueDeclarationStatement => value.identifier match {
-      case LeveledIdentifier(_, level) => doDuplicate(value, level) //duplicateValueDeclaration(value, level)
+      case LeveledIdentifier(_, level) => doDuplicate(value, level)
       case BasicIdentifier(_)          => value
     }
     case variable : VariableDeclarationStatement => variable.identifier match {
-      case LeveledIdentifier(_, level) => doDuplicate(variable, level) //duplicateVariableDeclaration(variable, level)
+      case LeveledIdentifier(_, level) => doDuplicate(variable, level)
       case BasicIdentifier(_)          => variable
     }
   })
