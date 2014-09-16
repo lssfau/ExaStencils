@@ -348,7 +348,7 @@ object StateManager {
                 newN // element of type Node was returned => use it
               }
               case newN : NodeList => Logger.error("Unable to replace single element of map value by List")
-              case None => 
+              case None            =>
             }
           })
 
@@ -369,7 +369,7 @@ object StateManager {
                 newN // element of type Node was returned => use it
               }
               case newN : NodeList => Logger.error("Unable to replace single element of map value by List")
-              case None => 
+              case None            =>
             }
           })
 
@@ -452,23 +452,73 @@ object StateManager {
     }
   }
 
+  /**
+    * Finds all instances of a certain type in the current program state.
+    *
+    * @return A List containing all instances of Nodes of type T.
+    */
+  def findAll[T <: AnyRef : ClassTag]() : List[T] = findAll(root)
+
+  /**
+    * Finds all instances of a certain type in the current program state.
+    *
+    * @param node The node where to start the recursive search.
+    * @return A List containing all instances of Nodes of type T.
+    */
+  def findAll[T <: AnyRef : ClassTag](node : Node) : List[T] = {
+    findAll[T]({ x : Any => x match { case _ : T => true; case _ => false } }, node)
+  }
+
+  /**
+    * Finds all instances of a certain type meeting a certain condition in the current program state.
+    *
+    * @param check The condition a node instance has to meet.
+    * @param node The node where to start the recursive search.
+    * @return A List containing all instances of Nodes of type T.
+    */
+  def findAll[T <: AnyRef : ClassTag](check : T => Boolean, node : Node = root) : List[T] = {
+    var retVal = new ListBuffer[T]()
+    var t = new Transformation("StatemanagerInternalFindAll", {
+      case hit : T if check(hit) => retVal += hit; new Output(hit)
+    }, true)
+
+    progresses_.+=((t, new TransformationProgress))
+    replace(node, t)
+    retVal.toList
+  }
+
+  /**
+    * Finds the first instance of a certain type in the current program state.
+    *
+    * @return An instance of type T, or None.
+    */
   def findFirst[T <: AnyRef : ClassTag]() : Option[T] = findFirst(root)
 
+  /**
+    * Finds the first instance of a certain type in the current program state.
+    *
+    * @param node The node where to start the recursive search.
+    * @return An instance of type T, or None.
+    */
   def findFirst[T <: AnyRef : ClassTag](node : Node) : Option[T] = {
     findFirst[T]({ x : Any => x match { case _ : T => true; case _ => false } }, node)
   }
 
+  /**
+    * Finds the first instance of a certain type meeting a certain condition in the current program state.
+    *
+    * @param check The condition a node instance has to meet.
+    * @param node The node where to start the recursive search.
+    * @return An instance of type T, or None.
+    */
   def findFirst[T <: AnyRef : ClassTag](check : T => Boolean, node : Node = root) : Option[T] = {
     var retVal : Option[T] = None
     var t = new Transformation("StatemanagerInternalFindFirst", {
-      case hit : T if check(hit) =>
-        retVal = Some(hit)
-        new Output(hit)
+      case hit : T if check(hit) => retVal = Some(hit); new Output(hit)
     }, false)
 
     progresses_.+=((t, new TransformationProgress))
     replace(node, t)
-
     retVal
   }
 
