@@ -464,7 +464,7 @@ object StateManager {
       case hit : T if check(hit) =>
         retVal = Some(hit)
         new Output(hit)
-    }) //, false) -> FIXME: Christian, currently it only works when enabling recursive matching
+    }, false)
 
     progresses_.+=((t, new TransformationProgress))
     replace(node, t)
