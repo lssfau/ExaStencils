@@ -7,11 +7,11 @@ import exastencils.knowledge
 case class LayoutOption(var name : String, var value : Index, var hasCommunication : Option[Boolean]) extends Node
 
 case class LayoutDeclarationStatement(var name : String,
-    var ghostLayers : Option[Index] = None,
-    var ghostLayersCommunication : Option[Boolean] = None,
-    var duplicateLayers : Option[Index] = None,
-    var duplicateLayersCommunication : Option[Boolean] = None,
-    var innerPoints : Option[Index] = None) extends Node {
+                                      var ghostLayers : Option[Index] = None,
+                                      var ghostLayersCommunication : Option[Boolean] = None,
+                                      var duplicateLayers : Option[Index] = None,
+                                      var duplicateLayersCommunication : Option[Boolean] = None,
+                                      var innerPoints : Option[Index] = None) extends Node {
 
   def set(options : List[LayoutOption]) : Unit = { options.foreach(set(_)) }
 
@@ -88,19 +88,18 @@ case class LayoutDeclarationStatement(var name : String,
   }
 }
 
-case class FieldDeclarationStatement(var name : String,
-    var datatype : Datatype,
-    var domain : String,
-    var layout : String,
-    var boundary : Option[Expression],
-    var level : Option[LevelSpecification],
-    var slots : Integer,
-    var index : Int = 0) extends SpecialStatement {
+case class FieldDeclarationStatement(var identifier : Identifier,
+                                     var datatype : Datatype,
+                                     var domain : String,
+                                     var layout : String,
+                                     var boundary : Option[Expression],
+                                     var slots : Integer,
+                                     var index : Int = 0) extends SpecialStatement with HasIdentifier {
 
   override def progressToIr : knowledge.Field = {
     val l4_layout = StateManager.root_.asInstanceOf[Root].getLayoutByIdentifier(layout).get
 
-    var ir_layout = l4_layout.progressToIr(level.get.asInstanceOf[SingleLevelSpecification].level)
+    var ir_layout = l4_layout.progressToIr(identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level)
     ir_layout ++= Array(new knowledge.FieldLayoutPerDim(0, 0, 0, datatype.progressToIr.resolveFlattendSize, 0, 0, 0))
 
     var refOffset = new ir.MultiIndex // TODO: this should work for now but may be adapted in the future
@@ -109,26 +108,28 @@ case class FieldDeclarationStatement(var name : String,
     refOffset(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(0)
 
     new knowledge.Field(
-      name,
+      identifier.name,
       index,
       knowledge.DomainCollection.getDomainByIdentifier(domain).get,
-      name.toLowerCase + "Data_" + level.get.asInstanceOf[SingleLevelSpecification].level,
+      identifier.name.toLowerCase + "Data_" + identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level,
       datatype.progressToIr,
       ir_layout,
       l4_layout.l4_dupComm,
       l4_layout.l4_ghostComm,
-      level.get.asInstanceOf[SingleLevelSpecification].level,
+      identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level,//level.get.asInstanceOf[SingleLevelSpecification].level,
       slots,
       refOffset,
       if (boundary.isDefined) Some(boundary.get.progressToIr) else None)
   }
 }
 
-case class StencilFieldDeclarationStatement(var name : String, var fieldName : String, var stencilName : String, var level : Option[LevelSpecification]) extends ExternalDeclarationStatement {
+case class StencilFieldDeclarationStatement(var identifier : Identifier,
+                                            var fieldName : String,
+                                            var stencilName : String) extends ExternalDeclarationStatement with HasIdentifier {
   def progressToIr : knowledge.StencilField = {
-    new knowledge.StencilField(name,
-      knowledge.FieldCollection.getFieldByIdentifier(fieldName, level.get.asInstanceOf[SingleLevelSpecification].level).get,
-      knowledge.StencilCollection.getStencilByIdentifier(stencilName, level.get.asInstanceOf[SingleLevelSpecification].level).get)
+    new knowledge.StencilField(identifier.name,
+      knowledge.FieldCollection.getFieldByIdentifier(fieldName, identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level).get,
+      knowledge.StencilCollection.getStencilByIdentifier(stencilName, identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level).get)
   }
 }
 

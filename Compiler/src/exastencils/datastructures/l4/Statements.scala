@@ -51,9 +51,11 @@ case class StencilEntry(var offset : ExpressionIndex, var weight : Expression) e
   }
 }
 
-case class StencilDeclarationStatement(var name : String, var entries : List[StencilEntry], var level : Option[LevelSpecification]) extends SpecialStatement {
+case class StencilDeclarationStatement(var identifier : Identifier,
+                                       var entries : List[StencilEntry]) extends SpecialStatement with HasIdentifier {
   def progressToIr : knowledge.Stencil = {
-    knowledge.Stencil(name, level.get.asInstanceOf[SingleLevelSpecification].level, entries.map(e => e.progressToIr).to[ListBuffer])
+    exastencils.core.Logger.warn(this)
+    knowledge.Stencil(identifier.name, identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level, entries.map(e => e.progressToIr).to[ListBuffer])
   }
 }
 
@@ -120,7 +122,10 @@ case class LoopOverFragmentsStatement(var statements : List[Statement], var redu
   }
 }
 
-case class FunctionStatement(var identifier : Identifier, var returntype : Datatype, var arguments : List[Variable], var statements : List[Statement]) extends Statement with HasIdentifier {
+case class FunctionStatement(var identifier : Identifier,
+                             var returntype : Datatype,
+                             var arguments : List[Variable],
+                             var statements : List[Statement]) extends Statement with HasIdentifier {
   def progressToIr : ir.AbstractFunctionStatement = {
     ir.FunctionStatement(
       returntype.progressToIr,
@@ -130,7 +135,9 @@ case class FunctionStatement(var identifier : Identifier, var returntype : Datat
   }
 }
 
-case class RepeatUpStatement(var number : Int, var iterator : Option[Access], var contraction : Boolean,
+case class RepeatUpStatement(var number : Int,
+                             var iterator : Option[Access],
+                             var contraction : Boolean,
                              var statements : List[Statement]) extends Statement {
 
   def progressToIr : ir.Statement = {
