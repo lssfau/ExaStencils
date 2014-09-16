@@ -11,6 +11,9 @@ import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import java.lang.reflect.Method
 
+/**
+  * The central entity to apply transformations to the current program state.
+  */
 object StateManager {
   def root = root_ // FIXME remove this
   var root_ : Node = null // FIXME make this protected
@@ -19,17 +22,36 @@ object StateManager {
   // #### Checkpointing ############################################################################
   // ###############################################################################################
 
+  /** Type that represents a checkpoint identifier. */
   type CheckpointIdentifier = String
   protected var checkpoints_ = new HashMap[CheckpointIdentifier, Node]
+
+  /**
+    * Creates a new checkpoint (snapshot copy) of the current program state.
+    *
+    * @param id The identifier to be used for the newly created checkpoint.
+    */
   def checkpoint(id : CheckpointIdentifier) : Unit = {
     Logger.debug(s"""Creating checkpoint "$id"""")
     var c = Duplicate(StateManager.root_)
     checkpoints_ += ((id, c))
   }
+
+  /**
+    * Restores the current program state from a previously saved checkpoint.
+    *
+    * @param id The identifier to be used to find the checkpoint that is to be restored.
+    */
   def restore(id : CheckpointIdentifier) : Unit = {
     Logger.debug(s"""Restoring to checkpoint "$id"""")
     root_ = checkpoints_.getOrElse(id, { throw CheckpointException(s"""Could not restore to checkpoint "$id": Not found!""") })
   }
+
+  /**
+    * List identifiers of all currently known checkpoints.
+    *
+    * @return The list of identifiers of all currently known checkpoints.
+    */
   def listCheckpoints() = checkpoints_.keys
 
   protected object History {
@@ -82,64 +104,64 @@ object StateManager {
   }
 
   /**
-    * Register a Collector with StateManager
+    * Register a Collector with StateManager.
     *
-    *  @param c The Collector to be added
+    * @param c The Collector to be added.
     */
   def register(c : Collector) = { Collectors.register(c) }
 
   /**
-    * Unregister a Collector from StateManager
+    * Unregister a Collector from StateManager.
     *
-    *  @param c The Collector be removed
+    * @param c The Collector be removed.
     */
   def unregister(c : Collector) = { Collectors.unregister(c) }
 
-  /** Unregister all currently registered Collectors from StateManager */
+  /** Unregister all currently registered Collectors from StateManager. */
   def unregisterAll() = { Collectors.unregisterAll }
 
   // ###############################################################################################
   // #### Transformationen & Matching ##############################################################
   // ###############################################################################################
 
-  /** Class that holds statistics about a Transformation */
+  /** Class that holds statistics about a Transformation. */
   protected class TransformationProgress {
-    /** Number of times a Transformation could be matched and applied */
+    /** Number of times a Transformation could be matched and applied. */
     protected var matches = 0
 
     /**
-      * Returns the number of matches
+      * Returns the number of matches.
       *
-      *  @return The number of matches
+      * @return The number of matches.
       */
     def getMatches = matches
 
-    /** Increases the number of matches by 1 */
+    /** Increases the number of matches by 1. */
     def didMatch = matches += 1
 
     override def toString = { s"Transformation Progress: $matches match(es)" }
   }
   protected val progresses_ = new HashMap[Transformation, TransformationProgress]
 
-  /** Dummy node that is used internally to signal that a Transformation did not match a given node */
+  /** Dummy node that is used internally to signal that a Transformation did not match a given node. */
   protected case object NoMatch extends Node
 
   /**
-    * Function that is called by applyAtNode in case there was no match
+    * Function that is called by applyAtNode in case there was no match.
     *
-    *  @param node Not used. Its existence, however, is enforced by Scala.
-    *  @return An Output instance carrying the dummy node
+    * @param node Not used. Its existence, however, is enforced by Scala.
+    * @return An Output instance carrying the dummy node.
     */
   protected def NoMatchFunction(node : Node) : Transformation.OutputType = {
     return NoMatch // return dummy node
   }
 
   /**
-    * Apply the transformation function to a given node
+    * Apply the transformation function to a given node.
     *
-    *  @param node The node the Transformation is to be applied to
-    *  @param transformation The Transformation to be applied
-    *  @return An Output instance carrying the result of the transformation or NoMatch is the transformation could not be applied
+    * @param node The node the Transformation is to be applied to.
+    * @param transformation The Transformation to be applied.
+    * @return An Output instance carrying the result of the transformation or NoMatch is the transformation could not be applied.
     */
   protected def applyAtNode(node : Node, transformation : Transformation) : Transformation.OutputType = {
     val output = transformation.function.applyOrElse(node, NoMatchFunction) // use applyOrElse because Scala's documentation claims it is implement more efficiently
@@ -151,10 +173,10 @@ object StateManager {
   }
 
   /**
-    * The main Transformation & replacement function
+    * The main Transformation & replacement function.
     *
-    *  @param node The node the Transformation is to be applied to
-    *  @param transformation The Transformation to be applied
+    * @param node The node the Transformation is to be applied to.
+    * @param transformation The Transformation to be applied.
     */
   protected def replace(node : Node, transformation : Transformation) : Unit = {
     Collectors.notifyEnter(node)
@@ -187,7 +209,7 @@ object StateManager {
                 Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
               }
             }
-            case None         => Logger.error("not possible")
+            case None => Logger.error("not possible")
           }
 
           // Apply transformation to sub-elements
@@ -212,7 +234,7 @@ object StateManager {
                   Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
                 }
               }
-              case None         => Logger.error("not possible")
+              case None => Logger.error("not possible")
             }
 
             // Apply transformation to sub-elements
@@ -371,12 +393,12 @@ object StateManager {
   }
 
   /**
-    * Apply a Transformation to the current program state
+    * Apply a Transformation to the current program state.
     *
-    *  @param token A TransactionToken to lock the program state for other Transformations
-    *  @param transformation The Transformation to be applied
-    *  @param node An optional node that is treated as the starting point ("root") for the Transaction
-    *  @return Statistics about matches
+    * @param token A TransactionToken to lock the program state for other Transformations.
+    * @param transformation The Transformation to be applied.
+    * @param node An optional node that is treated as the starting point ("root") for the Transaction.
+    * @return Statistics about matches.
     */
   def apply(token : History.TransactionToken, transformation : Transformation, node : Option[Node] = None) : TransformationResult = {
     if (!History.isValid(token)) {
@@ -398,13 +420,13 @@ object StateManager {
   }
 
   /**
-    * Apply a Transformation to the current program state without supplying a TransactionToken
+    * Apply a Transformation to the current program state without supplying a TransactionToken.
     *
-    *  Warning: This is dangerous and not encouraged!
+    * Warning: This is dangerous and not encouraged!
     *
-    *  @param transformation The Transformation to be applied
-    *  @param node An optional node that is treated as the starting point ("root") for the Transaction
-    *  @return Statistics about matches
+    * @param transformation The Transformation to be applied.
+    * @param node An optional node that is treated as the starting point ("root") for the Transaction.
+    * @return Statistics about matches.
     */
   def applyStandalone(transformation : Transformation, node : Node) : TransformationResult = {
     try {

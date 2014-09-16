@@ -54,7 +54,6 @@ case class StencilEntry(var offset : ExpressionIndex, var weight : Expression) e
 case class StencilDeclarationStatement(var identifier : Identifier,
                                        var entries : List[StencilEntry]) extends SpecialStatement with HasIdentifier {
   def progressToIr : knowledge.Stencil = {
-    exastencils.core.Logger.warn(this)
     knowledge.Stencil(identifier.name, identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level, entries.map(e => e.progressToIr).to[ListBuffer])
   }
 }
