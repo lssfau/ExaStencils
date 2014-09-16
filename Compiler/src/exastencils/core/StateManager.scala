@@ -209,7 +209,7 @@ object StateManager {
                 Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
               }
             }
-            case None => Logger.error("not possible")
+            case None => Logger.error(s"""Could not remove node "${getter.getName()}"" from "${n}"" as it is not optional!""")
           }
 
           // Apply transformation to sub-elements
@@ -229,12 +229,17 @@ object StateManager {
                   Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
                 }
               }
-              case m : NodeList if m.nodes.size == 1 => { // Only valid if list contains a single element
-                if (!Vars.set(node, setter, Some(m.nodes.toSeq(0)))) {
+              case m : NodeList if m.nodes.size == 1 =>
+                { // Only valid if list contains a single element
+                  if (!Vars.set(node, setter, Some(m.nodes.toSeq(0)))) {
+                    Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
+                  }
+                }
+              case None => {
+                if (!Vars.set(node, setter, None)) {
                   Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
                 }
               }
-              case None => Logger.error("not possible")
             }
 
             // Apply transformation to sub-elements
@@ -264,6 +269,7 @@ object StateManager {
                 }
                 newN.nodes // elements of type Node were returned => use them
               }
+              case None => List()
             }
             case _ => List(f) // current element "f" is not of interest to us - put it back into (new) set
           })
@@ -289,6 +295,7 @@ object StateManager {
                 }
                 newN.nodes // elements of type Node were returned => use them
               }
+              case None => List()
             }
             case _ => List(f)
           })
@@ -317,6 +324,7 @@ object StateManager {
                 }
                 newN.nodes // elements of type Node were returned => use them
               }
+              case None => List()
             }
             case _ => List(f)
           })
@@ -329,7 +337,7 @@ object StateManager {
         // #### Maps #####################################################################################
         // ###############################################################################################
         case map : scala.collection.mutable.Map[_, _] => {
-          var newMap = map.map(f => f match {
+          var newMap = map.mapValues(f => f match {
             case n : Node => applyAtNode(n, transformation).inner match {
               case NoMatch =>
                 replace(n, transformation); n // no match occured => use old element 
@@ -339,7 +347,8 @@ object StateManager {
                 }
                 newN // element of type Node was returned => use it
               }
-              case newN : NodeList => Logger.error("fixme")
+              case newN : NodeList => Logger.error("Unable to replace single element of map value by List")
+              case None => 
             }
           })
 
@@ -349,7 +358,7 @@ object StateManager {
         }
         // Unfortunately mutable and immutable set have no common supertype
         case map : scala.collection.immutable.Map[_, _] => {
-          var newMap = map.map(f => f match {
+          var newMap = map.mapValues(f => f match {
             case n : Node => applyAtNode(n, transformation).inner match {
               case NoMatch =>
                 replace(n, transformation); n // no match occured => use old element 
@@ -359,7 +368,8 @@ object StateManager {
                 }
                 newN // element of type Node was returned => use it
               }
-              case newN : NodeList => Logger.error("fixme")
+              case newN : NodeList => Logger.error("Unable to replace single element of map value by List")
+              case None => 
             }
           })
 
@@ -367,7 +377,7 @@ object StateManager {
             Logger.error(s"Could not set $getter in transformation ${transformation.name}")
           }
         }
-        case list : Array[_] => {
+        case array : Array[_] => {
           Logger.warn("Arrays are currently not supported for matching!")
         }
         //        case list : Array[_] => {

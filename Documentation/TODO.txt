@@ -8,7 +8,6 @@ Framework:
 - Extend Settings parser to support floating point numbers
 
 - add possibility to specify trafos, that don't exchange nodes, i.e. read-only or only node-internal modification; goal is not having to return a result (for more readability and deep matches)
-- add delete node functionality
 
 - check uniform usage over 'override' keyword
 - check 'var' usage
@@ -19,8 +18,6 @@ Framework:
 L3:
 
 L4:
-- leveled variables
-- add Value/Val to l4 => extend DataType and/or VariableDeclarationStatement
 
 IR:
 - add one distinct communicator per (sub)domain
