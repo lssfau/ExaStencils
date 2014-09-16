@@ -48,22 +48,22 @@ object Fields {
         if (Knowledge.l3tmp_useSlotsForJac) {
           printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >[2]@(coarsest to ${Knowledge.l3tmp_tempBlockingMinLevel - 1})")
           if (Knowledge.l3tmp_tempBlockingMinLevel < Knowledge.maxLevel - 1)
-            printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, CommFullTempBlockable, 0.0 >[2]@({Knowledge.l3tmp_tempBlockingMinLevel} to (finest - 1))")
+            printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, CommFullTempBlockable, 0.0 >[2]@(${Knowledge.l3tmp_tempBlockingMinLevel} to (finest - 1))")
           printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, CommFullTempBlockable, $bc >[2]@finest")
         } else {
           printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >@(coarsest to ${Knowledge.l3tmp_tempBlockingMinLevel - 1})")
           if (Knowledge.l3tmp_tempBlockingMinLevel < Knowledge.maxLevel - 1)
-            printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, CommFullTempBlockable, 0.0 >@({Knowledge.l3tmp_tempBlockingMinLevel} to (finest - 1))")
+            printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, CommFullTempBlockable, 0.0 >@(${Knowledge.l3tmp_tempBlockingMinLevel} to (finest - 1))")
           printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, CommFullTempBlockable, $bc >@finest")
           printer.println(s"Field Solution2$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >@(coarsest to ${Knowledge.l3tmp_tempBlockingMinLevel - 1})")
           if (Knowledge.l3tmp_tempBlockingMinLevel < Knowledge.maxLevel - 1)
-            printer.println(s"Field Solution2$postfix< $fieldDatatype, $domain, CommFullTempBlockable, 0.0 >@({Knowledge.l3tmp_tempBlockingMinLevel} to (finest - 1))")
+            printer.println(s"Field Solution2$postfix< $fieldDatatype, $domain, CommFullTempBlockable, 0.0 >@(${Knowledge.l3tmp_tempBlockingMinLevel} to (finest - 1))")
           printer.println(s"Field Solution2$postfix< $fieldDatatype, $domain, CommFullTempBlockable, $bc >@finest")
         }
       } else {
         printer.println(s"Field Solution2$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >@(coarsest to ${Knowledge.l3tmp_tempBlockingMinLevel - 1})")
         if (Knowledge.l3tmp_tempBlockingMinLevel < Knowledge.maxLevel - 1)
-          printer.println(s"Field Solution2$postfix< $fieldDatatype, $domain, CommFullTempBlockable, 0.0 >@({Knowledge.l3tmp_tempBlockingMinLevel} to (finest - 1))")
+          printer.println(s"Field Solution2$postfix< $fieldDatatype, $domain, CommFullTempBlockable, 0.0 >@(${Knowledge.l3tmp_tempBlockingMinLevel} to (finest - 1))")
         printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, CommFullTempBlockable, $bc >@finest")
       }
     } else {
