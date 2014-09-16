@@ -5,7 +5,6 @@ Concept:
 Framework:
 - Lib/ Inc Blocks in HW Knowledge
 - reserve C keywords in lexer
-- Extend Settings parser to support floating point numbers
 
 - add possibility to specify trafos, that don't exchange nodes, i.e. read-only or only node-internal modification; goal is not having to return a result (for more readability and deep matches)
 

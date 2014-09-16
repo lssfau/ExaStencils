@@ -22,19 +22,17 @@ class ParserSettings extends ExaParser {
 
   protected def parseTokens(tokens : lexical.Scanner) : Unit = {
     phrase(settingsfile)(tokens) match {
-      case Success(e, _)   => 
+      case Success(e, _)   =>
       case Error(msg, _)   => throw new Exception("parse error: " + msg)
       case Failure(msg, _) => throw new Exception("parse failure: " + msg)
     }
   }
-  
-  
-   
+
   lazy val settingsfile = setting.*
-  
-  lazy val setting = ident ~ "=" ~ expr ^^ { case id ~ "=" ~ ex => UniversalSetter(exastencils.core.Settings, id, ex) }
-  
-  lazy val expr = stringLit ^^ { _.toString } |
-  numericLit ^^ { _.toInt } |
-  booleanLit ^^ { _.toBoolean }
+
+  lazy val setting = ident ~ "=" ~ expr ^^ { case id ~ "=" ~ ex => UniversalSetter.withConversion(exastencils.core.Settings, id, ex) }
+
+  lazy val expr = stringLit ^^ { _.toString } |||
+    numericLit |||
+    booleanLit ^^ { _.toBoolean }
 }
