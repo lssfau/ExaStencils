@@ -29,7 +29,6 @@ case class CommunicationFunctions() extends FunctionCollection("CommFunctions/Co
     ++
     ListBuffer(
       "#include \"Globals/Globals.h\"",
-      "#include \"Util/Log.h\"",
       "#include \"Util/Vector.h\"",
       "#include \"MultiGrid/MultiGrid.h\""))
 

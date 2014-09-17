@@ -7,6 +7,7 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.omp._
+import exastencils.util._
 
 case class PointOutsideDomain(var pos : Expression, var domain : Domain) extends Expression with Expandable {
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = PointOutsideDomain\n"
@@ -109,9 +110,7 @@ case class AssertStatement(var check : Expression, var msg : Expression, var abo
 
   override def expand : Output[ConditionStatement] = {
     new ConditionStatement(check,
-      ListBuffer[Statement](
-        "LOG_ERROR(" ~ msg ~ ")",
-        abort))
+      ListBuffer[Statement](new PrintStatement(msg), abort))
   }
 }
 
@@ -212,7 +211,6 @@ case class DomainFunctions() extends FunctionCollection("Domains/DomainGenerated
     ++
     ListBuffer(
       "#include \"Globals/Globals.h\"",
-      "#include \"Util/Log.h\"",
       "#include \"Util/Vector.h\"",
       "#include \"CommFunctions/CommFunctions.h\"")) {
 

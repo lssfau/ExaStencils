@@ -51,7 +51,6 @@ case class MultiGridFunctions() extends FunctionCollection("MultiGrid/MultiGrid"
       ListBuffer())
     ++
     ListBuffer(
-      "#include \"Util/Log.h\"",
       "#include \"Util/Vector.h\"",
       "#include \"Util/Stopwatch.h\"",
       "#include \"CommFunctions/CommFunctions.h\"",

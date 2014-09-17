@@ -125,7 +125,6 @@ object VariabilityParser {
       new CommunicationFunctions,
 
       // Util
-      new Log,
       new Stopwatch,
       new Vector,
 
