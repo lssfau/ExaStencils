@@ -2,7 +2,6 @@ package exastencils.data
 
 import scala.collection.immutable.TreeMap
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
@@ -14,6 +13,7 @@ import exastencils.knowledge._
 import exastencils.multiGrid._
 import exastencils.omp._
 import exastencils.util._
+import scala.collection.mutable.TreeSet
 
 object SetupDataStructures extends DefaultStrategy("Setting up fragment") {
   override def apply(node : Option[Node] = None) = {
@@ -115,6 +115,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   })
 
   var bufferSizes : TreeMap[Expression, Expression] = TreeMap()(Ordering.by(_.cpp))
+  var fieldAllocs : TreeMap[Expression, Statement] = TreeMap()(Ordering.by(_.cpp))
 
   this += new Transformation("Collecting buffer sizes", {
     case buf : iv.TmpBuffer =>
@@ -129,6 +130,25 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
         bufferSizes += (id -> (size max bufferSizes.getOrElse(id, IntegerConstant(0)).asInstanceOf[IntegerConstant].v))
       }
       buf
+    case field : iv.FieldData => {
+      val cleanedField = Duplicate(field)
+      cleanedField.slot = "slot"
+      cleanedField.fragmentIdx = LoopOverFragments.defIt
+
+      var numDataPoints : Expression = field.field.layout(0).total * field.field.layout(1).total * field.field.layout(2).total * field.field.dataType.resolveFlattendSize
+      var statements : ListBuffer[Statement] = ListBuffer()
+      for (slot <- 0 until field.field.numSlots) {
+        val newFieldData = Duplicate(field)
+        newFieldData.slot = slot
+        statements += new AssignmentStatement(newFieldData,
+          ("new" : Expression) ~~ field.field.dataType.resolveUnderlyingDatatype. /*FIXME*/ cpp ~ "[" ~ numDataPoints ~ "]")
+        // TODO: Knowledge.data_addPrePadding
+      }
+
+      fieldAllocs += (cleanedField -> new LoopOverFragments(
+        new ConditionStatement(iv.IsValidForSubdomain(field.field.domain.index), statements)) with OMP_PotentiallyParallel)
+      field
+    }
   })
 
   this += new Transformation("Extending SetupBuffers function", {
@@ -145,6 +165,10 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       }
 
       func.body += new LoopOverFragments(bufferSizes.map(buf => new AssignmentStatement(buf._1, "new double[" ~ buf._2 ~ "]") : Statement).to[ListBuffer]) with OMP_PotentiallyParallel
+
+      for (fieldAlloc <- fieldAllocs)
+        func.body += fieldAlloc._2
+
       func
     }
   })

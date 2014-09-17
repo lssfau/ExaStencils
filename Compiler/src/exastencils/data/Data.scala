@@ -16,21 +16,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
   override def expand : Output[FunctionStatement] = {
     var body = ListBuffer[Statement]()
 
-    for (field <- fields) {
-      var numDataPoints : Expression = field.layout(0).total * field.layout(1).total * field.layout(2).total * field.dataType.resolveFlattendSize
-      var statements : ListBuffer[Statement] = ListBuffer()
-
-      for (slot <- 0 until field.numSlots) {
-        statements += new AssignmentStatement(iv.FieldData(field, field.level, slot),
-          ("new" : Expression) ~~ field.dataType.resolveUnderlyingDatatype. /*FIXME*/ cpp ~ "[" ~ numDataPoints ~ "]")
-        if (Knowledge.data_addPrePadding)
-          statements += new AssignmentStatement(iv.FieldData(field, field.level, slot), iv.FieldData(field, field.level, slot))
-      }
-
-      body += new LoopOverFragments(
-        new ConditionStatement(iv.IsValidForSubdomain(field.domain.index),
-          statements)) with OMP_PotentiallyParallel
-    }
+    // add static allocations here
 
     return FunctionStatement(new UnitDatatype(), s"setupBuffers", ListBuffer(), body)
   }

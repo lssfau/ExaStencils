@@ -16,8 +16,8 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
   def setupDirichlet : ListBuffer[Statement] = {
     var statements : ListBuffer[Statement] = ListBuffer()
     if (StateManager.findFirst[AnyRef]((node : Any) => node match {
-      case StringConstant(sc) if "xPos" == sc || "yPos" == sc || "zPos" == sc => true
-      case VariableAccess(sc, _) if "xPos" == sc || "yPos" == sc || "zPos" == sc => true
+      case StringConstant("xPos") | StringConstant("yPos") | StringConstant("zPos") => true
+      case VariableAccess("xPos", _) | VariableAccess("yPos", _) | VariableAccess("zPos", _) => true
       case _ => false
     }, field.field.dirichletBC.get).isDefined) {
       statements += new InitGeomCoords(field.field, true)

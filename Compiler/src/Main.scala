@@ -130,6 +130,10 @@ object Main {
       Unrolling.apply()
 
     AddInternalVariables.apply()
+    if (Knowledge.useFasterExpand)
+      ExpandOnePassStrategy.apply()
+    else
+      ExpandStrategy.doUntilDone()
 
     if (Knowledge.useMPI)
       AddMPIDatatypes.apply()
