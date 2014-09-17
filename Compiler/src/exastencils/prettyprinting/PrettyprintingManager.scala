@@ -17,11 +17,27 @@ object PrettyprintingManager {
   def pushPrinter(printer : Prettyprinter) = printerStack.push(printer)
   def popPrinter() = printerStack.pop
 
-  protected class Prettyprinter(val filename : String, val path : String) extends java.io.PrintWriter(path) {
+  protected class Prettyprinter(val filename : String, val path : String) extends java.io.StringWriter {
     def <<(s : String) = write(s)
     def <<<(s : String) = write(s + "\n")
 
-    def finish = close
+    def writeToFile = {
+      val outFile = new java.io.FileWriter(path)
+      outFile.write(toString)
+      outFile.close
+    }
+
+    def finish = {
+      if (!(new java.io.File(path)).exists) {
+        exastencils.core.Logger.debug("Creating file: " + path)
+        writeToFile
+      } else {
+        if (toString != scala.io.Source.fromFile(path).mkString) {
+          exastencils.core.Logger.debug("Updating file: " + path)
+          writeToFile
+        }
+      }
+    }
 
     protected var dependencies_ = new HashSet[Prettyprinter]
     def addDependency(prettyprinter : Prettyprinter) = dependencies_ += prettyprinter
@@ -48,8 +64,6 @@ object PrettyprintingManager {
       var file = new java.io.File(Settings.outputPath + java.io.File.separator + filename)
       if (!file.getParentFile().exists()) file.getParentFile().mkdirs()
 
-      exastencils.core.Logger.debug("new file: " + file.getAbsolutePath)
-
       if (filename.endsWith(".h") || filename.endsWith(".hpp") || filename.endsWith(".hxx")) {
         var printer = new HeaderPrettyprinter(filename, file.getAbsolutePath())
         printers += ((filename, printer))
@@ -59,7 +73,6 @@ object PrettyprintingManager {
         printers += ((filename, printer))
         printer
       }
-
     })
   }
 
