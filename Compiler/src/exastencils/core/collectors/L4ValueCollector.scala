@@ -14,7 +14,7 @@ class L4ValueCollector extends Collector {
     node match {
       case x : GlobalDeclarationStatement => global = x
       case x : FunctionStatement          => values.clear()
-      case x : ValueDeclarationStatement  => values.+=((x.Identifier.name, x.expression))
+      case x : ValueDeclarationStatement  => values.+=((x.identifier.name, x.expression))
       //      case FunctionStatement(LeveledIdentifier(_, SingleLevelSpecification(level)), _, _, _) => curLevel = level
       case _                              =>
     }
@@ -35,10 +35,10 @@ class L4ValueCollector extends Collector {
 
   def getValue(name : String) : Option[Expression] = {
     var decl : Option[ValueDeclarationStatement] = None
-    if(global != null) {
-      decl = global.values.find(_.Identifier.name == name)
+    if (global != null) {
+      decl = global.values.find(_.identifier.name == name)
     }
-    if(decl.isDefined) {
+    if (decl.isDefined) {
       Some(decl.get.expression)
     } else {
       values.get(name)

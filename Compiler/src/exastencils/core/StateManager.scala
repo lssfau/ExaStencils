@@ -11,6 +11,9 @@ import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import java.lang.reflect.Method
 
+/**
+  * The central entity to apply transformations to the current program state.
+  */
 object StateManager {
   def root = root_ // FIXME remove this
   var root_ : Node = null // FIXME make this protected
@@ -19,17 +22,36 @@ object StateManager {
   // #### Checkpointing ############################################################################
   // ###############################################################################################
 
+  /** Type that represents a checkpoint identifier. */
   type CheckpointIdentifier = String
   protected var checkpoints_ = new HashMap[CheckpointIdentifier, Node]
+
+  /**
+    * Creates a new checkpoint (snapshot copy) of the current program state.
+    *
+    * @param id The identifier to be used for the newly created checkpoint.
+    */
   def checkpoint(id : CheckpointIdentifier) : Unit = {
     Logger.debug(s"""Creating checkpoint "$id"""")
     var c = Duplicate(StateManager.root_)
     checkpoints_ += ((id, c))
   }
+
+  /**
+    * Restores the current program state from a previously saved checkpoint.
+    *
+    * @param id The identifier to be used to find the checkpoint that is to be restored.
+    */
   def restore(id : CheckpointIdentifier) : Unit = {
     Logger.debug(s"""Restoring to checkpoint "$id"""")
     root_ = checkpoints_.getOrElse(id, { throw CheckpointException(s"""Could not restore to checkpoint "$id": Not found!""") })
   }
+
+  /**
+    * List identifiers of all currently known checkpoints.
+    *
+    * @return The list of identifiers of all currently known checkpoints.
+    */
   def listCheckpoints() = checkpoints_.keys
 
   protected object History {
@@ -82,64 +104,64 @@ object StateManager {
   }
 
   /**
-    * Register a Collector with StateManager
+    * Register a Collector with StateManager.
     *
-    *  @param c The Collector to be added
+    * @param c The Collector to be added.
     */
   def register(c : Collector) = { Collectors.register(c) }
 
   /**
-    * Unregister a Collector from StateManager
+    * Unregister a Collector from StateManager.
     *
-    *  @param c The Collector be removed
+    * @param c The Collector be removed.
     */
   def unregister(c : Collector) = { Collectors.unregister(c) }
 
-  /** Unregister all currently registered Collectors from StateManager */
+  /** Unregister all currently registered Collectors from StateManager. */
   def unregisterAll() = { Collectors.unregisterAll }
 
   // ###############################################################################################
   // #### Transformationen & Matching ##############################################################
   // ###############################################################################################
 
-  /** Class that holds statistics about a Transformation */
+  /** Class that holds statistics about a Transformation. */
   protected class TransformationProgress {
-    /** Number of times a Transformation could be matched and applied */
+    /** Number of times a Transformation could be matched and applied. */
     protected var matches = 0
 
     /**
-      * Returns the number of matches
+      * Returns the number of matches.
       *
-      *  @return The number of matches
+      * @return The number of matches.
       */
     def getMatches = matches
 
-    /** Increases the number of matches by 1 */
+    /** Increases the number of matches by 1. */
     def didMatch = matches += 1
 
     override def toString = { s"Transformation Progress: $matches match(es)" }
   }
   protected val progresses_ = new HashMap[Transformation, TransformationProgress]
 
-  /** Dummy node that is used internally to signal that a Transformation did not match a given node */
+  /** Dummy node that is used internally to signal that a Transformation did not match a given node. */
   protected case object NoMatch extends Node
 
   /**
-    * Function that is called by applyAtNode in case there was no match
+    * Function that is called by applyAtNode in case there was no match.
     *
-    *  @param node Not used. Its existence, however, is enforced by Scala.
-    *  @return An Output instance carrying the dummy node
+    * @param node Not used. Its existence, however, is enforced by Scala.
+    * @return An Output instance carrying the dummy node.
     */
   protected def NoMatchFunction(node : Node) : Transformation.OutputType = {
     return NoMatch // return dummy node
   }
 
   /**
-    * Apply the transformation function to a given node
+    * Apply the transformation function to a given node.
     *
-    *  @param node The node the Transformation is to be applied to
-    *  @param transformation The Transformation to be applied
-    *  @return An Output instance carrying the result of the transformation or NoMatch is the transformation could not be applied
+    * @param node The node the Transformation is to be applied to.
+    * @param transformation The Transformation to be applied.
+    * @return An Output instance carrying the result of the transformation or NoMatch is the transformation could not be applied.
     */
   protected def applyAtNode(node : Node, transformation : Transformation) : Transformation.OutputType = {
     val output = transformation.function.applyOrElse(node, NoMatchFunction) // use applyOrElse because Scala's documentation claims it is implement more efficiently
@@ -151,10 +173,10 @@ object StateManager {
   }
 
   /**
-    * The main Transformation & replacement function
+    * The main Transformation & replacement function.
     *
-    *  @param node The node the Transformation is to be applied to
-    *  @param transformation The Transformation to be applied
+    * @param node The node the Transformation is to be applied to.
+    * @param transformation The Transformation to be applied.
     */
   protected def replace(node : Node, transformation : Transformation) : Unit = {
     Collectors.notifyEnter(node)
@@ -187,7 +209,7 @@ object StateManager {
                 Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
               }
             }
-            case None         => Logger.error("not possible")
+            case None => Logger.error(s"""Could not remove node "${getter.getName()}"" from "${n}"" as it is not optional!""")
           }
 
           // Apply transformation to sub-elements
@@ -207,12 +229,17 @@ object StateManager {
                   Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
                 }
               }
-              case m : NodeList if m.nodes.size == 1 => { // Only valid if list contains a single element
-                if (!Vars.set(node, setter, Some(m.nodes.toSeq(0)))) {
+              case m : NodeList if m.nodes.size == 1 =>
+                { // Only valid if list contains a single element
+                  if (!Vars.set(node, setter, Some(m.nodes.toSeq(0)))) {
+                    Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
+                  }
+                }
+              case None => {
+                if (!Vars.set(node, setter, None)) {
                   Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
                 }
               }
-              case None         => Logger.error("not possible")
             }
 
             // Apply transformation to sub-elements
@@ -242,6 +269,7 @@ object StateManager {
                 }
                 newN.nodes // elements of type Node were returned => use them
               }
+              case None => List()
             }
             case _ => List(f) // current element "f" is not of interest to us - put it back into (new) set
           })
@@ -267,6 +295,7 @@ object StateManager {
                 }
                 newN.nodes // elements of type Node were returned => use them
               }
+              case None => List()
             }
             case _ => List(f)
           })
@@ -295,6 +324,7 @@ object StateManager {
                 }
                 newN.nodes // elements of type Node were returned => use them
               }
+              case None => List()
             }
             case _ => List(f)
           })
@@ -307,7 +337,7 @@ object StateManager {
         // #### Maps #####################################################################################
         // ###############################################################################################
         case map : scala.collection.mutable.Map[_, _] => {
-          var newMap = map.map(f => f match {
+          var newMap = map.mapValues(f => f match {
             case n : Node => applyAtNode(n, transformation).inner match {
               case NoMatch =>
                 replace(n, transformation); n // no match occured => use old element 
@@ -317,7 +347,8 @@ object StateManager {
                 }
                 newN // element of type Node was returned => use it
               }
-              case newN : NodeList => Logger.error("fixme")
+              case newN : NodeList => Logger.error("Unable to replace single element of map value by List")
+              case None            =>
             }
           })
 
@@ -327,7 +358,7 @@ object StateManager {
         }
         // Unfortunately mutable and immutable set have no common supertype
         case map : scala.collection.immutable.Map[_, _] => {
-          var newMap = map.map(f => f match {
+          var newMap = map.mapValues(f => f match {
             case n : Node => applyAtNode(n, transformation).inner match {
               case NoMatch =>
                 replace(n, transformation); n // no match occured => use old element 
@@ -337,7 +368,8 @@ object StateManager {
                 }
                 newN // element of type Node was returned => use it
               }
-              case newN : NodeList => Logger.error("fixme")
+              case newN : NodeList => Logger.error("Unable to replace single element of map value by List")
+              case None            =>
             }
           })
 
@@ -345,7 +377,7 @@ object StateManager {
             Logger.error(s"Could not set $getter in transformation ${transformation.name}")
           }
         }
-        case list : Array[_] => {
+        case array : Array[_] => {
           Logger.warn("Arrays are currently not supported for matching!")
         }
         //        case list : Array[_] => {
@@ -371,12 +403,12 @@ object StateManager {
   }
 
   /**
-    * Apply a Transformation to the current program state
+    * Apply a Transformation to the current program state.
     *
-    *  @param token A TransactionToken to lock the program state for other Transformations
-    *  @param transformation The Transformation to be applied
-    *  @param node An optional node that is treated as the starting point ("root") for the Transaction
-    *  @return Statistics about matches
+    * @param token A TransactionToken to lock the program state for other Transformations.
+    * @param transformation The Transformation to be applied.
+    * @param node An optional node that is treated as the starting point ("root") for the Transaction.
+    * @return Statistics about matches.
     */
   def apply(token : History.TransactionToken, transformation : Transformation, node : Option[Node] = None) : TransformationResult = {
     if (!History.isValid(token)) {
@@ -398,13 +430,13 @@ object StateManager {
   }
 
   /**
-    * Apply a Transformation to the current program state without supplying a TransactionToken
+    * Apply a Transformation to the current program state without supplying a TransactionToken.
     *
-    *  Warning: This is dangerous and not encouraged!
+    * Warning: This is dangerous and not encouraged!
     *
-    *  @param transformation The Transformation to be applied
-    *  @param node An optional node that is treated as the starting point ("root") for the Transaction
-    *  @return Statistics about matches
+    * @param transformation The Transformation to be applied.
+    * @param node An optional node that is treated as the starting point ("root") for the Transaction.
+    * @return Statistics about matches.
     */
   def applyStandalone(transformation : Transformation, node : Node) : TransformationResult = {
     try {
@@ -420,23 +452,73 @@ object StateManager {
     }
   }
 
+  /**
+    * Finds all instances of a certain type in the current program state.
+    *
+    * @return A List containing all instances of Nodes of type T.
+    */
+  def findAll[T <: AnyRef : ClassTag]() : List[T] = findAll(root)
+
+  /**
+    * Finds all instances of a certain type in the current program state.
+    *
+    * @param node The node where to start the recursive search.
+    * @return A List containing all instances of Nodes of type T.
+    */
+  def findAll[T <: AnyRef : ClassTag](node : Node) : List[T] = {
+    findAll[T]({ x : Any => x match { case _ : T => true; case _ => false } }, node)
+  }
+
+  /**
+    * Finds all instances of a certain type meeting a certain condition in the current program state.
+    *
+    * @param check The condition a node instance has to meet.
+    * @param node The node where to start the recursive search.
+    * @return A List containing all instances of Nodes of type T.
+    */
+  def findAll[T <: AnyRef : ClassTag](check : T => Boolean, node : Node = root) : List[T] = {
+    var retVal = new ListBuffer[T]()
+    var t = new Transformation("StatemanagerInternalFindAll", {
+      case hit : T if check(hit) => retVal += hit; new Output(hit)
+    }, true)
+
+    progresses_.+=((t, new TransformationProgress))
+    replace(node, t)
+    retVal.toList
+  }
+
+  /**
+    * Finds the first instance of a certain type in the current program state.
+    *
+    * @return An instance of type T, or None.
+    */
   def findFirst[T <: AnyRef : ClassTag]() : Option[T] = findFirst(root)
 
+  /**
+    * Finds the first instance of a certain type in the current program state.
+    *
+    * @param node The node where to start the recursive search.
+    * @return An instance of type T, or None.
+    */
   def findFirst[T <: AnyRef : ClassTag](node : Node) : Option[T] = {
     findFirst[T]({ x : Any => x match { case _ : T => true; case _ => false } }, node)
   }
 
+  /**
+    * Finds the first instance of a certain type meeting a certain condition in the current program state.
+    *
+    * @param check The condition a node instance has to meet.
+    * @param node The node where to start the recursive search.
+    * @return An instance of type T, or None.
+    */
   def findFirst[T <: AnyRef : ClassTag](check : T => Boolean, node : Node = root) : Option[T] = {
     var retVal : Option[T] = None
     var t = new Transformation("StatemanagerInternalFindFirst", {
-      case hit : T if check(hit) =>
-        retVal = Some(hit)
-        new Output(hit)
-    }) //, false) -> FIXME: Christian, currently it only works when enabling recursive matching
+      case hit : T if check(hit) => retVal = Some(hit); new Output(hit)
+    }, false)
 
     progresses_.+=((t, new TransformationProgress))
     replace(node, t)
-
     retVal
   }
 
