@@ -2,6 +2,7 @@ package exastencils.data
 
 import scala.collection.immutable.TreeMap
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
@@ -13,7 +14,6 @@ import exastencils.knowledge._
 import exastencils.multiGrid._
 import exastencils.omp._
 import exastencils.util._
-import scala.collection.mutable.TreeSet
 
 object SetupDataStructures extends DefaultStrategy("Setting up fragment") {
   override def apply(node : Option[Node] = None) = {
@@ -106,10 +106,10 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       for (decl <- declarationMap)
         globals.variables += decl._2
       globals
-    case func : FunctionStatement if (("initGlobals" : Expression) == func.name) =>
+    case func : FunctionStatement if ("initGlobals" == func.name) =>
       func.body ++= ctorMap.map(_._2)
       func
-    case func : FunctionStatement if (("destroyGlobals" : Expression) == func.name) =>
+    case func : FunctionStatement if ("destroyGlobals" == func.name) =>
       func.body ++= dtorMap.map(_._2)
       func
   })
@@ -153,7 +153,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
 
   this += new Transformation("Extending SetupBuffers function", {
     // FIXME: this kind of matching is awkward, I want trafos that don't return nodes
-    case func : FunctionStatement if (("setupBuffers" : Expression) == func.name) => {
+    case func : FunctionStatement if ("setupBuffers" == func.name) => {
       if (Knowledge.comm_useLevelIndependentFcts) {
         val s = new DefaultStrategy("Replacing level specifications")
         s += new Transformation("Search and replace", {

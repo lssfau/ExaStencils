@@ -51,10 +51,9 @@ case class MultiGridFunctions() extends FunctionCollection("MultiGrid/MultiGrid"
       ListBuffer())
     ++
     ListBuffer(
-      "#include \"Util/Log.h\"",
       "#include \"Util/Vector.h\"",
       "#include \"Util/Stopwatch.h\"",
-      "#include \"Primitives/CommunicationFunctions.h\"",
+      "#include \"CommFunctions/CommFunctions.h\"",
       "#include \"Domains/DomainGenerated.h\"")) {
 
   if (Knowledge.data_initAllFieldsWithZero)

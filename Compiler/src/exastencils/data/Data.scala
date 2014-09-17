@@ -27,7 +27,7 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
   override def cpp_decl : String = cpp
 
   override def expand : Output[FunctionStatement] = {
-    new FunctionStatement(new UnitDatatype(), "get" ~ src.codeName,
+    new FunctionStatement(new UnitDatatype(), "get" + src.codeName,
       ListBuffer(new VariableAccess("dest", Some(PointerDatatype(src.dataType))), new VariableAccess("slot", Some(new IntegerDatatype))),
       ListBuffer[Statement](
         new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
@@ -43,7 +43,7 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
   override def cpp_decl : String = cpp
 
   override def expand : Output[FunctionStatement] = {
-    new FunctionStatement(new UnitDatatype(), "set" ~ dest.codeName,
+    new FunctionStatement(new UnitDatatype(), "set" + dest.codeName,
       ListBuffer(new VariableAccess("src", Some(PointerDatatype(dest.dataType))), new VariableAccess("slot", Some(new IntegerDatatype))),
       ListBuffer[Statement](
         new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(

@@ -1,11 +1,12 @@
 package exastencils.strategies
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import scala.collection.mutable.ListBuffer
 
 object PrintStrategy extends DefaultStrategy("Pretty-Print") {
   this += new Transformation("Pretty-Print", {

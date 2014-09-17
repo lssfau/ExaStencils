@@ -160,7 +160,7 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
           s"char msg[MPI_MAX_ERROR_STRING]",
           s"int len",
           s"MPI_Error_string(stat.MPI_ERROR, msg, &len)",
-          "LOG_WARNING(\"MPI Error encountered (\" << msg << \")\")")),
+          new PrintStatement(ListBuffer[Expression]("\"MPI Error encountered (\"", "msg", "\")\"")))),
         s"*request = MPI_Request()"))
   }
 }

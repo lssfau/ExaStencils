@@ -6,7 +6,7 @@ import exastencils.prettyprinting._
 
 object Settings {
   var outputPath : String = "/tmp/"
-  var buildfileGenerator: BuildfileGenerator = MakefileGenerator
+  var buildfileGenerator : BuildfileGenerator = MakefileGenerator
   var binary : String = "exastencils"
   var basePathPrefix : String = ".."
   var l4file : String = null

@@ -44,7 +44,7 @@ object BinaryOperators extends Enumeration {
   val Division = Value("/")
   val Power = Value("**") // FIXME
   val Modulo = Value("%")
-  
+
   val AndAnd = Value("&&")
   val OrOr = Value("||")
   val Negation = Value("!")
@@ -70,7 +70,7 @@ object BinaryOperators extends Enumeration {
     case Division       => return new DivisionExpression(left, right)
     case Power          => return new PowerExpression(left, right)
     case Modulo         => return new ModuloExpression(left, right)
-    
+
     case AndAnd         => return new AndAndExpression(left, right)
     case OrOr           => return new OrOrExpression(left, right)
     case Negation       => return new NegationExpression(left)
@@ -254,7 +254,7 @@ case class ExternalFieldAccess(var name : Expression, var field : ExternalField,
 }
 
 case class LinearizedFieldAccess(var fieldSelection : FieldSelection, var index : Expression) extends Expression with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = ExternalFieldAccess\n"
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LinearizedFieldAccess\n"
 
   override def expand : Output[Expression] = {
     new ArrayAccess(new iv.FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx), index)
