@@ -2,6 +2,7 @@ package exastencils.data
 
 import scala.collection.immutable.TreeMap
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
@@ -13,7 +14,6 @@ import exastencils.knowledge._
 import exastencils.multiGrid._
 import exastencils.omp._
 import exastencils.util._
-import scala.collection.mutable.TreeSet
 
 object SetupDataStructures extends DefaultStrategy("Setting up fragment") {
   override def apply(node : Option[Node] = None) = {

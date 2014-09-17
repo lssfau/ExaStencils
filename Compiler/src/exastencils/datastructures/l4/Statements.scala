@@ -31,9 +31,9 @@ case class DomainDeclarationStatement(var name : String, var lower : RealIndex, 
 }
 
 case class IterationSetDeclarationStatement(var identifier : Identifier,
-                                            var begin : ExpressionIndex, var end : Option[ExpressionIndex],
-                                            var increment : Option[ExpressionIndex],
-                                            var condition : Option[Expression]) extends SpecialStatement {
+    var begin : ExpressionIndex, var end : Option[ExpressionIndex],
+    var increment : Option[ExpressionIndex],
+    var condition : Option[Expression]) extends SpecialStatement {
   def progressToIr : knowledge.IterationSet = {
     knowledge.IterationSet(identifier.asInstanceOf[BasicIdentifier].progressToIr.value,
       begin.progressToIr,
@@ -52,7 +52,7 @@ case class StencilEntry(var offset : ExpressionIndex, var weight : Expression) e
 }
 
 case class StencilDeclarationStatement(var identifier : Identifier,
-                                       var entries : List[StencilEntry]) extends SpecialStatement with HasIdentifier {
+    var entries : List[StencilEntry]) extends SpecialStatement with HasIdentifier {
   def progressToIr : knowledge.Stencil = {
     knowledge.Stencil(identifier.name, identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level, entries.map(e => e.progressToIr).to[ListBuffer])
   }
@@ -122,22 +122,22 @@ case class LoopOverFragmentsStatement(var statements : List[Statement], var redu
 }
 
 case class FunctionStatement(var identifier : Identifier,
-                             var returntype : Datatype,
-                             var arguments : List[Variable],
-                             var statements : List[Statement]) extends Statement with HasIdentifier {
+    var returntype : Datatype,
+    var arguments : List[Variable],
+    var statements : List[Statement]) extends Statement with HasIdentifier {
   def progressToIr : ir.AbstractFunctionStatement = {
     ir.FunctionStatement(
       returntype.progressToIr,
-      ir.StringConstant(identifier.progressToIr.asInstanceOf[ir.StringConstant].value),
+      identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
       arguments.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer] 
       statements.map(s => s.progressToIr).to[ListBuffer]) // FIXME: .to[ListBuffer]
   }
 }
 
 case class RepeatUpStatement(var number : Int,
-                             var iterator : Option[Access],
-                             var contraction : Boolean,
-                             var statements : List[Statement]) extends Statement {
+    var iterator : Option[Access],
+    var contraction : Boolean,
+    var statements : List[Statement]) extends Statement {
 
   def progressToIr : ir.Statement = {
     if (contraction)

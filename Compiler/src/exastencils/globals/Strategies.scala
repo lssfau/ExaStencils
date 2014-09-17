@@ -1,12 +1,10 @@
 package exastencils.globals
 
-import exastencils.core._
-import exastencils.knowledge._
 import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.globals._
-import exastencils.strategies._
+import exastencils.knowledge._
 
 object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
   this += new Transformation("Adding default global constants and variables", {
