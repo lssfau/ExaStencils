@@ -1,7 +1,7 @@
 package exastencils.core
 
 /**
-  * Logger instance that currently writes to stdout.
+  * Logger object that currently writes to stdout.
   *
   * Because it uses Scala macros that need to be defined in a separate compilation run, this is a separate project.
   *
