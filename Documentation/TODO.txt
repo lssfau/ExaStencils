@@ -8,18 +8,22 @@ Framework:
 
 - add possibility to specify trafos, that don't exchange nodes, i.e. read-only or only node-internal modification; goal is not having to return a result (for more readability and deep matches)
 
+- allow deletion of nodes (if not deletable bc not in collection -> replace by NullStatement/NullExpr)
+
 - check uniform usage over 'override' keyword
 - check 'var' usage
 - check ';' usage
-
-- think about adding the functionality to check files before writing against existing versions to reduce compile time afterwards
 
 L3:
 
 L4:
 
+- add temporary fields
+
 IR:
 - add one distinct communicator per (sub)domain
+
+- add temporary fields
 
 ISL:
 - L4 constraints to ISL mapping
