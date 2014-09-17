@@ -27,7 +27,7 @@ object Logger {
   /** The level for displaying errors, warnings, debug messages and info messages. */
   val LEVEL_INFO = 4
 
-  protected var current : Int = 2
+  protected var current : Int = LEVEL_DEBUG
 
   /**
     * Returns the current logging level.
