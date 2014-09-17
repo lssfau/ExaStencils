@@ -1,5 +1,6 @@
 package exastencils.util
 
+import scala.collection.immutable.TreeMap
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
@@ -183,10 +184,12 @@ object SimplifyExpression {
   /**
     * Takes the output from extractIntegralSum(..) and recreates an AST for this sum.
     */
-  def recreateExprFromIntSum(map : HashMap[Expression, Long]) : Expression = {
+  def recreateExprFromIntSum(unsortedMap : HashMap[Expression, Long]) : Expression = {
 
     var res : Expression = null
-    val const : Option[Long] = map.remove(constName)
+    val const : Option[Long] = unsortedMap.remove(constName)
+
+    var map = TreeMap(unsortedMap.toSeq : _*)(Ordering.by(_.cpp))
 
     if (map.isEmpty)
       return IntegerConstant(const.getOrElse(0L))
@@ -355,10 +358,12 @@ object SimplifyExpression {
   /**
     * Takes the output from extractFloatingSum(..) and recreates an AST for this sum.
     */
-  def recreateExprFromFloatSum(map : HashMap[Expression, Double]) : Expression = {
+  def recreateExprFromFloatSum(unsortedMap : HashMap[Expression, Double]) : Expression = {
 
     var res : Expression = null
-    val const : Option[Double] = map.remove(constName)
+    val const : Option[Double] = unsortedMap.remove(constName)
+
+    var map = TreeMap(unsortedMap.toSeq : _*)(Ordering.by(_.cpp))
 
     if (map.isEmpty)
       return FloatConstant(const.getOrElse(0d))
