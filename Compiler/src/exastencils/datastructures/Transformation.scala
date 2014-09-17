@@ -8,10 +8,10 @@ import scala.language.higherKinds
 /**
   * The class to specify a transformation modifying a program state into a new one.
   *
-  * @param name The name of the transformation. Used for debugging purposes.
+  * @param name The name of the Transformation. Used for traceability and debugging purposes.
   * @param function A Scala function specifying the nodes to look for and specifying their replacement.
   * @param recursive Specifies if the Transformation is to be applied to subnodes of a node that has just been replaced.
-  * @param applyAtNode Specifies the source node where the transformation starts to traverse the program state.
+  * @param applyAtNode Specifies the source node where the Transformation starts to traverse the program state.
   */
 class Transformation(val name : String, val function : PartialFunction[Node, Transformation.OutputType], val recursive : Boolean = true, val applyAtNode : Option[Node] = None) {
   override def toString() = s"""Transformation "$name""""
