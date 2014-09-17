@@ -7,7 +7,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 
-class FieldLayoutPerDim(
+case class FieldLayoutPerDim(
     var numPadLayersLeft : Int, // number of padding data points added to the left (/ lower / front) side of the field
     var numGhostLayersLeft : Int, // number of ghost data points added to the left (/ lower / front) side of the field used for communication
     var numDupLayersLeft : Int, // number of duplicated data points added to the left (/ lower / front) side of the field; will usually be treated as inner points; can be directly communicated to/ from the opposite dup layers
