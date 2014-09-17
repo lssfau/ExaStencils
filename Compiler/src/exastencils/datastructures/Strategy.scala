@@ -4,7 +4,7 @@ import exastencils.core.StateManager
 import exastencils.core.Logger._
 import exastencils.core._
 
-class Strategy(val name : String) {
+abstract class Strategy(val name : String) {
   protected var token : Option[StateManager.TokenType] = None
 
   protected def transaction() : Unit = {
