@@ -163,7 +163,7 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
       new PrintFieldStatement(args(0), args(1).asInstanceOf[FieldAccess].fieldSelection)
 
     // FIXME: HACK to realize application functionality
-    case func : FunctionStatement if (StringConstant("Application") == func.name) => {
+    case func : FunctionStatement if ("Application" == func.name) => {
       func.returntype = new IntegerDatatype
       func.name = "main"
       func.parameters = ListBuffer(VariableAccess("argc", Some("int")), VariableAccess("argv", Some("char**"))) ++ func.parameters

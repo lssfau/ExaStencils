@@ -9,27 +9,26 @@ class FunctionCollection(var baseName : String,
     var includes : ListBuffer[String],
     var functions : ListBuffer[AbstractFunctionStatement] = ListBuffer()) extends Node with FilePrettyPrintable {
 
-  override def printToFile = {
-    functions = functions.sortBy(f => f.asInstanceOf[FunctionStatement].name.cpp)
+  def printHeader = {
+    val writer = PrettyprintingManager.getPrinter(s"${baseName}.h")
 
-    val writerHeader = PrettyprintingManager.getPrinter(s"${baseName}.h")
+    for (inc <- includes) writer <<< inc
+    for (func <- functions) writer << func.asInstanceOf[FunctionStatement].cpp_decl
+  }
 
-    for (inc <- includes)
-      writerHeader <<< inc
-
-    for (func <- functions) {
-      val function = func.asInstanceOf[FunctionStatement]
-      writerHeader << s"${function.returntype.cpp} ${function.name.cpp}(" + function.parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n"
-    }
-
-    var i = 0
+  def printSources = {
     for (f <- functions) {
-      val writerSource = PrettyprintingManager.getPrinter(s"${baseName}_$i.cpp")
+      val writer = PrettyprintingManager.getPrinter(s"${baseName}_${f.asInstanceOf[FunctionStatement].name}.cpp")
 
-      writerSource <<< "#include \"" + baseName + ".h\""
-      writerSource <<< f.cpp
-
-      i += 1
+      writer <<< "#include \"" + baseName + ".h\""
+      writer <<< f.cpp
     }
+  }
+
+  override def printToFile = {
+    functions = functions.sortBy(f => f.asInstanceOf[FunctionStatement].name)
+
+    printHeader
+    printSources
   }
 }

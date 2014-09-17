@@ -129,12 +129,12 @@ abstract class AbstractFunctionStatement() extends Statement {
   def cpp_decl() : String
 }
 
-case class FunctionStatement(var returntype : Datatype, var name : Expression, var parameters : ListBuffer[VariableAccess], var body : ListBuffer[Statement]) extends AbstractFunctionStatement {
-  def this(returntype : Datatype, name : Expression, parameters : ListBuffer[VariableAccess], body : Statement) = this(returntype, name, parameters, ListBuffer[Statement](body))
-  def this(returntype : Datatype, name : Expression, parameters : VariableAccess, body : ListBuffer[Statement]) = this(returntype, name, ListBuffer[VariableAccess](parameters), body)
+case class FunctionStatement(var returntype : Datatype, var name : String, var parameters : ListBuffer[VariableAccess], var body : ListBuffer[Statement]) extends AbstractFunctionStatement {
+  def this(returntype : Datatype, name : String, parameters : ListBuffer[VariableAccess], body : Statement) = this(returntype, name, parameters, ListBuffer[Statement](body))
+  def this(returntype : Datatype, name : String, parameters : VariableAccess, body : ListBuffer[Statement]) = this(returntype, name, ListBuffer[VariableAccess](parameters), body)
 
   override def cpp(out : CppStream) : Unit = { // FIXME: add specialized node for parameter specification with own PP
-    out << returntype << ' ' << name << '('
+    out << returntype << ' ' << name << ' ' << '('
     if (!parameters.isEmpty) {
       for (param <- parameters)
         out << param.dType.get << ' ' << param.name << ", "
@@ -146,11 +146,9 @@ case class FunctionStatement(var returntype : Datatype, var name : Expression, v
   }
 
   override def cpp_decl() : String = {
-    s"${returntype.cpp} ${name.cpp}(" + parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n"
+    s"${returntype.cpp} $name (" + parameters.map(param => s"${param.dType.get.cpp} ${param.name}").mkString(", ") + ");\n"
   }
 }
-
-// FIXME: add ClassStatement, AbstractClassStatement, PrettyPrinter, etc
 
 //////////////////////////// SIMD Statements \\\\\\\\\\\\\\\\\\\\\\\\\\\\
 

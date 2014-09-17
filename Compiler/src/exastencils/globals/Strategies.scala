@@ -17,7 +17,7 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
         globals.variables += new VariableDeclarationStatement(new IntegerDatatype, "mpiSize")
       }
       globals
-    case func : FunctionStatement if (("initGlobals" : Expression) == func.name) =>
+    case func : FunctionStatement if ("initGlobals" == func.name) =>
       if (Knowledge.useMPI) {
         func.body += "mpiCommunicator = " + Knowledge.mpi_defaultCommunicator
         func.body += "MPI_Comm_rank(mpiCommunicator, &mpiRank)"
