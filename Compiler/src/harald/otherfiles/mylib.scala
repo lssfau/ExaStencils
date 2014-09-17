@@ -48,7 +48,7 @@ class MyStencil(s: Int) {
 } 
 
 // helper functions
-object helper {
+object helper{
 def setRandom( arr:MyArray[Double]) : Unit = {
      
     var r = new scala.util.Random

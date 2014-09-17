@@ -2,6 +2,13 @@ package exastencils.core
 
 import scala.reflect.macros.blackbox
 
+/**
+ * Logger Object
+ * 
+ * DESCRIPTION: 
+ * 
+ */
+
 object Logger {
   import scala.reflect.macros._
   import scala.reflect.runtime.universe._
