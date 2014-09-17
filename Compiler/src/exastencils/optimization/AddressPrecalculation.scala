@@ -5,42 +5,17 @@ import scala.collection.mutable.ArrayStack
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
-import exastencils.core.Logger
-import exastencils.core.StateManager
+import exastencils.core._
 import exastencils.core.collectors.Collector
-import exastencils.datastructures.CustomStrategy
-import exastencils.datastructures.Node
-import exastencils.datastructures.Transformation
-import exastencils.datastructures.Transformation.convFromNode
-import exastencils.datastructures.ir.AdditionExpression
-import exastencils.datastructures.ir.ArrayAccess
-import exastencils.datastructures.ir.Datatype
-import exastencils.datastructures.ir.DivisionExpression
-import exastencils.datastructures.ir.Expression
-import exastencils.datastructures.ir.ForLoopStatement
-import exastencils.datastructures.ir.IntegerConstant
-import exastencils.datastructures.ir.LinearizedFieldAccess
-import exastencils.datastructures.ir.ModuloExpression
-import exastencils.datastructures.ir.MultiplicationExpression
-import exastencils.datastructures.ir.PointerDatatype
-import exastencils.datastructures.ir.RealDatatype
-import exastencils.datastructures.ir.Scope
-import exastencils.datastructures.ir.Statement
-import exastencils.datastructures.ir.StringConstant
-import exastencils.datastructures.ir.SubtractionExpression
-import exastencils.datastructures.ir.UnaryExpression
-import exastencils.datastructures.ir.UnaryOperators
-import exastencils.datastructures.ir.VariableAccess
-import exastencils.datastructures.ir.VariableDeclarationStatement
-import exastencils.datastructures.ir.iv.FieldData
-import exastencils.omp.OMP_PotentiallyParallel
+import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
+import exastencils.datastructures.ir._
 import exastencils.util.SimplifyExpression
 
 object AddressPrecalculation extends CustomStrategy("Perform address precalculation") {
 
   private[optimization] final val DECLS_ANNOT = "Decls"
   private[optimization] final val REPL_ANNOT = "Replace"
-  private[optimization] final val OMP_LOOP_ANNOT = "OMPLoop"
 
   override def apply() : Unit = {
 
@@ -67,7 +42,7 @@ private final class ArrayBases(val arrayName : String) {
     inits.getOrElseUpdate(initVec, { idCount += 1; (arrayName + "_p" + idCount, initExpr) })._1
   }
 
-  def addToDecls(decls : ListBuffer[Node]) : Unit = {
+  def addToDecls(decls : ListBuffer[Statement]) : Unit = {
     for ((_, (name : String, init : Expression)) <- inits)
       decls += new VariableDeclarationStatement(
         PointerDatatype(RealDatatype()), name, Some(new UnaryExpression(UnaryOperators.AddressOf, init)))
@@ -78,21 +53,20 @@ private final class AnnotateLoopsAndAccesses extends Collector {
   import AddressPrecalculation._
 
   private val decls = new ArrayStack[(HashMap[String, ArrayBases], String)]()
-  private var ompLoop : ForLoopStatement = null // save omp loop to lessen collapse value, if needed
 
   private def generateName(expr : Expression) : String = {
-    val cpp = new StringBuilder()
-    expr.cppsb(cpp)
-    return filter(cpp)
+    val cpp = new CppStream()
+    cpp << expr
+    return filter(cpp.toString())
   }
 
   private def filter(cpp : StringLike[_]) : String = {
     val res = new StringBuilder()
     for (c : Char <- cpp)
       c match {
-        case '.' | '[' => res.append('_')
-        case ']'       =>
-        case _         => res.append(c)
+        case '[' | '.' | '%' | '+' => res.append('_')
+        case ']' | '(' | ')' | ' ' =>
+        case _                     => res.append(c)
       }
     return res.toString()
   }
@@ -105,19 +79,24 @@ private final class AnnotateLoopsAndAccesses extends Collector {
 
     val inMap : HashMap[Expression, Long] = SimplifyExpression.extractIntegralSum(ind)
 
-    def containsLoopVar(expr : Expression) : Boolean =
-      expr match {
-        case AdditionExpression(l, r)                       => containsLoopVar(l) || containsLoopVar(r)
-        case SubtractionExpression(l, r)                    => containsLoopVar(l) || containsLoopVar(r)
-        case MultiplicationExpression(l, r)                 => containsLoopVar(l) || containsLoopVar(r)
-        case DivisionExpression(l, r)                       => containsLoopVar(l) || containsLoopVar(r)
-        case ModuloExpression(l, r)                         => containsLoopVar(l) || containsLoopVar(r)
-        case UnaryExpression(UnaryOperators.Negative, expr) => containsLoopVar(expr)
-        case StringConstant(str)                            => str == loopVar
-        case VariableAccess(str, _)                         => str == loopVar
-        case _ : Datatype
-          | _ : IntegerConstant => false
+    def containsLoopVar(expr : Expression) : Boolean = {
+      var res : Boolean = false
+      val contLoopVar = new DefaultStrategy("Anonymous") {
+        this += new Transformation("contains loop var", {
+          case strC : StringConstant =>
+            res |= strC.value == loopVar
+            strC
+          case varA : VariableAccess =>
+            res |= varA.name == loopVar
+            varA
+        })
       }
+      val oldLvl = Logger.getLevel
+      Logger.setLevel(1)
+      contLoopVar.applyStandalone(new ReturnStatement(expr)) // wrap to ensure ALL nodes of expr are visited
+      Logger.setLevel(oldLvl)
+      return res
+    }
 
     for ((expr, value) <- inMap)
       if (expr != SimplifyExpression.constName && !containsLoopVar(expr))
@@ -148,7 +127,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
   override def enter(node : Node) : Unit = {
 
     node match {
-      case l : ForLoopStatement with OptimizationHint =>
+      case l : ForLoopStatement with OptimizationHint if (l.isInnermost) =>
         val d = new HashMap[String, ArrayBases]()
         l.begin match {
           case VariableDeclarationStatement(_, name, _) => decls.push((d, name))
@@ -157,9 +136,6 @@ private final class AnnotateLoopsAndAccesses extends Collector {
             decls.push((d, null))
         }
         node.annotate(DECLS_ANNOT, d)
-        if (ompLoop == null && l.isInstanceOf[OMP_PotentiallyParallel])
-          ompLoop = l
-        node.annotate(OMP_LOOP_ANNOT, ompLoop)
 
       // ArrayAccess with a constant index only cannot be optimized further
       case a @ ArrayAccess(base, index) if !decls.isEmpty && !index.isInstanceOf[IntegerConstant] =>
@@ -177,9 +153,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
 
   override def leave(node : Node) : Unit = {
     node match {
-      case l : ForLoopStatement with OptimizationHint =>
-        if (l eq ompLoop)
-          ompLoop = null
+      case l : ForLoopStatement with OptimizationHint if (l.isInnermost) =>
         decls.pop()
       case _ => // ignore
     }
@@ -190,14 +164,14 @@ private final class AnnotateLoopsAndAccesses extends Collector {
   }
 }
 
-private final object IntegrateAnnotations extends PartialFunction[Node, Transformation.Output[_]] {
+private final object IntegrateAnnotations extends PartialFunction[Node, Transformation.OutputType] {
   import AddressPrecalculation._
 
   def isDefinedAt(node : Node) : Boolean = {
     return node.hasAnnotation(DECLS_ANNOT) || node.hasAnnotation(REPL_ANNOT)
   }
 
-  def apply(node : Node) : Transformation.Output[_] = {
+  def apply(node : Node) : Transformation.OutputType = {
 
     val annot = node.removeAnnotation(REPL_ANNOT)
     if (annot.isDefined)
@@ -209,16 +183,12 @@ private final object IntegrateAnnotations extends PartialFunction[Node, Transfor
       if (decls.isEmpty)
         return node
 
-      // lessen collapse, if available (we insert new statements and therefore the code is not perfectly nested anymore)
-      val parLoop = node.removeAnnotation(OMP_LOOP_ANNOT).get.value.asInstanceOf[OMP_PotentiallyParallel]
-      if (parLoop != null) parLoop.collapse = Math.max(1, parLoop.collapse - 1)
-
-      val stmts = new ListBuffer[Node]()
+      val stmts = new ListBuffer[Statement]()
       for ((_, bases : ArrayBases) <- decls)
         bases.addToDecls(stmts)
 
       stmts += node.asInstanceOf[Statement]
-      return stmts
+      return new Scope(stmts)
     }
   }
 }

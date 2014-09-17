@@ -1,13 +1,13 @@
 package exastencils.parsers
 
-import scala.util.parsing.combinator.lexical._
+import scala.util.parsing.combinator.lexical.StdLexical
 
 /**
   * Defines a basic standard lexical parser common to all levels
   */
 class ExaLexer extends StdLexical {
   // general stuff
-  delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "**", "%", "+=", "-=", "*=", "/=", "|", "[", "]", ",", "<", ">", "<=", ">=", "@", "=>", "!=", "==")
+  delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "**", "%", "+=", "-=", "*=", "/=", "|", "[", "]", ",", "<", ">", "<=", ">=", "@", "=>", "!=", "==", "&&", "||")
 
   reserved += ("true", "false")
 
@@ -40,9 +40,6 @@ class ExaLexer extends StdLexical {
     case Some(exponent) => exponent
   }
 
-  // FIXME move to corresponding levels
-  reserved += ("let", "level", "def", "ToFine", "ToCoarse", "if", "else", "repeat", "reduction", "class", "block", "public", "order", "communicate", "decl", "all", "and")
-
   /*
    * language level 1 keywords
    */
@@ -59,23 +56,38 @@ class ExaLexer extends StdLexical {
    * language level 4 keywords
    */
   // function keywords
-  reserved += ("def")
+  reserved += ("Fun", "Fct", "Function")
 
-  // declaration keywords
-  reserved += ("var", "Field", "Domain", "Set", "Stencil", "Layout", "external", "Globals", "StencilField")
+  // declaration keywords - simple
+  reserved += ("Var", "Variable", "Val", "Value")
+  // declaration keywords - complex
+  reserved += ("Domain", "Layout", "Field", "Stencil", "StencilField", "Set", "external", "Globals")
 
   // loop keywords
-  reserved += ("loop", "repeat", "up", "until", "over", "blocksize", "on", "with")
+  reserved += ("repeat", "times", "count", "with", "contraction")
+  reserved += ("loop", "until", "over", "fragments", "where", "starting", "ending", "stepping", "reduction")
+
+  // condition keywords
+  reserved += ("if", "else")
 
   // language datatypes
   reserved += ("Unit", "String", "Integer", "Real", "Complex", "Array")
 
   // level specification keywords
-  reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not")
+  reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "all", "and")
 
-  // other keywords
-  reserved += ("steps", "END", "with", "communication", "None")
+  // layout and field keywords
+  reserved += ("with", "communication", "None")
+
+  // boundary condition keywords
+  reserved += ("apply", "bc", "to")
+
+  // communication keywords
+  reserved += ("begin", "finish", "communicate", "communicating", "dup", "ghost", "of")
 
   // math keywords
   reserved += ("diag")
+
+  // obsolete keywords
+  reserved += ("steps")
 }

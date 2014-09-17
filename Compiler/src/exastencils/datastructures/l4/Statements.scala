@@ -1,15 +1,12 @@
 package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
-import exastencils.knowledge
-import exastencils.knowledge.Knowledge
+
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
-import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.primitives
-import exastencils.languageprocessing.l4.ProgressToIr
-import exastencils.util._
 import exastencils.globals._
+import exastencils.knowledge
+import exastencils.omp
+import exastencils.util._
 
 abstract class Statement extends Node with ProgressableToIr {
   def progressToIr : ir.Statement
@@ -17,6 +14,10 @@ abstract class Statement extends Node with ProgressableToIr {
 
 abstract class SpecialStatement /*TODO: think about an appropriate name*/ extends Node with ProgressableToIr {
   def progressToIr : Any
+}
+
+trait HasIdentifier {
+  var identifier : Identifier
 }
 
 case class DomainDeclarationStatement(var name : String, var lower : RealIndex, var upper : RealIndex, var index : Int = 0) extends SpecialStatement {
@@ -29,12 +30,15 @@ case class DomainDeclarationStatement(var name : String, var lower : RealIndex, 
   }
 }
 
-case class IterationSetDeclarationStatement(var identifier : Identifier, var begin : ExpressionIndex, var end : ExpressionIndex, var increment : Option[ExpressionIndex], var condition : Option[BooleanExpression]) extends SpecialStatement {
+case class IterationSetDeclarationStatement(var identifier : Identifier,
+                                            var begin : ExpressionIndex, var end : Option[ExpressionIndex],
+                                            var increment : Option[ExpressionIndex],
+                                            var condition : Option[Expression]) extends SpecialStatement {
   def progressToIr : knowledge.IterationSet = {
     knowledge.IterationSet(identifier.asInstanceOf[BasicIdentifier].progressToIr.value,
       begin.progressToIr,
-      end.progressToIr,
-      (if (increment.isDefined) increment.get.progressToIr else new ir.MultiIndex(Array.fill(Knowledge.dimensionality)(1))),
+      if (end.isDefined) end.get.progressToIr else begin.progressToIr,
+      (if (increment.isDefined) increment.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(1))),
       (if (condition.isDefined) Some(condition.get.progressToIr) else None))
   }
 }
@@ -42,29 +46,48 @@ case class IterationSetDeclarationStatement(var identifier : Identifier, var beg
 case class StencilEntry(var offset : ExpressionIndex, var weight : Expression) extends SpecialStatement {
   def progressToIr : knowledge.StencilEntry = {
     var off = offset.progressToIr
-    if (off(Knowledge.dimensionality).isInstanceOf[ir.NullExpression]) off(Knowledge.dimensionality) = 0
+    if (off(knowledge.Knowledge.dimensionality) == null) off(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(0)
     knowledge.StencilEntry(off, weight.progressToIr)
   }
 }
 
-case class StencilDeclarationStatement(var name : String, var entries : List[StencilEntry], var level : Option[LevelSpecification]) extends SpecialStatement {
+case class StencilDeclarationStatement(var identifier : Identifier,
+                                       var entries : List[StencilEntry]) extends SpecialStatement with HasIdentifier {
   def progressToIr : knowledge.Stencil = {
-    knowledge.Stencil(name, level.get.asInstanceOf[SingleLevelSpecification].level, entries.map(e => e.progressToIr).to[ListBuffer])
+    knowledge.Stencil(identifier.name, identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level, entries.map(e => e.progressToIr).to[ListBuffer])
   }
 }
 
-case class GlobalDeclarationStatement(var entries : List[VariableDeclarationStatement]) extends SpecialStatement {
+case class GlobalDeclarationStatement(var values : List[ValueDeclarationStatement], var variables : List[VariableDeclarationStatement]) extends SpecialStatement {
+  def this(entries : List[Statement]) = this(entries.filter(_ match {
+    case x : ValueDeclarationStatement => true
+    case _                             => false
+  }).asInstanceOf[List[ValueDeclarationStatement]],
+    entries.filter(_ match {
+      case x : VariableDeclarationStatement => true
+      case _                                => false
+    }).asInstanceOf[List[VariableDeclarationStatement]])
+
   def progressToIr : Globals = {
-    new Globals(entries.to[ListBuffer].map(e => e.progressToIr))
+    new Globals(variables.to[ListBuffer].map(e => e.progressToIr))
   }
 }
 
-case class VariableDeclarationStatement(var identifier : Identifier, var datatype : Datatype, var expression : Option[Expression] = None) extends Statement {
+case class VariableDeclarationStatement(var identifier : Identifier, var datatype : Datatype, var expression : Option[Expression] = None) extends Statement with HasIdentifier {
   def progressToIr : ir.VariableDeclarationStatement = {
     ir.VariableDeclarationStatement(datatype.progressToIr,
       identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
       if (expression.isDefined) Some(expression.get.progressToIr) else None)
   }
+}
+
+case class ValueDeclarationStatement(var identifier : Identifier, var datatype : Datatype, var expression : Expression) extends Statement with HasIdentifier {
+  //  def progressToIr : ir.ValueDeclarationStatement = {
+  //    ir.ValueDeclarationStatement(datatype.progressToIr,
+  //      identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
+  //      expression.get.progressToIr
+  //  }
+  def progressToIr : ir.Statement = ir.NullStatement
 }
 
 case class AssignmentStatement(var dest : Access, var src : Expression, var op : String) extends Statement {
@@ -73,32 +96,69 @@ case class AssignmentStatement(var dest : Access, var src : Expression, var op :
   }
 }
 
-case class LoopOverDomainStatement(var iterationSet : String, var field : FieldAccess, var statements : List[Statement], var reduction : Option[ReductionStatement]) extends Statement {
-  def progressToIr : ir.LoopOverDomain = {
-    ir.LoopOverDomain(knowledge.IterationSetCollection.getIterationSetByIdentifier(iterationSet).get,
-      field.resolveField,
+case class LoopOverPointsStatement(
+    var field : FieldAccess, var condition : Option[Expression],
+    var startOffset : Option[ExpressionIndex],
+    var endOffset : Option[ExpressionIndex],
+    var increment : Option[ExpressionIndex],
+    var statements : List[Statement],
+    var reduction : Option[ReductionStatement]) extends Statement {
+  def progressToIr : ir.LoopOverPoints = {
+    ir.LoopOverPoints(field.resolveField,
+      if (startOffset.isDefined) startOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
+      if (endOffset.isDefined) endOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
+      if (increment.isDefined) increment.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(1)),
       statements.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
-      if (reduction.isDefined) Some(reduction.get.progressToIr) else None)
+      if (reduction.isDefined) Some(reduction.get.progressToIr) else None,
+      if (condition.isDefined) Some(condition.get.progressToIr) else None)
   }
 }
 
-case class FunctionStatement(var identifier : Identifier, var returntype : Datatype, var arguments : List[Variable], var statements : List[Statement]) extends Statement {
+case class LoopOverFragmentsStatement(var statements : List[Statement], var reduction : Option[ReductionStatement]) extends Statement {
+  def progressToIr : ir.LoopOverFragments = {
+    new ir.LoopOverFragments(statements.map(s => s.progressToIr).to[ListBuffer],
+      if (reduction.isDefined) Some(reduction.get.progressToIr) else None) with omp.OMP_PotentiallyParallel
+  }
+}
+
+case class FunctionStatement(var identifier : Identifier,
+                             var returntype : Datatype,
+                             var arguments : List[Variable],
+                             var statements : List[Statement]) extends Statement with HasIdentifier {
   def progressToIr : ir.AbstractFunctionStatement = {
     ir.FunctionStatement(
       returntype.progressToIr,
-      identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
+      ir.StringConstant(identifier.progressToIr.asInstanceOf[ir.StringConstant].value),
       arguments.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer] 
       statements.map(s => s.progressToIr).to[ListBuffer]) // FIXME: .to[ListBuffer]
   }
 }
 
-case class RepeatUpStatement(var number : Int, var statements : List[Statement]) extends Statement {
-  def progressToIr : ir.ForLoopStatement = {
-    ir.ForLoopStatement( // FIXME: de-stringify
-      "unsigned int someRandomIndexVar = 0", // FIXME: someRandomIndexVar
-      ("someRandomIndexVar" : ir.Expression) < number,
-      "++someRandomIndexVar",
-      statements.map(s => s.progressToIr).to[ListBuffer]) // FIXME: to[ListBuffer]
+case class RepeatUpStatement(var number : Int,
+                             var iterator : Option[Access],
+                             var contraction : Boolean,
+                             var statements : List[Statement]) extends Statement {
+
+  def progressToIr : ir.Statement = {
+    if (contraction)
+      // FIXME: to[ListBuffer]
+      return new ir.ContractingLoop(number, iterator.map(i => i.progressToIr), statements.map(s => s.progressToIr).to[ListBuffer])
+
+    val (loopVar, begin) =
+      if (iterator.isDefined) {
+        val lv = iterator.get.progressToIr
+        (lv, ir.AssignmentStatement(lv, ir.IntegerConstant(0)))
+      } else {
+        val lv = "someRandomIndexVar" // FIXME: someRandomIndexVar
+        (ir.StringConstant(lv), ir.VariableDeclarationStatement(ir.IntegerDatatype(), lv, Some(ir.IntegerConstant(0))))
+      }
+
+    return ir.ForLoopStatement(
+      begin,
+      loopVar < ir.IntegerConstant(number),
+      ir.AssignmentStatement(loopVar, ir.IntegerConstant(1), "+="),
+      statements.map(s => s.progressToIr).to[ListBuffer], // FIXME: to[ListBuffer]
+      None)
   }
 }
 
@@ -110,7 +170,7 @@ case class RepeatUntilStatement(var comparison : BooleanExpression, var statemen
 
 case class ReductionStatement(var op : String, var target : String) extends SpecialStatement {
   def progressToIr : ir.Reduction = {
-    ir.Reduction(ir.BinaryOperators.str2op(op), target)
+    ir.Reduction(ir.BinaryOperators.withName(op), ir.StringConstant(target))
   }
 }
 
@@ -120,15 +180,9 @@ case class FunctionCallStatement(var call : FunctionCallExpression) extends Stat
   }
 }
 
-case class ConditionalStatement(var expression : BooleanExpression, var statements : List[Statement]) extends Statement {
+case class ConditionalStatement(var expression : Expression, var statements : List[Statement]) extends Statement {
   def progressToIr : ir.ConditionStatement = {
     new ir.ConditionStatement(expression.progressToIr, statements.map(s => s.progressToIr).to[ListBuffer])
-  }
-}
-
-case class CommunicateStatement(var field : FieldAccess) extends Statement {
-  def progressToIr : primitives.CommunicateStatement = {
-    primitives.CommunicateStatement(field.progressToIr.fieldSelection)
   }
 }
 

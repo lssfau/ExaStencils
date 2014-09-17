@@ -3,7 +3,8 @@ package exastencils.prettyprinting
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.Stack
-import exastencils.core.Settings
+
+import exastencils.core._
 
 object PrettyprintingManager {
   protected var printers = new HashMap[String, Prettyprinter]
@@ -65,11 +66,9 @@ object PrettyprintingManager {
   def finish = {
     printers.values.foreach(f => f.finish)
     Settings.buildfileGenerator.write
-    
+
     printers.clear
     printerStack.clear
   }
 }
-
-
 

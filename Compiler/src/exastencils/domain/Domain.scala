@@ -1,22 +1,17 @@
 package exastencils.domain
 
-import java.io.PrintWriter
-import java.io.File
 import scala.collection.mutable.ListBuffer
-import exastencils.core._
-import exastencils.core.collectors._
-import exastencils.knowledge._
-import exastencils.datastructures._
+
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.mpi._
-import exastencils.prettyprinting._
+import exastencils.knowledge._
 import exastencils.omp._
 
 case class PointOutsideDomain(var pos : Expression, var domain : Domain) extends Expression with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = PointOutsideDomain\n"
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = PointOutsideDomain\n"
 
-  override def expand : Expression = {
+  override def expand : Output[Expression] = {
     Knowledge.dimensionality match {
       case 1 => s"(" ~ ((pos ~ ".x") < domain.size.lower_x) Or ((pos ~ ".x") > domain.size.upper_x) ~ ")"
       case 2 => s"(" ~ ((pos ~ ".x") < domain.size.lower_x) Or ((pos ~ ".x") > domain.size.upper_x) Or
@@ -29,9 +24,9 @@ case class PointOutsideDomain(var pos : Expression, var domain : Domain) extends
 }
 
 case class PointInsideDomain(var pos : Expression, var domain : Domain) extends Expression with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = PointInsideDomain\n"
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = PointInsideDomain\n"
 
-  override def expand : Expression = {
+  override def expand : Output[Expression] = {
     Knowledge.dimensionality match {
       case 1 => s"(" ~ ((pos ~ ".x") >= domain.size.lower_x) And ((pos ~ ".x") <= domain.size.upper_x) ~ ")"
       case 2 => s"(" ~ ((pos ~ ".x") >= domain.size.lower_x) And ((pos ~ ".x") <= domain.size.upper_x) And
@@ -44,9 +39,9 @@ case class PointInsideDomain(var pos : Expression, var domain : Domain) extends 
 }
 
 case class PointToFragmentId(var pos : Expression) extends Expression with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = PointToFragmentId\n"
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
 
-  override def expand : Expression = {
+  override def expand : Output[Expression] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
     val fragWidth_x = globalDomain.size.width(0) / Knowledge.domain_numFragsTotal_x
     val fragWidth_y = globalDomain.size.width(1) / Knowledge.domain_numFragsTotal_y
@@ -64,9 +59,9 @@ case class PointToFragmentId(var pos : Expression) extends Expression with Expan
 }
 
 case class PointToLocalFragmentId(var pos : Expression) extends Expression with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = PointToFragmentId\n"
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
 
-  override def expand : Expression = {
+  override def expand : Output[Expression] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
     val fragWidth_x = globalDomain.size.width(0) / Knowledge.domain_numFragsTotal_x
     val fragWidth_y = globalDomain.size.width(1) / Knowledge.domain_numFragsTotal_y
@@ -84,9 +79,9 @@ case class PointToLocalFragmentId(var pos : Expression) extends Expression with 
 }
 
 case class PointToOwningRank(var pos : Expression, var domain : Domain) extends Expression with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = PointToOwningRank\n"
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = PointToOwningRank\n"
 
-  override def expand : Expression = {
+  override def expand : Output[Expression] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
     val fragWidth_x = globalDomain.size.width(0) / Knowledge.domain_numFragsTotal_x
     val fragWidth_y = globalDomain.size.width(1) / Knowledge.domain_numFragsTotal_y
@@ -110,9 +105,9 @@ case class PointToOwningRank(var pos : Expression, var domain : Domain) extends 
 }
 
 case class AssertStatement(var check : Expression, var msg : Expression, var abort : Statement) extends Statement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = AssertStatement\n"
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = AssertStatement\n"
 
-  override def expand : ConditionStatement = {
+  override def expand : Output[ConditionStatement] = {
     new ConditionStatement(check,
       ListBuffer[Statement](
         "LOG_ERROR(" ~ msg ~ ")",
@@ -121,9 +116,9 @@ case class AssertStatement(var check : Expression, var msg : Expression, var abo
 }
 
 case class ConnectFragments() extends Statement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = ConnectFragments\n"
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = ConnectFragments\n"
 
-  override def expand : LoopOverFragments = {
+  override def expand : Output[LoopOverFragments] = {
     var body = new ListBuffer[Statement]
 
     val neighbors = Fragment.neighbors
@@ -161,15 +156,15 @@ case class ConnectFragments() extends Statement with Expandable {
       }
     }
 
-    new LoopOverFragments(-1, body) with OMP_PotentiallyParallel
+    new LoopOverFragments(body) with OMP_PotentiallyParallel
   }
 }
 
 case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandable {
-  override def cpp : String = "NOT VALID ; CLASS = InitGeneratedDomain\n"
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = InitGeneratedDomain\n"
   override def cpp_decl = cpp
 
-  override def expand : FunctionStatement = {
+  override def expand : Output[FunctionStatement] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
     val fragWidth_x = globalDomain.size.width(0) / Knowledge.domain_numFragsTotal_x
     val fragWidth_y = globalDomain.size.width(1) / Knowledge.domain_numFragsTotal_y
@@ -183,7 +178,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
           "\"Invalid number of MPI processes (\" << mpiSize << \") should be \" << " + (Knowledge.domain_numBlocks),
           "return")
         else
-          new NullStatement,
+          NullStatement,
 
         s"Vec3 positions[${Knowledge.domain_numFragsPerBlock}]",
         s"unsigned int posWritePos = 0",
@@ -197,7 +192,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
             ~ ((("rankPos.x" : Expression) * Knowledge.domain_numFragsPerBlock_x + 0.5 + dimToString(0)) * fragWidth_x) + globalDomain.size.lower_x ~ ","
             ~ (if (Knowledge.dimensionality > 1) ((("rankPos.y" : Expression) * Knowledge.domain_numFragsPerBlock_y + 0.5 + dimToString(1)) * fragWidth_y) + globalDomain.size.lower_y else 0) ~ ","
             ~ (if (Knowledge.dimensionality > 2) ((("rankPos.z" : Expression) * Knowledge.domain_numFragsPerBlock_z + 0.5 + dimToString(2)) * fragWidth_z) + globalDomain.size.lower_z else 0) ~ ")")),
-        LoopOverFragments(-1, ListBuffer(
+        LoopOverFragments(ListBuffer(
           AssignmentStatement(iv.PrimitiveId(), PointToFragmentId(s"positions[${LoopOverFragments.defIt}]")),
           AssignmentStatement(iv.CommId(), PointToLocalFragmentId(s"positions[${LoopOverFragments.defIt}]")),
           AssignmentStatement(iv.PrimitivePosition(), s"positions[${LoopOverFragments.defIt}]"),

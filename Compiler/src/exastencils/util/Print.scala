@@ -1,46 +1,53 @@
 package exastencils.util
 
 import scala.collection.mutable.ListBuffer
-import exastencils.knowledge._
+
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir.StatementList
+import exastencils.knowledge._
 import exastencils.mpi._
 
 case class PrintStatement(var toPrint : ListBuffer[Expression]) extends Statement with Expandable {
-  def cpp : String = { return "NOT VALID ; CLASS = PrintStatement\n" }
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = PrintStatement\n"
 
-  override def expand : ConditionStatement = {
+  override def expand : Output[ConditionStatement] = {
     new ConditionStatement(new MPI_IsRootProc,
       ("std::cout << " : Expression) ~ toPrint.reduceLeft((l, e) => l ~ "<< \" \" <<" ~ e) ~ "<< std::endl")
   }
 }
 
 case class PrintFieldStatement(var filename : Expression, var field : FieldSelection) extends Statement with Expandable {
-  def cpp : String = { return "NOT VALID ; CLASS = PrintFieldStatement\n" }
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = PrintFieldStatement\n"
 
-  override def expand : StatementBlock = {
+  override def expand : Output[StatementList] = {
     // FIXME: this has to be adapted for non-mpi
-    // FIXME: this will use OMP parallelization and Poly transformation
-    // FIXME: this calculates wrong coordinates (falsely subtracted refOffset)
-    var statements : ListBuffer[Statement] = new ListBuffer
+    var statements : ListBuffer[Statement] = ListBuffer()
 
     statements += new ConditionStatement(new MPI_IsRootProc,
       ListBuffer[Statement](
         "std::ofstream stream(" ~ filename ~ ", std::ios::trunc)",
         "stream.close()"))
 
+    var access = new FieldAccess(field, LoopOverDimensions.defIt)
+    access.index(Knowledge.dimensionality) = 0
     statements += new MPI_Sequential(ListBuffer[Statement](
-      "std::ofstream stream(" ~ filename ~ ", std::ios::app)",
-      new LoopOverDomain(IterationSetCollection.getIterationSetByIdentifier("inner").get, /* FIXME */
-        field.field,
-        ListBuffer[Statement](
-          new InitGeomCoords(field.field),
-          ("stream << xPos << \" \"" +
-            (if (Knowledge.dimensionality > 1) " << yPos << \" \"" else "") +
-            (if (Knowledge.dimensionality > 2) " << zPos << \" \"" else "") +
-            " << " : Expression) ~ new FieldAccess(field, LoopOverDimensions.defIt) ~ " << std::endl")),
-      "stream.close()"))
+      new LoopOverFragments(
+        new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
+          ListBuffer[Statement](
+            "std::ofstream stream(" ~ filename ~ ", std::ios::app)",
+            new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
+              new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => (field.layout(i).idxDupLeftBegin - field.referenceOffset(i)) : Expression)),
+              new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => (field.layout(i).idxDupRightEnd - field.referenceOffset(i)) : Expression))),
+              ListBuffer[Statement](
+                new InitGeomCoords(field.field, false),
+                ("stream << xPos << \" \"" +
+                  (if (Knowledge.dimensionality > 1) " << yPos << \" \"" else "") +
+                  (if (Knowledge.dimensionality > 2) " << zPos << \" \"" else "") +
+                  " << " : Expression) ~ access ~ " << std::endl")),
+            "stream.close()")))))
 
-    new StatementBlock(statements)
+    statements
   }
 }

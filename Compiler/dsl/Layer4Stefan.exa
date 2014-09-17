@@ -1,0 +1,124 @@
+Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >
+
+Layout CommFullTempBlockable {
+	ghostLayers = [ 5, 5, 5 ] with communication
+	duplicateLayers = [ 1, 1, 1 ] with communication
+}
+Layout CommNoTempBlockable {
+	ghostLayers = [ 1, 1, 1 ] with communication
+	duplicateLayers = [ 1, 1, 1 ] with communication
+}
+Layout CommPartTempBlockable {
+	ghostLayers = [ 4, 4, 4 ] with communication
+	duplicateLayers = [ 1, 1, 1 ] with communication
+}
+Layout NoComm {
+	ghostLayers = [ 0, 0, 0 ]
+	duplicateLayers = [ 1, 1, 1 ]
+}
+
+Field SolutionT< Real, global, CommFullTempBlockable, 0.0 >[2]@finest
+Field Solution< Real, global, CommNoTempBlockable, 0.0 >[2]@finest
+Field RHST< Real, global, CommPartTempBlockable, None >@finest
+Field RHS< Real, global, NoComm, None >@finest
+
+Stencil Laplace@finest {
+	[ 0,  0,  0] => 6.0
+	[ 1,  0,  0] => -1.0
+	[-1,  0,  0] => -1.0
+	[ 0,  1,  0] => -1.0
+	[ 0, -1,  0] => -1.0
+	[ 0,  0,  1] => -1.0
+	[ 0,  0, -1] => -1.0
+}
+
+Globals {
+}
+
+Function SmootherT() : Unit {
+	loop over fragments {
+		repeat 3 times with contraction {
+			loop over SolutionT@finest {
+				SolutionT[nextSlot]@finest = SolutionT[curSlot]@finest + (1.0 / diag(Laplace@finest) * 0.8 * (RHST@finest - Laplace@finest * SolutionT[curSlot]@finest))
+			}
+			advance(SolutionT@finest)
+		}
+	}
+}
+Function Smoother() : Unit {
+	loop over fragments {
+		loop over Solution@finest {
+			Solution[nextSlot]@finest = Solution[curSlot]@finest + (1.0 / diag(Laplace@finest) * 0.8 * (RHS@finest - Laplace@finest * Solution[curSlot]@finest))
+		}
+		advance(Solution@finest)
+	}
+}
+
+Function InitAll ( ) : Unit {
+	loop over SolutionT@finest {
+		Solution[curSlot]@finest = native('((double)std::rand()/RAND_MAX)')
+	}
+	loop over Solution@finest {
+		Solution[curSlot]@finest = native('((double)std::rand()/RAND_MAX)')
+	}
+	loop over RHST@finest {
+		RHS@finest = 0
+	}
+	loop over RHS@finest {
+		RHS@finest = 0
+	}
+}
+
+Function LUPs() : Real {
+	Variable combinedFrags_x : Integer = 2
+	Variable combinedFrags_y : Integer = 2
+	Variable combinedFrags_z : Integer = 2
+	Variable dimSize : Integer = 256
+	return((combinedFrags_x * dimSize + 1) * (combinedFrags_y * dimSize + 1) * (combinedFrags_z * dimSize + 1))
+}
+
+Function BenchmarkT() : Unit {
+	print('"Cache warmup"')
+	repeat 1 times {
+		SmootherT()
+	}
+	print('"Starting benchmark (temporal blocking)"')
+	Variable time : Real = 0
+	startTimer(benchTimer)
+	repeat 7 times {
+		SmootherT()
+	}
+	stopTimer(benchTimer, time)
+	print('"Runtime: "', time)
+	print('"MLUPs: "', (LUPs() * 21) / time / 1e3)
+}
+
+Function Benchmark() : Unit {
+	print('"Cache warmup"')
+	repeat 1 times {
+		Smoother()
+	}
+	print('"Starting benchmark (normal)"')
+	Variable time : Real = 0
+	startTimer(benchTimer)
+	repeat 20 times {
+		Smoother()
+	}
+	stopTimer(benchTimer, time)
+	print('"Runtime: "', time)
+	print('"MLUPs: "', (LUPs() * 20) / time / 1e3)
+}
+
+Function Application() : Unit {
+	Variable setupTime : Real = 0
+	startTimer(setupWatch)
+	initGlobals()
+	initDomain()
+	initFieldsWithZero()
+	InitAll()
+	stopTimer(setupWatch, setupTime)
+	print('"Total time to setup: "', setupTime)
+	Benchmark()
+	BenchmarkT()
+	destroyGlobals()
+}

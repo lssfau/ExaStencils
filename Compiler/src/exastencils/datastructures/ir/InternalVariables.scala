@@ -1,14 +1,13 @@
 package exastencils.datastructures.ir.iv
 
 import scala.collection.mutable.ListBuffer
-import exastencils.core._
-import exastencils.knowledge._
+
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.util._
+import exastencils.knowledge._
 
 abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDomain : Boolean, var canBePerField : Boolean, var canBePerLevel : Boolean, var canBePerNeighbor : Boolean) extends Expression {
-  override def cpp : String = resolveName
+  override def cpp(out : CppStream) : Unit = out << resolveName
 
   def usesFragmentArrays : Boolean = true
   def usesDomainArrays : Boolean = true
@@ -50,7 +49,7 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
     if (canBePerDomain && usesDomainArrays && DomainCollection.domains.size > 1)
       wrappedBody = new LoopOverDomains(wrappedBody)
     if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragsPerBlock > 1)
-      wrappedBody = new LoopOverFragments(-1, wrappedBody)
+      wrappedBody = new LoopOverFragments(wrappedBody)
 
     wrappedBody
   }
@@ -113,8 +112,12 @@ abstract class NeighInfoVariable extends InternalVariable(true, true, false, fal
   override def usesNeighborArrays : Boolean = true
 }
 
+abstract class UnduplicatedVariable extends InternalVariable(false, false, false, false, false) {
+  override def cpp(out : CppStream) : Unit = out << resolveName
+}
+
 case class ReqOutstanding(var field : Field, var direction : String, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
-  override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, field.index, field.level, neighIdx).cpp
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
 
   override def resolveName = s"reqOutstanding_${direction}" + resolvePostfix(fragmentIdx.cpp, "", field.index.toString, field.level.toString, neighIdx.cpp)
   override def resolveDataType = new BooleanDatatype
@@ -122,29 +125,29 @@ case class ReqOutstanding(var field : Field, var direction : String, var neighId
 }
 
 case class MpiRequest(var field : Field, var direction : String, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
-  override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, field.index, field.level, neighIdx).cpp
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
 
   override def resolveName = s"mpiRequest_${direction}" + resolvePostfix(fragmentIdx.cpp, "", field.index.toString, field.level.toString, neighIdx.cpp)
   override def resolveDataType = "MPI_Request"
 }
 
 case class TmpBuffer(var field : Field, var direction : String, var size : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
-  override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, field.index, field.level, neighIdx).cpp
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
 
   override def resolveName = s"buffer_${direction}" + resolvePostfix(fragmentIdx.cpp, "", field.index.toString, field.level.toString, neighIdx.cpp)
   override def resolveDataType = new PointerDatatype(field.dataType.resolveUnderlyingDatatype)
   override def resolveDefValue = Some(0)
 
   override def getDtor() : Option[Statement] = {
-    Some(wrapInLoops(new ConditionStatement(resolveAccess(resolveName, fragmentIdx, new NullExpression, field.index, field.level, neighIdx),
+    Some(wrapInLoops(new ConditionStatement(resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx),
       ListBuffer[Statement](
-        "delete []" ~~ resolveAccess(resolveName, fragmentIdx, new NullExpression, field.index, field.level, neighIdx),
-        new AssignmentStatement(resolveAccess(resolveName, fragmentIdx, new NullExpression, field.index, field.level, neighIdx), 0)))))
+        "delete []" ~~ resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx),
+        new AssignmentStatement(resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx), 0)))))
   }
 }
 
 case class NeighborIsValid(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends NeighInfoVariable {
-  override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, domain, NullExpression, NullExpression, neighIdx)
 
   override def resolveName = s"neighbor_isValid" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
   override def resolveDataType = new BooleanDatatype
@@ -152,7 +155,7 @@ case class NeighborIsValid(var domain : Expression, var neighIdx : Expression, v
 }
 
 case class NeighborIsRemote(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends NeighInfoVariable {
-  override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, domain, NullExpression, NullExpression, neighIdx)
 
   override def resolveName = s"neighbor_isRemote" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
   override def resolveDataType = new BooleanDatatype
@@ -160,7 +163,7 @@ case class NeighborIsRemote(var domain : Expression, var neighIdx : Expression, 
 }
 
 case class NeighborFragLocalId(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends NeighInfoVariable {
-  override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, domain, NullExpression, NullExpression, neighIdx)
 
   override def resolveName = s"neighbor_fragCommId" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
   override def resolveDataType = "size_t"
@@ -168,7 +171,7 @@ case class NeighborFragLocalId(var domain : Expression, var neighIdx : Expressio
 }
 
 case class NeighborRemoteRank(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends NeighInfoVariable {
-  override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, neighIdx).cpp
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, domain, NullExpression, NullExpression, neighIdx)
 
   override def resolveName = s"neighbor_remoteRank" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", neighIdx.cpp)
   override def resolveDataType = new IntegerDatatype
@@ -176,20 +179,20 @@ case class NeighborRemoteRank(var domain : Expression, var neighIdx : Expression
 }
 
 case class IsValidForSubdomain(var domain : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, true, false, false, false) {
-  override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, new NullExpression).cpp
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, domain, NullExpression, NullExpression, NullExpression)
 
   override def resolveName = s"isValidForSubdomain" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", "")
   override def resolveDataType = new BooleanDatatype
   override def resolveDefValue = Some(false)
 }
 
-case class FieldData(var field : Field, var slot : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, false) {
-  override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, new NullExpression).cpp
+case class FieldData(var field : Field, var level : Expression, var slot : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, false) {
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, level, NullExpression)
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 
   override def resolveName = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +
-    resolvePostfix(fragmentIdx.cpp, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, field.level.toString, "")
+    resolvePostfix(fragmentIdx.cpp, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, level.cpp, "")
 
   override def resolveDataType = {
     if (field.numSlots > 1)
@@ -223,7 +226,6 @@ case class FieldData(var field : Field, var slot : Expression, var fragmentIdx :
     val ret = Some(wrapInLoops(
       new ConditionStatement(access,
         ListBuffer[Statement](
-          if (Knowledge.data_addPrePadding) AssignmentStatement(access, access - field.alignmentPadding) else new NullStatement,
           "delete []" ~~ access,
           new AssignmentStatement(access, 0)))))
     slot = origSlot
@@ -237,7 +239,7 @@ case class FieldData(var field : Field, var slot : Expression, var fragmentIdx :
 }
 
 case class PrimitiveId(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
-  override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, new NullExpression, new NullExpression, new NullExpression).cpp
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, NullExpression, NullExpression, NullExpression)
 
   override def resolveName = s"primitiveId" + resolvePostfix(fragmentIdx.cpp, "", "", "", "")
   override def resolveDataType = "size_t"
@@ -245,7 +247,7 @@ case class PrimitiveId(var fragmentIdx : Expression = LoopOverFragments.defIt) e
 }
 
 case class CommId(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
-  override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, new NullExpression, new NullExpression, new NullExpression).cpp
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, NullExpression, NullExpression, NullExpression)
 
   override def resolveName = s"commId" + resolvePostfix(fragmentIdx.cpp, "", "", "", "")
   override def resolveDataType = new IntegerDatatype
@@ -253,7 +255,7 @@ case class CommId(var fragmentIdx : Expression = LoopOverFragments.defIt) extend
 }
 
 case class PrimitivePosition(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
-  override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, new NullExpression, new NullExpression, new NullExpression).cpp
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, NullExpression, NullExpression, NullExpression)
 
   override def resolveName = s"pos" + resolvePostfix(fragmentIdx.cpp, "", "", "", "")
   override def resolveDataType = "Vec3"
@@ -261,7 +263,7 @@ case class PrimitivePosition(var fragmentIdx : Expression = LoopOverFragments.de
 }
 
 case class PrimitivePositionBegin(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
-  override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, new NullExpression, new NullExpression, new NullExpression).cpp
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, NullExpression, NullExpression, NullExpression)
 
   override def resolveName = s"posBegin" + resolvePostfix(fragmentIdx.cpp, "", "", "", "")
   override def resolveDataType = "Vec3"
@@ -269,7 +271,7 @@ case class PrimitivePositionBegin(var fragmentIdx : Expression = LoopOverFragmen
 }
 
 case class PrimitivePositionEnd(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
-  override def cpp : String = resolveAccess(resolveName, fragmentIdx, new NullExpression, new NullExpression, new NullExpression, new NullExpression).cpp
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, NullExpression, NullExpression, NullExpression)
 
   override def resolveName = s"posEnd" + resolvePostfix(fragmentIdx.cpp, "", "", "", "")
   override def resolveDataType = "Vec3"
@@ -277,7 +279,7 @@ case class PrimitivePositionEnd(var fragmentIdx : Expression = LoopOverFragments
 }
 
 case class IterationOffsetBegin(var domain : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, true, false, false, false) {
-  override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, new NullExpression).cpp
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, domain, NullExpression, NullExpression, NullExpression)
 
   override def resolveName = s"iterationOffsetBegin" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", "")
   override def resolveDataType = "Vec3i"
@@ -285,9 +287,55 @@ case class IterationOffsetBegin(var domain : Expression, var fragmentIdx : Expre
 }
 
 case class IterationOffsetEnd(var domain : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, true, false, false, false) {
-  override def cpp : String = resolveAccess(resolveName, fragmentIdx, domain, new NullExpression, new NullExpression, new NullExpression).cpp
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, domain, NullExpression, NullExpression, NullExpression)
 
   override def resolveName = s"iterationOffsetEnd" + resolvePostfix(fragmentIdx.cpp, domain.cpp, "", "", "")
   override def resolveDataType = "Vec3i"
   override def resolveDefValue = Some("Vec3i(-1, -1, -1)")
+}
+
+case class Timer(var name : Expression) extends UnduplicatedVariable {
+  override def resolveName = s"timer_" + name.cpp
+  override def resolveDataType = "TimerWrapper"
+
+  override def getCtor() : Option[Statement] = {
+    Some(AssignmentStatement(resolveName ~ "._name", "\"" ~ name ~ "\""))
+  }
+}
+
+case class CurrentSlot(var field : Field, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, false) {
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, NullExpression)
+
+  override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
+
+  override def resolveName = s"curSlot" + resolvePostfix(fragmentIdx.cpp, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, field.level.toString, "")
+  override def resolveDataType = "int"
+  override def resolveDefValue = Some(IntegerConstant(0))
+}
+
+case class IndexFromField(var fieldIdentifier : String, var level : Expression, var indexId : String) extends InternalVariable(false, false, true, true, false) {
+  override def cpp(out : CppStream) : Unit = out << resolveAccess(resolveName, NullExpression, NullExpression, fieldIdentifier, level, NullExpression)
+
+  override def usesFieldArrays : Boolean = false
+  override def usesLevelArrays : Boolean = true
+
+  override def resolveName = s"idx$indexId" + resolvePostfix("", "", fieldIdentifier, level.cpp, "")
+  override def resolveDataType = s"Vec${Knowledge.dimensionality}i"
+
+  override def getCtor() : Option[Statement] = {
+    var statements : ListBuffer[Statement] = ListBuffer()
+    val oldLev = level
+    for (l <- 0 to Knowledge.maxLevel) {
+      level = l
+      val field = FieldCollection.getFieldByIdentifier(fieldIdentifier, l, true)
+      if (field.isDefined) {
+        statements += AssignmentStatement(resolveAccess(resolveName, NullExpression, NullExpression, fieldIdentifier, level, NullExpression),
+          s"Vec${Knowledge.dimensionality}i(${
+            (0 until Knowledge.dimensionality).map(i => field.get.layout(i).idxById(indexId).cpp).mkString(", ")
+          })")
+      }
+    }
+    level = oldLev
+    Some(Scope(statements))
+  }
 }

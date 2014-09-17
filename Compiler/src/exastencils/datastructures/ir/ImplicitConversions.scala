@@ -1,11 +1,7 @@
 package exastencils.datastructures.ir
 
-import scala.language.implicitConversions
-import exastencils.datastructures.ir._
-import exastencils.datastructures._
-import scala.collection.mutable.ListBuffer
-
 object ImplicitConversions {
+  import scala.language.implicitConversions
   implicit def StringToStringLiteral(s : String) = new StringConstant(s);
   implicit def ExpressionToExpressionStatement(e : Expression) = new ExpressionStatement(e);
   implicit def StringToStatement(s : String) = (new ExpressionStatement(new StringConstant(s)) : Statement);

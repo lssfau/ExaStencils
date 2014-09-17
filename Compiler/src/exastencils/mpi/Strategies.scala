@@ -1,18 +1,20 @@
 package exastencils.mpi
 
 import scala.collection.mutable.HashMap
+
 import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.globals.Globals
+import exastencils.globals._
 
 object RemoveMPIReferences extends DefaultStrategy("RemoveMPIReferences") {
   this += new Transformation("CleaningFunctions", {
     // FIXME: should delete node, currently not fully implemented -> QUICKFIX returns empty statements
-    case _ : MPI_Barrier        => new NullStatement
-    case _ : MPI_Finalize       => new NullStatement
-    case _ : MPI_Init           => new NullStatement
-    case _ : MPI_SetRankAndSize => new NullStatement
+    case _ : MPI_Barrier        => NullStatement
+    case _ : MPI_Finalize       => NullStatement
+    case _ : MPI_Init           => NullStatement
+    case _ : MPI_SetRankAndSize => NullStatement
 
     case _ : MPI_IsRootProc     => BooleanConstant(true)
   })

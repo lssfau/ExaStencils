@@ -9,18 +9,8 @@ import exastencils.core.collectors.Collector
 import exastencils.datastructures.CustomStrategy
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
-import exastencils.datastructures.Transformation.convFromNode
-import exastencils.datastructures.ir.CaseStatement
-import exastencils.datastructures.ir.ConditionStatement
-import exastencils.datastructures.ir.Datatype
-import exastencils.datastructures.ir.ForLoopStatement
-import exastencils.datastructures.ir.FunctionStatement
-import exastencils.datastructures.ir.Scope
-import exastencils.datastructures.ir.StringConstant
-import exastencils.datastructures.ir.SwitchStatement
-import exastencils.datastructures.ir.VariableAccess
-import exastencils.datastructures.ir.VariableDeclarationStatement
-import exastencils.datastructures.ir.WhileLoopStatement
+import exastencils.datastructures.Transformation._
+import exastencils.datastructures.ir._
 
 object TypeInference extends CustomStrategy("Type inference") {
 
@@ -100,7 +90,9 @@ private final class AnnotateStringConstants extends Collector {
 
       case VariableAccess(name, Some(ty)) =>
         val inferred = SymbolTable.findType(name)
-        if (ty != inferred)
+        if (inferred == null)
+          Logger.warn("[Type inference]  declaration to " + name + " missing?")
+        else if (ty != inferred)
           Logger.warn("[Type inference]  inferred type (" + inferred + ") different from actual type stored in node (" + ty + "); ignoring")
 
       case FunctionStatement(_, _, params, _) =>
@@ -159,14 +151,14 @@ private final class AnnotateStringConstants extends Collector {
   }
 }
 
-private final object CreateVariableAccesses extends PartialFunction[Node, Transformation.Output[_]] {
+private final object CreateVariableAccesses extends PartialFunction[Node, Transformation.OutputType] {
   import TypeInference._
 
   def isDefinedAt(node : Node) : Boolean = {
     return (node.isInstanceOf[StringConstant] || node.isInstanceOf[VariableAccess]) && node.hasAnnotation(TYPE_ANNOT)
   }
 
-  def apply(node : Node) : Transformation.Output[_] = {
+  def apply(node : Node) : Transformation.OutputType = {
 
     val typee : Datatype = node.removeAnnotation(TYPE_ANNOT).get.value.asInstanceOf[Datatype]
     val varr : String =

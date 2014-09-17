@@ -23,20 +23,20 @@ case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = ne
       + (if (Knowledge.useMPI) "#include <mpi.h>\n" else "") // FIXME: find a way to extract necessary includes from variables
       )
 
-    for (inc <- Settings.additionalIncludes)
-      writerHeader <<< inc
+    if (Knowledge.l3tmp_genAdvancedTimers) { writerHeader <<< "#include \"Util/Stopwatch.h\"" }
+
+    for (inc <- Settings.additionalIncludes) { writerHeader <<< inc }
 
     for (variable <- variables) { writerHeader << s"extern ${variable.cpp_onlyDeclaration}\n" }
 
-    for (func <- functions)
-      writerHeader << func.cpp_decl
+    for (func <- functions) { writerHeader << func.cpp_decl }
 
     var i = 0;
     {
       val writerSource = PrettyprintingManager.getPrinter(s"Globals/Globals_$i.cpp")
 
       writerSource << "#include \"Globals/Globals.h\"\n\n"
-      for (variable <- variables) { writerSource << s"${variable.cpp}\n" }
+      for (variable <- variables) { writerSource << s"${variable.cpp()}\n" }
 
       i += 1
     }

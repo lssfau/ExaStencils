@@ -3,7 +3,6 @@ package exastencils.knowledge
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core.Logger._
-import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -39,7 +38,28 @@ class FieldLayoutPerDim(
   def idxPadRightBegin = { idxGhostRightBegin + numGhostLayersRight }
   def idxPadRightEnd = { idxPadRightBegin + numPadLayersRight }
 
-  def total = { idxPadRightBegin + numPadLayersRight }
+  def evalTotal = { idxPadRightEnd }
+  var total : Expression = evalTotal
+
+  def idxById(id : String) : Expression = {
+    id match {
+      case "PLB" => idxPadLeftBegin
+      case "PLE" => idxPadLeftEnd
+      case "GLB" => idxGhostLeftBegin
+      case "GLE" => idxGhostLeftEnd
+      case "DLB" => idxDupLeftBegin
+      case "DLE" => idxDupLeftEnd
+      case "IB"  => idxInnerBegin
+      case "IE"  => idxInnerEnd
+      case "DRB" => idxDupRightBegin
+      case "DRE" => idxDupRightEnd
+      case "GRB" => idxGhostRightBegin
+      case "GRE" => idxGhostRightEnd
+      case "PRB" => idxPadRightBegin
+      case "PRE" => idxPadRightEnd
+      case "TOT" => total
+    }
+  }
 }
 
 case class Field(
@@ -54,14 +74,14 @@ case class Field(
     var level : Int, // the (geometric) level the field lives on 
     var numSlots : Int, // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
     var referenceOffset : MultiIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
-    var dirichletBC : Option[Expression], // None in case of no dirichlet BC, otherwise specifies the expression to be used for the dirichlet boundary
-    var alignmentPadding : Expression // specifies an additional padding at the beginning of the field in order to ensure correct alignment for SIMD accesses
+    var dirichletBC : Option[Expression] // None in case of no dirichlet BC, otherwise specifies the expression to be used for the dirichlet boundary
     ) {
   def vectorSize = dataType.resolveFlattendSize
 }
 
 case class FieldSelection(
     var field : Field,
+    var level : Expression,
     var slot : Expression,
     var arrayIndex : Int,
     var fragIdx : Expression = LoopOverFragments.defIt) extends Node {
@@ -70,7 +90,6 @@ case class FieldSelection(
   def codeName = field.codeName
   def dataType = field.dataType
   def layout = field.layout
-  def level = field.level
   def referenceOffset = field.referenceOffset
 
   // other shortcuts
@@ -80,9 +99,9 @@ case class FieldSelection(
 object FieldCollection {
   var fields : ListBuffer[Field] = ListBuffer()
 
-  def getFieldByIdentifier(identifier : String, level : Int) : Option[Field] = {
+  def getFieldByIdentifier(identifier : String, level : Int, suppressError : Boolean = false) : Option[Field] = {
     val ret = fields.find(f => f.identifier == identifier && f.level == level)
-    if (ret.isEmpty) warn(s"Field $identifier on level $level was not found")
+    if (!suppressError && ret.isEmpty) warn(s"Field $identifier on level $level was not found")
     ret
   }
 }

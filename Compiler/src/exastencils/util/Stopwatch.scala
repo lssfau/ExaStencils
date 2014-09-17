@@ -1,15 +1,14 @@
 package exastencils.util
 
-import java.io.PrintWriter
-import java.io.File
-import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
-import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.knowledge._
 import exastencils.prettyprinting._
 
 case class Stopwatch() extends Node with FilePrettyPrintable {
-  override def printToFile = {
+  override def printToFile : Unit = {
+    if (Knowledge.l3tmp_genAdvancedTimers) return // prevent overwritting of experimental timer files
+
     val writer = PrettyprintingManager.getPrinter(s"Util/Stopwatch.h");
 
     if ("MSVC" == Knowledge.targetCompiler || "GCC" == Knowledge.targetCompiler) {

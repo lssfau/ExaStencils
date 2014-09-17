@@ -1,4 +1,5 @@
 targetCompiler				= "MSVC"
+simd_instructionSet			= "SSE3"
 
 dimensionality				= 2
 
@@ -22,3 +23,4 @@ mpi_useCustomDatatypes		= true
 poly_usePolyOpt				= false
 opt_useAddressPrecalc		= false
 opt_vectorize				= false
+opt_unroll					= 1

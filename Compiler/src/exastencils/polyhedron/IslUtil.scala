@@ -1,6 +1,6 @@
 package exastencils.polyhedron
 
-import isl.Conversions.convertLambdaToVoidCallback1
+import isl.Conversions._
 
 object Isl {
 

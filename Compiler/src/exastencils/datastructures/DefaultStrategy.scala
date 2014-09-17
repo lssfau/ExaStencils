@@ -1,10 +1,9 @@
 package exastencils.datastructures
 
 import scala.collection.mutable.ListBuffer
-import scala.collection.immutable.Set
-import exastencils.core.StateManager
-import exastencils.core.Logger._
+
 import exastencils.core._
+import exastencils.util._
 
 class StrategyResult(transformationResults : List[TransformationResult]) {
   def getResults = transformationResults
@@ -22,6 +21,12 @@ class DefaultStrategy(name : String) extends Strategy(name) {
   def results = { results_.toList }
 
   def apply(node : Option[Node] = None) : Unit = {
+    //    var start : Long = 0
+    //    if ("Counting " + "Before" != name && "Counting " + "After" != name) {
+    //      (new CountingStrategy("Before")).apply()
+    //      start = System.nanoTime()
+    //    }
+
     transaction()
 
     Logger.info(s"""Applying strategy "${name}"""")
@@ -39,6 +44,11 @@ class DefaultStrategy(name : String) extends Strategy(name) {
         abort()
       }
     }
+
+    //    if ("Counting " + "Before" != name && "Counting " + "After" != name) {
+    //      println("Runtime:\t" + math.round((System.nanoTime() - start) / 1e5) / 10.0 + " ms")
+    //      (new CountingStrategy("After")).apply()
+    //    }
   }
 
   protected override def executeInternal(transformation : Transformation, node : Option[Node] = None) : Unit = {

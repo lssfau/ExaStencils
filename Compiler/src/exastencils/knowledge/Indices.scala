@@ -7,6 +7,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir.StatementList
 import exastencils.strategies._
 import exastencils.util._
 
@@ -31,7 +32,7 @@ object Mapping {
       case 2 => (index(2) * (layout(1).total * layout(0).total) + index(1) * layout(0).total + index(0))
       case 3 => (index(3) * (layout(2).total * layout(1).total * layout(0).total) + index(2) * (layout(1).total * layout(0).total) + index(1) * layout(0).total + index(0))
     }
-    if (false) {
+    if (Knowledge.comm_useLevelIndependentFcts) {
       SimplifyStrategy.doUntilDoneStandalone(ret)
       ret
     } else {
@@ -46,7 +47,7 @@ object Mapping {
       case 2 => (index(2) * ((aabb.end(1) - aabb.begin(1)) * (aabb.end(0) - aabb.begin(0))) + index(1) * (aabb.end(0) - aabb.begin(0)) + index(0))
       case 3 => (index(3) * ((aabb.end(2) - aabb.begin(2)) * (aabb.end(1) - aabb.begin(1)) * (aabb.end(0) - aabb.begin(0))) + index(2) * ((aabb.end(1) - aabb.begin(1)) * (aabb.end(0) - aabb.begin(0))) + index(1) * (aabb.end(0) - aabb.begin(0)) + index(0))
     }
-    if (false) {
+    if (Knowledge.comm_useLevelIndependentFcts) {
       SimplifyStrategy.doUntilDoneStandalone(ret)
       ret
     } else {
@@ -76,21 +77,27 @@ object dimToString extends (Int => String) {
   }
 }
 
-case class InitGeomCoords(var field : Field) extends Statement with Expandable {
-  def cpp : String = { return "NOT VALID ; CLASS = InitGeomCoords\n" }
+case class InitGeomCoords(var field : Field, var directCoords : Boolean) extends Statement with Expandable {
+  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = InitGeomCoords\n"
 
-  override def expand : StatementBlock = {
-    new StatementBlock(ListBuffer[Statement](
-      VariableDeclarationStatement(new RealDatatype, "xPos", Some(("x" - field.referenceOffset.index_0) / FloatConstant(field.layout(0).idxDupRightEnd - field.layout(0).idxDupLeftBegin - 1)
-        * (ArrayAccess(iv.PrimitivePositionEnd(), 0) - ArrayAccess(iv.PrimitivePositionBegin(), 0)) + ArrayAccess(iv.PrimitivePositionBegin(), 0))),
+  override def expand : Output[StatementList] = {
+    ListBuffer[Statement](
+      VariableDeclarationStatement(new RealDatatype, "xPos", Some(
+        (if (directCoords) ("x" - field.referenceOffset.index_0) else ("x" : Expression))
+          / FloatConstant(field.layout(0).idxDupRightEnd - field.layout(0).idxDupLeftBegin - 1)
+          * (ArrayAccess(iv.PrimitivePositionEnd(), 0) - ArrayAccess(iv.PrimitivePositionBegin(), 0)) + ArrayAccess(iv.PrimitivePositionBegin(), 0))),
       if (Knowledge.dimensionality > 1)
-        VariableDeclarationStatement(new RealDatatype, "yPos", Some(("y" - field.referenceOffset.index_1) / FloatConstant(field.layout(1).idxDupRightEnd - field.layout(1).idxDupLeftBegin - 1)
-        * (ArrayAccess(iv.PrimitivePositionEnd(), 1) - ArrayAccess(iv.PrimitivePositionBegin(), 1)) + ArrayAccess(iv.PrimitivePositionBegin(), 1)))
-      else NullStatement(),
+        VariableDeclarationStatement(new RealDatatype, "yPos", Some(
+        (if (directCoords) ("y" - field.referenceOffset.index_1) else ("y" : Expression))
+          / FloatConstant(field.layout(1).idxDupRightEnd - field.layout(1).idxDupLeftBegin - 1)
+          * (ArrayAccess(iv.PrimitivePositionEnd(), 1) - ArrayAccess(iv.PrimitivePositionBegin(), 1)) + ArrayAccess(iv.PrimitivePositionBegin(), 1)))
+      else NullStatement,
       if (Knowledge.dimensionality > 2)
-        VariableDeclarationStatement(new RealDatatype, "zPos", Some(("z" - field.referenceOffset.index_2) / FloatConstant(field.layout(2).idxDupRightEnd - field.layout(2).idxDupLeftBegin - 1)
-        * (ArrayAccess(iv.PrimitivePositionEnd(), 2) - ArrayAccess(iv.PrimitivePositionBegin(), 2)) + ArrayAccess(iv.PrimitivePositionBegin(), 2)))
-      else NullStatement()))
+        VariableDeclarationStatement(new RealDatatype, "zPos", Some(
+        (if (directCoords) ("z" - field.referenceOffset.index_2) else ("z" : Expression))
+          / FloatConstant(field.layout(2).idxDupRightEnd - field.layout(2).idxDupLeftBegin - 1)
+          * (ArrayAccess(iv.PrimitivePositionEnd(), 2) - ArrayAccess(iv.PrimitivePositionBegin(), 2)) + ArrayAccess(iv.PrimitivePositionBegin(), 2)))
+      else NullStatement)
   }
 }
 

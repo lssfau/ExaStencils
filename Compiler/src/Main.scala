@@ -1,11 +1,13 @@
 import java.util.Locale
 
+import exastencils.communication._
 import exastencils.core._
+import exastencils.data._
 import exastencils.datastructures._
 import exastencils.domain._
 import exastencils.globals._
 import exastencils.knowledge._
-import exastencils.languageprocessing.l4._
+import exastencils.languageprocessing.l4.ProgressToIr
 import exastencils.mpi._
 import exastencils.multiGrid._
 import exastencils.omp._
@@ -13,7 +15,6 @@ import exastencils.optimization._
 import exastencils.parsers.l4._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
-import exastencils.primitives._
 import exastencils.strategies._
 import exastencils.util._
 
@@ -39,11 +40,11 @@ object Main {
 
     // HACK: this will setup a dummy L4 DSL file
     StateManager.root_ = new l3.Root
-    StateManager.root_.asInstanceOf[l3.Root].printToL4(Settings.basePathPrefix + "/Compiler/dsl/Layer4.exa")
+    StateManager.root_.asInstanceOf[l3.Root].printToL4(Settings.getL4file)
 
     // HACK: this tests the new L4 capabilities
     var parserl4 = new ParserL4
-    StateManager.root_ = parserl4.parseFile(Settings.basePathPrefix + "/Compiler/dsl/Layer4.exa")
+    StateManager.root_ = parserl4.parseFile(Settings.getL4file)
     ValidationL4.apply
     ProgressToIr.apply()
 
@@ -65,28 +66,50 @@ object Main {
 
     AddDefaultGlobals.apply()
 
-    SetupFragment.apply() // Stefan: This adds the setupBuffer func which will be exapanded using the field info in the next expand step 
+    SimplifyStrategy.doUntilDone() // removes (conditional) calls to communication functions that are not possible
 
-    var numConvFound = 1;
+    SetupDataStructures.apply()
+    SetupCommunication.apply()
+
+    ResolveSpecialFunctions.apply()
+
+    ResolveLoopOverPoints.apply()
+    ResolveIntergridIndices.apply()
+
+    var numConvFound = 1
     while (numConvFound > 0) {
       FindStencilConvolutions.apply()
-      ResolveSpecialFunctions.apply()
       numConvFound = FindStencilConvolutions.results.last._2.matches
-      ExpandStrategy.doUntilDone()
+      if (Knowledge.useFasterExpand)
+        ExpandOnePassStrategy.apply()
+      else
+        ExpandStrategy.doUntilDone()
     }
 
+    ResolveDiagFunction.apply()
+    ResolveContractingLoop.apply()
+
     MapStencilAssignments.apply()
+    if (Knowledge.useFasterExpand)
+      ExpandOnePassStrategy.apply()
+    else
+      ExpandStrategy.doUntilDone()
+
+    MergeConditions.apply()
 
     if (Knowledge.poly_usePolyOpt)
       PolyOpt.apply()
 
     ResolveLoopOverDimensions.apply()
+    ResolveSlotOperationsStrategy.apply()
 
     ResolveIndexOffsets.apply()
-
     LinearizeFieldAccesses.apply()
 
-    ExpandStrategy.doUntilDone()
+    if (Knowledge.useFasterExpand)
+      ExpandOnePassStrategy.apply()
+    else
+      ExpandStrategy.doUntilDone()
 
     if (!Knowledge.useMPI)
       RemoveMPIReferences.apply()
@@ -96,22 +119,33 @@ object Main {
     if (Knowledge.opt_useAddressPrecalc)
       AddressPrecalculation.apply()
 
-    if (Knowledge.opt_vectorize) {
-      TypeInference.apply()
+    TypeInference.apply()
+
+    SimplifyFloatExpressions.apply()
+
+    if (Knowledge.opt_vectorize)
       Vectorization.apply()
-    }
+
+    if (Knowledge.opt_unroll > 1)
+      Unrolling.apply()
 
     AddInternalVariables.apply()
+    if (Knowledge.useFasterExpand)
+      ExpandOnePassStrategy.apply()
+    else
+      ExpandStrategy.doUntilDone()
 
     if (Knowledge.useMPI)
       AddMPIDatatypes.apply()
 
-    if (Knowledge.useOMP) {
+    if (Knowledge.useOMP)
       AddOMPPragmas.apply()
-    }
 
     // one last time
-    ExpandStrategy.doUntilDone()
+    if (Knowledge.useFasterExpand)
+      ExpandOnePassStrategy.apply()
+    else
+      ExpandStrategy.doUntilDone()
     SimplifyStrategy.doUntilDone()
 
     PrintStrategy.apply()
@@ -120,5 +154,6 @@ object Main {
     println("Done!")
 
     println("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
+    (new CountingStrategy("number of printed nodes")).apply()
   }
 }

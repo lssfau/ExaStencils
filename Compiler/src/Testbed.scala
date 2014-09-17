@@ -1,13 +1,13 @@
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
-import exastencils.prettyprinting._
+import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
-import exastencils.primitives._
+import exastencils.prettyprinting._
 import exastencils.strategies._
-import exastencils.datastructures._
-import exastencils.util._
 
 object Testbed {
   def test : Unit = {
@@ -48,16 +48,16 @@ object Testbed {
 
   def rap(R : Stencil, A : Stencil, P : Stencil) : Stencil = {
 
-    var RAP = StencilStencilConvolution(A, R).expand.stencil
+    var RAP = StencilStencilConvolution(A, R).expand.inner.stencil
     //    for (e <- RAP.entries)
     //      println(e.offset.cpp + "\t>>\t" + e.weight.cpp)
 
-    RAP = StencilStencilConvolution(P, RAP).expand.stencil
+    RAP = StencilStencilConvolution(P, RAP).expand.inner.stencil
 
     //var RAP : Stencil = StencilStencilConvolution(P, StencilStencilConvolution(A, R).expand).expand
 
     for (e <- RAP.entries)
-      println(e.offset.cpp + "\t>>\t" + e.weight.cpp)
+      println(e.offset.cpp() + "\t>>\t" + e.weight.cpp)
 
     /*{
       var entries : ListBuffer[StencilEntry] = ListBuffer()
@@ -193,21 +193,6 @@ object Testbed {
     }
 
     return
-
-    {
-      var statements : ListBuffer[Statement] = ListBuffer()
-
-      var t0 : Statement = new IntegerConstant(42)
-      var t1 : Statement = new IntegerConstant(42)
-      //statements += t0
-      statements += t0
-      statements += t1
-
-      var root = StatementBlock(statements)
-      StateManager.root_ = root
-
-      test
-    }
 
     /*  val index = new MultiIndex(1, 2, 3)
   val aabb = new IndexRange(new MultiIndex(0, 0, 0), new MultiIndex(33, 33, 33))
@@ -496,7 +481,7 @@ object Testbed {
 }  // tet_gs_coeff
 """
 
-    var root = StatementBlock(statements)
+    var root = Scope(statements)
 
     StateManager.root_ = root
 

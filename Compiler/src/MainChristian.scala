@@ -1,181 +1,158 @@
+import java.util.Locale
+
+import exastencils.communication._
 import exastencils.core._
-import exastencils.knowledge._
+import exastencils.data._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
-import exastencils.strategies._
 import exastencils.domain._
-import exastencils.multiGrid._
-import exastencils.primitives._
-import exastencils.util._
 import exastencils.globals._
-import exastencils.prettyprinting.PrettyprintingManager
-import exastencils.spl.FeatureModel
+import exastencils.knowledge._
+import exastencils.languageprocessing.l4.ProgressToIr
+import exastencils.mpi._
+import exastencils.multiGrid._
+import exastencils.omp._
+import exastencils.optimization._
+import exastencils.parsers.l4._
+import exastencils.polyhedron._
+import exastencils.prettyprinting._
+import exastencils.strategies._
+import exastencils.util._
 
 object MainChristian {
   def main(args : Array[String]) : Unit = {
-    
-    import exastencils.parsers.l4._
+    Locale.setDefault(Locale.ENGLISH) // EPIC -.-
+
+    // for runtime measurement
+    val start : Long = System.nanoTime()
+
+    // Init settings
+
+    if (args.length >= 1) {
+      val s = new exastencils.parsers.settings.ParserSettings
+      s.parseFile(args(0))
+    }
+    if (args.length >= 2) {
+      val k = new exastencils.parsers.settings.ParserKnowledge
+      k.parseFile(args(1))
+    }
+
+    Knowledge.update()
+
+    Hardware.compiler = "mpicxx"
+    Hardware.cflags = "-std=c++11"
+
+    // HACK: this will setup a dummy L4 DSL file
+    //    StateManager.root_ = new l3.Root
+    //    StateManager.root_.asInstanceOf[l3.Root].printToL4(Settings.getL4file)
+
+    // HACK: this tests the new L4 capabilities
     var parserl4 = new ParserL4
-//    var x = parserl4.parseFile("/scratch-local/schmittch/ExaStencils/ScalaExaStencil/Compiler/examples/level4_simple.exa")
-    var x = parserl4.parseFile("/scratch-local/schmittch/ExaStencils/ScalaExaStencil/Compiler/src/harald/testmg/newDSL4.exa")
-    println(x)
-    
-    StateManager.root_ = x
-    
-    exastencils.languageprocessing.l4.ProgressToIr.apply()
-    
-    println(StateManager.root_)
-    
-    sys.exit(0)
-    
-    
-//    
-//    // Init settings
-//
-//    if (args.length >= 1) {
-//      val s = new exastencils.parsers.settings.ParserSettings
-//      s.parseFile(args(0))
-//    }
-//    if (args.length >= 2) {
-//      val k = new exastencils.parsers.settings.ParserKnowledge
-//      k.parseFile(args(1))
-//    }
-//
-//    // feature model  (modified FAMA Format (http://www.isa.us.es/fama/))
-//    FeatureModel.readFeatureModel("/scratch-local/schmittch/ExaStencils/ScalaExaStencil/Compiler/featureModel/model_Prototype.model")
-//    var configuration = FeatureModel.getMinimalConfig
-//    Knowledge.update(configuration)
-//
-//    // Hack paths (relative paths should work here, too, if not, reverse this change)
-//    // ... this obviously depends on the execution path which in my case is the root folder to include configs and scripts
-//    val libpath = "/scratch-local/schmittch/ExaStencils/ScalaExaStencil/Compiler/src/harald/otherfiles/"
-//    val DSLpath = "/scratch-local/schmittch/ExaStencils/ScalaExaStencil/Compiler/src/harald/testmg/"
-//    val problem = "testDSL"
-//    val outputfile = "main.cpp"
-//
-//    // Setup tree
-//    StateManager.root_ = Root(List(
-//      // Application
-//      new Poisson3D,
-//
-//      // MultiGrid
-//      new MultiGrid,
-//      new StencilCollection,
-//
-//      // Domain
-//      new DomainGenerated,
-//
-//      // Primitives
-//      new FragmentClass,
-//      new CommunicationFunctions,
-//      new FieldCollection,
-//
-//      // Util
-//      new Container,
-//      new Log,
-//      new Stopwatch,
-//      new Vector,
-//
-//      // Globals
-//      new Globals));
-//
-//    // setup basic sub-nodes
-//
-//    do { ExpandStrategy.apply; }
-//    while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
-//
-//    SetupFragmentClass.apply;
-//    SetupMultiGrid.apply;
-//    SetupApplication.apply;
-//
-//    // Harald
-//
-//    println("read HW")
-//
-//    if (!new java.io.File(DSLpath + problem + "levHW.mg").exists) {
-//      println("HW specification is missing!")
-//      sys.exit(0)
-//    }
-//
-//    val DSLHW : String = scala.io.Source.fromFile(DSLpath + problem + "levHW.mg").getLines.reduceLeft(_ + '\n' + _)
-//    //println(DSLHW)
-//
-//    val parserHW = new ParserHW
-//    parserHW.parseAll(parserHW.exastencilsHW, DSLHW)
-//
-//    harald_dep.dsl /*FIXME*/ .Hardware.initHWFeatures
-//
-//    if (!new java.io.File(DSLpath + problem + "lev1.mg").exists) {
-//      println("Problem specification (DSL level 1) is missing!")
-//      sys.exit(0)
-//    }
-//
-//    println("read PDE")
-//    val DSLl1 : String = scala.io.Source.fromFile(DSLpath + problem + "lev1.mg").getLines.reduceLeft(_ + '\n' + _)
-//    //println(DSLl1)
-//
-//    val parserl1 = new ParserL1
-//    parserl1.parseAll(parserl1.exastencilsL1, DSLl1)
-//
-//    if (!new java.io.File(DSLpath + problem + "lev2.mg").exists || DomainKnowledge.generate_L1.getOrElse(1) == 1)
-//      GenerateL2.transformL1toL2(DSLpath + problem + "lev2.mg")
-//
-//    println("read discretization")
-//    val DSLl2 : String = scala.io.Source.fromFile(DSLpath + problem + "lev2.mg").getLines.reduceLeft(_ + _)
-//    //println(DSLl2)
-//
-//    val parserl2 = new ParserL2(TreeManager.tree)
-//    parserl2.parseAll(parserl2.exastencilsL2, DSLl2)
-//    TreeManager.tree.exaFields.foreach(println)
-//    TreeManager.tree.exaOperators.foreach(println)
-//    DomainKnowledge.initfragments
-//
-//    val genL3 = new GenerateL3(TreeManager.tree)
-//    if (!new java.io.File(DSLpath + problem + "lev3.mg").exists || DomainKnowledge.generate_L1.getOrElse(1) == 1)
-//      genL3.transformL2toL3(DSLpath + problem + "lev3.mg")
-//
-//    val DSLl3 : String = scala.io.Source.fromFile(DSLpath + problem + "lev3.mg").getLines.reduceLeft(_ + _)
-//    //println(DSLl3)
-//
-//    val parserl3 = new ParserL3
-//    parserl3.parseAll(parserl3.exastencilsL3, DSLl3)
-//    DomainKnowledge.initarraysizes
-//
-//    val genL4 = new GenerateL4(TreeManager.tree)
-//    if (!(new java.io.File(DSLpath + problem + "lev4.mg").exists) || (DomainKnowledge.generate_L1.getOrElse(1) == 1)) {
-//      genL4.transformL3toL4(DSLpath + problem + "lev4.mg")
-//      println("generate L4: " + DomainKnowledge.generate_L1.getOrElse(1))
-//    }
-//    val DSLl4 : String = scala.io.Source.fromFile(DSLpath + problem + "lev4.mg").getLines.reduceLeft(_ + _)
-//    //println(DSLl4)
-//
-//    val parserl4 = new ParserL4(TreeManager.tree)
-//    parserl4.parse(DSLl4)
-//
-//    // add stencils and functions to (exastencils) tree
-//    
-//    var stencilCollection = StencilCollection
-//    for (e <- TreeManager.tree.exaOperators)
-//      stencilCollection.stencils += e.transform
-//
-//    var mgNode = StateManager.findFirst[MultiGrid]().get;
-//    for (e <- TreeManager.tree.exaFunctions)
-//      mgNode.functions_HACK += e.transformToIR
-//
-//    // Strategies
-//
-//    do { ExpandStrategy.apply; }
-//    while (ExpandStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
-//
-//    AddMemberFunctionPrefix.apply;
-//
-//    if (Knowledge.useOMP) {
-//      AddOMPPragmas.apply;
-//    }
-//
-//    PrintStrategy.apply;
-//    PrettyprintingManager.finish;
-//
-//    println("Done!");
+    StateManager.root_ = parserl4.parseFile(Settings.getL4file)
+    ValidationL4.apply
+    ProgressToIr.apply()
+
+    // TODO: integrate the next line into the ProgressToIr Strategy
+    StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
+
+    // Setup tree
+    StateManager.root_.asInstanceOf[ir.Root].nodes ++= List(
+      // FunctionCollections
+      new DomainFunctions,
+      new CommunicationFunctions,
+
+      // Util
+      new Log,
+      new Stopwatch,
+      new Vector)
+
+    // Strategies
+
+    AddDefaultGlobals.apply()
+
+    SimplifyStrategy.doUntilDone() // removes (conditional) calls to communication functions that are not possible
+
+    SetupDataStructures.apply()
+    SetupCommunication.apply()
+
+    ResolveSpecialFunctions.apply()
+
+    ResolveLoopOverPoints.apply()
+    ResolveIntergridIndices.apply()
+
+    var numConvFound = 1
+    while (numConvFound > 0) {
+      FindStencilConvolutions.apply()
+      numConvFound = FindStencilConvolutions.results.last._2.matches
+      if (Knowledge.useFasterExpand)
+        ExpandOnePassStrategy.apply()
+      else
+        ExpandStrategy.doUntilDone()
+    }
+
+    ResolveDiagFunction.apply()
+    ResolveContractingLoop.apply()
+
+    MapStencilAssignments.apply()
+    if (Knowledge.useFasterExpand)
+      ExpandOnePassStrategy.apply()
+    else
+      ExpandStrategy.doUntilDone()
+
+    MergeConditions.apply()
+
+    if (Knowledge.poly_usePolyOpt)
+      PolyOpt.apply()
+
+    ResolveLoopOverDimensions.apply()
+    ResolveSlotOperationsStrategy.apply()
+
+    ResolveIndexOffsets.apply()
+    LinearizeFieldAccesses.apply()
+
+    if (Knowledge.useFasterExpand)
+      ExpandOnePassStrategy.apply()
+    else
+      ExpandStrategy.doUntilDone()
+
+    if (!Knowledge.useMPI)
+      RemoveMPIReferences.apply()
+
+    SimplifyStrategy.doUntilDone()
+
+    if (Knowledge.opt_useAddressPrecalc)
+      AddressPrecalculation.apply()
+
+    TypeInference.apply()
+
+    SimplifyFloatExpressions.apply()
+
+    if (Knowledge.opt_vectorize)
+      Vectorization.apply()
+
+    if (Knowledge.opt_unroll > 1)
+      Unrolling.apply()
+
+    AddInternalVariables.apply()
+
+    if (Knowledge.useMPI)
+      AddMPIDatatypes.apply()
+
+    if (Knowledge.useOMP)
+      AddOMPPragmas.apply()
+
+    // one last time
+    if (Knowledge.useFasterExpand)
+      ExpandOnePassStrategy.apply()
+    else
+      ExpandStrategy.doUntilDone()
+    SimplifyStrategy.doUntilDone()
+
+    PrintStrategy.apply()
+    PrettyprintingManager.finish
+
+    println("Done!")
+
+    println("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
+    (new CountingStrategy("number of printed nodes")).apply()
   }
 }

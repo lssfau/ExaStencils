@@ -1,0 +1,36 @@
+targetCompiler				= "GCC"
+targetCompilerVersion		= 4
+targetCompilerVersionMinor	= 9
+simd_instructionSet			= "AVX"
+
+dimensionality				= 3
+
+maxLevel					= 8
+numLevels					= 1
+comm_strategyFragment		= 6	// 26
+
+domain_summarizeBlocks		= true
+
+domain_numBlocks_x			= 1
+domain_numBlocks_y			= 1
+domain_numBlocks_z			= 1
+
+domain_numFragsPerBlock_x	= 2
+domain_numFragsPerBlock_y	= 2
+domain_numFragsPerBlock_z	= 2
+domain_fragLength_x			= 1
+domain_fragLength_y			= 1
+domain_fragLength_z			= 1
+
+mpi_useCustomDatatypes		= true
+poly_usePolyOpt				= true
+poly_tileSize_x				= 1000000
+poly_tileSize_y				= 32
+poly_tileSize_z				= 1000000
+poly_tileSize_w				= 1000000
+poly_tileOuterLoop			= false
+opt_useAddressPrecalc		= true
+opt_vectorize				= true
+opt_unroll					= 2
+opt_unroll_interleave		= true
+data_addPrePadding			= false // not needed currently

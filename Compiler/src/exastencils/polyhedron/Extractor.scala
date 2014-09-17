@@ -3,50 +3,17 @@ package exastencils.polyhedron
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.ArrayStack
 import scala.collection.mutable.HashSet
+import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
 import scala.collection.mutable.StringBuilder
-import scala.language.implicitConversions
 
 import exastencils.core.Logger
 import exastencils.core.collectors.Collector
+import exastencils.data.SlotAccess
 import exastencils.datastructures.Annotation
 import exastencils.datastructures.Node
-import exastencils.datastructures.ir.AdditionExpression
-import exastencils.datastructures.ir.ArrayAccess
-import exastencils.datastructures.ir.AssignmentStatement
-import exastencils.datastructures.ir.BooleanConstant
-import exastencils.datastructures.ir.DirectFieldAccess
-import exastencils.datastructures.ir.DivisionExpression
-import exastencils.datastructures.ir.EqEqExpression
-import exastencils.datastructures.ir.Expression
-import exastencils.datastructures.ir.ExpressionStatement
-import exastencils.datastructures.ir.FieldAccess
-import exastencils.datastructures.ir.FloatConstant
-import exastencils.datastructures.ir.FunctionCallExpression
-import exastencils.datastructures.ir.GreaterEqualExpression
-import exastencils.datastructures.ir.GreaterExpression
-import exastencils.datastructures.ir.IntegerConstant
-import exastencils.datastructures.ir.LoopOverDimensions
-import exastencils.datastructures.ir.LowerEqualExpression
-import exastencils.datastructures.ir.LowerExpression
-import exastencils.datastructures.ir.ModuloExpression
-import exastencils.datastructures.ir.MultiIndex
-import exastencils.datastructures.ir.MultiplicationExpression
-import exastencils.datastructures.ir.NeqNeqExpression
-import exastencils.datastructures.ir.OffsetIndex
-import exastencils.datastructures.ir.PowerExpression
-import exastencils.datastructures.ir.Statement
-import exastencils.datastructures.ir.StatementBlock
-import exastencils.datastructures.ir.StringConstant
-import exastencils.datastructures.ir.SubtractionExpression
-import exastencils.datastructures.ir.UnaryExpression
-import exastencils.datastructures.ir.VariableAccess
-import exastencils.datastructures.ir.VariableDeclarationStatement
-import exastencils.datastructures.ir.iv.FieldData
-import exastencils.datastructures.ir.iv.PrimitivePositionBegin
-import exastencils.datastructures.ir.iv.PrimitivePositionEnd
-import exastencils.knowledge.FieldSelection
-import exastencils.knowledge.dimToString
+import exastencils.datastructures.ir._
+import exastencils.knowledge._
 
 /** Object for all "static" attributes */
 object Extractor {
@@ -63,7 +30,7 @@ object Extractor {
   /** annotation id used to indicate that this subtree should be skipped */
   private final val SKIP_ANNOT : String = "PolySkip"
 
-  /** set of all functions that are allowed in a scop */
+  /** set of all functions that are allowed in a scop (these must not have side effects) */
   private final val allowedFunctions : HashSet[String] = {
     val a = new HashSet[String]()
     a.add("sin")
@@ -72,289 +39,27 @@ object Extractor {
     a.add("sinh")
     a.add("cosh")
     a.add("tanh")
+    a.add("exp")
+    a.add("sqrt")
     a
   }
 
-  /** set of symbolic constants that must not be modeled as read accesses */
+  /** set of symbolic constants that must not be modeled as read accesses (these must be constant inside a scop) */
   private final val symbolicConstants : HashSet[String] = {
     val c = new HashSet[String]()
     c.add("M_PI")
     c
   }
-}
 
-class Extractor extends Collector {
-
-  /** import all "static" attributes to allow an unqualified access */
-  import exastencils.polyhedron.Extractor._
-
-  /** current access node is a read/write access */
-  private var isRead, isWrite : Boolean = false
-
-  /** indicates, if the current subtree should be skipped */
-  private var skip : Boolean = false
-
-  /** all found static control parts */
-  val scops = new ArrayStack[Scop]
-  val trash = new ArrayStack[(Node, String)] // TODO: debug; remove
-
-  private object curScop {
-
-    object curStmt {
-
-      private var id_ : Int = -1
-      private var label_ : String = null
-
-      def exists() : Boolean = { label_ != null }
-      def label() : String = { label_ }
-      def id() : Int = { id_ }
-      def leave() : Unit = { label_ = null }
-      def next() : this.type = {
-        id_ += 1
-        label_ = "S" + id_
-        return this
-      }
-    }
-
-    private var scop_ : Scop = null
-    private var modelLoopVars_ : String = null
-    private var origLoopVars_ : ArrayBuffer[String] = null
-    private var setTemplate_ : String = null
-    private var mapTemplate_ : String = null
-
-    private final val formatterResult : java.lang.StringBuilder = new java.lang.StringBuilder()
-    private final val formatter = new java.util.Formatter(formatterResult)
-
-    def create(root : LoopOverDimensions, origLoopVars : ArrayBuffer[String],
-      modelLoopVars : String, setTempl : String, mapTempl : String) : Unit = {
-
-      this.scop_ = new Scop(root, root.parallelizationIsReasonable)
-      this.modelLoopVars_ = modelLoopVars
-      this.origLoopVars_ = origLoopVars
-      this.setTemplate_ = setTempl
-      this.mapTemplate_ = mapTempl
-    }
-
-    def exists() : Boolean = {
-      return scop_ != null
-    }
-
-    def get() : Scop = {
-      return scop_
-    }
-
-    def modelLoopVars() : String = {
-      return modelLoopVars_
-    }
-
-    def origLoopVars() : ArrayBuffer[String] = {
-      return origLoopVars_
-    }
-
-    // [..] -> { %s[..] : .. }
-    def buildIslSet(tupleName : String) : isl.Set = {
-      formatterResult.delete(0, Int.MaxValue)
-      formatter.format(setTemplate_, tupleName)
-      val set = new isl.Set(formatterResult.toString())
-      // TODO: remove
-      //      val f = classOf[isl.UnionSet].getDeclaredField("ptr")
-      //      f.setAccessible(true)
-      //      if (f.get(set).asInstanceOf[com.sun.jna.PointerType] == null) {
-      //        println()
-      //        println("======================================================")
-      //        println(setTemplate_)
-      //        println(tupleName)
-      //        println()
-      //      }
-      return set
-    }
-
-    // [..] -> { %s[..] -> %s[%s] }
-    def buildIslMap(inTupleName : String, outTupleName : String, out : String) : isl.Map = {
-      formatterResult.delete(0, Int.MaxValue)
-      formatter.format(mapTemplate_, inTupleName, outTupleName, out)
-      val map = new isl.Map(formatterResult.toString())
-      // TODO: remove
-      //      val f = classOf[isl.UnionMap].getDeclaredField("ptr")
-      //      f.setAccessible(true)
-      //      if (f.get(map).asInstanceOf[com.sun.jna.PointerType] == null) {
-      //        println()
-      //        println("======================================================")
-      //        println(mapTemplate_)
-      //        println(inTupleName)
-      //        println(outTupleName)
-      //        println(out)
-      //        println()
-      //      }
-      return map
-    }
-
-    def finish() : Scop = {
-      val res = scop_
-      discard()
-      return res
-    }
-
-    def discard(msg : String = null) : Unit = {
-      if (msg != null) {
-        Logger.debug("[poly extr] Scop discarded:  " + msg)
-        trash.push((if (scop_ != null) scop_.root else null, msg))
-      }
-      scop_ = null
-      modelLoopVars_ = null
-      origLoopVars_ = null
-      setTemplate_ = null
-      mapTemplate_ = null
-      curStmt.leave()
-    }
+  /** Register the name of a side-effect free function, that is safe to be used inside a scop. */
+  def registerSideeffectFree(functionName : String) : Unit = {
+    allowedFunctions.add(functionName)
   }
 
-  private final case class ExtractionException(msg : String) extends Exception(msg)
-
-  /////////////////// Collector methods \\\\\\\\\\\\\\\\\\\
-
-  override def enter(node : Node) : Unit = {
-
-    node.getAnnotation(Access.ANNOT) match {
-      case Some(Annotation(_, acc)) =>
-        acc match {
-          case Access.READ  => isRead = true
-          case Access.WRITE => isWrite = true
-          case Access.UPDATE =>
-            isRead = true
-            isWrite = true
-        }
-      case None =>
-    }
-
-    if (node.hasAnnotation(SKIP_ANNOT))
-      skip = true
-
-    if (skip)
-      return
-
-    try {
-      if (!curScop.exists())
-        node match {
-          case loop : LoopOverDimensions with PolyhedronAccessable =>
-            loop.indices.annotate(SKIP_ANNOT)
-            loop.stepSize.annotate(SKIP_ANNOT)
-            if (loop.condition.isDefined)
-              loop.condition.get.annotate(SKIP_ANNOT)
-            if (loop.reduction.isDefined)
-              loop.reduction.get.annotate(SKIP_ANNOT)
-            enterLoop(loop)
-
-          case _ =>
-        }
-
-      else
-        node match {
-
-          // process
-          case a : AssignmentStatement =>
-            enterAssign(a)
-
-          case StringConstant(varName) =>
-            enterScalarAccess(varName)
-
-          case VariableAccess(varName, _) =>
-            enterScalarAccess(varName)
-
-          case ArrayAccess(array @ StringConstant(varName), index) =>
-            array.annotate(SKIP_ANNOT)
-            index.annotate(SKIP_ANNOT)
-            enterArrayAccess(varName, index)
-
-          case ArrayAccess(array @ VariableAccess(varName, _), index) =>
-            array.annotate(SKIP_ANNOT)
-            index.annotate(SKIP_ANNOT)
-            enterArrayAccess(varName, index)
-
-          case ArrayAccess(ppVec : PrimitivePositionBegin, index) =>
-            ppVec.annotate(SKIP_ANNOT)
-            index.annotate(SKIP_ANNOT)
-            enterArrayAccess(ppVec.cpp(), index)
-
-          case ArrayAccess(ppVec : PrimitivePositionEnd, index) =>
-            ppVec.annotate(SKIP_ANNOT)
-            index.annotate(SKIP_ANNOT)
-            enterArrayAccess(ppVec.cpp(), index)
-
-          case DirectFieldAccess(fieldSelection, index) =>
-            fieldSelection.annotate(SKIP_ANNOT)
-            index.annotate(SKIP_ANNOT)
-            enterFieldAccess(fieldSelection, index)
-
-          case FieldAccess(fieldSelection, index) =>
-            fieldSelection.annotate(SKIP_ANNOT)
-            index.annotate(SKIP_ANNOT)
-            enterFieldAccess(fieldSelection, index, fieldSelection.referenceOffset)
-
-          case d : VariableDeclarationStatement =>
-            d.dataType.annotate(SKIP_ANNOT)
-            enterDecl(d)
-
-          // ignore
-          case FunctionCallExpression(fun @ StringConstant(name), _) if (allowedFunctions.contains(name)) =>
-            fun.annotate(SKIP_ANNOT)
-
-          case _ : StatementBlock
-            | _ : IntegerConstant
-            | _ : FloatConstant
-            | _ : BooleanConstant
-            | _ : UnaryExpression
-            | _ : AdditionExpression
-            | _ : SubtractionExpression
-            | _ : MultiplicationExpression
-            | _ : DivisionExpression
-            | _ : ModuloExpression
-            | _ : PowerExpression => // nothing to do for all of them...
-
-          // deny
-          case e : ExpressionStatement    => throw new ExtractionException("cannot deal with ExprStmt: " + e.cpp)
-          case ArrayAccess(a, _)          => throw new ExtractionException("ArrayAccess to base " + a.getClass() + " not yet implemented")
-          case f : FunctionCallExpression => throw new ExtractionException("function call not in set of allowed ones: " + f.cpp())
-          case x : Any                    => throw new ExtractionException("cannot deal with " + x.getClass())
-        }
-    } catch {
-      case ExtractionException(msg) => curScop.discard(msg)
-    }
+  /** Register the name of a symbolic constant, that is not modified inside a scop. */
+  def registerSymbolicConstant(constName : String) : Unit = {
+    symbolicConstants.add(constName)
   }
-
-  override def leave(node : Node) : Unit = {
-
-    if (node.removeAnnotation(Access.ANNOT).isDefined) {
-      isRead = false
-      isWrite = false
-    }
-
-    if (node.removeAnnotation(SKIP_ANNOT).isDefined)
-      skip = false
-
-    node match {
-      case l : LoopOverDimensions           => leaveLoop(l)
-      case _ : AssignmentStatement          => leaveAssign()
-      case _ : StringConstant               => leaveScalarAccess()
-      case _ : VariableAccess               => leaveScalarAccess()
-      case _ : ArrayAccess                  => leaveArrayAccess()
-      case _ : DirectFieldAccess            => leaveFieldAccess()
-      case _ : FieldAccess                  => leaveFieldAccess()
-      case _ : VariableDeclarationStatement => leaveDecl()
-      case _                                =>
-    }
-  }
-
-  override def reset() : Unit = {
-    curScop.discard()
-    isRead = false
-    isWrite = false
-    skip = false
-    scops.clear()
-    trash.clear()
-  }
-
-  /////////////////// auxiliary methodes \\\\\\\\\\\\\\\\\\\
 
   private def extractConstraints(expr : Expression, constraints : StringBuilder, formatString : Boolean,
     paramConstr : StringBuilder = null, vars : Set[String] = null) : Boolean = {
@@ -396,6 +101,19 @@ class Extractor extends Collector {
             paramConstr.append('(').append(min).append("<=")
             paramConstr.append(ScopNameMapping.expr2id(off))
             paramConstr.append("<=").append(max).append(')')
+
+          case MultiplicationExpression(IntegerConstant(c), arr : ArrayAccess) =>
+            paramConstr.append(" and ")
+            paramConstr.append('(').append(min).append("<=").append(c).append('*')
+            paramConstr.append(ScopNameMapping.expr2id(arr))
+            paramConstr.append("<=").append(max).append(')')
+
+          case MultiplicationExpression(arr : ArrayAccess, IntegerConstant(c)) =>
+            paramConstr.append(" and ")
+            paramConstr.append('(').append(min).append("<=").append(c).append('*')
+            paramConstr.append(ScopNameMapping.expr2id(arr))
+            paramConstr.append("<=").append(max).append(')')
+
           case _ =>
         }
 
@@ -440,36 +158,63 @@ class Extractor extends Collector {
         extractConstraints(l, constraints, formatString, paramConstr, vars)
         constraints.append('<')
         extractConstraints(r, constraints, formatString, paramConstr, vars)
+        constraints.append(')')
         bool = true
 
       case LowerEqualExpression(l, r) =>
+        constraints.append('(')
         extractConstraints(l, constraints, formatString, paramConstr, vars)
         constraints.append("<=")
         extractConstraints(r, constraints, formatString, paramConstr, vars)
+        constraints.append(')')
         bool = true
 
       case GreaterEqualExpression(l, r) =>
+        constraints.append('(')
         extractConstraints(l, constraints, formatString, paramConstr, vars)
         constraints.append(">=")
         extractConstraints(r, constraints, formatString, paramConstr, vars)
+        constraints.append(')')
         bool = true
 
       case GreaterExpression(l, r) =>
+        constraints.append('(')
         extractConstraints(l, constraints, formatString, paramConstr, vars)
         constraints.append('>')
         extractConstraints(r, constraints, formatString, paramConstr, vars)
+        constraints.append(')')
         bool = true
 
       case EqEqExpression(l, r) =>
+        constraints.append('(')
         extractConstraints(l, constraints, formatString, paramConstr, vars)
         constraints.append('=')
         extractConstraints(r, constraints, formatString, paramConstr, vars)
+        constraints.append(')')
         bool = true
 
       case NeqNeqExpression(l, r) =>
+        constraints.append('(')
         extractConstraints(l, constraints, formatString, paramConstr, vars)
         constraints.append("!=")
         extractConstraints(r, constraints, formatString, paramConstr, vars)
+        constraints.append(')')
+        bool = true
+
+      case AndAndExpression(l, r) =>
+        constraints.append('(')
+        extractConstraints(l, constraints, formatString, paramConstr, vars)
+        constraints.append(" and ")
+        extractConstraints(r, constraints, formatString, paramConstr, vars)
+        constraints.append(')')
+        bool = true
+
+      case OrOrExpression(l, r) =>
+        constraints.append('(')
+        extractConstraints(l, constraints, formatString, paramConstr, vars)
+        constraints.append(" or ")
+        extractConstraints(r, constraints, formatString, paramConstr, vars)
+        constraints.append(')')
         bool = true
 
       case _ => throw new ExtractionException("unknown expression: " + expr.getClass() + " - " + expr.cpp())
@@ -478,11 +223,11 @@ class Extractor extends Collector {
     return bool
   }
 
-  private def replaceSpecial(str : String) : String = {
+  private[polyhedron] def replaceSpecial(str : String) : String = {
     return replaceSpecial(new StringBuilder(str)).toString()
   }
 
-  private def replaceSpecial(str : StringBuilder) : StringBuilder = {
+  private[polyhedron] def replaceSpecial(str : StringBuilder) : StringBuilder = {
 
     var i : Int = 0
     while (i < str.length) {
@@ -495,13 +240,278 @@ class Extractor extends Collector {
 
     return str
   }
+}
+
+private final case class ExtractionException(msg : String) extends Exception(msg)
+
+class Extractor extends Collector {
+
+  private final val DEBUG : Boolean = false
+
+  /** import all "static" attributes to allow an unqualified access */
+  import exastencils.polyhedron.Extractor._
+
+  /** current access node is a read/write access */
+  private var isRead, isWrite : Boolean = false
+
+  /** indicates, if the current subtree should be skipped */
+  private var skip : Boolean = false
+
+  /** indicates if a new scop starting at the next node can be merged with the last one */
+  private var mergeScops : Boolean = false
+
+  /** all found static control parts */
+  val scops = new ArrayBuffer[Scop](256)
+  val trash = new ArrayBuffer[(Node, String)] // TODO: debug; remove
+
+  private object curScop {
+
+    object curStmt {
+
+      private var id_ : Int = -1
+      private var label_ : String = null
+
+      def exists() : Boolean = { label_ != null }
+      def label() : String = { label_ }
+      def id() : Int = { id_ }
+      def leave() : Unit = { label_ = null }
+      def next() : this.type = {
+        id_ += 1
+        label_ = "S" + id_
+        return this
+      }
+    }
+
+    private var scop_ : Scop = null
+    private var modelLoopVars_ : String = null
+    private var origLoopVars_ : ArrayBuffer[String] = null
+    private var setTemplate_ : String = null
+    private var mapTemplate_ : String = null
+
+    private final val formatterResult : java.lang.StringBuilder = new java.lang.StringBuilder()
+    private final val formatter = new java.util.Formatter(formatterResult)
+
+    def create(root : LoopOverDimensions, origLoopVars : ArrayBuffer[String],
+      modelLoopVars : String, setTempl : String, mapTempl : String, mergeWithPrev : Boolean) : Unit = {
+
+      this.scop_ = new Scop(root, Knowledge.omp_parallelizeLoopOverDimensions && root.parallelizationIsReasonable,
+        root.reduction, root.maxIterationCount())
+      if (mergeWithPrev)
+        scops.last.nextMerge = this.scop_
+      this.modelLoopVars_ = modelLoopVars
+      this.origLoopVars_ = origLoopVars
+      this.setTemplate_ = setTempl
+      this.mapTemplate_ = mapTempl
+    }
+
+    def exists() : Boolean = {
+      return scop_ != null
+    }
+
+    def get() : Scop = {
+      return scop_
+    }
+
+    def modelLoopVars() : String = {
+      return modelLoopVars_
+    }
+
+    def origLoopVars() : ArrayBuffer[String] = {
+      return origLoopVars_
+    }
+
+    // [..] -> { %s[..] : .. }
+    def buildIslSet(tupleName : String) : isl.Set = {
+      formatterResult.delete(0, Int.MaxValue)
+      formatter.format(setTemplate_, tupleName)
+      val set = new isl.Set(formatterResult.toString())
+      return set
+    }
+
+    // [..] -> { %s[..] -> %s[%s] }
+    def buildIslMap(inTupleName : String, outTupleName : String, out : String) : isl.Map = {
+      formatterResult.delete(0, Int.MaxValue)
+      formatter.format(mapTemplate_, inTupleName, outTupleName, out)
+      val map = new isl.Map(formatterResult.toString())
+      return map
+    }
+
+    def finish() : Scop = {
+      val res = scop_
+      discard()
+      return res
+    }
+
+    def discard(msg : String = null) : Unit = {
+      if (msg != null) {
+        if (DEBUG)
+          Logger.debug("[poly extr] Scop discarded:  " + msg)
+        trash += ((if (scop_ != null) scop_.root else null, msg))
+      }
+      scop_ = null
+      modelLoopVars_ = null
+      origLoopVars_ = null
+      setTemplate_ = null
+      mapTemplate_ = null
+      curStmt.leave()
+    }
+  }
+
+  /////////////////// Collector methods \\\\\\\\\\\\\\\\\\\
+
+  override def enter(node : Node) : Unit = {
+
+    val merge : Boolean = mergeScops
+    mergeScops = false
+
+    node.getAnnotation(Access.ANNOT) match {
+      case Some(Annotation(_, acc)) =>
+        acc match {
+          case Access.READ  => isRead = true
+          case Access.WRITE => isWrite = true
+          case Access.UPDATE =>
+            isRead = true
+            isWrite = true
+        }
+      case None =>
+    }
+
+    if (node.hasAnnotation(SKIP_ANNOT))
+      skip = true
+
+    if (skip)
+      return
+
+    try {
+      if (!curScop.exists())
+        node match {
+          case loop : LoopOverDimensions with PolyhedronAccessable if (loop.parallelizationIsReasonable) =>
+            loop.indices.annotate(SKIP_ANNOT)
+            loop.stepSize.annotate(SKIP_ANNOT)
+            if (loop.condition.isDefined)
+              loop.condition.get.annotate(SKIP_ANNOT)
+            if (loop.reduction.isDefined)
+              loop.reduction.get.annotate(SKIP_ANNOT)
+            enterLoop(loop, merge)
+
+          case _ =>
+        }
+
+      else
+        node match {
+
+          // process
+          case a : AssignmentStatement =>
+            enterAssign(a)
+
+          case StringConstant(varName) =>
+            enterScalarAccess(varName)
+
+          case VariableAccess(varName, _) =>
+            enterScalarAccess(varName)
+
+          case ArrayAccess(array @ StringConstant(varName), index) =>
+            array.annotate(SKIP_ANNOT)
+            index.annotate(SKIP_ANNOT)
+            enterArrayAccess(varName, index)
+
+          case ArrayAccess(array @ VariableAccess(varName, _), index) =>
+            array.annotate(SKIP_ANNOT)
+            index.annotate(SKIP_ANNOT)
+            enterArrayAccess(varName, index)
+
+          case ArrayAccess(ppVec : iv.PrimitivePositionBegin, index) =>
+            ppVec.annotate(SKIP_ANNOT)
+            index.annotate(SKIP_ANNOT)
+            enterArrayAccess(ppVec.cpp(), index)
+
+          case ArrayAccess(ppVec : iv.PrimitivePositionEnd, index) =>
+            ppVec.annotate(SKIP_ANNOT)
+            index.annotate(SKIP_ANNOT)
+            enterArrayAccess(ppVec.cpp(), index)
+
+          case ArrayAccess(tmp : iv.TmpBuffer, index) =>
+            tmp.annotate(SKIP_ANNOT)
+            index.annotate(SKIP_ANNOT)
+            enterArrayAccess(tmp.cpp(), index)
+
+          case DirectFieldAccess(fieldSelection, index) =>
+            fieldSelection.annotate(SKIP_ANNOT)
+            index.annotate(SKIP_ANNOT)
+            enterFieldAccess(fieldSelection, index)
+
+          case FieldAccess(fieldSelection, index) =>
+            fieldSelection.annotate(SKIP_ANNOT)
+            index.annotate(SKIP_ANNOT)
+            enterFieldAccess(fieldSelection, index, fieldSelection.referenceOffset)
+
+          case d : VariableDeclarationStatement =>
+            d.dataType.annotate(SKIP_ANNOT)
+            enterDecl(d)
+
+          // ignore
+          case FunctionCallExpression(fun @ StringConstant(name), _) if (allowedFunctions.contains(name)) =>
+            fun.annotate(SKIP_ANNOT)
+
+          case _ : IntegerConstant
+            | _ : FloatConstant
+            | _ : BooleanConstant
+            | _ : UnaryExpression
+            | _ : AdditionExpression
+            | _ : SubtractionExpression
+            | _ : MultiplicationExpression
+            | _ : DivisionExpression
+            | _ : ModuloExpression
+            | _ : PowerExpression
+            | NullStatement => // nothing to do for all of them...
+
+          // deny
+          case e : ExpressionStatement    => throw new ExtractionException("cannot deal with ExprStmt: " + e.cpp())
+          case ArrayAccess(a, _)          => throw new ExtractionException("ArrayAccess to base " + a.getClass() + " not yet implemented")
+          case f : FunctionCallExpression => throw new ExtractionException("function call not in set of allowed ones: " + f.cpp())
+          case x : Any                    => throw new ExtractionException("cannot deal with " + x.getClass())
+        }
+    } catch {
+      case ExtractionException(msg) => curScop.discard(msg)
+    }
+  }
+
+  override def leave(node : Node) : Unit = {
+
+    if (node.removeAnnotation(Access.ANNOT).isDefined) {
+      isRead = false
+      isWrite = false
+    }
+
+    if (node.removeAnnotation(SKIP_ANNOT).isDefined)
+      skip = false
+
+    node match {
+      case l : LoopOverDimensions           => leaveLoop(l)
+      case _ : AssignmentStatement          => leaveAssign()
+      case _ : StringConstant               => leaveScalarAccess()
+      case _ : VariableAccess               => leaveScalarAccess()
+      case _ : ArrayAccess                  => leaveArrayAccess()
+      case _ : DirectFieldAccess            => leaveFieldAccess()
+      case _ : FieldAccess                  => leaveFieldAccess()
+      case _ : VariableDeclarationStatement => leaveDecl()
+      case _                                =>
+    }
+  }
+
+  override def reset() : Unit = {
+    curScop.discard()
+    isRead = false
+    isWrite = false
+    skip = false
+    mergeScops = false
+    scops.clear()
+    trash.clear()
+  }
 
   /////////////////// methods for node processing \\\\\\\\\\\\\\\\\\\
 
-  private def enterLoop(loop : LoopOverDimensions) : Unit = {
-
-    if (loop.reduction.isDefined) // TODO: support reductions
-      throw new ExtractionException("reductions not supported yet")
+  private def enterLoop(loop : LoopOverDimensions, mergeWithPrev : Boolean) : Unit = {
 
     for (step <- loop.stepSize)
       if (step != IntegerConstant(1))
@@ -541,7 +551,7 @@ class Extractor extends Collector {
     if (loop.condition.isDefined)
       extractConstraints(loop.condition.get, constrs, true)
     else
-      constrs.delete(constrs.length - (" and ".length()), Int.MaxValue)
+      constrs.delete(constrs.length - (" and ".length()), constrs.length)
 
     // remove variables from params set
     for (v <- modelLoopVars)
@@ -572,7 +582,7 @@ class Extractor extends Collector {
     templateBuilder.append("->%s[%s]}")
     val mapTemplate : String = templateBuilder.toString()
 
-    curScop.create(loop, origLoopVars, modelLoopVars.mkString(","), setTemplate, mapTemplate)
+    curScop.create(loop, origLoopVars, modelLoopVars.mkString(","), setTemplate, mapTemplate, mergeWithPrev)
   }
 
   private def leaveLoop(loop : LoopOverDimensions) : Unit = {
@@ -580,7 +590,8 @@ class Extractor extends Collector {
     if (scop != null) {
       scop.updateLoopVars()
       loop.annotate(PolyOpt.SCOP_ANNOT, scop)
-      scops.push(scop)
+      scops += scop
+      mergeScops = true
     }
   }
 
@@ -706,10 +717,17 @@ class Extractor extends Collector {
     // nothing to do here...
   }
 
-  private def enterFieldAccess(fieldSelection : FieldSelection, index : MultiIndex, offset : MultiIndex = null) : Unit = {
+  private def enterFieldAccess(fSel : FieldSelection, index : MultiIndex, offset : MultiIndex = null) : Unit = {
 
-    val name : String = FieldData(fieldSelection.field, fieldSelection.slot, fieldSelection.fragIdx).cpp()
-    enterArrayAccess(name, if (offset == null) index else index + offset)
+    val name = new StringBuilder("field")
+    name.append('_').append(fSel.field.identifier).append(fSel.field.level)
+    name.append("_l").append(fSel.level.cpp()).append('a').append(fSel.arrayIndex)
+    name.append('_').append(fSel.fragIdx.cpp()).append('_')
+    fSel.slot match {
+      case SlotAccess(_, offset) => name.append('s').append(offset)
+      case s                     => name.append(s.cpp())
+    }
+    enterArrayAccess(name.toString(), if (offset != null) index + offset else index)
   }
 
   private def leaveFieldAccess() : Unit = {

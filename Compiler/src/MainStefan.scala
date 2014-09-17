@@ -1,37 +1,21 @@
-import exastencils.core.Settings
-import exastencils.core.StateManager
-import exastencils.datastructures.Node
-import exastencils.datastructures.ir
-import exastencils.datastructures.l3
-import exastencils.datastructures.l4
-import exastencils.domain.DomainFunctions
-import exastencils.globals.AddDefaultGlobals
-import exastencils.knowledge.FindStencilConvolutions
-import exastencils.knowledge.Knowledge
+import exastencils.communication._
+import exastencils.core._
+import exastencils.data._
+import exastencils.datastructures._
+import exastencils.datastructures.ir._
+import exastencils.domain._
+import exastencils.globals._
+import exastencils.knowledge._
 import exastencils.languageprocessing.l4.ProgressToIr
-import exastencils.mpi.AddMPIDatatypes
-import exastencils.mpi.RemoveMPIReferences
-import exastencils.multiGrid.ResolveSpecialFunctions
-import exastencils.omp.AddOMPPragmas
-import exastencils.optimization.AddressPrecalculation
-import exastencils.optimization.TypeInference
-import exastencils.optimization.Vectorization
-import exastencils.parsers.l4.ParserL4
-import exastencils.parsers.l4.ValidationL4
-import exastencils.polyhedron.PolyOpt
-import exastencils.prettyprinting.PrettyprintingManager
-import exastencils.primitives.AddInternalVariables
-import exastencils.primitives.CommunicationFunctions
-import exastencils.primitives.LinearizeFieldAccesses
-import exastencils.primitives.ResolveIndexOffsets
-import exastencils.primitives.ResolveLoopOverDimensions
-import exastencils.primitives.SetupFragment
-import exastencils.strategies.ExpandStrategy
-import exastencils.strategies.PrintStrategy
-import exastencils.strategies.SimplifyStrategy
-import exastencils.util.Log
-import exastencils.util.Stopwatch
-import exastencils.util.Vector
+import exastencils.mpi._
+import exastencils.multiGrid._
+import exastencils.omp._
+import exastencils.optimization._
+import exastencils.parsers.l4._
+import exastencils.polyhedron._
+import exastencils.prettyprinting._
+import exastencils.strategies._
+import exastencils.util._
 
 object MainStefan {
   def main(args : Array[String]) : Unit = {
@@ -54,11 +38,11 @@ object MainStefan {
 
     // HACK: this will setup a dummy L4 DSL file
     StateManager.root_ = new l3.Root
-    StateManager.root_.asInstanceOf[l3.Root].printToL4(Settings.basePathPrefix + "/Compiler/dsl/Layer4.exa")
+    StateManager.root_.asInstanceOf[l3.Root].printToL4(Settings.getL4file)
 
     // HACK: this tests the new L4 capabilities
     var parserl4 = new ParserL4
-    StateManager.root_ = parserl4.parseFile(Settings.basePathPrefix + "/Compiler/dsl/Layer4.exa")
+    StateManager.root_ = parserl4.parseFile(Settings.getL4file)
     ValidationL4.apply
     ProgressToIr.apply()
 
@@ -80,62 +64,92 @@ object MainStefan {
 
     AddDefaultGlobals.apply()
 
-    FindStencilConvolutions.apply()
+    SimplifyStrategy.doUntilDone() // removes (conditional) calls to communication functions that are not possible
+
+    SetupDataStructures.apply()
+    SetupCommunication.apply()
 
     ResolveSpecialFunctions.apply()
 
-    SetupFragment.apply()
+    ResolveLoopOverPoints.apply()
+    ResolveIntergridIndices.apply()
 
-    ExpandStrategy.doUntilDone()
-    //////////////////////////////////////////////////////////////////////////////
-    //    val test = new java.util.IdentityHashMap[Node, Any]()
-    //    new exastencils.datastructures.DefaultStrategy("TestStrategy") {
-    //      this += new exastencils.datastructures.Transformation("test", {
-    //        case n =>
-    //          if (test.containsKey(n))
-    //            println("error: " + n.getClass() + "   " + n)
-    //          test.put(n, null)
-    //          n
-    //      })
-    //    }.apply()
-    //    println("ende...")
-    //    return
-    //////////////////////////////////////////////////////////////////////////////
+    var numConvFound = 1
+    while (numConvFound > 0) {
+      FindStencilConvolutions.apply()
+      numConvFound = FindStencilConvolutions.results.last._2.matches
+      if (Knowledge.useFasterExpand)
+        ExpandOnePassStrategy.apply()
+      else
+        ExpandStrategy.doUntilDone()
+    }
 
-    //    new DefaultStrategy("TestStrategy") {
-    //      this += new Transformation("test", {
-    //        case acc : DirectFieldAccess =>
-    //          println("DirectFieldAccess")
-    //          println(acc.field.identifier + " " + acc.field.level)
-    //          println(acc.field.codeName.cpp)
-    //          println()
-    //          acc
-    //        case acc : FieldAccess =>
-    //          println("FieldAccess")
-    //          println(acc.field.identifier + " " + acc.field.level)
-    //          println(acc.field.codeName.cpp)
-    //          println()
-    //          acc
-    //        case acc : ExternalFieldAccess =>
-    //          println("ExternalFieldAccess")
-    //          println(acc.field.identifier + " " + acc.field.level)
-    //          println(acc.field.targetFieldIdentifier)
-    //          println()
-    //          acc
-    //      })
-    //    }.apply()
-    //    return
+    ResolveDiagFunction.apply()
+    ResolveContractingLoop.apply()
+
+    MapStencilAssignments.apply()
+    if (Knowledge.useFasterExpand)
+      ExpandOnePassStrategy.apply()
+    else
+      ExpandStrategy.doUntilDone()
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //    var doMagic = false
+    //    var cp : exastencils.datastructures.ir.LoopOverDimensions = null
+    //    val DebugColl = new exastencils.core.collectors.Collector {
+    //      def enter(node : exastencils.datastructures.Node) : Unit =
+    //        node match {
+    //          case f : exastencils.datastructures.ir.FunctionStatement =>
+    //            doMagic = f.name == exastencils.datastructures.ir.StringConstant("Smoother_8")
+    //          case _ =>
+    //        }
+    //      def leave(node : exastencils.datastructures.Node) : Unit =
+    //        node match {
+    //          case f : exastencils.datastructures.ir.FunctionStatement =>
+    //            doMagic = false
+    //          case _ =>
+    //        }
+    //      def reset() : Unit = doMagic = false
+    //    }
+    //    val DebugStrat = new exastencils.datastructures.DefaultStrategy("debug")
+    //    DebugStrat += new exastencils.datastructures.Transformation("blub!", {
+    //      case l : exastencils.datastructures.ir.LoopOverDimensions if (doMagic) =>
+    //        if (cp == null) {
+    //          cp = exastencils.core.Duplicate(l)
+    //          l
+    //        } else
+    //          scala.collection.mutable.ListBuffer(cp, l)
+    //    })
+    //    StateManager.register(DebugColl)
+    //    DebugStrat.apply()
+    //    StateManager.unregister(DebugColl)
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    MergeConditions.apply()
 
     if (Knowledge.poly_usePolyOpt)
       PolyOpt.apply()
 
     ResolveLoopOverDimensions.apply()
+    ResolveSlotOperationsStrategy.apply()
 
     ResolveIndexOffsets.apply()
-
+    //    val DebugStrat = new exastencils.datastructures.DefaultStrategy("debug")
+    //    DebugStrat += new exastencils.datastructures.Transformation("blub!", {
+    //      case fa : FieldAccess =>
+    //        println(fa.fieldSelection.codeName)
+    //        fa
+    //      case dfa : DirectFieldAccess =>
+    //        println(dfa.fieldSelection.codeName)
+    //        dfa
+    //    })
+    //    DebugStrat.apply()
     LinearizeFieldAccesses.apply()
 
-    ExpandStrategy.doUntilDone()
+    if (Knowledge.useFasterExpand)
+      ExpandOnePassStrategy.apply()
+    else
+      ExpandStrategy.doUntilDone()
 
     if (!Knowledge.useMPI)
       RemoveMPIReferences.apply()
@@ -145,10 +159,15 @@ object MainStefan {
     if (Knowledge.opt_useAddressPrecalc)
       AddressPrecalculation.apply()
 
-    if (Knowledge.opt_vectorize) {
-      TypeInference.apply()
+    TypeInference.apply()
+
+    SimplifyFloatExpressions.apply()
+
+    if (Knowledge.opt_vectorize)
       Vectorization.apply()
-    }
+
+    if (Knowledge.opt_unroll > 1)
+      Unrolling.apply()
 
     AddInternalVariables.apply()
 
@@ -159,7 +178,10 @@ object MainStefan {
       AddOMPPragmas.apply()
 
     // one last time
-    ExpandStrategy.doUntilDone()
+    if (Knowledge.useFasterExpand)
+      ExpandOnePassStrategy.apply()
+    else
+      ExpandStrategy.doUntilDone()
     SimplifyStrategy.doUntilDone()
 
     PrintStrategy.apply()
@@ -168,5 +190,6 @@ object MainStefan {
     println("Done!")
 
     println("Runtime: " + ((System.nanoTime() - start) / 1e9))
+    (new CountingStrategy("number of printed nodes")).apply()
   }
 }
