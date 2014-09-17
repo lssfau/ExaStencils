@@ -5,22 +5,56 @@ import scala.collection.mutable.ListBuffer
 import exastencils.core._
 import exastencils.util._
 
-class StrategyResult(transformationResults : List[TransformationResult]) {
-  def getResults = transformationResults
-}
-
+/**
+  * A Strategy that executes its Transformations sequentially.
+  *
+  * @param name name The name of the Strategy. Used for traceability and debugging purposes.
+  */
 class DefaultStrategy(name : String) extends Strategy(name) {
   protected var transformations_ = new ListBuffer[Transformation]
   protected var results_ = new ListBuffer[(Transformation, TransformationResult)]
 
+  /**
+    * Add a Transformation to this Strategy.
+    *
+    * @param transformation The Transformation to be added.
+    */
   def add(transformation : Transformation) = transformations_ += transformation
+
+  /**
+    * Add a Transformation to this Strategy.
+    *
+    * @param transformation The Transformation to be added.
+    */
   def +=(transformation : Transformation) = add(transformation)
+
+  /**
+    * Add a list of Transformations to this Strategy.
+    *
+    * @param transformations The Transformations to be added.
+    */
   def ++=(transformations : TraversableOnce[Transformation]) = transformations_.++=(transformations)
 
+  /**
+    * Returns the list of Transformations of this Strategy.
+    *
+    * @return The list of Transformations of this Strategy.
+    */
   def transformations = { transformations_.toList }
+
+  /**
+    * Returns the list of Transformation Results of this Strategy.
+    *
+    * @return The list of Transformation Results of this Strategy.
+    */
   def results = { results_.toList }
 
-  def apply(node : Option[Node] = None) : Unit = {
+  /**
+   * Executes this Strategy by applying all Transformations sequentially.
+   * 
+   * @param applyAtNode Optional; specifies a source node where the Transformation starts to traverse the program state.
+   */
+  def apply(applyAtNode : Option[Node] = None) : Unit = {
     //    var start : Long = 0
     //    if ("Counting " + "Before" != name && "Counting " + "After" != name) {
     //      (new CountingStrategy("Before")).apply()
@@ -32,7 +66,7 @@ class DefaultStrategy(name : String) extends Strategy(name) {
     Logger.info(s"""Applying strategy "${name}"""")
     try {
       transformations_.foreach(transformation => {
-        executeInternal(transformation, node)
+        executeInternal(transformation, applyAtNode)
       })
       commit()
     } catch {

@@ -10,8 +10,8 @@ import scala.language.higherKinds
   *
   * @param name The name of the Transformation. Used for traceability and debugging purposes.
   * @param function A Scala function specifying the nodes to look for and specifying their replacement.
-  * @param recursive Specifies if the Transformation is to be applied to subnodes of a node that has just been replaced.
-  * @param applyAtNode Specifies the source node where the Transformation starts to traverse the program state.
+  * @param recursive Optional; specifies if the Transformation is to be applied to subnodes of a node that has just been replaced. Default value is true.
+  * @param applyAtNode Optional; specifies a source node where the Transformation starts to traverse the program state.
   */
 class Transformation(val name : String, val function : PartialFunction[Node, Transformation.OutputType], val recursive : Boolean = true, val applyAtNode : Option[Node] = None) {
   override def toString() = s"""Transformation "$name""""
