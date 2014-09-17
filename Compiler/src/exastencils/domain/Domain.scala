@@ -214,7 +214,7 @@ case class DomainFunctions() extends FunctionCollection("Domains/DomainGenerated
       "#include \"Globals/Globals.h\"",
       "#include \"Util/Log.h\"",
       "#include \"Util/Vector.h\"",
-      "#include \"Primitives/CommunicationFunctions.h\"")) {
+      "#include \"CommFunctions/CommFunctions.h\"")) {
 
   functions += new InitGeneratedDomain
 }

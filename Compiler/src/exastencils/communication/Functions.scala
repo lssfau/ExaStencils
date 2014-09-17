@@ -7,7 +7,7 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 
-case class CommunicationFunctions() extends FunctionCollection("Primitives/CommunicationFunctions",
+case class CommunicationFunctions() extends FunctionCollection("CommFunctions/CommFunctions",
   ListBuffer(
     "#define _USE_MATH_DEFINES",
     "#include <cmath>")
