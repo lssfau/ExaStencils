@@ -6,7 +6,7 @@ import exastencils.core._
 import exastencils.util._
 
 /**
-  * A Strategy that executes its Transformations sequentially.
+  * A Strategy that executes its [[exastencils.datastructures.Transformation]]s sequentially.
   *
   * @param name name The name of the Strategy. Used for traceability and debugging purposes.
   */
@@ -15,44 +15,44 @@ class DefaultStrategy(name : String) extends Strategy(name) {
   protected var results_ = new ListBuffer[(Transformation, TransformationResult)]
 
   /**
-    * Add a Transformation to this Strategy.
+    * Add a [[exastencils.datastructures.Transformation]] to this Strategy.
     *
-    * @param transformation The Transformation to be added.
+    * @param transformation The [[exastencils.datastructures.Transformation]] to be added.
     */
   def add(transformation : Transformation) = transformations_ += transformation
 
   /**
-    * Add a Transformation to this Strategy.
+    * Add a [[exastencils.datastructures.Transformation]] to this Strategy.
     *
-    * @param transformation The Transformation to be added.
+    * @param transformation The [[exastencils.datastructures.Transformation]] to be added.
     */
   def +=(transformation : Transformation) = add(transformation)
 
   /**
-    * Add a list of Transformations to this Strategy.
+    * Add a list of [[exastencils.datastructures.Transformation]]s to this Strategy.
     *
-    * @param transformations The Transformations to be added.
+    * @param transformations The [[exastencils.datastructures.Transformation]]s to be added.
     */
   def ++=(transformations : TraversableOnce[Transformation]) = transformations_.++=(transformations)
 
   /**
-    * Returns the list of Transformations of this Strategy.
+    * Returns the list of [[exastencils.datastructures.Transformation]]s of this Strategy.
     *
-    * @return The list of Transformations of this Strategy.
+    * @return The list of [[exastencils.datastructures.Transformation]]s of this Strategy.
     */
   def transformations = { transformations_.toList }
 
   /**
-    * Returns the list of Transformation Results of this Strategy.
+    * Returns the list of [[exastencils.datastructures.TransformationResult]]s of this Strategy.
     *
-    * @return The list of Transformation Results of this Strategy.
+    * @return The list of [[exastencils.datastructures.TransformationResult]]s of this Strategy.
     */
   def results = { results_.toList }
 
   /**
-   * Executes this Strategy by applying all Transformations sequentially.
+   * Executes this Strategy by applying all [[exastencils.datastructures.Transformation]]s sequentially.
    * 
-   * @param applyAtNode Optional; specifies a source node where the Transformation starts to traverse the program state.
+   * @param applyAtNode Optional; specifies a source node where the [[exastencils.datastructures.Transformation]] starts to traverse the program state.
    */
   def apply(applyAtNode : Option[Node] = None) : Unit = {
     //    var start : Long = 0
