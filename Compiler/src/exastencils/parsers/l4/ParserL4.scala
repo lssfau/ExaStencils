@@ -8,6 +8,8 @@ import exastencils.datastructures.l4._
 import exastencils.parsers._
 
 class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParsers {
+  override val lexical : ExaLexer = new LexerL4()
+  
   def parse(s : String) : Node = {
     parseTokens(new lexical.Scanner(s))
   }
