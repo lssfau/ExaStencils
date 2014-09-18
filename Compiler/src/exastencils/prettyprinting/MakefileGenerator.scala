@@ -52,6 +52,6 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< ""
     printer <<< ""
 
-    printer.close
+    printer.finish
   }
 }
