@@ -11,7 +11,9 @@ import scala.collection.mutable.ListBuffer
   */
 sealed class Annotation(val id : String, var value : Any) {
   /**
-    * Alternate constructor when no value is needed. Sets the value of this Annotation to None.
+    * Alternate constructor when no value is needed.
+    * 
+    * Sets the value of this Annotation to None.
     *
     * @param id A key-like identifier denoting the kind of information this annotation holds.
     */
@@ -39,7 +41,9 @@ object Annotation {
   def apply(id : String, value : Any) = new Annotation(id, value)
 
   /**
-    * Creates a new [[exastencils.datastructures.Annotation]] when no value is needed. Sets the value of this [[exastencils.datastructures.Annotation]] to None.
+    * Creates a new [[exastencils.datastructures.Annotation]] when no value is needed.
+    * 
+    * Sets the value of this [[exastencils.datastructures.Annotation]] to None.
     *
     * @param id A key-like identifier denoting the kind of information this [[exastencils.datastructures.Annotation]] holds.
     * @return The newly created [[exastencils.datastructures.Annotation]] instance.
@@ -50,7 +54,7 @@ object Annotation {
     * Splits an [[exastencils.datastructures.Annotation]] into a standard Scala key-value-pair.
     *
     * @param annotation The [[exastencils.datastructures.Annotation]] to be split up.
-    * @return A standard Scala key-value-pair, or None.
+    * @return A standard Scala key-value-pair, or `None`.
     */
   def unapply(annotation : Annotation) : Option[(String, Any)] = Some((annotation.id, annotation.value))
 }
@@ -89,7 +93,9 @@ trait Annotatable {
   def annotate(id : String, value : Any) = this.add(new Annotation(id, value))
 
   /**
-    * Adds a new [[exastencils.datastructures.Annotation]] to this instance when no value is needed. Sets the value of the new [[exastencils.datastructures.Annotation]] to None.
+    * Adds a new [[exastencils.datastructures.Annotation]] to this instance when no value is needed.
+    * 
+    * Sets the value of the new [[exastencils.datastructures.Annotation]] to None.
     *
     * @param id A key-like identifier denoting the kind of information this [[exastencils.datastructures.Annotation]] holds.
     */
@@ -125,7 +131,7 @@ trait Annotatable {
     * Returns a [[exastencils.datastructures.Annotation]]s from this instance.
     *
     * @param id A key-like identifier denoting the [[exastencils.datastructures.Annotation]] to return.
-    * @return The [[exastencils.datastructures.Annotation]] matching the given identifier, or None.
+    * @return The [[exastencils.datastructures.Annotation]] matching the given identifier, or `None`.
     */
   def getAnnotation(id : String) = { annotations_.get(id) }
 
@@ -133,7 +139,7 @@ trait Annotatable {
     * Checks if this instance contains a certain [[exastencils.datastructures.Annotation]].
     *
     * @param id A key-like identifier denoting the [[exastencils.datastructures.Annotation]] to check for.
-    * @return true, if the [[exastencils.datastructures.Annotation]] was found, or false.
+    * @return `true`, if the [[exastencils.datastructures.Annotation]] was found, or `false`.
     */
   def hasAnnotation(id : String) = { annotations_.contains(id) }
 }

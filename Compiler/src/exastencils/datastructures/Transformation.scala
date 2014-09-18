@@ -6,7 +6,7 @@ import scala.collection.mutable.ListBuffer
 import scala.language.higherKinds
 
 /**
-  * The class to specify a transformation modifying a program state into a new one.
+  * Specifies a transformation modifying a program state into a new one.
   *
   * @param name The name of the Transformation. Used for traceability and debugging purposes.
   * @param function A Scala function specifying the nodes to look for and specifying their replacement.
