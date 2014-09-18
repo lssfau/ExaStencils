@@ -204,15 +204,8 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
 }
 
 case class DomainFunctions() extends FunctionCollection("Domains/DomainGenerated",
-  (if (Knowledge.useMPI)
-    ListBuffer("#pragma warning(disable : 4800)", "#include <mpi.h>")
-  else
-    ListBuffer())
-    ++
-    ListBuffer(
-      "#include \"Globals/Globals.h\"",
-      "#include \"Util/Vector.h\"",
-      "#include \"CommFunctions/CommFunctions.h\"")) {
+  (if (Knowledge.useMPI) ListBuffer("mpi.h") else ListBuffer()),
+  ListBuffer("Globals/Globals.h", "Util/Vector.h", "CommFunctions/CommFunctions.h")) {
 
   functions += new InitGeneratedDomain
 }

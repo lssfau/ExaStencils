@@ -38,7 +38,7 @@ object MakefileGenerator extends BuildfileGenerator {
 
     PrettyprintingManager.getPrettyprinters.filter(pp => pp.filename.endsWith(".cpp")).toList.sortBy(f => f.filename).foreach(pp => {
       printer << s"${pp.filename.replace(".cpp", ".o")}: ${pp.filename} "
-      pp.dependencies.foreach(dep => printer << s"${dep.filename} ")
+      PrettyprintingManager.Prettyprinter.gatherDependencies(pp).foreach(dep => printer << s"$dep ")
       printer <<< " "
       printer <<< "\t${CXX} ${CFLAGS} -c -o " + pp.filename.replace(".cpp", ".o") + " -I. " + pp.filename
     })

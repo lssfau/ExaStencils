@@ -34,27 +34,10 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
 }
 
 case class MultiGridFunctions() extends FunctionCollection("MultiGrid/MultiGrid",
-  ListBuffer("#include \"Globals/Globals.h\"") ++
-    (if (Knowledge.useMPI)
-      ListBuffer("#pragma warning(disable : 4800)", "#include <mpi.h>")
-    else
-      ListBuffer())
-    ++
-    (if (Knowledge.opt_vectorize)
-      ListBuffer("#include <immintrin.h>")
-    else
-      ListBuffer())
-    ++
-    (if (Knowledge.poly_usePolyOpt)
-      ListBuffer("#include <algorithm>")
-    else
-      ListBuffer())
-    ++
-    ListBuffer(
-      "#include \"Util/Vector.h\"",
-      "#include \"Util/Stopwatch.h\"",
-      "#include \"CommFunctions/CommFunctions.h\"",
-      "#include \"Domains/DomainGenerated.h\"")) {
+  (if (Knowledge.useMPI) ListBuffer("mpi.h") else ListBuffer())
+    ++ (if (Knowledge.opt_vectorize) ListBuffer("immintrin.h") else ListBuffer())
+    ++ (if (Knowledge.poly_usePolyOpt) ListBuffer("algorithm") else ListBuffer()),
+  ListBuffer("Globals/Globals.h", "Util/Vector.h", "Util/Stopwatch.h", "CommFunctions/CommFunctions.h", "Domains/DomainGenerated.h")) {
 
   if (Knowledge.data_initAllFieldsWithZero)
     functions += new InitFieldsWithZero

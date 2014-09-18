@@ -6,21 +6,23 @@ import exastencils.datastructures._
 import exastencils.prettyprinting._
 
 class FunctionCollection(var baseName : String,
-    var includes : ListBuffer[String],
+    var externalDependencies : ListBuffer[String],
+    var internalDependencies : ListBuffer[String],
     var functions : ListBuffer[AbstractFunctionStatement] = ListBuffer()) extends Node with FilePrettyPrintable {
 
   def printHeader = {
     val writer = PrettyprintingManager.getPrinter(s"${baseName}.h")
+    for (inc <- internalDependencies) writer.addInternalDependency(inc)
+    for (inc <- externalDependencies) writer.addExternalDependency(inc)
 
-    for (inc <- includes) writer <<< inc
     for (func <- functions) writer << func.asInstanceOf[FunctionStatement].cpp_decl
   }
 
   def printSources = {
     for (f <- functions) {
       val writer = PrettyprintingManager.getPrinter(s"${baseName}_${f.asInstanceOf[FunctionStatement].name}.cpp")
+      writer.addInternalDependency(s"${baseName}.h")
 
-      writer <<< "#include \"" + baseName + ".h\""
       writer <<< f.cpp
     }
   }

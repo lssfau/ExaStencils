@@ -12,6 +12,11 @@ case class Vector() extends Node with FilePrettyPrintable {
   override def printToFile = {
     val writer = PrettyprintingManager.getPrinter(s"Util/Vector.h");
 
+    writer.addExternalDependency("cmath")
+    writer.addExternalDependency("iostream")
+    writer.addExternalDependency("sstream")
+    writer.addExternalDependency("string")
+
     writer << ("""
 //=====================================================================================================================
 //                                        _    __   ____   ____     ______   ____
@@ -27,16 +32,6 @@ case class Vector() extends Node with FilePrettyPrintable {
 /// \author	Sebastian Kuckuk
 //
 //=====================================================================================================================
-
-//=====================================================================================================================
-// includes
-//=====================================================================================================================
-
-#define _USE_MATH_DEFINES
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <cmath>
 
 //=====================================================================================================================
 // forward declarations
