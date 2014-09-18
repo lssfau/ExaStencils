@@ -12,9 +12,8 @@ case class Stopwatch() extends Node with FilePrettyPrintable {
     val writer = PrettyprintingManager.getPrinter(s"Util/Stopwatch.h");
 
     if ("MSVC" == Knowledge.targetCompiler || "GCC" == Knowledge.targetCompiler) {
+      writer.addExternalDependency("chrono")
       writer << ("""
-#include <chrono>
-
 class StopWatch
 {
 public:
@@ -59,10 +58,9 @@ protected:
 };
 """)
     } else {
+      writer.addExternalDependency("sys/time.h")
+      writer.addExternalDependency("sys/types.h")
       writer << ("""
-#include <sys/time.h>
-#include <sys/types.h>
-
 class StopWatch
 {
 public:

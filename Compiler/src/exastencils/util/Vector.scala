@@ -1,11 +1,7 @@
 package exastencils.util
 
-import java.io.PrintWriter
-import java.io.File
-import exastencils.knowledge._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.prettyprinting._
 
 case class Vector() extends Node with FilePrettyPrintable {
