@@ -42,8 +42,8 @@ object MainChristian {
     Hardware.cflags = "-std=c++11"
 
     // HACK: this will setup a dummy L4 DSL file
-    StateManager.root_ = new l3.Root
-    StateManager.root_.asInstanceOf[l3.Root].printToL4(Settings.getL4file)
+    //StateManager.root_ = new l3.Root
+    //StateManager.root_.asInstanceOf[l3.Root].printToL4(Settings.getL4file)
 
     // HACK: this tests the new L4 capabilities
     var parserl4 = new ParserL4

@@ -47,7 +47,7 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
 
   // rename identifiers that happen to have the same name as C/C++ keywords or start with "_"
   // identifiers starting with "_" are protected for internal use
-  var protectedkeywords = HashSet("alignas", "alignof", "and", "and_eq",
+  final val protectedkeywords = HashSet("alignas", "alignof", "and", "and_eq",
     "asm", "auto", "bitand", "bitor", "bool", "break", "case", "catch", "char", "char16_t", "char32_t", "class", "compl",
     "const", "constexpr", "const_cast", "continue", "decltype", "default", "delete", "do", "double", "dynamic_cast",
     "else", "enum", "explicit", "export", "extern", "false", "float", "for", "friend", "goto", "if", "inline", "int",
@@ -55,13 +55,21 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
     "protected", "public", "register", "reinterpret_cast", "return", "short", "signed", "sizeof", "static", "static_assert",
     "static_cast", "struct", "switch", "template", "this", "thread_local", "throw", "true", "try", "typedef",
     "typeid", "typename", "union", "unsigned", "using", "virtual", "void", "volatile", "wchar_t", "while", "xor", "xor_eq")
+
+  // No need to transform Domain- and LayoutDeclarationStatements because their names are not outputted.
   this += new Transformation("EscapeCppKeywordsAndInternalIdentifiers", {
     case x : Identifier if (protectedkeywords.contains(x.name)) =>
       x.name = "user_" + x.name; x
     case x : Identifier if (x.name.startsWith("_")) =>
       x.name = "user_" + x.name; x
+    case x : UnresolvedAccess if (protectedkeywords.contains(x.identifier)) =>
+      x.identifier = "user_" + x.identifier; x
     case x : UnresolvedAccess if (x.identifier.startsWith("_")) =>
       x.identifier = "user_" + x.identifier; x
+    case x : ExternalFieldDeclarationStatement if (protectedkeywords.contains(x.extIdentifier)) =>
+      x.extIdentifier = "user_" + x.extIdentifier; x
+    case x : ExternalFieldDeclarationStatement if (x.extIdentifier.startsWith("_")) =>
+      x.extIdentifier = "user_" + x.extIdentifier; x
   })
 
   // resolve values in expressions by replacing them with their expression => let SimplifyStrategy do the work
