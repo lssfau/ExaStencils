@@ -55,7 +55,7 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
     "protected", "public", "register", "reinterpret_cast", "return", "short", "signed", "sizeof", "static", "static_assert",
     "static_cast", "struct", "switch", "template", "this", "thread_local", "throw", "true", "try", "typedef",
     "typeid", "typename", "union", "unsigned", "using", "virtual", "void", "volatile", "wchar_t", "while", "xor", "xor_eq")
-  this += new Transformation("EscapeCppKeywords", {
+  this += new Transformation("EscapeCppKeywordsAndInternalIdentifiers", {
     case x : Identifier if (protectedkeywords.contains(x.name)) =>
       x.name = "user_" + x.name; x
     case x : Identifier if (x.name.startsWith("_"))             => x.name = "user_" + x.name; x
