@@ -61,9 +61,9 @@ object Fields {
           printer.println(s"Field Solution2$postfix< $fieldDatatype, $domain, CommFullTempBlockable, $bc >@finest")
         }
       } else {
-        printer.println(s"Field Solution2$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >@(coarsest to ${Knowledge.l3tmp_tempBlockingMinLevel - 1})")
+        printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, BasicComm, 0.0 >@(coarsest to ${Knowledge.l3tmp_tempBlockingMinLevel - 1})")
         if (Knowledge.l3tmp_tempBlockingMinLevel < Knowledge.maxLevel - 1)
-          printer.println(s"Field Solution2$postfix< $fieldDatatype, $domain, CommFullTempBlockable, 0.0 >@(${Knowledge.l3tmp_tempBlockingMinLevel} to (finest - 1))")
+          printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, CommFullTempBlockable, 0.0 >@(${Knowledge.l3tmp_tempBlockingMinLevel} to (finest - 1))")
         printer.println(s"Field Solution$postfix< $fieldDatatype, $domain, CommFullTempBlockable, $bc >@finest")
       }
     } else {
@@ -84,7 +84,7 @@ object Fields {
     }
 
     if (Knowledge.l3tmp_kelvin && "" == postfix)
-      printer.println(s"Field SolutionMean< $fieldDatatype, $domain, NoComm, bcSol(xPos, yPos) >@all")
+      printer.println(s"Field SolutionMean< $fieldDatatype, $domain, NoComm, bcSol(xPos, yPos) >@finest")
 
     printer.println(s"Field Residual$postfix< $fieldDatatype, $domain, BasicComm, None >@all")
 

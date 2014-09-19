@@ -8,29 +8,11 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 
 case class CommunicationFunctions() extends FunctionCollection("CommFunctions/CommFunctions",
-  ListBuffer(
-    "#define _USE_MATH_DEFINES",
-    "#include <cmath>")
-    ++
-    (if (Knowledge.useMPI)
-      ListBuffer("#pragma warning(disable : 4800)", "#include <mpi.h>")
-    else
-      ListBuffer())
-    ++
-    (if (Knowledge.opt_vectorize)
-      ListBuffer("#include <immintrin.h>")
-    else
-      ListBuffer())
-    ++
-    (if (Knowledge.poly_usePolyOpt)
-      ListBuffer("#include <algorithm>")
-    else
-      ListBuffer())
-    ++
-    ListBuffer(
-      "#include \"Globals/Globals.h\"",
-      "#include \"Util/Vector.h\"",
-      "#include \"MultiGrid/MultiGrid.h\""))
+  ListBuffer("cmath")
+    ++ (if (Knowledge.useMPI) ListBuffer("mpi.h") else ListBuffer())
+    ++ (if (Knowledge.opt_vectorize) ListBuffer("immintrin.h") else ListBuffer())
+    ++ (if (Knowledge.poly_usePolyOpt) ListBuffer("algorithm") else ListBuffer()),
+  ListBuffer("Globals/Globals.h", "Util/Vector.h", "MultiGrid/MultiGrid.h"))
 
 case class SetIterationOffset(var location : Expression, var domain : Expression, var fragment : Expression) extends Statement with Expandable {
   override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = SetIterationOffset\n"

@@ -1,5 +1,6 @@
 package exastencils.datastructures.l3
 
+import exastencils.core._
 import exastencils.knowledge._
 
 object Application {
@@ -132,6 +133,7 @@ object Application {
     }
 
     if (Knowledge.l3tmp_printFieldAtEnd) {
+      Settings.additionalIncludes += "fstream"
       if (Knowledge.l3tmp_kelvin)
         printer.println("\tprintField ( '\"Solution.dat\"', SolutionMean@finest )")
       else

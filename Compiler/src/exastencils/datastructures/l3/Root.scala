@@ -15,11 +15,10 @@ case class Root() extends Node {
     }
 
     if (Knowledge.l3tmp_kelvin) {
-      // TODO: set these settings via the settings file as soon as the required functionality is implemented
-
-      Settings.additionalIncludes += "#include <random>"
-      Settings.additionalIncludes += "#include <functional>"
-      Settings.additionalIncludes += "#include \"Util/Gamma.h\""
+      Settings.additionalIncludes += "cmath"
+      Settings.additionalIncludes += "random"
+      Settings.additionalIncludes += "functional"
+      Settings.additionalIncludes += "Util/Gamma.h"
 
       Settings.additionalFiles += "Util/Gamma.h"
       Settings.additionalFiles += "Util/Gamma.cpp"

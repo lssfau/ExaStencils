@@ -1,8 +1,8 @@
 package exastencils.prettyprinting
 
 import scala.collection.mutable.HashMap
-import scala.collection.mutable.HashSet
 import scala.collection.mutable.Stack
+import scala.collection.mutable.TreeSet
 
 import exastencils.core._
 
@@ -17,62 +17,11 @@ object PrettyprintingManager {
   def pushPrinter(printer : Prettyprinter) = printerStack.push(printer)
   def popPrinter() = printerStack.pop
 
-  protected class Prettyprinter(val filename : String, val path : String) extends java.io.StringWriter {
-    def <<(s : String) = write(s)
-    def <<<(s : String) = write(s + "\n")
-
-    def writeToFile = {
-      val outFile = new java.io.FileWriter(path)
-      outFile.write(toString)
-      outFile.close
-    }
-
-    def finish = {
-      if (!(new java.io.File(path)).exists) {
-        exastencils.core.Logger.debug("Creating file: " + path)
-        writeToFile
-      } else {
-        if (toString != scala.io.Source.fromFile(path).mkString) {
-          exastencils.core.Logger.debug("Updating file: " + path)
-          writeToFile
-        }
-      }
-    }
-
-    protected var dependencies_ = new HashSet[Prettyprinter]
-    def addDependency(prettyprinter : Prettyprinter) = dependencies_ += prettyprinter
-    def addDependency(filename : String) = dependencies_ += getPrinter(filename)
-    def removeDependency(prettyprinter : Prettyprinter) = dependencies_ -= prettyprinter
-    def removeDependency(filename : String) = dependencies_ -= getPrinter(filename)
-    def dependencies = dependencies_.toList
-  }
-
-  protected class HeaderPrettyprinter(filename : String, path : String) extends Prettyprinter(filename, path) {
-    protected var guard = "EXASTENCILS_" + filename.replace("/", "_").replace("""\""", "_").replace(".", "_").toUpperCase()
-
-    <<<(s"#ifndef $guard")
-    <<<(s"#define $guard")
-
-    override def finish = {
-      <<<("\n#endif")
-      super.finish
-    }
-  }
-
   def getPrinter(filename : String) : Prettyprinter = {
     printers.getOrElse(filename, {
-      var file = new java.io.File(Settings.outputPath + java.io.File.separator + filename)
-      if (!file.getParentFile().exists()) file.getParentFile().mkdirs()
-
-      if (filename.endsWith(".h") || filename.endsWith(".hpp") || filename.endsWith(".hxx")) {
-        var printer = new HeaderPrettyprinter(filename, file.getAbsolutePath())
-        printers += ((filename, printer))
-        printer
-      } else {
-        var printer = new Prettyprinter(filename, file.getAbsolutePath())
-        printers += ((filename, printer))
-        printer
-      }
+      var printer = new Prettyprinter(filename, (new java.io.File(Settings.outputPath + java.io.File.separator + filename)).getAbsolutePath())
+      printers += ((filename, printer))
+      printer
     })
   }
 
@@ -82,6 +31,105 @@ object PrettyprintingManager {
 
     printers.clear
     printerStack.clear
+  }
+
+  protected class Prettyprinter(val filename : String, val path : String) extends java.io.StringWriter {
+    import Prettyprinter._
+
+    protected var internalDependencies_ = new TreeSet[Prettyprinter]()(Ordering.by(_.filename))
+    def addInternalDependency(prettyprinter : Prettyprinter) = { internalDependencies_ += prettyprinter }
+    def addInternalDependency(filename : String) = { internalDependencies_ += getPrinter(filename) }
+    def removeInternalDependency(prettyprinter : Prettyprinter) = { internalDependencies_ -= prettyprinter }
+    def removeInternalDependency(filename : String) = { internalDependencies_ -= getPrinter(filename) }
+    def internalDependencies = internalDependencies_.toList
+
+    protected var externalDependencies_ = new TreeSet[String]
+    def addExternalDependency(filename : String) = { externalDependencies_ += filename }
+    def removeExternalDependency(filename : String) = { externalDependencies_ -= filename }
+    def externalDependencies = externalDependencies_.toList
+
+    def <<(s : String) = write(s)
+    def <<<(s : String) = write(s + "\n")
+
+    def writeToFile = {
+      val outFile = new java.io.FileWriter(path)
+      outFile.write(this.toString)
+      outFile.close
+    }
+
+    def finish = {
+      // temporary storage
+      val extendedContent = new java.io.StringWriter
+
+      // add header guard
+      val addHeaderGuard = (filename.endsWith(".h") || filename.endsWith(".hpp") || filename.endsWith(".hxx"))
+      if (addHeaderGuard) {
+        val guard = "EXASTENCILS_" + filename.replace("/", "_").replace("""\""", "_").replace(".", "_").toUpperCase()
+        extendedContent.write(s"#ifndef $guard\n")
+        extendedContent.write(s"#define $guard\n\n")
+      }
+
+      // add includes for external dependencies
+      for (dep <- externalDependencies)
+        extendedContent.write(generateInclude(dep))
+      if (externalDependencies.size > 0)
+        extendedContent.write('\n')
+
+      // add includes from Settings.additionalIncludes
+      for (dep <- Settings.additionalIncludes)
+        extendedContent.write(generateInclude(dep))
+      if (Settings.additionalIncludes.size > 0)
+        extendedContent.write('\n')
+
+      // add includes for internal dependencies
+      for (dep <- internalDependencies)
+        extendedContent.write(generateInclude(dep.filename))
+      if (internalDependencies.size > 0)
+        extendedContent.write('\n')
+
+      // add main content
+      extendedContent.write(this.toString)
+
+      // add end of header guard
+      if (addHeaderGuard)
+        extendedContent.write("\n#endif\n")
+
+      // empty and swap buffer
+      this.getBuffer.setLength(0)
+      this.write(extendedContent.toString)
+
+      // check if the file already exists
+      if (!(new java.io.File(path)).exists) {
+        exastencils.core.Logger.debug("Creating file: " + path)
+        var file = new java.io.File(path)
+        if (!file.getParentFile().exists()) file.getParentFile().mkdirs()
+
+        writeToFile
+      } else if (toString != scala.io.Source.fromFile(path).mkString) {
+        exastencils.core.Logger.debug("Updating file: " + path)
+        writeToFile
+      }
+    }
+  }
+
+  object Prettyprinter {
+    def generateInclude(toInclude : String) = {
+      val prepend = toInclude match {
+        case "mpi.h" => "#pragma warning(disable : 4800)\n"
+        case "cmath" => "#define _USE_MATH_DEFINES\n"
+        case _       => ""
+      }
+      prepend + "#include \"" + toInclude + "\"\n"
+    }
+
+    def gatherDependencies(target : Prettyprinter, foundDependencies : TreeSet[String] = TreeSet()) : TreeSet[String] = {
+      for (dep <- target.internalDependencies)
+        if (!foundDependencies.contains(dep.filename)) {
+          foundDependencies += dep.filename
+          foundDependencies ++= gatherDependencies(dep, foundDependencies)
+        }
+      foundDependencies
+    }
   }
 }
 
