@@ -6,8 +6,6 @@ Framework:
 - check if transformations can be parallelized (e.g. using a breadth first search and a thread pool)
 
 - Lib/ Inc Blocks in HW Knowledge
-- reserve C keywords in lexer
-
 - add possibility to specify trafos, that don't exchange nodes, i.e. read-only or only node-internal modification; goal is not having to return a result (for more readability and deep matches)
 
 - allow deletion of nodes (if not deletable bc not in collection -> replace by NullStatement/NullExpr)
