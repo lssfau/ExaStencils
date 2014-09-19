@@ -8,6 +8,8 @@ import exastencils.datastructures.l4._
 import exastencils.parsers._
 
 class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParsers {
+  override val lexical : ExaLexer = new LexerL4()
+  
   def parse(s : String) : Node = {
     parseTokens(new lexical.Scanner(s))
   }
@@ -89,7 +91,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ##### Functions
   // ######################################
 
-  lazy val function = locationize((("Fun" ||| "Fct" ||| "Function") ~> identifierWithOptionalLevel) ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}")) ^^
+  lazy val function = locationize((("Func" ||| "Function") ~> identifierWithOptionalLevel) ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}")) ^^
     { case id ~ args ~ t ~ stmts => FunctionStatement(id, t, args.getOrElse(List[Variable]()), stmts) })
   lazy val functionArgumentList = (functionArgument <~ ("," | newline)).* ~ functionArgument ^^ { case args ~ arg => arg :: args }
   lazy val functionArgument = locationize(((ident <~ ":") ~ datatype) ^^ { case id ~ t => Variable(BasicIdentifier(id), t) })

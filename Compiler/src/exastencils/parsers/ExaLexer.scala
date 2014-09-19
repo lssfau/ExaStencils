@@ -3,7 +3,7 @@ package exastencils.parsers
 import scala.util.parsing.combinator.lexical.StdLexical
 
 /**
-  * Defines a basic standard lexical parser common to all levels
+  * Defines a basic standard lexical parser common to all Layers
   */
 class ExaLexer extends StdLexical {
   // general stuff
@@ -39,55 +39,4 @@ class ExaLexer extends StdLexical {
     case None           => ""
     case Some(exponent) => exponent
   }
-
-  /*
-   * language level 1 keywords
-   */
-
-  /*
-   * language level 2 keywords
-   */
-
-  /*
-   * language level 3 keywords
-   */
-
-  /*
-   * language level 4 keywords
-   */
-  // function keywords
-  reserved += ("Fun", "Fct", "Function")
-
-  // declaration keywords - simple
-  reserved += ("Var", "Variable", "Val", "Value")
-  // declaration keywords - complex
-  reserved += ("Domain", "Layout", "Field", "Stencil", "StencilField", "Set", "external", "Globals")
-
-  // loop keywords
-  reserved += ("repeat", "times", "count", "with", "contraction")
-  reserved += ("loop", "until", "over", "fragments", "where", "starting", "ending", "stepping", "reduction")
-
-  // condition keywords
-  reserved += ("if", "else")
-
-  // language datatypes
-  reserved += ("Unit", "String", "Integer", "Real", "Complex", "Array")
-
-  // level specification keywords
-  reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "all", "and")
-
-  // layout and field keywords
-  reserved += ("with", "communication", "None")
-
-  // boundary condition keywords
-  reserved += ("apply", "bc", "to")
-
-  // communication keywords
-  reserved += ("begin", "finish", "communicate", "communicating", "dup", "ghost", "of")
-
-  // math keywords
-  reserved += ("diag")
-
-  // obsolete keywords
-  reserved += ("steps")
 }

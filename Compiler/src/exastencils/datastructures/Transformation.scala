@@ -6,12 +6,12 @@ import scala.collection.mutable.ListBuffer
 import scala.language.higherKinds
 
 /**
-  * The class to specify a transformation modifying a program state into a new one.
+  * Specifies a transformation modifying a program state into a new one.
   *
-  * @param name The name of the transformation. Used for debugging purposes.
+  * @param name The name of the Transformation. Used for traceability and debugging purposes.
   * @param function A Scala function specifying the nodes to look for and specifying their replacement.
-  * @param recursive Specifies if the Transformation is to be applied to subnodes of a node that has just been replaced.
-  * @param applyAtNode Specifies the source node where the transformation starts to traverse the program state.
+  * @param recursive Optional; specifies if the Transformation is to be applied to subnodes of a node that has just been replaced. Default value is true.
+  * @param applyAtNode Optional; specifies a source node where the Transformation starts to traverse the program state.
   */
 class Transformation(val name : String, val function : PartialFunction[Node, Transformation.OutputType], val recursive : Boolean = true, val applyAtNode : Option[Node] = None) {
   override def toString() = s"""Transformation "$name""""
@@ -57,12 +57,12 @@ object Transformation {
   }
 
   /**
-    * Creates a new Transformation which, for example, can be added to a Strategy.
+    * Creates a new Transformation which, for example, can be added to a [[exastencils.datastructures.Strategy]].
     *
     * @param name The name of the transformation. Used for debugging purposes.
     * @param function A Scala function specifying the nodes to look for and specifying their replacement.
     * @param recursive Specifies if the Transformation is to be applied to subnodes of a node that has just been replaced.
-    * @param applyAtNode Specifies the source node where the transformation starts to traverse the program state.
+    * @param applyAtNode Specifies the source node where the Transformation starts to traverse the program state.
     */
   def apply(name : String, function : PartialFunction[Node, OutputType], recursive : Boolean = true, applyAtNode : Option[Node] = None) = {
     new Transformation(name, function, recursive, applyAtNode)
@@ -73,7 +73,7 @@ object Transformation {
  * Represents some statistics about a Transformation.
  * 
  * @param successful Specifies if the Transformation did finish successfully (independent of the number of matches) or was aborted.
- * @param matches The number of matches - and nodes replaced - by the Transformation.
+ * @param matches The number of matches - and nodes replaced - by the [[exastencils.datastructures.Transformation]].
  */
 class TransformationResult(val successful : Boolean, val matches : Int) {
   override def toString() = {

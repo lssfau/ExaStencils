@@ -60,7 +60,7 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
   }
 
   def getFieldByIdentifier(identifier : String, level : Int) : Option[FieldDeclarationStatement] = {
-    val ret = fields.find(f => f.identifier.name == identifier && (f.identifier match { case l: LeveledIdentifier => l.level == level case _ => -1 == level }))
+    val ret = fields.find(f => f.identifier.name == identifier && (f.identifier match { case l: LeveledIdentifier => l.level.asInstanceOf[SingleLevelSpecification].level == level case _ => -1 == level }))
     if (ret.isEmpty) warn(s"L4 field $identifier on level $level was not found")
     ret
   }

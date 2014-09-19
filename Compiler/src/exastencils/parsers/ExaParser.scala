@@ -7,7 +7,7 @@ import exastencils.datastructures.l4._
 
 class ExaParser extends StandardTokenParsers {
   override val lexical : ExaLexer = new ExaLexer()
-
+  
   val IntRegEx = """[+-]?(\d+)""".r
   val DoubleRegEx = """[+-]?\d+(\.\d*)?""".r
   protected def isInt(str : String) : Boolean = {

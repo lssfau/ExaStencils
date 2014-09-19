@@ -33,8 +33,12 @@ object StateManager {
     */
   def checkpoint(id : CheckpointIdentifier) : Unit = {
     Logger.debug(s"""Creating checkpoint "$id"""")
-    var c = Duplicate(StateManager.root_)
-    checkpoints_ += ((id, c))
+    try {
+      var c = Duplicate(StateManager.root_)
+      checkpoints_ += ((id, c))
+    } catch {
+      case e : Throwable => throw CheckpointException(s"""Could not create Checkpoint "$id""", Some(e))
+    }
   }
 
   /**
@@ -44,7 +48,7 @@ object StateManager {
     */
   def restore(id : CheckpointIdentifier) : Unit = {
     Logger.debug(s"""Restoring to checkpoint "$id"""")
-    root_ = checkpoints_.getOrElse(id, { throw CheckpointException(s"""Could not restore to checkpoint "$id": Not found!""") })
+    root_ = checkpoints_.getOrElse(id, { throw CheckpointException(s"""Could not restore to checkpoint "$id": Not found""") })
   }
 
   /**
