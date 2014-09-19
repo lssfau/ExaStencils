@@ -45,6 +45,15 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
 
   // ###################################################################################################################
 
+  // annotate function calls to special function, e.g. return(), so they are not changed by the next transformation
+  this += new Transformation("AnnotateFunctionCalls", {
+    case f : FunctionCallExpression =>
+      f.identifier match {
+        case x : UnresolvedAccess if (x.identifier == "return") => x.annotate("NO_PROTECT_THIS")
+        case _ =>
+      }; f
+  })
+
   // rename identifiers that happen to have the same name as C/C++ keywords or start with "_"
   // identifiers starting with "_" are protected for internal use
   final val protectedkeywords = HashSet("alignas", "alignof", "and", "and_eq",
@@ -52,7 +61,7 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
     "const", "constexpr", "const_cast", "continue", "decltype", "default", "delete", "do", "double", "dynamic_cast",
     "else", "enum", "explicit", "export", "extern", "false", "float", "for", "friend", "goto", "if", "inline", "int",
     "long", "mutable", "namespace", "new", "noexcept", "not", "not_eq", "nullptr", "operator", "or", "or_eq", "private",
-    "protected", "public", "register", "reinterpret_cast", /*"return",*/ "short", "signed", "sizeof", "static", "static_assert",
+    "protected", "public", "register", "reinterpret_cast", "return", "short", "signed", "sizeof", "static", "static_assert",
     "static_cast", "struct", "switch", "template", "this", "thread_local", "throw", "true", "try", "typedef",
     "typeid", "typename", "union", "unsigned", "using", "virtual", "void", "volatile", "wchar_t", "while", "xor", "xor_eq")
 
@@ -62,7 +71,7 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
       x.name = "user_" + x.name; x
     case x : Identifier if (x.name.startsWith("_")) =>
       x.name = "user_" + x.name; x
-    case x : UnresolvedAccess if (protectedkeywords.contains(x.identifier)) =>
+    case x : UnresolvedAccess if (protectedkeywords.contains(x.identifier) && !x.hasAnnotation("NO_PROTECT_THIS")) =>
       x.identifier = "user_" + x.identifier; x
     case x : UnresolvedAccess if (x.identifier.startsWith("_")) =>
       x.identifier = "user_" + x.identifier; x
