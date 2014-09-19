@@ -58,7 +58,10 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
   this += new Transformation("EscapeCppKeywordsAndInternalIdentifiers", {
     case x : Identifier if (protectedkeywords.contains(x.name)) =>
       x.name = "user_" + x.name; x
-    case x : Identifier if (x.name.startsWith("_"))             => x.name = "user_" + x.name; x
+    case x : Identifier if (x.name.startsWith("_")) =>
+      x.name = "user_" + x.name; x
+    case x : UnresolvedAccess if (x.identifier.startsWith("_")) =>
+      x.identifier = "user_" + x.identifier; x
   })
 
   // resolve values in expressions by replacing them with their expression => let SimplifyStrategy do the work
