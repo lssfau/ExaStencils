@@ -3,6 +3,8 @@ Concept:
 - Use nodes by reference or apply deep copy? -> automatically apply duplicate for subclasses of node; all other objects (esp fields, stencils and other knowledge objects) should be copied by reference
 
 Framework:
+- check if transformations can be parallelized (e.g. using a breadth first search and a thread pool)
+
 - Lib/ Inc Blocks in HW Knowledge
 - reserve C keywords in lexer
 
@@ -25,9 +27,14 @@ IR:
 
 - add temporary fields
 
+- implement memory layout transformations
+
 ISL:
 - L4 constraints to ISL mapping
 - long term: reduce optimization runtime
+
+SPL:
+- think about allowing annotation of (application specific) parameters in L4 DSL with default value and value range to be included in the optimization step
 
 Bugs:
 - Setting position dependent bc's for equvalent points on different fragments might lead to diverging results (this only occures with comm strat 26, as the values in question are overwritten with comm strat 6):
