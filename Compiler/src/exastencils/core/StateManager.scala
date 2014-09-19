@@ -101,7 +101,8 @@ object StateManager {
 
     def notifyEnter(node : Node) = { collectors_.foreach(c => c.enter(node)) }
     def notifyLeave(node : Node) = { collectors_.foreach(c => c.leave(node)) }
-
+    def reset() = { collectors_.foreach(c => c.reset()) }
+    
     def register(c : Collector) = { collectors_ += c }
     def unregister(c : Collector) = { collectors_ -= c }
     def unregisterAll() = { collectors_.clear }
@@ -419,6 +420,7 @@ object StateManager {
       throw new RuntimeException(s"Invalid transaction token for transformation ${transformation.name}")
     }
     try {
+      Collectors.reset()
       progresses_.+=((transformation, new TransformationProgress))
       replace(node.getOrElse(root), transformation)
       return new TransformationResult(true, progresses_(transformation).getMatches)
