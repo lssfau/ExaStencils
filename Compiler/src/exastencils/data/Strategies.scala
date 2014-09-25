@@ -138,7 +138,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       var numDataPoints : Expression = field.field.layout(0).total * field.field.layout(1).total * field.field.layout(2).total * field.field.dataType.resolveFlattendSize
       var statements : ListBuffer[Statement] = ListBuffer()
       for (slot <- 0 until field.field.numSlots) {
-        val newFieldData = Duplicate(field)
+        val newFieldData = Duplicate(cleanedField)
         newFieldData.slot = slot
         statements += new AssignmentStatement(newFieldData,
           ("new" : Expression) ~~ field.field.dataType.resolveUnderlyingDatatype. /*FIXME*/ cpp ~ "[" ~ numDataPoints ~ "]")
