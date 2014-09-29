@@ -196,8 +196,8 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     // reuse oldLoop to preserve all traits
     // set first value (again) to allow omp parallelization
     oldLoop.begin = AssignmentStatement(itVar, upperAligned)
-    res += AssignmentStatement(upper, SubtractionExpression(Duplicate(endExcl), IntegerConstant(Knowledge.simd_vectorSize - 1)), "=")
-    oldLoop.end = LowerExpression(itVar, upper)
+    res += AssignmentStatement(upper, endExcl, "=")
+    oldLoop.end = LowerExpression(itVar, SubtractionExpression(upper, IntegerConstant(Knowledge.simd_vectorSize - 1)))
     oldLoop.inc = AssignmentStatement(itVar, IntegerConstant(Knowledge.simd_vectorSize), "+=")
     oldLoop.body = ctx.vectStmts
     oldLoop.annotate(Unrolling.NO_REM_ANNOT, Knowledge.simd_vectorSize - 1)
@@ -208,7 +208,6 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     if (postLoopStmt != null)
       res += postLoopStmt
 
-    res += AssignmentStatement(upper, endExcl, "=")
     res += new ForLoopStatement(NullStatement,
       LowerExpression(itVar, upper),
       AssignmentStatement(itVar, IntegerConstant(1), "+="),
@@ -226,8 +225,8 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         ctx.vectStmts += new CommentStatement(stmt.cpp())
         val source = assOp match {
           case "="  => rhsSca
-          case "+=" => AdditionExpression(lhsSca, rhsSca)
-          case "-=" => SubtractionExpression(lhsSca, rhsSca)
+          case "+=" => AdditionExpression(Duplicate(lhsSca), rhsSca)
+          case "-=" => SubtractionExpression(Duplicate(lhsSca), rhsSca)
           case _    => throw new VectorizationException("cannot deal with assignment operator \"" + assOp + "\" in " + stmt.cpp())
         }
         // create rhs before lhs to ensure all loads are created
