@@ -115,9 +115,10 @@ object PrettyprintingManager {
   object Prettyprinter {
     def generateInclude(toInclude : String) = {
       val prepend = toInclude match {
-        case "mpi.h" => "#pragma warning(disable : 4800)\n"
-        case "cmath" => "#define _USE_MATH_DEFINES\n"
-        case _       => ""
+        case "mpi.h"     => "#pragma warning(disable : 4800)\n"
+        case "cmath"     => "#define _USE_MATH_DEFINES\n"
+        case "algorithm" => "#define _USE_MATH_DEFINES\n" // algorithm seems to contain the math defines, too
+        case _           => ""
       }
       prepend + "#include \"" + toInclude + "\"\n"
     }
