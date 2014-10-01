@@ -51,14 +51,25 @@
     <!-- load scala's ant tasks -->
     <taskdef resource="scala/tools/ant/antlib.xml" classpathref="scala.classpath"/>
 
+	<!-- ensure build directory is available -->
+    <mkdir dir="${build-classes.dir}"/>
+
     <!-- print where this project will get scala and java from -->
     <echo message="Init project"/>
     <echo message=" with scala.dir = ${scala.dir}"/>
     <echo message=" with java.dir = ${java.dir}"/>
   </target>
 
-  <target name="compileMacros" depends="init">
-    <mkdir dir="${build-classes.dir}"/>
+  <target name="compileJava" depends="init">
+    <javac
+      destdir="${build-classes.dir}"
+      classpathref="compiler.classpath">
+      <include name="**/*.java"/>
+      <src><pathelement location="${src.dir}"/></src>
+    </javac>
+  </target>
+
+  <target name="compileMacros" depends="compileJava">
     <scalac
       destdir="${build-classes.dir}"
       classpathref="compiler.classpath">
@@ -67,7 +78,7 @@
     </scalac>
   </target>
 
-  <target name="compile" depends="compileMacros">
+  <target name="compileScala" depends="compileMacros">
     <scalac
       destdir="${build-classes.dir}"
       classpathref="compiler.classpath">
@@ -75,6 +86,8 @@
       <src><pathelement location="${src.dir}"/></src>
     </scalac>
   </target>
+
+  <target name="compile" depends="compileScala"/>
 
   <target name="package" depends="compile">
     <jar destfile="${compiler.jar}">
