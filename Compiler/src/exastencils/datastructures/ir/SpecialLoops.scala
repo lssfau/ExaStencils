@@ -196,6 +196,16 @@ case class LoopOverDimensions(var numDimensions : Int,
           Array((xEnd + xEndOffMax) - (xStart + xStartOffMin),
             (yEnd + yEndOffMax) - (yStart + yStartOffMin))
 
+        // no match so far... try if all expressions can be evaluated to integers
+        case IndexRange(MultiIndex(xStart, yStart, _, _),
+          MultiIndex(xEnd, yEnd, _, _)) =>
+          try {
+            Array(SimplifyExpression.evalIntegral(xEnd) - SimplifyExpression.evalIntegral(xStart),
+              SimplifyExpression.evalIntegral(yEnd) - SimplifyExpression.evalIntegral(yStart))
+          } catch {
+            case _ : EvaluationException => null
+          }
+
         // could not match
         case _ => null
       }
@@ -220,6 +230,17 @@ case class LoopOverDimensions(var numDimensions : Int,
           Array((xEnd + xEndOffMax) - (xStart + xStartOffMin),
             (yEnd + yEndOffMax) - (yStart + yStartOffMin),
             (zEnd + zEndOffMax) - (zStart + zStartOffMin))
+
+        // no match so far... try if all expressions can be evaluated to integers
+        case IndexRange(MultiIndex(xStart, yStart, zStart, _),
+          MultiIndex(xEnd, yEnd, zEnd, _)) =>
+          try {
+            Array(SimplifyExpression.evalIntegral(xEnd) - SimplifyExpression.evalIntegral(xStart),
+              SimplifyExpression.evalIntegral(yEnd) - SimplifyExpression.evalIntegral(yStart),
+              SimplifyExpression.evalIntegral(zEnd) - SimplifyExpression.evalIntegral(zStart))
+          } catch {
+            case _ : EvaluationException => null
+          }
 
         // could not match
         case _ => null
@@ -248,6 +269,18 @@ case class LoopOverDimensions(var numDimensions : Int,
             (yEnd + yEndOffMax) - (yStart + yStartOffMin),
             (zEnd + zEndOffMax) - (zStart + zStartOffMin),
             (wEnd + wEndOffMax) - (wStart + wStartOffMin))
+
+        // no match so far... try if all expressions can be evaluated to integers
+        case IndexRange(MultiIndex(xStart, yStart, zStart, wStart),
+          MultiIndex(xEnd, yEnd, zEnd, wEnd)) =>
+          try {
+            Array(SimplifyExpression.evalIntegral(xEnd) - SimplifyExpression.evalIntegral(xStart),
+              SimplifyExpression.evalIntegral(yEnd) - SimplifyExpression.evalIntegral(yStart),
+              SimplifyExpression.evalIntegral(zEnd) - SimplifyExpression.evalIntegral(zStart),
+              SimplifyExpression.evalIntegral(wEnd) - SimplifyExpression.evalIntegral(wStart))
+          } catch {
+            case _ : EvaluationException => null
+          }
 
         // could not match
         case _ => null
