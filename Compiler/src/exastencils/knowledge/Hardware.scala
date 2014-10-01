@@ -32,8 +32,14 @@ object Hardware {
       }
     }
     case "GCC" => {
-      cflags = "-O3 -march=native -DNDEBUG -std=c++11"
-      ldflags = "-O3 -march=native -DNDEBUG -std=c++11"
+      cflags = "-O3 -DNDEBUG -std=c++11"
+      if (Knowledge.opt_vectorize)
+        Knowledge.simd_instructionSet match {
+          case "SSE3" => cflags += " -msse3"
+          case "AVX"  => cflags += " -mavx"
+          case "AVX2" => cflags += " -mavx2"
+        }
+      ldflags = ""
 
       if (Knowledge.useMPI) {
         compiler = "mpicxx"
