@@ -18,6 +18,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   final val SCOP_ANNOT : String = "PolyScop"
 
+  // FIXME: HACK: only use shipped versions of jna and isl, NO system libraries (prevent version conflicts)
+  System.setProperty("jna.nosys", "true")
+  System.setProperty("jna.platform.library.path", "NO_SYSTEM")
+
   /** Register the name of a side-effect free function, that is safe to be used inside a scop. */
   def registerSideeffectFree(functionName : String) : Unit = {
     Extractor.registerSideeffectFree(functionName)
