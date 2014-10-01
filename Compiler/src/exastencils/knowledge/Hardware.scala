@@ -37,7 +37,7 @@ object Hardware {
         Knowledge.simd_instructionSet match {
           case "SSE3" => cflags += " -msse3"
           case "AVX"  => cflags += " -mavx"
-          case "AVX2" => cflags += " -mavx2"
+          case "AVX2" => cflags += " -mavx2 -mfma"
         }
       ldflags = ""
 
