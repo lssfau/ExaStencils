@@ -9,7 +9,7 @@ import exastencils.parsers._
 
 class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParsers {
   override val lexical : ExaLexer = new LexerL4()
-  
+
   def parse(s : String) : Node = {
     parseTokens(new lexical.Scanner(s))
   }
@@ -141,7 +141,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
       case field ~ cond ~ startOff ~ endOff ~ inc ~ red ~ stmts =>
         LoopOverPointsStatement(field.resolveToFieldAccess, cond, startOff, endOff, inc, stmts, red)
     })
-  lazy val reductionClause = locationize((("reduction" ~ "(") ~> ("+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => ReductionStatement(op, s) })
+  lazy val reductionClause = locationize((("reduction" ~ "(") ~> (ident ||| "+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => ReductionStatement(op, s) })
 
   lazy val assignment = locationize((flatAccess ||| fieldLikeAccess) ~ "=" ~ (binaryexpression ||| booleanexpression) ^^ { case id ~ op ~ exp => AssignmentStatement(id, exp, op) })
   lazy val operatorassignment = locationize((flatAccess ||| fieldLikeAccess) ~ ("+=" ||| "-=" ||| "*=" ||| "/=") ~ binaryexpression

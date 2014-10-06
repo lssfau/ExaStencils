@@ -18,7 +18,7 @@ object CGS {
 
       Communication.exch(printer, Fields.residual("current", postfix)(vecDim))
 
-      printer.println(s"\tVariable res : Real = L2Residual${postfix}_$vecDim@current ( )")
+      printer.println(s"\tVariable res : Real = NormResidual${postfix}_$vecDim@current ( )")
       printer.println(s"\tVariable initialRes : Real = res")
 
       printer.println(s"\tloop over VecP$postfix@current {")
@@ -48,7 +48,7 @@ object CGS {
       printer.println(s"\t\t\t${Fields.residual("current", postfix)(vecDim)} -= alpha * VecGradP$postfix@current")
       printer.println(s"\t\t}")
 
-      printer.println(s"\t\tVariable nextRes : Real = L2Residual${postfix}_$vecDim@current ( )")
+      printer.println(s"\t\tVariable nextRes : Real = NormResidual${postfix}_$vecDim@current ( )")
 
       printer.println(s"\t\tif ( nextRes <= 0.001 * initialRes ) {")
       //printer.println("\t\t\tprint ( '\"CG required\"', cgSteps, '\"steps\"' )")

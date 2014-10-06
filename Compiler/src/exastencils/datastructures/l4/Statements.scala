@@ -170,7 +170,7 @@ case class RepeatUntilStatement(var comparison : BooleanExpression, var statemen
 
 case class ReductionStatement(var op : String, var target : String) extends SpecialStatement {
   def progressToIr : ir.Reduction = {
-    ir.Reduction(ir.BinaryOperators.withName(op), ir.StringConstant(target))
+    ir.Reduction(op, ir.StringConstant(target))
   }
 }
 
