@@ -141,7 +141,7 @@ case class TmpBuffer(var field : Field, var direction : String, var size : Expre
   override def getDtor() : Option[Statement] = {
     Some(wrapInLoops(new ConditionStatement(resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx),
       ListBuffer[Statement](
-        "delete []" ~~ resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx),
+        FreeStatement(resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)),
         new AssignmentStatement(resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx), 0)))))
   }
 }
@@ -226,7 +226,7 @@ case class FieldData(var field : Field, var level : Expression, var slot : Expre
     val ret = Some(wrapInLoops(
       new ConditionStatement(access,
         ListBuffer[Statement](
-          "delete []" ~~ access,
+          FreeStatement(access),
           new AssignmentStatement(access, 0)))))
     slot = origSlot
     ret

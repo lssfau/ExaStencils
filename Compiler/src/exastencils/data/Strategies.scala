@@ -135,13 +135,12 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       cleanedField.slot = "slot"
       cleanedField.fragmentIdx = LoopOverFragments.defIt
 
-      var numDataPoints : Expression = field.field.layout(0).total * field.field.layout(1).total * field.field.layout(2).total * field.field.dataType.resolveFlattendSize
+      var numDataPoints : Expression = field.field.layout.map(l => l.total).reduceLeft(_ * _) * field.field.dataType.resolveFlattendSize
       var statements : ListBuffer[Statement] = ListBuffer()
       for (slot <- 0 until field.field.numSlots) {
         val newFieldData = Duplicate(cleanedField)
         newFieldData.slot = slot
-        statements += new AssignmentStatement(newFieldData,
-          ("new" : Expression) ~~ field.field.dataType.resolveUnderlyingDatatype. /*FIXME*/ cpp ~ "[" ~ numDataPoints ~ "]")
+        statements += new AssignmentStatement(newFieldData, Allocation(field.field.dataType.resolveUnderlyingDatatype, numDataPoints))
         // TODO: Knowledge.data_addPrePadding
       }
 
@@ -164,7 +163,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
           s.applyStandalone(buf._2)
       }
 
-      func.body += new LoopOverFragments(bufferSizes.map(buf => new AssignmentStatement(buf._1, "new double[" ~ buf._2 ~ "]") : Statement).to[ListBuffer]) with OMP_PotentiallyParallel
+      func.body += new LoopOverFragments(bufferSizes.map(buf => new AssignmentStatement(buf._1, Allocation(new RealDatatype, buf._2)) : Statement).to[ListBuffer]) with OMP_PotentiallyParallel
 
       for (fieldAlloc <- fieldAllocs)
         func.body += fieldAlloc._2

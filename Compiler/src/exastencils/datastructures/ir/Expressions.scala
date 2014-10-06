@@ -144,6 +144,10 @@ case class BooleanConstant(var value : Boolean) extends Expression {
   override def cpp(out : CppStream) : Unit = out << value
 }
 
+case class Allocation(var datatype : Datatype, var size : Expression) extends Expression {
+  override def cpp(out : CppStream) : Unit = out << "new" << ' ' << datatype << "[" << size << "]"
+}
+
 case class VariableAccess(var name : String, var dType : Option[Datatype] = None) extends Access {
   override def cpp(out : CppStream) : Unit = out << name
 }

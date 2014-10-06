@@ -42,6 +42,12 @@ case class VariableDeclarationStatement(var dataType : Datatype, var name : Stri
   def cpp_onlyDeclaration() : String = VariableDeclarationStatement(dataType, name, None).cpp()
 }
 
+case class FreeStatement(var pointer : Expression) extends Statement {
+  override def cpp(out : CppStream) : Unit = {
+    out << "delete[] " << pointer << ";"
+  }
+}
+
 case class DefineStatement(var name : Expression, var value : Option[Expression] = None) extends Statement {
   override def cpp(out : CppStream) : Unit = {
     out << "#define " << name
