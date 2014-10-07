@@ -177,6 +177,7 @@ object Knowledge {
   /// optional features
   var l3tmp_printFieldAtEnd : Boolean = false // prints the solution field at the end of the application (or the mean solution in l3tmp_kelvin's case)
   var l3tmp_initSolWithRand : Boolean = true // initializes the solution on the finest level with random values
+  var l3tmp_genForAutoTests : Boolean = false // generate code for automatic testing purposes
 
   /// Student project - Kelvin
   var l3tmp_kelvin : Boolean = false // currently only works for 2D

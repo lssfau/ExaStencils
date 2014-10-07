@@ -7,20 +7,27 @@ object Application {
   def addFunction(printer : java.io.PrintWriter) = {
     printer.println("Function Application ( ) : Unit {")
 
-    printer.println("\tVariable setupTime : Real = 0")
-    printer.println("\tstartTimer ( setupWatch )")
+    if (Knowledge.l3tmp_genForAutoTests)
+      printer.println("native ( 'std::cout.precision(4)' )")
+
+    if (!Knowledge.l3tmp_genForAutoTests) {
+      printer.println("\tVariable setupTime : Real = 0")
+      printer.println("\tstartTimer ( setupWatch )")
+    }
 
     printer.println("\tinitGlobals ( )")
     printer.println("\tinitDomain ( )")
     printer.println("\tinitFieldsWithZero ( )")
 
-    if (Knowledge.l3tmp_genAdvancedTimers) {
-      printer.println("\tstopTimer ( setupWatch )")
-      printer.println("\taddFromTimer ( setupWatch, setupTime )")
-    } else {
-      printer.println("\tstopTimer ( setupWatch, setupTime )")
+    if (!Knowledge.l3tmp_genForAutoTests) {
+      if (Knowledge.l3tmp_genAdvancedTimers) {
+        printer.println("\tstopTimer ( setupWatch )")
+        printer.println("\taddFromTimer ( setupWatch, setupTime )")
+      } else {
+        printer.println("\tstopTimer ( setupWatch, setupTime )")
+      }
+      printer.println("\tprint ( '\"Total time to setup: \"', setupTime )")
     }
-    printer.println("\tprint ( '\"Total time to setup: \"', setupTime )")
 
     if (Knowledge.l3tmp_genSetableStencil) {
       Knowledge.dimensionality match {
@@ -43,7 +50,7 @@ object Application {
       }
     }
 
-    if (Knowledge.l3tmp_kelvin) {
+    if (Knowledge.l3tmp_kelvin && !Knowledge.l3tmp_genForAutoTests) {
       printer.println("\tVariable timeSamples : Real = 0")
       printer.println("\tstartTimer ( timeSamplesWatch )")
       printer.println(s"\trepeat ${Knowledge.l3tmp_kelvin_numSamples} times {")
@@ -106,7 +113,7 @@ object Application {
       printer.println(s"\t}")
     }
 
-    if (Knowledge.l3tmp_kelvin) {
+    if (Knowledge.l3tmp_kelvin && !Knowledge.l3tmp_genForAutoTests) {
       printer.println("\t}")
       if (Knowledge.l3tmp_genAdvancedTimers) {
         printer.println("\tstopTimer ( timeSamplesWatch )")
@@ -129,7 +136,10 @@ object Application {
       printer.println(s"\t\tsolNorm += SolutionMean@finest * SolutionMean@finest")
       printer.println(s"\t}")
       printer.println(s"\tsolNorm = ( sqrt ( solNorm ) ) / ${(Knowledge.domain_numFragsTotal_x - 2 * Knowledge.l3tmp_kelvin_numHaloFrags) * (1 << Knowledge.maxLevel) - 1}")
-      printer.println("\tprint ( '\"Norm of the solution: \"', solNorm )")
+      if (Knowledge.l3tmp_genForAutoTests)
+        printer.println("\tprint ( solNorm )")
+      else
+        printer.println("\tprint ( '\"Norm of the solution: \"', solNorm )")
     }
 
     if (Knowledge.l3tmp_printFieldAtEnd) {
@@ -140,7 +150,7 @@ object Application {
         printer.println("\tprintField ( '\"Solution.dat\"', Solution@finest )")
     }
 
-    if (Knowledge.l3tmp_genAdvancedTimers) {
+    if (Knowledge.l3tmp_genAdvancedTimers && !Knowledge.l3tmp_genForAutoTests) {
       if (Knowledge.l3tmp_genTimersPerFunction) {
         for (
           func <- Array(

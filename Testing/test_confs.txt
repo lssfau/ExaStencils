@@ -12,6 +12,8 @@
 # both KnowledgeInput and ResultFile must be relative to the directory this file is located in
 # NoMPINodes and NoOMPThreads are the numbers of the required MPI nodes or OMP threads respectively
 
+# Note: NoMPINodes corresponds to the number of MPI ranks, not the number of physical nodes
+
 # if the last three fields are not set (as in the first structure above), the
 # generated code is only compiled, but not executed
 
@@ -19,3 +21,9 @@ Seq_Simple  Main  Knowledge_seq_simple.txt  Result_seq_simple.txt  1   1
 1N_4C_opt   Main  Knowledge_1N_4C_opt.txt   Result_1N_4C_opt.txt   1   4
 8N_10C_opt  Main  Knowledge_8N_10C_opt.txt  Result_8N_10C_opt.txt  8  10
 
+CommBasic_PureOMP		Main	CommBasic/PureOMP.knowledge		CommBasic/PureOMP.results		1	27
+CommBasic_PureMPI		Main	CommBasic/PureMPI.knowledge		CommBasic/PureMPI.results		27	1
+CommBasic_Hybrid		Main	CommBasic/Hybrid.knowledge		CommBasic/Hybrid.results		27	27
+CommBasic_Summarize		Main	CommBasic/Summarize.knowledge	CommBasic/Summarize.results		27	27
+CommBasic_Strategy26	Main	CommBasic/Strategy26.knowledge	CommBasic/Strategy26.results	27	27
+CommBasic_2D			Main	CommBasic/2D.knowledge			CommBasic/2D.results			9	9

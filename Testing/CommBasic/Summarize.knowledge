@@ -1,0 +1,21 @@
+targetCompiler				= "GCC"
+targetCompilerVersion		= 4
+targetCompilerVersionMinor	= 8
+simd_instructionSet			= "SSE3"
+
+dimensionality				= 3
+
+maxLevel					= 6
+comm_strategyFragment		= 6
+
+domain_summarizeBlocks		= true
+
+domain_numBlocks_x			= 3
+domain_numBlocks_y			= 3
+domain_numBlocks_z			= 3
+
+domain_numFragsPerBlock_x	= 3
+domain_numFragsPerBlock_y	= 3
+domain_numFragsPerBlock_z	= 3
+
+l3tmp_genForAutoTests		= true
