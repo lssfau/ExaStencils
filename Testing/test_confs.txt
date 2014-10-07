@@ -16,7 +16,7 @@
 #  (see --constraint flag for sbatch: http://slurm.schedmd.com/sbatch.html)
 #  for hardware definitions and available flags see hwinfo.txt
 
-# if the last three fields are not set (as in the first structure above), the
+# if the last four fields are not set (as in the first structure above), the
 # generated code is only compiled, but not executed
 
 Seq_Simple  Main  Knowledge_seq_simple.txt  Result_seq_simple.txt  1   1

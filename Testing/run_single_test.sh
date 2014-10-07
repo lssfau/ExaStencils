@@ -6,6 +6,7 @@
 #SBATCH -c 4
 #SBATCH --hint=nomultithread
 #SBATCH --cpu_bind=cores
+#SBATCH --exclusive
 #SBATCH -o /dev/null
 #SBATCH -e /dev/null
 #SBATCH --time=10
