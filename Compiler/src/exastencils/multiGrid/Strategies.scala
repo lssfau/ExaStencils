@@ -115,6 +115,10 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
         case _ => "ERROR - unsupported return function statement" : Statement
       }
 
+    // HACK to implement min/max functions
+    case FunctionCallExpression(StringConstant("min"), args) => MinimumExpression(args)
+    case FunctionCallExpression(StringConstant("max"), args) => MaximumExpression(args)
+
     // FIXME: UGLY HACK to realize native code functionality
     case FunctionCallExpression(StringConstant("native"), args) =>
       args(0).asInstanceOf[StringConstant]
@@ -134,7 +138,7 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
       else
         new Scope(ListBuffer[Statement](
           "double timeTaken = " ~ args(0) ~ ".getTimeInMilliSec()",
-          (if (Knowledge.useMPI) new MPI_Allreduce("&timeTaken", new RealDatatype, 1, BinaryOperators.Addition) else NullStatement),
+          (if (Knowledge.useMPI) new MPI_Allreduce("&timeTaken", new RealDatatype, 1, "+") else NullStatement),
           (if (Knowledge.useMPI) "timeTaken /= mpiSize" else NullStatement),
           args(1) ~ " += timeTaken"))
 

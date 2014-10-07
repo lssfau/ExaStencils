@@ -27,6 +27,8 @@ IR:
 
 - implement memory layout transformations
 
+- add min/max reduction for omp versions < 3.1
+
 ISL:
 - L4 constraints to ISL mapping
 - long term: reduce optimization runtime

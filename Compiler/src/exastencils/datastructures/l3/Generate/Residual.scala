@@ -42,7 +42,10 @@ object Residual {
 
   def addReductionFunction(printer : java.io.PrintWriter, postfix : String) = {
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
-      printer.println(s"Function L2Residual${postfix}_$vecDim@(coarsest and finest) ( ) : Real {")
+      if (!Knowledge.l3tmp_useMaxNorm)
+        printer.println(s"Function NormResidual${postfix}_$vecDim@(coarsest and finest) ( ) : Real {")
+      else
+        printer.println(s"Function NormResidual${postfix}_$vecDim@(coarsest) ( ) : Real {")
 
       printer.println(s"\tVariable res : Real = 0")
       if (Knowledge.l3tmp_genFragLoops)
@@ -55,6 +58,22 @@ object Residual {
       printer.println(s"\treturn ( sqrt ( res ) )")
       printer.println(s"}")
       printer.println
+
+      if (Knowledge.l3tmp_useMaxNorm) {
+        printer.println(s"Function NormResidual${postfix}_$vecDim@(finest) ( ) : Real {")
+
+        printer.println(s"\tVariable res : Real = 0")
+        if (Knowledge.l3tmp_genFragLoops)
+          printer.println(s"\tloop over fragments with reduction( max : res ) {")
+        printer.println(s"\tloop over Residual$postfix@current where x > 0 && y > 0 ${if (Knowledge.dimensionality > 2) "&& z > 0 " else ""}with reduction( max : res ) {")
+        printer.println(s"\t\tres = max(res, ${Fields.residual(s"current", postfix)(vecDim)})")
+        printer.println(s"\t}")
+        if (Knowledge.l3tmp_genFragLoops)
+          printer.println(s"\t}")
+        printer.println(s"\treturn ( res )")
+        printer.println(s"}")
+        printer.println
+      }
     }
   }
 }

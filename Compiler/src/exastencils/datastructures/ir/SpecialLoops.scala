@@ -197,11 +197,16 @@ case class LoopOverDimensions(var numDimensions : Int,
             (yEnd + yEndOffMax) - (yStart + yStartOffMin))
 
         // no match so far... try if all expressions can be evaluated to integers
-        case IndexRange(MultiIndex(xStart, yStart, _, _),
-          MultiIndex(xEnd, yEnd, _, _)) =>
+        case IndexRange(start @ MultiIndex(xStart, yStart, _, _),
+          end @ MultiIndex(xEnd, yEnd, _, _)) =>
           try {
-            Array(SimplifyExpression.evalIntegral(xEnd) - SimplifyExpression.evalIntegral(xStart),
-              SimplifyExpression.evalIntegral(yEnd) - SimplifyExpression.evalIntegral(yStart))
+            val (xStarti, xEndi) = (SimplifyExpression.evalIntegral(xStart), SimplifyExpression.evalIntegral(xEnd))
+            val (yStarti, yEndi) = (SimplifyExpression.evalIntegral(yStart), SimplifyExpression.evalIntegral(yEnd))
+            start(0) = IntegerConstant(xStarti)
+            start(1) = IntegerConstant(yStarti)
+            end(0) = IntegerConstant(xEndi)
+            end(1) = IntegerConstant(yEndi)
+            Array(xEndi - xStarti, yEndi - yStarti)
           } catch {
             case _ : EvaluationException => null
           }
@@ -232,12 +237,19 @@ case class LoopOverDimensions(var numDimensions : Int,
             (zEnd + zEndOffMax) - (zStart + zStartOffMin))
 
         // no match so far... try if all expressions can be evaluated to integers
-        case IndexRange(MultiIndex(xStart, yStart, zStart, _),
-          MultiIndex(xEnd, yEnd, zEnd, _)) =>
+        case IndexRange(start @ MultiIndex(xStart, yStart, zStart, _),
+          end @ MultiIndex(xEnd, yEnd, zEnd, _)) =>
           try {
-            Array(SimplifyExpression.evalIntegral(xEnd) - SimplifyExpression.evalIntegral(xStart),
-              SimplifyExpression.evalIntegral(yEnd) - SimplifyExpression.evalIntegral(yStart),
-              SimplifyExpression.evalIntegral(zEnd) - SimplifyExpression.evalIntegral(zStart))
+            val (xStarti, xEndi) = (SimplifyExpression.evalIntegral(xStart), SimplifyExpression.evalIntegral(xEnd))
+            val (yStarti, yEndi) = (SimplifyExpression.evalIntegral(yStart), SimplifyExpression.evalIntegral(yEnd))
+            val (zStarti, zEndi) = (SimplifyExpression.evalIntegral(zStart), SimplifyExpression.evalIntegral(zEnd))
+            start(0) = IntegerConstant(xStarti)
+            start(1) = IntegerConstant(yStarti)
+            start(2) = IntegerConstant(zStarti)
+            end(0) = IntegerConstant(xEndi)
+            end(1) = IntegerConstant(yEndi)
+            end(2) = IntegerConstant(zEndi)
+            Array(xEndi - xStarti, yEndi - yStarti, zEndi - zStarti)
           } catch {
             case _ : EvaluationException => null
           }
@@ -271,13 +283,22 @@ case class LoopOverDimensions(var numDimensions : Int,
             (wEnd + wEndOffMax) - (wStart + wStartOffMin))
 
         // no match so far... try if all expressions can be evaluated to integers
-        case IndexRange(MultiIndex(xStart, yStart, zStart, wStart),
-          MultiIndex(xEnd, yEnd, zEnd, wEnd)) =>
+        case IndexRange(start @ MultiIndex(xStart, yStart, zStart, wStart),
+          end @ MultiIndex(xEnd, yEnd, zEnd, wEnd)) =>
           try {
-            Array(SimplifyExpression.evalIntegral(xEnd) - SimplifyExpression.evalIntegral(xStart),
-              SimplifyExpression.evalIntegral(yEnd) - SimplifyExpression.evalIntegral(yStart),
-              SimplifyExpression.evalIntegral(zEnd) - SimplifyExpression.evalIntegral(zStart),
-              SimplifyExpression.evalIntegral(wEnd) - SimplifyExpression.evalIntegral(wStart))
+            val (xStarti, xEndi) = (SimplifyExpression.evalIntegral(xStart), SimplifyExpression.evalIntegral(xEnd))
+            val (yStarti, yEndi) = (SimplifyExpression.evalIntegral(yStart), SimplifyExpression.evalIntegral(yEnd))
+            val (zStarti, zEndi) = (SimplifyExpression.evalIntegral(zStart), SimplifyExpression.evalIntegral(zEnd))
+            val (wStarti, wEndi) = (SimplifyExpression.evalIntegral(wStart), SimplifyExpression.evalIntegral(wEnd))
+            start(0) = IntegerConstant(xStarti)
+            start(1) = IntegerConstant(yStarti)
+            start(2) = IntegerConstant(zStarti)
+            start(3) = IntegerConstant(wStarti)
+            end(0) = IntegerConstant(xEndi)
+            end(1) = IntegerConstant(yEndi)
+            end(2) = IntegerConstant(zEndi)
+            end(3) = IntegerConstant(wEndi)
+            Array(xEndi - xStarti, yEndi - yStarti, zEndi - zStarti, wEndi - wStarti)
           } catch {
             case _ : EvaluationException => null
           }

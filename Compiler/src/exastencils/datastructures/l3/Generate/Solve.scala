@@ -10,7 +10,7 @@ object Solve {
     else
       printer.println("\tUpResidual@finest ( )")
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
-      printer.println(s"\tVariable resStart_$vecDim : Real = L2Residual_$vecDim@finest (  )")
+      printer.println(s"\tVariable resStart_$vecDim : Real = NormResidual_$vecDim@finest (  )")
       printer.println(s"\tVariable res_$vecDim : Real = resStart_$vecDim")
       printer.println(s"\tVariable resOld_$vecDim : Real = 0")
       printer.println("\tprint ( '\"" + s"Starting residual at $vecDim" + "\"', " + s"resStart_$vecDim )")
@@ -35,7 +35,7 @@ object Solve {
     }
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
       printer.println(s"\t\tresOld_$vecDim = res_$vecDim")
-      printer.println(s"\t\tres_$vecDim = L2Residual_$vecDim@finest (  )")
+      printer.println(s"\t\tres_$vecDim = NormResidual_$vecDim@finest (  )")
       printer.println("\t\tprint ( '\"" + s"Residual at $vecDim:" + "\"', " + s"res_$vecDim" + ", '\"Residual reduction:\"', " + s"( resStart_$vecDim / res_$vecDim ), " + "'\"Convergence factor:\"', " + s"( res_$vecDim / resOld_$vecDim ) )")
     }
     printer.println("\t}")
@@ -68,7 +68,7 @@ object Solve {
         printer.println(s"\tUpResidual_GMRF@finest ( 0 )")
       else
         printer.println(s"\tUpResidual_GMRF@finest ( )")
-      printer.println(s"\tVariable resStart : Real = L2Residual_GMRF_0@finest ( )")
+      printer.println(s"\tVariable resStart : Real = NormResidual_GMRF_0@finest ( )")
       printer.println(s"\tVariable res : Real = resStart")
       printer.println(s"\tVariable resOld : Real = 0")
       printer.println("\tprint ( '\"Starting residual:\"', resStart )")
@@ -91,7 +91,7 @@ object Solve {
         printer.println("\t\tstopTimer ( stopWatch, totalTime )")
       }
       printer.println(s"\t\tresOld = res")
-      printer.println(s"\t\tres = L2Residual_GMRF_0@finest ( )")
+      printer.println(s"\t\tres = NormResidual_GMRF_0@finest ( )")
       printer.println("\t\tprint ( '\"Residual:\"', res, '\"Residual reduction:\"', ( resStart / res ), '\"Convergence factor:\"', ( res / resOld ) )")
       printer.println("\t}")
       if (Knowledge.l3tmp_genAdvancedTimers) {

@@ -43,17 +43,24 @@ case class MPI_Send(var buffer : Expression, var size : Expression, var datatype
 }
 
 case class MPI_Allreduce(var sendbuf : Expression, var recvbuf : Expression, var datatype : Datatype, var count : Expression, var op : Expression) extends Statement {
-  def this(sendbuf : Expression, recvbuf : Expression, datatype : Datatype, count : Expression, op : BinaryOperators.Value) =
-    this(sendbuf, recvbuf, datatype, count, (op match {
-      case BinaryOperators.Addition       => "MPI_SUM"
-      case BinaryOperators.Multiplication => "MPI_PROD"
-      case _                              => "FIXME"
-    }) : Expression)
+  def this(sendbuf : Expression, recvbuf : Expression, datatype : Datatype, count : Expression, op : String) = this(sendbuf, recvbuf, datatype, count, MPI_Allreduce.mapOp(op))
   def this(buf : Expression, datatype : Datatype, count : Expression, op : Expression) = this("MPI_IN_PLACE", buf, datatype, count, op)
-  def this(buf : Expression, datatype : Datatype, count : Expression, op : BinaryOperators.Value) = this("MPI_IN_PLACE", buf, datatype, count, op)
+  def this(buf : Expression, datatype : Datatype, count : Expression, op : String) = this("MPI_IN_PLACE", buf, datatype, count, MPI_Allreduce.mapOp(op))
 
   override def cpp(out : CppStream) : Unit = {
     out << "MPI_Allreduce(" << sendbuf << ", " << recvbuf << ", " << count << ", " << datatype.cpp_mpi << ", " << op << ", mpiCommunicator);"
+  }
+}
+
+object MPI_Allreduce {
+  def mapOp(op : String) : Expression = {
+    op match {
+      case "+"   => "MPI_SUM"
+      case "*"   => "MPI_PROD"
+      case "min" => "MPI_MIN"
+      case "max" => "MPI_MAX"
+      case _     => "FIXME"
+    }
   }
 }
 
