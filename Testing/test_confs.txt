@@ -20,6 +20,10 @@ Seq_Simple  Main  Knowledge_seq_simple.txt  Result_seq_simple.txt  1   1
 1N_4C_opt   Main  Knowledge_1N_4C_opt.txt   Result_1N_4C_opt.txt   1   4
 8N_10C_opt  Main  Knowledge_8N_10C_opt.txt  Result_8N_10C_opt.txt  8  10
 
+#################################################################################################
+# BASIC COMMUNICATION TESTS                                                                     #
+#################################################################################################
+
 # 1 OMP thread
 CommBasic_PureMPI     Main  CommBasic/PureMPI.knowledge     CommBasic/PureMPI.results     27  1
 # 27 OMP threads
@@ -29,3 +33,11 @@ CommBasic_Summarize   Main  CommBasic/Summarize.knowledge   CommBasic/Summarize.
 CommBasic_Strategy26  Main  CommBasic/Strategy26.knowledge  CommBasic/Strategy26.results  27  1
 # 9 OMP threads
 CommBasic_2D          Main  CommBasic/2D.knowledge          CommBasic/2D.results          9   2
+
+#################################################################################################
+# LARGE DATA SIZE TESTS                                                                         #
+#################################################################################################
+
+# 10 OMP threads
+CommBasic_Hybrid  Main  Large/Hybrid.knowledge  Large/Hybrid.results  4  10
+
