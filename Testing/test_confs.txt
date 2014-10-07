@@ -39,5 +39,5 @@ CommBasic_2D          Main  CommBasic/2D.knowledge          CommBasic/2D.results
 #################################################################################################
 
 # 10 OMP threads
-CommBasic_Hybrid  Main  Large/Hybrid.knowledge  Large/Hybrid.results  4  10
+Large_Hybrid  Main  Large/Hybrid.knowledge  Large/Hybrid.results  4  10
 
