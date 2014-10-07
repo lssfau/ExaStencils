@@ -1,0 +1,18 @@
+Total time to setup:  9.23511
+Starting residual at 0 1888.31
+Residual at 0: 28.436 Residual reduction: 66.4056 Convergence factor: 0.015059
+Residual at 0: 3.77836 Residual reduction: 499.769 Convergence factor: 0.132873
+Residual at 0: 0.602585 Residual reduction: 3133.68 Convergence factor: 0.159483
+Residual at 0: 0.10045 Residual reduction: 18798.5 Convergence factor: 0.166698
+Residual at 0: 0.0171752 Residual reduction: 109944 Convergence factor: 0.170983
+Residual at 0: 0.00298996 Residual reduction: 631550 Convergence factor: 0.174086
+Residual at 0: 0.000527639 Residual reduction: 3.57879e+06 Convergence factor: 0.17647
+Residual at 0: 9.41043e-05 Residual reduction: 2.00661e+07 Convergence factor: 0.17835
+Residual at 0: 1.69251e-05 Residual reduction: 1.11568e+08 Convergence factor: 0.179855
+Residual at 0: 3.0648e-06 Residual reduction: 6.16128e+08 Convergence factor: 0.18108
+Residual at 0: 5.58077e-07 Residual reduction: 3.3836e+09 Convergence factor: 0.182092
+Residual at 0: 1.02098e-07 Residual reduction: 1.8495e+10 Convergence factor: 0.182947
+Residual at 0: 1.87536e-08 Residual reduction: 1.0069e+11 Convergence factor: 0.183682
+Residual at 0: 3.45686e-09 Residual reduction: 5.4625e+11 Convergence factor: 0.18433
+Total time to solve in 14 steps : 171
+Mean time per vCycle:  11.7416
