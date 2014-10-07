@@ -2,23 +2,26 @@
 
 # a single line (which represents a single test config) must have one of the following two structures:
 # ID  MainClass  KnowledgeInput
-# ID  MainClass  KnowledgeInput  ResultFile  NumMPIRanks  NumCoresPerRank
+# ID  MainClass  KnowledgeInput  ResultFile  NumMPIRanks  NumCoresPerRank  [Constraint]
 
 # neither of the fields must contain a white space, a tabular, or similar
-# ID is an arbitrary string to name the test
-# MainClass is the main class of the scala code generator that should be used (without .class ending)
-# KnowledgeInput is a text file containing all relevant configurations
-# ResultFile is a text file containing the expected output of the generated code
+# ID  is an arbitrary string to name the test
+# MainClass  is the main class of the scala code generator that should be used (without .class ending)
+# KnowledgeInput  is a text file containing all relevant configurations
+# ResultFile  is a text file containing the expected output of the generated code
 # both KnowledgeInput and ResultFile must be relative to the directory this file is located in
-# NumMPIRanks is the number of MPI ranks (processes)
-# NumCoresPerRank is the number of physical cores to be associated with each MPI rank
+# NumMPIRanks  is the number of MPI ranks (processes)
+# NumCoresPerRank  is the number of physical cores to be associated with each MPI rank
+# Constraint  specifies features the nodes must have when executing the generated test code
+#  (see --constraint flag for sbatch: http://slurm.schedmd.com/sbatch.html)
+#  for hardware definitions and available flags see hwinfo.txt
 
 # if the last three fields are not set (as in the first structure above), the
 # generated code is only compiled, but not executed
 
 Seq_Simple  Main  Knowledge_seq_simple.txt  Result_seq_simple.txt  1   1
-1N_4C_opt   Main  Knowledge_1N_4C_opt.txt   Result_1N_4C_opt.txt   1   4
-8N_10C_opt  Main  Knowledge_8N_10C_opt.txt  Result_8N_10C_opt.txt  8  10
+1N_4C_opt   Main  Knowledge_1N_4C_opt.txt   Result_1N_4C_opt.txt   1   4  i7|E5
+8N_10C_opt  Main  Knowledge_8N_10C_opt.txt  Result_8N_10C_opt.txt  8  10  E5
 
 #################################################################################################
 # BASIC COMMUNICATION TESTS                                                                     #

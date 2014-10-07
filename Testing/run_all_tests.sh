@@ -29,7 +29,7 @@ OUTPUT="${TMP_DIR}/command_output.txt"
 TIMEOUT=1
 
 
-function finish {
+function cleanup {
   rm -rf "${TMP_DIR}"
   echo "    Removed  ${TMP_DIR}" >> "${LOG}"
   if [[ ${TIMEOUT} -eq 1 ]]; then
@@ -37,7 +37,13 @@ function finish {
 	echo "Automatic tests failed!  Timeout when calling ${BASH_SOURCE} (build compiler)" | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
   fi
 }
-trap finish EXIT
+trap cleanup EXIT
+
+# ensure this script finishes with this function (even in case of an error) to prevent incorrect timeout error
+function finish {
+  TIMEOUT=0
+  exit 0
+}
 
 # build generator (place class files in TMP_DIR)
 echo "    Created  ${TMP_DIR}: generator build dir" >> "${LOG}"
@@ -46,7 +52,7 @@ srun ant -f "${ANT_BUILD}" -Dbuild.dir="${TMP_DIR}" -Djava.dir="/usr/lib/jvm/def
     if [[ $? -ne 0 ]]; then
       echo "=== FAILED: Generator: ant build error. =" >> "${LOG}"
       echo "Automatic tests failed!  Unable to compile generator." | mail -s "${FAILURE_SUBJECT}" -A "${OUTPUT}" ${FAILURE_MAIL}
-      exit 0
+      finish
     fi
 
 # process all jobs
@@ -60,7 +66,7 @@ do
   fi
 
   # extract fields
-  read id main knowledge result nodes cores <<< $line2
+  read id main knowledge result nodes cores constraints <<< $line2
 
   # ${knowledge} must present and either all of ${result}, ${nodes} and ${cores} must be valid or none of them
   if [[ ! -f "${TESTING_DIR}/${knowledge}" ]] || [[ ! ( -f "${TESTING_DIR}/${result}" && ${nodes} =~ ^[0-9]+$ && ${cores} =~ ^[0-9]+$ ) && ! ( ${result} = "" && ${nodes} = "" && ${cores} = "" ) ]]; then
@@ -70,7 +76,7 @@ do
   fi
 
   # configuration is fine, start a new job for it (${nodes} and ${cores} may be empty, so they must be passed at the last!)
-  sbatch "${TESTING_DIR}/run_single_test.sh" "${TESTING_DIR}" ${id} "${COMPILER_JAR}" ${main} "${TESTING_DIR}/${knowledge}" "${FAILURE_MAIL}" "${LOG}" "${TESTING_DIR}/${result}" ${nodes} ${cores}
+  sbatch "${TESTING_DIR}/run_single_test.sh" "${TESTING_DIR}" ${id} "${COMPILER_JAR}" ${main} "${TESTING_DIR}/${knowledge}" "${FAILURE_MAIL}" "${LOG}" "${TESTING_DIR}/${result}" ${nodes} ${cores} "${constraints}"
 done < "${TESTING_CONF}"
 
-TIMEOUT=0
+finish
