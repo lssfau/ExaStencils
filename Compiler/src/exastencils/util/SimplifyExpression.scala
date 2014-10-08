@@ -189,7 +189,7 @@ object SimplifyExpression {
     var res : Expression = null
     val const : Option[Long] = unsortedMap.remove(constName)
 
-    var map = TreeMap(unsortedMap.toSeq : _*)(Ordering.by(_.cpp))
+    var map = TreeMap(unsortedMap.toSeq : _*)(Ordering.by(_.prettyprint))
 
     if (map.isEmpty)
       return IntegerConstant(const.getOrElse(0L))
@@ -228,7 +228,7 @@ object SimplifyExpression {
       return recreateExprFromIntSum(extractIntegralSum(expr))
     } catch {
       case EvaluationException(msg) =>
-        throw new EvaluationException(msg + ";  in " + expr.cpp())
+        throw new EvaluationException(msg + ";  in " + expr.prettyprint())
     }
   }
 
@@ -310,7 +310,7 @@ object SimplifyExpression {
           res = mapL
         } else
           throw new EvaluationException("non-constant * non-constant is not yet implemented:  " +
-            l.cpp() + "  *  " + r.cpp())
+            l.prettyprint() + "  *  " + r.prettyprint())
         if (coeff == 0d)
           res.clear()
         else
@@ -320,7 +320,7 @@ object SimplifyExpression {
       case DivisionExpression(l, r) =>
         val mapR = extractFloatingSum(r)
         if (!(mapR.size == 1 && mapR.contains(constName)))
-          throw new EvaluationException("only constant divisor allowed yet:  " + l.cpp() + "  /  " + r.cpp())
+          throw new EvaluationException("only constant divisor allowed yet:  " + l.prettyprint() + "  /  " + r.prettyprint())
         val div : Double = mapR(constName)
         res = extractFloatingSum(l)
         for ((name : Expression, value : Double) <- res)
@@ -330,7 +330,7 @@ object SimplifyExpression {
         val mapR = extractFloatingSum(r)
         if (!(mapR.size == 1 && mapR.contains(constName)))
           throw new EvaluationException("only constant divisor allowed" +
-            l.cpp() + "  %  " + r.cpp())
+            l.prettyprint() + "  %  " + r.prettyprint())
         val mod : Double = mapR(constName)
         res = extractFloatingSum(l)
         for ((name : Expression, value : Double) <- res)
@@ -349,7 +349,7 @@ object SimplifyExpression {
           res(constName) = evaled
 
       case _ =>
-        throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass() + " in " + expr.cpp())
+        throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass() + " in " + expr.prettyprint())
     }
 
     return res
@@ -363,7 +363,7 @@ object SimplifyExpression {
     var res : Expression = null
     val const : Option[Double] = unsortedMap.remove(constName)
 
-    var map = TreeMap(unsortedMap.toSeq : _*)(Ordering.by(_.cpp))
+    var map = TreeMap(unsortedMap.toSeq : _*)(Ordering.by(_.prettyprint))
 
     if (map.isEmpty)
       return FloatConstant(const.getOrElse(0d))
@@ -410,7 +410,7 @@ object SimplifyExpression {
       return recreateExprFromFloatSum(extractFloatingSum(expr))
     } catch {
       case EvaluationException(msg) =>
-        throw new EvaluationException(msg + ";  in " + expr.cpp())
+        throw new EvaluationException(msg + ";  in " + expr.prettyprint())
     }
   }
 }

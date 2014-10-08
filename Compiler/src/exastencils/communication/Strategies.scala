@@ -73,10 +73,10 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         + s"_${if (communicateStatement.field.arrayIndex >= 0) communicateStatement.field.arrayIndex else "a"}_"
         + communicateStatement.targets.map(t => s"${t.target}_${
           val begin : MultiIndex = t.begin.getOrElse(new MultiIndex(Array.fill(Knowledge.dimensionality)("a" : Expression)))
-          (0 until Knowledge.dimensionality).toArray.map(dim => begin(dim).cpp).mkString("_")
+          (0 until Knowledge.dimensionality).toArray.map(dim => begin(dim).prettyprint).mkString("_")
         }_${
           val end : MultiIndex = t.end.getOrElse(new MultiIndex(Array.fill(Knowledge.dimensionality)("a" : Expression)))
-          (0 until Knowledge.dimensionality).toArray.map(dim => end(dim).cpp).mkString("_")
+          (0 until Knowledge.dimensionality).toArray.map(dim => end(dim).prettyprint).mkString("_")
         }").mkString("_"))
 
       if (!addedFunctions.contains(functionName)) {

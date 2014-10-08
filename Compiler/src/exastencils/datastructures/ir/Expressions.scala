@@ -8,7 +8,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 
-trait Expression extends Node with CppPrettyPrintable {
+trait Expression extends Node with PrettyPrintable {
   def ~(exp : Expression) : ConcatenationExpression = {
     new ConcatenationExpression(ListBuffer(this, exp))
   }
@@ -102,11 +102,11 @@ trait Number extends Expression {
 
 case object NullExpression extends Expression {
   exastencils.core.Duplicate.registerConstant(this)
-  override def cpp(out : CppStream) : Unit = ()
+  override def prettyprint(out : PpStream) : Unit = ()
 }
 
 case class ConcatenationExpression(var expressions : ListBuffer[Expression]) extends Expression {
-  override def cpp(out : CppStream) : Unit = out <<< expressions
+  override def prettyprint(out : PpStream) : Unit = out <<< expressions
 
   override def ~(exp : Expression) : ConcatenationExpression = {
     expressions += exp
@@ -115,7 +115,7 @@ case class ConcatenationExpression(var expressions : ListBuffer[Expression]) ext
 }
 
 case class SpacedConcatenationExpression(var expressions : ListBuffer[Expression]) extends Expression {
-  override def cpp(out : CppStream) : Unit = out <<< (expressions, " ")
+  override def prettyprint(out : PpStream) : Unit = out <<< (expressions, " ")
 
   override def ~~(exp : Expression) : SpacedConcatenationExpression = {
     expressions += exp
@@ -124,16 +124,16 @@ case class SpacedConcatenationExpression(var expressions : ListBuffer[Expression
 }
 
 case class StringConstant(var value : String) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << value
+  override def prettyprint(out : PpStream) : Unit = out << value
 }
 
 case class IntegerConstant(var v : Long) extends Number {
-  override def cpp(out : CppStream) : Unit = out << v
+  override def prettyprint(out : PpStream) : Unit = out << v
   override def value = v
 }
 
 case class FloatConstant(var v : Double) extends Number {
-  override def cpp(out : CppStream) : Unit = {
+  override def prettyprint(out : PpStream) : Unit = {
     out << String.format(java.util.Locale.US, "%e", Double.box(value)) // ensure the compiler can parse the string
   }
 
@@ -141,19 +141,19 @@ case class FloatConstant(var v : Double) extends Number {
 }
 
 case class BooleanConstant(var value : Boolean) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << value
+  override def prettyprint(out : PpStream) : Unit = out << value
 }
 
 case class Allocation(var datatype : Datatype, var size : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << "new" << ' ' << datatype << "[" << size << "]"
+  override def prettyprint(out : PpStream) : Unit = out << "new" << ' ' << datatype << "[" << size << "]"
 }
 
 case class VariableAccess(var name : String, var dType : Option[Datatype] = None) extends Access {
-  override def cpp(out : CppStream) : Unit = out << name
+  override def prettyprint(out : PpStream) : Unit = out << name
 }
 
 case class ArrayAccess(var base : Expression, var index : Expression) extends Access {
-  override def cpp(out : CppStream) : Unit = {
+  override def prettyprint(out : PpStream) : Unit = {
     index match {
       case ind : MultiIndex => out << base << ind
       case ind : Expression => out << base << '[' << ind << ']'
@@ -162,7 +162,7 @@ case class ArrayAccess(var base : Expression, var index : Expression) extends Ac
 }
 
 case class OffsetIndex(var minOffset : Int, var maxOffset : Int, var index : Expression, var offset : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = OffsetIndex\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = OffsetIndex\n"
 
   def expandSpecial : AdditionExpression = {
     index + offset
@@ -196,7 +196,7 @@ case class MultiIndex(
     if (left(2) != null && right(2) != null) { Duplicate(f(left(2), right(2))) } else null,
     if (left(3) != null && right(3) != null) { Duplicate(f(left(3), right(3))) } else null)
 
-  override def cpp(out : CppStream) : Unit = {
+  override def prettyprint(out : PpStream) : Unit = {
     out << '[' <<< (this, ", ") << ']'
   }
 
@@ -234,7 +234,7 @@ case class MultiIndex(
 }
 
 case class DirectFieldAccess(var fieldSelection : FieldSelection, var index : MultiIndex) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = FieldAccess\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = FieldAccess\n"
 
   def linearize : LinearizedFieldAccess = {
     new LinearizedFieldAccess(fieldSelection, Mapping.resolveMultiIdx(fieldSelection.layout, index))
@@ -242,7 +242,7 @@ case class DirectFieldAccess(var fieldSelection : FieldSelection, var index : Mu
 }
 
 case class FieldAccess(var fieldSelection : FieldSelection, var index : MultiIndex) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = FieldAccess\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = FieldAccess\n"
 
   def linearize : LinearizedFieldAccess = {
     new LinearizedFieldAccess(fieldSelection, Mapping.resolveMultiIdx(fieldSelection.layout, new MultiIndex(index, fieldSelection.referenceOffset, _ + _)))
@@ -250,7 +250,7 @@ case class FieldAccess(var fieldSelection : FieldSelection, var index : MultiInd
 }
 
 case class ExternalFieldAccess(var name : Expression, var field : ExternalField, var index : MultiIndex) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = ExternalFieldAccess\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ExternalFieldAccess\n"
 
   def linearize : ArrayAccess = {
     new ArrayAccess(name, Mapping.resolveMultiIdx(field.layout, index))
@@ -258,7 +258,7 @@ case class ExternalFieldAccess(var name : Expression, var field : ExternalField,
 }
 
 case class LinearizedFieldAccess(var fieldSelection : FieldSelection, var index : Expression) extends Expression with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LinearizedFieldAccess\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LinearizedFieldAccess\n"
 
   override def expand : Output[Expression] = {
     new ArrayAccess(new iv.FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx), index)
@@ -266,11 +266,11 @@ case class LinearizedFieldAccess(var fieldSelection : FieldSelection, var index 
 }
 
 case class StencilAccess(var stencil : Stencil) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = StencilAccess\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilAccess\n"
 }
 
 case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection, var index : MultiIndex) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = StencilFieldAccess\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilFieldAccess\n"
 
   def buildStencil : Stencil = {
     var entries : ListBuffer[StencilEntry] = ListBuffer()
@@ -286,83 +286,83 @@ case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection,
 }
 
 case class MemberAccess(var base : Access, var varAcc : VariableAccess) extends Access {
-  override def cpp(out : CppStream) : Unit = out << base << '.' << varAcc
+  override def prettyprint(out : PpStream) : Unit = out << base << '.' << varAcc
 }
 
 case class DerefAccess(var base : Access) extends Access {
-  override def cpp(out : CppStream) : Unit = out << "(*" << base << ')'
+  override def prettyprint(out : PpStream) : Unit = out << "(*" << base << ')'
 }
 
 case class UnaryExpression(var operator : UnaryOperators.Value, var expression : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << '(' << operator << expression << ')'
+  override def prettyprint(out : PpStream) : Unit = out << '(' << operator << expression << ')'
 }
 
 case class AdditionExpression(var left : Expression, var right : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << '(' << left << '+' << right << ')'
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '+' << right << ')'
 }
 
 case class SubtractionExpression(var left : Expression, var right : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << '(' << left << '-' << right << ')'
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '-' << right << ')'
 }
 
 case class MultiplicationExpression(var left : Expression, var right : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << '(' << left << '*' << right << ')'
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '*' << right << ')'
 }
 
 case class DivisionExpression(var left : Expression, var right : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << '(' << left << '/' << right << ')'
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '/' << right << ')'
 }
 
 case class ModuloExpression(var left : Expression, var right : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << '(' << left << '%' << right << ')'
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '%' << right << ')'
 }
 
 case class PowerExpression(var left : Expression, var right : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << "pow(" << left << ", " << right << ')' // FIXME: check for integer constant => use pown
+  override def prettyprint(out : PpStream) : Unit = out << "pow(" << left << ", " << right << ')' // FIXME: check for integer constant => use pown
 }
 
 case class EqEqExpression(var left : Expression, var right : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << '(' << left << "==" << right << ')'
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << "==" << right << ')'
 }
 
 case class NeqNeqExpression(var left : Expression, var right : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << '(' << left << "!=" << right << ')'
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << "!=" << right << ')'
 }
 
 case class AndAndExpression(var left : Expression, var right : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << '(' << left << "&&" << right << ')'
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << "&&" << right << ')'
 }
 
 case class OrOrExpression(var left : Expression, var right : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << '(' << left << "||" << right << ')'
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << "||" << right << ')'
 }
 
 case class NegationExpression(var left : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << '!' << '(' << left << ')'
+  override def prettyprint(out : PpStream) : Unit = out << '!' << '(' << left << ')'
 }
 
 case class LowerExpression(var left : Expression, var right : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << '(' << left << '<' << right << ')'
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '<' << right << ')'
 }
 
 case class GreaterExpression(var left : Expression, var right : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << '(' << left << '>' << right << ')'
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '>' << right << ')'
 }
 
 case class LowerEqualExpression(var left : Expression, var right : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << '(' << left << "<=" << right << ')'
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << "<=" << right << ')'
 }
 
 case class GreaterEqualExpression(var left : Expression, var right : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << '(' << left << ">=" << right << ')'
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << ">=" << right << ')'
 }
 
 case class BitwiseAndExpression(var left : Expression, var right : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << '(' << left << '&' << right << ')'
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '&' << right << ')'
 }
 
 private object MinMaxPrinter {
-  def cppsb(out : CppStream, args : ListBuffer[Expression], method : String) : Unit = {
+  def prettyprintsb(out : PpStream, args : ListBuffer[Expression], method : String) : Unit = {
     if (args.length == 1)
       out << args(0)
 
@@ -381,42 +381,42 @@ private object MinMaxPrinter {
 }
 
 case class MinimumExpression(var args : ListBuffer[Expression]) extends Expression {
-  override def cpp(out : CppStream) : Unit = {
-    MinMaxPrinter.cppsb(out, args, "std::min")
+  override def prettyprint(out : PpStream) : Unit = {
+    MinMaxPrinter.prettyprintsb(out, args, "std::min")
   }
 }
 
 case class MaximumExpression(var args : ListBuffer[Expression]) extends Expression {
-  override def cpp(out : CppStream) : Unit = {
-    MinMaxPrinter.cppsb(out, args, "std::max")
+  override def prettyprint(out : PpStream) : Unit = {
+    MinMaxPrinter.prettyprintsb(out, args, "std::max")
   }
 }
 
 case class FunctionCallExpression(var name : Expression, var arguments : ListBuffer[Expression]) extends Expression {
   def this(name : Expression, argument : Expression) = this(name, ListBuffer(argument))
 
-  override def cpp(out : CppStream) : Unit = out << name << '(' <<< (arguments, ", ") << ')'
+  override def prettyprint(out : PpStream) : Unit = out << name << '(' <<< (arguments, ", ") << ')'
 }
 
 case class InitializerList(var arguments : ListBuffer[Expression]) extends Expression {
   def this(argument : Expression) = this(ListBuffer(argument))
 
-  override def cpp(out : CppStream) : Unit = out << "{ " <<< (arguments, ", ") << " }"
+  override def prettyprint(out : PpStream) : Unit = out << "{ " <<< (arguments, ", ") << " }"
 }
 
 case class MemberFunctionCallExpression(var objectName : Expression, var name : Expression, var arguments : ListBuffer[Expression]) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << objectName << '.' << name << '(' <<< (arguments, ", ") << ')'
+  override def prettyprint(out : PpStream) : Unit = out << objectName << '.' << name << '(' <<< (arguments, ", ") << ')'
 }
 
 case class TernaryConditionExpression(var condition : Expression, var trueBody : Expression, var falseBody : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << '(' << condition << " ? " << trueBody << " : " << falseBody << ')'
+  override def prettyprint(out : PpStream) : Unit = out << '(' << condition << " ? " << trueBody << " : " << falseBody << ')'
 }
 
 case class Reduction(var op : String, var target : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = Reduction\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = Reduction\n"
 
   def getOMPClause : String = {
-    val str = new CppStream()
+    val str = new PpStream()
     str << "reduction(" << op << " : " << target << ')'
     return str.toString()
   }
@@ -425,7 +425,7 @@ case class Reduction(var op : String, var target : Expression) extends Expressio
 //////////////////////////// SIMD Expressions \\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 case class SIMD_LoadExpression(var mem : Expression, var aligned : Boolean) extends Expression {
-  override def cpp(out : CppStream) : Unit = {
+  override def prettyprint(out : PpStream) : Unit = {
     Knowledge.simd_instructionSet match {
       case "SSE3"         => if (aligned) out << "_mm_load_pd" else out << "_mm_loadu_pd"
       case "AVX" | "AVX2" => if (aligned) out << "_mm256_load_pd" else out << "_mm256_loadu_pd"
@@ -435,7 +435,7 @@ case class SIMD_LoadExpression(var mem : Expression, var aligned : Boolean) exte
 }
 
 case class SIMD_Load1Expression(var mem : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = {
+  override def prettyprint(out : PpStream) : Unit = {
     Knowledge.simd_instructionSet match {
       case "SSE3"         => out << "_mm_load1_pd"
       case "AVX" | "AVX2" => out << "_mm256_broadcast_sd"
@@ -445,7 +445,7 @@ case class SIMD_Load1Expression(var mem : Expression) extends Expression {
 }
 
 case class SIMD_NegateExpresseion(var vect : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = {
+  override def prettyprint(out : PpStream) : Unit = {
     Knowledge.simd_instructionSet match {
       case "SSE3"         => out << "_mm_xor_pd(" << vect << ", _mm_set1_pd(-0.f))"
       case "AVX" | "AVX2" => out << "_mm256_xor_pd(" << vect << ", _mm256_set1_pd(-0.f))"
@@ -454,7 +454,7 @@ case class SIMD_NegateExpresseion(var vect : Expression) extends Expression {
 }
 
 case class SIMD_AdditionExpression(var left : Expression, var right : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = {
+  override def prettyprint(out : PpStream) : Unit = {
     Knowledge.simd_instructionSet match {
       case "SSE3"         => out << "_mm_add_pd"
       case "AVX" | "AVX2" => out << "_mm256_add_pd"
@@ -464,7 +464,7 @@ case class SIMD_AdditionExpression(var left : Expression, var right : Expression
 }
 
 case class SIMD_SubtractionExpression(var left : Expression, var right : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = {
+  override def prettyprint(out : PpStream) : Unit = {
     Knowledge.simd_instructionSet match {
       case "SSE3"         => out << "_mm_sub_pd"
       case "AVX" | "AVX2" => out << "_mm256_sub_pd"
@@ -474,7 +474,7 @@ case class SIMD_SubtractionExpression(var left : Expression, var right : Express
 }
 
 case class SIMD_MultiplicationExpression(var left : Expression, var right : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = {
+  override def prettyprint(out : PpStream) : Unit = {
     Knowledge.simd_instructionSet match {
       case "SSE3"         => out << "_mm_mul_pd"
       case "AVX" | "AVX2" => out << "_mm256_mul_pd"
@@ -486,7 +486,7 @@ case class SIMD_MultiplicationExpression(var left : Expression, var right : Expr
 case class SIMD_MultiplyAddExpression(var factor1 : Expression, var factor2 : Expression,
     var summand : Expression) extends Expression {
 
-  override def cpp(out : CppStream) : Unit = {
+  override def prettyprint(out : PpStream) : Unit = {
     Knowledge.simd_instructionSet match {
       case "SSE3" => out << "_mm_add_pd(_mm_mul_pd(" << factor1 << ", " << factor2 << "), " << summand << ')'
       case "AVX"  => out << "_mm256_add_pd(_mm256_mul_pd(" << factor1 << ", " << factor2 << "), " << summand << ')'
@@ -498,7 +498,7 @@ case class SIMD_MultiplyAddExpression(var factor1 : Expression, var factor2 : Ex
 case class SIMD_MultiplySubExpression(var factor1 : Expression, var factor2 : Expression,
     var summand : Expression) extends Expression {
 
-  override def cpp(out : CppStream) : Unit = {
+  override def prettyprint(out : PpStream) : Unit = {
     Knowledge.simd_instructionSet match {
       case "SSE3" => out << "_mm_sub_pd(_mm_mul_pd(" << factor1 << ", " << factor2 << "), " << summand << ')'
       case "AVX"  => out << "_mm256_sub_pd(_mm256_mul_pd(" << factor1 << ", " << factor2 << "), " << summand << ')'
@@ -508,7 +508,7 @@ case class SIMD_MultiplySubExpression(var factor1 : Expression, var factor2 : Ex
 }
 
 case class SIMD_DivisionExpression(var left : Expression, var right : Expression) extends Expression {
-  override def cpp(out : CppStream) : Unit = {
+  override def prettyprint(out : PpStream) : Unit = {
     Knowledge.simd_instructionSet match {
       case "SSE3"         => out << "_mm_div_pd"
       case "AVX" | "AVX2" => out << "_mm256_div_pd"
@@ -519,7 +519,7 @@ case class SIMD_DivisionExpression(var left : Expression, var right : Expression
 
 case class SIMD_FloatConstant(var value : Double) extends Expression {
   // ensure the compiler can parse the string
-  override def cpp(out : CppStream) : Unit = {
+  override def prettyprint(out : PpStream) : Unit = {
     Knowledge.simd_instructionSet match {
       case "SSE3"         => out << "_mm_set1_pd"
       case "AVX" | "AVX2" => out << "_mm256_set1_pd"
@@ -531,7 +531,7 @@ case class SIMD_FloatConstant(var value : Double) extends Expression {
 case class SIMD_Scalar2VectorExpression(var scalar : String, var dType : Datatype,
     var increment : Boolean) extends Expression {
 
-  override def cpp(out : CppStream) : Unit = {
+  override def prettyprint(out : PpStream) : Unit = {
     if (increment) {
       Knowledge.simd_instructionSet match {
         case "SSE3"         => out << "_mm_set_pd"

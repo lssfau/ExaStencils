@@ -78,7 +78,7 @@ object dimToString extends (Int => String) {
 }
 
 case class InitGeomCoords(var field : Field, var directCoords : Boolean) extends Statement with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = InitGeomCoords\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitGeomCoords\n"
 
   override def expand : Output[StatementList] = {
     ListBuffer[Statement](

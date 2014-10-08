@@ -10,8 +10,8 @@ import exastencils.omp._
 import exastencils.polyhedron._
 
 case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = SetupBuffers\n"
-  override def cpp_decl : String = cpp
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetupBuffers\n"
+  override def prettyprint_decl : String = prettyprint
 
   override def expand : Output[FunctionStatement] = {
     var body = ListBuffer[Statement]()
@@ -23,8 +23,8 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
 }
 
 case class GetFromExternalField(var src : Field, var dest : ExternalField) extends AbstractFunctionStatement with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = SetFromExternalField\n"
-  override def cpp_decl : String = cpp
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetFromExternalField\n"
+  override def prettyprint_decl : String = prettyprint
 
   override def expand : Output[FunctionStatement] = {
     new FunctionStatement(new UnitDatatype(), "get" + src.codeName,
@@ -39,8 +39,8 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
 }
 
 case class SetFromExternalField(var dest : Field, var src : ExternalField) extends AbstractFunctionStatement with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = SetFromExternalField\n"
-  override def cpp_decl : String = cpp
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetFromExternalField\n"
+  override def prettyprint_decl : String = prettyprint
 
   override def expand : Output[FunctionStatement] = {
     new FunctionStatement(new UnitDatatype(), "set" + dest.codeName,
@@ -61,7 +61,7 @@ case class SlotAccess(var slot : iv.CurrentSlot, var offset : Int) extends Expre
   if (offset < 0)
     offset += slot.field.numSlots
 
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = SlotAccess\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SlotAccess\n"
 
   def expandSpecial : Expression = {
     (slot + offset) Mod slot.field.numSlots // offset is always positive
@@ -69,7 +69,7 @@ case class SlotAccess(var slot : iv.CurrentSlot, var offset : Int) extends Expre
 }
 
 case class AdvanceSlot(var slot : iv.CurrentSlot) extends Statement {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = AdvanceSlot\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = AdvanceSlot\n"
 
   def expandSpecial : Statement = {
     AssignmentStatement(slot, (slot + 1) Mod slot.field.numSlots) // slot never contains negative values (currently)

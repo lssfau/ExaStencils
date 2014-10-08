@@ -50,14 +50,14 @@ object Testbed {
 
     var RAP = StencilStencilConvolution(A, R).expand.inner.stencil
     //    for (e <- RAP.entries)
-    //      println(e.offset.cpp + "\t>>\t" + e.weight.cpp)
+    //      println(e.offset.prettyprint + "\t>>\t" + e.weight.prettyprint)
 
     RAP = StencilStencilConvolution(P, RAP).expand.inner.stencil
 
     //var RAP : Stencil = StencilStencilConvolution(P, StencilStencilConvolution(A, R).expand).expand
 
     for (e <- RAP.entries)
-      println(e.offset.cpp() + "\t>>\t" + e.weight.cpp)
+      println(e.offset.prettyprint() + "\t>>\t" + e.weight.prettyprint)
 
     /*{
       var entries : ListBuffer[StencilEntry] = ListBuffer()
@@ -204,13 +204,13 @@ object Testbed {
   }
 
   println(node)
-  println(node.cpp)
+  println(node.prettyprint)
 
   do { SimplifyStrategy.apply(Some(node), StateManager.History.currentToken) }
   while (SimplifyStrategy.results.last._2.replacements > 0) // FIXME: cleaner code
 
   println(node)
-  println(node.cpp)
+  println(node.prettyprint)
 */
 
     var statements = new ListBuffer[Statement]
@@ -489,7 +489,7 @@ object Testbed {
 
     Settings.outputPath = "C:\\Users\\sisekuck\\Documents\\Visual Studio 2010\\Projects\\ScalaExaStencil\\Heap"
     var printer = PrettyprintingManager.getPrinter("tet_gs_coeff_gen.cc")
-    printer << root.cpp
+    printer << root.prettyprint
     PrettyprintingManager.finish
   }
 }

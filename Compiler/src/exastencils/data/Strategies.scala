@@ -114,8 +114,8 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       func
   })
 
-  var bufferSizes : TreeMap[Expression, Expression] = TreeMap()(Ordering.by(_.cpp))
-  var fieldAllocs : TreeMap[Expression, Statement] = TreeMap()(Ordering.by(_.cpp))
+  var bufferSizes : TreeMap[Expression, Expression] = TreeMap()(Ordering.by(_.prettyprint))
+  var fieldAllocs : TreeMap[Expression, Statement] = TreeMap()(Ordering.by(_.prettyprint))
 
   this += new Transformation("Collecting buffer sizes", {
     case buf : iv.TmpBuffer =>

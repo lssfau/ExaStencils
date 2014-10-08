@@ -10,7 +10,7 @@ import exastencils.omp._
 import exastencils.util._
 
 case class PointOutsideDomain(var pos : Expression, var domain : Domain) extends Expression with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = PointOutsideDomain\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointOutsideDomain\n"
 
   override def expand : Output[Expression] = {
     Knowledge.dimensionality match {
@@ -25,7 +25,7 @@ case class PointOutsideDomain(var pos : Expression, var domain : Domain) extends
 }
 
 case class PointInsideDomain(var pos : Expression, var domain : Domain) extends Expression with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = PointInsideDomain\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointInsideDomain\n"
 
   override def expand : Output[Expression] = {
     Knowledge.dimensionality match {
@@ -40,7 +40,7 @@ case class PointInsideDomain(var pos : Expression, var domain : Domain) extends 
 }
 
 case class PointToFragmentId(var pos : Expression) extends Expression with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
 
   override def expand : Output[Expression] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
@@ -60,7 +60,7 @@ case class PointToFragmentId(var pos : Expression) extends Expression with Expan
 }
 
 case class PointToLocalFragmentId(var pos : Expression) extends Expression with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
 
   override def expand : Output[Expression] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
@@ -80,7 +80,7 @@ case class PointToLocalFragmentId(var pos : Expression) extends Expression with 
 }
 
 case class PointToOwningRank(var pos : Expression, var domain : Domain) extends Expression with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = PointToOwningRank\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToOwningRank\n"
 
   override def expand : Output[Expression] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
@@ -106,7 +106,7 @@ case class PointToOwningRank(var pos : Expression, var domain : Domain) extends 
 }
 
 case class AssertStatement(var check : Expression, var msg : Expression, var abort : Statement) extends Statement with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = AssertStatement\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = AssertStatement\n"
 
   override def expand : Output[ConditionStatement] = {
     new ConditionStatement(check,
@@ -115,7 +115,7 @@ case class AssertStatement(var check : Expression, var msg : Expression, var abo
 }
 
 case class ConnectFragments() extends Statement with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = ConnectFragments\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ConnectFragments\n"
 
   override def expand : Output[LoopOverFragments] = {
     var body = new ListBuffer[Statement]
@@ -160,8 +160,8 @@ case class ConnectFragments() extends Statement with Expandable {
 }
 
 case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = InitGeneratedDomain\n"
-  override def cpp_decl = cpp
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitGeneratedDomain\n"
+  override def prettyprint_decl = prettyprint
 
   override def expand : Output[FunctionStatement] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get

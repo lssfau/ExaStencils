@@ -18,7 +18,7 @@ import exastencils.strategies._
 import exastencils.util._
 
 case class ContractingLoop(var number : Int, var iterator : Option[Expression], var statements : ListBuffer[Statement]) extends Statement {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = ContractingLoop\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ContractingLoop\n"
 
   private def extendBounds(start : MultiIndex, end : MultiIndex, extent : Int, field : Field) : Unit = {
     for (dim <- 0 until Knowledge.dimensionality) {
@@ -116,7 +116,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
 
 case class LoopOverPoints(var field : Field, var startOffset : MultiIndex, var endOffset : MultiIndex, var increment : MultiIndex,
     var body : ListBuffer[Statement], var reduction : Option[Reduction] = None, var condition : Option[Expression] = None) extends Statement {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPoints\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPoints\n"
 
   def expandSpecial(collector : StackCollector) : Output[Statement] = {
     val insideFragLoop = collector.stack.map(node => node match { case loop : LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
@@ -132,7 +132,7 @@ case class LoopOverPoints(var field : Field, var startOffset : MultiIndex, var e
 case class LoopOverPointsInOneFragment(var domain : Int, var field : Field,
     var startOffset : MultiIndex, var endOffset : MultiIndex, var increment : MultiIndex,
     var body : ListBuffer[Statement], var reduction : Option[Reduction] = None, var condition : Option[Expression] = None) extends Statement with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPointsInOneFragment\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPointsInOneFragment\n"
 
   def expand : Output[Statement] = {
     var start = new MultiIndex()
@@ -174,7 +174,7 @@ case class LoopOverDimensions(var numDimensions : Int,
   def this(numDimensions : Int, indices : IndexRange, body : Statement, stepSize : MultiIndex) = this(numDimensions, indices, ListBuffer[Statement](body), stepSize)
   def this(numDimensions : Int, indices : IndexRange, body : Statement) = this(numDimensions, indices, ListBuffer[Statement](body))
 
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LoopOverDimensions\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverDimensions\n"
 
   def maxIterationCount() : Array[Long] = {
     numDimensions match {
@@ -361,7 +361,7 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
   def this(body : Statement, reduction : Option[Reduction]) = this(ListBuffer(body), reduction)
   def this(body : Statement) = this(ListBuffer(body))
 
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LoopOverFragments\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverFragments\n"
 
   def expand : Output[StatementList] = {
     val parallelizable = Knowledge.omp_parallelizeLoopOverFragments && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
@@ -387,7 +387,7 @@ object LoopOverDomains { def defIt = "domainIdx" }
 case class LoopOverDomains(var body : ListBuffer[Statement]) extends Statement with Expandable {
   def this(body : Statement) = this(ListBuffer(body))
 
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LoopOverDomains\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverDomains\n"
 
   def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
@@ -403,7 +403,7 @@ object LoopOverFields { def defIt = "fieldIdx" }
 case class LoopOverFields(var body : ListBuffer[Statement]) extends Statement with Expandable {
   def this(body : Statement) = this(ListBuffer(body))
 
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LoopOverFields\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverFields\n"
 
   def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
@@ -419,7 +419,7 @@ object LoopOverLevels { def defIt = "levelIdx" }
 case class LoopOverLevels(var body : ListBuffer[Statement]) extends Statement with Expandable {
   def this(body : Statement) = this(ListBuffer(body))
 
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LoopOverLevels\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverLevels\n"
 
   def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
@@ -435,7 +435,7 @@ object LoopOverNeighbors { def defIt = "neighborIdx" }
 case class LoopOverNeighbors(var body : ListBuffer[Statement]) extends Statement with Expandable {
   def this(body : Statement) = this(ListBuffer(body))
 
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LoopOverNeighbors\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverNeighbors\n"
 
   def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(

@@ -60,8 +60,8 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
 }
 
 case class ApplyBCsFunction(var name : String, var fieldSelection : FieldSelection, var neighbors : ListBuffer[NeighborInfo]) extends FieldBoundaryFunction {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = ApplyBCsFunction\n"
-  override def cpp_decl = cpp
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ApplyBCsFunction\n"
+  override def prettyprint_decl = prettyprint
 
   def genIndicesBoundaryHandling(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
     // FIXME: this works for now, but might be adapted later to incorporate different regions of boundary handling
@@ -101,8 +101,8 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
     var begin : Boolean, var finish : Boolean,
     var dupLayerExch : Boolean, var dupLayerBegin : MultiIndex, var dupLayerEnd : MultiIndex,
     var ghostLayerExch : Boolean, var ghostLayerBegin : MultiIndex, var ghostLayerEnd : MultiIndex) extends FieldBoundaryFunction {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = ExchangeDataFunction\n"
-  override def cpp_decl = cpp
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ExchangeDataFunction\n"
+  override def prettyprint_decl = prettyprint
 
   def genIndicesDuplicateRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
     curNeighbors.map(neigh => (neigh, new IndexRange(

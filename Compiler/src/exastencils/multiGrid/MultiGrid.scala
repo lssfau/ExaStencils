@@ -10,8 +10,8 @@ import exastencils.omp._
 import exastencils.polyhedron._
 
 case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = InitFieldsWithZero\n"
-  override def cpp_decl : String = cpp
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitFieldsWithZero\n"
+  override def prettyprint_decl : String = prettyprint
 
   def expand() : Output[FunctionStatement] = {
     val fields = FieldCollection.fields

@@ -21,14 +21,14 @@ case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = ne
   override def printHeader = {
     super.printHeader
     val writer = PrettyprintingManager.getPrinter(s"${baseName}.h")
-    for (variable <- variables) writer << s"extern ${variable.cpp_onlyDeclaration}\n"
+    for (variable <- variables) writer << s"extern ${variable.prettyprint_onlyDeclaration}\n"
   }
 
   override def printSources = {
     val writer = PrettyprintingManager.getPrinter(s"${baseName}_declarations.cpp")
     writer.addInternalDependency(s"${baseName}.h")
 
-    for (variable <- variables) writer << s"${variable.cpp()}\n"
+    for (variable <- variables) writer << s"${variable.prettyprint()}\n"
 
     super.printSources
   }

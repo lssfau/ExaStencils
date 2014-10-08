@@ -112,7 +112,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
           IntegerConstant(incr * Knowledge.opt_unroll), "-="), itVar, incr)
 
       case _ =>
-        throw new UnrollException("cannot determine stride: " + inc.cpp())
+        throw new UnrollException("cannot determine stride: " + inc.prettyprint())
     }
   }
 
@@ -131,7 +131,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
         GreaterExpression(VariableAccess(itVar, Some(IntegerDatatype())), AdditionExpression(bound, IntegerConstant(offset)))
 
       case _ =>
-        throw new UnrollException("cannot interpret loop end: " + end.cpp())
+        throw new UnrollException("cannot interpret loop end: " + end.prettyprint())
     }
   }
 
@@ -144,7 +144,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
       case decl @ VariableDeclarationStatement(IntegerDatatype(), itVar2, Some(init)) if (itVar == itVar2) =>
         decl
 
-      case _ => throw new UnrollException("cannot interpret loop begin: " + begin.cpp())
+      case _ => throw new UnrollException("cannot interpret loop begin: " + begin.prettyprint())
     }
   }
 

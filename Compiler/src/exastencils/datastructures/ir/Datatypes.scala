@@ -4,8 +4,8 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge.Knowledge
 
-trait Datatype extends Node with CppPrettyPrintable {
-  def cpp_mpi : String
+trait Datatype extends Node with PrettyPrintable {
+  def prettyprint_mpi : String
 
   def resolveUnderlyingDatatype : Datatype = {
     this match {
@@ -30,57 +30,57 @@ trait Datatype extends Node with CppPrettyPrintable {
 }
 
 case class SpecialDatatype(typeName : String) extends Datatype {
-  override def cpp(out : CppStream) : Unit = out << typeName
-  override def cpp_mpi = typeName
+  override def prettyprint(out : PpStream) : Unit = out << typeName
+  override def prettyprint_mpi = typeName
 }
 
 case class UnitDatatype() extends Datatype {
-  override def cpp(out : CppStream) : Unit = out << "void"
-  override def cpp_mpi = s"INVALID DATATYPE: " + this.cpp()
+  override def prettyprint(out : PpStream) : Unit = out << "void"
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
 
 case class BooleanDatatype() extends Datatype {
-  override def cpp(out : CppStream) : Unit = out << "bool"
-  override def cpp_mpi = s"INVALID DATATYPE: " + this.cpp()
+  override def prettyprint(out : PpStream) : Unit = out << "bool"
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
 
 case class IntegerDatatype() extends Datatype {
-  override def cpp(out : CppStream) : Unit = out << "int"
-  override def cpp_mpi = "MPI_INT"
+  override def prettyprint(out : PpStream) : Unit = out << "int"
+  override def prettyprint_mpi = "MPI_INT"
 }
 
 case class RealDatatype() extends Datatype {
-  override def cpp(out : CppStream) : Unit = out << "double"
-  override def cpp_mpi = "MPI_DOUBLE"
+  override def prettyprint(out : PpStream) : Unit = out << "double"
+  override def prettyprint_mpi = "MPI_DOUBLE"
 }
 
 case class SIMD_RealDatatype() extends Datatype {
-  override def cpp(out : CppStream) : Unit = out << {
+  override def prettyprint(out : PpStream) : Unit = out << {
     Knowledge.simd_instructionSet match {
       case "SSE3"         => "__m128d"
       case "AVX" | "AVX2" => "__m256d"
     }
   }
 
-  override def cpp_mpi = "INVALID DATATYPE: " + this.cpp()
+  override def prettyprint_mpi = "INVALID DATATYPE: " + this.prettyprint()
 }
 
 case class StringDatatype() extends Datatype {
-  override def cpp(out : CppStream) : Unit = out << "std::string"
-  override def cpp_mpi = "MPI::CHAR"
+  override def prettyprint(out : PpStream) : Unit = out << "std::string"
+  override def prettyprint_mpi = "MPI::CHAR"
 }
 
 case class ArrayDatatype(datatype : Datatype, size : Int) extends Datatype {
-  override def cpp(out : CppStream) : Unit = out << datatype << '[' << size << ']'
-  override def cpp_mpi = s"INVALID DATATYPE: " + this.cpp()
+  override def prettyprint(out : PpStream) : Unit = out << datatype << '[' << size << ']'
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
 
 case class PointerDatatype(datatype : Datatype) extends Datatype {
-  override def cpp(out : CppStream) : Unit = out << datatype << '*'
-  override def cpp_mpi = s"INVALID DATATYPE: " + this.cpp()
+  override def prettyprint(out : PpStream) : Unit = out << datatype << '*'
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
 
 case class ComplexDatatype(datatype : Datatype) extends Datatype {
-  override def cpp(out : CppStream) : Unit = out << "std::complex<" << datatype << '>'
-  override def cpp_mpi = s"INVALID DATATYPE: " + this.cpp()
+  override def prettyprint(out : PpStream) : Unit = out << "std::complex<" << datatype << '>'
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
