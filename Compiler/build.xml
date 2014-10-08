@@ -61,7 +61,7 @@
   </target>
 
   <target name="compileJava" depends="init">
-    <javac
+    <javac includeantruntime="false"
       destdir="${build-classes.dir}"
       classpathref="compiler.classpath">
       <include name="**/*.java"/>
