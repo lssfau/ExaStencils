@@ -1,0 +1,46 @@
+Chimaira (Cluster)
+  Constraint: E5
+  16 Nodes mit je:
+    1 Xeon E5-2690 v2 (http://ark.intel.com/de/products/75279/Intel-Xeon-Processor-E5-2690-v2-25M-Cache-3_00-GHz)
+      Ivy Bridge EP
+      10 Kerne
+      20 Threads
+      3,0 GHz Basis
+      3,6 GHz Turbo
+      25 MB L3-Cache
+      AVX
+    64 GB RAM (quadchannel)
+    1 GeForce GTX Titan Black
+  "Frontend" (17. Node) identisch zu oben, Ausnahme: keine GPU, sondern
+    1 Xeon Phi 3120 (http://ark.intel.com/products/75798/Intel-Xeon-Phi-Coprocessor-3120P-6GB-1_100-GHz-57-core)
+      57 Kerne
+      228 Threads
+      1,1 GHz
+      6 GB GDDR5 (240 GB/s)
+      AVX512
+
+
+Workstations (neu)
+  Constraint: i7
+  Core i7-4770 (http://ark.intel.com/de/products/75122/Intel-Core-i7-4770-Processor-8M-Cache-up-to-3_90-GHz)
+    Haswell
+    4 Kerne
+    8 Threads
+    3,4 GHz Basis
+    3,9 GHz Turbo
+    8 MB L3-Cache
+    AVX2 (& FMA)
+  32 GB RAM (dualchannel)
+
+
+Workstations (alt)
+  Constraint:
+  Core2Quad Q6600 (http://ark.intel.com/de/products/29765/Intel-Core2-Quad-Processor-Q6600-8M-Cache-2_40-GHz-1066-MHz-FSB)
+    4 Kerne
+    2,4 GHz
+    8 MB L2-Cache
+    SSE3
+  8 GM RAM (dualchannel)
+
+
+Und weitere alte Systeme...

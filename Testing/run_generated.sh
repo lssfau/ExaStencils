@@ -21,7 +21,7 @@ FAILURE_SUBJECT="ExaStencils TestBot Error"
 TIMEOUT=1
 
 
-function finish {
+function cleanup {
   rm "${RESULT}" "${BIN}"
   echo "        Removed  ${RESULT} (test id: '${ID}')" >> "${LOG}"
   if [[ ${TIMEOUT} -eq 1 ]]; then
@@ -29,7 +29,13 @@ function finish {
 	echo "Test '${ID}' failed!  Timeout when calling ${BASH_SOURCE} (running testcode)" | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
   fi
 }
-trap finish EXIT
+trap cleanup EXIT
+
+# ensure this script finishes with this function (even in case of an error) to prevent incorrect timeout error
+function finish {
+  TIMEOUT=0
+  exit 0
+}
 
 echo "        Created  ${RESULT} (test id: '${ID}'): run code and redirect stdout and stderr" >> "${LOG}"
 
@@ -43,4 +49,4 @@ else
   echo "Test '${ID}' failed!  Results ($(basename ${RESULT})) do not match expected ones ($(basename ${EXP_RESULT}))." | mail -s "${FAILURE_SUBJECT}" -A "${RESULT}" -A "${EXP_RESULT}" ${FAILURE_MAIL}
 fi
 
-TIMEOUT=0
+finish
