@@ -168,36 +168,59 @@ case class SIMD_StoreStatement(var mem : Expression, var value : Expression, var
   }
 }
 
-case class SIMD_HorizontalAddStatement(var dest : Expression, var src : Expression, var op : String = "=") extends Statement {
+case class SIMD_HorizontalAddStatement(var dest : Expression, var src : Expression) extends Statement {
   override def prettyprint(out : PpStream) : Unit = {
     out << "{\n"
     Knowledge.simd_instructionSet match {
       case "SSE3" =>
-        out << " __m128d v = " << src << ";\n"
-        out << dest << ' ' << op << " _mm_cvtsd_f64(_mm_hadd_pd(v,v));\n"
+        out << " __m128d _v = " << src << ";\n"
+        out << dest << " += _mm_cvtsd_f64(_mm_hadd_pd(_v,_v));\n"
 
       case "AVX" | "AVX2" =>
-        out << " __m256d v = " << src << ";\n"
-        out << " __m256d h = _mm256_hadd_pd(v,v);\n"
-        out << dest << ' ' << op << " _mm_cvtsd_f64(_mm_add_pd(_mm256_extractf128_pd(h,1), _mm256_castpd256_pd128(h)));\n"
+        out << " __m256d _v = " << src << ";\n"
+        out << " __m256d _h = _mm256_hadd_pd(_v,_v);\n"
+        out << dest << " += _mm_cvtsd_f64(_mm_add_pd(_mm256_extractf128_pd(_h,1), _mm256_castpd256_pd128(_h)));\n"
     }
     out << '}'
   }
 }
 
-case class SIMD_HorizontalMulStatement(var dest : Expression, var src : Expression, var op : String = "=") extends Statement {
-  override def prettyprint(out : PpStream) : Unit = {
+private object HorizontalPrinterHelper {
+  def prettyprint(out : PpStream, dest : Expression, src : Expression, redName : String, assOp : String, redFunc : String = null) : Unit = {
     out << "{\n"
     Knowledge.simd_instructionSet match {
       case "SSE3" =>
-        out << " __m128d v = " << src << ";\n"
-        out << dest << ' ' << op << " _mm_cvtsd_f64(_mm_mul_pd(v, _mm_shuffle_pd(v,v,1)));\n"
+        out << " __m128d _v = " << src << ";\n"
+        out << " __m128d _r = _mm_cvtsd_f64(_mm_" << redName << "_pd(_v, _mm_shuffle_pd(_v,_v,1)));\n"
 
       case "AVX" | "AVX2" =>
-        out << " __m256d v = " << src << ";\n"
-        out << " __m128d w = _mm_mul_pd(_mm256_extractf128_pd(v,1), _mm256_castpd256_pd128(v));\n"
-        out << dest << ' ' << op << " _mm_cvtsd_f64(_mm_mul_pd(w, _mm_permute_pd(w,1)));\n"
+        out << " __m256d _v = " << src << ";\n"
+        out << " __m128d _w = _mm_" << redName << "_pd(_mm256_extractf128_pd(_v,1), _mm256_castpd256_pd128(_v));\n"
+        out << " __m128d _r = _mm_cvtsd_f64(_mm_" << redName << "_pd(_w, _mm_permute_pd(_w,1)));\n"
     }
+    out << dest << ' ' << assOp
+    if (redFunc != null)
+      out << ' ' << redFunc << '(' << dest << ",_r);\n"
+    else
+      out << "_r;\n"
     out << '}'
+  }
+}
+
+case class SIMD_HorizontalMulStatement(var dest : Expression, var src : Expression) extends Statement {
+  override def prettyprint(out : PpStream) : Unit = {
+    HorizontalPrinterHelper.prettyprint(out, dest, src, "mul", "*=")
+  }
+}
+
+case class SIMD_HorizontalMinStatement(var dest : Expression, var src : Expression) extends Statement {
+  override def prettyprint(out : PpStream) : Unit = {
+    HorizontalPrinterHelper.prettyprint(out, dest, src, "min", "=", "std::min")
+  }
+}
+
+case class SIMD_HorizontalMaxStatement(var dest : Expression, var src : Expression) extends Statement {
+  override def prettyprint(out : PpStream) : Unit = {
+    HorizontalPrinterHelper.prettyprint(out, dest, src, "max", "=", "std::max")
   }
 }

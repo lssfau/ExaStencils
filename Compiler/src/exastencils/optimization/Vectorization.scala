@@ -155,8 +155,10 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
       val (vecTmp, _) : (String, Boolean) = ctx.getName(target)
       val identityElem : Expression =
         operator match {
-          case "+" => SIMD_FloatConstant(0.0)
-          case "*" => SIMD_FloatConstant(1.0)
+          case "+"   => SIMD_FloatConstant(0.0)
+          case "*"   => SIMD_FloatConstant(1.0)
+          case "min" => SIMD_FloatConstant(Double.MaxValue)
+          case "max" => SIMD_FloatConstant(Double.MinValue)
           case _ =>
             throw new VectorizationException("unknown reduction operator:  " + operator)
         }
@@ -165,8 +167,10 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
       val vecTmpAcc = VariableAccess(vecTmp, Some(SIMD_RealDatatype()))
       postLoopStmt =
         operator match {
-          case "+" => SIMD_HorizontalAddStatement(Duplicate(target), vecTmpAcc, "+=")
-          case "*" => SIMD_HorizontalMulStatement(Duplicate(target), vecTmpAcc, "*=")
+          case "+"   => SIMD_HorizontalAddStatement(Duplicate(target), vecTmpAcc)
+          case "*"   => SIMD_HorizontalMulStatement(Duplicate(target), vecTmpAcc)
+          case "min" => SIMD_HorizontalMinStatement(Duplicate(target), vecTmpAcc)
+          case "max" => SIMD_HorizontalMaxStatement(Duplicate(target), vecTmpAcc)
         }
     }
 
