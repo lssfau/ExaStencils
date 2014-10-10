@@ -155,8 +155,10 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
       val (vecTmp, _) : (String, Boolean) = ctx.getName(target)
       val identityElem : Expression =
         operator match {
-          case "+" => SIMD_FloatConstant(0.0)
-          case "*" => SIMD_FloatConstant(1.0)
+          case "+"   => SIMD_FloatConstant(0.0)
+          case "*"   => SIMD_FloatConstant(1.0)
+          case "min" => SIMD_FloatConstant(Double.MaxValue)
+          case "max" => SIMD_FloatConstant(Double.MinValue)
           case _ =>
             throw new VectorizationException("unknown reduction operator:  " + operator)
         }
@@ -165,8 +167,10 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
       val vecTmpAcc = VariableAccess(vecTmp, Some(SIMD_RealDatatype()))
       postLoopStmt =
         operator match {
-          case "+" => SIMD_HorizontalAddStatement(Duplicate(target), vecTmpAcc, "+=")
-          case "*" => SIMD_HorizontalMulStatement(Duplicate(target), vecTmpAcc, "*=")
+          case "+"   => SIMD_HorizontalAddStatement(Duplicate(target), vecTmpAcc)
+          case "*"   => SIMD_HorizontalMulStatement(Duplicate(target), vecTmpAcc)
+          case "min" => SIMD_HorizontalMinStatement(Duplicate(target), vecTmpAcc)
+          case "max" => SIMD_HorizontalMaxStatement(Duplicate(target), vecTmpAcc)
         }
     }
 
@@ -219,12 +223,12 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         ctx.vectStmts += CommentStatement(str) // new instance
 
       case AssignmentStatement(lhsSca, rhsSca, assOp) =>
-        ctx.vectStmts += new CommentStatement(stmt.cpp())
+        ctx.vectStmts += new CommentStatement(stmt.prettyprint())
         val source = assOp match {
           case "="  => rhsSca
           case "+=" => AdditionExpression(Duplicate(lhsSca), rhsSca)
           case "-=" => SubtractionExpression(Duplicate(lhsSca), rhsSca)
-          case _    => throw new VectorizationException("cannot deal with assignment operator \"" + assOp + "\" in " + stmt.cpp())
+          case _    => throw new VectorizationException("cannot deal with assignment operator \"" + assOp + "\" in " + stmt.prettyprint())
         }
         // create rhs before lhs to ensure all loads are created
         val rhsVec = vectorizeExpr(source, ctx.setLoad())
@@ -233,7 +237,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         ctx.vectStmts ++= ctx.storesTmp
         ctx.storesTmp.clear()
 
-      case _ => throw new VectorizationException("cannot deal with " + stmt.getClass() + "; " + stmt.cpp())
+      case _ => throw new VectorizationException("cannot deal with " + stmt.getClass() + "; " + stmt.prettyprint())
     }
   }
 
@@ -337,7 +341,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         SIMD_DivisionExpression(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
 
       case _ =>
-        throw new VectorizationException("cannot deal with " + expr.getClass() + "; " + expr.cpp())
+        throw new VectorizationException("cannot deal with " + expr.getClass() + "; " + expr.prettyprint())
     }
   }
 }

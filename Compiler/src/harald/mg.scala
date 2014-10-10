@@ -369,7 +369,7 @@ sys.exit(0)
 
                     val parserl4 = new Parser.ParserL4(TreeManager.tree)
                     parserl4.parse(DSLl4)
-                    //TransformL4.cppfunctions.foreach(println)
+                    //TransformL4.prettyprintfunctions.foreach(println)
 
 println("finished parsing")
 

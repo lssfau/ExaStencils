@@ -35,7 +35,7 @@ case class Stencil(var identifier : String, var level : Int, var entries : ListB
               e => e.offset match {
                 case MultiIndex(IntegerConstant(xOff), IntegerConstant(yOff), IntegerConstant(zOff), _) if (x == xOff && y == yOff && z == zOff) => true
                 case _ => false
-              }).getOrElse(StencilEntry(new MultiIndex, 0)).weight.cpp)
+              }).getOrElse(StencilEntry(new MultiIndex, 0)).weight.prettyprint)
         println
       }
       println
@@ -89,7 +89,7 @@ case class StencilFieldSelection(
 }
 
 case class StencilConvolution(var stencil : Stencil, var fieldAccess : FieldAccess) extends Expression with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = StencilConvolution\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilConvolution\n"
 
   def resolveEntry(idx : Int) : Expression = {
     stencil.entries(idx).weight * new FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + stencil.entries(idx).offset)
@@ -103,7 +103,7 @@ case class StencilConvolution(var stencil : Stencil, var fieldAccess : FieldAcce
 }
 
 case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, var fieldAccess : FieldAccess) extends Expression with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = StencilConvolution\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilConvolution\n"
 
   def resolveEntry(idx : Int) : Expression = {
     var stencilFieldIdx = Duplicate(stencilFieldAccess.index)
@@ -121,7 +121,7 @@ case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, 
 }
 
 case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight : Stencil) extends Expression with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = StencilStencilConvolution\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilStencilConvolution\n"
 
   def expand : Output[StencilAccess] = {
     var entries : ListBuffer[StencilEntry] = ListBuffer()
@@ -164,7 +164,7 @@ case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight
 }
 
 case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, var stencilRight : Stencil) extends Expression with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = StencilFieldStencilConvolution\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilFieldStencilConvolution\n"
 
   def expand : Output[StencilAccess] = {
     var entries : ListBuffer[StencilEntry] = ListBuffer()

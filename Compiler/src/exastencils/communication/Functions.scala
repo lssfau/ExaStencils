@@ -15,7 +15,7 @@ case class CommunicationFunctions() extends FunctionCollection("CommFunctions/Co
   ListBuffer("Globals/Globals.h", "Util/Vector.h", "MultiGrid/MultiGrid.h"))
 
 case class SetIterationOffset(var location : Expression, var domain : Expression, var fragment : Expression) extends Statement with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = SetIterationOffset\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetIterationOffset\n"
 
   override def expand : Output[SwitchStatement] = {
     var cases : ListBuffer[CaseStatement] = ListBuffer()
@@ -38,8 +38,8 @@ case class SetIterationOffset(var location : Expression, var domain : Expression
 }
 
 case class ConnectLocalElement() extends AbstractFunctionStatement with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = ConnectLocalElement\n"
-  override def cpp_decl : String = cpp
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ConnectLocalElement\n"
+  override def prettyprint_decl : String = prettyprint
 
   override def expand : Output[FunctionStatement] = {
     FunctionStatement(new UnitDatatype(), s"connectLocalElement",
@@ -57,8 +57,8 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
 }
 
 case class ConnectRemoteElement() extends AbstractFunctionStatement with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = ConnectRemoteElement\n"
-  override def cpp_decl : String = cpp
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ConnectRemoteElement\n"
+  override def prettyprint_decl : String = prettyprint
 
   override def expand : Output[FunctionStatement] = {
     FunctionStatement(new UnitDatatype(), s"connectRemoteElement",

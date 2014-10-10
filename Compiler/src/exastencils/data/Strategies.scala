@@ -36,8 +36,6 @@ object LinearizeFieldAccesses extends DefaultStrategy("Linearizing FieldAccess n
   this += new Transformation("Linearizing", {
     case loop : DirectFieldAccess =>
       loop.linearize
-    case loop : FieldAccess =>
-      loop.linearize
     case loop : ExternalFieldAccess =>
       loop.linearize
   })
@@ -86,6 +84,13 @@ object ResolveContractingLoop extends DefaultStrategy("Resolving ContractingLoop
   })
 }
 
+object ResolveFieldAccess extends DefaultStrategy("Resolving FieldAccess nodes") {
+  this += new Transformation("Resolving", {
+    case loop : FieldAccess =>
+      loop.expandSpecial
+  })
+}
+
 object AddInternalVariables extends DefaultStrategy("Adding internal variables") {
   var declarationMap : TreeMap[String, VariableDeclarationStatement] = TreeMap()
   var ctorMap : TreeMap[String, Statement] = TreeMap()
@@ -114,8 +119,8 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       func
   })
 
-  var bufferSizes : TreeMap[Expression, Expression] = TreeMap()(Ordering.by(_.cpp))
-  var fieldAllocs : TreeMap[Expression, Statement] = TreeMap()(Ordering.by(_.cpp))
+  var bufferSizes : TreeMap[Expression, Expression] = TreeMap()(Ordering.by(_.prettyprint))
+  var fieldAllocs : TreeMap[Expression, Statement] = TreeMap()(Ordering.by(_.prettyprint))
 
   this += new Transformation("Collecting buffer sizes", {
     case buf : iv.TmpBuffer =>

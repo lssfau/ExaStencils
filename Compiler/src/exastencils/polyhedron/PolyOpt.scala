@@ -236,7 +236,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     if (scop.reduction.isEmpty)
       return
 
-    val name : String = Extractor.replaceSpecial(scop.reduction.get.target.cpp())
+    val name : String = Extractor.replaceSpecial(scop.reduction.get.target.prettyprint())
     val stmts = new TreeSet[String]()
     scop.writes.foreachMap({ map : isl.Map =>
       if (map.getTupleName(isl.DimType.Out) == name)

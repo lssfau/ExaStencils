@@ -217,7 +217,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case _ => throw new ExtractionException("unknown expression: " + expr.getClass() + " - " + expr.cpp())
+      case _ => throw new ExtractionException("unknown expression: " + expr.getClass() + " - " + expr.prettyprint())
     }
 
     return bool
@@ -423,27 +423,22 @@ class Extractor extends Collector {
           case ArrayAccess(ppVec : iv.PrimitivePositionBegin, index) =>
             ppVec.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
-            enterArrayAccess(ppVec.cpp(), index)
+            enterArrayAccess(ppVec.prettyprint(), index)
 
           case ArrayAccess(ppVec : iv.PrimitivePositionEnd, index) =>
             ppVec.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
-            enterArrayAccess(ppVec.cpp(), index)
+            enterArrayAccess(ppVec.prettyprint(), index)
 
           case ArrayAccess(tmp : iv.TmpBuffer, index) =>
             tmp.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
-            enterArrayAccess(tmp.cpp(), index)
+            enterArrayAccess(tmp.prettyprint(), index)
 
           case DirectFieldAccess(fieldSelection, index) =>
             fieldSelection.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterFieldAccess(fieldSelection, index)
-
-          case FieldAccess(fieldSelection, index) =>
-            fieldSelection.annotate(SKIP_ANNOT)
-            index.annotate(SKIP_ANNOT)
-            enterFieldAccess(fieldSelection, index, fieldSelection.referenceOffset)
 
           case d : VariableDeclarationStatement =>
             d.dataType.annotate(SKIP_ANNOT)
@@ -466,9 +461,9 @@ class Extractor extends Collector {
             | NullStatement => // nothing to do for all of them...
 
           // deny
-          case e : ExpressionStatement    => throw new ExtractionException("cannot deal with ExprStmt: " + e.cpp())
+          case e : ExpressionStatement    => throw new ExtractionException("cannot deal with ExprStmt: " + e.prettyprint())
           case ArrayAccess(a, _)          => throw new ExtractionException("ArrayAccess to base " + a.getClass() + " not yet implemented")
-          case f : FunctionCallExpression => throw new ExtractionException("function call not in set of allowed ones: " + f.cpp())
+          case f : FunctionCallExpression => throw new ExtractionException("function call not in set of allowed ones: " + f.prettyprint())
           case x : Any                    => throw new ExtractionException("cannot deal with " + x.getClass())
         }
     } catch {
@@ -717,17 +712,17 @@ class Extractor extends Collector {
     // nothing to do here...
   }
 
-  private def enterFieldAccess(fSel : FieldSelection, index : MultiIndex, offset : MultiIndex = null) : Unit = {
+  private def enterFieldAccess(fSel : FieldSelection, index : MultiIndex) : Unit = {
 
     val name = new StringBuilder("field")
     name.append('_').append(fSel.field.identifier).append(fSel.field.level)
-    name.append("_l").append(fSel.level.cpp()).append('a').append(fSel.arrayIndex)
-    name.append('_').append(fSel.fragIdx.cpp()).append('_')
+    name.append("_l").append(fSel.level.prettyprint()).append('a').append(fSel.arrayIndex)
+    name.append('_').append(fSel.fragIdx.prettyprint()).append('_')
     fSel.slot match {
       case SlotAccess(_, offset) => name.append('s').append(offset)
-      case s                     => name.append(s.cpp())
+      case s                     => name.append(s.prettyprint())
     }
-    enterArrayAccess(name.toString(), if (offset != null) index + offset else index)
+    enterArrayAccess(name.toString(), index)
   }
 
   private def leaveFieldAccess() : Unit = {

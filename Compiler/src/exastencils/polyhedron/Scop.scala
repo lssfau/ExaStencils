@@ -62,7 +62,7 @@ object ScopNameMapping {
   }
 
   def expr2id(expr : Expression) : String = {
-    val exprStr : String = expr.cpp()
+    val exprStr : String = expr.prettyprint()
     return exprStr2idMap.getOrElseUpdate(exprStr, {
       val id : String =
         if (exprStr.size < 5)

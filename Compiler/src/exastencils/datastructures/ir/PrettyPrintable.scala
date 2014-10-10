@@ -4,24 +4,12 @@ trait FilePrettyPrintable {
   def printToFile() : Unit
 }
 
-trait PrettyPrintable
+trait PrettyPrintable {
+  def prettyprint(out : PpStream) : Unit
 
-trait CppPrettyPrintable extends PrettyPrintable {
-  def cpp(out : CppStream) : Unit
-
-  final def cpp() : String = {
-    val out = new CppStream()
-    cpp(out)
-    return out.toString()
-  }
-}
-
-trait CudaPrettyPrintable extends PrettyPrintable {
-  def cuda(out : CudaStream) : Unit
-
-  final def cuda() : String = {
-    val out = new CudaStream()
-    cuda(out)
+  final def prettyprint() : String = {
+    val out = new PpStream()
+    prettyprint(out)
     return out.toString()
   }
 }
@@ -67,16 +55,10 @@ abstract class RawStream[PP <: PrettyPrintable](sb : StringBuilder) {
   override def toString() : String = sb.toString()
 }
 
-final class CppStream(sb : StringBuilder = new StringBuilder()) extends RawStream[CppPrettyPrintable](sb) {
-  override def <<(node : CppPrettyPrintable) : this.type = {
-    node.cpp(this)
+final class PpStream(sb : StringBuilder = new StringBuilder()) extends RawStream[PrettyPrintable](sb) {
+  override def <<(node : PrettyPrintable) : this.type = {
+    node.prettyprint(this)
     return this
   }
 }
 
-final class CudaStream(sb : StringBuilder = new StringBuilder()) extends RawStream[CudaPrettyPrintable](sb) {
-  def <<(node : CudaPrettyPrintable) : this.type = {
-    node.cuda(this)
-    return this
-  }
-}

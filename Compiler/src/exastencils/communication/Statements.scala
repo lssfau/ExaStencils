@@ -22,19 +22,19 @@ case class CommunicateTarget(var target : String, var begin : Option[MultiIndex]
     Some(newEnd)
   }
 
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = CommunicateTarget\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CommunicateTarget\n"
 }
 
 case class CommunicateStatement(var field : FieldSelection, var op : String, var targets : ListBuffer[CommunicateTarget]) extends Statement {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = CommunicateStatement\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CommunicateStatement\n"
 }
 
 case class ApplyBCsStatement(var field : FieldSelection) extends Statement {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = ApplyBCsStatement\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ApplyBCsStatement\n"
 }
 
 case class LocalSend(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) extends Statement with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = LocalSend\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LocalSend\n"
 
   def expand : Output[LoopOverFragments] = {
     new LoopOverFragments(
@@ -52,7 +52,7 @@ case class LocalSend(var field : FieldSelection, var neighbors : ListBuffer[(Nei
 }
 
 case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborInfo, var indices : IndexRange, var concurrencyId : Int) extends Statement with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = CopyToSendBuffer\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CopyToSendBuffer\n"
 
   def expand : Output[Statement] = {
     val tmpBufAccess = new ArrayAccess(iv.TmpBuffer(field.field, s"Send_${concurrencyId}", indices.getSizeHigher, neighbor.index),
@@ -64,7 +64,7 @@ case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborI
 }
 
 case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : NeighborInfo, var indices : IndexRange, var concurrencyId : Int) extends Statement with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = CopyFromRecvBuffer\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CopyFromRecvBuffer\n"
 
   def expand : Output[Statement] = {
     val tmpBufAccess = new ArrayAccess(iv.TmpBuffer(field.field, s"Recv_${concurrencyId}", indices.getSizeHigher, neighbor.index),
@@ -76,7 +76,7 @@ case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : Neighbo
 }
 
 case class RemoteSend(var field : FieldSelection, var neighbor : NeighborInfo, var src : Expression, var numDataPoints : Expression, var datatype : Datatype, var concurrencyId : Int) extends Statement with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = RemoteSend\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = RemoteSend\n"
 
   def expand : Output[StatementList] = {
     ListBuffer[Statement](
@@ -88,7 +88,7 @@ case class RemoteSend(var field : FieldSelection, var neighbor : NeighborInfo, v
 }
 
 case class RemoteRecv(var field : FieldSelection, var neighbor : NeighborInfo, var dest : Expression, var numDataPoints : Expression, var datatype : Datatype, var concurrencyId : Int) extends Statement with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = RemoteRecv\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = RemoteRecv\n"
 
   def expand : Output[StatementList] = {
     ListBuffer[Statement](
@@ -100,7 +100,7 @@ case class RemoteRecv(var field : FieldSelection, var neighbor : NeighborInfo, v
 }
 
 case class WaitForTransfer(var field : FieldSelection, var neighbor : NeighborInfo, var direction : String) extends Statement with Expandable {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = WaitForTransfer\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = WaitForTransfer\n"
 
   def expand : Output[Statement] = {
     new ConditionStatement(
@@ -125,7 +125,7 @@ abstract class RemoteTransfers extends Statement with Expandable {
 }
 
 case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)], var start : Boolean, var end : Boolean, var concurrencyId : Int) extends RemoteTransfers {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = RemoteSends\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = RemoteSends\n"
 
   def genCopy(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
     if (Knowledge.comm_useLevelIndependentFcts || (!MPI_DataType.shouldBeUsed(indices) && SimplifyExpression.evalIntegral(indices.getSizeHigher) > 1)) {
@@ -186,7 +186,7 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
 }
 
 case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)], var start : Boolean, var end : Boolean, var concurrencyId : Int) extends RemoteTransfers {
-  override def cpp(out : CppStream) : Unit = out << "NOT VALID ; CLASS = RemoteRecvs\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = RemoteRecvs\n"
 
   def genCopy(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
     if (Knowledge.comm_useLevelIndependentFcts || (!MPI_DataType.shouldBeUsed(indices) && SimplifyExpression.evalIntegral(indices.getSizeHigher) > 1)) {
@@ -247,5 +247,5 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
 }
 
 case class WaitForMPIReq(var request : Expression) extends Statement {
-  override def cpp(out : CppStream) : Unit = out << "waitForMPIReq(&" << request << ");"
+  override def prettyprint(out : PpStream) : Unit = out << "waitForMPIReq(&" << request << ");"
 }

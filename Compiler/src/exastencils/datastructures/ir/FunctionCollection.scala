@@ -15,7 +15,7 @@ class FunctionCollection(var baseName : String,
     for (inc <- internalDependencies) writer.addInternalDependency(inc)
     for (inc <- externalDependencies) writer.addExternalDependency(inc)
 
-    for (func <- functions) writer << func.asInstanceOf[FunctionStatement].cpp_decl
+    for (func <- functions) writer << func.asInstanceOf[FunctionStatement].prettyprint_decl
   }
 
   def printSources = {
@@ -23,7 +23,7 @@ class FunctionCollection(var baseName : String,
       val writer = PrettyprintingManager.getPrinter(s"${baseName}_${f.asInstanceOf[FunctionStatement].name}.cpp")
       writer.addInternalDependency(s"${baseName}.h")
 
-      writer <<< f.cpp
+      writer <<< f.prettyprint
     }
   }
 

@@ -55,7 +55,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
   private val decls = new ArrayStack[(HashMap[String, ArrayBases], String)]()
 
   private def generateName(expr : Expression) : String = {
-    val cpp = new CppStream()
+    val cpp = new PpStream()
     cpp << expr
     return filter(cpp.toString())
   }
