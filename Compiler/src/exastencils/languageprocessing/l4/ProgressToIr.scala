@@ -9,10 +9,13 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures.l4._
 import exastencils.knowledge._
 import scala.collection.immutable.HashSet
+import scala.collection.mutable.HashMap
 
 object ProgressToIr extends DefaultStrategy("ProgressToIr") {
-  var levelCollector = new L4LevelCollector
-  var valueCollector = new L4ValueCollector
+  protected var levelCollector = new L4LevelCollector
+  protected var valueCollector = new L4ValueCollector
+
+  protected var functions = new HashSet[Tuple2[String, Integer]]
 
   override def apply(node : Option[Node] = None) = {
     StateManager.register(levelCollector)
@@ -34,9 +37,13 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
         level.levels.foreach(level => ts ++= doDuplicate(t, level))
       case level : RangeLevelSpecification =>
         for (level <- math.min(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level) to math.max(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level)) {
-          var f = Duplicate(t)
-          f.identifier = new LeveledIdentifier(f.identifier.name, SingleLevelSpecification(level))
-          ts += f
+          if (!functions.contains(t.identifier.name, level)) {
+            var f = Duplicate(t)
+            f.identifier = new LeveledIdentifier(f.identifier.name, SingleLevelSpecification(level))
+            ts += f
+
+            functions += ((f.identifier.name, level))
+          }
         }
       case _ => Logger.error(s"Invalid level specification for Value $t: $level")
     }
@@ -120,6 +127,20 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
     case variable : VariableDeclarationStatement => variable.identifier match {
       case LeveledIdentifier(_, level) => doDuplicate(variable, level)
       case BasicIdentifier(_)          => variable
+    }
+  })
+
+  // find all functions that are defined with an explicit level specification
+  this += new Transformation("FindExplicitlyLeveledFunctions", {
+    case function : FunctionStatement => function.identifier match {
+      case LeveledIdentifier(_, level) => level match {
+        case x : SingleLevelSpecification => {
+          functions += ((function.identifier.name, x.level))
+          function
+        }
+        case _ => function
+      }
+      case _ => function
     }
   })
 
