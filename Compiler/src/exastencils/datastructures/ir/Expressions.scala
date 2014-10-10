@@ -244,8 +244,8 @@ case class DirectFieldAccess(var fieldSelection : FieldSelection, var index : Mu
 case class FieldAccess(var fieldSelection : FieldSelection, var index : MultiIndex) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = FieldAccess\n"
 
-  def linearize : LinearizedFieldAccess = {
-    new LinearizedFieldAccess(fieldSelection, Mapping.resolveMultiIdx(fieldSelection.layout, new MultiIndex(index, fieldSelection.referenceOffset, _ + _)))
+  def expandSpecial() : DirectFieldAccess = {
+    DirectFieldAccess(fieldSelection, index + fieldSelection.referenceOffset)
   }
 }
 

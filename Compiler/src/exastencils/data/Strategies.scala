@@ -36,8 +36,6 @@ object LinearizeFieldAccesses extends DefaultStrategy("Linearizing FieldAccess n
   this += new Transformation("Linearizing", {
     case loop : DirectFieldAccess =>
       loop.linearize
-    case loop : FieldAccess =>
-      loop.linearize
     case loop : ExternalFieldAccess =>
       loop.linearize
   })
@@ -82,6 +80,13 @@ object ResolveSlotOperationsStrategy extends DefaultStrategy("ResolveSlotOperati
 object ResolveContractingLoop extends DefaultStrategy("Resolving ContractingLoop nodes") {
   this += new Transformation("Resolving", {
     case loop : ContractingLoop =>
+      loop.expandSpecial
+  })
+}
+
+object ResolveFieldAccess extends DefaultStrategy("Resolving FieldAccess nodes") {
+  this += new Transformation("Resolving", {
+    case loop : FieldAccess =>
       loop.expandSpecial
   })
 }

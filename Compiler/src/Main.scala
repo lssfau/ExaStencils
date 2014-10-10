@@ -89,6 +89,7 @@ object Main {
     ResolveContractingLoop.apply()
 
     MapStencilAssignments.apply()
+    ResolveFieldAccess.apply()
     if (Knowledge.useFasterExpand)
       ExpandOnePassStrategy.apply()
     else

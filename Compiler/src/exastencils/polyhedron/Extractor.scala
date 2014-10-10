@@ -440,11 +440,6 @@ class Extractor extends Collector {
             index.annotate(SKIP_ANNOT)
             enterFieldAccess(fieldSelection, index)
 
-          case FieldAccess(fieldSelection, index) =>
-            fieldSelection.annotate(SKIP_ANNOT)
-            index.annotate(SKIP_ANNOT)
-            enterFieldAccess(fieldSelection, index, fieldSelection.referenceOffset)
-
           case d : VariableDeclarationStatement =>
             d.dataType.annotate(SKIP_ANNOT)
             enterDecl(d)
@@ -717,7 +712,7 @@ class Extractor extends Collector {
     // nothing to do here...
   }
 
-  private def enterFieldAccess(fSel : FieldSelection, index : MultiIndex, offset : MultiIndex = null) : Unit = {
+  private def enterFieldAccess(fSel : FieldSelection, index : MultiIndex) : Unit = {
 
     val name = new StringBuilder("field")
     name.append('_').append(fSel.field.identifier).append(fSel.field.level)
@@ -727,7 +722,7 @@ class Extractor extends Collector {
       case SlotAccess(_, offset) => name.append('s').append(offset)
       case s                     => name.append(s.prettyprint())
     }
-    enterArrayAccess(name.toString(), if (offset != null) index + offset else index)
+    enterArrayAccess(name.toString(), index)
   }
 
   private def leaveFieldAccess() : Unit = {
