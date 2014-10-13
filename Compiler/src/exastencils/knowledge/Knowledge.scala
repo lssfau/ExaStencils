@@ -148,6 +148,8 @@ object Knowledge {
   var opt_unroll_interleave : Boolean = true // [true|false]
 
   /// BEGIN HACK config options for generating L4 DSL file
+  var l3tmp_generateL4 : Boolean = true // generates a new Layer 4 file using the corresponding filename from Settings; the generated DSL file can is based on the following parameters
+
   /// SPL connected
   var l3tmp_smoother : String = "Jac" // [Jac|GS|RBGS] // the l3tmp_smoother to be generated
   var l3tmp_cgs : String = "CG" // [CG] // the coarse grid solver to be generated
