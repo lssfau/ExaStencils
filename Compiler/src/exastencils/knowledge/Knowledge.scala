@@ -185,7 +185,7 @@ object Knowledge {
   var l3tmp_kelvin_numHaloFrags : Int = 2 // only required for l3tmp_kelvin; number of halo fragments used to implement the open boundary approximation  
 
   /// Student project - Oleg
-  var l3tmp_genAdvancedTimers : Boolean = false // this is to enable the usage of some new, currently highly experimental, timer classes; requires that the timer classes are provided
+  var l3tmp_genAdvancedTimers : Boolean = false // this is to enable the usage of some new, currently highly experimental, timer classes
   var l3tmp_genTimersPerFunction : Boolean = false // generates different timers for each function in the mg cycle
   var l3tmp_genTimersPerLevel : Boolean = false // generates different timers for each (mg) level
   var l3tmp_genTimersForComm : Boolean = false // generates additional timers for the communication
