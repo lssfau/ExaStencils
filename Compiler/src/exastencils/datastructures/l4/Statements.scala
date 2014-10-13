@@ -180,9 +180,9 @@ case class FunctionCallStatement(var call : FunctionCallExpression) extends Stat
   }
 }
 
-case class ConditionalStatement(var expression : Expression, var statements : List[Statement]) extends Statement {
+case class ConditionalStatement(var expression : Expression, var statements : List[Statement], var elsestatements : List[Statement]) extends Statement {
   def progressToIr : ir.ConditionStatement = {
-    new ir.ConditionStatement(expression.progressToIr, statements.map(s => s.progressToIr).to[ListBuffer])
+    new ir.ConditionStatement(expression.progressToIr, statements.map(s => s.progressToIr).to[ListBuffer], elsestatements.map(s => s.progressToIr).to[ListBuffer])
   }
 }
 
