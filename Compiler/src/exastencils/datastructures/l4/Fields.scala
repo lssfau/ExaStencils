@@ -86,9 +86,17 @@ case class LayoutDeclarationStatement(
     for (layout <- layouts) // update total after potentially changing padding
       layout.total = ir.IntegerConstant(layout.evalTotal)
 
+    // support vector data types
     layouts ++= Array(new knowledge.FieldLayoutPerDim(0, 0, 0, datatype.progressToIr.resolveFlattendSize, 0, 0, 0))
 
-    knowledge.FieldLayout(name, level, datatype.progressToIr, layouts, l4_dupComm, l4_ghostComm)
+    // determine reference offset
+    // TODO: this should work for now but may be adapted in the future
+    var refOffset = new ir.MultiIndex
+    for (dim <- 0 until knowledge.Knowledge.dimensionality)
+      refOffset(dim) = ir.IntegerConstant(layouts(dim).idxDupLeftBegin)
+    refOffset(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(0)
+
+    knowledge.FieldLayout(name, level, datatype.progressToIr, layouts, refOffset, l4_dupComm, l4_ghostComm)
   }
 }
 
@@ -104,11 +112,6 @@ case class FieldDeclarationStatement(
     val level = identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level
     val ir_layout = knowledge.FieldLayoutCollection.getFieldLayoutByIdentifier(layout, level).get
 
-    var refOffset = new ir.MultiIndex // TODO: this should work for now but may be adapted in the future
-    for (dim <- 0 until knowledge.Knowledge.dimensionality)
-      refOffset(dim) = ir.IntegerConstant(ir_layout(dim).idxDupLeftBegin)
-    refOffset(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(0)
-
     new knowledge.Field(
       identifier.name,
       index,
@@ -117,7 +120,6 @@ case class FieldDeclarationStatement(
       ir_layout,
       level,
       slots,
-      refOffset,
       if (boundary.isDefined) Some(boundary.get.progressToIr) else None)
   }
 }
@@ -142,15 +144,6 @@ case class ExternalFieldDeclarationStatement(
     val level = correspondingField.level.asInstanceOf[SingleLevelSpecification].level
     val ir_layout = knowledge.FieldLayoutCollection.getFieldLayoutByIdentifier(extLayout, level).get
 
-    var refOffset = new ir.MultiIndex // TODO: this should work for now but may be adapted in the future
-    for (dim <- 0 until knowledge.Knowledge.dimensionality)
-      refOffset(dim) = ir.IntegerConstant(ir_layout(dim).idxDupLeftBegin)
-    refOffset(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(0)
-
-    new knowledge.ExternalField(extIdentifier,
-      correspondingField.resolveField,
-      ir_layout,
-      level,
-      refOffset)
+    new knowledge.ExternalField(extIdentifier, correspondingField.resolveField, ir_layout, level)
   }
 }
