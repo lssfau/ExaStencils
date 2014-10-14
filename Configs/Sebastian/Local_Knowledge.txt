@@ -25,4 +25,4 @@ opt_useAddressPrecalc		= false
 opt_vectorize				= false
 opt_unroll					= 1
 
-l3tmp_generateL4			= false
+l3tmp_generateL4			= true
