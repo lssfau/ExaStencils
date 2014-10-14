@@ -7,6 +7,14 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 
+case class FieldLayout(
+    var identifier : String, // will be used to find the field
+    var level : Int, // the (geometric) level the layout is associated with 
+    var layoutsPerDim : Array[FieldLayoutPerDim] // represents the number of data points and their distribution in each dimension
+    ) {
+  def apply(dim : Int) = layoutsPerDim(dim)
+}
+
 case class FieldLayoutPerDim(
     var numPadLayersLeft : Int, // number of padding data points added to the left (/ lower / front) side of the field
     var numGhostLayersLeft : Int, // number of ghost data points added to the left (/ lower / front) side of the field used for communication
@@ -62,13 +70,23 @@ case class FieldLayoutPerDim(
   }
 }
 
+object FieldLayoutCollection {
+  var fieldLayouts : ListBuffer[FieldLayout] = ListBuffer()
+
+  def getFieldLayoutByIdentifier(identifier : String, level : Int, suppressError : Boolean = false) : Option[FieldLayout] = {
+    val ret = fieldLayouts.find(f => f.identifier == identifier && f.level == level)
+    if (!suppressError && ret.isEmpty) warn(s"FieldLayout $identifier on level $level was not found")
+    ret
+  }
+}
+
 case class Field(
     var identifier : String, // will be used to find the field
     var index : Int, // (consecutive) index of the field, can be used as array subscript
     var domain : Domain, // the (sub)domain the field lives on
     var codeName : String, // will be used in the generated source code
     var dataType : Datatype, // represents the data type; thus it can also encode the dimensionality when using e.g. vector fields
-    var layout : Array[FieldLayoutPerDim], // represents the number of data points and their distribution in each dimension
+    var fieldLayout : FieldLayout, // represents the number of data points and their distribution in each dimension
     var communicatesDuplicated : Boolean, // specifies if duplicated values need to be exchanged between processes
     var communicatesGhosts : Boolean, // specifies if ghost layer values need to be exchanged between processes
     var level : Int, // the (geometric) level the field lives on 
@@ -89,7 +107,7 @@ case class FieldSelection(
   // shortcuts to Field members
   def codeName = field.codeName
   def dataType = field.dataType
-  def layout = field.layout
+  def fieldLayout = field.fieldLayout
   def referenceOffset = field.referenceOffset
 
   // other shortcuts
@@ -109,7 +127,7 @@ object FieldCollection {
 case class ExternalField(
   var identifier : String, // will be used to find the field
   var targetField : Field, // the (internal) field to be copied to/ from
-  var layout : Array[FieldLayoutPerDim], // represents the number of data points and their distribution in each dimension
+  var fieldLayout : FieldLayout, // represents the number of data points and their distribution in each dimension
   var level : Int, // the (geometric) level the field lives on 
   var referenceOffset : MultiIndex // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
   ) {}

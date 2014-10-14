@@ -41,22 +41,22 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         val target = communicateStatement.targets.find(t => "all" == t.target).get
         commDup = true
         dupBegin = target.begin.getOrElse(new MultiIndex(Array.fill(Knowledge.dimensionality)(0)))
-        dupEnd = target.end.getOrElse(new MultiIndex((0 until Knowledge.dimensionality).toArray.map(dim => communicateStatement.field.layout(dim).numDupLayersLeft)))
+        dupEnd = target.end.getOrElse(new MultiIndex((0 until Knowledge.dimensionality).toArray.map(dim => communicateStatement.field.fieldLayout(dim).numDupLayersLeft)))
         commGhost = true
         ghostBegin = target.begin.getOrElse(new MultiIndex(Array.fill(Knowledge.dimensionality)(0)))
-        ghostEnd = target.end.getOrElse(new MultiIndex((0 until Knowledge.dimensionality).toArray.map(dim => communicateStatement.field.layout(dim).numGhostLayersLeft)))
+        ghostEnd = target.end.getOrElse(new MultiIndex((0 until Knowledge.dimensionality).toArray.map(dim => communicateStatement.field.fieldLayout(dim).numGhostLayersLeft)))
       }
       if (communicateStatement.targets.exists(t => "dup" == t.target)) {
         val target = communicateStatement.targets.find(t => "dup" == t.target).get
         commDup = true
         dupBegin = target.begin.getOrElse(new MultiIndex(Array.fill(Knowledge.dimensionality)(0)))
-        dupEnd = target.end.getOrElse(new MultiIndex((0 until Knowledge.dimensionality).toArray.map(dim => communicateStatement.field.layout(dim).numDupLayersLeft)))
+        dupEnd = target.end.getOrElse(new MultiIndex((0 until Knowledge.dimensionality).toArray.map(dim => communicateStatement.field.fieldLayout(dim).numDupLayersLeft)))
       }
       if (communicateStatement.targets.exists(t => "ghost" == t.target)) {
         val target = communicateStatement.targets.find(t => "ghost" == t.target).get
         commGhost = true
         ghostBegin = target.begin.getOrElse(new MultiIndex(Array.fill(Knowledge.dimensionality)(0)))
-        ghostEnd = target.end.getOrElse(new MultiIndex((0 until Knowledge.dimensionality).toArray.map(dim => communicateStatement.field.layout(dim).numGhostLayersLeft)))
+        ghostEnd = target.end.getOrElse(new MultiIndex((0 until Knowledge.dimensionality).toArray.map(dim => communicateStatement.field.fieldLayout(dim).numGhostLayersLeft)))
       }
 
       val functionName = ((if (Knowledge.comm_useLevelIndependentFcts)

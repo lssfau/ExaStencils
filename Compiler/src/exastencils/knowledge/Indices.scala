@@ -25,7 +25,7 @@ case class IndexRange(var begin : MultiIndex = new MultiIndex, var end : MultiIn
 }
 
 object Mapping {
-  def resolveMultiIdx(layout : Array[FieldLayoutPerDim], index : MultiIndex) : Expression = {
+  def resolveMultiIdx(layout : FieldLayout, index : MultiIndex) : Expression = {
     val ret = Knowledge.dimensionality match {
       case 0 => (index(0))
       case 1 => (index(1) * layout(0).total + index(0))
@@ -84,18 +84,18 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean) extends
     ListBuffer[Statement](
       VariableDeclarationStatement(new RealDatatype, "xPos", Some(
         (if (directCoords) ("x" - field.referenceOffset.index_0) else ("x" : Expression))
-          / FloatConstant(field.layout(0).idxDupRightEnd - field.layout(0).idxDupLeftBegin - 1)
+          / FloatConstant(field.fieldLayout(0).idxDupRightEnd - field.fieldLayout(0).idxDupLeftBegin - 1)
           * (ArrayAccess(iv.PrimitivePositionEnd(), 0) - ArrayAccess(iv.PrimitivePositionBegin(), 0)) + ArrayAccess(iv.PrimitivePositionBegin(), 0))),
       if (Knowledge.dimensionality > 1)
         VariableDeclarationStatement(new RealDatatype, "yPos", Some(
         (if (directCoords) ("y" - field.referenceOffset.index_1) else ("y" : Expression))
-          / FloatConstant(field.layout(1).idxDupRightEnd - field.layout(1).idxDupLeftBegin - 1)
+          / FloatConstant(field.fieldLayout(1).idxDupRightEnd - field.fieldLayout(1).idxDupLeftBegin - 1)
           * (ArrayAccess(iv.PrimitivePositionEnd(), 1) - ArrayAccess(iv.PrimitivePositionBegin(), 1)) + ArrayAccess(iv.PrimitivePositionBegin(), 1)))
       else NullStatement,
       if (Knowledge.dimensionality > 2)
         VariableDeclarationStatement(new RealDatatype, "zPos", Some(
         (if (directCoords) ("z" - field.referenceOffset.index_2) else ("z" : Expression))
-          / FloatConstant(field.layout(2).idxDupRightEnd - field.layout(2).idxDupLeftBegin - 1)
+          / FloatConstant(field.fieldLayout(2).idxDupRightEnd - field.fieldLayout(2).idxDupLeftBegin - 1)
           * (ArrayAccess(iv.PrimitivePositionEnd(), 2) - ArrayAccess(iv.PrimitivePositionBegin(), 2)) + ArrayAccess(iv.PrimitivePositionBegin(), 2)))
       else NullStatement)
   }

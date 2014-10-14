@@ -80,11 +80,11 @@ case class MPI_DataType(var field : FieldSelection, var indices : IndexRange) ex
   if (1 == SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2))) {
     count = SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1)).toInt
     blocklen = SimplifyExpression.evalIntegral(indices.end(0) - indices.begin(0)).toInt
-    stride = field.layout(0).evalTotal
+    stride = field.fieldLayout(0).evalTotal
   } else if (1 == SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1))) {
     count = SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2)).toInt
     blocklen = SimplifyExpression.evalIntegral(indices.end(0) - indices.begin(0)).toInt
-    stride = field.layout(0).evalTotal * field.layout(1).evalTotal
+    stride = field.fieldLayout(0).evalTotal * field.fieldLayout(1).evalTotal
   }
 
   def generateName : String = {
@@ -130,14 +130,14 @@ case class InitMPIDataType(mpiTypeName : String, field : Field, indexRange : Ind
       ListBuffer[Statement](s"MPI_Type_vector(" ~
         (indexRange.end(1) - indexRange.begin(1) + 1) ~ ", " ~
         (indexRange.end(0) - indexRange.begin(0) + 1) ~ ", " ~
-        (field.layout(0).total) ~
+        (field.fieldLayout(0).total) ~
         s", MPI_DOUBLE, &$mpiTypeName)",
         s"MPI_Type_commit(&$mpiTypeName)")
     } else if (indexRange.begin(1) == indexRange.end(1)) {
       ListBuffer[Statement](s"MPI_Type_vector(" ~
         (indexRange.end(2) - indexRange.begin(2) + 1) ~ ", " ~
         (indexRange.end(0) - indexRange.begin(0) + 1) ~ ", " ~
-        (field.layout(0).total * field.layout(1).total) ~
+        (field.fieldLayout(0).total * field.fieldLayout(1).total) ~
         s", MPI_DOUBLE, &$mpiTypeName)",
         s"MPI_Type_commit(&$mpiTypeName)")
     } else return ListBuffer[Statement]()

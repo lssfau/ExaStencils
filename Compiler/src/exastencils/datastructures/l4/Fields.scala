@@ -7,11 +7,11 @@ import exastencils.knowledge
 case class LayoutOption(var name : String, var value : Index, var hasCommunication : Option[Boolean]) extends Node
 
 case class LayoutDeclarationStatement(var name : String,
-                                      var ghostLayers : Option[Index] = None,
-                                      var ghostLayersCommunication : Option[Boolean] = None,
-                                      var duplicateLayers : Option[Index] = None,
-                                      var duplicateLayersCommunication : Option[Boolean] = None,
-                                      var innerPoints : Option[Index] = None) extends Node {
+    var ghostLayers : Option[Index] = None,
+    var ghostLayersCommunication : Option[Boolean] = None,
+    var duplicateLayers : Option[Index] = None,
+    var duplicateLayersCommunication : Option[Boolean] = None,
+    var innerPoints : Option[Index] = None) extends Node {
 
   def set(options : List[LayoutOption]) : Unit = { options.foreach(set(_)) }
 
@@ -48,7 +48,7 @@ case class LayoutDeclarationStatement(var name : String,
   var default_dupComm : Boolean = false
   var l4_dupComm : Boolean = default_dupComm
 
-  def progressToIr(level : Int) : Array[knowledge.FieldLayoutPerDim] = {
+  def progressToIr(level : Int) : knowledge.FieldLayout = {
     l4_ghostLayers = ghostLayers.getOrElse(default_ghostLayers)
     l4_duplicateLayers = duplicateLayers.getOrElse(new Index3D(1, 1, 1))
 
@@ -84,23 +84,23 @@ case class LayoutDeclarationStatement(var name : String,
     for (layout <- layouts) // update total after potentially changing padding
       layout.total = ir.IntegerConstant(layout.evalTotal)
 
-    return layouts
+    knowledge.FieldLayout(name, level, layouts)
   }
 }
 
 case class FieldDeclarationStatement(var identifier : Identifier,
-                                     var datatype : Datatype,
-                                     var domain : String,
-                                     var layout : String,
-                                     var boundary : Option[Expression],
-                                     var slots : Integer,
-                                     var index : Int = 0) extends SpecialStatement with HasIdentifier {
+    var datatype : Datatype,
+    var domain : String,
+    var layout : String,
+    var boundary : Option[Expression],
+    var slots : Integer,
+    var index : Int = 0) extends SpecialStatement with HasIdentifier {
 
   override def progressToIr : knowledge.Field = {
     val l4_layout = StateManager.root_.asInstanceOf[Root].getLayoutByIdentifier(layout).get
 
     var ir_layout = l4_layout.progressToIr(identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level)
-    ir_layout ++= Array(new knowledge.FieldLayoutPerDim(0, 0, 0, datatype.progressToIr.resolveFlattendSize, 0, 0, 0))
+    ir_layout.layoutsPerDim ++= Array(new knowledge.FieldLayoutPerDim(0, 0, 0, datatype.progressToIr.resolveFlattendSize, 0, 0, 0))
 
     var refOffset = new ir.MultiIndex // TODO: this should work for now but may be adapted in the future
     for (dim <- 0 until knowledge.Knowledge.dimensionality)
@@ -116,7 +116,7 @@ case class FieldDeclarationStatement(var identifier : Identifier,
       ir_layout,
       l4_layout.l4_dupComm,
       l4_layout.l4_ghostComm,
-      identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level,//level.get.asInstanceOf[SingleLevelSpecification].level,
+      identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level, //level.get.asInstanceOf[SingleLevelSpecification].level,
       slots,
       refOffset,
       if (boundary.isDefined) Some(boundary.get.progressToIr) else None)
@@ -124,8 +124,8 @@ case class FieldDeclarationStatement(var identifier : Identifier,
 }
 
 case class StencilFieldDeclarationStatement(var identifier : Identifier,
-                                            var fieldName : String,
-                                            var stencilName : String) extends ExternalDeclarationStatement with HasIdentifier {
+    var fieldName : String,
+    var stencilName : String) extends ExternalDeclarationStatement with HasIdentifier {
   def progressToIr : knowledge.StencilField = {
     new knowledge.StencilField(identifier.name,
       knowledge.FieldCollection.getFieldByIdentifier(fieldName, identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level).get,

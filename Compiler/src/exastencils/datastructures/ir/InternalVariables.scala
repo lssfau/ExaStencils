@@ -331,7 +331,7 @@ case class IndexFromField(var fieldIdentifier : String, var level : Expression, 
       if (field.isDefined) {
         statements += AssignmentStatement(resolveAccess(resolveName, NullExpression, NullExpression, fieldIdentifier, level, NullExpression),
           s"Vec${Knowledge.dimensionality}i(${
-            (0 until Knowledge.dimensionality).map(i => field.get.layout(i).idxById(indexId).prettyprint).mkString(", ")
+            (0 until Knowledge.dimensionality).map(i => field.get.fieldLayout(i).idxById(indexId).prettyprint).mkString(", ")
           })")
       }
     }

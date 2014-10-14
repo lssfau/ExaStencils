@@ -21,8 +21,8 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
       statements += new LoopOverFragments(
         new ConditionStatement(iv.IsValidForSubdomain(field.domain.index),
           new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
-            new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => field.layout(i).idxGhostLeftBegin)),
-            new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => field.layout(i).idxGhostRightEnd))),
+            new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => field.fieldLayout(i).idxGhostLeftBegin)),
+            new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => field.fieldLayout(i).idxGhostRightEnd))),
             (0 until field.numSlots).to[ListBuffer].map(slot =>
               new AssignmentStatement(
                 new DirectFieldAccess(FieldSelection(field, field.level, slot, -1), LoopOverDimensions.defIt),

@@ -21,7 +21,7 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
     if (Knowledge.comm_useLevelIndependentFcts)
       ArrayAccess(iv.IndexFromField(fieldSelection.field.identifier, "level", indexId), dim)
     else
-      fieldSelection.field.layout(dim).idxById(indexId)
+      fieldSelection.field.fieldLayout(dim).idxById(indexId)
   }
 
   def vecFieldIndexBegin = {
@@ -43,7 +43,7 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
     val updatedFieldSelection = if (Knowledge.comm_useLevelIndependentFcts) {
       val updatedFieldSelection = Duplicate(fieldSelection)
       for (dim <- 0 until Knowledge.dimensionality)
-        updatedFieldSelection.field.layout(dim).total = ArrayAccess(iv.IndexFromField(fieldSelection.field.identifier, "level", "TOT"), dim)
+        updatedFieldSelection.field.fieldLayout(dim).total = ArrayAccess(iv.IndexFromField(fieldSelection.field.identifier, "level", "TOT"), dim)
       updatedFieldSelection.level = "level"
       updatedFieldSelection
     } else {
@@ -283,7 +283,7 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
     // sync duplicate values
     if (dupLayerExch && field.communicatesDuplicated) {
       val concurrencyId = (if (begin && finish) 0 else 0)
-      if (field.layout.foldLeft(0)((old : Int, l) => old max l.numDupLayersLeft max l.numDupLayersRight) > 0) {
+      if (field.fieldLayout.layoutsPerDim.foldLeft(0)((old : Int, l) => old max l.numDupLayersLeft max l.numDupLayersRight) > 0) {
         Knowledge.comm_strategyFragment match {
           case 6 => {
             for (dim <- 0 until Knowledge.dimensionality) {
@@ -330,7 +330,7 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
     // update ghost layers
     if (ghostLayerExch && field.communicatesGhosts) {
       val concurrencyId = (if (begin && finish) 0 else 1)
-      if (field.layout.foldLeft(0)((old : Int, l) => old max l.numGhostLayersLeft max l.numGhostLayersRight) > 0) {
+      if (field.fieldLayout.layoutsPerDim.foldLeft(0)((old : Int, l) => old max l.numGhostLayersLeft max l.numGhostLayersRight) > 0) {
         Knowledge.comm_strategyFragment match {
           case 6 => {
             for (dim <- 0 until Knowledge.dimensionality) {

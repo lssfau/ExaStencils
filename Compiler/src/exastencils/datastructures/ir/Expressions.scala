@@ -237,7 +237,7 @@ case class DirectFieldAccess(var fieldSelection : FieldSelection, var index : Mu
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = FieldAccess\n"
 
   def linearize : LinearizedFieldAccess = {
-    new LinearizedFieldAccess(fieldSelection, Mapping.resolveMultiIdx(fieldSelection.layout, index))
+    new LinearizedFieldAccess(fieldSelection, Mapping.resolveMultiIdx(fieldSelection.fieldLayout, index))
   }
 }
 
@@ -253,7 +253,7 @@ case class ExternalFieldAccess(var name : Expression, var field : ExternalField,
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ExternalFieldAccess\n"
 
   def linearize : ArrayAccess = {
-    new ArrayAccess(name, Mapping.resolveMultiIdx(field.layout, index))
+    new ArrayAccess(name, Mapping.resolveMultiIdx(field.fieldLayout, index))
   }
 }
 

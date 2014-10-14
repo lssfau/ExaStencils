@@ -138,8 +138,8 @@ case class LoopOverPointsInOneFragment(var domain : Int, var field : Field,
     var start = new MultiIndex()
     var stop = new MultiIndex()
     for (i <- 0 until Knowledge.dimensionality) {
-      start(i) = OffsetIndex(0, 1, field.layout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), i))
-      stop(i) = OffsetIndex(-1, 0, field.layout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), i))
+      start(i) = OffsetIndex(0, 1, field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), i))
+      stop(i) = OffsetIndex(-1, 0, field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), i))
     }
 
     var indexRange = IndexRange(start, stop)

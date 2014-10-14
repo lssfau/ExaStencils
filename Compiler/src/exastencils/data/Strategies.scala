@@ -140,7 +140,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       cleanedField.slot = "slot"
       cleanedField.fragmentIdx = LoopOverFragments.defIt
 
-      var numDataPoints : Expression = field.field.layout.map(l => l.total).reduceLeft(_ * _) * field.field.dataType.resolveFlattendSize
+      var numDataPoints : Expression = field.field.fieldLayout.layoutsPerDim.map(l => l.total).reduceLeft(_ * _) * field.field.dataType.resolveFlattendSize
       var statements : ListBuffer[Statement] = ListBuffer()
       for (slot <- 0 until field.field.numSlots) {
         val newFieldData = Duplicate(cleanedField)
