@@ -6,7 +6,9 @@ import exastencils.knowledge
 
 case class LayoutOption(var name : String, var value : Index, var hasCommunication : Option[Boolean]) extends Node
 
-case class LayoutDeclarationStatement(var name : String,
+case class LayoutDeclarationStatement(
+    var name : String,
+    var datatype : Datatype,
     var ghostLayers : Option[Index] = None,
     var ghostLayersCommunication : Option[Boolean] = None,
     var duplicateLayers : Option[Index] = None,
@@ -66,7 +68,7 @@ case class LayoutDeclarationStatement(var name : String,
     l4_ghostComm = ghostLayersCommunication.getOrElse(default_ghostComm)
     l4_dupComm = duplicateLayersCommunication.getOrElse(default_dupComm)
 
-    val layouts : Array[knowledge.FieldLayoutPerDim] =
+    var layouts : Array[knowledge.FieldLayoutPerDim] =
       knowledge.DimArray().map(dim => new knowledge.FieldLayoutPerDim(
         0, // default, only first requires != 0
         l4_ghostLayers(dim),
@@ -84,12 +86,14 @@ case class LayoutDeclarationStatement(var name : String,
     for (layout <- layouts) // update total after potentially changing padding
       layout.total = ir.IntegerConstant(layout.evalTotal)
 
-    knowledge.FieldLayout(name, level, layouts)
+    layouts ++= Array(new knowledge.FieldLayoutPerDim(0, 0, 0, datatype.progressToIr.resolveFlattendSize, 0, 0, 0))
+
+    knowledge.FieldLayout(name, level, datatype.progressToIr, layouts, l4_dupComm, l4_ghostComm)
   }
 }
 
-case class FieldDeclarationStatement(var identifier : Identifier,
-    var datatype : Datatype,
+case class FieldDeclarationStatement(
+    var identifier : Identifier,
     var domain : String,
     var layout : String,
     var boundary : Option[Expression],
@@ -97,10 +101,8 @@ case class FieldDeclarationStatement(var identifier : Identifier,
     var index : Int = 0) extends SpecialStatement with HasIdentifier {
 
   override def progressToIr : knowledge.Field = {
-    val l4_layout = StateManager.root_.asInstanceOf[Root].getLayoutByIdentifier(layout).get
-
-    var ir_layout = l4_layout.progressToIr(identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level)
-    ir_layout.layoutsPerDim ++= Array(new knowledge.FieldLayoutPerDim(0, 0, 0, datatype.progressToIr.resolveFlattendSize, 0, 0, 0))
+    val level = identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level
+    val ir_layout = knowledge.FieldLayoutCollection.getFieldLayoutByIdentifier(layout, level).get
 
     var refOffset = new ir.MultiIndex // TODO: this should work for now but may be adapted in the future
     for (dim <- 0 until knowledge.Knowledge.dimensionality)
@@ -112,18 +114,16 @@ case class FieldDeclarationStatement(var identifier : Identifier,
       index,
       knowledge.DomainCollection.getDomainByIdentifier(domain).get,
       identifier.name.toLowerCase + "Data_" + identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level,
-      datatype.progressToIr,
       ir_layout,
-      l4_layout.l4_dupComm,
-      l4_layout.l4_ghostComm,
-      identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level, //level.get.asInstanceOf[SingleLevelSpecification].level,
+      level,
       slots,
       refOffset,
       if (boundary.isDefined) Some(boundary.get.progressToIr) else None)
   }
 }
 
-case class StencilFieldDeclarationStatement(var identifier : Identifier,
+case class StencilFieldDeclarationStatement(
+    var identifier : Identifier,
     var fieldName : String,
     var stencilName : String) extends ExternalDeclarationStatement with HasIdentifier {
   def progressToIr : knowledge.StencilField = {
@@ -139,14 +139,18 @@ case class ExternalFieldDeclarationStatement(
     var extLayout : String) extends ExternalDeclarationStatement {
 
   override def progressToIr : knowledge.ExternalField = {
-    val l4_layout = StateManager.root_.asInstanceOf[Root].getLayoutByIdentifier(extLayout).get
-    val ir_layout = l4_layout.progressToIr(correspondingField.level.asInstanceOf[SingleLevelSpecification].level)
+    val level = correspondingField.level.asInstanceOf[SingleLevelSpecification].level
+    val ir_layout = knowledge.FieldLayoutCollection.getFieldLayoutByIdentifier(extLayout, level).get
+
+    var refOffset = new ir.MultiIndex // TODO: this should work for now but may be adapted in the future
+    for (dim <- 0 until knowledge.Knowledge.dimensionality)
+      refOffset(dim) = ir.IntegerConstant(ir_layout(dim).idxDupLeftBegin)
+    refOffset(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(0)
 
     new knowledge.ExternalField(extIdentifier,
       correspondingField.resolveField,
       ir_layout,
-      correspondingField.level.asInstanceOf[SingleLevelSpecification].level,
-      l4_layout.l4_ghostLayers.progressToIr // TODO: this should work for now but may be adapted in the future)
-      )
+      level,
+      refOffset)
   }
 }

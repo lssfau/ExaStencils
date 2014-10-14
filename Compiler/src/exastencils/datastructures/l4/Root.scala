@@ -10,7 +10,7 @@ import exastencils.multiGrid._
 case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
 
   var domains : ListBuffer[DomainDeclarationStatement] = new ListBuffer()
-  var layouts : ListBuffer[LayoutDeclarationStatement] = new ListBuffer()
+  var fieldLayouts : ListBuffer[LayoutDeclarationStatement] = new ListBuffer()
   var fields : ListBuffer[FieldDeclarationStatement] = new ListBuffer()
   var stencilFields : ListBuffer[StencilFieldDeclarationStatement] = new ListBuffer()
   var externalFields : ListBuffer[ExternalFieldDeclarationStatement] = new ListBuffer()
@@ -22,7 +22,7 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
   {
     nodes.foreach(n => n match {
       case p : DomainDeclarationStatement        => domains.+=(p)
-      case p : LayoutDeclarationStatement        => layouts.+=(p)
+      case p : LayoutDeclarationStatement        => fieldLayouts.+=(p)
       case p : FieldDeclarationStatement         => fields.+=(p)
       case p : StencilFieldDeclarationStatement  => stencilFields.+=(p)
       case p : ExternalFieldDeclarationStatement => externalFields.+=(p)
@@ -46,24 +46,24 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
     }
   }
 
-  def getDomainByIdentifier(identifier : String) : Option[DomainDeclarationStatement] = {
-    val ret = domains.find(d => d.name == identifier)
-    if (ret.isEmpty) warn(s"L4 domain $identifier was not found")
-    ret
-
-  }
-
-  def getLayoutByIdentifier(identifier : String) : Option[LayoutDeclarationStatement] = {
-    val ret = layouts.find(l => l.name == identifier)
-    if (ret.isEmpty) warn(s"L4 layout $identifier was not found")
-    ret
-  }
-
-  def getFieldByIdentifier(identifier : String, level : Int) : Option[FieldDeclarationStatement] = {
-    val ret = fields.find(f => f.identifier.name == identifier && (f.identifier match { case l: LeveledIdentifier => l.level.asInstanceOf[SingleLevelSpecification].level == level case _ => -1 == level }))
-    if (ret.isEmpty) warn(s"L4 field $identifier on level $level was not found")
-    ret
-  }
+  //  def getDomainByIdentifier(identifier : String) : Option[DomainDeclarationStatement] = {
+  //    val ret = domains.find(d => d.name == identifier)
+  //    if (ret.isEmpty) warn(s"L4 domain $identifier was not found")
+  //    ret
+  //
+  //  }
+  //
+  //  def getLayoutByIdentifier(identifier : String) : Option[LayoutDeclarationStatement] = {
+  //    val ret = layouts.find(l => l.name == identifier)
+  //    if (ret.isEmpty) warn(s"L4 layout $identifier was not found")
+  //    ret
+  //  }
+  //
+  //  def getFieldByIdentifier(identifier : String, level : Int) : Option[FieldDeclarationStatement] = {
+  //    val ret = fields.find(f => f.identifier.name == identifier && (f.identifier match { case l: LeveledIdentifier => l.level.asInstanceOf[SingleLevelSpecification].level == level case _ => -1 == level }))
+  //    if (ret.isEmpty) warn(s"L4 field $identifier on level $level was not found")
+  //    ret
+  //  }
 
   def progressToIr : Node = {
     var newRoot = new ir.Root
@@ -73,7 +73,13 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
     for (domain <- domains)
       DomainCollection.domains += domain.progressToIr
 
-    // Fields => requires Domains
+    // FieldLayouts
+    FieldLayoutCollection.fieldLayouts.clear
+    for (fieldLayout <- fieldLayouts)
+      for (lev <- 0 until Knowledge.numLevels) // TODO: declare leveled
+        FieldLayoutCollection.fieldLayouts += fieldLayout.progressToIr(lev)
+
+    // Fields => requires Domains and FieldLayouts
     FieldCollection.fields.clear
     for (field <- fields)
       FieldCollection.fields += field.progressToIr

@@ -173,14 +173,15 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val iterationSet = locationize(("Set" ~> identifierWithOptionalLevel) ~ expressionIndex ~ ("-" ~> expressionIndex).? ~ ("steps" ~> expressionIndex).? ~ ("with" ~> booleanexpression).?
     ^^ { case id ~ begin ~ end ~ inc ~ cond => IterationSetDeclarationStatement(id, begin, end, inc, cond) })
 
-  lazy val layout = locationize(("Layout" ~> ident) ~ ("{" ~> layoutOptions <~ "}") ^^ { case id ~ opts => var x = LayoutDeclarationStatement(id); x.set(opts); x })
+  lazy val layout = locationize(("Layout" ~> ident) ~ ("<" ~> datatype <~ ">") ~ ("{" ~> layoutOptions <~ "}")
+    ^^ { case id ~ dt ~ opts => var x = LayoutDeclarationStatement(id, dt); x.set(opts); x })
   lazy val layoutOptions = (
     (layoutOption <~ ",").* ~ layoutOption ^^ { case opts ~ opt => opts.::(opt) }
     ||| layoutOption.+)
   lazy val layoutOption = locationize((ident <~ "=") ~ index ~ ("with" ~ "communication").? ^^ { case id ~ idx ~ comm => LayoutOption(id, idx, Some(comm.isDefined)) })
 
-  lazy val field = locationize(("Field" ~> ident) ~ "<" ~ datatype ~ ("," ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ level.?
-    ^^ { case id ~ _ ~ dt ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level => FieldDeclarationStatement(if (level.isDefined) LeveledIdentifier(id, level.get) else BasicIdentifier(id), dt, domain, layout, boundary, slots.getOrElse(1).toInt) })
+  lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ level.?
+    ^^ { case id ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level => FieldDeclarationStatement(if (level.isDefined) LeveledIdentifier(id, level.get) else BasicIdentifier(id), domain, layout, boundary, slots.getOrElse(1).toInt) })
   lazy val fieldBoundary = binaryexpression ^^ { case x => Some(x) } ||| "None" ^^ { case x => None }
 
   lazy val index : PackratParser[Index] = (
