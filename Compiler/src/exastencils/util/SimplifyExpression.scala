@@ -158,7 +158,7 @@ object SimplifyExpression {
         res = new HashMap[Expression, Long]()
         val dividend = recreateExprFromIntSum(extractIntegralSum(l).filter(elem => elem._2 % mod != 0L))
         dividend match {
-          case IntegerConstant(x) => res.put(constName, x % mod)
+          case IntegerConstant(x) => res.put(constName, (x % mod + mod) % mod) // java % != our modulo (symmetric vs mathematical version)
           case _                  => res.put(ModuloExpression(dividend, IntegerConstant(mod)), 1L)
         }
 
