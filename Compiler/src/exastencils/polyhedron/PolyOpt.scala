@@ -1,7 +1,6 @@
 package exastencils.polyhedron
 
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.HashMap
+import scala.collection.mutable.Map
 import scala.collection.mutable.TreeSet
 
 import exastencils.core.Logger
@@ -17,6 +16,7 @@ trait PolyhedronAccessable
 object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   final val SCOP_ANNOT : String = "PolyScop"
+  final val IMPL_CONDITION_ANNOT : String = "ImplCondition"
 
   // FIXME: HACK: only use shipped versions of jna and isl, NO system libraries (prevent version conflicts)
   System.setProperty("jna.nosys", "true")
@@ -97,20 +97,12 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   private def mergeScops(scop : Scop) : Unit = {
 
-//    if (scop.nextMerge != null) { // XXX !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//      var x = scop.nextMerge
-//      while (x.nextMerge != null)
-//        x = x.nextMerge
-//      println("val dom = new isl.UnionSet(\"" + Isl.simplify(x.domain) + "\")")
-//      println()
-//    }
-
     var toMerge : Scop = scop.nextMerge
     var i : Int = 0
     scop.schedule = insertCst(scop.schedule, i)
     while (toMerge != null) {
       i += 1
-      if (scop.reduction != toMerge.reduction) {
+      if (scop.root.reduction != toMerge.root.reduction) {
         Logger.warn("[PolyOpt]  cannot merge two loops with different reduction clauses (maybe a bug in previous generation?)")
         scop.nextMerge = null
         return
@@ -233,10 +225,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   private def handleReduction(scop : Scop) : Unit = {
 
-    if (scop.reduction.isEmpty)
+    if (scop.root.reduction.isEmpty)
       return
 
-    val name : String = Extractor.replaceSpecial(scop.reduction.get.target.prettyprint())
+    val name : String = Extractor.replaceSpecial(scop.root.reduction.get.target.prettyprint())
     val stmts = new TreeSet[String]()
     scop.writes.foreachMap({ map : isl.Map =>
       if (map.getTupleName(isl.DimType.Out) == name)
@@ -263,7 +255,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val iind : Int = dims - 1
     for (i <- 0 until dims) {
       var tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(iind - i) else 1000000000
-//      tileSize = math.min(tileSize, itCount(i).toInt + 20) // TODO: "+ 20" (heuristics)
+      //      tileSize = math.min(tileSize, itCount(i).toInt + 20) // TODO: "+ 20" (heuristics)
       vec = vec.setElementVal(i, tileSize)
     }
     return vec
@@ -329,13 +321,13 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   private def recreateAndInsertAST() : Unit = {
 
-    val replaceCallback = { (repl : HashMap[String, Expression], applyAt : Node) =>
+    val replaceCallback = { (repl : Map[String, Expression], applyAt : Node) =>
       val oldLvl = Logger.getLevel
       Logger.setLevel(1)
       this.execute(
         new Transformation("update loop iterator", {
-          case old @ VariableAccess(str, _) => repl.getOrElse(str, old)
-          case old @ StringConstant(str)    => repl.getOrElse(str, old)
+          case VariableAccess(str, _) if (repl.isDefinedAt(str)) => repl(str)
+          case StringConstant(str) if (repl.isDefinedAt(str))    => repl(str)
         }), Some(applyAt))
       Logger.setLevel(oldLvl)
     }

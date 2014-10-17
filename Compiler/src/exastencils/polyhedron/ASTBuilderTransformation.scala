@@ -3,22 +3,21 @@ package exastencils.polyhedron
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Map
 import scala.collection.mutable.TreeSet
 
-import exastencils.core.Duplicate
-import exastencils.core.Logger
-import exastencils.datastructures.Node
-import exastencils.datastructures.Transformation
+import exastencils.core._
+import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.optimization.OptimizationHint
 import isl.Conversions._
 
-class ASTBuilderTransformation(replaceCallback : (HashMap[String, Expression], Node) => Unit)
+class ASTBuilderTransformation(replaceCallback : (Map[String, Expression], Node) => Unit)
   extends Transformation("insert optimized loop AST", new ASTBuilderFunction(replaceCallback))
 
-private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expression], Node) => Unit)
+private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression], Node) => Unit)
     extends PartialFunction[Node, Transformation.OutputType] {
 
   private final val ZERO_VAL : isl.Val = isl.Val.zero()
@@ -29,6 +28,7 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
   private var seqDims : TreeSet[String] = null
   private var parallelize_omp : Boolean = false
   private var reduction : Option[Reduction] = None
+  private var condition : Expression = null
 
   override def isDefinedAt(node : Node) : Boolean = node match {
     case loop : LoopOverDimensions with PolyhedronAccessable =>
@@ -41,7 +41,8 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
     val scop : Scop = node.removeAnnotation(PolyOpt.SCOP_ANNOT).get.value.asInstanceOf[Scop]
     if (scop.remove)
       return NullStatement
-    reduction = scop.reduction
+    reduction = scop.root.reduction
+    condition = scop.root.condition.getOrElse(null)
 
     // find all sequential loops
     parallelize_omp = scop.parallelize
@@ -207,6 +208,11 @@ private final class ASTBuilderFunction(replaceCallback : (HashMap[String, Expres
           repl.put(loopVars(loopVars.size - d), args(d))
 
         replaceCallback(repl, stmt)
+        if (condition != null) {
+          val cond : Expression = Duplicate(condition)
+          replaceCallback(repl, cond)
+          stmt.annotate(PolyOpt.IMPL_CONDITION_ANNOT, cond)
+        }
         ListBuffer[Statement](stmt)
 
       case isl.AstNodeType.NodeError => throw new PolyASTBuilderException("NodeError found...")
