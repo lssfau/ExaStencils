@@ -194,6 +194,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
     res ++= ctx.preLoopStmts
 
+    // no rollback after this point allowed!
     // reuse oldLoop to preserve all traits
     // set first value (again) to allow omp parallelization
     oldLoop.begin = AssignmentStatement(itVar, upperAligned)
@@ -201,7 +202,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     oldLoop.end = LowerExpression(itVar, SubtractionExpression(upper, IntegerConstant(Knowledge.simd_vectorSize - 1)))
     oldLoop.inc = AssignmentStatement(itVar, IntegerConstant(Knowledge.simd_vectorSize), "+=")
     oldLoop.body = ctx.vectStmts
-    oldLoop.annotate(Unrolling.NO_REM_ANNOT, Knowledge.simd_vectorSize - 1)
+    oldLoop.annotate(Unrolling.NO_REM_ANNOT, Knowledge.simd_vectorSize - 1L)
     if (oldLoop.isInstanceOf[OMP_PotentiallyParallel]) // allow omp parallelization
       oldLoop.asInstanceOf[OMP_PotentiallyParallel].addOMPStatements += "lastprivate(" + itName + ')'
     res += oldLoop

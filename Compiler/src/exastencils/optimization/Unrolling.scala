@@ -39,7 +39,8 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
 
     val loop = node.asInstanceOf[ForLoopStatement with OptimizationHint]
     val annot : Option[Annotation] = node.removeAnnotation(Unrolling.NO_REM_ANNOT)
-    val oldOffset : Int = if (annot.isDefined) annot.get.value.asInstanceOf[Int] else 0
+    val oldOffset : Long = if (annot.isDefined) annot.get.value.asInstanceOf[Long] else 0L
+    var njuOffset : Long = 0
 
     var njuBegin : VariableDeclarationStatement = null
     var njuEnd : Expression = null
@@ -52,8 +53,8 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
       njuIncr = res._1
       itVar = res._2
       oldInc = res._3
-      val offset : Long = oldInc * Knowledge.opt_unroll - 1 - oldOffset
-      njuEnd = updateEnd(loop.end, itVar, offset)
+      njuOffset = oldInc * Knowledge.opt_unroll - 1 - oldOffset
+      njuEnd = updateEnd(loop.end, itVar, njuOffset)
       njuBegin = updateBegin(loop.begin, itVar)
     } catch {
       case UnrollException(msg) =>
@@ -81,6 +82,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     loop.body = duplicateStmts(loop.body, itVar, oldInc, loop.isParallel)
 
     loop.annotate(SKIP_ANNOT)
+    loop.annotate(Unrolling.NO_REM_ANNOT, njuOffset)
     if (njuBegin != null)
       return new Scope(res)
     else
