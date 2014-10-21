@@ -57,9 +57,9 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
 
       val dfa = node.asInstanceOf[DirectFieldAccess]
       val field : Field = dfa.fieldSelection.field
-      val layout : Array[FieldLayoutPerDim] = field.layout
+      val layout : FieldLayout = field.fieldLayout
       val innerD = 0
-      val outerD = layout.length - 1
+      val outerD = layout.layoutsPerDim.length - 1
       var colorOffset = { var ret = Option(updatedFields.get(field)); ret.getOrElse(-1) };
       if (colorOffset <= 0) {
         layout(innerD).numInnerLayers /= 2
