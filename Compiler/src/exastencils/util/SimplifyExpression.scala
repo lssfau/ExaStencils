@@ -139,6 +139,14 @@ object SimplifyExpression {
         for ((name : Expression, value : Long) <- mapL)
           if (value % div == 0L) res.put(name, value / div)
           else tmp.put(name, value)
+        val cstOpt = tmp.remove(constName) // const part in remaining dividend must not be larger then divisor
+        if (cstOpt.isDefined) {
+          val cst = cstOpt.get
+          val cstMod = (cst % div + div) % div // mathematical modulo
+          val cstRes = (cst - cstMod) / div
+          tmp.put(constName, cstMod)
+          res.put(constName, cstRes)
+        }
         val dividend = recreateExprFromIntSum(tmp)
         val (name, update) : (Expression, Long) = dividend match {
           case IntegerConstant(x) => (constName, x / div)
@@ -156,9 +164,13 @@ object SimplifyExpression {
           throw new EvaluationException("only constant divisor allowed")
         val mod : Long = tmp(constName)
         res = new HashMap[Expression, Long]()
-        val dividend = recreateExprFromIntSum(extractIntegralSum(l).filter(elem => elem._2 % mod != 0L))
+        val dividendMap : HashMap[Expression, Long] = extractIntegralSum(l).filter(elem => elem._2 % mod != 0L)
+        val cstOpt = dividendMap.remove(constName) // const part can be reduced
+        if (cstOpt.isDefined)
+          dividendMap.put(constName, (cstOpt.get % mod + mod) % mod) // mathematical modulo
+        val dividend : Expression = recreateExprFromIntSum(dividendMap)
         dividend match {
-          case IntegerConstant(x) => res.put(constName, x % mod)
+          case IntegerConstant(x) => res.put(constName, (x % mod + mod) % mod) // java % != our modulo (symmetric vs mathematical version)
           case _                  => res.put(ModuloExpression(dividend, IntegerConstant(mod)), 1L)
         }
 

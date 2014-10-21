@@ -314,6 +314,7 @@ case class DivisionExpression(var left : Expression, var right : Expression) ext
 }
 
 case class ModuloExpression(var left : Expression, var right : Expression) extends Expression {
+  // assumes "left >= 0"   if not, generate something like "(left%right + right) % right"
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '%' << right << ')'
 }
 

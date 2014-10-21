@@ -37,9 +37,9 @@ Globals {
 
 Function SmootherT() : Unit {
 	loop over fragments {
-		repeat 3 times with contraction {
+		repeat 5 times with contraction {
 			loop over SolutionT@finest {
-				SolutionT[nextSlot]@finest = SolutionT[curSlot]@finest + (1.0 / diag(Laplace@finest) * 0.8 * (RHST@finest - Laplace@finest * SolutionT[curSlot]@finest))
+				SolutionT[nextSlot]@finest = SolutionT[curSlot]@finest + (0.8 / diag(Laplace@finest) * (RHST@finest - Laplace@finest * SolutionT[curSlot]@finest))
 			}
 			advance(SolutionT@finest)
 		}
@@ -48,7 +48,7 @@ Function SmootherT() : Unit {
 Function Smoother() : Unit {
 	loop over fragments {
 		loop over Solution@finest {
-			Solution[nextSlot]@finest = Solution[curSlot]@finest + (1.0 / diag(Laplace@finest) * 0.8 * (RHS@finest - Laplace@finest * Solution[curSlot]@finest))
+			Solution[nextSlot]@finest = Solution[curSlot]@finest + (0.8 / diag(Laplace@finest) * (RHS@finest - Laplace@finest * Solution[curSlot]@finest))
 		}
 		advance(Solution@finest)
 	}
@@ -85,12 +85,12 @@ Function BenchmarkT() : Unit {
 	print('"Starting benchmark (temporal blocking)"')
 	Variable time : Real = 0
 	startTimer(benchTimer)
-	repeat 7 times {
+	repeat 4 times {
 		SmootherT()
 	}
 	stopTimer(benchTimer, time)
 	print('"Runtime: "', time)
-	print('"MLUPs: "', (LUPs() * 21) / time / 1e3)
+	print('"MLUPs: "', (LUPs() * 20) / time / 1e3)
 }
 
 Function Benchmark() : Unit {

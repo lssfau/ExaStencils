@@ -295,7 +295,7 @@ class Extractor extends Collector {
       modelLoopVars : String, setTempl : String, mapTempl : String, mergeWithPrev : Boolean) : Unit = {
 
       this.scop_ = new Scop(root, Knowledge.omp_parallelizeLoopOverDimensions && root.parallelizationIsReasonable,
-        root.reduction, root.maxIterationCount())
+        root.maxIterationCount())
       if (mergeWithPrev)
         scops.last.nextMerge = this.scop_
       this.modelLoopVars_ = modelLoopVars

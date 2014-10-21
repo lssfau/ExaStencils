@@ -82,6 +82,7 @@ object MainStefanSp {
     ResolveContractingLoop.apply()
 
     MapStencilAssignments.apply()
+    ResolveFieldAccess.apply()
     if (Knowledge.useFasterExpand)
       ExpandOnePassStrategy.apply()
     else
@@ -114,7 +115,6 @@ object MainStefanSp {
     TypeInference.apply()
 
     SimplifyFloatExpressions.apply()
-    SimplifyStrategy.doUntilDone()
 
     if (Knowledge.opt_vectorize)
       Vectorization.apply()
@@ -123,6 +123,10 @@ object MainStefanSp {
       Unrolling.apply()
 
     AddInternalVariables.apply()
+    if (Knowledge.useFasterExpand)
+      ExpandOnePassStrategy.apply()
+    else
+      ExpandStrategy.doUntilDone()
 
     if (Knowledge.useMPI)
       AddMPIDatatypes.apply()

@@ -6,7 +6,6 @@ simd_instructionSet			= "AVX"
 dimensionality				= 3
 
 maxLevel					= 8
-numLevels					= 1
 comm_strategyFragment		= 6	// 26
 
 domain_summarizeBlocks		= true
