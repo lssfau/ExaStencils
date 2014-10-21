@@ -60,7 +60,7 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
       val layout : Array[FieldLayoutPerDim] = field.layout
       val innerD = 0
       val outerD = layout.length - 1
-      var colorOffset = updatedFields.getOrDefault(field, -1)
+      var colorOffset = { var ret = Option(updatedFields.get(field)); ret.getOrElse(-1) };
       if (colorOffset <= 0) {
         layout(innerD).numInnerLayers /= 2
         layout(innerD).numInnerLayers += 1
