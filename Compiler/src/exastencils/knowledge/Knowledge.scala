@@ -35,15 +35,15 @@ object Knowledge {
   def domain_canHaveRemoteNeighs : Boolean = (useMPI) // specifies if fragments can have remote (i.e.\ different mpi rank) neighbors, i.e.\ if mpi comm is required
 
   // number of blocks per dimension - one block will usually be mapped to one MPI thread
-  var domain_numBlocks_x : Int = 3 // [0-inf]
-  var domain_numBlocks_y : Int = 3 // [0-inf]
-  var domain_numBlocks_z : Int = 3 // [0-inf]
+  var domain_numBlocks_x : Int = 3 // [1-inf]
+  var domain_numBlocks_y : Int = 3 // [1-inf]
+  var domain_numBlocks_z : Int = 3 // [1-inf]
   def domain_numBlocks : Int = domain_numBlocks_x * domain_numBlocks_y * domain_numBlocks_z
 
   // number of fragments in each block per dimension - this will usually be one or represent the number of OMP threads per dimension
-  var domain_numFragsPerBlock_x : Int = 3 // [0-inf]
-  var domain_numFragsPerBlock_y : Int = 3 // [0-inf]
-  var domain_numFragsPerBlock_z : Int = 3 // [0-inf]
+  var domain_numFragsPerBlock_x : Int = 3 // [1-inf]
+  var domain_numFragsPerBlock_y : Int = 3 // [1-inf]
+  var domain_numFragsPerBlock_z : Int = 3 // [1-inf]
   def domain_numFragsPerBlock : Int = domain_numFragsPerBlock_x * domain_numFragsPerBlock_y * domain_numFragsPerBlock_z
   def domain_numFragsPerBlockPerDim(index : Int) : Int = Array(domain_numFragsPerBlock_x, domain_numFragsPerBlock_y, domain_numFragsPerBlock_z)(index)
 
@@ -135,16 +135,16 @@ object Knowledge {
 
   // --- Polyhedron Optimization ---
   var poly_usePolyOpt : Boolean = false // [true|false]
-  var poly_tileSize_x : Int = 1000000000 // 32-inf // TODO: Alex
-  var poly_tileSize_y : Int = 1000000000 // 16-inf // TODO: Alex
-  var poly_tileSize_z : Int = 1000000000 // 16-inf // TODO: Alex
-  var poly_tileSize_w : Int = 1000000000 // 16-inf // TODO: Alex
+  var poly_tileSize_x : Int = 1000000000 // [32-inf] // TODO: Alex
+  var poly_tileSize_y : Int = 1000000000 // [16-inf] // TODO: Alex
+  var poly_tileSize_z : Int = 1000000000 // [16-inf] // TODO: Alex
+  var poly_tileSize_w : Int = 1000000000 // [16-inf] // TODO: Alex
   var poly_tileOuterLoop : Boolean = false // [true|false] // specify separately if the outermost loop should be tiled
 
   // --- Other Optimizations ---
   var opt_useAddressPrecalc : Boolean = false // [true|false]
   var opt_vectorize : Boolean = false // [true|false]
-  var opt_unroll : Int = 1 // 1-8
+  var opt_unroll : Int = 1 // [1-8]
   var opt_unroll_interleave : Boolean = true // [true|false]
 
   /// BEGIN HACK config options for generating L4 DSL file
