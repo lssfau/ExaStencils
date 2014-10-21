@@ -139,10 +139,12 @@ case class TmpBuffer(var field : Field, var direction : String, var size : Expre
   override def resolveDefValue = Some(0)
 
   override def getDtor() : Option[Statement] = {
-    Some(wrapInLoops(new ConditionStatement(resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx),
-      ListBuffer[Statement](
-        FreeStatement(resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)),
-        new AssignmentStatement(resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx), 0)))))
+    val ptrExpr = resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
+    Some(wrapInLoops(
+      new ConditionStatement(ptrExpr,
+        ListBuffer[Statement](
+          FreeStatement(ptrExpr),
+          new AssignmentStatement(ptrExpr, 0)))))
   }
 }
 
