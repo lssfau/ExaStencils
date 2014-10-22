@@ -19,7 +19,6 @@ L3:
 L4:
 
 - add temporary fields
-- change field layout declarations to leveled
 
 IR:
 - add one distinct communicator per (sub)domain
