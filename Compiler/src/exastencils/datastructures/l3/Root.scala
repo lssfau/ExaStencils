@@ -7,6 +7,8 @@ import exastencils.polyhedron._
 
 case class Root() extends Node {
   def printToL4(filename : String) : Unit = {
+    var file = new java.io.File(filename)
+    if (!file.getParentFile().exists()) file.getParentFile().mkdirs()
     var printer = new java.io.PrintWriter(filename)
 
     if (Knowledge.l3tmp_genAdvancedTimers) {
