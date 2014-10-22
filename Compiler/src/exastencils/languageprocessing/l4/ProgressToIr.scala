@@ -154,6 +154,14 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
 
   // FIXME unfold function calls
 
+  // unfold field layout declarations
+  this += new Transformation("UnfoldLeveledFieldLayoutDeclarations", {
+    case fieldLayout : LayoutDeclarationStatement => fieldLayout.identifier match {
+      case LeveledIdentifier(_, level) => doDuplicate(fieldLayout, level)
+      case BasicIdentifier(_)          => fieldLayout
+    }
+  })
+
   // unfold field declarations
   this += new Transformation("UnfoldLeveledFieldDeclarations", {
     case field : FieldDeclarationStatement => field.identifier match {

@@ -7,13 +7,13 @@ import exastencils.knowledge
 case class LayoutOption(var name : String, var value : Index, var hasCommunication : Option[Boolean]) extends Node
 
 case class LayoutDeclarationStatement(
-    var name : String,
+    var identifier : Identifier,
     var datatype : Datatype,
     var ghostLayers : Option[Index] = None,
     var ghostLayersCommunication : Option[Boolean] = None,
     var duplicateLayers : Option[Index] = None,
     var duplicateLayersCommunication : Option[Boolean] = None,
-    var innerPoints : Option[Index] = None) extends Node {
+    var innerPoints : Option[Index] = None) extends SpecialStatement with HasIdentifier {
 
   def set(options : List[LayoutOption]) : Unit = { options.foreach(set(_)) }
 
@@ -50,7 +50,9 @@ case class LayoutDeclarationStatement(
   var default_dupComm : Boolean = false
   var l4_dupComm : Boolean = default_dupComm
 
-  def progressToIr(level : Int) : knowledge.FieldLayout = {
+  def progressToIr : knowledge.FieldLayout = {
+    val level = identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level
+
     l4_ghostLayers = ghostLayers.getOrElse(default_ghostLayers)
     l4_duplicateLayers = duplicateLayers.getOrElse(new Index3D(1, 1, 1))
 
@@ -96,7 +98,7 @@ case class LayoutDeclarationStatement(
       refOffset(dim) = ir.IntegerConstant(layouts(dim).idxDupLeftBegin)
     refOffset(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(0)
 
-    knowledge.FieldLayout(name, level, datatype.progressToIr, layouts, refOffset, l4_dupComm, l4_ghostComm)
+    knowledge.FieldLayout(identifier.name, level, datatype.progressToIr, layouts, refOffset, l4_dupComm, l4_ghostComm)
   }
 }
 

@@ -76,8 +76,7 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
     // FieldLayouts
     FieldLayoutCollection.fieldLayouts.clear
     for (fieldLayout <- fieldLayouts)
-      for (lev <- 0 until Knowledge.numLevels) // TODO: declare leveled
-        FieldLayoutCollection.fieldLayouts += fieldLayout.progressToIr(lev)
+      FieldLayoutCollection.fieldLayouts += fieldLayout.progressToIr
 
     // Fields => requires Domains and FieldLayouts
     FieldCollection.fields.clear
