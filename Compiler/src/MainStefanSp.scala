@@ -89,9 +89,11 @@ object MainStefanSp {
       ExpandStrategy.doUntilDone()
 
     MergeConditions.apply()
-
-    if (Knowledge.poly_usePolyOpt)
+    if (Knowledge.poly_optLevel_fine > 0)
       PolyOpt.apply()
+
+    if (Knowledge.opt_useColorSplitting)
+      ColorSplitting.apply()
 
     ResolveLoopOverDimensions.apply()
     ResolveSlotOperationsStrategy.apply()

@@ -11,7 +11,7 @@ case class CommunicationFunctions() extends FunctionCollection("CommFunctions/Co
   ListBuffer("cmath")
     ++ (if (Knowledge.useMPI) ListBuffer("mpi.h") else ListBuffer())
     ++ (if (Knowledge.opt_vectorize) ListBuffer("immintrin.h") else ListBuffer())
-    ++ (if (Knowledge.opt_vectorize || Knowledge.poly_usePolyOpt) ListBuffer("algorithm") else ListBuffer()),
+    ++ (if (Knowledge.opt_vectorize || Knowledge.poly_optLevel_fine > 0) ListBuffer("algorithm") else ListBuffer()),
   ListBuffer("Globals/Globals.h", "Util/Vector.h", "MultiGrid/MultiGrid.h"))
 
 case class SetIterationOffset(var location : Expression, var domain : Expression, var fragment : Expression) extends Statement with Expandable {

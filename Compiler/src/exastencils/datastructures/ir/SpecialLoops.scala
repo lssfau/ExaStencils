@@ -145,7 +145,12 @@ case class LoopOverPointsInOneFragment(var domain : Int, var field : Field,
     var indexRange = IndexRange(start, stop)
     SimplifyStrategy.doUntilDoneStandalone(indexRange)
 
-    var ret : Statement = new LoopOverDimensions(Knowledge.dimensionality, indexRange, body, increment, reduction, condition) with OMP_PotentiallyParallel with PolyhedronAccessable
+    val ret = new LoopOverDimensions(Knowledge.dimensionality, indexRange, body, increment, reduction, condition) with OMP_PotentiallyParallel with PolyhedronAccessable
+    ret.optLevel =
+      if (Knowledge.maxLevel - field.level < Knowledge.poly_numFinestLevels)
+        Knowledge.poly_optLevel_fine
+      else
+        Knowledge.poly_optLevel_coarse
     if (domain >= 0)
       new ConditionStatement(iv.IsValidForSubdomain(domain), ret)
     else

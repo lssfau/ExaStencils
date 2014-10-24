@@ -134,11 +134,14 @@ object Knowledge {
   var mpi_defaultCommunicator : String = "MPI_COMM_WORLD" // sets the initial communicator used by most MPI operations
 
   // --- Polyhedron Optimization ---
-  var poly_usePolyOpt : Boolean = false // [true|false]
-  var poly_tileSize_x : Int = 1000000000 // [32-inf] // TODO: Alex
-  var poly_tileSize_y : Int = 1000000000 // [16-inf] // TODO: Alex
-  var poly_tileSize_z : Int = 1000000000 // [16-inf] // TODO: Alex
-  var poly_tileSize_w : Int = 1000000000 // [16-inf] // TODO: Alex
+  // TODO: Alex: range of the following options
+  var poly_optLevel_fine : Int = 0 // [0-3] // poly opt-level for {$poly_numFinestLevels} finest fields  0: disable (fastest);  3: aggressive (slowest)
+  var poly_optLevel_coarse : Int = 0 // [0-poly_optLevel_fine] // polyhedral optimization level for coarsest fields  0: disable (fastest);  3: aggressive (slowest)
+  var poly_numFinestLevels : Int = 2 // [1-numLevels] // number of levels that should be optimized in PolyOpt (starting from the finest)
+  var poly_tileSize_x : Int = 1000000000 // [32-inf]
+  var poly_tileSize_y : Int = 1000000000 // [16-inf]
+  var poly_tileSize_z : Int = 1000000000 // [16-inf]
+  var poly_tileSize_w : Int = 1000000000 // [16-inf]
   var poly_tileOuterLoop : Boolean = false // [true|false] // specify separately if the outermost loop should be tiled
 
   // --- Other Optimizations ---
@@ -146,6 +149,7 @@ object Knowledge {
   var opt_vectorize : Boolean = false // [true|false]
   var opt_unroll : Int = 1 // [1-8]
   var opt_unroll_interleave : Boolean = true // [true|false]
+  var opt_useColorSplitting : Boolean = false // [true|false] // only relevant for RBGS smoother currently
 
   /// BEGIN HACK config options for generating L4 DSL file
   var l3tmp_generateL4 : Boolean = true // generates a new Layer 4 file using the corresponding filename from Settings; the generated DSL file can is based on the following parameters
@@ -277,5 +281,9 @@ object Knowledge {
 
     Constraints.condEnsureValue(comm_useLevelIndependentFcts, false, l3tmp_genFunctionBC, "level independent communication functions are not compatible with non-trivial boundary conditions")
     Constraints.condEnsureValue(mpi_useCustomDatatypes, false, comm_useLevelIndependentFcts, "MPI data types cannot be used in combination with level independent communication functions yet")
+
+    Constraints.condEnsureValue(poly_optLevel_coarse, poly_optLevel_fine, poly_optLevel_coarse > poly_optLevel_fine, "optimization level for coarse grids must smaller or equal to the one for the fine levels")
+    Constraints.condEnsureValue(poly_numFinestLevels, numLevels, poly_numFinestLevels > numLevels, "number of fine levels (for optimization) cannot exceed the number of all levels")
+    Constraints.condEnsureValue(opt_useColorSplitting, false, l3tmp_smoother == "Jac", "color splitting only relevant for RBGS smoother")
   }
 }
