@@ -21,13 +21,13 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
 
   this += new Transformation("now", new PartialFunction[Node, Transformation.OutputType] {
 
-    val updatedFields = new IdentityHashMap[Field, Int]()
+    val updatedFields = new IdentityHashMap[Field, Integer]()
 
     override def isDefinedAt(node : Node) : Boolean = {
       return node.isInstanceOf[DirectFieldAccess]
     }
 
-    private def addColorOffset(index : MultiIndex, dim : Int, colorOffset : Long) : Boolean = {
+    private def addColorOffset(index : MultiIndex, dim : Int, colorOffset : Int) : Boolean = {
       val cond : Expression = ColorCondCollector.cond
       if (cond == null)
         return false
@@ -48,7 +48,7 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
       val cOffset : Long = accCSum.remove(SimplifyExpression.constName).getOrElse(0L)
       if (accCSum != SimplifyExpression.extractIntegralSum(expr))
         return false
-      val color = ((cValue + cOffset) % nrColors + nrColors) % nrColors // mathematical modulo
+      val color : Long = ((cValue + cOffset) % nrColors + nrColors) % nrColors // mathematical modulo
       index(dim) += IntegerConstant(color * colorOffset)
       return true
     }
@@ -60,8 +60,8 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
       val layout : FieldLayout = field.fieldLayout
       val innerD = 0
       val outerD = layout.layoutsPerDim.length - 1
-      var colorOffset = { var ret = Option(updatedFields.get(field)); ret.getOrElse(-1) };
-      if (colorOffset <= 0) {
+      var colorOffset : Integer = updatedFields.get(field)
+      if (colorOffset == null) {
         layout(innerD).numInnerLayers /= 2
         layout(innerD).numInnerLayers += 1
         layout(innerD).total = IntegerConstant(layout(innerD).evalTotal)
@@ -73,7 +73,7 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
 
       val index : MultiIndex = dfa.index
       if (!addColorOffset(index, outerD, colorOffset))
-        index(outerD) += (Duplicate(index).reduce((x, y) => x + y) Mod IntegerConstant(nrColors)) * IntegerConstant(colorOffset)
+        index(outerD) += (Duplicate(index).reduce((x, y) => x + y) Mod IntegerConstant(nrColors)) * IntegerConstant(colorOffset.longValue())
       index(innerD) = index(innerD) / IntegerConstant(nrColors)
 
       return dfa
