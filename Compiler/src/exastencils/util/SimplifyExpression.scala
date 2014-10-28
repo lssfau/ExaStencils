@@ -114,7 +114,7 @@ object SimplifyExpression {
             }
           case _ =>
         }
-        for ((x, (div, mod, coeff)) <- toOpt) if (div != null && mod != null) {println("juhu!")
+        for ((x, (div, mod, coeff)) <- toOpt) if (div != null && mod != null) {
           // ensure resulting map only contains normalized version created by recreateExprFromIntSum
           val nju = recreateExprFromIntSum(extractIntegralSumRec((x + IntegerConstant(1L)) / IntegerConstant(2L)))
           res -= div -= mod
