@@ -91,13 +91,14 @@ object MainStefanSp {
     MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)
       PolyOpt.apply()
+    ResolveLoopOverDimensions.apply()
+
+    TypeInference.apply()
 
     if (Knowledge.opt_useColorSplitting)
       ColorSplitting.apply()
 
-    ResolveLoopOverDimensions.apply()
     ResolveSlotOperationsStrategy.apply()
-
     ResolveIndexOffsets.apply()
     LinearizeFieldAccesses.apply()
 
@@ -113,8 +114,6 @@ object MainStefanSp {
 
     if (Knowledge.opt_useAddressPrecalc)
       AddressPrecalculation.apply()
-
-    TypeInference.apply()
 
     SimplifyFloatExpressions.apply()
 
