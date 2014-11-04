@@ -337,7 +337,7 @@ case class LoopOverDimensions(var numDimensions : Int,
 
     var ret : ForLoopStatement with OptimizationHint = null
     for (d <- 0 until numDimensions) {
-      val it = VariableAccess(dimToString(d), Some(IntegerDatatype()))
+      def it = VariableAccess(dimToString(d), Some(IntegerDatatype()))
       val decl = VariableDeclarationStatement(IntegerDatatype(), dimToString(d), Some(indices.begin(d)))
       val cond = LowerExpression(it, indices.end(d))
       val incr = AssignmentStatement(it, stepSize(d), "+=")
