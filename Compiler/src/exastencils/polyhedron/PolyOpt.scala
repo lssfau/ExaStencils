@@ -3,8 +3,7 @@ package exastencils.polyhedron
 import scala.collection.mutable.Map
 import scala.collection.mutable.TreeSet
 
-import exastencils.core.Logger
-import exastencils.core.StateManager
+import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
@@ -61,27 +60,18 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   private def simplifyModel(scop : Scop) : Unit = {
 
-    if (scop.domain != null)
-      scop.domain = Isl.simplify(scop.domain)
-    if (scop.schedule != null)
-      scop.schedule = Isl.simplify(scop.schedule)
+    scop.domain = Isl.simplify(scop.domain)
+    scop.schedule = Isl.simplify(scop.schedule)
 
-    if (scop.reads != null)
-      scop.reads = Isl.simplify(scop.reads)
-    if (scop.writes != null)
-      scop.writes = Isl.simplify(scop.writes)
+    scop.reads = Isl.simplify(scop.reads)
+    scop.writes = Isl.simplify(scop.writes)
 
-    if (scop.deadAfterScop != null)
-      scop.deadAfterScop = Isl.simplify(scop.deadAfterScop)
+    scop.deadAfterScop = Isl.simplify(scop.deadAfterScop)
 
-    if (scop.deps.flow != null)
-      scop.deps.flow = Isl.simplify(scop.deps.flow)
-    if (scop.deps.anti != null)
-      scop.deps.anti = Isl.simplify(scop.deps.anti)
-    if (scop.deps.input != null)
-      scop.deps.input = Isl.simplify(scop.deps.input)
-    if (scop.deps.output != null)
-      scop.deps.output = Isl.simplify(scop.deps.output)
+    scop.deps.flow = Isl.simplify(scop.deps.flow)
+    scop.deps.anti = Isl.simplify(scop.deps.anti)
+    scop.deps.input = Isl.simplify(scop.deps.input)
+    scop.deps.output = Isl.simplify(scop.deps.output)
   }
 
   private def extractPolyModel() : Seq[Scop] = {
@@ -144,19 +134,17 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   private def union(a : isl.UnionSet, b : isl.UnionSet) : isl.UnionSet = {
     (a, b) match {
-      case (null, null) => null
-      case (x, null)    => x
-      case (null, y)    => y
-      case (x, y)       => x.union(y)
+      case (null, y) => y
+      case (x, null) => x
+      case (x, y)    => x.union(y)
     }
   }
 
   private def union(a : isl.UnionMap, b : isl.UnionMap) : isl.UnionMap = {
     (a, b) match {
-      case (null, null) => null
-      case (x, null)    => x
-      case (null, y)    => y
-      case (x, y)       => x.union(y)
+      case (null, y) => y
+      case (x, null) => x
+      case (x, y)    => x.union(y)
     }
   }
 
@@ -324,8 +312,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       Logger.setLevel(1)
       this.execute(
         new Transformation("update loop iterator", {
-          case VariableAccess(str, _) if (repl.isDefinedAt(str)) => repl(str)
-          case StringConstant(str) if (repl.isDefinedAt(str))    => repl(str)
+          case VariableAccess(str, _) if (repl.isDefinedAt(str)) => Duplicate(repl(str))
+          case StringConstant(str) if (repl.isDefinedAt(str))    => Duplicate(repl(str))
         }), Some(applyAt))
       Logger.setLevel(oldLvl)
     }
