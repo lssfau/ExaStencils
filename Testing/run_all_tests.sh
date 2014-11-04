@@ -33,8 +33,8 @@ function cleanup {
   rm -rf "${TMP_DIR}"
   echo "    Removed  ${TMP_DIR}" >> "${LOG}"
   if [[ ${TIMEOUT} -eq 1 ]]; then
-    echo "=== FAILURE: Timeout when calling ${BASH_SOURCE} (build compiler)" >> "${LOG}"
-	echo "Automatic tests failed!  Timeout when calling ${BASH_SOURCE} (build compiler)" | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
+    echo "=== FAILURE: Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (build compiler)." >> "${LOG}"
+	echo "Automatic tests failed!  Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (build compiler)." | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
   fi
 }
 trap cleanup EXIT
@@ -45,9 +45,22 @@ function finish {
   exit 0
 }
 
+# cancel all uncompleted jobs from last testrun
+first=1
+for job in $(squeue -h -u ${USER} -o %i); do
+  if [[ ${job} -ne ${SLURM_JOB_ID} ]]; then
+    if [[ first -eq 1 ]]; then
+	  first=0
+      echo "    Old tests from last run found. Cancel them and requeue new tests (may result in timeout errors)." >> "${LOG}"
+	fi
+	echo "    Cancel ID ${job}." >> "${LOG}"
+    scancel ${job}
+  fi
+done
+
 # build generator (place class files in TMP_DIR)
 echo "    Created  ${TMP_DIR}: generator build dir" >> "${LOG}"
-srun ant -f "${ANT_BUILD}" -Dbuild.dir="${TMP_DIR}" -Djava.dir="/usr/lib/jvm/default-java/" -Dscala.dir="/scratch/kronast/scala/" clean build > "${OUTPUT}" 2>&1
+srun ant -f "${ANT_BUILD}" -Dbuild.dir="${TMP_DIR}" -Djava.dir="/usr/lib/jvm/default-java/" -Dscala.dir="/scratch/${USER}/scala/" clean build > "${OUTPUT}" 2>&1
 #srun ant -f "${ANT_BUILD}" -Dbuild.dir="${TMP_DIR}" clean build > "${OUTPUT}" 2>&1
     if [[ $? -ne 0 ]]; then
       echo "=== FAILED: Generator: ant build error. =" >> "${LOG}"

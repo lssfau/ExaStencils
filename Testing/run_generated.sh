@@ -25,8 +25,8 @@ function cleanup {
   rm "${RESULT}" "${BIN}"
   echo "        Removed  ${RESULT} (test id: '${ID}')" >> "${LOG}"
   if [[ ${TIMEOUT} -eq 1 ]]; then
-    echo "========= FAILURE: ID '${ID}': Timeout when calling ${BASH_SOURCE} (running testcode)" >> "${LOG}"
-	echo "Test '${ID}' failed!  Timeout when calling ${BASH_SOURCE} (running testcode)" | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
+    echo "========= FAILURE: ID '${ID}': Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (running testcode)." >> "${LOG}"
+	echo "Test '${ID}' failed!  Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (running testcode)." | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
   fi
 }
 trap cleanup EXIT
