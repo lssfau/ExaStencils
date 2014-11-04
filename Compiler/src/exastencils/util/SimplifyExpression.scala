@@ -1,9 +1,10 @@
 package exastencils.util
 
-import scala.collection.immutable.TreeMap
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
+import exastencils.core.Logger
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
 
 object SimplifyExpression {
@@ -99,15 +100,13 @@ object SimplifyExpression {
         val toOpt = new HashMap[Expression, (DivisionExpression, ModuloExpression, Long)]()
         for (e <- res) e match {
           case (divd @ DivisionExpression(x, IntegerConstant(2)), coeff) =>
-            val old : (DivisionExpression, ModuloExpression, Long) = toOpt.getOrElse(x, null)
-            old match {
+            toOpt.getOrElse(x, null) match {
               case null                         => toOpt(x) = (divd, null, coeff)
               case (_, modd, c) if (c == coeff) => toOpt(x) = (divd, modd, coeff)
               case _                            => toOpt -= x
             }
           case (modd @ ModuloExpression(x, IntegerConstant(2)), coeff) =>
-            val old : (DivisionExpression, ModuloExpression, Long) = toOpt.getOrElse(x, null)
-            old match {
+            toOpt.getOrElse(x, null) match {
               case null                         => toOpt(x) = (null, modd, coeff)
               case (divd, _, c) if (c == coeff) => toOpt(x) = (divd, modd, coeff)
               case _                            => toOpt -= x
@@ -235,19 +234,24 @@ object SimplifyExpression {
   /**
     * Takes the output from extractIntegralSum(..) and recreates an AST for this sum.
     */
-  def recreateExprFromIntSum(unsortedMap : HashMap[Expression, Long]) : Expression = {
+  def recreateExprFromIntSum(sumMap : HashMap[Expression, Long]) : Expression = {
 
     var res : Expression = null
-    val const : Option[Long] = unsortedMap.remove(constName)
+    val const : Option[Long] = sumMap.remove(constName)
 
-    var map = TreeMap(unsortedMap.toSeq : _*)(Ordering.by(_.prettyprint))
+    val sumSeq = sumMap.filter(s => s._2 != 0L).toSeq.sortWith({
+      case ((VariableAccess(v1, _), _), (VariableAccess(v2, _), _)) => v1 < v2
+      case ((v1 : VariableAccess, _), _)                            => true
+      case (_, (v2 : VariableAccess, _))                            => false
+      case ((e1, _), (e2, _))                                       => e1.prettyprint() < e2.prettyprint()
+    })
 
-    if (map.isEmpty)
+    if (sumSeq.isEmpty)
       return IntegerConstant(const.getOrElse(0L))
 
     // use distributive property
     val reverse = new HashMap[Long, Expression]()
-    for ((njuExpr : Expression, value : Long) <- map) if (value != 0L) {
+    for ((njuExpr : Expression, value : Long) <- sumSeq) {
       val expr : Option[Expression] = reverse.get(value)
       reverse(value) =
         if (expr.isDefined)
@@ -256,7 +260,7 @@ object SimplifyExpression {
           njuExpr
     }
 
-    for ((value : Long, expr : Expression) <- reverse) {
+    for ((value : Long, expr : Expression) <- reverse.toSeq.sortBy(t => t._1).reverse) {
       if (res == null) {
         res = value match {
           case 1L  => expr
@@ -268,7 +272,7 @@ object SimplifyExpression {
           value match {
             case 1L  => (expr, false)
             case -1L => (expr, true)
-            case _   => (MultiplicationExpression(IntegerConstant(math.abs(value)), expr), value < 0)
+            case _   => (MultiplicationExpression(IntegerConstant(math.abs(value)), expr), value < 0L)
           }
         res =
           if (negative) SubtractionExpression(res, summand)
@@ -276,11 +280,12 @@ object SimplifyExpression {
       }
     }
 
-    if (const.isDefined)
-      res = if (const.get >= 0)
-        AdditionExpression(res, IntegerConstant(const.get))
-      else
-        SubtractionExpression(res, IntegerConstant(-const.get))
+    if (const.isDefined && const.get != 0L)
+      res =
+        if (const.get > 0L)
+          AdditionExpression(res, IntegerConstant(const.get))
+        else
+          SubtractionExpression(res, IntegerConstant(-const.get))
 
     return res
   }
@@ -291,6 +296,40 @@ object SimplifyExpression {
     } catch {
       case EvaluationException(msg) =>
         throw new EvaluationException(msg + ";  in " + expr.prettyprint())
+    }
+  }
+
+  object SimplifyIndices extends DefaultStrategy("Simplify indices") {
+
+    this += new Transformation("now", {
+      case a : ArrayAccess =>
+        a.index = SimplifyExpression.simplifyIntegralExpr(a.index)
+        a
+
+      case d : DirectFieldAccess =>
+        for (i <- 0 until 4)
+          if (d.index(i) != NullExpression)
+            d.index(i) = SimplifyExpression.simplifyIntegralExpr(d.index(i))
+        d
+
+      case f : FieldAccess =>
+        for (i <- 0 until 4)
+          if (f.index(i) != NullExpression)
+            f.index(i) = SimplifyExpression.simplifyIntegralExpr(f.index(i))
+        f
+
+      case f : ExternalFieldAccess =>
+        for (i <- 0 until 4)
+          if (f.index(i) != NullExpression)
+            f.index(i) = SimplifyExpression.simplifyIntegralExpr(f.index(i))
+        f
+    })
+
+    override def applyStandalone(node : Node) : Unit = {
+      val oldLvl = Logger.getLevel
+      Logger.setLevel(1)
+      super.applyStandalone(node)
+      Logger.setLevel(oldLvl)
     }
   }
 
@@ -429,19 +468,24 @@ object SimplifyExpression {
   /**
     * Takes the output from extractFloatingSum(..) and recreates an AST for this sum.
     */
-  def recreateExprFromFloatSum(unsortedMap : HashMap[Expression, Double]) : Expression = {
+  def recreateExprFromFloatSum(sumMap : HashMap[Expression, Double]) : Expression = {
 
     var res : Expression = null
-    val const : Option[Double] = unsortedMap.remove(constName)
+    val const : Option[Double] = sumMap.remove(constName)
 
-    var map = TreeMap(unsortedMap.toSeq : _*)(Ordering.by(_.prettyprint))
+    val sumSeq = sumMap.filter(s => s._2 != 0d).toSeq.sortWith({
+      case ((VariableAccess(v1, _), _), (VariableAccess(v2, _), _)) => v1 < v2
+      case ((v1 : VariableAccess, _), _)                            => true
+      case (_, (v2 : VariableAccess, _))                            => false
+      case ((e1, _), (e2, _))                                       => e1.prettyprint() < e2.prettyprint()
+    })
 
-    if (map.isEmpty)
+    if (sumSeq.isEmpty)
       return FloatConstant(const.getOrElse(0d))
 
     // use distributive property
     val reverse = new HashMap[Double, Expression]()
-    for ((njuExpr : Expression, value : Double) <- map) if (value != 0.0) {
+    for ((njuExpr : Expression, value : Double) <- sumSeq) {
       val expr : Option[Expression] = reverse.get(value)
       reverse(value) =
         if (expr.isDefined)
@@ -450,7 +494,7 @@ object SimplifyExpression {
           njuExpr
     }
 
-    for ((value : Double, expr : Expression) <- reverse) {
+    for ((value : Double, expr : Expression) <- reverse.toSeq.sortBy(t => t._1).reverse) {
       if (res == null) {
         res = value match {
           case 1d  => expr
@@ -462,7 +506,7 @@ object SimplifyExpression {
           value match {
             case 1d  => (expr, false)
             case -1d => (expr, true)
-            case _   => (MultiplicationExpression(FloatConstant(math.abs(value)), expr), value < 0)
+            case _   => (MultiplicationExpression(FloatConstant(math.abs(value)), expr), value < 0d)
           }
         res =
           if (negative) SubtractionExpression(res, summand)
@@ -470,8 +514,12 @@ object SimplifyExpression {
       }
     }
 
-    if (const.isDefined)
-      res = AdditionExpression(res, FloatConstant(const.get))
+    if (const.isDefined && const.get != 0d)
+      res =
+        if (const.get > 0d)
+          AdditionExpression(res, FloatConstant(const.get))
+        else
+          SubtractionExpression(res, FloatConstant(-const.get))
 
     return res
   }
