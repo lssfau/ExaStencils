@@ -1,13 +1,14 @@
 package exastencils.optimization
 
 import java.util.IdentityHashMap
+
 import exastencils.core._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
-import exastencils.util.SimplifyExpression
 import exastencils.polyhedron.PolyOpt
+import exastencils.util.SimplifyExpression
 
 object ColorSplitting extends DefaultStrategy("Color Splitting") {
 
@@ -31,7 +32,7 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
       val cond : Expression = ColorCondCollector.cond
       if (cond == null)
         return false
-      val (expr, cValue) =
+      val (expr, cValue) : (Expression, Long) =
         cond match {
           case EqEqExpression(IntegerConstant(c),
             ModuloExpression(sum, IntegerConstant(nrColors2))) if (nrColors == nrColors2) =>
@@ -87,18 +88,25 @@ object ColorCondCollector extends Collector {
 
   def enter(node : Node) : Unit = {
     node match {
-      case loop : LoopOverDimensions =>
-        cond = loop.condition.getOrElse(null)
+      case loop : LoopOverDimensions if (loop.condition.isDefined && loop.condition.get.isInstanceOf[EqEqExpression]) =>
+        cond = loop.condition.get
+      case ConditionStatement(c : EqEqExpression, _, fB) if (fB.isEmpty) =>
+        cond = c
       case _ =>
         val annot : Option[Annotation] = node.getAnnotation(PolyOpt.IMPL_CONDITION_ANNOT)
-        if (annot.isDefined)
+        if (annot.isDefined && annot.get.value.isInstanceOf[EqEqExpression])
           cond = annot.get.value.asInstanceOf[Expression]
     }
   }
 
   def leave(node : Node) : Unit = {
-    if (node.isInstanceOf[LoopOverDimensions] || node.hasAnnotation(PolyOpt.IMPL_CONDITION_ANNOT))
-      cond = null
+    node match {
+      case loop : LoopOverDimensions                    => cond = null
+      case ConditionStatement(c, _, fB) if (fB.isEmpty) => cond = null
+      case _ =>
+        if (node.hasAnnotation(PolyOpt.IMPL_CONDITION_ANNOT))
+          cond = null
+    }
   }
 
   def reset() : Unit = {
