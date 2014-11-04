@@ -1,14 +1,10 @@
 package exastencils.optimization
 
-import scala.collection.mutable.ArrayStack
-import scala.collection.mutable.HashMap
+import scala.collection.mutable.Map
 
-import exastencils.core.Logger
-import exastencils.core.StateManager
-import exastencils.core.collectors.Collector
-import exastencils.datastructures.CustomStrategy
-import exastencils.datastructures.Node
-import exastencils.datastructures.Transformation
+import exastencils.core._
+import exastencils.core.collectors.ScopeCollector
+import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 
@@ -32,64 +28,45 @@ object TypeInference extends CustomStrategy("Type inference") {
   }
 }
 
-private final class AnnotateStringConstants extends Collector {
+private final class AnnotateStringConstants extends ScopeCollector(Map[String, Datatype]()) {
   import TypeInference._
 
-  this.reset()
-
-  private final val START_COND_BLOCK_ANNOT = "FirstElse"
-
-  private object SymbolTable {
-
-    private val scopes = new ArrayStack[HashMap[String, Datatype]]()
-
-    def declare(name : String, dType : Datatype) : Unit = {
-      scopes.top.put(name, dType)
-    }
-
-    def findType(name : String) : Datatype = {
-      for (scope <- scopes) {
-        val typeOp : Option[Datatype] = scope.get(name)
-        if (typeOp.isDefined)
-          return typeOp.get
-      }
-      return null // not found :(
-    }
-
-    def enterScope() : Unit = {
-      scopes.push(new HashMap[String, Datatype]())
-    }
-
-    def leaveScope() : Unit = {
-      scopes.pop()
-    }
-
-    def reset() : Unit = {
-      scopes.clear()
-      this.enterScope() // for global scope
-    }
+  override def cloneCurScope() : Map[String, Datatype] = {
+    return curScope.clone()
   }
 
-  def enter(node : Node) : Unit = {
+  private def declare(name : String, dType : Datatype) : Unit = {
+    curScope(name) = dType
+  }
 
-    handleScopes(node, true)
+  private def findType(name : String) : Datatype = {
+    val typeOp : Option[Datatype] = curScope.get(name)
+    if (typeOp.isDefined)
+      return typeOp.get
+    return null // not found :(
+  }
+
+  override def enter(node : Node) : Unit = {
+    super.enter(node)
 
     node match {
       case VariableDeclarationStatement(ty : Datatype, name : String, _) =>
-        SymbolTable.declare(name, ty)
+        declare(name, ty)
 
       case node @ StringConstant(str) =>
-        val ty : Datatype = SymbolTable.findType(str)
+        val ty : Datatype = findType(str)
         if (ty != null)
           node.annotate(TYPE_ANNOT, ty)
 
       case node @ VariableAccess(name, None) =>
-        val ty : Datatype = SymbolTable.findType(name)
+        val ty : Datatype = findType(name)
         if (ty != null)
           node.annotate(TYPE_ANNOT, ty)
+        else
+          Logger.warn("[Type inference]  declaration to " + name + " missing?")
 
       case VariableAccess(name, Some(ty)) =>
-        val inferred = SymbolTable.findType(name)
+        val inferred = findType(name)
         if (inferred == null)
           Logger.warn("[Type inference]  declaration to " + name + " missing?")
         else if (ty != inferred)
@@ -97,54 +74,11 @@ private final class AnnotateStringConstants extends Collector {
 
       case FunctionStatement(_, _, params, _) =>
         for (param <- params)
-          SymbolTable.declare(param.name, param.dType.get)
+          declare(param.name, param.dType.get)
 
       // HACK: ensure the iterator declaration is visited before the body...
       case ForLoopStatement(begin, _, _, _, _) =>
         this.enter(begin)
-
-      case _ =>
-    }
-  }
-
-  def leave(node : Node) : Unit = {
-    handleScopes(node, false)
-  }
-
-  def reset() : Unit = {
-    SymbolTable.reset()
-  }
-
-  private def handleScopes(node : Node, isEnter : Boolean) : Unit = {
-
-    if (node.removeAnnotation(START_COND_BLOCK_ANNOT).isDefined) { // HACK: check for "switch-info"
-      SymbolTable.leaveScope()
-      SymbolTable.enterScope()
-    }
-
-    node match {
-      case ConditionStatement(_, trueBody, falseBody) =>
-        if (isEnter) {
-          SymbolTable.enterScope()
-          if (!trueBody.isEmpty) // HACK: add "switch-info"
-            trueBody(0).annotate(START_COND_BLOCK_ANNOT)
-          if (!falseBody.isEmpty) // HACK: add "switch-info"
-            falseBody(0).annotate(START_COND_BLOCK_ANNOT)
-
-        } else
-          SymbolTable.leaveScope()
-
-      case _ : Scope
-        | _ : ForLoopStatement
-        | _ : WhileLoopStatement
-        | _ : FunctionStatement
-        | _ : SwitchStatement
-        | _ : CaseStatement =>
-
-        if (isEnter)
-          SymbolTable.enterScope()
-        else
-          SymbolTable.leaveScope()
 
       case _ =>
     }
@@ -160,7 +94,8 @@ private final object CreateVariableAccesses extends PartialFunction[Node, Transf
 
   def apply(node : Node) : Transformation.OutputType = {
 
-    val typee : Datatype = node.removeAnnotation(TYPE_ANNOT).get.value.asInstanceOf[Datatype]
+    // do not remove annotation as the same object could be used multiple times in AST (which is a bug, yes ;))
+    val typee : Datatype = node.getAnnotation(TYPE_ANNOT).get.value.asInstanceOf[Datatype]
     val varr : String =
       node match {
         case StringConstant(name)    => name
