@@ -208,7 +208,11 @@ case class FieldData(var field : Field, var level : Expression, var slot : Expre
   override def wrapInLoops(body : Statement) : Statement = {
     var wrappedBody = super.wrapInLoops(body)
     if (field.numSlots > 1)
-      wrappedBody = new ForLoopStatement(s"unsigned int slot = 0", s"slot < ${field.numSlots}", s"++slot", wrappedBody)
+      wrappedBody = new ForLoopStatement(
+        VariableDeclarationStatement(new IntegerDatatype, "slot", Some(0)),
+        LowerExpression("slot", field.numSlots),
+        PreIncrementExpression("slot"),
+        wrappedBody)
     wrappedBody
   }
 

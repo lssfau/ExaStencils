@@ -79,7 +79,13 @@ case class ForLoopStatement(var begin : Statement, var end : Expression, var inc
   def this(begin : Statement, end : Expression, inc : Statement, body : Statement) = this(begin, end, inc, ListBuffer(body))
 
   override def prettyprint(out : PpStream) : Unit = {
-    out << "for (" << begin << ' ' << end << "; " << inc
+    // BEGIN AMAZING HACK as workaround for IBM XL compiler    
+    var realEnd = end.prettyprint
+    if (realEnd.size > 2)
+      realEnd = realEnd.substring(1, realEnd.size - 1)
+    out << "for (" << begin << ' ' << realEnd << "; " << inc
+    // END HACK
+    //out << "for (" << begin << ' ' << end << "; " << inc
     if (out.last == ';')
       out.removeLast()
     out << ") {\n"

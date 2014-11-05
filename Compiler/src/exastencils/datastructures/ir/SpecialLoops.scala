@@ -373,11 +373,19 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
     var statements = new ListBuffer[Statement]
 
     if (parallelizable)
-      statements += new ForLoopStatement(s"int $defIt = 0", s"$defIt < " ~ Knowledge.domain_numFragsPerBlock, s"++$defIt",
-        body, reduction) with OMP_PotentiallyParallel
+      statements += new ForLoopStatement(
+        VariableDeclarationStatement(new IntegerDatatype, defIt, Some(0)),
+        LowerExpression(defIt, Knowledge.domain_numFragsPerBlock),
+        PreIncrementExpression(defIt),
+        body,
+        reduction) with OMP_PotentiallyParallel
     else
-      statements += new ForLoopStatement(s"int $defIt = 0", s"$defIt < " ~ Knowledge.domain_numFragsPerBlock, s"++$defIt",
-        body, reduction)
+      statements += new ForLoopStatement(
+        VariableDeclarationStatement(new IntegerDatatype, defIt, Some(0)),
+        LowerExpression(defIt, Knowledge.domain_numFragsPerBlock),
+        PreIncrementExpression(defIt),
+        body,
+        reduction)
 
     if (Knowledge.useMPI && reduction.isDefined) {
       statements += new MPI_Allreduce("&" ~ reduction.get.target, new RealDatatype, 1, reduction.get.op) // FIXME: get dt and cnt from reduction
@@ -390,15 +398,17 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
 object LoopOverDomains { def defIt = "domainIdx" }
 
 case class LoopOverDomains(var body : ListBuffer[Statement]) extends Statement with Expandable {
+  import LoopOverDomains._
+
   def this(body : Statement) = this(ListBuffer(body))
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverDomains\n"
 
   def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
-      VariableDeclarationStatement(new IntegerDatatype, LoopOverDomains.defIt, Some(0)),
-      new LowerExpression(LoopOverDomains.defIt, DomainCollection.domains.size),
-      AssignmentStatement(LoopOverDomains.defIt, 1, "+="),
+      VariableDeclarationStatement(new IntegerDatatype, defIt, Some(0)),
+      LowerExpression(defIt, DomainCollection.domains.size),
+      PreIncrementExpression(defIt),
       body)
   }
 }
@@ -406,15 +416,17 @@ case class LoopOverDomains(var body : ListBuffer[Statement]) extends Statement w
 object LoopOverFields { def defIt = "fieldIdx" }
 
 case class LoopOverFields(var body : ListBuffer[Statement]) extends Statement with Expandable {
+  import LoopOverFields._
+
   def this(body : Statement) = this(ListBuffer(body))
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverFields\n"
 
   def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
-      VariableDeclarationStatement(new IntegerDatatype, LoopOverFields.defIt, Some(0)),
-      new LowerExpression(LoopOverFields.defIt, FieldCollection.fields.size),
-      AssignmentStatement(LoopOverFields.defIt, 1, "+="),
+      VariableDeclarationStatement(new IntegerDatatype, defIt, Some(0)),
+      LowerExpression(defIt, FieldCollection.fields.size),
+      PreIncrementExpression(defIt),
       body)
   }
 }
@@ -422,15 +434,17 @@ case class LoopOverFields(var body : ListBuffer[Statement]) extends Statement wi
 object LoopOverLevels { def defIt = "levelIdx" }
 
 case class LoopOverLevels(var body : ListBuffer[Statement]) extends Statement with Expandable {
+  import LoopOverLevels._
+
   def this(body : Statement) = this(ListBuffer(body))
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverLevels\n"
 
   def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
-      VariableDeclarationStatement(new IntegerDatatype, LoopOverLevels.defIt, Some(0)),
-      new LowerExpression(LoopOverLevels.defIt, Knowledge.numLevels),
-      AssignmentStatement(LoopOverLevels.defIt, 1, "+="),
+      VariableDeclarationStatement(new IntegerDatatype, defIt, Some(0)),
+      LowerExpression(defIt, Knowledge.numLevels),
+      PreIncrementExpression(defIt),
       body)
   }
 }
@@ -438,15 +452,17 @@ case class LoopOverLevels(var body : ListBuffer[Statement]) extends Statement wi
 object LoopOverNeighbors { def defIt = "neighborIdx" }
 
 case class LoopOverNeighbors(var body : ListBuffer[Statement]) extends Statement with Expandable {
+  import LoopOverNeighbors._
+
   def this(body : Statement) = this(ListBuffer(body))
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverNeighbors\n"
 
   def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
-      VariableDeclarationStatement(new IntegerDatatype, LoopOverNeighbors.defIt, Some(0)),
-      new LowerExpression(LoopOverNeighbors.defIt, Fragment.neighbors.size),
-      AssignmentStatement(LoopOverNeighbors.defIt, 1, "+="),
+      VariableDeclarationStatement(new IntegerDatatype, defIt, Some(0)),
+      LowerExpression(defIt, Fragment.neighbors.size),
+      PreIncrementExpression(defIt),
       body)
   }
 }
