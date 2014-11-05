@@ -16,11 +16,10 @@ domain_fragLength_x			= 1
 domain_fragLength_y			= 1
 domain_fragLength_z			= 1
 
-mg_smoother_numPre			= 3
-mg_smoother_numPost			= 3
-mg_cgs_numSteps				= 512
+mpi_useCustomDatatypes		= true
+poly_optLevel_fine			= 3
+opt_useAddressPrecalc		= true
+opt_vectorize				= false
+opt_unroll					= 2
 
-mg_maxNumIterations			= 1024
-
-//mg_cgs					= CoarseGridSolverType.IP_Smoother
-//mg_smoother				= SmootherType.Jac
+l3tmp_generateL4			= true
