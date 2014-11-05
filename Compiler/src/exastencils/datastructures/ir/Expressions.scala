@@ -362,6 +362,22 @@ case class BitwiseAndExpression(var left : Expression, var right : Expression) e
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '&' << right << ')'
 }
 
+case class PreDecrementExpression(var left : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << "--" << left
+}
+
+case class PostDecrementExpression(var left : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << left << "--"
+}
+
+case class PreIncrementExpression(var left : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << "++" << left
+}
+
+case class PostIncrementExpression(var left : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << left << "++"
+}
+
 private object MinMaxPrinter {
   def prettyprintsb(out : PpStream, args : ListBuffer[Expression], method : String) : Unit = {
     if (args.length == 1)
