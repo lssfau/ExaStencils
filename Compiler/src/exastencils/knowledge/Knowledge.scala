@@ -228,6 +228,8 @@ object Knowledge {
     Constraints.updateValue(omp_parallelizeLoopOverFragments, useOMP && !domain_summarizeBlocks)
     Constraints.updateValue(omp_parallelizeLoopOverDimensions, useOMP && domain_summarizeBlocks)
 
+    Constraints.condEnsureValue(omp_useCollapse, false, "IBMXL" == targetCompiler, "omp collapse is currently not fully supported by the IBM XL compiler")
+
     // update constraints
     Constraints.condEnsureValue(l3tmp_numPre, l3tmp_numPre - (l3tmp_numPre % 2), "Jac" == l3tmp_smoother && !l3tmp_useSlotsForJac && !l3tmp_useSlotVariables,
       "Number of pre-smoothing steps has to be divisible by 2")

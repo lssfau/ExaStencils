@@ -29,6 +29,8 @@ IR:
 
 - add min/max reduction for omp versions < 3.1
 
+- fix omp collapse for xl compiler (currently iterationOffsetBegin[1] and iterationOffsetBegin[2] seem to be falsly regarded as dependencies)
+
 ISL:
 - L4 constraints to ISL mapping
 - long term: reduce optimization runtime
