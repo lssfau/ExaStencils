@@ -20,7 +20,7 @@ domain_fragLength_y			= 1
 domain_fragLength_z			= 1
 
 mpi_useCustomDatatypes		= false
-poly_usePolyOpt				= false
+poly_optLevel_fine			= 0
 opt_useAddressPrecalc		= false
 opt_vectorize				= false
 opt_unroll					= 1

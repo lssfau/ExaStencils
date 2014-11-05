@@ -291,10 +291,10 @@ class Extractor extends Collector {
     private final val formatterResult : java.lang.StringBuilder = new java.lang.StringBuilder()
     private final val formatter = new java.util.Formatter(formatterResult)
 
-    def create(root : LoopOverDimensions, origLoopVars : ArrayBuffer[String],
+    def create(root : LoopOverDimensions, optLevel : Int, origLoopVars : ArrayBuffer[String],
       modelLoopVars : String, setTempl : String, mapTempl : String, mergeWithPrev : Boolean) : Unit = {
 
-      this.scop_ = new Scop(root, Knowledge.omp_parallelizeLoopOverDimensions && root.parallelizationIsReasonable,
+      this.scop_ = new Scop(root, optLevel, Knowledge.omp_parallelizeLoopOverDimensions && root.parallelizationIsReasonable,
         root.maxIterationCount())
       if (mergeWithPrev)
         scops.last.nextMerge = this.scop_
@@ -378,21 +378,21 @@ class Extractor extends Collector {
 
     if (node.hasAnnotation(SKIP_ANNOT))
       skip = true
-
     if (skip)
       return
 
     try {
       if (!curScop.exists())
         node match {
-          case loop : LoopOverDimensions with PolyhedronAccessable if (loop.parallelizationIsReasonable) =>
+          case loop : LoopOverDimensions with PolyhedronAccessable =>
             loop.indices.annotate(SKIP_ANNOT)
             loop.stepSize.annotate(SKIP_ANNOT)
             if (loop.condition.isDefined)
               loop.condition.get.annotate(SKIP_ANNOT)
             if (loop.reduction.isDefined)
               loop.reduction.get.annotate(SKIP_ANNOT)
-            enterLoop(loop, merge)
+            if (loop.parallelizationIsReasonable && loop.optLevel >= 1)
+              enterLoop(loop, merge)
 
           case _ =>
         }
@@ -506,7 +506,7 @@ class Extractor extends Collector {
 
   /////////////////// methods for node processing \\\\\\\\\\\\\\\\\\\
 
-  private def enterLoop(loop : LoopOverDimensions, mergeWithPrev : Boolean) : Unit = {
+  private def enterLoop(loop : LoopOverDimensions with PolyhedronAccessable, mergeWithPrev : Boolean) : Unit = {
 
     for (step <- loop.stepSize)
       if (step != IntegerConstant(1))
@@ -577,7 +577,7 @@ class Extractor extends Collector {
     templateBuilder.append("->%s[%s]}")
     val mapTemplate : String = templateBuilder.toString()
 
-    curScop.create(loop, origLoopVars, modelLoopVars.mkString(","), setTemplate, mapTemplate, mergeWithPrev)
+    curScop.create(loop, loop.optLevel, origLoopVars, modelLoopVars.mkString(","), setTemplate, mapTemplate, mergeWithPrev)
   }
 
   private def leaveLoop(loop : LoopOverDimensions) : Unit = {

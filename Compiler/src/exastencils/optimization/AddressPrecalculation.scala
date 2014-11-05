@@ -10,6 +10,7 @@ import exastencils.core.collectors.Collector
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.iv.FieldData
 import exastencils.util.SimplifyExpression
 
 object AddressPrecalculation extends CustomStrategy("Perform address precalculation") {
@@ -38,14 +39,14 @@ private final class ArrayBases(val arrayName : String) {
   private val inits = new HashMap[HashMap[Expression, Long], (String, Expression)]()
   private var idCount = 0
 
-  def getName(initVec : HashMap[Expression, Long], initExpr : => Expression) : String = {
-    inits.getOrElseUpdate(initVec, { idCount += 1; (arrayName + "_p" + idCount, initExpr) })._1
+  def getName(initVec : HashMap[Expression, Long], base : Expression) : String = {
+    inits.getOrElseUpdate(initVec, { idCount += 1; (arrayName + "_p" + idCount, new ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(initVec))) })._1
   }
 
   def addToDecls(decls : ListBuffer[Statement]) : Unit = {
     for ((_, (name : String, init : Expression)) <- inits)
-      decls += new VariableDeclarationStatement(
-        PointerDatatype(RealDatatype()), name, Some(new UnaryExpression(UnaryOperators.AddressOf, init)))
+      decls += VariableDeclarationStatement(
+        ConstPointerDatatype(RealDatatype()), name, Some(UnaryExpression(UnaryOperators.AddressOf, init)))
   }
 }
 
@@ -55,9 +56,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
   private val decls = new ArrayStack[(HashMap[String, ArrayBases], String)]()
 
   private def generateName(expr : Expression) : String = {
-    val cpp = new PpStream()
-    cpp << expr
-    return filter(cpp.toString())
+    return filter(expr.prettyprint())
   }
 
   private def filter(cpp : StringLike[_]) : String = {
@@ -129,23 +128,28 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     node match {
       case l : ForLoopStatement with OptimizationHint if (l.isInnermost) =>
         val d = new HashMap[String, ArrayBases]()
-        l.begin match {
-          case VariableDeclarationStatement(_, name, _) => decls.push((d, name))
+        l.inc match {
+          case AssignmentStatement(VariableAccess(name, _), _, _) => decls.push((d, name))
+          case AssignmentStatement(StringConstant(name), _, _)    => decls.push((d, name))
           case _ =>
-            Logger.dbg("[addr precalc]  cannot determine loop variable name, begin of ForLoopStatement is no VariableDeclarationStatement")
+            Logger.dbg("[addr precalc]  cannot determine loop variable name, inc of ForLoopStatement is not recognized:  " + l.inc)
             decls.push((d, null))
         }
         node.annotate(DECLS_ANNOT, d)
 
       // ArrayAccess with a constant index only cannot be optimized further
-      case a @ ArrayAccess(base, index) if !decls.isEmpty && !index.isInstanceOf[IntegerConstant] =>
+      case a @ ArrayAccess(base, index) if (!decls.isEmpty && !index.isInstanceOf[IntegerConstant]) =>
         var name : String = generateName(base)
         val (decl : HashMap[String, ArrayBases], loopVar) = decls.top
         val (in : Expression, outMap : HashMap[Expression, Long]) = splitIndex(index, loopVar)
         val bases : ArrayBases = decl.getOrElseUpdate(name, new ArrayBases(name))
-        name = bases.getName(outMap,
-          new ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(outMap)))
-        a.annotate(REPL_ANNOT, new ArrayAccess(new VariableAccess(name), in))
+        name = bases.getName(outMap, base)
+        val dType : Option[Datatype] =
+          base match {
+            case fd : FieldData => Some(ConstPointerDatatype(fd.field.dataType.resolveUnderlyingDatatype))
+            case _              => None
+          }
+        a.annotate(REPL_ANNOT, new ArrayAccess(new VariableAccess(name, dType), in))
 
       case _ => // ignore
     }
@@ -173,22 +177,19 @@ private final object IntegrateAnnotations extends PartialFunction[Node, Transfor
 
   def apply(node : Node) : Transformation.OutputType = {
 
-    val annot = node.removeAnnotation(REPL_ANNOT)
-    if (annot.isDefined)
-      return annot.get.value.asInstanceOf[Node]
+    val repl = node.removeAnnotation(REPL_ANNOT)
+    if (repl.isDefined)
+      return repl.get.value.asInstanceOf[Node]
 
-    else {
-      val decls = node.removeAnnotation(DECLS_ANNOT).get.value
-        .asInstanceOf[HashMap[String, ArrayBases]]
-      if (decls.isEmpty)
-        return node
+    val decls = node.removeAnnotation(DECLS_ANNOT).get.value.asInstanceOf[HashMap[String, ArrayBases]]
+    if (decls.isEmpty)
+      return node
 
-      val stmts = new ListBuffer[Statement]()
-      for ((_, bases : ArrayBases) <- decls)
-        bases.addToDecls(stmts)
+    val stmts = new ListBuffer[Statement]()
+    for ((_, bases : ArrayBases) <- decls)
+      bases.addToDecls(stmts)
 
-      stmts += node.asInstanceOf[Statement]
-      return new Scope(stmts)
-    }
+    stmts += node.asInstanceOf[Statement]
+    return new Scope(stmts)
   }
 }

@@ -98,13 +98,16 @@ object Main {
       ExpandStrategy.doUntilDone()
 
     MergeConditions.apply()
-
-    if (Knowledge.poly_usePolyOpt)
+    if (Knowledge.poly_optLevel_fine > 0)
       PolyOpt.apply()
-
     ResolveLoopOverDimensions.apply()
-    ResolveSlotOperationsStrategy.apply()
 
+    TypeInference.apply()
+
+    if (Knowledge.opt_useColorSplitting)
+      ColorSplitting.apply()
+
+    ResolveSlotOperationsStrategy.apply()
     ResolveIndexOffsets.apply()
     LinearizeFieldAccesses.apply()
 
@@ -120,8 +123,6 @@ object Main {
 
     if (Knowledge.opt_useAddressPrecalc)
       AddressPrecalculation.apply()
-
-    TypeInference.apply()
 
     SimplifyFloatExpressions.apply()
 

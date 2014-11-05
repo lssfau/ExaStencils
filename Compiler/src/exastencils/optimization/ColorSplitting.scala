@@ -1,13 +1,14 @@
 package exastencils.optimization
 
 import java.util.IdentityHashMap
+
 import exastencils.core._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
-import exastencils.util.SimplifyExpression
 import exastencils.polyhedron.PolyOpt
+import exastencils.util.SimplifyExpression
 
 object ColorSplitting extends DefaultStrategy("Color Splitting") {
 
@@ -21,17 +22,17 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
 
   this += new Transformation("now", new PartialFunction[Node, Transformation.OutputType] {
 
-    val updatedFields = new IdentityHashMap[Field, Int]()
+    val updatedFields = new IdentityHashMap[Field, Integer]()
 
     override def isDefinedAt(node : Node) : Boolean = {
       return node.isInstanceOf[DirectFieldAccess]
     }
 
-    private def addColorOffset(index : MultiIndex, dim : Int, colorOffset : Long) : Boolean = {
+    private def addColorOffset(index : MultiIndex, dim : Int, colorOffset : Int) : Boolean = {
       val cond : Expression = ColorCondCollector.cond
       if (cond == null)
         return false
-      val (expr, cValue) =
+      val (expr, cValue) : (Expression, Long) =
         cond match {
           case EqEqExpression(IntegerConstant(c),
             ModuloExpression(sum, IntegerConstant(nrColors2))) if (nrColors == nrColors2) =>
@@ -48,7 +49,7 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
       val cOffset : Long = accCSum.remove(SimplifyExpression.constName).getOrElse(0L)
       if (accCSum != SimplifyExpression.extractIntegralSum(expr))
         return false
-      val color = ((cValue + cOffset) % nrColors + nrColors) % nrColors // mathematical modulo
+      val color : Long = ((cValue + cOffset) % nrColors + nrColors) % nrColors // mathematical modulo
       index(dim) += IntegerConstant(color * colorOffset)
       return true
     }
@@ -60,8 +61,8 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
       val layout : FieldLayout = field.fieldLayout
       val innerD = 0
       val outerD = layout.layoutsPerDim.length - 1
-      var colorOffset = { var ret = Option(updatedFields.get(field)); ret.getOrElse(-1) };
-      if (colorOffset <= 0) {
+      var colorOffset : Integer = updatedFields.get(field)
+      if (colorOffset == null) {
         layout(innerD).numInnerLayers /= 2
         layout(innerD).numInnerLayers += 1
         layout(innerD).total = IntegerConstant(layout(innerD).evalTotal)
@@ -73,7 +74,7 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
 
       val index : MultiIndex = dfa.index
       if (!addColorOffset(index, outerD, colorOffset))
-        index(outerD) += (Duplicate(index).reduce((x, y) => x + y) Mod IntegerConstant(nrColors)) * IntegerConstant(colorOffset)
+        index(outerD) += (Duplicate(index).reduce((x, y) => x + y) Mod IntegerConstant(nrColors)) * IntegerConstant(colorOffset.longValue())
       index(innerD) = index(innerD) / IntegerConstant(nrColors)
 
       return dfa
@@ -87,18 +88,25 @@ object ColorCondCollector extends Collector {
 
   def enter(node : Node) : Unit = {
     node match {
-      case loop : LoopOverDimensions =>
-        cond = loop.condition.getOrElse(null)
+      case loop : LoopOverDimensions if (loop.condition.isDefined && loop.condition.get.isInstanceOf[EqEqExpression]) =>
+        cond = loop.condition.get
+      case ConditionStatement(c : EqEqExpression, _, fB) if (fB.isEmpty) =>
+        cond = c
       case _ =>
         val annot : Option[Annotation] = node.getAnnotation(PolyOpt.IMPL_CONDITION_ANNOT)
-        if (annot.isDefined)
+        if (annot.isDefined && annot.get.value.isInstanceOf[EqEqExpression])
           cond = annot.get.value.asInstanceOf[Expression]
     }
   }
 
   def leave(node : Node) : Unit = {
-    if (node.isInstanceOf[LoopOverDimensions] || node.hasAnnotation(PolyOpt.IMPL_CONDITION_ANNOT))
-      cond = null
+    node match {
+      case loop : LoopOverDimensions                    => cond = null
+      case ConditionStatement(c, _, fB) if (fB.isEmpty) => cond = null
+      case _ =>
+        if (node.hasAnnotation(PolyOpt.IMPL_CONDITION_ANNOT))
+          cond = null
+    }
   }
 
   def reset() : Unit = {

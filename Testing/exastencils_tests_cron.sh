@@ -9,7 +9,6 @@ sbatch -n 1 -c 1 <<EOF
 #SBATCH -e /dev/null
 #SBATCH --time=5
 
-USER="testbot"
 REPO_DIR="/scratch/${USER}/exastencils_daily_tests"
 LOG="/scratch/${USER}/exastencils_daily_tests.log"
 FAILURE_MAIL="kronast@fim.uni-passau.de"

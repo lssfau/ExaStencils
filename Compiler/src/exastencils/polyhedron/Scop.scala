@@ -9,7 +9,7 @@ import exastencils.datastructures.Node
 import exastencils.datastructures.ir._
 import isl.Conversions._
 
-class Scop(val root : LoopOverDimensions, var parallelize : Boolean, var origIterationCount : Array[Long]) {
+class Scop(val root : LoopOverDimensions, var optLevel : Int, var parallelize : Boolean, var origIterationCount : Array[Long]) {
 
   var nextMerge : Scop = null
   var remove : Boolean = false
@@ -32,7 +32,10 @@ class Scop(val root : LoopOverDimensions, var parallelize : Boolean, var origIte
     var output : isl.UnionMap = null
 
     def validity() : isl.UnionMap = {
-      return Isl.simplify(flow.union(anti).union(output))
+      if (flow == null)
+        return isl.UnionMap.empty(writes.getSpace())
+      else
+        return Isl.simplify(flow.union(anti).union(output))
     }
   }
 

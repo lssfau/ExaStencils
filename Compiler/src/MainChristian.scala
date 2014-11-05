@@ -99,7 +99,7 @@ object MainChristian {
 
     MergeConditions.apply()
 
-    if (Knowledge.poly_usePolyOpt)
+    if (Knowledge.poly_optLevel_fine > 0)
       PolyOpt.apply()
 
     ResolveLoopOverDimensions.apply()

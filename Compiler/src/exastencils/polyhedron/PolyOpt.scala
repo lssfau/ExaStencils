@@ -3,15 +3,16 @@ package exastencils.polyhedron
 import scala.collection.mutable.Map
 import scala.collection.mutable.TreeSet
 
-import exastencils.core.Logger
-import exastencils.core.StateManager
+import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.knowledge.Knowledge
 import isl.Conversions._
 
-trait PolyhedronAccessable
+trait PolyhedronAccessable {
+  var optLevel : Int = 3 // optimization level  0 [without/fastest] ... 3 [aggressive/slowest]
+}
 
 object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
@@ -44,11 +45,13 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     for (scop <- scops if (!scop.remove)) {
       mergeScops(scop)
       simplifyModel(scop)
-      computeDependences(scop)
-      deadCodeElimination(scop)
-      handleReduction(scop)
-      optimize(scop)
-      simplifyModel(scop)
+      if (scop.optLevel >= 2) {
+        computeDependences(scop)
+        deadCodeElimination(scop)
+        handleReduction(scop)
+        optimize(scop)
+        simplifyModel(scop)
+      }
     }
     recreateAndInsertAST()
 
@@ -57,27 +60,18 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   private def simplifyModel(scop : Scop) : Unit = {
 
-    if (scop.domain != null)
-      scop.domain = Isl.simplify(scop.domain)
-    if (scop.schedule != null)
-      scop.schedule = Isl.simplify(scop.schedule)
+    scop.domain = Isl.simplify(scop.domain)
+    scop.schedule = Isl.simplify(scop.schedule)
 
-    if (scop.reads != null)
-      scop.reads = Isl.simplify(scop.reads)
-    if (scop.writes != null)
-      scop.writes = Isl.simplify(scop.writes)
+    scop.reads = Isl.simplify(scop.reads)
+    scop.writes = Isl.simplify(scop.writes)
 
-    if (scop.deadAfterScop != null)
-      scop.deadAfterScop = Isl.simplify(scop.deadAfterScop)
+    scop.deadAfterScop = Isl.simplify(scop.deadAfterScop)
 
-    if (scop.deps.flow != null)
-      scop.deps.flow = Isl.simplify(scop.deps.flow)
-    if (scop.deps.anti != null)
-      scop.deps.anti = Isl.simplify(scop.deps.anti)
-    if (scop.deps.input != null)
-      scop.deps.input = Isl.simplify(scop.deps.input)
-    if (scop.deps.output != null)
-      scop.deps.output = Isl.simplify(scop.deps.output)
+    scop.deps.flow = Isl.simplify(scop.deps.flow)
+    scop.deps.anti = Isl.simplify(scop.deps.anti)
+    scop.deps.input = Isl.simplify(scop.deps.input)
+    scop.deps.output = Isl.simplify(scop.deps.output)
   }
 
   private def extractPolyModel() : Seq[Scop] = {
@@ -107,6 +101,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         scop.nextMerge = null
         return
       }
+      scop.optLevel = math.max(scop.optLevel, toMerge.optLevel)
       scop.domain = union(scop.domain, toMerge.domain)
       scop.schedule = union(scop.schedule, insertCst(toMerge.schedule, i))
       scop.stmts ++= toMerge.stmts
@@ -139,19 +134,17 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   private def union(a : isl.UnionSet, b : isl.UnionSet) : isl.UnionSet = {
     (a, b) match {
-      case (null, null) => null
-      case (x, null)    => x
-      case (null, y)    => y
-      case (x, y)       => x.union(y)
+      case (null, y) => y
+      case (x, null) => x
+      case (x, y)    => x.union(y)
     }
   }
 
   private def union(a : isl.UnionMap, b : isl.UnionMap) : isl.UnionMap = {
     (a, b) match {
-      case (null, null) => null
-      case (x, null)    => x
-      case (null, y)    => y
-      case (x, y)       => x.union(y)
+      case (null, y) => y
+      case (x, null) => x
+      case (x, y)    => x.union(y)
     }
   }
 
@@ -160,8 +153,11 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val empty = isl.UnionMap.empty(scop.writes.getSpace())
     val depArr = new Array[isl.UnionMap](1)
 
+    val schedule = Isl.simplify(scop.schedule.intersectDomain(scop.domain))
+    //    val schedule = scop.schedule
+
     // output
-    scop.writes.computeFlow(scop.writes, empty, scop.schedule,
+    scop.writes.computeFlow(scop.writes, empty, schedule,
       depArr, null, null, null) // output params
     scop.deps.output = depArr(0)
 
@@ -175,17 +171,17 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       })
 
       // input
-      readArrays.computeFlow(readArrays, empty, scop.schedule,
+      readArrays.computeFlow(readArrays, empty, schedule,
         depArr, null, null, null) // output params (C-style)
       scop.deps.input = depArr(0)
 
       // flow
-      scop.reads.computeFlow(scop.writes, empty, scop.schedule,
+      scop.reads.computeFlow(scop.writes, empty, schedule,
         depArr, null, null, null) // output params (C-style)
       scop.deps.flow = depArr(0)
 
       // anti
-      scop.writes.computeFlow(scop.reads, empty, scop.schedule,
+      scop.writes.computeFlow(scop.reads, empty, schedule,
         depArr, null, null, null) // output params (C-style)
       scop.deps.anti = depArr(0)
 
@@ -248,7 +244,6 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   }
 
   private final val tileSizes = Array(Knowledge.poly_tileSize_x, Knowledge.poly_tileSize_y, Knowledge.poly_tileSize_z, Knowledge.poly_tileSize_w)
-  //  private final val tileSizes = Array(Knowledge.poly_tileSize_y, Knowledge.poly_tileSize_z, Knowledge.poly_tileSize_w)
 
   private def getTileVec(dims : Int, itCount : Array[Long]) : isl.Vec = {
     var vec = isl.Vec.alloc(dims)
@@ -278,7 +273,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
     val schedule : isl.Schedule = schedConstr.computeSchedule()
     scop.noParDims.clear()
-    if (scop.parallelize) {
+    var perfTiling : Boolean = false
+    for (i <- 0 until scop.origIterationCount.length)
+      perfTiling |= tileSizes(i) < scop.origIterationCount(i)
+    if (scop.optLevel >= 3 && perfTiling) {
       var tiled : Int = 0
       schedule.foreachBand({
         band : isl.Band =>
@@ -291,23 +289,11 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
             tiled = band.nMember()
             if (2 <= tiled && tiled <= 4)
               band.tile(getTileVec(tiled, scop.origIterationCount))
-            //            if (3 <= tiled && tiled <= 4) {
-            //              tiled -= 1
-            //              band.split(tiled)
-            //              band.tile(getTileVec(tiled, scop.origIterationCount))
-            //            } else
-            //              tiled = 0
           }
       } : isl.Band => Unit)
       val threads = Knowledge.omp_numThreads
       for (i <- 0 until tiled) {
-        val tileSize = i match {
-          case 0 => Knowledge.poly_tileSize_x
-          case 1 => Knowledge.poly_tileSize_y
-          case 2 => Knowledge.poly_tileSize_z
-          case 3 => Knowledge.poly_tileSize_w
-        }
-        val tiles : Long = scop.origIterationCount(i) / tileSize
+        val tiles : Long = scop.origIterationCount(i) / tileSizes(i)
         if (tiles != threads && tiles < 2 * threads)
           scop.noParDims += tiled - i - 1
       }
@@ -326,8 +312,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       Logger.setLevel(1)
       this.execute(
         new Transformation("update loop iterator", {
-          case VariableAccess(str, _) if (repl.isDefinedAt(str)) => repl(str)
-          case StringConstant(str) if (repl.isDefinedAt(str))    => repl(str)
+          case VariableAccess(str, _) if (repl.isDefinedAt(str)) => Duplicate(repl(str))
+          case StringConstant(str) if (repl.isDefinedAt(str))    => Duplicate(repl(str))
         }), Some(applyAt))
       Logger.setLevel(oldLvl)
     }

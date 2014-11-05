@@ -25,6 +25,10 @@ object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expre
       a.src = simplify(src)
       a
 
+    case a @ AssignmentStatement(ArrayAccess(VariableAccess(_, Some(ConstPointerDatatype(RealDatatype()))), _), src, op) =>
+      a.src = simplify(src)
+      a
+
     case a @ AssignmentStatement(ArrayAccess(VariableAccess(_, Some(ArrayDatatype(RealDatatype(), _))), _), src, op) =>
       a.src = simplify(src)
       a
@@ -40,10 +44,8 @@ object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expre
       return SimplifyExpression.simplifyFloatingExpr(expr)
     } catch {
       case x : EvaluationException =>
-        {
-          if (DEBUG)
-            Logger.debug("[simplify]  cannot simplify float expression: " + x.msg)
-        }
+        if (DEBUG)
+          Logger.debug("[simplify]  cannot simplify float expression: " + x.msg)
         return expr
     }
   }

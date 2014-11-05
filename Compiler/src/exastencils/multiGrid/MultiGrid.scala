@@ -18,15 +18,16 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
     var statements : ListBuffer[Statement] = new ListBuffer
 
     for (field <- fields) {
+      val loopOverDims = new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
+        new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => field.fieldLayout(i).idxGhostLeftBegin)),
+        new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => field.fieldLayout(i).idxGhostRightEnd))),
+        (0 until field.numSlots).to[ListBuffer].map(slot =>
+          new AssignmentStatement(
+            new DirectFieldAccess(FieldSelection(field, field.level, slot, -1), LoopOverDimensions.defIt),
+            0.0) : Statement)) with OMP_PotentiallyParallel with PolyhedronAccessable
+      loopOverDims.optLevel = 1
       statements += new LoopOverFragments(
-        new ConditionStatement(iv.IsValidForSubdomain(field.domain.index),
-          new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
-            new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => field.fieldLayout(i).idxGhostLeftBegin)),
-            new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => field.fieldLayout(i).idxGhostRightEnd))),
-            (0 until field.numSlots).to[ListBuffer].map(slot =>
-              new AssignmentStatement(
-                new DirectFieldAccess(FieldSelection(field, field.level, slot, -1), LoopOverDimensions.defIt),
-                0.0) : Statement)) with OMP_PotentiallyParallel with PolyhedronAccessable)) with OMP_PotentiallyParallel
+        new ConditionStatement(iv.IsValidForSubdomain(field.domain.index), loopOverDims)) with OMP_PotentiallyParallel
     }
 
     new FunctionStatement(new UnitDatatype, s"initFieldsWithZero", ListBuffer[VariableAccess](), statements)
@@ -36,7 +37,7 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
 case class MultiGridFunctions() extends FunctionCollection("MultiGrid/MultiGrid",
   (if (Knowledge.useMPI) ListBuffer("mpi.h") else ListBuffer())
     ++ (if (Knowledge.opt_vectorize) ListBuffer("immintrin.h") else ListBuffer())
-    ++ (if (Knowledge.opt_vectorize || Knowledge.poly_usePolyOpt) ListBuffer("algorithm") else ListBuffer()),
+    ++ (if (Knowledge.opt_vectorize || Knowledge.poly_optLevel_fine > 0) ListBuffer("algorithm") else ListBuffer()),
   ListBuffer("Globals/Globals.h", "Util/Vector.h", "Util/Stopwatch.h", "CommFunctions/CommFunctions.h", "Domains/DomainGenerated.h")) {
 
   if (Knowledge.data_initAllFieldsWithZero)

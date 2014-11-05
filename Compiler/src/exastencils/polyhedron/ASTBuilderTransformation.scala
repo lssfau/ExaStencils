@@ -23,7 +23,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
   private final val ZERO_VAL : isl.Val = isl.Val.zero()
   private final val ONE_VAL : isl.Val = isl.Val.one()
 
-  private val loopStmts = new HashMap[String, ListBuffer[ForLoopStatement with OptimizationHint]]()
+  private val loopStmts = new HashMap[String, ListBuffer[OptimizationHint]]()
   private var oldStmts : HashMap[String, (Statement, ArrayBuffer[String])] = null
   private var seqDims : TreeSet[String] = null
   private var parallelize_omp : Boolean = false

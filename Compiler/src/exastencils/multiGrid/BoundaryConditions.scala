@@ -37,9 +37,11 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
     if (field.field.dirichletBC.isDefined) {
       new LoopOverFragments(
         new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
-          neighbors.map(neigh =>
-            new ConditionStatement(UnaryExpression(UnaryOperators.Not, iv.NeighborIsValid(field.domainIndex, neigh._1.index)),
-              new LoopOverDimensions(Knowledge.dimensionality, neigh._2, setupDirichlet) with OMP_PotentiallyParallel with PolyhedronAccessable) : Statement))) with OMP_PotentiallyParallel
+          neighbors.map({ neigh =>
+            val loopOverDims = new LoopOverDimensions(Knowledge.dimensionality, neigh._2, setupDirichlet) with OMP_PotentiallyParallel with PolyhedronAccessable
+            loopOverDims.optLevel = 1
+            new ConditionStatement(UnaryExpression(UnaryOperators.Not, iv.NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : Statement
+          }))) with OMP_PotentiallyParallel
     } else {
       NullStatement
     }
