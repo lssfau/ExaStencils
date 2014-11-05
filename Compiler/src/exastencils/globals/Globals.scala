@@ -30,6 +30,9 @@ case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = ne
 
     for (variable <- variables) writer << s"${variable.prettyprint()}\n"
 
+    // additional include for std::srand
+    PrettyprintingManager.getPrinter(s"${baseName}_initGlobals.cpp").addExternalDependency("cstdlib")
+
     super.printSources
   }
 }
