@@ -25,17 +25,24 @@ object Main {
     // for runtime measurement
     val start : Long = System.nanoTime()
 
-    // Init settings
-
+    // init Settings
     if (args.length >= 1) {
       val s = new exastencils.parsers.settings.ParserSettings
       s.parseFile(args(0))
     }
+
+    if (Settings.cancelIfOutFolderExists) {
+      if ((new java.io.File(Settings.outputPath)).exists) {
+        exastencils.core.Logger.error(s"Output path ${Settings.outputPath} already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
+        sys.exit(0)
+      }
+    }
+
+    // init Knowledge
     if (args.length >= 2) {
       val k = new exastencils.parsers.settings.ParserKnowledge
       k.parseFile(args(1))
     }
-
     Knowledge.update()
 
     // HACK: this will setup a dummy L4 DSL file

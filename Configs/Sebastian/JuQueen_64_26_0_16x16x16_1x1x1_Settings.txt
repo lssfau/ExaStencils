@@ -1,1 +1,2 @@
 outputPath = "C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Generated_64_26_0_16x16x16_1x1x1/"
+cancelIfOutFolderExists = true
