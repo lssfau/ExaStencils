@@ -229,7 +229,7 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
         else NullStatement,
         if (end) new LoopOverFragments(
           new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
-            neighbors.map(neigh => genWait(neigh._1))))
+            neighbors.map(neigh => genWait(neigh._1)))) // TODO: omp parallel or too much overhead? remove inner critical?
         else NullStatement,
         if (end) new LoopOverFragments(
           new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
