@@ -93,6 +93,22 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
 
   private[optimization] def updateIncrement(inc : Statement, unrollFactor : Int) : (Statement, String, Long) = {
     return inc match {
+      case ExpressionStatement(PreIncrementExpression(VariableAccess(itVar, Some(IntegerDatatype())))) =>
+        (AssignmentStatement(VariableAccess(itVar, Some(IntegerDatatype())),
+          IntegerConstant(unrollFactor), "+="), itVar, 1L)
+
+      case ExpressionStatement(PostIncrementExpression(VariableAccess(itVar, Some(IntegerDatatype())))) =>
+        (AssignmentStatement(VariableAccess(itVar, Some(IntegerDatatype())),
+          IntegerConstant(unrollFactor), "+="), itVar, 1L)
+
+      case ExpressionStatement(PreDecrementExpression(VariableAccess(itVar, Some(IntegerDatatype())))) =>
+        (AssignmentStatement(VariableAccess(itVar, Some(IntegerDatatype())),
+          IntegerConstant(unrollFactor), "-="), itVar, 1L)
+
+      case ExpressionStatement(PostDecrementExpression(VariableAccess(itVar, Some(IntegerDatatype())))) =>
+        (AssignmentStatement(VariableAccess(itVar, Some(IntegerDatatype())),
+          IntegerConstant(unrollFactor), "-="), itVar, 1L)
+
       case AssignmentStatement(VariableAccess(itVar, Some(IntegerDatatype())),
         AdditionExpression(VariableAccess(itVar2, Some(IntegerDatatype())), IntegerConstant(incr)),
         "=") if (itVar == itVar2) =>
@@ -104,6 +120,12 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
         "=") if (itVar == itVar2) =>
         (AssignmentStatement(VariableAccess(itVar, Some(IntegerDatatype())),
           IntegerConstant(incr * unrollFactor), "+="), itVar, incr)
+
+      case AssignmentStatement(VariableAccess(itVar, Some(IntegerDatatype())),
+        SubtractionExpression(VariableAccess(itVar2, Some(IntegerDatatype())), IntegerConstant(incr)),
+        "=") if (itVar == itVar2) =>
+        (AssignmentStatement(VariableAccess(itVar, Some(IntegerDatatype())),
+          IntegerConstant(incr * unrollFactor), "-="), itVar, incr)
 
       case AssignmentStatement(VariableAccess(itVar, Some(IntegerDatatype())), IntegerConstant(incr),
         "+=") =>
@@ -199,6 +221,10 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
           AdditionExpression(vAcc, IntegerConstant(offset))
         } else
           vAcc
+
+      case loop @ ForLoopStatement(decl : VariableDeclarationStatement, _, _, _, _) if (offset > 0) => // HACK: declaration must be handled first
+        rename.add(decl.name)
+        loop
 
       case vAcc : VariableAccess if (rename.contains(vAcc.name)) =>
         vAcc.name += "_" + offset
