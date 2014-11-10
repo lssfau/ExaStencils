@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#sbatch -n 1 -c 1 <<EOF
+sbatch -n 1 -c 1 <<EOF
 #!/bin/bash
 #SBATCH --job-name=exastencils_daily_tests_checkout
 #SBATCH -p idle
