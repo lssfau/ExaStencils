@@ -4,6 +4,7 @@
 #SBATCH -A idle
 #SBATCH --hint=nomultithread
 #SBATCH --cpu_bind=cores
+#SBATCH --exclusive
 #SBATCH -o /dev/null
 #SBATCH -e /dev/null
 #SBATCH --time=5
@@ -26,7 +27,7 @@ function cleanup {
   echo "        Removed  ${RESULT} (test id: '${ID}')" >> "${LOG}"
   if [[ ${TIMEOUT} -eq 1 ]]; then
     echo "========= FAILURE: ID '${ID}': Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (running testcode)." >> "${LOG}"
-	echo "Test '${ID}' failed!  Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (running testcode)." | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
+    echo "Test '${ID}' failed!  Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (running testcode)." | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
   fi
 }
 trap cleanup EXIT

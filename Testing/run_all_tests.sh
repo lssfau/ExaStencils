@@ -34,7 +34,7 @@ function cleanup {
   echo "    Removed  ${TMP_DIR}" >> "${LOG}"
   if [[ ${TIMEOUT} -eq 1 ]]; then
     echo "=== FAILURE: Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (build compiler)." >> "${LOG}"
-	echo "Automatic tests failed!  Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (build compiler)." | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
+    echo "Automatic tests failed!  Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (build compiler)." | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
   fi
 }
 trap cleanup EXIT
@@ -50,10 +50,10 @@ first=1
 for job in $(squeue -h -u ${USER} -o %i); do
   if [[ ${job} -ne ${SLURM_JOB_ID} ]]; then
     if [[ first -eq 1 ]]; then
-	  first=0
+      first=0
       echo "    Old tests from last run found. Cancel them and requeue new tests (may result in timeout errors)." >> "${LOG}"
-	fi
-	echo "    Cancel ID ${job}." >> "${LOG}"
+    fi
+    echo "    Cancel ID ${job}." >> "${LOG}"
     scancel ${job}
   fi
 done

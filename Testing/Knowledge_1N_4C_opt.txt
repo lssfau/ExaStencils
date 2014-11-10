@@ -5,7 +5,7 @@ simd_instructionSet        = "SSE3"
 
 dimensionality             = 3
 
-maxLevel                   = 8
+maxLevel                   = 6
 comm_strategyFragment      = 6 // 26
 
 domain_summarizeBlocks     = true
