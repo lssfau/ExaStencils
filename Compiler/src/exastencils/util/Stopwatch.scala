@@ -101,11 +101,12 @@ protected:
       val enableTimerCallStacks = true
       // TODO: is MPI is enabled, average the timings over the number of threads using the given strategy
       // Comment: Meaningless, strategy is defined on test manager, not in timer.
+      val useMPI = true
       val timerCollectionOperator = "MEAN" // "MIN", "MAX"
       // TODO: fix the compile warnings
       // TODO: this has to work with and without std::chrono
       val chronoIsAvailable = true
-      val windowsSystem = true
+      val windowsSystem = false
 
       val writerHeader = PrettyprintingManager.getPrinter(s"Util/Stopwatch.h")
       val writerSource = PrettyprintingManager.getPrinter(s"Util/Stopwatch.cpp")
@@ -116,6 +117,7 @@ protected:
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <fstream>
         
 inline void assert(bool x)
 {
@@ -123,6 +125,8 @@ inline void assert(bool x)
 	if(!x) abort();
 #endif
 }
+        
+#define newline '\n'
 	""");
 
       if (chronoIsAvailable) {
@@ -203,9 +207,14 @@ public:
 	double getTotalTimeInMilliSec();
 	double getLastTimeInMilliSec();
 	double getMeanTimeInMilliSec();
+    
+    std::string ToCSV();//name;total;mean
+	static void PrintAllTimersGlobal();//prints CSV of all timers from all nodes
+	static void PrintAllTimersToFileGlobal( std::string name );//prints CSV of all timers from all nodes to #filename
 
 
 	std::string GetName();
+    std::string _name;
 private:
 	unsigned int _entries;
 	unsigned int _total_entries;
@@ -213,8 +222,9 @@ private:
 	TIMER_TIME_STORE_TYPE _mcs_global;
 	TIMER_TIME_STORE_TYPE _mcs_local;
 	
-	std::string _name;
 	void UniqueInit();
+    static void TimerWrapper::GatherAllTimersCSV(std::vector<std::string>& out_data);
+	static std::vector<TimerWrapper*> _all_timers;
 };
     """);
 
@@ -283,6 +293,11 @@ public:
 		*/
 	};
 
+	std::string ToCSV()//name;time
+	{
+		return _name +';'+ std::to_string(TIMER_GET_TIME_MILI(_local_mcs))+';';
+	}
+
 
 private:
 	CallEntity* _parent;
@@ -342,32 +357,75 @@ public:
 		}
 	}
 
+	static void PrintCallStackToFileML( const std::string& nm )
+	{
+		std::ofstream out(nm);
+		char newl = newline;
+		std::vector<std::string> _data = GetCallStackAsCSVML(_root);
+
+		for( int i = 0; i < _data.size(); i++ )
+		{
+			out.write( _data[i].c_str(), sizeof(char)*_data[i].size() );
+			out.write( &newl, sizeof(char) );
+		}
+		out.close();
+	}
+
+	static void PrintCallStackToFile( const std::string& nm )
+	{
+		std::ofstream out(nm);
+
+		std::string _data = GetCallStackAsCSV(_root);
+		out.write( _data.c_str(), sizeof(char)*_data.size() );
+
+		out.close();
+	}
+
+	static void PrintCallStackToFileGlobal( const std::string& nm )
+	{
+		std::vector<std::string> timer_data;
+		int rank = GetCallStackAsCSVGlobal(timer_data);
+
+		if (rank == 0)
+		{
+			std::ofstream out(nm);
+			char newl = newline;
+			for( int i = 0; i < timer_data.size(); i++ )
+			{
+				out.write( timer_data[i].c_str(), sizeof(char)*timer_data[i].size() );
+				out.write( &newl, sizeof(char) );
+			}
+			out.close();
+		}
+	}
+
+	
+
 	static void ClearCallStack()
 	{
 		Clear(_root);
 	}
 
 private:
-	static CallEntity* _root;
 	static TimerWrapper _root_timer;
-    
+	static CallEntity* _root;
+	
 	static CallEntity** GetHead()//current timer we are in
 	{
 		static CallEntity** head = &_root;
 		return head;
 	}
 
-	static void print_with_indent(int indent, const char * string, double dur)
+	static void print_with_indent(int indent, std::string str)
 	{
-		printf("%*s" "%s: %f ms\n", indent, " ", string, dur); 
+		printf("%*s" "%s ms\n", indent, " ", str.c_str());
 	}
 
 	static void Print( int displacement, CallEntity* root )
 	{
 		if( root->_stoped )
 		{
-			double dur = TIMER_GET_TIME_MILI(root->_local_mcs);
-			print_with_indent(displacement, (root->_name).c_str(), dur);
+			print_with_indent(displacement, root->ToCSV());
 
 			for( int i = 0; i < root->_childs.size(); i++ )
 			{
@@ -376,9 +434,58 @@ private:
 		}
 		else
 		{
-			print_with_indent(displacement, "ERROR: TIMER HAS NOT BEEN STOPPED!",0);
+			print_with_indent(displacement, "ERROR: TIMER HAS NOT BEEN STOPPED!");
 		}
 	}
+
+	static std::vector<std::string> GetCallStackAsCSVIntend( int displacement, CallEntity* root )
+	{
+		std::vector<std::string> _data;
+		
+		if( root->_stoped )
+		{
+			_data.push_back(std::to_string(displacement)+";" + root->ToCSV() );
+
+			for( int i = 0; i < root->_childs.size(); i++ )
+			{
+				std::vector<std::string> _n_data = GetCallStackAsCSVIntend( displacement+1, (root->_childs)[i]);
+				_data.insert( _data.end(), _n_data.begin(), _n_data.end() );
+			}
+		}
+		else
+		{
+			_data.push_back(std::to_string(displacement)+";" + root->_name +  ";ERROR: TIMER HAS NOT BEEN STOPPED!" );
+		}
+		return _data;
+	}
+
+	static std::vector<std::string> GetCallStackAsCSVML( CallEntity* root ) 
+	{
+		std::vector<std::string> _data;
+		for( int i = 0; i < _root->_childs.size(); i++ )
+		{
+			std::vector<std::string> _l_data = GetCallStackAsCSVIntend( 0, (root->_childs)[i]);
+			_data.insert( _data.end(), _l_data.begin(), _l_data.end() );
+		}
+		
+		return _data;
+	}
+
+	static std::string GetCallStackAsCSV( CallEntity* root ) 
+	{
+		std::string _data;
+		for( int i = 0; i < _root->_childs.size(); i++ )
+		{
+			std::vector<std::string> _l_data = GetCallStackAsCSVIntend( 0, (root->_childs)[i]);
+			for ( int i = 0; i < _l_data.size(); i++ )
+			{
+				_data += _l_data[i];
+			}
+		}
+		return _data;
+	}
+
+	static int GetCallStackAsCSVGlobal( std::vector<std::string>& out_data);
 
 	static void Clear( CallEntity* root )
 	{
@@ -389,20 +496,26 @@ private:
 		delete root;
 	}
 
+
+
 }; """);
       }
 
-      writerSource << ("""         
+      writerSource << ("""   
+#include <mpi.h>
+	
 TimerWrapper::TimerWrapper(void)
 {	
 	_name = "Unset name";
 	UniqueInit();
+	_all_timers.push_back(this);
 }
 
 TimerWrapper::TimerWrapper(std::string name)
 {
 	_name = name;
 	UniqueInit();
+	_all_timers.push_back(this);
 }
 
 void TimerWrapper::UniqueInit()
@@ -419,6 +532,8 @@ void TimerWrapper::Start()
 	{
 		_time_start = TIMER_NOW;
 		_mcs_local = TIMER_ZERO;
+
+		++_total_entries;
 	}
 """);
 
@@ -429,8 +544,7 @@ void TimerWrapper::Start()
       }
 
       writerSource << ("""  
-	++_entries;
-	++_total_entries;
+	++_entries;	
 }
 
 void TimerWrapper::Stop()
@@ -456,6 +570,92 @@ void TimerWrapper::Stop()
 	--_entries;
 }
 
+void TimerWrapper::GatherAllTimersCSV( std::vector<std::string>& out_data)
+{
+	int rank, N;
+	MPI_Comm_size(MPI_COMM_WORLD, &N);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+	if ( rank != 0 )
+	{
+		//calc space:
+		std::string timer_datas;
+		for( int i = 0; i < _all_timers.size(); i++ )
+		{
+			timer_datas += _all_timers[i]->ToCSV();
+		}
+		MPI_Send(timer_datas.c_str(), (int)timer_datas.size(), MPI_CHAR, 0, 0, MPI_COMM_WORLD);
+	}
+	else
+	{
+		
+		//this node:
+		std::string timer_datas;
+		for( int i = 0; i < _all_timers.size(); i++ )
+		{
+			timer_datas += _all_timers[i]->ToCSV();
+		}
+
+		out_data.push_back(timer_datas);
+		//other
+		MPI_Status status;
+
+		for( int i = 1; i < N; i++ )
+		{
+			int size = 0;
+			MPI_Probe(i, 0, MPI_COMM_WORLD, &status);
+			MPI_Get_count(&status, MPI_CHAR, &size);
+
+			char* arr = new char[size];
+			MPI_Recv(arr, size, MPI_CHAR, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+			std::string timer_datas(arr);
+			delete[] arr;
+			timer_datas.resize(size);
+			out_data.push_back(timer_datas);		
+		}
+	}
+}
+
+void TimerWrapper::PrintAllTimersGlobal()
+{
+	printf("Timer data from all nodes:\n");
+
+	std::vector<std::string> timer_data;
+	GatherAllTimersCSV(timer_data);
+	
+    int rank;
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	if ( rank == 0 )
+    {
+		for( int i = 0; i < timer_data.size(); i++ )
+		{
+			printf("Node #%d: %s\n", i, (timer_data[i]).c_str());
+		}
+	}
+}
+
+void TimerWrapper::PrintAllTimersToFileGlobal( std::string name )
+{
+	std::vector<std::string> timer_data;
+	GatherAllTimersCSV(timer_data);
+
+	int rank;
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	if ( rank == 0 )
+	{
+		std::ofstream out(name);
+		char newl = newline;
+		for( int i = 0; i < timer_data.size(); i++ )
+		{
+			out.write( timer_data[i].c_str(), sizeof(char)*timer_data[i].size() );
+			out.write( &newl, sizeof(char) );
+		}
+		out.close();
+	}
+}
+
+    
 std::string TimerWrapper::GetName()
 {
 	return _name;
@@ -474,19 +674,74 @@ double TimerWrapper::getTotalTimeInMilliSec()
 
 double TimerWrapper::getMeanTimeInMilliSec()
 {
-	return TIMER_GET_TIME_MILI(_mcs_global)/_total_entries;
+	return _total_entries? TIMER_GET_TIME_MILI(_mcs_global)/_total_entries : 0.0;
 }
 
 
+std::string TimerWrapper::ToCSV()//name;time
+{
+	return _name +';'+ std::to_string(getTotalTimeInMilliSec())+';'+ std::to_string(getMeanTimeInMilliSec())+';';
+}
+    
 
 TimerWrapper::~TimerWrapper(void)
 {
+    if ( _all_timers.size() )
+	{
+		auto tmp = std::find(_all_timers.begin(), _all_timers.end(), this);
+		if ( tmp !=_all_timers.end() )
+			_all_timers.erase(tmp);
+	}
 }
+    
+std::vector<TimerWrapper*> TimerWrapper::_all_timers;
 """);
       if (enableTimerCallStacks) {
         writerSource << ("""  
 CallEntity* CallTracker::_root = new CallEntity( nullptr, "DUMB", &(CallTracker::_root_timer));
 TimerWrapper CallTracker::_root_timer("RootTimer");
+	    
+	    
+int CallTracker::GetCallStackAsCSVGlobal( std::vector<std::string>& out_data)
+{
+	int rank, N;
+	MPI_Comm_size(MPI_COMM_WORLD, &N);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+	if ( rank != 0 )
+	{
+		//calc space:
+		std::string callstack_datas = GetCallStackAsCSV(_root);
+		MPI_Send(callstack_datas.c_str(), (int)callstack_datas.size(), MPI_CHAR, 0, 0, MPI_COMM_WORLD);
+	}
+	else
+	{
+		//this node:
+		std::string timer_datas = GetCallStackAsCSV(_root);
+		
+		out_data.push_back(timer_datas);
+		//other
+		MPI_Status status;
+
+		for( int i = 1; i < N; i++ )
+		{
+			int size = 0;
+			MPI_Probe(i, 0, MPI_COMM_WORLD, &status);
+			MPI_Get_count(&status, MPI_CHAR, &size);
+
+			char* arr = new char[size];
+			MPI_Recv(arr, size, MPI_CHAR, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+			std::string timer_datas(arr);
+			delete[] arr;
+			timer_datas.resize(size);
+
+			out_data.push_back(timer_datas);		
+		}
+	}
+	return rank;
+}
+
 	    """);
       }
     }
