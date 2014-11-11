@@ -19,6 +19,7 @@ ANT_BUILD="${COMPILER_DIR}/build.xml"
 COMPILER_JAR="${COMPILER_DIR}/compiler.jar"
 TESTING_DIR="${BASE_DIR}/Testing"
 TESTING_CONF="${TESTING_DIR}/test_confs.txt"
+TESTING_BIN_DIR="${TESTING_DIR}/bin_testing"
 
 FAILURE_MAIL="kronast@fim.uni-passau.de"
 FAILURE_SUBJECT="ExaStencils TestBot Error"
@@ -45,6 +46,7 @@ function finish {
   exit 0
 }
 
+mkdir -p "${TESTING_BIN_DIR}"
 # cancel all uncompleted jobs from last testrun
 first=1
 for job in $(squeue -h -u ${USER} -o %i); do
@@ -57,10 +59,12 @@ for job in $(squeue -h -u ${USER} -o %i); do
     scancel ${job}
   fi
 done
+# remove old binaries (if some)
+rm -f "${TESTING_BIN_DIR}/*"
 
 # build generator (place class files in TMP_DIR)
 echo "    Created  ${TMP_DIR}: generator build dir" >> "${LOG}"
-srun ant -f "${ANT_BUILD}" -Dbuild.dir="${TMP_DIR}" -Djava.dir="/usr/lib/jvm/default-java/" -Dscala.dir="/scratch/${USER}/scala/" clean build > "${OUTPUT}" 2>&1
+srun ant -f "${ANT_BUILD}" -Dbuild.dir="${TMP_DIR}" -Djava.dir="/usr/lib/jvm/default-java/" -Dscala.dir="/scratch/${USER}/exastencils_tests/scala/" clean build > "${OUTPUT}" 2>&1
 #srun ant -f "${ANT_BUILD}" -Dbuild.dir="${TMP_DIR}" clean build > "${OUTPUT}" 2>&1
     if [[ $? -ne 0 ]]; then
       echo "=== FAILED: Generator: ant build error. =" >> "${LOG}"

@@ -1,16 +1,18 @@
 #!/bin/bash
-
-sbatch -n 1 -c 1 <<EOF
-#!/bin/bash
 #SBATCH --job-name=exastencils_daily_tests_checkout
 #SBATCH -p idle
 #SBATCH -A idle
+#SBATCH -n 1
+#SBATCH -c 1
 #SBATCH -o /dev/null
 #SBATCH -e /dev/null
 #SBATCH --time=5
 
-REPO_DIR="/scratch/${USER}/exastencils_tests"
-LOG="/scratch/${USER}/exastencils_tests.log"
+
+BASE_DIR=${1}
+
+REPO_DIR="${BASE_DIR}/repo"
+LOG="${BASE_DIR}/tests.log"
 FAILURE_MAIL="kronast@fim.uni-passau.de"
 FAILURE_SUBJECT="ExaStencils TestBot Error (cron)"
 
@@ -68,4 +70,3 @@ fi
 
 sbatch "${REPO_DIR}/Testing/run_all_tests.sh" "${REPO_DIR}" "${LOG}"
 finish
-EOF
