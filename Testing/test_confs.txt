@@ -47,3 +47,12 @@ Large_Hybrid  Main  Large/Hybrid.knowledge  Large/Hybrid.results  4  10  E5
 #Seq_Simple  Main  Opts/seq_simple.knowledge  Opts/seq_simple.results  1   1
 #1N_4C_opt   Main  Opts/1N_4C_opt.knowledge   Opts/1N_4C_opt.results   1   4  i7|E5
 #8N_10C_opt  Main  Opts/8N_10C_opt.knowledge  Opts/8N_10C_opt.results  8  10  E5
+
+#################################################################################################
+# SMOOTHER TESTS                                                                     #
+#################################################################################################
+
+# 27 OMP threads
+Smoothers_Jac   Main    Smoothers/Jac.knowledge     Smoothers/Jac.results   27  2
+Smoothers_GS    Main    Smoothers/GS.knowledge      Smoothers/GS.results    27  2
+Smoothers_RBGS  Main    Smoothers/RBGS.knowledge    Smoothers/RBGS.results  27  2

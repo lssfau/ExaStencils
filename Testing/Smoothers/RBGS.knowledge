@@ -14,9 +14,18 @@ domain_numBlocks_x			= 3
 domain_numBlocks_y			= 3
 domain_numBlocks_z			= 3
 
-domain_numFragsPerBlock_x	= 1
-domain_numFragsPerBlock_y	= 1
-domain_numFragsPerBlock_z	= 1
+domain_numFragsPerBlock_x	= 3
+domain_numFragsPerBlock_y	= 3
+domain_numFragsPerBlock_z	= 3
 
 l3tmp_generateL4			= true
 l3tmp_genForAutoTests		= true
+
+l3tmp_smoother				= "RBGS"
+l3tmp_useConditionsForRBGS	= true
+
+mpi_useCustomDatatypes		= true
+poly_optLevel_fine			= 3
+opt_useAddressPrecalc		= true
+opt_vectorize				= false
+opt_unroll					= 2

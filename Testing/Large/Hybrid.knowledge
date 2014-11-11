@@ -18,4 +18,5 @@ domain_numFragsPerBlock_x	= 5
 domain_numFragsPerBlock_y	= 2
 domain_numFragsPerBlock_z	= 1
 
+l3tmp_generateL4			= true
 l3tmp_genForAutoTests		= true
