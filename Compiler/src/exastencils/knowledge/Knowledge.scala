@@ -286,6 +286,6 @@ object Knowledge {
 
     Constraints.condEnsureValue(poly_optLevel_coarse, poly_optLevel_fine, poly_optLevel_coarse > poly_optLevel_fine, "optimization level for coarse grids must smaller or equal to the one for the fine levels")
     Constraints.condEnsureValue(poly_numFinestLevels, numLevels, poly_numFinestLevels > numLevels, "number of fine levels (for optimization) cannot exceed the number of all levels")
-    Constraints.condEnsureValue(opt_useColorSplitting, false, l3tmp_smoother == "Jac", "color splitting only relevant for RBGS smoother")
+    Constraints.condEnsureValue(opt_useColorSplitting, false, l3tmp_smoother != "RBGS", "color splitting is only relevant for RBGS smoother")
   }
 }
