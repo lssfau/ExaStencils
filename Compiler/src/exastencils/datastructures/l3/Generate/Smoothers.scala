@@ -75,9 +75,8 @@ object Smoothers {
       printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)} = ${Fields.solution(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( $stencil ) ) * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solution(s"current", postfix)(vecDim)} ) )")
     printer.println(s"\t}")
 
-    if (!tempBlocking)
+    if (!tempBlocking) // FIXME: else
       Communication.exch(printer, s"Solution$postfix@current")
-    // FIXME: else
 
     Knowledge.dimensionality match {
       case 2 => {

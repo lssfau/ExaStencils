@@ -21,6 +21,8 @@ L4:
 - add temporary fields
 
 IR:
+- fix/ support communication statements within fragment loops specified on l4
+
 - add one distinct communicator per (sub)domain
 
 - add temporary fields

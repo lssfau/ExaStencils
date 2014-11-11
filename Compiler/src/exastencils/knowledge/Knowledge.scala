@@ -155,7 +155,7 @@ object Knowledge {
   var l3tmp_generateL4 : Boolean = true // generates a new Layer 4 file using the corresponding filename from Settings; the generated DSL file can is based on the following parameters
 
   /// SPL connected
-  var l3tmp_smoother : String = "Jac" // [Jac|GS|RBGS] // the l3tmp_smoother to be generated
+  var l3tmp_smoother : String = "RBGS" // [Jac|GS|RBGS] // the l3tmp_smoother to be generated
   var l3tmp_cgs : String = "CG" // [CG] // the coarse grid solver to be generated
   var l3tmp_numPre : Int = 3 // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
   var l3tmp_numPost : Int = 3 // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
@@ -272,6 +272,8 @@ object Knowledge {
 
     Constraints.condEnsureValue(l3tmp_numVecDims, 1, !l3tmp_genVectorFields, "vector dimensions larger than 1 are only allowed in conjunction with vector fields")
     Constraints.condEnsureValue(l3tmp_numVecDims, 2, l3tmp_genVectorFields && l3tmp_numVecDims <= 1, "vector dimensions must be larger than 1 when using vector fields")
+
+    Constraints.condEnsureValue(l3tmp_genFragLoops, false, "RBGS" == l3tmp_smoother, "Currently fragment loops are not compatible with RBGS smoothers")
 
     Constraints.condEnsureValue(l3tmp_genTimersPerFunction, false, !l3tmp_genAdvancedTimers, "requires l3tmp_genAdvancedTimers to be activated")
     Constraints.condEnsureValue(l3tmp_genTimersPerLevel, false, !l3tmp_genAdvancedTimers, "requires l3tmp_genAdvancedTimers to be activated")
