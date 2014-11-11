@@ -1,6 +1,6 @@
 targetCompiler				= "IBMXL"
 
-maxLevel					= 5
+maxLevel					= 6
 comm_strategyFragment		= 6
 
 domain_summarizeBlocks		= false
