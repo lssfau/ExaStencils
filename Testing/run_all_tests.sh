@@ -93,7 +93,7 @@ do
   fi
 
   # configuration is fine, start a new job for it (${nodes} and ${cores} may be empty, so they must be passed at the last!)
-  sbatch "${TESTING_DIR}/run_single_test.sh" "${TESTING_DIR}" ${id} "${COMPILER_JAR}" ${main} "${TESTING_DIR}/${knowledge}" "${FAILURE_MAIL}" "${LOG}" "${TESTING_DIR}/${result}" ${nodes} ${cores} "${constraints}"
+  sbatch "${TESTING_DIR}/run_single_test.sh" "${TESTING_DIR}" "${TESTING_BIN_DIR}" ${id} "${COMPILER_JAR}" ${main} "${TESTING_DIR}/${knowledge}" "${FAILURE_MAIL}" "${LOG}" "${TESTING_DIR}/${result}" ${nodes} ${cores} "${constraints}"
 done < "${TESTING_CONF}"
 
 finish
