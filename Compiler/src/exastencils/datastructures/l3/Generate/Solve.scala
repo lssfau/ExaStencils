@@ -19,8 +19,10 @@ object Solve {
         printer.println("\tprint ( '\"" + s"Starting residual at $vecDim" + "\"', " + s"resStart_$vecDim )")
     }
     if (!Knowledge.l3tmp_genForAutoTests) {
-      printer.println("\tVariable totalTime : Real = 0")
-      printer.println("\tVariable timeToSolve : Real = 0")
+      if (!Knowledge.l3tmp_genAdvancedTimers) {
+        printer.println("\tVariable totalTime : Real = 0")
+        printer.println("\tVariable timeToSolve : Real = 0")
+      }
       printer.println("\tstartTimer ( timeToSolveWatch )")
     }
     printer.println("\tVariable numIt : Integer = 0")
@@ -34,12 +36,10 @@ object Solve {
     else
       printer.println("\t\tUpResidual@finest ( )")
     if (!Knowledge.l3tmp_genForAutoTests) {
-      if (Knowledge.l3tmp_genAdvancedTimers) {
+      if (Knowledge.l3tmp_genAdvancedTimers)
         printer.println("\tstopTimer ( stopWatch )")
-        printer.println("\taddFromTimer ( stopWatch, totalTime )")
-      } else {
+      else
         printer.println("\t\tstopTimer ( stopWatch, totalTime )")
-      }
     }
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
       printer.println(s"\t\tresOld_$vecDim = res_$vecDim")
@@ -50,19 +50,20 @@ object Solve {
         printer.println("\t\tprint ( '\"" + s"Residual at $vecDim:" + "\"', " + s"res_$vecDim" + ", '\"Residual reduction:\"', " + s"( resStart_$vecDim / res_$vecDim ), " + "'\"Convergence factor:\"', " + s"( res_$vecDim / resOld_$vecDim ) )")
     }
     printer.println("\t}")
+
+    if (Knowledge.l3tmp_genForAutoTests)
+      printer.println(s"\tprint ( numIt )")
+
     if (!Knowledge.l3tmp_genForAutoTests) {
       if (Knowledge.l3tmp_genAdvancedTimers) {
         printer.println("\tstopTimer ( timeToSolveWatch )")
-        printer.println("\taddFromTimer ( timeToSolveWatch, timeToSolve )")
+        printer.println("\tprint ( '\"Total time to solve in\"', numIt, '\"steps :\"', getTotalFromTimer ( timeToSolveWatch ) )")
+        printer.println("\tprint ( '\"Mean time per vCycle: \"', getMeanFromTimer ( stopWatch ) )")
       } else {
         printer.println("\tstopTimer ( timeToSolveWatch, timeToSolve )")
+        printer.println("\tprint ( '\"Total time to solve in\"', numIt, '\"steps :\"', timeToSolve )")
+        printer.println("\tprint ( '\"Mean time per vCycle: \"', totalTime / numIt )")
       }
-    }
-    if (Knowledge.l3tmp_genForAutoTests) {
-      printer.println(s"\tprint ( numIt )")
-    } else {
-      printer.println("\tprint ( '\"Total time to solve in\"', numIt, '\"steps :\"', timeToSolve )")
-      printer.println("\tprint ( '\"Mean time per vCycle: \"', totalTime / numIt )")
     }
     printer.println(s"}")
     printer.println
@@ -93,8 +94,10 @@ object Solve {
       else
         printer.println("\tprint ( '\"Starting residual:\"', resStart )")
       if (!Knowledge.l3tmp_genForAutoTests) {
-        printer.println("\tVariable totalTime : Real = 0")
-        printer.println("\tVariable timeToSolve : Real = 0")
+        if (!Knowledge.l3tmp_genAdvancedTimers) {
+          printer.println("\tVariable totalTime : Real = 0")
+          printer.println("\tVariable timeToSolve : Real = 0")
+        }
         printer.println("\tstartTimer ( timeToSolveWatch )")
       }
       printer.println("\tVariable numIt : Integer = 0")
@@ -108,12 +111,10 @@ object Solve {
       else
         printer.println(s"\tUpResidual_GMRF@finest ( )")
       if (!Knowledge.l3tmp_genForAutoTests) {
-        if (Knowledge.l3tmp_genAdvancedTimers) {
+        if (Knowledge.l3tmp_genAdvancedTimers)
           printer.println("\t\tstopTimer ( stopWatch )")
-          printer.println("\t\taddFromTimer ( stopWatch, totalTime )")
-        } else {
+        else
           printer.println("\t\tstopTimer ( stopWatch, totalTime )")
-        }
       }
       printer.println(s"\t\tresOld = res")
       printer.println(s"\t\tres = NormResidual_GMRF_0@finest ( )")
@@ -127,12 +128,14 @@ object Solve {
       } else {
         if (Knowledge.l3tmp_genAdvancedTimers) {
           printer.println("\tstopTimer ( timeToSolveWatch )")
-          printer.println("\taddFromTimer ( timeToSolveWatch, timeToSolve )")
+          printer.println("\ttimeToSolve = getTotalFromTimer ( timeToSolveWatch )")
+          printer.println("\ttotalTime = getMeanFromTimer ( stopWatch )")
         } else {
           printer.println("\tstopTimer ( timeToSolveWatch, timeToSolve )")
+          printer.println("\ttotalTime /= numIt")
         }
         printer.println("\tprint ( '\"Total time to solve in\"', numIt, '\"steps :\"', timeToSolve )")
-        printer.println("\tprint ( '\"Mean time per vCycle: \"', totalTime / numIt )")
+        printer.println("\tprint ( '\"Mean time per vCycle: \"', totalTime )")
       }
 
       printer.println(s"\tloop over Solution_GMRF@finest {")

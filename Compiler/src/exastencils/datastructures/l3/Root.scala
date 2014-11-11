@@ -11,11 +11,6 @@ case class Root() extends Node {
     if (!file.getParentFile().exists()) file.getParentFile().mkdirs()
     var printer = new java.io.PrintWriter(filename)
 
-    if (Knowledge.l3tmp_genAdvancedTimers) {
-      Settings.additionalFiles += "Util/StopWatch.h"
-      Settings.additionalFiles += "Util/StopWatch.cpp"
-    }
-
     if (Knowledge.l3tmp_kelvin) {
       Settings.additionalIncludes += "cmath"
       Settings.additionalIncludes += "random"

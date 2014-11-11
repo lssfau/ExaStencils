@@ -27,8 +27,8 @@ object Hardware {
       }
 
       if (Knowledge.useOMP) {
-        cflags += " -qsmp=omp -qnosave"
-        ldflags += " -qsmp=omp -qnosave"
+        cflags += " -qsmp=omp"
+        ldflags += " -qsmp=omp"
       }
     }
     case "GCC" => {

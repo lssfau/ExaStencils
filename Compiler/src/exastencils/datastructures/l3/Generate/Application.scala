@@ -11,7 +11,8 @@ object Application {
       printer.println("native ( 'std::cout.precision(4)' )")
 
     if (!Knowledge.l3tmp_genForAutoTests) {
-      printer.println("\tVariable setupTime : Real = 0")
+      if (!Knowledge.l3tmp_genAdvancedTimers)
+        printer.println("\tVariable setupTime : Real = 0")
       printer.println("\tstartTimer ( setupWatch )")
     }
 
@@ -22,11 +23,11 @@ object Application {
     if (!Knowledge.l3tmp_genForAutoTests) {
       if (Knowledge.l3tmp_genAdvancedTimers) {
         printer.println("\tstopTimer ( setupWatch )")
-        printer.println("\taddFromTimer ( setupWatch, setupTime )")
+        printer.println("\tprint ( '\"Total time to setup: \"', getTotalFromTimer ( setupWatch ) )")
       } else {
         printer.println("\tstopTimer ( setupWatch, setupTime )")
+        printer.println("\tprint ( '\"Total time to setup: \"', setupTime )")
       }
-      printer.println("\tprint ( '\"Total time to setup: \"', setupTime )")
     }
 
     if (Knowledge.l3tmp_genSetableStencil) {
@@ -117,12 +118,13 @@ object Application {
       printer.println("\t}")
       if (Knowledge.l3tmp_genAdvancedTimers) {
         printer.println("\tstopTimer ( timeSamplesWatch )")
-        printer.println("\taddFromTimer ( timeSamplesWatch, timeSamples )")
+        printer.println("\tprint ( '\"Total time to solve: \"', getTotalFromTimer ( timeSamplesWatch ) )")
+        printer.println("\tprint ( '\"Mean time per sample: \"', getMeanFromTimer ( timeSamplesWatch ) )")
       } else {
-        printer.println("\tstopTimer ( timeSamplesWatch, timeSamples )")
+        printer.println(s"\tstopTimer ( timeSamplesWatch, timeSamples )")
+        printer.println("\tprint ( '\"Total time to solve: \"', timeSamples )")
+        printer.println("\tprint ( '\"Mean time per sample: \"', " + s"timeSamples / ${Knowledge.l3tmp_kelvin_numSamples} )")
       }
-      printer.println("\tprint ( '\"Total time to solve: \"', timeSamples )")
-      printer.println("\tprint ( '\"Mean time per sample: \"', " + s"timeSamples / ${Knowledge.l3tmp_kelvin_numSamples} )")
     }
 
     if (Knowledge.l3tmp_kelvin) {
@@ -151,6 +153,8 @@ object Application {
     }
 
     if (Knowledge.l3tmp_genAdvancedTimers && !Knowledge.l3tmp_genForAutoTests) {
+      printer.println("\tnative ( 'TimerWrapper::PrintAllTimersToFileGlobal(\"TimersAll.msd\")' )")
+
       if (Knowledge.l3tmp_genTimersPerFunction) {
         for (
           func <- Array(

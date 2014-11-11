@@ -110,6 +110,8 @@ protected:
       val writerHeader = PrettyprintingManager.getPrinter(s"Util/Stopwatch.h")
       val writerSource = PrettyprintingManager.getPrinter(s"Util/Stopwatch.cpp")
 
+      writerSource.addInternalDependency(s"Util/Stopwatch.h")
+
       writerHeader << ("""
 #include <string>
 #include <vector>

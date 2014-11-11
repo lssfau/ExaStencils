@@ -104,7 +104,7 @@ object Knowledge {
   var comm_useNeighborArrays : Boolean = true // specifies if neighbor specific variables are summarized in array form
 
   // --- OpenMP Parallelization ---
-  var useOMP : Boolean = true // [true|false]
+  var useOMP : Boolean = true // [true|false] // NOTE: currently set automatically if more than one fragment per block is present 
   var omp_numThreads : Int = 1 // the number of omp threads to be used; may be incorporated in omp pragmas
   def omp_version : Double = { // the maximum version of omp supported by the chosen compiler
     targetCompiler match {
