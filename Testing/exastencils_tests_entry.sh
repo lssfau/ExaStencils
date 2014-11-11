@@ -41,7 +41,7 @@ fi
 echo "--------------------------------------------" >> "${LOG}"
 echo "$(date -R):  Initialize tests..." >> "${LOG}"
 
-GIT_URL="ssh://git@git.infosun.fim.uni-passau.de/exastencils/dev/ScalaExaStencil.git ${REPO_DIR}"
+GIT_URL="ssh://git@git.infosun.fim.uni-passau.de/exastencils/dev/ScalaExaStencil.git"
 if [[ -d "${REPO_DIR}" ]]; then
   srun git -C "${REPO_DIR}" fetch "${GIT_URL}"
       if [[ $? -ne 0 ]]; then
