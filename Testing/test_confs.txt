@@ -19,10 +19,6 @@
 # if the last four fields are not set (as in the first structure above), the
 # generated code is only compiled, but not executed
 
-Seq_Simple  Main  Knowledge_seq_simple.txt  Result_seq_simple.txt  1   1
-1N_4C_opt   Main  Knowledge_1N_4C_opt.txt   Result_1N_4C_opt.txt   1   4  i7|E5
-8N_10C_opt  Main  Knowledge_8N_10C_opt.txt  Result_8N_10C_opt.txt  8  10  E5
-
 #################################################################################################
 # BASIC COMMUNICATION TESTS                                                                     #
 #################################################################################################
@@ -31,9 +27,9 @@ Seq_Simple  Main  Knowledge_seq_simple.txt  Result_seq_simple.txt  1   1
 CommBasic_PureMPI     Main  CommBasic/PureMPI.knowledge     CommBasic/PureMPI.results     27  1
 # 27 OMP threads
 CommBasic_PureOMP     Main  CommBasic/PureOMP.knowledge     CommBasic/PureOMP.results     1   10
-CommBasic_Hybrid      Main  CommBasic/Hybrid.knowledge      CommBasic/Hybrid.results      27  1
-CommBasic_Summarize   Main  CommBasic/Summarize.knowledge   CommBasic/Summarize.results   27  1
-CommBasic_Strategy26  Main  CommBasic/Strategy26.knowledge  CommBasic/Strategy26.results  27  1
+CommBasic_Hybrid      Main  CommBasic/Hybrid.knowledge      CommBasic/Hybrid.results      27  2
+CommBasic_Summarize   Main  CommBasic/Summarize.knowledge   CommBasic/Summarize.results   27  2
+CommBasic_Strategy26  Main  CommBasic/Strategy26.knowledge  CommBasic/Strategy26.results  27  2
 # 9 OMP threads
 CommBasic_2D          Main  CommBasic/2D.knowledge          CommBasic/2D.results          9   2
 
@@ -44,3 +40,10 @@ CommBasic_2D          Main  CommBasic/2D.knowledge          CommBasic/2D.results
 # 10 OMP threads
 Large_Hybrid  Main  Large/Hybrid.knowledge  Large/Hybrid.results  4  10  E5
 
+#################################################################################################
+# OPTIMIZATION TESTS                                                                            #
+#################################################################################################
+
+#Seq_Simple  Main  Opts/seq_simple.knowledge  Opts/seq_simple.results  1   1
+#1N_4C_opt   Main  Opts/1N_4C_opt.knowledge   Opts/1N_4C_opt.results   1   4  i7|E5
+#8N_10C_opt  Main  Opts/8N_10C_opt.knowledge  Opts/8N_10C_opt.results  8  10  E5

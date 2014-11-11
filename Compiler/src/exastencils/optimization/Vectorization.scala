@@ -50,46 +50,34 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
     // excessive testing if loop header allows vectorization
     return loop match {
-      case ForLoopStatement(
-        VariableDeclarationStatement(IntegerDatatype(), itName, Some(lBound)),
-        condition,
-        AssignmentStatement(VariableAccess(itName2, Some(IntegerDatatype())), assignExpr, assignOp),
-        body, reduction) //
-        if (itName == itName2) =>
+      case ForLoopStatement(VariableDeclarationStatement(IntegerDatatype(), itName, Some(lBound)), condExpr, incrExpr, body, reduction) =>
 
         val uBoundExcl : Expression =
-          condition match {
-
-            case LowerExpression(VariableAccess(boundsName, Some(IntegerDatatype())),
-              upperBoundExcl) if (itName == boundsName) =>
+          condExpr match {
+            case LowerExpression(VariableAccess(bName, Some(IntegerDatatype())), upperBoundExcl) if (itName == bName) =>
               upperBoundExcl
-
-            case LowerEqualExpression(VariableAccess(boundsName, Some(IntegerDatatype())),
-              upperBoundIncl) if (itName == boundsName) =>
+            case LowerEqualExpression(VariableAccess(bName, Some(IntegerDatatype())), upperBoundIncl) if (itName == bName) =>
               AdditionExpression(upperBoundIncl, IntegerConstant(1))
-
             case _ => throw new VectorizationException("no upper bound")
           }
 
-        assignOp match {
+        val incr : Long =
+          incrExpr match {
+            case ExpressionStatement(PreIncrementExpression(VariableAccess(n, Some(IntegerDatatype())))) if (itName == n)  => 1L
+            case ExpressionStatement(PostIncrementExpression(VariableAccess(n, Some(IntegerDatatype())))) if (itName == n) => 1L
+            case AssignmentStatement(VariableAccess(n, Some(IntegerDatatype())),
+              IntegerConstant(i),
+              "+=") if (itName == n) => i
+            case AssignmentStatement(VariableAccess(n1, Some(IntegerDatatype())),
+              AdditionExpression(IntegerConstant(i), VariableAccess(n2, Some(IntegerDatatype()))),
+              "=") if (itName == n1 && itName == n2) => i
+            case AssignmentStatement(VariableAccess(n1, Some(IntegerDatatype())),
+              AdditionExpression(VariableAccess(n2, Some(IntegerDatatype())), IntegerConstant(i)),
+              "=") if (itName == n1 && itName == n2) => i
+            case _ => throw new VectorizationException("loop increment must be constant or cannot be extracted:  " + incrExpr)
+          }
 
-          case "+=" =>
-            assignExpr match {
-              case IntegerConstant(incr) => vectorizeLoop(loop, itName, lBound, uBoundExcl, incr, body, reduction)
-              case _                     => throw new VectorizationException("loop increment must be constant")
-            }
-
-          case "=" =>
-            assignExpr match {
-              case AdditionExpression(IntegerConstant(incr), VariableAccess(v, Some(IntegerDatatype()))) if v == itName =>
-                vectorizeLoop(loop, itName, lBound, uBoundExcl, incr, body, reduction)
-              case AdditionExpression(VariableAccess(v, Some(IntegerDatatype())), IntegerConstant(incr)) if v == itName =>
-                vectorizeLoop(loop, itName, lBound, uBoundExcl, incr, body, reduction)
-              case _ => throw new VectorizationException("loop increment must be constant")
-            }
-
-          case _ => throw new VectorizationException("cannot deal with assignment operator \"" + assignOp + '"')
-        }
+        vectorizeLoop(loop, itName, lBound, uBoundExcl, incr, body, reduction)
 
       case _ => throw new VectorizationException("cannot analyze loop (yet)")
     }
@@ -188,7 +176,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
       def alM1 = IntegerConstant(Knowledge.simd_vectorSize - 1)
       def bNeg(expr : Expression) = UnaryExpression(UnaryOperators.BitwiseNegation, expr)
       def incrC = IntegerConstant(incr)
-      if (incr == 1)
+      if (incr == 1L)
         BitwiseAndExpression(upperPre + alM1, bNeg(alM1))
       else
         (BitwiseAndExpression((upperPre / incrC) + alM1, bNeg(alM1)) * incrC) + (upperPre Mod incrC)

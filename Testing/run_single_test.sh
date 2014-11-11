@@ -6,23 +6,23 @@
 #SBATCH -c 4
 #SBATCH --hint=nomultithread
 #SBATCH --cpu_bind=cores
-#SBATCH --exclusive
 #SBATCH -o /dev/null
 #SBATCH -e /dev/null
 #SBATCH --time=10
 
 
 BASE_DIR=${1} # testing directory
-ID=${2}
-COMPILER=${3}
-MAIN=${4}
-KNOWLEDGE=${5}
-FAILURE_MAIL=${6}
-LOG=${7}
-EXP_RESULT=${8}
-NODES=${9}
-CORES=${10}
-CONSTRAINTS=${11}
+BIN_DIR=${2}
+ID=${3}
+COMPILER=${4}
+MAIN=${5}
+KNOWLEDGE=${6}
+FAILURE_MAIL=${7}
+LOG=${8}
+EXP_RESULT=${9}
+NODES=${10}
+CORES=${11}
+CONSTRAINTS=${12}
 
 FAILURE_SUBJECT="ExaStencils TestBot Error"
 
@@ -30,7 +30,7 @@ TMP_DIR="$(mktemp --tmpdir=/run/shm -d)"
 OUTPUT="${TMP_DIR}/command_output.txt"
 SETTINGS="${TMP_DIR}/settings.txt"
 L4="${TMP_DIR}/l4.exa"
-BIN="$exastencils_${SLURM_JOB_ID}"
+BIN="exastencils_${SLURM_JOB_ID}"
 
 TIMEOUT=1
 
@@ -40,7 +40,7 @@ function cleanup {
   echo "      Removed  ${TMP_DIR} (test id: '${ID}')" >> "${LOG}"
   if [[ ${TIMEOUT} -eq 1 ]]; then
     echo "===== FAILURE: ID '${ID}': Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (generate and compile test)." >> "${LOG}"
-	echo "Test '${ID}' failed!  Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (generate and compile test)." | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
+    echo "Test '${ID}' failed!  Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (generate and compile test)." | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
   fi
 }
 trap cleanup EXIT
@@ -64,24 +64,24 @@ srun java -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}" > "${OUTPUT}" 2
     if [[ $? -ne 0 ]]; then
       echo "===== FAILED: ID '${ID}': generator error." >> "${LOG}"
       echo "Test '${ID}' failed!  Unable to generate code." | mail -s "${FAILURE_SUBJECT}" -A "${OUTPUT}" ${FAILURE_MAIL}
-	  finish
+      finish
     fi
 srun make -C "${TMP_DIR}" -j ${SLURM_CPUS_ON_NODE} > "${OUTPUT}" 2>&1
     if [[ $? -ne 0 ]]; then
       echo "===== FAILED: ID '${ID}': target compiler error." >> "${LOG}"
       echo "Test '${ID}' failed!  Unable to compile target code." | mail -s "${FAILURE_SUBJECT}" -A "${OUTPUT}" ${FAILURE_MAIL}
-	  finish
+      finish
     fi
 
 if [[ ${CORES} = "" ]]; then
   echo "          OK: ID '${ID}' (not executed)." >> "${LOG}"
 else
-  cp "${TMP_DIR}/${BIN}" "${BASE_DIR}/${BIN}" # store in NFS, as testrun could be enqueued on a different machine
-  sbatch -n ${NODES} -c ${CORES} --constraint="${CONSTRAINTS}" "${BASE_DIR}/run_generated.sh" ${ID} "${BASE_DIR}/${BIN}" "${EXP_RESULT}" "${FAILURE_MAIL}" "${LOG}"
+  cp "${TMP_DIR}/${BIN}" "${BIN_DIR}/${BIN}" # store in NFS, as testrun could be enqueued on a different machine
+  sbatch -n ${NODES} -c ${CORES} --constraint="${CONSTRAINTS}" "${BASE_DIR}/run_generated.sh" ${ID} "${BIN_DIR}/${BIN}" "${EXP_RESULT}" "${FAILURE_MAIL}" "${LOG}"
       if [[ $? -ne 0 ]]; then
         echo "===== FAILED: ID '${ID}': unable to enqueue job  (nodes: ${NODES},  cores: ${CORES},  constraints: '${CONSTRAINTS}')." >> "${LOG}"
         echo "Test '${ID}' failed!  Unable to enqueue job  (nodes: ${NODES},  cores: ${CORES},  constraints: '${CONSTRAINTS}')." | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
-	    finish
+        finish
       fi
 fi
 

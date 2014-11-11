@@ -1,27 +1,27 @@
 targetCompiler             = "GCC"
 targetCompilerVersion      = 4
 targetCompilerVersionMinor = 8
-simd_instructionSet        = "AVX"
+simd_instructionSet        = "SSE3"
 
 dimensionality             = 3
 
-maxLevel                   = 8
+maxLevel                   = 6
 comm_strategyFragment      = 6 // 26
 
 domain_summarizeBlocks     = true
 
-domain_numBlocks_x         = 2
-domain_numBlocks_y         = 2
-domain_numBlocks_z         = 2
+domain_numBlocks_x         = 1
+domain_numBlocks_y         = 1
+domain_numBlocks_z         = 1
 
 domain_numFragsPerBlock_x  = 2
-domain_numFragsPerBlock_y  = 5
+domain_numFragsPerBlock_y  = 2
 domain_numFragsPerBlock_z  = 1
 domain_fragLength_x        = 1
 domain_fragLength_y        = 1
 domain_fragLength_z        = 1
 
-mpi_useCustomDatatypes     = true
+mpi_useCustomDatatypes     = false
 poly_optLevel_fine         = 3
 poly_optLevel_coarse       = 1
 poly_numFinestLevels       = 2
@@ -41,3 +41,5 @@ opt_useColorSplitting      = false
 l3tmp_numPre               = 3
 l3tmp_numPost              = 3
 l3tmp_genTemporalBlocking  = true
+
+l3tmp_genForAutoTests      = true
