@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=exastencils_daily_tests
+#SBATCH --job-name=exatest_all
 #SBATCH -p idle
 #SBATCH -A idle
 #SBATCH -n 1

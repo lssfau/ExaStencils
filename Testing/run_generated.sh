@@ -1,7 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=exastencils_single_test_generated
-#SBATCH -p idle
-#SBATCH -A idle
+#SBATCH --job-name=exatest_generated
 #SBATCH --hint=nomultithread
 #SBATCH --cpu_bind=cores
 #SBATCH --exclusive

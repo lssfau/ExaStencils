@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=exastencils_single_test
+#SBATCH --job-name=exatest_single
 #SBATCH -p idle
 #SBATCH -A idle
 #SBATCH -n 1
@@ -77,7 +77,15 @@ if [[ ${CORES} = "" ]]; then
   echo "          OK: ID '${ID}' (not executed)." >> "${LOG}"
 else
   cp "${TMP_DIR}/${BIN}" "${BIN_DIR}/${BIN}" # store in NFS, as testrun could be enqueued on a different machine
-  sbatch -n ${NODES} -c ${CORES} --constraint="${CONSTRAINTS}" "${BASE_DIR}/run_generated.sh" ${ID} "${BIN_DIR}/${BIN}" "${EXP_RESULT}" "${FAILURE_MAIL}" "${LOG}"
+  ACC="idle"
+  PART="idle"
+  CONSTR_PARAM="--constraint=${CONSTRAINTS}"
+  if [[ $(( ${NODES} * ${CORES} )) -gt 30 ]] || [[ ${CONSTRAINTS} =~ "E5" ]]; then # HACK to ensure jobs are executed in a reasonable time
+    ACC="cl"
+    PART="chimaira"
+    CONSTR_PARAM=""
+  fi
+  sbatch -A ${ACC} -p ${PART} -n ${NODES} -c ${CORES} ${CONSTR_PARAM} "${BASE_DIR}/run_generated.sh" ${ID} "${BIN_DIR}/${BIN}" "${EXP_RESULT}" "${FAILURE_MAIL}" "${LOG}"
       if [[ $? -ne 0 ]]; then
         echo "===== FAILED: ID '${ID}': unable to enqueue job  (nodes: ${NODES},  cores: ${CORES},  constraints: '${CONSTRAINTS}')." >> "${LOG}"
         echo "Test '${ID}' failed!  Unable to enqueue job  (nodes: ${NODES},  cores: ${CORES},  constraints: '${CONSTRAINTS}')." | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
