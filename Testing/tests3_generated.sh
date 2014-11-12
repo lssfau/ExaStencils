@@ -1,7 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=exastencils_single_test_generated
-#SBATCH -p idle
-#SBATCH -A idle
+#SBATCH --job-name=exatest_generated
 #SBATCH --hint=nomultithread
 #SBATCH --cpu_bind=cores
 #SBATCH --exclusive
@@ -23,7 +21,7 @@ TIMEOUT=1
 
 
 function cleanup {
-  rm "${RESULT}" # do not remove ${BIN}, because job could be rescheduled, next time all tests are started, old binaries are removed anyway
+  rm "${RESULT}" # do not remove ${BIN}, because job could be rescheduled, next time all tests are started, old binaries are removed in next testrun anyway
   echo "        Removed  ${RESULT} (test id: '${ID}')" >> "${LOG}"
   if [[ ${TIMEOUT} -eq 1 ]]; then
     echo "========= FAILURE: ID '${ID}': Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (running testcode)." >> "${LOG}"

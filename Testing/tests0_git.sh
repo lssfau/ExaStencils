@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=exastencils_daily_tests_checkout
+#SBATCH --job-name=exatest_git
 #SBATCH -p idle
 #SBATCH -A idle
 #SBATCH -n 1
@@ -12,6 +12,7 @@
 BASE_DIR=${1}
 
 REPO_DIR="${BASE_DIR}/repo"
+TEMP_DIR="${BASE_DIR}/temp"
 LOG="${BASE_DIR}/tests.log"
 FAILURE_MAIL="kronast@fim.uni-passau.de"
 FAILURE_SUBJECT="ExaStencils TestBot Error (cron)"
@@ -68,5 +69,6 @@ else
       fi
 fi
 
-sbatch "${REPO_DIR}/Testing/run_all_tests.sh" "${REPO_DIR}" "${LOG}"
+mkdir -p "${TEMP_DIR}"
+sbatch "${REPO_DIR}/Testing/tests1_all.sh" "${REPO_DIR}" "${TEMP_DIR}" "${LOG}"
 finish

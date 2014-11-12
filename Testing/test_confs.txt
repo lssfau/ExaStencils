@@ -13,8 +13,8 @@
 # NumMPIRanks  is the number of MPI ranks (processes)
 # NumCoresPerRank  is the number of physical cores to be associated with each MPI rank
 # Constraint  specifies features the nodes must have when executing the generated test code
-#  (see --constraint flag for sbatch: http://slurm.schedmd.com/sbatch.html)
 #  for hardware definitions and available flags see hwinfo.txt
+#  (note: "i7|E5" is currently equal to "E5")
 
 # if the last four fields are not set (as in the first structure above), the
 # generated code is only compiled, but not executed
@@ -45,11 +45,11 @@ Large_Hybrid  Main  Large/Hybrid.knowledge  Large/Hybrid.results  4  10  E5
 #################################################################################################
 
 #Seq_Simple  Main  Opts/seq_simple.knowledge  Opts/seq_simple.results  1   1
-#1N_4C_opt   Main  Opts/1N_4C_opt.knowledge   Opts/1N_4C_opt.results   1   4  i7|E5
+#1N_4C_opt   Main  Opts/1N_4C_opt.knowledge   Opts/1N_4C_opt.results   1   4  i7
 #8N_10C_opt  Main  Opts/8N_10C_opt.knowledge  Opts/8N_10C_opt.results  8  10  E5
 
 #################################################################################################
-# SMOOTHER TESTS                                                                     #
+# SMOOTHER TESTS                                                                                #
 #################################################################################################
 
 # 27 OMP threads
