@@ -23,8 +23,8 @@ ANT_BUILD="${REPO_DIR}/Compiler/build.xml"
 TESTING_DIR="${REPO_DIR}/Testing"
 TESTING_CONF="${TESTING_DIR}/test_confs.txt"
 
-FAILURE_MAIL="kronast@fim.uni-passau.de"
-FAILURE_SUBJECT="ExaStencils TestBot Error"
+FAILURE_MAIL="exastencils-dev@www.uni-passau.de"
+FAILURE_SUBJECT="TestBot Error"
 
 RAM_TMP_DIR="$(mktemp --tmpdir=/run/shm -d)"
 OUTPUT="${RAM_TMP_DIR}/command_output.txt"
