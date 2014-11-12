@@ -10,10 +10,10 @@
 
 
 BASE_DIR=${1}
+LOG=${2}
 
 REPO_DIR="${BASE_DIR}/repo"
 TEMP_DIR="${BASE_DIR}/temp"
-LOG="${BASE_DIR}/tests.log"
 FAILURE_MAIL="kronast@fim.uni-passau.de"
 FAILURE_SUBJECT="ExaStencils TestBot Error (cron)"
 
