@@ -30,7 +30,7 @@ RAM_TMP_DIR="$(mktemp --tmpdir=/run/shm -d)"
 OUTPUT="${RAM_TMP_DIR}/command_output.txt"
 SETTINGS="${RAM_TMP_DIR}/settings.txt"
 L4="${RAM_TMP_DIR}/l4.exa"
-BIN="exastencils_${SLURM_JOB_ID}"
+BIN="exastencils_${ID}_${SLURM_JOB_ID}"
 
 TIMEOUT=1
 

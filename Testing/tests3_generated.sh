@@ -5,7 +5,7 @@
 #SBATCH --exclusive
 #SBATCH -o /dev/null
 #SBATCH -e /dev/null
-#SBATCH --time=10
+#SBATCH --time=15
 
 
 ID=${1}
@@ -39,7 +39,6 @@ function finish {
 echo "        Created  ${RESULT} (test id: '${ID}'): run code and redirect stdout and stderr" >> "${LOG}"
 
 # run generated code
-export OMPI_MCA_btl_tcp_if_include=132.231.64.0/23 # use infosun network only (hack to ensure all nodes can communicate via MPI)
 srun "${BIN}" > "${RESULT}" 2>&1
 
 if diff -B -w --strip-trailing-cr -I "time"  "${RESULT}" "${EXP_RESULT}" > /dev/null; then
