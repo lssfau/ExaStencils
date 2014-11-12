@@ -11,28 +11,30 @@
 #SBATCH --time=5
 
 
-BASE_DIR=${1} # repo root directory
-LOG=${2}
+REPO_DIR=${1}
+TEMP_DIR=${2}
+LOG=${3}
 
-COMPILER_DIR="${BASE_DIR}/Compiler"
-ANT_BUILD="${COMPILER_DIR}/build.xml"
-COMPILER_JAR="${COMPILER_DIR}/compiler.jar"
-TESTING_DIR="${BASE_DIR}/Testing"
+JAVA_DIR="/usr/lib/jvm/default-java/"
+SCALA_DIR="/scratch/${USER}/exastencils_tests/scala/"
+COMPILER_JAR="${TEMP_DIR}/compiler.jar"
+
+ANT_BUILD="${REPO_DIR}/Compiler/build.xml"
+TESTING_DIR="${REPO_DIR}/Testing"
 TESTING_CONF="${TESTING_DIR}/test_confs.txt"
-TESTING_BIN_DIR="${TESTING_DIR}/bin_testing"
 
 FAILURE_MAIL="kronast@fim.uni-passau.de"
 FAILURE_SUBJECT="ExaStencils TestBot Error"
 
-TMP_DIR="$(mktemp --tmpdir=/run/shm -d)"
-OUTPUT="${TMP_DIR}/command_output.txt"
+RAM_TMP_DIR="$(mktemp --tmpdir=/run/shm -d)"
+OUTPUT="${RAM_TMP_DIR}/command_output.txt"
 
 TIMEOUT=1
 
 
 function cleanup {
-  rm -rf "${TMP_DIR}"
-  echo "    Removed  ${TMP_DIR}" >> "${LOG}"
+  rm -rf "${RAM_TMP_DIR}"
+  echo "    Removed  ${RAM_TMP_DIR}" >> "${LOG}"
   if [[ ${TIMEOUT} -eq 1 ]]; then
     echo "=== FAILURE: Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (build compiler)." >> "${LOG}"
     echo "Automatic tests failed!  Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (build compiler)." | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
@@ -46,7 +48,6 @@ function finish {
   exit 0
 }
 
-mkdir -p "${TESTING_BIN_DIR}"
 # cancel all uncompleted jobs from last testrun
 first=1
 for job in $(squeue -h -u ${USER} -o %i); do
@@ -60,12 +61,11 @@ for job in $(squeue -h -u ${USER} -o %i); do
   fi
 done
 # remove old binaries (if some)
-rm -f "${TESTING_BIN_DIR}/*"
+rm -f "${TEMP_DIR}/*"
 
-# build generator (place class files in TMP_DIR)
-echo "    Created  ${TMP_DIR}: generator build dir" >> "${LOG}"
-srun ant -f "${ANT_BUILD}" -Dbuild.dir="${TMP_DIR}" -Djava.dir="/usr/lib/jvm/default-java/" -Dscala.dir="/scratch/${USER}/exastencils_tests/scala/" clean build > "${OUTPUT}" 2>&1
-#srun ant -f "${ANT_BUILD}" -Dbuild.dir="${TMP_DIR}" clean build > "${OUTPUT}" 2>&1
+# build generator (place class files in RAM_TMP_DIR)
+echo "    Created  ${RAM_TMP_DIR}: generator build dir" >> "${LOG}"
+srun ant -f "${ANT_BUILD}" -Dbuild.dir="${RAM_TMP_DIR}" -Dcompiler.jar="${COMPILER_JAR}" -Djava.dir="${JAVA_DIR}" -Dscala.dir="${SCALA_DIR}" clean build > "${OUTPUT}" 2>&1
     if [[ $? -ne 0 ]]; then
       echo "=== FAILED: Generator: ant build error. =" >> "${LOG}"
       echo "Automatic tests failed!  Unable to compile generator." | mail -s "${FAILURE_SUBJECT}" -A "${OUTPUT}" ${FAILURE_MAIL}
@@ -93,7 +93,7 @@ do
   fi
 
   # configuration is fine, start a new job for it (${nodes} and ${cores} may be empty, so they must be passed at the last!)
-  sbatch "${TESTING_DIR}/run_single_test.sh" "${TESTING_DIR}" "${TESTING_BIN_DIR}" ${id} "${COMPILER_JAR}" ${main} "${TESTING_DIR}/${knowledge}" "${FAILURE_MAIL}" "${LOG}" "${TESTING_DIR}/${result}" ${nodes} ${cores} "${constraints}"
+  sbatch "${TESTING_DIR}/tests2_single.sh" "${TESTING_DIR}" "${TESTING_BIN_DIR}" ${id} "${COMPILER_JAR}" ${main} "${TESTING_DIR}/${knowledge}" "${FAILURE_MAIL}" "${LOG}" "${TESTING_DIR}/${result}" ${nodes} ${cores} "${constraints}"
 done < "${TESTING_CONF}"
 
 finish
