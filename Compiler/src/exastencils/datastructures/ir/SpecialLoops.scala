@@ -114,24 +114,40 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
   }
 }
 
-case class LoopOverPoints(var field : Field, var startOffset : MultiIndex, var endOffset : MultiIndex, var increment : MultiIndex,
-    var body : ListBuffer[Statement], var reduction : Option[Reduction] = None, var condition : Option[Expression] = None) extends Statement {
+case class LoopOverPoints(var field : Field,
+    var seq : Boolean, // FIXME: seq HACK
+    var startOffset : MultiIndex,
+    var endOffset : MultiIndex,
+    var increment : MultiIndex,
+    var body : ListBuffer[Statement],
+    var reduction : Option[Reduction] = None,
+    var condition : Option[Expression] = None) extends Statement {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPoints\n"
 
   def expandSpecial(collector : StackCollector) : Output[Statement] = {
     val insideFragLoop = collector.stack.map(node => node match { case loop : LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
-    val innerLoop = LoopOverPointsInOneFragment(field.domain.index, field, startOffset, endOffset, increment, body, reduction, condition)
+    val innerLoop = LoopOverPointsInOneFragment(field.domain.index, field, seq, startOffset, endOffset, increment, body, reduction, condition)
 
     if (insideFragLoop)
       innerLoop
-    else
-      new LoopOverFragments(innerLoop, reduction) with OMP_PotentiallyParallel
+    else {
+      if (seq)
+        new LoopOverFragments(innerLoop, reduction)
+      else
+        new LoopOverFragments(innerLoop, reduction) with OMP_PotentiallyParallel
+    }
   }
 }
 
-case class LoopOverPointsInOneFragment(var domain : Int, var field : Field,
-    var startOffset : MultiIndex, var endOffset : MultiIndex, var increment : MultiIndex,
-    var body : ListBuffer[Statement], var reduction : Option[Reduction] = None, var condition : Option[Expression] = None) extends Statement with Expandable {
+case class LoopOverPointsInOneFragment(var domain : Int,
+    var field : Field,
+    var seq : Boolean, // FIXME: seq HACK
+    var startOffset : MultiIndex,
+    var endOffset : MultiIndex,
+    var increment : MultiIndex,
+    var body : ListBuffer[Statement],
+    var reduction : Option[Reduction] = None,
+    var condition : Option[Expression] = None) extends Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPointsInOneFragment\n"
 
   def expand : Output[Statement] = {
@@ -145,12 +161,19 @@ case class LoopOverPointsInOneFragment(var domain : Int, var field : Field,
     var indexRange = IndexRange(start, stop)
     SimplifyStrategy.doUntilDoneStandalone(indexRange)
 
-    val ret = new LoopOverDimensions(Knowledge.dimensionality, indexRange, body, increment, reduction, condition) with OMP_PotentiallyParallel with PolyhedronAccessable
-    ret.optLevel =
-      if (Knowledge.maxLevel - field.level < Knowledge.poly_numFinestLevels)
-        Knowledge.poly_optLevel_fine
-      else
-        Knowledge.poly_optLevel_coarse
+    val ret = (
+      if (seq)
+        new LoopOverDimensions(Knowledge.dimensionality, indexRange, body, increment, reduction, condition)
+      else {
+        val ret = new LoopOverDimensions(Knowledge.dimensionality, indexRange, body, increment, reduction, condition) with OMP_PotentiallyParallel with PolyhedronAccessable
+        ret.optLevel = (
+          if (Knowledge.maxLevel - field.level < Knowledge.poly_numFinestLevels)
+            Knowledge.poly_optLevel_fine
+          else
+            Knowledge.poly_optLevel_coarse)
+        ret
+      })
+
     if (domain >= 0)
       new ConditionStatement(iv.IsValidForSubdomain(domain), ret)
     else

@@ -6,9 +6,8 @@ object InitFields {
   def addFunction(printer : java.io.PrintWriter, postfix : String) = {
     printer.println(s"Function InitSolution$postfix ( ) : Unit {")
     if (Knowledge.l3tmp_initSolWithRand) {
-      // FIXME: this loop needs to be marked as non-parallelizable somehow
-      // FIXME: make results more reproducible via sth like 'std::srand((unsigned int)fragments[f]->id)'
-      printer.println(s"\tloop over Solution$postfix@finest {")
+      // FIXME: seq HACK
+      printer.println(s"\tloop over Solution$postfix@finest sequentially {")
       for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
         printer.println(s"\t\t${Fields.solutionSlotted(s"finest", "curSlot", postfix)(vecDim)} = native('((double)std::rand()/RAND_MAX)')")
       }

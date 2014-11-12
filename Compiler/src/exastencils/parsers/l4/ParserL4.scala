@@ -132,14 +132,15 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val loopOverFragments = locationize(("loop" ~ "over" ~ "fragments") ~ ("with" ~> reductionClause).? ~ ("{" ~> statement.+ <~ "}") ^^
     { case _ ~ red ~ stmts => LoopOverFragmentsStatement(stmts, red) })
   lazy val loopOver = locationize(("loop" ~ "over" ~> fieldLikeAccess) ~
+    ("sequentially").? ~ // FIXME: seq HACK
     ("where" ~> booleanexpression).? ~
     ("starting" ~> expressionIndex).? ~
     ("ending" ~> expressionIndex).? ~
     ("stepping" ~> expressionIndex).? ~
     ("with" ~> reductionClause).? ~
     ("{" ~> statement.+ <~ "}") ^^ {
-      case field ~ cond ~ startOff ~ endOff ~ inc ~ red ~ stmts =>
-        LoopOverPointsStatement(field.resolveToFieldAccess, cond, startOff, endOff, inc, stmts, red)
+      case field ~ seq ~ cond ~ startOff ~ endOff ~ inc ~ red ~ stmts =>
+        LoopOverPointsStatement(field.resolveToFieldAccess, seq.isDefined, cond, startOff, endOff, inc, stmts, red)
     })
   lazy val reductionClause = locationize((("reduction" ~ "(") ~> (ident ||| "+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => ReductionStatement(op, s) })
 

@@ -23,6 +23,8 @@ L4:
 IR:
 - fix/ support communication statements within fragment loops specified on l4
 
+- rework trait/member system for specification of parallelizability
+
 - add one distinct communicator per (sub)domain
 
 - add temporary fields

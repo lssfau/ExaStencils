@@ -97,7 +97,9 @@ case class AssignmentStatement(var dest : Access, var src : Expression, var op :
 }
 
 case class LoopOverPointsStatement(
-    var field : FieldAccess, var condition : Option[Expression],
+    var field : FieldAccess,
+    var seq : Boolean, // FIXME: seq HACK
+    var condition : Option[Expression],
     var startOffset : Option[ExpressionIndex],
     var endOffset : Option[ExpressionIndex],
     var increment : Option[ExpressionIndex],
@@ -105,6 +107,7 @@ case class LoopOverPointsStatement(
     var reduction : Option[ReductionStatement]) extends Statement {
   def progressToIr : ir.LoopOverPoints = {
     ir.LoopOverPoints(field.resolveField,
+      seq,
       if (startOffset.isDefined) startOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
       if (endOffset.isDefined) endOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
       if (increment.isDefined) increment.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(1)),
