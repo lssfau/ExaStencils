@@ -44,9 +44,26 @@ Large_Hybrid  Main  Large/Hybrid.knowledge  Large/Hybrid.results  4  10  E5
 # OPTIMIZATION TESTS                                                                            #
 #################################################################################################
 
-#Seq_Simple  Main  Opts/seq_simple.knowledge  Opts/seq_simple.results  1   1
-#1N_4C_opt   Main  Opts/1N_4C_opt.knowledge   Opts/1N_4C_opt.results   1   4  i7
-#8N_10C_opt  Main  Opts/8N_10C_opt.knowledge  Opts/8N_10C_opt.results  8  10  E5
+# no optimizations (0), all independenly (1-6) and in combination (7)
+#  (run time for each is less than 5 seconds)
+# sequential version
+Seq_Test0  Main  Opts/seq_0.knowledge  Opts/seq.results  1   1  i7
+Seq_Test1  Main  Opts/seq_1.knowledge  Opts/seq.results  1   1  i7
+Seq_Test2  Main  Opts/seq_2.knowledge  Opts/seq.results  1   1  i7
+Seq_Test3  Main  Opts/seq_3.knowledge  Opts/seq.results  1   1  i7
+Seq_Test4  Main  Opts/seq_4.knowledge  Opts/seq.results  1   1  i7
+Seq_Test5  Main  Opts/seq_5.knowledge  Opts/seq.results  1   1  i7
+Seq_Test6  Main  Opts/seq_6.knowledge  Opts/seq.results  1   1  i7
+Seq_Test7  Main  Opts/seq_7.knowledge  Opts/seq.results  1   1  i7
+# parallel version (2*2*2 MPI ranks each with 3*3*3 OMP threads)
+Par_Test0  Main  Opts/par_0.knowledge  Opts/par.results  8  10  E5
+Par_Test1  Main  Opts/par_1.knowledge  Opts/par.results  8  10  E5
+Par_Test2  Main  Opts/par_2.knowledge  Opts/par.results  8  10  E5
+Par_Test3  Main  Opts/par_3.knowledge  Opts/par.results  8  10  E5
+Par_Test4  Main  Opts/par_4.knowledge  Opts/par.results  8  10  E5
+Par_Test5  Main  Opts/par_5.knowledge  Opts/par.results  8  10  E5
+Par_Test6  Main  Opts/par_6.knowledge  Opts/par.results  8  10  E5
+Par_Test7  Main  Opts/par_7.knowledge  Opts/par.results  8  10  E5
 
 #################################################################################################
 # SMOOTHER TESTS                                                                                #
