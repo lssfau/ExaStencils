@@ -18,15 +18,18 @@ COMPILER=${4}
 MAIN=${5}
 KNOWLEDGE=${6}
 FAILURE_MAIL=${7}
-LOG=${8}
-EXP_RESULT=${9}
-NODES=${10}
-CORES=${11}
-CONSTRAINTS=${12}
+FAILURE_MAIL_SUBJECT?${8}
+LOG=${9}
+EXP_RESULT=${10}
+NODES=${11}
+CORES=${12}
+CONSTRAINTS=${13}
 
-FAILURE_SUBJECT="ExaStencils TestBot Error"
-
-RAM_TMP_DIR="$(mktemp --tmpdir=/run/shm -d)"
+RAM_TMP_DIR="$(mktemp --tmpdir=/run/shm -d)" || {
+    echo "===== FAILURE: ID '${ID}': Failed to create temporary directory on machine $(hostname) in ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (generate and compile test)." >> "${LOG}"
+    echo "Test '${ID}' failed!  Unable to create temporary directory in ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (build compiler)." | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
+    exit 1
+  }
 OUTPUT="${RAM_TMP_DIR}/command_output.txt"
 SETTINGS="${RAM_TMP_DIR}/settings.txt"
 L4="${RAM_TMP_DIR}/l4.exa"
@@ -40,7 +43,7 @@ function cleanup {
   echo "      Removed  ${RAM_TMP_DIR} (test id: '${ID}')" >> "${LOG}"
   if [[ ${TIMEOUT} -eq 1 ]]; then
     echo "===== FAILURE: ID '${ID}': Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (generate and compile test)." >> "${LOG}"
-    echo "Test '${ID}' failed!  Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (generate and compile test)." | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
+    echo "Test '${ID}' failed!  Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (generate and compile test)." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
   fi
 }
 trap cleanup EXIT
@@ -63,13 +66,13 @@ cd ${TESTING_DIR}  # there is no possibility to explicitly set the working direc
 srun java -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}" > "${OUTPUT}" 2>&1
     if [[ $? -ne 0 ]]; then
       echo "===== FAILED: ID '${ID}': generator error." >> "${LOG}"
-      echo "Test '${ID}' failed!  Unable to generate code." | mail -s "${FAILURE_SUBJECT}" -A "${OUTPUT}" ${FAILURE_MAIL}
+      echo "Test '${ID}' failed!  Unable to generate code." | mail -s "${FAILURE_MAIL_SUBJECT}" -A "${OUTPUT}" ${FAILURE_MAIL}
       finish
     fi
 srun make -C "${RAM_TMP_DIR}" -j ${SLURM_CPUS_ON_NODE} > "${OUTPUT}" 2>&1
     if [[ $? -ne 0 ]]; then
       echo "===== FAILED: ID '${ID}': target compiler error." >> "${LOG}"
-      echo "Test '${ID}' failed!  Unable to compile target code." | mail -s "${FAILURE_SUBJECT}" -A "${OUTPUT}" ${FAILURE_MAIL}
+      echo "Test '${ID}' failed!  Unable to compile target code." | mail -s "${FAILURE_MAIL_SUBJECT}" -A "${OUTPUT}" ${FAILURE_MAIL}
       finish
     fi
 
@@ -85,10 +88,10 @@ else
     PART="chimaira"
     CONSTR_PARAM=""
   fi
-  sbatch -A ${ACC} -p ${PART} -n ${NODES} -c ${CORES} ${CONSTR_PARAM} "${TESTING_DIR}/tests3_generated.sh" ${ID} "${BIN_DIR}/${BIN}" "${EXP_RESULT}" "${FAILURE_MAIL}" "${LOG}"
+  sbatch -A ${ACC} -p ${PART} -n ${NODES} -c ${CORES} ${CONSTR_PARAM} "${TESTING_DIR}/tests3_generated.sh" ${ID} "${BIN_DIR}/${BIN}" "${EXP_RESULT}" ${FAILURE_MAIL} "${FAILURE_MAIL_SUBJECT}" "${LOG}"
       if [[ $? -ne 0 ]]; then
         echo "===== FAILED: ID '${ID}': unable to enqueue job  (nodes: ${NODES},  cores: ${CORES},  constraints: '${CONSTRAINTS}')." >> "${LOG}"
-        echo "Test '${ID}' failed!  Unable to enqueue job  (nodes: ${NODES},  cores: ${CORES},  constraints: '${CONSTRAINTS}')." | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
+        echo "Test '${ID}' failed!  Unable to enqueue job  (nodes: ${NODES},  cores: ${CORES},  constraints: '${CONSTRAINTS}')." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
         finish
       fi
 fi

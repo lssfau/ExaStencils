@@ -15,8 +15,10 @@ REPO_DIR=${1}
 TEMP_DIR=${2}
 LOG=${3}
 
+# HACK: otherwise ant wouldn't find them...
 JAVA_DIR="/usr/lib/jvm/default-java/"
 SCALA_DIR="/scratch/${USER}/exastencils_tests/scala/"
+
 COMPILER_JAR="${TEMP_DIR}/compiler.jar"
 
 ANT_BUILD="${REPO_DIR}/Compiler/build.xml"
@@ -26,8 +28,12 @@ TESTING_CONF="${TESTING_DIR}/test_confs.txt"
 FAILURE_MAIL="exastencils-dev@www.uni-passau.de"
 FAILURE_SUBJECT="TestBot Error"
 
-RAM_TMP_DIR="$(mktemp --tmpdir=/run/shm -d)"
-OUTPUT="${RAM_TMP_DIR}/command_output.txt"
+RAM_TMP_DIR=$(mktemp --tmpdir=/run/shm -d) || {
+    echo "=== FAILURE: Failed to create temporary directory on machine $(hostname) in ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (build compiler)." >> "${LOG}"
+    echo "Automatic tests failed!  Unable to create temporary directory in ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (build compiler)." | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
+    exit 1
+  }
+ANT_OUTPUT="${RAM_TMP_DIR}/ant_output.txt"
 
 TIMEOUT=1
 
@@ -65,10 +71,10 @@ rm -f "${TEMP_DIR}/*"
 
 # build generator (place class files in RAM_TMP_DIR)
 echo "    Created  ${RAM_TMP_DIR}: generator build dir" >> "${LOG}"
-srun ant -f "${ANT_BUILD}" -Dbuild.dir="${RAM_TMP_DIR}" -Dcompiler.jar="${COMPILER_JAR}" -Djava.dir="${JAVA_DIR}" -Dscala.dir="${SCALA_DIR}" clean build > "${OUTPUT}" 2>&1
+srun ant -f "${ANT_BUILD}" -Dbuild.dir="${RAM_TMP_DIR}/build" -Dcompiler.jar="${COMPILER_JAR}" -Djava.dir="${JAVA_DIR}" -Dscala.dir="${SCALA_DIR}" clean build > "${ANT_OUTPUT}" 2>&1
     if [[ $? -ne 0 ]]; then
       echo "=== FAILED: Generator: ant build error. =" >> "${LOG}"
-      echo "Automatic tests failed!  Unable to compile generator." | mail -s "${FAILURE_SUBJECT}" -A "${OUTPUT}" ${FAILURE_MAIL}
+      echo "Automatic tests failed!  Unable to compile generator." | mail -s "${FAILURE_SUBJECT}" -A "${ANT_OUTPUT}" ${FAILURE_MAIL}
       finish
     fi
 
@@ -93,7 +99,7 @@ do
   fi
 
   # configuration is fine, start a new job for it (${nodes} and ${cores} may be empty, so they must be passed at the last!)
-  sbatch "${TESTING_DIR}/tests2_single.sh" "${TESTING_DIR}" "${TEMP_DIR}" ${id} "${COMPILER_JAR}" ${main} "${TESTING_DIR}/${knowledge}" "${FAILURE_MAIL}" "${LOG}" "${TESTING_DIR}/${result}" ${nodes} ${cores} "${constraints}"
+  sbatch "${TESTING_DIR}/tests2_single.sh" "${TESTING_DIR}" "${TEMP_DIR}" ${id} "${COMPILER_JAR}" ${main} "${TESTING_DIR}/${knowledge}" ${FAILURE_MAIL} "${FAILURE_SUBJECT}" "${LOG}" "${TESTING_DIR}/${result}" ${nodes} ${cores} "${constraints}"
 done < "${TESTING_CONF}"
 
 finish

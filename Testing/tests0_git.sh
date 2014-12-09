@@ -17,6 +17,8 @@ TEMP_DIR="${BASE_DIR}/temp"
 FAILURE_MAIL="kronast@fim.uni-passau.de"
 FAILURE_SUBJECT="ExaStencils TestBot Error (cron)"
 
+GIT_URL="ssh://git@git.infosun.fim.uni-passau.de/exastencils/dev/ScalaExaStencil.git"
+
 TIMEOUT=1
 
 
@@ -42,7 +44,6 @@ fi
 echo "--------------------------------------------" >> "${LOG}"
 echo "$(date -R):  Initialize tests..." >> "${LOG}"
 
-GIT_URL="ssh://git@git.infosun.fim.uni-passau.de/exastencils/dev/ScalaExaStencil.git"
 if [[ -d "${REPO_DIR}" ]]; then
   OLD_HASH=$(git -C "${REPO_DIR}" rev-parse @)
   srun git -C "${REPO_DIR}" pull --force

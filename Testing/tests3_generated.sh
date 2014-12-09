@@ -12,20 +12,24 @@ ID=${1}
 BIN=${2}
 EXP_RESULT=${3}
 FAILURE_MAIL=${4}
-LOG=${5}
+FAILURE_MAIL_SUBJECT=${5}
+LOG=${6}
 
-RESULT="$(mktemp --tmpdir=/run/shm test_res_XXXXX.txt)"
-FAILURE_SUBJECT="ExaStencils TestBot Error"
+RESULT="$(mktemp --tmpdir=/run/shm test_res_XXXXX.txt)" || {
+    echo "========= FAILURE: ID '${ID}': Failed to create temporary file on machine $(hostname) in ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (running testcode)." >> "${LOG}"
+    echo "Test '${ID}' failed!  Unable to create temporary file in ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (running testcode)." | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
+    exit 1
+  }
 
 TIMEOUT=1
 
 
 function cleanup {
-  rm "${RESULT}" # do not remove ${BIN}, because job could be rescheduled, next time all tests are started, old binaries are removed in next testrun anyway
+  rm "${RESULT}" # do not remove ${BIN} since job could be rescheduled; next time all tests are started old binaries are removed anyway
   echo "        Removed  ${RESULT} (test id: '${ID}')" >> "${LOG}"
   if [[ ${TIMEOUT} -eq 1 ]]; then
     echo "========= FAILURE: ID '${ID}': Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (running testcode)." >> "${LOG}"
-    echo "Test '${ID}' failed!  Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (running testcode)." | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
+    echo "Test '${ID}' failed!  Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (running testcode)." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
   fi
 }
 trap cleanup EXIT
@@ -45,7 +49,7 @@ if diff -B -w --strip-trailing-cr -I "time"  "${RESULT}" "${EXP_RESULT}" > /dev/
   echo "          OK: ID '${ID}' on machine $(hostname) (${SLURM_JOB_NUM_NODES} nodes, ${SLURM_JOB_CPUS_PER_NODE} cores)." >> "${LOG}"
 else
   echo "========= FAILED: ID '${ID}' on machine $(hostname) (${SLURM_JOB_NUM_NODES} nodes, ${SLURM_JOB_CPUS_PER_NODE} cores): invalid result." >> "${LOG}"
-  echo "Test '${ID}' failed!  Results ($(basename ${RESULT})) do not match expected ones ($(basename ${EXP_RESULT}))." | mail -s "${FAILURE_SUBJECT}" -A "${RESULT}" -A "${EXP_RESULT}" ${FAILURE_MAIL}
+  echo "Test '${ID}' failed!  Results ($(basename ${RESULT})) do not match expected ones ($(basename ${EXP_RESULT}))." | mail -s "${FAILURE_MAIL_SUBJECT}" -A "${RESULT}" -A "${EXP_RESULT}" ${FAILURE_MAIL}
 fi
 
 finish
