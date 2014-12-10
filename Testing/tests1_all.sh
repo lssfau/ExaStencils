@@ -31,28 +31,23 @@ FAILURE_MAIL_SUBJECT="TestBot Error"
 RAM_TMP_DIR=$(mktemp --tmpdir=/run/shm -d) || {
     echo "=== FAILURE: Failed to create temporary directory on machine $(hostname) in ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (build compiler)." >> "${LOG}"
     echo "Automatic tests failed!  Unable to create temporary directory in ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (build compiler)." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
-    exit 1
+    exit 0
   }
 ANT_OUTPUT="${RAM_TMP_DIR}/ant_output.txt"
 
-TIMEOUT=1
 
+function timeout {
+  echo "=== FAILURE: Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (build compiler)." >> "${LOG}"
+  echo "Automatic tests failed!  Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (build compiler)." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
+}
+trap timeout SIGINT
 
 function cleanup {
   rm -rf "${RAM_TMP_DIR}"
   echo "    Removed  ${RAM_TMP_DIR}" >> "${LOG}"
-  if [[ ${TIMEOUT} -eq 1 ]]; then
-    echo "=== FAILURE: Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (build compiler)." >> "${LOG}"
-    echo "Automatic tests failed!  Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (build compiler)." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
-  fi
 }
 trap cleanup EXIT
 
-# ensure this script finishes with this function (even in case of an error) to prevent incorrect timeout error
-function finish {
-  TIMEOUT=0
-  exit 0
-}
 
 # cancel all uncompleted jobs from last testrun
 first=1
@@ -66,8 +61,8 @@ for job in $(squeue -h -u ${USER} -o %i); do
     scancel ${job}
   fi
 done
-# remove old binaries (if some)
-rm -f "${TEMP_DIR}/*"
+# remove old binaries (if some); do not quote the *, as this prevents file expansion...
+rm -f "${TEMP_DIR}"/*
 
 # build generator (place class files in RAM_TMP_DIR)
 echo "    Created  ${RAM_TMP_DIR}: generator build dir" >> "${LOG}"
@@ -75,7 +70,7 @@ srun ant -f "${ANT_BUILD}" -Dbuild.dir="${RAM_TMP_DIR}/build" -Dcompiler.jar="${
     if [[ $? -ne 0 ]]; then
       echo "=== FAILED: Generator: ant build error. =" >> "${LOG}"
       echo "Automatic tests failed!  Unable to compile generator." | mail -s "${FAILURE_MAIL_SUBJECT}" -A "${ANT_OUTPUT}" ${FAILURE_MAIL}
-      finish
+      exit 0
     fi
 
 # process all jobs
@@ -100,6 +95,8 @@ do
 
   # configuration is fine, start a new job for it (${nodes} and ${cores} may be empty, so they must be passed at the last!)
   sbatch "${TESTING_DIR}/tests2_single.sh" "${TESTING_DIR}" "${TEMP_DIR}" ${id} "${COMPILER_JAR}" ${main} "${TESTING_DIR}/${knowledge}" ${FAILURE_MAIL} "${FAILURE_MAIL_SUBJECT}" "${LOG}" "${TESTING_DIR}/${result}" ${nodes} ${cores} "${constraints}"
+      if [[ $? -ne 0 ]]; then
+        echo "=== FAILED: Unable to enqueue job for id ${id}." >> "${LOG}"
+        echo "Test failed!  Unable to enqueue job for id ${id}." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
+      fi
 done < "${TESTING_CONF}"
-
-finish
