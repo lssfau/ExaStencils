@@ -57,6 +57,7 @@ echo "outputPath = \"${RAM_TMP_DIR}\"" >> "${SETTINGS}"
 echo "l4file = \"${L4}\"" >> "${SETTINGS}"
 echo "binary = \"${BIN}\"" >> "${SETTINGS}"
 
+touch "${OUTPUT}"
 pushd ${TESTING_DIR}  # there is no possibility to explicitly set the working directory of the jvm... (changing property user.dir does not work in all situations)
 srun java -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}" > "${OUTPUT}" 2>&1
     if [[ $? -ne 0 ]]; then

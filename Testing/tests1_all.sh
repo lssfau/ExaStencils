@@ -66,6 +66,7 @@ rm -f "${TEMP_DIR}"/*
 
 # build generator (place class files in RAM_TMP_DIR)
 echo "    Created  ${RAM_TMP_DIR}: generator build dir" >> "${LOG}"
+touch "${ANT_OUTPUT}"
 srun ant -f "${ANT_BUILD}" -Dbuild.dir="${RAM_TMP_DIR}/build" -Dcompiler.jar="${COMPILER_JAR}" -Djava.dir="${JAVA_DIR}" -Dscala.dir="${SCALA_DIR}" clean build > "${ANT_OUTPUT}" 2>&1
     if [[ $? -ne 0 ]]; then
       echo "=== FAILED: Generator: ant build error. =" >> "${LOG}"
