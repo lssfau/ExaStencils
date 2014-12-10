@@ -57,13 +57,14 @@ echo "outputPath = \"${RAM_TMP_DIR}\"" >> "${SETTINGS}"
 echo "l4file = \"${L4}\"" >> "${SETTINGS}"
 echo "binary = \"${BIN}\"" >> "${SETTINGS}"
 
-cd ${TESTING_DIR}  # there is no possibility to explicitly set the working directory of the jvm... (changing property user.dir does not work in all situations)
+pushd ${TESTING_DIR}  # there is no possibility to explicitly set the working directory of the jvm... (changing property user.dir does not work in all situations)
 srun java -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}" > "${OUTPUT}" 2>&1
     if [[ $? -ne 0 ]]; then
       echo "===== FAILED: ID '${ID}': generator error." >> "${LOG}"
       echo "Test '${ID}' failed!  Unable to generate code." | mail -s "${FAILURE_MAIL_SUBJECT}" -A "${OUTPUT}" ${FAILURE_MAIL}
       exit 0
     fi
+popd
 srun make -C "${RAM_TMP_DIR}" -j ${SLURM_CPUS_ON_NODE} > "${OUTPUT}" 2>&1
     if [[ $? -ne 0 ]]; then
       echo "===== FAILED: ID '${ID}': target compiler error." >> "${LOG}"
