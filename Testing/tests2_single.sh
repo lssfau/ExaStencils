@@ -8,8 +8,8 @@
 #SBATCH --cpu_bind=cores
 #SBATCH -o /dev/null
 #SBATCH -e /dev/null
-#SBATCH --time=10
-#SBATCH --signal=10@5
+#SBATCH --time=15
+#SBATCH --signal=INT@5
 
 
 TESTING_DIR=${1}
@@ -37,15 +37,8 @@ L4="${RAM_TMP_DIR}/l4.exa"
 BIN="exastencils_${ID}_${SLURM_JOB_ID}"
 
 
-function timeout {
-  echo "===== FAILURE: ID '${ID}': Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (generate and compile test)." >> "${LOG}"
-  echo "Test '${ID}' failed!  Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (generate and compile test)." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
-  exit 0
-}
-trap timeout 10
-
 function killed {
-  echo "      ??? ID '${ID}': Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} killed; possible reasons: timeout, manually canceled, user login (job is requeued)  (generate and compile test)." >> "${LOG}"
+  echo "      ??? ID '${ID}': Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} killed; possible reasons: timeout, manually canceled, user login (job is then requeued)  (generate and compile test)." >> "${LOG}"
   exit 0
 }
 trap killed SIGTERM
@@ -88,7 +81,7 @@ else
   ACC="idle"
   PART="idle"
   CONSTR_PARAM="--constraint=${CONSTRAINTS}"
-  if [[ $(( ${NODES} * ${CORES} )) -gt 30 ]] || [[ ${CONSTRAINTS} =~ "E5" ]]; then # HACK to ensure jobs are executed in a reasonable time
+  if [[ $(( ${NODES} * ${CORES} )) -gt 30 ]] || [[ ${CONSTRAINTS} =~ "E5" ]]; then # HACK to ensure jobs are executed even if the cluster is in use
     ACC="cl"
     PART="chimaira"
     CONSTR_PARAM=""

@@ -7,7 +7,7 @@
 #SBATCH -o /dev/null
 #SBATCH -e /dev/null
 #SBATCH --time=5
-#SBATCH --signal=10@5
+#SBATCH --signal=INT@5
 
 
 BASE_DIR=${1}
@@ -21,15 +21,8 @@ FAILURE_MAIL_SUBJECT="ExaStencils TestBot Error (cron)"
 GIT_URL="ssh://git@git.infosun.fim.uni-passau.de/exastencils/dev/ScalaExaStencil.git"
 
 
-function timeout {
-  echo "= FAILURE: Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (git checkout/update)." >> "${LOG}"
-  echo "Test '${ID}' failed!  Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (git checkout/update)." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
-  exit 0
-}
-trap timeout 10
-
 function killed {
-  echo "  ??? Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} killed; possible reasons: timeout, manually canceled, user login (job is requeued)  (git checkout/update)." >> "${LOG}"
+  echo "  ??? Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} killed; possible reasons: timeout, manually canceled, user login (job is then requeued)  (git checkout/update)." >> "${LOG}"
   exit 0
 }
 trap killed SIGTERM

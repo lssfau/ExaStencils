@@ -6,7 +6,7 @@
 #SBATCH -o /dev/null
 #SBATCH -e /dev/null
 #SBATCH --time=15
-#SBATCH --signal=10@5
+#SBATCH --signal=INT@5
 
 
 ID=${1}
@@ -23,15 +23,8 @@ RESULT="$(mktemp --tmpdir=/run/shm test_res_XXXXX.txt)" || {
   }
 
 
-function timeout {
-  echo "========= FAILURE: ID '${ID}': Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (running testcode)." >> "${LOG}"
-  echo "Test '${ID}' failed!  Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (running testcode)." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
-  exit 0
-}
-trap timeout 10
-
 function killed {
-  echo "          ??? ID '${ID}': Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} killed; possible reasons: timeout, manually canceled, user login (job is requeued)  (running testcode)." >> "${LOG}"
+  echo "          ??? ID '${ID}': Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} killed; possible reasons: timeout, manually canceled, user login (job is then requeued)  (running testcode)." >> "${LOG}"
   exit 0
 }
 trap killed SIGTERM
