@@ -9,6 +9,7 @@
 #SBATCH -o /dev/null
 #SBATCH -e /dev/null
 #SBATCH --time=5
+#SBATCH --signal=10@5
 
 
 REPO_DIR=${1}
@@ -26,6 +27,7 @@ TESTING_DIR="${REPO_DIR}/Testing"
 TESTING_CONF="${TESTING_DIR}/test_confs.txt"
 
 FAILURE_MAIL="exastencils-dev@www.uni-passau.de"
+TECH_FAILURE_MAIL="kronast@fim.uni-passau.de"
 FAILURE_MAIL_SUBJECT="TestBot Error"
 
 RAM_TMP_DIR=$(mktemp --tmpdir=/run/shm -d) || {
@@ -38,9 +40,16 @@ ANT_OUTPUT="${RAM_TMP_DIR}/ant_output.txt"
 
 function timeout {
   echo "=== FAILURE: Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (build compiler)." >> "${LOG}"
-  echo "Automatic tests failed!  Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (build compiler)." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
+  echo "Test '${ID}' failed!  Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (build compiler)." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
+  exit 0
 }
-trap timeout SIGINT
+trap timeout 10
+
+function killed {
+  echo "    ??? Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} killed; possible reasons: timeout, manually canceled, user login (job is requeued)  (build compiler)." >> "${LOG}"
+  exit 0
+}
+trap killed SIGTERM
 
 function cleanup {
   rm -rf "${RAM_TMP_DIR}"
@@ -55,13 +64,14 @@ for job in $(squeue -h -u ${USER} -o %i); do
   if [[ ${job} -ne ${SLURM_JOB_ID} ]]; then
     if [[ first -eq 1 ]]; then
       first=0
-      echo "    Old tests from last run found. Cancel them and requeue new tests (may result in timeout errors)." >> "${LOG}"
+      echo "    Old tests from last run found. Cancel them and requeue new tests." >> "${LOG}"
+      echo "Old tests from last run found. Cancel them and requeue new tests." | mail -s "${FAILURE_MAIL_SUBJECT}" ${TECH_FAILURE_MAIL}
     fi
     echo "    Cancel ID ${job}." >> "${LOG}"
     scancel ${job}
   fi
 done
-# remove old binaries (if some); do not quote the *, as this prevents file expansion...
+# remove old binaries (if some)
 rm -f "${TEMP_DIR}"/*
 
 # build generator (place class files in RAM_TMP_DIR)

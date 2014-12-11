@@ -6,6 +6,7 @@
 #SBATCH -o /dev/null
 #SBATCH -e /dev/null
 #SBATCH --time=15
+#SBATCH --signal=10@5
 
 
 ID=${1}
@@ -18,15 +19,22 @@ LOG=${6}
 RESULT="$(mktemp --tmpdir=/run/shm test_res_XXXXX.txt)" || {
     echo "========= FAILURE: ID '${ID}': Failed to create temporary file on machine $(hostname) in ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (running testcode)." >> "${LOG}"
     echo "Test '${ID}' failed!  Unable to create temporary file in ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (running testcode)." | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
-    exit 1
+    exit 0
   }
 
 
 function timeout {
   echo "========= FAILURE: ID '${ID}': Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (running testcode)." >> "${LOG}"
   echo "Test '${ID}' failed!  Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (running testcode)." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
+  exit 0
 }
-trap timeout SIGINT
+trap timeout 10
+
+function killed {
+  echo "          ??? ID '${ID}': Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} killed; possible reasons: timeout, manually canceled, user login (job is requeued)  (running testcode)." >> "${LOG}"
+  exit 0
+}
+trap killed SIGTERM
 
 function cleanup {
   rm "${RESULT}" # do not remove ${BIN} since job could be rescheduled; next time all tests are started old binaries are removed anyway

@@ -9,6 +9,7 @@
 #SBATCH -o /dev/null
 #SBATCH -e /dev/null
 #SBATCH --time=10
+#SBATCH --signal=10@5
 
 
 TESTING_DIR=${1}
@@ -28,7 +29,7 @@ CONSTRAINTS=${13}
 RAM_TMP_DIR="$(mktemp --tmpdir=/run/shm -d)" || {
     echo "===== FAILURE: ID '${ID}': Failed to create temporary directory on machine $(hostname) in ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (generate and compile test)." >> "${LOG}"
     echo "Test '${ID}' failed!  Unable to create temporary directory in ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (generate and compile test)." | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
-    exit 1
+    exit 0
   }
 OUTPUT="${RAM_TMP_DIR}/command_output.txt"
 SETTINGS="${RAM_TMP_DIR}/settings.txt"
@@ -39,8 +40,15 @@ BIN="exastencils_${ID}_${SLURM_JOB_ID}"
 function timeout {
   echo "===== FAILURE: ID '${ID}': Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (generate and compile test)." >> "${LOG}"
   echo "Test '${ID}' failed!  Timeout in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (generate and compile test)." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
+  exit 0
 }
-trap timeout SIGINT
+trap timeout 10
+
+function killed {
+  echo "      ??? ID '${ID}': Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} killed; possible reasons: timeout, manually canceled, user login (job is requeued)  (generate and compile test)." >> "${LOG}"
+  exit 0
+}
+trap killed SIGTERM
 
 function cleanup {
   rm -rf "${RAM_TMP_DIR}"
