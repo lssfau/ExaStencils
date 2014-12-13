@@ -2,9 +2,9 @@ package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.core.Logger._
-import exastencils.knowledge._
 import exastencils.datastructures._
+import exastencils.globals._
+import exastencils.knowledge._
 import exastencils.multiGrid._
 
 case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
@@ -103,7 +103,10 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
     for (iterationSet <- iterationSets)
       IterationSetCollection.sets += iterationSet.progressToIr
 
-    globals.foreach(f => newRoot += f.progressToIr) // FIXME: this will generate multiple Global instances...
+    // Globals
+    var progGlobals = new Globals(new ListBuffer)
+    globals.foreach(f => progGlobals.variables ++= f.progressToIr)
+    newRoot += progGlobals
 
     var multiGrid = new MultiGridFunctions // FIXME: think about how to manage (MG/other) functions
     for (node <- statements)
