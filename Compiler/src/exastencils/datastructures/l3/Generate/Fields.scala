@@ -42,7 +42,14 @@ object Fields {
     if (Knowledge.l3tmp_genFunctionBC || (Knowledge.l3tmp_kelvin && "" == postfix)) {
       var bc = (
         if (Knowledge.l3tmp_kelvin && "" == postfix) "bcSol(xPos, yPos)"
-        else "sin ( M_PI * xPos ) * sinh ( M_PI * yPos )")
+        else Knowledge.dimensionality match {
+          case 2 => "sin ( M_PI * xPos ) * sinh ( M_PI * yPos )"
+          //case 3 => 
+          //"xPos * xPos - 0.5 * yPos * yPos - 0.5 * zPos * zPos"
+          //"exp ( xPos ) * sin ( yPos ) + exp ( yPos ) * sin ( zPos ) + exp ( zPos ) * sin ( xPos )"
+          //"1.0 / sqrt ( xPos * xPos + yPos * yPos + zPos * zPos )"
+          //"sin ( M_PI * xPos ) * sin ( M_PI * yPos ) * sinh ( sqrt ( 2.0 ) * M_PI * zPos )"
+        })
       if ("Jac" == Knowledge.l3tmp_smoother) {
         if (Knowledge.l3tmp_useSlotsForJac) {
           printer.println(s"Field Solution$postfix< $domain, BasicComm, 0.0 >[2]@(coarsest to ${Knowledge.l3tmp_tempBlockingMinLevel - 1})")
