@@ -101,12 +101,12 @@ protected:
       val enableTimerCallStacks = true
       // TODO: is MPI is enabled, average the timings over the number of threads using the given strategy
       // Comment: Meaningless, strategy is defined on test manager, not in timer.
-      val useMPI = true
+      val useMPI = Knowledge.useMPI
       val timerCollectionOperator = "MEAN" // "MIN", "MAX"
       // TODO: fix the compile warnings
       // TODO: this has to work with and without std::chrono
       val chronoIsAvailable = true
-      val windowsSystem = false
+      val windowsSystem = ("MSVC" == Knowledge.targetCompiler)
 
       val writerHeader = PrettyprintingManager.getPrinter(s"Util/Stopwatch.h")
       val writerSource = PrettyprintingManager.getPrinter(s"Util/Stopwatch.cpp")
@@ -118,6 +118,7 @@ protected:
 #include <vector>
 #include <algorithm>
 #include <fstream>
+#include <sstream>
         
 inline void assert(bool x)
 {
@@ -125,6 +126,14 @@ inline void assert(bool x)
 	if(!x) abort();
 #endif
 }
+
+template <typename T>
+std::string to_string(T value)
+{
+	std::ostringstream os ;
+	os << value ;
+	return os.str() ;
+}       
         
 #define newline '\n'
 	""");
@@ -185,47 +194,47 @@ inline double time_now() //millisecs. unix
       }
 
       writerHeader << (""" 
-class TimerWrapper
-{
-       """);
+	class TimerWrapper
+	{
+	       """);
 
       if (enableTimerCallStacks) {
         writerHeader << (""" 
-friend class CallTracker;
-       """);
+	friend class CallTracker;
+	       """);
       }
 
       writerHeader << ("""
-public:
-	TimerWrapper(void);
-	TimerWrapper(std::string name);
-	~TimerWrapper(void);
-
-	void Start();
-	void Stop();
-
-	double getTotalTimeInMilliSec();
-	double getLastTimeInMilliSec();
-	double getMeanTimeInMilliSec();
-    
-    std::string ToCSV();//name;total;mean
-	static void PrintAllTimersGlobal();//prints CSV of all timers from all nodes
-	static void PrintAllTimersToFileGlobal( std::string name );//prints CSV of all timers from all nodes to #filename
-
-
-	std::string GetName();
-    std::string _name;
-private:
-	unsigned int _entries;
-	unsigned int _total_entries;
-	TIMER_TIME_TIMEPOINT_TYPE _time_start;
-	TIMER_TIME_STORE_TYPE _mcs_global;
-	TIMER_TIME_STORE_TYPE _mcs_local;
+	public:
+		TimerWrapper(void);
+		TimerWrapper(std::string name);
+		~TimerWrapper(void);
 	
-	void UniqueInit();
-    static void TimerWrapper::GatherAllTimersCSV(std::vector<std::string>& out_data);
-	static std::vector<TimerWrapper*> _all_timers;
-};
+		void Start();
+		void Stop();
+	
+		double getTotalTimeInMilliSec();
+		double getLastTimeInMilliSec();
+		double getMeanTimeInMilliSec();
+	    
+	    std::string ToCSV();//name;total;mean
+		static void PrintAllTimersGlobal();//prints CSV of all timers from all nodes
+		static void PrintAllTimersToFileGlobal( std::string name );//prints CSV of all timers from all nodes to #filename
+	
+	
+		std::string GetName();
+	    std::string _name;
+	private:
+		unsigned int _entries;
+		unsigned int _total_entries;
+		TIMER_TIME_TIMEPOINT_TYPE _time_start;
+		TIMER_TIME_STORE_TYPE _mcs_global;
+		TIMER_TIME_STORE_TYPE _mcs_local;
+		
+		void UniqueInit();
+	    static void GatherAllTimersCSV(std::vector<std::string>& out_data);
+		static std::vector<TimerWrapper*> _all_timers;
+	};
     """);
 
       if (enableTimerCallStacks) {
@@ -295,7 +304,7 @@ public:
 
 	std::string ToCSV()//name;time
 	{
-		return _name +';'+ std::to_string(TIMER_GET_TIME_MILI(_local_mcs))+';';
+		return _name +';'+ to_string(TIMER_GET_TIME_MILI(_local_mcs))+';';
 	}
 
 
@@ -444,7 +453,7 @@ private:
 		
 		if( root->_stoped )
 		{
-			_data.push_back(std::to_string(displacement)+";" + root->ToCSV() );
+			_data.push_back(to_string(displacement)+";" + root->ToCSV() );
 
 			for( int i = 0; i < root->_childs.size(); i++ )
 			{
@@ -454,7 +463,7 @@ private:
 		}
 		else
 		{
-			_data.push_back(std::to_string(displacement)+";" + root->_name +  ";ERROR: TIMER HAS NOT BEEN STOPPED!" );
+			_data.push_back(to_string(displacement)+";" + root->_name +  ";ERROR: TIMER HAS NOT BEEN STOPPED!" );
 		}
 		return _data;
 	}
@@ -502,6 +511,7 @@ private:
       }
 
       writerSource << ("""   
+#include "Util/Stopwatch.h"   
 #include <mpi.h>
 	
 TimerWrapper::TimerWrapper(void)
@@ -584,7 +594,7 @@ void TimerWrapper::GatherAllTimersCSV( std::vector<std::string>& out_data)
 		{
 			timer_datas += _all_timers[i]->ToCSV();
 		}
-		MPI_Send(timer_datas.c_str(), (int)timer_datas.size(), MPI_CHAR, 0, 0, MPI_COMM_WORLD);
+		MPI_Send((void*)timer_datas.c_str(), (int)timer_datas.size(), MPI_CHAR, 0, 0, MPI_COMM_WORLD);
 	}
 	else
 	{
@@ -680,7 +690,7 @@ double TimerWrapper::getMeanTimeInMilliSec()
 
 std::string TimerWrapper::ToCSV()//name;time
 {
-	return _name +';'+ std::to_string(getTotalTimeInMilliSec())+';'+ std::to_string(getMeanTimeInMilliSec())+';';
+	return _name +';'+ to_string(getTotalTimeInMilliSec())+';'+ to_string(getMeanTimeInMilliSec())+';';
 }
     
 
@@ -712,7 +722,7 @@ int CallTracker::GetCallStackAsCSVGlobal( std::vector<std::string>& out_data)
 	{
 		//calc space:
 		std::string callstack_datas = GetCallStackAsCSV(_root);
-		MPI_Send(callstack_datas.c_str(), (int)callstack_datas.size(), MPI_CHAR, 0, 0, MPI_COMM_WORLD);
+		MPI_Send((void*)callstack_datas.c_str(), (int)callstack_datas.size(), MPI_CHAR, 0, 0, MPI_COMM_WORLD);
 	}
 	else
 	{
