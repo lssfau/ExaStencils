@@ -27,7 +27,7 @@ CORES=${12}
 CONSTRAINTS=${13}
 
 RAM_TMP_DIR="$(mktemp --tmpdir=/run/shm -d)" || {
-    echo "===== FAILURE: ID '${ID}': Failed to create temporary directory on machine $(hostname) in ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (generate and compile test)." >> "${LOG}"
+    echo "===== FAILURE: ID '${ID}': Failed to create temporary directory on machine ${SLURM_JOB_NODELIST} in ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (generate and compile test)." >> "${LOG}"
     echo "Test '${ID}' failed!  Unable to create temporary directory in ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (generate and compile test)." | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
     exit 0
   }
@@ -38,7 +38,7 @@ BIN="exastencils_${ID}_${SLURM_JOB_ID}"
 
 
 function killed {
-  echo "      ??? ID '${ID}': Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} killed; possible reasons: timeout, manually canceled, user login (job is then requeued)  (generate and compile test)." >> "${LOG}"
+  echo "      ??? ID '${ID}': Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} on machine ${SLURM_JOB_NODELIST} killed; possible reasons: timeout, manually canceled, user login (job is then requeued)  (generate and compile test)." >> "${LOG}"
   exit 0
 }
 trap killed SIGTERM
