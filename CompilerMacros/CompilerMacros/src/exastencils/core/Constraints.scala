@@ -20,6 +20,10 @@ object Constraints {
     val result = {
       q"""if ($value != $param) {
         if (exastencils.core.Logger.getLevel >= 1) println("WARN:  " + "Setting " + ${show(param.tree)} + " from " + $param + " to " + $value)
+        if (exastencils.core.Settings.failOnConstraint) {
+          println("ERR:   Exit on constraint was specified, shutting down now...")
+          sys.exit(0)
+        }
         $param = $value
       }
     """
@@ -30,8 +34,12 @@ object Constraints {
   def condWarnImpl(c : blackbox.Context)(cond : c.Expr[Boolean], msg : c.Expr[AnyRef]) : c.Expr[Unit] = {
     import c.universe._
     val result = {
-      q"""if (exastencils.core.Logger.getLevel >= 1) {
-        if ($cond) println("WARN:  " + $msg)
+      q"""if ($cond) {
+        if (exastencils.core.Logger.getLevel >= 1) println("WARN:  " + $msg)
+        if (exastencils.core.Settings.failOnConstraint) {
+          println("ERR:   Exit on constraint was specified, shutting down now...")
+          sys.exit(0)
+        }
       }
     """
     }
@@ -43,6 +51,10 @@ object Constraints {
     val result = {
       q"""if ($value != $param && ($cond)) {
         if (exastencils.core.Logger.getLevel >= 1) println("WARN:  " + "Setting " + ${show(param.tree)} + " from " + $param + " to " + $value + " (" + $msg + ")")
+        if (exastencils.core.Settings.failOnConstraint) {
+          println("ERR:   Exit on constraint was specified, shutting down now...")
+          sys.exit(0)
+        }
         $param = $value
       }
     """
@@ -55,6 +67,10 @@ object Constraints {
     val result = {
       q"""if ($value != $param && ($cond)) {
         if (exastencils.core.Logger.getLevel >= 1) println("WARN:  " + "Setting " + ${show(param.tree)} + " from " + $param + " to " + $value + " (Constraint condition fullfilled: " + ${show(cond.tree)} + ")")
+        if (exastencils.core.Settings.failOnConstraint) {
+          println("ERR:   Exit on constraint was specified, shutting down now...")
+          sys.exit(0)
+        }
         $param = $value
       }
     """

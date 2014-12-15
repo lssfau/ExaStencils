@@ -35,7 +35,9 @@ object Cycle {
     if (Knowledge.l3tmp_genTimersPerFunction)
       printer.println(s"\tstopTimer ( setSolutionTimer$postfix${if (Knowledge.l3tmp_genTimersPerLevel) "@current" else ""} )")
 
-    printer.println(s"\tVCycle$postfix@coarser ( )")
+    printer.println(s"\trepeat ${Knowledge.l3tmp_numRecCycleCalls} times {")
+    printer.println(s"\t\tVCycle$postfix@coarser ( )")
+    printer.println(s"\t}")
 
     if (Knowledge.l3tmp_genTimersPerFunction)
       printer.println(s"\tstartTimer ( correctionTimer$postfix${if (Knowledge.l3tmp_genTimersPerLevel) "@current" else ""} )")

@@ -3,7 +3,6 @@ package exastencils.datastructures.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.datastructures._
-import exastencils.globals._
 import exastencils.knowledge
 import exastencils.omp
 import exastencils.util._
@@ -68,8 +67,8 @@ case class GlobalDeclarationStatement(var values : List[ValueDeclarationStatemen
       case _                                => false
     }).asInstanceOf[List[VariableDeclarationStatement]])
 
-  def progressToIr : Globals = {
-    new Globals(variables.to[ListBuffer].map(e => e.progressToIr))
+  def progressToIr : ListBuffer[ir.VariableDeclarationStatement] = {
+    variables.to[ListBuffer].map(e => e.progressToIr)
   }
 }
 

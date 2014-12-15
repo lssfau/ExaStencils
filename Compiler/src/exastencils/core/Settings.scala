@@ -21,4 +21,7 @@ object Settings {
   /// external dependecies
   var additionalIncludes : ListBuffer[String] = ListBuffer()
   var additionalFiles : ListBuffer[String] = ListBuffer()
+
+  /// generation process
+  var failOnConstraint : Boolean = false
 }
