@@ -45,8 +45,8 @@ object MainChristian {
     var parserl3 = new ParserL3
     StateManager.root_ = parserl3.parseFile(Settings.getL3file)
     ValidationL3.apply
-    
 
+    println(StateManager.root_)
     println("Done!")
 
     println("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
