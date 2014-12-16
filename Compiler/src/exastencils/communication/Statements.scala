@@ -11,6 +11,7 @@ import exastencils.knowledge._
 import exastencils.mpi._
 import exastencils.omp._
 import exastencils.polyhedron._
+import exastencils.prettyprinting._
 import exastencils.strategies._
 import exastencils.util._
 

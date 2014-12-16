@@ -8,6 +8,7 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir.StatementList
 import exastencils.knowledge._
 import exastencils.mpi._
+import exastencils.prettyprinting._
 
 case class PrintStatement(var toPrint : ListBuffer[Expression]) extends Statement with Expandable {
   def this(toPrint : Expression) = this(ListBuffer(toPrint))

@@ -1,9 +1,10 @@
 package exastencils.datastructures.ir
 
 import scala.collection.mutable.ListBuffer
-
 import exastencils.datastructures._
 import exastencils.knowledge._
+import exastencils.prettyprinting.PrettyPrintable
+import exastencils.prettyprinting.PpStream
 
 abstract class Statement
   extends Node with PrettyPrintable

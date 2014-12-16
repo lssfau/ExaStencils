@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
+import exastencils.prettyprinting._
 
 trait OMP_PotentiallyCritical
 trait OMP_PotentiallyParallel { var reduction : Option[Reduction]; var addOMPStatements = new ListBuffer[String](); var collapse = 1 }

@@ -7,6 +7,7 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir.StatementList
 import exastencils.knowledge._
+import exastencils.prettyprinting._
 import exastencils.util._
 
 case class MPI_IsRootProc() extends Expression {

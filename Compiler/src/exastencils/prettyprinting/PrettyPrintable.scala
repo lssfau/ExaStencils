@@ -1,4 +1,4 @@
-package exastencils.datastructures.ir
+package exastencils.prettyprinting
 
 trait FilePrettyPrintable {
   def printToFile() : Unit

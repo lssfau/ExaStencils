@@ -1,8 +1,8 @@
 package exastencils.datastructures.ir
 
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
-import exastencils.knowledge.Knowledge
+import exastencils.knowledge._
+import exastencils.prettyprinting._
 
 trait Datatype extends Node with PrettyPrintable {
   def prettyprint_mpi : String

@@ -9,6 +9,7 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.omp._
 import exastencils.polyhedron._
+import exastencils.prettyprinting._
 
 case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = HandleBoundaries\n"

@@ -8,6 +8,7 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.omp._
 import exastencils.polyhedron._
+import exastencils.prettyprinting._
 
 case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetupBuffers\n"

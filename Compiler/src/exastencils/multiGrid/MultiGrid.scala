@@ -8,6 +8,7 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.omp._
 import exastencils.polyhedron._
+import exastencils.prettyprinting._
 
 case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitFieldsWithZero\n"

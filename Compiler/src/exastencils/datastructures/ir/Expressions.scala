@@ -7,6 +7,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
+import exastencils.prettyprinting._
 
 trait Expression extends Node with PrettyPrintable {
   def ~(exp : Expression) : ConcatenationExpression = {

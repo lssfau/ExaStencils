@@ -8,6 +8,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.prettyprinting._
 import exastencils.strategies._
 import exastencils.util._
 

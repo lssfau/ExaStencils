@@ -7,6 +7,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.prettyprinting._
 
 object PrintStrategy extends DefaultStrategy("Pretty-Print") {
   this += new Transformation("Pretty-Print", {

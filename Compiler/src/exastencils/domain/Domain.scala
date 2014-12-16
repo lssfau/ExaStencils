@@ -7,6 +7,7 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.omp._
+import exastencils.prettyprinting._
 import exastencils.util._
 
 case class PointOutsideDomain(var pos : Expression, var domain : Domain) extends Expression with Expandable {

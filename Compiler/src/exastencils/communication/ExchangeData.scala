@@ -8,6 +8,7 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.multiGrid._
+import exastencils.prettyprinting._
 
 // FIXME: Think about moving all of this index information to some other source. Maybe some kind of ... DSL ... or even Layer4
 
