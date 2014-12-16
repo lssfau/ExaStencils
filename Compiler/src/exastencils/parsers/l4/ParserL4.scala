@@ -88,6 +88,30 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| locationize(integerLit ^^ { case l => SingleLevelSpecification(l) }))
 
   // ######################################
+  // ##### Datatypes
+  // ######################################
+
+  lazy val datatype : Parser[Datatype] = (
+    simpleDatatype
+    ||| numericDatatype
+    ||| "Array" ~ ("[" ~> datatype <~ "]") ~ ("[" ~> integerLit <~ "]") ^^ { case _ ~ x ~ s => new ArrayDatatype(x, s) })
+
+  lazy val simpleDatatype : Parser[Datatype] = (
+    "String" ^^ { case x => new StringDatatype }
+    ||| numericSimpleDatatype)
+
+  lazy val numericDatatype : Parser[Datatype] = (
+    ("Complex" ~ "[") ~> numericSimpleDatatype <~ "]" ^^ { case x => new ComplexDatatype(x) }
+    ||| numericSimpleDatatype)
+
+  lazy val numericSimpleDatatype : Parser[Datatype] = (
+    "Integer" ^^ { case x => new IntegerDatatype }
+    ||| "Real" ^^ { case x => new RealDatatype })
+
+  lazy val returnDatatype = ("Unit" ^^ { case x => new UnitDatatype }
+    ||| datatype)
+
+  // ######################################
   // ##### Functions
   // ######################################
 

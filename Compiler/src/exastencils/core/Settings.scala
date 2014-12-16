@@ -10,6 +10,9 @@ object Settings {
   var l4file : String = ""
   def getL4file : String = if (l4file != "") l4file else basePathPrefix + "/Compiler/dsl/Layer4.exa"
 
+  var l3file : String = ""
+  def getL3file : String = if (l3file != "") l3file else basePathPrefix + "/Compiler/dsl/Layer3.exa"
+
   /// output
   var outputPath : String = "/tmp/"
   var cancelIfOutFolderExists : Boolean = false

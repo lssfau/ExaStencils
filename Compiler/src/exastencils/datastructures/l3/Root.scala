@@ -4,8 +4,14 @@ import exastencils.core._
 import exastencils.datastructures._
 import exastencils.knowledge._
 import exastencils.polyhedron._
+import scala.collection.mutable.ListBuffer
 
-case class Root() extends Node {
+case class Root(var nodes:List[Node]) extends Node {
+//  var functions = ListBuffer[Node]()
+//  var instantiations =ListBuffer[Node]()
+}
+
+case class Root2() extends Node {
   def printToL4(filename : String) : Unit = {
     var file = new java.io.File(filename)
     if (!file.getParentFile().exists()) file.getParentFile().mkdirs()
