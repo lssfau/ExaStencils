@@ -47,8 +47,8 @@ object Main {
 
     // HACK: this will setup a dummy L4 DSL file
     if (Knowledge.l3tmp_generateL4) {
-      StateManager.root_ = new l3.Root
-      StateManager.root_.asInstanceOf[l3.Root].printToL4(Settings.getL4file)
+      StateManager.root_ = new l3.Root2
+      StateManager.root_.asInstanceOf[l3.Root2].printToL4(Settings.getL4file)
     }
 
     // HACK: this tests the new L4 capabilities

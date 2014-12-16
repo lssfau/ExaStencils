@@ -22,7 +22,7 @@ GIT_URL="ssh://git@git.infosun.fim.uni-passau.de/exastencils/dev/ScalaExaStencil
 
 
 function killed {
-  echo "  ??? Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} killed; possible reasons: timeout, manually canceled, user login (job is then requeued)  (git checkout/update)." >> "${LOG}"
+  echo "  ??? Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} on machine ${SLURM_JOB_NODELIST} killed; possible reasons: timeout, manually canceled, user login (job is then requeued)  (git checkout/update)." >> "${LOG}"
   exit 0
 }
 trap killed SIGTERM
