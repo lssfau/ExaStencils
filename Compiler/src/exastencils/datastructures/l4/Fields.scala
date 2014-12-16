@@ -1,8 +1,8 @@
 package exastencils.datastructures.l4
 
-import exastencils.core._
 import exastencils.datastructures._
 import exastencils.knowledge
+import exastencils.prettyprinting._
 
 case class LayoutOption(var name : String, var value : Index, var hasCommunication : Option[Boolean]) extends Node
 
@@ -49,6 +49,14 @@ case class LayoutDeclarationStatement(
   var l4_ghostComm : Boolean = default_ghostComm
   var default_dupComm : Boolean = false
   var l4_dupComm : Boolean = default_dupComm
+
+  def prettyprint(out : PpStream) = {
+    out << "Layout " << identifier.name << "< " << datatype << " >" << '@' << identifier.asInstanceOf[LeveledIdentifier].level << " {\n"
+    if (ghostLayers.isDefined) out << "ghostLayers = " << ghostLayers.get << (if (ghostLayersCommunication.getOrElse(false)) " with communication" else "") << '\n'
+    if (duplicateLayers.isDefined) out << "duplicateLayers = " << duplicateLayers.get << (if (duplicateLayersCommunication.getOrElse(false)) " with communication" else "") << '\n'
+    if (innerPoints.isDefined) out << "innerPoints = " << innerPoints.get << '\n'
+    out << "}\n"
+  }
 
   def progressToIr : knowledge.FieldLayout = {
     val level = identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level
@@ -110,6 +118,12 @@ case class FieldDeclarationStatement(
     var slots : Integer,
     var index : Int = 0) extends SpecialStatement with HasIdentifier {
 
+  def prettyprint(out : PpStream) = {
+    out << "Field " << identifier.name << "< " << domain << ", " << layout << ", " << boundary.getOrElse(StringConstant("None")) << " >"
+    if (slots > 1) out << '[' << slots << ']'
+    out << '@' << identifier.asInstanceOf[LeveledIdentifier].level << '\n'
+  }
+
   override def progressToIr : knowledge.Field = {
     val level = identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level
     val ir_layout = knowledge.FieldLayoutCollection.getFieldLayoutByIdentifier(layout, level).get
@@ -130,6 +144,9 @@ case class StencilFieldDeclarationStatement(
     var identifier : Identifier,
     var fieldName : String,
     var stencilName : String) extends ExternalDeclarationStatement with HasIdentifier {
+
+  def prettyprint(out : PpStream) = out << "FIXME\n"
+
   def progressToIr : knowledge.StencilField = {
     new knowledge.StencilField(identifier.name,
       knowledge.FieldCollection.getFieldByIdentifier(fieldName, identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level).get,
@@ -141,6 +158,8 @@ case class ExternalFieldDeclarationStatement(
     var extIdentifier : String,
     var correspondingField : FieldAccess,
     var extLayout : String) extends ExternalDeclarationStatement {
+
+  def prettyprint(out : PpStream) = out << "FIXME\n"
 
   override def progressToIr : knowledge.ExternalField = {
     val level = correspondingField.level.asInstanceOf[SingleLevelSpecification].level

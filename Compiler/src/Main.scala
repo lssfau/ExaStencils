@@ -55,6 +55,17 @@ object Main {
     var parserl4 = new ParserL4
     StateManager.root_ = parserl4.parseFile(Settings.getL4file)
     ValidationL4.apply
+
+    // HACK: re-print the L4 file
+    {
+      val l4_printed = new PpStream()
+      StateManager.root_.asInstanceOf[l4.Root].prettyprint(l4_printed)
+
+      val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
+      outFile.write(l4_printed.toString)
+      outFile.close
+    }
+
     ProgressToIr.apply()
 
     // TODO: integrate the next line into the ProgressToIr Strategy

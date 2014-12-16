@@ -3,8 +3,11 @@ package exastencils.datastructures.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.communication
+import exastencils.prettyprinting._
 
 case class CommunicateTarget(var target : String, var begin : Option[Index], var end : Option[Index]) extends Expression {
+  def prettyprint(out : PpStream) = out << "FIXME\n"
+
   def progressToIr : communication.CommunicateTarget = {
     communication.CommunicateTarget(
       target,
@@ -14,12 +17,16 @@ case class CommunicateTarget(var target : String, var begin : Option[Index], var
 }
 
 case class ApplyBCsStatement(var field : FieldAccess) extends Statement {
+  def prettyprint(out : PpStream) = out << "FIXME\n"
+
   def progressToIr : communication.ApplyBCsStatement = {
     communication.ApplyBCsStatement(field.progressToIr.fieldSelection)
   }
 }
 
 case class CommunicateStatement(var field : FieldAccess, var op : String, var targets : List[CommunicateTarget]) extends Statement {
+  def prettyprint(out : PpStream) = out << "FIXME\n"
+
   def progressToIr : communication.CommunicateStatement = {
     val progressedTargets : ListBuffer[communication.CommunicateTarget] = ListBuffer()
     val progressedField = field.progressToIr.fieldSelection

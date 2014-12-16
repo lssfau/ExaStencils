@@ -3,9 +3,11 @@ package exastencils.datastructures.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.datastructures._
+import exastencils.datastructures.ir._
 import exastencils.globals._
 import exastencils.knowledge._
 import exastencils.multiGrid._
+import exastencils.prettyprinting._
 
 case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
 
@@ -46,24 +48,12 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
     }
   }
 
-  //  def getDomainByIdentifier(identifier : String) : Option[DomainDeclarationStatement] = {
-  //    val ret = domains.find(d => d.name == identifier)
-  //    if (ret.isEmpty) warn(s"L4 domain $identifier was not found")
-  //    ret
-  //
-  //  }
-  //
-  //  def getLayoutByIdentifier(identifier : String) : Option[LayoutDeclarationStatement] = {
-  //    val ret = layouts.find(l => l.name == identifier)
-  //    if (ret.isEmpty) warn(s"L4 layout $identifier was not found")
-  //    ret
-  //  }
-  //
-  //  def getFieldByIdentifier(identifier : String, level : Int) : Option[FieldDeclarationStatement] = {
-  //    val ret = fields.find(f => f.identifier.name == identifier && (f.identifier match { case l: LeveledIdentifier => l.level.asInstanceOf[SingleLevelSpecification].level == level case _ => -1 == level }))
-  //    if (ret.isEmpty) warn(s"L4 field $identifier on level $level was not found")
-  //    ret
-  //  }
+  def prettyprint(out : PpStream) : Unit = {
+    out <<< domains << '\n'
+    out <<< fieldLayouts << '\n'
+    out <<< fields << '\n'
+
+  }
 
   def progressToIr : Node = {
     var newRoot = new ir.Root
