@@ -66,7 +66,7 @@ case class StencilEntry(var offset : ExpressionIndex, var coeff : Expression) ex
 case class StencilDeclarationStatement(var identifier : Identifier, var entries : List[StencilEntry]) extends SpecialStatement with HasIdentifier {
   def prettyprint(out : PpStream) = {
     out << "Stencil " << identifier.name << '@' << identifier.asInstanceOf[LeveledIdentifier].level << " {\n"
-    out <<< (entries, "\n")
+    out <<< (entries, "\n") << '\n'
     out << "}\n"
   }
 
@@ -206,7 +206,7 @@ case class RepeatUpStatement(var number : Int,
     out << "repeat " << number << " times"
     if (iterator.isDefined) out << " count " << iterator.get
     if (contraction) out << " with contraction"
-    out << "{\n" <<< statements << "}\n"
+    out << " {\n" <<< statements << "}\n"
   }
 
   def progressToIr : ir.Statement = {

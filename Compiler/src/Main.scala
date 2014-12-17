@@ -63,7 +63,7 @@ object Main {
       StateManager.root_.asInstanceOf[l4.Root].prettyprint(l4_printed)
 
       val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
-      outFile.write(l4_printed.toString)
+      outFile.write((Indenter.addIndentations(l4_printed.toString)))
       outFile.close
 
       // re-parse the file to check for errors

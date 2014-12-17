@@ -53,7 +53,7 @@ object PrettyprintingManager {
 
     def writeToFile = {
       val outFile = new java.io.FileWriter(path)
-      outFile.write(this.toString)
+      outFile.write(Indenter.addIndentations(this.toString))
       outFile.close
     }
 
@@ -105,7 +105,7 @@ object PrettyprintingManager {
         if (!file.getParentFile().exists()) file.getParentFile().mkdirs()
 
         writeToFile
-      } else if (toString != scala.io.Source.fromFile(path).mkString) {
+      } else if (Indenter.addIndentations(toString) != scala.io.Source.fromFile(path).mkString) {
         exastencils.core.Logger.debug("Updating file: " + path)
         writeToFile
       }

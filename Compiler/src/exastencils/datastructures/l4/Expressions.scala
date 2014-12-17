@@ -185,7 +185,7 @@ case class UnaryBooleanExpression(var operator : String, var exp : Expression) e
 }
 
 case class FunctionCallExpression(var identifier : Access, var arguments : List[Expression]) extends Expression {
-  def prettyprint(out : PpStream) = { out << identifier << "( " <<< (arguments, ", ") << " )" }
+  def prettyprint(out : PpStream) = { out << identifier << " ( " <<< (arguments, ", ") << " )" }
 
   def progressToIr : ir.FunctionCallExpression = {
     ir.FunctionCallExpression(ir.StringConstant(identifier.progressToIr.asInstanceOf[ir.StringConstant].value),
