@@ -37,7 +37,12 @@ case class IterationSetDeclarationStatement(var identifier : Identifier,
     var increment : Option[ExpressionIndex],
     var condition : Option[Expression]) extends SpecialStatement {
 
-  def prettyprint(out : PpStream) = out << "FIXME\n"
+  def prettyprint(out : PpStream) = {
+    out << "Set " << identifier << ' ' << begin
+    if (end.isDefined) out << " - " << end.get
+    if (increment.isDefined) out << " steps " << increment.get
+    if (condition.isDefined) out << " with " << condition.get
+  }
 
   def progressToIr : knowledge.IterationSet = {
     knowledge.IterationSet(identifier.asInstanceOf[BasicIdentifier].progressToIr.value,
@@ -48,18 +53,22 @@ case class IterationSetDeclarationStatement(var identifier : Identifier,
   }
 }
 
-case class StencilEntry(var offset : ExpressionIndex, var weight : Expression) extends SpecialStatement {
-  def prettyprint(out : PpStream) = out << "FIXME\n"
+case class StencilEntry(var offset : ExpressionIndex, var coeff : Expression) extends SpecialStatement {
+  def prettyprint(out : PpStream) = { out << offset << " => " << coeff }
 
   def progressToIr : knowledge.StencilEntry = {
     var off = offset.progressToIr
     if (off(knowledge.Knowledge.dimensionality) == null) off(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(0)
-    knowledge.StencilEntry(off, weight.progressToIr)
+    knowledge.StencilEntry(off, coeff.progressToIr)
   }
 }
 
 case class StencilDeclarationStatement(var identifier : Identifier, var entries : List[StencilEntry]) extends SpecialStatement with HasIdentifier {
-  def prettyprint(out : PpStream) = out << "FIXME\n"
+  def prettyprint(out : PpStream) = {
+    out << "Stencil " << identifier.name << '@' << identifier.asInstanceOf[LeveledIdentifier].level << " {\n"
+    out <<< (entries, "\n")
+    out << "}\n"
+  }
 
   def progressToIr : knowledge.Stencil = {
     knowledge.Stencil(identifier.name, identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level, entries.map(e => e.progressToIr).to[ListBuffer])
@@ -76,7 +85,7 @@ case class GlobalDeclarationStatement(var values : List[ValueDeclarationStatemen
       case _                                => false
     }).asInstanceOf[List[VariableDeclarationStatement]])
 
-  def prettyprint(out : PpStream) = out << "FIXME\n"
+  def prettyprint(out : PpStream) = { out << "Globals {\n" <<< (values, "\n") <<< (variables, "\n") << "}\n" }
 
   def progressToIr : ListBuffer[ir.VariableDeclarationStatement] = {
     variables.to[ListBuffer].map(e => e.progressToIr)
@@ -84,7 +93,12 @@ case class GlobalDeclarationStatement(var values : List[ValueDeclarationStatemen
 }
 
 case class VariableDeclarationStatement(var identifier : Identifier, var datatype : Datatype, var expression : Option[Expression] = None) extends Statement with HasIdentifier {
-  def prettyprint(out : PpStream) = out << "FIXME\n"
+  def prettyprint(out : PpStream) = {
+    out << "Variable " << identifier << " : " << datatype
+    if (expression.isDefined)
+      out << " = " << expression.get
+    out << '\n'
+  }
 
   def progressToIr : ir.VariableDeclarationStatement = {
     ir.VariableDeclarationStatement(datatype.progressToIr,
@@ -99,13 +113,13 @@ case class ValueDeclarationStatement(var identifier : Identifier, var datatype :
   //      identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
   //      expression.get.progressToIr
   //  }
-  def prettyprint(out : PpStream) = out << "FIXME\n"
+  def prettyprint(out : PpStream) = { out << "Value " << identifier << " : " << datatype << " = " << expression << '\n' }
 
   def progressToIr : ir.Statement = ir.NullStatement
 }
 
 case class AssignmentStatement(var dest : Access, var src : Expression, var op : String) extends Statement {
-  def prettyprint(out : PpStream) = out << "FIXME\n"
+  def prettyprint(out : PpStream) = { out << dest << ' ' << op << ' ' << src << '\n' }
 
   def progressToIr : ir.AssignmentStatement = {
     ir.AssignmentStatement(dest.progressToIr, src.progressToIr, op)
@@ -122,7 +136,16 @@ case class LoopOverPointsStatement(
     var statements : List[Statement],
     var reduction : Option[ReductionStatement]) extends Statement {
 
-  def prettyprint(out : PpStream) = out << "FIXME\n"
+  def prettyprint(out : PpStream) = {
+    out << "loop over " << field << ' '
+    if (seq) out << "sequentially "
+    if (condition.isDefined) out << "where " << condition.get
+    if (startOffset.isDefined) out << "starting " << startOffset.get << ' '
+    if (endOffset.isDefined) out << "ending " << endOffset.get << ' '
+    if (increment.isDefined) out << "stepping " << increment.get << ' '
+    if (reduction.isDefined) out << "with " << reduction.get
+    out << "{\n" <<< statements << "}\n"
+  }
 
   def progressToIr : ir.LoopOverPoints = {
     ir.LoopOverPoints(field.resolveField,
@@ -137,7 +160,11 @@ case class LoopOverPointsStatement(
 }
 
 case class LoopOverFragmentsStatement(var statements : List[Statement], var reduction : Option[ReductionStatement]) extends Statement {
-  def prettyprint(out : PpStream) = out << "FIXME\n"
+  def prettyprint(out : PpStream) = {
+    out << "loop over fragments "
+    if (reduction.isDefined) out << "with " << reduction.get
+    out << "{\n" <<< statements << "}\n"
+  }
 
   def progressToIr : ir.LoopOverFragments = {
     new ir.LoopOverFragments(statements.map(s => s.progressToIr).to[ListBuffer],
@@ -150,7 +177,16 @@ case class FunctionStatement(var identifier : Identifier,
     var arguments : List[Variable],
     var statements : List[Statement]) extends Statement with HasIdentifier {
 
-  def prettyprint(out : PpStream) = out << "FIXME\n"
+  def prettyprint(out : PpStream) = {
+    out << "Function " << identifier << " ("
+    if (!arguments.isEmpty) {
+      for (arg <- arguments) { out << arg.identifier << " : " << arg.datatype << ", " }
+      out.removeLast(2)
+    }
+    out << " )" << " : " << returntype << " {\n"
+    out <<< statements
+    out << "}\n"
+  }
 
   def progressToIr : ir.AbstractFunctionStatement = {
     ir.FunctionStatement(
@@ -166,7 +202,12 @@ case class RepeatUpStatement(var number : Int,
     var contraction : Boolean,
     var statements : List[Statement]) extends Statement {
 
-  def prettyprint(out : PpStream) = out << "FIXME\n"
+  def prettyprint(out : PpStream) = {
+    out << "repeat " << number << " times"
+    if (iterator.isDefined) out << " count " << iterator.get
+    if (contraction) out << " with contraction"
+    out << "{\n" <<< statements << "}\n"
+  }
 
   def progressToIr : ir.Statement = {
     if (contraction)
@@ -192,7 +233,7 @@ case class RepeatUpStatement(var number : Int,
 }
 
 case class RepeatUntilStatement(var comparison : BooleanExpression, var statements : List[Statement]) extends Statement {
-  def prettyprint(out : PpStream) = out << "FIXME\n"
+  def prettyprint(out : PpStream) = { out << "repeat until " << comparison << "{\n" <<< statements << "}\n" }
 
   def progressToIr : ir.WhileLoopStatement = {
     ir.WhileLoopStatement(ir.UnaryExpression(ir.UnaryOperators.Not, comparison.progressToIr), statements.map(s => s.progressToIr).to[ListBuffer])
@@ -200,7 +241,7 @@ case class RepeatUntilStatement(var comparison : BooleanExpression, var statemen
 }
 
 case class ReductionStatement(var op : String, var target : String) extends SpecialStatement {
-  def prettyprint(out : PpStream) = out << "FIXME\n"
+  def prettyprint(out : PpStream) = out << "reduction ( " << op << " : " << target << " )"
 
   def progressToIr : ir.Reduction = {
     ir.Reduction(op, ir.StringConstant(target))
@@ -208,7 +249,7 @@ case class ReductionStatement(var op : String, var target : String) extends Spec
 }
 
 case class FunctionCallStatement(var call : FunctionCallExpression) extends Statement {
-  def prettyprint(out : PpStream) = out << "FIXME\n"
+  def prettyprint(out : PpStream) = { out << call << '\n' }
 
   def progressToIr : ir.ExpressionStatement = {
     ir.ExpressionStatement(call.progressToIr)
@@ -216,7 +257,11 @@ case class FunctionCallStatement(var call : FunctionCallExpression) extends Stat
 }
 
 case class ConditionalStatement(var expression : Expression, var statements : List[Statement], var elsestatements : List[Statement]) extends Statement {
-  def prettyprint(out : PpStream) = out << "FIXME\n"
+  def prettyprint(out : PpStream) = {
+    out << "if ( " << expression << " )" << " {\n" <<< statements << '}'
+    if (!elsestatements.isEmpty) out << " else {\n" <<< elsestatements << '}'
+    out << '\n'
+  }
 
   def progressToIr : ir.ConditionStatement = {
     new ir.ConditionStatement(expression.progressToIr, statements.map(s => s.progressToIr).to[ListBuffer], elsestatements.map(s => s.progressToIr).to[ListBuffer])

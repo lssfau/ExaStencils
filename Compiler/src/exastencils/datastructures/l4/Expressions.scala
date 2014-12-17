@@ -16,7 +16,7 @@ trait Number extends Expression {
 }
 
 case class StringConstant(var value : String) extends Expression {
-  def prettyprint(out : PpStream) = { out << value }
+  def prettyprint(out : PpStream) = { out << '\'' << value << '\'' }
 
   def progressToIr : ir.StringConstant = ir.StringConstant(value)
 }
@@ -48,9 +48,9 @@ abstract class Access() extends Expression {}
 case class UnresolvedAccess(var identifier : String, var level : Option[AccessLevelSpecification], var slot : Option[Expression], var arrayIndex : Option[Int]) extends Access {
   def prettyprint(out : PpStream) = {
     out << identifier
-    if (slot.isDefined) out << '[' << slot << ']'
-    if (level.isDefined) out << '@' << level
-    if (arrayIndex.isDefined) out << '[' << arrayIndex << ']'
+    if (slot.isDefined) out << '[' << slot.get << ']'
+    if (level.isDefined) out << '@' << level.get
+    if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
   }
 
   def progressToIr : ir.StringConstant = ir.StringConstant("ERROR - Unresolved Access")
@@ -79,7 +79,11 @@ case class LeveledAccess(var name : String, var level : AccessLevelSpecification
 }
 
 case class FieldAccess(var name : String, var level : AccessLevelSpecification, var slot : Expression, var arrayIndex : Int) extends Access {
-  def prettyprint(out : PpStream) = out << "FIXME"
+  def prettyprint(out : PpStream) = {
+    // FIXME: omit slot if numSlots of target field is 1
+    out << name << '[' << slot << ']' << '@' << level
+    if (arrayIndex >= 0) out << '[' << arrayIndex << ']'
+  }
 
   def progressNameToIr : ir.StringConstant = {
     ir.StringConstant(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
@@ -112,7 +116,7 @@ object FieldAccess {
 }
 
 case class StencilAccess(var name : String, var level : AccessLevelSpecification) extends Access {
-  def prettyprint(out : PpStream) = out << "FIXME"
+  def prettyprint(out : PpStream) = { out << name << '@' << level }
 
   def progressToIr : ir.StencilAccess = {
     ir.StencilAccess(knowledge.StencilCollection.getStencilByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get)
@@ -120,7 +124,11 @@ case class StencilAccess(var name : String, var level : AccessLevelSpecification
 }
 
 case class StencilFieldAccess(var name : String, var level : AccessLevelSpecification, var slot : Expression, var arrayIndex : Int) extends Access {
-  def prettyprint(out : PpStream) = out << "FIXME"
+  def prettyprint(out : PpStream) = {
+    // FIXME: omit slot if numSlots of target field is 1
+    out << name << '[' << slot << ']' << '@' << level
+    if (arrayIndex >= 0) out << '[' << arrayIndex << ']'
+  }
 
   def progressToIr : ir.StencilFieldAccess = {
     val field = knowledge.StencilFieldCollection.getStencilFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
@@ -131,13 +139,13 @@ case class StencilFieldAccess(var name : String, var level : AccessLevelSpecific
 abstract class Identifier() extends Expression { var name : String }
 
 case class BasicIdentifier(var name : String) extends Identifier {
-  def prettyprint(out : PpStream) = out << "FIXME"
+  def prettyprint(out : PpStream) = { out << name }
 
   def progressToIr : ir.StringConstant = ir.StringConstant(name)
 }
 
 case class LeveledIdentifier(var name : String, var level : LevelSpecification) extends Identifier {
-  def prettyprint(out : PpStream) = out << "FIXME"
+  def prettyprint(out : PpStream) = { out << name << '@' << level }
 
   def progressToIr : ir.StringConstant = {
     ir.StringConstant(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
@@ -145,7 +153,7 @@ case class LeveledIdentifier(var name : String, var level : LevelSpecification) 
 }
 
 case class Variable(var identifier : Identifier, var datatype : Datatype) extends Expression {
-  def prettyprint(out : PpStream) = out << "FIXME"
+  def prettyprint(out : PpStream) = { out << identifier }
 
   def progressToIr : ir.VariableAccess = {
     ir.VariableAccess(identifier.progressToIr.asInstanceOf[ir.StringConstant].value, Some(datatype.progressToIr))

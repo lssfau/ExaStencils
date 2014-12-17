@@ -8,8 +8,8 @@ import exastencils.prettyprinting._
 trait LevelSpecification extends Node with Annotatable with PrettyPrintable
 
 // helper traits for checking the parse tree
-trait DeclarationLevelSpecification // can be used for declarations, e.g., functions
-trait AccessLevelSpecification // can be used for accesses, e.g., in fields or function calls
+trait DeclarationLevelSpecification extends LevelSpecification // can be used for declarations, e.g., functions
+trait AccessLevelSpecification extends LevelSpecification // can be used for accesses, e.g., in fields or function calls
 
 case class SingleLevelSpecification(var level : Int) extends LevelSpecification with DeclarationLevelSpecification with AccessLevelSpecification {
   def prettyprint(out : PpStream) = { out << level }

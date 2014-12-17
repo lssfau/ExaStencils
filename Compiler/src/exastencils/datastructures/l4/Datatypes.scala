@@ -8,7 +8,7 @@ trait Datatype extends ProgressableToIr with PrettyPrintable {
 }
 
 case class IntegerDatatype() extends Datatype {
-  def prettyprint(out : PpStream) = { out << "Int" }
+  def prettyprint(out : PpStream) = { out << "Integer" }
   def progressToIr : ir.Datatype = new ir.IntegerDatatype
 }
 

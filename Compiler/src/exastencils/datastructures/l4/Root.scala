@@ -52,7 +52,12 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
     out <<< domains << '\n'
     out <<< fieldLayouts << '\n'
     out <<< fields << '\n'
-
+    out <<< stencilFields << '\n'
+    out <<< externalFields << '\n'
+    out <<< stencils << '\n'
+    out <<< iterationSets << '\n'
+    out <<< globals << '\n'
+    out <<< statements << '\n'
   }
 
   def progressToIr : Node = {
