@@ -49,15 +49,24 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
   }
 
   def prettyprint(out : PpStream) : Unit = {
-    out <<< domains << '\n'
-    out <<< fieldLayouts << '\n'
-    out <<< fields << '\n'
-    out <<< stencilFields << '\n'
-    out <<< externalFields << '\n'
-    out <<< stencils << '\n'
-    out <<< iterationSets << '\n'
-    out <<< globals << '\n'
-    out <<< statements << '\n'
+    if (!domains.isEmpty)
+      out <<< domains << '\n'
+    if (!fieldLayouts.isEmpty)
+      out <<< fieldLayouts << '\n'
+    if (!fields.isEmpty)
+      out <<< fields << '\n'
+    if (!stencilFields.isEmpty)
+      out <<< stencilFields << '\n'
+    if (!externalFields.isEmpty)
+      out <<< externalFields << '\n'
+    if (!stencils.isEmpty)
+      out <<< stencils << '\n'
+    if (!iterationSets.isEmpty)
+      out <<< iterationSets << '\n'
+    if (!globals.isEmpty)
+      out <<< globals << '\n'
+    if (!statements.isEmpty)
+      out <<< (statements, "\n") << '\n'
   }
 
   def progressToIr : Node = {

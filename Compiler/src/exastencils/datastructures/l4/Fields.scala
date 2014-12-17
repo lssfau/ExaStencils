@@ -119,7 +119,7 @@ case class FieldDeclarationStatement(
     var index : Int = 0) extends SpecialStatement with HasIdentifier {
 
   def prettyprint(out : PpStream) = {
-    out << "Field " << identifier.name << "< " << domain << ", " << layout << ", " << boundary.getOrElse(StringConstant("None")) << " >"
+    out << "Field " << identifier.name << "< " << domain << ", " << layout << ", " << boundary.getOrElse(BasicIdentifier("None")) << " >"
     if (slots > 1) out << '[' << slots << ']'
     out << '@' << identifier.asInstanceOf[LeveledIdentifier].level << '\n'
   }
