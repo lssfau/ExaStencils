@@ -58,6 +58,30 @@ object Layouts {
       printer.println(s"}")
     }
 
+    if (Knowledge.l3tmp_genStencilFields) {
+      if (Knowledge.l3tmp_genStencilStencilConv) {
+        printer.println(s"Layout CommFullTempBlockableSF< Array[Real][${var res = 1; for (i <- 0 until Knowledge.dimensionality) res *= 3; res}] >@all {")
+        if (Knowledge.l3tmp_genTemporalBlocking)
+          printer.println(s"\tghostLayers = [ ${genSet(_ => Knowledge.l3tmp_numPre)} ] with communication")
+        else
+          printer.println(s"\tghostLayers = [ ${genSet(_ => 1)} ] with communication")
+        printer.println(s"\tduplicateLayers = [ ${genSet(_ => 1)} ] with communication")
+        printer.println(s"}")
+      } else {
+        if (Knowledge.l3tmp_genTemporalBlocking) {
+          printer.println(s"Layout CommPartTempBlockableSF< Array[Real][${2 * Knowledge.dimensionality + 1}] >@all {")
+          printer.println(s"\tghostLayers = [ ${genSet(_ => Knowledge.l3tmp_numPre - 1)} ] with communication")
+          printer.println(s"\tduplicateLayers = [ ${genSet(_ => 1)} ] with communication")
+          printer.println(s"}")
+        } else {
+          printer.println(s"Layout NoCommSF< Array[Real][${2 * Knowledge.dimensionality + 1}] >@all {")
+          printer.println(s"\tghostLayers = [ ${genSet(_ => 0)} ]")
+          printer.println(s"\tduplicateLayers = [ ${genSet(_ => 1)} ]")
+          printer.println(s"}")
+        }
+      }
+    }
+
     printer.println
   }
 }
