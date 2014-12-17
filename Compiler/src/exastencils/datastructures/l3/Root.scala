@@ -3,7 +3,7 @@ package exastencils.datastructures.l3
 import scala.collection.mutable.ListBuffer
 import exastencils.datastructures._
 
-case class Root(var nodes : List[Node]) extends Node with ProgressibleToL4 {
+case class Root(var nodes : List[Node]) extends Node with ProgressableToL4 {
   val functions = ListBuffer[FunctionStatement]()
   val functionInstantiations = ListBuffer[FunctionInstantiationStatement]()
 

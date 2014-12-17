@@ -4,7 +4,7 @@ import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.l3._
 
-abstract class Statement extends Node with ProgressibleToL4 {
+abstract class Statement extends Node with ProgressableToL4 {
   override def toDc(env : Environment) : DestinationCode = {
     DestinationCode()
     // throw new Exception("Not implemented")
@@ -24,8 +24,9 @@ case class FunctionCallStatement(var call : FunctionCallExpression) extends Stat
 
 case class FunctionInstantiationStatement(
     val functionId : String,
+    val instantiationId : Option[String],
     val arguments : List[Expression],
-    val level : LevelSpecification) extends Statement with ProgressibleToL4 {
+    val level : LevelSpecification) extends Statement with ProgressableToL4 {
 
   override def progressToL4 : l4.FunctionStatement = {
     ???
