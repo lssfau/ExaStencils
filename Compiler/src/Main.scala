@@ -66,9 +66,9 @@ object Main {
       outFile.close
 
       // re-parse the file to check for errors
-      //      var parserl4 = new ParserL4
-      //      StateManager.root_ = parserl4.parseFile(Settings.getL4file + "_rep.exa")
-      //      ValidationL4.apply
+      var parserl4 = new ParserL4
+      StateManager.root_ = parserl4.parseFile(Settings.getL4file + "_rep.exa")
+      ValidationL4.apply
     }
 
     ProgressToIr.apply()

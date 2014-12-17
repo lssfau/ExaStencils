@@ -37,13 +37,6 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     }
   }
 
-  var annos = new scala.collection.mutable.ListBuffer[Annotation]
-
-  //###########################################################
-
-  lazy val annotation = ("@" ~> ident) ~ ("(" ~> ((ident | numericLit | stringLit | booleanLit) <~ ")")).? ^^
-    { case n ~ v => annos += new Annotation(n, v) }
-
   //###########################################################
 
   lazy val program = definition.* ^^ { case d => Root(d) }
