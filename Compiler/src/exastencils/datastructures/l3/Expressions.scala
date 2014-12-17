@@ -27,7 +27,14 @@ trait Number extends Expression {
   def value : AnyVal
 }
 
-case class IdentifierExpression(val id : String) extends Expression
+case class IdentifierExpression(val id : String) extends Expression {
+
+  override def lEval(env : Environment) : LValue = {
+    /// @todo
+    ???
+  }
+
+}
 
 case class StringConstant(var value : String) extends Expression /* {
   def progressToIr : ir.StringConstant = ir.StringConstant(value)

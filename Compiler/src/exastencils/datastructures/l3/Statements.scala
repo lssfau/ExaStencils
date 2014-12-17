@@ -6,13 +6,12 @@ import exastencils.datastructures.l3._
 
 abstract class Statement extends Node with ProgressableToL4 {
   override def toTc(env : Environment) : TargetCode = {
-    TargetCode()
-    // throw new Exception("Not implemented")
+    throw new Exception("Not implemented")
   }
 }
 
 case class FunctionStatement(
-  val identifier : String,
+  val id : String,
   val returntype : ScType,
   val arguments : List[Variable],
   val statements : List[Statement])
@@ -26,6 +25,11 @@ case class FunctionStatement(
 
   def staticArguments : List[Variable] = {
     arguments filter { a => a.datatype.isStatic }
+  }
+
+  override def toTc(env : Environment) : TargetCode = {
+    env.bind(id, Environment.FunctionItem(this))
+    TargetCode()
   }
 }
 
@@ -52,6 +56,15 @@ case class FunctionInstantiationStatement(
 
   override def toTc(env : Environment) : TargetCode = {
 
+    val f = env.lookup(functionId)
+
+    val evaluated_args = arguments map { a =>
+      /// @todo: determine the type of the expression
+      /// Depending on that we have to do l or r eval
+      //a.lEval(env)
+      None
+    }
+
     TargetCode(
       new l4.FunctionStatement(
         l4.LeveledIdentifier(functionId, l4.AllLevelsSpecification()),
@@ -63,11 +76,17 @@ case class FunctionInstantiationStatement(
 
 }
 
-case class VariableDeclarationStatement(val id : String, val scType : ScType, val expression : Option[Expression] = None) extends Statement {
+case class VariableDeclarationStatement(
+    val id : String,
+    val scType : ScType,
+    val expression : Option[Expression] = None) extends Statement {
 
 }
 
-case class ValueDeclarationStatement(var identifier : String, var datatype : ScType, var expression : Expression) extends Statement {
+case class ValueDeclarationStatement(
+    val identifier : String,
+    val datatype : ScType,
+    val expression : Expression) extends Statement {
 
 }
 

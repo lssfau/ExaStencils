@@ -6,7 +6,7 @@ import scala.collection.mutable.ListBuffer
 object Environment {
   sealed class Item()
   case class VariableItem(val dcId : String, val scType : ScType) extends Item
-  case class FunctionItem() extends Item
+  case class FunctionItem(val f : FunctionStatement) extends Item
   case class StaticValueItem(value : StaticValue) extends Item
 }
 class Environment(parent : Option[Environment] = None) {
