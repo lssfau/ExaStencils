@@ -150,6 +150,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val repeatNTimes = locationize(("repeat" ~> numericLit <~ "times") ~ ("count" ~> (flatAccess ||| leveledAccess)).? ~ ("with" ~> "contraction").? ~ ("{" ~> statement.+ <~ "}") ^^
     { case n ~ i ~ c ~ s => RepeatUpStatement(n.toInt, i, c.isDefined, s) })
+
   lazy val repeatUntil = locationize((("repeat" ~ "until") ~> simpleComparison) ~ (("{" ~> statement.+) <~ "}") ^^
     { case c ~ s => RepeatUntilStatement(c, s) })
 
@@ -301,14 +302,13 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val booleanexpression3 : PackratParser[Expression] = (
     "(" ~> booleanexpression <~ ")"
     ||| locationize(booleanLit ^^ { case s => BooleanConstant(s.toBoolean) })
-    ||| comparison
+    ||| locationize(((binaryexpression ||| booleanexpression) ~ ("<" ||| "<=" ||| ">" ||| ">=" ||| "==" ||| "!=") ~ (binaryexpression ||| booleanexpression)) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
     ||| functionCall
     ||| genericAccess)
 
   // simpleComparison is to be used in statements such as Repeat Until
-  lazy val simpleComparison : PackratParser[BooleanExpression] =
-    locationize((binaryexpression ~ ("<" ||| "<=" ||| ">" ||| ">=") ~ binaryexpression) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
+  lazy val simpleComparison : PackratParser[BooleanExpression] = locationize(
+    (binaryexpression ~ ("<" ||| "<=" ||| ">" ||| ">=") ~ binaryexpression) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) }
+      ||| "(" ~ simpleComparison ~ ")" ^^ { case _ ~ s ~ _ => s })
 
-  lazy val comparison : PackratParser[BooleanExpression] =
-    locationize(((binaryexpression ||| booleanexpression) ~ ("<" ||| "<=" ||| ">" ||| ">=" ||| "==" ||| "!=") ~ (binaryexpression ||| booleanexpression)) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
 }
