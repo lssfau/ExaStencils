@@ -3,7 +3,11 @@ package exastencils.datastructures.l3
 import exastencils.datastructures._
 
 /** Types */
-sealed class ScType
+sealed class ScType {
+  def toDcType : l4.Datatype = {
+    throw new Exception("This type has no L4 equivalence.")
+  }
+}
 
 case class IntegerDatatype() extends ScType
 case class RealDatatype() extends ScType
