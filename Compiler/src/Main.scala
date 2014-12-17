@@ -1,5 +1,4 @@
 import java.util.Locale
-
 import exastencils.communication._
 import exastencils.core._
 import exastencils.data._
@@ -17,7 +16,8 @@ import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.strategies._
 import exastencils.util._
-import exastencils.datastructures.l3.Generate._
+import exastencils.parsers.l3.ParserL3
+import exastencils.parsers.l3.ValidationL3
 
 object Main {
   def main(args : Array[String]) : Unit = {
@@ -46,18 +46,34 @@ object Main {
     }
     Knowledge.update()
 
-    // HACK: this will setup a dummy L4 DSL file
+    // read L3    
+    StateManager.root_ = (new ParserL3).parseFile(Settings.getL3file)
+    ValidationL3.apply
+
+    // progress L3 to L4
+    StateManager.root_ = StateManager.root_.asInstanceOf[l3.ProgressableToL4].progressToL4.asInstanceOf[Node]
+
     if (Knowledge.l3tmp_generateL4) {
-      StateManager.root_ = new Root2
-      StateManager.root_.asInstanceOf[Root2].printToL4(Settings.getL4file)
+      // print current L4 state to string
+      val l4_from_l3 = new PpStream()
+      StateManager.root_.asInstanceOf[l4.Root].prettyprint(l4_from_l3)
+
+      // generate other half of l4
+      StateManager.root_ = new l3.Generate.Root
+      // print to file
+      StateManager.root_.asInstanceOf[l3.Generate.Root].printToL4(Settings.getL4file)
+
+      // add parts coming from L3 to the new L4 file
+      val outFile = new java.io.FileWriter(Settings.getL4file, true)
+      outFile.write((Indenter.addIndentations(l4_from_l3.toString)))
+      outFile.close
     }
 
-    // HACK: this tests the new L4 capabilities
-    var parserl4 = new ParserL4
-    StateManager.root_ = parserl4.parseFile(Settings.getL4file)
+    // read L4
+    StateManager.root_ = (new ParserL4).parseFile(Settings.getL4file)
     ValidationL4.apply
 
-    // HACK: re-print the L4 file
+    if (false) // re-print the merged L4 state
     {
       val l4_printed = new PpStream()
       StateManager.root_.asInstanceOf[l4.Root].prettyprint(l4_printed)
@@ -72,12 +88,11 @@ object Main {
       ValidationL4.apply
     }
 
-    ProgressToIr.apply()
-
-    // TODO: integrate the next line into the ProgressToIr Strategy
+    // go to IR
+    ProgressToIr.apply() // preparation step
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
-    // Setup tree
+    // add remaining nodes
     StateManager.root_.asInstanceOf[ir.Root].nodes ++= List(
       // FunctionCollections
       new DomainFunctions,
@@ -87,7 +102,7 @@ object Main {
       new Stopwatch,
       new Vector)
 
-    // Strategies
+    // apply strategies
 
     AddDefaultGlobals.apply()
 

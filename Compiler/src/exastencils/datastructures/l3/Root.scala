@@ -7,7 +7,7 @@ import exastencils.knowledge._
 import exastencils.polyhedron._
 import scala.collection.mutable.ListBuffer
 
-case class Root(var nodes : List[Node]) extends Node with ProgressibleToL4 {
+case class Root(var nodes : List[Node]) extends Node with ProgressableToL4 {
   var functions = ListBuffer[FunctionStatement]()
   var functioninstantiations = ListBuffer[FunctionInstantiationStatement]()
 
@@ -15,10 +15,13 @@ case class Root(var nodes : List[Node]) extends Node with ProgressibleToL4 {
     case x : FunctionStatement              => functions += x
     case x : FunctionInstantiationStatement => functioninstantiations += x
   })
-  
-  override def toDc(env: Environment) : DestinationCode = {
-    
-    
+
+  override def progressToL4 : Node = {
+    new l4.Root(List())
+  }
+
+  override def toDc(env : Environment) : DestinationCode = {
+
     ???
   }
 }

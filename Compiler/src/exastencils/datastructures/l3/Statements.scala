@@ -25,9 +25,11 @@ case class FunctionCallStatement(var call: FunctionCallExpression) extends State
 case class FunctionInstantiationStatement(
   var functionId: String,
   var arguments: List[Expression],
-  var level: LevelSpecification) extends Statement with ProgressibleToL4
+  var level: LevelSpecification) extends Statement with ProgressableToL4
 {
   
+  override def progressToL4 : Node = { ??? }
+
   override def toDc(env : Environment) : DestinationCode = {
     ???
   }
