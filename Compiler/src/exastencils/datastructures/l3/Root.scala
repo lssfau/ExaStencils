@@ -12,31 +12,23 @@ case class Root(var nodes : List[Node]) extends Node with ProgressableToL4 {
     case x : FunctionInstantiationStatement => functionInstantiations += x
   })
 
-  def getFunctionByIdentifier(identifier : String) : Option[FunctionStatement] = {
-    functions.find(f => identifier == f.identifier)
+  def progressToL4 : l4.Root = {
+    val env = new Environment
+
+    l4.Root(toTc(env).toList())
   }
 
-  override def progressToL4 : Node = {
-    var newRoot = new l4.Root(List())
+  override def toTc(env : Environment) : TargetCode = {
 
-    //    for (f <- functioninstantiations)
-    //      newRoot.statements += f.progressToL4
-
-    newRoot
-  }
-
-  override def toDc(env : Environment) : DestinationCode = {
-
-    var dc = new DestinationCode(List())
+    var tc = new TargetCode(List())
 
     // insert functions into the current environment
     for (f <- functions) {
-      dc = dc ++ f.toDc(env)
+      tc = tc ++ f.toTc(env)
     }
     for (inst <- functionInstantiations) {
-      dc = dc ++ inst.toDc(env)
+      tc = tc ++ inst.toTc(env)
     }
-
-    dc
+    tc
   }
 }

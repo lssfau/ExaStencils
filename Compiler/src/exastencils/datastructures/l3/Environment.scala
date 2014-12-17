@@ -3,19 +3,18 @@ package exastencils.datastructures.l3
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-
 object Environment {
   sealed class Item()
-  case class VariableItem(val dcId: String, val scType: ScType) extends Item
+  case class VariableItem(val dcId : String, val scType : ScType) extends Item
   case class FunctionItem() extends Item
-  case class StaticValueItem(value: StaticValue) extends Item
+  case class StaticValueItem(value : StaticValue) extends Item
 }
-class Environment(parent: Option[Environment] = None) {
+class Environment(parent : Option[Environment] = None) {
   import Environment._
 
   val map = mutable.HashMap[String, Item]()
 
-  def lookup(id: String): Item = {
+  def lookup(id : String) : Item = {
     if (map contains id) {
       map(id)
     } else {
@@ -23,7 +22,7 @@ class Environment(parent: Option[Environment] = None) {
     }
   }
 
-  def bind(id: String, value: Item): Unit = {
+  def bind(id : String, value : Item) : Unit = {
 
     if (map contains id) {
       // do not allow rebinding
@@ -33,7 +32,7 @@ class Environment(parent: Option[Environment] = None) {
     map += id -> value
   }
 
-  def bindNew(symbols: List[String], values: List[Item]): Environment = {
+  def bindNew(symbols : List[String], values : List[Item]) : Environment = {
 
     val env = new Environment()
     for ((s, v) <- symbols zip values) {
@@ -43,3 +42,4 @@ class Environment(parent: Option[Environment] = None) {
     return env
   }
 }
+

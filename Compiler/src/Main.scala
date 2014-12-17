@@ -51,7 +51,7 @@ object Main {
     ValidationL3.apply
 
     // progress L3 to L4
-    StateManager.root_ = StateManager.root_.asInstanceOf[l3.ProgressableToL4].progressToL4.asInstanceOf[Node]
+    StateManager.root_ = StateManager.root_.asInstanceOf[l3.Root].progressToL4
 
     if (Knowledge.l3tmp_generateL4) {
       // print current L4 state to string
