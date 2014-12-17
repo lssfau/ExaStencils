@@ -23,6 +23,6 @@ Function smoother(L : Stencil, f : Field, u : Field) : Unit
 
 }
 
-Inst Func jacobi with (myL, myF) @(1 to finest)
+Instantiate Function jacobi with (myL, myF) @(1 to finest)
 
 

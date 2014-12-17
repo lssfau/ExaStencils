@@ -17,6 +17,7 @@ import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.strategies._
 import exastencils.util._
+import exastencils.datastructures.l3.Generate._
 
 object Main {
   def main(args : Array[String]) : Unit = {
@@ -47,8 +48,8 @@ object Main {
 
     // HACK: this will setup a dummy L4 DSL file
     if (Knowledge.l3tmp_generateL4) {
-      StateManager.root_ = new l3.Root2
-      StateManager.root_.asInstanceOf[l3.Root2].printToL4(Settings.getL4file)
+      StateManager.root_ = new Root2
+      StateManager.root_.asInstanceOf[Root2].printToL4(Settings.getL4file)
     }
 
     // HACK: this tests the new L4 capabilities

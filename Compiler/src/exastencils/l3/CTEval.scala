@@ -18,7 +18,13 @@ class Environment() {
   }
   
   def bindNew(symbols : List[String], values : List[Value]) : Environment = {
-    ???
+    
+    val env = new Environment()
+    for ((s, v) <- symbols zip values) {
+      env.map += s -> v
+    }
+    
+    return env
   }
 }
 
@@ -50,6 +56,14 @@ class Condition(
       case _ =>
         throw new Exception("Boolean expected.")
     }
+  }
+}
+
+class Define(val symbol : String, val value : Expression) extends Expression {
+  def eval(env : Environment) = {
+    val v = value.eval(env);
+    env.bind(symbol, v)
+    v
   }
 }
 
@@ -88,6 +102,19 @@ case class Lambda(
     }
     
     return_value
+  }
+}
+
+class PrintFun extends Function {
+  def apply(args : List[Value]) : Value = {
+    for (a <- args) {
+      a match {
+        case BooleanValue(b) => println(b)
+        case RealNumber(n) => println(n)
+        case IntegerNumber(n) => println(n)
+      }
+    }
+    new Nil
   }
 }
 

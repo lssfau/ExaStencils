@@ -14,12 +14,12 @@ class ParserL3 extends ExaParser with scala.util.parsing.combinator.PackratParse
     parseTokens(new lexical.Scanner(s))
   }
 
-  def parseFile(filename : String) : Node = {
+  def parseFile(filename : String) : Root = {
     val lines = io.Source.fromFile(filename).getLines
     val reader = new PagedSeqReader(PagedSeq.fromLines(lines))
     val scanner = new lexical.Scanner(reader)
 
-    parseTokens(scanner)
+    parseTokens(scanner).asInstanceOf[Root]
   }
 
   protected def parseTokens(tokens : lexical.Scanner) : Node = {
@@ -41,20 +41,20 @@ class ParserL3 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ##### Datatypes
   // ######################################
 
-  lazy val datatype : Parser[Datatype] = (
+  lazy val datatype : Parser[ScType] = (
     simpleDatatype
     ||| numericDatatype
     ||| algorithmicDatatype)
 
-  lazy val simpleDatatype : Parser[Datatype] = (
+  lazy val simpleDatatype : Parser[ScType] = (
     "String" ^^ { case x => new StringDatatype }
     ||| numericSimpleDatatype)
 
-  lazy val numericDatatype : Parser[Datatype] = (
+  lazy val numericDatatype : Parser[ScType] = (
     ("Complex" ~ "[") ~> numericSimpleDatatype <~ "]" ^^ { case x => new ComplexDatatype(x) }
     ||| numericSimpleDatatype)
 
-  lazy val numericSimpleDatatype : Parser[Datatype] = (
+  lazy val numericSimpleDatatype : Parser[ScType] = (
     "Integer" ^^ { case x => new IntegerDatatype }
     ||| "Real" ^^ { case x => new RealDatatype })
 
@@ -214,7 +214,7 @@ class ParserL3 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| locationize(stringLit ^^ { case s => StringConstant(s) })
     ||| locationize("-".? ~ numericLit ^^ { case s ~ n => if (isInt(s.getOrElse("") + n)) IntegerConstant((s.getOrElse("") + n).toInt) else FloatConstant((s.getOrElse("") + n).toDouble) })
     ||| functionCall
-    ||| ident ^^ { case id => Identifier(id) })
+    ||| ident ^^ { case id => IdentifierExpression(id) })
 
   //  lazy val booleanexpression : PackratParser[Expression] = (
   //    locationize(("!" ~> booleanexpression1) ^^ { case ex => UnaryBooleanExpression("!", ex) })
