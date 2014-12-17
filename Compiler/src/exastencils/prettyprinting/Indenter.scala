@@ -14,7 +14,8 @@ object Indenter {
           output.append(c)
         case '}' =>
           indent -= 1
-          output.deleteCharAt(output.length - 1) // remove last tab
+          if ('\t' == output.charAt(output.length - 1))
+            output.deleteCharAt(output.length - 1) // remove last tab
           output.append(c)
         case '\n' =>
           output.append(c)
