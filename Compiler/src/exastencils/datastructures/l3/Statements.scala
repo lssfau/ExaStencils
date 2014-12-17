@@ -24,6 +24,7 @@ case class FunctionCallStatement(var call: FunctionCallExpression) extends State
 
 case class FunctionInstantiationStatement(
   var functionId: String,
+  var instantionId : Option[String],
   var arguments: List[Expression],
   var level: LevelSpecification) extends Statement with ProgressibleToL4
 {
