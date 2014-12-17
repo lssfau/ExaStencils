@@ -145,7 +145,7 @@ case class StencilFieldDeclarationStatement(
     var fieldName : String,
     var stencilName : String) extends ExternalDeclarationStatement with HasIdentifier {
 
-  def prettyprint(out : PpStream) = out << "FIXME\n"
+  def prettyprint(out : PpStream) = { out << "StencilField " << identifier.name << "< " << fieldName << " => " << stencilName << " >@" << identifier.asInstanceOf[LeveledIdentifier].level << '\n' }
 
   def progressToIr : knowledge.StencilField = {
     new knowledge.StencilField(identifier.name,
@@ -159,7 +159,7 @@ case class ExternalFieldDeclarationStatement(
     var correspondingField : FieldAccess,
     var extLayout : String) extends ExternalDeclarationStatement {
 
-  def prettyprint(out : PpStream) = out << "FIXME\n"
+  def prettyprint(out : PpStream) = { out << "external Field " << extIdentifier << " <" << extLayout << "> => " << correspondingField << '\n' }
 
   override def progressToIr : knowledge.ExternalField = {
     val level = correspondingField.level.asInstanceOf[SingleLevelSpecification].level
