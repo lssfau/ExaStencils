@@ -1,0 +1,28 @@
+
+
+Function jacobi(L : Stencil, f : Field, u : Field, dest : Field) : Unit
+{
+    // dest = u + diag_inv(L) * (f - L*u)
+    aux = apply(L, u)
+    aux = f - aux
+    dest = apply(diag_inv(L), aux)
+    dest = u + dest
+}
+
+Function restrict(R : Stencil, u : Field, u_c : Field) : Unit
+{
+    aux = apply(R, u)
+    inject(aux, u_c)
+}
+
+Function smoother(L : Stencil, f : Field, u : Field) : Unit
+{
+    
+    jacobi(L, f, u, dest)
+    u = dest
+
+}
+
+Instantiate Function jacobi with (myL, myF) as Smoother @(1 to finest)
+
+

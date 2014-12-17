@@ -1,11 +1,7 @@
 package exastencils.datastructures.l3
 
-import scala.collection.mutable.ListBuffer
-
+import exastencils.core._
 import exastencils.datastructures._
-import exastencils.knowledge
-import exastencils.omp
-import exastencils.util._
 import exastencils.datastructures.l3._
 
 abstract class Statement extends Node with ProgressibleToL4 {
@@ -30,6 +26,17 @@ case class FunctionInstantiationStatement(
     val functionId : String,
     val arguments : List[Expression],
     val level : LevelSpecification) extends Statement with ProgressibleToL4 {
+
+  override def progressToL4 : l4.FunctionStatement = {
+    ???
+    //    val funcTemplate = StateManager.root.asInstanceOf[l3.Root].getFunctionByIdentifier(functionId).get
+    //
+    //    new l4.FunctionStatement(
+    //      new l4.LeveledIdentifier(instantiationId.get, level.progressToL4),
+    //      funcTemplate.returntype.progressToL4,
+    //      funcTemplate.arguments.map(arg -> arg.progressToL4),
+    //      funcTemplate.statements.map(arg -> arg.progressToL4))
+  }
 
   override def toDc(env : Environment) : DestinationCode = {
 

@@ -7,8 +7,7 @@ import exastencils.knowledge._
 import exastencils.polyhedron._
 import scala.collection.mutable.ListBuffer
 
-
-case class Root2() extends Node {
+case class Root() extends Node {
   def printToL4(filename : String) : Unit = {
     var file = new java.io.File(filename)
     if (!file.getParentFile().exists()) file.getParentFile().mkdirs()

@@ -115,7 +115,7 @@ class ParserL3 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ##### Instantiations
   // ######################################
 
-  lazy val instantiation = locationize(((("Inst" ||| "Instantiate") ~ ("Func" ||| "Function")) ~> ident) ~ (("with" ~ "(") ~> functionCallArgumentList) ~ ")" ~ level ^^ { case id ~ args ~ _ ~ l => FunctionInstantiationStatement(id, args, l) })
+  lazy val instantiation = locationize(((("Inst" ||| "Instantiate") ~ ("Func" ||| "Function")) ~> ident) ~ ((("with" ~ "(") ~> functionCallArgumentList) <~ ")") ~ ("as" ~> ident).? ~ level ^^ { case id ~ args ~ instId ~ l => FunctionInstantiationStatement(id, instId, args, l) })
 
   // ######################################
   // ##### Statements

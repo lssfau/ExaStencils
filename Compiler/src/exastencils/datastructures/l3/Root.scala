@@ -1,11 +1,7 @@
 package exastencils.datastructures.l3
 
-import exastencils.core._
-import exastencils.datastructures._
-import exastencils.datastructures.l3._
-import exastencils.knowledge._
-import exastencils.polyhedron._
 import scala.collection.mutable.ListBuffer
+import exastencils.datastructures._
 
 case class Root(var nodes : List[Node]) extends Node with ProgressibleToL4 {
   val functions = ListBuffer[FunctionStatement]()
@@ -15,6 +11,19 @@ case class Root(var nodes : List[Node]) extends Node with ProgressibleToL4 {
     case x : FunctionStatement              => functions += x
     case x : FunctionInstantiationStatement => functionInstantiations += x
   })
+
+  def getFunctionByIdentifier(identifier : String) : Option[FunctionStatement] = {
+    functions.find(f => identifier == f.identifier)
+  }
+
+  override def progressToL4 : Node = {
+    var newRoot = new l4.Root(List())
+
+    //    for (f <- functioninstantiations)
+    //      newRoot.statements += f.progressToL4
+
+    newRoot
+  }
 
   override def toDc(env : Environment) : DestinationCode = {
 
