@@ -68,6 +68,8 @@ class ParserL3 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val definition = function ||| instantiation
 
+  lazy val identifier = ident ^^ {case id => IdentifierExpression(id)}
+  
   // ######################################
   // ##### Level Specifications
   // ######################################
@@ -115,7 +117,7 @@ class ParserL3 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ##### Instantiations
   // ######################################
 
-  lazy val instantiation = locationize(((("Inst" ||| "Instantiate") ~ ("Func" ||| "Function")) ~> ident) ~ ((("with" ~ "(") ~> functionCallArgumentList) <~ ")") ~ ("as" ~> ident).? ~ level ^^ { case id ~ args ~ instId ~ l => FunctionInstantiationStatement(id, instId, args, l) })
+  lazy val instantiation = locationize(((("Inst" ||| "Instantiate" ||| "Summon") ~ ("Func" ||| "Function")) ~> ident) ~ ((("with" ~ "(") ~> functionCallArgumentList) <~ ")") ~ ("as" ~> ident).? ~ level ^^ { case id ~ args ~ instId ~ l => FunctionInstantiationStatement(id, instId, args, l) })
 
   // ######################################
   // ##### Statements
@@ -145,7 +147,7 @@ class ParserL3 extends ExaParser with scala.util.parsing.combinator.PackratParse
   //  lazy val repeatUntil = locationize((("repeat" ~ "until") ~> simpleComparison) ~ (("{" ~> statement.+) <~ "}") ^^
   //    { case c ~ s => RepeatUntilStatement(c, s) })
 
-  lazy val assignment = locationize(ident ~ "=" ~ binaryexpression ^^ { case id ~ op ~ exp => AssignmentStatement(id, exp, op) })
+  lazy val assignment = locationize(identifier ~ "=" ~ binaryexpression ^^ { case id ~ op ~ exp => AssignmentStatement(id, exp, op) })
 
   //  lazy val conditional = locationize(("if" ~ "(" ~> booleanexpression <~ ")") ~ ("{" ~> statement.+ <~ "}") ~ (("else" ~ "{") ~> statement.+ <~ "}").?
   //    ^^ { case exp ~ stmts ~ elsestmts => ConditionalStatement(exp, stmts, elsestmts.getOrElse(List())) })

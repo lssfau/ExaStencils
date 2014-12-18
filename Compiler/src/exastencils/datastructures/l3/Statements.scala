@@ -90,7 +90,7 @@ case class ValueDeclarationStatement(
 
 }
 
-case class AssignmentStatement(var dest : String, var src : Expression, var op : String) extends Statement {
+case class AssignmentStatement(var dest : IdentifierExpression, var src : Expression, var op : String) extends Statement {
 
 }
 
