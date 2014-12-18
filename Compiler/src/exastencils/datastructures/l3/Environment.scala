@@ -1,11 +1,12 @@
 package exastencils.datastructures.l3
 
+import exastencils.core.Logger
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 object Environment {
   sealed class Item()
-  case class VariableItem(val dcId : String, val scType : ScType) extends Item
+  case class VariableItem(val tcId : String, val scType : ScType) extends Item
   case class FunctionItem(val f : FunctionStatement) extends Item
   case class StaticValueItem(value : StaticValue) extends Item
 }
@@ -18,7 +19,10 @@ class Environment(parent : Option[Environment] = None) {
     if (map contains id) {
       map(id)
     } else {
-      parent.get.lookup(id)
+      parent match {
+        case Some(p) => p.lookup(id)
+        case None    => Logger.error(id + " is undefined")
+      }
     }
   }
 

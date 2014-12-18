@@ -49,11 +49,6 @@ case class FunctionStatement(
       body_env.bind(requestedArg.id, Environment.StaticValueItem(givenArg))
     }
 
-    println(arguments)
-    println(staticArguments)
-    println(givenStaticArgs)
-    println(body_env)
-
     // transform to target code and concat
     val tcBody = (body map { _.toTc(body_env) }).foldLeft(TargetCode()) { (x : TargetCode, y : TargetCode) => x ++ y }
 
@@ -62,7 +57,7 @@ case class FunctionStatement(
         l4.LeveledIdentifier(tcId, l4.AllLevelsSpecification()),
         l4.UnitDatatype(),
         tcArgs,
-        List()))
+        tcBody.computation map { _.asInstanceOf[l4.Statement] }))
 
   }
 }
@@ -97,8 +92,6 @@ case class FunctionInstantiationStatement(
       case _                              => Logger.error("Expected a function")
     }
 
-    println(arguments)
-
     val evaluated_args = arguments map { a =>
       a.scType(env) match {
         case FieldDatatype()   => a.lEval(env)
@@ -106,8 +99,6 @@ case class FunctionInstantiationStatement(
         case _                 => throw new Exception("Static argument expected.")
       }
     }
-
-    println(evaluated_args)
 
     f.instanceTc(evaluated_args, env, instantiationId)
   }
@@ -134,7 +125,7 @@ case class ValueDeclarationStatement(
   }
 }
 
-// @todo The op parameter is unnecessary
+// FIXME@Christian The op parameter is unnecessary
 case class AssignmentStatement(
     val dest : IdentifierExpression,
     val src : Expression,
@@ -152,14 +143,14 @@ case class AssignmentStatement(
           tcId,
           l4.CurrentLevelSpecification(),
           l4.IntegerConstant(0),
-          0)
+          -1) // FIXME@Christian array index
 
       case _ => ???
     }
 
     val tcRhs = src.dynamicREval(env)
 
-    TargetCode(l4.AssignmentStatement(tcAccess, ???, op))
+    TargetCode(l4.AssignmentStatement(tcAccess, tcRhs.tcExpression, op))
 
   }
 }

@@ -47,6 +47,29 @@ case class IdentifierExpression(val id : String) extends Expression {
     }
   }
 
+  override def dynamicREval(env : Environment) : DynamicRValue = {
+
+    env.lookup(id) match {
+      case Environment.VariableItem(tcId, scType) =>
+        new DynamicRValue(List(), l4.UnresolvedAccess(tcId, None, None, None))
+      case Environment.StaticValueItem(v) =>
+        v match {
+          case FieldLValue(tcId) =>
+            new DynamicRValue(List(),
+              l4.FieldAccess(
+                tcId,
+                l4.CurrentLevelSpecification(),
+                l4.IntegerConstant(0),
+                -1)) // FIXME@Christian array index
+
+          case _ => Logger.error(id ++ " is not a Field")
+        }
+
+      case _ => Logger.error(id ++ " is not a variable")
+    }
+
+  }
+
   override def scType(env : Environment) : ScType = {
     env.lookup(id) match {
       case Environment.StaticValueItem(e) => e.scType
@@ -81,8 +104,25 @@ case class FunctionCallExpression(val identifier : String, val arguments : List[
 }
 
 case class BinaryExpression(var operator : String, var left : Expression, var right : Expression) extends Expression {
-  //  def progressToIr : ir.Expression = {
-  //    ir.BinaryOperators.CreateExpression(operator, left.progressToIr, right.progressToIr)
-  //  }
+
+  override def dynamicREval(env : Environment) : DynamicRValue = {
+    val leftTc = left.dynamicREval(env)
+    val rightTc = right.dynamicREval(env)
+
+    /// @todo: Auxiliary computations
+    new DynamicRValue(
+      List(),
+      l4.BinaryExpression(operator, leftTc.tcExpression, rightTc.tcExpression))
+
+  }
+  override def scType(env : Environment) : ScType = {
+    val lt = left.scType(env)
+    val rt = right.scType(env)
+    if (lt != rt) {
+      Logger.error("Incompatible types.")
+    }
+    lt
+  }
+
 }
 

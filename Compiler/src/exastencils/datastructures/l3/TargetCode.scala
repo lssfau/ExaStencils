@@ -16,13 +16,11 @@ class TargetCode(val computation : List[Node]) {
 }
 
 class DynamicRValue(
-  computation : List[l4.Statement],
-  val dcExpression : String,
-  val scType : ScType)
+  computation : List[Node],
+  val tcExpression : l4.Expression)
     extends TargetCode(computation)
 
 class DynamicLValue(
-  computation : List[l4.Statement],
-  val dcExpression : String,
-  val scType : ScType) extends TargetCode(computation)
+  computation : List[Node],
+  val tcExpression : l4.Expression) extends TargetCode(computation)
 
