@@ -31,9 +31,33 @@ case class FunctionStatement(
     env.bind(id, Environment.FunctionItem(this))
     TargetCode()
   }
+
+  def mangleName(args : List[StaticValue]) : String = ???
+
+  /** Return the target code of an instance of this function. */
+  def instanceTc(args : List[StaticValue], env : Environment, predefinedTcId : Option[String]) : TargetCode = {
+
+    val tcId = predefinedTcId match {
+      case Some(i) => i
+      case None    => mangleName(args)
+    }
+
+    val tcArgs = dynamicArguments map {
+      case Variable(id, scType) =>
+        l4.Variable(l4.BasicIdentifier(id), scType.toTcType)
+    }
+
+    TargetCode(
+      new l4.FunctionStatement(
+        l4.LeveledIdentifier(tcId, l4.AllLevelsSpecification()),
+        l4.UnitDatatype(),
+        tcArgs,
+        List()))
+
+  }
 }
 
-case class FunctionCallStatement(var call : FunctionCallExpression) extends Statement {
+case class FunctionCallStatement(val call : FunctionCallExpression) extends Statement {
 
 }
 
@@ -56,22 +80,20 @@ case class FunctionInstantiationStatement(
 
   override def toTc(env : Environment) : TargetCode = {
 
-    val f = env.lookup(functionId)
-
-    val evaluated_args = arguments map { a =>
-      /// @todo: determine the type of the expression
-      /// Depending on that we have to do l or r eval
-      //a.lEval(env)
-      None
+    val f = env.lookup(functionId) match {
+      case Environment.FunctionItem(f) => f
+      case _                           => Logger.error("Expected a function")
     }
 
-    TargetCode(
-      new l4.FunctionStatement(
-        l4.LeveledIdentifier(functionId, l4.AllLevelsSpecification()),
-        l4.UnitDatatype(),
-        List(),
-        List()))
+    val evaluated_args = arguments map { a =>
+      a.scType(env) match {
+        case FieldDatatype()   => a.lEval(env)
+        case StencilDatatype() => a.rEval(env)
+        case _                 => new Exception("Static argument expected.")
+      }
+    }
 
+    f.instanceTc(List(), env, instantiationId)
   }
 
 }
@@ -90,7 +112,7 @@ case class ValueDeclarationStatement(
 
 }
 
-case class AssignmentStatement(var dest : IdentifierExpression, var src : Expression, var op : String) extends Statement {
+case class AssignmentStatement(val dest : IdentifierExpression, val src : Expression, val op : String) extends Statement {
 
 }
 
