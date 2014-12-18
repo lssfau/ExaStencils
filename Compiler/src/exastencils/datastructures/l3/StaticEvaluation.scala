@@ -4,8 +4,11 @@ package exastencils.datastructures.l3
 abstract sealed class StaticValue(val scType : ScType)
 
 /** Static locations */
-abstract sealed class LValue(scType : ScType) extends StaticValue(scType)
-case class IntegerLValue(val num : Integer) extends LValue(IntegerDatatype())
+abstract sealed class LValue(scType : ScType) extends StaticValue(scType) {
+  /** l-values can be dereferenced. */
+  def dynamicRValue = ???
+}
+case class IntegerLValue(tcId : String) extends LValue(IntegerDatatype())
 case class FieldLValue(tcId : String) extends LValue(FieldDatatype())
 
 /** Static values */

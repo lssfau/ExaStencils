@@ -24,3 +24,4 @@ class DynamicLValue(
   computation : List[Node],
   val tcExpression : l4.Expression) extends TargetCode(computation)
 
+case class TcStatement(val stm : l4.Statement)
