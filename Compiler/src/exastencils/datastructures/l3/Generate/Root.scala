@@ -91,7 +91,7 @@ case class Root() extends Node {
       Smoothers.addFunction(printer, "_GMRF")
 
     // Other MG Functions
-    Residual.addUpdateFunction(printer, "")
+    //Residual.addUpdateFunction(printer, "")
     Residual.addReductionFunction(printer, "")
     if (Knowledge.l3tmp_kelvin) {
       Residual.addUpdateFunction(printer, "_GMRF")
