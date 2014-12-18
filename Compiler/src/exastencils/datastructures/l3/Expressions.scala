@@ -36,16 +36,16 @@ case class IdentifierExpression(val id : String) extends Expression {
 
 }
 
-case class StringConstant(var value : String) extends Expression /* {
+case class StringConstant(val value : String) extends Expression /* {
   def progressToIr : ir.StringConstant = ir.StringConstant(value)
 }*/
 
-case class IntegerConstant(var v : Long) extends Number {
+case class IntegerConstant(val v : Long) extends Number {
   override def value = v
   //  def progressToIr : ir.IntegerConstant = ir.IntegerConstant(v)
 }
 
-case class FloatConstant(var v : Double) extends Number {
+case class FloatConstant(val v : Double) extends Number {
   override def value = v
   //  def progressToIr : ir.FloatConstant = ir.FloatConstant(v)
 }
@@ -54,7 +54,7 @@ case class Variable(val id : String, val datatype : ScType) extends Expression {
 
 }
 
-case class FunctionCallExpression(var identifier : String, var arguments : List[Expression]) extends Expression {
+case class FunctionCallExpression(val identifier : String, val arguments : List[Expression]) extends Expression {
   //  def progressToIr : ir.FunctionCallExpression = {
   //    ir.FunctionCallExpression(ir.StringConstant(identifier.progressToIr.asInstanceOf[ir.StringConstant].value),
   //      arguments.map(s => s.progressToIr).to[ListBuffer])
