@@ -41,5 +41,12 @@ class Environment(parent : Option[Environment] = None) {
 
     return env
   }
+
+  override def toString() : String = {
+    parent match {
+      case Some(p) => map.mkString(", ") + "(" + p.toString + ")"
+      case None    => map.mkString(", ")
+    }
+  }
 }
 

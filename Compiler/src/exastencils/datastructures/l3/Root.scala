@@ -20,6 +20,7 @@ case class Root(var nodes : List[Node]) extends Node with ProgressableToL4 {
     env.bind("myF", Environment.StaticValueItem(FieldLValue("myF")))
     env.bind("myU", Environment.StaticValueItem(FieldLValue("myU")))
     env.bind("myDest", Environment.StaticValueItem(FieldLValue("myDest")))
+    env.bind("myWork", Environment.StaticValueItem(FieldLValue("myWork")))
 
     l4.Root(toTc(env).toList())
   }

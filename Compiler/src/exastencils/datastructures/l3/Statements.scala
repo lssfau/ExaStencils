@@ -4,17 +4,13 @@ import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.l3._
 
-abstract class Statement extends Node with ProgressableToL4 {
-  override def toTc(env : Environment) : TargetCode = {
-    throw new Exception("Not implemented")
-  }
-}
+abstract class Statement extends Node with ProgressableToL4
 
 case class FunctionStatement(
   val id : String,
   val returntype : ScType,
   val arguments : List[Variable],
-  val statements : List[Statement])
+  val body : List[Statement])
     extends Statement {
 
   // runtime arguments
@@ -35,17 +31,31 @@ case class FunctionStatement(
   def mangleName(args : List[StaticValue]) : String = ???
 
   /** Return the target code of an instance of this function. */
-  def instanceTc(args : List[StaticValue], env : Environment, predefinedTcId : Option[String]) : TargetCode = {
+  def instanceTc(givenStaticArgs : List[StaticValue], env : Environment, predefinedTcId : Option[String]) : TargetCode = {
 
     val tcId = predefinedTcId match {
       case Some(i) => i
-      case None    => mangleName(args)
+      case None    => mangleName(givenStaticArgs)
     }
 
     val tcArgs = dynamicArguments map {
       case Variable(id, scType) =>
         l4.Variable(l4.BasicIdentifier(id), scType.toTcType)
     }
+
+    // bind function arguments
+    val body_env = new Environment(Some(env))
+    for ((givenArg, requestedArg) <- givenStaticArgs zip staticArguments) {
+      body_env.bind(requestedArg.id, Environment.StaticValueItem(givenArg))
+    }
+
+    println(arguments)
+    println(staticArguments)
+    println(givenStaticArgs)
+    println(body_env)
+
+    // transform to target code and concat
+    val tcBody = (body map { _.toTc(body_env) }).foldLeft(TargetCode()) { (x : TargetCode, y : TargetCode) => x ++ y }
 
     TargetCode(
       new l4.FunctionStatement(
@@ -58,7 +68,9 @@ case class FunctionStatement(
 }
 
 case class FunctionCallStatement(val call : FunctionCallExpression) extends Statement {
-
+  override def toTc(env : Environment) : TargetCode = {
+    throw new Exception("Not implemented")
+  }
 }
 
 case class FunctionInstantiationStatement(
@@ -81,19 +93,23 @@ case class FunctionInstantiationStatement(
   override def toTc(env : Environment) : TargetCode = {
 
     val f = env.lookup(functionId) match {
-      case Environment.FunctionItem(f) => f
-      case _                           => Logger.error("Expected a function")
+      case Environment.FunctionItem(fdef) => fdef
+      case _                              => Logger.error("Expected a function")
     }
+
+    println(arguments)
 
     val evaluated_args = arguments map { a =>
       a.scType(env) match {
         case FieldDatatype()   => a.lEval(env)
         case StencilDatatype() => a.rEval(env)
-        case _                 => new Exception("Static argument expected.")
+        case _                 => throw new Exception("Static argument expected.")
       }
     }
 
-    f.instanceTc(List(), env, instantiationId)
+    println(evaluated_args)
+
+    f.instanceTc(evaluated_args, env, instantiationId)
   }
 
 }
@@ -103,6 +119,9 @@ case class VariableDeclarationStatement(
     val scType : ScType,
     val expression : Option[Expression] = None) extends Statement {
 
+  override def toTc(env : Environment) : TargetCode = {
+    throw new Exception("Not implemented")
+  }
 }
 
 case class ValueDeclarationStatement(
@@ -110,9 +129,38 @@ case class ValueDeclarationStatement(
     val datatype : ScType,
     val expression : Expression) extends Statement {
 
+  override def toTc(env : Environment) : TargetCode = {
+    throw new Exception("Not implemented")
+  }
 }
 
-case class AssignmentStatement(val dest : IdentifierExpression, val src : Expression, val op : String) extends Statement {
+// @todo The op parameter is unnecessary
+case class AssignmentStatement(
+    val dest : IdentifierExpression,
+    val src : Expression,
+    val op : String) extends Statement {
 
+  override def toTc(env : Environment) : TargetCode = {
+
+    val lvalue = dest.lEval(env)
+
+    // depending on the type
+    val tcAccess = lvalue match {
+      case FieldLValue(tcId) =>
+
+        new l4.FieldAccess(
+          tcId,
+          l4.CurrentLevelSpecification(),
+          l4.IntegerConstant(0),
+          0)
+
+      case _ => ???
+    }
+
+    val tcRhs = src.dynamicREval(env)
+
+    TargetCode(l4.AssignmentStatement(tcAccess, ???, op))
+
+  }
 }
 
