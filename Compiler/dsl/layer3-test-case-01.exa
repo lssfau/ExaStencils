@@ -17,10 +17,8 @@ Function restrict(R : Stencil, u : Field, u_c : Field) : Unit
 
 Function smoother(L : Stencil, f : Field, u : Field) : Unit
 {
-    
     jacobi(L, f, u, dest)
     u = dest
-
 }
 
 Instantiate Function jacobi with (myL, myF, myU, myDest, myWork) as smoother @(1 to finest)

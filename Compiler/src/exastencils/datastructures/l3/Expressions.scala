@@ -50,11 +50,14 @@ case class IdentifierExpression(val id : String) extends Expression {
   override def dynamicREval(env : Environment) : DynamicRValue = {
 
     env.lookup(id) match {
+
       case Environment.VariableItem(tcId, scType) =>
         new DynamicRValue(List(), l4.UnresolvedAccess(tcId, None, None, None))
+
       case Environment.StaticValueItem(v) =>
         v match {
           case FieldLValue(tcId) =>
+
             new DynamicRValue(List(),
               l4.FieldAccess(
                 tcId,
@@ -62,7 +65,7 @@ case class IdentifierExpression(val id : String) extends Expression {
                 l4.IntegerConstant(0),
                 -1)) // FIXME@Christian array index
 
-          case _ => Logger.error(id ++ " is not a Field")
+          case _ => Logger.error(id ++ " is static but not a field")
         }
 
       case _ => Logger.error(id ++ " is not a variable")
@@ -78,30 +81,20 @@ case class IdentifierExpression(val id : String) extends Expression {
   }
 }
 
-case class StringConstant(val value : String) extends Expression /* {
-  def progressToIr : ir.StringConstant = ir.StringConstant(value)
-}*/
-
+case class StringConstant(val value : String) extends Expression
 case class IntegerConstant(val v : Long) extends Number {
   override def value = v
-  //  def progressToIr : ir.IntegerConstant = ir.IntegerConstant(v)
 }
 
 case class FloatConstant(val v : Double) extends Number {
   override def value = v
-  //  def progressToIr : ir.FloatConstant = ir.FloatConstant(v)
 }
 
 case class Variable(val id : String, val datatype : ScType) extends Expression {
   override def scType(env : Environment) = datatype
 }
 
-case class FunctionCallExpression(val identifier : String, val arguments : List[Expression]) extends Expression {
-  //  def progressToIr : ir.FunctionCallExpression = {
-  //    ir.FunctionCallExpression(ir.StringConstant(identifier.progressToIr.asInstanceOf[ir.StringConstant].value),
-  //      arguments.map(s => s.progressToIr).to[ListBuffer])
-  //  }
-}
+case class FunctionCallExpression(val identifier : String, val arguments : List[Expression]) extends Expression
 
 case class BinaryExpression(var operator : String, var left : Expression, var right : Expression) extends Expression {
 
