@@ -8,7 +8,7 @@ import scala.util.parsing.combinator.lexical.StdLexical
 class LexerL3 extends exastencils.parsers.ExaLexer {
 
   // function keywords
-  reserved += ("Func", "Function", "Inst", "Instantiate", "with")
+  reserved += ("Func", "Function", "Inst", "Instantiate", "with", "as")
 
   //  // declaration keywords - simple
   //  reserved += ("Var", "Variable", "Val", "Value")

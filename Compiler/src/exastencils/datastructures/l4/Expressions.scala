@@ -192,3 +192,35 @@ case class FunctionCallExpression(var identifier : Access, var arguments : List[
       arguments.map(s => s.progressToIr).to[ListBuffer])
   }
 }
+
+case class StencilConvolution(var stencilAccess : StencilAccess, var fieldAccess : FieldAccess) extends Expression {
+  def prettyprint(out : PpStream) = { out << stencilAccess << " * " << fieldAccess }
+
+  def progressToIr : ir.StencilConvolution = {
+    ir.StencilConvolution(stencilAccess.progressToIr.stencil, fieldAccess.progressToIr)
+  }
+}
+
+case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, var fieldAccess : FieldAccess) extends Expression {
+  def prettyprint(out : PpStream) = { out << stencilFieldAccess << " * " << fieldAccess }
+
+  def progressToIr : ir.StencilFieldConvolution = {
+    ir.StencilFieldConvolution(stencilFieldAccess.progressToIr, fieldAccess.progressToIr)
+  }
+}
+
+case class StencilStencilConvolution(var stencilLeft : StencilAccess, var stencilRight : StencilAccess) extends Expression {
+  def prettyprint(out : PpStream) = { out << stencilLeft << " * " << stencilRight }
+
+  def progressToIr : ir.StencilStencilConvolution = {
+    ir.StencilStencilConvolution(stencilLeft.progressToIr.stencil, stencilRight.progressToIr.stencil)
+  }
+}
+
+case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, var stencilRight : StencilAccess) extends Expression {
+  def prettyprint(out : PpStream) = { out << stencilLeft << " * " << stencilRight }
+
+  def progressToIr : ir.StencilFieldStencilConvolution = {
+    ir.StencilFieldStencilConvolution(stencilLeft.progressToIr, stencilRight.progressToIr.stencil)
+  }
+}

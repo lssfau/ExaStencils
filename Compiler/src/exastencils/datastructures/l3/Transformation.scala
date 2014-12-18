@@ -1,6 +1,6 @@
 package exastencils.datastructures.l3
 
-trait ProgressibleToL4 {
+trait ProgressableToL4 {
   /** Transform to destination code. */
-  def toDc(env: Environment) : DestinationCode
+  def toTc(env : Environment) : TargetCode
 }
