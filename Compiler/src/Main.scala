@@ -66,14 +66,14 @@ object Main {
 
     // version without comm
     StateManager.root.asInstanceOf[l4.Root].statements += new l4.FunctionStatement(
-      l4.LeveledIdentifier("UpResidual_woComm", l4.AllLevelsSpecification()),
+      l4.LeveledIdentifier("UpResidual", l4.AllLevelsSpecification()),
       l4.UnitDatatype(),
       List(),
       statements)
 
     // version with comm
     //    StateManager.root.asInstanceOf[l4.Root].statements += new l4.FunctionStatement(
-    //      l4.LeveledIdentifier("UpResidual_wComm", l4.AllLevelsSpecification()),
+    //      l4.LeveledIdentifier("UpResidual", l4.AllLevelsSpecification()),
     //      l4.UnitDatatype(),
     //      List(),
     //      List[l4.Statement](
