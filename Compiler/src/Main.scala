@@ -1,4 +1,5 @@
 import java.util.Locale
+
 import exastencils.communication._
 import exastencils.core._
 import exastencils.data._
@@ -6,18 +7,17 @@ import exastencils.datastructures._
 import exastencils.domain._
 import exastencils.globals._
 import exastencils.knowledge._
-import exastencils.languageprocessing.l4.ProgressToIr
+import exastencils.languageprocessing.l4._
 import exastencils.mpi._
 import exastencils.multiGrid._
 import exastencils.omp._
 import exastencils.optimization._
+import exastencils.parsers.l3._
 import exastencils.parsers.l4._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.strategies._
 import exastencils.util._
-import exastencils.parsers.l3.ParserL3
-import exastencils.parsers.l3.ValidationL3
 
 object Main {
   def main(args : Array[String]) : Unit = {
@@ -52,6 +52,44 @@ object Main {
 
     // progress L3 to L4
     StateManager.root_ = StateManager.root_.asInstanceOf[l3.Root].progressToL4
+
+    // BEGIN HACK: add function to test new functionalities
+    val statements : List[l4.Statement] = List(
+      l4.AssignmentStatement(
+        l4.FieldAccess("Residual", l4.CurrentLevelSpecification(), l4.IntegerConstant(0), -1),
+        l4.BinaryExpression("-",
+          l4.FieldAccess("RHS", l4.CurrentLevelSpecification(), l4.IntegerConstant(0), -1),
+          l4.StencilConvolution(
+            l4.StencilAccess("Laplace", l4.CurrentLevelSpecification()),
+            l4.FieldAccess("Solution", l4.CurrentLevelSpecification(), l4.BasicIdentifier("curSlot"), -1))),
+        "="))
+
+    // version without comm
+    StateManager.root.asInstanceOf[l4.Root].statements += new l4.FunctionStatement(
+      l4.LeveledIdentifier("UpResidual_woComm", l4.AllLevelsSpecification()),
+      l4.UnitDatatype(),
+      List(),
+      statements)
+
+    // version with comm
+    //    StateManager.root.asInstanceOf[l4.Root].statements += new l4.FunctionStatement(
+    //      l4.LeveledIdentifier("UpResidual_wComm", l4.AllLevelsSpecification()),
+    //      l4.UnitDatatype(),
+    //      List(),
+    //      List[l4.Statement](
+    //        l4.CommunicateStatement(
+    //          l4.FieldAccess("Solution", l4.CurrentLevelSpecification(), l4.BasicIdentifier("curSlot"), -1),
+    //          "both", List()),
+    //        l4.LoopOverFragmentsStatement(List(
+    //          l4.LoopOverPointsStatement(
+    //            l4.FieldAccess("Residual", l4.CurrentLevelSpecification(), l4.IntegerConstant(0), -1),
+    //            false, None, None, None, None, statements, None)),
+    //          None)))
+
+    // add loops and communication
+    WrapL4FieldOpsStrategy.apply()
+
+    // END HACK
 
     if (Knowledge.l3tmp_generateL4) {
       // print current L4 state to string
