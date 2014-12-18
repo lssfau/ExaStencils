@@ -15,6 +15,12 @@ case class Root(var nodes : List[Node]) extends Node with ProgressableToL4 {
   def progressToL4 : l4.Root = {
     val env = new Environment
 
+    /// @todo: Remove this... only for testing
+    env.bind("myL", Environment.StaticValueItem(StencilRValue()))
+    env.bind("myF", Environment.StaticValueItem(FieldLValue("myF")))
+    env.bind("myU", Environment.StaticValueItem(FieldLValue("myU")))
+    env.bind("myDest", Environment.StaticValueItem(FieldLValue("myDest")))
+
     l4.Root(toTc(env).toList())
   }
 

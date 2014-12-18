@@ -1,6 +1,6 @@
 
 
-Function jacobi(L : Stencil, f : Field, u : Field, dest : Field) : Unit
+Function jacobi(L : Stencil, f : Field, u : Field, omega : Real, dest : Field) : Unit
 {
     // dest = u + diag_inv(L) * (f - L*u)
     aux = apply(L, u)
@@ -23,6 +23,6 @@ Function smoother(L : Stencil, f : Field, u : Field) : Unit
 
 }
 
-Instantiate Function jacobi with (myL, myF) @(1 to finest)
+Instantiate Function jacobi with (myL, myF, myU, myDest) as smoother @(1 to finest)
 
 
