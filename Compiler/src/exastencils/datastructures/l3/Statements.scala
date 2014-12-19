@@ -142,8 +142,7 @@ case class AssignmentStatement(
         new l4.FieldAccess(
           tcId,
           l4.CurrentLevelSpecification(),
-          l4.IntegerConstant(0),
-          -1) // FIXME@Christian array index
+          l4.IntegerConstant(0))
 
       case _ => ???
     }

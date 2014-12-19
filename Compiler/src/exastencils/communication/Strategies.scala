@@ -70,7 +70,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         case "finish" => s"finishExch${communicateStatement.field.codeName}"
         case "both"   => s"exch${communicateStatement.field.codeName}"
       })
-        + s"_${if (communicateStatement.field.arrayIndex >= 0) communicateStatement.field.arrayIndex else "a"}_"
+        + s"_${communicateStatement.field.arrayIndex.getOrElse("a")}_"
         + communicateStatement.targets.map(t => s"${t.target}_${
           val begin : MultiIndex = t.begin.getOrElse(new MultiIndex(Array.fill(Knowledge.dimensionality)("a" : Expression)))
           (0 until Knowledge.dimensionality).toArray.map(dim => begin(dim).prettyprint).mkString("_")

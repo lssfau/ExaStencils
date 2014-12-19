@@ -35,7 +35,7 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
           new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => dest.fieldLayout(i).idxDupLeftBegin)),
           new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => dest.fieldLayout(i).idxDupRightEnd))),
           new AssignmentStatement(ExternalFieldAccess("dest", dest, LoopOverDimensions.defIt),
-            FieldAccess(FieldSelection(src, src.level, "slot", -1), LoopOverDimensions.defIt))) with OMP_PotentiallyParallel with PolyhedronAccessable))
+            FieldAccess(FieldSelection(src, src.level, "slot"), LoopOverDimensions.defIt))) with OMP_PotentiallyParallel with PolyhedronAccessable))
   }
 }
 
@@ -50,7 +50,7 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
         new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
           new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => src.fieldLayout(i).idxDupLeftBegin)),
           new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => src.fieldLayout(i).idxDupRightEnd))),
-          new AssignmentStatement(FieldAccess(FieldSelection(dest, dest.level, "slot", -1), LoopOverDimensions.defIt),
+          new AssignmentStatement(FieldAccess(FieldSelection(dest, dest.level, "slot"), LoopOverDimensions.defIt),
             ExternalFieldAccess("src", src, LoopOverDimensions.defIt))) with OMP_PotentiallyParallel with PolyhedronAccessable))
   }
 }

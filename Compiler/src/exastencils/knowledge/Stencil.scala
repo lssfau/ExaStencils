@@ -71,7 +71,7 @@ case class StencilFieldSelection(
     var stencilField : StencilField,
     var level : Expression,
     var slot : Expression,
-    var arrayIndex : Int,
+    var arrayIndex : Option[Int],
     var fragIdx : Expression = LoopOverFragments.defIt) extends Node {
 
   def toFieldSelection = {
@@ -116,7 +116,7 @@ object MapStencilAssignments extends DefaultStrategy("MapStencilAssignments") {
 
       for (idx <- 0 until stencilLeft.entries.size) {
         var fieldSelection = stencilFieldAccess.stencilFieldSelection.toFieldSelection
-        fieldSelection.arrayIndex = idx
+        fieldSelection.arrayIndex = Some(idx)
         var fieldIndex = Duplicate(stencilFieldAccess.index)
         fieldIndex(Knowledge.dimensionality) = idx
         var coeff : Expression = 0
