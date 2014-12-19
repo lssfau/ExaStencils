@@ -4,18 +4,13 @@ import exastencils.core.Logger
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-object Environment {
-  sealed class Item()
-  case class VariableItem(val tcId : String, val scType : ScType) extends Item
-  case class FunctionItem(val f : FunctionStatement) extends Item
-  case class StaticValueItem(value : StaticValue) extends Item
-}
 class Environment(parent : Option[Environment] = None) {
   import Environment._
 
-  val map = mutable.HashMap[String, Item]()
+  val map = mutable.HashMap[String, Value]()
 
-  def lookup(id : String) : Item = {
+  /** This function returns a stored value. */
+  def lookup(id : String) : Value = {
     if (map contains id) {
       map(id)
     } else {
@@ -26,7 +21,30 @@ class Environment(parent : Option[Environment] = None) {
     }
   }
 
-  def bind(id : String, value : Item) : Unit = {
+  /**
+    * This function always returns an r-value.
+    *  If id maps to an l-value it will be first dereferenced.
+    */
+  def lookupRValue(id : String) : RValue = {
+    lookup(id) match {
+      case v : LValue => v.deref
+      case v : RValue => v
+      case _          => throw new Exception("Environment corrupted. Found an entry which is neither an l- or an r-value.")
+    }
+  }
+
+  /**
+    * Always return an l-value.
+    *  If id maps to an r-value this will raise an exception.
+    */
+  def lookupLValue(id : String) : LValue = {
+    lookup(id) match {
+      case v : LValue => v
+      case _          => throw new Exception("Expected an l-value.")
+    }
+  }
+
+  def bind(id : String, value : Value) : Unit = {
 
     if (map contains id) {
       // do not allow rebinding
@@ -34,16 +52,6 @@ class Environment(parent : Option[Environment] = None) {
     }
 
     map += id -> value
-  }
-
-  def bindNew(symbols : List[String], values : List[Item]) : Environment = {
-
-    val env = new Environment()
-    for ((s, v) <- symbols zip values) {
-      env.map += s -> v
-    }
-
-    return env
   }
 
   override def toString() : String = {

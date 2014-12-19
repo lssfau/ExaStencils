@@ -3,7 +3,7 @@ package exastencils.datastructures.l3
 import scala.collection.mutable.ListBuffer
 import exastencils.datastructures._
 
-case class Root(var nodes : List[Node]) extends Node with ProgressableToL4 {
+case class Root(var nodes : List[Node]) extends Node {
   val functions = ListBuffer[FunctionStatement]()
   val functionInstantiations = ListBuffer[FunctionInstantiationStatement]()
 
@@ -16,26 +16,28 @@ case class Root(var nodes : List[Node]) extends Node with ProgressableToL4 {
     val env = new Environment
 
     /// @todo: Remove this... only for testing
-    env.bind("myL", Environment.StaticValueItem(StencilRValue()))
-    env.bind("myF", Environment.StaticValueItem(FieldLValue("myF")))
-    env.bind("myU", Environment.StaticValueItem(FieldLValue("myU")))
-    env.bind("myDest", Environment.StaticValueItem(FieldLValue("myDest")))
-    env.bind("myWork", Environment.StaticValueItem(FieldLValue("myWork")))
+    env.bind("myL", StencilRValue())
+    env.bind("myF", FieldLValue("myF"))
+    env.bind("myU", FieldLValue("myU"))
+    env.bind("myDest", FieldLValue("myDest"))
+    env.bind("myWork", FieldLValue("myWork"))
 
-    l4.Root(toTc(env).toList())
+    // register builtin functions
+    env.bind("apply", ApplyStencilBuiltin())
+
+    l4.Root(toTc(env))
   }
 
-  override def toTc(env : Environment) : TargetCode = {
+  def toTc(env : Environment) : List[l4.Statement] = {
 
-    var tc = new TargetCode(List())
+    val program_block = new TcbBlock
 
     // insert functions into the current environment
-    for (f <- functions) {
-      tc = tc ++ f.toTc(env)
-    }
-    for (inst <- functionInstantiations) {
-      tc = tc ++ inst.toTc(env)
-    }
-    tc
+    functions foreach { _.writeTc(env, program_block) }
+
+    // instantiate
+    functionInstantiations foreach { _.writeTc(env, program_block) }
+
+    program_block.build
   }
 }
