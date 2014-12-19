@@ -79,7 +79,7 @@ case class FunctionCallExpression(val id : String, val arguments : List[Expressi
   override def dynamicREval(env : Environment, block : TcbBlock) : DynamicRValue = {
 
     env.lookupRValue(id) match {
-      case fun : AbstractFunctionRValue => new DynamicRValue(fun.writeTcApplication(env, arguments), fun.scReturnType)
+      case fun : AbstractFunctionRValue => new DynamicRValue(fun.writeTcApplication(env, block, arguments), fun.scReturnType)
       case _                            => Logger.error(id ++ " is not a function.")
     }
 

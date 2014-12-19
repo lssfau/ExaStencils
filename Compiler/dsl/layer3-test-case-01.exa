@@ -4,7 +4,7 @@ Function jacobi(dest : Field, L : Stencil, f : Field, u : Field, omega : Real, w
 {
     //dest = u + diag_inv(L) * (f - L*u)
     // work = L * u
-    // apply(work, L, u)
+    apply(work, L, u)
     work = f - work
     //dest = apply(diag_inv(L), work)
     dest = u + dest

@@ -25,12 +25,17 @@ case class FunctionStatement(
 case class FunctionCallStatement(val call : FunctionCallExpression) extends Statement {
 
   override def writeTc(env : Environment, block : TcbBlock) {
-
-    //call.dynamicREval(env, block)
-
-    throw new Exception("Not implemented")
+    val expr = call.dynamicREval(env, block).tcExpression
+    // convert the function call expression into a statement
+    expr match {
+      case expr : TcUnit => /* drop the unit type */
+      case expr : l4.FunctionCallExpression =>
+        block += l4.FunctionCallStatement(expr)
+      case _ =>
+        throw new Exception("Only a function call expression can be turned into a statement " ++
+          "but we got something else.")
+    }
   }
-
 }
 
 case class FunctionInstantiationStatement(
@@ -87,6 +92,10 @@ case class AssignmentStatement(
     val op : String) extends Statement {
 
   override def writeTc(env : Environment, block : TcbBlock) {
+
+    if (op != "=") {
+      Logger.error("%s is not a valid assignment operator.".format(op))
+    }
 
     // compute the l-value
     // since l4 does not implement references this has to be a static evaluation

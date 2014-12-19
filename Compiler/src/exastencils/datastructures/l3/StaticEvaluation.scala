@@ -73,7 +73,7 @@ trait AbstractFunctionRValue {
 
   def scReturnType : ScType
 
-  def writeTcApplication(env : Environment, args : List[Expression]) : l4.Expression
+  def writeTcApplication(env : Environment, block : TcbBlock, args : List[Expression]) : l4.Expression
 }
 
 /** User defined functions. */
@@ -122,7 +122,7 @@ case class FunctionRValue(
     block += funTc
   }
 
-  def writeTcApplication(env : Environment, args : List[Expression]) : l4.Expression = {
+  def writeTcApplication(env : Environment, block : TcbBlock, args : List[Expression]) : l4.Expression = {
     ???
   }
 }
@@ -132,19 +132,43 @@ case class ApplyStencilBuiltin() extends StaticRValue with AbstractFunctionRValu
 
   override def writeTcApplication(
     env : Environment,
+    block : TcbBlock,
     args : List[Expression]) : l4.Expression = {
 
-    // expect precisely two arguments
+    // expect precisely three arguments
     args match {
-      case List(stencilArg, fieldArg) =>
-        val st = stencilArg.rEval(env)
-        val u = fieldArg.rEval(env)
-        ???
-      case _ => Logger.error("Apply takes two arguments.")
-    }
+      case List(destField, stencilArg, sourceField) =>
+        val f = destField.lEval(env) match {
+          case FieldLValue(fieldId) => fieldId
+          case _ =>
+            throw new Exception("First parameter of apply needs to be a field.")
+        }
+        val A = stencilArg.rEval(env)
+        val u = sourceField.rEval(env) match {
+          case FieldRValue(fieldId) => fieldId
+          case _ =>
+            throw new Exception("Third parameter of apply needs to be a field")
+        }
 
-    //new l4.StencilConvolution
-    ???
+        val A_access = new l4.StencilAccess("TODOresolve", l4.CurrentLevelSpecification())
+        val u_access = new l4.FieldAccess(u,
+          l4.CurrentLevelSpecification(),
+          new l4.IntegerConstant(0),
+          -1) // FIXME@Christian: array index
+
+        val f_access = new l4.FieldAccess(f,
+          l4.CurrentLevelSpecification(),
+          new l4.IntegerConstant(0),
+          -1) // FIXME@Christian: array index
+
+        val convExpr = new l4.StencilConvolution(A_access, u_access)
+
+        block += new l4.AssignmentStatement(f_access, convExpr, "=")
+
+        TcUnit() // no return value
+      case _ => Logger.error("Apply takes three arguments but %d were given".format(args.length))
+
+    }
   }
 
 }
