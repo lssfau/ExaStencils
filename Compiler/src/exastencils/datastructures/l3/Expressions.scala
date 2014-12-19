@@ -52,13 +52,13 @@ case class IdentifierExpression(val id : String) extends Expression {
     env.lookup(id) match {
 
       case Environment.VariableItem(tcId, scType) =>
-        new DynamicRValue(List(), l4.UnresolvedAccess(tcId, None, None, None))
+        new DynamicRValue(l4.UnresolvedAccess(tcId, None, None, None))
 
       case Environment.StaticValueItem(v) =>
         v match {
           case FieldLValue(tcId) =>
 
-            new DynamicRValue(List(),
+            new DynamicRValue(
               l4.FieldAccess(
                 tcId,
                 l4.CurrentLevelSpecification(),
@@ -103,9 +103,7 @@ case class BinaryExpression(var operator : String, var left : Expression, var ri
     val rightTc = right.dynamicREval(env)
 
     /// @todo: Auxiliary computations
-    new DynamicRValue(
-      List(),
-      l4.BinaryExpression(operator, leftTc.tcExpression, rightTc.tcExpression))
+    new DynamicRValue(l4.BinaryExpression(operator, leftTc.tcExpression, rightTc.tcExpression))
 
   }
   override def scType(env : Environment) : ScType = {

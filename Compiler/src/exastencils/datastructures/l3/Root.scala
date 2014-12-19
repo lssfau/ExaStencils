@@ -3,7 +3,7 @@ package exastencils.datastructures.l3
 import scala.collection.mutable.ListBuffer
 import exastencils.datastructures._
 
-case class Root(var nodes : List[Node]) extends Node with ProgressableToL4 {
+case class Root(var nodes : List[Node]) extends Node {
   val functions = ListBuffer[FunctionStatement]()
   val functionInstantiations = ListBuffer[FunctionInstantiationStatement]()
 
@@ -22,20 +22,19 @@ case class Root(var nodes : List[Node]) extends Node with ProgressableToL4 {
     env.bind("myDest", Environment.StaticValueItem(FieldLValue("myDest")))
     env.bind("myWork", Environment.StaticValueItem(FieldLValue("myWork")))
 
-    l4.Root(toTc(env).toList())
+    l4.Root(toTc(env))
   }
 
-  override def toTc(env : Environment) : TargetCode = {
+  def toTc(env : Environment) : List[l4.Statement] = {
 
-    var tc = new TargetCode(List())
+    val program_block = new TcbBlock
 
     // insert functions into the current environment
-    for (f <- functions) {
-      tc = tc ++ f.toTc(env)
-    }
-    for (inst <- functionInstantiations) {
-      tc = tc ++ inst.toTc(env)
-    }
-    tc
+    functions foreach { _.writeTc(env, program_block) }
+
+    // instantiate
+    functionInstantiations foreach { _.writeTc(env, program_block) }
+
+    program_block.build
   }
 }
