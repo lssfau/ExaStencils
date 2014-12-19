@@ -151,13 +151,11 @@ case class ApplyStencilBuiltin() extends StaticRValue with AbstractFunctionRValu
         val A_access = new l4.StencilAccess("TODOresolve", l4.CurrentLevelSpecification())
         val u_access = new l4.FieldAccess(u,
           l4.CurrentLevelSpecification(),
-          new l4.IntegerConstant(0),
-          -1) // FIXME@Christian: array index
+          new l4.IntegerConstant(0))
 
         val f_access = new l4.FieldAccess(f,
           l4.CurrentLevelSpecification(),
-          new l4.IntegerConstant(0),
-          -1) // FIXME@Christian: array index
+          new l4.IntegerConstant(0))
 
         val convExpr = new l4.StencilConvolution(A_access, u_access)
 
