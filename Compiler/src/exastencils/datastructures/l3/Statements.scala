@@ -14,56 +14,20 @@ case class FunctionStatement(
   val returntype : ScType,
   val arguments : List[Variable],
   val body : List[Statement])
-    extends Statement with StaticRValue {
-
-  def scType = FunctionDatatype()
-
-  // runtime arguments
-  def dynamicArguments : List[Variable] = {
-    // return only dynamic arguments
-    arguments filter { a => !a.datatype.isStatic }
-  }
-
-  def staticArguments : List[Variable] = {
-    arguments filter { a => a.datatype.isStatic }
-  }
+    extends Statement {
 
   override def writeTc(env : Environment, block : TcbBlock) {
-    env.bind(id, this)
+    env.bind(id, FunctionRValue(id, returntype, arguments, body))
   }
 
-  def mangleName(args : List[StaticValue]) : String = ???
-
-  /** Return the target code of an instance of this function. */
-  def writeTcInstance(env : Environment, block : TcbBlock, givenStaticArgs : List[StaticValue], predefinedTcId : Option[String]) {
-
-    val tcId = predefinedTcId match {
-      case Some(i) => i
-      case None    => mangleName(givenStaticArgs)
-    }
-
-    val tcArgs = dynamicArguments map {
-      case Variable(id, scType) =>
-        l4.Variable(l4.BasicIdentifier(id), scType.toTcType)
-    }
-
-    // bind function arguments
-    val body_env = new Environment(Some(env))
-    for ((givenArg, requestedArg) <- givenStaticArgs zip staticArguments) {
-      body_env.bind(requestedArg.id, givenArg)
-    }
-
-    // transform to target code and concat
-    val funTc = new TcbFunction(tcId, tcArgs)
-    body foreach { _.writeTc(body_env, funTc.body) }
-
-    block += funTc
-  }
 }
 
 case class FunctionCallStatement(val call : FunctionCallExpression) extends Statement {
 
   override def writeTc(env : Environment, block : TcbBlock) {
+
+    //call.dynamicREval(env, block)
+
     throw new Exception("Not implemented")
   }
 
@@ -77,11 +41,12 @@ case class FunctionInstantiationStatement(
 
   override def writeTc(env : Environment, block : TcbBlock) {
 
-    val f = env.lookupRValue(functionId) match {
-      case funStm : FunctionStatement => funStm
-      case _                          => Logger.error("Expected a function")
+    val fun = env.lookupRValue(functionId) match {
+      case fun : FunctionRValue => fun
+      case _                    => Logger.error("Expected a function")
     }
 
+    // evaluate the static arguments
     val evaluated_args = arguments map { a =>
       a.scType(env) match {
         case FieldDatatype()   => a.lEval(env)
@@ -90,7 +55,7 @@ case class FunctionInstantiationStatement(
       }
     }
 
-    f.writeTcInstance(env, block, evaluated_args, instantiationId)
+    fun.writeTcInstance(env, block, evaluated_args, instantiationId)
   }
 
 }
@@ -126,7 +91,7 @@ case class AssignmentStatement(
     // compute the l-value
     // since l4 does not implement references this has to be a static evaluation
     val lvalue = dest.lEval(env)
-    val tcRhs = src.dynamicREval(env)
+    val tcRhs = src.dynamicREval(env, block)
 
     lvalue.writeTcAssignment(block, tcRhs)
   }

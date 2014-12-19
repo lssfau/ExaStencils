@@ -18,7 +18,7 @@ trait Expression extends Node {
   def dynamicLEval(env : Environment) : DynamicLValue = {
     throw new Exception("Cannot evaluate to a dynamic l-value.")
   }
-  def dynamicREval(env : Environment) : DynamicRValue = {
+  def dynamicREval(env : Environment, block : TcbBlock) : DynamicRValue = {
     throw new Exception("Cannot evaluate to a dynamic r-value.")
   }
   def scType(env : Environment) : ScType = {
@@ -47,7 +47,7 @@ case class IdentifierExpression(val id : String) extends Expression {
     }
   }
 
-  override def dynamicREval(env : Environment) : DynamicRValue = {
+  override def dynamicREval(env : Environment, block : TcbBlock) : DynamicRValue = {
 
     env.lookupRValue(id) match {
       case v : FieldRValue => new DynamicRValue(v.toTc(), FieldDatatype())
@@ -76,19 +76,21 @@ case class Variable(val id : String, val datatype : ScType) extends Expression {
 case class FunctionCallExpression(val id : String, val arguments : List[Expression])
     extends Expression {
 
-  override def dynamicREval(env : Environment) : DynamicRValue = {
+  override def dynamicREval(env : Environment, block : TcbBlock) : DynamicRValue = {
 
-    val args : List[l4.Expression] = ???
+    env.lookupRValue(id) match {
+      case fun : AbstractFunctionRValue => new DynamicRValue(fun.writeTcApplication(env, arguments), fun.scReturnType)
+      case _                            => Logger.error(id ++ " is not a function.")
+    }
 
-    new DynamicRValue(new l4.FunctionCallExpression(l4.BasicAccess(???), args), ???)
   }
 }
 
 case class BinaryExpression(var operator : String, var left : Expression, var right : Expression) extends Expression {
 
-  override def dynamicREval(env : Environment) : DynamicRValue = {
-    val leftTc = left.dynamicREval(env)
-    val rightTc = right.dynamicREval(env)
+  override def dynamicREval(env : Environment, block : TcbBlock) : DynamicRValue = {
+    val leftTc = left.dynamicREval(env, block)
+    val rightTc = right.dynamicREval(env, block)
 
     /// @todo: Auxiliary computations
     new DynamicRValue(l4.BinaryExpression(operator, leftTc.tcExpression, rightTc.tcExpression), leftTc.scType)

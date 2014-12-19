@@ -66,3 +66,8 @@ class TcbBlock() {
   def build() : List[l4.Statement] = (stms flatMap { _.build }).toList
 }
 
+case class TcUnit() extends l4.Expression {
+  def progressToIr : ir.Expression = throw new Exception("This should not be transformed")
+  def prettyprint(out : exastencils.prettyprinting.PpStream) = { out << "<<<<<< Unit >>>>>>" }
+}
+

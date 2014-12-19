@@ -22,6 +22,9 @@ case class Root(var nodes : List[Node]) extends Node {
     env.bind("myDest", FieldLValue("myDest"))
     env.bind("myWork", FieldLValue("myWork"))
 
+    // register builtin functions
+    env.bind("apply", ApplyStencilBuiltin())
+
     l4.Root(toTc(env))
   }
 

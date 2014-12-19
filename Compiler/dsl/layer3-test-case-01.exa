@@ -1,9 +1,10 @@
 
 
-Function jacobi(L : Stencil, f : Field, u : Field, omega : Real, dest : Field, work : Field) : Unit
+Function jacobi(dest : Field, L : Stencil, f : Field, u : Field, omega : Real, work : Field) : Unit
 {
     //dest = u + diag_inv(L) * (f - L*u)
-    //work = apply(L, u)
+    // work = L * u
+    // apply(work, L, u)
     work = f - work
     //dest = apply(diag_inv(L), work)
     dest = u + dest
@@ -21,6 +22,6 @@ Function smoother(L : Stencil, f : Field, u : Field) : Unit
     u = dest
 }
 
-Instantiate Function jacobi with (myL, myF, myU, myDest, myWork) as smoother @(1 to finest)
+Instantiate Function jacobi with (myDest, myL, myF, myU, myWork) as smoother @(1 to finest)
 
 
