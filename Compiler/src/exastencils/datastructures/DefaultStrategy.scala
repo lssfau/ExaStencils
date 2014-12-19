@@ -57,6 +57,33 @@ class DefaultStrategy(name : String) extends Strategy(name) {
   def lastResult = { if (!results.isEmpty) Logger.error("No transformation has been executed!"); results_.last._2 }
 
   /**
+    * Returns the [[exastencils.datastructures.TransformationResult]] of the given [[exastencils.datastructures.Transformation]].
+    *
+    * @param transformation The [[exastencils.datastructures.Transformation]] to look up results for.
+    * @return The list of [[exastencils.datastructures.TransformationResult]]s of the given [[exastencils.datastructures.Transformation]].
+    */
+  def findResults(transformation : Transformation) = {
+    results_.filter(p => p == transformation)
+  }
+
+  /**
+    * Returns the [[exastencils.datastructures.TransformationResult]] of the given [[exastencils.datastructures.Transformation]].
+    *
+    * @param transformation The [[exastencils.datastructures.Transformation]] to look up results for.
+    * @return The list of [[exastencils.datastructures.TransformationResult]]s of the given [[exastencils.datastructures.Transformation]].
+    */
+  def findResults(transformation : String) = {
+    results_.filter(p => p._1.name == transformation)
+  }
+
+  /**
+    * Resets this Strategy by, e.g., clearing all [[exastencils.datastructures.TransformationResult]]s.
+    */
+  def reset() = {
+    results_.clear()
+  }
+
+  /**
     * Executes this Strategy by applying all [[exastencils.datastructures.Transformation]]s sequentially.
     *
     * @param applyAtNode Optional; specifies a source node where the [[exastencils.datastructures.Transformation]] starts to traverse the program state.
