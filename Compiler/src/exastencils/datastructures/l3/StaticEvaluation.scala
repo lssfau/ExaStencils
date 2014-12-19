@@ -4,23 +4,29 @@ import TcbImplicits._
 import exastencils.datastructures.l4
 
 /** Static values. */
-abstract sealed class StaticValue(val scType : ScType)
+trait StaticValue extends Value
 
 /** Static locations */
-abstract sealed class LValue(scType : ScType) extends StaticValue(scType) {
+trait StaticLValue extends StaticValue with LValue {
 
   def writeTcAssignment(block : TcbBlock, tcRhs : DynamicRValue)
 
 }
 
-case class IntegerLValue(tcId : String) extends LValue(IntegerDatatype()) {
-  def writeTcAssignment(block : TcbBlock, tcRhs : DynamicRValue) {
+case class IntegerLValue(tcId : String) extends StaticLValue {
 
+  override def scType = IntegerDatatype()
+
+  def writeTcAssignment(block : TcbBlock, tcRhs : DynamicRValue) {
     val tcAccess = new l4.BasicAccess(tcId)
     block += l4.AssignmentStatement(tcAccess, tcRhs.tcExpression, "=")
   }
+
+  override def deref = ???
 }
-case class FieldLValue(tcId : String) extends LValue(FieldDatatype()) {
+case class FieldLValue(tcId : String) extends StaticLValue {
+
+  override def scType = FieldDatatype()
 
   override def writeTcAssignment(block : TcbBlock, tcRhs : DynamicRValue) {
 
@@ -33,10 +39,31 @@ case class FieldLValue(tcId : String) extends LValue(FieldDatatype()) {
     block += l4.AssignmentStatement(tcAccess, tcRhs.tcExpression, "=")
 
   }
+
+  override def deref = FieldRValue(tcId)
 }
 
-/** Static values */
-abstract sealed class RValue(scType : ScType) extends StaticValue(scType)
-case class IntegerRValue(v : Int) extends RValue(IntegerDatatype())
-case class StencilRValue() extends RValue(StencilDatatype())
+/* =================================================================== */
 
+/** Static values */
+trait StaticRValue extends StaticValue with RValue
+
+case class IntegerRValue(v : Int) extends StaticRValue {
+  override def scType = IntegerDatatype()
+}
+case class StencilRValue() extends StaticRValue {
+  override def scType = StencilDatatype()
+}
+
+case class FieldRValue(tcId : String) extends StaticRValue {
+
+  override def scType = FieldDatatype()
+
+  def toTc() : l4.Expression = {
+    l4.FieldAccess(
+      tcId,
+      l4.CurrentLevelSpecification(),
+      l4.IntegerConstant(0),
+      -1) // FIXME@Christian array index
+  }
+}

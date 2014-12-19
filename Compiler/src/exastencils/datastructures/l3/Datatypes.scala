@@ -10,6 +10,7 @@ sealed class ScType {
 
   def isStatic : Boolean = false
 }
+case class FunctionDatatype() extends ScType
 
 case class IntegerDatatype() extends ScType {
   override def toTcType : l4.Datatype = l4.IntegerDatatype()

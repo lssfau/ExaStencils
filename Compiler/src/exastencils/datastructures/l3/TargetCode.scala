@@ -17,8 +17,14 @@ class TargetCode(val computation : List[Node]) {
   def toList() : List[Node] = computation
 }
 
-class DynamicRValue(val tcExpression : l4.Expression)
-class DynamicLValue(val tcExpression : l4.Expression)
+abstract sealed class DynamicValue extends Value
+
+class DynamicRValue(val tcExpression : l4.Expression, val scType : ScType) extends DynamicValue with RValue {
+
+}
+class DynamicLValue(val tcExpression : l4.Expression, val scType : ScType) extends DynamicValue with LValue {
+  override def deref = ???
+}
 
 case class TcStatement(val stm : l4.Statement)
 

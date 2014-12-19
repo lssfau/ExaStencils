@@ -14,7 +14,9 @@ case class FunctionStatement(
   val returntype : ScType,
   val arguments : List[Variable],
   val body : List[Statement])
-    extends Statement {
+    extends Statement with StaticRValue {
+
+  def scType = FunctionDatatype()
 
   // runtime arguments
   def dynamicArguments : List[Variable] = {
@@ -27,7 +29,7 @@ case class FunctionStatement(
   }
 
   override def writeTc(env : Environment, block : TcbBlock) {
-    env.bind(id, Environment.FunctionItem(this))
+    env.bind(id, this)
   }
 
   def mangleName(args : List[StaticValue]) : String = ???
@@ -48,7 +50,7 @@ case class FunctionStatement(
     // bind function arguments
     val body_env = new Environment(Some(env))
     for ((givenArg, requestedArg) <- givenStaticArgs zip staticArguments) {
-      body_env.bind(requestedArg.id, Environment.StaticValueItem(givenArg))
+      body_env.bind(requestedArg.id, givenArg)
     }
 
     // transform to target code and concat
@@ -60,9 +62,11 @@ case class FunctionStatement(
 }
 
 case class FunctionCallStatement(val call : FunctionCallExpression) extends Statement {
+
   override def writeTc(env : Environment, block : TcbBlock) {
     throw new Exception("Not implemented")
   }
+
 }
 
 case class FunctionInstantiationStatement(
@@ -73,9 +77,9 @@ case class FunctionInstantiationStatement(
 
   override def writeTc(env : Environment, block : TcbBlock) {
 
-    val f = env.lookup(functionId) match {
-      case Environment.FunctionItem(fdef) => fdef
-      case _                              => Logger.error("Expected a function")
+    val f = env.lookupRValue(functionId) match {
+      case funStm : FunctionStatement => funStm
+      case _                          => Logger.error("Expected a function")
     }
 
     val evaluated_args = arguments map { a =>

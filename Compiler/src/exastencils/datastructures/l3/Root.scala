@@ -16,11 +16,11 @@ case class Root(var nodes : List[Node]) extends Node {
     val env = new Environment
 
     /// @todo: Remove this... only for testing
-    env.bind("myL", Environment.StaticValueItem(StencilRValue()))
-    env.bind("myF", Environment.StaticValueItem(FieldLValue("myF")))
-    env.bind("myU", Environment.StaticValueItem(FieldLValue("myU")))
-    env.bind("myDest", Environment.StaticValueItem(FieldLValue("myDest")))
-    env.bind("myWork", Environment.StaticValueItem(FieldLValue("myWork")))
+    env.bind("myL", StencilRValue())
+    env.bind("myF", FieldLValue("myF"))
+    env.bind("myU", FieldLValue("myU"))
+    env.bind("myDest", FieldLValue("myDest"))
+    env.bind("myWork", FieldLValue("myWork"))
 
     l4.Root(toTc(env))
   }
