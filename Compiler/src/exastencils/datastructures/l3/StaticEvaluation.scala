@@ -33,8 +33,7 @@ case class FieldLValue(tcId : String) extends StaticLValue {
     val tcAccess = new l4.FieldAccess(
       tcId,
       l4.CurrentLevelSpecification(),
-      l4.IntegerConstant(0),
-      -1) // FIXME@Christian array index
+      l4.IntegerConstant(0))
 
     block += l4.AssignmentStatement(tcAccess, tcRhs.tcExpression, "=")
 
@@ -63,8 +62,7 @@ case class FieldRValue(tcId : String) extends StaticRValue {
     l4.FieldAccess(
       tcId,
       l4.CurrentLevelSpecification(),
-      l4.IntegerConstant(0),
-      -1) // FIXME@Christian array index
+      l4.IntegerConstant(0))
   }
 }
 

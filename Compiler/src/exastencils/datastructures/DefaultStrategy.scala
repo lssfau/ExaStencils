@@ -43,17 +43,51 @@ class DefaultStrategy(name : String) extends Strategy(name) {
   def transformations = { transformations_.toList }
 
   /**
-    * Returns the list of [[exastencils.datastructures.TransformationResult]]s of this Strategy.
+    * Returns the list of ([[exastencils.datastructures.Transformation]], [[exastencils.datastructures.TransformationResult]]) of this Strategy.
     *
-    * @return The list of [[exastencils.datastructures.TransformationResult]]s of this Strategy.
+    * @return The list of ([[exastencils.datastructures.Transformation]], [[exastencils.datastructures.TransformationResult]]) of this Strategy.
     */
   def results = { results_.toList }
 
   /**
-   * Executes this Strategy by applying all [[exastencils.datastructures.Transformation]]s sequentially.
-   * 
-   * @param applyAtNode Optional; specifies a source node where the [[exastencils.datastructures.Transformation]] starts to traverse the program state.
-   */
+    * Returns the [[exastencils.datastructures.TransformationResult]] of the last [[exastencils.datastructures.Transformation]] that has been executed.
+    *
+    * @return The list of [[exastencils.datastructures.TransformationResult]]s of the last [[exastencils.datastructures.Transformation]] that has been executed
+    */
+  def lastResult = { if (!results.isEmpty) Logger.error("No transformation has been executed!"); results_.last._2 }
+
+  /**
+    * Returns the [[exastencils.datastructures.TransformationResult]] of the given [[exastencils.datastructures.Transformation]].
+    *
+    * @param transformation The [[exastencils.datastructures.Transformation]] to look up results for.
+    * @return The list of [[exastencils.datastructures.TransformationResult]]s of the given [[exastencils.datastructures.Transformation]].
+    */
+  def findResults(transformation : Transformation) = {
+    results_.filter(p => p == transformation)
+  }
+
+  /**
+    * Returns the [[exastencils.datastructures.TransformationResult]] of the given [[exastencils.datastructures.Transformation]].
+    *
+    * @param transformation The [[exastencils.datastructures.Transformation]] to look up results for.
+    * @return The list of [[exastencils.datastructures.TransformationResult]]s of the given [[exastencils.datastructures.Transformation]].
+    */
+  def findResults(transformation : String) = {
+    results_.filter(p => p._1.name == transformation)
+  }
+
+  /**
+    * Resets this Strategy by, e.g., clearing all [[exastencils.datastructures.TransformationResult]]s.
+    */
+  def reset() = {
+    results_.clear()
+  }
+
+  /**
+    * Executes this Strategy by applying all [[exastencils.datastructures.Transformation]]s sequentially.
+    *
+    * @param applyAtNode Optional; specifies a source node where the [[exastencils.datastructures.Transformation]] starts to traverse the program state.
+    */
   def apply(applyAtNode : Option[Node] = None) : Unit = {
     //    var start : Long = 0
     //    if ("Counting " + "Before" != name && "Counting " + "After" != name) {
@@ -117,7 +151,20 @@ class DefaultStrategy(name : String) extends Strategy(name) {
 }
 
 object DefaultStrategy {
+
+  /**
+    * A Strategy that executes its [[exastencils.datastructures.Transformation]]s sequentially.
+    *
+    * @param name name The name of the Strategy. Used for traceability and debugging purposes.
+    */
   def apply(name : String) = new DefaultStrategy(name)
+
+  /**
+    * A Strategy that executes its [[exastencils.datastructures.Transformation]]s sequentially.
+    *
+    * @param name name The name of the Strategy. Used for traceability and debugging purposes.
+    * @param transformations List of transformations for the strategy.
+    */
   def apply(name : String, transformations : List[Transformation]) = {
     val s = new DefaultStrategy(name)
     s ++= transformations

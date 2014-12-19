@@ -48,12 +48,10 @@ case class IdentifierExpression(val id : String) extends Expression {
   }
 
   override def dynamicREval(env : Environment, block : TcbBlock) : DynamicRValue = {
-
     env.lookupRValue(id) match {
       case v : FieldRValue => new DynamicRValue(v.toTc(), FieldDatatype())
       case _               => Logger.error(id ++ " is not a variable")
     }
-
   }
 
   override def scType(env : Environment) : ScType = env.lookup(id).scType

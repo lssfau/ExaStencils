@@ -56,9 +56,9 @@ case class UnresolvedAccess(var identifier : String, var level : Option[AccessLe
   def progressToIr : ir.StringConstant = ir.StringConstant("ERROR - Unresolved Access")
 
   def resolveToBasicOrLeveledAccess = if (level.isDefined) LeveledAccess(identifier, level.get) else BasicAccess(identifier)
-  def resolveToFieldAccess = FieldAccess(identifier, level.get, slot.getOrElse(IntegerConstant(0)), arrayIndex.getOrElse(-1))
+  def resolveToFieldAccess = FieldAccess(identifier, level.get, slot.getOrElse(IntegerConstant(0)), arrayIndex)
   def resolveToStencilAccess = StencilAccess(identifier, level.get)
-  def resolveToStencilFieldAccess = StencilFieldAccess(identifier, level.get, slot.getOrElse(IntegerConstant(0)), arrayIndex.getOrElse(-1))
+  def resolveToStencilFieldAccess = StencilFieldAccess(identifier, level.get, slot.getOrElse(IntegerConstant(0)), arrayIndex)
 }
 
 case class BasicAccess(var name : String) extends Access {
@@ -78,11 +78,11 @@ case class LeveledAccess(var name : String, var level : AccessLevelSpecification
   }
 }
 
-case class FieldAccess(var name : String, var level : AccessLevelSpecification, var slot : Expression, var arrayIndex : Int) extends Access {
+case class FieldAccess(var name : String, var level : AccessLevelSpecification, var slot : Expression, var arrayIndex : Option[Int] = None) extends Access {
   def prettyprint(out : PpStream) = {
     // FIXME: omit slot if numSlots of target field is 1
     out << name << '[' << slot << ']' << '@' << level
-    if (arrayIndex >= 0) out << '[' << arrayIndex << ']'
+    if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
   }
 
   def progressNameToIr : ir.StringConstant = {
@@ -95,7 +95,7 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
 
   def progressToIr : ir.FieldAccess = {
     var multiIndex = ir.LoopOverDimensions.defIt
-    multiIndex(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(if (arrayIndex >= 0) arrayIndex else 0)
+    multiIndex(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(arrayIndex.getOrElse(0).toLong)
 
     val field = knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
     ir.FieldAccess(knowledge.FieldSelection(field, ir.IntegerConstant(field.level), FieldAccess.resolveSlot(field, slot), arrayIndex), multiIndex)
@@ -123,11 +123,11 @@ case class StencilAccess(var name : String, var level : AccessLevelSpecification
   }
 }
 
-case class StencilFieldAccess(var name : String, var level : AccessLevelSpecification, var slot : Expression, var arrayIndex : Int) extends Access {
+case class StencilFieldAccess(var name : String, var level : AccessLevelSpecification, var slot : Expression, var arrayIndex : Option[Int]) extends Access {
   def prettyprint(out : PpStream) = {
     // FIXME: omit slot if numSlots of target field is 1
     out << name << '[' << slot << ']' << '@' << level
-    if (arrayIndex >= 0) out << '[' << arrayIndex << ']'
+    if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
   }
 
   def progressToIr : ir.StencilFieldAccess = {

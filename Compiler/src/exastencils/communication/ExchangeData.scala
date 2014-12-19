@@ -25,15 +25,11 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
       fieldSelection.field.fieldLayout(dim).idxById(indexId)
   }
 
-  def vecFieldIndexBegin = {
-    if (fieldSelection.arrayIndex >= 0)
-      Array(fieldSelection.arrayIndex : Expression)
-    else
-      Array(0 : Expression)
-  }
+  def vecFieldIndexBegin = Array(fieldSelection.arrayIndex.getOrElse(0).toLong : Expression)
+  
   def vecFieldIndexEnd = {
-    if (fieldSelection.arrayIndex >= 0)
-      Array((fieldSelection.arrayIndex + 1) : Expression)
+    if (fieldSelection.arrayIndex.isDefined)
+      Array((fieldSelection.arrayIndex.get + 1) : Expression)
     else
       Array(fieldSelection.field.vectorSize : Expression)
   }

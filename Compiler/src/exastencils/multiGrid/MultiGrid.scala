@@ -24,7 +24,7 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
         new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => field.fieldLayout(i).idxGhostRightEnd))),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           new AssignmentStatement(
-            new DirectFieldAccess(FieldSelection(field, field.level, slot, -1), LoopOverDimensions.defIt),
+            new DirectFieldAccess(FieldSelection(field, field.level, slot), LoopOverDimensions.defIt),
             0.0) : Statement)) with OMP_PotentiallyParallel with PolyhedronAccessable
       loopOverDims.optLevel = 1
       statements += new LoopOverFragments(

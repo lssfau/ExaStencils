@@ -85,7 +85,6 @@ case class ValueDeclarationStatement(
   }
 }
 
-// FIXME@Christian The op parameter is unnecessary
 case class AssignmentStatement(
     val dest : IdentifierExpression,
     val src : Expression,
