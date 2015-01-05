@@ -15,10 +15,10 @@ trait Expression extends Node {
   def rEval(env : Environment) : StaticRValue = {
     throw new Exception("Cannot evaluate to a static r-value.")
   }
-  def dynamicLEval(env : Environment) : DynamicLValue = {
+  def dynamicLEval(ctx : Context) : DynamicLValue = {
     throw new Exception("Cannot evaluate to a dynamic l-value.")
   }
-  def dynamicREval(env : Environment, block : TcbBlock) : DynamicRValue = {
+  def dynamicREval(ctx : Context) : DynamicRValue = {
     throw new Exception("Cannot evaluate to a dynamic r-value.")
   }
   def scType(env : Environment) : ScType = {
@@ -47,7 +47,9 @@ case class IdentifierExpression(val id : String) extends Expression {
     }
   }
 
-  override def dynamicREval(env : Environment, block : TcbBlock) : DynamicRValue = {
+  override def dynamicREval(ctx : Context) : DynamicRValue = {
+    import ctx.env
+
     env.lookupRValue(id) match {
       case v : FieldRValue => new DynamicRValue(v.toTc(), FieldDatatype())
       case _               => Logger.error(id ++ " is not a variable")
@@ -74,10 +76,11 @@ case class Variable(val id : String, val datatype : ScType) extends Expression {
 case class FunctionCallExpression(val id : String, val arguments : List[Expression])
     extends Expression {
 
-  override def dynamicREval(env : Environment, block : TcbBlock) : DynamicRValue = {
+  override def dynamicREval(ctx : Context) : DynamicRValue = {
+    import ctx.env
 
     env.lookupRValue(id) match {
-      case fun : AbstractFunctionRValue => new DynamicRValue(fun.writeTcApplication(env, block, arguments), fun.scReturnType)
+      case fun : AbstractFunctionRValue => new DynamicRValue(fun.writeTcApplication(ctx, arguments), fun.scReturnType)
       case _                            => Logger.error(id ++ " is not a function.")
     }
 
@@ -86,9 +89,9 @@ case class FunctionCallExpression(val id : String, val arguments : List[Expressi
 
 case class BinaryExpression(var operator : String, var left : Expression, var right : Expression) extends Expression {
 
-  override def dynamicREval(env : Environment, block : TcbBlock) : DynamicRValue = {
-    val leftTc = left.dynamicREval(env, block)
-    val rightTc = right.dynamicREval(env, block)
+  override def dynamicREval(ctx : Context) : DynamicRValue = {
+    val leftTc = left.dynamicREval(ctx)
+    val rightTc = right.dynamicREval(ctx)
 
     /// @todo: Auxiliary computations
     new DynamicRValue(l4.BinaryExpression(operator, leftTc.tcExpression, rightTc.tcExpression), leftTc.scType)

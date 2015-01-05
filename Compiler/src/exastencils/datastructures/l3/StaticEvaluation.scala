@@ -3,6 +3,7 @@ package exastencils.datastructures.l3
 import TcbImplicits._
 import exastencils.datastructures.l4
 import exastencils.core.Logger
+import exastencils.math._
 
 /** Static values. */
 trait StaticValue extends Value
@@ -36,7 +37,6 @@ case class FieldLValue(tcId : String) extends StaticLValue {
       l4.IntegerConstant(0))
 
     block += l4.AssignmentStatement(tcAccess, tcRhs.tcExpression, "=")
-
   }
 
   override def deref = FieldRValue(tcId)
@@ -71,7 +71,7 @@ trait AbstractFunctionRValue {
 
   def scReturnType : ScType
 
-  def writeTcApplication(env : Environment, block : TcbBlock, args : List[Expression]) : l4.Expression
+  def writeTcApplication(ctx : Context, args : List[Expression]) : l4.Expression
 }
 
 /** User defined functions. */
@@ -95,7 +95,10 @@ case class FunctionRValue(
   def mangleName(args : List[StaticValue]) : String = ???
 
   /** Return the target code of an instance of this function. */
-  def writeTcInstance(env : Environment, block : TcbBlock, givenStaticArgs : List[StaticValue], predefinedTcId : Option[String]) {
+  def writeTcInstance(
+    ctx : Context,
+    givenStaticArgs : List[StaticValue],
+    predefinedTcId : Option[String]) {
 
     val tcId = predefinedTcId match {
       case Some(i) => i
@@ -108,19 +111,28 @@ case class FunctionRValue(
     }
 
     // bind function arguments
-    val body_env = new Environment(Some(env))
+    val body_env = new Environment(Some(ctx.env))
     for ((givenArg, requestedArg) <- givenStaticArgs zip staticArguments) {
       body_env.bind(requestedArg.id, givenArg)
     }
 
-    // transform to target code and concat
-    val funTc = new TcbFunction(tcId, tcArgs)
-    body foreach { _.writeTc(body_env, funTc.body) }
+    // tcb for the function body
+    val body_tcb = new TcbBlock()
 
-    block += funTc
+    val body_ctx = new Context(body_env, body_tcb, ctx.stencils)
+
+    // transform to target code and concat
+    body foreach { _.writeTc(body_ctx) }
+
+    // write the function
+    ctx.tcb += new l4.FunctionStatement(
+      l4.LeveledIdentifier(tcId, l4.AllLevelsSpecification()),
+      l4.UnitDatatype(),
+      tcArgs,
+      body_tcb.build())
   }
 
-  def writeTcApplication(env : Environment, block : TcbBlock, args : List[Expression]) : l4.Expression = {
+  def writeTcApplication(ctx : Context, args : List[Expression]) : l4.Expression = {
     ???
   }
 }
@@ -129,9 +141,11 @@ case class ApplyStencilBuiltin() extends StaticRValue with AbstractFunctionRValu
   def scReturnType = FieldDatatype()
 
   override def writeTcApplication(
-    env : Environment,
-    block : TcbBlock,
+    ctx : Context,
     args : List[Expression]) : l4.Expression = {
+
+    import ctx.env
+    import ctx.tcb
 
     // expect precisely three arguments
     args match {
@@ -141,14 +155,21 @@ case class ApplyStencilBuiltin() extends StaticRValue with AbstractFunctionRValu
           case _ =>
             throw new Exception("First parameter of apply needs to be a field.")
         }
-        val A = stencilArg.rEval(env)
+
+        val A = stencilArg.rEval(env) match {
+          case stencil : StencilRValue => GeneralStencil[Double]()
+          case _                       => throw new Exception("Second argument to apply is not a stencil")
+        }
+
         val u = sourceField.rEval(env) match {
           case FieldRValue(fieldId) => fieldId
           case _ =>
             throw new Exception("Third parameter of apply needs to be a field")
         }
 
-        val A_access = new l4.StencilAccess("TODOresolve", l4.CurrentLevelSpecification())
+        val A_id = ctx.stencils.add(A)
+
+        val A_access = new l4.StencilAccess(A_id, l4.CurrentLevelSpecification())
         val u_access = new l4.FieldAccess(u,
           l4.CurrentLevelSpecification(),
           new l4.IntegerConstant(0))
@@ -159,7 +180,7 @@ case class ApplyStencilBuiltin() extends StaticRValue with AbstractFunctionRValu
 
         val convExpr = new l4.StencilConvolution(A_access, u_access)
 
-        block += new l4.AssignmentStatement(f_access, convExpr, "=")
+        tcb += new l4.AssignmentStatement(f_access, convExpr, "=")
 
         TcUnit() // no return value
       case _ => Logger.error("Apply takes three arguments but %d were given".format(args.length))

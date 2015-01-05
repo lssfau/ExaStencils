@@ -33,26 +33,10 @@ trait StatementsTcb {
 }
 
 object TcbImplicits {
-
   implicit def TcStatement2Tcb(stm : l4.Statement) = new TcStatementTcb(stm)
-
 }
 class TcStatementTcb(val stm : l4.Statement) extends StatementsTcb {
   override def build() : List[l4.Statement] = List(stm)
-}
-
-class TcbFunction(val tcId : String, val tcArgs : List[l4.Variable]) extends StatementsTcb {
-
-  val body = new TcbBlock
-
-  def build() : List[l4.Statement] = {
-    List(
-      new l4.FunctionStatement(
-        l4.LeveledIdentifier(tcId, l4.AllLevelsSpecification()),
-        l4.UnitDatatype(),
-        tcArgs,
-        body.build()))
-  }
 }
 
 /** A block is a list of statements. */

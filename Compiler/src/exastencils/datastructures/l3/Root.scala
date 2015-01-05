@@ -14,9 +14,14 @@ case class Root(var nodes : List[Node]) extends Node {
 
   def progressToL4 : l4.Root = {
     val env = new Environment
+    val program_block = new TcbBlock
+    val stMgr = new StencilManager
+
+    val ctx = Context(env, program_block, stMgr)
 
     /// @todo: Remove this... only for testing
     env.bind("myL", StencilRValue())
+    env.bind("myR", StencilRValue())
     env.bind("myF", FieldLValue("myF"))
     env.bind("myU", FieldLValue("myU"))
     env.bind("myDest", FieldLValue("myDest"))
@@ -25,19 +30,17 @@ case class Root(var nodes : List[Node]) extends Node {
     // register builtin functions
     env.bind("apply", ApplyStencilBuiltin())
 
-    l4.Root(toTc(env))
+    l4.Root(toTc(ctx))
   }
 
-  def toTc(env : Environment) : List[l4.Statement] = {
-
-    val program_block = new TcbBlock
+  def toTc(ctx : Context) : List[l4.Statement] = {
 
     // insert functions into the current environment
-    functions foreach { _.writeTc(env, program_block) }
+    functions foreach { _.writeTc(ctx) }
 
     // instantiate
-    functionInstantiations foreach { _.writeTc(env, program_block) }
+    functionInstantiations foreach { _.writeTc(ctx) }
 
-    program_block.build
+    ctx.tcb.build
   }
 }

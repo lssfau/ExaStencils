@@ -10,10 +10,10 @@ Function jacobi(dest : Field, L : Stencil, f : Field, u : Field, omega : Real, w
     dest = u + dest
 }
 
-Function restrict(R : Stencil, u : Field, u_c : Field) : Unit
+Function restrict(u_c : Field, R : Stencil, u : Field, work : Field) : Unit
 {
-    aux = apply(R, u)
-    inject(aux, u_c)
+    apply(work, R, u)
+    //inject(aux, u_c)
 }
 
 Function smoother(L : Stencil, f : Field, u : Field) : Unit
@@ -23,5 +23,7 @@ Function smoother(L : Stencil, f : Field, u : Field) : Unit
 }
 
 Instantiate Function jacobi with (myDest, myL, myF, myU, myWork) as smoother @(1 to finest)
+
+Instantiate Function restrict with (myF, myR, myU, myWork) as restrict @(1 to finest)
 
 
