@@ -75,6 +75,8 @@ trait AbstractFunctionRValue {
   def scReturnType : ScType
 
   def writeTcApplication(ctx : Context, args : List[Expression]) : l4.Expression
+
+  def staticApplication(env : Environment, args : List[Expression]) : StaticValue
 }
 
 /** User defined functions. */
@@ -135,7 +137,11 @@ case class FunctionRValue(
       body_tcb.build())
   }
 
-  def writeTcApplication(ctx : Context, args : List[Expression]) : l4.Expression = {
+  override def writeTcApplication(ctx : Context, args : List[Expression]) : l4.Expression = {
+    ???
+  }
+
+  override def staticApplication(env : Environment, args : List[Expression]) : StaticValue = {
     ???
   }
 }
@@ -191,6 +197,28 @@ case class ApplyStencilBuiltin() extends StaticRValue with AbstractFunctionRValu
     }
   }
 
+  override def staticApplication(env : Environment, args : List[Expression]) : StaticValue = {
+    ???
+  }
+}
+
+case class DiagInvBuiltin() extends StaticRValue with AbstractFunctionRValue {
+  def scReturnType = StaticListDatatype()
+
+  override def writeTcApplication(ctx : Context, args : List[Expression]) : l4.Expression = {
+    ???
+  }
+
+  override def staticApplication(env : Environment, args : List[Expression]) : StaticValue = {
+    args match {
+      case List(arg1) =>
+
+        val inputStencil = arg1.rEval(env) match {
+          case s : StaticListRValue => s
+        }
+        Stencil(inputStencil).diagInv().toSc()
+    }
+  }
 }
 
 /* =================================================================== */

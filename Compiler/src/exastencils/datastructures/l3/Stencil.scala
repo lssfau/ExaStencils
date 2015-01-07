@@ -6,7 +6,6 @@ import scala.collection.mutable.ListBuffer
 
 object StencilOffset {
   def apply(c : StaticValue) : StencilOffset = {
-
     c match {
       case StaticListRValue(el) =>
         new StencilOffset(el map {
@@ -31,6 +30,10 @@ class StencilOffset(coordinates : List[Int]) {
         throw new Exception("Target language does not support %d dimensions.".format(dimension))
     }
   }
+
+  def toSc() = StaticListRValue(coordinates map { IntegerRValue(_) })
+
+  def isZero = coordinates forall { _ == 0 }
 }
 
 object StencilEntry {
@@ -49,6 +52,13 @@ class StencilEntry(val offset : StencilOffset, val value : Double) {
     l4.StencilEntry(offset.toTc(), l4.FloatConstant(value))
   }
 
+  def toSc() = {
+    StaticListRValue(List(offset.toSc(), FloatRValue(value)))
+  }
+
+  def invertValue() = new StencilEntry(offset, 1 / value)
+
+  def atZero = offset.isZero
 }
 
 object Stencil {
@@ -82,6 +92,13 @@ class Stencil(val entries : List[StencilEntry]) {
       entries map { _.toTc() })
   }
 
+  def toSc() = {
+    StaticListRValue(entries map { _.toSc() })
+  }
+
+  def diagInv() : Stencil = {
+    new Stencil((entries filter { _.atZero }) map { _.invertValue() })
+  }
 }
 
 /** Manages the code for all automatically generated stencils. */

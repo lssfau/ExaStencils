@@ -2,14 +2,13 @@
 
 Function jacobi(dest : Field, L : Stencil, f : Field, u : Field, omega : Real, work : Field) : Unit
 {
-    aux := work
+    D_inv := diag_inv(L)
     
-    //dest = u + diag_inv(L) * (f - L*u)
-    // aux = L * u
-    apply(aux, L, u)
-    aux = f - aux
-    //dest = apply(diag_inv(L), aux)
-    dest = u + dest
+    //dest = u + D_inv * (f - L*u)
+    apply(work, L, u)
+    work = f - work
+    apply(work, D_inv, work)
+    work = u + dest
 }
 
 Function restrict(u_c : Field, R : Stencil, u : Field, work : Field) : Unit

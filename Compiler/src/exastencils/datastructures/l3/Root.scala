@@ -46,6 +46,7 @@ case class Root(var nodes : List[Node]) extends Node {
 
     // bind builtin functions to their names
     env.bind("apply", ApplyStencilBuiltin())
+    env.bind("diag_inv", DiagInvBuiltin())
 
     l4.Root(toTc(ctx))
   }

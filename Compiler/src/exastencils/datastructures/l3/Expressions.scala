@@ -85,6 +85,14 @@ case class FunctionCallExpression(val id : String, val arguments : List[Expressi
     }
 
   }
+
+  override def rEval(env : Environment) : StaticRValue = {
+
+    env.lookupRValue(id) match {
+      case fun : AbstractFunctionRValue => fun.staticApplication(env, arguments).asInstanceOf[StaticRValue]
+      case _                            => Logger.error(id ++ " is not a function.")
+    }
+  }
 }
 
 case class BinaryExpression(var operator : String, var left : Expression, var right : Expression) extends Expression {
