@@ -50,6 +50,9 @@ trait StaticRValue extends StaticValue with RValue
 case class IntegerRValue(v : Int) extends StaticRValue {
   override def scType = IntegerDatatype()
 }
+case class FloatRValue(v : Double) extends StaticRValue {
+  override def scType = RealDatatype()
+}
 case class StencilRValue() extends StaticRValue {
   override def scType = StencilDatatype()
 }
@@ -78,17 +81,17 @@ trait AbstractFunctionRValue {
 case class FunctionRValue(
   val id : String,
   val scReturnType : ScType,
-  val arguments : List[Variable],
+  val arguments : List[FunctionArgument],
   val body : List[Statement])
     extends StaticRValue with AbstractFunctionRValue {
 
   // runtime arguments
-  def dynamicArguments : List[Variable] = {
+  def dynamicArguments : List[FunctionArgument] = {
     // return only dynamic arguments
     arguments filter { a => !a.datatype.isStatic }
   }
 
-  def staticArguments : List[Variable] = {
+  def staticArguments : List[FunctionArgument] = {
     arguments filter { a => a.datatype.isStatic }
   }
 
@@ -106,7 +109,7 @@ case class FunctionRValue(
     }
 
     val tcArgs = dynamicArguments map {
-      case Variable(id, scType) =>
+      case FunctionArgument(id, scType) =>
         l4.Variable(l4.BasicIdentifier(id), scType.toTcType)
     }
 
@@ -157,8 +160,8 @@ case class ApplyStencilBuiltin() extends StaticRValue with AbstractFunctionRValu
         }
 
         val A = stencilArg.rEval(env) match {
-          case stencil : StencilRValue => GeneralStencil[Double]()
-          case _                       => throw new Exception("Second argument to apply is not a stencil")
+          case stencil : StaticListRValue => stencil
+          case _                          => throw new Exception("Second argument to apply is not a stencil")
         }
 
         val u = sourceField.rEval(env) match {
@@ -188,5 +191,11 @@ case class ApplyStencilBuiltin() extends StaticRValue with AbstractFunctionRValu
     }
   }
 
+}
+
+/* =================================================================== */
+
+case class StaticListRValue(val elements : List[StaticValue]) extends StaticRValue {
+  def scType = StaticListDatatype()
 }
 

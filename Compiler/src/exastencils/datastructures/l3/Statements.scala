@@ -12,7 +12,7 @@ abstract class Statement extends Node {
 case class FunctionStatement(
   val id : String,
   val returntype : ScType,
-  val arguments : List[Variable],
+  val arguments : List[FunctionArgument],
   val body : List[Statement])
     extends Statement {
 
@@ -45,7 +45,7 @@ case class FunctionInstantiationStatement(
     val level : LevelSpecification) extends Statement {
 
   override def writeTc(ctx : Context) {
-    import ctx._
+    import ctx.env
 
     val fun = env.lookupRValue(functionId) match {
       case fun : FunctionRValue => fun
@@ -55,15 +55,30 @@ case class FunctionInstantiationStatement(
     // evaluate the static arguments
     val evaluated_args = arguments map { a =>
       a.scType(env) match {
-        case FieldDatatype()   => a.lEval(env)
-        case StencilDatatype() => a.rEval(env)
-        case _                 => throw new Exception("Static argument expected.")
+        case FieldDatatype()      => a.lEval(env)
+        case StencilDatatype()    => a.rEval(env)
+        case StaticListDatatype() => a.rEval(env)
+        case _                    => throw new Exception("Static argument expected.")
       }
     }
 
     fun.writeTcInstance(ctx, evaluated_args, instantiationId)
   }
+}
 
+case class LocalDefinitionStatement(
+    val id : String,
+    val expr : Expression) extends Statement {
+
+  override def writeTc(ctx : Context) {
+
+    /** @todo Clean implementation w/o exceptions */
+    try {
+      ctx.env.bind(id, expr.lEval(ctx.env))
+    } catch {
+      case e : Exception => ctx.env.bind(id, expr.rEval(ctx.env))
+    }
+  }
 }
 
 case class VariableDeclarationStatement(
@@ -92,7 +107,6 @@ case class AssignmentStatement(
     val op : String) extends Statement {
 
   override def writeTc(ctx : Context) {
-
     if (op != "=") {
       Logger.error("%s is not a valid assignment operator.".format(op))
     }
