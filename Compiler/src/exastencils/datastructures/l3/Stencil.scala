@@ -5,21 +5,22 @@ import exastencils.datastructures.l4
 import scala.collection.mutable.ListBuffer
 
 object StencilOffset {
-  def apply(c : StaticValue) : StencilOffset = {
+  def apply(c: StaticValue): StencilOffset = {
     c match {
       case StaticListRValue(el) =>
         new StencilOffset(el map {
           case IntegerRValue(v) => v
-          case _                => throw new Exception("Stencil offsets need to be integers.")
+          case _ => throw new Exception("Stencil offsets need to be integers.")
         })
     }
   }
 }
-class StencilOffset(coordinates : List[Int]) {
+
+class StencilOffset(coordinates: List[Int]) {
 
   def dimension = coordinates.length
 
-  def toTc() : l4.ExpressionIndex = {
+  def toTc(): l4.ExpressionIndex = {
     /** @todo Implement general n-D case. */
     coordinates match {
       case List(x, y) =>
@@ -37,7 +38,7 @@ class StencilOffset(coordinates : List[Int]) {
 }
 
 object StencilEntry {
-  def apply(e : StaticValue) : StencilEntry = {
+  def apply(e: StaticValue): StencilEntry = {
     e match {
       case StaticListRValue(List(offset, FloatRValue(value))) =>
         new StencilEntry(StencilOffset(offset), value)
@@ -46,9 +47,9 @@ object StencilEntry {
     }
   }
 }
-class StencilEntry(val offset : StencilOffset, val value : Double) {
+class StencilEntry(val offset: StencilOffset, val value: Double) {
 
-  def toTc() : l4.StencilEntry = {
+  def toTc(): l4.StencilEntry = {
     l4.StencilEntry(offset.toTc(), l4.FloatConstant(value))
   }
 
@@ -62,18 +63,18 @@ class StencilEntry(val offset : StencilOffset, val value : Double) {
 }
 
 object Stencil {
-  def apply(s : StaticListRValue) : Stencil = {
+  def apply(s: StaticListRValue): Stencil = {
     val entries = s.elements map { e => StencilEntry(e) }
     new Stencil(entries)
   }
 }
 /** Manages logical data structure for stencils. */
-class Stencil(val entries : List[StencilEntry]) {
+class Stencil(val entries: List[StencilEntry]) {
 
   // always validate
   validate()
 
-  def isValid : Boolean = {
+  def isValid: Boolean = {
     entries forall { e => e.offset.dimension == dimension }
   }
   def validate() {
@@ -84,7 +85,7 @@ class Stencil(val entries : List[StencilEntry]) {
 
   def dimension = entries.head.offset.dimension
 
-  def toTc(id : String) = {
+  def toTc(id: String) = {
 
     l4.StencilDeclarationStatement(
       l4.LeveledIdentifier(id,
@@ -96,7 +97,7 @@ class Stencil(val entries : List[StencilEntry]) {
     StaticListRValue(entries map { _.toSc() })
   }
 
-  def diagInv() : Stencil = {
+  def diagInv(): Stencil = {
     new Stencil((entries filter { _.atZero }) map { _.invertValue() })
   }
 }
@@ -110,12 +111,12 @@ class StencilManager {
 
   private var idCount = 0
 
-  def genId() : String = {
+  def genId(): String = {
     idCount += 1
     "__stencil_id%02d".format(idCount)
   }
 
-  def add(s : StaticListRValue) : String = {
+  def add(s: StaticListRValue): String = {
 
     val id = genId()
 

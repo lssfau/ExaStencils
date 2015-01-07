@@ -7,8 +7,8 @@ Function jacobi(dest : Field, L : Stencil, f : Field, u : Field, omega : Real, w
     //dest = u + D_inv * (f - L*u)
     apply(work, L, u)
     work = f - work
-    apply(work, D_inv, work)
-    work = u + dest
+    apply(dest, D_inv, work)
+    dest = u + dest
 }
 
 Function restrict(u_c : Field, R : Stencil, u : Field, work : Field) : Unit
