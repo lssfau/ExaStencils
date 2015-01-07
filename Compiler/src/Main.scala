@@ -50,6 +50,7 @@ object Main {
 
     if (Knowledge.l3tmp_generateL4) {
       StateManager.root_ = new l3.Generate.Root
+      StateManager.root_.asInstanceOf[l3.Generate.Root].printToL4(Settings.getL4file)
     }
 
     // read L4
