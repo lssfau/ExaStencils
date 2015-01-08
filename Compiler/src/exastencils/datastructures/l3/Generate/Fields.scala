@@ -43,7 +43,7 @@ object Fields {
       var bc = (
         if (Knowledge.l3tmp_kelvin && "" == postfix) "bcSol(xPos, yPos)"
         else Knowledge.dimensionality match {
-          case 2 => "sin ( M_PI * xPos ) * sinh ( M_PI * yPos )"
+          case 2 => if (Knowledge.useDblPrecision) "sin ( M_PI * xPos ) * sinh ( M_PI * yPos )" else "sinf ( M_PI * xPos ) * sinhf ( M_PI * yPos )"
           //case 3 => 
           //"xPos * xPos - 0.5 * yPos * yPos - 0.5 * zPos * zPos"
           //"exp ( xPos ) * sin ( yPos ) + exp ( yPos ) * sin ( zPos ) + exp ( zPos ) * sin ( xPos )"

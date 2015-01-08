@@ -26,7 +26,7 @@ object Solve {
       printer.println("\tstartTimer ( timeToSolveWatch )")
     }
     printer.println("\tVariable numIt : Integer = 0")
-    printer.println("\trepeat until res_0 < 1.0e-8 {")
+    printer.println(s"\trepeat until res_0 < ${if (Knowledge.useDblPrecision) "1.0e-8" else "1.0e-2"} {")
     printer.println("\t\tnumIt += 1")
     if (!Knowledge.l3tmp_genForAutoTests)
       printer.println("\t\tstartTimer ( stopWatch )")
@@ -72,7 +72,7 @@ object Solve {
       printer.println("Function Solve_GMRF ( ) : Unit {")
       printer.println("\tnative ( \"static int sample = 0\" )")
       printer.println("\tnative ( \"std::default_random_engine generator(mpiRank + sample++)\" )")
-      printer.println("\tnative ( \"std::normal_distribution<double> distribution(0.0, 1.0)\" )")
+      printer.println("\tnative ( \"std::normal_distribution<" + (if (Knowledge.useDblPrecision) "double" else "float") + "> distribution(0.0, 1.0)\" )")
       printer.println("\tnative ( \"auto randn = std::bind ( distribution, generator )\" )")
 
       printer.println(s"\tVariable tau2 : Real = myGamma ( nu ) / ( myGamma ( nu + 0.5 ) * (( 4.0 * M_PI ) ** ( dim / 2.0 )) * ( kappa ** ( 2 * nu )) * sigma * sigma )")
