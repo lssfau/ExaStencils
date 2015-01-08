@@ -4,12 +4,12 @@ import scala.collection.mutable.ListBuffer
 import exastencils.datastructures._
 
 case class Root(var nodes : List[Node]) extends Node {
-  val functionDefinitions = ListBuffer[FunctionStatement]()
+  val functionDefinitions = ListBuffer[FunctionDefinitionStatement]()
   val functionInstantiations = ListBuffer[FunctionInstantiationStatement]()
   val staticAssignments = ListBuffer[StaticAssignmantStatement]()
 
   nodes.foreach(_ match {
-    case x : FunctionStatement              => functionDefinitions += x
+    case x : FunctionDefinitionStatement    => functionDefinitions += x
     case x : FunctionInstantiationStatement => functionInstantiations += x
     case x : StaticAssignmantStatement      => staticAssignments += x
     case _                                  => throw new Exception("Unexpected node in program AST")
@@ -19,21 +19,14 @@ case class Root(var nodes : List[Node]) extends Node {
     val env = new Environment
     val program_block = new TcbBlock
     val stMgr = new StencilManager
+    val fldMgr = new FieldManager
 
-    val ctx = Context(env, program_block, stMgr)
-
-    /** @todo: Remove this... needed only for testing */
-    /* BEGIN */
-    env.bind("myF", FieldLValue("myF"))
-    env.bind("myU", FieldLValue("myU"))
-    env.bind("myDest", FieldLValue("myDest"))
-    env.bind("myWork", FieldLValue("myWork"))
-
-    /* END */
+    val ctx = Context(env, program_block, stMgr, fldMgr)
 
     // bind builtin functions to their names
     env.bind("apply", ApplyStencilBuiltin())
     env.bind("diag_inv", DiagInvBuiltin())
+    env.bind("field", InstantiateFieldBuiltin())
 
     l4.Root(toTc(ctx))
   }

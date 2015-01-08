@@ -9,7 +9,7 @@ abstract class Statement extends Node {
   def writeTc(ctx : Context)
 }
 
-case class FunctionStatement(
+case class FunctionDefinitionStatement(
   val id : String,
   val returntype : ScType,
   val arguments : List[FunctionArgument],
@@ -52,12 +52,14 @@ case class FunctionInstantiationStatement(
       case _                    => Logger.error("Expected a function")
     }
 
+    /** @todo Clean up this cases. */
+
     // evaluate the static arguments
     val evaluated_args = arguments map { a =>
       a.scType(env) match {
-        case FieldDatatype()      => a.lEval(env)
-        case StencilDatatype()    => a.rEval(env)
-        case StaticListDatatype() => a.rEval(env)
+        case FieldDatatype()      => a.lEval(ctx)
+        case StencilDatatype()    => a.rEval(ctx)
+        case StaticListDatatype() => a.rEval(ctx)
         case _                    => throw new Exception("Static argument expected.")
       }
     }
@@ -73,11 +75,14 @@ case class StaticAssignmantStatement(
   override def writeTc(ctx : Context) {
 
     /** @todo Clean implementation w/o exceptions */
-    try {
-      ctx.env.bind(id, expr.lEval(ctx.env))
-    } catch {
-      case e : Exception => ctx.env.bind(id, expr.rEval(ctx.env))
+
+    val evald_rhs = expr.scType(ctx.env) match {
+      case FieldDatatype()      => expr.lEval(ctx)
+      case StencilDatatype()    => expr.rEval(ctx)
+      case StaticListDatatype() => expr.rEval(ctx)
+      case _                    => throw new Exception("Static argument expected.")
     }
+    ctx.env.bind(id, evald_rhs)
   }
 }
 
@@ -113,7 +118,7 @@ case class AssignmentStatement(
 
     // compute the l-value
     // since l4 does not implement references this has to be a static evaluation
-    val lvalue = dest.lEval(ctx.env)
+    val lvalue = dest.lEval(ctx)
     val tcRhs = src.dynamicREval(ctx)
 
     lvalue.writeTcAssignment(ctx.tcb, tcRhs)

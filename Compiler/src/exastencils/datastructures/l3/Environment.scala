@@ -16,7 +16,7 @@ class Environment(parent : Option[Environment] = None) {
     } else {
       parent match {
         case Some(p) => p.lookup(id)
-        case None    => Logger.error(id + " is undefined")
+        case None    => Logger.error("Identifier " + id + " is undefined.")
       }
     }
   }
@@ -60,5 +60,7 @@ class Environment(parent : Option[Environment] = None) {
       case None    => map.mkString(", ")
     }
   }
+
+  def boundIdentifier() = map.keySet.toList
 }
 

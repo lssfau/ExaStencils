@@ -23,6 +23,11 @@ myR := [
   [[ 1,  1], 0.0625]
 ]
 
+myF := field()
+myU := field()
+myWork := field()
+myDest := field()
+
 Function jacobi(dest : Field, L : Stencil, f : Field, u : Field, omega : Real, work : Field) : Unit
 {
     D_inv := diag_inv(L)
