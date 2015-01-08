@@ -9,6 +9,8 @@ object Knowledge {
   var targetCompilerVersion : Int = 0 // major version of the target compiler
   var targetCompilerVersionMinor : Int = 0 // minor version of the target compiler
 
+  var useDblPrecision : Boolean = true
+
   var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2"
   def simd_vectorSize : Int = { // number of vector elements for SIMD instructions (currently only double precision)
     simd_instructionSet match {
@@ -202,6 +204,7 @@ object Knowledge {
 
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
+    Constraints.condEnsureValue(opt_vectorize, false, !useDblPrecision, "opt_vectorize is currently not compatible with float precision")
 
     Constraints.updateValue(useOMP, (domain_summarizeBlocks && domain_fragLength != 1) || domain_numFragsPerBlock != 1)
     Constraints.updateValue(useMPI, (domain_numBlocks != 1))

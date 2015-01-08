@@ -3,6 +3,7 @@ package exastencils.util
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.prettyprinting._
+import exastencils.knowledge.Knowledge
 
 case class Vector() extends Node with FilePrettyPrintable {
   override def printToFile = {
@@ -13,7 +14,7 @@ case class Vector() extends Node with FilePrettyPrintable {
     writer.addExternalDependency("sstream")
     writer.addExternalDependency("string")
 
-    writer << ("""
+    writer << """
 //=====================================================================================================================
 //                                        _    __   ____   ____     ______   ____
 //                                       | |  / /  /  _/  / __ \   / ____/  / __ \
@@ -40,11 +41,12 @@ template <typename T> class TVec2;
 //=====================================================================================================================
 // typedefs
 //=====================================================================================================================
+"""
+    writer << "typedef TVec4<" + (if (Knowledge.useDblPrecision) "double" else "float") + "> Vec4;				///< a 4D float vector\n"
+    writer << "typedef TVec3<" + (if (Knowledge.useDblPrecision) "double" else "float") + "> Vec3;				///< a 3D float vector\n"
+    writer << "typedef TVec2<" + (if (Knowledge.useDblPrecision) "double" else "float") + "> Vec2;				///< a 2D float vector\n"
 
-typedef TVec4<double> Vec4;				///< a 4D float vector
-typedef TVec3<double> Vec3;				///< a 3D float vector
-typedef TVec2<double> Vec2;				///< a 2D float vector
-
+    writer << """
 typedef TVec4<unsigned int> Vec4u;			///< a 4D unsigned int vector
 typedef TVec3<unsigned int> Vec3u;			///< a 3D unsigned int vector
 typedef TVec2<unsigned int> Vec2u;			///< a 2D unsigned int vector
@@ -903,6 +905,6 @@ inline TVec4<T> min (const TVec4<T> &v1, const TVec4<T> &v2)
 template <typename T>
 inline TVec4<T> max (const TVec4<T> &v1, const TVec4<T> &v2)
 { return TVec4<T>(std::max(v1.x, v2.x), std::max(v1.y, v2.y), std::max(v1.z, v2.z), std::max(v1.w, v2.w)); }
-""");
+"""
   }
 }

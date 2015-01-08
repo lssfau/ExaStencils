@@ -50,8 +50,19 @@ case class IntegerDatatype() extends Datatype {
 }
 
 case class RealDatatype() extends Datatype {
-  override def prettyprint(out : PpStream) : Unit = out << "double"
-  override def prettyprint_mpi = "MPI_DOUBLE"
+  override def prettyprint(out : PpStream) : Unit = {
+    if (Knowledge.useDblPrecision)
+      out << "double"
+    else
+      out << "float"
+  }
+
+  override def prettyprint_mpi = {
+    if (Knowledge.useDblPrecision)
+      "MPI_DOUBLE"
+    else
+      "MPI_FLOAT"
+  }
 }
 
 case class SIMD_RealDatatype() extends Datatype {
