@@ -4,19 +4,16 @@ import scala.collection.mutable.ListBuffer
 import exastencils.datastructures._
 
 case class Root(var nodes : List[Node]) extends Node {
-  val functions = ListBuffer[FunctionStatement]()
+  val functionDefinitions = ListBuffer[FunctionStatement]()
   val functionInstantiations = ListBuffer[FunctionInstantiationStatement]()
+  val staticAssignments = ListBuffer[StaticAssignmantStatement]()
 
   nodes.foreach(_ match {
-    case x : FunctionStatement              => functions += x
+    case x : FunctionStatement              => functionDefinitions += x
     case x : FunctionInstantiationStatement => functionInstantiations += x
+    case x : StaticAssignmantStatement      => staticAssignments += x
+    case _                                  => throw new Exception("Unexpected node in program AST")
   })
-
-  def mkStencilEntry(offset : List[Integer], value : Double) = {
-    StaticListRValue(List(
-      StaticListRValue(offset map { i => IntegerRValue(i) }),
-      FloatRValue(value)))
-  }
 
   def progressToL4 : l4.Root = {
     val env = new Environment
@@ -27,16 +24,6 @@ case class Root(var nodes : List[Node]) extends Node {
 
     /** @todo: Remove this... needed only for testing */
     /* BEGIN */
-
-    val L = StaticListRValue(List(
-      mkStencilEntry(List(0, -1), -1.0),
-      mkStencilEntry(List(-1, 0), -1.0),
-      mkStencilEntry(List(0, 0), 4.0),
-      mkStencilEntry(List(1, 0), -1.0),
-      mkStencilEntry(List(0, 1), -1.0)))
-
-    env.bind("myL", L)
-    env.bind("myR", L)
     env.bind("myF", FieldLValue("myF"))
     env.bind("myU", FieldLValue("myU"))
     env.bind("myDest", FieldLValue("myDest"))
@@ -53,8 +40,11 @@ case class Root(var nodes : List[Node]) extends Node {
 
   def toTc(ctx : Context) : List[Node] = {
 
+    // perform static assignments
+    staticAssignments foreach { _.writeTc(ctx) }
+
     // insert functions into the current environment
-    functions foreach { _.writeTc(ctx) }
+    functionDefinitions foreach { _.writeTc(ctx) }
 
     // instantiate
     functionInstantiations foreach { _.writeTc(ctx) }

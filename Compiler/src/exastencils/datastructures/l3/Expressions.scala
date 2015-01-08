@@ -28,7 +28,6 @@ trait Expression extends Node {
 }
 
 trait Number extends Expression {
-  def value : AnyVal
 }
 
 case class IdentifierExpression(val id : String) extends Expression {
@@ -61,12 +60,12 @@ case class IdentifierExpression(val id : String) extends Expression {
 }
 
 case class StringConstant(val value : String) extends Expression
-case class IntegerConstant(val v : Long) extends Number {
-  override def value = v
+case class IntegerConstant(val v : Int) extends Number {
+  override def rEval(env : Environment) : StaticRValue = IntegerRValue(v)
 }
 
 case class FloatConstant(val v : Double) extends Number {
-  override def value = v
+  override def rEval(env : Environment) : StaticRValue = FloatRValue(v)
 }
 
 case class FunctionArgument(val id : String, val datatype : ScType) extends Expression {
@@ -113,6 +112,15 @@ case class BinaryExpression(var operator : String, var left : Expression, var ri
     }
     lt
   }
+}
 
+case class ListExpression(elements : List[Expression]) extends Expression {
+
+  override def rEval(env : Environment) : StaticRValue = {
+
+    val evald_elements = elements map { _.rEval(env) }
+
+    StaticListRValue(evald_elements)
+  }
 }
 

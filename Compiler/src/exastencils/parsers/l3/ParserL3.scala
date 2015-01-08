@@ -66,7 +66,7 @@ class ParserL3 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val program = definition.* ^^ { case d => Root(d) }
 
-  lazy val definition = function ||| instantiation
+  lazy val definition = functionDefinition ||| instantiation ||| staticAssignment
 
   lazy val identifier = ident ^^ { case id => IdentifierExpression(id) }
 
@@ -106,7 +106,7 @@ class ParserL3 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ##### Functions
   // ######################################
 
-  lazy val function = locationize((("Func" ||| "Function") ~> ident) ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}")) ^^
+  lazy val functionDefinition = locationize((("Func" ||| "Function") ~> ident) ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}")) ^^
     { case id ~ args ~ t ~ stmts => FunctionStatement(id, t, args.getOrElse(List[FunctionArgument]()), stmts) })
   lazy val functionArgumentList = (functionArgument <~ ("," | newline)).* ~ functionArgument ^^ { case args ~ arg => args :+ arg }
   lazy val functionArgument = locationize(((ident <~ ":") ~ datatype) ^^ { case id ~ t => FunctionArgument(id, t) })
@@ -131,8 +131,7 @@ class ParserL3 extends ExaParser with scala.util.parsing.combinator.PackratParse
     //    ||| loopOver
     //    ||| loopOverFragments
     ||| assignment
-    ||| localDefinition
-    //    ||| operatorassignment
+    ||| staticAssignment
     ||| locationize(functionCall ^^ { case f => FunctionCallStatement(f) }) //    ||| conditional
     //    ||| applyBCsStatement
     )
@@ -140,8 +139,8 @@ class ParserL3 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val variableDeclaration = (locationize((("Var" ||| "Variable") ~> ident) ~ (":" ~> datatype) ~ ("=" ~> binaryexpression).?
     ^^ { case id ~ dt ~ exp => VariableDeclarationStatement(id, dt, exp) }))
 
-  lazy val localDefinition = (locationize(ident ~ (":=" ~> binaryexpression) ^^
-    { case id ~ expr => LocalDefinitionStatement(id, expr) }))
+  lazy val staticAssignment = (locationize(ident ~ (":=" ~> binaryexpression) ^^
+    { case id ~ expr => StaticAssignmantStatement(id, expr) }))
 
   //  lazy val valueDeclaration = (locationize((("Val" ||| "Value") ~> identifierWithOptionalLevel) ~ (":" ~> datatype) ~ ("=" ~> binaryexpression)
   //    ^^ { case id ~ dt ~ exp => ValueDeclarationStatement(id, dt, exp) }))
@@ -216,12 +215,19 @@ class ParserL3 extends ExaParser with scala.util.parsing.combinator.PackratParse
     locationize((term2 ~ ("**") ~ factor) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
     ||| factor)
 
-  lazy val factor = (
+  lazy val factor : PackratParser[Expression] = (
     "(" ~> binaryexpression <~ ")"
+    ||| listExpression
     ||| locationize(stringLit ^^ { case s => StringConstant(s) })
     ||| locationize("-".? ~ numericLit ^^ { case s ~ n => if (isInt(s.getOrElse("") + n)) IntegerConstant((s.getOrElse("") + n).toInt) else FloatConstant((s.getOrElse("") + n).toDouble) })
     ||| functionCall
     ||| ident ^^ { case id => IdentifierExpression(id) })
+
+  lazy val listExpression : PackratParser[ListExpression] =
+    locationize("[" ~> listElements <~ "]")
+
+  lazy val listElements : PackratParser[ListExpression] =
+    (binaryexpression <~ ("," | newline)).* ~ binaryexpression ^^ { case elements ~ lastElement => ListExpression(elements :+ lastElement) }
 
   //  lazy val booleanexpression : PackratParser[Expression] = (
   //    locationize(("!" ~> booleanexpression1) ^^ { case ex => UnaryBooleanExpression("!", ex) })

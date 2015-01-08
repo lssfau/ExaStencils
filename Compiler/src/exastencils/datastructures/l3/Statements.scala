@@ -66,7 +66,7 @@ case class FunctionInstantiationStatement(
   }
 }
 
-case class LocalDefinitionStatement(
+case class StaticAssignmantStatement(
     val id : String,
     val expr : Expression) extends Statement {
 
