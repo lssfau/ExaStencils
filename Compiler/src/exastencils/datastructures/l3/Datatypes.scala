@@ -30,6 +30,7 @@ case class ArrayDatatype(val elementType : ScType, val numElements : Int) extend
 case class ComplexDatatype(val baseType : ScType) extends ScType {
   override def toTcType : l4.Datatype = l4.ComplexDatatype(baseType.toTcType)
 }
+case class StaticListDatatype() extends ScType
 
 /* # Static types */
 

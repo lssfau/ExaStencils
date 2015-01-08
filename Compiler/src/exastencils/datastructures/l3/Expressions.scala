@@ -69,7 +69,7 @@ case class FloatConstant(val v : Double) extends Number {
   override def value = v
 }
 
-case class Variable(val id : String, val datatype : ScType) extends Expression {
+case class FunctionArgument(val id : String, val datatype : ScType) extends Expression {
   override def scType(env : Environment) = datatype
 }
 
@@ -85,6 +85,14 @@ case class FunctionCallExpression(val id : String, val arguments : List[Expressi
     }
 
   }
+
+  override def rEval(env : Environment) : StaticRValue = {
+
+    env.lookupRValue(id) match {
+      case fun : AbstractFunctionRValue => fun.staticApplication(env, arguments).asInstanceOf[StaticRValue]
+      case _                            => Logger.error(id ++ " is not a function.")
+    }
+  }
 }
 
 case class BinaryExpression(var operator : String, var left : Expression, var right : Expression) extends Expression {
@@ -93,7 +101,7 @@ case class BinaryExpression(var operator : String, var left : Expression, var ri
     val leftTc = left.dynamicREval(ctx)
     val rightTc = right.dynamicREval(ctx)
 
-    /// @todo: Auxiliary computations
+    /** @todo: Auxiliary computations */
     new DynamicRValue(l4.BinaryExpression(operator, leftTc.tcExpression, rightTc.tcExpression), leftTc.scType)
 
   }

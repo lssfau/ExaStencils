@@ -7,7 +7,7 @@ import exastencils.datastructures.l4._
 
 class ExaParser extends StandardTokenParsers {
   override val lexical : ExaLexer = new ExaLexer()
-  
+
   val IntRegEx = """[+-]?(\d+)""".r
   val DoubleRegEx = """[+-]?\d+(\.\d*)?""".r
   protected def isInt(str : String) : Boolean = {
@@ -29,8 +29,6 @@ class ExaParser extends StandardTokenParsers {
 
   lazy val listdelimiter = newline | ","
   lazy val newline = "\n" | "\r\n"
-
-
 
   lazy val integerLit = (
     numericLit ^^ { case n if (isInt(n)) => n.toInt }

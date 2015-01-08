@@ -2,11 +2,12 @@
 
 Function jacobi(dest : Field, L : Stencil, f : Field, u : Field, omega : Real, work : Field) : Unit
 {
-    //dest = u + diag_inv(L) * (f - L*u)
-    // work = L * u
+    D_inv := diag_inv(L)
+    
+    //dest = u + D_inv * (f - L*u)
     apply(work, L, u)
     work = f - work
-    //dest = apply(diag_inv(L), work)
+    apply(dest, D_inv, work)
     dest = u + dest
 }
 
