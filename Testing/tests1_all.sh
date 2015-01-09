@@ -27,9 +27,11 @@ ANT_BUILD="${REPO_DIR}/Compiler/build.xml"
 TESTING_DIR="${REPO_DIR}/Testing"
 TESTING_CONF="${TESTING_DIR}/test_confs.txt"
 
-FAILURE_MAIL="kronast@fim.uni-passau.de"
-#FAILURE_MAIL="exastencils-dev@www.uni-passau.de"
+FAILURE_MAIL="exastencils-dev@www.uni-passau.de"
 TECH_FAILURE_MAIL="kronast@fim.uni-passau.de"
+
+ERROR_MARKER_NAME="error"
+ERROR_MARKER="${TEMP_DIR}/${ERROR_MARKER_NAME}"
 
 function error {
   echo "Automatic tests failed!  See log file for details: ${OUT_FILE_URL}." | mail -s "TestBot Error" ${FAILURE_MAIL}
@@ -38,7 +40,7 @@ function error {
 
 function killed {
   echo "ERROR? Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} killed; possible reasons: timeout, manually canceled, user login (job is then requeued)."
-  touch ${ERROR_MARKER}
+  touch "${ERROR_MARKER}"
   exit 1
 }
 trap killed SIGTERM
@@ -46,17 +48,19 @@ trap killed SIGTERM
 function cleanup {
   rm -rf "${RAM_TMP_DIR}"
   echo "Removed  ${RAM_TMP_DIR}"
+  echo ""
 }
 trap cleanup EXIT
 
 
+echo "-----------------------------------------------------------------------------------------------"
 echo "Running main test script on machine ${SLURM_JOB_NODELIST} in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID}."
 
-echo "Create ${RAM_TMP_DIR}: generator build dir"
 RAM_TMP_DIR=$(mktemp --tmpdir=/run/shm -d) || {
     echo "ERROR: Failed to create temporary directory."
     error
   }
+echo "Create ${RAM_TMP_DIR}: generator build dir"
 
 
 # cancel all uncompleted jobs from last testrun
@@ -79,6 +83,8 @@ BIN_DIR="${TEMP_DIR}/bin"
 mkdir "${LOG_DIR}" "${BIN_DIR}"
 
 # build generator (place class files in RAM_TMP_DIR)
+echo ""
+echo "Running ant:"
 srun ant -f "${ANT_BUILD}" -Dbuild.dir="${RAM_TMP_DIR}/build" -Dcompiler.jar="${COMPILER_JAR}" -Djava.dir="${JAVA_DIR}" -Dscala.dir="${SCALA_DIR}" clean build
     if [[ $? -ne 0 ]]; then
       echo "ERROR: ant build error."
@@ -86,11 +92,10 @@ srun ant -f "${ANT_BUILD}" -Dbuild.dir="${RAM_TMP_DIR}/build" -Dcompiler.jar="${
     fi
 echo ""
 
-echo "Parse configuration file and enqueue subjobs."
+echo "Parse configuration file and enqueue subjobs:"
+echo ""
 
 LOG_FILE_NAME="out.log"
-ERROR_MARKER_NAME="error"
-ERROR_MARKER="${TEMP_DIR}/${ERROR_MARKER_NAME}"
 declare -a TMP_ARRAY
 DEP_SIDS=""
 i=0
@@ -128,13 +133,13 @@ do
   OUT=$(sbatch -o ${TEST_LOG} -e ${TEST_LOG} "${TESTING_DIR}/tests2_single.sh" "${TESTING_DIR}" "${COMPILER_JAR}" ${main} "${TEST_BIN}" "${TESTING_DIR}/${knowledge}" "${TEST_ERROR_MARKER}")
   if [[ $? -eq 0 ]]; then
     SID=${OUT#Submitted batch job }
-    DEP_IDS="${DEP_SIDS}:${SID}"
+    DEP_SIDS="${DEP_SIDS}:${SID}"
   else
     touch "${ERROR_MARKER}"
   fi
-  echo "$(OUT)"
+  echo "${OUT}"
 
-  if [[ ${cores} = "" ]]; then
+  if [[ -n ${cores} ]]; then
     TMP_ARRAY[i+0]=${id}
     TMP_ARRAY[i+1]=${nodes}
     TMP_ARRAY[i+2]=${cores}
@@ -145,10 +150,15 @@ do
     TMP_ARRAY[i+7]=${TEST_ERROR_MARKER}
     TMP_ARRAY[i+8]=${SID}
     i=$((i+9))
+  else
+    echo "Test OK (must not be executed)" >> "${TEST_LOG}"
   fi
 done < "${TESTING_CONF}"
 
-COMP_DEPS="${DEP_IDS}"
+echo ""
+echo "Enqueue execution jobs:"
+echo ""
+COMP_DEPS="${DEP_SIDS}"
 
 # enqueue execution jobs
 for ((i=0;i<${#TMP_ARRAY[@]};i+=9)); do
@@ -161,31 +171,31 @@ for ((i=0;i<${#TMP_ARRAY[@]};i+=9)); do
   result=${TMP_ARRAY[i+5]}
   TEST_LOG=${TMP_ARRAY[i+6]}
   TEST_ERROR_MARKER=${TMP_ARRAY[i+7]}
-  SID=${TMP_ARRAY[i+8]}
+  SID_GEN=${TMP_ARRAY[i+8]}
 
-  TEST_DEP="--dependency=afterany${EXEC_DEPENDENCY},afterok:${SID}"
+  TEST_DEP="--dependency=afterok:${SID_GEN},afterany${COMP_DEPS}"
 
   ACC="idle"
   PART="idle"
   CONSTR_PARAM="--constraint=${constraints}"
-  if [[ $(( ${nodes} * ${cores} )) -gt 30 ]] || [[ ${constraints} =~ "E5" ]]; then # HACK to ensure jobs are executed even if the cluster is in use
+  if [[ $(( ${nodes} * ${cores} )) -gt 30 ]] || [[ ${constraints} = "E5" ]]; then # HACK to ensure jobs are executed even if the cluster is in use
     ACC="cl"
     PART="chimaira"
     CONSTR_PARAM=""
   fi
   echo "Enqueue execution job for id  ${id}."
-  OUT=$(sbatch -o ${TEST_LOG} -e ${TEST_LOG} -A ${ACC} -p ${PART} -n ${nodes} -c ${cores} ${TEST_DEP} ${CONSTR_PARAM} "${TESTING_DIR}/tests3_generated.sh" "${TEST_BIN}" "${result}" "${TEST_ERROR_MARKER}")
+  OUT=$(sbatch -o ${TEST_LOG} -e ${TEST_LOG} -A ${ACC} -p ${PART} -n ${nodes} -c ${cores} ${TEST_DEP} ${CONSTR_PARAM} "${TESTING_DIR}/tests3_generated.sh" "${TEST_BIN}" "${TESTING_DIR}/${result}" "${TEST_ERROR_MARKER}")
   if [[ $? -eq 0 ]]; then
     SID=${OUT#Submitted batch job }
-    DEP_IDS="${DEP_SIDS}:${SID}"
+    DEP_SIDS="${DEP_SIDS}:${SID}"
   else
     touch "${ERROR_MARKER}"
   fi
-  echo "$(OUT)"
+  echo "${OUT}"
 done
 
-LOG_DEPS="--dependency=afterany${DEP_IDS}"
-echo sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${TESTING_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${TECH_FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${LOG_FILE_NAME}" # debug
-$(sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${TESTING_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${TECH_FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${LOG_FILE_NAME}")
 echo ""
+echo "Collect separate logs after all other jobs are finished:"
+LOG_DEPS="--dependency=afterany${DEP_SIDS}"
+(sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${TESTING_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${LOG_FILE_NAME}")
 echo ""

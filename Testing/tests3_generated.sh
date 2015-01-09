@@ -32,14 +32,15 @@ trap killed SIGTERM
 function cleanup {
   rm "${RESULT}" # do not remove ${BIN} since job could be requeued; next time all tests are started old binaries are removed anyway
   echo "Removed  ${RESULT}"
+  echo ""
 }
 trap cleanup EXIT
 
 
-echo "Created  ${RESULT}: run code and redirect its stdout and stderr"
-
 # run generated code
+echo "Created  ${RESULT}: run code and redirect its stdout and stderr."
 srun "${BIN}" 2>&1 | grep -v "No protocol specified" > "${RESULT}" # HACK: filter strange X server error...
+echo ""
 
 if diff -B -w --strip-trailing-cr -I "time"  "${RESULT}" "${EXP_RESULT}" > /dev/null; then
   echo "Test OK"
@@ -51,3 +52,4 @@ else
   cat "${EXP_RESULT}"
   touch ${ERROR_MARKER}
 fi
+echo ""

@@ -30,10 +30,11 @@ trap killed SIGTERM
 
 
 echo "$(date -R):  Initialize tests on host ${SLURM_JOB_NODELIST}..."
+echo ""
 
 if [[ -d "${REPO_DIR}" ]]; then
   OLD_HASH=$(git -C "${REPO_DIR}" rev-parse @)
-  echo "Repo found, try to pull"
+  echo "Repo found, try to pull:"
   srun git -C "${REPO_DIR}" pull --force
       if [[ $? -ne 0 ]]; then
         echo "ERROR: git remote update failed."
@@ -47,7 +48,7 @@ if [[ -d "${REPO_DIR}" ]]; then
     exit 0
   fi
 else
-  echo "No local repo found, create a new clone."
+  echo "No local repo found, create a new clone:"
   mkdir -p "${REPO_DIR}"
   srun git clone "${GIT_URL}" "${REPO_DIR}"
       if [[ $? -ne 0 ]]; then
@@ -61,7 +62,7 @@ mkdir -p "${TEMP_DIR}"
 NEW_HASH=$(git -C "${REPO_DIR}" rev-parse @)
 echo ""
 echo "Run tests for hash  ${NEW_HASH}."
-$(sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" "${REPO_DIR}/Testing/tests1_all.sh" "${REPO_DIR}" "${TEMP_DIR}" "${OUT_FILE}" "${OUT_FILE_URL}")
+(sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" "${REPO_DIR}/Testing/tests1_all.sh" "${REPO_DIR}" "${TEMP_DIR}" "${OUT_FILE}" "${OUT_FILE_URL}")
       if [[ $? -ne 0 ]]; then
         echo "ERROR: Unable to enqueue testing job."
         echo "Test failed!  Unable to enqueue testing job." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}

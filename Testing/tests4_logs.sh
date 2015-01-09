@@ -10,13 +10,12 @@
 
 
 FAILURE_MAIL=${1}
-TECH_FAILURE_MAIL=${2}
-OUT_FILE=${3} # stdout and stderr should already be redirected to this file
-OUT_FILE_URL=${4} # url to ${OUT_FILE}
-ERROR_MARKER_NAME=${5}
-ERROR_MARKER=${6}
-LOG_DIR=${7}
-LOG_FILE_NAME=${8}
+OUT_FILE=${2} # stdout and stderr should already be redirected to this file
+OUT_FILE_URL=${3} # url to ${OUT_FILE}
+ERROR_MARKER_NAME=${4}
+ERROR_MARKER=${5}
+LOG_DIR=${6}
+LOG_FILE_NAME=${7}
 
 
 echo "Collecting logs on machine ${SLURM_JOB_NODELIST}."
@@ -41,8 +40,6 @@ for dir in $(ls "${LOG_DIR}"); do
     echo ""
     echo ""
     echo "======================================================================="
-    echo "Test ID: ${dir}"
-    echo ""
     cat "${TEST_DIR}/${LOG_FILE_NAME}"
     TEST_ERROR_MARKER="${TEST_DIR}/${ERROR_MARKER_NAME}"
     if [[ -f "${TEST_ERROR_MARKER}" ]]; then
@@ -56,5 +53,5 @@ if [[ -n "${TO_ZIP}" ]]; then
   ERROR_ARCHIVE="${LOG_DIR}/ErrorLogs.7z"
   cd "${LOG_DIR}"
   7z a "${ERROR_ARCHIVE}" ${TO_ZIP}
-  echo "Errors in automatic tests! See attachment for details." | mail -s "TestBot Error" -A "${ERROR_ARCHIVE}"
+  echo "Errors in automatic tests! See attachment for details." | mail -s "TestBot Error" -A "${ERROR_ARCHIVE}" ${FAILURE_MAIL}
 fi
