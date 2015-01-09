@@ -8,6 +8,7 @@
 #SBATCH --cpu_bind=cores
 #SBATCH --time=5
 #SBATCH --signal=INT@5
+#SBATCH --open-mode=append
 
 
 REPO_DIR=${1}
@@ -131,6 +132,7 @@ do
   else
     touch "${ERROR_MARKER}"
   fi
+  echo "$(OUT)"
 
   if [[ ${cores} = "" ]]; then
     TMP_ARRAY[i+0]=${id}
@@ -179,9 +181,11 @@ for ((i=0;i<${#TMP_ARRAY[@]};i+=9)); do
   else
     touch "${ERROR_MARKER}"
   fi
+  echo "$(OUT)"
 done
 
 LOG_DEPS="--dependency=afterany${DEP_IDS}"
-sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${TESTING_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${TECH_FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${LOG_FILE_NAME}"
+echo sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${TESTING_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${TECH_FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${LOG_FILE_NAME}" # debug
+$(sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${TESTING_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${TECH_FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${LOG_FILE_NAME}")
 echo ""
 echo ""

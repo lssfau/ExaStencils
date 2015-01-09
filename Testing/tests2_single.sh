@@ -8,6 +8,7 @@
 #SBATCH --cpu_bind=cores
 #SBATCH --time=15
 #SBATCH --signal=INT@5
+#SBATCH --open-mode=append
 
 
 TESTING_DIR=${1}
@@ -25,7 +26,6 @@ RAM_TMP_DIR="$(mktemp --tmpdir=/run/shm -d)" || {
     touch ${ERROR_MARKER}
     exit 1
   }
-OUTPUT="${RAM_TMP_DIR}/command_output.txt"
 SETTINGS="${RAM_TMP_DIR}/settings.txt"
 L4="${RAM_TMP_DIR}/l4.exa"
 TMP_BIN="exastencils"
@@ -53,15 +53,14 @@ echo "outputPath = \"${RAM_TMP_DIR}\"" >> "${SETTINGS}"
 echo "l4file = \"${L4}\"" >> "${SETTINGS}"
 echo "binary = \"${TMP_BIN}\"" >> "${SETTINGS}"
 
-touch "${OUTPUT}"
 cd ${TESTING_DIR}  # there is no possibility to explicitly set the working directory of the jvm... (changing property user.dir does not work in all situations)
-srun java -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}" > "${OUTPUT}"
+srun java -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}"
     if [[ $? -ne 0 ]]; then
       echo "ERROR: generator error."
       touch ${ERROR_MARKER}
       exit 1
     fi
-srun make -C "${RAM_TMP_DIR}" -j ${SLURM_CPUS_ON_NODE} > "${OUTPUT}"
+srun make -C "${RAM_TMP_DIR}" -j ${SLURM_CPUS_ON_NODE}
     if [[ $? -ne 0 ]]; then
       echo "ERROR: target compiler error."
       touch ${ERROR_MARKER}

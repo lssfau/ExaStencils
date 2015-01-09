@@ -6,6 +6,8 @@
 #SBATCH -c 1
 #SBATCH --time=5
 #SBATCH --signal=INT@5
+#SBATCH --open-mode=append
+
 
 FAILURE_MAIL=${1}
 TECH_FAILURE_MAIL=${2}
@@ -39,6 +41,8 @@ for dir in $(ls "${LOG_DIR}"); do
     echo ""
     echo ""
     echo "======================================================================="
+    echo "Test ID: ${dir}"
+    echo ""
     cat "${TEST_DIR}/${LOG_FILE_NAME}"
     TEST_ERROR_MARKER="${TEST_DIR}/${ERROR_MARKER_NAME}"
     if [[ -f "${TEST_ERROR_MARKER}" ]]; then
