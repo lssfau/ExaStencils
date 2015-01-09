@@ -4,14 +4,13 @@
 #SBATCH -A idle
 #SBATCH -n 1
 #SBATCH -c 1
-#SBATCH -o /dev/null
-#SBATCH -e /dev/null
 #SBATCH --time=5
 #SBATCH --signal=INT@5
 
 
 BASE_DIR=${1}
-LOG=${2}
+OUT_FILE=${2} # stdout and stderr should already be redirected to this file
+OUT_FILE_URL=${3} # url to ${OUT_FILE}
 
 REPO_DIR="${BASE_DIR}/repo"
 TEMP_DIR="${BASE_DIR}/temp"
@@ -22,50 +21,49 @@ GIT_URL="ssh://git@git.infosun.fim.uni-passau.de/exastencils/dev/ScalaExaStencil
 
 
 function killed {
-  echo "  ??? Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} on machine ${SLURM_JOB_NODELIST} killed; possible reasons: timeout, manually canceled, user login (job is then requeued)  (git checkout/update)." >> "${LOG}"
-  exit 0
+  echo "ERROR? Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} killed; possible reasons: timeout, manually canceled, user login (job is then requeued)."
+  touch ${ERROR_MARKER}
+  exit 1
 }
 trap killed SIGTERM
 
 
-# trim log
-if [[ -c "${LOG}" ]]; then
-  cat ${LOG} | tail -n 2000 > ${LOG}
-fi
-
-echo "--------------------------------------------" >> "${LOG}"
-echo "$(date -R):  Initialize tests..." >> "${LOG}"
+echo "$(date -R):  Initialize tests on host ${SLURM_JOB_NODELIST}..."
 
 if [[ -d "${REPO_DIR}" ]]; then
   OLD_HASH=$(git -C "${REPO_DIR}" rev-parse @)
+  echo "Repo found, try to pull"
   srun git -C "${REPO_DIR}" pull --force
       if [[ $? -ne 0 ]]; then
-        echo "= git remote update failed." >> "${LOG}"
+        echo "ERROR: git remote update failed."
         echo "git remote update failed." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
-        exit 0
+        exit 1
       fi
   NEW_HASH=$(git -C "${REPO_DIR}" rev-parse @)
   if [[ ${OLD_HASH} = ${NEW_HASH} ]]; then
     # up-to-date, no need to run tests, exit script
-    echo "  No changes since last test runs, finishing." >> "${LOG}"
+    echo "No changes, finish."
     exit 0
   fi
 else
-  echo "  No local repo found, create a new clone." >> "${LOG}"
+  echo "No local repo found, create a new clone."
   mkdir -p "${REPO_DIR}"
   srun git clone "${GIT_URL}" "${REPO_DIR}"
       if [[ $? -ne 0 ]]; then
-        echo "= git clone failed." >> "${LOG}"
+        echo "ERROR: git clone failed."
         echo "git clone failed." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
-        exit 0
+        exit 1
       fi
 fi
 
 mkdir -p "${TEMP_DIR}"
 NEW_HASH=$(git -C "${REPO_DIR}" rev-parse @)
-echo "  Run tests for hash  ${NEW_HASH}." >> "${LOG}"
-sbatch "${REPO_DIR}/Testing/tests1_all.sh" "${REPO_DIR}" "${TEMP_DIR}" "${LOG}"
+echo ""
+echo "Run tests for hash  ${NEW_HASH}."
+sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" "${REPO_DIR}/Testing/tests1_all.sh" "${REPO_DIR}" "${TEMP_DIR}" "${OUT_FILE}" "${OUT_FILE_URL}"
       if [[ $? -ne 0 ]]; then
-        echo "= FAILED: Unable to enqueue testing job." >> "${LOG}"
+        echo "ERROR: Unable to enqueue testing job."
         echo "Test failed!  Unable to enqueue testing job." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
       fi
+echo ""
+echo ""
