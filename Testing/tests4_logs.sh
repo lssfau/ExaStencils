@@ -34,13 +34,15 @@ if [[ -f "${ERROR_MARKER}" ]]; then
   TO_ZIP="${TO_ZIP} tests.log"
 fi
 
+echo ""
+echo ""
 for dir in $(ls "${LOG_DIR}"); do
   TEST_DIR="${LOG_DIR}/${dir}"
   if [[ -d "${TEST_DIR}" ]]; then
-    echo ""
-    echo ""
     echo "======================================================================="
     cat "${TEST_DIR}/${LOG_FILE_NAME}"
+    echo ""
+    echo ""
     TEST_ERROR_MARKER="${TEST_DIR}/${ERROR_MARKER_NAME}"
     if [[ -f "${TEST_ERROR_MARKER}" ]]; then
       rm "${TEST_ERROR_MARKER}"
@@ -55,3 +57,5 @@ if [[ -n "${TO_ZIP}" ]]; then
   7z a "${ERROR_ARCHIVE}" ${TO_ZIP}
   echo "Errors in automatic tests! See attachment for details." | mail -s "TestBot Error" -A "${ERROR_ARCHIVE}" ${FAILURE_MAIL}
 fi
+
+echo "Tests finished at $(date -R)."
