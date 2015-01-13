@@ -41,13 +41,13 @@ trap killed SIGTERM
 
 function cleanup {
   rm -rf "${RAM_TMP_DIR}"
-  echo "Removed  ${RAM_TMP_DIR}"
+  echo "  Removed  ${RAM_TMP_DIR}"
   echo ""
 }
 trap cleanup EXIT
 
 
-echo "Created  ${RAM_TMP_DIR}: application build dir"
+echo "  Created  ${RAM_TMP_DIR}: application build dir"
 echo ""
 
 # build settings file

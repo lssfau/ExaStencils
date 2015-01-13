@@ -47,7 +47,7 @@ trap killed SIGTERM
 
 function cleanup {
   rm -rf "${RAM_TMP_DIR}"
-  echo "Removed  ${RAM_TMP_DIR}"
+  echo "  Removed  ${RAM_TMP_DIR}"
   echo ""
 }
 trap cleanup EXIT
@@ -60,7 +60,7 @@ RAM_TMP_DIR=$(mktemp --tmpdir=/run/shm -d) || {
     echo "ERROR: Failed to create temporary directory."
     error
   }
-echo "Create ${RAM_TMP_DIR}: generator build dir"
+echo "  Created  ${RAM_TMP_DIR}: generator build dir"
 
 
 # cancel all uncompleted jobs from last testrun
