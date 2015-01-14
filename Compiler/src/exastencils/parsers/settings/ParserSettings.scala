@@ -1,8 +1,11 @@
 package exastencils.parsers.settings
 
-import exastencils.parsers.ExaParser
-import scala.util.parsing.combinator._
-import exastencils.core.UniversalSetter
+import scala.collection.immutable.PagedSeq
+import scala.reflect.runtime.universe
+import scala.util.parsing.input.PagedSeqReader
+
+import exastencils.core._
+import exastencils.parsers._
 
 class ParserSettings extends ExaParser {
   def parse(s : String) : Unit = {
@@ -32,7 +35,10 @@ class ParserSettings extends ExaParser {
 
   lazy val setting = ident ~ "=" ~ expr ^^ { case id ~ "=" ~ ex => UniversalSetter.withConversion(exastencils.core.Settings, id, ex) }
 
-  lazy val expr = stringLit ^^ { _.toString } |||
-    numericLit |||
+  lazy val expr = stringLit ^^ { _.toString } |
+    "-".? ~ numericLit ^^ {
+      case s ~ n if (isInt(s.getOrElse("") + n)) => (s.getOrElse("") + n).toInt : AnyVal
+      case s ~ n                                 => (s.getOrElse("") + n).toDouble : AnyVal
+    } |
     booleanLit ^^ { _.toBoolean }
 }

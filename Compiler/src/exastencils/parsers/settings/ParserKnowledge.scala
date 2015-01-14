@@ -1,8 +1,10 @@
 package exastencils.parsers.settings
 
-import exastencils.parsers.ExaParser
-import scala.util.parsing.combinator._
-import exastencils.core.UniversalSetter
+import scala.collection.immutable.PagedSeq
+import scala.util.parsing.input.PagedSeqReader
+
+import exastencils.core._
+import exastencils.parsers._
 
 class ParserKnowledge extends ExaParser {
   def parse(s : String) : Unit = {
@@ -22,19 +24,20 @@ class ParserKnowledge extends ExaParser {
 
   protected def parseTokens(tokens : lexical.Scanner) : Unit = {
     phrase(settingsfile)(tokens) match {
-      case Success(e, _)   => 
+      case Success(e, _)   =>
       case Error(msg, _)   => throw new Exception("parse error: " + msg)
       case Failure(msg, _) => throw new Exception("parse failure: " + msg)
     }
   }
-  
-  
-   
+
   lazy val settingsfile = setting.*
-  
+
   lazy val setting = ident ~ "=" ~ expr ^^ { case id ~ "=" ~ ex => UniversalSetter(exastencils.knowledge.Knowledge, id, ex) }
-  
+
   lazy val expr = stringLit ^^ { _.toString } |
-  numericLit ^^ { _.toInt } |
-  booleanLit ^^ { _.toBoolean }
+    "-".? ~ numericLit ^^ {
+      case s ~ n if (isInt(s.getOrElse("") + n)) => (s.getOrElse("") + n).toInt : AnyVal
+      case s ~ n                                 => (s.getOrElse("") + n).toDouble : AnyVal
+    } |
+    booleanLit ^^ { _.toBoolean }
 }
