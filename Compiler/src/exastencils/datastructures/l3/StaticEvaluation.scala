@@ -3,7 +3,6 @@ package exastencils.datastructures.l3
 import TcbImplicits._
 import exastencils.datastructures.l4
 import exastencils.core.Logger
-import exastencils.math._
 
 /** Static values. */
 trait StaticValue extends Value
@@ -76,7 +75,7 @@ trait AbstractFunctionRValue {
 
   def writeTcApplication(ctx : Context, args : List[Expression]) : l4.Expression
 
-  def staticApplication(env : Environment, args : List[Expression]) : StaticValue
+  def staticApplication(ctx : Context, args : List[Expression]) : StaticValue
 }
 
 /** User defined functions. */
@@ -124,7 +123,7 @@ case class FunctionRValue(
     // tcb for the function body
     val body_tcb = new TcbBlock()
 
-    val body_ctx = new Context(body_env, body_tcb, ctx.stencils)
+    val body_ctx = new Context(body_env, body_tcb, ctx.stencils, ctx.fields)
 
     // transform to target code and concat
     body foreach { _.writeTc(body_ctx) }
@@ -141,83 +140,8 @@ case class FunctionRValue(
     ???
   }
 
-  override def staticApplication(env : Environment, args : List[Expression]) : StaticValue = {
+  override def staticApplication(ctx : Context, args : List[Expression]) : StaticValue = {
     ???
-  }
-}
-
-case class ApplyStencilBuiltin() extends StaticRValue with AbstractFunctionRValue {
-  def scReturnType = FieldDatatype()
-
-  override def writeTcApplication(
-    ctx : Context,
-    args : List[Expression]) : l4.Expression = {
-
-    import ctx.env
-    import ctx.tcb
-
-    // expect precisely three arguments
-    args match {
-      case List(destField, stencilArg, sourceField) =>
-        val f = destField.lEval(env) match {
-          case FieldLValue(fieldId) => fieldId
-          case _ =>
-            throw new Exception("First parameter of apply needs to be a field.")
-        }
-
-        val A = stencilArg.rEval(env) match {
-          case stencil : StaticListRValue => stencil
-          case _                          => throw new Exception("Second argument to apply is not a stencil")
-        }
-
-        val u = sourceField.rEval(env) match {
-          case FieldRValue(fieldId) => fieldId
-          case _ =>
-            throw new Exception("Third parameter of apply needs to be a field")
-        }
-
-        val A_id = ctx.stencils.add(A)
-
-        val A_access = new l4.StencilAccess(A_id, l4.CurrentLevelSpecification())
-        val u_access = new l4.FieldAccess(u,
-          l4.CurrentLevelSpecification(),
-          new l4.IntegerConstant(0))
-
-        val f_access = new l4.FieldAccess(f,
-          l4.CurrentLevelSpecification(),
-          new l4.IntegerConstant(0))
-
-        val convExpr = new l4.StencilConvolution(A_access, u_access)
-
-        tcb += new l4.AssignmentStatement(f_access, convExpr, "=")
-
-        TcUnit() // no return value
-      case _ => Logger.error("Apply takes three arguments but %d were given".format(args.length))
-
-    }
-  }
-
-  override def staticApplication(env : Environment, args : List[Expression]) : StaticValue = {
-    ???
-  }
-}
-
-case class DiagInvBuiltin() extends StaticRValue with AbstractFunctionRValue {
-  def scReturnType = StaticListDatatype()
-
-  override def writeTcApplication(ctx : Context, args : List[Expression]) : l4.Expression = {
-    ???
-  }
-
-  override def staticApplication(env : Environment, args : List[Expression]) : StaticValue = {
-    args match {
-      case List(arg1) =>
-
-        val inputStencil = arg1.rEval(env) match {
-          case s : StaticListRValue => s
-        }
-        Stencil(inputStencil).diagInv().toSc()
-    }
   }
 }
 

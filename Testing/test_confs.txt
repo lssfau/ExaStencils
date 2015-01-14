@@ -14,7 +14,6 @@
 # NumCoresPerRank  is the number of physical cores to be associated with each MPI rank
 # Constraint  specifies features the nodes must have when executing the generated test code
 #  for hardware definitions and available flags see hwinfo.txt
-#  (note: "i7|E5" is currently equal to "E5")
 
 # if the last four fields are not set (as in the first structure above), the
 # generated code is only compiled, but not executed
@@ -47,14 +46,14 @@ Large_Hybrid  Main  Large/Hybrid.knowledge  Large/Hybrid.results  4  10  E5
 # no optimizations (0), all independenly (1-6) and in combination (7)
 #  (run time for each is less than 5 seconds)
 # sequential version
-Seq_Test0  Main  Opts/seq_0.knowledge  Opts/seq.results  1   1  i7
-Seq_Test1  Main  Opts/seq_1.knowledge  Opts/seq.results  1   1  i7
-Seq_Test2  Main  Opts/seq_2.knowledge  Opts/seq.results  1   1  i7
-Seq_Test3  Main  Opts/seq_3.knowledge  Opts/seq.results  1   1  i7
-Seq_Test4  Main  Opts/seq_4.knowledge  Opts/seq.results  1   1  i7
-Seq_Test5  Main  Opts/seq_5.knowledge  Opts/seq.results  1   1  i7
-Seq_Test6  Main  Opts/seq_6.knowledge  Opts/seq.results  1   1  i7
-Seq_Test7  Main  Opts/seq_7.knowledge  Opts/seq.results  1   1  i7
+Seq_Test0  Main  Opts/seq_0.knowledge  Opts/seq.results  1   1  i7|E5
+Seq_Test1  Main  Opts/seq_1.knowledge  Opts/seq.results  1   1  i7|E5
+Seq_Test2  Main  Opts/seq_2.knowledge  Opts/seq.results  1   1  i7|E5
+Seq_Test3  Main  Opts/seq_3.knowledge  Opts/seq.results  1   1  i7|E5
+Seq_Test4  Main  Opts/seq_4.knowledge  Opts/seq.results  1   1  i7|E5
+Seq_Test5  Main  Opts/seq_5.knowledge  Opts/seq.results  1   1  i7|E5
+Seq_Test6  Main  Opts/seq_6.knowledge  Opts/seq.results  1   1  i7|E5
+Seq_Test7  Main  Opts/seq_7.knowledge  Opts/seq.results  1   1  i7|E5
 # parallel version (2*2*2 MPI ranks each with 3*3*3 OMP threads)
 Par_Test0  Main  Opts/par_0.knowledge  Opts/par.results  8  10  E5
 Par_Test1  Main  Opts/par_1.knowledge  Opts/par.results  8  10  E5

@@ -1,4 +1,32 @@
 
+// Discrete Poisson's Equation
+myL := [
+  [[ 0, -1], -1.0],
+  [[-1,  0], -1.0],
+  [[ 0,  0],  4.0],
+  [[ 1,  0], -1.0],
+  [[ 0,  1], -1.0] 
+]
+
+// Full weighting
+myR := [
+  [[-1, -1], 0.0625],
+  [[ 0, -1], 0.125],
+  [[ 1, -1], 0.0625],
+  
+  [[-1,  0], 0.125],
+  [[ 0,  0], 0.25],
+  [[ 1,  0], 0.125],
+  
+  [[-1,  1], 0.0625],
+  [[ 0,  1], 0.125],
+  [[ 1,  1], 0.0625]
+]
+
+myF := field()
+myU := field()
+myWork := field()
+myDest := field()
 
 Function jacobi(dest : Field, L : Stencil, f : Field, u : Field, omega : Real, work : Field) : Unit
 {

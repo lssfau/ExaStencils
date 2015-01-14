@@ -6,89 +6,76 @@
 #SBATCH -c 4
 #SBATCH --hint=nomultithread
 #SBATCH --cpu_bind=cores
-#SBATCH -o /dev/null
-#SBATCH -e /dev/null
 #SBATCH --time=15
 #SBATCH --signal=INT@5
+#SBATCH --open-mode=append
 
 
 TESTING_DIR=${1}
-BIN_DIR=${2}
-ID=${3}
-COMPILER=${4}
-MAIN=${5}
-KNOWLEDGE=${6}
-FAILURE_MAIL=${7}
-FAILURE_MAIL_SUBJECT=${8}
-LOG=${9}
-EXP_RESULT=${10}
-NODES=${11}
-CORES=${12}
-CONSTRAINTS=${13}
+COMPILER=${2}
+MAIN=${3}
+BIN=${4}
+KNOWLEDGE=${5}
+ERROR_MARKER=${6}
+
+echo "Generate and compile on machine ${SLURM_JOB_NODELIST}."
+echo ""
+rm -f ${ERROR_MARKER} # remove error marker from old job run if we were requeued
 
 RAM_TMP_DIR="$(mktemp --tmpdir=/run/shm -d)" || {
-    echo "===== FAILURE: ID '${ID}': Failed to create temporary directory on machine ${SLURM_JOB_NODELIST} in ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (generate and compile test)." >> "${LOG}"
-    echo "Test '${ID}' failed!  Unable to create temporary directory in ${SLURM_JOB_NAME}:${SLURM_JOB_ID} (generate and compile test)." | mail -s "${FAILURE_SUBJECT}" ${FAILURE_MAIL}
-    exit 0
+    echo "ERROR: Failed to create temporary directory."
+    touch ${ERROR_MARKER}
+    exit 1
   }
-OUTPUT="${RAM_TMP_DIR}/command_output.txt"
 SETTINGS="${RAM_TMP_DIR}/settings.txt"
 L4="${RAM_TMP_DIR}/l4.exa"
-BIN="exastencils_${ID}_${SLURM_JOB_ID}"
+TMP_BIN="exastencils"
 
 
 function killed {
-  echo "      ??? ID '${ID}': Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} on machine ${SLURM_JOB_NODELIST} killed; possible reasons: timeout, manually canceled, user login (job is then requeued)  (generate and compile test)." >> "${LOG}"
-  exit 0
+  echo "ERROR? Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} killed; possible reasons: timeout, manually canceled, user login (job is then requeued)."
+  touch ${ERROR_MARKER}
+  exit 1
 }
 trap killed SIGTERM
 
 function cleanup {
   rm -rf "${RAM_TMP_DIR}"
-  echo "      Removed  ${RAM_TMP_DIR} (test id: '${ID}')" >> "${LOG}"
+  echo "  Removed  ${RAM_TMP_DIR}"
+  echo ""
 }
 trap cleanup EXIT
 
 
-echo "      Created  ${RAM_TMP_DIR} (test id: '${ID}'): application build dir" >> "${LOG}"
+echo "  Created  ${RAM_TMP_DIR}: application build dir"
+echo ""
 
 # build settings file
 touch "${SETTINGS}"
 echo "outputPath = \"${RAM_TMP_DIR}\"" >> "${SETTINGS}"
 echo "l4file = \"${L4}\"" >> "${SETTINGS}"
-echo "binary = \"${BIN}\"" >> "${SETTINGS}"
+echo "binary = \"${TMP_BIN}\"" >> "${SETTINGS}"
 
-touch "${OUTPUT}"
-pushd ${TESTING_DIR}  # there is no possibility to explicitly set the working directory of the jvm... (changing property user.dir does not work in all situations)
-srun java -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}" > "${OUTPUT}" 2>&1
+echo "Run generator:"
+cd ${TESTING_DIR}  # there is no possibility to explicitly set the working directory of the jvm... (changing property user.dir does not work in all situations)
+srun java -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}"
     if [[ $? -ne 0 ]]; then
-      echo "===== FAILED: ID '${ID}': generator error." >> "${LOG}"
-      echo "Test '${ID}' failed!  Unable to generate code." | mail -s "${FAILURE_MAIL_SUBJECT}" -A "${OUTPUT}" ${FAILURE_MAIL}
-      exit 0
+      echo ""
+      echo "ERROR: generator return code unequal to 0."
+      echo ""
+      touch ${ERROR_MARKER}
+      exit 1
     fi
-popd
-srun make -C "${RAM_TMP_DIR}" -j ${SLURM_CPUS_ON_NODE} > "${OUTPUT}" 2>&1
+echo ""
+echo "Call make:"
+srun make -C "${RAM_TMP_DIR}" -j ${SLURM_CPUS_ON_NODE}
     if [[ $? -ne 0 ]]; then
-      echo "===== FAILED: ID '${ID}': target compiler error." >> "${LOG}"
-      echo "Test '${ID}' failed!  Unable to compile target code." | mail -s "${FAILURE_MAIL_SUBJECT}" -A "${OUTPUT}" ${FAILURE_MAIL}
-      exit 0
+      echo ""
+      echo "ERROR: make return code unequal to 0."
+      echo ""
+      touch ${ERROR_MARKER}
+      exit 1
     fi
+echo ""
 
-if [[ ${CORES} = "" ]]; then
-  echo "          OK: ID '${ID}' (not executed)." >> "${LOG}"
-else
-  cp "${RAM_TMP_DIR}/${BIN}" "${BIN_DIR}/${BIN}" # store in NFS, as testrun could be enqueued on a different machine
-  ACC="idle"
-  PART="idle"
-  CONSTR_PARAM="--constraint=${CONSTRAINTS}"
-  if [[ $(( ${NODES} * ${CORES} )) -gt 30 ]] || [[ ${CONSTRAINTS} =~ "E5" ]]; then # HACK to ensure jobs are executed even if the cluster is in use
-    ACC="cl"
-    PART="chimaira"
-    CONSTR_PARAM=""
-  fi
-  sbatch -A ${ACC} -p ${PART} -n ${NODES} -c ${CORES} ${CONSTR_PARAM} "${TESTING_DIR}/tests3_generated.sh" ${ID} "${BIN_DIR}/${BIN}" "${EXP_RESULT}" ${FAILURE_MAIL} "${FAILURE_MAIL_SUBJECT}" "${LOG}"
-      if [[ $? -ne 0 ]]; then
-        echo "===== FAILED: ID '${ID}': Unable to enqueue job  (account: ${ACC},  partition: ${PART},  nodes: ${NODES},  cores: ${CORES},  constraints: '${CONSTRAINTS}')." >> "${LOG}"
-        echo "Test '${ID}' failed!  Unable to enqueue job  (account: ${ACC},  partition: ${PART},  nodes: ${NODES},  cores: ${CORES},  constraints: '${CONSTRAINTS}')." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
-      fi
-fi
+cp "${RAM_TMP_DIR}/${TMP_BIN}" "${BIN}" # store in NFS, as testrun could be enqueued on a different machine
