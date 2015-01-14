@@ -29,7 +29,7 @@ function killed {
 trap killed SIGTERM
 
 
-echo "$(date -R):  Initialize tests on host ${SLURM_JOB_NODELIST}..."
+echo "$(date -R):  Initialize tests on host ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})..."
 echo ""
 
 if [[ -d "${REPO_DIR}" ]]; then

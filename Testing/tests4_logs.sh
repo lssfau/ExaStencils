@@ -18,7 +18,7 @@ LOG_DIR=${6}
 LOG_FILE_NAME=${7}
 
 
-echo "Collecting logs on machine ${SLURM_JOB_NODELIST}."
+echo "Collecting logs on machine ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
 
 function killed {
   echo "ERROR? Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} killed; possible reasons: timeout, manually canceled, user login (job is then requeued)."
