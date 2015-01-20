@@ -11,11 +11,11 @@ object Knowledge {
 
   var useDblPrecision : Boolean = true
 
-  var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2"
+  var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2", "QPX"
   def simd_vectorSize : Int = { // number of vector elements for SIMD instructions (currently only double precision)
     simd_instructionSet match {
-      case "SSE3"         => 2
-      case "AVX" | "AVX2" => 4
+      case "SSE3"                 => 2
+      case "AVX" | "AVX2" | "QPX" => 4
     }
   }
 

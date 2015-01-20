@@ -70,6 +70,7 @@ case class SIMD_RealDatatype() extends Datatype {
     Knowledge.simd_instructionSet match {
       case "SSE3"         => "__m128d"
       case "AVX" | "AVX2" => "__m256d"
+      case "QPX"          => "vector4double"
     }
   }
 

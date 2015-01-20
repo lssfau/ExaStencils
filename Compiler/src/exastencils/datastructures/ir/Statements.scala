@@ -170,47 +170,34 @@ case class SIMD_StoreStatement(var mem : Expression, var value : Expression, var
     Knowledge.simd_instructionSet match {
       case "SSE3"         => out << (if (aligned) "_mm_store_pd" else "_mm_storeu_pd")
       case "AVX" | "AVX2" => out << (if (aligned) "_mm256_store_pd" else "_mm256_storeu_pd")
+      case "QPX"          => out << (if (aligned) "vec_sta" else "NOT VALID ; unaligned store for QPX: ")
     }
-    out << '(' << mem << ", " << value << ");"
+    out << '(' << mem << ", "
+    if (Knowledge.simd_instructionSet == "QPX")
+      out << "0, "
+    out << value << ");"
   }
 }
 
 case class SIMD_HorizontalAddStatement(var dest : Expression, var src : Expression) extends Statement {
   override def prettyprint(out : PpStream) : Unit = {
-    out << "{\n"
     Knowledge.simd_instructionSet match {
       case "SSE3" =>
+        out << "{\n"
         out << " __m128d _v = " << src << ";\n"
         out << dest << " += _mm_cvtsd_f64(_mm_hadd_pd(_v,_v));\n"
+        out << '}'
 
       case "AVX" | "AVX2" =>
+        out << "{\n"
         out << " __m256d _v = " << src << ";\n"
         out << " __m256d _h = _mm256_hadd_pd(_v,_v);\n"
         out << dest << " += _mm_cvtsd_f64(_mm_add_pd(_mm256_extractf128_pd(_h,1), _mm256_castpd256_pd128(_h)));\n"
-    }
-    out << '}'
-  }
-}
+        out << '}'
 
-private object HorizontalPrinterHelper {
-  def prettyprint(out : PpStream, dest : Expression, src : Expression, redName : String, assOp : String, redFunc : String = null) : Unit = {
-    out << "{\n"
-    Knowledge.simd_instructionSet match {
-      case "SSE3" =>
-        out << " __m128d _v = " << src << ";\n"
-        out << " __m128d _r = _mm_cvtsd_f64(_mm_" << redName << "_pd(_v, _mm_shuffle_pd(_v,_v,1)));\n"
-
-      case "AVX" | "AVX2" =>
-        out << " __m256d _v = " << src << ";\n"
-        out << " __m128d _w = _mm_" << redName << "_pd(_mm256_extractf128_pd(_v,1), _mm256_castpd256_pd128(_v));\n"
-        out << " __m128d _r = _mm_cvtsd_f64(_mm_" << redName << "_pd(_w, _mm_permute_pd(_w,1)));\n"
+      case "QPX" =>
+        HorizontalPrinterHelper.prettyprint(out, dest, src, "add", "+=")
     }
-    out << dest << ' ' << assOp
-    if (redFunc != null)
-      out << ' ' << redFunc << '(' << dest << ",_r);\n"
-    else
-      out << "_r;\n"
-    out << '}'
   }
 }
 
@@ -222,12 +209,45 @@ case class SIMD_HorizontalMulStatement(var dest : Expression, var src : Expressi
 
 case class SIMD_HorizontalMinStatement(var dest : Expression, var src : Expression) extends Statement {
   override def prettyprint(out : PpStream) : Unit = {
-    HorizontalPrinterHelper.prettyprint(out, dest, src, "min", "=", "std::min")
+    if (Knowledge.simd_instructionSet == "QPX")
+      out << "NOT VALID ; vec_min not available on BG/Q"
+    else
+      HorizontalPrinterHelper.prettyprint(out, dest, src, "min", "=", "std::min")
   }
 }
 
 case class SIMD_HorizontalMaxStatement(var dest : Expression, var src : Expression) extends Statement {
   override def prettyprint(out : PpStream) : Unit = {
-    HorizontalPrinterHelper.prettyprint(out, dest, src, "max", "=", "std::max")
+    if (Knowledge.simd_instructionSet == "QPX")
+      out << "NOT VALID ; vec_max not available on BG/Q"
+    else
+      HorizontalPrinterHelper.prettyprint(out, dest, src, "max", "=", "std::max")
+  }
+}
+
+private object HorizontalPrinterHelper {
+  def prettyprint(out : PpStream, dest : Expression, src : Expression, redName : String, assOp : String, redFunc : String = null) : Unit = {
+    out << "{\n"
+    Knowledge.simd_instructionSet match {
+      case "SSE3" =>
+        out << " __m128d _v = " << src << ";\n"
+        out << " double _r = _mm_cvtsd_f64(_mm_" << redName << "_pd(_v, _mm_shuffle_pd(_v,_v,1)));\n"
+
+      case "AVX" | "AVX2" =>
+        out << " __m256d _v = " << src << ";\n"
+        out << " __m128d _w = _mm_" << redName << "_pd(_mm256_extractf128_pd(_v,1), _mm256_castpd256_pd128(_v));\n"
+        out << " double _r = _mm_cvtsd_f64(_mm_" << redName << "_pd(_w, _mm_permute_pd(_w,1)));\n"
+
+      case "QPX" =>
+        out << " vector4double _v = " << src << ";\n"
+        out << " _v = vec_" << redName << "(_v, vec_sldw(_v, _v, 2));\n"
+        out << " double _r = vec_extract(vec_" << redName << "(_v, vec_sldw(_v, _v, 1)), 0);\n"
+    }
+    out << dest << ' ' << assOp
+    if (redFunc != null)
+      out << ' ' << redFunc << '(' << dest << ",_r);\n"
+    else
+      out << "_r;\n"
+    out << '}'
   }
 }
