@@ -19,6 +19,8 @@ object Knowledge {
     }
   }
 
+  var simd_avoidUnaligned : Boolean = false
+
   var useFasterExpand : Boolean = true
 
   // === Level 1 ===  
@@ -204,7 +206,8 @@ object Knowledge {
 
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
-    Constraints.condEnsureValue(opt_vectorize, false, !useDblPrecision, "opt_vectorize is currently not compatible with float precision")
+    Constraints.condEnsureValue(opt_vectorize, false, !useDblPrecision, "opt_vectorize is currently not compatible with single precision")
+    Constraints.condEnsureValue(simd_avoidUnaligned, true, simd_instructionSet == "QPX", "QPX does not support unaligned load or stores")
 
     Constraints.updateValue(useOMP, (domain_summarizeBlocks && domain_fragLength != 1) || domain_numFragsPerBlock != 1)
     Constraints.updateValue(useMPI, (domain_numBlocks != 1))

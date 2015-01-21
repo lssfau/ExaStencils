@@ -301,11 +301,10 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
             }
 
           // TODO: ensure grid alignment first
-          val aligned : Boolean = false // (const.getOrElse(0L) % Vectorization.TMP_VS) == 0
+          val aligned : Boolean = false // (const.getOrElse(0L) % Knowledge.simd_vectorSize) == 0
           var init : Option[Expression] =
             if (ctx.isLoad() && !ctx.isStore())
-              if (access1) Some(SIMD_Load1Expression(UnaryExpression(UnaryOperators.AddressOf, expr)))
-              else Some(SIMD_LoadExpression(UnaryExpression(UnaryOperators.AddressOf, expr), aligned))
+              Some(createLoadExpression(expr, base, ind, const.getOrElse(0L), access1, aligned, ctx))
             else if (!ctx.isLoad() && ctx.isStore())
               None
             else
@@ -372,6 +371,24 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
       case _ =>
         throw new VectorizationException("cannot deal with " + expr.getClass() + "; " + expr.prettyprint())
+    }
+  }
+
+  private def createLoadExpression(oldExpr : Expression, base : Expression,
+    index : HashMap[Expression, Long], indexConst : Long,
+    access1 : Boolean, aligned : Boolean, ctx : LoopCtx) : Expression = {
+
+    if (access1)
+      return SIMD_Load1Expression(UnaryExpression(UnaryOperators.AddressOf, oldExpr))
+    else if (aligned || !Knowledge.simd_avoidUnaligned)
+      return SIMD_LoadExpression(UnaryExpression(UnaryOperators.AddressOf, oldExpr), aligned)
+    else { // avoid unaligned load
+      val lowerConst : Long = indexConst & ~(Knowledge.simd_vectorSize - 1)
+      index(SimplifyExpression.constName) = lowerConst
+      val lowerExpr = vectorizeExpr(ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(index)), ctx)
+      index(SimplifyExpression.constName) = lowerConst + Knowledge.simd_vectorSize
+      val upperExpr = vectorizeExpr(ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(index)), ctx)
+      SIMD_ConcShift(lowerExpr, upperExpr, (indexConst - lowerConst).asInstanceOf[Int])
     }
   }
 }

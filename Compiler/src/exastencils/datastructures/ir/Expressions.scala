@@ -587,6 +587,16 @@ case class SIMD_Load1Expression(var mem : Expression) extends Expression {
   }
 }
 
+case class SIMD_ConcShift(var left : Expression, var right : Expression, var offset : Int) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = {
+    Knowledge.simd_instructionSet match {
+      case "SSE3"         => out << "TODO : SIMD_ConcShift for SSE3"
+      case "AVX" | "AVX2" => out << "TODO : SIMD_ConcShift for AVX"
+      case "QPX"          => out << "vec_sldw(" << left << ", " << right << ", " << offset << ")"
+    }
+  }
+}
+
 case class SIMD_NegateExpresseion(var vect : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
     Knowledge.simd_instructionSet match {
