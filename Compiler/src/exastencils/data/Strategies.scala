@@ -1,6 +1,7 @@
 package exastencils.data
 
 import scala.collection.immutable.TreeMap
+import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
@@ -92,30 +93,25 @@ object ResolveFieldAccess extends DefaultStrategy("Resolving FieldAccess nodes")
 }
 
 object AddInternalVariables extends DefaultStrategy("Adding internal variables") {
-  var declarationMap : TreeMap[String, VariableDeclarationStatement] = TreeMap()
-  var ctorMap : TreeMap[String, Statement] = TreeMap()
-  var dtorMap : TreeMap[String, Statement] = TreeMap()
+  var declarationMap : HashMap[String, VariableDeclarationStatement] = HashMap()
+  var ctorMap : HashMap[String, Statement] = HashMap()
+  var dtorMap : HashMap[String, Statement] = HashMap()
 
   this += new Transformation("Collecting", {
     case mem : iv.InternalVariable => // TODO: don't overwrite for performance reasons
-      declarationMap += (mem.resolveName -> mem.getDeclaration)
-      if (mem.getCtor().isDefined)
-        ctorMap += (mem.resolveName -> mem.getCtor().get)
-      if (mem.getDtor().isDefined)
-        dtorMap += (mem.resolveName -> mem.getDtor().get)
+      mem.registerIV(declarationMap, ctorMap, dtorMap)
       mem
   })
 
   this += new Transformation("Adding to globals", {
     case globals : Globals =>
-      for (decl <- declarationMap)
-        globals.variables += decl._2
+      globals.variables ++= declarationMap.toSeq.sortBy(_._1).map(_._2)
       globals
     case func : FunctionStatement if ("initGlobals" == func.name) =>
-      func.body ++= ctorMap.map(_._2)
+      func.body ++= ctorMap.toSeq.sortBy(_._1).map(_._2)
       func
     case func : FunctionStatement if ("destroyGlobals" == func.name) =>
-      func.body ++= dtorMap.map(_._2)
+      func.body ++= dtorMap.toSeq.sortBy(_._1).map(_._2)
       func
   })
 
@@ -142,12 +138,31 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
 
       var numDataPoints : Expression = field.field.fieldLayout.layoutsPerDim.map(l => l.total).reduceLeft(_ * _) * field.field.dataType.resolveFlattendSize
       var statements : ListBuffer[Statement] = ListBuffer()
-      for (slot <- 0 until field.field.numSlots) {
-        val newFieldData = Duplicate(cleanedField)
-        newFieldData.slot = slot
-        statements += new AssignmentStatement(newFieldData, Allocation(field.field.dataType.resolveUnderlyingDatatype, numDataPoints))
-        // TODO: Knowledge.data_addPrePadding
-      }
+
+      val newFieldData = Duplicate(cleanedField)
+      newFieldData.slot = (if (field.field.numSlots > 1) "slot" else 0)
+
+      var innerStmts : ListBuffer[Statement] =
+        if (Knowledge.data_alignFieldPointers) {
+          ListBuffer(
+            VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), "vs",
+              Some(Knowledge.simd_vectorSize * SizeOfExpression(RealDatatype()))),
+            AssignmentStatement(newFieldData.basePtr, Allocation(field.field.dataType.resolveUnderlyingDatatype, numDataPoints + Knowledge.simd_vectorSize - 1)),
+            VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), "offset",
+              Some(("vs" - CastExpression(SpecialDatatype("ptrdiff_t"), newFieldData.basePtr) Mod "vs") Mod "vs" / SizeOfExpression(RealDatatype()))),
+            AssignmentStatement(newFieldData, newFieldData.basePtr + "offset"))
+        } else {
+          ListBuffer(AssignmentStatement(newFieldData, Allocation(field.field.dataType.resolveUnderlyingDatatype, numDataPoints)))
+        }
+
+      if (field.field.numSlots > 1)
+        statements += new ForLoopStatement(
+          VariableDeclarationStatement(new IntegerDatatype, "slot", Some(0)),
+          LowerExpression("slot", field.field.numSlots),
+          PreIncrementExpression("slot"),
+          innerStmts)
+      else
+        statements ++= innerStmts
 
       fieldAllocs += (cleanedField -> new LoopOverFragments(
         new ConditionStatement(iv.IsValidForSubdomain(field.field.domain.index), statements)) with OMP_PotentiallyParallel)
@@ -156,8 +171,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   })
 
   this += new Transformation("Extending SetupBuffers function", {
-    // FIXME: this kind of matching is awkward, I want trafos that don't return nodes
-    case func : FunctionStatement if ("setupBuffers" == func.name) => {
+    case func @ FunctionStatement(_, "setupBuffers", _, _) => {
       if (Knowledge.comm_useLevelIndependentFcts) {
         val s = new DefaultStrategy("Replacing level specifications")
         s += new Transformation("Search and replace", {

@@ -84,7 +84,7 @@ object Knowledge {
   var data_initAllFieldsWithZero : Boolean = true // specifies if all data points in all fields on all levels should initially be set zero (before the l4 initField functions are applied)
   var data_useFieldNamesAsIdx : Boolean = true // specifies if generated data field names should hold the clear text field identifier
 
-  var data_addPrePadding : Boolean = false // TODO: currently removed due to problems with level-dependent layouts; specifies if additional padding at the beginning of the field is required (e.g. to ensure correct alignment for SIMD accesses)
+  var data_alignFieldPointers : Boolean = false // specifies if pointers to field data are to be aligned to simd_vectorSize, e.g. to ensure correct alignment for SIMD accesses
 
   // --- OpenMP and MPI Parallelization ---
   var comm_strategyFragment : Int = 6 // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors
@@ -205,6 +205,7 @@ object Knowledge {
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
     Constraints.condEnsureValue(opt_vectorize, false, !useDblPrecision, "opt_vectorize is currently not compatible with float precision")
+    Constraints.condEnsureValue(data_alignFieldPointers, true, opt_vectorize && "IBMXL" == targetCompiler, "data_alignFieldPointers must be true for vectorization on IBM architectures")
 
     Constraints.updateValue(useOMP, (domain_summarizeBlocks && domain_fragLength != 1) || domain_numFragsPerBlock != 1)
     Constraints.updateValue(useMPI, (domain_numBlocks != 1))

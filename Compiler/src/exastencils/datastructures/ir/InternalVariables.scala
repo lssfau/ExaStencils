@@ -1,5 +1,6 @@
 package exastencils.datastructures.ir.iv
 
+import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
 import exastencils.datastructures.ir._
@@ -97,6 +98,14 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
 
     access
   }
+
+  def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, Statement], dtors : HashMap[String, Statement]) = {
+    declarations += (resolveName -> getDeclaration)
+    if (getCtor().isDefined)
+      ctors += (resolveName -> getCtor().get)
+    if (getDtor().isDefined)
+      dtors += (resolveName -> getDtor().get)
+  }
 }
 
 abstract class CommVariable extends InternalVariable(Knowledge.comm_sepDataByFragment, false, Knowledge.comm_useFieldArrays, Knowledge.comm_useLevelArrays, Knowledge.comm_useNeighborArrays) {
@@ -189,13 +198,15 @@ case class IsValidForSubdomain(var domain : Expression, var fragmentIdx : Expres
   override def resolveDefValue = Some(false)
 }
 
-case class FieldData(var field : Field, var level : Expression, var slot : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, false) {
+abstract class AbstractFieldData extends InternalVariable(true, false, true, true, false) {
+  var field : Field
+  var level : Expression
+  var slot : Expression
+  var fragmentIdx : Expression
+
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, level, NullExpression)
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
-
-  override def resolveName = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +
-    resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, level.prettyprint, "")
 
   override def resolveDataType = {
     if (field.numSlots > 1)
@@ -242,6 +253,41 @@ case class FieldData(var field : Field, var level : Expression, var slot : Expre
   override def resolveAccess(baseAccess : Expression, fragment : Expression, domain : Expression, field : Expression, level : Expression, neigh : Expression) : Expression = {
     val access = (if (this.field.numSlots > 1) new ArrayAccess(baseAccess, slot) else baseAccess)
     super.resolveAccess(access, fragment, domain, field, level, neigh)
+  }
+}
+
+case class FieldDataBasePtr(var field : Field, var level : Expression, var slot : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends AbstractFieldData {
+  override def resolveName = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +
+    resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, level.prettyprint, "") +
+    "_base"
+}
+
+case class FieldData(var field : Field, var level : Expression, var slot : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends AbstractFieldData {
+  def basePtr = FieldDataBasePtr(field, level, slot, fragmentIdx)
+
+  override def resolveName = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +
+    resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, level.prettyprint, "")
+
+  override def getDtor() : Option[Statement] = {
+    if (Knowledge.data_alignFieldPointers) {
+      val origSlot = slot
+      slot = "slot"
+      var access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
+      val ret = Some(wrapInLoops(new AssignmentStatement(access, 0)))
+      slot = origSlot
+      ret
+    } else {
+      super.getDtor()
+    }
+  }
+
+  override def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, Statement], dtors : HashMap[String, Statement]) = {
+    declarations += (resolveName -> getDeclaration)
+    ctors += (resolveName -> getCtor().get)
+    dtors += (resolveName -> getDtor().get)
+
+    if (Knowledge.data_alignFieldPointers)
+      basePtr.registerIV(declarations, ctors, dtors)
   }
 }
 

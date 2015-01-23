@@ -151,6 +151,14 @@ case class Allocation(var datatype : Datatype, var size : Expression) extends Ex
   override def prettyprint(out : PpStream) : Unit = out << "new" << ' ' << datatype << "[" << size << "]"
 }
 
+case class SizeOfExpression(var datatype : Datatype) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << "sizeof" << "(" << datatype << ")"
+}
+
+case class CastExpression(var datatype : Datatype, var toCast : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << "((" << datatype << ")" << toCast << ")"
+}
+
 case class VariableAccess(var name : String, var dType : Option[Datatype] = None) extends Access {
   override def prettyprint(out : PpStream) : Unit = out << name
 }
