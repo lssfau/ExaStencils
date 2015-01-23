@@ -12,7 +12,7 @@ BIN=${1}
 EXP_RESULT=${2}
 ERROR_MARKER=${3}
 
-echo "Running test on machine(s) ${SLURM_JOB_NODELIST}."
+echo "Running test on machine(s) ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
 rm -f ${ERROR_MARKER} # remove error marker from old job run if we were requeued
 
 RESULT="$(mktemp --tmpdir=/run/shm test_res_XXXXX.txt)" || {

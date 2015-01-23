@@ -11,13 +11,15 @@ object Knowledge {
 
   var useDblPrecision : Boolean = true
 
-  var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2"
+  var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2", "QPX"
   def simd_vectorSize : Int = { // number of vector elements for SIMD instructions (currently only double precision)
     simd_instructionSet match {
-      case "SSE3"         => 2
-      case "AVX" | "AVX2" => 4
+      case "SSE3"                 => 2
+      case "AVX" | "AVX2" | "QPX" => 4
     }
   }
+
+  var simd_avoidUnaligned : Boolean = false
 
   var useFasterExpand : Boolean = true
 
@@ -204,8 +206,9 @@ object Knowledge {
 
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
-    Constraints.condEnsureValue(opt_vectorize, false, !useDblPrecision, "opt_vectorize is currently not compatible with float precision")
-    Constraints.condEnsureValue(data_alignFieldPointers, true, opt_vectorize && "IBMXL" == targetCompiler, "data_alignFieldPointers must be true for vectorization on IBM architectures")
+    Constraints.condEnsureValue(opt_vectorize, false, !useDblPrecision, "opt_vectorize is currently not compatible with single precision")
+    Constraints.condEnsureValue(simd_avoidUnaligned, true, opt_vectorize && "QPX" == simd_instructionSet, "QPX does not support unaligned load or stores")
+    Constraints.condEnsureValue(data_alignFieldPointers, true, opt_vectorize && "QPX" == simd_instructionSet, "data_alignFieldPointers must be true for vectorization with QPX")
 
     Constraints.updateValue(useOMP, (domain_summarizeBlocks && domain_fragLength != 1) || domain_numFragsPerBlock != 1)
     Constraints.updateValue(useMPI, (domain_numBlocks != 1))

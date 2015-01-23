@@ -100,16 +100,16 @@ object SimplifyExpression {
         val toOpt = new HashMap[Expression, (DivisionExpression, ModuloExpression, Long)]()
         for (e <- res) e match {
           case (divd @ DivisionExpression(x, IntegerConstant(2)), coeff) =>
-            toOpt.getOrElse(x, null) match {
-              case null                         => toOpt(x) = (divd, null, coeff)
-              case (_, modd, c) if (c == coeff) => toOpt(x) = (divd, modd, coeff)
-              case _                            => toOpt -= x
+            toOpt.get(x) match {
+              case None                               => toOpt(x) = (divd, null, coeff)
+              case Some((_, modd, c)) if (c == coeff) => toOpt(x) = (divd, modd, coeff)
+              case Some(_)                            => toOpt -= x // coefficient is not matching...
             }
           case (modd @ ModuloExpression(x, IntegerConstant(2)), coeff) =>
-            toOpt.getOrElse(x, null) match {
-              case null                         => toOpt(x) = (null, modd, coeff)
-              case (divd, _, c) if (c == coeff) => toOpt(x) = (divd, modd, coeff)
-              case _                            => toOpt -= x
+            toOpt.get(x) match {
+              case None                               => toOpt(x) = (null, modd, coeff)
+              case Some((divd, _, c)) if (c == coeff) => toOpt(x) = (divd, modd, coeff)
+              case Some(_)                            => toOpt -= x // coefficient is not matching...
             }
           case _ =>
         }

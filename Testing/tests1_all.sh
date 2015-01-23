@@ -54,7 +54,7 @@ trap cleanup EXIT
 
 
 echo "-----------------------------------------------------------------------------------------------"
-echo "Running main test script on machine ${SLURM_JOB_NODELIST} in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID}."
+echo "Running main test script on machine ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
 
 RAM_TMP_DIR=$(mktemp --tmpdir=/run/shm -d) || {
     echo "ERROR: Failed to create temporary directory."

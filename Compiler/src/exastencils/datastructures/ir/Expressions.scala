@@ -576,20 +576,32 @@ case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, 
 case class SIMD_LoadExpression(var mem : Expression, var aligned : Boolean) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
     Knowledge.simd_instructionSet match {
-      case "SSE3"         => if (aligned) out << "_mm_load_pd" else out << "_mm_loadu_pd"
-      case "AVX" | "AVX2" => if (aligned) out << "_mm256_load_pd" else out << "_mm256_loadu_pd"
+      case "SSE3"         => if (aligned) out << "_mm_load_pd(" else out << "_mm_loadu_pd("
+      case "AVX" | "AVX2" => if (aligned) out << "_mm256_load_pd(" else out << "_mm256_loadu_pd("
+      case "QPX"          => if (aligned) out << "vec_lda(0," else out << "NOT VALID ; unaligned load for QPX: ("
     }
-    out << '(' << mem << ')'
+    out << mem << ')'
   }
 }
 
 case class SIMD_Load1Expression(var mem : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
     Knowledge.simd_instructionSet match {
-      case "SSE3"         => out << "_mm_load1_pd"
-      case "AVX" | "AVX2" => out << "_mm256_broadcast_sd"
+      case "SSE3"         => out << "_mm_load1_pd("
+      case "AVX" | "AVX2" => out << "_mm256_broadcast_sd("
+      case "QPX"          => out << "vec_ldsa(0,"
     }
-    out << '(' << mem << ')'
+    out << mem << ')'
+  }
+}
+
+case class SIMD_ConcShift(var left : Expression, var right : Expression, var offset : Int) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = {
+    Knowledge.simd_instructionSet match {
+      case "SSE3"         => out << "TODO : SIMD_ConcShift for SSE3"
+      case "AVX" | "AVX2" => out << "TODO : SIMD_ConcShift for AVX"
+      case "QPX"          => out << "vec_sldw(" << left << ", " << right << ", " << offset << ")"
+    }
   }
 }
 
@@ -598,6 +610,7 @@ case class SIMD_NegateExpresseion(var vect : Expression) extends Expression {
     Knowledge.simd_instructionSet match {
       case "SSE3"         => out << "_mm_xor_pd(" << vect << ", _mm_set1_pd(-0.f))"
       case "AVX" | "AVX2" => out << "_mm256_xor_pd(" << vect << ", _mm256_set1_pd(-0.f))"
+      case "QPX"          => out << "vec_neg(" << vect << ')'
     }
   }
 }
@@ -607,6 +620,7 @@ case class SIMD_AdditionExpression(var left : Expression, var right : Expression
     Knowledge.simd_instructionSet match {
       case "SSE3"         => out << "_mm_add_pd"
       case "AVX" | "AVX2" => out << "_mm256_add_pd"
+      case "QPX"          => out << "vec_add"
     }
     out << '(' << left << ", " << right << ')'
   }
@@ -617,6 +631,7 @@ case class SIMD_SubtractionExpression(var left : Expression, var right : Express
     Knowledge.simd_instructionSet match {
       case "SSE3"         => out << "_mm_sub_pd"
       case "AVX" | "AVX2" => out << "_mm256_sub_pd"
+      case "QPX"          => out << "vec_sub"
     }
     out << '(' << left << ", " << right << ')'
   }
@@ -627,6 +642,7 @@ case class SIMD_MultiplicationExpression(var left : Expression, var right : Expr
     Knowledge.simd_instructionSet match {
       case "SSE3"         => out << "_mm_mul_pd"
       case "AVX" | "AVX2" => out << "_mm256_mul_pd"
+      case "QPX"          => out << "vec_mul"
     }
     out << '(' << left << ", " << right << ')'
   }
@@ -640,6 +656,7 @@ case class SIMD_MultiplyAddExpression(var factor1 : Expression, var factor2 : Ex
       case "SSE3" => out << "_mm_add_pd(_mm_mul_pd(" << factor1 << ", " << factor2 << "), " << summand << ')'
       case "AVX"  => out << "_mm256_add_pd(_mm256_mul_pd(" << factor1 << ", " << factor2 << "), " << summand << ')'
       case "AVX2" => out << "_mm256_fmadd_pd(" << factor1 << ", " << factor2 << ", " << summand << ')'
+      case "QPX"  => out << "vec_madd(" << factor1 << ", " << factor2 << ", " << summand << ')'
     }
   }
 }
@@ -652,6 +669,7 @@ case class SIMD_MultiplySubExpression(var factor1 : Expression, var factor2 : Ex
       case "SSE3" => out << "_mm_sub_pd(_mm_mul_pd(" << factor1 << ", " << factor2 << "), " << summand << ')'
       case "AVX"  => out << "_mm256_sub_pd(_mm256_mul_pd(" << factor1 << ", " << factor2 << "), " << summand << ')'
       case "AVX2" => out << "_mm256_fmsub_pd(" << factor1 << ", " << factor2 << ", " << summand << ')'
+      case "QPX"  => out << "vec_msub(" << factor1 << ", " << factor2 << ", " << summand << ')'
     }
   }
 }
@@ -661,6 +679,7 @@ case class SIMD_DivisionExpression(var left : Expression, var right : Expression
     Knowledge.simd_instructionSet match {
       case "SSE3"         => out << "_mm_div_pd"
       case "AVX" | "AVX2" => out << "_mm256_div_pd"
+      case "QPX"          => out << "vec_swdiv_nochk"
     }
     out << '(' << left << ", " << right << ')'
   }
@@ -672,6 +691,7 @@ case class SIMD_FloatConstant(var value : Double) extends Expression {
     Knowledge.simd_instructionSet match {
       case "SSE3"         => out << "_mm_set1_pd"
       case "AVX" | "AVX2" => out << "_mm256_set1_pd"
+      case "QPX"          => out << "vec_splats"
     }
     out << '(' << String.format(java.util.Locale.US, "%e", Double.box(value)) << ')'
   }
@@ -685,6 +705,9 @@ case class SIMD_Scalar2VectorExpression(var scalar : String, var dType : Datatyp
       Knowledge.simd_instructionSet match {
         case "SSE3"         => out << "_mm_set_pd"
         case "AVX" | "AVX2" => out << "_mm256_set_pd"
+        case "QPX" =>
+          out << "NOT VALID ; SIMD_Scalar2VectorExpression(., ., true) for BG/Q not yet implemented"
+          return
       }
       out << '('
       for (i <- Knowledge.simd_vectorSize - 1 to 1 by -1)
@@ -695,6 +718,7 @@ case class SIMD_Scalar2VectorExpression(var scalar : String, var dType : Datatyp
       Knowledge.simd_instructionSet match {
         case "SSE3"         => out << "_mm_set1_pd"
         case "AVX" | "AVX2" => out << "_mm256_set1_pd"
+        case "QPX"          => out << "vec_splats"
       }
       out << '(' << scalar << ')'
     }
