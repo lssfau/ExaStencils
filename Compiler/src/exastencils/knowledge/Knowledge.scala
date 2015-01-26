@@ -200,7 +200,11 @@ object Knowledge {
   var l3tmp_genTimersPerFunction : Boolean = false // generates different timers for each function in the mg cycle
   var l3tmp_genTimersPerLevel : Boolean = false // generates different timers for each (mg) level
   var l3tmp_genTimersForComm : Boolean = false // generates additional timers for the communication
-  var l3tmp_genCommTimersPerLevel : Boolean = false // generates different communication timers for each level 
+  var l3tmp_genCommTimersPerLevel : Boolean = false // generates different communication timers for each level
+
+  var advTimer_timerType : String = "Chrono" // may be one of the following: Chrono, QPC, WIN_TIME, UNIX_TIME, MPI_TIME, RDSC, WINDOWS_RDSC
+  var advTimer_enableCallStacks : Boolean = false // generates call stacks for all employed timers
+  // FIXME: add appropriate constraints
 
   /// END HACK
 
