@@ -32,7 +32,6 @@ opt_useAddressPrecalc      = false
 opt_vectorize              = false
 opt_unroll                 = 5
 opt_unroll_interleave      = false
-data_addPrePadding         = false // not needed currently 
 
 l3tmp_smoother             = "Jac"
 opt_useColorSplitting      = false
