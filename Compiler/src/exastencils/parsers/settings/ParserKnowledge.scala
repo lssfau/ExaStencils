@@ -30,9 +30,17 @@ class ParserKnowledge extends ExaParser {
     }
   }
 
+  def setParameter[T](ident : String, value : T) = {
+    try {
+      UniversalSetter(exastencils.knowledge.Knowledge, ident, value)
+    } catch {
+      case ex : java.lang.NoSuchFieldException => Logger.warning(s"Trying to set parameter Knowledge.${ident} to ${value}; this parameter is undefined")
+    }
+  }
+
   lazy val settingsfile = setting.*
 
-  lazy val setting = ident ~ "=" ~ expr ^^ { case id ~ "=" ~ ex => UniversalSetter(exastencils.knowledge.Knowledge, id, ex) }
+  lazy val setting = ident ~ "=" ~ expr ^^ { case id ~ "=" ~ ex => setParameter(id, ex) }
 
   lazy val expr = stringLit ^^ { _.toString } |
     "-".? ~ numericLit ^^ {
