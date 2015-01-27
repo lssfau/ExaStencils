@@ -154,6 +154,10 @@ object Application {
 
     if (Knowledge.l3tmp_genAdvancedTimers && !Knowledge.l3tmp_genForAutoTests) {
       printer.println("\tnative ( 'TimerWrapper::PrintAllTimersToFileGlobal(\"TimersAll.msd\")' )")
+      if (Knowledge.advTimer_enableCallStacks) {
+        printer.println("\tnative ( 'CallTracker::PrintCallStackToFileGlobal(\"TimersAll.cs\")' )")
+        printer.println("\tnative ( 'CallTracker::ClearCallStack()' )")
+      }
 
       if (Knowledge.l3tmp_genTimersPerFunction) {
         for (

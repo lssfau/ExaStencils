@@ -202,9 +202,8 @@ object Knowledge {
   var l3tmp_genTimersForComm : Boolean = false // generates additional timers for the communication
   var l3tmp_genCommTimersPerLevel : Boolean = false // generates different communication timers for each level
 
-  var advTimer_timerType : String = "Chrono" // may be one of the following: Chrono, QPC, WIN_TIME, UNIX_TIME, MPI_TIME, RDSC, WINDOWS_RDSC
+  var advTimer_timerType : String = "Chrono" // may be one of the following: 'Chrono', 'QPC', 'WIN_TIME', 'UNIX_TIME', 'MPI_TIME', 'RDSC', 'WINDOWS_RDSC'
   var advTimer_enableCallStacks : Boolean = false // generates call stacks for all employed timers
-  // FIXME: add appropriate constraints
 
   /// END HACK
 
@@ -301,5 +300,16 @@ object Knowledge {
     Constraints.condEnsureValue(poly_optLevel_coarse, poly_optLevel_fine, poly_optLevel_coarse > poly_optLevel_fine, "optimization level for coarse grids must smaller or equal to the one for the fine levels")
     Constraints.condEnsureValue(poly_numFinestLevels, numLevels, poly_numFinestLevels > numLevels, "number of fine levels (for optimization) cannot exceed the number of all levels")
     Constraints.condEnsureValue(opt_useColorSplitting, false, l3tmp_smoother != "RBGS", "color splitting is only relevant for RBGS smoother")
+
+    if (l3tmp_genAdvancedTimers) {
+      // TODO: remove condition when timers are fully integrated
+      Constraints.condEnsureValue(advTimer_timerType, "Chrono", !useMPI && "MPI_TIME" == advTimer_timerType, "MPI_TIME is not supported for codes generated without MPI")
+      Constraints.condEnsureValue(advTimer_timerType, "Chrono", "QPC" == advTimer_timerType && "MSVC" != targetCompiler, "QPC is only supported for windows")
+      Constraints.condEnsureValue(advTimer_timerType, "WINDOWS_RDSC", "RDSC" == advTimer_timerType && "MSVC" == targetCompiler, "WINDOWS_RDSC is required for windows systems")
+      Constraints.condEnsureValue(advTimer_timerType, "RDSC", "WINDOWS_RDSC" == advTimer_timerType && "MSVC" != targetCompiler, "RDSC is required for non-windows systems")
+      Constraints.condEnsureValue(advTimer_timerType, "UNIX_TIME", "WIN_TIME" == advTimer_timerType && "MSVC" != targetCompiler, "WIN_TIME is not supported for non-windows systems")
+      Constraints.condEnsureValue(advTimer_timerType, "WIN_TIME", "UNIX_TIME" == advTimer_timerType && "MSVC" == targetCompiler, "UNIX_TIME is not supported for windows systems")
+      Constraints.condEnsureValue(advTimer_timerType, "UNIX_TIME", "Chrono" == advTimer_timerType && "IBMXL" == targetCompiler, "IBM XL does currently not support std::chrono")
+    }
   }
 }
