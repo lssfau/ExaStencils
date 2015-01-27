@@ -149,7 +149,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
               Some(Knowledge.simd_vectorSize * SizeOfExpression(RealDatatype()))),
             AssignmentStatement(newFieldData.basePtr, Allocation(field.field.dataType.resolveUnderlyingDatatype, numDataPoints + Knowledge.simd_vectorSize - 1)),
             VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), "offset",
-              Some(("vs" - CastExpression(SpecialDatatype("ptrdiff_t"), newFieldData.basePtr) Mod "vs") Mod "vs" / SizeOfExpression(RealDatatype()))),
+              Some((("vs" - (CastExpression(SpecialDatatype("ptrdiff_t"), newFieldData.basePtr) Mod "vs")) Mod "vs") / SizeOfExpression(RealDatatype()))),
             AssignmentStatement(newFieldData, newFieldData.basePtr + "offset"))
         } else {
           ListBuffer(AssignmentStatement(newFieldData, Allocation(field.field.dataType.resolveUnderlyingDatatype, numDataPoints)))
