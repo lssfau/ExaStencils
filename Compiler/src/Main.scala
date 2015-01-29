@@ -100,15 +100,15 @@ object Main {
     ResolveLoopOverPoints.apply()
     ResolveIntergridIndices.apply()
 
-    var numConvFound = 1
-    while (numConvFound > 0) {
+    var numConvFound = 0
+    do {
       FindStencilConvolutions.apply()
       numConvFound = FindStencilConvolutions.results.last._2.matches
       if (Knowledge.useFasterExpand)
         ExpandOnePassStrategy.apply()
       else
         ExpandStrategy.doUntilDone()
-    }
+    } while (numConvFound > 0)
 
     ResolveDiagFunction.apply()
     ResolveContractingLoop.apply()
@@ -154,6 +154,9 @@ object Main {
 
     if (Knowledge.opt_unroll > 1)
       Unrolling.apply()
+
+    if (Knowledge.opt_vectorize)
+      RemoveDupSIMDLoads.apply()
 
     AddInternalVariables.apply()
     if (Knowledge.useFasterExpand)
