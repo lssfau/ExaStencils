@@ -24,6 +24,29 @@ case class Stencil(var identifier : String, var level : Int, var entries : ListB
     reach
   }
 
+  def findStencilEntry(offset : MultiIndex) : Option[StencilEntry] = {
+    val index = findStencilEntryIndex(offset)
+    if (index.isDefined)
+      Some(entries(index.get))
+    else
+      None
+  }
+
+  def findStencilEntryIndex(offset : MultiIndex) : Option[Int] = {
+    for (i <- 0 until entries.size) {
+      var ret = true
+      for (dim <- 0 until Knowledge.dimensionality)
+        ret &= (offset(dim) == entries(i).offset(dim))
+
+      if (ret) return Some(i)
+    }
+
+    Logger.warn(s"Trying to find stencil entry for invalid offset $offset in stencil:")
+    printStencil()
+
+    None
+  }
+
   def printStencil() : Unit = {
     println(s"Stencil $identifier:")
     println
