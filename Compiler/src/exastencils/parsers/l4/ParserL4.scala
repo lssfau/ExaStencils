@@ -250,12 +250,12 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ^^ { case id => UnresolvedAccess(id, None, None, None, None) })
   lazy val leveledAccess = locationize(ident ~ levelAccess
     ^^ { case id ~ level => UnresolvedAccess(id, Some(level), None, None, None) })
-  lazy val fieldLikeAccess = locationize(ident ~ slotAccess.? ~ levelAccess ~ ("[" ~> integerLit <~ "]").? ~ (":" ~> index).?
+  lazy val fieldLikeAccess = locationize(ident ~ slotAccess.? ~ levelAccess ~ ("[" ~> integerLit <~ "]").? ~ (":" ~> expressionIndex).?
     ^^ { case id ~ slot ~ level ~ arrayIndex ~ offset => UnresolvedAccess(id, Some(level), slot, arrayIndex, offset) })
-  lazy val stencilLikeAccess = locationize(ident ~ levelAccess ~ (":" ~> index).?
+  lazy val stencilLikeAccess = locationize(ident ~ levelAccess ~ (":" ~> expressionIndex).?
     ^^ { case id ~ level ~ offset => UnresolvedAccess(id, Some(level), None, None, offset) })
 
-  lazy val genericAccess = locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("[" ~> integerLit <~ "]").? ~ (":" ~> index).?
+  lazy val genericAccess = locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("[" ~> integerLit <~ "]").? ~ (":" ~> expressionIndex).?
     ^^ { case id ~ slot ~ level ~ arrayIndex ~ offset => UnresolvedAccess(id, level, slot, arrayIndex, offset) })
 
   // ######################################

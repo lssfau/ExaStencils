@@ -46,7 +46,7 @@ case class BooleanConstant(var value : Boolean) extends Expression {
 
 abstract class Access() extends Expression {}
 
-case class UnresolvedAccess(var identifier : String, var level : Option[AccessLevelSpecification], var slot : Option[Expression], var arrayIndex : Option[Int], var offset : Option[Index]) extends Access {
+case class UnresolvedAccess(var identifier : String, var level : Option[AccessLevelSpecification], var slot : Option[Expression], var arrayIndex : Option[Int], var offset : Option[ExpressionIndex]) extends Access {
   def prettyprint(out : PpStream) = {
     out << identifier
     if (slot.isDefined) out << '[' << slot.get << ']'
@@ -80,7 +80,7 @@ case class LeveledAccess(var name : String, var level : AccessLevelSpecification
   }
 }
 
-case class FieldAccess(var name : String, var level : AccessLevelSpecification, var slot : Expression, var arrayIndex : Option[Int] = None, var offset : Option[Index] = None) extends Access {
+case class FieldAccess(var name : String, var level : AccessLevelSpecification, var slot : Expression, var arrayIndex : Option[Int] = None, var offset : Option[ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     // FIXME: omit slot if numSlots of target field is 1
     out << name << '[' << slot << ']' << '@' << level
@@ -119,7 +119,7 @@ object FieldAccess {
   }
 }
 
-case class StencilAccess(var name : String, var level : AccessLevelSpecification, var arrayIndex : Option[Int] = None, var offset : Option[Index] = None) extends Access {
+case class StencilAccess(var name : String, var level : AccessLevelSpecification, var arrayIndex : Option[Int] = None, var offset : Option[ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     out << name << '@' << level
     if (offset.isDefined) out << ":" << offset
@@ -147,7 +147,7 @@ case class StencilAccess(var name : String, var level : AccessLevelSpecification
   }
 }
 
-case class StencilFieldAccess(var name : String, var level : AccessLevelSpecification, var slot : Expression, var arrayIndex : Option[Int] = None, var offset : Option[Index] = None) extends Access {
+case class StencilFieldAccess(var name : String, var level : AccessLevelSpecification, var slot : Expression, var arrayIndex : Option[Int] = None, var offset : Option[ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     // FIXME: omit slot if numSlots of target field is 1
     out << name << '[' << slot << ']' << '@' << level
