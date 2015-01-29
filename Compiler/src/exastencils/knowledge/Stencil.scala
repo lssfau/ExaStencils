@@ -41,8 +41,8 @@ case class Stencil(var identifier : String, var level : Int, var entries : ListB
       if (ret) return Some(i)
     }
 
-    Logger.warn(s"Trying to find stencil entry for invalid offset $offset in stencil:")
-    printStencil()
+    Logger.warn(s"Trying to find stencil entry for invalid offset ${offset.prettyprint()} in stencil:\n" +
+      entries.map(e => s"\t${e.offset.prettyprint()} -> ${e.coefficient.prettyprint()}").mkString("\n"))
 
     None
   }

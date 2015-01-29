@@ -64,7 +64,7 @@ object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
   this += new Transformation("SearchAndReplace", {
     case FunctionCallExpression(StringConstant("diag"), args) => args(0) match {
       case access : StencilAccess =>
-        val centralOffset = new MultiIndex(Array.fill(Knowledge.dimensionality - 1)(0))
+        val centralOffset = new MultiIndex(Array.fill(Knowledge.dimensionality)(0))
         access.stencil.findStencilEntry(centralOffset).get.coefficient
       case access : StencilFieldAccess => {
         var index = Duplicate(access.index)
