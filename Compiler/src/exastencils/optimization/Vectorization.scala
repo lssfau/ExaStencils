@@ -16,6 +16,9 @@ import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.util.SimplifyExpression
 
 object Vectorization extends DefaultStrategy("Vectorization") {
+
+  final val VECT_ANNOT = "VECT"
+
   this += new Transformation("optimize", VectorizeInnermost)
 }
 
@@ -205,6 +208,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     oldLoop.inc = AssignmentStatement(itVar, IntegerConstant(incr * Knowledge.simd_vectorSize), "+=")
     oldLoop.body = ctx.vectStmts
     oldLoop.annotate(Unrolling.NO_REM_ANNOT, endOffset)
+    oldLoop.annotate(Vectorization.VECT_ANNOT)
     if (oldLoop.isInstanceOf[OMP_PotentiallyParallel]) // allow omp parallelization
       oldLoop.asInstanceOf[OMP_PotentiallyParallel].addOMPStatements += "lastprivate(" + itName + ')'
     res += oldLoop
@@ -301,7 +305,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
             }
 
           // TODO: ensure grid alignment first
-          val aligned : Boolean = false // (const.getOrElse(0L) % Knowledge.simd_vectorSize) == 0
+          val aligned : Boolean = (const.getOrElse(0L) % Knowledge.simd_vectorSize) == 0
           var init : Option[Expression] =
             if (ctx.isLoad() && !ctx.isStore())
               Some(createLoadExpression(expr, base, ind, const.getOrElse(0L), access1, aligned, ctx))
@@ -385,10 +389,10 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     else { // avoid unaligned load
       val lowerConst : Long = indexConst & ~(Knowledge.simd_vectorSize - 1)
       index(SimplifyExpression.constName) = lowerConst
-      val lowerExpr = vectorizeExpr(ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(index)), ctx)
+      val lowerExpr = vectorizeExpr(ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(index)), ctx).asInstanceOf[VariableAccess]
       index(SimplifyExpression.constName) = lowerConst + Knowledge.simd_vectorSize
-      val upperExpr = vectorizeExpr(ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(index)), ctx)
-      SIMD_ConcShift(lowerExpr, upperExpr, (indexConst - lowerConst).asInstanceOf[Int])
+      val upperExpr = vectorizeExpr(ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(index)), ctx).asInstanceOf[VariableAccess]
+      return SIMD_ConcShift(lowerExpr, upperExpr, (indexConst - lowerConst).toInt)
     }
   }
 }

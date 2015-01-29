@@ -9,11 +9,16 @@ import exastencils.knowledge._
 import exastencils.prettyprinting._
 
 case class CommunicationFunctions() extends FunctionCollection("CommFunctions/CommFunctions",
-  ListBuffer("cmath")
-    ++ (if (Knowledge.useMPI) ListBuffer("mpi.h") else ListBuffer())
-    ++ (if (Knowledge.opt_vectorize) ListBuffer("immintrin.h") else ListBuffer())
-    ++ (if (Knowledge.opt_vectorize || Knowledge.poly_optLevel_fine > 0) ListBuffer("algorithm") else ListBuffer()),
-  ListBuffer("Globals/Globals.h", "Util/Vector.h", "MultiGrid/MultiGrid.h"))
+  ListBuffer("cmath"),
+  ListBuffer("Globals/Globals.h", "Util/Vector.h", "MultiGrid/MultiGrid.h")) {
+
+  if (Knowledge.useMPI)
+    externalDependencies += "mpi.h"
+  if (Knowledge.opt_vectorize)
+    externalDependencies += "immintrin.h"
+  if (Knowledge.opt_vectorize || Knowledge.poly_optLevel_fine > 0)
+    externalDependencies += "algorithm"
+}
 
 case class SetIterationOffset(var location : Expression, var domain : Expression, var fragment : Expression) extends Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetIterationOffset\n"
