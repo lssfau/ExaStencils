@@ -59,8 +59,6 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
       out <<< externalFields << '\n'
     if (!stencils.isEmpty)
       out <<< stencils << '\n'
-    if (!iterationSets.isEmpty)
-      out <<< iterationSets << '\n'
     if (!globals.isEmpty)
       out <<< globals << '\n'
     if (!statements.isEmpty)
@@ -99,11 +97,6 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
     ExternalFieldCollection.fields.clear
     for (extField <- externalFields)
       ExternalFieldCollection.fields += extField.progressToIr
-
-    // IterationSets
-    IterationSetCollection.sets.clear
-    for (iterationSet <- iterationSets)
-      IterationSetCollection.sets += iterationSet.progressToIr
 
     // Globals
     var progGlobals = new Globals(new ListBuffer)
