@@ -57,7 +57,7 @@ object Testbed {
     //var RAP : Stencil = StencilStencilConvolution(P, StencilStencilConvolution(A, R).expand).expand
 
     for (e <- RAP.entries)
-      println(e.offset.prettyprint() + "\t>>\t" + e.weight.prettyprint)
+      println(e.offset.prettyprint() + "\t>>\t" + e.coefficient.prettyprint)
 
     /*{
       var entries : ListBuffer[StencilEntry] = ListBuffer()

@@ -12,7 +12,7 @@ import exastencils.prettyprinting._
 import exastencils.strategies._
 import exastencils.util._
 
-case class StencilEntry(var offset : MultiIndex, var weight : Expression) {}
+case class StencilEntry(var offset : MultiIndex, var coefficient : Expression) {}
 
 case class Stencil(var identifier : String, var level : Int, var entries : ListBuffer[StencilEntry] = new ListBuffer) {
   def getReach(dim : Int) : Int = {
@@ -36,7 +36,7 @@ case class Stencil(var identifier : String, var level : Int, var entries : ListB
               e => e.offset match {
                 case MultiIndex(IntegerConstant(xOff), IntegerConstant(yOff), IntegerConstant(zOff), _) if (x == xOff && y == yOff && z == zOff) => true
                 case _ => false
-              }).getOrElse(StencilEntry(new MultiIndex, 0)).weight.prettyprint)
+              }).getOrElse(StencilEntry(new MultiIndex, 0)).coefficient.prettyprint)
         println
       }
       println
@@ -125,10 +125,10 @@ object MapStencilAssignments extends DefaultStrategy("MapStencilAssignments") {
             if ((0 until Knowledge.dimensionality).map(dim =>
               (SimplifyExpression.evalIntegral(e.offset(dim)) == -SimplifyExpression.evalIntegral(stencilLeft.entries(idx).offset(dim))))
               .reduceLeft((a, b) => a && b))
-              coeff += e.weight
+              coeff += e.coefficient
           } else {
             if (e.offset == stencilLeft.entries(idx).offset)
-              coeff += e.weight
+              coeff += e.coefficient
           }
         }
 

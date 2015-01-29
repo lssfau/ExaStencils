@@ -454,7 +454,7 @@ case class StencilConvolution(var stencil : Stencil, var fieldAccess : FieldAcce
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilConvolution\n"
 
   def resolveEntry(idx : Int) : Expression = {
-    stencil.entries(idx).weight * new FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + stencil.entries(idx).offset)
+    stencil.entries(idx).coefficient * new FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + stencil.entries(idx).offset)
   }
 
   def expand : Output[Expression] = {
@@ -509,14 +509,14 @@ case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight
         ResolveCoordinates.replacement = rightOffset
         ResolveCoordinates.doUntilDoneStandalone(combOff)
 
-        var combCoeff : Expression = (re.weight * le.weight)
+        var combCoeff : Expression = (re.coefficient * le.coefficient)
         SimplifyStrategy.doUntilDoneStandalone(combOff)
         SimplifyStrategy.doUntilDoneStandalone(combCoeff)
         var addToEntry = entries.find(e => e.offset match { case o if (combOff == o) => true; case _ => false })
         if (addToEntry.isDefined) {
-          combCoeff += addToEntry.get.weight
+          combCoeff += addToEntry.get.coefficient
           SimplifyStrategy.doUntilDoneStandalone(combCoeff)
-          addToEntry.get.weight = combCoeff
+          addToEntry.get.coefficient = combCoeff
         } else entries += new StencilEntry(combOff, combCoeff)
       }
     }
@@ -555,14 +555,14 @@ case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, 
         ResolveCoordinates.replacement = rightOffset
         ResolveCoordinates.doUntilDoneStandalone(combOff)
 
-        var combCoeff : Expression = (re.weight * new FieldAccess(fieldSel, stencilFieldIdx))
+        var combCoeff : Expression = (re.coefficient * new FieldAccess(fieldSel, stencilFieldIdx))
         SimplifyStrategy.doUntilDoneStandalone(combOff)
         SimplifyStrategy.doUntilDoneStandalone(combCoeff)
         var addToEntry = entries.find(e => e.offset match { case o if (combOff == o) => true; case _ => false })
         if (addToEntry.isDefined) {
-          combCoeff += addToEntry.get.weight
+          combCoeff += addToEntry.get.coefficient
           SimplifyStrategy.doUntilDoneStandalone(combCoeff)
-          addToEntry.get.weight = combCoeff
+          addToEntry.get.coefficient = combCoeff
         } else entries += new StencilEntry(combOff, combCoeff)
       }
     }

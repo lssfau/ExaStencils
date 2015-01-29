@@ -69,7 +69,7 @@ object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
           for (dim <- 0 until Knowledge.dimensionality)
             ret &= (IntegerConstant(0) == e.offset(dim))
           ret
-        }).get.weight
+        }).get.coefficient
       case access : StencilFieldAccess => {
         var index = Duplicate(access.index)
         index(Knowledge.dimensionality) = 0 // FIXME: this assumes the center entry to be in pos 0
