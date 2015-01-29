@@ -1,11 +1,11 @@
 package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
-
 import exastencils.data
 import exastencils.datastructures._
 import exastencils.knowledge
 import exastencils.prettyprinting._
+import exastencils.core.Logger
 
 trait Expression extends Node with ProgressableToIr with PrettyPrintable {
   def progressToIr : ir.Expression
@@ -45,19 +45,20 @@ case class BooleanConstant(var value : Boolean) extends Expression {
 
 abstract class Access() extends Expression {}
 
-case class UnresolvedAccess(var identifier : String, var level : Option[AccessLevelSpecification], var slot : Option[Expression], var arrayIndex : Option[Int]) extends Access {
+case class UnresolvedAccess(var identifier : String, var level : Option[AccessLevelSpecification], var slot : Option[Expression], var arrayIndex : Option[Int], var offset : Option[Index]) extends Access {
   def prettyprint(out : PpStream) = {
     out << identifier
     if (slot.isDefined) out << '[' << slot.get << ']'
     if (level.isDefined) out << '@' << level.get
     if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
+    if (offset.isDefined) out << ':' << offset.get
   }
 
   def progressToIr : ir.StringConstant = ir.StringConstant("ERROR - Unresolved Access")
 
   def resolveToBasicOrLeveledAccess = if (level.isDefined) LeveledAccess(identifier, level.get) else BasicAccess(identifier)
-  def resolveToFieldAccess = FieldAccess(identifier, level.get, slot.getOrElse(IntegerConstant(0)), arrayIndex)
-  def resolveToStencilAccess = StencilAccess(identifier, level.get)
+  def resolveToFieldAccess = FieldAccess(identifier, level.get, slot.getOrElse(IntegerConstant(0)), arrayIndex, offset)
+  def resolveToStencilAccess = StencilAccess(identifier, level.get, arrayIndex, offset)
   def resolveToStencilFieldAccess = StencilFieldAccess(identifier, level.get, slot.getOrElse(IntegerConstant(0)), arrayIndex)
 }
 
@@ -78,11 +79,12 @@ case class LeveledAccess(var name : String, var level : AccessLevelSpecification
   }
 }
 
-case class FieldAccess(var name : String, var level : AccessLevelSpecification, var slot : Expression, var arrayIndex : Option[Int] = None) extends Access {
+case class FieldAccess(var name : String, var level : AccessLevelSpecification, var slot : Expression, var arrayIndex : Option[Int] = None, var offset : Option[Index] = None) extends Access {
   def prettyprint(out : PpStream) = {
     // FIXME: omit slot if numSlots of target field is 1
     out << name << '[' << slot << ']' << '@' << level
     if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
+    if (offset.isDefined) out << ":" << offset
   }
 
   def progressNameToIr : ir.StringConstant = {
@@ -95,6 +97,8 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
 
   def progressToIr : ir.FieldAccess = {
     var multiIndex = ir.LoopOverDimensions.defIt
+    if (offset.isDefined)
+      multiIndex += offset.get.progressToIr
     multiIndex(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(arrayIndex.getOrElse(0).toLong)
 
     val field = knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
@@ -115,11 +119,36 @@ object FieldAccess {
   }
 }
 
-case class StencilAccess(var name : String, var level : AccessLevelSpecification) extends Access {
-  def prettyprint(out : PpStream) = { out << name << '@' << level }
+case class StencilAccess(var name : String, var level : AccessLevelSpecification, var arrayIndex : Option[Int] = None, var offset : Option[Index] = None) extends Access {
+  def prettyprint(out : PpStream) = {
+    out << name << '@' << level
+    if (offset.isDefined) out << ":" << offset
+  }
 
-  def progressToIr : ir.StencilAccess = {
+  def getBasicStencilAccess : ir.StencilAccess = {
+    if (arrayIndex.isDefined || offset.isDefined)
+      Logger.warn(s"Discarding modifiers of access for stencil $name on level ${level.asInstanceOf[SingleLevelSpecification].level}")
+
     ir.StencilAccess(knowledge.StencilCollection.getStencilByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get)
+  }
+
+  def progressToIr : ir.Expression = {
+    val stencil = knowledge.StencilCollection.getStencilByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
+    if (arrayIndex.isDefined) {
+      stencil.entries(arrayIndex.get).coefficient
+    } else if (offset.isDefined) {
+      val procOffset = offset.get.progressToIr
+      Logger.info(procOffset)
+      stencil.entries.find(e => {
+        Logger.info(e)
+        var ret = true
+        for (dim <- 0 until knowledge.Knowledge.dimensionality)
+          ret &= (procOffset(dim) == e.offset(dim))
+        ret
+      }).get.coefficient
+    } else {
+      ir.StencilAccess(stencil)
+    }
   }
 }
 
@@ -197,7 +226,7 @@ case class StencilConvolution(var stencilAccess : StencilAccess, var fieldAccess
   def prettyprint(out : PpStream) = { out << stencilAccess << " * " << fieldAccess }
 
   def progressToIr : ir.StencilConvolution = {
-    ir.StencilConvolution(stencilAccess.progressToIr.stencil, fieldAccess.progressToIr)
+    ir.StencilConvolution(stencilAccess.getBasicStencilAccess.stencil, fieldAccess.progressToIr)
   }
 }
 
@@ -213,7 +242,7 @@ case class StencilStencilConvolution(var stencilLeft : StencilAccess, var stenci
   def prettyprint(out : PpStream) = { out << stencilLeft << " * " << stencilRight }
 
   def progressToIr : ir.StencilStencilConvolution = {
-    ir.StencilStencilConvolution(stencilLeft.progressToIr.stencil, stencilRight.progressToIr.stencil)
+    ir.StencilStencilConvolution(stencilLeft.getBasicStencilAccess.stencil, stencilRight.getBasicStencilAccess.stencil)
   }
 }
 
@@ -221,6 +250,6 @@ case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, 
   def prettyprint(out : PpStream) = { out << stencilLeft << " * " << stencilRight }
 
   def progressToIr : ir.StencilFieldStencilConvolution = {
-    ir.StencilFieldStencilConvolution(stencilLeft.progressToIr, stencilRight.progressToIr.stencil)
+    ir.StencilFieldStencilConvolution(stencilLeft.progressToIr, stencilRight.getBasicStencilAccess.stencil)
   }
 }
