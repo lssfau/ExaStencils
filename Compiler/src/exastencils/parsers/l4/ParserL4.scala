@@ -202,16 +202,19 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val fieldBoundary = binaryexpression ^^ { case x => Some(x) } ||| "None" ^^ { case x => None }
 
   lazy val index : PackratParser[Index] = (
-    locationize("[" ~ integerLit ~ "," ~ integerLit ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ => Index2D(n1, n2) })
-    ||| locationize("[" ~ integerLit ~ "," ~ integerLit ~ "," ~ integerLit ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ ~ n3 ~ _ => Index3D(n1, n2, n3) }))
+    locationize("[" ~> integerLit <~ "]" ^^ { case n1 => Index1D(n1) })
+    ||| locationize(("[" ~> integerLit <~ ",") ~ (integerLit <~ "]") ^^ { case n1 ~ n2 => Index2D(n1, n2) })
+    ||| locationize(("[" ~> integerLit <~ ",") ~ (integerLit <~ ",") ~ (integerLit <~ "]") ^^ { case n1 ~ n2 ~ n3 => Index3D(n1, n2, n3) }))
 
   lazy val realIndex : PackratParser[RealIndex] = (
-    locationize("[" ~ realLit ~ "," ~ realLit ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ => RealIndex2D(n1, n2) })
-    ||| locationize("[" ~ realLit ~ "," ~ realLit ~ "," ~ realLit ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ ~ n3 ~ _ => RealIndex3D(n1, n2, n3) }))
+    locationize("[" ~> realLit <~ "]" ^^ { case n1 => RealIndex1D(n1) })
+    ||| locationize(("[" ~> realLit <~ ",") ~ (realLit <~ "]") ^^ { case n1 ~ n2 => RealIndex2D(n1, n2) })
+    ||| locationize(("[" ~> realLit <~ ",") ~ (realLit <~ ",") ~ (realLit <~ "]") ^^ { case n1 ~ n2 ~ n3 => RealIndex3D(n1, n2, n3) }))
 
   lazy val expressionIndex : PackratParser[ExpressionIndex] = (
-    locationize("[" ~ binaryexpression ~ "," ~ binaryexpression ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ => ExpressionIndex2D(n1, n2) })
-    ||| locationize("[" ~ binaryexpression ~ "," ~ binaryexpression ~ "," ~ binaryexpression ~ "]" ^^ { case _ ~ n1 ~ _ ~ n2 ~ _ ~ n3 ~ _ => ExpressionIndex3D(n1, n2, n3) }))
+    locationize("[" ~> binaryexpression <~ "]" ^^ { case n1 => ExpressionIndex1D(n1) })
+    ||| locationize(("[" ~> binaryexpression <~ ",") ~ (binaryexpression <~ "]") ^^ { case n1 ~ n2 => ExpressionIndex2D(n1, n2) })
+    ||| locationize(("[" ~> binaryexpression <~ ",") ~ (binaryexpression <~ ",") ~ (binaryexpression <~ "]") ^^ { case n1 ~ n2 ~ n3 => ExpressionIndex3D(n1, n2, n3) }))
 
   lazy val stencil = locationize(("Stencil" ~> identifierWithOptionalLevel) ~ ("{" ~> stencilEntries <~ "}")
     ^^ { case id ~ entries => StencilDeclarationStatement(id, entries) })
