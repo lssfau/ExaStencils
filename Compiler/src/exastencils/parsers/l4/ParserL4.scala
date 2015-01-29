@@ -237,7 +237,9 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ##### Object Access
   // ######################################
 
-  lazy val slotAccess = locationize("[" ~> binaryexpression <~ "]" ^^ { case s => s })
+  lazy val slotAccess = (
+    locationize("[" ~> binaryexpression <~ "]" ^^ { case s => s })
+    ||| locationize("[" ~> ("curSlot" ||| "nextSlot" ||| "prevSlot") <~ "]" ^^ { case s => BasicAccess(s) }))
 
   lazy val levelAccess = (
     locationize("@" ~> levelsingle ^^ { case l => l })

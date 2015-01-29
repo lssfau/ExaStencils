@@ -109,8 +109,6 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
 object FieldAccess {
   def resolveSlot(field : knowledge.Field, slot : Expression) = {
     if (1 == field.numSlots) ir.IntegerConstant(0) else slot match {
-      // TODO: these keywords are up to discussion
-      // TODO: detect these keywords directly in the parser? Add specialized node(s)?
       case BasicAccess("curSlot")  => data.SlotAccess(ir.iv.CurrentSlot(field), 0)
       case BasicAccess("nextSlot") => data.SlotAccess(ir.iv.CurrentSlot(field), 1)
       case BasicAccess("prevSlot") => data.SlotAccess(ir.iv.CurrentSlot(field), -1)
