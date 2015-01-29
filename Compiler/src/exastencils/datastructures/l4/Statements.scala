@@ -32,27 +32,6 @@ case class DomainDeclarationStatement(var name : String, var lower : RealIndex, 
   }
 }
 
-case class IterationSetDeclarationStatement(var identifier : Identifier,
-    var begin : ExpressionIndex, var end : Option[ExpressionIndex],
-    var increment : Option[ExpressionIndex],
-    var condition : Option[Expression]) extends SpecialStatement {
-
-  def prettyprint(out : PpStream) = {
-    out << "Set " << identifier << ' ' << begin
-    if (end.isDefined) out << " - " << end.get
-    if (increment.isDefined) out << " steps " << increment.get
-    if (condition.isDefined) out << " with " << condition.get
-  }
-
-  def progressToIr : knowledge.IterationSet = {
-    knowledge.IterationSet(identifier.asInstanceOf[BasicIdentifier].progressToIr.value,
-      begin.progressToIr,
-      if (end.isDefined) end.get.progressToIr else begin.progressToIr,
-      (if (increment.isDefined) increment.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(1))),
-      (if (condition.isDefined) Some(condition.get.progressToIr) else None))
-  }
-}
-
 case class StencilEntry(var offset : ExpressionIndex, var coeff : Expression) extends SpecialStatement {
   def prettyprint(out : PpStream) = { out << offset << " => " << coeff }
 

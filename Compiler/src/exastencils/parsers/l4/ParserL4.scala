@@ -41,7 +41,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val program = definition.* ^^ { case d => Root(d) }
 
-  lazy val definition = domain ||| layout ||| field ||| stencilField ||| externalField ||| stencil ||| iterationSet ||| globals ||| function
+  lazy val definition = domain ||| layout ||| field ||| stencilField ||| externalField ||| stencil ||| globals ||| function
 
   //###########################################################
 
@@ -188,9 +188,6 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ######################################
 
   lazy val domain = (locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l ~ u => DomainDeclarationStatement(id, l, u) }))
-
-  lazy val iterationSet = locationize(("Set" ~> identifierWithOptionalLevel) ~ expressionIndex ~ ("-" ~> expressionIndex).? ~ ("steps" ~> expressionIndex).? ~ ("with" ~> booleanexpression).?
-    ^^ { case id ~ begin ~ end ~ inc ~ cond => IterationSetDeclarationStatement(id, begin, end, inc, cond) })
 
   lazy val layout = locationize(("Layout" ~> ident) ~ ("<" ~> datatype <~ ">") ~ level.? ~ ("{" ~> layoutOptions <~ "}")
     ^^ { case id ~ dt ~ level ~ opts => var x = LayoutDeclarationStatement(LeveledIdentifier(id, level.getOrElse(new AllLevelsSpecification)), dt); x.set(opts); x })
