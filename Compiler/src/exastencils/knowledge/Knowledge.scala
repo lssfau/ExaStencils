@@ -73,6 +73,7 @@ object Knowledge {
   // === Layer 4 ===
 
   // === Post Layer 4 ===
+  var ir_genSepLayoutsPerField : Boolean = true // specifies if shared fieldlayouts should be duplicated when progressing from l4 to ir
 
   // --- Compiler Capabilities ---
   def supports_initializerList = { // indicates if the compiler supports initializer lists (e.g. for std::min)
@@ -303,6 +304,8 @@ object Knowledge {
     Constraints.condEnsureValue(poly_optLevel_coarse, poly_optLevel_fine, poly_optLevel_coarse > poly_optLevel_fine, "optimization level for coarse grids must smaller or equal to the one for the fine levels")
     Constraints.condEnsureValue(poly_numFinestLevels, numLevels, poly_numFinestLevels > numLevels, "number of fine levels (for optimization) cannot exceed the number of all levels")
     Constraints.condEnsureValue(opt_useColorSplitting, false, l3tmp_smoother != "RBGS", "color splitting is only relevant for RBGS smoother")
+
+    Constraints.condEnsureValue(ir_genSepLayoutsPerField, true, opt_useColorSplitting, "color splitting requires separate field layouts")
 
     if (l3tmp_genAdvancedTimers) {
       // TODO: remove condition when timers are fully integrated
