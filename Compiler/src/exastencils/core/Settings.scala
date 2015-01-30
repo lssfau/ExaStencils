@@ -27,4 +27,9 @@ object Settings {
 
   /// generation process
   var failOnConstraint : Boolean = false
+
+  /// logging
+  var produceHtmlLog : Boolean = false
+  var htmlLogFile : String = ""
+  def getHtmlLogFile : String = if (htmlLogFile != "") htmlLogFile else basePathPrefix + "/Compiler/log/log.html"
 }

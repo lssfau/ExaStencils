@@ -3,17 +3,14 @@ package exastencils.optimization
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
-import exastencils.core.Duplicate
-import exastencils.core.Logger
-import exastencils.datastructures.Annotation
-import exastencils.datastructures.DefaultStrategy
-import exastencils.datastructures.Node
-import exastencils.datastructures.Transformation
+import exastencils.core._
+import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
-import exastencils.knowledge.Knowledge
-import exastencils.omp.OMP_PotentiallyParallel
-import exastencils.util.SimplifyExpression
+import exastencils.knowledge._
+import exastencils.logger._
+import exastencils.omp._
+import exastencils.util._
 
 object Vectorization extends DefaultStrategy("Vectorization") {
 

@@ -3,7 +3,7 @@ package exastencils.datastructures
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
-import exastencils.util._
+import exastencils.logger._
 
 /**
   * A Strategy that executes its [[exastencils.datastructures.Transformation]]s sequentially.
@@ -114,7 +114,7 @@ class DefaultStrategy(name : String) extends Strategy(name) {
     }
 
     //    if ("Counting " + "Before" != name && "Counting " + "After" != name) {
-    //      println("Runtime:\t" + math.round((System.nanoTime() - start) / 1e5) / 10.0 + " ms")
+    //      Logger.dbg("Runtime:\t" + math.round((System.nanoTime() - start) / 1e5) / 10.0 + " ms")
     //      (new CountingStrategy("After")).apply()
     //    }
   }

@@ -1,4 +1,4 @@
-package exastencils.core
+package exastencils.logger
 
 /**
   * Logger object that currently writes to stdout.
@@ -48,10 +48,7 @@ object Logger {
     *
     * @param s The message to display.
     */
-  def error(s : AnyRef) = {
-    sys.error("ERROR: " + s)
-    sys.exit(-1) // just to be extra sure
-  }
+  def error(s : AnyRef) : Nothing = macro errorImpl
 
   /**
     * Outputs a warning message.
@@ -88,11 +85,36 @@ object Logger {
     */
   def info(s : AnyRef) : Unit = macro infoImpl
 
+  def errorImpl(c : blackbox.Context)(s : c.Expr[AnyRef]) : c.Expr[Nothing] = {
+    import c.universe._
+    val result = {
+      val fileName = Literal(Constant(c.enclosingPosition.source.file.file.getAbsolutePath))
+      val line = Literal(Constant(c.enclosingPosition.line))
+
+      //q"""if (exastencils.logger.Logger.getLevel >= 0) {
+      q"""{
+        sys.error("ERROR: " + $s)
+        if (exastencils.core.Settings.produceHtmlLog) {
+          Logger_HTML.printErr($fileName, $line, $s)
+          Logger_HTML.finish
+        }
+        sys.exit(-1) // just to be extra sure
+       }
+    """
+    }
+    c.Expr[Nothing](result)
+  }
+
   def warnImpl(c : blackbox.Context)(s : c.Expr[AnyRef]) : c.Expr[Unit] = {
     import c.universe._
     val result = {
-      q"""if (exastencils.core.Logger.getLevel >= 1) {
+      val fileName = Literal(Constant(c.enclosingPosition.source.file.file.getAbsolutePath))
+      val line = Literal(Constant(c.enclosingPosition.line))
+
+      q"""if (exastencils.logger.Logger.getLevel >= 1) {
         println("WARN:  " + $s)
+        if (exastencils.core.Settings.produceHtmlLog)
+          Logger_HTML.printWarn($fileName, $line, $s)
       }
     """
     }
@@ -102,8 +124,13 @@ object Logger {
   def dbgImpl(c : blackbox.Context)(s : c.Expr[AnyRef]) : c.Expr[Unit] = {
     import c.universe._
     val result = {
-      q"""if (exastencils.core.Logger.getLevel >= 2) {
+      val fileName = Literal(Constant(c.enclosingPosition.source.file.file.getAbsolutePath))
+      val line = Literal(Constant(c.enclosingPosition.line))
+
+      q"""if (exastencils.logger.Logger.getLevel >= 2) {
         println("DBG:   " + $s)
+        if (exastencils.core.Settings.produceHtmlLog)
+          Logger_HTML.printDbg($fileName, $line, $s)
       }
     """
     }
@@ -113,8 +140,13 @@ object Logger {
   def infoImpl(c : blackbox.Context)(s : c.Expr[AnyRef]) : c.Expr[Unit] = {
     import c.universe._
     val result = {
-      q"""if (exastencils.core.Logger.getLevel >= 4) {
+      val fileName = Literal(Constant(c.enclosingPosition.source.file.file.getAbsolutePath))
+      val line = Literal(Constant(c.enclosingPosition.line))
+
+      q"""if (exastencils.logger.Logger.getLevel >= 4) {
         println("INFO:  " + $s)
+        if (exastencils.core.Settings.produceHtmlLog)
+          Logger_HTML.printInfo($fileName, $line, $s)
       }
     """
     }

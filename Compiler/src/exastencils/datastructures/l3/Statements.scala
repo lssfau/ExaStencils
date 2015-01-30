@@ -4,6 +4,7 @@ import TcbImplicits._
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.l3._
+import exastencils.logger._
 
 abstract class Statement extends Node {
   def writeTc(ctx : Context)

@@ -4,6 +4,7 @@ import scala.collection.immutable.PagedSeq
 import scala.util.parsing.input.PagedSeqReader
 
 import exastencils.core._
+import exastencils.logger._
 import exastencils.parsers._
 
 class ParserSettings extends ExaParser {

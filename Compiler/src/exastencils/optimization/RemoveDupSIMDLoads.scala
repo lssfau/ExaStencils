@@ -6,8 +6,10 @@ import scala.collection.mutable.ListBuffer
 import exastencils.core._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
-import exastencils.util.SimplifyExpression
+import exastencils.logger._
+import exastencils.util._
 
 object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") {
 

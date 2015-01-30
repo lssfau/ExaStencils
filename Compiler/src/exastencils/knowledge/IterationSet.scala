@@ -2,10 +2,8 @@ package exastencils.knowledge
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.core.Logger._
-import exastencils.knowledge._
-import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.logger._
 
 case class IterationSet(var identifier : String,
   var begin : MultiIndex,
@@ -18,7 +16,7 @@ object IterationSetCollection {
 
   def getIterationSetByIdentifier(identifier : String) : Option[IterationSet] = {
     val ret = sets.find(f => f.identifier == identifier)
-    if (ret.isEmpty) warn(s"Iteration set $identifier was not found")
+    if (ret.isEmpty) Logger.warn(s"Iteration set $identifier was not found")
     ret
   }
 }

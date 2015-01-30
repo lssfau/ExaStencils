@@ -10,8 +10,10 @@ import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
-import exastencils.omp.OMP_PotentiallyParallel
-import exastencils.optimization.OptimizationHint
+import exastencils.logger._
+import exastencils.omp._
+import exastencils.optimization._
+
 import isl.Conversions._
 
 class ASTBuilderTransformation(replaceCallback : (Map[String, Expression], Node) => Unit)

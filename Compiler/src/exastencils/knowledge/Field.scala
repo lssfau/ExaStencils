@@ -2,10 +2,10 @@ package exastencils.knowledge
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.core.Logger._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.logger._
 
 case class FieldLayout(
     var identifier : String, // will be used to find the field
@@ -79,7 +79,7 @@ object FieldLayoutCollection {
 
   def getFieldLayoutByIdentifier(identifier : String, level : Int, suppressError : Boolean = false) : Option[FieldLayout] = {
     val ret = fieldLayouts.find(f => f.identifier == identifier && f.level == level)
-    if (!suppressError && ret.isEmpty) warn(s"FieldLayout $identifier on level $level was not found")
+    if (!suppressError && ret.isEmpty) Logger.warn(s"FieldLayout $identifier on level $level was not found")
     ret
   }
 }
@@ -124,7 +124,7 @@ object FieldCollection {
 
   def getFieldByIdentifier(identifier : String, level : Int, suppressError : Boolean = false) : Option[Field] = {
     val ret = fields.find(f => f.identifier == identifier && f.level == level)
-    if (!suppressError && ret.isEmpty) warn(s"Field $identifier on level $level was not found")
+    if (!suppressError && ret.isEmpty) Logger.warn(s"Field $identifier on level $level was not found")
     ret
   }
 }
@@ -148,7 +148,7 @@ object ExternalFieldCollection {
 
   def getFieldByIdentifier(identifier : String, level : Int) : Option[ExternalField] = {
     val ret = fields.find(f => f.identifier == identifier && f.level == level)
-    if (ret.isEmpty) warn(s"External field $identifier on level $level was not found")
+    if (ret.isEmpty) Logger.warn(s"External field $identifier on level $level was not found")
     ret
   }
 }

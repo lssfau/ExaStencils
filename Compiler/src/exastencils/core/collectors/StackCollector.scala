@@ -2,8 +2,8 @@ package exastencils.core.collectors
 
 import scala.collection.mutable.Stack
 
-import exastencils.core._
 import exastencils.datastructures._
+import exastencils.logger._
 
 class StackCollector extends Collector {
   private val stack_ = new Stack[Node]

@@ -3,13 +3,11 @@ package exastencils.knowledge
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
-import exastencils.core.Logger._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.prettyprinting._
-import exastencils.strategies._
+import exastencils.logger._
 import exastencils.util._
 
 case class StencilEntry(var offset : MultiIndex, var coefficient : Expression) {}
@@ -47,24 +45,26 @@ case class Stencil(var identifier : String, var level : Int, var entries : ListB
     None
   }
 
-  def printStencil() : Unit = {
-    println(s"Stencil $identifier:")
-    println
+  def printStencilToStr() : String = {
+    var s : String = ""
+
+    s += s"Stencil $identifier:\n\n"
 
     for (z <- -getReach(2) to getReach(2)) {
       for (y <- -getReach(1) to getReach(1)) {
         for (x <- -getReach(0) to getReach(0))
-          print("\t" +
+          s += "\t" +
             entries.find(
               e => e.offset match {
                 case MultiIndex(IntegerConstant(xOff), IntegerConstant(yOff), IntegerConstant(zOff), _) if (x == xOff && y == yOff && z == zOff) => true
                 case _ => false
-              }).getOrElse(StencilEntry(new MultiIndex, 0)).coefficient.prettyprint)
-        println
+              }).getOrElse(StencilEntry(new MultiIndex, 0)).coefficient.prettyprint
+        s += "\n"
       }
-      println
-      println
+      s += "\n\n"
     }
+
+    s
   }
 }
 
@@ -73,7 +73,7 @@ object StencilCollection {
 
   def getStencilByIdentifier(identifier : String, level : Int) : Option[Stencil] = {
     val ret = stencils.find(s => s.identifier == identifier && s.level == level)
-    if (ret.isEmpty) warn(s"Stencil $identifier on level $level was not found")
+    if (ret.isEmpty) Logger.warn(s"Stencil $identifier on level $level was not found")
     ret
   }
 }
@@ -85,7 +85,7 @@ object StencilFieldCollection {
 
   def getStencilFieldByIdentifier(identifier : String, level : Int) : Option[StencilField] = {
     val ret = stencilFields.find(s => s.identifier == identifier && s.field.level == level)
-    if (ret.isEmpty) warn(s"StencilField $identifier on level $level was not found")
+    if (ret.isEmpty) Logger.warn(s"StencilField $identifier on level $level was not found")
     ret
   }
 }

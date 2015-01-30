@@ -1,4 +1,5 @@
 package exastencils.spl
+import exastencils.logger._
 import scala.io.Source
 import jp.kobe_u.copris._
 import jp.kobe_u.copris.dsl._
@@ -8,36 +9,35 @@ import scala.Array.canBuildFrom
 import jp.kobe_u.copris.sugar.Sat4j
 import java.io.File
 import jp.kobe_u.copris.Term
-import exastencils.core.Logger
 
 object FeatureModel {
 
-  val parentChildRelationships: scala.collection.mutable.Map[Feature, scala.collection.mutable.Set[Feature]] = scala.collection.mutable.Map()
-  val allFeatures: scala.collection.mutable.Map[String, Feature] = scala.collection.mutable.Map()
+  val parentChildRelationships : scala.collection.mutable.Map[Feature, scala.collection.mutable.Set[Feature]] = scala.collection.mutable.Map()
+  val allFeatures : scala.collection.mutable.Map[String, Feature] = scala.collection.mutable.Map()
 
-  val featureModelConstraints: scala.collection.mutable.Set[ModelConstraint] = scala.collection.mutable.Set()
+  val featureModelConstraints : scala.collection.mutable.Set[ModelConstraint] = scala.collection.mutable.Set()
 
-  var rootFeature: Feature = null
+  var rootFeature : Feature = null
   val copris = new sugar.Sugar(Sat4j)
 
-  var defaultConfig: Configuration = null
+  var defaultConfig : Configuration = null
 
-  private[this] var solutionOfDefaultConfig: jp.kobe_u.copris.Solution = null
+  private[this] var solutionOfDefaultConfig : jp.kobe_u.copris.Solution = null
 
-  private[this] var allSolutions: scala.collection.mutable.Set[jp.kobe_u.copris.Solution] = scala.collection.mutable.Set()
+  private[this] var allSolutions : scala.collection.mutable.Set[jp.kobe_u.copris.Solution] = scala.collection.mutable.Set()
 
-  private[this] var additionalFeatureConstraints: scala.collection.mutable.Map[Feature, Constraint] = scala.collection.mutable.Map()
+  private[this] var additionalFeatureConstraints : scala.collection.mutable.Map[Feature, Constraint] = scala.collection.mutable.Map()
 
   private[this] var solutionSpaceNoMoreUpToDate = false
 
-  def getDefaultConfig(): Configuration = {
+  def getDefaultConfig() : Configuration = {
     if (defaultConfig != null)
       return defaultConfig
 
-    var boolFeatures: scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
+    var boolFeatures : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
     allFeatures.filter(x => !x._2.isNumerical && x._2.defaultValue.asInstanceOf[Boolean]).foreach(y => boolFeatures += y._2)
 
-    var numFeatures: scala.collection.mutable.Map[Feature, Int] = scala.collection.mutable.Map()
+    var numFeatures : scala.collection.mutable.Map[Feature, Int] = scala.collection.mutable.Map()
     allFeatures.filter(x => x._2.isNumerical).foreach(f => numFeatures.put(f._2, f._2.defaultValue.asInstanceOf[Int]))
 
     defaultConfig = new Configuration()
@@ -47,15 +47,15 @@ object FeatureModel {
   }
 
   /**
-   *
-   * The method returns one minimal configuration of the feature model. The minimality is defined by the number of
-   * selected features and the number of numerical features not having their default value.
-   *
-   * As a consequence, we identify a configuration with the minimal number of selected boolean features and all numerical
-   * features having a default value.
-   *
-   */
-  def getMinimalConfig(): Configuration = {
+    *
+    * The method returns one minimal configuration of the feature model. The minimality is defined by the number of
+    * selected features and the number of numerical features not having their default value.
+    *
+    * As a consequence, we identify a configuration with the minimal number of selected boolean features and all numerical
+    * features having a default value.
+    *
+    */
+  def getMinimalConfig() : Configuration = {
 
     asPropositionalFormula()
 
@@ -97,19 +97,19 @@ object FeatureModel {
   }
 
   /**
-   *
-   * This method return a valid configuration with the smallest possible set of selected features to the default configuration under the condition that the desired feature
-   * is selected.
-   *
-   */
-  def getConfigForBoolFeature(feature: Feature): Configuration = {
+    *
+    * This method return a valid configuration with the smallest possible set of selected features to the default configuration under the condition that the desired feature
+    * is selected.
+    *
+    */
+  def getConfigForBoolFeature(feature : Feature) : Configuration = {
 
     asPropositionalFormula()
     copris.add(Imp(TRUE, Bool(feature.identifier)))
     copris.find
 
-    var oneMinimalConfiguration: Configuration = null
-    var differentSelectedBooleFeaturesToDefaultConfig: Integer = Integer.MAX_VALUE
+    var oneMinimalConfiguration : Configuration = null
+    var differentSelectedBooleFeaturesToDefaultConfig : Integer = Integer.MAX_VALUE
 
     var currSolution = copris.solution
     oneMinimalConfiguration = new Configuration()
@@ -147,11 +147,11 @@ object FeatureModel {
     }
   }
 
-  def countSelectedBooleanFeatures(solution: jp.kobe_u.copris.Solution): Integer = {
+  def countSelectedBooleanFeatures(solution : jp.kobe_u.copris.Solution) : Integer = {
     return solution.boolValues.filter(_._2).size
   }
 
-  def countNumericalFeaturesNotAtDefaultValue(solution: jp.kobe_u.copris.Solution): Integer = {
+  def countNumericalFeaturesNotAtDefaultValue(solution : jp.kobe_u.copris.Solution) : Integer = {
     return solution.intValues.filter(y => FeatureModel.allFeatures(y._1.toString).defaultValue != y._2.toInt).size
   }
 
@@ -173,7 +173,7 @@ object FeatureModel {
     }
   }
 
-  def printToFile(f: java.io.File)(op: java.io.PrintWriter => Unit) = {
+  def printToFile(f : java.io.File)(op : java.io.PrintWriter => Unit) = {
     if (!f.exists())
       f.createNewFile();
     val p = new java.io.PrintWriter(f)
@@ -182,18 +182,18 @@ object FeatureModel {
   }
 
   /**
-   * Add one feature to the feature model. (no connections between features are created) => all features are
-   * optional features with the "root feature" as parent feature
-   *
-   * Possible inputs:
-   * var enum : Type = Value1 // [Value1|Value2|Value3]
-   * var range : Int = 3 // [0-6|1]
-   * var choose : Int = 6 // [6|26]
-   * var bool : Boolean = true // [true|false]
-   *
-   */
+    * Add one feature to the feature model. (no connections between features are created) => all features are
+    * optional features with the "root feature" as parent feature
+    *
+    * Possible inputs:
+    * var enum : Type = Value1 // [Value1|Value2|Value3]
+    * var range : Int = 3 // [0-6|1]
+    * var choose : Int = 6 // [6|26]
+    * var bool : Boolean = true // [true|false]
+    *
+    */
 
-  def addFeature_KnowledgeFile(content: String): Unit = {
+  def addFeature_KnowledgeFile(content : String) : Unit = {
     var parts = content.split("//")
 
     var name = parts(0).split(":")(0).trim().split(" ")(1)
@@ -201,7 +201,7 @@ object FeatureModel {
 
     var values = parts(1).substring(parts(1).indexOf("[") + 1, parts(1).indexOf(']'))
 
-    var feat: Feature = allFeatures.get(name).getOrElse(new Feature(name))
+    var feat : Feature = allFeatures.get(name).getOrElse(new Feature(name))
     feat.levelOfFeatureDefinition = 4
     allFeatures(name) = feat
 
@@ -233,7 +233,7 @@ object FeatureModel {
     }
   }
 
-  def FAMASynatx_InterpretCrossTreeConstraint(crossTreeConst: String): Unit = {
+  def FAMASynatx_InterpretCrossTreeConstraint(crossTreeConst : String) : Unit = {
     var constraint = crossTreeConst.replaceAll("%[a-zA-Z0-9\\s()]+%", "")
 
     if (constraint.trim().length() == 0)
@@ -246,9 +246,9 @@ object FeatureModel {
 
   }
 
-  var noValue: jp.kobe_u.copris.Term = Num(-1)
-  var onValue: jp.kobe_u.copris.Term = Num(1)
-  var offValue: jp.kobe_u.copris.Term = Num(0)
+  var noValue : jp.kobe_u.copris.Term = Num(-1)
+  var onValue : jp.kobe_u.copris.Term = Num(1)
+  var offValue : jp.kobe_u.copris.Term = Num(0)
 
   def asPropositionalFormula() = {
 
@@ -292,13 +292,13 @@ object FeatureModel {
   }
 
   /**
-   *
-   *  f1,..,fn alternative sub-features of f ->  (f1 v ... v fn <=> f) ^ \bigvee_{i<j} \lnot(fi ^ fj)
-   */
-  def addXorRelationship(copris: jp.kobe_u.copris.sugar.Sugar, f: Feature, subFeatures: scala.collection.mutable.Set[Feature]) = {
+    *
+    *  f1,..,fn alternative sub-features of f ->  (f1 v ... v fn <=> f) ^ \bigvee_{i<j} \lnot(fi ^ fj)
+    */
+  def addXorRelationship(copris : jp.kobe_u.copris.sugar.Sugar, f : Feature, subFeatures : scala.collection.mutable.Set[Feature]) = {
 
     // (f1 v ... v fn)  -> x
-    def subFeatureAnd(subFeat: scala.collection.mutable.Set[Feature]): Constraint = {
+    def subFeatureAnd(subFeat : scala.collection.mutable.Set[Feature]) : Constraint = {
       if (subFeat.size == 2) return Or(Bool(subFeat.head.identifier), Bool(subFeat.tail.head.identifier))
       Or(Bool(subFeat.head.identifier), subFeatureAnd(subFeat.tail))
     }
@@ -314,12 +314,12 @@ object FeatureModel {
   }
 
   /**
-   * f1,..,fn sub-feature of f
-   *
-   * if fi is optional  f => fi
-   * if fi is mandatory f <=> fi
-   */
-  def addRelationship(copris: jp.kobe_u.copris.sugar.Sugar, parent: Feature, subFeatures: scala.collection.mutable.Set[Feature]) = {
+    * f1,..,fn sub-feature of f
+    *
+    * if fi is optional  f => fi
+    * if fi is mandatory f <=> fi
+    */
+  def addRelationship(copris : jp.kobe_u.copris.sugar.Sugar, parent : Feature, subFeatures : scala.collection.mutable.Set[Feature]) = {
 
     for (fi <- subFeatures) {
       // TODO
@@ -343,9 +343,9 @@ object FeatureModel {
   }
 
   /**
-   * The desired boolean feature becomes mandatory in all configurations if select is true and is deselected if select is false.
-   */
-  def boolFeatureHasToBeSeleted(feature: Feature, select: Boolean) = {
+    * The desired boolean feature becomes mandatory in all configurations if select is true and is deselected if select is false.
+    */
+  def boolFeatureHasToBeSeleted(feature : Feature, select : Boolean) = {
     if (select) {
       additionalFeatureConstraints.put(feature, Iff(Bool(rootFeature.identifier), Bool(feature.identifier)))
     } else {
@@ -358,7 +358,7 @@ object FeatureModel {
     allFeatures.map(a => println(a.toString()))
   }
 
-  def constraintHasOnlyBooleanFeatures(constraint: String): Boolean = {
+  def constraintHasOnlyBooleanFeatures(constraint : String) : Boolean = {
     var literals = constraint.split(" ");
     for (lit <- literals) {
       var trimmedLit = lit.trim()
@@ -371,8 +371,8 @@ object FeatureModel {
     return true
   }
 
-  def createFeatureDependenciesByFeatureNames(): Unit = {
-    val featureAlias_alias_org: scala.collection.mutable.Map[String, String] = scala.collection.mutable.Map()
+  def createFeatureDependenciesByFeatureNames() : Unit = {
+    val featureAlias_alias_org : scala.collection.mutable.Map[String, String] = scala.collection.mutable.Map()
     featureAlias_alias_org.put("omp", "useOMP")
     featureAlias_alias_org.put("mpi", "useMPI")
 
@@ -390,24 +390,20 @@ object FeatureModel {
     }
   }
 
-  def addParentChildRelationship(parent: Feature, child: Feature): Unit = {
+  def addParentChildRelationship(parent : Feature, child : Feature) : Unit = {
     if (parentChildRelationships.contains(parent)) {
       parentChildRelationships(parent).add(child)
     } else {
-      var list: scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
+      var list : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
       list.add(child)
       parentChildRelationships.put(parent, list)
     }
   }
-  
-  
 
-  
-
-  def FAMASyntax_ReadFeatureModel(file: String) : Unit = {
+  def FAMASyntax_ReadFeatureModel(file : String) : Unit = {
 
     try {
-     
+
       var featureModelTextRepresentation = Source.fromFile(file).mkString.split("% constraints %")
 
       FAMASyntax_InterpretFeatureModel(featureModelTextRepresentation(0)) // feature model section
@@ -415,17 +411,14 @@ object FeatureModel {
       if (featureModelTextRepresentation.length > 1) // file has a constraint section
         featureModelTextRepresentation(1).split(";").map(f => FAMASynatx_InterpretCrossTreeConstraint(f));
 
-        
     } catch {
-      case ex: FileNotFoundException => println("Couldn't find feature model.")
-      case ex: IOException => println("IOException trying to read the model")
+      case ex : FileNotFoundException => println("Couldn't find feature model.")
+      case ex : IOException           => println("IOException trying to read the model")
     }
-    
-    
+
   }
 
-  
-  def FAMASyntax_InterpretFeatureModel(tree: String) = {
+  def FAMASyntax_InterpretFeatureModel(tree : String) = {
     var statements = tree.split(";")
     for (i <- 0 until statements.length - 1) {
       var currStatement = statements(i)
@@ -434,12 +427,9 @@ object FeatureModel {
       var featureName = currStatement.split(":")(0).trim()
       var specialization = currStatement.split(":")(1).trim()
 
-      
-      
       var feat : Feature = allFeatures.get(featureName).getOrElse(new Feature(featureName))
-      allFeatures(featureName)  = feat
+      allFeatures(featureName) = feat
 
-      
       // consider specialization of current feature
       if (specialization.contains("{")) { // numerical feature
         // numerical features are no parent features
@@ -455,7 +445,7 @@ object FeatureModel {
         } else {
           subfeatureNames = specialization.split(" ")
         }
-        var subFeatures: scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
+        var subFeatures : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
         for (j <- 0 until subfeatureNames.length) {
           var currSubFeatureName = subfeatureNames(j).trim()
           if (currSubFeatureName.length() > 0) {
@@ -465,9 +455,9 @@ object FeatureModel {
               currSubFeatureName = currSubFeatureName.substring(1, currSubFeatureName.length() - 1)
 
             var currSubFeature : Feature = allFeatures.get(currSubFeatureName).getOrElse(new Feature(currSubFeatureName))
-            allFeatures(currSubFeatureName)  = currSubFeature
+            allFeatures(currSubFeatureName) = currSubFeature
             currSubFeature.isOptional = isOptional
-            
+
             subFeatures.add(currSubFeature)
             currSubFeature.isChild = true
           }
@@ -477,8 +467,8 @@ object FeatureModel {
 
     }
     // the feature that does not appear within one right hand side is the root
-    FeatureModel.rootFeature = allFeatures.find(x => ( ! x._2.isNumerical ) && ( ! x._2.isChild )).get._2
-    
-  }  
+    FeatureModel.rootFeature = allFeatures.find(x => (!x._2.isNumerical) && (!x._2.isChild)).get._2
+
+  }
 }
 

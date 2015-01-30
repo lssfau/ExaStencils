@@ -2,6 +2,8 @@ package exastencils.knowledge
 
 import exastencils.core._
 import exastencils.spl._
+import exastencils.logger._
+import exastencils.constraints._
 
 object Knowledge {
   // TODO: rename and move to hw knowledge?
