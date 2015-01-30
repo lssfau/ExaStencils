@@ -2,6 +2,7 @@ targetCompiler             = "GCC"
 targetCompilerVersion      = 4
 targetCompilerVersionMinor = 8
 simd_instructionSet        = "AVX"
+data_alignFieldPointers    = true
 
 dimensionality             = 3
 
@@ -29,7 +30,7 @@ poly_tileSize_y            = 1000000
 poly_tileSize_z            = 1000000
 poly_tileOuterLoop         = false
 opt_useAddressPrecalc      = false
-opt_vectorize              = false
+opt_vectorize              = true
 opt_unroll                 = 1
 opt_unroll_interleave      = false
 
