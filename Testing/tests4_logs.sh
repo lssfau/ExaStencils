@@ -55,6 +55,8 @@ if [[ -n "${TO_ZIP}" ]]; then
   ERROR_ARCHIVE="${LOG_DIR}/ErrorLogs.7z"
   cd "${LOG_DIR}"
   7z a "${ERROR_ARCHIVE}" ${TO_ZIP}
+  echo ""
+  echo ""
   echo "Errors in automatic tests! See attachment for details." | mail -s "TestBot Error" -A "${ERROR_ARCHIVE}" ${FAILURE_MAIL}
 fi
 
