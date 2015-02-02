@@ -33,7 +33,9 @@ case class IntegerConstant(var v : Long) extends Number {
 case class FloatConstant(var v : Double) extends Number {
   override def value = v
 
-  def prettyprint(out : PpStream) = { out << v }
+  def prettyprint(out : PpStream) = {
+    out << String.format(java.util.Locale.US, "%s", Double.box(value)) // ensure the compiler can parse the string
+  }
 
   def progressToIr : ir.FloatConstant = ir.FloatConstant(v)
 }
