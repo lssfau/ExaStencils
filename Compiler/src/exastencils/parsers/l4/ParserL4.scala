@@ -133,7 +133,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| locationize(functionCall ^^ { case f => FunctionCallStatement(f) })
     ||| conditional
     ||| applyBCsStatement
-    ||| communicateStatement)
+    ||| communicateStatement
+    ||| returnStatement)
 
   lazy val variableDeclaration = (locationize((("Var" ||| "Variable") ~> identifierWithOptionalLevel) ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
     ^^ { case id ~ dt ~ exp => VariableDeclarationStatement(id, dt, exp) }))
@@ -176,6 +177,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val communicateTarget = locationize(("all" ||| "dup" ||| "ghost") ~ index.? ~ ("to" ~> index).? // inclucive indices
     ^^ { case target ~ start ~ end => CommunicateTarget(target, start, end) })
 
+    lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ {case exp => FunctionCallExpression(UnresolvedAccess("return", None, None, None), if(exp.isDefined) List(exp.get); else List())})
+    
   // ######################################
   // ##### Globals
   // ######################################
