@@ -1,11 +1,7 @@
 package exastencils.datastructures.l3
 
-import exastencils.core.Logger
-import scala.collection.mutable.ListBuffer
-
-import exastencils.data
 import exastencils.datastructures._
-import exastencils.knowledge
+import exastencils.logger._
 
 trait Expression extends Node {
 

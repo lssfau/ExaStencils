@@ -57,7 +57,7 @@ object Testbed {
     //var RAP : Stencil = StencilStencilConvolution(P, StencilStencilConvolution(A, R).expand).expand
 
     for (e <- RAP.entries)
-      println(e.offset.prettyprint() + "\t>>\t" + e.weight.prettyprint)
+      println(e.offset.prettyprint() + "\t>>\t" + e.coefficient.prettyprint)
 
     /*{
       var entries : ListBuffer[StencilEntry] = ListBuffer()
@@ -94,7 +94,7 @@ object Testbed {
     //    }
 
     /*var AP : Stencil = StencilStencilConvolution(A, P).expand
-    AP.printStencil
+    println(AP.printStencilToStr)
 
     var RAP : Stencil = {
 
@@ -180,8 +180,8 @@ object Testbed {
       new StencilEntry(MultiIndex(0, "y" Mod 2, 0), 0.25),
       new StencilEntry(MultiIndex("x" Mod 2, "y" Mod 2, 0), 0.25)))
 
-    R.printStencil
-    A.printStencil
+    println(R.printStencilToStr)
+    println(A.printStencilToStr)
     //P.printStencil
 
     var RAP = A
@@ -189,7 +189,7 @@ object Testbed {
     for (i <- 0 until 1) {
       RAP.level = R.level + 1
       RAP = rap(R, RAP, P)
-      RAP.printStencil
+      println(RAP.printStencilToStr)
     }
 
     return

@@ -3,9 +3,10 @@ package exastencils.util
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
-import exastencils.core.Logger
 import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
+import exastencils.logger._
 
 object SimplifyExpression {
 
@@ -439,7 +440,8 @@ object SimplifyExpression {
         if (exprs.isEmpty)
           res(constName) = min
         else {
-          exprs += FloatConstant(min)
+          if (min != null)
+            exprs += FloatConstant(min)
           res(MinimumExpression(exprs)) = 1L
         }
 
@@ -454,8 +456,9 @@ object SimplifyExpression {
         if (exprs.isEmpty)
           res(constName) = max
         else {
-          exprs += FloatConstant(max)
-          res(MinimumExpression(exprs)) = 1L
+          if (max != null)
+            exprs += FloatConstant(max)
+          res(MaximumExpression(exprs)) = 1L
         }
 
       case _ =>

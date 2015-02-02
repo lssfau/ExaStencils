@@ -1,15 +1,15 @@
 package exastencils.core
 
-import scala.collection.GenTraversableOnce
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Stack
 import scala.language.existentials
 import scala.reflect.ClassTag
+
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
-import java.lang.reflect.Method
+import exastencils.logger._
 
 /**
   * The central entity to apply transformations to the current program state.
@@ -102,7 +102,7 @@ object StateManager {
     def notifyEnter(node : Node) = { collectors_.foreach(c => c.enter(node)) }
     def notifyLeave(node : Node) = { collectors_.foreach(c => c.leave(node)) }
     def reset() = { collectors_.foreach(c => c.reset()) }
-    
+
     def register(c : Collector) = { collectors_ += c }
     def unregister(c : Collector) = { collectors_ -= c }
     def unregisterAll() = { collectors_.clear }

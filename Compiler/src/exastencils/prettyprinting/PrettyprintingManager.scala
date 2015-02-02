@@ -5,6 +5,7 @@ import scala.collection.mutable.Stack
 import scala.collection.mutable.TreeSet
 
 import exastencils.core._
+import exastencils.logger._
 
 object PrettyprintingManager {
   protected var printers = new HashMap[String, Prettyprinter]
@@ -100,13 +101,13 @@ object PrettyprintingManager {
 
       // check if the file already exists
       if (!(new java.io.File(path)).exists) {
-        exastencils.core.Logger.debug("Creating file: " + path)
+        Logger.debug("Creating file: " + path)
         var file = new java.io.File(path)
         if (!file.getParentFile().exists()) file.getParentFile().mkdirs()
 
         writeToFile
       } else if (Indenter.addIndentations(toString) != scala.io.Source.fromFile(path).mkString) {
-        exastencils.core.Logger.debug("Updating file: " + path)
+        Logger.debug("Updating file: " + path)
         writeToFile
       }
     }

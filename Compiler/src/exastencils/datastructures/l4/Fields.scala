@@ -1,5 +1,6 @@
 package exastencils.datastructures.l4
 
+import exastencils.core._
 import exastencils.datastructures._
 import exastencils.knowledge
 import exastencils.prettyprinting._
@@ -58,7 +59,9 @@ case class LayoutDeclarationStatement(
     out << "}\n"
   }
 
-  def progressToIr : knowledge.FieldLayout = {
+  def progressToIr : knowledge.FieldLayout = progressToIr("GENERIC")
+
+  def progressToIr(targetFieldName : String) : knowledge.FieldLayout = {
     val level = identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level
 
     l4_ghostLayers = ghostLayers.getOrElse(default_ghostLayers)
@@ -106,7 +109,7 @@ case class LayoutDeclarationStatement(
       refOffset(dim) = ir.IntegerConstant(layouts(dim).idxDupLeftBegin)
     refOffset(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(0)
 
-    knowledge.FieldLayout(identifier.name, level, datatype.progressToIr, layouts, refOffset, l4_dupComm, l4_ghostComm)
+    knowledge.FieldLayout(s"${identifier.name}_$targetFieldName", level, datatype.progressToIr, layouts, refOffset, l4_dupComm, l4_ghostComm)
   }
 }
 
@@ -126,13 +129,25 @@ case class FieldDeclarationStatement(
 
   override def progressToIr : knowledge.Field = {
     val level = identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level
-    val ir_layout = knowledge.FieldLayoutCollection.getFieldLayoutByIdentifier(layout, level).get
+
+    val ir_layout = if (knowledge.Knowledge.ir_genSepLayoutsPerField) {
+      // layouts must not be shared -> generate a field specific layout
+      val l4_layout = StateManager.root.asInstanceOf[l4.Root].fieldLayouts.find(
+        l => l.identifier.asInstanceOf[LeveledIdentifier].name == layout
+          && l.identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level == level).get
+      val ir_layout = l4_layout.progressToIr(identifier.name)
+      knowledge.FieldLayoutCollection.fieldLayouts += ir_layout
+      ir_layout
+    } else {
+      // layouts have already been processed -> find the required one
+      knowledge.FieldLayoutCollection.getFieldLayoutByIdentifier(layout, level).get
+    }
 
     new knowledge.Field(
       identifier.name,
       index,
       knowledge.DomainCollection.getDomainByIdentifier(domain).get,
-      identifier.name.toLowerCase + "Data_" + identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level,
+      identifier.name.toLowerCase + "Data_" + level,
       ir_layout,
       level,
       slots,

@@ -2,14 +2,15 @@ package test.core
 
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
+import exastencils.datastructures.Transformation._
+import exastencils.logger._
 
 object RemoveNodes {
   case class Wurzel(var a : A, var aopt : Option[A], var b : B, var bopt : Option[B]) extends Node
   case class A(var one : scala.collection.immutable.HashSet[B],
-               var two : scala.collection.mutable.HashSet[B],
-               var three : scala.collection.immutable.List[B],
-               var four : scala.collection.mutable.ListBuffer[B]) extends Node
+    var two : scala.collection.mutable.HashSet[B],
+    var three : scala.collection.immutable.List[B],
+    var four : scala.collection.mutable.ListBuffer[B]) extends Node
   case class B(var zahl : Integer) extends Node
 
   def main(args : Array[String]) : Unit = {

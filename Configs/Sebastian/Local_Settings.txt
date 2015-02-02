@@ -1,2 +1,3 @@
-outputPath = "C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Generated/"
-basePathPrefix = "."
+outputPath		= "C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ExaStencils_DSL/Generated/"
+basePathPrefix	= "."
+produceHtmlLog	= true

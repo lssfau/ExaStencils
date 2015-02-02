@@ -7,6 +7,7 @@ import exastencils.core.collectors.ScopeCollector
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
+import exastencils.logger._
 
 object TypeInference extends CustomStrategy("Type inference") {
 

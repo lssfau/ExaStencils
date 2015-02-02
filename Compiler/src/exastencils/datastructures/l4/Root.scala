@@ -17,7 +17,6 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
   var stencilFields : ListBuffer[StencilFieldDeclarationStatement] = new ListBuffer()
   var externalFields : ListBuffer[ExternalFieldDeclarationStatement] = new ListBuffer()
   var stencils : ListBuffer[StencilDeclarationStatement] = new ListBuffer()
-  var iterationSets : ListBuffer[IterationSetDeclarationStatement] = new ListBuffer()
   var globals : ListBuffer[GlobalDeclarationStatement] = new ListBuffer()
   var statements : ListBuffer[Statement] = new ListBuffer()
 
@@ -29,7 +28,6 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
       case p : StencilFieldDeclarationStatement  => stencilFields.+=(p)
       case p : ExternalFieldDeclarationStatement => externalFields.+=(p)
       case p : StencilDeclarationStatement       => stencils.+=(p)
-      case p : IterationSetDeclarationStatement  => iterationSets.+=(p)
       case p : GlobalDeclarationStatement        => globals.+=(p)
       case p : Statement                         => statements.+=(p)
     })
@@ -61,8 +59,6 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
       out <<< externalFields << '\n'
     if (!stencils.isEmpty)
       out <<< stencils << '\n'
-    if (!iterationSets.isEmpty)
-      out <<< iterationSets << '\n'
     if (!globals.isEmpty)
       out <<< globals << '\n'
     if (!statements.isEmpty)
@@ -79,8 +75,10 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
 
     // FieldLayouts
     FieldLayoutCollection.fieldLayouts.clear
-    for (fieldLayout <- fieldLayouts)
-      FieldLayoutCollection.fieldLayouts += fieldLayout.progressToIr
+    if (!Knowledge.ir_genSepLayoutsPerField) {
+      for (fieldLayout <- fieldLayouts)
+        FieldLayoutCollection.fieldLayouts += fieldLayout.progressToIr("")
+    }
 
     // Fields => requires Domains and FieldLayouts
     FieldCollection.fields.clear
@@ -101,11 +99,6 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
     ExternalFieldCollection.fields.clear
     for (extField <- externalFields)
       ExternalFieldCollection.fields += extField.progressToIr
-
-    // IterationSets
-    IterationSetCollection.sets.clear
-    for (iterationSet <- iterationSets)
-      IterationSetCollection.sets += iterationSet.progressToIr
 
     // Globals
     var progGlobals = new Globals(new ListBuffer)

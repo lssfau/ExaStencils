@@ -7,13 +7,13 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
 import scala.collection.mutable.StringBuilder
 
-import exastencils.core.Logger
 import exastencils.core.collectors.Collector
 import exastencils.data.SlotAccess
 import exastencils.datastructures.Annotation
 import exastencils.datastructures.Node
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
+import exastencils.logger._
 
 /** Object for all "static" attributes */
 object Extractor {

@@ -3,16 +3,14 @@ package exastencils.knowledge
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
-import exastencils.core.Logger._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.prettyprinting._
-import exastencils.strategies._
+import exastencils.logger._
 import exastencils.util._
 
-case class StencilEntry(var offset : MultiIndex, var weight : Expression) {}
+case class StencilEntry(var offset : MultiIndex, var coefficient : Expression) {}
 
 case class Stencil(var identifier : String, var level : Int, var entries : ListBuffer[StencilEntry] = new ListBuffer) {
   def getReach(dim : Int) : Int = {
@@ -24,24 +22,49 @@ case class Stencil(var identifier : String, var level : Int, var entries : ListB
     reach
   }
 
-  def printStencil() : Unit = {
-    println(s"Stencil $identifier:")
-    println
+  def findStencilEntry(offset : MultiIndex) : Option[StencilEntry] = {
+    val index = findStencilEntryIndex(offset)
+    if (index.isDefined)
+      Some(entries(index.get))
+    else
+      None
+  }
+
+  def findStencilEntryIndex(offset : MultiIndex) : Option[Int] = {
+    for (i <- 0 until entries.size) {
+      var ret = true
+      for (dim <- 0 until Knowledge.dimensionality)
+        ret &= (offset(dim) == entries(i).offset(dim))
+
+      if (ret) return Some(i)
+    }
+
+    Logger.warn(s"Trying to find stencil entry for invalid offset ${offset.prettyprint()} in stencil:\n" +
+      entries.map(e => s"\t${e.offset.prettyprint()} -> ${e.coefficient.prettyprint()}").mkString("\n"))
+
+    None
+  }
+
+  def printStencilToStr() : String = {
+    var s : String = ""
+
+    s += s"Stencil $identifier:\n\n"
 
     for (z <- -getReach(2) to getReach(2)) {
       for (y <- -getReach(1) to getReach(1)) {
         for (x <- -getReach(0) to getReach(0))
-          print("\t" +
+          s += "\t" +
             entries.find(
               e => e.offset match {
                 case MultiIndex(IntegerConstant(xOff), IntegerConstant(yOff), IntegerConstant(zOff), _) if (x == xOff && y == yOff && z == zOff) => true
                 case _ => false
-              }).getOrElse(StencilEntry(new MultiIndex, 0)).weight.prettyprint)
-        println
+              }).getOrElse(StencilEntry(new MultiIndex, 0)).coefficient.prettyprint
+        s += "\n"
       }
-      println
-      println
+      s += "\n\n"
     }
+
+    s
   }
 }
 
@@ -50,7 +73,7 @@ object StencilCollection {
 
   def getStencilByIdentifier(identifier : String, level : Int) : Option[Stencil] = {
     val ret = stencils.find(s => s.identifier == identifier && s.level == level)
-    if (ret.isEmpty) warn(s"Stencil $identifier on level $level was not found")
+    if (ret.isEmpty) Logger.warn(s"Stencil $identifier on level $level was not found")
     ret
   }
 }
@@ -62,7 +85,7 @@ object StencilFieldCollection {
 
   def getStencilFieldByIdentifier(identifier : String, level : Int) : Option[StencilField] = {
     val ret = stencilFields.find(s => s.identifier == identifier && s.field.level == level)
-    if (ret.isEmpty) warn(s"StencilField $identifier on level $level was not found")
+    if (ret.isEmpty) Logger.warn(s"StencilField $identifier on level $level was not found")
     ret
   }
 }
@@ -125,10 +148,10 @@ object MapStencilAssignments extends DefaultStrategy("MapStencilAssignments") {
             if ((0 until Knowledge.dimensionality).map(dim =>
               (SimplifyExpression.evalIntegral(e.offset(dim)) == -SimplifyExpression.evalIntegral(stencilLeft.entries(idx).offset(dim))))
               .reduceLeft((a, b) => a && b))
-              coeff += e.weight
+              coeff += e.coefficient
           } else {
             if (e.offset == stencilLeft.entries(idx).offset)
-              coeff += e.weight
+              coeff += e.coefficient
           }
         }
 

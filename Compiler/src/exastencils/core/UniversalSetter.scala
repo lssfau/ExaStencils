@@ -2,6 +2,8 @@ package exastencils.core
 
 import reflect.runtime.universe._
 
+import exastencils.logger._
+
 /**
   * A utility object to set values of any entity by just specifying the instance, the name of the member and the value.
   *
