@@ -19,12 +19,18 @@ object Knowledge {
       case "AVX" | "AVX2" | "QPX" => 4
     }
   }
+  def simd_header : String = { // header for vector intrinsics
+    simd_instructionSet match {
+      case "SSE3" | "AVX" | "AVX2" => "immintrin.h"
+      case "QPX"                   => null
+    }
+  }
 
   var simd_avoidUnaligned : Boolean = false
 
   var useFasterExpand : Boolean = true
 
-  // === Level 1 ===  
+  // === Level 1 ===
   var dimensionality : Int = 3 // dimensionality of the problem
 
   // TODO: check if these parameters will be necessary or can be implicitly assumed once an appropriate field collection is in place

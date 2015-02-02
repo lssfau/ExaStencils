@@ -14,10 +14,12 @@ case class CommunicationFunctions() extends FunctionCollection("CommFunctions/Co
 
   if (Knowledge.useMPI)
     externalDependencies += "mpi.h"
-  if (Knowledge.opt_vectorize)
-    externalDependencies += "immintrin.h"
   if (Knowledge.opt_vectorize || Knowledge.poly_optLevel_fine > 0)
     externalDependencies += "algorithm"
+  if (Knowledge.opt_vectorize) {
+    val header = Knowledge.simd_header
+    if (header != null) externalDependencies += header
+  }
 }
 
 case class SetIterationOffset(var location : Expression, var domain : Expression, var fragment : Expression) extends Statement with Expandable {

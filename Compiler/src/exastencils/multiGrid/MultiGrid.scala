@@ -41,10 +41,12 @@ case class MultiGridFunctions() extends FunctionCollection("MultiGrid/MultiGrid"
 
   if (Knowledge.useMPI)
     externalDependencies += "mpi.h"
-  if (Knowledge.opt_vectorize)
-    externalDependencies += "immintrin.h"
   if (Knowledge.opt_vectorize || Knowledge.poly_optLevel_fine > 0)
     externalDependencies += "algorithm"
+  if (Knowledge.opt_vectorize) {
+    val header = Knowledge.simd_header
+    if (header != null) externalDependencies += header
+  }
   if (Knowledge.data_initAllFieldsWithZero)
     functions += new InitFieldsWithZero
 }
