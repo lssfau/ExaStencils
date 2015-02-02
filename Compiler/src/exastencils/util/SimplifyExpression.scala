@@ -440,7 +440,8 @@ object SimplifyExpression {
         if (exprs.isEmpty)
           res(constName) = min
         else {
-          exprs += FloatConstant(min)
+          if (min != null)
+            exprs += FloatConstant(min)
           res(MinimumExpression(exprs)) = 1L
         }
 
@@ -455,8 +456,9 @@ object SimplifyExpression {
         if (exprs.isEmpty)
           res(constName) = max
         else {
-          exprs += FloatConstant(max)
-          res(MinimumExpression(exprs)) = 1L
+          if (max != null)
+            exprs += FloatConstant(max)
+          res(MaximumExpression(exprs)) = 1L
         }
 
       case _ =>
