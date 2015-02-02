@@ -103,14 +103,6 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
           AdvanceSlot(new iv.CurrentSlot(args(0).asInstanceOf[FieldAccess].fieldSelection.field, LoopOverFragments.defIt)))
     }
 
-    // HACK to realize return functionality -> FIXME: move to specialized node
-    case ExpressionStatement(FunctionCallExpression(StringConstant("return"), args)) =>
-      args.size match {
-        case 0 => "return" : Statement
-        case 1 => ("return " ~ args(0)) : Statement
-        case _ => "ERROR - unsupported return function statement" : Statement
-      }
-
     // HACK to implement min/max functions
     case FunctionCallExpression(StringConstant("min"), args) => MinimumExpression(args)
     case FunctionCallExpression(StringConstant("max"), args) => MaximumExpression(args)

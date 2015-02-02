@@ -55,7 +55,7 @@ object Residual {
       printer.println(s"\t}")
       if (Knowledge.l3tmp_genFragLoops)
         printer.println(s"\t}")
-      printer.println(s"\treturn ( sqrt ( res ) )")
+      printer.println(s"\treturn sqrt ( res )")
       printer.println(s"}")
       printer.println
 
@@ -70,7 +70,7 @@ object Residual {
         printer.println(s"\t}")
         if (Knowledge.l3tmp_genFragLoops)
           printer.println(s"\t}")
-        printer.println(s"\treturn ( res )")
+        printer.println(s"\treturn res")
         printer.println(s"}")
         printer.println
       }

@@ -52,7 +52,7 @@ object CGS {
 
       printer.println(s"\t\tif ( nextRes <= 0.001 * initialRes ) {")
       //printer.println("\t\t\tprint ( '\"CG required\"', cgSteps, '\"steps\"' )")
-      printer.println(s"\t\t\treturn ( )")
+      printer.println(s"\t\t\treturn")
       printer.println(s"\t\t}")
 
       printer.println(s"\t\tVariable beta : Real = (nextRes * nextRes) / (res * res)")

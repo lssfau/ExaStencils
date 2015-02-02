@@ -177,7 +177,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val communicateTarget = locationize(("all" ||| "dup" ||| "ghost") ~ index.? ~ ("to" ~> index).? // inclucive indices
     ^^ { case target ~ start ~ end => CommunicateTarget(target, start, end) })
 
-    lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ {case exp => FunctionCallExpression(UnresolvedAccess("return", None, None, None), if(exp.isDefined) List(exp.get); else List())})
+    lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ {case exp => ReturnStatement(exp)})
     
   // ######################################
   // ##### Globals

@@ -134,8 +134,12 @@ case class SwitchStatement(var what : Expression, var body : ListBuffer[CaseStat
   }
 }
 
-case class ReturnStatement(var expr : Expression) extends Statement {
-  override def prettyprint(out : PpStream) : Unit = out << "return " << expr << ';'
+case class ReturnStatement(var expr : Option[Expression]) extends Statement {
+  override def prettyprint(out : PpStream) = {
+    out << "return"
+    if (expr.isDefined) out << ' ' << expr.get.prettyprint()
+    out << ';' << '\n'
+  }
 }
 
 abstract class AbstractFunctionStatement() extends Statement {
