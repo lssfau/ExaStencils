@@ -239,11 +239,21 @@ case class ReturnStatement(var expr : Option[Expression]) extends Statement {
   override def prettyprint(out : PpStream) = {
     out << "return"
     if (expr.isDefined) out << ' ' << expr.get.prettyprint()
-    out << ';' << '\n'
+    out << '\n'
   }
 
   override def progressToIr : ir.ReturnStatement = {
     ir.ReturnStatement(expr.map(_.progressToIr))
+  }
+}
+
+case class BreakStatement() extends Statement {
+  override def prettyprint(out : PpStream) = {
+    out << "break\n"
+  }
+
+  override def progressToIr : ir.BreakStatement = {
+    ir.BreakStatement()
   }
 }
 

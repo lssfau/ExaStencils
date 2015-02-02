@@ -17,7 +17,7 @@ class LexerL4 extends exastencils.parsers.ExaLexer {
   reserved += ("Domain", "Layout", "Field", "Stencil", "StencilField", "Set", "external", "Globals")
 
   // loop keywords
-  reserved += ("repeat", "times", "count", "with", "contraction")
+  reserved += ("repeat", "times", "count", "with", "contraction", "break")
   reserved += ("loop", "until", "over", "fragments", "where", "starting", "ending", "stepping", "reduction")
   reserved += ("sequentially") // FIXME: seq HACK
 

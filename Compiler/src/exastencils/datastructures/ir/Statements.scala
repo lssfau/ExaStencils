@@ -142,6 +142,12 @@ case class ReturnStatement(var expr : Option[Expression]) extends Statement {
   }
 }
 
+case class BreakStatement() extends Statement {
+    override def prettyprint(out : PpStream) = {
+    out << "break;\n"
+  }
+}
+
 abstract class AbstractFunctionStatement() extends Statement {
   def prettyprint_decl() : String
 }

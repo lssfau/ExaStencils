@@ -136,6 +136,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| communicateStatement
     ||| returnStatement)
 
+  lazy val statementInsideRepeat = statement ||| breakStatement
+
   lazy val variableDeclaration = (locationize((("Var" ||| "Variable") ~> identifierWithOptionalLevel) ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
     ^^ { case id ~ dt ~ exp => VariableDeclarationStatement(id, dt, exp) }))
 
@@ -147,6 +149,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val repeatUntil = locationize((("repeat" ~ "until") ~> simpleComparison) ~ (("{" ~> statement.+) <~ "}") ^^
     { case c ~ s => RepeatUntilStatement(c, s) })
+
+  lazy val breakStatement = locationize("break" ^^ { case _ => BreakStatement() })
 
   lazy val loopOverFragments = locationize(("loop" ~ "over" ~ "fragments") ~ ("with" ~> reductionClause).? ~ ("{" ~> statement.+ <~ "}") ^^
     { case _ ~ red ~ stmts => LoopOverFragmentsStatement(stmts, red) })
@@ -177,8 +181,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val communicateTarget = locationize(("all" ||| "dup" ||| "ghost") ~ index.? ~ ("to" ~> index).? // inclucive indices
     ^^ { case target ~ start ~ end => CommunicateTarget(target, start, end) })
 
-    lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ {case exp => ReturnStatement(exp)})
-    
+  lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ { case exp => ReturnStatement(exp) })
+
   // ######################################
   // ##### Globals
   // ######################################
