@@ -74,3 +74,16 @@ Par_Test8  Main  Opts/par_8.knowledge  Opts/par.results  8  10  E5
 Smoothers_Jac   Main    Smoothers/Jac.knowledge     Smoothers/Jac.results   27  2
 Smoothers_GS    Main    Smoothers/GS.knowledge      Smoothers/GS.results    27  2
 Smoothers_RBGS  Main    Smoothers/RBGS.knowledge    Smoothers/RBGS.results  27  2
+
+#################################################################################################
+# BOUNDARY CONDITION TESTS                                                                      #
+#################################################################################################
+
+# 2D
+BC_2D_Polynomial	Main	BC/2D_Polynomial.knowledge		BC/2D_Polynomial.results	4	2
+BC_2D_Trigonometric	Main	BC/2D_Trigonometric.knowledge	BC/2D_Trigonometric.results	4	2
+BC_2D_InvSqrt		Main	BC/2D_InvSqrt.knowledge			BC/2D_InvSqrt.results		4	2
+# 3D
+BC_3D_Polynomial	Main	BC/3D_Polynomial.knowledge		BC/3D_Polynomial.results	8	2
+BC_3D_Trigonometric	Main	BC/3D_Trigonometric.knowledge	BC/3D_Trigonometric.results	8	2
+BC_3D_InvSqrt		Main	BC/3D_InvSqrt.knowledge			BC/3D_InvSqrt.results		8	2
