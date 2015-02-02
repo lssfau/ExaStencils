@@ -52,7 +52,4 @@ Function smoother(L : Stencil, f : Field, u : Field) : Unit
 }
 
 Instantiate Function jacobi with (myDest, myL, myF, myU, myWork) as smoother @(1 to finest)
-
 Instantiate Function restrict with (myF, myR, myU, myWork) as restrict @(1 to finest)
-
-

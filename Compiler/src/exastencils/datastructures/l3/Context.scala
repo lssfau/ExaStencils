@@ -13,10 +13,11 @@ class FieldManager {
 
   private def genId() = {
     idCounter += 1
-    "__FieldId%02d".format(idCounter)
+    "__field_id%02d".format(idCounter)
   }
 
   def add() = {
     genId()
   }
 }
+
