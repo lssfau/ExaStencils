@@ -34,6 +34,11 @@ case class ApplyStencilBuiltin() extends StaticRValue with AbstractFunctionRValu
             throw new Exception("Third parameter of apply needs to be a field")
         }
 
+        // If the fieldIDs are identical we have aliasing.
+        if (u == f) {
+          throw new Exception("Aliasing variables not allowed in apply.")
+        }
+
         val A_id = ctx.stencils.add(A)
 
         val A_access = new l4.StencilAccess(A_id, l4.CurrentLevelSpecification())
