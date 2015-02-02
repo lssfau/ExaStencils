@@ -182,10 +182,10 @@ case class SIMD_StoreStatement(var mem : Expression, var value : Expression, var
       case "AVX" | "AVX2" => out << (if (aligned) "_mm256_store_pd" else "_mm256_storeu_pd")
       case "QPX"          => out << (if (aligned) "vec_sta" else "NOT VALID ; unaligned store for QPX: ")
     }
-    out << '(' << mem << ", "
-    if (Knowledge.simd_instructionSet == "QPX")
-      out << "0, "
-    out << value << ");"
+    Knowledge.simd_instructionSet match {
+      case "SSE3" | "AVX" | "AVX2" => out << '(' << mem << ", " << value << ");"
+      case "QPX"                   => out << '(' << value << ", 0, " << mem << ");"
+    }
   }
 }
 
