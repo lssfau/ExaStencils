@@ -115,7 +115,11 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       func
   })
 
+  // add allocation stuff
+  // TODO: restructure
+
   var bufferSizes : TreeMap[Expression, Expression] = TreeMap()(Ordering.by(_.prettyprint))
+  var bufferAllocs : TreeMap[Expression, Statement] = TreeMap()(Ordering.by(_.prettyprint))
   var fieldAllocs : TreeMap[Expression, Statement] = TreeMap()(Ordering.by(_.prettyprint))
 
   this += new Transformation("Collecting buffer sizes", {
@@ -170,6 +174,26 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
     }
   })
 
+  this += new Transformation("Updating temporary buffer allocations", {
+    case buf : iv.TmpBuffer =>
+      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, buf.field.index, buf.field.level, buf.neighIdx)
+      val size = bufferSizes(id)
+
+      if (Knowledge.data_alignFieldPointers) {
+        bufferAllocs += (id -> new LoopOverFragments(ListBuffer[Statement](
+          VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), "vs",
+            Some(Knowledge.simd_vectorSize * SizeOfExpression(RealDatatype()))),
+          AssignmentStatement(buf.basePtr, Allocation(new RealDatatype, size + Knowledge.simd_vectorSize - 1)),
+          VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), "offset",
+            Some((("vs" - (CastExpression(SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod "vs")) Mod "vs") / SizeOfExpression(RealDatatype()))),
+          AssignmentStatement(buf, buf.basePtr + "offset"))) with OMP_PotentiallyParallel)
+      } else {
+        bufferAllocs += (id -> new LoopOverFragments(new AssignmentStatement(buf, Allocation(new RealDatatype, size))) with OMP_PotentiallyParallel)
+      }
+
+      buf
+  })
+
   this += new Transformation("Extending SetupBuffers function", {
     case func @ FunctionStatement(_, "setupBuffers", _, _) => {
       if (Knowledge.comm_useLevelIndependentFcts) {
@@ -182,7 +206,8 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
           s.applyStandalone(buf._2)
       }
 
-      func.body += new LoopOverFragments(bufferSizes.map(buf => new AssignmentStatement(buf._1, Allocation(new RealDatatype, buf._2)) : Statement).to[ListBuffer]) with OMP_PotentiallyParallel
+      for (bufferAlloc <- bufferAllocs)
+        func.body += bufferAlloc._2
 
       for (fieldAlloc <- fieldAllocs)
         func.body += fieldAlloc._2

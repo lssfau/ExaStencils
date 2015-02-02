@@ -141,23 +141,6 @@ case class MpiRequest(var field : Field, var direction : String, var neighIdx : 
   override def resolveDataType = "MPI_Request"
 }
 
-case class TmpBuffer(var field : Field, var direction : String, var size : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
-
-  override def resolveName = s"buffer_${direction}" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
-  override def resolveDataType = new PointerDatatype(field.dataType.resolveUnderlyingDatatype)
-  override def resolveDefValue = Some(0)
-
-  override def getDtor() : Option[Statement] = {
-    val ptrExpr = resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
-    Some(wrapInLoops(
-      new ConditionStatement(ptrExpr,
-        ListBuffer[Statement](
-          FreeStatement(ptrExpr),
-          new AssignmentStatement(ptrExpr, 0)))))
-  }
-}
-
 case class NeighborIsValid(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends NeighInfoVariable {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, domain, NullExpression, NullExpression, neighIdx)
 
@@ -196,99 +179,6 @@ case class IsValidForSubdomain(var domain : Expression, var fragmentIdx : Expres
   override def resolveName = s"isValidForSubdomain" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", "")
   override def resolveDataType = new BooleanDatatype
   override def resolveDefValue = Some(false)
-}
-
-abstract class AbstractFieldData extends InternalVariable(true, false, true, true, false) {
-  var field : Field
-  var level : Expression
-  var slot : Expression
-  var fragmentIdx : Expression
-
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, level, NullExpression)
-
-  override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
-
-  override def resolveDataType = {
-    if (field.numSlots > 1)
-      new ArrayDatatype(new PointerDatatype(field.dataType.resolveUnderlyingDatatype), field.numSlots)
-    else
-      new PointerDatatype(field.dataType.resolveUnderlyingDatatype)
-  }
-
-  override def resolveDefValue = Some(0)
-
-  override def wrapInLoops(body : Statement) : Statement = {
-    var wrappedBody = super.wrapInLoops(body)
-    if (field.numSlots > 1)
-      wrappedBody = new ForLoopStatement(
-        VariableDeclarationStatement(new IntegerDatatype, "slot", Some(0)),
-        LowerExpression("slot", field.numSlots),
-        PreIncrementExpression("slot"),
-        wrappedBody)
-    wrappedBody
-  }
-
-  override def getCtor() : Option[Statement] = {
-    val origSlot = slot
-    slot = "slot"
-    val ret = Some(wrapInLoops(AssignmentStatement(resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt), resolveDefValue.get)))
-    slot = origSlot
-    ret
-  }
-
-  override def getDtor() : Option[Statement] = {
-    val origSlot = slot
-    slot = "slot"
-    var access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
-
-    val ret = Some(wrapInLoops(
-      new ConditionStatement(access,
-        ListBuffer[Statement](
-          FreeStatement(access),
-          new AssignmentStatement(access, 0)))))
-    slot = origSlot
-    ret
-  }
-
-  override def resolveAccess(baseAccess : Expression, fragment : Expression, domain : Expression, field : Expression, level : Expression, neigh : Expression) : Expression = {
-    val access = (if (this.field.numSlots > 1) new ArrayAccess(baseAccess, slot) else baseAccess)
-    super.resolveAccess(access, fragment, domain, field, level, neigh)
-  }
-}
-
-case class FieldDataBasePtr(var field : Field, var level : Expression, var slot : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends AbstractFieldData {
-  override def resolveName = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +
-    resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, level.prettyprint, "") +
-    "_base"
-}
-
-case class FieldData(var field : Field, var level : Expression, var slot : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends AbstractFieldData {
-  def basePtr = FieldDataBasePtr(field, level, slot, fragmentIdx)
-
-  override def resolveName = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +
-    resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, level.prettyprint, "")
-
-  override def getDtor() : Option[Statement] = {
-    if (Knowledge.data_alignFieldPointers) {
-      val origSlot = slot
-      slot = "slot"
-      var access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
-      val ret = Some(wrapInLoops(new AssignmentStatement(access, 0)))
-      slot = origSlot
-      ret
-    } else {
-      super.getDtor()
-    }
-  }
-
-  override def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, Statement], dtors : HashMap[String, Statement]) = {
-    declarations += (resolveName -> getDeclaration)
-    ctors += (resolveName -> getCtor().get)
-    dtors += (resolveName -> getDtor().get)
-
-    if (Knowledge.data_alignFieldPointers)
-      basePtr.registerIV(declarations, ctors, dtors)
-  }
 }
 
 case class PrimitiveId(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
@@ -390,5 +280,149 @@ case class IndexFromField(var fieldIdentifier : String, var level : Expression, 
     }
     level = oldLev
     Some(Scope(statements))
+  }
+}
+
+abstract class AbstractFieldData extends InternalVariable(true, false, true, true, false) {
+  var field : Field
+  var level : Expression
+  var slot : Expression
+  var fragmentIdx : Expression
+
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, level, NullExpression)
+
+  override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
+
+  override def resolveDataType = {
+    if (field.numSlots > 1)
+      new ArrayDatatype(new PointerDatatype(field.dataType.resolveUnderlyingDatatype), field.numSlots)
+    else
+      new PointerDatatype(field.dataType.resolveUnderlyingDatatype)
+  }
+
+  override def resolveDefValue = Some(0)
+
+  override def wrapInLoops(body : Statement) : Statement = {
+    var wrappedBody = super.wrapInLoops(body)
+    if (field.numSlots > 1)
+      wrappedBody = new ForLoopStatement(
+        VariableDeclarationStatement(new IntegerDatatype, "slot", Some(0)),
+        LowerExpression("slot", field.numSlots),
+        PreIncrementExpression("slot"),
+        wrappedBody)
+    wrappedBody
+  }
+
+  override def getCtor() : Option[Statement] = {
+    val origSlot = slot
+    slot = "slot"
+    val ret = Some(wrapInLoops(AssignmentStatement(resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt), resolveDefValue.get)))
+    slot = origSlot
+    ret
+  }
+
+  override def getDtor() : Option[Statement] = {
+    val origSlot = slot
+    slot = "slot"
+    var access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
+
+    val ret = Some(wrapInLoops(
+      new ConditionStatement(access,
+        ListBuffer[Statement](
+          FreeStatement(access),
+          new AssignmentStatement(access, 0)))))
+    slot = origSlot
+    ret
+  }
+
+  override def resolveAccess(baseAccess : Expression, fragment : Expression, domain : Expression, field : Expression, level : Expression, neigh : Expression) : Expression = {
+    val access = (if (this.field.numSlots > 1) new ArrayAccess(baseAccess, slot) else baseAccess)
+    super.resolveAccess(access, fragment, domain, field, level, neigh)
+  }
+}
+
+case class FieldDataBasePtr(var field : Field, var level : Expression, var slot : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends AbstractFieldData {
+  override def resolveName = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +
+    resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, level.prettyprint, "") +
+    "_base"
+}
+
+case class FieldData(var field : Field, var level : Expression, var slot : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends AbstractFieldData {
+  def basePtr = FieldDataBasePtr(field, level, slot, fragmentIdx)
+
+  override def resolveName = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +
+    resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, level.prettyprint, "")
+
+  override def getDtor() : Option[Statement] = {
+    if (Knowledge.data_alignFieldPointers) {
+      val origSlot = slot
+      slot = "slot"
+      var access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
+      val ret = Some(wrapInLoops(new AssignmentStatement(access, 0)))
+      slot = origSlot
+      ret
+    } else {
+      super.getDtor()
+    }
+  }
+
+  override def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, Statement], dtors : HashMap[String, Statement]) = {
+    declarations += (resolveName -> getDeclaration)
+    ctors += (resolveName -> getCtor().get)
+    dtors += (resolveName -> getDtor().get)
+
+    if (Knowledge.data_alignFieldPointers)
+      basePtr.registerIV(declarations, ctors, dtors)
+  }
+}
+
+abstract class AbstractTmpBuffer extends CommVariable {
+  var field : Field
+  var direction : String
+  var size : Expression
+  var neighIdx : Expression
+  var fragmentIdx : Expression
+
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
+
+  override def resolveDataType = new PointerDatatype(field.dataType.resolveUnderlyingDatatype)
+  override def resolveDefValue = Some(0)
+
+  override def getDtor() : Option[Statement] = {
+    val ptrExpr = resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
+    Some(wrapInLoops(
+      new ConditionStatement(ptrExpr,
+        ListBuffer[Statement](
+          FreeStatement(ptrExpr),
+          new AssignmentStatement(ptrExpr, 0)))))
+  }
+}
+
+case class TmpBufferBasePtr(var field : Field, var direction : String, var size : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends AbstractTmpBuffer {
+  override def resolveName = s"buffer_${direction}" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint) + "_base"
+
+}
+
+case class TmpBuffer(var field : Field, var direction : String, var size : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends AbstractTmpBuffer {
+  def basePtr = TmpBufferBasePtr(field, direction, size, neighIdx, fragmentIdx)
+
+  override def resolveName = s"buffer_${direction}" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
+
+  override def getDtor() : Option[Statement] = {
+    if (Knowledge.data_alignFieldPointers) {
+      var access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
+      Some(wrapInLoops(new AssignmentStatement(access, 0)))
+    } else {
+      super.getDtor()
+    }
+  }
+
+  override def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, Statement], dtors : HashMap[String, Statement]) = {
+    declarations += (resolveName -> getDeclaration)
+    ctors += (resolveName -> getCtor().get)
+    dtors += (resolveName -> getDtor().get)
+
+    if (Knowledge.data_alignFieldPointers)
+      basePtr.registerIV(declarations, ctors, dtors)
   }
 }
