@@ -178,7 +178,8 @@ object Knowledge {
   var l3tmp_useSlotVariables : Boolean = true // [true|false] // uses slot variables (curSlot, nextSlot, prevSlot) for access to slotted solution fields; allows for odd number of smoothing steps
 
   /// functionality test
-  var l3tmp_genFunctionBC : Boolean = true // uses some basic 2D diriclet boundary conditions with function value 
+  var l3tmp_genFunctionBC : Boolean = true // uses some basic 2D diriclet boundary conditions with function value
+  var l3tmp_functionBC : String = "Polynomial" // specifies which functions bc's are to be used in case of l3tmp_genFunctionBC; allowed options are 'Polynomial', 'Trigonometric' and 'InvSqrt' 
   var l3tmp_genExtFields : Boolean = false // adds one or more external fields to the L4 DSL file to test generation of subsequent functions
   var l3tmp_genGlobalOmega : Boolean = false // treats l3tmp_omega as a global (modifiable) parameter 
   var l3tmp_genSetableStencil : Boolean = false // generates stencil weights as global variables instead of constant values
@@ -281,7 +282,6 @@ object Knowledge {
     Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, maxLevel, l3tmp_genTemporalBlocking && l3tmp_tempBlockingMinLevel > maxLevel, "l3tmp_tempBlockingMinLevel must be smaller or equal to maxLevel to enable temporal blocking")
     Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, 1, !l3tmp_genTemporalBlocking, "l3tmp_tempBlockingMinLevel reset to default for deactivated l3tmp_genTemporalBlocking")
 
-    Constraints.condEnsureValue(l3tmp_genFunctionBC, false, 2 != dimensionality, "l3tmp_genFunctionBC is only valid for 2D problems")
     Constraints.condEnsureValue(l3tmp_initSolWithRand, true, !l3tmp_genFunctionBC && !l3tmp_kelvin, "initial solution of zero corresponds to the exact solution if l3tmp_genFunctionBC is false")
     Constraints.condEnsureValue(l3tmp_initSolWithRand, false, l3tmp_genFunctionBC, "l3tmp_genFunctionBC requires initial solution of zero")
 

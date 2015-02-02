@@ -42,13 +42,27 @@ object Fields {
     if (Knowledge.l3tmp_genFunctionBC || (Knowledge.l3tmp_kelvin && "" == postfix)) {
       var bc = (
         if (Knowledge.l3tmp_kelvin && "" == postfix) "bcSol(xPos, yPos)"
-        else Knowledge.dimensionality match {
-          case 2 => if (Knowledge.useDblPrecision) "sin ( M_PI * xPos ) * sinh ( M_PI * yPos )" else "sinf ( M_PI * xPos ) * sinhf ( M_PI * yPos )"
-          //case 3 => 
-          //"xPos * xPos - 0.5 * yPos * yPos - 0.5 * zPos * zPos"
-          //"exp ( xPos ) * sin ( yPos ) + exp ( yPos ) * sin ( zPos ) + exp ( zPos ) * sin ( xPos )"
-          //"1.0 / sqrt ( xPos * xPos + yPos * yPos + zPos * zPos )"
-          //"sin ( M_PI * xPos ) * sin ( M_PI * yPos ) * sinh ( sqrt ( 2.0 ) * M_PI * zPos )"
+        else Knowledge.l3tmp_functionBC match {
+          case "Polynomial" => Knowledge.dimensionality match {
+            case 2 => "xPos * xPos - yPos * yPos"
+            case 3 => "xPos * xPos - 0.5 * yPos * yPos - 0.5 * zPos * zPos"
+          }
+          case "Trigonometric" => Knowledge.dimensionality match {
+            case 2 =>
+              if (Knowledge.useDblPrecision)
+                "sin ( M_PI * xPos ) * sinh ( M_PI * yPos )"
+              else
+                "sinf ( M_PI * xPos ) * sinhf ( M_PI * yPos )"
+            case 3 =>
+              if (Knowledge.useDblPrecision)
+                "sin ( M_PI * xPos ) * sin ( M_PI * yPos ) * sinh ( sqrt ( 2.0 ) * M_PI * zPos )"
+              else
+                "sinf ( M_PI * xPos ) * sinf ( M_PI * yPos ) * sinhf ( sqrt ( 2.0 ) * M_PI * zPos )"
+          }
+          case "InvSqrt" => Knowledge.dimensionality match {
+            case 2 => "1.0 / sqrt ( xPos * xPos + yPos * yPos )"
+            case 3 => "1.0 / sqrt ( xPos * xPos + yPos * yPos + zPos * zPos )"
+          }
         })
       if ("Jac" == Knowledge.l3tmp_smoother) {
         if (Knowledge.l3tmp_useSlotsForJac) {
