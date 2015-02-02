@@ -11,6 +11,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.iv.FieldData
+import exastencils.logger._
 import exastencils.util.SimplifyExpression
 
 object AddressPrecalculation extends CustomStrategy("Perform address precalculation") {

@@ -8,6 +8,7 @@ import exastencils.domain._
 import exastencils.globals._
 import exastencils.knowledge._
 import exastencils.languageprocessing.l4._
+import exastencils.logger._
 import exastencils.mpi._
 import exastencils.multiGrid._
 import exastencils.omp._
@@ -34,7 +35,7 @@ object MainL3 {
 
     if (Settings.cancelIfOutFolderExists) {
       if ((new java.io.File(Settings.outputPath)).exists) {
-        exastencils.core.Logger.error(s"Output path ${Settings.outputPath} already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
+        Logger.error(s"Output path ${Settings.outputPath} already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
         sys.exit(0)
       }
     }

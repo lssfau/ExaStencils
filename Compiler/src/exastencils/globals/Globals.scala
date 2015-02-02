@@ -10,13 +10,20 @@ import exastencils.knowledge._
 import exastencils.prettyprinting._
 
 case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = new ListBuffer) extends FunctionCollection("Globals/Globals",
-  (if (Knowledge.useMPI) ListBuffer("mpi.h") else ListBuffer()),
-  ListBuffer("Util/Vector.h")
-    ++ (if (Knowledge.l3tmp_genAdvancedTimers) ListBuffer("Util/Stopwatch.h") else ListBuffer()) /*
+  ListBuffer(),
+  ListBuffer("Util/Vector.h") /*
     ++ Settings.additionalIncludes*/ ,
   ListBuffer(
     new FunctionStatement(new UnitDatatype, "initGlobals", new ListBuffer[VariableAccess], new ListBuffer[Statement]),
     new FunctionStatement(new UnitDatatype, "destroyGlobals", new ListBuffer[VariableAccess], new ListBuffer[Statement]))) {
+
+  // add conditional dependencies
+  if (Knowledge.useMPI)
+    externalDependencies += "mpi.h"
+  if (Knowledge.data_alignFieldPointers)
+    externalDependencies += "stddef.h"
+  if (Knowledge.l3tmp_genAdvancedTimers)
+    internalDependencies += "Util/Stopwatch.h"
 
   override def printHeader = {
     super.printHeader

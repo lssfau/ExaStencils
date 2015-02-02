@@ -5,10 +5,11 @@ import java.util.IdentityHashMap
 import exastencils.core._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
-import exastencils.polyhedron.PolyOpt
-import exastencils.util.SimplifyExpression
+import exastencils.polyhedron._
+import exastencils.util._
 
 object ColorSplitting extends DefaultStrategy("Color Splitting") {
 

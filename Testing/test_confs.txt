@@ -54,6 +54,7 @@ Seq_Test4  Main  Opts/seq_4.knowledge  Opts/seq.results  1   1  i7|E5
 Seq_Test5  Main  Opts/seq_5.knowledge  Opts/seq.results  1   1  i7|E5
 Seq_Test6  Main  Opts/seq_6.knowledge  Opts/seq.results  1   1  i7|E5
 Seq_Test7  Main  Opts/seq_7.knowledge  Opts/seq.results  1   1  i7|E5
+Seq_Test8  Main  Opts/seq_8.knowledge  Opts/seq.results  1   1  i7|E5
 # parallel version (2*2*2 MPI ranks each with 3*3*3 OMP threads)
 Par_Test0  Main  Opts/par_0.knowledge  Opts/par.results  8  10  E5
 Par_Test1  Main  Opts/par_1.knowledge  Opts/par.results  8  10  E5
@@ -63,6 +64,7 @@ Par_Test4  Main  Opts/par_4.knowledge  Opts/par.results  8  10  E5
 Par_Test5  Main  Opts/par_5.knowledge  Opts/par.results  8  10  E5
 Par_Test6  Main  Opts/par_6.knowledge  Opts/par.results  8  10  E5
 Par_Test7  Main  Opts/par_7.knowledge  Opts/par.results  8  10  E5
+Par_Test8  Main  Opts/par_8.knowledge  Opts/par.results  8  10  E5
 
 #################################################################################################
 # SMOOTHER TESTS                                                                                #

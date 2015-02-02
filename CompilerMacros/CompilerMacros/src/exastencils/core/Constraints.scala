@@ -1,6 +1,7 @@
-package exastencils.core
+package exastencils.constraints
 
 import scala.reflect.macros.blackbox
+import exastencils.logger._
 
 object Constraints {
   import scala.reflect.macros._
@@ -19,11 +20,9 @@ object Constraints {
     import c.universe._
     val result = {
       q"""if ($value != $param) {
-        if (exastencils.core.Logger.getLevel >= 1) println("WARN:  " + "Setting " + ${show(param.tree)} + " from " + $param + " to " + $value)
-        if (exastencils.core.Settings.failOnConstraint) {
-          println("ERR:   Exit on constraint was specified, shutting down now...")
-          sys.exit(0)
-        }
+        exastencils.logger.Logger.warn("Setting " + ${show(param.tree)} + " from " + $param + " to " + $value)
+        if (exastencils.core.Settings.failOnConstraint)
+          exastencils.logger.Logger.error("Exit on constraint was specified, shutting down now...")
         $param = $value
       }
     """
@@ -35,11 +34,9 @@ object Constraints {
     import c.universe._
     val result = {
       q"""if ($cond) {
-        if (exastencils.core.Logger.getLevel >= 1) println("WARN:  " + $msg)
-        if (exastencils.core.Settings.failOnConstraint) {
-          println("ERR:   Exit on constraint was specified, shutting down now...")
-          sys.exit(0)
-        }
+        exastencils.logger.Logger.warn($msg)
+        if (exastencils.core.Settings.failOnConstraint)
+          exastencils.logger.Logger.error("Exit on constraint was specified, shutting down now...")
       }
     """
     }
@@ -50,11 +47,9 @@ object Constraints {
     import c.universe._
     val result = {
       q"""if ($value != $param && ($cond)) {
-        if (exastencils.core.Logger.getLevel >= 1) println("WARN:  " + "Setting " + ${show(param.tree)} + " from " + $param + " to " + $value + " (" + $msg + ")")
-        if (exastencils.core.Settings.failOnConstraint) {
-          println("ERR:   Exit on constraint was specified, shutting down now...")
-          sys.exit(0)
-        }
+        exastencils.logger.Logger.warn("Setting " + ${show(param.tree)} + " from " + $param + " to " + $value + " (" + $msg + ")")
+        if (exastencils.core.Settings.failOnConstraint)
+          exastencils.logger.Logger.error("Exit on constraint was specified, shutting down now...")
         $param = $value
       }
     """
@@ -66,11 +61,9 @@ object Constraints {
     import c.universe._
     val result = {
       q"""if ($value != $param && ($cond)) {
-        if (exastencils.core.Logger.getLevel >= 1) println("WARN:  " + "Setting " + ${show(param.tree)} + " from " + $param + " to " + $value + " (Constraint condition fullfilled: " + ${show(cond.tree)} + ")")
-        if (exastencils.core.Settings.failOnConstraint) {
-          println("ERR:   Exit on constraint was specified, shutting down now...")
-          sys.exit(0)
-        }
+        exastencils.logger.Logger.warn("Setting " + ${show(param.tree)} + " from " + $param + " to " + $value + " (Constraint condition fullfilled: " + ${show(cond.tree)} + ")")
+        if (exastencils.core.Settings.failOnConstraint)
+          exastencils.logger.Logger.error("Exit on constraint was specified, shutting down now...")
         $param = $value
       }
     """

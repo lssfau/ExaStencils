@@ -31,13 +31,16 @@ class LexerL4 extends exastencils.parsers.ExaLexer {
   reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "all", "and")
 
   // layout and field keywords
-  reserved += ("with", "communication", "None")
+  reserved += ("ghostLayers", "duplicateLayers", "innerPoints", "with", "communication", "None")
 
   // boundary condition keywords
   reserved += ("apply", "bc", "to")
 
   // communication keywords
   reserved += ("begin", "finish", "communicate", "communicating", "dup", "ghost", "of")
+
+  // slot keywords - TODO: these keywords are up to discussion
+  reserved += ("curSlot", "nextSlot", "prevSlot")
 
   // math keywords
   reserved += ("diag")

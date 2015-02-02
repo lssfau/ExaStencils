@@ -10,6 +10,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
+import exastencils.logger._
 import exastencils.mpi._
 import exastencils.omp._
 import exastencils.optimization._

@@ -11,6 +11,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
+import exastencils.logger._
 import exastencils.mpi._
 import exastencils.util._
 
@@ -37,7 +38,6 @@ object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices"
       fieldAccess
     }
     case access : StencilFieldAccess if SimplifyExpression.evalIntegral(access.stencilFieldSelection.level) < collector.getCurrentLevel => {
-      println(collector.getCurrentLevel + " : " + access.stencilFieldSelection.level + " : " + access.stencilFieldSelection.field.level)
       var stencilFieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         stencilFieldAccess.index(i) = stencilFieldAccess.index(i) / 2
@@ -64,19 +64,15 @@ object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
   this += new Transformation("SearchAndReplace", {
     case FunctionCallExpression(StringConstant("diag"), args) => args(0) match {
       case access : StencilAccess =>
-        access.stencil.entries.find(e => {
-          var ret = true
-          for (dim <- 0 until Knowledge.dimensionality)
-            ret &= (IntegerConstant(0) == e.offset(dim))
-          ret
-        }).get.weight
+        val centralOffset = new MultiIndex(Array.fill(Knowledge.dimensionality)(0))
+        access.stencil.findStencilEntry(centralOffset).get.coefficient
       case access : StencilFieldAccess => {
         var index = Duplicate(access.index)
         index(Knowledge.dimensionality) = 0 // FIXME: this assumes the center entry to be in pos 0
         new FieldAccess(FieldSelection(access.stencilFieldSelection.field, access.stencilFieldSelection.level, access.stencilFieldSelection.slot, Some(0), access.stencilFieldSelection.fragIdx), index)
       }
       case _ => {
-        println("WARN: diag with unknown arg")
+        Logger.warn("diag with unknown arg " + args(0))
         FunctionCallExpression(StringConstant("diag"), args)
       }
     }

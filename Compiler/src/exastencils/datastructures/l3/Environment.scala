@@ -1,8 +1,8 @@
 package exastencils.datastructures.l3
 
-import exastencils.core.Logger
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
+
+import exastencils.logger._
 
 class Environment(parent : Option[Environment] = None) {
   import Environment._

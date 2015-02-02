@@ -1,9 +1,5 @@
 package exastencils.datastructures
 
-import exastencils.core.StateManager
-import exastencils.core.Logger._
-import exastencils.core._
-
 /**
   * A Strategy for custom execution patterns of [[exastencils.datastructures.Transformation]]s.
   *

@@ -1,12 +1,10 @@
 package exastencils.optimization
 
-import exastencils.core.Logger
-import exastencils.datastructures.DefaultStrategy
-import exastencils.datastructures.Transformation
+import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
-import exastencils.util.EvaluationException
-import exastencils.util.SimplifyExpression
+import exastencils.logger._
+import exastencils.util._
 
 object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expressions") {
 

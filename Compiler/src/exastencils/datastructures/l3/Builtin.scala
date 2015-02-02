@@ -2,7 +2,7 @@ package exastencils.datastructures.l3
 
 import TcbImplicits._
 import exastencils.datastructures.l4
-import exastencils.core.Logger
+import exastencils.logger._
 
 case class ApplyStencilBuiltin() extends StaticRValue with AbstractFunctionRValue {
   def scReturnType = FieldDatatype()

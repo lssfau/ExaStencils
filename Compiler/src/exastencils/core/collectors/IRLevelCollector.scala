@@ -2,9 +2,9 @@ package exastencils.core.collectors
 
 import scala.collection.mutable.Stack
 
-import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.logger._
 
 class IRLevelCollector extends Collector {
   private val levelStack = new Stack[Int]

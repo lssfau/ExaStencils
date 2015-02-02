@@ -8,11 +8,11 @@ import exastencils.domain._
 import exastencils.globals._
 import exastencils.knowledge._
 import exastencils.languageprocessing.l4._
+import exastencils.logger._
 import exastencils.mpi._
 import exastencils.multiGrid._
 import exastencils.omp._
 import exastencils.optimization._
-import exastencils.parsers.l3._
 import exastencils.parsers.l4._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
@@ -32,9 +32,12 @@ object Main {
       s.parseFile(args(0))
     }
 
+    if (Settings.produceHtmlLog)
+      Logger_HTML.init
+
     if (Settings.cancelIfOutFolderExists) {
       if ((new java.io.File(Settings.outputPath)).exists) {
-        exastencils.core.Logger.error(s"Output path ${Settings.outputPath} already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
+        Logger.error(s"Output path ${Settings.outputPath} already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
         sys.exit(0)
       }
     }
@@ -100,15 +103,15 @@ object Main {
     ResolveLoopOverPoints.apply()
     ResolveIntergridIndices.apply()
 
-    var numConvFound = 1
-    while (numConvFound > 0) {
+    var numConvFound = 0
+    do {
       FindStencilConvolutions.apply()
       numConvFound = FindStencilConvolutions.results.last._2.matches
       if (Knowledge.useFasterExpand)
         ExpandOnePassStrategy.apply()
       else
         ExpandStrategy.doUntilDone()
-    }
+    } while (numConvFound > 0)
 
     ResolveDiagFunction.apply()
     ResolveContractingLoop.apply()
@@ -155,6 +158,9 @@ object Main {
     if (Knowledge.opt_unroll > 1)
       Unrolling.apply()
 
+    if (Knowledge.opt_vectorize)
+      RemoveDupSIMDLoads.apply()
+
     AddInternalVariables.apply()
     if (Knowledge.useFasterExpand)
       ExpandOnePassStrategy.apply()
@@ -177,9 +183,12 @@ object Main {
     PrintStrategy.apply()
     PrettyprintingManager.finish
 
-    println("Done!")
+    Logger.dbg("Done!")
 
-    println("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
+    Logger.dbg("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
     (new CountingStrategy("number of printed nodes")).apply()
+
+    if (Settings.produceHtmlLog)
+      Logger_HTML.finish
   }
 }

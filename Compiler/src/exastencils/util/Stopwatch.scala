@@ -97,17 +97,6 @@ protected:
 """)
       }
     } else {
-      // TODO: TRACK_CALLS define checks should be replaces with checks in the code generator; use this flag
-      val enableTimerCallStacks = true
-      // TODO: is MPI is enabled, average the timings over the number of threads using the given strategy
-      // Comment: Meaningless, strategy is defined on test manager, not in timer.
-      val useMPI = Knowledge.useMPI
-      val timerCollectionOperator = "MEAN" // "MIN", "MAX"
-      // TODO: fix the compile warnings
-      // TODO: this has to work with and without std::chrono
-      val chronoIsAvailable = true
-      val windowsSystem = ("MSVC" == Knowledge.targetCompiler)
-
       val writerHeader = PrettyprintingManager.getPrinter(s"Util/Stopwatch.h")
       val writerSource = PrettyprintingManager.getPrinter(s"Util/Stopwatch.cpp")
 
@@ -136,72 +125,146 @@ std::string to_string(T value)
 }       
         
 #define newline '\n'
-	""");
+	""")
 
-      if (chronoIsAvailable) {
-        writerHeader << ("""
-#include <chrono>
+      Knowledge.advTimer_timerType match {
+        case "Chrono" => writerHeader << ("""
+#	include <chrono>
 using namespace std::chrono;
 using std::chrono::nanoseconds;
-#define TIMER_ZERO nanoseconds::zero() //zero in current time format
-#define TIMER_NOW high_resolution_clock::now() //now in current time format
-#define TIMER_TIME_STORE_TYPE nanoseconds //current time format
-#define TIMER_TIME_TIMEPOINT_TYPE high_resolution_clock::time_point //timepoint in current time format
-#define TIMER_GET_TIME_STORE(dif) duration_cast<nanoseconds>(dif)  //cast from time interval to current time format
-#define TIMER_GET_TIME_MILI(dif) (duration_cast<nanoseconds>(dif).count())*1e-6 //cast from time interval to milliseconds
-	    """);
-      } else {
-        if (windowsSystem) {
-          writerHeader << ("""
-#include <time.h>
-           """);
-        } else {
-          writerHeader << ("""
-#include <sys/time.h>
-           """);
-        }
-        writerHeader << ("""
-#include <sys/types.h>
-          """);
+#	define TIMER_ZERO nanoseconds::zero() //zero in current time format
+#	define TIMER_NOW high_resolution_clock::now() //now in current time format
+#	define TIMER_TIME_STORE_TYPE nanoseconds //current time format
+#	define TIMER_TIME_TIMEPOINT_TYPE high_resolution_clock::time_point //timepoint in current time format
+#	define TIMER_GET_TIME_STORE(dif) duration_cast<nanoseconds>(dif)  //cast from time interval to current time format
+#	define TIMER_GET_TIME_MILI(dif) (duration_cast<nanoseconds>(dif).count())*1e-6  //cast from time interval to milliseconds
+	    """)
 
-        if (windowsSystem) {
-          writerHeader << ("""
-inline double time_now() //millisec. hack
+        case "QPC" => writerHeader << ("""
+#	include <windows.h>
+#	define TIMER_TIME_STORE_TYPE long long //current time format
+#	define TIMER_TIME_TIMEPOINT_TYPE long long //timepoint in current time format
+
+inline TIMER_TIME_TIMEPOINT_TYPE milliseconds_now() 
+{
+	LARGE_INTEGER now;
+	QueryPerformanceCounter(&now);
+	return (now.QuadPart);
+}
+
+inline double to_milisec(TIMER_TIME_STORE_TYPE val)
+{
+	static LARGE_INTEGER s_frequency;
+	static BOOL s_use_qpc = QueryPerformanceFrequency(&s_frequency);
+	return val/(s_frequency.QuadPart/1000.0);
+}
+
+#	define TIMER_ZERO 0  //zero in current time format
+#	define TIMER_NOW milliseconds_now() //now in current time format
+
+#	define TIMER_GET_TIME_STORE(dif) dif //cast from time interval to current time format
+#	define TIMER_GET_TIME_MILI(dif) to_milisec(dif) //cast from time interval to milliseconds
+    	""")
+
+        case "WIN_TIME" => writerHeader << ("""
+#   include <time.h>
+#	include <sys/types.h>
+#	define TIMER_ZERO 0.0
+#	define TIMER_TIME_STORE_TYPE double //assumption - primary time in milliseconds
+#	define TIMER_TIME_TIMEPOINT_TYPE double 
+
+inline TIMER_TIME_TIMEPOINT_TYPE time_now() //millisec. hack
 {
 	clock_t t = clock();
-	return (((double)t)/(CLOCKS_PER_SEC/1000.0));
+	return (((TIMER_TIME_TIMEPOINT_TYPE)t)/(CLOCKS_PER_SEC* 1e-3));
 };
-           """);
-        } else {
-          writerHeader << ("""
-inline double time_now() //millisecs. unix
+
+#	define TIMER_NOW time_now()
+
+#	define TIMER_GET_TIME_STORE(dif) dif
+#	define TIMER_GET_TIME_MILI(dif) dif
+    	""")
+
+        case "UNIX_TIME" => writerHeader << ("""
+#	include <sys/time.h>
+#	include <sys/types.h>
+#	define TIMER_TIME_STORE_TYPE double //assumption - primary time in milliseconds
+#	define TIMER_TIME_TIMEPOINT_TYPE double
+inline TIMER_TIME_TIMEPOINT_TYPE time_now() //millisecs. unix
 {
 	timeval timePoint;
 	gettimeofday(&timePoint, NULL);
-	return (double)(timePoint.tv_sec) * 1e3 + (double)(timePoint.tv_usec) * 1e-3;	
-};
-           """);
-        }
+	return (double)(timePoint.tv_sec) * 1e3 + (double)(timePoint.tv_usec) * 1e-3;
+}
+#	define TIMER_NOW time_now()
+#	define TIMER_ZERO 0.0
+#	define TIMER_GET_TIME_STORE(dif) dif
+#	define TIMER_GET_TIME_MILI(dif) dif
+    	""")
 
-        writerHeader << ("""
-#define TIMER_NOW time_now()
-#define TIMER_ZERO 0.0
-#define TIMER_TIME_STORE_TYPE double //assumption - primary time in milliseconds
-#define TIMER_TIME_TIMEPOINT_TYPE double 
-#define TIMER_GET_TIME_STORE(dif) dif
-#define TIMER_GET_TIME_MILI(dif) dif   
-          """);
+        case "MPI_TIME" => writerHeader << ("""
+#	include <mpi.h>
+#	define TIMER_ZERO 0.0
+#	define TIMER_NOW MPI_Wtime()
+#	define TIMER_TIME_STORE_TYPE double //assumption - primary time in milliseconds
+#	define TIMER_TIME_TIMEPOINT_TYPE double 
+#	define TIMER_GET_TIME_STORE(dif) dif
+#	define TIMER_GET_TIME_MILI(dif) dif*1e3          
+    	""")
+
+        case "WINDOWS_RDSC" => writerHeader << ("""
+#	define PREQ 2300000000
+#	define TIMER_TIME_STORE_TYPE long long
+#	define TIMER_TIME_TIMEPOINT_TYPE long long 
+
+inline TIMER_TIME_TIMEPOINT_TYPE now()
+{
+	return __rdtsc();
+}
+#	define TIMER_ZERO 0
+#	define TIMER_NOW now()
+#	define TIMER_GET_TIME_STORE(dif) dif
+#	define TIMER_GET_TIME_MILI(dif) dif/(PREQ/1000.0)
+
+#	pragma intrinsic(__rdtsc)
+inline TIMER_TIME_STORE_TYPE rdtsc() {
+	return __rdtsc();
+}          
+	    	""")
+
+        case "RDSC" => writerHeader << ("""
+#	define PREQ 2300000000
+#	define TIMER_TIME_STORE_TYPE long long
+#	define TIMER_TIME_TIMEPOINT_TYPE long long 
+
+inline TIMER_TIME_TIMEPOINT_TYPE now()
+{
+	return __rdtsc();
+}
+#	define TIMER_ZERO 0
+#	define TIMER_NOW now()
+#	define TIMER_GET_TIME_STORE(dif) dif
+#	define TIMER_GET_TIME_MILI(dif) dif/(PREQ/1000.0)
+
+#include <stdint.h>
+extern __inline__ TIMER_TIME_STORE_TYPE rdtsc() {
+TIMER_TIME_STORE_TYPE x;
+__asm__ volatile ("rdtsc\n\tshl $32, %%rdx\n\tor %%rdx, %%rax" : "=a" (x) : : "rdx");
+return x;
+}
+	    	""")
+
       }
 
       writerHeader << (""" 
 	class TimerWrapper
 	{
-	       """);
+	       """)
 
-      if (enableTimerCallStacks) {
+      if (Knowledge.advTimer_enableCallStacks) {
         writerHeader << (""" 
 	friend class CallTracker;
-	       """);
+	       """)
       }
 
       writerHeader << ("""
@@ -212,6 +275,8 @@ inline double time_now() //millisecs. unix
 	
 		void Start();
 		void Stop();
+	    
+	    void Reset();
 	
 		double getTotalTimeInMilliSec();
 		double getLastTimeInMilliSec();
@@ -231,32 +296,27 @@ inline double time_now() //millisecs. unix
 		TIMER_TIME_STORE_TYPE _mcs_global;
 		TIMER_TIME_STORE_TYPE _mcs_local;
 		
+		//std::string _name;
 		void UniqueInit();
-	    static void GatherAllTimersCSV(std::vector<std::string>& out_data);
+		static void GatherAllTimersCSV(std::vector<std::string>& out_data);
 		static std::vector<TimerWrapper*> _all_timers;
 	};
-    """);
+    """)
 
-      if (enableTimerCallStacks) {
+      if (Knowledge.advTimer_enableCallStacks) {
         writerHeader << ("""
-    class CallEntity
+    
+
+class CallEntity
 {
 friend class CallTracker;
 public:
-	CallEntity()
-	{
-		_local_mcs = TIMER_ZERO;
-		_parent = nullptr;
-		_binded_timer = nullptr;
-		_stoped = true;
-	};
 
-	CallEntity(CallEntity* parent, std::string name, TimerWrapper* bt)
+	CallEntity(CallEntity* parent, TimerWrapper* bt)
 	{
 		_parent = parent;
 		_binded_timer = bt;
 		_local_mcs = TIMER_ZERO;
-		_name = name;
 		_stoped = true;
 	};
 
@@ -304,16 +364,17 @@ public:
 
 	std::string ToCSV()//name;time
 	{
-		return _name +';'+ to_string(TIMER_GET_TIME_MILI(_local_mcs))+';';
+		return _binded_timer->GetName() +';'+ to_string(TIMER_GET_TIME_MILI(_local_mcs))+';';
 	}
 
 
 private:
+	CallEntity();
+
 	CallEntity* _parent;
 	std::vector<CallEntity*> _childs;
 	TIMER_TIME_TIMEPOINT_TYPE _call_entity_time_start;
 	TIMER_TIME_STORE_TYPE _local_mcs;
-	std::string _name;
 	CallEntity(CallEntity&);
 	bool _stoped;
 	TimerWrapper* _binded_timer;
@@ -337,7 +398,7 @@ private:
 		}
 		else
 		{
-			_new_call = new CallEntity(*s_head, timer->_name, timer);
+			_new_call = new CallEntity(*s_head, timer);
 			_new_call->Start();
 			(*s_head)->AddChild(_new_call);
 
@@ -427,7 +488,7 @@ private:
 
 	static void print_with_indent(int indent, std::string str)
 	{
-		printf("%*s" "%s ms\n", indent, " ", str.c_str());
+		printf("%*s" "%s ms\n", indent+1, " ", str.c_str());
 	}
 
 	static void Print( int displacement, CallEntity* root )
@@ -463,7 +524,7 @@ private:
 		}
 		else
 		{
-			_data.push_back(to_string(displacement)+";" + root->_name +  ";ERROR: TIMER HAS NOT BEEN STOPPED!" );
+			_data.push_back(to_string(displacement)+";" + root->_binded_timer->GetName() +  ";ERROR: TIMER HAS NOT BEEN STOPPED!" );
 		}
 		return _data;
 	}
@@ -504,16 +565,16 @@ private:
 		}
 		delete root;
 	}
-
-
-
-}; """);
+};
+ """)
       }
 
-      writerSource << ("""   
-#include "Util/Stopwatch.h"   
+      if (Knowledge.useMPI) {
+        writerSource << ("""
 #include <mpi.h>
-	
+    """)
+      }
+      writerSource << (""" 	
 TimerWrapper::TimerWrapper(void)
 {	
 	_name = "Unset name";
@@ -545,16 +606,21 @@ void TimerWrapper::Start()
 
 		++_total_entries;
 	}
-""");
+""")
 
-      if (enableTimerCallStacks) {
+      if (Knowledge.advTimer_enableCallStacks) {
         writerSource << ("""  
 	CallTracker::StartTimer(this);
-	    """);
+	    """)
       }
 
       writerSource << ("""  
 	++_entries;	
+}
+        
+void TimerWrapper::Reset()
+{
+	UniqueInit();
 }
 
 void TimerWrapper::Stop()
@@ -569,11 +635,11 @@ void TimerWrapper::Stop()
 		_mcs_global += _mcs_local;
 	}
 
-""");
-      if (enableTimerCallStacks) {
+""")
+      if (Knowledge.advTimer_enableCallStacks) {
         writerSource << ("""  
 	CallTracker::StopTimer(this);;
-	    """);
+	    """)
       }
 
       writerSource << ("""  
@@ -582,7 +648,11 @@ void TimerWrapper::Stop()
 
 void TimerWrapper::GatherAllTimersCSV( std::vector<std::string>& out_data)
 {
-	int rank, N;
+    """)
+
+      if (Knowledge.useMPI) {
+        writerSource << ("""
+	  int rank, N;
 	MPI_Comm_size(MPI_COMM_WORLD, &N);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -599,6 +669,9 @@ void TimerWrapper::GatherAllTimersCSV( std::vector<std::string>& out_data)
 	else
 	{
 		
+	  """)
+      }
+      writerSource << ("""
 		//this node:
 		std::string timer_datas;
 		for( int i = 0; i < _all_timers.size(); i++ )
@@ -607,7 +680,11 @@ void TimerWrapper::GatherAllTimersCSV( std::vector<std::string>& out_data)
 		}
 
 		out_data.push_back(timer_datas);
-		//other
+		
+	   """)
+      if (Knowledge.useMPI) {
+        writerSource << ("""
+	    //other
 		MPI_Status status;
 
 		for( int i = 1; i < N; i++ )
@@ -625,6 +702,9 @@ void TimerWrapper::GatherAllTimersCSV( std::vector<std::string>& out_data)
 			out_data.push_back(timer_datas);		
 		}
 	}
+	   """)
+      }
+      writerSource << ("""
 }
 
 void TimerWrapper::PrintAllTimersGlobal()
@@ -633,27 +713,46 @@ void TimerWrapper::PrintAllTimersGlobal()
 
 	std::vector<std::string> timer_data;
 	GatherAllTimersCSV(timer_data);
-	
+""")
+
+      if (Knowledge.useMPI) {
+        writerSource << ("""
+
     int rank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	if ( rank == 0 )
-    {
+	{
+	""")
+      }
+      writerSource << ("""
 		for( int i = 0; i < timer_data.size(); i++ )
 		{
 			printf("Node #%d: %s\n", i, (timer_data[i]).c_str());
 		}
+	    """)
+      if (Knowledge.useMPI)
+        writerSource << ("""
 	}
+	""")
+
+      writerSource << ("""
 }
 
 void TimerWrapper::PrintAllTimersToFileGlobal( std::string name )
 {
 	std::vector<std::string> timer_data;
 	GatherAllTimersCSV(timer_data);
-
+ """)
+      if (Knowledge.useMPI)
+        writerSource << ("""
 	int rank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	if ( rank == 0 )
 	{
+	     """)
+
+      writerSource << ("""
+	
 		std::ofstream out(name);
 		char newl = newline;
 		for( int i = 0; i < timer_data.size(); i++ )
@@ -662,10 +761,18 @@ void TimerWrapper::PrintAllTimersToFileGlobal( std::string name )
 			out.write( &newl, sizeof(char) );
 		}
 		out.close();
+ """)
+      if (Knowledge.useMPI) {
+        writerSource << ("""
 	}
+	""")
+      }
+      writerSource << ("""
 }
+	""")
 
-    
+      writerSource << ("""
+
 std::string TimerWrapper::GetName()
 {
 	return _name;
@@ -705,15 +812,21 @@ TimerWrapper::~TimerWrapper(void)
 }
     
 std::vector<TimerWrapper*> TimerWrapper::_all_timers;
-""");
-      if (enableTimerCallStacks) {
-        writerSource << ("""  
-CallEntity* CallTracker::_root = new CallEntity( nullptr, "DUMB", &(CallTracker::_root_timer));
+""")
+      if (Knowledge.advTimer_enableCallStacks) {
+        writerSource << ("""
 TimerWrapper CallTracker::_root_timer("RootTimer");
+CallEntity* CallTracker::_root = new CallEntity( nullptr, &(CallTracker::_root_timer));
+
 	    
 	    
 int CallTracker::GetCallStackAsCSVGlobal( std::vector<std::string>& out_data)
 {
+
+	""")
+
+        if (Knowledge.useMPI) {
+          writerSource << ("""	    
 	int rank, N;
 	MPI_Comm_size(MPI_COMM_WORLD, &N);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -726,10 +839,21 @@ int CallTracker::GetCallStackAsCSVGlobal( std::vector<std::string>& out_data)
 	}
 	else
 	{
+	   
+		
+	""")
+        }
+        writerSource << ("""
+
 		//this node:
 		std::string timer_datas = GetCallStackAsCSV(_root);
 		
 		out_data.push_back(timer_datas);
+
+	""")
+        if (Knowledge.useMPI) {
+          writerSource << ("""
+
 		//other
 		MPI_Status status;
 
@@ -748,11 +872,18 @@ int CallTracker::GetCallStackAsCSVGlobal( std::vector<std::string>& out_data)
 
 			out_data.push_back(timer_datas);		
 		}
+
 	}
 	return rank;
 }
 
-	    """);
+	    """)
+        } else {
+          writerSource << ("""
+    return 0;
+}
+	    """)
+        }
       }
     }
   }

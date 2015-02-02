@@ -7,7 +7,9 @@ import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
-import exastencils.knowledge.Knowledge
+import exastencils.knowledge._
+import exastencils.logger._
+
 import isl.Conversions._
 
 trait PolyhedronAccessable {

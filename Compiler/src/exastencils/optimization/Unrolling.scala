@@ -5,10 +5,12 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
 import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
-import exastencils.knowledge.Knowledge
-import exastencils.omp.OMP_PotentiallyParallel
-import exastencils.util.SimplifyExpression
+import exastencils.knowledge._
+import exastencils.logger._
+import exastencils.omp._
+import exastencils.util._
 
 object Unrolling extends DefaultStrategy("Loop unrolling") {
 

@@ -1,8 +1,8 @@
 package exastencils.util
 
-import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
+import exastencils.logger._
 
 class CountingStrategy(id : String) extends DefaultStrategy("Counting " + id) {
   var nodes = 0
@@ -11,6 +11,6 @@ class CountingStrategy(id : String) extends DefaultStrategy("Counting " + id) {
   override def apply(node : Option[Node]) = {
     nodes = 0
     super.apply(node)
-    Logger.warn("Counting " + id + " resulted in " + nodes + " nodes")
+    Logger.dbg("Counting " + id + " resulted in " + nodes + " nodes")
   }
 }

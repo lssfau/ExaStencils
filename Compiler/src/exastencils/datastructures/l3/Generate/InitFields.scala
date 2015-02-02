@@ -40,20 +40,23 @@ object InitFields {
       }
       Knowledge.dimensionality match {
         case 2 => {
-          printer.println(s"\t\tLaplace$postfix@current = LaplaceStencil$postfix@current")
+          //    printer.println(s"\t\tLaplace$postfix@current = LaplaceStencil$postfix@current")
+
           //    printer.println(s"\t\tLaplaceCoeff$postfix@current[0] = 4")
           //    printer.println(s"\t\tLaplaceCoeff$postfix@current[1] = -1")
           //    printer.println(s"\t\tLaplaceCoeff$postfix@current[2] = -1")
           //    printer.println(s"\t\tLaplaceCoeff$postfix@current[3] = -1")
           //    printer.println(s"\t\tLaplaceCoeff$postfix@current[4] = -1")
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[ 0,  0] = 4")
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[ 1,  0] = -1")
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[-1,  0] = -1")
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[ 0,  1] = -1")
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[ 0, -1] = -1")
+
+          printer.println(s"\t\tLaplace$postfix@current:[ 0,  0] = 4")
+          printer.println(s"\t\tLaplace$postfix@current:[ 1,  0] = -1")
+          printer.println(s"\t\tLaplace$postfix@current:[-1,  0] = -1")
+          printer.println(s"\t\tLaplace$postfix@current:[ 0,  1] = -1")
+          printer.println(s"\t\tLaplace$postfix@current:[ 0, -1] = -1")
         }
         case 3 => {
-          printer.println(s"\t\tLaplace$postfix@current = LaplaceStencil$postfix@current")
+          //    printer.println(s"\t\tLaplace$postfix@current = LaplaceStencil$postfix@current")
+
           //    printer.println(s"\t\tLaplaceCoeff$postfix@current[0] = 6")
           //    printer.println(s"\t\tLaplaceCoeff$postfix@current[1] = -1")
           //    printer.println(s"\t\tLaplaceCoeff$postfix@current[2] = -1")
@@ -61,13 +64,14 @@ object InitFields {
           //    printer.println(s"\t\tLaplaceCoeff$postfix@current[4] = -1")
           //    printer.println(s"\t\tLaplaceCoeff$postfix@current[5] = -1")
           //    printer.println(s"\t\tLaplaceCoeff$postfix@current[6] = -1")
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[ 0,  0,  0] = 6")
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[ 1,  0,  0] = -1")
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[-1,  0,  0] = -1")
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[ 0,  1,  0] = -1")
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[ 0, -1,  0] = -1")
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[ 0,  0,  1] = -1")
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[ 0,  0, -1] = -1")
+
+          printer.println(s"\t\tLaplace$postfix@current:[ 0,  0,  0] = 6")
+          printer.println(s"\t\tLaplace$postfix@current:[ 1,  0,  0] = -1")
+          printer.println(s"\t\tLaplace$postfix@current:[-1,  0,  0] = -1")
+          printer.println(s"\t\tLaplace$postfix@current:[ 0,  1,  0] = -1")
+          printer.println(s"\t\tLaplace$postfix@current:[ 0, -1,  0] = -1")
+          printer.println(s"\t\tLaplace$postfix@current:[ 0,  0,  1] = -1")
+          printer.println(s"\t\tLaplace$postfix@current:[ 0,  0, -1] = -1")
         }
       }
       printer.println(s"\t}")

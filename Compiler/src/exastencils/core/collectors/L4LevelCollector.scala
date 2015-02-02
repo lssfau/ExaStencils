@@ -1,8 +1,8 @@
 package exastencils.core.collectors
 
-import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
+import exastencils.logger._
 
 class L4LevelCollector extends Collector {
   private var curLevel = -1

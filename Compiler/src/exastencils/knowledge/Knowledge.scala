@@ -2,6 +2,8 @@ package exastencils.knowledge
 
 import exastencils.core._
 import exastencils.spl._
+import exastencils.logger._
+import exastencils.constraints._
 
 object Knowledge {
   // TODO: rename and move to hw knowledge?
@@ -71,6 +73,7 @@ object Knowledge {
   // === Layer 4 ===
 
   // === Post Layer 4 ===
+  var ir_genSepLayoutsPerField : Boolean = true // specifies if shared fieldlayouts should be duplicated when progressing from l4 to ir
 
   // --- Compiler Capabilities ---
   def supports_initializerList = { // indicates if the compiler supports initializer lists (e.g. for std::min)
@@ -200,14 +203,18 @@ object Knowledge {
   var l3tmp_genTimersPerFunction : Boolean = false // generates different timers for each function in the mg cycle
   var l3tmp_genTimersPerLevel : Boolean = false // generates different timers for each (mg) level
   var l3tmp_genTimersForComm : Boolean = false // generates additional timers for the communication
-  var l3tmp_genCommTimersPerLevel : Boolean = false // generates different communication timers for each level 
+  var l3tmp_genCommTimersPerLevel : Boolean = false // generates different communication timers for each level
+
+  var advTimer_timerType : String = "Chrono" // may be one of the following: 'Chrono', 'QPC', 'WIN_TIME', 'UNIX_TIME', 'MPI_TIME', 'RDSC', 'WINDOWS_RDSC'
+  var advTimer_enableCallStacks : Boolean = false // generates call stacks for all employed timers
 
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
     Constraints.condEnsureValue(opt_vectorize, false, !useDblPrecision, "opt_vectorize is currently not compatible with single precision")
-    Constraints.condEnsureValue(simd_avoidUnaligned, true, opt_vectorize && "QPX" == simd_instructionSet, "QPX does not support unaligned load or stores")
+    Constraints.condEnsureValue(simd_avoidUnaligned, true, opt_vectorize && "QPX" == simd_instructionSet, "QPX does not support unaligned loads/stores")
+    Constraints.condEnsureValue(simd_avoidUnaligned, false, !opt_vectorize, "avoid unaligned loads/stores doesn't make sense without vectorization enabled")
     Constraints.condEnsureValue(data_alignFieldPointers, true, opt_vectorize && "QPX" == simd_instructionSet, "data_alignFieldPointers must be true for vectorization with QPX")
 
     Constraints.updateValue(useOMP, (domain_summarizeBlocks && domain_fragLength != 1) || domain_numFragsPerBlock != 1)
@@ -297,5 +304,18 @@ object Knowledge {
     Constraints.condEnsureValue(poly_optLevel_coarse, poly_optLevel_fine, poly_optLevel_coarse > poly_optLevel_fine, "optimization level for coarse grids must smaller or equal to the one for the fine levels")
     Constraints.condEnsureValue(poly_numFinestLevels, numLevels, poly_numFinestLevels > numLevels, "number of fine levels (for optimization) cannot exceed the number of all levels")
     Constraints.condEnsureValue(opt_useColorSplitting, false, l3tmp_smoother != "RBGS", "color splitting is only relevant for RBGS smoother")
+
+    Constraints.condEnsureValue(ir_genSepLayoutsPerField, true, opt_useColorSplitting, "color splitting requires separate field layouts")
+
+    if (l3tmp_genAdvancedTimers) {
+      // TODO: remove condition when timers are fully integrated
+      Constraints.condEnsureValue(advTimer_timerType, "Chrono", !useMPI && "MPI_TIME" == advTimer_timerType, "MPI_TIME is not supported for codes generated without MPI")
+      Constraints.condEnsureValue(advTimer_timerType, "Chrono", "QPC" == advTimer_timerType && "MSVC" != targetCompiler, "QPC is only supported for windows")
+      Constraints.condEnsureValue(advTimer_timerType, "WINDOWS_RDSC", "RDSC" == advTimer_timerType && "MSVC" == targetCompiler, "WINDOWS_RDSC is required for windows systems")
+      Constraints.condEnsureValue(advTimer_timerType, "RDSC", "WINDOWS_RDSC" == advTimer_timerType && "MSVC" != targetCompiler, "RDSC is required for non-windows systems")
+      Constraints.condEnsureValue(advTimer_timerType, "UNIX_TIME", "WIN_TIME" == advTimer_timerType && "MSVC" != targetCompiler, "WIN_TIME is not supported for non-windows systems")
+      Constraints.condEnsureValue(advTimer_timerType, "WIN_TIME", "UNIX_TIME" == advTimer_timerType && "MSVC" == targetCompiler, "UNIX_TIME is not supported for windows systems")
+      Constraints.condEnsureValue(advTimer_timerType, "UNIX_TIME", "Chrono" == advTimer_timerType && "IBMXL" == targetCompiler, "IBM XL does currently not support std::chrono")
+    }
   }
 }

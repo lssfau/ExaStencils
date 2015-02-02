@@ -1,6 +1,8 @@
 package exastencils.languageprocessing.l4
 
+import scala.collection.immutable.HashSet
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
 import exastencils.core.collectors.L4LevelCollector
 import exastencils.core.collectors.L4ValueCollector
@@ -8,8 +10,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.l4._
 import exastencils.knowledge._
-import scala.collection.immutable.HashSet
-import scala.collection.mutable.HashMap
+import exastencils.logger._
 
 object ProgressToIr extends DefaultStrategy("ProgressToIr") {
   protected var levelCollector = new L4LevelCollector
