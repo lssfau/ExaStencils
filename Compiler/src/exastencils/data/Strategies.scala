@@ -147,7 +147,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       newFieldData.slot = (if (field.field.numSlots > 1) "slot" else 0)
 
       var innerStmts : ListBuffer[Statement] =
-        if (Knowledge.data_alignFieldPointers) {
+        if (Knowledge.data_alignDataPointers) {
           ListBuffer(
             VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), "vs",
               Some(Knowledge.simd_vectorSize * SizeOfExpression(RealDatatype()))),
@@ -179,7 +179,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, buf.field.index, buf.field.level, buf.neighIdx)
       val size = bufferSizes(id)
 
-      if (Knowledge.data_alignFieldPointers) {
+      if (Knowledge.data_alignDataPointers) {
         bufferAllocs += (id -> new LoopOverFragments(ListBuffer[Statement](
           VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), "vs",
             Some(Knowledge.simd_vectorSize * SizeOfExpression(RealDatatype()))),

@@ -20,7 +20,7 @@ case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = ne
   // add conditional dependencies
   if (Knowledge.useMPI)
     externalDependencies += "mpi.h"
-  if (Knowledge.data_alignFieldPointers)
+  if (Knowledge.data_alignDataPointers)
     externalDependencies += "stddef.h"
   if (Knowledge.l3tmp_genAdvancedTimers)
     internalDependencies += "Util/Stopwatch.h"

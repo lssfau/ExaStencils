@@ -89,7 +89,7 @@ object Knowledge {
   var data_initAllFieldsWithZero : Boolean = true // specifies if all data points in all fields on all levels should initially be set zero (before the l4 initField functions are applied)
   var data_useFieldNamesAsIdx : Boolean = true // specifies if generated data field names should hold the clear text field identifier
 
-  var data_alignFieldPointers : Boolean = false // specifies if pointers to field data are to be aligned to simd_vectorSize, e.g. to ensure correct alignment for SIMD accesses
+  var data_alignDataPointers : Boolean = false // specifies if pointers to field data and communication buffers are to be aligned to simd_vectorSize, e.g. to ensure correct alignment for SIMD accesses
 
   // --- OpenMP and MPI Parallelization ---
   var comm_strategyFragment : Int = 6 // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors
@@ -216,7 +216,7 @@ object Knowledge {
     Constraints.condEnsureValue(opt_vectorize, false, !useDblPrecision, "opt_vectorize is currently not compatible with single precision")
     Constraints.condEnsureValue(simd_avoidUnaligned, true, opt_vectorize && "QPX" == simd_instructionSet, "QPX does not support unaligned loads/stores")
     Constraints.condEnsureValue(simd_avoidUnaligned, false, !opt_vectorize, "avoid unaligned loads/stores doesn't make sense without vectorization enabled")
-    Constraints.condEnsureValue(data_alignFieldPointers, true, opt_vectorize && "QPX" == simd_instructionSet, "data_alignFieldPointers must be true for vectorization with QPX")
+    Constraints.condEnsureValue(data_alignDataPointers, true, opt_vectorize && "QPX" == simd_instructionSet, "data_alignDataPointers must be true for vectorization with QPX")
 
     Constraints.updateValue(useOMP, (domain_summarizeBlocks && domain_fragLength != 1) || domain_numFragsPerBlock != 1)
     Constraints.updateValue(useMPI, (domain_numBlocks != 1))
