@@ -103,6 +103,8 @@ object Main {
     ResolveLoopOverPoints.apply()
     ResolveIntergridIndices.apply()
 
+    CreateGeomCoordinates.apply()
+
     var numConvFound = 0
     do {
       FindStencilConvolutions.apply()

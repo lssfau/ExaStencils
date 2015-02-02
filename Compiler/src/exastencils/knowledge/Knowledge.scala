@@ -192,7 +192,9 @@ object Knowledge {
   /// optional features
   var l3tmp_printFieldAtEnd : Boolean = false // prints the solution field at the end of the application (or the mean solution in l3tmp_kelvin's case)
   var l3tmp_initSolWithRand : Boolean = true // initializes the solution on the finest level with random values
-  var l3tmp_genForAutoTests : Boolean = false // generate code for automatic testing purposes
+  var l3tmp_genForAutoTests : Boolean = false // generates code for automatic testing purposes - if l3tmp_printError is activated NO residual is printed
+  var l3tmp_printError : Boolean = false // generates code that calculates and prints the error in each iteration
+  var l3tmp_useMaxNormForError : Boolean = true // uses the maximum norm instead of the L2 norm when reducing the error
 
   /// Student project - Kelvin
   var l3tmp_kelvin : Boolean = false // currently only works for 2D
