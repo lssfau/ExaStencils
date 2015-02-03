@@ -145,7 +145,6 @@ object Application {
     }
 
     if (Knowledge.l3tmp_printFieldAtEnd) {
-      Settings.additionalIncludes += "fstream"
       if (Knowledge.l3tmp_kelvin)
         printer.println("\tprintField ( '\"Solution.dat\"', SolutionMean@finest )")
       else
