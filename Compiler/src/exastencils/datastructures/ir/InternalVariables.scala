@@ -141,23 +141,6 @@ case class MpiRequest(var field : Field, var direction : String, var neighIdx : 
   override def resolveDataType = "MPI_Request"
 }
 
-case class TmpBuffer(var field : Field, var direction : String, var size : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
-
-  override def resolveName = s"buffer_${direction}" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
-  override def resolveDataType = new PointerDatatype(field.dataType.resolveUnderlyingDatatype)
-  override def resolveDefValue = Some(0)
-
-  override def getDtor() : Option[Statement] = {
-    val ptrExpr = resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
-    Some(wrapInLoops(
-      new ConditionStatement(ptrExpr,
-        ListBuffer[Statement](
-          FreeStatement(ptrExpr),
-          new AssignmentStatement(ptrExpr, 0)))))
-  }
-}
-
 case class NeighborIsValid(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends NeighInfoVariable {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, domain, NullExpression, NullExpression, neighIdx)
 
@@ -196,6 +179,108 @@ case class IsValidForSubdomain(var domain : Expression, var fragmentIdx : Expres
   override def resolveName = s"isValidForSubdomain" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", "")
   override def resolveDataType = new BooleanDatatype
   override def resolveDefValue = Some(false)
+}
+
+case class PrimitiveId(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, NullExpression, NullExpression, NullExpression)
+
+  override def resolveName = s"primitiveId" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
+  override def resolveDataType = "size_t"
+  override def resolveDefValue = Some(-1)
+}
+
+case class CommId(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, NullExpression, NullExpression, NullExpression)
+
+  override def resolveName = s"commId" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
+  override def resolveDataType = new IntegerDatatype
+  override def resolveDefValue = Some(-1)
+}
+
+case class PrimitivePosition(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, NullExpression, NullExpression, NullExpression)
+
+  override def resolveName = s"pos" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
+  override def resolveDataType = "Vec3"
+  override def resolveDefValue = Some("Vec3(0, 0, 0)")
+}
+
+case class PrimitivePositionBegin(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, NullExpression, NullExpression, NullExpression)
+
+  override def resolveName = s"posBegin" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
+  override def resolveDataType = "Vec3"
+  override def resolveDefValue = Some("Vec3(0, 0, 0)")
+}
+
+case class PrimitivePositionEnd(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, NullExpression, NullExpression, NullExpression)
+
+  override def resolveName = s"posEnd" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
+  override def resolveDataType = "Vec3"
+  override def resolveDefValue = Some("Vec3(0, 0, 0)")
+}
+
+case class IterationOffsetBegin(var domain : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, true, false, false, false) {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, domain, NullExpression, NullExpression, NullExpression)
+
+  override def resolveName = s"iterationOffsetBegin" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", "")
+  override def resolveDataType = "Vec3i"
+  override def resolveDefValue = Some("Vec3i(1, 1, 1)")
+}
+
+case class IterationOffsetEnd(var domain : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, true, false, false, false) {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, domain, NullExpression, NullExpression, NullExpression)
+
+  override def resolveName = s"iterationOffsetEnd" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", "")
+  override def resolveDataType = "Vec3i"
+  override def resolveDefValue = Some("Vec3i(-1, -1, -1)")
+}
+
+case class Timer(var name : Expression) extends UnduplicatedVariable {
+  override def resolveName = s"timer_" + name.prettyprint
+  override def resolveDataType = "TimerWrapper"
+
+  override def getCtor() : Option[Statement] = {
+    Some(AssignmentStatement(resolveName ~ "._name", "\"" ~ name ~ "\""))
+  }
+}
+
+case class CurrentSlot(var field : Field, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, false) {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, NullExpression)
+
+  override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
+
+  override def resolveName = s"currentSlot" + resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, field.level.toString, "")
+  override def resolveDataType = "int"
+  override def resolveDefValue = Some(IntegerConstant(0))
+}
+
+case class IndexFromField(var fieldIdentifier : String, var level : Expression, var indexId : String) extends InternalVariable(false, false, true, true, false) {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, NullExpression, NullExpression, fieldIdentifier, level, NullExpression)
+
+  override def usesFieldArrays : Boolean = false
+  override def usesLevelArrays : Boolean = true
+
+  override def resolveName = s"idx$indexId" + resolvePostfix("", "", fieldIdentifier, level.prettyprint, "")
+  override def resolveDataType = s"Vec${Knowledge.dimensionality}i"
+
+  override def getCtor() : Option[Statement] = {
+    var statements : ListBuffer[Statement] = ListBuffer()
+    val oldLev = level
+    for (l <- 0 to Knowledge.maxLevel) {
+      level = l
+      val field = FieldCollection.getFieldByIdentifier(fieldIdentifier, l, true)
+      if (field.isDefined) {
+        statements += AssignmentStatement(resolveAccess(resolveName, NullExpression, NullExpression, fieldIdentifier, level, NullExpression),
+          s"Vec${Knowledge.dimensionality}i(${
+            (0 until Knowledge.dimensionality).map(i => field.get.fieldLayout(i).idxById(indexId).prettyprint).mkString(", ")
+          })")
+      }
+    }
+    level = oldLev
+    Some(Scope(statements))
+  }
 }
 
 abstract class AbstractFieldData extends InternalVariable(true, false, true, true, false) {
@@ -269,7 +354,7 @@ case class FieldData(var field : Field, var level : Expression, var slot : Expre
     resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, level.prettyprint, "")
 
   override def getDtor() : Option[Statement] = {
-    if (Knowledge.data_alignFieldPointers) {
+    if (Knowledge.data_alignDataPointers) {
       val origSlot = slot
       slot = "slot"
       var access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
@@ -286,109 +371,58 @@ case class FieldData(var field : Field, var level : Expression, var slot : Expre
     ctors += (resolveName -> getCtor().get)
     dtors += (resolveName -> getDtor().get)
 
-    if (Knowledge.data_alignFieldPointers)
+    if (Knowledge.data_alignDataPointers)
       basePtr.registerIV(declarations, ctors, dtors)
   }
 }
 
-case class PrimitiveId(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, NullExpression, NullExpression, NullExpression)
+abstract class AbstractTmpBuffer extends CommVariable {
+  var field : Field
+  var direction : String
+  var size : Expression
+  var neighIdx : Expression
+  var fragmentIdx : Expression
 
-  override def resolveName = s"primitiveId" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
-  override def resolveDataType = "size_t"
-  override def resolveDefValue = Some(-1)
-}
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
 
-case class CommId(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, NullExpression, NullExpression, NullExpression)
+  override def resolveDataType = new PointerDatatype(field.dataType.resolveUnderlyingDatatype)
+  override def resolveDefValue = Some(0)
 
-  override def resolveName = s"commId" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
-  override def resolveDataType = new IntegerDatatype
-  override def resolveDefValue = Some(-1)
-}
-
-case class PrimitivePosition(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, NullExpression, NullExpression, NullExpression)
-
-  override def resolveName = s"pos" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
-  override def resolveDataType = "Vec3"
-  override def resolveDefValue = Some("Vec3(0, 0, 0)")
-}
-
-case class PrimitivePositionBegin(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, NullExpression, NullExpression, NullExpression)
-
-  override def resolveName = s"posBegin" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
-  override def resolveDataType = "Vec3"
-  override def resolveDefValue = Some("Vec3(0, 0, 0)")
-}
-
-case class PrimitivePositionEnd(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, NullExpression, NullExpression, NullExpression)
-
-  override def resolveName = s"posEnd" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
-  override def resolveDataType = "Vec3"
-  override def resolveDefValue = Some("Vec3(0, 0, 0)")
-}
-
-case class IterationOffsetBegin(var domain : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, true, false, false, false) {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, domain, NullExpression, NullExpression, NullExpression)
-
-  override def resolveName = s"iterationOffsetBegin" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", "")
-  override def resolveDataType = "Vec3i"
-  override def resolveDefValue = Some("Vec3i(1, 1, 1)")
-}
-
-case class IterationOffsetEnd(var domain : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, true, false, false, false) {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, domain, NullExpression, NullExpression, NullExpression)
-
-  override def resolveName = s"iterationOffsetEnd" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", "")
-  override def resolveDataType = "Vec3i"
-  override def resolveDefValue = Some("Vec3i(-1, -1, -1)")
-}
-
-case class Timer(var name : Expression) extends UnduplicatedVariable {
-  override def resolveName = s"timer_" + name.prettyprint
-  override def resolveDataType = "TimerWrapper"
-
-  override def getCtor() : Option[Statement] = {
-    Some(AssignmentStatement(resolveName ~ "._name", "\"" ~ name ~ "\""))
+  override def getDtor() : Option[Statement] = {
+    val ptrExpr = resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
+    Some(wrapInLoops(
+      new ConditionStatement(ptrExpr,
+        ListBuffer[Statement](
+          FreeStatement(ptrExpr),
+          new AssignmentStatement(ptrExpr, 0)))))
   }
 }
 
-case class CurrentSlot(var field : Field, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, false) {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, NullExpression)
+case class TmpBufferBasePtr(var field : Field, var direction : String, var size : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends AbstractTmpBuffer {
+  override def resolveName = s"buffer_${direction}" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint) + "_base"
 
-  override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
-
-  override def resolveName = s"curSlot" + resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, field.level.toString, "")
-  override def resolveDataType = "int"
-  override def resolveDefValue = Some(IntegerConstant(0))
 }
 
-case class IndexFromField(var fieldIdentifier : String, var level : Expression, var indexId : String) extends InternalVariable(false, false, true, true, false) {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, NullExpression, NullExpression, fieldIdentifier, level, NullExpression)
+case class TmpBuffer(var field : Field, var direction : String, var size : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends AbstractTmpBuffer {
+  def basePtr = TmpBufferBasePtr(field, direction, size, neighIdx, fragmentIdx)
 
-  override def usesFieldArrays : Boolean = false
-  override def usesLevelArrays : Boolean = true
+  override def resolveName = s"buffer_${direction}" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
 
-  override def resolveName = s"idx$indexId" + resolvePostfix("", "", fieldIdentifier, level.prettyprint, "")
-  override def resolveDataType = s"Vec${Knowledge.dimensionality}i"
-
-  override def getCtor() : Option[Statement] = {
-    var statements : ListBuffer[Statement] = ListBuffer()
-    val oldLev = level
-    for (l <- 0 to Knowledge.maxLevel) {
-      level = l
-      val field = FieldCollection.getFieldByIdentifier(fieldIdentifier, l, true)
-      if (field.isDefined) {
-        statements += AssignmentStatement(resolveAccess(resolveName, NullExpression, NullExpression, fieldIdentifier, level, NullExpression),
-          s"Vec${Knowledge.dimensionality}i(${
-            (0 until Knowledge.dimensionality).map(i => field.get.fieldLayout(i).idxById(indexId).prettyprint).mkString(", ")
-          })")
-      }
+  override def getDtor() : Option[Statement] = {
+    if (Knowledge.data_alignDataPointers) {
+      var access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
+      Some(wrapInLoops(new AssignmentStatement(access, 0)))
+    } else {
+      super.getDtor()
     }
-    level = oldLev
-    Some(Scope(statements))
+  }
+
+  override def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, Statement], dtors : HashMap[String, Statement]) = {
+    declarations += (resolveName -> getDeclaration)
+    ctors += (resolveName -> getCtor().get)
+    dtors += (resolveName -> getDtor().get)
+
+    if (Knowledge.data_alignDataPointers)
+      basePtr.registerIV(declarations, ctors, dtors)
   }
 }

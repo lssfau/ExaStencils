@@ -44,10 +44,20 @@ object Solve {
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
       printer.println(s"\t\tresOld_$vecDim = res_$vecDim")
       printer.println(s"\t\tres_$vecDim = NormResidual_$vecDim@finest (  )")
-      if (Knowledge.l3tmp_genForAutoTests)
-        printer.println(s"\t\tprint ( res_$vecDim )")
-      else
+      if (Knowledge.l3tmp_genForAutoTests) {
+        if (Knowledge.l3tmp_printError) {
+          printer.println(s"\t\tVar curError_$vecDim : Real = NormError_$vecDim@finest ( )")
+          printer.println(s"\t\tprint ( curError_$vecDim )")
+        } else {
+          printer.println(s"\t\tprint ( res_$vecDim )")
+        }
+      } else {
         printer.println("\t\tprint ( '\"" + s"Residual at $vecDim:" + "\"', " + s"res_$vecDim" + ", '\"Residual reduction:\"', " + s"( resStart_$vecDim / res_$vecDim ), " + "'\"Convergence factor:\"', " + s"( res_$vecDim / resOld_$vecDim ) )")
+        if (Knowledge.l3tmp_printError) {
+          printer.println(s"\t\tVar curError_$vecDim : Real = NormError_$vecDim@finest ( )")
+          printer.println("\t\tprint ( '\"" + s"Error at $vecDim:" + "\"', " + s"curError_$vecDim )")
+        }
+      }
     }
     printer.println("\t}")
 

@@ -146,12 +146,18 @@ case class InitMPIDataType(mpiTypeName : String, field : Field, indexRange : Ind
 }
 
 case class MPI_Sequential(var body : ListBuffer[Statement]) extends Statement with Expandable {
+  def this(body : Statement) = this(ListBuffer(body))
+
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = MPI_Sequential\n"
 
   def expand : Output[ForLoopStatement] = {
-    ForLoopStatement("int curRank = 0", "curRank < mpiSize", "++curRank", ListBuffer[Statement](
-      MPI_Barrier(),
-      new ConditionStatement("mpiRank == curRank", body)))
+    ForLoopStatement(
+      VariableDeclarationStatement(IntegerDatatype(), "curRank", Some(0)),
+      LowerExpression("curRank", "mpiSize"),
+      PreIncrementExpression("curRank"),
+      ListBuffer[Statement](
+        MPI_Barrier(),
+        new ConditionStatement(EqEqExpression("mpiRank", "curRank"), body)))
   }
 }
 

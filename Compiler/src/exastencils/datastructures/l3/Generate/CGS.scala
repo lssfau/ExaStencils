@@ -44,7 +44,7 @@ object CGS {
       printer.println(s"\t\tVariable alpha : Real = res * res / alphaDenom")
 
       printer.println(s"\t\tloop over Solution$postfix@current {")
-      printer.println(s"\t\t\t${Fields.solutionSlotted(s"current", "curSlot", postfix)(vecDim)} += alpha * VecP$postfix@current")
+      printer.println(s"\t\t\t${Fields.solutionSlotted(s"current", "currentSlot", postfix)(vecDim)} += alpha * VecP$postfix@current")
       printer.println(s"\t\t\t${Fields.residual("current", postfix)(vecDim)} -= alpha * VecGradP$postfix@current")
       printer.println(s"\t\t}")
 
@@ -52,7 +52,7 @@ object CGS {
 
       printer.println(s"\t\tif ( nextRes <= 0.001 * initialRes ) {")
       //printer.println("\t\t\tprint ( '\"CG required\"', cgSteps, '\"steps\"' )")
-      printer.println(s"\t\t\treturn ( )")
+      printer.println(s"\t\t\treturn")
       printer.println(s"\t\t}")
 
       printer.println(s"\t\tVariable beta : Real = (nextRes * nextRes) / (res * res)")

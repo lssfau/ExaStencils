@@ -136,7 +136,7 @@ case class IntegerConstant(var v : Long) extends Number {
 
 case class FloatConstant(var v : Double) extends Number {
   override def prettyprint(out : PpStream) : Unit = {
-    out << String.format(java.util.Locale.US, "%e", Double.box(value)) // ensure the compiler can parse the string
+    out << String.format(java.util.Locale.US, "%s", Double.box(value)) // ensure the compiler can parse the string
     if (!Knowledge.useDblPrecision) out << "f"
   }
 

@@ -5,15 +5,15 @@ import exastencils.knowledge._
 object Residual {
   def addUpdateBody(printer : java.io.PrintWriter, postfix : String, stencil : String) = {
     if (Knowledge.l3tmp_genTemporalBlocking)
-      Communication.exch(printer, s"Solution$postfix[curSlot]@current", s"dup ghost [ ${Array.fill(Knowledge.dimensionality)(0).mkString(", ")} ]")
+      Communication.exch(printer, s"Solution$postfix[active]@current", s"dup ghost [ ${Array.fill(Knowledge.dimensionality)(0).mkString(", ")} ]")
     else
-      Communication.exch(printer, s"Solution$postfix[curSlot]@current")
+      Communication.exch(printer, s"Solution$postfix[active]@current")
 
     if (Knowledge.l3tmp_genFragLoops)
       printer.println(s"\tloop over fragments {")
     printer.println(s"\tloop over Residual$postfix@current {")
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims)
-      printer.println(s"\t\t${Fields.residual(s"current", postfix)(vecDim)} = ${Fields.rhs(s"current", postfix)(vecDim)} - ($stencil * ${Fields.solutionSlotted(s"current", "curSlot", postfix)(vecDim)})")
+      printer.println(s"\t\t${Fields.residual(s"current", postfix)(vecDim)} = ${Fields.rhs(s"current", postfix)(vecDim)} - ($stencil * ${Fields.solutionSlotted(s"current", "active", postfix)(vecDim)})")
     printer.println(s"\t}")
     if (Knowledge.l3tmp_genFragLoops)
       printer.println(s"\t}")
@@ -55,7 +55,7 @@ object Residual {
       printer.println(s"\t}")
       if (Knowledge.l3tmp_genFragLoops)
         printer.println(s"\t}")
-      printer.println(s"\treturn ( sqrt ( res ) )")
+      printer.println(s"\treturn sqrt ( res )")
       printer.println(s"}")
       printer.println
 
@@ -70,7 +70,7 @@ object Residual {
         printer.println(s"\t}")
         if (Knowledge.l3tmp_genFragLoops)
           printer.println(s"\t}")
-        printer.println(s"\treturn ( res )")
+        printer.println(s"\treturn res")
         printer.println(s"}")
         printer.println
       }

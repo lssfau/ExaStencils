@@ -36,7 +36,7 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
 }
 
 case class MultiGridFunctions() extends FunctionCollection("MultiGrid/MultiGrid",
-  ListBuffer(),
+  ListBuffer("cmath"),
   ListBuffer("Globals/Globals.h", "Util/Vector.h", "Util/Stopwatch.h", "CommFunctions/CommFunctions.h", "Domains/DomainGenerated.h")) {
 
   if (Knowledge.useMPI)

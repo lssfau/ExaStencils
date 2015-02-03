@@ -135,3 +135,17 @@ object ResolveCoordinates extends DefaultStrategy("ResolveCoordinates") {
   }
 }
 
+object CreateGeomCoordinates extends DefaultStrategy("Add geometric coodrinate calculations") {
+  this += new Transformation("Search and extend", {
+    case loop : LoopOverPointsInOneFragment =>
+      if (StateManager.findFirst[AnyRef]((node : Any) => node match {
+        case StringConstant("xPos") | StringConstant("yPos") | StringConstant("zPos") => true
+        case VariableAccess("xPos", _) | VariableAccess("yPos", _) | VariableAccess("zPos", _) => true
+        case _ => false
+      }, loop).isDefined) {
+        loop.body.prepend(new InitGeomCoords(loop.field, false))
+      }
+
+      loop
+  })
+}
