@@ -5,48 +5,35 @@ import exastencils.logger._
 
 trait Expression extends Node {
 
-  def lEval(ctx : Context) : StaticLValue = {
-    throw new Exception("Cannot evaluate to a static l-value.")
+  def eval(ctx : Context) : StaticLocation = {
+    throw new Exception("Cannot evaluate to a static value.")
   }
-  def rEval(ctx : Context) : StaticRValue = {
-    throw new Exception("Cannot evaluate to a static r-value.")
-  }
+
   def dynamicLEval(ctx : Context) : DynamicLValue = {
     throw new Exception("Cannot evaluate to a dynamic l-value.")
   }
+
   def dynamicREval(ctx : Context) : DynamicRValue = {
     throw new Exception("Cannot evaluate to a dynamic r-value.")
   }
+
   def scType(env : Environment) : ScType = {
     throw new Exception("This expression does not have a type... which is strange.")
   }
 
 }
 
-trait Number extends Expression {
-}
+trait Number extends Expression
 
 case class IdentifierExpression(val id : String) extends Expression {
 
-  override def lEval(ctx : Context) : StaticLValue = {
-    ctx.env.lookupLValue(id) match {
-      case e : StaticLValue => e
-      case _                => Logger.error(id ++ " is not a static l-value.")
-    }
-  }
-
-  override def rEval(ctx : Context) : StaticRValue = {
-    ctx.env.lookupRValue(id) match {
-      case e : StaticRValue => e
-      case _                => Logger.error(id ++ " is not a static r-value")
-    }
-  }
+  override def eval(ctx : Context) : StaticLocation = ctx.env.lookup(id)
 
   override def dynamicREval(ctx : Context) : DynamicRValue = {
     import ctx.env
 
-    env.lookupRValue(id) match {
-      case v : FieldRValue => new DynamicRValue(v.toTc(), FieldDatatype())
+    env.lookup(id).read match {
+      case v : FieldLValue => new DynamicRValue(v.deref.toTc(), FieldDatatype())
       case _               => Logger.error(id ++ " is not a variable")
     }
   }
@@ -56,23 +43,25 @@ case class IdentifierExpression(val id : String) extends Expression {
 }
 
 case class StringConstant(val value : String) extends Expression
+
 case class IntegerConstant(val v : Int) extends Number {
-  override def rEval(ctx : Context) : StaticRValue = IntegerRValue(v)
+  override def eval(ctx : Context) = StaticConstant(IntegerRValue(v))
 }
 
 case class FloatConstant(val v : Double) extends Number {
-  override def rEval(ctx : Context) : StaticRValue = FloatRValue(v)
+  override def eval(ctx : Context) = StaticConstant(FloatRValue(v))
 }
 
 case class FunctionArgument(val id : String, val datatype : ScType) extends Expression {
   override def scType(env : Environment) = datatype
 }
 
+/** Node for a call to a function. */
 case class FunctionCallExpression(val id : String, val arguments : List[Expression])
     extends Expression {
 
   override def scType(env : Environment) = {
-    env.lookupRValue(id) match {
+    env.lookup(id).read match {
       case fun : AbstractFunctionRValue => fun.scReturnType
       case _                            => Logger.error(id ++ " is not a function.")
     }
@@ -81,30 +70,23 @@ case class FunctionCallExpression(val id : String, val arguments : List[Expressi
   override def dynamicREval(ctx : Context) : DynamicRValue = {
     import ctx.env
 
-    env.lookupRValue(id) match {
+    env.lookup(id).read match {
       case fun : AbstractFunctionRValue => new DynamicRValue(fun.writeTcApplication(ctx, arguments), fun.scReturnType)
       case _                            => Logger.error(id ++ " is not a function.")
     }
 
   }
 
-  override def lEval(ctx : Context) : StaticLValue = {
+  /** Execute the function. */
+  override def eval(ctx : Context) : StaticLocation = {
     import ctx.env
 
-    env.lookupRValue(id) match {
-      case fun : AbstractFunctionRValue => fun.staticApplication(ctx, arguments).asInstanceOf[StaticLValue]
+    env.lookup(id).read match {
+      case fun : AbstractFunctionRValue => fun.staticApplication(ctx, arguments)
       case _                            => Logger.error(id ++ " is not a function.")
     }
   }
 
-  override def rEval(ctx : Context) : StaticRValue = {
-    import ctx.env
-
-    env.lookupRValue(id) match {
-      case fun : AbstractFunctionRValue => fun.staticApplication(ctx, arguments).asInstanceOf[StaticRValue]
-      case _                            => Logger.error(id ++ " is not a function.")
-    }
-  }
 }
 
 case class BinaryExpression(var operator : String, var left : Expression, var right : Expression) extends Expression {
@@ -130,11 +112,10 @@ case class BinaryExpression(var operator : String, var left : Expression, var ri
 case class ListExpression(elements : List[Expression]) extends Expression {
   override def scType(env : Environment) = StaticListDatatype()
 
-  override def rEval(ctx : Context) : StaticRValue = {
+  override def eval(ctx : Context) : StaticLocation = {
+    val evald_elements = elements map { _.eval(ctx).read }
 
-    val evald_elements = elements map { _.rEval(ctx) }
-
-    StaticListRValue(evald_elements)
+    StaticConstant(ListStaticValue(evald_elements))
   }
 }
 

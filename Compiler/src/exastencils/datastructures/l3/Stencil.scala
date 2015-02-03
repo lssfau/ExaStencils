@@ -7,7 +7,7 @@ import scala.collection.mutable.ListBuffer
 object StencilOffset {
   def apply(c : StaticValue) : StencilOffset = {
     c match {
-      case StaticListRValue(el) =>
+      case ListStaticValue(el) =>
         new StencilOffset(el map {
           case IntegerRValue(v) => v
           case _                => throw new Exception("Stencil offsets need to be integers.")
@@ -31,7 +31,7 @@ class StencilOffset(coordinates : List[Int]) {
     }
   }
 
-  def toSc() = StaticListRValue(coordinates map { IntegerRValue(_) })
+  def toSc() = ListStaticValue(coordinates map { IntegerRValue(_) })
 
   def isZero = coordinates forall { _ == 0 }
 }
@@ -39,7 +39,7 @@ class StencilOffset(coordinates : List[Int]) {
 object StencilEntry {
   def apply(e : StaticValue) : StencilEntry = {
     e match {
-      case StaticListRValue(List(offset, FloatRValue(value))) =>
+      case ListStaticValue(List(offset, FloatRValue(value))) =>
         new StencilEntry(StencilOffset(offset), value)
       case _ =>
         throw new Exception("Stencil entry needs to be a list and a float.")
@@ -53,7 +53,7 @@ class StencilEntry(val offset : StencilOffset, val value : Double) {
   }
 
   def toSc() = {
-    StaticListRValue(List(offset.toSc(), FloatRValue(value)))
+    ListStaticValue(List(offset.toSc(), FloatRValue(value)))
   }
 
   def invertValue() = new StencilEntry(offset, 1 / value)
@@ -62,9 +62,9 @@ class StencilEntry(val offset : StencilOffset, val value : Double) {
 }
 
 object Stencil {
-  def apply(s : StaticListRValue) : Stencil = {
+  def apply(s : ListStaticValue) : Stencil = {
     val entries = s.elements map { e => StencilEntry(e) }
-    new Stencil(entries)
+    new Stencil(entries.toList)
   }
 }
 /**
@@ -96,7 +96,7 @@ class Stencil(val entries : List[StencilEntry]) {
   }
 
   def toSc() = {
-    StaticListRValue(entries map { _.toSc() })
+    ListStaticValue(entries map { _.toSc() })
   }
 
   def diagInv() : Stencil = {
@@ -118,7 +118,7 @@ class StencilManager {
     "__stencil_id%02d".format(idCount)
   }
 
-  def add(s : StaticListRValue) : String = {
+  def add(s : ListStaticValue) : String = {
     val id = genId()
 
     stms += Stencil(s).toTc(id)

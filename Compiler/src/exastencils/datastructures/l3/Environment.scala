@@ -7,10 +7,10 @@ import exastencils.logger._
 class Environment(parent : Option[Environment] = None) {
   import Environment._
 
-  val map = mutable.HashMap[String, Value]()
+  val map = mutable.HashMap[String, StaticLocation]()
 
   /** This function returns a stored value. */
-  def lookup(id : String) : Value = {
+  def lookup(id : String) : StaticLocation = {
     if (map contains id) {
       map(id)
     } else {
@@ -21,30 +21,7 @@ class Environment(parent : Option[Environment] = None) {
     }
   }
 
-  /**
-    * This function always returns an r-value.
-    *  If id maps to an l-value it will be first dereferenced.
-    */
-  def lookupRValue(id : String) : RValue = {
-    lookup(id) match {
-      case v : LValue => v.deref
-      case v : RValue => v
-      case _          => throw new Exception("Environment corrupted. Found an entry which is neither an l- or an r-value.")
-    }
-  }
-
-  /**
-    * Always return an l-value.
-    *  If id maps to an r-value this will raise an exception.
-    */
-  def lookupLValue(id : String) : LValue = {
-    lookup(id) match {
-      case v : LValue => v
-      case _          => throw new Exception("Expected an l-value.")
-    }
-  }
-
-  def bind(id : String, value : Value) : Unit = {
+  def bind(id : String, value : StaticLocation) : Unit = {
 
     if (map contains id) {
       // do not allow rebinding

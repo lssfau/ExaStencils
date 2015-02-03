@@ -1,12 +1,21 @@
 
 // Discrete Poisson's Equation
-myL := [
-  [[ 0, -1], -1.0],
-  [[-1,  0], -1.0],
-  [[ 0,  0],  4.0],
-  [[ 1,  0], -1.0],
-  [[ 0,  1], -1.0] 
-]
+Function poisson_stencil() : Unit
+{
+  S := [
+    [[ 0, -1], -1.0],
+    [[-1,  0], -1.0],
+    [[ 0,  0],  4.0],
+    [[ 1,  0], -1.0]
+  ]
+  
+  list_append(S, [[ 0,  1], -1.0])
+  
+  return(S)
+}
+
+myL := poisson_stencil()
+
 
 // Full weighting
 myR := [
