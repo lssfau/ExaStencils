@@ -101,6 +101,7 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
         new LoopOverFragments(
           AdvanceSlot(new iv.CurrentSlot(args(0).asInstanceOf[FieldAccess].fieldSelection.field, LoopOverFragments.defIt)))
     }*/
+    // FIXME: the new code doesn't seem to be complete ...
     case AdvanceStatement(arg) => {
       println("advance " + arg)
       if (collector.stack.map(node => node match { case _ : LoopOverFragments => true; case _ => false }).fold(false)((a, b) => a || b))

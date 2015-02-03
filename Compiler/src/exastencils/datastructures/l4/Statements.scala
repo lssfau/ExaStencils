@@ -3,6 +3,7 @@ package exastencils.datastructures.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.datastructures._
+import exastencils.data
 import exastencils.knowledge
 import exastencils.omp
 import exastencils.prettyprinting._
@@ -272,13 +273,13 @@ case class ConditionalStatement(var expression : Expression, var statements : Li
 trait ExternalDeclarationStatement extends SpecialStatement
 
 case class AdvanceStatement(var field : Access) extends Statement {
-  override def prettyprint(out:PpStream) = {
+  override def prettyprint(out : PpStream) = {
     out << "advance "
     field.prettyprint(out)
     out << '\n'
   }
-  
-   override def progressToIr = {
-     ir.AdvanceStatement(field.progressToIr)
-   }
+
+  override def progressToIr = {
+    data.AdvanceStatement(field.progressToIr)
+  }
 }
