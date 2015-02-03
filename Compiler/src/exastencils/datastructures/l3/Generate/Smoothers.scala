@@ -30,7 +30,7 @@ object Smoothers {
       for (vecDim <- 0 until Knowledge.l3tmp_numVecDims)
         printer.println(s"\t\t${Fields.solutionSlotted(s"current", "nextSlot", postfix)(vecDim)} = ${Fields.solutionSlotted(s"current", "active", postfix)(vecDim)} + ( ( ( 1.0 / diag ( $stencil ) ) * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solutionSlotted(s"current", "active", postfix)(vecDim)} ) )")
       printer.println(s"\t}")
-      printer.println(s"\tadvance ( Solution$postfix@current )")
+      printer.println(s"\tadvance Solution$postfix@current")
 
       addBodyAfter(printer, postfix, tempBlocking)
     } else {

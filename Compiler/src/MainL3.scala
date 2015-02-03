@@ -62,7 +62,7 @@ object MainL3 {
           l4.FieldAccess("RHS", l4.CurrentLevelSpecification(), l4.SlotModifier.Constant(0)),
           l4.StencilConvolution(
             l4.StencilAccess("Laplace", l4.CurrentLevelSpecification()),
-            l4.FieldAccess("Solution", l4.CurrentLevelSpecification(), l4.SlotModifier.Active))),
+            l4.FieldAccess("Solution", l4.CurrentLevelSpecification(), l4.SlotModifier.Active()))),
         "="))
 
     // version without comm

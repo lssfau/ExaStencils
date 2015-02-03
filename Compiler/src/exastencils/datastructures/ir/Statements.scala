@@ -261,3 +261,9 @@ private object HorizontalPrinterHelper {
     out << '}'
   }
 }
+
+case class AdvanceStatement(var field : Expression) extends Statement {
+  override def prettyprint(out:PpStream) = {
+    out << "NOT VALID; Class = AdvanceStatement"
+  }
+}
