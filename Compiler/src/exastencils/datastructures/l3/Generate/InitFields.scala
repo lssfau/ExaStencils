@@ -9,13 +9,13 @@ object InitFields {
       // FIXME: seq HACK
       printer.println(s"\tloop over Solution$postfix@finest sequentially {")
       for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
-        printer.println(s"\t\t${Fields.solutionSlotted(s"finest", "curSlot", postfix)(vecDim)} = native('((${if (Knowledge.useDblPrecision) "double" else "float"})std::rand()/RAND_MAX)')")
+        printer.println(s"\t\t${Fields.solutionSlotted(s"finest", "active", postfix)(vecDim)} = native('((${if (Knowledge.useDblPrecision) "double" else "float"})std::rand()/RAND_MAX)')")
       }
       printer.println(s"\t}")
     } else {
       printer.println(s"\tloop over Solution$postfix@finest {")
       for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
-        printer.println(s"\t\t${Fields.solutionSlotted(s"finest", "curSlot", postfix)(vecDim)} = 0")
+        printer.println(s"\t\t${Fields.solutionSlotted(s"finest", "active", postfix)(vecDim)} = 0")
       }
       printer.println(s"\t}")
     }

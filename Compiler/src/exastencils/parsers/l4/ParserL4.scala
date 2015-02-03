@@ -133,7 +133,11 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| locationize(functionCall ^^ { case f => FunctionCallStatement(f) })
     ||| conditional
     ||| applyBCsStatement
-    ||| communicateStatement)
+    ||| communicateStatement
+    ||| returnStatement
+    ||| advanceStatement)
+
+  lazy val statementInsideRepeat = statement ||| breakStatement
 
   lazy val variableDeclaration = (locationize((("Var" ||| "Variable") ~> identifierWithOptionalLevel) ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
     ^^ { case id ~ dt ~ exp => VariableDeclarationStatement(id, dt, exp) }))
@@ -141,11 +145,13 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val valueDeclaration = (locationize((("Val" ||| "Value") ~> identifierWithOptionalLevel) ~ (":" ~> datatype) ~ ("=" ~> binaryexpression)
     ^^ { case id ~ dt ~ exp => ValueDeclarationStatement(id, dt, exp) }))
 
-  lazy val repeatNTimes = locationize(("repeat" ~> numericLit <~ "times") ~ ("count" ~> (flatAccess ||| leveledAccess)).? ~ ("with" ~> "contraction").? ~ ("{" ~> statement.+ <~ "}") ^^
+  lazy val repeatNTimes = locationize(("repeat" ~> numericLit <~ "times") ~ ("count" ~> (flatAccess ||| leveledAccess)).? ~ ("with" ~> "contraction").? ~ ("{" ~> statementInsideRepeat.+ <~ "}") ^^
     { case n ~ i ~ c ~ s => RepeatUpStatement(n.toInt, i, c.isDefined, s) })
 
-  lazy val repeatUntil = locationize((("repeat" ~ "until") ~> simpleComparison) ~ (("{" ~> statement.+) <~ "}") ^^
+  lazy val repeatUntil = locationize((("repeat" ~ "until") ~> simpleComparison) ~ (("{" ~> statementInsideRepeat.+) <~ "}") ^^
     { case c ~ s => RepeatUntilStatement(c, s) })
+
+  lazy val breakStatement = locationize("break" ^^ { case _ => BreakStatement() })
 
   lazy val loopOverFragments = locationize(("loop" ~ "over" ~ "fragments") ~ ("with" ~> reductionClause).? ~ ("{" ~> statement.+ <~ "}") ^^
     { case _ ~ red ~ stmts => LoopOverFragmentsStatement(stmts, red) })
@@ -175,6 +181,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ^^ { case op ~ targets ~ field => CommunicateStatement(field, op.getOrElse("both"), targets) })
   lazy val communicateTarget = locationize(("all" ||| "dup" ||| "ghost") ~ index.? ~ ("to" ~> index).? // inclucive indices
     ^^ { case target ~ start ~ end => CommunicateTarget(target, start, end) })
+
+  lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ { case exp => ReturnStatement(exp) })
 
   // ######################################
   // ##### Globals
@@ -238,15 +246,25 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ######################################
 
   lazy val slotAccess = (
-    locationize("[" ~> binaryexpression <~ "]" ^^ { case s => s })
-    ||| locationize("[" ~> ("curSlot" ||| "nextSlot" ||| "prevSlot") <~ "]" ^^ { case s => BasicAccess(s) }))
+    locationize("[" ~> slotModifier <~ "]" ^^ { case s => s }))
 
+  lazy val slotModifier = locationize("active" ^^ { case _ => SlotModifier.Active() }
+    ||| "activeSlot" ^^ { case _ => SlotModifier.Active() }
+    ||| "currentSlot" ^^ { case _ => SlotModifier.Active() }
+    ||| "next" ^^ { case _ => SlotModifier.Next() }
+    ||| "nextSlot" ^^ { case _ => SlotModifier.Next() }
+    ||| "previous" ^^ { case _ => SlotModifier.Previous() }
+    ||| "previousSlot" ^^ { case _ => SlotModifier.Previous() }
+    ||| integerLit ^^ { case i => SlotModifier.Constant(i) })
+    
+    lazy val advanceStatement = locationize("advance" ~> leveledAccess ^^ { case a => AdvanceStatement(a)})
+    
   lazy val levelAccess = (
     locationize("@" ~> levelsingle ^^ { case l => l })
     ||| locationize("@" ~ "(" ~> levelsingle <~ ")" ^^ { case l => l }))
 
   lazy val fieldAccess = locationize(ident ~ slotAccess.? ~ levelAccess ~ ("[" ~> integerLit <~ "]").?
-    ^^ { case id ~ slot ~ level ~ arrayIndex => FieldAccess(id, level, slot.getOrElse(IntegerConstant(0)), arrayIndex) })
+    ^^ { case id ~ slot ~ level ~ arrayIndex => FieldAccess(id, level, slot.getOrElse(SlotModifier.Active()), arrayIndex) })
 
   lazy val flatAccess = locationize(ident
     ^^ { case id => UnresolvedAccess(id, None, None, None, None) })

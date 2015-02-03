@@ -1,7 +1,6 @@
 package exastencils.multiGrid
 
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core._
 import exastencils.core.collectors.IRLevelCollector
 import exastencils.core.collectors.StackCollector
@@ -89,7 +88,7 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
   }
 
   this += new Transformation("SearchAndReplace", {
-    case ExpressionStatement(FunctionCallExpression(StringConstant("advance"), args)) => {
+    /*case ExpressionStatement(FunctionCallExpression(StringConstant("advance"), args)) => {
       //      if (Knowledge.useOMP && !Knowledge.domain_summarizeBlocks && collector.stack.map(node => node match { case _ : LoopOverFragments => true; case _ => false }).fold(false)((a, b) => a || b))
       //        ListBuffer[Statement](
       //          OMP_Barrier(),
@@ -101,15 +100,15 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
       else
         new LoopOverFragments(
           AdvanceSlot(new iv.CurrentSlot(args(0).asInstanceOf[FieldAccess].fieldSelection.field, LoopOverFragments.defIt)))
+    }*/
+    case AdvanceStatement(arg) => {
+      println("advance " + arg)
+      if (collector.stack.map(node => node match { case _ : LoopOverFragments => true; case _ => false }).fold(false)((a, b) => a || b))
+        AdvanceSlot(new iv.CurrentSlot(arg.asInstanceOf[FieldAccess].fieldSelection.field, LoopOverFragments.defIt))
+      else
+        new LoopOverFragments(
+          AdvanceSlot(new iv.CurrentSlot(arg.asInstanceOf[FieldAccess].fieldSelection.field, LoopOverFragments.defIt)))
     }
-
-    // HACK to realize return functionality -> FIXME: move to specialized node
-    case ExpressionStatement(FunctionCallExpression(StringConstant("return"), args)) =>
-      args.size match {
-        case 0 => "return" : Statement
-        case 1 => ("return " ~ args(0)) : Statement
-        case _ => "ERROR - unsupported return function statement" : Statement
-      }
 
     // HACK to implement min/max functions
     case FunctionCallExpression(StringConstant("min"), args) => MinimumExpression(args)

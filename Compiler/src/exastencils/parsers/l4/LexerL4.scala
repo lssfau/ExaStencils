@@ -8,7 +8,7 @@ import scala.util.parsing.combinator.lexical.StdLexical
 class LexerL4 extends exastencils.parsers.ExaLexer {
 
   // function keywords
-  reserved += ("Func", "Function")
+  reserved += ("Func", "Function", "return")
 
   // declaration keywords - simple
   reserved += ("Var", "Variable", "Val", "Value")
@@ -17,7 +17,7 @@ class LexerL4 extends exastencils.parsers.ExaLexer {
   reserved += ("Domain", "Layout", "Field", "Stencil", "StencilField", "Set", "external", "Globals")
 
   // loop keywords
-  reserved += ("repeat", "times", "count", "with", "contraction")
+  reserved += ("repeat", "times", "count", "with", "contraction", "break")
   reserved += ("loop", "until", "over", "fragments", "where", "starting", "ending", "stepping", "reduction")
   reserved += ("sequentially") // FIXME: seq HACK
 
@@ -39,8 +39,8 @@ class LexerL4 extends exastencils.parsers.ExaLexer {
   // communication keywords
   reserved += ("begin", "finish", "communicate", "communicating", "dup", "ghost", "of")
 
-  // slot keywords - TODO: these keywords are up to discussion
-  reserved += ("curSlot", "nextSlot", "prevSlot")
+  // slot keywords
+  reserved += ("advance", "active", "activeSlot", "currentSlot", "next", "nextSlot", "previous", "previousSlot")
 
   // math keywords
   reserved += ("diag")

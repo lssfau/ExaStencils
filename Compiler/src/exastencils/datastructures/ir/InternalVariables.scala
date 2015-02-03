@@ -251,7 +251,7 @@ case class CurrentSlot(var field : Field, var fragmentIdx : Expression = LoopOve
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 
-  override def resolveName = s"curSlot" + resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, field.level.toString, "")
+  override def resolveName = s"currentSlot" + resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, field.level.toString, "")
   override def resolveDataType = "int"
   override def resolveDefValue = Some(IntegerConstant(0))
 }

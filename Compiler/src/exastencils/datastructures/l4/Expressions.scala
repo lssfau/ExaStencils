@@ -48,7 +48,7 @@ case class BooleanConstant(var value : Boolean) extends Expression {
 
 abstract class Access() extends Expression {}
 
-case class UnresolvedAccess(var identifier : String, var level : Option[AccessLevelSpecification], var slot : Option[Expression], var arrayIndex : Option[Int], var offset : Option[ExpressionIndex]) extends Access {
+case class UnresolvedAccess(var identifier : String, var level : Option[AccessLevelSpecification], var slot : Option[SlotModifier], var arrayIndex : Option[Int], var offset : Option[ExpressionIndex]) extends Access {
   def prettyprint(out : PpStream) = {
     out << identifier
     if (slot.isDefined) out << '[' << slot.get << ']'
@@ -60,9 +60,9 @@ case class UnresolvedAccess(var identifier : String, var level : Option[AccessLe
   def progressToIr : ir.StringConstant = ir.StringConstant("ERROR - Unresolved Access")
 
   def resolveToBasicOrLeveledAccess = if (level.isDefined) LeveledAccess(identifier, level.get) else BasicAccess(identifier)
-  def resolveToFieldAccess = FieldAccess(identifier, level.get, slot.getOrElse(IntegerConstant(0)), arrayIndex, offset)
+  def resolveToFieldAccess = FieldAccess(identifier, level.get, slot.getOrElse(SlotModifier.Active()), arrayIndex, offset)
   def resolveToStencilAccess = StencilAccess(identifier, level.get, arrayIndex, offset)
-  def resolveToStencilFieldAccess = StencilFieldAccess(identifier, level.get, slot.getOrElse(IntegerConstant(0)), arrayIndex, offset)
+  def resolveToStencilFieldAccess = StencilFieldAccess(identifier, level.get, slot.getOrElse(SlotModifier.Active()), arrayIndex, offset)
 }
 
 case class BasicAccess(var name : String) extends Access {
@@ -82,7 +82,7 @@ case class LeveledAccess(var name : String, var level : AccessLevelSpecification
   }
 }
 
-case class FieldAccess(var name : String, var level : AccessLevelSpecification, var slot : Expression, var arrayIndex : Option[Int] = None, var offset : Option[ExpressionIndex] = None) extends Access {
+case class FieldAccess(var name : String, var level : AccessLevelSpecification, var slot : SlotModifier, var arrayIndex : Option[Int] = None, var offset : Option[ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     // FIXME: omit slot if numSlots of target field is 1
     out << name << '[' << slot << ']' << '@' << level
@@ -109,12 +109,13 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
 }
 
 object FieldAccess {
-  def resolveSlot(field : knowledge.Field, slot : Expression) = {
+  def resolveSlot(field : knowledge.Field, slot : SlotModifier) = {
     if (1 == field.numSlots) ir.IntegerConstant(0) else slot match {
-      case BasicAccess("curSlot")  => data.SlotAccess(ir.iv.CurrentSlot(field), 0)
-      case BasicAccess("nextSlot") => data.SlotAccess(ir.iv.CurrentSlot(field), 1)
-      case BasicAccess("prevSlot") => data.SlotAccess(ir.iv.CurrentSlot(field), -1)
-      case _                       => slot.progressToIr
+      case x : SlotModifier.Active   => data.SlotAccess(ir.iv.CurrentSlot(field), 0)
+      case x : SlotModifier.Next     => data.SlotAccess(ir.iv.CurrentSlot(field), 1)
+      case x : SlotModifier.Previous => data.SlotAccess(ir.iv.CurrentSlot(field), -1)
+      case x : SlotModifier.Constant => ir.IntegerConstant(x.number)
+      case _                         => Logger.error("Unknown slot modifier " + slot)
     }
   }
 }
@@ -147,7 +148,7 @@ case class StencilAccess(var name : String, var level : AccessLevelSpecification
   }
 }
 
-case class StencilFieldAccess(var name : String, var level : AccessLevelSpecification, var slot : Expression, var arrayIndex : Option[Int] = None, var offset : Option[ExpressionIndex] = None) extends Access {
+case class StencilFieldAccess(var name : String, var level : AccessLevelSpecification, var slot : SlotModifier, var arrayIndex : Option[Int] = None, var offset : Option[ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     // FIXME: omit slot if numSlots of target field is 1
     out << name << '[' << slot << ']' << '@' << level
