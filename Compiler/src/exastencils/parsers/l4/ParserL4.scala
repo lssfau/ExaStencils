@@ -245,15 +245,23 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ######################################
 
   lazy val slotAccess = (
-    locationize("[" ~> binaryexpression <~ "]" ^^ { case s => s })
-    ||| locationize("[" ~> ("curSlot" ||| "nextSlot" ||| "prevSlot") <~ "]" ^^ { case s => BasicAccess(s) }))
+    locationize("[" ~> slotModifier <~ "]" ^^ { case s => s }))
+
+  lazy val slotModifier = locationize("active" ^^ { case _ => SlotModifier.Active }
+    ||| "activeSlot" ^^ { case _ => SlotModifier.Active }
+    ||| "currentSlot" ^^ { case _ => SlotModifier.Active }
+    ||| "next" ^^ { case _ => SlotModifier.Active }
+    ||| "nextSlot" ^^ { case _ => SlotModifier.Active }
+    ||| "previous" ^^ { case _ => SlotModifier.Active }
+    ||| "previousSlot" ^^ { case _ => SlotModifier.Active }
+    ||| integerLit ^^ { case i => SlotModifier.Constant(i) })
 
   lazy val levelAccess = (
     locationize("@" ~> levelsingle ^^ { case l => l })
     ||| locationize("@" ~ "(" ~> levelsingle <~ ")" ^^ { case l => l }))
 
   lazy val fieldAccess = locationize(ident ~ slotAccess.? ~ levelAccess ~ ("[" ~> integerLit <~ "]").?
-    ^^ { case id ~ slot ~ level ~ arrayIndex => FieldAccess(id, level, slot.getOrElse(IntegerConstant(0)), arrayIndex) })
+    ^^ { case id ~ slot ~ level ~ arrayIndex => FieldAccess(id, level, slot.getOrElse(SlotModifier.Active), arrayIndex) })
 
   lazy val flatAccess = locationize(ident
     ^^ { case id => UnresolvedAccess(id, None, None, None, None) })

@@ -39,8 +39,8 @@ class LexerL4 extends exastencils.parsers.ExaLexer {
   // communication keywords
   reserved += ("begin", "finish", "communicate", "communicating", "dup", "ghost", "of")
 
-  // slot keywords - TODO: these keywords are up to discussion
-  reserved += ("curSlot", "nextSlot", "prevSlot")
+  // slot keywords
+  reserved += ("advance", "active", "activeSlot", "currentSlot", "next", "nextSlot", "previous", "previousSlot")
 
   // math keywords
   reserved += ("diag")
