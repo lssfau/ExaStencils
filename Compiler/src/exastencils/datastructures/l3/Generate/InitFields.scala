@@ -25,7 +25,7 @@ object InitFields {
     printer.println(s"Function InitRHS$postfix ( ) : Unit {")
     printer.println(s"\tloop over RHS$postfix@finest {")
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
-      printer.println(s"\t\t${Fields.rhs(s"finest", postfix)(vecDim)} = 0")
+      printer.println(s"\t\t${Fields.rhs(s"finest", postfix)(vecDim)} = ${Functions.rhsFunction}")
     }
     printer.println(s"\t}")
     printer.println(s"}")

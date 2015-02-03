@@ -21,7 +21,7 @@ domain_numFragsPerBlock_z	= 2
 l3tmp_generateL4			= true
 l3tmp_genForAutoTests		= true
 
-l3tmp_functionBC			= "Polynomial"
+l3tmp_exactSolution			= "Polynomial"
 
 l3tmp_smoother				= "Jac"
 l3tmp_useSlotsForJac		= true

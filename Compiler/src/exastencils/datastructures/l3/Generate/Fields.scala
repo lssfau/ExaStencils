@@ -39,7 +39,7 @@ object Fields {
   }
 
   def addFields(printer : java.io.PrintWriter, postfix : String, domain : String) = {
-    if (Knowledge.l3tmp_genFunctionBC || (Knowledge.l3tmp_kelvin && "" == postfix)) {
+    if ("Zero" != Knowledge.l3tmp_exactSolution || (Knowledge.l3tmp_kelvin && "" == postfix)) {
       var bc = (
         if (Knowledge.l3tmp_kelvin && "" == postfix) "bcSol(xPos, yPos)"
         else Functions.solFunction)
