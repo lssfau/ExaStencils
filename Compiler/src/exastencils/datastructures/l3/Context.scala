@@ -6,6 +6,13 @@ case class Context(
     val stencils : StencilManager,
     val fields : FieldManager) {
 
+  def createNewScope() = {
+    val newEnv = new Environment(Some(env))
+    val newTcb = new TcbBlock()
+
+    new Context(newEnv, newTcb, stencils, fields)
+  }
+
 }
 
 class FieldManager {

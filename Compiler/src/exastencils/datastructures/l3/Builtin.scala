@@ -17,19 +17,19 @@ case class ApplyStencilBuiltin() extends StaticRValue with AbstractFunctionRValu
     // expect precisely three arguments
     args match {
       case List(destField, stencilArg, sourceField) =>
-        val f = destField.lEval(ctx) match {
+        val f = destField.eval(ctx).read match {
           case FieldLValue(fieldId) => fieldId
           case _ =>
             throw new Exception("First parameter of apply needs to be a field.")
         }
 
-        val A = stencilArg.rEval(ctx) match {
-          case stencil : StaticListRValue => stencil
-          case _                          => throw new Exception("Second argument to apply is not a stencil")
+        val A = stencilArg.eval(ctx).read match {
+          case stencil : ListStaticValue => stencil
+          case _                         => throw new Exception("Second argument to apply is not a stencil")
         }
 
-        val u = sourceField.rEval(ctx) match {
-          case FieldRValue(fieldId) => fieldId
+        val u = sourceField.eval(ctx).read match {
+          case FieldLValue(fieldId) => fieldId
           case _ =>
             throw new Exception("Third parameter of apply needs to be a field")
         }
@@ -60,8 +60,22 @@ case class ApplyStencilBuiltin() extends StaticRValue with AbstractFunctionRValu
     }
   }
 
-  override def staticApplication(ctx : Context, args : List[Expression]) : StaticValue = {
+  override def staticApplication(ctx : Context, args : List[Expression]) : StaticLocation = {
     ???
+  }
+}
+
+case class ReturnBuiltin() extends StaticRValue with AbstractFunctionRValue {
+  def scReturnType = StaticListDatatype()
+
+  override def writeTcApplication(ctx : Context, args : List[Expression]) : l4.Expression = {
+    ???
+  }
+
+  override def staticApplication(ctx : Context, args : List[Expression]) : StaticLocation = {
+    args match {
+      case List(arg1) => arg1.eval(ctx)
+    }
   }
 }
 
@@ -72,14 +86,14 @@ case class DiagInvBuiltin() extends StaticRValue with AbstractFunctionRValue {
     throw new Exception("The function diag_inv can only be applied at compile time")
   }
 
-  override def staticApplication(ctx : Context, args : List[Expression]) : StaticValue = {
+  override def staticApplication(ctx : Context, args : List[Expression]) : StaticLocation = {
     args match {
       case List(arg1) =>
-
-        val inputStencil = arg1.rEval(ctx) match {
-          case s : StaticListRValue => s
+        val inputStencil = arg1.eval(ctx).read match {
+          case s : ListStaticValue => s
+          case s                   => throw new Exception("Not expecting %s".format(s.toString()))
         }
-        Stencil(inputStencil).diagInv().toSc()
+        StaticConstant(Stencil(inputStencil).diagInv().toSc())
     }
   }
 }
@@ -91,13 +105,32 @@ case class InstantiateFieldBuiltin() extends StaticRValue with AbstractFunctionR
     throw new Exception("Fields can only be instantiated at compile time")
   }
 
-  override def staticApplication(ctx : Context, args : List[Expression]) : StaticValue = {
+  override def staticApplication(ctx : Context, args : List[Expression]) : StaticLocation = {
     args match {
       case List() =>
         val id = ctx.fields.add()
-        FieldLValue(id)
+        StaticConstant(FieldLValue(id))
       case _ => throw new Exception("The function field takes no arguments.")
     }
   }
 }
 
+case class ListAppendBuiltin() extends StaticRValue with AbstractFunctionRValue {
+  def scReturnType = UnitDatatype()
+
+  override def writeTcApplication(ctx : Context, args : List[Expression]) : l4.Expression = {
+    throw new Exception("The function list_append can only be applied at compile time")
+  }
+
+  override def staticApplication(ctx : Context, args : List[Expression]) : StaticLocation = {
+    args match {
+      case List(arg1, arg2) =>
+        val list = arg1.eval(ctx).read.asInstanceOf[ListStaticValue]
+        val value = arg2.eval(ctx).read
+
+        list.append(value)
+
+        StaticConstant(NilStaticValue())
+    }
+  }
+}

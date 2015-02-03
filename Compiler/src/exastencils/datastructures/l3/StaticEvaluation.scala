@@ -3,9 +3,35 @@ package exastencils.datastructures.l3
 import TcbImplicits._
 import exastencils.datastructures.l4
 import exastencils.logger._
+import scala.collection.mutable._
 
 /** Static values. */
 trait StaticValue extends Value
+
+case class NilStaticValue() extends StaticValue {
+  override def scType = NilDatatype()
+}
+
+/**
+  * This is a store for a static value.
+  *  This corresponds to a cell in Lisp, e.g.
+  */
+class StaticLocation(var value : StaticValue = NilStaticValue()) {
+  //override
+  def scType = LocationDatatype()
+
+  def write(newValue : StaticValue) {
+    value = newValue
+  }
+
+  def read() = value
+}
+
+case class StaticConstant(v : StaticValue = NilStaticValue()) extends StaticLocation(v) {
+  override def write(newValue : StaticValue) {
+    throw new Exception("Attempt to update a constant value.")
+  }
+}
 
 /** Static locations */
 trait StaticLValue extends StaticValue with LValue {
@@ -75,7 +101,7 @@ trait AbstractFunctionRValue {
 
   def writeTcApplication(ctx : Context, args : List[Expression]) : l4.Expression
 
-  def staticApplication(ctx : Context, args : List[Expression]) : StaticValue
+  def staticApplication(ctx : Context, args : List[Expression]) : StaticLocation
 }
 
 /** User defined functions. */
@@ -98,15 +124,26 @@ case class FunctionRValue(
 
   def mangleName(args : List[StaticValue]) : String = ???
 
+  private def createBodyContext(ctx : Context, givenStaticArgs : List[StaticLocation]) = {
+
+    // bind function arguments
+    val body_ctx = ctx.createNewScope()
+    for ((givenArg, requestedArg) <- givenStaticArgs zip staticArguments) {
+      body_ctx.env.bind(requestedArg.id, givenArg)
+    }
+
+    body_ctx
+  }
+
   /** Return the target code of an instance of this function. */
   def writeTcInstance(
     ctx : Context,
-    givenStaticArgs : List[StaticValue],
+    givenStaticArgs : List[StaticLocation],
     predefinedTcId : Option[String]) {
 
     val tcId = predefinedTcId match {
       case Some(i) => i
-      case None    => mangleName(givenStaticArgs)
+      case None    => mangleName(givenStaticArgs map { _.read })
     }
 
     val tcArgs = dynamicArguments map {
@@ -114,16 +151,7 @@ case class FunctionRValue(
         l4.Variable(l4.BasicIdentifier(id), scType.toTcType)
     }
 
-    // bind function arguments
-    val body_env = new Environment(Some(ctx.env))
-    for ((givenArg, requestedArg) <- givenStaticArgs zip staticArguments) {
-      body_env.bind(requestedArg.id, givenArg)
-    }
-
-    // tcb for the function body
-    val body_tcb = new TcbBlock()
-
-    val body_ctx = new Context(body_env, body_tcb, ctx.stencils, ctx.fields)
+    val body_ctx = createBodyContext(ctx, givenStaticArgs)
 
     // transform to target code and concat
     body foreach { _.writeTc(body_ctx) }
@@ -133,21 +161,46 @@ case class FunctionRValue(
       l4.LeveledIdentifier(tcId, l4.AllLevelsSpecification()),
       l4.UnitDatatype(),
       tcArgs,
-      body_tcb.build())
+      body_ctx.tcb.build())
   }
+
+  /** This function has only static arguments. */
+  def isStatic : Boolean = dynamicArguments.isEmpty
 
   override def writeTcApplication(ctx : Context, args : List[Expression]) : l4.Expression = {
     ???
   }
 
-  override def staticApplication(ctx : Context, args : List[Expression]) : StaticValue = {
-    ???
+  override def staticApplication(ctx : Context, args : List[Expression]) : StaticLocation = {
+    if (!isStatic) {
+      throw new Exception("Static evaluation of function {0} which is not static.".format(id))
+    }
+
+    val evaluated_args = args map { a => a.eval(ctx) }
+
+    val body_ctx = createBodyContext(ctx, evaluated_args)
+
+    for (stm <- body) {
+      stm.exec(ctx) match {
+        case Some(v) => return StaticConstant(v)
+        case None    =>
+      }
+    }
+
+    StaticConstant()
   }
 }
 
 /* =================================================================== */
 
-case class StaticListRValue(val elements : List[StaticValue]) extends StaticRValue {
+case class ListStaticValue(es : List[StaticValue]) extends StaticValue {
   def scType = StaticListDatatype()
+
+  val elements = ArrayBuffer[StaticValue]()
+  elements.appendAll(es)
+
+  def append(x : StaticValue) {
+    elements.append(x)
+  }
 }
 

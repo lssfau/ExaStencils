@@ -4,15 +4,11 @@ import scala.collection.mutable.ListBuffer
 import exastencils.datastructures._
 
 case class Root(var nodes : List[Node]) extends Node {
-  val functionDefinitions = ListBuffer[FunctionDefinitionStatement]()
-  val functionInstantiations = ListBuffer[FunctionInstantiationStatement]()
-  val staticAssignments = ListBuffer[StaticAssignmantStatement]()
+  val program_statements = ListBuffer[Statement]()
 
   nodes.foreach(_ match {
-    case x : FunctionDefinitionStatement    => functionDefinitions += x
-    case x : FunctionInstantiationStatement => functionInstantiations += x
-    case x : StaticAssignmantStatement      => staticAssignments += x
-    case _                                  => throw new Exception("Unexpected node in program AST")
+    case x : Statement => program_statements += x
+    case _             => throw new Exception("Unexpected node in program AST")
   })
 
   def progressToL4 : l4.Root = {
@@ -24,23 +20,23 @@ case class Root(var nodes : List[Node]) extends Node {
     val ctx = Context(env, program_block, stMgr, fldMgr)
 
     // bind builtin functions to their names
-    env.bind("apply", ApplyStencilBuiltin())
-    env.bind("diag_inv", DiagInvBuiltin())
-    env.bind("field", InstantiateFieldBuiltin())
+    env.bind("return", StaticConstant(ReturnBuiltin()))
+    env.bind("apply", StaticConstant(ApplyStencilBuiltin()))
+    env.bind("diag_inv", StaticConstant(DiagInvBuiltin()))
+    env.bind("field", StaticConstant(InstantiateFieldBuiltin()))
+    env.bind("list_append", StaticConstant(ListAppendBuiltin()))
 
     l4.Root(toTc(ctx))
   }
 
   def toTc(ctx : Context) : List[Node] = {
 
-    // perform static assignments
-    staticAssignments foreach { _.writeTc(ctx) }
-
-    // insert functions into the current environment
-    functionDefinitions foreach { _.writeTc(ctx) }
-
-    // instantiate
-    functionInstantiations foreach { _.writeTc(ctx) }
+    program_statements foreach { n =>
+      n match {
+        case f : FunctionCallStatement => f.exec(ctx)
+        case _                         => n.writeTc(ctx)
+      }
+    }
 
     val stm_nodes = ctx.tcb.build
     val stencil_nodes = ctx.stencils.statements

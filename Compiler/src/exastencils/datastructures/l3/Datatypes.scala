@@ -12,6 +12,8 @@ sealed class ScType {
 }
 case class FunctionDatatype() extends ScType
 
+case class NilDatatype() extends ScType
+case class LocationDatatype() extends ScType
 case class IntegerDatatype() extends ScType {
   override def toTcType : l4.Datatype = l4.IntegerDatatype()
 }
