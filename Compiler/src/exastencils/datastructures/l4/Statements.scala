@@ -2,8 +2,8 @@ package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.datastructures._
 import exastencils.data
+import exastencils.datastructures._
 import exastencils.knowledge
 import exastencils.omp
 import exastencils.prettyprinting._
