@@ -12,18 +12,33 @@ object Hardware {
 
   // NOTE: this only works if the Hardware object is loaded AFTER Knowledge is fully initialized
   Knowledge.targetCompiler match {
-    case "IBMXL" => {
+    case "IBMBG" => {
       cflags = "-O3 -qhot -qarch=qp -qtune=qp -DNDEBUG"
       ldflags = "-O3 -qhot -qarch=qp -qtune=qp -DNDEBUG"
 
       if (Knowledge.useMPI && Knowledge.useOMP) {
-        compiler = "mpixlcxx_r"
+        compiler = "mpixlc++_r"
       } else if (Knowledge.useMPI && !Knowledge.useOMP) {
-        compiler = "mpixlcxx"
+        compiler = "mpixlc++"
       } else if (!Knowledge.useMPI && Knowledge.useOMP) {
-        compiler = "xlcxx_r"
+        compiler = "bgxlc++_r"
       } else if (!Knowledge.useMPI && !Knowledge.useOMP) {
-        compiler = "xlcxx"
+        compiler = "bgxlc++"
+      }
+
+      if (Knowledge.useOMP) {
+        cflags += " -qsmp=omp"
+        ldflags += " -qsmp=omp"
+      }
+    }
+    case "IBMXL" => {
+      cflags = "-O3 -qhot -qarch=qp -qtune=qp -DNDEBUG"
+      ldflags = "-O3 -qhot -qarch=qp -qtune=qp -DNDEBUG"
+
+      if (Knowledge.useMPI) {
+        compiler = "mpixlc++"
+      } else {
+        compiler = "xlc++"
       }
 
       if (Knowledge.useOMP) {
