@@ -22,7 +22,7 @@ import exastencils.util._
 
 object MainL3 {
   def main(args : Array[String]) : Unit = {
-    Locale.setDefault(Locale.ENGLISH) // EPIC -.-
+    Locale.setDefault(Locale.ENGLISH)
 
     // for runtime measurement
     val start : Long = System.nanoTime()

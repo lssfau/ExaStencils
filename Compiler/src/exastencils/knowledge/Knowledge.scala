@@ -89,7 +89,7 @@ object Knowledge {
   var data_initAllFieldsWithZero : Boolean = true // specifies if all data points in all fields on all levels should initially be set zero (before the l4 initField functions are applied)
   var data_useFieldNamesAsIdx : Boolean = true // specifies if generated data field names should hold the clear text field identifier
 
-  var data_alignFieldPointers : Boolean = false // specifies if pointers to field data are to be aligned to simd_vectorSize, e.g. to ensure correct alignment for SIMD accesses
+  var data_alignDataPointers : Boolean = false // specifies if pointers to field data and communication buffers are to be aligned to simd_vectorSize, e.g. to ensure correct alignment for SIMD accesses
 
   // --- OpenMP and MPI Parallelization ---
   var comm_strategyFragment : Int = 6 // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors
@@ -178,7 +178,8 @@ object Knowledge {
   var l3tmp_useSlotVariables : Boolean = true // [true|false] // uses slot variables (curSlot, nextSlot, prevSlot) for access to slotted solution fields; allows for odd number of smoothing steps
 
   /// functionality test
-  var l3tmp_genFunctionBC : Boolean = true // uses some basic 2D diriclet boundary conditions with function value 
+  var l3tmp_genFunctionBC : Boolean = true // uses some basic 2D diriclet boundary conditions with function value
+  var l3tmp_functionBC : String = "Polynomial" // specifies which functions bc's are to be used in case of l3tmp_genFunctionBC; allowed options are 'Polynomial', 'Trigonometric' and 'InvSqrt' 
   var l3tmp_genExtFields : Boolean = false // adds one or more external fields to the L4 DSL file to test generation of subsequent functions
   var l3tmp_genGlobalOmega : Boolean = false // treats l3tmp_omega as a global (modifiable) parameter 
   var l3tmp_genSetableStencil : Boolean = false // generates stencil weights as global variables instead of constant values
@@ -191,7 +192,9 @@ object Knowledge {
   /// optional features
   var l3tmp_printFieldAtEnd : Boolean = false // prints the solution field at the end of the application (or the mean solution in l3tmp_kelvin's case)
   var l3tmp_initSolWithRand : Boolean = true // initializes the solution on the finest level with random values
-  var l3tmp_genForAutoTests : Boolean = false // generate code for automatic testing purposes
+  var l3tmp_genForAutoTests : Boolean = false // generates code for automatic testing purposes - if l3tmp_printError is activated NO residual is printed
+  var l3tmp_printError : Boolean = false // generates code that calculates and prints the error in each iteration
+  var l3tmp_useMaxNormForError : Boolean = true // uses the maximum norm instead of the L2 norm when reducing the error
 
   /// Student project - Kelvin
   var l3tmp_kelvin : Boolean = false // currently only works for 2D
@@ -215,7 +218,7 @@ object Knowledge {
     Constraints.condEnsureValue(opt_vectorize, false, !useDblPrecision, "opt_vectorize is currently not compatible with single precision")
     Constraints.condEnsureValue(simd_avoidUnaligned, true, opt_vectorize && "QPX" == simd_instructionSet, "QPX does not support unaligned loads/stores")
     Constraints.condEnsureValue(simd_avoidUnaligned, false, !opt_vectorize, "avoid unaligned loads/stores doesn't make sense without vectorization enabled")
-    Constraints.condEnsureValue(data_alignFieldPointers, true, opt_vectorize && "QPX" == simd_instructionSet, "data_alignFieldPointers must be true for vectorization with QPX")
+    Constraints.condEnsureValue(data_alignDataPointers, true, opt_vectorize && "QPX" == simd_instructionSet, "data_alignDataPointers must be true for vectorization with QPX")
 
     Constraints.updateValue(useOMP, (domain_summarizeBlocks && domain_fragLength != 1) || domain_numFragsPerBlock != 1)
     Constraints.updateValue(useMPI, (domain_numBlocks != 1))
@@ -281,7 +284,6 @@ object Knowledge {
     Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, maxLevel, l3tmp_genTemporalBlocking && l3tmp_tempBlockingMinLevel > maxLevel, "l3tmp_tempBlockingMinLevel must be smaller or equal to maxLevel to enable temporal blocking")
     Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, 1, !l3tmp_genTemporalBlocking, "l3tmp_tempBlockingMinLevel reset to default for deactivated l3tmp_genTemporalBlocking")
 
-    Constraints.condEnsureValue(l3tmp_genFunctionBC, false, 2 != dimensionality, "l3tmp_genFunctionBC is only valid for 2D problems")
     Constraints.condEnsureValue(l3tmp_initSolWithRand, true, !l3tmp_genFunctionBC && !l3tmp_kelvin, "initial solution of zero corresponds to the exact solution if l3tmp_genFunctionBC is false")
     Constraints.condEnsureValue(l3tmp_initSolWithRand, false, l3tmp_genFunctionBC, "l3tmp_genFunctionBC requires initial solution of zero")
 

@@ -98,6 +98,10 @@ case class Root() extends Node {
       Residual.addReductionFunction(printer, "_GMRF")
     }
 
+    // Error function
+    if (Knowledge.l3tmp_printError)
+      Error.addReductionFunction(printer, "")
+
     Restriction.addFunction(printer, "")
     if (Knowledge.l3tmp_kelvin)
       Restriction.addFunction(printer, "_GMRF")
