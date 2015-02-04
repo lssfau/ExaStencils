@@ -177,9 +177,11 @@ case class FunctionStatement(var returntype : Datatype, var name : String, var p
 
 case class SIMD_StoreStatement(var mem : Expression, var value : Expression, var aligned : Boolean) extends Statement {
   override def prettyprint(out : PpStream) : Unit = {
+    val prec = if (Knowledge.useDblPrecision) 'd' else 's'
+    val alig = if (aligned) "" else "u"
     Knowledge.simd_instructionSet match {
-      case "SSE3"         => out << (if (aligned) "_mm_store_pd" else "_mm_storeu_pd")
-      case "AVX" | "AVX2" => out << (if (aligned) "_mm256_store_pd" else "_mm256_storeu_pd")
+      case "SSE3"         => out << "_mm_store" << alig << "_p" << prec
+      case "AVX" | "AVX2" => out << "_mm256_store" << alig << "_p" << prec
       case "QPX"          => out << (if (aligned) "vec_sta" else "NOT VALID ; unaligned store for QPX: ")
     }
     Knowledge.simd_instructionSet match {
@@ -194,15 +196,28 @@ case class SIMD_HorizontalAddStatement(var dest : Expression, var src : Expressi
     Knowledge.simd_instructionSet match {
       case "SSE3" =>
         out << "{\n"
-        out << " __m128d _v = " << src << ";\n"
-        out << dest << " += _mm_cvtsd_f64(_mm_hadd_pd(_v,_v));\n"
+        if (Knowledge.useDblPrecision) {
+          out << " __m128d _v = " << src << ";\n"
+          out << dest << " += _mm_cvtsd_f64(_mm_hadd_pd(_v,_v));\n"
+        } else {
+          out << " __m128 _v = " << src << ";\n"
+          out << " __m128 _h = _mm_hadd_ps(_v,_v);\n"
+          out << dest << " += _mm_cvtss_f32(_mm_add_ps(_h, _mm_movehdup_ps(_h)));\n"
+        }
         out << '}'
 
       case "AVX" | "AVX2" =>
         out << "{\n"
-        out << " __m256d _v = " << src << ";\n"
-        out << " __m256d _h = _mm256_hadd_pd(_v,_v);\n"
-        out << dest << " += _mm_cvtsd_f64(_mm_add_pd(_mm256_extractf128_pd(_h,1), _mm256_castpd256_pd128(_h)));\n"
+        if (Knowledge.useDblPrecision) {
+          out << " __m256d _v = " << src << ";\n"
+          out << " __m256d _h = _mm256_hadd_pd(_v,_v);\n"
+          out << dest << " += _mm_cvtsd_f64(_mm_add_pd(_mm256_extractf128_pd(_h,1), _mm256_castpd256_pd128(_h)));\n"
+        } else {
+          out << " __m256 _v = " << src << ";\n"
+          out << " __m256 _h = _mm256_hadd_ps(_v,_v);\n"
+          out << " __m128 _i = _mm_add_ps(_mm256_extractf128_ps(_h,1), _mm256_castps256_ps128(_h));\n"
+          out << dest << " += _mm_cvtss_f32(_mm_hadd_ps(_i,_i));\n"
+        }
         out << '}'
 
       case "QPX" =>
@@ -240,18 +255,31 @@ private object HorizontalPrinterHelper {
     out << "{\n"
     Knowledge.simd_instructionSet match {
       case "SSE3" =>
-        out << " __m128d _v = " << src << ";\n"
-        out << " double _r = _mm_cvtsd_f64(_mm_" << redName << "_pd(_v, _mm_shuffle_pd(_v,_v,1)));\n"
+        if (Knowledge.useDblPrecision) {
+          out << " __m128d _v = " << src << ";\n"
+          out << " double _r = _mm_cvtsd_f64(_mm_" << redName << "_pd(_v, _mm_shuffle_pd(_v,_v,1)));\n"
+        } else {
+          out << " __m128 _v = " << src << ";\n"
+          out << " __m128 _h = _mm_" << redName << "_ps(_v, _mm_shuffle_ps(_v,_v,177)); // abcd -> badc\n"
+          out << " float _r = _mm_cvtss_f32(_mm_" << redName << "_ps(_h, _mm_shuffle_ps(_h,_h,10))); // a_b_ -> bbaa\n"
+        }
 
       case "AVX" | "AVX2" =>
-        out << " __m256d _v = " << src << ";\n"
-        out << " __m128d _w = _mm_" << redName << "_pd(_mm256_extractf128_pd(_v,1), _mm256_castpd256_pd128(_v));\n"
-        out << " double _r = _mm_cvtsd_f64(_mm_" << redName << "_pd(_w, _mm_permute_pd(_w,1)));\n"
+        if (Knowledge.useDblPrecision) {
+          out << " __m256d _v = " << src << ";\n"
+          out << " __m128d _w = _mm_" << redName << "_pd(_mm256_extractf128_pd(_v,1), _mm256_castpd256_pd128(_v));\n"
+          out << " double _r = _mm_cvtsd_f64(_mm_" << redName << "_pd(_w, _mm_permute_pd(_w,1)));\n"
+        } else {
+          out << " __m256 _v = " << src << ";\n"
+          out << " __m128 _w = _mm_" << redName << "_ps(_mm256_extractf128_ps(_v,1), _mm256_castps256_ps128(_v));\n"
+          out << " __m128 _h = _mm_" << redName << "_ps(_w, _mm_shuffle_ps(_w,_w,177)); // abcd -> badc\n"
+          out << " float _r = _mm_cvtss_f32(_mm_" << redName << "_ps(_h, _mm_shuffle_ps(_h,_h,10))); // a_b_ -> bbaa\n"
+        }
 
       case "QPX" =>
         out << " vector4double _v = " << src << ";\n"
         out << " _v = vec_" << redName << "(_v, vec_sldw(_v, _v, 2));\n"
-        out << " double _r = vec_extract(vec_" << redName << "(_v, vec_sldw(_v, _v, 1)), 0);\n"
+        out << ' ' << RealDatatype() << " _r = (" << RealDatatype() << ") vec_extract(vec_" << redName << "(_v, vec_sldw(_v, _v, 1)), 0);\n"
     }
     out << dest << ' ' << assOp
     if (redFunc != null)

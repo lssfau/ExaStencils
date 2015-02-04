@@ -573,12 +573,14 @@ case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, 
 
 //////////////////////////// SIMD Expressions \\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
-case class SIMD_LoadExpression(var mem : Expression, var aligned : Boolean) extends Expression {
+case class SIMD_LoadExpression(var mem : Expression, val aligned : Boolean) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
+    val prec = if (Knowledge.useDblPrecision) 'd' else 's'
+    val alig = if (aligned) "" else "u"
     Knowledge.simd_instructionSet match {
-      case "SSE3"         => if (aligned) out << "_mm_load_pd(" else out << "_mm_loadu_pd("
-      case "AVX" | "AVX2" => if (aligned) out << "_mm256_load_pd(" else out << "_mm256_loadu_pd("
-      case "QPX"          => if (aligned) out << "vec_lda(0," else out << "NOT VALID ; unaligned load for QPX: ("
+      case "SSE3"         => out << "_mm_load" << alig << "_p" << prec << '('
+      case "AVX" | "AVX2" => out << "_mm256_load" << alig << "_p" << prec << '('
+      case "QPX"          => if (aligned) out << "vec_lda(0," else throw new InternalError("QPX does not support unaligned loads")
     }
     out << mem << ')'
   }
@@ -586,17 +588,19 @@ case class SIMD_LoadExpression(var mem : Expression, var aligned : Boolean) exte
 
 case class SIMD_Load1Expression(var mem : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
+    val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Knowledge.simd_instructionSet match {
-      case "SSE3"         => out << "_mm_load1_pd("
-      case "AVX" | "AVX2" => out << "_mm256_broadcast_sd("
-      case "QPX"          => out << "vec_ldsa(0,"
+      case "SSE3"         => out << "_mm_load1_p" << prec << '('
+      case "AVX" | "AVX2" => out << "_mm256_broadcast_s" << prec << '('
+      case "QPX"          => out << "vec_lds(0," // vec_ldsa is only for complex data types (two values)
     }
     out << mem << ')'
   }
 }
 
-case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess, var offset : Int) extends Expression {
+case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess, val offset : Int) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
+    if (!Knowledge.useDblPrecision) throw new InternalError("not implemented yet") // TODO:
     Knowledge.simd_instructionSet match {
       case "SSE3" =>
         offset match {
@@ -615,9 +619,10 @@ case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess,
 
 case class SIMD_NegateExpresseion(var vect : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
+    val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Knowledge.simd_instructionSet match {
-      case "SSE3"         => out << "_mm_xor_pd(" << vect << ", _mm_set1_pd(-0.f))"
-      case "AVX" | "AVX2" => out << "_mm256_xor_pd(" << vect << ", _mm256_set1_pd(-0.f))"
+      case "SSE3"         => out << "_mm_xor_p" << prec << '(' << vect << ", _mm_set1_p" << prec << "(-0.f))"
+      case "AVX" | "AVX2" => out << "_mm256_xor_p" << prec << '(' << vect << ", _mm256_set1_p" << prec << "(-0.f))"
       case "QPX"          => out << "vec_neg(" << vect << ')'
     }
   }
@@ -625,9 +630,10 @@ case class SIMD_NegateExpresseion(var vect : Expression) extends Expression {
 
 case class SIMD_AdditionExpression(var left : Expression, var right : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
+    val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Knowledge.simd_instructionSet match {
-      case "SSE3"         => out << "_mm_add_pd"
-      case "AVX" | "AVX2" => out << "_mm256_add_pd"
+      case "SSE3"         => out << "_mm_add_p" << prec
+      case "AVX" | "AVX2" => out << "_mm256_add_p" << prec
       case "QPX"          => out << "vec_add"
     }
     out << '(' << left << ", " << right << ')'
@@ -636,9 +642,10 @@ case class SIMD_AdditionExpression(var left : Expression, var right : Expression
 
 case class SIMD_SubtractionExpression(var left : Expression, var right : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
+    val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Knowledge.simd_instructionSet match {
-      case "SSE3"         => out << "_mm_sub_pd"
-      case "AVX" | "AVX2" => out << "_mm256_sub_pd"
+      case "SSE3"         => out << "_mm_sub_p" << prec
+      case "AVX" | "AVX2" => out << "_mm256_sub_p" << prec
       case "QPX"          => out << "vec_sub"
     }
     out << '(' << left << ", " << right << ')'
@@ -647,9 +654,10 @@ case class SIMD_SubtractionExpression(var left : Expression, var right : Express
 
 case class SIMD_MultiplicationExpression(var left : Expression, var right : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
+    val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Knowledge.simd_instructionSet match {
-      case "SSE3"         => out << "_mm_mul_pd"
-      case "AVX" | "AVX2" => out << "_mm256_mul_pd"
+      case "SSE3"         => out << "_mm_mul_p" << prec
+      case "AVX" | "AVX2" => out << "_mm256_mul_p" << prec
       case "QPX"          => out << "vec_mul"
     }
     out << '(' << left << ", " << right << ')'
@@ -660,12 +668,7 @@ case class SIMD_MultiplyAddExpression(var factor1 : Expression, var factor2 : Ex
     var summand : Expression) extends Expression {
 
   override def prettyprint(out : PpStream) : Unit = {
-    Knowledge.simd_instructionSet match {
-      case "SSE3" => out << "_mm_add_pd(_mm_mul_pd(" << factor1 << ", " << factor2 << "), " << summand << ')'
-      case "AVX"  => out << "_mm256_add_pd(_mm256_mul_pd(" << factor1 << ", " << factor2 << "), " << summand << ')'
-      case "AVX2" => out << "_mm256_fmadd_pd(" << factor1 << ", " << factor2 << ", " << summand << ')'
-      case "QPX"  => out << "vec_madd(" << factor1 << ", " << factor2 << ", " << summand << ')'
-    }
+    FusedPrinterHelper.prettyprint(out, factor1, factor2, summand, "add")
   }
 }
 
@@ -673,21 +676,29 @@ case class SIMD_MultiplySubExpression(var factor1 : Expression, var factor2 : Ex
     var summand : Expression) extends Expression {
 
   override def prettyprint(out : PpStream) : Unit = {
+    FusedPrinterHelper.prettyprint(out, factor1, factor2, summand, "sub")
+  }
+}
+
+private object FusedPrinterHelper {
+  def prettyprint(out : PpStream, factor1 : Expression, factor2 : Expression, summand : Expression, addSub : String) : Unit = {
+    val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Knowledge.simd_instructionSet match {
-      case "SSE3" => out << "_mm_sub_pd(_mm_mul_pd(" << factor1 << ", " << factor2 << "), " << summand << ')'
-      case "AVX"  => out << "_mm256_sub_pd(_mm256_mul_pd(" << factor1 << ", " << factor2 << "), " << summand << ')'
-      case "AVX2" => out << "_mm256_fmsub_pd(" << factor1 << ", " << factor2 << ", " << summand << ')'
-      case "QPX"  => out << "vec_msub(" << factor1 << ", " << factor2 << ", " << summand << ')'
+      case "SSE3" => out << "_mm_" << addSub << "_p" << prec << "(_mm_mul_p" << prec << '(' << factor1 << ", " << factor2 << "), " << summand << ')'
+      case "AVX"  => out << "_mm256_" << addSub << "_p" << prec << "(_mm256_mul_p" << prec << '(' << factor1 << ", " << factor2 << "), " << summand << ')'
+      case "AVX2" => out << "_mm256_fm" << addSub << "_p" << prec << '(' << factor1 << ", " << factor2 << ", " << summand << ')'
+      case "QPX"  => out << "vec_m" << addSub << '(' << factor1 << ", " << factor2 << ", " << summand << ')'
     }
   }
 }
 
 case class SIMD_DivisionExpression(var left : Expression, var right : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
+    val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Knowledge.simd_instructionSet match {
-      case "SSE3"         => out << "_mm_div_pd"
-      case "AVX" | "AVX2" => out << "_mm256_div_pd"
-      case "QPX"          => out << "vec_swdiv_nochk"
+      case "SSE3"         => out << "_mm_div_p" << prec
+      case "AVX" | "AVX2" => out << "_mm256_div_p" << prec
+      case "QPX"          => out << "vec_swdiv_nochk" // double precision division performed here, single precision would also be possible... what's better?
     }
     out << '(' << left << ", " << right << ')'
   }
@@ -696,9 +707,10 @@ case class SIMD_DivisionExpression(var left : Expression, var right : Expression
 case class SIMD_FloatConstant(var value : Double) extends Expression {
   // ensure the compiler can parse the string
   override def prettyprint(out : PpStream) : Unit = {
+    val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Knowledge.simd_instructionSet match {
-      case "SSE3"         => out << "_mm_set1_pd"
-      case "AVX" | "AVX2" => out << "_mm256_set1_pd"
+      case "SSE3"         => out << "_mm_set1_p" << prec
+      case "AVX" | "AVX2" => out << "_mm256_set1_p" << prec
       case "QPX"          => out << "vec_splats"
     }
     out << '(' << String.format(java.util.Locale.US, "%e", Double.box(value)) << ')'
@@ -709,12 +721,13 @@ case class SIMD_Scalar2VectorExpression(var scalar : String, var dType : Datatyp
     var increment : Boolean) extends Expression {
 
   override def prettyprint(out : PpStream) : Unit = {
+    val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     if (increment) {
       Knowledge.simd_instructionSet match {
-        case "SSE3"         => out << "_mm_set_pd"
-        case "AVX" | "AVX2" => out << "_mm256_set_pd"
+        case "SSE3"         => out << "_mm_set_p" << prec
+        case "AVX" | "AVX2" => out << "_mm256_set_p" << prec
         case "QPX" =>
-          out << "NOT VALID ; SIMD_Scalar2VectorExpression(., ., true) for BG/Q not yet implemented"
+          out << "NOT VALID ; SIMD_Scalar2VectorExpression(_, _, true) for BG/Q not yet implemented"
           return
       }
       out << '('
@@ -724,8 +737,8 @@ case class SIMD_Scalar2VectorExpression(var scalar : String, var dType : Datatyp
 
     } else {
       Knowledge.simd_instructionSet match {
-        case "SSE3"         => out << "_mm_set1_pd"
-        case "AVX" | "AVX2" => out << "_mm256_set1_pd"
+        case "SSE3"         => out << "_mm_set1_p" << prec
+        case "AVX" | "AVX2" => out << "_mm256_set1_p" << prec
         case "QPX"          => out << "vec_splats"
       }
       out << '(' << scalar << ')'

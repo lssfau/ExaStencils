@@ -14,9 +14,11 @@ object Knowledge {
 
   var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2", "QPX"
   def simd_vectorSize : Int = { // number of vector elements for SIMD instructions (currently only double precision)
+    val double : Int = if (useDblPrecision) 1 else 2
     simd_instructionSet match {
-      case "SSE3"                 => 2
-      case "AVX" | "AVX2" | "QPX" => 4
+      case "SSE3"         => 2 * double
+      case "AVX" | "AVX2" => 4 * double
+      case "QPX"          => 4 // yes, it's always 4
     }
   }
   def simd_header : String = { // header for vector intrinsics
@@ -226,9 +228,9 @@ object Knowledge {
     Constraints.condEnsureValue(maxLevel, 0, maxLevel < 0, "maxLevel must not be negative")
     Constraints.condEnsureValue(minLevel, maxLevel, minLevel > maxLevel, "minLevel must not be larger than maxLevel")
 
-    Constraints.condEnsureValue(opt_vectorize, false, !useDblPrecision, "opt_vectorize is currently not compatible with single precision")
     Constraints.condEnsureValue(simd_avoidUnaligned, true, opt_vectorize && "QPX" == simd_instructionSet, "QPX does not support unaligned loads/stores")
     Constraints.condEnsureValue(simd_avoidUnaligned, false, !opt_vectorize, "avoid unaligned loads/stores doesn't make sense without vectorization enabled")
+    Constraints.condEnsureValue(simd_avoidUnaligned, false, !data_alignDataPointers, "impossible to avoid unaligned accesses if data is not aligned")
     Constraints.condEnsureValue(data_alignDataPointers, true, opt_vectorize && "QPX" == simd_instructionSet, "data_alignDataPointers must be true for vectorization with QPX")
 
     Constraints.updateValue(useOMP, (domain_summarizeBlocks && domain_fragLength != 1) || domain_numFragsPerBlock != 1)

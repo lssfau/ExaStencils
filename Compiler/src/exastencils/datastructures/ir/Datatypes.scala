@@ -66,11 +66,12 @@ case class RealDatatype() extends Datatype {
 }
 
 case class SIMD_RealDatatype() extends Datatype {
-  override def prettyprint(out : PpStream) : Unit = out << {
+  override def prettyprint(out : PpStream) : Unit = {
+    val suffix = if (Knowledge.useDblPrecision) "d" else ""
     Knowledge.simd_instructionSet match {
-      case "SSE3"         => "__m128d"
-      case "AVX" | "AVX2" => "__m256d"
-      case "QPX"          => "vector4double"
+      case "SSE3"         => out << "__m128" << suffix
+      case "AVX" | "AVX2" => out << "__m256" << suffix
+      case "QPX"          => out << "vector4double" // no suffix
     }
   }
 
