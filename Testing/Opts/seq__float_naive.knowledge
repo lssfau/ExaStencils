@@ -1,0 +1,44 @@
+targetCompiler             = "GCC"
+targetCompilerVersion      = 4
+targetCompilerVersionMinor = 8
+simd_instructionSet        = "AVX"
+data_alignDataPointers     = false
+useDblPrecision            = false
+
+dimensionality             = 3
+
+maxLevel                   = 6
+comm_strategyFragment      = 6 // 26
+
+domain_summarizeBlocks     = true
+
+domain_numBlocks_x         = 1
+domain_numBlocks_y         = 1
+domain_numBlocks_z         = 1
+
+domain_numFragsPerBlock_x  = 1
+domain_numFragsPerBlock_y  = 1
+domain_numFragsPerBlock_z  = 1
+domain_fragLength_x        = 1
+domain_fragLength_y        = 1
+domain_fragLength_z        = 1
+
+poly_optLevel_fine         = 0
+poly_optLevel_coarse       = 0
+poly_numFinestLevels       = 2
+poly_tileSize_x            = 1000000
+poly_tileSize_y            = 1000000
+poly_tileSize_z            = 1000000
+poly_tileOuterLoop         = false
+opt_useAddressPrecalc      = false
+opt_vectorize              = false
+opt_unroll                 = 1
+opt_unroll_interleave      = false
+
+l3tmp_smoother             = "Jac"
+opt_useColorSplitting      = false
+l3tmp_numPre               = 3
+l3tmp_numPost              = 3
+l3tmp_genTemporalBlocking  = false
+
+l3tmp_genForAutoTests      = true
