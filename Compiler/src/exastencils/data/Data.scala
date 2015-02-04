@@ -68,16 +68,10 @@ case class SlotAccess(var slot : iv.CurrentSlot, var offset : Int) extends Expre
   }
 }
 
-case class AdvanceSlot(var slot : iv.CurrentSlot) extends Statement {
+case class AdvanceSlotStatement(var slot : iv.CurrentSlot) extends Statement {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = AdvanceSlot\n"
 
   def expandSpecial : Statement = {
     AssignmentStatement(slot, (slot + 1) Mod slot.field.numSlots) // slot never contains negative values (currently)
-  }
-}
-
-case class AdvanceStatement(var field : Expression) extends Statement {
-  override def prettyprint(out : PpStream) = {
-    out << "NOT VALID ; Class = AdvanceStatement"
   }
 }

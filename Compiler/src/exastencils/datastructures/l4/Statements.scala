@@ -21,6 +21,8 @@ trait HasIdentifier {
   var identifier : Identifier
 }
 
+trait ExternalDeclarationStatement extends SpecialStatement
+
 case class DomainDeclarationStatement(var name : String, var lower : RealIndex, var upper : RealIndex, var index : Int = 0) extends SpecialStatement {
   override def prettyprint(out : PpStream) = { out << "Domain " << name << "< " << lower << " to " << upper << " >\n" }
 
@@ -270,8 +272,6 @@ case class ConditionalStatement(var expression : Expression, var statements : Li
   }
 }
 
-trait ExternalDeclarationStatement extends SpecialStatement
-
 case class AdvanceStatement(var field : Access) extends Statement {
   override def prettyprint(out : PpStream) = {
     out << "advance "
@@ -280,6 +280,7 @@ case class AdvanceStatement(var field : Access) extends Statement {
   }
 
   override def progressToIr = {
-    data.AdvanceStatement(field.progressToIr)
+    data.AdvanceSlotStatement(ir.iv.CurrentSlot(field.asInstanceOf[FieldAccess].progressToIr.fieldSelection.field,
+      ir.StringConstant(ir.LoopOverFragments.defIt)))
   }
 }
