@@ -39,7 +39,8 @@ case class FunctionDefinitionStatement(
 case class FunctionCallStatement(val call : FunctionCallExpression) extends Statement {
 
   override def writeTc(ctx : Context) {
-    val expr = call.dynamicREval(ctx).tcExpression
+    val expr = call.dynamicEval(ctx).tcForReading
+
     // convert the function call expression into a statement
     expr match {
       case expr : TcUnit => /* drop the unit type */
@@ -135,14 +136,12 @@ case class AssignmentStatement(
       Logger.error("%s is not a valid assignment operator.".format(op))
     }
 
-    /** @todo: Implement general assignment. */
-
     // compute the l-value
     // since l4 does not implement references this has to be a static evaluation
-    val lvalue = dest.eval(ctx).read.asInstanceOf[FieldLValue]
-    val tcRhs = src.dynamicREval(ctx)
+    val lvalue = dest.eval(ctx).read.asInstanceOf[DynamicLocation]
+    val rvalue = src.dynamicEval(ctx)
 
-    lvalue.writeTcAssignment(ctx.tcb, tcRhs)
+    lvalue.writeTcForWriting(ctx.tcb, rvalue)
   }
 }
 

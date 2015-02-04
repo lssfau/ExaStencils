@@ -9,7 +9,7 @@ case class ApplyStencilBuiltin() extends StaticRValue with AbstractFunctionRValu
 
   override def writeTcApplication(
     ctx : Context,
-    args : List[Expression]) : l4.Expression = {
+    args : List[Expression]) : DynamicLocation = {
 
     import ctx.env
     import ctx.tcb
@@ -18,7 +18,7 @@ case class ApplyStencilBuiltin() extends StaticRValue with AbstractFunctionRValu
     args match {
       case List(destField, stencilArg, sourceField) =>
         val f = destField.eval(ctx).read match {
-          case FieldLValue(fieldId) => fieldId
+          case DynamicFieldLocation(fieldId) => fieldId
           case _ =>
             throw new Exception("First parameter of apply needs to be a field.")
         }
@@ -29,7 +29,7 @@ case class ApplyStencilBuiltin() extends StaticRValue with AbstractFunctionRValu
         }
 
         val u = sourceField.eval(ctx).read match {
-          case FieldLValue(fieldId) => fieldId
+          case DynamicFieldLocation(fieldId) => fieldId
           case _ =>
             throw new Exception("Third parameter of apply needs to be a field")
         }
@@ -54,7 +54,7 @@ case class ApplyStencilBuiltin() extends StaticRValue with AbstractFunctionRValu
 
         tcb += new l4.AssignmentStatement(f_access, convExpr, "=")
 
-        TcUnit() // no return value
+        UnitLocation() // no return value
       case _ => Logger.error("Apply takes three arguments but %d were given.".format(args.length))
 
     }
@@ -68,7 +68,7 @@ case class ApplyStencilBuiltin() extends StaticRValue with AbstractFunctionRValu
 case class ReturnBuiltin() extends StaticRValue with AbstractFunctionRValue {
   def scReturnType = StaticListDatatype()
 
-  override def writeTcApplication(ctx : Context, args : List[Expression]) : l4.Expression = {
+  override def writeTcApplication(ctx : Context, args : List[Expression]) : DynamicLocation = {
     ???
   }
 
@@ -82,7 +82,7 @@ case class ReturnBuiltin() extends StaticRValue with AbstractFunctionRValue {
 case class DiagInvBuiltin() extends StaticRValue with AbstractFunctionRValue {
   def scReturnType = StaticListDatatype()
 
-  override def writeTcApplication(ctx : Context, args : List[Expression]) : l4.Expression = {
+  override def writeTcApplication(ctx : Context, args : List[Expression]) : DynamicLocation = {
     throw new Exception("The function diag_inv can only be applied at compile time")
   }
 
@@ -101,7 +101,7 @@ case class DiagInvBuiltin() extends StaticRValue with AbstractFunctionRValue {
 case class InstantiateFieldBuiltin() extends StaticRValue with AbstractFunctionRValue {
   def scReturnType = FieldDatatype()
 
-  override def writeTcApplication(ctx : Context, args : List[Expression]) : l4.Expression = {
+  override def writeTcApplication(ctx : Context, args : List[Expression]) : DynamicLocation = {
     throw new Exception("Fields can only be instantiated at compile time")
   }
 
@@ -109,7 +109,7 @@ case class InstantiateFieldBuiltin() extends StaticRValue with AbstractFunctionR
     args match {
       case List() =>
         val id = ctx.fields.add()
-        StaticConstant(FieldLValue(id))
+        StaticConstant(new DynamicFieldLocation(id))
       case _ => throw new Exception("The function field takes no arguments.")
     }
   }
@@ -118,7 +118,7 @@ case class InstantiateFieldBuiltin() extends StaticRValue with AbstractFunctionR
 case class ListAppendBuiltin() extends StaticRValue with AbstractFunctionRValue {
   def scReturnType = UnitDatatype()
 
-  override def writeTcApplication(ctx : Context, args : List[Expression]) : l4.Expression = {
+  override def writeTcApplication(ctx : Context, args : List[Expression]) : DynamicLocation = {
     throw new Exception("The function list_append can only be applied at compile time")
   }
 

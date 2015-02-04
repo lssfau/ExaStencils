@@ -1,5 +1,6 @@
 package exastencils.datastructures.l3
 
+import TcbImplicits._
 import exastencils.datastructures._
 
 /** Types */
@@ -52,15 +53,99 @@ sealed class StaticScType() extends ScType {
 case class FieldDatatype() extends StaticScType
 case class StencilDatatype() extends StaticScType
 
+/**
+  * This class contains the target code for obtaining a location.
+  *
+  *  Thus it contains methods for obtaining or setting a value at runtime.
+  */
 abstract class DynamicLocation extends StaticValue {
 
+  def writeTcForWriting(block : TcbBlock, rhs : DynamicLocation) {
+    ???
+  }
+
+  def tcForReading() : l4.Expression = {
+    ???
+  }
+
+  def +(rhs : DynamicLocation) : DynamicLocation = {
+    throw new Exception("Operator '+' is not defined.")
+  }
+  def -(rhs : DynamicLocation) : DynamicLocation = {
+    throw new Exception("Operator '-' is not defined.")
+  }
+  def *(rhs : DynamicLocation) : DynamicLocation = {
+    throw new Exception("Operator '*' is not defined.")
+  }
 }
 
 class DynamicRealLocation(id : String) extends DynamicLocation {
   override def scType() = RealDatatype()
+
+  override def *(rhs : DynamicLocation) = {
+
+    rhs match {
+      // Scalar * Vector
+      case e : DynamicFieldLocationExpression =>
+        DynamicFieldLocationExpression(l4.BinaryExpression("*", tcForReading, rhs.tcForReading))
+      case f : DynamicFieldLocation =>
+        DynamicFieldLocationExpression(l4.BinaryExpression("*", tcForReading, rhs.tcForReading))
+    }
+  }
+
+  override def tcForReading() : l4.Expression = l4.Variable(l4.BasicIdentifier(id), l4.RealDatatype())
+
 }
 
-class DynamicFieldLocation(id : String) extends DynamicLocation {
-  override def scType() = RealDatatype()
+case class DynamicFieldLocation(tcId : String) extends DynamicLocation {
+  override def scType() = FieldDatatype()
+
+  override def +(rhs : DynamicLocation) = {
+    new DynamicFieldLocationExpression(l4.BinaryExpression("+", tcForReading, rhs.tcForReading))
+  }
+
+  override def -(rhs : DynamicLocation) = {
+    new DynamicFieldLocationExpression(l4.BinaryExpression("-", tcForReading, rhs.tcForReading))
+  }
+
+  override def *(rhs : DynamicLocation) = {
+    new DynamicFieldLocationExpression(l4.BinaryExpression("*", tcForReading, rhs.tcForReading))
+  }
+
+  private val tcAccess = new l4.FieldAccess(
+    tcId,
+    l4.CurrentLevelSpecification(),
+    l4.SlotModifier.Constant(0))
+
+  override def writeTcForWriting(block : TcbBlock, rhs : DynamicLocation) {
+
+    block += l4.AssignmentStatement(tcAccess, rhs.tcForReading(), "=")
+  }
+
+  override def tcForReading() : l4.Expression = tcAccess
+}
+
+case class DynamicFieldLocationExpression(val expr : l4.Expression) extends DynamicLocation {
+  override def +(rhs : DynamicLocation) = {
+    new DynamicFieldLocationExpression(l4.BinaryExpression("+", tcForReading, rhs.tcForReading))
+  }
+
+  override def -(rhs : DynamicLocation) = {
+    new DynamicFieldLocationExpression(l4.BinaryExpression("-", tcForReading, rhs.tcForReading))
+  }
+
+  override def *(rhs : DynamicLocation) = {
+    new DynamicFieldLocationExpression(l4.BinaryExpression("*", tcForReading, rhs.tcForReading))
+  }
+
+  override def scType() = FieldDatatype()
+
+  override def tcForReading() : l4.Expression = expr
+}
+
+case class UnitLocation() extends DynamicLocation {
+  def scType = UnitDatatype()
+
+  override def tcForReading() : l4.Expression = TcUnit()
 }
 

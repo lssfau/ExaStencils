@@ -9,18 +9,13 @@ trait Expression extends Node {
     throw new Exception("Cannot evaluate to a static value.")
   }
 
-  def dynamicLEval(ctx : Context) : DynamicLValue = {
-    throw new Exception("Cannot evaluate to a dynamic l-value.")
-  }
-
-  def dynamicREval(ctx : Context) : DynamicRValue = {
-    throw new Exception("Cannot evaluate to a dynamic r-value.")
+  def dynamicEval(ctx : Context) : DynamicLocation = {
+    throw new Exception("Cannot evaluate to a dynamic value.")
   }
 
   def scType(env : Environment) : ScType = {
     throw new Exception("This expression does not have a type... which is strange.")
   }
-
 }
 
 trait Number extends Expression
@@ -29,13 +24,12 @@ case class IdentifierExpression(val id : String) extends Expression {
 
   override def eval(ctx : Context) : StaticLocation = ctx.env.lookup(id)
 
-  override def dynamicREval(ctx : Context) : DynamicRValue = {
+  override def dynamicEval(ctx : Context) : DynamicLocation = {
     import ctx.env
 
     env.lookup(id).read match {
-      case v : FieldLValue         => new DynamicRValue(v.deref.toTc(), FieldDatatype())
-      case v : DynamicRealLocation => Logger.error("To implement")
-      case _                       => Logger.error(id ++ " is not a variable")
+      case v : DynamicLocation => v
+      case _                   => Logger.error(id ++ " is not a dynamic location.")
     }
   }
 
@@ -68,11 +62,11 @@ case class FunctionCallExpression(val id : String, val arguments : List[Expressi
     }
   }
 
-  override def dynamicREval(ctx : Context) : DynamicRValue = {
+  override def dynamicEval(ctx : Context) : DynamicLocation = {
     import ctx.env
 
     env.lookup(id).read match {
-      case fun : AbstractFunctionRValue => new DynamicRValue(fun.writeTcApplication(ctx, arguments), fun.scReturnType)
+      case fun : AbstractFunctionRValue => fun.writeTcApplication(ctx, arguments)
       case _                            => Logger.error(id ++ " is not a function.")
     }
 
@@ -92,13 +86,17 @@ case class FunctionCallExpression(val id : String, val arguments : List[Expressi
 
 case class BinaryExpression(var operator : String, var left : Expression, var right : Expression) extends Expression {
 
-  override def dynamicREval(ctx : Context) : DynamicRValue = {
-    val leftTc = left.dynamicREval(ctx)
-    val rightTc = right.dynamicREval(ctx)
+  override def dynamicEval(ctx : Context) : DynamicLocation = {
+    val leftTc = left.dynamicEval(ctx)
+    val rightTc = right.dynamicEval(ctx)
 
-    /** @todo: Auxiliary computations */
-    new DynamicRValue(l4.BinaryExpression(operator, leftTc.tcExpression, rightTc.tcExpression), leftTc.scType)
+    operator match {
+      case "+" => leftTc + rightTc
+      case "-" => leftTc - rightTc
+      case "*" => leftTc * rightTc
+    }
 
+    //new DynamicTcExpressionLocation(l4.BinaryExpression(operator, leftTc.tcForReading, rightTc.tcForReading), left.scType(ctx.env))
   }
   override def scType(env : Environment) : ScType = {
     val lt = left.scType(env)

@@ -99,7 +99,7 @@ trait AbstractFunctionRValue {
 
   def scReturnType : ScType
 
-  def writeTcApplication(ctx : Context, args : List[Expression]) : l4.Expression
+  def writeTcApplication(ctx : Context, args : List[Expression]) : DynamicLocation
 
   def staticApplication(ctx : Context, args : List[Expression]) : StaticLocation
 }
@@ -172,7 +172,7 @@ case class FunctionRValue(
   /** This function has only static arguments. */
   def isStatic : Boolean = dynamicArguments.isEmpty
 
-  override def writeTcApplication(ctx : Context, args : List[Expression]) : l4.Expression = {
+  override def writeTcApplication(ctx : Context, args : List[Expression]) : DynamicLocation = {
     ???
   }
 
