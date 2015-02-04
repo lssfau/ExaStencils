@@ -3,6 +3,7 @@ simd_instructionSet			= "SSE3"
 
 dimensionality				= 3
 
+minLevel					= 0
 maxLevel					= 6
 comm_strategyFragment		= 6	// 26
 

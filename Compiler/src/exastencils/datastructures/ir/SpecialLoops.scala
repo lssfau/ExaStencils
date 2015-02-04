@@ -467,8 +467,8 @@ case class LoopOverLevels(var body : ListBuffer[Statement]) extends Statement wi
 
   def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
-      VariableDeclarationStatement(new IntegerDatatype, defIt, Some(0)),
-      LowerExpression(defIt, Knowledge.numLevels),
+      VariableDeclarationStatement(new IntegerDatatype, defIt, Some(Knowledge.minLevel)),
+      LowerExpression(defIt, Knowledge.maxLevel + 1),
       PreIncrementExpression(defIt),
       body)
   }

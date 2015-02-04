@@ -1,9 +1,8 @@
 package exastencils.knowledge
 
-import exastencils.core._
-import exastencils.spl._
+import exastencils.constraints.Constraints
 import exastencils.logger._
-import exastencils.constraints._
+import exastencils.spl._
 
 object Knowledge {
   // TODO: rename and move to hw knowledge?
@@ -29,8 +28,9 @@ object Knowledge {
   var dimensionality : Int = 3 // dimensionality of the problem
 
   // TODO: check if these parameters will be necessary or can be implicitly assumed once an appropriate field collection is in place
+  var minLevel : Int = 0 // the coarsest level
   var maxLevel : Int = 6 // the finest level
-  def numLevels : Int = (maxLevel + 1) // the number of levels -> this assumes that the cycle descents to the coarsest level
+  def numLevels : Int = (maxLevel - minLevel + 1) // the number of levels -> this assumes that the cycle descents to the coarsest level
 
   // --- Domain Decomposition ---
 
@@ -172,7 +172,7 @@ object Knowledge {
   var l3tmp_genStencilFields : Boolean = false // [true|false] // generates stencil fields that are used to store stencils of A (or RAP if l3tmp_genStencilStencilConv is true)
   var l3tmp_genAsyncCommunication : Boolean = false // [true|false] // replaces some sync communication statements in the L4 DSL file with their async counterparts 
   var l3tmp_genTemporalBlocking : Boolean = false // [true|false] // adds the necessary statements to the L4 DSL file to implement temporal blocking; adapts field layouts as well
-  var l3tmp_tempBlockingMinLevel : Int = 1 // [0|maxLevel] // specifies a threshold for adding temporal blocking to generated l4 files; only levels larger or equal to this threshold are blocked
+  var l3tmp_tempBlockingMinLevel : Int = 1 // [1+minLevel|maxLevel] // specifies a threshold for adding temporal blocking to generated l4 files; only levels larger or equal to this threshold are blocked
   var l3tmp_useConditionsForRBGS : Boolean = true // [true|false] // uses conditions to realize red-black patterns (as opposed to adapted offsets and strides)
   var l3tmp_useSlotsForJac : Boolean = true // [true|false] // uses sloted solution fields for Jacobi (as opposed to multiple distinct fields)
   var l3tmp_useSlotVariables : Boolean = true // [true|false] // uses slot variables (currentSlot, nextSlot, previousSlot) for access to slotted solution fields; allows for odd number of smoothing steps
@@ -216,6 +216,10 @@ object Knowledge {
 
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
+    Constraints.condEnsureValue(minLevel, 0, minLevel < 0, "minLevel must not be negative")
+    Constraints.condEnsureValue(maxLevel, 0, maxLevel < 0, "maxLevel must not be negative")
+    Constraints.condEnsureValue(minLevel, maxLevel, minLevel > maxLevel, "minLevel must not be larger than maxLevel")
+
     Constraints.condEnsureValue(opt_vectorize, false, !useDblPrecision, "opt_vectorize is currently not compatible with single precision")
     Constraints.condEnsureValue(simd_avoidUnaligned, true, opt_vectorize && "QPX" == simd_instructionSet, "QPX does not support unaligned loads/stores")
     Constraints.condEnsureValue(simd_avoidUnaligned, false, !opt_vectorize, "avoid unaligned loads/stores doesn't make sense without vectorization enabled")
@@ -281,9 +285,9 @@ object Knowledge {
     Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, math.ceil(math.log(l3tmp_numPre) / math.log(2)).toInt,
       l3tmp_genTemporalBlocking && l3tmp_tempBlockingMinLevel < math.ceil(math.log(l3tmp_numPre) / math.log(2)).toInt,
       "temporal blocking requires a sufficient count of inner layers")
-    Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, 1, l3tmp_genTemporalBlocking && l3tmp_tempBlockingMinLevel < 1, "l3tmp_tempBlockingMinLevel must be larger than zero (no blocking on the coarsest level possible)")
+    Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, 1 + minLevel, l3tmp_genTemporalBlocking && l3tmp_tempBlockingMinLevel <= minLevel, "l3tmp_tempBlockingMinLevel must be larger than minLevel (no blocking on the coarsest level possible)")
     Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, maxLevel, l3tmp_genTemporalBlocking && l3tmp_tempBlockingMinLevel > maxLevel, "l3tmp_tempBlockingMinLevel must be smaller or equal to maxLevel to enable temporal blocking")
-    Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, 1, !l3tmp_genTemporalBlocking, "l3tmp_tempBlockingMinLevel reset to default for deactivated l3tmp_genTemporalBlocking")
+    Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, 1 + minLevel, !l3tmp_genTemporalBlocking, "l3tmp_tempBlockingMinLevel reset to default for deactivated l3tmp_genTemporalBlocking")
 
     Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, "Polynomial" != l3tmp_exactSolution, "non-trivial rhs are currently only supported for polynomial solutions")
     Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, l3tmp_genStencilFields, "non-trivial rhs are currently not compatible with stencil fields")

@@ -43,7 +43,7 @@ object Globals {
     }
     if (Knowledge.l3tmp_genHDepStencils) {
       // TODO: currently assumes (one) unit domain
-      for (level <- 0 to Knowledge.maxLevel) {
+      for (level <- Knowledge.minLevel to Knowledge.maxLevel) {
         printer.println(s"\tVariable hx@$level : Real = ( 1.0 / ${Knowledge.domain_numFragsTotal_x * (1 << level)}.0 )")
         if (Knowledge.dimensionality > 1)
           printer.println(s"\tVariable hy@$level : Real = ( 1.0 / ${Knowledge.domain_numFragsTotal_y * (1 << level)}.0 )")

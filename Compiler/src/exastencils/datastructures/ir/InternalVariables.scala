@@ -7,6 +7,7 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
+import exastencils.strategies._
 
 abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDomain : Boolean, var canBePerField : Boolean, var canBePerLevel : Boolean, var canBePerNeighbor : Boolean) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << resolveName
@@ -92,9 +93,12 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
     if (canBePerField && usesFieldArrays && FieldCollection.fields.size > 1)
       access = new ArrayAccess(access, field)
     if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1)
-      access = new ArrayAccess(access, level)
+      access = new ArrayAccess(access, level - Knowledge.minLevel)
     if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
       access = new ArrayAccess(access, neigh)
+
+    // last-minute resolving, e.g. relative level array accesses 
+    SimplifyStrategy.doUntilDoneStandalone(access)
 
     access
   }
@@ -268,7 +272,7 @@ case class IndexFromField(var fieldIdentifier : String, var level : Expression, 
   override def getCtor() : Option[Statement] = {
     var statements : ListBuffer[Statement] = ListBuffer()
     val oldLev = level
-    for (l <- 0 to Knowledge.maxLevel) {
+    for (l <- Knowledge.minLevel to Knowledge.maxLevel) {
       level = l
       val field = FieldCollection.getFieldByIdentifier(fieldIdentifier, l, true)
       if (field.isDefined) {
