@@ -18,3 +18,5 @@ domain_numFragsPerBlock_y	= 3
 
 l3tmp_generateL4			= true
 l3tmp_genForAutoTests		= true
+
+l3tmp_exactSolution			= "Polynomial"

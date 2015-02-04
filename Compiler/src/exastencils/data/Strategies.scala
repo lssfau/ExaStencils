@@ -72,9 +72,27 @@ object ResolveLoopOverPoints extends DefaultStrategy("Resolving ResolveLoopOverP
 }
 
 object ResolveSlotOperationsStrategy extends DefaultStrategy("ResolveSlotOperations") {
+  var collector = new StackCollector
+
+  override def apply(node : Option[Node] = None) : Unit = {
+    StateManager.register(collector)
+    super.apply(node)
+    StateManager.unregister(collector)
+  }
+
   this += new Transformation("SearchAndReplace", {
-    case slotAccess : SlotAccess   => slotAccess.expandSpecial
-    case advanceSlot : AdvanceSlot => advanceSlot.expandSpecial
+    case slotAccess : SlotAccess => slotAccess.expandSpecial
+
+    case advanceSlot : AdvanceSlotStatement =>
+      // check if already inside a fragment loop - if not wrap the expanded statement
+      if (collector.stack.map(node => node match {
+        case _ : LoopOverFragments => true
+        case ForLoopStatement(VariableDeclarationStatement(_, it, _), _, _, _, _) if (LoopOverFragments.defIt == it) => true
+        case _ => false
+      }).fold(false)((a, b) => a || b))
+        advanceSlot.expandSpecial
+      else
+        new LoopOverFragments(advanceSlot.expandSpecial) with OMP_PotentiallyParallel // TODO: parallelization will probably be quite slow -> SPL?
   })
 }
 

@@ -83,7 +83,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
     for (i <- 1 to number)
       for (stmt <- statements)
         stmt match {
-          case AdvanceSlot(iv.CurrentSlot(field, fragment)) =>
+          case AdvanceSlotStatement(iv.CurrentSlot(field, fragment)) =>
             val fKey = FieldKey(field)
             fieldOffset(fKey) = fieldOffset.getOrElse(fKey, 0) + 1
             fields(fKey) = field
@@ -467,8 +467,8 @@ case class LoopOverLevels(var body : ListBuffer[Statement]) extends Statement wi
 
   def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
-      VariableDeclarationStatement(new IntegerDatatype, defIt, Some(0)),
-      LowerExpression(defIt, Knowledge.numLevels),
+      VariableDeclarationStatement(new IntegerDatatype, defIt, Some(Knowledge.minLevel)),
+      LowerExpression(defIt, Knowledge.maxLevel + 1),
       PreIncrementExpression(defIt),
       body)
   }

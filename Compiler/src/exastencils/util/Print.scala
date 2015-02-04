@@ -2,6 +2,7 @@ package exastencils.util
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -25,6 +26,9 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintFieldStatement\n"
 
   override def expand : Output[StatementList] = {
+    if (!Settings.additionalIncludes.contains("fstream"))
+      Settings.additionalIncludes += "fstream"
+
     var access = new FieldAccess(field, LoopOverDimensions.defIt)
     access.index(Knowledge.dimensionality) = 0
 

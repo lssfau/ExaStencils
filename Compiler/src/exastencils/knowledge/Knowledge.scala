@@ -1,9 +1,8 @@
 package exastencils.knowledge
 
-import exastencils.core._
-import exastencils.spl._
+import exastencils.constraints.Constraints
 import exastencils.logger._
-import exastencils.constraints._
+import exastencils.spl._
 
 object Knowledge {
   // TODO: rename and move to hw knowledge?
@@ -29,8 +28,9 @@ object Knowledge {
   var dimensionality : Int = 3 // dimensionality of the problem
 
   // TODO: check if these parameters will be necessary or can be implicitly assumed once an appropriate field collection is in place
+  var minLevel : Int = 0 // the coarsest level
   var maxLevel : Int = 6 // the finest level
-  def numLevels : Int = (maxLevel + 1) // the number of levels -> this assumes that the cycle descents to the coarsest level
+  def numLevels : Int = (maxLevel - minLevel + 1) // the number of levels -> this assumes that the cycle descents to the coarsest level
 
   // --- Domain Decomposition ---
 
@@ -172,14 +172,15 @@ object Knowledge {
   var l3tmp_genStencilFields : Boolean = false // [true|false] // generates stencil fields that are used to store stencils of A (or RAP if l3tmp_genStencilStencilConv is true)
   var l3tmp_genAsyncCommunication : Boolean = false // [true|false] // replaces some sync communication statements in the L4 DSL file with their async counterparts 
   var l3tmp_genTemporalBlocking : Boolean = false // [true|false] // adds the necessary statements to the L4 DSL file to implement temporal blocking; adapts field layouts as well
-  var l3tmp_tempBlockingMinLevel : Int = 1 // [0|maxLevel] // specifies a threshold for adding temporal blocking to generated l4 files; only levels larger or equal to this threshold are blocked
+  var l3tmp_tempBlockingMinLevel : Int = 1 // [1+minLevel|maxLevel] // specifies a threshold for adding temporal blocking to generated l4 files; only levels larger or equal to this threshold are blocked
   var l3tmp_useConditionsForRBGS : Boolean = true // [true|false] // uses conditions to realize red-black patterns (as opposed to adapted offsets and strides)
   var l3tmp_useSlotsForJac : Boolean = true // [true|false] // uses sloted solution fields for Jacobi (as opposed to multiple distinct fields)
   var l3tmp_useSlotVariables : Boolean = true // [true|false] // uses slot variables (currentSlot, nextSlot, previousSlot) for access to slotted solution fields; allows for odd number of smoothing steps
+  var l3tmp_genHDepStencils : Boolean = false // [true|false] // generates stencils dependent on the grid width h
 
   /// functionality test
-  var l3tmp_genFunctionBC : Boolean = true // uses some basic 2D diriclet boundary conditions with function value
-  var l3tmp_functionBC : String = "Polynomial" // specifies which functions bc's are to be used in case of l3tmp_genFunctionBC; allowed options are 'Polynomial', 'Trigonometric' and 'InvSqrt' 
+  var l3tmp_exactSolution : String = "Zero" // specifies which function (type) is used for the solution/ rhs is used; allowed options are 'Zero', 'Polynomial', 'Trigonometric' and 'InvSqrt'
+  var l3tmp_genNonZeroRhs : Boolean = false // generates more complex variants of the chosen solution function resulting in non-trival right hand sides
   var l3tmp_genExtFields : Boolean = false // adds one or more external fields to the L4 DSL file to test generation of subsequent functions
   var l3tmp_genGlobalOmega : Boolean = false // treats l3tmp_omega as a global (modifiable) parameter 
   var l3tmp_genSetableStencil : Boolean = false // generates stencil weights as global variables instead of constant values
@@ -215,6 +216,10 @@ object Knowledge {
 
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
+    Constraints.condEnsureValue(minLevel, 0, minLevel < 0, "minLevel must not be negative")
+    Constraints.condEnsureValue(maxLevel, 0, maxLevel < 0, "maxLevel must not be negative")
+    Constraints.condEnsureValue(minLevel, maxLevel, minLevel > maxLevel, "minLevel must not be larger than maxLevel")
+
     Constraints.condEnsureValue(opt_vectorize, false, !useDblPrecision, "opt_vectorize is currently not compatible with single precision")
     Constraints.condEnsureValue(simd_avoidUnaligned, true, opt_vectorize && "QPX" == simd_instructionSet, "QPX does not support unaligned loads/stores")
     Constraints.condEnsureValue(simd_avoidUnaligned, false, !opt_vectorize, "avoid unaligned loads/stores doesn't make sense without vectorization enabled")
@@ -249,10 +254,10 @@ object Knowledge {
     Constraints.condEnsureValue(omp_useCollapse, false, "IBMXL" == targetCompiler, "omp collapse is currently not fully supported by the IBM XL compiler")
 
     // update constraints
-    Constraints.condEnsureValue(l3tmp_numPre, l3tmp_numPre - (l3tmp_numPre % 2), "Jac" == l3tmp_smoother && !l3tmp_useSlotsForJac && !l3tmp_useSlotVariables,
-      "Number of pre-smoothing steps has to be divisible by 2")
-    Constraints.condEnsureValue(l3tmp_numPost, l3tmp_numPost - (l3tmp_numPost % 2), "Jac" == l3tmp_smoother && !l3tmp_useSlotsForJac && !l3tmp_useSlotVariables,
-      "Number of post-smoothing steps has to be divisible by 2")
+    Constraints.condEnsureValue(l3tmp_numPre, l3tmp_numPre - (l3tmp_numPre % 2), "Jac" == l3tmp_smoother && !l3tmp_useSlotsForJac,
+      "Number of pre-smoothing steps has to be divisible by 2 if Jacobi is used but slotting is disabled")
+    Constraints.condEnsureValue(l3tmp_numPost, l3tmp_numPost - (l3tmp_numPost % 2), "Jac" == l3tmp_smoother && !l3tmp_useSlotsForJac,
+      "Number of post-smoothing steps has to be divisible by 2 if Jacobi is used but slotting is disabled")
 
     Constraints.condEnsureValue(l3tmp_numPre, 2, 0 == l3tmp_numPre && 0 == l3tmp_numPost, "(l3tmp_numPre + l3tmp_numPost) must be larger than zero")
 
@@ -262,7 +267,7 @@ object Knowledge {
     Constraints.condEnsureValue(l3tmp_genStencilStencilConv, true, l3tmp_kelvin, "required by l3tmp_kelvin")
     Constraints.condEnsureValue(l3tmp_genStencilFields, true, l3tmp_kelvin, "required by l3tmp_kelvin")
     Constraints.condEnsureValue(l3tmp_printFieldAtEnd, true, l3tmp_kelvin, "required by l3tmp_kelvin")
-    Constraints.condEnsureValue(l3tmp_genFunctionBC, false, l3tmp_kelvin, "not compatible with l3tmp_kelvin")
+    Constraints.condEnsureValue(l3tmp_exactSolution, "Zero", l3tmp_kelvin, "l3tmp_kelvin requires the options of a zero solution")
     Constraints.condEnsureValue(l3tmp_genSetableStencil, false, l3tmp_kelvin, "not compatible with l3tmp_kelvin")
     Constraints.condEnsureValue(l3tmp_genVectorFields, false, l3tmp_kelvin, "not compatible with l3tmp_kelvin")
     Constraints.condEnsureValue(l3tmp_genEmbeddedDomain, false, l3tmp_kelvin, "not compatible with l3tmp_kelvin")
@@ -280,12 +285,17 @@ object Knowledge {
     Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, math.ceil(math.log(l3tmp_numPre) / math.log(2)).toInt,
       l3tmp_genTemporalBlocking && l3tmp_tempBlockingMinLevel < math.ceil(math.log(l3tmp_numPre) / math.log(2)).toInt,
       "temporal blocking requires a sufficient count of inner layers")
-    Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, 1, l3tmp_genTemporalBlocking && l3tmp_tempBlockingMinLevel < 1, "l3tmp_tempBlockingMinLevel must be larger than zero (no blocking on the coarsest level possible)")
+    Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, 1 + minLevel, l3tmp_genTemporalBlocking && l3tmp_tempBlockingMinLevel <= minLevel, "l3tmp_tempBlockingMinLevel must be larger than minLevel (no blocking on the coarsest level possible)")
     Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, maxLevel, l3tmp_genTemporalBlocking && l3tmp_tempBlockingMinLevel > maxLevel, "l3tmp_tempBlockingMinLevel must be smaller or equal to maxLevel to enable temporal blocking")
-    Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, 1, !l3tmp_genTemporalBlocking, "l3tmp_tempBlockingMinLevel reset to default for deactivated l3tmp_genTemporalBlocking")
+    Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, 1 + minLevel, !l3tmp_genTemporalBlocking, "l3tmp_tempBlockingMinLevel reset to default for deactivated l3tmp_genTemporalBlocking")
 
-    Constraints.condEnsureValue(l3tmp_initSolWithRand, true, !l3tmp_genFunctionBC && !l3tmp_kelvin, "initial solution of zero corresponds to the exact solution if l3tmp_genFunctionBC is false")
-    Constraints.condEnsureValue(l3tmp_initSolWithRand, false, l3tmp_genFunctionBC, "l3tmp_genFunctionBC requires initial solution of zero")
+    Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, "Polynomial" != l3tmp_exactSolution, "non-trivial rhs are currently only supported for polynomial solutions")
+    Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, l3tmp_genStencilFields, "non-trivial rhs are currently not compatible with stencil fields")
+    Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_genNonZeroRhs, "non-trivial rhs requires the usage of grid width dependent stencils")
+    Constraints.condEnsureValue(l3tmp_genHDepStencils, false, l3tmp_genStencilFields, "grid width dependent stencils are currently not compatible with stencil fields")
+
+    Constraints.condEnsureValue(l3tmp_initSolWithRand, true, "Zero" == l3tmp_exactSolution && !l3tmp_kelvin, "initial solution of zero corresponds to the exact solution if l3tmp_genFunctionBC is false")
+    Constraints.condEnsureValue(l3tmp_initSolWithRand, false, "Zero" != l3tmp_exactSolution, "l3tmp_exactSolution not equal to zero requires initial solution of zero")
 
     Constraints.condEnsureValue(l3tmp_numVecDims, 1, !l3tmp_genVectorFields, "vector dimensions larger than 1 are only allowed in conjunction with vector fields")
     Constraints.condEnsureValue(l3tmp_numVecDims, 2, l3tmp_genVectorFields && l3tmp_numVecDims <= 1, "vector dimensions must be larger than 1 when using vector fields")
@@ -300,7 +310,7 @@ object Knowledge {
     Constraints.condEnsureValue(l3tmp_genTimersForComm, false, l3tmp_genAsyncCommunication, "timers for overlapping communication are not yet supported")
     Constraints.condEnsureValue(l3tmp_genCommTimersPerLevel, false, !l3tmp_genTimersForComm, "requires l3tmp_genTimersForComm to be activated")
 
-    Constraints.condEnsureValue(comm_useLevelIndependentFcts, false, l3tmp_genFunctionBC, "level independent communication functions are not compatible with non-trivial boundary conditions")
+    Constraints.condEnsureValue(comm_useLevelIndependentFcts, false, "Zero" != l3tmp_exactSolution, "level independent communication functions are not compatible with non-trivial boundary conditions")
     Constraints.condEnsureValue(mpi_useCustomDatatypes, false, comm_useLevelIndependentFcts, "MPI data types cannot be used in combination with level independent communication functions yet")
 
     Constraints.condEnsureValue(poly_optLevel_coarse, poly_optLevel_fine, poly_optLevel_coarse > poly_optLevel_fine, "optimization level for coarse grids must smaller or equal to the one for the fine levels")

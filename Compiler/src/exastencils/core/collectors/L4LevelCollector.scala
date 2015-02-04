@@ -10,6 +10,7 @@ class L4LevelCollector extends Collector {
   override def enter(node : Node) : Unit = {
     node match {
       case FunctionStatement(LeveledIdentifier(_, SingleLevelSpecification(level)), _, _, _) => curLevel = level
+      case StencilDeclarationStatement(LeveledIdentifier(_, SingleLevelSpecification(level)), _) => curLevel = level
       case _ =>
     }
   }
@@ -17,6 +18,7 @@ class L4LevelCollector extends Collector {
   override def leave(node : Node) : Unit = {
     node match {
       case FunctionStatement(LeveledIdentifier(_, SingleLevelSpecification(level)), _, _, _) => // due to duplication of functions, functions can be left that were never entered
+      case StencilDeclarationStatement(LeveledIdentifier(_, SingleLevelSpecification(level)), _) => // 
       case _ =>
     }
   }

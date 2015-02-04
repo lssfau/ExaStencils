@@ -2,6 +2,7 @@ package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.data
 import exastencils.datastructures._
 import exastencils.knowledge
 import exastencils.omp
@@ -19,6 +20,8 @@ abstract class SpecialStatement /*TODO: think about an appropriate name*/ extend
 trait HasIdentifier {
   var identifier : Identifier
 }
+
+trait ExternalDeclarationStatement extends SpecialStatement
 
 case class DomainDeclarationStatement(var name : String, var lower : RealIndex, var upper : RealIndex, var index : Int = 0) extends SpecialStatement {
   override def prettyprint(out : PpStream) = { out << "Domain " << name << "< " << lower << " to " << upper << " >\n" }
@@ -269,16 +272,15 @@ case class ConditionalStatement(var expression : Expression, var statements : Li
   }
 }
 
-trait ExternalDeclarationStatement extends SpecialStatement
-
 case class AdvanceStatement(var field : Access) extends Statement {
-  override def prettyprint(out:PpStream) = {
+  override def prettyprint(out : PpStream) = {
     out << "advance "
     field.prettyprint(out)
     out << '\n'
   }
-  
-   override def progressToIr = {
-     ir.AdvanceStatement(field.progressToIr)
-   }
+
+  override def progressToIr = {
+    data.AdvanceSlotStatement(ir.iv.CurrentSlot(field.asInstanceOf[FieldAccess].progressToIr.fieldSelection.field,
+      ir.StringConstant(ir.LoopOverFragments.defIt)))
+  }
 }

@@ -1,6 +1,5 @@
 package exastencils.datastructures.l3
 
-import exastencils.core._
 import exastencils.knowledge._
 
 object Application {
@@ -59,7 +58,7 @@ object Application {
 
     if (Knowledge.l3tmp_kelvin) {
       if (Knowledge.l3tmp_genStencilFields) {
-        for (lvl <- Knowledge.maxLevel to 0 by -1)
+        for (lvl <- Knowledge.maxLevel to Knowledge.minLevel by -1)
           printer.println(s"\tInitLaplace_GMRF@$lvl ( )")
       }
       printer.println("\tInitRHS_GMRF ( )")
@@ -78,12 +77,12 @@ object Application {
       printer.println("\t}")
 
       if (Knowledge.l3tmp_genStencilFields) {
-        for (lvl <- Knowledge.maxLevel - 1 to 0 by -1)
+        for (lvl <- Knowledge.maxLevel - 1 to Knowledge.minLevel by -1)
           printer.println(s"\tInitLaplace@$lvl ( )")
       }
     } else {
       if (Knowledge.l3tmp_genStencilFields) {
-        for (lvl <- Knowledge.maxLevel to 0 by -1)
+        for (lvl <- Knowledge.maxLevel to Knowledge.minLevel by -1)
           printer.println(s"\tInitLaplace@$lvl ( )")
       }
     }
@@ -92,7 +91,7 @@ object Application {
     printer.println("\tInitSolution ( )")
 
     // TODO: add other fields here if bc handling is required
-    for (lvl <- 0 to Knowledge.maxLevel) {
+    for (lvl <- Knowledge.minLevel to Knowledge.maxLevel) {
       if ("Jac" == Knowledge.l3tmp_smoother) {
         if (Knowledge.l3tmp_useSlotsForJac) {
           Communication.applyBCs(printer, s"Solution[0]@$lvl")
@@ -145,7 +144,6 @@ object Application {
     }
 
     if (Knowledge.l3tmp_printFieldAtEnd) {
-      Settings.additionalIncludes += "fstream"
       if (Knowledge.l3tmp_kelvin)
         printer.println("\tprintField ( '\"Solution.dat\"', SolutionMean@finest )")
       else
@@ -170,7 +168,7 @@ object Application {
             ("postSmooth", "post-smoothing"))
         ) {
           if (Knowledge.l3tmp_genTimersPerLevel) {
-            for (level <- 0 to Knowledge.maxLevel)
+            for (level <- Knowledge.minLevel to Knowledge.maxLevel)
               printer.println("\tprint ( '\"" + s"Total time spent on level $level in ${func._2}: " + "\"', " + s"getTotalFromTimer ( ${func._1}Timer@$level ) )")
           } else {
             printer.println("\tprint ( '\"" + s"Total time spent in ${func._2}: " + "\"', " + s"getTotalFromTimer ( ${func._1}Timer ) )")
@@ -179,7 +177,7 @@ object Application {
       }
       if (Knowledge.l3tmp_genTimersForComm) {
         if (Knowledge.l3tmp_genCommTimersPerLevel) {
-          for (level <- 0 to Knowledge.maxLevel)
+          for (level <- Knowledge.minLevel to Knowledge.maxLevel)
             printer.println("\tprint ( '\"" + s"Total time spent communicating on level $level: " + "\"', " + s"getTotalFromTimer ( commTimer@$level ) )")
         } else {
           printer.println("\tprint ( '\"" + s"Total time spent communicating: " + "\"', " + s"getTotalFromTimer ( commTimer ) )")

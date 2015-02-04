@@ -1,10 +1,10 @@
 package exastencils.multiGrid
 
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
 import exastencils.core.collectors.IRLevelCollector
 import exastencils.core.collectors.StackCollector
-import exastencils.data._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
@@ -88,28 +88,6 @@ object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions"
   }
 
   this += new Transformation("SearchAndReplace", {
-    /*case ExpressionStatement(FunctionCallExpression(StringConstant("advance"), args)) => {
-      //      if (Knowledge.useOMP && !Knowledge.domain_summarizeBlocks && collector.stack.map(node => node match { case _ : LoopOverFragments => true; case _ => false }).fold(false)((a, b) => a || b))
-      //        ListBuffer[Statement](
-      //          OMP_Barrier(),
-      //          new ConditionStatement(EqEqExpression(0, LoopOverFragments.defIt),
-      //            AdvanceSlot(iv.CurrentSlot(args(0).asInstanceOf[FieldAccess].fieldSelection.field))),
-      //          OMP_Barrier())
-      if (collector.stack.map(node => node match { case _ : LoopOverFragments => true; case _ => false }).fold(false)((a, b) => a || b))
-        AdvanceSlot(new iv.CurrentSlot(args(0).asInstanceOf[FieldAccess].fieldSelection.field, LoopOverFragments.defIt))
-      else
-        new LoopOverFragments(
-          AdvanceSlot(new iv.CurrentSlot(args(0).asInstanceOf[FieldAccess].fieldSelection.field, LoopOverFragments.defIt)))
-    }*/
-    case AdvanceStatement(arg) => {
-      println("advance " + arg)
-      if (collector.stack.map(node => node match { case _ : LoopOverFragments => true; case _ => false }).fold(false)((a, b) => a || b))
-        AdvanceSlot(new iv.CurrentSlot(arg.asInstanceOf[FieldAccess].fieldSelection.field, LoopOverFragments.defIt))
-      else
-        new LoopOverFragments(
-          AdvanceSlot(new iv.CurrentSlot(arg.asInstanceOf[FieldAccess].fieldSelection.field, LoopOverFragments.defIt)))
-    }
-
     // HACK to implement min/max functions
     case FunctionCallExpression(StringConstant("min"), args) => MinimumExpression(args)
     case FunctionCallExpression(StringConstant("max"), args) => MaximumExpression(args)

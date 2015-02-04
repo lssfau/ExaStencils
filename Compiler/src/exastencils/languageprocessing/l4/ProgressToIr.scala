@@ -102,8 +102,8 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
 
   // resolve level identifiers "coarsest", "finest"
   this += new Transformation("ResolveIdentifierLevels", {
-    case x : AllLevelsSpecification     => RangeLevelSpecification(SingleLevelSpecification(0), SingleLevelSpecification(Knowledge.maxLevel))
-    case x : CoarsestLevelSpecification => SingleLevelSpecification(0)
+    case x : AllLevelsSpecification     => RangeLevelSpecification(SingleLevelSpecification(Knowledge.minLevel), SingleLevelSpecification(Knowledge.maxLevel))
+    case x : CoarsestLevelSpecification => SingleLevelSpecification(Knowledge.minLevel)
     case x : FinestLevelSpecification   => SingleLevelSpecification(Knowledge.maxLevel)
   })
 

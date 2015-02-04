@@ -26,7 +26,7 @@ object Solve {
       printer.println("\tstartTimer ( timeToSolveWatch )")
     }
     printer.println("\tVariable numIt : Integer = 0")
-    printer.println(s"\trepeat until res_0 < ${if (Knowledge.useDblPrecision) "1.0e-8" else "1.0e-2"} {")
+    printer.println(s"\trepeat until res_0 < ( ${if (Knowledge.useDblPrecision) "1.0e-10" else "1.0e-4"} * resStart_0 ) {")
     printer.println("\t\tnumIt += 1")
     if (!Knowledge.l3tmp_genForAutoTests)
       printer.println("\t\tstartTimer ( stopWatch )")

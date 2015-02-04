@@ -143,7 +143,7 @@ case class ReturnStatement(var expr : Option[Expression]) extends Statement {
 }
 
 case class BreakStatement() extends Statement {
-    override def prettyprint(out : PpStream) = {
+  override def prettyprint(out : PpStream) = {
     out << "break;\n"
   }
 }
@@ -259,11 +259,5 @@ private object HorizontalPrinterHelper {
     else
       out << "_r;\n"
     out << '}'
-  }
-}
-
-case class AdvanceStatement(var field : Expression) extends Statement {
-  override def prettyprint(out:PpStream) = {
-    out << "NOT VALID; Class = AdvanceStatement"
   }
 }

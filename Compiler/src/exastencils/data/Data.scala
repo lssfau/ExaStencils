@@ -56,7 +56,6 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
 }
 
 case class SlotAccess(var slot : iv.CurrentSlot, var offset : Int) extends Expression {
-
   // ensure: 0 <= offset < slot.field.numSlots
   offset %= slot.field.numSlots
   if (offset < 0)
@@ -69,7 +68,7 @@ case class SlotAccess(var slot : iv.CurrentSlot, var offset : Int) extends Expre
   }
 }
 
-case class AdvanceSlot(var slot : iv.CurrentSlot) extends Statement {
+case class AdvanceSlotStatement(var slot : iv.CurrentSlot) extends Statement {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = AdvanceSlot\n"
 
   def expandSpecial : Statement = {

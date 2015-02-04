@@ -68,10 +68,6 @@ object ExpandOnePassStrategy extends DefaultStrategy("Expanding") { // TODO: thi
 }
 
 object SimplifyStrategy extends DefaultStrategy("Simplifying") {
-  // FIXME: remove NullExpressions / NullStatements
-  // FIXME: remove empty functions
-  // FIXME: remove (true) conditions
-
   def doUntilDone(node : Option[Node] = None) = {
     do { apply(node) }
     while (results.last._2.matches > 0) // FIXME: cleaner code
@@ -259,3 +255,32 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case ConditionStatement(BooleanConstant(false), _, body)                     => body
   })
 }
+
+object CleanUnusedStuff extends DefaultStrategy("Cleaning up unused stuff") {
+  // TODO: think about inlining
+  // TODO: this currently disregards parameters
+
+  var emptyFunctions = ListBuffer[String]()
+
+  override def apply(node : Option[Node] = None) = {
+    emptyFunctions.clear
+    super.apply(node)
+  }
+
+  this += new Transformation("Looking for deletable objects", {
+    case FunctionStatement(_, name, _, ListBuffer()) => {
+      emptyFunctions += name
+      List()
+    }
+  })
+
+  this += new Transformation("Removing obsolete references", {
+    case FunctionCallExpression(name, _) if emptyFunctions.contains(name.prettyprint) => NullExpression
+  })
+
+  this += new Transformation("Removing null-statements", {
+    case ExpressionStatement(NullExpression) => List()
+    case NullStatement                       => List()
+  })
+}
+
