@@ -43,28 +43,28 @@ Large_Hybrid  Main  Large/Hybrid.knowledge  Large/Hybrid.results  4  10  E5
 # OPTIMIZATION TESTS                                                                            #
 #################################################################################################
 
-# no optimizations (0), all independenly (1-6) and in combination (7)
+# various tests of optimization strategies
 #  (run time for each is less than 5 seconds)
 # sequential version
-Seq_Test0  Main  Opts/seq_0.knowledge  Opts/seq.results  1   1  i7|E5
-Seq_Test1  Main  Opts/seq_1.knowledge  Opts/seq.results  1   1  i7|E5
-Seq_Test2  Main  Opts/seq_2.knowledge  Opts/seq.results  1   1  i7|E5
-Seq_Test3  Main  Opts/seq_3.knowledge  Opts/seq.results  1   1  i7|E5
-Seq_Test4  Main  Opts/seq_4.knowledge  Opts/seq.results  1   1  i7|E5
-Seq_Test5  Main  Opts/seq_5.knowledge  Opts/seq.results  1   1  i7|E5
-Seq_Test6  Main  Opts/seq_6.knowledge  Opts/seq.results  1   1  i7|E5
-Seq_Test7  Main  Opts/seq_7.knowledge  Opts/seq.results  1   1  i7|E5
-Seq_Test8  Main  Opts/seq_8.knowledge  Opts/seq.results  1   1  i7|E5
+Seq_Test_naive     Main  Opts/seq_naive.knowledge     Opts/seq.results  1   1  i7|E5
+Seq_Test_addrPre   Main  Opts/seq_addrPre.knowledge   Opts/seq.results  1   1  i7|E5
+Seq_Test_poly      Main  Opts/seq_poly.knowledge      Opts/seq.results  1   1  i7|E5
+Seq_Test_unroll    Main  Opts/seq_unroll.knowledge    Opts/seq.results  1   1  i7|E5
+Seq_Test_unrolli   Main  Opts/seq_unrolli.knowledge   Opts/seq.results  1   1  i7|E5
+Seq_Test_vect      Main  Opts/seq_vect.knowledge      Opts/seq.results  1   1  i7|E5
+Seq_Test_vectAl    Main  Opts/seq_vectAl.knowledge    Opts/seq.results  1   1  i7|E5
+Seq_Test_vectAlAl  Main  Opts/seq_vectAlAl.knowledge  Opts/seq.results  1   1  i7|E5
+Seq_Test_all       Main  Opts/seq_all.knowledge       Opts/seq.results  1   1  i7|E5
 # parallel version (2*2*2 MPI ranks each with 3*3*3 OMP threads)
-Par_Test0  Main  Opts/par_0.knowledge  Opts/par.results  8  10  E5
-Par_Test1  Main  Opts/par_1.knowledge  Opts/par.results  8  10  E5
-Par_Test2  Main  Opts/par_2.knowledge  Opts/par.results  8  10  E5
-Par_Test3  Main  Opts/par_3.knowledge  Opts/par.results  8  10  E5
-Par_Test4  Main  Opts/par_4.knowledge  Opts/par.results  8  10  E5
-Par_Test5  Main  Opts/par_5.knowledge  Opts/par.results  8  10  E5
-Par_Test6  Main  Opts/par_6.knowledge  Opts/par.results  8  10  E5
-Par_Test7  Main  Opts/par_7.knowledge  Opts/par.results  8  10  E5
-Par_Test8  Main  Opts/par_8.knowledge  Opts/par.results  8  10  E5
+Par_Test_naive     Main  Opts/par_naive.knowledge     Opts/par.results  8  10  E5
+Par_Test_addrPre   Main  Opts/par_addrPre.knowledge   Opts/par.results  8  10  E5
+Par_Test_poly      Main  Opts/par_poly.knowledge      Opts/par.results  8  10  E5
+Par_Test_unroll    Main  Opts/par_unroll.knowledge    Opts/par.results  8  10  E5
+Par_Test_unrolli   Main  Opts/par_unrolli.knowledge   Opts/par.results  8  10  E5
+Par_Test_vect      Main  Opts/par_vect.knowledge      Opts/par.results  8  10  E5
+Par_Test_vectAl    Main  Opts/par_vectAl.knowledge    Opts/par.results  8  10  E5
+Par_Test_vectAlAl  Main  Opts/par_vectAlAl.knowledge  Opts/par.results  8  10  E5
+Par_Test_all       Main  Opts/par_all.knowledge       Opts/par.results  8  10  E5
 
 #################################################################################################
 # SMOOTHER TESTS                                                                                #
