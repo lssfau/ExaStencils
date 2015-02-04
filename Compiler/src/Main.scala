@@ -182,6 +182,8 @@ object Main {
       ExpandStrategy.doUntilDone()
     SimplifyStrategy.doUntilDone()
 
+    CleanUnusedStuff.apply()
+
     PrintStrategy.apply()
     PrettyprintingManager.finish
 
