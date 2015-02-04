@@ -33,8 +33,9 @@ case class IdentifierExpression(val id : String) extends Expression {
     import ctx.env
 
     env.lookup(id).read match {
-      case v : FieldLValue => new DynamicRValue(v.deref.toTc(), FieldDatatype())
-      case _               => Logger.error(id ++ " is not a variable")
+      case v : FieldLValue         => new DynamicRValue(v.deref.toTc(), FieldDatatype())
+      case v : DynamicRealLocation => Logger.error("To implement")
+      case _                       => Logger.error(id ++ " is not a variable")
     }
   }
 

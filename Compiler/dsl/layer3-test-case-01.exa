@@ -41,11 +41,11 @@ Function jacobi(dest : Field, L : Stencil, f : Field, u : Field, omega : Real, w
 {
     D_inv := diag_inv(L)
     
-    //dest = u + D_inv * (f - L*u)
+    //dest = u + omega * D_inv * (f - L*u)
     apply(work, L, u)
     work = f - work
     apply(dest, D_inv, work)
-    dest = u + dest
+    dest = u + omega * dest
 }
 
 Function restrict(u_c : Field, R : Stencil, u : Field, work : Field) : Unit

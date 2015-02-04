@@ -9,6 +9,10 @@ sealed class ScType {
   }
 
   def isStatic : Boolean = false
+
+  def createDynamicLocation(ctx : Context) : StaticValue = {
+    throw new Exception("This datatype has no dynamic representation.")
+  }
 }
 case class FunctionDatatype() extends ScType
 
@@ -19,6 +23,10 @@ case class IntegerDatatype() extends ScType {
 }
 case class RealDatatype() extends ScType {
   override def toTcType : l4.Datatype = l4.RealDatatype()
+
+  override def createDynamicLocation(ctx : Context) : StaticValue = {
+    new DynamicRealLocation(ctx.genId())
+  }
 }
 case class StringDatatype() extends ScType {
   override def toTcType : l4.Datatype = l4.StringDatatype()
@@ -43,4 +51,16 @@ sealed class StaticScType() extends ScType {
 
 case class FieldDatatype() extends StaticScType
 case class StencilDatatype() extends StaticScType
+
+abstract class DynamicLocation extends StaticValue {
+
+}
+
+class DynamicRealLocation(id : String) extends DynamicLocation {
+  override def scType() = RealDatatype()
+}
+
+class DynamicFieldLocation(id : String) extends DynamicLocation {
+  override def scType() = RealDatatype()
+}
 

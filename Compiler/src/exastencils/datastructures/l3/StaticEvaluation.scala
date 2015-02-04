@@ -126,7 +126,7 @@ case class FunctionRValue(
 
   private def createBodyContext(ctx : Context, givenStaticArgs : List[StaticLocation]) = {
 
-    // bind function arguments
+    // bind static function arguments
     val body_ctx = ctx.createNewScope()
     for ((givenArg, requestedArg) <- givenStaticArgs zip staticArguments) {
       body_ctx.env.bind(requestedArg.id, givenArg)
@@ -153,6 +153,11 @@ case class FunctionRValue(
 
     val body_ctx = createBodyContext(ctx, givenStaticArgs)
 
+    // bind dynamic arguments
+    for (arg <- dynamicArguments) {
+      body_ctx.env.bind(arg.id, StaticConstant(arg.datatype.createDynamicLocation(body_ctx)))
+    }
+
     // transform to target code and concat
     body foreach { _.writeTc(body_ctx) }
 
@@ -173,7 +178,7 @@ case class FunctionRValue(
 
   override def staticApplication(ctx : Context, args : List[Expression]) : StaticLocation = {
     if (!isStatic) {
-      throw new Exception("Static evaluation of function {0} which is not static.".format(id))
+      throw new Exception("Static evaluation of function %s which is not static.".format(id))
     }
 
     val evaluated_args = args map { a => a.eval(ctx) }

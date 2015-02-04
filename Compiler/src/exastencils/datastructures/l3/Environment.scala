@@ -16,7 +16,7 @@ class Environment(parent : Option[Environment] = None) {
     } else {
       parent match {
         case Some(p) => p.lookup(id)
-        case None    => Logger.error("Identifier " + id + " is undefined.")
+        case None    => Logger.error("Identifier '" + id + "' is undefined.")
       }
     }
   }
