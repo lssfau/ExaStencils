@@ -2,7 +2,6 @@
 package exastencils.datastructures.l3
 
 import exastencils.datastructures.l4
-import scala.collection.mutable.ListBuffer
 
 object StencilOffset {
   def apply(c : StaticValue) : StencilOffset = {
@@ -102,28 +101,4 @@ class Stencil(val entries : List[StencilEntry]) {
   def diagInv() : Stencil = {
     new Stencil((entries filter { _.atZero }) map { _.invertValue() })
   }
-}
-
-/** Manages the code for all automatically generated stencils. */
-class StencilManager {
-
-  // add a stencil and return its identifier
-  private val stms = ListBuffer[l4.SpecialStatement]()
-  def statements = stms
-
-  private var idCount = 0
-
-  def genId() : String = {
-    idCount += 1
-    "__stencil_id%02d".format(idCount)
-  }
-
-  def add(s : ListStaticValue) : String = {
-    val id = genId()
-
-    stms += Stencil(s).toTc(id)
-
-    id
-  }
-
 }

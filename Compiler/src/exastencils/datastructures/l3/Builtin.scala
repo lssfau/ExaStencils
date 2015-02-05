@@ -107,9 +107,14 @@ case class InstantiateFieldBuiltin() extends StaticValue with AbstractFunctionRV
 
   override def staticApplication(ctx : Context, args : List[Expression]) : StaticLocation = {
     args match {
-      case List() =>
-        val id = ctx.fields.add()
-        StaticConstant(new DynamicFieldLocation(id))
+      case List(arg1) =>
+
+        arg1.eval(ctx).read match {
+          case StaticInteger(level) =>
+
+            val id = ctx.fields.add(level)
+            StaticConstant(new DynamicFieldLocation(id))
+        }
       case _ => throw new Exception("The function field takes no arguments.")
     }
   }

@@ -11,7 +11,7 @@ sealed class ScType {
 
   def isStatic : Boolean = false
 
-  def createDynamicLocation(ctx : Context) : StaticValue = {
+  def createDynamicLocation(ctx : Context) : DynamicLocation = {
     throw new Exception("This datatype has no dynamic representation.")
   }
 }
@@ -25,7 +25,7 @@ case class IntegerDatatype() extends ScType {
 case class RealDatatype() extends ScType {
   override def toTcType : l4.Datatype = l4.RealDatatype()
 
-  override def createDynamicLocation(ctx : Context) : StaticValue = {
+  override def createDynamicLocation(ctx : Context) : DynamicLocation = {
     new DynamicRealLocation(ctx.genId())
   }
 }
@@ -52,6 +52,7 @@ sealed class StaticScType() extends ScType {
 
 case class FieldDatatype() extends StaticScType
 case class StencilDatatype() extends StaticScType
+case class StaticDatatype() extends StaticScType
 
 /**
   * This class contains the target code for obtaining a location.
@@ -77,6 +78,8 @@ abstract class DynamicLocation extends StaticValue {
   def *(rhs : DynamicLocation) : DynamicLocation = {
     throw new Exception("Operator '*' is not defined.")
   }
+
+  def argumentTc() : l4.Variable = ???
 }
 
 class DynamicRealLocation(id : String) extends DynamicLocation {
@@ -95,6 +98,7 @@ class DynamicRealLocation(id : String) extends DynamicLocation {
 
   override def tcForReading() : l4.Expression = l4.Variable(l4.BasicIdentifier(id), l4.RealDatatype())
 
+  override def argumentTc() : l4.Variable = l4.Variable(l4.BasicIdentifier(id), l4.RealDatatype())
 }
 
 case class DynamicFieldLocation(tcId : String) extends DynamicLocation {
@@ -139,6 +143,11 @@ case class DynamicFieldLocationExpression(val expr : l4.Expression) extends Dyna
   }
 
   override def scType() = FieldDatatype()
+
+  override def tcForReading() : l4.Expression = expr
+}
+
+case class PrimitiveDynamicLocation(val expr : l4.Expression, val scType : ScType) extends DynamicLocation {
 
   override def tcForReading() : l4.Expression = expr
 }

@@ -34,7 +34,6 @@ case class IdentifierExpression(val id : String) extends Expression {
   }
 
   override def scType(env : Environment) : ScType = env.lookup(id).scType
-
 }
 
 case class StringConstant(val value : String) extends Expression
@@ -95,9 +94,8 @@ case class BinaryExpression(var operator : String, var left : Expression, var ri
       case "-" => leftTc - rightTc
       case "*" => leftTc * rightTc
     }
-
-    //new DynamicTcExpressionLocation(l4.BinaryExpression(operator, leftTc.tcForReading, rightTc.tcForReading), left.scType(ctx.env))
   }
+
   override def scType(env : Environment) : ScType = {
     val lt = left.scType(env)
     val rt = right.scType(env)

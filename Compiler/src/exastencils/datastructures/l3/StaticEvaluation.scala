@@ -73,16 +73,15 @@ case class FunctionRValue(
       case None    => mangleName(givenStaticArgs map { _.read })
     }
 
-    val tcArgs = dynamicArguments map {
-      case FunctionArgument(id, scType) =>
-        l4.Variable(l4.BasicIdentifier(id), scType.toTcType)
-    }
-
     val body_ctx = createBodyContext(ctx, givenStaticArgs)
 
     // bind dynamic arguments
+    val tcArgs = ListBuffer[l4.Variable]()
     for (arg <- dynamicArguments) {
-      body_ctx.env.bind(arg.id, StaticConstant(arg.datatype.createDynamicLocation(body_ctx)))
+      val argLocation = arg.datatype.createDynamicLocation(body_ctx)
+      body_ctx.env.bind(arg.id, StaticConstant(argLocation))
+
+      tcArgs += argLocation.argumentTc
     }
 
     // transform to target code and concat
@@ -92,7 +91,7 @@ case class FunctionRValue(
     ctx.tcb += new l4.FunctionStatement(
       l4.LeveledIdentifier(tcId, l4.AllLevelsSpecification()),
       l4.UnitDatatype(),
-      tcArgs,
+      tcArgs.toList,
       body_ctx.tcb.build())
   }
 

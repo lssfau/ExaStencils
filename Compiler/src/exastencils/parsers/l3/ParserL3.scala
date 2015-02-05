@@ -54,6 +54,8 @@ class ParserL3 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ("Complex" ~ "[") ~> numericSimpleDatatype <~ "]" ^^ { case x => new ComplexDatatype(x) }
     ||| numericSimpleDatatype)
 
+  lazy val staticDatatype : Parser[ScType] = "Static" ^^ { case x => new StaticDatatype }
+
   lazy val numericSimpleDatatype : Parser[ScType] = (
     "Integer" ^^ { case x => new IntegerDatatype }
     ||| "Real" ^^ { case x => new RealDatatype })
