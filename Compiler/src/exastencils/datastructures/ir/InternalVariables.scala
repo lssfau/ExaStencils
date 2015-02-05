@@ -97,8 +97,9 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
     if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
       access = new ArrayAccess(access, neigh)
 
-    // last-minute resolving, e.g. relative level array accesses 
-    SimplifyStrategy.doUntilDoneStandalone(access)
+    // last-minute resolving, e.g. relative level array accesses
+    // FIXME: this leads to conflicts with trafos using specialized collectors (e.g. address precalculation)
+    //SimplifyStrategy.doUntilDoneStandalone(access)
 
     access
   }
