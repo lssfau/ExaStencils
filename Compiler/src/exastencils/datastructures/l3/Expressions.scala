@@ -40,11 +40,11 @@ case class IdentifierExpression(val id : String) extends Expression {
 case class StringConstant(val value : String) extends Expression
 
 case class IntegerConstant(val v : Int) extends Number {
-  override def eval(ctx : Context) = StaticConstant(IntegerRValue(v))
+  override def eval(ctx : Context) = StaticConstant(StaticInteger(v))
 }
 
 case class FloatConstant(val v : Double) extends Number {
-  override def eval(ctx : Context) = StaticConstant(FloatRValue(v))
+  override def eval(ctx : Context) = StaticConstant(StaticReal(v))
 }
 
 case class FunctionArgument(val id : String, val datatype : ScType) extends Expression {

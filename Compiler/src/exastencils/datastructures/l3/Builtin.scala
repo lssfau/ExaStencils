@@ -4,7 +4,7 @@ import TcbImplicits._
 import exastencils.datastructures.l4
 import exastencils.logger._
 
-case class ApplyStencilBuiltin() extends StaticRValue with AbstractFunctionRValue {
+case class ApplyStencilBuiltin() extends StaticValue with AbstractFunctionRValue {
   def scReturnType = FieldDatatype()
 
   override def writeTcApplication(
@@ -65,7 +65,7 @@ case class ApplyStencilBuiltin() extends StaticRValue with AbstractFunctionRValu
   }
 }
 
-case class ReturnBuiltin() extends StaticRValue with AbstractFunctionRValue {
+case class ReturnBuiltin() extends StaticValue with AbstractFunctionRValue {
   def scReturnType = StaticListDatatype()
 
   override def writeTcApplication(ctx : Context, args : List[Expression]) : DynamicLocation = {
@@ -79,7 +79,7 @@ case class ReturnBuiltin() extends StaticRValue with AbstractFunctionRValue {
   }
 }
 
-case class DiagInvBuiltin() extends StaticRValue with AbstractFunctionRValue {
+case class DiagInvBuiltin() extends StaticValue with AbstractFunctionRValue {
   def scReturnType = StaticListDatatype()
 
   override def writeTcApplication(ctx : Context, args : List[Expression]) : DynamicLocation = {
@@ -98,7 +98,7 @@ case class DiagInvBuiltin() extends StaticRValue with AbstractFunctionRValue {
   }
 }
 
-case class InstantiateFieldBuiltin() extends StaticRValue with AbstractFunctionRValue {
+case class InstantiateFieldBuiltin() extends StaticValue with AbstractFunctionRValue {
   def scReturnType = FieldDatatype()
 
   override def writeTcApplication(ctx : Context, args : List[Expression]) : DynamicLocation = {
@@ -115,7 +115,7 @@ case class InstantiateFieldBuiltin() extends StaticRValue with AbstractFunctionR
   }
 }
 
-case class ListAppendBuiltin() extends StaticRValue with AbstractFunctionRValue {
+case class ListAppendBuiltin() extends StaticValue with AbstractFunctionRValue {
   def scReturnType = UnitDatatype()
 
   override def writeTcApplication(ctx : Context, args : List[Expression]) : DynamicLocation = {

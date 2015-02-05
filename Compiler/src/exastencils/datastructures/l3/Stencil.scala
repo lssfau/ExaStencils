@@ -9,7 +9,7 @@ object StencilOffset {
     c match {
       case ListStaticValue(el) =>
         new StencilOffset(el map {
-          case IntegerRValue(v) => v
+          case StaticInteger(v) => v
           case _                => throw new Exception("Stencil offsets need to be integers.")
         })
     }
@@ -31,7 +31,7 @@ class StencilOffset(coordinates : List[Int]) {
     }
   }
 
-  def toSc() = ListStaticValue(coordinates map { IntegerRValue(_) })
+  def toSc() = ListStaticValue(coordinates map { StaticInteger(_) })
 
   def isZero = coordinates forall { _ == 0 }
 }
@@ -39,7 +39,7 @@ class StencilOffset(coordinates : List[Int]) {
 object StencilEntry {
   def apply(e : StaticValue) : StencilEntry = {
     e match {
-      case ListStaticValue(List(offset, FloatRValue(value))) =>
+      case ListStaticValue(List(offset, StaticReal(value))) =>
         new StencilEntry(StencilOffset(offset), value)
       case _ =>
         throw new Exception("Stencil entry needs to be a list and a float.")
@@ -53,7 +53,7 @@ class StencilEntry(val offset : StencilOffset, val value : Double) {
   }
 
   def toSc() = {
-    ListStaticValue(List(offset.toSc(), FloatRValue(value)))
+    ListStaticValue(List(offset.toSc(), StaticReal(value)))
   }
 
   def invertValue() = new StencilEntry(offset, 1 / value)
