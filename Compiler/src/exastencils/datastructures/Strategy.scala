@@ -40,7 +40,7 @@ abstract class Strategy(val name : String) {
   }
 
   /**
-    *  Executes a given transformation
+    *  Executes a given [[exastencils.datastructures.Transformation]].
     *
     *  @param transformation The [[exastencils.datastructures.Transformation]] to be executed.
     *  @param node Specifies the source node where the [[exastencils.datastructures.Transformation]] starts to traverse the program state.
