@@ -58,12 +58,7 @@ object ResolveLoopOverDimensions extends DefaultStrategy("Resolving LoopOverDime
 
 object ResolveLoopOverPoints extends DefaultStrategy("Resolving ResolveLoopOverPoints nodes") {
   val collector = new StackCollector
-
-  override def apply(node : Option[Node] = None) : Unit = {
-    StateManager.register(collector)
-    super.apply(node)
-    StateManager.unregister(collector)
-  }
+  this.register(collector)
 
   this += new Transformation("Resolving", {
     case loop : LoopOverPoints =>
@@ -73,12 +68,7 @@ object ResolveLoopOverPoints extends DefaultStrategy("Resolving ResolveLoopOverP
 
 object ResolveSlotOperationsStrategy extends DefaultStrategy("ResolveSlotOperations") {
   var collector = new StackCollector
-
-  override def apply(node : Option[Node] = None) : Unit = {
-    StateManager.register(collector)
-    super.apply(node)
-    StateManager.unregister(collector)
-  }
+  this.register(collector)
 
   this += new Transformation("SearchAndReplace", {
     case slotAccess : SlotAccess => slotAccess.expandSpecial

@@ -10,12 +10,7 @@ object MergeConditions extends DefaultStrategy("Fuse Conditions") {
   private val collector = new StackCollector()
   private var parent : Node = null
   private var mergeInto : ConditionStatement = null
-
-  override def apply(node : Option[Node] = None) : Unit = {
-    StateManager.register(collector)
-    super.apply(node)
-    StateManager.unregister(collector)
-  }
+  this.register(collector)
 
   this += new Transformation("now", new PartialFunction[Node, Transformation.OutputType] {
     override def isDefinedAt(node : Node) : Boolean = {

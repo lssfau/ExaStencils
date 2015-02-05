@@ -144,7 +144,7 @@ class DefaultStrategy(name : String) extends Strategy(name) {
 
   protected def executeStandaloneInternal(transformation : Transformation, node : Node) : Unit = {
     Logger.info(s"""Applying strategy "${name}::${transformation.name}" in standalone mode""")
-    val result = StateManager.applyStandalone(transformation, node)
+    val result = StateManager.applyStandalone(this, transformation, node)
     Logger.debug(s"""Result of strategy "${name}::${transformation.name}" in standalone mode: $result""")
     results_ += ((transformation, result))
   }

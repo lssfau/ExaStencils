@@ -17,6 +17,13 @@ import exastencils.logger._
 object StateManager {
   def root = root_ // FIXME remove this
   var root_ : Node = null // FIXME make this protected
+  var strategies_ = Stack[Strategy]()
+  
+  /** Dummy strategy that is used internally to encapsulate finds. */
+  protected case object FindStrategy extends Strategy("Statemanager::internal::FindStrategy")
+  
+    /** Dummy node that is used internally to signal that a Transformation did not match a given node. */
+  protected case object NoMatch extends Node
 
   // ###############################################################################################
   // #### Checkpointing ############################################################################
@@ -69,6 +76,7 @@ object StateManager {
       if (currentToken != None) throw new TransactionException(s"""Strategy "${strategy.name}": Another transaction is currently running!""")
       val ret = new TransactionToken(currentTokenCounter)
       currentToken = Some(ret)
+      strategies_.push(strategy)
       return ret
     }
 
@@ -76,12 +84,14 @@ object StateManager {
       if (currentToken == None) throw new TransactionException("No currently running transaction!")
       if (!isValid(token)) throw new TransactionException("Wrong token supplied, transaction not committed!")
       currentToken = None
+      strategies_.pop()
     }
 
     def abort(token : TransactionToken) : Unit = {
       if (currentToken == None) throw new TransactionException("No currently running transaction!")
       if (!isValid(token)) throw new TransactionException("Wrong token supplied, transaction not committed!")
       currentToken = None
+      strategies_.pop()
       Logger.warning("Transaction has been aborted")
     }
 
@@ -91,39 +101,6 @@ object StateManager {
   def commit(token : History.TransactionToken) = History.commit(token)
   def abort(token : History.TransactionToken) = History.abort(token)
   type TokenType = History.TransactionToken
-
-  // ###############################################################################################
-  // #### Collectors ###############################################################################
-  // ###############################################################################################
-
-  protected object Collectors {
-    protected var collectors_ = new ListBuffer[Collector]
-
-    def notifyEnter(node : Node) = { collectors_.foreach(c => c.enter(node)) }
-    def notifyLeave(node : Node) = { collectors_.foreach(c => c.leave(node)) }
-    def reset() = { collectors_.foreach(c => c.reset()) }
-
-    def register(c : Collector) = { collectors_ += c }
-    def unregister(c : Collector) = { collectors_ -= c }
-    def unregisterAll() = { collectors_.clear }
-  }
-
-  /**
-    * Register a Collector with StateManager.
-    *
-    * @param c The Collector to be added.
-    */
-  def register(c : Collector) = { Collectors.register(c) }
-
-  /**
-    * Unregister a Collector from StateManager.
-    *
-    * @param c The Collector be removed.
-    */
-  def unregister(c : Collector) = { Collectors.unregister(c) }
-
-  /** Unregister all currently registered Collectors from StateManager. */
-  def unregisterAll() = { Collectors.unregisterAll }
 
   // ###############################################################################################
   // #### Transformationen & Matching ##############################################################
@@ -147,9 +124,6 @@ object StateManager {
     override def toString = { s"Transformation Progress: $matches match(es)" }
   }
   protected val progresses_ = new HashMap[Transformation, TransformationProgress]
-
-  /** Dummy node that is used internally to signal that a Transformation did not match a given node. */
-  protected case object NoMatch extends Node
 
   /**
     * Function that is called by applyAtNode in case there was no match.
@@ -184,7 +158,7 @@ object StateManager {
     * @param transformation The Transformation to be applied.
     */
   protected def replace(node : Node, transformation : Transformation) : Unit = {
-    Collectors.notifyEnter(node)
+    strategies_.top.notifyEnter(node)
 
     Vars(node).foreach(pair => {
       val getter = pair._1 // extract getter method to read element from node
@@ -404,7 +378,7 @@ object StateManager {
         case _ => // 
       }
     })
-    Collectors.notifyLeave(node)
+    strategies_.top.notifyLeave(node)
   }
 
   /**
@@ -420,7 +394,7 @@ object StateManager {
       throw new RuntimeException(s"Invalid transaction token for transformation ${transformation.name}")
     }
     try {
-      Collectors.reset()
+      strategies_.top.resetCollectors()
       progresses_.+=((transformation, new TransformationProgress))
       replace(node.getOrElse(root), transformation)
       return new TransformationResult(true, progresses_(transformation).getMatches)
@@ -436,18 +410,24 @@ object StateManager {
   }
 
   /**
-    * Apply a Transformation to the current program state without supplying a TransactionToken.
+    * Apply a [[exastencils.datastructures.Transformation]] to the current program state without supplying a TransactionToken.
     *
     * Warning: This is dangerous and not encouraged!
     *
-    * @param transformation The Transformation to be applied.
+    * @param strategy The [[exastencils.datastructures.Strategy]] this [[exastencils.datastructures.Transformation]] is part of.
+    * @param transformation The [[exastencils.datastructures.Transformation]] to be applied.
     * @param node An optional node that is treated as the starting point ("root") for the Transaction.
     * @return Statistics about matches.
     */
-  def applyStandalone(transformation : Transformation, node : Node) : TransformationResult = {
+  def applyStandalone(strategy : Strategy, transformation : Transformation, node : Node) : TransformationResult = {
     try {
       progresses_.+=((transformation, new TransformationProgress))
+      strategies_.push(strategy)
       replace(node, transformation)
+      var s = strategies_.pop()
+      if(s != strategy) {
+        Logger.error(s"""Mismatch of Standalone Strategy: Expected "${strategy.name}", got "${s.name}"""")
+      }
       return new TransformationResult(true, progresses_(transformation).getMatches)
     } catch {
       case x : TransformationException => {
@@ -472,7 +452,10 @@ object StateManager {
     * @return A List containing all instances of Nodes of type T.
     */
   def findAll[T <: AnyRef : ClassTag](node : Node) : List[T] = {
-    findAll[T]({ x : Any => x match { case _ : T => true; case _ => false } }, node)
+    strategies_.push(FindStrategy)
+    var ret = findAll[T]({ x : Any => x match { case _ : T => true; case _ => false } }, node)
+    strategies_.pop
+    ret
   }
 
   /**
@@ -489,7 +472,9 @@ object StateManager {
     }, true)
 
     progresses_.+=((t, new TransformationProgress))
+    strategies_.push(FindStrategy)
     replace(node, t)
+    strategies_.pop
     retVal.toList
   }
 
@@ -507,7 +492,10 @@ object StateManager {
     * @return An instance of type T, or None.
     */
   def findFirst[T <: AnyRef : ClassTag](node : Node) : Option[T] = {
-    findFirst[T]({ x : Any => x match { case _ : T => true; case _ => false } }, node)
+    strategies_.push(FindStrategy)
+    var ret = findFirst[T]({ x : Any => x match { case _ : T => true; case _ => false } }, node)
+    strategies_.pop()
+    ret
   }
 
   /**
@@ -524,7 +512,9 @@ object StateManager {
     }, false)
 
     progresses_.+=((t, new TransformationProgress))
+    strategies_.push(FindStrategy)
     replace(node, t)
+    strategies_.pop
     retVal
   }
 

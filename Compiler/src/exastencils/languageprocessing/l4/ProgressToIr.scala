@@ -18,13 +18,8 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
 
   protected var functions = new HashSet[Tuple2[String, Integer]]
 
-  override def apply(node : Option[Node] = None) = {
-    StateManager.register(levelCollector)
-    StateManager.register(valueCollector)
-    super.apply(node);
-    StateManager.unregister(levelCollector)
-    StateManager.unregister(valueCollector)
-  }
+  this.register(levelCollector)
+  this.register(valueCollector)
 
   def doDuplicate[T <: HasIdentifier](t : T, level : LevelSpecification) : List[T] = {
     var ts = new ListBuffer[T]()

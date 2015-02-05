@@ -14,16 +14,16 @@ object CollectCommInformation extends DefaultStrategy("Collecting information re
 
   override def apply(node : Option[Node] = None) = {
     commCollector.reset()
-    StateManager.register(commCollector)
+    this.register(commCollector)
     super.apply(node)
-    StateManager.unregister(commCollector)
+    this.unregister(commCollector)
   }
 
   override def applyStandalone(node : Node) = {
     commCollector.reset()
-    StateManager.register(commCollector)
+    this.register(commCollector)
     super.applyStandalone(node)
-    StateManager.unregister(commCollector)
+    this.unregister(commCollector)
   }
 
   this += new Transformation("Collect", { // FIXME: add visitor strategy defining dummy trafo?

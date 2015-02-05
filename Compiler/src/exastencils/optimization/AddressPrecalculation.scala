@@ -25,9 +25,9 @@ object AddressPrecalculation extends CustomStrategy("Perform address precalculat
     Logger.info("Applying strategy " + name)
 
     val annotate = new AnnotateLoopsAndAccesses()
-    StateManager.register(annotate)
+    this.register(annotate)
     this.execute(new Transformation("Find relevant loops and accesses", PartialFunction.empty))
-    StateManager.unregister(annotate)
+    this.unregister(annotate)
 
     this.execute(new Transformation("Optimize", IntegrateAnnotations))
 

@@ -77,11 +77,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   }
 
   private def extractPolyModel() : Seq[Scop] = {
-
     val extr = new Extractor()
-    StateManager.register(extr)
+    this.register(extr)
     this.execute(new Transformation("extract model", PartialFunction.empty))
-    StateManager.unregister(extr)
+    this.unregister(extr)
 
     val scops : Seq[Scop] = extr.scops
 

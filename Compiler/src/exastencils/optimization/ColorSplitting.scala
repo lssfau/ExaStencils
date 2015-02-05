@@ -14,12 +14,7 @@ import exastencils.util._
 object ColorSplitting extends DefaultStrategy("Color Splitting") {
 
   private val nrColors = 2
-
-  override def apply(node : Option[Node] = None) : Unit = {
-    StateManager.register(ColorCondCollector)
-    super.apply(node)
-    StateManager.unregister(ColorCondCollector)
-  }
+  this.register(ColorCondCollector)
 
   this += new Transformation("now", new PartialFunction[Node, Transformation.OutputType] {
 

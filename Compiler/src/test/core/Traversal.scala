@@ -16,12 +16,7 @@ object Traversal {
 
     val s = new DefaultStrategy("Printing Strategy") {
       val collector = new exastencils.core.collectors.StackCollector;
-
-      override def apply(node : Option[Node] = None) = {
-        StateManager.register(collector)
-        super.apply(node)
-        StateManager.unregister(collector)
-      }
+      this.register(collector)
 
       this += new Transformation("Printing here...!", {
         case n : Any =>

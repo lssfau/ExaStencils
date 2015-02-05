@@ -22,9 +22,9 @@ object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") 
     Logger.info("Applying strategy " + name)
 
     val annotate = new Analyze()
-    StateManager.register(annotate)
+    this.register(annotate)
     this.execute(new Transformation("analyze", PartialFunction.empty))
-    StateManager.unregister(annotate)
+    this.unregister(annotate)
 
     this.execute(new Transformation("adapt", Adapt))
 

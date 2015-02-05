@@ -14,14 +14,13 @@ object TypeInference extends CustomStrategy("Type inference") {
   private[optimization] final val TYPE_ANNOT = "InfType"
 
   override def apply() : Unit = {
-
     this.transaction()
     Logger.info("Applying strategy " + name)
 
     val annotate = new AnnotateStringConstants()
-    StateManager.register(annotate)
+    this.register(annotate)
     this.execute(new Transformation("infer types", PartialFunction.empty))
-    StateManager.unregister(annotate)
+    this.unregister(annotate)
 
     this.execute(new Transformation("replace nodes", CreateVariableAccesses))
 

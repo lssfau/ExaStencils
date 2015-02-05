@@ -2,6 +2,8 @@ package exastencils.datastructures
 
 import exastencils.core._
 import exastencils.logger._
+import exastencils.core.collectors.Collector
+import scala.collection.mutable.ListBuffer
 
 /**
   * A Strategy encapsulates [[exastencils.datastructures.Transformation]]s to be applied to the program state.
@@ -10,6 +12,7 @@ import exastencils.logger._
   */
 abstract class Strategy(val name : String) {
   protected var token : Option[StateManager.TokenType] = None
+  private var collectors = ListBuffer[Collector]()
 
   /** Opens a new Transaction with StateManager. */
   protected def transaction() : Unit = {
@@ -27,6 +30,42 @@ abstract class Strategy(val name : String) {
     Logger.info(s"""Aborting Strategy "$name"""")
     StateManager.abort(token.get)
   }
+
+  /**
+    * Registers a [[exastencils.core.collectors.Collector]] with this Strategy.
+    *
+    * @param c The [[exastencils.core.collectors.Collector]] to be added.
+    */
+  def register(c : Collector) = { collectors += c }
+
+  /**
+    * Notifies the [[exastencils.core.collectors.Collector]]s that a [[exastencils.datastructures.Node]] has been entered.
+    *
+    * @param node The [[exastencils.datastructures.Node]] that has been entered.
+    */
+  def notifyEnter(node : Node) = { collectors.foreach(c => c.enter(node)) }
+
+  /**
+    * Notifies the [[exastencils.core.collectors.Collector]]s that a [[exastencils.datastructures.Node]] has been left.
+    *
+    * @param node The [[exastencils.datastructures.Node]] that has been left.
+    */
+  def notifyLeave(node : Node) = { collectors.foreach(c => c.leave(node)) }
+
+  /**
+    * Resets all [[exastencils.core.collectors.Collector]]s of this strategy.
+    */
+  def resetCollectors() = { collectors.foreach(c => c.reset()) }
+
+  /**
+    * Unregister a [[exastencils.core.collectors.Collector]] from this Strategy.
+    *
+    * @param c The [[exastencils.core.collectors.Collector]] to be removed.
+    */
+  def unregister(c : Collector) = { collectors -= c }
+
+  /** Unregister all currently registered [[exastencils.core.collectors.Collector]]s from this Strategy. */
+  def unregisterAll() = { collectors.clear }
 
   /**
     *  Executes a given [[exastencils.datastructures.Transformation]].

@@ -16,12 +16,7 @@ import exastencils.util._
 
 object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices") {
   val collector = new IRLevelCollector
-
-  override def apply(node : Option[Node] = None) : Unit = {
-    StateManager.register(collector)
-    super.apply(node)
-    StateManager.unregister(collector)
-  }
+  this.register(collector)
 
   this += new Transformation("ModifyIndices", {
     case access : FieldAccess if SimplifyExpression.evalIntegral(access.fieldSelection.level) < collector.getCurrentLevel => {
@@ -53,12 +48,7 @@ object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices"
 
 object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
   var collector = new StackCollector
-
-  override def apply(node : Option[Node] = None) : Unit = {
-    StateManager.register(collector)
-    super.apply(node)
-    StateManager.unregister(collector)
-  }
+  this.register(collector)
 
   this += new Transformation("SearchAndReplace", {
     case FunctionCallExpression(StringConstant("diag"), args) => args(0) match {
@@ -80,12 +70,7 @@ object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
 
 object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions") {
   var collector = new StackCollector
-
-  override def apply(node : Option[Node] = None) : Unit = {
-    StateManager.register(collector)
-    super.apply(node)
-    StateManager.unregister(collector)
-  }
+  this.register(collector)
 
   this += new Transformation("SearchAndReplace", {
     // HACK to implement min/max functions
