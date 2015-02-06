@@ -35,7 +35,8 @@ fi
 
 echo ""
 echo ""
-for log in $(ls "${LOG_DIR}/*.log"); do
+cd "${LOG_DIR}"
+for log in $(ls *.log); do
   TEST_LOG="${LOG_DIR}/${log}"
   echo "======================================================================="
   cat "${TEST_LOG}"
@@ -50,7 +51,6 @@ done
 
 if [[ -n "${TO_ZIP}" ]]; then
   ERROR_ARCHIVE="${LOG_DIR}/ErrorLogs.7z"
-  cd "${LOG_DIR}"
   7z a "${ERROR_ARCHIVE}" ${TO_ZIP}
   echo ""
   echo ""
