@@ -187,7 +187,7 @@ object Knowledge {
   var l3tmp_genHDepStencils : Boolean = false // [true|false] // generates stencils dependent on the grid width h
 
   /// functionality test
-  var l3tmp_exactSolution : String = "Zero" // specifies which function (type) is used for the solution/ rhs is used; allowed options are 'Zero', 'Polynomial', 'Trigonometric' and 'InvSqrt'
+  var l3tmp_exactSolution : String = "Zero" // specifies which function (type) is used for the solution/ rhs is used; allowed options are 'Zero', 'Polynomial' and 'Trigonometric'
   var l3tmp_genNonZeroRhs : Boolean = false // generates more complex variants of the chosen solution function resulting in non-trival right hand sides
   var l3tmp_genExtFields : Boolean = false // adds one or more external fields to the L4 DSL file to test generation of subsequent functions
   var l3tmp_genGlobalOmega : Boolean = false // treats l3tmp_omega as a global (modifiable) parameter 

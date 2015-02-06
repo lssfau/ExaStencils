@@ -33,11 +33,6 @@ object Functions {
               else
                 "( sinf ( M_PI * xPos ) * sinf ( M_PI * yPos ) * sinhf ( sqrt ( 2.0 ) * M_PI * zPos ) )"
           }
-        case "InvSqrt" =>
-          Knowledge.dimensionality match {
-            case 2 => "( 1.0 / sqrt ( xPos * xPos + yPos * yPos ) )"
-            case 3 => "( 1.0 / sqrt ( xPos * xPos + yPos * yPos + zPos * zPos ) )"
-          }
       }
     }
   }

@@ -31,7 +31,6 @@ l3tmp_generateL4			= true
 //l3tmp_exactSolution			= "Zero"
 l3tmp_exactSolution			= "Polynomial"
 //l3tmp_exactSolution			= "Trigonometric"
-//l3tmp_exactSolution			= "InvSqrt"
 
 l3tmp_printError			= true
 l3tmp_useMaxNormForError	= false
