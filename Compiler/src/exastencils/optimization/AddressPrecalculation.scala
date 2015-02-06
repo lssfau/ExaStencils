@@ -64,9 +64,9 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     val res = new StringBuilder()
     for (c : Char <- cpp)
       c match {
-        case '[' | '.' | '%' | '+' => res.append('_')
-        case ']' | '(' | ')' | ' ' =>
-        case _                     => res.append(c)
+        case '[' | '.' | '%' | '+' | '-' => res.append('_')
+        case ']' | '(' | ')' | ' '       =>
+        case _                           => res.append(c)
       }
     return res.toString()
   }
