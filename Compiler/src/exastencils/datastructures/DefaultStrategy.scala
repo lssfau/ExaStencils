@@ -63,7 +63,7 @@ class DefaultStrategy(name : String) extends Strategy(name) {
     * @return The list of [[exastencils.datastructures.TransformationResult]]s of the given [[exastencils.datastructures.Transformation]].
     */
   def findResults(transformation : Transformation) = {
-    results_.filter(p => p == transformation)
+    results_.filter(p => p._1 == transformation)
   }
 
   /**
