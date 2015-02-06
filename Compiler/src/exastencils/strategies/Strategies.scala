@@ -278,9 +278,9 @@ object CleanUnusedStuff extends DefaultStrategy("Cleaning up unused stuff") {
     case FunctionCallExpression(name, _) if emptyFunctions.contains(name.prettyprint) => NullExpression
   })
 
-  this += new Transformation("Removing null-statements", {
-    case ExpressionStatement(NullExpression) => List()
-    case NullStatement                       => List()
-  })
+  //  this += new Transformation("Removing null-statements", {
+  //    case ExpressionStatement(NullExpression) => List()
+  //    case NullStatement                       => List()
+  //  })
 }
 
