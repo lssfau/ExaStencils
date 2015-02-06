@@ -1,6 +1,6 @@
 package exastencils.knowledge
 
-object Hardware {
+object Platform {
 
   // TODO: check which flags are required
 

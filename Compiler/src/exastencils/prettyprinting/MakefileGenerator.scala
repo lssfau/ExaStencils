@@ -10,9 +10,9 @@ object MakefileGenerator extends BuildfileGenerator {
     val filesToConsider = PrettyprintingManager.getFiles ++ Settings.additionalFiles
     val cppFileNames = filesToConsider.filter(file => file.endsWith(".cpp")).toList.sorted
 
-    printer <<< "CXX = " + Hardware.compiler
-    printer <<< "CFLAGS = " + Hardware.cflags + " " + Hardware.addcflags
-    printer <<< "LFLAGS = " + Hardware.ldflags + " " + Hardware.addldflags
+    printer <<< "CXX = " + Platform.compiler
+    printer <<< "CFLAGS = " + Platform.cflags + " " + Platform.addcflags
+    printer <<< "LFLAGS = " + Platform.ldflags + " " + Platform.addldflags
 
     printer <<< "BINARY = " + Settings.binary
     printer <<< ""

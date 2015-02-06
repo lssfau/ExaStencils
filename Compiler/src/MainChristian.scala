@@ -38,8 +38,8 @@ object MainChristian {
 
     Knowledge.update()
 
-    Hardware.compiler = "mpicxx"
-    Hardware.cflags = "-std=c++11"
+    Platform.compiler = "mpicxx"
+    Platform.cflags = "-std=c++11"
 
     // HACK: this tests the new L4 capabilities
     var parserl3 = new ParserL3
