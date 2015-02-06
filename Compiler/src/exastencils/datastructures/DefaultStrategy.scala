@@ -96,7 +96,7 @@ class DefaultStrategy(name : String) extends Strategy(name) {
     //    }
 
     transaction()
-
+    this.resetCollectors()
     Logger.info(s"""Applying strategy "${name}"""")
     try {
       transformations_.foreach(transformation => {
@@ -129,6 +129,7 @@ class DefaultStrategy(name : String) extends Strategy(name) {
 
   def applyStandalone(node : Node) : Unit = {
     Logger.info(s"""Applying strategy "${name}" in standalone mode""")
+    this.resetCollectors()
     try {
       transformations_.foreach(transformation => {
         executeStandaloneInternal(transformation, node)
