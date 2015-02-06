@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=exatests
+#SBATCH --job-name=et_git
 #SBATCH -p idle
 #SBATCH -A idle
 #SBATCH -n 1

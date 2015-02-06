@@ -1,5 +1,4 @@
 #!/bin/bash
-#SBATCH --job-name=exatest_single
 #SBATCH -p idle
 #SBATCH -A idle
 #SBATCH -n 1

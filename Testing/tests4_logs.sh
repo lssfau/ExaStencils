@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=exatest_logs
+#SBATCH --job-name=et_logs
 #SBATCH -p idle
 #SBATCH -A idle
 #SBATCH -n 1
@@ -15,7 +15,6 @@ OUT_FILE_URL=${3} # url to ${OUT_FILE}
 ERROR_MARKER_NAME=${4}
 ERROR_MARKER=${5}
 LOG_DIR=${6}
-LOG_FILE_NAME=${7}
 
 
 echo "Collecting logs on machine ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
@@ -36,18 +35,16 @@ fi
 
 echo ""
 echo ""
-for dir in $(ls "${LOG_DIR}"); do
-  TEST_DIR="${LOG_DIR}/${dir}"
-  if [[ -d "${TEST_DIR}" ]]; then
-    echo "======================================================================="
-    cat "${TEST_DIR}/${LOG_FILE_NAME}"
-    echo ""
-    echo ""
-    TEST_ERROR_MARKER="${TEST_DIR}/${ERROR_MARKER_NAME}"
-    if [[ -f "${TEST_ERROR_MARKER}" ]]; then
-      rm "${TEST_ERROR_MARKER}"
-      TO_ZIP="${TO_ZIP} ${dir}"
-    fi
+for log in $(ls "${LOG_DIR}/*.log"); do
+  TEST_LOG="${LOG_DIR}/${log}"
+  echo "======================================================================="
+  cat "${TEST_LOG}"
+  echo ""
+  echo ""
+  TEST_ERROR_MARKER="${TEST_LOG}.${ERROR_MARKER_NAME}"
+  if [[ -f "${TEST_ERROR_MARKER}" ]]; then
+    rm "${TEST_ERROR_MARKER}"
+    TO_ZIP="${TO_ZIP} ${log}"
   fi
 done
 

@@ -1,5 +1,4 @@
 #!/bin/bash
-#SBATCH --job-name=exatest_generated
 #SBATCH --hint=nomultithread
 #SBATCH --cpu_bind=cores
 #SBATCH --exclusive

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=exatest_all
+#SBATCH --job-name=et_all
 #SBATCH -p idle
 #SBATCH -A idle
 #SBATCH -n 1
@@ -95,7 +95,6 @@ echo ""
 echo "Parse configuration file and enqueue subjobs:"
 echo ""
 
-LOG_FILE_NAME="out.log"
 declare -a TMP_ARRAY
 DEP_SIDS=""
 i=0
@@ -120,17 +119,15 @@ do
     continue
   fi
 
-  TEST_LOG_DIR="${LOG_DIR}/${id}/"
-  mkdir "${TEST_LOG_DIR}"
-  TEST_LOG="${TEST_LOG_DIR}/${LOG_FILE_NAME}"
-  TEST_ERROR_MARKER="${TEST_LOG_DIR}/${ERROR_MARKER_NAME}"
+  TEST_LOG="${LOG_DIR}/${id}.log"
+  TEST_ERROR_MARKER="${TEST_LOG}.${ERROR_MARKER_NAME}"
   TEST_BIN="${BIN_DIR}/${id}"
 
-  echo "Test ID:  ${id}" >> "${TEST_LOG}"
+  echo "Test ID:  ${id}" > "${TEST_LOG}"
 
   echo "Enqueue generation and compilation job for id  ${id}."
   # configuration is fine, start a new job for it
-  OUT=$(sbatch -o ${TEST_LOG} -e ${TEST_LOG} "${TESTING_DIR}/tests2_single.sh" "${TESTING_DIR}" "${COMPILER_JAR}" ${main} "${TEST_BIN}" "${TESTING_DIR}/${knowledge}" "${TEST_ERROR_MARKER}")
+  OUT=$(sbatch --job-name="etg_${id}" -o ${TEST_LOG} -e ${TEST_LOG} "${TESTING_DIR}/tests2_single.sh" "${TESTING_DIR}" "${COMPILER_JAR}" ${main} "${TEST_BIN}" "${TESTING_DIR}/${knowledge}" "${TEST_ERROR_MARKER}")
   if [[ $? -eq 0 ]]; then
     SID=${OUT#Submitted batch job }
     DEP_SIDS="${DEP_SIDS}:${SID}"
@@ -184,7 +181,7 @@ for ((i=0;i<${#TMP_ARRAY[@]};i+=9)); do
     CONSTR_PARAM=""
   fi
   echo "Enqueue execution job for id  ${id}."
-  OUT=$(sbatch -o ${TEST_LOG} -e ${TEST_LOG} -A ${ACC} -p ${PART} -n ${nodes} -c ${cores} ${TEST_DEP} ${CONSTR_PARAM} "${TESTING_DIR}/tests3_generated.sh" "${TEST_BIN}" "${TESTING_DIR}/${result}" "${TEST_ERROR_MARKER}")
+  OUT=$(sbatch --job-name="etr_${id}" -o ${TEST_LOG} -e ${TEST_LOG} -A ${ACC} -p ${PART} -n ${nodes} -c ${cores} ${TEST_DEP} ${CONSTR_PARAM} "${TESTING_DIR}/tests3_generated.sh" "${TEST_BIN}" "${TESTING_DIR}/${result}" "${TEST_ERROR_MARKER}")
   if [[ $? -eq 0 ]]; then
     SID=${OUT#Submitted batch job }
     DEP_SIDS="${DEP_SIDS}:${SID}"
@@ -197,5 +194,5 @@ done
 echo ""
 echo "Collect separate logs after all other jobs are finished:"
 LOG_DEPS="--dependency=afterany${DEP_SIDS}"
-(sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${TESTING_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${LOG_FILE_NAME}")
+(sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${TESTING_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}")
 echo ""
