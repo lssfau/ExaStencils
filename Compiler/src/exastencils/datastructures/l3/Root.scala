@@ -39,9 +39,11 @@ case class Root(var nodes : List[Node]) extends Node {
     }
 
     val stm_nodes = ctx.tcb.build
+    val field_nodes = ctx.fields.statements
     val stencil_nodes = ctx.stencils.statements
 
     val tcAst = ListBuffer[Node]()
+    tcAst ++= field_nodes
     tcAst ++= stencil_nodes
     tcAst ++= stm_nodes
     tcAst.toList

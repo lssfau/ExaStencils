@@ -32,10 +32,10 @@ myR := [
   [[ 1,  1], 0.0625]
 ]
 
-myF := field()
-myU := field()
-myWork := field()
-myDest := field()
+myF := field(0)
+myU := field(0)
+myWork := field(0)
+myDest := field(0)
 
 Function jacobi(dest : Field, L : Stencil, f : Field, u : Field, omega : Real, work : Field) : Unit
 {

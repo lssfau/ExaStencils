@@ -41,3 +41,23 @@ class Environment(parent : Option[Environment] = None) {
   def boundIdentifier() = map.keySet.toList
 }
 
+/**
+  * This is a store for a static value.
+  *  This corresponds to a cell in Lisp, e.g.
+  */
+class StaticLocation(var value : StaticValue = NilStaticValue()) {
+  //override
+  def scType = LocationDatatype()
+
+  def write(newValue : StaticValue) {
+    value = newValue
+  }
+
+  def read() = value
+}
+
+case class StaticConstant(v : StaticValue = NilStaticValue()) extends StaticLocation(v) {
+  override def write(newValue : StaticValue) {
+    throw new Exception("Attempt to update a constant value.")
+  }
+}

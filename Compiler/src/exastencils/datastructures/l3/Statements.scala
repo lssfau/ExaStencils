@@ -72,6 +72,8 @@ case class FunctionInstantiationStatement(
   override def writeTc(ctx : Context) {
     import ctx.env
 
+    /** @todo We need to implement closure to make this function correctly. */
+
     val fun = env.lookup(functionId).read match {
       case fun : FunctionRValue => fun
       case _                    => Logger.error("Expected a function")

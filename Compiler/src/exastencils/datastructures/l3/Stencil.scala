@@ -2,14 +2,13 @@
 package exastencils.datastructures.l3
 
 import exastencils.datastructures.l4
-import scala.collection.mutable.ListBuffer
 
 object StencilOffset {
   def apply(c : StaticValue) : StencilOffset = {
     c match {
       case ListStaticValue(el) =>
         new StencilOffset(el map {
-          case IntegerRValue(v) => v
+          case StaticInteger(v) => v
           case _                => throw new Exception("Stencil offsets need to be integers.")
         })
     }
@@ -31,7 +30,7 @@ class StencilOffset(coordinates : List[Int]) {
     }
   }
 
-  def toSc() = ListStaticValue(coordinates map { IntegerRValue(_) })
+  def toSc() = ListStaticValue(coordinates map { StaticInteger(_) })
 
   def isZero = coordinates forall { _ == 0 }
 }
@@ -39,7 +38,7 @@ class StencilOffset(coordinates : List[Int]) {
 object StencilEntry {
   def apply(e : StaticValue) : StencilEntry = {
     e match {
-      case ListStaticValue(List(offset, FloatRValue(value))) =>
+      case ListStaticValue(List(offset, StaticReal(value))) =>
         new StencilEntry(StencilOffset(offset), value)
       case _ =>
         throw new Exception("Stencil entry needs to be a list and a float.")
@@ -53,7 +52,7 @@ class StencilEntry(val offset : StencilOffset, val value : Double) {
   }
 
   def toSc() = {
-    ListStaticValue(List(offset.toSc(), FloatRValue(value)))
+    ListStaticValue(List(offset.toSc(), StaticReal(value)))
   }
 
   def invertValue() = new StencilEntry(offset, 1 / value)
@@ -102,28 +101,4 @@ class Stencil(val entries : List[StencilEntry]) {
   def diagInv() : Stencil = {
     new Stencil((entries filter { _.atZero }) map { _.invertValue() })
   }
-}
-
-/** Manages the code for all automatically generated stencils. */
-class StencilManager {
-
-  // add a stencil and return its identifier
-  private val stms = ListBuffer[l4.SpecialStatement]()
-  def statements = stms
-
-  private var idCount = 0
-
-  def genId() : String = {
-    idCount += 1
-    "__stencil_id%02d".format(idCount)
-  }
-
-  def add(s : ListStaticValue) : String = {
-    val id = genId()
-
-    stms += Stencil(s).toTc(id)
-
-    id
-  }
-
 }
