@@ -98,8 +98,7 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
       access = new ArrayAccess(access, neigh)
 
     // last-minute resolving, e.g. relative level array accesses
-    // FIXME: this leads to conflicts with trafos using specialized collectors (e.g. address precalculation)
-    //SimplifyStrategy.doUntilDoneStandalone(access)
+    SimplifyStrategy.doUntilDoneStandalone(access)
 
     access
   }
