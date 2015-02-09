@@ -150,7 +150,7 @@ object MainL3 {
     SetupDataStructures.apply()
     SetupCommunication.apply()
 
-    ResolveSpecialFunctions.apply()
+    ResolveSpecialFunctionsAndConstants.apply()
 
     ResolveLoopOverPoints.apply()
     ResolveIntergridIndices.apply()

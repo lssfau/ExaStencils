@@ -135,7 +135,7 @@ object VariabilityParser {
 
     FindStencilConvolutions.apply()
 
-    ResolveSpecialFunctions.apply()
+    ResolveSpecialFunctionsAndConstants.apply()
 
     SetupDataStructures.apply()
 

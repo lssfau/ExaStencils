@@ -150,7 +150,7 @@ object MainAlex {
 
     FindStencilConvolutions.apply()
 
-    ResolveSpecialFunctions.apply()
+    ResolveSpecialFunctionsAndConstants.apply()
 
     SetupDataStructures.apply()
 

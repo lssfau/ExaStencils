@@ -98,7 +98,7 @@ object Solve {
       printer.println("\tnative ( \"std::normal_distribution<" + (if (Knowledge.useDblPrecision) "double" else "float") + "> distribution(0.0, 1.0)\" )")
       printer.println("\tnative ( \"auto randn = std::bind ( distribution, generator )\" )")
 
-      printer.println(s"\tVariable tau2 : Real = myGamma ( nu ) / ( myGamma ( nu + 0.5 ) * (( 4.0 * M_PI ) ** ( dim / 2.0 )) * ( kappa ** ( 2 * nu )) * sigma * sigma )")
+      printer.println(s"\tVariable tau2 : Real = myGamma ( nu ) / ( myGamma ( nu + 0.5 ) * (( 4.0 * PI ) ** ( dim / 2.0 )) * ( kappa ** ( 2 * nu )) * sigma * sigma )")
       printer.println(s"\tloop over RHS_GMRF@finest {")
       printer.println(s"\t\tRHS_GMRF@finest = randn ( ) / ${(Knowledge.domain_numFragsTotal_x - 2 * Knowledge.l3tmp_kelvin_numHaloFrags) * (1 << Knowledge.maxLevel)}")
       printer.println(s"\t}")

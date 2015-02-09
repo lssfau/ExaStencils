@@ -47,7 +47,7 @@ object Extractor {
   /** set of symbolic constants that must not be modeled as read accesses (these must be constant inside a scop) */
   private final val symbolicConstants : HashSet[String] = {
     val c = new HashSet[String]()
-    c.add("M_PI")
+    //c.add("M_PI") -> not required as instances of Pi are resolved beforehand
     c
   }
 

@@ -97,8 +97,9 @@ object Main {
 
     SetupDataStructures.apply()
     SetupCommunication.apply()
+    ExpandOnePassStrategy.apply(StateManager.findFirst[CommunicationFunctions]()) // pre-expand to allow for replacements in boundary handling routines
 
-    ResolveSpecialFunctions.apply()
+    ResolveSpecialFunctionsAndConstants.apply()
 
     ResolveLoopOverPoints.apply()
     ResolveIntergridIndices.apply()
