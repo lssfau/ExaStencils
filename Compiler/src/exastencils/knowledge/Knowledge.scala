@@ -66,6 +66,7 @@ object Knowledge {
   def domain_numFragsTotal_y : Int = domain_numFragsPerBlock_y * domain_numBlocks_y
   def domain_numFragsTotal_z : Int = domain_numFragsPerBlock_z * domain_numBlocks_z
   def domain_numFragsTotal : Int = domain_numFragsTotal_x * domain_numFragsTotal_y * domain_numFragsTotal_z
+  def domain_numFragsTotalPerDim(index : Int) : Int = Array(domain_numFragsTotal_x, domain_numFragsTotal_y, domain_numFragsTotal_z)(index)
 
   // the length of each fragment per dimension - this will either be one or specify the length in unit-fragments, i.e. the number of aggregated fragments per dimension
   var domain_fragLength_x : Int = 1
@@ -220,6 +221,11 @@ object Knowledge {
   var advTimer_timerType : String = "Chrono" // may be one of the following: 'Chrono', 'QPC', 'WIN_TIME', 'UNIX_TIME', 'MPI_TIME', 'RDSC', 'WINDOWS_RDSC'
   var advTimer_enableCallStacks : Boolean = false // generates call stacks for all employed timers
 
+  /// experimental features
+  var experimental_Neumann : Boolean = false // highly experimental -> use only if you know what you are doing
+  var experimental_NeumannOrder : Int = 2 // may currently be 1 or 2
+  var experimental_NeumannNormalize : Boolean = false // normalize solution after each v-cycle
+
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {
@@ -262,6 +268,14 @@ object Knowledge {
     Constraints.condEnsureValue(omp_useCollapse, false, "IBMXL" == targetCompiler, "omp collapse is currently not fully supported by the IBM XL compiler")
 
     // update constraints
+    Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, experimental_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
+    Constraints.condEnsureValue(l3tmp_genHDepStencils, true, experimental_Neumann, "l3tmp_genHDepStencils is required for Neumann boundary conditions")
+    Constraints.condEnsureValue(l3tmp_exactSolution, "Trigonometric", experimental_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
+    Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, experimental_Neumann, "l3tmp_genTemporalBlocking is currently not compatible for Neumann boundary conditions")
+    Constraints.condEnsureValue(l3tmp_genStencilFields, false, experimental_Neumann, "l3tmp_genTemporalBlocking is currently not compatible for Neumann boundary conditions")
+    Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, experimental_Neumann, "l3tmp_genTemporalBlocking is currently not compatible for Neumann boundary conditions")
+    Constraints.condEnsureValue(experimental_NeumannOrder, 2, experimental_Neumann && experimental_NeumannOrder < 1 || experimental_NeumannOrder > 2, "experimental_OrderNeumann must be between 1 and 2")
+
     Constraints.condEnsureValue(l3tmp_numPre, l3tmp_numPre - (l3tmp_numPre % 2), "Jac" == l3tmp_smoother && !l3tmp_useSlotsForJac,
       "Number of pre-smoothing steps has to be divisible by 2 if Jacobi is used but slotting is disabled")
     Constraints.condEnsureValue(l3tmp_numPost, l3tmp_numPost - (l3tmp_numPost % 2), "Jac" == l3tmp_smoother && !l3tmp_useSlotsForJac,
@@ -297,7 +311,7 @@ object Knowledge {
     Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, maxLevel, l3tmp_genTemporalBlocking && l3tmp_tempBlockingMinLevel > maxLevel, "l3tmp_tempBlockingMinLevel must be smaller or equal to maxLevel to enable temporal blocking")
     Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, 1 + minLevel, !l3tmp_genTemporalBlocking, "l3tmp_tempBlockingMinLevel reset to default for deactivated l3tmp_genTemporalBlocking")
 
-    Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, "Polynomial" != l3tmp_exactSolution, "non-trivial rhs are currently only supported for polynomial solutions")
+    Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, "Polynomial" != l3tmp_exactSolution && !experimental_Neumann, "non-trivial rhs are currently only supported for polynomial solutions")
     Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, l3tmp_genStencilFields, "non-trivial rhs are currently not compatible with stencil fields")
     Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_genNonZeroRhs, "non-trivial rhs requires the usage of grid width dependent stencils")
     Constraints.condEnsureValue(l3tmp_genHDepStencils, false, l3tmp_genStencilFields, "grid width dependent stencils are currently not compatible with stencil fields")

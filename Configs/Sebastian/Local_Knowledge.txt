@@ -29,8 +29,15 @@ opt_unroll					= 1
 l3tmp_generateL4			= true
 
 //l3tmp_exactSolution			= "Zero"
-l3tmp_exactSolution			= "Polynomial"
-//l3tmp_exactSolution			= "Trigonometric"
+//l3tmp_exactSolution			= "Polynomial"
+l3tmp_exactSolution			= "Trigonometric"
 
 l3tmp_printError			= true
 l3tmp_useMaxNormForError	= false
+
+/*
+experimental_Neumann			= true
+experimental_NeumannOrder		= 2
+experimental_NeumannNormalize	= true
+l3tmp_printFieldAtEnd			= true
+*/

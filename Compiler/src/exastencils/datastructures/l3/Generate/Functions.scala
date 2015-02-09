@@ -3,13 +3,18 @@ package exastencils.datastructures.l3
 import exastencils.knowledge._
 
 object Functions {
-  def solFunction = {
+  def solFunction : String = {
     if (Knowledge.l3tmp_genNonZeroRhs) {
       Knowledge.l3tmp_exactSolution match {
         case "Polynomial" =>
           Knowledge.dimensionality match {
             case 2 => "( xPos * xPos * xPos + yPos * yPos * yPos )"
             case 3 => "( xPos * xPos * xPos + yPos * yPos * yPos + zPos * zPos * zPos )"
+          }
+        case "Trigonometric" if Knowledge.experimental_Neumann =>
+          Knowledge.dimensionality match {
+            case 2 => "cos ( 2.0 * M_PI * xPos ) * cos ( 2.0 * M_PI * yPos )"
+            case 3 => "cos ( M_PI * xPos ) * cos ( M_PI * yPos ) * cos ( M_PI * zPos )"
           }
       }
     } else {
@@ -37,13 +42,18 @@ object Functions {
     }
   }
 
-  def rhsFunction = {
+  def rhsFunction : String = {
     if (Knowledge.l3tmp_genNonZeroRhs) {
       Knowledge.l3tmp_exactSolution match {
         case "Polynomial" =>
           Knowledge.dimensionality match {
             case 2 => "( -6.0 * ( xPos + yPos ) )"
             case 3 => "( -6.0 * ( xPos + yPos + zPos ) )"
+          }
+        case "Trigonometric" if Knowledge.experimental_Neumann =>
+          Knowledge.dimensionality match {
+            case 2 => "8.0 * M_PI * M_PI * cos ( 2.0 * M_PI * xPos ) * cos ( 2.0 * M_PI * yPos )"
+            case 3 => "12.0 * M_PI * M_PI * cos ( 2.0 * M_PI * xPos ) * cos ( 2.0 * M_PI * yPos ) * cos ( 2.0 * M_PI * zPos )"
           }
       }
     } else {

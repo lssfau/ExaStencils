@@ -31,6 +31,19 @@ object Solve {
     if (!Knowledge.l3tmp_genForAutoTests)
       printer.println("\t\tstartTimer ( stopWatch )")
     printer.println("\t\tVCycle@finest (  )")
+
+    if (Knowledge.experimental_NeumannNormalize) {
+      printer.println(s"\t\tVar integral : Real = 0.0")
+      printer.println(s"\t\tloop over Solution[currentSlot]@current where x > 0 && y > 0 with reduction( + : integral ) {")
+      printer.println(s"\t\t\tintegral += Solution[currentSlot]@current")
+      printer.println(s"\t\t}")
+      printer.println(s"\t\tintegral /= ${(0 until Knowledge.dimensionality).map(dim => Knowledge.domain_numFragsTotalPerDim(dim) * (1 << Knowledge.maxLevel) - 1).reduce((a, b) => a * b)}.0")
+      printer.println(s"\t\tloop over Solution[currentSlot]@current {")
+      printer.println(s"\t\t\tSolution[currentSlot]@current -= integral")
+      printer.println(s"\t\t}")
+      printer.println(s"\t\tapply bc to Solution[currentSlot]@current")
+    }
+
     if (Knowledge.l3tmp_genAsyncCommunication)
       printer.println("\t\tUpResidual@finest ( 0 )")
     else
