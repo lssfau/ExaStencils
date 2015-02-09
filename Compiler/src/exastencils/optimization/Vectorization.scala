@@ -301,7 +301,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
                 }
             }
 
-          val aligned : Boolean = Knowledge.data_alignDataPointers && (const.getOrElse(0L) % Knowledge.simd_vectorSize) == 0
+          val aligned : Boolean = (Knowledge.data_alignFieldPointers && Knowledge.data_alignTmpBufferPointers) && (const.getOrElse(0L) % Knowledge.simd_vectorSize) == 0
           var init : Option[Expression] =
             if (ctx.isLoad() && !ctx.isStore())
               Some(createLoadExpression(expr, base, ind, const.getOrElse(0L), access1, aligned, ctx))

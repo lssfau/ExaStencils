@@ -358,7 +358,7 @@ case class FieldData(var field : Field, var level : Expression, var slot : Expre
     resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, level.prettyprint, "")
 
   override def getDtor() : Option[Statement] = {
-    if (Knowledge.data_alignDataPointers) {
+    if (Knowledge.data_alignFieldPointers) {
       val origSlot = slot
       slot = "slot"
       var access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
@@ -375,7 +375,7 @@ case class FieldData(var field : Field, var level : Expression, var slot : Expre
     ctors += (resolveName -> getCtor().get)
     dtors += (resolveName -> getDtor().get)
 
-    if (Knowledge.data_alignDataPointers)
+    if (Knowledge.data_alignFieldPointers)
       basePtr.registerIV(declarations, ctors, dtors)
   }
 }
@@ -413,7 +413,7 @@ case class TmpBuffer(var field : Field, var direction : String, var size : Expre
   override def resolveName = s"buffer_${direction}" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
 
   override def getDtor() : Option[Statement] = {
-    if (Knowledge.data_alignDataPointers) {
+    if (Knowledge.data_alignTmpBufferPointers) {
       var access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
       Some(wrapInLoops(new AssignmentStatement(access, 0)))
     } else {
@@ -426,7 +426,7 @@ case class TmpBuffer(var field : Field, var direction : String, var size : Expre
     ctors += (resolveName -> getCtor().get)
     dtors += (resolveName -> getDtor().get)
 
-    if (Knowledge.data_alignDataPointers)
+    if (Knowledge.data_alignTmpBufferPointers)
       basePtr.registerIV(declarations, ctors, dtors)
   }
 }
