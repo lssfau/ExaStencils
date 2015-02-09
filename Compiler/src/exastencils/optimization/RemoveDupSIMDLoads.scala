@@ -51,7 +51,7 @@ private[optimization] final class Analyze extends Collector {
         }
 
       case decl @ VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp,
-        Some(load @ SIMD_LoadExpression(UnaryExpression(UnaryOperators.AddressOf, ArrayAccess(base, index)), aligned))) =>
+        Some(load @ SIMD_LoadExpression(UnaryExpression(UnaryOperators.AddressOf, ArrayAccess(base, index, _)), aligned))) =>
 
         val indSum : HashMap[Expression, Long] = SimplifyExpression.extractIntegralSum(index)
         val other = loads.get((base, indSum))

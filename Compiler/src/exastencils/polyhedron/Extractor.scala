@@ -410,27 +410,27 @@ class Extractor extends Collector {
           case VariableAccess(varName, _) =>
             enterScalarAccess(varName)
 
-          case ArrayAccess(array @ StringConstant(varName), index) =>
+          case ArrayAccess(array @ StringConstant(varName), index, _) =>
             array.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(varName, index)
 
-          case ArrayAccess(array @ VariableAccess(varName, _), index) =>
+          case ArrayAccess(array @ VariableAccess(varName, _), index, _) =>
             array.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(varName, index)
 
-          case ArrayAccess(ppVec : iv.PrimitivePositionBegin, index) =>
+          case ArrayAccess(ppVec : iv.PrimitivePositionBegin, index, _) =>
             ppVec.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(ppVec.prettyprint(), index)
 
-          case ArrayAccess(ppVec : iv.PrimitivePositionEnd, index) =>
+          case ArrayAccess(ppVec : iv.PrimitivePositionEnd, index, _) =>
             ppVec.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(ppVec.prettyprint(), index)
 
-          case ArrayAccess(tmp : iv.TmpBuffer, index) =>
+          case ArrayAccess(tmp : iv.TmpBuffer, index, _) =>
             tmp.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(tmp.prettyprint(), index)
@@ -462,7 +462,7 @@ class Extractor extends Collector {
 
           // deny
           case e : ExpressionStatement    => throw new ExtractionException("cannot deal with ExprStmt: " + e.prettyprint())
-          case ArrayAccess(a, _)          => throw new ExtractionException("ArrayAccess to base " + a.getClass() + " not yet implemented")
+          case ArrayAccess(a, _, _)       => throw new ExtractionException("ArrayAccess to base " + a.getClass() + " not yet implemented")
           case f : FunctionCallExpression => throw new ExtractionException("function call not in set of allowed ones: " + f.prettyprint())
           case x : Any                    => throw new ExtractionException("cannot deal with " + x.getClass())
         }

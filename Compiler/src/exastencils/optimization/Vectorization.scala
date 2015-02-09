@@ -247,7 +247,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
   private def vectorizeExpr(expr : Expression, ctx : LoopCtx) : Expression = {
     return expr match {
-      case ArrayAccess(base, index) =>
+      case ArrayAccess(base, index, _) =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp) {
           val ind : HashMap[Expression, Long] = SimplifyExpression.extractIntegralSum(index)

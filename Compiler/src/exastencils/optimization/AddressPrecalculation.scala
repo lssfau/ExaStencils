@@ -139,7 +139,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         node.annotate(DECLS_ANNOT, d)
 
       // ArrayAccess with a constant index only cannot be optimized further
-      case a @ ArrayAccess(base, index) if (!decls.isEmpty && !index.isInstanceOf[IntegerConstant]) =>
+      case a @ ArrayAccess(base, index, _) if (!decls.isEmpty && !index.isInstanceOf[IntegerConstant]) =>
         var name : String = generateName(base)
         val (decl : HashMap[String, ArrayBases], loopVar) = decls.top
         val (in : Expression, outMap : HashMap[Expression, Long]) = splitIndex(index, loopVar)

@@ -57,7 +57,8 @@ case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborI
 
   def expand : Output[Statement] = {
     val tmpBufAccess = new ArrayAccess(iv.TmpBuffer(field.field, s"Send_${concurrencyId}", indices.getSizeHigher, neighbor.index),
-      Mapping.resolveMultiIdx(new MultiIndex(LoopOverDimensions.defIt, indices.begin, _ - _), indices))
+      Mapping.resolveMultiIdx(new MultiIndex(LoopOverDimensions.defIt, indices.begin, _ - _), indices),
+      false && Knowledge.data_alignTmpBufferPointers /* change here if aligned vector operations are possible for tmp buffers */ )
     val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt)
 
     new LoopOverDimensions(Knowledge.dimensionality + 1, indices, new AssignmentStatement(tmpBufAccess, fieldAccess)) with OMP_PotentiallyParallel with PolyhedronAccessable
@@ -69,7 +70,8 @@ case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : Neighbo
 
   def expand : Output[Statement] = {
     val tmpBufAccess = new ArrayAccess(iv.TmpBuffer(field.field, s"Recv_${concurrencyId}", indices.getSizeHigher, neighbor.index),
-      Mapping.resolveMultiIdx(new MultiIndex(LoopOverDimensions.defIt, indices.begin, _ - _), indices))
+      Mapping.resolveMultiIdx(new MultiIndex(LoopOverDimensions.defIt, indices.begin, _ - _), indices),
+      false && Knowledge.data_alignTmpBufferPointers /* change here if aligned vector operations are possible for tmp buffers */ )
     val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt)
 
     new LoopOverDimensions(Knowledge.dimensionality + 1, indices, new AssignmentStatement(fieldAccess, tmpBufAccess)) with OMP_PotentiallyParallel with PolyhedronAccessable
