@@ -32,13 +32,13 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
   // IMPORTANT: must match and extend all possible bounds for LoopOverDimensions inside a ContractingLoop
   private def extendBounds(expr : Expression, extent : Int) : Expression = {
     expr match {
-      case oInd @ OffsetIndex(0, 1, _, ArrayAccess(_ : iv.IterationOffsetBegin, _)) =>
+      case oInd @ OffsetIndex(0, 1, _, ArrayAccess(_ : iv.IterationOffsetBegin, _, _)) =>
         oInd.maxOffset += extent
         oInd.index = SimplifyExpression.simplifyIntegralExpr(oInd.index - extent)
         oInd.offset = SimplifyExpression.simplifyIntegralExpr(oInd.offset * (extent + 1))
         oInd
 
-      case oInd @ OffsetIndex(-1, 0, _, ArrayAccess(_ : iv.IterationOffsetEnd, _)) =>
+      case oInd @ OffsetIndex(-1, 0, _, ArrayAccess(_ : iv.IterationOffsetEnd, _, _)) =>
         oInd.minOffset -= extent
         oInd.index = SimplifyExpression.simplifyIntegralExpr(oInd.index + extent)
         oInd.offset = SimplifyExpression.simplifyIntegralExpr(oInd.offset * (extent + 1))

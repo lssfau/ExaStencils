@@ -40,8 +40,8 @@ private final class ArrayBases(val arrayName : String) {
   private val inits = new HashMap[HashMap[Expression, Long], (String, Expression)]()
   private var idCount = 0
 
-  def getName(initVec : HashMap[Expression, Long], base : Expression) : String = {
-    inits.getOrElseUpdate(initVec, { idCount += 1; (arrayName + "_p" + idCount, new ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(initVec))) })._1
+  def getName(initVec : HashMap[Expression, Long], base : Expression, al : Boolean) : String = {
+    inits.getOrElseUpdate(initVec, { idCount += 1; (arrayName + "_p" + idCount, new ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(initVec), al)) })._1
   }
 
   def addToDecls(decls : ListBuffer[Statement]) : Unit = {
@@ -139,18 +139,18 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         node.annotate(DECLS_ANNOT, d)
 
       // ArrayAccess with a constant index only cannot be optimized further
-      case a @ ArrayAccess(base, index) if (!decls.isEmpty && !index.isInstanceOf[IntegerConstant]) =>
+      case a @ ArrayAccess(base, index, al) if (!decls.isEmpty && !index.isInstanceOf[IntegerConstant]) =>
         var name : String = generateName(base)
         val (decl : HashMap[String, ArrayBases], loopVar) = decls.top
         val (in : Expression, outMap : HashMap[Expression, Long]) = splitIndex(index, loopVar)
         val bases : ArrayBases = decl.getOrElseUpdate(name, new ArrayBases(name))
-        name = bases.getName(outMap, base)
+        name = bases.getName(outMap, base, al)
         val dType : Option[Datatype] =
           base match {
             case fd : FieldData => Some(ConstPointerDatatype(fd.field.dataType.resolveUnderlyingDatatype))
             case _              => None
           }
-        a.annotate(REPL_ANNOT, new ArrayAccess(new VariableAccess(name, dType), in))
+        a.annotate(REPL_ANNOT, new ArrayAccess(new VariableAccess(name, dType), in, al))
 
       case _ => // ignore
     }

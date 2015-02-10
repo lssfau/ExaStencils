@@ -68,14 +68,21 @@ object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
   })
 }
 
-object ResolveSpecialFunctions extends DefaultStrategy("ResolveSpecialFunctions") {
+object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpecialFunctionsAndConstants") {
   var collector = new StackCollector
   this.register(collector)
 
   this += new Transformation("SearchAndReplace", {
+    // constants
+    case StringConstant("PI") | StringConstant("M_PI") | StringConstant("Pi") => FloatConstant(math.Pi)
+
+    // TODO: grid widths
+
+    // functions
+
     // HACK to implement min/max functions
-    case FunctionCallExpression(StringConstant("min"), args) => MinimumExpression(args)
-    case FunctionCallExpression(StringConstant("max"), args) => MaximumExpression(args)
+    case FunctionCallExpression(StringConstant("min"), args)                  => MinimumExpression(args)
+    case FunctionCallExpression(StringConstant("max"), args)                  => MaximumExpression(args)
 
     // FIXME: UGLY HACK to realize native code functionality
     case FunctionCallExpression(StringConstant("native"), args) =>

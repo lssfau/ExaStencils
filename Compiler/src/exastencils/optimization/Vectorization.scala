@@ -247,7 +247,8 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
   private def vectorizeExpr(expr : Expression, ctx : LoopCtx) : Expression = {
     return expr match {
-      case ArrayAccess(base, index) =>
+      // TODO: do not vectorize if base is not aligned?
+      case ArrayAccess(base, index, alignedBase) =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp) {
           val ind : HashMap[Expression, Long] = SimplifyExpression.extractIntegralSum(index)
@@ -301,10 +302,10 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
                 }
             }
 
-          val aligned : Boolean = Knowledge.data_alignDataPointers && (const.getOrElse(0L) % Knowledge.simd_vectorSize) == 0
+          val aligned : Boolean = alignedBase && (const.getOrElse(0L) % Knowledge.simd_vectorSize) == 0
           var init : Option[Expression] =
             if (ctx.isLoad() && !ctx.isStore())
-              Some(createLoadExpression(expr, base, ind, const.getOrElse(0L), access1, aligned, ctx))
+              Some(createLoadExpression(expr, base, ind, const.getOrElse(0L), access1, aligned, alignedBase, ctx))
             else if (!ctx.isLoad() && ctx.isStore())
               None
             else
@@ -314,7 +315,10 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         }
         if (ctx.isStore()) {
           val (aligned : Boolean, access1 : Boolean) = ctx.getAlignAndAccess1(vecTmp)
-          if (access1) throw new VectorizationException("parallel store to a single memory location")
+          if (access1)
+            throw new VectorizationException("parallel store to a single memory location")
+          if (!aligned && !alignedBase)
+            throw new VectorizationException("cannot vectorize store: array is not aligned, but unaligned accesses should be avoided")
           ctx.storesTmp += SIMD_StoreStatement(UnaryExpression(UnaryOperators.AddressOf, expr),
             VariableAccess(vecTmp, Some(SIMD_RealDatatype())), aligned)
         }
@@ -376,18 +380,20 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
   private def createLoadExpression(oldExpr : Expression, base : Expression,
     index : HashMap[Expression, Long], indexConst : Long,
-    access1 : Boolean, aligned : Boolean, ctx : LoopCtx) : Expression = {
+    access1 : Boolean, aligned : Boolean, alignedBase : Boolean, ctx : LoopCtx) : Expression = {
 
     if (access1)
       return SIMD_Load1Expression(UnaryExpression(UnaryOperators.AddressOf, oldExpr))
     else if (aligned || !Knowledge.simd_avoidUnaligned)
       return SIMD_LoadExpression(UnaryExpression(UnaryOperators.AddressOf, oldExpr), aligned)
+    else if (!alignedBase)
+      throw new VectorizationException("cannot vectorize load: array is not aligned, but unaligned accesses should be avoided")
     else { // avoid unaligned load
       val lowerConst : Long = indexConst & ~(Knowledge.simd_vectorSize - 1)
       index(SimplifyExpression.constName) = lowerConst
-      val lowerExpr = vectorizeExpr(ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(index)), ctx).asInstanceOf[VariableAccess]
+      val lowerExpr = vectorizeExpr(ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(index), true), ctx).asInstanceOf[VariableAccess]
       index(SimplifyExpression.constName) = lowerConst + Knowledge.simd_vectorSize
-      val upperExpr = vectorizeExpr(ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(index)), ctx).asInstanceOf[VariableAccess]
+      val upperExpr = vectorizeExpr(ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(index), true), ctx).asInstanceOf[VariableAccess]
       return SIMD_ConcShift(lowerExpr, upperExpr, (indexConst - lowerConst).toInt)
     }
   }

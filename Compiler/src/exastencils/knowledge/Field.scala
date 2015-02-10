@@ -92,7 +92,7 @@ case class Field(
     var fieldLayout : FieldLayout, // represents the number of data points and their distribution in each dimension
     var level : Int, // the (geometric) level the field lives on 
     var numSlots : Int, // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
-    var dirichletBC : Option[Expression] // None in case of no dirichlet BC, otherwise specifies the expression to be used for the dirichlet boundary
+    var boundaryConditions : Option[Expression] // None if no explicit boundary handling is given, otherwise specifies the expression to be used for the dirichlet boundary or Neumann as magic identifier
     ) {
   // shortcuts to layout options  
   def dataType = fieldLayout.dataType

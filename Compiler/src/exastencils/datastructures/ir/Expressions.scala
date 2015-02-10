@@ -163,7 +163,7 @@ case class VariableAccess(var name : String, var dType : Option[Datatype] = None
   override def prettyprint(out : PpStream) : Unit = out << name
 }
 
-case class ArrayAccess(var base : Expression, var index : Expression) extends Access {
+case class ArrayAccess(var base : Expression, var index : Expression, var alignedAccessPossible : Boolean = false) extends Access {
   override def prettyprint(out : PpStream) : Unit = {
     index match {
       case ind : MultiIndex => out << base << ind
@@ -264,7 +264,7 @@ case class ExternalFieldAccess(var name : Expression, var field : ExternalField,
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ExternalFieldAccess\n"
 
   def linearize : ArrayAccess = {
-    new ArrayAccess(name, Mapping.resolveMultiIdx(field.fieldLayout, index))
+    new ArrayAccess(name, Mapping.resolveMultiIdx(field.fieldLayout, index), false)
   }
 }
 
@@ -272,7 +272,7 @@ case class LinearizedFieldAccess(var fieldSelection : FieldSelection, var index 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LinearizedFieldAccess\n"
 
   override def expand : Output[Expression] = {
-    new ArrayAccess(new iv.FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx), index)
+    new ArrayAccess(new iv.FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx), index, Knowledge.data_alignFieldPointers)
   }
 }
 

@@ -19,19 +19,19 @@ object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expre
       a.src = simplify(src)
       a
 
-    case a @ AssignmentStatement(ArrayAccess(VariableAccess(_, Some(PointerDatatype(RealDatatype()))), _), src, op) =>
+    case a @ AssignmentStatement(ArrayAccess(VariableAccess(_, Some(PointerDatatype(RealDatatype()))), _, _), src, op) =>
       a.src = simplify(src)
       a
 
-    case a @ AssignmentStatement(ArrayAccess(VariableAccess(_, Some(ConstPointerDatatype(RealDatatype()))), _), src, op) =>
+    case a @ AssignmentStatement(ArrayAccess(VariableAccess(_, Some(ConstPointerDatatype(RealDatatype()))), _, _), src, op) =>
       a.src = simplify(src)
       a
 
-    case a @ AssignmentStatement(ArrayAccess(VariableAccess(_, Some(ArrayDatatype(RealDatatype(), _))), _), src, op) =>
+    case a @ AssignmentStatement(ArrayAccess(VariableAccess(_, Some(ArrayDatatype(RealDatatype(), _))), _, _), src, op) =>
       a.src = simplify(src)
       a
 
-    case a @ AssignmentStatement(ArrayAccess(fd : iv.FieldData, _), src, op) //
+    case a @ AssignmentStatement(ArrayAccess(fd : iv.FieldData, _, _), src, op) //
     if (fd.field.dataType.resolveUnderlyingDatatype == RealDatatype()) =>
       a.src = simplify(src)
       a

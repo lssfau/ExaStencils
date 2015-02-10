@@ -3,13 +3,18 @@ package exastencils.datastructures.l3
 import exastencils.knowledge._
 
 object Functions {
-  def solFunction = {
+  def solFunction : String = {
     if (Knowledge.l3tmp_genNonZeroRhs) {
       Knowledge.l3tmp_exactSolution match {
         case "Polynomial" =>
           Knowledge.dimensionality match {
             case 2 => "( xPos * xPos * xPos + yPos * yPos * yPos )"
             case 3 => "( xPos * xPos * xPos + yPos * yPos * yPos + zPos * zPos * zPos )"
+          }
+        case "Trigonometric" if Knowledge.experimental_Neumann =>
+          Knowledge.dimensionality match {
+            case 2 => "cos ( 2.0 * PI * xPos ) * cos ( 2.0 * PI * yPos )"
+            case 3 => "cos ( PI * xPos ) * cos ( PI * yPos ) * cos ( PI * zPos )"
           }
       }
     } else {
@@ -24,26 +29,31 @@ object Functions {
           Knowledge.dimensionality match {
             case 2 =>
               if (Knowledge.useDblPrecision)
-                "( sin ( M_PI * xPos ) * sinh ( M_PI * yPos ) )"
+                "( sin ( PI * xPos ) * sinh ( PI * yPos ) )"
               else
-                "( sinf ( M_PI * xPos ) * sinhf ( M_PI * yPos ) )"
+                "( sinf ( PI * xPos ) * sinhf ( PI * yPos ) )"
             case 3 =>
               if (Knowledge.useDblPrecision)
-                "( sin ( M_PI * xPos ) * sin ( M_PI * yPos ) * sinh ( sqrt ( 2.0 ) * M_PI * zPos ) )"
+                "( sin ( PI * xPos ) * sin ( PI * yPos ) * sinh ( sqrt ( 2.0 ) * PI * zPos ) )"
               else
-                "( sinf ( M_PI * xPos ) * sinf ( M_PI * yPos ) * sinhf ( sqrt ( 2.0 ) * M_PI * zPos ) )"
+                "( sinf ( PI * xPos ) * sinf ( PI * yPos ) * sinhf ( sqrt ( 2.0 ) * PI * zPos ) )"
           }
       }
     }
   }
 
-  def rhsFunction = {
+  def rhsFunction : String = {
     if (Knowledge.l3tmp_genNonZeroRhs) {
       Knowledge.l3tmp_exactSolution match {
         case "Polynomial" =>
           Knowledge.dimensionality match {
             case 2 => "( -6.0 * ( xPos + yPos ) )"
             case 3 => "( -6.0 * ( xPos + yPos + zPos ) )"
+          }
+        case "Trigonometric" if Knowledge.experimental_Neumann =>
+          Knowledge.dimensionality match {
+            case 2 => "8.0 * PI * PI * cos ( 2.0 * PI * xPos ) * cos ( 2.0 * PI * yPos )"
+            case 3 => "12.0 * PI * PI * cos ( 2.0 * PI * xPos ) * cos ( 2.0 * PI * yPos ) * cos ( 2.0 * PI * zPos )"
           }
       }
     } else {
