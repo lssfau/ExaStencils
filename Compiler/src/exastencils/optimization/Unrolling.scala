@@ -240,7 +240,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
 
     override def applyStandalone(node : Node) : Unit = {
       val oldLvl = Logger.getLevel
-      Logger.setLevel(1)
+      Logger.setLevel(Logger.WARNING)
       super.applyStandalone(node)
       Logger.setLevel(oldLvl)
     }

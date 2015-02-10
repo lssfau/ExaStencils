@@ -110,7 +110,7 @@ private[optimization] final class Analyze extends Collector {
 
     override def applyStandalone(node : Node) : Unit = {
       val oldLvl = Logger.getLevel
-      Logger.setLevel(Logger.LEVEL_WARNING)
+      Logger.setLevel(Logger.WARNING)
       super.applyStandalone(node)
       Logger.setLevel(oldLvl)
     }

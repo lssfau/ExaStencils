@@ -310,7 +310,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
     val replaceCallback = { (repl : Map[String, Expression], applyAt : Node) =>
       val oldLvl = Logger.getLevel
-      Logger.setLevel(1)
+      Logger.setLevel(Logger.WARNING)
       this.execute(
         new Transformation("update loop iterator", {
           case VariableAccess(str, _) if (repl.isDefinedAt(str)) => Duplicate(repl(str))

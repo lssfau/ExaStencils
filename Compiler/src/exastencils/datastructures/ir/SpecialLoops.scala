@@ -60,7 +60,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
       })
     }
     val oldLvl = Logger.getLevel
-    Logger.setLevel(1)
+    Logger.setLevel(Logger.WARNING)
     AdaptFieldSlots.applyStandalone(new Scope(stmts))
     Logger.setLevel(oldLvl)
   }

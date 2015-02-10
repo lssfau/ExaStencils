@@ -293,7 +293,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
                     throw new VectorizationException("no linear memory access;  " + expr.prettyprint())
                 })
                 val oldLvl = Logger.getLevel
-                Logger.setLevel(1)
+                Logger.setLevel(Logger.WARNING)
                 try {
                   // "wrap" expr to ensure expr itself is affected by trafo, too
                   containsLoopVar.applyStandalone(FreeStatement(expr))

@@ -16,18 +16,18 @@ object Logger {
   // Level 4: Info
 
   /** The level for displaying only errors. */
-  val LEVEL_ERROR = 0
+  val ERROR = 0
 
   /** The level for displaying errors and warnings. */
-  val LEVEL_WARNING = 1
+  val WARNING = 1
 
   /** The level for displaying errors, warnings and debug messages. */
-  val LEVEL_DEBUG = 2
+  val DEBUG = 2
 
   /** The level for displaying errors, warnings, debug messages and info messages. */
-  val LEVEL_INFO = 4
+  val INFO = 4
 
-  protected var current : Int = LEVEL_DEBUG
+  protected var current : Int = DEBUG
 
   /**
     * Returns the current logging level.

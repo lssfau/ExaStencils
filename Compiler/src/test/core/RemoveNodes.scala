@@ -33,7 +33,7 @@ object RemoveNodes {
     var s = new DefaultStrategy("MatchingTestStrategy")
     s += new Transformation("remove in im.HashSets", { case x : B if (x.zahl % 2 == 0) => x })
 
-    Logger.setLevel(10)
+    Logger.setLevel(Logger.INFO)
 
     println(s"""before: ${StateManager.root_}""")
     s.apply()

@@ -75,7 +75,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
 
   def doUntilDoneStandalone(node : Node) = {
     val oldLvl = Logger.getLevel
-    Logger.setLevel(1)
+    Logger.setLevel(Logger.WARNING)
     do { applyStandalone(node) }
     while (results.last._2.matches > 0) // FIXME: cleaner code
     Logger.setLevel(oldLvl)

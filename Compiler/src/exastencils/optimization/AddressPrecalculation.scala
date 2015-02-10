@@ -92,7 +92,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         })
       }
       val oldLvl = Logger.getLevel
-      Logger.setLevel(1)
+      Logger.setLevel(Logger.WARNING)
       contLoopVar.applyStandalone(new ReturnStatement(Some(expr))) // wrap to ensure ALL nodes of expr are visited
       Logger.setLevel(oldLvl)
       return res
