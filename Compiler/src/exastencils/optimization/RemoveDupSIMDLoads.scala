@@ -70,8 +70,12 @@ private[optimization] final class Analyze extends Collector {
               Some(SIMD_LoadExpression(UnaryExpression(UnaryOperators.AddressOf,
                 ArrayAccess(Duplicate(base), SimplifyExpression.simplifyIntegralExpr(upLoopVar.replaceDup(index)))), aligned)))
             decl.annotate(REPL_ANNOT, AssignmentStatement(VariableAccess(vecTmp, Some(SIMD_RealDatatype())), load, "="))
-            nextIt.get.annotate(REPL_ANNOT, VariableDeclarationStatement(SIMD_RealDatatype(), nextIt.get.name,
-              Some(VariableAccess(vecTmp, Some(SIMD_RealDatatype())))))
+            if (nextIt.get.hasAnnotation(REPL_ANNOT))
+              nextIt.get.annotate(REPL_ANNOT, AssignmentStatement(VariableAccess(nextIt.get.name, Some(SIMD_RealDatatype())),
+                VariableAccess(vecTmp, Some(SIMD_RealDatatype())), "=")) // TODO: check if this is always correct...
+            else
+              nextIt.get.annotate(REPL_ANNOT, VariableDeclarationStatement(SIMD_RealDatatype(), nextIt.get.name,
+                Some(VariableAccess(vecTmp, Some(SIMD_RealDatatype())))))
           }
         }
 

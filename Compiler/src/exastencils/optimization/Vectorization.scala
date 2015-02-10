@@ -317,7 +317,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
           val (aligned : Boolean, access1 : Boolean) = ctx.getAlignAndAccess1(vecTmp)
           if (access1)
             throw new VectorizationException("parallel store to a single memory location")
-          if (!aligned && !alignedBase)
+          if (!aligned && !alignedBase && Knowledge.simd_avoidUnaligned)
             throw new VectorizationException("cannot vectorize store: array is not aligned, but unaligned accesses should be avoided")
           ctx.storesTmp += SIMD_StoreStatement(UnaryExpression(UnaryOperators.AddressOf, expr),
             VariableAccess(vecTmp, Some(SIMD_RealDatatype())), aligned)
