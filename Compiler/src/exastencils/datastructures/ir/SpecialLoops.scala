@@ -400,19 +400,19 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
     if (parallelizable)
       statements += new ForLoopStatement(
         VariableDeclarationStatement(new IntegerDatatype, defIt, Some(0)),
-        LowerExpression(defIt, Knowledge.domain_numFragsPerBlock),
+        LowerExpression(defIt, Knowledge.domain_numFragmentsPerBlock),
         PreIncrementExpression(defIt),
         body,
         reduction) with OMP_PotentiallyParallel
     else
       statements += new ForLoopStatement(
         VariableDeclarationStatement(new IntegerDatatype, defIt, Some(0)),
-        LowerExpression(defIt, Knowledge.domain_numFragsPerBlock),
+        LowerExpression(defIt, Knowledge.domain_numFragmentsPerBlock),
         PreIncrementExpression(defIt),
         body,
         reduction)
 
-    if (Knowledge.useMPI && reduction.isDefined) {
+    if (Knowledge.mpi_enabled && reduction.isDefined) {
       statements += new MPI_Allreduce("&" ~ reduction.get.target, new RealDatatype, 1, reduction.get.op) // FIXME: get dt and cnt from reduction
     }
 

@@ -154,7 +154,7 @@ object VariabilityParser {
     do { ExpandStrategy.apply() }
     while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
 
-    if (!Knowledge.useMPI) {
+    if (!Knowledge.mpi_enabled) {
       RemoveMPIReferences.apply()
     }
 
@@ -163,7 +163,7 @@ object VariabilityParser {
 
     AddInternalVariables.apply()
 
-    if (Knowledge.useOMP) {
+    if (Knowledge.omp_enabled) {
       AddOMPPragmas.apply()
     }
 

@@ -54,7 +54,7 @@ object Layouts {
       printer.println(s"Layout ExtSolLayout< $fieldDatatype >@finest {")
       printer.println(s"\tghostLayers = [ ${genSet(_ => 0)} ]")
       printer.println(s"\tduplicateLayers = [ ${genSet(_ => 0)} ]")
-      printer.println(s"\tinnerPoints = [ ${genSet(i => (Knowledge.domain_fragLengthPerDim(i) * (1 << Knowledge.maxLevel)) + 1)} ]")
+      printer.println(s"\tinnerPoints = [ ${genSet(i => (Knowledge.domain_fragmentLengthAsVec(i) * (1 << Knowledge.maxLevel)) + 1)} ]")
       printer.println(s"}")
     }
 

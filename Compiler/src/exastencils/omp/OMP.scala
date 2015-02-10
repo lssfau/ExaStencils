@@ -45,8 +45,7 @@ case class OMP_ParallelFor(var body : ForLoopStatement, var addOMPStatements : L
   }
 
   def prettyprint(out : PpStream) : Unit = {
-    out << "#pragma omp parallel for schedule(static) num_threads("
-    out << math.max(Knowledge.domain_fragLength, Knowledge.domain_numFragsPerBlock) << ')' << addOMPStatements.mkString(" ", " ", "")
+    out << "#pragma omp parallel for schedule(static) num_threads(" << Knowledge.omp_numThreads << ')' << addOMPStatements.mkString(" ", " ", "")
     if (collapse > 1 && Knowledge.omp_version >= 3 && Knowledge.omp_useCollapse)
       out << " collapse(" << getCollapseLvl() << ')'
     out << '\n' << body

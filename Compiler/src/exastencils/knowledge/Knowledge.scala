@@ -42,38 +42,56 @@ object Knowledge {
 
   // --- Domain Decomposition ---
 
-  // specifies if fragments within one block should be aggregated 
-  // TODO: sanity check if compatible with chosen l3tmp_smoother
-  var domain_summarizeBlocks : Boolean = true // [true|false] // if true, fragments inside one block are aggregated into one bigger fragment
-  def domain_canHaveLocalNeighs : Boolean = (domain_numFragsPerBlock > 1) // specifies if fragments can have local (i.e.\ shared memory) neighbors, i.e.\ if local comm is required
-  def domain_canHaveRemoteNeighs : Boolean = (useMPI) // specifies if fragments can have remote (i.e.\ different mpi rank) neighbors, i.e.\ if mpi comm is required
+  /// general flags and information
 
-  // number of blocks per dimension - one block will usually be mapped to one MPI thread
-  var domain_numBlocks_x : Int = 3 // [1-inf]
-  var domain_numBlocks_y : Int = 3 // [1-inf]
-  var domain_numBlocks_z : Int = 3 // [1-inf]
-  def domain_numBlocks : Int = domain_numBlocks_x * domain_numBlocks_y * domain_numBlocks_z
+  // specifies if domains are to be read from file
+  var domain_readFromFile : Boolean = false
 
-  // number of fragments in each block per dimension - this will usually be one or represent the number of OMP threads per dimension
-  var domain_numFragsPerBlock_x : Int = 3 // [1-inf]
-  var domain_numFragsPerBlock_y : Int = 3 // [1-inf]
-  var domain_numFragsPerBlock_z : Int = 3 // [1-inf]
-  def domain_numFragsPerBlock : Int = domain_numFragsPerBlock_x * domain_numFragsPerBlock_y * domain_numFragsPerBlock_z
-  def domain_numFragsPerBlockPerDim(index : Int) : Int = Array(domain_numFragsPerBlock_x, domain_numFragsPerBlock_y, domain_numFragsPerBlock_z)(index)
+  // specifies if only rectangular domains are used 
+  var domain_onlyRectangular : Boolean = true
 
-  // the total number of fragments per dimension
-  def domain_numFragsTotal_x : Int = domain_numFragsPerBlock_x * domain_numBlocks_x
-  def domain_numFragsTotal_y : Int = domain_numFragsPerBlock_y * domain_numBlocks_y
-  def domain_numFragsTotal_z : Int = domain_numFragsPerBlock_z * domain_numBlocks_z
-  def domain_numFragsTotal : Int = domain_numFragsTotal_x * domain_numFragsTotal_y * domain_numFragsTotal_z
-  def domain_numFragsTotalPerDim(index : Int) : Int = Array(domain_numFragsTotal_x, domain_numFragsTotal_y, domain_numFragsTotal_z)(index)
+  // the total number of blocks - in case of domain_generateRectengular this is the product of domain_generate_numBlocks_{x|y|z}
+  var domain_numBlocks : Int = 1
+
+  // the number of fragments per block - in case of domain_generateRectengular this is the product of domain_generate_numFragsPerBlock_{x|y|z}
+  var domain_numFragmentsPerBlock : Int = 1
+
+  // the total number of fragments the computational domain is partitioned into
+  def domain_numFragmentsTotal : Int = domain_numBlocks * domain_numFragmentsPerBlock
 
   // the length of each fragment per dimension - this will either be one or specify the length in unit-fragments, i.e. the number of aggregated fragments per dimension
-  var domain_fragLength_x : Int = 1
-  var domain_fragLength_y : Int = 1
-  var domain_fragLength_z : Int = 1
-  def domain_fragLength : Int = domain_fragLength_x * domain_fragLength_y * domain_fragLength_z
-  def domain_fragLengthPerDim(index : Int) : Int = Array(domain_fragLength_x, domain_fragLength_y, domain_fragLength_z)(index)
+  var domain_fragmentLength_x : Int = 1
+  var domain_fragmentLength_y : Int = 1
+  var domain_fragmentLength_z : Int = 1
+  def domain_fragmentLengthAsVec : Array[Int] = Array(domain_fragmentLength_x, domain_fragmentLength_y, domain_fragmentLength_z)
+
+  /// specific flags for setting rectangular domains
+
+  // specifies if dynamic domain setup code is to be generated for rectangular domains
+  var domain_rect_generate : Boolean = true
+
+  // number of blocks to be generated per dimension - one block will usually be mapped to one MPI thread
+  var domain_rect_numBlocks_x : Int = 2
+  var domain_rect_numBlocks_y : Int = 2
+  var domain_rect_numBlocks_z : Int = 2
+
+  // number of fragments to be generated for each block per dimension - this will usually be one or be equal to the number of OMP threads per dimension
+  var domain_rect_numFragsPerBlock_x : Int = 1
+  var domain_rect_numFragsPerBlock_y : Int = 1
+  var domain_rect_numFragsPerBlock_z : Int = 1
+
+  // the total number of fragments to be generated per dimension
+  def domain_rect_numFragsTotal_x : Int = domain_rect_numFragsPerBlock_x * domain_rect_numBlocks_x
+  def domain_rect_numFragsTotal_y : Int = domain_rect_numFragsPerBlock_y * domain_rect_numBlocks_y
+  def domain_rect_numFragsTotal_z : Int = domain_rect_numFragsPerBlock_z * domain_rect_numBlocks_z
+  def domain_rect_numFragsTotal : Int = domain_rect_numFragsTotal_x * domain_rect_numFragsTotal_y * domain_rect_numFragsTotal_z
+  def domain_rect_numFragsTotalAsVec : Array[Int] = Array(domain_rect_numFragsTotal_x, domain_rect_numFragsTotal_y, domain_rect_numFragsTotal_z)
+
+  // TODO:  var domain_gridWidth_x,y,z
+
+  /// utility functions
+  def domain_canHaveLocalNeighs : Boolean = (domain_numFragmentsPerBlock > 1) // specifies if fragments can have local (i.e.\ shared memory) neighbors, i.e.\ if local comm is required
+  def domain_canHaveRemoteNeighs : Boolean = (domain_numBlocks > 1) // specifies if fragments can have remote (i.e.\ different mpi rank) neighbors, i.e.\ if mpi comm is required
 
   // === Layer 2 ===
 
@@ -121,8 +139,9 @@ object Knowledge {
   var comm_useNeighborArrays : Boolean = true // specifies if neighbor specific variables are summarized in array form
 
   // --- OpenMP Parallelization ---
-  var useOMP : Boolean = true // [true|false] // NOTE: currently set automatically if more than one fragment per block is present 
-  var omp_numThreads : Int = 1 // the number of omp threads to be used; may be incorporated in omp pragmas
+  var omp_enabled : Boolean = false // [true|false] 
+  var omp_numThreads : Int = 1 // TODO // the number of omp threads to be used; may be incorporated in omp pragmas
+
   def omp_version : Double = { // the maximum version of omp supported by the chosen compiler
     targetCompiler match {
       case "MSVC"  => 2.0
@@ -131,9 +150,9 @@ object Knowledge {
       case _       => Logger.error("Unsupported target compiler"); 0.0
     }
   }
-  var omp_parallelizeLoopOverFragments : Boolean = false // [true|false] // specifies if loops over fragments may be parallelized with omp if marked correspondingly
-  var omp_parallelizeLoopOverDimensions : Boolean = true // [true|false] // specifies if loops over dimensions may be parallelized with omp if marked correspondingly
-  var omp_useCollapse : Boolean = true // [true|false] // if true the 'collapse' directive may be used in omp for regions; this will only be done if the minimum omp version supports this
+  var omp_parallelizeLoopOverFragments : Boolean = true // [true|false] // specifies if loops over fragments may be parallelized with omp if marked correspondingly
+  var omp_parallelizeLoopOverDimensions : Boolean = false // [true|false] // specifies if loops over dimensions may be parallelized with omp if marked correspondingly
+  var omp_useCollapse : Boolean = false // [true|false] // if true the 'collapse' directive may be used in omp for regions; this will only be done if the minimum omp version supports this
   var omp_minWorkItemsPerThread : Int = 400 // [1-inf] // threshold specifying which loops yield enough workload to amortize the omp overhead
   def omp_requiresCriticalSections : Boolean = { // true if the chosen compiler / mpi version requires critical sections to be marked explicitly
     targetCompiler match {
@@ -145,7 +164,9 @@ object Knowledge {
   }
 
   // --- MPI Parallelization ---
-  var useMPI : Boolean = true // [true|false]
+  var mpi_enabled : Boolean = true // [true|false]
+  var mpi_numThreads : Int = 8 // TODO // the number of mpi threads to be used 
+
   var mpi_useCustomDatatypes : Boolean = false // [true|false] // allows to use custom mpi data types when reading from/ writing to fields thus circumventing temp send/ receive buffers
   var mpi_useLoopsWherePossible : Boolean = true // [true|false] // allows to summarize some code blocks into loops in order to shorten the resulting code length
   var mpi_defaultCommunicator : String = "MPI_COMM_WORLD" // sets the initial communicator used by most MPI operations
@@ -230,6 +251,25 @@ object Knowledge {
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {
+    Constraints.condEnsureValue(domain_rect_generate, false, !domain_onlyRectangular, "only rectangular domains can be generated")
+    Constraints.condEnsureValue(domain_readFromFile, true, !domain_rect_generate, "non-generated domains must be read from file")
+    Constraints.condEnsureValue(domain_rect_generate, false, domain_readFromFile, "domain_rect_generate is not allowed if domain_readFromFile is enabled")
+
+    Constraints.condEnsureValue(domain_rect_numBlocks_y, 1, domain_rect_generate && dimensionality < 2, "domain_rect_numBlocks_y must be set to 1 for problems with a dimensionality smaller 2")
+    Constraints.condEnsureValue(domain_rect_numBlocks_z, 1, domain_rect_generate && dimensionality < 3, "domain_rect_numBlocks_z must be set to 1 for problems with a dimensionality smaller 3")
+    Constraints.condEnsureValue(domain_rect_numFragsPerBlock_y, 1, domain_rect_generate && dimensionality < 2, "domain_rect_numFragsPerBlock_y must be set to 1 for problems with a dimensionality smaller 2")
+    Constraints.condEnsureValue(domain_rect_numFragsPerBlock_z, 1, domain_rect_generate && dimensionality < 3, "domain_rect_numFragsPerBlock_z must be set to 1 for problems with a dimensionality smaller 3")
+
+    Constraints.condEnsureValue(domain_fragmentLength_y, 1, dimensionality < 2, "domain_fragmentLength_y must be set to 1 for problems with a dimensionality smaller 2")
+    Constraints.condEnsureValue(domain_fragmentLength_z, 1, dimensionality < 3, "domain_fragmentLength_z must be set to 1 for problems with a dimensionality smaller 3")
+
+    if (domain_rect_generate) {
+      Constraints.updateValue(domain_numBlocks, domain_rect_numBlocks_x * domain_rect_numBlocks_y * domain_rect_numBlocks_z)
+      Constraints.updateValue(domain_numFragmentsPerBlock, domain_rect_numFragsPerBlock_x * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_z)
+    }
+
+    Constraints.condWarn(mpi_numThreads != domain_numBlocks, s"The number of mpi threads ($mpi_numThreads) differs from the number of blocks ($domain_numBlocks) -> this might lead to unexpected behavior")
+
     // NOTE: it is required to call update at least once
     Constraints.condEnsureValue(minLevel, 0, minLevel < 0, "minLevel must not be negative")
     Constraints.condEnsureValue(maxLevel, 0, maxLevel < 0, "maxLevel must not be negative")
@@ -240,33 +280,8 @@ object Knowledge {
     Constraints.condEnsureValue(simd_avoidUnaligned, false, !data_alignFieldPointers, "impossible to avoid unaligned accesses if data is not aligned")
     Constraints.condEnsureValue(data_alignFieldPointers, true, opt_vectorize && "QPX" == simd_instructionSet, "data_alignFieldPointers must be true for vectorization with QPX")
 
-    Constraints.updateValue(useOMP, (domain_summarizeBlocks && domain_fragLength != 1) || domain_numFragsPerBlock != 1)
-    Constraints.updateValue(useMPI, (domain_numBlocks != 1))
-
-    Constraints.condEnsureValue(domain_numBlocks_y, 1, dimensionality < 2, "domain_numBlocks_y must be set to 1 for problems with a dimensionality smaller 2")
-    Constraints.condEnsureValue(domain_numBlocks_z, 1, dimensionality < 3, "domain_numBlocks_z must be set to 1 for problems with a dimensionality smaller 3")
-    Constraints.condEnsureValue(domain_numFragsPerBlock_y, 1, dimensionality < 2, "domain_numFragsPerBlock_y must be set to 1 for problems with a dimensionality smaller 2")
-    Constraints.condEnsureValue(domain_numFragsPerBlock_z, 1, dimensionality < 3, "domain_numFragsPerBlock_z must be set to 1 for problems with a dimensionality smaller 3")
-    Constraints.condEnsureValue(domain_fragLength_y, 1, dimensionality < 2, "domain_fragLength_y must be set to 1 for problems with a dimensionality smaller 2")
-    Constraints.condEnsureValue(domain_fragLength_z, 1, dimensionality < 3, "domain_fragLength_z must be set to 1 for problems with a dimensionality smaller 3")
-
-    // constraints for enabled domain_summarizeBlocks
-    // TODO: remove domain_summarizeBlocks flag and replace functionality with correctly setting resulting parameters
-    Constraints.condEnsureValue(domain_fragLength_x, domain_fragLength_x * domain_numFragsPerBlock_x, domain_summarizeBlocks && domain_numFragsPerBlock_x > 1,
-      "domain_fragLength_x needs to be equal to the initial domain_numFragsPerBlock_x")
-    Constraints.condEnsureValue(domain_numFragsPerBlock_x, 1, domain_summarizeBlocks, "domain_numFragsPerBlock_x has to be equal to 1 for aggregated fragments")
-    Constraints.condEnsureValue(domain_fragLength_y, domain_fragLength_y * domain_numFragsPerBlock_y, domain_summarizeBlocks && domain_numFragsPerBlock_y > 1,
-      "domain_fragLength_y needs to be equal to the initial domain_numFragsPerBlock_y")
-    Constraints.condEnsureValue(domain_numFragsPerBlock_y, 1, domain_summarizeBlocks, "domain_numFragsPerBlock_y has to be equal to 1 for aggregated fragments")
-    Constraints.condEnsureValue(domain_fragLength_z, domain_fragLength_z * domain_numFragsPerBlock_z, domain_summarizeBlocks && domain_numFragsPerBlock_z > 1,
-      "domain_fragLength_z needs to be equal to the initial domain_numFragsPerBlock_z")
-    Constraints.condEnsureValue(domain_numFragsPerBlock_z, 1, domain_summarizeBlocks, "domain_numFragsPerBlock_z has to be equal to 1 for aggregated fragments")
-
-    Constraints.updateValue(omp_numThreads, (if (useOMP) 1 else (if (domain_summarizeBlocks) domain_fragLength else domain_numFragsPerBlock)) : Int)
-    Constraints.updateValue(omp_parallelizeLoopOverFragments, useOMP && !domain_summarizeBlocks)
-    Constraints.updateValue(omp_parallelizeLoopOverDimensions, useOMP && domain_summarizeBlocks)
-
     Constraints.condEnsureValue(omp_useCollapse, false, "IBMXL" == targetCompiler, "omp collapse is currently not fully supported by the IBM XL compiler")
+    Constraints.condEnsureValue(omp_parallelizeLoopOverDimensions, false, omp_enabled && omp_parallelizeLoopOverFragments, "omp_parallelizeLoopOverDimensions and omp_parallelizeLoopOverFragments are mutually exclusive")
 
     // update constraints
     Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, experimental_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
@@ -344,7 +359,7 @@ object Knowledge {
 
     if (l3tmp_genAdvancedTimers) {
       // TODO: remove condition when timers are fully integrated
-      Constraints.condEnsureValue(advTimer_timerType, "Chrono", !useMPI && "MPI_TIME" == advTimer_timerType, "MPI_TIME is not supported for codes generated without MPI")
+      Constraints.condEnsureValue(advTimer_timerType, "Chrono", !mpi_enabled && "MPI_TIME" == advTimer_timerType, "MPI_TIME is not supported for codes generated without MPI")
       Constraints.condEnsureValue(advTimer_timerType, "Chrono", "QPC" == advTimer_timerType && "MSVC" != targetCompiler, "QPC is only supported for windows")
       Constraints.condEnsureValue(advTimer_timerType, "WINDOWS_RDSC", "RDSC" == advTimer_timerType && "MSVC" == targetCompiler, "WINDOWS_RDSC is required for windows systems")
       Constraints.condEnsureValue(advTimer_timerType, "RDSC", "WINDOWS_RDSC" == advTimer_timerType && "MSVC" != targetCompiler, "RDSC is required for non-windows systems")

@@ -25,8 +25,8 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
   def getDeclaration() : VariableDeclarationStatement = {
     var dt : Datatype = resolveDataType
 
-    if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragsPerBlock > 1)
-      dt = ArrayDatatype(dt, Knowledge.domain_numFragsPerBlock)
+    if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragmentsPerBlock > 1)
+      dt = ArrayDatatype(dt, Knowledge.domain_numFragmentsPerBlock)
     if (canBePerDomain && usesDomainArrays && DomainCollection.domains.size > 1)
       dt = ArrayDatatype(dt, DomainCollection.domains.size)
     if (canBePerField && usesFieldArrays && FieldCollection.fields.size > 1)
@@ -51,7 +51,7 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
       wrappedBody = new LoopOverFields(wrappedBody)
     if (canBePerDomain && usesDomainArrays && DomainCollection.domains.size > 1)
       wrappedBody = new LoopOverDomains(wrappedBody)
-    if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragsPerBlock > 1)
+    if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragmentsPerBlock > 1)
       wrappedBody = new LoopOverFragments(wrappedBody)
 
     wrappedBody
@@ -69,7 +69,7 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
   def resolvePostfix(fragment : String, domain : String, field : String, level : String, neigh : String) : String = {
     var postfix : String = ""
 
-    if (canBePerFragment && !usesFragmentArrays && Knowledge.domain_numFragsPerBlock > 1)
+    if (canBePerFragment && !usesFragmentArrays && Knowledge.domain_numFragmentsPerBlock > 1)
       postfix += "_" + fragment
     if (canBePerDomain && !usesDomainArrays && DomainCollection.domains.size > 1)
       postfix += "_" + domain
@@ -86,7 +86,7 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
   def resolveAccess(baseAccess : Expression, fragment : Expression, domain : Expression, field : Expression, level : Expression, neigh : Expression) : Expression = {
     var access = baseAccess
 
-    if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragsPerBlock > 1)
+    if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragmentsPerBlock > 1)
       access = new ArrayAccess(access, fragment)
     if (canBePerDomain && usesDomainArrays && DomainCollection.domains.size > 1)
       access = new ArrayAccess(access, domain)

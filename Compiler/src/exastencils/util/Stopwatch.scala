@@ -569,7 +569,7 @@ private:
  """)
       }
 
-      if (Knowledge.useMPI) {
+      if (Knowledge.mpi_enabled) {
         writerSource << ("""
 #include <mpi.h>
     """)
@@ -650,7 +650,7 @@ void TimerWrapper::GatherAllTimersCSV( std::vector<std::string>& out_data)
 {
     """)
 
-      if (Knowledge.useMPI) {
+      if (Knowledge.mpi_enabled) {
         writerSource << ("""
 	  int rank, N;
 	MPI_Comm_size(MPI_COMM_WORLD, &N);
@@ -682,7 +682,7 @@ void TimerWrapper::GatherAllTimersCSV( std::vector<std::string>& out_data)
 		out_data.push_back(timer_datas);
 		
 	   """)
-      if (Knowledge.useMPI) {
+      if (Knowledge.mpi_enabled) {
         writerSource << ("""
 	    //other
 		MPI_Status status;
@@ -715,7 +715,7 @@ void TimerWrapper::PrintAllTimersGlobal()
 	GatherAllTimersCSV(timer_data);
 """)
 
-      if (Knowledge.useMPI) {
+      if (Knowledge.mpi_enabled) {
         writerSource << ("""
 
     int rank;
@@ -730,7 +730,7 @@ void TimerWrapper::PrintAllTimersGlobal()
 			printf("Node #%d: %s\n", i, (timer_data[i]).c_str());
 		}
 	    """)
-      if (Knowledge.useMPI)
+      if (Knowledge.mpi_enabled)
         writerSource << ("""
 	}
 	""")
@@ -743,7 +743,7 @@ void TimerWrapper::PrintAllTimersToFileGlobal( std::string name )
 	std::vector<std::string> timer_data;
 	GatherAllTimersCSV(timer_data);
  """)
-      if (Knowledge.useMPI)
+      if (Knowledge.mpi_enabled)
         writerSource << ("""
 	int rank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -762,7 +762,7 @@ void TimerWrapper::PrintAllTimersToFileGlobal( std::string name )
 		}
 		out.close();
  """)
-      if (Knowledge.useMPI) {
+      if (Knowledge.mpi_enabled) {
         writerSource << ("""
 	}
 	""")
@@ -825,7 +825,7 @@ int CallTracker::GetCallStackAsCSVGlobal( std::vector<std::string>& out_data)
 
 	""")
 
-        if (Knowledge.useMPI) {
+        if (Knowledge.mpi_enabled) {
           writerSource << ("""	    
 	int rank, N;
 	MPI_Comm_size(MPI_COMM_WORLD, &N);
@@ -851,7 +851,7 @@ int CallTracker::GetCallStackAsCSVGlobal( std::vector<std::string>& out_data)
 		out_data.push_back(timer_datas);
 
 	""")
-        if (Knowledge.useMPI) {
+        if (Knowledge.mpi_enabled) {
           writerSource << ("""
 
 		//other

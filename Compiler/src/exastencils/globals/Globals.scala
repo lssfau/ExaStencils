@@ -18,7 +18,7 @@ case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = ne
     new FunctionStatement(new UnitDatatype, "destroyGlobals", new ListBuffer[VariableAccess], new ListBuffer[Statement]))) {
 
   // add conditional dependencies
-  if (Knowledge.useMPI)
+  if (Knowledge.mpi_enabled)
     externalDependencies += "mpi.h"
   if (Knowledge.data_alignFieldPointers || Knowledge.data_alignTmpBufferPointers)
     externalDependencies += "stddef.h" // TODO: please note why this is required; delete if it is not required

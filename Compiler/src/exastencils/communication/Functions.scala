@@ -12,7 +12,7 @@ case class CommunicationFunctions() extends FunctionCollection("CommFunctions/Co
   ListBuffer("cmath"),
   ListBuffer("Globals/Globals.h", "Util/Vector.h", "MultiGrid/MultiGrid.h")) {
 
-  if (Knowledge.useMPI)
+  if (Knowledge.mpi_enabled)
     externalDependencies += "mpi.h"
   if (Knowledge.opt_vectorize || Knowledge.poly_optLevel_fine > 0)
     externalDependencies += "algorithm"

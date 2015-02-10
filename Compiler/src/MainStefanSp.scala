@@ -107,7 +107,7 @@ object MainStefanSp {
     else
       ExpandStrategy.doUntilDone()
 
-    if (!Knowledge.useMPI)
+    if (!Knowledge.mpi_enabled)
       RemoveMPIReferences.apply()
 
     SimplifyStrategy.doUntilDone()
@@ -129,10 +129,10 @@ object MainStefanSp {
     else
       ExpandStrategy.doUntilDone()
 
-    if (Knowledge.useMPI)
+    if (Knowledge.mpi_enabled)
       AddMPIDatatypes.apply()
 
-    if (Knowledge.useOMP)
+    if (Knowledge.omp_enabled)
       AddOMPPragmas.apply()
 
     // one last time

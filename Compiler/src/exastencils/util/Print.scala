@@ -35,7 +35,7 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
     var innerLoop = new LoopOverFragments(
       new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
         ListBuffer[Statement](
-          "std::ofstream stream(" ~ filename ~ ", " ~ (if (Knowledge.useMPI) "std::ios::app" else "std::ios::trunc") ~ ")",
+          "std::ofstream stream(" ~ filename ~ ", " ~ (if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc") ~ ")",
           new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
             new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => (field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i)) : Expression)),
             new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => (field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i)) : Expression))),
@@ -49,7 +49,7 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
 
     var statements : ListBuffer[Statement] = ListBuffer()
 
-    if (Knowledge.useMPI) {
+    if (Knowledge.mpi_enabled) {
       statements += new ConditionStatement(new MPI_IsRootProc,
         ListBuffer[Statement](
           "std::ofstream stream(" ~ filename ~ ", std::ios::trunc)",

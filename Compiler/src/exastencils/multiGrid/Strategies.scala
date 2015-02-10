@@ -103,8 +103,8 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
       else
         new Scope(ListBuffer[Statement](
           "double timeTaken = " ~ args(0) ~ ".getTimeInMilliSec()",
-          (if (Knowledge.useMPI) new MPI_Allreduce("&timeTaken", new RealDatatype, 1, "+") else NullStatement),
-          (if (Knowledge.useMPI) "timeTaken /= mpiSize" else NullStatement),
+          (if (Knowledge.mpi_enabled) new MPI_Allreduce("&timeTaken", new RealDatatype, 1, "+") else NullStatement),
+          (if (Knowledge.mpi_enabled) "timeTaken /= mpiSize" else NullStatement),
           args(1) ~ " += timeTaken"))
 
     case FunctionCallExpression(StringConstant("addFromTimer"), args) =>
@@ -145,7 +145,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
       //CallTracker::ClearCallStack();
       //#endif""")
       //}
-      if (Knowledge.useMPI) {
+      if (Knowledge.mpi_enabled) {
         func.body.prepend(new MPI_Init)
         func.body.append(new MPI_Finalize)
       }

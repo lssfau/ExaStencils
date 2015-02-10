@@ -37,7 +37,7 @@ object Solve {
       printer.println(s"\t\tloop over Solution[currentSlot]@current where x > 0 && y > 0 with reduction( + : integral ) {")
       printer.println(s"\t\t\tintegral += Solution[currentSlot]@current")
       printer.println(s"\t\t}")
-      printer.println(s"\t\tintegral /= ${(0 until Knowledge.dimensionality).map(dim => Knowledge.domain_numFragsTotalPerDim(dim) * (1 << Knowledge.maxLevel) - 1).reduce((a, b) => a * b)}.0")
+      printer.println(s"\t\tintegral /= ${(0 until Knowledge.dimensionality).map(dim => Knowledge.domain_rect_numFragsTotalAsVec(dim) * (1 << Knowledge.maxLevel) - 1).reduce((a, b) => a * b)}.0")
       printer.println(s"\t\tloop over Solution[currentSlot]@current {")
       printer.println(s"\t\t\tSolution[currentSlot]@current -= integral")
       printer.println(s"\t\t}")
@@ -100,7 +100,7 @@ object Solve {
 
       printer.println(s"\tVariable tau2 : Real = myGamma ( nu ) / ( myGamma ( nu + 0.5 ) * (( 4.0 * PI ) ** ( dim / 2.0 )) * ( kappa ** ( 2 * nu )) * sigma * sigma )")
       printer.println(s"\tloop over RHS_GMRF@finest {")
-      printer.println(s"\t\tRHS_GMRF@finest = randn ( ) / ${(Knowledge.domain_numFragsTotal_x - 2 * Knowledge.l3tmp_kelvin_numHaloFrags) * (1 << Knowledge.maxLevel)}")
+      printer.println(s"\t\tRHS_GMRF@finest = randn ( ) / ${(Knowledge.domain_rect_numFragsTotal_x - 2 * Knowledge.l3tmp_kelvin_numHaloFrags) * (1 << Knowledge.maxLevel)}")
       printer.println(s"\t}")
 
       Communication.exch(printer, s"RHS_GMRF@finest")

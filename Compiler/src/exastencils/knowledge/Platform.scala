@@ -16,17 +16,17 @@ object Platform {
       cflags = "-O3 -qhot -qarch=qp -qtune=qp -DNDEBUG"
       ldflags = "-O3 -qhot -qarch=qp -qtune=qp -DNDEBUG"
 
-      if (Knowledge.useMPI && Knowledge.useOMP) {
+      if (Knowledge.mpi_enabled && Knowledge.omp_enabled) {
         compiler = "mpixlc++_r"
-      } else if (Knowledge.useMPI && !Knowledge.useOMP) {
+      } else if (Knowledge.mpi_enabled && !Knowledge.omp_enabled) {
         compiler = "mpixlc++"
-      } else if (!Knowledge.useMPI && Knowledge.useOMP) {
+      } else if (!Knowledge.mpi_enabled && Knowledge.omp_enabled) {
         compiler = "bgxlc++_r"
-      } else if (!Knowledge.useMPI && !Knowledge.useOMP) {
+      } else if (!Knowledge.mpi_enabled && !Knowledge.omp_enabled) {
         compiler = "bgxlc++"
       }
 
-      if (Knowledge.useOMP) {
+      if (Knowledge.omp_enabled) {
         cflags += " -qsmp=omp"
         ldflags += " -qsmp=omp"
       }
@@ -35,13 +35,13 @@ object Platform {
       cflags = "-O3 -qhot -qarch=qp -qtune=qp -DNDEBUG"
       ldflags = "-O3 -qhot -qarch=qp -qtune=qp -DNDEBUG"
 
-      if (Knowledge.useMPI) {
+      if (Knowledge.mpi_enabled) {
         compiler = "mpixlc++"
       } else {
         compiler = "xlc++"
       }
 
-      if (Knowledge.useOMP) {
+      if (Knowledge.omp_enabled) {
         cflags += " -qsmp=omp"
         ldflags += " -qsmp=omp"
       }
@@ -56,13 +56,13 @@ object Platform {
         }
       ldflags = ""
 
-      if (Knowledge.useMPI) {
+      if (Knowledge.mpi_enabled) {
         compiler = "mpicxx"
       } else {
         compiler = "g++"
       }
 
-      if (Knowledge.useOMP) {
+      if (Knowledge.omp_enabled) {
         cflags += " -fopenmp"
         ldflags += " -fopenmp"
       }

@@ -19,7 +19,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
     commFunctions = StateManager.findFirst[CommunicationFunctions]().get
     addedFunctions.clear
 
-    if (Knowledge.useMPI && Knowledge.domain_canHaveRemoteNeighs)
+    if (Knowledge.mpi_enabled && Knowledge.domain_canHaveRemoteNeighs)
       commFunctions.functions += new MPI_WaitForRequest
     if (Knowledge.domain_canHaveLocalNeighs)
       commFunctions.functions += new ConnectLocalElement()
