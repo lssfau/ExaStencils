@@ -34,7 +34,7 @@ object Mapping {
       case 2 => (index(2) * (layout(1).total * layout(0).total) + index(1) * layout(0).total + index(0))
       case 3 => (index(3) * (layout(2).total * layout(1).total * layout(0).total) + index(2) * (layout(1).total * layout(0).total) + index(1) * layout(0).total + index(0))
     }
-    if (Knowledge.comm_useLevelIndependentFcts) {
+    if (Knowledge.experimental_useLevelIndepFcts) {
       SimplifyStrategy.doUntilDoneStandalone(ret)
       ret
     } else {
@@ -49,7 +49,7 @@ object Mapping {
       case 2 => (index(2) * ((aabb.end(1) - aabb.begin(1)) * (aabb.end(0) - aabb.begin(0))) + index(1) * (aabb.end(0) - aabb.begin(0)) + index(0))
       case 3 => (index(3) * ((aabb.end(2) - aabb.begin(2)) * (aabb.end(1) - aabb.begin(1)) * (aabb.end(0) - aabb.begin(0))) + index(2) * ((aabb.end(1) - aabb.begin(1)) * (aabb.end(0) - aabb.begin(0))) + index(1) * (aabb.end(0) - aabb.begin(0)) + index(0))
     }
-    if (Knowledge.comm_useLevelIndependentFcts) {
+    if (Knowledge.experimental_useLevelIndepFcts) {
       SimplifyStrategy.doUntilDoneStandalone(ret)
       ret
     } else {

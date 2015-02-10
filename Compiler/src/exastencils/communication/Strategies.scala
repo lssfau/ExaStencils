@@ -59,7 +59,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         ghostEnd = target.end.getOrElse(new MultiIndex((0 until Knowledge.dimensionality).toArray.map(dim => communicateStatement.field.fieldLayout(dim).numGhostLayersLeft)))
       }
 
-      val functionName = ((if (Knowledge.comm_useLevelIndependentFcts)
+      val functionName = ((if (Knowledge.experimental_useLevelIndepFcts)
         communicateStatement.op match {
         case "begin"  => s"beginExch${communicateStatement.field.field.identifier}"
         case "finish" => s"finishExch${communicateStatement.field.field.identifier}"
@@ -96,13 +96,13 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         case _ =>
       }
 
-      if (Knowledge.comm_useLevelIndependentFcts)
+      if (Knowledge.experimental_useLevelIndepFcts)
         (new FunctionCallExpression(functionName, ListBuffer[Expression](communicateStatement.field.slot, communicateStatement.field.level))) : Statement
       else
         (new FunctionCallExpression(functionName, communicateStatement.field.slot)) : Statement
     }
     case applyBCsStatement : ApplyBCsStatement => {
-      val functionName = if (Knowledge.comm_useLevelIndependentFcts) s"applyBCs${applyBCsStatement.field.field.identifier}" else s"applyBCs${applyBCsStatement.field.codeName}"
+      val functionName = if (Knowledge.experimental_useLevelIndepFcts) s"applyBCs${applyBCsStatement.field.field.identifier}" else s"applyBCs${applyBCsStatement.field.codeName}"
 
       if (!addedFunctions.contains(functionName)) {
         addedFunctions += functionName
@@ -116,7 +116,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         case _ =>
       }
 
-      if (Knowledge.comm_useLevelIndependentFcts)
+      if (Knowledge.experimental_useLevelIndepFcts)
         (new FunctionCallExpression(functionName, ListBuffer[Expression](applyBCsStatement.field.slot, applyBCsStatement.field.level))) : Statement
       else
         (new FunctionCallExpression(functionName, applyBCsStatement.field.slot)) : Statement

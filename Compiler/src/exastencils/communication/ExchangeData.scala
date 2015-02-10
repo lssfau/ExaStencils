@@ -19,14 +19,14 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
   def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[Statement]
 
   def resolveIndex(indexId : String, dim : Int) : Expression = {
-    if (Knowledge.comm_useLevelIndependentFcts)
+    if (Knowledge.experimental_useLevelIndepFcts)
       ArrayAccess(iv.IndexFromField(fieldSelection.field.identifier, "level", indexId), dim)
     else
       fieldSelection.field.fieldLayout(dim).idxById(indexId)
   }
 
   def vecFieldIndexBegin = Array(fieldSelection.arrayIndex.getOrElse(0).toLong : Expression)
-  
+
   def vecFieldIndexEnd = {
     if (fieldSelection.arrayIndex.isDefined)
       Array((fieldSelection.arrayIndex.get + 1) : Expression)
@@ -37,7 +37,7 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
   override def expand : Output[FunctionStatement] = {
     var body = new ListBuffer[Statement]
 
-    val updatedFieldSelection = if (Knowledge.comm_useLevelIndependentFcts) {
+    val updatedFieldSelection = if (Knowledge.experimental_useLevelIndepFcts) {
       val updatedFieldSelection = Duplicate(fieldSelection)
       for (dim <- 0 until Knowledge.dimensionality)
         updatedFieldSelection.field.fieldLayout(dim).total = ArrayAccess(iv.IndexFromField(fieldSelection.field.identifier, "level", "TOT"), dim)
@@ -48,7 +48,7 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
     }
 
     FunctionStatement(new UnitDatatype(), compileName,
-      if (Knowledge.comm_useLevelIndependentFcts)
+      if (Knowledge.experimental_useLevelIndepFcts)
         ListBuffer(VariableAccess("slot", Some("unsigned int")), VariableAccess("level", Some("unsigned int")))
       else
         ListBuffer(VariableAccess("slot", Some("unsigned int"))),

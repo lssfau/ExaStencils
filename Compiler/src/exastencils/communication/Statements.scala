@@ -131,7 +131,7 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = RemoteSends\n"
 
   def genCopy(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
-    if (Knowledge.comm_useLevelIndependentFcts || (!MPI_DataType.shouldBeUsed(indices) && SimplifyExpression.evalIntegral(indices.getSizeHigher) > 1)) {
+    if (Knowledge.experimental_useLevelIndepFcts || (!MPI_DataType.shouldBeUsed(indices) && SimplifyExpression.evalIntegral(indices.getSizeHigher) > 1)) {
       var body = CopyToSendBuffer(field, neighbor, indices, concurrencyId)
       if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
     } else {
@@ -141,7 +141,7 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
 
   def genTransfer(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
     var body = {
-      if (!Knowledge.comm_useLevelIndependentFcts && 1 == SimplifyExpression.evalIntegral(indices.getSizeHigher)) {
+      if (!Knowledge.experimental_useLevelIndepFcts && 1 == SimplifyExpression.evalIntegral(indices.getSizeHigher)) {
         RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, new RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(indices)) {
         RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, MPI_DataType(field, indices), concurrencyId)
@@ -192,7 +192,7 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = RemoteRecvs\n"
 
   def genCopy(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
-    if (Knowledge.comm_useLevelIndependentFcts || (!MPI_DataType.shouldBeUsed(indices) && SimplifyExpression.evalIntegral(indices.getSizeHigher) > 1)) {
+    if (Knowledge.experimental_useLevelIndepFcts || (!MPI_DataType.shouldBeUsed(indices) && SimplifyExpression.evalIntegral(indices.getSizeHigher) > 1)) {
       var body = CopyFromRecvBuffer(field, neighbor, indices, concurrencyId)
       if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
     } else {
@@ -202,7 +202,7 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
 
   def genTransfer(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
     var body = {
-      if (!Knowledge.comm_useLevelIndependentFcts && 1 == SimplifyExpression.evalIntegral(indices.getSizeHigher)) {
+      if (!Knowledge.experimental_useLevelIndepFcts && 1 == SimplifyExpression.evalIntegral(indices.getSizeHigher)) {
         RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, new RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(indices)) {
         RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, MPI_DataType(field, indices), concurrencyId)

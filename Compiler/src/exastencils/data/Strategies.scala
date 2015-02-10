@@ -133,7 +133,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   this += new Transformation("Collecting buffer sizes", {
     case buf : iv.TmpBuffer =>
       val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, buf.field.index, buf.field.level, buf.neighIdx)
-      if (Knowledge.comm_useLevelIndependentFcts) {
+      if (Knowledge.experimental_useLevelIndepFcts) {
         if (bufferSizes.contains(id))
           bufferSizes.get(id).get.asInstanceOf[MaximumExpression].args += Duplicate(buf.size)
         else
@@ -204,7 +204,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
 
   this += new Transformation("Extending SetupBuffers function", {
     case func @ FunctionStatement(_, "setupBuffers", _, _) => {
-      if (Knowledge.comm_useLevelIndependentFcts) {
+      if (Knowledge.experimental_useLevelIndepFcts) {
         val s = new DefaultStrategy("Replacing level specifications")
         s += new Transformation("Search and replace", {
           case StringConstant("level")    => Knowledge.maxLevel : Expression
