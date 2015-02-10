@@ -14,7 +14,7 @@ object Functions {
         case "Trigonometric" if Knowledge.experimental_Neumann =>
           Knowledge.dimensionality match {
             case 2 => "cos ( 2.0 * PI * xPos ) * cos ( 2.0 * PI * yPos )"
-            case 3 => "cos ( PI * xPos ) * cos ( PI * yPos ) * cos ( PI * zPos )"
+            case 3 => "cos ( 2.0 * PI * xPos ) * cos ( 2.0 * PI * yPos ) * cos ( 2.0 * PI * zPos )"
           }
       }
     } else {
