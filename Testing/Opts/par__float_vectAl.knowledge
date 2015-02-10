@@ -2,7 +2,7 @@ targetCompiler             = "GCC"
 targetCompilerVersion      = 4
 targetCompilerVersionMinor = 8
 simd_instructionSet        = "AVX"
-data_alignDataPointers     = true
+data_alignFieldPointers    = true
 useDblPrecision            = false
 
 dimensionality             = 3
