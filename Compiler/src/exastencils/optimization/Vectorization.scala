@@ -247,7 +247,8 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
   private def vectorizeExpr(expr : Expression, ctx : LoopCtx) : Expression = {
     return expr match {
-      case ArrayAccess(base, index, _) =>
+      // TODO: do not vectorize if base is not aligned?
+      case ArrayAccess(base, index, alignedBase) =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp) {
           val ind : HashMap[Expression, Long] = SimplifyExpression.extractIntegralSum(index)
@@ -301,7 +302,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
                 }
             }
 
-          val aligned : Boolean = (Knowledge.data_alignFieldPointers && Knowledge.data_alignTmpBufferPointers) && (const.getOrElse(0L) % Knowledge.simd_vectorSize) == 0
+          val aligned : Boolean = alignedBase && (const.getOrElse(0L) % Knowledge.simd_vectorSize) == 0
           var init : Option[Expression] =
             if (ctx.isLoad() && !ctx.isStore())
               Some(createLoadExpression(expr, base, ind, const.getOrElse(0L), access1, aligned, ctx))
