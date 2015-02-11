@@ -38,8 +38,6 @@ object ResolveL4Constants extends DefaultStrategy("Resolving constants on L4") {
     case LeveledAccess("hx", SingleLevelSpecification(level))        => FloatConstant(knowledge.Knowledge.discr_hx(level - knowledge.Knowledge.minLevel))
     case LeveledAccess("hy", SingleLevelSpecification(level))        => FloatConstant(knowledge.Knowledge.discr_hy(level - knowledge.Knowledge.minLevel))
     case LeveledAccess("hz", SingleLevelSpecification(level))        => FloatConstant(knowledge.Knowledge.discr_hz(level - knowledge.Knowledge.minLevel))
-
-    // TODO: progress values from globals
   })
 }
 

@@ -6,7 +6,7 @@ object Globals {
   def addGlobals(printer : java.io.PrintWriter) = {
     printer.println("Globals {")
     if (Knowledge.l3tmp_genGlobalOmega)
-      printer.println(s"\tVariable l3tmp_omega : Real = ${Knowledge.l3tmp_omega}")
+      printer.println(s"\tValue l3tmp_omega : Real = ${Knowledge.l3tmp_omega}")
     if (Knowledge.l3tmp_genSetableStencil) {
       Knowledge.dimensionality match {
         case 2 => {
