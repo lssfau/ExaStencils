@@ -49,6 +49,24 @@ object Main {
     }
     Knowledge.update()
 
+    // L1
+
+    // L2
+
+    /// HACK: This information has to come from L2
+    if (Knowledge.domain_rect_generate) {
+      Knowledge.discr_hx = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
+        level => l3.Domains.getGlobalWidths(0) / (Knowledge.domain_rect_numFragsTotal_x * Knowledge.domain_fragmentLength_x * (1 << level)))
+      if (Knowledge.dimensionality > 1)
+        Knowledge.discr_hy = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
+          level => l3.Domains.getGlobalWidths(1) / (Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_fragmentLength_y * (1 << level)))
+      if (Knowledge.dimensionality > 2)
+        Knowledge.discr_hz = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
+          level => l3.Domains.getGlobalWidths(2) / (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * (1 << level)))
+    }
+
+    // L3
+
     // Looking for L3 related code? Check MainL3.scala!
 
     if (Knowledge.l3tmp_generateL4) {
@@ -56,7 +74,8 @@ object Main {
       StateManager.root_.asInstanceOf[l3.Generate.Root].printToL4(Settings.getL4file)
     }
 
-    // read L4
+    // L4
+
     StateManager.root_ = (new ParserL4).parseFile(Settings.getL4file)
     ValidationL4.apply
 
@@ -77,6 +96,7 @@ object Main {
 
     // go to IR
     ProgressToIr.apply() // preparation step
+    ResolveL4Constants.apply()
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
     // add remaining nodes

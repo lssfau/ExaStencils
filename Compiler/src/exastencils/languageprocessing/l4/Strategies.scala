@@ -3,11 +3,11 @@ package exastencils.languageprocessing.l4
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
-import exastencils.core._
 import exastencils.core.collectors.L4CommCollector
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.l4._
+import exastencils.knowledge
 
 object CollectCommInformation extends DefaultStrategy("Collecting information relevant for adding communication statements") {
   var commCollector : L4CommCollector = new L4CommCollector(HashMap())
@@ -28,6 +28,18 @@ object CollectCommInformation extends DefaultStrategy("Collecting information re
 
   this += new Transformation("Collect", { // FIXME: add visitor strategy defining dummy trafo?
     case n : Node => n
+  })
+}
+
+object ResolveL4Constants extends DefaultStrategy("Resolving constants on L4") {
+  this += new Transformation("Search and replace", {
+    case BasicAccess("PI") | BasicAccess("M_PI") | BasicAccess("Pi") => FloatConstant(math.Pi)
+
+    case LeveledAccess("hx", SingleLevelSpecification(level))        => FloatConstant(knowledge.Knowledge.discr_hx(level - knowledge.Knowledge.minLevel))
+    case LeveledAccess("hy", SingleLevelSpecification(level))        => FloatConstant(knowledge.Knowledge.discr_hy(level - knowledge.Knowledge.minLevel))
+    case LeveledAccess("hz", SingleLevelSpecification(level))        => FloatConstant(knowledge.Knowledge.discr_hz(level - knowledge.Knowledge.minLevel))
+
+    // TODO: progress values from globals
   })
 }
 

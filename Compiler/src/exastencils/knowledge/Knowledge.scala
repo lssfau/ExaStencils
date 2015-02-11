@@ -95,6 +95,10 @@ object Knowledge {
 
   // === Layer 2 ===
 
+  var discr_hx : Array[Double] = Array() // grid widths in x direction per level
+  var discr_hy : Array[Double] = Array() // grid widths in y direction per level
+  var discr_hz : Array[Double] = Array() // grid widths in z direction per level
+
   // === Layer 3 ===
 
   // === Layer 4 ===

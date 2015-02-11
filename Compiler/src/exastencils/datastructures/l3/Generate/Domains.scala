@@ -3,6 +3,23 @@ package exastencils.datastructures.l3
 import exastencils.knowledge._
 
 object Domains {
+  def getGlobalWidths : Array[Double] = {
+    Knowledge.dimensionality match {
+      case 2 => {
+        if (Knowledge.l3tmp_kelvin) {
+          Array(
+            (1.0 + Knowledge.l3tmp_kelvin_numHaloFrags * (1.0 - 0.0) / (Knowledge.domain_rect_numFragsTotal_x - 2 * Knowledge.l3tmp_kelvin_numHaloFrags))
+              - (0.0 - Knowledge.l3tmp_kelvin_numHaloFrags * (1.0 - 0.0) / (Knowledge.domain_rect_numFragsTotal_x - 2 * Knowledge.l3tmp_kelvin_numHaloFrags)),
+            (1.0 + Knowledge.l3tmp_kelvin_numHaloFrags * (1.0 - 0.0) / (Knowledge.domain_rect_numFragsTotal_y - 2 * Knowledge.l3tmp_kelvin_numHaloFrags))
+              - (0.0 - Knowledge.l3tmp_kelvin_numHaloFrags * (1.0 - 0.0) / (Knowledge.domain_rect_numFragsTotal_y - 2 * Knowledge.l3tmp_kelvin_numHaloFrags)))
+        } else {
+          Array(1.0, 1.0)
+        }
+      }
+      case 3 => Array(1.0, 1.0, 1.0)
+    }
+  }
+
   def addDomains(printer : java.io.PrintWriter) = {
     Knowledge.dimensionality match {
       case 2 => {

@@ -74,15 +74,13 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
 
   this += new Transformation("SearchAndReplace", {
     // constants
-    case StringConstant("PI") | StringConstant("M_PI") | StringConstant("Pi") => FloatConstant(math.Pi)
-
-    // TODO: grid widths
+    // currently done directly on l4 before progressing to ir
 
     // functions
 
     // HACK to implement min/max functions
-    case FunctionCallExpression(StringConstant("min"), args)                  => MinimumExpression(args)
-    case FunctionCallExpression(StringConstant("max"), args)                  => MaximumExpression(args)
+    case FunctionCallExpression(StringConstant("min"), args) => MinimumExpression(args)
+    case FunctionCallExpression(StringConstant("max"), args) => MaximumExpression(args)
 
     // FIXME: UGLY HACK to realize native code functionality
     case FunctionCallExpression(StringConstant("native"), args) =>
