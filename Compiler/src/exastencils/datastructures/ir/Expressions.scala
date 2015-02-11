@@ -600,17 +600,30 @@ case class SIMD_Load1Expression(var mem : Expression) extends Expression {
 
 case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess, val offset : Int) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
-    if (!Knowledge.useDblPrecision) throw new InternalError("not implemented yet") // TODO:
     Knowledge.simd_instructionSet match {
       case "SSE3" =>
-        offset match {
+        if (Knowledge.useDblPrecision) offset match {
           case 1 => out << "_mm_shuffle_pd(" << left << ", " << right << ", 1);"
         }
+        else offset match {
+          case 1 => out << "_mm_shuffle_ps(" << left << ", _mm_shuffle_ps(" << right << ", " << left << ", 0x30), 0x29)"
+          case 2 => out << "_mm_shuffle_ps(" << left << ", " << right << ", 0x4E)"
+          case 3 => out << "_mm_shuffle_ps(_mm_shuffle_ps(" << left << ", " << right << ", 0x3), " << right << ", 0x98)"
+        }
       case "AVX" | "AVX2" =>
-        offset match {
-          case 1 => out << "_mm256_shuffle_pd(" << left << ", _mm256_permute2f128_pd(" << left << ", " << right << ", 33), 5)"
-          case 2 => out << "_mm256_permute2f128_pd(" << left << ", " << right << ", 33)"
-          case 3 => out << "_mm256_shuffle_pd(_mm256_permute2f128_pd(" << left << ", " << right << ", 33), " << right << ", 5)"
+        if (Knowledge.useDblPrecision) offset match {
+          case 1 => out << "_mm256_shuffle_pd(" << left << ", _mm256_permute2f128_pd(" << left << ", " << right << ", 0x21), 0x5)"
+          case 2 => out << "_mm256_permute2f128_pd(" << left << ", " << right << ", 0x21)"
+          case 3 => out << "_mm256_shuffle_pd(_mm256_permute2f128_pd(" << left << ", " << right << ", 0x21), " << right << ", 0x5)"
+        }
+        else offset match {
+          case 1 => out << "_mm256_permute_ps(_mm256_blend_ps(" << left << ",_mm256_permute2f128_ps(" << left << ", " << right << ", 0x21), 0x11), 0x39)"
+          case 2 => out << "_mm256_shuffle_ps(" << left << ", _mm256_permute2f128_ps(" << left << ", " << right << ", 0x21), 0x4E)"
+          case 3 => out << "_mm256_permute_ps(_mm256_blend_ps(" << left << ",_mm256_permute2f128_ps(" << left << ", " << right << ", 0x21), 0x77), 0x93)"
+          case 4 => out << "_mm256_permute2f128_ps(" << left << ", " << right << ", 0x21)"
+          case 5 => out << "_mm256_permute_ps(_mm256_blend_ps(_mm256_permute2f128_ps(" << left << ", " << right << ", 0x21), " << right << ", 0x11), 0x39)"
+          case 6 => out << "_mm256_shuffle_ps(_mm256_permute2f128_ps(" << left << ", " << right << ", 0x21), " << right << ", 0x4E)"
+          case 7 => out << "_mm256_permute_ps(_mm256_blend_ps(_mm256_permute2f128_ps(" << left << ", " << right << ", 0x21), " << right << ", 0x77), 0x93)"
         }
       case "QPX" => out << "vec_sldw(" << left << ", " << right << ", " << offset << ")"
     }
