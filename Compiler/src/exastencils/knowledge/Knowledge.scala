@@ -109,10 +109,10 @@ object Knowledge {
   // --- Compiler Capabilities ---
   def supports_initializerList = { // indicates if the compiler supports initializer lists (e.g. for std::min)
     targetCompiler match {
-      case "MSVC"  => targetCompilerVersion >= 18
-      case "GCC"   => targetCompilerVersion > 4 || (targetCompilerVersion == 4 && targetCompilerVersionMinor >= 5)
-      case "IBMXL" => false // TODO: does it support initializer lists? since which version?
-      case _       => Logger.error("Unsupported target compiler"); false
+      case "MSVC"            => targetCompilerVersion >= 18
+      case "GCC"             => targetCompilerVersion > 4 || (targetCompilerVersion == 4 && targetCompilerVersionMinor >= 5)
+      case "IBMXL" | "IBMBG" => false // TODO: does it support initializer lists? since which version?
+      case _                 => Logger.error("Unsupported target compiler"); false
     }
   }
 
@@ -146,10 +146,10 @@ object Knowledge {
 
   def omp_version : Double = { // the maximum version of omp supported by the chosen compiler
     targetCompiler match {
-      case "MSVC"  => 2.0
-      case "GCC"   => 4.0
-      case "IBMXL" => 3.0
-      case _       => Logger.error("Unsupported target compiler"); 0.0
+      case "MSVC"            => 2.0
+      case "GCC"             => 4.0
+      case "IBMXL" | "IBMBG" => 3.0
+      case _                 => Logger.error("Unsupported target compiler"); 0.0
     }
   }
   var omp_parallelizeLoopOverFragments : Boolean = true // [true|false] // specifies if loops over fragments may be parallelized with omp if marked correspondingly
@@ -158,10 +158,10 @@ object Knowledge {
   var omp_minWorkItemsPerThread : Int = 400 // [1-inf] // threshold specifying which loops yield enough workload to amortize the omp overhead
   def omp_requiresCriticalSections : Boolean = { // true if the chosen compiler / mpi version requires critical sections to be marked explicitly
     targetCompiler match {
-      case "MSVC"  => true
-      case "GCC"   => true
-      case "IBMXL" => false
-      case _       => Logger.error("Unsupported target compiler"); true
+      case "MSVC"            => true
+      case "GCC"             => true
+      case "IBMXL" | "IBMBG" => false
+      case _                 => Logger.error("Unsupported target compiler"); true
     }
   }
 
