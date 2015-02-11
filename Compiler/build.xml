@@ -63,7 +63,9 @@
   <target name="compileJava" depends="init">
     <javac includeantruntime="false"
       destdir="${build-classes.dir}"
-      classpathref="compiler.classpath">
+      classpathref="compiler.classpath"
+      source="1.5"
+      target="1.5">
       <include name="**/*.java"/>
       <src><pathelement location="${src.dir}"/></src>
     </javac>
@@ -72,7 +74,8 @@
   <target name="compileMacros" depends="compileJava">
     <scalac
       destdir="${build-classes.dir}"
-      classpathref="compiler.classpath">
+      classpathref="compiler.classpath"
+      target="jvm-1.5">
       <include name="**/*.scala"/>
       <src><pathelement location="${macros-src.dir}"/></src>
     </scalac>
@@ -81,7 +84,8 @@
   <target name="compileScala" depends="compileMacros">
     <scalac
       destdir="${build-classes.dir}"
-      classpathref="compiler.classpath">
+      classpathref="compiler.classpath"
+      target="jvm-1.5">
       <include name="**/*.scala"/>
       <src><pathelement location="${src.dir}"/></src>
     </scalac>
