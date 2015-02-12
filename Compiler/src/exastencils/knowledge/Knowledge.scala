@@ -71,9 +71,9 @@ object Knowledge {
   var domain_rect_generate : Boolean = true
 
   // number of blocks to be generated per dimension - one block will usually be mapped to one MPI thread
-  var domain_rect_numBlocks_x : Int = 2
-  var domain_rect_numBlocks_y : Int = 2
-  var domain_rect_numBlocks_z : Int = 2
+  var domain_rect_numBlocks_x : Int = 1
+  var domain_rect_numBlocks_y : Int = 1
+  var domain_rect_numBlocks_z : Int = 1
 
   // number of fragments to be generated for each block per dimension - this will usually be one or be equal to the number of OMP threads per dimension
   var domain_rect_numFragsPerBlock_x : Int = 1
@@ -354,7 +354,9 @@ object Knowledge {
     Constraints.condEnsureValue(omp_useCollapse, false, "IBMXL" == targetCompiler, "omp collapse is currently not fully supported by the IBM XL compiler")
     Constraints.condEnsureValue(omp_parallelizeLoopOverDimensions, false, omp_enabled && omp_parallelizeLoopOverFragments, "omp_parallelizeLoopOverDimensions and omp_parallelizeLoopOverFragments are mutually exclusive")
 
-    Constraints.condWarn(mpi_numThreads != domain_numBlocks, s"The number of mpi threads ($mpi_numThreads) differs from the number of blocks ($domain_numBlocks) -> this might lead to unexpected behavior")
+    Constraints.condWarn(mpi_numThreads != domain_numBlocks, s"The number of mpi threads ($mpi_numThreads) differs from the number of blocks ($domain_numBlocks) -> this might lead to unexpected behavior!")
+    Constraints.condWarn(omp_parallelizeLoopOverFragments && omp_numThreads > domain_numFragmentsPerBlock, s"The number of omp threads ($omp_numThreads) is higher than the number of fragments per block ($domain_numFragmentsPerBlock) -> this will result in idle omp threads!")
+    Constraints.condWarn(omp_parallelizeLoopOverFragments && 0 != domain_numFragmentsPerBlock % omp_numThreads, s"The number of fragments per block ($domain_numFragmentsPerBlock) is not divisible by the number of omp threads ($omp_numThreads) -> this might result in a severe load imbalance!")
 
     Constraints.condEnsureValue(experimental_useLevelIndepFcts, false, "Zero" != l3tmp_exactSolution, "level independent communication functions are not compatible with non-trivial boundary conditions")
     Constraints.condEnsureValue(mpi_useCustomDatatypes, false, experimental_useLevelIndepFcts, "MPI data types cannot be used in combination with level independent communication functions yet")
