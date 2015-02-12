@@ -3,6 +3,8 @@ targetCompilerVersion		= 4
 targetCompilerVersionMinor	= 8
 simd_instructionSet			= "SSE3"
 
+dimensionality				= 2
+
 minLevel					= 0
 maxLevel					= 6
 
