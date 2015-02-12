@@ -5,18 +5,29 @@ simd_instructionSet			= "SSE3"
 
 dimensionality				= 3
 
+minLevel					= 0
 maxLevel					= 6
-comm_strategyFragment		= 6
 
-domain_summarizeBlocks		= false
+domain_onlyRectangular		= true
+domain_numBlocks			= 1
+domain_numFragmentsPerBlock	= 27
 
-domain_numBlocks_x			= 1
-domain_numBlocks_y			= 1
-domain_numBlocks_z			= 1
+domain_rect_generate			= true
+domain_rect_numBlocks_x			= 1
+domain_rect_numBlocks_y			= 1
+domain_rect_numBlocks_z			= 1
+domain_rect_numFragsPerBlock_x	= 3
+domain_rect_numFragsPerBlock_y	= 3
+domain_rect_numFragsPerBlock_z	= 3
 
-domain_numFragsPerBlock_x	= 3
-domain_numFragsPerBlock_y	= 3
-domain_numFragsPerBlock_z	= 3
+omp_enabled					= true
+omp_numThreads				= 27
+
+mpi_enabled					= false
+mpi_numThreads				= 1
+
+omp_parallelizeLoopOverFragments	= false
+omp_parallelizeLoopOverDimensions	= true
 
 l3tmp_generateL4			= true
 l3tmp_genForAutoTests		= true
