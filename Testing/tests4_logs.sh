@@ -57,4 +57,4 @@ fi
 echo "Tests finished at $(date -R)."
 echo "</pre></body></html>"
 
-echo "<html><body><pre>\nFinished!\n</pre></body></html>" > "${PROGRESS}"
+echo "<html><body><pre>Finished!</pre></body></html>" > "${PROGRESS}"

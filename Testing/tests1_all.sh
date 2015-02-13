@@ -133,7 +133,8 @@ do
   TEST_ERROR_MARKER="${TEST_LOG}.${ERROR_MARKER_NAME}"
   TEST_BIN="${BIN_DIR}/${id}"
 
-  echo "Test ID:  ${id}" > "${TEST_LOG}"
+  echo "<html><body><pre>" > "${TEST_LOG}"
+  echo "Test ID:  ${id}" >> "${TEST_LOG}"
 
   echo "Enqueue generation and compilation job for id  ${id}."
   # configuration is fine, start a new job for it
@@ -146,7 +147,6 @@ do
   fi
   echo "${OUT}"
   echo "<a href=./${TEST_LOG_REL}>Log...</a>"
-  echo ""
 
   if [[ -n ${cores} ]]; then
     TMP_ARRAY[i+0]=${id}
@@ -202,7 +202,6 @@ for ((i=0;i<${#TMP_ARRAY[@]};i+=9)); do
   fi
   echo "${OUT}"
   echo "<a href=./${TEST_LOG_REL}>Log...</a>"
-  echo ""
 done
 
 echo ""
@@ -211,4 +210,4 @@ LOG_DEPS="--dependency=afterany${DEP_SIDS}"
 (sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${TESTING_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${PROGRESS}")
 echo ""
 
-echo "<html><body><pre>\n$(squeue -u ${USER} -o "%.11i %10P %25j %3t %.5D %R")\n</pre></body></html>" > "${PROGRESS}"
+echo "<html><body><pre>$(squeue -u ${USER} -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"
