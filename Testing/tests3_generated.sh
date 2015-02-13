@@ -14,7 +14,7 @@ LINK=${5}
 PROGRESS=${6}
 
 
-echo "<html><body><pre>$(squeue -u ${USER} -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"
+echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"
 
 echo "Running test on machine(s) ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
 rm -f ${ERROR_MARKER} # remove error marker from old job run if we were requeued
@@ -30,7 +30,7 @@ RESULT="$(mktemp --tmpdir=/run/shm test_res_XXXXX.txt)" || {
 function killed {
   echo "ERROR? Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} killed; possible reasons: timeout, manually canceled, user login (job is then requeued)."
   touch ${ERROR_MARKER}
-  echo "${LINK}" >> "${LOG_ALL}"
+  echo "${LINK}  (maybe requeued)" >> "${LOG_ALL}"
   exit 0
 }
 trap killed SIGTERM
@@ -65,4 +65,4 @@ else
   echo "${LINK}" >> "${LOG_ALL}"
 fi
 echo ""
-echo "<html><body><pre>$(squeue -u ${USER} -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"
+echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"

@@ -41,7 +41,7 @@ trap cleanup EXIT
 
 echo "<html><body><pre>"
 echo "$(date -R):  Initialize tests on host ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})..."
-echo "Progress can be found <a href=$(basename ${PROGRESS})>here</a>."
+echo "Progress can be found <a href=$(basename ${PROGRESS})>here</a>.  (Reload page manually.)"
 echo ""
 
 STARTTIME=$(date +%s)
@@ -88,6 +88,6 @@ echo ""
 ENDTIME=$(date +%s)
 echo "Runtime: $((${ENDTIME} - ${STARTTIME})) seconds  (git pull)"
 
-rm "${OUT_DIR}"/*
-echo "<html><body><pre>$(squeue -u ${USER} -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"
+rm -f "${OUT_DIR}"/*
+echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"
 cat "${TMP_OUT_FILE}" > "${OUT_FILE}"

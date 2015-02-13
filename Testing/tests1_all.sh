@@ -63,7 +63,7 @@ function cleanup {
 trap cleanup EXIT
 
 
-echo "<html><body><pre>$(squeue -u ${USER} -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"
+echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"
 
 echo "-----------------------------------------------------------------------------------------------"
 echo "Running main test script on machine ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
@@ -77,7 +77,7 @@ echo "  Created  ${RAM_TMP_DIR}: generator build dir"
 
 # cancel all uncompleted jobs from last testrun
 first=1
-for job in $(squeue -h -u ${USER} -o %i); do
+for job in $(squeue -h -u exatest -o %i); do
   if [[ ${job} -ne ${SLURM_JOB_ID} ]]; then
     if [[ first -eq 1 ]]; then
       first=0
@@ -213,4 +213,4 @@ LOG_DEPS="--dependency=afterany${DEP_SIDS}"
 (sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${TESTING_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${PROGRESS}")
 echo ""
 
-echo "<html><body><pre>$(squeue -u ${USER} -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"
+echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"
