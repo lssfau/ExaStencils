@@ -95,21 +95,21 @@ class DefaultStrategy(name : String) extends Strategy(name) {
     //      start = System.nanoTime()
     //    }
 
-    transaction()
+    this.transaction()
     this.resetCollectors()
     Logger.info(s"""Applying strategy "${name}"""")
     try {
       transformations_.foreach(transformation => {
         executeInternal(transformation, applyAtNode)
       })
-      commit()
+      this.commit()
     } catch {
       case x : TransformationException => {
         Logger.warn(s"""Strategy "${name}" did not apply successfully""")
         Logger.warn(s"""Error in Transformation ${x.transformation.name}""")
         Logger.warn(s"Message: ${x.msg}")
         Logger.warn(s"Rollback will be performed")
-        abort()
+        this.abort()
       }
     }
 
