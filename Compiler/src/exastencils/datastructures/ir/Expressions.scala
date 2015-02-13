@@ -196,6 +196,11 @@ case class MultiIndex(
     (if (indices.length > 1) IntegerConstant(indices(1)) else null) : Expression,
     (if (indices.length > 2) IntegerConstant(indices(2)) else null) : Expression,
     (if (indices.length > 3) IntegerConstant(indices(3)) else null) : Expression)
+  def this(indices : Array[Double]) = this(
+    (if (indices.length > 0) FloatConstant(indices(0)) else null) : Expression,
+    (if (indices.length > 1) FloatConstant(indices(1)) else null) : Expression,
+    (if (indices.length > 2) FloatConstant(indices(2)) else null) : Expression,
+    (if (indices.length > 3) FloatConstant(indices(3)) else null) : Expression)
   def this(names : String*) = this(
     (if (names.size > 0) VariableAccess(names(0), Some(IntegerDatatype())) else null) : Expression,
     (if (names.size > 1) VariableAccess(names(1), Some(IntegerDatatype())) else null) : Expression,
