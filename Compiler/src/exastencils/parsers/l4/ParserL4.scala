@@ -197,8 +197,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val domain = (locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l ~ u => DomainDeclarationStatement(id, l, u) }))
 
-  lazy val layout = locationize(("Layout" ~> ident) ~ ("<" ~> datatype <~ ">") ~ level.? ~ ("{" ~> layoutOptions <~ "}")
-    ^^ { case id ~ dt ~ level ~ opts => var x = LayoutDeclarationStatement(LeveledIdentifier(id, level.getOrElse(new AllLevelsSpecification)), dt); x.set(opts); x })
+  lazy val layout = locationize(("Layout" ~> ident) ~ ("<" ~> datatype <~ ",") ~ (("Node" ||| "Cell" ||| "node" ||| "cell") <~ ">") ~ level.? ~ ("{" ~> layoutOptions <~ "}")
+    ^^ { case id ~ dt ~ loc ~ level ~ opts => var x = LayoutDeclarationStatement(LeveledIdentifier(id, level.getOrElse(new AllLevelsSpecification)), dt, "Node" == loc || "node" == loc); x.set(opts); x })
   lazy val layoutOptions = (
     (layoutOption <~ ",").* ~ layoutOption ^^ { case opts ~ opt => opts.::(opt) }
     ||| layoutOption.+)
@@ -256,9 +256,9 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| "previous" ^^ { case _ => SlotModifier.Previous() }
     ||| "previousSlot" ^^ { case _ => SlotModifier.Previous() }
     ||| integerLit ^^ { case i => SlotModifier.Constant(i) })
-    
-    lazy val advanceStatement = locationize("advance" ~> leveledAccess ^^ { case a => AdvanceStatement(a)})
-    
+
+  lazy val advanceStatement = locationize("advance" ~> leveledAccess ^^ { case a => AdvanceStatement(a) })
+
   lazy val levelAccess = (
     locationize("@" ~> levelsingle ^^ { case l => l })
     ||| locationize("@" ~ "(" ~> levelsingle <~ ")" ^^ { case l => l }))

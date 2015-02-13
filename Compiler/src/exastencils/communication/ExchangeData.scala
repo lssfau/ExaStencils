@@ -62,19 +62,35 @@ case class ApplyBCsFunction(var name : String, var fieldSelection : FieldSelecti
 
   def genIndicesBoundaryHandling(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
     // FIXME: this works for now, but might be adapted later to incorporate different regions of boundary handling
-    curNeighbors.map(neigh => (neigh, new IndexRange(
-      new MultiIndex(
-        DimArray().map(i => i match {
-          case i if neigh.dir(i) == 0 => resolveIndex("GLB", i) // DLB, GLB
-          case i if neigh.dir(i) < 0  => resolveIndex("DLB", i) // DLB, GLB
-          case i if neigh.dir(i) > 0  => resolveIndex("DRB", i)
-        }) ++ vecFieldIndexBegin),
-      new MultiIndex(
-        DimArray().map(i => i match {
-          case i if neigh.dir(i) == 0 => resolveIndex("GRE", i) // DRE, GRE
-          case i if neigh.dir(i) < 0  => resolveIndex("DLE", i)
-          case i if neigh.dir(i) > 0  => resolveIndex("DRE", i) // DRE, GRE
-        }) ++ vecFieldIndexEnd))))
+    if (fieldSelection.fieldLayout.nodeBased) {
+      curNeighbors.map(neigh => (neigh, new IndexRange(
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if neigh.dir(i) == 0 => resolveIndex("GLB", i) // DLB, GLB
+            case i if neigh.dir(i) < 0  => resolveIndex("DLB", i) // DLB, GLB
+            case i if neigh.dir(i) > 0  => resolveIndex("DRB", i)
+          }) ++ vecFieldIndexBegin),
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if neigh.dir(i) == 0 => resolveIndex("GRE", i) // DRE, GRE
+            case i if neigh.dir(i) < 0  => resolveIndex("DLE", i)
+            case i if neigh.dir(i) > 0  => resolveIndex("DRE", i) // DRE, GRE
+          }) ++ vecFieldIndexEnd))))
+    } else {
+      curNeighbors.map(neigh => (neigh, new IndexRange(
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if neigh.dir(i) == 0 => resolveIndex("DLB", i) // DLB, GLB
+            case i if neigh.dir(i) < 0  => resolveIndex("DLB", i)
+            case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) - 1
+          }) ++ vecFieldIndexBegin),
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if neigh.dir(i) == 0 => resolveIndex("DRE", i) // DRE, GRE
+            case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) + 1
+            case i if neigh.dir(i) > 0  => resolveIndex("DRE", i)
+          }) ++ vecFieldIndexEnd))))
+    }
   }
 
   override def compileName : String = name

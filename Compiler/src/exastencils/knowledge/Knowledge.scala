@@ -252,6 +252,8 @@ object Knowledge {
   var experimental_NeumannOrder : Int = 2 // may currently be 1 or 2
   var experimental_NeumannNormalize : Boolean = false // normalize solution after each v-cycle
 
+  var experimental_genCellBasedDiscr : Boolean = false // sets up a cell based discretization
+
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {
@@ -305,8 +307,10 @@ object Knowledge {
     Constraints.condEnsureValue(l3tmp_numVecDims, 2, l3tmp_genVectorFields && l3tmp_numVecDims <= 1, "vector dimensions must be larger than 1 when using vector fields")
 
     // l3tmp - stencils
-    Constraints.condEnsureValue(l3tmp_genStencilFields, false, experimental_Neumann, "l3tmp_genTemporalBlocking is currently not compatible for Neumann boundary conditions")
-    Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, experimental_Neumann, "l3tmp_genTemporalBlocking is currently not compatible for Neumann boundary conditions")
+    Constraints.condEnsureValue(l3tmp_genStencilFields, false, experimental_Neumann, "l3tmp_genStencilFields is currently not compatible with Neumann boundary conditions")
+    Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, experimental_Neumann, "l3tmp_genStencilStencilConv is currently not compatible with Neumann boundary conditions")
+    Constraints.condEnsureValue(l3tmp_genStencilFields, false, experimental_genCellBasedDiscr, "l3tmp_genStencilFields is currently not compatible with cell based discretizations")
+    Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, experimental_genCellBasedDiscr, "l3tmp_genStencilStencilConv is currently not compatible with cell based discretizations")
     Constraints.condEnsureValue(l3tmp_genHDepStencils, true, experimental_Neumann, "l3tmp_genHDepStencils is required for Neumann boundary conditions")
     Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_genNonZeroRhs, "non-trivial rhs requires the usage of grid width dependent stencils")
     Constraints.condEnsureValue(l3tmp_genHDepStencils, false, l3tmp_genStencilFields, "grid width dependent stencils are currently not compatible with stencil fields")
@@ -325,7 +329,8 @@ object Knowledge {
     Constraints.condEnsureValue(l3tmp_useSlotVariables, false, !l3tmp_useSlotsForJac, "invalid if not using l3tmp_useSlotsForJac")
 
     // l3tmp - temporal blocking
-    Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, experimental_Neumann, "l3tmp_genTemporalBlocking is currently not compatible for Neumann boundary conditions")
+    Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, experimental_Neumann, "l3tmp_genTemporalBlocking is currently not compatible with Neumann boundary conditions")
+    Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, experimental_genCellBasedDiscr, "l3tmp_genTemporalBlocking is currently not compatible with cell based discretizations")
     Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, "RBGS" == l3tmp_smoother, "l3tmp_genTemporalBlocking is currently not compatible with RBGS smoothers")
     Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_numPre != l3tmp_numPost, "l3tmp_numPre and l3tmp_numPost have to be equal")
     Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, math.ceil(math.log(l3tmp_numPre) / math.log(2)).toInt,

@@ -87,7 +87,7 @@ object Fields {
     if (Knowledge.l3tmp_kelvin && "" == postfix)
       printer.println(s"Field SolutionMean< $domain, NoComm, bcSol(xPos, yPos) >@finest")
 
-    printer.println(s"Field Residual$postfix< $domain, BasicComm, None >@all")
+    printer.println(s"Field Residual$postfix< $domain, BasicComm, 0.0 >@all")
 
     printer.println(s"Field RHS$postfix< $domain, NoComm, None >@(coarsest to ${Knowledge.l3tmp_tempBlockingMinLevel - 1})")
     if (Knowledge.l3tmp_kelvin && "_GMRF" == postfix) {
@@ -100,10 +100,10 @@ object Fields {
 
     if ("CG" == Knowledge.l3tmp_cgs) {
       if (Knowledge.l3tmp_genVectorFields) {
-        printer.println(s"Field VecP$postfix< $domain, BasicCommScalar, None >@coarsest")
+        printer.println(s"Field VecP$postfix< $domain, BasicCommScalar, 0.0 >@coarsest")
         printer.println(s"Field VecGradP$postfix< $domain, NoCommScalar, None >@coarsest")
       } else {
-        printer.println(s"Field VecP$postfix< $domain, BasicComm, None >@coarsest")
+        printer.println(s"Field VecP$postfix< $domain, BasicComm, 0.0 >@coarsest")
         printer.println(s"Field VecGradP$postfix< $domain, NoComm, None >@coarsest")
       }
     }

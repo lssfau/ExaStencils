@@ -1,7 +1,5 @@
 package exastencils.parsers.l4
 
-import scala.util.parsing.combinator.lexical.StdLexical
-
 /**
   * Defines a basic standard lexical parser for Layer 4
   */
@@ -31,7 +29,7 @@ class LexerL4 extends exastencils.parsers.ExaLexer {
   reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "all", "and")
 
   // layout and field keywords
-  reserved += ("ghostLayers", "duplicateLayers", "innerPoints", "with", "communication", "None")
+  reserved += ("ghostLayers", "duplicateLayers", "innerPoints", "with", "communication", "None", "Node", "Cell", "node", "cell")
 
   // boundary condition keywords
   reserved += ("apply", "bc", "to")

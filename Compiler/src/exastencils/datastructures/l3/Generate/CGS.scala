@@ -37,7 +37,10 @@ object CGS {
       printer.println(s"\t\t}")
 
       printer.println(s"\t\tVariable alphaDenom : Real = 0")
-      printer.println(s"\t\tloop over VecP$postfix@current where x > 0 && y > 0 ${if (Knowledge.dimensionality > 2) "&& z > 0 " else ""}with reduction( + : alphaDenom ) {")
+      if (Knowledge.experimental_genCellBasedDiscr)
+        printer.println(s"\t\tloop over VecP$postfix@current with reduction( + : alphaDenom ) {")
+      else
+        printer.println(s"\t\tloop over VecP$postfix@current where x > 0 && y > 0 ${if (Knowledge.dimensionality > 2) "&& z > 0 " else ""}with reduction( + : alphaDenom ) {")
       printer.println(s"\t\t\talphaDenom += VecP$postfix@current * VecGradP$postfix@current")
       printer.println(s"\t\t}")
 

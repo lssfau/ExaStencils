@@ -90,19 +90,22 @@ object Application {
     printer.println("\tInitRHS ( )")
     printer.println("\tInitSolution ( )")
 
-    // TODO: add other fields here if bc handling is required
-    for (lvl <- Knowledge.minLevel to Knowledge.maxLevel) {
-      if ("Jac" == Knowledge.l3tmp_smoother) {
-        if (Knowledge.l3tmp_useSlotsForJac) {
-          Communication.applyBCs(printer, s"Solution[0]@$lvl")
-          Communication.applyBCs(printer, s"Solution[1]@$lvl")
+    if (!Knowledge.experimental_genCellBasedDiscr) {
+      // TODO: add other fields here if bc handling is required
+      for (lvl <- Knowledge.minLevel to Knowledge.maxLevel) {
+        if ("Jac" == Knowledge.l3tmp_smoother) {
+          if (Knowledge.l3tmp_useSlotsForJac) {
+            Communication.applyBCs(printer, s"Solution[0]@$lvl")
+            Communication.applyBCs(printer, s"Solution[1]@$lvl")
+          } else {
+            Communication.applyBCs(printer, s"Solution@$lvl")
+            Communication.applyBCs(printer, s"Solution2@$lvl")
+          }
         } else {
           Communication.applyBCs(printer, s"Solution@$lvl")
-          Communication.applyBCs(printer, s"Solution2@$lvl")
         }
-      } else {
-        Communication.applyBCs(printer, s"Solution@$lvl")
       }
+      Communication.applyBCs(printer, s"VecP@coarsest")
     }
 
     printer.println("\tSolve ( )")
@@ -133,7 +136,10 @@ object Application {
 
       printer.println(s"\tcommunicate SolutionMean@finest")
       printer.println(s"\tVariable solNorm : Real = 0.0")
-      printer.println(s"\tloop over SolutionMean@finest where x > 0 && y > 0 ${if (Knowledge.dimensionality > 2) "&& z > 0 " else ""}with reduction( + : solNorm ) {")
+      if (Knowledge.experimental_genCellBasedDiscr)
+        printer.println(s"\tloop over SolutionMean@finest with reduction( + : solNorm ) {")
+      else
+        printer.println(s"\tloop over SolutionMean@finest where x > 0 && y > 0 ${if (Knowledge.dimensionality > 2) "&& z > 0 " else ""}with reduction( + : solNorm ) {")
       printer.println(s"\t\tsolNorm += SolutionMean@finest * SolutionMean@finest")
       printer.println(s"\t}")
       printer.println(s"\tsolNorm = ( sqrt ( solNorm ) ) / ${(Knowledge.domain_rect_numFragsTotal_x - 2 * Knowledge.l3tmp_kelvin_numHaloFrags) * (1 << Knowledge.maxLevel) - 1}")

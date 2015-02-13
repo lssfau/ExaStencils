@@ -155,8 +155,6 @@ object Smoothers {
         printer.println(s"Function Smoother$postfix@finest ( ) : Unit {")
       else
         printer.println(s"Function Smoother$postfix@((coarsest + 1) to finest) ( ) : Unit {")
-      if (Knowledge.experimental_Neumann)
-        printer.println(s"apply bc to Solution[currentSlot]@current")
       bodyFunction(s"Laplace$postfix@current", false)
       printer.println(s"}")
     }

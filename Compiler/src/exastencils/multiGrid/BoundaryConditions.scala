@@ -21,7 +21,10 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
       case VariableAccess("xPos", _) | VariableAccess("yPos", _) | VariableAccess("zPos", _) => true
       case _ => false
     }, field.field.boundaryConditions.get).isDefined) {
-      statements += new InitGeomCoords(field.field, true)
+      if (field.fieldLayout.nodeBased)
+        statements += new InitGeomCoords(field.field, true)
+      else
+        statements += new InitGeomCoords(field.field, true, new MultiIndex((neigh.dir ++ Array(0)).map(i => 0.5 * i)))
     }
 
     for (vecDim <- 0 until field.field.vectorSize) { // FIXME: this works for now, but users may want to specify bc's per vector element
@@ -29,15 +32,31 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
       index(Knowledge.dimensionality) = vecDim
       var fieldSel = new FieldSelection(field.field, field.level, field.slot, Some(vecDim), field.fragIdx)
 
-      if (Knowledge.experimental_Neumann && StringConstant("Neumann") == field.field.boundaryConditions.get)
-        Knowledge.experimental_NeumannOrder match {
-          case 1 => statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index), new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -i))))
-          case 2 => statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index),
-            ((4.0 * new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -i))))
-              - new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -2 * i)))) / 3.0)
-        }
-      else
-        statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index), Duplicate(field.field.boundaryConditions.get))
+      if (field.fieldLayout.nodeBased) {
+        if (Knowledge.experimental_Neumann && StringConstant("Neumann") == field.field.boundaryConditions.get)
+          Knowledge.experimental_NeumannOrder match {
+            case 1 => statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index), new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -i))))
+            case 2 => statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index),
+              ((4.0 / 3.0) * new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -i))))
+                + ((-1.0 / 3.0) * new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -2 * i)))))
+            case 3 => // TODO: do we want this? what do we do on the coarser levels? 
+              statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index),
+                (((3.0 * 6.0 / 11.0) * new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -1 * i))))
+                  + ((-3.0 / 2.0 * 6.0 / 11.0) * new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -2 * i))))
+                  + ((1.0 / 3.0 * 6.0 / 11.0) * new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -3 * i))))))
+          }
+        else
+          statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index), Duplicate(field.field.boundaryConditions.get))
+      } else {
+        if (Knowledge.experimental_Neumann && StringConstant("Neumann") == field.field.boundaryConditions.get)
+          Knowledge.experimental_NeumannOrder match {
+            case 1 => statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)))),
+              new DirectFieldAccess(fieldSel, index))
+          }
+        else
+          statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)))),
+            (2.0 * Duplicate(field.field.boundaryConditions.get)) - new DirectFieldAccess(fieldSel, index))
+      }
     }
 
     statements

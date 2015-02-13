@@ -50,7 +50,10 @@ object Residual {
       printer.println(s"\tVariable res : Real = 0")
       if (Knowledge.l3tmp_genFragLoops)
         printer.println(s"\tloop over fragments with reduction( + : res ) {")
-      printer.println(s"\tloop over Residual$postfix@current where x > 0 && y > 0 ${if (Knowledge.dimensionality > 2) "&& z > 0 " else ""}with reduction( + : res ) {")
+      if (Knowledge.experimental_genCellBasedDiscr)
+        printer.println(s"\tloop over Residual$postfix@current with reduction( + : res ) {")
+      else
+        printer.println(s"\tloop over Residual$postfix@current where x > 0 && y > 0 ${if (Knowledge.dimensionality > 2) "&& z > 0 " else ""}with reduction( + : res ) {")
       printer.println(s"\t\tres += ${Fields.residual(s"current", postfix)(vecDim)} * ${Fields.residual(s"current", postfix)(vecDim)}")
       printer.println(s"\t}")
       if (Knowledge.l3tmp_genFragLoops)
@@ -65,7 +68,10 @@ object Residual {
         printer.println(s"\tVariable res : Real = 0")
         if (Knowledge.l3tmp_genFragLoops)
           printer.println(s"\tloop over fragments with reduction( max : res ) {")
-        printer.println(s"\tloop over Residual$postfix@current where x > 0 && y > 0 ${if (Knowledge.dimensionality > 2) "&& z > 0 " else ""}with reduction( max : res ) {")
+        if (Knowledge.experimental_genCellBasedDiscr)
+          printer.println(s"\tloop over Residual$postfix@current with reduction( max : res ) {")
+        else
+          printer.println(s"\tloop over Residual$postfix@current where x > 0 && y > 0 ${if (Knowledge.dimensionality > 2) "&& z > 0 " else ""}with reduction( max : res ) {")
         printer.println(s"\t\tres = max(res, ${Fields.residual(s"current", postfix)(vecDim)})")
         printer.println(s"\t}")
         if (Knowledge.l3tmp_genFragLoops)

@@ -10,6 +10,7 @@ case class LayoutOption(var name : String, var value : Index, var hasCommunicati
 case class LayoutDeclarationStatement(
     var identifier : Identifier,
     var datatype : Datatype,
+    var nodeBased : Boolean,
     var ghostLayers : Option[Index] = None,
     var ghostLayersCommunication : Option[Boolean] = None,
     var duplicateLayers : Option[Index] = None,
@@ -31,19 +32,19 @@ case class LayoutDeclarationStatement(
   }
 
   var default_ghostLayers : Index = knowledge.Knowledge.dimensionality match {
-    case 2 => new Index2D(1, 1)
-    case 3 => new Index3D(1, 1, 1)
+    case 2 => Index2D(1, 1)
+    case 3 => Index3D(1, 1, 1)
   }
   var l4_ghostLayers : Index = default_ghostLayers
   var default_duplicateLayers : Index = knowledge.Knowledge.dimensionality match {
-    case 2 => new Index2D(1, 1)
-    case 3 => new Index3D(1, 1, 1)
+    case 2 => if (nodeBased) Index2D(1, 1) else Index2D(0, 0)
+    case 3 => if (nodeBased) Index3D(1, 1, 1) else Index3D(0, 0, 0)
   }
   var l4_duplicateLayers : Index = default_duplicateLayers
   var default_innerPoints : Index = knowledge.Knowledge.dimensionality match {
     // needs to be overwritten later
-    case 2 => new Index2D(1, 1)
-    case 3 => new Index3D(1, 1, 1)
+    case 2 => Index2D(1, 1)
+    case 3 => Index3D(1, 1, 1)
   }
   var l4_innerPoints : Index = default_innerPoints
   var default_ghostComm : Boolean = false
@@ -68,13 +69,26 @@ case class LayoutDeclarationStatement(
     l4_duplicateLayers = duplicateLayers.getOrElse(new Index3D(1, 1, 1))
 
     default_innerPoints = knowledge.Knowledge.dimensionality match {
-      case 2 => new Index2D(
-        ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
-        ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1))
-      case 3 => new Index3D(
-        ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
-        ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1),
-        ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 1) - 2 * l4_duplicateLayers(2))
+      case 2 => if (nodeBased) {
+        new Index2D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1))
+      } else {
+        new Index2D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * l4_duplicateLayers(1))
+      }
+      case 3 => if (nodeBased) {
+        new Index3D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 1) - 2 * l4_duplicateLayers(2))
+      } else {
+        new Index3D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * l4_duplicateLayers(1),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 0) - 2 * l4_duplicateLayers(2))
+      }
     }
     l4_innerPoints = innerPoints.getOrElse(default_innerPoints)
 
@@ -91,7 +105,6 @@ case class LayoutDeclarationStatement(
         l4_ghostLayers(dim),
         0 // default, only first requires != 0
         ))
-    // TODO: check if padding works properly (for vectorization)
     // add padding only for innermost dimension
     val innerLayout : knowledge.FieldLayoutPerDim = layouts(0)
     innerLayout.numPadLayersLeft = (knowledge.Knowledge.simd_vectorSize - innerLayout.idxDupLeftBegin % knowledge.Knowledge.simd_vectorSize) % knowledge.Knowledge.simd_vectorSize
@@ -109,7 +122,15 @@ case class LayoutDeclarationStatement(
       refOffset(dim) = ir.IntegerConstant(layouts(dim).idxDupLeftBegin)
     refOffset(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(0)
 
-    knowledge.FieldLayout(s"${identifier.name}_$targetFieldName", level, datatype.progressToIr, layouts, refOffset, l4_dupComm, l4_ghostComm)
+    knowledge.FieldLayout(
+      s"${identifier.name}_$targetFieldName",
+      level,
+      datatype.progressToIr,
+      nodeBased,
+      layouts,
+      refOffset,
+      l4_dupComm,
+      l4_ghostComm)
   }
 }
 
