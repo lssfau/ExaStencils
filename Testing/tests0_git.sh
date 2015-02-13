@@ -12,6 +12,7 @@
 BASE_DIR=${1}
 OUT_FILE=${2} # stdout and stderr should already be redirected to this file
 OUT_FILE_URL=${3} # url to ${OUT_FILE}
+PROGRESS=${4}
 
 REPO_DIR="${BASE_DIR}/repo"
 TEMP_DIR="${BASE_DIR}/temp"
@@ -29,8 +30,14 @@ function killed {
 trap killed SIGTERM
 
 
+echo "<html><body><pre>\n$(squeue -u ${USER} -o "%.11i %10P %25j %3t %.5D %R")\n</pre></body></html>" > "${PROGRESS}"
+
+echo "<html><body><pre>"
 echo "$(date -R):  Initialize tests on host ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})..."
 echo ""
+echo "Progress can be found <a href=$(basename ${PROGRESS})>here</a>."
+
+STARTTIME=$(date +%s)
 
 if [[ -d "${REPO_DIR}" ]]; then
   OLD_HASH=$(git -C "${REPO_DIR}" rev-parse @)
@@ -62,10 +69,13 @@ mkdir -p "${TEMP_DIR}"
 NEW_HASH=$(git -C "${REPO_DIR}" rev-parse @)
 echo ""
 echo "Run tests for hash  ${NEW_HASH}."
-(sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" "${REPO_DIR}/Testing/tests1_all.sh" "${REPO_DIR}" "${TEMP_DIR}" "${OUT_FILE}" "${OUT_FILE_URL}")
+(sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" "--dependency=afterok:${SLURM_JOB_ID}" "${REPO_DIR}/Testing/tests1_all.sh" "${REPO_DIR}" "${TEMP_DIR}" "${OUT_FILE}" "${OUT_FILE_URL}" "${PROGRESS}")
       if [[ $? -ne 0 ]]; then
         echo "ERROR: Unable to enqueue testing job."
         echo "Test failed!  Unable to enqueue testing job." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
       fi
 echo ""
 echo ""
+
+ENDTIME=$(date +%s)
+echo "Runtime: $((${ENDTIME} - ${STARTTIME})) seconds"
