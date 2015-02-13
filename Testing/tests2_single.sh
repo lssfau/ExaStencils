@@ -21,7 +21,7 @@ LINK=${8}
 PROGRESS=${9}
 
 
-echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"
+echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
 
 echo "Generate and compile on machine ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
 echo ""
@@ -56,6 +56,7 @@ function cleanup {
   echo "Runtime: $((${ENDTIME} - ${STARTTIME})) seconds  (target code generation and compilation)"
   echo ""
   echo ""
+  echo "-----------------------------------------------------------------------------------------------"
 }
 trap cleanup EXIT
 
@@ -81,6 +82,8 @@ srun java -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}"
       exit 1
     fi
 echo ""
+echo ""
+echo "-----------------------------------------------------------------------------------------------"
 echo "Call make:"
 srun make -C "${RAM_TMP_DIR}" -j ${SLURM_CPUS_ON_NODE}
     if [[ $? -ne 0 ]]; then
@@ -94,4 +97,4 @@ srun make -C "${RAM_TMP_DIR}" -j ${SLURM_CPUS_ON_NODE}
 echo ""
 
 cp "${RAM_TMP_DIR}/${TMP_BIN}" "${BIN}" # store in NFS, as testrun could be enqueued on a different machine
-echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"
+echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"

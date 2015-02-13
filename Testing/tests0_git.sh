@@ -87,7 +87,9 @@ echo ""
 
 ENDTIME=$(date +%s)
 echo "Runtime: $((${ENDTIME} - ${STARTTIME})) seconds  (git pull)"
+echo ""
+echo ""
 
 rm -f "${OUT_DIR}"/*
-echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"
+echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
 cat "${TMP_OUT_FILE}" > "${OUT_FILE}"

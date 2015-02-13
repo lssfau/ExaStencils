@@ -14,7 +14,7 @@ LINK=${5}
 PROGRESS=${6}
 
 
-echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"
+echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
 
 echo "Running test on machine(s) ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
 rm -f ${ERROR_MARKER} # remove error marker from old job run if we were requeued
@@ -57,12 +57,13 @@ cat "${RESULT}"
 echo ""
 
 if diff -B -w --strip-trailing-cr -I "time"  "${RESULT}" "${EXP_RESULT}" > /dev/null; then
-  echo "Test OK"
+  echo "============== Test OK =============="
 else
-  echo "ERROR: invalid result, expected:"
+  echo "============== Test ERROR =============="
+  echo "invalid result, expected:"
   cat "${EXP_RESULT}"
   touch ${ERROR_MARKER}
   echo "${LINK}" >> "${LOG_ALL}"
 fi
 echo ""
-echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"
+echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"

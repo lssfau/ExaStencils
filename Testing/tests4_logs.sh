@@ -37,7 +37,7 @@ if [[ -f "${ERROR_MARKER}" ]]; then
 fi
 
 cd "${LOG_DIR}"
-for log in $(ls *.log); do
+for log in $(ls *.html); do
   TEST_LOG="${LOG_DIR}/${log}"
   TEST_ERROR_MARKER="${TEST_LOG}.${ERROR_MARKER_NAME}"
   if [[ -f "${TEST_ERROR_MARKER}" ]]; then

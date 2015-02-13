@@ -63,7 +63,7 @@ function cleanup {
 trap cleanup EXIT
 
 
-echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"
+echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
 
 echo "-----------------------------------------------------------------------------------------------"
 echo "Running main test script on machine ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
@@ -103,7 +103,8 @@ srun ant -f "${ANT_BUILD}" -Dbuild.dir="${RAM_TMP_DIR}/build" -Dcompiler.jar="${
       error
     fi
 echo ""
-
+echo ""
+echo "-----------------------------------------------------------------------------------------------"
 echo "Parse configuration file and enqueue subjobs:"
 echo ""
 
@@ -213,4 +214,4 @@ LOG_DEPS="--dependency=afterany${DEP_SIDS}"
 (sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${TESTING_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${PROGRESS}")
 echo ""
 
-echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"
+echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
