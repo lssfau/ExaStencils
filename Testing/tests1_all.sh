@@ -38,7 +38,7 @@ LOG_DIR=$(dirname "${OUT_FILE}")
 
 
 function error {
-  echo "Automatic tests failed!  See log file for details: ${OUT_FILE_URL}." | mail -s "TestBot Error" ${FAILURE_MAIL}
+  echo "Automatic tests failed!  See log for details: ${OUT_FILE_URL}." | mail -s "TestBot Error" ${FAILURE_MAIL}
   exit 1
 }
 

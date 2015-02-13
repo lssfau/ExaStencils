@@ -38,10 +38,11 @@ trap killed SIGTERM
 STARTTIME=$(date +%s)
 
 function cleanup {
-  ENDTIME=$(date +%s)
-  echo "Runtime: $((${ENDTIME} - ${STARTTIME})) seconds"
   rm "${RESULT}" # do not remove ${BIN} since job could be requeued; next time all tests are started old binaries are removed anyway
   echo "  Removed  ${RESULT}"
+  echo ""
+  ENDTIME=$(date +%s)
+  echo "Runtime: $((${ENDTIME} - ${STARTTIME})) seconds  (test execution)"
   echo "</pre>"
   echo "</body>"
   echo "</html>"

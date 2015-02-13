@@ -49,10 +49,12 @@ trap killed SIGTERM
 STARTTIME=$(date +%s)
 
 function cleanup {
-  ENDTIME=$(date +%s)
-  echo "Runtime: $((${ENDTIME} - ${STARTTIME})) seconds"
   rm -rf "${RAM_TMP_DIR}"
   echo "  Removed  ${RAM_TMP_DIR}"
+  echo ""
+  ENDTIME=$(date +%s)
+  echo "Runtime: $((${ENDTIME} - ${STARTTIME})) seconds  (target code generation and compilation)"
+  echo ""
   echo ""
 }
 trap cleanup EXIT

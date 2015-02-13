@@ -19,8 +19,8 @@ PROGRESS=${7}
 
 
 echo ""
-echo "================================================="
-echo "Collecting logs on machine ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
+echo "-----------------------------------------------------"
+echo "Evaluating results on machine ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
 
 function killed {
   echo "ERROR? Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} killed; possible reasons: timeout, manually canceled, user login (job is then requeued)."
@@ -53,10 +53,11 @@ if [[ -n "${TO_ZIP}" ]]; then
   7z a "${ERROR_ARCHIVE}" ${TO_ZIP}
   echo ""
   echo ""
-  echo "Errors in automatic tests! See attachment for details." | mail -s "TestBot Error" -A "${ERROR_ARCHIVE}" ${FAILURE_MAIL}
+  echo "Errors in automatic tests!  See log or attachment for details: ${OUT_FILE_URL}" | mail -s "TestBot Error" -A "${ERROR_ARCHIVE}" ${FAILURE_MAIL}
 fi
 
 echo "Tests finished at $(date -R)."
-echo "</pre></body></html>"
+echo ""
+echo "============================================================================"
 
-echo "<html><body><pre>Finished!</pre></body></html>" > "${PROGRESS}"
+echo "<html><body><pre>$(date -R):  Done!</pre></body></html>" > "${PROGRESS}"

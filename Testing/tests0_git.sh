@@ -58,7 +58,8 @@ if [[ -d "${REPO_DIR}" ]]; then
   NEW_HASH=$(git -C "${REPO_DIR}" rev-parse @)
   if [[ ${OLD_HASH} = ${NEW_HASH} ]]; then
     # up-to-date, no need to run tests, exit script
-    echo "No changes, finish."
+    echo "$(date -R):  Tests triggered, but there are no new commits since last run, finish." >> "${OUT_FILE}"
+    echo "<html><body><pre>$(date -R):  Done!</pre></body></html>" > "${PROGRESS}"
     exit 0
   fi
 else
@@ -85,7 +86,7 @@ echo ""
 echo ""
 
 ENDTIME=$(date +%s)
-echo "Runtime: $((${ENDTIME} - ${STARTTIME})) seconds"
+echo "Runtime: $((${ENDTIME} - ${STARTTIME})) seconds  (git pull)"
 
 rm "${OUT_DIR}"/*
 echo "<html><body><pre>$(squeue -u ${USER} -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"
