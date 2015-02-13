@@ -8,7 +8,7 @@
 #SBATCH --cpu_bind=cores
 #SBATCH --time=5
 #SBATCH --signal=INT@5
-#SBATCH --open-mode=append
+#SBATCH --open-mode=truncate
 
 
 REPO_DIR=${1}
@@ -62,6 +62,8 @@ function cleanup {
 }
 trap cleanup EXIT
 
+
+echo "<html><body><pre>$(squeue -u ${USER} -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"
 
 echo "-----------------------------------------------------------------------------------------------"
 echo "Running main test script on machine ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."

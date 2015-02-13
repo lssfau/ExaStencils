@@ -18,6 +18,8 @@ LOG_DIR=${6}
 PROGRESS=${7}
 
 
+echo ""
+echo "================================================="
 echo "Collecting logs on machine ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
 
 function killed {

@@ -10,14 +10,18 @@
 
 
 BASE_DIR=${1}
-OUT_FILE=${2} # stdout and stderr should already be redirected to this file
-OUT_FILE_URL=${3} # url to ${OUT_FILE}
-PROGRESS=${4}
+TMP_OUT_FILE=${2} # stdout and stderr should already be redirected to this file
+OUT_FILE=${3}
+OUT_FILE_URL=${4} # url to ${OUT_FILE}
+PROGRESS=${5}
+TESTS_LOCK=${6}
 
 REPO_DIR="${BASE_DIR}/repo"
 TEMP_DIR="${BASE_DIR}/temp"
 FAILURE_MAIL="kronast@fim.uni-passau.de"
 FAILURE_MAIL_SUBJECT="ExaStencils TestBot Error (cron)"
+
+OUT_DIR=$(dirname "${OUT_FILE}")
 
 GIT_URL="ssh://git@git.infosun.fim.uni-passau.de/exastencils/dev/ScalaExaStencil.git"
 
@@ -29,8 +33,11 @@ function killed {
 }
 trap killed SIGTERM
 
+function cleanup {
+  rm "${TMP_OUT_FILE}" "${TESTS_LOCK}"
+}
+trap cleanup EXIT
 
-echo "<html><body><pre>$(squeue -u ${USER} -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"
 
 echo "<html><body><pre>"
 echo "$(date -R):  Initialize tests on host ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})..."
@@ -79,3 +86,7 @@ echo ""
 
 ENDTIME=$(date +%s)
 echo "Runtime: $((${ENDTIME} - ${STARTTIME})) seconds"
+
+rm "${OUT_DIR}"/*
+echo "<html><body><pre>$(squeue -u ${USER} -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"
+cat "${TMP_OUT_FILE}" > "${OUT_FILE}"

@@ -92,3 +92,4 @@ srun make -C "${RAM_TMP_DIR}" -j ${SLURM_CPUS_ON_NODE}
 echo ""
 
 cp "${RAM_TMP_DIR}/${TMP_BIN}" "${BIN}" # store in NFS, as testrun could be enqueued on a different machine
+echo "<html><body><pre>$(squeue -u ${USER} -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"

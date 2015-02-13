@@ -64,3 +64,4 @@ else
   echo "${LINK}" >> "${LOG_ALL}"
 fi
 echo ""
+echo "<html><body><pre>$(squeue -u ${USER} -o "%.11i %10P %25j %3t %.5D %R")</pre></body></html>" > "${PROGRESS}"
