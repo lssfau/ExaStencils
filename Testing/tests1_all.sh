@@ -8,19 +8,19 @@
 #SBATCH --cpu_bind=cores
 #SBATCH --time=5
 #SBATCH --signal=INT@5
-#SBATCH --open-mode=truncate
+#SBATCH --open-mode=append
 
 
 REPO_DIR=${1}
-TEMP_DIR=${2}
-OUT_FILE=${3} # stdout and stderr should already be redirected to this file
-OUT_FILE_URL=${4} # url to ${OUT_FILE}
-PROGRESS=${5}
+SCALA_DIR=${2}
+TEMP_DIR=${3}
+OUT_FILE=${4} # stdout and stderr should already be redirected to this file
+OUT_FILE_URL=${5} # url to ${OUT_FILE}
+PROGRESS=${6}
 
 
-# HACK: otherwise ant wouldn't find them...
+# HACK: otherwise ant wouldn't find it...
 JAVA_DIR="/usr/lib/jvm/default-java/"
-SCALA_DIR="/scratch/${USER}/exastencils_tests/scala/"
 
 COMPILER_JAR="${TEMP_DIR}/compiler.jar"
 
@@ -38,7 +38,7 @@ LOG_DIR=$(dirname "${OUT_FILE}")
 
 
 function error {
-  echo "Automatic tests failed!  See log for details: ${OUT_FILE_URL}." | mail -s "TestBot Error" ${FAILURE_MAIL}
+  echo "Automatic tests failed!  See log for details: ${OUT_FILE_URL}" | mail -s "TestBot Error" ${FAILURE_MAIL}
   exit 1
 }
 
@@ -99,6 +99,7 @@ echo "Running ant:"
 srun ant -f "${ANT_BUILD}" -Dbuild.dir="${RAM_TMP_DIR}/build" -Dcompiler.jar="${COMPILER_JAR}" -Djava.dir="${JAVA_DIR}" -Dscala.dir="${SCALA_DIR}" clean build
     if [[ $? -ne 0 ]]; then
       echo "ERROR: ant build error."
+      echo ""
       error
     fi
 echo ""
