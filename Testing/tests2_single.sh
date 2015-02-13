@@ -16,7 +16,14 @@ MAIN=${3}
 BIN=${4}
 KNOWLEDGE=${5}
 ERROR_MARKER=${6}
+LOG_ALL=${7}
+LINK=${8}
+PROGRESS=${9}
 
+
+echo "<html><body><pre>\n$(squeue -u ${USER} -o \"%.11i %10P %25j %3t %.5D %R\")\n</pre></body></html>" > "${PROGRESS}"
+
+echo "<html><body><pre>"
 echo "Generate and compile on machine ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
 echo ""
 rm -f ${ERROR_MARKER} # remove error marker from old job run if we were requeued
@@ -24,6 +31,7 @@ rm -f ${ERROR_MARKER} # remove error marker from old job run if we were requeued
 RAM_TMP_DIR="$(mktemp --tmpdir=/run/shm -d)" || {
     echo "ERROR: Failed to create temporary directory."
     touch ${ERROR_MARKER}
+    echo "${LINK}" >> "${LOG_ALL}"
     exit 1
   }
 SETTINGS="${RAM_TMP_DIR}/settings.txt"
@@ -34,11 +42,16 @@ TMP_BIN="exastencils"
 function killed {
   echo "ERROR? Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} killed; possible reasons: timeout, manually canceled, user login (job is then requeued)."
   touch ${ERROR_MARKER}
+  echo "${LINK}" >> "${LOG_ALL}"
   exit 1
 }
 trap killed SIGTERM
 
+STARTTIME=$(date +%s)
+
 function cleanup {
+  ENDTIME=$(date +%s)
+  echo "Runtime: $((${ENDTIME} - ${STARTTIME})) seconds"
   rm -rf "${RAM_TMP_DIR}"
   echo "  Removed  ${RAM_TMP_DIR}"
   echo ""
@@ -63,6 +76,7 @@ srun java -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}"
       echo "ERROR: generator return code unequal to 0."
       echo ""
       touch ${ERROR_MARKER}
+      echo "${LINK}" >> "${LOG_ALL}"
       exit 1
     fi
 echo ""
@@ -73,6 +87,7 @@ srun make -C "${RAM_TMP_DIR}" -j ${SLURM_CPUS_ON_NODE}
       echo "ERROR: make return code unequal to 0."
       echo ""
       touch ${ERROR_MARKER}
+      echo "${LINK}" >> "${LOG_ALL}"
       exit 1
     fi
 echo ""

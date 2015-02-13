@@ -15,6 +15,7 @@ REPO_DIR=${1}
 TEMP_DIR=${2}
 OUT_FILE=${3} # stdout and stderr should already be redirected to this file
 OUT_FILE_URL=${4} # url to ${OUT_FILE}
+PROGRESS=${5}
 
 
 # HACK: otherwise ant wouldn't find them...
@@ -33,6 +34,9 @@ TECH_FAILURE_MAIL="kronast@fim.uni-passau.de"
 ERROR_MARKER_NAME="error"
 ERROR_MARKER="${TEMP_DIR}/${ERROR_MARKER_NAME}"
 
+LOG_DIR=$(dirname "${OUT_FILE}")
+
+
 function error {
   echo "Automatic tests failed!  See log file for details: ${OUT_FILE_URL}." | mail -s "TestBot Error" ${FAILURE_MAIL}
   exit 1
@@ -45,10 +49,16 @@ function killed {
 }
 trap killed SIGTERM
 
+STARTTIME=$(date +%s)
+
 function cleanup {
+  ENDTIME=$(date +%s)
+  echo "Runtime: $((${ENDTIME} - ${STARTTIME})) seconds"
   rm -rf "${RAM_TMP_DIR}"
   echo "  Removed  ${RAM_TMP_DIR}"
   echo ""
+  echo ""
+  echo "Failed tests:"
 }
 trap cleanup EXIT
 
@@ -78,9 +88,8 @@ for job in $(squeue -h -u ${USER} -o %i); do
 done
 # remove old files (if some)
 rm -rf "${TEMP_DIR}"/*
-LOG_DIR="${TEMP_DIR}/logs"
 BIN_DIR="${TEMP_DIR}/bin"
-mkdir "${LOG_DIR}" "${BIN_DIR}"
+mkdir "${BIN_DIR}"
 
 # build generator (place class files in RAM_TMP_DIR)
 echo ""
@@ -119,7 +128,8 @@ do
     continue
   fi
 
-  TEST_LOG="${LOG_DIR}/${id}.log"
+  TEST_LOG_REL="${id}.html"
+  TEST_LOG="${LOG_DIR}/${TEST_LOG_REL}"
   TEST_ERROR_MARKER="${TEST_LOG}.${ERROR_MARKER_NAME}"
   TEST_BIN="${BIN_DIR}/${id}"
 
@@ -127,7 +137,7 @@ do
 
   echo "Enqueue generation and compilation job for id  ${id}."
   # configuration is fine, start a new job for it
-  OUT=$(sbatch --job-name="etg_${id}" -o ${TEST_LOG} -e ${TEST_LOG} "${TESTING_DIR}/tests2_single.sh" "${TESTING_DIR}" "${COMPILER_JAR}" ${main} "${TEST_BIN}" "${TESTING_DIR}/${knowledge}" "${TEST_ERROR_MARKER}")
+  OUT=$(sbatch --job-name="etg_${id}" -o ${TEST_LOG} -e ${TEST_LOG} "--dependency=afterok:${SLURM_JOB_ID}" "${TESTING_DIR}/tests2_single.sh" "${TESTING_DIR}" "${COMPILER_JAR}" ${main} "${TEST_BIN}" "${TESTING_DIR}/${knowledge}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}")
   if [[ $? -eq 0 ]]; then
     SID=${OUT#Submitted batch job }
     DEP_SIDS="${DEP_SIDS}:${SID}"
@@ -135,6 +145,8 @@ do
     touch "${ERROR_MARKER}"
   fi
   echo "${OUT}"
+  echo "<a href=./${TEST_LOG_REL}>Log...</a>"
+  echo ""
 
   if [[ -n ${cores} ]]; then
     TMP_ARRAY[i+0]=${id}
@@ -181,7 +193,7 @@ for ((i=0;i<${#TMP_ARRAY[@]};i+=9)); do
     CONSTR_PARAM=""
   fi
   echo "Enqueue execution job for id  ${id}."
-  OUT=$(sbatch --job-name="etr_${id}" -o ${TEST_LOG} -e ${TEST_LOG} -A ${ACC} -p ${PART} -n ${nodes} -c ${cores} ${TEST_DEP} ${CONSTR_PARAM} "${TESTING_DIR}/tests3_generated.sh" "${TEST_BIN}" "${TESTING_DIR}/${result}" "${TEST_ERROR_MARKER}")
+  OUT=$(sbatch --job-name="etr_${id}" -o ${TEST_LOG} -e ${TEST_LOG} -A ${ACC} -p ${PART} -n ${nodes} -c ${cores} ${TEST_DEP} ${CONSTR_PARAM} "${TESTING_DIR}/tests3_generated.sh" "${TEST_BIN}" "${TESTING_DIR}/${result}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}")
   if [[ $? -eq 0 ]]; then
     SID=${OUT#Submitted batch job }
     DEP_SIDS="${DEP_SIDS}:${SID}"
@@ -189,10 +201,14 @@ for ((i=0;i<${#TMP_ARRAY[@]};i+=9)); do
     touch "${ERROR_MARKER}"
   fi
   echo "${OUT}"
+  echo "<a href=./${TEST_LOG_REL}>Log...</a>"
+  echo ""
 done
 
 echo ""
 echo "Collect separate logs after all other jobs are finished:"
 LOG_DEPS="--dependency=afterany${DEP_SIDS}"
-(sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${TESTING_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}")
+(sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${TESTING_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${PROGRESS}")
 echo ""
+
+echo "<html><body><pre>\n$(squeue -u ${USER} -o \"%.11i %10P %25j %3t %.5D %R\")\n</pre></body></html>" > "${PROGRESS}"

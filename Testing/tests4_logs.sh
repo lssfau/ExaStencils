@@ -15,6 +15,7 @@ OUT_FILE_URL=${3} # url to ${OUT_FILE}
 ERROR_MARKER_NAME=${4}
 ERROR_MARKER=${5}
 LOG_DIR=${6}
+PROGRESS=${7}
 
 
 echo "Collecting logs on machine ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
@@ -33,15 +34,9 @@ if [[ -f "${ERROR_MARKER}" ]]; then
   TO_ZIP="${TO_ZIP} tests.log"
 fi
 
-echo ""
-echo ""
 cd "${LOG_DIR}"
 for log in $(ls *.log); do
   TEST_LOG="${LOG_DIR}/${log}"
-  echo "======================================================================="
-  cat "${TEST_LOG}"
-  echo ""
-  echo ""
   TEST_ERROR_MARKER="${TEST_LOG}.${ERROR_MARKER_NAME}"
   if [[ -f "${TEST_ERROR_MARKER}" ]]; then
     rm "${TEST_ERROR_MARKER}"
@@ -49,6 +44,8 @@ for log in $(ls *.log); do
   fi
 done
 
+echo ""
+echo ""
 if [[ -n "${TO_ZIP}" ]]; then
   ERROR_ARCHIVE="${LOG_DIR}/ErrorLogs.7z"
   7z a "${ERROR_ARCHIVE}" ${TO_ZIP}
@@ -58,3 +55,6 @@ if [[ -n "${TO_ZIP}" ]]; then
 fi
 
 echo "Tests finished at $(date -R)."
+echo "</pre></body></html>"
+
+echo "<html><body><pre>\nFinished!\n</pre></body></html>" > "${PROGRESS}"
