@@ -21,7 +21,7 @@ LINK=${8}
 PROGRESS=${9}
 
 
-echo "<html><body><pre>\n$(squeue -u ${USER} -o \"%.11i %10P %25j %3t %.5D %R\")\n</pre></body></html>" > "${PROGRESS}"
+echo "<html><body><pre>\n$(squeue -u ${USER} -o "%.11i %10P %25j %3t %.5D %R")\n</pre></body></html>" > "${PROGRESS}"
 
 echo "<html><body><pre>"
 echo "Generate and compile on machine ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."

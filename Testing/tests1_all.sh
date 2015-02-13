@@ -211,4 +211,4 @@ LOG_DEPS="--dependency=afterany${DEP_SIDS}"
 (sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${TESTING_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${PROGRESS}")
 echo ""
 
-echo "<html><body><pre>\n$(squeue -u ${USER} -o \"%.11i %10P %25j %3t %.5D %R\")\n</pre></body></html>" > "${PROGRESS}"
+echo "<html><body><pre>\n$(squeue -u ${USER} -o "%.11i %10P %25j %3t %.5D %R")\n</pre></body></html>" > "${PROGRESS}"

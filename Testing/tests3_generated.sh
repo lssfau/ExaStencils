@@ -14,7 +14,7 @@ LINK=${5}
 PROGRESS=${6}
 
 
-echo "<html><body><pre>\n$(squeue -u ${USER} -o \"%.11i %10P %25j %3t %.5D %R\")\n</pre></body></html>" > "${PROGRESS}"
+echo "<html><body><pre>\n$(squeue -u ${USER} -o "%.11i %10P %25j %3t %.5D %R")\n</pre></body></html>" > "${PROGRESS}"
 
 echo "Running test on machine(s) ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
 rm -f ${ERROR_MARKER} # remove error marker from old job run if we were requeued

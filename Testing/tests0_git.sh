@@ -30,7 +30,7 @@ function killed {
 trap killed SIGTERM
 
 
-echo "<html><body><pre>\n$(squeue -u ${USER} -o \"%.11i %10P %25j %3t %.5D %R\")\n</pre></body></html>" > "${PROGRESS}"
+echo "<html><body><pre>\n$(squeue -u ${USER} -o "%.11i %10P %25j %3t %.5D %R")\n</pre></body></html>" > "${PROGRESS}"
 
 echo "<html><body><pre>"
 echo "$(date -R):  Initialize tests on host ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})..."
