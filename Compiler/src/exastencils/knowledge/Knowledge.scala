@@ -167,7 +167,7 @@ object Knowledge {
 
   // --- MPI Parallelization ---
   var mpi_enabled : Boolean = true // [true|false]
-  var mpi_numThreads : Int = 8 // TODO // the number of mpi threads to be used 
+  var mpi_numThreads : Int = 1 // TODO // the number of mpi threads to be used 
 
   var mpi_useCustomDatatypes : Boolean = false // [true|false] // allows to use custom mpi data types when reading from/ writing to fields thus circumventing temp send/ receive buffers
   var mpi_useLoopsWherePossible : Boolean = true // [true|false] // allows to summarize some code blocks into loops in order to shorten the resulting code length
