@@ -66,21 +66,13 @@ case class ApplyBCsFunction(var name : String, var fieldSelection : FieldSelecti
       curNeighbors.map(neigh => (neigh, new IndexRange(
         new MultiIndex(
           DimArray().map(i => i match {
-<<<<<<< .merge_file_a12836
-            case i if neigh.dir(i) == 0 => resolveIndex("GLB", i) // DLB, GLB
-=======
             case i if neigh.dir(i) == 0 => resolveIndex("DLB", i) // DLB, GLB
->>>>>>> .merge_file_a10608
             case i if neigh.dir(i) < 0  => resolveIndex("DLB", i) // DLB, GLB
             case i if neigh.dir(i) > 0  => resolveIndex("DRB", i)
           }) ++ vecFieldIndexBegin),
         new MultiIndex(
           DimArray().map(i => i match {
-<<<<<<< .merge_file_a12836
-            case i if neigh.dir(i) == 0 => resolveIndex("GRE", i) // DRE, GRE
-=======
             case i if neigh.dir(i) == 0 => resolveIndex("DRE", i) // DRE, GRE
->>>>>>> .merge_file_a10608
             case i if neigh.dir(i) < 0  => resolveIndex("DLE", i)
             case i if neigh.dir(i) > 0  => resolveIndex("DRE", i) // DRE, GRE
           }) ++ vecFieldIndexEnd))))
