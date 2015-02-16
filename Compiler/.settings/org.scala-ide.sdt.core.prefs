@@ -1,0 +1,6 @@
+eclipse.preferences.version=1
+formatter.alignParameters=false
+formatter.doubleIndentClassDeclaration=true
+formatter.placeScaladocAsterisksBeneathSecondAsterisk=true
+formatter.spaceBeforeColon=true
+formatter.useProjectSpecificSettings=true

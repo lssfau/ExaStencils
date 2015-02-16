@@ -6,105 +6,109 @@ import exastencils.spl._
 
 object Knowledge {
   // TODO: rename and move to hw knowledge?
-  var targetCompiler : String = "MSVC" // the target compiler; may atm be "MSVC", "GCC", "IBMXL", "IBMBG"
-  var targetCompilerVersion : Int = 0 // major version of the target compiler
-  var targetCompilerVersionMinor : Int = 0 // minor version of the target compiler
+  var targetCompiler: String = "MSVC" // the target compiler; may atm be "MSVC", "GCC", "IBMXL", "IBMBG"
+  var targetCompilerVersion: Int = 0 // major version of the target compiler
+  var targetCompilerVersionMinor: Int = 0 // minor version of the target compiler
 
-  var useDblPrecision : Boolean = true
+  var useDblPrecision: Boolean = true
 
-  var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2", "QPX"
-  def simd_vectorSize : Int = { // number of vector elements for SIMD instructions (currently only double precision)
-    val double : Int = if (useDblPrecision) 1 else 2
+  var simd_instructionSet: String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2", "QPX"
+  def simd_vectorSize: Int = { // number of vector elements for SIMD instructions (currently only double precision)
+    val double: Int = if (useDblPrecision) 1 else 2
     simd_instructionSet match {
       case "SSE3"         => 2 * double
       case "AVX" | "AVX2" => 4 * double
       case "QPX"          => 4 // yes, it's always 4
     }
   }
-  def simd_header : String = { // header for vector intrinsics
+  def simd_header: String = { // header for vector intrinsics
     simd_instructionSet match {
       case "SSE3" | "AVX" | "AVX2" => "immintrin.h"
       case "QPX"                   => null
     }
   }
 
-  var simd_avoidUnaligned : Boolean = false
+  var simd_avoidUnaligned: Boolean = false
 
-  var useFasterExpand : Boolean = true
+  var useFasterExpand: Boolean = true
 
   // === Level 1 ===
-  var dimensionality : Int = 3 // dimensionality of the problem
+  var dimensionality: Int = 3 // dimensionality of the problem
 
   // TODO: check if these parameters will be necessary or can be implicitly assumed once an appropriate field collection is in place
-  var minLevel : Int = 0 // the coarsest level
-  var maxLevel : Int = 6 // the finest level
-  def numLevels : Int = (maxLevel - minLevel + 1) // the number of levels -> this assumes that the cycle descents to the coarsest level
+  var minLevel: Int = 0 // the coarsest level
+  var maxLevel: Int = 6 // the finest level
+  def numLevels: Int = (maxLevel - minLevel + 1) // the number of levels -> this assumes that the cycle descents to the coarsest level
 
   // --- Domain Decomposition ---
 
   /// general flags and information
 
   // specifies if domains are to be read from file
-  var domain_readFromFile : Boolean = false
+  var domain_readFromFile: Boolean = false
 
   // specifies if only rectangular domains are used 
-  var domain_onlyRectangular : Boolean = true
+  var domain_onlyRectangular: Boolean = true
 
   // the total number of blocks - in case of domain_generateRectengular this is the product of domain_generate_numBlocks_{x|y|z}
-  var domain_numBlocks : Int = 1
+  var domain_numBlocks: Int = 1
 
   // the number of fragments per block - in case of domain_generateRectengular this is the product of domain_generate_numFragsPerBlock_{x|y|z}
-  var domain_numFragmentsPerBlock : Int = 1
+  var domain_numFragmentsPerBlock: Int = 1
 
   // the total number of fragments the computational domain is partitioned into
-  def domain_numFragmentsTotal : Int = domain_numBlocks * domain_numFragmentsPerBlock
+  def domain_numFragmentsTotal: Int = domain_numBlocks * domain_numFragmentsPerBlock
 
   // the length of each fragment per dimension - this will either be one or specify the length in unit-fragments, i.e. the number of aggregated fragments per dimension
-  var domain_fragmentLength_x : Int = 1
-  var domain_fragmentLength_y : Int = 1
-  var domain_fragmentLength_z : Int = 1
-  def domain_fragmentLengthAsVec : Array[Int] = Array(domain_fragmentLength_x, domain_fragmentLength_y, domain_fragmentLength_z)
+  var domain_fragmentLength_x: Int = 1
+  var domain_fragmentLength_y: Int = 1
+  var domain_fragmentLength_z: Int = 1
+  def domain_fragmentLengthAsVec: Array[Int] = Array(domain_fragmentLength_x, domain_fragmentLength_y, domain_fragmentLength_z)
 
   /// specific flags for setting rectangular domains
 
   // specifies if dynamic domain setup code is to be generated for rectangular domains
-  var domain_rect_generate : Boolean = true
+  var domain_rect_generate: Boolean = true
 
   // number of blocks to be generated per dimension - one block will usually be mapped to one MPI thread
-  var domain_rect_numBlocks_x : Int = 1
-  var domain_rect_numBlocks_y : Int = 1
-  var domain_rect_numBlocks_z : Int = 1
+  var domain_rect_numBlocks_x: Int = 1
+  var domain_rect_numBlocks_y: Int = 1
+  var domain_rect_numBlocks_z: Int = 1
 
   // number of fragments to be generated for each block per dimension - this will usually be one or be equal to the number of OMP threads per dimension
-  var domain_rect_numFragsPerBlock_x : Int = 1
-  var domain_rect_numFragsPerBlock_y : Int = 1
-  var domain_rect_numFragsPerBlock_z : Int = 1
+  var domain_rect_numFragsPerBlock_x: Int = 1
+  var domain_rect_numFragsPerBlock_y: Int = 1
+  var domain_rect_numFragsPerBlock_z: Int = 1
 
   // the total number of fragments to be generated per dimension
-  def domain_rect_numFragsTotal_x : Int = domain_rect_numFragsPerBlock_x * domain_rect_numBlocks_x
-  def domain_rect_numFragsTotal_y : Int = domain_rect_numFragsPerBlock_y * domain_rect_numBlocks_y
-  def domain_rect_numFragsTotal_z : Int = domain_rect_numFragsPerBlock_z * domain_rect_numBlocks_z
-  def domain_rect_numFragsTotal : Int = domain_rect_numFragsTotal_x * domain_rect_numFragsTotal_y * domain_rect_numFragsTotal_z
-  def domain_rect_numFragsTotalAsVec : Array[Int] = Array(domain_rect_numFragsTotal_x, domain_rect_numFragsTotal_y, domain_rect_numFragsTotal_z)
+  def domain_rect_numFragsTotal_x: Int = domain_rect_numFragsPerBlock_x * domain_rect_numBlocks_x
+  def domain_rect_numFragsTotal_y: Int = domain_rect_numFragsPerBlock_y * domain_rect_numBlocks_y
+  def domain_rect_numFragsTotal_z: Int = domain_rect_numFragsPerBlock_z * domain_rect_numBlocks_z
+  def domain_rect_numFragsTotal: Int = domain_rect_numFragsTotal_x * domain_rect_numFragsTotal_y * domain_rect_numFragsTotal_z
+  def domain_rect_numFragsTotalAsVec: Array[Int] = Array(domain_rect_numFragsTotal_x, domain_rect_numFragsTotal_y, domain_rect_numFragsTotal_z)
 
   // TODO:  var domain_gridWidth_x,y,z
 
   /// utility functions
-  def domain_canHaveLocalNeighs : Boolean = (domain_numFragmentsPerBlock > 1) // specifies if fragments can have local (i.e.\ shared memory) neighbors, i.e.\ if local comm is required
-  def domain_canHaveRemoteNeighs : Boolean = (domain_numBlocks > 1) // specifies if fragments can have remote (i.e.\ different mpi rank) neighbors, i.e.\ if mpi comm is required
+  def domain_canHaveLocalNeighs: Boolean = (domain_numFragmentsPerBlock > 1) // specifies if fragments can have local (i.e.\ shared memory) neighbors, i.e.\ if local comm is required
+  def domain_canHaveRemoteNeighs: Boolean = (domain_numBlocks > 1) // specifies if fragments can have remote (i.e.\ different mpi rank) neighbors, i.e.\ if mpi comm is required
+
+  /// Student project - Jeremias
+  // specifies if subdomains form a union with global domain (e.g. to get a L-Shape domain)
+  var domain_formUnion: Boolean = false
 
   // === Layer 2 ===
 
-  var discr_hx : Array[Double] = Array() // grid widths in x direction per level
-  var discr_hy : Array[Double] = Array() // grid widths in y direction per level
-  var discr_hz : Array[Double] = Array() // grid widths in z direction per level
+  var discr_hx: Array[Double] = Array() // grid widths in x direction per level
+  var discr_hy: Array[Double] = Array() // grid widths in y direction per level
+  var discr_hz: Array[Double] = Array() // grid widths in z direction per level
 
   // === Layer 3 ===
 
   // === Layer 4 ===
 
   // === Post Layer 4 ===
-  var ir_genSepLayoutsPerField : Boolean = true // specifies if shared fieldlayouts should be duplicated when progressing from l4 to ir
+  var ir_genSepLayoutsPerField: Boolean = true // specifies if shared fieldlayouts should be duplicated when progressing from l4 to ir
 
   // --- Compiler Capabilities ---
   def supports_initializerList = { // indicates if the compiler supports initializer lists (e.g. for std::min)
@@ -117,34 +121,34 @@ object Knowledge {
   }
 
   // --- Data Structures ---
-  var data_initAllFieldsWithZero : Boolean = true // specifies if all data points in all fields on all levels should initially be set zero (before the l4 initField functions are applied)
-  var data_useFieldNamesAsIdx : Boolean = true // specifies if generated data field names should hold the clear text field identifier
+  var data_initAllFieldsWithZero: Boolean = true // specifies if all data points in all fields on all levels should initially be set zero (before the l4 initField functions are applied)
+  var data_useFieldNamesAsIdx: Boolean = true // specifies if generated data field names should hold the clear text field identifier
 
-  var data_alignFieldPointers : Boolean = false // specifies if pointers to field data are to be aligned to simd_vectorSize, e.g. to ensure correct alignment for SIMD accesses
-  var data_alignTmpBufferPointers : Boolean = false // specifies if pointers to communication buffers are to be aligned to simd_vectorSize, e.g. to ensure correct alignment for SIMD accesses
+  var data_alignFieldPointers: Boolean = false // specifies if pointers to field data are to be aligned to simd_vectorSize, e.g. to ensure correct alignment for SIMD accesses
+  var data_alignTmpBufferPointers: Boolean = false // specifies if pointers to communication buffers are to be aligned to simd_vectorSize, e.g. to ensure correct alignment for SIMD accesses
 
   // --- OpenMP and MPI Parallelization ---
-  var comm_strategyFragment : Int = 6 // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors
-  var comm_useFragmentLoopsForEachOp : Boolean = true // [true|false] // specifies if comm ops (buffer copy, send/ recv, wait) should each be aggregated and handled in distinct fragment loops 
+  var comm_strategyFragment: Int = 6 // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors
+  var comm_useFragmentLoopsForEachOp: Boolean = true // [true|false] // specifies if comm ops (buffer copy, send/ recv, wait) should each be aggregated and handled in distinct fragment loops 
 
   // TODO: check in how far the following parameters can be adapted by the SPL
-  var comm_sepDataByFragment : Boolean = true // specifies if communication variables that could be fragment specific are handled separately
-  var comm_sepDataByDomain : Boolean = false // specifies if communication variables that could be domain specific are handled separately
-  var comm_sepDataByField : Boolean = false // specifies if communication variables that could be field specific are handled separately
-  var comm_sepDataByLevel : Boolean = false // specifies if communication variables that could be level specific are handled separately
-  var comm_sepDataByNeighbor : Boolean = true // specifies if communication variables that could be neighbor specific are handled separately
+  var comm_sepDataByFragment: Boolean = true // specifies if communication variables that could be fragment specific are handled separately
+  var comm_sepDataByDomain: Boolean = false // specifies if communication variables that could be domain specific are handled separately
+  var comm_sepDataByField: Boolean = false // specifies if communication variables that could be field specific are handled separately
+  var comm_sepDataByLevel: Boolean = false // specifies if communication variables that could be level specific are handled separately
+  var comm_sepDataByNeighbor: Boolean = true // specifies if communication variables that could be neighbor specific are handled separately
 
-  var comm_useFragmentArrays : Boolean = true // specifies if fragment specific variables are summarized in array form
-  var comm_useDomainArrays : Boolean = true // specifies if domain specific variables are summarized in array form
-  var comm_useFieldArrays : Boolean = false // specifies if domain field variables are summarized in array form
-  var comm_useLevelArrays : Boolean = false // specifies if domain level variables are summarized in array form
-  var comm_useNeighborArrays : Boolean = true // specifies if neighbor specific variables are summarized in array form
+  var comm_useFragmentArrays: Boolean = true // specifies if fragment specific variables are summarized in array form
+  var comm_useDomainArrays: Boolean = true // specifies if domain specific variables are summarized in array form
+  var comm_useFieldArrays: Boolean = false // specifies if domain field variables are summarized in array form
+  var comm_useLevelArrays: Boolean = false // specifies if domain level variables are summarized in array form
+  var comm_useNeighborArrays: Boolean = true // specifies if neighbor specific variables are summarized in array form
 
   // --- OpenMP Parallelization ---
-  var omp_enabled : Boolean = false // [true|false] 
-  var omp_numThreads : Int = 1 // TODO // the number of omp threads to be used; may be incorporated in omp pragmas
+  var omp_enabled: Boolean = false // [true|false] 
+  var omp_numThreads: Int = 1 // TODO // the number of omp threads to be used; may be incorporated in omp pragmas
 
-  def omp_version : Double = { // the maximum version of omp supported by the chosen compiler
+  def omp_version: Double = { // the maximum version of omp supported by the chosen compiler
     targetCompiler match {
       case "MSVC"            => 2.0
       case "GCC"             => 4.0
@@ -152,11 +156,11 @@ object Knowledge {
       case _                 => Logger.error("Unsupported target compiler"); 0.0
     }
   }
-  var omp_parallelizeLoopOverFragments : Boolean = true // [true|false] // specifies if loops over fragments may be parallelized with omp if marked correspondingly
-  var omp_parallelizeLoopOverDimensions : Boolean = false // [true|false] // specifies if loops over dimensions may be parallelized with omp if marked correspondingly
-  var omp_useCollapse : Boolean = false // [true|false] // if true the 'collapse' directive may be used in omp for regions; this will only be done if the minimum omp version supports this
-  var omp_minWorkItemsPerThread : Int = 400 // [1-inf] // threshold specifying which loops yield enough workload to amortize the omp overhead
-  def omp_requiresCriticalSections : Boolean = { // true if the chosen compiler / mpi version requires critical sections to be marked explicitly
+  var omp_parallelizeLoopOverFragments: Boolean = true // [true|false] // specifies if loops over fragments may be parallelized with omp if marked correspondingly
+  var omp_parallelizeLoopOverDimensions: Boolean = false // [true|false] // specifies if loops over dimensions may be parallelized with omp if marked correspondingly
+  var omp_useCollapse: Boolean = false // [true|false] // if true the 'collapse' directive may be used in omp for regions; this will only be done if the minimum omp version supports this
+  var omp_minWorkItemsPerThread: Int = 400 // [1-inf] // threshold specifying which loops yield enough workload to amortize the omp overhead
+  def omp_requiresCriticalSections: Boolean = { // true if the chosen compiler / mpi version requires critical sections to be marked explicitly
     targetCompiler match {
       case "MSVC"            => true
       case "GCC"             => true
@@ -166,97 +170,97 @@ object Knowledge {
   }
 
   // --- MPI Parallelization ---
-  var mpi_enabled : Boolean = true // [true|false]
-  var mpi_numThreads : Int = 1 // TODO // the number of mpi threads to be used 
+  var mpi_enabled: Boolean = true // [true|false]
+  var mpi_numThreads: Int = 1 // TODO // the number of mpi threads to be used 
 
-  var mpi_useCustomDatatypes : Boolean = false // [true|false] // allows to use custom mpi data types when reading from/ writing to fields thus circumventing temp send/ receive buffers
-  var mpi_useLoopsWherePossible : Boolean = true // [true|false] // allows to summarize some code blocks into loops in order to shorten the resulting code length
-  var mpi_defaultCommunicator : String = "MPI_COMM_WORLD" // sets the initial communicator used by most MPI operations
+  var mpi_useCustomDatatypes: Boolean = false // [true|false] // allows to use custom mpi data types when reading from/ writing to fields thus circumventing temp send/ receive buffers
+  var mpi_useLoopsWherePossible: Boolean = true // [true|false] // allows to summarize some code blocks into loops in order to shorten the resulting code length
+  var mpi_defaultCommunicator: String = "MPI_COMM_WORLD" // sets the initial communicator used by most MPI operations
 
   // --- Polyhedron Optimization ---
   // TODO: Alex: range of the following options
-  var poly_optLevel_fine : Int = 0 // [0-3] // poly opt-level for {$poly_numFinestLevels} finest fields  0: disable (fastest);  3: aggressive (slowest)
-  var poly_optLevel_coarse : Int = 0 // [0-poly_optLevel_fine] // polyhedral optimization level for coarsest fields  0: disable (fastest);  3: aggressive (slowest)
-  var poly_numFinestLevels : Int = 2 // [1-numLevels] // number of levels that should be optimized in PolyOpt (starting from the finest)
-  var poly_tileSize_x : Int = 1000000000 // [32-inf]
-  var poly_tileSize_y : Int = 1000000000 // [16-inf]
-  var poly_tileSize_z : Int = 1000000000 // [16-inf]
-  var poly_tileSize_w : Int = 1000000000 // [16-inf]
-  var poly_tileOuterLoop : Boolean = false // [true|false] // specify separately if the outermost loop should be tiled
+  var poly_optLevel_fine: Int = 0 // [0-3] // poly opt-level for {$poly_numFinestLevels} finest fields  0: disable (fastest);  3: aggressive (slowest)
+  var poly_optLevel_coarse: Int = 0 // [0-poly_optLevel_fine] // polyhedral optimization level for coarsest fields  0: disable (fastest);  3: aggressive (slowest)
+  var poly_numFinestLevels: Int = 2 // [1-numLevels] // number of levels that should be optimized in PolyOpt (starting from the finest)
+  var poly_tileSize_x: Int = 1000000000 // [32-inf]
+  var poly_tileSize_y: Int = 1000000000 // [16-inf]
+  var poly_tileSize_z: Int = 1000000000 // [16-inf]
+  var poly_tileSize_w: Int = 1000000000 // [16-inf]
+  var poly_tileOuterLoop: Boolean = false // [true|false] // specify separately if the outermost loop should be tiled
 
   // --- Other Optimizations ---
-  var opt_useAddressPrecalc : Boolean = false // [true|false]
-  var opt_vectorize : Boolean = false // [true|false]
-  var opt_unroll : Int = 1 // [1-8]
-  var opt_unroll_interleave : Boolean = false // [true|false] // FIXME: WARNING: there is a bug in combination with poly opts, use with caution until it's fixed!
-  var opt_useColorSplitting : Boolean = false // [true|false] // only relevant for RBGS smoother currently
+  var opt_useAddressPrecalc: Boolean = false // [true|false]
+  var opt_vectorize: Boolean = false // [true|false]
+  var opt_unroll: Int = 1 // [1-8]
+  var opt_unroll_interleave: Boolean = false // [true|false] // FIXME: WARNING: there is a bug in combination with poly opts, use with caution until it's fixed!
+  var opt_useColorSplitting: Boolean = false // [true|false] // only relevant for RBGS smoother currently
 
   /// BEGIN HACK config options for generating L4 DSL file
-  var l3tmp_generateL4 : Boolean = true // generates a new Layer 4 file using the corresponding filename from Settings; the generated DSL file can is based on the following parameters
+  var l3tmp_generateL4: Boolean = true // generates a new Layer 4 file using the corresponding filename from Settings; the generated DSL file can is based on the following parameters
 
   /// SPL connected
-  var l3tmp_smoother : String = "Jac" // [Jac|GS|RBGS] // the l3tmp_smoother to be generated
-  var l3tmp_cgs : String = "CG" // [CG] // the coarse grid solver to be generated
-  var l3tmp_numRecCycleCalls : Int = 1 // [1-2] // 1 corresponds to v-cycles while 2 corresponds to w-cycles
-  var l3tmp_numPre : Int = 3 // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
-  var l3tmp_numPost : Int = 3 // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
-  var l3tmp_omega : Double = (if ("Jac" == l3tmp_smoother) 0.8 else 1.0) // [0.1-10.0] // the relaxation parameter to be used for the l3tmp_smoother
-  var l3tmp_genStencilStencilConv : Boolean = false // [true|false] // tests stencil-stencil convolutions by using RAP instead of A
-  var l3tmp_genStencilFields : Boolean = false // [true|false] // generates stencil fields that are used to store stencils of A (or RAP if l3tmp_genStencilStencilConv is true)
-  var l3tmp_genAsyncCommunication : Boolean = false // [true|false] // replaces some sync communication statements in the L4 DSL file with their async counterparts 
-  var l3tmp_genTemporalBlocking : Boolean = false // [true|false] // adds the necessary statements to the L4 DSL file to implement temporal blocking; adapts field layouts as well
-  var l3tmp_tempBlockingMinLevel : Int = 1 // [1+minLevel|maxLevel] // specifies a threshold for adding temporal blocking to generated l4 files; only levels larger or equal to this threshold are blocked
-  var l3tmp_useConditionsForRBGS : Boolean = true // [true|false] // uses conditions to realize red-black patterns (as opposed to adapted offsets and strides)
-  var l3tmp_useSlotsForJac : Boolean = true // [true|false] // uses sloted solution fields for Jacobi (as opposed to multiple distinct fields)
-  var l3tmp_useSlotVariables : Boolean = true // [true|false] // uses slot variables (currentSlot, nextSlot, previousSlot) for access to slotted solution fields; allows for odd number of smoothing steps
-  var l3tmp_genHDepStencils : Boolean = false // [true|false] // generates stencils dependent on the grid width h
+  var l3tmp_smoother: String = "Jac" // [Jac|GS|RBGS] // the l3tmp_smoother to be generated
+  var l3tmp_cgs: String = "CG" // [CG] // the coarse grid solver to be generated
+  var l3tmp_numRecCycleCalls: Int = 1 // [1-2] // 1 corresponds to v-cycles while 2 corresponds to w-cycles
+  var l3tmp_numPre: Int = 3 // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
+  var l3tmp_numPost: Int = 3 // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
+  var l3tmp_omega: Double = (if ("Jac" == l3tmp_smoother) 0.8 else 1.0) // [0.1-10.0] // the relaxation parameter to be used for the l3tmp_smoother
+  var l3tmp_genStencilStencilConv: Boolean = false // [true|false] // tests stencil-stencil convolutions by using RAP instead of A
+  var l3tmp_genStencilFields: Boolean = false // [true|false] // generates stencil fields that are used to store stencils of A (or RAP if l3tmp_genStencilStencilConv is true)
+  var l3tmp_genAsyncCommunication: Boolean = false // [true|false] // replaces some sync communication statements in the L4 DSL file with their async counterparts 
+  var l3tmp_genTemporalBlocking: Boolean = false // [true|false] // adds the necessary statements to the L4 DSL file to implement temporal blocking; adapts field layouts as well
+  var l3tmp_tempBlockingMinLevel: Int = 1 // [1+minLevel|maxLevel] // specifies a threshold for adding temporal blocking to generated l4 files; only levels larger or equal to this threshold are blocked
+  var l3tmp_useConditionsForRBGS: Boolean = true // [true|false] // uses conditions to realize red-black patterns (as opposed to adapted offsets and strides)
+  var l3tmp_useSlotsForJac: Boolean = true // [true|false] // uses sloted solution fields for Jacobi (as opposed to multiple distinct fields)
+  var l3tmp_useSlotVariables: Boolean = true // [true|false] // uses slot variables (currentSlot, nextSlot, previousSlot) for access to slotted solution fields; allows for odd number of smoothing steps
+  var l3tmp_genHDepStencils: Boolean = false // [true|false] // generates stencils dependent on the grid width h
 
   /// functionality test
-  var l3tmp_exactSolution : String = "Zero" // specifies which function (type) is used for the solution/ rhs is used; allowed options are 'Zero', 'Polynomial' and 'Trigonometric'
-  var l3tmp_genNonZeroRhs : Boolean = false // generates more complex variants of the chosen solution function resulting in non-trival right hand sides
-  var l3tmp_genExtFields : Boolean = false // adds one or more external fields to the L4 DSL file to test generation of subsequent functions
-  var l3tmp_genGlobalOmega : Boolean = false // treats l3tmp_omega as a global (modifiable) parameter 
-  var l3tmp_genSetableStencil : Boolean = false // generates stencil weights as global variables instead of constant values
-  var l3tmp_genVectorFields : Boolean = false // attempts to solve Poisson's equation for (l3tmp_numVecDims)D vectors; all components are solved independently
-  var l3tmp_numVecDims : Int = (if (l3tmp_genVectorFields) 2 else 1) // number of components the PDE is to be solved for
-  var l3tmp_genFragLoops : Boolean = true // adds fragment loops to the L4 DSL file
-  var l3tmp_genEmbeddedDomain : Boolean = false // adds a second domain to perform all computations on; the new domain is one fragment smaller on each boundary
-  var l3tmp_useMaxNorm : Boolean = false // uses the maximum norm instead of the L2 norm when reducing the residual on the finest level
+  var l3tmp_exactSolution: String = "Zero" // specifies which function (type) is used for the solution/ rhs is used; allowed options are 'Zero', 'Polynomial' and 'Trigonometric'
+  var l3tmp_genNonZeroRhs: Boolean = false // generates more complex variants of the chosen solution function resulting in non-trival right hand sides
+  var l3tmp_genExtFields: Boolean = false // adds one or more external fields to the L4 DSL file to test generation of subsequent functions
+  var l3tmp_genGlobalOmega: Boolean = false // treats l3tmp_omega as a global (modifiable) parameter 
+  var l3tmp_genSetableStencil: Boolean = false // generates stencil weights as global variables instead of constant values
+  var l3tmp_genVectorFields: Boolean = false // attempts to solve Poisson's equation for (l3tmp_numVecDims)D vectors; all components are solved independently
+  var l3tmp_numVecDims: Int = (if (l3tmp_genVectorFields) 2 else 1) // number of components the PDE is to be solved for
+  var l3tmp_genFragLoops: Boolean = true // adds fragment loops to the L4 DSL file
+  var l3tmp_genEmbeddedDomain: Boolean = false // adds a second domain to perform all computations on; the new domain is one fragment smaller on each boundary
+  var l3tmp_useMaxNorm: Boolean = false // uses the maximum norm instead of the L2 norm when reducing the residual on the finest level
 
   /// optional features
-  var l3tmp_printFieldAtEnd : Boolean = false // prints the solution field at the end of the application (or the mean solution in l3tmp_kelvin's case)
-  var l3tmp_initSolWithRand : Boolean = true // initializes the solution on the finest level with random values
-  var l3tmp_genForAutoTests : Boolean = false // generates code for automatic testing purposes - if l3tmp_printError is activated NO residual is printed
-  var l3tmp_printError : Boolean = false // generates code that calculates and prints the error in each iteration
-  var l3tmp_useMaxNormForError : Boolean = true // uses the maximum norm instead of the L2 norm when reducing the error
+  var l3tmp_printFieldAtEnd: Boolean = false // prints the solution field at the end of the application (or the mean solution in l3tmp_kelvin's case)
+  var l3tmp_initSolWithRand: Boolean = true // initializes the solution on the finest level with random values
+  var l3tmp_genForAutoTests: Boolean = false // generates code for automatic testing purposes - if l3tmp_printError is activated NO residual is printed
+  var l3tmp_printError: Boolean = false // generates code that calculates and prints the error in each iteration
+  var l3tmp_useMaxNormForError: Boolean = true // uses the maximum norm instead of the L2 norm when reducing the error
 
   /// Student project - Kelvin
-  var l3tmp_kelvin : Boolean = false // currently only works for 2D
-  var l3tmp_kelvin_numSamples : Int = 10 // only required for l3tmp_kelvin; number of samples to be evaluated
-  var l3tmp_kelvin_numHaloFrags : Int = 2 // only required for l3tmp_kelvin; number of halo fragments used to implement the open boundary approximation  
+  var l3tmp_kelvin: Boolean = false // currently only works for 2D
+  var l3tmp_kelvin_numSamples: Int = 10 // only required for l3tmp_kelvin; number of samples to be evaluated
+  var l3tmp_kelvin_numHaloFrags: Int = 2 // only required for l3tmp_kelvin; number of halo fragments used to implement the open boundary approximation  
 
   /// Student project - Oleg
-  var l3tmp_genAdvancedTimers : Boolean = false // this is to enable the usage of some new, currently highly experimental, timer classes
-  var l3tmp_genTimersPerFunction : Boolean = false // generates different timers for each function in the mg cycle
-  var l3tmp_genTimersPerLevel : Boolean = false // generates different timers for each (mg) level
-  var l3tmp_genTimersForComm : Boolean = false // generates additional timers for the communication
-  var l3tmp_genCommTimersPerLevel : Boolean = false // generates different communication timers for each level
+  var l3tmp_genAdvancedTimers: Boolean = false // this is to enable the usage of some new, currently highly experimental, timer classes
+  var l3tmp_genTimersPerFunction: Boolean = false // generates different timers for each function in the mg cycle
+  var l3tmp_genTimersPerLevel: Boolean = false // generates different timers for each (mg) level
+  var l3tmp_genTimersForComm: Boolean = false // generates additional timers for the communication
+  var l3tmp_genCommTimersPerLevel: Boolean = false // generates different communication timers for each level
 
-  var advTimer_timerType : String = "Chrono" // may be one of the following: 'Chrono', 'QPC', 'WIN_TIME', 'UNIX_TIME', 'MPI_TIME', 'RDSC', 'WINDOWS_RDSC'
-  var advTimer_enableCallStacks : Boolean = false // generates call stacks for all employed timers
+  var advTimer_timerType: String = "Chrono" // may be one of the following: 'Chrono', 'QPC', 'WIN_TIME', 'UNIX_TIME', 'MPI_TIME', 'RDSC', 'WINDOWS_RDSC'
+  var advTimer_enableCallStacks: Boolean = false // generates call stacks for all employed timers
 
   /// experimental features
-  var experimental_useLevelIndepFcts : Boolean = false
+  var experimental_useLevelIndepFcts: Boolean = false
 
-  var experimental_Neumann : Boolean = false // highly experimental -> use only if you know what you are doing
-  var experimental_NeumannOrder : Int = 2 // may currently be 1 or 2
-  var experimental_NeumannNormalize : Boolean = false // normalize solution after each v-cycle
+  var experimental_Neumann: Boolean = false // highly experimental -> use only if you know what you are doing
+  var experimental_NeumannOrder: Int = 2 // may currently be 1 or 2
+  var experimental_NeumannNormalize: Boolean = false // normalize solution after each v-cycle
 
-  var experimental_genCellBasedDiscr : Boolean = false // sets up a cell based discretization
+  var experimental_genCellBasedDiscr: Boolean = false // sets up a cell based discretization
 
   /// END HACK
 
-  def update(configuration : Configuration = new Configuration) : Unit = {
+  def update(configuration: Configuration = new Configuration): Unit = {
     // NOTE: it is required to call update at least once
 
     // specific project configurations - Kelvin
