@@ -26,7 +26,12 @@ object Solve {
       printer.println("\tstartTimer ( timeToSolveWatch )")
     }
     printer.println("\tVariable numIt : Integer = 0")
-    printer.println(s"\trepeat until res_0 < ( ${if (Knowledge.useDblPrecision) "1.0e-10" else "1.0e-4"} * resStart_0 ) {")
+    val targetReduction = (
+      if (Knowledge.experimental_Neumann)
+        (if (Knowledge.useDblPrecision) "1.0e-6" else "1.0e-2") // FIXME: node-based & Neumann currently works not optimally 
+      else
+        (if (Knowledge.useDblPrecision) "1.0e-10" else "1.0e-4"))
+    printer.println(s"\trepeat until res_0 < ( $targetReduction * resStart_0 ) {")
     printer.println("\t\tnumIt += 1")
     if (!Knowledge.l3tmp_genForAutoTests)
       printer.println("\t\tstartTimer ( stopWatch )")
@@ -40,7 +45,10 @@ object Solve {
         printer.println(s"\t\tloop over Solution[currentSlot]@current where x > 0 && y > 0 with reduction( + : integral ) {")
       printer.println(s"\t\t\tintegral += Solution[currentSlot]@current")
       printer.println(s"\t\t}")
-      printer.println(s"\t\tintegral /= ${(0 until Knowledge.dimensionality).map(dim => Knowledge.domain_rect_numFragsTotalAsVec(dim) * (1 << Knowledge.maxLevel) - 1).reduce((a, b) => a * b)}.0")
+      val numPoints : Double = (0 until Knowledge.dimensionality).map(dim =>
+        Knowledge.domain_rect_numFragsTotalAsVec(dim) * Knowledge.domain_fragmentLengthAsVec(dim) * (1 << Knowledge.maxLevel) + (if (Knowledge.experimental_genCellBasedDiscr) 0 else -1))
+        .reduce((a, b) => a * b)
+      printer.println(s"\t\tintegral /= $numPoints")
       printer.println(s"\t\tloop over Solution[currentSlot]@current {")
       printer.println(s"\t\t\tSolution[currentSlot]@current -= integral")
       printer.println(s"\t\t}")

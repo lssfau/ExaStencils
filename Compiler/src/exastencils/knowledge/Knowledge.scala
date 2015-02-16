@@ -289,8 +289,8 @@ object Knowledge {
     }
 
     Constraints.condEnsureValue(minLevel, 0, minLevel < 0, "minLevel must not be negative")
-    Constraints.condEnsureValue(maxLevel, 0, maxLevel < 0, "maxLevel must not be negative")
-    Constraints.condEnsureValue(minLevel, maxLevel, minLevel > maxLevel, "minLevel must not be larger than maxLevel")
+    Constraints.condEnsureValue(maxLevel, 1, maxLevel <= 0, "maxLevel must not be smaller or equal to 0")
+    Constraints.condEnsureValue(minLevel, maxLevel - 1, minLevel >= maxLevel, "maxLevel must be larger than minLevel")
 
     // l3tmp - problem to solve
     Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, experimental_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
@@ -298,6 +298,7 @@ object Knowledge {
     Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, "Polynomial" != l3tmp_exactSolution && !experimental_Neumann, "non-trivial rhs are currently only supported for polynomial solutions")
     Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, l3tmp_genStencilFields, "non-trivial rhs are currently not compatible with stencil fields")
 
+    Constraints.condEnsureValue(experimental_NeumannOrder, 1, experimental_Neumann && experimental_genCellBasedDiscr, "experimental_OrderNeumann must be 1 for cell based discretizations")
     Constraints.condEnsureValue(experimental_NeumannOrder, 2, experimental_Neumann && experimental_NeumannOrder < 1 || experimental_NeumannOrder > 2, "experimental_OrderNeumann must be between 1 and 2")
 
     Constraints.condEnsureValue(l3tmp_initSolWithRand, true, "Zero" == l3tmp_exactSolution && !l3tmp_kelvin, "initial solution of zero corresponds to the exact solution if l3tmp_genFunctionBC is false")
