@@ -1,0 +1,49 @@
+targetCompiler				= "GCC"
+targetCompilerVersion		= 4
+targetCompilerVersionMinor	= 8
+simd_instructionSet			= "SSE3"
+
+dimensionality				= 3
+
+minLevel					= 0
+maxLevel					= 6
+
+domain_onlyRectangular		= true
+domain_numBlocks			= 4
+domain_numFragmentsPerBlock	= 4
+
+domain_rect_generate			= true
+domain_rect_numBlocks_x			= 2
+domain_rect_numBlocks_y			= 2
+domain_rect_numBlocks_z			= 1
+domain_rect_numFragsPerBlock_x	= 2
+domain_rect_numFragsPerBlock_y	= 2
+domain_rect_numFragsPerBlock_z	= 1
+
+omp_enabled					= true
+omp_numThreads				= 2
+
+mpi_enabled					= true
+mpi_numThreads				= 4
+
+omp_parallelizeLoopOverFragments	= true
+omp_parallelizeLoopOverDimensions	= false
+
+l3tmp_generateL4			= true
+l3tmp_genForAutoTests		= true
+
+l3tmp_exactSolution			= "Trigonometric"
+l3tmp_genCellBasedDiscr		= true
+l3tmp_genHDepStencils		= true
+
+l3tmp_printError			= true
+
+l3tmp_smoother				= "Jac"
+l3tmp_useSlotsForJac		= true
+l3tmp_useSlotVariables		= true
+
+mpi_useCustomDatatypes		= true
+poly_optLevel_fine			= 3
+opt_useAddressPrecalc		= true
+opt_vectorize				= false
+opt_unroll					= 2

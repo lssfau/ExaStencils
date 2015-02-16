@@ -112,7 +112,7 @@ object Stencils {
     Knowledge.dimensionality match {
       case 2 => {
         printer.println("Stencil CorrectionStencil@all {")
-        if (Knowledge.experimental_genCellBasedDiscr) {
+        if (Knowledge.l3tmp_genCellBasedDiscr) {
           val coeff = if (Knowledge.l3tmp_genHDepStencils) "1.0" else "1.0"
           printer.println(s"\t[ 0, 0] => $coeff")
         } else {
@@ -126,7 +126,7 @@ object Stencils {
       }
       case 3 => {
         printer.println("Stencil CorrectionStencil@all {")
-        if (Knowledge.experimental_genCellBasedDiscr) {
+        if (Knowledge.l3tmp_genCellBasedDiscr) {
           val coeff = if (Knowledge.l3tmp_genHDepStencils) "1.0" else "1.0"
           printer.println(s"\t[ 0, 0, 0] => $coeff")
         } else {
@@ -147,7 +147,7 @@ object Stencils {
     Knowledge.dimensionality match {
       case 2 => {
         printer.println("Stencil RestrictionStencil@all {")
-        if (Knowledge.experimental_genCellBasedDiscr) {
+        if (Knowledge.l3tmp_genCellBasedDiscr) {
           val coeff = if (Knowledge.l3tmp_genHDepStencils) "( 1.0 / 4.0 )" else "( 4.0 / 4.0 )"
           printer.println(s"\t[ 0,  0] => $coeff")
           printer.println(s"\t[ 0,  1] => $coeff")
@@ -173,7 +173,7 @@ object Stencils {
       }
       case 3 => {
         printer.println("Stencil RestrictionStencil@all {")
-        if (Knowledge.experimental_genCellBasedDiscr) {
+        if (Knowledge.l3tmp_genCellBasedDiscr) {
           val coeff = if (Knowledge.l3tmp_genHDepStencils) "( 1.0 / 8.0 )" else "( 4.0 / 8.0 )"
           printer.println(s"\t[ 0,  0,  0] => $coeff")
           printer.println(s"\t[ 0,  0,  1] => $coeff")

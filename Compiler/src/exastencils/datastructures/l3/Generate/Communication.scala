@@ -11,7 +11,7 @@ object Communication {
     if (Knowledge.l3tmp_genTimersForComm)
       printer.println(s"\tstartTimer ( commTimer${if (Knowledge.l3tmp_genCommTimersPerLevel) "@current" else ""} )")
 
-    if (Knowledge.experimental_genCellBasedDiscr || Knowledge.experimental_Neumann)
+    if (Knowledge.l3tmp_genCellBasedDiscr || Knowledge.experimental_Neumann)
       applyBCs(printer, field)
 
     if ("" == target)

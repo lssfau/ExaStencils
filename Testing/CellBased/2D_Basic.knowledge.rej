@@ -1,0 +1,10 @@
+diff a/Testing/CellBased/2D_Basic.knowledge b/Testing/CellBased/2D_Basic.knowledge	(rejected hunks)
+@@ -3,7 +3,7 @@
+ targetCompilerVersionMinor	= 8
+ simd_instructionSet			= "SSE3"
+ 
+-dimensionality				= 3
++dimensionality				= 2
+ 
+ minLevel					= 0
+ maxLevel					= 6
