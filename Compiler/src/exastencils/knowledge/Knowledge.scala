@@ -93,6 +93,9 @@ object Knowledge {
   def domain_canHaveLocalNeighs : Boolean = (domain_numFragmentsPerBlock > 1) // specifies if fragments can have local (i.e.\ shared memory) neighbors, i.e.\ if local comm is required
   def domain_canHaveRemoteNeighs : Boolean = (domain_numBlocks > 1) // specifies if fragments can have remote (i.e.\ different mpi rank) neighbors, i.e.\ if mpi comm is required
 
+  /// Student project - Jeremias
+  var domain_formUnion : Boolean = false // for L-shaped domain
+
   // === Layer 2 ===
 
   var discr_hx : Array[Double] = Array() // grid widths in x direction per level
