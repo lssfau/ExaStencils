@@ -50,7 +50,7 @@ object Residual {
       printer.println(s"\tVariable res : Real = 0")
       if (Knowledge.l3tmp_genFragLoops)
         printer.println(s"\tloop over fragments with reduction( + : res ) {")
-      if (Knowledge.experimental_genCellBasedDiscr)
+      if (Knowledge.l3tmp_genCellBasedDiscr)
         printer.println(s"\tloop over Residual$postfix@current with reduction( + : res ) {")
       else
         printer.println(s"\tloop over Residual$postfix@current where x > 0 && y > 0 ${if (Knowledge.dimensionality > 2) "&& z > 0 " else ""}with reduction( + : res ) {")
@@ -68,7 +68,7 @@ object Residual {
         printer.println(s"\tVariable res : Real = 0")
         if (Knowledge.l3tmp_genFragLoops)
           printer.println(s"\tloop over fragments with reduction( max : res ) {")
-        if (Knowledge.experimental_genCellBasedDiscr)
+        if (Knowledge.l3tmp_genCellBasedDiscr)
           printer.println(s"\tloop over Residual$postfix@current with reduction( max : res ) {")
         else
           printer.println(s"\tloop over Residual$postfix@current where x > 0 && y > 0 ${if (Knowledge.dimensionality > 2) "&& z > 0 " else ""}with reduction( max : res ) {")

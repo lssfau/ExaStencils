@@ -10,7 +10,7 @@ object Error {
         printer.println(s"\tVariable err : Real = 0")
         if (Knowledge.l3tmp_genFragLoops)
           printer.println(s"\tloop over fragments with reduction( max : err ) {")
-        if (Knowledge.experimental_genCellBasedDiscr)
+        if (Knowledge.l3tmp_genCellBasedDiscr)
           printer.println(s"\tloop over Solution$postfix@current with reduction( max : err ) {")
         else
           printer.println(s"\tloop over Solution$postfix@current where x > 0 && y > 0 ${if (Knowledge.dimensionality > 2) "&& z > 0 " else ""}with reduction( max : err ) {")
@@ -24,7 +24,7 @@ object Error {
         printer.println(s"\tVariable err : Real = 0")
         if (Knowledge.l3tmp_genFragLoops)
           printer.println(s"\tloop over fragments with reduction( + : err ) {")
-        if (Knowledge.experimental_genCellBasedDiscr)
+        if (Knowledge.l3tmp_genCellBasedDiscr)
           printer.println(s"\tloop over Solution$postfix@current with reduction( + : err ) {")
         else
           printer.println(s"\tloop over Solution$postfix@current where x > 0 && y > 0 ${if (Knowledge.dimensionality > 2) "&& z > 0 " else ""}with reduction( + : err ) {")

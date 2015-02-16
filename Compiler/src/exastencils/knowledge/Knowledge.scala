@@ -252,7 +252,7 @@ object Knowledge {
   var experimental_NeumannOrder : Int = 2 // may currently be 1 or 2
   var experimental_NeumannNormalize : Boolean = false // normalize solution after each v-cycle
 
-  var experimental_genCellBasedDiscr : Boolean = false // sets up a cell based discretization
+  var l3tmp_genCellBasedDiscr : Boolean = false // sets up a cell based discretization
 
   /// END HACK
 
@@ -298,7 +298,7 @@ object Knowledge {
     Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, "Polynomial" != l3tmp_exactSolution && !experimental_Neumann, "non-trivial rhs are currently only supported for polynomial solutions")
     Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, l3tmp_genStencilFields, "non-trivial rhs are currently not compatible with stencil fields")
 
-    Constraints.condEnsureValue(experimental_NeumannOrder, 1, experimental_Neumann && experimental_genCellBasedDiscr, "experimental_OrderNeumann must be 1 for cell based discretizations")
+    Constraints.condEnsureValue(experimental_NeumannOrder, 1, experimental_Neumann && l3tmp_genCellBasedDiscr, "experimental_OrderNeumann must be 1 for cell based discretizations")
     Constraints.condEnsureValue(experimental_NeumannOrder, 2, experimental_Neumann && experimental_NeumannOrder < 1 || experimental_NeumannOrder > 2, "experimental_OrderNeumann must be between 1 and 2")
 
     Constraints.condEnsureValue(l3tmp_initSolWithRand, true, "Zero" == l3tmp_exactSolution && !l3tmp_kelvin, "initial solution of zero corresponds to the exact solution if l3tmp_genFunctionBC is false")
@@ -310,8 +310,8 @@ object Knowledge {
     // l3tmp - stencils
     Constraints.condEnsureValue(l3tmp_genStencilFields, false, experimental_Neumann, "l3tmp_genStencilFields is currently not compatible with Neumann boundary conditions")
     Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, experimental_Neumann, "l3tmp_genStencilStencilConv is currently not compatible with Neumann boundary conditions")
-    Constraints.condEnsureValue(l3tmp_genStencilFields, false, experimental_genCellBasedDiscr, "l3tmp_genStencilFields is currently not compatible with cell based discretizations")
-    Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, experimental_genCellBasedDiscr, "l3tmp_genStencilStencilConv is currently not compatible with cell based discretizations")
+    Constraints.condEnsureValue(l3tmp_genStencilFields, false, l3tmp_genCellBasedDiscr, "l3tmp_genStencilFields is currently not compatible with cell based discretizations")
+    Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, l3tmp_genCellBasedDiscr, "l3tmp_genStencilStencilConv is currently not compatible with cell based discretizations")
     Constraints.condEnsureValue(l3tmp_genHDepStencils, true, experimental_Neumann, "l3tmp_genHDepStencils is required for Neumann boundary conditions")
     Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_genNonZeroRhs, "non-trivial rhs requires the usage of grid width dependent stencils")
     Constraints.condEnsureValue(l3tmp_genHDepStencils, false, l3tmp_genStencilFields, "grid width dependent stencils are currently not compatible with stencil fields")
@@ -331,7 +331,7 @@ object Knowledge {
 
     // l3tmp - temporal blocking
     Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, experimental_Neumann, "l3tmp_genTemporalBlocking is currently not compatible with Neumann boundary conditions")
-    Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, experimental_genCellBasedDiscr, "l3tmp_genTemporalBlocking is currently not compatible with cell based discretizations")
+    Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_genCellBasedDiscr, "l3tmp_genTemporalBlocking is currently not compatible with cell based discretizations")
     Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, "RBGS" == l3tmp_smoother, "l3tmp_genTemporalBlocking is currently not compatible with RBGS smoothers")
     Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_numPre != l3tmp_numPost, "l3tmp_numPre and l3tmp_numPost have to be equal")
     Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, math.ceil(math.log(l3tmp_numPre) / math.log(2)).toInt,

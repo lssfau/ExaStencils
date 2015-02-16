@@ -90,7 +90,7 @@ object Application {
     printer.println("\tInitRHS ( )")
     printer.println("\tInitSolution ( )")
 
-    if (!Knowledge.experimental_genCellBasedDiscr) {
+    if (!Knowledge.l3tmp_genCellBasedDiscr) {
       // TODO: add other fields here if bc handling is required
       for (lvl <- Knowledge.minLevel to Knowledge.maxLevel) {
         if ("Jac" == Knowledge.l3tmp_smoother) {
@@ -136,7 +136,7 @@ object Application {
 
       printer.println(s"\tcommunicate SolutionMean@finest")
       printer.println(s"\tVariable solNorm : Real = 0.0")
-      if (Knowledge.experimental_genCellBasedDiscr)
+      if (Knowledge.l3tmp_genCellBasedDiscr)
         printer.println(s"\tloop over SolutionMean@finest with reduction( + : solNorm ) {")
       else
         printer.println(s"\tloop over SolutionMean@finest where x > 0 && y > 0 ${if (Knowledge.dimensionality > 2) "&& z > 0 " else ""}with reduction( + : solNorm ) {")

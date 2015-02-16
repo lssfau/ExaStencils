@@ -39,14 +39,14 @@ object Solve {
 
     if (Knowledge.experimental_NeumannNormalize) {
       printer.println(s"\t\tVar integral : Real = 0.0")
-      if (Knowledge.experimental_genCellBasedDiscr)
+      if (Knowledge.l3tmp_genCellBasedDiscr)
         printer.println(s"\t\tloop over Solution[currentSlot]@current with reduction( + : integral ) {")
       else
         printer.println(s"\t\tloop over Solution[currentSlot]@current where x > 0 && y > 0 with reduction( + : integral ) {")
       printer.println(s"\t\t\tintegral += Solution[currentSlot]@current")
       printer.println(s"\t\t}")
       val numPoints : Double = (0 until Knowledge.dimensionality).map(dim =>
-        Knowledge.domain_rect_numFragsTotalAsVec(dim) * Knowledge.domain_fragmentLengthAsVec(dim) * (1 << Knowledge.maxLevel) + (if (Knowledge.experimental_genCellBasedDiscr) 0 else -1))
+        Knowledge.domain_rect_numFragsTotalAsVec(dim) * Knowledge.domain_fragmentLengthAsVec(dim) * (1 << Knowledge.maxLevel) + (if (Knowledge.l3tmp_genCellBasedDiscr) 0 else -1))
         .reduce((a, b) => a * b)
       printer.println(s"\t\tintegral /= $numPoints")
       printer.println(s"\t\tloop over Solution[currentSlot]@current {")
