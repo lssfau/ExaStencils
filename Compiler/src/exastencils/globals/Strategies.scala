@@ -8,7 +8,7 @@ import exastencils.knowledge._
 
 object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
   this += new Transformation("Adding default global constants and variables", {
-    case globals: Globals =>
+    case globals : Globals =>
       if (Knowledge.mpi_enabled) {
         globals.variables += new VariableDeclarationStatement("MPI_Comm", "mpiCommunicator")
         globals.variables += new VariableDeclarationStatement(new IntegerDatatype, "mpiRank")
@@ -20,7 +20,7 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
         globals.variables += new VariableDeclarationStatement(new IntegerDatatype, "bufsize")
       }
       globals
-    case func: FunctionStatement if ("initGlobals" == func.name) =>
+    case func : FunctionStatement if ("initGlobals" == func.name) =>
       if (Knowledge.mpi_enabled) {
         func.body += "mpiCommunicator = " + Knowledge.mpi_defaultCommunicator
         func.body += "MPI_Comm_rank(mpiCommunicator, &mpiRank)"

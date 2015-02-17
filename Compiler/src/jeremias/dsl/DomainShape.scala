@@ -9,44 +9,44 @@ import exastencils.util._
 import exastencils.knowledge._
 import jeremias.dsl._
 
-case class Interval(lower: Double, upper: Double) {
+case class Interval(lower : Double, upper : Double) {
   override def toString = s"[${lower},${upper}]"
 }
 
 trait DomainShape {
-  def shapeData: Any
-  def contains(vertex: Vertex): Boolean
-  def initFragments(domainIndex: Int): Unit
+  def shapeData : Any
+  def contains(vertex : Vertex) : Boolean
+  def initFragments(domainIndex : Int) : Unit
 
-  class Coord(x: Double, y: Double, z: Double) {
-    var X: Double = x
-    var Y: Double = y
-    var Z: Double = z
+  class Coord(x : Double, y : Double, z : Double) {
+    var X : Double = x
+    var Y : Double = y
+    var Z : Double = z
 
-    def /(divider: Double): Coord = new Coord(X / divider, Y / divider, Z / divider)
-    def /(divider: Int): Coord = this / divider.toDouble
-    def +(c: Coord): Coord = new Coord(X + c.X, Y + c.Y, Z + c.Z)
-    def +(v: Double): Coord = new Coord(X + v, Y + v, Z + v)
+    def /(divider : Double) : Coord = new Coord(X / divider, Y / divider, Z / divider)
+    def /(divider : Int) : Coord = this / divider.toDouble
+    def +(c : Coord) : Coord = new Coord(X + c.X, Y + c.Y, Z + c.Z)
+    def +(v : Double) : Coord = new Coord(X + v, Y + v, Z + v)
   }
 
 }
 
-case class RectangularDomainShape(override val shapeData: AABB) extends DomainShape {
+case class RectangularDomainShape(override val shapeData : AABB) extends DomainShape {
   var counter = -1
-  val rankWidth_x: Double = (shapeData.upper_x - shapeData.lower_x) / Knowledge.domain_rect_numBlocks_x.toDouble
-  val rankWidth_y: Double = (shapeData.upper_y - shapeData.lower_y) / Knowledge.domain_rect_numBlocks_y.toDouble
-  val rankWidth_z: Double = (shapeData.upper_z - shapeData.lower_z) / Knowledge.domain_rect_numBlocks_z.toDouble
-  val fragWidth_x: Double = rankWidth_x / Knowledge.domain_rect_numFragsPerBlock_x.toDouble
-  val fragWidth_y: Double = rankWidth_y / Knowledge.domain_rect_numFragsPerBlock_y.toDouble
-  val fragWidth_z: Double = rankWidth_z / Knowledge.domain_rect_numFragsPerBlock_z.toDouble
+  val rankWidth_x : Double = (shapeData.upper_x - shapeData.lower_x) / Knowledge.domain_rect_numBlocks_x.toDouble
+  val rankWidth_y : Double = (shapeData.upper_y - shapeData.lower_y) / Knowledge.domain_rect_numBlocks_y.toDouble
+  val rankWidth_z : Double = (shapeData.upper_z - shapeData.lower_z) / Knowledge.domain_rect_numBlocks_z.toDouble
+  val fragWidth_x : Double = rankWidth_x / Knowledge.domain_rect_numFragsPerBlock_x.toDouble
+  val fragWidth_y : Double = rankWidth_y / Knowledge.domain_rect_numFragsPerBlock_y.toDouble
+  val fragWidth_z : Double = rankWidth_z / Knowledge.domain_rect_numFragsPerBlock_z.toDouble
   var unionDomainIndex = 0
 
-  def contains(vertex: Vertex): Boolean = {
+  def contains(vertex : Vertex) : Boolean = {
     vertex.Coords(0) >= shapeData.lower_x && vertex.Coords(0) <= shapeData.upper_x &&
       (if (Knowledge.dimensionality >= 2) { vertex.Coords(1) >= shapeData.lower_y && vertex.Coords(1) <= shapeData.upper_y } else true) &&
       (if (Knowledge.dimensionality >= 3) { vertex.Coords(2) >= shapeData.lower_z && vertex.Coords(2) <= shapeData.upper_z } else true)
   }
-  def initFragments(domainIndex: Int) = {
+  def initFragments(domainIndex : Int) = {
     //    FragmentCollection.fragments.clear()
     unionDomainIndex = domainIndex
     for (r <- 0 until Knowledge.domain_numBlocks) {
@@ -56,9 +56,9 @@ case class RectangularDomainShape(override val shapeData: AABB) extends DomainSh
         j <- 0 until Knowledge.domain_rect_numFragsPerBlock_y
         i <- 0 until Knowledge.domain_rect_numFragsPerBlock_x
       } {
-        var v: ListBuffer[Vertex] = ListBuffer()
-        var e: ListBuffer[Edge] = ListBuffer()
-        var f: ListBuffer[Face] = ListBuffer()
+        var v : ListBuffer[Vertex] = ListBuffer()
+        var e : ListBuffer[Edge] = ListBuffer()
+        var f : ListBuffer[Face] = ListBuffer()
         val indices = new Index(r, k, j, i)
         if (Knowledge.dimensionality == 1) {
           for (iv <- 0 to 1) {
@@ -113,28 +113,28 @@ case class RectangularDomainShape(override val shapeData: AABB) extends DomainSh
     }
   }
 
-  def calcGlobalFragmentId(indices: Index): Int = {
+  def calcGlobalFragmentId(indices : Index) : Int = {
     val id = indices.getGlobalId()
     indices.checkValidity(id)
   }
 
-  def calcLocalFragmentId(): Int = {
+  def calcLocalFragmentId() : Int = {
     //                k * Knowledge.domain_numFragsPerBlock_y * Knowledge.domain_numFragsPerBlock_x + j * Knowledge.domain_numFragsPerBlock_x + i - emptyFragFields
     counter += 1
     counter
   }
 
-  def getNeighbours(indices: Index): ListBuffer[Int] = {
+  def getNeighbours(indices : Index) : ListBuffer[Int] = {
     val n = ListBuffer[Int](calcGlobalFragmentId(indices.lowerNeighbor("i")), calcGlobalFragmentId(indices.upperNeighbor("i")))
     if (Knowledge.dimensionality >= 2) n ++= ListBuffer[Int](calcGlobalFragmentId(indices.lowerNeighbor("j")), calcGlobalFragmentId(indices.upperNeighbor("j")))
     if (Knowledge.dimensionality >= 3) n ++= ListBuffer[Int](calcGlobalFragmentId(indices.lowerNeighbor("k")), calcGlobalFragmentId(indices.upperNeighbor("k")))
     n
   }
 
-  def getIntervalOfRank(rank: Int): Map[String, Interval] = {
-    val xFrom: Int = rank % Knowledge.domain_rect_numBlocks_x
-    val yFrom: Int = (rank / Knowledge.domain_rect_numBlocks_x) % Knowledge.domain_rect_numBlocks_y
-    val zFrom: Int = rank / (Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y)
+  def getIntervalOfRank(rank : Int) : Map[String, Interval] = {
+    val xFrom : Int = rank % Knowledge.domain_rect_numBlocks_x
+    val yFrom : Int = (rank / Knowledge.domain_rect_numBlocks_x) % Knowledge.domain_rect_numBlocks_y
+    val zFrom : Int = rank / (Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y)
     var interval = Map(
       "xInterval" -> new Interval(shapeData.lower_x + xFrom.toDouble * rankWidth_x, shapeData.lower_x + (xFrom.toDouble + 1) * rankWidth_x))
     if (Knowledge.dimensionality >= 2) interval += ("yInterval" -> new Interval(shapeData.lower_y + yFrom.toDouble * rankWidth_y, shapeData.lower_y + (yFrom.toDouble + 1) * rankWidth_y))
@@ -142,8 +142,8 @@ case class RectangularDomainShape(override val shapeData: AABB) extends DomainSh
     interval
   }
 
-  case class Index(r: Int, k: Int, j: Int, i: Int) {
-    def lowerNeighbor(dir: String): Index = {
+  case class Index(r : Int, k : Int, j : Int, i : Int) {
+    def lowerNeighbor(dir : String) : Index = {
       dir match {
         case "i" => new Index(r, k, j, i - 1)
         case "j" => new Index(r, k, j - 1, i)
@@ -151,7 +151,7 @@ case class RectangularDomainShape(override val shapeData: AABB) extends DomainSh
         case _   => this
       }
     }
-    def upperNeighbor(dir: String): Index = {
+    def upperNeighbor(dir : String) : Index = {
       dir match {
         case "i" => new Index(r, k, j, i + 1)
         case "j" => new Index(r, k, j + 1, i)
@@ -160,7 +160,7 @@ case class RectangularDomainShape(override val shapeData: AABB) extends DomainSh
       }
     }
 
-    def getGlobalId(): Int = {
+    def getGlobalId() : Int = {
       unionDomainIndex * Knowledge.domain_numBlocks * Knowledge.domain_numFragmentsPerBlock +
         r * Knowledge.domain_numFragmentsPerBlock +
         k * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_x +
@@ -168,7 +168,7 @@ case class RectangularDomainShape(override val shapeData: AABB) extends DomainSh
         i
     }
 
-    def checkValidity(id: Int): Int = {
+    def checkValidity(id : Int) : Int = {
       //TODO improve this function!!
       val domains = DomainCollection.domains.filter { d => d.identifier == "global" || d.identifier.contains("union_") }
       val dom = domains(unionDomainIndex)
@@ -212,9 +212,9 @@ case class RectangularDomainShape(override val shapeData: AABB) extends DomainSh
 
 }
 
-case class IrregularDomainShape(var faces: ListBuffer[Face], var edges: ListBuffer[Edge], var vertices: List[Vertex]) extends DomainShape {
+case class IrregularDomainShape(var faces : ListBuffer[Face], var edges : ListBuffer[Edge], var vertices : List[Vertex]) extends DomainShape {
   def shapeData = faces
-  def contains(vertex: Vertex): Boolean = {
+  def contains(vertex : Vertex) : Boolean = {
     (vertices :+ vertices(0)).sliding(2).foldLeft(false) {
       case (c, List(i, j)) =>
         val cond = {
@@ -231,20 +231,20 @@ case class IrregularDomainShape(var faces: ListBuffer[Face], var edges: ListBuff
       case (List(i, j)) => new Edge(i, j).contains(vertex)
     }
   }
-  def initFragments(domainIndex: Int): Unit = {
+  def initFragments(domainIndex : Int) : Unit = {
     FragmentCollection.fragments.clear()
     initDonutShape()
   }
 
-  def initDonutShape(): Unit = {
+  def initDonutShape() : Unit = {
     //    numberOfDomains = Knowledge.domain_ir_numBlocks
     val outerHex = getHexagonCoords(0)
     val innerHex = getHexagonCoords(0.25)
     for (r <- 0 until Knowledge.domain_numBlocks) {
       for (i <- 0 until Knowledge.domain_numFragmentsPerBlock) {
-        var v: ListBuffer[Vertex] = ListBuffer()
-        var e: ListBuffer[Edge] = ListBuffer()
-        var f: ListBuffer[Face] = ListBuffer()
+        var v : ListBuffer[Vertex] = ListBuffer()
+        var e : ListBuffer[Edge] = ListBuffer()
+        var f : ListBuffer[Face] = ListBuffer()
         val id = r * Knowledge.domain_numFragmentsPerBlock + i
         for (jv <- 0 to 1) {
           v += new Vertex(ListBuffer(outerHex(id + jv).X, outerHex(id + jv).Y))
@@ -261,7 +261,7 @@ case class IrregularDomainShape(var faces: ListBuffer[Face], var edges: ListBuff
   }
 
   //TODO get PolygonCoords
-  def getHexagonCoords(borderDistance: Double): ListBuffer[Coord] = {
+  def getHexagonCoords(borderDistance : Double) : ListBuffer[Coord] = {
     val coords = ListBuffer(new Coord(-1 + borderDistance, 0, 0))
     coords += new Coord(math.sin(30 * (math.Pi / 180)) * coords(0).X, -math.cos(30 * (math.Pi / 180)) * coords(0).X, 0)
     coords += new Coord(-coords(1).X, coords(1).Y, 0)
@@ -272,13 +272,13 @@ case class IrregularDomainShape(var faces: ListBuffer[Face], var edges: ListBuff
     coords.map { c => (c + 1.0) / 2.0 } // normalize it to a domain from 0 to 1 in each direction 
   }
 
-  def getNeighbours(id: Int): ListBuffer[Int] = {
+  def getNeighbours(id : Int) : ListBuffer[Int] = {
     val n = ListBuffer[Int](if (id - 1 >= 0) id - 1 else Knowledge.domain_numFragmentsTotal - 1, if (id + 1 < Knowledge.domain_numFragmentsTotal) id + 1 else 0)
     n ++= ListBuffer[Int](-id * 2 - 1, -id * 2 - 2)
     n
   }
 }
 
-class Donut(var f: ListBuffer[Face], var e: ListBuffer[Edge], var v: List[Vertex]) extends IrregularDomainShape(f, e, v) {
+class Donut(var f : ListBuffer[Face], var e : ListBuffer[Edge], var v : List[Vertex]) extends IrregularDomainShape(f, e, v) {
 
 }

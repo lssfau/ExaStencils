@@ -4,7 +4,7 @@ import exastencils.knowledge._
 
 import scala.collection.mutable._
 
-class Fragment(lId: Int, gId: Int, dId: ListBuffer[Int], f: ListBuffer[Face], e: ListBuffer[Edge], v: ListBuffer[Vertex], n: ListBuffer[Int], r: Int) {
+class Fragment(lId : Int, gId : Int, dId : ListBuffer[Int], f : ListBuffer[Face], e : ListBuffer[Edge], v : ListBuffer[Vertex], n : ListBuffer[Int], r : Int) {
   val faces = f
   val edges = e
   val vertices = v
@@ -16,11 +16,11 @@ class Fragment(lId: Int, gId: Int, dId: ListBuffer[Int], f: ListBuffer[Face], e:
   var binarySize = 0
   val rank = r
 
-  def getBinarySize(): Int = {
+  def getBinarySize() : Int = {
     binarySize
   }
 
-  override def toString: String = {
+  override def toString : String = {
 
     var str = s"Fragment : [\n"
     str += s"\tdomainIds : ${domainIds.mkString(",")}\n"
@@ -60,14 +60,14 @@ class Primitives() {
 }
 
 trait Coord {
-  var X: Double
-  var Y: Double
-  var Z: Double
+  var X : Double
+  var Y : Double
+  var Z : Double
 }
 
-class Vertex(coords: ListBuffer[Double]) extends Primitives {
+class Vertex(coords : ListBuffer[Double]) extends Primitives {
   val Coords = coords
-  override def toString: String = {
+  override def toString : String = {
     var s = ""
     for (i <- 0 to coords.size - 1) {
       s += "%.5f".format(coords(i).toFloat) + ","
@@ -75,9 +75,9 @@ class Vertex(coords: ListBuffer[Double]) extends Primitives {
     s = s.dropRight(1).toString
     s
   }
-  override def equals(that: Any): Boolean = {
+  override def equals(that : Any) : Boolean = {
     that match {
-      case that: Vertex => {
+      case that : Vertex => {
         that.Coords(0) == Coords(0) &&
           (if (Knowledge.dimensionality >= 2) that.Coords(1) == Coords(1) else true) &&
           (if (Knowledge.dimensionality >= 3) that.Coords(2) == Coords(2) else true)
@@ -87,10 +87,10 @@ class Vertex(coords: ListBuffer[Double]) extends Primitives {
   }
 }
 
-class Edge(vertex1: Vertex, vertex2: Vertex) extends Primitives {
-  override def toString: String = "(" + vertex1.toString + " , " + vertex2.toString + ")"
+class Edge(vertex1 : Vertex, vertex2 : Vertex) extends Primitives {
+  override def toString : String = "(" + vertex1.toString + " , " + vertex2.toString + ")"
 
-  def contains(v: Vertex): Boolean = {
+  def contains(v : Vertex) : Boolean = {
     if ((vertex2.Coords(0) - vertex1.Coords(0)) != 0) {
       val m = (vertex2.Coords(1) - vertex1.Coords(1)) / (vertex2.Coords(0) - vertex1.Coords(0))
       val t = vertex1.Coords(1) - m * vertex1.Coords(0)
@@ -114,15 +114,15 @@ class Edge(vertex1: Vertex, vertex2: Vertex) extends Primitives {
 
 }
 
-class Face(edges: ListBuffer[Edge], vertices: ListBuffer[Vertex]) extends Primitives {
+class Face(edges : ListBuffer[Edge], vertices : ListBuffer[Vertex]) extends Primitives {
   val Edges = edges
   val Vertices = vertices
-  def contains(e: Edge): Boolean = {
+  def contains(e : Edge) : Boolean = {
     //TODO face contains edge
     true
   }
 
-  def contains(v: Vertex): Boolean = {
+  def contains(v : Vertex) : Boolean = {
     //TODO face contains vertex
     true
   }

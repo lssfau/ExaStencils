@@ -13,10 +13,10 @@ import exastencils.communication._
 import exastencils.core._
 import jeremias.dsl._
 
-case class PointOutsideDomain(var pos: Expression, var domain: Domain) extends Expression with Expandable {
-  override def prettyprint(out: PpStream): Unit = out << "NOT VALID ; CLASS = PointOutsideDomain\n"
+case class PointOutsideDomain(var pos : Expression, var domain : Domain) extends Expression with Expandable {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointOutsideDomain\n"
 
-  override def expand: Output[Expression] = {
+  override def expand : Output[Expression] = {
     val size = domain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
     Knowledge.dimensionality match {
       case 1 => s"(" ~ ((pos ~ ".x") < size.lower_x) Or ((pos ~ ".x") > size.upper_x) ~ ")"
@@ -29,10 +29,10 @@ case class PointOutsideDomain(var pos: Expression, var domain: Domain) extends E
   }
 }
 
-case class PointInsideDomain(var pos: Expression, var domain: Domain) extends Expression with Expandable {
-  override def prettyprint(out: PpStream): Unit = out << "NOT VALID ; CLASS = PointInsideDomain\n"
+case class PointInsideDomain(var pos : Expression, var domain : Domain) extends Expression with Expandable {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointInsideDomain\n"
 
-  override def expand: Output[Expression] = {
+  override def expand : Output[Expression] = {
     val size = domain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
     Knowledge.dimensionality match {
       case 1 => s"(" ~ ((pos ~ ".x") >= size.lower_x) And ((pos ~ ".x") <= size.upper_x) ~ ")"
@@ -45,10 +45,10 @@ case class PointInsideDomain(var pos: Expression, var domain: Domain) extends Ex
   }
 }
 
-case class PointToFragmentId(var pos: Expression) extends Expression with Expandable {
-  override def prettyprint(out: PpStream): Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
+case class PointToFragmentId(var pos : Expression) extends Expression with Expandable {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
 
-  override def expand: Output[Expression] = {
+  override def expand : Output[Expression] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
     val gSize = globalDomain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
     val fragWidth_x = gSize.width(0) / Knowledge.domain_rect_numFragsTotal_x
@@ -66,10 +66,10 @@ case class PointToFragmentId(var pos: Expression) extends Expression with Expand
   }
 }
 
-case class PointToLocalFragmentId(var pos: Expression) extends Expression with Expandable {
-  override def prettyprint(out: PpStream): Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
+case class PointToLocalFragmentId(var pos : Expression) extends Expression with Expandable {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
 
-  override def expand: Output[Expression] = {
+  override def expand : Output[Expression] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
     val gSize = globalDomain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
     val fragWidth_x = gSize.width(0) / Knowledge.domain_rect_numFragsTotal_x
@@ -87,10 +87,10 @@ case class PointToLocalFragmentId(var pos: Expression) extends Expression with E
   }
 }
 
-case class PointToOwningRank(var pos: Expression, var domain: Domain) extends Expression with Expandable {
-  override def prettyprint(out: PpStream): Unit = out << "NOT VALID ; CLASS = PointToOwningRank\n"
+case class PointToOwningRank(var pos : Expression, var domain : Domain) extends Expression with Expandable {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToOwningRank\n"
 
-  override def expand: Output[Expression] = {
+  override def expand : Output[Expression] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
     val gSize = globalDomain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
     val fragWidth_x = gSize.width(0) / Knowledge.domain_rect_numFragsTotal_x
@@ -114,19 +114,19 @@ case class PointToOwningRank(var pos: Expression, var domain: Domain) extends Ex
   }
 }
 
-case class AssertStatement(var check: Expression, var msg: Expression, var abort: Statement) extends Statement with Expandable {
-  override def prettyprint(out: PpStream): Unit = out << "NOT VALID ; CLASS = AssertStatement\n"
+case class AssertStatement(var check : Expression, var msg : Expression, var abort : Statement) extends Statement with Expandable {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = AssertStatement\n"
 
-  override def expand: Output[ConditionStatement] = {
+  override def expand : Output[ConditionStatement] = {
     new ConditionStatement(check,
       ListBuffer[Statement](new PrintStatement(msg), abort))
   }
 }
 
 case class ConnectFragments() extends Statement with Expandable {
-  override def prettyprint(out: PpStream): Unit = out << "NOT VALID ; CLASS = ConnectFragments\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ConnectFragments\n"
 
-  override def expand: Output[LoopOverFragments] = {
+  override def expand : Output[LoopOverFragments] = {
     var body = new ListBuffer[Statement]
 
     val neighbors = Fragment.neighbors
@@ -164,7 +164,7 @@ case class ConnectFragments() extends Statement with Expandable {
               } else {
                 FunctionCallExpression("connectLocalElement", ListBuffer[Expression](
                   LoopOverFragments.defIt, PointToLocalFragmentId("offsetPos"), neigh.index, d))
-              }): Statement)))
+              }) : Statement)))
       }
     }
 
@@ -173,10 +173,10 @@ case class ConnectFragments() extends Statement with Expandable {
 }
 
 case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandable {
-  override def prettyprint(out: PpStream): Unit = out << "NOT VALID ; CLASS = InitGeneratedDomain\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitGeneratedDomain\n"
   override def prettyprint_decl = prettyprint
 
-  override def expand: Output[FunctionStatement] = {
+  override def expand : Output[FunctionStatement] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
     val gSize = globalDomain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
     val fragWidth_x = gSize.width(0) / Knowledge.domain_rect_numFragsTotal_x
@@ -202,15 +202,15 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
 
         new LoopOverDimensions(Knowledge.dimensionality, IndexRange(MultiIndex(0, 0, 0), MultiIndex(Knowledge.domain_rect_numFragsPerBlock_x, Knowledge.domain_rect_numFragsPerBlock_y, Knowledge.domain_rect_numFragsPerBlock_z)),
           new AssignmentStatement("positions[posWritePos++]", "Vec3("
-            ~ ((("rankPos.x": Expression) * Knowledge.domain_rect_numFragsPerBlock_x + 0.5 + dimToString(0)) * fragWidth_x) + gSize.lower_x ~ ","
-            ~ (if (Knowledge.dimensionality > 1) ((("rankPos.y": Expression) * Knowledge.domain_rect_numFragsPerBlock_y + 0.5 + dimToString(1)) * fragWidth_y) + gSize.lower_y else 0) ~ ","
-            ~ (if (Knowledge.dimensionality > 2) ((("rankPos.z": Expression) * Knowledge.domain_rect_numFragsPerBlock_z + 0.5 + dimToString(2)) * fragWidth_z) + gSize.lower_z else 0) ~ ")")),
+            ~ ((("rankPos.x" : Expression) * Knowledge.domain_rect_numFragsPerBlock_x + 0.5 + dimToString(0)) * fragWidth_x) + gSize.lower_x ~ ","
+            ~ (if (Knowledge.dimensionality > 1) ((("rankPos.y" : Expression) * Knowledge.domain_rect_numFragsPerBlock_y + 0.5 + dimToString(1)) * fragWidth_y) + gSize.lower_y else 0) ~ ","
+            ~ (if (Knowledge.dimensionality > 2) ((("rankPos.z" : Expression) * Knowledge.domain_rect_numFragsPerBlock_z + 0.5 + dimToString(2)) * fragWidth_z) + gSize.lower_z else 0) ~ ")")),
         LoopOverFragments(ListBuffer(
           AssignmentStatement(iv.PrimitiveId(), PointToFragmentId(s"positions[${LoopOverFragments.defIt}]")),
           AssignmentStatement(iv.CommId(), PointToLocalFragmentId(s"positions[${LoopOverFragments.defIt}]")),
           AssignmentStatement(iv.PrimitivePosition(), s"positions[${LoopOverFragments.defIt}]"),
           AssignmentStatement(iv.PrimitivePositionBegin(), s"positions[${LoopOverFragments.defIt}]" - vecDelta),
-          AssignmentStatement(iv.PrimitivePositionEnd(), (s"positions[${LoopOverFragments.defIt}]": Expression) + vecDelta))), // stupid string concat ...
+          AssignmentStatement(iv.PrimitivePositionEnd(), (s"positions[${LoopOverFragments.defIt}]" : Expression) + vecDelta))), // stupid string concat ...
         ConnectFragments(),
         "setupBuffers()" // FIXME: move to app
         ))
@@ -218,10 +218,10 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
 }
 
 case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with Expandable {
-  override def prettyprint(out: PpStream): Unit = out << "NOT VALID ; CLASS = InitGeneratedDomain\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitGeneratedDomain\n"
   override def prettyprint_decl = prettyprint
 
-  override def expand: Output[FunctionStatement] = {
+  override def expand : Output[FunctionStatement] = {
     FunctionStatement(new UnitDatatype(), s"initDomain", ListBuffer(),
       (if (Knowledge.mpi_enabled) {
         ListBuffer(
@@ -255,10 +255,10 @@ case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with E
 }
 
 case class SetValues() extends AbstractFunctionStatement with Expandable {
-  override def prettyprint(out: PpStream): Unit = out << "NOT VALID ; CLASS = SetValues\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetValues\n"
   override def prettyprint_decl = prettyprint
 
-  override def expand: Output[FunctionStatement] = {
+  override def expand : Output[FunctionStatement] = {
     var body = new ListBuffer[Statement]
     for (d <- 0 until DomainCollection.domains.size) {
       body += AssignmentStatement(iv.IsValidForSubdomain(d), ReadValueFrom(new BooleanDatatype, "data"))
@@ -307,10 +307,10 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
 }
 
 case class ReadConfig() extends AbstractFunctionStatement with Expandable {
-  override def prettyprint(out: PpStream): Unit = out << "NOT VALID ; CLASS = ReadConfig\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ReadConfig\n"
   override def prettyprint_decl = prettyprint
 
-  override def expand: Output[FunctionStatement] = {
+  override def expand : Output[FunctionStatement] = {
     FunctionStatement(
       new UnitDatatype(),
       s"readConfig",

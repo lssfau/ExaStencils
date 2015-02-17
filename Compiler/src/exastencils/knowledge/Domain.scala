@@ -7,25 +7,25 @@ import exastencils.util._
 import jeremias.dsl._
 
 trait Domain {
-  def identifier: String
-  def index: Int
-  def shape: Any
+  def identifier : String
+  def index : Int
+  def shape : Any
 }
 
 case class RectangularDomain(
-  var identifier: String,
-  var index: Int,
-  var shape: RectangularDomainShape) extends Domain {}
+  var identifier : String,
+  var index : Int,
+  var shape : RectangularDomainShape) extends Domain {}
 
 case class IrregularDomain(
-  var identifier: String,
-  var index: Int,
-  var shape: IrregularDomainShape) extends Domain {}
+  var identifier : String,
+  var index : Int,
+  var shape : IrregularDomainShape) extends Domain {}
 
 object DomainCollection {
-  var domains: ListBuffer[Domain] = ListBuffer()
+  var domains : ListBuffer[Domain] = ListBuffer()
 
-  def getDomainByIdentifier(identifier: String): Option[Domain] = {
+  def getDomainByIdentifier(identifier : String) : Option[Domain] = {
     val ret = domains.find(d => d.identifier == identifier)
     if (ret.isEmpty) Logger.warn(s"Domain $identifier was not found")
     ret
@@ -45,7 +45,7 @@ object DomainCollection {
         }
     }
   }
-  def unifyDomains(identifier1: String, identifier2: String, face: Face) {
+  def unifyDomains(identifier1 : String, identifier2 : String, face : Face) {
     //     
     // for now only 2D
     val domainIndex = Map(
@@ -60,7 +60,7 @@ object DomainCollection {
       }
     }
     //function to count vertices which are the same in both fragments
-    val sameCoords = (x: Fragment, y: Fragment) => x.vertices.map { va => y.vertices.count { vb => vb.Coords == va.Coords } }.sum
+    val sameCoords = (x : Fragment, y : Fragment) => x.vertices.map { va => y.vertices.count { vb => vb.Coords == va.Coords } }.sum
 
     // mapping from globalId to the new neighborId
     val neighborIds = boundaryFragments.map { bf =>

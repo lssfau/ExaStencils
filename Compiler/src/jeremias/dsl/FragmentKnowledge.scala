@@ -9,7 +9,7 @@ import exastencils.core._
 
 object FragmentKnowledge {
 
-  def saveFragmentData(): Unit = {
+  def saveFragmentData() : Unit = {
     Settings.fragmentFile_config_output match {
       case 0 => {
         saveBin()
@@ -24,13 +24,13 @@ object FragmentKnowledge {
   }
 
   private def saveDef() = {
-    val save: FileOutputStream = new FileOutputStream(Settings.fragmentFile_config_path_readable)
+    val save : FileOutputStream = new FileOutputStream(Settings.fragmentFile_config_path_readable)
     save.write(FragmentCollection.fragments.map(f => f.toString()).mkString("\n").getBytes())
 
     save.close()
   }
 
-  private def saveBin(): Unit = {
+  private def saveBin() : Unit = {
 
     val outData = new FragmentDataWriter(new BufferedOutputStream(new FileOutputStream(Settings.fragmentFile_config_path_binary)))
     FragmentCollection.fragments.foreach(f => {
@@ -74,43 +74,43 @@ object FragmentKnowledge {
 }
 
 object FragmentCollection {
-  var fragments: ListBuffer[Fragment] = ListBuffer()
+  var fragments : ListBuffer[Fragment] = ListBuffer()
 
-  def getLocalFragId(globalId: Int): Int = {
+  def getLocalFragId(globalId : Int) : Int = {
     fragments.find(f => f.globalId == globalId) match {
       case Some(n) => n.localId
       case None    => globalId
     }
   }
-  def getMpiRank(globalId: Int): Int = {
+  def getMpiRank(globalId : Int) : Int = {
     fragments.find(f => f.globalId == globalId) match {
       case Some(n) => n.rank
       case None    => globalId
     }
   }
 
-  def getDomainIds(globalId: Int): ListBuffer[Int] = {
+  def getDomainIds(globalId : Int) : ListBuffer[Int] = {
     fragments.find(f => f.globalId == globalId) match {
       case Some(n) => n.domainIds
       case None    => ListBuffer()
     }
   }
 
-  def getRemoteRank(globalId: Int, domainId: Int): Int = {
+  def getRemoteRank(globalId : Int, domainId : Int) : Int = {
     fragments.find(f => f.globalId == globalId) match {
       case Some(n) => n.rank
       case None    => -1
     }
   }
 
-  def isValidForSubDomain(globalId: Int, domain: Int): Boolean = {
+  def isValidForSubDomain(globalId : Int, domain : Int) : Boolean = {
     fragments.find(f => f.globalId == globalId) match {
       case Some(n) => n.domainIds.contains(domain)
       case None    => false
     }
   }
 
-  def isNeighborValid(globalId: Int, neighborId: Int, domain: Int): Boolean = {
+  def isNeighborValid(globalId : Int, neighborId : Int, domain : Int) : Boolean = {
     fragments.find(f => f.globalId == globalId) match {
       case Some(n) =>
         {
@@ -124,21 +124,21 @@ object FragmentCollection {
     }
   }
 
-  def isNeighborRemote(globalId: Int, neighborId: Int, domain: Int): Boolean = {
+  def isNeighborRemote(globalId : Int, neighborId : Int, domain : Int) : Boolean = {
     fragments.find(f => f.globalId == globalId) match {
       case Some(n) =>
         {
           n.neighborIDs.contains(neighborId) &&
             (fragments.find { nf => nf.globalId == neighborId }.get match {
-              case m: Fragment => m.domainIds.contains(domain) && (getMpiRank(globalId) != getMpiRank(neighborId))
-              case _           => false
+              case m : Fragment => m.domainIds.contains(domain) && (getMpiRank(globalId) != getMpiRank(neighborId))
+              case _            => false
             })
         }
       case None => false
     }
   }
 
-  def getFragPos(vertices: ListBuffer[Vertex]): Vertex = {
+  def getFragPos(vertices : ListBuffer[Vertex]) : Vertex = {
     val position = ListBuffer(vertices(0).Coords(0) + (vertices.last.Coords(0) - vertices(0).Coords(0)) / 2.0)
     if (Knowledge.dimensionality >= 2) position += (vertices(0).Coords(1) + (vertices.last.Coords(1) - vertices(0).Coords(1)) / 2.0)
     if (Knowledge.dimensionality >= 3) position += vertices(0).Coords(2) + (vertices.last.Coords(2) - vertices(0).Coords(2)) / 2.0
@@ -147,12 +147,12 @@ object FragmentCollection {
 
 }
 
-class FragmentDataWriter(s: BufferedOutputStream) extends DataOutputStream(s) {
+class FragmentDataWriter(s : BufferedOutputStream) extends DataOutputStream(s) {
   val boolSize = 1
   val intSize = 4
   val doubleSize = 8
 
-  def writeBinary(t: Datatype, v: Any): Int = {
+  def writeBinary(t : Datatype, v : Any) : Int = {
     t match {
       case IntegerDatatype() => {
         writeInt(v.asInstanceOf[Int])

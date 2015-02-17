@@ -4,40 +4,40 @@ import exastencils.datastructures._
 import exastencils.prettyprinting._
 
 trait Datatype extends ProgressableToIr with PrettyPrintable {
-  override def progressToIr: ir.Datatype
+  override def progressToIr : ir.Datatype
 }
 
 case class IntegerDatatype() extends Datatype {
-  def prettyprint(out: PpStream) = { out << "Integer" }
-  def progressToIr: ir.Datatype = new ir.IntegerDatatype
+  def prettyprint(out : PpStream) = { out << "Integer" }
+  def progressToIr : ir.Datatype = new ir.IntegerDatatype
 }
 
 case class RealDatatype() extends Datatype {
-  def prettyprint(out: PpStream) = { out << "Real" }
-  def progressToIr: ir.Datatype = new ir.RealDatatype
+  def prettyprint(out : PpStream) = { out << "Real" }
+  def progressToIr : ir.Datatype = new ir.RealDatatype
 }
 
 case class StringDatatype() extends Datatype {
-  def prettyprint(out: PpStream) = { out << "String" }
-  def progressToIr: ir.Datatype = new ir.StringDatatype
+  def prettyprint(out : PpStream) = { out << "String" }
+  def progressToIr : ir.Datatype = new ir.StringDatatype
 }
 
 case class CharDatatype() extends Datatype {
-  def prettyprint(out: PpStream): Unit = out << "char"
-  def progressToIr: ir.Datatype = new ir.CharDatatype
+  def prettyprint(out : PpStream) : Unit = out << "char"
+  def progressToIr : ir.Datatype = new ir.CharDatatype
 }
 
 case class UnitDatatype() extends Datatype {
-  def prettyprint(out: PpStream) = { out << "Unit" }
-  def progressToIr: ir.Datatype = new ir.UnitDatatype
+  def prettyprint(out : PpStream) = { out << "Unit" }
+  def progressToIr : ir.Datatype = new ir.UnitDatatype
 }
 
-case class ArrayDatatype(var datatype: Datatype, var numElements: Int) extends Datatype {
-  def prettyprint(out: PpStream) = { out << "Array[" << datatype << "][" << numElements << ']' }
-  def progressToIr: ir.Datatype = new ir.ArrayDatatype(datatype.progressToIr, numElements)
+case class ArrayDatatype(var datatype : Datatype, var numElements : Int) extends Datatype {
+  def prettyprint(out : PpStream) = { out << "Array[" << datatype << "][" << numElements << ']' }
+  def progressToIr : ir.Datatype = new ir.ArrayDatatype(datatype.progressToIr, numElements)
 }
 
-case class ComplexDatatype(var datatype: Datatype) extends Datatype {
-  def prettyprint(out: PpStream) = { out << "Complex[" << datatype << ']' }
-  def progressToIr: ir.Datatype = new ir.ComplexDatatype(datatype.progressToIr)
+case class ComplexDatatype(var datatype : Datatype) extends Datatype {
+  def prettyprint(out : PpStream) = { out << "Complex[" << datatype << ']' }
+  def progressToIr : ir.Datatype = new ir.ComplexDatatype(datatype.progressToIr)
 }
