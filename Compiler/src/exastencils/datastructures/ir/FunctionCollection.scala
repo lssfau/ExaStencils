@@ -15,15 +15,22 @@ class FunctionCollection(var baseName : String,
     for (inc <- internalDependencies) writer.addInternalDependency(inc)
     for (inc <- externalDependencies) writer.addExternalDependency(inc)
 
-    for (func <- functions) writer << func.asInstanceOf[FunctionStatement].prettyprint_decl
+    for (func <- functions) {
+      if (func.asInstanceOf[FunctionStatement].hasAnnotation("isTemplate")) {
+        writer <<< func.prettyprint + ";"
+      } else
+        writer << func.asInstanceOf[FunctionStatement].prettyprint_decl
+    }
   }
 
   def printSources = {
     for (f <- functions) {
-      val writer = PrettyprintingManager.getPrinter(s"${baseName}_${f.asInstanceOf[FunctionStatement].name}.cpp")
-      writer.addInternalDependency(s"${baseName}.h")
+      if (!f.asInstanceOf[FunctionStatement].hasAnnotation("isTemplate")) {
+        val writer = PrettyprintingManager.getPrinter(s"${baseName}_${f.asInstanceOf[FunctionStatement].name}.cpp")
+        writer.addInternalDependency(s"${baseName}.h")
 
-      writer <<< f.prettyprint
+        writer <<< f.prettyprint
+      }
     }
   }
 
