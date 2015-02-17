@@ -1,2 +1,0 @@
-outputPath = "/home/kronast/work/Generated/"
-basePathPrefix = ".."
