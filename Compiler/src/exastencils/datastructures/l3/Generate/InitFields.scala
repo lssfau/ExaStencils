@@ -42,36 +42,22 @@ object InitFields {
         case 2 => {
           //    printer.println(s"\t\tLaplace$postfix@current = LaplaceStencil$postfix@current")
 
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[0] = 4")
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[1] = -1")
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[2] = -1")
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[3] = -1")
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[4] = -1")
-
-          printer.println(s"\t\tLaplace$postfix@current:[ 0,  0] = 4")
-          printer.println(s"\t\tLaplace$postfix@current:[ 1,  0] = -1")
-          printer.println(s"\t\tLaplace$postfix@current:[-1,  0] = -1")
-          printer.println(s"\t\tLaplace$postfix@current:[ 0,  1] = -1")
-          printer.println(s"\t\tLaplace$postfix@current:[ 0, -1] = -1")
+          printer.println(s"\t\tLaplace$postfix@current:[ 0,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) 4 else "( 2.0 / ( hx@current * hx@current ) + 2.0 / ( hy@current * hy@current ) )"}")
+          printer.println(s"\t\tLaplace$postfix@current:[ 1,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( hx@current * hx@current ) )"}")
+          printer.println(s"\t\tLaplace$postfix@current:[-1,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( hx@current * hx@current ) )"}")
+          printer.println(s"\t\tLaplace$postfix@current:[ 0,  1] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( hy@current * hy@current ) )"}")
+          printer.println(s"\t\tLaplace$postfix@current:[ 0, -1] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( hy@current * hy@current ) )"}")
         }
         case 3 => {
           //    printer.println(s"\t\tLaplace$postfix@current = LaplaceStencil$postfix@current")
 
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[0] = 6")
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[1] = -1")
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[2] = -1")
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[3] = -1")
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[4] = -1")
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[5] = -1")
-          //    printer.println(s"\t\tLaplaceCoeff$postfix@current[6] = -1")
-
-          printer.println(s"\t\tLaplace$postfix@current:[ 0,  0,  0] = 6")
-          printer.println(s"\t\tLaplace$postfix@current:[ 1,  0,  0] = -1")
-          printer.println(s"\t\tLaplace$postfix@current:[-1,  0,  0] = -1")
-          printer.println(s"\t\tLaplace$postfix@current:[ 0,  1,  0] = -1")
-          printer.println(s"\t\tLaplace$postfix@current:[ 0, -1,  0] = -1")
-          printer.println(s"\t\tLaplace$postfix@current:[ 0,  0,  1] = -1")
-          printer.println(s"\t\tLaplace$postfix@current:[ 0,  0, -1] = -1")
+          printer.println(s"\t\tLaplace$postfix@current:[ 0,  0,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) 6 else "( 2.0 / ( hx@current * hx@current ) + 2.0 / ( hy@current * hy@current ) + 2.0 / ( hz@current * hz@current ) )"}")
+          printer.println(s"\t\tLaplace$postfix@current:[ 1,  0,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( hx@current * hx@current ) )"}")
+          printer.println(s"\t\tLaplace$postfix@current:[-1,  0,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( hx@current * hx@current ) )"}")
+          printer.println(s"\t\tLaplace$postfix@current:[ 0,  1,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( hy@current * hy@current ) )"}")
+          printer.println(s"\t\tLaplace$postfix@current:[ 0, -1,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( hy@current * hy@current ) )"}")
+          printer.println(s"\t\tLaplace$postfix@current:[ 0,  0,  1] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( hz@current * hz@current ) )"}")
+          printer.println(s"\t\tLaplace$postfix@current:[ 0,  0, -1] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( hz@current * hzx@current ) )"}")
         }
       }
       printer.println(s"\t}")
