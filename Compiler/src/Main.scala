@@ -26,8 +26,8 @@ object Main {
     // for runtime measurement
     val start : Long = System.nanoTime()
 
-    if (Settings.timeStrategies)
-      StrategyTimer.startTiming("Initializing")
+    //if (Settings.timeStrategies) -> right now this Schroedinger flag is neither true nor false
+    StrategyTimer.startTiming("Initializing")
 
     // init Settings
     if (args.length >= 1) {
