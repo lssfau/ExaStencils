@@ -222,6 +222,7 @@ object Knowledge {
   var l3tmp_genFragLoops : Boolean = true // adds fragment loops to the L4 DSL file
   var l3tmp_genEmbeddedDomain : Boolean = false // adds a second domain to perform all computations on; the new domain is one fragment smaller on each boundary
   var l3tmp_useMaxNorm : Boolean = false // uses the maximum norm instead of the L2 norm when reducing the residual on the finest level
+  var l3tmp_genCellBasedDiscr : Boolean = false // sets up a cell based discretization
 
   /// optional features
   var l3tmp_printFieldAtEnd : Boolean = false // prints the solution field at the end of the application (or the mean solution in l3tmp_kelvin's case)
@@ -251,8 +252,6 @@ object Knowledge {
   var experimental_Neumann : Boolean = false // highly experimental -> use only if you know what you are doing
   var experimental_NeumannOrder : Int = 2 // may currently be 1 or 2
   var experimental_NeumannNormalize : Boolean = false // normalize solution after each v-cycle
-
-  var l3tmp_genCellBasedDiscr : Boolean = false // sets up a cell based discretization
 
   /// END HACK
 
