@@ -1,6 +1,5 @@
 package exastencils.data
 
-import scala.collection.immutable.TreeMap
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
@@ -126,13 +125,13 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   // add allocation stuff
   // TODO: restructure
 
-  var bufferSizes : TreeMap[Expression, Expression] = TreeMap()(Ordering.by(_.prettyprint))
-  var bufferAllocs : TreeMap[Expression, Statement] = TreeMap()(Ordering.by(_.prettyprint))
-  var fieldAllocs : TreeMap[Expression, Statement] = TreeMap()(Ordering.by(_.prettyprint))
+  var bufferSizes : HashMap[String, Expression] = HashMap()
+  var bufferAllocs : HashMap[String, Statement] = HashMap()
+  var fieldAllocs : HashMap[String, Statement] = HashMap()
 
   this += new Transformation("Collecting buffer sizes", {
     case buf : iv.TmpBuffer =>
-      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, buf.field.index, buf.field.level, buf.neighIdx)
+      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
       if (Knowledge.experimental_useLevelIndepFcts) {
         if (bufferSizes.contains(id))
           bufferSizes.get(id).get.asInstanceOf[MaximumExpression].args += Duplicate(buf.size)
@@ -176,7 +175,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       else
         statements ++= innerStmts
 
-      fieldAllocs += (cleanedField -> new LoopOverFragments(
+      fieldAllocs += (cleanedField.prettyprint() -> new LoopOverFragments(
         new ConditionStatement(iv.IsValidForSubdomain(field.field.domain.index), statements)) with OMP_PotentiallyParallel)
       field
     }
@@ -184,7 +183,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
 
   this += new Transformation("Updating temporary buffer allocations", {
     case buf : iv.TmpBuffer =>
-      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, buf.field.index, buf.field.level, buf.neighIdx)
+      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
       val size = bufferSizes(id)
 
       if (Knowledge.data_alignTmpBufferPointers) {
@@ -214,10 +213,10 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
           s.applyStandalone(buf._2)
       }
 
-      for (bufferAlloc <- bufferAllocs)
+      for (bufferAlloc <- bufferAllocs.toSeq.sortBy(_._1))
         func.body += bufferAlloc._2
 
-      for (fieldAlloc <- fieldAllocs)
+      for (fieldAlloc <- fieldAllocs.toSeq.sortBy(_._1))
         func.body += fieldAlloc._2
 
       func

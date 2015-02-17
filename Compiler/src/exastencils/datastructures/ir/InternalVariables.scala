@@ -92,13 +92,16 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
       access = new ArrayAccess(access, domain)
     if (canBePerField && usesFieldArrays && FieldCollection.fields.size > 1)
       access = new ArrayAccess(access, field)
-    if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1)
-      access = new ArrayAccess(access, level - Knowledge.minLevel)
+    if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1) {
+      val simplifiedLevel : Expression =
+        if (level.isInstanceOf[IntegerConstant])
+          level.asInstanceOf[IntegerConstant].value - Knowledge.minLevel
+        else
+          level - Knowledge.minLevel
+      access = new ArrayAccess(access, simplifiedLevel)
+    }
     if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
       access = new ArrayAccess(access, neigh)
-
-    // last-minute resolving, e.g. relative level array accesses
-    SimplifyStrategy.doUntilDoneStandalone(access)
 
     access
   }
