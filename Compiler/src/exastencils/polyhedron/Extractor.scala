@@ -31,25 +31,10 @@ object Extractor {
   private final val SKIP_ANNOT : String = "PolySkip"
 
   /** set of all functions that are allowed in a scop (these must not have side effects) */
-  private final val allowedFunctions : HashSet[String] = {
-    val a = new HashSet[String]()
-    a.add("sin")
-    a.add("cos")
-    a.add("tan")
-    a.add("sinh")
-    a.add("cosh")
-    a.add("tanh")
-    a.add("exp")
-    a.add("sqrt")
-    a
-  }
+  private final val allowedFunctions = HashSet[String]("sin", "cos", "tan", "sinh", "cosh", "tanh", "exp", "sqrt")
 
   /** set of symbolic constants that must not be modeled as read accesses (these must be constant inside a scop) */
-  private final val symbolicConstants : HashSet[String] = {
-    val c = new HashSet[String]()
-    //c.add("M_PI") -> not required as instances of Pi are resolved beforehand
-    c
-  }
+  private final val symbolicConstants = HashSet[String]()
 
   /** Register the name of a side-effect free function, that is safe to be used inside a scop. */
   def registerSideeffectFree(functionName : String) : Unit = {

@@ -162,15 +162,20 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val schedule = Isl.simplify(scop.schedule.intersectDomain(scop.domain))
     //    val schedule = scop.schedule
 
+    val writes = Isl.simplify(scop.writes.intersectDomain(scop.domain))
+    //    val writes = scop.writes
+
     // output
-    scop.writes.computeFlow(scop.writes, empty, schedule,
+    writes.computeFlow(writes, empty, schedule,
       depArr, null, null, null) // output params
     scop.deps.output = depArr(0)
 
     if (scop.reads != null) {
+      val reads = Isl.simplify(scop.reads.intersectDomain(scop.domain))
+      //      val reads = scop.reads
       var readArrays : isl.UnionMap = empty
       // input dependences on scalars are irrelevant
-      scop.reads.foreachMap({
+      reads.foreachMap({
         read : isl.Map =>
           if (read.dim(isl.DimType.Out) > 0)
             readArrays = readArrays.addMap(read)
@@ -182,12 +187,12 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       scop.deps.input = depArr(0)
 
       // flow
-      scop.reads.computeFlow(scop.writes, empty, schedule,
+      reads.computeFlow(writes, empty, schedule,
         depArr, null, null, null) // output params (C-style)
       scop.deps.flow = depArr(0)
 
       // anti
-      scop.writes.computeFlow(scop.reads, empty, schedule,
+      writes.computeFlow(reads, empty, schedule,
         depArr, null, null, null) // output params (C-style)
       scop.deps.anti = depArr(0)
 
@@ -204,25 +209,26 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     var live = scop.writes.intersectDomain(scop.domain).reverse().lexmax().range()
     if (scop.deadAfterScop != null)
       live = live.subtract(scop.deadAfterScop)
-    live = live.union(scop.deps.flow.domain().intersect(scop.domain))
+    live = live.union(scop.deps.flow.domain().intersect(scop.domain)) // keeps even dead instances?
+    // live = live.apply(scop.deps.flow.reverse().transitiveClosure(null)) // better? test!
 
     if (!scop.domain.isEqual(live)) // the new one could be more complex, so keep old ;)
       scop.domain = live
 
     // update schedule, accesses and dependencies
-    //    scop.schedule = scop.schedule.intersectDomain(live)
-    //    if (scop.reads != null)
-    //      scop.reads = scop.reads.intersectDomain(live)
-    //    if (scop.writes != null)
-    //      scop.writes = scop.writes.intersectDomain(live)
-    //    if (scop.deps.flow != null)
-    //      scop.deps.flow = scop.deps.flow.intersectDomain(live)
-    //    if (scop.deps.anti != null)
-    //      scop.deps.anti = scop.deps.anti.intersectDomain(live)
-    //    if (scop.deps.output != null)
-    //      scop.deps.output = scop.deps.output.intersectDomain(live)
-    //    if (scop.deps.input != null)
-    //      scop.deps.input = scop.deps.input.intersectDomain(live)
+    scop.schedule = scop.schedule.intersectDomain(live)
+    if (scop.reads != null)
+      scop.reads = scop.reads.intersectDomain(live)
+    if (scop.writes != null)
+      scop.writes = scop.writes.intersectDomain(live)
+    if (scop.deps.flow != null)
+      scop.deps.flow = scop.deps.flow.intersectDomain(live)
+    if (scop.deps.anti != null)
+      scop.deps.anti = scop.deps.anti.intersectDomain(live)
+    if (scop.deps.output != null)
+      scop.deps.output = scop.deps.output.intersectDomain(live)
+    if (scop.deps.input != null)
+      scop.deps.input = scop.deps.input.intersectDomain(live)
   }
 
   private def handleReduction(scop : Scop) : Unit = {
@@ -264,18 +270,12 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   private def optimize(scop : Scop) : Unit = {
 
-    //    if (scop.nextMerge != null) {
-    //      println("val dom = new isl.UnionSet(\"" + scop.domain + "\")")
-    //      println("val depsVal = new isl.UnionMap(\"" + scop.deps.validity() + "\")")
-    //      println("val depsInp = new isl.UnionMap(\"" + scop.deps.input + "\")")
-    //      println()
-    //    }
-
     var schedConstr : isl.ScheduleConstraints = isl.ScheduleConstraints.onDomain(scop.domain)
 
     schedConstr = schedConstr.setValidity(scop.deps.validity())
-    //    schedConstr = schedConstr.setCoincidence(coincidence)
+    schedConstr = schedConstr.setCoincidence(scop.deps.validity())
     schedConstr = schedConstr.setProximity(scop.deps.input)
+    //    schedConstr = schedConstr.setProximity(scop.deps.flow)
 
     val schedule : isl.Schedule = schedConstr.computeSchedule()
     scop.noParDims.clear()

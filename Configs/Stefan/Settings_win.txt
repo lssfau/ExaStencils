@@ -1,2 +1,0 @@
-outputPath = "C:\Users\Stefan\work\Generated\Generated"
-basePathPrefix = ".."
