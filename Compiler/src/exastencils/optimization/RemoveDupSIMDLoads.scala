@@ -17,9 +17,11 @@ object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") 
   private[optimization] final val REPL_ANNOT = "RDSL_Repl"
 
   override def apply() : Unit = {
-
     this.transaction()
+
     Logger.info("Applying strategy " + name)
+    if (Settings.timeStrategies)
+      StrategyTimer.startTiming(name)
 
     val annotate = new Analyze()
     this.register(annotate)
@@ -27,6 +29,9 @@ object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") 
     this.unregister(annotate)
 
     this.execute(new Transformation("adapt", Adapt))
+
+    if (Settings.timeStrategies)
+      StrategyTimer.stopTiming(name)
 
     this.commit()
   }

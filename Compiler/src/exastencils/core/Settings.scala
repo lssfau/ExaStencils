@@ -38,4 +38,7 @@ object Settings {
   var produceHtmlLog : Boolean = false
   var htmlLogFile : String = ""
   def getHtmlLogFile : String = if (htmlLogFile != "") htmlLogFile else basePathPrefix + "/Compiler/log/log.html"
+
+  var timeStrategies : Boolean = false
+  var timeStratPercentThreshold : Int = 5 // five percent threshold by default -> measurements with less than 5.0 % share are not displayed  
 }

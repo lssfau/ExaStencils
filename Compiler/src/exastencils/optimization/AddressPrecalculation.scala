@@ -20,9 +20,11 @@ object AddressPrecalculation extends CustomStrategy("Perform address precalculat
   private[optimization] final val REPL_ANNOT = "Replace"
 
   override def apply() : Unit = {
-
     this.transaction()
+
     Logger.info("Applying strategy " + name)
+    if (Settings.timeStrategies)
+      StrategyTimer.startTiming(name)
 
     val annotate = new AnnotateLoopsAndAccesses()
     this.register(annotate)
@@ -30,6 +32,9 @@ object AddressPrecalculation extends CustomStrategy("Perform address precalculat
     this.unregister(annotate)
 
     this.execute(new Transformation("Optimize", IntegrateAnnotations))
+
+    if (Settings.timeStrategies)
+      StrategyTimer.stopTiming(name)
 
     this.commit()
   }

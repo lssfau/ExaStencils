@@ -15,7 +15,10 @@ object TypeInference extends CustomStrategy("Type inference") {
 
   override def apply() : Unit = {
     this.transaction()
+
     Logger.info("Applying strategy " + name)
+    if (Settings.timeStrategies)
+      StrategyTimer.startTiming(name)
 
     val annotate = new AnnotateStringConstants()
     this.register(annotate)
@@ -23,6 +26,9 @@ object TypeInference extends CustomStrategy("Type inference") {
     this.unregister(annotate)
 
     this.execute(new Transformation("replace nodes", CreateVariableAccesses))
+
+    if (Settings.timeStrategies)
+      StrategyTimer.stopTiming(name)
 
     this.commit()
   }

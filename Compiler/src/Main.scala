@@ -26,6 +26,9 @@ object Main {
     // for runtime measurement
     val start : Long = System.nanoTime()
 
+    if (Settings.timeStrategies)
+      StrategyTimer.startTiming("Initializing")
+
     // init Settings
     if (args.length >= 1) {
       val s = new exastencils.parsers.settings.ParserSettings
@@ -49,9 +52,23 @@ object Main {
     }
     Knowledge.update()
 
+    if (Settings.timeStrategies)
+      StrategyTimer.stopTiming("Initializing")
+
     // L1
 
+    if (Settings.timeStrategies)
+      StrategyTimer.startTiming("Handling Layer 1")
+
+    // add L1 code here
+
+    if (Settings.timeStrategies)
+      StrategyTimer.stopTiming("Handling Layer 1")
+
     // L2
+
+    if (Settings.timeStrategies)
+      StrategyTimer.startTiming("Handling Layer 2")
 
     /// HACK: This information has to come from L2
     if (Knowledge.domain_rect_generate) {
@@ -65,16 +82,28 @@ object Main {
           level => l3.Domains.getGlobalWidths(2) / (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * (1 << level)))
     }
 
+    if (Settings.timeStrategies)
+      StrategyTimer.stopTiming("Handling Layer 2")
+
     // L3
 
-    // Looking for L3 related code? Check MainL3.scala!
+    if (Settings.timeStrategies)
+      StrategyTimer.startTiming("Handling Layer 3")
+
+    // Looking for other L3 related code? Check MainL3.scala!
 
     if (Knowledge.l3tmp_generateL4) {
       StateManager.root_ = new l3.Generate.Root
       StateManager.root_.asInstanceOf[l3.Generate.Root].printToL4(Settings.getL4file)
     }
 
+    if (Settings.timeStrategies)
+      StrategyTimer.stopTiming("Handling Layer 3")
+
     // L4
+
+    if (Settings.timeStrategies)
+      StrategyTimer.startTiming("Handling Layer 4")
 
     StateManager.root_ = (new ParserL4).parseFile(Settings.getL4file)
     ValidationL4.apply
@@ -93,6 +122,9 @@ object Main {
       StateManager.root_ = parserl4.parseFile(Settings.getL4file + "_rep.exa")
       ValidationL4.apply
     }
+
+    if (Settings.timeStrategies)
+      StrategyTimer.stopTiming("Handling Layer 4")
 
     // go to IR
     ProgressToIr.apply() // preparation step
@@ -211,6 +243,9 @@ object Main {
 
     Logger.dbg("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
     (new CountingStrategy("number of printed nodes")).apply()
+
+    if (Settings.timeStrategies)
+      StrategyTimer.print
 
     if (Settings.produceHtmlLog)
       Logger_HTML.finish

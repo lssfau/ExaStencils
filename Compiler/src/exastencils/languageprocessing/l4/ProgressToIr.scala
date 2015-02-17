@@ -20,6 +20,10 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
     this.resetCollectors()
     this.unregisterAll()
 
+    Logger.info("Applying strategy " + name)
+    if (Settings.timeStrategies)
+      StrategyTimer.startTiming(name)
+
     var levelCollector = new L4LevelCollector
     var valueCollector = new L4ValueCollector
     this.register(levelCollector)
@@ -191,6 +195,9 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
           access.resolveToStencilFieldAccess
         else access.resolveToBasicOrLeveledAccess
     }))
+
+    if (Settings.timeStrategies)
+      StrategyTimer.stopTiming(name)
 
     this.commit()
   }

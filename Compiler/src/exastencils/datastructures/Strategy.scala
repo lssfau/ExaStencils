@@ -1,9 +1,57 @@
 package exastencils.datastructures
 
-import exastencils.core._
-import exastencils.logger._
-import exastencils.core.collectors.Collector
+import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
+
+import exastencils.core._
+import exastencils.core.collectors.Collector
+import exastencils.logger._
+
+object StrategyTimer {
+  class Data {
+    var start : Long = 0
+    var entries : Long = 0
+    var count : Long = 0
+    var totalDuration : Long = 0
+  }
+
+  var data : HashMap[String, Data] = HashMap()
+
+  def startTiming(name : String) = {
+    if (!data.contains(name)) data.put(name, new Data)
+    val thisData = data.get(name).get
+
+    thisData.entries += 1
+
+    if (1 == thisData.entries) // handle recursive strategy correctly
+      thisData.start = System.nanoTime()
+  }
+
+  def stopTiming(name : String) = {
+    if (!data.contains(name)) data.put(name, new Data)
+    val thisData = data.get(name).get
+
+    thisData.entries -= 1
+
+    if (thisData.entries < 0) {
+      Logger.warn(s"Trying to stop timing for strategy $name which has not yet been started")
+    } else if (0 == thisData.entries) {
+      thisData.totalDuration += System.nanoTime() - thisData.start
+      thisData.count += 1
+    } // otherwise nothing to do due to inclusive regions    
+  }
+
+  def print = {
+    val totalSum = data.map(_._2.totalDuration).sum
+    for (d <- data.toSeq.sortBy(_._2.totalDuration)) {
+      val runtime : Double = math.round(d._2.totalDuration / 1e6)
+      val share : Double = math.round((d._2.totalDuration * 1000.0) / totalSum) / 10.0
+
+      if (share >= Settings.timeStratPercentThreshold)
+        Logger.debug(s"$runtime ms ($share %) were consumed through '${d._1}' (${d._2.count} top level transformation calls)")
+    }
+  }
+}
 
 /**
   * A Strategy encapsulates [[exastencils.datastructures.Transformation]]s to be applied to the program state.
@@ -86,8 +134,14 @@ abstract class Strategy(val name : String) {
     */
   protected def executeInternal(transformation : Transformation, node : Option[Node] = None) : Unit = {
     Logger.info(s"""Applying strategy "${name}::${transformation.name}"""")
+    if (Settings.timeStrategies)
+      StrategyTimer.startTiming(name)
+
     val n = if (transformation.applyAtNode.isDefined) transformation.applyAtNode else node
     val result = StateManager.apply(token.get, transformation, n)
+
+    if (Settings.timeStrategies)
+      StrategyTimer.stopTiming(name)
     Logger.debug(s"""Result of strategy "${name}::${transformation.name}": $result""")
   }
 }

@@ -36,9 +36,11 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   }
 
   override def apply() : Unit = {
-
     this.transaction()
+
     Logger.info("Applying strategy " + name)
+    if (Settings.timeStrategies)
+      StrategyTimer.startTiming(name)
 
     isl.Options.setTileScaleTileLoops(false)
     isl.Options.setTileShiftPointLoops(false)
@@ -56,6 +58,9 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       }
     }
     recreateAndInsertAST()
+
+    if (Settings.timeStrategies)
+      StrategyTimer.stopTiming(name)
 
     this.commit()
   }

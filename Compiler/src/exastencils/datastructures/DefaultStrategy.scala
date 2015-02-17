@@ -121,14 +121,21 @@ class DefaultStrategy(name : String) extends Strategy(name) {
 
   protected override def executeInternal(transformation : Transformation, node : Option[Node] = None) : Unit = {
     Logger.info(s"""Applying strategy "${name}::${transformation.name}"""")
+    if (Settings.timeStrategies)
+      StrategyTimer.startTiming(name)
+
     val n = if (transformation.applyAtNode.isDefined) transformation.applyAtNode else node
     val result = StateManager.apply(token.get, transformation, n)
+
+    if (Settings.timeStrategies)
+      StrategyTimer.stopTiming(name)
     Logger.debug(s"""Result of strategy "${name}::${transformation.name}": $result""")
     results_ += ((transformation, result))
   }
 
   def applyStandalone(node : Node) : Unit = {
     Logger.info(s"""Applying strategy "${name}" in standalone mode""")
+
     this.resetCollectors()
     try {
       transformations_.foreach(transformation => {
@@ -145,7 +152,13 @@ class DefaultStrategy(name : String) extends Strategy(name) {
 
   protected def executeStandaloneInternal(transformation : Transformation, node : Node) : Unit = {
     Logger.info(s"""Applying strategy "${name}::${transformation.name}" in standalone mode""")
+    if (Settings.timeStrategies)
+      StrategyTimer.startTiming(name)
+
     val result = StateManager.applyStandalone(this, transformation, node)
+
+    if (Settings.timeStrategies)
+      StrategyTimer.stopTiming(name)
     Logger.debug(s"""Result of strategy "${name}::${transformation.name}" in standalone mode: $result""")
     results_ += ((transformation, result))
   }
