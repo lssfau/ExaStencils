@@ -1,26 +1,26 @@
 Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >
 
-Layout CommFullTempBlockable {
-	ghostLayers = [ 5, 5, 5 ] with communication
-	duplicateLayers = [ 1, 1, 1 ] with communication
+Layout FullTempBlockable< Real, Node >@all {
+	ghostLayers = [ 5, 5, 5 ]
+	duplicateLayers = [ 1, 1, 1 ]
 }
-Layout CommNoTempBlockable {
-	ghostLayers = [ 1, 1, 1 ] with communication
-	duplicateLayers = [ 1, 1, 1 ] with communication
+Layout NoTempBlockable< Real, Node >@all {
+	ghostLayers = [ 1, 1, 1 ]
+	duplicateLayers = [ 1, 1, 1 ]
 }
-Layout CommPartTempBlockable {
-	ghostLayers = [ 4, 4, 4 ] with communication
-	duplicateLayers = [ 1, 1, 1 ] with communication
+Layout PartTempBlockable< Real, Node >@all {
+	ghostLayers = [ 4, 4, 4 ]
+	duplicateLayers = [ 1, 1, 1 ]
 }
-Layout NoComm {
+Layout NoComm< Real, Node >@all {
 	ghostLayers = [ 0, 0, 0 ]
 	duplicateLayers = [ 1, 1, 1 ]
 }
 
-Field SolutionT< Real, global, CommFullTempBlockable, 0.0 >[2]@finest
-Field Solution< Real, global, CommNoTempBlockable, 0.0 >[2]@finest
-Field RHST< Real, global, CommPartTempBlockable, None >@finest
-Field RHS< Real, global, NoComm, None >@finest
+Field SolutionT< global, FullTempBlockable, 0.0 >[2]@all
+Field Solution< global, NoTempBlockable, 0.0 >[2]@all
+Field RHST< global, PartTempBlockable, None >@all
+Field RHS< global, NoComm, None >@all
 
 Stencil Laplace@finest {
 	[ 0,  0,  0] => 6.0
@@ -39,27 +39,27 @@ Function SmootherT() : Unit {
 	loop over fragments {
 		repeat 5 times with contraction {
 			loop over SolutionT@finest {
-				SolutionT[nextSlot]@finest = SolutionT[curSlot]@finest + (0.8 / diag(Laplace@finest) * (RHST@finest - Laplace@finest * SolutionT[curSlot]@finest))
+				SolutionT[nextSlot]@finest = SolutionT[active]@finest + (0.8 / diag(Laplace@finest) * (RHST@finest - Laplace@finest * SolutionT[active]@finest))
 			}
-			advance(SolutionT@finest)
+			advance SolutionT@finest
 		}
 	}
 }
 Function Smoother() : Unit {
 	loop over fragments {
 		loop over Solution@finest {
-			Solution[nextSlot]@finest = Solution[curSlot]@finest + (0.8 / diag(Laplace@finest) * (RHS@finest - Laplace@finest * Solution[curSlot]@finest))
+			Solution[nextSlot]@finest = Solution[active]@finest + (0.8 / diag(Laplace@finest) * (RHS@finest - Laplace@finest * Solution[active]@finest))
 		}
-		advance(Solution@finest)
+		advance Solution@finest
 	}
 }
 
 Function InitAll ( ) : Unit {
 	loop over SolutionT@finest {
-		Solution[curSlot]@finest = native('((double)std::rand()/RAND_MAX)')
+		Solution[active]@finest = native('((double)std::rand()/RAND_MAX)')
 	}
 	loop over Solution@finest {
-		Solution[curSlot]@finest = native('((double)std::rand()/RAND_MAX)')
+		Solution[active]@finest = native('((double)std::rand()/RAND_MAX)')
 	}
 	loop over RHST@finest {
 		RHS@finest = 0
@@ -70,11 +70,8 @@ Function InitAll ( ) : Unit {
 }
 
 Function LUPs() : Real {
-	Variable combinedFrags_x : Integer = 2
-	Variable combinedFrags_y : Integer = 2
-	Variable combinedFrags_z : Integer = 2
-	Variable dimSize : Integer = 256
-	return((combinedFrags_x * dimSize + 1) * (combinedFrags_y * dimSize + 1) * (combinedFrags_z * dimSize + 1))
+	Variable dimSize : Integer = 511
+	return(dimSize * dimSize * dimSize)
 }
 
 Function BenchmarkT() : Unit {
@@ -85,12 +82,12 @@ Function BenchmarkT() : Unit {
 	print('"Starting benchmark (temporal blocking)"')
 	Variable time : Real = 0
 	startTimer(benchTimer)
-	repeat 4 times {
+	repeat 2 times {
 		SmootherT()
 	}
 	stopTimer(benchTimer, time)
 	print('"Runtime: "', time)
-	print('"MLUPs: "', (LUPs() * 20) / time / 1e3)
+	print('"MLUPs: "', (LUPs() * 10) / time / 1e3)
 }
 
 Function Benchmark() : Unit {
@@ -101,12 +98,12 @@ Function Benchmark() : Unit {
 	print('"Starting benchmark (normal)"')
 	Variable time : Real = 0
 	startTimer(benchTimer)
-	repeat 20 times {
+	repeat 10 times {
 		Smoother()
 	}
 	stopTimer(benchTimer, time)
 	print('"Runtime: "', time)
-	print('"MLUPs: "', (LUPs() * 20) / time / 1e3)
+	print('"MLUPs: "', (LUPs() * 10) / time / 1e3)
 }
 
 Function Application() : Unit {

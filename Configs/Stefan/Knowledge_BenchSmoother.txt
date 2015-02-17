@@ -1,37 +1,45 @@
-targetCompiler             = "GCC"
-targetCompilerVersion      = 4
-targetCompilerVersionMinor = 9
-simd_instructionSet        = "AVX"
+targetCompiler              = "GCC"
+targetCompilerVersion       = 4
+targetCompilerVersionMinor  = 9
+simd_instructionSet         = "AVX"
 
-dimensionality             = 3
+dimensionality = 3
 
-maxLevel                   = 8
-comm_strategyFragment      = 6 // 26
+minLevel = 8
+maxLevel = 9
 
-domain_summarizeBlocks     = true
+domain_onlyRectangular      = true
+domain_numBlocks            = 1
+domain_numFragmentsPerBlock = 1
 
-domain_numBlocks_x         = 1
-domain_numBlocks_y         = 1
-domain_numBlocks_z         = 1
+domain_rect_generate            = true
+domain_rect_numBlocks_x         = 1
+domain_rect_numBlocks_y         = 1
+domain_rect_numBlocks_z         = 1
+domain_rect_numFragsPerBlock_x  = 1
+domain_rect_numFragsPerBlock_y  = 1
+domain_rect_numFragsPerBlock_z  = 1
 
-domain_numFragsPerBlock_x  = 2
-domain_numFragsPerBlock_y  = 2
-domain_numFragsPerBlock_z  = 2
-domain_fragLength_x        = 1
-domain_fragLength_y        = 1
-domain_fragLength_z        = 1
+omp_enabled    = true
+omp_numThreads = 4
 
-mpi_useCustomDatatypes     = false
-poly_optLevel_fine         = 3
-poly_optLevel_coarse       = 1
-poly_numFinestLevels       = 1
-poly_tileSize_x            = 1000000
-poly_tileSize_y            = 32
-poly_tileSize_z            = 1000000
-poly_tileSize_w            = 1000000
-poly_tileOuterLoop         = false
-opt_useAddressPrecalc      = true
-opt_vectorize              = true
-opt_unroll                 = 2
-opt_unroll_interleave      = false
-data_addPrePadding         = false // not needed currently 
+mpi_enabled    = false
+mpi_numThreads = 1
+
+omp_parallelizeLoopOverFragments  = false
+omp_parallelizeLoopOverDimensions = true
+
+l3tmp_generateL4 = false
+
+
+poly_optLevel_fine    = 3
+poly_optLevel_coarse  = 0
+poly_numFinestLevels  = 1
+poly_tileSize_x       = 1000000
+poly_tileSize_y       = 64
+poly_tileSize_z       = 1000000
+poly_tileOuterLoop    = false
+opt_useAddressPrecalc = true
+opt_vectorize         = true
+opt_unroll            = 2
+opt_unroll_interleave = false
