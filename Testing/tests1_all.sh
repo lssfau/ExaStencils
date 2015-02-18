@@ -157,12 +157,9 @@ do
     TMP_ARRAY[i+1]=${nodes}
     TMP_ARRAY[i+2]=${cores}
     TMP_ARRAY[i+3]=${constraints}
-    TMP_ARRAY[i+4]=${TEST_BIN}
-    TMP_ARRAY[i+5]=${result}
-    TMP_ARRAY[i+6]=${TEST_LOG}
-    TMP_ARRAY[i+7]=${TEST_ERROR_MARKER}
-    TMP_ARRAY[i+8]=${SID}
-    i=$((i+9))
+    TMP_ARRAY[i+4]=${result}
+    TMP_ARRAY[i+5]=${SID}
+    i=$((i+6))
   else
     echo "Test OK (must not be executed)" >> "${TEST_LOG}"
   fi
@@ -174,17 +171,19 @@ echo ""
 COMP_DEPS="${DEP_SIDS}"
 
 # enqueue execution jobs
-for ((i=0;i<${#TMP_ARRAY[@]};i+=9)); do
+for ((i=0;i<${#TMP_ARRAY[@]};i+=6)); do
 
   id=${TMP_ARRAY[i+0]}
   nodes=${TMP_ARRAY[i+1]}
   cores=${TMP_ARRAY[i+2]}
   constraints=${TMP_ARRAY[i+3]}
-  TEST_BIN=${TMP_ARRAY[i+4]}
-  result=${TMP_ARRAY[i+5]}
-  TEST_LOG=${TMP_ARRAY[i+6]}
-  TEST_ERROR_MARKER=${TMP_ARRAY[i+7]}
-  SID_GEN=${TMP_ARRAY[i+8]}
+  result=${TMP_ARRAY[i+4]}
+  SID_GEN=${TMP_ARRAY[i+5]}
+
+  TEST_LOG_REL="${id}.html"
+  TEST_LOG="${LOG_DIR}/${TEST_LOG_REL}"
+  TEST_ERROR_MARKER="${TEST_LOG}.${ERROR_MARKER_NAME}"
+  TEST_BIN="${BIN_DIR}/${id}"
 
   TEST_DEP="--dependency=afterok:${SID_GEN},afterany${COMP_DEPS}"
 
