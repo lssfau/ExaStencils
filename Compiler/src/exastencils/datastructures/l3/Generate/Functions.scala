@@ -38,6 +38,20 @@ object Functions {
               else
                 "( sinf ( PI * xPos ) * sinf ( PI * yPos ) * sinhf ( sqrt ( 2.0 ) * PI * zPos ) )"
           }
+        case "Logarithm" =>
+          Knowledge.dimensionality match {
+            case 2 =>
+              if (Knowledge.useDblPrecision)
+                "log ( 1.0 + xPos + yPos )"
+              else
+                "logf ( 1.0 + xPos + yPos )"
+            case 3 =>
+              /// FIXME: placeholder, add actual function here
+              if (Knowledge.useDblPrecision)
+                "log ( 1.0 + xPos + yPos + zPos )"
+              else
+                "logf ( 1.0 + xPos + yPos + zPos )"
+          }
       }
     }
   }

@@ -217,7 +217,7 @@ object Knowledge {
   var l3tmp_genHDepStencils : Boolean = false // [true|false] // generates stencils dependent on the grid width h
 
   /// functionality test
-  var l3tmp_exactSolution : String = "Zero" // specifies which function (type) is used for the solution/ rhs is used; allowed options are 'Zero', 'Polynomial' and 'Trigonometric'
+  var l3tmp_exactSolution : String = "Zero" // specifies which function (type) is used for the solution/ rhs is used; allowed options are 'Zero', 'Polynomial', 'Trigonometric' and 'Logarithm'
   var l3tmp_genNonZeroRhs : Boolean = false // generates more complex variants of the chosen solution function resulting in non-trival right hand sides
   var l3tmp_genExtFields : Boolean = false // adds one or more external fields to the L4 DSL file to test generation of subsequent functions
   var l3tmp_genGlobalOmega : Boolean = false // treats l3tmp_omega as a global (modifiable) parameter 
@@ -235,6 +235,9 @@ object Knowledge {
   var l3tmp_genForAutoTests : Boolean = false // generates code for automatic testing purposes - if l3tmp_printError is activated NO residual is printed
   var l3tmp_printError : Boolean = false // generates code that calculates and prints the error in each iteration
   var l3tmp_useMaxNormForError : Boolean = true // uses the maximum norm instead of the L2 norm when reducing the error
+
+  /// Paper project - SISC
+  var l3tmp_sisc : Boolean = true
 
   /// Student project - Kelvin
   var l3tmp_kelvin : Boolean = false // currently only works for 2D
@@ -262,6 +265,10 @@ object Knowledge {
 
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
+
+    // specific project configurations - SISC
+    Constraints.condEnsureValue(l3tmp_exactSolution, "Logarithm", l3tmp_sisc && l3tmp_genStencilFields, "Logarithm is required as l3tmp_exactSolution for variable stencils and l3tmp_sisc")
+    Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_sisc && l3tmp_genStencilFields, "l3tmp_genHDepStencils must be true for variable stencils and l3tmp_sisc")
 
     // specific project configurations - Kelvin
     Constraints.condEnsureValue(dimensionality, 2, l3tmp_kelvin, "only 2D is supported for l3tmp_kelvin")
