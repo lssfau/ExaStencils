@@ -33,7 +33,7 @@ object Error {
         printer.println(s"\t}")
         if (Knowledge.l3tmp_genFragLoops)
           printer.println(s"\t}")
-        printer.println(s"\treturn ( sqrt ( err ) )")
+        printer.println(s"\treturn sqrt ( err )")
       }
       printer.println(s"}")
       printer.println

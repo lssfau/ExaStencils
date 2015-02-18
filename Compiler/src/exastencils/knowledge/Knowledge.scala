@@ -32,8 +32,11 @@ object Knowledge {
 
   var useFasterExpand : Boolean = true
 
-  // === Level 1 ===
-  var dimensionality : Int = 3 // dimensionality of the problem
+  // === Layer 1 ===
+
+  var dimensionality : Int = 3 // dimensionality of the problem; may be 1, 2 or 3
+
+  // === Layer 2 ===
 
   // TODO: check if these parameters will be necessary or can be implicitly assumed once an appropriate field collection is in place
   var minLevel : Int = 0 // the coarsest level
@@ -96,8 +99,7 @@ object Knowledge {
   /// Student project - Jeremias
   var domain_formUnion : Boolean = false // for L-shaped domain
 
-  // === Layer 2 ===
-
+  // TODO: ignore for IDE support for now
   var discr_hx : Array[Double] = Array() // grid widths in x direction per level
   var discr_hy : Array[Double] = Array() // grid widths in y direction per level
   var discr_hz : Array[Double] = Array() // grid widths in z direction per level
