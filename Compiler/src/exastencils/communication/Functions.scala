@@ -9,13 +9,11 @@ import exastencils.knowledge._
 import exastencils.prettyprinting._
 
 case class CommunicationFunctions() extends FunctionCollection("CommFunctions/CommFunctions",
-  ListBuffer("cmath"),
+  ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
   ListBuffer("Globals/Globals.h", "Util/Vector.h", "MultiGrid/MultiGrid.h")) {
 
   if (Knowledge.mpi_enabled)
     externalDependencies += "mpi.h"
-  if (Knowledge.opt_vectorize || Knowledge.poly_optLevel_fine > 0)
-    externalDependencies += "algorithm"
   if (Knowledge.opt_vectorize) {
     val header = Knowledge.simd_header
     if (header != null) externalDependencies += header

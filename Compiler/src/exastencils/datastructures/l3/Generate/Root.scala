@@ -14,7 +14,6 @@ case class Root() extends Node {
     var printer = new java.io.PrintWriter(filename)
 
     if (Knowledge.l3tmp_kelvin) {
-      Settings.additionalIncludes += "cmath"
       Settings.additionalIncludes += "random"
       Settings.additionalIncludes += "functional"
       Settings.additionalIncludes += "Util/Gamma.h"
