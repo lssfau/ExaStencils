@@ -136,3 +136,10 @@ Cell_2D_Neumann	Main	CellBased/2D_Neumann.knowledge	CellBased/2D_Neumann.results
 # 3D
 Cell_3D_Basic	Main	CellBased/3D_Basic.knowledge	CellBased/3D_Basic.results		8	2
 Cell_3D_Neumann Main	CellBased/3D_Neumann.knowledge	CellBased/3D_Neumann.results	8	2
+
+#################################################################################################
+# SISC PAPER TESTS                                                                              #
+#################################################################################################
+
+# 2D
+SISC_2D_VarCoeff	Main	SISC/2D_VarCoeff.knowledge	SISC/2D_VarCoeff.results	4	4
