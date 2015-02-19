@@ -27,15 +27,14 @@ class Scop(val root : LoopOverDimensions, var optLevel : Int, var parallelize : 
 
   object deps {
     var flow : isl.UnionMap = null
-    var anti : isl.UnionMap = null
+    var antiOut : isl.UnionMap = null
     var input : isl.UnionMap = null
-    var output : isl.UnionMap = null
 
     def validity() : isl.UnionMap = {
       if (flow == null)
         return isl.UnionMap.empty(writes.getSpace())
       else
-        return Isl.simplify(flow.union(anti).union(output))
+        return Isl.simplify(flow.union(antiOut))
     }
   }
 
@@ -56,25 +55,23 @@ class Scop(val root : LoopOverDimensions, var optLevel : Int, var parallelize : 
 object ScopNameMapping {
 
   private var count : Int = 0
-  private final val id2exprMap = new HashMap[String, Expression]()
-  private final val exprStr2idMap = new HashMap[String, String]()
+  private final val id2expr = new HashMap[String, Expression]()
+  private final val expr2id = new HashMap[Expression, String]()
 
   def id2expr(id : String) : Option[Expression] = {
-    return id2exprMap.get(id)
+    return id2expr.get(id)
   }
 
   def expr2id(expr : Expression) : String = {
-    val exprStr : String = expr.prettyprint()
-    return exprStr2idMap.getOrElseUpdate(exprStr, {
-      val id : String =
-        if (exprStr.size < 5)
-          exprStr
-        else {
-          val s = "p" + count
+    return expr2id.getOrElseUpdate(expr, {
+      val id : String = expr match {
+        case VariableAccess(str, _) if (str.length() < 5) =>
+          str
+        case _ =>
           count += 1
-          s
-        }
-      id2exprMap.put(id, expr)
+          "p" + count
+      }
+      id2expr.put(id, expr)
       id
     })
   }
