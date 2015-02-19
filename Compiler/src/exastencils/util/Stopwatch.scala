@@ -569,11 +569,11 @@ private:
  """)
       }
 
-      if (Knowledge.mpi_enabled) {
-        writerSource << ("""
-#include <mpi.h>
-    """)
-      }
+      if (Knowledge.mpi_enabled)
+        writerSource <<< "#include <mpi.h>"
+      if (Knowledge.omp_enabled)
+        writerSource <<< "#include <omp.h>"
+
       writerSource << (""" 	
 TimerWrapper::TimerWrapper(void)
 {	

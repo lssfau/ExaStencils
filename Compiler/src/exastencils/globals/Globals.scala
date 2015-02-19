@@ -20,6 +20,8 @@ case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = ne
   // add conditional dependencies
   if (Knowledge.mpi_enabled)
     externalDependencies += "mpi.h"
+  if (Knowledge.omp_enabled)
+    externalDependencies += "omp.h"
   if (Knowledge.data_alignFieldPointers || Knowledge.data_alignTmpBufferPointers)
     externalDependencies += "stddef.h" // TODO: please note why this is required; delete if it is not required
   if (Knowledge.l3tmp_genAdvancedTimers)

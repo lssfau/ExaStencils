@@ -350,6 +350,8 @@ case class DomainFunctions() extends FunctionCollection(
 
   if (Knowledge.mpi_enabled)
     externalDependencies += "mpi.h"
+  if (Knowledge.omp_enabled)
+    externalDependencies += "omp.h"
 
   if (Knowledge.domain_rect_generate)
     functions += new InitGeneratedDomain
