@@ -17,6 +17,15 @@ object PrintStrategy extends DefaultStrategy("Pretty-Print") {
   })
 }
 
+object ReplaceStringConstantsStrategy extends DefaultStrategy("Replace something with something else") {
+  var toReplace : String = ""
+  var replacement : Node = LoopOverDimensions.defIt
+
+  this += new Transformation("SearchAndReplace", {
+    case StringConstant(s) if s == toReplace => replacement
+  }, false)
+}
+
 object ExpandStrategy extends DefaultStrategy("Expanding") {
   def doUntilDone(node : Option[Node] = None) = {
     do { apply(node) }

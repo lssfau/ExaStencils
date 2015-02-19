@@ -5,7 +5,6 @@ import exastencils.datastructures._
 import exastencils.datastructures.l3._
 import exastencils.knowledge._
 import exastencils.polyhedron._
-import scala.collection.mutable.ListBuffer
 
 case class Root() extends Node {
   def printToL4(filename : String) : Unit = {

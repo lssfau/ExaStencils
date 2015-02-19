@@ -2,7 +2,6 @@ package exastencils.data
 
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
@@ -11,9 +10,11 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.globals._
 import exastencils.knowledge._
+import exastencils.logger._
 import exastencils.multiGrid._
 import exastencils.omp._
 import exastencils.util._
+import exastencils.strategies.ReplaceStringConstantsStrategy
 
 object SetupDataStructures extends DefaultStrategy("Setting up fragment") {
   override def apply(node : Option[Node] = None) = {
