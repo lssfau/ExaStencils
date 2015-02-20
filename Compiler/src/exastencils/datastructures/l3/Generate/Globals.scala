@@ -27,6 +27,7 @@ object Globals {
         }
       }
     }
+
     if (Knowledge.l3tmp_kelvin) {
       // Dir BC
       printer.println("\tVariable UN : Real = 1")
@@ -40,6 +41,10 @@ object Globals {
       printer.println("\tVariable nu : Real = 1 // alpha - dim/2")
       printer.println("\tVariable kappa : Real = sqrt( 8 * nu ) / ( lambda )")
       printer.println("\tVariable dim : Real = 2")
+    }
+
+    if ("Kappa" == Knowledge.l3tmp_exactSolution) {
+      printer.println("\tVariable kappa : Real = 10.0")
     }
 
     printer.println("}")

@@ -217,7 +217,7 @@ object Knowledge {
   var l3tmp_genHDepStencils : Boolean = false // [true|false] // generates stencils dependent on the grid width h
 
   /// functionality test
-  var l3tmp_exactSolution : String = "Zero" // specifies which function (type) is used for the solution/ rhs is used; allowed options are 'Zero', 'Polynomial', 'Trigonometric' and 'Logarithm'
+  var l3tmp_exactSolution : String = "Zero" // specifies which function (type) is used for the solution/ rhs is used; allowed options are 'Zero', 'Polynomial', 'Trigonometric' and 'Kappa'
   var l3tmp_genNonZeroRhs : Boolean = false // generates more complex variants of the chosen solution function resulting in non-trival right hand sides
   var l3tmp_genExtFields : Boolean = false // adds one or more external fields to the L4 DSL file to test generation of subsequent functions
   var l3tmp_genGlobalOmega : Boolean = false // treats l3tmp_omega as a global (modifiable) parameter 
@@ -267,8 +267,11 @@ object Knowledge {
     // NOTE: it is required to call update at least once
 
     // specific project configurations - SISC
-    Constraints.condEnsureValue(l3tmp_exactSolution, "Logarithm", l3tmp_sisc && l3tmp_genStencilFields, "Logarithm is required as l3tmp_exactSolution for variable stencils and l3tmp_sisc")
+    Constraints.condEnsureValue(l3tmp_exactSolution, "Kappa", l3tmp_sisc && l3tmp_genStencilFields, "Kappa is required as l3tmp_exactSolution for variable stencils and l3tmp_sisc")
     Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_sisc && l3tmp_genStencilFields, "l3tmp_genHDepStencils must be true for variable stencils and l3tmp_sisc")
+    Constraints.condEnsureValue(experimental_Neumann, false, l3tmp_sisc, "Neumann boundary conditions are not compatible with l3tmp_sisc")
+
+    Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, "Kappa" == l3tmp_exactSolution, "Kappa requires l3tmp_genNonZeroRhs")
 
     // specific project configurations - Kelvin
     Constraints.condEnsureValue(dimensionality, 2, l3tmp_kelvin, "only 2D is supported for l3tmp_kelvin")
@@ -306,8 +309,7 @@ object Knowledge {
     // l3tmp - problem to solve
     Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, experimental_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
     Constraints.condEnsureValue(l3tmp_exactSolution, "Trigonometric", experimental_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
-    Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, "Polynomial" != l3tmp_exactSolution && !experimental_Neumann, "non-trivial rhs are currently only supported for polynomial solutions")
-    Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, l3tmp_genStencilFields, "non-trivial rhs are currently not compatible with stencil fields")
+    Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, "Polynomial" != l3tmp_exactSolution && "Kappa" != l3tmp_exactSolution && !experimental_Neumann, "non-trivial rhs are currently only supported for Polynomial and Kappa cases")
 
     Constraints.condEnsureValue(experimental_NeumannOrder, 1, experimental_Neumann && l3tmp_genCellBasedDiscr, "experimental_OrderNeumann must be 1 for cell based discretizations")
     Constraints.condEnsureValue(experimental_NeumannOrder, 2, experimental_Neumann && experimental_NeumannOrder < 1 || experimental_NeumannOrder > 2, "experimental_OrderNeumann must be between 1 and 2")

@@ -31,6 +31,12 @@ object InitFields {
     printer.println(s"}")
 
     if (Knowledge.l3tmp_genStencilFields) {
+      if ("Kappa" == Knowledge.l3tmp_exactSolution) {
+        printer.println(s"Function getCoefficient ( x : Real, y : Real${if (Knowledge.dimensionality > 2) ", z : Real" else ""} ) : Real {")
+        printer.println(s"\treturn exp ( kappa * ( (x - x ** 2) * (y - y ** 2) ${if (Knowledge.dimensionality > 2) "* (z - z ** 2) " else ""}) )")
+        printer.println(s"}")
+      }
+
       if (Knowledge.l3tmp_genStencilStencilConv) {
         printer.println(s"Function InitLaplace$postfix@finest ( ) : Unit {")
         printer.println(s"\tloop over LaplaceCoeff$postfix@current {")
@@ -38,24 +44,23 @@ object InitFields {
         printer.println(s"Function InitLaplace$postfix@all ( ) : Unit {")
         printer.println(s"\tloop over LaplaceCoeff$postfix@current {")
       }
-      if (Knowledge.l3tmp_sisc) {
+      if ("Kappa" == Knowledge.l3tmp_exactSolution) {
         Knowledge.dimensionality match {
           case 2 => {
-            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0] = ( ( 1.0 + xPos + 0.5 * hx@current + yPos + 1.0 + xPos - 0.5 * hx@current + yPos ) / ( hx@current * hx@current ) + ( 1.0 + xPos + yPos + 0.5 * hy@current + 1.0 + xPos + yPos - 0.5 * hy@current ) / ( hy@current * hy@current ) )")
-            printer.println(s"\t\tLaplace$postfix@current:[ 1,  0] = ( -1.0 * ( 1.0 + xPos + 0.5 * hx@current + yPos ) / ( hx@current * hx@current ) )")
-            printer.println(s"\t\tLaplace$postfix@current:[-1,  0] = ( -1.0 * ( 1.0 + xPos - 0.5 * hx@current + yPos ) / ( hx@current * hx@current ) )")
-            printer.println(s"\t\tLaplace$postfix@current:[ 0,  1] = ( -1.0 * ( 1.0 + xPos + yPos + 0.5 * hy@current ) / ( hy@current * hy@current ) )")
-            printer.println(s"\t\tLaplace$postfix@current:[ 0, -1] = ( -1.0 * ( 1.0 + xPos + yPos - 0.5 * hy@current ) / ( hy@current * hy@current ) )")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0] = ( getCoefficient ( xPos + 0.5 * hx@current, yPos) + getCoefficient ( xPos - 0.5 * hx@current, yPos ) ) / ( hx@current * hx@current ) + ( getCoefficient ( xPos, yPos + 0.5 * hy@current ) + getCoefficient ( xPos, yPos - 0.5 * hy@current ) ) / ( hy@current * hy@current )")
+            printer.println(s"\t\tLaplace$postfix@current:[ 1,  0] = -1.0 * getCoefficient ( xPos + 0.5 * hx@current, yPos ) / ( hx@current * hx@current )")
+            printer.println(s"\t\tLaplace$postfix@current:[-1,  0] = -1.0 * getCoefficient ( xPos - 0.5 * hx@current, yPos ) / ( hx@current * hx@current )")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0,  1] = -1.0 * getCoefficient ( xPos, yPos + 0.5 * hy@current ) / ( hy@current * hy@current )")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0, -1] = -1.0 * getCoefficient ( xPos, yPos - 0.5 * hy@current ) / ( hy@current * hy@current )")
           }
           case 3 => {
-            /// FIXME: placeholder, add actual stencil initialization code here
-            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0,  0] = ( ( 1.0 + xPos + 0.5 * hx@current + yPos + 1.0 + xPos - 0.5 * hx@current + yPos ) / ( hx@current * hx@current ) + ( 1.0 + xPos + yPos + 0.5 * hy@current + 1.0 + xPos + yPos - 0.5 * hy@current ) / ( hy@current * hy@current ) + ( 1.0 + xPos + yPos + zPos + 0.5 * hz@current + 1.0 + xPos + yPos + zPos - 0.5 * hz@current ) / ( hz@current * hz@current ) )")
-            printer.println(s"\t\tLaplace$postfix@current:[ 1,  0,  0] = ( -1.0 * ( 1.0 + xPos + 0.5 * hx@current + yPos + zPos ) / ( hx@current * hx@current ) )")
-            printer.println(s"\t\tLaplace$postfix@current:[-1,  0,  0] = ( -1.0 * ( 1.0 + xPos - 0.5 * hx@current + yPos + zPos ) / ( hx@current * hx@current ) )")
-            printer.println(s"\t\tLaplace$postfix@current:[ 0,  1,  0] = ( -1.0 * ( 1.0 + xPos + yPos + 0.5 * hy@current + zPos ) / ( hy@current * hy@current ) )")
-            printer.println(s"\t\tLaplace$postfix@current:[ 0, -1,  0] = ( -1.0 * ( 1.0 + xPos + yPos - 0.5 * hy@current + zPos ) / ( hy@current * hy@current ) )")
-            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0,  1] = ( -1.0 * ( 1.0 + xPos + yPos + zPos + 0.5 * hz@current ) / ( hz@current * hz@current ) )")
-            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0, -1] = ( -1.0 * ( 1.0 + xPos + yPos + zPos - 0.5 * hz@current ) / ( hz@current * hz@current ) )")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0,  0] = ( getCoefficient ( xPos + 0.5 * hx@current, yPos, zPos ) + getCoefficient ( xPos - 0.5 * hx@current, yPos, zPos ) ) / ( hx@current * hx@current ) + ( getCoefficient ( xPos, yPos + 0.5 * hy@current, zPos ) + getCoefficient ( xPos, yPos - 0.5 * hy@current, zPos ) ) / ( hy@current * hy@current ) + ( getCoefficient ( xPos, yPos, zPos + 0.5 * hz@current ) + getCoefficient ( xPos, yPos, zPos - 0.5 * hz@current ) ) / ( hz@current * hz@current )")
+            printer.println(s"\t\tLaplace$postfix@current:[ 1,  0,  0] = -1.0 * getCoefficient ( xPos + 0.5 * hx@current, yPos, zPos ) / ( hx@current * hx@current )")
+            printer.println(s"\t\tLaplace$postfix@current:[-1,  0,  0] = -1.0 * getCoefficient ( xPos - 0.5 * hx@current, yPos, zPos ) / ( hx@current * hx@current )")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0,  1,  0] = -1.0 * getCoefficient ( xPos, yPos + 0.5 * hy@current, zPos ) / ( hy@current * hy@current )")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0, -1,  0] = -1.0 * getCoefficient ( xPos, yPos - 0.5 * hy@current, zPos ) / ( hy@current * hy@current )")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0,  1] = -1.0 * getCoefficient ( xPos, yPos, zPos + 0.5 * hz@current ) / ( hz@current * hz@current )")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0, -1] = -1.0 * getCoefficient ( xPos, yPos, zPos - 0.5 * hz@current ) / ( hz@current * hz@current )")
           }
         }
       } else {

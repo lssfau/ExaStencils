@@ -13,8 +13,18 @@ object Functions {
           }
         case "Trigonometric" if Knowledge.experimental_Neumann =>
           Knowledge.dimensionality match {
-            case 2 => "cos ( 2.0 * PI * xPos ) * cos ( 2.0 * PI * yPos )"
-            case 3 => "cos ( 2.0 * PI * xPos ) * cos ( 2.0 * PI * yPos ) * cos ( 2.0 * PI * zPos )"
+            case 2 => "( cos ( 2.0 * PI * xPos ) * cos ( 2.0 * PI * yPos ) )"
+            case 3 => "( cos ( 2.0 * PI * xPos ) * cos ( 2.0 * PI * yPos ) * cos ( 2.0 * PI * zPos ) )"
+          }
+        case "Kappa" if (!Knowledge.l3tmp_genStencilFields) =>
+          Knowledge.dimensionality match {
+            case 2 => "( kappa * ( (xPos - xPos ** 2) * (yPos - yPos ** 2) ) )"
+            case 3 => "( kappa * ( (xPos - xPos ** 2) * (yPos - yPos ** 2) * (zPos - zPos ** 2) ) )"
+          }
+        case "Kappa" if (Knowledge.l3tmp_genStencilFields) =>
+          Knowledge.dimensionality match {
+            case 2 => "( 1.0 - exp ( -1.0 * kappa * ( (xPos - xPos ** 2) * (yPos - yPos ** 2) ) ) )"
+            case 3 => "( 1.0 - exp ( -1.0 * kappa * ( (xPos - xPos ** 2) * (yPos - yPos ** 2) * (zPos - zPos ** 2) ) ) )"
           }
       }
     } else {
@@ -38,20 +48,6 @@ object Functions {
               else
                 "( sinf ( PI * xPos ) * sinf ( PI * yPos ) * sinhf ( sqrt ( 2.0 ) * PI * zPos ) )"
           }
-        case "Logarithm" =>
-          Knowledge.dimensionality match {
-            case 2 =>
-              if (Knowledge.useDblPrecision)
-                "log ( 1.0 + xPos + yPos )"
-              else
-                "logf ( 1.0 + xPos + yPos )"
-            case 3 =>
-              /// FIXME: placeholder, add actual function here
-              if (Knowledge.useDblPrecision)
-                "log ( 1.0 + xPos + yPos + zPos )"
-              else
-                "logf ( 1.0 + xPos + yPos + zPos )"
-          }
       }
     }
   }
@@ -66,8 +62,13 @@ object Functions {
           }
         case "Trigonometric" if Knowledge.experimental_Neumann =>
           Knowledge.dimensionality match {
-            case 2 => "8.0 * PI * PI * cos ( 2.0 * PI * xPos ) * cos ( 2.0 * PI * yPos )"
-            case 3 => "12.0 * PI * PI * cos ( 2.0 * PI * xPos ) * cos ( 2.0 * PI * yPos ) * cos ( 2.0 * PI * zPos )"
+            case 2 => "( 8.0 * PI * PI * cos ( 2.0 * PI * xPos ) * cos ( 2.0 * PI * yPos ) )"
+            case 3 => "( 12.0 * PI * PI * cos ( 2.0 * PI * xPos ) * cos ( 2.0 * PI * yPos ) * cos ( 2.0 * PI * zPos ) )"
+          }
+        case "Kappa" =>
+          Knowledge.dimensionality match {
+            case 2 => "( 2.0 * kappa * ( (xPos - xPos ** 2) + (yPos - yPos ** 2) ) )"
+            case 3 => "( 2.0 * kappa * ( (xPos - xPos ** 2) * (yPos - yPos ** 2) + (xPos - xPos ** 2) * (zPos - zPos ** 2) + (yPos - yPos ** 2) * (zPos - zPos ** 2) ) )"
           }
       }
     } else {
