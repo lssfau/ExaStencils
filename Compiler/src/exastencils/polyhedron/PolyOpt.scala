@@ -45,10 +45,16 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     isl.Options.setTileScaleTileLoops(false)
     isl.Options.setTileShiftPointLoops(false)
 
+    Knowledge.poly_scheduleAlgorithm match {
+      case "isl"       => isl.Options.setScheduleAlgorithm(isl.Options.SCHEDULE_ALGORITHM_ISL)
+      case "feautrier" => isl.Options.setScheduleAlgorithm(isl.Options.SCHEDULE_ALGORITHM_FEAUTRIER)
+      case unknown     => Logger.debug("Unknown schedule algorithm \"" + unknown + "\"; no change (default is isl)")
+    }
+
     Knowledge.poly_fusionStrategy match {
-      case "min" => isl.Options.setScheduleFuse(isl.Options.ISL_SCHEDULE_FUSE_MIN)
-      case "max" => isl.Options.setScheduleFuse(isl.Options.ISL_SCHEDULE_FUSE_MAX)
-      case _     => Logger.debug("Unknown fusion strategy. No change...")
+      case "min"   => isl.Options.setScheduleFuse(isl.Options.SCHEDULE_FUSE_MIN)
+      case "max"   => isl.Options.setScheduleFuse(isl.Options.SCHEDULE_FUSE_MAX)
+      case unknown => Logger.debug("Unknown fusion strategy \"" + unknown + "\"; no change...")
     }
     isl.Options.setScheduleMaximizeBandDepth(Knowledge.poly_maximizeBandDepth)
     isl.Options.setScheduleMaxConstantTerm(Knowledge.poly_maxConstantTerm)

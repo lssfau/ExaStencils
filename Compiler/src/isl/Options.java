@@ -41,8 +41,8 @@ public class Options {
 		return result;
 	}
 
-	public static final int ISL_SCHEDULE_FUSE_MAX = 0;
-	public static final int ISL_SCHEDULE_FUSE_MIN = 1;
+	public static final int SCHEDULE_FUSE_MAX = 0;
+	public static final int SCHEDULE_FUSE_MIN = 1;
 
 	public static int setScheduleFuse(int val) {
 		Context ctx = Context.getDefaultInstance();
@@ -115,6 +115,27 @@ public class Options {
 		}
 		return result;
 	}
+
+	public static final int SCHEDULE_ALGORITHM_ISL = 0;
+	public static final int SCHEDULE_ALGORITHM_FEAUTRIER = 1;
+
+	public static int setScheduleAlgorithm(int val) {
+		Context ctx = Context.getDefaultInstance();
+		int result;
+		synchronized (ctx) {
+			result = OptionsImpl.isl.isl_options_set_schedule_algorithm(ctx.getPtr(), val);
+		}
+		return result;
+	}
+
+	public static int getScheduleAlgorithm() {
+		Context ctx = Context.getDefaultInstance();
+		int result;
+		synchronized (ctx) {
+			result = OptionsImpl.isl.isl_options_get_schedule_algorithm(ctx.getPtr());
+		}
+		return result;
+	}
 }
 
 interface OptionsImpl extends Library {
@@ -124,7 +145,7 @@ interface OptionsImpl extends Library {
 	int isl_options_get_tile_scale_tile_loops(Context.Ptr ctx);
 	int isl_options_set_tile_shift_point_loops(Context.Ptr ctx, int val);
 	int isl_options_get_tile_shift_point_loops(Context.Ptr ctx);
-	
+
 	int isl_options_set_schedule_fuse(Context.Ptr ctx, int val);
 	int isl_options_get_schedule_fuse(Context.Ptr ctx);
 	int isl_options_set_schedule_maximize_band_depth(Context.Ptr ctx, int val);
@@ -133,4 +154,7 @@ interface OptionsImpl extends Library {
 	int isl_options_get_schedule_max_constant_term(Context.Ptr ctx);
 	int isl_options_set_schedule_max_coefficient(Context.Ptr ctx, int val);
 	int isl_options_get_schedule_max_coefficient(Context.Ptr ctx);
+
+	int isl_options_set_schedule_algorithm(Context.Ptr ctx, int val);
+	int isl_options_get_schedule_algorithm(Context.Ptr ctx);
 }
