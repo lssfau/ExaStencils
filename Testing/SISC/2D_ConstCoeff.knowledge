@@ -37,7 +37,7 @@ l3tmp_generateL4			= true
 l3tmp_genForAutoTests		= true
 
 l3tmp_sisc					= true
-l3tmp_genStencilFields		= true
+l3tmp_genStencilFields		= false
 l3tmp_genHDepStencils		= true
 l3tmp_genNonZeroRhs			= true
 

@@ -142,4 +142,8 @@ Cell_3D_Neumann Main	CellBased/3D_Neumann.knowledge	CellBased/3D_Neumann.results
 #################################################################################################
 
 # 2D
-SISC_2D_VarCoeff	Main	SISC/2D_VarCoeff.knowledge	SISC/2D_VarCoeff.results	4	4
+SISC_2D_VarCoeff	Main	SISC/2D_VarCoeff.knowledge		SISC/2D_VarCoeff.results	4	4
+SISC_2D_ConstCoeff	Main	SISC/2D_ConstCoeff.knowledge	SISC/2D_ConstCoeff.results	4	4
+# 3D
+SISC_3D_VarCoeff	Main	SISC/3D_VarCoeff.knowledge		SISC/3D_VarCoeff.results	8	4
+SISC_3D_ConstCoeff	Main	SISC/3D_ConstCoeff.knowledge	SISC/3D_ConstCoeff.results	8	4
