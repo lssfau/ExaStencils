@@ -193,8 +193,8 @@ object Knowledge {
   var poly_simplifyDeps : Boolean = true // [true|false] // simplify dependences before computing a new schedule; this reduces PolyOpt run-time, but it could also lead to slower generated code
   var poly_fusionStrategy : String = "max" // [min|max] // specifies the level of fusion for the polyhedral scheduler
   var poly_maximizeBandDepth : Boolean = false // [true|false] // split bands as early as possible during schedule generation
-  var poly_maxConstantTerm : Int = -1 // [-1-inf] // enforces that the constant coefficients in the calculated schedule are not larger than the maximal constant term (this can significantly increase the speed of the scheduling calculation; -1 means unlimited)
-  var poly_maxCoefficient : Int = -1 // [-1-inf] // enforces that the coefficients for variable and parameter dimensions in the calculated schedule are not larger than the specified value (this can significantly increase the speed of the scheduling calculation; -1 means unlimited)
+  var poly_maxConstantTerm : Int = -1 // [(-1)-inf] // enforces that the constant coefficients in the calculated schedule are not larger than the maximal constant term (this can significantly increase the speed of the scheduling calculation; -1 means unlimited)
+  var poly_maxCoefficient : Int = -1 // [(-1)-inf] // enforces that the coefficients for variable and parameter dimensions in the calculated schedule are not larger than the specified value (this can significantly increase the speed of the scheduling calculation; -1 means unlimited)
 
   // --- Other Optimizations ---
   var opt_useAddressPrecalc : Boolean = false // [true|false]
