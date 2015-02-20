@@ -1,12 +1,12 @@
 package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
-
 import exastencils.data
 import exastencils.datastructures._
 import exastencils.knowledge
 import exastencils.logger._
 import exastencils.prettyprinting._
+import exastencils.core.Duplicate
 
 trait Expression extends Node with ProgressableToIr with PrettyPrintable {
   def progressToIr : ir.Expression
@@ -218,7 +218,12 @@ case class BinaryExpression(var operator : String, var left : Expression, var ri
   def prettyprint(out : PpStream) = { out << '(' << left << ' ' << operator << ' ' << right << ')' }
 
   def progressToIr : ir.Expression = {
-    ir.BinaryOperators.CreateExpression(operator, left.progressToIr, right.progressToIr)
+    this match {
+      case BinaryExpression("**", left, IntegerConstant(1)) => left.progressToIr
+      case BinaryExpression("**", left, IntegerConstant(2)) => left.progressToIr * Duplicate(left).progressToIr
+      case BinaryExpression("**", left, IntegerConstant(3)) => left.progressToIr * Duplicate(left).progressToIr * Duplicate(left).progressToIr
+      case _ => ir.BinaryOperators.CreateExpression(operator, left.progressToIr, right.progressToIr)
+    }
   }
 }
 
