@@ -228,7 +228,7 @@ case class ReductionStatement(var op : String, var target : String) extends Spec
   override def prettyprint(out : PpStream) = out << "reduction ( " << op << " : " << target << " )"
 
   override def progressToIr : ir.Reduction = {
-    ir.Reduction(op, ir.StringConstant(target))
+    ir.Reduction(op, ir.VariableAccess(target, None))
   }
 }
 

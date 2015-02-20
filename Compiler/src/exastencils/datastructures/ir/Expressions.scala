@@ -450,7 +450,7 @@ case class TernaryConditionExpression(var condition : Expression, var trueBody :
   override def prettyprint(out : PpStream) : Unit = out << '(' << condition << " ? " << trueBody << " : " << falseBody << ')'
 }
 
-case class Reduction(var op : String, var target : Expression) extends Expression {
+case class Reduction(var op : String, var target : VariableAccess) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = Reduction\n"
 
   def getOMPClause : String = {

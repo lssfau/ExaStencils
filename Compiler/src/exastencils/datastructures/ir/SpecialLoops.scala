@@ -399,16 +399,19 @@ case class LoopOverDimensions(var numDimensions : Int,
     } else {
       // resolve max reductions
       val redOp = reduction.get.op
-      val redExp = reduction.get.target
+      val redExpName = reduction.get.target.name
+      def redExp = VariableAccess(redExpName, None)
+      val redExpLocalName = redExpName + "_red"
+      def redExpLocal = VariableAccess(redExpLocalName, None)
 
       // FIXME: this assumes real data types -> data type should be determined according to redExp
-      val decl = VariableDeclarationStatement(ArrayDatatype(RealDatatype(), Knowledge.omp_numThreads), redExp.prettyprint + "_red", None)
-      var init = (0 until Knowledge.omp_numThreads).map(fragIdx => AssignmentStatement(ArrayAccess(redExp ~ "_red", fragIdx), redExp))
-      val redOperands = ListBuffer[Expression](redExp) ++ (0 until Knowledge.omp_numThreads).map(fragIdx => ArrayAccess(redExp ~ "_red", fragIdx) : Expression)
+      val decl = VariableDeclarationStatement(ArrayDatatype(RealDatatype(), Knowledge.omp_numThreads), redExpLocalName, None)
+      var init = (0 until Knowledge.omp_numThreads).map(fragIdx => AssignmentStatement(ArrayAccess(redExpLocal, fragIdx), redExp))
+      val redOperands = ListBuffer[Expression](redExp) ++ (0 until Knowledge.omp_numThreads).map(fragIdx => ArrayAccess(redExpLocal, fragIdx) : Expression)
       val red = AssignmentStatement(redExp, if ("min" == redOp) MinimumExpression(redOperands) else MaximumExpression(redOperands))
 
       ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
-      ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExp ~ "_red", "omp_tid")
+      ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, VariableAccess("omp_tid", Some(IntegerDatatype())))
       ReplaceStringConstantsStrategy.applyStandalone(Scope(body)) // FIXME: remove Scope
       body.prepend(VariableDeclarationStatement(IntegerDatatype(), "omp_tid", Some("omp_get_thread_num()")))
 
@@ -463,16 +466,19 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
     } else {
       // resolve max reductions
       val redOp = reduction.get.op
-      val redExp = reduction.get.target
+      val redExpName = reduction.get.target.name
+      def redExp = VariableAccess(redExpName, None)
+      val redExpLocalName = redExpName + "_red"
+      def redExpLocal = VariableAccess(redExpLocalName, None)
 
       // FIXME: this assumes real data types -> data type should be determined according to redExp
-      val decl = VariableDeclarationStatement(ArrayDatatype(RealDatatype(), Knowledge.omp_numThreads), redExp.prettyprint + "_red", None)
-      var init = (0 until Knowledge.omp_numThreads).map(fragIdx => AssignmentStatement(ArrayAccess(redExp ~ "_red", fragIdx), redExp))
-      val redOperands = ListBuffer[Expression](redExp) ++ (0 until Knowledge.omp_numThreads).map(fragIdx => ArrayAccess(redExp ~ "_red", fragIdx) : Expression)
+      val decl = VariableDeclarationStatement(ArrayDatatype(RealDatatype(), Knowledge.omp_numThreads), redExpLocalName, None)
+      var init = (0 until Knowledge.omp_numThreads).map(fragIdx => AssignmentStatement(ArrayAccess(redExpLocal, fragIdx), redExp))
+      val redOperands = ListBuffer[Expression](redExp) ++ (0 until Knowledge.omp_numThreads).map(fragIdx => ArrayAccess(redExpLocal, fragIdx) : Expression)
       val red = AssignmentStatement(redExp, if ("min" == redOp) MinimumExpression(redOperands) else MaximumExpression(redOperands))
 
       ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
-      ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExp ~ "_red", "omp_tid")
+      ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, VariableAccess("omp_tid", Some(IntegerDatatype())))
       ReplaceStringConstantsStrategy.applyStandalone(Scope(body)) // FIXME: remove Scope
       body.prepend(VariableDeclarationStatement(IntegerDatatype(), "omp_tid", Some("omp_get_thread_num()")))
 

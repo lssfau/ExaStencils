@@ -59,8 +59,6 @@ private final class ArrayBases(val arrayName : String) {
 private final class AnnotateLoopsAndAccesses extends Collector {
   import AddressPrecalculation._
 
-  private val decls = new ArrayStack[(HashMap[String, ArrayBases], String)]()
-
   private def generateName(expr : Expression) : String = {
     return filter(expr.prettyprint())
   }
@@ -76,10 +74,10 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     return res.toString()
   }
 
-  private def splitIndex(ind : Expression, loopVar : String) : (Expression, HashMap[Expression, Long]) = {
+  private def splitIndex(ind : Expression) : (Expression, HashMap[Expression, Long]) = {
 
     val outMap = new HashMap[Expression, Long]
-    if (loopVar == null)
+    if (inVars == null)
       return (ind, outMap)
 
     val inMap : HashMap[Expression, Long] = SimplifyExpression.extractIntegralSum(ind)
@@ -89,10 +87,10 @@ private final class AnnotateLoopsAndAccesses extends Collector {
       val contLoopVar = new DefaultStrategy("Anonymous") {
         this += new Transformation("contains loop var", {
           case strC : StringConstant =>
-            res |= strC.value == loopVar
+            res |= inVars.contains(strC.value)
             strC
           case varA : VariableAccess =>
-            res |= varA.name == loopVar
+            res |= inVars.contains(varA.name)
             varA
         })
       }
@@ -129,33 +127,48 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     return null
   }
 
+  private var decls : HashMap[String, ArrayBases] = null
+  private var inVars : Set[String] = null
+  private val toAnalyze = new ListBuffer[ArrayAccess]()
+
   override def enter(node : Node) : Unit = {
 
     node match {
       case l : ForLoopStatement with OptimizationHint if (l.isInnermost) =>
+        if (decls != null) {
+          Logger.dbg("ups, nested \"innermost\" loops... something is wrong here")
+          decls = null
+          return
+        }
         val d = new HashMap[String, ArrayBases]()
         l.inc match {
-          case AssignmentStatement(VariableAccess(name, _), _, _) => decls.push((d, name))
-          case AssignmentStatement(StringConstant(name), _, _)    => decls.push((d, name))
+          case AssignmentStatement(VariableAccess(name, _), _, _) =>
+            decls = d
+            inVars = Set(name)
+          case AssignmentStatement(StringConstant(name), _, _) =>
+            decls = d
+            inVars = Set(name)
           case _ =>
             Logger.dbg("[addr precalc]  cannot determine loop variable name, inc of ForLoopStatement is not recognized:  " + l.inc)
-            decls.push((d, null))
+            decls = d
         }
         node.annotate(DECLS_ANNOT, d)
 
       // ArrayAccess with a constant index only cannot be optimized further
-      case a @ ArrayAccess(base, index, al) if (!decls.isEmpty && !index.isInstanceOf[IntegerConstant]) =>
-        var name : String = generateName(base)
-        val (decl : HashMap[String, ArrayBases], loopVar) = decls.top
-        val (in : Expression, outMap : HashMap[Expression, Long]) = splitIndex(index, loopVar)
-        val bases : ArrayBases = decl.getOrElseUpdate(name, new ArrayBases(name))
-        name = bases.getName(outMap, base, al)
-        val dType : Option[Datatype] =
-          base match {
-            case fd : FieldData => Some(ConstPointerDatatype(fd.field.dataType.resolveUnderlyingDatatype))
-            case _              => None
-          }
-        a.annotate(REPL_ANNOT, new ArrayAccess(new VariableAccess(name, dType), in, al))
+      case acc @ ArrayAccess(_, index, _) if (decls != null && !index.isInstanceOf[IntegerConstant]) =>
+        toAnalyze += acc
+
+      case ass : AssignmentStatement if (decls != null && inVars != null) =>
+        ass.dest match {
+          case StringConstant(name) => inVars += name
+          case VariableAccess(name, _) => inVars += name
+          case ArrayAccess(StringConstant(name), _, _) => inVars += name
+          case ArrayAccess(VariableAccess(name, _), _, _) => inVars += name
+          case _ => // nothing; expand match here, if more vars should stay inside the loop
+        }
+
+      case decl : VariableDeclarationStatement if (decls != null && inVars != null) =>
+        inVars += decl.name
 
       case _ => // ignore
     }
@@ -164,13 +177,28 @@ private final class AnnotateLoopsAndAccesses extends Collector {
   override def leave(node : Node) : Unit = {
     node match {
       case l : ForLoopStatement with OptimizationHint if (l.isInnermost) =>
-        decls.pop()
+        for (acc @ ArrayAccess(base, index, al) <- toAnalyze) {
+          var name : String = generateName(base)
+          val (in : Expression, outMap : HashMap[Expression, Long]) = splitIndex(index)
+          val bases : ArrayBases = decls.getOrElseUpdate(name, new ArrayBases(name))
+          name = bases.getName(outMap, base, al)
+          val dType : Option[Datatype] = base match {
+            case fd : FieldData => Some(ConstPointerDatatype(fd.field.dataType.resolveUnderlyingDatatype))
+            case _              => None
+          }
+          acc.annotate(REPL_ANNOT, new ArrayAccess(new VariableAccess(name, dType), in, al))
+        }
+        decls = null
+        inVars = null
+        toAnalyze.clear()
       case _ => // ignore
     }
   }
 
   override def reset() : Unit = {
-    decls.clear()
+    decls = null
+    inVars = null
+    toAnalyze.clear()
   }
 }
 
