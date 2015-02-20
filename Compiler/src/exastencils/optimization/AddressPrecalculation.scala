@@ -159,7 +159,6 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         toAnalyze += acc
 
       case ass : AssignmentStatement if (decls != null && inVars != null) =>
-        println(ass)
         ass.dest match {
           case StringConstant(name) => inVars += name
           case VariableAccess(name, _) => inVars += name
