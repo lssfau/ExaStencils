@@ -2,6 +2,7 @@ package exastencils.strategies
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
@@ -22,7 +23,7 @@ object ReplaceStringConstantsStrategy extends DefaultStrategy("Replace something
   var replacement : Node = LoopOverDimensions.defIt
 
   this += new Transformation("SearchAndReplace", {
-    case StringConstant(s) if s == toReplace => replacement
+    case StringConstant(s) if s == toReplace => Duplicate(replacement)
   }, false)
 }
 
