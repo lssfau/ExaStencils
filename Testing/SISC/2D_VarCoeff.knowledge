@@ -48,7 +48,7 @@ l3tmp_useSlotsForJac		= true
 l3tmp_useSlotVariables		= true
 
 mpi_useCustomDatatypes		= true
-poly_optLevel_fine			= 0 // 3
+poly_optLevel_fine			= 3
 opt_useAddressPrecalc		= true
 opt_vectorize				= false
 opt_unroll					= 2
