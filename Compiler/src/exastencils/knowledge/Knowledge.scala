@@ -188,6 +188,13 @@ object Knowledge {
   var poly_tileSize_z : Int = 1000000000 // [16-inf]
   var poly_tileSize_w : Int = 1000000000 // [16-inf]
   var poly_tileOuterLoop : Boolean = false // [true|false] // specify separately if the outermost loop should be tiled
+  var poly_scheduleAlgorithm : String = "isl" // [isl|feautrier] // choose which schedule algorithm should be used in PolyOpt
+  var poly_optimizeDeps : String = "rar" // [all|raw|rar] // specifies which dependences should be optimized; "all" means all validity dependences (raw, war, waw)
+  var poly_simplifyDeps : Boolean = true // [true|false] // simplify dependences before computing a new schedule; this reduces PolyOpt run-time, but it could also lead to slower generated code
+  var poly_fusionStrategy : String = "max" // [min|max] // specifies the level of fusion for the polyhedral scheduler
+  var poly_maximizeBandDepth : Boolean = false // [true|false] // split bands as early as possible during schedule generation
+  var poly_maxConstantTerm : Int = -1 // [-1-inf] // enforces that the constant coefficients in the calculated schedule are not larger than the maximal constant term (this can significantly increase the speed of the scheduling calculation; -1 means unlimited)
+  var poly_maxCoefficient : Int = -1 // [-1-inf] // enforces that the coefficients for variable and parameter dimensions in the calculated schedule are not larger than the specified value (this can significantly increase the speed of the scheduling calculation; -1 means unlimited)
 
   // --- Other Optimizations ---
   var opt_useAddressPrecalc : Boolean = false // [true|false]
@@ -389,6 +396,8 @@ object Knowledge {
     // optimization
     Constraints.condEnsureValue(poly_optLevel_coarse, poly_optLevel_fine, poly_optLevel_coarse > poly_optLevel_fine, "optimization level for coarse grids must smaller or equal to the one for the fine levels")
     Constraints.condEnsureValue(poly_numFinestLevels, numLevels, poly_numFinestLevels > numLevels, "number of fine levels (for optimization) cannot exceed the number of all levels")
+    Constraints.condEnsureValue(poly_maximizeBandDepth, true, poly_fusionStrategy == "min", "poly_maximizeBandDepth has no effect if poly_fusionStrategy is \"min\"")
+
     Constraints.condEnsureValue(opt_useColorSplitting, false, l3tmp_smoother != "RBGS", "color splitting is only relevant for RBGS smoother")
 
     Constraints.condEnsureValue(ir_genSepLayoutsPerField, true, opt_useColorSplitting, "color splitting requires separate field layouts")

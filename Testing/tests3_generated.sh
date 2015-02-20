@@ -1,6 +1,7 @@
 #!/bin/bash
 #SBATCH --hint=nomultithread
 #SBATCH --cpu_bind=cores
+#SBATCH --nice=100
 #SBATCH --time=15
 #SBATCH --signal=INT@5
 #SBATCH --open-mode=append
