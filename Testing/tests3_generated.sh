@@ -20,7 +20,7 @@ echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R
 echo "Running test on machine(s) ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
 rm -f ${ERROR_MARKER} # remove error marker from old job run if we were requeued
 
-RESULT="$(mktemp --tmpdir=/run/shm test_res_XXXXX.txt)" || {
+RESULT="$(mktemp --tmpdir=/tmp test_res_XXXXX.txt)" || {
     echo "ERROR: Failed to create temporary file."
     touch ${ERROR_MARKER}
     echo "${LINK}" >> "${LOG_ALL}"
