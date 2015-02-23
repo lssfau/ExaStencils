@@ -68,11 +68,16 @@ object Solve {
       printer.println(s"\t\tresOld_$vecDim = res_$vecDim")
       printer.println(s"\t\tres_$vecDim = NormResidual_$vecDim@finest (  )")
       if (Knowledge.l3tmp_genForAutoTests) {
-        if (Knowledge.l3tmp_printError) {
+        if (Knowledge.l3tmp_printError)
           printer.println(s"\t\tVar curError_$vecDim : Real = NormError_$vecDim@finest ( )")
-          printer.println(s"\t\tprint ( curError_$vecDim )")
-        } else {
-          printer.println(s"\t\tprint ( res_$vecDim )")
+        val valToPrint = if (Knowledge.l3tmp_printError) s"curError_$vecDim" else s"res_$vecDim"
+
+        if (Knowledge.l3tmp_genForAutoTests) {
+          printer.println(s"\tif ( $valToPrint < ${if (Knowledge.useDblPrecision) 1e-12 else 1e-5} ) {")
+          printer.println("\t\tprint ( '\"EFFECTIVELY ZERO\"' )")
+          printer.println("\t} else {")
+          printer.println(s"\t\tprint ( $valToPrint )")
+          printer.println("\t}")
         }
       } else {
         printer.println("\t\tprint ( '\"" + s"Residual at $vecDim:" + "\"', " + s"res_$vecDim" + ", '\"Residual reduction:\"', " + s"( resStart_$vecDim / res_$vecDim ), " + "'\"Convergence factor:\"', " + s"( res_$vecDim / resOld_$vecDim ) )")
@@ -151,10 +156,15 @@ object Solve {
       }
       printer.println(s"\t\tresOld = res")
       printer.println(s"\t\tres = NormResidual_GMRF_0@finest ( )")
-      if (Knowledge.l3tmp_genForAutoTests)
-        printer.println("\t\tprint ( res )")
-      else
+      if (Knowledge.l3tmp_genForAutoTests) {
+        printer.println(s"\tif ( res < ${if (Knowledge.useDblPrecision) 1e-12 else 1e-5} ) {")
+        printer.println("\t\tprint ( '\"EFFECTIVELY ZERO\"' )")
+        printer.println("\t} else {")
+        printer.println(s"\t\tprint ( res )")
+        printer.println("\t}")
+      } else {
         printer.println("\t\tprint ( '\"Residual:\"', res, '\"Residual reduction:\"', ( resStart / res ), '\"Convergence factor:\"', ( res / resOld ) )")
+      }
       printer.println("\t}")
       if (Knowledge.l3tmp_genForAutoTests) {
         printer.println("\tprint ( numIt )")

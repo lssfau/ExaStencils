@@ -143,9 +143,13 @@ object Application {
       printer.println(s"\t\tsolNorm += SolutionMean@finest * SolutionMean@finest")
       printer.println(s"\t}")
       printer.println(s"\tsolNorm = ( sqrt ( solNorm ) ) / ${(Knowledge.domain_rect_numFragsTotal_x - 2 * Knowledge.l3tmp_kelvin_numHaloFrags) * (1 << Knowledge.maxLevel) - 1}")
-      if (Knowledge.l3tmp_genForAutoTests)
-        printer.println("\tprint ( solNorm )")
-      else
+      if (Knowledge.l3tmp_genForAutoTests) {
+        printer.println(s"\tif ( solNorm < ${if (Knowledge.useDblPrecision) 1e-12 else 1e-5} ) {")
+        printer.println("\t\tprint ( '\"EFFECTIVELY ZERO\"' )")
+        printer.println("\t} else {")
+        printer.println("\t\tprint ( solNorm )")
+        printer.println("\t}")
+      } else
         printer.println("\tprint ( '\"Norm of the solution: \"', solNorm )")
     }
 
