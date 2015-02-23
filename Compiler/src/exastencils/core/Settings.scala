@@ -5,6 +5,9 @@ import scala.collection.mutable.ListBuffer
 import exastencils.prettyprinting._
 
 object Settings {
+  /// user; allows triggering user-specific code
+  var user : String = "guest"
+
   /// input
   var basePathPrefix : String = ".."
   var l4file : String = ""
