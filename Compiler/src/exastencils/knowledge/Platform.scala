@@ -17,9 +17,9 @@ object Platform {
       ldflags = "-O3 -qhot -qarch=qp -qtune=qp -DNDEBUG"
 
       if (Knowledge.mpi_enabled && Knowledge.omp_enabled) {
-        compiler = "mpixlc++_r"
+        compiler = "mpixlcxx_r"
       } else if (Knowledge.mpi_enabled && !Knowledge.omp_enabled) {
-        compiler = "mpixlc++"
+        compiler = "mpixlcxx"
       } else if (!Knowledge.mpi_enabled && Knowledge.omp_enabled) {
         compiler = "bgxlc++_r"
       } else if (!Knowledge.mpi_enabled && !Knowledge.omp_enabled) {
@@ -36,7 +36,7 @@ object Platform {
       ldflags = "-O3 -qhot -qarch=qp -qtune=qp -DNDEBUG"
 
       if (Knowledge.mpi_enabled) {
-        compiler = "mpixlc++"
+        compiler = "mpixlcxx"
       } else {
         compiler = "xlc++"
       }
