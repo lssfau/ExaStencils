@@ -244,7 +244,7 @@ object Knowledge {
   var l3tmp_useMaxNormForError : Boolean = true // uses the maximum norm instead of the L2 norm when reducing the error
 
   /// Paper project - SISC
-  var l3tmp_sisc : Boolean = true
+  var l3tmp_sisc : Boolean = false // generates test problems for the upcomming SISC paper in conjunction with dimensionality and l3tmp_genStencilFields
 
   /// Student project - Kelvin
   var l3tmp_kelvin : Boolean = false // currently only works for 2D
