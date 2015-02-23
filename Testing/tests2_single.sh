@@ -27,7 +27,7 @@ echo "Generate and compile on machine ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:$
 echo ""
 rm -f ${ERROR_MARKER} # remove error marker from old job run if we were requeued
 
-RAM_TMP_DIR="$(mktemp --tmpdir=/run/shm -d)" || {
+RAM_TMP_DIR="$(mktemp --tmpdir=/tmp -d)" || {
     echo "ERROR: Failed to create temporary directory."
     touch ${ERROR_MARKER}
     echo "${LINK}" >> "${LOG_ALL}"

@@ -68,7 +68,7 @@ echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R
 echo "-----------------------------------------------------------------------------------------------"
 echo "Running main test script on machine ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
 
-RAM_TMP_DIR=$(mktemp --tmpdir=/run/shm -d) || {
+RAM_TMP_DIR=$(mktemp --tmpdir=/tmp -d) || {
     echo "ERROR: Failed to create temporary directory."
     error
   }
