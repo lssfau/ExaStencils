@@ -73,9 +73,8 @@ def generate_configurations(configuration_class):
             for config in extended_parameters:
                 new_config = configuration_class()
                 new_config.baseName = config.baseName
-                new_config.constParameters = copy.deepcopy(config.constParameters)
-                new_config.chosenRangedParameters = copy.deepcopy(config.chosenRangedParameters)
-                new_config.chosenListedParameters = copy.deepcopy(config.chosenListedParameters)
+                new_config.chosenRangedParameters = config.chosenRangedParameters[:]
+                new_config.chosenListedParameters = config.chosenListedParameters[:]
                 new_config.chosenRangedParameters.append([param[0], it])
                 new_config.baseName += "_" + str(it)
                 new_parameters.append(new_config)
@@ -88,20 +87,24 @@ def generate_configurations(configuration_class):
             for config in extended_parameters:
                 new_config = configuration_class()
                 new_config.baseName = config.baseName
-                new_config.constParameters = copy.deepcopy(config.constParameters)
-                new_config.chosenRangedParameters = copy.deepcopy(config.chosenRangedParameters)
-                new_config.chosenListedParameters = copy.deepcopy(config.chosenListedParameters)
+                new_config.chosenRangedParameters = config.chosenRangedParameters[:]
+                new_config.chosenListedParameters = config.chosenListedParameters[:]
                 new_config.chosenListedParameters.append([param[0], it])
                 new_config.baseName += "_" + it.replace('"', '').strip()
                 new_parameters.append(new_config)
         extended_parameters = new_parameters
 
     print("Found %s configurations" % len(extended_parameters))
+    final_configs = []
     for config in extended_parameters:
-        config.update()
-    extended_parameters = [config for config in extended_parameters if True == config.is_valid()]
-    print("After filtering, %s valid configurations remain" % len(extended_parameters))
-    return extended_parameters
+        if config.is_valid():
+            config.constParameters = copy.deepcopy(configuration_class.constParameters)
+            config.chosenRangedParameters = copy.deepcopy(config.chosenRangedParameters)
+            config.chosenListedParameters = copy.deepcopy(config.chosenListedParameters)
+            config.update()
+            final_configs.append(config)
+    print("After filtering, %s valid configurations remain" % len(final_configs))
+    return final_configs
 
 
 def generate_files(configurations):

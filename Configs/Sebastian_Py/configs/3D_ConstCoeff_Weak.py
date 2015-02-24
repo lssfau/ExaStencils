@@ -63,6 +63,14 @@ class Configuration:
             self.get_value("domain_rect_numBlocks_z", 1) \
             * self.get_value("domain_rect_numFragsPerBlock_z", 1) \
             * self.get_value("domain_fragmentLength_z", 1)
+        frag_volume = \
+            self.get_value("domain_fragmentLength_x", 1) \
+            * self.get_value("domain_fragmentLength_y", 1) \
+            * self.get_value("domain_fragmentLength_z", 1)
+        num_frags_per_block_total = \
+            self.get_value("domain_rect_numFragsPerBlock_x", 1) \
+            * self.get_value("domain_rect_numFragsPerBlock_y", 1) \
+            * self.get_value("domain_rect_numFragsPerBlock_z", 1)
 
         if not ((num_unit_frags_x == num_unit_frags_y) and (num_unit_frags_y == num_unit_frags_z)):
             # print("Not square")
@@ -70,7 +78,7 @@ class Configuration:
         if not (16 == num_unit_frags_x):
             # print("Not the right size :%s" % num_unit_frags_x)
             return False
-        if not (self.get_value("omp_numThreads", 1) <= 64):
+        if not (frag_volume <= 64 and num_frags_per_block_total <= 64):
             # print("Too many omp threads :%s" % self.get_value("omp_numThreads", 1))
             return False
 
