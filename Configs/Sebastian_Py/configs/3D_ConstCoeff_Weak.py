@@ -2,6 +2,9 @@ class Configuration:
     def get_num_nodes(self):
         return (self.get_num_mpi() * self.get_num_omp()) / 64
 
+    def get_rpn(self):
+        return 64 / self.get_num_omp()
+
     def get_num_mpi(self):
         params = self.constParameters + self.chosenRangedParameters
         return next((x for x in params if "mpi_numThreads" == x[0]), ["", 1])[1]
@@ -10,15 +13,15 @@ class Configuration:
         params = self.constParameters + self.chosenRangedParameters
         return next((x for x in params if "omp_numThreads" == x[0]), ["", 1])[1]
 
-    def get_value(self, param, def_val):
+    def get_value(self, key, def_val):
         params = self.constParameters + self.chosenRangedParameters + self.chosenListedParameters
-        return next((x for x in params if param == x[0]), ["", def_val])[1]
+        return next((x for x in params if key == x[0]), ["", def_val])[1]
 
-    def set_value(self, param, new_val):
+    def set_value(self, key, new_val):
         candidates = (x for x in self.constParameters + self.chosenRangedParameters + self.chosenListedParameters if
-                      param == x[0])
-        for params in candidates:
-            params[1] = new_val
+                      key == x[0])
+        for param in candidates:
+            param[1] = new_val
 
     def update(self):
         num_frags_per_block_total = \
@@ -29,11 +32,14 @@ class Configuration:
             self.get_value("domain_fragmentLength_x", 1) \
             * self.get_value("domain_fragmentLength_y", 1) \
             * self.get_value("domain_fragmentLength_z", 1)
-        num_frags_total = \
+        num_blocks_total = \
             self.get_value("domain_rect_numBlocks_x", 1) \
             * self.get_value("domain_rect_numBlocks_y", 1) \
-            * self.get_value("domain_rect_numBlocks_z", 1) \
-            * num_frags_per_block_total
+            * self.get_value("domain_rect_numBlocks_z", 1)
+        num_frags_total = num_blocks_total * num_frags_per_block_total
+
+        self.set_value("domain_numBlocks", num_blocks_total)
+        self.set_value("domain_numFragmentsPerBlock", num_frags_per_block_total)
         self.set_value("mpi_numThreads", num_frags_total)
         if num_frags_per_block_total > frag_volume:
             self.set_value("omp_numThreads", num_frags_per_block_total)
@@ -45,7 +51,6 @@ class Configuration:
             self.set_value("omp_parallelizeLoopOverDimensions", "true")
 
     def is_valid(self):
-        valid = True
         num_unit_frags_x = \
             self.get_value("domain_rect_numBlocks_x", 1) \
             * self.get_value("domain_rect_numFragsPerBlock_x", 1) \
@@ -58,10 +63,19 @@ class Configuration:
             self.get_value("domain_rect_numBlocks_z", 1) \
             * self.get_value("domain_rect_numFragsPerBlock_z", 1) \
             * self.get_value("domain_fragmentLength_z", 1)
-        valid = valid and (num_unit_frags_x == num_unit_frags_y) and (num_unit_frags_y == num_unit_frags_z)
-        valid = valid and (16 == num_unit_frags_x)
-        valid = valid and (self.get_value("omp_numThreads", 1) <= 64)
-        return valid
+
+        if not ((num_unit_frags_x == num_unit_frags_y) and (num_unit_frags_y == num_unit_frags_z)):
+            # print("Not square")
+            return False
+        if not (16 == num_unit_frags_x):
+            # print("Not the right size :%s" % num_unit_frags_x)
+            return False
+        if not (self.get_value("omp_numThreads", 1) <= 64):
+            # print("Too many omp threads :%s" % self.get_value("omp_numThreads", 1))
+            return False
+
+        # print("Valid")
+        return True
 
     baseName = "3D_CC_Weak"
 

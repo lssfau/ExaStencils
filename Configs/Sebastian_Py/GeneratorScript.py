@@ -1,3 +1,4 @@
+import copy
 import sys
 import getopt
 import os
@@ -72,8 +73,9 @@ def generate_configurations(configuration_class):
             for config in extended_parameters:
                 new_config = configuration_class()
                 new_config.baseName = config.baseName
-                new_config.chosenRangedParameters = config.chosenRangedParameters[:]
-                new_config.chosenListedParameters = config.chosenListedParameters[:]
+                new_config.constParameters = copy.deepcopy(config.constParameters)
+                new_config.chosenRangedParameters = copy.deepcopy(config.chosenRangedParameters)
+                new_config.chosenListedParameters = copy.deepcopy(config.chosenListedParameters)
                 new_config.chosenRangedParameters.append([param[0], it])
                 new_config.baseName += "_" + str(it)
                 new_parameters.append(new_config)
@@ -86,8 +88,9 @@ def generate_configurations(configuration_class):
             for config in extended_parameters:
                 new_config = configuration_class()
                 new_config.baseName = config.baseName
-                new_config.chosenRangedParameters = config.chosenRangedParameters[:]
-                new_config.chosenListedParameters = config.chosenListedParameters[:]
+                new_config.constParameters = copy.deepcopy(config.constParameters)
+                new_config.chosenRangedParameters = copy.deepcopy(config.chosenRangedParameters)
+                new_config.chosenListedParameters = copy.deepcopy(config.chosenListedParameters)
                 new_config.chosenListedParameters.append([param[0], it])
                 new_config.baseName += "_" + it.replace('"', '').strip()
                 new_parameters.append(new_config)
@@ -96,7 +99,7 @@ def generate_configurations(configuration_class):
     print("Found %s configurations" % len(extended_parameters))
     for config in extended_parameters:
         config.update()
-    extended_parameters = [config for config in extended_parameters if config.is_valid()]
+    extended_parameters = [config for config in extended_parameters if True == config.is_valid()]
     print("After filtering, %s valid configurations remain" % len(extended_parameters))
     return extended_parameters
 
@@ -152,10 +155,10 @@ def generate_run_script(path, filename, configurations):
     if not os.path.exists(path):
         os.makedirs(path)
 
-    jobs = defaultdict(list)
+    jobs = defaultdict(lambda: defaultdict(list))
 
     for config in configurations:
-        jobs[config.getNumNodes()].append(config)
+        jobs[config.get_num_nodes()][config.get_rpn()].append(config)
 
     for job_size in jobs:
         print("Writing jobscript " + filename + "_" + str(job_size))
@@ -178,20 +181,24 @@ def generate_run_script(path, filename, configurations):
         script_file.write("mkdir $WORK/ExaTemp # make sure temp folder exists\n")
         script_file.write("\n")
 
-        for config in jobs[job_size]:
-            script_file.write("cp " + targetPlatformBasePath + "/" + config.baseName +
-                              "/exastencils $WORK/ExaTemp/exastencils_" + config.baseName +
-                              " # copy binary to temp folder\n")
+        for ranks_per_node in jobs[job_size]:
+            for config in jobs[job_size][ranks_per_node]:
+                script_file.write("cp " + targetPlatformBasePath + "/" + config.baseName +
+                                  "/exastencils $WORK/ExaTemp/exastencils_" + config.baseName +
+                                  " # copy binary to temp folder\n")
 
         script_file.write("\n")
         script_file.write("cd $WORK/ExaTemp # switch to temp folder\n")
         script_file.write("\n")
 
-        for config in jobs[job_size]:
-            script_file.write("export OMP_NUM_THREADS=" + str(config.getNumOMP()) + "\n")
-            # FIXME: RPN
-            script_file.write("time runjob --ranks-per-node 64 --np " + str(
-                config.get_num_mpi()) + " --exp-env OMP_NUM_THREADS : ./exastencils_" + config.baseName + "\n")
+        for ranks_per_node in jobs[job_size]:
+            for config in jobs[job_size][ranks_per_node]:
+                script_file.write("export OMP_NUM_THREADS=" + str(config.get_num_omp()) + "\n")
+                script_file.write("time runjob"
+                                  + "--ranks-per-node " + str(ranks_per_node)
+                                  + " --np " + str(config.get_num_mpi())
+                                  + " --exp-env OMP_NUM_THREADS"
+                                  + " : ./exastencils_" + config.baseName + "\n")
             script_file.write("\n")
 
         script_file.close()
