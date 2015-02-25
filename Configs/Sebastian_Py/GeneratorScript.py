@@ -198,13 +198,34 @@ def generate_run_script(path, filename, configurations):
             for config in jobs[job_size][ranks_per_node]:
                 script_file.write("export OMP_NUM_THREADS=" + str(config.get_num_omp()) + "\n")
                 script_file.write("time runjob"
-                                  + "--ranks-per-node " + str(ranks_per_node)
+                                  + " --ranks-per-node " + str(ranks_per_node)
                                   + " --np " + str(config.get_num_mpi())
                                   + " --exp-env OMP_NUM_THREADS"
                                   + " : ./exastencils_" + config.baseName + "\n")
             script_file.write("\n")
 
         script_file.close()
+
+
+def generate_toolchain_script(path, filename, configurations, compile_script, run_script):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    script_file = open(path + "/" + filename, 'w+')
+
+    script_file.write("#!/bin/bash\n")
+
+    script_file.write("chmod 700 " + compile_script + "\n")
+
+    jobs = defaultdict(list)
+    for config in configurations:
+        jobs[config.get_num_nodes()].append(config)
+
+    script_file.write("time " + compile_script + " && "
+                      + " && ".join(map(lambda k: "llsubmit " + run_script + "_" + str(k), jobs))
+                      + " && watch llq -u her182"
+                      + "\n")
+
+    script_file.close()
 
 
 def main(argv):
@@ -235,6 +256,8 @@ def main(argv):
     generate_compile_script(basePath, "compileAll", configs)
     print("Setting up job scripts")
     generate_run_script(basePath, "runJuQueen", configs)
+    print("Setting up toolchain scripts")
+    generate_toolchain_script(basePath, "doStuff", configs, "compileAll", "runJuQueen")
 
     print("\n\nFinished at: " + strftime("%Y-%m-%d %H:%M:%S", gmtime()))
     delta_time = time.mktime(gmtime()) - time.mktime(start_time)

@@ -40,12 +40,20 @@ class Configuration:
 
         self.set_value("domain_numBlocks", num_blocks_total)
         self.set_value("domain_numFragmentsPerBlock", num_frags_per_block_total)
+        self.set_value("mpi_enabled", "true")  # always true for this test case
         self.set_value("mpi_numThreads", num_frags_total)
-        if num_frags_per_block_total > frag_volume:
+        if 1 == num_frags_per_block_total and 1 == frag_volume:
+            self.set_value("omp_enabled", "false")
+            self.set_value("omp_numThreads", 1)
+            self.set_value("omp_parallelizeLoopOverFragments", "false")
+            self.set_value("omp_parallelizeLoopOverDimensions", "false")
+        elif num_frags_per_block_total > frag_volume:
+            self.set_value("omp_enabled", "true")
             self.set_value("omp_numThreads", num_frags_per_block_total)
             self.set_value("omp_parallelizeLoopOverFragments", "true")
             self.set_value("omp_parallelizeLoopOverDimensions", "false")
         else:
+            self.set_value("omp_enabled", "true")
             self.set_value("omp_numThreads", frag_volume)
             self.set_value("omp_parallelizeLoopOverFragments", "false")
             self.set_value("omp_parallelizeLoopOverDimensions", "true")
@@ -63,20 +71,27 @@ class Configuration:
             self.get_value("domain_rect_numBlocks_z", 1) \
             * self.get_value("domain_rect_numFragsPerBlock_z", 1) \
             * self.get_value("domain_fragmentLength_z", 1)
-        frag_volume = \
-            self.get_value("domain_fragmentLength_x", 1) \
-            * self.get_value("domain_fragmentLength_y", 1) \
-            * self.get_value("domain_fragmentLength_z", 1)
+        num_blocks_total = \
+            self.get_value("domain_rect_numBlocks_x", 1) \
+            * self.get_value("domain_rect_numBlocks_y", 1) \
+            * self.get_value("domain_rect_numBlocks_z", 1)
         num_frags_per_block_total = \
             self.get_value("domain_rect_numFragsPerBlock_x", 1) \
             * self.get_value("domain_rect_numFragsPerBlock_y", 1) \
             * self.get_value("domain_rect_numFragsPerBlock_z", 1)
+        frag_volume = \
+            self.get_value("domain_fragmentLength_x", 1) \
+            * self.get_value("domain_fragmentLength_y", 1) \
+            * self.get_value("domain_fragmentLength_z", 1)
 
         if not ((num_unit_frags_x == num_unit_frags_y) and (num_unit_frags_y == num_unit_frags_z)):
             # print("Not square")
             return False
         if not (16 == num_unit_frags_x):
             # print("Not the right size :%s" % num_unit_frags_x)
+            return False
+        if not (num_blocks_total >= 32):
+            # print("Not enough blocks to distribute :%s" % num_blocks_total)
             return False
         if not (frag_volume <= 64 and num_frags_per_block_total <= 64):
             # print("Too many omp threads :%s" % self.get_value("omp_numThreads", 1))
@@ -91,9 +106,9 @@ class Configuration:
                           ["domain_rect_numBlocks_x", 1, 16, lambda x: 2 * x],
                           ["domain_rect_numBlocks_y", 1, 16, lambda x: 2 * x],
                           ["domain_rect_numBlocks_z", 1, 16, lambda x: 2 * x],
-                          ["domain_rect_numFragsPerBlock_x", 1, 16, lambda x: 2 * x],
-                          ["domain_rect_numFragsPerBlock_y", 1, 16, lambda x: 2 * x],
-                          ["domain_rect_numFragsPerBlock_z", 1, 16, lambda x: 2 * x],
+                          ["domain_rect_numFragsPerBlock_x", 1, 1, lambda x: 2 * x],  # keep it constant for now
+                          ["domain_rect_numFragsPerBlock_y", 1, 1, lambda x: 2 * x],  # keep it constant for now
+                          ["domain_rect_numFragsPerBlock_z", 1, 1, lambda x: 2 * x],  # keep it constant for now
                           ["domain_fragmentLength_x", 1, 16, lambda x: 2 * x],
                           ["domain_fragmentLength_y", 1, 16, lambda x: 2 * x],
                           ["domain_fragmentLength_z", 1, 16, lambda x: 2 * x],
@@ -103,7 +118,7 @@ class Configuration:
     ]
 
     listedParameters = [  # variabilities to be tested with given values from a predefined list [parameterName, [list]]
-                          ["l3tmp_smoother", ["\"GS\"", "\"Jac\"", "\"RBGS\""]]
+        # ["l3tmp_smoother", ["\"GS\"", "\"Jac\"", "\"RBGS\""]]
     ]
 
     chosenListedParameters = [  # to be filled later
@@ -139,5 +154,6 @@ class Configuration:
                          ["opt_vectorize", "false"],
                          ["opt_unroll", 2],
                          ["l3tmp_printError", "true"],
-                         ["l3tmp_useMaxNormForError", "true"]
+                         ["l3tmp_useMaxNormForError", "true"],
+                         ["l3tmp_smoother", "\"Jac\""]
     ]
