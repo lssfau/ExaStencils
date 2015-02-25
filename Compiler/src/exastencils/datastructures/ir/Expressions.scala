@@ -740,31 +740,15 @@ case class SIMD_FloatConstant(var value : Double) extends Expression {
   }
 }
 
-case class SIMD_Scalar2VectorExpression(var scalar : String, var dType : Datatype,
-    var increment : Boolean) extends Expression {
+case class SIMD_Scalar2VectorExpression(var scalar : Expression) extends Expression {
 
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
-    if (increment) {
-      Knowledge.simd_instructionSet match {
-        case "SSE3"         => out << "_mm_set_p" << prec
-        case "AVX" | "AVX2" => out << "_mm256_set_p" << prec
-        case "QPX" =>
-          out << "NOT VALID ; SIMD_Scalar2VectorExpression(_, _, true) for BG/Q not yet implemented"
-          return
-      }
-      out << '('
-      for (i <- Knowledge.simd_vectorSize - 1 to 1 by -1)
-        out << scalar << '+' << i << ','
-      out << scalar << ')'
-
-    } else {
-      Knowledge.simd_instructionSet match {
-        case "SSE3"         => out << "_mm_set1_p" << prec
-        case "AVX" | "AVX2" => out << "_mm256_set1_p" << prec
-        case "QPX"          => out << "vec_splats"
-      }
-      out << '(' << scalar << ')'
+    Knowledge.simd_instructionSet match {
+      case "SSE3"         => out << "_mm_set1_p" << prec
+      case "AVX" | "AVX2" => out << "_mm256_set1_p" << prec
+      case "QPX"          => out << "vec_splats"
     }
+    out << '(' << scalar << ')'
   }
 }
