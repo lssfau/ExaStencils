@@ -100,14 +100,14 @@ private[optimization] final class Analyze extends Collector {
     preLoopDecls = null
   }
 
-  private class UpdateLoopVar(name : String, offset : Long, nju : Expression)
+  private class UpdateLoopVar(itName : String, offset : Long, nju : Expression)
       extends DefaultStrategy("Add loop var offset") {
 
     private final val SKIP_ANNOT = "RDSL_Skip"
     private var replace : Boolean = false
 
     this += new Transformation("apply", {
-      case vAcc @ VariableAccess(v, Some(IntegerDatatype())) if (v == name) =>
+      case vAcc @ VariableAccess(v, Some(IntegerDatatype())) if (v == itName) =>
         if (replace)
           SubtractionExpression(Duplicate(nju), IntegerConstant(offset))
         else if (!vAcc.removeAnnotation(SKIP_ANNOT).isDefined) {
