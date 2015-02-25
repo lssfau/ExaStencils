@@ -362,6 +362,7 @@ case class LoopOverDimensions(var numDimensions : Int,
     val parallelize = parallelizable && parallelizationIsReasonable
     val resolveOmpReduction = (
       parallelize
+      && Knowledge.omp_enabled
       && Knowledge.omp_version < 3.1
       && reduction.isDefined
       && ("min" == reduction.get.op || "max" == reduction.get.op))
