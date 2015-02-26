@@ -14,7 +14,7 @@ object Solve {
       printer.println(s"\tVariable res_$vecDim : Real = resStart_$vecDim")
       printer.println(s"\tVariable resOld_$vecDim : Real = 0")
       if (Knowledge.l3tmp_genForAutoTests)
-        printer.println(s"\tprint ( resStart_$vecDim )")
+        Util.addPrintAutoTestValueCode(printer, s"resStart_$vecDim")
       else
         printer.println("\tprint ( '\"" + s"Starting residual at $vecDim" + "\"', " + s"resStart_$vecDim )")
     }
