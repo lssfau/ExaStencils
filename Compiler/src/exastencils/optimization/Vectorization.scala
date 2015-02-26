@@ -94,6 +94,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     private final val temporaryProperties = new HashMap[String, (Boolean, Boolean)]
     private var isStore_ : Boolean = false
     private var varID : Int = -1
+    private var incrVectDeclared : Boolean = false
 
     def getName(expr : Expression) : (String, Boolean) = {
       var nju : Boolean = false
@@ -103,6 +104,16 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         "vec" + varID
       })
       return (name, nju)
+    }
+
+
+    def getIncrVector() : VariableAccess = {
+      val name : String = "veci"
+      if (!incrVectDeclared) {
+        SIMD_IncrementVectorDeclaration(name) +=: preLoopStmts
+        incrVectDeclared = true
+      }
+      return VariableAccess(name, Some(SIMD_RealDatatype()))
     }
 
     def setLoad() : this.type = {
@@ -330,11 +341,11 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
           if (name == ctx.itName) {
             if (ctx.isStore()) throw new VectorizationException("iteration variable is modified inside the loop body...")
             ctx.vectStmts += VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp,
-              Some(SIMD_Scalar2VectorExpression(name, SIMD_RealDatatype(), true)))
+              Some(SIMD_AdditionExpression(SIMD_Scalar2VectorExpression(VariableAccess(name, dType)), ctx.getIncrVector())))
 
           } else
             ctx.preLoopStmts += VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp,
-              Some(SIMD_Scalar2VectorExpression(name, SIMD_RealDatatype(), false)))
+              Some(SIMD_Scalar2VectorExpression(VariableAccess(name, dType))))
         VariableAccess(vecTmp, Some(SIMD_RealDatatype()))
 
       case FloatConstant(value) =>

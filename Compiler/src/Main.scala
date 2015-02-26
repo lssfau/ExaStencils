@@ -21,7 +21,6 @@ import exastencils.util._
 
 object Main {
   def main(args : Array[String]) : Unit = {
-    Locale.setDefault(Locale.ENGLISH) // EPIC -.-
 
     // for runtime measurement
     val start : Long = System.nanoTime()

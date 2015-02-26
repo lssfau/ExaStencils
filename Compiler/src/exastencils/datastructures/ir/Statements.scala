@@ -289,3 +289,28 @@ private object HorizontalPrinterHelper {
     out << '}'
   }
 }
+
+/** Special declaration for a SIMD vector, which is initialized with the values 0, 1, ..., Knowledge.simd_vectorSize-1. */
+case class SIMD_IncrementVectorDeclaration(var name : String) extends Statement {
+  override def prettyprint(out : PpStream) : Unit = {
+    out << SIMD_RealDatatype() << ' ' << name
+    val is = Knowledge.simd_instructionSet
+    is match {
+      case "QPX" =>
+        out << ";\n"
+        out << "{\n"
+        out << " double _a[4] __attribute__((aligned(32))) = { 0, 1, 2, 3 };\n"
+        out << ' ' << name << " = vec_lda(0, _a);\n"
+        out << "}"
+
+      case "SSE3" | "AVX" | "AVX2" =>
+        val bit = if (is == "SSE3") "" else "256"
+        val prec = if (Knowledge.useDblPrecision) 'd' else 's'
+        out << " = _mm" << bit << "_set_p" << prec << '('
+        for (i <- Knowledge.simd_vectorSize - 1 to 0 by -1)
+          out << i << ','
+        out.removeLast()
+        out << ");"
+    }
+  }
+}

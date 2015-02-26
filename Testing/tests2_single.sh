@@ -27,12 +27,15 @@ echo "Generate and compile on machine ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:$
 echo ""
 rm -f ${ERROR_MARKER} # remove error marker from old job run if we were requeued
 
-RAM_TMP_DIR="$(mktemp --tmpdir=/tmp -d)" || {
+RAM_TMP_DIR=$(mktemp --tmpdir=/run/shm -d || mktemp --tmpdir=/tmp -d) || {
     echo "ERROR: Failed to create temporary directory."
     touch ${ERROR_MARKER}
     echo "${LINK}" >> "${LOG_ALL}"
     exit 1
   }
+if [[ ! ${RAM_TMP_DIR} =~ ^/run/shm/* ]]; then
+  echo "Problems with /run/shm on machine ${SLURM_JOB_NODELIST} in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID}." | mail -s "ExaTest /run/shm" "kronast@fim.uni-passau.de"
+fi
 SETTINGS="${RAM_TMP_DIR}/settings.txt"
 L4="${RAM_TMP_DIR}/l4.exa"
 TMP_BIN="exastencils"

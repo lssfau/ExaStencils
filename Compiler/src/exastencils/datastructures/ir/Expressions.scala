@@ -136,7 +136,7 @@ case class IntegerConstant(var v : Long) extends Number {
 
 case class FloatConstant(var v : Double) extends Number {
   override def prettyprint(out : PpStream) : Unit = {
-    out << String.format(java.util.Locale.US, "%s", Double.box(value)) // ensure the compiler can parse the string
+    out << value // this uses value.toString(), which is Locale-independent and the string can be parsed without a loss of precision later
     if (!Knowledge.useDblPrecision) out << "f"
   }
 
@@ -732,7 +732,6 @@ case class SIMD_DivisionExpression(var left : Expression, var right : Expression
 }
 
 case class SIMD_FloatConstant(var value : Double) extends Expression {
-  // ensure the compiler can parse the string
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Knowledge.simd_instructionSet match {
@@ -740,35 +739,19 @@ case class SIMD_FloatConstant(var value : Double) extends Expression {
       case "AVX" | "AVX2" => out << "_mm256_set1_p" << prec
       case "QPX"          => out << "vec_splats"
     }
-    out << '(' << String.format(java.util.Locale.US, "%e", Double.box(value)) << ')'
+    out << '(' << value << ')' // this uses value.toString(), which is Locale-independent and the string can be parsed without a loss of precision later
   }
 }
 
-case class SIMD_Scalar2VectorExpression(var scalar : String, var dType : Datatype,
-    var increment : Boolean) extends Expression {
+case class SIMD_Scalar2VectorExpression(var scalar : Expression) extends Expression {
 
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
-    if (increment) {
-      Knowledge.simd_instructionSet match {
-        case "SSE3"         => out << "_mm_set_p" << prec
-        case "AVX" | "AVX2" => out << "_mm256_set_p" << prec
-        case "QPX" =>
-          out << "NOT VALID ; SIMD_Scalar2VectorExpression(_, _, true) for BG/Q not yet implemented"
-          return
-      }
-      out << '('
-      for (i <- Knowledge.simd_vectorSize - 1 to 1 by -1)
-        out << scalar << '+' << i << ','
-      out << scalar << ')'
-
-    } else {
-      Knowledge.simd_instructionSet match {
-        case "SSE3"         => out << "_mm_set1_p" << prec
-        case "AVX" | "AVX2" => out << "_mm256_set1_p" << prec
-        case "QPX"          => out << "vec_splats"
-      }
-      out << '(' << scalar << ')'
+    Knowledge.simd_instructionSet match {
+      case "SSE3"         => out << "_mm_set1_p" << prec
+      case "AVX" | "AVX2" => out << "_mm256_set1_p" << prec
+      case "QPX"          => out << "vec_splats"
     }
+    out << '(' << scalar << ')'
   }
 }
