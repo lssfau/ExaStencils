@@ -300,7 +300,7 @@ case class SIMD_IncrementVectorDeclaration(var name : String) extends Statement 
         out << ";\n"
         out << "{\n"
         out << " double _a[4] __attribute__((aligned(32))) = { 0, 1, 2, 3 };\n"
-        out << ' ' << name << " = vec_lda(_a);\n"
+        out << ' ' << name << " = vec_lda(0, _a);\n"
         out << "}"
 
       case "SSE3" | "AVX" | "AVX2" =>
