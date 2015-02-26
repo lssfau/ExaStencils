@@ -29,7 +29,6 @@ TESTING_DIR="${REPO_DIR}/Testing"
 TESTING_CONF="${TESTING_DIR}/test_confs.txt"
 
 FAILURE_MAIL="exastencils-dev@www.uni-passau.de"
-TECH_FAILURE_MAIL="kronast@fim.uni-passau.de"
 
 ERROR_MARKER_NAME="error"
 ERROR_MARKER="${TEMP_DIR}/${ERROR_MARKER_NAME}"
@@ -68,10 +67,13 @@ echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R
 echo "-----------------------------------------------------------------------------------------------"
 echo "Running main test script on machine ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
 
-RAM_TMP_DIR=$(mktemp --tmpdir=/tmp -d) || {
+RAM_TMP_DIR=$(mktemp --tmpdir=/run/shm -d || mktemp --tmpdir=/tmp -d) || {
     echo "ERROR: Failed to create temporary directory."
     error
   }
+if [[ ! ${RAM_TMP_DIR} =~ ^/run/shm/* ]]; then
+  echo "Problems with /run/shm on machine ${SLURM_JOB_NODELIST} in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID}." | mail -s "ExaTest /run/shm" "kronast@fim.uni-passau.de"
+fi
 echo "  Created  ${RAM_TMP_DIR}: generator build dir"
 
 
@@ -82,7 +84,7 @@ for job in $(squeue -h -u exatest -o %i); do
     if [[ first -eq 1 ]]; then
       first=0
       echo "Old tests from last run found. Cancel them and requeue new tests."
-      echo "Old tests from last run found. Cancel them and requeue new tests." | mail -s "TestBot jobs too old" ${TECH_FAILURE_MAIL}
+      echo "Old tests from last run found. Cancel them and requeue new tests." | mail -s "TestBot jobs too old" "kronast@fim.uni-passau.de"
     fi
     scancel ${job}
 	echo "Old job ${job} canceled."
