@@ -77,7 +77,7 @@ mkdir -p "${TEMP_DIR}"
 NEW_HASH=$(git -C "${REPO_DIR}" rev-parse @)
 echo ""
 echo "Run tests for hash  ${NEW_HASH}."
-(sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" "--dependency=afterok:${SLURM_JOB_ID}" "${REPO_DIR}/Testing/tests1_all.sh" "${REPO_DIR}" "${BASE_DIR}/scala/" "${TEMP_DIR}" "${OUT_FILE}" "${OUT_FILE_URL}" "${PROGRESS}")
+(unset SLURM_JOB_NAME; sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" "--dependency=afterok:${SLURM_JOB_ID}" "${REPO_DIR}/Testing/tests1_all.sh" "${REPO_DIR}" "${BASE_DIR}/scala/" "${TEMP_DIR}" "${OUT_FILE}" "${OUT_FILE_URL}" "${PROGRESS}")
       if [[ $? -ne 0 ]]; then
         echo "ERROR: Unable to enqueue testing job."
         echo "Test failed!  Unable to enqueue testing job." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}

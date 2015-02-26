@@ -144,7 +144,7 @@ do
 
   echo "Enqueue generation and compilation job for id  ${id}."
   # configuration is fine, start a new job for it
-  OUT=$(sbatch --job-name="etg_${id}" -o ${TEST_LOG} -e ${TEST_LOG} "--dependency=afterok:${SLURM_JOB_ID}" "${TESTING_DIR}/tests2_single.sh" "${TESTING_DIR}" "${COMPILER_JAR}" ${main} "${TEST_BIN}" "${TESTING_DIR}/${knowledge}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}")
+  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etg_${id}" -o ${TEST_LOG} -e ${TEST_LOG} "--dependency=afterok:${SLURM_JOB_ID}" "${TESTING_DIR}/tests2_single.sh" "${TESTING_DIR}" "${COMPILER_JAR}" ${main} "${TEST_BIN}" "${TESTING_DIR}/${knowledge}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}")
   if [[ $? -eq 0 ]]; then
     SID=${OUT#Submitted batch job }
     DEP_SIDS="${DEP_SIDS}:${SID}"
@@ -198,7 +198,7 @@ for ((i=0;i<${#TMP_ARRAY[@]};i+=6)); do
     CONSTR_PARAM=""
   fi
   echo "Enqueue execution job for id  ${id}."
-  OUT=$(sbatch --job-name="etr_${id}" -o ${TEST_LOG} -e ${TEST_LOG} -A ${ACC} -p ${PART} -n ${nodes} -c ${cores} ${TEST_DEP} ${CONSTR_PARAM} "${TESTING_DIR}/tests3_generated.sh" "${TEST_BIN}" "${TESTING_DIR}/${result}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}")
+  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etr_${id}" -o ${TEST_LOG} -e ${TEST_LOG} -A ${ACC} -p ${PART} -n ${nodes} -c ${cores} ${TEST_DEP} ${CONSTR_PARAM} "${TESTING_DIR}/tests3_generated.sh" "${TEST_BIN}" "${TESTING_DIR}/${result}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}")
   if [[ $? -eq 0 ]]; then
     SID=${OUT#Submitted batch job }
     DEP_SIDS="${DEP_SIDS}:${SID}"
@@ -212,7 +212,7 @@ done
 echo ""
 echo "Collect separate logs after all other jobs are finished:"
 LOG_DEPS="--dependency=afterany${DEP_SIDS}"
-(sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${TESTING_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${PROGRESS}")
+(unset SLURM_JOB_NAME; sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${TESTING_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${PROGRESS}")
 echo ""
 
 echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
