@@ -136,7 +136,7 @@ case class IntegerConstant(var v : Long) extends Number {
 
 case class FloatConstant(var v : Double) extends Number {
   override def prettyprint(out : PpStream) : Unit = {
-    out << String.format(java.util.Locale.US, "%s", Double.box(value)) // ensure the compiler can parse the string
+    out << value // this uses value.toString(), which is Locale-independent and the string can be parsed without a loss of precision later
     if (!Knowledge.useDblPrecision) out << "f"
   }
 
@@ -728,7 +728,6 @@ case class SIMD_DivisionExpression(var left : Expression, var right : Expression
 }
 
 case class SIMD_FloatConstant(var value : Double) extends Expression {
-  // ensure the compiler can parse the string
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Knowledge.simd_instructionSet match {
@@ -736,7 +735,7 @@ case class SIMD_FloatConstant(var value : Double) extends Expression {
       case "AVX" | "AVX2" => out << "_mm256_set1_p" << prec
       case "QPX"          => out << "vec_splats"
     }
-    out << '(' << String.format(java.util.Locale.US, "%e", Double.box(value)) << ')'
+    out << '(' << value << ')' // this uses value.toString(), which is Locale-independent and the string can be parsed without a loss of precision later
   }
 }
 
