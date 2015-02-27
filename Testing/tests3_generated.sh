@@ -26,7 +26,7 @@ RESULT=$(mktemp --tmpdir=/run/shm test_res_XXXXX.txt || mktemp --tmpdir=/tmp tes
     echo "${LINK}" >> "${LOG_ALL}"
     exit 0
   }
-if [[ ! ${RAM_TMP_DIR} =~ ^/run/shm/* ]]; then
+if [[ ! ${RESULT} =~ ^/run/shm/* ]]; then
   echo "Problems with /run/shm on machine ${SLURM_JOB_NODELIST} in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID}." | mail -s "ExaTest /run/shm" "kronast@fim.uni-passau.de"
 fi
 
