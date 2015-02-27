@@ -65,6 +65,17 @@ object MPI_Allreduce {
   }
 }
 
+case class MPI_Gather(var sendbuf : Expression, var recvbuf : Expression, var datatype : Datatype, var count : Expression) extends Statement {
+  def this(buf : Expression, datatype : Datatype, count : Expression) = this("MPI_IN_PLACE", buf, datatype, count)
+
+  override def prettyprint(out : PpStream) : Unit = {
+    (out << "MPI_Gather("
+      << sendbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", "
+      << recvbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", "
+      << 0 << ", mpiCommunicator);")
+  }
+}
+
 case class MPI_Barrier() extends Statement {
   override def prettyprint(out : PpStream) : Unit = out << "MPI_Barrier(mpiCommunicator);"
 }
