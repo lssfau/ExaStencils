@@ -2,6 +2,7 @@ package exastencils.util
 
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
@@ -204,7 +205,11 @@ case class TimerFct_PrintAllTimers() extends AbstractFunctionStatement with Expa
     CollectTimers.applyStandalone(StateManager.root)
     val timers = CollectTimers.timers
 
-    var statements : ListBuffer[Statement] = timers.map(t => genPrintTimerCode(t._2)).to[ListBuffer]
+    var statements : ListBuffer[Statement] =
+      if (timers.isEmpty)
+        ListBuffer()
+      else
+        timers.map(t => genPrintTimerCode(t._2)).to[ListBuffer]
 
     FunctionStatement(UnitDatatype(), s"printAllTimers", ListBuffer(), statements)
   }
@@ -266,15 +271,16 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractFunctionStatement wit
 
     var statements : ListBuffer[Statement] = ListBuffer()
 
-    statements += ConditionStatement(MPI_IsRootProc(),
-      ListBuffer[Statement](
-        VariableDeclarationStatement(ArrayDatatype(RealDatatype(), Knowledge.mpi_numThreads * 2 * timers.size), "timesToPrint"))
-        ++ genDataCollect(timers)
-        ++ ListBuffer[Statement](new MPI_Gather("timesToPrint", RealDatatype(), 2 * timers.size))
-        ++ genPrint(timers),
-      ListBuffer[Statement](VariableDeclarationStatement(ArrayDatatype(RealDatatype(), 2 * timers.size), "timesToPrint"))
-        ++ genDataCollect(timers)
-        ++ ListBuffer[Statement](MPI_Gather("timesToPrint", "timesToPrint", RealDatatype(), 2 * timers.size)))
+    if (!timers.isEmpty)
+      statements += ConditionStatement(MPI_IsRootProc(),
+        ListBuffer[Statement](
+          VariableDeclarationStatement(ArrayDatatype(RealDatatype(), Knowledge.mpi_numThreads * 2 * timers.size), "timesToPrint"))
+          ++ genDataCollect(timers)
+          ++ ListBuffer[Statement](new MPI_Gather("timesToPrint", RealDatatype(), 2 * timers.size))
+          ++ genPrint(timers),
+        ListBuffer[Statement](VariableDeclarationStatement(ArrayDatatype(RealDatatype(), 2 * timers.size), "timesToPrint"))
+          ++ genDataCollect(timers)
+          ++ ListBuffer[Statement](MPI_Gather("timesToPrint", "timesToPrint", RealDatatype(), 2 * timers.size)))
 
     FunctionStatement(UnitDatatype(), s"printAllTimersToFile", ListBuffer(), statements)
   }
