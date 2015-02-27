@@ -32,6 +32,8 @@ object Knowledge {
 
   var useFasterExpand : Boolean = true
 
+  var timer_type : String = "Chrono" // may be one of the following: 'Chrono', 'QPC', 'WIN_TIME', 'UNIX_TIME', 'MPI_TIME', 'RDSC', 'WINDOWS_RDSC'
+
   // === Layer 1 ===
 
   var dimensionality : Int = 3 // dimensionality of the problem; may be 1, 2 or 3
@@ -223,6 +225,16 @@ object Knowledge {
   var l3tmp_useSlotVariables : Boolean = true // [true|false] // uses slot variables (currentSlot, nextSlot, previousSlot) for access to slotted solution fields; allows for odd number of smoothing steps
   var l3tmp_genHDepStencils : Boolean = false // [true|false] // generates stencils dependent on the grid width h
 
+  /// timer generation
+  var l3tmp_genTimersPerFunction : Boolean = false // generates different timers for each function in the mg cycle
+  var l3tmp_genTimersPerLevel : Boolean = false // generates different timers for each (mg) level
+  var l3tmp_genTimersForComm : Boolean = false // generates additional timers for the communication
+  var l3tmp_genCommTimersPerLevel : Boolean = false // generates different communication timers for each level
+
+  var l3tmp_printAllTimers : Boolean = false // prints results for all used timers at the end of the application
+  var l3tmp_printTimersToFile : Boolean = false // prints results for all used timers at the end of the application; uses l3tmp_timerOuputFile as target file
+  var l3tmp_timerOuputFile : String = "timings.csv" // the file timer data is to be written to if l3tmp_printTimersToFile is activated
+
   /// functionality test
   var l3tmp_exactSolution : String = "Zero" // specifies which function (type) is used for the solution/ rhs is used; allowed options are 'Zero', 'Polynomial', 'Trigonometric' and 'Kappa'
   var l3tmp_genNonZeroRhs : Boolean = false // generates more complex variants of the chosen solution function resulting in non-trival right hand sides
@@ -251,22 +263,14 @@ object Knowledge {
   var l3tmp_kelvin_numSamples : Int = 10 // only required for l3tmp_kelvin; number of samples to be evaluated
   var l3tmp_kelvin_numHaloFrags : Int = 2 // only required for l3tmp_kelvin; number of halo fragments used to implement the open boundary approximation  
 
-  /// Student project - Oleg
-  var l3tmp_genAdvancedTimers : Boolean = false // this is to enable the usage of some new, currently highly experimental, timer classes
-  var l3tmp_genTimersPerFunction : Boolean = false // generates different timers for each function in the mg cycle
-  var l3tmp_genTimersPerLevel : Boolean = false // generates different timers for each (mg) level
-  var l3tmp_genTimersForComm : Boolean = false // generates additional timers for the communication
-  var l3tmp_genCommTimersPerLevel : Boolean = false // generates different communication timers for each level
-
-  var advTimer_timerType : String = "Chrono" // may be one of the following: 'Chrono', 'QPC', 'WIN_TIME', 'UNIX_TIME', 'MPI_TIME', 'RDSC', 'WINDOWS_RDSC'
-  var advTimer_enableCallStacks : Boolean = false // generates call stacks for all employed timers
-
   /// experimental features
   var experimental_useLevelIndepFcts : Boolean = false
 
   var experimental_Neumann : Boolean = false // highly experimental -> use only if you know what you are doing
   var experimental_NeumannOrder : Int = 2 // may currently be 1 or 2
   var experimental_NeumannNormalize : Boolean = false // normalize solution after each v-cycle
+
+  var experimental_timerEnableCallStacks : Boolean = false // generates call stacks for all employed timers
 
   /// END HACK
 
@@ -366,12 +370,7 @@ object Knowledge {
     Constraints.condEnsureValue(l3tmp_genAsyncCommunication, false, 26 != comm_strategyFragment, "invalid comm_strategyFragment")
     Constraints.condEnsureValue(l3tmp_genFragLoops, false, "RBGS" == l3tmp_smoother, "Currently fragment loops are not compatible with RBGS smoothers")
 
-    // l3tmp - timers
-    Constraints.condEnsureValue(l3tmp_genTimersPerFunction, false, !l3tmp_genAdvancedTimers, "requires l3tmp_genAdvancedTimers to be activated")
-    Constraints.condEnsureValue(l3tmp_genTimersPerLevel, false, !l3tmp_genAdvancedTimers, "requires l3tmp_genAdvancedTimers to be activated")
-    Constraints.condEnsureValue(l3tmp_genTimersForComm, false, !l3tmp_genAdvancedTimers, "requires l3tmp_genAdvancedTimers to be activated")
-    Constraints.condEnsureValue(l3tmp_genCommTimersPerLevel, false, !l3tmp_genAdvancedTimers, "requires l3tmp_genAdvancedTimers to be activated")
-
+    // l3tmp - timer generation
     Constraints.condEnsureValue(l3tmp_genTimersForComm, false, l3tmp_genAsyncCommunication, "timers for overlapping communication are not yet supported")
     Constraints.condEnsureValue(l3tmp_genCommTimersPerLevel, false, !l3tmp_genTimersForComm, "requires l3tmp_genTimersForComm to be activated")
 
@@ -402,16 +401,14 @@ object Knowledge {
 
     Constraints.condEnsureValue(ir_genSepLayoutsPerField, true, opt_useColorSplitting, "color splitting requires separate field layouts")
 
-    // advanced timers
-    if (l3tmp_genAdvancedTimers) {
-      // TODO: remove condition when timers are fully integrated
-      Constraints.condEnsureValue(advTimer_timerType, "Chrono", !mpi_enabled && "MPI_TIME" == advTimer_timerType, "MPI_TIME is not supported for codes generated without MPI")
-      Constraints.condEnsureValue(advTimer_timerType, "Chrono", "QPC" == advTimer_timerType && "MSVC" != targetCompiler, "QPC is only supported for windows")
-      Constraints.condEnsureValue(advTimer_timerType, "WINDOWS_RDSC", "RDSC" == advTimer_timerType && "MSVC" == targetCompiler, "WINDOWS_RDSC is required for windows systems")
-      Constraints.condEnsureValue(advTimer_timerType, "RDSC", "WINDOWS_RDSC" == advTimer_timerType && "MSVC" != targetCompiler, "RDSC is required for non-windows systems")
-      Constraints.condEnsureValue(advTimer_timerType, "UNIX_TIME", "WIN_TIME" == advTimer_timerType && "MSVC" != targetCompiler, "WIN_TIME is not supported for non-windows systems")
-      Constraints.condEnsureValue(advTimer_timerType, "WIN_TIME", "UNIX_TIME" == advTimer_timerType && "MSVC" == targetCompiler, "UNIX_TIME is not supported for windows systems")
-      Constraints.condEnsureValue(advTimer_timerType, "UNIX_TIME", "Chrono" == advTimer_timerType && "IBMXL" == targetCompiler, "IBM XL does currently not support std::chrono")
-    }
+    // timer configuration    
+    Constraints.condEnsureValue(timer_type, "Chrono", !mpi_enabled && "MPI_TIME" == timer_type, "MPI_TIME is not supported for codes generated without MPI")
+    Constraints.condEnsureValue(timer_type, "Chrono", "QPC" == timer_type && "MSVC" != targetCompiler, "QPC is only supported for windows")
+    Constraints.condEnsureValue(timer_type, "WINDOWS_RDSC", "RDSC" == timer_type && "MSVC" == targetCompiler, "WINDOWS_RDSC is required for windows systems")
+    Constraints.condEnsureValue(timer_type, "RDSC", "WINDOWS_RDSC" == timer_type && "MSVC" != targetCompiler, "RDSC is required for non-windows systems")
+    Constraints.condEnsureValue(timer_type, "UNIX_TIME", "WIN_TIME" == timer_type && "MSVC" != targetCompiler, "WIN_TIME is not supported for non-windows systems")
+    Constraints.condEnsureValue(timer_type, "WIN_TIME", "UNIX_TIME" == timer_type && "MSVC" == targetCompiler, "UNIX_TIME is not supported for windows systems")
+    Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMXL" == targetCompiler, "IBM XL does currently not support std::chrono")
+    Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMBG" == targetCompiler, "IBM BG does currently not support std::chrono")
   }
 }

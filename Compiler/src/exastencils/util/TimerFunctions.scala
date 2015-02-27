@@ -15,7 +15,7 @@ case class TimerDetail_AssignNow(var lhs : Expression) extends Statement with Ex
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerDetail_AssignNow\n"
 
   def expand() : Output[Statement] = {
-    Knowledge.advTimer_timerType match {
+    Knowledge.timer_type match {
       case "Chrono" => AssignmentStatement(lhs, "std::chrono::high_resolution_clock::now()")
       case "QPC" => Scope(ListBuffer[Statement](
         VariableDeclarationStatement(SpecialDatatype("LARGE_INTEGER"), "now"),
@@ -35,7 +35,7 @@ case class TimerDetail_AssignNow(var lhs : Expression) extends Statement with Ex
 
 case class TimerDetail_Zero() extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
-    out << (Knowledge.advTimer_timerType match {
+    out << (Knowledge.timer_type match {
       case "Chrono"       => "std::chrono::nanoseconds::zero()"
       case "QPC"          => "0"
       case "WIN_TIME"     => "0.0"
@@ -51,7 +51,7 @@ case class TimerDetail_ReturnConvertToMS(var time : Expression) extends Statemen
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerDetail_ReturnConvertToMS\n"
 
   def expand() : Output[Statement] = {
-    Knowledge.advTimer_timerType match {
+    Knowledge.timer_type match {
       case "Chrono" => ReturnStatement(Some(new MemberFunctionCallExpression(new FunctionCallExpression("std::chrono::duration_cast<std::chrono::nanoseconds>", time), "count") * 1e-6))
       case "QPC" => Scope(ListBuffer[Statement](
         VariableDeclarationStatement(SpecialDatatype("static LARGE_INTEGER"), "s_frequency"),
@@ -70,7 +70,7 @@ case class StopwatchFunctions() extends FunctionCollection("Util/Stopwatch",
   ListBuffer(),
   ListBuffer(s"Globals/Globals.h", s"Util/StopwatchDEP.h")) {
 
-  if (Knowledge.advTimer_enableCallStacks) {
+  if (Knowledge.experimental_timerEnableCallStacks) {
     internalDependencies += s"Util/CallEntity.h"
     internalDependencies += s"Util/CallTracker.h"
   }
@@ -85,7 +85,7 @@ case class TimerFct_StartTimer() extends AbstractFunctionStatement with Expandab
       new ConditionStatement(EqEqExpression(0, "stopWatch.numEntries"), ListBuffer[Statement](
         TimerDetail_AssignNow("stopWatch.timerStarted"),
         AssignmentStatement("stopWatch.lastTimeMeasured", TimerDetail_Zero()))),
-      if (Knowledge.advTimer_enableCallStacks) "CallTracker::StartTimer(&stopWatch)" else "",
+      if (Knowledge.experimental_timerEnableCallStacks) "CallTracker::StartTimer(&stopWatch)" else "",
       PreIncrementExpression("stopWatch.numEntries"))
 
     FunctionStatement(UnitDatatype(), s"startTimer", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements)
@@ -102,12 +102,12 @@ case class TimerFct_StopTimer() extends AbstractFunctionStatement with Expandabl
       new ConditionStatement(EqEqExpression(0, "stopWatch.numEntries"), ListBuffer[Statement](
         TimerDetail_AssignNow("stopWatch.timerEnded"),
         AssignmentStatement("stopWatch.lastTimeMeasured",
-          if ("Chrono" == Knowledge.advTimer_timerType)
+          if ("Chrono" == Knowledge.timer_type)
             FunctionCallExpression("std::chrono::duration_cast<std::chrono::nanoseconds>", ListBuffer("stopWatch.timerEnded" - "stopWatch.timerStarted"))
           else
             "stopWatch.timerEnded" - "stopWatch.timerStarted"),
         AssignmentStatement("stopWatch.totalTimeMeasured", "stopWatch.lastTimeMeasured", "+="),
-        if (Knowledge.advTimer_enableCallStacks) "CallTracker::StopTimer(&stopWatch)" else "",
+        if (Knowledge.experimental_timerEnableCallStacks) "CallTracker::StopTimer(&stopWatch)" else "",
         PreIncrementExpression("stopWatch.numMeasurements"))))
 
     FunctionStatement(UnitDatatype(), s"stopTimer", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements)
@@ -246,7 +246,7 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractFunctionStatement wit
           statements))
     }
 
-    statements.prepend("std::ofstream outFile(\"TimersAll.msd\")") // FIXME: move filename to knowledge or settings
+    statements.prepend("std::ofstream outFile(\"" + Knowledge.l3tmp_timerOuputFile + "\")")
     statements.append("outFile.close()")
 
     statements

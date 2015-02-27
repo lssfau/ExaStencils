@@ -5,18 +5,16 @@ import exastencils.knowledge._
 import exastencils.prettyprinting._
 
 case class Stopwatch(var memberFunctions : StopwatchFunctions = StopwatchFunctions()) extends Node with FilePrettyPrintable {
-  if (Knowledge.l3tmp_genAdvancedTimers) {
-    memberFunctions.functions += TimerFct_StartTimer()
-    memberFunctions.functions += TimerFct_StopTimer()
-    memberFunctions.functions += TimerFct_GetTotalTime()
-    memberFunctions.functions += TimerFct_GetMeanTime()
-    memberFunctions.functions += TimerFct_GetLastTime()
-    memberFunctions.functions += TimerFct_PrintAllTimers()
-    memberFunctions.functions += TimerFct_PrintAllTimersToFile()
-  }
+  memberFunctions.functions += TimerFct_StartTimer()
+  memberFunctions.functions += TimerFct_StopTimer()
+  memberFunctions.functions += TimerFct_GetTotalTime()
+  memberFunctions.functions += TimerFct_GetMeanTime()
+  memberFunctions.functions += TimerFct_GetLastTime()
+  memberFunctions.functions += TimerFct_PrintAllTimers()
+  memberFunctions.functions += TimerFct_PrintAllTimersToFile()
 
   override def printToFile : Unit = {
-    if (Knowledge.advTimer_enableCallStacks) {
+    if (Knowledge.experimental_timerEnableCallStacks) {
       CallEntity().printToFile()
       CallTracker().printToFile()
     }
@@ -24,7 +22,7 @@ case class Stopwatch(var memberFunctions : StopwatchFunctions = StopwatchFunctio
     val writerHeader = PrettyprintingManager.getPrinter(s"Util/StopwatchDEP.h")
     writerHeader.addExternalDependency("fstream")
 
-    Knowledge.advTimer_timerType match {
+    Knowledge.timer_type match {
       case "Chrono" => writerHeader.addExternalDependency("chrono")
       case "QPC"    => writerHeader.addExternalDependency("windows.h")
       case "WIN_TIME" =>
@@ -39,7 +37,7 @@ case class Stopwatch(var memberFunctions : StopwatchFunctions = StopwatchFunctio
     var timerDurationType = ""
     var timerTimepointType = ""
 
-    Knowledge.advTimer_timerType match {
+    Knowledge.timer_type match {
       case "Chrono" =>
         timerDurationType = "std::chrono::nanoseconds"; timerTimepointType = "std::chrono::high_resolution_clock::time_point"
       case "QPC" =>

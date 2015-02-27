@@ -88,40 +88,16 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
 
     // HACK to realize time measurement functionality -> FIXME: move to specialized node
     case ExpressionStatement(FunctionCallExpression(StringConstant("startTimer"), args)) =>
-      if (Knowledge.l3tmp_genAdvancedTimers)
-        ExpressionStatement(FunctionCallExpression("startTimer", ListBuffer(iv.Timer(args(0)))))
-      else
-        ListBuffer[Statement](
-          "StopWatch " ~ args(0),
-          "resetTimer(" ~ args(0) ~ ")")
+      ExpressionStatement(FunctionCallExpression("startTimer", ListBuffer(iv.Timer(args(0)))))
 
     case ExpressionStatement(FunctionCallExpression(StringConstant("stopTimer"), args)) =>
-      if (Knowledge.l3tmp_genAdvancedTimers)
-        ExpressionStatement(FunctionCallExpression("stopTimer", ListBuffer(iv.Timer(args(0)))))
-      else
-        new Scope(ListBuffer[Statement](
-          "double timeTaken = " ~ "getTimeInMS(" ~ args(0) ~ ")",
-          (if (Knowledge.mpi_enabled) new MPI_Allreduce("&timeTaken", new RealDatatype, 1, "+") else NullStatement),
-          (if (Knowledge.mpi_enabled) "timeTaken /= mpiSize" else NullStatement),
-          args(1) ~ " += timeTaken"))
-
-    case ExpressionStatement(FunctionCallExpression(StringConstant("addFromTimer"), args)) =>
-      if (Knowledge.l3tmp_genAdvancedTimers)
-        AssignmentStatement(args(1), FunctionCallExpression("getTotalTime", ListBuffer(iv.Timer(args(0)))), "+=")
-      else
-        ExpressionStatement(StringConstant("Not supported: addFromTimer"))
+      ExpressionStatement(FunctionCallExpression("stopTimer", ListBuffer(iv.Timer(args(0)))))
 
     case FunctionCallExpression(StringConstant("getMeanFromTimer"), args) =>
-      if (Knowledge.l3tmp_genAdvancedTimers)
-        FunctionCallExpression("getMeanTime", ListBuffer(iv.Timer(args(0))))
-      else
-        StringConstant("Not supported: getMeanFromTimer")
+      FunctionCallExpression("getMeanTime", ListBuffer(iv.Timer(args(0))))
 
     case FunctionCallExpression(StringConstant("getTotalFromTimer"), args) =>
-      if (Knowledge.l3tmp_genAdvancedTimers)
-        FunctionCallExpression("getTotalTime", ListBuffer(iv.Timer(args(0))))
-      else
-        StringConstant("Not supported: getTotalFromTimer")
+      FunctionCallExpression("getTotalTime", ListBuffer(iv.Timer(args(0))))
 
     // HACK for print functionality
     case ExpressionStatement(FunctionCallExpression(StringConstant("print"), args)) =>

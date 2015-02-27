@@ -6,24 +6,16 @@ object Application {
   def addFunction(printer : java.io.PrintWriter) = {
     printer.println("Function Application ( ) : Unit {")
 
-    if (!Knowledge.l3tmp_genForAutoTests) {
-      if (!Knowledge.l3tmp_genAdvancedTimers)
-        printer.println("\tVariable setupTime : Real = 0")
+    if (!Knowledge.l3tmp_genForAutoTests)
       printer.println("\tstartTimer ( setupWatch )")
-    }
 
     printer.println("\tinitGlobals ( )")
     printer.println("\tinitDomain ( )")
     printer.println("\tinitFieldsWithZero ( )")
 
     if (!Knowledge.l3tmp_genForAutoTests) {
-      if (Knowledge.l3tmp_genAdvancedTimers) {
-        printer.println("\tstopTimer ( setupWatch )")
-        printer.println("\tprint ( '\"Total time to setup: \"', getTotalFromTimer ( setupWatch ) )")
-      } else {
-        printer.println("\tstopTimer ( setupWatch, setupTime )")
-        printer.println("\tprint ( '\"Total time to setup: \"', setupTime )")
-      }
+      printer.println("\tstopTimer ( setupWatch )")
+      printer.println("\tprint ( '\"Total time to setup: \"', getTotalFromTimer ( setupWatch ) )")
     }
 
     if (Knowledge.l3tmp_genSetableStencil) {
@@ -115,15 +107,9 @@ object Application {
 
     if (Knowledge.l3tmp_kelvin && !Knowledge.l3tmp_genForAutoTests) {
       printer.println("\t}")
-      if (Knowledge.l3tmp_genAdvancedTimers) {
-        printer.println("\tstopTimer ( timeSamplesWatch )")
-        printer.println("\tprint ( '\"Total time to solve: \"', getTotalFromTimer ( timeSamplesWatch ) )")
-        printer.println("\tprint ( '\"Mean time per sample: \"', getMeanFromTimer ( timeSamplesWatch ) )")
-      } else {
-        printer.println(s"\tstopTimer ( timeSamplesWatch, timeSamples )")
-        printer.println("\tprint ( '\"Total time to solve: \"', timeSamples )")
-        printer.println("\tprint ( '\"Mean time per sample: \"', " + s"timeSamples / ${Knowledge.l3tmp_kelvin_numSamples} )")
-      }
+      printer.println("\tstopTimer ( timeSamplesWatch )")
+      printer.println("\tprint ( '\"Total time to solve: \"', getTotalFromTimer ( timeSamplesWatch ) )")
+      printer.println("\tprint ( '\"Mean time per sample: \"', getMeanFromTimer ( timeSamplesWatch ) )")
     }
 
     if (Knowledge.l3tmp_kelvin) {
@@ -150,10 +136,11 @@ object Application {
         printer.println("\tprintField ( '\"Solution.dat\"', Solution@finest )")
     }
 
-    if (Knowledge.l3tmp_genAdvancedTimers && !Knowledge.l3tmp_genForAutoTests) {
-      printer.println("\tprintAllTimers ( )")
-      printer.println("\tprintAllTimersToFile ( )")
-      if (Knowledge.advTimer_enableCallStacks) {
+    if (!Knowledge.l3tmp_genForAutoTests) {
+      //printer.println("\tprintAllTimers ( )")
+      if (Knowledge.l3tmp_printTimersToFile)
+        printer.println("\tprintAllTimersToFile ( )")
+      if (Knowledge.experimental_timerEnableCallStacks) {
         printer.println("\tnative ( 'CallTracker::PrintCallStackToFileGlobal(\"TimersAll.cs\")' )")
         printer.println("\tnative ( 'CallTracker::ClearCallStack()' )")
       }
