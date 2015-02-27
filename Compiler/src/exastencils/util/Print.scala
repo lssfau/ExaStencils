@@ -11,14 +11,14 @@ import exastencils.knowledge._
 import exastencils.mpi._
 import exastencils.prettyprinting._
 
-case class PrintStatement(var toPrint : ListBuffer[Expression]) extends Statement with Expandable {
+case class PrintStatement(var toPrint : ListBuffer[Expression], var stream : String = "std::cout") extends Statement with Expandable {
   def this(toPrint : Expression) = this(ListBuffer(toPrint))
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintStatement\n"
 
   override def expand : Output[ConditionStatement] = {
     new ConditionStatement(new MPI_IsRootProc,
-      ("std::cout << " : Expression) ~ toPrint.reduceLeft((l, e) => l ~ "<< \" \" <<" ~ e) ~ "<< std::endl")
+      (stream : Expression) ~ " << " ~ toPrint.reduceLeft((l, e) => l ~ " << \" \" << " ~ e) ~ " << std::endl")
   }
 }
 
