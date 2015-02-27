@@ -37,7 +37,7 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
 
 case class MultiGridFunctions() extends FunctionCollection("MultiGrid/MultiGrid",
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
-  ListBuffer("Globals/Globals.h", "Util/Vector.h", "Util/Stopwatch.h", "CommFunctions/CommFunctions.h", "Domains/DomainGenerated.h")) {
+  ListBuffer("Globals/Globals.h", "Util/Vector.h", "Util/TimerFunctions.h", "CommFunctions/CommFunctions.h", "Domains/DomainGenerated.h")) {
 
   if (Knowledge.mpi_enabled)
     externalDependencies += "mpi.h"

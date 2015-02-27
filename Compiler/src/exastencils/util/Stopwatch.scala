@@ -4,23 +4,15 @@ import exastencils.datastructures._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
 
-case class Stopwatch(var memberFunctions : StopwatchFunctions = StopwatchFunctions()) extends Node with FilePrettyPrintable {
-  memberFunctions.functions += TimerFct_StartTimer()
-  memberFunctions.functions += TimerFct_StopTimer()
-  memberFunctions.functions += TimerFct_GetTotalTime()
-  memberFunctions.functions += TimerFct_GetMeanTime()
-  memberFunctions.functions += TimerFct_GetLastTime()
-  memberFunctions.functions += TimerFct_PrintAllTimers()
-  memberFunctions.functions += TimerFct_PrintAllTimersToFile()
-
+case class Stopwatch() extends Node with FilePrettyPrintable {
   override def printToFile : Unit = {
     if (Knowledge.experimental_timerEnableCallStacks) {
       CallEntity().printToFile()
       CallTracker().printToFile()
     }
 
-    val writerHeader = PrettyprintingManager.getPrinter(s"Util/StopwatchDEP.h")
-    writerHeader.addExternalDependency("fstream")
+    val writerHeader = PrettyprintingManager.getPrinter(s"Util/Stopwatch.h")
+    writerHeader.addExternalDependency("string")
 
     Knowledge.timer_type match {
       case "Chrono" => writerHeader.addExternalDependency("chrono")
@@ -76,7 +68,7 @@ case class CallEntity() extends Node with FilePrettyPrintable {
     val writer = PrettyprintingManager.getPrinter(s"Util/CallEntity.h")
 
     writer << ("""
-#include "StopwatchDEP.h"
+#include "Stopwatch.h"
 #include "CallEntity.h"
 
 class CallEntity
@@ -159,7 +151,7 @@ case class CallTracker() extends Node with FilePrettyPrintable {
     val writerSource = PrettyprintingManager.getPrinter(s"Util/CallTracker.cpp")
 
     writerHeader << ("""
-#include "StopwatchDEP.h"
+#include "Stopwatch.h"
 class CallTracker
 {
 public:

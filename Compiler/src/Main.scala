@@ -133,12 +133,13 @@ object Main {
     // add remaining nodes
     StateManager.root_.asInstanceOf[ir.Root].nodes ++= List(
       // FunctionCollections
-      new DomainFunctions,
-      new CommunicationFunctions,
+      DomainFunctions(),
+      CommunicationFunctions(),
 
       // Util
-      new Stopwatch,
-      new Vector)
+      Stopwatch(),
+      TimerFunctions(),
+      Vector())
 
     // apply strategies
 

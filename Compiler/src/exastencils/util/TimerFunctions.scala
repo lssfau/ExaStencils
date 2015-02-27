@@ -66,9 +66,17 @@ case class TimerDetail_ReturnConvertToMS(var time : Expression) extends Statemen
   }
 }
 
-case class StopwatchFunctions() extends FunctionCollection("Util/Stopwatch",
-  ListBuffer(),
-  ListBuffer(s"Globals/Globals.h", s"Util/StopwatchDEP.h")) {
+case class TimerFunctions() extends FunctionCollection("Util/TimerFunctions",
+  ListBuffer("fstream"),
+  ListBuffer("Globals/Globals.h", "Util/Stopwatch.h")) {
+
+  functions += TimerFct_StartTimer()
+  functions += TimerFct_StopTimer()
+  functions += TimerFct_GetTotalTime()
+  functions += TimerFct_GetMeanTime()
+  functions += TimerFct_GetLastTime()
+  functions += TimerFct_PrintAllTimers()
+  functions += TimerFct_PrintAllTimersToFile()
 
   if (Knowledge.experimental_timerEnableCallStacks) {
     internalDependencies += s"Util/CallEntity.h"

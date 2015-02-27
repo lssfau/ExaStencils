@@ -24,7 +24,7 @@ case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = ne
     externalDependencies += "omp.h"
   if (Knowledge.data_alignFieldPointers || Knowledge.data_alignTmpBufferPointers)
     externalDependencies += "stddef.h" // TODO: please note why this is required; delete if it is not required
-  internalDependencies += "Util/StopwatchDEP.h"
+  internalDependencies += "Util/Stopwatch.h"
 
   override def printHeader = {
     super.printHeader
