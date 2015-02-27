@@ -16,9 +16,12 @@ case class PrintStatement(var toPrint : ListBuffer[Expression], var stream : Str
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintStatement\n"
 
-  override def expand : Output[ConditionStatement] = {
-    new ConditionStatement(new MPI_IsRootProc,
-      (stream : Expression) ~ " << " ~ toPrint.reduceLeft((l, e) => l ~ " << \" \" << " ~ e) ~ " << std::endl")
+  override def expand : Output[Statement] = {
+    if (toPrint.isEmpty)
+      NullStatement
+    else
+      new ConditionStatement(MPI_IsRootProc(),
+        (stream : Expression) ~ " << " ~ toPrint.reduceLeft((l, e) => l ~ " << \" \" << " ~ e) ~ " << std::endl")
   }
 }
 
