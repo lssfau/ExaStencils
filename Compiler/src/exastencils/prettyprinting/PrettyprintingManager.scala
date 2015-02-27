@@ -117,8 +117,9 @@ object PrettyprintingManager {
   object Prettyprinter {
     def generateInclude(toInclude : String) = {
       val prepend = toInclude match {
-        case "mpi.h" => "#pragma warning(disable : 4800)\n"
-        case _       => ""
+        case "mpi.h"     => "#pragma warning(disable : 4800)\n"
+        case "windows.h" => "#define NOMINMAX\n"
+        case _           => ""
       }
       prepend + "#include \"" + toInclude + "\"\n"
     }

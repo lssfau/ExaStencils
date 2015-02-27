@@ -246,10 +246,10 @@ case class IterationOffsetEnd(var domain : Expression, var fragmentIdx : Express
 
 case class Timer(var name : Expression) extends UnduplicatedVariable {
   override def resolveName = s"timer_" + name.prettyprint
-  override def resolveDataType = "TimerWrapper"
+  override def resolveDataType = "StopWatch"
 
   override def getCtor() : Option[Statement] = {
-    Some(AssignmentStatement(resolveName ~ "._name", "\"" ~ name ~ "\""))
+    Some(AssignmentStatement(resolveName ~ ".timerName", "\"" ~ name ~ "\""))
   }
 }
 
