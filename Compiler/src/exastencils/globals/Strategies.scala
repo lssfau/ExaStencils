@@ -14,11 +14,6 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
         globals.variables += new VariableDeclarationStatement(new IntegerDatatype, "mpiRank")
         globals.variables += new VariableDeclarationStatement(new IntegerDatatype, "mpiSize")
       }
-      if (!Knowledge.domain_rect_generate) {
-        globals.variables += new VariableDeclarationStatement(new IntegerDatatype, "numFragments")
-        globals.variables += new VariableDeclarationStatement(new IntegerDatatype, "fileOffset")
-        globals.variables += new VariableDeclarationStatement(new IntegerDatatype, "bufsize")
-      }
       globals
     case func : FunctionStatement if ("initGlobals" == func.name) =>
       if (Knowledge.mpi_enabled) {
@@ -26,11 +21,6 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
         func.body += "MPI_Comm_rank(mpiCommunicator, &mpiRank)"
         func.body += "MPI_Comm_size(mpiCommunicator, &mpiSize)"
         func.body += "std::srand(mpiRank)"
-      }
-      if (!Knowledge.domain_rect_generate) {
-        func.body += "numFragments = 0"
-        func.body += "fileOffset = 0"
-        func.body += "bufsize = 0"
       }
       func
   })

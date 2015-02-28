@@ -11,7 +11,6 @@ import exastencils.util._
 import exastencils.mpi._
 import exastencils.communication._
 import exastencils.core._
-import jeremias.dsl._
 
 case class PointOutsideDomain(var pos : Expression, var domain : Domain) extends Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointOutsideDomain\n"
@@ -225,10 +224,38 @@ case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with E
     FunctionStatement(new UnitDatatype(), s"initDomain", ListBuffer(),
       (if (Knowledge.mpi_enabled) {
         ListBuffer(
+          VariableDeclarationStatement(IntegerDatatype(), "numFragments", Some("0")),
+          VariableDeclarationStatement(IntegerDatatype(), "bufsize", Some("0")),
+          VariableDeclarationStatement(IntegerDatatype(), "fileOffset", Some("0")),
           AssertStatement(s"mpiSize != ${Knowledge.mpi_numThreads}",
             "\"Invalid number of MPI processes (\" << mpiSize << \") should be \" << " + (Knowledge.domain_numBlocks),
             "return"),
-          ConditionStatement("mpiRank == 0", ListBuffer("readConfig(\"./Domains/config.dat\")"),
+          ConditionStatement("mpiRank == 0",
+            ListBuffer(
+              VariableDeclarationStatement(SpecialDatatype("std::ifstream"), "file(\"./Domains/config.dat\", std::ios::binary | std::ios::ate | std::ios::in)"),
+              ConditionStatement(
+                "file.is_open()",
+                ListBuffer[Statement](
+                  VariableDeclarationStatement(IntegerDatatype(), "size", Some("file.tellg()")),
+                  VariableDeclarationStatement(PointerDatatype("char"), "memblock", Some("new char[size]")),
+                  "file.seekg (0, std::ios::beg)",
+                  "file.read (memblock, size)",
+                  VariableDeclarationStatement(IntegerDatatype(), "numRanks", Some(ReadValueFrom(new IntegerDatatype, "memblock"))),
+                  AssignmentStatement("numFragments", ReadValueFrom(new IntegerDatatype, "memblock")),
+                  AssignmentStatement("bufsize", ReadValueFrom(new IntegerDatatype, "memblock")),
+                  (if (Knowledge.mpi_enabled) VariableDeclarationStatement(IntegerDatatype(), "fileOffset", Some("bufsize"))
+                  else NullStatement),
+                  (if (Knowledge.mpi_enabled) {
+                    ForLoopStatement("int i = 1", " i < numRanks ", "++i", ListBuffer(
+                      VariableDeclarationStatement(IntegerDatatype(), "n", Some(ReadValueFrom(new IntegerDatatype, "memblock"))),
+                      VariableDeclarationStatement(IntegerDatatype(), "b", Some(ReadValueFrom(new IntegerDatatype, "memblock"))),
+                      MPI_Send("&n", "1", IntegerDatatype(), "i", 0, "mpiRequest_Send_0[i][0]"),
+                      MPI_Send("&fileOffset", "1", IntegerDatatype(), "i", 1, "mpiRequest_Send_0[i][1]"),
+                      MPI_Send("&b", "1", IntegerDatatype(), "i", 2, "mpiRequest_Send_0[i][2]"),
+                      AssignmentStatement("fileOffset", AdditionExpression("fileOffset", "b"))))
+                  } else NullStatement),
+                  "file.close()"), ListBuffer[Statement]()),
+              AssignmentStatement("fileOffset", 0)),
             ListBuffer(
               "MPI_Irecv(&numFragments, 1, MPI_INT, 0, 0, mpiCommunicator, &mpiRequest_Recv_0[mpiRank][0])",
               "MPI_Irecv(&fileOffset, 1, MPI_INT, 0, 1, mpiCommunicator, &mpiRequest_Recv_0[mpiRank][1])",
@@ -239,15 +266,30 @@ case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with E
           "MPI_File_read_at(fh, fileOffset, buf, bufsize,MPI_BYTE, MPI_STATUSES_IGNORE)",
           "MPI_Barrier(MPI_COMM_WORLD)",
           "MPI_File_close(&fh)",
-          "setValues(buf)",
+          "setValues(buf,numFragments)",
           "setupBuffers()")
       } else {
         ListBuffer(
-          "readConfig(\"./Domains/config.dat\")",
-          VariableDeclarationStatement(SpecialDatatype("std::ifstream"), s"""file("./Domains/fragments.dat", std::ios::binary | std::ios::in)"""),
+          VariableDeclarationStatement(IntegerDatatype(), "numFragments", Some("0")),
+          VariableDeclarationStatement(IntegerDatatype(), "bufsize", Some("0")),
+          VariableDeclarationStatement(IntegerDatatype(), "fileOffset", Some("0")),
+          VariableDeclarationStatement(SpecialDatatype("std::ifstream"), "file(\"./Domains/config.dat\", std::ios::binary | std::ios::ate | std::ios::in)"),
+          ConditionStatement(
+            "file.is_open()",
+            ListBuffer[Statement](
+              VariableDeclarationStatement(IntegerDatatype(), "size", Some("file.tellg()")),
+              VariableDeclarationStatement(PointerDatatype("char"), "memblock", Some("new char[size]")),
+              "file.seekg (0, std::ios::beg)",
+              "file.read (memblock, size)",
+              VariableDeclarationStatement(IntegerDatatype(), "numRanks", Some(ReadValueFrom(new IntegerDatatype, "memblock"))),
+              AssignmentStatement("numFragments", ReadValueFrom(new IntegerDatatype, "memblock")),
+              AssignmentStatement("bufsize", ReadValueFrom(new IntegerDatatype, "memblock")),
+              "file.close()"), ListBuffer[Statement]()),
+          VariableDeclarationStatement(SpecialDatatype("std::ifstream"), s"""fileFrags("./Domains/fragments.dat", std::ios::binary | std::ios::in)"""),
           VariableDeclarationStatement(CharDatatype(), "buf[bufsize]"),
-          "file.read (buf, bufsize)",
-          "setValues(buf)",
+          "fileFrags.read (buf, bufsize)",
+          "fileFrags.close()",
+          "setValues(buf,numFragments)",
           "setupBuffers()")
       }))
 
@@ -266,10 +308,7 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
     body += Scope(ListBuffer(
       AssignmentStatement(iv.PrimitiveId(), ReadValueFrom(new IntegerDatatype, "data")),
       AssignmentStatement(iv.CommId(), ReadValueFrom(new IntegerDatatype, "data")),
-      //VariableDeclarationStatement(IntegerDatatype(),"numVertices",Some(ReadValueFrom(new IntegerDatatype,"data"))),
-      //VariableDeclarationStatement(IntegerDatatype(),"dimensionality",Some(ReadValueFrom(new IntegerDatatype,"data"))),
       ForLoopStatement("int i = 0", " i <" ~ math.pow(2, Knowledge.dimensionality), "++i", ListBuffer(
-        //TODO Statement Loop over vertices
         s"Vec3 vertPos(" ~ ReadValueFrom(new RealDatatype, "data") ~ ",0,0)",
         (if (Knowledge.dimensionality == 2) AssignmentStatement("vertPos.y", ReadValueFrom(new RealDatatype, "data")) else NullStatement),
         (if (Knowledge.dimensionality == 3) AssignmentStatement("vertPos.z", ReadValueFrom(new RealDatatype, "data")) else NullStatement),
@@ -301,45 +340,9 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
     FunctionStatement(
       new UnitDatatype,
       s"setValues",
-      ListBuffer[VariableAccess](VariableAccess("data", Some("char*"))),
-      ListBuffer((LoopOverFragments(body))))
-  }
-}
-
-case class ReadConfig() extends AbstractFunctionStatement with Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ReadConfig\n"
-  override def prettyprint_decl = prettyprint
-
-  override def expand : Output[FunctionStatement] = {
-    FunctionStatement(
-      new UnitDatatype(),
-      s"readConfig",
-      ListBuffer(VariableAccess("cName", Some(new StringDatatype()))),
-      ListBuffer(
-        VariableDeclarationStatement(SpecialDatatype("std::ifstream"), "file(cName, std::ios::binary | std::ios::ate | std::ios::in)"),
-        ConditionStatement(
-          "file.is_open()",
-          ListBuffer[Statement](
-            VariableDeclarationStatement(IntegerDatatype(), "size", Some("file.tellg()")),
-            VariableDeclarationStatement(PointerDatatype("char"), "memblock", Some("new char[size]")),
-            "file.seekg (0, std::ios::beg)",
-            "file.read (memblock, size)",
-            VariableDeclarationStatement(IntegerDatatype(), "numDomains", Some(ReadValueFrom(new IntegerDatatype, "memblock"))),
-            AssignmentStatement("numFragments", ReadValueFrom(new IntegerDatatype, "memblock")),
-            AssignmentStatement("bufsize", ReadValueFrom(new IntegerDatatype, "memblock")),
-            (if (Knowledge.mpi_enabled) VariableDeclarationStatement(IntegerDatatype(), "offset", Some("bufsize"))
-            else NullStatement),
-            (if (Knowledge.mpi_enabled) {
-              ForLoopStatement("int i = 1", " i < numDomains ", "++i", ListBuffer(
-                VariableDeclarationStatement(IntegerDatatype(), "n", Some(ReadValueFrom(new IntegerDatatype, "memblock"))),
-                VariableDeclarationStatement(IntegerDatatype(), "b", Some(ReadValueFrom(new IntegerDatatype, "memblock"))),
-                MPI_Send("&n", "1", IntegerDatatype(), "i", 0, "mpiRequest_Send_0[i][0]"),
-                MPI_Send("&offset", "1", IntegerDatatype(), "i", 1, "mpiRequest_Send_0[i][1]"),
-                MPI_Send("&b", "1", IntegerDatatype(), "i", 2, "mpiRequest_Send_0[i][2]"),
-                AssignmentStatement("offset", AdditionExpression("offset", "b"))))
-            } else NullStatement),
-            "file.close()"),
-          ListBuffer[Statement]())))
+      ListBuffer[VariableAccess](VariableAccess("data", Some("char*")), VariableAccess("numFragments", Some(IntegerDatatype()))),
+      //      ListBuffer((LoopOverFragments(body))))
+      ListBuffer(ForLoopStatement(" int fragmentIdx = 0 ", " fragmentIdx < numFragments ", " ++fragmentIdx ", body)))
   }
 }
 
@@ -371,7 +374,6 @@ case class DomainFunctions() extends FunctionCollection(
         ReturnStatement(Some("*(T *)&bytes"))))
     rvTemplateFunc.annotate("isTemplate")
     functions += rvTemplateFunc
-    functions += new ReadConfig
     functions += new SetValues
     functions += new InitDomainFromFragmentFile
   }

@@ -1,3 +1,2 @@
 outputPath = "D:\tmp\"
-l4file = "D:\Dokumente\Uni\MA\git\Compiler\dsl\Layer4Jeremias.exa"
 basePathPrefix = "D:\Dokumente\Uni\MA\git"

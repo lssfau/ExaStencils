@@ -198,7 +198,9 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ##### Object Declarations
   // ######################################
 
-  lazy val domain = (locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l ~ u => DomainDeclarationStatement(id, l, u) }))
+  lazy val domain = (
+    locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l ~ u => DomainDeclarationStatement(id, l, u) })
+    ||| locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l1 ~ u1 ~ l2 ~ u2 ~ l3 ~ u3 => DomainDeclarationStatement(id, List(l1, l2, l3), List(u1, u2, u3)) }))
 
   lazy val layout = locationize(("Layout" ~> ident) ~ ("<" ~> datatype <~ ",") ~ (("Node" ||| "Cell" ||| "node" ||| "cell") <~ ">") ~ level.? ~ ("{" ~> layoutOptions <~ "}")
     ^^ { case id ~ dt ~ loc ~ level ~ opts => var x = LayoutDeclarationStatement(LeveledIdentifier(id, level.getOrElse(new AllLevelsSpecification)), dt, "Node" == loc || "node" == loc); x.set(opts); x })

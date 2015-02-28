@@ -99,7 +99,7 @@ object Knowledge {
   def domain_canHaveRemoteNeighs : Boolean = (domain_numBlocks > 1) // specifies if fragments can have remote (i.e.\ different mpi rank) neighbors, i.e.\ if mpi comm is required
 
   /// Student project - Jeremias
-  var domain_formUnion : Boolean = false // for L-shaped domain
+  var domain_useCase : String = "" //atm only "L-Shape" in 2D possible;  needs to be specified in case of onlyRectangular,rect_generate = false
 
   // TODO: ignore for IDE support for now
   var discr_hx : Array[Double] = Array() // grid widths in x direction per level
@@ -297,7 +297,7 @@ object Knowledge {
 
     // domain
     Constraints.condEnsureValue(domain_rect_generate, false, !domain_onlyRectangular, "only rectangular domains can be generated")
-    Constraints.condEnsureValue(domain_readFromFile, true, !domain_rect_generate, "non-generated domains must be read from file")
+    Constraints.condEnsureValue(domain_readFromFile, true, !domain_rect_generate && domain_useCase == "", "non-generated domains must be read from file")
     Constraints.condEnsureValue(domain_rect_generate, false, domain_readFromFile, "domain_rect_generate is not allowed if domain_readFromFile is enabled")
 
     Constraints.condEnsureValue(domain_rect_numBlocks_y, 1, domain_rect_generate && dimensionality < 2, "domain_rect_numBlocks_y must be set to 1 for problems with a dimensionality smaller 2")

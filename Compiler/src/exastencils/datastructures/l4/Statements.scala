@@ -8,7 +8,7 @@ import exastencils.knowledge
 import exastencils.omp
 import exastencils.prettyprinting._
 import exastencils.util._
-import jeremias.dsl._
+import exastencils.domain._
 
 abstract class Statement extends Node with ProgressableToIr with PrettyPrintable {
   override def progressToIr : ir.Statement
@@ -24,13 +24,38 @@ trait HasIdentifier {
 
 trait ExternalDeclarationStatement extends SpecialStatement
 
-case class DomainDeclarationStatement(var name : String, var lower : RealIndex, var upper : RealIndex, var index : Int = 0) extends SpecialStatement {
-  if (name.contains("union_")) knowledge.Knowledge.domain_formUnion = true
-  override def prettyprint(out : PpStream) = { out << "Domain " << name << "< " << lower << " to " << upper << " >\n" }
-
+case class DomainDeclarationStatement(var name : String, var lower : Any, var upper : Any, var index : Int = 0) extends SpecialStatement {
+  override def prettyprint(out : PpStream) = {
+    (lower, upper) match {
+      case (l : RealIndex, u : RealIndex) => out << "Domain " << name << "< " << l << " to " << u << " >\n"
+      case (lo : List[_], up : List[_]) => {
+        (lo.head, up.head) match {
+          case (_ : RealIndex, _ : RealIndex) => {
+            val sep = lo.map(m => ", ").dropRight(1) :+ " >\n"
+            out << "Domain " << name << "< "
+            for (i <- 0 until lo.length) { out << lo(i) << " to " << up(i) << sep(i) }
+            //out << "Domain " << name << "< " << l(0) << " to " << u(0) << ", " << l(1) << " to " << u(1) << " ," << l(2) << " to " << u(2) << " >\n"
+          }
+        }
+      }
+    }
+  }
   override def progressToIr : knowledge.Domain = {
     (lower, upper) match {
-      case (l : RealIndex2D, u : RealIndex2D) => new knowledge.RectangularDomain(name, index, new RectangularDomainShape(new AABB(l.x, u.x, l.y, u.y, 0.0, 0.0)))
+      case (lo : List[_], up : List[_]) =>
+        {
+          (lo.head, up.head) match {
+            case (_ : RealIndex2D, _ : RealIndex2D) => {
+              val rectUnionDomains : List[RectangularDomainShape] =
+                (lo.zip(up)).map {
+                  case (li : RealIndex2D, ui : RealIndex2D) =>
+                    new RectangularDomainShape(new AABB(li.x, ui.x, li.y, ui.y, 0.0, 0.0))
+                }
+              new knowledge.LShapedDomain(name, index, new LShapedDomainShape(rectUnionDomains))
+            }
+          }
+        }
+      case (l : RealIndex2D, u : RealIndex2D) => new knowledge.RectangularDomain(name, index, new RectangularDomainShape(new AABB(l.x, u.x, l.y, u.y, 0, 0)))
       case (l : RealIndex3D, u : RealIndex3D) => new knowledge.RectangularDomain(name, index, new RectangularDomainShape(new AABB(l.x, u.x, l.y, u.y, l.z, u.z)))
       case _                                  => new knowledge.RectangularDomain(name, index, new RectangularDomainShape(new AABB()))
     }

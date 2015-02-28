@@ -31,6 +31,8 @@ case class Root() extends Node {
     if (Knowledge.l3tmp_kelvin) {
       Fields.addFields(printer, "", "innerDom")
       Fields.addFields(printer, "_GMRF", "global")
+    } else if (Knowledge.domain_useCase == "L-Shape") {
+      Fields.addFields(printer, "", "LShaped")
     } else {
       Fields.addFields(printer, "", if (Knowledge.l3tmp_genEmbeddedDomain) "innerDom" else "global")
     }
@@ -51,6 +53,8 @@ case class Root() extends Node {
     if (Knowledge.l3tmp_kelvin) {
       StencilFields.addStencilFields(printer, "", "innerDom")
       StencilFields.addStencilFields(printer, "_GMRF", "global")
+    } else if (Knowledge.domain_useCase == "L-Shape") {
+      StencilFields.addStencilFields(printer, "", "LShaped")
     } else {
       StencilFields.addStencilFields(printer, "", if (Knowledge.l3tmp_genEmbeddedDomain) "innerDom" else "global")
     }

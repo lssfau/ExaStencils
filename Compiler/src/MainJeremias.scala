@@ -18,16 +18,15 @@ import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.strategies._
 import exastencils.util._
-import jeremias.dsl._
-
-import scala.collection.mutable._
 
 object MainJeremias {
-  def main(args: Array[String]): Unit = {
-    Locale.setDefault(Locale.ENGLISH) // EPIC -.-
+  def main(args : Array[String]) : Unit = {
 
     // for runtime measurement
-    val start: Long = System.nanoTime()
+    val start : Long = System.nanoTime()
+
+    //if (Settings.timeStrategies) -> right now this Schroedinger flag is neither true nor false
+    StrategyTimer.startTiming("Initializing")
 
     // init Settings
     if (args.length >= 1) {
@@ -52,12 +51,26 @@ object MainJeremias {
     }
     Knowledge.update()
 
+    if (Settings.timeStrategies)
+      StrategyTimer.stopTiming("Initializing")
+
     // L1
+
+    if (Settings.timeStrategies)
+      StrategyTimer.startTiming("Handling Layer 1")
+
+    // add L1 code here
+
+    if (Settings.timeStrategies)
+      StrategyTimer.stopTiming("Handling Layer 1")
 
     // L2
 
+    if (Settings.timeStrategies)
+      StrategyTimer.startTiming("Handling Layer 2")
+
     /// HACK: This information has to come from L2
-    if (Knowledge.domain_rect_generate) {
+    if (Knowledge.domain_rect_generate || Knowledge.domain_useCase == "L-Shape") {
       Knowledge.discr_hx = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
         level => l3.Domains.getGlobalWidths(0) / (Knowledge.domain_rect_numFragsTotal_x * Knowledge.domain_fragmentLength_x * (1 << level)))
       if (Knowledge.dimensionality > 1)
@@ -68,19 +81,30 @@ object MainJeremias {
           level => l3.Domains.getGlobalWidths(2) / (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * (1 << level)))
     }
 
+    if (Settings.timeStrategies)
+      StrategyTimer.stopTiming("Handling Layer 2")
+
     // L3
 
-    // Looking for L3 related code? Check MainL3.scala!
+    if (Settings.timeStrategies)
+      StrategyTimer.startTiming("Handling Layer 3")
+
+    // Looking for other L3 related code? Check MainL3.scala!
 
     if (Knowledge.l3tmp_generateL4) {
       StateManager.root_ = new l3.Generate.Root
       StateManager.root_.asInstanceOf[l3.Generate.Root].printToL4(Settings.getL4file)
     }
 
+    if (Settings.timeStrategies)
+      StrategyTimer.stopTiming("Handling Layer 3")
+
     // L4
 
-    StateManager.root_ = (new ParserL4).parseFile(Settings.getL4file)
+    if (Settings.timeStrategies)
+      StrategyTimer.startTiming("Handling Layer 4")
 
+    StateManager.root_ = (new ParserL4).parseFile(Settings.getL4file)
     ValidationL4.apply
 
     if (false) // re-print the merged L4 state
@@ -98,24 +122,44 @@ object MainJeremias {
       ValidationL4.apply
     }
 
+    if (Settings.timeStrategies)
+      StrategyTimer.stopTiming("Handling Layer 4")
+
     // go to IR
     ProgressToIr.apply() // preparation step
     ResolveL4Constants.apply()
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
-    if (Knowledge.domain_formUnion && Knowledge.mpi_enabled) { // for L-shape domain
-      Knowledge.mpi_numThreads = Knowledge.domain_numBlocks * DomainCollection.domains.count { d => d.identifier == "global" || d.identifier.contains("union_") }
+    if (!Knowledge.domain_rect_generate) { // for L-shape domain
+      //TODO set all settings here
+      if (Knowledge.domain_readFromFile) {
+        //TODO read domain from file
+      } else if (Knowledge.domain_onlyRectangular) {
+        Knowledge.domain_numBlocks = Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_z
+        Knowledge.domain_numFragmentsPerBlock = Knowledge.domain_rect_numFragsPerBlock_x * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_z
+        DomainCollection.initFragments()
+      } else if (Knowledge.domain_useCase == "L-Shape") { //right now defined in
+        Knowledge.domain_numBlocks = Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_z
+        Knowledge.domain_numFragmentsPerBlock = Knowledge.domain_rect_numFragsPerBlock_x * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_z
+        val tmp = Knowledge.mpi_numThreads
+        Knowledge.mpi_numThreads = (Knowledge.domain_numBlocks.toDouble - Knowledge.domain_numBlocks.toDouble / 4.0).round.toInt
+        Logger.debug("Changed mpi_numThreads (to work with L-shaped Domain) from " + tmp + " to " + Knowledge.mpi_numThreads)
+        DomainCollection.initFragments()
+        Knowledge.domain_numBlocks = Knowledge.mpi_numThreads
+      }
+
     }
 
     // add remaining nodes
     StateManager.root_.asInstanceOf[ir.Root].nodes ++= List(
       // FunctionCollections
-      new DomainFunctions,
-      new CommunicationFunctions,
+      DomainFunctions(),
+      CommunicationFunctions(),
 
       // Util
-      new Stopwatch,
-      new Vector)
+      Stopwatch(),
+      TimerFunctions(),
+      Vector())
 
     // apply strategies
 
@@ -216,27 +260,17 @@ object MainJeremias {
     PrettyprintingManager.finish
 
     if (!Knowledge.domain_rect_generate) {
-      DomainCollection.initFragments()
-      if (Knowledge.domain_formUnion) {
-        //connect domains to one l-shape domain
-        val v1_global_right = new Vertex(ListBuffer(0.5, 0.0))
-        val v2_global_right = new Vertex(ListBuffer(0.5, 0.5))
-        val e_global_right = new Edge(v1_global_right, v2_global_right)
-        DomainCollection.unifyDomains("global", "union_right", new Face(ListBuffer(e_global_right), ListBuffer(v1_global_right, v2_global_right)))
-
-        val v1_global_top = new Vertex(ListBuffer(0, 0.5))
-        val v2_global_top = new Vertex(ListBuffer(0.5, 0.5))
-        val e_global_top = new Edge(v1_global_top, v2_global_top)
-        DomainCollection.unifyDomains("global", "union_top", new Face(ListBuffer(e_global_top), ListBuffer(v1_global_top, v2_global_top)))
-
-      }
-      jeremias.dsl.FragmentKnowledge.saveFragmentData()
+      exastencils.domain.FragmentKnowledge.saveFragmentData()
+      FragmentCollection.fragments.clear()
     }
 
     Logger.dbg("Done!")
 
     Logger.dbg("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
     (new CountingStrategy("number of printed nodes")).apply()
+
+    if (Settings.timeStrategies)
+      StrategyTimer.print
 
     if (Settings.produceHtmlLog)
       Logger_HTML.finish
