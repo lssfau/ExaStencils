@@ -108,7 +108,7 @@ case class ConditionStatement(var condition : Expression, var trueBody : ListBuf
     out <<< (trueBody, "\n") << '\n'
     if (!falseBody.isEmpty) {
       out << "} else {\n"
-      out <<< (falseBody, "\n")
+      out <<< (falseBody, "\n") << '\n'
     }
     out << '}'
   }
