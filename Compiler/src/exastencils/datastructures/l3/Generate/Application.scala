@@ -6,17 +6,17 @@ object Application {
   def addFunction(printer : java.io.PrintWriter) = {
     printer.println("Function Application ( ) : Unit {")
 
-    if (!Knowledge.l3tmp_genForAutoTests)
+    if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
       printer.println("\tstartTimer ( setupWatch )")
 
     printer.println("\tinitGlobals ( )")
     printer.println("\tinitDomain ( )")
     printer.println("\tinitFieldsWithZero ( )")
 
-    if (!Knowledge.l3tmp_genForAutoTests) {
+    if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
       printer.println("\tstopTimer ( setupWatch )")
+    if (!Knowledge.l3tmp_genForAutoTests)
       printer.println("\tprint ( '\"Total time to setup: \"', getTotalFromTimer ( setupWatch ) )")
-    }
 
     if (Knowledge.l3tmp_genSetableStencil) {
       Knowledge.dimensionality match {
@@ -138,12 +138,6 @@ object Application {
 
     if (!Knowledge.l3tmp_genForAutoTests) {
       //printer.println("\tprintAllTimers ( )")
-      if (Knowledge.l3tmp_printTimersToFile)
-        printer.println("\tprintAllTimersToFile ( )")
-      if (Knowledge.experimental_timerEnableCallStacks) {
-        printer.println("\tnative ( 'CallTracker::PrintCallStackToFileGlobal(\"TimersAll.cs\")' )")
-        printer.println("\tnative ( 'CallTracker::ClearCallStack()' )")
-      }
 
       if (Knowledge.l3tmp_genTimersPerFunction) {
         for (
@@ -171,6 +165,13 @@ object Application {
           printer.println("\tprint ( '\"" + s"Total time spent communicating: " + "\"', " + s"getTotalFromTimer ( commTimer ) )")
         }
       }
+    }
+
+    if (Knowledge.l3tmp_printTimersToFile)
+      printer.println("\tprintAllTimersToFile ( )")
+    if (Knowledge.experimental_timerEnableCallStacks) {
+      printer.println("\tnative ( 'CallTracker::PrintCallStackToFileGlobal(\"callstack.cs\")' )")
+      printer.println("\tnative ( 'CallTracker::ClearCallStack()' )")
     }
 
     printer.println("\tdestroyGlobals ( )")
