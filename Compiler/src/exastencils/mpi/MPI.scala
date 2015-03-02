@@ -10,19 +10,21 @@ import exastencils.knowledge._
 import exastencils.prettyprinting._
 import exastencils.util._
 
+trait MPI_Statement extends Statement
+
 case class MPI_IsRootProc() extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << "0 == mpiRank"
 }
 
-case class MPI_Init() extends Statement {
+case class MPI_Init() extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = out << "MPI_Init(&argc, &argv);"
 }
 
-case class MPI_Finalize() extends Statement {
+case class MPI_Finalize() extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = out << "MPI_Finalize();"
 }
 
-case class MPI_SetRankAndSize(var communicator : Expression) extends Statement {
+case class MPI_SetRankAndSize(var communicator : Expression) extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     out << "int mpiRank;\n"
     out << "int mpiSize;\n"
@@ -31,19 +33,19 @@ case class MPI_SetRankAndSize(var communicator : Expression) extends Statement {
   }
 }
 
-case class MPI_Receive(var buffer : Expression, var size : Expression, var datatype : Datatype, var rank : Expression, var tag : Expression, var request : Expression) extends Statement {
+case class MPI_Receive(var buffer : Expression, var size : Expression, var datatype : Datatype, var rank : Expression, var tag : Expression, var request : Expression) extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     out << "MPI_Irecv(" << buffer << ", " << size << ", " << datatype.prettyprint_mpi << ", " << rank << ", " << tag << ", mpiCommunicator, &" << request << ");"
   }
 }
 
-case class MPI_Send(var buffer : Expression, var size : Expression, var datatype : Datatype, var rank : Expression, var tag : Expression, var request : Expression) extends Statement {
+case class MPI_Send(var buffer : Expression, var size : Expression, var datatype : Datatype, var rank : Expression, var tag : Expression, var request : Expression) extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     out << "MPI_Isend(" << buffer << ", " << size << ", " << datatype.prettyprint_mpi << ", " << rank << ", " << tag << ", mpiCommunicator, &" << request << ");"
   }
 }
 
-case class MPI_Allreduce(var sendbuf : Expression, var recvbuf : Expression, var datatype : Datatype, var count : Expression, var op : Expression) extends Statement {
+case class MPI_Allreduce(var sendbuf : Expression, var recvbuf : Expression, var datatype : Datatype, var count : Expression, var op : Expression) extends MPI_Statement {
   def this(sendbuf : Expression, recvbuf : Expression, datatype : Datatype, count : Expression, op : String) = this(sendbuf, recvbuf, datatype, count, MPI_Allreduce.mapOp(op))
   def this(buf : Expression, datatype : Datatype, count : Expression, op : Expression) = this("MPI_IN_PLACE", buf, datatype, count, op)
   def this(buf : Expression, datatype : Datatype, count : Expression, op : String) = this("MPI_IN_PLACE", buf, datatype, count, MPI_Allreduce.mapOp(op))
@@ -65,7 +67,7 @@ object MPI_Allreduce {
   }
 }
 
-case class MPI_Gather(var sendbuf : Expression, var recvbuf : Expression, var datatype : Datatype, var count : Expression) extends Statement {
+case class MPI_Gather(var sendbuf : Expression, var recvbuf : Expression, var datatype : Datatype, var count : Expression) extends MPI_Statement {
   def this(buf : Expression, datatype : Datatype, count : Expression) = this("MPI_IN_PLACE", buf, datatype, count)
 
   override def prettyprint(out : PpStream) : Unit = {
@@ -76,7 +78,7 @@ case class MPI_Gather(var sendbuf : Expression, var recvbuf : Expression, var da
   }
 }
 
-case class MPI_Barrier() extends Statement {
+case class MPI_Barrier() extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = out << "MPI_Barrier(mpiCommunicator);"
 }
 
@@ -134,7 +136,7 @@ object MPI_DataType {
   }
 }
 
-case class InitMPIDataType(mpiTypeName : String, field : Field, indexRange : IndexRange) extends Statement with Expandable {
+case class InitMPIDataType(mpiTypeName : String, field : Field, indexRange : IndexRange) extends MPI_Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitMPIDataType\n"
 
   def expand : Output[StatementList] = {

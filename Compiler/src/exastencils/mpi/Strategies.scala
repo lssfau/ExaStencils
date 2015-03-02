@@ -5,18 +5,14 @@ import scala.collection.mutable.HashMap
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.globals._
 
 object RemoveMPIReferences extends DefaultStrategy("RemoveMPIReferences") {
   this += new Transformation("CleaningFunctions", {
-    // FIXME: should delete node, currently not fully implemented -> QUICKFIX returns empty statements
-    case _ : MPI_Barrier        => NullStatement
-    case _ : MPI_Finalize       => NullStatement
-    case _ : MPI_Init           => NullStatement
-    case _ : MPI_SetRankAndSize => NullStatement
+    // TODO: think about replacing reduce, gather, etc. with copy operations
+    case _ : MPI_Statement  => List()
 
-    case _ : MPI_IsRootProc     => BooleanConstant(true)
+    case _ : MPI_IsRootProc => BooleanConstant(true)
   })
 }
 
