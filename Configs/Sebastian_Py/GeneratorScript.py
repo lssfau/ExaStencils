@@ -33,18 +33,18 @@ def write_knowledge(path, config):
     file = open(path + "/" + config.baseName + ".knowledge", 'w+')
 
     file.write("// constant parameters\n")
-    for param in config.constParameters:
-        file.write("%s = %s\n" % (param[0], param[1]))
+    for param in sorted(config.constParameters):
+        file.write("%s = %s\n" % (param, config.constParameters[param]))
     file.write("\n")
 
     file.write("// ranged parameters\n")
-    for param in config.chosenRangedParameters:
-        file.write("%s = %s\n" % (param[0], param[1]))
+    for param in sorted(config.chosenRangedParameters):
+        file.write("%s = %s\n" % (param, config.chosenRangedParameters[param]))
     file.write("\n")
 
     file.write("// listed parameters\n")
-    for param in config.chosenListedParameters:
-        file.write("%s = %s\n" % (param[0], param[1]))
+    for param in sorted(config.chosenListedParameters):
+        file.write("%s = %s\n" % (param, config.chosenListedParameters[param]))
     file.write("\n")
 
     file.close()
@@ -64,45 +64,46 @@ def load_config(config_file):
 
 
 def generate_configurations(configuration_class):
-    extended_parameters = [configuration_class()]
+    ranged_parameter_configurations = [{"nameModifier": ""}]
+    listed_parameter_configurations = [{"nameModifier": ""}]
 
-    for param in configuration_class.rangedParameters:
+    for param in sorted(configuration_class.rangedParameters):
         new_parameters = []
-        it = param[1]
-        while it <= param[2]:
-            for config in extended_parameters:
-                new_config = configuration_class()
-                new_config.baseName = config.baseName
-                new_config.chosenRangedParameters = config.chosenRangedParameters[:]
-                new_config.chosenListedParameters = config.chosenListedParameters[:]
-                new_config.chosenRangedParameters.append([param[0], it])
-                new_config.baseName += "_" + str(it)
+        it = configuration_class.rangedParameters[param][0]
+        while it <= configuration_class.rangedParameters[param][1]:
+            for config in ranged_parameter_configurations:
+                new_config = copy.deepcopy(config)
+                new_config[param] = it
+                new_config["nameModifier"] += "_" + str(it)
                 new_parameters.append(new_config)
-            it = param[3](it)
-        extended_parameters = new_parameters
+            it = configuration_class.rangedParameters[param][2](it)
+        ranged_parameter_configurations = new_parameters
 
-    for param in configuration_class.listedParameters:
+    for param in sorted(configuration_class.listedParameters):
         new_parameters = []
-        for it in param[1]:
-            for config in extended_parameters:
-                new_config = configuration_class()
-                new_config.baseName = config.baseName
-                new_config.chosenRangedParameters = config.chosenRangedParameters[:]
-                new_config.chosenListedParameters = config.chosenListedParameters[:]
-                new_config.chosenListedParameters.append([param[0], it])
-                new_config.baseName += "_" + it.replace('"', '').strip()
+        for it in configuration_class.listedParameters[param]:
+            for config in listed_parameter_configurations:
+                new_config = copy.deepcopy(config)
+                new_config[param] = it
+                new_config["nameModifier"] += "_" + str(it)
                 new_parameters.append(new_config)
-        extended_parameters = new_parameters
+        listed_parameter_configurations = new_parameters
 
-    print("Found %s configurations" % len(extended_parameters))
+    print("Found %s configurations" % (len(ranged_parameter_configurations) + len(listed_parameter_configurations)))
     final_configs = []
-    for config in extended_parameters:
-        if config.is_valid():
-            config.constParameters = copy.deepcopy(configuration_class.constParameters)
-            config.chosenRangedParameters = copy.deepcopy(config.chosenRangedParameters)
-            config.chosenListedParameters = copy.deepcopy(config.chosenListedParameters)
-            config.update()
-            final_configs.append(config)
+    for ranged_config in ranged_parameter_configurations:
+        for listed_config in listed_parameter_configurations:
+            new_config = configuration_class()
+            new_config.baseName = configuration_class.baseName + ranged_config["nameModifier"] + listed_config[
+                "nameModifier"]
+            new_config.constParameters = copy.deepcopy(configuration_class.constParameters)
+            new_config.chosenRangedParameters = copy.deepcopy(ranged_config)
+            del new_config.chosenRangedParameters["nameModifier"]
+            new_config.chosenListedParameters = copy.deepcopy(listed_config)
+            del new_config.chosenListedParameters["nameModifier"]
+            new_config.update()
+            if new_config.is_valid():
+                final_configs.append(new_config)
     print("After filtering, %s valid configurations remain" % len(final_configs))
     return final_configs
 
