@@ -17,10 +17,10 @@ Layout NoComm< Real, Node >@all {
 	duplicateLayers = [ 1, 1, 1 ]
 }
 
-Field SolutionT< global, FullTempBlockable, 0.0 >[2]@all
-Field Solution< global, NoTempBlockable, 0.0 >[2]@all
-Field RHST< global, PartTempBlockable, None >@all
-Field RHS< global, NoComm, None >@all
+Field SolutionT< global, FullTempBlockable, 0.0 >[2]@finest
+Field Solution< global, NoTempBlockable, 0.0 >[2]@finest
+Field RHST< global, PartTempBlockable, None >@finest
+Field RHS< global, NoComm, None >@finest
 
 Stencil Laplace@finest {
 	[ 0,  0,  0] => 6.0
@@ -54,15 +54,15 @@ Function Smoother() : Unit {
 	}
 }
 
-Function InitAll ( ) : Unit {
-	loop over SolutionT@finest {
-		Solution[active]@finest = native('((double)std::rand()/RAND_MAX)')
+Function InitFields ( ) : Unit {
+	loop over SolutionT@finest sequentially {
+		SolutionT[active]@finest = native('((double)std::rand()/RAND_MAX)')
 	}
-	loop over Solution@finest {
+	loop over Solution@finest sequentially {
 		Solution[active]@finest = native('((double)std::rand()/RAND_MAX)')
 	}
 	loop over RHST@finest {
-		RHS@finest = 0
+		RHST@finest = 0
 	}
 	loop over RHS@finest {
 		RHS@finest = 0
@@ -80,12 +80,12 @@ Function BenchmarkT() : Unit {
 		SmootherT()
 	}
 	print('"Starting benchmark (temporal blocking)"')
-	Variable time : Real = 0
-	startTimer(benchTimer)
+	startTimer(benchTTimer)
 	repeat 2 times {
 		SmootherT()
 	}
-	stopTimer(benchTimer, time)
+	stopTimer(benchTTimer)
+	Variable time : Real = getTotalFromTimer(benchTTimer)
 	print('"Runtime: "', time)
 	print('"MLUPs: "', (LUPs() * 10) / time / 1e3)
 }
@@ -96,25 +96,23 @@ Function Benchmark() : Unit {
 		Smoother()
 	}
 	print('"Starting benchmark (normal)"')
-	Variable time : Real = 0
 	startTimer(benchTimer)
 	repeat 10 times {
 		Smoother()
 	}
-	stopTimer(benchTimer, time)
+	stopTimer(benchTimer)
+	Variable time : Real = getTotalFromTimer(benchTimer)
 	print('"Runtime: "', time)
 	print('"MLUPs: "', (LUPs() * 10) / time / 1e3)
 }
 
 Function Application() : Unit {
-	Variable setupTime : Real = 0
 	startTimer(setupWatch)
 	initGlobals()
 	initDomain()
-	initFieldsWithZero()
-	InitAll()
-	stopTimer(setupWatch, setupTime)
-	print('"Total time to setup: "', setupTime)
+	InitFields()
+	stopTimer(setupWatch)
+	print('"Total time to setup: "', getTotalFromTimer(setupWatch))
 	Benchmark()
 	BenchmarkT()
 	destroyGlobals()
