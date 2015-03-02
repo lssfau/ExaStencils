@@ -2,6 +2,7 @@ package exastencils.data
 
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
@@ -10,11 +11,9 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.globals._
 import exastencils.knowledge._
-import exastencils.logger._
 import exastencils.multiGrid._
 import exastencils.omp._
 import exastencils.util._
-import exastencils.strategies.ReplaceStringConstantsStrategy
 
 object SetupDataStructures extends DefaultStrategy("Setting up fragment") {
   override def apply(node : Option[Node] = None) = {
@@ -105,6 +104,20 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   var ctorMap : HashMap[String, Statement] = HashMap()
   var dtorMap : HashMap[String, Statement] = HashMap()
 
+  var bufferSizes : HashMap[String, Expression] = HashMap()
+  var bufferAllocs : HashMap[String, Statement] = HashMap()
+  var fieldAllocs : HashMap[String, Statement] = HashMap()
+
+  override def apply(node : Option[Node] = None) = {
+    for (map <- List(declarationMap, ctorMap, dtorMap, bufferSizes, bufferAllocs, fieldAllocs)) map.clear
+    super.apply(node)
+  }
+
+  override def applyStandalone(node : Node) = {
+    for (map <- List(declarationMap, ctorMap, dtorMap, bufferSizes, bufferAllocs, fieldAllocs)) map.clear
+    super.applyStandalone(node)
+  }
+
   this += new Transformation("Collecting", {
     case mem : iv.InternalVariable => // TODO: don't overwrite for performance reasons
       mem.registerIV(declarationMap, ctorMap, dtorMap)
@@ -125,10 +138,6 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
 
   // add allocation stuff
   // TODO: restructure
-
-  var bufferSizes : HashMap[String, Expression] = HashMap()
-  var bufferAllocs : HashMap[String, Statement] = HashMap()
-  var fieldAllocs : HashMap[String, Statement] = HashMap()
 
   this += new Transformation("Collecting buffer sizes", {
     case buf : iv.TmpBuffer =>
