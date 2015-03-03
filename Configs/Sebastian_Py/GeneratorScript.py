@@ -186,25 +186,31 @@ def generate_toolchain_script(path, filename, configurations, compile_script, ru
 
 
 def main(argv):
-    config_file = ''
-    opts, args = getopt.getopt(argv, "f:r:g")
+    project_filename = ''
+    config_list_filename = ''
+    opts, args = getopt.getopt(argv, "p:c:")
     for opt, arg in opts:
-        if opt == '-f':
-            config_file = arg
+        if opt == '-p':
+            project_filename = arg
+        elif opt == '-c':
+            config_list_filename = arg
         else:
             print('Unknown option:' + opt + arg)
             sys.exit()
 
-    if '' == config_file:
+    if '' == project_filename:
         print('No project configuration provided.')
         return
 
     start_time = gmtime()
     print("Starting at: " + strftime("%Y-%m-%d %H:%M:%S", start_time))
 
-    parameters = Functions.load_config(config_file)
-    print("Generating configurations")
-    configs = Functions.generate_configurations(parameters.Configuration)
+    print("Loading project configuration")
+    parameters = Functions.load_config_class(project_filename)
+
+    # get configs
+    configs = Functions.init_configurations(config_list_filename, parameters.Configuration)
+
     print("Setting up files")
     generate_files(configs)
     print("Generating code for solvers")
