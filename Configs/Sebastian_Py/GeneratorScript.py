@@ -125,7 +125,7 @@ def generate_run_script(path, filename, configurations):
         script_file.write("#@ job_type = bluegene\n")
         script_file.write("#@ bg_size = " + str(job_size) + "\n")
         script_file.write("#@ bg_connectivity = TORUS\n")
-        script_file.write("#@ wall_clock_limit = 00:30:00\n")
+        script_file.write("#@ wall_clock_limit = 01:00:00\n")
         script_file.write("#@ queue\n")
         script_file.write("\n")
 
@@ -136,12 +136,12 @@ def generate_run_script(path, filename, configurations):
 
         script_file.write("mkdir $WORK/ExaTemp # make sure parent temp folder exists\n")
 
-        for ranks_per_node in jobs[job_size]:
-            for config in jobs[job_size][ranks_per_node]:
+        for ranks_per_node in sorted(jobs[job_size]):
+            for config in sorted(jobs[job_size][ranks_per_node]):
                 script_file.write("mkdir $WORK/ExaTemp/" + config.baseName + " # make sure temp folder exists\n")
                 script_file.write("cp " + targetPlatformBasePath + "/" + config.baseName +
-                                  "/exastencils $WORK/ExaTemp/" + config.baseName + "/exastencils"
-                                                                                    " # copy binary to temp folder\n")
+                                  "/exastencils $WORK/ExaTemp/" + config.baseName + "/exastencils" +
+                                  " # copy binary to temp folder\n")
                 script_file.write("\n")
 
         script_file.write("#--------------------------------\n")
@@ -149,8 +149,8 @@ def generate_run_script(path, filename, configurations):
         script_file.write("#--------------------------------\n")
         script_file.write("\n")
 
-        for ranks_per_node in jobs[job_size]:
-            for config in jobs[job_size][ranks_per_node]:
+        for ranks_per_node in sorted(jobs[job_size]):
+            for config in sorted(jobs[job_size][ranks_per_node]):
                 script_file.write("cd $WORK/ExaTemp/" + config.baseName + " # switch to temp folder\n")
                 script_file.write("export OMP_NUM_THREADS=" + str(config.get_num_omp()) + "\n")
                 script_file.write("time runjob"
