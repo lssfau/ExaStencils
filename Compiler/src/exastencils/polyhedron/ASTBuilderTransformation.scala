@@ -53,8 +53,8 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
       seqDims += scop.njuLoopVars(i)
 
     var deps : isl.UnionMap = scop.deps.validity()
-    deps = deps.applyDomain(scop.schedule)
     deps = deps.applyRange(scop.schedule)
+    deps = deps.applyDomain(scop.schedule)
 
     deps.foreachMap({ dep : isl.Map =>
       val directions = dep.deltas()

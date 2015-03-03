@@ -59,7 +59,6 @@ if [[ -d "${REPO_DIR}" ]]; then
   if [[ ${OLD_HASH} = ${NEW_HASH} ]]; then
     # up-to-date, no need to run tests, exit script
     echo "$(date -R):  Tests triggered, but there are no new commits since last run, finish." >> "${OUT_FILE}"
-    echo "<html><body><pre>$(date -R):  Done!</pre></body></html>" > "${PROGRESS}"
     exit 0
   fi
 else

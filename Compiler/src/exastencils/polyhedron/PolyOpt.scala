@@ -68,8 +68,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         computeDependences(scop)
         deadCodeElimination(scop)
         handleReduction(scop)
-        optimize(scop)
         simplifyModel(scop)
+        optimize(scop)
       }
     }
     recreateAndInsertAST()
@@ -223,12 +223,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     if (!scop.domain.isEqual(live)) // the new one could be more complex, so keep old ;)
       scop.domain = live
 
-    // update schedule, accesses and dependencies
+    // update schedule and dependencies
     scop.schedule = scop.schedule.intersectDomain(live)
-    if (scop.reads != null)
-      scop.reads = scop.reads.intersectDomain(live)
-    if (scop.writes != null)
-      scop.writes = scop.writes.intersectDomain(live)
     if (scop.deps.flow != null)
       scop.deps.flow = scop.deps.flow.intersectDomain(live)
     if (scop.deps.antiOut != null)
@@ -317,7 +313,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
           })
           if (prefix == 0) {
             tiled = band.nMember()
-            if (2 <= tiled && tiled <= 4)
+            if (tiled <= 4)
               band.tile(getTileVec(tiled, scop.origIterationCount))
           }
       } : isl.Band => Unit)
@@ -331,7 +327,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         scop.noParDims += 0
     }
 
-    scop.schedule = schedule.getMap()
+    scop.schedule = Isl.simplify(schedule.getMap())
     scop.updateLoopVars()
   }
 

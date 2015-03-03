@@ -69,44 +69,44 @@ object Extractor {
         constraints.append(java.lang.Long.toString(i))
 
       case OffsetIndex(min, max, ind, off) =>
-//                constraints.append('(')
-//                bool |= extractConstraints(ind, constraints, formatString, paramConstr, vars)
-//                constraints.append('+')
-//                bool |= extractConstraints(off, constraints, formatString, paramConstr, vars)
-//                constraints.append(')')
-//                if (paramConstr != null) off match {
-//                  case _ : VariableAccess | _ : ArrayAccess =>
-//                    paramConstr.append(" and ")
-//                    paramConstr.append('(').append(min).append("<=")
-//                    paramConstr.append(ScopNameMapping.expr2id(off))
-//                    paramConstr.append("<=").append(max).append(')')
-//        
-//                  case MultiplicationExpression(IntegerConstant(c), arr : ArrayAccess) =>
-//                    paramConstr.append(" and ")
-//                    paramConstr.append('(').append(min).append("<=").append(c).append('*')
-//                    paramConstr.append(ScopNameMapping.expr2id(arr))
-//                    paramConstr.append("<=").append(max).append(')')
-//        
-//                  case MultiplicationExpression(arr : ArrayAccess, IntegerConstant(c)) =>
-//                    paramConstr.append(" and ")
-//                    paramConstr.append('(').append(min).append("<=").append(c).append('*')
-//                    paramConstr.append(ScopNameMapping.expr2id(arr))
-//                    paramConstr.append("<=").append(max).append(')')
-//        
-//                  case _ =>
-//                }
-        val islStr : String = ScopNameMapping.expr2id(expr)
-        if (vars != null)
-          vars.add(islStr)
-        constraints.append(islStr)
-        if (paramConstr != null) {
-          paramConstr.append(" and ")
-          paramConstr.append('(').append(min).append('+')
-          extractConstraints(ind, paramConstr, formatString, null, vars)
-          paramConstr.append("<=").append(islStr).append("<=")
-          extractConstraints(ind, paramConstr, formatString, null, vars)
-          paramConstr.append('+').append(max).append(')')
+        constraints.append('(')
+        bool |= extractConstraints(ind, constraints, formatString, paramConstr, vars)
+        constraints.append('+')
+        bool |= extractConstraints(off, constraints, formatString, paramConstr, vars)
+        constraints.append(')')
+        if (paramConstr != null) off match {
+          case _ : VariableAccess | _ : ArrayAccess =>
+            paramConstr.append(" and ")
+            paramConstr.append('(').append(min).append("<=")
+            paramConstr.append(ScopNameMapping.expr2id(off))
+            paramConstr.append("<=").append(max).append(')')
+
+          case MultiplicationExpression(IntegerConstant(c), arr : ArrayAccess) =>
+            paramConstr.append(" and ")
+            paramConstr.append('(').append(min).append("<=").append(c).append('*')
+            paramConstr.append(ScopNameMapping.expr2id(arr))
+            paramConstr.append("<=").append(max).append(')')
+
+          case MultiplicationExpression(arr : ArrayAccess, IntegerConstant(c)) =>
+            paramConstr.append(" and ")
+            paramConstr.append('(').append(min).append("<=").append(c).append('*')
+            paramConstr.append(ScopNameMapping.expr2id(arr))
+            paramConstr.append("<=").append(max).append(')')
+
+          case _ =>
         }
+      //        val islStr : String = ScopNameMapping.expr2id(expr)
+      //        if (vars != null)
+      //          vars.add(islStr)
+      //        constraints.append(islStr)
+      //        if (paramConstr != null) {
+      //          paramConstr.append(" and ")
+      //          paramConstr.append('(').append(min).append('+')
+      //          extractConstraints(ind, paramConstr, formatString, null, vars)
+      //          paramConstr.append("<=").append(islStr).append("<=")
+      //          extractConstraints(ind, paramConstr, formatString, null, vars)
+      //          paramConstr.append('+').append(max).append(')')
+      //        }
 
       case AdditionExpression(l, r) =>
         constraints.append('(')
