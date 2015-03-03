@@ -243,8 +243,8 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractFunctionStatement wit
     val sep = "\";\""
     for (timer <- timers) {
       toPrint ++= ListBuffer[Expression]("\"" ~ timer._2.name ~ "\"", sep,
-        ArrayAccess("timesToPrint", (stride * timers.size) + it), sep,
-        ArrayAccess("timesToPrint", (stride * timers.size) + it + 1), sep)
+        ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it), sep,
+        ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it + 1), sep)
       it += 2
     }
     // toPrint.dropRight(1) // remove last seperator
