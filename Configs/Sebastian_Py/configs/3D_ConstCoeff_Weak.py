@@ -40,7 +40,6 @@ class Configuration:
             self.get_value("domain_rect_numBlocks_x", 1) \
             * self.get_value("domain_rect_numBlocks_y", 1) \
             * self.get_value("domain_rect_numBlocks_z", 1)
-        num_frags_total = num_blocks_total * num_frags_per_block_total
 
         self.set_value("domain_numBlocks", num_blocks_total)
         self.set_value("domain_numFragmentsPerBlock", num_frags_per_block_total)
@@ -94,11 +93,14 @@ class Configuration:
         if not (16 == num_unit_frags_x):
             # print("Not the right size :%s" % num_unit_frags_x)
             return False
-        if not (num_blocks_total >= 32):
+        if not (num_blocks_total >= 8):
             # print("Not enough blocks to distribute :%s" % num_blocks_total)
             return False
         if not (frag_volume <= 64 and num_frags_per_block_total <= 64):
             # print("Too many omp threads :%s" % self.get_value("omp_numThreads", 1))
+            return False
+        if not (1 == frag_volume or 1 == num_frags_per_block_total):
+            # print("Two different omp parallelization strategies chosen concurrently")
             return False
 
         # print("Valid")
@@ -110,9 +112,9 @@ class Configuration:
                           "domain_rect_numBlocks_x": [1, 16, lambda x: 2 * x],
                           "domain_rect_numBlocks_y": [1, 16, lambda x: 2 * x],
                           "domain_rect_numBlocks_z": [1, 16, lambda x: 2 * x],
-                          "domain_rect_numFragsPerBlock_x": [1, 1, lambda x: 2 * x],  # keep it constant for now
-                          "domain_rect_numFragsPerBlock_y": [1, 1, lambda x: 2 * x],  # keep it constant for now
-                          "domain_rect_numFragsPerBlock_z": [1, 1, lambda x: 2 * x],  # keep it constant for now
+                          "domain_rect_numFragsPerBlock_x": [1, 16, lambda x: 2 * x],
+                          "domain_rect_numFragsPerBlock_y": [1, 16, lambda x: 2 * x],
+                          "domain_rect_numFragsPerBlock_z": [1, 16, lambda x: 2 * x],
                           "domain_fragmentLength_x": [1, 16, lambda x: 2 * x],
                           "domain_fragmentLength_y": [1, 16, lambda x: 2 * x],
                           "domain_fragmentLength_z": [1, 16, lambda x: 2 * x],
@@ -122,7 +124,7 @@ class Configuration:
     }
 
     listedParameters = {  # variabilities to be tested with given values from a predefined list [parameterName, [list]]
-        # "l3tmp_smoother": ["\"GS\"", "\"Jac\"", "\"RBGS\""]
+                          "l3tmp_smoother": ["\"GS\"", "\"Jac\"", "\"RBGS\""]
     }
 
     chosenListedParameters = {  # to be filled later
@@ -162,6 +164,7 @@ class Configuration:
                          "l3tmp_printError": "false",
                          # "l3tmp_useMaxNormForError": "true",
                          "l3tmp_genTimersPerFunction": "true",
+                         "l3tmp_genTimersForComm": "true",
                          "l3tmp_printTimersToFile": "true",
 
                          "l3tmp_smoother": "\"Jac\""
