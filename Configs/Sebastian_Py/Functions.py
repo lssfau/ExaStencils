@@ -30,7 +30,7 @@ def generate_configurations(configuration_class):
                 new_parameters.append(new_config)
         listed_parameter_configurations = new_parameters
 
-    print("Found %s configurations" % (len(ranged_parameter_configurations) + len(listed_parameter_configurations)))
+    print("Found %s configurations" % (len(ranged_parameter_configurations) * len(listed_parameter_configurations)))
     final_configs = []
     for ranged_config in ranged_parameter_configurations:
         for listed_config in listed_parameter_configurations:
