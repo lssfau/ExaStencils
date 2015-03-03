@@ -45,7 +45,7 @@ class Configuration:
         self.set_value("domain_numBlocks", num_blocks_total)
         self.set_value("domain_numFragmentsPerBlock", num_frags_per_block_total)
         self.set_value("mpi_enabled", "true")  # always true for this test case
-        self.set_value("mpi_numThreads", num_frags_total)
+        self.set_value("mpi_numThreads", num_blocks_total)
         if 1 == num_frags_per_block_total and 1 == frag_volume:
             self.set_value("omp_enabled", "false")
             self.set_value("omp_numThreads", 1)

@@ -1,12 +1,13 @@
-import copy
 import sys
 import getopt
 import os
-import imp
 import time
 from time import gmtime, strftime
 import subprocess
 from collections import defaultdict
+
+import Functions
+
 
 basePath = "C:\\Users\\sisekuck\\Documents\\Visual Studio 2010\\Projects\\ScalaExaStencil\\Heap\\generate"
 targetPlatformBasePath = "/homea/her18/her182/sisc/test"
@@ -50,64 +51,6 @@ def write_knowledge(path, config):
     file.close()
 
 
-def load_config(config_file):
-    if not os.path.isfile(config_file):
-        print("Unable to load file:" + config_file)
-        return
-
-    print("Using project configuration " + config_file)
-
-    # var_module = os.path.abspath(config_file)
-    config = imp.load_source('vars', config_file)
-    print("Successfully imported " + config_file)
-    return config
-
-
-def generate_configurations(configuration_class):
-    ranged_parameter_configurations = [{"nameModifier": ""}]
-    listed_parameter_configurations = [{"nameModifier": ""}]
-
-    for param in sorted(configuration_class.rangedParameters):
-        new_parameters = []
-        it = configuration_class.rangedParameters[param][0]
-        while it <= configuration_class.rangedParameters[param][1]:
-            for config in ranged_parameter_configurations:
-                new_config = copy.deepcopy(config)
-                new_config[param] = it
-                new_config["nameModifier"] += "_" + str(it)
-                new_parameters.append(new_config)
-            it = configuration_class.rangedParameters[param][2](it)
-        ranged_parameter_configurations = new_parameters
-
-    for param in sorted(configuration_class.listedParameters):
-        new_parameters = []
-        for it in configuration_class.listedParameters[param]:
-            for config in listed_parameter_configurations:
-                new_config = copy.deepcopy(config)
-                new_config[param] = it
-                new_config["nameModifier"] += "_" + str(it)
-                new_parameters.append(new_config)
-        listed_parameter_configurations = new_parameters
-
-    print("Found %s configurations" % (len(ranged_parameter_configurations) + len(listed_parameter_configurations)))
-    final_configs = []
-    for ranged_config in ranged_parameter_configurations:
-        for listed_config in listed_parameter_configurations:
-            new_config = configuration_class()
-            new_config.baseName = configuration_class.baseName + ranged_config["nameModifier"] + listed_config[
-                "nameModifier"]
-            new_config.constParameters = copy.deepcopy(configuration_class.constParameters)
-            new_config.chosenRangedParameters = copy.deepcopy(ranged_config)
-            del new_config.chosenRangedParameters["nameModifier"]
-            new_config.chosenListedParameters = copy.deepcopy(listed_config)
-            del new_config.chosenListedParameters["nameModifier"]
-            new_config.update()
-            if new_config.is_valid():
-                final_configs.append(new_config)
-    print("After filtering, %s valid configurations remain" % len(final_configs))
-    return final_configs
-
-
 def generate_files(configurations):
     for config in configurations:
         print("Writing files for configuration " + config.baseName)
@@ -122,19 +65,23 @@ def generate_solvers(configurations):
 
     try:
         for config in configurations:
-            print("Generating code for configuration " + config.baseName)
-            settings_file = basePath + "/" + config.baseName + "/" + config.baseName + ".settings"
-            knowledge_file = basePath + "/" + config.baseName + "/" + config.baseName + ".knowledge"
-            command = ["java.exe", "-Xmx2G", "-Xms2G", "-cp",
-                       "C:\\Eclipse\\plugins\\org.scala-lang.scala-library_2.11.2.v20140721-095018-73fb460c1c.jar;" +
-                       "C:\\Eclipse\\plugins\\org.scala-lang.scala-reflect_2.11.2.v20140721-095018-73fb460c1c.jar;" +
-                       ".\\Compiler\\bin;" +
-                       ".\\CompilerMacros\\CompilerMacros\\bin;" +
-                       ".\\Compiler\\lib\\*",
-                       "Main", settings_file, knowledge_file]
+            print("Generating code for configuration " + config.baseName + "...")
+            if os.path.isfile(basePath + "/" + config.baseName + "/Makefile"):
+                print("... already existent")
+            else:
+                settings_file = basePath + "/" + config.baseName + "/" + config.baseName + ".settings"
+                knowledge_file = basePath + "/" + config.baseName + "/" + config.baseName + ".knowledge"
+                command = ["java.exe", "-Xmx2G", "-Xms2G", "-cp",
+                           "C:\\Eclipse\\plugins\\org.scala-lang.scala-library_2.11.2.v20140721-095018-73fb460c1c.jar;" +
+                           "C:\\Eclipse\\plugins\\org.scala-lang.scala-reflect_2.11.2.v20140721-095018-73fb460c1c.jar;" +
+                           ".\\Compiler\\bin;" +
+                           ".\\CompilerMacros\\CompilerMacros\\bin;" +
+                           ".\\Compiler\\lib\\*",
+                           "Main", settings_file, knowledge_file]
 
-            with open(os.devnull, "w") as nowhere:
-                subprocess.call(command, stdout=nowhere)
+                with open(os.devnull, "w") as nowhere:
+                    subprocess.call(command, stdout=nowhere)
+                print("... done")
 
     finally:
         os.chdir(cwd)
@@ -182,27 +129,36 @@ def generate_run_script(path, filename, configurations):
         script_file.write("#@ queue\n")
         script_file.write("\n")
 
-        script_file.write("mkdir $WORK/ExaTemp # make sure temp folder exists\n")
+        script_file.write("#--------------------------------\n")
+        script_file.write("# create temp dirs and copy executables\n")
+        script_file.write("#--------------------------------\n")
         script_file.write("\n")
+
+        script_file.write("mkdir $WORK/ExaTemp # make sure parent temp folder exists\n")
 
         for ranks_per_node in jobs[job_size]:
             for config in jobs[job_size][ranks_per_node]:
+                script_file.write("mkdir $WORK/ExaTemp/" + config.baseName + " # make sure temp folder exists\n")
                 script_file.write("cp " + targetPlatformBasePath + "/" + config.baseName +
-                                  "/exastencils $WORK/ExaTemp/exastencils_" + config.baseName +
-                                  " # copy binary to temp folder\n")
+                                  "/exastencils $WORK/ExaTemp/" + config.baseName + "/exastencils"
+                                                                                    " # copy binary to temp folder\n")
+                script_file.write("\n")
 
-        script_file.write("\n")
-        script_file.write("cd $WORK/ExaTemp # switch to temp folder\n")
+        script_file.write("#--------------------------------\n")
+        script_file.write("# run executables\n")
+        script_file.write("#--------------------------------\n")
         script_file.write("\n")
 
         for ranks_per_node in jobs[job_size]:
             for config in jobs[job_size][ranks_per_node]:
+                script_file.write("cd $WORK/ExaTemp/" + config.baseName + " # switch to temp folder\n")
                 script_file.write("export OMP_NUM_THREADS=" + str(config.get_num_omp()) + "\n")
                 script_file.write("time runjob"
                                   + " --ranks-per-node " + str(ranks_per_node)
                                   + " --np " + str(config.get_num_mpi())
                                   + " --exp-env OMP_NUM_THREADS"
-                                  + " : ./exastencils_" + config.baseName + "\n")
+                                  + " : ./exastencils\n")
+                script_file.write("\n")
             script_file.write("\n")
 
         script_file.close()
@@ -246,9 +202,9 @@ def main(argv):
     start_time = gmtime()
     print("Starting at: " + strftime("%Y-%m-%d %H:%M:%S", start_time))
 
-    parameters = load_config(config_file)
+    parameters = Functions.load_config(config_file)
     print("Generating configurations")
-    configs = generate_configurations(parameters.Configuration)
+    configs = Functions.generate_configurations(parameters.Configuration)
     print("Setting up files")
     generate_files(configs)
     print("Generating code for solvers")
