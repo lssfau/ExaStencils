@@ -102,7 +102,28 @@ def generate_compile_script(path, filename, configurations):
     script_file.close()
 
 
-def generate_run_script(path, filename, configurations):
+def generate_copy_script(path, filename, configurations):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    script_file = open(path + "/" + filename, 'w+')
+
+    script_file.write("#!/bin/bash\n")
+    script_file.write("\n")
+
+    script_file.write("mkdir $WORK/ExaTemp # make sure parent temp folder exists\n")
+    script_file.write("\n")
+
+    for config in configurations:
+        script_file.write("mkdir $WORK/ExaTemp/" + config.baseName + " # make sure temp folder exists\n")
+        script_file.write("cp " + targetPlatformBasePath + "/" + config.baseName +
+                          "/exastencils $WORK/ExaTemp/" + config.baseName + "/exastencils" +
+                          " # copy binary to temp folder\n")
+        script_file.write("\n")
+
+    script_file.close()
+
+
+def generate_run_script(path, filename, configurations, copy_files):
     if not os.path.exists(path):
         os.makedirs(path)
 
@@ -125,24 +146,25 @@ def generate_run_script(path, filename, configurations):
         script_file.write("#@ job_type = bluegene\n")
         script_file.write("#@ bg_size = " + str(job_size) + "\n")
         script_file.write("#@ bg_connectivity = TORUS\n")
-        script_file.write("#@ wall_clock_limit = 01:00:00\n")
+        script_file.write("#@ wall_clock_limit = 00:30:00\n")  # 30 minutes is the hard limit for smallest queues
         script_file.write("#@ queue\n")
         script_file.write("\n")
 
-        script_file.write("#--------------------------------\n")
-        script_file.write("# create temp dirs and copy executables\n")
-        script_file.write("#--------------------------------\n")
-        script_file.write("\n")
+        if copy_files:
+            script_file.write("#--------------------------------\n")
+            script_file.write("# create temp dirs and copy executables\n")
+            script_file.write("#--------------------------------\n")
+            script_file.write("\n")
 
-        script_file.write("mkdir $WORK/ExaTemp # make sure parent temp folder exists\n")
+            script_file.write("mkdir $WORK/ExaTemp # make sure parent temp folder exists\n")
 
-        for ranks_per_node in sorted(jobs[job_size]):
-            for config in sorted(jobs[job_size][ranks_per_node]):
-                script_file.write("mkdir $WORK/ExaTemp/" + config.baseName + " # make sure temp folder exists\n")
-                script_file.write("cp " + targetPlatformBasePath + "/" + config.baseName +
-                                  "/exastencils $WORK/ExaTemp/" + config.baseName + "/exastencils" +
-                                  " # copy binary to temp folder\n")
-                script_file.write("\n")
+            for ranks_per_node in sorted(jobs[job_size]):
+                for config in sorted(jobs[job_size][ranks_per_node]):
+                    script_file.write("mkdir $WORK/ExaTemp/" + config.baseName + " # make sure temp folder exists\n")
+                    script_file.write("cp " + targetPlatformBasePath + "/" + config.baseName +
+                                      "/exastencils $WORK/ExaTemp/" + config.baseName + "/exastencils" +
+                                      " # copy binary to temp folder\n")
+                    script_file.write("\n")
 
         script_file.write("#--------------------------------\n")
         script_file.write("# run executables\n")
@@ -151,13 +173,16 @@ def generate_run_script(path, filename, configurations):
 
         for ranks_per_node in sorted(jobs[job_size]):
             for config in sorted(jobs[job_size][ranks_per_node]):
+                script_file.write("echo \"Going to config " + config.baseName + "\"\n")
                 script_file.write("cd $WORK/ExaTemp/" + config.baseName + " # switch to temp folder\n")
-                script_file.write("export OMP_NUM_THREADS=" + str(config.get_num_omp()) + "\n")
-                script_file.write("time runjob"
+                script_file.write("if [ ! -f ./timings.csv ]; then\n")
+                script_file.write("\texport OMP_NUM_THREADS=" + str(config.get_num_omp()) + "\n")
+                script_file.write("\ttime runjob"
                                   + " --ranks-per-node " + str(ranks_per_node)
                                   + " --np " + str(config.get_num_mpi())
                                   + " --exp-env OMP_NUM_THREADS"
                                   + " : ./exastencils\n")
+                script_file.write("fi\n")
                 script_file.write("\n")
             script_file.write("\n")
 
@@ -217,8 +242,10 @@ def main(argv):
     generate_solvers(configs)
     print("Setting up compile script")
     generate_compile_script(basePath, "compileAll", configs)
+    print("Setting up copy scripts")
+    generate_copy_script(basePath, "copyToWork", configs)
     print("Setting up job scripts")
-    generate_run_script(basePath, "runJuQueen", configs)
+    generate_run_script(basePath, "runJuQueen", configs, True)
     print("Setting up toolchain scripts")
     generate_toolchain_script(basePath, "doStuff", configs, "compileAll", "runJuQueen")
 
