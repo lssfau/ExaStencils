@@ -86,7 +86,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
   private final class LoopCtx(val itName : String, val incr : Long) {
 
     val vectStmts = new ListBuffer[Statement]()
-    val storesTmp = new ListBuffer[Statement]()
+    var storesTmp : Statement = null
 
     val preLoopStmts = new ListBuffer[Statement]()
 
@@ -322,8 +322,8 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         val rhsVec = vectorizeExpr(source, ctx.setLoad())
         val lhsVec = vectorizeExpr(lhsSca, ctx.setStore())
         ctx.vectStmts += AssignmentStatement(lhsVec, rhsVec, "=")
-        ctx.vectStmts ++= ctx.storesTmp
-        ctx.storesTmp.clear()
+        ctx.vectStmts += ctx.storesTmp
+        ctx.storesTmp = null
 
       case _ => throw new VectorizationException("cannot deal with " + stmt.getClass() + "; " + stmt.prettyprint())
     }
@@ -404,7 +404,9 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
             throw new VectorizationException("parallel store to a single memory location")
           if (!aligned && !alignedBase && Knowledge.simd_avoidUnaligned)
             throw new VectorizationException("cannot vectorize store: array is not aligned, but unaligned accesses should be avoided")
-          ctx.storesTmp += SIMD_StoreStatement(UnaryExpression(UnaryOperators.AddressOf, expr),
+          if (ctx.storesTmp != null)
+            Logger.debug("[vect] Error? More than one store in a single statement?!")
+          ctx.storesTmp = SIMD_StoreStatement(UnaryExpression(UnaryOperators.AddressOf, expr),
             VariableAccess(vecTmp, Some(SIMD_RealDatatype())), aligned)
         }
         VariableAccess(vecTmp, Some(SIMD_RealDatatype()))
