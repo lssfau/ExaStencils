@@ -86,7 +86,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
   private final class LoopCtx(val itName : String, val incr : Long) {
 
     val vectStmts = new ListBuffer[Statement]()
-    val storesTmp = new ListBuffer[Statement]()
+    var storesTmp : Statement = null
 
     val preLoopStmts = new ListBuffer[Statement]()
 
@@ -95,6 +95,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     private var isStore_ : Boolean = false
     private var varID : Int = -1
     private var incrVectDeclared : Boolean = false
+    private var alignedResidue : Long = -1
 
     def getName(expr : Expression) : (String, Boolean) = {
       var nju : Boolean = false
@@ -105,7 +106,6 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
       })
       return (name, nju)
     }
-
 
     def getIncrVector() : VariableAccess = {
       val name : String = "veci"
@@ -141,6 +141,17 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     def getAlignAndAccess1(tmp : String) : (Boolean, Boolean) = {
       return temporaryProperties(tmp)
     }
+
+    def setAlignedResidue(residue : Long) : Unit = {
+      if (alignedResidue < 0)
+        alignedResidue = residue
+      else if (alignedResidue != residue)
+        throw new VectorizationException("Stores with different alignment are not allowed.")
+    }
+
+    def getAlignedResidue() : Long = {
+      return alignedResidue
+    }
   }
 
   private def vectorizeLoop(oldLoop : ForLoopStatement, itName : String, begin : Expression, endExcl : Expression,
@@ -173,31 +184,93 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         }
     }
 
+    // ensure all stores are aligned (heuristics)
+    var alignmentExpr : Expression = null
+    if (Knowledge.data_alignFieldPointers) {
+      val vs = Knowledge.simd_vectorSize
+      for (stmt <- body)
+        stmt match {
+          case AssignmentStatement(acc @ ArrayAccess(_, index, true), _, _) =>
+            val annot = acc.getAnnotation(AddressPrecalculation.ORIG_IND_ANNOT)
+            val ind : Expression = if (annot.isDefined) annot.get.value.asInstanceOf[Expression] else index
+            val const : Long = SimplifyExpression.extractIntegralSum(ind).get(SimplifyExpression.constName).getOrElse(0L)
+            val residue : Long = (const % vs + vs) % vs
+            ctx.setAlignedResidue(residue)
+            alignmentExpr = ind
+          case _ =>
+        }
+
+      val indexExprs = new ListBuffer[HashMap[Expression, Long]]()
+      val collectIndexExprs = new DefaultStrategy("Collect all array index expressions...")
+      collectIndexExprs += new Transformation("seaching...", {
+        case acc @ ArrayAccess(_, index, true) =>
+          val annot = acc.removeAnnotation(AddressPrecalculation.ORIG_IND_ANNOT)
+          indexExprs += SimplifyExpression.extractIntegralSum(if (annot.isDefined) annot.get.value.asInstanceOf[Expression] else index)
+          acc
+      })
+      val oldLvl = Logger.getLevel
+      Logger.setLevel(Logger.WARNING)
+      collectIndexExprs.applyStandalone(Scope(body))
+      Logger.setLevel(oldLvl)
+
+      // no store available, so align as max loads as possible
+      if (alignmentExpr == null) {
+        alignmentExpr = SimplifyExpression.recreateExprFromIntSum(indexExprs.head)
+        val counts = new Array[Long](vs)
+        for (ind <- indexExprs) {
+          val const : Long = ind.remove(SimplifyExpression.constName).getOrElse(0L)
+          val residue : Long = (const % vs + vs) % vs
+          counts(residue.toInt) += 1
+        }
+        var max = (0, counts(0))
+        for (i <- 1 until vs)
+          if (counts(i) > max._2)
+            max = (i, counts(i))
+        ctx.setAlignedResidue(max._1)
+
+      } else
+        for (ind <- indexExprs)
+          ind.remove(SimplifyExpression.constName)
+
+      // check if index expressions are "good", i.e., all (except the constant summand) have the same residue
+      while (!indexExprs.head.isEmpty) {
+        val key : Expression = indexExprs.head.head._1
+        var residue : Long = -1
+        for (ind <- indexExprs) {
+          val res = (ind.remove(key).getOrElse(0L) % vs + vs) % vs
+          if (residue < 0)
+            residue = res
+          else if (res != residue)
+            throw new VectorizationException("Cannot determine alignment properly")
+        }
+      }
+      // at least one sum is empty, so all remaining coefficients must be evenly dividable
+      for (ind <- indexExprs)
+        for ((_, coeff) <- ind)
+          if (coeff % vs != 0)
+            throw new VectorizationException("Cannot determine alignment properly")
+    }
+
     for (stmt <- body)
       vectorizeStmt(stmt, ctx)
 
     def itVar = VariableAccess(itName, Some(IntegerDatatype()))
     val res = new ListBuffer[Statement]()
 
+    val startName = "_start"
+    def start = VariableAccess(startName, Some(IntegerDatatype()))
+    res += new VariableDeclarationStatement(IntegerDatatype(), startName, Some(begin))
     res += new VariableDeclarationStatement(IntegerDatatype(), itName, Some(begin))
-    val upperPreName = "_upperPre"
-    def upperPre = VariableAccess(upperPreName, Some(IntegerDatatype()))
-    res += new VariableDeclarationStatement(IntegerDatatype(), upperPreName, Some(Duplicate(begin)))
-    val upperAligned = {
-      def alM1 = IntegerConstant(Knowledge.simd_vectorSize - 1)
-      def bNeg(expr : Expression) = UnaryExpression(UnaryOperators.BitwiseNegation, expr)
-      def incrC = IntegerConstant(incr)
-      if (incr == 1L)
-        BitwiseAndExpression(upperPre + alM1, bNeg(alM1))
-      else
-        (BitwiseAndExpression((upperPre / incrC) + alM1, bNeg(alM1)) * incrC) + (upperPre Mod incrC)
-    }
-    res += new AssignmentStatement(upperPre, MinimumExpression(ListBuffer(upperAligned, Duplicate(endExcl))), "=")
 
-    res += new ForLoopStatement(NullStatement,
-      LowerExpression(itVar, upperPre),
-      AssignmentStatement(itVar, IntegerConstant(incr), "+="),
-      Duplicate(body))
+    if (Knowledge.data_alignFieldPointers) { // no need to ensure alignment of iteration variable if data is not aligned
+      res += new ForLoopStatement(NullStatement,
+        AndAndExpression(NeqNeqExpression(Duplicate(alignmentExpr), IntegerConstant(ctx.getAlignedResidue())),
+          LowerExpression(itVar, Duplicate(endExcl))),
+        AssignmentStatement(itVar, IntegerConstant(incr), "+="),
+        Duplicate(body))
+
+      res += new AssignmentStatement(start, itVar, "=")
+    }
 
     res ++= ctx.preLoopStmts
 
@@ -211,7 +284,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     val annot : Option[Annotation] = oldLoop.removeAnnotation(Unrolling.NO_REM_ANNOT)
     val oldOffset : Long = if (annot.isDefined) annot.get.value.asInstanceOf[Long] else 0L
     val endOffset : Long = incr * Knowledge.simd_vectorSize - 1 - oldOffset
-    oldLoop.begin = AssignmentStatement(itVar, upperPre)
+    oldLoop.begin = AssignmentStatement(itVar, start)
     oldLoop.end = LowerExpression(itVar, SubtractionExpression(upper, IntegerConstant(endOffset)))
     oldLoop.inc = AssignmentStatement(itVar, IntegerConstant(incr * Knowledge.simd_vectorSize), "+=")
     oldLoop.body = ctx.vectStmts
@@ -249,8 +322,8 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         val rhsVec = vectorizeExpr(source, ctx.setLoad())
         val lhsVec = vectorizeExpr(lhsSca, ctx.setStore())
         ctx.vectStmts += AssignmentStatement(lhsVec, rhsVec, "=")
-        ctx.vectStmts ++= ctx.storesTmp
-        ctx.storesTmp.clear()
+        ctx.vectStmts += ctx.storesTmp
+        ctx.storesTmp = null
 
       case _ => throw new VectorizationException("cannot deal with " + stmt.getClass() + "; " + stmt.prettyprint())
     }
@@ -313,7 +386,8 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
                 }
             }
 
-          val aligned : Boolean = alignedBase && (const.getOrElse(0L) % Knowledge.simd_vectorSize) == 0
+          val vs = Knowledge.simd_vectorSize
+          val aligned : Boolean = alignedBase && (const.getOrElse(0L) - ctx.getAlignedResidue()) % vs == 0
           var init : Option[Expression] =
             if (ctx.isLoad() && !ctx.isStore())
               Some(createLoadExpression(expr, base, ind, const.getOrElse(0L), access1, aligned, alignedBase, ctx))
@@ -330,7 +404,9 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
             throw new VectorizationException("parallel store to a single memory location")
           if (!aligned && !alignedBase && Knowledge.simd_avoidUnaligned)
             throw new VectorizationException("cannot vectorize store: array is not aligned, but unaligned accesses should be avoided")
-          ctx.storesTmp += SIMD_StoreStatement(UnaryExpression(UnaryOperators.AddressOf, expr),
+          if (ctx.storesTmp != null)
+            Logger.debug("[vect] Error? More than one store in a single statement?!")
+          ctx.storesTmp = SIMD_StoreStatement(UnaryExpression(UnaryOperators.AddressOf, expr),
             VariableAccess(vecTmp, Some(SIMD_RealDatatype())), aligned)
         }
         VariableAccess(vecTmp, Some(SIMD_RealDatatype()))
@@ -400,10 +476,11 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     else if (!alignedBase)
       throw new VectorizationException("cannot vectorize load: array is not aligned, but unaligned accesses should be avoided")
     else { // avoid unaligned load
-      val lowerConst : Long = indexConst & ~(Knowledge.simd_vectorSize - 1)
+      val vs : Long = Knowledge.simd_vectorSize
+      val lowerConst : Long = indexConst - ((indexConst - ctx.getAlignedResidue()) % vs + vs) % vs
       index(SimplifyExpression.constName) = lowerConst
       val lowerExpr = vectorizeExpr(ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(index), true), ctx).asInstanceOf[VariableAccess]
-      index(SimplifyExpression.constName) = lowerConst + Knowledge.simd_vectorSize
+      index(SimplifyExpression.constName) = lowerConst + vs
       val upperExpr = vectorizeExpr(ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(index), true), ctx).asInstanceOf[VariableAccess]
       return SIMD_ConcShift(lowerExpr, upperExpr, (indexConst - lowerConst).toInt)
     }

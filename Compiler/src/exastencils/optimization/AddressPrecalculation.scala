@@ -16,6 +16,8 @@ import exastencils.util.SimplifyExpression
 
 object AddressPrecalculation extends CustomStrategy("Perform address precalculation") {
 
+  private[optimization] final val ORIG_IND_ANNOT = "AP_OrInd"
+
   private[optimization] final val DECLS_ANNOT = "Decls"
   private[optimization] final val REPL_ANNOT = "Replace"
 
@@ -186,7 +188,9 @@ private final class AnnotateLoopsAndAccesses extends Collector {
             case fd : FieldData => Some(ConstPointerDatatype(fd.field.dataType.resolveUnderlyingDatatype))
             case _              => None
           }
-          acc.annotate(REPL_ANNOT, new ArrayAccess(new VariableAccess(name, dType), in, al))
+          val newAcc = new ArrayAccess(new VariableAccess(name, dType), in, al)
+          newAcc.annotate(ORIG_IND_ANNOT, Duplicate(index))
+          acc.annotate(REPL_ANNOT, newAcc)
         }
         decls = null
         inVars = null
