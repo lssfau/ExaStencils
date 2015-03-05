@@ -52,17 +52,14 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
   }
 
   private def updateSlots(stmts : ListBuffer[Statement], fieldOffset : HashMap[FieldKey, Int]) : Unit = {
-    object AdaptFieldSlots extends DefaultStrategy("Adapt field slots") {
+    object AdaptFieldSlots extends QuietDefaultStrategy("Adapt field slots") {
       this += new Transformation("now", {
         case fs @ FieldSelection(field, level, SlotAccess(slot, offset), _, _) =>
           fs.slot = new SlotAccess(slot, offset + fieldOffset.getOrElse(FieldKey(field), 0))
           fs
       })
     }
-    val oldLvl = Logger.getLevel
-    Logger.setLevel(Logger.WARNING)
     AdaptFieldSlots.applyStandalone(new Scope(stmts))
-    Logger.setLevel(oldLvl)
   }
 
   private def processLoopOverDimensions(l : LoopOverDimensions, extent : Int, fieldOffset : HashMap[FieldKey, Int]) : LoopOverDimensions = {

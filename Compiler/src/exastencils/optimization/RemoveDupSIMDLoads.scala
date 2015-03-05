@@ -101,7 +101,7 @@ private[optimization] final class Analyze extends Collector {
   }
 
   private class UpdateLoopVar(itName : String, offset : Long, nju : Expression)
-      extends DefaultStrategy("Add loop var offset") {
+      extends QuietDefaultStrategy("Add loop var offset") {
 
     private final val SKIP_ANNOT = "RDSL_Skip"
     private var replace : Boolean = false
@@ -116,13 +116,6 @@ private[optimization] final class Analyze extends Collector {
         } else
           vAcc
     })
-
-    override def applyStandalone(node : Node) : Unit = {
-      val oldLvl = Logger.getLevel
-      Logger.setLevel(Logger.WARNING)
-      super.applyStandalone(node)
-      Logger.setLevel(oldLvl)
-    }
 
     def updateDup(expr : Expression) : Expression = {
       val expr2 = FreeStatement(Duplicate(expr)) // just a temporary wrapper...
