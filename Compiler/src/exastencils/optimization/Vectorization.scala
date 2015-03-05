@@ -282,8 +282,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
     if (Knowledge.data_alignFieldPointers) { // no need to ensure alignment of iteration variable if data is not aligned
       res += new AssignmentStatement(upper, new MinimumExpression(upper,
-        lower + ((((IntegerConstant(ctx.getAlignedResidue()) - Duplicate(alignmentExpr)) Mod IntegerConstant(vs))
-          + IntegerConstant(vs)) Mod IntegerConstant(vs))))
+        lower + ((IntegerConstant(ctx.getAlignedResidue()) - (Duplicate(alignmentExpr) Mod IntegerConstant(vs))) Mod IntegerConstant(vs))))
       res += new ForLoopStatement(NullStatement,
         LowerExpression(itVar, upper),
         AssignmentStatement(itVar, IntegerConstant(incr), "+="),
