@@ -64,13 +64,12 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     for (scop <- scops if (!scop.remove)) {
       mergeScops(scop)
       simplifyModel(scop)
-      if (scop.optLevel >= 2) {
-        computeDependences(scop)
-        deadCodeElimination(scop)
-        handleReduction(scop)
-        simplifyModel(scop)
+      computeDependences(scop)
+      deadCodeElimination(scop)
+      handleReduction(scop)
+      simplifyModel(scop)
+      if (scop.optLevel >= 2)
         optimize(scop)
-      }
     }
     recreateAndInsertAST()
 
