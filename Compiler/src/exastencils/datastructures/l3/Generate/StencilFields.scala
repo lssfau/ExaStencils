@@ -11,6 +11,12 @@ object StencilFields {
         printer.println(s"Field LaplaceCoeff$postfix< $domain, ${if (Knowledge.l3tmp_genTemporalBlocking) "CommPartTempBlockableSF" else "NoCommSF"}, None >@all")
       printer.println(s"StencilField Laplace$postfix< LaplaceCoeff$postfix => LaplaceStencil$postfix >@all")
       printer.println
+
+      if (Knowledge.l3tmp_genInvDiagStencil) {
+        printer.println(s"Field InvDiagLaplaceCoeff$postfix< $domain, ${if (Knowledge.l3tmp_genTemporalBlocking) "CommPartTempBlockable" else "NoComm"}, None >@all")
+        printer.println(s"StencilField InvDiagLaplace$postfix< InvDiagLaplaceCoeff$postfix => InvDiagLaplaceStencil$postfix >@all")
+        printer.println
+      }
     }
   }
 }

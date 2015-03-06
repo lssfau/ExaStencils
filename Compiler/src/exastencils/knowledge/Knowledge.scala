@@ -217,6 +217,7 @@ object Knowledge {
   var l3tmp_omega : Double = (if ("Jac" == l3tmp_smoother) 0.8 else 1.0) // [0.1-10.0] // the relaxation parameter to be used for the l3tmp_smoother
   var l3tmp_genStencilStencilConv : Boolean = false // [true|false] // tests stencil-stencil convolutions by using RAP instead of A
   var l3tmp_genStencilFields : Boolean = false // [true|false] // generates stencil fields that are used to store stencils of A (or RAP if l3tmp_genStencilStencilConv is true)
+  var l3tmp_genInvDiagStencil : Boolean = false // [true|false] // generates a separate stencil (field) for inverse ( diag ( laplace ) ) and uses it in the smoother
   var l3tmp_genAsyncCommunication : Boolean = false // [true|false] // replaces some sync communication statements in the L4 DSL file with their async counterparts 
   var l3tmp_genTemporalBlocking : Boolean = false // [true|false] // adds the necessary statements to the L4 DSL file to implement temporal blocking; adapts field layouts as well
   var l3tmp_tempBlockingMinLevel : Int = 1 // [1+minLevel|maxLevel] // specifies a threshold for adding temporal blocking to generated l4 files; only levels larger or equal to this threshold are blocked

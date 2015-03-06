@@ -5,6 +5,16 @@ import exastencils.knowledge._
 object Smoothers {
   def omegaToPrint = (if (Knowledge.l3tmp_genGlobalOmega) "l3tmp_omega" else Knowledge.l3tmp_omega)
 
+  def invDiagLaplace(stencil : String) = {
+    if (Knowledge.l3tmp_genInvDiagStencil)
+      Knowledge.dimensionality match {
+        case 2 => s"InvDiag$stencil:[0, 0]"
+        case 3 => s"InvDiag$stencil:[0, 0, 0]"
+      }
+    else
+      s"( 1.0 / diag ( $stencil ) )"
+  }
+
   def addBodyBefore(printer : java.io.PrintWriter, postfix : String, tempBlocking : Boolean) = {
     if (Knowledge.l3tmp_genFragLoops)
       printer.println(s"\tloop over fragments {")
@@ -28,7 +38,7 @@ object Smoothers {
 
       printer.println(s"\tloop over Solution$postfix@current {")
       for (vecDim <- 0 until Knowledge.l3tmp_numVecDims)
-        printer.println(s"\t\t${Fields.solutionSlotted(s"current", "nextSlot", postfix)(vecDim)} = ${Fields.solutionSlotted(s"current", "active", postfix)(vecDim)} + ( ( ( 1.0 / diag ( $stencil ) ) * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solutionSlotted(s"current", "active", postfix)(vecDim)} ) )")
+        printer.println(s"\t\t${Fields.solutionSlotted(s"current", "nextSlot", postfix)(vecDim)} = ${Fields.solutionSlotted(s"current", "active", postfix)(vecDim)} + ( ( ${invDiagLaplace(stencil)} * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solutionSlotted(s"current", "active", postfix)(vecDim)} ) )")
       printer.println(s"\t}")
       printer.println(s"\tadvance Solution$postfix@current")
 
@@ -38,14 +48,14 @@ object Smoothers {
 
       printer.println(s"\tloop over Solution$postfix@current {")
       for (vecDim <- 0 until Knowledge.l3tmp_numVecDims)
-        printer.println(s"\t\t${Fields.solution2(s"current", postfix)(vecDim)} = ${Fields.solution(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( $stencil ) ) * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solution(s"current", postfix)(vecDim)} ) )")
+        printer.println(s"\t\t${Fields.solution2(s"current", postfix)(vecDim)} = ${Fields.solution(s"current", postfix)(vecDim)} + ( ( ${invDiagLaplace(stencil)} * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solution(s"current", postfix)(vecDim)} ) )")
       printer.println(s"\t}")
 
       Communication.exch(printer, s"Solution${if (Knowledge.l3tmp_useSlotsForJac) s"$postfix[1]" else s"2$postfix"}@current")
 
       printer.println(s"\tloop over Solution$postfix@current {")
       for (vecDim <- 0 until Knowledge.l3tmp_numVecDims)
-        printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)} = ${Fields.solution2(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( $stencil ) ) * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solution2(s"current", postfix)(vecDim)} ) )")
+        printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)} = ${Fields.solution2(s"current", postfix)(vecDim)} + ( ( ${invDiagLaplace(stencil)} * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solution2(s"current", postfix)(vecDim)} ) )")
       printer.println(s"\t}")
     }
   }
@@ -72,7 +82,7 @@ object Smoothers {
       }
     }
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims)
-      printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)} = ${Fields.solution(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( $stencil ) ) * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solution(s"current", postfix)(vecDim)} ) )")
+      printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)} = ${Fields.solution(s"current", postfix)(vecDim)} + ( ( ${invDiagLaplace(stencil)} * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solution(s"current", postfix)(vecDim)} ) )")
     printer.println(s"\t}")
 
     if (!tempBlocking) // FIXME: else
@@ -93,7 +103,7 @@ object Smoothers {
       }
     }
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims)
-      printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)} = ${Fields.solution(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( $stencil ) ) * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solution(s"current", postfix)(vecDim)} ) )")
+      printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)} = ${Fields.solution(s"current", postfix)(vecDim)} + ( ( ${invDiagLaplace(stencil)} * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solution(s"current", postfix)(vecDim)} ) )")
     printer.println(s"\t}")
 
     addBodyAfter(printer, postfix, tempBlocking)
@@ -108,7 +118,7 @@ object Smoothers {
 
     printer.println(s"\tloop over Solution$postfix@current {")
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims)
-      printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)} = ${Fields.solution(s"current", postfix)(vecDim)} + ( ( ( 1.0 / diag ( $stencil ) ) * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solution(s"current", postfix)(vecDim)} ) )")
+      printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)} = ${Fields.solution(s"current", postfix)(vecDim)} + ( ( ${invDiagLaplace(stencil)} * $omegaToPrint ) * ( ${Fields.rhs(s"current", postfix)(vecDim)} - $stencil * ${Fields.solution(s"current", postfix)(vecDim)} ) )")
     printer.println(s"\t}")
 
     addBodyAfter(printer, postfix, tempBlocking)

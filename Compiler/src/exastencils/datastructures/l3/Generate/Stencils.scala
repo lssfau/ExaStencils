@@ -106,6 +106,23 @@ object Stencils {
       }
     }
     printer.println("}")
+
+    if (Knowledge.l3tmp_genInvDiagStencil) {
+      if (Knowledge.l3tmp_genStencilFields) {
+        printer.println(s"Stencil InvDiagLaplaceStencil$postfix@all {")
+        Knowledge.dimensionality match {
+          case 2 => printer.println(s"\t[ 0,  0] => ( 1.0 / LaplaceStencil$postfix@current:[0, 0] )")
+          case 3 => printer.println(s"\t[ 0,  0,  0] => ( 1.0 / LaplaceStencil$postfix@current:[0, 0, 0] )")
+        }
+      } else {
+        printer.println(s"Stencil InvDiagLaplace$postfix@all {")
+        Knowledge.dimensionality match {
+          case 2 => printer.println(s"\t[ 0,  0] => ( 1.0 / Laplace$postfix@current:[0, 0] )")
+          case 3 => printer.println(s"\t[ 0,  0,  0] => ( 1.0 / Laplace$postfix@current:[0, 0, 0] )")
+        }
+      }
+      printer.println(s"}")
+    }
   }
 
   def addDefaultStencils(printer : java.io.PrintWriter) = {

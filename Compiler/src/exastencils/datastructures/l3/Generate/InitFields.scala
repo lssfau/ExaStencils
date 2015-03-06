@@ -87,6 +87,15 @@ object InitFields {
           }
         }
       }
+
+      if (Knowledge.l3tmp_genInvDiagStencil) {
+        printer.println
+        Knowledge.dimensionality match {
+          case 2 => printer.println(s"\t\tInvDiagLaplace$postfix@current:[ 0,  0] = 1.0 / Laplace@current:[ 0,  0]")
+          case 3 => printer.println(s"\t\tInvDiagLaplace$postfix@current:[ 0,  0,  0] = 1.0 / Laplace@current:[ 0,  0,  0]")
+        }
+      }
+
       printer.println(s"\t}")
       printer.println(s"}")
 
