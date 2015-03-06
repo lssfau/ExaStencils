@@ -86,7 +86,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
 
     def containsLoopVar(expr : Expression) : Boolean = {
       var res : Boolean = false
-      val contLoopVar = new DefaultStrategy("Anonymous") {
+      object Search extends QuietDefaultStrategy("Anonymous") {
         this += new Transformation("contains loop var", {
           case strC : StringConstant =>
             res |= inVars.contains(strC.value)
@@ -96,10 +96,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
             varA
         })
       }
-      val oldLvl = Logger.getLevel
-      Logger.setLevel(Logger.WARNING)
-      contLoopVar.applyStandalone(new ReturnStatement(Some(expr))) // wrap to ensure ALL nodes of expr are visited
-      Logger.setLevel(oldLvl)
+      Search.applyStandalone(new ReturnStatement(Some(expr))) // wrap to ensure ALL nodes of expr are visited
       return res
     }
 

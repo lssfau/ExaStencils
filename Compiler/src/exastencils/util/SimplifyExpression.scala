@@ -300,7 +300,7 @@ object SimplifyExpression {
     }
   }
 
-  object SimplifyIndices extends DefaultStrategy("Simplify indices") {
+  object SimplifyIndices extends QuietDefaultStrategy("Simplify indices") {
 
     this += new Transformation("now", {
       case a : ArrayAccess =>
@@ -325,13 +325,6 @@ object SimplifyExpression {
             f.index(i) = SimplifyExpression.simplifyIntegralExpr(f.index(i))
         f
     })
-
-    override def applyStandalone(node : Node) : Unit = {
-      val oldLvl = Logger.getLevel
-      Logger.setLevel(Logger.WARNING)
-      super.applyStandalone(node)
-      Logger.setLevel(oldLvl)
-    }
   }
 
   /**

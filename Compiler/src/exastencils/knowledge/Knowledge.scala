@@ -181,8 +181,15 @@ object Knowledge {
   var mpi_defaultCommunicator : String = "MPI_COMM_WORLD" // sets the initial communicator used by most MPI operations
 
   // --- Polyhedron Optimization ---
+  // the following polyhedral optimization levels are currently supported:
+  //   0: don't do anything  (fastest; obviously)
+  //   1: extract a model and recreate an AST after a polyhedral dead code elimination is performed;
+  //        this also allows optimizations of the polyhedral code generator to be applied, as, e.g., avoiding conditional branches inside the loop nest
+  //        additionally, a dependence analysis is performed to annotate parallel loops
+  //   2: optimize the loop nest by trying to minimze the dependences specified by poly_optimizeDeps
+  //   3: tile the optimized loop nest using poly_tileSize_{x|y|z|w}  (slowest)
   // TODO: Alex: range of the following options
-  var poly_optLevel_fine : Int = 0 // [0-3] // poly opt-level for {$poly_numFinestLevels} finest fields  0: disable (fastest);  3: aggressive (slowest)
+  var poly_optLevel_fine : Int = 0 // [0-3] // poly opt-level for poly_numFinestLevels finest fields
   var poly_optLevel_coarse : Int = 0 // [0-poly_optLevel_fine] // polyhedral optimization level for coarsest fields  0: disable (fastest);  3: aggressive (slowest)
   var poly_numFinestLevels : Int = 2 // [1-numLevels] // number of levels that should be optimized in PolyOpt (starting from the finest)
   var poly_tileSize_x : Int = 1000000000 // [32-inf]

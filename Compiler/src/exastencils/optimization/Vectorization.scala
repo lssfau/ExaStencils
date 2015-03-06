@@ -154,6 +154,20 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     }
   }
 
+  private def containsVarAcc(node : Node, varName : String) : Boolean = {
+    var found = false
+    object Search extends QuietDefaultStrategy("Find VariableAccess...") {
+      this += new Transformation("seaching...", {
+        case acc @ VariableAccess(name, _) if (name == varName) =>
+          found = true
+          acc
+      })
+    }
+    // ensure node itself is found, too
+    Search.applyStandalone(Root(ListBuffer(node)))
+    return found
+  }
+
   private def vectorizeLoop(oldLoop : ForLoopStatement, itName : String, begin : Expression, endExcl : Expression,
     incr : Long, body : ListBuffer[Statement], reduction : Option[Reduction]) : Statement = {
 
@@ -186,8 +200,8 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
     // ensure all stores are aligned (heuristics)
     var alignmentExpr : Expression = null
+    val vs = Knowledge.simd_vectorSize
     if (Knowledge.data_alignFieldPointers) {
-      val vs = Knowledge.simd_vectorSize
       for (stmt <- body)
         stmt match {
           case AssignmentStatement(acc @ ArrayAccess(_, index, true), _, _) =>
@@ -201,17 +215,16 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         }
 
       val indexExprs = new ListBuffer[HashMap[Expression, Long]]()
-      val collectIndexExprs = new DefaultStrategy("Collect all array index expressions...")
+      val collectIndexExprs = new QuietDefaultStrategy("Collect all array index expressions...")
       collectIndexExprs += new Transformation("seaching...", {
         case acc @ ArrayAccess(_, index, true) =>
-          val annot = acc.removeAnnotation(AddressPrecalculation.ORIG_IND_ANNOT)
-          indexExprs += SimplifyExpression.extractIntegralSum(if (annot.isDefined) annot.get.value.asInstanceOf[Expression] else index)
+          if (containsVarAcc(index, ctx.itName)) {
+            val annot = acc.removeAnnotation(AddressPrecalculation.ORIG_IND_ANNOT)
+            indexExprs += SimplifyExpression.extractIntegralSum(if (annot.isDefined) annot.get.value.asInstanceOf[Expression] else index)
+          }
           acc
       })
-      val oldLvl = Logger.getLevel
-      Logger.setLevel(Logger.WARNING)
       collectIndexExprs.applyStandalone(Scope(body))
-      Logger.setLevel(oldLvl)
 
       // no store available, so align as max loads as possible
       if (alignmentExpr == null) {
@@ -257,26 +270,29 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     def itVar = VariableAccess(itName, Some(IntegerDatatype()))
     val res = new ListBuffer[Statement]()
 
-    val startName = "_start"
-    def start = VariableAccess(startName, Some(IntegerDatatype()))
-    res += new VariableDeclarationStatement(IntegerDatatype(), startName, Some(begin))
-    res += new VariableDeclarationStatement(IntegerDatatype(), itName, Some(begin))
+    res += new VariableDeclarationStatement(IntegerDatatype(), itName, Some(Duplicate(begin)))
 
-    if (Knowledge.data_alignFieldPointers) { // no need to ensure alignment of iteration variable if data is not aligned
-      res += new ForLoopStatement(NullStatement,
-        AndAndExpression(NeqNeqExpression(Duplicate(alignmentExpr), IntegerConstant(ctx.getAlignedResidue())),
-          LowerExpression(itVar, Duplicate(endExcl))),
-        AssignmentStatement(itVar, IntegerConstant(incr), "+="),
-        Duplicate(body))
-
-      res += new AssignmentStatement(start, itVar, "=")
-    }
-
-    res ++= ctx.preLoopStmts
+    val lowerName = "_lower"
+    def lower = VariableAccess(lowerName, Some(IntegerDatatype()))
+    res += new VariableDeclarationStatement(IntegerDatatype(), lowerName, Some(begin))
 
     val upperName = "_upper"
     def upper = VariableAccess(upperName, Some(IntegerDatatype()))
-    res += new VariableDeclarationStatement(IntegerDatatype(), upperName, Some(endExcl))
+    res += new VariableDeclarationStatement(IntegerDatatype(), upperName, Some(Duplicate(endExcl)))
+
+    if (Knowledge.data_alignFieldPointers) { // no need to ensure alignment of iteration variable if data is not aligned
+      res += new AssignmentStatement(upper, new MinimumExpression(upper,
+        lower + ((IntegerConstant(vs + ctx.getAlignedResidue()) - (Duplicate(alignmentExpr) Mod IntegerConstant(vs))) Mod IntegerConstant(vs))))
+      res += new ForLoopStatement(NullStatement,
+        LowerExpression(itVar, upper),
+        AssignmentStatement(itVar, IntegerConstant(incr), "+="),
+        Duplicate(body))
+
+      res += new AssignmentStatement(lower, upper, "=")
+      res += new AssignmentStatement(upper, Duplicate(endExcl), "=")
+    }
+
+    res ++= ctx.preLoopStmts
 
     // no rollback after this point allowed!
     // reuse oldLoop to preserve all traits
@@ -284,7 +300,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     val annot : Option[Annotation] = oldLoop.removeAnnotation(Unrolling.NO_REM_ANNOT)
     val oldOffset : Long = if (annot.isDefined) annot.get.value.asInstanceOf[Long] else 0L
     val endOffset : Long = incr * Knowledge.simd_vectorSize - 1 - oldOffset
-    oldLoop.begin = AssignmentStatement(itVar, start)
+    oldLoop.begin = AssignmentStatement(itVar, lower)
     oldLoop.end = LowerExpression(itVar, SubtractionExpression(upper, IntegerConstant(endOffset)))
     oldLoop.inc = AssignmentStatement(itVar, IntegerConstant(incr * Knowledge.simd_vectorSize), "+=")
     oldLoop.body = ctx.vectStmts
@@ -371,19 +387,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
                 }
 
               case _ =>
-                val containsLoopVar = new DefaultStrategy("Ensure linear memory access")
-                containsLoopVar += new Transformation("seaching...", {
-                  case node @ VariableAccess(name, _) if (name == ctx.itName) =>
-                    throw new VectorizationException("no linear memory access;  " + expr.prettyprint())
-                })
-                val oldLvl = Logger.getLevel
-                Logger.setLevel(Logger.WARNING)
-                try {
-                  // "wrap" expr to ensure expr itself is affected by trafo, too
-                  containsLoopVar.applyStandalone(FreeStatement(expr))
-                } finally {
-                  Logger.setLevel(oldLvl)
-                }
+                if (containsVarAcc(expr, ctx.itName)) throw new VectorizationException("no linear memory access;  " + expr.prettyprint())
             }
 
           val vs = Knowledge.simd_vectorSize

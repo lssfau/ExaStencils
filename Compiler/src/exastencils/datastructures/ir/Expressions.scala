@@ -419,12 +419,14 @@ private object MinMaxPrinter {
 }
 
 case class MinimumExpression(var args : ListBuffer[Expression]) extends Expression {
+  def this(m1 : Expression, m2 : Expression) = this(ListBuffer(m1, m2))
   override def prettyprint(out : PpStream) : Unit = {
     MinMaxPrinter.prettyprintsb(out, args, "std::min")
   }
 }
 
 case class MaximumExpression(var args : ListBuffer[Expression]) extends Expression {
+  def this(m1 : Expression, m2 : Expression) = this(ListBuffer(m1, m2))
   override def prettyprint(out : PpStream) : Unit = {
     MinMaxPrinter.prettyprintsb(out, args, "std::max")
   }

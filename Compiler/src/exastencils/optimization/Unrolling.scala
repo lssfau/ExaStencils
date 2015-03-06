@@ -209,7 +209,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
   }
 
   private[optimization] class UpdateLoopVarAndNames(itVar : String)
-      extends DefaultStrategy("Add loop var offset, rename declarations, and/or add annotation") {
+      extends QuietDefaultStrategy("Add loop var offset, rename declarations, and/or add annotation") {
 
     private final val SKIP_ANNOT = "UpLVSkip"
     private val rename = new HashSet[String]()
@@ -237,12 +237,5 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
         decl.name += "_" + offset
         decl
     })
-
-    override def applyStandalone(node : Node) : Unit = {
-      val oldLvl = Logger.getLevel
-      Logger.setLevel(Logger.WARNING)
-      super.applyStandalone(node)
-      Logger.setLevel(oldLvl)
-    }
   }
 }
