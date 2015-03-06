@@ -97,6 +97,16 @@ object InitFields {
       }
 
       printer.println(s"\t}")
+
+      if (Knowledge.l3tmp_genTemporalBlocking) {
+        printer.println
+        printer.println(s"\tif (levels@current >= ${Knowledge.l3tmp_tempBlockingMinLevel}) {")
+        printer.println(s"\t\tcommunicate LaplaceCoeff$postfix@current")
+        if (Knowledge.l3tmp_genInvDiagStencil)
+          printer.println(s"\t\tcommunicate InvDiagLaplaceCoeff$postfix@current")
+        printer.println(s"}")
+      }
+
       printer.println(s"}")
 
       if (Knowledge.l3tmp_genStencilStencilConv) {

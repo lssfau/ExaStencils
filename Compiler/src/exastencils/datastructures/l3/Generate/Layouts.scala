@@ -77,12 +77,11 @@ object Layouts {
           printer.println(s"\tghostLayers = [ ${genSet(_ => Knowledge.l3tmp_numPre - 1)} ] with communication")
           printer.println(s"\tduplicateLayers = [ ${genSet(_ => defDup)} ] with communication")
           printer.println(s"}")
-        } else {
-          printer.println(s"Layout NoCommSF< Array[Real][${2 * Knowledge.dimensionality + 1}], ${if (Knowledge.l3tmp_genCellBasedDiscr) "Cell" else "Node"} >@all {")
-          printer.println(s"\tghostLayers = [ ${genSet(_ => 0)} ]")
-          printer.println(s"\tduplicateLayers = [ ${genSet(_ => defDup)} ]")
-          printer.println(s"}")
         }
+        printer.println(s"Layout NoCommSF< Array[Real][${2 * Knowledge.dimensionality + 1}], ${if (Knowledge.l3tmp_genCellBasedDiscr) "Cell" else "Node"} >@all {")
+        printer.println(s"\tghostLayers = [ ${genSet(_ => 0)} ]")
+        printer.println(s"\tduplicateLayers = [ ${genSet(_ => defDup)} ]")
+        printer.println(s"}")
       }
     }
 
