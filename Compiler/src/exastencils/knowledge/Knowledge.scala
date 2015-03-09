@@ -376,7 +376,6 @@ object Knowledge {
 
     // l3tmp - parallelization
     Constraints.condEnsureValue(l3tmp_genAsyncCommunication, false, 26 != comm_strategyFragment, "invalid comm_strategyFragment")
-    Constraints.condEnsureValue(l3tmp_genFragLoops, false, "RBGS" == l3tmp_smoother, "Currently fragment loops are not compatible with RBGS smoothers")
 
     // l3tmp - timer generation
     Constraints.condEnsureValue(l3tmp_genTimersForComm, false, l3tmp_genAsyncCommunication, "timers for overlapping communication are not yet supported")
