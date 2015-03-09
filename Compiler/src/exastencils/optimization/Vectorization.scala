@@ -338,7 +338,8 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         val rhsVec = vectorizeExpr(source, ctx.setLoad())
         val lhsVec = vectorizeExpr(lhsSca, ctx.setStore())
         ctx.vectStmts += AssignmentStatement(lhsVec, rhsVec, "=")
-        ctx.vectStmts += ctx.storesTmp
+        if (ctx.storesTmp != null)
+          ctx.vectStmts += ctx.storesTmp
         ctx.storesTmp = null
 
       case _ => throw new VectorizationException("cannot deal with " + stmt.getClass() + "; " + stmt.prettyprint())
