@@ -444,8 +444,8 @@ class Extractor extends Collector {
             enterDecl(d)
 
           // ignore
-          case FunctionCallExpression(fun @ StringConstant(name), _) if (allowedFunctions.contains(name)) =>
-            fun.annotate(SKIP_ANNOT)
+          case FunctionCallExpression(name, _) if (allowedFunctions.contains(name)) =>
+            // nothing to do...
 
           case _ : IntegerConstant
             | _ : FloatConstant

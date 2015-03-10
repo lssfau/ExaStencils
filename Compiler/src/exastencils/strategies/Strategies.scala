@@ -285,7 +285,7 @@ object CleanUnusedStuff extends DefaultStrategy("Cleaning up unused stuff") {
   })
 
   this += new Transformation("Removing obsolete references", {
-    case FunctionCallExpression(name, _) if emptyFunctions.contains(name.prettyprint) => NullExpression
+    case FunctionCallExpression(name, _) if emptyFunctions.contains(name) => NullExpression
   })
 
   //  this += new Transformation("Removing null-statements", {

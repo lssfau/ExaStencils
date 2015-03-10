@@ -280,7 +280,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
       case isl.AstOpType.OpCall if n >= 1 =>
         val fArgs = ListBuffer[Expression](args : _*)
         fArgs.remove(0)
-        FunctionCallExpression(args(0), fArgs)
+        FunctionCallExpression(args(0).asInstanceOf[StringConstant].value, fArgs)
 
       case err =>
         throw new PolyASTBuilderException("expression not (yet) available:  " + err + "  with " + args.length + " arguments:  " + expr)

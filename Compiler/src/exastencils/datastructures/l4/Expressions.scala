@@ -247,7 +247,7 @@ case class FunctionCallExpression(var identifier : Access, var arguments : List[
   def prettyprint(out : PpStream) = { out << identifier << " ( " <<< (arguments, ", ") << " )" }
 
   def progressToIr : ir.FunctionCallExpression = {
-    ir.FunctionCallExpression(ir.StringConstant(identifier.progressToIr.asInstanceOf[ir.StringConstant].value),
+    ir.FunctionCallExpression(identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
       arguments.map(s => s.progressToIr).to[ListBuffer])
   }
 }
