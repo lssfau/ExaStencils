@@ -62,7 +62,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
   import AddressPrecalculation._
 
   private def generateName(expr : Expression) : String = {
-    return filter(expr.prettyprint())
+    return filter('_' + expr.prettyprint())
   }
 
   private def filter(cpp : StringLike[_]) : String = {

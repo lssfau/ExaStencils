@@ -102,13 +102,13 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
       val name : String = temporaryMapping.getOrElseUpdate(expr, {
         nju = true
         varID += 1
-        "vec" + varID
+        "_vec" + varID
       })
       return (name, nju)
     }
 
     def getIncrVector() : VariableAccess = {
-      val name : String = "veci"
+      val name : String = "_veci"
       if (!incrVectDeclared) {
         SIMD_IncrementVectorDeclaration(name) +=: preLoopStmts
         incrVectDeclared = true
