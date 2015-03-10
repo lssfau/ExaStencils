@@ -105,12 +105,14 @@ case class LayoutDeclarationStatement(
         l4_ghostLayers(dim),
         0 // default, only first requires != 0
         ))
-    // add padding only for innermost dimension
-    val innerLayout : knowledge.FieldLayoutPerDim = layouts(0)
-    innerLayout.numPadLayersLeft = (knowledge.Knowledge.simd_vectorSize - innerLayout.idxDupLeftBegin % knowledge.Knowledge.simd_vectorSize) % knowledge.Knowledge.simd_vectorSize
-    innerLayout.numPadLayersRight = (knowledge.Knowledge.simd_vectorSize - innerLayout.evalTotal % knowledge.Knowledge.simd_vectorSize) % knowledge.Knowledge.simd_vectorSize
-    for (layout <- layouts) // update total after potentially changing padding
-      layout.total = ir.IntegerConstant(layout.evalTotal)
+    if (knowledge.Knowledge.data_alignFieldPointers) {
+      // add padding only for innermost dimension
+      val innerLayout : knowledge.FieldLayoutPerDim = layouts(0)
+      innerLayout.numPadLayersLeft = (knowledge.Knowledge.simd_vectorSize - innerLayout.idxDupLeftBegin % knowledge.Knowledge.simd_vectorSize) % knowledge.Knowledge.simd_vectorSize
+      innerLayout.numPadLayersRight = (knowledge.Knowledge.simd_vectorSize - innerLayout.evalTotal % knowledge.Knowledge.simd_vectorSize) % knowledge.Knowledge.simd_vectorSize
+      for (layout <- layouts) // update total after potentially changing padding
+        layout.total = ir.IntegerConstant(layout.evalTotal)
+    }
 
     // support vector data types
     layouts ++= Array(new knowledge.FieldLayoutPerDim(0, 0, 0, datatype.progressToIr.resolveFlattendSize, 0, 0, 0))
