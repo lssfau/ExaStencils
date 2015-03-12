@@ -284,13 +284,16 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     }
 
     if (Knowledge.poly_simplifyDeps) {
-      validity = validity.gistDomain(scop.domain)
       validity = validity.gistRange(scop.domain)
-      coincidence = coincidence.gistDomain(scop.domain)
+      validity = validity.gistDomain(scop.domain)
       coincidence = coincidence.gistRange(scop.domain)
-      proximity = proximity.gistDomain(scop.domain)
+      coincidence = coincidence.gistDomain(scop.domain)
       proximity = proximity.gistRange(scop.domain)
+      proximity = proximity.gistDomain(scop.domain)
     }
+
+    if (Knowledge.poly_filterDeps)
+      proximity = Isl.simplify(proximity.lexmin())
 
     schedConstr = schedConstr.setValidity(validity)
     schedConstr = schedConstr.setCoincidence(coincidence)

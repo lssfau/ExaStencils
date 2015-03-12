@@ -3,7 +3,7 @@ targetCompilerVersion       = 4
 targetCompilerVersionMinor  = 8
 simd_instructionSet         = "AVX"
 simd_avoidUnaligned         = false
-data_alignFieldPointers     = true
+data_alignFieldPointers     = false
 
 dimensionality = 3
 
@@ -43,6 +43,7 @@ poly_tileSize_z        = 1000000
 poly_tileOuterLoop     = false
 poly_scheduleAlgorithm = "isl"
 poly_optimizeDeps      = "raw"
+poly_filterDeps        = true
 poly_simplifyDeps      = true
 poly_fusionStrategy    = "max"
 poly_maximizeBandDepth = false
