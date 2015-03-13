@@ -9,6 +9,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.logger._
+import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.util._
 
 object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") {
@@ -43,6 +44,7 @@ private[optimization] final class Analyze extends Collector {
   private var preLoopDecls : ListBuffer[Statement] = null
   private var loads : HashMap[(Expression, HashMap[Expression, Long]), VariableDeclarationStatement] = null
   private var upLoopVar : UpdateLoopVar = null
+  private var hasOMPPragma : Boolean = false
 
   override def enter(node : Node) : Unit = {
     node match {
@@ -53,6 +55,7 @@ private[optimization] final class Analyze extends Collector {
           node.annotate(NEW_DECLS_COND_ANNOT, (preLoopDecls, Duplicate(cond)))
           loads = new HashMap[(Expression, HashMap[Expression, Long]), VariableDeclarationStatement]
           upLoopVar = new UpdateLoopVar(lVar, incr, start)
+          hasOMPPragma = node.isInstanceOf[OMP_PotentiallyParallel]
         }
 
       case decl @ VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp,
@@ -68,19 +71,21 @@ private[optimization] final class Analyze extends Collector {
           loads((base, indSum)) = decl
 
           // test if the vector can be reused next iteration
-          val indSumNIt : HashMap[Expression, Long] = SimplifyExpression.extractIntegralSum(upLoopVar.updateDup(index))
-          val nextIt = loads.get((base, indSumNIt))
-          if (nextIt.isDefined) {
-            preLoopDecls += VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp,
-              Some(SIMD_LoadExpression(UnaryExpression(UnaryOperators.AddressOf,
-                ArrayAccess(Duplicate(base), SimplifyExpression.simplifyIntegralExpr(upLoopVar.replaceDup(index)))), aligned)))
-            decl.annotate(REPL_ANNOT, AssignmentStatement(VariableAccess(vecTmp, Some(SIMD_RealDatatype())), load, "="))
-            if (nextIt.get.hasAnnotation(REPL_ANNOT))
-              nextIt.get.annotate(REPL_ANNOT, AssignmentStatement(VariableAccess(nextIt.get.name, Some(SIMD_RealDatatype())),
-                VariableAccess(vecTmp, Some(SIMD_RealDatatype())), "=")) // TODO: check if this is always correct...
-            else
-              nextIt.get.annotate(REPL_ANNOT, VariableDeclarationStatement(SIMD_RealDatatype(), nextIt.get.name,
-                Some(VariableAccess(vecTmp, Some(SIMD_RealDatatype())))))
+          if (!hasOMPPragma) {
+            val indSumNIt : HashMap[Expression, Long] = SimplifyExpression.extractIntegralSum(upLoopVar.updateDup(index))
+            val nextIt = loads.get((base, indSumNIt))
+            if (nextIt.isDefined) {
+              preLoopDecls += VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp,
+                Some(SIMD_LoadExpression(UnaryExpression(UnaryOperators.AddressOf,
+                  ArrayAccess(Duplicate(base), SimplifyExpression.simplifyIntegralExpr(upLoopVar.replaceDup(index)))), aligned)))
+              decl.annotate(REPL_ANNOT, AssignmentStatement(VariableAccess(vecTmp, Some(SIMD_RealDatatype())), load, "="))
+              if (nextIt.get.hasAnnotation(REPL_ANNOT))
+                nextIt.get.annotate(REPL_ANNOT, AssignmentStatement(VariableAccess(nextIt.get.name, Some(SIMD_RealDatatype())),
+                  VariableAccess(vecTmp, Some(SIMD_RealDatatype())), "=")) // TODO: check if this is always correct...
+              else
+                nextIt.get.annotate(REPL_ANNOT, VariableDeclarationStatement(SIMD_RealDatatype(), nextIt.get.name,
+                  Some(VariableAccess(vecTmp, Some(SIMD_RealDatatype())))))
+            }
           }
         }
 
