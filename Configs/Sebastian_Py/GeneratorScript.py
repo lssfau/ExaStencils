@@ -23,6 +23,7 @@ def write_settings(path, config):
                         "\"C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ScalaExaStencil/Heap/generate/" +
                         config.baseName + "/\"\n")
     settings_file.write("basePathPrefix				= \".\"\n")
+    settings_file.write("failOnConstraint			= true\n")
     # settings_file.write("cancelIfOutFolderExists		= true\n")
 
     settings_file.close()
@@ -38,14 +39,21 @@ def write_knowledge(path, config):
         file.write("%s = %s\n" % (param, config.constParameters[param]))
     file.write("\n")
 
+    file.write("// derived parameters\n")
+    for param in sorted(config.derivedParameters):
+        file.write("%s = %s\n" % (param, config.derivedParameters[param]))
+    file.write("\n")
+
     file.write("// ranged parameters\n")
     for param in sorted(config.chosenRangedParameters):
-        file.write("%s = %s\n" % (param, config.chosenRangedParameters[param]))
+        if "nameModifier" != param:
+            file.write("%s = %s\n" % (param, config.chosenRangedParameters[param]))
     file.write("\n")
 
     file.write("// listed parameters\n")
     for param in sorted(config.chosenListedParameters):
-        file.write("%s = %s\n" % (param, config.chosenListedParameters[param]))
+        if "nameModifier" != param:
+            file.write("%s = %s\n" % (param, config.chosenListedParameters[param]))
     file.write("\n")
 
     file.close()

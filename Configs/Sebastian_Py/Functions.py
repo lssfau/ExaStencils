@@ -30,21 +30,33 @@ def generate_configurations(configuration_class):
                 new_parameters.append(new_config)
         listed_parameter_configurations = new_parameters
 
-    print("Found %s configurations" % (len(ranged_parameter_configurations) * len(listed_parameter_configurations)))
+    num_configs_total = len(ranged_parameter_configurations) * len(listed_parameter_configurations)
+    print("Found %s configurations" % num_configs_total)
     final_configs = []
+    cur_config_idx = 0
+    last_perc_update = 0
     for ranged_config in ranged_parameter_configurations:
         for listed_config in listed_parameter_configurations:
             new_config = configuration_class()
             new_config.baseName = configuration_class.baseName + ranged_config["nameModifier"] + listed_config[
                 "nameModifier"]
-            new_config.constParameters = copy.deepcopy(configuration_class.constParameters)
-            new_config.chosenRangedParameters = copy.deepcopy(ranged_config)
-            del new_config.chosenRangedParameters["nameModifier"]
-            new_config.chosenListedParameters = copy.deepcopy(listed_config)
-            del new_config.chosenListedParameters["nameModifier"]
+            # new_config.constParameters = copy.deepcopy(configuration_class.constParameters)
+            # new_config.derivedParameters = copy.deepcopy(configuration_class.derivedParameters)
+            new_config.derivedParameters = copy.copy(configuration_class.derivedParameters)
+            # new_config.chosenRangedParameters = copy.deepcopy(ranged_config)
+            new_config.chosenRangedParameters = ranged_config
+            # del new_config.chosenRangedParameters["nameModifier"]
+            # new_config.chosenListedParameters = copy.deepcopy(listed_config)
+            new_config.chosenListedParameters = listed_config
+            # del new_config.chosenListedParameters["nameModifier"]
             new_config.update()
             if new_config.is_valid():
                 final_configs.append(new_config)
+
+            if cur_config_idx >= last_perc_update * num_configs_total:
+                print("%s percent done" % last_perc_update)
+                last_perc_update += 1
+            cur_config_idx += 1
     print("After filtering, %s valid configurations remain" % len(final_configs))
     return final_configs
 
@@ -60,7 +72,8 @@ def init_configurations(config_list_filename, configuration_class):
             for config in raw_data:
                 new_config = configuration_class()
                 new_config.baseName = config[0]
-                new_config.constParameters = copy.deepcopy(configuration_class.constParameters)
+                # new_config.constParameters = copy.deepcopy(configuration_class.constParameters)
+                new_config.derivedParameters = copy.deepcopy(configuration_class.derivedParameters)
                 new_config.chosenRangedParameters = dict(config[1])
                 new_config.chosenListedParameters = dict(config[2])
                 new_config.update()

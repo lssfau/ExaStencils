@@ -166,6 +166,4 @@ class Configuration:
                          "l3tmp_genTimersPerFunction": "true",
                          "l3tmp_genTimersForComm": "true",
                          "l3tmp_printTimersToFile": "true",
-
-                         "l3tmp_smoother": "\"Jac\""
     }
