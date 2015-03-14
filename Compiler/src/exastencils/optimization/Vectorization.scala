@@ -102,13 +102,13 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
       val name : String = temporaryMapping.getOrElseUpdate(expr, {
         nju = true
         varID += 1
-        "vec" + varID
+        "_vec" + varID
       })
       return (name, nju)
     }
 
     def getIncrVector() : VariableAccess = {
-      val name : String = "veci"
+      val name : String = "_veci"
       if (!incrVectDeclared) {
         SIMD_IncrementVectorDeclaration(name) +=: preLoopStmts
         incrVectDeclared = true
@@ -282,7 +282,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
     if (Knowledge.data_alignFieldPointers) { // no need to ensure alignment of iteration variable if data is not aligned
       res += new AssignmentStatement(upper, new MinimumExpression(upper,
-        lower + ((IntegerConstant(vs + ctx.getAlignedResidue()) - (Duplicate(alignmentExpr) Mod IntegerConstant(vs))) Mod IntegerConstant(vs))))
+        lower + ((IntegerConstant(vs) - (Duplicate(alignmentExpr) Mod IntegerConstant(vs))) Mod IntegerConstant(vs))))
       res += new ForLoopStatement(NullStatement,
         LowerExpression(itVar, upper),
         AssignmentStatement(itVar, IntegerConstant(incr), "+="),
@@ -338,7 +338,8 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         val rhsVec = vectorizeExpr(source, ctx.setLoad())
         val lhsVec = vectorizeExpr(lhsSca, ctx.setStore())
         ctx.vectStmts += AssignmentStatement(lhsVec, rhsVec, "=")
-        ctx.vectStmts += ctx.storesTmp
+        if (ctx.storesTmp != null)
+          ctx.vectStmts += ctx.storesTmp
         ctx.storesTmp = null
 
       case _ => throw new VectorizationException("cannot deal with " + stmt.getClass() + "; " + stmt.prettyprint())

@@ -432,9 +432,9 @@ case class MaximumExpression(var args : ListBuffer[Expression]) extends Expressi
   }
 }
 
-case class FunctionCallExpression(var name : Expression, var arguments : ListBuffer[Expression]) extends Expression {
-  def this(name : Expression, argument : Expression) = this(name, ListBuffer(argument))
-  def this(name : Expression) = this(name, ListBuffer[Expression]())
+case class FunctionCallExpression(var name : String, var arguments : ListBuffer[Expression]) extends Expression {
+  def this(name : String, argument : Expression) = this(name, ListBuffer(argument))
+  def this(name : String) = this(name, ListBuffer[Expression]())
 
   override def prettyprint(out : PpStream) : Unit = out << name << '(' <<< (arguments, ", ") << ')'
 }
@@ -445,9 +445,9 @@ case class InitializerList(var arguments : ListBuffer[Expression]) extends Expre
   override def prettyprint(out : PpStream) : Unit = out << "{ " <<< (arguments, ", ") << " }"
 }
 
-case class MemberFunctionCallExpression(var objectName : Expression, var name : Expression, var arguments : ListBuffer[Expression]) extends Expression {
-  def this(objectName : Expression, name : Expression, argument : Expression) = this(objectName, name, ListBuffer(argument))
-  def this(objectName : Expression, name : Expression) = this(objectName, name, ListBuffer[Expression]())
+case class MemberFunctionCallExpression(var objectName : Expression, var name : String, var arguments : ListBuffer[Expression]) extends Expression {
+  def this(objectName : Expression, name : String, argument : Expression) = this(objectName, name, ListBuffer(argument))
+  def this(objectName : Expression, name : String) = this(objectName, name, ListBuffer[Expression]())
 
   override def prettyprint(out : PpStream) : Unit = out << objectName << '.' << name << '(' <<< (arguments, ", ") << ')'
 }

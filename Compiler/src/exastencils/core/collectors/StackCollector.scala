@@ -2,28 +2,25 @@ package exastencils.core.collectors
 
 import scala.collection.mutable.Stack
 
-import exastencils.datastructures._
+import exastencils.datastructures.Node
 import exastencils.logger._
 
 class StackCollector extends Collector {
-  private val stack_ = new Stack[Node]
+  final val stack = new Stack[Node]()
 
-  def isEmpty : Boolean = { return stack_.isEmpty }
-  def head : Node = { return stack_.head }
-
-  def stack = stack_
-  def list = stack_.toList
+  def isEmpty : Boolean = { return stack.isEmpty }
+  def head : Node = { return stack.head }
 
   override def enter(node : Node) : Unit = {
-    stack_.push(node)
+    stack.push(node)
   }
 
   override def leave(node : Node) : Unit = {
     if (head != node) Logger.error(s"StackCollector mismatch: Cannot leave(): head != $node") // fatal error is fatal
-    stack_.pop()
+    stack.pop()
   }
 
   override def reset() : Unit = {
-    stack_.clear
+    stack.clear
   }
 }

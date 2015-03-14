@@ -59,6 +59,14 @@ object Extractor {
           vars.add(islStr)
         constraints.append(islStr)
 
+      // a StringConstant is only allowed, if the value it represents was used correctly before (as a VariableAccess, for example)
+      case str : StringConstant if (ScopNameMapping.id2expr(str.value).isDefined) =>
+        val e = ScopNameMapping.id2expr(str.value).get
+        val islStr : String = ScopNameMapping.expr2id(e)
+        if (vars != null)
+          vars.add(islStr)
+        constraints.append(islStr)
+
       case array : ArrayAccess =>
         val islStr : String = ScopNameMapping.expr2id(array)
         if (vars != null)
@@ -436,8 +444,8 @@ class Extractor extends Collector {
             enterDecl(d)
 
           // ignore
-          case FunctionCallExpression(fun @ StringConstant(name), _) if (allowedFunctions.contains(name)) =>
-            fun.annotate(SKIP_ANNOT)
+          case FunctionCallExpression(name, _) if (allowedFunctions.contains(name)) =>
+            // nothing to do...
 
           case _ : IntegerConstant
             | _ : FloatConstant

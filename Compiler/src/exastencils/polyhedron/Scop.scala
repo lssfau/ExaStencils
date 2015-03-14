@@ -46,7 +46,7 @@ class Scop(val root : LoopOverDimensions, var optLevel : Int, var parallelize : 
     })
     var i : Int = 0
     while (i < maxOut) {
-      njuLoopVars += "i" + i
+      njuLoopVars += "_i" + i
       i += 1
     }
   }

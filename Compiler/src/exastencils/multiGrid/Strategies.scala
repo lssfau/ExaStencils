@@ -51,7 +51,7 @@ object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
   this.register(collector)
 
   this += new Transformation("SearchAndReplace", {
-    case FunctionCallExpression(StringConstant("diag"), args) => args(0) match {
+    case FunctionCallExpression("diag", args) => args(0) match {
       case access : StencilAccess =>
         val centralOffset = new MultiIndex(Array.fill(Knowledge.dimensionality)(0))
         access.stencil.findStencilEntry(centralOffset).get.coefficient
@@ -62,7 +62,7 @@ object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
       }
       case _ => {
         Logger.warn("diag with unknown arg " + args(0))
-        FunctionCallExpression(StringConstant("diag"), args)
+        FunctionCallExpression("diag", args)
       }
     }
   })
@@ -79,30 +79,30 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     // functions
 
     // HACK to implement min/max functions
-    case FunctionCallExpression(StringConstant("min"), args) => MinimumExpression(args)
-    case FunctionCallExpression(StringConstant("max"), args) => MaximumExpression(args)
+    case FunctionCallExpression("min", args) => MinimumExpression(args)
+    case FunctionCallExpression("max", args) => MaximumExpression(args)
 
     // FIXME: UGLY HACK to realize native code functionality
-    case FunctionCallExpression(StringConstant("native"), args) =>
+    case FunctionCallExpression("native", args) =>
       args(0).asInstanceOf[StringConstant]
 
     // HACK to realize time measurement functionality -> FIXME: move to specialized node
-    case ExpressionStatement(FunctionCallExpression(StringConstant("startTimer"), args)) =>
+    case ExpressionStatement(FunctionCallExpression("startTimer", args)) =>
       ExpressionStatement(FunctionCallExpression("startTimer", ListBuffer(iv.Timer(args(0)))))
 
-    case ExpressionStatement(FunctionCallExpression(StringConstant("stopTimer"), args)) =>
+    case ExpressionStatement(FunctionCallExpression("stopTimer", args)) =>
       ExpressionStatement(FunctionCallExpression("stopTimer", ListBuffer(iv.Timer(args(0)))))
 
-    case FunctionCallExpression(StringConstant("getMeanFromTimer"), args) =>
+    case FunctionCallExpression("getMeanFromTimer", args) =>
       FunctionCallExpression("getMeanTime", ListBuffer(iv.Timer(args(0))))
 
-    case FunctionCallExpression(StringConstant("getTotalFromTimer"), args) =>
+    case FunctionCallExpression("getTotalFromTimer", args) =>
       FunctionCallExpression("getTotalTime", ListBuffer(iv.Timer(args(0))))
 
     // HACK for print functionality
-    case ExpressionStatement(FunctionCallExpression(StringConstant("print"), args)) =>
+    case ExpressionStatement(FunctionCallExpression("print", args)) =>
       new PrintStatement(args)
-    case ExpressionStatement(FunctionCallExpression(StringConstant("printField"), args)) =>
+    case ExpressionStatement(FunctionCallExpression("printField", args)) =>
       new PrintFieldStatement(args(0), args(1).asInstanceOf[FieldAccess].fieldSelection)
 
     // FIXME: HACK to realize application functionality

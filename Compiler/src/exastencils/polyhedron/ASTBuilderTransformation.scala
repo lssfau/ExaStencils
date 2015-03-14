@@ -24,6 +24,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
 
   private final val ZERO_VAL : isl.Val = isl.Val.zero()
   private final val ONE_VAL : isl.Val = isl.Val.one()
+  private final val NEG_ONE_VAL : isl.Val = isl.Val.negone()
 
   private val loopStmts = new HashMap[String, ListBuffer[OptimizationHint]]()
   private var oldStmts : HashMap[String, (Statement, ArrayBuffer[String])] = null
@@ -31,6 +32,15 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
   private var parallelize_omp : Boolean = false
   private var reduction : Option[Reduction] = None
   private var condition : Expression = null
+
+  private def invalidateScop(scop : Scop) : Unit = {
+    // remove all annotations for the merged scops, as they are invalid now
+    var s : Scop = scop.nextMerge
+    while (s != null) {
+      s.root.removeAnnotation(PolyOpt.SCOP_ANNOT)
+      s = s.nextMerge
+    }
+  }
 
   override def isDefinedAt(node : Node) : Boolean = node match {
     case loop : LoopOverDimensions with PolyhedronAccessable =>
@@ -68,6 +78,16 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
 
         if (!seq.intersect(directions).isEmpty())
           seqDims += scop.njuLoopVars(i)
+
+        seq = seq.dropConstraintsInvolvingDims(isl.DimType.Set, i, 1)
+        seq = seq.upperBoundVal(isl.DimType.Set, i, NEG_ONE_VAL)
+
+        val negative_deps = seq.intersect(directions)
+        if (!negative_deps.isEmpty()) {
+          Logger.debug("[poly ast] invalid dependence found (negative direction):  " + negative_deps)
+          invalidateScop(scop)
+          return node
+        }
       }
     })
 
@@ -113,12 +133,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
       } catch {
         case PolyASTBuilderException(msg) =>
           Logger.debug("[poly ast] cannot create AST from model:  " + msg)
-          // remove all annotations for the merged scops, as they are invalid now
-          var s : Scop = scop.nextMerge
-          while (s != null) {
-            s.root.removeAnnotation(PolyOpt.SCOP_ANNOT)
-            s = s.nextMerge
-          }
+          invalidateScop(scop)
           return node
       }
 
@@ -265,7 +280,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
       case isl.AstOpType.OpCall if n >= 1 =>
         val fArgs = ListBuffer[Expression](args : _*)
         fArgs.remove(0)
-        FunctionCallExpression(args(0), fArgs)
+        FunctionCallExpression(args(0).asInstanceOf[StringConstant].value, fArgs)
 
       case err =>
         throw new PolyASTBuilderException("expression not (yet) available:  " + err + "  with " + args.length + " arguments:  " + expr)
