@@ -44,6 +44,8 @@ l3tmp_genNonZeroRhs			= true
 l3tmp_exactSolution			= "Kappa"
 
 l3tmp_smoother				= "Jac"
+l3tmp_numPre				= 3
+l3tmp_numPost				= 3
 l3tmp_useSlotsForJac		= true
 l3tmp_useSlotVariables		= true
 
