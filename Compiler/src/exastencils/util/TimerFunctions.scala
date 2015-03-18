@@ -2,9 +2,7 @@ package exastencils.util
 
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core._
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -17,16 +15,18 @@ case class TimerDetail_AssignNow(var lhs : Expression) extends Statement with Ex
 
   def expand() : Output[Statement] = {
     Knowledge.timer_type match {
-      case "Chrono" => AssignmentStatement(lhs, "std::chrono::high_resolution_clock::now()")
+      case "Chrono" => AssignmentStatement(lhs, new FunctionCallExpression("std::chrono::high_resolution_clock::now"))
       case "QPC" => Scope(ListBuffer[Statement](
         VariableDeclarationStatement(SpecialDatatype("LARGE_INTEGER"), "now"),
         FunctionCallExpression("QueryPerformanceCounter", ListBuffer("&" ~ "now")),
-        AssignmentStatement(lhs, "now.QuadPart")))
+        AssignmentStatement(lhs, MemberAccess(VariableAccess("now"), VariableAccess("QuadPart")))))
       case "WIN_TIME" => AssignmentStatement(lhs, CastExpression(RealDatatype(), FunctionCallExpression("clock", ListBuffer())) / "CLOCKS_PER_SEC")
       case "UNIX_TIME" => Scope(ListBuffer[Statement](
         VariableDeclarationStatement(SpecialDatatype("timeval"), "timePoint"),
         FunctionCallExpression("gettimeofday", ListBuffer("&" ~ "timePoint", "NULL")),
-        AssignmentStatement(lhs, CastExpression(RealDatatype(), "timePoint.tv_sec") * 1e3 + CastExpression(RealDatatype(), "timePoint.tv_usec") * 1e-3)))
+        AssignmentStatement(lhs,
+          CastExpression(RealDatatype(), MemberAccess(VariableAccess("timePoint"), VariableAccess("tv_sec")) * 1e3
+            + CastExpression(RealDatatype(), MemberAccess(VariableAccess("timePoint"), VariableAccess("tv_usec")) * 1e-3)))))
       case "MPI_TIME"     => AssignmentStatement(lhs, FunctionCallExpression("MPI_Wtime", ListBuffer()))
       case "WINDOWS_RDSC" => AssignmentStatement(lhs, FunctionCallExpression("__rdtsc", ListBuffer()))
       case "RDSC"         => AssignmentStatement(lhs, FunctionCallExpression("__rdtsc", ListBuffer()))
@@ -85,103 +85,104 @@ case class TimerFunctions() extends FunctionCollection("Util/TimerFunctions",
   }
 }
 
-case class TimerFct_StartTimer() extends AbstractFunctionStatement with Expandable {
+abstract class AbstractTimerFunction extends AbstractFunctionStatement
+
+object AbstractTimerFunction {
+  def accessMember(member : String) = {
+    MemberAccess(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&"))), VariableAccess(member) // TODO: dt req?
+    )
+  }
+}
+
+case class TimerFct_StartTimer() extends AbstractTimerFunction with Expandable {
+  import AbstractTimerFunction._
+
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_StartTimer\n"
   override def prettyprint_decl : String = prettyprint
 
   def expand() : Output[FunctionStatement] = {
     var statements = ListBuffer[Statement](
-      new ConditionStatement(EqEqExpression(0, "stopWatch.numEntries"), ListBuffer[Statement](
-        TimerDetail_AssignNow("stopWatch.timerStarted"),
-        AssignmentStatement("stopWatch.lastTimeMeasured", TimerDetail_Zero()))),
+      new ConditionStatement(EqEqExpression(0, accessMember("numEntries")), ListBuffer[Statement](
+        TimerDetail_AssignNow(accessMember("timerStarted")),
+        AssignmentStatement(accessMember("lastTimeMeasured"), TimerDetail_Zero()))),
       if (Knowledge.experimental_timerEnableCallStacks) "CallTracker::StartTimer(&stopWatch)" else "",
-      PreIncrementExpression("stopWatch.numEntries"))
+      PreIncrementExpression(accessMember("numEntries")))
 
     FunctionStatement(UnitDatatype(), s"startTimer", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements)
   }
 }
 
-case class TimerFct_StopTimer() extends AbstractFunctionStatement with Expandable {
+case class TimerFct_StopTimer() extends AbstractTimerFunction with Expandable {
+  import AbstractTimerFunction._
+
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_StopTimer\n"
   override def prettyprint_decl : String = prettyprint
 
   def expand() : Output[FunctionStatement] = {
     var statements = ListBuffer[Statement](
-      PreDecrementExpression("stopWatch.numEntries"),
-      new ConditionStatement(EqEqExpression(0, "stopWatch.numEntries"), ListBuffer[Statement](
-        TimerDetail_AssignNow("stopWatch.timerEnded"),
-        AssignmentStatement("stopWatch.lastTimeMeasured",
+      PreDecrementExpression(accessMember("numEntries")),
+      new ConditionStatement(EqEqExpression(0, accessMember("numEntries")), ListBuffer[Statement](
+        TimerDetail_AssignNow(accessMember("timerEnded")),
+        AssignmentStatement(accessMember("lastTimeMeasured"),
           if ("Chrono" == Knowledge.timer_type)
-            FunctionCallExpression("std::chrono::duration_cast<std::chrono::nanoseconds>", ListBuffer("stopWatch.timerEnded" - "stopWatch.timerStarted"))
+            FunctionCallExpression("std::chrono::duration_cast<std::chrono::nanoseconds>", ListBuffer(accessMember("timerEnded") - accessMember("timerStarted")))
           else
-            "stopWatch.timerEnded" - "stopWatch.timerStarted"),
-        AssignmentStatement("stopWatch.totalTimeMeasured", "stopWatch.lastTimeMeasured", "+="),
+            accessMember("timerEnded") - accessMember("timerStarted")),
+        AssignmentStatement(accessMember("totalTimeMeasured"), accessMember("lastTimeMeasured"), "+="),
         if (Knowledge.experimental_timerEnableCallStacks) "CallTracker::StopTimer(&stopWatch)" else "",
-        PreIncrementExpression("stopWatch.numMeasurements"))))
+        PreIncrementExpression(accessMember("numMeasurements")))))
 
     FunctionStatement(UnitDatatype(), s"stopTimer", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements)
   }
 }
 
-case class TimerFct_GetTotalTime /* in milliseconds */ () extends AbstractFunctionStatement with Expandable {
+case class TimerFct_GetTotalTime /* in milliseconds */ () extends AbstractTimerFunction with Expandable {
+  import AbstractTimerFunction._
+
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_GetTotalTime\n"
   override def prettyprint_decl : String = prettyprint
 
   def expand() : Output[FunctionStatement] = {
     var statements = ListBuffer[Statement](
-      TimerDetail_ReturnConvertToMS("stopWatch.totalTimeMeasured"))
+      TimerDetail_ReturnConvertToMS(accessMember("totalTimeMeasured")))
 
     FunctionStatement(RealDatatype(), s"getTotalTime", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements)
   }
 }
 
-case class TimerFct_GetMeanTime /* in milliseconds */ () extends AbstractFunctionStatement with Expandable {
+case class TimerFct_GetMeanTime /* in milliseconds */ () extends AbstractTimerFunction with Expandable {
+  import AbstractTimerFunction._
+
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_GetMeanTime\n"
   override def prettyprint_decl : String = prettyprint
 
   def expand() : Output[FunctionStatement] = {
     var statements = ListBuffer[Statement](
-      new ConditionStatement(GreaterExpression("stopWatch.numMeasurements", 0),
-        ReturnStatement(Some(FunctionCallExpression("getTotalTime", ListBuffer("stopWatch")) / "stopWatch.numMeasurements")),
+      new ConditionStatement(GreaterExpression(accessMember("numMeasurements"), 0),
+        ReturnStatement(Some(FunctionCallExpression("getTotalTime", ListBuffer("stopWatch")) / accessMember("numMeasurements"))),
         ReturnStatement(Some(0.0))))
 
     FunctionStatement(RealDatatype(), s"getMeanTime", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements)
   }
 }
 
-case class TimerFct_GetLastTime /* in milliseconds */ () extends AbstractFunctionStatement with Expandable {
+case class TimerFct_GetLastTime /* in milliseconds */ () extends AbstractTimerFunction with Expandable {
+  import AbstractTimerFunction._
+
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_GetLastTime\n"
   override def prettyprint_decl : String = prettyprint
 
   def expand() : Output[FunctionStatement] = {
     var statements = ListBuffer[Statement](
-      TimerDetail_ReturnConvertToMS("stopWatch.lastTimeMeasured"))
+      TimerDetail_ReturnConvertToMS(accessMember("lastTimeMeasured")))
 
     FunctionStatement(RealDatatype(), s"getLastTime", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements)
   }
 }
 
-object CollectTimers extends DefaultStrategy("Collecting used timers") {
-  var timers : HashMap[String, iv.Timer] = HashMap()
+case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with Expandable {
+  import AbstractTimerFunction._
 
-  override def apply(node : Option[Node] = None) = {
-    timers.clear
-    super.apply(node)
-  }
-
-  override def applyStandalone(node : Node) = {
-    timers.clear
-    super.applyStandalone(node)
-  }
-
-  this += new Transformation("Collecting", {
-    case timer : iv.Timer => // TODO: don't overwrite for performance reasons
-      timers += (timer.resolveName -> timer)
-      timer
-  })
-}
-
-case class TimerFct_PrintAllTimers() extends AbstractFunctionStatement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_PrintAllTimers\n"
   override def prettyprint_decl : String = prettyprint
 
@@ -215,7 +216,9 @@ case class TimerFct_PrintAllTimers() extends AbstractFunctionStatement with Expa
   }
 }
 
-case class TimerFct_PrintAllTimersToFile() extends AbstractFunctionStatement with Expandable {
+case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Expandable {
+  import AbstractTimerFunction._
+
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_PrintAllTimersToFile\n"
   override def prettyprint_decl : String = prettyprint
 
@@ -259,8 +262,9 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractFunctionStatement wit
           statements))
     }
 
-    statements.prepend("std::ofstream outFile(\"" + Knowledge.l3tmp_timerOuputFile + "\")")
-    statements.append("outFile.close()")
+    statements.prepend(MemberFunctionCallExpression(VariableAccess("outFile"), "open", ListBuffer(("\"" + Knowledge.l3tmp_timerOuputFile + "\""))))
+    statements.prepend(VariableDeclarationStatement(SpecialDatatype("std::ofstream"), "outFile"))
+    statements.append(MemberFunctionCallExpression(VariableAccess("outFile"), "close", ListBuffer()))
 
     statements
   }
