@@ -13,8 +13,8 @@ object Platform {
   // NOTE: this only works if the Hardware object is loaded AFTER Knowledge is fully initialized
   Knowledge.targetCompiler match {
     case "IBMBG" => {
-      cflags = "-O3 -qhot -qarch=qp -qtune=qp -DNDEBUG"
-      ldflags = "-O3 -qhot -qarch=qp -qtune=qp -DNDEBUG"
+      cflags = "-O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot 
+      ldflags = "-O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot
 
       if (Knowledge.mpi_enabled && Knowledge.omp_enabled) {
         compiler = "mpixlcxx_r"
@@ -32,8 +32,8 @@ object Platform {
       }
     }
     case "IBMXL" => {
-      cflags = "-O3 -qhot -qarch=qp -qtune=qp -DNDEBUG"
-      ldflags = "-O3 -qhot -qarch=qp -qtune=qp -DNDEBUG"
+      cflags = "-O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot
+      ldflags = "-O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot
 
       if (Knowledge.mpi_enabled) {
         compiler = "mpixlcxx"
@@ -54,6 +54,9 @@ object Platform {
           case "AVX"  => cflags += " -mavx"
           case "AVX2" => cflags += " -mavx2 -mfma"
         }
+      if ("ARM" == Knowledge.targetHardware)
+        cflags += " -mcpu=cortex-a9 -mhard-float -funsafe-math-optimizations"
+
       ldflags = ""
 
       if (Knowledge.mpi_enabled) {

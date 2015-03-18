@@ -10,6 +10,8 @@ object Knowledge {
   var targetCompilerVersion : Int = 0 // major version of the target compiler
   var targetCompilerVersionMinor : Int = 0 // minor version of the target compiler
 
+  var targetHardware : String = "CPU" // target hw platform; may be "CPU" or "ARM"
+
   var useDblPrecision : Boolean = true
 
   var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2", "QPX"
