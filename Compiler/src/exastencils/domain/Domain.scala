@@ -211,7 +211,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
           AssignmentStatement(iv.PrimitivePositionBegin(), s"positions[${LoopOverFragments.defIt}]" - vecDelta),
           AssignmentStatement(iv.PrimitivePositionEnd(), (s"positions[${LoopOverFragments.defIt}]" : Expression) + vecDelta))), // stupid string concat ...
         ConnectFragments(),
-        "setupBuffers()" // FIXME: move to app
+        new ExpressionStatement(new FunctionCallExpression("setupBuffers")) // FIXME: move to app
         ))
   }
 }
@@ -267,7 +267,7 @@ case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with E
           "MPI_Barrier(MPI_COMM_WORLD)",
           "MPI_File_close(&fh)",
           "setValues(buf,numFragments)",
-          "setupBuffers()")
+          new ExpressionStatement(new FunctionCallExpression("setupBuffers")))
       } else {
         ListBuffer(
           VariableDeclarationStatement(IntegerDatatype(), "numFragments", Some("0")),
@@ -290,7 +290,7 @@ case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with E
           "fileFrags.read (buf, bufsize)",
           "fileFrags.close()",
           "setValues(buf,numFragments)",
-          "setupBuffers()")
+          new ExpressionStatement(new FunctionCallExpression("setupBuffers")))
       }))
 
   }

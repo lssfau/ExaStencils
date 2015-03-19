@@ -109,7 +109,8 @@ case class WaitForTransfer(var field : FieldSelection, var neighbor : NeighborIn
     new ConditionStatement(
       iv.ReqOutstanding(field.field, direction, neighbor.index),
       ListBuffer[Statement](
-        new WaitForMPIReq(iv.MpiRequest(field.field, direction, neighbor.index)) with OMP_PotentiallyCritical,
+        new ExpressionStatement(
+          new FunctionCallExpression("waitForMPIReq", UnaryExpression(UnaryOperators.AddressOf, iv.MpiRequest(field.field, direction, neighbor.index)))) with OMP_PotentiallyCritical,
         AssignmentStatement(iv.ReqOutstanding(field.field, direction, neighbor.index), false)))
   }
 }
@@ -247,8 +248,4 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
               if (end) genWait(neigh._1) else NullStatement,
               if (end) genCopy(neigh._1, neigh._2, false) else NullStatement))))) with OMP_PotentiallyParallel)
   }
-}
-
-case class WaitForMPIReq(var request : Expression) extends Statement {
-  override def prettyprint(out : PpStream) : Unit = out << "waitForMPIReq(&" << request << ");"
 }
