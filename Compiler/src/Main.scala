@@ -234,6 +234,8 @@ object Main {
       ExpandStrategy.doUntilDone()
     SimplifyStrategy.doUntilDone()
 
+    if (Knowledge.ir_performInlining)
+      Inlining.apply()
     CleanUnusedStuff.apply()
 
     PrintStrategy.apply()
