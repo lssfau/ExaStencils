@@ -37,6 +37,8 @@ object TypeInference extends CustomStrategy("Type inference") {
 private final class AnnotateStringConstants extends ScopeCollector(Map[String, Datatype]()) {
   import TypeInference._
 
+  private final val SKIP_ANNOT = "TypSkip"
+
   override def cloneCurScope() : Map[String, Datatype] = {
     return curScope.clone()
   }
@@ -46,14 +48,14 @@ private final class AnnotateStringConstants extends ScopeCollector(Map[String, D
   }
 
   private def findType(name : String) : Datatype = {
-    val typeOp : Option[Datatype] = curScope.get(name)
-    if (typeOp.isDefined)
-      return typeOp.get
-    return null // not found :(
+    return curScope.getOrElse(name, null)
   }
 
   override def enter(node : Node) : Unit = {
     super.enter(node)
+
+    if (node.removeAnnotation(SKIP_ANNOT).isDefined)
+      return
 
     node match {
       case VariableDeclarationStatement(ty : Datatype, name : String, _) =>
@@ -81,6 +83,10 @@ private final class AnnotateStringConstants extends ScopeCollector(Map[String, D
       case FunctionStatement(_, _, params, _) =>
         for (param <- params)
           declare(param.name, param.dType.get)
+
+      // HACK: skip member accesses as they are not declared explicitly
+      case MemberAccess(_, member) =>
+        member.annotate(SKIP_ANNOT)
 
       // HACK: ensure the iterator declaration is visited before the body...
       case ForLoopStatement(begin, _, _, _, _) =>
