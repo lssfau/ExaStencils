@@ -206,9 +206,12 @@ object Inlining extends CustomStrategy("Function inlining") {
             conf += par.name
           potConflicts(curFunc) = conf
           calls.getOrElseUpdate(curFunc, new ListBuffer()) // ensure curFunc has a mapping (withDefault is not suitable here, as it does not update the map...)
-          val lastStmt = func.body.last
-          if (lastStmt.isInstanceOf[ReturnStatement])
-            allowedReturn = lastStmt
+          allowedReturn = null
+          if (!func.body.isEmpty) {
+            val lastStmt = func.body.last
+            if (lastStmt.isInstanceOf[ReturnStatement])
+              allowedReturn = lastStmt
+          }
 
         case call : FunctionCallExpression =>
           val callSites = calls.getOrElseUpdate(call.name, new ListBuffer())
