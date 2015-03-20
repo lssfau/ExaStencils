@@ -52,7 +52,7 @@ trap cleanup EXIT
 
 # run generated code
 echo "  Created  ${RESULT}: run code and redirect its stdout and stderr."
-mpiexec "${BIN}" 2>&1 | grep -v "No protocol specified" > "${RESULT}" # HACK: filter strange X server error...
+mpiexec --bind-to socket "${BIN}" 2>&1 | grep -v "No protocol specified" > "${RESULT}" # HACK: filter strange X server error...
 cat "${RESULT}"
 echo ""
 
