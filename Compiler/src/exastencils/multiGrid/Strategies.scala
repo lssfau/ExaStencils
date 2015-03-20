@@ -123,7 +123,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
         func.body.prepend(new MPI_Init)
         func.body.append(new MPI_Finalize)
       }
-      func.body.append("return 0")
+      func.body.append(new ReturnStatement(Some(new IntegerConstant(0))))
       func
     }
   })

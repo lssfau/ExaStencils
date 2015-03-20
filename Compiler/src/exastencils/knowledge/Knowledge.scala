@@ -114,6 +114,7 @@ object Knowledge {
 
   // === Post Layer 4 ===
   var ir_genSepLayoutsPerField : Boolean = true // specifies if shared fieldlayouts should be duplicated when progressing from l4 to ir
+  var ir_performInlining : Boolean = false // does, what you expect it to do ;)  currently all methods are inlined, if possible, no matter if it's usefull or not
 
   // --- Compiler Capabilities ---
   def supports_initializerList = { // indicates if the compiler supports initializer lists (e.g. for std::min)
