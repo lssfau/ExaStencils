@@ -33,6 +33,7 @@ omp_parallelizeLoopOverDimensions	= true
 poly_optLevel_fine         = 3
 poly_optLevel_coarse       = 1
 poly_numFinestLevels       = 2
+poly_filterDeps            = true
 poly_tileSize_x            = 1000000
 poly_tileSize_y            = 10
 poly_tileSize_z            = 1000000
@@ -46,6 +47,7 @@ l3tmp_smoother             = "Jac"
 opt_useColorSplitting      = false
 l3tmp_numPre               = 3
 l3tmp_numPost              = 3
-l3tmp_genTemporalBlocking  = false
+l3tmp_genTemporalBlocking  = true
+l3tmp_tempBlockingMinLevel = 7
 
 l3tmp_genForAutoTests      = true
