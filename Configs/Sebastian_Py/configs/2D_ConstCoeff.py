@@ -1,5 +1,5 @@
 class Configuration:
-    baseName = "SISC_2D_VC"
+    baseName = "SISC_2D_CC"
 
     dimensionality = 2
 
@@ -95,7 +95,7 @@ class Configuration:
             # print("Not enough nodes in use")
             return False
 
-        mem_per_node = (8 * 9 * 4 / 3 * pow(self.num_points_per_dim, self.dimensionality)) / self.get_num_nodes()
+        mem_per_node = (8 * 4 * 4 / 3 * pow(self.num_points_per_dim, self.dimensionality)) / self.get_num_nodes()
         if not (mem_per_node <= 12 * 1024 * 1024 * 1024):
             # print("Memory requirements for each node are too high")
             return False
@@ -198,7 +198,7 @@ class Configuration:
 
                          # problem specific
                          "dimensionality": dimensionality,
-                         "l3tmp_genStencilFields": "true",
+                         "l3tmp_genStencilFields": "false",
 
                          # invariant parameters
                          "domain_rect_numFragsPerBlock_z": 1,
@@ -274,9 +274,9 @@ class Configuration:
 
                          "l3tmp_printFieldAtEnd": "false",
                          "l3tmp_initSolWithRand": "false",
-                         "l3tmp_genForAutoTests": "false",  # TODO: TRUE
+                         "l3tmp_genForAutoTests": "true",
                          "l3tmp_printError": "true",
-                         "l3tmp_useMaxNormForError": "false",  # TODO: TRUE
+                         "l3tmp_useMaxNormForError": "true",
 
                          "l3tmp_sisc": "true",
                          "l3tmp_kelvin": "false",

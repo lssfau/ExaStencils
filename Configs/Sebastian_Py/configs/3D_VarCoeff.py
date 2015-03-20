@@ -107,7 +107,7 @@ class Configuration:
             # print("Not enough nodes in use")
             return False
 
-        mem_per_node = (8 * 4 * 4 / 3 * pow(self.num_points_per_dim, self.dimensionality)) / self.get_num_nodes()
+        mem_per_node = (8 * 11 * 4 / 3 * pow(self.num_points_per_dim, self.dimensionality)) / self.get_num_nodes()
         if not (mem_per_node <= 12 * 1024 * 1024 * 1024):
             # print("Memory requirements for each node are too high")
             return False
