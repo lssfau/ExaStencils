@@ -9,7 +9,7 @@ from collections import defaultdict
 import Functions
 
 
-basePath = "C:\\Users\\sisekuck\\Documents\\Visual Studio 2010\\Projects\\ScalaExaStencil\\Heap\\generate"
+basePath = "C:\\Users\\sisekuck\\Documents\\Visual Studio 2010\\Projects\\ScalaExaStencil\\Heap\\generate_hannah"
 targetPlatformBasePath = "/homea/her18/her182/sisc/test"
 
 
@@ -19,12 +19,11 @@ def write_settings(path, config):
     settings_file = open(path + "/" + config.baseName + ".settings", 'w+')
 
     settings_file.write("user						= \"Sebastian\"\n")
-    settings_file.write("outputPath					= " +
-                        "\"C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/ScalaExaStencil/Heap/generate/" +
-                        config.baseName + "/\"\n")
+    settings_file.write("outputPath					= \"" + basePath + "/" + config.baseName + "/\"\n")
     settings_file.write("basePathPrefix				= \".\"\n")
-    settings_file.write("failOnConstraint			= true\n")
+    # settings_file.write("failOnConstraint			= true\n")
     # settings_file.write("cancelIfOutFolderExists		= true\n")
+    settings_file.write("produceHtmlLog				= true\n")
 
     settings_file.close()
 
