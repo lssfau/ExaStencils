@@ -47,7 +47,7 @@ Large_Hybrid  Main  Large/Hybrid.knowledge  Large/Hybrid.results  4  10  E5
 #################################################################################################
 
 # various tests of optimization strategies
-#  (run time for each is less than 5 seconds)
+#  (run time for each is only a few seconds)
 
 ### sequential version
 ## single precision
@@ -147,3 +147,9 @@ SISC_2D_ConstCoeff	Main	SISC/2D_ConstCoeff.knowledge	SISC/2D_ConstCoeff.results	
 # 3D
 SISC_3D_VarCoeff	Main	SISC/3D_VarCoeff.knowledge		SISC/3D_VarCoeff.results	8	4
 SISC_3D_ConstCoeff	Main	SISC/3D_ConstCoeff.knowledge	SISC/3D_ConstCoeff.results	8	4
+
+#################################################################################################
+# MISC TESTS                                                                                    #
+#################################################################################################
+
+Inlining  Main  Misc/inlining.knowledge  Misc/inlining.results  8  5  E5
