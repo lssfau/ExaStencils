@@ -61,17 +61,17 @@ class Configuration:
 
                           "l3tmp_numRecCycleCalls": [1, 2, lambda x: x + 1],
 
-                          "l3tmp_numPre": [0, 8, lambda x: x + 1],
-                          "l3tmp_numPost": [0, 8, lambda x: x + 1],
+                          "l3tmp_numPre": [0, 4, lambda x: x + 1],
+                          "l3tmp_numPost": [0, 4, lambda x: x + 1],
     }
 
     chosenRangedParameters = {  # to be filled later
     }
 
     listedParameters = {  # variabilities to be tested with given values from a predefined list [parameterName, [list]]
-                          "l3tmp_smoother": ["\"Jac\"", "\"RBGS\""],
-
                           "l3tmp_genStencilFields": ["true", "false"],
+
+                          "l3tmp_smoother": ["\"Jac\"", "\"RBGS\""],
     }
 
     chosenListedParameters = {  # to be filled later

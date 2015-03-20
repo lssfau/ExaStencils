@@ -9,7 +9,7 @@ from collections import defaultdict
 import Functions
 
 
-basePath = "C:\\Users\\sisekuck\\Documents\\Visual Studio 2010\\Projects\\ScalaExaStencil\\Heap\\generate_hannah"
+basePath = "C:\\Users\\sisekuck\\Documents\\Visual Studio 2010\\Projects\\ScalaExaStencil\\Heap\\generate"
 targetPlatformBasePath = "/homea/her18/her182/sisc/test"
 
 
