@@ -234,7 +234,7 @@ object Main {
       ExpandStrategy.doUntilDone()
     SimplifyStrategy.doUntilDone()
 
-    if (Knowledge.ir_performInlining)
+    if (Knowledge.ir_maxInliningSize > 0)
       Inlining.apply()
     CleanUnusedStuff.apply()
 

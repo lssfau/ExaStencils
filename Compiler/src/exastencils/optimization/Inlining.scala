@@ -1,17 +1,18 @@
 package exastencils.optimization
 
+import java.util.IdentityHashMap
+
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Set
+
 import exastencils.core.Duplicate
 import exastencils.core.Settings
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.knowledge.Knowledge
 import exastencils.logger._
-import java.util.IdentityHashMap
-import sun.awt.util.IdentityLinkedList
-import exastencils.omp.OMP_PotentiallyCritical
 
 private final class Renamer(reserved : Set[String], inUse : Set[String]) {
   private final val nameMapping = Map[String, String]()
@@ -48,7 +49,7 @@ object Inlining extends CustomStrategy("Function inlining") {
     val toInline = Map[String, Int]()
     for ((func, funcStmt) <- analyzer.functions) {
       // some heuristics to identify which functions to inline
-      var inline : Boolean = true
+      var inline : Boolean = analyzer.functionSize(func) <= Knowledge.ir_maxInliningSize
       //      var inline : Boolean = analyzer.calls(func).size <= 1
       //      inline = inline ||
       //        (funcStmt.body.size <= 4 && funcStmt.body.filter { stmt => stmt.isInstanceOf[ForLoopStatement] }.isEmpty)
@@ -60,7 +61,7 @@ object Inlining extends CustomStrategy("Function inlining") {
     for ((func, _) <- toInline)
       for ((_, _, _, inFunc) <- analyzer.calls(func))
         if (toInline.contains(inFunc))
-          toInline(inFunc) = toInline(inFunc) + 1
+          toInline(inFunc) += 1
 
     // then, inline all functions with count == 0 (and update other counts accordingly)
     val oldLvl = Logger.getLevel
@@ -77,7 +78,7 @@ object Inlining extends CustomStrategy("Function inlining") {
         var remove = true
         for ((callExpr, callStmt, callScope, inFunc) <- analyzer.calls(func)) {
           if (toInline.contains(inFunc))
-            toInline(inFunc) = toInline(inFunc) - 1
+            toInline(inFunc) -= 1
           val potConflToUpdate : Set[String] =
             if (callScope.isInstanceOf[FunctionStatement])
               analyzer.potConflicts(callScope.asInstanceOf[FunctionStatement].name)
@@ -132,12 +133,6 @@ object Inlining extends CustomStrategy("Function inlining") {
       case VariableDeclarationStatement(t, name, i) if (potConflicts.contains(name)) => VariableDeclarationStatement(t, rename(name), i)
       case VariableAccess(name, t) if (potConflicts.contains(name))                  => VariableAccess(rename(name), t)
       case StringConstant(name) if (potConflicts.contains(name))                     => StringConstant(rename(name))
-      case s @ StringConstant(str) => // FIXME: DEBUG remove...
-        if (str.contains("stopWatch.")) {
-          exit = true
-          Logger.warn("[inline] (temporary warning)  found conflict with variable 'stopWatch' in StringConstant: " + str)
-        }
-        s
       case ret : ReturnStatement =>
         if (ret.expr.isEmpty != funcStmt.returntype.isInstanceOf[UnitDatatype])
           exit = true
@@ -169,6 +164,8 @@ object Inlining extends CustomStrategy("Function inlining") {
       }
     }
 
+    new CommentStatement("------ inlined " + funcStmt.name + " ------") +=: body += new CommentStatement("======== end " + funcStmt.name + " ========")
+
     // perform actual inlining
     this.execute(new Transformation("inline", {
       case ExpressionStatement(call : FunctionCallExpression) if (call eq callExpr) =>
@@ -188,6 +185,7 @@ object Inlining extends CustomStrategy("Function inlining") {
   private final class Analyzer extends StackCollector {
 
     private[Inlining] final val functions = Map[String, FunctionStatement]()
+    private[Inlining] final val functionSize = Map[String, Int]((null, 0)) // number of statements in function
     // value of calls: (call itself, statement containing it, statement's parent, function containing statement)
     private[Inlining] final val calls = Map[String, ListBuffer[(FunctionCallExpression, Statement, Node, String)]]()
     private[Inlining] final val potConflicts = Map[String, Set[String]]()
@@ -201,6 +199,7 @@ object Inlining extends CustomStrategy("Function inlining") {
         case func : FunctionStatement =>
           curFunc = func.name
           inlinable = true
+          functionSize(curFunc) = 0
           val conf = Set[String]()
           for (par <- func.parameters)
             conf += par.name
@@ -225,13 +224,18 @@ object Inlining extends CustomStrategy("Function inlining") {
           }
 
         case decl : VariableDeclarationStatement if (stack.top.isInstanceOf[FunctionStatement]) =>
+          functionSize(curFunc) += 1
           potConflicts(stack.top.asInstanceOf[FunctionStatement].name) += decl.name
 
         case ret : ReturnStatement if (ret ne allowedReturn) =>
+          functionSize(curFunc) += 1
           inlinable = false
 
         case StringConstant(retStr) if (retStr.contains("return")) =>
           inlinable = false
+
+        case _ : Statement =>
+          functionSize(curFunc) += 1
 
         case _ => // ignore
       }
