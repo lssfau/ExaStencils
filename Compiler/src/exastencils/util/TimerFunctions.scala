@@ -158,9 +158,10 @@ case class TimerFct_GetMeanTime /* in milliseconds */ () extends AbstractTimerFu
 
   def expand() : Output[FunctionStatement] = {
     var statements = ListBuffer[Statement](
-      new ConditionStatement(GreaterExpression(accessMember("numMeasurements"), 0),
-        ReturnStatement(Some(FunctionCallExpression("getTotalTime", ListBuffer("stopWatch")) / accessMember("numMeasurements"))),
-        ReturnStatement(Some(0.0))))
+      ReturnStatement(Some(new TernaryConditionExpression(
+        GreaterExpression(accessMember("numMeasurements"), 0),
+        FunctionCallExpression("getTotalTime", ListBuffer("stopWatch")) / accessMember("numMeasurements"),
+        0.0))))
 
     FunctionStatement(RealDatatype(), s"getMeanTime", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements)
   }
