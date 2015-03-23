@@ -241,7 +241,7 @@ case class RepeatUpStatement(var number : Int,
   }
 }
 
-case class RepeatUntilStatement(var comparison : BooleanExpression, var statements : List[Statement]) extends Statement {
+case class RepeatUntilStatement(var comparison : Expression, var statements : List[Statement]) extends Statement {
   override def prettyprint(out : PpStream) = { out << "repeat until " << comparison << "{\n" <<< statements << "}\n" }
 
   override def progressToIr : ir.WhileLoopStatement = {
