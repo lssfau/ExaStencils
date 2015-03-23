@@ -352,7 +352,14 @@ object Knowledge {
     Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_genNonZeroRhs, "non-trivial rhs requires the usage of grid width dependent stencils")
 
     // l3tmp - multigrid config
-    if ("Jac" == l3tmp_smoother) Constraints.updateValue(l3tmp_omega, 0.8) else Constraints.updateValue(l3tmp_omega, 1.0) // FIXME: required?
+    if (l3tmp_sisc) {
+      dimensionality match {
+        case 2 => if ("Jac" == l3tmp_smoother) Constraints.updateValue(l3tmp_omega, 0.79) else /* RBGS */ Constraints.updateValue(l3tmp_omega, 1.16)
+        case 3 => if ("Jac" == l3tmp_smoother) Constraints.updateValue(l3tmp_omega, 0.85) else /* RBGS */ Constraints.updateValue(l3tmp_omega, 1.19)
+      }
+    } else {
+      if ("Jac" == l3tmp_smoother) Constraints.updateValue(l3tmp_omega, 0.8) else Constraints.updateValue(l3tmp_omega, 1.0) // FIXME: required?
+    }
 
     Constraints.condEnsureValue(l3tmp_numPre, l3tmp_numPre - (l3tmp_numPre % 2), "Jac" == l3tmp_smoother && !l3tmp_useSlotsForJac,
       "Number of pre-smoothing steps has to be divisible by 2 if Jacobi is used but slotting is disabled")
