@@ -5,7 +5,6 @@
 #SBATCH -n 1
 #SBATCH -c 4
 #SBATCH --hint=nomultithread
-#SBATCH --cpu_bind=cores
 #SBATCH --time=5
 #SBATCH --signal=INT@5
 #SBATCH --open-mode=append
@@ -98,7 +97,7 @@ mkdir "${BIN_DIR}"
 # build generator (place class files in RAM_TMP_DIR)
 echo ""
 echo "Running ant:"
-srun ant -f "${ANT_BUILD}" -Dbuild.dir="${RAM_TMP_DIR}/build" -Dcompiler.jar="${COMPILER_JAR}" -Djava.dir="${JAVA_DIR}" -Dscala.dir="${SCALA_DIR}" clean build
+srun --cpu_bind=cores ant -f "${ANT_BUILD}" -Dbuild.dir="${RAM_TMP_DIR}/build" -Dcompiler.jar="${COMPILER_JAR}" -Djava.dir="${JAVA_DIR}" -Dscala.dir="${SCALA_DIR}" clean build
     if [[ $? -ne 0 ]]; then
       echo "ERROR: ant build error."
       echo ""
