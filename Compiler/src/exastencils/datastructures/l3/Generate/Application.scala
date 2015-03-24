@@ -7,16 +7,16 @@ object Application {
     printer.println("Function Application ( ) : Unit {")
 
     if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
-      printer.println("\tstartTimer ( setupWatch )")
+      printer.println("\tstartTimer ( 'setup' )")
 
     printer.println("\tinitGlobals ( )")
     printer.println("\tinitDomain ( )")
     printer.println("\tinitFieldsWithZero ( )")
 
     if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
-      printer.println("\tstopTimer ( setupWatch )")
+      printer.println("\tstopTimer ( 'setup' )")
     if (!Knowledge.l3tmp_genForAutoTests)
-      printer.println("\tprint ( '\"Total time to setup: \"', getTotalFromTimer ( setupWatch ) )")
+      printer.println("\tprint ( '\"Total time to setup: \"', getTotalFromTimer ( 'setup' ) )")
 
     if (Knowledge.l3tmp_genSetableStencil) {
       Knowledge.dimensionality match {
@@ -41,7 +41,7 @@ object Application {
 
     if (Knowledge.l3tmp_kelvin && !Knowledge.l3tmp_genForAutoTests) {
       printer.println("\tVariable timeSamples : Real = 0")
-      printer.println("\tstartTimer ( timeSamplesWatch )")
+      printer.println("\tstartTimer ( 'timePerSample' )")
       printer.println(s"\trepeat ${Knowledge.l3tmp_kelvin_numSamples} times {")
     }
 
@@ -107,9 +107,9 @@ object Application {
 
     if (Knowledge.l3tmp_kelvin && !Knowledge.l3tmp_genForAutoTests) {
       printer.println("\t}")
-      printer.println("\tstopTimer ( timeSamplesWatch )")
-      printer.println("\tprint ( '\"Total time to solve: \"', getTotalFromTimer ( timeSamplesWatch ) )")
-      printer.println("\tprint ( '\"Mean time per sample: \"', getMeanFromTimer ( timeSamplesWatch ) )")
+      printer.println("\tstopTimer ( 'timePerSample' )")
+      printer.println("\tprint ( '\"Total time to solve: \"', getTotalFromTimer ( 'timePerSample' ) )")
+      printer.println("\tprint ( '\"Mean time per sample: \"', getMeanFromTimer ( 'timePerSample' ) )")
     }
 
     if (Knowledge.l3tmp_kelvin) {
@@ -142,27 +142,27 @@ object Application {
       if (Knowledge.l3tmp_genTimersPerFunction) {
         for (
           func <- Array(
-            ("preSmooth", "pre-smoothing"),
-            ("upResidual", "updating residual"),
+            ("preSmoothing", "pre-smoothing"),
+            ("residualUpdate", "updating residual"),
             ("restriction", "restricting"),
-            ("setSolution", "setting solution"),
+            ("settingSolution", "setting solution"),
             ("correction", "prolongating and correcting"),
-            ("postSmooth", "post-smoothing"))
+            ("postSmoothing", "post-smoothing"))
         ) {
           if (Knowledge.l3tmp_genTimersPerLevel) {
             for (level <- Knowledge.minLevel to Knowledge.maxLevel)
-              printer.println("\tprint ( '\"" + s"Total time spent on level $level in ${func._2}: " + "\"', " + s"getTotalFromTimer ( ${func._1}Timer@$level ) )")
+              printer.println("\tprint ( '\"" + s"Total time spent on level $level in ${func._2}: " + "\"', " + s"getTotalFromTimer ( concat ( '${func._1}_', $level ) ) )")
           } else {
-            printer.println("\tprint ( '\"" + s"Total time spent in ${func._2}: " + "\"', " + s"getTotalFromTimer ( ${func._1}Timer ) )")
+            printer.println("\tprint ( '\"" + s"Total time spent in ${func._2}: " + "\"', " + s"getTotalFromTimer ( '${func._1}' ) )")
           }
         }
       }
       if (Knowledge.l3tmp_genTimersForComm) {
         if (Knowledge.l3tmp_genCommTimersPerLevel) {
           for (level <- Knowledge.minLevel to Knowledge.maxLevel)
-            printer.println("\tprint ( '\"" + s"Total time spent communicating on level $level: " + "\"', " + s"getTotalFromTimer ( commTimer@$level ) )")
+            printer.println("\tprint ( '\"" + s"Total time spent communicating on level $level: " + "\"', " + s"getTotalFromTimer ( concat ( 'communication_', $level ) ) )")
         } else {
-          printer.println("\tprint ( '\"" + s"Total time spent communicating: " + "\"', " + s"getTotalFromTimer ( commTimer ) )")
+          printer.println("\tprint ( '\"" + s"Total time spent communicating: " + "\"', " + s"getTotalFromTimer ( 'communication' ) )")
         }
       }
     }

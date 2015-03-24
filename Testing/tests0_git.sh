@@ -15,6 +15,7 @@ OUT_FILE=${3}
 OUT_FILE_URL=${4} # url to ${OUT_FILE}
 PROGRESS=${5}
 TESTS_LOCK=${6}
+FORCE_START=${7}
 
 REPO_DIR="${BASE_DIR}/repo"
 TEMP_DIR="${BASE_DIR}/temp"
@@ -56,7 +57,7 @@ if [[ -d "${REPO_DIR}" ]]; then
         exit 1
       fi
   NEW_HASH=$(git -C "${REPO_DIR}" rev-parse @)
-  if [[ ${OLD_HASH} = ${NEW_HASH} ]]; then
+  if [[ -z "${FORCE_START}" && ${OLD_HASH} = ${NEW_HASH} ]]; then
     # up-to-date, no need to run tests, exit script
     echo "$(date -R):  Tests triggered, but there are no new commits since last run, finish." >> "${OUT_FILE}"
     echo "<html><body><pre>$(date -R):  Done!</pre></body></html>" > "${PROGRESS}"

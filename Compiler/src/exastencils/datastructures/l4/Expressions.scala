@@ -77,6 +77,8 @@ case class LeveledAccess(override var name : String, var level : AccessLevelSpec
   def progressToIr : ir.Expression = {
     if ("levels" == name) // TODO: incorporate this into the parser?
       ir.IntegerConstant(level.asInstanceOf[SingleLevelSpecification].level)
+    else if ("levelStrings" == name)
+      ir.StringConstant(level.asInstanceOf[SingleLevelSpecification].level.toString)
     else
       ir.StringConstant(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
   }
@@ -246,7 +248,13 @@ case class UnaryBooleanExpression(var operator : String, var exp : Expression) e
 case class FunctionCallExpression(var identifier : Access, var arguments : List[Expression]) extends Expression {
   def prettyprint(out : PpStream) = { out << identifier << " ( " <<< (arguments, ", ") << " )" }
 
-  def progressToIr : ir.FunctionCallExpression = {
+  def progressToIr : ir. /*FunctionCall*/ Expression = {
+    // FIXME: remove after implementation
+    identifier match {
+      case LeveledAccess("levelIndex", SingleLevelSpecification(lev)) => return ir.IntegerConstant(lev)
+      case _ =>
+    }
+
     ir.FunctionCallExpression(identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
       arguments.map(s => s.progressToIr).to[ListBuffer])
   }
