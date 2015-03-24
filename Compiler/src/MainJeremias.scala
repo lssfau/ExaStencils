@@ -127,7 +127,7 @@ object MainJeremias {
 
     // go to IR
     ProgressToIr.apply() // preparation step
-    ResolveL4Constants.apply()
+    ResolveL4.apply()
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
     if (!Knowledge.domain_rect_generate) { // for L-shape domain

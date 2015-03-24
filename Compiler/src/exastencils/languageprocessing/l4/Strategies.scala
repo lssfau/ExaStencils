@@ -31,13 +31,30 @@ object CollectCommInformation extends DefaultStrategy("Collecting information re
   })
 }
 
-object ResolveL4Constants extends DefaultStrategy("Resolving constants on L4") {
-  this += new Transformation("Search and replace", {
-    case BasicAccess("PI") | BasicAccess("M_PI") | BasicAccess("Pi") => FloatConstant(math.Pi)
+object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
+  this += new Transformation("geometricCoordinate", {
+    case FunctionCallExpression(LeveledAccess("geometricCoordinate_x", level), List()) => BasicAccess("xPos")
+    case FunctionCallExpression(LeveledAccess("geometricCoordinate_y", level), List()) => BasicAccess("yPos")
+    case FunctionCallExpression(LeveledAccess("geometricCoordinate_z", level), List()) => BasicAccess("zPos")
+    case FunctionCallExpression(BasicAccess("geometricCoordinate_x"), List()) => BasicAccess("xPos")
+    case FunctionCallExpression(BasicAccess("geometricCoordinate_y"), List()) => BasicAccess("yPos")
+    case FunctionCallExpression(BasicAccess("geometricCoordinate_z"), List()) => BasicAccess("zPos")
+    case FunctionCallExpression(LeveledAccess("geometricCoordinate", level), List(IntegerConstant(0))) => BasicAccess("xPos")
+    case FunctionCallExpression(LeveledAccess("geometricCoordinate", level), List(IntegerConstant(1))) => BasicAccess("yPos")
+    case FunctionCallExpression(LeveledAccess("geometricCoordinate", level), List(IntegerConstant(2))) => BasicAccess("zPos")
+  })
 
-    case LeveledAccess("hx", SingleLevelSpecification(level))        => FloatConstant(knowledge.Knowledge.discr_hx(level - knowledge.Knowledge.minLevel))
-    case LeveledAccess("hy", SingleLevelSpecification(level))        => FloatConstant(knowledge.Knowledge.discr_hy(level - knowledge.Knowledge.minLevel))
-    case LeveledAccess("hz", SingleLevelSpecification(level))        => FloatConstant(knowledge.Knowledge.discr_hz(level - knowledge.Knowledge.minLevel))
+  this += new Transformation("Constants", {
+    case BasicAccess("PI") | BasicAccess("M_PI") | BasicAccess("Pi") => FloatConstant(math.Pi)
+  })
+
+  this += new Transformation("gridWidth", {
+    case FunctionCallExpression(LeveledAccess("gridWidth_x", SingleLevelSpecification(level)), List()) => FloatConstant(knowledge.Knowledge.discr_hx(level - knowledge.Knowledge.minLevel))
+    case FunctionCallExpression(LeveledAccess("gridWidth_y", SingleLevelSpecification(level)), List()) => FloatConstant(knowledge.Knowledge.discr_hy(level - knowledge.Knowledge.minLevel))
+    case FunctionCallExpression(LeveledAccess("gridWidth_z", SingleLevelSpecification(level)), List()) => FloatConstant(knowledge.Knowledge.discr_hz(level - knowledge.Knowledge.minLevel))
+    case FunctionCallExpression(LeveledAccess("gridWidth", SingleLevelSpecification(level)), List(IntegerConstant(0))) => FloatConstant(knowledge.Knowledge.discr_hx(level - knowledge.Knowledge.minLevel))
+    case FunctionCallExpression(LeveledAccess("gridWidth", SingleLevelSpecification(level)), List(IntegerConstant(1))) => FloatConstant(knowledge.Knowledge.discr_hy(level - knowledge.Knowledge.minLevel))
+    case FunctionCallExpression(LeveledAccess("gridWidth", SingleLevelSpecification(level)), List(IntegerConstant(2))) => FloatConstant(knowledge.Knowledge.discr_hz(level - knowledge.Knowledge.minLevel))
   })
 }
 

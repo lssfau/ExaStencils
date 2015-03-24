@@ -41,7 +41,7 @@ object Fields {
   def addFields(printer : java.io.PrintWriter, postfix : String, domain : String) = {
     if ("Zero" != Knowledge.l3tmp_exactSolution || (Knowledge.l3tmp_kelvin && "" == postfix)) {
       var bc = (
-        if (Knowledge.l3tmp_kelvin && "" == postfix) "bcSol(xPos, yPos)"
+        if (Knowledge.l3tmp_kelvin && "" == postfix) "bcSol(geometricCoordinate_x(), geometricCoordinate_y())"
         else if (Knowledge.experimental_Neumann) "Neumann"
         else Functions.solFunction)
       var coarseBC = if (Knowledge.experimental_Neumann) "Neumann" else "0.0"
@@ -85,7 +85,7 @@ object Fields {
     }
 
     if (Knowledge.l3tmp_kelvin && "" == postfix)
-      printer.println(s"Field SolutionMean< $domain, NoComm, bcSol(xPos, yPos) >@finest")
+      printer.println(s"Field SolutionMean< $domain, NoComm, bcSol(geometricCoordinate_x(), geometricCoordinate_y()) >@finest")
 
     printer.println(s"Field Residual$postfix< $domain, BasicComm, ${if (Knowledge.experimental_Neumann) "Neumann" else "0.0"} >@all")
 

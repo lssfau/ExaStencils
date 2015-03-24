@@ -127,7 +127,7 @@ object Main {
 
     // go to IR
     ProgressToIr.apply() // preparation step
-    ResolveL4Constants.apply()
+    ResolveL4.apply()
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
     // add remaining nodes

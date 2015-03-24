@@ -31,7 +31,6 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
         sb.append(s"Parse failure at position ${parser.pos}: $msg\n")
         sb.append(parser.pos.longString)
         sb.append("\n")
-
         throw new Exception(sb.toString)
       }
     }

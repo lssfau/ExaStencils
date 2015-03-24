@@ -47,20 +47,20 @@ object InitFields {
       if ("Kappa" == Knowledge.l3tmp_exactSolution) {
         Knowledge.dimensionality match {
           case 2 => {
-            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0] = ( getCoefficient ( xPos + 0.5 * hx@current, yPos) + getCoefficient ( xPos - 0.5 * hx@current, yPos ) ) / ( hx@current * hx@current ) + ( getCoefficient ( xPos, yPos + 0.5 * hy@current ) + getCoefficient ( xPos, yPos - 0.5 * hy@current ) ) / ( hy@current * hy@current )")
-            printer.println(s"\t\tLaplace$postfix@current:[ 1,  0] = -1.0 * getCoefficient ( xPos + 0.5 * hx@current, yPos ) / ( hx@current * hx@current )")
-            printer.println(s"\t\tLaplace$postfix@current:[-1,  0] = -1.0 * getCoefficient ( xPos - 0.5 * hx@current, yPos ) / ( hx@current * hx@current )")
-            printer.println(s"\t\tLaplace$postfix@current:[ 0,  1] = -1.0 * getCoefficient ( xPos, yPos + 0.5 * hy@current ) / ( hy@current * hy@current )")
-            printer.println(s"\t\tLaplace$postfix@current:[ 0, -1] = -1.0 * getCoefficient ( xPos, yPos - 0.5 * hy@current ) / ( hy@current * hy@current )")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0] = ( getCoefficient ( geometricCoordinate_x() + 0.5 * gridWidth_x@current(), geometricCoordinate_y()) + getCoefficient ( geometricCoordinate_x() - 0.5 * gridWidth_x@current(), geometricCoordinate_y() ) ) / ( gridWidth_x@current() * gridWidth_x@current() ) + ( getCoefficient ( geometricCoordinate_x(), geometricCoordinate_y() + 0.5 * gridWidth_y@current() ) + getCoefficient ( geometricCoordinate_x(), geometricCoordinate_y() - 0.5 * gridWidth_y@current() ) ) / ( gridWidth_y@current() * gridWidth_y@current() )")
+            printer.println(s"\t\tLaplace$postfix@current:[ 1,  0] = -1.0 * getCoefficient ( geometricCoordinate_x() + 0.5 * gridWidth_x@current(), geometricCoordinate_y() ) / ( gridWidth_x@current() * gridWidth_x@current() )")
+            printer.println(s"\t\tLaplace$postfix@current:[-1,  0] = -1.0 * getCoefficient ( geometricCoordinate_x() - 0.5 * gridWidth_x@current(), geometricCoordinate_y() ) / ( gridWidth_x@current() * gridWidth_x@current() )")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0,  1] = -1.0 * getCoefficient ( geometricCoordinate_x(), geometricCoordinate_y() + 0.5 * gridWidth_y@current() ) / ( gridWidth_y@current() * gridWidth_y@current() )")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0, -1] = -1.0 * getCoefficient ( geometricCoordinate_x(), geometricCoordinate_y() - 0.5 * gridWidth_y@current() ) / ( gridWidth_y@current() * gridWidth_y@current() )")
           }
           case 3 => {
-            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0,  0] = ( getCoefficient ( xPos + 0.5 * hx@current, yPos, zPos ) + getCoefficient ( xPos - 0.5 * hx@current, yPos, zPos ) ) / ( hx@current * hx@current ) + ( getCoefficient ( xPos, yPos + 0.5 * hy@current, zPos ) + getCoefficient ( xPos, yPos - 0.5 * hy@current, zPos ) ) / ( hy@current * hy@current ) + ( getCoefficient ( xPos, yPos, zPos + 0.5 * hz@current ) + getCoefficient ( xPos, yPos, zPos - 0.5 * hz@current ) ) / ( hz@current * hz@current )")
-            printer.println(s"\t\tLaplace$postfix@current:[ 1,  0,  0] = -1.0 * getCoefficient ( xPos + 0.5 * hx@current, yPos, zPos ) / ( hx@current * hx@current )")
-            printer.println(s"\t\tLaplace$postfix@current:[-1,  0,  0] = -1.0 * getCoefficient ( xPos - 0.5 * hx@current, yPos, zPos ) / ( hx@current * hx@current )")
-            printer.println(s"\t\tLaplace$postfix@current:[ 0,  1,  0] = -1.0 * getCoefficient ( xPos, yPos + 0.5 * hy@current, zPos ) / ( hy@current * hy@current )")
-            printer.println(s"\t\tLaplace$postfix@current:[ 0, -1,  0] = -1.0 * getCoefficient ( xPos, yPos - 0.5 * hy@current, zPos ) / ( hy@current * hy@current )")
-            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0,  1] = -1.0 * getCoefficient ( xPos, yPos, zPos + 0.5 * hz@current ) / ( hz@current * hz@current )")
-            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0, -1] = -1.0 * getCoefficient ( xPos, yPos, zPos - 0.5 * hz@current ) / ( hz@current * hz@current )")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0,  0] = ( getCoefficient ( geometricCoordinate_x() + 0.5 * gridWidth_x@current(), geometricCoordinate_y(), geometricCoordinate_z() ) + getCoefficient ( geometricCoordinate_x() - 0.5 * gridWidth_x@current(), geometricCoordinate_y(), geometricCoordinate_z() ) ) / ( gridWidth_x@current() * gridWidth_x@current() ) + ( getCoefficient ( geometricCoordinate_x(), geometricCoordinate_y() + 0.5 * gridWidth_y@current(), geometricCoordinate_z() ) + getCoefficient ( geometricCoordinate_x(), geometricCoordinate_y() - 0.5 * gridWidth_y@current(), geometricCoordinate_z() ) ) / ( gridWidth_y@current() * gridWidth_y@current() ) + ( getCoefficient ( geometricCoordinate_x(), geometricCoordinate_y(), geometricCoordinate_z() + 0.5 * gridWidth_z@current() ) + getCoefficient ( geometricCoordinate_x(), geometricCoordinate_y(), geometricCoordinate_z() - 0.5 * gridWidth_z@current() ) ) / ( gridWidth_z@current() * gridWidth_z@current() )")
+            printer.println(s"\t\tLaplace$postfix@current:[ 1,  0,  0] = -1.0 * getCoefficient ( geometricCoordinate_x() + 0.5 * gridWidth_x@current(), geometricCoordinate_y(), geometricCoordinate_z() ) / ( gridWidth_x@current() * gridWidth_x@current() )")
+            printer.println(s"\t\tLaplace$postfix@current:[-1,  0,  0] = -1.0 * getCoefficient ( geometricCoordinate_x() - 0.5 * gridWidth_x@current(), geometricCoordinate_y(), geometricCoordinate_z() ) / ( gridWidth_x@current() * gridWidth_x@current() )")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0,  1,  0] = -1.0 * getCoefficient ( geometricCoordinate_x(), geometricCoordinate_y() + 0.5 * gridWidth_y@current(), geometricCoordinate_z() ) / ( gridWidth_y@current() * gridWidth_y@current() )")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0, -1,  0] = -1.0 * getCoefficient ( geometricCoordinate_x(), geometricCoordinate_y() - 0.5 * gridWidth_y@current(), geometricCoordinate_z() ) / ( gridWidth_y@current() * gridWidth_y@current() )")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0,  1] = -1.0 * getCoefficient ( geometricCoordinate_x(), geometricCoordinate_y(), geometricCoordinate_z() + 0.5 * gridWidth_z@current() ) / ( gridWidth_z@current() * gridWidth_z@current() )")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0, -1] = -1.0 * getCoefficient ( geometricCoordinate_x(), geometricCoordinate_y(), geometricCoordinate_z() - 0.5 * gridWidth_z@current() ) / ( gridWidth_z@current() * gridWidth_z@current() )")
           }
         }
       } else {
@@ -68,22 +68,22 @@ object InitFields {
           case 2 => {
             //    printer.println(s"\t\tLaplace$postfix@current = LaplaceStencil$postfix@current")
 
-            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) 4 else "( 2.0 / ( hx@current * hx@current ) + 2.0 / ( hy@current * hy@current ) )"}")
-            printer.println(s"\t\tLaplace$postfix@current:[ 1,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( hx@current * hx@current ) )"}")
-            printer.println(s"\t\tLaplace$postfix@current:[-1,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( hx@current * hx@current ) )"}")
-            printer.println(s"\t\tLaplace$postfix@current:[ 0,  1] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( hy@current * hy@current ) )"}")
-            printer.println(s"\t\tLaplace$postfix@current:[ 0, -1] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( hy@current * hy@current ) )"}")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) 4 else "( 2.0 / ( gridWidth_x@current() * gridWidth_x@current() ) + 2.0 / ( gridWidth_y@current() * gridWidth_y@current() ) )"}")
+            printer.println(s"\t\tLaplace$postfix@current:[ 1,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( gridWidth_x@current() * gridWidth_x@current() ) )"}")
+            printer.println(s"\t\tLaplace$postfix@current:[-1,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( gridWidth_x@current() * gridWidth_x@current() ) )"}")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0,  1] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( gridWidth_y@current() * gridWidth_y@current() ) )"}")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0, -1] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( gridWidth_y@current() * gridWidth_y@current() ) )"}")
           }
           case 3 => {
             //    printer.println(s"\t\tLaplace$postfix@current = LaplaceStencil$postfix@current")
 
-            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) 6 else "( 2.0 / ( hx@current * hx@current ) + 2.0 / ( hy@current * hy@current ) + 2.0 / ( hz@current * hz@current ) )"}")
-            printer.println(s"\t\tLaplace$postfix@current:[ 1,  0,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( hx@current * hx@current ) )"}")
-            printer.println(s"\t\tLaplace$postfix@current:[-1,  0,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( hx@current * hx@current ) )"}")
-            printer.println(s"\t\tLaplace$postfix@current:[ 0,  1,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( hy@current * hy@current ) )"}")
-            printer.println(s"\t\tLaplace$postfix@current:[ 0, -1,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( hy@current * hy@current ) )"}")
-            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0,  1] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( hz@current * hz@current ) )"}")
-            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0, -1] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( hz@current * hzx@current ) )"}")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) 6 else "( 2.0 / ( gridWidth_x@current() * gridWidth_x@current() ) + 2.0 / ( gridWidth_y@current() * gridWidth_y@current() ) + 2.0 / ( gridWidth_z@current() * gridWidth_z@current() ) )"}")
+            printer.println(s"\t\tLaplace$postfix@current:[ 1,  0,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( gridWidth_x@current() * gridWidth_x@current() ) )"}")
+            printer.println(s"\t\tLaplace$postfix@current:[-1,  0,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( gridWidth_x@current() * gridWidth_x@current() ) )"}")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0,  1,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( gridWidth_y@current() * gridWidth_y@current() ) )"}")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0, -1,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( gridWidth_y@current() * gridWidth_y@current() ) )"}")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0,  1] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( gridWidth_z@current() * gridWidth_z@current() ) )"}")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0, -1] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( gridWidth_z@current() * hzx@current ) )"}")
           }
         }
       }

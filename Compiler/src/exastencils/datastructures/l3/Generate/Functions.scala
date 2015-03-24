@@ -8,23 +8,23 @@ object Functions {
       Knowledge.l3tmp_exactSolution match {
         case "Polynomial" =>
           Knowledge.dimensionality match {
-            case 2 => "( xPos * xPos * xPos + yPos * yPos * yPos )"
-            case 3 => "( xPos * xPos * xPos + yPos * yPos * yPos + zPos * zPos * zPos )"
+            case 2 => "( geometricCoordinate_x() * geometricCoordinate_x() * geometricCoordinate_x() + geometricCoordinate_y() * geometricCoordinate_y() * geometricCoordinate_y() )"
+            case 3 => "( geometricCoordinate_x() * geometricCoordinate_x() * geometricCoordinate_x() + geometricCoordinate_y() * geometricCoordinate_y() * geometricCoordinate_y() + geometricCoordinate_z() * geometricCoordinate_z() * geometricCoordinate_z() )"
           }
         case "Trigonometric" if Knowledge.experimental_Neumann =>
           Knowledge.dimensionality match {
-            case 2 => "( cos ( 2.0 * PI * xPos ) * cos ( 2.0 * PI * yPos ) )"
-            case 3 => "( cos ( 2.0 * PI * xPos ) * cos ( 2.0 * PI * yPos ) * cos ( 2.0 * PI * zPos ) )"
+            case 2 => "( cos ( 2.0 * PI * geometricCoordinate_x() ) * cos ( 2.0 * PI * geometricCoordinate_y() ) )"
+            case 3 => "( cos ( 2.0 * PI * geometricCoordinate_x() ) * cos ( 2.0 * PI * geometricCoordinate_y() ) * cos ( 2.0 * PI * geometricCoordinate_z() ) )"
           }
         case "Kappa" if (!Knowledge.l3tmp_genStencilFields) =>
           Knowledge.dimensionality match {
-            case 2 => "( kappa * ( (xPos - xPos ** 2) * (yPos - yPos ** 2) ) )"
-            case 3 => "( kappa * ( (xPos - xPos ** 2) * (yPos - yPos ** 2) * (zPos - zPos ** 2) ) )"
+            case 2 => "( kappa * ( (geometricCoordinate_x() - geometricCoordinate_x() ** 2) * (geometricCoordinate_y() - geometricCoordinate_y() ** 2) ) )"
+            case 3 => "( kappa * ( (geometricCoordinate_x() - geometricCoordinate_x() ** 2) * (geometricCoordinate_y() - geometricCoordinate_y() ** 2) * (geometricCoordinate_z() - geometricCoordinate_z() ** 2) ) )"
           }
         case "Kappa" if (Knowledge.l3tmp_genStencilFields) =>
           Knowledge.dimensionality match {
-            case 2 => "( 1.0 - exp ( -1.0 * kappa * ( (xPos - xPos ** 2) * (yPos - yPos ** 2) ) ) )"
-            case 3 => "( 1.0 - exp ( -1.0 * kappa * ( (xPos - xPos ** 2) * (yPos - yPos ** 2) * (zPos - zPos ** 2) ) ) )"
+            case 2 => "( 1.0 - exp ( -1.0 * kappa * ( (geometricCoordinate_x() - geometricCoordinate_x() ** 2) * (geometricCoordinate_y() - geometricCoordinate_y() ** 2) ) ) )"
+            case 3 => "( 1.0 - exp ( -1.0 * kappa * ( (geometricCoordinate_x() - geometricCoordinate_x() ** 2) * (geometricCoordinate_y() - geometricCoordinate_y() ** 2) * (geometricCoordinate_z() - geometricCoordinate_z() ** 2) ) ) )"
           }
       }
     } else {
@@ -32,21 +32,21 @@ object Functions {
         case "Zero" => "0.0"
         case "Polynomial" =>
           Knowledge.dimensionality match {
-            case 2 => "( xPos * xPos - yPos * yPos )"
-            case 3 => "( xPos * xPos - 0.5 * yPos * yPos - 0.5 * zPos * zPos )"
+            case 2 => "( geometricCoordinate_x() * geometricCoordinate_x() - geometricCoordinate_y() * geometricCoordinate_y() )"
+            case 3 => "( geometricCoordinate_x() * geometricCoordinate_x() - 0.5 * geometricCoordinate_y() * geometricCoordinate_y() - 0.5 * geometricCoordinate_z() * geometricCoordinate_z() )"
           }
         case "Trigonometric" =>
           Knowledge.dimensionality match {
             case 2 =>
               if (Knowledge.useDblPrecision)
-                "( sin ( PI * xPos ) * sinh ( PI * yPos ) )"
+                "( sin ( PI * geometricCoordinate_x() ) * sinh ( PI * geometricCoordinate_y() ) )"
               else
-                "( sinf ( PI * xPos ) * sinhf ( PI * yPos ) )"
+                "( sinf ( PI * geometricCoordinate_x() ) * sinhf ( PI * geometricCoordinate_y() ) )"
             case 3 =>
               if (Knowledge.useDblPrecision)
-                "( sin ( PI * xPos ) * sin ( PI * yPos ) * sinh ( sqrt ( 2.0 ) * PI * zPos ) )"
+                "( sin ( PI * geometricCoordinate_x() ) * sin ( PI * geometricCoordinate_y() ) * sinh ( sqrt ( 2.0 ) * PI * geometricCoordinate_z() ) )"
               else
-                "( sinf ( PI * xPos ) * sinf ( PI * yPos ) * sinhf ( sqrt ( 2.0 ) * PI * zPos ) )"
+                "( sinf ( PI * geometricCoordinate_x() ) * sinf ( PI * geometricCoordinate_y() ) * sinhf ( sqrt ( 2.0 ) * PI * geometricCoordinate_z() ) )"
           }
       }
     }
@@ -57,18 +57,18 @@ object Functions {
       Knowledge.l3tmp_exactSolution match {
         case "Polynomial" =>
           Knowledge.dimensionality match {
-            case 2 => "( -6.0 * ( xPos + yPos ) )"
-            case 3 => "( -6.0 * ( xPos + yPos + zPos ) )"
+            case 2 => "( -6.0 * ( geometricCoordinate_x() + geometricCoordinate_y() ) )"
+            case 3 => "( -6.0 * ( geometricCoordinate_x() + geometricCoordinate_y() + geometricCoordinate_z() ) )"
           }
         case "Trigonometric" if Knowledge.experimental_Neumann =>
           Knowledge.dimensionality match {
-            case 2 => "( 8.0 * PI * PI * cos ( 2.0 * PI * xPos ) * cos ( 2.0 * PI * yPos ) )"
-            case 3 => "( 12.0 * PI * PI * cos ( 2.0 * PI * xPos ) * cos ( 2.0 * PI * yPos ) * cos ( 2.0 * PI * zPos ) )"
+            case 2 => "( 8.0 * PI * PI * cos ( 2.0 * PI * geometricCoordinate_x() ) * cos ( 2.0 * PI * geometricCoordinate_y() ) )"
+            case 3 => "( 12.0 * PI * PI * cos ( 2.0 * PI * geometricCoordinate_x() ) * cos ( 2.0 * PI * geometricCoordinate_y() ) * cos ( 2.0 * PI * geometricCoordinate_z() ) )"
           }
         case "Kappa" =>
           Knowledge.dimensionality match {
-            case 2 => "( 2.0 * kappa * ( (xPos - xPos ** 2) + (yPos - yPos ** 2) ) )"
-            case 3 => "( 2.0 * kappa * ( (xPos - xPos ** 2) * (yPos - yPos ** 2) + (xPos - xPos ** 2) * (zPos - zPos ** 2) + (yPos - yPos ** 2) * (zPos - zPos ** 2) ) )"
+            case 2 => "( 2.0 * kappa * ( (geometricCoordinate_x() - geometricCoordinate_x() ** 2) + (geometricCoordinate_y() - geometricCoordinate_y() ** 2) ) )"
+            case 3 => "( 2.0 * kappa * ( (geometricCoordinate_x() - geometricCoordinate_x() ** 2) * (geometricCoordinate_y() - geometricCoordinate_y() ** 2) + (geometricCoordinate_x() - geometricCoordinate_x() ** 2) * (geometricCoordinate_z() - geometricCoordinate_z() ** 2) + (geometricCoordinate_y() - geometricCoordinate_y() ** 2) * (geometricCoordinate_z() - geometricCoordinate_z() ** 2) ) )"
           }
       }
     } else {

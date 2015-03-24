@@ -40,11 +40,11 @@ object Stencils {
       Knowledge.dimensionality match {
         case 2 => {
           if (Knowledge.l3tmp_genHDepStencils) {
-            printer.println("\t[ 0,  0] => ( 2.0 / ( hx@current * hx@current ) + 2.0 / ( hy@current * hy@current ) )")
-            printer.println("\t[ 1,  0] => ( -1.0 / ( hx@current * hx@current ) )")
-            printer.println("\t[-1,  0] => ( -1.0 / ( hx@current * hx@current ) )")
-            printer.println("\t[ 0,  1] => ( -1.0 / ( hy@current * hy@current ) )")
-            printer.println("\t[ 0, -1] => ( -1.0 / ( hy@current * hy@current ) )")
+            printer.println("\t[ 0,  0] => ( 2.0 / ( gridWidth_x@current * gridWidth_x@current ) + 2.0 / ( gridWidth_y@current * gridWidth_y@current ) )")
+            printer.println("\t[ 1,  0] => ( -1.0 / ( gridWidth_x@current * gridWidth_x@current ) )")
+            printer.println("\t[-1,  0] => ( -1.0 / ( gridWidth_x@current * gridWidth_x@current ) )")
+            printer.println("\t[ 0,  1] => ( -1.0 / ( gridWidth_y@current * gridWidth_y@current ) )")
+            printer.println("\t[ 0, -1] => ( -1.0 / ( gridWidth_y@current * gridWidth_y@current ) )")
           } else {
             if (Knowledge.l3tmp_kelvin && "_GMRF" == postfix)
               printer.println("\t[ 0,  0] => (4.0 + kappa)")
@@ -64,13 +64,13 @@ object Stencils {
         }
         case 3 =>
           if (Knowledge.l3tmp_genHDepStencils) {
-            printer.println("\t[ 0,  0,  0] => ( 2.0 / ( hx@current * hx@current ) + 2.0 / ( hy@current * hy@current ) + 2.0 / ( hz@current * hz@current ) )")
-            printer.println("\t[ 1,  0,  0] => ( -1.0 / ( hx@current * hx@current ) )")
-            printer.println("\t[-1,  0,  0] => ( -1.0 / ( hx@current * hx@current ) )")
-            printer.println("\t[ 0,  1,  0] => ( -1.0 / ( hy@current * hy@current ) )")
-            printer.println("\t[ 0, -1,  0] => ( -1.0 / ( hy@current * hy@current ) )")
-            printer.println("\t[ 0,  0,  1] => ( -1.0 / ( hz@current * hz@current ) )")
-            printer.println("\t[ 0,  0, -1] => ( -1.0 / ( hz@current * hz@current ) )")
+            printer.println("\t[ 0,  0,  0] => ( 2.0 / ( gridWidth_x@current * gridWidth_x@current ) + 2.0 / ( gridWidth_y@current * gridWidth_y@current ) + 2.0 / ( gridWidth_z@current * gridWidth_z@current ) )")
+            printer.println("\t[ 1,  0,  0] => ( -1.0 / ( gridWidth_x@current * gridWidth_x@current ) )")
+            printer.println("\t[-1,  0,  0] => ( -1.0 / ( gridWidth_x@current * gridWidth_x@current ) )")
+            printer.println("\t[ 0,  1,  0] => ( -1.0 / ( gridWidth_y@current * gridWidth_y@current ) )")
+            printer.println("\t[ 0, -1,  0] => ( -1.0 / ( gridWidth_y@current * gridWidth_y@current ) )")
+            printer.println("\t[ 0,  0,  1] => ( -1.0 / ( gridWidth_z@current * gridWidth_z@current ) )")
+            printer.println("\t[ 0,  0, -1] => ( -1.0 / ( gridWidth_z@current * gridWidth_z@current ) )")
           } else {
             printer.println("\t[ 0,  0,  0] => 6.0")
             printer.println("\t[ 1,  0,  0] => -1.0")
