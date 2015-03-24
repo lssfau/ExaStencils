@@ -56,10 +56,10 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
         x.name = "user_" + x.name; x
       case x : Identifier if (x.name.startsWith("_")) =>
         x.name = "user_" + x.name; x
-      case x : UnresolvedAccess if (protectedkeywords.contains(x.identifier) && !x.hasAnnotation("NO_PROTECT_THIS")) =>
-        x.identifier = "user_" + x.identifier; x
-      case x : UnresolvedAccess if (x.identifier.startsWith("_")) =>
-        x.identifier = "user_" + x.identifier; x
+      case x : UnresolvedAccess if (protectedkeywords.contains(x.name) && !x.hasAnnotation("NO_PROTECT_THIS")) =>
+        x.name = "user_" + x.name; x
+      case x : UnresolvedAccess if (x.name.startsWith("_")) =>
+        x.name = "user_" + x.name; x
       case x : ExternalFieldDeclarationStatement if (protectedkeywords.contains(x.extIdentifier)) =>
         x.extIdentifier = "user_" + x.extIdentifier; x
       case x : ExternalFieldDeclarationStatement if (x.extIdentifier.startsWith("_")) =>
@@ -169,16 +169,16 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
     // resolve values in expressions by replacing them with their expression => let SimplifyStrategy do the work
     StateManager.apply(this.token.get, new Transformation("ResolveValuesInExpressions", {
       case x : UnresolvedAccess if (x.level == None && x.slot == None && x.arrayIndex == None) => {
-        var value = valueCollector.getValue(x.identifier)
+        var value = valueCollector.getValue(x.name)
         value match {
-          case None => { Logger.info(s"""Did not resolve identifier ${x.identifier} as no matching Val was found"""); x }
+          case None => { Logger.info(s"""Did not resolve identifier ${x.name} as no matching Val was found"""); x }
           case _    => value.get
         }
       }
       case x : UnresolvedAccess if (x.level.isDefined && x.level.get.isInstanceOf[SingleLevelSpecification] && x.slot == None && x.arrayIndex == None) => {
-        var value = valueCollector.getValue(x.identifier + "_" + x.level.get.asInstanceOf[SingleLevelSpecification].level)
+        var value = valueCollector.getValue(x.name + "_" + x.level.get.asInstanceOf[SingleLevelSpecification].level)
         value match {
-          case None => { Logger.info(s"""Did not resolve identifier ${x.identifier} as no matching Val was found"""); x }
+          case None => { Logger.info(s"""Did not resolve identifier ${x.name} as no matching Val was found"""); x }
           case _    => value.get
         }
       }
@@ -187,11 +187,11 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
     // resolve accesses
     StateManager.apply(this.token.get, new Transformation("ResolveAccessSpecifications", {
       case access : UnresolvedAccess =>
-        if (StateManager.root_.asInstanceOf[Root].fields.exists(f => access.identifier == f.identifier.name))
+        if (StateManager.root_.asInstanceOf[Root].fields.exists(f => access.name == f.identifier.name))
           access.resolveToFieldAccess
-        else if (StateManager.root_.asInstanceOf[Root].stencils.exists(s => access.identifier == s.identifier.name))
+        else if (StateManager.root_.asInstanceOf[Root].stencils.exists(s => access.name == s.identifier.name))
           access.resolveToStencilAccess
-        else if (StateManager.root_.asInstanceOf[Root].stencilFields.exists(s => access.identifier == s.identifier.name))
+        else if (StateManager.root_.asInstanceOf[Root].stencilFields.exists(s => access.name == s.identifier.name))
           access.resolveToStencilFieldAccess
         else access.resolveToBasicOrLeveledAccess
     }))
