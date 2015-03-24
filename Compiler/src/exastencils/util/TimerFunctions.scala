@@ -211,7 +211,7 @@ case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with Expandab
       if (timers.isEmpty)
         ListBuffer()
       else
-        timers.map(t => genPrintTimerCode(t._2)).to[ListBuffer]
+        timers.toList.sortBy(_._1).map(t => genPrintTimerCode(t._2)).to[ListBuffer]
 
     FunctionStatement(UnitDatatype(), s"printAllTimers", ListBuffer(), statements)
   }

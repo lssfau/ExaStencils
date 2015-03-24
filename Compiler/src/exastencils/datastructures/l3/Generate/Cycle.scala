@@ -5,55 +5,55 @@ import exastencils.knowledge._
 object Cycle {
   def printBody(printer : java.io.PrintWriter, postfix : String, tempBlocking : Boolean) = {
     if (Knowledge.l3tmp_genTimersPerFunction)
-      printer.println(s"\tstartTimer ( preSmoothTimer$postfix${if (Knowledge.l3tmp_genTimersPerLevel) "@current" else ""} )")
+      printer.println(s"\tstartTimer ( ${if (Knowledge.l3tmp_genTimersPerLevel) s"concat ( 'preSmoothing${postfix}_', levelIndex@current() )" else s"'preSmoothing$postfix'"} )")
     if (!tempBlocking)
       printer.println(s"\trepeat ${Knowledge.l3tmp_numPre} times {")
     printer.println(s"\t\tSmoother$postfix@current ( )")
     if (!tempBlocking)
       printer.println(s"\t}")
     if (Knowledge.l3tmp_genTimersPerFunction)
-      printer.println(s"\tstopTimer ( preSmoothTimer$postfix${if (Knowledge.l3tmp_genTimersPerLevel) "@current" else ""} )")
+      printer.println(s"\tstopTimer ( ${if (Knowledge.l3tmp_genTimersPerLevel) s"concat ( 'preSmoothing${postfix}_', levelIndex@current() )" else s"'preSmoothing$postfix'"} )")
 
     if (Knowledge.l3tmp_genTimersPerFunction)
-      printer.println(s"\tstartTimer ( upResidualTimer$postfix${if (Knowledge.l3tmp_genTimersPerLevel) "@current" else ""} )")
+      printer.println(s"\tstartTimer ( ${if (Knowledge.l3tmp_genTimersPerLevel) s"concat ( 'residualUpdate${postfix}_', levelIndex@current() )" else s"'residualUpdate$postfix'"} )")
     if (Knowledge.l3tmp_genAsyncCommunication)
       printer.println(s"\tUpResidual$postfix@current ( 1 )")
     else
       printer.println(s"\tUpResidual$postfix@current ( )")
     if (Knowledge.l3tmp_genTimersPerFunction)
-      printer.println(s"\tstopTimer ( upResidualTimer$postfix${if (Knowledge.l3tmp_genTimersPerLevel) "@current" else ""} )")
+      printer.println(s"\tstopTimer ( ${if (Knowledge.l3tmp_genTimersPerLevel) s"concat ( 'residualUpdate${postfix}_', levelIndex@current() )" else s"'residualUpdate$postfix'"} )")
 
     if (Knowledge.l3tmp_genTimersPerFunction)
-      printer.println(s"\tstartTimer ( restrictionTimer$postfix${if (Knowledge.l3tmp_genTimersPerLevel) "@current" else ""} )")
+      printer.println(s"\tstartTimer ( ${if (Knowledge.l3tmp_genTimersPerLevel) s"concat ( 'restriction${postfix}_', levelIndex@current() )" else s"'restriction$postfix'"} )")
     printer.println(s"\tRestriction$postfix@current ( )")
     if (Knowledge.l3tmp_genTimersPerFunction)
-      printer.println(s"\tstopTimer ( restrictionTimer$postfix${if (Knowledge.l3tmp_genTimersPerLevel) "@current" else ""} )")
+      printer.println(s"\tstopTimer ( ${if (Knowledge.l3tmp_genTimersPerLevel) s"concat ( 'restriction${postfix}_', levelIndex@current() )" else s"'restriction$postfix'"} )")
 
     if (Knowledge.l3tmp_genTimersPerFunction)
-      printer.println(s"\tstartTimer ( setSolutionTimer$postfix${if (Knowledge.l3tmp_genTimersPerLevel) "@current" else ""} )")
+      printer.println(s"\tstartTimer ( ${if (Knowledge.l3tmp_genTimersPerLevel) s"concat ( 'settingSolution${postfix}_', levelIndex@current() )" else s"'settingSolution$postfix'"} )")
     printer.println(s"\tSetSolution$postfix@coarser ( 0 )")
     if (Knowledge.l3tmp_genTimersPerFunction)
-      printer.println(s"\tstopTimer ( setSolutionTimer$postfix${if (Knowledge.l3tmp_genTimersPerLevel) "@current" else ""} )")
+      printer.println(s"\tstopTimer ( ${if (Knowledge.l3tmp_genTimersPerLevel) s"concat ( 'settingSolution${postfix}_', levelIndex@current() )" else s"'settingSolution$postfix'"} )")
 
     printer.println(s"\trepeat ${Knowledge.l3tmp_numRecCycleCalls} times {")
     printer.println(s"\t\tVCycle$postfix@coarser ( )")
     printer.println(s"\t}")
 
     if (Knowledge.l3tmp_genTimersPerFunction)
-      printer.println(s"\tstartTimer ( correctionTimer$postfix${if (Knowledge.l3tmp_genTimersPerLevel) "@current" else ""} )")
+      printer.println(s"\tstartTimer ( ${if (Knowledge.l3tmp_genTimersPerLevel) s"concat ( 'correction${postfix}_', levelIndex@current() )" else s"'correction$postfix'"} )")
     printer.println(s"\tCorrection$postfix@current ( )")
     if (Knowledge.l3tmp_genTimersPerFunction)
-      printer.println(s"\tstopTimer ( correctionTimer$postfix${if (Knowledge.l3tmp_genTimersPerLevel) "@current" else ""} )")
+      printer.println(s"\tstopTimer ( ${if (Knowledge.l3tmp_genTimersPerLevel) s"concat ( 'correction${postfix}_', levelIndex@current() )" else s"'correction$postfix'"} )")
 
     if (Knowledge.l3tmp_genTimersPerFunction)
-      printer.println(s"\tstartTimer ( postSmoothTimer$postfix${if (Knowledge.l3tmp_genTimersPerLevel) "@current" else ""} )")
+      printer.println(s"\tstartTimer ( ${if (Knowledge.l3tmp_genTimersPerLevel) s"concat ( 'postSmoothing${postfix}_', levelIndex@current() )" else s"'postSmoothing$postfix'"} )")
     if (!tempBlocking)
       printer.println(s"\trepeat ${Knowledge.l3tmp_numPost} times {")
     printer.println(s"\t\tSmoother$postfix@current ( )")
     if (!tempBlocking)
       printer.println(s"\t}")
     if (Knowledge.l3tmp_genTimersPerFunction)
-      printer.println(s"\tstopTimer ( postSmoothTimer$postfix${if (Knowledge.l3tmp_genTimersPerLevel) "@current" else ""} )")
+      printer.println(s"\tstopTimer ( ${if (Knowledge.l3tmp_genTimersPerLevel) s"concat ( 'postSmoothing${postfix}_', levelIndex@current() )" else s"'postSmoothing$postfix'"} )")
   }
 
   def addCycle(printer : java.io.PrintWriter, postfix : String) = {

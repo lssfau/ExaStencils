@@ -86,6 +86,9 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     case FunctionCallExpression("native", args) =>
       args(0).asInstanceOf[StringConstant]
 
+    case FunctionCallExpression("concat", args) =>
+      ConcatenationExpression(args)
+
     // HACK to realize time measurement functionality -> FIXME: move to specialized node
     case ExpressionStatement(FunctionCallExpression("startTimer", args)) =>
       ExpressionStatement(FunctionCallExpression("startTimer", ListBuffer(iv.Timer(args(0)))))

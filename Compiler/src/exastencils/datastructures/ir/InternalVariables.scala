@@ -245,6 +245,7 @@ case class IterationOffsetEnd(var domain : Expression, var fragmentIdx : Express
 }
 
 case class Timer(var name : Expression) extends UnduplicatedVariable {
+  // TODO: strip result of resolveName (no spaces, etc.)
   override def resolveName = s"timer_" + name.prettyprint
   override def resolveDataType = "StopWatch"
 
