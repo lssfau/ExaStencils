@@ -226,7 +226,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
       })
       collectIndexExprs.applyStandalone(Scope(body))
 
-      // no store available, so align as max loads as possible
+      // no store available, so align as many loads as possible
       if (alignmentExpr == null) {
         alignmentExpr = SimplifyExpression.recreateExprFromIntSum(indexExprs.head)
         val counts = new Array[Long](vs)
