@@ -46,9 +46,12 @@ case class BooleanConstant(var value : Boolean) extends Expression {
   def progressToIr : ir.BooleanConstant = ir.BooleanConstant(value)
 }
 
-abstract class Access(var name : String) extends Expression {}
+abstract class Access() extends Expression {
+  var name : String
+}
 
-case class UnresolvedAccess(override var name : String, var level : Option[AccessLevelSpecification], var slot : Option[SlotModifier], var arrayIndex : Option[Int], var offset : Option[ExpressionIndex]) extends Access(name) {
+
+case class UnresolvedAccess(var name : String, var level : Option[AccessLevelSpecification], var slot : Option[SlotModifier], var arrayIndex : Option[Int], var offset : Option[ExpressionIndex]) extends Access {
   def prettyprint(out : PpStream) = {
     out << name
     if (slot.isDefined) out << '[' << slot.get << ']'
@@ -65,13 +68,13 @@ case class UnresolvedAccess(override var name : String, var level : Option[Acces
   def resolveToStencilFieldAccess = StencilFieldAccess(name, level.get, slot.getOrElse(SlotModifier.Active()), arrayIndex, offset)
 }
 
-case class BasicAccess(override var name : String) extends Access(name) {
+case class BasicAccess(var name : String) extends Access {
   def prettyprint(out : PpStream) = { out << name }
 
   def progressToIr : ir.StringConstant = ir.StringConstant(name)
 }
 
-case class LeveledAccess(override var name : String, var level : AccessLevelSpecification) extends Access(name) {
+case class LeveledAccess(var name : String, var level : AccessLevelSpecification) extends Access {
   def prettyprint(out : PpStream) = { out << name << '[' << level << ']' }
 
   def progressToIr : ir.Expression = {
@@ -84,7 +87,7 @@ case class LeveledAccess(override var name : String, var level : AccessLevelSpec
   }
 }
 
-case class FieldAccess(override var name : String, var level : AccessLevelSpecification, var slot : SlotModifier, var arrayIndex : Option[Int] = None, var offset : Option[ExpressionIndex] = None) extends Access(name) {
+case class FieldAccess(var name : String, var level : AccessLevelSpecification, var slot : SlotModifier, var arrayIndex : Option[Int] = None, var offset : Option[ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     // FIXME: omit slot if numSlots of target field is 1
     out << name << '[' << slot << ']' << '@' << level
@@ -122,7 +125,7 @@ object FieldAccess {
   }
 }
 
-case class StencilAccess(override var name : String, var level : AccessLevelSpecification, var arrayIndex : Option[Int] = None, var offset : Option[ExpressionIndex] = None) extends Access(name) {
+case class StencilAccess(var name : String, var level : AccessLevelSpecification, var arrayIndex : Option[Int] = None, var offset : Option[ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     out << name << '@' << level
     if (offset.isDefined) out << ":" << offset
@@ -150,7 +153,7 @@ case class StencilAccess(override var name : String, var level : AccessLevelSpec
   }
 }
 
-case class StencilFieldAccess(override var name : String, var level : AccessLevelSpecification, var slot : SlotModifier, var arrayIndex : Option[Int] = None, var offset : Option[ExpressionIndex] = None) extends Access(name) {
+case class StencilFieldAccess(var name : String, var level : AccessLevelSpecification, var slot : SlotModifier, var arrayIndex : Option[Int] = None, var offset : Option[ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     // FIXME: omit slot if numSlots of target field is 1
     out << name << '[' << slot << ']' << '@' << level
@@ -192,15 +195,17 @@ case class StencilFieldAccess(override var name : String, var level : AccessLeve
   }
 }
 
-abstract class Identifier(var name : String) extends Expression
+abstract class Identifier extends Expression {
+  var name : String
+}
 
-case class BasicIdentifier(override var name : String) extends Identifier(name) {
+case class BasicIdentifier(var name : String) extends Identifier {
   def prettyprint(out : PpStream) = { out << name }
 
   def progressToIr : ir.StringConstant = ir.StringConstant(name)
 }
 
-case class LeveledIdentifier(override var name : String, var level : LevelSpecification) extends Identifier(name) {
+case class LeveledIdentifier(var name : String, var level : LevelSpecification) extends Identifier {
   def prettyprint(out : PpStream) = { out << name << '@' << level }
 
   def progressToIr : ir.StringConstant = {
