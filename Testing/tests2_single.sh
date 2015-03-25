@@ -88,7 +88,7 @@ echo ""
 echo ""
 echo "-----------------------------------------------------------------------------------------------"
 echo "Call make:"
-srun --cpu_bind=cores make -C "${RAM_TMP_DIR}" -j ${SLURM_CPUS_ON_NODE}
+srun make -C "${RAM_TMP_DIR}" -j ${SLURM_CPUS_ON_NODE}
     if [[ $? -ne 0 ]]; then
       echo ""
       echo "ERROR: make return code unequal to 0."
