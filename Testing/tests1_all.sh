@@ -97,7 +97,7 @@ mkdir "${BIN_DIR}"
 # build generator (place class files in RAM_TMP_DIR)
 echo ""
 echo "Running ant:"
-srun --cpu_bind=cores ant -f "${ANT_BUILD}" -Dbuild.dir="${RAM_TMP_DIR}/build" -Dcompiler.jar="${COMPILER_JAR}" -Djava.dir="${JAVA_DIR}" -Dscala.dir="${SCALA_DIR}" clean build
+srun ant -f "${ANT_BUILD}" -Dbuild.dir="${RAM_TMP_DIR}/build" -Dcompiler.jar="${COMPILER_JAR}" -Djava.dir="${JAVA_DIR}" -Dscala.dir="${SCALA_DIR}" clean build
     if [[ $? -ne 0 ]]; then
       echo "ERROR: ant build error."
       echo ""
