@@ -83,7 +83,7 @@ object InitFields {
             printer.println(s"\t\tLaplace$postfix@current:[ 0,  1,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( gridWidth_y@current() * gridWidth_y@current() ) )"}")
             printer.println(s"\t\tLaplace$postfix@current:[ 0, -1,  0] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( gridWidth_y@current() * gridWidth_y@current() ) )"}")
             printer.println(s"\t\tLaplace$postfix@current:[ 0,  0,  1] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( gridWidth_z@current() * gridWidth_z@current() ) )"}")
-            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0, -1] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( gridWidth_z@current() * hzx@current ) )"}")
+            printer.println(s"\t\tLaplace$postfix@current:[ 0,  0, -1] = ${if (!Knowledge.l3tmp_genHDepStencils) -1 else "( -1.0 / ( gridWidth_z@current() * gridWidth_z@current() ) )"}")
           }
         }
       }
