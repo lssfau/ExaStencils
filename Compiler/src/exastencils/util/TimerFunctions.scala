@@ -245,7 +245,7 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
     var it = 0
     var toPrint : ListBuffer[Expression] = ListBuffer()
     val sep = "\";\""
-    for (timer <- timers) {
+    for (timer <- timers.toList.sortBy(_._1)) {
       toPrint ++= ListBuffer[Expression]("\"" ~ timer._2.name ~ "\"", sep,
         ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it), sep,
         ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it + 1), sep)
