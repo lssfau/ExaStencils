@@ -9,7 +9,7 @@ object Communication {
 
   def exch(printer : java.io.PrintWriter, field : String, target : String = "") = {
     if (Knowledge.l3tmp_genTimersForComm)
-      printer.println(s"\tstartTimer ( ${if (Knowledge.l3tmp_genCommTimersPerLevel) "concat ( 'communication_', levelIndex@current() )" else "'communication'"} )")
+      printer.println(s"\tstartTimer ( ${if (Knowledge.l3tmp_genCommTimersPerLevel) "concat ( 'communication_', levels@current() )" else "'communication'"} )")
 
     if (Knowledge.l3tmp_genCellBasedDiscr || Knowledge.experimental_Neumann)
       applyBCs(printer, field)
@@ -20,6 +20,6 @@ object Communication {
       printer.println(s"\tcommunicate $target of $field")
 
     if (Knowledge.l3tmp_genTimersForComm)
-      printer.println(s"\tstopTimer ( ${if (Knowledge.l3tmp_genCommTimersPerLevel) "concat ( 'communication_', levelIndex@current() )" else "'communication'"} )")
+      printer.println(s"\tstopTimer ( ${if (Knowledge.l3tmp_genCommTimersPerLevel) "concat ( 'communication_', levels@current() )" else "'communication'"} )")
   }
 }

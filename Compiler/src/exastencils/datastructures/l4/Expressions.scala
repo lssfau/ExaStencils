@@ -1,12 +1,13 @@
 package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
+
+import exastencils.core._
 import exastencils.data
 import exastencils.datastructures._
 import exastencils.knowledge
 import exastencils.logger._
 import exastencils.prettyprinting._
-import exastencils.core.Duplicate
 
 trait Expression extends Node with ProgressableToIr with PrettyPrintable {
   def progressToIr : ir.Expression
@@ -49,7 +50,6 @@ case class BooleanConstant(var value : Boolean) extends Expression {
 abstract class Access() extends Expression {
   var name : String
 }
-
 
 case class UnresolvedAccess(var name : String, var level : Option[AccessLevelSpecification], var slot : Option[SlotModifier], var arrayIndex : Option[Int], var offset : Option[ExpressionIndex]) extends Access {
   def prettyprint(out : PpStream) = {
@@ -253,13 +253,7 @@ case class UnaryBooleanExpression(var operator : String, var exp : Expression) e
 case class FunctionCallExpression(var identifier : Access, var arguments : List[Expression]) extends Expression {
   def prettyprint(out : PpStream) = { out << identifier << " ( " <<< (arguments, ", ") << " )" }
 
-  def progressToIr : ir. /*FunctionCall*/ Expression = {
-    // FIXME: remove after implementation
-    identifier match {
-      case LeveledAccess("levelIndex", SingleLevelSpecification(lev)) => return ir.IntegerConstant(lev)
-      case _ =>
-    }
-
+  def progressToIr : ir.FunctionCallExpression = {
     ir.FunctionCallExpression(identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
       arguments.map(s => s.progressToIr).to[ListBuffer])
   }
