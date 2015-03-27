@@ -67,7 +67,7 @@ object Stencils {
             printer.println("\t[ 0,  0,  0] => ( 2.0 / ( gridWidth_x@current() * gridWidth_x@current() ) + 2.0 / ( gridWidth_y@current() * gridWidth_y@current() ) + 2.0 / ( gridWidth_z@current() * gridWidth_z@current() ) )")
             printer.println("\t[ 1,  0,  0] => ( -1.0 / ( gridWidth_x@current() * gridWidth_x@current() ) )")
             printer.println("\t[-1,  0,  0] => ( -1.0 / ( gridWidth_x@current() * gridWidth_x@current() ) )")
-            printer.println("\t[ 0,  1,  0] => ( -1.0 / ( gridWidth_y@current() * gridWidth_y@currentv ) )")
+            printer.println("\t[ 0,  1,  0] => ( -1.0 / ( gridWidth_y@current() * gridWidth_y@current() ) )")
             printer.println("\t[ 0, -1,  0] => ( -1.0 / ( gridWidth_y@current() * gridWidth_y@current() ) )")
             printer.println("\t[ 0,  0,  1] => ( -1.0 / ( gridWidth_z@current() * gridWidth_z@current() ) )")
             printer.println("\t[ 0,  0, -1] => ( -1.0 / ( gridWidth_z@current() * gridWidth_z@current() ) )")
