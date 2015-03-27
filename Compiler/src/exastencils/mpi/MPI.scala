@@ -17,7 +17,7 @@ case class MPI_IsRootProc() extends Expression {
 }
 
 case class MPI_Init() extends MPI_Statement {
-  override def prettyprint(out : PpStream) : Unit = out << "MPI_Init(&argc, &argv);\nMPI_Barrier(MPI_COMM_WORLD);" // HACK to prevent stack smashing on chimaira (it looks like an OpenMPI bug)
+  override def prettyprint(out : PpStream) : Unit = out << "MPI_Init(&argc, &argv);"
 }
 
 case class MPI_Finalize() extends MPI_Statement {
