@@ -41,7 +41,7 @@ l3tmp_genStencilFields		= true
 l3tmp_genHDepStencils		= true
 l3tmp_genNonZeroRhs			= true
 
-l3tmp_exactSolution			= "Kappa"
+l3tmp_exactSolution			= "Kappa_VC"
 
 l3tmp_smoother				= "Jac"
 l3tmp_numPre				= 3

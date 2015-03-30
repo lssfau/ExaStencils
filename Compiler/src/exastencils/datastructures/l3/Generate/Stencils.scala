@@ -14,97 +14,21 @@ object Stencils {
   }
 
   def addLaplaceStencil(printer : java.io.PrintWriter, postfix : String) = {
+    // special coefficient function
+    if ("Kappa_VC" == Knowledge.l3tmp_exactSolution) {
+      printer.println(s"Function getCoefficient ( x : Real, y : Real${if (Knowledge.dimensionality > 2) ", z : Real" else ""} ) : Real {")
+      printer.println(s"\treturn exp ( kappa * ( (x - x ** 2) * (y - y ** 2) ${if (Knowledge.dimensionality > 2) "* (z - z ** 2) " else ""}) )")
+      printer.println(s"}")
+    }
+
     if (Knowledge.l3tmp_genStencilFields)
       printer.println(s"Stencil LaplaceStencil$postfix@all {")
     else
       printer.println(s"Stencil Laplace$postfix@all {")
-    if (Knowledge.l3tmp_genSetableStencil) {
-      Knowledge.dimensionality match {
-        case 2 => {
-          printer.println("\t[ 0,  0] => Laplace_Coeff_0_0")
-          printer.println("\t[ 1,  0] => Laplace_Coeff_P1_0")
-          printer.println("\t[-1,  0] => Laplace_Coeff_N1_0")
-          printer.println("\t[ 0,  1] => Laplace_Coeff_0_P1")
-          printer.println("\t[ 0, -1] => Laplace_Coeff_0_N1")
-        }
-        case 3 =>
-          printer.println("\t[ 0,  0,  0] => Laplace_Coeff_0_0_0")
-          printer.println("\t[ 1,  0,  0] => Laplace_Coeff_P1_0_0")
-          printer.println("\t[-1,  0,  0] => Laplace_Coeff_N1_0_0")
-          printer.println("\t[ 0,  1,  0] => Laplace_Coeff_0_P1_0")
-          printer.println("\t[ 0, -1,  0] => Laplace_Coeff_0_N1_0")
-          printer.println("\t[ 0,  0,  1] => Laplace_Coeff_0_0_P1")
-          printer.println("\t[ 0,  0, -1] => Laplace_Coeff_0_0_N1")
-      }
-    } else {
-      Knowledge.dimensionality match {
-        case 2 => {
-          if (Knowledge.l3tmp_genHDepStencils) {
-            printer.println("\t[ 0,  0] => ( 2.0 / ( gridWidth_x@current() * gridWidth_x@current() ) + 2.0 / ( gridWidth_y@current() * gridWidth_y@current() ) )")
-            printer.println("\t[ 1,  0] => ( -1.0 / ( gridWidth_x@current() * gridWidth_x@current() ) )")
-            printer.println("\t[-1,  0] => ( -1.0 / ( gridWidth_x@current() * gridWidth_x@current() ) )")
-            printer.println("\t[ 0,  1] => ( -1.0 / ( gridWidth_y@current() * gridWidth_y@current() ) )")
-            printer.println("\t[ 0, -1] => ( -1.0 / ( gridWidth_y@current() * gridWidth_y@current() ) )")
-          } else {
-            if (Knowledge.l3tmp_kelvin && "_GMRF" == postfix)
-              printer.println("\t[ 0,  0] => (4.0 + kappa)")
-            else
-              printer.println("\t[ 0,  0] => 4.0")
-            printer.println("\t[ 1,  0] => -1.0")
-            printer.println("\t[-1,  0] => -1.0")
-            printer.println("\t[ 0,  1] => -1.0")
-            printer.println("\t[ 0, -1] => -1.0")
-          }
-          if (Knowledge.l3tmp_genStencilStencilConv) {
-            printer.println("\t[-1, -1] => 0.0")
-            printer.println("\t[-1,  1] => 0.0")
-            printer.println("\t[ 1, -1] => 0.0")
-            printer.println("\t[ 1,  1] => 0.0")
-          }
-        }
-        case 3 =>
-          if (Knowledge.l3tmp_genHDepStencils) {
-            printer.println("\t[ 0,  0,  0] => ( 2.0 / ( gridWidth_x@current() * gridWidth_x@current() ) + 2.0 / ( gridWidth_y@current() * gridWidth_y@current() ) + 2.0 / ( gridWidth_z@current() * gridWidth_z@current() ) )")
-            printer.println("\t[ 1,  0,  0] => ( -1.0 / ( gridWidth_x@current() * gridWidth_x@current() ) )")
-            printer.println("\t[-1,  0,  0] => ( -1.0 / ( gridWidth_x@current() * gridWidth_x@current() ) )")
-            printer.println("\t[ 0,  1,  0] => ( -1.0 / ( gridWidth_y@current() * gridWidth_y@current() ) )")
-            printer.println("\t[ 0, -1,  0] => ( -1.0 / ( gridWidth_y@current() * gridWidth_y@current() ) )")
-            printer.println("\t[ 0,  0,  1] => ( -1.0 / ( gridWidth_z@current() * gridWidth_z@current() ) )")
-            printer.println("\t[ 0,  0, -1] => ( -1.0 / ( gridWidth_z@current() * gridWidth_z@current() ) )")
-          } else {
-            printer.println("\t[ 0,  0,  0] => 6.0")
-            printer.println("\t[ 1,  0,  0] => -1.0")
-            printer.println("\t[-1,  0,  0] => -1.0")
-            printer.println("\t[ 0,  1,  0] => -1.0")
-            printer.println("\t[ 0, -1,  0] => -1.0")
-            printer.println("\t[ 0,  0,  1] => -1.0")
-            printer.println("\t[ 0,  0, -1] => -1.0")
-          }
-          if (Knowledge.l3tmp_genStencilStencilConv) {
-            printer.println("\t[ 0, -1,  1] => 0.0")
-            printer.println("\t[ 0, -1, -1] => 0.0")
-            printer.println("\t[ 0,  1,  1] => 0.0")
-            printer.println("\t[ 0,  1, -1] => 0.0")
-            printer.println("\t[-1,  0,  1] => 0.0")
-            printer.println("\t[-1,  0, -1] => 0.0")
-            printer.println("\t[ 1,  0,  1] => 0.0")
-            printer.println("\t[ 1,  0, -1] => 0.0")
-            printer.println("\t[-1, -1,  0] => 0.0")
-            printer.println("\t[-1,  1,  0] => 0.0")
-            printer.println("\t[ 1, -1,  0] => 0.0")
-            printer.println("\t[ 1,  1,  0] => 0.0")
 
-            printer.println("\t[-1, -1,  1] => 0.0")
-            printer.println("\t[-1, -1, -1] => 0.0")
-            printer.println("\t[-1,  1,  1] => 0.0")
-            printer.println("\t[-1,  1, -1] => 0.0")
-            printer.println("\t[ 1, -1,  1] => 0.0")
-            printer.println("\t[ 1, -1, -1] => 0.0")
-            printer.println("\t[ 1,  1,  1] => 0.0")
-            printer.println("\t[ 1,  1, -1] => 0.0")
-          }
-      }
-    }
+    for (e <- MainStencilCoefficients.getEntries(postfix))
+      printer.println(s"\t${e._1} => ( ${e._2} )")
+
     printer.println("}")
 
     if (Knowledge.l3tmp_genInvDiagStencil) {

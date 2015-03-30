@@ -43,7 +43,7 @@ object Globals {
       printer.println("\tVariable dim : Real = 2")
     }
 
-    if ("Kappa" == Knowledge.l3tmp_exactSolution) {
+    if ("Kappa" == Knowledge.l3tmp_exactSolution || "Kappa_VC" == Knowledge.l3tmp_exactSolution) {
       printer.println("\tVariable kappa : Real = 10.0")
     }
 
