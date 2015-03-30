@@ -474,7 +474,7 @@ case class StencilConvolution(var stencil : Stencil, var fieldAccess : FieldAcce
   }
 
   def expand : Output[Expression] = {
-    var ret : Expression = (0 until stencil.entries.size).toArray.map(idx => resolveEntry(idx)).toArray[Expression].reduceLeft(_ + _)
+    var ret : Expression = (0 until stencil.entries.size).toArray.map(idx => Duplicate(resolveEntry(idx))).toArray[Expression].reduceLeft(_ + _)
     SimplifyStrategy.doUntilDoneStandalone(ret)
     ret
   }
@@ -492,7 +492,7 @@ case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, 
   }
 
   def expand : Output[Expression] = {
-    var ret : Expression = (0 until stencilFieldAccess.stencilFieldSelection.stencil.entries.size).toArray.map(idx => resolveEntry(idx)).toArray[Expression].reduceLeft(_ + _)
+    var ret : Expression = (0 until stencilFieldAccess.stencilFieldSelection.stencil.entries.size).toArray.map(idx => Duplicate(resolveEntry(idx))).toArray[Expression].reduceLeft(_ + _)
     SimplifyStrategy.doUntilDoneStandalone(ret)
     ret
   }
