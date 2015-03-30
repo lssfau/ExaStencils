@@ -155,8 +155,6 @@ object Main {
     ResolveLoopOverPoints.apply()
     ResolveIntergridIndices.apply()
 
-    CreateGeomCoordinates.apply()
-
     var numConvFound = 0
     do {
       FindStencilConvolutions.apply()
@@ -176,6 +174,9 @@ object Main {
       ExpandOnePassStrategy.apply()
     else
       ExpandStrategy.doUntilDone()
+
+    CreateGeomCoordinates.apply()
+    ResolveLoopOverPointsInOneFragment.apply()
 
     MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)

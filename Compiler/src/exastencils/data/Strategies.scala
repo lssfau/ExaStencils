@@ -55,6 +55,13 @@ object ResolveLoopOverDimensions extends DefaultStrategy("Resolving LoopOverDime
   })
 }
 
+object ResolveLoopOverPointsInOneFragment extends DefaultStrategy("Resolving LoopOverPointsInOneFragment nodes") {
+  this += new Transformation("Resolving", {
+    case loop : LoopOverPointsInOneFragment =>
+      loop.expandSpecial
+  })
+}
+
 object ResolveLoopOverPoints extends DefaultStrategy("Resolving ResolveLoopOverPoints nodes") {
   val collector = new StackCollector
   this.register(collector)

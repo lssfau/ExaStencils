@@ -146,10 +146,10 @@ case class LoopOverPointsInOneFragment(var domain : Int,
     var increment : MultiIndex,
     var body : ListBuffer[Statement],
     var reduction : Option[Reduction] = None,
-    var condition : Option[Expression] = None) extends Statement with Expandable {
+    var condition : Option[Expression] = None) extends Statement {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPointsInOneFragment\n"
 
-  def expand : Output[Statement] = {
+  def expandSpecial : Output[Statement] = {
     var start = new MultiIndex()
     var stop = new MultiIndex()
     if (field.fieldLayout.nodeBased) {
