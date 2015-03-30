@@ -1,0 +1,8 @@
+user						= "Sebastian"
+outputPath					= "C:/Users/sisekuck/Documents/Visual Studio 2010/Projects/publication/ExaStencils_on_ARM/codes/VC_NOOPT"
+basePathPrefix				= "."
+produceHtmlLog				= true
+timeStrategies				= true
+timeStratPercentThreshold	= 0
+
+binary						= "exastencils"
