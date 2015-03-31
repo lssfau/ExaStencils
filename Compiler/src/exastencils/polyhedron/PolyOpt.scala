@@ -257,12 +257,13 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   private final val tileSizes = Array(Knowledge.poly_tileSize_x, Knowledge.poly_tileSize_y, Knowledge.poly_tileSize_z, Knowledge.poly_tileSize_w)
 
-  private def getTileVec(dims : Int, itCount : Array[Long]) : isl.Vec = {
+  private def getTileVec(dims : Int) : isl.Vec = {
     var vec = isl.Vec.alloc(dims)
     val iind : Int = dims - 1
     for (i <- 0 until dims) {
       var tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(iind - i) else 1000000000
-      //      tileSize = math.min(tileSize, itCount(i).toInt + 20) // TODO: "+ 20" (heuristics)
+      if (tileSize <= 0)
+        tileSize = 1000000000
       vec = vec.setElementVal(i, tileSize)
     }
     return vec
@@ -302,8 +303,11 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val schedule : isl.Schedule = schedConstr.computeSchedule()
     scop.noParDims.clear()
     var perfTiling : Boolean = false
-    for (i <- 0 until scop.origIterationCount.length)
-      perfTiling |= tileSizes(i) < scop.origIterationCount(i)
+    if (scop.origIterationCount != null)
+      for (i <- 0 until scop.origIterationCount.length)
+        perfTiling |= tileSizes(i) < scop.origIterationCount(i)
+    else
+      perfTiling = true // no info about iteration size...
     if (scop.optLevel >= 3 && perfTiling) {
       var tiled : Int = 0
       schedule.foreachBand({
@@ -316,12 +320,21 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
           if (prefix == 0) {
             tiled = band.nMember()
             if (tiled <= 4)
-              band.tile(getTileVec(tiled, scop.origIterationCount))
+              band.tile(getTileVec(tiled))
           }
       } : isl.Band => Unit)
       val threads = Knowledge.omp_numThreads
       for (i <- 0 until tiled) {
-        val tiles : Long = scop.origIterationCount(i) / tileSizes(i)
+        val tiles : Long =
+          if (scop.origIterationCount != null)
+            scop.origIterationCount(i) / tileSizes(i)
+          else {
+            Logger.warn("[PolyOpt]  unable to determine iteration count, check results of LoopOverDimensions.maxIterationCount(); parallelization might be inefficient")
+            if (tileSizes(i) >= 1000000)
+              1
+            else // don't know how much iterations loop have... so assume there are enough to parallelize it...
+              1000
+          }
         if (tiles != threads && tiles < 2 * threads)
           scop.noParDims += tiled - i - 1
       }

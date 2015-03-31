@@ -19,15 +19,12 @@ echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R
 echo "Running test on machine(s) ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
 rm -f ${ERROR_MARKER} # remove error marker from old job run if we were requeued
 
-RESULT=$(mktemp --tmpdir=/run/shm test_res_XXXXX.txt || mktemp --tmpdir=/tmp test_res_XXXXX.txt) || {
+RESULT=$(mktemp --tmpdir=/scratch/exatest test_res_XXXXXXXX.txt) || { # should not be placed in ram, since all nodes must have access to the same file
     echo "ERROR: Failed to create temporary file."
     touch ${ERROR_MARKER}
     echo "${LINK}" >> "${LOG_ALL}"
     exit 0
   }
-if [[ ! ${RESULT} =~ ^/run/shm/* ]]; then
-  echo "Problems with /run/shm on machine ${SLURM_JOB_NODELIST} in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID}." | mail -s "ExaTest /run/shm" "kronast@fim.uni-passau.de"
-fi
 
 function killed {
   echo "ERROR? Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} killed; possible reasons: timeout, manually canceled, user login (job is then requeued)."
@@ -51,8 +48,7 @@ trap cleanup EXIT
 
 # run generated code
 echo "  Created  ${RESULT}: run code and redirect its stdout and stderr."
-srun "${BIN}" 2>&1 | grep -v "No protocol specified" > "${RESULT}" # HACK: filter strange X server error...
-cat "${RESULT}"
+srun "${BIN}" 2>&1 | grep -v "No protocol specified" | tee "${RESULT}" # HACK: filter strange X server error...
 echo ""
 
 if diff -B -w --strip-trailing-cr -I "time"  "${RESULT}" "${EXP_RESULT}" > /dev/null; then

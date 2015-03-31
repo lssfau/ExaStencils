@@ -166,13 +166,12 @@ object Main {
     } while (numConvFound > 0)
 
     ResolveDiagFunction.apply()
+    CreateGeomCoordinates.apply()
+    ResolveLoopOverPointsInOneFragment.apply()
     ResolveContractingLoop.apply()
 
     MapStencilAssignments.apply()
     ResolveFieldAccess.apply()
-
-    CreateGeomCoordinates.apply()
-    ResolveLoopOverPointsInOneFragment.apply()
 
     if (Knowledge.useFasterExpand)
       ExpandOnePassStrategy.apply()

@@ -22,12 +22,13 @@ import exastencils.util._
 case class ContractingLoop(var number : Int, var iterator : Option[Expression], var statements : ListBuffer[Statement]) extends Statement {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ContractingLoop\n"
 
-  private def extendBounds(start : MultiIndex, end : MultiIndex, extent : Int, field : Field) : Unit = {
-    for (dim <- 0 until Knowledge.dimensionality) {
-      start(dim) -= IntegerConstant(extent) * (1 - ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
-      end(dim) += IntegerConstant(extent) * (1 + ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim))
-    }
-  }
+  // TODO: some error here? see expandSpecial
+  // private def extendBounds(start : MultiIndex, end : MultiIndex, extent : Int, field : Field) : Unit = {
+  //   for (dim <- 0 until Knowledge.dimensionality) {
+  //     start(dim) -= IntegerConstant(extent) * (1 - ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
+  //     end(dim) += IntegerConstant(extent) * (1 + ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim))
+  //   }
+  // }
 
   // IMPORTANT: must match and extend all possible bounds for LoopOverDimensions inside a ContractingLoop
   private def extendBounds(expr : Expression, extent : Int) : Expression = {
@@ -97,11 +98,12 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
           case l : LoopOverDimensions =>
             res += processLoopOverDimensions(l, (number - i) * 1, fieldOffset) // TODO: currently independent from used stencils (const factor 1)
 
-          case loop : LoopOverPointsInOneFragment =>
-            val nju = Duplicate(loop)
-            extendBounds(nju.startOffset, nju.endOffset, (number - i) * 1, loop.field) // TODO: currently independent from used stencils
-            updateSlots(nju.body, fieldOffset)
-            res += nju
+          // TODO: fix! results differ from them generated when a LoopOverDimensions instead of a LoopOverPointsInOneFragment is present
+          // case loop : LoopOverPointsInOneFragment =>
+          //   val nju = Duplicate(loop)
+          //   extendBounds(nju.startOffset, nju.endOffset, (number - i) * 1, loop.field) // TODO: currently independent from used stencils
+          //   updateSlots(nju.body, fieldOffset)
+          //   res += nju
         }
 
     for ((fKey, offset) <- fieldOffset) {
