@@ -170,13 +170,14 @@ object Main {
 
     MapStencilAssignments.apply()
     ResolveFieldAccess.apply()
+
+    CreateGeomCoordinates.apply()
+    ResolveLoopOverPointsInOneFragment.apply()
+
     if (Knowledge.useFasterExpand)
       ExpandOnePassStrategy.apply()
     else
       ExpandStrategy.doUntilDone()
-
-    CreateGeomCoordinates.apply()
-    ResolveLoopOverPointsInOneFragment.apply()
 
     MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)
