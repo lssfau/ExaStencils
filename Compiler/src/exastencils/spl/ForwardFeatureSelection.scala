@@ -2,44 +2,72 @@ package exastencils.spl
 
 import Jama.Matrix
 
-//TODO Only work for boolean features 
-//TODO Implement function learning and consider numerical features
-
-class ForwardFeatureSelection(numInterations : Int , measurements: Array[Configuration]) {
+class ForwardFeatureSelection(featuresOfInterest : scala.collection. mutable.Set[Feature], numInterations : Int , measurements: Array[Configuration], nfpOfInterest : NonFunctionalProperties.Value) {
 
   var featureIdMap: scala.collection.mutable.Map[Feature, Int] = scala.collection.mutable.Map()
 
+  var featuresOfDomain : scala.collection.mutable.Map[String,Feature] = scala.collection.mutable.Map()
+  
   var interationDelta = 0.001
  
+  
   var Y2: Jama.Matrix = null
 
+  /**
+   * This method prepares all internal properties to start the forward feature selection algorithm. 
+   * 
+   */
   def apply() = {
-    var notConsider: scala.collection.mutable.Set[String] = scala.collection.mutable.Set();
-    // TODO remove dirty hack --> do not consider features that are mandatory in all configurations 
-    notConsider.add("Prototype")
-    notConsider.add("post")
-    notConsider.add("pre")
-    notConsider.add("l3tmp_cgs")
-    notConsider.add("l3tmp_smoother")
-
-    // create projection of feature to id for later identification of feature with greatest impact
-    FeatureModel.allFeatures.filter(x => !notConsider.contains(x._2.identifier)).foreach(x => featureIdMap.put(x._2, featureIdMap.size))
-
+    featuresOfInterest.foreach(x => {
+      featureIdMap.put(x, featureIdMap.size)
+      featuresOfDomain.put(x.identifier , x)
+      })
+    
     Y2 = new Matrix(1, measurements.size)
 
     var pos = 0
     for (measurement <- measurements) {
-      Y2.set(0, pos, measurement.nfpValues.times)
+      Y2.set(0, pos, measurement.nfpValues.get(nfpOfInterest).get)
       pos += 1
     }
     Y2 = Y2.transpose()
-
     perform()
 
   }
 
-  var solutionSet: scala.collection.mutable.Set[scala.collection.mutable.Set[Feature]] = scala.collection.mutable.Set()
+  /**
+   * This method prepares all internal properties to start the forward feature selection algorithm. With the configurationOffset parameter, not the whole nfp value of the configurations are learned, 
+   * but only the difference between the whole value and the configurationOffset value. As a consequence, we perform a delta model learning approach here. 
+   * 
+   * @param configurationOffset the offset for the configurations
+   * 
+   */
+  def applyWithOffset(configurationOffset : scala.collection.mutable.Map[Configuration, Double]) = {
+    featuresOfInterest.foreach(x => {
+      featureIdMap.put(x, featureIdMap.size)
+      featuresOfDomain.put(x.identifier , x)
+      })
+    
+    Y2 = new Matrix(1, measurements.size)
 
+    var pos = 0
+    for (measurement <- measurements) {
+      Y2.set(0, pos, measurement.nfpValues.get(nfpOfInterest).get - configurationOffset(measurement))
+      pos += 1
+    }
+    Y2 = Y2.transpose()
+    perform()
+
+  }
+  
+  
+  var solutionSet: scala.collection.mutable.Set[FFS_Expression] = scala.collection.mutable.Set()
+
+  /**
+   * 
+   * This method starts the feature selection algorithm. 
+   * 
+   */
   def perform() = {
     // features and feature-interactions with the greatest impact
 
@@ -48,18 +76,25 @@ class ForwardFeatureSelection(numInterations : Int , measurements: Array[Configu
     var performIteration = true
     var minOverallError = Double.MaxValue
 
+    solutionSet.add(new FFS_Expression(featuresOfDomain , "10000"))
+    
     while (performIteration) {
 
       var minErrorOfThisIteration = Double.MaxValue
-      var bestSolutionInIteration: scala.collection.mutable.Set[scala.collection.mutable.Set[Feature]] = null
+      var bestSolutionInIteration: scala.collection.mutable.Set[FFS_Expression] = null
 
       for (i <- featureIdMap) {
         // compute combinations
-        var combinationsForTesting = computeAllCombinations(solutionSet, i._1, measurements)
+        var candidate = new FFS_Expression(featuresOfDomain, i._1.identifier)
+        var combinationsForTesting = computeAllCombinations(solutionSet, candidate, measurements)
+        
+        var candidateLog = new FFS_Expression(featuresOfDomain, "[ "+i._1.identifier+"]")
+        combinationsForTesting ++= (computeAllCombinations(solutionSet, candidateLog, measurements))
+        
 
         for (j <- combinationsForTesting) {
 
-          var combinationAsArray = j.toArray[scala.collection.mutable.Set[Feature]]
+          var combinationAsArray = j.toArray[FFS_Expression]
 
           // computeError for Combination
           var currError = computeErrorForCombination(combinationAsArray, measurements)
@@ -71,23 +106,34 @@ class ForwardFeatureSelection(numInterations : Int , measurements: Array[Configu
           }
         }
       }
-      // perform until no more iterations are beneficial 
-      if ((interationDelta > Math.abs(minErrorOfThisIteration - minOverallError)) || currIteration > numInterations)
-        performIteration = false
 
+      // perform until no more iterations are beneficial 
+      if ((interationDelta > Math.abs(minErrorOfThisIteration - minOverallError)) || currIteration > numInterations){
+        performIteration = false
+      }
+      
       // store best combination 
       if (minErrorOfThisIteration < minOverallError) {
         minOverallError = minErrorOfThisIteration
         solutionSet = bestSolutionInIteration
       }
-      println("Iteration " + currIteration + " finished with an error off  " + minOverallError)
+      
+
+      
+//      println("Iteration " + currIteration + " finished with an error off  " + minOverallError)
       currIteration += 1
 
     }
 
   }
 
-  def getMatrixFromFeatureSet(featureSetI: Array[scala.collection.mutable.Set[Feature]]): Jama.Matrix = {
+  /**
+   * Internal method computing the influence of the FFS_Expressions on the set of configurations used. 
+   * 
+   * @param featureSetI the array of FFS_expressions 
+   * 
+   */
+  def getMatrixFromFeatureSet(featureSetI: Array[FFS_Expression]): Jama.Matrix = {
 
     var result: Matrix = new Matrix(featureSetI.size, measurements.size)
     var m = 0
@@ -95,8 +141,8 @@ class ForwardFeatureSelection(numInterations : Int , measurements: Array[Configu
     for (i <- measurements) {
       var jCount = 0
       for (j <- featureSetI) {
-        if (allFeaturesInConfig(i, j)) {
-          result.set(jCount, m, getValueForFeature(i, j))
+    	if (allFeaturesInConfig(i, j)) {
+          result.set(jCount, m, getValueForExpression(i, j))
         }
         jCount += 1
       }
@@ -105,25 +151,28 @@ class ForwardFeatureSelection(numInterations : Int , measurements: Array[Configu
     return result
   }
 
-  def computeError(constants: Jama.Matrix, combination: Array[scala.collection.mutable.Set[exastencils.spl.Feature]], configurations: Array[Configuration]): Double = {
+
+  def computeError(constants: Jama.Matrix, combination: Array[FFS_Expression], configurations: Array[Configuration]): Double = {
     var sumError = 0.0
 
     for (config <- configurations) {
-      var predict = predictValue(constants, combination, config)
-      var realValue = config.nfpValues.times
+      var predict = predictConfig(constants, combination, config)
+      var realValue = config.nfpValues.get(nfpOfInterest).get
       sumError += Math.abs(predict - realValue)
     }
 
     return (sumError / configurations.size)
   }
 
-  def predictValue(constants: Jama.Matrix, combination: Array[scala.collection.mutable.Set[exastencils.spl.Feature]], config: Configuration): Double = {
+  
+
+  def predictConfig(constants: Jama.Matrix, combination: Array[FFS_Expression], config: Configuration): Double = {
     var prediction: Double = 0.0
 
     var i = 0
     for (combi <- combination) {
       if (allFeaturesInConfig(config, combi)) {
-        prediction += getValueForFeature(config, combi) * constants.get(i, 0)
+        prediction += getValueForExpression(config, combi) * constants.get(i, 0)
 
       }
       i += 1
@@ -131,34 +180,45 @@ class ForwardFeatureSelection(numInterations : Int , measurements: Array[Configu
     return prediction
   }
 
-  def getValueForFeature(config: Configuration, list: scala.collection.mutable.Set[Feature]): Double = {
-
-    var value = 1.0
-
-    for (feature <- list) {
-      if (feature.isNumerical)
-        value * config.numericalFeatureValues(feature)
-      else if (!config.selectedBoolFeatures.contains(feature))
-        return 0.0
-    }
-    return 1.0
+  def getValueForExpression(config: Configuration, list: FFS_Expression): Double = {
+    return list.evaluationOfRPN(config)
   }
 
-  def allFeaturesInConfig(config: Configuration, combi: scala.collection.mutable.Set[Feature]): Boolean = {
+  def allFeaturesInConfig(config: Configuration, combi: FFS_Expression): Boolean = {
     var featuresFound = 0
-    if (combi.size == 0)
-      throw new Exception()
+    if (combi.numberOfParticipatingFeatures == 0){
+      return true
+    }
+    
+    combi.participatingBoolFeatures.foreach(x => if(config.boolFeatures(x) == true) featuresFound += 1 )
+    combi.participatingNumFeatures .foreach(x => if(config.numericalFeatureValues .contains(x)) featuresFound += 1 )
 
-    combi.filter(config.selectedBoolFeatures.contains(_)).foreach(x => featuresFound += 1)
-    combi.filter(config.numericalFeatureValues.keySet.contains(_)).foreach(x => featuresFound += 1)
-
-    if (featuresFound < combi.size)
+    if (featuresFound < combi.numberOfParticipatingFeatures)
       return false
 
     return true
   }
 
-  def computeErrorForCombination(combination: Array[scala.collection.mutable.Set[Feature]], configs: Array[Configuration]): Double = {
+  
+  def getModelWithConstants(combination: Array[FFS_Expression]) : Tuple2[Jama.Matrix, Array[FFS_Expression]] = {
+    
+    var org: Matrix = getMatrixFromFeatureSet(combination)
+    var temp = (org.transpose())
+    var const: Matrix = null
+
+    // FIXME in some cases the pinverse can not be computed 
+    try {
+      temp = temp.inverse()
+      const = temp.times(Y2)
+
+    } catch {
+      case t : Throwable => const = org.times(Y2)
+    }
+
+    return Tuple2[Jama.Matrix, Array[FFS_Expression]](const, combination)
+  }
+  
+  def computeErrorForCombination(combination: Array[FFS_Expression], configs: Array[Configuration]): Double = {
 
     var org: Matrix = getMatrixFromFeatureSet(combination)
     var temp = (org.transpose())
@@ -173,24 +233,20 @@ class ForwardFeatureSelection(numInterations : Int , measurements: Array[Configu
       case t : Throwable => const = org.times(Y2)
     }
 
-    // TODO store const variable in global Field 
-
     return computeError(const, combination, configs)
 
   }
 
-  def computeAllCombinations(combinationSet: scala.collection.mutable.Set[scala.collection.mutable.Set[Feature]], feature: Feature, configurations: Array[Configuration]): scala.collection.mutable.Set[scala.collection.mutable.Set[scala.collection.mutable.Set[Feature]]] = {
+  def computeAllCombinations(combinationSet: scala.collection.mutable.Set[FFS_Expression], feature: FFS_Expression, configurations: Array[Configuration]): scala.collection.mutable.Set[scala.collection.mutable.Set[FFS_Expression]] = {
 
-    var combinations: scala.collection.mutable.Set[scala.collection.mutable.Set[scala.collection.mutable.Set[Feature]]] =
+    var combinations: scala.collection.mutable.Set[scala.collection.mutable.Set[FFS_Expression]] =
       scala.collection.mutable.Set()
 
     for (i <- combinationSet) {
-      var combination: scala.collection.mutable.Set[scala.collection.mutable.Set[Feature]] = scala.collection.mutable.Set()
+      var combination: scala.collection.mutable.Set[FFS_Expression] = scala.collection.mutable.Set()
 
-      var subSet: scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
+      var subSet: FFS_Expression = new FFS_Expression(featuresOfDomain ,i.toString() +" * "+feature.toString());
 
-      i.foreach(x => subSet.add(x))
-      subSet.add(feature)
       if (atLeastOneConfigurationHasCombination(configurations, subSet))
         combination.add(subSet)
 
@@ -202,11 +258,10 @@ class ForwardFeatureSelection(numInterations : Int , measurements: Array[Configu
 
     }
 
-    var singleFeature: scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
+    var singleFeature: FFS_Expression = new FFS_Expression(featuresOfDomain ,feature.toString())
     //    if(atLeastOneConfigurationHasCombination(configurations, singleFeature))
-    singleFeature.add(feature)
-
-    var firstConfig: scala.collection.mutable.Set[scala.collection.mutable.Set[Feature]] = scala.collection.mutable.Set()
+    
+    var firstConfig: scala.collection.mutable.Set[FFS_Expression] = scala.collection.mutable.Set()
     combinationSet.foreach(x => firstConfig.add(x))
     //    if(singleFeature.size > 0 ){
     firstConfig.add(singleFeature)
@@ -215,7 +270,7 @@ class ForwardFeatureSelection(numInterations : Int , measurements: Array[Configu
     return combinations
   }
 
-  def atLeastOneConfigurationHasCombination(configurations: Array[Configuration], combination: scala.collection.mutable.Set[Feature]): Boolean = {
+  def atLeastOneConfigurationHasCombination(configurations: Array[Configuration], combination: FFS_Expression): Boolean = {
 
     for (config <- configurations) {
       if (allFeaturesInConfig(config, combination))
@@ -224,6 +279,22 @@ class ForwardFeatureSelection(numInterations : Int , measurements: Array[Configu
     }
 
     return false
+  }
+
+  /**
+   * This methods returns a string consisting of the given set of FFS_Expressions and the coefficients of the expressions. 
+   * 
+   * @param constants: the coefficients of the expressions. This matrix is a 1xN Matrix for N expressions. 
+   * @param 
+   * 
+   */
+  def printModelWithConstants(constants : Jama.Matrix, components : Array[FFS_Expression]) : String = {
+    var result : String = ""
+    for (i <- 0 to components.size - 1){
+      result += constants.get(i, 0) + " * " + components(i).toString() + " + "
+    }
+    result = result.substring(0, result.size - 3)
+    return result
   }
 
 }

@@ -43,8 +43,8 @@ object Knowledge {
   // === Layer 2 ===
 
   // TODO: check if these parameters will be necessary or can be implicitly assumed once an appropriate field collection is in place
-  var minLevel : Int = 0 // the coarsest level
-  var maxLevel : Int = 6 // the finest level
+  var minLevel : Int = 0 //[4~12]  // @constant // the coarsest level
+  var maxLevel : Int = 6 //[4~12] // @constant // the finest level
   def numLevels : Int = (maxLevel - minLevel + 1) // the number of levels -> this assumes that the cycle descents to the coarsest level
 
   // --- Domain Decomposition ---
@@ -67,9 +67,9 @@ object Knowledge {
   def domain_numFragmentsTotal : Int = domain_numBlocks * domain_numFragmentsPerBlock
 
   // the length of each fragment per dimension - this will either be one or specify the length in unit-fragments, i.e. the number of aggregated fragments per dimension
-  var domain_fragmentLength_x : Int = 1
-  var domain_fragmentLength_y : Int = 1
-  var domain_fragmentLength_z : Int = 1
+  var domain_fragmentLength_x : Int = 1 //[1~64]
+  var domain_fragmentLength_y : Int = 1 //[1~64]
+  var domain_fragmentLength_z : Int = 1 //[1~64]
   def domain_fragmentLengthAsVec : Array[Int] = Array(domain_fragmentLength_x, domain_fragmentLength_y, domain_fragmentLength_z)
 
   /// specific flags for setting rectangular domains
@@ -83,9 +83,9 @@ object Knowledge {
   var domain_rect_numBlocks_z : Int = 1
 
   // number of fragments to be generated for each block per dimension - this will usually be one or be equal to the number of OMP threads per dimension
-  var domain_rect_numFragsPerBlock_x : Int = 1
-  var domain_rect_numFragsPerBlock_y : Int = 1
-  var domain_rect_numFragsPerBlock_z : Int = 1
+  var domain_rect_numFragsPerBlock_x : Int = 1 //[1~64]
+  var domain_rect_numFragsPerBlock_y : Int = 1 //[1~64]
+  var domain_rect_numFragsPerBlock_z : Int = 1 //[1~64]
 
   // the total number of fragments to be generated per dimension
   def domain_rect_numFragsTotal_x : Int = domain_rect_numFragsPerBlock_x * domain_rect_numBlocks_x
@@ -165,7 +165,7 @@ object Knowledge {
   var omp_parallelizeLoopOverFragments : Boolean = true // [true|false] // specifies if loops over fragments may be parallelized with omp if marked correspondingly
   var omp_parallelizeLoopOverDimensions : Boolean = false // [true|false] // specifies if loops over dimensions may be parallelized with omp if marked correspondingly
   var omp_useCollapse : Boolean = false // [true|false] // if true the 'collapse' directive may be used in omp for regions; this will only be done if the minimum omp version supports this
-  var omp_minWorkItemsPerThread : Int = 400 // [1-inf] // threshold specifying which loops yield enough workload to amortize the omp overhead
+  var omp_minWorkItemsPerThread : Int = 400 // [1~inf] // threshold specifying which loops yield enough workload to amortize the omp overhead
   def omp_requiresCriticalSections : Boolean = { // true if the chosen compiler / mpi version requires critical sections to be marked explicitly
     targetCompiler match {
       case "MSVC"            => true
@@ -195,10 +195,10 @@ object Knowledge {
   var poly_optLevel_fine : Int = 0 // [0-3] // poly opt-level for poly_numFinestLevels finest fields
   var poly_optLevel_coarse : Int = 0 // [0-poly_optLevel_fine] // polyhedral optimization level for coarsest fields  0: disable (fastest);  3: aggressive (slowest)
   var poly_numFinestLevels : Int = 2 // [1-numLevels] // number of levels that should be optimized in PolyOpt (starting from the finest)
-  var poly_tileSize_x : Int = 1000000000 // [32-inf]
-  var poly_tileSize_y : Int = 1000000000 // [16-inf]
-  var poly_tileSize_z : Int = 1000000000 // [16-inf]
-  var poly_tileSize_w : Int = 1000000000 // [16-inf]
+  var poly_tileSize_x : Int = 1000000000 // [112~1000000000 $32]
+  var poly_tileSize_y : Int = 1000000000 // [16~1000000000 $32]
+  var poly_tileSize_z : Int = 1000000000 // [16~1000000000 $32]
+  var poly_tileSize_w : Int = 1000000000 // [16~1000000000 $32]
   var poly_tileOuterLoop : Boolean = false // [true|false] // specify separately if the outermost loop should be tiled
   var poly_scheduleAlgorithm : String = "isl" // [isl|feautrier] // choose which schedule algorithm should be used in PolyOpt
   var poly_optimizeDeps : String = "raw" // [all|raw|rar] // specifies which dependences should be optimized; "all" means all validity dependences (raw, war, waw)
@@ -206,8 +206,8 @@ object Knowledge {
   var poly_simplifyDeps : Boolean = true // [true|false] // simplify dependences before computing a new schedule; this reduces PolyOpt run-time, but it could also lead to slower generated code
   var poly_fusionStrategy : String = "max" // [min|max] // specifies the level of fusion for the polyhedral scheduler
   var poly_maximizeBandDepth : Boolean = false // [true|false] // split bands as early as possible during schedule generation
-  var poly_maxConstantTerm : Int = -1 // [(-1)-inf] // enforces that the constant coefficients in the calculated schedule are not larger than the maximal constant term (this can significantly increase the speed of the scheduling calculation; -1 means unlimited)
-  var poly_maxCoefficient : Int = -1 // [(-1)-inf] // enforces that the coefficients for variable and parameter dimensions in the calculated schedule are not larger than the specified value (this can significantly increase the speed of the scheduling calculation; -1 means unlimited)
+  var poly_maxConstantTerm : Int = -1 // [(-1)~inf] // enforces that the constant coefficients in the calculated schedule are not larger than the maximal constant term (this can significantly increase the speed of the scheduling calculation; -1 means unlimited)
+  var poly_maxCoefficient : Int = -1 // [(-1)~inf] // enforces that the coefficients for variable and parameter dimensions in the calculated schedule are not larger than the specified value (this can significantly increase the speed of the scheduling calculation; -1 means unlimited)
 
   // --- Other Optimizations ---
   var opt_useAddressPrecalc : Boolean = false // [true|false]
@@ -220,12 +220,12 @@ object Knowledge {
   var l3tmp_generateL4 : Boolean = true // generates a new Layer 4 file using the corresponding filename from Settings; the generated DSL file can is based on the following parameters
 
   /// SPL connected
-  var l3tmp_smoother : String = "Jac" // [Jac|GS|RBGS] // the l3tmp_smoother to be generated
+  var l3tmp_smoother : String = "Jac" // [Jac|RBGS] // [Jac|GS|RBGS] // the l3tmp_smoother to be generated
   var l3tmp_cgs : String = "CG" // [CG] // the coarse grid solver to be generated
-  var l3tmp_numRecCycleCalls : Int = 1 // [1-2] // 1 corresponds to v-cycles while 2 corresponds to w-cycles
-  var l3tmp_numPre : Int = 3 // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
-  var l3tmp_numPost : Int = 3 // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
-  var l3tmp_omega : Double = (if ("Jac" == l3tmp_smoother) 0.8 else 1.0) // [0.1-10.0] // the relaxation parameter to be used for the l3tmp_smoother
+  var l3tmp_numRecCycleCalls : Int = 1 // [1~2] // 1 corresponds to v-cycles while 2 corresponds to w-cycles
+  var l3tmp_numPre : Int = 3 // [0~4] // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
+  var l3tmp_numPost : Int = 3 // [0~4] // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
+  var l3tmp_omega : Double = 1.0 // [0.1~2.0$0.1] // [0.1-10.0] // the relaxation parameter to be used for the l3tmp_smoother
   var l3tmp_genStencilStencilConv : Boolean = false // [true|false] // tests stencil-stencil convolutions by using RAP instead of A
   var l3tmp_genStencilFields : Boolean = false // [true|false] // generates stencil fields that are used to store stencils of A (or RAP if l3tmp_genStencilStencilConv is true)
   var l3tmp_genInvDiagStencil : Boolean = false // [true|false] // generates a separate stencil (field) for inverse ( diag ( laplace ) ) and uses it in the smoother
@@ -345,6 +345,9 @@ object Knowledge {
     Constraints.condEnsureValue(l3tmp_numVecDims, 1, !l3tmp_genVectorFields, "vector dimensions larger than 1 are only allowed in conjunction with vector fields")
     Constraints.condEnsureValue(l3tmp_numVecDims, 2, l3tmp_genVectorFields && l3tmp_numVecDims <= 1, "vector dimensions must be larger than 1 when using vector fields")
 
+    Constraints.condEnsureValue(l3tmp_omega, 0.8,("Jac" == l3tmp_smoother))
+    Constraints.condEnsureValue(l3tmp_omega, 1.0,("Jac" != l3tmp_smoother))
+    
     // l3tmp - stencils
     Constraints.condEnsureValue(l3tmp_genStencilFields, false, experimental_Neumann, "l3tmp_genStencilFields is currently not compatible with Neumann boundary conditions")
     Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, experimental_Neumann, "l3tmp_genStencilStencilConv is currently not compatible with Neumann boundary conditions")

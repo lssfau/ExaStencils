@@ -32,6 +32,36 @@ trait ModelConstraint {
 
 }
 
+class SPLConstraint(content : String) {
+  var premise : String = null
+  var thenPart : String = null
+  var elsePart : String = null
+  
+  // split content in premise then and else parts
+  premise = content.split("then")(0).split("if")(1).trim()
+  thenPart = content.split("then")(1).split("else")(0).trim()
+  if(content.contains(" else "))
+    elsePart = content.split("else")(1).trim()
+
+    
+  def asCoprisConstraint() : Constraint = {
+    
+    // remove outer brackets 
+    premise = premise .substring(1, premise .length()-1)
+   
+    if(!premise .contains("(")){ // simple premise without any sub conditions
+      
+      
+      
+    }
+    
+    
+    
+    return null
+  }  
+    
+}
+
 case class BooleanConstraint(content: String) extends ModelConstraint {
   var literatls = content.trim().split(" ")
   var premiseFinished = false
@@ -63,12 +93,6 @@ case class BooleanConstraint(content: String) extends ModelConstraint {
 
 }
 
-/**
- *
- *
- * TODO: only one number is allowed on the right hand side
- *
- */
 case class NumericalConstraint(content: String) extends ModelConstraint {
 
   var propositionalFormular: Constraint = null

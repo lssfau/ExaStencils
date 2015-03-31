@@ -1,11 +1,6 @@
 package exastencils.spl
 
-class NonFunctionalProperties {
-
-  var times = 0.0
-  var time_Overall = 0.0
-  var time_CoarsestLevel = 0.0
-  var time_finestLevel = 0.0
-  
-  
+object NonFunctionalProperties extends Enumeration {
+  type NonFunctionalProperties = Value
+  val time_Overall, time_perCycle , numberIterations = Value    
 }

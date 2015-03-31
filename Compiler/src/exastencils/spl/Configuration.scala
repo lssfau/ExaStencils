@@ -1,15 +1,27 @@
 package exastencils.spl
 
+import sun.reflect.generics.reflectiveObjects.NotImplementedException
+
 class Configuration() {
 
-  var selectedBoolFeatures: scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
-  var numericalFeatureValues: scala.collection.mutable.Map[Feature, Int] = scala.collection.mutable.Map()
-
-  // TODO correct NFP implementation
-  var nfpValues : NonFunctionalProperties = new NonFunctionalProperties
+  var boolFeatures : scala.collection.mutable.Map[Feature,Boolean] = scala.collection.mutable.Map()
+  var numericalFeatureValues : scala.collection.mutable.Map[Feature, Double] = scala.collection.mutable.Map()
+  var xorFeatureValues : scala.collection.mutable.Map[Feature, String] = scala.collection.mutable.Map()
   
-  def selectedBoolFeaturesAsArray(): Array[exastencils.spl.Feature] = {
-    return selectedBoolFeatures.toArray
+  var additionalKnowledgeFileInformation : String = "\n"
+  var partialBaseConfig : scala.collection.mutable.Map[String,Any] = scala.collection.mutable.Map()
+  
+  var nfpValues : scala.collection.mutable.Map[NonFunctionalProperties.Value, Double] = scala.collection.mutable.Map()
+  
+  var identifier = ""
+  
+  def selectedBoolFeaturesAsArray(): Array[Tuple2[exastencils.spl.Feature,Boolean]] = {
+    var bool : Array[Tuple2[exastencils.spl.Feature,Boolean]] = new Array[Tuple2[exastencils.spl.Feature,Boolean]](boolFeatures.size)
+    var index = 0
+    boolFeatures.foreach(f => {
+      bool(index) = new Tuple2(f._1,f._2)
+    })
+    return bool
   }
 
   def readSolution(solution: jp.kobe_u.copris.Solution) = {
@@ -19,27 +31,72 @@ class Configuration() {
         if (FeatureModel.allFeatures(a._1.name).isNumerical)
         numericalFeatureValues.put(FeatureModel.allFeatures(a._1.name), a._2.toInt)
       else if (a._2.toInt != 0)
-        selectedBoolFeatures.add(FeatureModel.allFeatures(a._1.name)))
-
+        boolFeatures.put(FeatureModel.allFeatures(a._1.name),true)) // TODO consider false as default value
+    solution.boolValues.map{a => 
+       if(a._2 == true){
+         if(a._1.name .contains("__")){ // part of an XOR group (virtual feature)
+           var parts = a._1.name.split("__")
+           
+           xorFeatureValues.put(FeatureModel.allFeatures (parts(0)), parts(1))
+         }else{
+           boolFeatures .put(FeatureModel.allFeatures (a._1.name),true) // TODO consider false as default value
+         }
+       }
+      
+    }    
+    
+    identifier = this.toString()
   }
 
-  def readSolution(boolFeatures: scala.collection.mutable.Set[Feature]) = {
-    boolFeatures.foreach(a => selectedBoolFeatures.add(a))
+  def readSolution(boolSampling: scala.collection.mutable.Map[Feature,String], numericSampling: scala. collection.mutable.Map[Feature, Double]) = {
+    numericalFeatureValues = numericSampling
+    boolSampling.foreach(x => if(x._1.isXorFeature) {
+        this.xorFeatureValues.put(x._1, x._2)
+      }else{
+        if(x._2.equals("true"))
+          this.boolFeatures.put(x._1,true)
+        else
+          this.boolFeatures.put(x._1,false)
+      })
+     identifier = this.toString()
+  }
+  
+  // TODO consider false as value
+  def readSolution(bool: scala.collection.mutable.Set[Feature]) = {
+    bool.foreach(a => boolFeatures.put(a,true))
+    identifier = this.toString()
   }
 
-  def readSolution(boolFeatures: scala.collection.mutable.Set[Feature], numericalFeatures: scala.collection.mutable.Map[Feature, Int]) = {
-    boolFeatures.foreach(a => selectedBoolFeatures.add(a))
-    numericalFeatures.foreach(a => numericalFeatureValues.put(FeatureModel.allFeatures(a._1.identifier), a._2.toInt))
+  // TODO condier false as value
+  def readSolution(bool: scala.collection.mutable.Set[Feature], numericalFeatures: scala.collection.mutable.Map[Feature, Double], xorFeatures: scala.collection.mutable.Map[Feature, String]) = {
+    bool.foreach(a => boolFeatures.put(a,true))
+    numericalFeatures.foreach(a => numericalFeatureValues.put(FeatureModel.allFeatures(a._1.identifier), a._2.toDouble))
+    xorFeatures.foreach(a => xorFeatureValues.put(FeatureModel.allFeatures(a._1.identifier), a._2))
+    identifier = this.toString()
   }
 
+  def readSolution(numericalFeatures: scala.collection.mutable.Map[Feature, Double]) = {
+    numericalFeatures.foreach(a => numericalFeatureValues.put(FeatureModel.allFeatures(a._1.identifier), a._2.toDouble))
+    identifier = this.toString()
+  }
+  
   def isBoolFeatureIsSelected(featureName: String): Boolean = {
-    return !selectedBoolFeatures.filter(_.identifier == featureName).isEmpty
+    return !boolFeatures.filter(_._1.identifier == featureName).isEmpty
   }
 
   def isNumericalFeatureSelected(name: String): Boolean = {
     return !numericalFeatureValues.filter(_._1.identifier == name).isEmpty
   }
 
+  def getNumericFeatureValue(name: String) : Double = {
+    return numericalFeatureValues.filter(_._1.identifier == name).head._2
+  }
+  
+  def containtsFeature(name: String) : Boolean = {
+    return numericalFeatureValues.contains(FeatureModel.getSpecificFeatureDkPaperTest(name))
+    
+  }
+  
   /**
    * This method returns the list of selected sub-features of the given feature (featureName).
    *
@@ -49,10 +106,10 @@ class Configuration() {
   def getSelectedSubFeatureNames(featureName: String): scala.collection.mutable.Set[String] = {
     var subFeatureNames: scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
     // test whether the desired feature is selected 
-    selectedBoolFeatures.filter(_.identifier == featureName)
+    boolFeatures.filter(f => f._1.identifier == featureName)
       // identify childs of the parent feature
       .map(a => FeatureModel.parentChildRelationships
-        .filter(_._1.identifier == a.identifier)
+        .filter(_._1.identifier == a._1.identifier)
         // go through childs
         .map(parent => parent._2
           // add selected child to return list
@@ -75,26 +132,32 @@ class Configuration() {
    * This method returns the value of desired numerical feature.
    *
    */
-  def getValueOfNumericalFeature(featureName: String): Int = {
+  def getValueOfNumericalFeature(featureName: String): Double = {
     return numericalFeatureValues(FeatureModel.allFeatures(featureName))
   }
 
-  override def hashCode(): Int = this.toString.hashCode;
+  override def hashCode(): Int = identifier.hashCode;
 
+  // TODO 
   override def equals(that: Any) = {
-    that match {
-      case that: Configuration => (if (numberOfDifferentBooleanFeatures(that) == 0) true else false)
-      case _ => false
-    }
+//    that match {
+//      case that: Configuration => (if (numberOfDifferentBooleanFeatures(that) == 0 && !hasDifferentNumbericalFeatures(that)) true else false)
+//      case _ => false
+//    }
+    false
   }
 
   override def toString(): String = {
     var sb = new scala.collection.mutable.StringBuilder()
-
-    selectedBoolFeatures.map(a => sb ++= a.identifier + " ")
-    sb ++= " | "
-    numericalFeatureValues.map(a => sb ++= a._1.identifier + ": " + a._2.toInt + " ")
-
+    sb ++= "BinaryFeatures: "
+    boolFeatures.map(a => sb ++= a._1.identifier +":"+a._2+", ")
+    sb ++= " \nNumericFeatures: "
+    numericalFeatureValues.map(a => sb ++= a._1.identifier + ": " + a._2.toInt + ", ")
+    sb ++= " \nXOR-Features: "
+    xorFeatureValues.map(a => sb ++= a._1.identifier + ": " + a._2 + ", ")
+    sb ++= " \nPartialBase: "
+    partialBaseConfig.foreach(x => sb++= x._1 + " : "+x._2+ ", ")
+    
     return sb.toString
 
   }
@@ -102,7 +165,7 @@ class Configuration() {
   def toPath(): String = {
     var sb = new scala.collection.mutable.StringBuilder()
 
-    selectedBoolFeatures.map(a => sb ++= a.identifier + "")
+    boolFeatures.map(a => sb ++= a._1.identifier + ""+a._2+"")
     sb ++= "__"
     numericalFeatureValues.map(a => sb ++= a._1.identifier + "_" + a._2.toInt + "_")
     return sb.toString
@@ -113,10 +176,98 @@ class Configuration() {
    *
    */
   def numberOfDifferentBooleanFeatures(otherConfiguration: Configuration): Int = {
-    return (this.selectedBoolFeatures &~ otherConfiguration.selectedBoolFeatures).size + (otherConfiguration.selectedBoolFeatures &~ this.selectedBoolFeatures).size
+    return throw new NotImplementedException()//(this.boolFeatures &~ otherConfiguration.boolFeatures).size + (otherConfiguration.boolFeatures &~ this.boolFeatures).size
+  }
+  
+   def hasDifferentNumbericalFeatures(otherConfiguration: Configuration): Boolean = {
+     var different = false
+     
+     this.numericalFeatureValues.foreach(x => {
+       if(!otherConfiguration.numericalFeatureValues .contains(x._1))
+         different = true
+       if(!otherConfiguration.numericalFeatureValues(x._1).equals(x._2))
+         different = true
+      })
+     
+      otherConfiguration.numericalFeatureValues.foreach(x => {
+       if(!this.numericalFeatureValues .contains(x._1))
+         different = true
+       if(!this.numericalFeatureValues(x._1).equals(x._2))
+         different = true
+      })
+     
+     return different;
+  }
+  
+  def CSV_String() : String = {
+    var sb : StringBuilder = new StringBuilder()
+    
+    this.boolFeatures .foreach(x => sb.append(x._1.identifier +x._2+""+";"))
+    this.numericalFeatureValues .foreach(x => sb.append(x._1.identifier+":"+x._2+";" ))
+    return sb.toString;
   }
   
   
+  def addNumericOptions(additionalNumericOptions : scala. collection.mutable.Map[Feature, Double]){
+    
+    additionalNumericOptions.foreach(x => {
+      if(this.numericalFeatureValues.contains(x._1))
+        println("Feature already selected in this configuration")
+      else
+        this.numericalFeatureValues.put(x._1, x._2)  
+    })
+    identifier = this.toString()
+  }
   
+  def generateConfigurations(binarySampling: scala.collection.mutable.Set[scala.collection.mutable.Map[Feature,String]], 
+      numericSampling: scala.collection.mutable.Set[scala. collection.mutable.Map[Feature, Double]]) : scala.collection.mutable.Set[Configuration] = {
+    
+    var configs : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
+     
+    binarySampling.foreach(x => {
+      numericSampling.foreach(y => {
+        var conf = new Configuration()
+        conf.readSolution(x, y)
+        configs.add(conf)
+      })
+    })
+    return configs
+  }
+  
+  def copy() : Configuration = {
+    var newConfig = new Configuration()
+    boolFeatures.foreach( {x => newConfig.boolFeatures.put(x._1,x._2)})
+    numericalFeatureValues.foreach(x => newConfig.numericalFeatureValues.put(x._1, x._2))
+    xorFeatureValues.foreach(x => newConfig.xorFeatureValues.put(x._1, x._2))
+    newConfig.additionalKnowledgeFileInformation = additionalKnowledgeFileInformation // todo validate whether this works correctly
+    partialBaseConfig.foreach(x => newConfig.partialBaseConfig.put(x._1, x._2))
+    
+    return newConfig
+  }
 
+  def getKnowledgeFileContent() : scala.collection.mutable.Set[String] = {
+    var content : scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
+    boolFeatures.foreach ( x => {
+      if(x._2)
+        content.add(x._1 + "= true\n")
+      else
+        content.add(x._1 + "= false\n")
+    })
+    numericalFeatureValues.foreach(x => {
+      if(x._1.dataType.equals("Int")){
+        content.add(x._1 + "= "+x._2.toInt+"\n")
+      }else{
+        content.add(x._1 + "= "+x._2+"\n")
+      }
+    })
+    content.add(additionalKnowledgeFileInformation)    
+    partialBaseConfig.foreach(x => {
+      content.add(x._1+"= "+x._2+"\n")
+    })
+    xorFeatureValues.foreach(x => {
+      content.add(x._1+"= "+x._2+"\n")
+    })
+    return content
+  }
+  
 }

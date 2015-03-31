@@ -4,6 +4,7 @@ import scala.io.Source
 import exastencils.spl.FeatureModel
 import exastencils.spl.Configuration
 import exastencils.spl.Feature
+import exastencils.spl.NonFunctionalProperties
 import jp.kobe_u.copris.Var
 import jp.kobe_u.copris.Constraint
 import jp.kobe_u.copris.Add
@@ -11,6 +12,8 @@ import jp.kobe_u.copris.Term
 import java.io.File
 import java.io.BufferedWriter
 import java.io.FileWriter
+import exastencils.spl.ForwardFeatureSelection
+import exastencils.spl.FFS_Expression
 
 class PredictionTests {
 
@@ -18,36 +21,35 @@ class PredictionTests {
 
   
   
-  
-  def readFile(fileName : String) = {
+  def readFile(fileName : String, nfps : Array[NonFunctionalProperties.Value]) = {
     val fileLines = Source.fromFile(fileName).getLines.toList
-
     var lineNr = 0
     while (lineNr < fileLines.size) {
       var lineContent = fileLines(lineNr)
       var elements = lineContent.split(";")
 
       var booleanFeatures   : scala.collection.mutable.Set[Feature]     = scala.collection.mutable.Set()
-      var numericalFeatures : scala.collection.mutable.Map[Feature,Int] = scala.collection.mutable.Map()
+      var numericalFeatures : scala.collection.mutable.Map[Feature,Double] = scala.collection.mutable.Map()
+      var xorFeatures : scala.collection.mutable.Map[Feature,String] = scala.collection.mutable.Map()
       
-      
-      for (d <- 0 until elements.size-1) {
+      for (d <- 0 until elements.size-nfps.length) {
         if(FeatureModel.allFeatures.contains(elements(d)))
         	booleanFeatures.add(FeatureModel.allFeatures(elements(d)))
         else{ // numerical feature
-           // TODO consider variable length of number suffix 
-        	var numFeature = FeatureModel.allFeatures(elements(d).substring(0, elements(d).length()-1))
-            var value = augmentString(elements(d).substring(elements(d).length()-1,elements(d).length())).toInt
-            numericalFeatures.put(numFeature, value)
+          var feature = FeatureModel.allFeatures(elements(d).split(":")(0))
+        	var value = augmentString(elements(d).split(":")(1)).toDouble
+            numericalFeatures.put(feature, value)
         }
       }
-      var nfpValue = elements(9).toDouble
-
       var config = new Configuration
-      config.readSolution(booleanFeatures)
-      config.nfpValues .times  = nfpValue
+      config.readSolution(booleanFeatures,numericalFeatures,xorFeatures)
+
+      for(a <- 0 to nfps.length - 1){
+        config.nfpValues .put(nfps(a) , elements(elements.size-nfps.length + a).toDouble)  
+      }
+ 
       allConfigs.add(config)
-      lineNr = lineNr + 1
+      lineNr += 1
     }
   }
 
@@ -183,7 +185,27 @@ class PredictionTests {
     return difference.abs / measured
   }
   
-  
+  def predictConfigs(configurations : scala.collection.mutable.Set[Configuration], model : Tuple3[NonFunctionalProperties.Value, Array[FFS_Expression], Jama.Matrix], nfp: NonFunctionalProperties.Value) : String = {
+    
+    var ffs  = new ForwardFeatureSelection(null, 20, null, null)
+    
+    var sb : StringBuilder = new StringBuilder()
+    
+    var sumError = 0.0
+    
+    for(config <- configurations){
+      var modelsOfConfig = model
+            
+      var predictedValue = ffs.predictConfig(model._3, model._2, config ) 
+      var measuredValue = config.nfpValues (model._1) 
+      
+      sb. append(predictedValue.toString.replace(".", ",") + ";" + measuredValue.toString.replace(".", ",")+"\n")
+        sumError += Math.abs( predictedValue - measuredValue )
+      
+    }
+    println(sumError / configurations.size)
+    return sb.toString
+  }
   
   def percentDifferencePredictMeasured(config : Configuration, measured : Double) : Double = {
 
@@ -197,10 +219,10 @@ class PredictionTests {
 
   def predictNFPoneConfig(config : Configuration) : Double = {
     var sumValue : Double = 0
-    var feature = config.selectedBoolFeatures.iterator
+    var feature = config.boolFeatures.iterator
     while (feature.hasNext) {
       var currFeat = feature.next
-      sumValue += FeatureModel.allFeatures(currFeat.identifier).nfpValue
+      sumValue += FeatureModel.allFeatures(currFeat._1.identifier).nfpValue
     }
     return sumValue
   }

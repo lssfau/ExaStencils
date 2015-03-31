@@ -1,0 +1,27 @@
+% %
+% Each comment should start and end with an percent symbol %
+% feature model section %
+Prototype : smoother cgs pre post parentOfoptSubFeatures ;
+
+% the next line describes an Xor group (exactly one feature of the group can be selected at a time) %
+smoother : Jacobi | GaussSeidel | RedBlack_GaussSeidel ;
+
+cgs : InPlace_Smoother ;
+
+pre :  {1,20, 1, 10} ;
+
+post :  {1,30, 3, 20} ;
+
+parentOfoptSubFeatures: [OptSubFeature1]  [OptSubFeature2] [OptSubFeature3] ;
+
+% the next line determines the start of the constrain section %
+
+
+
+% constraints %
+
+GaussSeidel implies SubFeature1 ;
+
+RedBlack_GaussSeidel excludes SubFeature2 ;
+% such an numerical example %
+pre + post > 0 ; 
