@@ -27,6 +27,7 @@ trait ExternalDeclarationStatement extends SpecialStatement
 case class DomainDeclarationStatement(var name : String, var lower : Any, var upper : Any, var index : Int = 0) extends SpecialStatement {
   override def prettyprint(out : PpStream) = {
     (lower, upper) match {
+      case (null, null)                   => out << s"Domain = fromFile($name) \n"
       case (l : RealIndex, u : RealIndex) => out << "Domain " << name << "< " << l << " to " << u << " >\n"
       case (lo : List[_], up : List[_]) => {
         (lo.head, up.head) match {
@@ -42,6 +43,11 @@ case class DomainDeclarationStatement(var name : String, var lower : Any, var up
   }
   override def progressToIr : knowledge.Domain = {
     (lower, upper) match {
+      case (null, null) => {
+        new knowledge.FileInputGlobalDomain("global", index, DomainFileHeader.domainIdentifier.zipWithIndex.map {
+          case (identifier, index) => new knowledge.FileInputDomain(identifier, index, new FileInputDomainShape(identifier))
+        }.toList)
+      }
       case (lo : List[_], up : List[_]) =>
         {
           (lo.head, up.head) match {
@@ -201,7 +207,7 @@ case class FunctionStatement(var identifier : Identifier,
     ir.FunctionStatement(
       returntype.progressToIr,
       identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
-      arguments.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer] 
+      arguments.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
       statements.map(s => s.progressToIr).to[ListBuffer]) // FIXME: .to[ListBuffer]
   }
 }

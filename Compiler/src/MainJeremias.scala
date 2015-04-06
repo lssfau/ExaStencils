@@ -22,7 +22,7 @@ import exastencils.util._
 object MainJeremias {
   def main(args : Array[String]) : Unit = {
 
-    // for runtime measurement
+    Locale.setDefault(Locale.ENGLISH) // EPIC -.-
     val start : Long = System.nanoTime()
 
     //if (Settings.timeStrategies) -> right now this Schroedinger flag is neither true nor false
@@ -58,6 +58,16 @@ object MainJeremias {
 
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 1")
+
+    val t = Knowledge.domain_readFromFile
+
+    if (Knowledge.domain_readFromFile) {
+      if (args.length >= 3) {
+        val d = new exastencils.parsers.settings.ParserDomainFile
+        d.parseHeader(args(2))
+        DomainFileHeader.updateKnowledge()
+      } else Logger.error("No file for domain configuration has been commited as third argument")
+    }
 
     // add L1 code here
 
@@ -130,10 +140,11 @@ object MainJeremias {
     ResolveL4.apply()
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
-    if (!Knowledge.domain_rect_generate) { // for L-shape domain
-      //TODO set all settings here
+    if (!Knowledge.domain_rect_generate) {
       if (Knowledge.domain_readFromFile) {
-        //TODO read domain from file
+        val d = new exastencils.parsers.settings.ParserDomainFile
+        d.parseBody(args(2))
+        DomainCollection.initFragments()
       } else if (Knowledge.domain_onlyRectangular) {
         Knowledge.domain_numBlocks = Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_z
         Knowledge.domain_numFragmentsPerBlock = Knowledge.domain_rect_numFragsPerBlock_x * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_z
@@ -147,7 +158,7 @@ object MainJeremias {
         DomainCollection.initFragments()
         Knowledge.domain_numBlocks = Knowledge.mpi_numThreads
       }
-
+      if (Knowledge.domain_generateDomainFile) DomainFileWriter.write
     }
 
     // add remaining nodes

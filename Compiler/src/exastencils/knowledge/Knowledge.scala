@@ -102,6 +102,7 @@ object Knowledge {
 
   /// Student project - Jeremias
   var domain_useCase : String = "" //atm only "L-Shape" in 2D possible;  needs to be specified in case of onlyRectangular,rect_generate = false
+  var domain_generateDomainFile : Boolean = false
 
   // TODO: ignore for IDE support for now
   var discr_hx : Array[Double] = Array() // grid widths in x direction per level

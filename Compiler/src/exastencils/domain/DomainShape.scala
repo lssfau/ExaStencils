@@ -31,6 +31,38 @@ trait DomainShape {
 
 }
 
+case class FileInputDomainShape(override val shapeData : String) extends DomainShape {
+
+  var blocks : List[String] = List()
+  var frags : List[String] = List()
+
+  def contains(vertex : Vertex) = true //TODO
+  def initFragments() = {
+    val fragIds = frags.map { f => f.drop(1).toInt }
+    val u = FragmentCollection.fragments
+    val z = u.length
+    val domainFrags = FragmentCollection.fragments.filter { f => fragIds.contains(f.globalId) }
+    val nC = domainFrags.foreach { f =>
+      domainFrags
+        .filter { x => x.globalId != f.globalId }
+        .foreach { x =>
+          {
+            if (Knowledge.dimensionality == 2 && f.edges.intersect(x.edges).length > 0) {
+              val t = f.edges.intersect(x.edges).head
+              f.faces.head.getEdgeDirection(t) match {
+                case Some(d) => f.neighborIDs(d.id) = x.globalId
+                case None    =>
+              }
+            } else if (Knowledge.dimensionality == 3) {
+              //TODO
+            }
+          }
+        }
+    }
+  }
+
+}
+
 case class LShapedDomainShape(override val shapeData : List[RectangularDomainShape]) extends DomainShape {
   def contains(vertex : Vertex) = {
     shapeData.exists { rds => rds.contains(vertex) }

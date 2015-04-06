@@ -3,27 +3,26 @@ targetCompilerVersion		= 4
 targetCompilerVersionMinor	= 8
 simd_instructionSet			= "SSE3"
 
-dimensionality				= 2
+dimensionality				= 3
 
 minLevel					= 0
 maxLevel					= 6
 
-domain_readFromFile 		= false
+domain_readFromFile 		= true
 domain_onlyRectangular 		= false
 domain_rect_generate 		= false
 
-domain_useCase 				= "L-Shape"
-domain_generateDomainFile	= true
 
 domain_rect_numBlocks_x		= 2
 domain_rect_numBlocks_y		= 2
 domain_rect_numBlocks_z		= 1
 domain_numBlocks			= 4
 
+
 domain_rect_numFragsPerBlock_x	= 2
 domain_rect_numFragsPerBlock_y	= 2
 domain_rect_numFragsPerBlock_z	= 1
-domain_numFragmentsPerBlock	= 4
+domain_numFragmentsPerBlock	= 6
 
 mpi_enabled					= true
 mpi_numThreads 				= 4

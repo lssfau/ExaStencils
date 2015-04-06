@@ -28,6 +28,9 @@ class LexerL4 extends exastencils.parsers.ExaLexer {
   // level specification keywords
   reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "all", "and")
 
+  //domain keywords
+  reserved += ("fromFile")
+
   // layout and field keywords
   reserved += ("ghostLayers", "duplicateLayers", "innerPoints", "with", "communication", "None", "Node", "Cell", "node", "cell")
 
