@@ -5,11 +5,11 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Stack
 import scala.language.existentials
 import scala.reflect.ClassTag
-
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.logger._
+import exastencils.knowledge.Knowledge
 
 /**
   * The central entity to apply transformations to the current program state.
@@ -397,6 +397,10 @@ object StateManager {
       strategies_.top.resetCollectors()
       progresses_.+=((transformation, new TransformationProgress))
       replace(node.getOrElse(root), transformation)
+      if(Knowledge.printNodeCountAfterTransformation && node.isEmpty) {
+        NodeCounter.count(strategies_.top.name, transformation.name)
+        NodeCounter.reset()
+      }
       return new TransformationResult(true, progresses_(transformation).getMatches)
     } catch {
       case x : TransformationException => {

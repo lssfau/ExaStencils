@@ -284,6 +284,8 @@ object Knowledge {
   var experimental_NeumannNormalize : Boolean = false // normalize solution after each v-cycle
 
   var experimental_timerEnableCallStacks : Boolean = false // generates call stacks for all employed timers
+  
+  var printNodeCountAfterTransformation : Boolean = false // print number of nodes after each transformation
 
   /// END HACK
 
