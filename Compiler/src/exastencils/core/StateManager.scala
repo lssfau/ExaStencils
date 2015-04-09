@@ -18,11 +18,11 @@ object StateManager {
   def root = root_ // FIXME remove this
   var root_ : Node = null // FIXME make this protected
   var strategies_ = Stack[Strategy]()
-  
+
   /** Dummy strategy that is used internally to encapsulate finds. */
   protected case object FindStrategy extends Strategy("Statemanager::internal::FindStrategy")
-  
-    /** Dummy node that is used internally to signal that a Transformation did not match a given node. */
+
+  /** Dummy node that is used internally to signal that a Transformation did not match a given node. */
   protected case object NoMatch extends Node
 
   // ###############################################################################################
@@ -84,9 +84,9 @@ object StateManager {
       if (currentToken == None) throw new TransactionException("No currently running transaction!")
       if (!isValid(token)) throw new TransactionException("Wrong token supplied, transaction not committed!")
       currentToken = None
-      if(Settings.printNodeCountAfterStrategy) {
-      NodeCounter.count(strategies_.top.name)
-        NodeCounter.reset()
+      if (Settings.printNodeCountAfterStrategy) {
+        NodeCounter.count(strategies_.top.name)
+        NodeCounter.resetHits()
       }
       strategies_.pop()
     }
@@ -95,9 +95,9 @@ object StateManager {
       if (currentToken == None) throw new TransactionException("No currently running transaction!")
       if (!isValid(token)) throw new TransactionException("Wrong token supplied, transaction not committed!")
       currentToken = None
-      if(Settings.printNodeCountAfterStrategy) {
+      if (Settings.printNodeCountAfterStrategy) {
         NodeCounter.count(strategies_.top.name)
-        NodeCounter.reset()
+        NodeCounter.resetHits()
       }
       strategies_.pop()
       Logger.warning("Transaction has been aborted")
@@ -113,6 +113,10 @@ object StateManager {
   // ###############################################################################################
   // #### Transformationen & Matching ##############################################################
   // ###############################################################################################
+
+  if (Settings.printTransformationTime) {
+    println("transformationtimer;strategy;transformation;time\\\\")
+  }
 
   /** Class that holds statistics about a Transformation. */
   protected class TransformationProgress {
@@ -404,10 +408,15 @@ object StateManager {
     try {
       strategies_.top.resetCollectors()
       progresses_.+=((transformation, new TransformationProgress))
+      var time = System.nanoTime()
       replace(node.getOrElse(root), transformation)
-      if(Settings.printNodeCountAfterTransformation && node.isEmpty) {
+      if (Settings.printTransformationTime) {
+        time = (System.nanoTime() - time) / 100000
+        println("transformationtimer;" + strategies_.top.name + ";" + transformation.name + ";" + time + "\\\\")
+      }
+      if (Settings.printNodeCountAfterTransformation) {
         NodeCounter.count(strategies_.top.name, transformation.name)
-        NodeCounter.reset()
+        NodeCounter.resetHits()
       }
       return new TransformationResult(true, progresses_(transformation).getMatches)
     } catch {
@@ -435,9 +444,14 @@ object StateManager {
     try {
       progresses_.+=((transformation, new TransformationProgress))
       strategies_.push(strategy)
+      var time = System.nanoTime()
       replace(node, transformation)
+      if (Settings.printTransformationTime) {
+        time = (System.nanoTime() - time) / 100000
+        println("transformationtimer;" + strategies_.top.name + ";" + transformation.name + ";" + time + "\\\\")
+      }
       var s = strategies_.pop()
-      if(s != strategy) {
+      if (s != strategy) {
         Logger.error(s"""Mismatch of Standalone Strategy: Expected "${strategy.name}", got "${s.name}"""")
       }
       return new TransformationResult(true, progresses_(transformation).getMatches)
