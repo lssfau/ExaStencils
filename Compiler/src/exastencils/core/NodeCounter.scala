@@ -17,13 +17,14 @@ object NodeCounter extends CustomStrategy("internal::NodeCounter") {
     StateManager.applyStandalone(this, t, StateManager.root_)
 
     var s = "nodecounter;"
-    s += strategy.getOrElse("[unknown]").replace(" ", "\\_") + ';'
-    s += transformation.getOrElse("[unknown]").replace(" ", "\\_") + ';'
+    s += strategy.getOrElse("unknown").replace(" ", "\\_") + ';'
+    s += transformation.getOrElse("unknown").replace(" ", "\\_") + ';'
     s += iteration + ";"
     s += hits
     println(s)
   }
   def count(strategy : String, transformation : String) : Unit = count(Some(strategy), Some(transformation))
+  def count(strategy : String) : Unit = count(Some(strategy), None)
 
   def apply() = count(None, None)
 

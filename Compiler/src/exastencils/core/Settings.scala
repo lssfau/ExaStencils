@@ -42,6 +42,8 @@ object Settings {
   var htmlLogFile : String = ""
   def getHtmlLogFile : String = if (htmlLogFile != "") htmlLogFile else basePathPrefix + "/Compiler/log/log.html"
 
-  var timeStrategies : Boolean = false
+  var timeStrategies : Boolean = true
   var timeStratPercentThreshold : Int = 5 // five percent threshold by default -> measurements with less than 5.0 % share are not displayed  
+  var printNodeCountAfterTransformation : Boolean = false // print number of nodes after each transformation
+  var printNodeCountAfterStrategy : Boolean = true // print number of nodes after each strategy
 }

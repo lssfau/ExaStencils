@@ -285,8 +285,6 @@ object Knowledge {
 
   var experimental_timerEnableCallStacks : Boolean = false // generates call stacks for all employed timers
   
-  var printNodeCountAfterTransformation : Boolean = false // print number of nodes after each transformation
-
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {

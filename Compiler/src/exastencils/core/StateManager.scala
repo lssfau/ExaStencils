@@ -84,6 +84,10 @@ object StateManager {
       if (currentToken == None) throw new TransactionException("No currently running transaction!")
       if (!isValid(token)) throw new TransactionException("Wrong token supplied, transaction not committed!")
       currentToken = None
+      if(Settings.printNodeCountAfterStrategy) {
+      NodeCounter.count(strategies_.top.name)
+        NodeCounter.reset()
+      }
       strategies_.pop()
     }
 
@@ -91,6 +95,10 @@ object StateManager {
       if (currentToken == None) throw new TransactionException("No currently running transaction!")
       if (!isValid(token)) throw new TransactionException("Wrong token supplied, transaction not committed!")
       currentToken = None
+      if(Settings.printNodeCountAfterStrategy) {
+        NodeCounter.count(strategies_.top.name)
+        NodeCounter.reset()
+      }
       strategies_.pop()
       Logger.warning("Transaction has been aborted")
     }
@@ -397,7 +405,7 @@ object StateManager {
       strategies_.top.resetCollectors()
       progresses_.+=((transformation, new TransformationProgress))
       replace(node.getOrElse(root), transformation)
-      if(Knowledge.printNodeCountAfterTransformation && node.isEmpty) {
+      if(Settings.printNodeCountAfterTransformation && node.isEmpty) {
         NodeCounter.count(strategies_.top.name, transformation.name)
         NodeCounter.reset()
       }
