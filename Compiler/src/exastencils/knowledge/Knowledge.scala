@@ -284,7 +284,7 @@ object Knowledge {
   var experimental_NeumannNormalize : Boolean = false // normalize solution after each v-cycle
 
   var experimental_timerEnableCallStacks : Boolean = false // generates call stacks for all employed timers
-  
+
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {
@@ -346,9 +346,6 @@ object Knowledge {
     Constraints.condEnsureValue(l3tmp_numVecDims, 1, !l3tmp_genVectorFields, "vector dimensions larger than 1 are only allowed in conjunction with vector fields")
     Constraints.condEnsureValue(l3tmp_numVecDims, 2, l3tmp_genVectorFields && l3tmp_numVecDims <= 1, "vector dimensions must be larger than 1 when using vector fields")
 
-    Constraints.condEnsureValue(l3tmp_omega, 0.8,("Jac" == l3tmp_smoother))
-    Constraints.condEnsureValue(l3tmp_omega, 1.0,("Jac" != l3tmp_smoother))
-    
     // l3tmp - stencils
     Constraints.condEnsureValue(l3tmp_genStencilFields, false, experimental_Neumann, "l3tmp_genStencilFields is currently not compatible with Neumann boundary conditions")
     Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, experimental_Neumann, "l3tmp_genStencilStencilConv is currently not compatible with Neumann boundary conditions")
