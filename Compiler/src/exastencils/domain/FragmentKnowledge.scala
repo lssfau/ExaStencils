@@ -39,18 +39,18 @@ object FragmentKnowledge {
 
     val outData = new FragmentDataWriter(new BufferedOutputStream(new FileOutputStream(Settings.fragmentFile_config_path_binary)))
     var fragments = FragmentCollection.fragments
+    val domains = if (Knowledge.domain_readFromFile) DomainCollection.getDomainByIdentifier("global").get.shape.asInstanceOf[List[FileInputDomain]] else DomainCollection.domains
     if (Knowledge.domain_useCase == "L-Shape") {
       fragments = fragments.filter { f => f.domainIds.contains(1) }
     }
     fragments = fragments.sortBy { f => f.rank -> f.localId }
     fragments.foreach(f => {
-      DomainCollection.domains.foreach { d => f.binarySize += outData.writeBinary(BooleanDatatype(), FragmentCollection.isValidForSubDomain(f.globalId, d.index)) }
+      domains.foreach { d => f.binarySize += outData.writeBinary(BooleanDatatype(), FragmentCollection.isValidForSubDomain(f.globalId, d.index)) }
       f.binarySize += outData.writeBinary(IntegerDatatype(), f.globalId)
       f.binarySize += outData.writeBinary(IntegerDatatype(), f.localId)
       f.vertices.foreach { v => v.Coords.foreach { c => f.binarySize += outData.writeBinary(RealDatatype(), c) } }
       FragmentCollection.getFragPos(f.vertices).Coords.foreach { c => f.binarySize += outData.writeBinary(RealDatatype(), c) }
-
-      DomainCollection.domains.foreach { d =>
+      domains.foreach { d =>
         {
           f.neighborIDs.foreach { n =>
             {
@@ -165,6 +165,7 @@ class FragmentDataWriter(s : BufferedOutputStream) extends DataOutputStream(s) {
   val doubleSize = 8
 
   def writeBinary(t : Datatype, v : Any) : Int = {
+    //    println(t.toString() + " | " + v)
     t match {
       case IntegerDatatype() => {
         writeInt(v.asInstanceOf[Int])

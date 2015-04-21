@@ -5,6 +5,7 @@ import exastencils.knowledge._
 import scala.collection.mutable._
 
 class Fragment(lId : Int, gId : Int, dId : ListBuffer[Int], f : ListBuffer[Face], e : ListBuffer[Edge], v : ListBuffer[Vertex], n : ListBuffer[Int], r : Int) {
+  import Direction._
   val faces = f
   val edges = e
   val vertices = v
@@ -38,21 +39,24 @@ class Fragment(lId : Int, gId : Int, dId : ListBuffer[Int], f : ListBuffer[Face]
     if (Knowledge.dimensionality == 3) str += s",${vertices(0).Coords(2) + (vertices.last.Coords(2) - vertices(0).Coords(2)) / 2.0}"
     str += ")\n"
     str += "\t]\n"
-    str += "\tNeighbours : [\n"
-    str += s"\t\tleft: ${neighborIDs(0)}" + " \n"
-    str += s"\t\tright:${neighborIDs(1)}" + " \n"
-    if (Knowledge.dimensionality >= 2) {
-      str += s"\t\tbottom:${neighborIDs(2)}" + " \n"
-      str += s"\t\ttop:${neighborIDs(3)}" + " \n"
+    if (neighborIDs.nonEmpty) {
+      str += "\tNeighbours : [\n"
+      str += s"\t\tleft: ${neighborIDs(Direction.Left.id)}" + " \n"
+      str += s"\t\tright:${neighborIDs(Direction.Right.id)}" + " \n"
+      if (Knowledge.dimensionality >= 2) {
+        str += s"\t\tbottom:${neighborIDs(Direction.Bottom.id)}" + " \n"
+        str += s"\t\ttop:${neighborIDs(Direction.Top.id)}" + " \n"
+      }
+      if (Knowledge.dimensionality >= 3) {
+        str += s"\t\tfront:${neighborIDs(Direction.Front.id)}" + " \n"
+        str += s"\t\tback:${neighborIDs(Direction.Back.id)}" + " \n"
+      }
+      str += "\t]\n"
     }
-    if (Knowledge.dimensionality >= 3) {
-      str += s"\t\tfront:${neighborIDs(4)}" + " \n"
-      str += s"\t\tback:${neighborIDs(5)}" + " \n"
-    }
-    str += "\t]\n"
     str += "]\n"
     str
   }
+
 }
 
 class Primitives() {
@@ -66,29 +70,53 @@ trait Coord {
 }
 
 class Vertex(coords : ListBuffer[Double]) extends Primitives {
+
   val Coords = coords
+
   override def toString : String = {
-    var s = ""
+    var s = "("
     for (i <- 0 to coords.size - 1) {
       s += "%.5f".format(coords(i).toFloat) + ","
     }
-    s = s.dropRight(1).toString
+    s = s.dropRight(1).toString + ")"
     s
   }
   override def equals(that : Any) : Boolean = {
     that match {
-      case that : Vertex => {
-        that.Coords(0) == Coords(0) &&
-          (if (Knowledge.dimensionality >= 2) that.Coords(1) == Coords(1) else true) &&
-          (if (Knowledge.dimensionality >= 3) that.Coords(2) == Coords(2) else true)
+      case o : Vertex => {
+        o.Coords(0) == o.Coords(0) &&
+          (if (Knowledge.dimensionality >= 2) o.Coords(1) == Coords(1) else true) &&
+          (if (Knowledge.dimensionality >= 3) o.Coords(2) == Coords(2) else true)
+
       }
       case _ => false
     }
   }
+  override def hashCode() = {
+    41 * Coords.zipWithIndex.map { x => 41 * x._1.hashCode() + x._2.hashCode() }.sum
+  }
 }
 
-class Edge(vertex1 : Vertex, vertex2 : Vertex) extends Primitives {
+class Edge(v1 : Vertex, v2 : Vertex) extends Primitives {
+  val vertex1 = v1
+  val vertex2 = v2
   override def toString : String = "(" + vertex1.toString + " , " + vertex2.toString + ")"
+
+  override def equals(that : Any) = {
+    that match {
+      case o : Edge => {
+        val v1 = vertex1 == o.vertex1
+        val v2 = vertex2 == o.vertex2
+        (vertex1 == o.vertex1 && vertex2 == o.vertex2) ||
+          (vertex2 == o.vertex1 && vertex1 == o.vertex2)
+      }
+      case _ => false
+    }
+  }
+
+  override def hashCode = {
+    41 * (vertex1.Coords.map { x => 41 + x.hashCode() }.sum.hashCode()) + vertex2.Coords.map { x => 41 + x.hashCode() }.sum.hashCode()
+  }
 
   def contains(v : Vertex) : Boolean = {
     if ((vertex2.Coords(0) - vertex1.Coords(0)) != 0) {
@@ -115,8 +143,34 @@ class Edge(vertex1 : Vertex, vertex2 : Vertex) extends Primitives {
 }
 
 class Face(edges : ListBuffer[Edge], vertices : ListBuffer[Vertex]) extends Primitives {
+  import Direction._
   val Edges = edges
   val Vertices = vertices
+
+  override def equals(that : Any) = {
+    that match {
+      case o : Face => Edges.intersect(o.Edges).length == Edges.length
+      case _        => false
+    }
+
+  }
+
+  def getEdgeDirection(edge : Edge) : Option[Direction] = {
+
+    if (edges.contains(edge)) {
+
+      if (Knowledge.dimensionality == 2) {
+        if (edge.vertex1.Coords(0) == edge.vertex2.Coords(0)) //y alligned
+          if (edge.vertex1.Coords(0) == vertices.map { x => x.Coords(0) }.min) Some(Direction.Left) else Some(Direction.Right)
+        else if (edge.vertex1.Coords(1) == edge.vertex2.Coords(1)) //x alligned
+          if (edge.vertex1.Coords(1) == vertices.map { x => x.Coords(1) }.min) Some(Direction.Bottom) else Some(Direction.Top)
+        else None
+      } else None //TODO behaviour in 3D
+    } else {
+      None
+    }
+  }
+
   def contains(e : Edge) : Boolean = {
     //TODO face contains edge
     true
@@ -126,4 +180,9 @@ class Face(edges : ListBuffer[Edge], vertices : ListBuffer[Vertex]) extends Prim
     //TODO face contains vertex
     true
   }
+}
+
+object Direction extends Enumeration {
+  type Direction = Value
+  val Left, Right, Bottom, Top, Front, Back = Value
 }

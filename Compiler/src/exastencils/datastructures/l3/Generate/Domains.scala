@@ -25,8 +25,8 @@ object Domains {
       case 2 => {
         if (Knowledge.domain_rect_generate == false) {
           if (Knowledge.domain_readFromFile) {
-            printer.println("Domain global< [ 0, 0 ] to [ 1, 1 ] >")
-            //TODO Domain = from File...
+            printer.println("Domain fromFile(\"DomainDefinition.cfg\")")
+
           } else {
             Knowledge.domain_useCase match {
               case "L-Shape" => {

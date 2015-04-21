@@ -201,7 +201,21 @@ case class ExternalFieldDeclarationStatement(
 
   override def progressToIr : knowledge.ExternalField = {
     val level = correspondingField.level.asInstanceOf[SingleLevelSpecification].level
-    val ir_layout = knowledge.FieldLayoutCollection.getFieldLayoutByIdentifier(extLayout, level).get
+
+    val ir_layout = if (knowledge.Knowledge.ir_genSepLayoutsPerField) {
+      // layouts must not be shared -> generate a field specific layout
+      val l4_layout = StateManager.root.asInstanceOf[l4.Root].fieldLayouts.find(
+        l => l.identifier.asInstanceOf[LeveledIdentifier].name == extLayout
+          && l.identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level == level).get
+      val ir_layout = l4_layout.progressToIr(extIdentifier)
+      knowledge.FieldLayoutCollection.fieldLayouts += ir_layout
+      ir_layout
+    } else {
+      // layouts have already been processed -> find the required one
+      knowledge.FieldLayoutCollection.getFieldLayoutByIdentifier(extLayout, level).get
+    }
+
+    //val ir_layout = knowledge.FieldLayoutCollection.getFieldLayoutByIdentifier(extLayout, level).get
 
     new knowledge.ExternalField(extIdentifier, correspondingField.resolveField, ir_layout, level)
   }

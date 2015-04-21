@@ -197,7 +197,7 @@ class ForwardFeatureSelection(featuresOfInterest : scala.collection.mutable.Set[
     for (config <- configurations) {
       var predict = predictConfig(constants, combination, config)
       var realValue = config.nfpValues.get(nfpOfInterest).get
-      sumError += Math.abs(predict - realValue) / realValue
+      sumError += (Math.abs(predict - realValue) / realValue)
     }
 
     return (sumError / configurations.size)

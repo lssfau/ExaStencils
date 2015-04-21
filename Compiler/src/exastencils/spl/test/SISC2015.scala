@@ -56,18 +56,21 @@ object SICS2015 {
     //    nfps.add("setup")
     //    nfps.add("timeToSolve")
 
-    nfps.add("allTime")
+    //    nfps.add("allTime")
+    //
+    //    nfps.foreach { x =>
+    //      {
+    //        var ffs : ForwardFeatureSelection = new ForwardFeatureSelection(features, 50, configs, x)
+    //        println(x)
+    //        ffs.apply()
+    //        var y = ffs.getModelWithConstants(ffs.solutionSet.toArray[FFS_Expression])
+    //        println(ffs.printModelWithConstants(y._1, y._2))
+    //      }
+    //    }
 
-    nfps.foreach { x =>
-      {
-        var ffs : ForwardFeatureSelection = new ForwardFeatureSelection(features, 50, configs, x)
-        println(x)
-        ffs.apply()
-        var y = ffs.getModelWithConstants(ffs.solutionSet.toArray[FFS_Expression])
-        println(ffs.printModelWithConstants(y._1, y._2))
-      }
-    }
-
+    var lfaConfigs = JSONParsing("E:\\JobsFor JuQueen\\SISC_Paper\\2dCC\\LFA_Tests\\")
+    var lfaConfigsCaseStudy : scala.collection.mutable.Set[LFAConfig] = scala.collection.mutable.Set()
+    lfaConfigs.foreach { x => if (x.dimensionality == 2 && x.constCoeff) lfaConfigsCaseStudy.add(x) }
   }
 
   def createConfigsBasedOnMeasurements(basicDir : String) : scala.collection.mutable.Set[Configuration] = {
@@ -1098,6 +1101,54 @@ object SICS2015 {
     config.setMeasurements(measuement)
 
     return config
+  }
+
+  def JSONParsing(lfaPath : String) : scala.collection.mutable.Set[LFAConfig] = {
+    var lfaDir = new File(lfaPath)
+    var lfaConfigs : scala.collection.mutable.Set[LFAConfig] = scala.collection.mutable.Set()
+    lfaDir.listFiles().foreach { x =>
+      {
+        var cont : Map[String, Any] = scala.util.parsing.json.JSON.parseFull(scala.io.Source.fromFile(x).mkString).get.asInstanceOf[Map[String, Any]]
+
+        var lfaConfig : LFAConfig = new LFAConfig()
+        var config = cont.get("configuration").get.asInstanceOf[Map[String, Any]]
+
+        lfaConfig.numPost = config("no_post_smoothing").toString().toDouble.toInt
+        lfaConfig.dimensionality = config("dimension").toString().toDouble.toInt
+        lfaConfig.numPre = config("no_pre_smoothing").toString().toDouble.toInt
+        lfaConfig.numPost = config("no_post_smoothing").toString().toDouble.toInt
+        lfaConfig.Smoother = config("smoother").toString()
+        if (config("name").toString().contains("true"))
+          lfaConfig.constCoeff = true
+        else
+          lfaConfig.constCoeff = false
+
+        var convergenceRate = cont.get("convergence_rates").get.asInstanceOf[List[Any]]
+
+        var factor = 1.0
+        var numIt = 0
+        var break = false
+        convergenceRate.foreach { x =>
+          {
+            if (!break) {
+              factor = factor * x.toString().toDouble
+              numIt += 1
+              if (factor < 1E-05)
+                break = true
+            }
+          }
+        }
+        var spectral_radius = cont.get("spectral_radius").get.toString().toDouble
+        while (factor > 1E-05) {
+          factor = factor * spectral_radius
+          numIt += 1
+        }
+
+        lfaConfig.iterationsNeeded = numIt
+        lfaConfigs.add(lfaConfig)
+      }
+    }
+    return lfaConfigs
   }
 
 }
