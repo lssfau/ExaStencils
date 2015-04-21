@@ -239,6 +239,9 @@ object Main {
       Inlining.apply()
     CleanUnusedStuff.apply()
 
+    if (Knowledge.generateFortranInterface)
+      Fortranify.apply()
+
     PrintStrategy.apply()
     PrettyprintingManager.finish
 

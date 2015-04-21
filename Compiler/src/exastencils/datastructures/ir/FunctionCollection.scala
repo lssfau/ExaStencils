@@ -3,6 +3,7 @@ package exastencils.datastructures.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.datastructures._
+import exastencils.knowledge._
 import exastencils.prettyprinting._
 
 class FunctionCollection(var baseName : String,
@@ -15,12 +16,21 @@ class FunctionCollection(var baseName : String,
     for (inc <- internalDependencies) writer.addInternalDependency(inc)
     for (inc <- externalDependencies) writer.addExternalDependency(inc)
 
-    for (func <- functions) {
-      if (func.asInstanceOf[FunctionStatement].hasAnnotation("isTemplate")) {
+    writer <<< "// template functions"
+    for (func <- functions)
+      if (func.asInstanceOf[FunctionStatement].hasAnnotation("isTemplate"))
         writer <<< func.prettyprint + ";"
-      } else
+
+    writer <<< "// ordinary functions"
+    if (Knowledge.generateFortranInterface)
+      writer <<< "extern \"C\" {"
+
+    for (func <- functions)
+      if (!func.asInstanceOf[FunctionStatement].hasAnnotation("isTemplate"))
         writer << func.asInstanceOf[FunctionStatement].prettyprint_decl
-    }
+
+    if (Knowledge.generateFortranInterface)
+      writer <<< "}"
   }
 
   def printSources = {

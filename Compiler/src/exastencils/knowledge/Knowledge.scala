@@ -12,7 +12,9 @@ object Knowledge {
 
   var targetHardware : String = "CPU" // target hw platform; may be "CPU" or "ARM"
 
-  var useDblPrecision : Boolean = true
+  var useDblPrecision : Boolean = true // if true uses double precision for floating point numbers and single precision otherwise
+
+  var generateFortranInterface : Boolean = false // generates fortran compliant function names and marks functions for interfacing
 
   var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2", "QPX"
   def simd_vectorSize : Int = { // number of vector elements for SIMD instructions (currently only double precision)

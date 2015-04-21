@@ -294,3 +294,36 @@ object CleanUnusedStuff extends DefaultStrategy("Cleaning up unused stuff") {
   //  })
 }
 
+object Fortranify extends DefaultStrategy("Preparing function for fortran interfacing") {
+  var functionsToBeRenamed = ListBuffer[String]()
+
+  def isTreatableFunction(name : String) = {
+    name match {
+      case "main" => false
+      case _      => true
+    }
+  }
+
+  override def apply(node : Option[Node] = None) = {
+    functionsToBeRenamed.clear
+    super.apply(node)
+  }
+
+  this += new Transformation("Prepending underscores to function definitions", {
+    case functions : FunctionCollection =>
+      for (abstrFct <- functions.functions) {
+        val fct = abstrFct.asInstanceOf[FunctionStatement] // assume resolved function declarations
+        if (isTreatableFunction(fct.name)) {
+          functionsToBeRenamed += fct.name
+          fct.name = fct.name.toLowerCase() + "_"
+        }
+      }
+      functions
+  })
+
+  this += new Transformation("Prepending underscores to function calls", {
+    case fct : FunctionCallExpression if (functionsToBeRenamed.contains(fct.name)) =>
+      fct.name = fct.name.toLowerCase() + "_"
+      fct
+  })
+}
