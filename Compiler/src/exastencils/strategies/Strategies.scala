@@ -1,5 +1,6 @@
 package exastencils.strategies
 
+import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
@@ -295,7 +296,8 @@ object CleanUnusedStuff extends DefaultStrategy("Cleaning up unused stuff") {
 }
 
 object Fortranify extends DefaultStrategy("Preparing function for fortran interfacing") {
-  var functionsToBeRenamed = ListBuffer[String]()
+  // map of function names and list of parameter indices and data types to be wrapped by address operations
+  var functionsToBeProcessed : HashMap[String, ListBuffer[(Int, Datatype)]] = HashMap()
 
   def isTreatableFunction(name : String) = {
     name match {
@@ -305,16 +307,42 @@ object Fortranify extends DefaultStrategy("Preparing function for fortran interf
   }
 
   override def apply(node : Option[Node] = None) = {
-    functionsToBeRenamed.clear
+    functionsToBeProcessed.clear
     super.apply(node)
   }
 
-  this += new Transformation("Prepending underscores to function definitions", {
+  this += new Transformation("Process function declarations", {
     case functions : FunctionCollection =>
       for (abstrFct <- functions.functions) {
         val fct = abstrFct.asInstanceOf[FunctionStatement] // assume resolved function declarations
         if (isTreatableFunction(fct.name)) {
-          functionsToBeRenamed += fct.name
+          // remember for later usage
+          functionsToBeProcessed += (fct.name -> ListBuffer())
+
+          // adapt parameters
+          var paramIdx = 0
+          for (param <- fct.parameters) {
+            param.dType match {
+              case None                      => Logger.warn(s"parameter ${param.name} in function ${fct.name} has no data type")
+              case Some(PointerDatatype(_))  => // already fortran compliant
+              case Some(ArrayDatatype(_, _)) => // should also be fortran compliant
+              case Some(datatype) => {
+                // remember for later usage
+                functionsToBeProcessed.get(fct.name).get += ((paramIdx, datatype))
+
+                // redirect parameter
+                fct.body.prepend(
+                  VariableDeclarationStatement(
+                    Duplicate(datatype), param.name,
+                    Some(UnaryExpression(UnaryOperators.Indirection, param.name + "_ptr"))))
+                param.name += "_ptr"
+                param.dType = Some(PointerDatatype(Duplicate(datatype)))
+              }
+            }
+            paramIdx += 1
+          }
+
+          // adapt name
           fct.name = fct.name.toLowerCase() + "_"
         }
       }
@@ -322,8 +350,31 @@ object Fortranify extends DefaultStrategy("Preparing function for fortran interf
   })
 
   this += new Transformation("Prepending underscores to function calls", {
-    case fct : FunctionCallExpression if (functionsToBeRenamed.contains(fct.name)) =>
+    // FIXME: this also has to work for FunctionCallExpressions that are not wrapped as single statement
+    case ExpressionStatement(fct : FunctionCallExpression) if (functionsToBeProcessed.contains(fct.name)) =>
+      // adapt call arguments
+      var callByValReplacements = ListBuffer[Statement]()
+
+      for ((paramIdx, datatype) <- functionsToBeProcessed.get(fct.name).get) {
+        fct.arguments(paramIdx) match {
+          // variable accesses are simple
+          case va : VariableAccess =>
+            fct.arguments(paramIdx) = UnaryExpression(UnaryOperators.AddressOf, fct.arguments(paramIdx))
+          // otherwise temp variables have to be created
+          case _ =>
+            callByValReplacements += VariableDeclarationStatement(
+              Duplicate(datatype), "callByValReplacement_" + paramIdx.toString(), Some(fct.arguments(paramIdx)))
+            fct.arguments(paramIdx) = UnaryExpression(UnaryOperators.AddressOf, VariableAccess("callByValReplacement_" + paramIdx.toString(), Some(Duplicate(datatype))))
+        }
+      }
+
+      // adapt name
       fct.name = fct.name.toLowerCase() + "_"
-      fct
+
+      // return
+      if (callByValReplacements.isEmpty)
+        ExpressionStatement(fct)
+      else
+        Scope(callByValReplacements ++ ListBuffer[Statement](fct))
   })
 }
