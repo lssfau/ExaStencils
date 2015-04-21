@@ -168,7 +168,7 @@ case class NeighborFragLocalId(var domain : Expression, var neighIdx : Expressio
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, domain, NullExpression, NullExpression, neighIdx)
 
   override def resolveName = s"neighbor_fragCommId" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", neighIdx.prettyprint)
-  override def resolveDataType = "size_t"
+  override def resolveDataType = IntegerDatatype()
   override def resolveDefValue = Some(-1)
 }
 
