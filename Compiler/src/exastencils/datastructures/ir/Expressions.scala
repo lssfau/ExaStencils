@@ -92,6 +92,7 @@ object UnaryOperators extends Enumeration {
   val Negative = Value("-")
   val Not = Value("!")
   val AddressOf = Value("&")
+  val Indirection = Value("*")
   val BitwiseNegation = Value("~")
 
   exastencils.core.Duplicate.registerImmutable(this.getClass())
