@@ -43,7 +43,7 @@ object Knowledge {
   // === Layer 2 ===
 
   // TODO: check if these parameters will be necessary or can be implicitly assumed once an appropriate field collection is in place
-  var minLevel : Int = 0 //[4~12]  // @constant // the coarsest level
+  var minLevel : Int = 0 //[0~12]  // @constant // the coarsest level
   var maxLevel : Int = 6 //[4~12] // @constant // the finest level
   def numLevels : Int = (maxLevel - minLevel + 1) // the number of levels -> this assumes that the cycle descents to the coarsest level
 
@@ -165,7 +165,7 @@ object Knowledge {
   var omp_parallelizeLoopOverFragments : Boolean = true // [true|false] // specifies if loops over fragments may be parallelized with omp if marked correspondingly
   var omp_parallelizeLoopOverDimensions : Boolean = false // [true|false] // specifies if loops over dimensions may be parallelized with omp if marked correspondingly
   var omp_useCollapse : Boolean = false // [true|false] // if true the 'collapse' directive may be used in omp for regions; this will only be done if the minimum omp version supports this
-  var omp_minWorkItemsPerThread : Int = 400 // [1~inf] // threshold specifying which loops yield enough workload to amortize the omp overhead
+  var omp_minWorkItemsPerThread : Int = 128 // [1~inf] // threshold specifying which loops yield enough workload to amortize the omp overhead
   def omp_requiresCriticalSections : Boolean = { // true if the chosen compiler / mpi version requires critical sections to be marked explicitly
     targetCompiler match {
       case "MSVC"            => true
@@ -192,9 +192,9 @@ object Knowledge {
   //   2: optimize the loop nest by trying to minimze the dependences specified by poly_optimizeDeps
   //   3: tile the optimized loop nest using poly_tileSize_{x|y|z|w}  (slowest)
   // TODO: Alex: range of the following options
-  var poly_optLevel_fine : Int = 0 // [0-3] // poly opt-level for poly_numFinestLevels finest fields
-  var poly_optLevel_coarse : Int = 0 // [0-poly_optLevel_fine] // polyhedral optimization level for coarsest fields  0: disable (fastest);  3: aggressive (slowest)
-  var poly_numFinestLevels : Int = 2 // [1-numLevels] // number of levels that should be optimized in PolyOpt (starting from the finest)
+  var poly_optLevel_fine : Int = 0 // [0~3] // poly opt-level for poly_numFinestLevels finest fields
+  var poly_optLevel_coarse : Int = 0 // [0~poly_optLevel_fine] // polyhedral optimization level for coarsest fields  0: disable (fastest);  3: aggressive (slowest)
+  var poly_numFinestLevels : Int = 2 // [1~numLevels] // number of levels that should be optimized in PolyOpt (starting from the finest)
   var poly_tileSize_x : Int = 1000000000 // [112~1000000000 $32]
   var poly_tileSize_y : Int = 1000000000 // [16~1000000000 $32]
   var poly_tileSize_z : Int = 1000000000 // [16~1000000000 $32]
@@ -212,7 +212,7 @@ object Knowledge {
   // --- Other Optimizations ---
   var opt_useAddressPrecalc : Boolean = false // [true|false]
   var opt_vectorize : Boolean = false // [true|false]
-  var opt_unroll : Int = 1 // [1-8]
+  var opt_unroll : Int = 1 // [1~5]
   var opt_unroll_interleave : Boolean = false // [true|false] // FIXME: WARNING: there is a bug in combination with poly opts, use with caution until it's fixed!
   var opt_useColorSplitting : Boolean = false // [true|false] // only relevant for RBGS smoother currently
 
@@ -345,9 +345,9 @@ object Knowledge {
     Constraints.condEnsureValue(l3tmp_numVecDims, 1, !l3tmp_genVectorFields, "vector dimensions larger than 1 are only allowed in conjunction with vector fields")
     Constraints.condEnsureValue(l3tmp_numVecDims, 2, l3tmp_genVectorFields && l3tmp_numVecDims <= 1, "vector dimensions must be larger than 1 when using vector fields")
 
-    Constraints.condEnsureValue(l3tmp_omega, 0.8,("Jac" == l3tmp_smoother))
-    Constraints.condEnsureValue(l3tmp_omega, 1.0,("Jac" != l3tmp_smoother))
-    
+    //    Constraints.condEnsureValue(l3tmp_omega, 0.8,("Jac" == l3tmp_smoother))
+    //    Constraints.condEnsureValue(l3tmp_omega, 1.0,("Jac" != l3tmp_smoother))
+
     // l3tmp - stencils
     Constraints.condEnsureValue(l3tmp_genStencilFields, false, experimental_Neumann, "l3tmp_genStencilFields is currently not compatible with Neumann boundary conditions")
     Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, experimental_Neumann, "l3tmp_genStencilStencilConv is currently not compatible with Neumann boundary conditions")
