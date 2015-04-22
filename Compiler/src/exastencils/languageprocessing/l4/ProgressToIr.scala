@@ -119,8 +119,6 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
       }
     }))
 
-    // FIXME unfold function calls
-
     // unfold field layout declarations
     StateManager.apply(this.token.get, new Transformation("UnfoldLeveledFieldLayoutDeclarations", {
       case fieldLayout : LayoutDeclarationStatement => fieldLayout.identifier match {
