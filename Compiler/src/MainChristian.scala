@@ -129,7 +129,7 @@ object MainChristian {
     // go to IR
     UnfoldLevelSpecifications.apply() // preparation step
     ResolveL4.apply()
-    DependencyAnalysis.apply()
+    //DependencyAnalysis.apply()
     
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
