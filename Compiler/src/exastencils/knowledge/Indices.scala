@@ -155,7 +155,7 @@ object ResolveCoordinates extends DefaultStrategy("ResolveCoordinates") {
   }
 }
 
-object CreateGeomCoordinates extends DefaultStrategy("Add geometric coodrinate calculations") {
+object CreateGeomCoordinates extends DefaultStrategy("Add geometric coordinate calculations") {
   this += new Transformation("Search and extend", {
     case loop : LoopOverPointsInOneFragment =>
       if (StateManager.findFirst[AnyRef]((node : Any) => node match {
