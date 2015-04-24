@@ -5,7 +5,6 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
 import exastencils.core.collectors.L4LevelCollector
-import exastencils.core.collectors.L4ValueCollector
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.l4._
@@ -17,16 +16,14 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
 
   override def apply(applyAtNode : Option[Node]) = {
     this.transaction()
-    this.resetCollectors()
-    this.unregisterAll()
-    
+
     Logger.info("Applying strategy " + name)
-    if (Settings.timeStrategies)
-      StrategyTimer.startTiming(name)
 
     var levelCollector = new L4LevelCollector
-    var valueCollector = new L4ValueCollector
     this.register(levelCollector)
+
+    if (Settings.timeStrategies)
+      StrategyTimer.startTiming(name)
 
     // ###################################################################################################################
 
@@ -131,45 +128,10 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
       case level : FinerLevelSpecification   => SingleLevelSpecification(levelCollector.getCurrentLevel + 1)
     }))
 
-    this.register(valueCollector)
-
-    this.execute(new Transformation("FillValueCollector", {
-      case x : GlobalDeclarationStatement => x
-    }))
-
-    // resolve values in expressions by replacing them with their expression => let SimplifyStrategy do the work
-    this.execute(new Transformation("ResolveValuesInExpressions", {
-      case x : UnresolvedAccess if (x.level == None && x.slot == None && x.arrayIndex == None) => {
-        var value = valueCollector.getValue(x.name)
-        value match {
-          case None => { Logger.info(s"""Did not resolve identifier ${x.name} as no matching Val was found"""); x }
-          case _    => value.get
-        }
-      }
-      case x : UnresolvedAccess if (x.level.isDefined && x.level.get.isInstanceOf[SingleLevelSpecification] && x.slot == None && x.arrayIndex == None) => {
-        var value = valueCollector.getValue(x.name + "_" + x.level.get.asInstanceOf[SingleLevelSpecification].level)
-        value match {
-          case None => { Logger.info(s"""Did not resolve identifier ${x.name} as no matching Val was found"""); x }
-          case _    => value.get
-        }
-      }
-    }))
-
-    // resolve accesses
-    this.execute(new Transformation("ResolveAccessSpecifications", {
-      case access : UnresolvedAccess =>
-        if (StateManager.root_.asInstanceOf[Root].fields.exists(f => access.name == f.identifier.name))
-          access.resolveToFieldAccess
-        else if (StateManager.root_.asInstanceOf[Root].stencils.exists(s => access.name == s.identifier.name))
-          access.resolveToStencilAccess
-        else if (StateManager.root_.asInstanceOf[Root].stencilFields.exists(s => access.name == s.identifier.name))
-          access.resolveToStencilFieldAccess
-        else access.resolveToBasicOrLeveledAccess
-    }))
-
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming(name)
 
+    this.unregister(levelCollector)
     this.commit()
   }
 
