@@ -12,14 +12,14 @@ import exastencils.datastructures.l4._
 import exastencils.knowledge._
 import exastencils.logger._
 
-object ProgressToIr extends DefaultStrategy("ProgressToIr") {
+object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecifications") {
   var functions = new HashSet[Tuple2[String, Integer]]
 
   override def apply(applyAtNode : Option[Node]) = {
     this.transaction()
     this.resetCollectors()
     this.unregisterAll()
-
+    
     Logger.info("Applying strategy " + name)
     if (Settings.timeStrategies)
       StrategyTimer.startTiming(name)
@@ -39,42 +39,15 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
     //        }; f
     //    }))
 
-    // rename identifiers that happen to have the same name as C/C++ keywords or start with "_"
-    // identifiers starting with "_" are protected for internal use
-    val protectedkeywords = HashSet("alignas", "alignof", "and", "and_eq",
-      "asm", "auto", "bitand", "bitor", "bool", "break", "case", "catch", "char", "char16_t", "char32_t", "class", "compl",
-      "const", "constexpr", "const_cast", "continue", "decltype", "default", "delete", "do", "double", "dynamic_cast",
-      "else", "enum", "explicit", "export", "extern", "false", "float", "for", "friend", "goto", "if", "inline", "int",
-      "long", "mutable", "namespace", "new", "noexcept", "not", "not_eq", "nullptr", "operator", "or", "or_eq", "private",
-      "protected", "public", "register", "reinterpret_cast", "return", "short", "signed", "sizeof", "static", "static_assert",
-      "static_cast", "struct", "switch", "template", "this", "thread_local", "throw", "true", "try", "typedef",
-      "typeid", "typename", "union", "unsigned", "using", "virtual", "void", "volatile", "wchar_t", "while", "xor", "xor_eq")
-
-    // No need to transform Domain- and LayoutDeclarationStatements because their names are not outputted.
-    StateManager.apply(this.token.get, new Transformation("EscapeCppKeywordsAndInternalIdentifiers", {
-      case x : Identifier if (protectedkeywords.contains(x.name)) =>
-        x.name = "user_" + x.name; x
-      case x : Identifier if (x.name.startsWith("_")) =>
-        x.name = "user_" + x.name; x
-      case x : UnresolvedAccess if (protectedkeywords.contains(x.name) && !x.hasAnnotation("NO_PROTECT_THIS")) =>
-        x.name = "user_" + x.name; x
-      case x : UnresolvedAccess if (x.name.startsWith("_")) =>
-        x.name = "user_" + x.name; x
-      case x : ExternalFieldDeclarationStatement if (protectedkeywords.contains(x.extIdentifier)) =>
-        x.extIdentifier = "user_" + x.extIdentifier; x
-      case x : ExternalFieldDeclarationStatement if (x.extIdentifier.startsWith("_")) =>
-        x.extIdentifier = "user_" + x.extIdentifier; x
-    }))
-
     // resolve level identifiers "coarsest", "finest"
-    StateManager.apply(this.token.get, new Transformation("ResolveIdentifierLevels", {
+    this.execute(new Transformation("ResolveIdentifierLevels", {
       case x : AllLevelsSpecification     => RangeLevelSpecification(SingleLevelSpecification(Knowledge.minLevel), SingleLevelSpecification(Knowledge.maxLevel))
       case x : CoarsestLevelSpecification => SingleLevelSpecification(Knowledge.minLevel)
       case x : FinestLevelSpecification   => SingleLevelSpecification(Knowledge.maxLevel)
     }))
 
     // resolve relative level identifiers
-    StateManager.apply(this.token.get, new Transformation("ResolveRelativeIdentifiers", {
+    this.execute(new Transformation("ResolveRelativeIdentifiers", {
       case x : RelativeLevelSpecification => {
         def calc(a : Int, b : Int) = x.operator match {
           case "+" => a + b
@@ -86,7 +59,7 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
       }
     }))
 
-    StateManager.apply(this.token.get, new Transformation("UnfoldValuesAndVariables", {
+    this.execute(new Transformation("UnfoldValuesAndVariables", {
       case value : ValueDeclarationStatement => value.identifier match {
         case LeveledIdentifier(_, level) => doDuplicate(value, level)
         case BasicIdentifier(_)          => value
@@ -98,7 +71,7 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
     }))
 
     // find all functions that are defined with an explicit level specification
-    StateManager.apply(this.token.get, new Transformation("FindExplicitlyLeveledFunctions", {
+    this.execute(new Transformation("FindExplicitlyLeveledFunctions", {
       case function : FunctionStatement => function.identifier match {
         case LeveledIdentifier(_, level) => level match {
           case x : SingleLevelSpecification => {
@@ -112,7 +85,7 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
     }))
 
     // unfold function declarations
-    StateManager.apply(this.token.get, new Transformation("UnfoldLeveledFunctions", {
+    this.execute(new Transformation("UnfoldLeveledFunctions", {
       case function : FunctionStatement => function.identifier match {
         case LeveledIdentifier(_, level) => doDuplicate(function, level)
         case BasicIdentifier(_)          => function
@@ -120,7 +93,7 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
     }))
 
     // unfold field layout declarations
-    StateManager.apply(this.token.get, new Transformation("UnfoldLeveledFieldLayoutDeclarations", {
+    this.execute(new Transformation("UnfoldLeveledFieldLayoutDeclarations", {
       case fieldLayout : LayoutDeclarationStatement => fieldLayout.identifier match {
         case LeveledIdentifier(_, level) => doDuplicate(fieldLayout, level)
         case BasicIdentifier(_)          => fieldLayout
@@ -128,7 +101,7 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
     }))
 
     // unfold field declarations
-    StateManager.apply(this.token.get, new Transformation("UnfoldLeveledFieldDeclarations", {
+    this.execute(new Transformation("UnfoldLeveledFieldDeclarations", {
       case field : FieldDeclarationStatement => field.identifier match {
         case LeveledIdentifier(_, level) => doDuplicate(field, level)
         case BasicIdentifier(_)          => field
@@ -136,7 +109,7 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
     }))
 
     // unfold stencil field declarations
-    StateManager.apply(this.token.get, new Transformation("UnfoldLeveledStencilFieldDeclarations", {
+    this.execute(new Transformation("UnfoldLeveledStencilFieldDeclarations", {
       case stencilField : StencilFieldDeclarationStatement => stencilField.identifier match {
         case LeveledIdentifier(_, level) => doDuplicate(stencilField, level)
         case BasicIdentifier(_)          => stencilField
@@ -144,7 +117,7 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
     }))
 
     // unfold stencil declarations
-    StateManager.apply(this.token.get, Transformation("UnfoldLeveledStencilDeclarations", {
+    this.execute(new Transformation("UnfoldLeveledStencilDeclarations", {
       case stencil : StencilDeclarationStatement => stencil.identifier match {
         case LeveledIdentifier(_, level) => doDuplicate(stencil, level)
         case BasicIdentifier(_)          => stencil
@@ -152,7 +125,7 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
     }))
 
     // resolve level specifications
-    StateManager.apply(this.token.get, new Transformation("ResolveRelativeLevelSpecifications", {
+    this.execute(new Transformation("ResolveRelativeLevelSpecifications", {
       case level : CurrentLevelSpecification => SingleLevelSpecification(levelCollector.getCurrentLevel)
       case level : CoarserLevelSpecification => SingleLevelSpecification(levelCollector.getCurrentLevel - 1) // FIXME: coarser and finer are not reliable
       case level : FinerLevelSpecification   => SingleLevelSpecification(levelCollector.getCurrentLevel + 1)
@@ -160,12 +133,12 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
 
     this.register(valueCollector)
 
-    StateManager.apply(this.token.get, new Transformation("FillValueCollector", {
+    this.execute(new Transformation("FillValueCollector", {
       case x : GlobalDeclarationStatement => x
     }))
 
     // resolve values in expressions by replacing them with their expression => let SimplifyStrategy do the work
-    StateManager.apply(this.token.get, new Transformation("ResolveValuesInExpressions", {
+    this.execute(new Transformation("ResolveValuesInExpressions", {
       case x : UnresolvedAccess if (x.level == None && x.slot == None && x.arrayIndex == None) => {
         var value = valueCollector.getValue(x.name)
         value match {
@@ -183,7 +156,7 @@ object ProgressToIr extends DefaultStrategy("ProgressToIr") {
     }))
 
     // resolve accesses
-    StateManager.apply(this.token.get, new Transformation("ResolveAccessSpecifications", {
+    this.execute(new Transformation("ResolveAccessSpecifications", {
       case access : UnresolvedAccess =>
         if (StateManager.root_.asInstanceOf[Root].fields.exists(f => access.name == f.identifier.name))
           access.resolveToFieldAccess
