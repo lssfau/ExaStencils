@@ -17,7 +17,7 @@ import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.strategies._
 import exastencils.util._
-import exastencils.languageprocessing.l4.DependencyAnalysis
+//import exastencils.languageprocessing.l4.DependencyAnalysis
 import exastencils.languageprocessing.l4.ResolveL4
 
 object MainChristian {
