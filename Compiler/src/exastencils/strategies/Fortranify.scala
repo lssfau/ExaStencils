@@ -13,19 +13,22 @@ import exastencils.logger._
 
 object FortranifyFunctionsInsideStatement extends QuietDefaultStrategy("Looking for function inside statements") {
   val collector = new StatementCollector
-  register(collector)
 
   var functionsToBeProcessed : HashMap[String, ListBuffer[(Int, Datatype)]] = HashMap()
   var callByValReplacements : HashMap[String, Statement] = HashMap()
 
   override def apply(node : Option[Node]) = {
     callByValReplacements.clear
+    register(collector)
     super.apply(node)
+    unregister(collector)
   }
 
   override def applyStandalone(node : Node) = {
     callByValReplacements.clear
+    register(collector)
     super.applyStandalone(node)
+    unregister(collector)
   }
 
   this += new Transformation("", {
