@@ -4,6 +4,7 @@ import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
+import exastencils.core.collectors.StatementCollector
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
@@ -295,6 +296,48 @@ object CleanUnusedStuff extends DefaultStrategy("Cleaning up unused stuff") {
   //  })
 }
 
+object FortranifyFunctionsInsideStatement extends QuietDefaultStrategy("Looking for function inside statements") {
+  val collector = new StatementCollector
+  register(collector)
+
+  var functionsToBeProcessed : HashMap[String, ListBuffer[(Int, Datatype)]] = HashMap()
+  var callByValReplacements : HashMap[String, Statement] = HashMap()
+
+  override def apply(node : Option[Node]) = {
+    callByValReplacements.clear
+    super.apply(node)
+  }
+
+  override def applyStandalone(node : Node) = {
+    callByValReplacements.clear
+    super.applyStandalone(node)
+  }
+
+  this += new Transformation("", {
+    case fct : FunctionCallExpression if (collector.insideStatement <= 1 && functionsToBeProcessed.contains(fct.name)) =>
+      // adapt call arguments
+      for ((paramIdx, datatype) <- functionsToBeProcessed.get(fct.name).get) {
+        fct.arguments(paramIdx) match {
+          // variable accesses are simple
+          case va : VariableAccess =>
+            fct.arguments(paramIdx) = UnaryExpression(UnaryOperators.AddressOf, fct.arguments(paramIdx))
+          // otherwise temp variables have to be created
+          case _ =>
+            var newName = s"callByValReplacement_${fct.name}_${paramIdx.toString()}"
+            while (callByValReplacements.contains(newName)) newName += "0"
+            callByValReplacements += (newName -> VariableDeclarationStatement(Duplicate(datatype), newName, Some(fct.arguments(paramIdx))))
+            fct.arguments(paramIdx) = UnaryExpression(UnaryOperators.AddressOf, VariableAccess(newName, Some(Duplicate(datatype))))
+        }
+      }
+
+      // adapt name
+      fct.name = fct.name.toLowerCase() + "_"
+
+      // return
+      fct
+  })
+}
+
 object Fortranify extends DefaultStrategy("Preparing function for fortran interfacing") {
   // map of function names and list of parameter indices and data types to be wrapped by address operations
   var functionsToBeProcessed : HashMap[String, ListBuffer[(Int, Datatype)]] = HashMap()
@@ -350,31 +393,13 @@ object Fortranify extends DefaultStrategy("Preparing function for fortran interf
   })
 
   this += new Transformation("Prepending underscores to function calls", {
-    // FIXME: this also has to work for FunctionCallExpressions that are not wrapped as single statement
-    case ExpressionStatement(fct : FunctionCallExpression) if (functionsToBeProcessed.contains(fct.name)) =>
-      // adapt call arguments
-      var callByValReplacements = ListBuffer[Statement]()
+    case s : Statement if !s.isInstanceOf[FunctionStatement] =>
+      FortranifyFunctionsInsideStatement.functionsToBeProcessed = functionsToBeProcessed
+      FortranifyFunctionsInsideStatement.applyStandalone(s)
 
-      for ((paramIdx, datatype) <- functionsToBeProcessed.get(fct.name).get) {
-        fct.arguments(paramIdx) match {
-          // variable accesses are simple
-          case va : VariableAccess =>
-            fct.arguments(paramIdx) = UnaryExpression(UnaryOperators.AddressOf, fct.arguments(paramIdx))
-          // otherwise temp variables have to be created
-          case _ =>
-            callByValReplacements += VariableDeclarationStatement(
-              Duplicate(datatype), "callByValReplacement_" + paramIdx.toString(), Some(fct.arguments(paramIdx)))
-            fct.arguments(paramIdx) = UnaryExpression(UnaryOperators.AddressOf, VariableAccess("callByValReplacement_" + paramIdx.toString(), Some(Duplicate(datatype))))
-        }
-      }
-
-      // adapt name
-      fct.name = fct.name.toLowerCase() + "_"
-
-      // return
-      if (callByValReplacements.isEmpty)
-        ExpressionStatement(fct)
+      if (FortranifyFunctionsInsideStatement.callByValReplacements.isEmpty)
+        s
       else
-        Scope(callByValReplacements ++ ListBuffer[Statement](fct))
+        Scope(FortranifyFunctionsInsideStatement.callByValReplacements.map(_._2).to[ListBuffer] ++ ListBuffer[Statement](s))
   })
 }
