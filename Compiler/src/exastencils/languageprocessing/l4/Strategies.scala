@@ -39,6 +39,26 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
     this.transaction()
     var valueCollector = new L4ValueCollector
 
+    // resolve values in expressions by replacing them with their expression => let SimplifyStrategy do the work
+    this.register(valueCollector)
+    this.execute(new Transformation("ResolveValuesInExpressions", {
+      case x : UnresolvedAccess if (x.level == None && x.slot == None && x.arrayIndex == None) => {
+        var value = valueCollector.getValue(x.name)
+        value match {
+          case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Val was found"""); x }
+          case _    => value.get
+        }
+      }
+      case x : UnresolvedAccess if (x.level.isDefined && x.level.get.isInstanceOf[SingleLevelSpecification] && x.slot == None && x.arrayIndex == None) => {
+        var value = valueCollector.getValue(x.name + "_" + x.level.get.asInstanceOf[SingleLevelSpecification].level)
+        value match {
+          case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Val was found"""); x }
+          case _    => value.get
+        }
+      }
+    }))
+    this.unregister(valueCollector)
+
     // resolve accesses
     this.execute(new Transformation("ResolveAccessSpecifications", {
       case access : UnresolvedAccess =>
@@ -79,26 +99,6 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
       // constants
       case BasicAccess("PI") | BasicAccess("M_PI") | BasicAccess("Pi") => FloatConstant(math.Pi)
     }))
-
-    // resolve values in expressions by replacing them with their expression => let SimplifyStrategy do the work
-    this.register(valueCollector)
-    this.execute(new Transformation("ResolveValuesInExpressions", {
-      case x : UnresolvedAccess if (x.level == None && x.slot == None && x.arrayIndex == None) => {
-        var value = valueCollector.getValue(x.name)
-        value match {
-          case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Val was found"""); x }
-          case _    => value.get
-        }
-      }
-      case x : UnresolvedAccess if (x.level.isDefined && x.level.get.isInstanceOf[SingleLevelSpecification] && x.slot == None && x.arrayIndex == None) => {
-        var value = valueCollector.getValue(x.name + "_" + x.level.get.asInstanceOf[SingleLevelSpecification].level)
-        value match {
-          case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Val was found"""); x }
-          case _    => value.get
-        }
-      }
-    }))
-    this.unregister(valueCollector)
 
     this.commit()
   }
