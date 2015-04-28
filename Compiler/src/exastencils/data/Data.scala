@@ -27,15 +27,31 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetFromExternalField\n"
   override def prettyprint_decl : String = prettyprint
 
+  def getFortranCompDT() : Datatype = {
+    var dt : Datatype = dest.dataType
+    for (d <- 1 until Knowledge.dimensionality)
+      dt = ArrayDatatype(dt, dest.fieldLayout.layoutsPerDim(d).evalTotal)
+
+    if (dest.vectorSize > 1)
+      dt = ArrayDatatype(dt, dest.vectorSize)
+
+    dt
+  }
+
   override def expand : Output[FunctionStatement] = {
+    var externalDT = if (Knowledge.generateFortranInterface)
+      getFortranCompDT()
+    else
+      PointerDatatype(src.dataType)
+
     new FunctionStatement(new UnitDatatype(), "get" + src.codeName,
-      ListBuffer(new VariableAccess("dest", Some(PointerDatatype(src.dataType))), new VariableAccess("slot", Some(new IntegerDatatype))),
+      ListBuffer(new VariableAccess("dest", Some(externalDT)), new VariableAccess("slot", Some(new IntegerDatatype))),
       ListBuffer[Statement](
         new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
-          new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => dest.fieldLayout(i).idxDupLeftBegin)),
-          new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => dest.fieldLayout(i).idxDupRightEnd))),
+          new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => src.fieldLayout(i).idxGhostLeftBegin)),
+          new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => src.fieldLayout(i).idxGhostRightEnd))),
           new AssignmentStatement(ExternalFieldAccess("dest", dest, LoopOverDimensions.defIt),
-            FieldAccess(FieldSelection(src, src.level, "slot"), LoopOverDimensions.defIt))) with OMP_PotentiallyParallel with PolyhedronAccessable))
+            DirectFieldAccess(FieldSelection(src, src.level, "slot"), LoopOverDimensions.defIt))) with OMP_PotentiallyParallel with PolyhedronAccessable))
   }
 }
 
@@ -43,14 +59,30 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetFromExternalField\n"
   override def prettyprint_decl : String = prettyprint
 
+  def getFortranCompDT() : Datatype = {
+    var dt : Datatype = src.dataType
+    for (d <- 1 until Knowledge.dimensionality)
+      dt = ArrayDatatype(dt, src.fieldLayout.layoutsPerDim(d).evalTotal)
+
+    if (src.vectorSize > 1)
+      dt = ArrayDatatype(dt, src.vectorSize)
+
+    dt
+  }
+
   override def expand : Output[FunctionStatement] = {
+    var externalDT = if (Knowledge.generateFortranInterface)
+      getFortranCompDT()
+    else
+      PointerDatatype(dest.dataType)
+
     new FunctionStatement(new UnitDatatype(), "set" + dest.codeName,
-      ListBuffer(new VariableAccess("src", Some(PointerDatatype(dest.dataType))), new VariableAccess("slot", Some(new IntegerDatatype))),
+      ListBuffer(new VariableAccess("src", Some(externalDT)), new VariableAccess("slot", Some(new IntegerDatatype))),
       ListBuffer[Statement](
         new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
-          new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => src.fieldLayout(i).idxDupLeftBegin)),
-          new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => src.fieldLayout(i).idxDupRightEnd))),
-          new AssignmentStatement(FieldAccess(FieldSelection(dest, dest.level, "slot"), LoopOverDimensions.defIt),
+          new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => dest.fieldLayout(i).idxGhostLeftBegin)),
+          new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => dest.fieldLayout(i).idxGhostRightEnd))),
+          new AssignmentStatement(DirectFieldAccess(FieldSelection(dest, dest.level, "slot"), LoopOverDimensions.defIt),
             ExternalFieldAccess("src", src, LoopOverDimensions.defIt))) with OMP_PotentiallyParallel with PolyhedronAccessable))
   }
 }

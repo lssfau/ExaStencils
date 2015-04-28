@@ -160,7 +160,7 @@ case class FunctionStatement(var returntype : Datatype, var name : String, var p
     out << returntype << ' ' << name << ' ' << '('
     if (!parameters.isEmpty) {
       for (param <- parameters)
-        out << param.dType.get << ' ' << param.name << ", "
+        out << param.printDeclaration << ", "
       out.removeLast(2)
     }
     out << ") {\n"
@@ -169,7 +169,7 @@ case class FunctionStatement(var returntype : Datatype, var name : String, var p
   }
 
   override def prettyprint_decl() : String = {
-    s"${returntype.prettyprint} $name (" + parameters.map(param => s"${param.dType.get.prettyprint} ${param.name}").mkString(", ") + ");\n"
+    s"${returntype.prettyprint} $name (" + parameters.map(param => s"${param.printDeclaration}").mkString(", ") + ");\n"
   }
 }
 

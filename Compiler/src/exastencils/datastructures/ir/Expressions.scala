@@ -162,6 +162,8 @@ case class CastExpression(var datatype : Datatype, var toCast : Expression) exte
 
 case class VariableAccess(var name : String, var dType : Option[Datatype] = None) extends Access {
   override def prettyprint(out : PpStream) : Unit = out << name
+
+  def printDeclaration() : String = dType.get.resolveUnderlyingDatatype.prettyprint + " " + name + dType.get.resolvePostscript
 }
 
 case class ArrayAccess(var base : Expression, var index : Expression, var alignedAccessPossible : Boolean = false) extends Access {
@@ -275,7 +277,15 @@ case class ExternalFieldAccess(var name : Expression, var field : ExternalField,
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ExternalFieldAccess\n"
 
   def linearize : ArrayAccess = {
-    new ArrayAccess(name, Mapping.resolveMultiIdx(field.fieldLayout, index), false)
+    if (Knowledge.generateFortranInterface) // Fortran requires multi-index access to multidimensional arrays 
+      (Knowledge.dimensionality + (if (field.vectorSize > 1) 1 else 0)) match {
+        case 1 => new ArrayAccess("x", false)
+        case 2 => new ArrayAccess(new ArrayAccess(name, "y", false), "x", false)
+        case 3 => new ArrayAccess(new ArrayAccess(new ArrayAccess(name, "z", false), "y", false), "x", false)
+        case 4 => new ArrayAccess(new ArrayAccess(new ArrayAccess(new ArrayAccess(name, "w", false), "z", false), "y", false), "x", false)
+      }
+    else
+      new ArrayAccess(name, Mapping.resolveMultiIdx(field.fieldLayout, index), false)
   }
 }
 
