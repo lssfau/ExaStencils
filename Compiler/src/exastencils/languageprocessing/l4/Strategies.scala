@@ -2,13 +2,14 @@ package exastencils.languageprocessing.l4
 
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
+
+import exastencils.core._
 import exastencils.core.collectors.L4CommCollector
+import exastencils.core.collectors.L4ValueCollector
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.l4._
 import exastencils.knowledge
-import exastencils.core.collectors.L4ValueCollector
-import exastencils.core.StateManager
 import exastencils.logger._
 
 object CollectCommInformation extends DefaultStrategy("Collecting information relevant for adding communication statements") {
@@ -35,11 +36,22 @@ object CollectCommInformation extends DefaultStrategy("Collecting information re
 
 object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
   override def apply(applyAtNode : Option[Node]) = {
-
     this.transaction()
     var valueCollector = new L4ValueCollector
 
-    this += new Transformation("special functions and constants", {
+    // resolve accesses
+    this.execute(new Transformation("ResolveAccessSpecifications", {
+      case access : UnresolvedAccess =>
+        if (StateManager.root_.asInstanceOf[Root].fields.exists(f => access.name == f.identifier.name))
+          access.resolveToFieldAccess
+        else if (StateManager.root_.asInstanceOf[Root].stencils.exists(s => access.name == s.identifier.name))
+          access.resolveToStencilAccess
+        else if (StateManager.root_.asInstanceOf[Root].stencilFields.exists(s => access.name == s.identifier.name))
+          access.resolveToStencilFieldAccess
+        else access.resolveToBasicOrLeveledAccess
+    }))
+
+    this.execute(new Transformation("special functions and constants", {
       // geometricCoordinate
       case FunctionCallExpression(LeveledAccess("geometricCoordinate_x", level), List()) => BasicAccess("xPos")
       case FunctionCallExpression(LeveledAccess("geometricCoordinate_y", level), List()) => BasicAccess("yPos")
@@ -66,7 +78,7 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
 
       // constants
       case BasicAccess("PI") | BasicAccess("M_PI") | BasicAccess("Pi") => FloatConstant(math.Pi)
-    })
+    }))
 
     // resolve values in expressions by replacing them with their expression => let SimplifyStrategy do the work
     this.register(valueCollector)
@@ -88,19 +100,6 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
     }))
     this.unregister(valueCollector)
 
-    // resolve accesses
-    this.execute(new Transformation("ResolveAccessSpecifications", {
-      case access : UnresolvedAccess =>
-        if (StateManager.root_.asInstanceOf[Root].fields.exists(f => access.name == f.identifier.name))
-          access.resolveToFieldAccess
-        else if (StateManager.root_.asInstanceOf[Root].stencils.exists(s => access.name == s.identifier.name))
-          access.resolveToStencilAccess
-        else if (StateManager.root_.asInstanceOf[Root].stencilFields.exists(s => access.name == s.identifier.name))
-          access.resolveToStencilFieldAccess
-        else access.resolveToBasicOrLeveledAccess
-    }))
-
-    
     this.commit()
   }
 }
