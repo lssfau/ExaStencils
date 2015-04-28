@@ -2,12 +2,14 @@ package exastencils.languageprocessing.l4
 
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core.collectors.L4CommCollector
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.l4._
 import exastencils.knowledge
+import exastencils.core.collectors.L4ValueCollector
+import exastencils.core.StateManager
+import exastencils.logger._
 
 object CollectCommInformation extends DefaultStrategy("Collecting information relevant for adding communication statements") {
   var commCollector : L4CommCollector = new L4CommCollector(HashMap())
@@ -32,34 +34,75 @@ object CollectCommInformation extends DefaultStrategy("Collecting information re
 }
 
 object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
-  this += new Transformation("special functions and constants", {
-    // geometricCoordinate
-    case FunctionCallExpression(LeveledAccess("geometricCoordinate_x", level), List()) => BasicAccess("xPos")
-    case FunctionCallExpression(LeveledAccess("geometricCoordinate_y", level), List()) => BasicAccess("yPos")
-    case FunctionCallExpression(LeveledAccess("geometricCoordinate_z", level), List()) => BasicAccess("zPos")
-    case FunctionCallExpression(BasicAccess("geometricCoordinate_x"), List()) => BasicAccess("xPos")
-    case FunctionCallExpression(BasicAccess("geometricCoordinate_y"), List()) => BasicAccess("yPos")
-    case FunctionCallExpression(BasicAccess("geometricCoordinate_z"), List()) => BasicAccess("zPos")
-    case FunctionCallExpression(LeveledAccess("geometricCoordinate", level), List(IntegerConstant(0))) => BasicAccess("xPos")
-    case FunctionCallExpression(LeveledAccess("geometricCoordinate", level), List(IntegerConstant(1))) => BasicAccess("yPos")
-    case FunctionCallExpression(LeveledAccess("geometricCoordinate", level), List(IntegerConstant(2))) => BasicAccess("zPos")
+  override def apply(applyAtNode : Option[Node]) = {
 
-    // gridWidth
-    case FunctionCallExpression(LeveledAccess("gridWidth_x", SingleLevelSpecification(level)), List()) => FloatConstant(knowledge.Knowledge.discr_hx(level - knowledge.Knowledge.minLevel))
-    case FunctionCallExpression(LeveledAccess("gridWidth_y", SingleLevelSpecification(level)), List()) => FloatConstant(knowledge.Knowledge.discr_hy(level - knowledge.Knowledge.minLevel))
-    case FunctionCallExpression(LeveledAccess("gridWidth_z", SingleLevelSpecification(level)), List()) => FloatConstant(knowledge.Knowledge.discr_hz(level - knowledge.Knowledge.minLevel))
-    case FunctionCallExpression(LeveledAccess("gridWidth", SingleLevelSpecification(level)), List(IntegerConstant(0))) => FloatConstant(knowledge.Knowledge.discr_hx(level - knowledge.Knowledge.minLevel))
-    case FunctionCallExpression(LeveledAccess("gridWidth", SingleLevelSpecification(level)), List(IntegerConstant(1))) => FloatConstant(knowledge.Knowledge.discr_hy(level - knowledge.Knowledge.minLevel))
-    case FunctionCallExpression(LeveledAccess("gridWidth", SingleLevelSpecification(level)), List(IntegerConstant(2))) => FloatConstant(knowledge.Knowledge.discr_hz(level - knowledge.Knowledge.minLevel))
+    this.transaction()
+    var valueCollector = new L4ValueCollector
 
-    // levelIndex
-    case FunctionCallExpression(LeveledAccess("levels", SingleLevelSpecification(level)), List()) => IntegerConstant(level)
-    case FunctionCallExpression(LeveledAccess("levelIndex", SingleLevelSpecification(level)), List()) => IntegerConstant(level - knowledge.Knowledge.minLevel)
-    case FunctionCallExpression(LeveledAccess("levelString", SingleLevelSpecification(level)), List()) => StringConstant(level.toString())
+    this += new Transformation("special functions and constants", {
+      // geometricCoordinate
+      case FunctionCallExpression(LeveledAccess("geometricCoordinate_x", level), List()) => BasicAccess("xPos")
+      case FunctionCallExpression(LeveledAccess("geometricCoordinate_y", level), List()) => BasicAccess("yPos")
+      case FunctionCallExpression(LeveledAccess("geometricCoordinate_z", level), List()) => BasicAccess("zPos")
+      case FunctionCallExpression(BasicAccess("geometricCoordinate_x"), List()) => BasicAccess("xPos")
+      case FunctionCallExpression(BasicAccess("geometricCoordinate_y"), List()) => BasicAccess("yPos")
+      case FunctionCallExpression(BasicAccess("geometricCoordinate_z"), List()) => BasicAccess("zPos")
+      case FunctionCallExpression(LeveledAccess("geometricCoordinate", level), List(IntegerConstant(0))) => BasicAccess("xPos")
+      case FunctionCallExpression(LeveledAccess("geometricCoordinate", level), List(IntegerConstant(1))) => BasicAccess("yPos")
+      case FunctionCallExpression(LeveledAccess("geometricCoordinate", level), List(IntegerConstant(2))) => BasicAccess("zPos")
 
-    // constants
-    case BasicAccess("PI") | BasicAccess("M_PI") | BasicAccess("Pi") => FloatConstant(math.Pi)
-  })
+      // gridWidth
+      case FunctionCallExpression(LeveledAccess("gridWidth_x", SingleLevelSpecification(level)), List()) => FloatConstant(knowledge.Knowledge.discr_hx(level - knowledge.Knowledge.minLevel))
+      case FunctionCallExpression(LeveledAccess("gridWidth_y", SingleLevelSpecification(level)), List()) => FloatConstant(knowledge.Knowledge.discr_hy(level - knowledge.Knowledge.minLevel))
+      case FunctionCallExpression(LeveledAccess("gridWidth_z", SingleLevelSpecification(level)), List()) => FloatConstant(knowledge.Knowledge.discr_hz(level - knowledge.Knowledge.minLevel))
+      case FunctionCallExpression(LeveledAccess("gridWidth", SingleLevelSpecification(level)), List(IntegerConstant(0))) => FloatConstant(knowledge.Knowledge.discr_hx(level - knowledge.Knowledge.minLevel))
+      case FunctionCallExpression(LeveledAccess("gridWidth", SingleLevelSpecification(level)), List(IntegerConstant(1))) => FloatConstant(knowledge.Knowledge.discr_hy(level - knowledge.Knowledge.minLevel))
+      case FunctionCallExpression(LeveledAccess("gridWidth", SingleLevelSpecification(level)), List(IntegerConstant(2))) => FloatConstant(knowledge.Knowledge.discr_hz(level - knowledge.Knowledge.minLevel))
+
+      // levelIndex
+      case FunctionCallExpression(LeveledAccess("levels", SingleLevelSpecification(level)), List()) => IntegerConstant(level)
+      case FunctionCallExpression(LeveledAccess("levelIndex", SingleLevelSpecification(level)), List()) => IntegerConstant(level - knowledge.Knowledge.minLevel)
+      case FunctionCallExpression(LeveledAccess("levelString", SingleLevelSpecification(level)), List()) => StringConstant(level.toString())
+
+      // constants
+      case BasicAccess("PI") | BasicAccess("M_PI") | BasicAccess("Pi") => FloatConstant(math.Pi)
+    })
+
+    // resolve values in expressions by replacing them with their expression => let SimplifyStrategy do the work
+    this.register(valueCollector)
+    this.execute(new Transformation("ResolveValuesInExpressions", {
+      case x : UnresolvedAccess if (x.level == None && x.slot == None && x.arrayIndex == None) => {
+        var value = valueCollector.getValue(x.name)
+        value match {
+          case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Val was found"""); x }
+          case _    => value.get
+        }
+      }
+      case x : UnresolvedAccess if (x.level.isDefined && x.level.get.isInstanceOf[SingleLevelSpecification] && x.slot == None && x.arrayIndex == None) => {
+        var value = valueCollector.getValue(x.name + "_" + x.level.get.asInstanceOf[SingleLevelSpecification].level)
+        value match {
+          case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Val was found"""); x }
+          case _    => value.get
+        }
+      }
+    }))
+    this.unregister(valueCollector)
+
+    // resolve accesses
+    this.execute(new Transformation("ResolveAccessSpecifications", {
+      case access : UnresolvedAccess =>
+        if (StateManager.root_.asInstanceOf[Root].fields.exists(f => access.name == f.identifier.name))
+          access.resolveToFieldAccess
+        else if (StateManager.root_.asInstanceOf[Root].stencils.exists(s => access.name == s.identifier.name))
+          access.resolveToStencilAccess
+        else if (StateManager.root_.asInstanceOf[Root].stencilFields.exists(s => access.name == s.identifier.name))
+          access.resolveToStencilFieldAccess
+        else access.resolveToBasicOrLeveledAccess
+    }))
+
+    
+    this.commit()
+  }
 }
 
 object WrapL4FieldOpsStrategy extends DefaultStrategy("Adding communcation and loops to L4 statements") {

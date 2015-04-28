@@ -7,7 +7,7 @@ import scala.collection.mutable.HashMap
 
 class L4ValueCollector extends Collector {
   private var values = new HashMap[String, Expression]()
-  private var globalVals = HashMap[String, Expression]()
+  private var globalVals = new HashMap[String, Expression]()
 
   override def enter(node : Node) : Unit = {
     node match {
@@ -22,7 +22,13 @@ class L4ValueCollector extends Collector {
         })
       }
       case x : FunctionStatement => values.clear()
-      case _                     =>
+      case x : ValueDeclarationStatement => {
+        x.identifier match {
+          case v : LeveledIdentifier => values += ((v.name + "_" + v.level, x.expression))
+          case _                     => values += ((x.identifier.name, x.expression))
+        }
+      }
+      case _ =>
     }
   }
 
@@ -46,4 +52,6 @@ class L4ValueCollector extends Collector {
     }
     exp
   }
+
+  override def toString = "[L4ValueCollector]: " + values.toString()
 }

@@ -126,7 +126,7 @@ object Main {
       StrategyTimer.stopTiming("Handling Layer 4")
 
     // go to IR
-    ProgressToIr.apply() // preparation step
+    UnfoldLevelSpecifications.apply() // preparation step
     ResolveL4.apply()
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
