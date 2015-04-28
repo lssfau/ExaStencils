@@ -29,7 +29,7 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
 
   def getFortranCompDT() : Datatype = {
     var dt : Datatype = dest.dataType
-    for (d <- 1 until Knowledge.dimensionality)
+    for (d <- 0 until Knowledge.dimensionality)
       dt = ArrayDatatype(dt, dest.fieldLayout.layoutsPerDim(d).evalTotal)
 
     if (dest.vectorSize > 1)
@@ -61,7 +61,7 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
 
   def getFortranCompDT() : Datatype = {
     var dt : Datatype = src.dataType
-    for (d <- 1 until Knowledge.dimensionality)
+    for (d <- 0 until Knowledge.dimensionality)
       dt = ArrayDatatype(dt, src.fieldLayout.layoutsPerDim(d).evalTotal)
 
     if (src.vectorSize > 1)
