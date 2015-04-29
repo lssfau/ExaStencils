@@ -72,6 +72,7 @@ case class SIMD_RealDatatype() extends Datatype {
       case "SSE3"         => out << "__m128" << suffix
       case "AVX" | "AVX2" => out << "__m256" << suffix
       case "QPX"          => out << "vector4double" // no suffix
+      case "NEON"         => out << "float32x4_t" // FIXME: only single precision until now
     }
   }
 

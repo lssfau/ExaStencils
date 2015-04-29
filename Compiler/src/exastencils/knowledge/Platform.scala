@@ -53,6 +53,7 @@ object Platform {
           case "SSE3" => cflags += " -msse3"
           case "AVX"  => cflags += " -mavx"
           case "AVX2" => cflags += " -mavx2 -mfma"
+          case "NEON" => cflags += " -mfpu=neon"
         }
       if ("ARM" == Knowledge.targetHardware)
         cflags += " -mcpu=cortex-a9 -mhard-float -funsafe-math-optimizations"

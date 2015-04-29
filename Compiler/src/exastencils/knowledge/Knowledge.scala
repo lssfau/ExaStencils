@@ -16,18 +16,20 @@ object Knowledge {
 
   var generateFortranInterface : Boolean = false // generates fortran compliant function names and marks functions for interfacing
 
-  var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2", "QPX"
+  var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2", "QPX", "NEON"
   def simd_vectorSize : Int = { // number of vector elements for SIMD instructions (currently only double precision)
     val double : Int = if (useDblPrecision) 1 else 2
     simd_instructionSet match {
       case "SSE3"         => 2 * double
       case "AVX" | "AVX2" => 4 * double
       case "QPX"          => 4 // yes, it's always 4
+      case "NEON"         => 2 * double // TODO: check if double is supported
     }
   }
   def simd_header : String = { // header for vector intrinsics
     simd_instructionSet match {
       case "SSE3" | "AVX" | "AVX2" => "immintrin.h"
+      case "NEON"                  => "arm_neon.h"
       case "QPX"                   => null
     }
   }

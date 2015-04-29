@@ -48,5 +48,26 @@ case class MultiGridFunctions() extends FunctionCollection("MultiGrid/MultiGrid"
     if (header != null) externalDependencies += header
   }
   if (Knowledge.data_initAllFieldsWithZero)
-    functions += new InitFieldsWithZero
+    functions += new InitFieldsWithZero()
+  if (Knowledge.opt_vectorize && Knowledge.simd_instructionSet == "NEON")
+    functions += new NEONDivision()
+}
+
+case class NEONDivision() extends AbstractFunctionStatement(true) {
+  override def prettyprint(out : PpStream) : Unit = {
+    out << """static inline float32x4_t vdivq_f32(const float32x4_t &a, const float32x4_t &b) {
+  // get an initial estimate of 1/b.
+  float32x4_t reciprocal = vrecpeq_f32(b);
+
+  // use a couple Newton-Raphson steps to refine the estimate.  Depending on your
+  // application's accuracy requirements, you may be able to get away with only
+  // one refinement (instead of the two used here).  Be sure to test!
+  reciprocal = vmulq_f32(vrecpsq_f32(b, reciprocal), reciprocal);
+  reciprocal = vmulq_f32(vrecpsq_f32(b, reciprocal), reciprocal);
+
+  // and finally, compute a/b = a*(1/b)
+  return vmulq_f32(a,reciprocal);
+}"""
+  }
+  override def prettyprint_decl : String = "NOT VALID ; no prototype for vdivq_f32\n"
 }

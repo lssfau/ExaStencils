@@ -608,6 +608,7 @@ case class SIMD_LoadExpression(var mem : Expression, val aligned : Boolean) exte
       case "SSE3"         => out << "_mm_load" << alig << "_p" << prec << '('
       case "AVX" | "AVX2" => out << "_mm256_load" << alig << "_p" << prec << '('
       case "QPX"          => if (aligned) out << "vec_lda(0," else throw new InternalError("QPX does not support unaligned loads")
+      case "NEON"         => out << "vld1q_f32(" // TODO: only unaligned?
     }
     out << mem << ')'
   }
@@ -620,6 +621,7 @@ case class SIMD_Load1Expression(var mem : Expression) extends Expression {
       case "SSE3"         => out << "_mm_load1_p" << prec << '('
       case "AVX" | "AVX2" => out << "_mm256_broadcast_s" << prec << '('
       case "QPX"          => out << "vec_lds(0," // vec_ldsa is only for complex data types (two values)
+      case "NEON"         => out << "vld1q_dup_f32(" // TODO: only unaligned?
     }
     out << mem << ')'
   }
@@ -652,7 +654,8 @@ case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess,
           case 6 => out << "_mm256_shuffle_ps(_mm256_permute2f128_ps(" << left << ", " << right << ", 0x21), " << right << ", 0x4E)"
           case 7 => out << "_mm256_permute_ps(_mm256_blend_ps(_mm256_permute2f128_ps(" << left << ", " << right << ", 0x21), " << right << ", 0x77), 0x93)"
         }
-      case "QPX" => out << "vec_sldw(" << left << ", " << right << ", " << offset << ")"
+      case "QPX"  => out << "vec_sldw(" << left << ", " << right << ", " << offset << ")"
+      case "NEON" => out << "vextq_f32(" << left << ", " << right << ", " << offset << ")" // TODO: only single precision?
     }
   }
 }
@@ -664,6 +667,7 @@ case class SIMD_NegateExpresseion(var vect : Expression) extends Expression {
       case "SSE3"         => out << "_mm_xor_p" << prec << '(' << vect << ", _mm_set1_p" << prec << "(-0.f))"
       case "AVX" | "AVX2" => out << "_mm256_xor_p" << prec << '(' << vect << ", _mm256_set1_p" << prec << "(-0.f))"
       case "QPX"          => out << "vec_neg(" << vect << ')'
+      case "NEON"         => out << "vnegq_f32(" << vect << ')'
     }
   }
 }
@@ -675,6 +679,7 @@ case class SIMD_AdditionExpression(var left : Expression, var right : Expression
       case "SSE3"         => out << "_mm_add_p" << prec
       case "AVX" | "AVX2" => out << "_mm256_add_p" << prec
       case "QPX"          => out << "vec_add"
+      case "NEON"         => out << "vaddq_f32"
     }
     out << '(' << left << ", " << right << ')'
   }
@@ -687,6 +692,7 @@ case class SIMD_SubtractionExpression(var left : Expression, var right : Express
       case "SSE3"         => out << "_mm_sub_p" << prec
       case "AVX" | "AVX2" => out << "_mm256_sub_p" << prec
       case "QPX"          => out << "vec_sub"
+      case "NEON"         => out << "vsubq_f32"
     }
     out << '(' << left << ", " << right << ')'
   }
@@ -699,6 +705,7 @@ case class SIMD_MultiplicationExpression(var left : Expression, var right : Expr
       case "SSE3"         => out << "_mm_mul_p" << prec
       case "AVX" | "AVX2" => out << "_mm256_mul_p" << prec
       case "QPX"          => out << "vec_mul"
+      case "NEON"         => out << "vmulq_f32"
     }
     out << '(' << left << ", " << right << ')'
   }
@@ -728,6 +735,7 @@ private object FusedPrinterHelper {
       case "AVX"  => out << "_mm256_" << addSub << "_p" << prec << "(_mm256_mul_p" << prec << '(' << factor1 << ", " << factor2 << "), " << summand << ')'
       case "AVX2" => out << "_mm256_fm" << addSub << "_p" << prec << '(' << factor1 << ", " << factor2 << ", " << summand << ')'
       case "QPX"  => out << "vec_m" << addSub << '(' << factor1 << ", " << factor2 << ", " << summand << ')'
+      case "NEON" => out << "vfm" << addSub.charAt(0) << "q_f32(" << factor1 << ", " << factor2 << ", " << summand << ')'
     }
   }
 }
@@ -739,6 +747,7 @@ case class SIMD_DivisionExpression(var left : Expression, var right : Expression
       case "SSE3"         => out << "_mm_div_p" << prec
       case "AVX" | "AVX2" => out << "_mm256_div_p" << prec
       case "QPX"          => out << "vec_swdiv_nochk" // double precision division performed here, single precision would also be possible... what's better?
+      case "NEON"         => out << "vdivq_f32"
     }
     out << '(' << left << ", " << right << ')'
   }
@@ -751,6 +760,7 @@ case class SIMD_FloatConstant(var value : Double) extends Expression {
       case "SSE3"         => out << "_mm_set1_p" << prec
       case "AVX" | "AVX2" => out << "_mm256_set1_p" << prec
       case "QPX"          => out << "vec_splats"
+      case "NEON"         => out << "vdupq_n_f32"
     }
     out << '(' << value << ')' // this uses value.toString(), which is Locale-independent and the string can be parsed without a loss of precision later
   }
@@ -764,6 +774,7 @@ case class SIMD_Scalar2VectorExpression(var scalar : Expression) extends Express
       case "SSE3"         => out << "_mm_set1_p" << prec
       case "AVX" | "AVX2" => out << "_mm256_set1_p" << prec
       case "QPX"          => out << "vec_splats"
+      case "NEON"         => out << "vdupq_n_f32"
     }
     out << '(' << scalar << ')'
   }

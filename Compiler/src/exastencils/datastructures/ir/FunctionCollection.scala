@@ -13,20 +13,22 @@ class FunctionCollection(var baseName : String,
 
   def printHeader = {
     val writer = PrettyprintingManager.getPrinter(s"${baseName}.h")
-    for (inc <- internalDependencies) writer.addInternalDependency(inc)
-    for (inc <- externalDependencies) writer.addExternalDependency(inc)
+    for (inc <- internalDependencies)
+      writer.addInternalDependency(inc)
+    for (inc <- externalDependencies)
+      writer.addExternalDependency(inc)
 
     writer <<< "// template functions"
     for (func <- functions)
-      if (func.asInstanceOf[FunctionStatement].hasAnnotation("isTemplate"))
-        writer <<< func.prettyprint + ";"
+      if (func.hasAnnotation("isTemplate") || func.isHeaderOnly)
+        writer <<< func.prettyprint
 
     writer <<< "// ordinary functions"
     if (Knowledge.generateFortranInterface)
       writer <<< "extern \"C\" {"
 
     for (func <- functions)
-      if (!func.asInstanceOf[FunctionStatement].hasAnnotation("isTemplate"))
+      if (!func.hasAnnotation("isTemplate") && !func.isHeaderOnly)
         writer << func.asInstanceOf[FunctionStatement].prettyprint_decl
 
     if (Knowledge.generateFortranInterface)
@@ -34,18 +36,22 @@ class FunctionCollection(var baseName : String,
   }
 
   def printSources = {
-    for (f <- functions) {
-      if (!f.asInstanceOf[FunctionStatement].hasAnnotation("isTemplate")) {
+    for (f <- functions)
+      if (!f.hasAnnotation("isTemplate") && !f.isHeaderOnly) {
         val writer = PrettyprintingManager.getPrinter(s"${baseName}_${f.asInstanceOf[FunctionStatement].name}.cpp")
         writer.addInternalDependency(s"${baseName}.h")
 
         writer <<< f.prettyprint
       }
-    }
   }
 
   override def printToFile = {
-    functions = functions.sortBy(f => f.asInstanceOf[FunctionStatement].name)
+    functions = functions.sortBy({ f =>
+      f match {
+        case fs : FunctionStatement => fs.name
+        case _                      => ""
+      }
+    })
 
     printHeader
     printSources

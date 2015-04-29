@@ -148,7 +148,7 @@ case class BreakStatement() extends Statement {
   }
 }
 
-abstract class AbstractFunctionStatement() extends Statement {
+abstract class AbstractFunctionStatement(var isHeaderOnly : Boolean = false) extends Statement {
   def prettyprint_decl() : String
 }
 
@@ -183,10 +183,11 @@ case class SIMD_StoreStatement(var mem : Expression, var value : Expression, var
       case "SSE3"         => out << "_mm_store" << alig << "_p" << prec
       case "AVX" | "AVX2" => out << "_mm256_store" << alig << "_p" << prec
       case "QPX"          => out << (if (aligned) "vec_sta" else "NOT VALID ; unaligned store for QPX: ")
+      case "NEON"         => out << "vst1q_f32"
     }
     Knowledge.simd_instructionSet match {
-      case "SSE3" | "AVX" | "AVX2" => out << '(' << mem << ", " << value << ");"
-      case "QPX"                   => out << '(' << value << ", 0, " << mem << ");"
+      case "QPX" => out << '(' << value << ", 0, " << mem << ");"
+      case _     => out << '(' << mem << ", " << value << ");"
     }
   }
 }
@@ -220,7 +221,7 @@ case class SIMD_HorizontalAddStatement(var dest : Expression, var src : Expressi
         }
         out << '}'
 
-      case "QPX" =>
+      case "QPX" | "NEON" =>
         HorizontalPrinterHelper.prettyprint(out, dest, src, "add", "+=")
     }
   }
@@ -280,12 +281,22 @@ private object HorizontalPrinterHelper {
         out << " vector4double _v = " << src << ";\n"
         out << " _v = vec_" << redName << "(_v, vec_sldw(_v, _v, 2));\n"
         out << ' ' << RealDatatype() << " _r = (" << RealDatatype() << ") vec_extract(vec_" << redName << "(_v, vec_sldw(_v, _v, 1)), 0);\n"
+
+      case "NEON" =>
+        out << " float32x4_t _v = " << src << ";\n"
+        out << " float32x2_t _w = v" << redName << "q_f32(vget_high_f32(_v), vget_low_f32(_v));\n"
+        out << " float _r = vget_lane_f32(_w,1);\n"
+        out << " _r " << assOp
+        if (redFunc != null)
+          out << ' ' << redFunc << "(_r, vget_lane_f32(_w,2));\n"
+        else
+          out << " vget_lane_f32(_w,2);\n"
     }
     out << dest << ' ' << assOp
     if (redFunc != null)
       out << ' ' << redFunc << '(' << dest << ",_r);\n"
     else
-      out << "_r;\n"
+      out << " _r;\n"
     out << '}'
   }
 }
@@ -311,6 +322,13 @@ case class SIMD_IncrementVectorDeclaration(var name : String) extends Statement 
           out << i << ','
         out.removeLast()
         out << ");"
+
+      case "NEON" =>
+        out << ";\n"
+        out << "{\n"
+        out << " double _a[4] __attribute__((aligned(32))) = { 0, 1, 2, 3 };\n"
+        out << ' ' << name << " = vld1q_f32(_a);\n"
+        out << "}"
     }
   }
 }
