@@ -30,21 +30,21 @@ object Globals {
 
     if (Knowledge.l3tmp_kelvin) {
       // Dir BC
-      printer.println("\tVariable UN : Real = 1")
-      printer.println("\tVariable US : Real = 10")
-      printer.println("\tVariable UE : Real = 5")
-      printer.println("\tVariable UW : Real = 3")
+      printer.println("\tValue UN : Real = 1")
+      printer.println("\tValue US : Real = 10")
+      printer.println("\tValue UE : Real = 5")
+      printer.println("\tValue UW : Real = 3")
       // other parameters
-      printer.println("\tVariable alpha : Integer = 2")
-      printer.println("\tVariable sigma : Real = 0.3")
-      printer.println("\tVariable lambda : Real = 0.1")
-      printer.println("\tVariable nu : Real = 1 // alpha - dim/2")
-      printer.println("\tVariable kappa : Real = sqrt( 8 * nu ) / ( lambda )")
-      printer.println("\tVariable dim : Real = 2")
+      printer.println("\tValue alpha : Integer = 2")
+      printer.println("\tValue sigma : Real = 0.3")
+      printer.println("\tValue lambda : Real = 0.1")
+      printer.println("\tValue nu : Real = 1 // alpha - dim/2")
+      printer.println("\tValue kappa : Real = sqrt( 8 * nu ) / ( lambda )")
+      printer.println("\tValue dim : Real = 2")
     }
 
     if ("Kappa" == Knowledge.l3tmp_exactSolution || "Kappa_VC" == Knowledge.l3tmp_exactSolution) {
-      printer.println("\tVariable kappa : Real = 10.0")
+      printer.println("\tValue kappa : Real = 10.0")
     }
 
     printer.println("}")
