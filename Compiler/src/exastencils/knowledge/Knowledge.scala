@@ -175,7 +175,7 @@ object Knowledge {
     targetCompiler match {
       case "MSVC"            => true
       case "GCC"             => true
-      case "IBMXL" | "IBMBG" => false
+      case "IBMXL" | "IBMBG" => true // needs to be true since recently
       case _                 => Logger.error("Unsupported target compiler"); true
     }
   }
