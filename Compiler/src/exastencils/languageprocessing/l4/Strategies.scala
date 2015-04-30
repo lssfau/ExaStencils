@@ -41,6 +41,10 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
 
     // resolve values in expressions by replacing them with their expression => let SimplifyStrategy do the work
     this.register(valueCollector)
+    this.execute(new Transformation("Put Values into collector", {
+      case x : ValueDeclarationStatement => x
+    }))
+    
     this.execute(new Transformation("ResolveValuesInExpressions", {
       case x : UnresolvedAccess if (x.level == None && x.slot == None && x.arrayIndex == None) => {
         var value = valueCollector.getValue(x.name)
