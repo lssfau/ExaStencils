@@ -1,0 +1,54 @@
+targetCompiler				= "GCC"
+simd_instructionSet			= "NEON"
+timer_type					= "UNIX_TIME"
+
+targetHardware				= "ARM"
+
+dimensionality				= 3
+
+minLevel					= 2
+maxLevel					= 6
+comm_strategyFragment		= 6	// 26
+
+domain_onlyRectangular		= true
+domain_numBlocks			= 1
+domain_numFragmentsPerBlock	= 1
+domain_fragmentLength_x		= 3
+domain_fragmentLength_y		= 3
+domain_fragmentLength_z		= 3
+
+domain_rect_generate		= true
+domain_rect_numBlocks_x		= 1
+domain_rect_numBlocks_y		= 1
+domain_rect_numBlocks_z		= 1
+domain_rect_numFragsPerBlock_x	= 1
+domain_rect_numFragsPerBlock_y	= 1
+domain_rect_numFragsPerBlock_z	= 1
+
+omp_enabled					= true
+omp_numThreads				= 2
+
+mpi_enabled					= false
+mpi_numThreads				= 1
+
+omp_parallelizeLoopOverFragments	= false
+omp_parallelizeLoopOverDimensions	= true
+
+mpi_useCustomDatatypes		= true
+poly_optLevel_fine			= 3
+poly_numFinestLevels		= 3
+opt_useAddressPrecalc		= true
+opt_vectorize				= true
+opt_unroll					= 1
+poly_tileSize_x				= 128
+poly_tileSize_y				= 64
+
+l3tmp_generateL4			= true
+
+l3tmp_exactSolution			= "Kappa_VC"
+
+l3tmp_printError			= true
+l3tmp_useMaxNormForError	= false
+
+l3tmp_genTimersPerFunction	= true
+l3tmp_printTimersToFile		= true
