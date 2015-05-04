@@ -735,7 +735,7 @@ private object FusedPrinterHelper {
       case "AVX"  => out << "_mm256_" << addSub << "_p" << prec << "(_mm256_mul_p" << prec << '(' << factor1 << ", " << factor2 << "), " << summand << ')'
       case "AVX2" => out << "_mm256_fm" << addSub << "_p" << prec << '(' << factor1 << ", " << factor2 << ", " << summand << ')'
       case "QPX"  => out << "vec_m" << addSub << '(' << factor1 << ", " << factor2 << ", " << summand << ')'
-      case "NEON" => out << "vfm" << addSub.charAt(0) << "q_f32(" << factor1 << ", " << factor2 << ", " << summand << ')'
+      case "NEON" => out << "vml" << addSub.charAt(0) << "q_f32(" << factor1 << ", " << factor2 << ", " << summand << ')' // use unfused for compatibility with gcc 4.7 and older
     }
   }
 }
