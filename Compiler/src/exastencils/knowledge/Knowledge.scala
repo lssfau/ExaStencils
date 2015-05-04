@@ -105,7 +105,7 @@ object Knowledge {
   def domain_canHaveRemoteNeighs : Boolean = (domain_numBlocks > 1) // specifies if fragments can have remote (i.e.\ different mpi rank) neighbors, i.e.\ if mpi comm is required
 
   /// Student project - Jeremias
-  var domain_useCase : String = "" //atm only "L-Shape" in 2D possible;  needs to be specified in case of onlyRectangular,rect_generate = false
+  var domain_useCase : String = "" //atm only "L-Shape","X-Shape" in 2D possible;  needs to be specified in case of onlyRectangular,rect_generate = false
   var domain_generateDomainFile : Boolean = false
 
   // TODO: ignore for IDE support for now

@@ -14,8 +14,8 @@ class ParserDomainFile extends ExaParser {
 
   def parseHeader(filename : String) : Unit = {
     val file = io.Source.fromFile(filename)
-    val lines = file.getLines
-    val reader = new PagedSeqReader(PagedSeq.fromLines(lines.takeWhile { s => s != "DOMAINS" }.drop(2)))
+    val lines = file.getLines.dropWhile { s => s != "DATA" }.drop(1)
+    val reader = new PagedSeqReader(PagedSeq.fromLines(lines.takeWhile { s => s != "DOMAINS" }))
     val scanner = new lexical.Scanner(reader)
 
     parseHeaderTokens(scanner)
@@ -143,7 +143,7 @@ class ParserDomainFile extends ExaParser {
         tmpDomains.filter(f => f._2.asInstanceOf[List[String]].contains(blockIdent)).contains(domFil.identifier)
       }
       .map(m => m.index).to[ListBuffer]
-    FragmentCollection.fragments += new Fragment(localId, globalId, domainIds, faces, edges, vertices.toSeq.distinct.to[ListBuffer], ListBuffer.fill(Knowledge.dimensionality * 2)(-1), blockIdent.drop(1).toInt)
+    FragmentCollection.fragments += new Fragment(localId, globalId, domainIds, faces, edges, vertices.toSeq.distinct.to[ListBuffer], ListBuffer.fill(FragmentCollection.getNumberOfNeighbors)(-1), blockIdent.drop(1).toInt)
   }
 
   lazy val domainSettings = domain.*

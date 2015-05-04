@@ -3,7 +3,7 @@ targetCompilerVersion		= 4
 targetCompilerVersionMinor	= 8
 simd_instructionSet			= "SSE3"
 
-dimensionality				= 3
+dimensionality				= 2
 
 minLevel					= 0
 maxLevel					= 6
@@ -12,9 +12,22 @@ domain_readFromFile 		= true
 domain_onlyRectangular 		= false
 domain_rect_generate 		= false
 
+domain_generateDomainFile	= false
+
+domain_rect_numBlocks_x		= 2
+domain_rect_numBlocks_y		= 2
+domain_rect_numBlocks_z		= 1
+domain_numBlocks			= 4
+
+domain_rect_numFragsPerBlock_x	= 2
+domain_rect_numFragsPerBlock_y	= 2
+domain_rect_numFragsPerBlock_z	= 1
+domain_numFragmentsPerBlock	= 4
+
 comm_strategyFragment		= 26
 
 mpi_enabled					= true
+mpi_numThreads 				= 4
 
 omp_enabled					= true
 omp_numThreads				= 2
@@ -22,13 +35,14 @@ omp_numThreads				= 2
 l3tmp_generateL4 			= true
 l3tmp_genForAutoTests		= false
 l3tmp_printFieldAtEnd       = true
-l3tmp_printError			= true
 
-ir_maxInliningSize			= 5
+ir_maxInliningSize 			= 5
 
 l3tmp_exactSolution			= "Trigonometric"
 l3tmp_genCellBasedDiscr		= true
 l3tmp_genHDepStencils		= true
+
+l3tmp_printError			= true
 
 l3tmp_smoother				= "Jac"
 l3tmp_useSlotsForJac		= true
