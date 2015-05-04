@@ -4,6 +4,8 @@ timer_type					= "UNIX_TIME"
 
 targetHardware				= "ARM"
 
+useDblPrecision				= false
+
 dimensionality				= 3
 
 minLevel					= 2
