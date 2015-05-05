@@ -119,7 +119,7 @@ class DefaultStrategy(name : String) extends Strategy(name) {
     //    }
   }
 
-  protected override def executeInternal(transformation : Transformation, node : Option[Node] = None) : Unit = {
+  protected override def executeInternal(transformation : Transformation, node : Option[Node] = None) : TransformationResult = {
     Logger.info(s"""Applying strategy "${name}::${transformation.name}"""")
     if (Settings.timeStrategies)
       StrategyTimer.startTiming(name)
@@ -131,6 +131,7 @@ class DefaultStrategy(name : String) extends Strategy(name) {
       StrategyTimer.stopTiming(name)
     Logger.debug(s"""Result of strategy "${name}::${transformation.name}": $result""")
     results_ += ((transformation, result))
+    result
   }
 
   def applyStandalone(node : Node) : Unit = {
@@ -150,7 +151,7 @@ class DefaultStrategy(name : String) extends Strategy(name) {
     }
   }
 
-  protected def executeStandaloneInternal(transformation : Transformation, node : Node) : Unit = {
+  protected def executeStandaloneInternal(transformation : Transformation, node : Node) : TransformationResult = {
     Logger.info(s"""Applying strategy "${name}::${transformation.name}" in standalone mode""")
     if (Settings.timeStrategies)
       StrategyTimer.startTiming(name)
@@ -161,6 +162,7 @@ class DefaultStrategy(name : String) extends Strategy(name) {
       StrategyTimer.stopTiming(name)
     Logger.debug(s"""Result of strategy "${name}::${transformation.name}" in standalone mode: $result""")
     results_ += ((transformation, result))
+    result
   }
 }
 
