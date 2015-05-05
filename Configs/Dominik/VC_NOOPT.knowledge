@@ -5,19 +5,20 @@ timer_type					= "UNIX_TIME"
 targetHardware				= "ARM"
 
 useDblPrecision				= false
+l3tmp_targetResReduction	= 1e-3
 
 dimensionality				= 3
 
-minLevel					= 2
-maxLevel					= 6
+minLevel					= 3
+maxLevel					= 8
 comm_strategyFragment		= 6	// 26
 
 domain_onlyRectangular		= true
 domain_numBlocks			= 1
 domain_numFragmentsPerBlock	= 1
-domain_fragmentLength_x		= 3
-domain_fragmentLength_y		= 3
-domain_fragmentLength_z		= 3
+domain_fragmentLength_x		= 1
+domain_fragmentLength_y		= 1
+domain_fragmentLength_z		= 1
 
 domain_rect_generate		= true
 domain_rect_numBlocks_x		= 1
@@ -41,6 +42,8 @@ poly_optLevel_fine			= 0
 opt_useAddressPrecalc		= false
 opt_vectorize				= false
 opt_unroll					= 1
+poly_tileSize_x				= 128
+poly_tileSize_y				= 64
 
 l3tmp_generateL4			= true
 
