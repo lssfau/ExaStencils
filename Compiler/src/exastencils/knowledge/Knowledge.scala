@@ -264,6 +264,7 @@ object Knowledge {
   var l3tmp_genEmbeddedDomain : Boolean = false // adds a second domain to perform all computations on; the new domain is one fragment smaller on each boundary
   var l3tmp_useMaxNorm : Boolean = false // uses the maximum norm instead of the L2 norm when reducing the residual on the finest level
   var l3tmp_genCellBasedDiscr : Boolean = false // sets up a cell based discretization
+  var l3tmp_targetResReduction : Double = 0.0 // exit criterion for the solver loop as target reduction of the residual in the chosen norm
 
   /// optional features
   var l3tmp_printFieldAtEnd : Boolean = false // prints the solution field at the end of the application (or the mean solution in l3tmp_kelvin's case)
@@ -340,6 +341,14 @@ object Knowledge {
 
     if (l3tmp_generateL4) {
       // l3tmp - problem to solve
+      if (0.0 == l3tmp_targetResReduction) {
+        if (useDblPrecision)
+          Constraints.updateValue(l3tmp_targetResReduction, 1.0e-5)
+        else
+          Constraints.updateValue(l3tmp_targetResReduction, 1.0e-2)
+      }
+      Constraints.condEnsureValue(l3tmp_targetResReduction, 1.0 / l3tmp_targetResReduction, l3tmp_targetResReduction > 1.0, "l3tmp_targetResReduction must be smaller than 1")
+
       Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, experimental_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
       Constraints.condEnsureValue(l3tmp_exactSolution, "Trigonometric", experimental_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
       Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, "Polynomial" != l3tmp_exactSolution && "Kappa" != l3tmp_exactSolution && "Kappa_VC" != l3tmp_exactSolution && !experimental_Neumann, "non-trivial rhs are currently only supported for Polynomial and Kappa cases")
