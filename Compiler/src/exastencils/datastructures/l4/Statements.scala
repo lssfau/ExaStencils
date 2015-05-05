@@ -212,7 +212,7 @@ case class FunctionStatement(var identifier : Identifier,
   }
 }
 
-case class RepeatUpStatement(var number : Int,
+case class RepeatTimesStatement(var number : Int,
     var iterator : Option[Access],
     var contraction : Boolean,
     var statements : List[Statement]) extends Statement {

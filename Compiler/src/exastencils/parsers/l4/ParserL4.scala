@@ -145,7 +145,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ^^ { case id ~ dt ~ exp => ValueDeclarationStatement(id, dt, exp) }))
 
   lazy val repeatNTimes = locationize(("repeat" ~> numericLit <~ "times") ~ ("count" ~> (flatAccess ||| leveledAccess)).? ~ ("with" ~> "contraction").? ~ ("{" ~> statementInsideRepeat.+ <~ "}") ^^
-    { case n ~ i ~ c ~ s => RepeatUpStatement(n.toInt, i, c.isDefined, s) })
+    { case n ~ i ~ c ~ s => RepeatTimesStatement(n.toInt, i, c.isDefined, s) })
 
   lazy val repeatUntil = locationize((("repeat" ~ "until") ~> booleanexpression) ~ (("{" ~> statementInsideRepeat.+) <~ "}") ^^
     { case c ~ s => RepeatUntilStatement(c, s) })
