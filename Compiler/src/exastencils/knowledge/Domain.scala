@@ -22,10 +22,10 @@ case class IrregularDomain(
   var index : Int,
   var shape : IrregularDomainShape) extends Domain {}
 
-case class LShapedDomain(
+case class ShapedDomain(
   var identifier : String,
   var index : Int,
-  var shape : LShapedDomainShape) extends Domain {}
+  var shape : ShapedDomainShape) extends Domain {}
 
 case class FileInputGlobalDomain(
   var identifier : String,
@@ -53,10 +53,10 @@ object DomainCollection {
           case Some(n) => n.shape.asInstanceOf[List[FileInputDomain]].foreach { f => f.shape.asInstanceOf[FileInputDomainShape].initFragments() }
           case None    => Logger.error("There is no domain labeled \"global\"")
         }
-    } else if (Knowledge.domain_useCase == "L-Shape") {
+    } else if (Knowledge.domain_useCase != "") {
       domains
-        .find { d => d.identifier == "LShaped" } match {
-          case Some(n) => n.shape.asInstanceOf[LShapedDomainShape].initFragments()
+        .find { d => d.identifier != "global" } match {
+          case Some(n) => n.shape.asInstanceOf[ShapedDomainShape].initFragments()
           case None    => Logger.error("There is no domain labeled \"global\"")
         }
     } else {

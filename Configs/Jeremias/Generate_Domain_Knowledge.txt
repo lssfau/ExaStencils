@@ -9,11 +9,10 @@ minLevel					= 0
 maxLevel					= 6
 
 domain_readFromFile 		= false
-domain_onlyRectangular 		= false
-domain_rect_generate 		= false
+domain_onlyRectangular 		= true
+domain_rect_generate 		= true
 
-domain_useCase 				= "2-L-Shape"
-domain_generateDomainFile	= true
+domain_generateDomainFile	= false
 
 domain_rect_numBlocks_x		= 2
 domain_rect_numBlocks_y		= 2
@@ -25,6 +24,8 @@ domain_rect_numFragsPerBlock_y	= 2
 domain_rect_numFragsPerBlock_z	= 1
 domain_numFragmentsPerBlock	= 4
 
+comm_strategyFragment		= 26
+
 mpi_enabled					= true
 mpi_numThreads 				= 4
 
@@ -33,7 +34,7 @@ omp_numThreads				= 2
 
 l3tmp_generateL4 			= true
 l3tmp_genForAutoTests		= false
-l3tmp_printFieldAtEnd       = true
+l3tmp_printFieldAtEnd       = false
 
 ir_maxInliningSize 			= 5
 

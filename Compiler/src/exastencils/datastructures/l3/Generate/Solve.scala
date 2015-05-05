@@ -21,12 +21,7 @@ object Solve {
     if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
       printer.println("\tstartTimer ( 'timeToSolve' )")
     printer.println("\tVariable numIt : Integer = 0")
-    val targetReduction = (
-      if (Knowledge.experimental_Neumann)
-        (if (Knowledge.useDblPrecision) "1.0e-5" else "1.0e-2")
-      else
-        (if (Knowledge.useDblPrecision) "1.0e-5" else "1.0e-2"))
-    printer.println(s"\trepeat until (res_0 < ( $targetReduction * resStart_0 ) && numIt < 100) {")
+    printer.println(s"\trepeat until (res_0 < ( ${Knowledge.l3tmp_targetResReduction} * resStart_0 ) && numIt < 100) {")
     printer.println("\t\tnumIt += 1")
     if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
       printer.println("\t\tstartTimer ( 'cycle' )")

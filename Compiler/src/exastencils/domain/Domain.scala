@@ -323,7 +323,7 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
       AssignmentStatement(iv.PrimitivePosition(), s"fragPos") //                  VariableDeclarationStatement(IntegerDatatype(),"numNeigbours",Some(FunctionCallExpression("readValue<int>",ListBuffer("data")))),
       ))
     for (d <- 0 until DomainCollection.domains.size) {
-      body += ForLoopStatement("int location = 0", "location <" ~ Knowledge.dimensionality * 2, "++location", ListBuffer(
+      body += ForLoopStatement("int location = 0", s" location < ${FragmentCollection.getNumberOfNeighbors()} ", "++location", ListBuffer(
         ConditionStatement(ReadValueFrom(BooleanDatatype(), "data"),
           ListBuffer( //neighbor is valid
             ConditionStatement(ReadValueFrom(BooleanDatatype(), "data"),

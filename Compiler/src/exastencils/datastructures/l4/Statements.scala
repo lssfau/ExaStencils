@@ -57,7 +57,7 @@ case class DomainDeclarationStatement(var name : String, var lower : Any, var up
                   case (li : RealIndex2D, ui : RealIndex2D) =>
                     new RectangularDomainShape(new AABB(li.x, ui.x, li.y, ui.y, 0.0, 0.0))
                 }
-              new knowledge.LShapedDomain(name, index, new LShapedDomainShape(rectUnionDomains))
+              new knowledge.ShapedDomain(name, index, new ShapedDomainShape(rectUnionDomains))
             }
           }
         }

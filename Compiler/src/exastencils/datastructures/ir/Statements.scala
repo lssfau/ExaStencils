@@ -284,13 +284,13 @@ private object HorizontalPrinterHelper {
 
       case "NEON" =>
         out << " float32x4_t _v = " << src << ";\n"
-        out << " float32x2_t _w = v" << redName << "q_f32(vget_high_f32(_v), vget_low_f32(_v));\n"
-        out << " float _r = vget_lane_f32(_w,1);\n"
+        out << " float32x2_t _w = v" << redName << "_f32(vget_high_f32(_v), vget_low_f32(_v));\n"
+        out << " float _r = vget_lane_f32(_w,0);\n"
         out << " _r " << assOp
         if (redFunc != null)
-          out << ' ' << redFunc << "(_r, vget_lane_f32(_w,2));\n"
+          out << ' ' << redFunc << "(_r, vget_lane_f32(_w,1));\n"
         else
-          out << " vget_lane_f32(_w,2);\n"
+          out << " vget_lane_f32(_w,1);\n"
     }
     out << dest << ' ' << assOp
     if (redFunc != null)

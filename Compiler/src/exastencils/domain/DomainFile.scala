@@ -35,7 +35,8 @@ object DomainFileHeader {
 
 object DomainFileWriter extends BuildfileGenerator {
   override def write = {
-    val domains = DomainCollection.domains.filter { f => f.identifier != "global" }
+    val domains = if (Knowledge.domain_useCase != "") DomainCollection.domains.filter { f => f.identifier != "global" } else DomainCollection.domains
+    val fragments = if (Knowledge.domain_useCase != "") FragmentCollection.fragments.filter { f => f.domainIds.exists { d => d != 0 } } else FragmentCollection.fragments
 
     val printer = PrettyprintingManager.getPrinter("DomainDefinition.cfg")
 
@@ -53,18 +54,19 @@ object DomainFileWriter extends BuildfileGenerator {
 
     printer <<< "DOMAINS"
     for (d <- domains) {
-      printer <<< d.identifier + " = (" + FragmentCollection.fragments.filter { f => f.rank >= 0 }
+      printer <<< d.identifier + " = (" + fragments.filter { f => f.rank >= 0 }
         .filter { f => f.domainIds.contains(d.index) }
         .groupBy { g => g.rank }.keySet.map { m => "b" + m.toString() }.mkString(",") + ")"
     }
 
     printer <<< "BLOCKS"
-    for (b <- FragmentCollection.fragments.filter { f => f.rank >= 0 }.groupBy { g => g.rank }) {
+    for (b <- fragments.filter { f => f.rank >= 0 }.groupBy { g => g.rank }) {
       printer <<< "b" + b._1.toString + " = (" + b._2.map(m => "f" + m.globalId).mkString(",") + " )"
     }
 
     printer <<< "FRAGMENTS"
-    for (f <- FragmentCollection.fragments.filter { f => f.rank >= 0 }) {
+    val t = fragments.filter { f => f.rank >= 0 }
+    for (f <- fragments.filter { f => f.rank >= 0 }) {
       printer <<< "f" + f.globalId.toString + " = " + "(" + f.faces.map {
         fa =>
           "(" + fa.Edges.map {
