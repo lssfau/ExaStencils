@@ -290,7 +290,7 @@ private object HorizontalPrinterHelper {
         if (redFunc != null)
           out << ' ' << redFunc << "(_r, vget_lane_f32(_w,1));\n"
         else
-          out << " vget_lane_f32(_w,2);\n"
+          out << " vget_lane_f32(_w,1);\n"
     }
     out << dest << ' ' << assOp
     if (redFunc != null)
