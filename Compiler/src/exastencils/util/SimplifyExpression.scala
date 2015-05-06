@@ -511,11 +511,7 @@ object SimplifyExpression {
     }
 
     if (const.isDefined && const.get != 0d)
-      res =
-        if (const.get > 0d)
-          AdditionExpression(res, FloatConstant(const.get))
-        else
-          SubtractionExpression(res, FloatConstant(-const.get))
+      res = AdditionExpression(res, FloatConstant(const.get))
 
     return res
   }

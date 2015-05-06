@@ -326,7 +326,7 @@ case class SIMD_IncrementVectorDeclaration(var name : String) extends Statement 
       case "NEON" =>
         out << ";\n"
         out << "{\n"
-        out << " double _a[4] __attribute__((aligned(32))) = { 0, 1, 2, 3 };\n"
+        out << " float _a[4] = { 0, 1, 2, 3 };\n"
         out << ' ' << name << " = vld1q_f32(_a);\n"
         out << "}"
     }

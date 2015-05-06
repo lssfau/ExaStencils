@@ -442,7 +442,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         VariableAccess(vecTmp, Some(SIMD_RealDatatype()))
 
       case UnaryExpression(UnaryOperators.Negative, expr) =>
-        SIMD_NegateExpresseion(vectorizeExpr(expr, ctx))
+        SIMD_NegateExpression(vectorizeExpr(expr, ctx))
 
       case AdditionExpression(MultiplicationExpression(factor1, factor2), summand) =>
         SIMD_MultiplyAddExpression(vectorizeExpr(factor1, ctx), vectorizeExpr(factor2, ctx), vectorizeExpr(summand, ctx))

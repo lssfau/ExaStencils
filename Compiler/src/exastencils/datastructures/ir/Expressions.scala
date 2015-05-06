@@ -660,7 +660,7 @@ case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess,
   }
 }
 
-case class SIMD_NegateExpresseion(var vect : Expression) extends Expression {
+case class SIMD_NegateExpression(var vect : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Knowledge.simd_instructionSet match {
@@ -735,7 +735,11 @@ private object FusedPrinterHelper {
       case "AVX"  => out << "_mm256_" << addSub << "_p" << prec << "(_mm256_mul_p" << prec << '(' << factor1 << ", " << factor2 << "), " << summand << ')'
       case "AVX2" => out << "_mm256_fm" << addSub << "_p" << prec << '(' << factor1 << ", " << factor2 << ", " << summand << ')'
       case "QPX"  => out << "vec_m" << addSub << '(' << factor1 << ", " << factor2 << ", " << summand << ')'
-      case "NEON" => out << "vml" << addSub.charAt(0) << "q_f32(" << factor1 << ", " << factor2 << ", " << summand << ')' // use unfused for compatibility with gcc 4.7 and older
+      case "NEON" =>
+        if (addSub == "add")
+          out << "vmlaq_f32(" << summand << ", " << factor1 << ", " << factor2 << ')' // use unfused for compatibility with gcc 4.7 and older
+        else // vmlsq_f32(a,b,c) is a-b*c and not a*b-c; thanks ARM  -.-
+          out << "vsubq_f32(vmulq_f32(" << factor1 << ", " << factor2 << "), " << summand << ')'
     }
   }
 }
@@ -767,7 +771,6 @@ case class SIMD_FloatConstant(var value : Double) extends Expression {
 }
 
 case class SIMD_Scalar2VectorExpression(var scalar : Expression) extends Expression {
-
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Knowledge.simd_instructionSet match {
