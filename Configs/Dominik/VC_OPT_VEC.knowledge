@@ -1,6 +1,6 @@
 targetCompiler				= "GCC"
 simd_instructionSet			= "NEON"
-timer_type					= "UNIX_TIME"
+timer_type					= "Chrono"
 
 targetHardware				= "ARM"
 
