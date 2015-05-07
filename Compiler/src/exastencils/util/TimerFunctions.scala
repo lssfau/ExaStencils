@@ -227,7 +227,7 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
     var statements : ListBuffer[Statement] = ListBuffer()
 
     var it = 0
-    for (timer <- timers) {
+    for (timer <- timers.toList.sortBy(_._1)) {
       statements += AssignmentStatement(ArrayAccess("timesToPrint", it), FunctionCallExpression("getTotalTime", ListBuffer(timer._2.resolveName)))
       it += 1
       statements += AssignmentStatement(ArrayAccess("timesToPrint", it), FunctionCallExpression("getMeanTime", ListBuffer(timer._2.resolveName)))
