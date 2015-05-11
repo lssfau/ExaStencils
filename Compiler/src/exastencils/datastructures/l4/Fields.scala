@@ -10,7 +10,7 @@ case class LayoutOption(var name : String, var value : Index, var hasCommunicati
 case class LayoutDeclarationStatement(
     var identifier : Identifier,
     var datatype : Datatype,
-    var nodeBased : Boolean,
+    var discretization : String,
     var ghostLayers : Option[Index] = None,
     var ghostLayersCommunication : Option[Boolean] = None,
     var duplicateLayers : Option[Index] = None,
@@ -37,8 +37,19 @@ case class LayoutDeclarationStatement(
   }
   var l4_ghostLayers : Index = default_ghostLayers
   var default_duplicateLayers : Index = knowledge.Knowledge.dimensionality match {
-    case 2 => if (nodeBased) Index2D(1, 1) else Index2D(0, 0)
-    case 3 => if (nodeBased) Index3D(1, 1, 1) else Index3D(0, 0, 0)
+    case 2 => discretization match {
+      case "node"   => Index2D(1, 1)
+      case "cell"   => Index2D(0, 0)
+      case "face_x" => Index2D(1, 0)
+      case "face_y" => Index2D(0, 1)
+    }
+    case 3 => discretization match {
+      case "node"   => Index3D(1, 1, 1)
+      case "cell"   => Index3D(0, 0, 0)
+      case "face_x" => Index3D(1, 0, 0)
+      case "face_y" => Index3D(0, 1, 0)
+      case "face_z" => Index3D(0, 0, 1)
+    }
   }
   var l4_duplicateLayers : Index = default_duplicateLayers
   var default_innerPoints : Index = knowledge.Knowledge.dimensionality match {
@@ -69,25 +80,41 @@ case class LayoutDeclarationStatement(
     l4_duplicateLayers = duplicateLayers.getOrElse(new Index3D(1, 1, 1))
 
     default_innerPoints = knowledge.Knowledge.dimensionality match {
-      case 2 => if (nodeBased) {
-        new Index2D(
+      case 2 => discretization match {
+        case "node" => new Index2D(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1))
-      } else {
-        new Index2D(
+        case "cell" => new Index2D(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * l4_duplicateLayers(1))
+        case "face_x" => new Index2D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * l4_duplicateLayers(1))
+        case "face_y" => new Index2D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1))
       }
-      case 3 => if (nodeBased) {
-        new Index3D(
+      case 3 => discretization match {
+        case "node" => new Index3D(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 1) - 2 * l4_duplicateLayers(2))
-      } else {
-        new Index3D(
+        case "cell" => new Index3D(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * l4_duplicateLayers(1),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 0) - 2 * l4_duplicateLayers(2))
+        case "face_x" => new Index3D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * l4_duplicateLayers(1),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 0) - 2 * l4_duplicateLayers(2))
+        case "face_y" => new Index3D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 0) - 2 * l4_duplicateLayers(2))
+        case "face_z" => new Index3D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * l4_duplicateLayers(1),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 1) - 2 * l4_duplicateLayers(2))
       }
     }
     l4_innerPoints = innerPoints.getOrElse(default_innerPoints)
@@ -128,7 +155,7 @@ case class LayoutDeclarationStatement(
       s"${identifier.name}_$targetFieldName",
       level,
       datatype.progressToIr,
-      nodeBased,
+      discretization,
       layouts,
       refOffset,
       l4_dupComm,

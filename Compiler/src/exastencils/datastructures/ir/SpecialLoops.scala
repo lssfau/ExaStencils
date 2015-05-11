@@ -154,15 +154,20 @@ case class LoopOverPointsInOneFragment(var domain : Int,
   def expandSpecial : Output[Statement] = {
     var start = new MultiIndex()
     var stop = new MultiIndex()
-    if (field.fieldLayout.nodeBased) {
-      for (i <- 0 until Knowledge.dimensionality) {
-        start(i) = OffsetIndex(0, 1, field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), i))
-        stop(i) = OffsetIndex(-1, 0, field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), i))
-      }
-    } else {
-      for (i <- 0 until Knowledge.dimensionality) {
-        start(i) = field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i)
-        stop(i) = field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i)
+    for (i <- 0 until Knowledge.dimensionality) {
+      field.fieldLayout.discretization match {
+        case d if "node" == d
+          || ("face_x" == d && 0 == i)
+          || ("face_y" == d && 1 == i)
+          || ("face_z" == d && 2 == i) =>
+          start(i) = OffsetIndex(0, 1, field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), i))
+          stop(i) = OffsetIndex(-1, 0, field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), i))
+        case d if "cell" == d
+          || ("face_x" == d && 0 != i)
+          || ("face_y" == d && 1 != i)
+          || ("face_z" == d && 2 != i) =>
+          start(i) = field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i)
+          stop(i) = field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i)
       }
     }
 
