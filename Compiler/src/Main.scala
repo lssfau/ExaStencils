@@ -1,5 +1,3 @@
-import java.util.Locale
-
 import exastencils.communication._
 import exastencils.core._
 import exastencils.data._

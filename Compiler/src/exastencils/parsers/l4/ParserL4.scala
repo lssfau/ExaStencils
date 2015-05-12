@@ -273,16 +273,20 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ^^ { case id ~ slot ~ level ~ arrayIndex => FieldAccess(id, level, slot.getOrElse(SlotModifier.Active()), arrayIndex) })
 
   lazy val flatAccess = locationize(ident
-    ^^ { case id => UnresolvedAccess(id, None, None, None, None) })
+    ^^ { case id => UnresolvedAccess(id, None, None, None, None, None) })
   lazy val leveledAccess = locationize(ident ~ levelAccess
-    ^^ { case id ~ level => UnresolvedAccess(id, Some(level), None, None, None) })
-  lazy val fieldLikeAccess = locationize(ident ~ slotAccess.? ~ levelAccess ~ ("[" ~> integerLit <~ "]").? ~ (":" ~> expressionIndex).?
-    ^^ { case id ~ slot ~ level ~ arrayIndex ~ offset => UnresolvedAccess(id, Some(level), slot, arrayIndex, offset) })
+    ^^ { case id ~ level => UnresolvedAccess(id, None, Some(level), None, None, None) })
+  lazy val fieldLikeAccess = locationize(ident ~ slotAccess.? ~ levelAccess ~ ("[" ~> integerLit <~ "]").? ~ ("@" ~> expressionIndex).?
+    ^^ { case id ~ slot ~ level ~ arrayIndex ~ offset => UnresolvedAccess(id, slot, Some(level), offset, arrayIndex, None) })
   lazy val stencilLikeAccess = locationize(ident ~ levelAccess ~ (":" ~> expressionIndex).?
-    ^^ { case id ~ level ~ offset => UnresolvedAccess(id, Some(level), None, None, offset) })
+    ^^ { case id ~ level ~ dirAccess => UnresolvedAccess(id, None, Some(level), None, None, dirAccess) })
 
-  lazy val genericAccess = locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("[" ~> integerLit <~ "]").? ~ (":" ~> expressionIndex).?
-    ^^ { case id ~ slot ~ level ~ arrayIndex ~ offset => UnresolvedAccess(id, level, slot, arrayIndex, offset) })
+  // 		VelUStencil[0]@current@[-1, 0]:[0, 0]
+  lazy val genericAccess = (
+    locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> expressionIndex).? ~ ("[" ~> integerLit <~ "]").?
+      ^^ { case id ~ slot ~ level ~ offset ~ arrayIndex => UnresolvedAccess(id, slot, level, offset, arrayIndex, None) })
+    ||| locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> expressionIndex).? ~ (":" ~> expressionIndex).?
+      ^^ { case id ~ slot ~ level ~ offset ~ dirAccess => UnresolvedAccess(id, slot, level, offset, None, dirAccess) }))
 
   // ######################################
   // ##### Expressions

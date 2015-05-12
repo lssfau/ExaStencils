@@ -439,7 +439,7 @@ object Knowledge {
 
     Constraints.condEnsureValue(ir_genSepLayoutsPerField, true, opt_useColorSplitting, "color splitting requires separate field layouts")
 
-    // timer configuration    
+    // timer configuration
     Constraints.condEnsureValue(timer_type, "Chrono", !mpi_enabled && "MPI_TIME" == timer_type, "MPI_TIME is not supported for codes generated without MPI")
     Constraints.condEnsureValue(timer_type, "Chrono", "QPC" == timer_type && "MSVC" != targetCompiler, "QPC is only supported for windows")
     Constraints.condEnsureValue(timer_type, "WINDOWS_RDSC", "RDSC" == timer_type && "MSVC" == targetCompiler, "WINDOWS_RDSC is required for windows systems")
