@@ -194,7 +194,7 @@ case class StencilFieldAccess(var name : String,
     if (arrayIndex.isDefined)
       accessIndex = arrayIndex.get
     else if (dirAccess.isDefined)
-      accessIndex = stencilField.stencil.findStencilEntryIndex(offset.get.progressToIr).get
+      accessIndex = stencilField.stencil.findStencilEntryIndex(dirAccess.get.progressToIr).get
 
     if (accessIndex < 0) {
       multiIndex(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(0)

@@ -167,8 +167,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     })
   lazy val reductionClause = locationize((("reduction" ~ "(") ~> (ident ||| "+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => ReductionStatement(op, s) })
 
-  lazy val assignment = locationize((flatAccess ||| fieldLikeAccess) ~ "=" ~ (binaryexpression ||| booleanexpression) ^^ { case id ~ op ~ exp => AssignmentStatement(id, exp, op) })
-  lazy val operatorassignment = locationize((flatAccess ||| fieldLikeAccess) ~ ("+=" ||| "-=" ||| "*=" ||| "/=") ~ binaryexpression
+  lazy val assignment = locationize(genericAccess ~ "=" ~ (binaryexpression ||| booleanexpression) ^^ { case id ~ op ~ exp => AssignmentStatement(id, exp, op) })
+  lazy val operatorassignment = locationize(genericAccess ~ ("+=" ||| "-=" ||| "*=" ||| "/=") ~ binaryexpression
     ^^ { case id ~ op ~ exp => AssignmentStatement(id, exp, op) })
 
   lazy val conditional : PackratParser[ConditionalStatement] = (
@@ -276,12 +276,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ^^ { case id => UnresolvedAccess(id, None, None, None, None, None) })
   lazy val leveledAccess = locationize(ident ~ levelAccess
     ^^ { case id ~ level => UnresolvedAccess(id, None, Some(level), None, None, None) })
-  lazy val fieldLikeAccess = locationize(ident ~ slotAccess.? ~ levelAccess ~ ("[" ~> integerLit <~ "]").? ~ ("@" ~> expressionIndex).?
-    ^^ { case id ~ slot ~ level ~ arrayIndex ~ offset => UnresolvedAccess(id, slot, Some(level), offset, arrayIndex, None) })
-  lazy val stencilLikeAccess = locationize(ident ~ levelAccess ~ (":" ~> expressionIndex).?
-    ^^ { case id ~ level ~ dirAccess => UnresolvedAccess(id, None, Some(level), None, None, dirAccess) })
 
-  // 		VelUStencil[0]@current@[-1, 0]:[0, 0]
   lazy val genericAccess = (
     locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> expressionIndex).? ~ ("[" ~> integerLit <~ "]").?
       ^^ { case id ~ slot ~ level ~ offset ~ arrayIndex => UnresolvedAccess(id, slot, level, offset, arrayIndex, None) })
