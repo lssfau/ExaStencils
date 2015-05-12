@@ -25,9 +25,9 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
         case "node"   => statements += new InitGeomCoords(field.field, true)
         // FIXME: check boundary handling for 26p comm and non-node discr
         case "cell"   => statements += new InitGeomCoords(field.field, true, new MultiIndex((neigh.dir ++ Array(0)).map(i => 0.5 * i)))
-        case "face_x" => statements += new InitGeomCoords(field.field, true, new MultiIndex((neigh.dir ++ Array(0)).map(i => if (0 == i) 0.0 else 0.5 * i)))
-        case "face_y" => statements += new InitGeomCoords(field.field, true, new MultiIndex((neigh.dir ++ Array(0)).map(i => if (1 == i) 0.0 else 0.5 * i)))
-        case "face_z" => statements += new InitGeomCoords(field.field, true, new MultiIndex((neigh.dir ++ Array(0)).map(i => if (2 == i) 0.0 else 0.5 * i)))
+        case "face_x" => statements += new InitGeomCoords(field.field, true, { var off = new MultiIndex((neigh.dir ++ Array(0)).map(i => 0.5 * i)); off(0) = 0.0; off })
+        case "face_y" => statements += new InitGeomCoords(field.field, true, { var off = new MultiIndex((neigh.dir ++ Array(0)).map(i => 0.5 * i)); off(1) = 0.0; off })
+        case "face_z" => statements += new InitGeomCoords(field.field, true, { var off = new MultiIndex((neigh.dir ++ Array(0)).map(i => 0.5 * i)); off(2) = 0.0; off })
       }
     }
 
