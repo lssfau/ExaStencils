@@ -10,7 +10,7 @@ case class LayoutOption(var name : String, var value : Index, var hasCommunicati
 case class LayoutDeclarationStatement(
     var identifier : Identifier,
     var datatype : Datatype,
-    var nodeBased : Boolean,
+    var discretization : String,
     var ghostLayers : Option[Index] = None,
     var ghostLayersCommunication : Option[Boolean] = None,
     var duplicateLayers : Option[Index] = None,
@@ -35,22 +35,28 @@ case class LayoutDeclarationStatement(
     case 2 => Index2D(1, 1)
     case 3 => Index3D(1, 1, 1)
   }
-  var l4_ghostLayers : Index = default_ghostLayers
   var default_duplicateLayers : Index = knowledge.Knowledge.dimensionality match {
-    case 2 => if (nodeBased) Index2D(1, 1) else Index2D(0, 0)
-    case 3 => if (nodeBased) Index3D(1, 1, 1) else Index3D(0, 0, 0)
+    case 2 => discretization match {
+      case "node"   => Index2D(1, 1)
+      case "cell"   => Index2D(0, 0)
+      case "face_x" => Index2D(1, 0)
+      case "face_y" => Index2D(0, 1)
+    }
+    case 3 => discretization match {
+      case "node"   => Index3D(1, 1, 1)
+      case "cell"   => Index3D(0, 0, 0)
+      case "face_x" => Index3D(1, 0, 0)
+      case "face_y" => Index3D(0, 1, 0)
+      case "face_z" => Index3D(0, 0, 1)
+    }
   }
-  var l4_duplicateLayers : Index = default_duplicateLayers
   var default_innerPoints : Index = knowledge.Knowledge.dimensionality match {
     // needs to be overwritten later
     case 2 => Index2D(1, 1)
     case 3 => Index3D(1, 1, 1)
   }
-  var l4_innerPoints : Index = default_innerPoints
   var default_ghostComm : Boolean = false
-  var l4_ghostComm : Boolean = default_ghostComm
   var default_dupComm : Boolean = false
-  var l4_dupComm : Boolean = default_dupComm
 
   def prettyprint(out : PpStream) = {
     out << "Layout " << identifier.name << "< " << datatype << " >" << '@' << identifier.asInstanceOf[LeveledIdentifier].level << " {\n"
@@ -65,35 +71,51 @@ case class LayoutDeclarationStatement(
   def progressToIr(targetFieldName : String) : knowledge.FieldLayout = {
     val level = identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level
 
-    l4_ghostLayers = ghostLayers.getOrElse(default_ghostLayers)
-    l4_duplicateLayers = duplicateLayers.getOrElse(new Index3D(1, 1, 1))
+    var l4_ghostLayers : Index = ghostLayers.getOrElse(default_ghostLayers)
+    var l4_duplicateLayers : Index = duplicateLayers.getOrElse(default_duplicateLayers)
 
     default_innerPoints = knowledge.Knowledge.dimensionality match {
-      case 2 => if (nodeBased) {
-        new Index2D(
+      case 2 => discretization match {
+        case "node" => new Index2D(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1))
-      } else {
-        new Index2D(
+        case "cell" => new Index2D(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * l4_duplicateLayers(1))
+        case "face_x" => new Index2D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * l4_duplicateLayers(1))
+        case "face_y" => new Index2D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1))
       }
-      case 3 => if (nodeBased) {
-        new Index3D(
+      case 3 => discretization match {
+        case "node" => new Index3D(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 1) - 2 * l4_duplicateLayers(2))
-      } else {
-        new Index3D(
+        case "cell" => new Index3D(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * l4_duplicateLayers(1),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 0) - 2 * l4_duplicateLayers(2))
+        case "face_x" => new Index3D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * l4_duplicateLayers(1),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 0) - 2 * l4_duplicateLayers(2))
+        case "face_y" => new Index3D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 0) - 2 * l4_duplicateLayers(2))
+        case "face_z" => new Index3D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * l4_duplicateLayers(1),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 1) - 2 * l4_duplicateLayers(2))
       }
     }
-    l4_innerPoints = innerPoints.getOrElse(default_innerPoints)
+    var l4_innerPoints : Index = innerPoints.getOrElse(default_innerPoints)
 
-    l4_ghostComm = ghostLayersCommunication.getOrElse(default_ghostComm)
-    l4_dupComm = duplicateLayersCommunication.getOrElse(default_dupComm)
+    var l4_ghostComm = ghostLayersCommunication.getOrElse(default_ghostComm)
+    var l4_dupComm = duplicateLayersCommunication.getOrElse(default_dupComm)
 
     var layouts : Array[knowledge.FieldLayoutPerDim] =
       knowledge.DimArray().map(dim => new knowledge.FieldLayoutPerDim(
@@ -128,7 +150,7 @@ case class LayoutDeclarationStatement(
       s"${identifier.name}_$targetFieldName",
       level,
       datatype.progressToIr,
-      nodeBased,
+      discretization,
       layouts,
       refOffset,
       l4_dupComm,

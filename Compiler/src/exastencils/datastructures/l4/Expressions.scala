@@ -51,21 +51,27 @@ abstract class Access() extends Expression {
   var name : String
 }
 
-case class UnresolvedAccess(var name : String, var level : Option[AccessLevelSpecification], var slot : Option[SlotModifier], var arrayIndex : Option[Int], var offset : Option[ExpressionIndex]) extends Access {
+case class UnresolvedAccess(var name : String,
+    var slot : Option[SlotModifier],
+    var level : Option[AccessLevelSpecification],
+    var offset : Option[ExpressionIndex],
+    var arrayIndex : Option[Int],
+    var dirAccess : Option[ExpressionIndex]) extends Access {
   def prettyprint(out : PpStream) = {
     out << name
     if (slot.isDefined) out << '[' << slot.get << ']'
     if (level.isDefined) out << '@' << level.get
+    if (offset.isDefined) out << '@' << offset.get
     if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
-    if (offset.isDefined) out << ':' << offset.get
+    if (dirAccess.isDefined) out << ':' << dirAccess
   }
 
   def progressToIr : ir.StringConstant = ir.StringConstant("ERROR - Unresolved Access")
 
   def resolveToBasicOrLeveledAccess = if (level.isDefined) LeveledAccess(name, level.get) else BasicAccess(name)
   def resolveToFieldAccess = FieldAccess(name, level.get, slot.getOrElse(SlotModifier.Active()), arrayIndex, offset)
-  def resolveToStencilAccess = StencilAccess(name, level.get, arrayIndex, offset)
-  def resolveToStencilFieldAccess = StencilFieldAccess(name, level.get, slot.getOrElse(SlotModifier.Active()), arrayIndex, offset)
+  def resolveToStencilAccess = StencilAccess(name, level.get, arrayIndex, dirAccess)
+  def resolveToStencilFieldAccess = StencilFieldAccess(name, level.get, slot.getOrElse(SlotModifier.Active()), arrayIndex, offset, dirAccess)
 }
 
 case class BasicAccess(var name : String) extends Access {
@@ -78,12 +84,7 @@ case class LeveledAccess(var name : String, var level : AccessLevelSpecification
   def prettyprint(out : PpStream) = { out << name << '[' << level << ']' }
 
   def progressToIr : ir.Expression = {
-    if ("levels" == name) // TODO: incorporate this into the parser?
-      ir.IntegerConstant(level.asInstanceOf[SingleLevelSpecification].level)
-    else if ("levelStrings" == name)
-      ir.StringConstant(level.asInstanceOf[SingleLevelSpecification].level.toString)
-    else
-      ir.StringConstant(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
+    ir.StringConstant(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
   }
 }
 
@@ -125,72 +126,83 @@ object FieldAccess {
   }
 }
 
-case class StencilAccess(var name : String, var level : AccessLevelSpecification, var arrayIndex : Option[Int] = None, var offset : Option[ExpressionIndex] = None) extends Access {
+case class StencilAccess(var name : String, var level : AccessLevelSpecification, var arrayIndex : Option[Int] = None, var dirAccess : Option[ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     out << name << '@' << level
-    if (offset.isDefined) out << ":" << offset
+    if (dirAccess.isDefined) out << ":" << dirAccess
   }
 
   def getBasicStencilAccess : ir.StencilAccess = {
-    if (arrayIndex.isDefined || offset.isDefined)
+    if (arrayIndex.isDefined || dirAccess.isDefined)
       Logger.warn(s"Discarding modifiers of access to stencil $name on level ${level.asInstanceOf[SingleLevelSpecification].level}")
 
     ir.StencilAccess(knowledge.StencilCollection.getStencilByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get)
   }
 
   def progressToIr : ir.Expression = {
-    if (arrayIndex.isDefined && offset.isDefined)
-      Logger.warn(s"Access to stencil $name on level ${level.asInstanceOf[SingleLevelSpecification].level} has offset and array subscript modifiers; array index will be given precendence, offset will be ignored")
+    if (arrayIndex.isDefined && dirAccess.isDefined)
+      Logger.warn(s"Access to stencil $name on level ${level.asInstanceOf[SingleLevelSpecification].level} has dirAccess and array subscript modifiers; array index will be given precendence, dirAccess will be ignored")
 
     val stencil = knowledge.StencilCollection.getStencilByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
 
     if (arrayIndex.isDefined)
       stencil.entries(arrayIndex.get).coefficient
-    else if (offset.isDefined)
-      stencil.findStencilEntry(offset.get.progressToIr).get.coefficient
+    else if (dirAccess.isDefined)
+      stencil.findStencilEntry(dirAccess.get.progressToIr).get.coefficient
     else
       ir.StencilAccess(stencil)
   }
 }
 
-case class StencilFieldAccess(var name : String, var level : AccessLevelSpecification, var slot : SlotModifier, var arrayIndex : Option[Int] = None, var offset : Option[ExpressionIndex] = None) extends Access {
+case class StencilFieldAccess(var name : String,
+    var level : AccessLevelSpecification,
+    var slot : SlotModifier,
+    var arrayIndex : Option[Int] = None,
+    var offset : Option[ExpressionIndex] = None,
+    var dirAccess : Option[ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     // FIXME: omit slot if numSlots of target field is 1
     out << name << '[' << slot << ']' << '@' << level
+    if (offset.isDefined) out << "@" << offset
     if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
-    if (offset.isDefined) out << ":" << offset
+    if (dirAccess.isDefined) out << ":" << dirAccess
   }
 
   def getBasicStencilFieldAccess : ir.StencilFieldAccess = {
-    if (arrayIndex.isDefined || offset.isDefined)
+    if (arrayIndex.isDefined || dirAccess.isDefined)
       Logger.warn(s"Discarding modifiers of access to stencilfield $name on level ${level.asInstanceOf[SingleLevelSpecification].level}")
 
     val stencilField = knowledge.StencilFieldCollection.getStencilFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
-    ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), arrayIndex), ir.LoopOverDimensions.defIt)
+    var multiIndex = ir.LoopOverDimensions.defIt
+    if (offset.isDefined) multiIndex += offset.get.progressToIr
+    multiIndex(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(arrayIndex.getOrElse(0).toLong)
+
+    ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), None), multiIndex)
   }
 
   def progressToIr : ir.Expression = {
-    if (arrayIndex.isDefined && offset.isDefined)
-      Logger.warn(s"Access to stencilfield $name on level ${level.asInstanceOf[SingleLevelSpecification].level} has offset and array subscript modifiers; array index will be given precendence, offset will be ignored")
+    if (arrayIndex.isDefined && dirAccess.isDefined)
+      Logger.warn(s"Access to stencilfield $name on level ${level.asInstanceOf[SingleLevelSpecification].level} has direction access and array subscript modifiers; array index will be given precendence, offset will be ignored")
 
     val stencilField = knowledge.StencilFieldCollection.getStencilFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
 
-    if (arrayIndex.isDefined) {
-      var multiIndex = ir.LoopOverDimensions.defIt
-      multiIndex(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(arrayIndex.get)
+    var multiIndex = ir.LoopOverDimensions.defIt
+    if (offset.isDefined) multiIndex += offset.get.progressToIr
 
-      ir.FieldAccess(knowledge.FieldSelection(stencilField.field, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), arrayIndex),
-        multiIndex)
-    } else if (offset.isDefined) {
-      val index = stencilField.stencil.findStencilEntryIndex(offset.get.progressToIr).get
+    var accessIndex = -1
 
-      var multiIndex = ir.LoopOverDimensions.defIt
-      multiIndex(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(index)
+    if (arrayIndex.isDefined)
+      accessIndex = arrayIndex.get
+    else if (dirAccess.isDefined)
+      accessIndex = stencilField.stencil.findStencilEntryIndex(dirAccess.get.progressToIr).get
 
-      ir.FieldAccess(knowledge.FieldSelection(stencilField.field, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), Some(index)),
-        multiIndex)
+    if (accessIndex < 0) {
+      multiIndex(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(0)
+      ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), None), multiIndex)
     } else {
-      ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), arrayIndex), ir.LoopOverDimensions.defIt)
+      multiIndex(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(accessIndex)
+      ir.FieldAccess(knowledge.FieldSelection(stencilField.field, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), Some(accessIndex)),
+        multiIndex)
     }
   }
 }

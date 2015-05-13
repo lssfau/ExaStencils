@@ -5,4 +5,4 @@ produceHtmlLog				= true
 timeStrategies				= true
 timeStratPercentThreshold	= 0
 
-binary						= "exastencils"
+binary						= "exastencils_vc_opt_vec"
