@@ -68,6 +68,12 @@ object FragmentKnowledge {
           }
         }
       }
+      val trafo = f.trafo != ListBuffer(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
+      f.binarySize += outData.writeBinary(BooleanDatatype(), trafo)
+      if (trafo) {
+        f.trafo.foreach { t => f.binarySize += outData.writeBinary(RealDatatype(), t) }
+      }
+
     })
     outData.close()
 

@@ -14,6 +14,7 @@ object DomainFileHeader {
   var numFragmentsPerBlock = Knowledge.domain_numFragmentsPerBlock
 
   var mpi_numThreads = 1
+ 
   var discr_hx : List[String] = List()
   var discr_hy : List[String] = List()
   var discr_hz : List[String] = List()
@@ -65,7 +66,6 @@ object DomainFileWriter extends BuildfileGenerator {
     }
 
     printer <<< "FRAGMENTS"
-    val t = fragments.filter { f => f.rank >= 0 }
     for (f <- fragments.filter { f => f.rank >= 0 }) {
       printer <<< "f" + f.globalId.toString + " = " + "(" + f.faces.map {
         fa =>
@@ -74,6 +74,20 @@ object DomainFileWriter extends BuildfileGenerator {
           }.mkString(",") + ")"
       }.mkString(",") + ")"
     }
+
+    printer <<< "TRAFOS"
+    for (f <- fragments.filter { f => f.rank >= 0 }) {
+      val it = f.trafo.iterator
+      printer << "f" + f.globalId.toString + " = " + "("
+      var tmp = ""
+      for (i <- 0 to 3) {
+        tmp += "(" + List(it.next().toString(), it.next().toString(), it.next().toString(), it.next().toString()).mkString(",") + "),"
+      }
+      printer << tmp.dropRight(1)
+      printer <<< ")"
+
+    }
+
     printer.finish
   }
 }

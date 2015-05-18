@@ -244,6 +244,14 @@ case class IterationOffsetEnd(var domain : Expression, var fragmentIdx : Express
   override def resolveDefValue = Some("Vec3i(-1, -1, -1)")
 }
 
+case class PrimitiveTransformation(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, NullExpression, NullExpression, NullExpression)
+
+  override def resolveName = s"trafoMatrix" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
+  override def resolveDataType = "Mat4"
+  override def resolveDefValue = Some("Mat4()")
+}
+
 case class Timer(var name : Expression) extends UnduplicatedVariable {
   // TODO: strip result of resolveName (no spaces, etc.)
   override def resolveName = s"timer_" + name.prettyprint
