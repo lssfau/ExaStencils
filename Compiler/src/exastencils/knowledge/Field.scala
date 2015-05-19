@@ -11,7 +11,7 @@ case class FieldLayout(
     var identifier : String, // will be used to find the field
     var level : Int, // the (geometric) level the layout is associated with 
     var dataType : Datatype, // represents the data type; thus it can also encode the dimensionality when using e.g. vector fields
-    var nodeBased : Boolean, // specifies if data is located at nodes (true) or inside cells (false) 
+    var discretization : String, // specifies where data is located; currently allowed values are "node", "cell" and "face_{x,y,z}" 
     var layoutsPerDim : Array[FieldLayoutPerDim], // represents the number of data points and their distribution in each dimension
     var referenceOffset : MultiIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
     var communicatesDuplicated : Boolean, // specifies if duplicated values need to be exchanged between processes

@@ -4,3 +4,5 @@ basePathPrefix				= "."
 produceHtmlLog				= true
 timeStrategies				= true
 timeStratPercentThreshold	= 0
+
+binary						= "exastencils_cc_noopt"
