@@ -62,9 +62,13 @@ class ParserDomainFile extends ExaParser {
     val scannerBlocks = new lexical.Scanner(readerBlocks)
     parseBlockTokens(scannerBlocks)
 
-    val readerFragments = new PagedSeqReader(PagedSeq.fromLines(lines))
+    val readerFragments = new PagedSeqReader(PagedSeq.fromLines(lines.takeWhile { s => s != "TRAFOS" }))
     val scannerFragments = new lexical.Scanner(readerFragments)
     parseFragmentTokens(scannerFragments)
+
+    val readerTrafos = new PagedSeqReader(PagedSeq.fromLines(lines))
+    val scannerTrafos = new lexical.Scanner(readerTrafos)
+    parseTrafoTokens(scannerTrafos)
 
     file.close()
   }
@@ -87,6 +91,14 @@ class ParserDomainFile extends ExaParser {
 
   protected def parseFragmentTokens(tokens : lexical.Scanner) : Unit = {
     phrase(fragmentSettings)(tokens) match {
+      case Success(e, _)   =>
+      case Error(msg, _)   => throw new Exception("parse error: " + msg)
+      case Failure(msg, t) => throw new Exception("parse failure: " + msg)
+    }
+  }
+
+  protected def parseTrafoTokens(tokens : lexical.Scanner) : Unit = {
+    phrase(trafoSettings)(tokens) match {
       case Success(e, _)   =>
       case Error(msg, _)   => throw new Exception("parse error: " + msg)
       case Failure(msg, t) => throw new Exception("parse failure: " + msg)
@@ -146,6 +158,18 @@ class ParserDomainFile extends ExaParser {
     FragmentCollection.fragments += new Fragment(localId, globalId, domainIds, faces, edges, vertices.toSeq.distinct.to[ListBuffer], ListBuffer.fill(FragmentCollection.getNumberOfNeighbors)(-1), blockIdent.drop(1).toInt)
   }
 
+  def setTrafoParameter[T](ident : String, value : T) = {
+    val trafoList = value.asInstanceOf[List[List[String]]]
+    val trafos : ListBuffer[Double] = ListBuffer()
+    FragmentCollection.fragments.find { f => f.globalId == ident.drop(1).toInt } match {
+      case Some(f) => {
+        val tmp = trafoList
+        f.trafo = trafoList.map { row => row.map { item => item.toDouble } }.flatten.to[ListBuffer]
+      }
+      case None =>
+    }
+  }
+
   lazy val domainSettings = domain.*
   lazy val domain = ident ~ "=" ~ identArrayLit ^^ { case id ~ "=" ~ ex => setDomainParameter(id, ex) }
 
@@ -155,12 +179,18 @@ class ParserDomainFile extends ExaParser {
   lazy val fragmentSettings = fragment.*
   lazy val fragment = ident ~ "=" ~ fragmentLit ^^ { case id ~ "=" ~ ex => setFragmentParameter(id, ex) }
 
-  lazy val arrayLit = "(" ~> repsep(numericLit, ",") <~ ")"
+  lazy val trafo = ident ~ "=" ~ trafoLit ^^ { case id ~ "=" ~ ex => setTrafoParameter(id, ex) }
+  lazy val trafoSettings = trafo.*
+
+  lazy val realNumLit = "-".? ~ numericLit ^^ {
+    case s ~ n => s.getOrElse("") + n
+  }
+  lazy val arrayLit = "(" ~> repsep(realNumLit, ",") <~ ")"
   lazy val identArrayLit = "(" ~> repsep(ident, ",") <~ ")"
   lazy val vertexLit = "(" ~> repsep(numericLit, ",") <~ ")"
   lazy val edgeLit = "(" ~> repsep(vertexLit, ",") <~ ")"
   lazy val faceLit = "(" ~> repsep(edgeLit, ",") <~ ")"
   lazy val fragmentLit = "(" ~> repsep(faceLit, ",") <~ ")"
-
+  lazy val trafoLit = "(" ~> repsep(arrayLit, ",") <~ ")"
 }
 

@@ -12,9 +12,13 @@ domain_readFromFile 		= true
 domain_onlyRectangular 		= false
 domain_rect_generate 		= false
 
-comm_strategyFragment		= 26
+domain_generateDomainFile	= true
 
-mpi_enabled					= true
+domain_fragmentTransformation = true
+
+comm_strategyFragment		= 6
+
+mpi_enabled					= false
 
 omp_enabled					= true
 omp_numThreads				= 2

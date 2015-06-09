@@ -120,8 +120,9 @@ abstract class Strategy(val name : String) {
     *
     *  @param transformation The [[exastencils.datastructures.Transformation]] to be executed.
     *  @param node Specifies the source node where the [[exastencils.datastructures.Transformation]] starts to traverse the program state.
+    *  @return Result statistics about the transformation.
     */
-  protected def execute(transformation : Transformation, node : Option[Node] = None) : Unit = {
+  protected def execute(transformation : Transformation, node : Option[Node] = None) : TransformationResult = {
     Logger.info(s"""Executing nested transformation "${transformation.name}" during strategy "${name}"""")
     executeInternal(transformation, node)
   }
@@ -131,8 +132,9 @@ abstract class Strategy(val name : String) {
     *
     *  @param transformation The [[exastencils.datastructures.Transformation]] to be executed.
     *  @param node Specifies the source node where the [[exastencils.datastructures.Transformation]] starts to traverse the program state.
+    *  @return Result statistics about the transformation.
     */
-  protected def executeInternal(transformation : Transformation, node : Option[Node] = None) : Unit = {
+  protected def executeInternal(transformation : Transformation, node : Option[Node] = None) : TransformationResult = {
     Logger.info(s"""Applying strategy "${name}::${transformation.name}"""")
     if (Settings.timeStrategies)
       StrategyTimer.startTiming(name)
@@ -143,5 +145,6 @@ abstract class Strategy(val name : String) {
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming(name)
     Logger.debug(s"""Result of strategy "${name}::${transformation.name}": $result""")
+    return result
   }
 }

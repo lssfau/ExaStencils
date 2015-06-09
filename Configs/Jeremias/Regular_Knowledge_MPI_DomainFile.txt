@@ -12,7 +12,7 @@ domain_readFromFile 		= true
 domain_onlyRectangular 		= false
 domain_rect_generate 		= false
 
-domain_generateDomainFile	= false
+domain_generateDomainFile	= true
 
 domain_rect_numBlocks_x		= 2
 domain_rect_numBlocks_y		= 2

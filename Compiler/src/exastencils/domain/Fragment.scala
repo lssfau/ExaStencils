@@ -4,7 +4,8 @@ import exastencils.knowledge._
 
 import scala.collection.mutable._
 
-class Fragment(lId : Int, gId : Int, dId : ListBuffer[Int], f : ListBuffer[Face], e : ListBuffer[Edge], v : ListBuffer[Vertex], n : ListBuffer[Int], r : Int) {
+class Fragment(lId : Int, gId : Int, dId : ListBuffer[Int], f : ListBuffer[Face], e : ListBuffer[Edge],
+    v : ListBuffer[Vertex], n : ListBuffer[Int], r : Int, t : ListBuffer[Double] = ListBuffer(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)) {
   import Direction._
   val faces = f
   val edges = e
@@ -13,6 +14,8 @@ class Fragment(lId : Int, gId : Int, dId : ListBuffer[Int], f : ListBuffer[Face]
   val localId = lId
   var neighborIDs = n
   val domainIds = dId
+
+  var trafo = t
 
   var binarySize = 0
   var rank = r
