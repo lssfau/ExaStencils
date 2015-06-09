@@ -43,13 +43,15 @@ object Solve {
       printer.println(s"\t\t\tSolution[currentSlot]@current -= integral")
       printer.println(s"\t\t}")
     }
+    if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
+      printer.println("\tstopTimer ( 'cycle' )")
 
+    if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
+      printer.println("\tstartTimer ( 'convergenceChecking' )")
     if (Knowledge.l3tmp_genAsyncCommunication)
       printer.println("\t\tUpResidual@finest ( 0 )")
     else
       printer.println("\t\tUpResidual@finest ( )")
-    if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
-      printer.println("\tstopTimer ( 'cycle' )")
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
       printer.println(s"\t\tresOld_$vecDim = res_$vecDim")
       printer.println(s"\t\tres_$vecDim = NormResidual_$vecDim@finest (  )")
@@ -65,6 +67,8 @@ object Solve {
         }
       }
     }
+    if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
+      printer.println("\tstopTimer ( 'convergenceChecking' )")
     printer.println("\t}")
 
     if (Knowledge.l3tmp_genForAutoTests)
@@ -112,18 +116,26 @@ object Solve {
       if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
         printer.println("\t\tstartTimer ( 'cycle' )")
       printer.println("\t\tVCycle_GMRF@finest (  )")
+      if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
+        printer.println("\t\tstopTimer ( 'cycle' )")
+
+      if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
+        printer.println("\tstartTimer ( 'convergenceChecking' )")
+
       if (Knowledge.l3tmp_genAsyncCommunication)
         printer.println(s"\tUpResidual_GMRF@finest ( 0 )")
       else
         printer.println(s"\tUpResidual_GMRF@finest ( )")
-      if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
-        printer.println("\t\tstopTimer ( 'cycle' )")
       printer.println(s"\t\tresOld = res")
       printer.println(s"\t\tres = NormResidual_GMRF_0@finest ( )")
       if (Knowledge.l3tmp_genForAutoTests)
         Util.addPrintAutoTestValueCode(printer, "res")
       else
         printer.println("\t\tprint ( '\"Residual:\"', res, '\"Residual reduction:\"', ( resStart / res ), '\"Convergence factor:\"', ( res / resOld ) )")
+
+      if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
+        printer.println("\tstopTimer ( 'convergenceChecking' )")
+
       printer.println("\t}")
       if (Knowledge.l3tmp_genForAutoTests)
         printer.println("\tprint ( numIt )")

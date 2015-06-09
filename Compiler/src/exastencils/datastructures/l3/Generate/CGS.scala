@@ -5,8 +5,16 @@ import exastencils.knowledge._
 object CGS {
   def addFunction(printer : java.io.PrintWriter, postfix : String) = {
     printer.println(s"Function VCycle$postfix@coarsest ( ) : Unit {")
+
+    if (Knowledge.l3tmp_genTimersPerFunction)
+      printer.println(s"\tstartTimer ( 'cgs$postfix' )")
+
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims)
       printer.println(s"\tVCycle${postfix}_$vecDim@current ( )")
+
+    if (Knowledge.l3tmp_genTimersPerFunction)
+      printer.println(s"\tstopTimer ( 'cgs$postfix' )")
+
     printer.println(s"}")
 
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
