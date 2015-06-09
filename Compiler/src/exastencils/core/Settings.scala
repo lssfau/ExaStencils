@@ -20,7 +20,10 @@ object Settings {
   var outputPath : String = "/tmp/"
   var cancelIfOutFolderExists : Boolean = false
 
-  //// ouput for fragment data file
+  /// management
+  var configName : String = ""
+
+  /// ouput for fragment data file
   var fragmentFile_config_output = 2 // 0:binary, 1:readable, 2:both
   def fragmentFile_config_path_readable = outputPath + "Domains/DomainConfiguration.cfg"
   def fragmentFile_config_path_domainConfig = outputPath + "Domains/config.dat"
