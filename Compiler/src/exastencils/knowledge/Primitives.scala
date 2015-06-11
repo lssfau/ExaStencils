@@ -24,11 +24,11 @@ object Fragment {
 
   def getNeighIndex(dir : Array[Int]) : Int = {
     for (neigh <- neighbors) {
-      if (dir == neigh.dir)
+      if (dir.deep == neigh.dir.deep)
         return neigh.index
     }
 
-    Logger.warn("Trying to access invalid neighbor: " + dir)
+    Logger.warn("Trying to access invalid neighbor: " + dir.mkString(", "))
     return -1
   }
 

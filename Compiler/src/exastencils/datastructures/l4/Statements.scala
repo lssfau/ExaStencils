@@ -270,7 +270,7 @@ case class RegionSpecification(var region : String, var dir : Index, var onlyOnB
   override def prettyprint(out : PpStream) = out << region << ' ' << dir
 
   override def progressToIr : ir.RegionSpecification = {
-    ir.RegionSpecification(region, dir.extractArray, onlyOnBoundary)
+    ir.RegionSpecification(region, dir.extractArray ++ Array.fill(3 - dir.extractArray.length)(0), onlyOnBoundary)
   }
 }
 

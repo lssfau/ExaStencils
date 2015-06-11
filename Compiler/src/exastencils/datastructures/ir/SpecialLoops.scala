@@ -162,18 +162,18 @@ case class LoopOverPointsInOneFragment(var domain : Int,
       // case where a special region is to be traversed
       val regionCode = region.get.region.toUpperCase().charAt(0)
 
-      start = new MultiIndex(DimArray().map(i => i match {
-        case i if region.get.dir(i) == 0 => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "LB")
-        case i if region.get.dir(i) < 0  => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "LB")
-        case i if region.get.dir(i) > 0  => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "RB")
-      }))
+      start = new MultiIndex(DimArray().map(i => (i match {
+        case i if region.get.dir(i) == 0 => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "LB") - field.referenceOffset(i)
+        case i if region.get.dir(i) < 0  => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "LB") - field.referenceOffset(i)
+        case i if region.get.dir(i) > 0  => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "RB") - field.referenceOffset(i)
+      }) : Expression))
 
       stop = new MultiIndex(
-        DimArray().map(i => i match {
-          case i if region.get.dir(i) == 0 => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "RE")
-          case i if region.get.dir(i) < 0  => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "LE")
-          case i if region.get.dir(i) > 0  => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "RE")
-        }))
+        DimArray().map(i => (i match {
+          case i if region.get.dir(i) == 0 => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "RE") - field.referenceOffset(i)
+          case i if region.get.dir(i) < 0  => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "LE") - field.referenceOffset(i)
+          case i if region.get.dir(i) > 0  => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "RE") - field.referenceOffset(i)
+        }) : Expression))
     } else {
       // basic case -> just eliminate 'real' boundaries
       for (i <- 0 until Knowledge.dimensionality) {
