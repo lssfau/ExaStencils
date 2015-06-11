@@ -76,7 +76,7 @@ object Application {
       }
     }
 
-    printer.println("\tInitRHS ( )")
+    printer.println("\tInitRHS@finest ( )")
     printer.println("\tInitSolution ( )")
 
     if (!Knowledge.l3tmp_genCellBasedDiscr) {

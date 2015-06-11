@@ -130,6 +130,11 @@ case class Root() extends Node {
     if (Knowledge.l3tmp_kelvin)
       InitFields.addFunction(printer, "_GMRF")
 
+    // FMG functions
+    if (Knowledge.l3tmp_genFMG) {
+      FMG.addFunctions(printer)
+    }
+
     // Solver
     Solve.addFunction(printer)
 

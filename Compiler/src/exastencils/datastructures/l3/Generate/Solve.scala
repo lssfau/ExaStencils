@@ -20,6 +20,15 @@ object Solve {
     }
     if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
       printer.println("\tstartTimer ( 'timeToSolve' )")
+
+    if (Knowledge.l3tmp_genFMG) {
+      if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
+        printer.println("\tstartTimer ( 'fmg' )")
+      printer.println(s"\tFMG@${Knowledge.minLevel} ( )")
+      if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
+        printer.println("\tstopTimer ( 'fmg' )")
+    }
+
     printer.println("\tVariable numIt : Integer = 0")
     printer.println(s"\trepeat until (res_0 < ( ${Knowledge.l3tmp_targetResReduction} * resStart_0 ) && numIt < 100) {")
     printer.println("\t\tnumIt += 1")

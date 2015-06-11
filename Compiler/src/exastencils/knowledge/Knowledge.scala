@@ -242,6 +242,7 @@ object Knowledge {
   var l3tmp_useSlotsForJac : Boolean = true // [true|false] // uses sloted solution fields for Jacobi (as opposed to multiple distinct fields)
   var l3tmp_useSlotVariables : Boolean = true // [true|false] // uses slot variables (currentSlot, nextSlot, previousSlot) for access to slotted solution fields; allows for odd number of smoothing steps
   var l3tmp_genHDepStencils : Boolean = false // [true|false] // generates stencils dependent on the grid width h
+  var l3tmp_genFMG : Boolean = false // [true|false] // generates a full multigrid solver
 
   /// timer generation
   var l3tmp_genTimersPerFunction : Boolean = false // generates different timers for each function in the mg cycle
@@ -274,10 +275,10 @@ object Knowledge {
   var l3tmp_printError : Boolean = false // generates code that calculates and prints the error in each iteration
   var l3tmp_useMaxNormForError : Boolean = true // uses the maximum norm instead of the L2 norm when reducing the error
 
-  /// Paper project - SISC
+  /// paper project - SISC
   var l3tmp_sisc : Boolean = false // generates test problems for the upcomming SISC paper in conjunction with dimensionality and l3tmp_genStencilFields
 
-  /// Student project - Kelvin
+  /// student project - Kelvin
   var l3tmp_kelvin : Boolean = false // currently only works for 2D
   var l3tmp_kelvin_numSamples : Int = 10 // only required for l3tmp_kelvin; number of samples to be evaluated
   var l3tmp_kelvin_numHaloFrags : Int = 2 // only required for l3tmp_kelvin; number of halo fragments used to implement the open boundary approximation  
@@ -363,6 +364,11 @@ object Knowledge {
       Constraints.condEnsureValue(l3tmp_numVecDims, 1, !l3tmp_genVectorFields, "vector dimensions larger than 1 are only allowed in conjunction with vector fields")
       Constraints.condEnsureValue(l3tmp_numVecDims, 2, l3tmp_genVectorFields && l3tmp_numVecDims <= 1, "vector dimensions must be larger than 1 when using vector fields")
 
+      Constraints.condEnsureValue(l3tmp_genFMG, false, l3tmp_genCellBasedDiscr, "FMG is currently not compatible with cell based discretizations")
+      Constraints.condEnsureValue(l3tmp_genFMG, false, experimental_Neumann, "FMG is currently not compatible with Neumann BC")
+      Constraints.condEnsureValue(l3tmp_genFMG, false, 1 != l3tmp_numVecDims, "FMG is currently not compatible with vector fields")
+      Constraints.condEnsureValue(l3tmp_genFMG, false, l3tmp_kelvin, "FMG is currently not compatible with Kelvin mode")
+
       // l3tmp - stencils
       Constraints.condEnsureValue(l3tmp_genStencilFields, false, experimental_Neumann, "l3tmp_genStencilFields is currently not compatible with Neumann boundary conditions")
       Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, experimental_Neumann, "l3tmp_genStencilStencilConv is currently not compatible with Neumann boundary conditions")
@@ -370,6 +376,7 @@ object Knowledge {
       Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, l3tmp_genCellBasedDiscr, "l3tmp_genStencilStencilConv is currently not compatible with cell based discretizations")
       Constraints.condEnsureValue(l3tmp_genHDepStencils, true, experimental_Neumann, "l3tmp_genHDepStencils is required for Neumann boundary conditions")
       Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_genNonZeroRhs, "non-trivial rhs requires the usage of grid width dependent stencils")
+      Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_genFMG, "FMG requires the usage of grid width dependent stencils")
 
       // l3tmp - multigrid config
       if (l3tmp_sisc) {
