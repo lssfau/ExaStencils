@@ -266,11 +266,11 @@ case class ReductionStatement(var op : String, var target : String) extends Spec
   }
 }
 
-case class RegionSpecification(var region : String, var dir : Index) extends SpecialStatement {
+case class RegionSpecification(var region : String, var dir : Index, var onlyOnBoundary : Boolean) extends SpecialStatement {
   override def prettyprint(out : PpStream) = out << region << ' ' << dir
 
   override def progressToIr : ir.RegionSpecification = {
-    ir.RegionSpecification(region, dir.extractArray)
+    ir.RegionSpecification(region, dir.extractArray, onlyOnBoundary)
   }
 }
 

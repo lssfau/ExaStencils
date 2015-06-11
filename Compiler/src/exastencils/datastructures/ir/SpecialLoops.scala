@@ -19,7 +19,7 @@ import exastencils.prettyprinting._
 import exastencils.strategies._
 import exastencils.util._
 
-case class RegionSpecification(var region : String, var dir : Array[Int]) {}
+case class RegionSpecification(var region : String, var dir : Array[Int], var onlyOnBoundary : Boolean) {}
 
 case class ContractingLoop(var number : Int, var iterator : Option[Expression], var statements : ListBuffer[Statement]) extends Statement {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ContractingLoop\n"
@@ -197,7 +197,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
     var indexRange = IndexRange(start, stop)
     SimplifyStrategy.doUntilDoneStandalone(indexRange)
 
-    val ret = (
+    var ret : Statement = (
       if (seq)
         new LoopOverDimensions(Knowledge.dimensionality, indexRange, body, increment, reduction, condition)
       else {
@@ -210,10 +210,16 @@ case class LoopOverPointsInOneFragment(var domain : Int,
         ret
       })
 
+    if (region.isDefined) {
+      if (region.get.onlyOnBoundary) {
+        val neighIndex = Fragment.getNeighIndex(region.get.dir)
+        ret = new ConditionStatement(UnaryExpression(UnaryOperators.Not, iv.NeighborIsValid(domain, neighIndex)), ret)
+      }
+    }
     if (domain >= 0)
-      new ConditionStatement(iv.IsValidForSubdomain(domain), ret)
-    else
-      ret
+      ret = new ConditionStatement(iv.IsValidForSubdomain(domain), ret)
+
+    ret
   }
 }
 
