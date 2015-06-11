@@ -142,14 +142,24 @@ Cell_3D_Neumann Main	CellBased/3D_Neumann.knowledge	CellBased/3D_Neumann.results
 #################################################################################################
 
 # 2D
-SISC_2D_VarCoeff	Main	SISC/2D_VarCoeff.knowledge		SISC/2D_VarCoeff.results	4	4
 SISC_2D_ConstCoeff	Main	SISC/2D_ConstCoeff.knowledge	SISC/2D_ConstCoeff.results	4	4
+SISC_2D_VarCoeff	Main	SISC/2D_VarCoeff.knowledge		SISC/2D_VarCoeff.results	4	4
 # 3D
-SISC_3D_VarCoeff	Main	SISC/3D_VarCoeff.knowledge		SISC/3D_VarCoeff.results	8	4
 SISC_3D_ConstCoeff	Main	SISC/3D_ConstCoeff.knowledge	SISC/3D_ConstCoeff.results	8	4
+SISC_3D_VarCoeff	Main	SISC/3D_VarCoeff.knowledge		SISC/3D_VarCoeff.results	8	4
 
 #################################################################################################
 # MISC TESTS                                                                                    #
 #################################################################################################
 
 Inlining  Main  Misc/inlining.knowledge  Misc/inlining.results  8  5  E5
+
+#################################################################################################
+# FMG TESTS                                                                                     #
+#################################################################################################
+
+FMG_2D_Polynomial		Main	BC/2D_Polynomial.knowledge		FMG/2D_Polynomial.results		4	2
+FMG_2D_ConstCoeff		Main	SISC/2D_ConstCoeff.knowledge	FMG/2D_ConstCoeff.results		4	4
+FMG_3D_Trigonometric	Main	BC/3D_Trigonometric.knowledge	FMG/3D_Trigonometric.results	8	2
+FMG_3D_VarCoeff			Main	SISC/3D_VarCoeff.knowledge		FMG/3D_VarCoeff.results			8	4
+
