@@ -143,6 +143,7 @@ case class AssignmentStatement(var dest : Access, var src : Expression, var op :
 
 case class LoopOverPointsStatement(
     var field : FieldAccess,
+    var region : Option[RegionSpecification],
     var seq : Boolean, // FIXME: seq HACK
     var condition : Option[Expression],
     var startOffset : Option[ExpressionIndex],
@@ -153,6 +154,7 @@ case class LoopOverPointsStatement(
 
   override def prettyprint(out : PpStream) = {
     out << "loop over " << field << ' '
+    if (region.isDefined) out << "only " << region.get
     if (seq) out << "sequentially "
     if (condition.isDefined) out << "where " << condition.get
     if (startOffset.isDefined) out << "starting " << startOffset.get << ' '
@@ -164,6 +166,7 @@ case class LoopOverPointsStatement(
 
   override def progressToIr : ir.LoopOverPoints = {
     ir.LoopOverPoints(field.resolveField,
+      if (region.isDefined) Some(region.get.progressToIr) else None,
       seq,
       if (startOffset.isDefined) startOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
       if (endOffset.isDefined) endOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
@@ -260,6 +263,14 @@ case class ReductionStatement(var op : String, var target : String) extends Spec
 
   override def progressToIr : ir.Reduction = {
     ir.Reduction(op, ir.VariableAccess(target, None))
+  }
+}
+
+case class RegionSpecification(var region : String, var dir : Index) extends SpecialStatement {
+  override def prettyprint(out : PpStream) = out << region << ' ' << dir
+
+  override def progressToIr : ir.RegionSpecification = {
+    ir.RegionSpecification(region, dir.extractArray)
   }
 }
 

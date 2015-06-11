@@ -155,6 +155,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val loopOverFragments = locationize(("loop" ~ "over" ~ "fragments") ~ ("with" ~> reductionClause).? ~ ("{" ~> statement.+ <~ "}") ^^
     { case _ ~ red ~ stmts => LoopOverFragmentsStatement(stmts, red) })
   lazy val loopOver = locationize(("loop" ~ "over" ~> fieldAccess) ~
+    (regionSpecification).? ~
     ("sequentially").? ~ // FIXME: seq HACK
     ("where" ~> booleanexpression).? ~
     ("starting" ~> expressionIndex).? ~
@@ -162,10 +163,11 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ("stepping" ~> expressionIndex).? ~
     ("with" ~> reductionClause).? ~
     ("{" ~> statement.+ <~ "}") ^^ {
-      case field ~ seq ~ cond ~ startOff ~ endOff ~ inc ~ red ~ stmts =>
-        LoopOverPointsStatement(field, seq.isDefined, cond, startOff, endOff, inc, stmts, red)
+      case field ~ region ~ seq ~ cond ~ startOff ~ endOff ~ inc ~ red ~ stmts =>
+        LoopOverPointsStatement(field, region, seq.isDefined, cond, startOff, endOff, inc, stmts, red)
     })
   lazy val reductionClause = locationize((("reduction" ~ "(") ~> (ident ||| "+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => ReductionStatement(op, s) })
+  lazy val regionSpecification = locationize(("only" ~> ("ghost" ||| "dup" ||| "inner") ~ index) ^^ { case region ~ dir => RegionSpecification(region, dir) })
 
   lazy val assignment = locationize(genericAccess ~ "=" ~ (binaryexpression ||| booleanexpression) ^^ { case id ~ op ~ exp => AssignmentStatement(id, exp, op) })
   lazy val operatorassignment = locationize(genericAccess ~ ("+=" ||| "-=" ||| "*=" ||| "/=") ~ binaryexpression

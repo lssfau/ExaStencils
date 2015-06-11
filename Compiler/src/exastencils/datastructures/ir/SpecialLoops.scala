@@ -19,6 +19,8 @@ import exastencils.prettyprinting._
 import exastencils.strategies._
 import exastencils.util._
 
+case class RegionSpecification(var region : String, var dir : Array[Int]) {}
+
 case class ContractingLoop(var number : Int, var iterator : Option[Expression], var statements : ListBuffer[Statement]) extends Statement {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ContractingLoop\n"
 
@@ -116,6 +118,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
 }
 
 case class LoopOverPoints(var field : Field,
+    var region : Option[RegionSpecification],
     var seq : Boolean, // FIXME: seq HACK
     var startOffset : MultiIndex,
     var endOffset : MultiIndex,
@@ -127,7 +130,7 @@ case class LoopOverPoints(var field : Field,
 
   def expandSpecial(collector : StackCollector) : Output[Statement] = {
     val insideFragLoop = collector.stack.map(node => node match { case loop : LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
-    val innerLoop = LoopOverPointsInOneFragment(field.domain.index, field, seq, startOffset, endOffset, increment, body, reduction, condition)
+    val innerLoop = LoopOverPointsInOneFragment(field.domain.index, field, region, seq, startOffset, endOffset, increment, body, reduction, condition)
 
     if (insideFragLoop)
       innerLoop
@@ -142,6 +145,7 @@ case class LoopOverPoints(var field : Field,
 
 case class LoopOverPointsInOneFragment(var domain : Int,
     var field : Field,
+    var region : Option[RegionSpecification],
     var seq : Boolean, // FIXME: seq HACK
     var startOffset : MultiIndex,
     var endOffset : MultiIndex,
@@ -154,20 +158,39 @@ case class LoopOverPointsInOneFragment(var domain : Int,
   def expandSpecial : Output[Statement] = {
     var start = new MultiIndex()
     var stop = new MultiIndex()
-    for (i <- 0 until Knowledge.dimensionality) {
-      field.fieldLayout.discretization match {
-        case d if "node" == d
-          || ("face_x" == d && 0 == i)
-          || ("face_y" == d && 1 == i)
-          || ("face_z" == d && 2 == i) =>
-          start(i) = OffsetIndex(0, 1, field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), i))
-          stop(i) = OffsetIndex(-1, 0, field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), i))
-        case d if "cell" == d
-          || ("face_x" == d && 0 != i)
-          || ("face_y" == d && 1 != i)
-          || ("face_z" == d && 2 != i) =>
-          start(i) = field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i)
-          stop(i) = field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i)
+    if (region.isDefined) {
+      // case where a special region is to be traversed
+      val regionCode = region.get.region.toUpperCase().charAt(0)
+
+      start = new MultiIndex(DimArray().map(i => i match {
+        case i if region.get.dir(i) == 0 => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "LB")
+        case i if region.get.dir(i) < 0  => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "LB")
+        case i if region.get.dir(i) > 0  => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "RB")
+      }))
+
+      stop = new MultiIndex(
+        DimArray().map(i => i match {
+          case i if region.get.dir(i) == 0 => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "RE")
+          case i if region.get.dir(i) < 0  => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "LE")
+          case i if region.get.dir(i) > 0  => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "RE")
+        }))
+    } else {
+      // basic case -> just eliminate 'real' boundaries
+      for (i <- 0 until Knowledge.dimensionality) {
+        field.fieldLayout.discretization match {
+          case d if "node" == d
+            || ("face_x" == d && 0 == i)
+            || ("face_y" == d && 1 == i)
+            || ("face_z" == d && 2 == i) =>
+            start(i) = OffsetIndex(0, 1, field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), i))
+            stop(i) = OffsetIndex(-1, 0, field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), i))
+          case d if "cell" == d
+            || ("face_x" == d && 0 != i)
+            || ("face_y" == d && 1 != i)
+            || ("face_z" == d && 2 != i) =>
+            start(i) = field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i)
+            stop(i) = field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i)
+        }
       }
     }
 

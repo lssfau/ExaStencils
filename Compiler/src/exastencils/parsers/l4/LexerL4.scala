@@ -16,7 +16,7 @@ class LexerL4 extends exastencils.parsers.ExaLexer {
 
   // loop keywords
   reserved += ("repeat", "times", "count", "with", "contraction", "break")
-  reserved += ("loop", "until", "over", "fragments", "where", "starting", "ending", "stepping", "reduction")
+  reserved += ("loop", "until", "over", "fragments", "only", "where", "starting", "ending", "stepping", "reduction")
   reserved += ("sequentially") // FIXME: seq HACK
 
   // condition keywords

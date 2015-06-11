@@ -44,7 +44,7 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
     this.execute(new Transformation("Put Values into collector", {
       case x : ValueDeclarationStatement => x
     }))
-    
+
     this.execute(new Transformation("ResolveValuesInExpressions", {
       case x : UnresolvedAccess if (x.level == None && x.slot == None && x.arrayIndex == None) => {
         var value = valueCollector.getValue(x.name)
@@ -118,7 +118,7 @@ object WrapL4FieldOpsStrategy extends DefaultStrategy("Adding communcation and l
           CommunicateStatement(comm._1, "both", List( /* FIXME: add radius */ )) : Statement).to[ListBuffer]
 
       statements += LoopOverFragmentsStatement(List(
-        LoopOverPointsStatement(lhs, false, None, None, None, None, List(assignment), None)),
+        LoopOverPointsStatement(lhs, None, false, None, None, None, None, List(assignment), None)),
         None)
 
       statements
@@ -126,5 +126,6 @@ object WrapL4FieldOpsStrategy extends DefaultStrategy("Adding communcation and l
 
     // FIXME: handle reductions
     // FIXME: handle stencil fields
+    // FIXME: handle region loops
   }, false /* recursion must be switched of due to wrapping mechanism */ )
 }
