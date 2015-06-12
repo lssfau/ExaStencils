@@ -4,3 +4,10 @@ basePathPrefix				= "."
 produceHtmlLog				= true
 timeStrategies				= true
 timeStratPercentThreshold	= 0
+
+pathsInc					+= "$(ProgramFiles)\OpenMPI_v1.6.2-x64\include"
+pathsLib					+= "$(ProgramFiles)\OpenMPI_v1.6.2-x64\lib"
+
+additionalLibs				+= "libmpi.lib"
+
+additionalDefines			+= "OMPI_IMPORTS"
