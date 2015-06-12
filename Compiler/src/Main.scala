@@ -49,6 +49,12 @@ object Main {
     }
     Knowledge.update()
 
+    // init buildfile generator
+    if ("MSVC" == Knowledge.targetCompiler)
+      Settings.buildfileGenerator = ProjectfileGenerator
+    else
+      Settings.buildfileGenerator = MakefileGenerator
+
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Initializing")
 
