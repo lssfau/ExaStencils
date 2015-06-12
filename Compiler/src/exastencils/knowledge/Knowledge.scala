@@ -297,6 +297,9 @@ object Knowledge {
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
 
+    Constraints.condEnsureValue(targetCompilerVersion, 11, "MSVC" == targetCompiler, "When using MSVC, only version 11.0 is currently supported")
+    Constraints.condEnsureValue(targetCompilerVersionMinor, 0, "MSVC" == targetCompiler, "When using MSVC, only version 11.0 is currently supported")
+
     if (l3tmp_generateL4) {
       // specific project configurations - SISC
       Constraints.condEnsureValue(l3tmp_exactSolution, "Kappa_VC", l3tmp_sisc && l3tmp_genStencilFields, "Kappa_VC is required as l3tmp_exactSolution for variable stencils and l3tmp_sisc")
