@@ -11,8 +11,12 @@ object MakefileGenerator extends BuildfileGenerator {
     val cppFileNames = filesToConsider.filter(file => file.endsWith(".cpp")).toList.sorted
 
     printer <<< "CXX = " + Platform.compiler
-    printer <<< "CFLAGS = " + Platform.cflags + " " + Platform.addcflags
-    printer <<< "LFLAGS = " + Platform.ldflags + " " + Platform.addldflags
+    printer <<< "CFLAGS = " + Platform.cflags + " " + Platform.addcflags + " " +
+      Settings.pathsInc.map(path => s"-I$path").mkString(" ") + " " +
+      Settings.additionalDefines.map(path => s"-D$path").mkString(" ")
+    printer <<< "LFLAGS = " + Platform.ldflags + " " + Platform.addldflags + " " +
+      Settings.pathsLib.map(path => s"-L$path").mkString(" ") + " " +
+      Settings.additionalDefines.map(path => s"-D$path").mkString(" ")
 
     printer <<< "BINARY = " + Settings.binary
     printer <<< ""
@@ -33,6 +37,7 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< ""
     printer << "\t${CXX} ${LFLAGS} -o ${BINARY} -I. "
     cppFileNames.foreach(file => { printer << s"${file.replace(".cpp", ".o")} " })
+    Settings.additionalLibs.foreach(lib => { printer << s"-l$lib " })
     printer <<< ""
     printer <<< ""
 

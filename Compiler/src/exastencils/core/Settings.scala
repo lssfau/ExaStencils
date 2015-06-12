@@ -34,8 +34,14 @@ object Settings {
   var binary : String = "exastencils"
 
   /// external dependecies
+  var pathsInc : ListBuffer[String] = ListBuffer()
+  var pathsLib : ListBuffer[String] = ListBuffer()
+
   var additionalIncludes : ListBuffer[String] = ListBuffer()
   var additionalFiles : ListBuffer[String] = ListBuffer()
+  var additionalLibs : ListBuffer[String] = ListBuffer()
+
+  var additionalDefines : ListBuffer[String] = ListBuffer()
 
   /// generation process
   var failOnConstraint : Boolean = false

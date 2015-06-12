@@ -30,7 +30,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
     projectPrinter <<< "\t<PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='Release|x64'\" Label=\"Configuration\">"
     projectPrinter <<< "\t\t<ConfigurationType>Application</ConfigurationType>"
     projectPrinter <<< "\t\t<UseDebugLibraries>false</UseDebugLibraries>"
-    projectPrinter <<< "\t\t<PlatformToolset>v110</PlatformToolset>" // TODO: compiler version
+    projectPrinter <<< s"\t\t<PlatformToolset>v${Knowledge.targetCompilerVersion}${Knowledge.targetCompilerVersionMinor}</PlatformToolset>" // TODO: compiler version
     projectPrinter <<< "\t\t<WholeProgramOptimization>false</WholeProgramOptimization>"
     projectPrinter <<< "\t\t<CharacterSet>MultiByte</CharacterSet>"
     projectPrinter <<< "\t</PropertyGroup>"
@@ -65,8 +65,8 @@ object ProjectfileGenerator extends BuildfileGenerator {
     projectPrinter <<< "\t<PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='Release|x64'\">"
     projectPrinter <<< "\t\t<LinkIncremental>false</LinkIncremental>"
     projectPrinter <<< "\t\t<OutDir>$(ProjectDir)\\</OutDir>"
-    projectPrinter <<< "\t\t<IncludePath>$(ProgramFiles)\\OpenMPI_v1.6.2-x64\\include;$(ProjectDir);$(IncludePath)</IncludePath>" // TODO: include paths
-    projectPrinter <<< "\t\t<LibraryPath>$(ProgramFiles)\\OpenMPI_v1.6.2-x64\\lib;$(LibraryPath)</LibraryPath>" // TODO: link paths
+    projectPrinter <<< "\t\t<IncludePath>" + Settings.pathsInc.mkString(";") + ";$(ProjectDir);$(IncludePath)</IncludePath>"
+    projectPrinter <<< "\t\t<LibraryPath>" + Settings.pathsLib.mkString(";") + ";$(LibraryPath)</LibraryPath>"
     projectPrinter <<< "\t</PropertyGroup>"
 
     // compiler
@@ -77,15 +77,16 @@ object ProjectfileGenerator extends BuildfileGenerator {
     projectPrinter <<< "\t\t\t<WarningLevel>Level3</WarningLevel>"
     projectPrinter <<< "\t\t\t<Optimization>MaxSpeed</Optimization>"
     projectPrinter <<< "\t\t\t<IntrinsicFunctions>true</IntrinsicFunctions>"
-    projectPrinter <<< "\t\t\t<PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;OMPI_IMPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>" // TODO: defines
+    projectPrinter <<< s"\t\t\t<PreprocessorDefinitions>${Settings.additionalDefines.mkString(";")};WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>"
     projectPrinter <<< "\t\t\t<MultiProcessorCompilation>true</MultiProcessorCompilation>"
-    projectPrinter <<< "\t\t\t<OpenMPSupport>true</OpenMPSupport>" // TODO: OMP switch
+    if (Knowledge.omp_enabled)
+      projectPrinter <<< "\t\t\t<OpenMPSupport>true</OpenMPSupport>"
     projectPrinter <<< "\t\t</ClCompile>"
 
     // link part
     projectPrinter <<< "\t\t<Link>"
     projectPrinter <<< "\t\t\t<SubSystem>Console</SubSystem>"
-    projectPrinter <<< "\t\t\t<AdditionalDependencies>libmpi.lib;%(AdditionalDependencies)</AdditionalDependencies>" // TODO: libs
+    projectPrinter <<< s"\t\t\t<AdditionalDependencies>${Settings.additionalLibs.mkString(";")};%(AdditionalDependencies)</AdditionalDependencies>"
     projectPrinter <<< "\t\t</Link>"
 
     projectPrinter <<< "\t</ItemDefinitionGroup>"
@@ -106,8 +107,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
 
     /// solution file
 
-    solutionPrinter <<< "Microsoft Visual Studio Solution File, Format Version 12.00" // TODO: compiler version
-    solutionPrinter <<< "# Visual Studio 2012" // TODO: compiler version
+    solutionPrinter <<< "Microsoft Visual Studio Solution File, Format Version 12.00"
     solutionPrinter <<< "Project(\"{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}\") = \"exastencils\", \"exastencils.vcxproj\", \"{435911DB-0E04-462A-A3D6-00054AE0DB84}\""
     solutionPrinter <<< "EndProject"
     solutionPrinter <<< "Global"
