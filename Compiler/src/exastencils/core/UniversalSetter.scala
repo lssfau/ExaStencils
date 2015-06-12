@@ -1,6 +1,6 @@
 package exastencils.core
 
-import reflect.runtime.universe._
+import scala.collection.mutable.ListBuffer
 
 import exastencils.logger._
 
@@ -32,6 +32,20 @@ object UniversalSetter {
       // field is POSO - set directly
       obj.getClass.getMethods.find(_.getName == ident + "_$eq").get.invoke(obj, value.asInstanceOf[Object])
     }
+
+    field.setAccessible(accessible)
+  }
+
+  /** FIXME */
+  def addToListBuffer[T](obj : AnyRef, ident : String, value : T) : Unit = {
+    Logger.info("UniversalSetter: Adding " + value + " to " + ident)
+
+    val field = obj.getClass.getDeclaredField(ident)
+    val accessible = field.isAccessible
+    field.setAccessible(true)
+
+    val oldValue = obj.getClass.getMethods.find(_.getName == ident).get.invoke(obj).asInstanceOf[ListBuffer[T]]
+    obj.getClass.getMethods.find(_.getName == ident + "_$eq").get.invoke(obj, oldValue ++ ListBuffer[T](value))
 
     field.setAccessible(accessible)
   }

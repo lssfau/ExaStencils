@@ -40,9 +40,19 @@ class ParserSettings extends ExaParser {
     }
   }
 
+  def addParameter[T](ident : String, value : T) = {
+    try {
+      UniversalSetter.addToListBuffer(exastencils.core.Settings, ident, value)
+    } catch {
+      case ex : java.lang.NoSuchFieldException     => Logger.warning(s"Trying to set parameter Settings.${ident} to ${value} but this parameter is undefined")
+      case ex : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter Knowledge.${ident} to ${value} but data types are incompatible")
+    }
+  }
+
   lazy val settingsfile = setting.*
 
-  lazy val setting = ident ~ "=" ~ expr ^^ { case id ~ "=" ~ ex => setParameter(id, ex) }
+  lazy val setting = (ident ~ "=" ~ expr ^^ { case id ~ "=" ~ ex => setParameter(id, ex) }
+    ||| ident ~ "+=" ~ expr ^^ { case id ~ "+=" ~ ex => addParameter(id, ex) })
 
   lazy val expr = stringLit ^^ { _.toString } |
     "-".? ~ numericLit ^^ {
