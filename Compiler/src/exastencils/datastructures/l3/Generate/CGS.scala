@@ -34,7 +34,7 @@ object CGS {
       printer.println(s"\t}")
 
       printer.println(s"\tVariable cgSteps : Integer")
-      printer.println(s"\trepeat 512 times count cgSteps {")
+      printer.println(s"\trepeat ${Knowledge.l3tmp_maxNumCGSSteps} times count cgSteps {")
       Communication.exch(printer, s"VecP$postfix@current")
 
       printer.println(s"\t\tloop over VecP$postfix@current {")
@@ -74,6 +74,9 @@ object CGS {
 
       printer.println(s"\t\tres = nextRes")
       printer.println(s"\t}")
+
+      printer.println("\tprint ( '\"Maximum number of cgs iterations (\"', " + Knowledge.l3tmp_maxNumCGSSteps + ", '\") was exceeded\"' )")
+
       printer.println(s"}")
     }
     printer.println

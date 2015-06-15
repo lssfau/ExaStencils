@@ -228,6 +228,7 @@ object Knowledge {
   /// SPL connected
   var l3tmp_smoother : String = "Jac" // [Jac|RBGS] // [Jac|GS|RBGS] // the l3tmp_smoother to be generated
   var l3tmp_cgs : String = "CG" // [CG] // the coarse grid solver to be generated
+  var l3tmp_maxNumCGSSteps : Int = 512 // maximum number of coarse grid solver iterations
   var l3tmp_numRecCycleCalls : Int = 1 // [1~2] // 1 corresponds to v-cycles while 2 corresponds to w-cycles
   var l3tmp_numPre : Int = 3 // [0~4] // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
   var l3tmp_numPost : Int = 3 // [0~4] // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
@@ -253,6 +254,8 @@ object Knowledge {
   var l3tmp_printAllTimers : Boolean = false // prints results for all used timers at the end of the application
   var l3tmp_printTimersToFile : Boolean = false // prints results for all used timers at the end of the application; uses l3tmp_timerOuputFile as target file
   var l3tmp_timerOuputFile : String = "timings.csv" // the file timer data is to be written to if l3tmp_printTimersToFile is activated
+
+  var l3tmp_timeoutLimit : Int = 20 * 60 * 1000 // threshold in ms for the total cycle time after which solving is canceled; 0 deactivates the feature
 
   /// functionality test
   var l3tmp_exactSolution : String = "Zero" // specifies which function (type) is used for the solution/ rhs is used; allowed options are 'Zero', 'Polynomial', 'Trigonometric' and 'Kappa', 'Kappa_VC'
@@ -306,6 +309,9 @@ object Knowledge {
       Constraints.condEnsureValue(l3tmp_exactSolution, "Kappa", l3tmp_sisc && !l3tmp_genStencilFields, "Kappa is required as l3tmp_exactSolution for constant stencils and l3tmp_sisc")
       Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_sisc && l3tmp_genStencilFields, "l3tmp_genHDepStencils must be true for variable stencils and l3tmp_sisc")
       Constraints.condEnsureValue(experimental_Neumann, false, l3tmp_sisc, "Neumann boundary conditions are not compatible with l3tmp_sisc")
+
+      if (l3tmp_sisc)
+        Constraints.updateValue(l3tmp_maxNumCGSSteps, 1024)
 
       Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, "Kappa" == l3tmp_exactSolution, "Kappa requires l3tmp_genNonZeroRhs")
       Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, "Kappa_VC" == l3tmp_exactSolution, "Kappa_VC requires l3tmp_genNonZeroRhs")

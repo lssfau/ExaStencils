@@ -32,7 +32,7 @@ object Solve {
     printer.println("\tVariable numIt : Integer = 0")
     printer.println(s"\trepeat until (res_0 < ( ${Knowledge.l3tmp_targetResReduction} * resStart_0 ) && numIt < 100) {")
     printer.println("\t\tnumIt += 1")
-    if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
+    if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile || Knowledge.l3tmp_timeoutLimit > 0)
       printer.println("\t\tstartTimer ( 'cycle' )")
     printer.println("\t\tVCycle@finest (  )")
 
@@ -52,11 +52,18 @@ object Solve {
       printer.println(s"\t\t\tSolution[currentSlot]@current -= integral")
       printer.println(s"\t\t}")
     }
-    if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
-      printer.println("\tstopTimer ( 'cycle' )")
+    if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile || Knowledge.l3tmp_timeoutLimit > 0)
+      printer.println("\t\tstopTimer ( 'cycle' )")
+
+    if (Knowledge.l3tmp_timeoutLimit > 0) {
+      printer.println(s"\t\tif (getTotalFromTimer ( 'cycle' ) > ${Knowledge.l3tmp_timeoutLimit} ) {")
+      printer.println("\t\t\tprint ( '\"Aborting solve after\"', getTotalFromTimer ( 'cycle' ), '\"ms which exceeds the limit of\"', " + Knowledge.l3tmp_timeoutLimit + ", '\"ms\"' )")
+      printer.println("\t\t\treturn")
+      printer.println(s"\t\t}")
+    }
 
     if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
-      printer.println("\tstartTimer ( 'convergenceChecking' )")
+      printer.println("\t\tstartTimer ( 'convergenceChecking' )")
     if (Knowledge.l3tmp_genAsyncCommunication)
       printer.println("\t\tUpResidual@finest ( 0 )")
     else
