@@ -1,4 +1,7 @@
-package exastencils.spl
+package exastencils.spl.learning
+
+import exastencils.spl.Configuration
+import exastencils.spl.Feature
 
 /**
   * A mathematical expression needed for the ForwardFeatureSelection algorithm. One expression describes interactions and influences of features on an non-functional property.
@@ -44,6 +47,7 @@ class FFS_Expression(featuresOfDomain : scala.collection.mutable.Map[String, Fea
 
     curr = curr.replace("+", " + ");
     curr = curr.replace("*", " * ");
+    curr = curr.replace("/", " / ");
 
     curr = curr.replace("(", " ( ");
     curr = curr.replace(")", " ) ");
@@ -74,6 +78,9 @@ class FFS_Expression(featuresOfDomain : scala.collection.mutable.Map[String, Fea
     if (x.equals("*"))
       return true
 
+    if (x.equals("/"))
+      return true
+
     return false;
   }
 
@@ -91,6 +98,9 @@ class FFS_Expression(featuresOfDomain : scala.collection.mutable.Map[String, Fea
       return true
 
     if (x.equals("*"))
+      return true
+
+    if (x.equals("/"))
       return true
 
     if (x.equals("]"))
@@ -114,6 +124,9 @@ class FFS_Expression(featuresOfDomain : scala.collection.mutable.Map[String, Fea
     var otherT = otherToken.trim()
 
     if (thisT.equals("*") && otherT.equals("+"))
+      return true
+
+    if (thisT.equals("/") && otherT.equals("+"))
       return true
 
     return false;
@@ -237,6 +250,12 @@ class FFS_Expression(featuresOfDomain : scala.collection.mutable.Map[String, Fea
           var leftHandSide = stack.pop
           stack.push(leftHandSide * rightHandSide)
         }
+        if (curr.equals("/")) {
+          var rightHandSide = stack.pop
+          var leftHandSide = stack.pop
+          stack.push(leftHandSide / rightHandSide)
+        }
+
         if (curr.equals("]")) {
           var leftHandSide = stack.pop
           if (leftHandSide == 0.0)
@@ -280,7 +299,7 @@ class FFS_Expression(featuresOfDomain : scala.collection.mutable.Map[String, Fea
   def tokenIsAFeatureOrNumber(token : String) : Boolean = {
     var curr = token.trim()
 
-    if (curr.forall(_.isDigit)) {
+    if (curr.forall(x => x.isDigit || x.equals('-') || x.equals('.') || x.equals('E'))) {
       return true
     }
     if (featuresOfDomain.contains(curr)) {
@@ -308,6 +327,103 @@ class FFS_Expression(featuresOfDomain : scala.collection.mutable.Map[String, Fea
 
   override def toString() : String = {
     return wellFormedExpression
+  }
+
+  def toOSiL_syntax(nameToFeatureAndID : scala.collection.mutable.Map[String, Tuple2[Feature, Int]], stringBuild : StringBuilder) : String = {
+    runningIndex = 0
+    return partToOSiL_syntax(0, stringBuild, nameToFeatureAndID)._1.toString()
+  }
+
+  var runningIndex = 0
+
+  def partToOSiL_syntax(index : Int, stringBuild : StringBuilder, nameToFeatureAndID : scala.collection.mutable.Map[String, Tuple2[Feature, Int]]) : Tuple2[StringBuilder, Int] = {
+    if (expressionArray.size - 1 - runningIndex == -1) {
+      println("error")
+      return new Tuple2(stringBuild, index)
+    }
+
+    var curr = expressionArray(expressionArray.size - 1 - runningIndex)
+
+    var idx = index + 1
+    runningIndex += 1
+    if (curr.equals("+")) {
+      stringBuild.append("<plus>\n")
+
+      idx = partToOSiL_syntax(idx, stringBuild, nameToFeatureAndID)._2
+      idx = partToOSiL_syntax(idx, stringBuild, nameToFeatureAndID)._2
+      stringBuild.append("</plus>\n")
+
+    } else if (curr.equals("*")) {
+      stringBuild.append("<times>\n")
+      idx = partToOSiL_syntax(idx, stringBuild, nameToFeatureAndID)._2
+      idx = partToOSiL_syntax(idx, stringBuild, nameToFeatureAndID)._2
+      stringBuild.append("</times>\n")
+    } else if (curr.equals("/")) {
+      stringBuild.append("<divide>\n")
+      idx = partToOSiL_syntax(idx, stringBuild, nameToFeatureAndID)._2
+      idx = partToOSiL_syntax(idx, stringBuild, nameToFeatureAndID)._2
+      stringBuild.append("</divide>\n")
+
+    } else if (curr.forall(x => x.isDigit || x.equals('-') || x.equals('.') || x.equals('E'))) {
+      stringBuild.append("<number type=\"real\" value=\"" + curr + "\"/>\n")
+    } else {
+      var indexFeature = nameToFeatureAndID(curr)._2
+      stringBuild.append("<variable coef=\"1.0\" idx=\"" + indexFeature + "\"/>\n")
+    }
+
+    return new Tuple2(stringBuild, index)
+  }
+
+  def equalExpression(other : FFS_Expression) : Boolean = {
+    var thisParts : scala.collection.mutable.Set[String] = scala.collection.mutable.Set(this.wellFormedExpression.split(" ").toSeq : _*)
+    var otherParts : scala.collection.mutable.Set[String] = scala.collection.mutable.Set(other.wellFormedExpression.split(" ").toSeq : _*)
+
+    // 1 is the "virtual" root feature. using this feature, we consider the general overhead of all variants that is not caused by a feature
+    if (thisParts.contains("1"))
+      thisParts.remove("1")
+
+    if (thisParts.contains("1"))
+      thisParts.remove("1")
+
+    if (thisParts.size != otherParts.size)
+      return false
+
+    thisParts.foreach { x =>
+      {
+        if (otherParts.contains(x))
+          otherParts.remove(x)
+      }
+    }
+
+    return (otherParts.size == 0);
+  }
+
+  def getExpressionGMSSyntax() : String = {
+    var parts : Array[String] = this.wellFormedExpression.split("\\+")
+    println(this.wellFormedExpression.getClass)
+    var stringBuilder : StringBuilder = new StringBuilder()
+
+    for (a <- 0 to parts.length - 1) {
+      var number = parts(a).count { x => x.equals("-") }
+      parts(a) = parts(a).replace("-", "")
+      if (number % 2 == 1) {
+        stringBuilder.append(" - " + parts(a))
+      } else {
+        if (stringBuilder.length == 0)
+          stringBuilder.append(parts(a))
+        else
+          stringBuilder.append(" + " + parts(a))
+      }
+    }
+
+    return stringBuilder.toString();
+  }
+
+  def isTheSame(other : FFS_Expression) : Boolean = {
+    if (this.toString().contains(other.toString()) && other.toString().contains(other.toString()))
+      return true
+
+    return false;
   }
 
 }

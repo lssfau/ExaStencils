@@ -12,8 +12,7 @@ import jp.kobe_u.copris.Term
 import java.io.File
 import java.io.BufferedWriter
 import java.io.FileWriter
-import exastencils.spl.ForwardFeatureSelection
-import exastencils.spl.FFS_Expression
+import exastencils.spl.learning._
 
 class PredictionTests {
 

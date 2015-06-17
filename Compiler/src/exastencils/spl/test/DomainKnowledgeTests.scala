@@ -23,13 +23,12 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import exastencils.spl.Configuration
-import exastencils.spl.FFS_Expression
 import exastencils.spl.Feature
 import exastencils.spl.FeatureModel
-import exastencils.spl.ForwardFeatureSelection
+import exastencils.spl.learning._
 import exastencils.spl.NonFunctionalProperties
 
-class DomainKnowledgeTests {
+object DomainKnowledgeTests {
 
   val locationModel : String = "./../FeatureModel/DomainKnowledgeTest/model_HSMGP_withCores_numerical.model"
   val locationMeasurements : String = "./../FeatureModel/DomainKnowledgeTest/PDA_numCoresAll.txt";
@@ -38,7 +37,7 @@ class DomainKnowledgeTests {
 
   def main(args : Array[String]) : Unit = {
 
-    testMachineLearningAlgorithms
+    //    testMachineLearningAlgorithms
     testMachineLearningAlgorithmsWithDomainKnowledge
   }
 
@@ -57,39 +56,72 @@ class DomainKnowledgeTests {
 
     pTest.readFile(locationMeasurements, nfps)
     var allConfigs = pTest.allConfigs
-    var specificModels : scala.collection.mutable.Set[Tuple4[Feature, String, Array[FFS_Expression], Jama.Matrix]] = scala.collection.mutable.Set()
-
-    var testConfigs : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
+    allConfigs.foreach { x =>
+      {
+        x.boolFeatures.put(FeatureModel.get("cgs"), true)
+      }
+    }
 
     var t = allConfigs.toArray[Configuration]
 
-    var r = Random
-    for (d <- 1 to 74) {
+    var errorList : scala.collection.mutable.MutableList[Double] = scala.collection.mutable.MutableList()
+    var sumErrors : Double = 0.0
 
-      var pos = (allConfigs.size * r.nextDouble).toInt
-      testConfigs.add(t(pos))
+    for (i <- 1 to 5) {
+      var specificModels : scala.collection.mutable.Set[Tuple4[Feature, String, Array[FFS_Expression], Jama.Matrix]] = scala.collection.mutable.Set()
+      var testConfigs : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
+
+      var r = Random
+      r.setSeed(i)
+      for (d <- 1 to 86) {
+
+        var pos = (allConfigs.size * r.nextDouble).toInt
+        testConfigs.add(t(pos))
+
+      }
+      var features : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
+      FeatureModel.allFeatures.foreach(f => features.add(f._2))
+
+      var forwardFeatureSelection = new ForwardFeatureSelection(features, 20, testConfigs.toArray[Configuration], "time_perCycle")
+      forwardFeatureSelection.apply
+      forwardFeatureSelection.perform()
+
+      var x = forwardFeatureSelection.getModelWithConstants(forwardFeatureSelection.solutionSet.toArray[FFS_Expression])
+
+      specificModels.add(new Tuple4[Feature, String, Array[FFS_Expression], Jama.Matrix](FeatureModel.allFeatures("cgs"), "time_perCycle", x._2, x._1))
+
+      forwardFeatureSelection = new ForwardFeatureSelection(features, 20, testConfigs.toArray[Configuration], "numberIterations")
+      forwardFeatureSelection.apply
+      forwardFeatureSelection.perform()
+
+      x = forwardFeatureSelection.getModelWithConstants(forwardFeatureSelection.solutionSet.toArray[FFS_Expression])
+
+      specificModels.add(new Tuple4[Feature, String, Array[FFS_Expression], Jama.Matrix](FeatureModel.allFeatures("cgs"), "numberIterations", x._2, x._1))
+
+      println("-----------------------------------------------------------------")
+
+      var avgError : Double = getAvgErrorConfigs(allConfigs, specificModels, "time_Overall")
+      errorList.+=(avgError)
+      sumErrors += avgError
+
+      write(prefixResultFiles + "Random_" + i + ".csv", "predicted;measured\n" + predictConfigs(allConfigs, specificModels, "time_Overall"))
+      restartLearning()
 
     }
-    var features : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
-    FeatureModel.allFeatures.foreach(f => features.add(f._2))
 
-    var forwardFeatureSelection = new ForwardFeatureSelection(features, 20, testConfigs.toArray[Configuration], "time_perCycle")
-    forwardFeatureSelection.apply
+    sumErrors = sumErrors / errorList.size
 
-    var x = forwardFeatureSelection.getModelWithConstants(forwardFeatureSelection.solutionSet.toArray[FFS_Expression])
+    var minDistToAvg = Double.MaxValue
+    var index = -1
+    for (a <- 0 to errorList.size - 1) {
+      if (Math.abs(sumErrors.toDouble - errorList(a)) < minDistToAvg) {
 
-    specificModels.add(new Tuple4[Feature, String, Array[FFS_Expression], Jama.Matrix](FeatureModel.allFeatures("cgs"), "time_perCycle", x._2, x._1))
+        index = a
+        minDistToAvg = Math.abs(sumErrors.toDouble - errorList(a))
+      }
+    }
 
-    forwardFeatureSelection = new ForwardFeatureSelection(features, 20, testConfigs.toArray[Configuration], "numberIterations")
-    forwardFeatureSelection.apply
-
-    x = forwardFeatureSelection.getModelWithConstants(forwardFeatureSelection.solutionSet.toArray[FFS_Expression])
-
-    specificModels.add(new Tuple4[Feature, String, Array[FFS_Expression], Jama.Matrix](FeatureModel.allFeatures("cgs"), "numberIterations", x._2, x._1))
-
-    println("-----------------------------------------------------------------")
-
-    predictConfigs(allConfigs, specificModels, "time_Overall")
+    println("random seet " + index + " has the average error")
 
     // predicten of all configs
     println("finished")
@@ -113,7 +145,9 @@ class DomainKnowledgeTests {
   var configsConsidered : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
   var specificModels : scala.collection.mutable.Set[Tuple4[Feature, String, Array[FFS_Expression], Jama.Matrix]] = scala.collection.mutable.Set()
 
-  def learnModelSmootherPrePost(allConfigs : scala.collection.mutable.Set[Configuration], nfp : String) : String = {
+  def learnModelSmootherPrePost(allConfigs : scala.collection.mutable.Set[Configuration], nfp : String, useAllConfigsForError : Boolean) : String = {
+
+    var f = FeatureModel.allFeatures
 
     // for each smoother learn a #influence model considering pre and post 
     FeatureModel.parentChildRelationships(FeatureModel.allFeatures("smoother")).foreach(x => {
@@ -131,16 +165,24 @@ class DomainKnowledgeTests {
     cores.put(FeatureModel.getSpecificFeatureDkPaperTest("cores"), 64)
     var configsCores = FeatureModel.filterConfigurations(configs, cores)
 
-    var returnString : String = null
+    var returnString : String = ""
 
-    var jacFeature : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
-    jacFeature.add(FeatureModel.getSpecificFeatureDkPaperTest("Smoother"))
-    var onlyJacConfig = FeatureModel.filterConfigurations(configsCores, jacFeature)
+    if (nfp.equals("numberIterations"))
+      returnString = predictConfigs(configsCores, specificModels, nfp)
+    if (nfp.equals("time_perCycle"))
+      returnString = predictConfigs(configsCores, specificModels, nfp)
 
-    if (nfp == NonFunctionalProperties.numberIterations)
-      returnString = predictConfigs(configsCores, specificModels, nfp)
-    if (nfp == NonFunctionalProperties.time_perCycle)
-      returnString = predictConfigs(configsCores, specificModels, nfp)
+    //    if (useAllConfigsForError) {
+    //      if (nfp.equals("numberIterations"))
+    //        returnString = predictConfigs(allConfigs, specificModels, nfp)
+    //      if (nfp.equals("time_perCycle"))
+    //        returnString = predictConfigs(allConfigs, specificModels, nfp)
+    //    } else {
+    //      if (nfp.equals("numberIterations"))
+    //        returnString = predictConfigs(configsCores, specificModels, nfp)
+    //      if (nfp.equals("time_perCycle"))
+    //        returnString = predictConfigs(configsCores, specificModels, nfp)
+    //    }
 
     println("---------------------" + configsConsidered.size + "--------------------------------------------------------")
     return returnString
@@ -163,7 +205,7 @@ class DomainKnowledgeTests {
     cores.put(FeatureModel.getSpecificFeatureDkPaperTest("cores"), 64)
     var configs = FeatureModel.filterConfigurations(allConfigs, cores)
 
-    println("---------------------" + configsConsidered.size + "--------------------------------------------------------")
+    println("---------------------" + configs.size + "--------------------------------------------------------")
 
     return predictConfigs(configs, specificModels, "time_perCycle")
   }
@@ -242,24 +284,34 @@ class DomainKnowledgeTests {
     pTest.readFile(locationMeasurements, nfps)
     var allConfigs = pTest.allConfigs
 
+    allConfigs.foreach { x =>
+      {
+        x.boolFeatures.put(FeatureModel.get("cgs"), true)
+      }
+    }
+
     println("-----------------------------# of Iterations Model for Smoother Pre Post-------")
-    write(prefixResultFiles + "NumIt_OnlyOneCGSAndOneCore.csv", learnModelSmootherPrePost(allConfigs, "numberIterations"))
+    write(prefixResultFiles + "NumIt_OnlyOneCGSAndOneCore.csv", "predicted;measured\n" + learnModelSmootherPrePost(allConfigs, "numberIterations", false))
+    restartLearning()
+
+    println("-----------------------------# of Iterations Model for Smoother Pre Post-------")
+    write(prefixResultFiles + "NumIt_OnlyOneCGSAndOneCore_allConfigs.csv", "predicted;measured\n" + learnModelSmootherPrePost(allConfigs, "numberIterations", true))
     restartLearning()
 
     println("-----------------------------Time Per Iteration Model for Smoother Pre Post-------")
-    write(prefixResultFiles + "TimePerIt.csv", learnModelSmootherPrePost(allConfigs, "time_perCycle"))
+    write(prefixResultFiles + "TimePerIt.csv", "predicted;measured\n" + learnModelSmootherPrePost(allConfigs, "time_perCycle", false))
     restartLearning()
 
     println("-----------------------------Time Per Iteration Model for Smoother Pre Post CGS-------")
-    write(prefixResultFiles + "TimePerItCGS.csv", learnModelSmootherPrePostCgs(allConfigs))
+    write(prefixResultFiles + "TimePerItCGS.csv", "predicted;measured\n" + learnModelSmootherPrePostCgs(allConfigs))
     restartLearning()
 
     println("-----------------------------Time Per Iteration Model for Smoother Pre Post CGS Cores-------")
-    write(prefixResultFiles + "TimePerItCGSCores.csv", learnModelSmootherPrePostCgsCores(allConfigs))
+    write(prefixResultFiles + "TimePerItCGSCores.csv", "predicted;measured\n" + learnModelSmootherPrePostCgsCores(allConfigs))
     restartLearning()
 
     println("-----------------------------All-------")
-    write(prefixResultFiles + "OverallTime.csv", learnModelSmootherPrePostCgsCoresOverallTime(allConfigs))
+    write(prefixResultFiles + "OverallTime.csv", "predicted;measured\n" + learnModelSmootherPrePostCgsCoresOverallTime(allConfigs))
     restartLearning()
 
     println(configsConsidered.size)
@@ -287,9 +339,55 @@ class DomainKnowledgeTests {
 
     for (config <- configurations) {
       var modelsOfConfig = models.filter(x => config.boolFeatures.contains(x._1))
+      println(modelsOfConfig.size)
+      var modelsNumIteration = modelsOfConfig.filter(_._2.equals("numberIterations"))
+      var modelsTimePerCycle = modelsOfConfig.filter(_._2.equals("time_perCycle"))
 
-      var modelsNumIteration = modelsOfConfig.filter(_._2 == NonFunctionalProperties.numberIterations)
-      var modelsTimePerCycle = modelsOfConfig.filter(_._2 == NonFunctionalProperties.time_perCycle)
+      var numIterations = 0.0
+      modelsNumIteration.foreach(x => numIterations += ffs.predictConfig(x._4, x._3, config))
+
+      var timePerCycle = 0.0
+      modelsTimePerCycle.foreach(x => timePerCycle += ffs.predictConfig(x._4, x._3, config))
+
+      var predictedValue = 0.0
+      var measuredValue = 0.0
+
+      if (nfp.equals("time_Overall")) {
+        predictedValue = Math.rint(numIterations).toInt * timePerCycle
+        measuredValue = config.nfpValues("time_Overall")
+      } else if (nfp.equals("time_perCycle")) {
+        predictedValue = timePerCycle
+        predictedValue = BigDecimal(predictedValue).setScale(5, BigDecimal.RoundingMode.HALF_UP).toDouble
+        measuredValue = config.nfpValues("time_perCycle")
+      } else if (nfp.equals("numberIterations")) {
+        predictedValue = Math.rint(numIterations).toInt
+        measuredValue = config.nfpValues("numberIterations")
+      }
+
+      //    	sb. append(config.CSV_String() + predictedValue.toString.replace(".", ",") + ";" + measuredValue.toString.replace(".", ",")+"\n")
+      //      sb.append(predictedValue.toString + ";" + measuredValue.toString + "\n")
+      sb.append(predictedValue.toString + ";" + measuredValue.toString + "\n")
+      sumError += Math.abs(predictedValue - measuredValue)
+
+    }
+    println("Sum of the errors " + sumError)
+    //    sb. append(sumError / configurations.size)
+    return sb.toString
+  }
+
+  def getAvgErrorConfigs(configurations : scala.collection.mutable.Set[Configuration], models : scala.collection.mutable.Set[Tuple4[Feature, String, Array[FFS_Expression], Jama.Matrix]], nfp : String) : Double = {
+
+    var ffs = new ForwardFeatureSelection(null, 20, null, null)
+
+    var sb : StringBuilder = new StringBuilder()
+
+    var sumError = 0.0
+
+    for (config <- configurations) {
+      var modelsOfConfig = models.filter(x => config.boolFeatures.contains(x._1))
+
+      var modelsNumIteration = modelsOfConfig.filter(_._2.equals("numberIterations"))
+      var modelsTimePerCycle = modelsOfConfig.filter(_._2.equals("time_perCycle"))
 
       var numIterations = 0.0
       modelsNumIteration.foreach(x => numIterations += ffs.predictConfig(x._4, x._3, config))
@@ -311,13 +409,13 @@ class DomainKnowledgeTests {
         measuredValue = config.nfpValues("numberIterations")
       }
 
-      //    	sb. append(config.CSV_String() + predictedValue.toString.replace(".", ",") + ";" + measuredValue.toString.replace(".", ",")+"\n")
+      //      sb. append(config.CSV_String() + predictedValue.toString.replace(".", ",") + ";" + measuredValue.toString.replace(".", ",")+"\n")
       sb.append(predictedValue.toString.replace(".", ",") + ";" + measuredValue.toString.replace(".", ",") + "\n")
-      sumError += Math.abs(predictedValue - measuredValue)
+      sumError += Math.abs(predictedValue - measuredValue) / measuredValue
 
     }
     //    sb. append(sumError / configurations.size)
-    return sb.toString
+    return sumError / configurations.size
   }
 
   def predictConfigs2(configurations : scala.collection.mutable.Set[Configuration], models : scala.collection.mutable.Set[Tuple4[Feature, NonFunctionalProperties.Value, Array[FFS_Expression], Jama.Matrix]]) = {
@@ -328,7 +426,7 @@ class DomainKnowledgeTests {
 
     for (config <- configurations) {
 
-      var timeOModels = models.filter(_._2 == NonFunctionalProperties.time_Overall)
+      var timeOModels = models.filter(_._2.equals("time_Overall"))
       var timeO = 0.0
       timeOModels.foreach(x => timeO += ffs.predictConfig(x._4, x._3, config))
       //    	numIterations = numIterations/modelsNumIteration.size
@@ -359,11 +457,16 @@ class DomainKnowledgeTests {
     println("------------------------CGS---------------------------------")
 
     var cgsFeatures : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
-    FeatureModel.parentChildRelationships(FeatureModel.allFeatures("cgs")).foreach(x => cgsFeatures.add(x))
+    var cgsFeaturesWithName : scala.collection.mutable.Map[String, Feature] = scala.collection.mutable.Map()
+    FeatureModel.parentChildRelationships(FeatureModel.allFeatures("cgs")).foreach(x =>
+      {
+        cgsFeatures.add(x)
+        cgsFeaturesWithName.put(x.identifier, x)
+      })
 
     var selectedNumFeatures : scala.collection.mutable.Map[Feature, Double] = scala.collection.mutable.Map()
-    selectedNumFeatures.put(FeatureModel.getSpecificFeatureDkPaperTest("pre"), 3)
-    selectedNumFeatures.put(FeatureModel.getSpecificFeatureDkPaperTest("post"), 3)
+    selectedNumFeatures.put(FeatureModel.getSpecificFeatureDkPaperTest("pre"), 0)
+    selectedNumFeatures.put(FeatureModel.getSpecificFeatureDkPaperTest("post"), 1)
     selectedNumFeatures.put(FeatureModel.getSpecificFeatureDkPaperTest("cores"), 64)
 
     var configsByPrePostAndDomain = FeatureModel.filterConfigurations(allConfigs, selectedNumFeatures)
@@ -379,10 +482,23 @@ class DomainKnowledgeTests {
 
     configsBySmootherAndDomain.foreach(x => if (!configsConsidered.contains(x)) configsConsidered.add(x))
 
+    var cgs : scala.collection.mutable.Set[FFS_Expression] = scala.collection.mutable.Set()
+    cgs.add(new FFS_Expression(cgsFeaturesWithName, "RED_AMG"))
+    //    cgs.add(new FFS_Expression(cgsFeaturesWithName, "IP_CG"))
+    cgs.add(new FFS_Expression(cgsFeaturesWithName, "IP_AMG"))
+
+    var cgsName : scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
+    cgsName.add("RED_AMG")
+    //    cgsName.add("IP_CG")
+    cgsName.add("IP_AMG")
+
     var forwardFeatureSelection = new ForwardFeatureSelection(cgsFeatures, 20, configsBySmootherAndDomain.toArray[Configuration], nfp)
     forwardFeatureSelection.applyWithOffset(configurationOffset)
+    //    forwardFeatureSelection.perform(cgsName)
 
-    var x = forwardFeatureSelection.getModelWithConstants(forwardFeatureSelection.solutionSet.toArray[FFS_Expression])
+    var x = forwardFeatureSelection.getModelWithConstants(cgs.toArray[FFS_Expression])
+
+    //    var x = forwardFeatureSelection.getModelWithConstants(forwardFeatureSelection.solutionSet.toArray[FFS_Expression])
     println(forwardFeatureSelection.printModelWithConstants(x._1, x._2))
 
     return x
@@ -405,12 +521,12 @@ class DomainKnowledgeTests {
     var selectedSmoother : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
     selectedSmoother.add(smootherFeature)
     var configsBySmootherAndDomain = FeatureModel.filterConfigurations(configsByPrePostAndDomain, selectedSmoother)
-    //		println("by smoother "+configsBySmootherAndDomain.size)
+    println("by smoother " + configsBySmootherAndDomain.size)
 
-    var selectedCGS : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
-    selectedSmoother.add(FeatureModel.getSpecificFeatureDkPaperTest("cgs"))
-    configsBySmootherAndDomain = FeatureModel.filterConfigurations(configsBySmootherAndDomain, selectedSmoother)
-    //		println("by cgs "+configsBySmootherAndDomain.size)
+    //    var selectedCGS : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
+    //    selectedSmoother.add(FeatureModel.getSpecificFeatureDkPaperTest("cgs"))
+    //    configsBySmootherAndDomain = FeatureModel.filterConfigurations(configsBySmootherAndDomain, selectedSmoother)
+    //    println("by cgs " + configsBySmootherAndDomain.size)
 
     var configurationOffset : scala.collection.mutable.Map[Configuration, Double] = scala.collection.mutable.Map()
     configsBySmootherAndDomain.foreach(x => configurationOffset.put(x, predictConfiguration(x, nfp, learnedModels)))
@@ -419,6 +535,7 @@ class DomainKnowledgeTests {
 
     var forwardFeatureSelection = new ForwardFeatureSelection(coresFeature, 20, configsBySmootherAndDomain.toArray[Configuration], nfp)
     forwardFeatureSelection.applyWithOffset(configurationOffset)
+    forwardFeatureSelection.perform()
 
     var x = forwardFeatureSelection.getModelWithConstants(forwardFeatureSelection.solutionSet.toArray[FFS_Expression])
     println(forwardFeatureSelection.printModelWithConstants(x._1, x._2))
@@ -461,6 +578,7 @@ class DomainKnowledgeTests {
 
     var forwardFeatureSelection = new ForwardFeatureSelection(featuresOfInterest, 20, ccdSampleBySmoother.toArray[Configuration], nfp)
     forwardFeatureSelection.apply
+    forwardFeatureSelection.perform()
 
     var x = forwardFeatureSelection.getModelWithConstants(forwardFeatureSelection.solutionSet.toArray[FFS_Expression])
     println(forwardFeatureSelection.printModelWithConstants(x._1, x._2))

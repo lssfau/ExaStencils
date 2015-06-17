@@ -4,9 +4,14 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException
 
 class Configuration() {
 
+  // for Hannah
+  var numNode = 0
+
   var boolFeatures : scala.collection.mutable.Map[Feature, Boolean] = scala.collection.mutable.Map()
   var numericalFeatureValues : scala.collection.mutable.Map[Feature, Double] = scala.collection.mutable.Map()
   var xorFeatureValues : scala.collection.mutable.Map[Feature, String] = scala.collection.mutable.Map()
+
+  var measurementName : String = ""
 
   var additionalKnowledgeFileInformation : String = "\n"
   var partialBaseConfig : scala.collection.mutable.Map[String, Any] = scala.collection.mutable.Map()
@@ -89,7 +94,7 @@ class Configuration() {
     identifier = this.toString()
   }
 
-  // TODO condier false as value
+  // TODO consider false as value
   def readSolution(bool : scala.collection.mutable.Set[Feature], numericalFeatures : scala.collection.mutable.Map[Feature, Double], xorFeatures : scala.collection.mutable.Map[Feature, String]) = {
     bool.foreach(a => boolFeatures.put(a, true))
     numericalFeatures.foreach(a => numericalFeatureValues.put(FeatureModel.allFeatures(a._1.identifier), a._2.toDouble))
@@ -162,10 +167,10 @@ class Configuration() {
 
   // TODO 
   override def equals(that : Any) = {
-    //    that match {
-    //      case that: Configuration => (if (numberOfDifferentBooleanFeatures(that) == 0 && !hasDifferentNumbericalFeatures(that)) true else false)
-    //      case _ => false
-    //    }
+    //        that match {
+    //          case that: Configuration => (if (numberOfDifferentBooleanFeatures(that) == 0 && !hasDifferentNumbericalFeatures(that)) true else false)
+    //          case _ => false
+    //        }
     false
   }
 
@@ -296,6 +301,22 @@ class Configuration() {
 
   def setMeasurements(measurements : scala.collection.mutable.Map[String, Double]) = {
     this.nfpValues = measurements
+  }
+
+  def getLFAConfig(lfaConfigs : scala.collection.mutable.Set[LFAConfig]) : LFAConfig = {
+
+    lfaConfigs.foreach(lfa =>
+      {
+        if (lfa.numPre == this.numericalFeatureValues(FeatureModel.get("l3tmp_numPre")).toInt) {
+          if (lfa.numPost == this.numericalFeatureValues(FeatureModel.get("l3tmp_numPost")).toInt) {
+            if (lfa.Smoother.equals(this.xorFeatureValues(FeatureModel.get("l3tmp_smoother")).replace("\"", ""))) {
+              if (lfa.numCGC.equals(this.numericalFeatureValues(FeatureModel.get("l3tmp_numRecCycleCalls")).toInt))
+                return lfa
+            }
+          }
+        }
+      })
+    return null
   }
 
 }

@@ -43,7 +43,7 @@ object Knowledge {
   // === Layer 2 ===
 
   // TODO: check if these parameters will be necessary or can be implicitly assumed once an appropriate field collection is in place
-  var minLevel : Int = 0 //[0~12]  // @constant // the coarsest level
+  var minLevel : Int = 0 //[0~4]  // @constant // the coarsest level
   var maxLevel : Int = 6 //[4~12] // @constant // the finest level
   def numLevels : Int = (maxLevel - minLevel + 1) // the number of levels -> this assumes that the cycle descents to the coarsest level
 
@@ -86,6 +86,19 @@ object Knowledge {
   var domain_rect_numFragsPerBlock_x : Int = 1 //[1~64]
   var domain_rect_numFragsPerBlock_y : Int = 1 //[1~64]
   var domain_rect_numFragsPerBlock_z : Int = 1 //[1~64]
+
+  // second sampling Domain 
+  var numNodes : Int = 64 // [16~64]
+  var ranksPerNode : Int = 64 // [16~64]
+  var firstDim : Int = 1 // [0~1]
+  var secondDim : Int = 1 // [0~1]
+
+  var numOMP_x : Int = 2 //[1~64]
+  var numOMP_y : Int = 2 //[1~64]
+  var numOMP_z : Int = 2 //[1~64]
+
+  var ompParallelizeLoops : Boolean = true //[true|false]
+  // second sampling Domain ENDE
 
   // the total number of fragments to be generated per dimension
   def domain_rect_numFragsTotal_x : Int = domain_rect_numFragsPerBlock_x * domain_rect_numBlocks_x
@@ -171,7 +184,7 @@ object Knowledge {
     targetCompiler match {
       case "MSVC"            => true
       case "GCC"             => true
-      case "IBMXL" | "IBMBG" => false
+      case "IBMXL" | "IBMBG" => true
       case _                 => Logger.error("Unsupported target compiler"); true
     }
   }
@@ -193,8 +206,8 @@ object Knowledge {
   //   2: optimize the loop nest by trying to minimze the dependences specified by poly_optimizeDeps
   //   3: tile the optimized loop nest using poly_tileSize_{x|y|z|w}  (slowest)
   // TODO: Alex: range of the following options
-  var poly_optLevel_fine : Int = 0 // [0~3] // poly opt-level for poly_numFinestLevels finest fields
-  var poly_optLevel_coarse : Int = 0 // [0~poly_optLevel_fine] // polyhedral optimization level for coarsest fields  0: disable (fastest);  3: aggressive (slowest)
+  var poly_optLevel_fine : Int = 3 // [0~3] // poly opt-level for poly_numFinestLevels finest fields
+  var poly_optLevel_coarse : Int = 1 // [0~poly_optLevel_fine] // polyhedral optimization level for coarsest fields  0: disable (fastest);  3: aggressive (slowest)
   var poly_numFinestLevels : Int = 2 // [1~numLevels] // number of levels that should be optimized in PolyOpt (starting from the finest)
   var poly_tileSize_x : Int = 1000000000 // [112~1000000000 $32]
   var poly_tileSize_y : Int = 1000000000 // [16~1000000000 $32]
@@ -244,8 +257,8 @@ object Knowledge {
   var l3tmp_genTimersForComm : Boolean = false // generates additional timers for the communication
   var l3tmp_genCommTimersPerLevel : Boolean = false // generates different communication timers for each level
 
-  var l3tmp_printAllTimers : Boolean = false // prints results for all used timers at the end of the application
   var l3tmp_printTimersToFile : Boolean = false // prints results for all used timers at the end of the application; uses l3tmp_timerOuputFile as target file
+  var l3tmp_printAllTimers : Boolean = false // prints results for all used timers at the end of the application
   var l3tmp_timerOuputFile : String = "timings.csv" // the file timer data is to be written to if l3tmp_printTimersToFile is activated
 
   /// functionality test
@@ -349,16 +362,16 @@ object Knowledge {
       Constraints.condEnsureValue(l3tmp_numVecDims, 1, !l3tmp_genVectorFields, "vector dimensions larger than 1 are only allowed in conjunction with vector fields")
       Constraints.condEnsureValue(l3tmp_numVecDims, 2, l3tmp_genVectorFields && l3tmp_numVecDims <= 1, "vector dimensions must be larger than 1 when using vector fields")
 
-    //    Constraints.condEnsureValue(l3tmp_omega, 0.8,("Jac" == l3tmp_smoother))
-    //    Constraints.condEnsureValue(l3tmp_omega, 1.0,("Jac" != l3tmp_smoother))
+      //    Constraints.condEnsureValue(l3tmp_omega, 0.8,("Jac" == l3tmp_smoother))
+      //    Constraints.condEnsureValue(l3tmp_omega, 1.0,("Jac" != l3tmp_smoother))
 
-    // l3tmp - stencils
-    Constraints.condEnsureValue(l3tmp_genStencilFields, false, experimental_Neumann, "l3tmp_genStencilFields is currently not compatible with Neumann boundary conditions")
-    Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, experimental_Neumann, "l3tmp_genStencilStencilConv is currently not compatible with Neumann boundary conditions")
-    Constraints.condEnsureValue(l3tmp_genStencilFields, false, l3tmp_genCellBasedDiscr, "l3tmp_genStencilFields is currently not compatible with cell based discretizations")
-    Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, l3tmp_genCellBasedDiscr, "l3tmp_genStencilStencilConv is currently not compatible with cell based discretizations")
-    Constraints.condEnsureValue(l3tmp_genHDepStencils, true, experimental_Neumann, "l3tmp_genHDepStencils is required for Neumann boundary conditions")
-    Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_genNonZeroRhs, "non-trivial rhs requires the usage of grid width dependent stencils")
+      // l3tmp - stencils
+      Constraints.condEnsureValue(l3tmp_genStencilFields, false, experimental_Neumann, "l3tmp_genStencilFields is currently not compatible with Neumann boundary conditions")
+      Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, experimental_Neumann, "l3tmp_genStencilStencilConv is currently not compatible with Neumann boundary conditions")
+      Constraints.condEnsureValue(l3tmp_genStencilFields, false, l3tmp_genCellBasedDiscr, "l3tmp_genStencilFields is currently not compatible with cell based discretizations")
+      Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, l3tmp_genCellBasedDiscr, "l3tmp_genStencilStencilConv is currently not compatible with cell based discretizations")
+      Constraints.condEnsureValue(l3tmp_genHDepStencils, true, experimental_Neumann, "l3tmp_genHDepStencils is required for Neumann boundary conditions")
+      Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_genNonZeroRhs, "non-trivial rhs requires the usage of grid width dependent stencils")
 
       // l3tmp - multigrid config
       if (l3tmp_sisc) {

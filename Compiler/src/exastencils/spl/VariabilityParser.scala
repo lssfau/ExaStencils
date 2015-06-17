@@ -36,6 +36,7 @@ import exastencils.spl.samplingStrategies.doe._
 import java.io._
 import exastencils.spl.test.DomainKnowledgeTests
 import exastencils.spl.samplingStrategies.heuristics.FWHeuristic
+import exastencils.spl.learning._
 
 object VariabilityParser {
   def main(args : Array[String]) : Unit = {
@@ -121,8 +122,7 @@ object VariabilityParser {
 
     var tuple = new Tuple3[String, Array[FFS_Expression], Jama.Matrix]("time_perCycle", x._2, x._1)
 
-    var dkt : DomainKnowledgeTests = new DomainKnowledgeTests();
-    dkt.write("./../FeatureModel/PollyTests/prediction.csv", pTest.predictConfigs(allConfigs, tuple, "time_perCycle"))
+    DomainKnowledgeTests.write("./../FeatureModel/PollyTests/prediction.csv", pTest.predictConfigs(allConfigs, tuple, "time_perCycle"))
     println("-----------------------------------------------------------------")
 
     //predictConfigs(allConfigs,specificModels,NonFunctionalProperties.time_Overall )

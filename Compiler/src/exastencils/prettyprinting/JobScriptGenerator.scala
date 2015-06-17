@@ -54,7 +54,7 @@ object JobScriptGenerator {
     }
   }
 
-  def write(numMPI : Int, numOMP : Int, sourcePath : Array[String], number : Int) : Unit = {
+  def write(numMPI : Int, numOMP : Int, sourcePath : Array[String], number : Int, suffix : String) : Unit = {
     Knowledge.targetCompiler match {
       case "IBMBG" | "IBMXL" => {
         //        val numOMP = Knowledge.omp_numThreads
@@ -62,8 +62,8 @@ object JobScriptGenerator {
         val numThreadsPerNode = 64
         val numMPIRanksPerNode = numThreadsPerNode / numOMP
         val numNodes = (numOMP * numMPI) / 64
-        println("OMP: " + numOMP + " MPI: " + numMPI + "  " + numNodes)
-        val printer = PrettyprintingManager.getPrinter("runJuQueen" + numMPI + "_" + numOMP + "_" + number)
+        println("OMP: " + numOMP + " MPI: " + numMPI + "  NumNodes: " + numNodes)
+        val printer = PrettyprintingManager.getPrinter("runJuQueen_" + suffix + "_" + numMPI + "_" + numOMP + "_" + number)
         printer <<< s"#@ shell = /bin/bash"
         printer <<< s"#@ job_name = GENERATED_" + numMPI + "_" + numOMP + "_" + number
         printer <<< "#@ error = $(job_name).$(jobid).out"
@@ -81,9 +81,9 @@ object JobScriptGenerator {
         printer <<< s"#@ job_type = bluegene"
         printer <<< s"#@ bg_size = $numNodes"
         printer <<< s"#@ bg_connectivity = TORUS"
-        if (numNodes > 32) {
-          var hours : Int = ((sourcePath.size * 1.5) / 60).toInt
-          var minutes : Int = ((sourcePath.size * 1.5) % 60).toInt
+        if (numNodes > 64) {
+          var hours : Int = ((sourcePath.size * 3) / 60).toInt
+          var minutes : Int = ((sourcePath.size * 3) % 60).toInt
           if (minutes < 10) {
             printer <<< s"#@ wall_clock_limit = 0" + hours + ":0" + minutes + ":00"
           } else {
@@ -110,7 +110,7 @@ object JobScriptGenerator {
             //          printer <<< ""
 
             printer <<< s"export OMP_NUM_THREADS=$numOMP"
-            printer <<< s"time runjob --ranks-per-node $numMPIRanksPerNode --np $numMPI --exp-env OMP_NUM_THREADS : /homea/her18/her183/Exa/$destBinary/exastencils.exe"
+            printer <<< s"time runjob --ranks-per-node $numMPIRanksPerNode --np $numMPI --exp-env OMP_NUM_THREADS : /homea/her18/her183/Exa/$destBinary" + suffix + "/exastencils.exe"
             printer <<< ""
           }
         }

@@ -181,6 +181,22 @@ class Feature(name : String) {
       return getPowOf2Values(distinctValues)
     }
 
+    if (this.name.equals("ranksPerNode")) {
+      return getPowOf2Values(distinctValues)
+    }
+
+    if (this.name.equals("numNodes")) {
+      return getPowOf2Values(distinctValues)
+    }
+
+    if (this.name.startsWith("aro_")) {
+      return getPowOf2Values(distinctValues)
+    }
+
+    if (this.name.startsWith("numOMP_")) {
+      return getPowOf2Values(distinctValues)
+    }
+
     if (this.name.startsWith("poly_tileSize_"))
       return getPowOf2ValuesPolly(distinctValues)
 
@@ -190,6 +206,22 @@ class Feature(name : String) {
 
   def getRandomValue(seed : Int) : Double = {
     if (this.name.startsWith("domain_")) {
+      return getRandomPowOf2Value(seed)
+    }
+
+    if (this.name.equals("ranksPerNode")) {
+      return getRandomPowOf2Value(seed)
+    }
+
+    if (this.name.equals("numNodes")) {
+      return getRandomPowOf2Value(seed)
+    }
+
+    if (this.name.startsWith("aro_")) {
+      return getRandomPowOf2Value(seed)
+    }
+
+    if (this.name.startsWith("numOMP_")) {
       return getRandomPowOf2Value(seed)
     }
 
@@ -260,17 +292,22 @@ class Feature(name : String) {
 
   // TODO   
   def getPowOf2Values(distinctValues : Int) : Array[Double] = {
+    println(distinctValues)
     var valuesLocal : scala.collection.mutable.Set[Double] = scala.collection.mutable.Set()
 
     valuesLocal.add(minValue)
     valuesLocal.add(maxValue)
+    val defToDouble = augmentString(defaultValue).toDouble
+
+    if (defToDouble != minValue && defToDouble != maxValue)
+      valuesLocal.add(defToDouble)
 
     var curr = minValue
-    for (a <- 1 to distinctValues - 1) {
-      var curr = (Math.pow(2, (a - 1)))
-      if (curr <= maxValue) {
-        valuesLocal.add(curr)
+    for (a <- valuesLocal.size to distinctValues - 1) {
+      curr = curr * 2
+      if (curr < maxValue) {
       }
+      valuesLocal.add(curr)
     }
     while (valuesLocal.size < distinctValues) {
       var r = new scala.util.Random(valuesLocal.size)
