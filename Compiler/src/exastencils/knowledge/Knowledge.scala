@@ -11,6 +11,7 @@ object Knowledge {
   var targetCompilerVersionMinor : Int = 0 // minor version of the target compiler
 
   var targetHardware : String = "CPU" // target hw platform; may be "CPU" or "ARM"
+  var hw_numThreadsPerNode : Int = 64 // specifies the total number of ranks (OMP and MPI) to be used when generating job scripts 
 
   var useDblPrecision : Boolean = true // if true uses double precision for floating point numbers and single precision otherwise
 
