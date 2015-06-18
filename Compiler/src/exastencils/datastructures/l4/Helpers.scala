@@ -4,14 +4,15 @@ import exastencils.datastructures._
 import exastencils.prettyprinting._
 
 trait Index extends Expression {
-  override def progressToIr : ir.MultiIndex
+  override def progressToIr : ir.MultiIndex = new ir.MultiIndex(extractArray)
   def apply(i : Int) : Int
+  def extractArray : Array[Int]
 }
 
 case class Index1D(var x : Int) extends Index {
   def prettyprint(out : PpStream) = { out << "[ " << x << " ]" }
 
-  def progressToIr : ir.MultiIndex = new ir.MultiIndex(Array(x))
+  def extractArray = Array(x)
 
   def apply(i : Int) : Int = {
     i match {
@@ -23,7 +24,7 @@ case class Index1D(var x : Int) extends Index {
 case class Index2D(var x : Int, var y : Int) extends Index {
   def prettyprint(out : PpStream) = { out << "[ " << x << ", " << y << " ]" }
 
-  def progressToIr : ir.MultiIndex = new ir.MultiIndex(Array(x, y))
+  def extractArray = Array(x, y)
 
   def apply(i : Int) : Int = {
     i match {
@@ -36,7 +37,7 @@ case class Index2D(var x : Int, var y : Int) extends Index {
 case class Index3D(var x : Int, var y : Int, var z : Int) extends Index {
   def prettyprint(out : PpStream) = { out << "[ " << x << ", " << y << ", " << z << " ]" }
 
-  def progressToIr : ir.MultiIndex = new ir.MultiIndex(Array(x, y, z))
+  def extractArray = Array(x, y, z)
 
   def apply(i : Int) : Int = {
     i match {

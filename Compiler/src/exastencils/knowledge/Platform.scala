@@ -13,8 +13,8 @@ object Platform {
   // NOTE: this only works if the Hardware object is loaded AFTER Knowledge is fully initialized
   Knowledge.targetCompiler match {
     case "IBMBG" => {
-      cflags = "-O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot 
-      ldflags = "-O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot
+      cflags = " -O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot 
+      ldflags = " -O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot
 
       if (Knowledge.mpi_enabled && Knowledge.omp_enabled) {
         compiler = "mpixlcxx_r"
@@ -32,8 +32,8 @@ object Platform {
       }
     }
     case "IBMXL" => {
-      cflags = "-O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot
-      ldflags = "-O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot
+      cflags = " -O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot
+      ldflags = " -O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot
 
       if (Knowledge.mpi_enabled) {
         compiler = "mpixlcxx"
@@ -47,19 +47,24 @@ object Platform {
       }
     }
     case "GCC" => {
-      cflags = "-O3 -DNDEBUG -std=c++11"
+      cflags = " -O3 -DNDEBUG -std=c++11"
+      ldflags = ""
+
       if (Knowledge.opt_vectorize)
         Knowledge.simd_instructionSet match {
           case "SSE3" => cflags += " -msse3"
           case "AVX"  => cflags += " -mavx"
           case "AVX2" => cflags += " -mavx2 -mfma"
+          case "NEON" => cflags += " -mfpu=neon"
         }
+      if ("ARM" == Knowledge.targetHardware) {
+        cflags += " -mcpu=cortex-a9 -mhard-float -funsafe-math-optimizations -static"
+        ldflags += " -static"
+      }
+
       if ("ARM" == Knowledge.targetHardware)
-        cflags += " -mcpu=cortex-a9 -mhard-float -funsafe-math-optimizations"
-
-      ldflags = ""
-
-      if (Knowledge.mpi_enabled) {
+        compiler = "arm-linux-gnueabihf-g++"
+      else if (Knowledge.mpi_enabled) {
         compiler = "mpicxx"
       } else {
         compiler = "g++"

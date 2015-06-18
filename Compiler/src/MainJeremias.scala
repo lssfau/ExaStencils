@@ -23,11 +23,13 @@ object MainJeremias {
   def main(args : Array[String]) : Unit = {
 
     Locale.setDefault(Locale.ENGLISH) // EPIC -.-
+
+    // for runtime measurement
     val start : Long = System.nanoTime()
 
     //if (Settings.timeStrategies) -> right now this Schroedinger flag is neither true nor false
     StrategyTimer.startTiming("Initializing")
-
+    println(Knowledge.domain_readFromFile)
     // init Settings
     if (args.length >= 1) {
       val s = new exastencils.parsers.settings.ParserSettings
@@ -49,6 +51,7 @@ object MainJeremias {
       val k = new exastencils.parsers.settings.ParserKnowledge
       k.parseFile(args(1))
     }
+
     Knowledge.update()
 
     if (Settings.timeStrategies)
@@ -59,8 +62,6 @@ object MainJeremias {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 1")
 
-    val t = Knowledge.domain_readFromFile
-
     if (Knowledge.domain_readFromFile) {
       if (args.length >= 3) {
         val d = new exastencils.parsers.settings.ParserDomainFile
@@ -68,7 +69,6 @@ object MainJeremias {
         DomainFileHeader.updateKnowledge()
       } else Logger.error("No file for domain configuration has been commited as third argument")
     }
-
     // add L1 code here
 
     if (Settings.timeStrategies)
@@ -80,7 +80,7 @@ object MainJeremias {
       StrategyTimer.startTiming("Handling Layer 2")
 
     /// HACK: This information has to come from L2
-    if (Knowledge.domain_rect_generate || Knowledge.domain_useCase == "L-Shape") {
+    if (Knowledge.domain_rect_generate || Knowledge.domain_useCase != "" || Knowledge.domain_onlyRectangular) {
       Knowledge.discr_hx = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
         level => l3.Domains.getGlobalWidths(0) / (Knowledge.domain_rect_numFragsTotal_x * Knowledge.domain_fragmentLength_x * (1 << level)))
       if (Knowledge.dimensionality > 1)
@@ -136,7 +136,7 @@ object MainJeremias {
       StrategyTimer.stopTiming("Handling Layer 4")
 
     // go to IR
-    ProgressToIr.apply() // preparation step
+    UnfoldLevelSpecifications.apply() // preparation step
     ResolveL4.apply()
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
@@ -149,12 +149,34 @@ object MainJeremias {
         Knowledge.domain_numBlocks = Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_z
         Knowledge.domain_numFragmentsPerBlock = Knowledge.domain_rect_numFragsPerBlock_x * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_z
         DomainCollection.initFragments()
-      } else if (Knowledge.domain_useCase == "L-Shape") { //right now defined in
+      } else if (Knowledge.domain_useCase == "L-Shape") {
         Knowledge.domain_numBlocks = Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_z
         Knowledge.domain_numFragmentsPerBlock = Knowledge.domain_rect_numFragsPerBlock_x * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_z
         val tmp = Knowledge.mpi_numThreads
         Knowledge.mpi_numThreads = (Knowledge.domain_numBlocks.toDouble - Knowledge.domain_numBlocks.toDouble / 4.0).round.toInt
         Logger.debug("Changed mpi_numThreads (to work with L-shaped Domain) from " + tmp + " to " + Knowledge.mpi_numThreads)
+        DomainCollection.initFragments()
+        Knowledge.domain_numBlocks = Knowledge.mpi_numThreads
+      } else if (Knowledge.domain_useCase == "2-L-Shape") {
+        Knowledge.domain_numBlocks = Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_z
+        Knowledge.domain_numFragmentsPerBlock = Knowledge.domain_rect_numFragsPerBlock_x * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_z
+        val tmp = Knowledge.mpi_numThreads
+        Knowledge.mpi_numThreads = (Knowledge.domain_numBlocks.toDouble - Knowledge.domain_numBlocks.toDouble / 2.0).round.toInt
+        Logger.debug("Changed mpi_numThreads (to work with 2-L-shaped Domain) from " + tmp + " to " + Knowledge.mpi_numThreads)
+        DomainCollection.initFragments()
+        Knowledge.domain_numBlocks = Knowledge.mpi_numThreads
+      } else if (Knowledge.domain_useCase == "X-Shape") {
+        Knowledge.domain_rect_numBlocks_x = 2
+        Knowledge.domain_rect_numBlocks_y = 2
+        Knowledge.domain_rect_numBlocks_z = 1
+
+        Knowledge.domain_numBlocks = Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_z
+
+        Knowledge.domain_rect_numFragsPerBlock_x = 2
+        Knowledge.domain_rect_numFragsPerBlock_y = 2
+        Knowledge.domain_rect_numFragsPerBlock_z = 1
+        Knowledge.domain_numFragmentsPerBlock = Knowledge.domain_rect_numFragsPerBlock_x * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_z
+        Knowledge.mpi_numThreads = 4
         DomainCollection.initFragments()
         Knowledge.domain_numBlocks = Knowledge.mpi_numThreads
       }
@@ -170,7 +192,8 @@ object MainJeremias {
       // Util
       Stopwatch(),
       TimerFunctions(),
-      Vector())
+      Vector(),
+      Matrix())
 
     // apply strategies
 
@@ -186,8 +209,6 @@ object MainJeremias {
     ResolveLoopOverPoints.apply()
     ResolveIntergridIndices.apply()
 
-    CreateGeomCoordinates.apply()
-
     var numConvFound = 0
     do {
       FindStencilConvolutions.apply()
@@ -199,10 +220,13 @@ object MainJeremias {
     } while (numConvFound > 0)
 
     ResolveDiagFunction.apply()
+    CreateGeomCoordinates.apply()
+    ResolveLoopOverPointsInOneFragment.apply()
     ResolveContractingLoop.apply()
 
     MapStencilAssignments.apply()
     ResolveFieldAccess.apply()
+
     if (Knowledge.useFasterExpand)
       ExpandOnePassStrategy.apply()
     else
@@ -265,11 +289,12 @@ object MainJeremias {
       ExpandStrategy.doUntilDone()
     SimplifyStrategy.doUntilDone()
 
+    if (Knowledge.ir_maxInliningSize > 0)
+      Inlining.apply()
     CleanUnusedStuff.apply()
 
     PrintStrategy.apply()
     PrettyprintingManager.finish
-
     if (!Knowledge.domain_rect_generate) {
       exastencils.domain.FragmentKnowledge.saveFragmentData()
       FragmentCollection.fragments.clear()

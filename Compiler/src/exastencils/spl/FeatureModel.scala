@@ -220,7 +220,7 @@ object FeatureModel {
     *
     * Possible inputs:
     * var enum : Type = Value1 // [Value1|Value2|Value3]
-    * var range : Int = 3 // [0-6|1]
+    * var range : Int = 3 // [0~6|1]
     * var choose : Int = 6 // [6|26]
     * var bool : Boolean = true // [true|false]
     *
@@ -230,6 +230,7 @@ object FeatureModel {
     var name = parts(0).split(":")(0).trim().split(" ")(1)
     var dataType = parts(0).split(":")(1).trim().split(" ")(0)
     var default = parts(0).split("=")(1).trim()
+    println(content)
     var values = parts(1).substring(parts(1).indexOf("[") + 1, parts(1).indexOf(']'))
 
     var feat : Feature = allFeatures.get(name).getOrElse(new Feature(name))

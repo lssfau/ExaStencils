@@ -83,41 +83,98 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitGeomCoords\n"
 
   override def expand : Output[StatementList] = {
-    if (field.fieldLayout.nodeBased) {
+    if (Knowledge.domain_fragmentTransformation) {
       ListBuffer[Statement](
+        VariableDeclarationStatement(new RealDatatype, "xPosTMP", field.fieldLayout.discretization match {
+          case "node" | "face_x" =>
+            Some(((if (directCoords) ("x" - field.referenceOffset.index_0) else ("x" : Expression)) + offset.index_0)
+              / FloatConstant(field.fieldLayout(0).idxDupRightEnd - field.fieldLayout(0).idxDupLeftBegin - 1)
+              * (ArrayAccess(iv.PrimitivePositionEnd(), 0) - ArrayAccess(iv.PrimitivePositionBegin(), 0)) + ArrayAccess(iv.PrimitivePositionBegin(), 0))
+          case "cell" | "face_y" | "face_z" =>
+            Some(((if (directCoords) ("x" - field.referenceOffset.index_0) else ("x" : Expression)) + 0.5 + offset.index_0)
+              / FloatConstant(field.fieldLayout(0).idxDupRightEnd - field.fieldLayout(0).idxDupLeftBegin - 0)
+              * (ArrayAccess(iv.PrimitivePositionEnd(), 0) - ArrayAccess(iv.PrimitivePositionBegin(), 0)) + ArrayAccess(iv.PrimitivePositionBegin(), 0))
+        }),
+        VariableDeclarationStatement(new RealDatatype, "yPosTMP",
+          if (Knowledge.dimensionality > 1) {
+            field.fieldLayout.discretization match {
+              case "node" | "face_y" =>
+                Some(((if (directCoords) ("y" - field.referenceOffset.index_1) else ("y" : Expression)) + offset.index_1)
+                  / FloatConstant(field.fieldLayout(1).idxDupRightEnd - field.fieldLayout(1).idxDupLeftBegin - 1)
+                  * (ArrayAccess(iv.PrimitivePositionEnd(), 1) - ArrayAccess(iv.PrimitivePositionBegin(), 1)) + ArrayAccess(iv.PrimitivePositionBegin(), 1))
+              case "cell" | "face_x" | "face_z" =>
+                Some(((if (directCoords) ("y" - field.referenceOffset.index_1) else ("y" : Expression)) + 0.5 + offset.index_1)
+                  / FloatConstant(field.fieldLayout(1).idxDupRightEnd - field.fieldLayout(1).idxDupLeftBegin - 0)
+                  * (ArrayAccess(iv.PrimitivePositionEnd(), 1) - ArrayAccess(iv.PrimitivePositionBegin(), 1)) + ArrayAccess(iv.PrimitivePositionBegin(), 1))
+            }
+          } else Some(1)),
+        VariableDeclarationStatement(new RealDatatype, "zPosTMP",
+          if (Knowledge.dimensionality > 2) {
+            field.fieldLayout.discretization match {
+              case "node" | "face_z" =>
+                Some(((if (directCoords) ("z" - field.referenceOffset.index_2) else ("z" : Expression)) + offset.index_2)
+                  / FloatConstant(field.fieldLayout(2).idxDupRightEnd - field.fieldLayout(2).idxDupLeftBegin - 1)
+                  * (ArrayAccess(iv.PrimitivePositionEnd(), 2) - ArrayAccess(iv.PrimitivePositionBegin(), 2)) + ArrayAccess(iv.PrimitivePositionBegin(), 2))
+              case "cell" | "face_x" | "face_y" =>
+                Some(((if (directCoords) ("z" - field.referenceOffset.index_2) else ("z" : Expression)) + 0.5 + offset.index_2)
+                  / FloatConstant(field.fieldLayout(2).idxDupRightEnd - field.fieldLayout(2).idxDupLeftBegin - 0)
+                  * (ArrayAccess(iv.PrimitivePositionEnd(), 2) - ArrayAccess(iv.PrimitivePositionBegin(), 2)) + ArrayAccess(iv.PrimitivePositionBegin(), 2))
+            }
+          } else Some(1)),
         VariableDeclarationStatement(new RealDatatype, "xPos", Some(
-          ((if (directCoords) ("x" - field.referenceOffset.index_0) else ("x" : Expression)) + offset.index_0)
-            / FloatConstant(field.fieldLayout(0).idxDupRightEnd - field.fieldLayout(0).idxDupLeftBegin - 1)
-            * (ArrayAccess(iv.PrimitivePositionEnd(), 0) - ArrayAccess(iv.PrimitivePositionBegin(), 0)) + ArrayAccess(iv.PrimitivePositionBegin(), 0))),
+          ("xPosTMP" : Expression) * ArrayAccess(iv.PrimitiveTransformation(), 0)
+            + ("yPosTMP" : Expression) * ArrayAccess(iv.PrimitiveTransformation(), 1)
+            + ("zPosTMP" : Expression) * ArrayAccess(iv.PrimitiveTransformation(), 2)
+            + ArrayAccess(iv.PrimitiveTransformation(), 3))),
         if (Knowledge.dimensionality > 1)
           VariableDeclarationStatement(new RealDatatype, "yPos", Some(
-          ((if (directCoords) ("y" - field.referenceOffset.index_1) else ("y" : Expression)) + offset.index_1)
-            / FloatConstant(field.fieldLayout(1).idxDupRightEnd - field.fieldLayout(1).idxDupLeftBegin - 1)
-            * (ArrayAccess(iv.PrimitivePositionEnd(), 1) - ArrayAccess(iv.PrimitivePositionBegin(), 1)) + ArrayAccess(iv.PrimitivePositionBegin(), 1)))
+          ("xPosTMP" : Expression) * ArrayAccess(iv.PrimitiveTransformation(), 4)
+            + ("yPosTMP" : Expression) * ArrayAccess(iv.PrimitiveTransformation(), 5)
+            + ("zPosTMP" : Expression) * ArrayAccess(iv.PrimitiveTransformation(), 6)
+            + ArrayAccess(iv.PrimitiveTransformation(), 7)))
         else NullStatement,
         if (Knowledge.dimensionality > 2)
           VariableDeclarationStatement(new RealDatatype, "zPos", Some(
-          ((if (directCoords) ("z" - field.referenceOffset.index_2) else ("z" : Expression)) + offset.index_2)
-            / FloatConstant(field.fieldLayout(2).idxDupRightEnd - field.fieldLayout(2).idxDupLeftBegin - 1)
-            * (ArrayAccess(iv.PrimitivePositionEnd(), 2) - ArrayAccess(iv.PrimitivePositionBegin(), 2)) + ArrayAccess(iv.PrimitivePositionBegin(), 2)))
+          ("xPosTMP" : Expression) * ArrayAccess(iv.PrimitiveTransformation(), 8)
+            + ("yPosTMP" : Expression) * ArrayAccess(iv.PrimitiveTransformation(), 9)
+            + ("zPosTMP" : Expression) * ArrayAccess(iv.PrimitiveTransformation(), 10)
+            + ArrayAccess(iv.PrimitiveTransformation(), 11)))
         else NullStatement)
     } else {
       ListBuffer[Statement](
-        VariableDeclarationStatement(new RealDatatype, "xPos", Some(
-          ((if (directCoords) ("x" - field.referenceOffset.index_0) else ("x" : Expression)) + 0.5 + offset.index_0)
-            / FloatConstant(field.fieldLayout(0).idxDupRightEnd - field.fieldLayout(0).idxDupLeftBegin - 0)
-            * (ArrayAccess(iv.PrimitivePositionEnd(), 0) - ArrayAccess(iv.PrimitivePositionBegin(), 0)) + ArrayAccess(iv.PrimitivePositionBegin(), 0))),
+        VariableDeclarationStatement(new RealDatatype, "xPos", field.fieldLayout.discretization match {
+          case "node" | "face_x" =>
+            Some(((if (directCoords) ("x" - field.referenceOffset.index_0) else ("x" : Expression)) + offset.index_0)
+              / FloatConstant(field.fieldLayout(0).idxDupRightEnd - field.fieldLayout(0).idxDupLeftBegin - 1)
+              * (ArrayAccess(iv.PrimitivePositionEnd(), 0) - ArrayAccess(iv.PrimitivePositionBegin(), 0)) + ArrayAccess(iv.PrimitivePositionBegin(), 0))
+          case "cell" | "face_y" | "face_z" =>
+            Some(((if (directCoords) ("x" - field.referenceOffset.index_0) else ("x" : Expression)) + 0.5 + offset.index_0)
+              / FloatConstant(field.fieldLayout(0).idxDupRightEnd - field.fieldLayout(0).idxDupLeftBegin - 0)
+              * (ArrayAccess(iv.PrimitivePositionEnd(), 0) - ArrayAccess(iv.PrimitivePositionBegin(), 0)) + ArrayAccess(iv.PrimitivePositionBegin(), 0))
+        }),
         if (Knowledge.dimensionality > 1)
-          VariableDeclarationStatement(new RealDatatype, "yPos", Some(
-          ((if (directCoords) ("y" - field.referenceOffset.index_1) else ("y" : Expression)) + 0.5 + offset.index_1)
-            / FloatConstant(field.fieldLayout(1).idxDupRightEnd - field.fieldLayout(1).idxDupLeftBegin - 0)
-            * (ArrayAccess(iv.PrimitivePositionEnd(), 1) - ArrayAccess(iv.PrimitivePositionBegin(), 1)) + ArrayAccess(iv.PrimitivePositionBegin(), 1)))
+          VariableDeclarationStatement(new RealDatatype, "yPos", field.fieldLayout.discretization match {
+          case "node" | "face_y" =>
+            Some(((if (directCoords) ("y" - field.referenceOffset.index_1) else ("y" : Expression)) + offset.index_1)
+              / FloatConstant(field.fieldLayout(1).idxDupRightEnd - field.fieldLayout(1).idxDupLeftBegin - 1)
+              * (ArrayAccess(iv.PrimitivePositionEnd(), 1) - ArrayAccess(iv.PrimitivePositionBegin(), 1)) + ArrayAccess(iv.PrimitivePositionBegin(), 1))
+          case "cell" | "face_x" | "face_z" =>
+            Some(((if (directCoords) ("y" - field.referenceOffset.index_1) else ("y" : Expression)) + 0.5 + offset.index_1)
+              / FloatConstant(field.fieldLayout(1).idxDupRightEnd - field.fieldLayout(1).idxDupLeftBegin - 0)
+              * (ArrayAccess(iv.PrimitivePositionEnd(), 1) - ArrayAccess(iv.PrimitivePositionBegin(), 1)) + ArrayAccess(iv.PrimitivePositionBegin(), 1))
+        })
         else NullStatement,
         if (Knowledge.dimensionality > 2)
-          VariableDeclarationStatement(new RealDatatype, "zPos", Some(
-          ((if (directCoords) ("z" - field.referenceOffset.index_2) else ("z" : Expression)) + 0.5 + offset.index_2)
-            / FloatConstant(field.fieldLayout(2).idxDupRightEnd - field.fieldLayout(2).idxDupLeftBegin - 0)
-            * (ArrayAccess(iv.PrimitivePositionEnd(), 2) - ArrayAccess(iv.PrimitivePositionBegin(), 2)) + ArrayAccess(iv.PrimitivePositionBegin(), 2)))
+          VariableDeclarationStatement(new RealDatatype, "zPos", field.fieldLayout.discretization match {
+          case "node" | "face_z" =>
+            Some(((if (directCoords) ("z" - field.referenceOffset.index_2) else ("z" : Expression)) + offset.index_2)
+              / FloatConstant(field.fieldLayout(2).idxDupRightEnd - field.fieldLayout(2).idxDupLeftBegin - 1)
+              * (ArrayAccess(iv.PrimitivePositionEnd(), 2) - ArrayAccess(iv.PrimitivePositionBegin(), 2)) + ArrayAccess(iv.PrimitivePositionBegin(), 2))
+          case "cell" | "face_x" | "face_y" =>
+            Some(((if (directCoords) ("z" - field.referenceOffset.index_2) else ("z" : Expression)) + 0.5 + offset.index_2)
+              / FloatConstant(field.fieldLayout(2).idxDupRightEnd - field.fieldLayout(2).idxDupLeftBegin - 0)
+              * (ArrayAccess(iv.PrimitivePositionEnd(), 2) - ArrayAccess(iv.PrimitivePositionBegin(), 2)) + ArrayAccess(iv.PrimitivePositionBegin(), 2))
+        })
         else NullStatement)
     }
   }
@@ -155,7 +212,7 @@ object ResolveCoordinates extends DefaultStrategy("ResolveCoordinates") {
   }
 }
 
-object CreateGeomCoordinates extends DefaultStrategy("Add geometric coodrinate calculations") {
+object CreateGeomCoordinates extends DefaultStrategy("Add geometric coordinate calculations") {
   this += new Transformation("Search and extend", {
     case loop : LoopOverPointsInOneFragment =>
       if (StateManager.findFirst[AnyRef]((node : Any) => node match {

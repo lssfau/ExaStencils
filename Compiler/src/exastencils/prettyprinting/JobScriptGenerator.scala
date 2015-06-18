@@ -36,10 +36,10 @@ object JobScriptGenerator {
         printer <<< ""
 
         // TODO: tune the next 4 parameters
-        val srcFolder = "$HOME/Exa"
+        val srcFolder = "$HOME/Exa" + (if ("" != Settings.configName) "/Generated_" + Settings.configName else "")
         val srcBinary = Settings.binary
         val destFolder = "$WORK/ExaTemp"
-        val destBinary = Settings.binary
+        val destBinary = Settings.binary + (if ("" != Settings.configName) "_" + Settings.configName else "")
         printer <<< s"mkdir $destFolder # make sure temp folder exists"
         printer <<< s"cp $srcFolder/$srcBinary $destFolder/$destBinary # copy binary to temp folder"
         printer <<< s"cd $destFolder # switch to temp folder"

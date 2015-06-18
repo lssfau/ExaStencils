@@ -76,7 +76,7 @@ object Application {
       }
     }
 
-    printer.println("\tInitRHS ( )")
+    printer.println("\tInitRHS@finest ( )")
     printer.println("\tInitSolution ( )")
 
     if (!Knowledge.l3tmp_genCellBasedDiscr) {
@@ -167,8 +167,15 @@ object Application {
       }
     }
 
-    if (Knowledge.l3tmp_printTimersToFile)
-      printer.println("\tprintAllTimersToFile ( )")
+    if (Knowledge.l3tmp_printTimersToFile) {
+      if (Knowledge.l3tmp_sisc) {
+        printer.println(s"\tif (getTotalFromTimer ( 'cycle' ) <= ${Knowledge.l3tmp_timeoutLimit} ) {")
+        printer.println("\t\tprintAllTimersToFile ( )")
+        printer.println("\t}")
+      } else {
+        printer.println("\tprintAllTimersToFile ( )")
+      }
+    }
     if (Knowledge.experimental_timerEnableCallStacks) {
       printer.println("\tnative ( 'CallTracker::PrintCallStackToFileGlobal(\"callstack.cs\")' )")
       printer.println("\tnative ( 'CallTracker::ClearCallStack()' )")

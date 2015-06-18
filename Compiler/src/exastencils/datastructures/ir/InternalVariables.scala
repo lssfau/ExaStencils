@@ -168,7 +168,7 @@ case class NeighborFragLocalId(var domain : Expression, var neighIdx : Expressio
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, domain, NullExpression, NullExpression, neighIdx)
 
   override def resolveName = s"neighbor_fragCommId" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", neighIdx.prettyprint)
-  override def resolveDataType = "size_t"
+  override def resolveDataType = IntegerDatatype()
   override def resolveDefValue = Some(-1)
 }
 
@@ -242,6 +242,14 @@ case class IterationOffsetEnd(var domain : Expression, var fragmentIdx : Express
   override def resolveName = s"iterationOffsetEnd" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", "")
   override def resolveDataType = "Vec3i"
   override def resolveDefValue = Some("Vec3i(-1, -1, -1)")
+}
+
+case class PrimitiveTransformation(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, NullExpression, NullExpression, NullExpression)
+
+  override def resolveName = s"trafoMatrix" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
+  override def resolveDataType = "Mat4"
+  override def resolveDefValue = Some("Mat4()")
 }
 
 case class Timer(var name : Expression) extends UnduplicatedVariable {

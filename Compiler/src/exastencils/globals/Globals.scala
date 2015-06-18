@@ -8,7 +8,7 @@ import exastencils.prettyprinting._
 
 case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = new ListBuffer) extends FunctionCollection("Globals/Globals",
   ListBuffer(),
-  ListBuffer("Util/Vector.h") /*
+  ListBuffer("Util/Vector.h", "Util/Matrix.h") /*
     ++ Settings.additionalIncludes*/ ,
   ListBuffer(
     new FunctionStatement(new UnitDatatype, "initGlobals", new ListBuffer[VariableAccess], new ListBuffer[Statement]),

@@ -2,6 +2,8 @@ package exastencils.knowledge
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.logger._
+
 class NeighborInfo(var dir : Array[Int], var index : Int) {
   var label : String = (Knowledge.dimensionality - 1 to 0 by -1).toList.map(i => dimToString(i).toUpperCase + dirToString(dir(i))).mkString("_")
 }
@@ -19,6 +21,16 @@ object dirToString extends (Int => String) {
 
 object Fragment {
   var neighbors : ListBuffer[NeighborInfo] = ListBuffer()
+
+  def getNeighIndex(dir : Array[Int]) : Int = {
+    for (neigh <- neighbors) {
+      if (dir.deep == neigh.dir.deep)
+        return neigh.index
+    }
+
+    Logger.warn("Trying to access invalid neighbor: " + dir.mkString(", "))
+    return -1
+  }
 
   def setupNeighbors() : Unit = {
     neighbors.clear

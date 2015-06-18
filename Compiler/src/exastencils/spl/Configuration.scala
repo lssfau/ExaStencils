@@ -288,7 +288,12 @@ class Configuration() {
     })
     content.add(additionalKnowledgeFileInformation)
     partialBaseConfig.foreach(x => {
-      content.add(x._1 + "= " + x._2 + "\n")
+      val value = x._2
+      if (value.asInstanceOf[String].endsWith(".0"))
+        content.add(x._1 + "= " + value.asInstanceOf[String].substring(0, value.asInstanceOf[String].length() - 2) + "\n")
+      else
+        content.add(x._1 + "= " + x._2 + "\n")
+
     })
     xorFeatureValues.foreach(x => {
       if (FeatureModel.isNumeric(x._2))

@@ -12,7 +12,7 @@ domain_readFromFile 		= false
 domain_onlyRectangular 		= false
 domain_rect_generate 		= false
 
-domain_useCase 				= "L-Shape"
+domain_useCase 				= "2-L-Shape"
 domain_generateDomainFile	= true
 
 domain_rect_numBlocks_x		= 2
@@ -32,8 +32,10 @@ omp_enabled					= true
 omp_numThreads				= 2
 
 l3tmp_generateL4 			= true
-l3tmp_genForAutoTests		= true
-l3tmp_printFieldAtEnd       = false
+l3tmp_genForAutoTests		= false
+l3tmp_printFieldAtEnd       = true
+
+ir_maxInliningSize 			= 5
 
 l3tmp_exactSolution			= "Trigonometric"
 l3tmp_genCellBasedDiscr		= true

@@ -1,5 +1,3 @@
-import java.util.Locale
-
 import exastencils.communication._
 import exastencils.core._
 import exastencils.data._
@@ -50,6 +48,12 @@ object Main {
       k.parseFile(args(1))
     }
     Knowledge.update()
+
+    // init buildfile generator
+    if ("MSVC" == Knowledge.targetCompiler)
+      Settings.buildfileGenerator = ProjectfileGenerator
+    else
+      Settings.buildfileGenerator = MakefileGenerator
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Initializing")
@@ -126,7 +130,7 @@ object Main {
       StrategyTimer.stopTiming("Handling Layer 4")
 
     // go to IR
-    ProgressToIr.apply() // preparation step
+    UnfoldLevelSpecifications.apply() // preparation step
     ResolveL4.apply()
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
@@ -238,6 +242,9 @@ object Main {
     if (Knowledge.ir_maxInliningSize > 0)
       Inlining.apply()
     CleanUnusedStuff.apply()
+
+    if (Knowledge.generateFortranInterface)
+      Fortranify.apply()
 
     PrintStrategy.apply()
     PrettyprintingManager.finish

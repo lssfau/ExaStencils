@@ -128,7 +128,7 @@ object MainL3 {
     }
 
     // go to IR
-    ProgressToIr.apply() // preparation step
+    UnfoldLevelSpecifications.apply() // preparation step
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
     // add remaining nodes

@@ -10,7 +10,7 @@ import exastencils.prettyprinting._
 
 case class CommunicationFunctions() extends FunctionCollection("CommFunctions/CommFunctions",
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
-  ListBuffer("Globals/Globals.h", "Util/Vector.h", "MultiGrid/MultiGrid.h")) {
+  ListBuffer("Globals/Globals.h", "Util/Vector.h","Util/Matrix.h", "MultiGrid/MultiGrid.h")) {
 
   if (Knowledge.mpi_enabled)
     externalDependencies += "mpi.h"
@@ -52,8 +52,8 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
   override def expand : Output[FunctionStatement] = {
     FunctionStatement(new UnitDatatype(), s"connectLocalElement",
       ListBuffer(
-        VariableAccess("localFragId", Some("size_t")),
-        VariableAccess("localNeighId", Some("size_t")),
+        VariableAccess("localFragId", Some(IntegerDatatype())),
+        VariableAccess("localNeighId", Some(IntegerDatatype())),
         VariableAccess("location", Some(IntegerDatatype())),
         VariableAccess("domain", Some(IntegerDatatype()))),
       ListBuffer[Statement](
@@ -71,8 +71,8 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
   override def expand : Output[FunctionStatement] = {
     FunctionStatement(new UnitDatatype(), s"connectRemoteElement",
       ListBuffer(
-        VariableAccess("localFragId", Some("size_t")),
-        VariableAccess("localNeighId", Some("size_t")),
+        VariableAccess("localFragId", Some(IntegerDatatype())),
+        VariableAccess("localNeighId", Some(IntegerDatatype())),
         VariableAccess("remoteRank", Some(IntegerDatatype())),
         VariableAccess("location", Some(IntegerDatatype())),
         VariableAccess("domain", Some(IntegerDatatype()))),

@@ -128,7 +128,7 @@ case class ConnectFragments() extends Statement with Expandable {
   override def expand : Output[LoopOverFragments] = {
     var body = new ListBuffer[Statement]
 
-    val neighbors = Fragment.neighbors
+    val neighbors = exastencils.knowledge.Fragment.neighbors
     val domains = DomainCollection.domains
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
     val gSize = globalDomain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
@@ -323,20 +323,27 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
       AssignmentStatement(iv.PrimitivePosition(), s"fragPos") //                  VariableDeclarationStatement(IntegerDatatype(),"numNeigbours",Some(FunctionCallExpression("readValue<int>",ListBuffer("data")))),
       ))
     for (d <- 0 until DomainCollection.domains.size) {
-      body += ForLoopStatement("int location = 0", "location <" ~ Knowledge.dimensionality * 2, "++location", ListBuffer(
+      body += ForLoopStatement("int location = 0", s" location < ${FragmentCollection.getNumberOfNeighbors()} ", "++location", ListBuffer(
         ConditionStatement(ReadValueFrom(BooleanDatatype(), "data"),
           ListBuffer( //neighbor is valid
             ConditionStatement(ReadValueFrom(BooleanDatatype(), "data"),
               ListBuffer( //neighbor is remote
                 VariableDeclarationStatement(IntegerDatatype(), "neighIdx", Some(ReadValueFrom(new IntegerDatatype, "data"))),
                 VariableDeclarationStatement(IntegerDatatype(), "neighRank", Some(ReadValueFrom(new IntegerDatatype, "data"))),
-                (if (Knowledge.mpi_enabled) s"connectRemoteElement (commId[fragmentIdx], neighIdx, neighRank, location, $d)" else NullStatement)),
+                (if (Knowledge.mpi_enabled) s"connectRemoteElement (${iv.CommId().prettyprint()}, neighIdx, neighRank, location, $d)" else NullStatement)),
               ListBuffer( //neighbor is local
                 VariableDeclarationStatement(IntegerDatatype(), "neighIdx", Some(ReadValueFrom(new IntegerDatatype, "data"))),
-                s"connectLocalElement(commId[fragmentIdx],neighIdx,location,$d)"))),
+                if (FragmentCollection.fragments.length > 1) s"connectLocalElement(${iv.CommId().prettyprint()},neighIdx,location,$d)" else NullStatement))),
           ListBuffer(
             NullStatement))))
     }
+    body += ConditionStatement(ReadValueFrom(BooleanDatatype(), "data"),
+      ListBuffer(
+        "Mat4 trafoTmp = Mat4()",
+        ForLoopStatement("int i = 0", " i < 12 ", "++i", ListBuffer(
+          AssignmentStatement("trafoTmp[i]", ReadValueFrom(RealDatatype(), "data")))),
+        AssignmentStatement(iv.PrimitiveTransformation(), "trafoTmp")),
+      ListBuffer(NullStatement))
     FunctionStatement(
       new UnitDatatype,
       s"setValues",

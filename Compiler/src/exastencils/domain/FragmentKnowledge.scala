@@ -25,9 +25,9 @@ object FragmentKnowledge {
 
   private def saveDef() = {
     val save : FileOutputStream = new FileOutputStream(Settings.fragmentFile_config_path_readable)
-    if (Knowledge.domain_useCase == "L-Shape") {
-      //TODO for now just hacked
-      save.write(FragmentCollection.fragments.filter { f => f.domainIds.contains(1) }.map(f => f.toString()).mkString("\n").getBytes())
+    if (Knowledge.domain_useCase != "") {
+      val t = FragmentCollection.fragments.filter { f => f.domainIds.exists { e => e != 0 } }
+      save.write(FragmentCollection.fragments.filter { f => f.domainIds.exists { e => e != 0 } }.map(f => f.toString()).mkString("\n").getBytes())
     } else {
       save.write(FragmentCollection.fragments.map(f => f.toString()).mkString("\n").getBytes())
     }
@@ -40,9 +40,9 @@ object FragmentKnowledge {
     val outData = new FragmentDataWriter(new BufferedOutputStream(new FileOutputStream(Settings.fragmentFile_config_path_binary)))
     var fragments = FragmentCollection.fragments
     val domains = if (Knowledge.domain_readFromFile) DomainCollection.getDomainByIdentifier("global").get.shape.asInstanceOf[List[FileInputDomain]] else DomainCollection.domains
-    if (Knowledge.domain_useCase == "L-Shape") {
-      fragments = fragments.filter { f => f.domainIds.contains(1) }
-    }
+    //    if (Knowledge.domain_useCase != "") {
+    //      fragments = fragments.filter { f => f.domainIds.exists { e => e != 0 } }
+    //    }
     fragments = fragments.sortBy { f => f.rank -> f.localId }
     fragments.foreach(f => {
       domains.foreach { d => f.binarySize += outData.writeBinary(BooleanDatatype(), FragmentCollection.isValidForSubDomain(f.globalId, d.index)) }
@@ -68,6 +68,12 @@ object FragmentKnowledge {
           }
         }
       }
+      val trafo = f.trafo != ListBuffer(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
+      f.binarySize += outData.writeBinary(BooleanDatatype(), trafo)
+      if (trafo) {
+        f.trafo.foreach { t => f.binarySize += outData.writeBinary(RealDatatype(), t) }
+      }
+
     })
     outData.close()
 
@@ -122,12 +128,23 @@ object FragmentCollection {
     }
   }
 
+  def getNumberOfNeighbors() : Int = {
+    if (Knowledge.comm_strategyFragment == 26) {
+      Knowledge.dimensionality match {
+        case 1 => 2
+        case 2 => 8
+        case 3 => 26
+        case _ => 0
+      }
+    } else Knowledge.dimensionality * 2
+  }
+
   def isNeighborValid(globalId : Int, neighborId : Int, domain : Int) : Boolean = {
     fragments.find(f => f.globalId == globalId) match {
       case Some(n) =>
         {
           n.neighborIDs.contains(neighborId) &&
-            (fragments.find { nf => nf.globalId == neighborId } match {
+            (fragments.find { nf => nf.globalId == neighborId && nf.rank >= 0 } match {
               case Some(m) => m.domainIds.contains(domain)
               case None    => false
             })
@@ -141,7 +158,7 @@ object FragmentCollection {
       case Some(n) =>
         {
           n.neighborIDs.contains(neighborId) &&
-            (fragments.find { nf => nf.globalId == neighborId }.get match {
+            (fragments.find { nf => nf.globalId == neighborId && nf.rank >= 0 }.get match {
               case m : Fragment => m.domainIds.contains(domain) && (getMpiRank(globalId) != getMpiRank(neighborId))
               case _            => false
             })
@@ -155,6 +172,27 @@ object FragmentCollection {
     if (Knowledge.dimensionality >= 2) position += (vertices(0).Coords(1) + (vertices.last.Coords(1) - vertices(0).Coords(1)) / 2.0)
     if (Knowledge.dimensionality >= 3) position += vertices(0).Coords(2) + (vertices.last.Coords(2) - vertices(0).Coords(2)) / 2.0
     new Vertex(position)
+  }
+
+  def getNeighborIndex(fragment : Fragment, neighbor : Fragment) : Int = {
+    val fragPos = getFragPos(fragment.vertices)
+    val neiPos = getFragPos(neighbor.vertices)
+    val i = (if (neiPos.Coords(0) < fragPos.Coords(0)) -1 else if (neiPos.Coords(0) > fragPos.Coords(0)) 1 else 0)
+    val j = (if (Knowledge.dimensionality >= 2) { (if (neiPos.Coords(1) < fragPos.Coords(1)) -1 else if (neiPos.Coords(1) > fragPos.Coords(1)) 1 else 0) } else 0)
+    val k = (if (Knowledge.dimensionality >= 3) { (if (neiPos.Coords(2) < fragPos.Coords(2)) -1 else if (neiPos.Coords(2) > fragPos.Coords(2)) 1 else 0) } else 0)
+
+    var index = 0
+    var value = 0
+    for (
+      kStep <- (if (Knowledge.dimensionality > 2) (-1 to 1) else (0 to 0));
+      jStep <- (if (Knowledge.dimensionality > 1) (-1 to 1) else (0 to 0));
+      iStep <- -1 to 1;
+      if (0 != kStep || 0 != jStep || 0 != iStep)
+    ) {
+      if (kStep == k && jStep == j && iStep == i) value = index
+      index += 1
+    }
+    value
   }
 
 }

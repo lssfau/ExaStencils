@@ -34,7 +34,19 @@ object Domains {
                 //printer.println("""Domain LShaped< [ 0, 0 ] to [ 0.5, 0.5 ], [ 0.5, 0 ] to [ 1, 0.5 ], [ 0, 0.5 ] to [ 0.5, 1 ] >""")
                 printer.println("""Domain LShaped< [ 0, 0 ] to [ 0.5, 0.5 ], [ 0, 0.5 ] to [ 0.5, 1 ], [ 0.5, 0.5 ] to [ 1, 1 ] >""")
               }
-              case _ =>
+              case "2-L-Shape" => {
+                printer.println("Domain global< [ 0, 0 ] to [ 1, 1 ] >")
+                //printer.println("""Domain LShaped< [ 0, 0 ] to [ 0.5, 0.5 ], [ 0.5, 0 ] to [ 1, 0.5 ], [ 0, 0.5 ] to [ 0.5, 1 ] >""")
+                printer.println("""Domain LShapedLower< [ 0.5, 0 ] to [ 0.75, 0.25 ], [  0.75, 0 ] to [  1, 0.25 ], [ 0.75, 0.25 ] to [  1, 0.5 ] >""")
+                printer.println("""Domain LShapedUpper< [ 0, 0.5 ] to [ 0.25, 0.75 ], [ 0, 0.75 ] to [ 0.25, 1 ], [ 0.25, 0.75 ] to [ 0.5, 1 ] >""")
+
+              }
+              case "X-Shape" => {
+                printer.println("Domain global< [ 0, 0 ] to [ 1, 1 ] >")
+                //printer.println("""Domain LShaped< [ 0, 0 ] to [ 0.5, 0.5 ], [ 0.5, 0 ] to [ 1, 0.5 ], [ 0, 0.5 ] to [ 0.5, 1 ] >""")
+                printer.println("""Domain XShaped< [ 0, 0 ] to [ 0.25, 0.25 ], [ 0, 0.75 ] to [ 0.25, 1 ], [ 0.75, 0.75 ] to [ 1, 1 ], [ 0.75, 0 ] to [ 1, 0.25 ], [ 0.25, 0.25] to [0.75,0.75] >""")
+              }
+              case _ => printer.println("Domain global< [ 0, 0 ] to [ 1, 1 ] >")
             }
           }
 

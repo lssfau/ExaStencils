@@ -12,20 +12,24 @@ object Knowledge {
 
   var targetHardware : String = "CPU" // target hw platform; may be "CPU" or "ARM"
 
-  var useDblPrecision : Boolean = true
+  var useDblPrecision : Boolean = true // if true uses double precision for floating point numbers and single precision otherwise
 
-  var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2", "QPX"
+  var generateFortranInterface : Boolean = false // generates fortran compliant function names and marks functions for interfacing
+
+  var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2", "QPX", "NEON"
   def simd_vectorSize : Int = { // number of vector elements for SIMD instructions (currently only double precision)
     val double : Int = if (useDblPrecision) 1 else 2
     simd_instructionSet match {
       case "SSE3"         => 2 * double
       case "AVX" | "AVX2" => 4 * double
       case "QPX"          => 4 // yes, it's always 4
+      case "NEON"         => 2 * double // TODO: check if double is supported
     }
   }
   def simd_header : String = { // header for vector intrinsics
     simd_instructionSet match {
       case "SSE3" | "AVX" | "AVX2" => "immintrin.h"
+      case "NEON"                  => "arm_neon.h"
       case "QPX"                   => null
     }
   }
@@ -43,7 +47,7 @@ object Knowledge {
   // === Layer 2 ===
 
   // TODO: check if these parameters will be necessary or can be implicitly assumed once an appropriate field collection is in place
-  var minLevel : Int = 0 //[0~4]  // @constant // the coarsest level
+  var minLevel : Int = 0 //[0~4]  //nonSISC [0~12] // @constant // the coarsest level
   var maxLevel : Int = 6 //[4~12] // @constant // the finest level
   def numLevels : Int = (maxLevel - minLevel + 1) // the number of levels -> this assumes that the cycle descents to the coarsest level
 
@@ -114,8 +118,9 @@ object Knowledge {
   def domain_canHaveRemoteNeighs : Boolean = (domain_numBlocks > 1) // specifies if fragments can have remote (i.e.\ different mpi rank) neighbors, i.e.\ if mpi comm is required
 
   /// Student project - Jeremias
-  var domain_useCase : String = "" //atm only "L-Shape" in 2D possible;  needs to be specified in case of onlyRectangular,rect_generate = false
+  var domain_useCase : String = "" //atm only "L-Shape","X-Shape" in 2D possible;  needs to be specified in case of onlyRectangular,rect_generate = false
   var domain_generateDomainFile : Boolean = false
+  var domain_fragmentTransformation : Boolean = false
 
   // TODO: ignore for IDE support for now
   var discr_hx : Array[Double] = Array() // grid widths in x direction per level
@@ -179,12 +184,12 @@ object Knowledge {
   var omp_parallelizeLoopOverFragments : Boolean = true // [true|false] // specifies if loops over fragments may be parallelized with omp if marked correspondingly
   var omp_parallelizeLoopOverDimensions : Boolean = false // [true|false] // specifies if loops over dimensions may be parallelized with omp if marked correspondingly
   var omp_useCollapse : Boolean = false // [true|false] // if true the 'collapse' directive may be used in omp for regions; this will only be done if the minimum omp version supports this
-  var omp_minWorkItemsPerThread : Int = 128 // [1~inf] // threshold specifying which loops yield enough workload to amortize the omp overhead
+  var omp_minWorkItemsPerThread : Int = 128 //[1~inf] // non sisc 400 [1~inf] // threshold specifying which loops yield enough workload to amortize the omp overhead
   def omp_requiresCriticalSections : Boolean = { // true if the chosen compiler / mpi version requires critical sections to be marked explicitly
     targetCompiler match {
       case "MSVC"            => true
       case "GCC"             => true
-      case "IBMXL" | "IBMBG" => true
+      case "IBMXL" | "IBMBG" => true // needs to be true since recently
       case _                 => Logger.error("Unsupported target compiler"); true
     }
   }
@@ -236,6 +241,7 @@ object Knowledge {
   /// SPL connected
   var l3tmp_smoother : String = "Jac" // [Jac|RBGS] // [Jac|GS|RBGS] // the l3tmp_smoother to be generated
   var l3tmp_cgs : String = "CG" // [CG] // the coarse grid solver to be generated
+  var l3tmp_maxNumCGSSteps : Int = 512 // maximum number of coarse grid solver iterations
   var l3tmp_numRecCycleCalls : Int = 1 // [1~2] // 1 corresponds to v-cycles while 2 corresponds to w-cycles
   var l3tmp_numPre : Int = 3 // [0~4] // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
   var l3tmp_numPost : Int = 3 // [0~4] // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
@@ -250,6 +256,7 @@ object Knowledge {
   var l3tmp_useSlotsForJac : Boolean = true // [true|false] // uses sloted solution fields for Jacobi (as opposed to multiple distinct fields)
   var l3tmp_useSlotVariables : Boolean = true // [true|false] // uses slot variables (currentSlot, nextSlot, previousSlot) for access to slotted solution fields; allows for odd number of smoothing steps
   var l3tmp_genHDepStencils : Boolean = false // [true|false] // generates stencils dependent on the grid width h
+  var l3tmp_genFMG : Boolean = false // [true|false] // generates a full multigrid solver
 
   /// timer generation
   var l3tmp_genTimersPerFunction : Boolean = false // generates different timers for each function in the mg cycle
@@ -260,6 +267,8 @@ object Knowledge {
   var l3tmp_printTimersToFile : Boolean = false // prints results for all used timers at the end of the application; uses l3tmp_timerOuputFile as target file
   var l3tmp_printAllTimers : Boolean = false // prints results for all used timers at the end of the application
   var l3tmp_timerOuputFile : String = "timings.csv" // the file timer data is to be written to if l3tmp_printTimersToFile is activated
+
+  var l3tmp_timeoutLimit : Int = 20 * 60 * 1000 // threshold in ms for the total cycle time after which solving is canceled; 0 deactivates the feature
 
   /// functionality test
   var l3tmp_exactSolution : String = "Zero" // specifies which function (type) is used for the solution/ rhs is used; allowed options are 'Zero', 'Polynomial', 'Trigonometric' and 'Kappa', 'Kappa_VC'
@@ -273,6 +282,7 @@ object Knowledge {
   var l3tmp_genEmbeddedDomain : Boolean = false // adds a second domain to perform all computations on; the new domain is one fragment smaller on each boundary
   var l3tmp_useMaxNorm : Boolean = false // uses the maximum norm instead of the L2 norm when reducing the residual on the finest level
   var l3tmp_genCellBasedDiscr : Boolean = false // sets up a cell based discretization
+  var l3tmp_targetResReduction : Double = 0.0 // exit criterion for the solver loop as target reduction of the residual in the chosen norm
 
   /// optional features
   var l3tmp_printFieldAtEnd : Boolean = false // prints the solution field at the end of the application (or the mean solution in l3tmp_kelvin's case)
@@ -281,10 +291,10 @@ object Knowledge {
   var l3tmp_printError : Boolean = false // generates code that calculates and prints the error in each iteration
   var l3tmp_useMaxNormForError : Boolean = true // uses the maximum norm instead of the L2 norm when reducing the error
 
-  /// Paper project - SISC
+  /// paper project - SISC
   var l3tmp_sisc : Boolean = false // generates test problems for the upcomming SISC paper in conjunction with dimensionality and l3tmp_genStencilFields
 
-  /// Student project - Kelvin
+  /// student project - Kelvin
   var l3tmp_kelvin : Boolean = false // currently only works for 2D
   var l3tmp_kelvin_numSamples : Int = 10 // only required for l3tmp_kelvin; number of samples to be evaluated
   var l3tmp_kelvin_numHaloFrags : Int = 2 // only required for l3tmp_kelvin; number of halo fragments used to implement the open boundary approximation  
@@ -303,12 +313,18 @@ object Knowledge {
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
 
+    Constraints.condEnsureValue(targetCompilerVersion, 11, "MSVC" == targetCompiler, "When using MSVC, only version 11.0 is currently supported")
+    Constraints.condEnsureValue(targetCompilerVersionMinor, 0, "MSVC" == targetCompiler, "When using MSVC, only version 11.0 is currently supported")
+
     if (l3tmp_generateL4) {
       // specific project configurations - SISC
       Constraints.condEnsureValue(l3tmp_exactSolution, "Kappa_VC", l3tmp_sisc && l3tmp_genStencilFields, "Kappa_VC is required as l3tmp_exactSolution for variable stencils and l3tmp_sisc")
       Constraints.condEnsureValue(l3tmp_exactSolution, "Kappa", l3tmp_sisc && !l3tmp_genStencilFields, "Kappa is required as l3tmp_exactSolution for constant stencils and l3tmp_sisc")
       Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_sisc && l3tmp_genStencilFields, "l3tmp_genHDepStencils must be true for variable stencils and l3tmp_sisc")
       Constraints.condEnsureValue(experimental_Neumann, false, l3tmp_sisc, "Neumann boundary conditions are not compatible with l3tmp_sisc")
+
+      if (l3tmp_sisc)
+        Constraints.updateValue(l3tmp_maxNumCGSSteps, 1024)
 
       Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, "Kappa" == l3tmp_exactSolution, "Kappa requires l3tmp_genNonZeroRhs")
       Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, "Kappa_VC" == l3tmp_exactSolution, "Kappa_VC requires l3tmp_genNonZeroRhs")
@@ -327,7 +343,7 @@ object Knowledge {
 
     // domain
     Constraints.condEnsureValue(domain_rect_generate, false, !domain_onlyRectangular, "only rectangular domains can be generated")
-    Constraints.condEnsureValue(domain_readFromFile, true, !domain_rect_generate && domain_useCase == "", "non-generated domains must be read from file")
+    Constraints.condEnsureValue(domain_readFromFile, true, !domain_rect_generate && domain_useCase == "" && !domain_onlyRectangular, "non-generated domains must be read from file")
     Constraints.condEnsureValue(domain_rect_generate, false, domain_readFromFile, "domain_rect_generate is not allowed if domain_readFromFile is enabled")
 
     Constraints.condEnsureValue(domain_rect_numBlocks_y, 1, domain_rect_generate && dimensionality < 2, "domain_rect_numBlocks_y must be set to 1 for problems with a dimensionality smaller 2")
@@ -349,6 +365,14 @@ object Knowledge {
 
     if (l3tmp_generateL4) {
       // l3tmp - problem to solve
+      if (0.0 == l3tmp_targetResReduction) {
+        if (useDblPrecision)
+          Constraints.updateValue(l3tmp_targetResReduction, 1.0e-5)
+        else
+          Constraints.updateValue(l3tmp_targetResReduction, 1.0e-2)
+      }
+      Constraints.condEnsureValue(l3tmp_targetResReduction, 1.0 / l3tmp_targetResReduction, l3tmp_targetResReduction > 1.0, "l3tmp_targetResReduction must be smaller than 1")
+
       Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, experimental_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
       Constraints.condEnsureValue(l3tmp_exactSolution, "Trigonometric", experimental_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
       Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, "Polynomial" != l3tmp_exactSolution && "Kappa" != l3tmp_exactSolution && "Kappa_VC" != l3tmp_exactSolution && !experimental_Neumann, "non-trivial rhs are currently only supported for Polynomial and Kappa cases")
@@ -362,8 +386,10 @@ object Knowledge {
       Constraints.condEnsureValue(l3tmp_numVecDims, 1, !l3tmp_genVectorFields, "vector dimensions larger than 1 are only allowed in conjunction with vector fields")
       Constraints.condEnsureValue(l3tmp_numVecDims, 2, l3tmp_genVectorFields && l3tmp_numVecDims <= 1, "vector dimensions must be larger than 1 when using vector fields")
 
-      //    Constraints.condEnsureValue(l3tmp_omega, 0.8,("Jac" == l3tmp_smoother))
-      //    Constraints.condEnsureValue(l3tmp_omega, 1.0,("Jac" != l3tmp_smoother))
+      Constraints.condEnsureValue(l3tmp_genFMG, false, l3tmp_genCellBasedDiscr, "FMG is currently not compatible with cell based discretizations")
+      Constraints.condEnsureValue(l3tmp_genFMG, false, experimental_Neumann, "FMG is currently not compatible with Neumann BC")
+      Constraints.condEnsureValue(l3tmp_genFMG, false, 1 != l3tmp_numVecDims, "FMG is currently not compatible with vector fields")
+      Constraints.condEnsureValue(l3tmp_genFMG, false, l3tmp_kelvin, "FMG is currently not compatible with Kelvin mode")
 
       // l3tmp - stencils
       Constraints.condEnsureValue(l3tmp_genStencilFields, false, experimental_Neumann, "l3tmp_genStencilFields is currently not compatible with Neumann boundary conditions")
@@ -372,6 +398,7 @@ object Knowledge {
       Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, l3tmp_genCellBasedDiscr, "l3tmp_genStencilStencilConv is currently not compatible with cell based discretizations")
       Constraints.condEnsureValue(l3tmp_genHDepStencils, true, experimental_Neumann, "l3tmp_genHDepStencils is required for Neumann boundary conditions")
       Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_genNonZeroRhs, "non-trivial rhs requires the usage of grid width dependent stencils")
+      Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_genFMG, "FMG requires the usage of grid width dependent stencils")
 
       // l3tmp - multigrid config
       if (l3tmp_sisc) {
@@ -442,7 +469,7 @@ object Knowledge {
 
     Constraints.condEnsureValue(ir_genSepLayoutsPerField, true, opt_useColorSplitting, "color splitting requires separate field layouts")
 
-    // timer configuration    
+    // timer configuration
     Constraints.condEnsureValue(timer_type, "Chrono", !mpi_enabled && "MPI_TIME" == timer_type, "MPI_TIME is not supported for codes generated without MPI")
     Constraints.condEnsureValue(timer_type, "Chrono", "QPC" == timer_type && "MSVC" != targetCompiler, "QPC is only supported for windows")
     Constraints.condEnsureValue(timer_type, "WINDOWS_RDSC", "RDSC" == timer_type && "MSVC" == targetCompiler, "WINDOWS_RDSC is required for windows systems")

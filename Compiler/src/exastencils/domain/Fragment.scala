@@ -4,7 +4,8 @@ import exastencils.knowledge._
 
 import scala.collection.mutable._
 
-class Fragment(lId : Int, gId : Int, dId : ListBuffer[Int], f : ListBuffer[Face], e : ListBuffer[Edge], v : ListBuffer[Vertex], n : ListBuffer[Int], r : Int) {
+class Fragment(lId : Int, gId : Int, dId : ListBuffer[Int], f : ListBuffer[Face], e : ListBuffer[Edge],
+    v : ListBuffer[Vertex], n : ListBuffer[Int], r : Int, t : ListBuffer[Double] = ListBuffer(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)) {
   import Direction._
   val faces = f
   val edges = e
@@ -13,6 +14,8 @@ class Fragment(lId : Int, gId : Int, dId : ListBuffer[Int], f : ListBuffer[Face]
   val localId = lId
   var neighborIDs = n
   val domainIds = dId
+
+  var trafo = t
 
   var binarySize = 0
   var rank = r
@@ -41,15 +44,20 @@ class Fragment(lId : Int, gId : Int, dId : ListBuffer[Int], f : ListBuffer[Face]
     str += "\t]\n"
     if (neighborIDs.nonEmpty) {
       str += "\tNeighbours : [\n"
-      str += s"\t\tleft: ${neighborIDs(Direction.Left.id)}" + " \n"
-      str += s"\t\tright:${neighborIDs(Direction.Right.id)}" + " \n"
-      if (Knowledge.dimensionality >= 2) {
-        str += s"\t\tbottom:${neighborIDs(Direction.Bottom.id)}" + " \n"
-        str += s"\t\ttop:${neighborIDs(Direction.Top.id)}" + " \n"
-      }
-      if (Knowledge.dimensionality >= 3) {
-        str += s"\t\tfront:${neighborIDs(Direction.Front.id)}" + " \n"
-        str += s"\t\tback:${neighborIDs(Direction.Back.id)}" + " \n"
+      if (Knowledge.comm_strategyFragment == 26) {
+        neighborIDs.zipWithIndex.foreach { case (n, i) => str += s"\t\tn$i : $n" + " \n" }
+
+      } else {
+        str += s"\t\tleft: ${neighborIDs(Direction.Left.id)}" + " \n"
+        str += s"\t\tright:${neighborIDs(Direction.Right.id)}" + " \n"
+        if (Knowledge.dimensionality >= 2) {
+          str += s"\t\tbottom:${neighborIDs(Direction.Bottom.id)}" + " \n"
+          str += s"\t\ttop:${neighborIDs(Direction.Top.id)}" + " \n"
+        }
+        if (Knowledge.dimensionality >= 3) {
+          str += s"\t\tfront:${neighborIDs(Direction.Front.id)}" + " \n"
+          str += s"\t\tback:${neighborIDs(Direction.Back.id)}" + " \n"
+        }
       }
       str += "\t]\n"
     }
@@ -115,7 +123,7 @@ class Edge(v1 : Vertex, v2 : Vertex) extends Primitives {
   }
 
   override def hashCode = {
-    41 * (vertex1.Coords.map { x => 41 + x.hashCode() }.sum.hashCode()) + vertex2.Coords.map { x => 41 + x.hashCode() }.sum.hashCode()
+    vertex1.Coords.map { x => x.hashCode() }.sum.hashCode() + vertex2.Coords.map { x => x.hashCode() }.sum.hashCode()
   }
 
   def contains(v : Vertex) : Boolean = {
@@ -128,10 +136,6 @@ class Edge(v1 : Vertex, v2 : Vertex) extends Primitives {
         v.Coords(0) >= math.min(vertex1.Coords(0), vertex2.Coords(0)) &&
         v.Coords(1) <= math.max(vertex1.Coords(1), vertex2.Coords(1)) &&
         v.Coords(1) >= math.min(vertex1.Coords(1), vertex2.Coords(1))
-      if (tmp) {
-
-        val sewe = 2
-      }
       tmp
     } else { //this means one vertical line
       v.Coords(0) == vertex1.Coords(0) &&

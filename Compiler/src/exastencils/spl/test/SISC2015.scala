@@ -1039,11 +1039,11 @@ object SICS2015 {
     IO.printAllResultsToOneFile(configurationsWithSecondSampling.toArray, "E:/newDomainPartition.csv", featuresInOutput.toArray)
     IO.printAllResultsToOneFile(configurationsWithSecondSamplingRandom.toArray, "E:/newDomainPartition_random.csv", featuresInOutput.toArray)
 
-    //    // print random configs
-    //    writeConfigurations(configurationsWithSecondSamplingPW, "_random")
-    //
-    //    //     print all 
-    //    writeConfigurations(configurationsWithSecondSampling, "")
+    // print random configs
+    writeConfigurations(configurationsWithSecondSamplingRandom, "_random")
+
+    //     print all 
+    writeConfigurations(configurationsWithSecondSampling, "")
 
     return true
   }
@@ -1093,11 +1093,11 @@ object SICS2015 {
       var scriptBuilder = new StringBuilder()
 
       x._2.foreach(y => {
-        var configKey = mpi_numThreads + "_" + omp_numThreads + "_" + index
+        var configKey = y.measurementName
         configToKnowledgeFile(y, configKey, suffix)
         index += 1
         generateShFileChimaira(configKey, suffix)
-        writer.append("sbatch -A spl -p chimaira -n 1 -c 1 -t 20 /home/grebhahn/ScalaCodegenSISC/config/script_" + configKey + suffix + ".sh\n")
+        writer.append("sbatch -A spl -p chimaira -n 1 -c 1 -t 20 -o " + configKey + suffix + ".out /home/grebhahn/ScalaCodegenSISC/config/script_" + configKey + suffix + ".sh\n")
 
         makeWriter.append("cd config_" + configKey + suffix + "/\n")
         makeWriter.append("make -j\n")

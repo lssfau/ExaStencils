@@ -3,7 +3,7 @@ package exastencils.datastructures.l3
 import exastencils.knowledge._
 
 object Cycle {
-  def printBody(printer : java.io.PrintWriter, postfix : String, tempBlocking : Boolean) = {
+  def printBody(printer : java.io.PrintWriter, postfix : String, tempBlocking : Boolean, numCycleCalls : Int) = {
     if (Knowledge.l3tmp_genTimersPerFunction)
       printer.println(s"\tstartTimer ( ${if (Knowledge.l3tmp_genTimersPerLevel) s"concat ( 'preSmoothing${postfix}_', levels@current() )" else s"'preSmoothing$postfix'"} )")
     if (!tempBlocking)
@@ -35,9 +35,11 @@ object Cycle {
     if (Knowledge.l3tmp_genTimersPerFunction)
       printer.println(s"\tstopTimer ( ${if (Knowledge.l3tmp_genTimersPerLevel) s"concat ( 'settingSolution${postfix}_', levels@current() )" else s"'settingSolution$postfix'"} )")
 
-    printer.println(s"\trepeat ${Knowledge.l3tmp_numRecCycleCalls} times {")
+    if (numCycleCalls > 1)
+      printer.println(s"\trepeat ${numCycleCalls} times {")
     printer.println(s"\t\tVCycle$postfix@coarser ( )")
-    printer.println(s"\t}")
+    if (numCycleCalls > 1)
+      printer.println(s"\t}")
 
     if (Knowledge.l3tmp_genTimersPerFunction)
       printer.println(s"\tstartTimer ( ${if (Knowledge.l3tmp_genTimersPerLevel) s"concat ( 'correction${postfix}_', levels@current() )" else s"'correction$postfix'"} )")
@@ -65,16 +67,35 @@ object Cycle {
     if (Knowledge.l3tmp_genTemporalBlocking) {
       if (Knowledge.l3tmp_tempBlockingMinLevel > 1) {
         printer.println(s"Function VCycle$postfix@((coarsest + 1) to ${Knowledge.l3tmp_tempBlockingMinLevel - 1}) ( ) : Unit {")
-        printBody(printer, postfix, false)
+        printBody(printer, postfix, false, 1)
         printer.println(s"}")
       }
-      printer.println(s"Function VCycle$postfix@(${Knowledge.l3tmp_tempBlockingMinLevel} to finest) ( ) : Unit {")
-      printBody(printer, postfix, true)
-      printer.println(s"}")
+      if (Knowledge.l3tmp_numRecCycleCalls > 1) {
+        printer.println(s"Function VCycle$postfix@finest ( ) : Unit {")
+        printBody(printer, postfix, true, Knowledge.l3tmp_numRecCycleCalls)
+        printer.println(s"}")
+        printer.println(s"}")
+        printer.println(s"Function VCycle$postfix@(${Knowledge.l3tmp_tempBlockingMinLevel} to (finest - 1)) ( ) : Unit {")
+        printBody(printer, postfix, true, 1)
+        printer.println(s"}")
+      } else {
+        printer.println(s"Function VCycle$postfix@(${Knowledge.l3tmp_tempBlockingMinLevel} to finest) ( ) : Unit {")
+        printBody(printer, postfix, true, 1)
+        printer.println(s"}")
+      }
     } else {
-      printer.println(s"Function VCycle$postfix@((coarsest + 1) to finest) ( ) : Unit {")
-      printBody(printer, postfix, false)
-      printer.println(s"}")
+      if (Knowledge.l3tmp_numRecCycleCalls > 1) {
+        printer.println(s"Function VCycle$postfix@finest ( ) : Unit {")
+        printBody(printer, postfix, false, Knowledge.l3tmp_numRecCycleCalls)
+        printer.println(s"}")
+        printer.println(s"Function VCycle$postfix@((coarsest + 1) to (finest - 1)) ( ) : Unit {")
+        printBody(printer, postfix, false, 1)
+        printer.println(s"}")
+      } else {
+        printer.println(s"Function VCycle$postfix@((coarsest + 1) to finest) ( ) : Unit {")
+        printBody(printer, postfix, false, 1)
+        printer.println(s"}")
+      }
     }
 
     printer.println

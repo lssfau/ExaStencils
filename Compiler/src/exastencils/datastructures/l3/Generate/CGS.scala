@@ -5,8 +5,16 @@ import exastencils.knowledge._
 object CGS {
   def addFunction(printer : java.io.PrintWriter, postfix : String) = {
     printer.println(s"Function VCycle$postfix@coarsest ( ) : Unit {")
+
+    if (Knowledge.l3tmp_genTimersPerFunction)
+      printer.println(s"\tstartTimer ( 'cgs$postfix' )")
+
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims)
       printer.println(s"\tVCycle${postfix}_$vecDim@current ( )")
+
+    if (Knowledge.l3tmp_genTimersPerFunction)
+      printer.println(s"\tstopTimer ( 'cgs$postfix' )")
+
     printer.println(s"}")
 
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
@@ -26,7 +34,7 @@ object CGS {
       printer.println(s"\t}")
 
       printer.println(s"\tVariable cgSteps : Integer")
-      printer.println(s"\trepeat 512 times count cgSteps {")
+      printer.println(s"\trepeat ${Knowledge.l3tmp_maxNumCGSSteps} times count cgSteps {")
       Communication.exch(printer, s"VecP$postfix@current")
 
       printer.println(s"\t\tloop over VecP$postfix@current {")
@@ -66,6 +74,9 @@ object CGS {
 
       printer.println(s"\t\tres = nextRes")
       printer.println(s"\t}")
+
+      printer.println("\tprint ( '\"Maximum number of cgs iterations (\"', " + Knowledge.l3tmp_maxNumCGSSteps + ", '\") was exceeded\"' )")
+
       printer.println(s"}")
     }
     printer.println

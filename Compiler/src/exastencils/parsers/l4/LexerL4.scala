@@ -16,7 +16,7 @@ class LexerL4 extends exastencils.parsers.ExaLexer {
 
   // loop keywords
   reserved += ("repeat", "times", "count", "with", "contraction", "break")
-  reserved += ("loop", "until", "over", "fragments", "where", "starting", "ending", "stepping", "reduction")
+  reserved += ("loop", "until", "over", "fragments", "only", "on", "boundary", "where", "starting", "ending", "stepping", "reduction")
   reserved += ("sequentially") // FIXME: seq HACK
 
   // condition keywords
@@ -32,7 +32,7 @@ class LexerL4 extends exastencils.parsers.ExaLexer {
   reserved += ("fromFile")
 
   // layout and field keywords
-  reserved += ("ghostLayers", "duplicateLayers", "innerPoints", "with", "communication", "None", "Node", "Cell", "node", "cell")
+  reserved += ("ghostLayers", "duplicateLayers", "innerPoints", "with", "communication", "None", "Node", "Cell", "node", "cell", "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z")
 
   // boundary condition keywords
   reserved += ("apply", "bc", "to")

@@ -57,7 +57,7 @@ case class DomainDeclarationStatement(var name : String, var lower : Any, var up
                   case (li : RealIndex2D, ui : RealIndex2D) =>
                     new RectangularDomainShape(new AABB(li.x, ui.x, li.y, ui.y, 0.0, 0.0))
                 }
-              new knowledge.LShapedDomain(name, index, new LShapedDomainShape(rectUnionDomains))
+              new knowledge.ShapedDomain(name, index, new ShapedDomainShape(rectUnionDomains))
             }
           }
         }
@@ -143,6 +143,7 @@ case class AssignmentStatement(var dest : Access, var src : Expression, var op :
 
 case class LoopOverPointsStatement(
     var field : FieldAccess,
+    var region : Option[RegionSpecification],
     var seq : Boolean, // FIXME: seq HACK
     var condition : Option[Expression],
     var startOffset : Option[ExpressionIndex],
@@ -153,6 +154,7 @@ case class LoopOverPointsStatement(
 
   override def prettyprint(out : PpStream) = {
     out << "loop over " << field << ' '
+    if (region.isDefined) out << "only " << region.get
     if (seq) out << "sequentially "
     if (condition.isDefined) out << "where " << condition.get
     if (startOffset.isDefined) out << "starting " << startOffset.get << ' '
@@ -164,6 +166,7 @@ case class LoopOverPointsStatement(
 
   override def progressToIr : ir.LoopOverPoints = {
     ir.LoopOverPoints(field.resolveField,
+      if (region.isDefined) Some(region.get.progressToIr) else None,
       seq,
       if (startOffset.isDefined) startOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
       if (endOffset.isDefined) endOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
@@ -212,7 +215,7 @@ case class FunctionStatement(var identifier : Identifier,
   }
 }
 
-case class RepeatUpStatement(var number : Int,
+case class RepeatTimesStatement(var number : Int,
     var iterator : Option[Access],
     var contraction : Boolean,
     var statements : List[Statement]) extends Statement {
@@ -260,6 +263,14 @@ case class ReductionStatement(var op : String, var target : String) extends Spec
 
   override def progressToIr : ir.Reduction = {
     ir.Reduction(op, ir.VariableAccess(target, None))
+  }
+}
+
+case class RegionSpecification(var region : String, var dir : Index, var onlyOnBoundary : Boolean) extends SpecialStatement {
+  override def prettyprint(out : PpStream) = out << region << ' ' << dir
+
+  override def progressToIr : ir.RegionSpecification = {
+    ir.RegionSpecification(region, dir.extractArray ++ Array.fill(3 - dir.extractArray.length)(0), onlyOnBoundary)
   }
 }
 

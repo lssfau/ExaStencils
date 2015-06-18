@@ -14,6 +14,7 @@ object DomainFileHeader {
   var numFragmentsPerBlock = Knowledge.domain_numFragmentsPerBlock
 
   var mpi_numThreads = 1
+ 
   var discr_hx : List[String] = List()
   var discr_hy : List[String] = List()
   var discr_hz : List[String] = List()
@@ -35,7 +36,8 @@ object DomainFileHeader {
 
 object DomainFileWriter extends BuildfileGenerator {
   override def write = {
-    val domains = DomainCollection.domains.filter { f => f.identifier != "global" }
+    val domains = if (Knowledge.domain_useCase != "") DomainCollection.domains.filter { f => f.identifier != "global" } else DomainCollection.domains
+    val fragments = if (Knowledge.domain_useCase != "") FragmentCollection.fragments.filter { f => f.domainIds.exists { d => d != 0 } } else FragmentCollection.fragments
 
     val printer = PrettyprintingManager.getPrinter("DomainDefinition.cfg")
 
@@ -53,18 +55,18 @@ object DomainFileWriter extends BuildfileGenerator {
 
     printer <<< "DOMAINS"
     for (d <- domains) {
-      printer <<< d.identifier + " = (" + FragmentCollection.fragments.filter { f => f.rank >= 0 }
+      printer <<< d.identifier + " = (" + fragments.filter { f => f.rank >= 0 }
         .filter { f => f.domainIds.contains(d.index) }
         .groupBy { g => g.rank }.keySet.map { m => "b" + m.toString() }.mkString(",") + ")"
     }
 
     printer <<< "BLOCKS"
-    for (b <- FragmentCollection.fragments.filter { f => f.rank >= 0 }.groupBy { g => g.rank }) {
+    for (b <- fragments.filter { f => f.rank >= 0 }.groupBy { g => g.rank }) {
       printer <<< "b" + b._1.toString + " = (" + b._2.map(m => "f" + m.globalId).mkString(",") + " )"
     }
 
     printer <<< "FRAGMENTS"
-    for (f <- FragmentCollection.fragments.filter { f => f.rank >= 0 }) {
+    for (f <- fragments.filter { f => f.rank >= 0 }) {
       printer <<< "f" + f.globalId.toString + " = " + "(" + f.faces.map {
         fa =>
           "(" + fa.Edges.map {
@@ -72,6 +74,20 @@ object DomainFileWriter extends BuildfileGenerator {
           }.mkString(",") + ")"
       }.mkString(",") + ")"
     }
+
+    printer <<< "TRAFOS"
+    for (f <- fragments.filter { f => f.rank >= 0 }) {
+      val it = f.trafo.iterator
+      printer << "f" + f.globalId.toString + " = " + "("
+      var tmp = ""
+      for (i <- 0 to 3) {
+        tmp += "(" + List(it.next().toString(), it.next().toString(), it.next().toString(), it.next().toString()).mkString(",") + "),"
+      }
+      printer << tmp.dropRight(1)
+      printer <<< ")"
+
+    }
+
     printer.finish
   }
 }

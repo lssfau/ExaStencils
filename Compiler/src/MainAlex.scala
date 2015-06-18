@@ -5,7 +5,7 @@ import exastencils.datastructures._
 import exastencils.domain._
 import exastencils.globals._
 import exastencils.knowledge._
-import exastencils.languageprocessing.l4.ProgressToIr
+import exastencils.languageprocessing.l4._
 import exastencils.mpi._
 import exastencils.multiGrid._
 import exastencils.omp._
@@ -44,7 +44,7 @@ object MainAlex {
     var parserl4 = new ParserL4
     StateManager.root_ = parserl4.parseFile(Settings.basePathPrefix + "/Compiler/dsl/newDSL4.exa")
     ValidationL4.apply
-    ProgressToIr.apply()
+    UnfoldLevelSpecifications.apply()
 
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
