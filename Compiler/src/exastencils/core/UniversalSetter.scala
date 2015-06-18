@@ -35,6 +35,13 @@ object UniversalSetter {
     field.setAccessible(accessible)
   }
 
+  /**
+    * Adds the value to an entity's list member.
+    *
+    * @param obj The instance of the entity.
+    * @param ident The name of the member.
+    * @param value The additional value of the member.
+    */
   def addToListBuffer[T](obj : AnyRef, ident : String, value : T) : Unit = {
     Logger.info("UniversalSetter: Adding " + value + " to " + ident)
 
