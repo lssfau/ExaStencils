@@ -9,9 +9,9 @@ object JobScriptGenerator {
       case "IBMBG" | "IBMXL" => {
         val numOMP = Knowledge.omp_numThreads
         val numMPI = Knowledge.mpi_numThreads
-        val numThreadsPerNode = 64
+        val numThreadsPerNode = Knowledge.hw_numThreadsPerNode
         val numMPIRanksPerNode = numThreadsPerNode / numOMP
-        val numNodes = (numOMP * numMPI) / 64
+        val numNodes = (numOMP * numMPI) / Knowledge.hw_numThreadsPerNode
 
         val printer = PrettyprintingManager.getPrinter("runJuQueen")
         printer <<< s"#@ shell = /bin/bash"

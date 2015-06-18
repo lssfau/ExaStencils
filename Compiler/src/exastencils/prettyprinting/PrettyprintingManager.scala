@@ -60,45 +60,51 @@ object PrettyprintingManager {
     }
 
     def finish = {
-      // temporary storage
-      val extendedContent = new java.io.StringWriter
+      // post-process code files
+      val isCodeFile = (filename.endsWith(".h") || filename.endsWith(".hpp") || filename.endsWith(".hxx")
+        || filename.endsWith(".c") || filename.endsWith(".cpp") || filename.endsWith(".cxx"))
 
-      // add header guard
-      val addHeaderGuard = (filename.endsWith(".h") || filename.endsWith(".hpp") || filename.endsWith(".hxx"))
-      if (addHeaderGuard) {
-        val guard = "EXASTENCILS_" + filename.replace("/", "_").replace("""\""", "_").replace(".", "_").toUpperCase()
-        extendedContent.write(s"#ifndef $guard\n")
-        extendedContent.write(s"#define $guard\n\n")
+      if (isCodeFile) {
+        // temporary storage
+        val extendedContent = new java.io.StringWriter
+
+        // add header guard
+        val addHeaderGuard = (filename.endsWith(".h") || filename.endsWith(".hpp") || filename.endsWith(".hxx"))
+        if (addHeaderGuard) {
+          val guard = "EXASTENCILS_" + filename.replace("/", "_").replace("""\""", "_").replace(".", "_").toUpperCase()
+          extendedContent.write(s"#ifndef $guard\n")
+          extendedContent.write(s"#define $guard\n\n")
+        }
+
+        // add includes for external dependencies
+        for (dep <- externalDependencies)
+          extendedContent.write(generateInclude(dep))
+        if (externalDependencies.size > 0)
+          extendedContent.write('\n')
+
+        // add includes from Settings.additionalIncludes
+        for (dep <- Settings.additionalIncludes)
+          extendedContent.write(generateInclude(dep))
+        if (Settings.additionalIncludes.size > 0)
+          extendedContent.write('\n')
+
+        // add includes for internal dependencies
+        for (dep <- internalDependencies)
+          extendedContent.write(generateInclude(dep.filename))
+        if (internalDependencies.size > 0)
+          extendedContent.write('\n')
+
+        // add main content
+        extendedContent.write(this.toString)
+
+        // add end of header guard
+        if (addHeaderGuard)
+          extendedContent.write("\n#endif\n")
+
+        // empty and swap buffer
+        this.getBuffer.setLength(0)
+        this.write(extendedContent.toString)
       }
-
-      // add includes for external dependencies
-      for (dep <- externalDependencies)
-        extendedContent.write(generateInclude(dep))
-      if (externalDependencies.size > 0)
-        extendedContent.write('\n')
-
-      // add includes from Settings.additionalIncludes
-      for (dep <- Settings.additionalIncludes)
-        extendedContent.write(generateInclude(dep))
-      if (Settings.additionalIncludes.size > 0)
-        extendedContent.write('\n')
-
-      // add includes for internal dependencies
-      for (dep <- internalDependencies)
-        extendedContent.write(generateInclude(dep.filename))
-      if (internalDependencies.size > 0)
-        extendedContent.write('\n')
-
-      // add main content
-      extendedContent.write(this.toString)
-
-      // add end of header guard
-      if (addHeaderGuard)
-        extendedContent.write("\n#endif\n")
-
-      // empty and swap buffer
-      this.getBuffer.setLength(0)
-      this.write(extendedContent.toString)
 
       // check if the file already exists
       if (!(new java.io.File(path)).exists) {
