@@ -27,6 +27,25 @@ case class ListLevelSpecification(var levels : HashSet[LevelSpecification]) exte
   def add(level : LevelSpecification) = levels += level
 
   def prettyprint(out : PpStream) = { out << '(' <<< (levels, ", ") << ')' }
+
+  def flatten() : Unit = {
+    levels.foreach(elem => elem match {
+      case ListLevelSpecification(x) =>
+        levels.++=(x)
+        levels.remove(elem)
+      case _ =>
+    })
+  }
+
+  def cleanup() : Unit = {
+    levels.foreach(elem => elem match {
+      case NegatedLevelSpecification(ListLevelSpecification(x)) => {
+        levels.--=(x)
+        levels.remove(elem)
+      }
+      case _ =>
+    })
+  }
 }
 
 case class CurrentLevelSpecification() extends DeclarationLevelSpecification with AccessLevelSpecification {
@@ -49,8 +68,8 @@ case class FinestLevelSpecification() extends DeclarationLevelSpecification with
   def prettyprint(out : PpStream) = { out << "finest" }
 }
 
-case class NegatedLevelSpecification(var l : LevelSpecification) extends DeclarationLevelSpecification {
-  def prettyprint(out : PpStream) = { out << "not(" << l << ')' }
+case class NegatedLevelSpecification(var l : ListLevelSpecification) extends DeclarationLevelSpecification {
+  def prettyprint(out : PpStream) = { out << "not"; l.prettyprint(out) }
 }
 
 case class RelativeLevelSpecification(var operator : String, var base : LevelSpecification, var offset : Int) extends DeclarationLevelSpecification with AccessLevelSpecification {
