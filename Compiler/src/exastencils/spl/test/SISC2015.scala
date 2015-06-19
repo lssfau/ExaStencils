@@ -1132,7 +1132,7 @@ object SICS2015 {
   def giveConfigsAName(configs : scala.collection.mutable.Set[Configuration], suffix : String) = {
     var configsByMpiOmp : scala.collection.mutable.Map[String, scala.collection.mutable.Set[Configuration]] = scala.collection.mutable.Map()
     configs.foreach(x => {
-      var mpiOmpRanksKey = x.partialBaseConfig("mpi_numThreads").asInstanceOf[Double].toInt + "_" + x.partialBaseConfig("omp_numThreads").asInstanceOf[Double].toInt + "_" + x.numericalFeatureValues(FeatureModel.get("ranksPerNode")).toInt
+      var mpiOmpRanksKey = x.partialBaseConfig("mpi_numThreads").asInstanceOf[Double].toInt + "_" + x.partialBaseConfig("omp_numThreads").asInstanceOf[Double].toInt + "_" + x.numericalFeatureValues(FeatureModel.get("sisc2015_ranksPerNode")).toInt
       if (configsByMpiOmp.contains(mpiOmpRanksKey)) {
         configsByMpiOmp(mpiOmpRanksKey).add(x)
         x.measurementName = mpiOmpRanksKey + "_" + configsByMpiOmp(mpiOmpRanksKey).size
@@ -1149,7 +1149,7 @@ object SICS2015 {
   def writeConfigurations(configurations : scala.collection.mutable.Set[Configuration], blackList : scala.collection.mutable.Set[String], suffix : String) = {
     var configsByMpiOmp : scala.collection.mutable.Map[String, scala.collection.mutable.Set[Configuration]] = scala.collection.mutable.Map()
     configurations.foreach(x => {
-      var mpiOmpRanksKey = x.partialBaseConfig("mpi_numThreads").asInstanceOf[Double].toInt + "_" + x.partialBaseConfig("omp_numThreads").asInstanceOf[Double].toInt + "_" + x.numericalFeatureValues(FeatureModel.get("ranksPerNode")).toInt
+      var mpiOmpRanksKey = x.partialBaseConfig("mpi_numThreads").asInstanceOf[Double].toInt + "_" + x.partialBaseConfig("omp_numThreads").asInstanceOf[Double].toInt + "_" + x.numericalFeatureValues(FeatureModel.get("sisc2015_ranksPerNode")).toInt
       if (configsByMpiOmp.contains(mpiOmpRanksKey)) {
         configsByMpiOmp(mpiOmpRanksKey).add(x)
       } else {
@@ -1166,7 +1166,7 @@ object SICS2015 {
     configsByMpiOmp.foreach(x => {
       var mpi_numThreads = x._2.head.partialBaseConfig("mpi_numThreads").asInstanceOf[Double].toInt
       var omp_numThreads = x._2.head.partialBaseConfig("omp_numThreads").asInstanceOf[Double].toInt
-      var ranks = x._2.head.numericalFeatureValues(FeatureModel.get("ranksPerNode")).asInstanceOf[Double].toInt
+      var ranks = x._2.head.numericalFeatureValues(FeatureModel.get("sisc2015_ranksPerNode")).asInstanceOf[Double].toInt
 
       println("NumConfigs -----------" + x._2.size)
       generateJobScript(x._1, x._2, suffix)
@@ -1212,7 +1212,7 @@ object SICS2015 {
     Knowledge.targetCompiler = "IBMBG"
     var mpi_numThreads = configs.head.partialBaseConfig("mpi_numThreads").asInstanceOf[Double].toInt
     var omp_numThreads = configs.head.partialBaseConfig("omp_numThreads").asInstanceOf[Double].toInt
-    var ranksPerNode = configs.head.numericalFeatureValues(FeatureModel.get("ranksPerNode")).toInt
+    var ranksPerNode = configs.head.numericalFeatureValues(FeatureModel.get("sisc2015_ranksPerNode")).toInt
     var number = 0
 
     var numNodes = (mpi_numThreads * omp_numThreads) / 64
@@ -1282,13 +1282,13 @@ object SICS2015 {
     //    featuresToConsider.add("domain_rect_numFragsPerBlock_x")
     //    featuresToConsider.add("domain_rect_numFragsPerBlock_y")
 
-    featuresToConsider.add("numOMP_y")
-    featuresToConsider.add("numNodes")
-    featuresToConsider.add("ranksPerNode")
+    featuresToConsider.add("sisc2015_numOMP_y")
+    featuresToConsider.add("sisc2015_numNodes")
+    featuresToConsider.add("sisc2015_ranksPerNode")
 
-    featuresToConsider.add("firstDim")
+    featuresToConsider.add("sisc2015_firstDim")
 
-    featuresToConsider.add("numOMP_x")
+    featuresToConsider.add("sisc2015_numOMP_x")
 
   }
 
@@ -1307,14 +1307,14 @@ object SICS2015 {
     //    featuresToConsider.add("domain_rect_numFragsPerBlock_y")
     //    featuresToConsider.add("domain_rect_numFragsPerBlock_z")
 
-    featuresToConsider.add("numNodes")
-    featuresToConsider.add("ranksPerNode")
+    featuresToConsider.add("sisc2015_numNodes")
+    featuresToConsider.add("sisc2015_ranksPerNode")
 
-    featuresToConsider.add("secDim")
+    featuresToConsider.add("sisc2015_secDim")
 
-    featuresToConsider.add("numOMP_x")
-    featuresToConsider.add("numOMP_y")
-    featuresToConsider.add("numOMP_z")
+    featuresToConsider.add("sisc2015_numOMP_x")
+    featuresToConsider.add("sisc2015_numOMP_y")
+    featuresToConsider.add("sisc2015_numOMP_z")
 
   }
 
@@ -1738,10 +1738,10 @@ object SICS2015 {
   def derivedParameters2(config : Configuration) : Boolean = {
     var aspectRatioOffset : Double = 0
 
-    val numNodes = config.numericalFeatureValues(FeatureModel.get("numNodes"))
-    val ranksPerNode = config.numericalFeatureValues(FeatureModel.get("ranksPerNode"))
+    val numNodes = config.numericalFeatureValues(FeatureModel.get("sisc2015_numNodes"))
+    val ranksPerNode = config.numericalFeatureValues(FeatureModel.get("sisc2015_ranksPerNode"))
 
-    val nodesTimesRanks : Double = config.numericalFeatureValues(FeatureModel.get("numNodes")) * config.numericalFeatureValues(FeatureModel.get("ranksPerNode"))
+    val nodesTimesRanks : Double = config.numericalFeatureValues(FeatureModel.get("sisc2015_numNodes")) * config.numericalFeatureValues(FeatureModel.get("sisc2015_ranksPerNode"))
 
     val dimBase : Double = Math.pow(2, dimToConsider)
 
@@ -1758,10 +1758,10 @@ object SICS2015 {
     var aro_y = 1.0
     var aro_z = 1.0
 
-    val firstDim = config.xorFeatureValues(FeatureModel.get("firstDim"))
+    val firstDim = config.xorFeatureValues(FeatureModel.get("sisc2015_firstDim"))
     var secDim = ""
     if (dimToConsider == 3)
-      secDim = config.xorFeatureValues(FeatureModel.get("secDim"))
+      secDim = config.xorFeatureValues(FeatureModel.get("sisc2015_secDim"))
 
     if (aspectRatioOffset >= 2) {
       if (firstDim.equals("0"))
@@ -1785,11 +1785,11 @@ object SICS2015 {
 
     var maxLevel = log(num_points_per_dim / numUnitFragsPD, 2)
 
-    val numOMP_x = config.numericalFeatureValues(FeatureModel.get("numOMP_x"))
-    val numOMP_y = config.numericalFeatureValues(FeatureModel.get("numOMP_y"))
+    val numOMP_x = config.numericalFeatureValues(FeatureModel.get("sisc2015_numOMP_x"))
+    val numOMP_y = config.numericalFeatureValues(FeatureModel.get("sisc2015_numOMP_y"))
     var numOMP_z = 1.0
     if (dimToConsider == 3)
-      numOMP_z = config.numericalFeatureValues(FeatureModel.get("numOMP_z"))
+      numOMP_z = config.numericalFeatureValues(FeatureModel.get("sisc2015_numOMP_z"))
 
     if (numUnitFragsPD < numOMP_x * aro_x)
       return false;

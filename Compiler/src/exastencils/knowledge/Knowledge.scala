@@ -92,16 +92,16 @@ object Knowledge {
   var domain_rect_numFragsPerBlock_y : Int = 1 //[1~64]
   var domain_rect_numFragsPerBlock_z : Int = 1 //[1~64]
 
-  // second sampling Domain 
-  var numNodes : Int = 64 // [16~64]
-  var ranksPerNode : Int = 64 // [16~64]
-  var firstDim : Int = 1 // [0~1]
-  var secondDim : Int = 1 // [0~1]
+  // options for SISC Paper  
+  var sisc2015_numNodes : Int = 64 // [16~64]
+  var sisc2015_ranksPerNode : Int = 64 // [16~64]
+  var sisc2015_firstDim : Int = 1 // [0~1]
+  var sisc2015_secondDim : Int = 1 // [0~1]
 
-  var numOMP_x : Int = 2 //[1~64]
-  var numOMP_y : Int = 2 //[1~64]
-  var numOMP_z : Int = 2 //[1~64]
-  // second sampling Domain ENDE
+  var sisc2015_numOMP_x : Int = 2 //[1~64]
+  var sisc2015_numOMP_y : Int = 2 //[1~64]
+  var sisc2015_numOMP_z : Int = 2 //[1~64]
+  // options for SISC Paper ENDE
 
   // the total number of fragments to be generated per dimension
   def domain_rect_numFragsTotal_x : Int = domain_rect_numFragsPerBlock_x * domain_rect_numBlocks_x
