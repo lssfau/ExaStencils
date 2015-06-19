@@ -101,8 +101,6 @@ object Knowledge {
   var numOMP_x : Int = 2 //[1~64]
   var numOMP_y : Int = 2 //[1~64]
   var numOMP_z : Int = 2 //[1~64]
-
-  var ompParallelizeLoops : Boolean = true //[true|false]
   // second sampling Domain ENDE
 
   // the total number of fragments to be generated per dimension
@@ -242,7 +240,7 @@ object Knowledge {
   /// SPL connected
   var l3tmp_smoother : String = "Jac" // [Jac|RBGS] // [Jac|GS|RBGS] // the l3tmp_smoother to be generated
   var l3tmp_cgs : String = "CG" // [CG] // the coarse grid solver to be generated
-  var l3tmp_maxNumCGSSteps : Int = 512 // maximum number of coarse grid solver iterations
+  var l3tmp_maxNumCGSSteps : Int = 1024 // maximum number of coarse grid solver iterations
   var l3tmp_numRecCycleCalls : Int = 1 // [1~2] // 1 corresponds to v-cycles while 2 corresponds to w-cycles
   var l3tmp_numPre : Int = 3 // [0~4] // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
   var l3tmp_numPost : Int = 3 // [0~4] // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
@@ -283,7 +281,7 @@ object Knowledge {
   var l3tmp_genEmbeddedDomain : Boolean = false // adds a second domain to perform all computations on; the new domain is one fragment smaller on each boundary
   var l3tmp_useMaxNorm : Boolean = false // uses the maximum norm instead of the L2 norm when reducing the residual on the finest level
   var l3tmp_genCellBasedDiscr : Boolean = false // sets up a cell based discretization
-  var l3tmp_targetResReduction : Double = 0.0 // exit criterion for the solver loop as target reduction of the residual in the chosen norm
+  var l3tmp_targetResReduction : Double = 1.0E-5 // exit criterion for the solver loop as target reduction of the residual in the chosen norm
 
   /// optional features
   var l3tmp_printFieldAtEnd : Boolean = false // prints the solution field at the end of the application (or the mean solution in l3tmp_kelvin's case)

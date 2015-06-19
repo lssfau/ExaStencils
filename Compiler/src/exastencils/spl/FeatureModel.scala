@@ -230,7 +230,7 @@ object FeatureModel {
     var name = parts(0).split(":")(0).trim().split(" ")(1)
     var dataType = parts(0).split(":")(1).trim().split(" ")(0)
     var default = parts(0).split("=")(1).trim()
-    println(content)
+    //    println(content)
     var values = parts(1).substring(parts(1).indexOf("[") + 1, parts(1).indexOf(']'))
 
     var feat : Feature = allFeatures.get(name).getOrElse(new Feature(name))

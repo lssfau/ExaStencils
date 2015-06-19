@@ -54,16 +54,14 @@ object JobScriptGenerator {
     }
   }
 
-  def write(numMPI : Int, numOMP : Int, sourcePath : Array[String], number : Int, suffix : String) : Unit = {
+  def write(numMPI : Int, numOMP : Int, ranksPerNode : Int, sourcePath : Array[String], number : Int, suffix : String) : Unit = {
     Knowledge.targetCompiler match {
       case "IBMBG" | "IBMXL" => {
-        //        val numOMP = Knowledge.omp_numThreads
-        //        val numMPI = Knowledge.mpi_numThreads
-        val numThreadsPerNode = 64
+        val numThreadsPerNode = ranksPerNode
         val numMPIRanksPerNode = numThreadsPerNode / numOMP
-        val numNodes = (numOMP * numMPI) / 64
+        val numNodes = (numOMP * numMPI) / ranksPerNode
         println("OMP: " + numOMP + " MPI: " + numMPI + "  NumNodes: " + numNodes)
-        val printer = PrettyprintingManager.getPrinter("runJuQueen_" + suffix + "_" + numMPI + "_" + numOMP + "_" + number)
+        val printer = PrettyprintingManager.getPrinter("runJuQueen_" + suffix + "_" + numMPI + "_" + numOMP + "_" + ranksPerNode + "_" + number)
         printer <<< s"#@ shell = /bin/bash"
         printer <<< s"#@ job_name = GENERATED_" + numMPI + "_" + numOMP + "_" + number
         printer <<< "#@ error = $(job_name).$(jobid).out"

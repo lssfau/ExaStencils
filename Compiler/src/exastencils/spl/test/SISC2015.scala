@@ -526,7 +526,7 @@ object SICS2015 {
 
     derivedParameters(config)
 
-    var configToKnowFile : scala.collection.mutable.Set[String] = config.getKnowledgeFileContent()
+    var configToKnowFile : scala.collection.mutable.Set[String] = config.getKnowledgeFileContent(scala.collection.mutable.Set())
 
     configToKnowFile.add(partialBaseConfigInformation())
 
@@ -797,14 +797,20 @@ object SICS2015 {
     // partition numeric options to domain_ALL,maxLevel and other features
     var numericOptionsFirstSampling : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
     var numericOptionsSecondSampling : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
+    var numericOptionsThirdSampling : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
     featuresNumeric.foreach(x =>
       {
         if (x.identifier.startsWith("domain") || x.identifier.equals("numNodes") // || x.identifier.startsWith("numOMP_")
           || x.identifier.equals("ranksPerNode") || x.identifier.startsWith("aro_")) {
           numericOptionsFirstSampling.add(x)
-          println(x)
-        } else
+          println("1: " + x)
+        } else if (x.identifier.startsWith("numOMP_") || x.identifier.startsWith("opt_unroll") || x.identifier.startsWith("l3tmp") || x.identifier.startsWith("minLevel") || x.identifier.startsWith("poly_tileSize_x")) {
+          numericOptionsThirdSampling.add(x)
+          println("3: " + x)
+        } else {
           numericOptionsSecondSampling.add(x)
+          println("2: " + x)
+        }
       })
     println("Numeric First  Set size " + numericOptionsFirstSampling.size)
     println("Numeric Second Set size " + numericOptionsSecondSampling.size)
@@ -862,12 +868,10 @@ object SICS2015 {
     pbd = new PlackettBurmanDesign(numericOptionsSecondSampling)
     pbd.initSeeds()
     if (dimToConsider == 2)
-      pbd.setSeed(3, 81)
+      pbd.setSeed(5, 25)
     if (dimToConsider == 3)
       pbd.setSeed(5, 25)
-
     numericSamplings = pbd.getPoints()
-    println("second sampling combinations " + numericSamplings.size)
 
     var configurationsWithSecondSampling : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
     configurationsFiltered.foreach { x =>
@@ -875,14 +879,37 @@ object SICS2015 {
         numericSamplings.foreach(y => {
           var configCopy = x.copy();
           configCopy.addNumericOptions(y)
+          configurationsWithSecondSampling.add(configCopy)
+
+        })
+
+      }
+    }
+
+    pbd = new PlackettBurmanDesign(numericOptionsThirdSampling)
+    pbd.initSeeds()
+    if (dimToConsider == 2)
+      pbd.setSeed(5, 125)
+    if (dimToConsider == 3)
+      pbd.setSeed(5, 125)
+
+    numericSamplings = pbd.getPoints()
+    println("second sampling combinations " + numericSamplings.size)
+
+    var configurationsWiththirdSampling : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
+    configurationsWithSecondSampling.foreach { x =>
+      {
+        numericSamplings.foreach(y => {
+          var configCopy = x.copy();
+          configCopy.addNumericOptions(y)
           if (this.derivedParameters2(configCopy)) {
-            configurationsWithSecondSampling.add(configCopy)
+            configurationsWiththirdSampling.add(configCopy)
           }
         })
 
       }
     }
-    println("configsCombined  " + configurationsWithSecondSampling.size)
+    println("configsCombined  " + configurationsWiththirdSampling.size)
 
     ////////////////////////////////////// end feature wise sampling in combination with pdb
 
@@ -922,7 +949,7 @@ object SICS2015 {
     pbd = new PlackettBurmanDesign(numericOptionsSecondSampling)
     pbd.initSeeds()
     if (dimToConsider == 2)
-      pbd.setSeed(3, 81)
+      pbd.setSeed(5, 25)
     if (dimToConsider == 3)
       pbd.setSeed(3, 9)
     numericSamplings = pbd.getPoints()
@@ -934,75 +961,98 @@ object SICS2015 {
         numericSamplings.foreach(y => {
           var configCopy = x.copy();
           configCopy.addNumericOptions(y)
+          configurationsWithSecondSamplingPW.add(configCopy)
+
+        })
+
+      }
+    }
+
+    pbd = new PlackettBurmanDesign(numericOptionsThirdSampling)
+    pbd.initSeeds()
+    if (dimToConsider == 2)
+      pbd.setSeed(5, 125)
+    if (dimToConsider == 3)
+      pbd.setSeed(3, 9)
+    numericSamplings = pbd.getPoints()
+    println("second sampling combinations " + numericSamplings.size)
+
+    var configurationsWithThirdSamplingPW : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
+    configurationsWithSecondSamplingPW.foreach { x =>
+      {
+        numericSamplings.foreach(y => {
+          var configCopy = x.copy();
+          configCopy.addNumericOptions(y)
           if (this.derivedParameters2(configCopy)) {
-            configurationsWithSecondSamplingPW.add(configCopy)
+            configurationsWithThirdSamplingPW.add(configCopy)
           }
         })
 
       }
     }
-    println("configsCombined PW  " + configurationsWithSecondSamplingPW.size)
 
-    configurationsWithSecondSampling ++= configurationsWithSecondSamplingPW
+    println("configsCombined PW  " + configurationsWithThirdSamplingPW.size)
 
-    println("configsCombined FW & PW " + configurationsWithSecondSampling.size)
+    configurationsWiththirdSampling ++= configurationsWithThirdSamplingPW
+
+    println("configsCombined FW & PW " + configurationsWiththirdSampling.size)
 
     /////////////////////////////////////////////////////// RANDOM ////////////
 
-    fwSampling = new FWHeuristic(featuresBinary)
-    binaryConfigs = fwSampling.getPoints()
-    println("----------binary FW(used as Random) " + binaryConfigs.size)
-
-    // numeric Sampling for domain partition
-    var rDesign = new RandomDesign(numericOptionsFirstSampling)
-    rDesign.numberOfPoints = 6
-    numericSamplings = rDesign.getPoints()
-
-    configurationsPreFiltered = (new Configuration).generateConfigurations(binaryConfigs, numericSamplings)
-    println("configsBeforeFiltering " + configurationsPreFiltered.size)
-    //       
-    configurationsFiltered = scala.collection.mutable.Set()
-    configurationsPreFiltered.foreach(x =>
-      {
-        if (dimToConsider == 2 && ccVSvc.equals("cc"))
-          problemDefinition2D_ConstCoeff(x.partialBaseConfig)
-        if (dimToConsider == 2 && ccVSvc.equals("vc"))
-          problemDefinition2D_VarCoeff(x.partialBaseConfig)
-        if (dimToConsider == 3 && ccVSvc.equals("cc"))
-          problemDefinition3D_ConstCoeff(x.partialBaseConfig)
-        if (dimToConsider == 3 && ccVSvc.equals("vc"))
-          problemDefinition3D_VarCoeff(x.partialBaseConfig)
-
-        configurationsFiltered.add(x)
-
-      })
-
-    println("configsAfterFiltering  " + configurationsFiltered.size)
-
-    rDesign = new RandomDesign(numericOptionsSecondSampling)
-    rDesign.numberOfPoints = 600
-    numericSamplings = rDesign.getPoints()
-    println("second sampling combinations " + numericSamplings.size)
-
-    var configurationsWithSecondSamplingRandom : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
-    configurationsFiltered.foreach { x =>
-      {
-        numericSamplings.foreach(y => {
-          var configCopy = x.copy();
-          configCopy.addNumericOptions(y)
-          if (this.derivedParameters2(configCopy))
-            configurationsWithSecondSamplingRandom.add(configCopy)
-        })
-
-      }
-    }
-
-    println("random configurations: " + configurationsWithSecondSamplingRandom.size)
+    //    fwSampling = new FWHeuristic(featuresBinary)
+    //    binaryConfigs = fwSampling.getPoints()
+    //    println("----------binary FW(used as Random) " + binaryConfigs.size)
+    //
+    //    // numeric Sampling for domain partition
+    //    var rDesign = new RandomDesign(numericOptionsFirstSampling)
+    //    rDesign.numberOfPoints = 6
+    //    numericSamplings = rDesign.getPoints()
+    //
+    //    configurationsPreFiltered = (new Configuration).generateConfigurations(binaryConfigs, numericSamplings)
+    //    println("configsBeforeFiltering " + configurationsPreFiltered.size)
+    //    //       
+    //    configurationsFiltered = scala.collection.mutable.Set()
+    //    configurationsPreFiltered.foreach(x =>
+    //      {
+    //        if (dimToConsider == 2 && ccVSvc.equals("cc"))
+    //          problemDefinition2D_ConstCoeff(x.partialBaseConfig)
+    //        if (dimToConsider == 2 && ccVSvc.equals("vc"))
+    //          problemDefinition2D_VarCoeff(x.partialBaseConfig)
+    //        if (dimToConsider == 3 && ccVSvc.equals("cc"))
+    //          problemDefinition3D_ConstCoeff(x.partialBaseConfig)
+    //        if (dimToConsider == 3 && ccVSvc.equals("vc"))
+    //          problemDefinition3D_VarCoeff(x.partialBaseConfig)
+    //
+    //        configurationsFiltered.add(x)
+    //
+    //      })
+    //
+    //    println("configsAfterFiltering  " + configurationsFiltered.size)
+    //
+    //    rDesign = new RandomDesign(numericOptionsSecondSampling)
+    //    rDesign.numberOfPoints = 600
+    //    numericSamplings = rDesign.getPoints()
+    //    println("second sampling combinations " + numericSamplings.size)
+    //
+    //    var configurationsWithSecondSamplingRandom : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
+    //    configurationsFiltered.foreach { x =>
+    //      {
+    //        numericSamplings.foreach(y => {
+    //          var configCopy = x.copy();
+    //          configCopy.addNumericOptions(y)
+    //          if (this.derivedParameters2(configCopy))
+    //            configurationsWithSecondSamplingRandom.add(configCopy)
+    //        })
+    //
+    //      }
+    //    }
+    //
+    //    println("random configurations: " + configurationsWithSecondSamplingRandom.size)
 
     // add derived features for debug perpuses 
     var featuresInOutput : scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
     featuresInOutput ++= (featuresToConsider)
-    featuresInOutput.add("ompParallelizeFrags")
+
     featuresInOutput.add("domain_fragmentLength_x")
     featuresInOutput.add("domain_fragmentLength_y")
     if (dimToConsider == 3)
@@ -1020,12 +1070,11 @@ object SICS2015 {
       featuresInOutput.add("domain_rect_numBlocks_z")
 
     featuresInOutput.add("mpi_numThreads")
+
     featuresInOutput.add("aro_x")
     featuresInOutput.add("aro_y")
     if (dimToConsider == 3)
       featuresInOutput.add("aro_z")
-
-    featuresInOutput.add("maxLevel")
     featuresInOutput.add("numUnitFragsPD")
 
     featuresInOutput.add("domain_x")
@@ -1033,17 +1082,49 @@ object SICS2015 {
     if (dimToConsider == 3)
       featuresInOutput.add("domain_z")
 
-    giveConfigsAName(configurationsWithSecondSampling, "")
-    giveConfigsAName(configurationsWithSecondSamplingRandom, "_random")
+    featuresInOutput.add("maxLevel")
 
-    IO.printAllResultsToOneFile(configurationsWithSecondSampling.toArray, "E:/newDomainPartition.csv", featuresInOutput.toArray)
-    IO.printAllResultsToOneFile(configurationsWithSecondSamplingRandom.toArray, "E:/newDomainPartition_random.csv", featuresInOutput.toArray)
+    featuresInOutput.add("omp_numThreads")
+
+    featuresInOutput.add("hw_numThreadsPerNode")
+    featuresInOutput.add("omp_parallelizeLoopOverFragments")
+
+    featuresInOutput.add("l3tmp_targetResReduction")
+    featuresInOutput.add("l3tmp_maxNumCGSSteps")
+
+    giveConfigsAName(configurationsWiththirdSampling, "")
+    //    giveConfigsAName(configurationsWithSecondSamplingRandom, "_random")
+
+    IO.printAllResultsToOneFile(configurationsWiththirdSampling.toArray, "E:/newDomainPartition.csv", featuresInOutput.toArray)
+    //    IO.printAllResultsToOneFile(configurationsWithSecondSamplingRandom.toArray, "E:/newDomainPartition_random.csv", featuresInOutput.toArray)
+
+    var blackList : scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
+    blackList.add("num_points_per_dim")
+    blackList.add("numOMP_x")
+    blackList.add("firstDim")
+    blackList.add("numNodes")
+    blackList.add("numUnitFragsPD")
+    blackList.add("numOMP_x")
+    if (dimToConsider == 3) {
+      blackList.add("numOMP_y")
+      blackList.add("secDim")
+    }
+    blackList.add("aro_x")
+    blackList.add("aro_y")
+    if (dimToConsider == 3)
+      blackList.add("aro_z")
+    blackList.add("numUnitFragsPD")
+
+    blackList.add("domain_x")
+    blackList.add("domain_y")
+    if (dimToConsider == 3)
+      blackList.add("domain_z")
 
     // print random configs
-    writeConfigurations(configurationsWithSecondSamplingRandom, "_random")
+    //    writeConfigurations(configurationsWithSecondSamplingRandom, blackList, "_random")
 
     //     print all 
-    writeConfigurations(configurationsWithSecondSampling, "")
+    writeConfigurations(configurationsWiththirdSampling, blackList, "")
 
     return true
   }
@@ -1051,30 +1132,30 @@ object SICS2015 {
   def giveConfigsAName(configs : scala.collection.mutable.Set[Configuration], suffix : String) = {
     var configsByMpiOmp : scala.collection.mutable.Map[String, scala.collection.mutable.Set[Configuration]] = scala.collection.mutable.Map()
     configs.foreach(x => {
-      var mpiOmpKey = x.partialBaseConfig("mpi_numThreads").asInstanceOf[Double].toInt + "_" + x.partialBaseConfig("omp_numThreads").asInstanceOf[Double].toInt
-      if (configsByMpiOmp.contains(mpiOmpKey)) {
-        configsByMpiOmp(mpiOmpKey).add(x)
-        x.measurementName = mpiOmpKey + "_" + configsByMpiOmp(mpiOmpKey).size
+      var mpiOmpRanksKey = x.partialBaseConfig("mpi_numThreads").asInstanceOf[Double].toInt + "_" + x.partialBaseConfig("omp_numThreads").asInstanceOf[Double].toInt + "_" + x.numericalFeatureValues(FeatureModel.get("ranksPerNode")).toInt
+      if (configsByMpiOmp.contains(mpiOmpRanksKey)) {
+        configsByMpiOmp(mpiOmpRanksKey).add(x)
+        x.measurementName = mpiOmpRanksKey + "_" + configsByMpiOmp(mpiOmpRanksKey).size
       } else {
         var newList : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
         newList.add(x)
-        x.measurementName = mpiOmpKey + "_" + "1"
-        configsByMpiOmp.put(mpiOmpKey, newList)
+        x.measurementName = mpiOmpRanksKey + "_" + "1"
+        configsByMpiOmp.put(mpiOmpRanksKey, newList)
       }
     })
 
   }
 
-  def writeConfigurations(configurations : scala.collection.mutable.Set[Configuration], suffix : String) = {
+  def writeConfigurations(configurations : scala.collection.mutable.Set[Configuration], blackList : scala.collection.mutable.Set[String], suffix : String) = {
     var configsByMpiOmp : scala.collection.mutable.Map[String, scala.collection.mutable.Set[Configuration]] = scala.collection.mutable.Map()
     configurations.foreach(x => {
-      var mpiOmpKey = x.partialBaseConfig("mpi_numThreads").asInstanceOf[Double].toInt + "_" + x.partialBaseConfig("omp_numThreads").asInstanceOf[Double].toInt
-      if (configsByMpiOmp.contains(mpiOmpKey)) {
-        configsByMpiOmp(mpiOmpKey).add(x)
+      var mpiOmpRanksKey = x.partialBaseConfig("mpi_numThreads").asInstanceOf[Double].toInt + "_" + x.partialBaseConfig("omp_numThreads").asInstanceOf[Double].toInt + "_" + x.numericalFeatureValues(FeatureModel.get("ranksPerNode")).toInt
+      if (configsByMpiOmp.contains(mpiOmpRanksKey)) {
+        configsByMpiOmp(mpiOmpRanksKey).add(x)
       } else {
         var newList : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
         newList.add(x)
-        configsByMpiOmp.put(mpiOmpKey, newList)
+        configsByMpiOmp.put(mpiOmpRanksKey, newList)
       }
     })
     println("different MPI OMP threads " + configsByMpiOmp.size)
@@ -1085,6 +1166,7 @@ object SICS2015 {
     configsByMpiOmp.foreach(x => {
       var mpi_numThreads = x._2.head.partialBaseConfig("mpi_numThreads").asInstanceOf[Double].toInt
       var omp_numThreads = x._2.head.partialBaseConfig("omp_numThreads").asInstanceOf[Double].toInt
+      var ranks = x._2.head.numericalFeatureValues(FeatureModel.get("ranksPerNode")).asInstanceOf[Double].toInt
 
       println("NumConfigs -----------" + x._2.size)
       generateJobScript(x._1, x._2, suffix)
@@ -1094,7 +1176,7 @@ object SICS2015 {
 
       x._2.foreach(y => {
         var configKey = y.measurementName
-        configToKnowledgeFile(y, configKey, suffix)
+        configToKnowledgeFile(y, configKey, blackList, suffix)
         index += 1
         generateShFileChimaira(configKey, suffix)
         writer.append("sbatch -A spl -p chimaira -n 1 -c 1 -t 20 -o " + configKey + suffix + ".out /home/grebhahn/ScalaCodegenSISC/config/script_" + configKey + suffix + ".sh\n")
@@ -1125,11 +1207,12 @@ object SICS2015 {
     writer.close()
   }
 
-  def generateJobScript(mpiOmpKey : String, configs : scala.collection.mutable.Set[Configuration], suffix : String) = {
+  def generateJobScript(mpiOmpRanksKey : String, configs : scala.collection.mutable.Set[Configuration], suffix : String) = {
     Settings.user = "alex"
     Knowledge.targetCompiler = "IBMBG"
     var mpi_numThreads = configs.head.partialBaseConfig("mpi_numThreads").asInstanceOf[Double].toInt
     var omp_numThreads = configs.head.partialBaseConfig("omp_numThreads").asInstanceOf[Double].toInt
+    var ranksPerNode = configs.head.numericalFeatureValues(FeatureModel.get("ranksPerNode")).toInt
     var number = 0
 
     var numNodes = (mpi_numThreads * omp_numThreads) / 64
@@ -1139,41 +1222,43 @@ object SICS2015 {
       var sourcePathes : Array[String] = new Array(20)
       var config = 0
       var index = 0
+
       configs.foreach { x =>
         {
-          sourcePathes(index) = ("config_" + mpiOmpKey + "_" + (config + 1))
+
+          sourcePathes(index) = ("config_" + mpiOmpRanksKey + "_" + (config + 1))
           config += 1
           index += 1
           if (index == 20) {
-            JobScriptGenerator.write(mpi_numThreads, omp_numThreads, sourcePathes, number, suffix)
+            JobScriptGenerator.write(mpi_numThreads, omp_numThreads, ranksPerNode, sourcePathes, number, suffix)
             index = 0;
             number += 1
             sourcePathes = new Array(20)
           }
         }
       }
-      JobScriptGenerator.write(mpi_numThreads, omp_numThreads, sourcePathes, number, suffix)
+      JobScriptGenerator.write(mpi_numThreads, omp_numThreads, ranksPerNode, sourcePathes, number, suffix)
 
     } else {
       var sourcePathes : Array[String] = new Array(configs.size)
       var index = 0
       configs.foreach { x =>
         {
-          sourcePathes(index) = ("config_" + mpiOmpKey + "_" + (index + 1))
+          sourcePathes(index) = ("config_" + mpiOmpRanksKey + "_" + (index + 1))
           index += 1
         }
       }
-      JobScriptGenerator.write(mpi_numThreads, omp_numThreads, sourcePathes, number, suffix)
+      JobScriptGenerator.write(mpi_numThreads, omp_numThreads, ranksPerNode, sourcePathes, number, suffix)
     }
   }
 
-  def configToKnowledgeFile(config : Configuration, index : String, suffix : String) = {
+  def configToKnowledgeFile(config : Configuration, index : String, blackList : scala.collection.mutable.Set[String], suffix : String) = {
 
     var newFilelocation = generationTargetDir + "knowledgeFile_" + index + suffix + ".knowledge";
 
     val writer = new PrintWriter(new File(newFilelocation))
 
-    var configContent = config.getKnowledgeFileContent()
+    var configContent = config.getKnowledgeFileContent(blackList)
 
     configContent.foreach { x => writer.write(x) }
     var partialBase = partialBaseConfigInformation()
@@ -1236,7 +1321,7 @@ object SICS2015 {
   def featuresToConsiderDimIndependent() = {
 
     //    featuresToConsider.add("maxLevel")
-    featuresToConsider.add("ompParallelizeLoops")
+    featuresToConsider.add("omp_parallelizeLoopOverDimensions")
 
     featuresToConsider.add("minLevel")
 
@@ -1311,7 +1396,7 @@ object SICS2015 {
     sb ++= "l3tmp_cgs = \"CG\"\n"
 
     sb ++= "l3tmp_useConditionsForRBGS = true\n"
-    sb ++= "l3tmp_useSlotVariables = true\n"
+    //sb ++= "l3tmp_useSlotVariables = true\n"
     sb ++= "l3tmp_genHDepStencils = true\n"
 
     sb ++= "l3tmp_genTimersPerFunction = true\n"
@@ -1727,7 +1812,7 @@ object SICS2015 {
         return false
     }
 
-    var ompParallelizeFrags = !config.boolFeatures(FeatureModel.get("ompParallelizeLoops"))
+    var ompParallelizeFrags = !config.boolFeatures(FeatureModel.get("omp_parallelizeLoopOverDimensions"))
 
     if (ompAll <= 1) {
       if (!ompParallelizeFrags) {
@@ -1750,7 +1835,7 @@ object SICS2015 {
     var fragLength_x = 1.0
     var fragLength_y = 1.0
     var fragLength_z = 1.0
-    if (config.boolFeatures(FeatureModel.get("ompParallelizeLoops"))) {
+    if (config.boolFeatures(FeatureModel.get("omp_parallelizeLoopOverDimensions"))) {
       fragLength_x = numOMP_x * aro_x
       fragLength_y = numOMP_y * aro_y
       if (dimToConsider == 3)
@@ -1919,7 +2004,7 @@ object SICS2015 {
 
     config.partialBaseConfig.put("maxLevel", maxLevel)
 
-    config.partialBaseConfig.put("ompParallelizeFrags", ompParallelizeFrags)
+    config.partialBaseConfig.put("omp_parallelizeLoopOverFragments", ompParallelizeFrags)
 
     config.partialBaseConfig.put("domain_fragmentLength_x", fragLength_x)
     config.partialBaseConfig.put("domain_fragmentLength_y", fragLength_y)
@@ -1951,6 +2036,17 @@ object SICS2015 {
       config.partialBaseConfig.put("domain_z", domain_z)
 
     config.partialBaseConfig.put("omp_numThreads", omp_numThreads)
+
+    config.partialBaseConfig.put("hw_numThreadsPerNode", ranksPerNode)
+
+    if (config.boolFeatures(FeatureModel.get("opt_vectorize")))
+      config.partialBaseConfig.put("data_alignFieldPointers", true)
+
+    config.partialBaseConfig.put("domain_numBlocks", domain_rect_numBlocks_x * domain_rect_numBlocks_y * domain_rect_numBlocks_z)
+    config.partialBaseConfig.put("domain_numFragmentsPerBlock", numFragsPerBlock_x * numFragsPerBlock_y * numFragsPerBlock_z)
+
+    config.partialBaseConfig.put("l3tmp_maxNumCGSSteps", "1024")
+    config.partialBaseConfig.put("l3tmp_targetResReduction", "1.0E-5")
 
     return true
   }

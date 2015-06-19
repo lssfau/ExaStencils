@@ -271,35 +271,48 @@ class Configuration() {
     return newConfig
   }
 
-  def getKnowledgeFileContent() : scala.collection.mutable.Set[String] = {
+  def getKnowledgeFileContent(blackList : scala.collection.mutable.Set[String]) : scala.collection.mutable.Set[String] = {
     var content : scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
     boolFeatures.foreach(x => {
-      if (x._2)
-        content.add(x._1 + "= true\n")
-      else
-        content.add(x._1 + "= false\n")
+      if (!blackList.contains(x._1.identifier))
+        if (x._2)
+          content.add(x._1 + "= true\n")
+        else
+          content.add(x._1 + "= false\n")
     })
     numericalFeatureValues.foreach(x => {
-      if (x._1.dataType.equals("Int")) {
-        content.add(x._1 + "= " + x._2.toInt + "\n")
-      } else {
-        content.add(x._1 + "= " + x._2 + "\n")
-      }
+      if (!blackList.contains(x._1.identifier))
+        if (x._1.dataType.equals("Int")) {
+          content.add(x._1 + "= " + x._2.toInt + "\n")
+        } else {
+          content.add(x._1 + "= " + x._2 + "\n")
+        }
     })
     content.add(additionalKnowledgeFileInformation)
     partialBaseConfig.foreach(x => {
       val value = x._2
-      if (value.asInstanceOf[String].endsWith(".0"))
-        content.add(x._1 + "= " + value.asInstanceOf[String].substring(0, value.asInstanceOf[String].length() - 2) + "\n")
-      else
-        content.add(x._1 + "= " + x._2 + "\n")
-
+      if (!blackList.contains(x._1))
+        if (value.isInstanceOf[String])
+          if (value.asInstanceOf[String].endsWith(".0"))
+            content.add(x._1 + "= " + value.asInstanceOf[String].substring(0, value.asInstanceOf[String].length() - 2) + "\n")
+          else
+            content.add(x._1 + "= " + x._2 + "\n")
+        else if (value.isInstanceOf[Double])
+          if (value.toString().endsWith(".0"))
+            content.add(x._1 + "= " + value.toString().substring(0, value.toString().length() - 2) + "\n")
+          else
+            content.add(x._1 + "= " + x._2 + "\n")
+        else
+          content.add(x._1 + "= " + x._2 + "\n")
+      //      else
+      //        println("")
     })
     xorFeatureValues.foreach(x => {
-      if (FeatureModel.isNumeric(x._2))
-        content.add(x._1 + "= " + x._2 + "\n")
-      else
-        content.add(x._1 + "= \"" + x._2 + "\"\n")
+      if (!blackList.contains(x._1.identifier))
+        if (FeatureModel.isNumeric(x._2))
+          content.add(x._1 + "= " + x._2 + "\n")
+        else
+          content.add(x._1 + "= \"" + x._2 + "\"\n")
     })
     return content
   }

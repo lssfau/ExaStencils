@@ -292,7 +292,7 @@ class Feature(name : String) {
 
   // TODO   
   def getPowOf2Values(distinctValues : Int) : Array[Double] = {
-    println(distinctValues)
+    //    println(distinctValues)
     var valuesLocal : scala.collection.mutable.Set[Double] = scala.collection.mutable.Set()
 
     valuesLocal.add(minValue)
@@ -303,20 +303,28 @@ class Feature(name : String) {
       valuesLocal.add(defToDouble)
 
     var curr = minValue
-    for (a <- valuesLocal.size to distinctValues - 1) {
+    var break = false
+    while (!break) {
       curr = curr * 2
       if (curr < maxValue) {
+        valuesLocal.add(curr)
+
       }
-      valuesLocal.add(curr)
-    }
-    while (valuesLocal.size < distinctValues) {
-      var r = new scala.util.Random(valuesLocal.size)
-      curr = r.nextInt(maxValue.toInt).toDouble
-      while (valuesLocal.contains(curr) || curr < minValue) {
-        curr = r.nextInt(maxValue.toInt).toDouble
+      if (curr > maxValue || valuesLocal.size == distinctValues) {
+        {
+          break = true
+        }
+
       }
-      valuesLocal.add(curr)
     }
+    //    while (valuesLocal.size < distinctValues) {
+    //      var r = new scala.util.Random(valuesLocal.size)
+    //      curr = r.nextInt(maxValue.toInt).toDouble
+    //      while (valuesLocal.contains(curr) || curr < minValue) {
+    //        curr = r.nextInt(maxValue.toInt).toDouble
+    //      }
+    //      valuesLocal.add(curr)
+    //    }
     return valuesLocal.toArray[Double];
   }
 
