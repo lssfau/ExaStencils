@@ -24,8 +24,6 @@ object UniversalSetter {
     val accessible = field.isAccessible
     field.setAccessible(true)
 
-    //obj.getClass.getFields.find(_.getName == ident).foreach(_.set(obj, value))
-
     if (field.get(obj).getClass.equals(None.getClass())) {
       // Field is Option[T]
       obj.getClass.getMethods.find(_.getName == ident + "_$eq").get.invoke(obj, Option[T](value))
@@ -37,17 +35,14 @@ object UniversalSetter {
     field.setAccessible(accessible)
   }
 
-  /** FIXME */
   def addToListBuffer[T](obj : AnyRef, ident : String, value : T) : Unit = {
     Logger.info("UniversalSetter: Adding " + value + " to " + ident)
 
     val field = obj.getClass.getDeclaredField(ident)
     val accessible = field.isAccessible
     field.setAccessible(true)
-
-    val oldValue = obj.getClass.getMethods.find(_.getName == ident).get.invoke(obj).asInstanceOf[ListBuffer[T]]
-    obj.getClass.getMethods.find(_.getName == ident + "_$eq").get.invoke(obj, oldValue ++ ListBuffer[T](value))
-
+    val lb = obj.getClass.getMethods.find(_.getName == ident).get.invoke(obj).asInstanceOf[ListBuffer[T]]
+    lb.+=(value)
     field.setAccessible(accessible)
   }
 

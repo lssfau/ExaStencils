@@ -1,6 +1,6 @@
 package exastencils.languageprocessing.l4
 
-import scala.collection.immutable.HashSet
+import scala.collection.mutable.HashSet
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
@@ -37,14 +37,14 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
     //    }))
 
     // resolve level identifiers "coarsest", "finest"
-    this.execute(new Transformation("ResolveIdentifierLevels", {
+    this.execute(new Transformation("Resolve IdentifierLevelSpecifications", {
       case x : AllLevelsSpecification     => RangeLevelSpecification(SingleLevelSpecification(Knowledge.minLevel), SingleLevelSpecification(Knowledge.maxLevel))
       case x : CoarsestLevelSpecification => SingleLevelSpecification(Knowledge.minLevel)
       case x : FinestLevelSpecification   => SingleLevelSpecification(Knowledge.maxLevel)
     }))
 
     // resolve relative level identifiers
-    this.execute(new Transformation("ResolveRelativeIdentifiers", {
+    this.execute(new Transformation("Resolve RelativeLevelSpecifications", {
       case x : RelativeLevelSpecification => {
         def calc(a : Int, b : Int) = x.operator match {
           case "+" => a + b
@@ -56,7 +56,25 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
       }
     }))
 
-    this.execute(new Transformation("UnfoldValuesAndVariables", {
+    this.execute(new Transformation("Resolve RangeLevelSpecifications", {
+      case x : RangeLevelSpecification => {
+        var set = HashSet[LevelSpecification]()
+        for (l <- x.begin.asInstanceOf[SingleLevelSpecification].level to x.end.asInstanceOf[SingleLevelSpecification].level) {
+          set += (SingleLevelSpecification(l))
+        }
+        ListLevelSpecification(set)
+      }
+    }))
+
+    this.execute(new Transformation("Flatten ListLevelSpecifications", {
+      case x : ListLevelSpecification => x.flatten(); x
+    }))
+
+    this.execute(new Transformation("Remove NegatedLevelSpecifications", {
+      case x : ListLevelSpecification => x.cleanup(); x
+    }))
+
+    this.execute(new Transformation("Unfold Values and Variables", {
       case value : ValueDeclarationStatement => value.identifier match {
         case LeveledIdentifier(_, level) => doDuplicate(value, level)
         case BasicIdentifier(_)          => value
@@ -68,7 +86,7 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
     }))
 
     // find all functions that are defined with an explicit level specification
-    this.execute(new Transformation("FindExplicitlyLeveledFunctions", {
+    this.execute(new Transformation("Find explicitly leveled functions", {
       case function : FunctionStatement => function.identifier match {
         case LeveledIdentifier(_, level) => level match {
           case x : SingleLevelSpecification => {
@@ -82,7 +100,7 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
     }))
 
     // unfold function declarations
-    this.execute(new Transformation("UnfoldLeveledFunctions", {
+    this.execute(new Transformation("Unfold leveled Function declarations", {
       case function : FunctionStatement => function.identifier match {
         case LeveledIdentifier(_, level) => doDuplicate(function, level)
         case BasicIdentifier(_)          => function
@@ -90,7 +108,7 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
     }))
 
     // unfold field layout declarations
-    this.execute(new Transformation("UnfoldLeveledFieldLayoutDeclarations", {
+    this.execute(new Transformation("Unfold leveled FieldLayout declarations", {
       case fieldLayout : LayoutDeclarationStatement => fieldLayout.identifier match {
         case LeveledIdentifier(_, level) => doDuplicate(fieldLayout, level)
         case BasicIdentifier(_)          => fieldLayout
@@ -98,7 +116,7 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
     }))
 
     // unfold field declarations
-    this.execute(new Transformation("UnfoldLeveledFieldDeclarations", {
+    this.execute(new Transformation("Unfold leveled Field declarations", {
       case field : FieldDeclarationStatement => field.identifier match {
         case LeveledIdentifier(_, level) => doDuplicate(field, level)
         case BasicIdentifier(_)          => field
@@ -106,7 +124,7 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
     }))
 
     // unfold stencil field declarations
-    this.execute(new Transformation("UnfoldLeveledStencilFieldDeclarations", {
+    this.execute(new Transformation("Unfold leveled StencilField declarations", {
       case stencilField : StencilFieldDeclarationStatement => stencilField.identifier match {
         case LeveledIdentifier(_, level) => doDuplicate(stencilField, level)
         case BasicIdentifier(_)          => stencilField
@@ -114,7 +132,7 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
     }))
 
     // unfold stencil declarations
-    this.execute(new Transformation("UnfoldLeveledStencilDeclarations", {
+    this.execute(new Transformation("Unfold leveled Stencil declarations", {
       case stencil : StencilDeclarationStatement => stencil.identifier match {
         case LeveledIdentifier(_, level) => doDuplicate(stencil, level)
         case BasicIdentifier(_)          => stencil
@@ -122,7 +140,7 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
     }))
 
     // resolve level specifications
-    this.execute(new Transformation("ResolveRelativeLevelSpecifications", {
+    this.execute(new Transformation("Resolve RelativeLevelSpecifications", {
       case level : CurrentLevelSpecification => SingleLevelSpecification(levelCollector.getCurrentLevel)
       case level : CoarserLevelSpecification => SingleLevelSpecification(levelCollector.getCurrentLevel - 1) // FIXME: coarser and finer are not reliable
       case level : FinerLevelSpecification   => SingleLevelSpecification(levelCollector.getCurrentLevel + 1)
