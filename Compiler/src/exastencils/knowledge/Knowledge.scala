@@ -48,8 +48,8 @@ object Knowledge {
   // === Layer 2 ===
 
   // TODO: check if these parameters will be necessary or can be implicitly assumed once an appropriate field collection is in place
-  var minLevel : Int = 0 //[4~12]  // @constant // the coarsest level
-  var maxLevel : Int = 6 //[4~12] // @constant // the finest level
+  var minLevel : Int = 0 // [0~4]  // nonSISC [0~12] // @constant // the coarsest level
+  var maxLevel : Int = 6 // [4~12] // @constant // the finest level
   def numLevels : Int = (maxLevel - minLevel + 1) // the number of levels -> this assumes that the cycle descents to the coarsest level
 
   // --- Domain Decomposition ---
@@ -72,9 +72,9 @@ object Knowledge {
   def domain_numFragmentsTotal : Int = domain_numBlocks * domain_numFragmentsPerBlock
 
   // the length of each fragment per dimension - this will either be one or specify the length in unit-fragments, i.e. the number of aggregated fragments per dimension
-  var domain_fragmentLength_x : Int = 1 //[1~64]
-  var domain_fragmentLength_y : Int = 1 //[1~64]
-  var domain_fragmentLength_z : Int = 1 //[1~64]
+  var domain_fragmentLength_x : Int = 1 // [1~64]
+  var domain_fragmentLength_y : Int = 1 // [1~64]
+  var domain_fragmentLength_z : Int = 1 // [1~64]
   def domain_fragmentLengthAsVec : Array[Int] = Array(domain_fragmentLength_x, domain_fragmentLength_y, domain_fragmentLength_z)
 
   /// specific flags for setting rectangular domains
@@ -88,9 +88,20 @@ object Knowledge {
   var domain_rect_numBlocks_z : Int = 1
 
   // number of fragments to be generated for each block per dimension - this will usually be one or be equal to the number of OMP threads per dimension
-  var domain_rect_numFragsPerBlock_x : Int = 1 //[1~64]
-  var domain_rect_numFragsPerBlock_y : Int = 1 //[1~64]
-  var domain_rect_numFragsPerBlock_z : Int = 1 //[1~64]
+  var domain_rect_numFragsPerBlock_x : Int = 1 // [1~64]
+  var domain_rect_numFragsPerBlock_y : Int = 1 // [1~64]
+  var domain_rect_numFragsPerBlock_z : Int = 1 // [1~64]
+
+  // options for SISC Paper  
+  var sisc2015_numNodes : Int = 64 // [16~64]
+  var sisc2015_ranksPerNode : Int = 64 // [16~64]
+  var sisc2015_firstDim : Int = 1 // [0~1]
+  var sisc2015_secondDim : Int = 1 // [0~1]
+
+  var sisc2015_numOMP_x : Int = 2 // [1~64]
+  var sisc2015_numOMP_y : Int = 2 // [1~64]
+  var sisc2015_numOMP_z : Int = 2 // [1~64]
+  // options for SISC Paper ENDE
 
   // the total number of fragments to be generated per dimension
   def domain_rect_numFragsTotal_x : Int = domain_rect_numFragsPerBlock_x * domain_rect_numBlocks_x
@@ -102,11 +113,11 @@ object Knowledge {
   // TODO:  var domain_gridWidth_x,y,z
 
   /// utility functions
-  def domain_canHaveLocalNeighs : Boolean = (domain_numFragmentsPerBlock > 1) // specifies if fragments can have local (i.e.\ shared memory) neighbors, i.e.\ if local comm is required
-  def domain_canHaveRemoteNeighs : Boolean = (domain_numBlocks > 1) // specifies if fragments can have remote (i.e.\ different mpi rank) neighbors, i.e.\ if mpi comm is required
+  def domain_canHaveLocalNeighs : Boolean = (domain_numFragmentsPerBlock > 1) // specifies if fragments can have local (i.e. shared memory) neighbors, i.e. if local comm is required
+  def domain_canHaveRemoteNeighs : Boolean = (domain_numBlocks > 1) // specifies if fragments can have remote (i.e. different mpi rank) neighbors, i.e. if mpi comm is required
 
   /// Student project - Jeremias
-  var domain_useCase : String = "" //atm only "L-Shape","X-Shape" in 2D possible;  needs to be specified in case of onlyRectangular,rect_generate = false
+  var domain_useCase : String = "" // atm only "L-Shape", "X-Shape" in 2D possible; needs to be specified in case of onlyRectangular,rect_generate = false
   var domain_generateDomainFile : Boolean = false
   var domain_fragmentTransformation : Boolean = false
 
@@ -199,9 +210,9 @@ object Knowledge {
   //   2: optimize the loop nest by trying to minimze the dependences specified by poly_optimizeDeps
   //   3: tile the optimized loop nest using poly_tileSize_{x|y|z|w}  (slowest)
   // TODO: Alex: range of the following options
-  var poly_optLevel_fine : Int = 0 // [0-3] // poly opt-level for poly_numFinestLevels finest fields
-  var poly_optLevel_coarse : Int = 0 // [0-poly_optLevel_fine] // polyhedral optimization level for coarsest fields  0: disable (fastest);  3: aggressive (slowest)
-  var poly_numFinestLevels : Int = 2 // [1-numLevels] // number of levels that should be optimized in PolyOpt (starting from the finest)
+  var poly_optLevel_fine : Int = 0 // [0~3] // poly opt-level for poly_numFinestLevels finest fields
+  var poly_optLevel_coarse : Int = 0 // [0~poly_optLevel_fine] // polyhedral optimization level for coarsest fields  0: disable (fastest);  3: aggressive (slowest)
+  var poly_numFinestLevels : Int = 2 // [1~numLevels] // number of levels that should be optimized in PolyOpt (starting from the finest)
   var poly_tileSize_x : Int = 1000000000 // [112~1000000000 $32]
   var poly_tileSize_y : Int = 1000000000 // [16~1000000000 $32]
   var poly_tileSize_z : Int = 1000000000 // [16~1000000000 $32]
@@ -219,7 +230,7 @@ object Knowledge {
   // --- Other Optimizations ---
   var opt_useAddressPrecalc : Boolean = false // [true|false]
   var opt_vectorize : Boolean = false // [true|false]
-  var opt_unroll : Int = 1 // [1-8]
+  var opt_unroll : Int = 1 // [1~5]
   var opt_unroll_interleave : Boolean = false // [true|false] // FIXME: WARNING: there is a bug in combination with poly opts, use with caution until it's fixed!
   var opt_useColorSplitting : Boolean = false // [true|false] // only relevant for RBGS smoother currently
 
@@ -252,8 +263,8 @@ object Knowledge {
   var l3tmp_genTimersForComm : Boolean = false // generates additional timers for the communication
   var l3tmp_genCommTimersPerLevel : Boolean = false // generates different communication timers for each level
 
-  var l3tmp_printAllTimers : Boolean = false // prints results for all used timers at the end of the application
   var l3tmp_printTimersToFile : Boolean = false // prints results for all used timers at the end of the application; uses l3tmp_timerOuputFile as target file
+  var l3tmp_printAllTimers : Boolean = false // prints results for all used timers at the end of the application
   var l3tmp_timerOuputFile : String = "timings.csv" // the file timer data is to be written to if l3tmp_printTimersToFile is activated
 
   var l3tmp_timeoutLimit : Int = 20 * 60 * 1000 // threshold in ms for the total cycle time after which solving is canceled; 0 deactivates the feature
