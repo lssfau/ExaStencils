@@ -11,7 +11,7 @@ object JobScriptGenerator {
         val numMPI = Knowledge.mpi_numThreads
         val numThreadsPerNode = Knowledge.hw_numThreadsPerNode
         val numMPIRanksPerNode = numThreadsPerNode / numOMP
-        val numNodes = (numOMP * numMPI) / Knowledge.hw_numThreadsPerNode
+        val numNodes = (numOMP * numMPI) / numThreadsPerNode
 
         val printer = PrettyprintingManager.getPrinter("runJuQueen")
         printer <<< s"#@ shell = /bin/bash"
@@ -19,15 +19,20 @@ object JobScriptGenerator {
         printer <<< "#@ error = $(job_name).$(jobid).out"
         printer <<< "#@ output = $(job_name).$(jobid).out"
         printer <<< s"#@ environment = COPY_ALL"
-        printer <<< s"#@ notification = always"
+        var notify_user : String = null
         Settings.user.toLowerCase() match {
-          case "sebastian" | "kuckuk" | "sebastiankuckuk" => printer <<< s"#@ notify_user = sebastian.kuckuk@fau.de"
-          case "christian" | "schmitt" | "christianschmitt" => printer <<< s"#@ notify_user = christian.schmitt@cs.fau.de"
-          case "stefan" | "kronawitter" | "stefankronawitter" => printer <<< s"#@ notify_user = kronast@fim.uni-passau.de"
-          case "alex" | "alexander" | "grebhahn" | "alexandergrebhahn" => printer <<< s"#@ notify_user = grebhahn@fim.uni-passau.de"
-          case "hannah" | "rittich" | "hannahrittich" => printer <<< s"#@ notify_user = rittich@math.uni-wuppertal.de"
+          case "sebastian" | "kuckuk" | "sebastiankuckuk" => notify_user = "sebastian.kuckuk@fau.de"
+          case "christian" | "schmitt" | "christianschmitt" => notify_user = "christian.schmitt@cs.fau.de"
+          case "stefan" | "kronawitter" | "stefankronawitter" => notify_user = "kronast@fim.uni-passau.de"
+          case "alex" | "alexander" | "grebhahn" | "alexandergrebhahn" => notify_user = "grebhahn@fim.uni-passau.de"
+          case "hannah" | "rittich" | "hannahrittich" => notify_user = "rittich@math.uni-wuppertal.de"
           case _ => // no user -> no notifications
         }
+        if (notify_user != null) {
+          printer <<< s"#@ notification = always"
+          printer <<< s"#@ notify_user = $notify_user"
+        } else
+          printer <<< s"#@ notification = never"
         printer <<< s"#@ job_type = bluegene"
         printer <<< s"#@ bg_size = $numNodes"
         printer <<< s"#@ bg_connectivity = TORUS"
@@ -40,7 +45,7 @@ object JobScriptGenerator {
         val srcBinary = Settings.binary
         val destFolder = "$WORK/ExaTemp"
         val destBinary = Settings.binary + (if ("" != Settings.configName) "_" + Settings.configName else "")
-        printer <<< s"mkdir $destFolder # make sure temp folder exists"
+        printer <<< s"mkdir -p $destFolder # make sure temp folder exists"
         printer <<< s"cp $srcFolder/$srcBinary $destFolder/$destBinary # copy binary to temp folder"
         printer <<< s"cd $destFolder # switch to temp folder"
         printer <<< ""
