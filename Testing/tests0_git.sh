@@ -59,7 +59,7 @@ if [[ -d "${REPO_DIR}" ]]; then
   NEW_HASH=$(git -C "${REPO_DIR}" rev-parse @)
   if [[ -z "${FORCE_START}" && ${OLD_HASH} = ${NEW_HASH} ]]; then
     # up-to-date, no need to run tests, exit script
-    if [[ -z "$(squeue -h -u exatest)" ]]; then # only output log if there are no old tests running
+    if [[ -z "$(squeue -h -u exatest | grep -v ${SLURM_JOB_NAME})" ]]; then # only output log if there are no old tests running
       echo "$(date -R):  Tests triggered, but there are no new commits since last run, finish." >> "${OUT_FILE}"
       echo "<html><body><pre>$(date -R):  Done!</pre></body></html>" > "${PROGRESS}"
     fi
