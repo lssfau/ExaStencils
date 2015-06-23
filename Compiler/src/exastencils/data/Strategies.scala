@@ -24,7 +24,7 @@ object SetupDataStructures extends DefaultStrategy("Setting up fragment") {
 
   this += new Transformation("Adding external field transfer functions", {
     case multiGrid : MultiGridFunctions =>
-      for (extField <- ExternalFieldCollection.fields) {
+      for (extField <- ExternalFieldCollection.getSortedFields) {
         multiGrid.functions += new GetFromExternalField(extField.targetField, extField)
         multiGrid.functions += new SetFromExternalField(extField.targetField, extField)
       }
