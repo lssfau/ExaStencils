@@ -44,12 +44,8 @@ object ProjectfileGenerator extends BuildfileGenerator {
     // import projects
     projectPrinter <<< "\t<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.Default.props\" />"
     projectPrinter <<< "\t<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.props\" />"
-    projectPrinter <<< "\t<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.targets\" />"
 
     // extensions
-    projectPrinter <<< "\t<ImportGroup Label=\"ExtensionTargets\">"
-    projectPrinter <<< "\t</ImportGroup>"
-
     projectPrinter <<< "\t<ImportGroup Label=\"ExtensionSettings\">"
     projectPrinter <<< "\t</ImportGroup>"
 
@@ -64,7 +60,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
     // other settings
     projectPrinter <<< "\t<PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='Release|x64'\">"
     projectPrinter <<< "\t\t<LinkIncremental>false</LinkIncremental>"
-    projectPrinter <<< "\t\t<OutDir>$(ProjectDir)\\</OutDir>"
+    projectPrinter <<< "\t\t<OutDir>$(ProjectDir)</OutDir>"
     projectPrinter <<< "\t\t<IncludePath>" + Settings.pathsInc.mkString(";") + ";$(ProjectDir);$(IncludePath)</IncludePath>"
     projectPrinter <<< "\t\t<LibraryPath>" + Settings.pathsLib.mkString(";") + ";$(LibraryPath)</LibraryPath>"
     projectPrinter <<< "\t</PropertyGroup>"
@@ -103,6 +99,12 @@ object ProjectfileGenerator extends BuildfileGenerator {
       projectPrinter <<< s"""\t\t<ClCompile Include=\"${filename.replace('/', '\\')}\" />"""
     projectPrinter <<< "\t</ItemGroup>"
 
+    // target information
+    projectPrinter <<< "\t<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.targets\" />"
+    projectPrinter <<< "\t<ImportGroup Label=\"ExtensionTargets\">"
+    projectPrinter <<< "\t</ImportGroup>"
+
+    // end of project
     projectPrinter <<< "</Project>"
 
     /// solution file
