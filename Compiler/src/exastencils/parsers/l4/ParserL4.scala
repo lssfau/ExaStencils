@@ -115,8 +115,6 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val functionCall = locationize((flatAccess ||| leveledAccess) ~ "(" ~ functionCallArgumentList.? ~ ")" ^^ { case id ~ "(" ~ args ~ ")" => FunctionCallExpression(id, args.getOrElse(List[Expression]())) })
   lazy val functionCallArgumentList = (binaryexpression <~ ("," | newline)).* ~ binaryexpression ^^ { case exps ~ ex => exps :+ ex }
 
-  lazy val diagFunctionCall = locationize("diag" ~ "(" ~ binaryexpression ~ ")" ^^ { case _ ~ "(" ~ expr ~ ")" => FunctionCallExpression(BasicAccess("diag"), List[Expression](expr)) })
-
   // ######################################
   // ##### Statements
   // ######################################
@@ -307,7 +305,6 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| locationize(stringLit ^^ { case s => StringConstant(s) })
     ||| locationize("-".? ~ numericLit ^^ { case s ~ n => if (isInt(s.getOrElse("") + n)) IntegerConstant((s.getOrElse("") + n).toInt) else FloatConstant((s.getOrElse("") + n).toDouble) })
     ||| functionCall
-    ||| diagFunctionCall
     ||| genericAccess)
 
   lazy val booleanexpression : PackratParser[Expression] = (
