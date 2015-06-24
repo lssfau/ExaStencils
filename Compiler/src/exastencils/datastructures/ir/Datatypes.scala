@@ -99,6 +99,11 @@ case class PointerDatatype(datatype : Datatype) extends Datatype {
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
 
+case class ReferenceDatatype(datatype : Datatype) extends Datatype {
+  override def prettyprint(out : PpStream) : Unit = out << datatype << '&'
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+}
+
 case class ConstPointerDatatype(datatype : Datatype) extends Datatype {
   override def prettyprint(out : PpStream) : Unit = out << datatype << "* const"
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()

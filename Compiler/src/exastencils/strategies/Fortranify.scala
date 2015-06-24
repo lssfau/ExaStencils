@@ -94,7 +94,7 @@ object Fortranify extends DefaultStrategy("Preparing function for fortran interf
                 // redirect parameter
                 fct.body.prepend(
                   VariableDeclarationStatement(
-                    Duplicate(datatype), param.name,
+                    ReferenceDatatype(Duplicate(datatype)), param.name,
                     Some(UnaryExpression(UnaryOperators.Indirection, param.name + "_ptr"))))
                 param.name += "_ptr"
                 param.dType = Some(PointerDatatype(Duplicate(datatype)))
