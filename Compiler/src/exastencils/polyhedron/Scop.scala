@@ -31,10 +31,7 @@ class Scop(val root : LoopOverDimensions, var optLevel : Int, var parallelize : 
     var input : isl.UnionMap = null
 
     def validity() : isl.UnionMap = {
-      if (flow == null)
-        return isl.UnionMap.empty(writes.getSpace())
-      else
-        return Isl.simplify(flow.union(antiOut))
+      return Isl.simplify(flow.union(antiOut))
     }
   }
 

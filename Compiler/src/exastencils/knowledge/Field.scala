@@ -123,6 +123,10 @@ case class FieldSelection(
 object FieldCollection {
   var fields : ListBuffer[Field] = ListBuffer()
 
+  def getSortedFields : ListBuffer[Field] = {
+    fields.sortBy(_.level).sortBy(_.identifier)
+  }
+
   def getFieldByIdentifier(identifier : String, level : Int, suppressError : Boolean = false) : Option[Field] = {
     val ret = fields.find(f => f.identifier == identifier && f.level == level)
     if (!suppressError && ret.isEmpty) Logger.warn(s"Field $identifier on level $level was not found")
@@ -146,6 +150,10 @@ case class ExternalField(
 
 object ExternalFieldCollection {
   var fields : ListBuffer[ExternalField] = ListBuffer()
+
+  def getSortedFields : ListBuffer[ExternalField] = {
+    fields.sortBy(_.level).sortBy(_.identifier)
+  }
 
   def getFieldByIdentifier(identifier : String, level : Int) : Option[ExternalField] = {
     val ret = fields.find(f => f.identifier == identifier && f.level == level)

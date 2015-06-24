@@ -15,7 +15,7 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
   override def prettyprint_decl : String = prettyprint
 
   def expand() : Output[FunctionStatement] = {
-    val fields = FieldCollection.fields
+    val fields = FieldCollection.getSortedFields
     var statements : ListBuffer[Statement] = new ListBuffer
 
     for (field <- fields) {

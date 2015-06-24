@@ -26,14 +26,14 @@ case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = ne
   override def printHeader = {
     super.printHeader
     val writer = PrettyprintingManager.getPrinter(s"${baseName}.h")
-    for (variable <- variables) writer << s"extern ${variable.prettyprint_onlyDeclaration}\n"
+    for (variable <- variables.sortBy(_.name)) writer << s"extern ${variable.prettyprint_onlyDeclaration}\n"
   }
 
   override def printSources = {
     val writer = PrettyprintingManager.getPrinter(s"${baseName}_declarations.cpp")
     writer.addInternalDependency(s"${baseName}.h")
 
-    for (variable <- variables) writer << s"${variable.prettyprint()}\n"
+    for (variable <- variables.sortBy(_.name)) writer << s"${variable.prettyprint()}\n"
 
     // additional include for std::srand
     PrettyprintingManager.getPrinter(s"${baseName}_initGlobals.cpp").addExternalDependency("cstdlib")

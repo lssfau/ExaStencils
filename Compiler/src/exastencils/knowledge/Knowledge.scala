@@ -48,8 +48,8 @@ object Knowledge {
   // === Layer 2 ===
 
   // TODO: check if these parameters will be necessary or can be implicitly assumed once an appropriate field collection is in place
-  var minLevel : Int = 0 //[0~4]  //nonSISC [0~12] // @constant // the coarsest level
-  var maxLevel : Int = 6 //[4~12] // @constant // the finest level
+  var minLevel : Int = 0 // [0~4]  // nonSISC [0~12] // @constant // the coarsest level
+  var maxLevel : Int = 6 // [4~12] // @constant // the finest level
   def numLevels : Int = (maxLevel - minLevel + 1) // the number of levels -> this assumes that the cycle descents to the coarsest level
 
   // --- Domain Decomposition ---
@@ -72,9 +72,9 @@ object Knowledge {
   def domain_numFragmentsTotal : Int = domain_numBlocks * domain_numFragmentsPerBlock
 
   // the length of each fragment per dimension - this will either be one or specify the length in unit-fragments, i.e. the number of aggregated fragments per dimension
-  var domain_fragmentLength_x : Int = 1 //[1~64]
-  var domain_fragmentLength_y : Int = 1 //[1~64]
-  var domain_fragmentLength_z : Int = 1 //[1~64]
+  var domain_fragmentLength_x : Int = 1 // [1~64]
+  var domain_fragmentLength_y : Int = 1 // [1~64]
+  var domain_fragmentLength_z : Int = 1 // [1~64]
   def domain_fragmentLengthAsVec : Array[Int] = Array(domain_fragmentLength_x, domain_fragmentLength_y, domain_fragmentLength_z)
 
   /// specific flags for setting rectangular domains
@@ -88,9 +88,9 @@ object Knowledge {
   var domain_rect_numBlocks_z : Int = 1
 
   // number of fragments to be generated for each block per dimension - this will usually be one or be equal to the number of OMP threads per dimension
-  var domain_rect_numFragsPerBlock_x : Int = 1 //[1~64]
-  var domain_rect_numFragsPerBlock_y : Int = 1 //[1~64]
-  var domain_rect_numFragsPerBlock_z : Int = 1 //[1~64]
+  var domain_rect_numFragsPerBlock_x : Int = 1 // [1~64]
+  var domain_rect_numFragsPerBlock_y : Int = 1 // [1~64]
+  var domain_rect_numFragsPerBlock_z : Int = 1 // [1~64]
 
   // options for SISC Paper  
   var sisc2015_numNodes : Int = 64 // [16~64]
@@ -98,9 +98,9 @@ object Knowledge {
   var sisc2015_firstDim : Int = 1 // [0~1]
   var sisc2015_secondDim : Int = 1 // [0~1]
 
-  var sisc2015_numOMP_x : Int = 2 //[1~64]
-  var sisc2015_numOMP_y : Int = 2 //[1~64]
-  var sisc2015_numOMP_z : Int = 2 //[1~64]
+  var sisc2015_numOMP_x : Int = 2 // [1~64]
+  var sisc2015_numOMP_y : Int = 2 // [1~64]
+  var sisc2015_numOMP_z : Int = 2 // [1~64]
   // options for SISC Paper ENDE
 
   // the total number of fragments to be generated per dimension
@@ -113,11 +113,11 @@ object Knowledge {
   // TODO:  var domain_gridWidth_x,y,z
 
   /// utility functions
-  def domain_canHaveLocalNeighs : Boolean = (domain_numFragmentsPerBlock > 1) // specifies if fragments can have local (i.e.\ shared memory) neighbors, i.e.\ if local comm is required
-  def domain_canHaveRemoteNeighs : Boolean = (domain_numBlocks > 1) // specifies if fragments can have remote (i.e.\ different mpi rank) neighbors, i.e.\ if mpi comm is required
+  def domain_canHaveLocalNeighs : Boolean = (domain_numFragmentsPerBlock > 1) // specifies if fragments can have local (i.e. shared memory) neighbors, i.e. if local comm is required
+  def domain_canHaveRemoteNeighs : Boolean = (domain_numBlocks > 1) // specifies if fragments can have remote (i.e. different mpi rank) neighbors, i.e. if mpi comm is required
 
   /// Student project - Jeremias
-  var domain_useCase : String = "" //atm only "L-Shape","X-Shape" in 2D possible;  needs to be specified in case of onlyRectangular,rect_generate = false
+  var domain_useCase : String = "" // atm only "L-Shape", "X-Shape" in 2D possible; needs to be specified in case of onlyRectangular,rect_generate = false
   var domain_generateDomainFile : Boolean = false
   var domain_fragmentTransformation : Boolean = false
 
@@ -183,7 +183,7 @@ object Knowledge {
   var omp_parallelizeLoopOverFragments : Boolean = true // [true|false] // specifies if loops over fragments may be parallelized with omp if marked correspondingly
   var omp_parallelizeLoopOverDimensions : Boolean = false // [true|false] // specifies if loops over dimensions may be parallelized with omp if marked correspondingly
   var omp_useCollapse : Boolean = false // [true|false] // if true the 'collapse' directive may be used in omp for regions; this will only be done if the minimum omp version supports this
-  var omp_minWorkItemsPerThread : Int = 128 //[1~inf] // non sisc 400 [1~inf] // threshold specifying which loops yield enough workload to amortize the omp overhead
+  var omp_minWorkItemsPerThread : Int = 400 // [1~inf] // threshold specifying which loops yield enough workload to amortize the omp overhead
   def omp_requiresCriticalSections : Boolean = { // true if the chosen compiler / mpi version requires critical sections to be marked explicitly
     targetCompiler match {
       case "MSVC"            => true
@@ -210,8 +210,8 @@ object Knowledge {
   //   2: optimize the loop nest by trying to minimze the dependences specified by poly_optimizeDeps
   //   3: tile the optimized loop nest using poly_tileSize_{x|y|z|w}  (slowest)
   // TODO: Alex: range of the following options
-  var poly_optLevel_fine : Int = 3 // [0~3] // poly opt-level for poly_numFinestLevels finest fields
-  var poly_optLevel_coarse : Int = 1 // [0~poly_optLevel_fine] // polyhedral optimization level for coarsest fields  0: disable (fastest);  3: aggressive (slowest)
+  var poly_optLevel_fine : Int = 0 // [0~3] // poly opt-level for poly_numFinestLevels finest fields
+  var poly_optLevel_coarse : Int = 0 // [0~poly_optLevel_fine] // polyhedral optimization level for coarsest fields  0: disable (fastest);  3: aggressive (slowest)
   var poly_numFinestLevels : Int = 2 // [1~numLevels] // number of levels that should be optimized in PolyOpt (starting from the finest)
   var poly_tileSize_x : Int = 1000000000 // [112~1000000000 $32]
   var poly_tileSize_y : Int = 1000000000 // [16~1000000000 $32]
@@ -240,7 +240,7 @@ object Knowledge {
   /// SPL connected
   var l3tmp_smoother : String = "Jac" // [Jac|RBGS] // [Jac|GS|RBGS] // the l3tmp_smoother to be generated
   var l3tmp_cgs : String = "CG" // [CG] // the coarse grid solver to be generated
-  var l3tmp_maxNumCGSSteps : Int = 1024 // maximum number of coarse grid solver iterations
+  var l3tmp_maxNumCGSSteps : Int = 512 // maximum number of coarse grid solver iterations
   var l3tmp_numRecCycleCalls : Int = 1 // [1~2] // 1 corresponds to v-cycles while 2 corresponds to w-cycles
   var l3tmp_numPre : Int = 3 // [0~4] // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
   var l3tmp_numPost : Int = 3 // [0~4] // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
@@ -281,7 +281,7 @@ object Knowledge {
   var l3tmp_genEmbeddedDomain : Boolean = false // adds a second domain to perform all computations on; the new domain is one fragment smaller on each boundary
   var l3tmp_useMaxNorm : Boolean = false // uses the maximum norm instead of the L2 norm when reducing the residual on the finest level
   var l3tmp_genCellBasedDiscr : Boolean = false // sets up a cell based discretization
-  var l3tmp_targetResReduction : Double = 1.0E-5 // exit criterion for the solver loop as target reduction of the residual in the chosen norm
+  var l3tmp_targetResReduction : Double = 0.0 // exit criterion for the solver loop as target reduction of the residual in the chosen norm
 
   /// optional features
   var l3tmp_printFieldAtEnd : Boolean = false // prints the solution field at the end of the application (or the mean solution in l3tmp_kelvin's case)
