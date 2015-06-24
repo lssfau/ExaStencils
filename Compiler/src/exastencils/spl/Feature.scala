@@ -181,11 +181,11 @@ class Feature(name : String) {
       return getPowOf2Values(distinctValues)
     }
 
-    if (this.name.equals("ranksPerNode")) {
+    if (this.name.equals("sisc2015_ranksPerNode")) {
       return getPowOf2Values(distinctValues)
     }
 
-    if (this.name.equals("numNodes")) {
+    if (this.name.equals("sisc2015_numNodes")) {
       return getPowOf2Values(distinctValues)
     }
 
@@ -193,7 +193,7 @@ class Feature(name : String) {
       return getPowOf2Values(distinctValues)
     }
 
-    if (this.name.startsWith("numOMP_")) {
+    if (this.name.startsWith("sisc2015_numOMP_")) {
       return getPowOf2Values(distinctValues)
     }
 
@@ -209,7 +209,7 @@ class Feature(name : String) {
       return getRandomPowOf2Value(seed)
     }
 
-    if (this.name.equals("ranksPerNode")) {
+    if (this.name.equals("sisc2015_ranksPerNode")) {
       return getRandomPowOf2Value(seed)
     }
 
@@ -221,7 +221,7 @@ class Feature(name : String) {
       return getRandomPowOf2Value(seed)
     }
 
-    if (this.name.startsWith("numOMP_")) {
+    if (this.name.startsWith("sisc2015_numOMP_")) {
       return getRandomPowOf2Value(seed)
     }
 

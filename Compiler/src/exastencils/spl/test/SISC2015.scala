@@ -53,10 +53,14 @@ object SICS2015 {
     FeatureModel.filter(featuresToConsider)
 
     var x = FeatureModel.get("poly_optLevel_fine")
+
+    // change default values
+    FeatureModel.get("poly_optLevel_fine").defaultValue = "3"
+
     // update upper value of firstDim and secDim 
     if (dimToConsider == 3) {
-      FeatureModel.get("firstDim").maxValue = 2
-      FeatureModel.get("secDim").maxValue = 2
+      FeatureModel.get("sisc2015_firstDim").maxValue = 2
+      FeatureModel.get("sisc2015_secDim").maxValue = 2
     }
 
     print("after filter ")
@@ -800,11 +804,11 @@ object SICS2015 {
     var numericOptionsThirdSampling : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
     featuresNumeric.foreach(x =>
       {
-        if (x.identifier.startsWith("domain") || x.identifier.equals("numNodes") // || x.identifier.startsWith("numOMP_")
-          || x.identifier.equals("ranksPerNode") || x.identifier.startsWith("aro_")) {
+        if (x.identifier.startsWith("domain") || x.identifier.equals("sisc2015_numNodes") // || x.identifier.startsWith("numOMP_")
+          || x.identifier.equals("sisc2015_ranksPerNode") || x.identifier.startsWith("aro_")) {
           numericOptionsFirstSampling.add(x)
           println("1: " + x)
-        } else if (x.identifier.startsWith("numOMP_") || x.identifier.startsWith("opt_unroll") || x.identifier.startsWith("l3tmp") || x.identifier.startsWith("minLevel") || x.identifier.startsWith("poly_tileSize_x")) {
+        } else if (x.identifier.startsWith("sisc2015_numOMP_") || x.identifier.startsWith("opt_unroll") || x.identifier.startsWith("l3tmp") || x.identifier.startsWith("minLevel") || x.identifier.startsWith("poly_tileSize_x")) {
           numericOptionsThirdSampling.add(x)
           println("3: " + x)
         } else {
@@ -1092,6 +1096,9 @@ object SICS2015 {
     featuresInOutput.add("l3tmp_targetResReduction")
     featuresInOutput.add("l3tmp_maxNumCGSSteps")
 
+    featuresInOutput.add("l3tmp_useSlotVariables")
+    featuresInOutput.add("poly_optLevel_coarse")
+
     giveConfigsAName(configurationsWiththirdSampling, "")
     //    giveConfigsAName(configurationsWithSecondSamplingRandom, "_random")
 
@@ -1353,7 +1360,7 @@ object SICS2015 {
     sb ++= "useDblPrecision = true\n"
 
     sb ++= "simd_instructionSet = \"QPX\"\n"
-    sb ++= "simd_avoidUnaligned = true\n"
+    //sb ++= "simd_avoidUnaligned = true\n"
     sb ++= "timer_type = \"MPI_TIME\"\n"
 
     sb ++= "domain_readFromFile = false\n"
@@ -1436,6 +1443,11 @@ object SICS2015 {
     sb ++= "experimental_timerEnableCallStacks = false\n"
 
     sb ++= "data_alignTmpBufferPointers = false\n"
+    sb ++= "l3tmp_maxNumCGSSteps = 1024\n"
+    sb ++= "l3tmp_targetResReduction = 1.0E-5\n"
+    sb ++= "omp_minWorkItemsPerThread = 128\n"
+    //  sb ++= "poly_optLevel_coarse = 1\n"
+
     return sb.toString()
   }
 
@@ -2047,6 +2059,28 @@ object SICS2015 {
 
     config.partialBaseConfig.put("l3tmp_maxNumCGSSteps", "1024")
     config.partialBaseConfig.put("l3tmp_targetResReduction", "1.0E-5")
+
+    //    Constraints.condEnsureValue(l3tmp_useSlotVariables, false, !l3tmp_useSlotsForJac, "invalid if not using l3tmp_useSlotsForJac")
+
+    if (!l3tmp_useSlotsForJac)
+      config.partialBaseConfig.put("l3tmp_useSlotVariables", "false")
+    else
+      config.partialBaseConfig.put("l3tmp_useSlotVariables", "true")
+
+    //Constraints.condEnsureValue(poly_optLevel_coarse, poly_optLevel_fine, poly_optLevel_coarse > poly_optLevel_fine, "optimization level for coarse grids must smaller or equal to the one for the fine levels")  
+    if (poly_optLevel_fine == 0) {
+      config.partialBaseConfig.put("poly_optLevel_coarse", "0")
+    } else {
+      config.partialBaseConfig.put("poly_optLevel_coarse", "1")
+    }
+
+    if (!config.boolFeatures(FeatureModel.get("opt_vectorize"))) {
+      config.partialBaseConfig.put("simd_avoidUnaligned", "false")
+    } else {
+      config.partialBaseConfig.put("simd_avoidUnaligned", "true")
+    }
+
+    config.partialBaseConfig.put("l3tmp_tempBlockingMinLevel", minLevel + 1)
 
     return true
   }
