@@ -60,7 +60,7 @@ object SICS2015 {
     // update upper value of firstDim and secDim 
     if (dimToConsider == 3) {
       FeatureModel.get("sisc2015_firstDim").maxValue = 2
-      FeatureModel.get("sisc2015_secDim").maxValue = 2
+      FeatureModel.get("sisc2015_secondDim").maxValue = 2
     }
 
     print("after filter ")
@@ -532,8 +532,6 @@ object SICS2015 {
 
     var configToKnowFile : scala.collection.mutable.Set[String] = config.getKnowledgeFileContent(scala.collection.mutable.Set())
 
-    configToKnowFile.add(partialBaseConfigInformation())
-
     var scriptFile = basePathSolver + "/optimum/optimum_" + identifier + ".knowledge"
     var writer = new PrintWriter(new File(scriptFile))
 
@@ -906,7 +904,7 @@ object SICS2015 {
         numericSamplings.foreach(y => {
           var configCopy = x.copy();
           configCopy.addNumericOptions(y)
-          if (this.derivedParameters2(configCopy)) {
+          if (this.derivedParameters(configCopy)) {
             configurationsWiththirdSampling.add(configCopy)
           }
         })
@@ -987,7 +985,7 @@ object SICS2015 {
         numericSamplings.foreach(y => {
           var configCopy = x.copy();
           configCopy.addNumericOptions(y)
-          if (this.derivedParameters2(configCopy)) {
+          if (this.derivedParameters(configCopy)) {
             configurationsWithThirdSamplingPW.add(configCopy)
           }
         })
@@ -1099,6 +1097,136 @@ object SICS2015 {
     featuresInOutput.add("l3tmp_useSlotVariables")
     featuresInOutput.add("poly_optLevel_coarse")
 
+    featuresInOutput.add("omp_enabled")
+    featuresInOutput.add("targetCompiler")
+    featuresInOutput.add("targetCompilerVersion")
+    featuresInOutput.add("targetCompilerVersionMinor")
+    featuresInOutput.add("useDblPrecision")
+    featuresInOutput.add("simd_instructionSet")
+    featuresInOutput.add("timer_type")
+
+    featuresInOutput.add("domain_readFromFile")
+    featuresInOutput.add("domain_onlyRectangular")
+    featuresInOutput.add("domain_rect_generate")
+
+    featuresInOutput.add("ir_genSepLayoutsPerField")
+
+    featuresInOutput.add("comm_sepDataByFragment")
+    featuresInOutput.add("comm_sepDataByDomain")
+    featuresInOutput.add("comm_sepDataByField")
+    featuresInOutput.add("comm_sepDataByLevel")
+    featuresInOutput.add("comm_sepDataByNeighbor")
+    featuresInOutput.add("comm_useFragmentArrays")
+    featuresInOutput.add("comm_useDomainArrays")
+
+    featuresInOutput.add("comm_useFieldArrays")
+    featuresInOutput.add("comm_useLevelArrays")
+    featuresInOutput.add("comm_useNeighborArrays")
+
+    featuresInOutput.add("data_initAllFieldsWithZero")
+    featuresInOutput.add("data_useFieldNamesAsIdx")
+
+    featuresInOutput.add("mpi_defaultCommunicator")
+    featuresInOutput.add("mpi_enabled")
+    featuresInOutput.add("mpi_useLoopsWherePossible")
+
+    featuresInOutput.add("omp_useCollapse")
+
+    featuresInOutput.add("poly_scheduleAlgorithm")
+    featuresInOutput.add("poly_optimizeDeps")
+    featuresInOutput.add("poly_filterDeps")
+    featuresInOutput.add("poly_simplifyDeps")
+    featuresInOutput.add("poly_fusionStrategy")
+    featuresInOutput.add("poly_maximizeBandDepth")
+    featuresInOutput.add("poly_maxConstantTerm")
+    featuresInOutput.add("poly_maxCoefficient")
+
+    featuresInOutput.add("l3tmp_generateL4")
+
+    featuresInOutput.add("l3tmp_cgs")
+
+    featuresInOutput.add("l3tmp_useConditionsForRBGS")
+
+    featuresInOutput.add("l3tmp_genHDepStencils")
+
+    featuresInOutput.add("l3tmp_genTimersPerFunction")
+    featuresInOutput.add("l3tmp_genTimersPerLevel")
+    featuresInOutput.add("l3tmp_genTimersForComm")
+    featuresInOutput.add("l3tmp_genCommTimersPerLevel")
+
+    featuresInOutput.add("l3tmp_printAllTimers")
+    featuresInOutput.add("l3tmp_printTimersToFile")
+
+    featuresInOutput.add("l3tmp_genNonZeroRhs")
+
+    featuresInOutput.add("l3tmp_genExtFields")
+    featuresInOutput.add("l3tmp_genGlobalOmega")
+    featuresInOutput.add("l3tmp_genSetableStencil")
+    featuresInOutput.add("l3tmp_genVectorFields")
+    featuresInOutput.add("poly_fusionStrategy")
+    featuresInOutput.add("poly_maximizeBandDepth")
+    featuresInOutput.add("poly_maxConstantTerm")
+    featuresInOutput.add("poly_maxCoefficient")
+
+    featuresInOutput.add("l3tmp_printFieldAtEnd")
+    featuresInOutput.add("l3tmp_initSolWithRand")
+    featuresInOutput.add("l3tmp_genForAutoTests")
+    featuresInOutput.add("l3tmp_printError")
+    featuresInOutput.add("l3tmp_useMaxNormForError")
+
+    featuresInOutput.add("l3tmp_sisc")
+    featuresInOutput.add("l3tmp_kelvin")
+
+    featuresInOutput.add("l3tmp_genStencilStencilConv")
+    featuresInOutput.add("l3tmp_genAsyncCommunication")
+    featuresInOutput.add("l3tmp_genFragLoops")
+
+    featuresInOutput.add("experimental_useLevelIndepFcts")
+    featuresInOutput.add("experimental_Neumann")
+    featuresInOutput.add("experimental_timerEnableCallStacks")
+
+    featuresInOutput.add("data_alignTmpBufferPointers")
+    featuresInOutput.add("l3tmp_maxNumCGSSteps")
+    featuresInOutput.add("l3tmp_targetResReduction")
+    featuresInOutput.add("omp_minWorkItemsPerThread")
+
+    featuresInOutput.add("omp_enabled")
+    featuresInOutput.add("targetHardware")
+    featuresInOutput.add("generateFortranInterface")
+    featuresInOutput.add("useFasterExpand")
+
+    featuresInOutput.add("domain_useCase")
+    featuresInOutput.add("domain_generateDomainFile")
+    featuresInOutput.add("domain_fragmentTransformation")
+
+    featuresInOutput.add("ir_maxInliningSize")
+    featuresInOutput.add("comm_strategyFragment")
+
+    featuresInOutput.add("poly_numFinestLevels")
+    featuresInOutput.add("poly_tileSize_z")
+    featuresInOutput.add("poly_tileSize_w")
+
+    featuresInOutput.add("poly_tileOuterLoop")
+    featuresInOutput.add("opt_useColorSplitting")
+
+    featuresInOutput.add("l3tmp_genInvDiagStencil")
+
+    featuresInOutput.add("l3tmp_genTemporalBlocking")
+    featuresInOutput.add("l3tmp_genFMG")
+    featuresInOutput.add("l3tmp_numVecDims")
+    featuresInOutput.add("l3tmp_genEmbeddedDomain")
+    featuresInOutput.add("l3tmp_useMaxNorm")
+    featuresInOutput.add("l3tmp_genCellBasedDiscr")
+
+    featuresInOutput.add("l3tmp_genEmbeddedDomain")
+    featuresInOutput.add("l3tmp_kelvin_numSamples")
+    featuresInOutput.add("l3tmp_kelvin_numHaloFrags")
+
+    featuresInOutput.add("experimental_NeumannOrder")
+    featuresInOutput.add("experimental_NeumannNormalize")
+
+    featuresInOutput.add("experimental_timerEnableCallStacks")
+
     giveConfigsAName(configurationsWiththirdSampling, "")
     //    giveConfigsAName(configurationsWithSecondSamplingRandom, "_random")
 
@@ -1114,7 +1242,7 @@ object SICS2015 {
     blackList.add("numOMP_x")
     if (dimToConsider == 3) {
       blackList.add("numOMP_y")
-      blackList.add("secDim")
+      blackList.add("secondDim")
     }
     blackList.add("aro_x")
     blackList.add("aro_y")
@@ -1268,8 +1396,6 @@ object SICS2015 {
     var configContent = config.getKnowledgeFileContent(blackList)
 
     configContent.foreach { x => writer.write(x) }
-    var partialBase = partialBaseConfigInformation()
-    writer.write(partialBase)
 
     writer.write("l3tmp_timerOuputFile = \"timings_" + index + suffix + ".csv\"\n")
 
@@ -1282,52 +1408,32 @@ object SICS2015 {
 
     featuresToConsiderDimIndependent()
 
-    featuresToConsider.add("poly_tileSize_x")
-
-    //    featuresToConsider.add("domain_fragmentLength_x")
-    //    featuresToConsider.add("domain_fragmentLength_y")
-    //    featuresToConsider.add("domain_rect_numFragsPerBlock_x")
-    //    featuresToConsider.add("domain_rect_numFragsPerBlock_y")
-
-    featuresToConsider.add("sisc2015_numOMP_y")
-    featuresToConsider.add("sisc2015_numNodes")
-    featuresToConsider.add("sisc2015_ranksPerNode")
-
-    featuresToConsider.add("sisc2015_firstDim")
-
-    featuresToConsider.add("sisc2015_numOMP_x")
-
   }
 
   def featureToConsider3D() = {
 
     featuresToConsiderDimIndependent()
 
-    // TODO Upper bound and stepsize
-    featuresToConsider.add("poly_tileSize_x")
     featuresToConsider.add("poly_tileSize_y")
 
-    //    featuresToConsider.add("domain_fragmentLength_x")
-    //    featuresToConsider.add("domain_fragmentLength_y")
-    //    featuresToConsider.add("domain_fragmentLength_z")
-    //    featuresToConsider.add("domain_rect_numFragsPerBlock_x")
-    //    featuresToConsider.add("domain_rect_numFragsPerBlock_y")
-    //    featuresToConsider.add("domain_rect_numFragsPerBlock_z")
+    featuresToConsider.add("sisc2015_secondDim")
 
-    featuresToConsider.add("sisc2015_numNodes")
-    featuresToConsider.add("sisc2015_ranksPerNode")
-
-    featuresToConsider.add("sisc2015_secDim")
-
-    featuresToConsider.add("sisc2015_numOMP_x")
-    featuresToConsider.add("sisc2015_numOMP_y")
     featuresToConsider.add("sisc2015_numOMP_z")
 
   }
 
   def featuresToConsiderDimIndependent() = {
 
-    //    featuresToConsider.add("maxLevel")
+    featuresToConsider.add("sisc2015_firstDim")
+
+    featuresToConsider.add("sisc2015_numNodes")
+    featuresToConsider.add("sisc2015_ranksPerNode")
+
+    featuresToConsider.add("poly_tileSize_x")
+
+    featuresToConsider.add("sisc2015_numOMP_x")
+    featuresToConsider.add("sisc2015_numOMP_y")
+
     featuresToConsider.add("omp_parallelizeLoopOverDimensions")
 
     featuresToConsider.add("minLevel")
@@ -1348,107 +1454,6 @@ object SICS2015 {
     featuresToConsider.add("comm_useFragmentLoopsForEachOp")
 
     featuresToConsider.add("mpi_useCustomDatatypes")
-  }
-
-  def partialBaseConfigInformation() : String = {
-    var sb : StringBuilder = new StringBuilder()
-
-    sb ++= "targetCompiler = \"IBMBG\" \n"
-    sb ++= "targetCompilerVersion = 12\n"
-    sb ++= "targetCompilerVersionMinor = 1\n"
-
-    sb ++= "useDblPrecision = true\n"
-
-    sb ++= "simd_instructionSet = \"QPX\"\n"
-    //sb ++= "simd_avoidUnaligned = true\n"
-    sb ++= "timer_type = \"MPI_TIME\"\n"
-
-    sb ++= "domain_readFromFile = false\n"
-    sb ++= "domain_onlyRectangular = true\n"
-    sb ++= "domain_rect_generate = true\n"
-
-    sb ++= "ir_genSepLayoutsPerField = true\n"
-
-    sb ++= "comm_sepDataByFragment = true\n"
-    sb ++= "comm_sepDataByDomain = false\n"
-    sb ++= "comm_sepDataByField = false\n"
-    sb ++= "comm_sepDataByLevel = false\n"
-    sb ++= "comm_sepDataByNeighbor = true\n"
-    sb ++= "comm_useFragmentArrays = true\n"
-    sb ++= "comm_useDomainArrays = true\n"
-    sb ++= "comm_useFieldArrays = false\n"
-    sb ++= "comm_useLevelArrays = false\n"
-    sb ++= "comm_useNeighborArrays = true\n"
-
-    sb ++= "data_initAllFieldsWithZero = true\n"
-    sb ++= "data_useFieldNamesAsIdx = false\n"
-
-    sb ++= "mpi_defaultCommunicator = \"MPI_COMM_WORLD\"\n"
-    sb ++= "mpi_enabled = true\n"
-    sb ++= "mpi_useLoopsWherePossible = true\n"
-
-    sb ++= "omp_useCollapse = false\n"
-
-    sb ++= "poly_scheduleAlgorithm = \"isl\"\n"
-    sb ++= "poly_optimizeDeps = \"raw\"\n"
-    sb ++= "poly_filterDeps = true\n"
-    sb ++= "poly_simplifyDeps = true\n"
-    sb ++= "poly_fusionStrategy = \"max\"\n"
-    sb ++= "poly_maximizeBandDepth = false\n"
-    sb ++= "poly_maxConstantTerm = -1\n"
-    sb ++= "poly_maxCoefficient = -1\n"
-
-    sb ++= "l3tmp_generateL4 = true\n"
-
-    sb ++= "l3tmp_cgs = \"CG\"\n"
-
-    sb ++= "l3tmp_useConditionsForRBGS = true\n"
-    //sb ++= "l3tmp_useSlotVariables = true\n"
-    sb ++= "l3tmp_genHDepStencils = true\n"
-
-    sb ++= "l3tmp_genTimersPerFunction = true\n"
-    sb ++= "l3tmp_genTimersPerLevel = false\n"
-    sb ++= "l3tmp_genTimersForComm = false\n"
-    sb ++= "l3tmp_genCommTimersPerLevel = false\n"
-
-    sb ++= "l3tmp_printAllTimers = false\n"
-    sb ++= "l3tmp_printTimersToFile = true\n"
-
-    sb ++= "l3tmp_genNonZeroRhs = true\n"
-
-    sb ++= "l3tmp_genExtFields = false\n"
-    sb ++= "l3tmp_genGlobalOmega = false\n"
-    sb ++= "l3tmp_genSetableStencil = false\n"
-    sb ++= "l3tmp_genVectorFields = false\n"
-    sb ++= "l3tmp_numVecDims = 1\n"
-    sb ++= "l3tmp_genEmbeddedDomain = false\n"
-    sb ++= "l3tmp_useMaxNorm = false\n"
-    sb ++= "l3tmp_genCellBasedDiscr = false\n"
-
-    sb ++= "l3tmp_printFieldAtEnd = false\n"
-    sb ++= "l3tmp_initSolWithRand = false\n"
-    sb ++= "l3tmp_genForAutoTests = true\n"
-    sb ++= "l3tmp_printError = false\n"
-    sb ++= "l3tmp_useMaxNormForError = true\n"
-
-    sb ++= "l3tmp_sisc = true\n"
-    sb ++= "l3tmp_kelvin = false\n"
-
-    sb ++= "l3tmp_genStencilStencilConv = false\n"
-    sb ++= "l3tmp_genAsyncCommunication = false\n"
-    sb ++= "l3tmp_genFragLoops = false\n"
-
-    sb ++= "experimental_useLevelIndepFcts = false\n"
-    sb ++= "experimental_Neumann = false\n"
-    sb ++= "experimental_timerEnableCallStacks = false\n"
-
-    sb ++= "data_alignTmpBufferPointers = false\n"
-    sb ++= "l3tmp_maxNumCGSSteps = 1024\n"
-    sb ++= "l3tmp_targetResReduction = 1.0E-5\n"
-    sb ++= "omp_minWorkItemsPerThread = 128\n"
-    //  sb ++= "poly_optLevel_coarse = 1\n"
-
-    return sb.toString()
   }
 
   def problemDefinition2D_ConstCoeff(config : scala.collection.mutable.Map[String, Any]) = {
@@ -1479,275 +1484,12 @@ object SICS2015 {
     config.put("num_points_per_dim", 1024)
   }
 
-  def isValidConfigDomainPartition(config : Configuration) : Boolean = {
-    var num_unit_frags_x : Long = 1
-    var num_unit_frags_y : Long = 1
-    var num_unit_frags_z : Long = 1
-
-    var frag_volume = 1.0
-
-    //config.partialBaseConfig.put("domain_rect_numBlocks_x", domain_rect_numBlocks_x)
-
-    if (config.partialBaseConfig.apply("dimensionality").asInstanceOf[Int] == 3) {
-      num_unit_frags_x = config.partialBaseConfig.apply("domain_rect_numBlocks_x").asInstanceOf[Int].toLong * (config.getNumericFeatureValue("domain_rect_numFragsPerBlock_x") * config.getNumericFeatureValue("domain_fragmentLength_x")).toLong
-      num_unit_frags_y = config.partialBaseConfig.apply("domain_rect_numBlocks_y").asInstanceOf[Int].toLong * (config.getNumericFeatureValue("domain_rect_numFragsPerBlock_y") * config.getNumericFeatureValue("domain_fragmentLength_y")).toLong
-      num_unit_frags_z = config.partialBaseConfig.apply("domain_rect_numBlocks_z").asInstanceOf[Int].toLong * (config.getNumericFeatureValue("domain_rect_numFragsPerBlock_z") * config.getNumericFeatureValue("domain_fragmentLength_z")).toLong
-      frag_volume =
-        config.getNumericFeatureValue("domain_fragmentLength_x") * config.getNumericFeatureValue("domain_fragmentLength_y") * config.getNumericFeatureValue("domain_fragmentLength_z")
-    } else {
-      num_unit_frags_x = config.partialBaseConfig.apply("domain_rect_numBlocks_x").asInstanceOf[Int].toLong * (config.getNumericFeatureValue("domain_rect_numFragsPerBlock_x") * config.getNumericFeatureValue("domain_fragmentLength_x")).toLong
-      num_unit_frags_y = config.partialBaseConfig.apply("domain_rect_numBlocks_y").asInstanceOf[Int].toLong * (config.getNumericFeatureValue("domain_rect_numFragsPerBlock_y") * config.getNumericFeatureValue("domain_fragmentLength_y")).toLong
-      frag_volume =
-        config.getNumericFeatureValue("domain_fragmentLength_x") * config.getNumericFeatureValue("domain_fragmentLength_y")
-    }
-
-    if (!(Util.getNumNodes(config) > 8))
-      return false
-
-    var mem_per_node = (8.0 * 4.0 * 4.0 / 3.0 * Math.pow(config.partialBaseConfig.apply("num_points_per_dim").asInstanceOf[Int], config.partialBaseConfig.apply("dimensionality").asInstanceOf[Int])) / Util.getNumNodes(config)
-    var memory : Double = 12L * 1024L * 1024L * 1024L
-    if (!(mem_per_node <= memory))
-      return false
-
-    if (config.partialBaseConfig("dimensionality").asInstanceOf[Int] == 3) {
-      if (!(num_unit_frags_x == num_unit_frags_y) || !(num_unit_frags_y == num_unit_frags_z))
-        return false
-
-    } else {
-      if (!(num_unit_frags_x == num_unit_frags_y))
-        return false
-    }
-
-    if (config.partialBaseConfig.apply("domain_numBlocks").asInstanceOf[Int] < 8)
-      return false
-
-    if (!(frag_volume <= 64.0 && config.partialBaseConfig.apply("domain_numFragmentsPerBlock").asInstanceOf[Int] <= 64))
-      return false
-
-    if (!(frag_volume == 1.0 || config.partialBaseConfig.apply("domain_numFragmentsPerBlock").asInstanceOf[Int] == 1.0))
-      return false
-
-    return true;
-  }
-
-  def isValidConfigDomainPartition2(config : Configuration) : Boolean = {
-    var num_unit_frags_x : Long = 1
-    var num_unit_frags_y : Long = 1
-    var num_unit_frags_z : Long = 1
-
-    var frag_volume = 1.0
-
-    //config.partialBaseConfig.put("domain_rect_numBlocks_x", domain_rect_numBlocks_x)
-
-    if (config.partialBaseConfig.apply("dimensionality").asInstanceOf[Int] == 3) {
-      num_unit_frags_x = config.partialBaseConfig.apply("domain_rect_numBlocks_x").asInstanceOf[Int].toLong * (config.getNumericFeatureValue("domain_rect_numFragsPerBlock_x") * config.getNumericFeatureValue("domain_fragmentLength_x")).toLong
-      num_unit_frags_y = config.partialBaseConfig.apply("domain_rect_numBlocks_y").asInstanceOf[Int].toLong * (config.getNumericFeatureValue("domain_rect_numFragsPerBlock_y") * config.getNumericFeatureValue("domain_fragmentLength_y")).toLong
-      num_unit_frags_z = config.partialBaseConfig.apply("domain_rect_numBlocks_z").asInstanceOf[Int].toLong * (config.getNumericFeatureValue("domain_rect_numFragsPerBlock_z") * config.getNumericFeatureValue("domain_fragmentLength_z")).toLong
-      frag_volume =
-        config.getNumericFeatureValue("domain_fragmentLength_x") * config.getNumericFeatureValue("domain_fragmentLength_y") * config.getNumericFeatureValue("domain_fragmentLength_z")
-    } else {
-      num_unit_frags_x = config.partialBaseConfig.apply("domain_rect_numBlocks_x").asInstanceOf[Int].toLong * (config.getNumericFeatureValue("domain_rect_numFragsPerBlock_x") * config.getNumericFeatureValue("domain_fragmentLength_x")).toLong
-      num_unit_frags_y = config.partialBaseConfig.apply("domain_rect_numBlocks_y").asInstanceOf[Int].toLong * (config.getNumericFeatureValue("domain_rect_numFragsPerBlock_y") * config.getNumericFeatureValue("domain_fragmentLength_y")).toLong
-      frag_volume =
-        config.getNumericFeatureValue("domain_fragmentLength_x") * config.getNumericFeatureValue("domain_fragmentLength_y")
-    }
-
-    if (!(Util.getNumNodes(config) > 8))
-      return false
-
-    var mem_per_node = (8.0 * 4.0 * 4.0 / 3.0 * Math.pow(config.partialBaseConfig.apply("num_points_per_dim").asInstanceOf[Int], config.partialBaseConfig.apply("dimensionality").asInstanceOf[Int])) / Util.getNumNodes(config)
-    var memory : Double = 12L * 1024L * 1024L * 1024L
-    if (!(mem_per_node <= memory))
-      return false
-
-    if (config.partialBaseConfig("dimensionality").asInstanceOf[Int] == 3) {
-      if (!(num_unit_frags_x == num_unit_frags_y) || !(num_unit_frags_y == num_unit_frags_z))
-        return false
-
-    } else {
-      if (!(num_unit_frags_x == num_unit_frags_y))
-        return false
-    }
-
-    if (config.partialBaseConfig.apply("domain_numBlocks").asInstanceOf[Int] < 8)
-      return false
-
-    if (!(frag_volume <= 64.0 && config.partialBaseConfig.apply("domain_numFragmentsPerBlock").asInstanceOf[Int] <= 64))
-      return false
-
-    if (!(frag_volume == 1.0 || config.partialBaseConfig.apply("domain_numFragmentsPerBlock").asInstanceOf[Int] == 1.0))
-      return false
-
-    return true;
-  }
-
-  def isValidConfigDomainPartition(config : scala.collection.mutable.Map[Feature, Double], problemDefinition : scala.collection.mutable.Map[String, Any]) : Boolean = {
-
-    return isValidConfigDomainPartition2(config, problemDefinition)
-
-    //    // calculation of dependent features 
-    //    var domain_rect_numBlocks_x = ((problemDefinition("num_points_per_dim").asInstanceOf[Int] / (
-    //      config(FeatureModel.get("domain_fragmentLength_x")) * Math.pow(2, config(FeatureModel.get("maxLevel")))))
-    //      / config(FeatureModel.get("domain_rect_numFragsPerBlock_x")))
-    //
-    //    var domain_rect_numBlocks_y = ((problemDefinition("num_points_per_dim").asInstanceOf[Int] / (
-    //      config(FeatureModel.get("domain_fragmentLength_y")) * Math.pow(2, config(FeatureModel.get("maxLevel")))))
-    //      / config(FeatureModel.get("domain_rect_numFragsPerBlock_y")))
-    //
-    //    var domain_rect_numBlocks_z : Double = 1.0
-    //
-    //    if (problemDefinition("dimensionality").asInstanceOf[Int] == 3) {
-    //      domain_rect_numBlocks_z = ((problemDefinition("num_points_per_dim").asInstanceOf[Int] / (
-    //        config(FeatureModel.get("domain_fragmentLength_z")) * Math.pow(2, config(FeatureModel.get("maxLevel")))))
-    //        / config(FeatureModel.get("domain_rect_numFragsPerBlock_z")))
-    //    }
-    //
-    //    var num_frags_per_block_total : Double = 1.0
-    //    var frag_volume = 1.0
-    //    var num_blocks_total = 1.0
-    //    if (problemDefinition("dimensionality").asInstanceOf[Int] == 3) {
-    //      num_frags_per_block_total =
-    //        config(FeatureModel.get("domain_rect_numFragsPerBlock_x")) * config(FeatureModel.get("domain_rect_numFragsPerBlock_y")) * config(FeatureModel.get("domain_rect_numFragsPerBlock_z"))
-    //      frag_volume =
-    //        config(FeatureModel.get("domain_fragmentLength_x")) * config(FeatureModel.get("domain_fragmentLength_y")) * config(FeatureModel.get("domain_fragmentLength_z"))
-    //      num_blocks_total =
-    //        domain_rect_numBlocks_x * domain_rect_numBlocks_y * domain_rect_numBlocks_z
-    //    } else {
-    //      num_frags_per_block_total =
-    //        config(FeatureModel.get("domain_rect_numFragsPerBlock_x")) * config(FeatureModel.get("domain_rect_numFragsPerBlock_y"))
-    //      frag_volume =
-    //        config(FeatureModel.get("domain_fragmentLength_x")) * config(FeatureModel.get("domain_fragmentLength_y"))
-    //      num_blocks_total =
-    //        domain_rect_numBlocks_x * domain_rect_numBlocks_y
-    //    }
-    //
-    //    var domain_numBlocks = num_blocks_total
-    //    var domain_numFragmentsPerBlock = num_frags_per_block_total
-    //    var mpi_numThreads = num_blocks_total
-    //
-    //    var omp_enabled = false
-    //    var omp_numThreads = 1.0
-    //    var omp_parallelizeLoopOverFragments = false
-    //    var omp_parallelizeLoopOverDimensions = false
-    //
-    //    if (num_frags_per_block_total == 1.0 && frag_volume == 1.0) {
-    //      omp_enabled = false
-    //      omp_numThreads = 1.0
-    //      omp_parallelizeLoopOverFragments = false
-    //      omp_parallelizeLoopOverDimensions = false
-    //    } else if (num_frags_per_block_total > frag_volume) {
-    //      omp_enabled = true
-    //      omp_numThreads = num_frags_per_block_total
-    //      omp_parallelizeLoopOverFragments = true
-    //      omp_parallelizeLoopOverDimensions = false
-    //    } else {
-    //      omp_enabled = true
-    //      omp_numThreads = frag_volume
-    //      omp_parallelizeLoopOverFragments = false
-    //      omp_parallelizeLoopOverDimensions = true
-    //    }
-    //
-    //    var num_unit_frags_x : Long = 1
-    //    var num_unit_frags_y : Long = 1
-    //    var num_unit_frags_z : Long = 1
-    //
-    //    if (problemDefinition("dimensionality").asInstanceOf[Int] == 3) {
-    //      num_unit_frags_x = domain_rect_numBlocks_x.toLong * (config(FeatureModel.get("domain_rect_numFragsPerBlock_x")) * config(FeatureModel.get("domain_fragmentLength_x"))).toLong
-    //      num_unit_frags_y = domain_rect_numBlocks_y.toLong * (config(FeatureModel.get("domain_rect_numFragsPerBlock_y")) * config(FeatureModel.get("domain_fragmentLength_y"))).toLong
-    //      num_unit_frags_z = domain_rect_numBlocks_z.toLong * (config(FeatureModel.get("domain_rect_numFragsPerBlock_z")) * config(FeatureModel.get("domain_fragmentLength_z"))).toLong
-    //    } else {
-    //      num_unit_frags_x = domain_rect_numBlocks_x.toLong * (config(FeatureModel.get("domain_rect_numFragsPerBlock_x")) * config(FeatureModel.get("domain_fragmentLength_x"))).toLong
-    //      num_unit_frags_y = domain_rect_numBlocks_y.toLong * (config(FeatureModel.get("domain_rect_numFragsPerBlock_y")) * config(FeatureModel.get("domain_fragmentLength_y"))).toLong
-    //    }
-    //
-    //    var numNodes : Double = Util.getNumNodes(mpi_numThreads.toInt, omp_numThreads.toInt)
-    //
-    //    if (!(numNodes > 8.0))
-    //      // println("Not enough nodes in use")
-    //      return false
-    //
-    //    // new Constraint
-    //    if (dimToConsider == 3)
-    //      if (numNodes > 64.0)
-    //        return false
-    //
-    //    var mem_per_node = (8.0 * 4.0 * 4.0 / (3.0 * Math.pow(problemDefinition("num_points_per_dim").asInstanceOf[Int], problemDefinition("dimensionality").asInstanceOf[Int]))) / numNodes
-    //    var memory : Double = 12L * 1024L * 1024L * 1024L
-    //    if (!(mem_per_node <= memory))
-    //      //println("Memory requirements for each node are too high")
-    //      return false
-    //
-    //    if (problemDefinition("dimensionality").asInstanceOf[Int] == 3) {
-    //      if (!(num_unit_frags_x == num_unit_frags_y) || !(num_unit_frags_y == num_unit_frags_z))
-    //        return false
-    //
-    //    } else {
-    //      if (!(num_unit_frags_x == num_unit_frags_y))
-    //        //println("Not square")
-    //        return false
-    //    }
-    //
-    //    if (!(domain_numBlocks >= 8))
-    //      //println("Not enough blocks to distribute :%s" % num_blocks_total)
-    //      return false
-    //
-    //    if (!(frag_volume <= 64.0 && domain_numFragmentsPerBlock <= 64))
-    //      //println("Too many omp threads :%s" % self.get_value("omp_numThreads", 1))
-    //      return false
-    //
-    //    if (!(frag_volume == 1.0 || domain_numFragmentsPerBlock == 1))
-    //      //print("Two different omp parallelization strategies chosen concurrently")
-    //      return false
-    //
-    //    if (config(FeatureModel.get("minLevel")).toInt >= config(FeatureModel.get("maxLevel")).toInt)
-    //      return false
-    //
-    //    var domain_x = domain_rect_numBlocks_x * config(FeatureModel.get("domain_rect_numFragsPerBlock_x")) * config(FeatureModel.get("domain_fragmentLength_x")) * Math.pow(2, config(FeatureModel.get("minLevel")))
-    //    if (domain_x > 64.0)
-    //      return false;
-    //
-    //    var domain_y = domain_rect_numBlocks_y * config(FeatureModel.get("domain_rect_numFragsPerBlock_y")) * config(FeatureModel.get("domain_fragmentLength_y")) * Math.pow(2, config(FeatureModel.get("minLevel")))
-    //    if (domain_y > 64.0)
-    //      return false;
-    //
-    //    if (problemDefinition("dimensionality").asInstanceOf[Int] == 3) {
-    //      var domain_z = domain_rect_numBlocks_z * config(FeatureModel.get("domain_rect_numFragsPerBlock_z")) * config(FeatureModel.get("domain_fragmentLength_z")) * Math.pow(2, config(FeatureModel.get("minLevel")))
-    //      if (domain_z > 64.0)
-    //        return false;
-    //    }
-    //
-    //    return true;
-  }
-
-  def isValidConfigDomainPartition2(config : scala.collection.mutable.Map[Feature, Double], problemDefinition : scala.collection.mutable.Map[String, Any]) : Boolean = {
-
-    var aspectRatioOffset : Double = 0
-
-    val nodesTimesRacks : Double = config(FeatureModel.get("numNodes")) * config(FeatureModel.get("ranksPerNode"))
-
-    val dimBase : Double = Math.pow(2, dimToConsider)
-
-    var curr : Double = dimBase
-
-    while (curr < nodesTimesRacks)
-      curr *= 2
-
-    aspectRatioOffset = curr / nodesTimesRacks
-
-    return true;
-  }
-
-  def derivedParameters(config : Configuration) = {
-    derivedParameters2(config)
-
-  }
-
   def log(x : Double, base : Double) : Double = {
     return (Math.log(x) / Math.log(base));
   }
 
   // creates the derived parameters and performs a validation check
-  def derivedParameters2(config : Configuration) : Boolean = {
+  def derivedParameters(config : Configuration) : Boolean = {
     var aspectRatioOffset : Double = 0
 
     val numNodes = config.numericalFeatureValues(FeatureModel.get("sisc2015_numNodes"))
@@ -1773,7 +1515,7 @@ object SICS2015 {
     val firstDim = config.xorFeatureValues(FeatureModel.get("sisc2015_firstDim"))
     var secDim = ""
     if (dimToConsider == 3)
-      secDim = config.xorFeatureValues(FeatureModel.get("sisc2015_secDim"))
+      secDim = config.xorFeatureValues(FeatureModel.get("sisc2015_secondDim"))
 
     if (aspectRatioOffset >= 2) {
       if (firstDim.equals("0"))
@@ -2014,6 +1756,99 @@ object SICS2015 {
         return false;
     }
 
+    config.partialBaseConfig.put("omp_enabled", omp_enabled)
+    config.partialBaseConfig.put("targetCompiler", "\"IBMBG\"")
+    config.partialBaseConfig.put("targetCompilerVersion", 12)
+    config.partialBaseConfig.put("targetCompilerVersionMinor", 1)
+    config.partialBaseConfig.put("useDblPrecision", true)
+    config.partialBaseConfig.put("simd_instructionSet", "\"QPX\"")
+    config.partialBaseConfig.put("timer_type", "\"MPI_TIME\"")
+
+    config.partialBaseConfig.put("domain_readFromFile", false)
+    config.partialBaseConfig.put("domain_onlyRectangular", true)
+    config.partialBaseConfig.put("domain_rect_generate", true)
+
+    config.partialBaseConfig.put("ir_genSepLayoutsPerField", true)
+
+    config.partialBaseConfig.put("comm_sepDataByFragment", true)
+    config.partialBaseConfig.put("comm_sepDataByDomain", false)
+    config.partialBaseConfig.put("comm_sepDataByField", false)
+    config.partialBaseConfig.put("comm_sepDataByLevel", false)
+    config.partialBaseConfig.put("comm_sepDataByNeighbor", true)
+
+    config.partialBaseConfig.put("comm_useFragmentArrays", true)
+    config.partialBaseConfig.put("comm_useDomainArrays", true)
+    config.partialBaseConfig.put("comm_useFieldArrays", false)
+    config.partialBaseConfig.put("comm_useLevelArrays", false)
+    config.partialBaseConfig.put("comm_useNeighborArrays", true)
+
+    config.partialBaseConfig.put("data_initAllFieldsWithZero", true)
+    config.partialBaseConfig.put("data_useFieldNamesAsIdx", true)
+
+    config.partialBaseConfig.put("mpi_defaultCommunicator", "\"MPI_COMM_WORLD\"")
+    config.partialBaseConfig.put("mpi_enabled", true)
+    config.partialBaseConfig.put("mpi_useLoopsWherePossible", true)
+
+    config.partialBaseConfig.put("omp_useCollapse", false)
+
+    config.partialBaseConfig.put("poly_scheduleAlgorithm", "\"isl\"")
+    config.partialBaseConfig.put("poly_optimizeDeps", "\"raw\"")
+    config.partialBaseConfig.put("poly_filterDeps", true)
+    config.partialBaseConfig.put("poly_simplifyDeps", true)
+    config.partialBaseConfig.put("poly_fusionStrategy", "\"max\"")
+    config.partialBaseConfig.put("poly_maximizeBandDepth", false)
+    config.partialBaseConfig.put("poly_maxConstantTerm", -1)
+    config.partialBaseConfig.put("poly_maxCoefficient", -1)
+
+    config.partialBaseConfig.put("l3tmp_generateL4", true)
+
+    config.partialBaseConfig.put("l3tmp_cgs", "\"CG\"")
+
+    config.partialBaseConfig.put("l3tmp_useConditionsForRBGS", true)
+
+    config.partialBaseConfig.put("l3tmp_genHDepStencils", true)
+
+    config.partialBaseConfig.put("l3tmp_genTimersPerFunction", true)
+    config.partialBaseConfig.put("l3tmp_genTimersPerLevel", false)
+    config.partialBaseConfig.put("l3tmp_genTimersForComm", false)
+    config.partialBaseConfig.put("l3tmp_genCommTimersPerLevel", false)
+
+    config.partialBaseConfig.put("l3tmp_printAllTimers", false)
+    config.partialBaseConfig.put("l3tmp_printTimersToFile", true)
+
+    config.partialBaseConfig.put("l3tmp_genNonZeroRhs", true)
+
+    config.partialBaseConfig.put("l3tmp_genExtFields", false)
+    config.partialBaseConfig.put("l3tmp_genGlobalOmega", false)
+    config.partialBaseConfig.put("l3tmp_genSetableStencil", false)
+    config.partialBaseConfig.put("l3tmp_genVectorFields", false)
+    config.partialBaseConfig.put("poly_fusionStrategy", 1)
+    config.partialBaseConfig.put("poly_maximizeBandDepth", false)
+    config.partialBaseConfig.put("poly_maxConstantTerm", false)
+    config.partialBaseConfig.put("poly_maxCoefficient", false)
+
+    config.partialBaseConfig.put("l3tmp_printFieldAtEnd", false)
+    config.partialBaseConfig.put("l3tmp_initSolWithRand", false)
+    config.partialBaseConfig.put("l3tmp_genForAutoTests", true)
+    config.partialBaseConfig.put("l3tmp_printError", false)
+    config.partialBaseConfig.put("l3tmp_useMaxNormForError", true)
+
+    config.partialBaseConfig.put("l3tmp_sisc", true)
+    config.partialBaseConfig.put("l3tmp_kelvin", false)
+
+    config.partialBaseConfig.put("l3tmp_genStencilStencilConv", false)
+    config.partialBaseConfig.put("l3tmp_genAsyncCommunication", false)
+    config.partialBaseConfig.put("l3tmp_genFragLoops", false)
+
+    config.partialBaseConfig.put("experimental_useLevelIndepFcts", false)
+    config.partialBaseConfig.put("experimental_Neumann", false)
+    config.partialBaseConfig.put("experimental_timerEnableCallStacks", false)
+
+    config.partialBaseConfig.put("data_alignTmpBufferPointers", false)
+    config.partialBaseConfig.put("l3tmp_maxNumCGSSteps", 1024)
+    config.partialBaseConfig.put("l3tmp_targetResReduction", 1.0E-5)
+    config.partialBaseConfig.put("omp_minWorkItemsPerThread", 128)
+
     config.partialBaseConfig.put("maxLevel", maxLevel)
 
     config.partialBaseConfig.put("omp_parallelizeLoopOverFragments", ompParallelizeFrags)
@@ -2081,6 +1916,52 @@ object SICS2015 {
     }
 
     config.partialBaseConfig.put("l3tmp_tempBlockingMinLevel", minLevel + 1)
+
+    // new 
+    config.partialBaseConfig.put("omp_enabled", omp_enabled)
+    config.partialBaseConfig.put("targetHardware", "\"CPU\"")
+    config.partialBaseConfig.put("generateFortranInterface", false)
+    config.partialBaseConfig.put("useFasterExpand", true)
+
+    config.partialBaseConfig.put("domain_useCase", "\"\"")
+    config.partialBaseConfig.put("domain_generateDomainFile", false)
+    config.partialBaseConfig.put("domain_fragmentTransformation", false)
+
+    config.partialBaseConfig.put("ir_maxInliningSize", 10)
+    config.partialBaseConfig.put("comm_strategyFragment", 6)
+
+    config.partialBaseConfig.put("poly_numFinestLevels", 6)
+    config.partialBaseConfig.put("poly_tileSize_z", 1000000000)
+    config.partialBaseConfig.put("poly_tileSize_w", 1000000000)
+
+    config.partialBaseConfig.put("poly_tileOuterLoop", false)
+    config.partialBaseConfig.put("opt_useColorSplitting", false)
+
+    config.partialBaseConfig.put("l3tmp_genInvDiagStencil", false)
+
+    config.partialBaseConfig.put("l3tmp_genTemporalBlocking", true)
+    config.partialBaseConfig.put("l3tmp_genFMG", true)
+    config.partialBaseConfig.put("l3tmp_numVecDims", 1)
+    config.partialBaseConfig.put("l3tmp_genEmbeddedDomain", false)
+
+    config.partialBaseConfig.put("l3tmp_useMaxNorm", false)
+    config.partialBaseConfig.put("l3tmp_genCellBasedDiscr", false)
+
+    config.partialBaseConfig.put("l3tmp_genEmbeddedDomain", false)
+    config.partialBaseConfig.put("l3tmp_kelvin_numSamples", 10)
+    config.partialBaseConfig.put("l3tmp_kelvin_numHaloFrags", 2)
+
+    config.partialBaseConfig.put("experimental_NeumannOrder", 2)
+    config.partialBaseConfig.put("experimental_NeumannNormalize", false)
+
+    config.partialBaseConfig.put("experimental_timerEnableCallStacks", false)
+
+    if (dimToConsider == 2) {
+      config.partialBaseConfig.put("poly_tileSize_y", 1000000000)
+      config.partialBaseConfig.put("sisc2015_secondDim", 1)
+
+      config.partialBaseConfig.put("sisc2015_numOMP_z", 2)
+    }
 
     return true
   }
