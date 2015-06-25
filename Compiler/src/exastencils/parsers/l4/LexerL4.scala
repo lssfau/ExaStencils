@@ -44,7 +44,7 @@ class LexerL4 extends exastencils.parsers.ExaLexer {
   reserved += ("advance", "active", "activeSlot", "currentSlot", "next", "nextSlot", "previous", "previousSlot")
 
   // math keywords
-  reserved += ("diag")
+//  reserved += ()
 
   // obsolete keywords
   reserved += ("steps")
