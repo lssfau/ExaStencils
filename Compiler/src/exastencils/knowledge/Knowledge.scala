@@ -442,10 +442,12 @@ object Knowledge {
     }
 
     // parallelization
-    Constraints.condEnsureValue(omp_useCollapse, false, "IBMXL" == targetCompiler, "omp collapse is currently not fully supported by the IBM XL compiler")
+    Constraints.condEnsureValue(omp_useCollapse, false, "IBMXL" == targetCompiler || "IBMBG" == targetCompiler, "omp collapse is currently not fully supported by the IBM XL compiler")
     Constraints.condEnsureValue(omp_parallelizeLoopOverDimensions, false, omp_enabled && omp_parallelizeLoopOverFragments, "omp_parallelizeLoopOverDimensions and omp_parallelizeLoopOverFragments are mutually exclusive")
 
     Constraints.condWarn(mpi_numThreads != domain_numBlocks, s"the number of mpi threads ($mpi_numThreads) differs from the number of blocks ($domain_numBlocks) -> this might lead to unexpected behavior!")
+    Constraints.condWarn(!omp_enabled && omp_numThreads > 1, s"The number of omp threads is larger than one ($omp_numThreads), but omp_enabled is false")
+    Constraints.condWarn(omp_enabled && omp_numThreads == 1, s"The number of omp threads is equal to one, but omp_enabled is true")
     Constraints.condWarn(omp_parallelizeLoopOverFragments && omp_numThreads > domain_numFragmentsPerBlock, s"the number of omp threads ($omp_numThreads) is higher than the number of fragments per block ($domain_numFragmentsPerBlock) -> this will result in idle omp threads!")
     Constraints.condWarn(omp_parallelizeLoopOverFragments && 0 != domain_numFragmentsPerBlock % omp_numThreads, s"the number of fragments per block ($domain_numFragmentsPerBlock) is not divisible by the number of omp threads ($omp_numThreads) -> this might result in a severe load imbalance!")
 
