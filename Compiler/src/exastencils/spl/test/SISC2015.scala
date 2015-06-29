@@ -1001,55 +1001,55 @@ object SICS2015 {
 
     /////////////////////////////////////////////////////// RANDOM ////////////
 
-    //    fwSampling = new FWHeuristic(featuresBinary)
-    //    binaryConfigs = fwSampling.getPoints()
-    //    println("----------binary FW(used as Random) " + binaryConfigs.size)
-    //
-    //    // numeric Sampling for domain partition
-    //    var rDesign = new RandomDesign(numericOptionsFirstSampling)
-    //    rDesign.numberOfPoints = 6
-    //    numericSamplings = rDesign.getPoints()
-    //
-    //    configurationsPreFiltered = (new Configuration).generateConfigurations(binaryConfigs, numericSamplings)
-    //    println("configsBeforeFiltering " + configurationsPreFiltered.size)
-    //    //       
-    //    configurationsFiltered = scala.collection.mutable.Set()
-    //    configurationsPreFiltered.foreach(x =>
-    //      {
-    //        if (dimToConsider == 2 && ccVSvc.equals("cc"))
-    //          problemDefinition2D_ConstCoeff(x.partialBaseConfig)
-    //        if (dimToConsider == 2 && ccVSvc.equals("vc"))
-    //          problemDefinition2D_VarCoeff(x.partialBaseConfig)
-    //        if (dimToConsider == 3 && ccVSvc.equals("cc"))
-    //          problemDefinition3D_ConstCoeff(x.partialBaseConfig)
-    //        if (dimToConsider == 3 && ccVSvc.equals("vc"))
-    //          problemDefinition3D_VarCoeff(x.partialBaseConfig)
-    //
-    //        configurationsFiltered.add(x)
-    //
-    //      })
-    //
-    //    println("configsAfterFiltering  " + configurationsFiltered.size)
-    //
-    //    rDesign = new RandomDesign(numericOptionsSecondSampling)
-    //    rDesign.numberOfPoints = 600
-    //    numericSamplings = rDesign.getPoints()
-    //    println("second sampling combinations " + numericSamplings.size)
-    //
-    //    var configurationsWithSecondSamplingRandom : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
-    //    configurationsFiltered.foreach { x =>
-    //      {
-    //        numericSamplings.foreach(y => {
-    //          var configCopy = x.copy();
-    //          configCopy.addNumericOptions(y)
-    //          if (this.derivedParameters2(configCopy))
-    //            configurationsWithSecondSamplingRandom.add(configCopy)
-    //        })
-    //
-    //      }
-    //    }
-    //
-    //    println("random configurations: " + configurationsWithSecondSamplingRandom.size)
+    fwSampling = new FWHeuristic(featuresBinary)
+    binaryConfigs = fwSampling.getPoints()
+    println("----------binary FW(used as Random) " + binaryConfigs.size)
+
+    // numeric Sampling for domain partition
+    var rDesign = new RandomDesign(numericOptionsFirstSampling.union(numericOptionsThirdSampling))
+    rDesign.numberOfPoints = 3000
+    numericSamplings = rDesign.getPoints()
+
+    configurationsPreFiltered = (new Configuration).generateConfigurations(binaryConfigs, numericSamplings)
+    println("configsBeforeFiltering " + configurationsPreFiltered.size)
+    //       
+    configurationsFiltered = scala.collection.mutable.Set()
+    configurationsPreFiltered.foreach(x =>
+      {
+        if (dimToConsider == 2 && ccVSvc.equals("cc"))
+          problemDefinition2D_ConstCoeff(x.partialBaseConfig)
+        if (dimToConsider == 2 && ccVSvc.equals("vc"))
+          problemDefinition2D_VarCoeff(x.partialBaseConfig)
+        if (dimToConsider == 3 && ccVSvc.equals("cc"))
+          problemDefinition3D_ConstCoeff(x.partialBaseConfig)
+        if (dimToConsider == 3 && ccVSvc.equals("vc"))
+          problemDefinition3D_VarCoeff(x.partialBaseConfig)
+
+        configurationsFiltered.add(x)
+
+      })
+
+    println("configsAfterFiltering  " + configurationsFiltered.size)
+
+    rDesign = new RandomDesign(numericOptionsSecondSampling)
+    rDesign.numberOfPoints = 3000
+    numericSamplings = rDesign.getPoints()
+    println("second sampling combinations " + numericSamplings.size)
+
+    var configurationsWithSecondSamplingRandom : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
+    configurationsFiltered.foreach { x =>
+      {
+        numericSamplings.foreach(y => {
+          var configCopy = x.copy();
+          configCopy.addNumericOptions(y)
+          if (this.derivedParameters(configCopy))
+            configurationsWithSecondSamplingRandom.add(configCopy)
+        })
+
+      }
+    }
+
+    println("random configurations: " + configurationsWithSecondSamplingRandom.size)
 
     // add derived features for debug perpuses 
     var featuresInOutput : scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
@@ -1228,10 +1228,10 @@ object SICS2015 {
     featuresInOutput.add("experimental_timerEnableCallStacks")
 
     giveConfigsAName(configurationsWiththirdSampling, "")
-    //    giveConfigsAName(configurationsWithSecondSamplingRandom, "_random")
+    giveConfigsAName(configurationsWithSecondSamplingRandom, "_random")
 
     IO.printAllResultsToOneFile(configurationsWiththirdSampling.toArray, "E:/newDomainPartition.csv", featuresInOutput.toArray)
-    //    IO.printAllResultsToOneFile(configurationsWithSecondSamplingRandom.toArray, "E:/newDomainPartition_random.csv", featuresInOutput.toArray)
+    IO.printAllResultsToOneFile(configurationsWithSecondSamplingRandom.toArray, "E:/newDomainPartition_random.csv", featuresInOutput.toArray)
 
     var blackList : scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
     blackList.add("num_points_per_dim")
@@ -1822,10 +1822,8 @@ object SICS2015 {
     config.partialBaseConfig.put("l3tmp_genGlobalOmega", false)
     config.partialBaseConfig.put("l3tmp_genSetableStencil", false)
     config.partialBaseConfig.put("l3tmp_genVectorFields", false)
-    config.partialBaseConfig.put("poly_fusionStrategy", 1)
+
     config.partialBaseConfig.put("poly_maximizeBandDepth", false)
-    config.partialBaseConfig.put("poly_maxConstantTerm", false)
-    config.partialBaseConfig.put("poly_maxCoefficient", false)
 
     config.partialBaseConfig.put("l3tmp_printFieldAtEnd", false)
     config.partialBaseConfig.put("l3tmp_initSolWithRand", false)
@@ -1903,7 +1901,7 @@ object SICS2015 {
       config.partialBaseConfig.put("l3tmp_useSlotVariables", "true")
 
     //Constraints.condEnsureValue(poly_optLevel_coarse, poly_optLevel_fine, poly_optLevel_coarse > poly_optLevel_fine, "optimization level for coarse grids must smaller or equal to the one for the fine levels")  
-    if (poly_optLevel_fine == 0) {
+    if (poly_optLevel_fine.equals("0")) {
       config.partialBaseConfig.put("poly_optLevel_coarse", "0")
     } else {
       config.partialBaseConfig.put("poly_optLevel_coarse", "1")
@@ -1930,7 +1928,6 @@ object SICS2015 {
     config.partialBaseConfig.put("ir_maxInliningSize", 10)
     config.partialBaseConfig.put("comm_strategyFragment", 6)
 
-    config.partialBaseConfig.put("poly_numFinestLevels", 6)
     config.partialBaseConfig.put("poly_tileSize_z", 1000000000)
     config.partialBaseConfig.put("poly_tileSize_w", 1000000000)
 
@@ -1939,8 +1936,8 @@ object SICS2015 {
 
     config.partialBaseConfig.put("l3tmp_genInvDiagStencil", false)
 
-    config.partialBaseConfig.put("l3tmp_genTemporalBlocking", true)
-    config.partialBaseConfig.put("l3tmp_genFMG", true)
+    config.partialBaseConfig.put("l3tmp_genTemporalBlocking", false)
+    config.partialBaseConfig.put("l3tmp_genFMG", false)
     config.partialBaseConfig.put("l3tmp_numVecDims", 1)
     config.partialBaseConfig.put("l3tmp_genEmbeddedDomain", false)
 
@@ -1950,6 +1947,8 @@ object SICS2015 {
     config.partialBaseConfig.put("l3tmp_genEmbeddedDomain", false)
     config.partialBaseConfig.put("l3tmp_kelvin_numSamples", 10)
     config.partialBaseConfig.put("l3tmp_kelvin_numHaloFrags", 2)
+
+    config.partialBaseConfig.put("poly_numFinestLevels", 2)
 
     config.partialBaseConfig.put("experimental_NeumannOrder", 2)
     config.partialBaseConfig.put("experimental_NeumannNormalize", false)

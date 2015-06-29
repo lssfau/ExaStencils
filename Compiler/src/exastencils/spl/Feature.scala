@@ -205,6 +205,10 @@ class Feature(name : String) {
   }
 
   def getRandomValue(seed : Int) : Double = {
+
+    if (this.name.equals("opt_unroll"))
+      print("")
+
     if (this.name.startsWith("domain_")) {
       return getRandomPowOf2Value(seed)
     }
@@ -213,7 +217,7 @@ class Feature(name : String) {
       return getRandomPowOf2Value(seed)
     }
 
-    if (this.name.equals("numNodes")) {
+    if (this.name.equals("sisc2015_numNodes")) {
       return getRandomPowOf2Value(seed)
     }
 
@@ -233,19 +237,14 @@ class Feature(name : String) {
 
   def getRandomPowOf2Value(seed : Int) : Double = {
     var rand : Random = new Random(seed)
-    var differentValues : Int = 7
+    var differentValues : Int = 2
 
     var valuesLocal : scala.collection.mutable.Set[Double] = scala.collection.mutable.Set()
 
-    valuesLocal.add(minValue)
-    valuesLocal.add(maxValue)
-
     var curr = minValue
-    for (a <- 1 to differentValues - 1) {
-      var curr = (Math.pow(2, (a - 1)))
-      if (curr <= maxValue) {
-        valuesLocal.add(curr)
-      }
+    while (curr <= maxValue) {
+      valuesLocal.add(curr)
+      curr = curr * 2;
     }
 
     var localArray = valuesLocal.toArray[Double]
@@ -272,7 +271,7 @@ class Feature(name : String) {
   def getRandomEqualDistributedValue(seed : Int) : Double = {
     var rand : Random = new Random(seed)
     var differentValues : Int = (((maxValue - minValue) / stepsize) + 1).toInt // we have to influce 
-    return rand.nextInt(differentValues).toDouble
+    return rand.nextInt(differentValues).toDouble + minValue
   }
 
   def getEqualDistributedValues(distinctValues : Int) : Array[Double] = {

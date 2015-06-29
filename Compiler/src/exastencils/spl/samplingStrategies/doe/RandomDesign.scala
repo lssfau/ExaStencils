@@ -17,6 +17,7 @@ class RandomDesign(numericFeaturs : scala.collection.mutable.Set[Feature]) {
       numericFeaturs.foreach(x => onePoint.put(x, x.getRandomValue(rand.nextInt())))
       resultPoints.add(onePoint)
     }
+    println(resultPoints.size)
     return resultPoints;
   }
 
