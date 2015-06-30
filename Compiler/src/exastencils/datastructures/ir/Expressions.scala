@@ -416,7 +416,7 @@ private object MinMaxPrinter {
       out << args(0)
 
     else if (Knowledge.supports_initializerList)
-      out << method << "({ " <<< (args, ", ") << " })"
+      out << method << "({" <<< (args, ",") << "})"
 
     else {
       for (i <- 0 until args.length - 1)
@@ -424,41 +424,40 @@ private object MinMaxPrinter {
       val it : Iterator[Expression] = args.iterator
       out << it.next()
       while (it.hasNext)
-        out << ", " << it.next() << ')'
+        out << ',' << it.next() << ')'
     }
   }
 }
 
 case class MinimumExpression(var args : ListBuffer[Expression]) extends Expression {
-  def this(m1 : Expression, m2 : Expression) = this(ListBuffer(m1, m2))
+  def this(varargs : Expression*) = this(varargs.to[ListBuffer])
   override def prettyprint(out : PpStream) : Unit = {
     MinMaxPrinter.prettyprintsb(out, args, "std::min")
   }
 }
 
 case class MaximumExpression(var args : ListBuffer[Expression]) extends Expression {
-  def this(m1 : Expression, m2 : Expression) = this(ListBuffer(m1, m2))
+  def this(varargs : Expression*) = this(varargs.to[ListBuffer])
   override def prettyprint(out : PpStream) : Unit = {
     MinMaxPrinter.prettyprintsb(out, args, "std::max")
   }
 }
 
 case class FunctionCallExpression(var name : String, var arguments : ListBuffer[Expression]) extends Expression {
-  def this(name : String, argument : Expression) = this(name, ListBuffer(argument))
+  def this(name : String, args : Expression*) = this(name, args.to[ListBuffer])
   def this(name : String) = this(name, ListBuffer[Expression]())
 
   override def prettyprint(out : PpStream) : Unit = out << name << '(' <<< (arguments, ", ") << ')'
 }
 
 case class InitializerList(var arguments : ListBuffer[Expression]) extends Expression {
-  def this(argument : Expression) = this(ListBuffer(argument))
+  def this(args : Expression*) = this(args.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = out << "{ " <<< (arguments, ", ") << " }"
 }
 
 case class MemberFunctionCallExpression(var objectName : Expression, var name : String, var arguments : ListBuffer[Expression]) extends Expression {
-  def this(objectName : Expression, name : String, argument : Expression) = this(objectName, name, ListBuffer(argument))
-  def this(objectName : Expression, name : String) = this(objectName, name, ListBuffer[Expression]())
+  def this(objectName : Expression, name : String, args : Expression*) = this(objectName, name, args.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = out << objectName << '.' << name << '(' <<< (arguments, ", ") << ')'
 }
