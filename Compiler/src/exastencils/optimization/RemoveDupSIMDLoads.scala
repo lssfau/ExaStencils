@@ -48,11 +48,14 @@ private[optimization] final class Analyze extends Collector {
 
   override def enter(node : Node) : Unit = {
     node match {
-      case ForLoopStatement(AssignmentStatement(VariableAccess(lVar, _), start, "="), cond,
-        AssignmentStatement(VariableAccess(lVar2, _), IntegerConstant(incr), "+="), _, _) if (lVar == lVar2) =>
+      case ForLoopStatement(VariableDeclarationStatement(IntegerDatatype(), lVar, Some(start)),
+        LowerExpression(VariableAccess(lVar3, _), end),
+        AssignmentStatement(VariableAccess(lVar2, _), IntegerConstant(incr), "+="),
+        _, _) if (lVar == lVar2 && lVar2 == lVar3) =>
         if (node.removeAnnotation(Vectorization.VECT_ANNOT).isDefined) {
           preLoopDecls = new ListBuffer[Statement]
-          node.annotate(NEW_DECLS_COND_ANNOT, (preLoopDecls, Duplicate(cond)))
+          val newCond = LowerExpression(Duplicate(start), Duplicate(end))
+          node.annotate(NEW_DECLS_COND_ANNOT, (preLoopDecls, newCond))
           loads = new HashMap[(Expression, HashMap[Expression, Long]), VariableDeclarationStatement]
           upLoopVar = new UpdateLoopVar(lVar, incr, start)
           hasOMPPragma = node.isInstanceOf[OMP_PotentiallyParallel]

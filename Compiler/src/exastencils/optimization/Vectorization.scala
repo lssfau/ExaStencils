@@ -156,22 +156,21 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
   private def containsVarAcc(node : Node, varName : String) : Boolean = {
     var found = false
-    object Search extends QuietDefaultStrategy("Find VariableAccess...") {
-      this += new Transformation("seaching...", {
-        case acc @ VariableAccess(name, _) if (name == varName) =>
-          found = true
-          acc
-      })
-    }
+    val search = new QuietDefaultStrategy("Find VariableAccess...")
+    search += new Transformation("seaching...", {
+      case acc @ VariableAccess(name, _) if (name == varName) =>
+        found = true
+        acc
+    })
     // ensure node itself is found, too
-    Search.applyStandalone(Root(ListBuffer(node)))
+    search.applyStandalone(Root(ListBuffer(node)))
     return found
   }
 
-  private def vectorizeLoop(oldLoop : ForLoopStatement, itName : String, begin : Expression, endExcl : Expression,
+  private def vectorizeLoop(oldLoop : ForLoopStatement, itVar : String, begin : Expression, endExcl : Expression,
     incr : Long, body : ListBuffer[Statement], reduction : Option[Reduction]) : Statement = {
 
-    val ctx = new LoopCtx(itName, incr)
+    val ctx = new LoopCtx(itVar, incr)
     var postLoopStmt : Statement = null
     if (reduction.isDefined) {
       val target = reduction.get.target
@@ -267,57 +266,69 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     for (stmt <- body)
       vectorizeStmt(stmt, ctx)
 
-    def itVar = VariableAccess(itName, Some(IntegerDatatype()))
-    val res = new ListBuffer[Statement]()
+    def itVarAcc = VariableAccess(itVar, Some(IntegerDatatype()))
+    val newIncr : Long = incr * vs
 
-    res += new VariableDeclarationStatement(IntegerDatatype(), itName, Some(Duplicate(begin)))
+    oldLoop.begin = VariableDeclarationStatement(IntegerDatatype(), itVar, Some(Unrolling.startVarAcc))
+    oldLoop.end = LowerExpression(itVarAcc, Unrolling.intermVarAcc)
+    oldLoop.inc = AssignmentStatement(itVarAcc, IntegerConstant(newIncr), "+=")
+    oldLoop.body = ctx.vectStmts
 
-    val lowerName = "_lower"
-    def lower = VariableAccess(lowerName, Some(IntegerDatatype()))
-    res += new VariableDeclarationStatement(IntegerDatatype(), lowerName, Some(begin))
-
-    val upperName = "_upper"
-    def upper = VariableAccess(upperName, Some(IntegerDatatype()))
-    res += new VariableDeclarationStatement(IntegerDatatype(), upperName, Some(Duplicate(endExcl)))
+    var postLoop : Statement = null
+    val annot = oldLoop.removeAnnotation(Unrolling.UNROLLED_ANNOT)
+    val unrolled : Boolean = annot.isDefined
+    var res : ListBuffer[Statement] = null
+    if (unrolled) {
+      res = new ListBuffer[Statement]()
+    } else {
+      // old AST will be replaced completely, so we can reuse the body once here (and duplicate later)
+      val (boundsDecls, postLoop_) : (ListBuffer[Statement], Statement) =
+        Unrolling.getBoundsDeclAndPostLoop(itVar, begin, endExcl, incr, body, Duplicate(reduction))
+      postLoop = postLoop_
+      res = boundsDecls
+    }
 
     if (Knowledge.data_alignFieldPointers) { // no need to ensure alignment of iteration variable if data is not aligned
-      res += new AssignmentStatement(upper, new MinimumExpression(upper,
-        lower + ((IntegerConstant(vs) - (Duplicate(alignmentExpr) Mod IntegerConstant(vs))) Mod IntegerConstant(vs))))
-      res += new ForLoopStatement(NullStatement,
-        LowerExpression(itVar, upper),
-        AssignmentStatement(itVar, IntegerConstant(incr), "+="),
+      val preEndVar : String = "_preEnd"
+      def preEndVarAcc = new VariableAccess(preEndVar, Some(IntegerDatatype()))
+
+      val wrappedAlignExpr = ExpressionStatement(Duplicate(alignmentExpr))
+      val replItVar = new QuietDefaultStrategy("Replace iteration variable...")
+      replItVar += new Transformation("seaching...", {
+        case VariableAccess(name, _) if (name == itVar) =>
+          Unrolling.startVarAcc
+      })
+      // ensure node itself is found, too
+      replItVar.applyStandalone(wrappedAlignExpr)
+      val preEndExpr = new MinimumExpression(Unrolling.endVarAcc,
+        Unrolling.startVarAcc + ((IntegerConstant(vs) - (wrappedAlignExpr.expression Mod IntegerConstant(vs))) Mod IntegerConstant(vs)))
+      res += new VariableDeclarationStatement(IntegerDatatype(), preEndVar, Some(preEndExpr))
+
+      res += new ForLoopStatement(VariableDeclarationStatement(IntegerDatatype(), itVar, Some(Unrolling.startVarAcc)),
+        LowerExpression(itVarAcc, preEndVarAcc),
+        AssignmentStatement(itVarAcc, IntegerConstant(incr), "+="),
         Duplicate(body))
 
-      res += new AssignmentStatement(lower, upper, "=")
-      res += new AssignmentStatement(upper, Duplicate(endExcl), "=")
+      res += new AssignmentStatement(Unrolling.startVarAcc, preEndVarAcc, "=")
+    }
+    var intermDecl : VariableDeclarationStatement = null
+    if (unrolled) {
+      intermDecl = annot.get.value.asInstanceOf[VariableDeclarationStatement]
+      intermDecl.expression = Some(Unrolling.getIntermExpr(newIncr))
+    } else {
+      intermDecl = Unrolling.getIntermDecl(newIncr)
+      res += intermDecl
     }
 
     res ++= ctx.preLoopStmts
-
-    // no rollback after this point allowed!
-    // reuse oldLoop to preserve all traits
-    // set first value (again) to allow omp parallelization
-    val annot : Option[Annotation] = oldLoop.removeAnnotation(Unrolling.NO_REM_ANNOT)
-    val oldOffset : Long = if (annot.isDefined) annot.get.value.asInstanceOf[Long] else 0L
-    val endOffset : Long = incr * Knowledge.simd_vectorSize - 1 - oldOffset
-    oldLoop.begin = AssignmentStatement(itVar, lower)
-    oldLoop.end = LowerExpression(itVar, SubtractionExpression(upper, IntegerConstant(endOffset)))
-    oldLoop.inc = AssignmentStatement(itVar, IntegerConstant(incr * Knowledge.simd_vectorSize), "+=")
-    oldLoop.body = ctx.vectStmts
-    oldLoop.annotate(Unrolling.NO_REM_ANNOT, endOffset)
-    oldLoop.annotate(Vectorization.VECT_ANNOT)
-    if (oldLoop.isInstanceOf[OMP_PotentiallyParallel]) // allow omp parallelization
-      oldLoop.asInstanceOf[OMP_PotentiallyParallel].addOMPStatements += "lastprivate(" + itName + ')'
     res += oldLoop
-
     if (postLoopStmt != null)
       res += postLoopStmt
+    if (!unrolled)
+      res += postLoop
 
-    res += new ForLoopStatement(NullStatement,
-      LowerExpression(itVar, upper),
-      AssignmentStatement(itVar, IntegerConstant(incr), "+="),
-      body) // old AST will be replaced completely, so we can reuse the body once here (we cloned above)
-
+    oldLoop.annotate(Vectorization.VECT_ANNOT)
+    oldLoop.annotate(Unrolling.UNROLLED_ANNOT, intermDecl)
     return new Scope(res)
   }
 
