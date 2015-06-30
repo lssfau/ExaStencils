@@ -226,6 +226,8 @@ object FeatureModel {
     *
     */
   def addFeature_KnowledgeFile(content : String) : Unit = {
+    if (content.contains("112~1000000000"))
+      println()
     var parts = content.split("//")
     var name = parts(0).split(":")(0).trim().split(" ")(1)
     var dataType = parts(0).split(":")(1).trim().split(" ")(0)
@@ -248,6 +250,12 @@ object FeatureModel {
     } else {
       // non-boolean features
       var stepsize = 1.0
+
+      var computation = name + "+1"
+      if (values.contains("§")) {
+        computation = (values.split("[§]")(1).toString())
+        values = values.split("[§]")(0).trim()
+      }
       if (values.contains("$")) {
         stepsize = (values.split("[$]")(1).toString()).toDouble
         values = values.split("[$]")(0).trim()
@@ -284,18 +292,14 @@ object FeatureModel {
             feat.maxValue = field.getInt(Knowledge).toDouble
           }
           feat.stepsize = stepsize
-
-          if (!feat.has5Values()) {
+          feat.valueCalculation = computation
+          if (name.equals("sisc2015_firstDim"))
+            print()
+          println(feat.identifier)
+          // TODO annotation at the features whether the "numeric" feature is metric or not
+          if (!feat.hasNValues(3) || feat.identifier.equals("poly_optLevel_fine")) {
             feat.isXorFeature = true
-            var valuesAsArray : scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
-            println("  " + feat.identifier)
-            var curr = feat.minValue
-            while (curr <= feat.maxValue) {
-              valuesAsArray.add(curr + "")
-              curr += stepsize
-            }
-            feat.values = valuesAsArray.toArray
-
+            feat.values = feat.getAllValuesAsString().toArray
           }
 
         } else {

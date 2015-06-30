@@ -3,6 +3,7 @@ package exastencils.spl
 import scala.collection.Set
 import scala.util.Sorting
 import scala.util.Random
+import exastencils.spl.learning.FFS_Expression
 
 class Feature(name : String) {
   var identifier = name
@@ -23,6 +24,8 @@ class Feature(name : String) {
   var maxValue : Double = 0.0
   var defaultValue : String = null
   var stepsize : Double = 1.0
+
+  var valueCalculation : String = "n +1"
 
   var values : Array[String] = Array()
 
@@ -159,7 +162,7 @@ class Feature(name : String) {
     if (!this.isNumerical)
       return false
 
-    if (!this.has5Values)
+    if (!this.hasNValues(5))
       return false
 
     if (!this.hasValuesRange)
@@ -168,11 +171,42 @@ class Feature(name : String) {
     return true
   }
 
-  def has5Values() : Boolean = {
-    if (minValue + 4 * stepsize <= maxValue) {
-      return true
+  def hasNValues(n : Int) : Boolean = {
+    var domain : scala.collection.mutable.Map[String, exastencils.spl.Feature] = scala.collection.mutable.Map()
+    domain.put(this.name, this)
+    var exp : FFS_Expression = new FFS_Expression(domain, valueCalculation)
+    var validValues = 1
+    var curr = minValue
+
+    while (curr <= maxValue && validValues < n) {
+      var map : scala.collection.mutable.Map[Feature, Double] = scala.collection.mutable.Map()
+      map.put(this, curr)
+      curr = exp.evaluationOfRPN(map)
+      if (curr <= maxValue)
+        validValues += 1
     }
-    return false
+    if (validValues < n)
+      return false
+
+    return true
+  }
+
+  def getAllValuesAsString() : scala.collection.mutable.Set[String] = {
+    var values : scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
+    var domain : scala.collection.mutable.Map[String, exastencils.spl.Feature] = scala.collection.mutable.Map()
+    domain.put(this.name, this)
+    var exp : FFS_Expression = new FFS_Expression(domain, valueCalculation)
+    var curr = minValue
+
+    while (curr <= maxValue) {
+      var map : scala.collection.mutable.Map[Feature, Double] = scala.collection.mutable.Map()
+      map.put(this, curr)
+      values.add(curr + "")
+      curr = exp.evaluationOfRPN(map)
+
+    }
+
+    return values
   }
 
   def getSampledValue(distinctValues : Int) : Array[Double] = {

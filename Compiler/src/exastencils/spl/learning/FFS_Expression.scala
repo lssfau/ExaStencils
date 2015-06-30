@@ -212,6 +212,15 @@ class FFS_Expression(featuresOfDomain : scala.collection.mutable.Map[String, Fea
     return 0.0
   }
 
+  def getValueOfToken(config : scala.collection.mutable.Map[Feature, Double], token : String) : Double = {
+    var curr = token.trim
+    if (curr.forall(x => x.isDigit || x.equals('.'))) {
+      return curr.toDouble
+    }
+    return config(featuresOfDomain(curr))
+
+  }
+
   /**
     *
     * This method performs an evaluation the expression for a given configuration. Thus it evaluates the expression using the feature values used in the
@@ -223,6 +232,52 @@ class FFS_Expression(featuresOfDomain : scala.collection.mutable.Map[String, Fea
     *
     */
   def evaluationOfRPN(config : Configuration) : Double = {
+    var counter = 0
+
+    var stack : scala.collection.mutable.Stack[Double] = scala.collection.mutable.Stack()
+
+    if (expressionArray.length == 0)
+      return 1
+
+    while (counter < expressionArray.length) {
+      var curr = expressionArray(counter)
+      counter += 1
+      if (curr.length() == 0)
+        println("error")
+
+      if (!isOperatorEval(curr))
+        stack.push(getValueOfToken(config, curr))
+      else {
+
+        if (curr.equals("+")) {
+          var rightHandSide = stack.pop
+          var leftHandSide = stack.pop
+          stack.push(leftHandSide + rightHandSide)
+        }
+        if (curr.equals("*")) {
+          var rightHandSide = stack.pop
+          var leftHandSide = stack.pop
+          stack.push(leftHandSide * rightHandSide)
+        }
+        if (curr.equals("/")) {
+          var rightHandSide = stack.pop
+          var leftHandSide = stack.pop
+          stack.push(leftHandSide / rightHandSide)
+        }
+
+        if (curr.equals("]")) {
+          var leftHandSide = stack.pop
+          if (leftHandSide == 0.0)
+            stack.push(0.0)
+          else
+            stack.push(Math.log10(leftHandSide))
+        }
+      }
+    }
+    return stack.pop
+  }
+
+  def evaluationOfRPN(config : scala.collection.mutable.Map[Feature, Double]) : Double = {
     var counter = 0
 
     var stack : scala.collection.mutable.Stack[Double] = scala.collection.mutable.Stack()

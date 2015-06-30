@@ -1231,7 +1231,7 @@ object SICS2015 {
     giveConfigsAName(configurationsWithSecondSamplingRandom, "_random")
 
     IO.printAllResultsToOneFile(configurationsWiththirdSampling.toArray, "E:/newDomainPartition.csv", featuresInOutput.toArray)
-    IO.printAllResultsToOneFile(configurationsWithSecondSamplingRandom.toArray, "E:/newDomainPartition_random.csv", featuresInOutput.toArray)
+    IO.printAllResultsToOneFile(configurationsWithSecondSamplingRandom.toArray, "E:/newDomainPartition_random.sisc2015_firstDimcsv", featuresInOutput.toArray)
 
     var blackList : scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
     blackList.add("num_points_per_dim")

@@ -48,8 +48,8 @@ object Knowledge {
   // === Layer 2 ===
 
   // TODO: check if these parameters will be necessary or can be implicitly assumed once an appropriate field collection is in place
-  var minLevel : Int = 0 // [0~4]  // nonSISC [0~12] // @constant // the coarsest level
-  var maxLevel : Int = 6 // [4~12] // @constant // the finest level
+  var minLevel : Int = 0 // [0~4§minLevel+1]  // nonSISC [0~12] // @constant // the coarsest level
+  var maxLevel : Int = 6 // [4~12§maxLevel+1] // @constant // the finest level
   def numLevels : Int = (maxLevel - minLevel + 1) // the number of levels -> this assumes that the cycle descents to the coarsest level
 
   // --- Domain Decomposition ---
@@ -72,9 +72,9 @@ object Knowledge {
   def domain_numFragmentsTotal : Int = domain_numBlocks * domain_numFragmentsPerBlock
 
   // the length of each fragment per dimension - this will either be one or specify the length in unit-fragments, i.e. the number of aggregated fragments per dimension
-  var domain_fragmentLength_x : Int = 1 // [1~64]
-  var domain_fragmentLength_y : Int = 1 // [1~64]
-  var domain_fragmentLength_z : Int = 1 // [1~64]
+  var domain_fragmentLength_x : Int = 1 // [1~64§domain_fragmentLength_x*2]
+  var domain_fragmentLength_y : Int = 1 // [1~64§domain_fragmentLength_y*2]
+  var domain_fragmentLength_z : Int = 1 // [1~64§domain_fragmentLength_z*2]
   def domain_fragmentLengthAsVec : Array[Int] = Array(domain_fragmentLength_x, domain_fragmentLength_y, domain_fragmentLength_z)
 
   /// specific flags for setting rectangular domains
@@ -88,19 +88,19 @@ object Knowledge {
   var domain_rect_numBlocks_z : Int = 1
 
   // number of fragments to be generated for each block per dimension - this will usually be one or be equal to the number of OMP threads per dimension
-  var domain_rect_numFragsPerBlock_x : Int = 1 // [1~64]
-  var domain_rect_numFragsPerBlock_y : Int = 1 // [1~64]
-  var domain_rect_numFragsPerBlock_z : Int = 1 // [1~64]
+  var domain_rect_numFragsPerBlock_x : Int = 1 // [1~64§domain_rect_numFragsPerBlock_x*2]
+  var domain_rect_numFragsPerBlock_y : Int = 1 // [1~64§domain_rect_numFragsPerBlock_y*2]
+  var domain_rect_numFragsPerBlock_z : Int = 1 // [1~64§domain_rect_numFragsPerBlock_z*2]
 
   // options for SISC Paper  
-  var sisc2015_numNodes : Int = 64 // [16~64]
-  var sisc2015_ranksPerNode : Int = 64 // [16~64]
+  var sisc2015_numNodes : Int = 64 // [16~64§sisc2015_numNodes*2]
+  var sisc2015_ranksPerNode : Int = 64 // [16~64§sisc2015_ranksPerNode*2]
   var sisc2015_firstDim : Int = 1 // [0~1]
   var sisc2015_secondDim : Int = 1 // [0~1]
 
-  var sisc2015_numOMP_x : Int = 2 // [1~64]
-  var sisc2015_numOMP_y : Int = 2 // [1~64]
-  var sisc2015_numOMP_z : Int = 2 // [1~64]
+  var sisc2015_numOMP_x : Int = 2 // [1~64§sisc2015_numOMP_x*2]
+  var sisc2015_numOMP_y : Int = 2 // [1~64§sisc2015_numOMP_y*2]
+  var sisc2015_numOMP_z : Int = 2 // [1~64§sisc2015_numOMP_z*2]
   // options for SISC Paper ENDE
 
   // the total number of fragments to be generated per dimension
@@ -183,7 +183,7 @@ object Knowledge {
   var omp_parallelizeLoopOverFragments : Boolean = true // [true|false] // specifies if loops over fragments may be parallelized with omp if marked correspondingly
   var omp_parallelizeLoopOverDimensions : Boolean = false // [true|false] // specifies if loops over dimensions may be parallelized with omp if marked correspondingly
   var omp_useCollapse : Boolean = false // [true|false] // if true the 'collapse' directive may be used in omp for regions; this will only be done if the minimum omp version supports this
-  var omp_minWorkItemsPerThread : Int = 400 // [1~inf] // threshold specifying which loops yield enough workload to amortize the omp overhead
+  var omp_minWorkItemsPerThread : Int = 400 // [1~inf§omp_minWorkItemsPerThread+1] // threshold specifying which loops yield enough workload to amortize the omp overhead
   def omp_requiresCriticalSections : Boolean = { // true if the chosen compiler / mpi version requires critical sections to be marked explicitly
     targetCompiler match {
       case "MSVC"            => true
@@ -210,13 +210,13 @@ object Knowledge {
   //   2: optimize the loop nest by trying to minimze the dependences specified by poly_optimizeDeps
   //   3: tile the optimized loop nest using poly_tileSize_{x|y|z|w}  (slowest)
   // TODO: Alex: range of the following options
-  var poly_optLevel_fine : Int = 0 // [0~3] // poly opt-level for poly_numFinestLevels finest fields
-  var poly_optLevel_coarse : Int = 0 // [0~poly_optLevel_fine] // polyhedral optimization level for coarsest fields  0: disable (fastest);  3: aggressive (slowest)
-  var poly_numFinestLevels : Int = 2 // [1~numLevels] // number of levels that should be optimized in PolyOpt (starting from the finest)
-  var poly_tileSize_x : Int = 1000000000 // [112~1000000000 $32]
-  var poly_tileSize_y : Int = 1000000000 // [16~1000000000 $32]
-  var poly_tileSize_z : Int = 1000000000 // [16~1000000000 $32]
-  var poly_tileSize_w : Int = 1000000000 // [16~1000000000 $32]
+  var poly_optLevel_fine : Int = 0 // [0~3§poly_optLevel_fine+1] // poly opt-level for poly_numFinestLevels finest fields
+  var poly_optLevel_coarse : Int = 0 // [0~poly_optLevel_fine§poly_optLevel_coarse+1] // polyhedral optimization level for coarsest fields  0: disable (fastest);  3: aggressive (slowest)
+  var poly_numFinestLevels : Int = 2 // [1~numLevels§poly_numFinestLevels+1] // number of levels that should be optimized in PolyOpt (starting from the finest)
+  var poly_tileSize_x : Int = 1000000000 // [112~1000000000 $32§poly_tileSize_x+32]
+  var poly_tileSize_y : Int = 1000000000 // [16~1000000000 $32§poly_tileSize_y+32]
+  var poly_tileSize_z : Int = 1000000000 // [16~1000000000 $32§poly_tileSize_z+32]
+  var poly_tileSize_w : Int = 1000000000 // [16~1000000000 $32§poly_tileSize_w+32]
   var poly_tileOuterLoop : Boolean = false // [true|false] // specify separately if the outermost loop should be tiled
   var poly_scheduleAlgorithm : String = "isl" // [isl|feautrier] // choose which schedule algorithm should be used in PolyOpt
   var poly_optimizeDeps : String = "raw" // [all|raw|rar] // specifies which dependences should be optimized; "all" means all validity dependences (raw, war, waw)
@@ -242,9 +242,9 @@ object Knowledge {
   var l3tmp_cgs : String = "CG" // [CG] // the coarse grid solver to be generated
   var l3tmp_maxNumCGSSteps : Int = 512 // maximum number of coarse grid solver iterations
   var l3tmp_numRecCycleCalls : Int = 1 // [1~2] // 1 corresponds to v-cycles while 2 corresponds to w-cycles
-  var l3tmp_numPre : Int = 3 // [0~4] // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
-  var l3tmp_numPost : Int = 3 // [0~4] // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
-  var l3tmp_omega : Double = 1.0 // [0.1~2.0$0.1] // [0.1-10.0] // the relaxation parameter to be used for the l3tmp_smoother
+  var l3tmp_numPre : Int = 3 // [0~4§l3tmp_numPre+1] // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
+  var l3tmp_numPost : Int = 3 // [0~4§l3tmp_numPost+1] // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
+  var l3tmp_omega : Double = 1.0 // [0.1~2.0$0.1§l3tmp_omega+0.1] // [0.1-10.0] // the relaxation parameter to be used for the l3tmp_smoother
   var l3tmp_genStencilStencilConv : Boolean = false // [true|false] // tests stencil-stencil convolutions by using RAP instead of A
   var l3tmp_genStencilFields : Boolean = false // [true|false] // generates stencil fields that are used to store stencils of A (or RAP if l3tmp_genStencilStencilConv is true)
   var l3tmp_genInvDiagStencil : Boolean = false // [true|false] // generates a separate stencil (field) for inverse ( diag ( laplace ) ) and uses it in the smoother
