@@ -23,7 +23,6 @@ class Feature(name : String) {
   var minValue : Double = 0.0
   var maxValue : Double = 0.0
   var defaultValue : String = null
-  var stepsize : Double = 1.0
 
   var valueCalculation : String = "n +1"
 
@@ -101,8 +100,9 @@ class Feature(name : String) {
       return valuesAsDouble((valuesAsDouble.length / 2).asInstanceOf[Int]).asInstanceOf[Double]
     }
 
-    var numberOfValues = maxValue - minValue / stepsize
-    return minValue + stepsize * ((numberOfValues / 2).toDouble)
+    var allValues = getAllValues().toArray
+
+    return allValues(allValues.size / 2)
   }
 
   def getMinValue() : Double = {
@@ -142,9 +142,15 @@ class Feature(name : String) {
       upperValue = values(i).toDouble
 
     } else {
+      var values : scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
+      var domain : scala.collection.mutable.Map[String, exastencils.spl.Feature] = scala.collection.mutable.Map()
+      domain.put(this.name, this)
+      var exp : FFS_Expression = new FFS_Expression(domain, valueCalculation)
       while (value > curr) {
         lowerValue = curr
-        curr += stepsize
+        var map : scala.collection.mutable.Map[Feature, Double] = scala.collection.mutable.Map()
+        map.put(this, curr)
+        curr = exp.evaluationOfRPN(map)
       }
       upperValue = curr
     }
@@ -202,6 +208,24 @@ class Feature(name : String) {
       var map : scala.collection.mutable.Map[Feature, Double] = scala.collection.mutable.Map()
       map.put(this, curr)
       values.add(curr + "")
+      curr = exp.evaluationOfRPN(map)
+
+    }
+
+    return values
+  }
+
+  def getAllValues() : scala.collection.mutable.Set[Double] = {
+    var values : scala.collection.mutable.SortedSet[Double] = scala.collection.mutable.SortedSet()
+    var domain : scala.collection.mutable.Map[String, exastencils.spl.Feature] = scala.collection.mutable.Map()
+    domain.put(this.name, this)
+    var exp : FFS_Expression = new FFS_Expression(domain, valueCalculation)
+    var curr = minValue
+
+    while (curr <= maxValue) {
+      var map : scala.collection.mutable.Map[Feature, Double] = scala.collection.mutable.Map()
+      map.put(this, curr)
+      values.add(curr)
       curr = exp.evaluationOfRPN(map)
 
     }
@@ -304,28 +328,29 @@ class Feature(name : String) {
 
   def getRandomEqualDistributedValue(seed : Int) : Double = {
     var rand : Random = new Random(seed)
-    var differentValues : Int = (((maxValue - minValue) / stepsize) + 1).toInt // we have to influce 
-    return rand.nextInt(differentValues).toDouble + minValue
+    var allValues = getAllValues().toArray
+    return allValues(rand.nextInt(allValues.length))
   }
 
   def getEqualDistributedValues(distinctValues : Int) : Array[Double] = {
     var valuesLocal : Array[Double] = Array.ofDim[Double](distinctValues)
 
-    valuesLocal(0) = (minValue)
-    valuesLocal(distinctValues - 1) = (maxValue)
+    var allValues = getAllValues().toArray
+
+    valuesLocal(0) = allValues(0)
+    valuesLocal(distinctValues - 1) = allValues(allValues.length - 1)
 
     // -2 because we already considered the min and maximum value, +1 we start with 0
     var stepsBetweenValues = numberOfValues / (distinctValues - 2 + 1)
 
     for (a <- 1 to distinctValues - 2) {
-      valuesLocal(a) = (minValue + (stepsize * stepsBetweenValues * a))
+      valuesLocal(a) = allValues(stepsBetweenValues * a)
     }
     return valuesLocal;
   }
 
   // TODO   
   def getPowOf2Values(distinctValues : Int) : Array[Double] = {
-    //    println(distinctValues)
     var valuesLocal : scala.collection.mutable.Set[Double] = scala.collection.mutable.Set()
 
     valuesLocal.add(minValue)
@@ -379,7 +404,7 @@ class Feature(name : String) {
   }
 
   def numberOfValues() : Int = {
-    return ((maxValue - minValue) / stepsize).toInt
+    return this.getAllValuesAsString().size
   }
 
   override def hashCode() : Int = this.identifier.hashCode();

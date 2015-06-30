@@ -291,7 +291,6 @@ object FeatureModel {
             field.setAccessible(true)
             feat.maxValue = field.getInt(Knowledge).toDouble
           }
-          feat.stepsize = stepsize
           feat.valueCalculation = computation
           if (name.equals("sisc2015_firstDim"))
             print()
