@@ -53,8 +53,7 @@ private final class ArrayBases(val arrayName : String) {
 
   def addToDecls(decls : ListBuffer[Statement]) : Unit = {
     for ((_, (name : String, init : Expression)) <- inits)
-      decls += VariableDeclarationStatement(
-        ConstPointerDatatype(RealDatatype), name, Some(UnaryExpression(UnaryOperators.AddressOf, init)))
+      decls += new VariableDeclarationStatement(ConstPointerDatatype(RealDatatype), name, UnaryExpression(UnaryOperators.AddressOf, init))
   }
 }
 
@@ -96,7 +95,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
             varA
         })
       }
-      Search.applyStandalone(new ReturnStatement(Some(expr))) // wrap to ensure ALL nodes of expr are visited
+      Search.applyStandalone(new ReturnStatement(expr)) // wrap to ensure ALL nodes of expr are visited
       return res
     }
 

@@ -113,7 +113,7 @@ private final object CreateVariableAccesses extends PartialFunction[Node, Transf
         case StringConstant(name)    => name
         case VariableAccess(name, _) => name
       }
-    return VariableAccess(varr, Some(typee))
+    return new VariableAccess(varr, typee)
   }
 }
 

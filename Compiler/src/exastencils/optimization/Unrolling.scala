@@ -20,22 +20,22 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
   private[optimization] final val intermVar : String = "_intermediate"
   private[optimization] final val endVar : String = "_end"
 
-  private[optimization] def startVarAcc = new VariableAccess(startVar, Some(IntegerDatatype))
-  private[optimization] def intermVarAcc = VariableAccess(intermVar, Some(IntegerDatatype))
-  private[optimization] def endVarAcc = new VariableAccess(endVar, Some(IntegerDatatype))
+  private[optimization] def startVarAcc = new VariableAccess(startVar, IntegerDatatype)
+  private[optimization] def intermVarAcc = new VariableAccess(intermVar, IntegerDatatype)
+  private[optimization] def endVarAcc = new VariableAccess(endVar, IntegerDatatype)
 
   private[optimization] def getBoundsDeclAndPostLoop(itVar : String, start : Expression, endExcl : Expression, oldIncr : Long,
     body : ListBuffer[Statement], reduction : Option[Reduction]) : (ListBuffer[Statement], Statement) = {
 
-    def itVarAcc = new VariableAccess(itVar, Some(IntegerDatatype))
+    def itVarAcc = new VariableAccess(itVar, IntegerDatatype)
 
     val boundsDecls = new ListBuffer[Statement]()
-    boundsDecls += new VariableDeclarationStatement(IntegerDatatype, startVar, Some(start))
-    boundsDecls += new VariableDeclarationStatement(IntegerDatatype, endVar, Some(endExcl))
+    boundsDecls += new VariableDeclarationStatement(IntegerDatatype, startVar, start)
+    boundsDecls += new VariableDeclarationStatement(IntegerDatatype, endVar, endExcl)
 
-    val postBegin = VariableDeclarationStatement(IntegerDatatype, itVar, Some(intermVarAcc))
-    val postEnd = LowerExpression(itVarAcc, endVarAcc)
-    val postIncr = AssignmentStatement(itVarAcc, IntegerConstant(oldIncr), "+=")
+    val postBegin = new VariableDeclarationStatement(IntegerDatatype, itVar, intermVarAcc)
+    val postEnd = new LowerExpression(itVarAcc, endVarAcc)
+    val postIncr = new AssignmentStatement(itVarAcc, IntegerConstant(oldIncr), "+=")
 
     val postLoop = new ForLoopStatement(postBegin, postEnd, postIncr, body, reduction)
 
@@ -43,7 +43,7 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
   }
 
   private[optimization] def getIntermDecl(newIncr : Long) : VariableDeclarationStatement = {
-    return new VariableDeclarationStatement(IntegerDatatype, intermVar, Some(getIntermExpr(newIncr)))
+    return new VariableDeclarationStatement(IntegerDatatype, intermVar, getIntermExpr(newIncr))
   }
 
   def getIntermExpr(newIncr : Long) : Expression = {
@@ -84,9 +84,9 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
     val intermExpr = new MaximumExpression(endVarAcc - ((endVarAcc - startVarAcc) Mod incr), startVarAcc)
 
     if (writeDecls) {
-      stmts += new VariableDeclarationStatement(IntegerDatatype, startVar, Some(lower))
-      stmts += new VariableDeclarationStatement(IntegerDatatype, endVar, Some(upperExcl))
-      stmts += new VariableDeclarationStatement(IntegerDatatype, intermVar, Some(intermExpr))
+      stmts += new VariableDeclarationStatement(IntegerDatatype, startVar, lower)
+      stmts += new VariableDeclarationStatement(IntegerDatatype, endVar, upperExcl)
+      stmts += new VariableDeclarationStatement(IntegerDatatype, intermVar, intermExpr)
     } else
       stmts += new AssignmentStatement(intermVarAcc, intermExpr, "=")
   }
@@ -115,7 +115,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     val loop = node.asInstanceOf[ForLoopStatement with OptimizationHint]
 
     var itVar : String = null
-    def itVarAcc = VariableAccess(itVar, Some(IntegerDatatype))
+    def itVarAcc = new VariableAccess(itVar, IntegerDatatype)
     var start : Expression = null
     var endExcl : Expression = null
     var oldStride : Long = 0
@@ -135,9 +135,9 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     }
 
     val oldBody = Duplicate(loop.body) // duplicate for later use in post loop
-    loop.begin = VariableDeclarationStatement(IntegerDatatype, itVar, Some(Unrolling.startVarAcc))
-    loop.end = LowerExpression(itVarAcc, Unrolling.intermVarAcc)
-    loop.inc = AssignmentStatement(itVarAcc, IntegerConstant(newStride), "+=")
+    loop.begin = new VariableDeclarationStatement(IntegerDatatype, itVar, Unrolling.startVarAcc)
+    loop.end = new LowerExpression(itVarAcc, Unrolling.intermVarAcc)
+    loop.inc = new AssignmentStatement(itVarAcc, IntegerConstant(newStride), "+=")
     loop.body = duplicateStmts(loop.body, Knowledge.opt_unroll, itVar, oldStride, loop.isParallel && Knowledge.opt_unroll_interleave)
 
     val annot = loop.removeAnnotation(Unrolling.UNROLLED_ANNOT)

@@ -68,7 +68,7 @@ private[optimization] final class Analyze extends Collector {
         val other = loads.get((base, indSum))
 
         if (other.isDefined)
-          decl.expression = Some(VariableAccess(other.get.name, Some(SIMD_RealDatatype)))
+          decl.expression = Some(new VariableAccess(other.get.name, SIMD_RealDatatype))
 
         else {
           loads((base, indSum)) = decl
@@ -78,16 +78,16 @@ private[optimization] final class Analyze extends Collector {
             val indSumNIt : HashMap[Expression, Long] = SimplifyExpression.extractIntegralSum(upLoopVar.updateDup(index))
             val nextIt = loads.get((base, indSumNIt))
             if (nextIt.isDefined) {
-              preLoopDecls += VariableDeclarationStatement(SIMD_RealDatatype, vecTmp,
-                Some(SIMD_LoadExpression(UnaryExpression(UnaryOperators.AddressOf,
-                  ArrayAccess(Duplicate(base), SimplifyExpression.simplifyIntegralExpr(upLoopVar.replaceDup(index)))), aligned)))
-              decl.annotate(REPL_ANNOT, AssignmentStatement(VariableAccess(vecTmp, Some(SIMD_RealDatatype)), load, "="))
+              preLoopDecls += new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp,
+                SIMD_LoadExpression(UnaryExpression(UnaryOperators.AddressOf,
+                  ArrayAccess(Duplicate(base), SimplifyExpression.simplifyIntegralExpr(upLoopVar.replaceDup(index)))), aligned))
+              decl.annotate(REPL_ANNOT, AssignmentStatement(new VariableAccess(vecTmp, SIMD_RealDatatype), load, "="))
               if (nextIt.get.hasAnnotation(REPL_ANNOT))
-                nextIt.get.annotate(REPL_ANNOT, AssignmentStatement(VariableAccess(nextIt.get.name, Some(SIMD_RealDatatype)),
-                  VariableAccess(vecTmp, Some(SIMD_RealDatatype)), "=")) // TODO: check if this is always correct...
+                nextIt.get.annotate(REPL_ANNOT, AssignmentStatement(new VariableAccess(nextIt.get.name, SIMD_RealDatatype),
+                  new VariableAccess(vecTmp, SIMD_RealDatatype), "=")) // TODO: check if this is always correct...
               else
-                nextIt.get.annotate(REPL_ANNOT, VariableDeclarationStatement(SIMD_RealDatatype, nextIt.get.name,
-                  Some(VariableAccess(vecTmp, Some(SIMD_RealDatatype)))))
+                nextIt.get.annotate(REPL_ANNOT, new VariableDeclarationStatement(SIMD_RealDatatype, nextIt.get.name,
+                  new VariableAccess(vecTmp, SIMD_RealDatatype)))
             }
           }
         }
