@@ -13,12 +13,13 @@
 TESTING_DIR=${1}
 COMPILER=${2}
 MAIN=${3}
-BIN=${4}
-KNOWLEDGE=${5}
-ERROR_MARKER=${6}
-LOG_ALL=${7}
-LINK=${8}
-PROGRESS=${9}
+TEST_DIR=${4}
+BIN=${5}
+KNOWLEDGE=${6}
+ERROR_MARKER=${7}
+LOG_ALL=${8}
+LINK=${9}
+PROGRESS=${10}
 
 
 echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
@@ -27,18 +28,9 @@ echo "Generate and compile on machine ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:$
 echo ""
 rm -f ${ERROR_MARKER} # remove error marker from old job run if we were requeued
 
-RAM_TMP_DIR=$(mktemp --tmpdir=/run/shm -d || mktemp --tmpdir=/tmp -d) || {
-    echo "ERROR: Failed to create temporary directory."
-    touch ${ERROR_MARKER}
-    echo "${LINK}" >> "${LOG_ALL}"
-    exit 1
-  }
-if [[ ! ${RAM_TMP_DIR} =~ ^/run/shm/* ]]; then
-  echo "Problems with /run/shm on machine ${SLURM_JOB_NODELIST} in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID}." | mail -s "ExaTest /run/shm" "kronast@fim.uni-passau.de"
-fi
-SETTINGS="${RAM_TMP_DIR}/settings.txt"
-L4="${RAM_TMP_DIR}/l4.exa"
-TMP_BIN="exastencils"
+mkdir -p "${TEST_DIR}"
+SETTINGS="${TEST_DIR}/settings.txt"
+L4="${TEST_DIR}/l4.exa"
 
 
 function killed {
@@ -52,9 +44,6 @@ trap killed SIGTERM
 STARTTIME=$(date +%s)
 
 function cleanup {
-  rm -rf "${RAM_TMP_DIR}"
-  echo "  Removed  ${RAM_TMP_DIR}"
-  echo ""
   ENDTIME=$(date +%s)
   echo "Runtime: $((${ENDTIME} - ${STARTTIME})) seconds  (target code generation and compilation)"
   echo ""
@@ -64,14 +53,11 @@ function cleanup {
 trap cleanup EXIT
 
 
-echo "  Created  ${RAM_TMP_DIR}: application build dir"
-echo ""
-
 # build settings file
 touch "${SETTINGS}"
-echo "outputPath = \"${RAM_TMP_DIR}\"" >> "${SETTINGS}"
+echo "outputPath = \"${TEST_DIR}\"" >> "${SETTINGS}"
 echo "l4file = \"${L4}\"" >> "${SETTINGS}"
-echo "binary = \"${TMP_BIN}\"" >> "${SETTINGS}"
+echo "binary = \"${BIN}\"" >> "${SETTINGS}"
 
 echo "Run generator:"
 cd ${TESTING_DIR}  # there is no possibility to explicitly set the working directory of the jvm... (changing property user.dir does not work in all situations)
