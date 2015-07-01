@@ -19,7 +19,7 @@ case object NullStatement extends Statement {
 }
 
 case class Scope(var body : ListBuffer[Statement]) extends Statement {
-  def this(body : Statement) = this(ListBuffer(body))
+  def this(body : Statement*) = this(body.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "{\n"
@@ -29,9 +29,7 @@ case class Scope(var body : ListBuffer[Statement]) extends Statement {
 }
 
 case class VariableDeclarationStatement(var dataType : Datatype, var name : String, var expression : Option[Expression] = None) extends Statement {
-  // interface to the old way to define VariableDeclarationStatements
-  def this(variable : VariableAccess, expression : Option[Expression]) = this(variable.dType.get, variable.name, expression)
-  def this(variable : VariableAccess) = this(variable.dType.get, variable.name, None)
+  def this(dT : Datatype, n : String, e : Expression) = this(dT, n, Option(e))
 
   override def prettyprint(out : PpStream) : Unit = {
     out << dataType.resolveUnderlyingDatatype << ' ' << name << dataType.resolvePostscript
@@ -50,6 +48,8 @@ case class FreeStatement(var pointer : Expression) extends Statement {
 }
 
 case class DefineStatement(var name : Expression, var value : Option[Expression] = None) extends Statement {
+  def this(n : Expression, v : Expression) = this(n, Option(v))
+
   override def prettyprint(out : PpStream) : Unit = {
     out << "#define " << name
     if (value.isDefined)
@@ -66,7 +66,7 @@ case class AssignmentStatement(var dest : Expression, var src : Expression, var 
 }
 
 case class WhileLoopStatement(var comparison : Expression, var body : ListBuffer[Statement]) extends Statement {
-  def this(comparison : Expression, body : Statement) = this(comparison, ListBuffer(body))
+  def this(comparison : Expression, body : Statement*) = this(comparison, body.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "while (" << comparison << ") {\n"
@@ -76,8 +76,8 @@ case class WhileLoopStatement(var comparison : Expression, var body : ListBuffer
 }
 
 case class ForLoopStatement(var begin : Statement, var end : Expression, var inc : Statement, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement {
-  def this(begin : Statement, end : Expression, inc : Statement, body : Statement, reduction : Option[Reduction]) = this(begin, end, inc, ListBuffer(body), reduction)
-  def this(begin : Statement, end : Expression, inc : Statement, body : Statement) = this(begin, end, inc, ListBuffer(body))
+  def this(begin : Statement, end : Expression, inc : Statement, reduction : Reduction, body : Statement*) = this(begin, end, inc, body.to[ListBuffer], Option(reduction))
+  def this(begin : Statement, end : Expression, inc : Statement, body : Statement*) = this(begin, end, inc, body.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
     // BEGIN AMAZING HACK as workaround for IBM XL compiler    
@@ -115,7 +115,7 @@ case class ConditionStatement(var condition : Expression, var trueBody : ListBuf
 }
 
 case class CaseStatement(var toMatch : Expression, var body : ListBuffer[Statement]) extends Statement {
-  def this(toMatch : Expression, body : Statement) = this(toMatch, ListBuffer[Statement](body))
+  def this(toMatch : Expression, body : Statement*) = this(toMatch, body.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "case " << toMatch << ": {\n"
@@ -125,7 +125,7 @@ case class CaseStatement(var toMatch : Expression, var body : ListBuffer[Stateme
 }
 
 case class SwitchStatement(var what : Expression, var body : ListBuffer[CaseStatement]) extends Statement {
-  def this(what : Expression, body : CaseStatement) = this(what, ListBuffer[CaseStatement](body))
+  def this(what : Expression, body : CaseStatement*) = this(what, body.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "switch (" << what << ") {\n"
@@ -134,7 +134,9 @@ case class SwitchStatement(var what : Expression, var body : ListBuffer[CaseStat
   }
 }
 
-case class ReturnStatement(var expr : Option[Expression]) extends Statement {
+case class ReturnStatement(var expr : Option[Expression] = None) extends Statement {
+  def this(expr : Expression) = this(Option(expr))
+
   override def prettyprint(out : PpStream) = {
     out << "return"
     if (expr.isDefined) out << ' ' << expr.get.prettyprint()

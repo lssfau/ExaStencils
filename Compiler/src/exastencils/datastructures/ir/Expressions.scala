@@ -12,10 +12,10 @@ import exastencils.strategies._
 
 trait Expression extends Node with PrettyPrintable {
   def ~(exp : Expression) : ConcatenationExpression = {
-    new ConcatenationExpression(ListBuffer(this, exp))
+    new ConcatenationExpression(this, exp)
   }
   def ~~(exp : Expression) : SpacedConcatenationExpression = {
-    new SpacedConcatenationExpression(ListBuffer(this, exp))
+    new SpacedConcatenationExpression(this, exp)
   }
 
   import BinaryOperators._
@@ -109,6 +109,8 @@ case object NullExpression extends Expression {
 }
 
 case class ConcatenationExpression(var expressions : ListBuffer[Expression]) extends Expression {
+  def this(exprs : Expression*) = this(exprs.to[ListBuffer])
+
   override def prettyprint(out : PpStream) : Unit = out <<< expressions
 
   override def ~(exp : Expression) : ConcatenationExpression = {
@@ -118,6 +120,8 @@ case class ConcatenationExpression(var expressions : ListBuffer[Expression]) ext
 }
 
 case class SpacedConcatenationExpression(var expressions : ListBuffer[Expression]) extends Expression {
+  def this(exprs : Expression*) = this(exprs.to[ListBuffer])
+
   override def prettyprint(out : PpStream) : Unit = out <<< (expressions, " ")
 
   override def ~~(exp : Expression) : SpacedConcatenationExpression = {
@@ -161,6 +165,8 @@ case class CastExpression(var datatype : Datatype, var toCast : Expression) exte
 }
 
 case class VariableAccess(var name : String, var dType : Option[Datatype] = None) extends Access {
+  def this(n : String, dT : Datatype) = this(n, Option(dT))
+
   override def prettyprint(out : PpStream) : Unit = out << name
 
   def printDeclaration() : String = dType.get.resolveUnderlyingDatatype.prettyprint + " " + name + dType.get.resolvePostscript
@@ -431,6 +437,7 @@ private object MinMaxPrinter {
 
 case class MinimumExpression(var args : ListBuffer[Expression]) extends Expression {
   def this(varargs : Expression*) = this(varargs.to[ListBuffer])
+
   override def prettyprint(out : PpStream) : Unit = {
     MinMaxPrinter.prettyprintsb(out, args, "std::min")
   }
@@ -438,6 +445,7 @@ case class MinimumExpression(var args : ListBuffer[Expression]) extends Expressi
 
 case class MaximumExpression(var args : ListBuffer[Expression]) extends Expression {
   def this(varargs : Expression*) = this(varargs.to[ListBuffer])
+
   override def prettyprint(out : PpStream) : Unit = {
     MinMaxPrinter.prettyprintsb(out, args, "std::max")
   }
@@ -445,7 +453,6 @@ case class MaximumExpression(var args : ListBuffer[Expression]) extends Expressi
 
 case class FunctionCallExpression(var name : String, var arguments : ListBuffer[Expression]) extends Expression {
   def this(name : String, args : Expression*) = this(name, args.to[ListBuffer])
-  def this(name : String) = this(name, ListBuffer[Expression]())
 
   override def prettyprint(out : PpStream) : Unit = out << name << '(' <<< (arguments, ", ") << ')'
 }
