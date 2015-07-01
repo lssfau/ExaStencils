@@ -238,7 +238,7 @@ case class RepeatTimesStatement(var number : Int,
         (lv, ir.AssignmentStatement(lv, ir.IntegerConstant(0)))
       } else {
         val lv = "someRandomIndexVar" // FIXME: someRandomIndexVar
-        (ir.StringConstant(lv), ir.VariableDeclarationStatement(ir.IntegerDatatype(), lv, Some(ir.IntegerConstant(0))))
+        (ir.StringConstant(lv), ir.VariableDeclarationStatement(ir.IntegerDatatype, lv, Some(ir.IntegerConstant(0))))
       }
 
     return ir.ForLoopStatement(

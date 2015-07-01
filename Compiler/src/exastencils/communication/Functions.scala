@@ -50,12 +50,12 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
   override def prettyprint_decl : String = prettyprint
 
   override def expand : Output[FunctionStatement] = {
-    FunctionStatement(new UnitDatatype(), s"connectLocalElement",
+    FunctionStatement(UnitDatatype, s"connectLocalElement",
       ListBuffer(
-        VariableAccess("localFragId", Some(IntegerDatatype())),
-        VariableAccess("localNeighId", Some(IntegerDatatype())),
-        VariableAccess("location", Some(IntegerDatatype())),
-        VariableAccess("domain", Some(IntegerDatatype()))),
+        VariableAccess("localFragId", Some(IntegerDatatype)),
+        VariableAccess("localNeighId", Some(IntegerDatatype)),
+        VariableAccess("location", Some(IntegerDatatype)),
+        VariableAccess("domain", Some(IntegerDatatype))),
       ListBuffer[Statement](
         AssignmentStatement(iv.NeighborIsValid("domain", "location", "localFragId"), true),
         AssignmentStatement(iv.NeighborIsRemote("domain", "location", "localFragId"), false),
@@ -69,13 +69,13 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
   override def prettyprint_decl : String = prettyprint
 
   override def expand : Output[FunctionStatement] = {
-    FunctionStatement(new UnitDatatype(), s"connectRemoteElement",
+    FunctionStatement(UnitDatatype, s"connectRemoteElement",
       ListBuffer(
-        VariableAccess("localFragId", Some(IntegerDatatype())),
-        VariableAccess("localNeighId", Some(IntegerDatatype())),
-        VariableAccess("remoteRank", Some(IntegerDatatype())),
-        VariableAccess("location", Some(IntegerDatatype())),
-        VariableAccess("domain", Some(IntegerDatatype()))),
+        VariableAccess("localFragId", Some(IntegerDatatype)),
+        VariableAccess("localNeighId", Some(IntegerDatatype)),
+        VariableAccess("remoteRank", Some(IntegerDatatype)),
+        VariableAccess("location", Some(IntegerDatatype)),
+        VariableAccess("domain", Some(IntegerDatatype))),
       ListBuffer[Statement](
         AssignmentStatement(iv.NeighborIsValid("domain", "location", "localFragId"), true),
         AssignmentStatement(iv.NeighborIsRemote("domain", "location", "localFragId"), true),

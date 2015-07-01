@@ -31,7 +31,7 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
         new ConditionStatement(iv.IsValidForSubdomain(field.domain.index), loopOverDims)) with OMP_PotentiallyParallel
     }
 
-    new FunctionStatement(new UnitDatatype, s"initFieldsWithZero", ListBuffer[VariableAccess](), statements)
+    new FunctionStatement(UnitDatatype, s"initFieldsWithZero", ListBuffer[VariableAccess](), statements)
   }
 }
 

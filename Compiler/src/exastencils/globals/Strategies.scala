@@ -11,8 +11,8 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
     case globals : Globals =>
       if (Knowledge.mpi_enabled) {
         globals.variables += new VariableDeclarationStatement("MPI_Comm", "mpiCommunicator")
-        globals.variables += new VariableDeclarationStatement(new IntegerDatatype, "mpiRank")
-        globals.variables += new VariableDeclarationStatement(new IntegerDatatype, "mpiSize")
+        globals.variables += new VariableDeclarationStatement(IntegerDatatype, "mpiRank")
+        globals.variables += new VariableDeclarationStatement(IntegerDatatype, "mpiSize")
       }
       globals
     case func : FunctionStatement if ("initGlobals" == func.name) =>

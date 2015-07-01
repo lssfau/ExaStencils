@@ -216,10 +216,10 @@ case class MultiIndex(
     (if (indices.length > 2) FloatConstant(indices(2)) else null) : Expression,
     (if (indices.length > 3) FloatConstant(indices(3)) else null) : Expression)
   def this(names : String*) = this(
-    (if (names.size > 0) VariableAccess(names(0), Some(IntegerDatatype())) else null) : Expression,
-    (if (names.size > 1) VariableAccess(names(1), Some(IntegerDatatype())) else null) : Expression,
-    (if (names.size > 2) VariableAccess(names(2), Some(IntegerDatatype())) else null) : Expression,
-    (if (names.size > 3) VariableAccess(names(3), Some(IntegerDatatype())) else null) : Expression)
+    (if (names.size > 0) VariableAccess(names(0), Some(IntegerDatatype)) else null) : Expression,
+    (if (names.size > 1) VariableAccess(names(1), Some(IntegerDatatype)) else null) : Expression,
+    (if (names.size > 2) VariableAccess(names(2), Some(IntegerDatatype)) else null) : Expression,
+    (if (names.size > 3) VariableAccess(names(3), Some(IntegerDatatype)) else null) : Expression)
   def this(left : MultiIndex, right : MultiIndex, f : (Expression, Expression) => Expression) = this(
     if (left(0) != null && right(0) != null) { Duplicate(f(left(0), right(0))) } else null,
     if (left(1) != null && right(1) != null) { Duplicate(f(left(1), right(1))) } else null,

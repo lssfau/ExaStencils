@@ -137,7 +137,7 @@ case class ReqOutstanding(var field : Field, var direction : String, var neighId
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
 
   override def resolveName = s"reqOutstanding_${direction}" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
-  override def resolveDataType = new BooleanDatatype
+  override def resolveDataType = BooleanDatatype
   override def resolveDefValue = Some(false)
 }
 
@@ -152,7 +152,7 @@ case class NeighborIsValid(var domain : Expression, var neighIdx : Expression, v
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, domain, NullExpression, NullExpression, neighIdx)
 
   override def resolveName = s"neighbor_isValid" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", neighIdx.prettyprint)
-  override def resolveDataType = new BooleanDatatype
+  override def resolveDataType = BooleanDatatype
   override def resolveDefValue = Some(false)
 }
 
@@ -160,7 +160,7 @@ case class NeighborIsRemote(var domain : Expression, var neighIdx : Expression, 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, domain, NullExpression, NullExpression, neighIdx)
 
   override def resolveName = s"neighbor_isRemote" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", neighIdx.prettyprint)
-  override def resolveDataType = new BooleanDatatype
+  override def resolveDataType = BooleanDatatype
   override def resolveDefValue = Some(false)
 }
 
@@ -168,7 +168,7 @@ case class NeighborFragLocalId(var domain : Expression, var neighIdx : Expressio
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, domain, NullExpression, NullExpression, neighIdx)
 
   override def resolveName = s"neighbor_fragCommId" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", neighIdx.prettyprint)
-  override def resolveDataType = IntegerDatatype()
+  override def resolveDataType = IntegerDatatype
   override def resolveDefValue = Some(-1)
 }
 
@@ -176,7 +176,7 @@ case class NeighborRemoteRank(var domain : Expression, var neighIdx : Expression
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, domain, NullExpression, NullExpression, neighIdx)
 
   override def resolveName = s"neighbor_remoteRank" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", neighIdx.prettyprint)
-  override def resolveDataType = new IntegerDatatype
+  override def resolveDataType = IntegerDatatype
   override def resolveDefValue = Some("MPI_PROC_NULL")
 }
 
@@ -184,7 +184,7 @@ case class IsValidForSubdomain(var domain : Expression, var fragmentIdx : Expres
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, domain, NullExpression, NullExpression, NullExpression)
 
   override def resolveName = s"isValidForSubdomain" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", "")
-  override def resolveDataType = new BooleanDatatype
+  override def resolveDataType = BooleanDatatype
   override def resolveDefValue = Some(false)
 }
 
@@ -200,7 +200,7 @@ case class CommId(var fragmentIdx : Expression = LoopOverFragments.defIt) extend
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, NullExpression, NullExpression, NullExpression)
 
   override def resolveName = s"commId" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
-  override def resolveDataType = new IntegerDatatype
+  override def resolveDataType = IntegerDatatype
   override def resolveDefValue = Some(-1)
 }
 
@@ -322,7 +322,7 @@ abstract class AbstractFieldData extends InternalVariable(true, false, true, tru
     var wrappedBody = super.wrapInLoops(body)
     if (field.numSlots > 1)
       wrappedBody = new ForLoopStatement(
-        VariableDeclarationStatement(new IntegerDatatype, "slot", Some(0)),
+        VariableDeclarationStatement(IntegerDatatype, "slot", Some(0)),
         LowerExpression("slot", field.numSlots),
         PreIncrementExpression("slot"),
         wrappedBody)

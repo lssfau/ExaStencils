@@ -20,13 +20,13 @@ case class TimerDetail_AssignNow(var lhs : Expression) extends Statement with Ex
         VariableDeclarationStatement(SpecialDatatype("LARGE_INTEGER"), "now"),
         FunctionCallExpression("QueryPerformanceCounter", ListBuffer("&" ~ "now")),
         AssignmentStatement(lhs, MemberAccess(VariableAccess("now"), VariableAccess("QuadPart")))))
-      case "WIN_TIME" => AssignmentStatement(lhs, CastExpression(RealDatatype(), FunctionCallExpression("clock", ListBuffer())) / "CLOCKS_PER_SEC")
+      case "WIN_TIME" => AssignmentStatement(lhs, CastExpression(RealDatatype, FunctionCallExpression("clock", ListBuffer())) / "CLOCKS_PER_SEC")
       case "UNIX_TIME" => Scope(ListBuffer[Statement](
         VariableDeclarationStatement(SpecialDatatype("timeval"), "timePoint"),
         FunctionCallExpression("gettimeofday", ListBuffer("&" ~ "timePoint", "NULL")),
         AssignmentStatement(lhs,
-          CastExpression(RealDatatype(), MemberAccess(VariableAccess("timePoint"), VariableAccess("tv_sec")) * 1e3
-            + CastExpression(RealDatatype(), MemberAccess(VariableAccess("timePoint"), VariableAccess("tv_usec")) * 1e-3)))))
+          CastExpression(RealDatatype, MemberAccess(VariableAccess("timePoint"), VariableAccess("tv_sec")) * 1e3
+            + CastExpression(RealDatatype, MemberAccess(VariableAccess("timePoint"), VariableAccess("tv_usec")) * 1e-3)))))
       case "MPI_TIME"     => AssignmentStatement(lhs, FunctionCallExpression("MPI_Wtime", ListBuffer()))
       case "WINDOWS_RDSC" => AssignmentStatement(lhs, FunctionCallExpression("__rdtsc", ListBuffer()))
       case "RDSC"         => AssignmentStatement(lhs, FunctionCallExpression("__rdtsc", ListBuffer()))
@@ -108,7 +108,7 @@ case class TimerFct_StartTimer() extends AbstractTimerFunction with Expandable {
       if (Knowledge.experimental_timerEnableCallStacks) "CallTracker::StartTimer(&stopWatch)" else "",
       PreIncrementExpression(accessMember("numEntries")))
 
-    FunctionStatement(UnitDatatype(), s"startTimer", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements)
+    FunctionStatement(UnitDatatype, s"startTimer", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements)
   }
 }
 
@@ -132,7 +132,7 @@ case class TimerFct_StopTimer() extends AbstractTimerFunction with Expandable {
         if (Knowledge.experimental_timerEnableCallStacks) "CallTracker::StopTimer(&stopWatch)" else "",
         PreIncrementExpression(accessMember("numMeasurements")))))
 
-    FunctionStatement(UnitDatatype(), s"stopTimer", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements)
+    FunctionStatement(UnitDatatype, s"stopTimer", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements)
   }
 }
 
@@ -146,7 +146,7 @@ case class TimerFct_GetTotalTime /* in milliseconds */ () extends AbstractTimerF
     var statements = ListBuffer[Statement](
       TimerDetail_ReturnConvertToMS(accessMember("totalTimeMeasured")))
 
-    FunctionStatement(RealDatatype(), s"getTotalTime", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements)
+    FunctionStatement(RealDatatype, s"getTotalTime", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements)
   }
 }
 
@@ -163,7 +163,7 @@ case class TimerFct_GetMeanTime /* in milliseconds */ () extends AbstractTimerFu
         FunctionCallExpression("getTotalTime", ListBuffer("stopWatch")) / accessMember("numMeasurements"),
         0.0))))
 
-    FunctionStatement(RealDatatype(), s"getMeanTime", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements)
+    FunctionStatement(RealDatatype, s"getMeanTime", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements)
   }
 }
 
@@ -177,7 +177,7 @@ case class TimerFct_GetLastTime /* in milliseconds */ () extends AbstractTimerFu
     var statements = ListBuffer[Statement](
       TimerDetail_ReturnConvertToMS(accessMember("lastTimeMeasured")))
 
-    FunctionStatement(RealDatatype(), s"getLastTime", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements)
+    FunctionStatement(RealDatatype, s"getLastTime", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements)
   }
 }
 
@@ -191,10 +191,10 @@ case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with Expandab
     var statements : ListBuffer[Statement] = ListBuffer()
 
     val timeToPrint = "getTotalTime"
-    statements += VariableDeclarationStatement(RealDatatype(), "timerValue", Some(FunctionCallExpression(timeToPrint, ListBuffer(timer.resolveName))))
+    statements += VariableDeclarationStatement(RealDatatype, "timerValue", Some(FunctionCallExpression(timeToPrint, ListBuffer(timer.resolveName))))
 
     if (Knowledge.mpi_enabled) {
-      statements += new MPI_Allreduce("&timerValue", RealDatatype(), 1, "+")
+      statements += new MPI_Allreduce("&timerValue", RealDatatype, 1, "+")
       statements += AssignmentStatement("timerValue", "mpiSize", "/=")
     }
 
@@ -213,7 +213,7 @@ case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with Expandab
       else
         timers.toList.sortBy(_._1).map(t => genPrintTimerCode(t._2)).to[ListBuffer]
 
-    FunctionStatement(UnitDatatype(), s"printAllTimers", ListBuffer(), statements)
+    FunctionStatement(UnitDatatype, s"printAllTimers", ListBuffer(), statements)
   }
 }
 
@@ -257,7 +257,7 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
     if (Knowledge.mpi_enabled) {
       statements = ListBuffer[Statement](
         ForLoopStatement(
-          VariableDeclarationStatement(IntegerDatatype(), stride.prettyprint, Some(0)),
+          VariableDeclarationStatement(IntegerDatatype, stride.prettyprint, Some(0)),
           LowerExpression(stride, Knowledge.mpi_numThreads),
           PreIncrementExpression(stride),
           statements))
@@ -279,14 +279,14 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
     if (!timers.isEmpty)
       statements += ConditionStatement(MPI_IsRootProc(),
         ListBuffer[Statement](
-          VariableDeclarationStatement(ArrayDatatype(RealDatatype(), Knowledge.mpi_numThreads * 2 * timers.size), "timesToPrint"))
+          VariableDeclarationStatement(ArrayDatatype(RealDatatype, Knowledge.mpi_numThreads * 2 * timers.size), "timesToPrint"))
           ++ genDataCollect(timers)
-          ++ ListBuffer[Statement](new MPI_Gather("timesToPrint", RealDatatype(), 2 * timers.size))
+          ++ ListBuffer[Statement](new MPI_Gather("timesToPrint", RealDatatype, 2 * timers.size))
           ++ genPrint(timers),
-        ListBuffer[Statement](VariableDeclarationStatement(ArrayDatatype(RealDatatype(), 2 * timers.size), "timesToPrint"))
+        ListBuffer[Statement](VariableDeclarationStatement(ArrayDatatype(RealDatatype, 2 * timers.size), "timesToPrint"))
           ++ genDataCollect(timers)
-          ++ ListBuffer[Statement](MPI_Gather("timesToPrint", "timesToPrint", RealDatatype(), 2 * timers.size)))
+          ++ ListBuffer[Statement](MPI_Gather("timesToPrint", "timesToPrint", RealDatatype, 2 * timers.size)))
 
-    FunctionStatement(UnitDatatype(), s"printAllTimersToFile", ListBuffer(), statements)
+    FunctionStatement(UnitDatatype, s"printAllTimersToFile", ListBuffer(), statements)
   }
 }

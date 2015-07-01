@@ -110,7 +110,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
 
     // FIXME: HACK to realize application functionality
     case func : FunctionStatement if ("Application" == func.name) => {
-      func.returntype = new IntegerDatatype
+      func.returntype = IntegerDatatype
       func.name = "main"
       func.parameters = ListBuffer(VariableAccess("argc", Some("int")), VariableAccess("argv", Some("char**"))) ++ func.parameters
       //if (true) {

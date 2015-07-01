@@ -173,7 +173,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
         if (node.forIsDegenerate()) {
           val islIt : isl.AstExpr = node.forGetIterator()
           assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
-          val decl : Statement = VariableDeclarationStatement(IntegerDatatype(), islIt.getId().getName(), Some(processIslExpr(node.forGetInit())))
+          val decl : Statement = VariableDeclarationStatement(IntegerDatatype, islIt.getId().getName(), Some(processIslExpr(node.forGetInit())))
           processIslNode(node.forGetBody()).+=:(decl)
 
         } else {
@@ -182,8 +182,8 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
           val itStr : String = islIt.getId().getName()
           val parOMP : Boolean = parallelize_omp && !seqDims.contains(itStr)
           parallelize_omp &= !parOMP // if code must be parallelized, then now (parNow) XOR later (parallelize)
-          val it : VariableAccess = VariableAccess(itStr, Some(IntegerDatatype()))
-          val init : Statement = VariableDeclarationStatement(IntegerDatatype(), itStr, Some(processIslExpr(node.forGetInit())))
+          val it : VariableAccess = VariableAccess(itStr, Some(IntegerDatatype))
+          val init : Statement = VariableDeclarationStatement(IntegerDatatype, itStr, Some(processIslExpr(node.forGetInit())))
           val cond : Expression = processIslExpr(node.forGetCond())
           val incr : Statement = AssignmentStatement(it, processIslExpr(node.forGetInc()), "+=")
 

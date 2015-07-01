@@ -282,7 +282,7 @@ private object HorizontalPrinterHelper {
       case "QPX" =>
         out << " vector4double _v = " << src << ";\n"
         out << " _v = vec_" << redName << "(_v, vec_sldw(_v, _v, 2));\n"
-        out << ' ' << RealDatatype() << " _r = (" << RealDatatype() << ") vec_extract(vec_" << redName << "(_v, vec_sldw(_v, _v, 1)), 0);\n"
+        out << ' ' << RealDatatype << " _r = (" << RealDatatype << ") vec_extract(vec_" << redName << "(_v, vec_sldw(_v, _v, 1)), 0);\n"
 
       case "NEON" =>
         out << " float32x4_t _v = " << src << ";\n"
@@ -306,7 +306,7 @@ private object HorizontalPrinterHelper {
 /** Special declaration for a SIMD vector, which is initialized with the values 0, 1, ..., Knowledge.simd_vectorSize-1. */
 case class SIMD_IncrementVectorDeclaration(var name : String) extends Statement {
   override def prettyprint(out : PpStream) : Unit = {
-    out << SIMD_RealDatatype() << ' ' << name
+    out << SIMD_RealDatatype << ' ' << name
     val is = Knowledge.simd_instructionSet
     is match {
       case "QPX" =>

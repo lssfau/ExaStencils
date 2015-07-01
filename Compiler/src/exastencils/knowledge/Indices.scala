@@ -85,7 +85,7 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
   override def expand : Output[StatementList] = {
     if (Knowledge.domain_fragmentTransformation) {
       ListBuffer[Statement](
-        VariableDeclarationStatement(new RealDatatype, "xPosTMP", field.fieldLayout.discretization match {
+        VariableDeclarationStatement(RealDatatype, "xPosTMP", field.fieldLayout.discretization match {
           case "node" | "face_x" =>
             Some(((if (directCoords) ("x" - field.referenceOffset.index_0) else ("x" : Expression)) + offset.index_0)
               / FloatConstant(field.fieldLayout(0).idxDupRightEnd - field.fieldLayout(0).idxDupLeftBegin - 1)
@@ -95,7 +95,7 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
               / FloatConstant(field.fieldLayout(0).idxDupRightEnd - field.fieldLayout(0).idxDupLeftBegin - 0)
               * (ArrayAccess(iv.PrimitivePositionEnd(), 0) - ArrayAccess(iv.PrimitivePositionBegin(), 0)) + ArrayAccess(iv.PrimitivePositionBegin(), 0))
         }),
-        VariableDeclarationStatement(new RealDatatype, "yPosTMP",
+        VariableDeclarationStatement(RealDatatype, "yPosTMP",
           if (Knowledge.dimensionality > 1) {
             field.fieldLayout.discretization match {
               case "node" | "face_y" =>
@@ -108,7 +108,7 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
                   * (ArrayAccess(iv.PrimitivePositionEnd(), 1) - ArrayAccess(iv.PrimitivePositionBegin(), 1)) + ArrayAccess(iv.PrimitivePositionBegin(), 1))
             }
           } else Some(1)),
-        VariableDeclarationStatement(new RealDatatype, "zPosTMP",
+        VariableDeclarationStatement(RealDatatype, "zPosTMP",
           if (Knowledge.dimensionality > 2) {
             field.fieldLayout.discretization match {
               case "node" | "face_z" =>
@@ -121,20 +121,20 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
                   * (ArrayAccess(iv.PrimitivePositionEnd(), 2) - ArrayAccess(iv.PrimitivePositionBegin(), 2)) + ArrayAccess(iv.PrimitivePositionBegin(), 2))
             }
           } else Some(1)),
-        VariableDeclarationStatement(new RealDatatype, "xPos", Some(
+        VariableDeclarationStatement(RealDatatype, "xPos", Some(
           ("xPosTMP" : Expression) * ArrayAccess(iv.PrimitiveTransformation(), 0)
             + ("yPosTMP" : Expression) * ArrayAccess(iv.PrimitiveTransformation(), 1)
             + ("zPosTMP" : Expression) * ArrayAccess(iv.PrimitiveTransformation(), 2)
             + ArrayAccess(iv.PrimitiveTransformation(), 3))),
         if (Knowledge.dimensionality > 1)
-          VariableDeclarationStatement(new RealDatatype, "yPos", Some(
+          VariableDeclarationStatement(RealDatatype, "yPos", Some(
           ("xPosTMP" : Expression) * ArrayAccess(iv.PrimitiveTransformation(), 4)
             + ("yPosTMP" : Expression) * ArrayAccess(iv.PrimitiveTransformation(), 5)
             + ("zPosTMP" : Expression) * ArrayAccess(iv.PrimitiveTransformation(), 6)
             + ArrayAccess(iv.PrimitiveTransformation(), 7)))
         else NullStatement,
         if (Knowledge.dimensionality > 2)
-          VariableDeclarationStatement(new RealDatatype, "zPos", Some(
+          VariableDeclarationStatement(RealDatatype, "zPos", Some(
           ("xPosTMP" : Expression) * ArrayAccess(iv.PrimitiveTransformation(), 8)
             + ("yPosTMP" : Expression) * ArrayAccess(iv.PrimitiveTransformation(), 9)
             + ("zPosTMP" : Expression) * ArrayAccess(iv.PrimitiveTransformation(), 10)
@@ -142,7 +142,7 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
         else NullStatement)
     } else {
       ListBuffer[Statement](
-        VariableDeclarationStatement(new RealDatatype, "xPos", field.fieldLayout.discretization match {
+        VariableDeclarationStatement(RealDatatype, "xPos", field.fieldLayout.discretization match {
           case "node" | "face_x" =>
             Some(((if (directCoords) ("x" - field.referenceOffset.index_0) else ("x" : Expression)) + offset.index_0)
               / FloatConstant(field.fieldLayout(0).idxDupRightEnd - field.fieldLayout(0).idxDupLeftBegin - 1)
@@ -153,7 +153,7 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
               * (ArrayAccess(iv.PrimitivePositionEnd(), 0) - ArrayAccess(iv.PrimitivePositionBegin(), 0)) + ArrayAccess(iv.PrimitivePositionBegin(), 0))
         }),
         if (Knowledge.dimensionality > 1)
-          VariableDeclarationStatement(new RealDatatype, "yPos", field.fieldLayout.discretization match {
+          VariableDeclarationStatement(RealDatatype, "yPos", field.fieldLayout.discretization match {
           case "node" | "face_y" =>
             Some(((if (directCoords) ("y" - field.referenceOffset.index_1) else ("y" : Expression)) + offset.index_1)
               / FloatConstant(field.fieldLayout(1).idxDupRightEnd - field.fieldLayout(1).idxDupLeftBegin - 1)
@@ -165,7 +165,7 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
         })
         else NullStatement,
         if (Knowledge.dimensionality > 2)
-          VariableDeclarationStatement(new RealDatatype, "zPos", field.fieldLayout.discretization match {
+          VariableDeclarationStatement(RealDatatype, "zPos", field.fieldLayout.discretization match {
           case "node" | "face_z" =>
             Some(((if (directCoords) ("z" - field.referenceOffset.index_2) else ("z" : Expression)) + offset.index_2)
               / FloatConstant(field.fieldLayout(2).idxDupRightEnd - field.fieldLayout(2).idxDupLeftBegin - 1)
