@@ -74,7 +74,7 @@ echo ""
 echo ""
 echo "-----------------------------------------------------------------------------------------------"
 echo "Call make:"
-srun make -C "${RAM_TMP_DIR}" -j ${SLURM_CPUS_ON_NODE}
+srun make -C "${TEST_DIR}" -j ${SLURM_CPUS_ON_NODE}
     if [[ $? -ne 0 ]]; then
       echo ""
       echo "ERROR: make return code unequal to 0."
@@ -85,5 +85,4 @@ srun make -C "${RAM_TMP_DIR}" -j ${SLURM_CPUS_ON_NODE}
     fi
 echo ""
 
-cp "${RAM_TMP_DIR}/${TMP_BIN}" "${BIN}" # store in NFS, as testrun could be enqueued on a different machine
 echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
