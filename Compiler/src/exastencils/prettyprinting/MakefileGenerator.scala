@@ -22,7 +22,7 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< ""
 
     printer <<< ".PHONY: all"
-    printer <<< "all: " + Settings.binary
+    printer <<< "all: ${BINARY}"
     printer <<< ""
 
     printer <<< ".PHONY: clean"
@@ -32,7 +32,7 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< "${BINARY}"
     printer <<< ""
 
-    printer << Settings.binary + ": "
+    printer << "${BINARY}: "
     cppFileNames.foreach(file => { printer << s"${file.replace(".cpp", ".o")} " })
     printer <<< ""
     printer << "\t${CXX} ${LFLAGS} -o ${BINARY} -I. "
