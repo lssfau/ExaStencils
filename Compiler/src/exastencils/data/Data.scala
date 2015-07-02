@@ -44,7 +44,7 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
     else
       PointerDatatype(src.dataType)
 
-    new FunctionStatement(UnitDatatype, "get" + src.codeName,
+    new FunctionStatement(UnitDatatype, "get" + dest.identifier,
       ListBuffer(new VariableAccess("dest", Some(externalDT)), new VariableAccess("slot", Some(IntegerDatatype))),
       ListBuffer[Statement](
         new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
@@ -76,7 +76,7 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
     else
       PointerDatatype(dest.dataType)
 
-    new FunctionStatement(UnitDatatype, "set" + dest.codeName,
+    new FunctionStatement(UnitDatatype, "set" + src.identifier,
       ListBuffer(new VariableAccess("src", Some(externalDT)), new VariableAccess("slot", Some(IntegerDatatype))),
       ListBuffer[Statement](
         new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
