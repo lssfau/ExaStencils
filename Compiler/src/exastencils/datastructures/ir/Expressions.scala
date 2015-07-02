@@ -403,7 +403,7 @@ case class BitwiseAndExpression(var left : Expression, var right : Expression) e
 }
 
 case class PreDecrementExpression(var left : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "(--" << left << '('
+  override def prettyprint(out : PpStream) : Unit = out << "(--" << left << ')'
 }
 
 case class PostDecrementExpression(var left : Expression) extends Expression {
@@ -411,7 +411,7 @@ case class PostDecrementExpression(var left : Expression) extends Expression {
 }
 
 case class PreIncrementExpression(var left : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "(++" << left << '('
+  override def prettyprint(out : PpStream) : Unit = out << "(++" << left << ')'
 }
 
 case class PostIncrementExpression(var left : Expression) extends Expression {
