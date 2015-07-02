@@ -41,7 +41,7 @@ case class LocalSend(var field : FieldSelection, var neighbors : ListBuffer[(Nei
     new LoopOverFragments(
       new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
         neighbors.map(neigh =>
-          (new ConditionStatement(iv.NeighborIsValid(field.domainIndex, neigh._1.index) AndAnd UnaryExpression(UnaryOperators.Not, iv.NeighborIsRemote(field.domainIndex, neigh._1.index)),
+          (new ConditionStatement(iv.NeighborIsValid(field.domainIndex, neigh._1.index) AndAnd NegationExpression(iv.NeighborIsRemote(field.domainIndex, neigh._1.index)),
             ListBuffer[Statement](
               new LoopOverDimensions(Knowledge.dimensionality + 1,
                 neigh._2,
@@ -110,7 +110,7 @@ case class WaitForTransfer(var field : FieldSelection, var neighbor : NeighborIn
       iv.ReqOutstanding(field.field, direction, neighbor.index),
       ListBuffer[Statement](
         new ExpressionStatement(
-          new FunctionCallExpression("waitForMPIReq", UnaryExpression(UnaryOperators.AddressOf, iv.MpiRequest(field.field, direction, neighbor.index)))) with OMP_PotentiallyCritical,
+          new FunctionCallExpression("waitForMPIReq", AddressofExpression(iv.MpiRequest(field.field, direction, neighbor.index)))) with OMP_PotentiallyCritical,
         AssignmentStatement(iv.ReqOutstanding(field.field, direction, neighbor.index), false)))
   }
 }

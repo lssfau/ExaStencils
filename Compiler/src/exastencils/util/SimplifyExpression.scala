@@ -88,7 +88,7 @@ object SimplifyExpression {
         res = new HashMap[Expression, Long]()
         res(acc) = 1L
 
-      case UnaryExpression(UnaryOperators.Negative, expr) =>
+      case NegativeExpression(expr) =>
         res = extractIntegralSumRec(expr)
         for ((name : Expression, value : Long) <- extractIntegralSumRec(expr))
           res(name) = -value
@@ -265,7 +265,7 @@ object SimplifyExpression {
       if (res == null) {
         res = value match {
           case 1L  => expr
-          case -1L => UnaryExpression(UnaryOperators.Negative, expr)
+          case -1L => NegativeExpression(expr)
           case _   => MultiplicationExpression(IntegerConstant(value), expr)
         }
       } else {
@@ -370,7 +370,7 @@ object SimplifyExpression {
         res = new HashMap[Expression, Double]()
         res(aAcc) = 1d
 
-      case UnaryExpression(UnaryOperators.Negative, expr) =>
+      case NegativeExpression(expr) =>
         res = extractFloatingSumRec(expr)
         for ((name : Expression, value : Double) <- extractFloatingSumRec(expr))
           res(name) = -value
@@ -494,7 +494,7 @@ object SimplifyExpression {
       if (res == null) {
         res = value match {
           case 1d  => expr
-          case -1d => UnaryExpression(UnaryOperators.Negative, expr)
+          case -1d => NegativeExpression(expr)
           case _   => MultiplicationExpression(FloatConstant(value), expr)
         }
       } else {

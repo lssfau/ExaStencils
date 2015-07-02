@@ -53,7 +53,7 @@ private final class ArrayBases(val arrayName : String) {
 
   def addToDecls(decls : ListBuffer[Statement]) : Unit = {
     for ((_, (name : String, init : Expression)) <- inits)
-      decls += new VariableDeclarationStatement(ConstPointerDatatype(RealDatatype), name, UnaryExpression(UnaryOperators.AddressOf, init))
+      decls += new VariableDeclarationStatement(ConstPointerDatatype(RealDatatype), name, AddressofExpression(init))
   }
 }
 

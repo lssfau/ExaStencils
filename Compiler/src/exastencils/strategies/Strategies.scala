@@ -96,9 +96,9 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     // TODO: extend for general data types; extend with missing cases; extend for left-right-switched cases
 
     //this += new Transformation("Resolving unary operations", {
-    case UnaryExpression(UnaryOperators.Negative, IntegerConstant(value)) =>
+    case NegativeExpression(IntegerConstant(value)) =>
       IntegerConstant(-value.v)
-    case UnaryExpression(UnaryOperators.Negative, FloatConstant(value)) =>
+    case NegativeExpression(FloatConstant(value)) =>
       FloatConstant(-value.v)
     //})
 

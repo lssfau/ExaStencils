@@ -445,12 +445,15 @@ class Extractor extends Collector {
 
           // ignore
           case FunctionCallExpression(name, _) if (allowedFunctions.contains(name)) =>
-            // nothing to do...
+          // nothing to do...
 
           case _ : IntegerConstant
             | _ : FloatConstant
             | _ : BooleanConstant
-            | _ : UnaryExpression
+            | _ : NegativeExpression
+            | _ : NegationExpression
+            | _ : AddressofExpression
+            | _ : IndirectionExpression
             | _ : AdditionExpression
             | _ : SubtractionExpression
             | _ : MultiplicationExpression

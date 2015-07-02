@@ -422,7 +422,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
             throw new VectorizationException("cannot vectorize store: array is not aligned, but unaligned accesses should be avoided")
           if (ctx.storesTmp != null)
             Logger.debug("[vect] Error? More than one store in a single statement?!")
-          ctx.storesTmp = new SIMD_StoreStatement(UnaryExpression(UnaryOperators.AddressOf, expr),
+          ctx.storesTmp = new SIMD_StoreStatement(AddressofExpression(expr),
             new VariableAccess(vecTmp, SIMD_RealDatatype), aligned)
         }
         new VariableAccess(vecTmp, SIMD_RealDatatype)
@@ -452,7 +452,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
           ctx.preLoopStmts += new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, SIMD_FloatConstant(value))
         new VariableAccess(vecTmp, SIMD_RealDatatype)
 
-      case UnaryExpression(UnaryOperators.Negative, expr) =>
+      case NegativeExpression(expr) =>
         SIMD_NegateExpression(vectorizeExpr(expr, ctx))
 
       case AdditionExpression(MultiplicationExpression(factor1, factor2), summand) =>
@@ -486,9 +486,9 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     access1 : Boolean, aligned : Boolean, alignedBase : Boolean, ctx : LoopCtx) : Expression = {
 
     if (access1)
-      return SIMD_Load1Expression(UnaryExpression(UnaryOperators.AddressOf, oldExpr))
+      return SIMD_Load1Expression(AddressofExpression(oldExpr))
     else if (aligned || !Knowledge.simd_avoidUnaligned)
-      return SIMD_LoadExpression(UnaryExpression(UnaryOperators.AddressOf, oldExpr), aligned)
+      return SIMD_LoadExpression(AddressofExpression(oldExpr), aligned)
     else if (!alignedBase)
       throw new VectorizationException("cannot vectorize load: array is not aligned, but unaligned accesses should be avoided")
     else { // avoid unaligned load

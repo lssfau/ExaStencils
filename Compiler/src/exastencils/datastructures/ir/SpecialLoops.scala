@@ -212,7 +212,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
     if (region.isDefined) {
       if (region.get.onlyOnBoundary) {
         val neighIndex = Fragment.getNeighIndex(region.get.dir)
-        ret = new ConditionStatement(UnaryExpression(UnaryOperators.Not, iv.NeighborIsValid(domain, neighIndex)), ret)
+        ret = new ConditionStatement(NegationExpression(iv.NeighborIsValid(domain, neighIndex)), ret)
       }
     }
     if (domain >= 0)

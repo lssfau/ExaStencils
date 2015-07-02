@@ -259,7 +259,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
       case isl.AstOpType.OpAnd if n == 2     => new AndAndExpression(args(0), args(1))
       case isl.AstOpType.OpOrElse if n == 2  => new OrOrExpression(args(0), args(1))
       case isl.AstOpType.OpOr if n == 2      => new OrOrExpression(args(0), args(1))
-      case isl.AstOpType.OpMinus if n == 1   => new UnaryExpression(UnaryOperators.Negative, args(0))
+      case isl.AstOpType.OpMinus if n == 1   => new NegativeExpression(args(0))
       case isl.AstOpType.OpAdd if n == 2     => new AdditionExpression(args(0), args(1))
       case isl.AstOpType.OpSub if n == 2     => new SubtractionExpression(args(0), args(1))
       case isl.AstOpType.OpMul if n == 2     => new MultiplicationExpression(args(0), args(1))

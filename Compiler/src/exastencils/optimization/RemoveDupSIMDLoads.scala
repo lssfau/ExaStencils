@@ -62,7 +62,7 @@ private[optimization] final class Analyze extends Collector {
         }
 
       case decl @ VariableDeclarationStatement(SIMD_RealDatatype, vecTmp,
-        Some(load @ SIMD_LoadExpression(UnaryExpression(UnaryOperators.AddressOf, ArrayAccess(base, index, _)), aligned))) =>
+        Some(load @ SIMD_LoadExpression(AddressofExpression(ArrayAccess(base, index, _)), aligned))) =>
 
         val indSum : HashMap[Expression, Long] = SimplifyExpression.extractIntegralSum(index)
         val other = loads.get((base, indSum))
@@ -79,7 +79,7 @@ private[optimization] final class Analyze extends Collector {
             val nextIt = loads.get((base, indSumNIt))
             if (nextIt.isDefined) {
               preLoopDecls += new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp,
-                SIMD_LoadExpression(UnaryExpression(UnaryOperators.AddressOf,
+                SIMD_LoadExpression(AddressofExpression(
                   ArrayAccess(Duplicate(base), SimplifyExpression.simplifyIntegralExpr(upLoopVar.replaceDup(index)))), aligned))
               decl.annotate(REPL_ANNOT, AssignmentStatement(new VariableAccess(vecTmp, SIMD_RealDatatype), load, "="))
               if (nextIt.get.hasAnnotation(REPL_ANNOT))

@@ -38,13 +38,13 @@ object FortranifyFunctionsInsideStatement extends QuietDefaultStrategy("Looking 
         fct.arguments(paramIdx) match {
           // variable accesses are simple
           case va : VariableAccess =>
-            fct.arguments(paramIdx) = UnaryExpression(UnaryOperators.AddressOf, fct.arguments(paramIdx))
+            fct.arguments(paramIdx) = AddressofExpression(fct.arguments(paramIdx))
           // otherwise temp variables have to be created
           case _ =>
             var newName = s"callByValReplacement_${fct.name}_${paramIdx.toString()}"
             while (callByValReplacements.contains(newName)) newName += "0"
             callByValReplacements += (newName -> VariableDeclarationStatement(Duplicate(datatype), newName, Some(fct.arguments(paramIdx))))
-            fct.arguments(paramIdx) = UnaryExpression(UnaryOperators.AddressOf, VariableAccess(newName, Some(Duplicate(datatype))))
+            fct.arguments(paramIdx) = AddressofExpression(VariableAccess(newName, Some(Duplicate(datatype))))
         }
       }
 
@@ -95,7 +95,7 @@ object Fortranify extends DefaultStrategy("Preparing function for fortran interf
                 fct.body.prepend(
                   VariableDeclarationStatement(
                     ReferenceDatatype(Duplicate(datatype)), param.name,
-                    Some(UnaryExpression(UnaryOperators.Indirection, param.name + "_ptr"))))
+                    Some(IndirectionExpression(param.name + "_ptr"))))
                 param.name += "_ptr"
                 param.dType = Some(PointerDatatype(Duplicate(datatype)))
               }

@@ -75,7 +75,7 @@ object BinaryOperators extends Enumeration {
 
     case AndAnd         => return new AndAndExpression(left, right)
     case OrOr           => return new OrOrExpression(left, right)
-    case Negation       => return new NegationBooleanExpression(left)
+    case Negation       => return new NegationExpression(left)
     case EqEq           => return new EqEqExpression(left, right)
     case NeqNeq         => return new NeqNeqExpression(left, right)
     case Lower          => return new LowerExpression(left, right)
@@ -99,8 +99,8 @@ object UnaryOperators extends Enumeration {
 
   def CreateExpression(op : String, exp : Expression) : Expression = CreateExpression(withName(op), exp)
   def CreateExpression(op : Value, exp : Expression) : Expression = op match {
-    case Negative => return new NegationValueExpression(exp)
-    case Not      => return new NegationBooleanExpression(exp)
+    case Negative => return new NegativeExpression(exp)
+    case Not      => return new NegationExpression(exp)
   }
 }
 
@@ -337,10 +337,6 @@ case class DerefAccess(var base : Access) extends Access {
   override def prettyprint(out : PpStream) : Unit = out << "(*" << base << ')'
 }
 
-case class UnaryExpression(var operator : UnaryOperators.Value, var expression : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << operator << expression << ')'
-}
-
 case class AdditionExpression(var left : Expression, var right : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '+' << right << ')'
 }
@@ -382,7 +378,7 @@ case class OrOrExpression(var left : Expression, var right : Expression) extends
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << "||" << right << ')'
 }
 
-case class NegationBooleanExpression(var left : Expression) extends Expression {
+case class NegationExpression(var left : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << '!' << '(' << left << ')'
 }
 
@@ -422,8 +418,16 @@ case class PostIncrementExpression(var left : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << left << "++"
 }
 
-case class NegationValueExpression(var left : Expression) extends Expression {
+case class NegativeExpression(var left : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << "-(" << left << ")"
+}
+
+case class AddressofExpression(var left : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << "&(" << left << ")"
+}
+
+case class IndirectionExpression(var left : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << "*(" << left << ")"
 }
 
 private object MinMaxPrinter {
