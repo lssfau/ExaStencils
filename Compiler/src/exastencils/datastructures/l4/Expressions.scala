@@ -248,6 +248,14 @@ case class Variable(var identifier : Identifier, var datatype : Datatype) extend
   }
 }
 
+case class UnaryExpression(var operator : String, var exp : Expression) extends Expression {
+  def prettyprint(out : PpStream) = { out << operator << '(' << exp << ')' }
+
+  def progressToIr : ir.Expression = {
+    ir.UnaryOperators.CreateExpression(operator, exp.progressToIr)
+  }
+}
+
 case class BinaryExpression(var operator : String, var left : Expression, var right : Expression) extends Expression {
   def prettyprint(out : PpStream) = { out << '(' << left << ' ' << operator << ' ' << right << ')' }
 

@@ -75,7 +75,7 @@ object BinaryOperators extends Enumeration {
 
     case AndAnd         => return new AndAndExpression(left, right)
     case OrOr           => return new OrOrExpression(left, right)
-    case Negation       => return new NegationExpression(left)
+    case Negation       => return new NegationBooleanExpression(left)
     case EqEq           => return new EqEqExpression(left, right)
     case NeqNeq         => return new NeqNeqExpression(left, right)
     case Lower          => return new LowerExpression(left, right)
@@ -88,14 +88,20 @@ object BinaryOperators extends Enumeration {
 
 object UnaryOperators extends Enumeration {
   type UnaryOperators = Value
-  val Positive = Value("")
+  //  val Positive = Value("")
   val Negative = Value("-")
   val Not = Value("!")
   val AddressOf = Value("&")
   val Indirection = Value("*")
-  val BitwiseNegation = Value("~")
+  //  val BitwiseNegation = Value("~")
 
   exastencils.core.Duplicate.registerImmutable(this.getClass())
+
+  def CreateExpression(op : String, exp : Expression) : Expression = CreateExpression(withName(op), exp)
+  def CreateExpression(op : Value, exp : Expression) : Expression = op match {
+    case Negative => return new NegationValueExpression(exp)
+    case Not      => return new NegationBooleanExpression(exp)
+  }
 }
 
 trait Access extends Expression
@@ -376,7 +382,7 @@ case class OrOrExpression(var left : Expression, var right : Expression) extends
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << "||" << right << ')'
 }
 
-case class NegationExpression(var left : Expression) extends Expression {
+case class NegationBooleanExpression(var left : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << '!' << '(' << left << ')'
 }
 
@@ -414,6 +420,10 @@ case class PreIncrementExpression(var left : Expression) extends Expression {
 
 case class PostIncrementExpression(var left : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << left << "++"
+}
+
+case class NegationValueExpression(var left : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << "-(" << left << ")"
 }
 
 private object MinMaxPrinter {

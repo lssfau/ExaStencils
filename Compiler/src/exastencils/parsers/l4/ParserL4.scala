@@ -302,6 +302,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val factor = (
     "(" ~> binaryexpression <~ ")"
+    ||| "-" ~> binaryexpression ^^ { case exp => UnaryExpression("-", exp) }
     ||| locationize(stringLit ^^ { case s => StringConstant(s) })
     ||| locationize("-".? ~ numericLit ^^ { case s ~ n => if (isInt(s.getOrElse("") + n)) IntegerConstant((s.getOrElse("") + n).toInt) else FloatConstant((s.getOrElse("") + n).toDouble) })
     ||| functionCall
