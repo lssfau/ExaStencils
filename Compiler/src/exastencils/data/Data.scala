@@ -19,7 +19,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
 
     // add static allocations here
 
-    return FunctionStatement(new UnitDatatype(), s"setupBuffers", ListBuffer(), body)
+    return FunctionStatement(UnitDatatype, s"setupBuffers", ListBuffer(), body)
   }
 }
 
@@ -44,8 +44,8 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
     else
       PointerDatatype(src.dataType)
 
-    new FunctionStatement(new UnitDatatype(), "get" + src.codeName,
-      ListBuffer(new VariableAccess("dest", Some(externalDT)), new VariableAccess("slot", Some(new IntegerDatatype))),
+    new FunctionStatement(UnitDatatype, "get" + src.codeName,
+      ListBuffer(new VariableAccess("dest", Some(externalDT)), new VariableAccess("slot", Some(IntegerDatatype))),
       ListBuffer[Statement](
         new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
           new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => src.fieldLayout(i).idxGhostLeftBegin)),
@@ -76,8 +76,8 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
     else
       PointerDatatype(dest.dataType)
 
-    new FunctionStatement(new UnitDatatype(), "set" + dest.codeName,
-      ListBuffer(new VariableAccess("src", Some(externalDT)), new VariableAccess("slot", Some(new IntegerDatatype))),
+    new FunctionStatement(UnitDatatype, "set" + dest.codeName,
+      ListBuffer(new VariableAccess("src", Some(externalDT)), new VariableAccess("slot", Some(IntegerDatatype))),
       ListBuffer[Statement](
         new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
           new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => dest.fieldLayout(i).idxGhostLeftBegin)),

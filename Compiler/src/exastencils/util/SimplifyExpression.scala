@@ -78,11 +78,11 @@ object SimplifyExpression {
 
       case VariableAccess(varName, _) =>
         res = new HashMap[Expression, Long]()
-        res(VariableAccess(varName, Some(IntegerDatatype()))) = 1L
+        res(VariableAccess(varName, Some(IntegerDatatype))) = 1L
 
       case StringConstant(varName) =>
         res = new HashMap[Expression, Long]()
-        res(VariableAccess(varName, Some(IntegerDatatype()))) = 1L // ONLY VariableAccess in res keys, NO StringConstant
+        res(VariableAccess(varName, Some(IntegerDatatype))) = 1L // ONLY VariableAccess in res keys, NO StringConstant
 
       case acc : ArrayAccess =>
         res = new HashMap[Expression, Long]()
@@ -358,13 +358,13 @@ object SimplifyExpression {
 
       case VariableAccess(varName, _) =>
         res = new HashMap[Expression, Double]()
-        res(VariableAccess(varName, Some(RealDatatype()))) = 1d
+        res(VariableAccess(varName, Some(RealDatatype))) = 1d
 
       case StringConstant(varName) =>
         if (varName.contains("std::rand")) // HACK
           throw new EvaluationException("don't optimze code containing a call to std::rand")
         res = new HashMap[Expression, Double]()
-        res(VariableAccess(varName, Some(RealDatatype()))) = 1d // ONLY VariableAccess in res keys, NO StringConstant
+        res(VariableAccess(varName, Some(RealDatatype))) = 1d // ONLY VariableAccess in res keys, NO StringConstant
 
       case aAcc : ArrayAccess =>
         res = new HashMap[Expression, Double]()

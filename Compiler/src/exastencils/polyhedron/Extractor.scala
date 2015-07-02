@@ -529,7 +529,7 @@ class Extractor extends Collector {
     do {
       bool |= extractConstraints(begin(i), constrs, true, paramConstrs, params)
       constrs.append("<=")
-      constrs.append(ScopNameMapping.expr2id(VariableAccess(dimToString(i), Some(IntegerDatatype()))))
+      constrs.append(ScopNameMapping.expr2id(new VariableAccess(dimToString(i), IntegerDatatype)))
       constrs.append('<')
       bool |= extractConstraints(end(i), constrs, true, paramConstrs, params)
       constrs.append(" and ")
@@ -735,7 +735,7 @@ class Extractor extends Collector {
 
     if (decl.expression.isDefined) {
       val stmt = new AssignmentStatement(
-        new VariableAccess(decl.name, Some(decl.dataType)), decl.expression.get, "=")
+        new VariableAccess(decl.name, decl.dataType), decl.expression.get, "=")
       enterStmt(stmt) // as a declaration is also a statement
       decl.expression.get.annotate(Access.ANNOT, Access.READ)
       isWrite = true

@@ -9,27 +9,27 @@ trait Datatype extends ProgressableToIr with PrettyPrintable {
 
 case class IntegerDatatype() extends Datatype {
   def prettyprint(out : PpStream) = { out << "Integer" }
-  def progressToIr : ir.Datatype = new ir.IntegerDatatype
+  def progressToIr : ir.Datatype = ir.IntegerDatatype
 }
 
 case class RealDatatype() extends Datatype {
   def prettyprint(out : PpStream) = { out << "Real" }
-  def progressToIr : ir.Datatype = new ir.RealDatatype
+  def progressToIr : ir.Datatype = ir.RealDatatype
 }
 
 case class StringDatatype() extends Datatype {
   def prettyprint(out : PpStream) = { out << "String" }
-  def progressToIr : ir.Datatype = new ir.StringDatatype
+  def progressToIr : ir.Datatype = ir.StringDatatype
 }
 
 case class CharDatatype() extends Datatype {
   def prettyprint(out : PpStream) : Unit = out << "char"
-  def progressToIr : ir.Datatype = new ir.CharDatatype
+  def progressToIr : ir.Datatype = ir.CharDatatype
 }
 
 case class UnitDatatype() extends Datatype {
   def prettyprint(out : PpStream) = { out << "Unit" }
-  def progressToIr : ir.Datatype = new ir.UnitDatatype
+  def progressToIr : ir.Datatype = ir.UnitDatatype
 }
 
 case class ArrayDatatype(var datatype : Datatype, var numElements : Int) extends Datatype {

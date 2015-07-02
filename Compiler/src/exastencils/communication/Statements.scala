@@ -143,13 +143,13 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
   def genTransfer(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
     var body = {
       if (!Knowledge.experimental_useLevelIndepFcts && 1 == SimplifyExpression.evalIntegral(indices.getSizeHigher)) {
-        RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, new RealDatatype, concurrencyId)
+        RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(indices)) {
         RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, MPI_DataType(field, indices), concurrencyId)
       } else {
         var cnt = DimArrayHigher().map(i => (indices.end(i) - indices.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
         SimplifyStrategy.doUntilDoneStandalone(cnt)
-        RemoteSend(field, neighbor, iv.TmpBuffer(field.field, s"Send_${concurrencyId}", cnt, neighbor.index), cnt, new RealDatatype, concurrencyId)
+        RemoteSend(field, neighbor, iv.TmpBuffer(field.field, s"Send_${concurrencyId}", cnt, neighbor.index), cnt, RealDatatype, concurrencyId)
       }
     }
     if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
@@ -204,13 +204,13 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
   def genTransfer(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
     var body = {
       if (!Knowledge.experimental_useLevelIndepFcts && 1 == SimplifyExpression.evalIntegral(indices.getSizeHigher)) {
-        RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, new RealDatatype, concurrencyId)
+        RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(indices)) {
         RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, MPI_DataType(field, indices), concurrencyId)
       } else {
         var cnt = DimArrayHigher().map(i => (indices.end(i) - indices.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
         SimplifyStrategy.doUntilDoneStandalone(cnt)
-        RemoteRecv(field, neighbor, iv.TmpBuffer(field.field, s"Recv_${concurrencyId}", cnt, neighbor.index), cnt, new RealDatatype, concurrencyId)
+        RemoteRecv(field, neighbor, iv.TmpBuffer(field.field, s"Recv_${concurrencyId}", cnt, neighbor.index), cnt, RealDatatype, concurrencyId)
       }
     }
     if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body

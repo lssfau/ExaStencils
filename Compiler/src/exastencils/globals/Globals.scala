@@ -11,8 +11,8 @@ case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = ne
   ListBuffer("Util/Vector.h", "Util/Matrix.h") /*
     ++ Settings.additionalIncludes*/ ,
   ListBuffer(
-    new FunctionStatement(new UnitDatatype, "initGlobals", new ListBuffer[VariableAccess], new ListBuffer[Statement]),
-    new FunctionStatement(new UnitDatatype, "destroyGlobals", new ListBuffer[VariableAccess], new ListBuffer[Statement]))) {
+    new FunctionStatement(UnitDatatype, "initGlobals", new ListBuffer[VariableAccess], new ListBuffer[Statement]),
+    new FunctionStatement(UnitDatatype, "destroyGlobals", new ListBuffer[VariableAccess], new ListBuffer[Statement]))) {
 
   // add conditional dependencies
   if (Knowledge.mpi_enabled)

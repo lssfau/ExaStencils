@@ -68,10 +68,25 @@ case class UnresolvedAccess(var name : String,
 
   def progressToIr : ir.StringConstant = ir.StringConstant("ERROR - Unresolved Access")
 
-  def resolveToBasicOrLeveledAccess = if (level.isDefined) LeveledAccess(name, level.get) else BasicAccess(name)
-  def resolveToFieldAccess = FieldAccess(name, level.get, slot.getOrElse(SlotModifier.Active()), arrayIndex, offset)
-  def resolveToStencilAccess = StencilAccess(name, level.get, arrayIndex, dirAccess)
-  def resolveToStencilFieldAccess = StencilFieldAccess(name, level.get, slot.getOrElse(SlotModifier.Active()), arrayIndex, offset, dirAccess)
+  def resolveToBasicOrLeveledAccess = {
+    if (slot.isDefined) Logger.warn("Discarding meaningless slot access on basic or leveled access")
+    if (offset.isDefined) Logger.warn("Discarding meaningless offset access on basic or leveled access")
+    if (arrayIndex.isDefined) Logger.warn("Discarding meaningless array index access on basic or leveled access")
+    if (dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on basic or leveled access")
+    if (level.isDefined) LeveledAccess(name, level.get) else BasicAccess(name)
+  }
+  def resolveToFieldAccess = {
+    if (dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on field - was an offset access (@) intended?")
+    FieldAccess(name, level.get, slot.getOrElse(SlotModifier.Active()), arrayIndex, offset)
+  }
+  def resolveToStencilAccess = {
+    if (slot.isDefined) Logger.warn("Discarding meaningless slot access on stencil")
+    if (offset.isDefined) Logger.warn("Discarding meaningless offset access on stencil - was a direction access (:) intended?")
+    StencilAccess(name, level.get, arrayIndex, dirAccess)
+  }
+  def resolveToStencilFieldAccess = {
+    StencilFieldAccess(name, level.get, slot.getOrElse(SlotModifier.Active()), arrayIndex, offset, dirAccess)
+  }
 }
 
 case class BasicAccess(var name : String) extends Access {
@@ -93,7 +108,7 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
     // FIXME: omit slot if numSlots of target field is 1
     out << name << '[' << slot << ']' << '@' << level
     if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
-    if (offset.isDefined) out << ":" << offset
+    if (offset.isDefined) out << "@" << offset
   }
 
   def progressNameToIr : ir.StringConstant = {

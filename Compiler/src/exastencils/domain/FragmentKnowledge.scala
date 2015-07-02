@@ -45,23 +45,23 @@ object FragmentKnowledge {
     //    }
     fragments = fragments.sortBy { f => f.rank -> f.localId }
     fragments.foreach(f => {
-      domains.foreach { d => f.binarySize += outData.writeBinary(BooleanDatatype(), FragmentCollection.isValidForSubDomain(f.globalId, d.index)) }
-      f.binarySize += outData.writeBinary(IntegerDatatype(), f.globalId)
-      f.binarySize += outData.writeBinary(IntegerDatatype(), f.localId)
-      f.vertices.foreach { v => v.Coords.foreach { c => f.binarySize += outData.writeBinary(RealDatatype(), c) } }
-      FragmentCollection.getFragPos(f.vertices).Coords.foreach { c => f.binarySize += outData.writeBinary(RealDatatype(), c) }
+      domains.foreach { d => f.binarySize += outData.writeBinary(BooleanDatatype, FragmentCollection.isValidForSubDomain(f.globalId, d.index)) }
+      f.binarySize += outData.writeBinary(IntegerDatatype, f.globalId)
+      f.binarySize += outData.writeBinary(IntegerDatatype, f.localId)
+      f.vertices.foreach { v => v.Coords.foreach { c => f.binarySize += outData.writeBinary(RealDatatype, c) } }
+      FragmentCollection.getFragPos(f.vertices).Coords.foreach { c => f.binarySize += outData.writeBinary(RealDatatype, c) }
       domains.foreach { d =>
         {
           f.neighborIDs.foreach { n =>
             {
               val valid = FragmentCollection.isNeighborValid(f.globalId, n, d.index)
-              f.binarySize += outData.writeBinary(BooleanDatatype(), valid)
+              f.binarySize += outData.writeBinary(BooleanDatatype, valid)
               if (valid) {
                 val remote = FragmentCollection.isNeighborRemote(f.globalId, n, d.index)
-                f.binarySize += outData.writeBinary(BooleanDatatype(), remote)
-                f.binarySize += outData.writeBinary(IntegerDatatype(), FragmentCollection.getLocalFragId(n))
+                f.binarySize += outData.writeBinary(BooleanDatatype, remote)
+                f.binarySize += outData.writeBinary(IntegerDatatype, FragmentCollection.getLocalFragId(n))
                 if (remote) {
-                  f.binarySize += outData.writeBinary(IntegerDatatype(), FragmentCollection.getMpiRank(n))
+                  f.binarySize += outData.writeBinary(IntegerDatatype, FragmentCollection.getMpiRank(n))
                 }
               }
             }
@@ -69,9 +69,9 @@ object FragmentKnowledge {
         }
       }
       val trafo = f.trafo != ListBuffer(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
-      f.binarySize += outData.writeBinary(BooleanDatatype(), trafo)
+      f.binarySize += outData.writeBinary(BooleanDatatype, trafo)
       if (trafo) {
-        f.trafo.foreach { t => f.binarySize += outData.writeBinary(RealDatatype(), t) }
+        f.trafo.foreach { t => f.binarySize += outData.writeBinary(RealDatatype, t) }
       }
 
     })
@@ -205,15 +205,15 @@ class FragmentDataWriter(s : BufferedOutputStream) extends DataOutputStream(s) {
   def writeBinary(t : Datatype, v : Any) : Int = {
     //    println(t.toString() + " | " + v)
     t match {
-      case IntegerDatatype() => {
+      case IntegerDatatype => {
         writeInt(v.asInstanceOf[Int])
         intSize
       }
-      case BooleanDatatype() => {
+      case BooleanDatatype => {
         writeBoolean(v.asInstanceOf[Boolean])
         boolSize
       }
-      case RealDatatype() => {
+      case RealDatatype => {
         writeDouble(v.asInstanceOf[Double])
         doubleSize
       }

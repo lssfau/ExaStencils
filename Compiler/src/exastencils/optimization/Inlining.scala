@@ -134,7 +134,7 @@ object Inlining extends CustomStrategy("Function inlining") {
       case VariableAccess(name, t) if (potConflicts.contains(name))                  => VariableAccess(rename(name), t)
       case StringConstant(name) if (potConflicts.contains(name))                     => StringConstant(rename(name))
       case ret : ReturnStatement =>
-        if (ret.expr.isEmpty != funcStmt.returntype.isInstanceOf[UnitDatatype])
+        if (ret.expr.isEmpty != (funcStmt.returntype == UnitDatatype))
           exit = true
         retStmt = ret
         ret // keep ReturnStatement to ensure variables in its expression are renamed, too; it will be removed later
@@ -153,7 +153,7 @@ object Inlining extends CustomStrategy("Function inlining") {
         var name : String = vAcc.name
         if (potConflicts.contains(name))
           name = rename(name)
-        new VariableDeclarationStatement(Duplicate(vAcc.dType.get), name, Some(init))
+        new VariableDeclarationStatement(Duplicate(vAcc.dType.get), name, init)
     })
 
     if (potConflToUpdate != null) {
