@@ -82,12 +82,16 @@ case class ForLoopStatement(var begin : Statement, var end : Expression, var inc
   override def prettyprint(out : PpStream) : Unit = {
     // BEGIN AMAZING HACK as workaround for IBM XL compiler    
     var realEnd = end.prettyprint
-    if (realEnd.size > 2)
+    if (realEnd.size > 2 && realEnd(0) == '(')
       realEnd = realEnd.substring(1, realEnd.size - 1)
-    out << "for (" << begin << ' ' << realEnd << "; " << inc
+    var realInc = inc.prettyprint
+    if (realInc.size > 2 && realInc(0) == '(')
+      realInc = realInc.substring(1, realInc.size - 1)
+    out << "for (" << begin << ' ' << realEnd << "; " << realInc
     // END HACK
     //out << "for (" << begin << ' ' << end << "; " << inc
-    if (out.last == ';')
+    val last = out.last
+    if (last == ';' || last == ')') // ')' in case of upper hack removed the ';' instead of the closing bracket
       out.removeLast()
     out << ") {\n"
     out <<< (body, "\n") << '\n'

@@ -3,7 +3,6 @@ package exastencils.polyhedron
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.ArrayStack
 import scala.collection.mutable.HashSet
-import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
 import scala.collection.mutable.StringBuilder
 
@@ -453,7 +452,7 @@ class Extractor extends Collector {
             | _ : NegativeExpression
             | _ : NegationExpression
             | _ : AddressofExpression
-            | _ : IndirectionExpression
+            | _ : DerefAccess
             | _ : AdditionExpression
             | _ : SubtractionExpression
             | _ : MultiplicationExpression
