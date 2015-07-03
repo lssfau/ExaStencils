@@ -288,13 +288,18 @@ case class FieldAccess(var fieldSelection : FieldSelection, var index : MultiInd
 case class ExternalFieldAccess(var name : Expression, var field : ExternalField, var index : MultiIndex) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ExternalFieldAccess\n"
 
+  def x = new VariableAccess("x", IntegerDatatype)
+  def y = new VariableAccess("y", IntegerDatatype)
+  def z = new VariableAccess("z", IntegerDatatype)
+  def w = new VariableAccess("w", IntegerDatatype)
+
   def linearize : ArrayAccess = {
     if (Knowledge.generateFortranInterface) // Fortran requires multi-index access to multidimensional arrays 
       (Knowledge.dimensionality + (if (field.vectorSize > 1) 1 else 0)) match {
-        case 1 => new ArrayAccess("x", false)
-        case 2 => new ArrayAccess(new ArrayAccess(name, "y", false), "x", false)
-        case 3 => new ArrayAccess(new ArrayAccess(new ArrayAccess(name, "z", false), "y", false), "x", false)
-        case 4 => new ArrayAccess(new ArrayAccess(new ArrayAccess(new ArrayAccess(name, "w", false), "z", false), "y", false), "x", false)
+        case 1 => new ArrayAccess(x, false)
+        case 2 => new ArrayAccess(new ArrayAccess(name, y, false), x, false)
+        case 3 => new ArrayAccess(new ArrayAccess(new ArrayAccess(name, z, false), y, false), x, false)
+        case 4 => new ArrayAccess(new ArrayAccess(new ArrayAccess(new ArrayAccess(name, w, false), z, false), y, false), x, false)
       }
     else
       new ArrayAccess(name, Mapping.resolveMultiIdx(field.fieldLayout, index), false)
