@@ -403,31 +403,27 @@ case class BitwiseAndExpression(var left : Expression, var right : Expression) e
 }
 
 case class PreDecrementExpression(var left : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "--" << left
+  override def prettyprint(out : PpStream) : Unit = out << "(--" << left << ')'
 }
 
 case class PostDecrementExpression(var left : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << left << "--"
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << "--)"
 }
 
 case class PreIncrementExpression(var left : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "++" << left
+  override def prettyprint(out : PpStream) : Unit = out << "(++" << left << ')'
 }
 
 case class PostIncrementExpression(var left : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << left << "++"
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << "++)"
 }
 
 case class NegativeExpression(var left : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "-(" << left << ")"
+  override def prettyprint(out : PpStream) : Unit = out << "(-" << left << ')'
 }
 
 case class AddressofExpression(var left : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "&(" << left << ")"
-}
-
-case class IndirectionExpression(var left : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "*(" << left << ")"
+  override def prettyprint(out : PpStream) : Unit = out << "(&" << left << ')'
 }
 
 private object MinMaxPrinter {
