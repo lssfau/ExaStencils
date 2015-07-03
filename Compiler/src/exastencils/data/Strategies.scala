@@ -219,7 +219,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   })
 
   this += new Transformation("Extending SetupBuffers function", {
-    case func @ FunctionStatement(_, "setupBuffers", _, _) => {
+    case func @ FunctionStatement(_, "setupBuffers", _, _, _, _) => {
       if (Knowledge.experimental_useLevelIndepFcts) {
         val s = new DefaultStrategy("Replacing level specifications")
         s += new Transformation("Search and replace", {

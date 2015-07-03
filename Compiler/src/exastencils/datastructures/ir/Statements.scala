@@ -158,7 +158,13 @@ abstract class AbstractFunctionStatement(var isHeaderOnly : Boolean = false) ext
   def prettyprint_decl() : String
 }
 
-case class FunctionStatement(var returntype : Datatype, var name : String, var parameters : ListBuffer[VariableAccess], var body : ListBuffer[Statement]) extends AbstractFunctionStatement {
+case class FunctionStatement(
+    var returntype : Datatype,
+    var name : String,
+    var parameters : ListBuffer[VariableAccess],
+    var body : ListBuffer[Statement],
+    var allowInlining : Boolean = true,
+    var allowFortranInterface : Boolean = true) extends AbstractFunctionStatement {
   def this(returntype : Datatype, name : String, parameters : ListBuffer[VariableAccess], body : Statement) = this(returntype, name, parameters, ListBuffer[Statement](body))
   def this(returntype : Datatype, name : String, parameters : VariableAccess, body : ListBuffer[Statement]) = this(returntype, name, ListBuffer[VariableAccess](parameters), body)
 

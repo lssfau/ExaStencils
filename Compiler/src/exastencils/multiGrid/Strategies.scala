@@ -113,6 +113,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
       func.returntype = IntegerDatatype
       func.name = "main"
       func.parameters = ListBuffer(VariableAccess("argc", Some("int")), VariableAccess("argv", Some("char**"))) ++ func.parameters
+      func.allowFortranInterface = false
       //if (true) {
       //func.body.append(new ConditionStatement(new MPI_IsRootProc,
       //  """#ifdef TRACK_CALLS

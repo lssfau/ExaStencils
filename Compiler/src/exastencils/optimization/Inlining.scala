@@ -50,6 +50,7 @@ object Inlining extends CustomStrategy("Function inlining") {
     for ((func, funcStmt) <- analyzer.functions) {
       // some heuristics to identify which functions to inline
       var inline : Boolean = analyzer.functionSize(func) <= Knowledge.ir_maxInliningSize
+      inline &= funcStmt.allowInlining
       //      var inline : Boolean = analyzer.calls(func).size <= 1
       //      inline = inline ||
       //        (funcStmt.body.size <= 4 && funcStmt.body.filter { stmt => stmt.isInstanceOf[ForLoopStatement] }.isEmpty)

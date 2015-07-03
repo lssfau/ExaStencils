@@ -56,7 +56,8 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
           new MultiIndex((0 until loopDim).toArray.map(i => src.fieldLayout(i).idxGhostLeftBegin)),
           new MultiIndex((0 until loopDim).toArray.map(i => src.fieldLayout(i).idxGhostRightEnd))),
           new AssignmentStatement(ExternalFieldAccess("dest", dest, Duplicate(multiIndex)),
-            DirectFieldAccess(FieldSelection(src, src.level, "slot"), Duplicate(multiIndex)))) with OMP_PotentiallyParallel with PolyhedronAccessable))
+            DirectFieldAccess(FieldSelection(src, src.level, "slot"), Duplicate(multiIndex)))) with OMP_PotentiallyParallel with PolyhedronAccessable),
+      false, true)
   }
 }
 
@@ -92,7 +93,8 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
           new MultiIndex((0 until loopDim).toArray.map(i => dest.fieldLayout(i).idxGhostLeftBegin)),
           new MultiIndex((0 until loopDim).toArray.map(i => dest.fieldLayout(i).idxGhostRightEnd))),
           new AssignmentStatement(DirectFieldAccess(FieldSelection(dest, dest.level, "slot"), Duplicate(multiIndex)),
-            ExternalFieldAccess("src", src, Duplicate(multiIndex)))) with OMP_PotentiallyParallel with PolyhedronAccessable))
+            ExternalFieldAccess("src", src, Duplicate(multiIndex)))) with OMP_PotentiallyParallel with PolyhedronAccessable),
+      false, true)
   }
 }
 

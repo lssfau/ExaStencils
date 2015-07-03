@@ -278,7 +278,7 @@ object CleanUnusedStuff extends DefaultStrategy("Cleaning up unused stuff") {
   }
 
   this += new Transformation("Looking for deletable objects", {
-    case FunctionStatement(_, name, _, ListBuffer()) => {
+    case FunctionStatement(_, name, _, ListBuffer(), _, _) => {
       emptyFunctions += name
       List()
     }

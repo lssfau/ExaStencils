@@ -80,7 +80,7 @@ private final class AnnotateStringConstants extends ScopeCollector(Map[String, D
         else if (ty != inferred)
           Logger.warn("[Type inference]  inferred type (" + inferred + ") different from actual type stored in node (" + ty + "); ignoring")
 
-      case FunctionStatement(_, _, params, _) =>
+      case FunctionStatement(_, _, params, _, _, _) =>
         for (param <- params)
           declare(param.name, param.dType.get)
 

@@ -76,7 +76,7 @@ object Fortranify extends DefaultStrategy("Preparing function for fortran interf
     case functions : FunctionCollection =>
       for (abstrFct <- functions.functions) {
         val fct = abstrFct.asInstanceOf[FunctionStatement] // assume resolved function declarations
-        if (isTreatableFunction(fct.name)) {
+        if (fct.allowFortranInterface && isTreatableFunction(fct.name)) {
           // remember for later usage
           functionsToBeProcessed += (fct.name -> ListBuffer())
 
