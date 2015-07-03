@@ -1,7 +1,6 @@
 package exastencils.optimization
 
 import scala.collection.immutable.StringLike
-import scala.collection.mutable.ArrayStack
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
@@ -12,6 +11,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.iv.FieldData
 import exastencils.logger._
+import exastencils.util.EvaluationException
 import exastencils.util.SimplifyExpression
 
 object AddressPrecalculation extends CustomStrategy("Perform address precalculation") {
@@ -75,29 +75,38 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     return res.toString()
   }
 
+  def containsLoopVar(expr : Expression) : Boolean = {
+    object Search extends QuietDefaultStrategy("Anonymous") {
+      var res : Boolean = false
+      this += new Transformation("contains loop var", {
+        case strC : StringConstant =>
+          res |= inVars.contains(strC.value)
+          strC
+        case varA : VariableAccess =>
+          res |= inVars.contains(varA.name)
+          varA
+      })
+    }
+    Search.res = false
+    Search.applyStandalone(new ReturnStatement(expr)) // wrap to ensure ALL nodes of expr are visited
+    return Search.res
+  }
+
   private def splitIndex(ind : Expression) : (Expression, HashMap[Expression, Long]) = {
 
     val outMap = new HashMap[Expression, Long]
     if (inVars == null)
       return (ind, outMap)
 
-    val inMap : HashMap[Expression, Long] = SimplifyExpression.extractIntegralSum(ind)
-
-    def containsLoopVar(expr : Expression) : Boolean = {
-      var res : Boolean = false
-      object Search extends QuietDefaultStrategy("Anonymous") {
-        this += new Transformation("contains loop var", {
-          case strC : StringConstant =>
-            res |= inVars.contains(strC.value)
-            strC
-          case varA : VariableAccess =>
-            res |= inVars.contains(varA.name)
-            varA
-        })
+    // TODO: add support for MultiIndexExpression?
+    val inMap : HashMap[Expression, Long] =
+      try {
+        SimplifyExpression.extractIntegralSum(ind)
+      } catch {
+        case EvaluationException(msg) =>
+          Logger.dbg("[APC]  cannot deal with index expression  (" + msg + ")  in  " + ind.prettyprint())
+          return (ind, outMap)
       }
-      Search.applyStandalone(new ReturnStatement(expr)) // wrap to ensure ALL nodes of expr are visited
-      return res
-    }
 
     for ((expr, value) <- inMap)
       if (expr != SimplifyExpression.constName && !containsLoopVar(expr))
@@ -125,11 +134,17 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     return null
   }
 
+  private final val SKIP_SUBTREE_ANNOT = "APCSST"
+  private var skipSubtree : Boolean = false
+
   private var decls : HashMap[String, ArrayBases] = null
   private var inVars : Set[String] = null
   private val toAnalyze = new ListBuffer[ArrayAccess]()
 
   override def enter(node : Node) : Unit = {
+
+    if (skipSubtree)
+      return
 
     node match {
       case l : ForLoopStatement with OptimizationHint if (l.isInnermost) =>
@@ -139,11 +154,35 @@ private final class AnnotateLoopsAndAccesses extends Collector {
           return
         }
         val d = new HashMap[String, ArrayBases]()
-        l.inc match {
+        l.inc match { // TODO: remove StringConstant
           case AssignmentStatement(VariableAccess(name, _), _, _) =>
             decls = d
             inVars = Set(name)
           case AssignmentStatement(StringConstant(name), _, _) =>
+            decls = d
+            inVars = Set(name)
+          case ExpressionStatement(PreIncrementExpression(VariableAccess(name, _))) =>
+            decls = d
+            inVars = Set(name)
+          case ExpressionStatement(PreIncrementExpression(StringConstant(name))) =>
+            decls = d
+            inVars = Set(name)
+          case ExpressionStatement(PostIncrementExpression(VariableAccess(name, _))) =>
+            decls = d
+            inVars = Set(name)
+          case ExpressionStatement(PostIncrementExpression(StringConstant(name))) =>
+            decls = d
+            inVars = Set(name)
+          case ExpressionStatement(PreDecrementExpression(VariableAccess(name, _))) =>
+            decls = d
+            inVars = Set(name)
+          case ExpressionStatement(PreDecrementExpression(StringConstant(name))) =>
+            decls = d
+            inVars = Set(name)
+          case ExpressionStatement(PostDecrementExpression(VariableAccess(name, _))) =>
+            decls = d
+            inVars = Set(name)
+          case ExpressionStatement(PostDecrementExpression(StringConstant(name))) =>
             decls = d
             inVars = Set(name)
           case _ =>
@@ -153,29 +192,38 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         node.annotate(DECLS_ANNOT, d)
 
       // ArrayAccess with a constant index only cannot be optimized further
-      case acc @ ArrayAccess(_, index, _) if (decls != null && !index.isInstanceOf[IntegerConstant]) =>
+      case acc : ArrayAccess if (decls != null && !acc.index.isInstanceOf[IntegerConstant]) =>
+        acc.annotate(SKIP_SUBTREE_ANNOT) // skip other ArrayAccesses below this one
+        skipSubtree = true
         toAnalyze += acc
 
-      case ass : AssignmentStatement if (decls != null && inVars != null) =>
-        ass.dest match {
+      case AssignmentStatement(dst, _, _) if (decls != null && inVars != null) =>
+        dst match {
           case StringConstant(name) => inVars += name
           case VariableAccess(name, _) => inVars += name
           case ArrayAccess(StringConstant(name), _, _) => inVars += name
           case ArrayAccess(VariableAccess(name, _), _, _) => inVars += name
+          // name of ArrayAccess(ArrayAccess(..), ..) is explicitly NOT extracted, see leave(..)
           case _ => // nothing; expand match here, if more vars should stay inside the loop
         }
 
-      case decl : VariableDeclarationStatement if (decls != null && inVars != null) =>
-        inVars += decl.name
+      case VariableDeclarationStatement(_, name, _) if (decls != null && inVars != null) =>
+        inVars += name
 
       case _ => // ignore
     }
   }
 
   override def leave(node : Node) : Unit = {
+
+    if (node.removeAnnotation(SKIP_SUBTREE_ANNOT).isDefined)
+      skipSubtree = false
+
     node match {
       case l : ForLoopStatement with OptimizationHint if (l.isInnermost) =>
-        for (acc @ ArrayAccess(base, index, al) <- toAnalyze) {
+        // if base is ArrayAccess we ensure that it does not contain anything, which is written in the loop
+        //   (the name of this access itself is not critical, see AssignmentStatement match in enter(..))
+        for (acc @ ArrayAccess(base, index, al) <- toAnalyze) if (!base.isInstanceOf[ArrayAccess] || !containsLoopVar(base)) {
           var name : String = generateName(base)
           val (in : Expression, outMap : HashMap[Expression, Long]) = splitIndex(index)
           val bases : ArrayBases = decls.getOrElseUpdate(name, new ArrayBases(name))
@@ -196,6 +244,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
   }
 
   override def reset() : Unit = {
+    skipSubtree = false
     decls = null
     inVars = null
     toAnalyze.clear()
