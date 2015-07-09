@@ -57,7 +57,7 @@ class Configuration() {
 
     features.foreach(x => {
       if (FeatureModel.allFeatures.get(x._1).isEmpty) {
-        println("error feature not defined " + x._1)
+        this.partialBaseConfig.put(x._1, x._2)
       } else {
         var currFeature = FeatureModel.allFeatures(x._1)
         if (!currFeature.isNumerical && !currFeature.isXorFeature) {

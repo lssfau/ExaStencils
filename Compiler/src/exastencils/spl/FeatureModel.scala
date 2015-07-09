@@ -39,6 +39,10 @@ object FeatureModel {
     return allFeatures(name)
   }
 
+  def contains(name : String) : Boolean = {
+    return allFeatures.contains(name)
+  }
+
   def getDefaultConfig() : Configuration = {
     if (defaultConfig != null)
       return defaultConfig
@@ -292,9 +296,6 @@ object FeatureModel {
             feat.maxValue = field.getInt(Knowledge).toDouble
           }
           feat.valueCalculation = computation
-          if (name.equals("sisc2015_firstDim"))
-            print()
-          println(feat.identifier)
           // TODO annotation at the features whether the "numeric" feature is metric or not
           if (!feat.hasNValues(3) || feat.identifier.equals("poly_optLevel_fine")) {
             feat.isXorFeature = true

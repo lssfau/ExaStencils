@@ -110,14 +110,17 @@ object IO {
     stringBuilder.append(config.measurementName + ";")
     featureArray.foreach { feat =>
       {
-        if (config.partialBaseConfig.contains(feat)) {
-          stringBuilder.append(config.partialBaseConfig(feat) + ";")
+        if (!FeatureModel.contains(feat)) {
+          if (config.partialBaseConfig.contains(feat))
+            stringBuilder.append(config.partialBaseConfig(feat) + ";")
+          else
+            stringBuilder.append(";")
         } else {
           var feature = FeatureModel.get(feat)
-          if (feature.isNumerical && !feature.isXorFeature)
-            stringBuilder.append(config.numericalFeatureValues(feature) + ";")
-          else if (feature.isXorFeature)
+          if (feature.isXorFeature)
             stringBuilder.append(config.xorFeatureValues(feature) + ";")
+          else if (feature.isNumerical)
+            stringBuilder.append(config.numericalFeatureValues(feature) + ";")
           else
             stringBuilder.append(config.boolFeatures(feature) + ";")
         }
@@ -173,7 +176,7 @@ object IO {
 
   }
 
-  def printConfigurationsOneFile(configs : Array[Configuration], lfaConfigs : scala.collection.mutable.Set[LFAConfig], nfps : scala.collection.mutable.Set[String], feturesToConsider : Array[String], fileName : String) = {
+  def printConfigurationsOneFile(configs : Array[Configuration], lfaConfigs : scala.collection.mutable.Set[LFAConfig], nfps : scala.collection.mutable.Set[String], featuresToConsider : Array[String], fileName : String) = {
 
     nfps.add("NumIterations")
     var nfpArray = nfps.toArray
@@ -185,14 +188,14 @@ object IO {
     var stringBuild : StringBuilder = new StringBuilder()
 
     stringBuild.append("configName" + ";")
-    feturesToConsider.foreach { x => stringBuild.append(x + ";") }
+    featuresToConsider.foreach { x => stringBuild.append(x + ";") }
     nfpArray.foreach { x => stringBuild.append(x + ";") }
     stringBuild.append("NumItLFA;")
     writer.write(stringBuild.toString() + "\n")
 
     configs.foreach { conf =>
       {
-        writer.write(IO.printConfigToOneresultFile(conf, feturesToConsider, nfpArray) + "")
+        writer.write(IO.printConfigToOneresultFile(conf, featuresToConsider, nfpArray) + "")
         writer.write(conf.getLFAConfig(lfaConfigs).iterationsNeeded + "\n")
       }
     }

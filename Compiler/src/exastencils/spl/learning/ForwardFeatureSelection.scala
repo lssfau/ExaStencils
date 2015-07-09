@@ -3,6 +3,8 @@ package exastencils.spl.learning
 import Jama.Matrix
 import exastencils.spl.Configuration
 import exastencils.spl.Feature
+import com.sun.xml.internal.ws.message.RelatesToHeader
+import exastencils.spl.FeatureModel
 
 class ForwardFeatureSelection(featuresOfInterest : scala.collection.mutable.Set[Feature], numInterations : Int, measurements : Array[Configuration], nfpOfInterest : String) {
 
@@ -13,7 +15,9 @@ class ForwardFeatureSelection(featuresOfInterest : scala.collection.mutable.Set[
 
   var nameToFeatureAndID : scala.collection.mutable.Map[String, Tuple2[Feature, Int]] = scala.collection.mutable.Map()
 
-  var interationDelta = 0.0001
+  var iterationDelta = 0.0001
+  val iterationDeltaRelative = 0.0001
+  val iterationDeltaAbs = 0.1
 
   var withOffset = false
   var configurationOffset : scala.collection.mutable.Map[Configuration, Double] = scala.collection.mutable.Map()
@@ -26,11 +30,18 @@ class ForwardFeatureSelection(featuresOfInterest : scala.collection.mutable.Set[
     validationConfigurations = configurations
   }
 
+  var useRealtive = false;
+
   /**
     * This method prepares all internal properties to start the forward feature selection algorithm.
     *
     */
-  def apply() = {
+  def apply(relative : Boolean) = {
+    useRealtive = relative
+    if (useRealtive)
+      iterationDelta = iterationDeltaRelative
+    else
+      iterationDelta = iterationDeltaAbs
     featuresOfInterest.foreach(x => {
       if (x.isXorFeature && !x.isNumerical) {
         x.values.foreach { y =>
@@ -122,6 +133,7 @@ class ForwardFeatureSelection(featuresOfInterest : scala.collection.mutable.Set[
     solutionSet.add(new FFS_Expression(featuresOfDomain, "1"))
 
     while (performIteration) {
+      var startTIME = System.currentTimeMillis()
       var minErrorOfThisIteration = Double.MaxValue
       var bestSolutionInIteration : scala.collection.mutable.Set[FFS_Expression] = null
 
@@ -152,7 +164,7 @@ class ForwardFeatureSelection(featuresOfInterest : scala.collection.mutable.Set[
       }
 
       // perform until no more iterations are beneficial 
-      if ((interationDelta > Math.abs(minErrorOfThisIteration - minOverallError)) || currIteration > numInterations || minErrorOfThisIteration > minOverallError) {
+      if ((iterationDelta > Math.abs(minErrorOfThisIteration - minOverallError)) || currIteration > numInterations || minErrorOfThisIteration > minOverallError) {
         performIteration = false
       }
 
@@ -162,7 +174,7 @@ class ForwardFeatureSelection(featuresOfInterest : scala.collection.mutable.Set[
         solutionSet = bestSolutionInIteration
       }
 
-      println("Iteration " + currIteration + " finished with an abs error of: " + minOverallError)
+      println("Iteration " + currIteration + " finished with an abs error of: " + minOverallError + "  needing: " + (System.currentTimeMillis() - startTIME))
       var mod = this.getModelWithConstants(solutionSet.toArray[FFS_Expression])
       println(this.printModelWithConstants(mod._1, mod._2))
       currIteration += 1
@@ -213,7 +225,7 @@ class ForwardFeatureSelection(featuresOfInterest : scala.collection.mutable.Set[
       }
 
       // perform until no more iterations are beneficial 
-      if ((interationDelta > Math.abs(minErrorOfThisIteration - minOverallError)) || currIteration > numInterations) {
+      if ((iterationDelta > Math.abs(minErrorOfThisIteration - minOverallError)) || currIteration > numInterations) {
         performIteration = false
       }
 
@@ -250,8 +262,10 @@ class ForwardFeatureSelection(featuresOfInterest : scala.collection.mutable.Set[
     for (i <- measurements) {
       var jCount = 0
       for (j <- featureSetI) {
+        if (j.wellFormedExpression.contains("l3tmp_numPre"))
+          print("")
         if (allFeaturesInConfig(i, j)) {
-          var x = getValueForExpression(i, j)
+          //          var x = getValueForExpression(i, j)
           result.set(jCount, m, getValueForExpression(i, j))
           //          println(result.get(jCount, m))
         }
@@ -322,8 +336,20 @@ class ForwardFeatureSelection(featuresOfInterest : scala.collection.mutable.Set[
     return prediction / configs.size
   }
 
+  var expressionConfigValueCache : scala.collection.mutable.Map[String, scala.collection.mutable.Map[Configuration, Double]] = scala.collection.mutable.Map()
+
   def getValueForExpression(config : Configuration, list : FFS_Expression) : Double = {
-    return list.evaluationOfRPN(config)
+    val expString = list.wellFormedExpression
+    if (!expressionConfigValueCache.contains(expString)) {
+      expressionConfigValueCache.put(expString, scala.collection.mutable.Map())
+    }
+    var configsWithCalculatedValues = expressionConfigValueCache(expString)
+    if (configsWithCalculatedValues.contains(config)) {
+      return configsWithCalculatedValues(config)
+    }
+    val value = list.evaluationOfRPN(config)
+    configsWithCalculatedValues.put(config, value)
+    return value
   }
 
   def allFeaturesInConfig(config : Configuration, combi : FFS_Expression) : Boolean = {

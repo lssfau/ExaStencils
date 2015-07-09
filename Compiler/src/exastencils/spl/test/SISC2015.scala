@@ -26,10 +26,30 @@ object SICS2015 {
 
   import exastencils.core.Settings
 
-  val baseCaseStudyDir = "E:/Fallstudien/SISC_Paper/"
-  val generationTargetDir = "E://ScalaExaStencil/configsSiSC/"
+  var baseCaseStudyDir = "E:" + File.separator + "Fallstudien" + File.separator + "SISC_Paper" + File.separator
+  var generationTargetDir = "E:" + File.separator + "ScalaExaStencil" + File.separator + "configsSiSC" + File.separator
+  var measurementBaseDir = "E:" + File.separator + "ScalaExaStencil" + File.separator
+
+  def parseParameterfile(filename : String) = {
+
+    var lines = io.Source.fromFile(filename).getLines
+    lines.foreach { x =>
+      var key = x.split("=")(0)
+      var value = x.split("=")(1)
+      key match {
+        case "measurementBaseDir"  => measurementBaseDir = value
+        case "baseCaseStudyDir"    => baseCaseStudyDir = value
+        case "generationTargetDir" => generationTargetDir = value
+      }
+    }
+  }
 
   def main(args : Array[String]) : Unit = {
+
+    System.out.append("asd")
+
+    if (args.length > 0)
+      parseParameterfile(args(0))
 
     //    DomainKnowledgeTests.main(args)
     //    return
@@ -45,7 +65,7 @@ object SICS2015 {
 
     println("Case study dim =" + dimToConsider + " with " + ccVSvc)
 
-    val file = Settings.basePathPrefix + "/Compiler/src/exastencils/knowledge/Knowledge.scala"
+    val file = Settings.basePathPrefix + File.separator + "Compiler" + File.separator + "src" + File.separator + "exastencils" + File.separator + "knowledge" + File.separator + "Knowledge.scala"
     VariabilityParser.parseKnowlegdeFile(file)
 
     print("for filter ")
@@ -75,16 +95,19 @@ object SICS2015 {
     //    lfaTests()
     //    return
 
-    samplingWithPartitionedFeatureSpace()
-    //    orgTest()
-    return
+    //    samplingWithPartitionedFeatureSpace()
+    //    //    orgTest()
+    //    return
 
     var configs : Array[Configuration] = null
     var configsValidation : Array[Configuration] = null
 
     if (dimToConsider == 2 && ccVSvc.equals("cc")) {
-      configs = Util.createConfigsBasedOnMeasurementOneFile(baseCaseStudyDir + "2dCC_NoRandom\\SISC_2_cc_modified.csv", featuresToConsider).toArray
-      configsValidation = Util.createConfigsBasedOnMeasurementOneFile(baseCaseStudyDir + "2dCC_Random\\SISC_2_cc_validation_modified.csv", featuresToConsider).toArray
+
+      configs = Util.createConfigsBasedOnMeasurements(measurementBaseDir + "2dconstCoeff" + File.separator + "NoRandom", null).toArray
+      println(configs.size)
+      //      configs = Util.createConfigsBasedOnMeasurementOneFile(baseCaseStudyDir + "2dCC_NoRandom\\SISC_2_cc_modified.csv", featuresToConsider).toArray
+      //      configsValidation = Util.createConfigsBasedOnMeasurementOneFile(baseCaseStudyDir + "2dCC_Random\\SISC_2_cc_validation_modified.csv", featuresToConsider).toArray
 
     } else if (dimToConsider == 2 && ccVSvc.equals("vc")) {
       configs = Util.createConfigsBasedOnMeasurements(baseCaseStudyDir + "2dVC_NoRandom", featuresToConsider).toArray
@@ -101,22 +124,7 @@ object SICS2015 {
       configsValidation = Util.createConfigsBasedOnMeasurements(baseCaseStudyDir + "3dVC_Random", featuresToConsider).toArray
     }
 
-    //    var nfps : scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
-    //
-    //    //    nfps.add("preSmoothing")
-    //    //    nfps.add("correction")
-    //    //    nfps.add("cycle")
-    //    //    nfps.add("postSmoothing")
-    //    //
-    //    //    nfps.add("residualUpdate")
-    //    //    nfps.add("restriction")
-    //    //    nfps.add("settingSolution")
-    //    //    nfps.add("setup")
-    //    //    nfps.add("timeToSolve")
-    //
-    //    nfps.add("allTime")
-
-    var lfaConfigs = IO.JSONParsing(baseCaseStudyDir + "LFA_version1\\", dimToConsider) // bei LFA_version2 ist das constains bei 16384
+    var lfaConfigs = IO.JSONParsing(baseCaseStudyDir + "LFA_version2\\", dimToConsider) // bei LFA_version2 ist das constains bei 16384
     var lfaConfigsCaseStudy : scala.collection.mutable.Set[LFAConfig] = scala.collection.mutable.Set()
     if (dimToConsider == 2 && ccVSvc.equals("cc"))
       lfaConfigs.foreach { x => if (x.dimensionality == 2 && x.constCoeff && x.block_size == 4 && x.name.contains("16384")) lfaConfigsCaseStudy.add(x) }
@@ -135,86 +143,93 @@ object SICS2015 {
     var toConsider : scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
     toConsider.add("postSmoothing")
     toConsider.add("correction")
-    toConsider.add("settingSolution")
     toConsider.add("restriction")
     toConsider.add("preSmoothing")
+    toConsider.add("settingSolution")
     toConsider.add("residualUpdate")
     toConsider.add("cgsTime")
 
-    //    printConfigurationsOneFile(configs, lfaConfigsCaseStudy, toConsider)
-
-    //        printAllResultsToOneFile(configs, configsValidation, toConsider)
+    //    var partialBaseOptions : scala.collection.mutable.Set[String] = getPartialBaseOptions(configs)
+    //    partialBaseOptions ++= featuresToConsider
+    //    IO.printConfigurationsOneFile(configs, lfaConfigsCaseStudy, toConsider, partialBaseOptions.toArray, "E:\\ScalaExaStencil\\2dconstCoeff\\allResults")
     //    return
 
-    //    var models : scala.collection.mutable.Map[String, String] = scala.collection.mutable.Map()
-    //    var ffss : scala.collection.mutable.Map[String, Tuple2[ForwardFeatureSelection, Tuple2[Jama.Matrix, Array[FFS_Expression]]]] = scala.collection.mutable.Map()
-    //
-    //    toConsider.par.foreach { x =>
-    //      {
-    //
-    //        var ffs : ForwardFeatureSelection = new ForwardFeatureSelection(features, 20, configs, x)
-    //        println(x)
-    //
-    //        ffs.apply()
-    //
-    //        //        ffs.setValidationSet(configsValidation)
-    //        ffs.perform()
-    //
-    //        var orgExpressions = ffs.solutionSet;
-    //        var y = ffs.getModelWithConstants(orgExpressions.toArray[FFS_Expression])
-    //
-    //        var learnedModel = ffs.printModelWithConstants(y._1, y._2)
-    //
-    //        models.put(x, learnedModel)
-    //        ffss.put(x, new Tuple2(ffs, y))
-    //
-    //        println("error model " + ffs.computeErrorForCombination(y._2, configs))
-    //
-    //        //
-    //        var resultFile = "E:/Fallstudien/SISC_Paper/" + dimToConsider + "_" + ccVSvc + "_ModelAndPredictionFor_" + x + ".csv"
-    //        var writer = new PrintWriter(new File(resultFile))
-    //        var sb : StringBuilder = new StringBuilder()
-    //
-    //        println("MODEL for " + x)
-    //        sb.append(ffs.printModelWithConstants(y._1, y._2) + " \n")
-    //        sb.append("measured;predicted;name;LFATimeMeasured;PredictedTimesMeasured;measuredIterations;LFAIterations\n")
-    //        configs.foreach { conf =>
-    //          {
-    //            var iterations : Int = conf.getLFAConfig(lfaConfigsCaseStudy).iterationsNeeded
-    //            var newMatrix = new Jama.Matrix(y._2.size, 1)
-    //            for (i <- 0 to y._2.size - 1) {
-    //              var value = y._1.get(i, 0)
-    //              newMatrix.set(i, 0, value * iterations)
-    //            }
-    //            sb.append(conf.nfpValues(x) + ";" + ffs.predictConfig(y._1, y._2, conf) + ";" + conf.measurementName + ";" + iterations * conf.nfpValues(x) + ";" + ffs.predictConfig(newMatrix, y._2, conf) + ";" + conf.nfpValues("NumIterations") + ";" + iterations + "\n")
-    //          }
-    //        }
-    //        configsValidation.foreach { conf =>
-    //          {
-    //            var iterations : Int = conf.getLFAConfig(lfaConfigsCaseStudy).iterationsNeeded
-    //            var newMatrix = new Jama.Matrix(y._2.size, 1)
-    //            for (i <- 0 to y._2.size - 1) {
-    //              var value = y._1.get(i, 0)
-    //              newMatrix.set(i, 0, value * iterations)
-    //            }
-    //
-    //            sb.append(conf.nfpValues(x) + ";" + ffs.predictConfig(y._1, y._2, conf) + ";" + conf.measurementName + ";" + iterations * conf.nfpValues(x) + ";" + ffs.predictConfig(newMatrix, y._2, conf) + ";" + conf.nfpValues("NumIterations") + ";" + iterations + "\n")
-    //          }
-    //        }
-    //        writer.append(sb.toString())
-    //        writer.flush()
-    //        writer.close()
-    //
-    //      }
-    //    }
+    var models : scala.collection.mutable.Map[String, String] = scala.collection.mutable.Map()
+    var ffss : scala.collection.mutable.Map[String, Tuple2[ForwardFeatureSelection, Tuple2[Jama.Matrix, Array[FFS_Expression]]]] = scala.collection.mutable.Map()
+
+    toConsider.par.foreach { x =>
+      {
+
+        var ffs : ForwardFeatureSelection = new ForwardFeatureSelection(features, 20, configs, x)
+        println(x)
+
+        ffs.apply(false)
+
+        //        ffs.setValidationSet(configsValidation)
+        ffs.perform()
+
+        var orgExpressions = ffs.solutionSet;
+        var y = ffs.getModelWithConstants(orgExpressions.toArray[FFS_Expression])
+
+        var learnedModel = ffs.printModelWithConstants(y._1, y._2)
+
+        models.put(x, learnedModel)
+        ffss.put(x, new Tuple2(ffs, y))
+
+        println("error model " + ffs.computeErrorForCombination(y._2, configs))
+
+        //
+        var resultFile = baseCaseStudyDir + dimToConsider + "_" + ccVSvc + "_ModelAndPredictionFor_" + x + ".csv"
+        var writer = new PrintWriter(new File(resultFile))
+        var sb : StringBuilder = new StringBuilder()
+
+        println("MODEL for " + x)
+        sb.append(ffs.printModelWithConstants(y._1, y._2) + " \n")
+        sb.append("measured;predicted;name;LFATimeMeasured;PredictedTimesMeasured;measuredIterations;LFAIterations\n")
+        configs.foreach { conf =>
+          {
+            var iterations : Int = conf.getLFAConfig(lfaConfigsCaseStudy).iterationsNeeded
+            var newMatrix = new Jama.Matrix(y._2.size, 1)
+            for (i <- 0 to y._2.size - 1) {
+              var value = y._1.get(i, 0)
+              newMatrix.set(i, 0, value * iterations)
+            }
+            sb.append(conf.nfpValues(x) + ";" + ffs.predictConfig(y._1, y._2, conf) + ";" + conf.measurementName + ";" + iterations * conf.nfpValues(x) + ";" + ffs.predictConfig(newMatrix, y._2, conf) + ";" + conf.nfpValues("NumIterations") + ";" + iterations + "\n")
+          }
+        }
+        if (configsValidation != null) {
+          configsValidation.foreach { conf =>
+            {
+              var iterations : Int = conf.getLFAConfig(lfaConfigsCaseStudy).iterationsNeeded
+              var newMatrix = new Jama.Matrix(y._2.size, 1)
+              for (i <- 0 to y._2.size - 1) {
+                var value = y._1.get(i, 0)
+                newMatrix.set(i, 0, value * iterations)
+              }
+
+              sb.append(conf.nfpValues(x) + ";" + ffs.predictConfig(y._1, y._2, conf) + ";" + conf.measurementName + ";" + iterations * conf.nfpValues(x) + ";" + ffs.predictConfig(newMatrix, y._2, conf) + ";" + conf.nfpValues("NumIterations") + ";" + iterations + "\n")
+            }
+          }
+        }
+        writer.append(sb.toString())
+        writer.flush()
+        writer.close()
+
+      }
+    }
 
     //     generating the model for the whole problem based on the models for the different parts
     var learnedModel = ""
-    //    models.foreach(x => {
-    //      if (learnedModel.size > 0)
-    //        learnedModel + " + "
-    //      learnedModel = x._2
-    //    })
+    models.foreach(x => {
+      if (learnedModel.size > 0)
+        learnedModel + " + "
+      learnedModel = x._2
+      println("model for : " + x._1 + " --> " + x._2)
+    })
+
+    println("MODEL::::")
+    println(learnedModel)
+
     //
     //    configs.foreach { conf =>
     //      {
@@ -262,7 +277,7 @@ object SICS2015 {
     println("model for one iteration : ")
     println(learnedModel)
     var ffs : ForwardFeatureSelection = new ForwardFeatureSelection(features, 20, configs, "")
-    ffs.apply()
+    ffs.apply(false)
 
     if (dimToConsider == 2 && ccVSvc.equals("cc"))
       //      learnedModel = "-0.0064394757097425586 * domain_fragmentLength_y * maxLevel + -0.004560257721061133 * l3tmp_numPost + -13.2126718663305725 * maxLevel +-0.008528945840465041 * Jac * domain_rect_numFragsPerBlock_y + -0.03328437545956467 * poly_optLevel_fine * minLevel + -0.854715884099006 * l3tmp_numRecCycleCalls * minLevel + -0.009586647036392825 * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x + -0.050558898392768975 * poly_optLevel_fine * domain_rect_numFragsPerBlock_y + -0.013129280512490205 * opt_useAddressPrecalc + -55.517712095487373 * 1 + -0.3676108446596291 * l3tmp_numRecCycleCalls * maxLevel + -0.06749139660287894 * domain_fragmentLength_x * domain_rect_numFragsPerBlock_x + -0.07543094123475347 * domain_fragmentLength_y * minLevel * domain_fragmentLength_x + -0.06696492508953497 * opt_vectorize * domain_fragmentLength_x + -0.010878746310418214 * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x * maxLevel + -11.880296564311788 * l3tmp_numPost * minLevel + -2.467508096254454 * Jac * minLevel * l3tmp_numPost * domain_rect_numFragsPerBlock_y + -0.10841560691455333 * domain_fragmentLength_y * RBGS * l3tmp_numPost * domain_rect_numFragsPerBlock_y * l3tmp_numRecCycleCalls * maxLevel + -3.1394728651733486 * domain_rect_numFragsPerBlock_y * l3tmp_numPost + -22.258384105581424 * l3tmp_numRecCycleCalls + -1.235078187301263 * RBGS * l3tmp_numPost * maxLevel + -0.03285389023851206 * mpi_useCustomDatatypes * l3tmp_numPost * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x + -3.0806189910770523 * domain_rect_numFragsPerBlock_y * l3tmp_numPre + -1.522668021839599 * l3tmp_useSlotsForJac + -23.477816009352015 * l3tmp_numRecCycleCalls + -2.2038793634551954 * Jac * minLevel * l3tmp_numPre * domain_rect_numFragsPerBlock_y + -0.08817599420458942 * poly_optLevel_fine * l3tmp_numPre * minLevel * domain_rect_numFragsPerBlock_x + -11.083562597795163 * l3tmp_numPre * minLevel + -1.134838312447672 * RBGS * l3tmp_numPre * maxLevel + -0.9304377836025013 * domain_fragmentLength_y * RBGS * l3tmp_numPre * l3tmp_numRecCycleCalls * domain_rect_numFragsPerBlock_y + -0.011561652800814939 * domain_fragmentLength_y * domain_rect_numFragsPerBlock_y * l3tmp_numRecCycleCalls * domain_fragmentLength_x * maxLevel + -12.7843982489679058 * minLevel + -0.7825257384886356 * domain_fragmentLength_x + -0.01828358548009792 * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x * domain_fragmentLength_y * maxLevel + -0.10942136448727624 * domain_rect_numFragsPerBlock_x + -9.696997790735045 * l3tmp_numRecCycleCalls * minLevel + -0.29237588074632226 * l3tmp_numPost * RBGS * poly_optLevel_fine * minLevel + -5.1094697785167861 * comm_useFragmentLoopsForEachOp + -0.01966492411798817 * mpi_useCustomDatatypes * domain_rect_numFragsPerBlock_x + -0.013805416554945587 * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x + -0.011998083001936896 * l3tmp_numPre * poly_optLevel_fine * maxLevel + -0.006796431037699057 * l3tmp_numPost * domain_fragmentLength_y + -0.53047694288809 * l3tmp_numRecCycleCalls * maxLevel + -0.005382118168399348 * opt_unroll * maxLevel * l3tmp_numRecCycleCalls + -1.3947987734237583E-4 * poly_optLevel_fine * poly_tileSize_x * maxLevel + -0.08729778090514007 * domain_fragmentLength_y * l3tmp_numRecCycleCalls + -0.14979872814703596 * domain_fragmentLength_x * minLevel + -0.0024628079401805285 * minLevel * domain_rect_numFragsPerBlock_x"
@@ -318,74 +333,59 @@ object SICS2015 {
     var bestValue = Double.MaxValue
     var bestIdentifier = ""
 
+    // if part 1 == aspectRatioOffset < 2
+    // if part 2 == 2 <= aspectRatioOffset < 4
+    // if part 3 == 4 <= aspectRatioOffset 
+
     for (ifPart <- 1 to 3) {
       lfaConfigsCaseStudy.foreach { currLFA =>
         {
           var currModel = currLFA.iterationsNeeded + " * " + learnedModel.replace("+", "+ " + currLFA.iterationsNeeded + " * ")
 
-          var featuresDefined : scala.collection.mutable.Map[String, String] = scala.collection.mutable.Map()
-          var newFeaturesFound = true
           var identifier = ""
-          while (featuresToConsider.size > featuresDefined.size && newFeaturesFound) {
 
-            identifier = dimToConsider + "_" + ccVSvc + "_" + currLFA.numPre + "_" + currLFA.numPost + "_JAC-" + currLFA.Smoother.equals("Jac") + "_ifPart-" + ifPart + "_" + featuresDefined.size
+          identifier = dimToConsider + "_" + ccVSvc + "_" + currLFA.numPre + "_" + currLFA.numPost + "_JAC-" + currLFA.Smoother.equals("Jac") + "_ifPart-" + ifPart
 
-            // replace variables considered in lfa with values
-            currModel = currModel.replace(" l3tmp_numPost ", "" + currLFA.numPost)
-            currModel = currModel.replace(" l3tmp_numPre ", "" + currLFA.numPre)
-            if (currLFA.Smoother.equals("\"Jac\"")) {
-              currModel = currModel.replace(" Jac ", "" + 1)
-              currModel = currModel.replace(" RBGS ", "" + 0)
-            } else {
-              //              currModel = currModel.replace(" l3tmp_useSlotsForJac ", "" + 0)
-              currModel = currModel.replace(" Jac ", "" + 0)
-              currModel = currModel.replace(" RBGS ", "" + 1)
-            }
-
-            var allExpr : FFS_Expression = new FFS_Expression(ffs.featuresOfDomain, currModel)
-            var stringBuild : StringBuilder = new StringBuilder()
-
-            if (featuresDefined.size > 0)
-              printOSiLSyntax(ffs, allExpr, ifPart, identifier, featuresDefined, derivedDomainPart)
-            else
-              printOSiLSyntax(ffs, allExpr, ifPart, identifier, derivedDomainPart)
-
-            //        printGAMSSyntax(ffs, allExpr, 3)
-
-            featuresDefined.foreach(x => {
-              currModel = currModel.replace(" " + x._1 + " ", " " + x._2 + " ")
-            })
-
-            //            printGAMSSyntax(allExpr, 3)
-
-            var result = startOptimizer(identifier)
-
-            //        var result = optimium - 1
-
-            numbers += 1
-
-            println("round nr " + numbers)
-
-            var beforeNumber = featuresDefined.size
-
-            featuresDefined ++= getOptimalKnowledgeFile(currLFA, result, "" + numbers)
-
-            val objvar = getObjVar(result)
-
-            if (objvar < bestValue) {
-              bestValue = objvar
-              bestIdentifier = identifier
-            }
-
-            if (featuresDefined.size == beforeNumber) {
-              newFeaturesFound = false;
-              identifierAndTime.append(identifier + ";" + objvar + "\n")
-            }
-            identifierAndTime.append(identifier + ";" + objvar + "\n")
-            println("defined features" + featuresDefined.size)
-            newFeaturesFound = false;
-            println("")
+          // replace variables considered in lfa with values
+          currModel = currModel.replace(" l3tmp_numPost ", "" + currLFA.numPost)
+          currModel = currModel.replace(" l3tmp_numPre ", "" + currLFA.numPre)
+          if (currLFA.Smoother.equals("\"Jac\"")) {
+            currModel = currModel.replace(" Jac ", "" + 1)
+            currModel = currModel.replace(" RBGS ", "" + 0)
+          } else {
+            //              currModel = currModel.replace(" l3tmp_useSlotsForJac ", "" + 0)
+            currModel = currModel.replace(" Jac ", "" + 0)
+            currModel = currModel.replace(" RBGS ", "" + 1)
           }
+
+          var allExpr : FFS_Expression = new FFS_Expression(ffs.featuresOfDomain, currModel)
+          var stringBuild : StringBuilder = new StringBuilder()
+
+          printOSiLSyntax(ffs, allExpr, ifPart, identifier, derivedDomainPart)
+
+          //        printGAMSSyntax(ffs, allExpr, 3)
+
+          //            printGAMSSyntax(allExpr, 3)
+
+          var result = startOptimizer(identifier)
+
+          //        var result = optimium - 1
+
+          numbers += 1
+
+          println("round nr " + numbers)
+
+          var featuresDefined = getOptimalKnowledgeFile(currLFA, result, "" + numbers)
+
+          val objvar = getObjVar(result)
+
+          if (objvar < bestValue) {
+            bestValue = objvar
+            bestIdentifier = identifier
+          }
+
+          identifierAndTime.append(identifier + ";" + objvar + "\n")
+
           printOptimalKnowledgeFile(currLFA, featuresDefined, identifier, currModel)
           print("")
         }
@@ -674,102 +674,6 @@ object SICS2015 {
     var scriptFile = basePathSolver + "/osil_script_" + identifier + ".osil"
     var writer = new PrintWriter(new File(scriptFile))
 
-    writer.write(stringBuild.toString())
-
-    writer.flush()
-    writer.close()
-
-  }
-
-  def printOSiLSyntax(ffs : ForwardFeatureSelection, expr : FFS_Expression, ifDefPart : Int, identifier : String, featuresDefined : scala.collection.mutable.Map[String, String], derivedDomainParts : scala.collection.mutable.Map[String, Int]) = {
-    var stringBuild : StringBuilder = new StringBuilder()
-
-    println(expr.toString())
-
-    stringBuild.append("<osil xmlns=\"os.optimizationservices.org\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"os.optimizationservices.org http://www.optimizationservices.org/schemas/2.0/OSiL.xsd\">\n" +
-      "<instanceHeader>\n" +
-      "<name>SISC</name>\n" +
-      //      "<source>Computing Journal 3:175-184, 1960</source>\n" +
-      //      "<description>Rosenbrock problem with constraints</description>\n" +
-      "</instanceHeader>\n")
-
-    stringBuild.append("<instanceData>\n")
-
-    // variables
-    stringBuild.append("<variables numberOfVariables=\"" + (ffs.nameToFeatureAndID.size + derivedDomainParts.size) + "\">\n")
-
-    for (a <- 0 to ffs.nameToFeatureAndID.size) {
-      ffs.nameToFeatureAndID.foreach(x => {
-        if (x._2._2 == a) {
-          if (featuresDefined.contains(x._2._1.identifier) && !x._2._1.identifier.equals("l3tmp_smoother")) {
-            var value = featuresDefined(x._2._1.identifier)
-            if (value.equals("true"))
-              stringBuild.append("<var lb=\"1\" name=\"" + x._1 + "\" type=\"I\" ub=\"1.0\"/> \n")
-            else if (value.equals("false"))
-              stringBuild.append("<var lb=\"0\" name=\"" + x._1 + "\" type=\"I\" ub=\"0\"/> \n")
-            else
-              stringBuild.append("<var lb=\"" + value + "\" name=\"" + x._1 + "\" type=\"I\" ub=\"" + value + "\"/> \n")
-          } else {
-
-            if (!x._2._1.isNumerical || x._2._1.isXorFeature)
-              stringBuild.append("<var lb=\"0\" name=\"" + x._1 + "\" type=\"I\" ub=\"1.0\"/> \n")
-            else {
-              if (x._1.equals("poly_tileSize_x") || x._1.equals("poly_tileSize_y"))
-                stringBuild.append("<var lb=\"" + x._2._1.minValue + "\" ub=\"1120\" name=\"" + x._1 + "\" type=\"I\"/> \n")
-              else
-                stringBuild.append("<var lb=\"" + x._2._1.minValue + "\" ub=\"" + x._2._1.maxValue + "\" name=\"" + x._1 + "\" type=\"I\"/> \n")
-            }
-          }
-        }
-      })
-    }
-
-    for (a <- ffs.nameToFeatureAndID.size - 1 to ffs.nameToFeatureAndID.size + derivedDomainParts.size) {
-      derivedDomainParts.foreach(x => {
-        if (x._2 == a) {
-          stringBuild.append("<var lb=\"" + 0 + "\" ub=\"" + 20 + "\" name=\"" + x._1 + "\" type=\"I\"/> \n")
-        }
-      })
-    }
-
-    stringBuild.append("</variables>\n")
-
-    // objectives
-    stringBuild.append("<objectives numberOfObjectives=\"1\">\n" +
-      "<obj maxOrMin=\"min\" name=\"minCost\" numberOfObjCoef=\"1\">\n" +
-      "</obj>\n" +
-      "</objectives>\n")
-
-    // constraints  
-    var numberOfConstraints = 0
-    var osil : OSILSyntax = null
-
-    if (dimToConsider == 2)
-      osil = new OSILSyntax(ffs.nameToFeatureAndID, dimToConsider, num_points_per_dim2D, ifDefPart, derivedDomainParts)
-    else
-      osil = new OSILSyntax(ffs.nameToFeatureAndID, dimToConsider, num_points_per_dim3D, ifDefPart, derivedDomainParts)
-
-    var constraints = osil.getConstraints()
-
-    stringBuild.append("<constraints numberOfConstraints=\"" + constraints.size + "\">\n")
-    constraints.foreach(x => stringBuild.append(x._1))
-
-    stringBuild.append("</constraints>\n")
-
-    stringBuild.append("<nonlinearExpressions numberOfNonlinearExpressions=\"" + (1 + constraints.size) + "\">\n")
-    stringBuild.append("<nl idx=\"-1\">\n")
-    expr.toOSiL_syntax(ffs.nameToFeatureAndID, stringBuild)
-    stringBuild.append("</nl>\n")
-
-    constraints.foreach(x => stringBuild.append(x._2))
-    stringBuild.append("</nonlinearExpressions>\n" +
-
-      "</instanceData>\n" +
-      "</osil>\n")
-
-    var scriptFile = basePathSolver + "/osil_script_" + identifier + ".osil"
-
-    var writer = new PrintWriter(new File(scriptFile))
     writer.write(stringBuild.toString())
 
     writer.flush()
@@ -1230,8 +1134,8 @@ object SICS2015 {
     giveConfigsAName(configurationsWiththirdSampling, "")
     giveConfigsAName(configurationsWithSecondSamplingRandom, "_random")
 
-    IO.printAllResultsToOneFile(configurationsWiththirdSampling.toArray, "E:/newDomainPartition.csv", featuresInOutput.toArray)
-    IO.printAllResultsToOneFile(configurationsWithSecondSamplingRandom.toArray, "E:/newDomainPartition_random.sisc2015_firstDimcsv", featuresInOutput.toArray)
+    //    IO.printAllResultsToOneFile(configurationsWiththirdSampling.toArray, baseCaseStudyDir + "newDomainPartition.csv", featuresInOutput.toArray)
+    IO.printAllResultsToOneFile(configurationsWithSecondSamplingRandom.toArray, baseCaseStudyDir + "newDomainPartition_random.csv", featuresInOutput.toArray)
 
     var blackList : scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
     blackList.add("num_points_per_dim")
@@ -1255,11 +1159,11 @@ object SICS2015 {
     if (dimToConsider == 3)
       blackList.add("domain_z")
 
-    // print random configs
-    //    writeConfigurations(configurationsWithSecondSamplingRandom, blackList, "_random")
+    //     print random configs
+    writeConfigurations(configurationsWithSecondSamplingRandom, blackList, "_random")
 
     //     print all 
-    writeConfigurations(configurationsWiththirdSampling, blackList, "")
+    //    writeConfigurations(configurationsWiththirdSampling, blackList, "")
 
     return true
   }
@@ -1314,7 +1218,7 @@ object SICS2015 {
         configToKnowledgeFile(y, configKey, blackList, suffix)
         index += 1
         generateShFileChimaira(configKey, suffix)
-        writer.append("sbatch -A spl -p chimaira -n 1 -c 1 -t 20 -o " + configKey + suffix + ".out /home/grebhahn/ScalaCodegenSISC/config/script_" + configKey + suffix + ".sh\n")
+        writer.append("sbatch -A spl -p chimaira -n 1 -c 1 -t 20 -o " + configKey + suffix + ".out /scratch/grebhahn/ScalaCodegenSISC/config/script_" + configKey + suffix + ".sh\n")
 
         makeWriter.append("cd config_" + configKey + suffix + "/\n")
         makeWriter.append("make -j\n")
@@ -1335,7 +1239,7 @@ object SICS2015 {
     var newFilelocation = generationTargetDir + "script_" + configKey + suffix + ".sh"
     val writer = new PrintWriter(new File(newFilelocation))
     writer.append("#!/bin/sh\n")
-    writer.append("cd /home/grebhahn/ScalaCodegenSISC/knowledgeFiles\n")
+    writer.append("cd /scratch/grebhahn/ScalaCodegenSISC/knowledgeFiles\n")
     writer.append("mkdir ../config/config_" + configKey + suffix + "/\n")
     writer.append("srun exaGen Main knowledgeFile_" + configKey + suffix + ".knowledge ../config/config_" + configKey + suffix + "/\n")
     writer.flush()
@@ -1886,6 +1790,9 @@ object SICS2015 {
 
     if (config.boolFeatures(FeatureModel.get("opt_vectorize")))
       config.partialBaseConfig.put("data_alignFieldPointers", true)
+    else {
+      config.partialBaseConfig.put("data_alignFieldPointers", false)
+    }
 
     config.partialBaseConfig.put("domain_numBlocks", domain_rect_numBlocks_x * domain_rect_numBlocks_y * domain_rect_numBlocks_z)
     config.partialBaseConfig.put("domain_numFragmentsPerBlock", numFragsPerBlock_x * numFragsPerBlock_y * numFragsPerBlock_z)
@@ -1893,8 +1800,7 @@ object SICS2015 {
     config.partialBaseConfig.put("l3tmp_maxNumCGSSteps", "1024")
     config.partialBaseConfig.put("l3tmp_targetResReduction", "1.0E-5")
 
-    //    Constraints.condEnsureValue(l3tmp_useSlotVariables, false, !l3tmp_useSlotsForJac, "invalid if not using l3tmp_useSlotsForJac")
-
+    //    Constraints.condEnsureValue(l3tmp_useSlotVariables, false, !l3tmp_useSlotsForJac, "invalid if not using l3tmp_useSlotsForJac"
     if (!l3tmp_useSlotsForJac)
       config.partialBaseConfig.put("l3tmp_useSlotVariables", "false")
     else
@@ -1973,6 +1879,21 @@ object SICS2015 {
             return x.iterationsNeeded
     }
     return 0
+  }
+
+  def getPartialBaseOptions(configs : Array[Configuration]) : scala.collection.mutable.Set[String] = {
+    var partBaseOptions : scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
+
+    configs.foreach { x =>
+      {
+        x.partialBaseConfig.foreach(f => {
+          if (!partBaseOptions.contains(f._1)) {
+            partBaseOptions.add(f._1)
+          }
+        })
+      }
+    }
+    return partBaseOptions
   }
 
 }

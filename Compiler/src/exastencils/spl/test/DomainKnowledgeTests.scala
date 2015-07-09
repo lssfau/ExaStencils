@@ -83,7 +83,7 @@ object DomainKnowledgeTests {
       FeatureModel.allFeatures.foreach(f => features.add(f._2))
 
       var forwardFeatureSelection = new ForwardFeatureSelection(features, 20, testConfigs.toArray[Configuration], "time_perCycle")
-      forwardFeatureSelection.apply
+      forwardFeatureSelection.apply(false)
       forwardFeatureSelection.perform()
 
       var x = forwardFeatureSelection.getModelWithConstants(forwardFeatureSelection.solutionSet.toArray[FFS_Expression])
@@ -91,7 +91,7 @@ object DomainKnowledgeTests {
       specificModels.add(new Tuple4[Feature, String, Array[FFS_Expression], Jama.Matrix](FeatureModel.allFeatures("cgs"), "time_perCycle", x._2, x._1))
 
       forwardFeatureSelection = new ForwardFeatureSelection(features, 20, testConfigs.toArray[Configuration], "numberIterations")
-      forwardFeatureSelection.apply
+      forwardFeatureSelection.apply(false)
       forwardFeatureSelection.perform()
 
       x = forwardFeatureSelection.getModelWithConstants(forwardFeatureSelection.solutionSet.toArray[FFS_Expression])
@@ -577,7 +577,7 @@ object DomainKnowledgeTests {
     ccdSampleBySmoother.foreach(x => if (!configsConsidered.contains(x)) configsConsidered.add(x))
 
     var forwardFeatureSelection = new ForwardFeatureSelection(featuresOfInterest, 20, ccdSampleBySmoother.toArray[Configuration], nfp)
-    forwardFeatureSelection.apply
+    forwardFeatureSelection.apply(false)
     forwardFeatureSelection.perform()
 
     var x = forwardFeatureSelection.getModelWithConstants(forwardFeatureSelection.solutionSet.toArray[FFS_Expression])

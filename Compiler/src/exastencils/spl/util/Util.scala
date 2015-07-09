@@ -20,29 +20,34 @@ object Util {
 
     var basicPath : File = new File(basicDir)
 
-    var knowledgeFilesPath : File = new File(basicDir + "/knowledgeFiles")
-    var resultFilePath : File = new File(basicDir + "/measurements")
+    var knowledgeFilesPath : File = new File(basicDir + File.separator + "knowledgeFiles")
+    var resultFilePath : File = new File(basicDir + File.separator + "measurements")
 
-    var featuresConsidered : scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
-    FeatureModel.allFeatures.foreach(x => featuresConsidered.add(x._1))
+    //    var featuresConsidered : scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
+    //    FeatureModel.allFeatures.foreach(x => featuresConsidered.add(x._1))
 
     var measurements : scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
     resultFilePath.listFiles().foreach(x => measurements.add(x.getName))
 
     knowledgeFilesPath.listFiles().foreach { x =>
-      var featureValues = IO.parseKnowledgeFile(x.getAbsolutePath)
+      //      var featureValues = IO.parseKnowledgeFile(x.getAbsolutePath)
 
-      var featureValuesConsidered = IO.parseKnowledgeFile(x.getAbsolutePath, featuresConsidered)
-      if (measurements.contains(featureValues("l3tmp_timerOuputFile").replaceAll("\"", ""))) {
-        var numIterationsMeasured = numberOfIterations(basicDir + "/measurements/" + featureValues("l3tmp_timerOuputFile").replaceAll("\"", ""))
-        var measurement : scala.collection.mutable.Map[String, Double] = IO.parseMeasurement(basicDir + "/measurements/" + featureValues("l3tmp_timerOuputFile").replaceAll("\"", ""), numIterationsMeasured)
+      var featureValuesConsidered : scala.collection.mutable.Map[String, String] = null;
+      if (featuresConsidered != null)
+        featureValuesConsidered = IO.parseKnowledgeFile(x.getAbsolutePath, featuresConsidered)
+      else
+        featureValuesConsidered = IO.parseKnowledgeFile(x.getAbsolutePath)
 
-        var timeCGS = coarseGridSolverTime(basicDir + "/measurements/" + featureValues("l3tmp_timerOuputFile").replaceAll("\"", ""), numIterationsMeasured)
+      if (measurements.contains(featureValuesConsidered("l3tmp_timerOuputFile").replaceAll("\"", ""))) {
+        var numIterationsMeasured = numberOfIterations(basicDir + File.separator + "measurements" + File.separator + featureValuesConsidered("l3tmp_timerOuputFile").replaceAll("\"", ""))
+        var measurement : scala.collection.mutable.Map[String, Double] = IO.parseMeasurement(basicDir + File.separator + "measurements" + File.separator + featureValuesConsidered("l3tmp_timerOuputFile").replaceAll("\"", ""), numIterationsMeasured)
+
+        var timeCGS = coarseGridSolverTime(basicDir + File.separator + "measurements" + File.separator + featureValuesConsidered("l3tmp_timerOuputFile").replaceAll("\"", ""), numIterationsMeasured)
         measurement.put("NumIterations", numIterationsMeasured)
         measurement.put("cgsTime", timeCGS)
         val conf = Util.createConfiguration(featureValuesConsidered, measurement)
         conf.numNode = getNumNodesFromKnowledgeFile(x.getAbsolutePath, featuresConsidered)
-        conf.measurementName = featureValues("l3tmp_timerOuputFile")
+        conf.measurementName = featureValuesConsidered("l3tmp_timerOuputFile")
         configurations.add(conf)
 
       }
@@ -107,7 +112,7 @@ object Util {
 
     var it = (overtime / sum)
 
-    return it.toInt
+    return Math.round(it.toFloat)
   }
 
   def coarseGridSolverTime(file : String, numIterations : Int) : Double = {

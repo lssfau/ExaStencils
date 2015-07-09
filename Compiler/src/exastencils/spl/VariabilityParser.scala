@@ -114,7 +114,7 @@ object VariabilityParser {
     FeatureModel.allFeatures.foreach(f => features.add(f._2))
 
     var forwardFeatureSelection = new ForwardFeatureSelection(features, 10, testConfigs.toArray[Configuration], "time_perCycle")
-    forwardFeatureSelection.apply
+    forwardFeatureSelection.apply(false)
 
     var x = forwardFeatureSelection.getModelWithConstants(forwardFeatureSelection.solutionSet.toArray[FFS_Expression])
 

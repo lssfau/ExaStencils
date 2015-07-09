@@ -1,6 +1,22 @@
 package exastencils.spl
 
+// if ifCase 1 == aspectRatioOffset < 2
+// if ifCase 2 == 2 <= aspectRatioOffset < 4
+// if ifCase 3 == 4 <= aspectRatioOffset 
+
 class OSILSyntax(featureToID : scala.collection.mutable.Map[String, Tuple2[Feature, Int]], dimensionality : Int, num_points_per_dim : Int, ifCase : Int, derivedDomainParts : scala.collection.mutable.Map[String, Int]) {
+
+  var nodesTimesRanks =
+    "<times>\n" +
+      "<variable coef=\"1.0\" idx=\"" + featureToID("sisc2015_numNodes")._2 + "\"/>\n" +
+      "<variable coef=\"1.0\" idx=\"" + featureToID("sisc2015_ranksPerNode")._2 + "\"/>\n" +
+      "</times>\n";
+
+  var dimBase =
+    "<power>\n" +
+      "<number type=\"real\" value=\"2.0\"/>\n" +
+      "<number type=\"real\" value=\"" + dimensionality + "\"/>\n" +
+      "</power>\n";
 
   //  var domain_rect_numBlocks_x = ((problemDefinition("num_points_per_dim").asInstanceOf[Int] / ( config(FeatureModel.get("domain_fragmentLength_x")) * Math.pow(2, config(FeatureModel.get("maxLevel"))))) / config(FeatureModel.get("domain_rect_numFragsPerBlock_x")))
   var domain_rect_numBlocks_x =
@@ -210,12 +226,20 @@ class OSILSyntax(featureToID : scala.collection.mutable.Map[String, Tuple2[Featu
     "</times>\n"
 
   def getConstraints() : scala.collection.mutable.MutableList[Tuple2[String, String]] = {
+
+    var aspectRatioOffset = 0
+
+    if (ifCase == 1) {
+      aspectRatioOffset = 2
+    } else if (ifCase == 2) {
+      aspectRatioOffset = 4
+    }
+
     var constraints : scala.collection.mutable.MutableList[Tuple2[String, String]] = scala.collection.mutable.MutableList()
 
     var value = ""
     var constraintTree = ""
 
-    // lower bound definition
     value = "<con lb=\"0.0\"/>\n"
     constraintTree = "<nl idx=\"" + constraints.size + "\">\n" +
       "<minus>" +
@@ -224,6 +248,8 @@ class OSILSyntax(featureToID : scala.collection.mutable.Map[String, Tuple2[Featu
       "</minus>" +
       "</nl>\n"
     constraints += (new Tuple2(value, constraintTree))
+
+    //// old........
 
     value = "<con lb=\"0.0\"/>\n"
     constraintTree = "<nl idx=\"" + constraints.size + "\">\n" +

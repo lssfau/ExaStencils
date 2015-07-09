@@ -66,7 +66,6 @@ class Feature(name : String) {
       val contArr = cont.split(",")
       this.minValue = augmentString(contArr(0).trim()).toInt
       this.maxValue = augmentString(contArr(1).trim()).toInt
-      // FIXME this.stepsize = augmentString(contArr(2).trim()).toInt
       this.defaultValue = augmentString(contArr(3).trim())
     }
   }
@@ -162,9 +161,6 @@ class Feature(name : String) {
 
   def applicableInCCI() : Boolean = {
 
-    if (this.identifier.equals("l3tmp_omega"))
-      println(this.identifier)
-
     if (!this.isNumerical)
       return false
 
@@ -235,30 +231,10 @@ class Feature(name : String) {
 
   def getSampledValue(distinctValues : Int) : Array[Double] = {
 
-    if (this.name.startsWith("domain_")) {
-      return getPowOf2Values(distinctValues)
-    }
-
-    if (this.name.equals("sisc2015_ranksPerNode")) {
-      return getPowOf2Values(distinctValues)
-    }
-
-    if (this.name.equals("sisc2015_numNodes")) {
-      return getPowOf2Values(distinctValues)
-    }
-
-    if (this.name.startsWith("aro_")) {
-      return getPowOf2Values(distinctValues)
-    }
-
-    if (this.name.startsWith("sisc2015_numOMP_")) {
-      return getPowOf2Values(distinctValues)
-    }
-
     if (this.name.startsWith("poly_tileSize_"))
       return getPowOf2ValuesPolly(distinctValues)
 
-    return getEqualDistributedValues(distinctValues)
+    return getValues(distinctValues)
 
   }
 
@@ -349,6 +325,23 @@ class Feature(name : String) {
     return valuesLocal;
   }
 
+  def getValues(distinctValues : Int) : Array[Double] = {
+    var valuesLocal : Array[Double] = Array.ofDim[Double](distinctValues)
+
+    var allValues = getAllValues().toArray
+
+    valuesLocal(0) = allValues(0)
+    valuesLocal(distinctValues - 1) = allValues(allValues.length - 1)
+
+    // -2 because we already considered the min and maximum value, +1 we start with 0
+    var stepsBetweenValues = numberOfValues / (distinctValues - 2 + 1)
+
+    for (a <- 1 to distinctValues - 2) {
+      valuesLocal(a) = allValues(stepsBetweenValues * a)
+    }
+    return valuesLocal;
+  }
+
   // TODO   
   def getPowOf2Values(distinctValues : Int) : Array[Double] = {
     var valuesLocal : scala.collection.mutable.Set[Double] = scala.collection.mutable.Set()
@@ -375,14 +368,7 @@ class Feature(name : String) {
 
       }
     }
-    //    while (valuesLocal.size < distinctValues) {
-    //      var r = new scala.util.Random(valuesLocal.size)
-    //      curr = r.nextInt(maxValue.toInt).toDouble
-    //      while (valuesLocal.contains(curr) || curr < minValue) {
-    //        curr = r.nextInt(maxValue.toInt).toDouble
-    //      }
-    //      valuesLocal.add(curr)
-    //    }
+
     return valuesLocal.toArray[Double];
   }
 
