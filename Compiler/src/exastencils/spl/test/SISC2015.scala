@@ -46,7 +46,7 @@ object SICS2015 {
 
   def main(args : Array[String]) : Unit = {
 
-    System.out.append("asd")
+    System.setOut(new PrintStream(new File(baseCaseStudyDir + "output-file.txt")));
 
     if (args.length > 0)
       parseParameterfile(args(0))
