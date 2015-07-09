@@ -30,6 +30,8 @@ object SICS2015 {
   var generationTargetDir = "E:" + File.separator + "ScalaExaStencil" + File.separator + "configsSiSC" + File.separator
   var measurementBaseDir = "E:" + File.separator + "ScalaExaStencil" + File.separator
 
+  var knowledgeFile = "E:" + File.separator + "EclipseWorkspaces" + File.separator + "Scala_new" + File.separator + "ScalaExaStencil" + File.separator + "ScalaCodegen" + File.separator + "repo" + File.separator + "Compiler" + File.separator + "src" + File.separator + "exastencils" + File.separator + "knowledge" + File.separator + "Knowledge.scala"
+
   def parseParameterfile(filename : String) = {
 
     var lines = io.Source.fromFile(filename).getLines
@@ -40,6 +42,7 @@ object SICS2015 {
         case "measurementBaseDir"  => measurementBaseDir = value
         case "baseCaseStudyDir"    => baseCaseStudyDir = value
         case "generationTargetDir" => generationTargetDir = value
+        case "knowledgeFile"       => knowledgeFile = value
       }
     }
   }
@@ -65,7 +68,7 @@ object SICS2015 {
 
     println("Case study dim =" + dimToConsider + " with " + ccVSvc)
 
-    val file = Settings.basePathPrefix + File.separator + "Compiler" + File.separator + "src" + File.separator + "exastencils" + File.separator + "knowledge" + File.separator + "Knowledge.scala"
+    val file = knowledgeFile
     VariabilityParser.parseKnowlegdeFile(file)
 
     print("for filter ")
