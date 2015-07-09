@@ -78,17 +78,17 @@ object SimplifyExpression {
 
       case VariableAccess(varName, _) =>
         res = new HashMap[Expression, Long]()
-        res(VariableAccess(varName, Some(IntegerDatatype()))) = 1L
+        res(VariableAccess(varName, Some(IntegerDatatype))) = 1L
 
       case StringConstant(varName) =>
         res = new HashMap[Expression, Long]()
-        res(VariableAccess(varName, Some(IntegerDatatype()))) = 1L // ONLY VariableAccess in res keys, NO StringConstant
+        res(VariableAccess(varName, Some(IntegerDatatype))) = 1L // ONLY VariableAccess in res keys, NO StringConstant
 
       case acc : ArrayAccess =>
         res = new HashMap[Expression, Long]()
         res(acc) = 1L
 
-      case UnaryExpression(UnaryOperators.Negative, expr) =>
+      case NegativeExpression(expr) =>
         res = extractIntegralSumRec(expr)
         for ((name : Expression, value : Long) <- extractIntegralSumRec(expr))
           res(name) = -value
@@ -265,7 +265,7 @@ object SimplifyExpression {
       if (res == null) {
         res = value match {
           case 1L  => expr
-          case -1L => UnaryExpression(UnaryOperators.Negative, expr)
+          case -1L => NegativeExpression(expr)
           case _   => MultiplicationExpression(IntegerConstant(value), expr)
         }
       } else {
@@ -358,19 +358,19 @@ object SimplifyExpression {
 
       case VariableAccess(varName, _) =>
         res = new HashMap[Expression, Double]()
-        res(VariableAccess(varName, Some(RealDatatype()))) = 1d
+        res(VariableAccess(varName, Some(RealDatatype))) = 1d
 
       case StringConstant(varName) =>
         if (varName.contains("std::rand")) // HACK
           throw new EvaluationException("don't optimze code containing a call to std::rand")
         res = new HashMap[Expression, Double]()
-        res(VariableAccess(varName, Some(RealDatatype()))) = 1d // ONLY VariableAccess in res keys, NO StringConstant
+        res(VariableAccess(varName, Some(RealDatatype))) = 1d // ONLY VariableAccess in res keys, NO StringConstant
 
       case aAcc : ArrayAccess =>
         res = new HashMap[Expression, Double]()
         res(aAcc) = 1d
 
-      case UnaryExpression(UnaryOperators.Negative, expr) =>
+      case NegativeExpression(expr) =>
         res = extractFloatingSumRec(expr)
         for ((name : Expression, value : Double) <- extractFloatingSumRec(expr))
           res(name) = -value
@@ -494,7 +494,7 @@ object SimplifyExpression {
       if (res == null) {
         res = value match {
           case 1d  => expr
-          case -1d => UnaryExpression(UnaryOperators.Negative, expr)
+          case -1d => NegativeExpression(expr)
           case _   => MultiplicationExpression(FloatConstant(value), expr)
         }
       } else {

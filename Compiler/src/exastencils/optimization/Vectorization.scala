@@ -50,29 +50,29 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
     // excessive testing if loop header allows vectorization
     return loop match {
-      case ForLoopStatement(VariableDeclarationStatement(IntegerDatatype(), itName, Some(lBound)), condExpr, incrExpr, body, reduction) =>
+      case ForLoopStatement(VariableDeclarationStatement(IntegerDatatype, itName, Some(lBound)), condExpr, incrExpr, body, reduction) =>
 
         val uBoundExcl : Expression =
           condExpr match {
-            case LowerExpression(VariableAccess(bName, Some(IntegerDatatype())), upperBoundExcl) if (itName == bName) =>
+            case LowerExpression(VariableAccess(bName, Some(IntegerDatatype)), upperBoundExcl) if (itName == bName) =>
               upperBoundExcl
-            case LowerEqualExpression(VariableAccess(bName, Some(IntegerDatatype())), upperBoundIncl) if (itName == bName) =>
+            case LowerEqualExpression(VariableAccess(bName, Some(IntegerDatatype)), upperBoundIncl) if (itName == bName) =>
               AdditionExpression(upperBoundIncl, IntegerConstant(1))
             case _ => throw new VectorizationException("no upper bound")
           }
 
         val incr : Long =
           incrExpr match {
-            case ExpressionStatement(PreIncrementExpression(VariableAccess(n, Some(IntegerDatatype())))) if (itName == n)  => 1L
-            case ExpressionStatement(PostIncrementExpression(VariableAccess(n, Some(IntegerDatatype())))) if (itName == n) => 1L
-            case AssignmentStatement(VariableAccess(n, Some(IntegerDatatype())),
+            case ExpressionStatement(PreIncrementExpression(VariableAccess(n, Some(IntegerDatatype)))) if (itName == n)  => 1L
+            case ExpressionStatement(PostIncrementExpression(VariableAccess(n, Some(IntegerDatatype)))) if (itName == n) => 1L
+            case AssignmentStatement(VariableAccess(n, Some(IntegerDatatype)),
               IntegerConstant(i),
               "+=") if (itName == n) => i
-            case AssignmentStatement(VariableAccess(n1, Some(IntegerDatatype())),
-              AdditionExpression(IntegerConstant(i), VariableAccess(n2, Some(IntegerDatatype()))),
+            case AssignmentStatement(VariableAccess(n1, Some(IntegerDatatype)),
+              AdditionExpression(IntegerConstant(i), VariableAccess(n2, Some(IntegerDatatype))),
               "=") if (itName == n1 && itName == n2) => i
-            case AssignmentStatement(VariableAccess(n1, Some(IntegerDatatype())),
-              AdditionExpression(VariableAccess(n2, Some(IntegerDatatype())), IntegerConstant(i)),
+            case AssignmentStatement(VariableAccess(n1, Some(IntegerDatatype)),
+              AdditionExpression(VariableAccess(n2, Some(IntegerDatatype)), IntegerConstant(i)),
               "=") if (itName == n1 && itName == n2) => i
             case _ => throw new VectorizationException("loop increment must be constant or cannot be extracted:  " + incrExpr)
           }
@@ -113,7 +113,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         SIMD_IncrementVectorDeclaration(name) +=: preLoopStmts
         incrVectDeclared = true
       }
-      return VariableAccess(name, Some(SIMD_RealDatatype()))
+      return new VariableAccess(name, SIMD_RealDatatype)
     }
 
     def setLoad() : this.type = {
@@ -156,22 +156,21 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
   private def containsVarAcc(node : Node, varName : String) : Boolean = {
     var found = false
-    object Search extends QuietDefaultStrategy("Find VariableAccess...") {
-      this += new Transformation("seaching...", {
-        case acc @ VariableAccess(name, _) if (name == varName) =>
-          found = true
-          acc
-      })
-    }
+    val search = new QuietDefaultStrategy("Find VariableAccess...")
+    search += new Transformation("seaching...", {
+      case acc @ VariableAccess(name, _) if (name == varName) =>
+        found = true
+        acc
+    })
     // ensure node itself is found, too
-    Search.applyStandalone(Root(ListBuffer(node)))
+    search.applyStandalone(Root(ListBuffer(node)))
     return found
   }
 
-  private def vectorizeLoop(oldLoop : ForLoopStatement, itName : String, begin : Expression, endExcl : Expression,
+  private def vectorizeLoop(oldLoop : ForLoopStatement, itVar : String, begin : Expression, endExcl : Expression,
     incr : Long, body : ListBuffer[Statement], reduction : Option[Reduction]) : Statement = {
 
-    val ctx = new LoopCtx(itName, incr)
+    val ctx = new LoopCtx(itVar, incr)
     var postLoopStmt : Statement = null
     if (reduction.isDefined) {
       val target = reduction.get.target
@@ -186,9 +185,9 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
           case "max" => SIMD_FloatConstant(Double.MinValue)
           case _     => throw new VectorizationException("unknown reduction operator:  " + operator)
         }
-      ctx.preLoopStmts += VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp, Some(identityElem))
+      ctx.preLoopStmts += new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, identityElem)
 
-      val vecTmpAcc = VariableAccess(vecTmp, Some(SIMD_RealDatatype()))
+      val vecTmpAcc = new VariableAccess(vecTmp, SIMD_RealDatatype)
       postLoopStmt =
         operator match {
           case "+"   => SIMD_HorizontalAddStatement(Duplicate(target), vecTmpAcc)
@@ -267,57 +266,69 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     for (stmt <- body)
       vectorizeStmt(stmt, ctx)
 
-    def itVar = VariableAccess(itName, Some(IntegerDatatype()))
-    val res = new ListBuffer[Statement]()
+    def itVarAcc = new VariableAccess(itVar, IntegerDatatype)
+    val newIncr : Long = incr * vs
 
-    res += new VariableDeclarationStatement(IntegerDatatype(), itName, Some(Duplicate(begin)))
+    oldLoop.begin = new VariableDeclarationStatement(IntegerDatatype, itVar, Unrolling.startVarAcc)
+    oldLoop.end = new LowerExpression(itVarAcc, Unrolling.intermVarAcc)
+    oldLoop.inc = new AssignmentStatement(itVarAcc, IntegerConstant(newIncr), "+=")
+    oldLoop.body = ctx.vectStmts
 
-    val lowerName = "_lower"
-    def lower = VariableAccess(lowerName, Some(IntegerDatatype()))
-    res += new VariableDeclarationStatement(IntegerDatatype(), lowerName, Some(begin))
-
-    val upperName = "_upper"
-    def upper = VariableAccess(upperName, Some(IntegerDatatype()))
-    res += new VariableDeclarationStatement(IntegerDatatype(), upperName, Some(Duplicate(endExcl)))
+    var postLoop : Statement = null
+    val annot = oldLoop.removeAnnotation(Unrolling.UNROLLED_ANNOT)
+    val unrolled : Boolean = annot.isDefined
+    var res : ListBuffer[Statement] = null
+    if (unrolled) {
+      res = new ListBuffer[Statement]()
+    } else {
+      // old AST will be replaced completely, so we can reuse the body once here (and duplicate later)
+      val (boundsDecls, postLoop_) : (ListBuffer[Statement], Statement) =
+        Unrolling.getBoundsDeclAndPostLoop(itVar, begin, endExcl, incr, body, Duplicate(reduction))
+      postLoop = postLoop_
+      res = boundsDecls
+    }
 
     if (Knowledge.data_alignFieldPointers) { // no need to ensure alignment of iteration variable if data is not aligned
-      res += new AssignmentStatement(upper, new MinimumExpression(upper,
-        lower + ((IntegerConstant(vs) - (Duplicate(alignmentExpr) Mod IntegerConstant(vs))) Mod IntegerConstant(vs))))
-      res += new ForLoopStatement(NullStatement,
-        LowerExpression(itVar, upper),
-        AssignmentStatement(itVar, IntegerConstant(incr), "+="),
+      val preEndVar : String = "_preEnd"
+      def preEndVarAcc = new VariableAccess(preEndVar, IntegerDatatype)
+
+      val wrappedAlignExpr = new ExpressionStatement(Duplicate(alignmentExpr))
+      val replItVar = new QuietDefaultStrategy("Replace iteration variable...")
+      replItVar += new Transformation("seaching...", {
+        case VariableAccess(name, _) if (name == itVar) =>
+          Unrolling.startVarAcc
+      })
+      // ensure node itself is found, too
+      replItVar.applyStandalone(wrappedAlignExpr)
+      val preEndExpr = new MinimumExpression(Unrolling.endVarAcc,
+        Unrolling.startVarAcc + ((IntegerConstant(vs) - (wrappedAlignExpr.expression Mod IntegerConstant(vs))) Mod IntegerConstant(vs)))
+      res += new VariableDeclarationStatement(IntegerDatatype, preEndVar, preEndExpr)
+
+      res += new ForLoopStatement(new VariableDeclarationStatement(IntegerDatatype, itVar, Unrolling.startVarAcc),
+        new LowerExpression(itVarAcc, preEndVarAcc),
+        new AssignmentStatement(itVarAcc, IntegerConstant(incr), "+="),
         Duplicate(body))
 
-      res += new AssignmentStatement(lower, upper, "=")
-      res += new AssignmentStatement(upper, Duplicate(endExcl), "=")
+      res += new AssignmentStatement(Unrolling.startVarAcc, preEndVarAcc, "=")
+    }
+    var intermDecl : VariableDeclarationStatement = null
+    if (unrolled) {
+      intermDecl = annot.get.value.asInstanceOf[VariableDeclarationStatement]
+      intermDecl.expression = Some(Unrolling.getIntermExpr(newIncr))
+    } else {
+      intermDecl = Unrolling.getIntermDecl(newIncr)
+      res += intermDecl
     }
 
     res ++= ctx.preLoopStmts
-
-    // no rollback after this point allowed!
-    // reuse oldLoop to preserve all traits
-    // set first value (again) to allow omp parallelization
-    val annot : Option[Annotation] = oldLoop.removeAnnotation(Unrolling.NO_REM_ANNOT)
-    val oldOffset : Long = if (annot.isDefined) annot.get.value.asInstanceOf[Long] else 0L
-    val endOffset : Long = incr * Knowledge.simd_vectorSize - 1 - oldOffset
-    oldLoop.begin = AssignmentStatement(itVar, lower)
-    oldLoop.end = LowerExpression(itVar, SubtractionExpression(upper, IntegerConstant(endOffset)))
-    oldLoop.inc = AssignmentStatement(itVar, IntegerConstant(incr * Knowledge.simd_vectorSize), "+=")
-    oldLoop.body = ctx.vectStmts
-    oldLoop.annotate(Unrolling.NO_REM_ANNOT, endOffset)
-    oldLoop.annotate(Vectorization.VECT_ANNOT)
-    if (oldLoop.isInstanceOf[OMP_PotentiallyParallel]) // allow omp parallelization
-      oldLoop.asInstanceOf[OMP_PotentiallyParallel].addOMPStatements += "lastprivate(" + itName + ')'
     res += oldLoop
-
     if (postLoopStmt != null)
       res += postLoopStmt
+    if (!unrolled)
+      res += postLoop
 
-    res += new ForLoopStatement(NullStatement,
-      LowerExpression(itVar, upper),
-      AssignmentStatement(itVar, IntegerConstant(incr), "+="),
-      body) // old AST will be replaced completely, so we can reuse the body once here (we cloned above)
-
+    oldLoop.annotate(Vectorization.VECT_ANNOT)
+    oldLoop.annotate(Unrolling.UNROLLED_ANNOT, intermDecl)
     return new Scope(res)
   }
 
@@ -357,14 +368,14 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
           var access1 : Boolean = true
           for ((expr, value) <- ind)
             expr match {
-              case VariableAccess(name, Some(IntegerDatatype())) =>
+              case VariableAccess(name, Some(IntegerDatatype)) =>
                 if (name == ctx.itName) {
                   if (value != 1L || ctx.incr != 1L) throw new VectorizationException("no linear memory access;  " + expr.prettyprint())
                   access1 = false
                 }
 
               case DivisionExpression(
-                VariableAccess(name, Some(IntegerDatatype())),
+                VariableAccess(name, Some(IntegerDatatype)),
                 IntegerConstant(divs)) =>
                 if (name == ctx.itName) {
                   if (value != 1L || ctx.incr != divs) throw new VectorizationException("no linear memory access;  " + expr.prettyprint())
@@ -372,7 +383,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
                 }
 
               case DivisionExpression(
-                AdditionExpression(VariableAccess(name, Some(IntegerDatatype())), IntegerConstant(_)),
+                AdditionExpression(VariableAccess(name, Some(IntegerDatatype)), IntegerConstant(_)),
                 IntegerConstant(divs)) =>
                 if (name == ctx.itName) {
                   if (value != 1L || ctx.incr != divs) throw new VectorizationException("no linear memory access;  " + expr.prettyprint())
@@ -380,7 +391,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
                 }
 
               case DivisionExpression(
-                AdditionExpression(IntegerConstant(_), VariableAccess(name, Some(IntegerDatatype()))),
+                AdditionExpression(IntegerConstant(_), VariableAccess(name, Some(IntegerDatatype))),
                 IntegerConstant(divs)) =>
                 if (name == ctx.itName) {
                   if (value != 1L || ctx.incr != divs) throw new VectorizationException("no linear memory access;  " + expr.prettyprint())
@@ -393,14 +404,14 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
           val vs = Knowledge.simd_vectorSize
           val aligned : Boolean = alignedBase && (const.getOrElse(0L) - ctx.getAlignedResidue()) % vs == 0
-          var init : Option[Expression] =
+          val init : Option[Expression] =
             if (ctx.isLoad() && !ctx.isStore())
               Some(createLoadExpression(expr, base, ind, const.getOrElse(0L), access1, aligned, alignedBase, ctx))
             else if (!ctx.isLoad() && ctx.isStore())
               None
             else
               Logger.error("Only expected 'load XOR store', when vectorizing an ArrayAccess")
-          ctx.vectStmts += VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp, init)
+          ctx.vectStmts += new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, init)
           ctx.setAlignAndAccess1(vecTmp, aligned, access1)
         }
         if (ctx.isStore()) {
@@ -411,37 +422,37 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
             throw new VectorizationException("cannot vectorize store: array is not aligned, but unaligned accesses should be avoided")
           if (ctx.storesTmp != null)
             Logger.debug("[vect] Error? More than one store in a single statement?!")
-          ctx.storesTmp = SIMD_StoreStatement(UnaryExpression(UnaryOperators.AddressOf, expr),
-            VariableAccess(vecTmp, Some(SIMD_RealDatatype())), aligned)
+          ctx.storesTmp = new SIMD_StoreStatement(AddressofExpression(expr),
+            new VariableAccess(vecTmp, SIMD_RealDatatype), aligned)
         }
-        VariableAccess(vecTmp, Some(SIMD_RealDatatype()))
+        new VariableAccess(vecTmp, SIMD_RealDatatype)
 
       case VariableAccess(name, dType) =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp)
           if (name == ctx.itName) {
             if (ctx.isStore()) throw new VectorizationException("iteration variable is modified inside the loop body...")
-            ctx.vectStmts += VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp,
-              Some(SIMD_AdditionExpression(SIMD_Scalar2VectorExpression(VariableAccess(name, dType)), ctx.getIncrVector())))
+            ctx.vectStmts += new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp,
+              new SIMD_AdditionExpression(new SIMD_Scalar2VectorExpression(new VariableAccess(name, dType)), ctx.getIncrVector()))
 
           } else
-            ctx.preLoopStmts += VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp,
-              Some(SIMD_Scalar2VectorExpression(VariableAccess(name, dType))))
-        VariableAccess(vecTmp, Some(SIMD_RealDatatype()))
+            ctx.preLoopStmts += new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp,
+              SIMD_Scalar2VectorExpression(VariableAccess(name, dType)))
+        new VariableAccess(vecTmp, SIMD_RealDatatype)
 
       case FloatConstant(value) =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp)
-          ctx.preLoopStmts += VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp, Some(SIMD_FloatConstant(value)))
-        VariableAccess(vecTmp, Some(SIMD_RealDatatype()))
+          ctx.preLoopStmts += new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, SIMD_FloatConstant(value))
+        new VariableAccess(vecTmp, SIMD_RealDatatype)
 
       case IntegerConstant(value) => // TODO: ensure type safety
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp)
-          ctx.preLoopStmts += VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp, Some(SIMD_FloatConstant(value)))
-        VariableAccess(vecTmp, Some(SIMD_RealDatatype()))
+          ctx.preLoopStmts += new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, SIMD_FloatConstant(value))
+        new VariableAccess(vecTmp, SIMD_RealDatatype)
 
-      case UnaryExpression(UnaryOperators.Negative, expr) =>
+      case NegativeExpression(expr) =>
         SIMD_NegateExpression(vectorizeExpr(expr, ctx))
 
       case AdditionExpression(MultiplicationExpression(factor1, factor2), summand) =>
@@ -475,9 +486,9 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     access1 : Boolean, aligned : Boolean, alignedBase : Boolean, ctx : LoopCtx) : Expression = {
 
     if (access1)
-      return SIMD_Load1Expression(UnaryExpression(UnaryOperators.AddressOf, oldExpr))
+      return SIMD_Load1Expression(AddressofExpression(oldExpr))
     else if (aligned || !Knowledge.simd_avoidUnaligned)
-      return SIMD_LoadExpression(UnaryExpression(UnaryOperators.AddressOf, oldExpr), aligned)
+      return SIMD_LoadExpression(AddressofExpression(oldExpr), aligned)
     else if (!alignedBase)
       throw new VectorizationException("cannot vectorize load: array is not aligned, but unaligned accesses should be avoided")
     else { // avoid unaligned load

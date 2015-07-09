@@ -34,24 +34,24 @@ object FragmentKnowledge {
 
     val outData = new FragmentDataWriter(new BufferedOutputStream(new FileOutputStream(Settings.fragmentFile_config_path_binary)))
     FragmentCollection.fragments.foreach(f => {
-      DomainCollection.domains.foreach { d => f.binarySize += outData.writeBinary(BooleanDatatype(), FragmentCollection.isValidForSubDomain(f.globalId, d.index)) }
-      f.binarySize += outData.writeBinary(IntegerDatatype(), f.globalId)
-      f.binarySize += outData.writeBinary(IntegerDatatype(), f.localId)
-      f.vertices.foreach { v => v.Coords.foreach { c => f.binarySize += outData.writeBinary(RealDatatype(), c) } }
-      FragmentCollection.getFragPos(f.vertices).Coords.foreach { c => f.binarySize += outData.writeBinary(RealDatatype(), c) }
+      DomainCollection.domains.foreach { d => f.binarySize += outData.writeBinary(BooleanDatatype, FragmentCollection.isValidForSubDomain(f.globalId, d.index)) }
+      f.binarySize += outData.writeBinary(IntegerDatatype, f.globalId)
+      f.binarySize += outData.writeBinary(IntegerDatatype, f.localId)
+      f.vertices.foreach { v => v.Coords.foreach { c => f.binarySize += outData.writeBinary(RealDatatype, c) } }
+      FragmentCollection.getFragPos(f.vertices).Coords.foreach { c => f.binarySize += outData.writeBinary(RealDatatype, c) }
 
       DomainCollection.domains.foreach { d =>
         {
           f.neighborIDs.foreach { n =>
             {
               val valid = FragmentCollection.isNeighborValid(f.globalId, n, d.index)
-              f.binarySize += outData.writeBinary(BooleanDatatype(), valid)
+              f.binarySize += outData.writeBinary(BooleanDatatype, valid)
               if (valid) {
                 val remote = FragmentCollection.isNeighborRemote(f.globalId, n, d.index)
-                f.binarySize += outData.writeBinary(BooleanDatatype(), remote)
-                f.binarySize += outData.writeBinary(IntegerDatatype(), FragmentCollection.getLocalFragId(n))
+                f.binarySize += outData.writeBinary(BooleanDatatype, remote)
+                f.binarySize += outData.writeBinary(IntegerDatatype, FragmentCollection.getLocalFragId(n))
                 if (remote) {
-                  f.binarySize += outData.writeBinary(IntegerDatatype(), FragmentCollection.getMpiRank(n))
+                  f.binarySize += outData.writeBinary(IntegerDatatype, FragmentCollection.getMpiRank(n))
                 }
               }
             }
@@ -154,15 +154,15 @@ class FragmentDataWriter(s : BufferedOutputStream) extends DataOutputStream(s) {
 
   def writeBinary(t : Datatype, v : Any) : Int = {
     t match {
-      case IntegerDatatype() => {
+      case IntegerDatatype => {
         writeInt(v.asInstanceOf[Int])
         intSize
       }
-      case BooleanDatatype() => {
+      case BooleanDatatype => {
         writeBoolean(v.asInstanceOf[Boolean])
         boolSize
       }
-      case RealDatatype() => {
+      case RealDatatype => {
         writeDouble(v.asInstanceOf[Double])
         doubleSize
       }

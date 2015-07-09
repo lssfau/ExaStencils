@@ -41,7 +41,7 @@ case class LocalSend(var field : FieldSelection, var neighbors : ListBuffer[(Nei
     new LoopOverFragments(
       new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
         neighbors.map(neigh =>
-          (new ConditionStatement(iv.NeighborIsValid(field.domainIndex, neigh._1.index) AndAnd UnaryExpression(UnaryOperators.Not, iv.NeighborIsRemote(field.domainIndex, neigh._1.index)),
+          (new ConditionStatement(iv.NeighborIsValid(field.domainIndex, neigh._1.index) AndAnd NegationExpression(iv.NeighborIsRemote(field.domainIndex, neigh._1.index)),
             ListBuffer[Statement](
               new LoopOverDimensions(Knowledge.dimensionality + 1,
                 neigh._2,
@@ -110,7 +110,7 @@ case class WaitForTransfer(var field : FieldSelection, var neighbor : NeighborIn
       iv.ReqOutstanding(field.field, direction, neighbor.index),
       ListBuffer[Statement](
         new ExpressionStatement(
-          new FunctionCallExpression("waitForMPIReq", UnaryExpression(UnaryOperators.AddressOf, iv.MpiRequest(field.field, direction, neighbor.index)))) with OMP_PotentiallyCritical,
+          new FunctionCallExpression("waitForMPIReq", AddressofExpression(iv.MpiRequest(field.field, direction, neighbor.index)))) with OMP_PotentiallyCritical,
         AssignmentStatement(iv.ReqOutstanding(field.field, direction, neighbor.index), false)))
   }
 }
@@ -143,13 +143,13 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
   def genTransfer(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
     var body = {
       if (!Knowledge.experimental_useLevelIndepFcts && 1 == SimplifyExpression.evalIntegral(indices.getSizeHigher)) {
-        RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, new RealDatatype, concurrencyId)
+        RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(indices)) {
         RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, MPI_DataType(field, indices), concurrencyId)
       } else {
         var cnt = DimArrayHigher().map(i => (indices.end(i) - indices.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
         SimplifyStrategy.doUntilDoneStandalone(cnt)
-        RemoteSend(field, neighbor, iv.TmpBuffer(field.field, s"Send_${concurrencyId}", cnt, neighbor.index), cnt, new RealDatatype, concurrencyId)
+        RemoteSend(field, neighbor, iv.TmpBuffer(field.field, s"Send_${concurrencyId}", cnt, neighbor.index), cnt, RealDatatype, concurrencyId)
       }
     }
     if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
@@ -204,13 +204,13 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
   def genTransfer(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
     var body = {
       if (!Knowledge.experimental_useLevelIndepFcts && 1 == SimplifyExpression.evalIntegral(indices.getSizeHigher)) {
-        RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, new RealDatatype, concurrencyId)
+        RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(indices)) {
         RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, MPI_DataType(field, indices), concurrencyId)
       } else {
         var cnt = DimArrayHigher().map(i => (indices.end(i) - indices.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
         SimplifyStrategy.doUntilDoneStandalone(cnt)
-        RemoteRecv(field, neighbor, iv.TmpBuffer(field.field, s"Recv_${concurrencyId}", cnt, neighbor.index), cnt, new RealDatatype, concurrencyId)
+        RemoteRecv(field, neighbor, iv.TmpBuffer(field.field, s"Recv_${concurrencyId}", cnt, neighbor.index), cnt, RealDatatype, concurrencyId)
       }
     }
     if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body

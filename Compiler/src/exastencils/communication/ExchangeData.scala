@@ -47,7 +47,7 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
       fieldSelection
     }
 
-    FunctionStatement(new UnitDatatype(), compileName,
+    FunctionStatement(UnitDatatype, compileName,
       if (Knowledge.experimental_useLevelIndepFcts)
         ListBuffer(VariableAccess("slot", Some("unsigned int")), VariableAccess("level", Some("unsigned int")))
       else

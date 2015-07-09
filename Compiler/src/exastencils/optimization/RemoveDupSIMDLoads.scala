@@ -48,24 +48,27 @@ private[optimization] final class Analyze extends Collector {
 
   override def enter(node : Node) : Unit = {
     node match {
-      case ForLoopStatement(AssignmentStatement(VariableAccess(lVar, _), start, "="), cond,
-        AssignmentStatement(VariableAccess(lVar2, _), IntegerConstant(incr), "+="), _, _) if (lVar == lVar2) =>
+      case ForLoopStatement(VariableDeclarationStatement(IntegerDatatype, lVar, Some(start)),
+        LowerExpression(VariableAccess(lVar3, _), end),
+        AssignmentStatement(VariableAccess(lVar2, _), IntegerConstant(incr), "+="),
+        _, _) if (lVar == lVar2 && lVar2 == lVar3) =>
         if (node.removeAnnotation(Vectorization.VECT_ANNOT).isDefined) {
           preLoopDecls = new ListBuffer[Statement]
-          node.annotate(NEW_DECLS_COND_ANNOT, (preLoopDecls, Duplicate(cond)))
+          val newCond = LowerExpression(Duplicate(start), Duplicate(end))
+          node.annotate(NEW_DECLS_COND_ANNOT, (preLoopDecls, newCond))
           loads = new HashMap[(Expression, HashMap[Expression, Long]), VariableDeclarationStatement]
           upLoopVar = new UpdateLoopVar(lVar, incr, start)
           hasOMPPragma = node.isInstanceOf[OMP_PotentiallyParallel]
         }
 
-      case decl @ VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp,
-        Some(load @ SIMD_LoadExpression(UnaryExpression(UnaryOperators.AddressOf, ArrayAccess(base, index, _)), aligned))) =>
+      case decl @ VariableDeclarationStatement(SIMD_RealDatatype, vecTmp,
+        Some(load @ SIMD_LoadExpression(AddressofExpression(ArrayAccess(base, index, _)), aligned))) =>
 
         val indSum : HashMap[Expression, Long] = SimplifyExpression.extractIntegralSum(index)
         val other = loads.get((base, indSum))
 
         if (other.isDefined)
-          decl.expression = Some(VariableAccess(other.get.name, Some(SIMD_RealDatatype())))
+          decl.expression = Some(new VariableAccess(other.get.name, SIMD_RealDatatype))
 
         else {
           loads((base, indSum)) = decl
@@ -75,16 +78,16 @@ private[optimization] final class Analyze extends Collector {
             val indSumNIt : HashMap[Expression, Long] = SimplifyExpression.extractIntegralSum(upLoopVar.updateDup(index))
             val nextIt = loads.get((base, indSumNIt))
             if (nextIt.isDefined) {
-              preLoopDecls += VariableDeclarationStatement(SIMD_RealDatatype(), vecTmp,
-                Some(SIMD_LoadExpression(UnaryExpression(UnaryOperators.AddressOf,
-                  ArrayAccess(Duplicate(base), SimplifyExpression.simplifyIntegralExpr(upLoopVar.replaceDup(index)))), aligned)))
-              decl.annotate(REPL_ANNOT, AssignmentStatement(VariableAccess(vecTmp, Some(SIMD_RealDatatype())), load, "="))
+              preLoopDecls += new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp,
+                SIMD_LoadExpression(AddressofExpression(
+                  ArrayAccess(Duplicate(base), SimplifyExpression.simplifyIntegralExpr(upLoopVar.replaceDup(index)))), aligned))
+              decl.annotate(REPL_ANNOT, AssignmentStatement(new VariableAccess(vecTmp, SIMD_RealDatatype), load, "="))
               if (nextIt.get.hasAnnotation(REPL_ANNOT))
-                nextIt.get.annotate(REPL_ANNOT, AssignmentStatement(VariableAccess(nextIt.get.name, Some(SIMD_RealDatatype())),
-                  VariableAccess(vecTmp, Some(SIMD_RealDatatype())), "=")) // TODO: check if this is always correct...
+                nextIt.get.annotate(REPL_ANNOT, AssignmentStatement(new VariableAccess(nextIt.get.name, SIMD_RealDatatype),
+                  new VariableAccess(vecTmp, SIMD_RealDatatype), "=")) // TODO: check if this is always correct...
               else
-                nextIt.get.annotate(REPL_ANNOT, VariableDeclarationStatement(SIMD_RealDatatype(), nextIt.get.name,
-                  Some(VariableAccess(vecTmp, Some(SIMD_RealDatatype())))))
+                nextIt.get.annotate(REPL_ANNOT, new VariableDeclarationStatement(SIMD_RealDatatype, nextIt.get.name,
+                  new VariableAccess(vecTmp, SIMD_RealDatatype)))
             }
           }
         }
@@ -112,7 +115,7 @@ private[optimization] final class Analyze extends Collector {
     private var replace : Boolean = false
 
     this += new Transformation("apply", {
-      case vAcc @ VariableAccess(v, Some(IntegerDatatype())) if (v == itName) =>
+      case vAcc @ VariableAccess(v, Some(IntegerDatatype)) if (v == itName) =>
         if (replace)
           SubtractionExpression(Duplicate(nju), IntegerConstant(offset))
         else if (!vAcc.removeAnnotation(SKIP_ANNOT).isDefined) {

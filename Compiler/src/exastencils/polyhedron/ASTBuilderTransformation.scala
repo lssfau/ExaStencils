@@ -173,7 +173,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
         if (node.forIsDegenerate()) {
           val islIt : isl.AstExpr = node.forGetIterator()
           assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
-          val decl : Statement = VariableDeclarationStatement(IntegerDatatype(), islIt.getId().getName(), Some(processIslExpr(node.forGetInit())))
+          val decl : Statement = new VariableDeclarationStatement(IntegerDatatype, islIt.getId().getName(), processIslExpr(node.forGetInit()))
           processIslNode(node.forGetBody()).+=:(decl)
 
         } else {
@@ -182,10 +182,10 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
           val itStr : String = islIt.getId().getName()
           val parOMP : Boolean = parallelize_omp && !seqDims.contains(itStr)
           parallelize_omp &= !parOMP // if code must be parallelized, then now (parNow) XOR later (parallelize)
-          val it : VariableAccess = VariableAccess(itStr, Some(IntegerDatatype()))
-          val init : Statement = VariableDeclarationStatement(IntegerDatatype(), itStr, Some(processIslExpr(node.forGetInit())))
+          val it : VariableAccess = new VariableAccess(itStr, IntegerDatatype)
+          val init : Statement = new VariableDeclarationStatement(IntegerDatatype, itStr, processIslExpr(node.forGetInit()))
           val cond : Expression = processIslExpr(node.forGetCond())
-          val incr : Statement = AssignmentStatement(it, processIslExpr(node.forGetInc()), "+=")
+          val incr : Statement = new AssignmentStatement(it, processIslExpr(node.forGetInc()), "+=")
 
           val body : ListBuffer[Statement] = processIslNode(node.forGetBody())
           parallelize_omp |= parOMP // restore overall parallelization level
@@ -255,27 +255,27 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     val n : Int = args.length
 
     return expr.getOpType() match {
-      case isl.AstOpType.OpAndThen if n == 2 => AndAndExpression(args(0), args(1))
-      case isl.AstOpType.OpAnd if n == 2     => AndAndExpression(args(0), args(1))
-      case isl.AstOpType.OpOrElse if n == 2  => OrOrExpression(args(0), args(1))
-      case isl.AstOpType.OpOr if n == 2      => OrOrExpression(args(0), args(1))
-      case isl.AstOpType.OpMinus if n == 1   => UnaryExpression(UnaryOperators.Negative, args(0))
-      case isl.AstOpType.OpAdd if n == 2     => AdditionExpression(args(0), args(1))
-      case isl.AstOpType.OpSub if n == 2     => SubtractionExpression(args(0), args(1))
-      case isl.AstOpType.OpMul if n == 2     => MultiplicationExpression(args(0), args(1))
-      case isl.AstOpType.OpDiv if n == 2     => DivisionExpression(args(0), args(1))
-      case isl.AstOpType.OpFdivQ if n == 2   => DivisionExpression(args(0), args(1)) // TODO: ensure integer division; round to -inf for negative
-      case isl.AstOpType.OpPdivQ if n == 2   => DivisionExpression(args(0), args(1)) // TODO: ensure integer division
-      case isl.AstOpType.OpPdivR if n == 2   => ModuloExpression(args(0), args(1))
-      case isl.AstOpType.OpCond if n == 3    => TernaryConditionExpression(args(0), args(1), args(2))
-      case isl.AstOpType.OpEq if n == 2      => EqEqExpression(args(0), args(1))
-      case isl.AstOpType.OpLe if n == 2      => LowerEqualExpression(args(0), args(1))
-      case isl.AstOpType.OpLt if n == 2      => LowerExpression(args(0), args(1))
-      case isl.AstOpType.OpGe if n == 2      => GreaterEqualExpression(args(0), args(1))
-      case isl.AstOpType.OpGt if n == 2      => GreaterExpression(args(0), args(1))
-      case isl.AstOpType.OpMax if n >= 2     => MaximumExpression(ListBuffer(args : _*))
-      case isl.AstOpType.OpMin if n >= 2     => MinimumExpression(ListBuffer(args : _*))
-      case isl.AstOpType.OpSelect if n == 3  => TernaryConditionExpression(args(0), args(1), args(2))
+      case isl.AstOpType.OpAndThen if n == 2 => new AndAndExpression(args(0), args(1))
+      case isl.AstOpType.OpAnd if n == 2     => new AndAndExpression(args(0), args(1))
+      case isl.AstOpType.OpOrElse if n == 2  => new OrOrExpression(args(0), args(1))
+      case isl.AstOpType.OpOr if n == 2      => new OrOrExpression(args(0), args(1))
+      case isl.AstOpType.OpMinus if n == 1   => new NegativeExpression(args(0))
+      case isl.AstOpType.OpAdd if n == 2     => new AdditionExpression(args(0), args(1))
+      case isl.AstOpType.OpSub if n == 2     => new SubtractionExpression(args(0), args(1))
+      case isl.AstOpType.OpMul if n == 2     => new MultiplicationExpression(args(0), args(1))
+      case isl.AstOpType.OpDiv if n == 2     => new DivisionExpression(args(0), args(1))
+      case isl.AstOpType.OpFdivQ if n == 2   => new DivisionExpression(args(0), args(1)) // TODO: ensure integer division; round to -inf for negative
+      case isl.AstOpType.OpPdivQ if n == 2   => new DivisionExpression(args(0), args(1)) // TODO: ensure integer division
+      case isl.AstOpType.OpPdivR if n == 2   => new ModuloExpression(args(0), args(1))
+      case isl.AstOpType.OpCond if n == 3    => new TernaryConditionExpression(args(0), args(1), args(2))
+      case isl.AstOpType.OpEq if n == 2      => new EqEqExpression(args(0), args(1))
+      case isl.AstOpType.OpLe if n == 2      => new LowerEqualExpression(args(0), args(1))
+      case isl.AstOpType.OpLt if n == 2      => new LowerExpression(args(0), args(1))
+      case isl.AstOpType.OpGe if n == 2      => new GreaterEqualExpression(args(0), args(1))
+      case isl.AstOpType.OpGt if n == 2      => new GreaterExpression(args(0), args(1))
+      case isl.AstOpType.OpMax if n >= 2     => new MaximumExpression(args : _*)
+      case isl.AstOpType.OpMin if n >= 2     => new MinimumExpression(args : _*)
+      case isl.AstOpType.OpSelect if n == 3  => new TernaryConditionExpression(args(0), args(1), args(2))
 
       case isl.AstOpType.OpCall if n >= 1 =>
         val fArgs = ListBuffer[Expression](args : _*)

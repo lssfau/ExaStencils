@@ -11,28 +11,28 @@ object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expre
   private final val DEBUG : Boolean = false
 
   this += new Transformation("optimize", {
-    case d @ VariableDeclarationStatement(RealDatatype(), _, Some(expr)) =>
+    case d @ VariableDeclarationStatement(RealDatatype, _, Some(expr)) =>
       d.expression = Some(simplify(expr))
       d
 
-    case a @ AssignmentStatement(VariableAccess(_, Some(RealDatatype())), src, op) =>
+    case a @ AssignmentStatement(VariableAccess(_, Some(RealDatatype)), src, op) =>
       a.src = simplify(src)
       a
 
-    case a @ AssignmentStatement(ArrayAccess(VariableAccess(_, Some(PointerDatatype(RealDatatype()))), _, _), src, op) =>
+    case a @ AssignmentStatement(ArrayAccess(VariableAccess(_, Some(PointerDatatype(RealDatatype))), _, _), src, op) =>
       a.src = simplify(src)
       a
 
-    case a @ AssignmentStatement(ArrayAccess(VariableAccess(_, Some(ConstPointerDatatype(RealDatatype()))), _, _), src, op) =>
+    case a @ AssignmentStatement(ArrayAccess(VariableAccess(_, Some(ConstPointerDatatype(RealDatatype))), _, _), src, op) =>
       a.src = simplify(src)
       a
 
-    case a @ AssignmentStatement(ArrayAccess(VariableAccess(_, Some(ArrayDatatype(RealDatatype(), _))), _, _), src, op) =>
+    case a @ AssignmentStatement(ArrayAccess(VariableAccess(_, Some(ArrayDatatype(RealDatatype, _))), _, _), src, op) =>
       a.src = simplify(src)
       a
 
     case a @ AssignmentStatement(ArrayAccess(fd : iv.FieldData, _, _), src, op) //
-    if (fd.field.dataType.resolveUnderlyingDatatype == RealDatatype()) =>
+    if (fd.field.dataType.resolveUnderlyingDatatype == RealDatatype) =>
       a.src = simplify(src)
       a
   })

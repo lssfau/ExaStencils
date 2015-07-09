@@ -34,22 +34,26 @@ case class SpecialDatatype(typeName : String) extends Datatype {
   override def prettyprint_mpi = typeName
 }
 
-case class UnitDatatype() extends Datatype {
+case object UnitDatatype extends Datatype {
+  exastencils.core.Duplicate.registerConstant(this)
   override def prettyprint(out : PpStream) : Unit = out << "void"
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
 
-case class BooleanDatatype() extends Datatype {
+case object BooleanDatatype extends Datatype {
+  exastencils.core.Duplicate.registerConstant(this)
   override def prettyprint(out : PpStream) : Unit = out << "bool"
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
 
-case class IntegerDatatype() extends Datatype {
+case object IntegerDatatype extends Datatype {
+  exastencils.core.Duplicate.registerConstant(this)
   override def prettyprint(out : PpStream) : Unit = out << "int"
   override def prettyprint_mpi = "MPI_INT"
 }
 
-case class RealDatatype() extends Datatype {
+case object RealDatatype extends Datatype {
+  exastencils.core.Duplicate.registerConstant(this)
   override def prettyprint(out : PpStream) : Unit = {
     if (Knowledge.useDblPrecision)
       out << "double"
@@ -65,7 +69,8 @@ case class RealDatatype() extends Datatype {
   }
 }
 
-case class SIMD_RealDatatype() extends Datatype {
+case object SIMD_RealDatatype extends Datatype {
+  exastencils.core.Duplicate.registerConstant(this)
   override def prettyprint(out : PpStream) : Unit = {
     val suffix = if (Knowledge.useDblPrecision) "d" else ""
     Knowledge.simd_instructionSet match {
@@ -79,12 +84,14 @@ case class SIMD_RealDatatype() extends Datatype {
   override def prettyprint_mpi = "INVALID DATATYPE: " + this.prettyprint()
 }
 
-case class StringDatatype() extends Datatype {
+case object StringDatatype extends Datatype {
+  exastencils.core.Duplicate.registerConstant(this)
   override def prettyprint(out : PpStream) : Unit = out << "std::string"
   override def prettyprint_mpi = "MPI::CHAR"
 }
 
-case class CharDatatype() extends Datatype {
+case object CharDatatype extends Datatype {
+  exastencils.core.Duplicate.registerConstant(this)
   override def prettyprint(out : PpStream) : Unit = out << "char"
   override def prettyprint_mpi = "MPI::CHAR"
 }
@@ -96,6 +103,11 @@ case class ArrayDatatype(datatype : Datatype, size : Int) extends Datatype {
 
 case class PointerDatatype(datatype : Datatype) extends Datatype {
   override def prettyprint(out : PpStream) : Unit = out << datatype << '*'
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+}
+
+case class ReferenceDatatype(datatype : Datatype) extends Datatype {
+  override def prettyprint(out : PpStream) : Unit = out << datatype << '&'
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
 

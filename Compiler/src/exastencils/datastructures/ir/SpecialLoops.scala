@@ -212,7 +212,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
     if (region.isDefined) {
       if (region.get.onlyOnBoundary) {
         val neighIndex = Fragment.getNeighIndex(region.get.dir)
-        ret = new ConditionStatement(UnaryExpression(UnaryOperators.Not, iv.NeighborIsValid(domain, neighIndex)), ret)
+        ret = new ConditionStatement(NegationExpression(iv.NeighborIsValid(domain, neighIndex)), ret)
       }
     }
     if (domain >= 0)
@@ -409,8 +409,8 @@ case class LoopOverDimensions(var numDimensions : Int,
     // compile loop(s)
     var ret : ForLoopStatement with OptimizationHint = null
     for (d <- 0 until numDimensions) {
-      def it = VariableAccess(dimToString(d), Some(IntegerDatatype()))
-      val decl = VariableDeclarationStatement(IntegerDatatype(), dimToString(d), Some(indices.begin(d)))
+      def it = VariableAccess(dimToString(d), Some(IntegerDatatype))
+      val decl = VariableDeclarationStatement(IntegerDatatype, dimToString(d), Some(indices.begin(d)))
       val cond = LowerExpression(it, indices.end(d))
       val incr = AssignmentStatement(it, stepSize(d), "+=")
       if (parallelize && d == numDimensions - 1) {
@@ -438,15 +438,15 @@ case class LoopOverDimensions(var numDimensions : Int,
       def redExpLocal = VariableAccess(redExpLocalName, None)
 
       // FIXME: this assumes real data types -> data type should be determined according to redExp
-      val decl = VariableDeclarationStatement(ArrayDatatype(RealDatatype(), Knowledge.omp_numThreads), redExpLocalName, None)
+      val decl = VariableDeclarationStatement(ArrayDatatype(RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
       var init = (0 until Knowledge.omp_numThreads).map(fragIdx => AssignmentStatement(ArrayAccess(redExpLocal, fragIdx), redExp))
       val redOperands = ListBuffer[Expression](redExp) ++ (0 until Knowledge.omp_numThreads).map(fragIdx => ArrayAccess(redExpLocal, fragIdx) : Expression)
       val red = AssignmentStatement(redExp, if ("min" == redOp) MinimumExpression(redOperands) else MaximumExpression(redOperands))
 
       ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
-      ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, VariableAccess("omp_tid", Some(IntegerDatatype())))
+      ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, VariableAccess("omp_tid", Some(IntegerDatatype)))
       ReplaceStringConstantsStrategy.applyStandalone(Scope(body)) // FIXME: remove Scope
-      body.prepend(VariableDeclarationStatement(IntegerDatatype(), "omp_tid", Some("omp_get_thread_num()")))
+      body.prepend(VariableDeclarationStatement(IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
 
       Scope(ListBuffer[Statement](decl)
         ++ init
@@ -468,14 +468,14 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
   def generateBasicLoop(parallelize : Boolean) = {
     if (parallelize)
       new ForLoopStatement(
-        VariableDeclarationStatement(new IntegerDatatype, defIt, Some(0)),
+        VariableDeclarationStatement(IntegerDatatype, defIt, Some(0)),
         LowerExpression(defIt, Knowledge.domain_numFragmentsPerBlock),
         PreIncrementExpression(defIt),
         body,
         reduction) with OMP_PotentiallyParallel
     else
       new ForLoopStatement(
-        VariableDeclarationStatement(new IntegerDatatype, defIt, Some(0)),
+        VariableDeclarationStatement(IntegerDatatype, defIt, Some(0)),
         LowerExpression(defIt, Knowledge.domain_numFragmentsPerBlock),
         PreIncrementExpression(defIt),
         body,
@@ -505,15 +505,15 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
       def redExpLocal = VariableAccess(redExpLocalName, None)
 
       // FIXME: this assumes real data types -> data type should be determined according to redExp
-      val decl = VariableDeclarationStatement(ArrayDatatype(RealDatatype(), Knowledge.omp_numThreads), redExpLocalName, None)
+      val decl = VariableDeclarationStatement(ArrayDatatype(RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
       var init = (0 until Knowledge.omp_numThreads).map(fragIdx => AssignmentStatement(ArrayAccess(redExpLocal, fragIdx), redExp))
       val redOperands = ListBuffer[Expression](redExp) ++ (0 until Knowledge.omp_numThreads).map(fragIdx => ArrayAccess(redExpLocal, fragIdx) : Expression)
       val red = AssignmentStatement(redExp, if ("min" == redOp) MinimumExpression(redOperands) else MaximumExpression(redOperands))
 
       ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
-      ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, VariableAccess("omp_tid", Some(IntegerDatatype())))
+      ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, VariableAccess("omp_tid", Some(IntegerDatatype)))
       ReplaceStringConstantsStrategy.applyStandalone(Scope(body)) // FIXME: remove Scope
-      body.prepend(VariableDeclarationStatement(IntegerDatatype(), "omp_tid", Some("omp_get_thread_num()")))
+      body.prepend(VariableDeclarationStatement(IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
 
       statements += Scope(ListBuffer[Statement](decl)
         ++ init
@@ -521,7 +521,7 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
     }
 
     if (Knowledge.mpi_enabled && reduction.isDefined) {
-      statements += new MPI_Allreduce("&" ~ reduction.get.target, new RealDatatype, 1, reduction.get.op) // FIXME: get dt and cnt from reduction
+      statements += new MPI_Allreduce("&" ~ reduction.get.target, RealDatatype, 1, reduction.get.op) // FIXME: get dt and cnt from reduction
     }
 
     statements
@@ -539,7 +539,7 @@ case class LoopOverDomains(var body : ListBuffer[Statement]) extends Statement w
 
   def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
-      VariableDeclarationStatement(new IntegerDatatype, defIt, Some(0)),
+      VariableDeclarationStatement(IntegerDatatype, defIt, Some(0)),
       LowerExpression(defIt, DomainCollection.domains.size),
       PreIncrementExpression(defIt),
       body)
@@ -557,7 +557,7 @@ case class LoopOverFields(var body : ListBuffer[Statement]) extends Statement wi
 
   def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
-      VariableDeclarationStatement(new IntegerDatatype, defIt, Some(0)),
+      VariableDeclarationStatement(IntegerDatatype, defIt, Some(0)),
       LowerExpression(defIt, FieldCollection.fields.size),
       PreIncrementExpression(defIt),
       body)
@@ -575,7 +575,7 @@ case class LoopOverLevels(var body : ListBuffer[Statement]) extends Statement wi
 
   def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
-      VariableDeclarationStatement(new IntegerDatatype, defIt, Some(Knowledge.minLevel)),
+      VariableDeclarationStatement(IntegerDatatype, defIt, Some(Knowledge.minLevel)),
       LowerExpression(defIt, Knowledge.maxLevel + 1),
       PreIncrementExpression(defIt),
       body)
@@ -593,7 +593,7 @@ case class LoopOverNeighbors(var body : ListBuffer[Statement]) extends Statement
 
   def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
-      VariableDeclarationStatement(new IntegerDatatype, defIt, Some(0)),
+      VariableDeclarationStatement(IntegerDatatype, defIt, Some(0)),
       LowerExpression(defIt, Fragment.neighbors.size),
       PreIncrementExpression(defIt),
       body)

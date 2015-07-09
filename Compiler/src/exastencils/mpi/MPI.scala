@@ -165,7 +165,7 @@ case class MPI_Sequential(var body : ListBuffer[Statement]) extends Statement wi
 
   def expand : Output[ForLoopStatement] = {
     ForLoopStatement(
-      VariableDeclarationStatement(IntegerDatatype(), "curRank", Some(0)),
+      VariableDeclarationStatement(IntegerDatatype, "curRank", Some(0)),
       LowerExpression("curRank", "mpiSize"),
       PreIncrementExpression("curRank"),
       ListBuffer[Statement](
@@ -179,7 +179,7 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
   override def prettyprint_decl : String = prettyprint
 
   override def expand : Output[FunctionStatement] = {
-    FunctionStatement(new UnitDatatype(), s"waitForMPIReq",
+    FunctionStatement(UnitDatatype, s"waitForMPIReq",
       ListBuffer(VariableAccess("request", Some("MPI_Request*"))),
       ListBuffer[Statement](
         s"MPI_Status stat",

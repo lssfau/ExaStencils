@@ -96,9 +96,9 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     // TODO: extend for general data types; extend with missing cases; extend for left-right-switched cases
 
     //this += new Transformation("Resolving unary operations", {
-    case UnaryExpression(UnaryOperators.Negative, IntegerConstant(value)) =>
+    case NegativeExpression(IntegerConstant(value)) =>
       IntegerConstant(-value.v)
-    case UnaryExpression(UnaryOperators.Negative, FloatConstant(value)) =>
+    case NegativeExpression(FloatConstant(value)) =>
       FloatConstant(-value.v)
     //})
 
@@ -278,7 +278,7 @@ object CleanUnusedStuff extends DefaultStrategy("Cleaning up unused stuff") {
   }
 
   this += new Transformation("Looking for deletable objects", {
-    case FunctionStatement(_, name, _, ListBuffer()) => {
+    case FunctionStatement(_, name, _, ListBuffer(), _, _) => {
       emptyFunctions += name
       List()
     }

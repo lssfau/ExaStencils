@@ -38,13 +38,13 @@ object FortranifyFunctionsInsideStatement extends QuietDefaultStrategy("Looking 
         fct.arguments(paramIdx) match {
           // variable accesses are simple
           case va : VariableAccess =>
-            fct.arguments(paramIdx) = UnaryExpression(UnaryOperators.AddressOf, fct.arguments(paramIdx))
+            fct.arguments(paramIdx) = AddressofExpression(fct.arguments(paramIdx))
           // otherwise temp variables have to be created
           case _ =>
             var newName = s"callByValReplacement_${fct.name}_${paramIdx.toString()}"
             while (callByValReplacements.contains(newName)) newName += "0"
             callByValReplacements += (newName -> VariableDeclarationStatement(Duplicate(datatype), newName, Some(fct.arguments(paramIdx))))
-            fct.arguments(paramIdx) = UnaryExpression(UnaryOperators.AddressOf, VariableAccess(newName, Some(Duplicate(datatype))))
+            fct.arguments(paramIdx) = AddressofExpression(VariableAccess(newName, Some(Duplicate(datatype))))
         }
       }
 
@@ -76,7 +76,7 @@ object Fortranify extends DefaultStrategy("Preparing function for fortran interf
     case functions : FunctionCollection =>
       for (abstrFct <- functions.functions) {
         val fct = abstrFct.asInstanceOf[FunctionStatement] // assume resolved function declarations
-        if (isTreatableFunction(fct.name)) {
+        if (fct.allowFortranInterface && isTreatableFunction(fct.name)) {
           // remember for later usage
           functionsToBeProcessed += (fct.name -> ListBuffer())
 
@@ -94,8 +94,8 @@ object Fortranify extends DefaultStrategy("Preparing function for fortran interf
                 // redirect parameter
                 fct.body.prepend(
                   VariableDeclarationStatement(
-                    Duplicate(datatype), param.name,
-                    Some(UnaryExpression(UnaryOperators.Indirection, param.name + "_ptr"))))
+                    ReferenceDatatype(Duplicate(datatype)), param.name,
+                    Some(DerefAccess(VariableAccess(param.name + "_ptr", Some(PointerDatatype(datatype)))))))
                 param.name += "_ptr"
                 param.dType = Some(PointerDatatype(Duplicate(datatype)))
               }

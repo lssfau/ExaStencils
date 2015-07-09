@@ -80,7 +80,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
           neighbors.map({ neigh =>
             val loopOverDims = new LoopOverDimensions(Knowledge.dimensionality, neigh._2, setupFieldUpdate(neigh._1)) with OMP_PotentiallyParallel with PolyhedronAccessable
             loopOverDims.optLevel = 1
-            new ConditionStatement(UnaryExpression(UnaryOperators.Not, iv.NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : Statement
+            new ConditionStatement(NegationExpression(iv.NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : Statement
           }))) with OMP_PotentiallyParallel
     } else {
       NullStatement

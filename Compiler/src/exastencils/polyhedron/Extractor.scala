@@ -3,7 +3,6 @@ package exastencils.polyhedron
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.ArrayStack
 import scala.collection.mutable.HashSet
-import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
 import scala.collection.mutable.StringBuilder
 
@@ -445,12 +444,15 @@ class Extractor extends Collector {
 
           // ignore
           case FunctionCallExpression(name, _) if (allowedFunctions.contains(name)) =>
-            // nothing to do...
+          // nothing to do...
 
           case _ : IntegerConstant
             | _ : FloatConstant
             | _ : BooleanConstant
-            | _ : UnaryExpression
+            | _ : NegativeExpression
+            | _ : NegationExpression
+            | _ : AddressofExpression
+            | _ : DerefAccess
             | _ : AdditionExpression
             | _ : SubtractionExpression
             | _ : MultiplicationExpression
@@ -529,7 +531,7 @@ class Extractor extends Collector {
     do {
       bool |= extractConstraints(begin(i), constrs, true, paramConstrs, params)
       constrs.append("<=")
-      constrs.append(ScopNameMapping.expr2id(VariableAccess(dimToString(i), Some(IntegerDatatype()))))
+      constrs.append(ScopNameMapping.expr2id(new VariableAccess(dimToString(i), IntegerDatatype)))
       constrs.append('<')
       bool |= extractConstraints(end(i), constrs, true, paramConstrs, params)
       constrs.append(" and ")
@@ -735,7 +737,7 @@ class Extractor extends Collector {
 
     if (decl.expression.isDefined) {
       val stmt = new AssignmentStatement(
-        new VariableAccess(decl.name, Some(decl.dataType)), decl.expression.get, "=")
+        new VariableAccess(decl.name, decl.dataType), decl.expression.get, "=")
       enterStmt(stmt) // as a declaration is also a statement
       decl.expression.get.annotate(Access.ANNOT, Access.READ)
       isWrite = true

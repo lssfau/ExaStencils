@@ -1,7 +1,6 @@
 package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
-
 import exastencils.data
 import exastencils.datastructures._
 import exastencils.domain._
@@ -9,6 +8,7 @@ import exastencils.knowledge
 import exastencils.omp
 import exastencils.prettyprinting._
 import exastencils.util._
+import exastencils.datastructures.ir._
 
 abstract class Statement extends Node with ProgressableToIr with PrettyPrintable {
   override def progressToIr : ir.Statement
@@ -238,7 +238,7 @@ case class RepeatTimesStatement(var number : Int,
         (lv, ir.AssignmentStatement(lv, ir.IntegerConstant(0)))
       } else {
         val lv = "someRandomIndexVar" // FIXME: someRandomIndexVar
-        (ir.StringConstant(lv), ir.VariableDeclarationStatement(ir.IntegerDatatype(), lv, Some(ir.IntegerConstant(0))))
+        (ir.StringConstant(lv), ir.VariableDeclarationStatement(ir.IntegerDatatype, lv, Some(ir.IntegerConstant(0))))
       }
 
     return ir.ForLoopStatement(
@@ -254,7 +254,7 @@ case class RepeatUntilStatement(var comparison : Expression, var statements : Li
   override def prettyprint(out : PpStream) = { out << "repeat until " << comparison << "{\n" <<< statements << "}\n" }
 
   override def progressToIr : ir.WhileLoopStatement = {
-    ir.WhileLoopStatement(ir.UnaryExpression(ir.UnaryOperators.Not, comparison.progressToIr), statements.map(s => s.progressToIr).to[ListBuffer])
+    ir.WhileLoopStatement(NegationExpression(comparison.progressToIr), statements.map(s => s.progressToIr).to[ListBuffer])
   }
 }
 

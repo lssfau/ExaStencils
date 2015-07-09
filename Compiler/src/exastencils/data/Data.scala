@@ -2,6 +2,7 @@ package exastencils.data
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -19,7 +20,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
 
     // add static allocations here
 
-    return FunctionStatement(new UnitDatatype(), s"setupBuffers", ListBuffer(), body)
+    return FunctionStatement(UnitDatatype, s"setupBuffers", ListBuffer(), body)
   }
 }
 
@@ -39,19 +40,24 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
   }
 
   override def expand : Output[FunctionStatement] = {
-    var externalDT = if (Knowledge.generateFortranInterface)
+    val externalDT = if (Knowledge.generateFortranInterface)
       getFortranCompDT()
     else
       PointerDatatype(src.dataType)
 
-    new FunctionStatement(new UnitDatatype(), "get" + src.codeName,
-      ListBuffer(new VariableAccess("dest", Some(externalDT)), new VariableAccess("slot", Some(new IntegerDatatype))),
+    val loopDim = Knowledge.dimensionality + (if (src.vectorSize > 1) 1 else 0)
+    var multiIndex = LoopOverDimensions.defIt
+    if (src.vectorSize <= 1) multiIndex(Knowledge.dimensionality) = 0
+
+    new FunctionStatement(UnitDatatype, "get" + dest.identifier,
+      ListBuffer(new VariableAccess("dest", Some(externalDT)), new VariableAccess("slot", Some(IntegerDatatype))),
       ListBuffer[Statement](
-        new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
-          new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => src.fieldLayout(i).idxGhostLeftBegin)),
-          new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => src.fieldLayout(i).idxGhostRightEnd))),
-          new AssignmentStatement(ExternalFieldAccess("dest", dest, LoopOverDimensions.defIt),
-            DirectFieldAccess(FieldSelection(src, src.level, "slot"), LoopOverDimensions.defIt))) with OMP_PotentiallyParallel with PolyhedronAccessable))
+        new LoopOverDimensions(loopDim, new IndexRange(
+          new MultiIndex((0 until loopDim).toArray.map(i => src.fieldLayout(i).idxGhostLeftBegin)),
+          new MultiIndex((0 until loopDim).toArray.map(i => src.fieldLayout(i).idxGhostRightEnd))),
+          new AssignmentStatement(ExternalFieldAccess("dest", dest, Duplicate(multiIndex)),
+            DirectFieldAccess(FieldSelection(src, src.level, "slot"), Duplicate(multiIndex)))) with OMP_PotentiallyParallel with PolyhedronAccessable),
+      false, true)
   }
 }
 
@@ -71,19 +77,24 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
   }
 
   override def expand : Output[FunctionStatement] = {
-    var externalDT = if (Knowledge.generateFortranInterface)
+    val externalDT = if (Knowledge.generateFortranInterface)
       getFortranCompDT()
     else
       PointerDatatype(dest.dataType)
 
-    new FunctionStatement(new UnitDatatype(), "set" + dest.codeName,
-      ListBuffer(new VariableAccess("src", Some(externalDT)), new VariableAccess("slot", Some(new IntegerDatatype))),
+    val loopDim = Knowledge.dimensionality + (if (src.vectorSize > 1) 1 else 0)
+    var multiIndex = LoopOverDimensions.defIt
+    if (src.vectorSize <= 1) multiIndex(Knowledge.dimensionality) = 0
+
+    new FunctionStatement(UnitDatatype, "set" + src.identifier,
+      ListBuffer(new VariableAccess("src", Some(externalDT)), new VariableAccess("slot", Some(IntegerDatatype))),
       ListBuffer[Statement](
-        new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
-          new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => dest.fieldLayout(i).idxGhostLeftBegin)),
-          new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => dest.fieldLayout(i).idxGhostRightEnd))),
-          new AssignmentStatement(DirectFieldAccess(FieldSelection(dest, dest.level, "slot"), LoopOverDimensions.defIt),
-            ExternalFieldAccess("src", src, LoopOverDimensions.defIt))) with OMP_PotentiallyParallel with PolyhedronAccessable))
+        new LoopOverDimensions(loopDim, new IndexRange(
+          new MultiIndex((0 until loopDim).toArray.map(i => dest.fieldLayout(i).idxGhostLeftBegin)),
+          new MultiIndex((0 until loopDim).toArray.map(i => dest.fieldLayout(i).idxGhostRightEnd))),
+          new AssignmentStatement(DirectFieldAccess(FieldSelection(dest, dest.level, "slot"), Duplicate(multiIndex)),
+            ExternalFieldAccess("src", src, Duplicate(multiIndex)))) with OMP_PotentiallyParallel with PolyhedronAccessable),
+      false, true)
   }
 }
 

@@ -121,16 +121,16 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         return
       }
       scop.optLevel = math.max(scop.optLevel, toMerge.optLevel)
-      scop.domain = union(scop.domain, toMerge.domain)
-      scop.schedule = union(scop.schedule, insertCst(toMerge.schedule, i))
+      scop.domain = unionNull(scop.domain, toMerge.domain)
+      scop.schedule = unionNull(scop.schedule, insertCst(toMerge.schedule, i))
       scop.stmts ++= toMerge.stmts
       scop.decls ++= toMerge.decls
-      scop.reads = union(scop.reads, toMerge.reads)
-      scop.writes = union(scop.writes, toMerge.writes)
-      scop.deadAfterScop = union(scop.deadAfterScop, toMerge.deadAfterScop)
-      scop.deps.flow = union(scop.deps.flow, toMerge.deps.flow)
-      scop.deps.antiOut = union(scop.deps.antiOut, toMerge.deps.antiOut)
-      scop.deps.input = union(scop.deps.input, toMerge.deps.input)
+      scop.reads = unionNull(scop.reads, toMerge.reads)
+      scop.writes = unionNull(scop.writes, toMerge.writes)
+      scop.deadAfterScop = unionNull(scop.deadAfterScop, toMerge.deadAfterScop)
+      scop.deps.flow = unionNull(scop.deps.flow, toMerge.deps.flow)
+      scop.deps.antiOut = unionNull(scop.deps.antiOut, toMerge.deps.antiOut)
+      scop.deps.input = unionNull(scop.deps.input, toMerge.deps.input)
       if (scop.origIterationCount == null && toMerge.origIterationCount != null)
         scop.origIterationCount = toMerge.origIterationCount
       scop.parallelize &= toMerge.parallelize
@@ -150,7 +150,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     return s
   }
 
-  private def union(a : isl.UnionSet, b : isl.UnionSet) : isl.UnionSet = {
+  private def unionNull(a : isl.UnionSet, b : isl.UnionSet) : isl.UnionSet = {
     (a, b) match {
       case (null, y) => y
       case (x, null) => x
@@ -158,7 +158,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     }
   }
 
-  private def union(a : isl.UnionMap, b : isl.UnionMap) : isl.UnionMap = {
+  private def unionNull(a : isl.UnionMap, b : isl.UnionMap) : isl.UnionMap = {
     (a, b) match {
       case (null, y) => y
       case (x, null) => x

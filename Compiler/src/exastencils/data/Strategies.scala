@@ -174,10 +174,10 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
         if (Knowledge.data_alignFieldPointers) {
           ListBuffer(
             VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), "vs",
-              Some(Knowledge.simd_vectorSize * SizeOfExpression(RealDatatype()))),
+              Some(Knowledge.simd_vectorSize * SizeOfExpression(RealDatatype))),
             AssignmentStatement(newFieldData.basePtr, Allocation(field.field.dataType.resolveUnderlyingDatatype, numDataPoints + Knowledge.simd_vectorSize - 1)),
             VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), "offset",
-              Some((("vs" - (CastExpression(SpecialDatatype("ptrdiff_t"), newFieldData.basePtr) Mod "vs")) Mod "vs") / SizeOfExpression(RealDatatype()))),
+              Some((("vs" - (CastExpression(SpecialDatatype("ptrdiff_t"), newFieldData.basePtr) Mod "vs")) Mod "vs") / SizeOfExpression(RealDatatype))),
             AssignmentStatement(newFieldData, newFieldData.basePtr + "offset"))
         } else {
           ListBuffer(AssignmentStatement(newFieldData, Allocation(field.field.dataType.resolveUnderlyingDatatype, numDataPoints)))
@@ -185,7 +185,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
 
       if (field.field.numSlots > 1)
         statements += new ForLoopStatement(
-          VariableDeclarationStatement(new IntegerDatatype, "slot", Some(0)),
+          VariableDeclarationStatement(IntegerDatatype, "slot", Some(0)),
           LowerExpression("slot", field.field.numSlots),
           PreIncrementExpression("slot"),
           innerStmts)
@@ -206,20 +206,20 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       if (Knowledge.data_alignTmpBufferPointers) {
         bufferAllocs += (id -> new LoopOverFragments(ListBuffer[Statement](
           VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), "vs",
-            Some(Knowledge.simd_vectorSize * SizeOfExpression(RealDatatype()))),
-          AssignmentStatement(buf.basePtr, Allocation(new RealDatatype, size + Knowledge.simd_vectorSize - 1)),
+            Some(Knowledge.simd_vectorSize * SizeOfExpression(RealDatatype))),
+          AssignmentStatement(buf.basePtr, Allocation(RealDatatype, size + Knowledge.simd_vectorSize - 1)),
           VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), "offset",
-            Some((("vs" - (CastExpression(SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod "vs")) Mod "vs") / SizeOfExpression(RealDatatype()))),
+            Some((("vs" - (CastExpression(SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod "vs")) Mod "vs") / SizeOfExpression(RealDatatype))),
           AssignmentStatement(buf, buf.basePtr + "offset"))) with OMP_PotentiallyParallel)
       } else {
-        bufferAllocs += (id -> new LoopOverFragments(new AssignmentStatement(buf, Allocation(new RealDatatype, size))) with OMP_PotentiallyParallel)
+        bufferAllocs += (id -> new LoopOverFragments(new AssignmentStatement(buf, Allocation(RealDatatype, size))) with OMP_PotentiallyParallel)
       }
 
       buf
   })
 
   this += new Transformation("Extending SetupBuffers function", {
-    case func @ FunctionStatement(_, "setupBuffers", _, _) => {
+    case func @ FunctionStatement(_, "setupBuffers", _, _, _, _) => {
       if (Knowledge.experimental_useLevelIndepFcts) {
         val s = new DefaultStrategy("Replacing level specifications")
         s += new Transformation("Search and replace", {

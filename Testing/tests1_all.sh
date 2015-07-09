@@ -91,8 +91,8 @@ for job in $(squeue -h -u exatest -o %i); do
 done
 # remove old files (if some)
 rm -rf "${TEMP_DIR}"/*
-BIN_DIR="${TEMP_DIR}/bin"
-mkdir "${BIN_DIR}"
+TESTS_DIR="${TEMP_DIR}/tests"
+mkdir "${TESTS_DIR}"
 
 # build generator (place class files in RAM_TMP_DIR)
 echo ""
@@ -136,14 +136,15 @@ do
   TEST_LOG_REL="${id}.html"
   TEST_LOG="${LOG_DIR}/${TEST_LOG_REL}"
   TEST_ERROR_MARKER="${TEST_LOG}.${ERROR_MARKER_NAME}"
-  TEST_BIN="${BIN_DIR}/${id}"
+  TEST_DIR="${TESTS_DIR}/${id}"
+  TEST_BIN="exastencils.exe"
 
   echo "<html><body><pre>" > "${TEST_LOG}"
   echo "Test ID:  ${id}" >> "${TEST_LOG}"
 
   echo "Enqueue generation and compilation job for id  ${id}."
   # configuration is fine, start a new job for it
-  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etg_${id}" -o ${TEST_LOG} -e ${TEST_LOG} "--dependency=afterok:${SLURM_JOB_ID}" "${TESTING_DIR}/tests2_single.sh" "${TESTING_DIR}" "${COMPILER_JAR}" ${main} "${TEST_BIN}" "${TESTING_DIR}/${knowledge}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}")
+  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etg_${id}" -o ${TEST_LOG} -e ${TEST_LOG} "--dependency=afterok:${SLURM_JOB_ID}" "${TESTING_DIR}/tests2_single.sh" "${TESTING_DIR}" "${COMPILER_JAR}" ${main} "${TEST_DIR}" "${TEST_BIN}" "${TESTING_DIR}/${knowledge}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}")
   if [[ $? -eq 0 ]]; then
     SID=${OUT#Submitted batch job }
     DEP_SIDS="${DEP_SIDS}:${SID}"
@@ -159,8 +160,9 @@ do
     TMP_ARRAY[i+2]=${cores}
     TMP_ARRAY[i+3]=${constraints}
     TMP_ARRAY[i+4]=${result}
-    TMP_ARRAY[i+5]=${SID}
-    i=$((i+6))
+    TMP_ARRAY[i+5]="${TEST_DIR}/${TEST_BIN}"
+    TMP_ARRAY[i+6]=${SID}
+    i=$((i+7))
   else
     echo "Test OK (must not be executed)" >> "${TEST_LOG}"
   fi
@@ -172,19 +174,19 @@ echo ""
 COMP_DEPS="${DEP_SIDS}"
 
 # enqueue execution jobs
-for ((i=0;i<${#TMP_ARRAY[@]};i+=6)); do
+for ((i=0;i<${#TMP_ARRAY[@]};i+=7)); do
 
   id=${TMP_ARRAY[i+0]}
   nodes=${TMP_ARRAY[i+1]}
   cores=${TMP_ARRAY[i+2]}
   constraints=${TMP_ARRAY[i+3]}
   result=${TMP_ARRAY[i+4]}
-  SID_GEN=${TMP_ARRAY[i+5]}
+  TEST_BIN=${TMP_ARRAY[i+5]}
+  SID_GEN=${TMP_ARRAY[i+6]}
 
   TEST_LOG_REL="${id}.html"
   TEST_LOG="${LOG_DIR}/${TEST_LOG_REL}"
   TEST_ERROR_MARKER="${TEST_LOG}.${ERROR_MARKER_NAME}"
-  TEST_BIN="${BIN_DIR}/${id}"
 
   TEST_DEP="--dependency=afterok:${SID_GEN},afterany${COMP_DEPS}"
 
