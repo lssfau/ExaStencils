@@ -13,7 +13,7 @@ import exastencils.knowledge.Knowledge
 import exastencils.spl.samplingStrategies.doe.RandomDesign
 import exastencils.spl.learning._
 
-object SICS2015 {
+object SISC2015 {
 
   var featuresToConsider : scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
 
@@ -30,7 +30,9 @@ object SICS2015 {
   var generationTargetDir = "E:" + File.separator + "ScalaExaStencil" + File.separator + "configsSiSC" + File.separator
   var measurementBaseDir = "E:" + File.separator + "ScalaExaStencil" + File.separator
 
-  var knowledgeFile = "E:" + File.separator + "EclipseWorkspaces" + File.separator + "Scala_new" + File.separator + "ScalaExaStencil" + File.separator + "ScalaCodegen" + File.separator + "repo" + File.separator + "Compiler" + File.separator + "src" + File.separator + "exastencils" + File.separator + "knowledge" + File.separator + "Knowledge.scala"
+  //E:\EclipseWorkspaces\Scala_new\ScalaExaStencil\Compiler\src\exastencils\knowledge
+  var knowledgeFile = "E:" + File.separator + "EclipseWorkspaces" + File.separator + "Scala_new" + File.separator + "ScalaExaStencil" + File.separator + "Compiler" + File.separator + "src" + File.separator + "exastencils" + File.separator + "knowledge" + File.separator + "Knowledge.scala"
+  var basePathSolver = "E:" + File.separator + "MixedIntegerNonLinearProgrammingSolver" + File.separator + "solver"
 
   def parseParameterfile(filename : String) = {
 
@@ -43,6 +45,7 @@ object SICS2015 {
         case "baseCaseStudyDir"    => baseCaseStudyDir = value
         case "generationTargetDir" => generationTargetDir = value
         case "knowledgeFile"       => knowledgeFile = value
+        case "basePathSolver"      => basePathSolver = value
       }
     }
   }
@@ -321,13 +324,19 @@ object SICS2015 {
     //          }
     //        }
     var derivedDomainPart : scala.collection.mutable.Map[String, Int] = scala.collection.mutable.Map()
-    derivedDomainPart.put("help_domain_rect_numFragsPerBlock_x", ffs.nameToFeatureAndID.size + derivedDomainPart.size)
-    derivedDomainPart.put("help_domain_rect_numFragsPerBlock_y", ffs.nameToFeatureAndID.size + derivedDomainPart.size)
-    derivedDomainPart.put("help_domain_rect_numFragsPerBlock_z", ffs.nameToFeatureAndID.size + derivedDomainPart.size)
+    //    derivedDomainPart.put("help_domain_rect_numFragsPerBlock_x", ffs.nameToFeatureAndID.size + derivedDomainPart.size)
+    //    derivedDomainPart.put("help_domain_rect_numFragsPerBlock_y", ffs.nameToFeatureAndID.size + derivedDomainPart.size)
+    //    derivedDomainPart.put("help_domain_rect_numFragsPerBlock_z", ffs.nameToFeatureAndID.size + derivedDomainPart.size)
+    //
+    //    derivedDomainPart.put("help_domain_rect_numBlocks_x", ffs.nameToFeatureAndID.size + derivedDomainPart.size)
+    //    derivedDomainPart.put("help_domain_rect_numBlocks_y", ffs.nameToFeatureAndID.size + derivedDomainPart.size)
+    //    derivedDomainPart.put("help_domain_rect_numBlocks_z", ffs.nameToFeatureAndID.size + derivedDomainPart.size)
 
-    derivedDomainPart.put("help_domain_rect_numBlocks_x", ffs.nameToFeatureAndID.size + derivedDomainPart.size)
-    derivedDomainPart.put("help_domain_rect_numBlocks_y", ffs.nameToFeatureAndID.size + derivedDomainPart.size)
-    derivedDomainPart.put("help_domain_rect_numBlocks_z", ffs.nameToFeatureAndID.size + derivedDomainPart.size)
+    derivedDomainPart.put("numUnitFragsPD", ffs.nameToFeatureAndID.size + derivedDomainPart.size)
+    derivedDomainPart.put("fragLength_x", ffs.nameToFeatureAndID.size + derivedDomainPart.size)
+    derivedDomainPart.put("fragLength_y", ffs.nameToFeatureAndID.size + derivedDomainPart.size)
+    derivedDomainPart.put("fragLength_z", ffs.nameToFeatureAndID.size + derivedDomainPart.size)
+    //    as
 
     var numbers = 0
 
@@ -548,8 +557,6 @@ object SICS2015 {
 
   }
 
-  val basePathSolver = "E:\\MixedIntegerNonLinearProgrammingSolver\\solver"
-
   def startOptimizer(identifier : String) : scala.collection.mutable.Set[String] = {
     var resultFile : File = new File(basePathSolver + "/sol" + identifier + ".txt")
     if (resultFile.exists())
@@ -651,10 +658,12 @@ object SICS2015 {
     var numberOfConstraints = 0
     var osil : OSILSyntax = null
 
+    var ifDefPart : scala.collection.mutable.Map[String, String] = scala.collection.mutable.Map()
+
     if (dimToConsider == 2)
-      osil = new OSILSyntax(ffs.nameToFeatureAndID, dimToConsider, num_points_per_dim2D, idDefPat, derivedDomainParts)
+      osil = new OSILSyntax(ffs.nameToFeatureAndID, dimToConsider, num_points_per_dim2D, ifDefPart, derivedDomainParts)
     else
-      osil = new OSILSyntax(ffs.nameToFeatureAndID, dimToConsider, num_points_per_dim3D, idDefPat, derivedDomainParts)
+      osil = new OSILSyntax(ffs.nameToFeatureAndID, dimToConsider, num_points_per_dim3D, ifDefPart, derivedDomainParts)
 
     var constraints = osil.getConstraints()
 

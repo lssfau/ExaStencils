@@ -1,10 +1,6 @@
 package exastencils.spl
 
-// if ifCase 1 == aspectRatioOffset < 2
-// if ifCase 2 == 2 <= aspectRatioOffset < 4
-// if ifCase 3 == 4 <= aspectRatioOffset 
-
-class OSILSyntax(featureToID : scala.collection.mutable.Map[String, Tuple2[Feature, Int]], dimensionality : Int, num_points_per_dim : Int, ifCase : Int, derivedDomainParts : scala.collection.mutable.Map[String, Int]) {
+class OSILSyntax(featureToID : scala.collection.mutable.Map[String, Tuple2[Feature, Int]], dimensionality : Int, num_points_per_dim : Int, ifCaseVariables : scala.collection.mutable.Map[String, String], derivedDomainParts : scala.collection.mutable.Map[String, Int]) {
 
   var nodesTimesRanks =
     "<times>\n" +
@@ -138,16 +134,6 @@ class OSILSyntax(featureToID : scala.collection.mutable.Map[String, Tuple2[Featu
 
   var omp_numThreads = ""
 
-  if (ifCase == 1) {
-    omp_numThreads = "<number type=\"real\" value=\"1\"/>\n"
-  } else if (ifCase == 2) {
-    omp_numThreads = num_frags_per_block_total
-  } else if (ifCase == 3) {
-    omp_numThreads = frag_volume
-  } else {
-    throw new Exception("Error in handling of OSILSyntax class ")
-  }
-
   var numNodes = "<divide>\n" +
     "<times>\n" +
     mpi_numThreads +
@@ -225,29 +211,154 @@ class OSILSyntax(featureToID : scala.collection.mutable.Map[String, Tuple2[Featu
     "</times>\n" +
     "</times>\n"
 
+  //  def getDerivedOptions() : scala.collection.mutable. 
+
+  /**
+    * todo features in ifCase:
+    * aspectRatioOffset [0,2,4]
+    * firstDim [0,1,2] 2 nur bei dim ==3
+    * secDim [0,1,2] 2 nur bei dim ==3
+    * omp_parallelizeLoopOverDimensions [true,false]
+    * ompAll [1 oder X]
+    */
+
   def getConstraints() : scala.collection.mutable.MutableList[Tuple2[String, String]] = {
 
     var aspectRatioOffset = 0
 
-    if (ifCase == 1) {
+    if (ifCaseVariables("aspectRatioOffset").equals("2")) {
       aspectRatioOffset = 2
-    } else if (ifCase == 2) {
+    } else if (ifCaseVariables("aspectRatioOffset").equals("4")) {
       aspectRatioOffset = 4
     }
 
-    var constraints : scala.collection.mutable.MutableList[Tuple2[String, String]] = scala.collection.mutable.MutableList()
+    var aro_x = 1
+    var aro_y = 1
+    var aro_z = 1
+
+    if (aspectRatioOffset >= 2) {
+      if (ifCaseVariables("firstDim").equals("0"))
+        aro_x *= 2
+      else if (ifCaseVariables("firstDim").equals("1"))
+        aro_y *= 2
+      else
+        aro_z *= 2
+    }
+
+    if (aspectRatioOffset >= 4) {
+      if (ifCaseVariables("secDim").equals("0"))
+        aro_x *= 2
+      else if (ifCaseVariables("secDim").equals("1"))
+        aro_y *= 2
+      else
+        aro_z *= 2
+    }
+
+    var numUnitFragsPDRightHandSide = "<power>\n" +
+      "<times>\n" +
+      nodesTimesRanks +
+      "<number type=\"real\" value=\"" + aspectRatioOffset + "\"/>\n" +
+      "</times>\n" +
+      "<divide>\n" +
+      "<number type=\"real\" value=\"1\"/>\n" +
+      "<number type=\"real\" value=\"" + dimensionality + "\"/>\n" +
+      "</divide>\n" +
+      "</power>\n"
 
     var value = ""
     var constraintTree = ""
+    var constraints : scala.collection.mutable.MutableList[Tuple2[String, String]] = scala.collection.mutable.MutableList()
 
-    value = "<con lb=\"0.0\"/>\n"
+    value = "<con lb=\"0.0\" ub=\"0.0\"/>\n"
     constraintTree = "<nl idx=\"" + constraints.size + "\">\n" +
       "<minus>" +
-      "<variable coef=\"1.0\" idx=\"" + featureToID("domain_fragmentLength_y")._2 + "\"/>\n" +
-      "<number type=\"real\" value=\"1\"/>\n" +
+      "<variable coef=\"1.0\" idx=\"" + derivedDomainParts("numUnitFragsPD") + "\"/>\n" +
+      numUnitFragsPDRightHandSide +
       "</minus>" +
       "</nl>\n"
     constraints += (new Tuple2(value, constraintTree))
+
+    value = "<con lb=\"0.0\"/>\n"
+    constraintTree = "<nl idx=\"" + constraints.size + "\">\n" +
+      "<minus>\n" +
+      "<times>\n" +
+      "<variable coef=\"1.0\" idx=\"" + featureToID("sisc2015_numOMP_x") + "\"/>\n" +
+      "<number type=\"real\" value=\"" + aro_x + "\"/>\n" +
+      "</times>\n" +
+      "<variable coef=\"1.0\" idx=\"" + derivedDomainParts("numUnitFragsPD") + "\"/>\n" +
+      "</minus>\n" +
+      "</nl>\n"
+    constraints += (new Tuple2(value, constraintTree))
+
+    value = "<con lb=\"0.0\"/>\n"
+    constraintTree = "<nl idx=\"" + constraints.size + "\">\n" +
+      "<minus>\n" +
+      "<times>\n" +
+      "<variable coef=\"1.0\" idx=\"" + featureToID("sisc2015_numOMP_y") + "\"/>\n" +
+      "<number type=\"real\" value=\"" + aro_y + "\"/>\n" +
+      "</times>\n" +
+      "<variable coef=\"1.0\" idx=\"" + derivedDomainParts("numUnitFragsPD") + "\"/>\n" +
+      "</minus>\n" +
+      "</nl>\n"
+    constraints += (new Tuple2(value, constraintTree))
+
+    if (dimensionality == 3) {
+      value = "<con lb=\"0.0\"/>\n"
+      constraintTree = "<nl idx=\"" + constraints.size + "\">\n" +
+        "<minus>\n" +
+        "<times>\n" +
+        "<variable coef=\"1.0\" idx=\"" + featureToID("sisc2015_numOMP_z") + "\"/>\n" +
+        "<number type=\"real\" value=\"" + aro_z + "\"/>\n" +
+        "</times>\n" +
+        "<variable coef=\"1.0\" idx=\"" + derivedDomainParts("numUnitFragsPD") + "\"/>\n" +
+        "</minus>\n" +
+        "</nl>\n"
+      constraints += (new Tuple2(value, constraintTree))
+    }
+
+    if (dimensionality == 2) {
+      value = "<con lb=\"0.0\"/>\n"
+      constraintTree = "<nl idx=\"" + constraints.size + "\">\n" +
+        "<minus>" +
+        "<variable coef=\"1.0\" idx=\"" + featureToID("sisc2015_ranksPerNode") + "\"/>\n" +
+        "<times>\n" +
+        "<variable coef=\"1.0\" idx=\"" + featureToID("sisc2015_numOMP_x") + "\"/>\n" +
+        "<variable coef=\"1.0\" idx=\"" + featureToID("sisc2015_numOMP_y") + "\"/>\n" +
+        "</times>\n" +
+        "</minus>\n" +
+        "</nl>\n"
+      constraints += (new Tuple2(value, constraintTree))
+    } else if (dimensionality == 3) {
+      value = "<con lb=\"0.0\"/>\n"
+      constraintTree = "<nl idx=\"" + constraints.size + "\">\n" +
+        "<minus>" +
+        "<variable coef=\"1.0\" idx=\"" + featureToID("sisc2015_ranksPerNode") + "\"/>\n" +
+        "<times>\n" +
+        "<variable coef=\"1.0\" idx=\"" + featureToID("sisc2015_numOMP_z") + "\"/>\n" +
+        "<times>\n" +
+        "<variable coef=\"1.0\" idx=\"" + featureToID("sisc2015_numOMP_x") + "\"/>\n" +
+        "<variable coef=\"1.0\" idx=\"" + featureToID("sisc2015_numOMP_y") + "\"/>\n" +
+        "</times>\n" +
+        "</times>\n" +
+        "</minus>\n" +
+        "</nl>\n"
+      constraints += (new Tuple2(value, constraintTree))
+    }
+
+    //    value = "<con lb=\"0.0\" ub=\"0.0\"/>\n"
+    //    constraintTree = "<nl idx=\"" + constraints.size + "\">\n" +
+    //      "<minus>" +
+    //      "<variable coef=\"1.0\" idx=\"" + derivedDomainParts("fragLength_x") + "\"/>\n" +
+    //      "<times>\n" +
+    //      "<variable coef=\"1.0\" idx=\"" + featureToID("sisc2015_numOMP_z") + "\"/>\n" +
+    //      "<times>\n" +
+    //      "<variable coef=\"1.0\" idx=\"" + featureToID("omp_parallelizeLoopOverDimensions") + "\"/>\n" +
+    //      "<number type=\"real\" value=\"" + aro_x + "\"/>\n" +
+    //      "</times>\n" +
+    //      "</times>\n" +
+    //      "</minus>\n" +
+    //      "</nl>\n"
+    //    constraints += (new Tuple2(value, constraintTree))
 
     //// old........
 
@@ -305,39 +416,6 @@ class OSILSyntax(featureToID : scala.collection.mutable.Map[String, Tuple2[Featu
       "</nl>\n"
     constraints += (new Tuple2(value, constraintTree))
     // lower bound definition end ----------------
-
-    if (ifCase == 1) {
-      value = "<con lb=\"0.0\" ub=\"0.0\"/>\n"
-      constraintTree = "<nl idx=\"" + constraints.size + "\">\n" +
-        "<minus>" +
-        "<number type=\"real\" value=\"1\"/>\n" +
-        num_frags_per_block_total +
-        "</minus>" +
-        "</nl>\n"
-      constraints += (new Tuple2(value, constraintTree))
-
-      value = "<con lb=\"0.0\" ub=\"0.0\"/>\n"
-      constraintTree = "<nl idx=\"" + constraints.size + "\">\n" +
-        "<minus>" +
-        "<number type=\"real\" value=\"1\"/>\n" +
-        frag_volume +
-        "</minus>" +
-        "</nl>\n"
-      constraints += (new Tuple2(value, constraintTree))
-
-    }
-
-    if (ifCase == 2) {
-      value = "<con lb=\"1.0\"/>\n"
-      constraintTree = "<nl idx=\"" + constraints.size + "\">\n" +
-        "<minus>" +
-        num_frags_per_block_total +
-        frag_volume +
-        "</minus>" +
-        "</nl>\n"
-      constraints += (new Tuple2(value, constraintTree))
-
-    }
 
     //    if (!(getNumNodes(config) > 8)) return false
     value = "<con lb=\"8.0\"/>\n"
