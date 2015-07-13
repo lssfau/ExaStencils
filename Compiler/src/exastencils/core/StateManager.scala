@@ -572,7 +572,11 @@ object StateManager {
 
     def set[T](o : AnyRef, method : java.lang.reflect.Method, value : AnyRef) : Boolean = {
       Logger.info(s"Statemananger::set: $o, " + method.getName() + s" to $value")
-      method.invoke(o, value.asInstanceOf[AnyRef])
+      try {
+        method.invoke(o, value.asInstanceOf[AnyRef])
+      } catch {
+        case e : Exception => Logger.error(s"""Error setting ${o.toString()}.${method.getName} to '${value}'""")
+      }
       true
     }
   }

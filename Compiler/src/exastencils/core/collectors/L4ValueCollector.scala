@@ -16,10 +16,6 @@ class L4ValueCollector extends Collector {
           case vl : LeveledIdentifier => globalVals += ((v.identifier.name + "_" + vl.level, v.expression))
           case _                      => globalVals += ((v.identifier.name, v.expression))
         })
-        x.variables.filter(_.expression.isDefined).foreach(v => v.identifier match {
-          case vl : LeveledIdentifier => globalVals += ((v.identifier.name + "_" + vl.level, v.expression.get))
-          case _                      => globalVals += ((v.identifier.name, v.expression.get))
-        })
       }
       case x : FunctionStatement => values.clear()
       case x : ValueDeclarationStatement => {
