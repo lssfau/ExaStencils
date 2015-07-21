@@ -4,24 +4,27 @@ import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import scala.collection.mutable.HashMap
+import scala.collection.mutable.ListBuffer
 
 class L4ValueCollector extends Collector {
-  private var values = new HashMap[String, Expression]()
+  private var values = new ListBuffer[HashMap[String, Expression]]()
   private var globalVals = new HashMap[String, Expression]()
+  private var insideGlobals = false
 
   override def enter(node : Node) : Unit = {
+    println("enter " + node)
     node match {
-      case x : GlobalDeclarationStatement => {
-        x.values.foreach(v => v.identifier match {
-          case vl : LeveledIdentifier => globalVals += ((v.identifier.name + "_" + vl.level, v.expression))
-          case _                      => globalVals += ((v.identifier.name, v.expression))
-        })
-      }
-      case x : FunctionStatement => values.clear()
+      case x : GlobalDeclarationStatement => insideGlobals = true
+      case x : FunctionStatement          => values.clear()
+      case x : LoopOverFragmentsStatement => values.+=((new HashMap[String, Expression]()))
+      case x : LoopOverPointsStatement    => values.+=((new HashMap[String, Expression]()))
+      case x : RepeatTimesStatement       => values.+=((new HashMap[String, Expression]()))
+      case x : RepeatUntilStatement       => values.+=((new HashMap[String, Expression]()))
+      case x : ConditionalStatement       => values.+=((new HashMap[String, Expression]()))
       case x : ValueDeclarationStatement => {
         x.identifier match {
-          case v : LeveledIdentifier => values += ((v.name + "_" + v.level, x.expression))
-          case _                     => values += ((x.identifier.name, x.expression))
+          case v : LeveledIdentifier => if (insideGlobals) globalVals += ((v.name + "_" + v.level, x.expression)); else values.last += ((v.name + "_" + v.level, x.expression))
+          case _                     => if (insideGlobals) globalVals += ((x.identifier.name, x.expression)); else values.last += ((x.identifier.name, x.expression))
         }
       }
       case _ =>
@@ -29,9 +32,16 @@ class L4ValueCollector extends Collector {
   }
 
   override def leave(node : Node) : Unit = {
+    println("leave " + node)
     node match {
-      case x : FunctionStatement => values.clear()
-      case _                     =>
+      case x : GlobalDeclarationStatement => insideGlobals = false
+      case x : FunctionStatement          => values.clear()
+      case x : LoopOverFragmentsStatement => values.trimEnd(1)
+      case x : LoopOverPointsStatement    => values.trimEnd(1)
+      case x : RepeatTimesStatement       => values.trimEnd(1)
+      case x : RepeatUntilStatement       => values.trimEnd(1)
+      case x : ConditionalStatement       => values.trimEnd(1)
+      case _                              =>
     }
   }
 
@@ -41,9 +51,12 @@ class L4ValueCollector extends Collector {
 
   def getValue(name : String) : Option[Expression] = {
     var exp : Option[Expression] = None
-
-    exp = values.get(name) // Local Vals will shadow global Vals
-    if (!exp.isDefined) {
+    var i = values.length - 1
+    while (i >= 0 && exp.isEmpty) {
+      exp = values(i).get(name) // Local Vals will shadow global Vals
+      i = i - 1
+    }
+    if (exp.isEmpty) {
       exp = globalVals.get(name)
     }
     exp
