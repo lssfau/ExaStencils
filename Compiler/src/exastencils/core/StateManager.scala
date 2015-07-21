@@ -172,13 +172,11 @@ object StateManager {
   protected def replace(node : Node, transformation : Transformation) : Unit = {
     strategies_.top.notifyEnter(node)
 
-    Vars(node).foreach(pair => {
-      val getter = pair._1 // extract getter method to read element from node
-      val setter = pair._2 // extract setter method to save element to node
-      val currentSubnode = Vars.get(node, getter) // the current element we are working with
+    Vars(node).foreach(field => {
+      val currentSubnode = Vars.get(node, field) // the current element we are working with
       val previousMatches = progresses_(transformation).getMatches // the previous number of matches for comparison
 
-      Logger.info(s"""Statemanager::replace: node = "$node", field = "$getter", currentSubnode = "$currentSubnode"""")
+      Logger.info(s"""Statemanager::replace: node = "$node", field = "$field", currentSubnode = "$currentSubnode"""")
 
       currentSubnode match {
         // ###############################################################################################
@@ -191,16 +189,16 @@ object StateManager {
           ret match {
             case NoMatch => nextNode = n // do nothing, but set next node for recursive matching
             case m : Node => {
-              if (!Vars.set(node, setter, m)) {
-                Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
+              if (!Vars.set(node, field, m)) {
+                Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
               }
             }
             case m : NodeList if m.nodes.size == 1 => { // Only valid if list contains a single element
-              if (!Vars.set(node, setter, m.nodes.toSeq(0))) {
-                Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
+              if (!Vars.set(node, field, m.nodes.toSeq(0))) {
+                Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
               }
             }
-            case None => Logger.error(s"""Could not remove node "${getter.getName()}"" from "${n}"" as it is not optional!""")
+            case None => Logger.error(s"""Could not remove node "${field.getName()}"" from "${n}"" as it is not optional!""")
           }
 
           // Apply transformation to sub-elements
@@ -216,19 +214,19 @@ object StateManager {
             ret match {
               case NoMatch => nextNode = n // do nothing, but set next node for recursive matching
               case m : Node => {
-                if (!Vars.set(node, setter, Some(m))) {
-                  Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
+                if (!Vars.set(node, field, Some(m))) {
+                  Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
                 }
               }
               case m : NodeList if m.nodes.size == 1 =>
                 { // Only valid if list contains a single element
-                  if (!Vars.set(node, setter, Some(m.nodes.toSeq(0)))) {
-                    Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
+                  if (!Vars.set(node, field, Some(m.nodes.toSeq(0)))) {
+                    Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
                   }
                 }
               case None => {
-                if (!Vars.set(node, setter, None)) {
-                  Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
+                if (!Vars.set(node, field, None)) {
+                  Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
                 }
               }
             }
@@ -265,8 +263,8 @@ object StateManager {
             case _ => List(f) // current element "f" is not of interest to us - put it back into (new) set
           })
 
-          if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, setter, newSet)) {
-            Logger.error(s"Could not set $getter in transformation ${transformation.name}")
+          if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newSet)) {
+            Logger.error(s"Could not set $field in transformation ${transformation.name}")
           }
         }
         case set : scala.collection.immutable.Set[_] => {
@@ -291,8 +289,8 @@ object StateManager {
             case _ => List(f)
           })
 
-          if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, setter, newSet)) {
-            Logger.error(s"Could not set $getter in transformation ${transformation.name}")
+          if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newSet)) {
+            Logger.error(s"Could not set $field in transformation ${transformation.name}")
           }
         }
         // ###############################################################################################
@@ -320,8 +318,8 @@ object StateManager {
             case _ => List(f)
           })
 
-          if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, setter, newSeq)) {
-            Logger.error(s"Could not set $getter in transformation ${transformation.name}")
+          if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newSeq)) {
+            Logger.error(s"Could not set $field in transformation ${transformation.name}")
           }
         }
         // ###############################################################################################
@@ -343,8 +341,8 @@ object StateManager {
             }
           })
 
-          if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, setter, newMap)) {
-            Logger.error(s"Could not set $getter in transformation ${transformation.name}")
+          if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newMap)) {
+            Logger.error(s"Could not set $field in transformation ${transformation.name}")
           }
         }
         // Unfortunately mutable and immutable set have no common supertype
@@ -364,8 +362,8 @@ object StateManager {
             }
           })
 
-          if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, setter, newMap)) {
-            Logger.error(s"Could not set $getter in transformation ${transformation.name}")
+          if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newMap)) {
+            Logger.error(s"Could not set $field in transformation ${transformation.name}")
           }
         }
         case array : Array[_] => {
@@ -544,30 +542,35 @@ object StateManager {
     retVal
   }
 
+  protected def gettt(o : Class[_]) : List[java.lang.reflect.Field] = {
+    var list = ListBuffer[java.lang.reflect.Field]()
+    o.getInterfaces foreach (x => list.++=(gettt(x)))
+    if (o.getSuperclass != null) list.++=(gettt(o.getSuperclass))
+    list ++= o.getDeclaredFields.toList
+    list.toList
+  }
+
   protected object Vars {
-    protected var cache = new HashMap[Class[_ <: AnyRef], List[(java.lang.reflect.Method, java.lang.reflect.Method)]]
+    protected var cache = new HashMap[Class[_ <: AnyRef], List[java.lang.reflect.Field]]
     protected val setterSuffix = "_$eq"
     protected val excludeList = List()
 
-    def apply[T](o : AnyRef) : List[(java.lang.reflect.Method, java.lang.reflect.Method)] = {
+    def apply[T](o : AnyRef) : List[java.lang.reflect.Field] = {
       cache.getOrElseUpdate(o.getClass(), {
-
-        val methods = o.getClass.getMethods
-        val vars : Array[(java.lang.reflect.Method, java.lang.reflect.Method)] = for {
-          g <- methods; if (g.getModifiers & java.lang.reflect.Modifier.PUBLIC) == java.lang.reflect.Modifier.PUBLIC &&
-            g.getParameterTypes.size == 0 && !excludeList.contains(g.getName)
-          s <- methods; if s.getName.startsWith(g.getName) &&
-            (s.getModifiers & java.lang.reflect.Modifier.PUBLIC) == java.lang.reflect.Modifier.PUBLIC &&
-            s.getParameterTypes.size == 1 && s.getParameterTypes()(0) == g.getReturnType && s.getName == g.getName + setterSuffix
-        } yield (g, s)
-
+        val vars = gettt(o.getClass).filterNot(p => p.getName().endsWith("$$annotations_")).filterNot(p => p.getName().endsWith("MODULE$"))
         Logger.info(s"""StateManager::Vars: Caching ${vars.length} members of class "${o.getClass.getName()}"""")
-        vars.toList
+        Logger.info(s"""StateManager::Vars: "${o.getClass.getName()}": ${vars}""")
+        vars
       })
     }
 
     def get[T](o : AnyRef, method : java.lang.reflect.Method) : AnyRef = {
       method.invoke(o)
+    }
+
+    def get[T](o : AnyRef, field : java.lang.reflect.Field) : AnyRef = {
+      field.setAccessible(true)
+      field.get(o)
     }
 
     def set[T](o : AnyRef, method : java.lang.reflect.Method, value : AnyRef) : Boolean = {
@@ -576,6 +579,16 @@ object StateManager {
         method.invoke(o, value.asInstanceOf[AnyRef])
       } catch {
         case e : Exception => Logger.error(s"""Error setting ${o.toString()}.${method.getName} to '${value}'""")
+      }
+      true
+    }
+
+    def set[T](o : AnyRef, field : java.lang.reflect.Field, value : AnyRef) : Boolean = {
+      Logger.info(s"Statemananger::set: $o, " + field.getName() + s" to $value")
+      try {
+        field.set(o, value)
+      } catch {
+        case e : Exception => Logger.error(s"""Error setting ${o.toString()}.${field.getName} to '${value}'""")
       }
       true
     }
