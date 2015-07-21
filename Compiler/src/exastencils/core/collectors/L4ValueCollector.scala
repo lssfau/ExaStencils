@@ -12,7 +12,6 @@ class L4ValueCollector extends Collector {
   private var insideGlobals = false
 
   override def enter(node : Node) : Unit = {
-    println("enter " + node)
     node match {
       case x : GlobalDeclarationStatement => insideGlobals = true
       case x : FunctionStatement          => values.clear()
@@ -32,7 +31,6 @@ class L4ValueCollector extends Collector {
   }
 
   override def leave(node : Node) : Unit = {
-    println("leave " + node)
     node match {
       case x : GlobalDeclarationStatement => insideGlobals = false
       case x : FunctionStatement          => values.clear()
