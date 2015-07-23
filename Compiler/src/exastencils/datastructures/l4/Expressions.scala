@@ -47,6 +47,12 @@ case class BooleanConstant(var value : Boolean) extends Expression {
   def progressToIr : ir.BooleanConstant = ir.BooleanConstant(value)
 }
 
+case class MatrixVectorData(var expressions : List[Expression]) extends Expression {
+  def prettyprint(out : PpStream) = { out << '['; expressions.foreach(_.prettyprint(out)); out << ']' }
+
+  def progressToIr : ir.BooleanConstant = ???
+}
+
 abstract class Access() extends Expression {
   var name : String
 }

@@ -23,7 +23,7 @@ class LexerL4 extends exastencils.parsers.ExaLexer {
   reserved += ("if", "else")
 
   // language datatypes
-  reserved += ("Unit", "String", "Integer", "Real", "Complex", "Array")
+  reserved += ("Unit", "String", "Integer", "Real", "Complex", "Array", "Vector", "Matrix")
 
   // level specification keywords
   reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "all", "and")
@@ -44,7 +44,7 @@ class LexerL4 extends exastencils.parsers.ExaLexer {
   reserved += ("advance", "active", "activeSlot", "currentSlot", "next", "nextSlot", "previous", "previousSlot")
 
   // math keywords
-//  reserved += ()
+  //  reserved += ()
 
   // obsolete keywords
   reserved += ("steps")

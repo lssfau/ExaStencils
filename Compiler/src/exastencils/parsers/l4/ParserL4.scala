@@ -95,6 +95,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val numericDatatype : Parser[Datatype] = (
     ("Complex" ~ "[") ~> numericSimpleDatatype <~ "]" ^^ { case x => new ComplexDatatype(x) }
+    ||| "Vector" ~ ("[" ~> numericSimpleDatatype <~ "]") ~ ("[" ~> integerLit <~ "]") ^^ { case _ ~ x ~ s => new VectorDatatype(x, s) }
+    ||| "Matrix" ~ ("[" ~> numericSimpleDatatype <~ "]") ~ ("[" ~> integerLit <~ "]") ~ ("[" ~> integerLit <~ "]") ^^ { case _ ~ x ~ m ~ n => new MatrixDatatype(x, m, n) }
     ||| numericSimpleDatatype)
 
   lazy val numericSimpleDatatype : Parser[Datatype] = (
@@ -303,12 +305,15 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val factor = (
     "(" ~> binaryexpression <~ ")"
     ||| ("-" ~ "(") ~> binaryexpression <~ ")" ^^ { case exp => UnaryExpression("-", exp) }
+    ||| matrixVectorData
     ||| locationize(stringLit ^^ { case s => StringConstant(s) })
     ||| locationize("-".? ~ numericLit ^^ { case s ~ n => if (isInt(s.getOrElse("") + n)) IntegerConstant((s.getOrElse("") + n).toInt) else FloatConstant((s.getOrElse("") + n).toDouble) })
     ||| locationize("-" ~> functionCall ^^ { case x => UnaryExpression("-", x) })
     ||| functionCall
     ||| locationize("-" ~> genericAccess ^^ { case x => UnaryExpression("-", x) })
     ||| genericAccess)
+
+  lazy val matrixVectorData = "[" ~> expressionIndex.+ <~ "]" ^^ { case l => MatrixVectorData(l) }
 
   lazy val booleanexpression : PackratParser[Expression] = (
     locationize(("!" ~> booleanexpression1) ^^ { case ex => UnaryBooleanExpression("!", ex) })
