@@ -51,7 +51,7 @@ echo "  Created  ${RESULT}: run code and redirect its stdout and stderr."
 srun "${BIN}" 2>&1 | grep -v "No protocol specified" | tee "${RESULT}" # HACK: filter strange X server error...
 echo ""
 
-if diff -B -w --strip-trailing-cr -I "time"  "${RESULT}" "${EXP_RESULT}" > /dev/null; then
+if diff -B -w --strip-trailing-cr -I "time" -I "No root privilege"  "${RESULT}" "${EXP_RESULT}" > /dev/null; then
   echo "============== Test OK =============="
 else
   echo "============== Test ERROR =============="
