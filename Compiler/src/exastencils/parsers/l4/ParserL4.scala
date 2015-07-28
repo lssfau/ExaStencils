@@ -90,7 +90,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| "Array" ~ ("[" ~> datatype <~ "]") ~ ("[" ~> integerLit <~ "]") ^^ { case _ ~ x ~ s => new ArrayDatatype(x, s) })
 
   lazy val simpleDatatype : Parser[Datatype] = (
-    "String" ^^ { case x => new StringDatatype }
+    "String" ^^ { case _ => new StringDatatype }
+    ||| "Boolean" ^^ { case _ => new BooleanDatatype }
     ||| numericSimpleDatatype)
 
   lazy val numericDatatype : Parser[Datatype] = (

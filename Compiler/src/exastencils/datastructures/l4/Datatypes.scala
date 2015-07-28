@@ -41,3 +41,8 @@ case class ComplexDatatype(var datatype : Datatype) extends Datatype {
   def prettyprint(out : PpStream) = { out << "Complex[" << datatype << ']' }
   def progressToIr : ir.Datatype = new ir.ComplexDatatype(datatype.progressToIr)
 }
+
+case class BooleanDatatype() extends Datatype {
+  def prettyprint(out : PpStream) = { out << "Boolean" }
+  def progressToIr : ir.Datatype = ir.BooleanDatatype
+}
