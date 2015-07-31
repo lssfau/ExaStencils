@@ -326,7 +326,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val booleanexpression3 : PackratParser[Expression] = (
     "(" ~> booleanexpression <~ ")"
     ||| locationize(booleanLit ^^ { case s => BooleanConstant(s.toBoolean) })
-    ||| locationize(((binaryexpression ||| booleanexpression) ~ ("<" ||| "<=" ||| ">" ||| ">=" ||| "==" ||| "!=") ~ (binaryexpression ||| booleanexpression)) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
+    ||| simpleComparison
     ||| functionCall
     ||| genericAccess)
 
