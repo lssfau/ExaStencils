@@ -198,6 +198,59 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case AdditionExpression(left : Expression, FloatConstant(0))          => left
     case SubtractionExpression(left : Expression, FloatConstant(0))       => left
 
+    // Simplify row vectors
+    case NegativeExpression(vec : RowVectorExpression)                    => RowVectorExpression(vec.expressions.map(_ * (-1)))
+    case AdditionExpression(left : RowVectorExpression, right : RowVectorExpression) => {
+      if (left.length != right.length) Logger.error("Vector sizes must match for addition")
+      RowVectorExpression((left.expressions, right.expressions).zipped.map(_ + _))
+    }
+    case SubtractionExpression(left : RowVectorExpression, right : RowVectorExpression) => {
+      if (left.length != right.length) Logger.error("Vector sizes must match for addition")
+      RowVectorExpression((left.expressions, right.expressions).zipped.map(_ - _))
+    }
+    case MultiplicationExpression(left : RowVectorExpression, right : IntegerConstant) => {
+      RowVectorExpression(left.expressions.map(_ * right))
+    }
+    case MultiplicationExpression(left : RowVectorExpression, right : FloatConstant) => {
+      RowVectorExpression(left.expressions.map(_ * right))
+    }
+    case MultiplicationExpression(left : IntegerConstant, right : RowVectorExpression) => {
+      RowVectorExpression(right.expressions.map(_ * right))
+    }
+    case MultiplicationExpression(left : FloatConstant, right : RowVectorExpression) => {
+      RowVectorExpression(right.expressions.map(_ * right))
+    }
+
+    // Simplify column vectors
+    case NegativeExpression(vec : ColumnVectorExpression) => ColumnVectorExpression(vec.expressions.map(_ * (-1)))
+    case AdditionExpression(left : ColumnVectorExpression, right : ColumnVectorExpression) => {
+      if (left.length != right.length) Logger.error("Vector sizes must match for addition")
+      ColumnVectorExpression((left.expressions, right.expressions).zipped.map(_ + _))
+    }
+    case SubtractionExpression(left : ColumnVectorExpression, right : ColumnVectorExpression) => {
+      if (left.length != right.length) Logger.error("Vector sizes must match for addition")
+      ColumnVectorExpression((left.expressions, right.expressions).zipped.map(_ - _))
+    }
+    case MultiplicationExpression(left : ColumnVectorExpression, right : IntegerConstant) => {
+      ColumnVectorExpression(left.expressions.map(_ * right))
+    }
+    case MultiplicationExpression(left : ColumnVectorExpression, right : FloatConstant) => {
+      ColumnVectorExpression(left.expressions.map(_ * right))
+    }
+    case MultiplicationExpression(left : IntegerConstant, right : ColumnVectorExpression) => {
+      ColumnVectorExpression(right.expressions.map(_ * right))
+    }
+    case MultiplicationExpression(left : FloatConstant, right : ColumnVectorExpression) => {
+      ColumnVectorExpression(right.expressions.map(_ * right))
+    }
+
+    // Simplify vectors
+    case MultiplicationExpression(left : RowVectorExpression, right : ColumnVectorExpression) => {
+      if (left.length != right.length) Logger.error("Vector sizes must match for addition")
+      val t = (left.expressions, right.expressions).zipped.map(_ * _)
+      t.reduce((a : Expression, b : Expression) => a + b)
+    }
+
     //})
 
     //this += new Transformation("Applying distributive law", {
