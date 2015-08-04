@@ -43,13 +43,13 @@ case class ComplexDatatype(var datatype : Datatype) extends Datatype {
 }
 
 case class VectorDatatype(var datatype : Datatype, var size : Int) extends Datatype {
-  def prettyprint(out : PpStream) = { out << "Vector[" << datatype << ']' << '[' << size << ']' }
-  def progressToIr : ir.Datatype = ???
+  def prettyprint(out : PpStream) = { out << "Vector[" << datatype << ',' << size << ']' }
+  def progressToIr : ir.Datatype = new ir.VectorDatatype(datatype.progressToIr, size)
 }
 
 case class MatrixDatatype(var datatype : Datatype, var sizeM : Int, var sizeN : Int) extends Datatype {
-  def prettyprint(out : PpStream) = { out << "Matrix[" << datatype << ']' << '[' << sizeM << ']' << '[' << sizeN << ']' }
-  def progressToIr : ir.Datatype = ???
+  def prettyprint(out : PpStream) = { out << "Matrix[" << datatype << ',' << sizeM << ',' << sizeN << ']' }
+  def progressToIr : ir.Datatype = new ir.MatrixDatatype(datatype.progressToIr, sizeM, sizeN)
 }
 
 case class BooleanDatatype() extends Datatype {

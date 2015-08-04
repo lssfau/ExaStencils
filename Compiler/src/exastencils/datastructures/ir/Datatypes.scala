@@ -101,6 +101,16 @@ case class ArrayDatatype(datatype : Datatype, size : Int) extends Datatype {
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
 
+case class VectorDatatype(datatype : Datatype, size : Int) extends Datatype {
+  override def prettyprint(out : PpStream) : Unit = out << datatype << '[' << size << ']'
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+}
+
+case class MatrixDatatype(datatype : Datatype, sizeM : Int, sizeN : Int) extends Datatype {
+  override def prettyprint(out : PpStream) : Unit = out << datatype << '[' << sizeN << ']' << '[' << sizeM << ']'
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+}
+
 case class PointerDatatype(datatype : Datatype) extends Datatype {
   override def prettyprint(out : PpStream) : Unit = out << datatype << '*'
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()

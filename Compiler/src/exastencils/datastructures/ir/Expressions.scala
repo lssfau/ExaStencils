@@ -158,6 +158,30 @@ case class BooleanConstant(var value : Boolean) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << value
 }
 
+case class RowVectorExpression(var expressions : List[Expression]) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = {
+    out << '['
+    expressions.foreach(_.prettyprint(out)) // FIXME
+    out << ']'
+  }
+}
+
+case class ColumnVectorExpression(var expressions : List[Expression]) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = {
+    out << '['
+    expressions.foreach(_.prettyprint(out)) // FIXME
+    out << ']'
+  }
+}
+
+case class MatrixExpression(var expressions : List[RowVectorExpression]) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = {
+    out << '['
+    expressions.foreach(_.prettyprint(out)) // FIXME
+    out << ']'
+  }
+}
+
 case class Allocation(var datatype : Datatype, var size : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << "new" << ' ' << datatype << "[" << size << "]"
 }

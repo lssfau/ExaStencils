@@ -47,10 +47,22 @@ case class BooleanConstant(var value : Boolean) extends Expression {
   def progressToIr : ir.BooleanConstant = ir.BooleanConstant(value)
 }
 
-case class MatrixVectorData(var expressions : List[Expression]) extends Expression {
-  def prettyprint(out : PpStream) = { out << '['; expressions.foreach(_.prettyprint(out)); out << ']' }
+case class RowVectorExpression(var expressions : List[Expression]) extends Expression {
+  def prettyprint(out : PpStream) = { out << '{'; expressions.mkString(", "); out << '}' }
 
-  def progressToIr : ir.BooleanConstant = ???
+  def progressToIr = new ir.RowVectorExpression(expressions.map(_.progressToIr))
+}
+
+case class ColumnVectorExpression(var expressions : List[Expression]) extends Expression {
+  def prettyprint(out : PpStream) = { out << '{'; expressions.mkString(", "); out << "} '" }
+
+  def progressToIr = new ir.ColumnVectorExpression(expressions.map(_.progressToIr))
+}
+
+case class MatrixExpression(var expressions : List[RowVectorExpression]) extends Expression {
+  def prettyprint(out : PpStream) = { out << '{'; expressions.foreach(e => { e.prettyprint(out); out << ",\n" }); out << "} '" }
+
+  def progressToIr = new ir.ColumnVectorExpression(expressions.map(_.progressToIr))
 }
 
 abstract class Access() extends Expression {
