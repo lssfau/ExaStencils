@@ -164,6 +164,7 @@ case class RowVectorExpression(var expressions : List[Expression]) extends Expre
     expressions.foreach(_.prettyprint(out)) // FIXME
     out << ']'
   }
+  def length = expressions.length
 }
 
 case class ColumnVectorExpression(var expressions : List[Expression]) extends Expression {
@@ -172,6 +173,7 @@ case class ColumnVectorExpression(var expressions : List[Expression]) extends Ex
     expressions.foreach(_.prettyprint(out)) // FIXME
     out << ']'
   }
+  def length = expressions.length
 }
 
 case class MatrixExpression(var expressions : List[RowVectorExpression]) extends Expression {
@@ -180,6 +182,8 @@ case class MatrixExpression(var expressions : List[RowVectorExpression]) extends
     expressions.foreach(_.prettyprint(out)) // FIXME
     out << ']'
   }
+  def lengthM = expressions.length
+  def lengthN = expressions(0).length
 }
 
 case class Allocation(var datatype : Datatype, var size : Expression) extends Expression {

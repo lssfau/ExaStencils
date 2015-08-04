@@ -51,18 +51,29 @@ case class RowVectorExpression(var expressions : List[Expression]) extends Expre
   def prettyprint(out : PpStream) = { out << '{'; expressions.mkString(", "); out << '}' }
 
   def progressToIr = new ir.RowVectorExpression(expressions.map(_.progressToIr))
+
+  def length = expressions.length
 }
 
 case class ColumnVectorExpression(var expressions : List[Expression]) extends Expression {
   def prettyprint(out : PpStream) = { out << '{'; expressions.mkString(", "); out << "} '" }
 
   def progressToIr = new ir.ColumnVectorExpression(expressions.map(_.progressToIr))
+
+  def length = expressions.length
 }
 
 case class MatrixExpression(var expressions : List[RowVectorExpression]) extends Expression {
+  if (expressions.filter(x => x.length != expressions(0).length).length > 0) {
+    Logger.error("Rows of matrix must be of equal length")
+  }
+
   def prettyprint(out : PpStream) = { out << '{'; expressions.foreach(e => { e.prettyprint(out); out << ",\n" }); out << "} '" }
 
   def progressToIr = new ir.ColumnVectorExpression(expressions.map(_.progressToIr))
+
+  def lengthM = expressions.length
+  def lengthN = expressions(0).length
 }
 
 abstract class Access() extends Expression {
