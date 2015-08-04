@@ -90,7 +90,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| "Array" ~ ("[" ~> datatype <~ "]") ~ ("[" ~> integerLit <~ "]") ^^ { case _ ~ x ~ s => new ArrayDatatype(x, s) })
 
   lazy val simpleDatatype : Parser[Datatype] = (
-    "String" ^^ { case x => new StringDatatype }
+    "String" ^^ { case _ => new StringDatatype }
+    ||| "Boolean" ^^ { case _ => new BooleanDatatype }
     ||| numericSimpleDatatype)
 
   lazy val numericDatatype : Parser[Datatype] = (
@@ -330,7 +331,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val booleanexpression3 : PackratParser[Expression] = (
     "(" ~> booleanexpression <~ ")"
     ||| locationize(booleanLit ^^ { case s => BooleanConstant(s.toBoolean) })
-    ||| locationize(((binaryexpression ||| booleanexpression) ~ ("<" ||| "<=" ||| ">" ||| ">=" ||| "==" ||| "!=") ~ (binaryexpression ||| booleanexpression)) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
+    ||| simpleComparison
     ||| functionCall
     ||| genericAccess)
 

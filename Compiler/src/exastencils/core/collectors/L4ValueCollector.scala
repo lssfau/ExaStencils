@@ -1,10 +1,10 @@
 package exastencils.core.collectors
 
-import exastencils.core._
-import exastencils.datastructures._
-import exastencils.datastructures.l4._
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
+
+import exastencils.datastructures._
+import exastencils.datastructures.l4._
 
 class L4ValueCollector extends Collector {
   private var values = new ListBuffer[HashMap[String, Expression]]()
@@ -14,7 +14,7 @@ class L4ValueCollector extends Collector {
   override def enter(node : Node) : Unit = {
     node match {
       case x : GlobalDeclarationStatement => insideGlobals = true
-      case x : FunctionStatement          => values.clear()
+      case x : FunctionStatement          => { values.clear(); values.+=((new HashMap[String, Expression]())) }
       case x : LoopOverFragmentsStatement => values.+=((new HashMap[String, Expression]()))
       case x : LoopOverPointsStatement    => values.+=((new HashMap[String, Expression]()))
       case x : RepeatTimesStatement       => values.+=((new HashMap[String, Expression]()))

@@ -51,3 +51,8 @@ case class MatrixDatatype(var datatype : Datatype, var sizeM : Int, var sizeN : 
   def prettyprint(out : PpStream) = { out << "Matrix[" << datatype << ']' << '[' << sizeM << ']' << '[' << sizeN << ']' }
   def progressToIr : ir.Datatype = ???
 }
+
+case class BooleanDatatype() extends Datatype {
+  def prettyprint(out : PpStream) = { out << "Boolean" }
+  def progressToIr : ir.Datatype = ir.BooleanDatatype
+}
