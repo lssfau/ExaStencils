@@ -158,22 +158,27 @@ case class BooleanConstant(var value : Boolean) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << value
 }
 
-case class RowVectorExpression(var expressions : List[Expression]) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = {
-    out << '['
-    expressions.foreach(_.prettyprint(out)) // FIXME
-    out << ']'
-  }
+abstract class VectorExpression(var expressions : List[Expression]) extends Expression {
   def length = expressions.length
+
+  def apply(i : Integer) = expressions(i)
+  def isConstant = expressions.filter(e => e.isInstanceOf[Number]).length == expressions.length
 }
 
-case class ColumnVectorExpression(var expressions : List[Expression]) extends Expression {
+case class RowVectorExpression(exp : List[Expression]) extends VectorExpression(exp) {
   override def prettyprint(out : PpStream) : Unit = {
     out << '['
     expressions.foreach(_.prettyprint(out)) // FIXME
     out << ']'
   }
-  def length = expressions.length
+}
+
+case class ColumnVectorExpression(exp : List[Expression]) extends VectorExpression(exp) {
+  override def prettyprint(out : PpStream) : Unit = {
+    out << '['
+    expressions.foreach(_.prettyprint(out)) // FIXME
+    out << ']'
+  }
 }
 
 case class MatrixExpression(var expressions : List[List[Expression]]) extends Expression {
@@ -184,6 +189,9 @@ case class MatrixExpression(var expressions : List[List[Expression]]) extends Ex
   }
   def lengthM = expressions.length
   def lengthN = expressions(0).length
+
+  def apply(i : Integer) = expressions(i)
+  def isConstant = expressions.flatten.filter(e => e.isInstanceOf[Number]).length == expressions.flatten.length
 }
 
 case class Allocation(var datatype : Datatype, var size : Expression) extends Expression {

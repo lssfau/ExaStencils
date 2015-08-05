@@ -102,6 +102,28 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     case FunctionCallExpression("getTotalFromTimer", args) =>
       FunctionCallExpression("getTotalTime", ListBuffer(iv.Timer(args(0))))
 
+    // Vector functions
+    case f : FunctionCallExpression if (f.name == "cross" || f.name == "crossproduct") => {
+      f.arguments.foreach(a => if ((f.arguments(0).isInstanceOf[RowVectorExpression] || f.arguments(0).isInstanceOf[ColumnVectorExpression])
+        && a.getClass != f.arguments(0).getClass) Logger.error("Must have matching vector types!"))
+      f.arguments.foreach(a => if (a.asInstanceOf[VectorExpression].length != f.arguments(0).asInstanceOf[VectorExpression].length) Logger.error("Vectors must have matching lengths"))
+      if (f.arguments.length + 1 != f.arguments(0).asInstanceOf[VectorExpression].length) Logger.error("Must have matching number of vector arguments!")
+      // For now: Restrict to 3 dimensions
+      if (f.arguments.length != 2) Logger.error("Cross product only defined for 3D vectors!")
+
+      val x = f.arguments(0).asInstanceOf[VectorExpression]
+      val y = f.arguments(1).asInstanceOf[VectorExpression]
+      if (!x.isConstant || !y.isConstant) {
+        f // do nothing for vectors containing variable expressions
+      } else {
+        val r = List(x(1) * y(2) - x(2) * y(1), x(2) * y(0) - x(0) * y(2), x(0) * y(1) - x(1) * y(0))
+        f.arguments(0) match {
+          case x : RowVectorExpression    => RowVectorExpression(r)
+          case x : ColumnVectorExpression => ColumnVectorExpression(r)
+        }
+      }
+    }
+
     // HACK for print functionality
     case ExpressionStatement(FunctionCallExpression("print", args)) =>
       new PrintStatement(args)
