@@ -199,7 +199,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case SubtractionExpression(left : Expression, FloatConstant(0))       => left
 
     // Simplify row vectors
-    case NegativeExpression(vec : RowVectorExpression)                    => RowVectorExpression(vec.expressions.map(_ * (-1)))
+    case NegativeExpression(v : RowVectorExpression)                      => RowVectorExpression(v.expressions.map(_ * (-1)))
     case AdditionExpression(left : RowVectorExpression, right : RowVectorExpression) => {
       if (left.length != right.length) Logger.error("Vector sizes must match for addition")
       RowVectorExpression((left.expressions, right.expressions).zipped.map(_ + _))
@@ -208,21 +208,21 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       if (left.length != right.length) Logger.error("Vector sizes must match for addition")
       RowVectorExpression((left.expressions, right.expressions).zipped.map(_ - _))
     }
-    case MultiplicationExpression(left : RowVectorExpression, right : IntegerConstant) => {
-      RowVectorExpression(left.expressions.map(_ * right))
+    case MultiplicationExpression(v : RowVectorExpression, c : IntegerConstant) => {
+      RowVectorExpression(v.expressions.map(c * _))
     }
-    case MultiplicationExpression(left : RowVectorExpression, right : FloatConstant) => {
-      RowVectorExpression(left.expressions.map(_ * right))
+    case MultiplicationExpression(v : RowVectorExpression, c : FloatConstant) => {
+      RowVectorExpression(v.expressions.map(c * _))
     }
-    case MultiplicationExpression(left : IntegerConstant, right : RowVectorExpression) => {
-      RowVectorExpression(right.expressions.map(_ * right))
+    case MultiplicationExpression(c : IntegerConstant, v : RowVectorExpression) => {
+      RowVectorExpression(v.expressions.map(c * _))
     }
-    case MultiplicationExpression(left : FloatConstant, right : RowVectorExpression) => {
-      RowVectorExpression(right.expressions.map(_ * right))
+    case MultiplicationExpression(c : FloatConstant, v : RowVectorExpression) => {
+      RowVectorExpression(v.expressions.map(c * _))
     }
 
     // Simplify column vectors
-    case NegativeExpression(vec : ColumnVectorExpression) => ColumnVectorExpression(vec.expressions.map(_ * (-1)))
+    case NegativeExpression(v : ColumnVectorExpression) => ColumnVectorExpression(v.expressions.map(_ * (-1)))
     case AdditionExpression(left : ColumnVectorExpression, right : ColumnVectorExpression) => {
       if (left.length != right.length) Logger.error("Vector sizes must match for addition")
       ColumnVectorExpression((left.expressions, right.expressions).zipped.map(_ + _))
@@ -231,17 +231,17 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       if (left.length != right.length) Logger.error("Vector sizes must match for addition")
       ColumnVectorExpression((left.expressions, right.expressions).zipped.map(_ - _))
     }
-    case MultiplicationExpression(left : ColumnVectorExpression, right : IntegerConstant) => {
-      ColumnVectorExpression(left.expressions.map(_ * right))
+    case MultiplicationExpression(v : ColumnVectorExpression, c : IntegerConstant) => {
+      ColumnVectorExpression(v.expressions.map(c * _))
     }
-    case MultiplicationExpression(left : ColumnVectorExpression, right : FloatConstant) => {
-      ColumnVectorExpression(left.expressions.map(_ * right))
+    case MultiplicationExpression(v : ColumnVectorExpression, c : FloatConstant) => {
+      ColumnVectorExpression(v.expressions.map(c * _))
     }
-    case MultiplicationExpression(left : IntegerConstant, right : ColumnVectorExpression) => {
-      ColumnVectorExpression(right.expressions.map(_ * right))
+    case MultiplicationExpression(c : IntegerConstant, v : ColumnVectorExpression) => {
+      ColumnVectorExpression(v.expressions.map(c * _))
     }
-    case MultiplicationExpression(left : FloatConstant, right : ColumnVectorExpression) => {
-      ColumnVectorExpression(right.expressions.map(_ * right))
+    case MultiplicationExpression(c : FloatConstant, v : ColumnVectorExpression) => {
+      ColumnVectorExpression(v.expressions.map(c * _))
     }
 
     // Simplify vectors
@@ -250,6 +250,17 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       val t = (left.expressions, right.expressions).zipped.map(_ * _)
       t.reduce((a : Expression, b : Expression) => a + b)
     }
+
+    // Simplify matrices
+    case NegativeExpression(m : MatrixExpression) => MatrixExpression(m.expressions.map(_.map(_ * (-1))))
+    case MultiplicationExpression(c : IntegerConstant, m : MatrixExpression) =>
+      MatrixExpression(m.expressions.map(_.map(c * _)))
+    case MultiplicationExpression(c : FloatConstant, m : MatrixExpression) =>
+      MatrixExpression(m.expressions.map(_.map(c * _)))
+    case MultiplicationExpression(m : MatrixExpression, c : IntegerConstant) =>
+      MatrixExpression(m.expressions.map(_.map(c * _)))
+    case MultiplicationExpression(m : MatrixExpression, c : FloatConstant) =>
+      MatrixExpression(m.expressions.map(_.map(c * _)))
 
     //})
 

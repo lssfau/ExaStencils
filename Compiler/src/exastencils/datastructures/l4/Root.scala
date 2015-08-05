@@ -110,7 +110,7 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
         case function : FunctionStatement => multiGrid.functions += function.progressToIr
       }
     newRoot += multiGrid
-
+    println(multiGrid.functions)
     newRoot
   }
 }

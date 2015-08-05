@@ -70,7 +70,7 @@ case class MatrixExpression(var expressions : List[RowVectorExpression]) extends
 
   def prettyprint(out : PpStream) = { out << '{'; expressions.foreach(e => { e.prettyprint(out); out << ",\n" }); out << "} '" }
 
-  def progressToIr = new ir.ColumnVectorExpression(expressions.map(_.progressToIr))
+  def progressToIr = new ir.MatrixExpression(expressions.map(_.expressions.map(_.progressToIr)))
 
   def lengthM = expressions.length
   def lengthN = expressions(0).length

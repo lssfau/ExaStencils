@@ -176,10 +176,10 @@ case class ColumnVectorExpression(var expressions : List[Expression]) extends Ex
   def length = expressions.length
 }
 
-case class MatrixExpression(var expressions : List[RowVectorExpression]) extends Expression {
+case class MatrixExpression(var expressions : List[List[Expression]]) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
     out << '['
-    expressions.foreach(_.prettyprint(out)) // FIXME
+    expressions.foreach(_.foreach(out << _)) // FIXME
     out << ']'
   }
   def lengthM = expressions.length
