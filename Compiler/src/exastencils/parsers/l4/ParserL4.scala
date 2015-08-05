@@ -343,7 +343,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   // simpleComparison is to be used in statements such as Repeat Until
   lazy val simpleComparison : PackratParser[BooleanExpression] = locationize(
-    (binaryexpression ~ ("<" ||| "<=" ||| ">" ||| ">=") ~ binaryexpression) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) }
+    (binaryexpression ~ ("<" ||| "<=" ||| ">" ||| ">=" ||| "==" ||| "!=") ~ binaryexpression) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) }
       ||| "(" ~ simpleComparison ~ ")" ^^ { case _ ~ s ~ _ => s })
 
 }
