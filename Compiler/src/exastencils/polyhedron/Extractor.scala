@@ -322,7 +322,7 @@ class Extractor extends Collector {
     def buildIslSet(tupleName : String) : isl.Set = {
       formatterResult.delete(0, Int.MaxValue)
       formatter.format(setTemplate_, tupleName)
-      val set = new isl.Set(formatterResult.toString())
+      val set = isl.Set.readFromStr(Isl.ctx, formatterResult.toString())
       return set
     }
 
@@ -330,7 +330,7 @@ class Extractor extends Collector {
     def buildIslMap(inTupleName : String, outTupleName : String, out : String) : isl.Map = {
       formatterResult.delete(0, Int.MaxValue)
       formatter.format(mapTemplate_, inTupleName, outTupleName, out)
-      val map = new isl.Map(formatterResult.toString())
+      val map = isl.Map.readFromStr(Isl.ctx, formatterResult.toString())
       return map
     }
 

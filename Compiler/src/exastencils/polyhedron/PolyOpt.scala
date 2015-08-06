@@ -9,6 +9,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
+import exastencils.polyhedron.Isl.TypeAliases._
 
 import isl.Conversions._
 
@@ -21,9 +22,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   final val SCOP_ANNOT : String = "PolyScop"
   final val IMPL_CONDITION_ANNOT : String = "ImplCondition"
 
-  // FIXME: HACK: only use shipped versions of jna and isl, NO system libraries (prevent version conflicts)
-  System.setProperty("jna.nosys", "true")
-  System.setProperty("jna.platform.library.path", "NO_SYSTEM")
+  import scala.language.implicitConversions
+  implicit def convertIntToVal(i : Int) : isl.Val = isl.Val.intFromSi(Isl.ctx, i)
 
   /** Register the name of a side-effect free function, that is safe to be used inside a scop. */
   def registerSideeffectFree(functionName : String) : Unit = {
@@ -42,23 +42,25 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming(name)
 
-    isl.Options.setTileScaleTileLoops(false)
-    isl.Options.setTileShiftPointLoops(false)
+    Isl.ctx.setTileScaleTileLoops(0)
+    Isl.ctx.setTileShiftPointLoops(0)
+//    isl.Options.setTileScaleTileLoops(false)
+//    isl.Options.setTileShiftPointLoops(false)
 
-    Knowledge.poly_scheduleAlgorithm match {
-      case "isl"       => isl.Options.setScheduleAlgorithm(isl.Options.SCHEDULE_ALGORITHM_ISL)
-      case "feautrier" => isl.Options.setScheduleAlgorithm(isl.Options.SCHEDULE_ALGORITHM_FEAUTRIER)
-      case unknown     => Logger.debug("Unknown schedule algorithm \"" + unknown + "\"; no change (default is isl)")
-    }
-
-    Knowledge.poly_fusionStrategy match {
-      case "min"   => isl.Options.setScheduleFuse(isl.Options.SCHEDULE_FUSE_MIN)
-      case "max"   => isl.Options.setScheduleFuse(isl.Options.SCHEDULE_FUSE_MAX)
-      case unknown => Logger.debug("Unknown fusion strategy \"" + unknown + "\"; no change...")
-    }
-    isl.Options.setScheduleMaximizeBandDepth(Knowledge.poly_maximizeBandDepth)
-    isl.Options.setScheduleMaxConstantTerm(Knowledge.poly_maxConstantTerm)
-    isl.Options.setScheduleMaxCoefficient(Knowledge.poly_maxCoefficient)
+//    Knowledge.poly_scheduleAlgorithm match {
+//      case "isl"       => isl.Options.setScheduleAlgorithm(isl.Options.SCHEDULE_ALGORITHM_ISL)
+//      case "feautrier" => isl.Options.setScheduleAlgorithm(isl.Options.SCHEDULE_ALGORITHM_FEAUTRIER)
+//      case unknown     => Logger.debug("Unknown schedule algorithm \"" + unknown + "\"; no change (default is isl)")
+//    }
+//
+//    Knowledge.poly_fusionStrategy match {
+//      case "min"   => isl.Options.setScheduleFuse(isl.Options.SCHEDULE_FUSE_MIN)
+//      case "max"   => isl.Options.setScheduleFuse(isl.Options.SCHEDULE_FUSE_MAX)
+//      case unknown => Logger.debug("Unknown fusion strategy \"" + unknown + "\"; no change...")
+//    }
+//    isl.Options.setScheduleMaximizeBandDepth(Knowledge.poly_maximizeBandDepth)
+//    isl.Options.setScheduleMaxConstantTerm(Knowledge.poly_maxConstantTerm)
+//    isl.Options.setScheduleMaxCoefficient(Knowledge.poly_maxCoefficient)
 
     val scops : Seq[Scop] = extractPolyModel()
     for (scop <- scops if (!scop.remove)) {
@@ -144,8 +146,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     var s = isl.UnionMap.empty(sched.getSpace())
     sched.foreachMap({
       map : isl.Map =>
-        var nju = map.insertDims(isl.DimType.Out, 0, 1)
-        s = s.addMap(nju.fixVal(isl.DimType.Out, 0, i))
+        var nju = map.insertDims(T_OUT, 0, 1)
+        s = s.addMap(nju.fixVal(T_OUT, 0, i))
     })
     return s
   }
@@ -190,7 +192,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       // input dependences on scalars are irrelevant
       reads.foreachMap({
         read : isl.Map =>
-          if (read.dim(isl.DimType.Out) > 0)
+          if (read.dim(T_OUT) > 0)
             readArrays = readArrays.addMap(read)
       })
 
@@ -240,13 +242,13 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val name : String = Extractor.replaceSpecial(scop.root.reduction.get.target.prettyprint())
     val stmts = new TreeSet[String]()
     scop.writes.foreachMap({ map : isl.Map =>
-      if (map.getTupleName(isl.DimType.Out) == name)
-        stmts += map.getTupleName(isl.DimType.In)
+      if (map.getTupleName(T_OUT) == name)
+        stmts += map.getTupleName(T_IN)
     } : isl.Map => Unit)
 
     var toRemove = isl.UnionMap.empty(scop.deps.flow.getSpace())
     scop.deps.flow.foreachMap({ dep : isl.Map =>
-      if (stmts.contains(dep.getTupleName(isl.DimType.In)))
+      if (stmts.contains(dep.getTupleName(T_IN)))
         toRemove = toRemove.addMap(isl.Map.identity(dep.getSpace()).complement())
     } : isl.Map => Unit)
     scop.deps.flow = scop.deps.flow.subtract(toRemove)
@@ -258,7 +260,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   private final val tileSizes = Array(Knowledge.poly_tileSize_x, Knowledge.poly_tileSize_y, Knowledge.poly_tileSize_z, Knowledge.poly_tileSize_w)
 
   private def getTileVec(dims : Int) : isl.Vec = {
-    var vec = isl.Vec.alloc(dims)
+    var vec = isl.Vec.alloc(Isl.ctx, dims)
     val iind : Int = dims - 1
     for (i <- 0 until dims) {
       var tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(iind - i) else 1000000000
@@ -315,14 +317,14 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
           var prefix : Int = 0
           band.getPrefixSchedule().foreachMap({ map : isl.Map =>
             if (!map.range().isSingleton())
-              prefix = math.max(prefix, map.dim(isl.DimType.Out))
+              prefix = math.max(prefix, map.dim(T_OUT))
           })
           if (prefix == 0) {
             tiled = band.nMember()
             if (tiled <= 4)
               band.tile(getTileVec(tiled))
           }
-      } : isl.Band => Unit)
+      })
       val threads = Knowledge.omp_numThreads
       for (i <- 0 until tiled) {
         val tiles : Long =
