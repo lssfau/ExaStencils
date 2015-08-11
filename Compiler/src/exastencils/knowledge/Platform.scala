@@ -1,5 +1,7 @@
 package exastencils.knowledge
 
+import exastencils.logger._
+
 object Platform {
 
   // TODO: check which flags are required
@@ -50,13 +52,14 @@ object Platform {
       cflags = " -O3 -DNDEBUG -std=c++11"
       ldflags = ""
 
-      if (Knowledge.opt_vectorize)
+      if (Knowledge.opt_vectorize) {
         Knowledge.simd_instructionSet match {
           case "SSE3" => cflags += " -msse3"
           case "AVX"  => cflags += " -mavx"
           case "AVX2" => cflags += " -mavx2 -mfma"
           case "NEON" => cflags += " -mfpu=neon"
         }
+      }
       if ("ARM" == Knowledge.targetHardware) {
         cflags += " -mcpu=cortex-a9 -mhard-float -funsafe-math-optimizations -static"
         ldflags += " -static"
@@ -76,5 +79,26 @@ object Platform {
       }
     }
     case "MSVC" => { /* nothing to do */ }
+    case "ICC" => {
+      compiler = "icc"
+      cflags = " -O3 -std=c++11"
+
+      if (Knowledge.omp_enabled) {
+        cflags += " -openmp"
+        ldflags += " -openmp"
+      }
+
+      if (Knowledge.opt_vectorize) {
+        Knowledge.simd_instructionSet match {
+          case "SSE3"   => cflags += " -mSSE3"
+          case "SSSE3"  => cflags += " -mSSSE3"
+          case "SSE4.1" => cflags += " -mSSE4.1"
+          case "SSE4.2" => cflags += " -mSSE4.2"
+          case "AVX"    => cflags += " -mAVX"
+          case "AVX2"   => cflags += " -march=core-avx2"
+          case _        => Logger.error("Unknown SIMD instruction set " + Knowledge.simd_instructionSet)
+        }
+      }
+    }
   }
 }
