@@ -116,7 +116,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
       if (!x.isConstant || !y.isConstant) {
         f // do nothing for vectors containing variable expressions
       } else {
-        val r = List(x(1) * y(2) - x(2) * y(1), x(2) * y(0) - x(0) * y(2), x(0) * y(1) - x(1) * y(0))
+        val r = ListBuffer[Expression](x(1) * y(2) - x(2) * y(1), x(2) * y(0) - x(0) * y(2), x(0) * y(1) - x(1) * y(0))
         f.arguments(0) match {
           case x : RowVectorExpression    => RowVectorExpression(r)
           case x : ColumnVectorExpression => ColumnVectorExpression(r)

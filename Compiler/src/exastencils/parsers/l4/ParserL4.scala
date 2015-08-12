@@ -86,21 +86,21 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val datatype : Parser[Datatype] = (
     simpleDatatype
-    ||| numericDatatype
+    ||| algorithmicDatatype
     ||| "Array" ~ ("[" ~> datatype <~ "]") ~ ("[" ~> integerLit <~ "]") ^^ { case _ ~ x ~ s => new ArrayDatatype(x, s) })
 
   lazy val simpleDatatype : Parser[Datatype] = (
     "String" ^^ { case _ => new StringDatatype }
     ||| "Boolean" ^^ { case _ => new BooleanDatatype }
-    ||| numericSimpleDatatype)
+    ||| numericDatatype)
+
+  lazy val algorithmicDatatype : Parser[Datatype] = (
+    ("Complex" ~ "[") ~> numericDatatype <~ "]" ^^ { case x => new ComplexDatatype(x) }
+    ||| "Vector" ~ ("[" ~> numericDatatype <~ ",") ~ (integerLit <~ "]") ^^ { case _ ~ x ~ s => new VectorDatatype(x, s) }
+    ||| "Matrix" ~ ("[" ~> numericDatatype <~ ",") ~ (integerLit <~ ",") ~ (integerLit <~ "]") ^^ { case _ ~ x ~ m ~ n => new MatrixDatatype(x, m, n) }
+    ||| numericDatatype)
 
   lazy val numericDatatype : Parser[Datatype] = (
-    ("Complex" ~ "[") ~> numericSimpleDatatype <~ "]" ^^ { case x => new ComplexDatatype(x) }
-    ||| "Vector" ~ ("[" ~> numericSimpleDatatype <~ ",") ~ (integerLit <~ "]") ^^ { case _ ~ x ~ s => new VectorDatatype(x, s) }
-    ||| "Matrix" ~ ("[" ~> numericSimpleDatatype <~ ",") ~ (integerLit <~ ",") ~ (integerLit <~ "]") ^^ { case _ ~ x ~ m ~ n => new MatrixDatatype(x, m, n) }
-    ||| numericSimpleDatatype)
-
-  lazy val numericSimpleDatatype : Parser[Datatype] = (
     "Integer" ^^ { case x => new IntegerDatatype }
     ||| "Real" ^^ { case x => new RealDatatype })
 

@@ -158,14 +158,25 @@ case class BooleanConstant(var value : Boolean) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << value
 }
 
-abstract class VectorExpression(var expressions : List[Expression]) extends Expression {
+abstract class VectorExpression(var expressions : ListBuffer[Expression]) extends Expression {
   def length = expressions.length
 
   def apply(i : Integer) = expressions(i)
   def isConstant = expressions.filter(e => e.isInstanceOf[Number]).length == expressions.length
+  def innerType : Option[Datatype] = {
+    if (!isConstant) {
+      None
+    } else {
+      expressions.foreach(e => e match {
+        case x : FloatConstant => return Some(RealDatatype)
+        case _                 =>
+      })
+      return Some(IntegerDatatype)
+    }
+  }
 }
 
-case class RowVectorExpression(exp : List[Expression]) extends VectorExpression(exp) {
+case class RowVectorExpression(exp : ListBuffer[Expression]) extends VectorExpression(exp) {
   override def prettyprint(out : PpStream) : Unit = {
     out << '['
     expressions.foreach(_.prettyprint(out)) // FIXME
@@ -173,7 +184,7 @@ case class RowVectorExpression(exp : List[Expression]) extends VectorExpression(
   }
 }
 
-case class ColumnVectorExpression(exp : List[Expression]) extends VectorExpression(exp) {
+case class ColumnVectorExpression(exp : ListBuffer[Expression]) extends VectorExpression(exp) {
   override def prettyprint(out : PpStream) : Unit = {
     out << '['
     expressions.foreach(_.prettyprint(out)) // FIXME
@@ -181,7 +192,7 @@ case class ColumnVectorExpression(exp : List[Expression]) extends VectorExpressi
   }
 }
 
-case class MatrixExpression(var expressions : List[List[Expression]]) extends Expression {
+case class MatrixExpression(var expressions : ListBuffer[ListBuffer[Expression]]) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
     out << '['
     expressions.foreach(_.foreach(out << _)) // FIXME

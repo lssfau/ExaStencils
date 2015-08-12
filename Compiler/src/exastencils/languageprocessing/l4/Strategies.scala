@@ -129,3 +129,38 @@ object WrapL4FieldOpsStrategy extends DefaultStrategy("Adding communcation and l
     // FIXME: handle region loops
   }, false /* recursion must be switched of due to wrapping mechanism */ )
 }
+
+//object UnifyInnerTypes extends DefaultStrategy("Unify inner types of (constant) vectors and matrices") {
+//  var vectors = ListBuffer[VectorExpression]()
+//  var matrices = ListBuffer[MatrixExpression]()
+//
+//  override def apply(applyAtNode : Option[Node]) = {
+//    this.execute(new Transformation("Find vectors and matrices", {
+//      case x : VectorExpression =>
+//        vectors.+=(x); x
+//      case x : MatrixExpression => matrices.+=(x); x
+//    }))
+//
+//    vectors.foreach(vector => {
+//      if (vector.isConstant) {
+//        var reals = vector.expressions.filter(_.isInstanceOf[FloatConstant]).length
+//        var ints = vector.expressions.filter(_.isInstanceOf[IntegerConstant]).length
+//        if (ints > 0 && reals > 0) {
+//          vector.expressions = vector.expressions.map(e => if (e.isInstanceOf[FloatConstant]) e; else FloatConstant(e.asInstanceOf[IntegerConstant].v))
+//        }
+//      }
+//    })
+//
+//    matrices.foreach(matrix => {
+//      if (matrix.isConstant) {
+//        var reals = matrix.expressions.collect { case x : VectorExpression => x.expressions.filter(_.isInstanceOf[FloatConstant]).length } reduce ((a, b) => a + b)
+//        var ints = matrix.expressions.collect { case x : VectorExpression => x.expressions.filter(_.isInstanceOf[IntegerConstant]).length } reduce ((a, b) => a + b)
+//        if (ints > 0 && reals > 0) {
+//          matrix.expressions.foreach(exp => {
+//            exp.expressions = exp.expressions.map(e => if (e.isInstanceOf[FloatConstant]) e; else FloatConstant(e.asInstanceOf[IntegerConstant].v))
+//          })
+//        }
+//      }
+//    })
+//  }
+//}

@@ -47,20 +47,23 @@ case class BooleanConstant(var value : Boolean) extends Expression {
   def progressToIr : ir.BooleanConstant = ir.BooleanConstant(value)
 }
 
-case class RowVectorExpression(var expressions : List[Expression]) extends Expression {
-  def prettyprint(out : PpStream) = { out << '{'; expressions.mkString(", "); out << '}' }
-
-  def progressToIr = new ir.RowVectorExpression(expressions.map(_.progressToIr))
-
+abstract class VectorExpression(var expressions : List[Expression]) extends Expression {
   def length = expressions.length
+
+  def apply(i : Integer) = expressions(i)
+  def isConstant = expressions.filter(e => e.isInstanceOf[Number]).length == expressions.length
 }
 
-case class ColumnVectorExpression(var expressions : List[Expression]) extends Expression {
+case class RowVectorExpression(exp : List[Expression]) extends VectorExpression(exp) {
+  def prettyprint(out : PpStream) = { out << '{'; expressions.mkString(", "); out << '}' }
+
+  def progressToIr = new ir.RowVectorExpression(expressions.map(_.progressToIr).to[ListBuffer])
+}
+
+case class ColumnVectorExpression(exp : List[Expression]) extends VectorExpression(exp) {
   def prettyprint(out : PpStream) = { out << '{'; expressions.mkString(", "); out << "} '" }
 
-  def progressToIr = new ir.ColumnVectorExpression(expressions.map(_.progressToIr))
-
-  def length = expressions.length
+  def progressToIr = new ir.ColumnVectorExpression(expressions.map(_.progressToIr).to[ListBuffer])
 }
 
 case class MatrixExpression(var expressions : List[RowVectorExpression]) extends Expression {
@@ -70,10 +73,11 @@ case class MatrixExpression(var expressions : List[RowVectorExpression]) extends
 
   def prettyprint(out : PpStream) = { out << '{'; expressions.foreach(e => { e.prettyprint(out); out << ",\n" }); out << "} '" }
 
-  def progressToIr = new ir.MatrixExpression(expressions.map(_.expressions.map(_.progressToIr)))
+  def progressToIr = new ir.MatrixExpression(expressions.map(_.expressions.map(_.progressToIr).to[ListBuffer]).to[ListBuffer])
 
   def lengthM = expressions.length
   def lengthN = expressions(0).length
+  def isConstant = expressions.filter(_.isConstant).length == expressions.length
 }
 
 abstract class Access() extends Expression {
