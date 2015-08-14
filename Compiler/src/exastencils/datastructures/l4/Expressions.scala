@@ -75,8 +75,8 @@ case class MatrixExpression(var expressions : List[RowVectorExpression]) extends
 
   def progressToIr = new ir.MatrixExpression(expressions.map(_.expressions.map(_.progressToIr).to[ListBuffer]).to[ListBuffer])
 
-  def lengthM = expressions.length
-  def lengthN = expressions(0).length
+  def rows = expressions.length
+  def columns = expressions(0).length
   def isConstant = expressions.filter(_.isConstant).length == expressions.length
 }
 

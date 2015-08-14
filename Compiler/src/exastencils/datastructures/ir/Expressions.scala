@@ -198,8 +198,8 @@ case class MatrixExpression(var expressions : ListBuffer[ListBuffer[Expression]]
     expressions.foreach(_.foreach(out << _)) // FIXME
     out << ']'
   }
-  def lengthM = expressions.length
-  def lengthN = expressions(0).length
+  def rows = expressions.length
+  def columns = expressions(0).length
 
   def apply(i : Integer) = expressions(i)
   def isConstant = expressions.flatten.filter(e => e.isInstanceOf[Number]).length == expressions.flatten.length
