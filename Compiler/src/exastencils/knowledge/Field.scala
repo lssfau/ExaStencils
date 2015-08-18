@@ -132,6 +132,16 @@ object FieldCollection {
     if (!suppressError && ret.isEmpty) Logger.warn(s"Field $identifier on level $level was not found")
     ret
   }
+
+  def getFieldByIdentifierLevExp(identifier : String, level : Expression, suppressError : Boolean = false) : Option[Field] = {
+    level match {
+      case IntegerConstant(constLevel) => getFieldByIdentifier(identifier, constLevel.toInt, suppressError)
+      case _ => {
+        if (suppressError) Logger.warn(s"Trying to find field $identifier on level ${level.prettyprint} - non-constant levels are not supported")
+        None
+      }
+    }
+  }
 }
 
 case class ExternalField(

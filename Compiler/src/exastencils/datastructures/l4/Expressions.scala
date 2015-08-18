@@ -146,7 +146,7 @@ case class SpecialFieldAccess(var name : String, var level : AccessLevelSpecific
     if (offset.isDefined) multiIndex += offset.get.progressToIr
     multiIndex(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(arrayIndex.getOrElse(0).toLong)
 
-    ir.SpecialFieldAccess(name, level.asInstanceOf[SingleLevelSpecification].level, multiIndex, arrayIndex)
+    ir.SpecialFieldAccess(name, ir.IntegerConstant(level.asInstanceOf[SingleLevelSpecification].level), multiIndex, arrayIndex)
   }
 }
 

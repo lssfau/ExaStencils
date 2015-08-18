@@ -286,7 +286,7 @@ case class FieldAccess(var fieldSelection : FieldSelection, var index : MultiInd
 }
 
 case class SpecialFieldAccess(var fieldName : String,
-    var level : Int,
+    var level : Expression,
     var index : MultiIndex,
     var arrayIndex : Option[Int] = None,
     var fragIdx : Expression = LoopOverFragments.defIt) extends Expression {
