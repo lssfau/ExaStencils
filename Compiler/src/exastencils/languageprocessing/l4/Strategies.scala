@@ -35,6 +35,12 @@ object CollectCommInformation extends DefaultStrategy("Collecting information re
 }
 
 object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
+  val specialFields : ListBuffer[String] = ListBuffer(
+    "get_node_pos_x", "get_node_pos_y", "get_node_pos_z",
+    "get_stag_cv_width_x", "get_stag_cv_width_y", "get_stag_cv_width_z",
+    "get_cell_width_x", "get_cell_width_y", "get_cell_width_z",
+    "get_cell_center_to_face_x", "get_cell_center_to_face_y", "get_cell_center_to_face_z")
+
   override def apply(applyAtNode : Option[Node]) = {
     this.transaction()
     var valueCollector = new L4ValueCollector
@@ -68,6 +74,8 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
       case access : UnresolvedAccess =>
         if (StateManager.root_.asInstanceOf[Root].fields.exists(f => access.name == f.identifier.name))
           access.resolveToFieldAccess
+        else if (specialFields.exists(_ == access.name))
+          access.resolveToSpecialFieldAccess
         else if (StateManager.root_.asInstanceOf[Root].stencils.exists(s => access.name == s.identifier.name))
           access.resolveToStencilAccess
         else if (StateManager.root_.asInstanceOf[Root].stencilFields.exists(s => access.name == s.identifier.name))
