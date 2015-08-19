@@ -97,6 +97,7 @@ case class Field(
     ) {
   // shortcuts to layout options  
   def dataType = fieldLayout.dataType
+  def discretization = fieldLayout.discretization
   def vectorSize = fieldLayout.dataType.resolveFlattendSize
   def referenceOffset = fieldLayout.referenceOffset
   def communicatesDuplicated = fieldLayout.communicatesDuplicated

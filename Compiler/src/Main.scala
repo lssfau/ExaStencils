@@ -170,6 +170,7 @@ object Main {
     } while (numConvFound > 0)
 
     ResolveDiagFunction.apply()
+    ResolveGeometryFunctions.apply() // TODO: fuse
     ResolveSpecialFields.apply() // TODO: fuse
     CreateGeomCoordinates.apply()
     ResolveLoopOverPointsInOneFragment.apply()

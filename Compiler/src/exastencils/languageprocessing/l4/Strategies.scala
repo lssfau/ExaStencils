@@ -74,7 +74,7 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
       case access : UnresolvedAccess =>
         if (StateManager.root_.asInstanceOf[Root].fields.exists(f => access.name == f.identifier.name))
           access.resolveToFieldAccess
-        else if (specialFields.exists(_ == access.name))
+        else if (specialFields.contains(access.name))
           access.resolveToSpecialFieldAccess
         else if (StateManager.root_.asInstanceOf[Root].stencils.exists(s => access.name == s.identifier.name))
           access.resolveToStencilAccess
