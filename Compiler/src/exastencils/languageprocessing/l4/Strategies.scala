@@ -38,6 +38,7 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
   val specialFields : ListBuffer[String] = ListBuffer(
     "get_node_pos_x", "get_node_pos_y", "get_node_pos_z",
     "get_stag_cv_width_x", "get_stag_cv_width_y", "get_stag_cv_width_z",
+    "getCellVolume", "getXStaggeredCellVolume", "getYStaggeredCellVolume", "getZStaggeredCellVolume",
     "get_cell_width_x", "get_cell_width_y", "get_cell_width_z",
     "get_cell_center_to_face_x", "get_cell_center_to_face_y", "get_cell_center_to_face_z")
 

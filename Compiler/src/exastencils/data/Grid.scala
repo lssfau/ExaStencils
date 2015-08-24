@@ -94,10 +94,33 @@ object Grid_AxisAlignedVariableWidth extends Grid {
 
   // compound accesses
   def get_cell_width(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
-    var offset = MultiIndex(0, 0, 0, 0)
-    offset(dim) = 1
-    get_node_pos(level, Duplicate(index) + offset, arrayIndex, dim) - get_node_pos(level, Duplicate(index), arrayIndex, dim)
+    get_node_pos(level, offsetIndex(index, 1, dim), arrayIndex, dim) - get_node_pos(level, Duplicate(index), arrayIndex, dim)
   }
+
+  def getCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) = {
+    var exp : Expression = get_cell_width(level, index, arrayIndex, 0)
+    for (dim <- 1 until Knowledge.dimensionality)
+      exp *= get_cell_width(level, index, arrayIndex, dim)
+    exp
+  }
+
+  def getStaggeredCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int], stagDim : Int) = {
+    var exp : Expression = (
+      if (0 == stagDim)
+        get_stag_cv_width(level, index, arrayIndex, 0)
+      else
+        get_cell_width(level, index, arrayIndex, 0))
+    for (dim <- 1 until Knowledge.dimensionality)
+      if (dim == stagDim)
+        exp *= get_stag_cv_width(level, index, arrayIndex, dim)
+      else
+        exp *= get_cell_width(level, index, arrayIndex, dim)
+    exp
+  }
+
+  def getXStaggeredCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) = getStaggeredCellVolume(level, index, arrayIndex, 0)
+  def getYStaggeredCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) = getStaggeredCellVolume(level, index, arrayIndex, 1)
+  def getZStaggeredCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) = getStaggeredCellVolume(level, index, arrayIndex, 2)
 
   def get_cell_center_to_face(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
     0.5 * get_cell_width(level, index, arrayIndex, dim)
