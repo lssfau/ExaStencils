@@ -20,15 +20,15 @@ case class CommunicateTarget(var target : String, var begin : Option[Index], var
   }
 }
 
-case class ApplyBCsStatement(var field : FieldAccess) extends Statement {
+case class ApplyBCsStatement(var field : Access) extends Statement {
   def prettyprint(out : PpStream) = { out << "apply bc to " << field << '\n' }
 
   def progressToIr : communication.ApplyBCsStatement = {
-    communication.ApplyBCsStatement(field.progressToIr.fieldSelection)
+    communication.ApplyBCsStatement(field.asInstanceOf[FieldAccess].progressToIr.fieldSelection)
   }
 }
 
-case class CommunicateStatement(var field : FieldAccess, var op : String, var targets : List[CommunicateTarget]) extends Statement {
+case class CommunicateStatement(var field : Access, var op : String, var targets : List[CommunicateTarget]) extends Statement {
   def prettyprint(out : PpStream) = {
     out <<
       (if ("both" == op) "" else (op + ' ')) <<
@@ -38,7 +38,7 @@ case class CommunicateStatement(var field : FieldAccess, var op : String, var ta
 
   def progressToIr : communication.CommunicateStatement = {
     val progressedTargets : ListBuffer[communication.CommunicateTarget] = ListBuffer()
-    val progressedField = field.progressToIr.fieldSelection
+    val progressedField = field.asInstanceOf[FieldAccess].progressToIr.fieldSelection
 
     if (targets.isEmpty)
       progressedTargets += CommunicateTarget("all", None, None).progressToIr

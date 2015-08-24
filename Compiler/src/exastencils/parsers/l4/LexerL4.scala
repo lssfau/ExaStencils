@@ -8,6 +8,9 @@ class LexerL4 extends exastencils.parsers.ExaLexer {
   // function keywords
   reserved += ("Func", "Function", "return")
 
+  // function instantiation
+  reserved += ("FuncTemplate", "FunctionTemplate", "Inst", "Instantiate", "as")
+
   // declaration keywords - simple
   reserved += ("Var", "Variable", "Val", "Value")
 

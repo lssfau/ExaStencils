@@ -117,6 +117,36 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
   }
 }
 
+object ReplaceExpressions extends DefaultStrategy("Replace something with something else") {
+  var replacements : Map[String, Expression] = Map()
+
+  override def applyStandalone(node : Node) = {
+    val oldLvl = Logger.getLevel
+    Logger.setLevel(Logger.WARNING)
+    super.applyStandalone(node)
+    Logger.setLevel(oldLvl)
+  }
+
+  this += new Transformation("SearchAndReplace", {
+    case access : /*Unresolved*/ Access if replacements.exists(_._1 == access.name) => Duplicate(replacements.get(access.name).get)
+  })
+}
+
+object ResolveFunctionTemplates extends DefaultStrategy("Resolving function templates and instantiations") {
+  this += new Transformation("Find and resolve", {
+    case functionInst : FunctionInstantiationStatement => {
+      val template = StateManager.root.asInstanceOf[Root].functionTemplates.find(_.name == functionInst.templateName)
+      if (template.isEmpty) Logger.warn(s"Trying to instantiate unknown function template ${functionInst.templateName}")
+      var instantiated = Duplicate(FunctionStatement(functionInst.targetFct, template.get.returntype, template.get.functionArgs, template.get.statements))
+
+      ReplaceExpressions.replacements = (template.get.templateArgs zip functionInst.args).toMap[String, Expression]
+      ReplaceExpressions.applyStandalone(instantiated)
+
+      instantiated
+    }
+  })
+}
+
 object WrapL4FieldOpsStrategy extends DefaultStrategy("Adding communcation and loops to L4 statements") {
   this += new Transformation("Search and wrap", {
     case assignment @ AssignmentStatement(lhs : FieldAccess, rhs, op) => {
