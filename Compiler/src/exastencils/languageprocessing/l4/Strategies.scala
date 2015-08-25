@@ -128,7 +128,36 @@ object ReplaceExpressions extends DefaultStrategy("Replace something with someth
   }
 
   this += new Transformation("SearchAndReplace", {
-    case access : /*Unresolved*/ Access if replacements.exists(_._1 == access.name) => Duplicate(replacements.get(access.name).get)
+    case origAccess : UnresolvedAccess if replacements.exists(_._1 == origAccess.name) => {
+      var newAccess = Duplicate(replacements.get(origAccess.name).get)
+      newAccess match {
+        case newAccess : UnresolvedAccess => {
+          if (origAccess.slot.isDefined) {
+            if (newAccess.slot.isDefined) Logger.warn("Overriding slot on access in function instantiation")
+            newAccess.slot = origAccess.slot
+          }
+          if (origAccess.level.isDefined) {
+            if (newAccess.level.isDefined) Logger.warn("Overriding level on access in function instantiation")
+            newAccess.level = origAccess.level
+          }
+          if (origAccess.offset.isDefined) {
+            if (newAccess.offset.isDefined) Logger.warn("Overriding offset on access in function instantiation")
+            newAccess.offset = origAccess.offset
+          }
+          if (origAccess.arrayIndex.isDefined) {
+            if (newAccess.arrayIndex.isDefined) Logger.warn("Overriding array index on access in function instantiation")
+            newAccess.arrayIndex = origAccess.arrayIndex
+          }
+          if (origAccess.dirAccess.isDefined) {
+            if (newAccess.dirAccess.isDefined) Logger.warn("Overriding direction access on access in function instantiation")
+            newAccess.dirAccess = origAccess.dirAccess
+          }
+          newAccess
+        }
+        case _ => newAccess
+      }
+      newAccess
+    }
   })
 }
 
@@ -144,6 +173,12 @@ object ResolveFunctionTemplates extends DefaultStrategy("Resolving function temp
 
       instantiated
     }
+  })
+
+  this += new Transformation("Remove function templates", {
+    case root : Root                                  =>
+      root.functionTemplates.clear; root
+    case functionTemplate : FunctionTemplateStatement => None
   })
 }
 
