@@ -365,18 +365,68 @@ Matrix<T, M, N> operator*= ( Matrix<T, M, A>& a, const T& b ) {
 }
 
 // Matrix * Scalar
-template<typename T, size_t M, size_t N, size_t A>
-Matrix<T, M, N> operator* ( const Matrix<T, M, A> a, const T& b ) { // pass 'a' by value for implicit copy
+template<typename T, size_t M, size_t N>
+Matrix<T, M, N> operator* ( const Matrix<T, M, N> a, const T& b ) { // pass 'a' by value for implicit copy
     a *= b;
     return a;
 }
 
 // Scalar * Matrix
-template<typename T, size_t M, size_t N, size_t A>
-Matrix<T, M, N> operator* ( const T& b, Matrix<T, M, A> a ) { // pass 'a' by value for implicit copy
+template<typename T, size_t M, size_t N>
+Matrix<T, M, N> operator* ( const T& b, Matrix<T, M, N> a ) { // pass 'a' by value for implicit copy
     a *= b;
     return a;
 }
+
+// Matrix * Scalar
+template<typename T, size_t M, size_t N>
+Matrix<T, M, N> operator* ( const Matrix<T, M, N>& a, const int b ) {
+    Matrix<T, M, N> out;
+    for ( size_t i = 0; i < a.rows(); ++i ) {
+        for ( size_t j = 0; j < a.columns(); ++j ) {
+            out ( i, j ) = a ( i, j ) * b;
+        }
+    }
+    return out;
+}
+
+// Scalar * Matrix
+template<typename T, size_t M, size_t N>
+Matrix<T, M, N> operator* ( const int b, Matrix<T, M, N>& a ) {
+    Matrix<T, M, N> out;
+    for ( size_t i = 0; i < a.rows(); ++i ) {
+        for ( size_t j = 0; j < a.columns(); ++j ) {
+            out ( i, j ) = a ( i, j ) * b;
+        }
+    }
+    return out;
+}
+
+// Matrix * Scalar
+template<typename T, size_t M, size_t N>
+Matrix<T, M, N> operator* ( const Matrix<T, M, N>& a, const double b ) {
+    Matrix<T, M, N> out;
+    for ( size_t i = 0; i < a.rows(); ++i ) {
+        for ( size_t j = 0; j < a.columns(); ++j ) {
+            out ( i, j ) = a ( i, j ) * b;
+        }
+    }
+    return out;
+}
+
+// Scalar * Matrix
+template<typename T, size_t M, size_t N>
+Matrix<T, M, N> operator* ( const double b, Matrix<T, M, N>& a ) {
+    Matrix<T, M, N> out;
+    for ( size_t i = 0; i < a.rows(); ++i ) {
+        for ( size_t j = 0; j < a.columns(); ++j ) {
+            out ( i, j ) = a ( i, j ) * b;
+        }
+    }
+    return out;
+}
+
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -406,15 +456,100 @@ Matrix<T, M, N> operator/ ( Matrix<T, M, A> a, const T& b ) { // pass 'a' by val
 
 template<typename T, size_t M, size_t N>
 std::ostream& operator<< ( std::ostream &os, const Matrix<T, M, N>& other ) {
+    os << "{\n";
     for ( int i = 0; i < other.rows(); i++ ) {
-        for ( int j = 0; j < other.columns(); j++ ) {
-            os << other ( i, j ) << " ";
+        os << "{ ";
+        for ( int j = 0; j < other.columns() - 1; j++ ) {
+            os << other ( i, j ) << ", ";
         }
-        os << '\n';
+        os << other ( i, other.columns() - 1 );
+        os << " }\n";
     }
+    os << "} ";
     return os;
 }
 
+// operators with differing datatypes
+
+template<size_t M, size_t N>
+Matrix<double, M, N>& operator+ ( Matrix<double, M, N>& a, const Matrix<int, M, N>& b ) {
+    assert ( a.rows() == b.rows() && a.columns == b.columns() );
+    Matrix<double, M, N> out;
+    for ( size_t i = 0; i < a.rows(); ++i ) {
+        for ( size_t j = 0; j < a.columns(); ++j ) {
+            out ( i, j ) = a( i, j ) + b ( i, j );
+        }
+    }
+    return a;
+}
+
+template<size_t M, size_t N>
+Matrix<double, M, N>& operator+ ( Matrix<int, M, N>& a, const Matrix<double, M, N>& b ) {
+    assert ( a.rows() == b.rows() && a.columns == b.columns() );
+    Matrix<double, M, N> out;
+    for ( size_t i = 0; i < a.rows(); ++i ) {
+        for ( size_t j = 0; j < a.columns(); ++j ) {
+            out ( i, j ) = a( i, j ) + b ( i, j );
+        }
+    }
+    return a;
+}
+
+template<size_t M, size_t N>
+Matrix<double, M, N>& operator- ( Matrix<double, M, N>& a, const Matrix<int, M, N>& b ) {
+    assert ( a.rows() == b.rows() && a.columns == b.columns() );
+    Matrix<double, M, N> out;
+    for ( size_t i = 0; i < a.rows(); ++i ) {
+        for ( size_t j = 0; j < a.columns(); ++j ) {
+            out ( i, j ) = a( i, j ) - b ( i, j );
+        }
+    }
+    return a;
+}
+
+template<size_t M, size_t N>
+Matrix<double, M, N>& operator- ( Matrix<int, M, N>& a, const Matrix<double, M, N>& b ) {
+    assert ( a.rows() == b.rows() && a.columns == b.columns() );
+    Matrix<double, M, N> out;
+    for ( size_t i = 0; i < a.rows(); ++i ) {
+        for ( size_t j = 0; j < a.columns(); ++j ) {
+            out ( i, j ) = a( i, j ) - b ( i, j );
+        }
+    }
+    return a;
+}
+
+template<size_t M, size_t N, size_t A>
+Matrix<double, M, N> operator* ( const Matrix<int, M, A>& a, const Matrix<double, A, N>& b ) {
+    assert ( a.columns() == b.rows() );
+    Matrix<double, M, N> out;
+    for ( size_t i = 0; i < a.rows(); ++i ) {
+        for ( size_t j = 0; j < b.columns(); ++j ) {
+            double t ( 0 );
+            for ( size_t k = 0; k < a.columns(); ++k ) {
+                t += a ( i, k ) * b ( k, j );
+            }
+            out ( i, j ) = t;
+        }
+    }
+    return out;
+}
+
+template<size_t M, size_t N, size_t A>
+Matrix<double, M, N> operator* ( const Matrix<double, M, A>& a, const Matrix<int, A, N>& b ) {
+    assert ( a.columns() == b.rows() );
+    Matrix<double, M, N> out;
+    for ( size_t i = 0; i < a.rows(); ++i ) {
+        for ( size_t j = 0; j < b.columns(); ++j ) {
+            double t ( 0 );
+            for ( size_t k = 0; k < a.columns(); ++k ) {
+                t += a ( i, k ) * b ( k, j );
+            }
+            out ( i, j ) = t;
+        }
+    }
+    return out;
+}
 """
   }
 }
