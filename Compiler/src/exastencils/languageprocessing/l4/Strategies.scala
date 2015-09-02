@@ -41,9 +41,6 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
 
     // resolve values in expressions by replacing them with their expression => let SimplifyStrategy do the work
     this.register(valueCollector)
-    //    this.execute(new Transformation("Put Values into collector", {
-    //      case x : ValueDeclarationStatement => x
-    //    }))
 
     this.execute(new Transformation("ResolveValuesInExpressions", {
       case x : UnresolvedAccess if (x.level == None && x.slot == None && x.arrayIndex == None) => {
@@ -54,7 +51,7 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
         }
       }
       case x : UnresolvedAccess if (x.level.isDefined && x.level.get.isInstanceOf[SingleLevelSpecification] && x.slot == None && x.arrayIndex == None) => {
-        var value = valueCollector.getValue(x.name + "_" + x.level.get.asInstanceOf[SingleLevelSpecification].level)
+        var value = valueCollector.getValue(x.name + "@@" + x.level.get.asInstanceOf[SingleLevelSpecification].level)
         value match {
           case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Val was found"""); x }
           case _    => value.get
