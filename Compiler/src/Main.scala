@@ -143,7 +143,8 @@ object Main {
       // Util
       Stopwatch(),
       TimerFunctions(),
-      Vector())
+      Vector(),
+      Matrix())
 
     // apply strategies
 

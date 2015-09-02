@@ -179,9 +179,11 @@ abstract class VectorExpression(var expressions : ListBuffer[Expression]) extend
 
 case class RowVectorExpression(exp : ListBuffer[Expression]) extends VectorExpression(exp) {
   override def prettyprint(out : PpStream) : Unit = {
+    val prec = if (Knowledge.useDblPrecision) "double" else "float"
+
     out << "Matrix<"
-    if (isInteger) out << "int, 1, "; else out << "double, 1, "
-    out << length << "> ({"
+    if (isInteger) out << "int, "; else out << prec << ", "
+    out << "1, " << length << "> ({"
     expressions.foreach(e => { e.prettyprint(out); out << ',' })
     out << "})"
   }
@@ -189,8 +191,10 @@ case class RowVectorExpression(exp : ListBuffer[Expression]) extends VectorExpre
 
 case class ColumnVectorExpression(exp : ListBuffer[Expression]) extends VectorExpression(exp) {
   override def prettyprint(out : PpStream) : Unit = {
+    val prec = if (Knowledge.useDblPrecision) "double" else "float"
+
     out << "Matrix<"
-    if (isInteger) out << "int, "; else out << "double, "
+    if (isInteger) out << "int, "; else out << prec << ", "
     out << length << ", 1> ({"
     expressions.foreach(e => { e.prettyprint(out); out << ',' })
     out << "})"
@@ -199,8 +203,10 @@ case class ColumnVectorExpression(exp : ListBuffer[Expression]) extends VectorEx
 
 case class MatrixExpression(var expressions : ListBuffer[ListBuffer[Expression]]) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
+    val prec = if (Knowledge.useDblPrecision) "double" else "float"
+
     out << "Matrix<"
-    if (isInteger) out << "int, "; else out << "double, "
+    if (isInteger) out << "int, "; else out << prec << ", "
     out << rows << ", " << columns << "> ({"
     expressions.foreach(f => f.foreach(e => { e.prettyprint(out); out << ',' }))
     out << "})"
