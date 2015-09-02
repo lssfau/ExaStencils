@@ -13,6 +13,7 @@ object Constraints {
 
   def updateValue(param : Any, value : Any) : Unit = macro updateValueImpl
   def condWarn(cond : Boolean, msg : AnyRef) : Unit = macro condWarnImpl
+  def condError(cond : Boolean, msg : AnyRef) : Unit = macro condErrorImpl
   def condEnsureValue(param : Any, value : Any, cond : Boolean, msg : AnyRef) : Unit = macro condEnsureValueImpl
   def condEnsureValue(param : Any, value : Any, cond : Boolean) : Unit = macro condEnsureValueImpl2
 
@@ -37,6 +38,17 @@ object Constraints {
         exastencils.logger.Logger.warn($msg)
         if (exastencils.core.Settings.failOnConstraint)
           exastencils.logger.Logger.error("Exit on constraint was specified, shutting down now...")
+      }
+    """
+    }
+    c.Expr[Unit](result)
+  }
+
+  def condErrorImpl(c : blackbox.Context)(cond : c.Expr[Boolean], msg : c.Expr[AnyRef]) : c.Expr[Unit] = {
+    import c.universe._
+    val result = {
+      q"""if ($cond) {
+        exastencils.logger.Logger.error($msg)
       }
     """
     }
