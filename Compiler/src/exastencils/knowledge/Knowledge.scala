@@ -6,7 +6,7 @@ import exastencils.spl._
 
 object Knowledge {
   // TODO: rename and move to hw knowledge?
-  var targetCompiler : String = "MSVC" // the target compiler; may atm be "MSVC", "GCC", "IBMXL", "IBMBG", "ICC"
+  var targetCompiler : String = "MSVC" // the target compiler; may atm be "MSVC", "GCC", "IBMXL", "IBMBG", "ICC", "CLANG"
   var targetCompilerVersion : Int = 0 // major version of the target compiler
   var targetCompilerVersionMinor : Int = 0 // minor version of the target compiler
 
@@ -141,6 +141,7 @@ object Knowledge {
       case "GCC"             => targetCompilerVersion > 4 || (targetCompilerVersion == 4 && targetCompilerVersionMinor >= 5)
       case "IBMXL" | "IBMBG" => false // TODO: does it support initializer lists? since which version?
       case "ICC"             => targetCompilerVersion >= 14
+      case "CLANG"           => targetCompilerVersion >= 3 // TODO: check if some minor version fails to compile
       case _                 => Logger.error("Unsupported target compiler"); false
     }
   }
@@ -178,7 +179,8 @@ object Knowledge {
       case "MSVC"            => 2.0
       case "GCC"             => 4.0
       case "IBMXL" | "IBMBG" => 3.0
-      case "ICC" => if(targetCompilerVersion >= 15) 4.0; else if(targetCompilerVersion >= 13) 3.1; else if(targetCompilerVersion >= 12 && targetCompilerVersionMinor >= 1) 3.1; else 3.0
+      case "ICC"             => if (targetCompilerVersion >= 15) 4.0; else if (targetCompilerVersion >= 13) 3.1; else if (targetCompilerVersion >= 12 && targetCompilerVersionMinor >= 1) 3.1; else 3.0
+      case "CLANG"           => if (targetCompilerVersion >= 3 && targetCompilerVersionMinor >= 7) 3.1; else 0.0
       case _                 => Logger.error("Unsupported target compiler"); 0.0
     }
   }
@@ -191,7 +193,8 @@ object Knowledge {
       case "MSVC"            => true
       case "GCC"             => true
       case "IBMXL" | "IBMBG" => true // needs to be true since recently
-      case "ICC" => true
+      case "ICC"             => true
+      case "CLANG"           => true
       case _                 => Logger.error("Unsupported target compiler"); true
     }
   }
@@ -317,7 +320,9 @@ object Knowledge {
 
     Constraints.condEnsureValue(targetCompilerVersion, 11, "MSVC" == targetCompiler, "When using MSVC, only version 11.0 is currently supported")
     Constraints.condEnsureValue(targetCompilerVersionMinor, 0, "MSVC" == targetCompiler, "When using MSVC, only version 11.0 is currently supported")
-    
+
+    Constraints.condEnsureValue(omp_enabled, false, "CLANG" == targetCompiler && (targetCompilerVersion >= 3 && targetCompilerVersionMinor < 7), "Only clang >= 3.7 supports OpenMP")
+
     if (l3tmp_generateL4) {
       // specific project configurations - SISC
       Constraints.condEnsureValue(l3tmp_exactSolution, "Kappa_VC", l3tmp_sisc && l3tmp_genStencilFields, "Kappa_VC is required as l3tmp_exactSolution for variable stencils and l3tmp_sisc")

@@ -100,5 +100,22 @@ object Platform {
         }
       }
     }
+    case "CLANG" => {
+      compiler = "clang++-" + Knowledge.targetCompilerVersion + "." + Knowledge.targetCompilerVersionMinor
+      cflags = " -O3 -std=c++11"
+
+      if (Knowledge.omp_enabled) {
+        cflags += " -fopenmp=libomp"
+        ldflags += " -fopenmp=libomp"
+      }
+
+      if (Knowledge.opt_vectorize) {
+        Knowledge.simd_instructionSet match {
+          case "SSE3" => cflags += " -msse3"
+          case "AVX"  => cflags += " -mavx"
+          case "AVX2" => cflags += " -mavx2 -mfma"
+        }
+      }
+    }
   }
 }
