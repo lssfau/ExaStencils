@@ -62,7 +62,8 @@ class FWHeuristic(binaryFeaturs : scala.collection.mutable.Set[Feature]) {
       if (!config.contains(x._1)) {
         config.put(x._1, x._2)
       })
-      print()
+      //print()
+      None
   }
 
 }
