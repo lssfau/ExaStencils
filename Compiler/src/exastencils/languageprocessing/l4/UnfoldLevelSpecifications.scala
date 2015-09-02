@@ -27,15 +27,6 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
 
     // ###################################################################################################################
 
-    //    // annotate function calls to special function, e.g. return(), so they are not changed by the next transformation
-    //    StateManager.apply(this.token.get, new Transformation("AnnotateFunctionCalls", {
-    //      case f : FunctionCallExpression =>
-    //        f.identifier match {
-    //          case x : UnresolvedAccess if (x.identifier == "return") => x.annotate("NO_PROTECT_THIS")
-    //          case _ =>
-    //        }; f
-    //    }))
-
     // resolve level identifiers "coarsest", "finest"
     this.execute(new Transformation("Resolve IdentifierLevelSpecifications", {
       case x : AllLevelsSpecification     => RangeLevelSpecification(SingleLevelSpecification(Knowledge.minLevel), SingleLevelSpecification(Knowledge.maxLevel))

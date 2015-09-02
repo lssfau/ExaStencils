@@ -163,6 +163,7 @@ abstract class VectorExpression(var expressions : ListBuffer[Expression]) extend
 
   def apply(i : Integer) = expressions(i)
   def isConstant = expressions.filter(e => e.isInstanceOf[Number]).length == expressions.length
+  def isInteger = expressions.filter(e => e.isInstanceOf[IntegerConstant]).length == expressions.length
   def innerType : Option[Datatype] = {
     if (!isConstant) {
       None
@@ -178,31 +179,38 @@ abstract class VectorExpression(var expressions : ListBuffer[Expression]) extend
 
 case class RowVectorExpression(exp : ListBuffer[Expression]) extends VectorExpression(exp) {
   override def prettyprint(out : PpStream) : Unit = {
-    out << '['
-    expressions.foreach(_.prettyprint(out)) // FIXME
-    out << ']'
+    out << "Matrix<"
+    if (isInteger) out << "int, 1, "; else out << "double, 1, "
+    out << length << "> ({"
+    expressions.foreach(e => { e.prettyprint(out); out << ',' })
+    out << "})"
   }
 }
 
 case class ColumnVectorExpression(exp : ListBuffer[Expression]) extends VectorExpression(exp) {
   override def prettyprint(out : PpStream) : Unit = {
-    out << '['
-    expressions.foreach(_.prettyprint(out)) // FIXME
-    out << ']'
+    out << "Matrix<"
+    if (isInteger) out << "int, "; else out << "double, "
+    out << length << ", 1> ({"
+    expressions.foreach(e => { e.prettyprint(out); out << ',' })
+    out << "})"
   }
 }
 
 case class MatrixExpression(var expressions : ListBuffer[ListBuffer[Expression]]) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
-    out << '['
-    expressions.foreach(_.foreach(out << _)) // FIXME
-    out << ']'
+    out << "Matrix<"
+    if (isInteger) out << "int, "; else out << "double, "
+    out << rows << ", " << columns << "> ({"
+    expressions.foreach(f => f.foreach(e => { e.prettyprint(out); out << ',' }))
+    out << "})"
   }
   def rows = expressions.length
   def columns = expressions(0).length
 
   def apply(i : Integer) = expressions(i)
   def isConstant = expressions.flatten.filter(e => e.isInstanceOf[Number]).length == expressions.flatten.length
+  def isInteger = expressions.flatten.filter(e => e.isInstanceOf[IntegerConstant]).length == expressions.flatten.length
 }
 
 case class Allocation(var datatype : Datatype, var size : Expression) extends Expression {
