@@ -4,6 +4,7 @@ import exastencils.core._
 import exastencils.datastructures._
 import exastencils.knowledge
 import exastencils.prettyprinting._
+import exastencils.logger._
 
 case class LayoutOption(var name : String, var value : Index, var hasCommunication : Option[Boolean]) extends Node
 
@@ -202,9 +203,12 @@ case class FieldDeclarationStatement(
 
     val ir_layout = if (knowledge.Knowledge.ir_genSepLayoutsPerField) {
       // layouts must not be shared -> generate a field specific layout
-      val l4_layout = StateManager.root.asInstanceOf[l4.Root].fieldLayouts.find(
+      val l4_layout_opt = StateManager.root.asInstanceOf[l4.Root].fieldLayouts.find(
         l => l.identifier.asInstanceOf[LeveledIdentifier].name == layout
-          && l.identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level == level).get
+          && l.identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level == level)
+      if (l4_layout_opt.isEmpty)
+        Logger.warn(s"Trying to access invalid field layout $layout on level $level")
+      val l4_layout = l4_layout_opt.get
       val ir_layout = l4_layout.progressToIr(identifier.name)
       knowledge.FieldLayoutCollection.fieldLayouts += ir_layout
       ir_layout

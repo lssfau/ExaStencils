@@ -129,6 +129,7 @@ object ReplaceExpressions extends DefaultStrategy("Replace something with someth
 
   this += new Transformation("SearchAndReplace", {
     case origAccess : UnresolvedAccess if replacements.exists(_._1 == origAccess.name) => {
+      // includes accesses used as identifiers in function calls
       var newAccess = Duplicate(replacements.get(origAccess.name).get)
       newAccess match {
         case newAccess : UnresolvedAccess => {
@@ -152,9 +153,8 @@ object ReplaceExpressions extends DefaultStrategy("Replace something with someth
             if (newAccess.dirAccess.isDefined) Logger.warn("Overriding direction access on access in function instantiation")
             newAccess.dirAccess = origAccess.dirAccess
           }
-          newAccess
         }
-        case _ => newAccess
+        case _ =>
       }
       newAccess
     }
@@ -176,7 +176,7 @@ object ResolveFunctionTemplates extends DefaultStrategy("Resolving function temp
   })
 
   this += new Transformation("Remove function templates", {
-    case root : Root                                  =>
+    case root : Root =>
       root.functionTemplates.clear; root
     case functionTemplate : FunctionTemplateStatement => None
   })
