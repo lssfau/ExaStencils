@@ -47,20 +47,20 @@ case class BooleanConstant(var value : Boolean) extends Expression {
   def progressToIr : ir.BooleanConstant = ir.BooleanConstant(value)
 }
 
-abstract class VectorExpression(var expressions : List[Expression]) extends Expression {
+abstract class VectorExpression(var datatype : Datatype, var expressions : List[Expression]) extends Expression {
   def length = expressions.length
 
   def apply(i : Integer) = expressions(i)
   def isConstant = expressions.filter(e => e.isInstanceOf[Number]).length == expressions.length
 }
 
-case class RowVectorExpression(exp : List[Expression]) extends VectorExpression(exp) {
+case class RowVectorExpression(dt : Datatype, exp : List[Expression]) extends VectorExpression(dt, exp) {
   def prettyprint(out : PpStream) = { out << '{'; expressions.mkString(", "); out << '}' }
 
-  def progressToIr = new ir.RowVectorExpression(expressions.map(_.progressToIr).to[ListBuffer])
+  def progressToIr = new ir.RowVectorExpression(dt.progressToIr, expressions.map(_.progressToIr).to[ListBuffer])
 }
 
-case class ColumnVectorExpression(exp : List[Expression]) extends VectorExpression(exp) {
+case class ColumnVectorExpression(dt : Datatype, exp : List[Expression]) extends VectorExpression(dt, exp) {
   def prettyprint(out : PpStream) = { out << '{'; expressions.mkString(", "); out << "} '" }
 
   def progressToIr = new ir.ColumnVectorExpression(expressions.map(_.progressToIr).to[ListBuffer])

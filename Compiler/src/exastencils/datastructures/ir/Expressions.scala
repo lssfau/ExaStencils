@@ -158,50 +158,55 @@ case class BooleanConstant(var value : Boolean) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << value
 }
 
-abstract class VectorExpression(var expressions : ListBuffer[Expression]) extends Expression {
+abstract class VectorExpression(var datatype : Option[Datatype], var expressions : ListBuffer[Expression]) extends Expression {
   def length = expressions.length
 
   def apply(i : Integer) = expressions(i)
   def isConstant = expressions.filter(e => e.isInstanceOf[Number]).length == expressions.length
-  def isInteger = expressions.filter(e => e.isInstanceOf[IntegerConstant]).length == expressions.length
   def innerType : Option[Datatype] = {
-    if (!isConstant) {
-      None
+    if (datatype.isEmpty) {
+      if (!isConstant) {
+        None
+      } else {
+        expressions.foreach(e => e match {
+          case x : FloatConstant => datatype = Some(RealDatatype)
+          case _                 =>
+        })
+        datatype = Some(IntegerDatatype)
+        return datatype
+      }
     } else {
-      expressions.foreach(e => e match {
-        case x : FloatConstant => return Some(RealDatatype)
-        case _                 =>
-      })
-      return Some(IntegerDatatype)
+      return datatype
     }
+
   }
 }
 
-case class RowVectorExpression(exp : ListBuffer[Expression]) extends VectorExpression(exp) {
+case class RowVectorExpression(dt : Option[Datatype], exp : ListBuffer[Expression]) extends VectorExpression(dt, exp) {
   override def prettyprint(out : PpStream) : Unit = {
-    val prec = if (Knowledge.useDblPrecision) "double" else "float"
-
     out << "Matrix<"
-    if (isInteger) out << "int, "; else out << prec << ", "
+    datatype.getOrElse(RealDatatype).prettyprint(out)
+    out << ", "
     out << "1, " << length << "> ({"
     expressions.foreach(e => { e.prettyprint(out); out << ',' })
     out << "})"
   }
 }
 
-case class ColumnVectorExpression(exp : ListBuffer[Expression]) extends VectorExpression(exp) {
+case class ColumnVectorExpression(dt : Option[Datatype], exp : ListBuffer[Expression]) extends VectorExpression(dt, exp) {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) "double" else "float"
 
     out << "Matrix<"
-    if (isInteger) out << "int, "; else out << prec << ", "
+    datatype.getOrElse(RealDatatype).prettyprint(out)
+    out << ", "
     out << length << ", 1> ({"
     expressions.foreach(e => { e.prettyprint(out); out << ',' })
     out << "})"
   }
 }
 
-case class MatrixExpression(var expressions : ListBuffer[ListBuffer[Expression]]) extends Expression {
+case class MatrixExpression(var datatype : Option[Datatype], var expressions : ListBuffer[ListBuffer[Expression]]) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) "double" else "float"
 
