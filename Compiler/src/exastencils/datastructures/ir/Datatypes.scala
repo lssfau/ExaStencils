@@ -130,3 +130,57 @@ case class ComplexDatatype(datatype : Datatype) extends Datatype {
   override def prettyprint(out : PpStream) : Unit = out << "std::complex<" << datatype << '>'
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
+
+object GetResultingDatatype {
+  def apply(a : Option[Datatype], b : Option[Datatype]) : Option[Datatype] = {
+    if (a.isDefined && b.isEmpty) return None
+    if (a.isEmpty && b.isDefined) return None
+    if (a.isEmpty && b.isEmpty) return None
+
+    a.get match {
+      case IntegerDatatype => b.get match {
+        case IntegerDatatype          => Some(IntegerDatatype)
+        case RealDatatype             => Some(RealDatatype)
+        case StringDatatype           => Some(StringDatatype)
+        case CharDatatype             => Some(IntegerDatatype)
+        case ArrayDatatype(dt, l)     => Some(ArrayDatatype(dt, l))
+        case ComplexDatatype(dt)      => Some(ComplexDatatype(dt))
+        case VectorDatatype(dt, l)    => Some(VectorDatatype(dt, l))
+        case MatrixDatatype(dt, m, n) => Some(MatrixDatatype(dt, m, n))
+      }
+      case RealDatatype => b.get match {
+        case IntegerDatatype          => Some(RealDatatype)
+        case RealDatatype             => Some(RealDatatype)
+        case StringDatatype           => Some(StringDatatype)
+        case CharDatatype             => Some(RealDatatype)
+        case ArrayDatatype(dt, l)     => Some(ArrayDatatype(GetResultingDatatype(Some(dt), a).getOrElse(dt), l))
+        case ComplexDatatype(dt)      => Some(ComplexDatatype(GetResultingDatatype(Some(dt), a).getOrElse(dt)))
+        case VectorDatatype(dt, l)    => Some(VectorDatatype(GetResultingDatatype(Some(dt), a).getOrElse(dt), l))
+        case MatrixDatatype(dt, m, n) => Some(MatrixDatatype(GetResultingDatatype(Some(dt), a).getOrElse(dt), m, n))
+      }
+      case StringDatatype => b.get match {
+        case IntegerDatatype          => Some(StringDatatype)
+        case RealDatatype             => Some(StringDatatype)
+        case StringDatatype           => Some(StringDatatype)
+        case CharDatatype             => Some(StringDatatype)
+        case ArrayDatatype(dt, l)     => Some(StringDatatype)
+        case ComplexDatatype(dt)      => Some(StringDatatype)
+        case VectorDatatype(dt, l)    => Some(StringDatatype)
+        case MatrixDatatype(dt, m, n) => Some(StringDatatype)
+      }
+      case CharDatatype => b.get match {
+        case IntegerDatatype          => Some(IntegerDatatype)
+        case RealDatatype             => Some(RealDatatype)
+        case StringDatatype           => Some(StringDatatype)
+        case ArrayDatatype(dt, l)     => Some(ArrayDatatype(dt, l))
+        case ComplexDatatype(dt)      => Some(ComplexDatatype(dt))
+        case VectorDatatype(dt, l)    => Some(VectorDatatype(dt, l))
+        case MatrixDatatype(dt, m, n) => Some(MatrixDatatype(dt, m, n))
+      }
+      case ArrayDatatype(dt, l)     => Some(ArrayDatatype(GetResultingDatatype(Some(dt), b).getOrElse(dt), l))
+      case ComplexDatatype(dt)      => Some(ComplexDatatype(GetResultingDatatype(Some(dt), b).getOrElse(dt)))
+      case VectorDatatype(dt, l)    => Some(VectorDatatype(GetResultingDatatype(Some(dt), b).getOrElse(dt), l))
+      case MatrixDatatype(dt, m, n) => Some(MatrixDatatype(GetResultingDatatype(Some(dt), b).getOrElse(dt), m, n))
+    }
+  }
+}

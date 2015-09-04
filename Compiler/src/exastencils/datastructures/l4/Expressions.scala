@@ -47,33 +47,33 @@ case class BooleanConstant(var value : Boolean) extends Expression {
   def progressToIr : ir.BooleanConstant = ir.BooleanConstant(value)
 }
 
-abstract class VectorExpression(var datatype : Datatype, var expressions : List[Expression]) extends Expression {
+abstract class VectorExpression(var datatype : Option[Datatype], var expressions : List[Expression]) extends Expression {
   def length = expressions.length
 
   def apply(i : Integer) = expressions(i)
   def isConstant = expressions.filter(e => e.isInstanceOf[Number]).length == expressions.length
 }
 
-case class RowVectorExpression(dt : Datatype, exp : List[Expression]) extends VectorExpression(dt, exp) {
+case class RowVectorExpression(dt : Option[Datatype], exp : List[Expression]) extends VectorExpression(dt, exp) {
   def prettyprint(out : PpStream) = { out << '{'; expressions.mkString(", "); out << '}' }
 
-  def progressToIr = new ir.RowVectorExpression(dt.progressToIr, expressions.map(_.progressToIr).to[ListBuffer])
+  def progressToIr = new ir.RowVectorExpression(if (datatype.isDefined) Some(datatype.get.progressToIr); else None, expressions.map(_.progressToIr).to[ListBuffer])
 }
 
-case class ColumnVectorExpression(dt : Datatype, exp : List[Expression]) extends VectorExpression(dt, exp) {
+case class ColumnVectorExpression(dt : Option[Datatype], exp : List[Expression]) extends VectorExpression(dt, exp) {
   def prettyprint(out : PpStream) = { out << '{'; expressions.mkString(", "); out << "} '" }
 
-  def progressToIr = new ir.ColumnVectorExpression(expressions.map(_.progressToIr).to[ListBuffer])
+  def progressToIr = new ir.ColumnVectorExpression(if (datatype.isDefined) Some(datatype.get.progressToIr); else None, expressions.map(_.progressToIr).to[ListBuffer])
 }
 
-case class MatrixExpression(var expressions : List[RowVectorExpression]) extends Expression {
+case class MatrixExpression(var datatype : Option[Datatype], var expressions : List[RowVectorExpression]) extends Expression {
   if (expressions.filter(x => x.length != expressions(0).length).length > 0) {
     Logger.error("Rows of matrix must be of equal length")
   }
 
   def prettyprint(out : PpStream) = { out << '{'; expressions.foreach(e => { e.prettyprint(out); out << ",\n" }); out << "} '" }
 
-  def progressToIr = new ir.MatrixExpression(expressions.map(_.expressions.map(_.progressToIr).to[ListBuffer]).to[ListBuffer])
+  def progressToIr = new ir.MatrixExpression(if (datatype.isDefined) Some(datatype.get.progressToIr); else None, expressions.map(_.expressions.map(_.progressToIr).to[ListBuffer]).to[ListBuffer])
 
   def rows = expressions.length
   def columns = expressions(0).length
