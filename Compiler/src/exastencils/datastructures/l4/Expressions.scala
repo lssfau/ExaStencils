@@ -204,6 +204,10 @@ case class StencilFieldAccess(var name : String,
     if (dirAccess.isDefined) out << ":" << dirAccess
   }
 
+  def resolveField : knowledge.Field = {
+    knowledge.StencilFieldCollection.getStencilFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get.field
+  }
+
   def getBasicStencilFieldAccess : ir.StencilFieldAccess = {
     if (arrayIndex.isDefined || dirAccess.isDefined)
       Logger.warn(s"Discarding modifiers of access to stencilfield $name on level ${level.asInstanceOf[SingleLevelSpecification].level}")

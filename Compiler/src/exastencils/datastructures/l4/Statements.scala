@@ -166,7 +166,12 @@ case class LoopOverPointsStatement(
   }
 
   override def progressToIr : ir.LoopOverPoints = {
-    ir.LoopOverPoints(field.asInstanceOf[FieldAccess].resolveField,
+    val resolvedField = field match {
+      case access : FieldAccess        => access.resolveField
+      case access : StencilFieldAccess => access.resolveField
+      case _                           => Logger.error(s"Trying to loop over $field - has to be of type FieldAccess or StencilFieldAccess")
+    }
+    ir.LoopOverPoints(resolvedField,
       if (region.isDefined) Some(region.get.progressToIr) else None,
       seq,
       if (startOffset.isDefined) startOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
