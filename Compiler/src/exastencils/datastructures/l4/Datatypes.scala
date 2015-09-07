@@ -44,7 +44,7 @@ case class ComplexDatatype(var datatype : Datatype) extends Datatype {
 
 case class VectorDatatype(var datatype : Datatype, var length : Int) extends Datatype {
   def prettyprint(out : PpStream) = { out << "Vector[" << datatype << ',' << length << ']' }
-  def progressToIr : ir.Datatype = new ir.VectorDatatype(datatype.progressToIr, length)
+  def progressToIr : ir.Datatype = new ir.VectorDatatype(datatype.progressToIr, length, None)
 }
 
 case class MatrixDatatype(var datatype : Datatype, var rows : Int, var columns : Int) extends Datatype {

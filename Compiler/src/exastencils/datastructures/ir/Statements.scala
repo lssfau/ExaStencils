@@ -32,9 +32,30 @@ case class VariableDeclarationStatement(var dataType : Datatype, var name : Stri
   def this(dT : Datatype, n : String, e : Expression) = this(dT, n, Option(e))
 
   override def prettyprint(out : PpStream) : Unit = {
-    out << dataType.resolveUnderlyingDatatype << ' ' << name << dataType.resolvePostscript
-    if (expression.isDefined)
-      out << " = " << expression.get
+    dataType match {
+      case x : VectorDatatype => {
+        out << x << ' ' << name
+        if (expression.isDefined) {
+          out << "("
+          expression.get.asInstanceOf[VectorExpression].prettyprintInner(out)
+          out << ")"
+        }
+      }
+      case x : MatrixDatatype => {
+        out << x << ' ' << name
+        if (expression.isDefined) {
+          out << "("
+          expression.get.asInstanceOf[MatrixExpression].prettyprintInner(out)
+          out << ")"
+        }
+      }
+      case _ => {
+        out << dataType.resolveUnderlyingDatatype << ' ' << name << dataType.resolvePostscript
+        if (expression.isDefined)
+          out << " = " << expression.get
+      }
+    }
+
     out << ';'
   }
 

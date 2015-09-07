@@ -46,17 +46,17 @@ class Matrix {
     : m_data ( M* N, value )
     { }
 
-    Matrix ( std::vector<T> data )
-    : m_data ( data ) {
-        m_data.resize ( N * M );
+    Matrix ( std::vector<T> data ){
+        m_data.resize ( M * N );
+        std::copy(data.begin(), data.end(), m_data.begin());
     }
 
     // copy constructor
-    Matrix ( const Matrix<T, M, N>& other )
-    : m_data ( other.m_data )
-    {}
+    Matrix ( const Matrix<T, M, N>& other ) {
+        m_data.resize ( M * N );
+        std::copy(other.m_data.begin(), other.m_data.end(), m_data.begin());
+    }
 
-    
     Matrix<T, M, N>& operator= ( const Matrix<T, M, N> other ) { // pass 'other' by value for implicit copy
         other.swap ( *this );
         return *this;
@@ -96,8 +96,8 @@ class Matrix {
     }
 
     void set ( const T& value ) {
-        for ( size_t i = 0; i < M; ++i ) {
-            for ( size_t j = 0; j < N; ++j ) {
+        for ( size_t i = 0; i < this->rows(); ++i ) {
+            for ( size_t j = 0; j < this->columns(); ++j ) {
                 ( *this ) ( i, j ) = value;
             }
         }
@@ -105,8 +105,8 @@ class Matrix {
 
     void setRandom ( const T& scale ) {
         srand ( time ( NULL ) );
-        for ( size_t i = 0; i < M; ++i ) {
-            for ( size_t j = 0; j < N; ++j ) {
+        for ( size_t i = 0; i < this->rows(); ++i ) {
+            for ( size_t j = 0; j < this->columns(); ++j ) {
                 ( *this ) ( i, j ) = rand() / scale;
             }
         }
@@ -126,26 +126,26 @@ class Matrix {
 
     Matrix<T, 1, N> getRow ( const size_t row ) {
         Matrix<T, 1, N> out;
-        for ( size_t i = 0; i < N; ++i ) {
+        for ( size_t i = 0; i < this->columns(); ++i ) {
             out ( 0, i ) = ( *this ) ( row, i );
         }
     }
 
     Matrix<T, 1, N> getColumn ( const size_t column ) {
         Matrix<T, M, 1> out;
-        for ( size_t i = 0; i < M; ++i ) {
+        for ( size_t i = 0; i < this->rows(); ++i ) {
             out ( i, 0 ) = ( *this ) ( i, column );
         }
     }
 
     void setRow ( const size_t row, const std::vector<T>& values ) {
-        for ( size_t i = 0; i < N; ++i ) {
+        for ( size_t i = 0; i < this->columns(); ++i ) {
             ( *this ) ( row, i ) = values ( i );
         }
     }
 
     void setColumn ( const size_t column, const std::vector<T>& values ) {
-        for ( size_t i = 0; i < M; ++i ) {
+        for ( size_t i = 0; i < this->rows(); ++i ) {
             ( *this ) ( i, column ) = values ( i );
         }
     }
@@ -279,12 +279,12 @@ class Matrix {
 
     T& operator() ( const size_t i, const size_t j ) {
         assert ( i < this->rows() && j < this->columns() );
-        return m_data[i * this->rows() + j];
+        return m_data[i * this->columns() + j];
     }
 
     const T& operator() ( const size_t i, const size_t j ) const {
         assert ( i < this->rows() && j < this->columns() );
-        return m_data[i * this->rows() +j];
+        return m_data[i * this->columns() +j];
     }
 };
 

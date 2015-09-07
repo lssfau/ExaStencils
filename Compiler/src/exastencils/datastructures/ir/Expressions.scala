@@ -178,7 +178,12 @@ abstract class VectorExpression(var datatype : Option[Datatype], var expressions
     } else {
       return datatype
     }
-
+  }
+  def prettyprintInner(out : PpStream) : Unit = {
+    out << "{"
+    expressions.foreach(e => { e.prettyprint(out); out << ',' })
+    out.removeLast() // remove last comma
+    out << "}"
   }
 }
 
@@ -187,33 +192,38 @@ case class RowVectorExpression(dt : Option[Datatype], exp : ListBuffer[Expressio
     out << "Matrix<"
     datatype.getOrElse(RealDatatype).prettyprint(out)
     out << ", "
-    out << "1, " << length << "> ({"
-    expressions.foreach(e => { e.prettyprint(out); out << ',' })
-    out << "})"
+    out << "1, " << length << "> ("
+    prettyprintInner(out)
+    out << ")"
   }
 }
 
 case class ColumnVectorExpression(dt : Option[Datatype], exp : ListBuffer[Expression]) extends VectorExpression(dt, exp) {
   override def prettyprint(out : PpStream) : Unit = {
-    val prec = if (Knowledge.useDblPrecision) "double" else "float"
-
     out << "Matrix<"
     datatype.getOrElse(RealDatatype).prettyprint(out)
     out << ", "
     out << length << ", 1> ({"
-    expressions.foreach(e => { e.prettyprint(out); out << ',' })
+    prettyprintInner(out)
     out << "})"
   }
 }
 
 case class MatrixExpression(var datatype : Option[Datatype], var expressions : ListBuffer[ListBuffer[Expression]]) extends Expression {
+  def prettyprintInner(out : PpStream) : Unit = {
+    out << "{"
+    expressions.foreach(f => f.foreach(e => { e.prettyprint(out); out << ',' }))
+    out.removeLast() // remove last comma
+    out << "}"
+  }
+
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) "double" else "float"
 
     out << "Matrix<"
     if (isInteger) out << "int, "; else out << prec << ", "
     out << rows << ", " << columns << "> ({"
-    expressions.foreach(f => f.foreach(e => { e.prettyprint(out); out << ',' }))
+    prettyprintInner(out)
     out << "})"
   }
   def rows = expressions.length

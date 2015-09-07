@@ -101,13 +101,16 @@ case class ArrayDatatype(datatype : Datatype, size : Int) extends Datatype {
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
 
-case class VectorDatatype(datatype : Datatype, size : Int) extends Datatype {
-  override def prettyprint(out : PpStream) : Unit = out << datatype << '[' << size << ']'
+case class VectorDatatype(var datatype : Datatype, var size : Int, var isRow : Option[Boolean]) extends Datatype {
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+  override def prettyprint(out : PpStream) : Unit = {
+    if (isRow.getOrElse(true)) out << "Matrix<" << datatype << ',' << size << ",1>"
+    else out << "Matrix<" << datatype << ",1" << size << '>'
+  }
 }
 
 case class MatrixDatatype(datatype : Datatype, sizeM : Int, sizeN : Int) extends Datatype {
-  override def prettyprint(out : PpStream) : Unit = out << datatype << '[' << sizeN << ']' << '[' << sizeM << ']'
+  override def prettyprint(out : PpStream) : Unit = out << "Matrix<" << datatype << ',' << sizeM << ',' << sizeN << '>'
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
 
@@ -145,7 +148,7 @@ object GetResultingDatatype {
         case CharDatatype             => Some(IntegerDatatype)
         case ArrayDatatype(dt, l)     => Some(ArrayDatatype(dt, l))
         case ComplexDatatype(dt)      => Some(ComplexDatatype(dt))
-        case VectorDatatype(dt, l)    => Some(VectorDatatype(dt, l))
+        case VectorDatatype(dt, l, r) => Some(VectorDatatype(dt, l, r))
         case MatrixDatatype(dt, m, n) => Some(MatrixDatatype(dt, m, n))
       }
       case RealDatatype => b.get match {
@@ -155,7 +158,7 @@ object GetResultingDatatype {
         case CharDatatype             => Some(RealDatatype)
         case ArrayDatatype(dt, l)     => Some(ArrayDatatype(GetResultingDatatype(Some(dt), a).getOrElse(dt), l))
         case ComplexDatatype(dt)      => Some(ComplexDatatype(GetResultingDatatype(Some(dt), a).getOrElse(dt)))
-        case VectorDatatype(dt, l)    => Some(VectorDatatype(GetResultingDatatype(Some(dt), a).getOrElse(dt), l))
+        case VectorDatatype(dt, l, r) => Some(VectorDatatype(GetResultingDatatype(Some(dt), a).getOrElse(dt), l, r))
         case MatrixDatatype(dt, m, n) => Some(MatrixDatatype(GetResultingDatatype(Some(dt), a).getOrElse(dt), m, n))
       }
       case StringDatatype => b.get match {
@@ -165,7 +168,7 @@ object GetResultingDatatype {
         case CharDatatype             => Some(StringDatatype)
         case ArrayDatatype(dt, l)     => Some(StringDatatype)
         case ComplexDatatype(dt)      => Some(StringDatatype)
-        case VectorDatatype(dt, l)    => Some(StringDatatype)
+        case VectorDatatype(dt, l, r) => Some(StringDatatype)
         case MatrixDatatype(dt, m, n) => Some(StringDatatype)
       }
       case CharDatatype => b.get match {
@@ -174,12 +177,12 @@ object GetResultingDatatype {
         case StringDatatype           => Some(StringDatatype)
         case ArrayDatatype(dt, l)     => Some(ArrayDatatype(dt, l))
         case ComplexDatatype(dt)      => Some(ComplexDatatype(dt))
-        case VectorDatatype(dt, l)    => Some(VectorDatatype(dt, l))
+        case VectorDatatype(dt, l, r) => Some(VectorDatatype(dt, l, r))
         case MatrixDatatype(dt, m, n) => Some(MatrixDatatype(dt, m, n))
       }
       case ArrayDatatype(dt, l)     => Some(ArrayDatatype(GetResultingDatatype(Some(dt), b).getOrElse(dt), l))
       case ComplexDatatype(dt)      => Some(ComplexDatatype(GetResultingDatatype(Some(dt), b).getOrElse(dt)))
-      case VectorDatatype(dt, l)    => Some(VectorDatatype(GetResultingDatatype(Some(dt), b).getOrElse(dt), l))
+      case VectorDatatype(dt, l, r) => Some(VectorDatatype(GetResultingDatatype(Some(dt), b).getOrElse(dt), l, r))
       case MatrixDatatype(dt, m, n) => Some(MatrixDatatype(GetResultingDatatype(Some(dt), b).getOrElse(dt), m, n))
     }
   }
