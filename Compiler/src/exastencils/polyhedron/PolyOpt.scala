@@ -1,7 +1,12 @@
 package exastencils.polyhedron
 
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.TimeUnit
+
 import scala.collection.mutable.Map
 import scala.collection.mutable.TreeSet
+
+import org.exastencils.schedopt.exploration.Exploration
 
 import exastencils.core._
 import exastencils.datastructures._
@@ -18,6 +23,8 @@ trait PolyhedronAccessable {
 }
 
 object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
+
+  final val POLY_EXPL_CHKP : String = "PolyExplChkp"
 
   final val SCOP_ANNOT : String = "PolyScop"
   final val IMPL_CONDITION_ANNOT : String = "ImplCondition"
@@ -44,35 +51,47 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
     Isl.ctx.setTileScaleTileLoops(0)
     Isl.ctx.setTileShiftPointLoops(0)
-//    isl.Options.setTileScaleTileLoops(false)
-//    isl.Options.setTileShiftPointLoops(false)
+    //    isl.Options.setTileScaleTileLoops(false)
+    //    isl.Options.setTileShiftPointLoops(false)
 
-//    Knowledge.poly_scheduleAlgorithm match {
-//      case "isl"       => isl.Options.setScheduleAlgorithm(isl.Options.SCHEDULE_ALGORITHM_ISL)
-//      case "feautrier" => isl.Options.setScheduleAlgorithm(isl.Options.SCHEDULE_ALGORITHM_FEAUTRIER)
-//      case unknown     => Logger.debug("Unknown schedule algorithm \"" + unknown + "\"; no change (default is isl)")
-//    }
-//
-//    Knowledge.poly_fusionStrategy match {
-//      case "min"   => isl.Options.setScheduleFuse(isl.Options.SCHEDULE_FUSE_MIN)
-//      case "max"   => isl.Options.setScheduleFuse(isl.Options.SCHEDULE_FUSE_MAX)
-//      case unknown => Logger.debug("Unknown fusion strategy \"" + unknown + "\"; no change...")
-//    }
-//    isl.Options.setScheduleMaximizeBandDepth(Knowledge.poly_maximizeBandDepth)
-//    isl.Options.setScheduleMaxConstantTerm(Knowledge.poly_maxConstantTerm)
-//    isl.Options.setScheduleMaxCoefficient(Knowledge.poly_maxCoefficient)
+    //    Knowledge.poly_scheduleAlgorithm match {
+    //      case "isl"       => isl.Options.setScheduleAlgorithm(isl.Options.SCHEDULE_ALGORITHM_ISL)
+    //      case "feautrier" => isl.Options.setScheduleAlgorithm(isl.Options.SCHEDULE_ALGORITHM_FEAUTRIER)
+    //      case unknown     => Logger.debug("Unknown schedule algorithm \"" + unknown + "\"; no change (default is isl)")
+    //    }
+    //
+    //    Knowledge.poly_fusionStrategy match {
+    //      case "min"   => isl.Options.setScheduleFuse(isl.Options.SCHEDULE_FUSE_MIN)
+    //      case "max"   => isl.Options.setScheduleFuse(isl.Options.SCHEDULE_FUSE_MAX)
+    //      case unknown => Logger.debug("Unknown fusion strategy \"" + unknown + "\"; no change...")
+    //    }
+    //    isl.Options.setScheduleMaximizeBandDepth(Knowledge.poly_maximizeBandDepth)
+    //    isl.Options.setScheduleMaxConstantTerm(Knowledge.poly_maxConstantTerm)
+    //    isl.Options.setScheduleMaxCoefficient(Knowledge.poly_maxCoefficient)
 
-    val scops : Seq[Scop] = extractPolyModel()
-    for (scop <- scops if (!scop.remove)) {
-      mergeScops(scop)
-      simplifyModel(scop)
-      computeDependences(scop)
-      deadCodeElimination(scop)
-      handleReduction(scop)
-      simplifyModel(scop)
-      if (scop.optLevel >= 2)
-        optimize(scop)
+    val SCOP_LIST_ANNOT : String = "PolyScopList"
+    var scops : Seq[Scop] = null
+    if (!StateManager.root.hasAnnotation(SCOP_LIST_ANNOT)) {
+      scops = extractPolyModel()
+      for (scop <- scops if (!scop.remove)) {
+        mergeScops(scop)
+        simplifyModel(scop)
+        computeDependences(scop)
+        deadCodeElimination(scop)
+        handleReduction(scop)
+        simplifyModel(scop)
+      }
+      StateManager.root.annotate(SCOP_LIST_ANNOT, scops)
+    } else {
+      StateManager.restore(POLY_EXPL_CHKP)
+      // get the annotation again (after restoring) to ensure the correct references are extracted
+      scops = StateManager.root.getAnnotation(SCOP_LIST_ANNOT).get.value.asInstanceOf[Seq[Scop]]
     }
+    if (true) {
+      StateManager.checkpoint(POLY_EXPL_CHKP)
+    }
+    for (scop <- scops if (!scop.remove && scop.optLevel >= 2))
+      optimize(scop)
     recreateAndInsertAST()
 
     if (Settings.timeStrategies)
@@ -261,9 +280,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   private def getTileVec(dims : Int) : isl.Vec = {
     var vec = isl.Vec.alloc(Isl.ctx, dims)
-    val iind : Int = dims - 1
     for (i <- 0 until dims) {
-      var tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(iind - i) else 1000000000
+      var tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(dims - 1 - i) else 1000000000
       if (tileSize <= 0)
         tileSize = 1000000000
       vec = vec.setElementVal(i, tileSize)
@@ -272,6 +290,15 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   }
 
   private def optimize(scop : Scop) : Unit = {
+    //    optimizeIsl(scop)
+    optimizeExpl(scop)
+    //    "Exploration" match {
+    //      case "Single"      => optimizeIsl(scop)
+    //      case "Exploration" => optimizeExpl(scop)
+    //    }
+  }
+
+  private def optimizeIsl(scop : Scop) : Unit = {
 
     var schedConstr : isl.ScheduleConstraints = isl.ScheduleConstraints.onDomain(scop.domain)
 
@@ -325,26 +352,127 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
               band.tile(getTileVec(tiled))
           }
       })
-      val threads = Knowledge.omp_numThreads
-      for (i <- 0 until tiled) {
-        val tiles : Long =
-          if (scop.origIterationCount != null)
-            scop.origIterationCount(i) / tileSizes(i)
-          else {
-            Logger.warn("[PolyOpt]  unable to determine iteration count, check results of LoopOverDimensions.maxIterationCount(); parallelization might be inefficient")
-            if (tileSizes(i) >= 1000000)
-              1
-            else // don't know how much iterations loop have... so assume there are enough to parallelize it...
-              1000
-          }
-        if (tiles != threads && tiles < 2 * threads)
-          scop.noParDims += tiled - i - 1
-      }
-      if (tiled > 0 && !Knowledge.poly_tileOuterLoop)
-        scop.noParDims += 0
+      if (tiled <= 4)
+        setSeqTileDims(scop, tiled)
     }
 
     scop.schedule = Isl.simplify(schedule.getMap())
+    scop.updateLoopVars()
+  }
+
+  private def setSeqTileDims(scop : Scop, nrTiledDims : Int) : Unit = {
+    val threads = Knowledge.omp_numThreads
+    for (i <- 0 until nrTiledDims) {
+      val tiles : Long =
+        if (scop.origIterationCount != null)
+          scop.origIterationCount(i) / tileSizes(i)
+        else {
+          Logger.warn("[PolyOpt]  unable to determine iteration count, check results of LoopOverDimensions.maxIterationCount(); parallelization might be inefficient")
+          if (tileSizes(i) >= 1000000)
+            1
+          else // don't know how much iterations loop have... so assume there are enough to parallelize it...
+            1000
+        }
+      if (tiles != threads && tiles < 2 * threads)
+        scop.noParDims += nrTiledDims - i - 1
+    }
+    if (nrTiledDims > 0 && !Knowledge.poly_tileOuterLoop)
+      scop.noParDims += 0
+  }
+
+  private var explThread : Thread = null
+  private var schedules : LinkedBlockingQueue[(String, Seq[Int])] = null
+  private var schedMapping : java.io.PrintWriter = null
+
+  private def optimizeExpl(scop : Scop) : Unit = {
+
+    // start exploration if not yet done
+    if (explThread == null) {
+      var validity = scop.deps.validity()
+
+      if (Knowledge.poly_simplifyDeps) {
+        validity = validity.gistRange(scop.domain)
+        validity = validity.gistDomain(scop.domain)
+      }
+
+      schedules = new LinkedBlockingQueue[(String, Seq[Int])]()
+      val domStr : String = scop.domain.toString()
+      val depsStr : String = validity.toString()
+      explThread = new Thread() {
+        override def run() : Unit = {
+          val ctx2 = isl.Ctx.alloc()
+          val domain2 = isl.UnionSet.readFromStr(ctx2, domStr)
+          val deps2 = isl.UnionMap.readFromStr(ctx2, depsStr)
+          Exploration.guidedExploration(domain2, deps2, schedules)
+        }
+      }
+      explThread.setDaemon(true)
+      explThread.start()
+
+      val outDir = new java.io.File(Settings.outputPath).getParentFile()
+      schedMapping = new java.io.PrintWriter(new java.io.File(outDir, "ScheduleMapping.txt"))
+      schedMapping.println("directory\tgenerated schedule\ttiled schedule")
+      schedMapping.println()
+      schedMapping.flush()
+    }
+
+    var sched : (String, Seq[Int]) = schedules.poll()
+    if (sched == null) {
+      Logger.debug("[PolyOpt] Exploration: waiting for next schedule")
+      var explInProgress : Boolean = false
+      do {
+        explInProgress = explThread.isAlive()
+        sched = schedules.poll(500, TimeUnit.MILLISECONDS)
+      } while (sched == null && explInProgress)
+    }
+
+    if (sched == null) {
+      schedMapping.flush()
+      schedMapping.close()
+      Logger.debug("[PolyOpt] Exploration: There will be no next schedule... so, shut down")
+      System.exit(0) // TODO: HACK! we are done now...
+    }
+
+    var schedule : isl.UnionMap = isl.UnionMap.readFromStr(scop.domain.getCtx(), sched._1)
+    val bands : Seq[Int] = sched._2
+    scop.noParDims.clear()
+
+    // apply tiling
+    val tilableDims : Int = bands.head
+    if (scop.optLevel >= 3 && tilableDims > 1 && tilableDims <= 4) {
+
+      val sample : isl.BasicMap = schedule.sample()
+      val domSp : isl.Space = sample.getSpace().range()
+      val ranSp : isl.Space = domSp.insertDims(T_SET, 0, tilableDims)
+      val ctx : isl.Ctx = sample.getCtx()
+      var mAff = isl.MultiAff.zero(isl.Space.mapFromDomainAndRange(domSp, ranSp))
+      for (i <- 0 until tilableDims) {
+        var tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(tilableDims - 1 - i) else 1000000000
+        if (tileSize <= 0)
+          tileSize = 1000000000
+        var aff = isl.Aff.varOnDomain(isl.LocalSpace.fromSpace(domSp), T_SET, i)
+        aff = aff.scaleDownUi(tileSize)
+        aff = aff.floor()
+        mAff = mAff.setAff(i, aff)
+      }
+      for (i <- 0 until domSp.dim(T_SET)) {
+        var aff = isl.Aff.varOnDomain(isl.LocalSpace.fromSpace(domSp), T_SET, i)
+        mAff = mAff.setAff(tilableDims + i, aff)
+      }
+      val trafo = isl.BasicMap.fromMultiAff(mAff)
+      schedule = schedule.applyRange(trafo)
+      setSeqTileDims(scop, tilableDims)
+    }
+
+    // print info about current schedule
+    schedMapping.print(new java.io.File(Settings.outputPath).getAbsolutePath())
+    schedMapping.print('\t')
+    schedMapping.print(sched._1)
+    schedMapping.print('\t')
+    schedMapping.println(schedule)
+    schedMapping.flush()
+
+    scop.schedule = schedule
     scop.updateLoopVars()
   }
 
