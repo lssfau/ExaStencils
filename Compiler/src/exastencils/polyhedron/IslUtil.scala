@@ -6,6 +6,12 @@ import java.io.InputStream
 
 object Isl {
 
+  // register some immutables (warning: this is incomplete!)
+  exastencils.core.Duplicate.dontCloneHierarchy(classOf[isl.Ctx])
+  exastencils.core.Duplicate.dontCloneHierarchy(classOf[isl.UnionSet])
+  exastencils.core.Duplicate.dontCloneHierarchy(classOf[isl.UnionMap])
+  exastencils.core.Duplicate.dontCloneHierarchy(classOf[isl.Val])
+
   private var loaded : Boolean = false
   def load() : Unit = {
 
@@ -73,28 +79,36 @@ object Isl {
   def simplify(uset : isl.UnionSet) : isl.UnionSet = {
     if (uset == null)
       return null
-    var nju : isl.UnionSet = isl.UnionSet.empty(uset.getSpace())
-    uset.coalesce().foreachSet({ set : isl.Set => nju = nju.addSet(set.removeRedundancies()) })
-    return nju
+    return uset.coalesce()
   }
 
   def simplify(umap : isl.UnionMap) : isl.UnionMap = {
     if (umap == null)
       return null
-    var nju : isl.UnionMap = isl.UnionMap.empty(umap.getSpace())
-    umap.coalesce().foreachMap({ map : isl.Map => nju = nju.addMap(map.removeRedundancies()) })
-    return nju
+    return umap.coalesce()
   }
 
   def simplify(set : isl.Set) : isl.Set = {
     if (set == null)
       return null
-    return set.coalesce().removeRedundancies()
+    return set.coalesce()
   }
 
   def simplify(map : isl.Map) : isl.Map = {
     if (map == null)
       return null
-    return map.coalesce().removeRedundancies()
+    return map.coalesce()
+  }
+
+  def simplify(set : isl.BasicSet) : isl.BasicSet = {
+    if (set == null)
+      return null
+    return set.removeRedundancies()
+  }
+
+  def simplify(map : isl.BasicMap) : isl.BasicMap = {
+    if (map == null)
+      return null
+    return map.removeRedundancies()
   }
 }
