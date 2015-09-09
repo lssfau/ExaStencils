@@ -431,6 +431,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     lines = lines.dropWhile(l => !l.startsWith(confID))
 
     val configLine : String = lines.next()
+    Logger.debug("[PolyOpt] Exploration: configuration found:")
+    Logger.debug(" " + configLine)
     val Array(_, bandsStr, scheduleStr) = configLine.split("\t")
 
     val bands : Array[Int] = bandsStr.split(",").map(str => Integer.parseInt(str))
