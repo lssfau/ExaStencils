@@ -185,9 +185,9 @@ object MainStefan {
     MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)
       if (args.length >= 3)
-        PolyOpt.apply()
-      else
         PolyOpt.apply(args(2).toInt)
+      else
+        PolyOpt.apply()
     ResolveLoopOverDimensions.apply()
 
     TypeInference.apply()
