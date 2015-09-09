@@ -16,6 +16,8 @@ object Settings {
   var l3file : String = ""
   def getL3file : String = if (l3file != "") l3file else basePathPrefix + "/Compiler/dsl/Layer3.exa"
 
+  var poly_explorationConfig : String = null // config file for polyhedral search space exploration
+
   /// output
   var outputPath : String = "/tmp/"
   var cancelIfOutFolderExists : Boolean = false

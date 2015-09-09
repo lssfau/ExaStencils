@@ -1,10 +1,11 @@
 package exastencils.polyhedron
 
-import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.TimeUnit
+import java.io.File
+import java.text.DecimalFormat
 
 import scala.collection.mutable.Map
 import scala.collection.mutable.TreeSet
+import scala.io.Source
 
 import org.exastencils.schedopt.exploration.Exploration
 
@@ -43,6 +44,11 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   }
 
   override def apply() : Unit = {
+    if (Knowledge.poly_scheduleAlgorithm == "exploration")
+      Logger.error("[PolyOpt] Exploration: Configuration ID required!")
+    this.apply(0)
+  }
+  def apply(confID : Int) : Unit = {
     this.transaction()
 
     Logger.info("Applying strategy " + name)
@@ -55,9 +61,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     //    isl.Options.setTileShiftPointLoops(false)
 
     //    Knowledge.poly_scheduleAlgorithm match {
-    //      case "isl"       => isl.Options.setScheduleAlgorithm(isl.Options.SCHEDULE_ALGORITHM_ISL)
-    //      case "feautrier" => isl.Options.setScheduleAlgorithm(isl.Options.SCHEDULE_ALGORITHM_FEAUTRIER)
-    //      case unknown     => Logger.debug("Unknown schedule algorithm \"" + unknown + "\"; no change (default is isl)")
+    //      case "isl"         => isl.Options.setScheduleAlgorithm(isl.Options.SCHEDULE_ALGORITHM_ISL)
+    //      case "feautrier"   => isl.Options.setScheduleAlgorithm(isl.Options.SCHEDULE_ALGORITHM_FEAUTRIER)
+    //      case "exploration" => TODO
+    //      case unknown       => Logger.debug("Unknown schedule algorithm \"" + unknown + "\"; no change (default is isl)")
     //    }
     //
     //    Knowledge.poly_fusionStrategy match {
@@ -69,29 +76,17 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     //    isl.Options.setScheduleMaxConstantTerm(Knowledge.poly_maxConstantTerm)
     //    isl.Options.setScheduleMaxCoefficient(Knowledge.poly_maxCoefficient)
 
-    val SCOP_LIST_ANNOT : String = "PolyScopList"
-    var scops : Seq[Scop] = null
-    if (!StateManager.root.hasAnnotation(SCOP_LIST_ANNOT)) {
-      scops = extractPolyModel()
-      for (scop <- scops if (!scop.remove)) {
-        mergeScops(scop)
-        simplifyModel(scop)
-        computeDependences(scop)
-        deadCodeElimination(scop)
-        handleReduction(scop)
-        simplifyModel(scop)
-      }
-      StateManager.root.annotate(SCOP_LIST_ANNOT, scops)
-    } else {
-      StateManager.restore(POLY_EXPL_CHKP)
-      // get the annotation again (after restoring) to ensure the correct references are extracted
-      scops = StateManager.root.getAnnotation(SCOP_LIST_ANNOT).get.value.asInstanceOf[Seq[Scop]]
+    var scops : Seq[Scop] = extractPolyModel()
+    for (scop <- scops if (!scop.remove)) {
+      mergeScops(scop)
+      simplifyModel(scop)
+      computeDependences(scop)
+      deadCodeElimination(scop)
+      handleReduction(scop)
+      simplifyModel(scop)
+      if (scop.optLevel >= 2)
+        optimize(scop, confID)
     }
-    if (true) {
-      StateManager.checkpoint(POLY_EXPL_CHKP)
-    }
-    for (scop <- scops if (!scop.remove && scop.optLevel >= 2))
-      optimize(scop)
     recreateAndInsertAST()
 
     if (Settings.timeStrategies)
@@ -289,13 +284,11 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     return vec
   }
 
-  private def optimize(scop : Scop) : Unit = {
-    //    optimizeIsl(scop)
-    optimizeExpl(scop)
-    //    "Exploration" match {
-    //      case "Single"      => optimizeIsl(scop)
-    //      case "Exploration" => optimizeExpl(scop)
-    //    }
+  private def optimize(scop : Scop, confID : Int) : Unit = {
+    if (Knowledge.poly_scheduleAlgorithm == "exploration")
+      optimizeExpl(scop, confID)
+    else
+      optimizeIsl(scop)
   }
 
   private def optimizeIsl(scop : Scop) : Unit = {
@@ -380,65 +373,73 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       scop.noParDims += 0
   }
 
-  private var explThread : Thread = null
-  private var schedules : LinkedBlockingQueue[(String, Seq[Int])] = null
-  private var schedMapping : java.io.PrintWriter = null
+  private def optimizeExpl(scop : Scop, confID : Int) : Unit = {
 
-  private def optimizeExpl(scop : Scop) : Unit = {
+    val df = new DecimalFormat()
+    df.setMinimumIntegerDigits(5)
+    df.setGroupingUsed(false)
+    Settings.outputPath += df.format(confID)
 
-    // start exploration if not yet done
-    if (explThread == null) {
-      var validity = scop.deps.validity()
+    val explConfig = new File(Settings.poly_explorationConfig)
+    if (!explConfig.exists()) {
+      Logger.debug("[PolyOpt] Exploration: no configuration file found, so perform exploration and create it, progress:")
+      performExploration(scop, explConfig, df)
+      Logger.debug("[PolyOpt] Exploration: configuration finished, creating base version (without any schedule changes)")
+    } else
+      applyConfig(scop, explConfig, df.format(confID))
+  }
 
-      if (Knowledge.poly_simplifyDeps) {
-        validity = validity.gistRange(scop.domain)
-        validity = validity.gistDomain(scop.domain)
-      }
+  private def performExploration(scop : Scop, explConfig : File, df : DecimalFormat) : Unit = {
+    var validity = scop.deps.validity()
 
-      schedules = new LinkedBlockingQueue[(String, Seq[Int])]()
-      val domStr : String = scop.domain.toString()
-      val depsStr : String = validity.toString()
-      explThread = new Thread() {
-        override def run() : Unit = {
-          val ctx2 = isl.Ctx.alloc()
-          val domain2 = isl.UnionSet.readFromStr(ctx2, domStr)
-          val deps2 = isl.UnionMap.readFromStr(ctx2, depsStr)
-          Exploration.guidedExploration(domain2, deps2, schedules)
+    if (Knowledge.poly_simplifyDeps) {
+      validity = validity.gistRange(scop.domain)
+      validity = validity.gistDomain(scop.domain)
+    }
+
+    val eConfOut = new java.io.PrintWriter(explConfig)
+    var i : Int = 0
+    Exploration.guidedExploration(scop.domain, validity, {
+      (sched : String, bands : Seq[Int]) =>
+        i += 1
+        if (i % 100 == 0) {
+          Console.print('.')
+          Console.flush()
         }
-      }
-      explThread.setDaemon(true)
-      explThread.start()
-
-      val outDir = new java.io.File(Settings.outputPath).getParentFile()
-      schedMapping = new java.io.PrintWriter(new java.io.File(outDir, "ScheduleMapping.txt"))
-      schedMapping.println("directory\tgenerated schedule\ttiled schedule")
-      schedMapping.println()
-      schedMapping.flush()
+        if (i % 5000 == 0) {
+          Console.println()
+          Console.flush()
+        }
+        eConfOut.print(df.format(i))
+        eConfOut.print('\t')
+        eConfOut.print(bands.mkString(","))
+        eConfOut.print('\t')
+        eConfOut.print(sched)
+        eConfOut.println()
+    })
+    if (i % 5000 != 0) {
+      Console.println()
+      Console.flush()
     }
+    eConfOut.flush()
+    eConfOut.close()
+    Logger.debug(s"[PolyOpt] Exploration: found $i configurations")
+  }
 
-    var sched : (String, Seq[Int]) = schedules.poll()
-    if (sched == null) {
-      Logger.debug("[PolyOpt] Exploration: waiting for next schedule")
-      var explInProgress : Boolean = false
-      do {
-        explInProgress = explThread.isAlive()
-        sched = schedules.poll(500, TimeUnit.MILLISECONDS)
-      } while (sched == null && explInProgress)
-    }
+  private def applyConfig(scop : Scop, explConfig : File, confID : String) : Unit = {
+    var lines : Iterator[String] = Source.fromFile(explConfig).getLines()
+    lines = lines.dropWhile(l => !l.startsWith(confID))
 
-    if (sched == null) {
-      schedMapping.flush()
-      schedMapping.close()
-      Logger.debug("[PolyOpt] Exploration: There will be no next schedule... so, shut down")
-      System.exit(0) // TODO: HACK! we are done now...
-    }
+    val configLine : String = lines.next()
+    val Array(_, bandsStr, scheduleStr) = configLine.split("\t")
 
-    var schedule : isl.UnionMap = isl.UnionMap.readFromStr(scop.domain.getCtx(), sched._1)
-    val bands : Seq[Int] = sched._2
+    val bands : Array[Int] = bandsStr.split(",").map(str => Integer.parseInt(str))
+    var schedule : isl.UnionMap = isl.UnionMap.readFromStr(scop.domain.getCtx(), scheduleStr)
+
     scop.noParDims.clear()
 
     // apply tiling
-    val tilableDims : Int = bands.head
+    val tilableDims : Int = bands(0)
     if (scop.optLevel >= 3 && tilableDims > 1 && tilableDims <= 4) {
 
       val sample : isl.BasicMap = schedule.sample()
@@ -464,14 +465,6 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       schedule = schedule.applyRange(trafo)
       setSeqTileDims(scop, tilableDims)
     }
-
-    // print info about current schedule
-    schedMapping.print(new java.io.File(Settings.outputPath).getAbsolutePath())
-    schedMapping.print('\t')
-    schedMapping.print(sched._1)
-    schedMapping.print('\t')
-    schedMapping.println(schedule)
-    schedMapping.flush()
 
     scop.schedule = schedule
     scop.updateLoopVars()

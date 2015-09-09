@@ -16,7 +16,6 @@ import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.strategies._
 import exastencils.util._
-import java.text.DecimalFormat
 
 object MainStefan {
   def main(args : Array[String]) : Unit = {
@@ -184,82 +183,74 @@ object MainStefan {
       ExpandStrategy.doUntilDone()
 
     MergeConditions.apply()
-
-    val output : String = Settings.outputPath
-    val df = new DecimalFormat()
-    df.setMinimumIntegerDigits(5)
-    df.setGroupingUsed(false)
-    var i = 0
-    while (true) {
-      i += 1
-      Settings.outputPath = output + df.format(i)
-
-      if (Knowledge.poly_optLevel_fine > 0)
+    if (Knowledge.poly_optLevel_fine > 0)
+      if (args.length >= 3)
         PolyOpt.apply()
-      ResolveLoopOverDimensions.apply()
-
-      TypeInference.apply()
-
-      if (Knowledge.opt_useColorSplitting)
-        ColorSplitting.apply()
-
-      ResolveSlotOperationsStrategy.apply()
-      ResolveIndexOffsets.apply()
-      LinearizeFieldAccesses.apply()
-
-      if (Knowledge.useFasterExpand)
-        ExpandOnePassStrategy.apply()
       else
-        ExpandStrategy.doUntilDone()
+        PolyOpt.apply(args(2).toInt)
+    ResolveLoopOverDimensions.apply()
 
-      if (!Knowledge.mpi_enabled)
-        RemoveMPIReferences.apply()
+    TypeInference.apply()
 
-      SimplifyStrategy.doUntilDone()
+    if (Knowledge.opt_useColorSplitting)
+      ColorSplitting.apply()
 
-      if (Knowledge.opt_useAddressPrecalc)
-        AddressPrecalculation.apply()
+    ResolveSlotOperationsStrategy.apply()
+    ResolveIndexOffsets.apply()
+    LinearizeFieldAccesses.apply()
 
-      SimplifyFloatExpressions.apply()
+    if (Knowledge.useFasterExpand)
+      ExpandOnePassStrategy.apply()
+    else
+      ExpandStrategy.doUntilDone()
 
-      if (Knowledge.opt_vectorize)
-        Vectorization.apply()
+    if (!Knowledge.mpi_enabled)
+      RemoveMPIReferences.apply()
 
-      if (Knowledge.opt_unroll > 1)
-        Unrolling.apply()
+    SimplifyStrategy.doUntilDone()
 
-      if (Knowledge.opt_vectorize)
-        RemoveDupSIMDLoads.apply()
+    if (Knowledge.opt_useAddressPrecalc)
+      AddressPrecalculation.apply()
 
-      AddInternalVariables.apply()
-      if (Knowledge.useFasterExpand)
-        ExpandOnePassStrategy.apply()
-      else
-        ExpandStrategy.doUntilDone()
+    SimplifyFloatExpressions.apply()
 
-      if (Knowledge.mpi_enabled)
-        AddMPIDatatypes.apply()
+    if (Knowledge.opt_vectorize)
+      Vectorization.apply()
 
-      if (Knowledge.omp_enabled)
-        AddOMPPragmas.apply()
+    if (Knowledge.opt_unroll > 1)
+      Unrolling.apply()
 
-      // one last time
-      if (Knowledge.useFasterExpand)
-        ExpandOnePassStrategy.apply()
-      else
-        ExpandStrategy.doUntilDone()
-      SimplifyStrategy.doUntilDone()
+    if (Knowledge.opt_vectorize)
+      RemoveDupSIMDLoads.apply()
 
-      if (Knowledge.ir_maxInliningSize > 0)
-        Inlining.apply()
-      CleanUnusedStuff.apply()
+    AddInternalVariables.apply()
+    if (Knowledge.useFasterExpand)
+      ExpandOnePassStrategy.apply()
+    else
+      ExpandStrategy.doUntilDone()
 
-      if (Knowledge.generateFortranInterface)
-        Fortranify.apply()
+    if (Knowledge.mpi_enabled)
+      AddMPIDatatypes.apply()
 
-      PrintStrategy.apply()
-      PrettyprintingManager.finish
-    }
+    if (Knowledge.omp_enabled)
+      AddOMPPragmas.apply()
+
+    // one last time
+    if (Knowledge.useFasterExpand)
+      ExpandOnePassStrategy.apply()
+    else
+      ExpandStrategy.doUntilDone()
+    SimplifyStrategy.doUntilDone()
+
+    if (Knowledge.ir_maxInliningSize > 0)
+      Inlining.apply()
+    CleanUnusedStuff.apply()
+
+    if (Knowledge.generateFortranInterface)
+      Fortranify.apply()
+
+    PrintStrategy.apply()
+    PrettyprintingManager.finish
 
     Logger.dbg("Done!")
 
