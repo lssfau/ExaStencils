@@ -448,12 +448,13 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       var mAff = isl.MultiAff.zero(isl.Space.mapFromDomainAndRange(domSp, ranSp))
       for (i <- 0 until tilableDims) {
         var tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(tilableDims - 1 - i) else 1000000000
-        if (tileSize <= 0)
-          tileSize = 1000000000
-        var aff = isl.Aff.varOnDomain(isl.LocalSpace.fromSpace(domSp), T_SET, i)
-        aff = aff.scaleDownUi(tileSize)
-        aff = aff.floor()
-        mAff = mAff.setAff(i, aff)
+        // if we don't want to tile a dimension, leave the outer tile loop constant 0
+        if (tileSize > 0 && tileSize < 100 + scop.origIterationCount(tilableDims - 1 - i)) {
+          var aff = isl.Aff.varOnDomain(isl.LocalSpace.fromSpace(domSp), T_SET, i)
+          aff = aff.scaleDownUi(tileSize)
+          aff = aff.floor()
+          mAff = mAff.setAff(i, aff)
+        }
       }
       for (i <- 0 until domSp.dim(T_SET)) {
         var aff = isl.Aff.varOnDomain(isl.LocalSpace.fromSpace(domSp), T_SET, i)
