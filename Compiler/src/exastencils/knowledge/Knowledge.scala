@@ -1,6 +1,6 @@
 package exastencils.knowledge
 
-import exastencils.constraints.Constraints
+import exastencils.constraints._
 import exastencils.logger._
 import exastencils.spl._
 
