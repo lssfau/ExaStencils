@@ -48,12 +48,15 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       Logger.error("[PolyOpt] Exploration: Configuration ID required!")
     this.apply(0)
   }
+
   def apply(confID : Int) : Unit = {
     this.transaction()
 
     Logger.info("Applying strategy " + name)
     if (Settings.timeStrategies)
       StrategyTimer.startTiming(name)
+
+    Settings.additionalMacros += "#define floord(n,d) (((n)>=0) ? (n)/(d) : (((n)-(d)+1)/(d)))"
 
     Isl.ctx.setTileScaleTileLoops(0)
     Isl.ctx.setTileShiftPointLoops(0)

@@ -2,6 +2,7 @@ package exastencils.globals
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.core.Settings
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
@@ -26,6 +27,7 @@ case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = ne
   override def printHeader = {
     super.printHeader
     val writer = PrettyprintingManager.getPrinter(s"${baseName}.h")
+    for (macroo <- Settings.additionalMacros) writer <<< macroo
     for (variable <- variables.sortBy(_.name)) writer << s"extern ${variable.prettyprint_onlyDeclaration}\n"
   }
 

@@ -177,6 +177,40 @@ object SimplifyExpression {
         }
         res(name) = res.get(name).getOrElse(0L) + update
 
+      case FunctionCallExpression("floord", ListBuffer(l, r)) =>
+        val tmp = extractIntegralSumRec(r)
+        if (tmp.isEmpty)
+          throw new EvaluationException("BOOM! (divide by zero)")
+        if (!(tmp.size == 1 && tmp.contains(constName)))
+          throw new EvaluationException("only constant divisor allowed yet")
+        val divs : Long = tmp(constName)
+        tmp.clear()
+        res = new HashMap[Expression, Long]()
+        val mapL = extractIntegralSumRec(l)
+        for ((name : Expression, value : Long) <- mapL)
+          if (value % divs == 0L) res(name) = value / divs
+          else tmp(name) = value
+        val cstOpt = tmp.remove(constName) // const part in remaining dividend must not be larger then divisor
+        if (cstOpt.isDefined) {
+          val cst = cstOpt.get
+          val cstMod = (cst % divs + divs) % divs // mathematical modulo
+          val cstRes = (cst - cstMod) / divs
+          tmp(constName) = cstMod
+          res(constName) = cstRes
+        }
+        val dividend = recreateExprFromIntSum(tmp)
+        val (name, update) : (Expression, Long) = dividend match {
+          case IntegerConstant(x) => (constName, if (x >= 0) x / divs else ((x - divs + 1) / divs))
+          case FunctionCallExpression("floord", ListBuffer(x, IntegerConstant(divs2))) =>
+            (FunctionCallExpression("floord", ListBuffer(x, IntegerConstant(divs * divs2))), 1L)
+          case AdditionExpression(FunctionCallExpression("floord", ListBuffer(x, IntegerConstant(divs2))), IntegerConstant(const)) =>
+            (simplifyIntegralExpr(FunctionCallExpression("floord", ListBuffer(x + IntegerConstant(const * divs2), IntegerConstant(divs * divs2)))), 1L)
+          case AdditionExpression(IntegerConstant(const), FunctionCallExpression("floord", ListBuffer(x, IntegerConstant(divs2)))) =>
+            (simplifyIntegralExpr(FunctionCallExpression("floord", ListBuffer(x + IntegerConstant(const * divs2), IntegerConstant(divs * divs2)))), 1L)
+          case divd => (FunctionCallExpression("floord", ListBuffer(divd, IntegerConstant(divs))), 1L)
+        }
+        res(name) = res.get(name).getOrElse(0L) + update
+
       case ModuloExpression(l, r) =>
         val tmp = extractIntegralSumRec(r)
         if (tmp.isEmpty)

@@ -45,6 +45,8 @@ object Settings {
 
   var additionalDefines : ListBuffer[String] = ListBuffer()
 
+  var additionalMacros : ListBuffer[String] = ListBuffer() // which are available in all generated code parts
+
   /// generation process
   var failOnConstraint : Boolean = false
 
