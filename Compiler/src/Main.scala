@@ -4,6 +4,7 @@ import exastencils.data._
 import exastencils.datastructures._
 import exastencils.domain._
 import exastencils.globals._
+import exastencils.grid._
 import exastencils.knowledge._
 import exastencils.languageprocessing.l4._
 import exastencils.logger._

@@ -36,6 +36,8 @@ object CollectCommInformation extends DefaultStrategy("Collecting information re
 
 object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
   val specialFields : ListBuffer[String] = ListBuffer(
+    "vf_gridWidth_x", "vf_gridWidth_y", "vf_gridWidth_z",
+    "vf_nodePosition_x", "vf_nodePosition_y", "vf_nodePosition_z",
     "get_node_pos_x", "get_node_pos_y", "get_node_pos_z",
     "get_stag_cv_width_x", "get_stag_cv_width_y", "get_stag_cv_width_z",
     "getCellVolume", "getXStaggeredCellVolume", "getYStaggeredCellVolume", "getZStaggeredCellVolume",
@@ -85,32 +87,13 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
     }))
 
     this.execute(new Transformation("special functions and constants", {
-      // geometricCoordinate
-      case FunctionCallExpression(LeveledAccess("geometricCoordinate_x", level), List()) => BasicAccess("xPos")
-      case FunctionCallExpression(LeveledAccess("geometricCoordinate_y", level), List()) => BasicAccess("yPos")
-      case FunctionCallExpression(LeveledAccess("geometricCoordinate_z", level), List()) => BasicAccess("zPos")
-      case FunctionCallExpression(BasicAccess("geometricCoordinate_x"), List()) => BasicAccess("xPos")
-      case FunctionCallExpression(BasicAccess("geometricCoordinate_y"), List()) => BasicAccess("yPos")
-      case FunctionCallExpression(BasicAccess("geometricCoordinate_z"), List()) => BasicAccess("zPos")
-      case FunctionCallExpression(LeveledAccess("geometricCoordinate", level), List(IntegerConstant(0))) => BasicAccess("xPos")
-      case FunctionCallExpression(LeveledAccess("geometricCoordinate", level), List(IntegerConstant(1))) => BasicAccess("yPos")
-      case FunctionCallExpression(LeveledAccess("geometricCoordinate", level), List(IntegerConstant(2))) => BasicAccess("zPos")
-
-      // gridWidth
-      case FunctionCallExpression(LeveledAccess("gridWidth_x", SingleLevelSpecification(level)), List()) => FloatConstant(knowledge.Knowledge.discr_hx(level - knowledge.Knowledge.minLevel))
-      case FunctionCallExpression(LeveledAccess("gridWidth_y", SingleLevelSpecification(level)), List()) => FloatConstant(knowledge.Knowledge.discr_hy(level - knowledge.Knowledge.minLevel))
-      case FunctionCallExpression(LeveledAccess("gridWidth_z", SingleLevelSpecification(level)), List()) => FloatConstant(knowledge.Knowledge.discr_hz(level - knowledge.Knowledge.minLevel))
-      case FunctionCallExpression(LeveledAccess("gridWidth", SingleLevelSpecification(level)), List(IntegerConstant(0))) => FloatConstant(knowledge.Knowledge.discr_hx(level - knowledge.Knowledge.minLevel))
-      case FunctionCallExpression(LeveledAccess("gridWidth", SingleLevelSpecification(level)), List(IntegerConstant(1))) => FloatConstant(knowledge.Knowledge.discr_hy(level - knowledge.Knowledge.minLevel))
-      case FunctionCallExpression(LeveledAccess("gridWidth", SingleLevelSpecification(level)), List(IntegerConstant(2))) => FloatConstant(knowledge.Knowledge.discr_hz(level - knowledge.Knowledge.minLevel))
-
       // levelIndex
-      case FunctionCallExpression(LeveledAccess("levels", SingleLevelSpecification(level)), List()) => IntegerConstant(level)
-      case FunctionCallExpression(LeveledAccess("levelIndex", SingleLevelSpecification(level)), List()) => IntegerConstant(level - knowledge.Knowledge.minLevel)
+      case FunctionCallExpression(LeveledAccess("levels", SingleLevelSpecification(level)), List())      => IntegerConstant(level)
+      case FunctionCallExpression(LeveledAccess("levelIndex", SingleLevelSpecification(level)), List())  => IntegerConstant(level - knowledge.Knowledge.minLevel)
       case FunctionCallExpression(LeveledAccess("levelString", SingleLevelSpecification(level)), List()) => StringConstant(level.toString())
 
       // constants
-      case BasicAccess("PI") | BasicAccess("M_PI") | BasicAccess("Pi") => FloatConstant(math.Pi)
+      case BasicAccess("PI") | BasicAccess("M_PI") | BasicAccess("Pi")                                   => FloatConstant(math.Pi)
     }))
 
     this.commit()
