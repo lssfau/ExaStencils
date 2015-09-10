@@ -11,31 +11,8 @@ import exastencils.knowledge._
 import exastencils.logger._
 
 object Grid_AxisAlignedVariableWidth extends Grid {
-  // helper method to map names of special fields to actual member functions implementing the resolving step
-  override def invokeAccessResolve(specialField : SpecialFieldAccess) : Expression = {
-    val functionName = specialField.fieldName
-    functionName.substring(functionName.length() - 2) match {
-      case "_x" => {
-        val method = this.getClass().getMethods.find(_.getName == functionName.substring(0, functionName.length - 2))
-        if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, specialField.level, specialField.index, specialField.arrayIndex, 0 : Integer).asInstanceOf[Expression]
-      }
-      case "_y" => {
-        val method = this.getClass().getMethods.find(_.getName == functionName.substring(0, functionName.length - 2))
-        if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, specialField.level, specialField.index, specialField.arrayIndex, 1 : Integer).asInstanceOf[Expression]
-      }
-      case "_z" => {
-        val method = this.getClass().getMethods.find(_.getName == functionName.substring(0, functionName.length - 2))
-        if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, specialField.level, specialField.index, specialField.arrayIndex, 2 : Integer).asInstanceOf[Expression]
-      }
-      case _ => {
-        val method = this.getClass().getMethods.find(_.getName == functionName)
-        if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, specialField.level, specialField.index, specialField.arrayIndex).asInstanceOf[Expression]
-      }
-    }
+  override def resolveGridMemberFunction(name : String) : Option[java.lang.reflect.Method] = {
+    this.getClass().getMethods.find(_.getName.toLowerCase() == name.toLowerCase())
   }
 
   def invokeEvalResolve(functionName : String, fieldAccess : FieldAccess) : Expression = {
@@ -66,48 +43,48 @@ object Grid_AxisAlignedVariableWidth extends Grid {
   }
 
   // direct accesses
-  def get_node_pos(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
+  def nodePosition(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
     val field = FieldCollection.getFieldByIdentifierLevExp(s"node_pos_${dimToString(dim)}", level).get
     FieldAccess(FieldSelection(field, field.level, 0, arrayIndex), projectIdx(index, dim))
   }
 
-  def get_stag_cv_width(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
+  def stagCVWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
     val field = FieldCollection.getFieldByIdentifierLevExp(s"stag_cv_width_${dimToString(dim)}", level).get
     FieldAccess(FieldSelection(field, field.level, 0, arrayIndex), projectIdx(index, dim))
   }
 
   // compound accesses
-  def get_cell_width(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
-    get_node_pos(level, offsetIndex(index, 1, dim), arrayIndex, dim) - get_node_pos(level, Duplicate(index), arrayIndex, dim)
+  def cellWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
+    nodePosition(level, offsetIndex(index, 1, dim), arrayIndex, dim) - nodePosition(level, Duplicate(index), arrayIndex, dim)
   }
 
-  def getCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) = {
-    var exp : Expression = get_cell_width(level, index, arrayIndex, 0)
+  def cellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) = {
+    var exp : Expression = cellWidth(level, index, arrayIndex, 0)
     for (dim <- 1 until Knowledge.dimensionality)
-      exp *= get_cell_width(level, index, arrayIndex, dim)
+      exp *= cellWidth(level, index, arrayIndex, dim)
     exp
   }
 
-  def getStaggeredCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int], stagDim : Int) = {
+  def staggeredCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int], stagDim : Int) = {
     var exp : Expression = (
       if (0 == stagDim)
-        get_stag_cv_width(level, index, arrayIndex, 0)
+        stagCVWidth(level, index, arrayIndex, 0)
       else
-        get_cell_width(level, index, arrayIndex, 0))
+        cellWidth(level, index, arrayIndex, 0))
     for (dim <- 1 until Knowledge.dimensionality)
       if (dim == stagDim)
-        exp *= get_stag_cv_width(level, index, arrayIndex, dim)
+        exp *= stagCVWidth(level, index, arrayIndex, dim)
       else
-        exp *= get_cell_width(level, index, arrayIndex, dim)
+        exp *= cellWidth(level, index, arrayIndex, dim)
     exp
   }
 
-  def getXStaggeredCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) = getStaggeredCellVolume(level, index, arrayIndex, 0)
-  def getYStaggeredCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) = getStaggeredCellVolume(level, index, arrayIndex, 1)
-  def getZStaggeredCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) = getStaggeredCellVolume(level, index, arrayIndex, 2)
+  def xStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) = staggeredCellVolume(level, index, arrayIndex, 0)
+  def yStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) = staggeredCellVolume(level, index, arrayIndex, 1)
+  def zStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) = staggeredCellVolume(level, index, arrayIndex, 2)
 
-  def get_cell_center_to_face(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
-    0.5 * get_cell_width(level, index, arrayIndex, dim)
+  def cellCenterToFace(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
+    0.5 * cellWidth(level, index, arrayIndex, dim)
   }
 
   // evaluations and interpolations
@@ -127,9 +104,9 @@ object Grid_AxisAlignedVariableWidth extends Grid {
       Logger.warn(s"Attempting (${dimToString(dim)}-)face evaluation for non-cell based discretization (field ${field.identifier}, level ${field.level}, discretization ${field.discretization})")
 
     // compile evaluation
-    ((get_cell_center_to_face(level, offsetIndex(baseIndex, -1, dim), None, dim) * Duplicate(fieldAccess)
-      + get_cell_center_to_face(level, Duplicate(baseIndex), None, dim) * offsetAccess(fieldAccess, -1, dim))
-      / get_stag_cv_width(level, Duplicate(Duplicate(baseIndex)), None, dim))
+    ((cellCenterToFace(level, offsetIndex(baseIndex, -1, dim), None, dim) * Duplicate(fieldAccess)
+      + cellCenterToFace(level, Duplicate(baseIndex), None, dim) * offsetAccess(fieldAccess, -1, dim))
+      / stagCVWidth(level, Duplicate(Duplicate(baseIndex)), None, dim))
   }
 
   def evalAtRFace(fieldAccess : FieldAccess, dim : Int) = evalAtLFace(offsetAccess(fieldAccess, 1, dim), dim)
@@ -172,7 +149,7 @@ object Grid_AxisAlignedVariableWidth extends Grid {
         val index = fieldAccess.index
 
         fieldAccess.fieldSelection.field.discretization match {
-          case "cell" => get_cell_width(level, index, None, compDim0) * get_cell_width(level, index, None, compDim1) * evalAtLFace(fieldAccess, faceDim)
+          case "cell" => cellWidth(level, index, None, compDim0) * cellWidth(level, index, None, compDim1) * evalAtLFace(fieldAccess, faceDim)
         }
       }
       case MultiplicationExpression(leftFieldAccess : FieldAccess, rightFieldAccess : FieldAccess) => {
@@ -183,7 +160,7 @@ object Grid_AxisAlignedVariableWidth extends Grid {
         (leftFieldAccess.fieldSelection.field.discretization, rightFieldAccess.fieldSelection.field.discretization) match {
           case (leftDisc, "cell") if leftDisc == s"face_${dimToString(faceDim)}" => {
             val rightIndex = rightFieldAccess.index
-            (get_cell_width(level, rightIndex, None, compDim0) * get_cell_width(level, rightIndex, None, compDim1)
+            (cellWidth(level, rightIndex, None, compDim0) * cellWidth(level, rightIndex, None, compDim1)
               * leftFieldAccess * evalAtLFace(rightFieldAccess, faceDim))
           }
         }
@@ -203,7 +180,7 @@ object Grid_AxisAlignedVariableWidth extends Grid {
         val index = fieldAccess.index
 
         fieldAccess.fieldSelection.field.discretization match {
-          case "cell" => get_cell_width(level, index, None, compDim0) * get_cell_width(level, index, None, compDim1) * evalAtRFace(fieldAccess, faceDim)
+          case "cell" => cellWidth(level, index, None, compDim0) * cellWidth(level, index, None, compDim1) * evalAtRFace(fieldAccess, faceDim)
         }
       }
       case MultiplicationExpression(leftFieldAccess : FieldAccess, rightFieldAccess : FieldAccess) => {
@@ -214,7 +191,7 @@ object Grid_AxisAlignedVariableWidth extends Grid {
         (leftFieldAccess.fieldSelection.field.discretization, rightFieldAccess.fieldSelection.field.discretization) match {
           case (leftDisc, "cell") if leftDisc == s"face_${dimToString(faceDim)}" => {
             val rightIndex = rightFieldAccess.index
-            (get_cell_width(level, rightIndex, None, compDim0) * get_cell_width(level, rightIndex, None, compDim1)
+            (cellWidth(level, rightIndex, None, compDim0) * cellWidth(level, rightIndex, None, compDim1)
               * offsetAccess(leftFieldAccess, 1, faceDim) * evalAtRFace(rightFieldAccess, faceDim))
           }
         }
@@ -239,17 +216,17 @@ object Grid_AxisAlignedVariableWidth extends Grid {
               val compDim0 = (if (0 == faceDim) 1 else 0)
               val compDim1 = (if (2 == faceDim) 1 else 2)
               val cellIndex = rightFieldAccess.index
-              (get_cell_width(level, cellIndex, None, compDim0) * get_cell_width(level, cellIndex, None, compDim1)
+              (cellWidth(level, cellIndex, None, compDim0) * cellWidth(level, cellIndex, None, compDim1)
                 * 0.5 * (offsetAccess(leftFieldAccess, -1, faceDim) + Duplicate(leftFieldAccess)) * Duplicate(rightFieldAccess))
             } else { // 0 != stagDim
               val compDim = (if (0 != faceDim && 0 != stagDim) 0 else (if (1 != faceDim && 1 != stagDim) 1 else 2))
               val cellIndex = rightFieldAccess.index
               // eval cell value at face points; multiply with face values; multiply with dist to (original) cell interface; add up
-              (get_cell_width(level, cellIndex, None, compDim) *
-                ((get_cell_center_to_face(level, cellIndex, None, stagDim)
+              (cellWidth(level, cellIndex, None, compDim) *
+                ((cellCenterToFace(level, cellIndex, None, stagDim)
                   * Duplicate(leftFieldAccess)
                   * evalAtLFace(Duplicate(rightFieldAccess), faceDim))
-                  + (get_cell_center_to_face(level, offsetIndex(cellIndex, -1, stagDim), None, stagDim)
+                  + (cellCenterToFace(level, offsetIndex(cellIndex, -1, stagDim), None, stagDim)
                     * offsetAccess(leftFieldAccess, -1, stagDim)
                     * evalAtLFace(offsetAccess(rightFieldAccess, -1, stagDim), faceDim))))
             }
@@ -275,17 +252,17 @@ object Grid_AxisAlignedVariableWidth extends Grid {
               val compDim0 = (if (0 == faceDim) 1 else 0)
               val compDim1 = (if (2 == faceDim) 1 else 2)
               val cellIndex = rightFieldAccess.index
-              (get_cell_width(level, cellIndex, None, compDim0) * get_cell_width(level, cellIndex, None, compDim1)
+              (cellWidth(level, cellIndex, None, compDim0) * cellWidth(level, cellIndex, None, compDim1)
                 * 0.5 * (Duplicate(leftFieldAccess) + offsetAccess(leftFieldAccess, 1, faceDim)) * Duplicate(rightFieldAccess))
             } else { // 0 != stagDim
               val compDim = (if (0 != faceDim && 0 != stagDim) 0 else (if (1 != faceDim && 1 != stagDim) 1 else 2))
               val cellIndex = rightFieldAccess.index
               // eval cell value at face points; multiply with face values; multiply with dist to (original) cell interface; add up
-              (get_cell_width(level, cellIndex, None, compDim) *
-                ((get_cell_center_to_face(level, cellIndex, None, stagDim)
+              (cellWidth(level, cellIndex, None, compDim) *
+                ((cellCenterToFace(level, cellIndex, None, stagDim)
                   * offsetAccess(leftFieldAccess, 1, faceDim)
                   * evalAtRFace(Duplicate(rightFieldAccess), faceDim))
-                  + (get_cell_center_to_face(level, offsetIndex(cellIndex, -1, stagDim), None, stagDim)
+                  + (cellCenterToFace(level, offsetIndex(cellIndex, -1, stagDim), None, stagDim)
                     * offsetAccess(offsetAccess(leftFieldAccess, -1, stagDim), 1, faceDim)
                     * evalAtRFace(offsetAccess(rightFieldAccess, -1, stagDim), faceDim))))
             }

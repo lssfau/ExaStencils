@@ -11,7 +11,36 @@ import exastencils.knowledge._
 import exastencils.logger._
 
 abstract class Grid {
-  def invokeAccessResolve(specialField : SpecialFieldAccess) : Expression
+  def resolveGridMemberFunction(name : String) : Option[java.lang.reflect.Method]
+
+  // helper method to map names of special fields to actual member functions implementing the resolving step
+  def invokeAccessResolve(specialField : SpecialFieldAccess) : Expression = {
+    var functionName = specialField.fieldName
+    if (functionName.startsWith("vf_")) functionName = functionName.substring(3)
+    functionName.substring(functionName.length() - 2) match {
+      case "_x" => {
+        val method = resolveGridMemberFunction(functionName.substring(0, functionName.length - 2))
+        if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
+        method.get.invoke(this, specialField.level, specialField.index, specialField.arrayIndex, 0 : Integer).asInstanceOf[Expression]
+      }
+      case "_y" => {
+        val method = resolveGridMemberFunction(functionName.substring(0, functionName.length - 2))
+        if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
+        method.get.invoke(this, specialField.level, specialField.index, specialField.arrayIndex, 1 : Integer).asInstanceOf[Expression]
+      }
+      case "_z" => {
+        val method = resolveGridMemberFunction(functionName.substring(0, functionName.length - 2))
+        if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
+        method.get.invoke(this, specialField.level, specialField.index, specialField.arrayIndex, 2 : Integer).asInstanceOf[Expression]
+      }
+      case _ => {
+        val method = resolveGridMemberFunction(functionName)
+        if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
+        method.get.invoke(this, specialField.level, specialField.index, specialField.arrayIndex).asInstanceOf[Expression]
+      }
+    }
+  }
+
   def invokeEvalResolve(functionName : String, fieldAccess : FieldAccess) : Expression
   def invokeIntegrateResolve(functionName : String, exp : Expression) : Expression
 }
@@ -21,7 +50,7 @@ object Grid {
   def getGridObject : Grid = {
     //    val gridType = "AxisAlignedVariableWidth" // TODO: move to knowledge
     val gridType = "AxisAlignedConstWidth" // TODO: move to knowledge
-    gridType match {
+    Knowledge.discr_gridType match {
       case "AxisAlignedConstWidth"    => Grid_AxisAlignedConstWidth
       case "AxisAlignedVariableWidth" => Grid_AxisAlignedVariableWidth
     }

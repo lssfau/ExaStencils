@@ -1,15 +1,16 @@
 package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
+
 import exastencils.data
 import exastencils.datastructures._
+import exastencils.datastructures.ir._
 import exastencils.domain._
 import exastencils.knowledge
 import exastencils.logger._
 import exastencils.omp
 import exastencils.prettyprinting._
 import exastencils.util._
-import exastencils.datastructures.ir._
 
 abstract class Statement extends Node with ProgressableToIr with PrettyPrintable {
   override def progressToIr : ir.Statement

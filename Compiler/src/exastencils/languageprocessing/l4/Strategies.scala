@@ -36,13 +36,22 @@ object CollectCommInformation extends DefaultStrategy("Collecting information re
 
 object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
   val specialFields : ListBuffer[String] = ListBuffer(
-    "vf_gridWidth_x", "vf_gridWidth_y", "vf_gridWidth_z",
     "vf_nodePosition_x", "vf_nodePosition_y", "vf_nodePosition_z",
-    "get_node_pos_x", "get_node_pos_y", "get_node_pos_z",
-    "get_stag_cv_width_x", "get_stag_cv_width_y", "get_stag_cv_width_z",
-    "getCellVolume", "getXStaggeredCellVolume", "getYStaggeredCellVolume", "getZStaggeredCellVolume",
-    "get_cell_width_x", "get_cell_width_y", "get_cell_width_z",
-    "get_cell_center_to_face_x", "get_cell_center_to_face_y", "get_cell_center_to_face_z")
+    "nodePosition_x", "nodePosition_y", "nodePosition_z",
+
+    "vf_gridWidth_x", "vf_gridWidth_y", "vf_gridWidth_z",
+    "gridWidth_x", "gridWidth_y", "gridWidth_z",
+
+    "vf_cellWidth_x", "vf_cellWidth_y", "vf_cellWidth_z",
+    "cellWidth_x", "cellWidth_y", "cellWidth_z",
+
+    "vf_stagCVWidth_x", "vf_stagCVWidth_y", "vf_stagCVWidth_z",
+    "stagCVWidth_x", "stagCVWidth_y", "stagCVWidth_z",
+
+    "vf_cellVolume", "vf_xStagCellVolume", "vf_yStagCellVolume", "vf_zStagCellVolume",
+    "cellVolume", "xStagCellVolume", "yStagCellVolume", "zStagCellVolume",
+
+    "vf_cellCenterToFace_x", "vf_cellCenterToFace_y", "vf_cellCenterToFace_z").map(_.toLowerCase())
 
   override def apply(applyAtNode : Option[Node]) = {
     this.transaction()
@@ -77,7 +86,7 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
       case access : UnresolvedAccess =>
         if (StateManager.root_.asInstanceOf[Root].fields.exists(f => access.name == f.identifier.name))
           access.resolveToFieldAccess
-        else if (specialFields.contains(access.name))
+        else if (specialFields.contains(access.name.toLowerCase()))
           access.resolveToSpecialFieldAccess
         else if (StateManager.root_.asInstanceOf[Root].stencils.exists(s => access.name == s.identifier.name))
           access.resolveToStencilAccess

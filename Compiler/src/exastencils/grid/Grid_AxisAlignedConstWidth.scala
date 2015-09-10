@@ -11,34 +11,11 @@ import exastencils.knowledge._
 import exastencils.logger._
 
 object Grid_AxisAlignedConstWidth extends Grid {
-  // helper method to map names of special fields to actual member functions implementing the resolving step
-  override def invokeAccessResolve(specialField : SpecialFieldAccess) : Expression = {
-    val functionName = specialField.fieldName
-    functionName.substring(functionName.length() - 2) match {
-      case "_x" => {
-        val method = this.getClass().getMethods.find(_.getName == functionName.substring(0, functionName.length - 2))
-        if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, specialField.level, specialField.index, specialField.arrayIndex, 0 : Integer).asInstanceOf[Expression]
-      }
-      case "_y" => {
-        val method = this.getClass().getMethods.find(_.getName == functionName.substring(0, functionName.length - 2))
-        if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, specialField.level, specialField.index, specialField.arrayIndex, 1 : Integer).asInstanceOf[Expression]
-      }
-      case "_z" => {
-        val method = this.getClass().getMethods.find(_.getName == functionName.substring(0, functionName.length - 2))
-        if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, specialField.level, specialField.index, specialField.arrayIndex, 2 : Integer).asInstanceOf[Expression]
-      }
-      case _ => {
-        val method = this.getClass().getMethods.find(_.getName == functionName)
-        if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, specialField.level, specialField.index, specialField.arrayIndex).asInstanceOf[Expression]
-      }
-    }
+  override def resolveGridMemberFunction(name : String) : Option[java.lang.reflect.Method] = {
+    this.getClass().getMethods.find(_.getName.toLowerCase() == name.toLowerCase())
   }
 
-  def vf_gridWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression = {
+  def gridWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression = {
     val levelIndex = level.asInstanceOf[IntegerConstant].v.toInt - Knowledge.minLevel
     dim match {
       case 0 => Knowledge.discr_hx(levelIndex)
@@ -47,7 +24,7 @@ object Grid_AxisAlignedConstWidth extends Grid {
     }
   }
 
-  def vf_nodePosition(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression = {
+  def nodePosition(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression = {
     dim match {
       case 0 => "xPos"
       case 1 => "yPos"

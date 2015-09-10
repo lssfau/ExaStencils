@@ -92,7 +92,10 @@ object Knowledge {
   var domain_rect_numFragsPerBlock_y : Int = 1 // [1~64§domain_rect_numFragsPerBlock_y*2]
   var domain_rect_numFragsPerBlock_z : Int = 1 // [1~64§domain_rect_numFragsPerBlock_z*2]
 
-  // options for SISC Paper  
+  // specifies which type of grids are used for the discretization
+  var discr_gridType = "AxisAlignedConstWidth" // possible options are "AxisAlignedConstWidth" and "AxisAlignedVariableWidth"
+
+  // options for SISC Paper
   var sisc2015_numNodes : Int = 64 // [16~64§sisc2015_numNodes*2]
   var sisc2015_ranksPerNode : Int = 64 // [16~64§sisc2015_ranksPerNode*2]
   var sisc2015_firstDim : Int = 1 // [0~1]
@@ -178,7 +181,7 @@ object Knowledge {
       case "MSVC"            => 2.0
       case "GCC"             => 4.0
       case "IBMXL" | "IBMBG" => 3.0
-      case "ICC" => if(targetCompilerVersion >= 15) 4.0; else if(targetCompilerVersion >= 13) 3.1; else if(targetCompilerVersion >= 12 && targetCompilerVersionMinor >= 1) 3.1; else 3.0
+      case "ICC"             => if (targetCompilerVersion >= 15) 4.0; else if (targetCompilerVersion >= 13) 3.1; else if (targetCompilerVersion >= 12 && targetCompilerVersionMinor >= 1) 3.1; else 3.0
       case _                 => Logger.error("Unsupported target compiler"); 0.0
     }
   }
@@ -191,7 +194,7 @@ object Knowledge {
       case "MSVC"            => true
       case "GCC"             => true
       case "IBMXL" | "IBMBG" => true // needs to be true since recently
-      case "ICC" => true
+      case "ICC"             => true
       case _                 => Logger.error("Unsupported target compiler"); true
     }
   }
@@ -317,7 +320,7 @@ object Knowledge {
 
     Constraints.condEnsureValue(targetCompilerVersion, 11, "MSVC" == targetCompiler, "When using MSVC, only version 11.0 is currently supported")
     Constraints.condEnsureValue(targetCompilerVersionMinor, 0, "MSVC" == targetCompiler, "When using MSVC, only version 11.0 is currently supported")
-    
+
     if (l3tmp_generateL4) {
       // specific project configurations - SISC
       Constraints.condEnsureValue(l3tmp_exactSolution, "Kappa_VC", l3tmp_sisc && l3tmp_genStencilFields, "Kappa_VC is required as l3tmp_exactSolution for variable stencils and l3tmp_sisc")
