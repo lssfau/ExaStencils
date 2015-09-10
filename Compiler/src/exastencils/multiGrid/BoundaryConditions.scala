@@ -17,7 +17,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
   def setupFieldUpdate(neigh : NeighborInfo) : ListBuffer[Statement] = {
     var statements : ListBuffer[Statement] = ListBuffer()
     if (StateManager.findFirst[AnyRef]((node : Any) => node match {
-      case sfa : SpecialFieldAccess if "vf_nodePosition_x" == sfa.fieldName || "vf_nodePosition_y" == sfa.fieldName || "vf_nodePosition_z" == sfa.fieldName => true
+      case vfa : VirtualFieldAccess if "vf_nodePosition_x" == vfa.fieldName || "vf_nodePosition_y" == vfa.fieldName || "vf_nodePosition_z" == vfa.fieldName => true
       case StringConstant("xPos") | StringConstant("yPos") | StringConstant("zPos") => true
       case VariableAccess("xPos", _) | VariableAccess("yPos", _) | VariableAccess("zPos", _) => true
       case _ => false

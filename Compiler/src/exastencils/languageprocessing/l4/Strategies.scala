@@ -35,7 +35,7 @@ object CollectCommInformation extends DefaultStrategy("Collecting information re
 }
 
 object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
-  val specialFields : ListBuffer[String] = ListBuffer(
+  val virtualFields : ListBuffer[String] = ListBuffer(
     "vf_nodePosition_x", "vf_nodePosition_y", "vf_nodePosition_z",
     "nodePosition_x", "nodePosition_y", "nodePosition_z",
 
@@ -86,8 +86,8 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
       case access : UnresolvedAccess =>
         if (StateManager.root_.asInstanceOf[Root].fields.exists(f => access.name == f.identifier.name))
           access.resolveToFieldAccess
-        else if (specialFields.contains(access.name.toLowerCase()))
-          access.resolveToSpecialFieldAccess
+        else if (virtualFields.contains(access.name.toLowerCase()))
+          access.resolveToVirtualFieldAccess
         else if (StateManager.root_.asInstanceOf[Root].stencils.exists(s => access.name == s.identifier.name))
           access.resolveToStencilAccess
         else if (StateManager.root_.asInstanceOf[Root].stencilFields.exists(s => access.name == s.identifier.name))

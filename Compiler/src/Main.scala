@@ -173,7 +173,7 @@ object Main {
 
     ResolveDiagFunction.apply()
     ResolveGeometryFunctions.apply() // TODO: fuse
-    ResolveSpecialFields.apply() // TODO: fuse
+    ResolveVirtualFields.apply() // TODO: fuse
     CreateGeomCoordinates.apply()
     ResolveLoopOverPointsInOneFragment.apply()
     ResolveContractingLoop.apply()

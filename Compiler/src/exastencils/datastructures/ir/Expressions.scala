@@ -285,12 +285,12 @@ case class FieldAccess(var fieldSelection : FieldSelection, var index : MultiInd
   }
 }
 
-case class SpecialFieldAccess(var fieldName : String,
+case class VirtualFieldAccess(var fieldName : String,
     var level : Expression,
     var index : MultiIndex,
     var arrayIndex : Option[Int] = None,
     var fragIdx : Expression = LoopOverFragments.defIt) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SpecialFieldAccess\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = VirtualFieldAccess\n"
 
 }
 

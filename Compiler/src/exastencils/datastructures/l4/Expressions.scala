@@ -79,10 +79,10 @@ case class UnresolvedAccess(var name : String,
     if (dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on field - was an offset access (@) intended?")
     FieldAccess(name, level.get, slot.getOrElse(SlotModifier.Active()), arrayIndex, offset)
   }
-  def resolveToSpecialFieldAccess = {
+  def resolveToVirtualFieldAccess = {
     if (dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on special field - was an offset access (@) intended?")
     if (slot.isDefined) Logger.warn("Discarding meaningless slot access on special field")
-    SpecialFieldAccess(name, level.get, arrayIndex, offset)
+    VirtualFieldAccess(name, level.get, arrayIndex, offset)
   }
   def resolveToStencilAccess = {
     if (slot.isDefined) Logger.warn("Discarding meaningless slot access on stencil")
@@ -134,19 +134,19 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
   }
 }
 
-case class SpecialFieldAccess(var name : String, var level : AccessLevelSpecification, var arrayIndex : Option[Int] = None, var offset : Option[ExpressionIndex] = None) extends Access {
+case class VirtualFieldAccess(var name : String, var level : AccessLevelSpecification, var arrayIndex : Option[Int] = None, var offset : Option[ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     out << name << '@' << level
     if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
     if (offset.isDefined) out << "@" << offset
   }
 
-  def progressToIr : ir.SpecialFieldAccess = {
+  def progressToIr : ir.VirtualFieldAccess = {
     var multiIndex = ir.LoopOverDimensions.defIt
     if (offset.isDefined) multiIndex += offset.get.progressToIr
     multiIndex(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(arrayIndex.getOrElse(0).toLong)
 
-    ir.SpecialFieldAccess(name, ir.IntegerConstant(level.asInstanceOf[SingleLevelSpecification].level), multiIndex, arrayIndex)
+    ir.VirtualFieldAccess(name, ir.IntegerConstant(level.asInstanceOf[SingleLevelSpecification].level), multiIndex, arrayIndex)
   }
 }
 

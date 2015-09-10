@@ -2,11 +2,9 @@ package exastencils.grid
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.logger._
 
@@ -14,29 +12,29 @@ abstract class Grid {
   def resolveGridMemberFunction(name : String) : Option[java.lang.reflect.Method]
 
   // helper method to map names of special fields to actual member functions implementing the resolving step
-  def invokeAccessResolve(specialField : SpecialFieldAccess) : Expression = {
-    var functionName = specialField.fieldName
+  def invokeAccessResolve(virtualField : VirtualFieldAccess) : Expression = {
+    var functionName = virtualField.fieldName
     if (functionName.startsWith("vf_")) functionName = functionName.substring(3)
     functionName.substring(functionName.length() - 2) match {
       case "_x" => {
         val method = resolveGridMemberFunction(functionName.substring(0, functionName.length - 2))
         if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, specialField.level, specialField.index, specialField.arrayIndex, 0 : Integer).asInstanceOf[Expression]
+        method.get.invoke(this, virtualField.level, virtualField.index, virtualField.arrayIndex, 0 : Integer).asInstanceOf[Expression]
       }
       case "_y" => {
         val method = resolveGridMemberFunction(functionName.substring(0, functionName.length - 2))
         if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, specialField.level, specialField.index, specialField.arrayIndex, 1 : Integer).asInstanceOf[Expression]
+        method.get.invoke(this, virtualField.level, virtualField.index, virtualField.arrayIndex, 1 : Integer).asInstanceOf[Expression]
       }
       case "_z" => {
         val method = resolveGridMemberFunction(functionName.substring(0, functionName.length - 2))
         if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, specialField.level, specialField.index, specialField.arrayIndex, 2 : Integer).asInstanceOf[Expression]
+        method.get.invoke(this, virtualField.level, virtualField.index, virtualField.arrayIndex, 2 : Integer).asInstanceOf[Expression]
       }
       case _ => {
         val method = resolveGridMemberFunction(functionName)
         if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, specialField.level, specialField.index, specialField.arrayIndex).asInstanceOf[Expression]
+        method.get.invoke(this, virtualField.level, virtualField.index, virtualField.arrayIndex).asInstanceOf[Expression]
       }
     }
   }
@@ -57,9 +55,9 @@ object Grid {
   }
 }
 
-object ResolveSpecialFields extends DefaultStrategy("ResolveSpecialFields") {
+object ResolveVirtualFields extends DefaultStrategy("ResolveVirtualFields") {
   this += new Transformation("SearchAndReplace", {
-    case specialField : SpecialFieldAccess => Grid.getGridObject.invokeAccessResolve(specialField)
+    case virtualField : VirtualFieldAccess => Grid.getGridObject.invokeAccessResolve(virtualField)
   })
 }
 
