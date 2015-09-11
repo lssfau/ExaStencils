@@ -97,6 +97,7 @@ case class Field(
     ) {
   // shortcuts to layout options  
   def dataType = fieldLayout.dataType
+  def discretization = fieldLayout.discretization
   def vectorSize = fieldLayout.dataType.resolveFlattendSize
   def referenceOffset = fieldLayout.referenceOffset
   def communicatesDuplicated = fieldLayout.communicatesDuplicated
@@ -131,6 +132,16 @@ object FieldCollection {
     val ret = fields.find(f => f.identifier == identifier && f.level == level)
     if (!suppressError && ret.isEmpty) Logger.warn(s"Field $identifier on level $level was not found")
     ret
+  }
+
+  def getFieldByIdentifierLevExp(identifier : String, level : Expression, suppressError : Boolean = false) : Option[Field] = {
+    level match {
+      case IntegerConstant(constLevel) => getFieldByIdentifier(identifier, constLevel.toInt, suppressError)
+      case _ => {
+        if (suppressError) Logger.warn(s"Trying to find field $identifier on level ${level.prettyprint} - non-constant levels are not supported")
+        None
+      }
+    }
   }
 }
 

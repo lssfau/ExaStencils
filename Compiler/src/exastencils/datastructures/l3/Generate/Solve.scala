@@ -30,7 +30,7 @@ object Solve {
     }
 
     printer.println("\tVariable numIt : Integer = 0")
-    printer.println(s"\trepeat until (res_0 < ( ${Knowledge.l3tmp_targetResReduction} * resStart_0 ) && numIt < 100) {")
+    printer.println(s"\trepeat until (res_0 < ( ${Knowledge.l3tmp_targetResReduction} * resStart_0 ) || numIt >= 100) {")
     printer.println("\t\tnumIt += 1")
     if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile || Knowledge.l3tmp_timeoutLimit > 0)
       printer.println("\t\tstartTimer ( 'cycle' )")

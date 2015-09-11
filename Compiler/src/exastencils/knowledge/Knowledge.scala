@@ -1,6 +1,6 @@
 package exastencils.knowledge
 
-import exastencils.constraints.Constraints
+import exastencils.constraints._
 import exastencils.logger._
 import exastencils.spl._
 
@@ -92,7 +92,10 @@ object Knowledge {
   var domain_rect_numFragsPerBlock_y : Int = 1 // [1~64§domain_rect_numFragsPerBlock_y*2]
   var domain_rect_numFragsPerBlock_z : Int = 1 // [1~64§domain_rect_numFragsPerBlock_z*2]
 
-  // options for SISC Paper  
+  // specifies which type of grids are used for the discretization
+  var discr_gridType = "AxisAlignedConstWidth" // possible options are "AxisAlignedConstWidth" and "AxisAlignedVariableWidth"
+
+  // options for SISC Paper
   var sisc2015_numNodes : Int = 64 // [16~64§sisc2015_numNodes*2]
   var sisc2015_ranksPerNode : Int = 64 // [16~64§sisc2015_ranksPerNode*2]
   var sisc2015_firstDim : Int = 1 // [0~1]

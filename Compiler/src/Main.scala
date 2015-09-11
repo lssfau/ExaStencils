@@ -4,6 +4,7 @@ import exastencils.data._
 import exastencils.datastructures._
 import exastencils.domain._
 import exastencils.globals._
+import exastencils.grid._
 import exastencils.knowledge._
 import exastencils.languageprocessing.l4._
 import exastencils.logger._
@@ -130,6 +131,7 @@ object Main {
       StrategyTimer.stopTiming("Handling Layer 4")
 
     // go to IR
+    ResolveFunctionTemplates.apply() // preparation step
     UnfoldLevelSpecifications.apply() // preparation step
     ResolveL4.apply()
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
@@ -171,6 +173,8 @@ object Main {
     } while (numConvFound > 0)
 
     ResolveDiagFunction.apply()
+    ResolveGeometryFunctions.apply() // TODO: fuse
+    ResolveVirtualFields.apply() // TODO: fuse
     CreateGeomCoordinates.apply()
     ResolveLoopOverPointsInOneFragment.apply()
     ResolveContractingLoop.apply()

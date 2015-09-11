@@ -17,6 +17,7 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
   var externalFields : ListBuffer[ExternalFieldDeclarationStatement] = new ListBuffer()
   var stencils : ListBuffer[StencilDeclarationStatement] = new ListBuffer()
   var globals : ListBuffer[GlobalDeclarationStatement] = new ListBuffer()
+  var functionTemplates : ListBuffer[FunctionTemplateStatement] = new ListBuffer()
   var statements : ListBuffer[Statement] = new ListBuffer()
 
   {
@@ -28,6 +29,7 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
       case p : ExternalFieldDeclarationStatement => externalFields.+=(p)
       case p : StencilDeclarationStatement       => stencils.+=(p)
       case p : GlobalDeclarationStatement        => globals.+=(p)
+      case p : FunctionTemplateStatement         => functionTemplates.+=(p)
       case p : Statement                         => statements.+=(p)
     })
 

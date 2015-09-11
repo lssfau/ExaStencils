@@ -8,6 +8,9 @@ class LexerL4 extends exastencils.parsers.ExaLexer {
   // function keywords
   reserved += ("Func", "Function", "return")
 
+  // function instantiation
+  reserved += ("FuncTemplate", "FunctionTemplate", "Inst", "Instantiate", "as")
+
   // declaration keywords - simple
   reserved += ("Var", "Variable", "Val", "Value")
 
@@ -32,7 +35,10 @@ class LexerL4 extends exastencils.parsers.ExaLexer {
   reserved += ("fromFile")
 
   // layout and field keywords
-  reserved += ("ghostLayers", "duplicateLayers", "innerPoints", "with", "communication", "None", "Node", "Cell", "node", "cell", "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z")
+  reserved += ("ghostLayers", "duplicateLayers", "innerPoints", "with", "communication", "None",
+    "Node", "Cell", "node", "cell",
+    "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z",
+    "Edge_Cell", "edge_cell", "Edge_Node", "edge_node")
 
   // boundary condition keywords
   reserved += ("apply", "bc", "to")
