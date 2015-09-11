@@ -83,7 +83,21 @@ case class CommentStatement(var comment : String) extends Statement {
 }
 
 case class AssignmentStatement(var dest : Expression, var src : Expression, var op : String = "=") extends Statement {
-  override def prettyprint(out : PpStream) : Unit = out << dest << ' ' << op << ' ' << src << ';'
+  override def prettyprint(out : PpStream) : Unit = {
+    src match {
+      //      case x : VectorExpression => {
+      //        out << dest << ' ' << op << ' '
+      //        x.prettyprintInner(out)
+      //        out << ';'
+      //      }
+      //      case x : MatrixExpression => {
+      //        out << dest << ' ' << op << ' '
+      //        x.prettyprintInner(out)
+      //        out << ';'
+      //      }
+      case _ => out << dest << ' ' << op << ' ' << src << ';'
+    }
+  }
 }
 
 case class WhileLoopStatement(var comparison : Expression, var body : ListBuffer[Statement]) extends Statement {

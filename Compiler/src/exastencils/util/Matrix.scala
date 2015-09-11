@@ -57,7 +57,7 @@ class Matrix {
         std::copy(other.m_data.begin(), other.m_data.end(), m_data.begin());
     }
 
-    Matrix<T, M, N>& operator= ( const Matrix<T, M, N> other ) { // pass 'other' by value for implicit copy
+    Matrix<T, M, N>& operator= ( Matrix<T, M, N> other ) { // pass 'other' by value for implicit copy
         other.swap ( *this );
         return *this;
     }

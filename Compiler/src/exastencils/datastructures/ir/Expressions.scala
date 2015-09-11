@@ -203,9 +203,9 @@ case class ColumnVectorExpression(dt : Option[Datatype], exp : ListBuffer[Expres
     out << "Matrix<"
     datatype.getOrElse(RealDatatype).prettyprint(out)
     out << ", "
-    out << length << ", 1> ({"
+    out << length << ", 1> ("
     prettyprintInner(out)
-    out << "})"
+    out << ")"
   }
 }
 
@@ -222,9 +222,9 @@ case class MatrixExpression(var datatype : Option[Datatype], var expressions : L
 
     out << "Matrix<"
     if (isInteger) out << "int, "; else out << prec << ", "
-    out << rows << ", " << columns << "> ({"
+    out << rows << ", " << columns << "> ("
     prettyprintInner(out)
-    out << "})"
+    out << ")"
   }
   def rows = expressions.length
   def columns = expressions(0).length
