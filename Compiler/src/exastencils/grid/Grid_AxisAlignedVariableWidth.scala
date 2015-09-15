@@ -1,12 +1,119 @@
 package exastencils.grid
 
+import scala.math._
 import exastencils.core._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.l4
 import exastencils.knowledge._
 import exastencils.logger._
+import scala.collection.mutable.ListBuffer
 
 object Grid_AxisAlignedVariableWidth extends Grid {
+  override def initL4() : Unit = {
+    val root = StateManager.root_.asInstanceOf[l4.Root]
+    root.fieldLayouts += l4.LayoutDeclarationStatement(
+      l4.LeveledIdentifier("DefNodeLineLayout", l4.FinestLevelSpecification()),
+      l4.RealDatatype(), "Edge_Node".toLowerCase(),
+      Some(l4.Index3D(1, 0, 0)), None,
+      Some(l4.Index3D(1, 0, 0)), None,
+      None)
+
+    root.fields += l4.FieldDeclarationStatement(
+      l4.LeveledIdentifier("node_pos_x", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout", None, 1, 0)
+    if (Knowledge.dimensionality > 1)
+      root.fields += l4.FieldDeclarationStatement(
+        l4.LeveledIdentifier("node_pos_y", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout", None, 1, 0)
+    if (Knowledge.dimensionality > 2)
+      root.fields += l4.FieldDeclarationStatement(
+        l4.LeveledIdentifier("node_pos_z", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout", None, 1, 0)
+
+    root.fields += l4.FieldDeclarationStatement(
+      l4.LeveledIdentifier("stag_cv_width_x", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout", None, 1, 0)
+    if (Knowledge.dimensionality > 1)
+      root.fields += l4.FieldDeclarationStatement(
+        l4.LeveledIdentifier("stag_cv_width_y", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout", None, 1, 0)
+    if (Knowledge.dimensionality > 2)
+      root.fields += l4.FieldDeclarationStatement(
+        l4.LeveledIdentifier("stag_cv_width_z", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout", None, 1, 0)
+  }
+
+  override def generateInitCode() = {
+    /// node_pos      -> nodes of the original grid
+    /// o   o   o   o   o
+    /// cell_width      -> width of the control volumes of the original grid
+    /// |---|   |---|
+    /// stag_cv_width   -> width of the staggered control volumes
+    /// |-|   |---|   |-|
+
+    (0 until Knowledge.dimensionality).to[ListBuffer].map(dim => setupNodePos(dim, Knowledge.maxLevel)) ++
+      (0 until Knowledge.dimensionality).to[ListBuffer].map(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
+  }
+
+  def setupNodePos(dim : Integer, level : Integer) : Statement = {
+    val expo = 1.5
+    val numCells = (1 << level) // TODO: adapt for non-unit fragments
+    val zoneSize = numCells / 4
+    val step = 1.0 / zoneSize
+
+    val field = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
+    var baseIndex = LoopOverDimensions.defIt
+    baseIndex(Knowledge.dimensionality) = 0
+    val baseAccess = FieldAccess(FieldSelection(field, field.level, 0), baseIndex)
+
+    val innerIt = LoopOverDimensions.defIt(0)
+
+    LoopOverPoints(field, None, true,
+      MultiIndex(-2, -1, -1), MultiIndex(-2, -1, -1), MultiIndex(1, 1, 1),
+      ListBuffer[Statement](
+        new ConditionStatement(LowerEqualExpression(innerIt, 0),
+          AssignmentStatement(Duplicate(baseAccess), 0.0),
+          new ConditionStatement(LowerEqualExpression(innerIt, 1 * zoneSize),
+            AssignmentStatement(Duplicate(baseAccess), offsetAccess(baseAccess, -1 * innerIt + 0 * zoneSize, 0)
+              + 0.0095 * FunctionCallExpression("pow", ListBuffer[Expression](step * (LoopOverDimensions.defIt(0) - 0.0 * zoneSize), expo))),
+            new ConditionStatement(LowerEqualExpression(innerIt, 2 * zoneSize),
+              AssignmentStatement(Duplicate(baseAccess), offsetAccess(baseAccess, -1 * innerIt + 1 * zoneSize, 0)
+                + 0.0095 * step * (LoopOverDimensions.defIt(0) - 1.0 * zoneSize)),
+              new ConditionStatement(LowerEqualExpression(innerIt, 3 * zoneSize),
+                AssignmentStatement(Duplicate(baseAccess), offsetAccess(baseAccess, -1 * innerIt + 2 * zoneSize, 0)
+                  + 0.0095 * step * (LoopOverDimensions.defIt(0) - 2.0 * zoneSize)),
+                new ConditionStatement(LowerEqualExpression(innerIt, 4 * zoneSize),
+                  AssignmentStatement(Duplicate(baseAccess), offsetAccess(baseAccess, -1 * innerIt + 3 * zoneSize, 0)
+                    + 0.0095 * (1.0 - FunctionCallExpression("pow", ListBuffer[Expression](1.0 - step * (LoopOverDimensions.defIt(0) - 3.0 * zoneSize), expo)))),
+                  AssignmentStatement(Duplicate(baseAccess), offsetAccess(baseAccess, -1, 0)))))))))
+  }
+
+  def setupStagCVWidth(dim : Integer, level : Integer) : Statement = {
+    val expo = 1.5
+    val numCells = (1 << level) // TODO: adapt for non-unit fragments
+    val zoneSize = numCells / 4
+    val step = 1.0 / zoneSize
+
+    var baseIndex = LoopOverDimensions.defIt
+    baseIndex(Knowledge.dimensionality) = 0
+    val field = FieldCollection.getFieldByIdentifier(s"stag_cv_width_${dimToString(dim)}", level).get
+    val baseAccess = FieldAccess(FieldSelection(field, field.level, 0), Duplicate(baseIndex))
+    val npField = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
+    val npBaseAccess = FieldAccess(FieldSelection(npField, npField.level, 0), Duplicate(baseIndex))
+
+    val innerIt = LoopOverDimensions.defIt(0)
+
+    LoopOverPoints(field, None, true,
+      MultiIndex(-1, -1, -1), MultiIndex(-1, -1, -1), MultiIndex(1, 1, 1),
+      ListBuffer[Statement](
+        new ConditionStatement(EqEqExpression(0, innerIt),
+          AssignmentStatement(Duplicate(baseAccess),
+            0.5 * (Duplicate(npBaseAccess) + offsetAccess(npBaseAccess, 1, 0))
+              - Duplicate(npBaseAccess)),
+          new ConditionStatement(EqEqExpression(numCells, innerIt),
+            AssignmentStatement(Duplicate(baseAccess),
+              Duplicate(npBaseAccess)
+                - 0.5 * (offsetAccess(npBaseAccess, -1, 0) + Duplicate(npBaseAccess))),
+            AssignmentStatement(Duplicate(baseAccess),
+              0.5 * (Duplicate(npBaseAccess) + offsetAccess(npBaseAccess, 1, 0))
+                - 0.5 * (offsetAccess(npBaseAccess, -1, 0) + Duplicate(npBaseAccess)))))))
+  }
+
   override def resolveGridMemberFunction(name : String) : Option[java.lang.reflect.Method] = {
     this.getClass().getMethods.find(_.getName.toLowerCase() == name.toLowerCase())
   }
