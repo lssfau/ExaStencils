@@ -231,13 +231,13 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       }
 
       for (bufferAlloc <- bufferAllocs.toSeq.sortBy(_._1))
-        if ("MSVC" == Knowledge.targetCompiler && Knowledge.targetCompilerVersion <= 11) // fix for https://support.microsoft.com/en-us/kb/315481 
+        if ("MSVC" == Knowledge.targetCompiler /*&& Knowledge.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
           func.body += new Scope(bufferAlloc._2)
         else
           func.body += bufferAlloc._2
 
       for (fieldAlloc <- fieldAllocs.toSeq.sortBy(_._1))
-        if ("MSVC" == Knowledge.targetCompiler && Knowledge.targetCompilerVersion <= 11) // fix for https://support.microsoft.com/en-us/kb/315481
+        if ("MSVC" == Knowledge.targetCompiler /*&& Knowledge.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
           func.body += new Scope(fieldAlloc._2)
         else
           func.body += fieldAlloc._2
