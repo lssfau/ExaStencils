@@ -9,6 +9,9 @@ import exastencils.knowledge._
 import exastencils.logger._
 
 abstract class Grid {
+  def initL4()
+  def generateInitCode() : ListBuffer[Statement]
+
   def resolveGridMemberFunction(name : String) : Option[java.lang.reflect.Method]
 
   // helper method to map names of special fields to actual member functions implementing the resolving step

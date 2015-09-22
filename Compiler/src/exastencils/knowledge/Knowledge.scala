@@ -11,7 +11,7 @@ object Knowledge {
   var targetCompilerVersionMinor : Int = 0 // minor version of the target compiler
 
   var targetHardware : String = "CPU" // target hw platform; may be "CPU" or "ARM"
-  var hw_numThreadsPerNode : Int = 64 // specifies the total number of ranks (OMP and MPI) to be used when generating job scripts 
+  var hw_numThreadsPerNode : Int = 64 // specifies the total number of ranks (OMP and MPI) to be used when generating job scripts
 
   var useDblPrecision : Boolean = true // if true uses double precision for floating point numbers and single precision otherwise
 
@@ -59,7 +59,7 @@ object Knowledge {
   // specifies if domains are to be read from file
   var domain_readFromFile : Boolean = false
 
-  // specifies if only rectangular domains are used 
+  // specifies if only rectangular domains are used
   var domain_onlyRectangular : Boolean = true
 
   // the total number of blocks - in case of domain_generateRectengular this is the product of domain_generate_numBlocks_{x|y|z}
@@ -140,7 +140,7 @@ object Knowledge {
   // --- Compiler Capabilities ---
   def supports_initializerList = { // indicates if the compiler supports initializer lists (e.g. for std::min)
     targetCompiler match {
-      case "MSVC"            => targetCompilerVersion >= 18
+      case "MSVC"            => targetCompilerVersion >= 12
       case "GCC"             => targetCompilerVersion > 4 || (targetCompilerVersion == 4 && targetCompilerVersionMinor >= 5)
       case "IBMXL" | "IBMBG" => false // TODO: does it support initializer lists? since which version?
       case "ICC"             => targetCompilerVersion >= 14
@@ -158,7 +158,7 @@ object Knowledge {
 
   // --- OpenMP and MPI Parallelization ---
   var comm_strategyFragment : Int = 6 // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors
-  var comm_useFragmentLoopsForEachOp : Boolean = true // [true|false] // specifies if comm ops (buffer copy, send/ recv, wait) should each be aggregated and handled in distinct fragment loops 
+  var comm_useFragmentLoopsForEachOp : Boolean = true // [true|false] // specifies if comm ops (buffer copy, send/ recv, wait) should each be aggregated and handled in distinct fragment loops
 
   // TODO: check in how far the following parameters can be adapted by the SPL
   var comm_sepDataByFragment : Boolean = true // specifies if communication variables that could be fragment specific are handled separately
@@ -174,7 +174,7 @@ object Knowledge {
   var comm_useNeighborArrays : Boolean = true // specifies if neighbor specific variables are summarized in array form
 
   // --- OpenMP Parallelization ---
-  var omp_enabled : Boolean = false // [true|false] 
+  var omp_enabled : Boolean = false // [true|false]
   var omp_numThreads : Int = 1 // TODO // the number of omp threads to be used; may be incorporated in omp pragmas
 
   def omp_version : Double = { // the maximum version of omp supported by the chosen compiler
@@ -204,7 +204,7 @@ object Knowledge {
 
   // --- MPI Parallelization ---
   var mpi_enabled : Boolean = true // [true|false]
-  var mpi_numThreads : Int = 1 // TODO // the number of mpi threads to be used 
+  var mpi_numThreads : Int = 1 // TODO // the number of mpi threads to be used
 
   var mpi_useCustomDatatypes : Boolean = false // [true|false] // allows to use custom mpi data types when reading from/ writing to fields thus circumventing temp send/ receive buffers
   var mpi_useLoopsWherePossible : Boolean = true // [true|false] // allows to summarize some code blocks into loops in order to shorten the resulting code length
@@ -257,7 +257,7 @@ object Knowledge {
   var l3tmp_genStencilStencilConv : Boolean = false // [true|false] // tests stencil-stencil convolutions by using RAP instead of A
   var l3tmp_genStencilFields : Boolean = false // [true|false] // generates stencil fields that are used to store stencils of A (or RAP if l3tmp_genStencilStencilConv is true)
   var l3tmp_genInvDiagStencil : Boolean = false // [true|false] // generates a separate stencil (field) for inverse ( diag ( laplace ) ) and uses it in the smoother
-  var l3tmp_genAsyncCommunication : Boolean = false // [true|false] // replaces some sync communication statements in the L4 DSL file with their async counterparts 
+  var l3tmp_genAsyncCommunication : Boolean = false // [true|false] // replaces some sync communication statements in the L4 DSL file with their async counterparts
   var l3tmp_genTemporalBlocking : Boolean = false // [true|false] // adds the necessary statements to the L4 DSL file to implement temporal blocking; adapts field layouts as well
   var l3tmp_tempBlockingMinLevel : Int = 1 // [1+minLevel|maxLevel] // specifies a threshold for adding temporal blocking to generated l4 files; only levels larger or equal to this threshold are blocked
   var l3tmp_useConditionsForRBGS : Boolean = true // [true|false] // uses conditions to realize red-black patterns (as opposed to adapted offsets and strides)
@@ -282,7 +282,7 @@ object Knowledge {
   var l3tmp_exactSolution : String = "Zero" // specifies which function (type) is used for the solution/ rhs is used; allowed options are 'Zero', 'Polynomial', 'Trigonometric' and 'Kappa', 'Kappa_VC'
   var l3tmp_genNonZeroRhs : Boolean = false // generates more complex variants of the chosen solution function resulting in non-trival right hand sides
   var l3tmp_genExtFields : Boolean = false // adds one or more external fields to the L4 DSL file to test generation of subsequent functions
-  var l3tmp_genGlobalOmega : Boolean = false // treats l3tmp_omega as a global (modifiable) parameter 
+  var l3tmp_genGlobalOmega : Boolean = false // treats l3tmp_omega as a global (modifiable) parameter
   var l3tmp_genSetableStencil : Boolean = false // generates stencil weights as global variables instead of constant values
   var l3tmp_genVectorFields : Boolean = false // attempts to solve Poisson's equation for (l3tmp_numVecDims)D vectors; all components are solved independently
   var l3tmp_numVecDims : Int = (if (l3tmp_genVectorFields) 2 else 1) // number of components the PDE is to be solved for
@@ -305,7 +305,7 @@ object Knowledge {
   /// student project - Kelvin
   var l3tmp_kelvin : Boolean = false // currently only works for 2D
   var l3tmp_kelvin_numSamples : Int = 10 // only required for l3tmp_kelvin; number of samples to be evaluated
-  var l3tmp_kelvin_numHaloFrags : Int = 2 // only required for l3tmp_kelvin; number of halo fragments used to implement the open boundary approximation  
+  var l3tmp_kelvin_numHaloFrags : Int = 2 // only required for l3tmp_kelvin; number of halo fragments used to implement the open boundary approximation
 
   /// experimental features
   var experimental_useLevelIndepFcts : Boolean = false
@@ -321,8 +321,9 @@ object Knowledge {
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
 
-    Constraints.condEnsureValue(targetCompilerVersion, 11, "MSVC" == targetCompiler, "When using MSVC, only version 11.0 is currently supported")
-    Constraints.condEnsureValue(targetCompilerVersionMinor, 0, "MSVC" == targetCompiler, "When using MSVC, only version 11.0 is currently supported")
+    Constraints.condEnsureValue(targetCompilerVersion, 11, "MSVC" == targetCompiler && targetCompilerVersion < 11, "When using MSVC, only version 11.0 and 12.0 are currently supported")
+    Constraints.condEnsureValue(targetCompilerVersion, 12, "MSVC" == targetCompiler && targetCompilerVersion > 12, "When using MSVC, only version 11.0 and 12.0 are currently supported")
+    Constraints.condEnsureValue(targetCompilerVersionMinor, 0, "MSVC" == targetCompiler, "When using MSVC, only version 11.0 and 12.0 are currently supported")
 
     Constraints.condEnsureValue(omp_enabled, false, "CLANG" == targetCompiler && (targetCompilerVersion >= 3 && targetCompilerVersionMinor < 7), "Only clang >= 3.7 supports OpenMP")
 
@@ -465,7 +466,7 @@ object Knowledge {
     Constraints.condEnsureValue(experimental_useLevelIndepFcts, false, "Zero" != l3tmp_exactSolution, "level independent communication functions are not compatible with non-trivial boundary conditions")
     Constraints.condEnsureValue(mpi_useCustomDatatypes, false, experimental_useLevelIndepFcts, "MPI data types cannot be used in combination with level independent communication functions yet")
 
-    // data    
+    // data
     Constraints.condEnsureValue(data_alignFieldPointers, true, opt_vectorize && "QPX" == simd_instructionSet, "data_alignFieldPointers must be true for vectorization with QPX")
 
     Constraints.condEnsureValue(simd_avoidUnaligned, true, opt_vectorize && "QPX" == simd_instructionSet, "QPX does not support unaligned loads/stores")

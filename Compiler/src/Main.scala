@@ -130,6 +130,9 @@ object Main {
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Handling Layer 4")
 
+    // add specialized fields for geometric data - TODO: decide if better left here or moved to ir
+    Grid.getGridObject.initL4()
+
     // go to IR
     ResolveFunctionTemplates.apply() // preparation step
     UnfoldLevelSpecifications.apply() // preparation step

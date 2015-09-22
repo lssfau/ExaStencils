@@ -31,7 +31,7 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
       val wrapped = new LoopOverFragments(
         new ConditionStatement(iv.IsValidForSubdomain(field.domain.index), loopOverDims)) with OMP_PotentiallyParallel
 
-      if ("MSVC" == Knowledge.targetCompiler && Knowledge.targetCompilerVersion <= 11) // fix for https://support.microsoft.com/en-us/kb/315481
+      if ("MSVC" == Knowledge.targetCompiler /*&& Knowledge.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
         statements += new Scope(wrapped)
       else
         statements += wrapped

@@ -1,10 +1,15 @@
 package exastencils.grid
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 
 object Grid_AxisAlignedConstWidth extends Grid {
+  override def initL4() = {}
+  override def generateInitCode() = ListBuffer()
+
   override def resolveGridMemberFunction(name : String) : Option[java.lang.reflect.Method] = {
     this.getClass().getMethods.find(_.getName.toLowerCase() == name.toLowerCase())
   }
