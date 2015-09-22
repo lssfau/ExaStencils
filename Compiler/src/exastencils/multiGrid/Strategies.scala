@@ -124,6 +124,50 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
       }
     }
 
+    // Matrix functions
+    case x : FunctionCallExpression if x.name == "inverse" => {
+      if (x.arguments.size == 1) {
+        if (x.arguments(0).isInstanceOf[MatrixExpression]) {
+          var m = x.arguments(0).asInstanceOf[MatrixExpression]
+          if (m.rows == 2 && m.columns == 2) {
+            var a = m.expressions(0)(0)
+            var b = m.expressions(0)(1)
+            var c = m.expressions(1)(0)
+            var d = m.expressions(1)(1)
+            var det = 1.0 / (a * d - b * c)
+            MatrixExpression(m.datatype, ListBuffer(ListBuffer(det * d, det * b * (-1)), ListBuffer(det * c * (-1), det * a)))
+          } else if (m.rows == 3 && m.columns == 3) {
+            var a = m.expressions(0)(0)
+            var b = m.expressions(0)(1)
+            var c = m.expressions(0)(2)
+            var d = m.expressions(1)(0)
+            var e = m.expressions(1)(1)
+            var f = m.expressions(1)(2)
+            var g = m.expressions(2)(0)
+            var h = m.expressions(2)(1)
+            var i = m.expressions(2)(2)
+            var A = e * i - f * h
+            var B = -1 * (d * i - f * g)
+            var C = d * h - e * g
+            var D = -1 * (b * i - c * h)
+            var E = a * i - c * g
+            var F = -1 * (a * h - b * g)
+            var G = (b * f - c * e)
+            var H = -1 * (a * f - c * d)
+            var I = (a * e - b * d)
+            var det = a * A + b * B + c * C
+            MatrixExpression(m.datatype, ListBuffer(ListBuffer(A / det, D / det, G / det), ListBuffer(B / det, E / det, H / det), ListBuffer(C / det, F / det, I / det)))
+          } else {
+            x
+          }
+        } else {
+          x
+        }
+      } else {
+        x
+      }
+    }
+
     // HACK for print functionality
     case ExpressionStatement(FunctionCallExpression("print", args)) =>
       new PrintStatement(args)

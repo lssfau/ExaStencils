@@ -111,6 +111,15 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       FloatConstant(left.v * right.v)
     case DivisionExpression(left : IntegerConstant, right : FloatConstant) =>
       FloatConstant(left.v / right.v)
+
+    case AdditionExpression(left : FloatConstant, right : IntegerConstant) =>
+      FloatConstant(left.v + right.v)
+    case SubtractionExpression(left : FloatConstant, right : IntegerConstant) =>
+      FloatConstant(left.v - right.v)
+    case MultiplicationExpression(left : FloatConstant, right : IntegerConstant) =>
+      FloatConstant(left.v * right.v)
+    case DivisionExpression(left : FloatConstant, right : IntegerConstant) =>
+      FloatConstant(left.v / right.v)
     //})
 
     //this += new Transformation("Permutating operations with constants on the 'wrong' side", {
@@ -390,3 +399,4 @@ object UnifyInnerTypes extends DefaultStrategy("Unify inner types of (constant) 
     })
   }
 }
+
