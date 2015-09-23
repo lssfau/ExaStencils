@@ -400,7 +400,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       validity = validity.gistDomain(scop.domain)
     }
 
-    explConfig.mkdirs()
+    explConfig.getParentFile().mkdirs()
     val eConfOut = new java.io.PrintWriter(explConfig)
     var i : Int = 0
     Exploration.guidedExploration(scop.domain, validity, {
