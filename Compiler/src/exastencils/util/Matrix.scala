@@ -550,6 +550,12 @@ Matrix<double, M, N> operator* ( const Matrix<double, M, A>& a, const Matrix<int
     }
     return out;
 }
+
+
+template<typename T, size_t M>
+Matrix<T, M, M> inverse(const Matrix<T, M, M>& o) {
+    return o.inverse();
+}
 """
   }
 }
