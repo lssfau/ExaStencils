@@ -403,7 +403,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val eConfOut = new java.io.PrintWriter(explConfig)
     var i : Int = 0
     Exploration.guidedExploration(scop.domain, validity, {
-      (sched : String, bands : Seq[Int]) =>
+      (sched : isl.UnionMap, schedVect : Seq[Array[Int]], bands : Seq[Int]) =>
         i += 1
         if (i % 100 == 0) {
           Console.print('.')
@@ -418,6 +418,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         eConfOut.print(bands.mkString(","))
         eConfOut.print('\t')
         eConfOut.print(sched)
+        eConfOut.print('\t')
+        eConfOut.print(schedVect.map(arr => java.util.Arrays.toString(arr)).mkString(", "))
         eConfOut.println()
     })
     if (i % 5000 != 0) {
@@ -436,7 +438,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val configLine : String = lines.next()
     Logger.debug("[PolyOpt] Exploration: configuration found:")
     Logger.debug(" " + configLine)
-    val Array(_, bandsStr, scheduleStr) = configLine.split("\t")
+    val Array(_, bandsStr, scheduleStr, _) = configLine.split("\t")
 
     val bands : Array[Int] = bandsStr.split(",").map(str => Integer.parseInt(str))
     var schedule : isl.UnionMap = isl.UnionMap.readFromStr(scop.domain.getCtx(), scheduleStr)
