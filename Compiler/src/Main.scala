@@ -137,6 +137,7 @@ object Main {
     ResolveFunctionTemplates.apply() // preparation step
     UnfoldLevelSpecifications.apply() // preparation step
     ResolveL4.apply()
+    ResolveBoundaryHandlingFunctions.apply()
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
     // add remaining nodes
