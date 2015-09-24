@@ -4,6 +4,7 @@ import exastencils.core._
 import exastencils.datastructures._
 import exastencils.knowledge
 import exastencils.prettyprinting._
+import exastencils.logger._
 
 case class LayoutOption(var name : String, var value : Index, var hasCommunication : Option[Boolean]) extends Node
 
@@ -37,17 +38,21 @@ case class LayoutDeclarationStatement(
   }
   var default_duplicateLayers : Index = knowledge.Knowledge.dimensionality match {
     case 2 => discretization match {
-      case "node"   => Index2D(1, 1)
-      case "cell"   => Index2D(0, 0)
-      case "face_x" => Index2D(1, 0)
-      case "face_y" => Index2D(0, 1)
+      case "node"      => Index2D(1, 1)
+      case "cell"      => Index2D(0, 0)
+      case "face_x"    => Index2D(1, 0)
+      case "face_y"    => Index2D(0, 1)
+      case "edge_node" => Index2D(1, 0)
+      case "edge_cell" => Index2D(0, 0)
     }
     case 3 => discretization match {
-      case "node"   => Index3D(1, 1, 1)
-      case "cell"   => Index3D(0, 0, 0)
-      case "face_x" => Index3D(1, 0, 0)
-      case "face_y" => Index3D(0, 1, 0)
-      case "face_z" => Index3D(0, 0, 1)
+      case "node"      => Index3D(1, 1, 1)
+      case "cell"      => Index3D(0, 0, 0)
+      case "face_x"    => Index3D(1, 0, 0)
+      case "face_y"    => Index3D(0, 1, 0)
+      case "face_z"    => Index3D(0, 0, 1)
+      case "edge_node" => Index3D(1, 0, 0)
+      case "edge_cell" => Index3D(0, 0, 0)
     }
   }
   var default_innerPoints : Index = knowledge.Knowledge.dimensionality match {
@@ -88,6 +93,12 @@ case class LayoutDeclarationStatement(
         case "face_y" => new Index2D(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1))
+        case "edge_node" => new Index2D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
+          1)
+        case "edge_cell" => new Index2D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
+          1)
       }
       case 3 => discretization match {
         case "node" => new Index3D(
@@ -110,6 +121,14 @@ case class LayoutDeclarationStatement(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * l4_duplicateLayers(1),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 1) - 2 * l4_duplicateLayers(2))
+        case "edge_node" => new Index3D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
+          1,
+          1)
+        case "edge_cell" => new Index3D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
+          1,
+          1)
       }
     }
     var l4_innerPoints : Index = innerPoints.getOrElse(default_innerPoints)
@@ -146,11 +165,18 @@ case class LayoutDeclarationStatement(
       refOffset(dim) = ir.IntegerConstant(layouts(dim).idxDupLeftBegin)
     refOffset(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(0)
 
+    // adapt discretization for low-dimensional primitives
+    val finalDiscretization =
+      if (discretization.startsWith("edge_"))
+        discretization.drop(5)
+      else
+        discretization
+
     knowledge.FieldLayout(
       s"${identifier.name}_$targetFieldName",
       level,
       datatype.progressToIr,
-      discretization,
+      finalDiscretization,
       layouts,
       refOffset,
       l4_dupComm,
@@ -177,9 +203,12 @@ case class FieldDeclarationStatement(
 
     val ir_layout = if (knowledge.Knowledge.ir_genSepLayoutsPerField) {
       // layouts must not be shared -> generate a field specific layout
-      val l4_layout = StateManager.root.asInstanceOf[l4.Root].fieldLayouts.find(
+      val l4_layout_opt = StateManager.root.asInstanceOf[l4.Root].fieldLayouts.find(
         l => l.identifier.asInstanceOf[LeveledIdentifier].name == layout
-          && l.identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level == level).get
+          && l.identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level == level)
+      if (l4_layout_opt.isEmpty)
+        Logger.warn(s"Trying to access invalid field layout $layout on level $level")
+      val l4_layout = l4_layout_opt.get
       val ir_layout = l4_layout.progressToIr(identifier.name)
       knowledge.FieldLayoutCollection.fieldLayouts += ir_layout
       ir_layout

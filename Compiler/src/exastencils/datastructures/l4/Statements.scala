@@ -1,14 +1,16 @@
 package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
+
 import exastencils.data
 import exastencils.datastructures._
+import exastencils.datastructures.ir._
 import exastencils.domain._
 import exastencils.knowledge
+import exastencils.logger._
 import exastencils.omp
 import exastencils.prettyprinting._
 import exastencils.util._
-import exastencils.datastructures.ir._
 
 abstract class Statement extends Node with ProgressableToIr with PrettyPrintable {
   override def progressToIr : ir.Statement
@@ -142,7 +144,7 @@ case class AssignmentStatement(var dest : Access, var src : Expression, var op :
 }
 
 case class LoopOverPointsStatement(
-    var field : FieldAccess,
+    var field : Access,
     var region : Option[RegionSpecification],
     var seq : Boolean, // FIXME: seq HACK
     var condition : Option[Expression],
@@ -165,7 +167,12 @@ case class LoopOverPointsStatement(
   }
 
   override def progressToIr : ir.LoopOverPoints = {
-    ir.LoopOverPoints(field.resolveField,
+    val resolvedField = field match {
+      case access : FieldAccess        => access.resolveField
+      case access : StencilFieldAccess => access.resolveField
+      case _                           => Logger.error(s"Trying to loop over $field - has to be of type FieldAccess or StencilFieldAccess")
+    }
+    ir.LoopOverPoints(resolvedField,
       if (region.isDefined) Some(region.get.progressToIr) else None,
       seq,
       if (startOffset.isDefined) startOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
@@ -212,6 +219,47 @@ case class FunctionStatement(var identifier : Identifier,
       identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
       arguments.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
       statements.map(s => s.progressToIr).to[ListBuffer]) // FIXME: .to[ListBuffer]
+  }
+}
+
+case class FunctionTemplateStatement(var name : String,
+    var templateArgs : List[String],
+    var functionArgs : List[Variable],
+    var returntype : Datatype,
+    var statements : List[Statement]) extends Statement {
+
+  override def prettyprint(out : PpStream) = {
+    out << "FunctionTemplate " << name << " < " << templateArgs.mkString(", ") << " > ( "
+    if (!functionArgs.isEmpty) {
+      for (arg <- functionArgs) { out << arg.identifier << " : " << arg.datatype << ", " }
+      out.removeLast(2)
+    }
+    out << " )" << " : " << returntype << " {\n"
+    out <<< statements
+    out << "}\n"
+  }
+
+  override def progressToIr : ir.Statement = {
+    Logger.warn("Trying to progress FunctionTemplateStatement to ir which is not supported")
+    ir.NullStatement
+  }
+}
+
+case class FunctionInstantiationStatement(var templateName : String,
+    args : List[Expression],
+    targetFct : Identifier) extends Statement {
+  override def prettyprint(out : PpStream) = {
+    out << "Instantiate " << templateName << " < "
+    if (!args.isEmpty) {
+      for (arg <- args) { out << arg << ", " }
+      out.removeLast(2)
+    }
+    out << " > " << " as " << targetFct << "\n"
+  }
+
+  override def progressToIr : ir.Statement = {
+    Logger.warn("Trying to progress FunctionTemplateStatement to ir which is not supported")
+    ir.NullStatement
   }
 }
 

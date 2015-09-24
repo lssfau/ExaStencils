@@ -270,7 +270,7 @@ case class MultiIndex(
 }
 
 case class DirectFieldAccess(var fieldSelection : FieldSelection, var index : MultiIndex) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = FieldAccess\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = DirectFieldAccess\n"
 
   def linearize : LinearizedFieldAccess = {
     new LinearizedFieldAccess(fieldSelection, Mapping.resolveMultiIdx(fieldSelection.fieldLayout, index))
@@ -283,6 +283,15 @@ case class FieldAccess(var fieldSelection : FieldSelection, var index : MultiInd
   def expandSpecial() : DirectFieldAccess = {
     DirectFieldAccess(fieldSelection, index + fieldSelection.referenceOffset)
   }
+}
+
+case class VirtualFieldAccess(var fieldName : String,
+    var level : Expression,
+    var index : MultiIndex,
+    var arrayIndex : Option[Int] = None,
+    var fragIdx : Expression = LoopOverFragments.defIt) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = VirtualFieldAccess\n"
+
 }
 
 case class ExternalFieldAccess(var name : Expression, var field : ExternalField, var index : MultiIndex) extends Expression {

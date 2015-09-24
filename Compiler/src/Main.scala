@@ -4,6 +4,7 @@ import exastencils.data._
 import exastencils.datastructures._
 import exastencils.domain._
 import exastencils.globals._
+import exastencils.grid._
 import exastencils.knowledge._
 import exastencils.languageprocessing.l4._
 import exastencils.logger._
@@ -129,9 +130,14 @@ object Main {
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Handling Layer 4")
 
+    // add specialized fields for geometric data - TODO: decide if better left here or moved to ir
+    Grid.getGridObject.initL4()
+
     // go to IR
+    ResolveFunctionTemplates.apply() // preparation step
     UnfoldLevelSpecifications.apply() // preparation step
     ResolveL4.apply()
+    ResolveBoundaryHandlingFunctions.apply()
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
     // add remaining nodes
@@ -170,6 +176,8 @@ object Main {
     } while (numConvFound > 0)
 
     ResolveDiagFunction.apply()
+    ResolveGeometryFunctions.apply() // TODO: fuse
+    ResolveVirtualFields.apply() // TODO: fuse
     CreateGeomCoordinates.apply()
     ResolveLoopOverPointsInOneFragment.apply()
     ResolveContractingLoop.apply()

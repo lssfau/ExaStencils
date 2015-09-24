@@ -1,16 +1,16 @@
 package exastencils.domain
 
 import scala.collection.mutable.ListBuffer
+
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.grid._
 import exastencils.knowledge._
+import exastencils.mpi._
 import exastencils.omp._
 import exastencils.prettyprinting._
 import exastencils.util._
-import exastencils.mpi._
-import exastencils.communication._
-import exastencils.core._
 
 case class PointOutsideDomain(var pos : Expression, var domain : Domain) extends Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointOutsideDomain\n"
@@ -363,9 +363,10 @@ case class DomainFunctions() extends FunctionCollection(
   if (Knowledge.omp_enabled)
     externalDependencies += "omp.h"
 
-  if (Knowledge.domain_rect_generate)
+  if (Knowledge.domain_rect_generate) {
     functions += new InitGeneratedDomain
-  else {
+    functions += FunctionStatement(UnitDatatype, s"InitGeometry", ListBuffer(), Grid.getGridObject.generateInitCode())
+  } else {
     externalDependencies += ("iostream", "fstream")
     val rvTemplateFunc = FunctionStatement(
       new SpecialDatatype("template <class T> T"),
