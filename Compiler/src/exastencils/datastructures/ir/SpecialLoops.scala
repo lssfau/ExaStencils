@@ -10,6 +10,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
+import exastencils.logger._
 import exastencils.mpi._
 import exastencils.omp._
 import exastencils.optimization._
@@ -246,136 +247,54 @@ case class LoopOverDimensions(var numDimensions : Int,
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverDimensions\n"
 
   def maxIterationCount() : Array[Long] = {
-    numDimensions match {
-      case 2 => indices match {
-        // basic version assuming Integer constants
-        case IndexRange(MultiIndex(IntegerConstant(xStart), IntegerConstant(yStart), _, _),
-          MultiIndex(IntegerConstant(xEnd), IntegerConstant(yEnd), _, _)) =>
-          Array(xEnd - xStart, yEnd - yStart)
+    var start = Array.fill[Long](numDimensions)(0)
+    var end = Array.fill[Long](numDimensions)(0)
 
-        // extended version assuming OffsetIndex nodes with Integer constants
-        // INFO: this uses the maximum number of points as criteria as this defines the case displaying the upper performance bound
-        case IndexRange(
-          MultiIndex(
-            OffsetIndex(xStartOffMin, _, IntegerConstant(xStart), _),
-            OffsetIndex(yStartOffMin, _, IntegerConstant(yStart), _), _, _),
-          MultiIndex(
-            OffsetIndex(_, xEndOffMax, IntegerConstant(xEnd), _),
-            OffsetIndex(_, yEndOffMax, IntegerConstant(yEnd), _), _, _)) =>
-          Array((xEnd + xEndOffMax) - (xStart + xStartOffMin),
-            (yEnd + yEndOffMax) - (yStart + yStartOffMin))
-
-        // no match so far... try if all expressions can be evaluated to integers
-        case IndexRange(start @ MultiIndex(xStart, yStart, _, _),
-          end @ MultiIndex(xEnd, yEnd, _, _)) =>
-          try {
-            val (xStarti, xEndi) = (SimplifyExpression.evalIntegral(xStart), SimplifyExpression.evalIntegral(xEnd))
-            val (yStarti, yEndi) = (SimplifyExpression.evalIntegral(yStart), SimplifyExpression.evalIntegral(yEnd))
-            start(0) = IntegerConstant(xStarti)
-            start(1) = IntegerConstant(yStarti)
-            end(0) = IntegerConstant(xEndi)
-            end(1) = IntegerConstant(yEndi)
-            Array(xEndi - xStarti, yEndi - yStarti)
-          } catch {
-            case _ : EvaluationException => null
+    indices match {
+      case indexRange : IndexRange =>
+        indexRange.begin match {
+          case startIndex : MultiIndex => {
+            for (dim <- 0 until numDimensions) {
+              startIndex(dim) match {
+                case IntegerConstant(xStart)                                  => start(dim) = xStart
+                case OffsetIndex(xStartOffMin, _, IntegerConstant(xStart), _) => start(dim) = xStart + xStartOffMin
+                case _ => { // no use -> try evaluation as last resort
+                  try {
+                    val simplified = SimplifyExpression.evalIntegral(startIndex(dim))
+                    startIndex(dim) = IntegerConstant(simplified)
+                    start(dim) = simplified
+                  } catch {
+                    case _ : EvaluationException => return null // evaluation failed -> abort
+                  }
+                }
+              }
+            }
           }
-
-        // could not match
-        case _ => null
-      }
-
-      case 3 => indices match {
-        // basic version assuming Integer constants
-        case IndexRange(MultiIndex(IntegerConstant(xStart), IntegerConstant(yStart), IntegerConstant(zStart), _),
-          MultiIndex(IntegerConstant(xEnd), IntegerConstant(yEnd), IntegerConstant(zEnd), _)) =>
-          Array(xEnd - xStart, yEnd - yStart, zEnd - zStart)
-
-        // extended version assuming OffsetIndex nodes with Integer constants
-        // INFO: this uses the maximum number of points as criteria as this defines the case displaying the upper performance bound
-        case IndexRange(
-          MultiIndex(
-            OffsetIndex(xStartOffMin, _, IntegerConstant(xStart), _),
-            OffsetIndex(yStartOffMin, _, IntegerConstant(yStart), _),
-            OffsetIndex(zStartOffMin, _, IntegerConstant(zStart), _), _),
-          MultiIndex(
-            OffsetIndex(_, xEndOffMax, IntegerConstant(xEnd), _),
-            OffsetIndex(_, yEndOffMax, IntegerConstant(yEnd), _),
-            OffsetIndex(_, zEndOffMax, IntegerConstant(zEnd), _), _)) =>
-          Array((xEnd + xEndOffMax) - (xStart + xStartOffMin),
-            (yEnd + yEndOffMax) - (yStart + yStartOffMin),
-            (zEnd + zEndOffMax) - (zStart + zStartOffMin))
-
-        // no match so far... try if all expressions can be evaluated to integers
-        case IndexRange(start @ MultiIndex(xStart, yStart, zStart, _),
-          end @ MultiIndex(xEnd, yEnd, zEnd, _)) =>
-          try {
-            val (xStarti, xEndi) = (SimplifyExpression.evalIntegral(xStart), SimplifyExpression.evalIntegral(xEnd))
-            val (yStarti, yEndi) = (SimplifyExpression.evalIntegral(yStart), SimplifyExpression.evalIntegral(yEnd))
-            val (zStarti, zEndi) = (SimplifyExpression.evalIntegral(zStart), SimplifyExpression.evalIntegral(zEnd))
-            start(0) = IntegerConstant(xStarti)
-            start(1) = IntegerConstant(yStarti)
-            start(2) = IntegerConstant(zStarti)
-            end(0) = IntegerConstant(xEndi)
-            end(1) = IntegerConstant(yEndi)
-            end(2) = IntegerConstant(zEndi)
-            Array(xEndi - xStarti, yEndi - yStarti, zEndi - zStarti)
-          } catch {
-            case _ : EvaluationException => null
+          case _ => Logger.warn("Loop index range begin is not a MultiIndex"); return null
+        }
+        indexRange.end match {
+          case endIndex : MultiIndex => {
+            for (dim <- 0 until numDimensions) {
+              endIndex(dim) match {
+                case IntegerConstant(xEnd)                                => end(dim) = xEnd
+                case OffsetIndex(_, xEndOffMax, IntegerConstant(xEnd), _) => end(dim) = xEnd + xEndOffMax
+                case _ => { // no use -> try evaluation as last resort
+                  try {
+                    val simplified = SimplifyExpression.evalIntegral(endIndex(dim))
+                    endIndex(dim) = IntegerConstant(simplified)
+                    end(dim) = simplified
+                  } catch {
+                    case _ : EvaluationException => return null // evaluation failed -> abort
+                  }
+                }
+              }
+            }
           }
-
-        // could not match
-        case _ => null
-      }
-
-      case 4 => indices match {
-        // basic version assuming Integer constants
-        case IndexRange(MultiIndex(IntegerConstant(xStart), IntegerConstant(yStart), IntegerConstant(zStart), IntegerConstant(wStart)),
-          MultiIndex(IntegerConstant(xEnd), IntegerConstant(yEnd), IntegerConstant(zEnd), IntegerConstant(wEnd))) =>
-          Array(xEnd - xStart, yEnd - yStart, zEnd - zStart, wEnd - wStart)
-
-        // extended version assuming OffsetIndex nodes with Integer constants
-        // INFO: this uses the maximum number of points as criteria as this defines the case displaying the upper performance bound
-        case IndexRange(
-          MultiIndex(
-            OffsetIndex(xStartOffMin, _, IntegerConstant(xStart), _),
-            OffsetIndex(yStartOffMin, _, IntegerConstant(yStart), _),
-            OffsetIndex(zStartOffMin, _, IntegerConstant(zStart), _),
-            OffsetIndex(wStartOffMin, _, IntegerConstant(wStart), _)),
-          MultiIndex(
-            OffsetIndex(_, xEndOffMax, IntegerConstant(xEnd), _),
-            OffsetIndex(_, yEndOffMax, IntegerConstant(yEnd), _),
-            OffsetIndex(_, zEndOffMax, IntegerConstant(zEnd), _),
-            OffsetIndex(_, wEndOffMax, IntegerConstant(wEnd), _))) =>
-          Array((xEnd + xEndOffMax) - (xStart + xStartOffMin),
-            (yEnd + yEndOffMax) - (yStart + yStartOffMin),
-            (zEnd + zEndOffMax) - (zStart + zStartOffMin),
-            (wEnd + wEndOffMax) - (wStart + wStartOffMin))
-
-        // no match so far... try if all expressions can be evaluated to integers
-        case IndexRange(start @ MultiIndex(xStart, yStart, zStart, wStart),
-          end @ MultiIndex(xEnd, yEnd, zEnd, wEnd)) =>
-          try {
-            val (xStarti, xEndi) = (SimplifyExpression.evalIntegral(xStart), SimplifyExpression.evalIntegral(xEnd))
-            val (yStarti, yEndi) = (SimplifyExpression.evalIntegral(yStart), SimplifyExpression.evalIntegral(yEnd))
-            val (zStarti, zEndi) = (SimplifyExpression.evalIntegral(zStart), SimplifyExpression.evalIntegral(zEnd))
-            val (wStarti, wEndi) = (SimplifyExpression.evalIntegral(wStart), SimplifyExpression.evalIntegral(wEnd))
-            start(0) = IntegerConstant(xStarti)
-            start(1) = IntegerConstant(yStarti)
-            start(2) = IntegerConstant(zStarti)
-            start(3) = IntegerConstant(wStarti)
-            end(0) = IntegerConstant(xEndi)
-            end(1) = IntegerConstant(yEndi)
-            end(2) = IntegerConstant(zEndi)
-            end(3) = IntegerConstant(wEndi)
-            Array(xEndi - xStarti, yEndi - yStarti, zEndi - zStarti, wEndi - wStarti)
-          } catch {
-            case _ : EvaluationException => null
-          }
-
-        // could not match
-        case _ => null
-      }
+          case _ => Logger.warn("Loop index range end is not a MultiIndex"); return null
+        }
+      case _ => Logger.warn("Loop indices are not of type IndexRange"); return null
     }
+    return (0 until numDimensions).toArray.map(dim => end(dim) - start(dim))
   }
 
   def parallelizationIsReasonable : Boolean = {
