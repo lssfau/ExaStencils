@@ -165,7 +165,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
             njuDomain = if (njuDomain == null) set else njuDomain.addSet(set)
           () // return type must be Unit, but the true branch returns a Buffer...
       })
-      var proto : isl.Set = remDoms(0).resetTupleId()
+      val mergedDom : isl.Set = remDoms(0)
+      val proto : isl.Set = mergedDom.resetTupleId()
       for (i <- 1 until remDoms.length)
         if (!proto.isEqual(remDoms(i).resetTupleId()))
           Breaks.break() // continue... different domains, cannot merge statements
@@ -179,9 +180,9 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
           Breaks.break() // continue... loopIts must be identical?!
       }
       scop.domain =
-        if (njuDomain == null) remDoms(0)
-        else njuDomain.addSet(remDoms(0)) // re-add one of the domains
-      val njuLabel : String = remDoms(0).getTupleName()
+        if (njuDomain == null) mergedDom
+        else njuDomain.addSet(mergedDom) // re-add one of the domains
+      val njuLabel : String = mergedDom.getTupleName()
       for ((lab, _) <- stmts)
         if (lab == njuLabel)
           scop.stmts(lab) = (mergedStmts, mergedLoopIts)
@@ -221,7 +222,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         if (scop.deadAfterScop.intersect(set).isEmpty())
           resurrect = true
       if (resurrect)
-        scop.deadAfterScop = scop.deadAfterScop.subtract(isl.Set.universeLike(remDoms(0)))
+        scop.deadAfterScop = scop.deadAfterScop.subtract(mergedDom.dropConstraintsInvolvingDims(isl.DimType.Set, 0, mergedDom.dim(isl.DimType.Set)))
     }
   }
 
