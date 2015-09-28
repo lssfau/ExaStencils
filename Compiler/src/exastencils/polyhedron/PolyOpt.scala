@@ -164,6 +164,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
               remDoms += set
             else
               njuDomain = if (njuDomain == null) set else njuDomain.addSet(set)
+            () // return type must be Unit, but the true branch returns a Buffer...
         })
         var proto : isl.Set = remDoms(0).resetTupleId()
         for (i <- 1 until remDoms.length)
