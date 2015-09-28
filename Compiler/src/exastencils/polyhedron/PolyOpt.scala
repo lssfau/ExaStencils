@@ -130,7 +130,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         toFind = name
         var fstStmt : Int = -1
         var lstStmt : Int = -1
-        var stmts : Buffer[(String, (Seq[Statement], ArrayBuffer[String]))] =
+        var stmts : Buffer[(String, (ListBuffer[Statement], ArrayBuffer[String]))] =
           scop.stmts.toBuffer.sorted(new Ordering[(String, _)] {
             override def compare(a : (String, _), b : (String, _)) : Int = {
               return a._1.compareTo(b._1)
@@ -168,20 +168,16 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         })
         var proto : isl.Set = remDoms(0).resetTupleId()
         for (i <- 1 until remDoms.length)
-          if (!proto.isEqual(remDoms(i).resetTupleId())) {
-            println("foo...")
+          if (!proto.isEqual(remDoms(i).resetTupleId()))
             Breaks.break() // continue... different domains, cannot merge statements
-          }
         val mergedStmts = new ListBuffer[Statement]()
         var mergedLoopIts : ArrayBuffer[String] = null
         for ((lab, (stmt, loopIts)) <- stmts) {
           mergedStmts ++= stmt
           if (mergedLoopIts == null)
             mergedLoopIts = loopIts
-          else if (!mergedLoopIts.sameElements(loopIts)) {
-            println("bar...")
+          else if (!mergedLoopIts.sameElements(loopIts))
             Breaks.break() // continue... loopIts must be identical?!
-          }
         }
         scop.domain =
           if (njuDomain == null) remDoms(0)
