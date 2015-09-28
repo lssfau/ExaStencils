@@ -27,7 +27,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
   private final val NEG_ONE_VAL : isl.Val = isl.Val.negone()
 
   private val loopStmts = new HashMap[String, ListBuffer[OptimizationHint]]()
-  private var oldStmts : HashMap[String, (Statement, ArrayBuffer[String])] = null
+  private var oldStmts : HashMap[String, (ListBuffer[Statement], ArrayBuffer[String])] = null
   private var seqDims : TreeSet[String] = null
   private var parallelize_omp : Boolean = false
   private var reduction : Option[Reduction] = None
@@ -218,19 +218,20 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
         assume(expr.getOpType() == isl.AstOpType.OpCall, "user node is no OpCall?!")
         val args : Array[Expression] = processArgs(expr)
         val name : String = args(0).asInstanceOf[StringConstant].value
-        val (oldStmt : Statement, loopVars : ArrayBuffer[String]) = oldStmts(name)
-        val stmt : Statement = Duplicate(oldStmt)
+        val (oldStmt : ListBuffer[Statement], loopVars : ArrayBuffer[String]) = oldStmts(name)
+        val stmts : ListBuffer[Statement] = Duplicate(oldStmt)
         val repl = new HashMap[String, Expression]()
         for (d <- 1 until args.length)
           repl.put(loopVars(loopVars.size - d), args(d))
 
-        replaceCallback(repl, stmt)
-        if (condition != null) {
-          val cond : Expression = Duplicate(condition)
-          replaceCallback(repl, cond)
-          stmt.annotate(PolyOpt.IMPL_CONDITION_ANNOT, cond)
-        }
-        ListBuffer[Statement](stmt)
+        replaceCallback(repl, Scope(stmts))
+        if (condition != null)
+          for (stmt <- stmts) {
+            val cond : Expression = Duplicate(condition)
+            replaceCallback(repl, cond)
+            stmt.annotate(PolyOpt.IMPL_CONDITION_ANNOT, cond)
+          }
+        stmts
 
       case isl.AstNodeType.NodeError => throw new PolyASTBuilderException("NodeError found...")
     }

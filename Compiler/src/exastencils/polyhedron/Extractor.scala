@@ -3,6 +3,7 @@ package exastencils.polyhedron
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.ArrayStack
 import scala.collection.mutable.HashSet
+import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
 import scala.collection.mutable.StringBuilder
 
@@ -268,6 +269,12 @@ class Extractor extends Collector {
 
       private var id_ : Int = -1
       private var label_ : String = null
+      private val df = {
+        val df_ = new java.text.DecimalFormat()
+        df_.setMinimumIntegerDigits(4) // 9999 different statements should be enough
+        df_.setGroupingUsed(false)
+        df_
+      }
 
       def exists() : Boolean = { label_ != null }
       def label() : String = { label_ }
@@ -275,7 +282,7 @@ class Extractor extends Collector {
       def leave() : Unit = { label_ = null }
       def next() : this.type = {
         id_ += 1
-        label_ = "S" + id_
+        label_ = "S" + df.format(id_)
         return this
       }
     }
@@ -596,7 +603,7 @@ class Extractor extends Collector {
     val scop : Scop = curScop.get()
 
     val label : String = curScop.curStmt.next().label()
-    scop.stmts.put(label, (stmt, curScop.origLoopVars()))
+    scop.stmts.put(label, (ListBuffer(stmt), curScop.origLoopVars()))
 
     val domain = curScop.buildIslSet(label)
     scop.domain = if (scop.domain == null) domain else scop.domain.addSet(domain)

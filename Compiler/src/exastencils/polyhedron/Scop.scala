@@ -16,7 +16,7 @@ class Scop(val root : LoopOverDimensions, var optLevel : Int, var parallelize : 
 
   var domain : isl.UnionSet = null
   var schedule : isl.UnionMap = null
-  val stmts = new HashMap[String, (Statement, ArrayBuffer[String])]()
+  val stmts = new HashMap[String, (ListBuffer[Statement], ArrayBuffer[String])]()
   val decls = new ListBuffer[VariableDeclarationStatement]()
 
   val njuLoopVars = new ArrayBuffer[String]()
