@@ -192,12 +192,12 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         var nju : isl.UnionMap = null
         scop.reads.foreachMap({
           map : isl.Map =>
-            if (map.getTupleName(T_OUT) != name) { // remove all accesses to the scalar
-              val oldLabel : String = map.getTupleName(T_IN)
+            if (map.getTupleName(isl.DimType.Out) != name) { // remove all accesses to the scalar
+              val oldLabel : String = map.getTupleName(isl.DimType.In)
               var toAdd : isl.Map = map
               if (oldLabel != njuLabel)
                 for ((lab, _) <- stmts if (oldLabel == lab))
-                  toAdd = toAdd.setTupleName(T_IN, njuLabel)
+                  toAdd = toAdd.setTupleName(isl.DimType.In, njuLabel)
               nju = if (nju == null) toAdd else nju.addMap(toAdd)
             }
         })
@@ -205,12 +205,12 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         nju = null
         scop.writes.foreachMap({
           map : isl.Map =>
-            if (map.getTupleName(T_OUT) != name) { // remove all accesses to the scalar
-              val oldLabel : String = map.getTupleName(T_IN)
+            if (map.getTupleName(isl.DimType.Out) != name) { // remove all accesses to the scalar
+              val oldLabel : String = map.getTupleName(isl.DimType.In)
               var toAdd : isl.Map = map
               if (oldLabel != njuLabel)
                 for ((lab, _) <- stmts if (oldLabel == lab))
-                  toAdd = toAdd.setTupleName(T_IN, njuLabel)
+                  toAdd = toAdd.setTupleName(isl.DimType.In, njuLabel)
               nju = if (nju == null) toAdd else nju.addMap(toAdd)
             }
         })
