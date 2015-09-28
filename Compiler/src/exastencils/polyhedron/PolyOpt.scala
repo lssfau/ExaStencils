@@ -139,9 +139,9 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         var i : Int = 0
         val oldLvl = Logger.getLevel
         Logger.setLevel(Logger.WARNING)
-        for ((lab, (Seq(stmt), _)) <- stmts) {
+        for ((lab, (stmt, _)) <- stmts) {
           found = false
-          this.execute(search, Some(stmt))
+          this.execute(search, Some(Scope(stmt)))
           if (found) {
             if (fstStmt < 0)
               fstStmt = i
@@ -174,8 +174,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
           }
         val mergedStmts = new ListBuffer[Statement]()
         var mergedLoopIts : ArrayBuffer[String] = null
-        for ((lab, (Seq(stmt), loopIts)) <- stmts) {
-          mergedStmts += stmt
+        for ((lab, (stmt, loopIts)) <- stmts) {
+          mergedStmts ++= stmt
           if (mergedLoopIts == null)
             mergedLoopIts = loopIts
           else if (!mergedLoopIts.sameElements(loopIts)) {
