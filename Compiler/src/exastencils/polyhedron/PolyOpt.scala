@@ -181,7 +181,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
           else
             njuDomain = if (njuDomain == null) set else njuDomain.addSet(set)
       })
-      val proto : isl.Set = remDoms(0).resetTupleId()
+      val mergedDom : isl.Set = remDoms(0)
+      val proto : isl.Set = mergedDom.resetTupleId()
       for (i <- 1 until remDoms.length)
         if (!proto.isEqual(remDoms(i).resetTupleId()))
           Breaks.break() // continue... different domains, cannot merge statements
@@ -195,9 +196,9 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
           Breaks.break() // continue... loopIts must be identical?!
       }
       scop.domain =
-        if (njuDomain == null) remDoms(0)
-        else njuDomain.addSet(remDoms(0)) // re-add one of the domains
-      val njuLabel : String = remDoms(0).getTupleName()
+        if (njuDomain == null) mergedDom
+        else njuDomain.addSet(mergedDom) // re-add one of the domains
+      val njuLabel : String = mergedDom.getTupleName()
       for ((lab, _) <- stmts)
         if (lab == njuLabel)
           scop.stmts(lab) = (mergedStmts, mergedLoopIts)
