@@ -18,8 +18,12 @@ object Smoothers {
   def addBodyBefore(printer : java.io.PrintWriter, postfix : String, tempBlocking : Boolean) = {
     if (Knowledge.l3tmp_genFragLoops)
       printer.println(s"\tloop over fragments {")
-    if (tempBlocking)
-      printer.println(s"\trepeat ${Knowledge.l3tmp_numPre} times with contraction {")
+    if (tempBlocking) {
+      printer.print(s"\trepeat ${Knowledge.l3tmp_numPre} times with contraction [1, 1")
+      if (Knowledge.dimensionality > 2)
+        printer.print(", 1")
+      printer.println("] {")
+    }
   }
   def addBodyAfter(printer : java.io.PrintWriter, postfix : String, tempBlocking : Boolean) = {
     if (tempBlocking)

@@ -263,22 +263,34 @@ case class FunctionInstantiationStatement(var templateName : String,
   }
 }
 
+case class ContractionSpecification(var posExt : Index, var negExt : Option[Index]) extends SpecialStatement {
+  override def prettyprint(out : PpStream) : Unit = {
+    out << posExt
+    if (negExt.isDefined)
+      out << ", " << negExt
+  }
+
+  override def progressToIr : ir.ContractionSpecification = {
+    return new ir.ContractionSpecification(posExt.extractArray, negExt.getOrElse(posExt).extractArray)
+  }
+}
+
 case class RepeatTimesStatement(var number : Int,
     var iterator : Option[Access],
-    var contraction : Boolean,
+    var contraction : Option[ContractionSpecification],
     var statements : List[Statement]) extends Statement {
 
   override def prettyprint(out : PpStream) = {
     out << "repeat " << number << " times"
     if (iterator.isDefined) out << " count " << iterator.get
-    if (contraction) out << " with contraction"
+    if (contraction.isDefined) out << " with contraction " << contraction.get
     out << " {\n" <<< statements << "}\n"
   }
 
   override def progressToIr : ir.Statement = {
-    if (contraction)
+    if (contraction.isDefined)
       // FIXME: to[ListBuffer]
-      return new ir.ContractingLoop(number, iterator.map(i => i.progressToIr), statements.map(s => s.progressToIr).to[ListBuffer])
+      return new ir.ContractingLoop(number, iterator.map(i => i.progressToIr), statements.map(s => s.progressToIr).to[ListBuffer], contraction.get.progressToIr)
 
     val (loopVar, begin) =
       if (iterator.isDefined) {
