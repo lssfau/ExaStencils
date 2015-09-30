@@ -58,7 +58,7 @@ Globals {
 
 Function SmootherT() : Unit {
 	loop over fragments {
-		repeat 2 times with contraction {
+		repeat 2 times with contraction [1, 1, 1] {
 			loop over SolutionT@finest {
 				SolutionT[nextSlot]@finest = SolutionT[active]@finest + (0.8 / diag(Laplace@finest) * (RHST@finest - Laplace@finest * SolutionT[active]@finest))
 			}

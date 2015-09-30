@@ -20,27 +20,27 @@ import exastencils.strategies._
 import exastencils.util._
 
 case class RegionSpecification(var region : String, var dir : Array[Int], var onlyOnBoundary : Boolean) {}
+case class ContractionSpecification(var posExt : Array[Int], var negExt : Array[Int])
 
-case class ContractingLoop(var number : Int, var iterator : Option[Expression], var statements : ListBuffer[Statement]) extends Statement {
+case class ContractingLoop(var number : Int, var iterator : Option[Expression], var statements : ListBuffer[Statement],
+    var spec : ContractionSpecification) extends Statement {
+  // TODO: validate spec
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ContractingLoop\n"
 
-  // TODO: some error here? see expandSpecial
-  // private def extendBounds(start : MultiIndex, end : MultiIndex, extent : Int, field : Field) : Unit = {
-  //   for (dim <- 0 until Knowledge.dimensionality) {
-  //     start(dim) -= IntegerConstant(extent) * (1 - ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
-  //     end(dim) += IntegerConstant(extent) * (1 + ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim))
-  //   }
-  // }
-
   // IMPORTANT: must match and extend all possible bounds for LoopOverDimensions inside a ContractingLoop
-  private def extendBounds(expr : Expression, extent : Int) : Expression = {
+  private def extendBoundsBegin(expr : Expression, extent : Int) : Expression = {
     expr match {
       case oInd @ OffsetIndex(0, 1, _, ArrayAccess(_ : iv.IterationOffsetBegin, _, _)) =>
         oInd.maxOffset += extent
         oInd.index = SimplifyExpression.simplifyIntegralExpr(oInd.index - extent)
         oInd.offset = SimplifyExpression.simplifyIntegralExpr(oInd.offset * (extent + 1))
         oInd
+    }
+  }
 
+  // IMPORTANT: must match and extend all possible bounds for LoopOverDimensions inside a ContractingLoop
+  private def extendBoundsEnd(expr : Expression, extent : Int) : Expression = {
+    expr match {
       case oInd @ OffsetIndex(-1, 0, _, ArrayAccess(_ : iv.IterationOffsetEnd, _, _)) =>
         oInd.minOffset -= extent
         oInd.index = SimplifyExpression.simplifyIntegralExpr(oInd.index + extent)
@@ -68,8 +68,8 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
   private def processLoopOverDimensions(l : LoopOverDimensions, extent : Int, fieldOffset : HashMap[FieldKey, Int]) : LoopOverDimensions = {
     val nju : LoopOverDimensions = Duplicate(l)
     for (dim <- 0 until Knowledge.dimensionality) {
-      nju.indices.begin(dim) = extendBounds(nju.indices.begin(dim), extent)
-      nju.indices.end(dim) = extendBounds(nju.indices.end(dim), extent)
+      nju.indices.begin(dim) = extendBoundsBegin(nju.indices.begin(dim), extent * spec.negExt(dim))
+      nju.indices.end(dim) = extendBoundsEnd(nju.indices.end(dim), extent * spec.posExt(dim))
     }
     updateSlots(nju.body, fieldOffset)
     return nju
@@ -89,7 +89,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
             fields(fKey) = field
 
           case cStmt @ ConditionStatement(cond, ListBuffer(l : LoopOverDimensions), ListBuffer()) =>
-            val nju = processLoopOverDimensions(l, (number - i) * 1, fieldOffset) // TODO: currently independent from used stencils (const factor 1)
+            val nju = processLoopOverDimensions(l, (number - i), fieldOffset)
             if (condStmt == null || cond != condStmt.condition) {
               condStmt = Duplicate(cStmt)
               condStmt.trueBody.clear()
@@ -98,14 +98,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
             condStmt.trueBody += nju
 
           case l : LoopOverDimensions =>
-            res += processLoopOverDimensions(l, (number - i) * 1, fieldOffset) // TODO: currently independent from used stencils (const factor 1)
-
-          // TODO: fix! results differ from them generated when a LoopOverDimensions instead of a LoopOverPointsInOneFragment is present
-          // case loop : LoopOverPointsInOneFragment =>
-          //   val nju = Duplicate(loop)
-          //   extendBounds(nju.startOffset, nju.endOffset, (number - i) * 1, loop.field) // TODO: currently independent from used stencils
-          //   updateSlots(nju.body, fieldOffset)
-          //   res += nju
+            res += processLoopOverDimensions(l, (number - i), fieldOffset)
         }
 
     for ((fKey, offset) <- fieldOffset) {
