@@ -105,8 +105,19 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     // HACK for print functionality
     case ExpressionStatement(FunctionCallExpression("print", args)) =>
       new PrintStatement(args)
-    case ExpressionStatement(FunctionCallExpression("printField", args)) =>
-      new PrintFieldStatement(args(0), args(1).asInstanceOf[FieldAccess].fieldSelection)
+    case ExpressionStatement(FunctionCallExpression("printField", args)) => {
+      args.length match {
+        case 1 => // option 1: only field -> deduce name 
+          new PrintFieldStatement("\"" + args(0).asInstanceOf[FieldAccess].fieldSelection.field.identifier + ".dat\"", args(0).asInstanceOf[FieldAccess].fieldSelection)
+        case 2 => // option 2: filename and field
+          new PrintFieldStatement(args(0), args(1).asInstanceOf[FieldAccess].fieldSelection)
+        case 3 => //option 3: filename, file and condition 
+          new PrintFieldStatement(args(0), args(1).asInstanceOf[FieldAccess].fieldSelection, args(2))
+      }
+    }
+
+    case ExpressionStatement(FunctionCallExpression("buildString", args)) =>
+      new BuildStringStatement(args(0), args.slice(1, args.size))
 
     // FIXME: HACK to realize application functionality
     case func : FunctionStatement if ("Application" == func.name) => {
