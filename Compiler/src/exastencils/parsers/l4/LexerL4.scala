@@ -23,10 +23,10 @@ class LexerL4 extends exastencils.parsers.ExaLexer {
   reserved += ("sequentially") // FIXME: seq HACK
 
   // condition keywords
-  reserved += ("if", "else")
+  reserved += ("if", "else", "and", "or")
 
   // language datatypes
-  reserved += ("Unit", "String", "Integer", "Real", "Complex", "Array", "Boolean")
+  reserved += ("Unit", "String", "Integer", "Int", "Real", "Complex", "Array", "Boolean", "Bool")
 
   // level specification keywords
   reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "all", "and")

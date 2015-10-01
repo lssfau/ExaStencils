@@ -166,7 +166,7 @@ case class MPI_Sequential(var body : ListBuffer[Statement]) extends Statement wi
   def expand : Output[ForLoopStatement] = {
     ForLoopStatement(
       VariableDeclarationStatement(IntegerDatatype, "curRank", Some(0)),
-      LowerExpression("curRank", "mpiSize"),
+      LowerExpression("curRank", Knowledge.mpi_numThreads),
       PreIncrementExpression("curRank"),
       ListBuffer[Statement](
         MPI_Barrier(),
@@ -188,6 +188,7 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
           s"int len",
           s"MPI_Error_string(stat.MPI_ERROR, msg, &len)",
           new PrintStatement(ListBuffer[Expression]("\"MPI Error encountered (\"", "msg", "\")\"")))),
-        s"*request = MPI_Request()"))
+        s"*request = MPI_Request()"),
+      false)
   }
 }
