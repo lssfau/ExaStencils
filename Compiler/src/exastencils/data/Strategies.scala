@@ -92,6 +92,7 @@ object ResolveSlotOperationsStrategy extends DefaultStrategy("ResolveSlotOperati
   })
 }
 
+// Note: Must run after ResolveLoopOverPointsInOneFragment
 object ResolveContractingLoop extends DefaultStrategy("Resolving ContractingLoop nodes") {
   this += new Transformation("Resolving", {
     case loop : ContractingLoop =>
