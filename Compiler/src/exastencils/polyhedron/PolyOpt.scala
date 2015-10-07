@@ -239,6 +239,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         return
       }
       scop.optLevel = math.max(scop.optLevel, toMerge.optLevel)
+      scop.context = unionNull(scop.context, toMerge.context)
       scop.domain = unionNull(scop.domain, toMerge.domain)
       scop.schedule = unionNull(scop.schedule, insertCst(toMerge.schedule, i))
       scop.stmts ++= toMerge.stmts
@@ -266,6 +267,14 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         s = s.addMap(nju.fixVal(isl.DimType.Out, 0, i))
     })
     return s
+  }
+
+  private def unionNull(a : isl.Set, b : isl.Set) : isl.Set = {
+    (a, b) match {
+      case (null, y) => y
+      case (x, null) => x
+      case (x, y)    => x.union(y)
+    }
   }
 
   private def unionNull(a : isl.UnionSet, b : isl.UnionSet) : isl.UnionSet = {

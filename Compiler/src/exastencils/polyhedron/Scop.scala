@@ -9,7 +9,8 @@ import exastencils.datastructures.Node
 import exastencils.datastructures.ir._
 import isl.Conversions._
 
-class Scop(val root : LoopOverDimensions, var optLevel : Int, var parallelize : Boolean, var origIterationCount : Array[Long]) {
+class Scop(val root : LoopOverDimensions, var context : isl.Set, var optLevel : Int, var parallelize : Boolean,
+    var origIterationCount : Array[Long]) {
 
   var nextMerge : Scop = null
   var remove : Boolean = false
