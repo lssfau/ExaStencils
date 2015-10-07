@@ -122,7 +122,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     oldStmts = scop.stmts
 
     // build AST
-    var islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.domain.params())
+    var islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.context)
     islBuild = islBuild.setOptions(isl.UnionMap.readFromStr(options.toString()))
     islBuild = islBuild.setIterators(itersId)
     var scattering : isl.UnionMap = Isl.simplify(scop.schedule.intersectDomain(scop.domain))
@@ -256,6 +256,12 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     val n : Int = args.length
 
     return expr.getOpType() match {
+      case isl.AstOpType.OpEq if n == 2 && args(0).isInstanceOf[iv.NeighborIsValid] =>
+        args(1) match {
+          case IntegerConstant(1) => args(0)
+          case IntegerConstant(0) => new NegationExpression(args(0))
+        }
+
       case isl.AstOpType.OpAndThen if n == 2 => new AndAndExpression(args(0), args(1))
       case isl.AstOpType.OpAnd if n == 2     => new AndAndExpression(args(0), args(1))
       case isl.AstOpType.OpOrElse if n == 2  => new OrOrExpression(args(0), args(1))

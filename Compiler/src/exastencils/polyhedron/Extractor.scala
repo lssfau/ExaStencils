@@ -76,6 +76,13 @@ object Extractor {
       case IntegerConstant(i) =>
         constraints.append(java.lang.Long.toString(i))
 
+      case b : iv.NeighborIsValid =>
+        val islStr : String = ScopNameMapping.expr2id(b)
+        // vars and paramConstr must not be null
+        vars.add(islStr)
+        paramConstr.append("(0<=").append(islStr).append("<=1)")
+        constraints.append('(').append(islStr).append("=1)")
+
       case OffsetIndex(min, max, ind, off) =>
         constraints.append('(')
         bool |= extractConstraints(ind, constraints, formatString, paramConstr, vars)
@@ -84,22 +91,22 @@ object Extractor {
         constraints.append(')')
         if (paramConstr != null) off match {
           case _ : VariableAccess | _ : ArrayAccess =>
-            paramConstr.append(" and ")
             paramConstr.append('(').append(min).append("<=")
             paramConstr.append(ScopNameMapping.expr2id(off))
             paramConstr.append("<=").append(max).append(')')
+            paramConstr.append(" and ")
 
           case MultiplicationExpression(IntegerConstant(c), arr : ArrayAccess) =>
-            paramConstr.append(" and ")
             paramConstr.append('(').append(min).append("<=").append(c).append('*')
             paramConstr.append(ScopNameMapping.expr2id(arr))
             paramConstr.append("<=").append(max).append(')')
+            paramConstr.append(" and ")
 
           case MultiplicationExpression(arr : ArrayAccess, IntegerConstant(c)) =>
-            paramConstr.append(" and ")
             paramConstr.append('(').append(min).append("<=").append(c).append('*')
             paramConstr.append(ScopNameMapping.expr2id(arr))
             paramConstr.append("<=").append(max).append(')')
+            paramConstr.append(" and ")
 
           case _ =>
         }
@@ -154,9 +161,10 @@ object Extractor {
         constraints.append(')')
 
       case NegationExpression(e) =>
-        constraints.append("-(")
-        bool |= extractConstraints(e, constraints, formatString, paramConstr, vars)
+        constraints.append("!(")
+        extractConstraints(e, constraints, formatString, paramConstr, vars)
         constraints.append(')')
+        bool = true
 
       case LowerExpression(l, r) =>
         extractConstraints(l, constraints, formatString, paramConstr, vars)
@@ -301,10 +309,10 @@ class Extractor extends Collector {
     private final val formatterResult : java.lang.StringBuilder = new java.lang.StringBuilder()
     private final val formatter = new java.util.Formatter(formatterResult)
 
-    def create(root : LoopOverDimensions, optLevel : Int, origLoopVars : ArrayBuffer[String],
+    def create(root : LoopOverDimensions, context : isl.Set, optLevel : Int, origLoopVars : ArrayBuffer[String],
       modelLoopVars : String, setTempl : String, mapTempl : String, mergeWithPrev : Boolean) : Unit = {
 
-      this.scop_ = new Scop(root, optLevel, Knowledge.omp_parallelizeLoopOverDimensions && root.parallelizationIsReasonable,
+      this.scop_ = new Scop(root, context, optLevel, Knowledge.omp_parallelizeLoopOverDimensions && root.parallelizationIsReasonable,
         root.maxIterationCount())
       if (mergeWithPrev)
         scops.last.nextMerge = this.scop_
@@ -557,7 +565,7 @@ class Extractor extends Collector {
       throw new ExtractionException("loop bounds contain (in)equalities")
 
     if (loop.condition.isDefined)
-      extractConstraints(loop.condition.get, constrs, true)
+      extractConstraints(loop.condition.get, constrs, true, paramConstrs, params)
     else
       constrs.delete(constrs.length - (" and ".length()), constrs.length)
 
@@ -571,17 +579,27 @@ class Extractor extends Collector {
       templateBuilder.append(p).append(',')
     if (!params.isEmpty)
       templateBuilder.deleteCharAt(templateBuilder.length - 1)
-    templateBuilder.append("]->{%s[")
+    templateBuilder.append("]->{")
+
+    // create context
+    var tmp : Int = templateBuilder.length
+    templateBuilder.append(':')
+    if (!paramConstrs.isEmpty)
+      templateBuilder.append(paramConstrs.delete(paramConstrs.length - (" and ".length()), paramConstrs.length))
+    templateBuilder.append('}')
+    val context = isl.Set.readFromStr(templateBuilder.toString())
+
+    // continue with templates
+    templateBuilder.delete(tmp, templateBuilder.length)
+    templateBuilder.append("%s[")
     for (v <- modelLoopVars)
       templateBuilder.append(v).append(',')
     templateBuilder.setCharAt(templateBuilder.length - 1, ']')
 
     // finish for set
-    val tmp : Int = templateBuilder.length
+    tmp = templateBuilder.length
     templateBuilder.append(':')
     templateBuilder.append(constrs)
-    if (!paramConstrs.isEmpty)
-      templateBuilder.append(paramConstrs)
     templateBuilder.append('}')
     val setTemplate : String = templateBuilder.toString()
 
@@ -590,7 +608,7 @@ class Extractor extends Collector {
     templateBuilder.append("->%s[%s]}")
     val mapTemplate : String = templateBuilder.toString()
 
-    curScop.create(loop, loop.optLevel, origLoopVars, modelLoopVars.mkString(","), setTemplate, mapTemplate, mergeWithPrev)
+    curScop.create(loop, context, loop.optLevel, origLoopVars, modelLoopVars.mkString(","), setTemplate, mapTemplate, mergeWithPrev)
   }
 
   private def leaveLoop(loop : LoopOverDimensions) : Unit = {
