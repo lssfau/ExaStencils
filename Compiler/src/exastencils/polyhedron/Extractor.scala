@@ -153,6 +153,11 @@ object Extractor {
         bool |= extractConstraints(r, constraints, formatString, paramConstr, vars)
         constraints.append(')')
 
+      case NegationExpression(e) =>
+        constraints.append("-(")
+        bool |= extractConstraints(e, constraints, formatString, paramConstr, vars)
+        constraints.append(')')
+
       case LowerExpression(l, r) =>
         extractConstraints(l, constraints, formatString, paramConstr, vars)
         constraints.append('<')
