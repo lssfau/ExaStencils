@@ -18,7 +18,7 @@ object PrintStrategy extends DefaultStrategy("Pretty-Print") {
   })
 }
 
-object ReplaceStringConstantsStrategy extends DefaultStrategy("Replace something with something else") {
+object ReplaceStringConstantsStrategy extends QuietDefaultStrategy("Replace something with something else") {
   var toReplace : String = ""
   var replacement : Node = LoopOverDimensions.defIt
 

@@ -413,12 +413,9 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
       statements = body
 
       // replace references to old loop iterator
-      val oldLvl = Logger.getLevel
-      Logger.setLevel(Logger.WARNING)
       ReplaceStringConstantsStrategy.toReplace = defIt
       ReplaceStringConstantsStrategy.replacement = IntegerConstant(0)
       ReplaceStringConstantsStrategy.applyStandalone(statements)
-      Logger.setLevel(oldLvl)
 
       return statements
     }
