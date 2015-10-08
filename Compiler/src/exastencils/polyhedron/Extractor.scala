@@ -8,9 +8,8 @@ import scala.collection.mutable.Set
 import scala.collection.mutable.StringBuilder
 
 import exastencils.core.collectors.Collector
-import exastencils.data.SlotAccess
-import exastencils.datastructures.Annotation
-import exastencils.datastructures.Node
+import exastencils.data._
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
@@ -81,6 +80,7 @@ object Extractor {
         // vars and paramConstr must not be null
         vars.add(islStr)
         paramConstr.append("(0<=").append(islStr).append("<=1)")
+        paramConstr.append(" and ")
         constraints.append('(').append(islStr).append("=1)")
 
       case OffsetIndex(min, max, ind, off) =>
@@ -167,6 +167,7 @@ object Extractor {
         bool = true
 
       case LowerExpression(l, r) =>
+        constraints.append('(')
         extractConstraints(l, constraints, formatString, paramConstr, vars)
         constraints.append('<')
         extractConstraints(r, constraints, formatString, paramConstr, vars)
