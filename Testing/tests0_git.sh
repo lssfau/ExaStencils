@@ -40,7 +40,7 @@ function cleanup {
 trap cleanup EXIT
 
 
-echo "<html><body><pre>"
+echo "<html><head><meta charset="utf-8"></head><body><div style="white-space: pre-wrap; font-family:monospace;">"
 echo "$(date -R):  Initialize tests on host ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})..."
 echo "Progress can be found <a href=$(basename ${PROGRESS})>here</a>.  (Reload page manually.)"
 echo ""
@@ -61,7 +61,7 @@ if [[ -d "${REPO_DIR}" ]]; then
     # up-to-date, no need to run tests, exit script
     if [[ -z "$(squeue -h -u exatest | grep -v ${SLURM_JOB_NAME})" ]]; then # only output log if there are no old tests running
       echo "$(date -R):  Tests triggered, but there are no new commits since last run, finish." >> "${OUT_FILE}"
-      echo "<html><body><pre>$(date -R):  Done!</pre></body></html>" > "${PROGRESS}"
+      echo "<html><head><meta charset="utf-8"></head><body><pre>$(date -R):  Done!</pre></body></html>" > "${PROGRESS}"
     fi
     exit 0
   fi
@@ -94,5 +94,5 @@ echo ""
 echo ""
 
 rm -f "${OUT_DIR}"/*
-echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
+echo "<html><head><meta charset="utf-8"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
 cat "${TMP_OUT_FILE}" > "${OUT_FILE}"
