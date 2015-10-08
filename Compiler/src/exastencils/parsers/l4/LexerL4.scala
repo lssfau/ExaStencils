@@ -44,7 +44,7 @@ class LexerL4 extends exastencils.parsers.ExaLexer {
   reserved += ("apply", "bc", "to")
 
   // communication keywords
-  reserved += ("begin", "finish", "communicate", "communicating", "dup", "ghost", "of")
+  reserved += ("begin", "finish", "communicate", "communicating", "dup", "ghost", "of", "precomm", "postcomm")
 
   // slot keywords
   reserved += ("advance", "active", "activeSlot", "currentSlot", "next", "nextSlot", "previous", "previousSlot")

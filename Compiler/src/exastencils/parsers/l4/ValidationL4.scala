@@ -3,9 +3,8 @@ package exastencils.parsers.l4
 import scala.collection.immutable.HashSet
 import scala.collection.mutable.ListBuffer
 
-import exastencils.datastructures.DefaultStrategy
-import exastencils.datastructures.Transformation
-import exastencils.datastructures.Transformation.convFromNode
+import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.l4._
 import exastencils.logger._
 

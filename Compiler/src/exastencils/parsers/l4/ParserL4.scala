@@ -172,9 +172,11 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ("ending" ~> expressionIndex).? ~
     ("stepping" ~> expressionIndex).? ~
     ("with" ~> reductionClause).? ~
+    precomm.* ~
+    postcomm.* ~
     ("{" ~> statement.+ <~ "}") ^^ {
-      case field ~ region ~ seq ~ cond ~ startOff ~ endOff ~ inc ~ red ~ stmts =>
-        LoopOverPointsStatement(field, region, seq.isDefined, cond, startOff, endOff, inc, stmts, red)
+      case field ~ region ~ seq ~ cond ~ startOff ~ endOff ~ inc ~ red ~ prec ~ postc ~ stmts =>
+        LoopOverPointsStatement(field, region, seq.isDefined, cond, startOff, endOff, inc, stmts, red, prec, postc)
     })
   lazy val reductionClause = locationize((("reduction" ~ "(") ~> (ident ||| "+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => ReductionStatement(op, s) })
   lazy val regionSpecification = locationize((("ghost" ||| "dup" ||| "inner") ~ index ~ ("on" <~ "boundary").?) ^^ { case region ~ dir ~ bc => RegionSpecification(region, dir, bc.isDefined) })
@@ -195,6 +197,10 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ^^ { case op ~ targets ~ field => CommunicateStatement(field, op.getOrElse("both"), targets) })
   lazy val communicateTarget = locationize(("all" ||| "dup" ||| "ghost") ~ index.? ~ ("to" ~> index).? // inclucive indices
     ^^ { case target ~ start ~ end => CommunicateTarget(target, start, end) })
+  lazy val precomm = locationize("precomm" ~> communicateTarget.* ~ (("of").? ~> genericAccess)
+    ^^ { case targets ~ field => CommunicateStatement(field, "both", targets) })
+  lazy val postcomm = locationize("postcomm" ~> communicateTarget.* ~ (("of").? ~> genericAccess)
+    ^^ { case targets ~ field => CommunicateStatement(field, "both", targets) })
 
   lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ { case exp => ReturnStatement(exp) })
 
@@ -345,6 +351,6 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| genericAccess)
 
   lazy val comparison : PackratParser[BooleanExpression] = (
-    locationize((binaryexpression ~ ("<" ||| "<=" ||| ">" ||| ">=" ||| "==" ||| "!=") ~ binaryexpression) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) }) // ||| locationize((booleanexpression ~ ("==" ||| "!=") ~ booleanexpression) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) }) 
+    locationize((binaryexpression ~ ("<" ||| "<=" ||| ">" ||| ">=" ||| "==" ||| "!=") ~ binaryexpression) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) }) // ||| locationize((booleanexpression ~ ("==" ||| "!=") ~ booleanexpression) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
     )
 }

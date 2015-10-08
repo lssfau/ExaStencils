@@ -249,3 +249,34 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
               if (end) genCopy(neigh._1, neigh._2, false) else NullStatement))))) with OMP_PotentiallyParallel)
   }
 }
+
+case class IsOnSpecBoundary(var field : FieldSelection, var neigh : NeighborInfo) extends Expression with Expandable {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = IsOnSpecBoundary\n"
+
+  override def expand() : Output[Expression] = {
+    // should work for node, cell and face discretizations
+
+    var conditions = ListBuffer[Expression](NegationExpression(iv.NeighborIsValid(field.domainIndex, neigh.index)))
+    for (dim <- 0 until Knowledge.dimensionality) {
+      neigh.dir(dim) match {
+        case -1 => conditions += LowerExpression(LoopOverDimensions.defIt(dim), field.fieldLayout(dim).idxDupLeftEnd - field.referenceOffset(dim))
+        case 1  => conditions += GreaterEqualExpression(LoopOverDimensions.defIt(dim), field.fieldLayout(dim).idxDupRightBegin - field.referenceOffset(dim))
+        case 0  => // true
+      }
+    }
+
+    conditions.reduce((a, b) => AndAndExpression(a, b))
+  }
+}
+
+case class IsOnBoundary(var field : FieldSelection) extends Expression with Expandable {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = IsOnBoundary\n"
+
+  override def expand() : Output[Expression] = {
+    var applicableNeighbors = Fragment.neighbors
+    if (Knowledge.experimental_bc_checkOnlyMainAxis)
+      applicableNeighbors = applicableNeighbors.filter(n => 1 == n.dir.map(d => math.abs(d)).reduce(_ + _))
+
+    applicableNeighbors.map(n => IsOnSpecBoundary(field, n).expand.inner).reduce((a, b) => OrOrExpression(a, b))
+  }
+}

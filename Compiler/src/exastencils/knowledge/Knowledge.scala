@@ -316,6 +316,9 @@ object Knowledge {
 
   var experimental_timerEnableCallStacks : Boolean = false // generates call stacks for all employed timers
 
+  var experimental_disableIterationOffsets : Boolean = false
+  var experimental_bc_checkOnlyMainAxis : Boolean = true
+
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {
