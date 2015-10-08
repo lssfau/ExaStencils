@@ -412,10 +412,11 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
   def expand : Output[StatementList] = {
     var statements = new ListBuffer[Statement]
 
-    // eliminate fragement loops in case of only one fragment per block
-    if (Knowledge.experimental_resolveUnreqFragmentLoops && Knowledge.domain_numFragmentsTotal <= 1) {
-      statements = body
+    // eliminate fragment loops in case of only one fragment per block
+    if (Knowledge.experimental_resolveUnreqFragmentLoops && Knowledge.domain_numFragmentsPerBlock <= 1) {
+      statements = ListBuffer(Scope(body))
 
+      // replace references to old loop iterator
       ReplaceStringConstantsStrategy.toReplace = defIt
       ReplaceStringConstantsStrategy.replacement = IntegerConstant(0)
       ReplaceStringConstantsStrategy.applyStandalone(statements)
