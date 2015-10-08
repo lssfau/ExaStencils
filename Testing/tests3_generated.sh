@@ -51,6 +51,12 @@ echo "  Created  ${RESULT}: run code and redirect its stdout and stderr."
 srun "${BIN}" 2>&1 | grep -v -e "No protocol specified" -e "fglrx" | tee "${RESULT}" # HACK: filter strange X server error...
 echo ""
 
+if grep -q "Communication connection failure" ${RESULT}; then
+  echo "restart test..."
+  scontrol requeue ${SLURM_JOB_ID}
+  sleep 60 # ensure this execution never enters a finished state (for dependences), since scontrol might need some time
+fi
+
 if diff -B -w --strip-trailing-cr -I "time" -I "No root privilege"  "${RESULT}" "${EXP_RESULT}" > /dev/null; then
   echo "============== Test OK =============="
 else
