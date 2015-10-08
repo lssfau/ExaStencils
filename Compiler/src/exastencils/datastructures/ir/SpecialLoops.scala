@@ -408,51 +408,49 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
   def expand : Output[StatementList] = {
     var statements = new ListBuffer[Statement]
 
-    // eliminate fragment loops in case of only one fragment per block
     if (Knowledge.experimental_resolveUnreqFragmentLoops && Knowledge.domain_numFragmentsPerBlock <= 1) {
+      // eliminate fragment loops in case of only one fragment per block
       statements = ListBuffer(Scope(body))
 
       // replace references to old loop iterator
       ReplaceStringConstantsStrategy.toReplace = defIt
       ReplaceStringConstantsStrategy.replacement = IntegerConstant(0)
       ReplaceStringConstantsStrategy.applyStandalone(statements)
-
-      return statements
-    }
-
-    val parallelize = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
-    val resolveOmpReduction = (
-      parallelize
-      && Knowledge.omp_version < 3.1
-      && reduction.isDefined
-      && ("min" == reduction.get.op || "max" == reduction.get.op))
-
-    // basic loop
-
-    if (!resolveOmpReduction) {
-      statements += generateBasicLoop(parallelize)
     } else {
-      // resolve max reductions
-      val redOp = reduction.get.op
-      val redExpName = reduction.get.target.name
-      def redExp = VariableAccess(redExpName, None)
-      val redExpLocalName = redExpName + "_red"
-      def redExpLocal = VariableAccess(redExpLocalName, None)
+      val parallelize = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
+      val resolveOmpReduction = (
+        parallelize
+        && Knowledge.omp_version < 3.1
+        && reduction.isDefined
+        && ("min" == reduction.get.op || "max" == reduction.get.op))
 
-      // FIXME: this assumes real data types -> data type should be determined according to redExp
-      val decl = VariableDeclarationStatement(ArrayDatatype(RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
-      var init = (0 until Knowledge.omp_numThreads).map(fragIdx => AssignmentStatement(ArrayAccess(redExpLocal, fragIdx), redExp))
-      val redOperands = ListBuffer[Expression](redExp) ++ (0 until Knowledge.omp_numThreads).map(fragIdx => ArrayAccess(redExpLocal, fragIdx) : Expression)
-      val red = AssignmentStatement(redExp, if ("min" == redOp) MinimumExpression(redOperands) else MaximumExpression(redOperands))
+      // basic loop
 
-      ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
-      ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, VariableAccess("omp_tid", Some(IntegerDatatype)))
-      ReplaceStringConstantsStrategy.applyStandalone(body)
-      body.prepend(VariableDeclarationStatement(IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
+      if (!resolveOmpReduction) {
+        statements += generateBasicLoop(parallelize)
+      } else {
+        // resolve max reductions
+        val redOp = reduction.get.op
+        val redExpName = reduction.get.target.name
+        def redExp = VariableAccess(redExpName, None)
+        val redExpLocalName = redExpName + "_red"
+        def redExpLocal = VariableAccess(redExpLocalName, None)
 
-      statements += Scope(ListBuffer[Statement](decl)
-        ++ init
-        ++ ListBuffer[Statement](generateBasicLoop(parallelize), red))
+        // FIXME: this assumes real data types -> data type should be determined according to redExp
+        val decl = VariableDeclarationStatement(ArrayDatatype(RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
+        var init = (0 until Knowledge.omp_numThreads).map(fragIdx => AssignmentStatement(ArrayAccess(redExpLocal, fragIdx), redExp))
+        val redOperands = ListBuffer[Expression](redExp) ++ (0 until Knowledge.omp_numThreads).map(fragIdx => ArrayAccess(redExpLocal, fragIdx) : Expression)
+        val red = AssignmentStatement(redExp, if ("min" == redOp) MinimumExpression(redOperands) else MaximumExpression(redOperands))
+
+        ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
+        ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, VariableAccess("omp_tid", Some(IntegerDatatype)))
+        ReplaceStringConstantsStrategy.applyStandalone(body)
+        body.prepend(VariableDeclarationStatement(IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
+
+        statements += Scope(ListBuffer[Statement](decl)
+          ++ init
+          ++ ListBuffer[Statement](generateBasicLoop(parallelize), red))
+      }
     }
 
     if (Knowledge.mpi_enabled && reduction.isDefined) {
