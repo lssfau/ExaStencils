@@ -283,7 +283,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
       case isl.AstOpType.Max if n >= 2     => new MaximumExpression(args : _*)
       case isl.AstOpType.Min if n >= 2     => new MinimumExpression(args : _*)
       case isl.AstOpType.Select if n == 3  => new TernaryConditionExpression(args(0), args(1), args(2))
-      case isl.AstOpType.Call if n >= 1 =>
+
       case isl.AstOpType.Call if n >= 1 =>
         val fArgs = ListBuffer[Expression](args : _*)
         fArgs.remove(0)
