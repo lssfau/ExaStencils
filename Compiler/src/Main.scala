@@ -190,6 +190,10 @@ object Main {
     else
       ExpandStrategy.doUntilDone()
 
+    // resolve constant IVs before applying poly opt
+    ResolveConstInternalVariables.apply()
+    SimplifyStrategy.doUntilDone()
+
     MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)
       PolyOpt.apply()

@@ -107,6 +107,38 @@ object ResolveFieldAccess extends DefaultStrategy("Resolving FieldAccess nodes")
   })
 }
 
+object ResolveConstInternalVariables extends DefaultStrategy("Resolving constant internal variables") {
+  override def apply(applyAtNode : Option[Node]) = {
+    this.transaction()
+
+    if (DomainCollection.domains.size <= 1)
+      this.execute(new Transformation("Resolving IsValidForSubdomain", {
+        case _ : iv.IsValidForSubdomain => BooleanConstant(true)
+      }))
+
+    if (!Knowledge.mpi_enabled || Knowledge.mpi_numThreads <= 1)
+      this.execute(new Transformation("Resolving NeighborIsRemote and NeighborRemoteRank", {
+        case _ : iv.NeighborIsRemote   => BooleanConstant(false)
+        case _ : iv.NeighborRemoteRank => IntegerConstant(-1)
+      }))
+
+    if (Knowledge.domain_numFragmentsTotal <= 1) {
+      this.execute(new Transformation("Resolving NeighborIsValid", {
+        case _ : iv.NeighborIsValid => BooleanConstant(false)
+      }))
+    } else if (Knowledge.domain_rect_generate) {
+      for (dim <- 0 until Knowledge.dimensionality)
+        if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
+          this.execute(new Transformation(s"Resolving NeighborIsValid in dimension $dim", {
+            case niv : iv.NeighborIsValid if (niv.neighIdx.isInstanceOf[IntegerConstant])
+              && (Fragment.neighbors(niv.neighIdx.asInstanceOf[IntegerConstant].value.toInt).dir(dim) != 0) => BooleanConstant(false)
+          }))
+    }
+
+    this.commit()
+  }
+}
+
 object AddInternalVariables extends DefaultStrategy("Adding internal variables") {
   var declarationMap : HashMap[String, VariableDeclarationStatement] = HashMap()
   var ctorMap : HashMap[String, Statement] = HashMap()
