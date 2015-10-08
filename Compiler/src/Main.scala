@@ -37,8 +37,8 @@ object Main {
       Logger_HTML.init
 
     if (Settings.cancelIfOutFolderExists) {
-      if ((new java.io.File(Settings.outputPath)).exists) {
-        Logger.error(s"Output path ${Settings.outputPath} already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
+      if ((new java.io.File(Settings.getOutputPath)).exists) {
+        Logger.error(s"Output path ${Settings.getOutputPath} already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
         sys.exit(0)
       }
     }
@@ -189,6 +189,10 @@ object Main {
       ExpandOnePassStrategy.apply()
     else
       ExpandStrategy.doUntilDone()
+
+    // resolve constant IVs before applying poly opt
+    ResolveConstInternalVariables.apply()
+    SimplifyStrategy.doUntilDone()
 
     MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)

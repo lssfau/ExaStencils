@@ -5,11 +5,10 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Stack
 import scala.language.existentials
 import scala.reflect.ClassTag
-import exastencils.core.collectors.Collector
+
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.logger._
-import exastencils.knowledge.Knowledge
 
 /**
   * The central entity to apply transformations to the current program state.
@@ -245,7 +244,7 @@ object StateManager {
           var newSet = set.flatMap(f => f match {
             case n : Node => applyAtNode(n, transformation).inner match {
               case NoMatch =>
-                replace(n, transformation); List(n) // no match occured => use old element 
+                replace(n, transformation); List(n) // no match occured => use old element
               case newN : Node => {
                 if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
                   replace(newN, transformation) // Recursive call for new element
@@ -271,7 +270,7 @@ object StateManager {
           var newSet = set.flatMap(f => f match {
             case n : Node => applyAtNode(n, transformation).inner match {
               case NoMatch =>
-                replace(n, transformation); List(n) // no match occured => use old element 
+                replace(n, transformation); List(n) // no match occured => use old element
               case newN : Node => {
                 if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
                   replace(newN, transformation) // Recursive call for new element
@@ -300,7 +299,7 @@ object StateManager {
           var newSeq = seq.flatMap(f => f match {
             case n : Node => applyAtNode(n, transformation).inner match {
               case NoMatch =>
-                replace(n, transformation); List(n) // no match occured => use old element 
+                replace(n, transformation); List(n) // no match occured => use old element
               case newN : Node => {
                 if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
                   replace(newN, transformation) // Recursive call for new element
@@ -329,7 +328,7 @@ object StateManager {
           var newMap = map.mapValues(f => f match {
             case n : Node => applyAtNode(n, transformation).inner match {
               case NoMatch =>
-                replace(n, transformation); n // no match occured => use old element 
+                replace(n, transformation); n // no match occured => use old element
               case newN : Node => {
                 if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
                   replace(newN, transformation) // Recursive call for new element
@@ -350,7 +349,7 @@ object StateManager {
           var newMap = map.mapValues(f => f match {
             case n : Node => applyAtNode(n, transformation).inner match {
               case NoMatch =>
-                replace(n, transformation); n // no match occured => use old element 
+                replace(n, transformation); n // no match occured => use old element
               case newN : Node => {
                 if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
                   replace(newN, transformation) // Recursive call for new element
@@ -385,7 +384,7 @@ object StateManager {
         //            if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) tmpArray.asInstanceOf[Array[Node]].foreach(f => replace(f, transformation))
         //          }
         //        }
-        case _ => // 
+        case _ => //
       }
     })
     strategies_.top.notifyLeave(node)

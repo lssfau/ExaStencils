@@ -300,7 +300,7 @@ object Knowledge {
   var l3tmp_useMaxNormForError : Boolean = true // uses the maximum norm instead of the L2 norm when reducing the error
 
   /// paper project - SISC
-  var l3tmp_sisc : Boolean = false // generates test problems for the upcomming SISC paper in conjunction with dimensionality and l3tmp_genStencilFields
+  var l3tmp_sisc : Boolean = false // generates test problems for the upcoming SISC paper in conjunction with dimensionality and l3tmp_genStencilFields
 
   /// student project - Kelvin
   var l3tmp_kelvin : Boolean = false // currently only works for 2D
@@ -315,6 +315,12 @@ object Knowledge {
   var experimental_NeumannNormalize : Boolean = false // normalize solution after each v-cycle
 
   var experimental_timerEnableCallStacks : Boolean = false // generates call stacks for all employed timers
+
+  var experimental_disableIterationOffsets : Boolean = false
+  var experimental_bc_checkOnlyMainAxis : Boolean = true
+  var experimental_bc_avoidOrOperations : Boolean = true
+
+  var experimental_resolveUnreqFragmentLoops : Boolean = true
 
   /// END HACK
 
@@ -433,7 +439,7 @@ object Knowledge {
 
       // l3tmp - temporal blocking
       Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, experimental_Neumann, "l3tmp_genTemporalBlocking is currently not compatible with Neumann boundary conditions")
-      Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_genCellBasedDiscr, "l3tmp_genTemporalBlocking is currently not compatible with cell based discretizations")
+//      Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_genCellBasedDiscr, "l3tmp_genTemporalBlocking is currently not compatible with cell based discretizations")
       Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, "RBGS" == l3tmp_smoother, "l3tmp_genTemporalBlocking is currently not compatible with RBGS smoothers")
       Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_numPre != l3tmp_numPost, "l3tmp_numPre and l3tmp_numPost have to be equal")
       Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, math.ceil(math.log(l3tmp_numPre) / math.log(2)).toInt,

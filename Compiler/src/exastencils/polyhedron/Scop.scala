@@ -11,7 +11,8 @@ import isl.Conversions._
 
 // since Scop can be cloned by Duplicate make sure NONE of the isl wrapper objects it uses is cloned by it
 //   (register all required classes as not cloneable in IslUtil.scala)
-class Scop(val root : LoopOverDimensions, var optLevel : Int, var parallelize : Boolean, var origIterationCount : Array[Long]) {
+class Scop(val root : LoopOverDimensions, var context : isl.Set, var optLevel : Int, var parallelize : Boolean,
+    var origIterationCount : Array[Long]) {
 
   var nextMerge : Scop = null
   var remove : Boolean = false

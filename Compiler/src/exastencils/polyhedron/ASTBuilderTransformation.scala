@@ -122,7 +122,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     oldStmts = scop.stmts
 
     // build AST
-    var islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.domain.params())
+    var islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.context)
     islBuild = islBuild.setOptions(isl.UnionMap.readFromStr(Isl.ctx, options.toString()))
     islBuild = islBuild.setIterators(itersId)
     var scattering : isl.UnionMap = Isl.simplify(scop.schedule.intersectDomain(scop.domain))
@@ -256,6 +256,12 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     val n : Int = args.length
 
     return expr.getOpType() match {
+      case isl.AstOpType.Eq if n == 2 && args(0).isInstanceOf[iv.NeighborIsValid] =>
+        args(1) match {
+          case IntegerConstant(1) => args(0)
+          case IntegerConstant(0) => new NegationExpression(args(0))
+        }
+
       case isl.AstOpType.AndThen if n == 2 => new AndAndExpression(args(0), args(1))
       case isl.AstOpType.And if n == 2     => new AndAndExpression(args(0), args(1))
       case isl.AstOpType.OrElse if n == 2  => new OrOrExpression(args(0), args(1))
@@ -265,10 +271,9 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
       case isl.AstOpType.Sub if n == 2     => new SubtractionExpression(args(0), args(1))
       case isl.AstOpType.Mul if n == 2     => new MultiplicationExpression(args(0), args(1))
       case isl.AstOpType.Div if n == 2     => new DivisionExpression(args(0), args(1))
-      case isl.AstOpType.FdivQ if n == 2   => new FunctionCallExpression("floord", args(0), args(1)) // TODO: ensure integer division
+      case isl.AstOpType.FdivQ if n == 2   => new DivisionExpression(args(0), args(1)) // TODO: ensure integer division; round to -inf for negative
       case isl.AstOpType.PdivQ if n == 2   => new DivisionExpression(args(0), args(1)) // TODO: ensure integer division
       case isl.AstOpType.PdivR if n == 2   => new ModuloExpression(args(0), args(1))
-      case isl.AstOpType.ZdivR if n == 2   => new ModuloExpression(args(0), args(1)) // isl doc: Equal to zero iff the remainder on integer division is zero.
       case isl.AstOpType.Cond if n == 3    => new TernaryConditionExpression(args(0), args(1), args(2))
       case isl.AstOpType.Eq if n == 2      => new EqEqExpression(args(0), args(1))
       case isl.AstOpType.Le if n == 2      => new LowerEqualExpression(args(0), args(1))
@@ -278,7 +283,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
       case isl.AstOpType.Max if n >= 2     => new MaximumExpression(args : _*)
       case isl.AstOpType.Min if n >= 2     => new MinimumExpression(args : _*)
       case isl.AstOpType.Select if n == 3  => new TernaryConditionExpression(args(0), args(1), args(2))
-
+      case isl.AstOpType.Call if n >= 1 =>
       case isl.AstOpType.Call if n >= 1 =>
         val fArgs = ListBuffer[Expression](args : _*)
         fArgs.remove(0)

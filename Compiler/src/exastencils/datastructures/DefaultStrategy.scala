@@ -151,6 +151,10 @@ class DefaultStrategy(name : String) extends Strategy(name) {
     }
   }
 
+  def applyStandalone(nodes : Seq[Node]) : Unit = {
+    for (node <- nodes) applyStandalone(node)
+  }
+
   protected def executeStandaloneInternal(transformation : Transformation, node : Node) : TransformationResult = {
     Logger.info(s"""Applying strategy "${name}::${transformation.name}" in standalone mode""")
     if (Settings.timeStrategies)

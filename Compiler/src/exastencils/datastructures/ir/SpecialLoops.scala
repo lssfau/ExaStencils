@@ -3,6 +3,7 @@ package exastencils.datastructures.ir
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
+import exastencils.communication._
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.data._
@@ -30,6 +31,8 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
   // IMPORTANT: must match and extend all possible bounds for LoopOverDimensions inside a ContractingLoop
   private def extendBoundsBegin(expr : Expression, extent : Int) : Expression = {
     expr match {
+      case IntegerConstant(i) =>
+        IntegerConstant(i - extent)
       case oInd @ OffsetIndex(0, 1, _, ArrayAccess(_ : iv.IterationOffsetBegin, _, _)) =>
         oInd.maxOffset += extent
         oInd.index = SimplifyExpression.simplifyIntegralExpr(oInd.index - extent)
@@ -41,6 +44,8 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
   // IMPORTANT: must match and extend all possible bounds for LoopOverDimensions inside a ContractingLoop
   private def extendBoundsEnd(expr : Expression, extent : Int) : Expression = {
     expr match {
+      case IntegerConstant(i) =>
+        IntegerConstant(i + extent)
       case oInd @ OffsetIndex(-1, 0, _, ArrayAccess(_ : iv.IterationOffsetEnd, _, _)) =>
         oInd.minOffset -= extent
         oInd.index = SimplifyExpression.simplifyIntegralExpr(oInd.index + extent)
@@ -62,7 +67,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
           fs
       })
     }
-    AdaptFieldSlots.applyStandalone(new Scope(stmts))
+    AdaptFieldSlots.applyStandalone(stmts)
   }
 
   private def processLoopOverDimensions(l : LoopOverDimensions, extent : Int, fieldOffset : HashMap[FieldKey, Int]) : LoopOverDimensions = {
@@ -117,22 +122,27 @@ case class LoopOverPoints(var field : Field,
     var endOffset : MultiIndex,
     var increment : MultiIndex,
     var body : ListBuffer[Statement],
+    var preComms : ListBuffer[CommunicateStatement] = ListBuffer(),
+    var postComms : ListBuffer[CommunicateStatement] = ListBuffer(),
     var reduction : Option[Reduction] = None,
     var condition : Option[Expression] = None) extends Statement {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPoints\n"
 
-  def expandSpecial(collector : StackCollector) : Output[Statement] = {
+  def expandSpecial(collector : StackCollector) : Output[StatementList] = {
     val insideFragLoop = collector.stack.map(node => node match { case loop : LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
     val innerLoop = LoopOverPointsInOneFragment(field.domain.index, field, region, seq, startOffset, endOffset, increment, body, reduction, condition)
 
-    if (insideFragLoop)
-      innerLoop
-    else {
-      if (seq)
-        new LoopOverFragments(innerLoop, reduction)
-      else
-        new LoopOverFragments(innerLoop, reduction) with OMP_PotentiallyParallel
-    }
+    val actLoop =
+      if (insideFragLoop)
+        innerLoop
+      else {
+        if (seq)
+          new LoopOverFragments(innerLoop, reduction)
+        else
+          new LoopOverFragments(innerLoop, reduction) with OMP_PotentiallyParallel
+      }
+
+    preComms ++ ListBuffer(actLoop) ++ postComms
   }
 }
 
@@ -175,8 +185,13 @@ case class LoopOverPointsInOneFragment(var domain : Int,
             || ("face_x" == d && 0 == i)
             || ("face_y" == d && 1 == i)
             || ("face_z" == d && 2 == i) =>
-            start(i) = OffsetIndex(0, 1, field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), i))
-            stop(i) = OffsetIndex(-1, 0, field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), i))
+            if (Knowledge.experimental_disableIterationOffsets) {
+              start(i) = field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i)
+              stop(i) = field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i)
+            } else {
+              start(i) = OffsetIndex(0, 1, field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), i))
+              stop(i) = OffsetIndex(-1, 0, field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), i))
+            }
           case d if "cell" == d
             || ("face_x" == d && 0 != i)
             || ("face_y" == d && 1 != i)
@@ -205,7 +220,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
 
     if (region.isDefined) {
       if (region.get.onlyOnBoundary) {
-        val neighIndex = Fragment.getNeighIndex(region.get.dir)
+        val neighIndex = Fragment.getNeigh(region.get.dir).index
         ret = new ConditionStatement(NegationExpression(iv.NeighborIsValid(domain, neighIndex)), ret)
       }
     }
@@ -357,7 +372,7 @@ case class LoopOverDimensions(var numDimensions : Int,
 
       ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
       ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, VariableAccess("omp_tid", Some(IntegerDatatype)))
-      ReplaceStringConstantsStrategy.applyStandalone(Scope(body)) // FIXME: remove Scope
+      ReplaceStringConstantsStrategy.applyStandalone(body)
       body.prepend(VariableDeclarationStatement(IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
 
       Scope(ListBuffer[Statement](decl)
@@ -397,6 +412,17 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
   def expand : Output[StatementList] = {
     var statements = new ListBuffer[Statement]
 
+    // eliminate fragement loops in case of only one fragment per block
+    if (Knowledge.experimental_resolveUnreqFragmentLoops && Knowledge.domain_numFragmentsTotal <= 1) {
+      statements = body
+
+      ReplaceStringConstantsStrategy.toReplace = defIt
+      ReplaceStringConstantsStrategy.replacement = IntegerConstant(0)
+      ReplaceStringConstantsStrategy.applyStandalone(statements)
+
+      return statements
+    }
+
     val parallelize = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
     val resolveOmpReduction = (
       parallelize
@@ -424,7 +450,7 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
 
       ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
       ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, VariableAccess("omp_tid", Some(IntegerDatatype)))
-      ReplaceStringConstantsStrategy.applyStandalone(Scope(body)) // FIXME: remove Scope
+      ReplaceStringConstantsStrategy.applyStandalone(body)
       body.prepend(VariableDeclarationStatement(IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
 
       statements += Scope(ListBuffer[Statement](decl)
@@ -511,4 +537,3 @@ case class LoopOverNeighbors(var body : ListBuffer[Statement]) extends Statement
       body)
   }
 }
-

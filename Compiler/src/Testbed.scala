@@ -227,7 +227,7 @@ object Testbed {
    mp = PLAINSIZE(tsize);
    tp = mp + PLAINSIZE(tsize - 1);
    //HS const int stiffsize = 1;
-   //HS	double** c = new double*[stiffsize]; //stiff.size
+   //HS  double** c = new double*[stiffsize]; //stiff.size
    double* c = new double[6 * 4 * 4];
    double* stencil = new double[16];
    double k_tw_tc, k_tc_tse, k_tc_mn, k_ts_mc, k_tse_mse, k_tw_mw, k_mnw_mc, k_mc_me, k_ms_mse, k_mw_ms;
@@ -279,8 +279,8 @@ object Testbed {
       }
     }
 
-    /*       
-						/////////////////////////////////////////
+    /*
+            /////////////////////////////////////////
             // group zero element
             /////////////////////////////////////////
             k_el = k_tc_mn + k_mc_me;
@@ -446,7 +446,7 @@ object Testbed {
     statements +=
       """// compute center weight quotient
             stencil[tet_mcq] = 1.0 / stencil[tet_mc];
-            u[mp_mr + i] = 	stencil[0]  *(f[mp_mr + i] -
+            u[mp_mr + i] =   stencil[0]  *(f[mp_mr + i] -
                   stencil[1]  * u[mp_mr + i + 1] -
                   stencil[2]  * u[mp_tr + i - 1] -
                   stencil[3]  * u[mp_tr + i] -
@@ -487,7 +487,7 @@ object Testbed {
 
     SimplifyStrategy.doUntilDone()
 
-    Settings.outputPath = "C:\\Users\\sisekuck\\Documents\\Visual Studio 2010\\Projects\\ScalaExaStencil\\Heap"
+    Settings.outputPath = "Heap/"
     var printer = PrettyprintingManager.getPrinter("tet_gs_coeff_gen.cc")
     printer << root.prettyprint
     PrettyprintingManager.finish

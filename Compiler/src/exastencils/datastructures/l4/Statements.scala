@@ -152,7 +152,9 @@ case class LoopOverPointsStatement(
     var endOffset : Option[ExpressionIndex],
     var increment : Option[ExpressionIndex],
     var statements : List[Statement],
-    var reduction : Option[ReductionStatement]) extends Statement {
+    var reduction : Option[ReductionStatement],
+    var preComms : List[CommunicateStatement],
+    var postComms : List[CommunicateStatement]) extends Statement {
 
   override def prettyprint(out : PpStream) = {
     out << "loop over " << field << ' '
@@ -162,7 +164,9 @@ case class LoopOverPointsStatement(
     if (startOffset.isDefined) out << "starting " << startOffset.get << ' '
     if (endOffset.isDefined) out << "ending " << endOffset.get << ' '
     if (increment.isDefined) out << "stepping " << increment.get << ' '
-    if (reduction.isDefined) out << "with " << reduction.get
+    if (reduction.isDefined) out << "with " << reduction.get << ' '
+    for (cs <- preComms) { out << "precomm " <<< (cs.targets, " ") << (if (cs.targets.isEmpty) "" else " of ") << cs.field << ' ' }
+    for (cs <- postComms) { out << "postcomm " <<< (cs.targets, " ") << (if (cs.targets.isEmpty) "" else " of ") << cs.field << ' ' }
     out << "{\n" <<< statements << "}\n"
   }
 
@@ -178,7 +182,9 @@ case class LoopOverPointsStatement(
       if (startOffset.isDefined) startOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
       if (endOffset.isDefined) endOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
       if (increment.isDefined) increment.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(1)),
-      statements.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
+      statements.map(_.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
+      preComms.map(_.progressToIr).to[ListBuffer],
+      postComms.map(_.progressToIr).to[ListBuffer],
       if (reduction.isDefined) Some(reduction.get.progressToIr) else None,
       if (condition.isDefined) Some(condition.get.progressToIr) else None)
   }

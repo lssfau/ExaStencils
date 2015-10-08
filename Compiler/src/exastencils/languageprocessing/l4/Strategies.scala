@@ -250,15 +250,12 @@ object WrapL4FieldOpsStrategy extends DefaultStrategy("Adding communcation and l
     case assignment @ AssignmentStatement(lhs : FieldAccess, rhs, op) => {
       CollectCommInformation.applyStandalone(assignment)
 
-      var statements : ListBuffer[Statement] =
-        CollectCommInformation.commCollector.communicates.map(comm =>
-          CommunicateStatement(comm._1, "both", List( /* FIXME: add radius */ )) : Statement).to[ListBuffer]
+      var commStatements = CollectCommInformation.commCollector.communicates.map(comm =>
+        CommunicateStatement(comm._1, "both", List( /* FIXME: add radius */ ))).toList
 
-      statements += LoopOverFragmentsStatement(List(
-        LoopOverPointsStatement(lhs, None, false, None, None, None, None, List(assignment), None)),
+      LoopOverFragmentsStatement(List(
+        LoopOverPointsStatement(lhs, None, false, None, None, None, None, List(assignment), None, commStatements, List())),
         None)
-
-      statements
     }
 
     // FIXME: handle reductions

@@ -216,8 +216,8 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     for (i <- 1L until unrollFactor) {
       val dup = Duplicate(body)
       replaceStrat.offset = i * oldInc
-      replaceStrat.applyStandalone(Scope(dup))
-      SimplifyExpression.SimplifyIndices.applyStandalone(Scope(dup))
+      replaceStrat.applyStandalone(dup)
+      SimplifyExpression.SimplifyIndices.applyStandalone(dup)
       dups += dup.iterator.filter(s => !s.isInstanceOf[CommentStatement])
     }
 
