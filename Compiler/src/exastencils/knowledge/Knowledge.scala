@@ -300,7 +300,7 @@ object Knowledge {
   var l3tmp_useMaxNormForError : Boolean = true // uses the maximum norm instead of the L2 norm when reducing the error
 
   /// paper project - SISC
-  var l3tmp_sisc : Boolean = false // generates test problems for the upcomming SISC paper in conjunction with dimensionality and l3tmp_genStencilFields
+  var l3tmp_sisc : Boolean = false // generates test problems for the upcoming SISC paper in conjunction with dimensionality and l3tmp_genStencilFields
 
   /// student project - Kelvin
   var l3tmp_kelvin : Boolean = false // currently only works for 2D
@@ -318,6 +318,9 @@ object Knowledge {
 
   var experimental_disableIterationOffsets : Boolean = false
   var experimental_bc_checkOnlyMainAxis : Boolean = true
+  var experimental_bc_avoidOrOperations : Boolean = true
+
+  var experimental_resolveUnreqFragmentLoops : Boolean = true
 
   /// END HACK
 

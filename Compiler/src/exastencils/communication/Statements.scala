@@ -277,6 +277,9 @@ case class IsOnBoundary(var field : FieldSelection) extends Expression with Expa
     if (Knowledge.experimental_bc_checkOnlyMainAxis)
       applicableNeighbors = applicableNeighbors.filter(n => 1 == n.dir.map(d => math.abs(d)).reduce(_ + _))
 
-    applicableNeighbors.map(n => IsOnSpecBoundary(field, n).expand.inner).reduce((a, b) => OrOrExpression(a, b))
+    if (Knowledge.experimental_bc_avoidOrOperations)
+      NegationExpression(applicableNeighbors.map(n => NegationExpression(IsOnSpecBoundary(field, n).expand.inner) : Expression).reduce((a, b) => AndAndExpression(a, b)))
+    else
+      applicableNeighbors.map(n => IsOnSpecBoundary(field, n).expand.inner).reduce((a, b) => OrOrExpression(a, b))
   }
 }

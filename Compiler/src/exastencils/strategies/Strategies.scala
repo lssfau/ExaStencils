@@ -43,7 +43,7 @@ object ExpandStrategy extends DefaultStrategy("Expanding") {
   })
 }
 
-object ExpandOnePassStrategy extends DefaultStrategy("Expanding") { // TODO: this strategy becomes somewhat obsolete as soon as trafos implement the required behavior directly 
+object ExpandOnePassStrategy extends DefaultStrategy("Expanding") { // TODO: this strategy becomes somewhat obsolete as soon as trafos implement the required behavior directly
   this += new Transformation("Hoho, expanding all day...", {
     case expandable : Expandable => {
       var nodes : ListBuffer[Node] = ListBuffer()
@@ -251,6 +251,8 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case LowerEqualExpression(left : IntegerConstant, right : IntegerConstant)   => BooleanConstant(left.value <= right.value)
     case GreaterExpression(left : IntegerConstant, right : IntegerConstant)      => BooleanConstant(left.value > right.value)
     case GreaterEqualExpression(left : IntegerConstant, right : IntegerConstant) => BooleanConstant(left.value >= right.value)
+
+    case NegationExpression(BooleanConstant(b))                                  => BooleanConstant(!b)
 
     case AndAndExpression(BooleanConstant(true), right : Expression)             => right
     case AndAndExpression(BooleanConstant(false), right : Expression)            => BooleanConstant(false)

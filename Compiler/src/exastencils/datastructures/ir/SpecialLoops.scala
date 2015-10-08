@@ -63,7 +63,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
           fs
       })
     }
-    AdaptFieldSlots.applyStandalone(new Scope(stmts))
+    AdaptFieldSlots.applyStandalone(stmts)
   }
 
   private def processLoopOverDimensions(l : LoopOverDimensions, extent : Int, fieldOffset : HashMap[FieldKey, Int]) : LoopOverDimensions = {
@@ -368,7 +368,7 @@ case class LoopOverDimensions(var numDimensions : Int,
 
       ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
       ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, VariableAccess("omp_tid", Some(IntegerDatatype)))
-      ReplaceStringConstantsStrategy.applyStandalone(Scope(body)) // FIXME: remove Scope
+      ReplaceStringConstantsStrategy.applyStandalone(body)
       body.prepend(VariableDeclarationStatement(IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
 
       Scope(ListBuffer[Statement](decl)
@@ -408,6 +408,17 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
   def expand : Output[StatementList] = {
     var statements = new ListBuffer[Statement]
 
+    // eliminate fragement loops in case of only one fragment per block
+    if (Knowledge.experimental_resolveUnreqFragmentLoops && Knowledge.domain_numFragmentsTotal <= 1) {
+      statements = body
+
+      ReplaceStringConstantsStrategy.toReplace = defIt
+      ReplaceStringConstantsStrategy.replacement = IntegerConstant(0)
+      ReplaceStringConstantsStrategy.applyStandalone(statements)
+
+      return statements
+    }
+
     val parallelize = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
     val resolveOmpReduction = (
       parallelize
@@ -435,7 +446,7 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
 
       ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
       ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, VariableAccess("omp_tid", Some(IntegerDatatype)))
-      ReplaceStringConstantsStrategy.applyStandalone(Scope(body)) // FIXME: remove Scope
+      ReplaceStringConstantsStrategy.applyStandalone(body)
       body.prepend(VariableDeclarationStatement(IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
 
       statements += Scope(ListBuffer[Statement](decl)
