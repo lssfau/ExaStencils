@@ -409,12 +409,16 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
     var statements = new ListBuffer[Statement]
 
     // eliminate fragement loops in case of only one fragment per block
-    if (Knowledge.experimental_resolveUnreqFragmentLoops && Knowledge.domain_numFragmentsTotal <= 1) {
+    if (Knowledge.experimental_resolveUnreqFragmentLoops && Knowledge.domain_numFragmentsPerBlock <= 1) {
       statements = body
 
+      // replace references to old loop iterator
+      val oldLvl = Logger.getLevel
+      Logger.setLevel(Logger.WARNING)
       ReplaceStringConstantsStrategy.toReplace = defIt
       ReplaceStringConstantsStrategy.replacement = IntegerConstant(0)
       ReplaceStringConstantsStrategy.applyStandalone(statements)
+      Logger.setLevel(oldLvl)
 
       return statements
     }

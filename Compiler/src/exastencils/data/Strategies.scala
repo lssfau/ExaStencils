@@ -113,23 +113,29 @@ object ResolveConstInternalVariables extends DefaultStrategy("Resolving constant
 
     if (DomainCollection.domains.size <= 1)
       this.execute(new Transformation("Resolving IsValidForSubdomain", {
-        case _ : iv.IsValidForSubdomain => BooleanConstant(true)
+        case AssignmentStatement(_ : iv.IsValidForSubdomain, _, _) => NullStatement
+        case _ : iv.IsValidForSubdomain                            => BooleanConstant(true)
       }))
 
     if (!Knowledge.mpi_enabled || Knowledge.mpi_numThreads <= 1)
       this.execute(new Transformation("Resolving NeighborIsRemote and NeighborRemoteRank", {
-        case _ : iv.NeighborIsRemote   => BooleanConstant(false)
-        case _ : iv.NeighborRemoteRank => IntegerConstant(-1)
+        case AssignmentStatement(_ : iv.NeighborIsRemote, _, _)   => NullStatement
+        case _ : iv.NeighborIsRemote                              => BooleanConstant(false)
+        case AssignmentStatement(_ : iv.NeighborRemoteRank, _, _) => NullStatement
+        case _ : iv.NeighborRemoteRank                            => IntegerConstant(-1)
       }))
 
     if (Knowledge.domain_numFragmentsTotal <= 1) {
       this.execute(new Transformation("Resolving NeighborIsValid", {
-        case _ : iv.NeighborIsValid => BooleanConstant(false)
+        case AssignmentStatement(_ : iv.NeighborIsValid, _, _) => NullStatement
+        case _ : iv.NeighborIsValid                            => BooleanConstant(false)
       }))
     } else if (Knowledge.domain_rect_generate) {
       for (dim <- 0 until Knowledge.dimensionality)
         if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
           this.execute(new Transformation(s"Resolving NeighborIsValid in dimension $dim", {
+            case AssignmentStatement(niv : iv.NeighborIsValid, _, _) if (niv.neighIdx.isInstanceOf[IntegerConstant])
+              && (Fragment.neighbors(niv.neighIdx.asInstanceOf[IntegerConstant].value.toInt).dir(dim) != 0) => NullStatement
             case niv : iv.NeighborIsValid if (niv.neighIdx.isInstanceOf[IntegerConstant])
               && (Fragment.neighbors(niv.neighIdx.asInstanceOf[IntegerConstant].value.toInt).dir(dim) != 0) => BooleanConstant(false)
           }))

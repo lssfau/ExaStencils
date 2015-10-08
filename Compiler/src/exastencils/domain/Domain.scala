@@ -205,11 +205,11 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
             ~ (if (Knowledge.dimensionality > 1) ((("rankPos.y" : Expression) * Knowledge.domain_rect_numFragsPerBlock_y + 0.5 + dimToString(1)) * fragWidth_y) + gSize.lower_y else 0) ~ ","
             ~ (if (Knowledge.dimensionality > 2) ((("rankPos.z" : Expression) * Knowledge.domain_rect_numFragsPerBlock_z + 0.5 + dimToString(2)) * fragWidth_z) + gSize.lower_z else 0) ~ ")")),
         LoopOverFragments(ListBuffer(
-          AssignmentStatement(iv.PrimitiveId(), PointToFragmentId(s"positions[${LoopOverFragments.defIt}]")),
-          AssignmentStatement(iv.CommId(), PointToLocalFragmentId(s"positions[${LoopOverFragments.defIt}]")),
-          AssignmentStatement(iv.PrimitivePosition(), s"positions[${LoopOverFragments.defIt}]"),
-          AssignmentStatement(iv.PrimitivePositionBegin(), s"positions[${LoopOverFragments.defIt}]" - vecDelta),
-          AssignmentStatement(iv.PrimitivePositionEnd(), (s"positions[${LoopOverFragments.defIt}]" : Expression) + vecDelta))), // stupid string concat ...
+          AssignmentStatement(iv.PrimitiveId(), PointToFragmentId(ArrayAccess("positions", LoopOverFragments.defIt))),
+          AssignmentStatement(iv.CommId(), PointToLocalFragmentId(ArrayAccess("positions", LoopOverFragments.defIt))),
+          AssignmentStatement(iv.PrimitivePosition(), ArrayAccess("positions", LoopOverFragments.defIt)),
+          AssignmentStatement(iv.PrimitivePositionBegin(), ArrayAccess("positions", LoopOverFragments.defIt) - vecDelta),
+          AssignmentStatement(iv.PrimitivePositionEnd(), (ArrayAccess("positions", LoopOverFragments.defIt) : Expression) + vecDelta))), // stupid string concat ...
         ConnectFragments(),
         new ExpressionStatement(new FunctionCallExpression("setupBuffers")) // FIXME: move to app
         ))

@@ -233,6 +233,9 @@ object Main {
       RemoveDupSIMDLoads.apply()
 
     AddInternalVariables.apply()
+    // resolve possibly newly added constant IVs
+    ResolveConstInternalVariables.apply()
+
     if (Knowledge.useFasterExpand)
       ExpandOnePassStrategy.apply()
     else
