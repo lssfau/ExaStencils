@@ -61,7 +61,7 @@ function cleanup {
 trap cleanup EXIT
 
 
-echo "<html><head><meta charset="utf-8"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
+echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
 
 echo "-----------------------------------------------------------------------------------------------"
 echo "Running main test script on machine ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
@@ -139,7 +139,7 @@ do
   TEST_DIR="${TESTS_DIR}/${id}"
   TEST_BIN="exastencils.exe"
 
-  echo "<html><head><meta charset="utf-8"></head><body><div style="white-space: pre-wrap; font-family:monospace;">" > "${TEST_LOG}"
+  echo "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">" > "${TEST_LOG}"
   echo "Test ID:  ${id}" >> "${TEST_LOG}"
 
   echo "Enqueue generation and compilation job for id  ${id}."
@@ -216,4 +216,4 @@ LOG_DEPS="--dependency=afterany${DEP_SIDS}"
 (unset SLURM_JOB_NAME; sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${TESTING_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${PROGRESS}")
 echo ""
 
-echo "<html><head><meta charset="utf-8"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
+echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
