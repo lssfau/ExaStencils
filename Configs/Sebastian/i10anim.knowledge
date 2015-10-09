@@ -1,0 +1,49 @@
+targetCompiler					= "MSVC"
+targetCompilerVersion			= 11
+targetCompilerVersionMinor		= 0
+simd_instructionSet				= "SSE3"
+
+dimensionality					= 3
+
+minLevel						= 0
+maxLevel						= 6
+comm_strategyFragment			= 6	// 26
+
+domain_onlyRectangular			= true
+domain_numBlocks				= 8
+domain_numFragmentsPerBlock		= 4
+domain_fragmentLength_x			= 1
+domain_fragmentLength_y			= 1
+domain_fragmentLength_z			= 2
+
+domain_rect_generate			= true
+domain_rect_numBlocks_x			= 2
+domain_rect_numBlocks_y			= 2
+domain_rect_numBlocks_z			= 2
+domain_rect_numFragsPerBlock_x	= 2
+domain_rect_numFragsPerBlock_y	= 2
+domain_rect_numFragsPerBlock_z	= 1
+
+omp_enabled						= true
+omp_numThreads					= 2
+
+mpi_enabled						= true
+mpi_numThreads					= 8
+
+omp_parallelizeLoopOverFragments	= true
+omp_parallelizeLoopOverDimensions	= false
+
+mpi_useCustomDatatypes			= false
+poly_optLevel_fine				= 0
+opt_useAddressPrecalc			= false
+opt_vectorize					= false
+opt_unroll						= 1
+
+l3tmp_generateL4				= true
+
+//l3tmp_exactSolution				= "Zero"
+l3tmp_exactSolution				= "Polynomial"
+//l3tmp_exactSolution				= "Trigonometric"
+
+l3tmp_printError				= true
+l3tmp_useMaxNormForError		= false
