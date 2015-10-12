@@ -1,5 +1,6 @@
 package exastencils.strategies
 
+import scala.annotation.migration
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._

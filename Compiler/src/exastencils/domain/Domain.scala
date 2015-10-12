@@ -209,7 +209,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
           AssignmentStatement(iv.CommId(), PointToLocalFragmentId(ArrayAccess("positions", LoopOverFragments.defIt))),
           AssignmentStatement(iv.PrimitivePosition(), ArrayAccess("positions", LoopOverFragments.defIt)),
           AssignmentStatement(iv.PrimitivePositionBegin(), ArrayAccess("positions", LoopOverFragments.defIt) - vecDelta),
-          AssignmentStatement(iv.PrimitivePositionEnd(), (ArrayAccess("positions", LoopOverFragments.defIt) : Expression) + vecDelta))), // stupid string concat ...
+          AssignmentStatement(iv.PrimitivePositionEnd(), ArrayAccess("positions", LoopOverFragments.defIt) + vecDelta))),
         ConnectFragments(),
         new ExpressionStatement(new FunctionCallExpression("setupBuffers")) // FIXME: move to app
         ))

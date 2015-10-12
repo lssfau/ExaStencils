@@ -121,7 +121,7 @@ case class WaitForTransfer(var field : FieldSelection, var neighbor : NeighborIn
       iv.ReqOutstanding(field.field, direction, neighbor.index),
       ListBuffer[Statement](
         new ExpressionStatement(
-          new FunctionCallExpression("waitForMPIReq", AddressofExpression(iv.MpiRequest(field.field, direction, neighbor.index)))) /*with OMP_PotentiallyCritical*/ ,
+          new FunctionCallExpression("waitForMPIReq", AddressofExpression(iv.MpiRequest(field.field, direction, neighbor.index)))),
         AssignmentStatement(iv.ReqOutstanding(field.field, direction, neighbor.index), false)))
   }
 }
