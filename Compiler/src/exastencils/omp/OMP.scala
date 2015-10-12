@@ -14,10 +14,23 @@ case class OMP_Barrier() extends Statement {
 }
 
 case class OMP_Critical(var body : Scope) extends Statement {
+  import OMP_Critical._
+
   def this(body : Statement) = this(new Scope(body))
   def this(body : ListBuffer[Statement]) = this(new Scope(body))
 
-  override def prettyprint(out : PpStream) : Unit = out << "#pragma omp critical\n" << body
+  override def prettyprint(out : PpStream) : Unit = {
+    out << "#pragma omp critical"
+    if (Knowledge.omp_nameCriticalSections) {
+      out << s" (section_$counter)"
+      counter += 1
+    }
+    out << "\n" << body
+  }
+}
+
+case object OMP_Critical {
+  var counter = 0
 }
 
 case class OMP_ParallelFor(var body : ForLoopStatement, var addOMPStatements : ListBuffer[String], var collapse : Int = 1) extends Statement {

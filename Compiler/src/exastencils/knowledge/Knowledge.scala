@@ -201,6 +201,7 @@ object Knowledge {
       case _                 => Logger.error("Unsupported target compiler"); true
     }
   }
+  var omp_nameCriticalSections : Boolean = false // specifies if unique (usually consecutively numbered) identifiers are to be generated for OMP critical sections => allows entering multiple, disctinct sections concurrently
 
   // --- MPI Parallelization ---
   var mpi_enabled : Boolean = true // [true|false]
@@ -209,6 +210,8 @@ object Knowledge {
   var mpi_useCustomDatatypes : Boolean = false // [true|false] // allows to use custom mpi data types when reading from/ writing to fields thus circumventing temp send/ receive buffers
   var mpi_useLoopsWherePossible : Boolean = true // [true|false] // allows to summarize some code blocks into loops in order to shorten the resulting code length
   var mpi_defaultCommunicator : String = "MPI_COMM_WORLD" // sets the initial communicator used by most MPI operations
+
+  var mpi_useBusyWait : Boolean = false // [true|false] // specifies if MPI_Test (true) or MPI_Wait (false) is to be used when waiting for async communication
 
   // --- Polyhedron Optimization ---
   // the following polyhedral optimization levels are currently supported:
@@ -320,8 +323,9 @@ object Knowledge {
   var experimental_bc_checkOnlyMainAxis : Boolean = true
   var experimental_bc_avoidOrOperations : Boolean = true
 
-  var experimental_resolveUnreqFragmentLoops : Boolean = true
+  var experimental_resolveUnreqFragmentLoops : Boolean = false
 
+  var experimental_allowCommInFragLoops : Boolean = false
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {
@@ -468,9 +472,15 @@ object Knowledge {
     Constraints.condWarn(omp_enabled && omp_numThreads == 1, s"The number of omp threads is equal to one, but omp_enabled is true")
     Constraints.condWarn(omp_parallelizeLoopOverFragments && omp_numThreads > domain_numFragmentsPerBlock, s"the number of omp threads ($omp_numThreads) is higher than the number of fragments per block ($domain_numFragmentsPerBlock) -> this will result in idle omp threads!")
     Constraints.condWarn(omp_parallelizeLoopOverFragments && 0 != domain_numFragmentsPerBlock % omp_numThreads, s"the number of fragments per block ($domain_numFragmentsPerBlock) is not divisible by the number of omp threads ($omp_numThreads) -> this might result in a severe load imbalance!")
+    Constraints.condWarn(omp_nameCriticalSections, s"omp_nameCriticalSections should always be deactivated")
+
+    Constraints.condWarn(experimental_allowCommInFragLoops && omp_numThreads != domain_numFragmentsPerBlock, s"It is strongly recommended that the number of omp threads ($omp_numThreads) is equal to the number of fragments per block ($domain_numFragmentsPerBlock) when experimental_allowCommInFragLoops is enabled!")
 
     Constraints.condEnsureValue(experimental_useLevelIndepFcts, false, "Zero" != l3tmp_exactSolution, "level independent communication functions are not compatible with non-trivial boundary conditions")
     Constraints.condEnsureValue(mpi_useCustomDatatypes, false, experimental_useLevelIndepFcts, "MPI data types cannot be used in combination with level independent communication functions yet")
+
+    Constraints.condEnsureValue(mpi_useBusyWait, true, experimental_allowCommInFragLoops && domain_numFragmentsPerBlock > 1, s"mpi_useBusyWait must be true when experimental_allowCommInFragLoops is used in conjunction with multiple fragments per block")
+    Constraints.condWarn(experimental_allowCommInFragLoops && comm_strategyFragment != 26, s"comm_strategyFragment should be 26 when experimental_allowCommInFragLoops is activated")
 
     // data
     Constraints.condEnsureValue(data_alignFieldPointers, true, opt_vectorize && "QPX" == simd_instructionSet, "data_alignFieldPointers must be true for vectorization with QPX")

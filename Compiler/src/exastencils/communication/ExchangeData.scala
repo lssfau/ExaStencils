@@ -14,6 +14,7 @@ import exastencils.prettyprinting._
 
 abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Expandable {
   var fieldSelection : FieldSelection
+  def insideFragLoop : Boolean
 
   def compileName : String
   def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[Statement]
@@ -47,16 +48,19 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
       fieldSelection
     }
 
-    FunctionStatement(UnitDatatype, compileName,
-      if (Knowledge.experimental_useLevelIndepFcts)
-        ListBuffer(VariableAccess("slot", Some("unsigned int")), VariableAccess("level", Some("unsigned int")))
-      else
-        ListBuffer(VariableAccess("slot", Some("unsigned int"))),
-      compileBody(updatedFieldSelection))
+    var fctArgs : ListBuffer[VariableAccess] = ListBuffer()
+    fctArgs += VariableAccess("slot", Some("unsigned int"))
+    if (Knowledge.experimental_useLevelIndepFcts)
+      VariableAccess("level", Some("unsigned int"))
+    if (insideFragLoop)
+      fctArgs += VariableAccess(LoopOverFragments.defIt, Some("int"))
+
+    FunctionStatement(UnitDatatype, compileName, fctArgs, compileBody(updatedFieldSelection))
   }
 }
 
-case class ApplyBCsFunction(var name : String, var fieldSelection : FieldSelection, var neighbors : ListBuffer[NeighborInfo]) extends FieldBoundaryFunction {
+case class ApplyBCsFunction(var name : String, var fieldSelection : FieldSelection, var neighbors : ListBuffer[NeighborInfo],
+    var insideFragLoop : Boolean) extends FieldBoundaryFunction {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ApplyBCsFunction\n"
   override def prettyprint_decl = prettyprint
 
@@ -125,7 +129,8 @@ case class ApplyBCsFunction(var name : String, var fieldSelection : FieldSelecti
 case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSelection, var neighbors : ListBuffer[NeighborInfo],
     var begin : Boolean, var finish : Boolean,
     var dupLayerExch : Boolean, var dupLayerBegin : MultiIndex, var dupLayerEnd : MultiIndex,
-    var ghostLayerExch : Boolean, var ghostLayerBegin : MultiIndex, var ghostLayerEnd : MultiIndex) extends FieldBoundaryFunction {
+    var ghostLayerExch : Boolean, var ghostLayerBegin : MultiIndex, var ghostLayerEnd : MultiIndex,
+    var insideFragLoop : Boolean) extends FieldBoundaryFunction {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ExchangeDataFunction\n"
   override def prettyprint_decl = prettyprint
 
@@ -316,17 +321,17 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
               var sendNeighbors = ListBuffer(neighbors(2 * dim + 1))
               if (Knowledge.domain_canHaveRemoteNeighs) {
                 if (begin) {
-                  body += new RemoteSends(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId)
+                  body += new RemoteSends(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId, insideFragLoop)
                   if (Knowledge.domain_canHaveLocalNeighs)
-                    body += new LocalSend(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors))
+                    body += new LocalSend(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), insideFragLoop)
                 }
                 if (finish) {
-                  body += new RemoteRecvs(updatedFieldSelection, genIndicesDuplicateRemoteRecv(recvNeighbors), true, true, concurrencyId)
-                  body += new RemoteSends(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId)
+                  body += new RemoteRecvs(updatedFieldSelection, genIndicesDuplicateRemoteRecv(recvNeighbors), true, true, concurrencyId, insideFragLoop)
+                  body += new RemoteSends(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId, insideFragLoop)
                 }
               } else if (Knowledge.domain_canHaveLocalNeighs) {
                 if (begin)
-                  body += new LocalSend(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors))
+                  body += new LocalSend(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), insideFragLoop)
               }
             }
           }
@@ -335,17 +340,17 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
             var recvNeighbors = neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0)
             if (Knowledge.domain_canHaveRemoteNeighs) {
               if (begin) {
-                body += new RemoteSends(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId)
+                body += new RemoteSends(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId, insideFragLoop)
                 if (Knowledge.domain_canHaveLocalNeighs)
-                  body += new LocalSend(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors))
+                  body += new LocalSend(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), insideFragLoop)
               }
               if (finish) {
-                body += new RemoteRecvs(updatedFieldSelection, genIndicesDuplicateRemoteRecv(recvNeighbors), true, true, concurrencyId)
-                body += new RemoteSends(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId)
+                body += new RemoteRecvs(updatedFieldSelection, genIndicesDuplicateRemoteRecv(recvNeighbors), true, true, concurrencyId, insideFragLoop)
+                body += new RemoteSends(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId, insideFragLoop)
               }
             } else if (Knowledge.domain_canHaveLocalNeighs) {
               if (begin)
-                body += new LocalSend(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors))
+                body += new LocalSend(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), insideFragLoop)
             }
           }
         }
@@ -362,34 +367,34 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
               var curNeighbors = ListBuffer(neighbors(2 * dim + 0), neighbors(2 * dim + 1))
               if (Knowledge.domain_canHaveRemoteNeighs) {
                 if (begin) {
-                  body += new RemoteSends(updatedFieldSelection, genIndicesGhostRemoteSend(curNeighbors), true, false, concurrencyId)
+                  body += new RemoteSends(updatedFieldSelection, genIndicesGhostRemoteSend(curNeighbors), true, false, concurrencyId, insideFragLoop)
                   if (Knowledge.domain_canHaveLocalNeighs)
-                    body += new LocalSend(updatedFieldSelection, genIndicesGhostLocalSend(curNeighbors))
+                    body += new LocalSend(updatedFieldSelection, genIndicesGhostLocalSend(curNeighbors), insideFragLoop)
                 }
                 if (finish) {
-                  body += new RemoteRecvs(updatedFieldSelection, genIndicesGhostRemoteRecv(curNeighbors), true, true, concurrencyId)
-                  body += new RemoteSends(updatedFieldSelection, genIndicesGhostRemoteSend(curNeighbors), false, true, concurrencyId)
+                  body += new RemoteRecvs(updatedFieldSelection, genIndicesGhostRemoteRecv(curNeighbors), true, true, concurrencyId, insideFragLoop)
+                  body += new RemoteSends(updatedFieldSelection, genIndicesGhostRemoteSend(curNeighbors), false, true, concurrencyId, insideFragLoop)
                 }
               } else if (Knowledge.domain_canHaveLocalNeighs) {
                 if (begin)
-                  body += new LocalSend(updatedFieldSelection, genIndicesGhostLocalSend(curNeighbors))
+                  body += new LocalSend(updatedFieldSelection, genIndicesGhostLocalSend(curNeighbors), insideFragLoop)
               }
             }
           }
           case 26 => {
             if (Knowledge.domain_canHaveRemoteNeighs) {
               if (begin) {
-                body += new RemoteSends(updatedFieldSelection, genIndicesGhostRemoteSend(neighbors), true, false, concurrencyId)
+                body += new RemoteSends(updatedFieldSelection, genIndicesGhostRemoteSend(neighbors), true, false, concurrencyId, insideFragLoop)
                 if (Knowledge.domain_canHaveLocalNeighs)
-                  body += new LocalSend(updatedFieldSelection, genIndicesGhostLocalSend(neighbors))
+                  body += new LocalSend(updatedFieldSelection, genIndicesGhostLocalSend(neighbors), insideFragLoop)
               }
               if (finish) {
-                body += new RemoteRecvs(updatedFieldSelection, genIndicesGhostRemoteRecv(neighbors), true, true, concurrencyId)
-                body += new RemoteSends(updatedFieldSelection, genIndicesGhostRemoteSend(neighbors), false, true, concurrencyId)
+                body += new RemoteRecvs(updatedFieldSelection, genIndicesGhostRemoteRecv(neighbors), true, true, concurrencyId, insideFragLoop)
+                body += new RemoteSends(updatedFieldSelection, genIndicesGhostRemoteSend(neighbors), false, true, concurrencyId, insideFragLoop)
               }
             } else if (Knowledge.domain_canHaveLocalNeighs) {
               if (begin)
-                body += new LocalSend(updatedFieldSelection, genIndicesGhostLocalSend(neighbors))
+                body += new LocalSend(updatedFieldSelection, genIndicesGhostLocalSend(neighbors), insideFragLoop)
             }
           }
         }
