@@ -1,5 +1,6 @@
 package exastencils.datastructures.ir
 
+import scala.annotation.migration
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 

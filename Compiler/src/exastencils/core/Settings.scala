@@ -1,8 +1,9 @@
 package exastencils.core
 
 import scala.collection.mutable.ListBuffer
+
+import exastencils.knowledge._
 import exastencils.prettyprinting._
-import exastencils.knowledge.Knowledge
 
 object Settings {
   var user : String = "guest" // allows triggering user-specific code

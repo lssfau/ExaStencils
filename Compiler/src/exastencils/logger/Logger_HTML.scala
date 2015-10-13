@@ -7,11 +7,17 @@ object Logger_HTML {
   var log : java.io.FileWriter = null
 
   def init = {
-    log = new java.io.FileWriter(Settings.getHtmlLogFile)
+    val targetFile = Settings.getHtmlLogFile
+    if (!(new java.io.File(targetFile)).exists) {
+      var file = new java.io.File(targetFile)
+      if (!file.getParentFile().exists()) file.getParentFile().mkdirs()
+    }
+
+    log = new java.io.FileWriter(targetFile)
 
     log.write("<HEAD><TITLE>ExaStencils Log</TITLE></HEAD>\n")
     log.write("<script type=\"text/JavaScript\">\n")
-    log.write("function AutoRefresh (t) { setTimeout(\"location.reload(true);\", t); }\n")
+    //log.write("function AutoRefresh (t) { setTimeout(\"location.reload(true);\", t); }\n")
     //log.write("function AutoScroll (t) { window.scrollTo(0, document.body.scrollHeight); setTimeout(\"AutoScroll()\", t); }\n"
     log.write("</script>\n")
     log.write("<body bgcolor=\"black\" onload=\"JavaScript:AutoRefresh(5000);JavaScript:AutoScroll(1000);\">")
