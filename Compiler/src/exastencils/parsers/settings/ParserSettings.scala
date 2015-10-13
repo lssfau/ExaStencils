@@ -59,5 +59,5 @@ class ParserSettings extends ExaParser {
       case s ~ n if (isInt(s.getOrElse("") + n)) => (s.getOrElse("") + n).toInt : AnyVal
       case s ~ n                                 => (s.getOrElse("") + n).toDouble : AnyVal
     } |
-    booleanLit ^^ { _.toBoolean }
+    booleanLit ^^ { _.booleanValue() }
 }

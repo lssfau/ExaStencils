@@ -38,5 +38,5 @@ class ExaParser extends StandardTokenParsers {
     numericLit ^^ { case n if (isReal(n)) => n.toDouble }
     ||| ("-" ~> numericLit ^^ { case n if (isReal(n)) => -n.toDouble }))
 
-  lazy val booleanLit : Parser[String] = "true" ||| "false"
+  lazy val booleanLit : Parser[Boolean] = ("true" ||| "false") ^^ { case b => if (b == "true") true; else false }
 }
