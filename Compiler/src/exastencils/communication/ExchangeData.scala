@@ -157,25 +157,26 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
   }
 
   def genIndicesDuplicateLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange, IndexRange)] = {
-    curNeighbors.map(neigh => (neigh, new IndexRange(
-      new MultiIndex(
-        DimArray().map(i => i match {
-          case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-            case 6  => resolveIndex("DLB", i)
-            case 26 => resolveIndex("IB", i)
-          }
-          case i if neigh.dir(i) < 0 => resolveIndex("DLB", i) + dupLayerBegin(i)
-          case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) - dupLayerEnd(i)
-        }) ++ vecFieldIndexBegin),
-      new MultiIndex(
-        DimArray().map(i => i match {
-          case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
-            case 6  => resolveIndex("DRE", i)
-            case 26 => resolveIndex("DRE", i)
-          }
-          case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) + dupLayerEnd(i)
-          case i if neigh.dir(i) > 0 => resolveIndex("DRE", i) - dupLayerBegin(i)
-        }) ++ vecFieldIndexEnd)),
+    curNeighbors.map(neigh => (neigh,
+      new IndexRange(
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+              case 6  => resolveIndex("DLB", i)
+              case 26 => resolveIndex("IB", i)
+            }
+            case i if neigh.dir(i) < 0 => resolveIndex("DLB", i) + dupLayerBegin(i)
+            case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) - dupLayerEnd(i)
+          }) ++ vecFieldIndexBegin),
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+              case 6  => resolveIndex("DRE", i)
+              case 26 => resolveIndex("DRE", i)
+            }
+            case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) + dupLayerEnd(i)
+            case i if neigh.dir(i) > 0 => resolveIndex("DRE", i) - dupLayerBegin(i)
+          }) ++ vecFieldIndexEnd)),
       new IndexRange(
         new MultiIndex(
           DimArray().map(i => i match {
@@ -194,6 +195,48 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
             }
             case i if -neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
             case i if -neigh.dir(i) > 0 => resolveIndex("DRE", i) + dupLayerEnd(i)
+          }) ++ vecFieldIndexEnd))))
+  }
+
+  def genIndicesDuplicateLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange, IndexRange)] = {
+    curNeighbors.map(neigh => (neigh,
+      new IndexRange(
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+              case 6  => resolveIndex("DLB", i)
+              case 26 => resolveIndex("IB", i)
+            }
+            case i if neigh.dir(i) < 0 => resolveIndex("DLB", i) - dupLayerEnd(i)
+            case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
+          }) ++ vecFieldIndexBegin),
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+              case 6  => resolveIndex("DRE", i)
+              case 26 => resolveIndex("DRE", i)
+            }
+            case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
+            case i if neigh.dir(i) > 0 => resolveIndex("DRE", i) + dupLayerEnd(i)
+          }) ++ vecFieldIndexEnd)),
+      new IndexRange(
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+              case 6  => resolveIndex("DLB", i)
+              case 26 => resolveIndex("IB", i)
+            }
+            case i if -neigh.dir(i) < 0 => resolveIndex("DLB", i) + dupLayerBegin(i)
+            case i if -neigh.dir(i) > 0 => resolveIndex("DRB", i) - dupLayerEnd(i)
+          }) ++ vecFieldIndexBegin),
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+              case 6  => resolveIndex("DRE", i)
+              case 26 => resolveIndex("DRE", i)
+            }
+            case i if -neigh.dir(i) < 0 => resolveIndex("DLE", i) + dupLayerEnd(i)
+            case i if -neigh.dir(i) > 0 => resolveIndex("DRE", i) - dupLayerBegin(i)
           }) ++ vecFieldIndexEnd))))
   }
 
@@ -283,6 +326,48 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
           }) ++ vecFieldIndexEnd))))
   }
 
+  def genIndicesGhostLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange, IndexRange)] = {
+    curNeighbors.map(neigh => (neigh,
+      new IndexRange(
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+              case 6  => resolveIndex("GLB", i)
+              case 26 => resolveIndex("DLB", i)
+            }
+            case i if neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerEnd(i)
+            case i if neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerBegin(i)
+          }) ++ vecFieldIndexBegin),
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+              case 6  => resolveIndex("GRE", i)
+              case 26 => resolveIndex("DRE", i)
+            }
+            case i if neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerBegin(i)
+            case i if neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerEnd(i)
+          }) ++ vecFieldIndexEnd)),
+      new IndexRange(
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+              case 6  => resolveIndex("GLB", i)
+              case 26 => resolveIndex("DLB", i)
+            }
+            case i if -neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerBegin(i)
+            case i if -neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerEnd(i)
+          }) ++ vecFieldIndexBegin),
+        new MultiIndex(
+          DimArray().map(i => i match {
+            case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
+              case 6  => resolveIndex("GRE", i)
+              case 26 => resolveIndex("DRE", i)
+            }
+            case i if -neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerEnd(i)
+            case i if -neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerBegin(i)
+          }) ++ vecFieldIndexEnd))))
+  }
+
   def genIndicesGhostRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
     curNeighbors.map(neigh => (neigh, new IndexRange(
       new MultiIndex(
@@ -319,38 +404,35 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
             for (dim <- 0 until Knowledge.dimensionality) {
               var recvNeighbors = ListBuffer(neighbors(2 * dim + 0))
               var sendNeighbors = ListBuffer(neighbors(2 * dim + 1))
-              if (Knowledge.domain_canHaveRemoteNeighs) {
-                if (begin) {
-                  body += new RemoteSends(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId, insideFragLoop)
-                  if (Knowledge.domain_canHaveLocalNeighs)
-                    body += new LocalSend(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), insideFragLoop)
-                }
-                if (finish) {
-                  body += new RemoteRecvs(updatedFieldSelection, genIndicesDuplicateRemoteRecv(recvNeighbors), true, true, concurrencyId, insideFragLoop)
-                  body += new RemoteSends(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId, insideFragLoop)
-                }
-              } else if (Knowledge.domain_canHaveLocalNeighs) {
-                if (begin)
-                  body += new LocalSend(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), insideFragLoop)
+
+              if (begin) {
+                body += new RemoteSends(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId, insideFragLoop)
+                body += new RemoteRecvs(updatedFieldSelection, genIndicesDuplicateRemoteRecv(recvNeighbors), true, false, concurrencyId, insideFragLoop)
+                body += new LocalSends(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), true, false, insideFragLoop)
+                body += new LocalRecvs(updatedFieldSelection, genIndicesDuplicateLocalRecv(recvNeighbors), true, false, insideFragLoop)
+              }
+              if (finish) {
+                body += new LocalRecvs(updatedFieldSelection, genIndicesDuplicateLocalRecv(recvNeighbors), false, true, insideFragLoop)
+                body += new LocalSends(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), false, true, insideFragLoop)
+                body += new RemoteRecvs(updatedFieldSelection, genIndicesDuplicateRemoteRecv(recvNeighbors), false, true, concurrencyId, insideFragLoop)
+                body += new RemoteSends(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId, insideFragLoop)
               }
             }
           }
           case 26 => {
             var sendNeighbors = neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0)
             var recvNeighbors = neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0)
-            if (Knowledge.domain_canHaveRemoteNeighs) {
-              if (begin) {
-                body += new RemoteSends(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId, insideFragLoop)
-                if (Knowledge.domain_canHaveLocalNeighs)
-                  body += new LocalSend(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), insideFragLoop)
-              }
-              if (finish) {
-                body += new RemoteRecvs(updatedFieldSelection, genIndicesDuplicateRemoteRecv(recvNeighbors), true, true, concurrencyId, insideFragLoop)
-                body += new RemoteSends(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId, insideFragLoop)
-              }
-            } else if (Knowledge.domain_canHaveLocalNeighs) {
-              if (begin)
-                body += new LocalSend(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), insideFragLoop)
+            if (begin) {
+              body += new RemoteSends(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId, insideFragLoop)
+              body += new RemoteRecvs(updatedFieldSelection, genIndicesDuplicateRemoteRecv(recvNeighbors), true, false, concurrencyId, insideFragLoop)
+              body += new LocalSends(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), true, false, insideFragLoop)
+              body += new LocalRecvs(updatedFieldSelection, genIndicesDuplicateLocalRecv(recvNeighbors), true, false, insideFragLoop)
+            }
+            if (finish) {
+              body += new LocalRecvs(updatedFieldSelection, genIndicesDuplicateLocalRecv(recvNeighbors), false, true, insideFragLoop)
+              body += new LocalSends(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), false, true, insideFragLoop)
+              body += new RemoteRecvs(updatedFieldSelection, genIndicesDuplicateRemoteRecv(recvNeighbors), false, true, concurrencyId, insideFragLoop)
+              body += new RemoteSends(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId, insideFragLoop)
             }
           }
         }
@@ -365,36 +447,33 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
           case 6 => {
             for (dim <- 0 until Knowledge.dimensionality) {
               var curNeighbors = ListBuffer(neighbors(2 * dim + 0), neighbors(2 * dim + 1))
-              if (Knowledge.domain_canHaveRemoteNeighs) {
-                if (begin) {
-                  body += new RemoteSends(updatedFieldSelection, genIndicesGhostRemoteSend(curNeighbors), true, false, concurrencyId, insideFragLoop)
-                  if (Knowledge.domain_canHaveLocalNeighs)
-                    body += new LocalSend(updatedFieldSelection, genIndicesGhostLocalSend(curNeighbors), insideFragLoop)
-                }
-                if (finish) {
-                  body += new RemoteRecvs(updatedFieldSelection, genIndicesGhostRemoteRecv(curNeighbors), true, true, concurrencyId, insideFragLoop)
-                  body += new RemoteSends(updatedFieldSelection, genIndicesGhostRemoteSend(curNeighbors), false, true, concurrencyId, insideFragLoop)
-                }
-              } else if (Knowledge.domain_canHaveLocalNeighs) {
-                if (begin)
-                  body += new LocalSend(updatedFieldSelection, genIndicesGhostLocalSend(curNeighbors), insideFragLoop)
+
+              if (begin) {
+                body += new RemoteSends(updatedFieldSelection, genIndicesGhostRemoteSend(curNeighbors), true, false, concurrencyId, insideFragLoop)
+                body += new RemoteRecvs(updatedFieldSelection, genIndicesGhostRemoteRecv(curNeighbors), true, false, concurrencyId, insideFragLoop)
+                body += new LocalSends(updatedFieldSelection, genIndicesGhostLocalSend(curNeighbors), true, false, insideFragLoop)
+                body += new LocalRecvs(updatedFieldSelection, genIndicesGhostLocalRecv(curNeighbors), true, false, insideFragLoop)
+              }
+              if (finish) {
+                body += new LocalRecvs(updatedFieldSelection, genIndicesGhostLocalRecv(curNeighbors), false, true, insideFragLoop)
+                body += new LocalSends(updatedFieldSelection, genIndicesGhostLocalSend(curNeighbors), false, true, insideFragLoop)
+                body += new RemoteRecvs(updatedFieldSelection, genIndicesGhostRemoteRecv(curNeighbors), false, true, concurrencyId, insideFragLoop)
+                body += new RemoteSends(updatedFieldSelection, genIndicesGhostRemoteSend(curNeighbors), false, true, concurrencyId, insideFragLoop)
               }
             }
           }
           case 26 => {
-            if (Knowledge.domain_canHaveRemoteNeighs) {
-              if (begin) {
-                body += new RemoteSends(updatedFieldSelection, genIndicesGhostRemoteSend(neighbors), true, false, concurrencyId, insideFragLoop)
-                if (Knowledge.domain_canHaveLocalNeighs)
-                  body += new LocalSend(updatedFieldSelection, genIndicesGhostLocalSend(neighbors), insideFragLoop)
-              }
-              if (finish) {
-                body += new RemoteRecvs(updatedFieldSelection, genIndicesGhostRemoteRecv(neighbors), true, true, concurrencyId, insideFragLoop)
-                body += new RemoteSends(updatedFieldSelection, genIndicesGhostRemoteSend(neighbors), false, true, concurrencyId, insideFragLoop)
-              }
-            } else if (Knowledge.domain_canHaveLocalNeighs) {
-              if (begin)
-                body += new LocalSend(updatedFieldSelection, genIndicesGhostLocalSend(neighbors), insideFragLoop)
+            if (begin) {
+              body += new RemoteSends(updatedFieldSelection, genIndicesGhostRemoteSend(neighbors), true, false, concurrencyId, insideFragLoop)
+              body += new RemoteRecvs(updatedFieldSelection, genIndicesGhostRemoteRecv(neighbors), true, false, concurrencyId, insideFragLoop)
+              body += new LocalSends(updatedFieldSelection, genIndicesGhostLocalSend(neighbors), true, false, insideFragLoop)
+              body += new LocalRecvs(updatedFieldSelection, genIndicesGhostLocalRecv(neighbors), true, false, insideFragLoop)
+            }
+            if (finish) {
+              body += new LocalRecvs(updatedFieldSelection, genIndicesGhostLocalRecv(neighbors), false, true, insideFragLoop)
+              body += new LocalSends(updatedFieldSelection, genIndicesGhostLocalSend(neighbors), false, true, insideFragLoop)
+              body += new RemoteRecvs(updatedFieldSelection, genIndicesGhostRemoteRecv(neighbors), false, true, concurrencyId, insideFragLoop)
+              body += new RemoteSends(updatedFieldSelection, genIndicesGhostRemoteSend(neighbors), false, true, concurrencyId, insideFragLoop)
             }
           }
         }

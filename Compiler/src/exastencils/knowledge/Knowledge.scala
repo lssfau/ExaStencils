@@ -159,6 +159,7 @@ object Knowledge {
   // --- OpenMP and MPI Parallelization ---
   var comm_strategyFragment : Int = 6 // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors
   var comm_useFragmentLoopsForEachOp : Boolean = true // [true|false] // specifies if comm ops (buffer copy, send/ recv, wait) should each be aggregated and handled in distinct fragment loops
+  var comm_pushLocalData : Boolean = false // [true|false] // specifies if local data exchanges are implemented using push (true) or pull (false) schemes
 
   // TODO: check in how far the following parameters can be adapted by the SPL
   var comm_sepDataByFragment : Boolean = true // specifies if communication variables that could be fragment specific are handled separately
