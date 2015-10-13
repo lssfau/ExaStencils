@@ -152,7 +152,9 @@ case class LoopOverPointsStatement(
     var endOffset : Option[ExpressionIndex],
     var increment : Option[ExpressionIndex],
     var statements : List[Statement],
-    var reduction : Option[ReductionStatement]) extends Statement {
+    var reduction : Option[ReductionStatement],
+    var preComms : List[CommunicateStatement],
+    var postComms : List[CommunicateStatement]) extends Statement {
 
   override def prettyprint(out : PpStream) = {
     out << "loop over " << field << ' '
@@ -162,7 +164,9 @@ case class LoopOverPointsStatement(
     if (startOffset.isDefined) out << "starting " << startOffset.get << ' '
     if (endOffset.isDefined) out << "ending " << endOffset.get << ' '
     if (increment.isDefined) out << "stepping " << increment.get << ' '
-    if (reduction.isDefined) out << "with " << reduction.get
+    if (reduction.isDefined) out << "with " << reduction.get << ' '
+    for (cs <- preComms) { out << "precomm " <<< (cs.targets, " ") << (if (cs.targets.isEmpty) "" else " of ") << cs.field << ' ' }
+    for (cs <- postComms) { out << "postcomm " <<< (cs.targets, " ") << (if (cs.targets.isEmpty) "" else " of ") << cs.field << ' ' }
     out << "{\n" <<< statements << "}\n"
   }
 
@@ -178,7 +182,9 @@ case class LoopOverPointsStatement(
       if (startOffset.isDefined) startOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
       if (endOffset.isDefined) endOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
       if (increment.isDefined) increment.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(1)),
-      statements.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
+      statements.map(_.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
+      preComms.map(_.progressToIr).to[ListBuffer],
+      postComms.map(_.progressToIr).to[ListBuffer],
       if (reduction.isDefined) Some(reduction.get.progressToIr) else None,
       if (condition.isDefined) Some(condition.get.progressToIr) else None)
   }
@@ -263,22 +269,34 @@ case class FunctionInstantiationStatement(var templateName : String,
   }
 }
 
+case class ContractionSpecification(var posExt : Index, var negExt : Option[Index]) extends SpecialStatement {
+  override def prettyprint(out : PpStream) : Unit = {
+    out << posExt
+    if (negExt.isDefined)
+      out << ", " << negExt
+  }
+
+  override def progressToIr : ir.ContractionSpecification = {
+    return new ir.ContractionSpecification(posExt.extractArray, negExt.getOrElse(posExt).extractArray)
+  }
+}
+
 case class RepeatTimesStatement(var number : Int,
     var iterator : Option[Access],
-    var contraction : Boolean,
+    var contraction : Option[ContractionSpecification],
     var statements : List[Statement]) extends Statement {
 
   override def prettyprint(out : PpStream) = {
     out << "repeat " << number << " times"
     if (iterator.isDefined) out << " count " << iterator.get
-    if (contraction) out << " with contraction"
+    if (contraction.isDefined) out << " with contraction " << contraction.get
     out << " {\n" <<< statements << "}\n"
   }
 
   override def progressToIr : ir.Statement = {
-    if (contraction)
+    if (contraction.isDefined)
       // FIXME: to[ListBuffer]
-      return new ir.ContractingLoop(number, iterator.map(i => i.progressToIr), statements.map(s => s.progressToIr).to[ListBuffer])
+      return new ir.ContractingLoop(number, iterator.map(i => i.progressToIr), statements.map(s => s.progressToIr).to[ListBuffer], contraction.get.progressToIr)
 
     val (loopVar, begin) =
       if (iterator.isDefined) {

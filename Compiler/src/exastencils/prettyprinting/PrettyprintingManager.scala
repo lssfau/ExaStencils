@@ -20,7 +20,7 @@ object PrettyprintingManager {
 
   def getPrinter(filename : String) : Prettyprinter = {
     printers.getOrElse(filename, {
-      var printer = new Prettyprinter(filename, (new java.io.File(Settings.outputPath + java.io.File.separator + filename)).getAbsolutePath())
+      var printer = new Prettyprinter(filename, (new java.io.File(Settings.getOutputPath + filename)).getAbsolutePath())
       printers += ((filename, printer))
       printer
     })

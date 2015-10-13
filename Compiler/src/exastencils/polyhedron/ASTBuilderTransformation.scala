@@ -27,7 +27,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
   private final val NEG_ONE_VAL : isl.Val = isl.Val.negone()
 
   private val loopStmts = new HashMap[String, ListBuffer[OptimizationHint]]()
-  private var oldStmts : HashMap[String, (Statement, ArrayBuffer[String])] = null
+  private var oldStmts : HashMap[String, (ListBuffer[Statement], ArrayBuffer[String])] = null
   private var seqDims : TreeSet[String] = null
   private var parallelize_omp : Boolean = false
   private var reduction : Option[Reduction] = None
@@ -122,7 +122,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     oldStmts = scop.stmts
 
     // build AST
-    var islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.domain.params())
+    var islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.context)
     islBuild = islBuild.setOptions(isl.UnionMap.readFromStr(options.toString()))
     islBuild = islBuild.setIterators(itersId)
     var scattering : isl.UnionMap = Isl.simplify(scop.schedule.intersectDomain(scop.domain))
@@ -218,19 +218,20 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
         assume(expr.getOpType() == isl.AstOpType.OpCall, "user node is no OpCall?!")
         val args : Array[Expression] = processArgs(expr)
         val name : String = args(0).asInstanceOf[StringConstant].value
-        val (oldStmt : Statement, loopVars : ArrayBuffer[String]) = oldStmts(name)
-        val stmt : Statement = Duplicate(oldStmt)
+        val (oldStmt : ListBuffer[Statement], loopVars : ArrayBuffer[String]) = oldStmts(name)
+        val stmts : ListBuffer[Statement] = Duplicate(oldStmt)
         val repl = new HashMap[String, Expression]()
         for (d <- 1 until args.length)
           repl.put(loopVars(loopVars.size - d), args(d))
 
-        replaceCallback(repl, stmt)
-        if (condition != null) {
-          val cond : Expression = Duplicate(condition)
-          replaceCallback(repl, cond)
-          stmt.annotate(PolyOpt.IMPL_CONDITION_ANNOT, cond)
-        }
-        ListBuffer[Statement](stmt)
+        replaceCallback(repl, Scope(stmts))
+        if (condition != null)
+          for (stmt <- stmts) {
+            val cond : Expression = Duplicate(condition)
+            replaceCallback(repl, cond)
+            stmt.annotate(PolyOpt.IMPL_CONDITION_ANNOT, cond)
+          }
+        stmts
 
       case isl.AstNodeType.NodeError => throw new PolyASTBuilderException("NodeError found...")
     }
@@ -255,6 +256,12 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     val n : Int = args.length
 
     return expr.getOpType() match {
+      case isl.AstOpType.OpEq if n == 2 && args(0).isInstanceOf[iv.NeighborIsValid] =>
+        args(1) match {
+          case IntegerConstant(1) => args(0)
+          case IntegerConstant(0) => new NegationExpression(args(0))
+        }
+
       case isl.AstOpType.OpAndThen if n == 2 => new AndAndExpression(args(0), args(1))
       case isl.AstOpType.OpAnd if n == 2     => new AndAndExpression(args(0), args(1))
       case isl.AstOpType.OpOrElse if n == 2  => new OrOrExpression(args(0), args(1))

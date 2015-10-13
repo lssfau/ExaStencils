@@ -171,20 +171,88 @@ object ResolveFunctionTemplates extends DefaultStrategy("Resolving function temp
   })
 }
 
+object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundaryHandlingFunctions") {
+  case class CombinedIdentifier(var name : String, var level : Int) {}
+  def fromIdentifier(ident : Identifier) : CombinedIdentifier = {
+    val level = ident.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level
+    CombinedIdentifier(ident.name, level)
+  }
+  def fromLeveledAccess(access : Access) : CombinedIdentifier = {
+    val level = access.asInstanceOf[LeveledAccess].level.asInstanceOf[SingleLevelSpecification].level
+    CombinedIdentifier(access.asInstanceOf[LeveledAccess].name, level)
+  }
+  def fromFieldAccess(access : FieldAccess) : CombinedIdentifier = {
+    val level = access.level.asInstanceOf[SingleLevelSpecification].level
+    CombinedIdentifier(access.name, level)
+  }
+  def fromStencilFieldAccess(access : StencilFieldAccess) : CombinedIdentifier = {
+    val level = access.level.asInstanceOf[SingleLevelSpecification].level
+    val fieldName = StateManager.root.asInstanceOf[Root].stencilFields.find(sf => fromIdentifier(sf.identifier) == CombinedIdentifier(access.name, level)).get.fieldName
+    CombinedIdentifier(fieldName, level)
+  }
+
+  var bcs : HashMap[CombinedIdentifier, FunctionCallExpression] = HashMap()
+
+  override def apply(node : Option[Node] = None) = {
+    bcs.clear
+    super.apply(node)
+  }
+
+  this += new Transformation("Find applicable fields", {
+    case field : FieldDeclarationStatement => {
+      if (field.boundary.isDefined) {
+        if (field.boundary.get.isInstanceOf[FunctionCallExpression]) {
+          val fctCall = field.boundary.get.asInstanceOf[FunctionCallExpression]
+          val fctDecl = StateManager.root.asInstanceOf[Root].statements.find(
+            _ match {
+              case f : FunctionStatement if f.identifier.isInstanceOf[LeveledIdentifier]
+                && fromIdentifier(f.identifier) == fromLeveledAccess(fctCall.identifier) => true
+              case _ => false
+            }).get.asInstanceOf[FunctionStatement]
+          if (fctDecl.returntype.isInstanceOf[UnitDatatype]) {
+            bcs(fromIdentifier(field.identifier)) = fctCall
+          }
+        }
+      }
+      field
+    }
+  })
+
+  this += new Transformation("Replace applicable boundary condition updates", {
+    case applyBC : ApplyBCsStatement => {
+      val field = applyBC.field match {
+        case field : FieldAccess     => fromFieldAccess(field)
+        case sf : StencilFieldAccess => fromStencilFieldAccess(sf)
+      }
+      val fctCall = bcs.find(_._1 == field)
+      if (fctCall.isDefined)
+        FunctionCallStatement(Duplicate(fctCall.get._2))
+      else
+        applyBC
+    }
+  })
+
+  this += new Transformation("Remove obsolete field bc's", {
+    case field : FieldDeclarationStatement => {
+      val fctCall = bcs.find(_._1 == fromIdentifier(field.identifier))
+      if (fctCall.isDefined)
+        field.boundary = None
+      field
+    }
+  })
+}
+
 object WrapL4FieldOpsStrategy extends DefaultStrategy("Adding communcation and loops to L4 statements") {
   this += new Transformation("Search and wrap", {
     case assignment @ AssignmentStatement(lhs : FieldAccess, rhs, op) => {
       CollectCommInformation.applyStandalone(assignment)
 
-      var statements : ListBuffer[Statement] =
-        CollectCommInformation.commCollector.communicates.map(comm =>
-          CommunicateStatement(comm._1, "both", List( /* FIXME: add radius */ )) : Statement).to[ListBuffer]
+      var commStatements = CollectCommInformation.commCollector.communicates.map(comm =>
+        CommunicateStatement(comm._1, "both", List( /* FIXME: add radius */ ))).toList
 
-      statements += LoopOverFragmentsStatement(List(
-        LoopOverPointsStatement(lhs, None, false, None, None, None, None, List(assignment), None)),
+      LoopOverFragmentsStatement(List(
+        LoopOverPointsStatement(lhs, None, false, None, None, None, None, List(assignment), None, commStatements, List())),
         None)
-
-      statements
     }
 
     // FIXME: handle reductions

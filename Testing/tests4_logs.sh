@@ -61,4 +61,4 @@ echo "Tests finished at $(date -R)."
 echo ""
 echo "============================================================================"
 
-echo "<html><body><pre>$(date -R):  Done!</pre></body></html>" > "${PROGRESS}"
+echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(date -R):  Done!</pre></body></html>" > "${PROGRESS}"

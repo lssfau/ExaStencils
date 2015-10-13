@@ -91,7 +91,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val simpleDatatype : Parser[Datatype] = (
     "String" ^^ { case _ => new StringDatatype }
-    ||| "Boolean" ^^ { case _ => new BooleanDatatype }
+    ||| ("Boolean" ||| "Bool") ^^ { case _ => new BooleanDatatype }
     ||| numericDatatype)
 
   lazy val algorithmicDatatype : Parser[Datatype] = (
@@ -101,7 +101,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| numericDatatype)
 
   lazy val numericDatatype : Parser[Datatype] = (
-    "Integer" ^^ { case x => new IntegerDatatype }
+    ("Integer" ||| "Int") ^^ { case x => new IntegerDatatype }
     ||| "Real" ^^ { case x => new RealDatatype })
 
   lazy val returnDatatype = ("Unit" ^^ { case x => new UnitDatatype }
@@ -116,12 +116,12 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val functionArgumentList = /*locationize*/ ((functionArgument <~ ("," | newline)).* ~ functionArgument ^^ { case args ~ arg => args :+ arg })
   lazy val functionArgument = locationize(((ident <~ ":") ~ datatype) ^^ { case id ~ t => Variable(BasicIdentifier(id), t) })
 
-  lazy val functionCallArgumentList = /*locationize*/ ((binaryexpression <~ ("," | newline)).* ~ binaryexpression ^^ { case exps ~ ex => exps :+ ex })
+  lazy val functionCallArgumentList = /*locationize*/ (((binaryexpression ||| booleanexpression) <~ ("," | newline)).* ~ (binaryexpression ||| booleanexpression) ^^ { case exps ~ ex => exps :+ ex })
   lazy val functionCall = locationize((flatAccess ||| leveledAccess) ~ "(" ~ functionCallArgumentList.? ~ ")" ^^ { case id ~ "(" ~ args ~ ")" => FunctionCallExpression(id, args.getOrElse(List[Expression]())) })
 
   lazy val functionTemplateArgList = /*locationize*/ ((ident <~ ("," | newline)).* ~ ident ^^ { case args ~ arg => args :+ arg })
   lazy val functionInstArgList = /*locationize*/ ((functionInstArgument <~ ("," | newline)).* ~ functionInstArgument ^^ { case args ~ arg => args :+ arg })
-  lazy val functionInstArgument = factor
+  lazy val functionInstArgument = (binaryexpression ||| booleanexpression)
   lazy val functionTemplate = locationize((("FuncTemplate" ||| "FunctionTemplate") ~> ident) ~ ("<" ~> functionTemplateArgList.? <~ ">") ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}"))
     ^^ { case id ~ templateArgs ~ functionArgs ~ retType ~ stmts => FunctionTemplateStatement(id, templateArgs.getOrElse(List()), functionArgs.getOrElse(List()), retType, stmts) })
   lazy val functionInstantiation = locationize(((("Inst" ||| "Instantiate") ~> ident) ~ ("<" ~> functionInstArgList.? <~ ">") ~ ("as" ~> identifierWithOptionalLevel))
@@ -152,11 +152,12 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val variableDeclaration = (locationize((("Var" ||| "Variable") ~> identifierWithOptionalLevel) ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
     ^^ { case id ~ dt ~ exp => VariableDeclarationStatement(id, dt, exp) }))
 
-  lazy val valueDeclaration = (locationize((("Val" ||| "Value") ~> identifierWithOptionalLevel) ~ (":" ~> datatype) ~ ("=" ~> binaryexpression)
+  lazy val valueDeclaration = (locationize((("Val" ||| "Value") ~> identifierWithOptionalLevel) ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression))
     ^^ { case id ~ dt ~ exp => ValueDeclarationStatement(id, dt, exp) }))
 
-  lazy val repeatNTimes = locationize(("repeat" ~> numericLit <~ "times") ~ ("count" ~> (flatAccess ||| leveledAccess)).? ~ ("with" ~> "contraction").? ~ ("{" ~> statementInsideRepeat.+ <~ "}") ^^
-    { case n ~ i ~ c ~ s => RepeatTimesStatement(n.toInt, i, c.isDefined, s) })
+  lazy val repeatNTimes = locationize(("repeat" ~> numericLit <~ "times") ~ ("count" ~> (flatAccess ||| leveledAccess)).? ~ contractionClause.? ~ ("{" ~> statementInsideRepeat.+ <~ "}") ^^
+    { case n ~ i ~ c ~ s => RepeatTimesStatement(n.toInt, i, c, s) })
+  lazy val contractionClause = locationize("with" ~ "contraction" ~> index ~ ("," ~> index).? ^^ { case l ~ r => new ContractionSpecification(l, r) })
 
   lazy val repeatUntil = locationize((("repeat" ~ "until") ~> booleanexpression) ~ (("{" ~> statementInsideRepeat.+) <~ "}") ^^
     { case c ~ s => RepeatUntilStatement(c, s) })
@@ -173,9 +174,11 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ("ending" ~> expressionIndex).? ~
     ("stepping" ~> expressionIndex).? ~
     ("with" ~> reductionClause).? ~
+    precomm.* ~
+    postcomm.* ~
     ("{" ~> statement.+ <~ "}") ^^ {
-      case field ~ region ~ seq ~ cond ~ startOff ~ endOff ~ inc ~ red ~ stmts =>
-        LoopOverPointsStatement(field, region, seq.isDefined, cond, startOff, endOff, inc, stmts, red)
+      case field ~ region ~ seq ~ cond ~ startOff ~ endOff ~ inc ~ red ~ prec ~ postc ~ stmts =>
+        LoopOverPointsStatement(field, region, seq.isDefined, cond, startOff, endOff, inc, stmts, red, prec, postc)
     })
   lazy val reductionClause = locationize((("reduction" ~ "(") ~> (ident ||| "+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => ReductionStatement(op, s) })
   lazy val regionSpecification = locationize((("ghost" ||| "dup" ||| "inner") ~ index ~ ("on" <~ "boundary").?) ^^ { case region ~ dir ~ bc => RegionSpecification(region, dir, bc.isDefined) })
@@ -196,6 +199,10 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ^^ { case op ~ targets ~ field => CommunicateStatement(field, op.getOrElse("both"), targets) })
   lazy val communicateTarget = locationize(("all" ||| "dup" ||| "ghost") ~ index.? ~ ("to" ~> index).? // inclucive indices
     ^^ { case target ~ start ~ end => CommunicateTarget(target, start, end) })
+  lazy val precomm = locationize("precomm" ~> communicateTarget.* ~ (("of").? ~> genericAccess)
+    ^^ { case targets ~ field => CommunicateStatement(field, "both", targets) })
+  lazy val postcomm = locationize("postcomm" ~> communicateTarget.* ~ (("of").? ~> genericAccess)
+    ^^ { case targets ~ field => CommunicateStatement(field, "both", targets) })
 
   lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ { case exp => ReturnStatement(exp) })
 
@@ -327,7 +334,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| locationize("-" ~> functionCall ^^ { case x => UnaryExpression("-", x) })
     ||| functionCall
     ||| locationize("-" ~> genericAccess ^^ { case x => UnaryExpression("-", x) })
-    ||| genericAccess)
+    ||| genericAccess
+    ||| locationize(booleanLit ^^ { case s => BooleanConstant(s) }))
 
   lazy val rowVectorExpression = locationize("{" ~> (binaryexpression <~ ",").+ ~ (binaryexpression <~ "}") ^^ { case x ~ y => RowVectorExpression(None, x :+ y) })
 
@@ -336,27 +344,22 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val matrixExpression = locationize("{" ~> (rowVectorExpression <~ ",").+ ~ (rowVectorExpression <~ "}") ^^ { case x ~ y => MatrixExpression(None, x :+ y) })
 
   lazy val booleanexpression : PackratParser[Expression] = (
-    locationize(("!" ~> booleanexpression1) ^^ { case ex => UnaryBooleanExpression("!", ex) })
+    locationize((booleanexpression ~ ("||" ||| "or") ~ booleanexpression1) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
     ||| booleanexpression1)
 
   lazy val booleanexpression1 : PackratParser[Expression] = (
-    locationize((booleanexpression1 ~ "&&" ~ booleanexpression2) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
+    locationize((booleanexpression1 ~ ("&&" ||| "and") ~ booleanexpression2) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
     ||| booleanexpression2)
 
   lazy val booleanexpression2 : PackratParser[Expression] = (
-    locationize((booleanexpression2 ~ "||" ~ booleanexpression3) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
+    locationize(("!" ~> booleanexpression3) ^^ { case ex => UnaryBooleanExpression("!", ex) })
     ||| booleanexpression3)
 
   lazy val booleanexpression3 : PackratParser[Expression] = (
     "(" ~> booleanexpression <~ ")"
-    ||| locationize(booleanLit ^^ { case s => BooleanConstant(s.toBoolean) })
-    ||| simpleComparison
-    ||| functionCall
-    ||| genericAccess)
+    ||| comparison
+    ||| binaryexpression)
 
-  // simpleComparison is to be used in statements such as Repeat Until
-  lazy val simpleComparison : PackratParser[BooleanExpression] = locationize(
-    (binaryexpression ~ ("<" ||| "<=" ||| ">" ||| ">=" ||| "==" ||| "!=") ~ binaryexpression) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) }
-      ||| "(" ~ simpleComparison ~ ")" ^^ { case _ ~ s ~ _ => s })
-
+  lazy val comparison : PackratParser[BooleanExpression] = //(
+    locationize((binaryexpression ~ ("<" ||| "<=" ||| ">" ||| ">=" ||| "==" ||| "!=") ~ binaryexpression) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
 }

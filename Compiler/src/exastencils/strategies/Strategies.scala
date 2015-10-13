@@ -1,5 +1,6 @@
 package exastencils.strategies
 
+import scala.annotation.migration
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
@@ -18,7 +19,7 @@ object PrintStrategy extends DefaultStrategy("Pretty-Print") {
   })
 }
 
-object ReplaceStringConstantsStrategy extends DefaultStrategy("Replace something with something else") {
+object ReplaceStringConstantsStrategy extends QuietDefaultStrategy("Replace something with something else") {
   var toReplace : String = ""
   var replacement : Node = LoopOverDimensions.defIt
 
@@ -43,7 +44,7 @@ object ExpandStrategy extends DefaultStrategy("Expanding") {
   })
 }
 
-object ExpandOnePassStrategy extends DefaultStrategy("Expanding") { // TODO: this strategy becomes somewhat obsolete as soon as trafos implement the required behavior directly 
+object ExpandOnePassStrategy extends DefaultStrategy("Expanding") { // TODO: this strategy becomes somewhat obsolete as soon as trafos implement the required behavior directly
   this += new Transformation("Hoho, expanding all day...", {
     case expandable : Expandable => {
       var nodes : ListBuffer[Node] = ListBuffer()
@@ -324,6 +325,8 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case LowerEqualExpression(left : IntegerConstant, right : IntegerConstant)   => BooleanConstant(left.value <= right.value)
     case GreaterExpression(left : IntegerConstant, right : IntegerConstant)      => BooleanConstant(left.value > right.value)
     case GreaterEqualExpression(left : IntegerConstant, right : IntegerConstant) => BooleanConstant(left.value >= right.value)
+
+    case NegationExpression(BooleanConstant(b))                                  => BooleanConstant(!b)
 
     case AndAndExpression(BooleanConstant(true), right : Expression)             => right
     case AndAndExpression(BooleanConstant(false), right : Expression)            => BooleanConstant(false)

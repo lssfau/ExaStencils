@@ -1,8 +1,10 @@
 package exastencils.datastructures.ir
 
+import scala.annotation.migration
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
+import exastencils.communication._
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.data._
@@ -10,6 +12,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
+import exastencils.logger._
 import exastencils.mpi._
 import exastencils.omp._
 import exastencils.optimization._
@@ -19,27 +22,27 @@ import exastencils.strategies._
 import exastencils.util._
 
 case class RegionSpecification(var region : String, var dir : Array[Int], var onlyOnBoundary : Boolean) {}
+case class ContractionSpecification(var posExt : Array[Int], var negExt : Array[Int])
 
-case class ContractingLoop(var number : Int, var iterator : Option[Expression], var statements : ListBuffer[Statement]) extends Statement {
+case class ContractingLoop(var number : Int, var iterator : Option[Expression], var statements : ListBuffer[Statement],
+    var spec : ContractionSpecification) extends Statement {
+  // TODO: validate spec
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ContractingLoop\n"
 
-  // TODO: some error here? see expandSpecial
-  // private def extendBounds(start : MultiIndex, end : MultiIndex, extent : Int, field : Field) : Unit = {
-  //   for (dim <- 0 until Knowledge.dimensionality) {
-  //     start(dim) -= IntegerConstant(extent) * (1 - ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
-  //     end(dim) += IntegerConstant(extent) * (1 + ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim))
-  //   }
-  // }
-
   // IMPORTANT: must match and extend all possible bounds for LoopOverDimensions inside a ContractingLoop
-  private def extendBounds(expr : Expression, extent : Int) : Expression = {
+  private def extendBoundsBegin(expr : Expression, extent : Int) : Expression = {
     expr match {
       case oInd @ OffsetIndex(0, 1, _, ArrayAccess(_ : iv.IterationOffsetBegin, _, _)) =>
         oInd.maxOffset += extent
         oInd.index = SimplifyExpression.simplifyIntegralExpr(oInd.index - extent)
         oInd.offset = SimplifyExpression.simplifyIntegralExpr(oInd.offset * (extent + 1))
         oInd
+    }
+  }
 
+  // IMPORTANT: must match and extend all possible bounds for LoopOverDimensions inside a ContractingLoop
+  private def extendBoundsEnd(expr : Expression, extent : Int) : Expression = {
+    expr match {
       case oInd @ OffsetIndex(-1, 0, _, ArrayAccess(_ : iv.IterationOffsetEnd, _, _)) =>
         oInd.minOffset -= extent
         oInd.index = SimplifyExpression.simplifyIntegralExpr(oInd.index + extent)
@@ -61,14 +64,14 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
           fs
       })
     }
-    AdaptFieldSlots.applyStandalone(new Scope(stmts))
+    AdaptFieldSlots.applyStandalone(stmts)
   }
 
   private def processLoopOverDimensions(l : LoopOverDimensions, extent : Int, fieldOffset : HashMap[FieldKey, Int]) : LoopOverDimensions = {
     val nju : LoopOverDimensions = Duplicate(l)
     for (dim <- 0 until Knowledge.dimensionality) {
-      nju.indices.begin(dim) = extendBounds(nju.indices.begin(dim), extent)
-      nju.indices.end(dim) = extendBounds(nju.indices.end(dim), extent)
+      nju.indices.begin(dim) = extendBoundsBegin(nju.indices.begin(dim), extent * spec.negExt(dim))
+      nju.indices.end(dim) = extendBoundsEnd(nju.indices.end(dim), extent * spec.posExt(dim))
     }
     updateSlots(nju.body, fieldOffset)
     return nju
@@ -88,7 +91,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
             fields(fKey) = field
 
           case cStmt @ ConditionStatement(cond, ListBuffer(l : LoopOverDimensions), ListBuffer()) =>
-            val nju = processLoopOverDimensions(l, (number - i) * 1, fieldOffset) // TODO: currently independent from used stencils (const factor 1)
+            val nju = processLoopOverDimensions(l, (number - i), fieldOffset)
             if (condStmt == null || cond != condStmt.condition) {
               condStmt = Duplicate(cStmt)
               condStmt.trueBody.clear()
@@ -97,14 +100,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
             condStmt.trueBody += nju
 
           case l : LoopOverDimensions =>
-            res += processLoopOverDimensions(l, (number - i) * 1, fieldOffset) // TODO: currently independent from used stencils (const factor 1)
-
-          // TODO: fix! results differ from them generated when a LoopOverDimensions instead of a LoopOverPointsInOneFragment is present
-          // case loop : LoopOverPointsInOneFragment =>
-          //   val nju = Duplicate(loop)
-          //   extendBounds(nju.startOffset, nju.endOffset, (number - i) * 1, loop.field) // TODO: currently independent from used stencils
-          //   updateSlots(nju.body, fieldOffset)
-          //   res += nju
+            res += processLoopOverDimensions(l, (number - i), fieldOffset)
         }
 
     for ((fKey, offset) <- fieldOffset) {
@@ -123,22 +119,27 @@ case class LoopOverPoints(var field : Field,
     var endOffset : MultiIndex,
     var increment : MultiIndex,
     var body : ListBuffer[Statement],
+    var preComms : ListBuffer[CommunicateStatement] = ListBuffer(),
+    var postComms : ListBuffer[CommunicateStatement] = ListBuffer(),
     var reduction : Option[Reduction] = None,
     var condition : Option[Expression] = None) extends Statement {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPoints\n"
 
-  def expandSpecial(collector : StackCollector) : Output[Statement] = {
+  def expandSpecial(collector : StackCollector) : Output[StatementList] = {
     val insideFragLoop = collector.stack.map(node => node match { case loop : LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
     val innerLoop = LoopOverPointsInOneFragment(field.domain.index, field, region, seq, startOffset, endOffset, increment, body, reduction, condition)
 
-    if (insideFragLoop)
-      innerLoop
-    else {
-      if (seq)
-        new LoopOverFragments(innerLoop, reduction)
-      else
-        new LoopOverFragments(innerLoop, reduction) with OMP_PotentiallyParallel
-    }
+    val actLoop =
+      if (insideFragLoop)
+        innerLoop
+      else {
+        if (seq)
+          new LoopOverFragments(innerLoop, reduction)
+        else
+          new LoopOverFragments(innerLoop, reduction) with OMP_PotentiallyParallel
+      }
+
+    preComms ++ ListBuffer(actLoop) ++ postComms
   }
 }
 
@@ -181,8 +182,13 @@ case class LoopOverPointsInOneFragment(var domain : Int,
             || ("face_x" == d && 0 == i)
             || ("face_y" == d && 1 == i)
             || ("face_z" == d && 2 == i) =>
-            start(i) = OffsetIndex(0, 1, field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), i))
-            stop(i) = OffsetIndex(-1, 0, field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), i))
+            if (Knowledge.experimental_disableIterationOffsets) {
+              start(i) = field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i)
+              stop(i) = field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i)
+            } else {
+              start(i) = OffsetIndex(0, 1, field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), i))
+              stop(i) = OffsetIndex(-1, 0, field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), i))
+            }
           case d if "cell" == d
             || ("face_x" == d && 0 != i)
             || ("face_y" == d && 1 != i)
@@ -211,7 +217,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
 
     if (region.isDefined) {
       if (region.get.onlyOnBoundary) {
-        val neighIndex = Fragment.getNeighIndex(region.get.dir)
+        val neighIndex = Fragment.getNeigh(region.get.dir).index
         ret = new ConditionStatement(NegationExpression(iv.NeighborIsValid(domain, neighIndex)), ret)
       }
     }
@@ -246,136 +252,54 @@ case class LoopOverDimensions(var numDimensions : Int,
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverDimensions\n"
 
   def maxIterationCount() : Array[Long] = {
-    numDimensions match {
-      case 2 => indices match {
-        // basic version assuming Integer constants
-        case IndexRange(MultiIndex(IntegerConstant(xStart), IntegerConstant(yStart), _, _),
-          MultiIndex(IntegerConstant(xEnd), IntegerConstant(yEnd), _, _)) =>
-          Array(xEnd - xStart, yEnd - yStart)
+    var start = Array.fill[Long](numDimensions)(0)
+    var end = Array.fill[Long](numDimensions)(0)
 
-        // extended version assuming OffsetIndex nodes with Integer constants
-        // INFO: this uses the maximum number of points as criteria as this defines the case displaying the upper performance bound
-        case IndexRange(
-          MultiIndex(
-            OffsetIndex(xStartOffMin, _, IntegerConstant(xStart), _),
-            OffsetIndex(yStartOffMin, _, IntegerConstant(yStart), _), _, _),
-          MultiIndex(
-            OffsetIndex(_, xEndOffMax, IntegerConstant(xEnd), _),
-            OffsetIndex(_, yEndOffMax, IntegerConstant(yEnd), _), _, _)) =>
-          Array((xEnd + xEndOffMax) - (xStart + xStartOffMin),
-            (yEnd + yEndOffMax) - (yStart + yStartOffMin))
-
-        // no match so far... try if all expressions can be evaluated to integers
-        case IndexRange(start @ MultiIndex(xStart, yStart, _, _),
-          end @ MultiIndex(xEnd, yEnd, _, _)) =>
-          try {
-            val (xStarti, xEndi) = (SimplifyExpression.evalIntegral(xStart), SimplifyExpression.evalIntegral(xEnd))
-            val (yStarti, yEndi) = (SimplifyExpression.evalIntegral(yStart), SimplifyExpression.evalIntegral(yEnd))
-            start(0) = IntegerConstant(xStarti)
-            start(1) = IntegerConstant(yStarti)
-            end(0) = IntegerConstant(xEndi)
-            end(1) = IntegerConstant(yEndi)
-            Array(xEndi - xStarti, yEndi - yStarti)
-          } catch {
-            case _ : EvaluationException => null
+    indices match {
+      case indexRange : IndexRange =>
+        indexRange.begin match {
+          case startIndex : MultiIndex => {
+            for (dim <- 0 until numDimensions) {
+              startIndex(dim) match {
+                case IntegerConstant(xStart)                                  => start(dim) = xStart
+                case OffsetIndex(xStartOffMin, _, IntegerConstant(xStart), _) => start(dim) = xStart + xStartOffMin
+                case _ => { // no use -> try evaluation as last resort
+                  try {
+                    val simplified = SimplifyExpression.evalIntegral(startIndex(dim))
+                    startIndex(dim) = IntegerConstant(simplified)
+                    start(dim) = simplified
+                  } catch {
+                    case _ : EvaluationException => return null // evaluation failed -> abort
+                  }
+                }
+              }
+            }
           }
-
-        // could not match
-        case _ => null
-      }
-
-      case 3 => indices match {
-        // basic version assuming Integer constants
-        case IndexRange(MultiIndex(IntegerConstant(xStart), IntegerConstant(yStart), IntegerConstant(zStart), _),
-          MultiIndex(IntegerConstant(xEnd), IntegerConstant(yEnd), IntegerConstant(zEnd), _)) =>
-          Array(xEnd - xStart, yEnd - yStart, zEnd - zStart)
-
-        // extended version assuming OffsetIndex nodes with Integer constants
-        // INFO: this uses the maximum number of points as criteria as this defines the case displaying the upper performance bound
-        case IndexRange(
-          MultiIndex(
-            OffsetIndex(xStartOffMin, _, IntegerConstant(xStart), _),
-            OffsetIndex(yStartOffMin, _, IntegerConstant(yStart), _),
-            OffsetIndex(zStartOffMin, _, IntegerConstant(zStart), _), _),
-          MultiIndex(
-            OffsetIndex(_, xEndOffMax, IntegerConstant(xEnd), _),
-            OffsetIndex(_, yEndOffMax, IntegerConstant(yEnd), _),
-            OffsetIndex(_, zEndOffMax, IntegerConstant(zEnd), _), _)) =>
-          Array((xEnd + xEndOffMax) - (xStart + xStartOffMin),
-            (yEnd + yEndOffMax) - (yStart + yStartOffMin),
-            (zEnd + zEndOffMax) - (zStart + zStartOffMin))
-
-        // no match so far... try if all expressions can be evaluated to integers
-        case IndexRange(start @ MultiIndex(xStart, yStart, zStart, _),
-          end @ MultiIndex(xEnd, yEnd, zEnd, _)) =>
-          try {
-            val (xStarti, xEndi) = (SimplifyExpression.evalIntegral(xStart), SimplifyExpression.evalIntegral(xEnd))
-            val (yStarti, yEndi) = (SimplifyExpression.evalIntegral(yStart), SimplifyExpression.evalIntegral(yEnd))
-            val (zStarti, zEndi) = (SimplifyExpression.evalIntegral(zStart), SimplifyExpression.evalIntegral(zEnd))
-            start(0) = IntegerConstant(xStarti)
-            start(1) = IntegerConstant(yStarti)
-            start(2) = IntegerConstant(zStarti)
-            end(0) = IntegerConstant(xEndi)
-            end(1) = IntegerConstant(yEndi)
-            end(2) = IntegerConstant(zEndi)
-            Array(xEndi - xStarti, yEndi - yStarti, zEndi - zStarti)
-          } catch {
-            case _ : EvaluationException => null
+          case _ => Logger.warn("Loop index range begin is not a MultiIndex"); return null
+        }
+        indexRange.end match {
+          case endIndex : MultiIndex => {
+            for (dim <- 0 until numDimensions) {
+              endIndex(dim) match {
+                case IntegerConstant(xEnd)                                => end(dim) = xEnd
+                case OffsetIndex(_, xEndOffMax, IntegerConstant(xEnd), _) => end(dim) = xEnd + xEndOffMax
+                case _ => { // no use -> try evaluation as last resort
+                  try {
+                    val simplified = SimplifyExpression.evalIntegral(endIndex(dim))
+                    endIndex(dim) = IntegerConstant(simplified)
+                    end(dim) = simplified
+                  } catch {
+                    case _ : EvaluationException => return null // evaluation failed -> abort
+                  }
+                }
+              }
+            }
           }
-
-        // could not match
-        case _ => null
-      }
-
-      case 4 => indices match {
-        // basic version assuming Integer constants
-        case IndexRange(MultiIndex(IntegerConstant(xStart), IntegerConstant(yStart), IntegerConstant(zStart), IntegerConstant(wStart)),
-          MultiIndex(IntegerConstant(xEnd), IntegerConstant(yEnd), IntegerConstant(zEnd), IntegerConstant(wEnd))) =>
-          Array(xEnd - xStart, yEnd - yStart, zEnd - zStart, wEnd - wStart)
-
-        // extended version assuming OffsetIndex nodes with Integer constants
-        // INFO: this uses the maximum number of points as criteria as this defines the case displaying the upper performance bound
-        case IndexRange(
-          MultiIndex(
-            OffsetIndex(xStartOffMin, _, IntegerConstant(xStart), _),
-            OffsetIndex(yStartOffMin, _, IntegerConstant(yStart), _),
-            OffsetIndex(zStartOffMin, _, IntegerConstant(zStart), _),
-            OffsetIndex(wStartOffMin, _, IntegerConstant(wStart), _)),
-          MultiIndex(
-            OffsetIndex(_, xEndOffMax, IntegerConstant(xEnd), _),
-            OffsetIndex(_, yEndOffMax, IntegerConstant(yEnd), _),
-            OffsetIndex(_, zEndOffMax, IntegerConstant(zEnd), _),
-            OffsetIndex(_, wEndOffMax, IntegerConstant(wEnd), _))) =>
-          Array((xEnd + xEndOffMax) - (xStart + xStartOffMin),
-            (yEnd + yEndOffMax) - (yStart + yStartOffMin),
-            (zEnd + zEndOffMax) - (zStart + zStartOffMin),
-            (wEnd + wEndOffMax) - (wStart + wStartOffMin))
-
-        // no match so far... try if all expressions can be evaluated to integers
-        case IndexRange(start @ MultiIndex(xStart, yStart, zStart, wStart),
-          end @ MultiIndex(xEnd, yEnd, zEnd, wEnd)) =>
-          try {
-            val (xStarti, xEndi) = (SimplifyExpression.evalIntegral(xStart), SimplifyExpression.evalIntegral(xEnd))
-            val (yStarti, yEndi) = (SimplifyExpression.evalIntegral(yStart), SimplifyExpression.evalIntegral(yEnd))
-            val (zStarti, zEndi) = (SimplifyExpression.evalIntegral(zStart), SimplifyExpression.evalIntegral(zEnd))
-            val (wStarti, wEndi) = (SimplifyExpression.evalIntegral(wStart), SimplifyExpression.evalIntegral(wEnd))
-            start(0) = IntegerConstant(xStarti)
-            start(1) = IntegerConstant(yStarti)
-            start(2) = IntegerConstant(zStarti)
-            start(3) = IntegerConstant(wStarti)
-            end(0) = IntegerConstant(xEndi)
-            end(1) = IntegerConstant(yEndi)
-            end(2) = IntegerConstant(zEndi)
-            end(3) = IntegerConstant(wEndi)
-            Array(xEndi - xStarti, yEndi - yStarti, zEndi - zStarti, wEndi - wStarti)
-          } catch {
-            case _ : EvaluationException => null
-          }
-
-        // could not match
-        case _ => null
-      }
+          case _ => Logger.warn("Loop index range end is not a MultiIndex"); return null
+        }
+      case _ => Logger.warn("Loop indices are not of type IndexRange"); return null
     }
+    return (0 until numDimensions).toArray.map(dim => end(dim) - start(dim))
   }
 
   def parallelizationIsReasonable : Boolean = {
@@ -445,7 +369,7 @@ case class LoopOverDimensions(var numDimensions : Int,
 
       ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
       ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, VariableAccess("omp_tid", Some(IntegerDatatype)))
-      ReplaceStringConstantsStrategy.applyStandalone(Scope(body)) // FIXME: remove Scope
+      ReplaceStringConstantsStrategy.applyStandalone(body)
       body.prepend(VariableDeclarationStatement(IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
 
       Scope(ListBuffer[Statement](decl)
@@ -485,39 +409,49 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
   def expand : Output[StatementList] = {
     var statements = new ListBuffer[Statement]
 
-    val parallelize = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
-    val resolveOmpReduction = (
-      parallelize
-      && Knowledge.omp_version < 3.1
-      && reduction.isDefined
-      && ("min" == reduction.get.op || "max" == reduction.get.op))
+    if (Knowledge.experimental_resolveUnreqFragmentLoops && Knowledge.domain_numFragmentsPerBlock <= 1) {
+      // eliminate fragment loops in case of only one fragment per block
+      statements = ListBuffer(Scope(body))
 
-    // basic loop
-
-    if (!resolveOmpReduction) {
-      statements += generateBasicLoop(parallelize)
+      // replace references to old loop iterator
+      ReplaceStringConstantsStrategy.toReplace = defIt
+      ReplaceStringConstantsStrategy.replacement = IntegerConstant(0)
+      ReplaceStringConstantsStrategy.applyStandalone(statements)
     } else {
-      // resolve max reductions
-      val redOp = reduction.get.op
-      val redExpName = reduction.get.target.name
-      def redExp = VariableAccess(redExpName, None)
-      val redExpLocalName = redExpName + "_red"
-      def redExpLocal = VariableAccess(redExpLocalName, None)
+      val parallelize = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
+      val resolveOmpReduction = (
+        parallelize
+        && Knowledge.omp_version < 3.1
+        && reduction.isDefined
+        && ("min" == reduction.get.op || "max" == reduction.get.op))
 
-      // FIXME: this assumes real data types -> data type should be determined according to redExp
-      val decl = VariableDeclarationStatement(ArrayDatatype(RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
-      var init = (0 until Knowledge.omp_numThreads).map(fragIdx => AssignmentStatement(ArrayAccess(redExpLocal, fragIdx), redExp))
-      val redOperands = ListBuffer[Expression](redExp) ++ (0 until Knowledge.omp_numThreads).map(fragIdx => ArrayAccess(redExpLocal, fragIdx) : Expression)
-      val red = AssignmentStatement(redExp, if ("min" == redOp) MinimumExpression(redOperands) else MaximumExpression(redOperands))
+      // basic loop
 
-      ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
-      ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, VariableAccess("omp_tid", Some(IntegerDatatype)))
-      ReplaceStringConstantsStrategy.applyStandalone(Scope(body)) // FIXME: remove Scope
-      body.prepend(VariableDeclarationStatement(IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
+      if (!resolveOmpReduction) {
+        statements += generateBasicLoop(parallelize)
+      } else {
+        // resolve max reductions
+        val redOp = reduction.get.op
+        val redExpName = reduction.get.target.name
+        def redExp = VariableAccess(redExpName, None)
+        val redExpLocalName = redExpName + "_red"
+        def redExpLocal = VariableAccess(redExpLocalName, None)
 
-      statements += Scope(ListBuffer[Statement](decl)
-        ++ init
-        ++ ListBuffer[Statement](generateBasicLoop(parallelize), red))
+        // FIXME: this assumes real data types -> data type should be determined according to redExp
+        val decl = VariableDeclarationStatement(ArrayDatatype(RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
+        var init = (0 until Knowledge.omp_numThreads).map(fragIdx => AssignmentStatement(ArrayAccess(redExpLocal, fragIdx), redExp))
+        val redOperands = ListBuffer[Expression](redExp) ++ (0 until Knowledge.omp_numThreads).map(fragIdx => ArrayAccess(redExpLocal, fragIdx) : Expression)
+        val red = AssignmentStatement(redExp, if ("min" == redOp) MinimumExpression(redOperands) else MaximumExpression(redOperands))
+
+        ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
+        ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, VariableAccess("omp_tid", Some(IntegerDatatype)))
+        ReplaceStringConstantsStrategy.applyStandalone(body)
+        body.prepend(VariableDeclarationStatement(IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
+
+        statements += Scope(ListBuffer[Statement](decl)
+          ++ init
+          ++ ListBuffer[Statement](generateBasicLoop(parallelize), red))
+      }
     }
 
     if (Knowledge.mpi_enabled && reduction.isDefined) {
@@ -599,4 +533,3 @@ case class LoopOverNeighbors(var body : ListBuffer[Statement]) extends Statement
       body)
   }
 }
-

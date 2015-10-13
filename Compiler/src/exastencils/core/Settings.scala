@@ -2,28 +2,34 @@ package exastencils.core
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.knowledge._
 import exastencils.prettyprinting._
 
 object Settings {
-  /// user; allows triggering user-specific code
-  var user : String = "guest"
+  var user : String = "guest" // allows triggering user-specific code
 
   /// input
-  var basePathPrefix : String = ".."
-  var l4file : String = ""
-  def getL4file : String = if (l4file != "") l4file else basePathPrefix + "/Compiler/dsl/Layer4.exa"
+  var basePathPrefix : String = ""
+  def getBasePath = if (basePathPrefix.isEmpty || basePathPrefix.endsWith("/") || basePathPrefix.endsWith("\\")) basePathPrefix else basePathPrefix + "/"
 
   var l3file : String = ""
-  def getL3file : String = if (l3file != "") l3file else basePathPrefix + "/Compiler/dsl/Layer3.exa"
+  def defL3file : String = if ("" == basePathPrefix) "../Compiler/dsl/Layer3.exa" else getBasePath + "Compiler/dsl/Layer3.exa"
+  def getL3file : String = if (l3file.isEmpty) defL3file else getBasePath + l3file
+
+  var l4file : String = ""
+  def defL4file : String = if ("" == basePathPrefix) "../Compiler/dsl/Layer4.exa" else getBasePath + "Compiler/dsl/Layer4.exa"
+  def getL4file : String = if (l4file.isEmpty) defL4file else getBasePath + l4file
 
   /// output
-  var outputPath : String = "/tmp/"
+  var outputPath : String = ""
+  def defOutputPath : String = if ("" == basePathPrefix) { if ("MSVC" == Knowledge.targetCompiler) "../generated" else "/tmp/" } else getBasePath + "generated/"
+  def getOutputPath : String = if (outputPath.isEmpty) defOutputPath else getBasePath + (if (outputPath.endsWith("/") || outputPath.endsWith("\\")) outputPath else outputPath + "/")
   var cancelIfOutFolderExists : Boolean = false
 
   /// management
   var configName : String = ""
 
-  /// ouput for fragment data file
+  /// output for fragment data file
   var fragmentFile_config_output = 2 // 0:binary, 1:readable, 2:both
   def fragmentFile_config_path_readable = outputPath + "Domains/DomainConfiguration.cfg"
   def fragmentFile_config_path_domainConfig = outputPath + "Domains/config.dat"
@@ -33,7 +39,7 @@ object Settings {
   var buildfileGenerator : BuildfileGenerator = MakefileGenerator
   var binary : String = "exastencils"
 
-  /// external dependecies
+  /// external dependencies
   var pathsInc : ListBuffer[String] = ListBuffer()
   var pathsLib : ListBuffer[String] = ListBuffer()
 
@@ -49,10 +55,11 @@ object Settings {
   /// logging
   var produceHtmlLog : Boolean = false
   var htmlLogFile : String = ""
-  def getHtmlLogFile : String = if (htmlLogFile != "") htmlLogFile else basePathPrefix + "/Compiler/log/log.html"
+  def defHtmlLogFile : String = if ("" == basePathPrefix) "../Compiler/log/log.html" else getBasePath + "Compiler/log/log.html"
+  def getHtmlLogFile : String = if (htmlLogFile.isEmpty) defHtmlLogFile else getBasePath + htmlLogFile
 
   var timeStrategies : Boolean = false
-  var timeStratPercentThreshold : Int = 5 // five percent threshold by default -> measurements with less than 5.0 % share are not displayed  
+  var timeStratPercentThreshold : Int = 5 // five percent threshold by default -> measurements with less than 5.0 % share are not displayed
   var printNodeCountAfterTransformation : Boolean = false // print number of nodes after each transformation
   var printNodeCountAfterStrategy : Boolean = false // print number of nodes after each strategy
   var printTransformationTime : Boolean = false

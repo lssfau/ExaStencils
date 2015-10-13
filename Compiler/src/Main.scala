@@ -37,8 +37,8 @@ object Main {
       Logger_HTML.init
 
     if (Settings.cancelIfOutFolderExists) {
-      if ((new java.io.File(Settings.outputPath)).exists) {
-        Logger.error(s"Output path ${Settings.outputPath} already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
+      if ((new java.io.File(Settings.getOutputPath)).exists) {
+        Logger.error(s"Output path ${Settings.getOutputPath} already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
         sys.exit(0)
       }
     }
@@ -137,6 +137,7 @@ object Main {
     ResolveFunctionTemplates.apply() // preparation step
     UnfoldLevelSpecifications.apply() // preparation step
     ResolveL4.apply()
+    ResolveBoundaryHandlingFunctions.apply()
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
     // add remaining nodes
@@ -190,6 +191,10 @@ object Main {
     else
       ExpandStrategy.doUntilDone()
 
+    // resolve constant IVs before applying poly opt
+    ResolveConstInternalVariables.apply()
+    SimplifyStrategy.doUntilDone()
+
     MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)
       PolyOpt.apply()
@@ -229,6 +234,9 @@ object Main {
       RemoveDupSIMDLoads.apply()
 
     AddInternalVariables.apply()
+    // resolve possibly newly added constant IVs
+    ResolveConstInternalVariables.apply()
+
     if (Knowledge.useFasterExpand)
       ExpandOnePassStrategy.apply()
     else

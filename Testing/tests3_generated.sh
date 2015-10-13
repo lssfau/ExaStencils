@@ -14,7 +14,7 @@ LINK=${5}
 PROGRESS=${6}
 
 
-echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
+echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
 
 echo "Running test on machine(s) ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
 rm -f ${ERROR_MARKER} # remove error marker from old job run if we were requeued
@@ -48,8 +48,15 @@ trap cleanup EXIT
 
 # run generated code
 echo "  Created  ${RESULT}: run code and redirect its stdout and stderr."
-srun "${BIN}" 2>&1 | grep -v "No protocol specified" | tee "${RESULT}" # HACK: filter strange X server error...
+srun "${BIN}" 2>&1 | grep -v -e "No protocol specified" -e "fglrx" | tee "${RESULT}" # HACK: filter strange X server error...
 echo ""
+
+if grep -q "Communication connection failure" ${RESULT}; then
+  echo "restart test..."
+  cleanup # call cleanup directly; no exit trap when requeue is performed (slurm kills this script completly)
+  scontrol requeue ${SLURM_JOB_ID}
+  sleep 60 # ensure this execution never enters a finished state (for dependences), since scontrol might need some time
+fi
 
 if diff -B -w --strip-trailing-cr -I "time" -I "No root privilege"  "${RESULT}" "${EXP_RESULT}" > /dev/null; then
   echo "============== Test OK =============="
@@ -61,4 +68,4 @@ else
   echo "${LINK}" >> "${LOG_ALL}"
 fi
 echo ""
-echo "<html><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
+echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"

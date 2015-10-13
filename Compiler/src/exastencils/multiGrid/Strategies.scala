@@ -2,6 +2,7 @@ package exastencils.multiGrid
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.communication._
 import exastencils.core._
 import exastencils.core.collectors.IRLevelCollector
 import exastencils.core.collectors.StackCollector
@@ -171,8 +172,19 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     // HACK for print functionality
     case ExpressionStatement(FunctionCallExpression("print", args)) =>
       new PrintStatement(args)
-    case ExpressionStatement(FunctionCallExpression("printField", args)) =>
-      new PrintFieldStatement(args(0), args(1).asInstanceOf[FieldAccess].fieldSelection)
+    case ExpressionStatement(FunctionCallExpression("printField", args)) => {
+      args.length match {
+        case 1 => // option 1: only field -> deduce name
+          new PrintFieldStatement("\"" + args(0).asInstanceOf[FieldAccess].fieldSelection.field.identifier + ".dat\"", args(0).asInstanceOf[FieldAccess].fieldSelection)
+        case 2 => // option 2: filename and field
+          new PrintFieldStatement(args(0), args(1).asInstanceOf[FieldAccess].fieldSelection)
+        case 3 => //option 3: filename, file and condition
+          new PrintFieldStatement(args(0), args(1).asInstanceOf[FieldAccess].fieldSelection, args(2))
+      }
+    }
+
+    case ExpressionStatement(FunctionCallExpression("buildString", args)) =>
+      new BuildStringStatement(args(0), args.slice(1, args.size))
 
     // FIXME: HACK to realize application functionality
     case func : FunctionStatement if ("Application" == func.name) => {
@@ -195,6 +207,29 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
       }
       func.body.append(new ReturnStatement(Some(new IntegerConstant(0))))
       func
+    }
+
+    case FunctionCallExpression("isOnBoundaryOf", args) => {
+      IsOnBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection)
+    }
+
+    case FunctionCallExpression("isOnEastBoundaryOf", args) => {
+      IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(1, 0, 0)))
+    }
+    case FunctionCallExpression("isOnWestBoundaryOf", args) => {
+      IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(-1, 0, 0)))
+    }
+    case FunctionCallExpression("isOnNorthBoundaryOf", args) => {
+      IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 1, 0)))
+    }
+    case FunctionCallExpression("isOnSouthBoundaryOf", args) => {
+      IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, -1, 0)))
+    }
+    case FunctionCallExpression("isOnTopBoundaryOf", args) => {
+      IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 0, 1)))
+    }
+    case FunctionCallExpression("isOnBottomBoundaryOf", args) => {
+      IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 0, -1)))
     }
   })
 }

@@ -11,6 +11,27 @@ import exastencils.knowledge._
 import exastencils.mpi._
 import exastencils.prettyprinting._
 
+case class BuildStringStatement(var stringName : Expression, var toPrint : ListBuffer[Expression]) extends Statement with Expandable {
+
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintStatement\n"
+
+  override def expand : Output[StatementList] = {
+    val streamName = s"string_builder_${BuildStringStatement.counter}"
+    var statements = ListBuffer[Statement](
+      VariableDeclarationStatement(SpecialDatatype("std::ostringstream"), streamName),
+      (streamName : Expression) ~ " << " ~ toPrint.reduceLeft((l, e) => l ~ " << " ~ e),
+      AssignmentStatement(stringName, MemberFunctionCallExpression(streamName, "str", ListBuffer())))
+
+    BuildStringStatement.counter += 1
+
+    /*Scope*/ (statements)
+  }
+}
+
+object BuildStringStatement {
+  var counter : Int = 0
+}
+
 case class PrintStatement(var toPrint : ListBuffer[Expression], var stream : String = "std::cout") extends Statement with Expandable {
   def this(toPrint : Expression) = this(ListBuffer(toPrint))
 
@@ -25,7 +46,7 @@ case class PrintStatement(var toPrint : ListBuffer[Expression], var stream : Str
   }
 }
 
-case class PrintFieldStatement(var filename : Expression, var field : FieldSelection) extends Statement with Expandable {
+case class PrintFieldStatement(var filename : Expression, var field : FieldSelection, var condition : Expression = BooleanConstant(true)) extends Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintFieldStatement\n"
 
   override def expand : Output[StatementList] = {
@@ -44,10 +65,11 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
             new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => (field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i)) : Expression))),
             ListBuffer[Statement](
               new InitGeomCoords(field.field, false),
-              ("stream << xPos << \" \"" +
-                (if (Knowledge.dimensionality > 1) " << yPos << \" \"" else "") +
-                (if (Knowledge.dimensionality > 2) " << zPos << \" \"" else "") +
-                " << " : Expression) ~ access ~ " << std::endl")),
+              new ConditionStatement(condition,
+                ("stream << xPos << \" \"" +
+                  (if (Knowledge.dimensionality > 1) " << yPos << \" \"" else "") +
+                  (if (Knowledge.dimensionality > 2) " << zPos << \" \"" else "") +
+                  " << " : Expression) ~ access ~ " << std::endl"))),
           "stream.close()")))
 
     var statements : ListBuffer[Statement] = ListBuffer()

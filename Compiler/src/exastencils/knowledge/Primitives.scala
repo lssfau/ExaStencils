@@ -22,14 +22,16 @@ object dirToString extends (Int => String) {
 object Fragment {
   var neighbors : ListBuffer[NeighborInfo] = ListBuffer()
 
-  def getNeighIndex(dir : Array[Int]) : Int = {
-    for (neigh <- neighbors) {
-      if (dir.deep == neigh.dir.deep)
-        return neigh.index
+  /// ignores array entries beyond Knowledge.dimensionality
+  def getNeigh(dir : Array[Int]) : NeighborInfo = {
+    if (dir.size >= Knowledge.dimensionality) {
+      for (neigh <- neighbors) {
+        if ((0 until Knowledge.dimensionality).map(i => dir(i) == neigh.dir(i)).reduce((a, b) => a && b))
+          return neigh
+      }
     }
-
     Logger.warn("Trying to access invalid neighbor: " + dir.mkString(", "))
-    return -1
+    neighbors(0)
   }
 
   def setupNeighbors() : Unit = {

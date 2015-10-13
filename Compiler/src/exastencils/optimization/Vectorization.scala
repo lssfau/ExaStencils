@@ -223,7 +223,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
           }
           acc
       })
-      collectIndexExprs.applyStandalone(Scope(body))
+      collectIndexExprs.applyStandalone(body)
 
       // no store available, so align as many loads as possible
       if (alignmentExpr == null) {

@@ -36,8 +36,8 @@ object MainChristian {
       Logger_HTML.init
 
     if (Settings.cancelIfOutFolderExists) {
-      if ((new java.io.File(Settings.outputPath)).exists) {
-        Logger.error(s"Output path ${Settings.outputPath} already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
+      if ((new java.io.File(Settings.getOutputPath)).exists) {
+        Logger.error(s"Output path ${Settings.getOutputPath} already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
         sys.exit(0)
       }
     }

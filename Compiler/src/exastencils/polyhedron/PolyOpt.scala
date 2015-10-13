@@ -1,7 +1,11 @@
 package exastencils.polyhedron
 
+import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.Buffer
+import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.TreeSet
+import scala.util.control.Breaks
 
 import exastencils.core._
 import exastencils.datastructures._
@@ -62,6 +66,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
     val scops : Seq[Scop] = extractPolyModel()
     for (scop <- scops if (!scop.remove)) {
+      mergeLocalScalars(scop)
       mergeScops(scop)
       simplifyModel(scop)
       computeDependences(scop)
@@ -108,6 +113,119 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     return scops
   }
 
+  private def mergeLocalScalars(scop : Scop) : Unit = {
+    var toFind : String = null
+    var found : Boolean = false
+    val search = new Transformation("search...", {
+      case va : VariableAccess if (va.name == toFind) =>
+        found = true
+        va
+      case sc : StringConstant if (sc.value == toFind) =>
+        found = true
+        sc
+    })
+    for (decl : VariableDeclarationStatement <- scop.decls) Breaks.breakable {
+      val name : String = decl.name
+      toFind = name
+      var fstStmt : Int = -1
+      var lstStmt : Int = -1
+      var stmts : Buffer[(String, (ListBuffer[Statement], ArrayBuffer[String]))] =
+        scop.stmts.toBuffer.sorted(new Ordering[(String, _)] {
+          override def compare(a : (String, _), b : (String, _)) : Int = {
+            return a._1.compareTo(b._1)
+          }
+        })
+      var i : Int = 0
+      val oldLvl = Logger.getLevel
+      Logger.setLevel(Logger.WARNING)
+      for ((lab, (stmt, _)) <- stmts) {
+        found = false
+        this.execute(search, Some(Scope(stmt)))
+        if (found) {
+          if (fstStmt < 0)
+            fstStmt = i
+          lstStmt = i
+        }
+        i += 1
+      }
+      Logger.setLevel(oldLvl)
+      stmts = stmts.slice(fstStmt, lstStmt + 1)
+      // check if all statements have the same iteration space
+      val remDoms = new ArrayBuffer[isl.Set]()
+      var njuDomain : isl.UnionSet = null
+      scop.domain.foreachSet({
+        set : isl.Set =>
+          var found : Boolean = false
+          for ((lab, (stmt, _)) <- stmts)
+            if (set.getTupleName() == lab)
+              found = true
+          if (found)
+            remDoms += set
+          else
+            njuDomain = if (njuDomain == null) set else njuDomain.addSet(set)
+          () // return type must be Unit, but the true branch returns a Buffer...
+      })
+      val mergedDom : isl.Set = remDoms(0)
+      val proto : isl.Set = mergedDom.resetTupleId()
+      for (i <- 1 until remDoms.length)
+        if (!proto.isEqual(remDoms(i).resetTupleId()))
+          Breaks.break() // continue... different domains, cannot merge statements
+      val mergedStmts = new ListBuffer[Statement]()
+      var mergedLoopIts : ArrayBuffer[String] = null
+      for ((lab, (stmt, loopIts)) <- stmts) {
+        mergedStmts ++= stmt
+        if (mergedLoopIts == null)
+          mergedLoopIts = loopIts
+        else if (!mergedLoopIts.sameElements(loopIts))
+          Breaks.break() // continue... loopIts must be identical?!
+      }
+      scop.domain =
+        if (njuDomain == null) mergedDom
+        else njuDomain.addSet(mergedDom) // re-add one of the domains
+      val njuLabel : String = mergedDom.getTupleName()
+      for ((lab, _) <- stmts)
+        if (lab == njuLabel)
+          scop.stmts(lab) = (mergedStmts, mergedLoopIts)
+        else
+	  scop.stmts -= lab
+      // adjust read and write accesses
+      var nju : isl.UnionMap = null
+      scop.reads.foreachMap({
+        map : isl.Map =>
+          if (map.getTupleName(isl.DimType.Out) != name) { // remove all accesses to the scalar
+            val oldLabel : String = map.getTupleName(isl.DimType.In)
+            var toAdd : isl.Map = map
+            if (oldLabel != njuLabel)
+              for ((lab, _) <- stmts if (oldLabel == lab))
+                toAdd = toAdd.setTupleName(isl.DimType.In, njuLabel)
+            nju = if (nju == null) toAdd else nju.addMap(toAdd)
+          }
+      })
+      scop.reads = nju
+      nju = null
+      scop.writes.foreachMap({
+        map : isl.Map =>
+          if (map.getTupleName(isl.DimType.Out) != name) { // remove all accesses to the scalar
+            val oldLabel : String = map.getTupleName(isl.DimType.In)
+            var toAdd : isl.Map = map
+            if (oldLabel != njuLabel)
+              for ((lab, _) <- stmts if (oldLabel == lab))
+               toAdd = toAdd.setTupleName(isl.DimType.In, njuLabel)
+            nju = if (nju == null) toAdd else nju.addMap(toAdd)
+          }
+      })
+      scop.writes = nju
+
+      // update scop.deadAfterScop
+      var resurrect : Boolean = false
+      for (set <- remDoms)
+        if (scop.deadAfterScop.intersect(set).isEmpty())
+          resurrect = true
+      if (resurrect)
+        scop.deadAfterScop = scop.deadAfterScop.subtract(mergedDom.dropConstraintsInvolvingDims(isl.DimType.Set, 0, mergedDom.dim(isl.DimType.Set)))
+    }
+  }
+
   private def mergeScops(scop : Scop) : Unit = {
 
     var toMerge : Scop = scop.nextMerge
@@ -121,6 +239,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         return
       }
       scop.optLevel = math.max(scop.optLevel, toMerge.optLevel)
+      scop.context = unionNull(scop.context, toMerge.context)
       scop.domain = unionNull(scop.domain, toMerge.domain)
       scop.schedule = unionNull(scop.schedule, insertCst(toMerge.schedule, i))
       scop.stmts ++= toMerge.stmts
@@ -148,6 +267,14 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         s = s.addMap(nju.fixVal(isl.DimType.Out, 0, i))
     })
     return s
+  }
+
+  private def unionNull(a : isl.Set, b : isl.Set) : isl.Set = {
+    (a, b) match {
+      case (null, y) => y
+      case (x, null) => x
+      case (x, y)    => x.union(y)
+    }
   }
 
   private def unionNull(a : isl.UnionSet, b : isl.UnionSet) : isl.UnionSet = {

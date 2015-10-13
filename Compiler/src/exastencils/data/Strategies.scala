@@ -92,6 +92,7 @@ object ResolveSlotOperationsStrategy extends DefaultStrategy("ResolveSlotOperati
   })
 }
 
+// Note: Must run after ResolveLoopOverPointsInOneFragment
 object ResolveContractingLoop extends DefaultStrategy("Resolving ContractingLoop nodes") {
   this += new Transformation("Resolving", {
     case loop : ContractingLoop =>
@@ -106,6 +107,44 @@ object ResolveFieldAccess extends DefaultStrategy("Resolving FieldAccess nodes")
   })
 }
 
+object ResolveConstInternalVariables extends DefaultStrategy("Resolving constant internal variables") {
+  override def apply(applyAtNode : Option[Node]) = {
+    this.transaction()
+
+    if (DomainCollection.domains.size <= 1)
+      this.execute(new Transformation("Resolving IsValidForSubdomain", {
+        case AssignmentStatement(_ : iv.IsValidForSubdomain, _, _) => NullStatement
+        case _ : iv.IsValidForSubdomain                            => BooleanConstant(true)
+      }))
+
+    if (!Knowledge.mpi_enabled || Knowledge.mpi_numThreads <= 1)
+      this.execute(new Transformation("Resolving NeighborIsRemote and NeighborRemoteRank", {
+        case AssignmentStatement(_ : iv.NeighborIsRemote, _, _)   => NullStatement
+        case _ : iv.NeighborIsRemote                              => BooleanConstant(false)
+        case AssignmentStatement(_ : iv.NeighborRemoteRank, _, _) => NullStatement
+        case _ : iv.NeighborRemoteRank                            => IntegerConstant(-1)
+      }))
+
+    if (Knowledge.domain_numFragmentsTotal <= 1) {
+      this.execute(new Transformation("Resolving NeighborIsValid", {
+        case AssignmentStatement(_ : iv.NeighborIsValid, _, _) => NullStatement
+        case _ : iv.NeighborIsValid                            => BooleanConstant(false)
+      }))
+    } else if (Knowledge.domain_rect_generate) {
+      for (dim <- 0 until Knowledge.dimensionality)
+        if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
+          this.execute(new Transformation(s"Resolving NeighborIsValid in dimension $dim", {
+            case AssignmentStatement(niv : iv.NeighborIsValid, _, _) if (niv.neighIdx.isInstanceOf[IntegerConstant])
+              && (Fragment.neighbors(niv.neighIdx.asInstanceOf[IntegerConstant].value.toInt).dir(dim) != 0) => NullStatement
+            case niv : iv.NeighborIsValid if (niv.neighIdx.isInstanceOf[IntegerConstant])
+              && (Fragment.neighbors(niv.neighIdx.asInstanceOf[IntegerConstant].value.toInt).dir(dim) != 0) => BooleanConstant(false)
+          }))
+    }
+
+    this.commit()
+  }
+}
+
 object AddInternalVariables extends DefaultStrategy("Adding internal variables") {
   var declarationMap : HashMap[String, VariableDeclarationStatement] = HashMap()
   var ctorMap : HashMap[String, Statement] = HashMap()
@@ -115,12 +154,16 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   var bufferAllocs : HashMap[String, Statement] = HashMap()
   var fieldAllocs : HashMap[String, Statement] = HashMap()
 
+  var counter : Int = 0
+
   override def apply(node : Option[Node] = None) = {
+    counter = 0
     for (map <- List(declarationMap, ctorMap, dtorMap, bufferSizes, bufferAllocs, fieldAllocs)) map.clear
     super.apply(node)
   }
 
   override def applyStandalone(node : Node) = {
+    counter = 0
     for (map <- List(declarationMap, ctorMap, dtorMap, bufferSizes, bufferAllocs, fieldAllocs)) map.clear
     super.applyStandalone(node)
   }
@@ -172,13 +215,14 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
 
       var innerStmts : ListBuffer[Statement] =
         if (Knowledge.data_alignFieldPointers) {
+          counter += 1
           ListBuffer(
-            VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), "vs",
+            VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), s"vs_$counter",
               Some(Knowledge.simd_vectorSize * SizeOfExpression(RealDatatype))),
             AssignmentStatement(newFieldData.basePtr, Allocation(field.field.dataType.resolveUnderlyingDatatype, numDataPoints + Knowledge.simd_vectorSize - 1)),
-            VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), "offset",
-              Some((("vs" - (CastExpression(SpecialDatatype("ptrdiff_t"), newFieldData.basePtr) Mod "vs")) Mod "vs") / SizeOfExpression(RealDatatype))),
-            AssignmentStatement(newFieldData, newFieldData.basePtr + "offset"))
+            VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), s"offset_$counter",
+              Some(((s"vs_$counter" - (CastExpression(SpecialDatatype("ptrdiff_t"), newFieldData.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / SizeOfExpression(RealDatatype))),
+            AssignmentStatement(newFieldData, newFieldData.basePtr + s"offset_$counter"))
         } else {
           ListBuffer(AssignmentStatement(newFieldData, Allocation(field.field.dataType.resolveUnderlyingDatatype, numDataPoints)))
         }
@@ -204,13 +248,14 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       val size = bufferSizes(id)
 
       if (Knowledge.data_alignTmpBufferPointers) {
+        counter += 1
         bufferAllocs += (id -> new LoopOverFragments(ListBuffer[Statement](
-          VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), "vs",
+          VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), s"vs_$counter",
             Some(Knowledge.simd_vectorSize * SizeOfExpression(RealDatatype))),
           AssignmentStatement(buf.basePtr, Allocation(RealDatatype, size + Knowledge.simd_vectorSize - 1)),
-          VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), "offset",
-            Some((("vs" - (CastExpression(SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod "vs")) Mod "vs") / SizeOfExpression(RealDatatype))),
-          AssignmentStatement(buf, buf.basePtr + "offset"))) with OMP_PotentiallyParallel)
+          VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), s"offset_$counter",
+            Some(((s"vs_$counter" - (CastExpression(SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / SizeOfExpression(RealDatatype))),
+          AssignmentStatement(buf, buf.basePtr + s"offset_$counter"))) with OMP_PotentiallyParallel)
       } else {
         bufferAllocs += (id -> new LoopOverFragments(new AssignmentStatement(buf, Allocation(RealDatatype, size))) with OMP_PotentiallyParallel)
       }
