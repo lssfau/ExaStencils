@@ -455,10 +455,10 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
                 body += new LocalRecvs(updatedFieldSelection, genIndicesGhostLocalRecv(curNeighbors), true, false, insideFragLoop)
               }
               if (finish) {
-                body += new LocalRecvs(updatedFieldSelection, genIndicesGhostLocalRecv(curNeighbors), false, true, insideFragLoop)
-                body += new LocalSends(updatedFieldSelection, genIndicesGhostLocalSend(curNeighbors), false, true, insideFragLoop)
                 body += new RemoteRecvs(updatedFieldSelection, genIndicesGhostRemoteRecv(curNeighbors), false, true, concurrencyId, insideFragLoop)
                 body += new RemoteSends(updatedFieldSelection, genIndicesGhostRemoteSend(curNeighbors), false, true, concurrencyId, insideFragLoop)
+                body += new LocalRecvs(updatedFieldSelection, genIndicesGhostLocalRecv(curNeighbors), false, true, insideFragLoop)
+                body += new LocalSends(updatedFieldSelection, genIndicesGhostLocalSend(curNeighbors), false, true, insideFragLoop)
               }
             }
           }
@@ -470,10 +470,10 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
               body += new LocalRecvs(updatedFieldSelection, genIndicesGhostLocalRecv(neighbors), true, false, insideFragLoop)
             }
             if (finish) {
-              body += new LocalRecvs(updatedFieldSelection, genIndicesGhostLocalRecv(neighbors), false, true, insideFragLoop)
-              body += new LocalSends(updatedFieldSelection, genIndicesGhostLocalSend(neighbors), false, true, insideFragLoop)
               body += new RemoteRecvs(updatedFieldSelection, genIndicesGhostRemoteRecv(neighbors), false, true, concurrencyId, insideFragLoop)
               body += new RemoteSends(updatedFieldSelection, genIndicesGhostRemoteSend(neighbors), false, true, concurrencyId, insideFragLoop)
+              body += new LocalRecvs(updatedFieldSelection, genIndicesGhostLocalRecv(neighbors), false, true, insideFragLoop)
+              body += new LocalSends(updatedFieldSelection, genIndicesGhostLocalSend(neighbors), false, true, insideFragLoop)
             }
           }
         }

@@ -12,6 +12,7 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.mpi._
+import exastencils.omp._
 
 object SetupCommunication extends DefaultStrategy("Setting up communication") {
   var commFunctions : CommunicationFunctions = CommunicationFunctions()
@@ -26,6 +27,8 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
 
     if (Knowledge.mpi_enabled && Knowledge.domain_canHaveRemoteNeighs)
       commFunctions.functions += new MPI_WaitForRequest
+    if (Knowledge.omp_enabled && Knowledge.domain_canHaveLocalNeighs)
+      commFunctions.functions += new OMP_WaitForFlag
     if (Knowledge.domain_canHaveLocalNeighs)
       commFunctions.functions += new ConnectLocalElement()
     if (Knowledge.domain_canHaveRemoteNeighs)

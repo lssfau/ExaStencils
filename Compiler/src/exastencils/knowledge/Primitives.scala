@@ -34,6 +34,9 @@ object Fragment {
     neighbors(0)
   }
 
+  def getOpposingNeigh(index : Int) : NeighborInfo = getOpposingNeigh(neighbors(index))
+  def getOpposingNeigh(neigh : NeighborInfo) = getNeigh(neigh.dir.map(i => -i))
+
   def setupNeighbors() : Unit = {
     neighbors.clear
 

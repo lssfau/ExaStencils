@@ -132,10 +132,18 @@ abstract class UnduplicatedVariable extends InternalVariable(false, false, false
   override def prettyprint(out : PpStream) : Unit = out << resolveName
 }
 
-case class ReqOutstanding(var field : Field, var direction : String, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
+case class RemoteReqOutstanding(var field : Field, var direction : String, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
 
-  override def resolveName = s"reqOutstanding_${direction}" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
+  override def resolveName = s"remoteReqOutstanding_${direction}" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
+  override def resolveDataType = BooleanDatatype
+  override def resolveDefValue = Some(false)
+}
+
+case class LocalReqOutstanding(var field : Field, var direction : String, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
+
+  override def resolveName = s"localReqOutstanding_${direction}" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
   override def resolveDataType = BooleanDatatype
   override def resolveDefValue = Some(false)
 }
@@ -145,6 +153,30 @@ case class MpiRequest(var field : Field, var direction : String, var neighIdx : 
 
   override def resolveName = s"mpiRequest_${direction}" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
   override def resolveDataType = "MPI_Request"
+}
+
+case class ComputationDone(var field : Field, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, NullExpression)
+
+  override def resolveName = s"computationDone" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, "")
+  override def resolveDataType = BooleanDatatype
+  override def resolveDefValue = Some(false)
+}
+
+case class LocalCommReady(var field : Field, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
+
+  override def resolveName = s"localCommReady" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
+  override def resolveDataType = BooleanDatatype
+  override def resolveDefValue = Some(false)
+}
+
+case class LocalCommDone(var field : Field, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
+
+  override def resolveName = s"localCommDone" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
+  override def resolveDataType = BooleanDatatype
+  override def resolveDefValue = Some(false)
 }
 
 case class NeighborIsValid(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends NeighInfoVariable {

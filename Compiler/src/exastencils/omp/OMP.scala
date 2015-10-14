@@ -2,6 +2,7 @@ package exastencils.omp
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
@@ -57,10 +58,25 @@ case class OMP_ParallelFor(var body : ForLoopStatement, var addOMPStatements : L
     res // res == collapse now
   }
 
-  def prettyprint(out : PpStream) : Unit = {
+  override def prettyprint(out : PpStream) : Unit = {
     out << "#pragma omp parallel for schedule(static) num_threads(" << Knowledge.omp_numThreads << ')' << addOMPStatements.mkString(" ", " ", "")
     if (collapse > 1 && Knowledge.omp_version >= 3 && Knowledge.omp_useCollapse)
       out << " collapse(" << getCollapseLvl() << ')'
     out << '\n' << body
+  }
+}
+
+case class OMP_WaitForFlag() extends AbstractFunctionStatement with Expandable {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = OMP_WaitForFlag\n"
+  override def prettyprint_decl : String = prettyprint
+
+  override def expand : Output[FunctionStatement] = {
+    def flag = VariableAccess("flag", Some(PointerDatatype(IntegerDatatype)))
+
+    FunctionStatement(UnitDatatype, s"waitForFlag", ListBuffer(flag),
+      ListBuffer[Statement](
+        new WhileLoopStatement(NegationExpression(DerefAccess(flag)), ListBuffer[Statement]()),
+        new AssignmentStatement(DerefAccess(flag), BooleanConstant(false))),
+      false)
   }
 }
