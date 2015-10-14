@@ -155,14 +155,6 @@ case class MpiRequest(var field : Field, var direction : String, var neighIdx : 
   override def resolveDataType = "MPI_Request"
 }
 
-case class ComputationDone(var field : Field, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, NullExpression)
-
-  override def resolveName = s"computationDone" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, "")
-  override def resolveDataType = BooleanDatatype
-  override def resolveDefValue = Some(false)
-}
-
 case class LocalCommReady(var field : Field, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
 

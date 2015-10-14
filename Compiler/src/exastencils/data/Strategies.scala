@@ -141,6 +141,18 @@ object ResolveConstInternalVariables extends DefaultStrategy("Resolving constant
           }))
     }
 
+    if (Knowledge.comm_disableLocalCommSync) {
+      this.execute(new Transformation("Resolving local synchronization", {
+        case AssignmentStatement(_ : iv.LocalCommReady, _, _) => NullStatement
+        case _ : iv.LocalCommReady                            => BooleanConstant(true)
+
+        case AssignmentStatement(_ : iv.LocalCommDone, _, _)  => NullStatement
+        case _ : iv.LocalCommDone                             => BooleanConstant(true)
+
+        case FunctionCallExpression("waitForFlag", _)         => NullExpression
+      }))
+    }
+
     this.commit()
   }
 }
