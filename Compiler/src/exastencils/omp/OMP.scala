@@ -71,7 +71,7 @@ case class OMP_WaitForFlag() extends AbstractFunctionStatement with Expandable {
   override def prettyprint_decl : String = prettyprint
 
   override def expand : Output[FunctionStatement] = {
-    def flag = VariableAccess("flag", Some(PointerDatatype(IntegerDatatype)))
+    def flag = VariableAccess("flag", Some(PointerDatatype(VolatileDatatype(BooleanDatatype))))
 
     FunctionStatement(UnitDatatype, s"waitForFlag", ListBuffer(flag),
       ListBuffer[Statement](

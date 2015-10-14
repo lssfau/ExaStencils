@@ -159,7 +159,7 @@ case class LocalCommReady(var field : Field, var neighIdx : Expression, var frag
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
 
   override def resolveName = s"localCommReady" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
-  override def resolveDataType = BooleanDatatype
+  override def resolveDataType = VolatileDatatype(BooleanDatatype)
   override def resolveDefValue = Some(false)
 }
 
@@ -167,7 +167,7 @@ case class LocalCommDone(var field : Field, var neighIdx : Expression, var fragm
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
 
   override def resolveName = s"localCommDone" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
-  override def resolveDataType = BooleanDatatype
+  override def resolveDataType = VolatileDatatype(BooleanDatatype)
   override def resolveDefValue = Some(false)
 }
 

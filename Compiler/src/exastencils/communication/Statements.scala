@@ -37,8 +37,6 @@ case class ApplyBCsStatement(var field : FieldSelection) extends Statement {
 /// local communication operations
 
 abstract class LocalTransfers extends Statement with Expandable {
-  def field : FieldSelection
-  def neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]
   def insideFragLoop : Boolean
 
   def wrapFragLoop(toWrap : Statement, parallel : Boolean) : Statement = {
@@ -50,74 +48,90 @@ abstract class LocalTransfers extends Statement with Expandable {
       new LoopOverFragments(toWrap)
   }
 
-  def setLocalCommReady() : ListBuffer[Statement] = {
-    neighbors.map(neighbor =>
-      new ConditionStatement(iv.NeighborIsValid(field.domainIndex, neighbor._1.index)
-        AndAnd NegationExpression(iv.NeighborIsRemote(field.domainIndex, neighbor._1.index)),
-        AssignmentStatement(iv.LocalCommReady(field.field, neighbor._1.index), BooleanConstant(true))))
-  }
-
-  def waitForLocalComm() : ListBuffer[Statement] = {
-    neighbors.map(neighbor =>
-      new ConditionStatement(iv.NeighborIsValid(field.domainIndex, neighbor._1.index)
-        AndAnd NegationExpression(iv.NeighborIsRemote(field.domainIndex, neighbor._1.index)),
-        ListBuffer[Statement](
-          new FunctionCallExpression("waitForFlag", AddressofExpression(iv.LocalCommDone(field.field, Fragment.getOpposingNeigh(neighbor._1).index))))))
+  def wrapFragLoop(toWrap : ListBuffer[Statement], parallel : Boolean) : ListBuffer[Statement] = {
+    if (insideFragLoop)
+      toWrap
+    else if (parallel)
+      ListBuffer[Statement](new LoopOverFragments(toWrap) with OMP_PotentiallyParallel)
+    else
+      ListBuffer[Statement](new LoopOverFragments(toWrap))
   }
 }
 
-case class LocalSends(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)], var start : Boolean, var end : Boolean,
+case class StartLocalComm(var field : FieldSelection,
+    var sendNeighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)],
+    var recvNeighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)],
     var insideFragLoop : Boolean) extends LocalTransfers {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LocalSends\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StartLocalComm\n"
+
+  def setLocalCommReady(neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) : ListBuffer[Statement] = {
+    wrapFragLoop(
+      neighbors.map(neighbor =>
+        new ConditionStatement(iv.NeighborIsValid(field.domainIndex, neighbor._1.index)
+          AndAnd NegationExpression(iv.NeighborIsRemote(field.domainIndex, neighbor._1.index)),
+          AssignmentStatement(iv.LocalCommReady(field.field, neighbor._1.index), BooleanConstant(true)))),
+      true)
+  }
 
   def expand : Output[StatementList] = {
     var output = ListBuffer[Statement]()
 
-    if (!Knowledge.domain_canHaveLocalNeighs || !Knowledge.comm_pushLocalData)
-      return output // nothing to do
+    if (!Knowledge.domain_canHaveLocalNeighs) return output // nothing to do
 
-    if (start) {
-      // set LocalCommReady to allow neighbors to write to this fragment
-      output ++= setLocalCommReady
+    // set LocalCommReady to signal neighbors readiness for communication
+    if (!Knowledge.comm_pushLocalData)
+      output ++= setLocalCommReady(sendNeighbors)
+    else
+      output ++= setLocalCommReady(recvNeighbors)
 
-      // distribute this fragment's data
+    if (Knowledge.comm_pushLocalData) {
+      // distribute this fragment's data - if enabled
       output += wrapFragLoop(
         new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
-          neighbors.map(neigh => LocalSend(field, neigh._1, neigh._2, neigh._3, insideFragLoop) : Statement)),
+          sendNeighbors.map(neigh => LocalSend(field, neigh._1, neigh._2, neigh._3, insideFragLoop) : Statement)),
+        true)
+    } else {
+      // pull data for this fragment - otherwise
+      output += wrapFragLoop(
+        new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
+          recvNeighbors.map(neigh => LocalRecv(field, neigh._1, neigh._2, neigh._3, insideFragLoop) : Statement)),
         true)
     }
-    if (end) {
-      // wait until all neighbors signal that they are finished pushing their data
-      output ++= waitForLocalComm
-    }
+
     output
   }
 }
 
-case class LocalRecvs(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)], var start : Boolean, var end : Boolean,
+case class FinishLocalComm(var field : FieldSelection,
+    var sendNeighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)],
+    var recvNeighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)],
     var insideFragLoop : Boolean) extends LocalTransfers {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LocalRecvs\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StartLocalComm\n"
+
+  def waitForLocalComm(neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) : ListBuffer[Statement] = {
+    wrapFragLoop(
+      neighbors.map(neighbor =>
+        new ConditionStatement(iv.NeighborIsValid(field.domainIndex, neighbor._1.index)
+          AndAnd NegationExpression(iv.NeighborIsRemote(field.domainIndex, neighbor._1.index)),
+          ListBuffer[Statement](
+            new FunctionCallExpression("waitForFlag", AddressofExpression(iv.LocalCommDone(
+              field.field,
+              Fragment.getOpposingNeigh(neighbor._1).index,
+              iv.NeighborFragLocalId(field.domainIndex, neighbor._1.index))))))),
+      true)
+  }
 
   def expand : Output[StatementList] = {
     var output = ListBuffer[Statement]()
 
-    if (!Knowledge.domain_canHaveLocalNeighs || Knowledge.comm_pushLocalData)
-      return output // nothing to do
+    if (!Knowledge.domain_canHaveLocalNeighs) return output // nothing to do
 
-    if (start) {
-      // set LocalCommReady to allow neighbors to read from this fragment
-      output ++= setLocalCommReady
+    // wait until all neighbors signal that they are finished
+    if (!Knowledge.comm_pushLocalData)
+      output ++= waitForLocalComm(sendNeighbors)
+    else
+      output ++= waitForLocalComm(recvNeighbors)
 
-      // pull data for this fragment
-      output += wrapFragLoop(
-        new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
-          neighbors.map(neigh => LocalRecv(field, neigh._1, neigh._2, neigh._3, insideFragLoop) : Statement)),
-        true)
-    }
-    if (end) {
-      // wait until all neighbors signal that they are finished reading data
-      output ++= waitForLocalComm
-    }
     output
   }
 }

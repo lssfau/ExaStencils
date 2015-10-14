@@ -116,6 +116,11 @@ case class ConstPointerDatatype(datatype : Datatype) extends Datatype {
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
 
+case class VolatileDatatype(datatype : Datatype) extends Datatype {
+  override def prettyprint(out : PpStream) : Unit = out << "volatile " << datatype
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+}
+
 case class ComplexDatatype(datatype : Datatype) extends Datatype {
   override def prettyprint(out : PpStream) : Unit = out << "std::complex<" << datatype << '>'
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
