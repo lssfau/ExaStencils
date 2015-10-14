@@ -193,7 +193,7 @@ for ((i=0;i<${#TMP_ARRAY[@]};i+=7)); do
   ACC="idle"
   PART="idle"
   CONSTR_PARAM="--constraint=${constraints}"
-  if [[ $(( ${nodes} * ${cores} )) -gt 30 ]] || [[ ${constraints} = "E5" ]]; then # HACK to ensure jobs are executed even if the cluster is in use
+  if [[ $(( ${nodes} * ${cores} )) -gt 8 ]] || [[ ${constraints} = "E5" ]]; then # HACK to ensure jobs are executed even if the cluster is in use
     ACC="cl"
     PART="chimaira"
     CONSTR_PARAM=""
