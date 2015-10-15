@@ -206,7 +206,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case NeqNeqExpression(l, r) =>
+      case NeqExpression(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramConstr, vars)
         constraints.append("!=")

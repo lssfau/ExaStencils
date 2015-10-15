@@ -31,7 +31,7 @@ trait Expression extends Node with PrettyPrintable {
   def Or(other : Expression) = new OrOrExpression(this, other)
   def OrOr(other : Expression) = new OrOrExpression(this, other)
   def EqEq(other : Expression) = new EqEqExpression(this, other)
-  def IsNeq(other : Expression) = new NeqNeqExpression(this, other)
+  def Neq(other : Expression) = new NeqExpression(this, other)
   def <(other : Expression) = new LowerExpression(this, other)
   def <=(other : Expression) = new LowerEqualExpression(this, other)
   def >(other : Expression) = new GreaterExpression(this, other)
@@ -53,7 +53,7 @@ object BinaryOperators extends Enumeration {
   val OrOrWritten = Value("or")
   val Negation = Value("!")
   val EqEq = Value("==")
-  val NeqNeq = Value("!=")
+  val Neq = Value("!=")
   val Lower = Value("<")
   val LowerEqual = Value("<=")
   val Greater = Value(">")
@@ -79,7 +79,7 @@ object BinaryOperators extends Enumeration {
     case OrOr | OrOrWritten     => return new OrOrExpression(left, right)
     case Negation               => return new NegationExpression(left)
     case EqEq                   => return new EqEqExpression(left, right)
-    case NeqNeq                 => return new NeqNeqExpression(left, right)
+    case Neq                    => return new NeqExpression(left, right)
     case Lower                  => return new LowerExpression(left, right)
     case LowerEqual             => return new LowerEqualExpression(left, right)
     case Greater                => return new GreaterExpression(left, right)
@@ -305,7 +305,7 @@ case class ExternalFieldAccess(var name : Expression, var field : ExternalField,
   def w = new VariableAccess("w", IntegerDatatype)
 
   def linearize : ArrayAccess = {
-    if (Knowledge.generateFortranInterface) // Fortran requires multi-index access to multidimensional arrays 
+    if (Knowledge.generateFortranInterface) // Fortran requires multi-index access to multidimensional arrays
       (Knowledge.dimensionality + (if (field.vectorSize > 1) 1 else 0)) match {
         case 1 => new ArrayAccess(x, false)
         case 2 => new ArrayAccess(new ArrayAccess(name, y, false), x, false)
@@ -382,7 +382,7 @@ case class EqEqExpression(var left : Expression, var right : Expression) extends
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << "==" << right << ')'
 }
 
-case class NeqNeqExpression(var left : Expression, var right : Expression) extends Expression {
+case class NeqExpression(var left : Expression, var right : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << "!=" << right << ')'
 }
 
