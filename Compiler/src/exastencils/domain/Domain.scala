@@ -144,7 +144,7 @@ case class ConnectFragments() extends Statement with Expandable {
     val fragWidth_y = gSize.width(1) / Knowledge.domain_rect_numFragsTotal_y
     val fragWidth_z = gSize.width(2) / Knowledge.domain_rect_numFragsTotal_z
 
-    if (Knowledge.domain_canHaveLocalNeighs || Knowledge.domain_canHaveRemoteNeighs) {
+    if (Knowledge.domain_canHaveLocalNeighs || Knowledge.domain_canHaveRemoteNeighs || Knowledge.domain_rect_hasPeriodicity) {
       for (neigh <- neighbors) {
         var statements = ListBuffer[Statement]()
 

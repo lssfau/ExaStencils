@@ -96,6 +96,8 @@ object Knowledge {
   var domain_rect_periodic_x : Boolean = false // periodicity of the global domain in x direction
   var domain_rect_periodic_y : Boolean = false // periodicity of the global domain in y direction
   var domain_rect_periodic_z : Boolean = false // periodicity of the global domain in z direction
+  def domain_rect_periodicAsVec : Array[Boolean] = Array(domain_rect_periodic_x, domain_rect_periodic_y, domain_rect_periodic_z)
+  def domain_rect_hasPeriodicity : Boolean = domain_rect_periodic_x || domain_rect_periodic_y || domain_rect_periodic_z
 
   // specifies which type of grids are used for the discretization
   var discr_gridType = "AxisAlignedConstWidth" // possible options are "AxisAlignedConstWidth" and "AxisAlignedVariableWidth"
@@ -121,8 +123,10 @@ object Knowledge {
   // TODO:  var domain_gridWidth_x,y,z
 
   /// utility functions
-  def domain_canHaveLocalNeighs : Boolean = (domain_numFragmentsPerBlock > 1) // specifies if fragments can have local (i.e. shared memory) neighbors, i.e. if local comm is required
-  def domain_canHaveRemoteNeighs : Boolean = (domain_numBlocks > 1) // specifies if fragments can have remote (i.e. different mpi rank) neighbors, i.e. if mpi comm is required
+  // specifies if fragments can have local (i.e. shared memory) neighbors, i.e. if local comm is required
+  def domain_canHaveLocalNeighs : Boolean = (domain_numFragmentsPerBlock > 1 || domain_rect_hasPeriodicity)
+  // specifies if fragments can have remote (i.e. different mpi rank) neighbors, i.e. if mpi comm is required
+  def domain_canHaveRemoteNeighs : Boolean = (domain_numBlocks > 1 || (mpi_enabled && domain_rect_hasPeriodicity))
 
   /// Student project - Jeremias
   var domain_useCase : String = "" // atm only "L-Shape", "X-Shape" in 2D possible; needs to be specified in case of onlyRectangular,rect_generate = false
