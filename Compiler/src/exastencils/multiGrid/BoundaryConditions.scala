@@ -21,7 +21,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
       case StringConstant("xPos") | StringConstant("yPos") | StringConstant("zPos") => true
       case VariableAccess("xPos", _) | VariableAccess("yPos", _) | VariableAccess("zPos", _) => true
       case _ => false
-    }, field.field.boundaryConditions.get).isDefined) {
+    }, ExpressionStatement(field.field.boundaryConditions.get)).isDefined) { // wrapped in ExpressionStatement to match top-level expressions as well
       field.fieldLayout.discretization match {
         case "node"   => statements += new InitGeomCoords(field.field, true)
         // FIXME: check boundary handling for 26p comm and non-node discr
@@ -48,7 +48,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
               case 2 => statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index),
                 ((4.0 / 3.0) * new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -i))))
                   + ((-1.0 / 3.0) * new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -2 * i)))))
-              case 3 => // TODO: do we want this? what do we do on the coarser levels? 
+              case 3 => // TODO: do we want this? what do we do on the coarser levels?
                 statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index),
                   (((3.0 * 6.0 / 11.0) * new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -1 * i))))
                     + ((-3.0 / 2.0 * 6.0 / 11.0) * new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -2 * i))))
