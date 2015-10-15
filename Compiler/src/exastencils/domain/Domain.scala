@@ -113,7 +113,7 @@ case class PointToOwningRank(var pos : Expression, var domain : Domain) extends 
   }
 }
 
-case class AssertStatement(var check : Expression, var msg : Expression, var abort : Statement) extends Statement with Expandable {
+case class AssertStatement(var check : Expression, var msg : ListBuffer[Expression], var abort : Statement) extends Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = AssertStatement\n"
 
   override def expand : Output[ConditionStatement] = {
@@ -146,24 +146,42 @@ case class ConnectFragments() extends Statement with Expandable {
 
     if (Knowledge.domain_canHaveLocalNeighs || Knowledge.domain_canHaveRemoteNeighs) {
       for (neigh <- neighbors) {
-        body += new Scope(ListBuffer[Statement](
-          AssignmentStatement(s"Vec3 offsetPos", iv.PrimitivePosition() + s"Vec3(${neigh.dir(0)} * ${fragWidth_x}, ${neigh.dir(1)} * ${fragWidth_y}, ${neigh.dir(2)} * ${fragWidth_z})")) ++
-          (0 until domains.size).toArray[Int].map(d =>
-            new ConditionStatement(iv.IsValidForSubdomain(d) AndAnd PointInsideDomain(s"offsetPos", domains(d)),
-              (if (Knowledge.domain_canHaveRemoteNeighs) {
-                if (Knowledge.domain_canHaveLocalNeighs)
-                  new ConditionStatement(s"mpiRank ==" ~ PointToOwningRank("offsetPos", domains(d)),
-                    FunctionCallExpression("connectLocalElement", ListBuffer[Expression](
-                      LoopOverFragments.defIt, PointToLocalFragmentId("offsetPos"), neigh.index, d)),
-                    FunctionCallExpression("connectRemoteElement", ListBuffer[Expression](
-                      LoopOverFragments.defIt, PointToLocalFragmentId("offsetPos"), PointToOwningRank("offsetPos", domains(d)), neigh.index, d)))
-                else
+        var statements = ListBuffer[Statement]()
+
+        statements += AssignmentStatement(s"Vec3 offsetPos",
+          iv.PrimitivePosition() + s"Vec3(${neigh.dir(0)} * ${fragWidth_x}, ${neigh.dir(1)} * ${fragWidth_y}, ${neigh.dir(2)} * ${fragWidth_z})")
+
+        if (Knowledge.domain_rect_periodic_x) {
+          statements += new ConditionStatement(GreaterExpression("offsetPos.x", gSize.upper_x), AssignmentStatement("offsetPos.x", gSize.upper_x - gSize.lower_x, "-="))
+          statements += new ConditionStatement(LowerExpression("offsetPos.x", gSize.lower_x), AssignmentStatement("offsetPos.x", gSize.upper_x - gSize.lower_x, "+="))
+        }
+        if (Knowledge.domain_rect_periodic_y) {
+          statements += new ConditionStatement(GreaterExpression("offsetPos.y", gSize.upper_y), AssignmentStatement("offsetPos.y", gSize.upper_y - gSize.lower_y, "-="))
+          statements += new ConditionStatement(LowerExpression("offsetPos.y", gSize.lower_y), AssignmentStatement("offsetPos.y", gSize.upper_y - gSize.lower_y, "+="))
+        }
+        if (Knowledge.domain_rect_periodic_z) {
+          statements += new ConditionStatement(GreaterExpression("offsetPos.z", gSize.upper_z), AssignmentStatement("offsetPos.z", gSize.upper_z - gSize.lower_z, "-="))
+          statements += new ConditionStatement(LowerExpression("offsetPos.z", gSize.lower_z), AssignmentStatement("offsetPos.z", gSize.upper_z - gSize.lower_z, "+="))
+        }
+
+        statements ++= (0 until domains.size).toArray[Int].map(d =>
+          new ConditionStatement(iv.IsValidForSubdomain(d) AndAnd PointInsideDomain(s"offsetPos", domains(d)),
+            (if (Knowledge.domain_canHaveRemoteNeighs) {
+              if (Knowledge.domain_canHaveLocalNeighs)
+                new ConditionStatement(s"mpiRank ==" ~ PointToOwningRank("offsetPos", domains(d)),
+                  FunctionCallExpression("connectLocalElement", ListBuffer[Expression](
+                    LoopOverFragments.defIt, PointToLocalFragmentId("offsetPos"), neigh.index, d)),
                   FunctionCallExpression("connectRemoteElement", ListBuffer[Expression](
-                    LoopOverFragments.defIt, PointToLocalFragmentId("offsetPos"), PointToOwningRank("offsetPos", domains(d)), neigh.index, d))
-              } else {
-                FunctionCallExpression("connectLocalElement", ListBuffer[Expression](
-                  LoopOverFragments.defIt, PointToLocalFragmentId("offsetPos"), neigh.index, d))
-              }) : Statement)))
+                    LoopOverFragments.defIt, PointToLocalFragmentId("offsetPos"), PointToOwningRank("offsetPos", domains(d)), neigh.index, d)))
+              else
+                FunctionCallExpression("connectRemoteElement", ListBuffer[Expression](
+                  LoopOverFragments.defIt, PointToLocalFragmentId("offsetPos"), PointToOwningRank("offsetPos", domains(d)), neigh.index, d))
+            } else {
+              FunctionCallExpression("connectLocalElement", ListBuffer[Expression](
+                LoopOverFragments.defIt, PointToLocalFragmentId("offsetPos"), neigh.index, d))
+            }) : Statement))
+
+        body += Scope(statements)
       }
     }
 
@@ -183,36 +201,38 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
     val fragWidth_z = gSize.width(2) / Knowledge.domain_rect_numFragsTotal_z
     val vecDelta = "Vec3(" ~ (0.5 * fragWidth_x) ~ "," ~ (if (Knowledge.dimensionality > 1) (0.5 * fragWidth_y) else 0) ~ "," ~ (if (Knowledge.dimensionality > 2) (0.5 * fragWidth_z) else 0) ~ ")"
 
-    FunctionStatement(UnitDatatype, s"initDomain", ListBuffer(),
-      ListBuffer(
-        if (Knowledge.mpi_enabled)
-          AssertStatement(s"mpiSize != ${Knowledge.domain_numBlocks}",
-          "\"Invalid number of MPI processes (\" << mpiSize << \") should be \" << " + (Knowledge.mpi_numThreads),
-          "exit(1)")
-        else
-          NullStatement,
+    var body = ListBuffer[Statement]()
 
-        s"Vec3 positions[${Knowledge.domain_numFragmentsPerBlock}]",
-        s"unsigned int posWritePos = 0",
-        if (Knowledge.mpi_enabled)
-          s"Vec3 rankPos(mpiRank % ${Knowledge.domain_rect_numBlocks_x}, (mpiRank / ${Knowledge.domain_rect_numBlocks_x}) % ${Knowledge.domain_rect_numBlocks_y}, mpiRank / ${Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y})"
-        else
-          s"Vec3 rankPos(0, 0, 0)",
+    if (Knowledge.mpi_enabled)
+      body += AssertStatement(NeqExpression(s"mpiSize", Knowledge.domain_numBlocks),
+        ListBuffer("\"Invalid number of MPI processes (\"", "mpiSize", "\") should be \"", Knowledge.mpi_numThreads),
+        new FunctionCallExpression("exit", 1))
 
-        new LoopOverDimensions(Knowledge.dimensionality, IndexRange(MultiIndex(0, 0, 0), MultiIndex(Knowledge.domain_rect_numFragsPerBlock_x, Knowledge.domain_rect_numFragsPerBlock_y, Knowledge.domain_rect_numFragsPerBlock_z)),
-          new AssignmentStatement("positions[posWritePos++]", "Vec3("
-            ~ ((("rankPos.x" : Expression) * Knowledge.domain_rect_numFragsPerBlock_x + 0.5 + dimToString(0)) * fragWidth_x) + gSize.lower_x ~ ","
-            ~ (if (Knowledge.dimensionality > 1) ((("rankPos.y" : Expression) * Knowledge.domain_rect_numFragsPerBlock_y + 0.5 + dimToString(1)) * fragWidth_y) + gSize.lower_y else 0) ~ ","
-            ~ (if (Knowledge.dimensionality > 2) ((("rankPos.z" : Expression) * Knowledge.domain_rect_numFragsPerBlock_z + 0.5 + dimToString(2)) * fragWidth_z) + gSize.lower_z else 0) ~ ")")),
-        LoopOverFragments(ListBuffer(
-          AssignmentStatement(iv.PrimitiveId(), PointToFragmentId(ArrayAccess("positions", LoopOverFragments.defIt))),
-          AssignmentStatement(iv.CommId(), PointToLocalFragmentId(ArrayAccess("positions", LoopOverFragments.defIt))),
-          AssignmentStatement(iv.PrimitivePosition(), ArrayAccess("positions", LoopOverFragments.defIt)),
-          AssignmentStatement(iv.PrimitivePositionBegin(), ArrayAccess("positions", LoopOverFragments.defIt) - vecDelta),
-          AssignmentStatement(iv.PrimitivePositionEnd(), ArrayAccess("positions", LoopOverFragments.defIt) + vecDelta))),
-        ConnectFragments(),
-        new ExpressionStatement(new FunctionCallExpression("setupBuffers")) // FIXME: move to app
-        ))
+    body ++= ListBuffer(
+      s"Vec3 positions[${Knowledge.domain_numFragmentsPerBlock}]",
+      s"unsigned int posWritePos = 0",
+      if (Knowledge.mpi_enabled)
+        s"Vec3 rankPos(mpiRank % ${Knowledge.domain_rect_numBlocks_x}, (mpiRank / ${Knowledge.domain_rect_numBlocks_x}) % ${Knowledge.domain_rect_numBlocks_y}, mpiRank / ${Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y})"
+      else
+        s"Vec3 rankPos(0, 0, 0)")
+
+    body += new LoopOverDimensions(Knowledge.dimensionality, IndexRange(MultiIndex(0, 0, 0), MultiIndex(Knowledge.domain_rect_numFragsPerBlock_x, Knowledge.domain_rect_numFragsPerBlock_y, Knowledge.domain_rect_numFragsPerBlock_z)),
+      new AssignmentStatement("positions[posWritePos++]", "Vec3("
+        ~ ((("rankPos.x" : Expression) * Knowledge.domain_rect_numFragsPerBlock_x + 0.5 + dimToString(0)) * fragWidth_x) + gSize.lower_x ~ ","
+        ~ (if (Knowledge.dimensionality > 1) ((("rankPos.y" : Expression) * Knowledge.domain_rect_numFragsPerBlock_y + 0.5 + dimToString(1)) * fragWidth_y) + gSize.lower_y else 0) ~ ","
+        ~ (if (Knowledge.dimensionality > 2) ((("rankPos.z" : Expression) * Knowledge.domain_rect_numFragsPerBlock_z + 0.5 + dimToString(2)) * fragWidth_z) + gSize.lower_z else 0) ~ ")"))
+    body += LoopOverFragments(ListBuffer(
+      AssignmentStatement(iv.PrimitiveId(), PointToFragmentId(ArrayAccess("positions", LoopOverFragments.defIt))),
+      AssignmentStatement(iv.CommId(), PointToLocalFragmentId(ArrayAccess("positions", LoopOverFragments.defIt))),
+      AssignmentStatement(iv.PrimitivePosition(), ArrayAccess("positions", LoopOverFragments.defIt)),
+      AssignmentStatement(iv.PrimitivePositionBegin(), ArrayAccess("positions", LoopOverFragments.defIt) - vecDelta),
+      AssignmentStatement(iv.PrimitivePositionEnd(), ArrayAccess("positions", LoopOverFragments.defIt) + vecDelta)))
+
+    body += ConnectFragments()
+
+    body += new ExpressionStatement(new FunctionCallExpression("setupBuffers")) // FIXME: move to app
+
+    FunctionStatement(UnitDatatype, s"initDomain", ListBuffer(), body)
   }
 }
 
@@ -227,8 +247,8 @@ case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with E
           VariableDeclarationStatement(IntegerDatatype, "numFragments", Some("0")),
           VariableDeclarationStatement(IntegerDatatype, "bufsize", Some("0")),
           VariableDeclarationStatement(IntegerDatatype, "fileOffset", Some("0")),
-          AssertStatement(s"mpiSize != ${Knowledge.mpi_numThreads}",
-            "\"Invalid number of MPI processes (\" << mpiSize << \") should be \" << " + (Knowledge.domain_numBlocks),
+          AssertStatement(NeqExpression("mpiSize", Knowledge.mpi_numThreads),
+            ListBuffer("\"Invalid number of MPI processes (\"", "mpiSize", "\") should be \"", Knowledge.domain_numBlocks),
             "return"),
           ConditionStatement("mpiRank == 0",
             ListBuffer(

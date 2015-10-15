@@ -92,6 +92,11 @@ object Knowledge {
   var domain_rect_numFragsPerBlock_y : Int = 1 // [1~64§domain_rect_numFragsPerBlock_y*2]
   var domain_rect_numFragsPerBlock_z : Int = 1 // [1~64§domain_rect_numFragsPerBlock_z*2]
 
+  // periodicity for rectangular domains -> this information will be handed down from layer 2 later
+  var domain_rect_periodic_x : Boolean = false // periodicity of the global domain in x direction
+  var domain_rect_periodic_y : Boolean = false // periodicity of the global domain in y direction
+  var domain_rect_periodic_z : Boolean = false // periodicity of the global domain in z direction
+
   // specifies which type of grids are used for the discretization
   var discr_gridType = "AxisAlignedConstWidth" // possible options are "AxisAlignedConstWidth" and "AxisAlignedVariableWidth"
 
