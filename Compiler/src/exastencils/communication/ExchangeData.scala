@@ -408,14 +408,12 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
               if (begin) {
                 body += new RemoteSends(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId, insideFragLoop)
                 body += new RemoteRecvs(updatedFieldSelection, genIndicesDuplicateRemoteRecv(recvNeighbors), true, false, concurrencyId, insideFragLoop)
-                body += new LocalSends(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), true, false, insideFragLoop)
-                body += new LocalRecvs(updatedFieldSelection, genIndicesDuplicateLocalRecv(recvNeighbors), true, false, insideFragLoop)
+                body += new StartLocalComm(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors), insideFragLoop)
               }
               if (finish) {
-                body += new LocalRecvs(updatedFieldSelection, genIndicesDuplicateLocalRecv(recvNeighbors), false, true, insideFragLoop)
-                body += new LocalSends(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), false, true, insideFragLoop)
                 body += new RemoteRecvs(updatedFieldSelection, genIndicesDuplicateRemoteRecv(recvNeighbors), false, true, concurrencyId, insideFragLoop)
                 body += new RemoteSends(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId, insideFragLoop)
+                body += new FinishLocalComm(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors), insideFragLoop)
               }
             }
           }
@@ -425,14 +423,12 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
             if (begin) {
               body += new RemoteSends(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId, insideFragLoop)
               body += new RemoteRecvs(updatedFieldSelection, genIndicesDuplicateRemoteRecv(recvNeighbors), true, false, concurrencyId, insideFragLoop)
-              body += new LocalSends(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), true, false, insideFragLoop)
-              body += new LocalRecvs(updatedFieldSelection, genIndicesDuplicateLocalRecv(recvNeighbors), true, false, insideFragLoop)
+              body += new StartLocalComm(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors), insideFragLoop)
             }
             if (finish) {
-              body += new LocalRecvs(updatedFieldSelection, genIndicesDuplicateLocalRecv(recvNeighbors), false, true, insideFragLoop)
-              body += new LocalSends(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), false, true, insideFragLoop)
               body += new RemoteRecvs(updatedFieldSelection, genIndicesDuplicateRemoteRecv(recvNeighbors), false, true, concurrencyId, insideFragLoop)
               body += new RemoteSends(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId, insideFragLoop)
+              body += new FinishLocalComm(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors), insideFragLoop)
             }
           }
         }
@@ -451,14 +447,12 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
               if (begin) {
                 body += new RemoteSends(updatedFieldSelection, genIndicesGhostRemoteSend(curNeighbors), true, false, concurrencyId, insideFragLoop)
                 body += new RemoteRecvs(updatedFieldSelection, genIndicesGhostRemoteRecv(curNeighbors), true, false, concurrencyId, insideFragLoop)
-                body += new LocalSends(updatedFieldSelection, genIndicesGhostLocalSend(curNeighbors), true, false, insideFragLoop)
-                body += new LocalRecvs(updatedFieldSelection, genIndicesGhostLocalRecv(curNeighbors), true, false, insideFragLoop)
+                body += new StartLocalComm(updatedFieldSelection, genIndicesGhostLocalSend(curNeighbors), genIndicesGhostLocalRecv(curNeighbors), insideFragLoop)
               }
               if (finish) {
-                body += new LocalRecvs(updatedFieldSelection, genIndicesGhostLocalRecv(curNeighbors), false, true, insideFragLoop)
-                body += new LocalSends(updatedFieldSelection, genIndicesGhostLocalSend(curNeighbors), false, true, insideFragLoop)
                 body += new RemoteRecvs(updatedFieldSelection, genIndicesGhostRemoteRecv(curNeighbors), false, true, concurrencyId, insideFragLoop)
                 body += new RemoteSends(updatedFieldSelection, genIndicesGhostRemoteSend(curNeighbors), false, true, concurrencyId, insideFragLoop)
+                body += new FinishLocalComm(updatedFieldSelection, genIndicesGhostLocalSend(curNeighbors), genIndicesGhostLocalRecv(curNeighbors), insideFragLoop)
               }
             }
           }
@@ -466,14 +460,12 @@ case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSel
             if (begin) {
               body += new RemoteSends(updatedFieldSelection, genIndicesGhostRemoteSend(neighbors), true, false, concurrencyId, insideFragLoop)
               body += new RemoteRecvs(updatedFieldSelection, genIndicesGhostRemoteRecv(neighbors), true, false, concurrencyId, insideFragLoop)
-              body += new LocalSends(updatedFieldSelection, genIndicesGhostLocalSend(neighbors), true, false, insideFragLoop)
-              body += new LocalRecvs(updatedFieldSelection, genIndicesGhostLocalRecv(neighbors), true, false, insideFragLoop)
+              body += new StartLocalComm(updatedFieldSelection, genIndicesGhostLocalSend(neighbors), genIndicesGhostLocalRecv(neighbors), insideFragLoop)
             }
             if (finish) {
-              body += new LocalRecvs(updatedFieldSelection, genIndicesGhostLocalRecv(neighbors), false, true, insideFragLoop)
-              body += new LocalSends(updatedFieldSelection, genIndicesGhostLocalSend(neighbors), false, true, insideFragLoop)
               body += new RemoteRecvs(updatedFieldSelection, genIndicesGhostRemoteRecv(neighbors), false, true, concurrencyId, insideFragLoop)
               body += new RemoteSends(updatedFieldSelection, genIndicesGhostRemoteSend(neighbors), false, true, concurrencyId, insideFragLoop)
+              body += new FinishLocalComm(updatedFieldSelection, genIndicesGhostLocalSend(neighbors), genIndicesGhostLocalRecv(neighbors), insideFragLoop)
             }
           }
         }

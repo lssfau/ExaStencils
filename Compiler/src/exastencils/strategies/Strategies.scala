@@ -320,7 +320,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       cond
 
     case EqEqExpression(left : IntegerConstant, right : IntegerConstant)         => BooleanConstant(left.value == right.value)
-    case NeqNeqExpression(left : IntegerConstant, right : IntegerConstant)       => BooleanConstant(left.value != right.value)
+    case NeqExpression(left : IntegerConstant, right : IntegerConstant)          => BooleanConstant(left.value != right.value)
     case LowerExpression(left : IntegerConstant, right : IntegerConstant)        => BooleanConstant(left.value < right.value)
     case LowerEqualExpression(left : IntegerConstant, right : IntegerConstant)   => BooleanConstant(left.value <= right.value)
     case GreaterExpression(left : IntegerConstant, right : IntegerConstant)      => BooleanConstant(left.value > right.value)

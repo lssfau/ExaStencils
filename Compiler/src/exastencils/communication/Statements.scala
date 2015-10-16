@@ -47,50 +47,91 @@ abstract class LocalTransfers extends Statement with Expandable {
     else
       new LoopOverFragments(toWrap)
   }
+
+  def wrapFragLoop(toWrap : ListBuffer[Statement], parallel : Boolean) : ListBuffer[Statement] = {
+    if (insideFragLoop)
+      toWrap
+    else if (parallel)
+      ListBuffer[Statement](new LoopOverFragments(toWrap) with OMP_PotentiallyParallel)
+    else
+      ListBuffer[Statement](new LoopOverFragments(toWrap))
+  }
 }
 
-case class LocalSends(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)], var start : Boolean, var end : Boolean,
+case class StartLocalComm(var field : FieldSelection,
+    var sendNeighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)],
+    var recvNeighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)],
     var insideFragLoop : Boolean) extends LocalTransfers {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LocalSends\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StartLocalComm\n"
+
+  def setLocalCommReady(neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) : ListBuffer[Statement] = {
+    wrapFragLoop(
+      neighbors.map(neighbor =>
+        new ConditionStatement(iv.NeighborIsValid(field.domainIndex, neighbor._1.index)
+          AndAnd NegationExpression(iv.NeighborIsRemote(field.domainIndex, neighbor._1.index)),
+          AssignmentStatement(iv.LocalCommReady(field.field, neighbor._1.index), BooleanConstant(true)))),
+      true)
+  }
 
   def expand : Output[StatementList] = {
     var output = ListBuffer[Statement]()
 
-    if (!Knowledge.domain_canHaveLocalNeighs || !Knowledge.comm_pushLocalData)
-      return output // nothing to do
+    if (!Knowledge.domain_canHaveLocalNeighs) return output // nothing to do
 
-    if (start) {
+    // set LocalCommReady to signal neighbors readiness for communication
+    if (!Knowledge.comm_pushLocalData)
+      output ++= setLocalCommReady(sendNeighbors)
+    else
+      output ++= setLocalCommReady(recvNeighbors)
+
+    if (Knowledge.comm_pushLocalData) {
+      // distribute this fragment's data - if enabled
       output += wrapFragLoop(
         new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
-          neighbors.map(neigh => LocalSend(field, neigh._1, neigh._2, neigh._3, insideFragLoop) : Statement)),
+          sendNeighbors.map(neigh => LocalSend(field, neigh._1, neigh._2, neigh._3, insideFragLoop) : Statement)),
+        true)
+    } else {
+      // pull data for this fragment - otherwise
+      output += wrapFragLoop(
+        new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
+          recvNeighbors.map(neigh => LocalRecv(field, neigh._1, neigh._2, neigh._3, insideFragLoop) : Statement)),
         true)
     }
-    if (end) {
-      // TODO
-    }
+
     output
   }
 }
 
-case class LocalRecvs(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)], var start : Boolean, var end : Boolean,
+case class FinishLocalComm(var field : FieldSelection,
+    var sendNeighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)],
+    var recvNeighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)],
     var insideFragLoop : Boolean) extends LocalTransfers {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LocalRecvs\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StartLocalComm\n"
+
+  def waitForLocalComm(neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) : ListBuffer[Statement] = {
+    wrapFragLoop(
+      neighbors.map(neighbor =>
+        new ConditionStatement(iv.NeighborIsValid(field.domainIndex, neighbor._1.index)
+          AndAnd NegationExpression(iv.NeighborIsRemote(field.domainIndex, neighbor._1.index)),
+          ListBuffer[Statement](
+            new FunctionCallExpression("waitForFlag", AddressofExpression(iv.LocalCommDone(
+              field.field,
+              Fragment.getOpposingNeigh(neighbor._1).index,
+              iv.NeighborFragLocalId(field.domainIndex, neighbor._1.index))))))),
+      true)
+  }
 
   def expand : Output[StatementList] = {
     var output = ListBuffer[Statement]()
 
-    if (!Knowledge.domain_canHaveLocalNeighs || Knowledge.comm_pushLocalData)
-      return output // nothing to do
+    if (!Knowledge.domain_canHaveLocalNeighs) return output // nothing to do
 
-    if (start) {
-      output += wrapFragLoop(
-        new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
-          neighbors.map(neigh => LocalRecv(field, neigh._1, neigh._2, neigh._3, insideFragLoop) : Statement)),
-        true)
-    }
-    if (end) {
-      // TODO
-    }
+    // wait until all neighbors signal that they are finished
+    if (!Knowledge.comm_pushLocalData)
+      output ++= waitForLocalComm(sendNeighbors)
+    else
+      output ++= waitForLocalComm(recvNeighbors)
+
     output
   }
 }
@@ -102,12 +143,16 @@ case class LocalSend(var field : FieldSelection, var neighbor : NeighborInfo, va
   def expand : Output[Statement] = {
     new ConditionStatement(iv.NeighborIsValid(field.domainIndex, neighbor.index) AndAnd NegationExpression(iv.NeighborIsRemote(field.domainIndex, neighbor.index)),
       ListBuffer[Statement](
+        // wait until the fragment to be written to is ready for communication
+        new FunctionCallExpression("waitForFlag", AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)))),
         new LoopOverDimensions(Knowledge.dimensionality + 1,
           dest,
           new AssignmentStatement(
             new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, None, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)), new MultiIndex(
               new MultiIndex(LoopOverDimensions.defIt, src.begin, _ + _), dest.begin, _ - _)),
-            new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt))) with OMP_PotentiallyParallel with PolyhedronAccessable))
+            new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt))) with OMP_PotentiallyParallel with PolyhedronAccessable,
+        // signal other threads that the data reading step is completed
+        AssignmentStatement(iv.LocalCommDone(field.field, neighbor.index), BooleanConstant(true))))
   }
 }
 
@@ -118,12 +163,16 @@ case class LocalRecv(var field : FieldSelection, var neighbor : NeighborInfo, va
   def expand : Output[Statement] = {
     new ConditionStatement(iv.NeighborIsValid(field.domainIndex, neighbor.index) AndAnd NegationExpression(iv.NeighborIsRemote(field.domainIndex, neighbor.index)),
       ListBuffer[Statement](
+        // wait until the fragment to be read from is ready for communication
+        new FunctionCallExpression("waitForFlag", AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)))),
         new LoopOverDimensions(Knowledge.dimensionality + 1,
           dest,
-          new AssignmentStatement(
-            new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt),
-            new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, None, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)),
-              new MultiIndex(new MultiIndex(LoopOverDimensions.defIt, src.begin, _ + _), dest.begin, _ - _)))) with OMP_PotentiallyParallel with PolyhedronAccessable))
+          AssignmentStatement(
+            DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt),
+            DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, None, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)),
+              new MultiIndex(new MultiIndex(LoopOverDimensions.defIt, src.begin, _ + _), dest.begin, _ - _)))) with OMP_PotentiallyParallel with PolyhedronAccessable,
+        // signal other threads that the data reading step is completed
+        AssignmentStatement(iv.LocalCommDone(field.field, neighbor.index), BooleanConstant(true))))
   }
 }
 
@@ -315,7 +364,7 @@ case class RemoteSend(var field : FieldSelection, var neighbor : NeighborInfo, v
       new MPI_Send(src, numDataPoints, datatype, iv.NeighborRemoteRank(field.domainIndex, neighbor.index),
         GeneratedMPITag(iv.CommId(), iv.NeighborFragLocalId(field.domainIndex, neighbor.index), concurrencyId),
         iv.MpiRequest(field.field, s"Send_${concurrencyId}", neighbor.index)) with OMP_PotentiallyCritical,
-      AssignmentStatement(iv.ReqOutstanding(field.field, s"Send_${concurrencyId}", neighbor.index), true))
+      AssignmentStatement(iv.RemoteReqOutstanding(field.field, s"Send_${concurrencyId}", neighbor.index), true))
   }
 }
 
@@ -327,7 +376,7 @@ case class RemoteRecv(var field : FieldSelection, var neighbor : NeighborInfo, v
       new MPI_Receive(dest, numDataPoints, datatype, iv.NeighborRemoteRank(field.domainIndex, neighbor.index),
         GeneratedMPITag(iv.NeighborFragLocalId(field.domainIndex, neighbor.index), iv.CommId(), concurrencyId),
         iv.MpiRequest(field.field, s"Recv_${concurrencyId}", neighbor.index)) with OMP_PotentiallyCritical,
-      AssignmentStatement(iv.ReqOutstanding(field.field, s"Recv_${concurrencyId}", neighbor.index), true))
+      AssignmentStatement(iv.RemoteReqOutstanding(field.field, s"Recv_${concurrencyId}", neighbor.index), true))
   }
 }
 
@@ -336,11 +385,10 @@ case class WaitForTransfer(var field : FieldSelection, var neighbor : NeighborIn
 
   def expand : Output[Statement] = {
     new ConditionStatement(
-      iv.ReqOutstanding(field.field, direction, neighbor.index),
+      iv.RemoteReqOutstanding(field.field, direction, neighbor.index),
       ListBuffer[Statement](
-        new ExpressionStatement(
-          new FunctionCallExpression("waitForMPIReq", AddressofExpression(iv.MpiRequest(field.field, direction, neighbor.index)))),
-        AssignmentStatement(iv.ReqOutstanding(field.field, direction, neighbor.index), false)))
+        new FunctionCallExpression("waitForMPIReq", AddressofExpression(iv.MpiRequest(field.field, direction, neighbor.index))),
+        AssignmentStatement(iv.RemoteReqOutstanding(field.field, direction, neighbor.index), false)))
   }
 }
 

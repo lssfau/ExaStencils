@@ -92,6 +92,13 @@ object Knowledge {
   var domain_rect_numFragsPerBlock_y : Int = 1 // [1~64§domain_rect_numFragsPerBlock_y*2]
   var domain_rect_numFragsPerBlock_z : Int = 1 // [1~64§domain_rect_numFragsPerBlock_z*2]
 
+  // periodicity for rectangular domains -> this information will be handed down from layer 2 later
+  var domain_rect_periodic_x : Boolean = false // periodicity of the global domain in x direction
+  var domain_rect_periodic_y : Boolean = false // periodicity of the global domain in y direction
+  var domain_rect_periodic_z : Boolean = false // periodicity of the global domain in z direction
+  def domain_rect_periodicAsVec : Array[Boolean] = Array(domain_rect_periodic_x, domain_rect_periodic_y, domain_rect_periodic_z)
+  def domain_rect_hasPeriodicity : Boolean = domain_rect_periodic_x || domain_rect_periodic_y || domain_rect_periodic_z
+
   // specifies which type of grids are used for the discretization
   var discr_gridType = "AxisAlignedConstWidth" // possible options are "AxisAlignedConstWidth" and "AxisAlignedVariableWidth"
 
@@ -116,8 +123,10 @@ object Knowledge {
   // TODO:  var domain_gridWidth_x,y,z
 
   /// utility functions
-  def domain_canHaveLocalNeighs : Boolean = (domain_numFragmentsPerBlock > 1) // specifies if fragments can have local (i.e. shared memory) neighbors, i.e. if local comm is required
-  def domain_canHaveRemoteNeighs : Boolean = (domain_numBlocks > 1) // specifies if fragments can have remote (i.e. different mpi rank) neighbors, i.e. if mpi comm is required
+  // specifies if fragments can have local (i.e. shared memory) neighbors, i.e. if local comm is required
+  def domain_canHaveLocalNeighs : Boolean = (domain_numFragmentsPerBlock > 1 || domain_rect_hasPeriodicity)
+  // specifies if fragments can have remote (i.e. different mpi rank) neighbors, i.e. if mpi comm is required
+  def domain_canHaveRemoteNeighs : Boolean = (domain_numBlocks > 1 || (mpi_enabled && domain_rect_hasPeriodicity))
 
   /// Student project - Jeremias
   var domain_useCase : String = "" // atm only "L-Shape", "X-Shape" in 2D possible; needs to be specified in case of onlyRectangular,rect_generate = false
@@ -160,6 +169,7 @@ object Knowledge {
   var comm_strategyFragment : Int = 6 // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors
   var comm_useFragmentLoopsForEachOp : Boolean = true // [true|false] // specifies if comm ops (buffer copy, send/ recv, wait) should each be aggregated and handled in distinct fragment loops
   var comm_pushLocalData : Boolean = false // [true|false] // specifies if local data exchanges are implemented using push (true) or pull (false) schemes
+  var comm_disableLocalCommSync = true // [true|false] // specifies if local communication is synchronized using flags; usually not necessary unless communication in fragment loops is allowed
 
   // TODO: check in how far the following parameters can be adapted by the SPL
   var comm_sepDataByFragment : Boolean = true // specifies if communication variables that could be fragment specific are handled separately
@@ -295,6 +305,7 @@ object Knowledge {
   var l3tmp_useMaxNorm : Boolean = false // uses the maximum norm instead of the L2 norm when reducing the residual on the finest level
   var l3tmp_genCellBasedDiscr : Boolean = false // sets up a cell based discretization
   var l3tmp_targetResReduction : Double = 0.0 // exit criterion for the solver loop as target reduction of the residual in the chosen norm
+  var l3tmp_genPeriodicBounds : Boolean = false // generates a solver for a problem with periodic boundaries
 
   /// optional features
   var l3tmp_printFieldAtEnd : Boolean = false // prints the solution field at the end of the application (or the mean solution in l3tmp_kelvin's case)
@@ -395,6 +406,13 @@ object Knowledge {
       }
       Constraints.condEnsureValue(l3tmp_targetResReduction, 1.0 / l3tmp_targetResReduction, l3tmp_targetResReduction > 1.0, "l3tmp_targetResReduction must be smaller than 1")
 
+      Constraints.condEnsureValue(l3tmp_genPeriodicBounds, false, "Polynomial" != l3tmp_exactSolution, "l3tmp_genPeriodicBounds currently only works for polynomial problems")
+      Constraints.condEnsureValue(domain_rect_periodic_x, false, l3tmp_genPeriodicBounds, "For l3tmp_genPeriodicBounds, the domain must not be periodic in x direction")
+      Constraints.condEnsureValue(domain_rect_periodic_y, true, l3tmp_genPeriodicBounds, "For l3tmp_genPeriodicBounds, the domain has to be periodic in y direction")
+      Constraints.condEnsureValue(domain_rect_periodic_z, true, l3tmp_genPeriodicBounds && 3 == dimensionality, "For l3tmp_genPeriodicBounds in 3D, the domain has to be periodic in y and z direction")
+      Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, l3tmp_genPeriodicBounds, "l3tmp_genPeriodicBounds requires non-zero right hand sides")
+      Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_genPeriodicBounds, "l3tmp_genPeriodicBounds requires grid width dependent stencils")
+
       Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, experimental_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
       Constraints.condEnsureValue(l3tmp_exactSolution, "Trigonometric", experimental_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
       Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, "Polynomial" != l3tmp_exactSolution && "Kappa" != l3tmp_exactSolution && "Kappa_VC" != l3tmp_exactSolution && !experimental_Neumann, "non-trivial rhs are currently only supported for Polynomial and Kappa cases")
@@ -412,6 +430,7 @@ object Knowledge {
       Constraints.condEnsureValue(l3tmp_genFMG, false, experimental_Neumann, "FMG is currently not compatible with Neumann BC")
       Constraints.condEnsureValue(l3tmp_genFMG, false, 1 != l3tmp_numVecDims, "FMG is currently not compatible with vector fields")
       Constraints.condEnsureValue(l3tmp_genFMG, false, l3tmp_kelvin, "FMG is currently not compatible with Kelvin mode")
+      Constraints.condEnsureValue(l3tmp_genFMG, false, l3tmp_genPeriodicBounds, "FMG is currently not compatible with l3tmp_genPeriodicBounds")
 
       // l3tmp - stencils
       Constraints.condEnsureValue(l3tmp_genStencilFields, false, experimental_Neumann, "l3tmp_genStencilFields is currently not compatible with Neumann boundary conditions")
@@ -481,7 +500,7 @@ object Knowledge {
     Constraints.condEnsureValue(mpi_useCustomDatatypes, false, experimental_useLevelIndepFcts, "MPI data types cannot be used in combination with level independent communication functions yet")
 
     Constraints.condEnsureValue(mpi_useBusyWait, true, experimental_allowCommInFragLoops && domain_numFragmentsPerBlock > 1, s"mpi_useBusyWait must be true when experimental_allowCommInFragLoops is used in conjunction with multiple fragments per block")
-    Constraints.condWarn(experimental_allowCommInFragLoops && comm_strategyFragment != 26, s"comm_strategyFragment should be 26 when experimental_allowCommInFragLoops is activated")
+    Constraints.condWarn(comm_disableLocalCommSync && experimental_allowCommInFragLoops, s"comm_disableLocalCommSynchronization in conjunction with experimental_allowCommInFragLoops is strongly discouraged")
 
     // data
     Constraints.condEnsureValue(data_alignFieldPointers, true, opt_vectorize && "QPX" == simd_instructionSet, "data_alignFieldPointers must be true for vectorization with QPX")
