@@ -6,6 +6,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
+import exastencils.omp._
 import exastencils.prettyprinting._
 
 abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDomain : Boolean, var canBePerField : Boolean, var canBePerLevel : Boolean, var canBePerNeighbor : Boolean) extends Expression {
@@ -295,13 +296,13 @@ case class CurrentSlot(var field : Field, var fragmentIdx : Expression = LoopOve
   override def resolveDefValue = Some(IntegerConstant(0))
 }
 
-case class IndexFromField(var layoutIdentifier : String, var level : Expression, var indexId : String) extends InternalVariable(false, false, true, true, false) {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, NullExpression, NullExpression, layoutIdentifier, level, NullExpression)
+case class IndexFromField(var layoutIdentifier : String, var level : Expression, var indexId : String, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, false) {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, layoutIdentifier, level, NullExpression)
 
   override def usesFieldArrays : Boolean = false
   override def usesLevelArrays : Boolean = true
 
-  override def resolveName = s"idx$indexId" + resolvePostfix("", "", layoutIdentifier, level.prettyprint, "")
+  override def resolveName = s"idx$indexId" + resolvePostfix(fragmentIdx.prettyprint, "", layoutIdentifier, level.prettyprint, "")
   override def resolveDataType = s"Vec${Knowledge.dimensionality}i"
 
   override def getCtor() : Option[Statement] = {
@@ -311,14 +312,14 @@ case class IndexFromField(var layoutIdentifier : String, var level : Expression,
       level = l
       val field = FieldCollection.getFieldByLayoutIdentifier(layoutIdentifier, l, true)
       if (field.isDefined) {
-        statements += AssignmentStatement(resolveAccess(resolveName, NullExpression, NullExpression, layoutIdentifier, level, NullExpression),
+        statements += AssignmentStatement(resolveAccess(resolveName, fragmentIdx, NullExpression, layoutIdentifier, level, NullExpression),
           s"Vec${Knowledge.dimensionality}i(${
             (0 until Knowledge.dimensionality).map(dim => field.get.fieldLayout.defIdxById(indexId, dim)).mkString(", ")
           })")
       }
     }
     level = oldLev
-    Some(Scope(statements))
+    Some(new LoopOverFragments(statements))
   }
 }
 
