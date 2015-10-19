@@ -43,7 +43,7 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
     val updatedFieldSelection = if (Knowledge.experimental_useLevelIndepFcts) {
       val updatedFieldSelection = Duplicate(fieldSelection)
       for (dim <- 0 until Knowledge.dimensionality)
-        updatedFieldSelection.field.fieldLayout(dim).total = ArrayAccess(iv.IndexFromField(fieldSelection.field.identifier, "level", "TOT"), dim)
+        updatedFieldSelection.field.fieldLayout(dim).total = iv.IndexFromField(fieldSelection.field.identifier, "level", "TOT", dim)
       updatedFieldSelection.level = "level"
       updatedFieldSelection
     } else {

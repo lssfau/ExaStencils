@@ -44,7 +44,7 @@ case class FieldLayout(
 
   def idxById(id : String, dim : Int) : Expression = {
     if (Knowledge.experimental_genVariableFieldSizes && dim < Knowledge.dimensionality)
-      ArrayAccess(iv.IndexFromField(identifier, level, id), dim)
+      iv.IndexFromField(identifier, level, id, dim)
     // TODO : total
     else
       defIdxById(id, dim)

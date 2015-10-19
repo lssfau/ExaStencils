@@ -296,8 +296,8 @@ case class CurrentSlot(var field : Field, var fragmentIdx : Expression = LoopOve
   override def resolveDefValue = Some(IntegerConstant(0))
 }
 
-case class IndexFromField(var layoutIdentifier : String, var level : Expression, var indexId : String, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, false) {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, layoutIdentifier, level, NullExpression)
+case class IndexFromField(var layoutIdentifier : String, var level : Expression, var indexId : String, var dim : Int, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, false) {
+  override def prettyprint(out : PpStream) : Unit = out << ArrayAccess(resolveAccess(resolveName, fragmentIdx, NullExpression, layoutIdentifier, level, NullExpression), dim)
 
   override def usesFieldArrays : Boolean = false
   override def usesLevelArrays : Boolean = true
