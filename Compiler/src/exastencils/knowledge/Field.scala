@@ -9,15 +9,66 @@ import exastencils.logger._
 
 case class FieldLayout(
     var identifier : String, // will be used to find the field
-    var level : Int, // the (geometric) level the layout is associated with 
+    var level : Int, // the (geometric) level the layout is associated with
     var dataType : Datatype, // represents the data type; thus it can also encode the dimensionality when using e.g. vector fields
-    var discretization : String, // specifies where data is located; currently allowed values are "node", "cell" and "face_{x,y,z}" 
+    var discretization : String, // specifies where data is located; currently allowed values are "node", "cell" and "face_{x,y,z}"
     var layoutsPerDim : Array[FieldLayoutPerDim], // represents the number of data points and their distribution in each dimension
     var referenceOffset : MultiIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
     var communicatesDuplicated : Boolean, // specifies if duplicated values need to be exchanged between processes
     var communicatesGhosts : Boolean // specifies if ghost layer values need to be exchanged between processes
     ) {
   def apply(dim : Int) = layoutsPerDim(dim)
+
+  def defIdxPadLeftBegin(dim : Int) = { 0 }
+  def defIdxPadLeftEnd(dim : Int) = { defIdxPadLeftBegin(dim) + layoutsPerDim(dim).numPadLayersLeft }
+
+  def defIdxGhostLeftBegin(dim : Int) = { defIdxPadLeftBegin(dim) + layoutsPerDim(dim).numPadLayersLeft }
+  def defIdxGhostLeftEnd(dim : Int) = { defIdxGhostLeftBegin(dim) + layoutsPerDim(dim).numGhostLayersLeft }
+
+  def defIdxDupLeftBegin(dim : Int) = { defIdxGhostLeftBegin(dim) + layoutsPerDim(dim).numGhostLayersLeft }
+  def defIdxDupLeftEnd(dim : Int) = { defIdxDupLeftBegin(dim) + layoutsPerDim(dim).numDupLayersLeft }
+
+  def defIdxInnerBegin(dim : Int) = { defIdxDupLeftBegin(dim) + layoutsPerDim(dim).numDupLayersLeft }
+  def defIdxInnerEnd(dim : Int) = { defIdxInnerBegin(dim) + layoutsPerDim(dim).numInnerLayers }
+
+  def defIdxDupRightBegin(dim : Int) = { defIdxInnerBegin(dim) + layoutsPerDim(dim).numInnerLayers }
+  def defIdxDupRightEnd(dim : Int) = { defIdxDupRightBegin(dim) + layoutsPerDim(dim).numDupLayersRight }
+
+  def defIdxGhostRightBegin(dim : Int) = { defIdxDupRightBegin(dim) + layoutsPerDim(dim).numDupLayersRight }
+  def defIdxGhostRightEnd(dim : Int) = { defIdxGhostRightBegin(dim) + layoutsPerDim(dim).numGhostLayersRight }
+
+  def defIdxPadRightBegin(dim : Int) = { defIdxGhostRightBegin(dim) + layoutsPerDim(dim).numGhostLayersRight }
+  def defIdxPadRightEnd(dim : Int) = { defIdxPadRightBegin(dim) + layoutsPerDim(dim).numPadLayersRight }
+
+  def defTotal(dim : Int) = { defIdxPadRightEnd(dim) }
+
+  def idxById(id : String, dim : Int) : Expression = {
+    if (Knowledge.experimental_genVariableFieldSizes && dim < Knowledge.dimensionality)
+      ArrayAccess(iv.IndexFromField(identifier, level, id), dim)
+    // TODO : total
+    else
+      defIdxById(id, dim)
+  }
+
+  def defIdxById(id : String, dim : Int) : Int = {
+    id match {
+      case "PLB" => defIdxPadLeftBegin(dim)
+      case "PLE" => defIdxPadLeftEnd(dim)
+      case "GLB" => defIdxGhostLeftBegin(dim)
+      case "GLE" => defIdxGhostLeftEnd(dim)
+      case "DLB" => defIdxDupLeftBegin(dim)
+      case "DLE" => defIdxDupLeftEnd(dim)
+      case "IB"  => defIdxInnerBegin(dim)
+      case "IE"  => defIdxInnerEnd(dim)
+      case "DRB" => defIdxDupRightBegin(dim)
+      case "DRE" => defIdxDupRightEnd(dim)
+      case "GRB" => defIdxGhostRightBegin(dim)
+      case "GRE" => defIdxGhostRightEnd(dim)
+      case "PRB" => defIdxPadRightBegin(dim)
+      case "PRE" => defIdxPadRightEnd(dim)
+      case "TOT" => defTotal(dim)
+    }
+  }
 }
 
 case class FieldLayoutPerDim(
@@ -29,49 +80,10 @@ case class FieldLayoutPerDim(
     var numGhostLayersRight : Int, // number of ghost data points added to the right (/ upper / back) side of the field used for communication
     var numPadLayersRight : Int // number of padding data points added to the right (/ upper / back) side of the field
     ) {
+  var total : Expression = "NOT SET"
 
-  def idxPadLeftBegin = { 0 }
-  def idxPadLeftEnd = { idxPadLeftBegin + numPadLayersLeft }
-
-  def idxGhostLeftBegin = { idxPadLeftBegin + numPadLayersLeft }
-  def idxGhostLeftEnd = { idxGhostLeftBegin + numGhostLayersLeft }
-
-  def idxDupLeftBegin = { idxGhostLeftBegin + numGhostLayersLeft }
-  def idxDupLeftEnd = { idxDupLeftBegin + numDupLayersLeft }
-
-  def idxInnerBegin = { idxDupLeftBegin + numDupLayersLeft }
-  def idxInnerEnd = { idxInnerBegin + numInnerLayers }
-
-  def idxDupRightBegin = { idxInnerBegin + numInnerLayers }
-  def idxDupRightEnd = { idxDupRightBegin + numDupLayersRight }
-
-  def idxGhostRightBegin = { idxDupRightBegin + numDupLayersRight }
-  def idxGhostRightEnd = { idxGhostRightBegin + numGhostLayersRight }
-
-  def idxPadRightBegin = { idxGhostRightBegin + numGhostLayersRight }
-  def idxPadRightEnd = { idxPadRightBegin + numPadLayersRight }
-
-  def evalTotal = { idxPadRightEnd }
-  var total : Expression = evalTotal
-
-  def idxById(id : String) : Expression = {
-    id match {
-      case "PLB" => idxPadLeftBegin
-      case "PLE" => idxPadLeftEnd
-      case "GLB" => idxGhostLeftBegin
-      case "GLE" => idxGhostLeftEnd
-      case "DLB" => idxDupLeftBegin
-      case "DLE" => idxDupLeftEnd
-      case "IB"  => idxInnerBegin
-      case "IE"  => idxInnerEnd
-      case "DRB" => idxDupRightBegin
-      case "DRE" => idxDupRightEnd
-      case "GRB" => idxGhostRightBegin
-      case "GRE" => idxGhostRightEnd
-      case "PRB" => idxPadRightBegin
-      case "PRE" => idxPadRightEnd
-      case "TOT" => total
-    }
+  def updateTotal() = {
+    total = numPadLayersLeft + numGhostLayersLeft + numDupLayersLeft + numInnerLayers + numDupLayersRight + numGhostLayersRight + numPadLayersRight
   }
 }
 
@@ -91,11 +103,11 @@ case class Field(
     var domain : Domain, // the (sub)domain the field lives on
     var codeName : String, // will be used in the generated source code
     var fieldLayout : FieldLayout, // represents the number of data points and their distribution in each dimension
-    var level : Int, // the (geometric) level the field lives on 
+    var level : Int, // the (geometric) level the field lives on
     var numSlots : Int, // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
     var boundaryConditions : Option[Expression] // None if no explicit boundary handling is given, otherwise specifies the expression to be used for the dirichlet boundary or Neumann as magic identifier
     ) {
-  // shortcuts to layout options  
+  // shortcuts to layout options
   def dataType = fieldLayout.dataType
   def discretization = fieldLayout.discretization
   def vectorSize = fieldLayout.dataType.resolveFlattendSize
@@ -143,15 +155,21 @@ object FieldCollection {
       }
     }
   }
+
+  def getFieldByLayoutIdentifier(identifier : String, level : Int, suppressError : Boolean = false) : Option[Field] = {
+    val ret = fields.find(f => f.fieldLayout.identifier == identifier && f.level == level)
+    if (!suppressError && ret.isEmpty) Logger.warn(s"Field with layout $identifier on level $level was not found")
+    ret
+  }
 }
 
 case class ExternalField(
     var identifier : String, // will be used to find the field
     var targetField : Field, // the (internal) field to be copied to/ from
     var fieldLayout : FieldLayout, // represents the number of data points and their distribution in each dimension
-    var level : Int // the (geometric) level the field lives on 
+    var level : Int // the (geometric) level the field lives on
     ) {
-  // shortcuts to layout options  
+  // shortcuts to layout options
   def dataType = fieldLayout.dataType
   def vectorSize = fieldLayout.dataType.resolveFlattendSize
   def referenceOffset = fieldLayout.referenceOffset

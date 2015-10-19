@@ -61,10 +61,10 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
       if (colorOffset == null) {
         layout(innerD).numInnerLayers /= 2
         layout(innerD).numInnerLayers += 1
-        layout(innerD).total = IntegerConstant(layout(innerD).evalTotal)
-        colorOffset = layout(outerD).evalTotal
+        layout(innerD).total = layout.idxById("TOT", innerD)
+        colorOffset = layout.defIdxById("TOT", outerD)
         layout(outerD).numInnerLayers += colorOffset
-        layout(outerD).total = IntegerConstant(layout(outerD).evalTotal)
+        layout(outerD).total = layout.idxById("TOT", outerD)
         updatedFields.put(field, colorOffset)
       }
 
@@ -82,7 +82,7 @@ object ColorCondCollector extends Collector {
 
   var cond : Expression = null
 
-  def enter(node : Node) : Unit = {
+  override def enter(node : Node) : Unit = {
     node match {
       case loop : LoopOverDimensions if (loop.condition.isDefined && loop.condition.get.isInstanceOf[EqEqExpression]) =>
         cond = loop.condition.get
@@ -95,7 +95,7 @@ object ColorCondCollector extends Collector {
     }
   }
 
-  def leave(node : Node) : Unit = {
+  override def leave(node : Node) : Unit = {
     node match {
       case loop : LoopOverDimensions                    => cond = null
       case ConditionStatement(c, _, fB) if (fB.isEmpty) => cond = null
@@ -105,7 +105,7 @@ object ColorCondCollector extends Collector {
     }
   }
 
-  def reset() : Unit = {
+  override def reset : Unit = {
     cond = null
   }
 }

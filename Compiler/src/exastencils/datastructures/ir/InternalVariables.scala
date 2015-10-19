@@ -295,13 +295,13 @@ case class CurrentSlot(var field : Field, var fragmentIdx : Expression = LoopOve
   override def resolveDefValue = Some(IntegerConstant(0))
 }
 
-case class IndexFromField(var fieldIdentifier : String, var level : Expression, var indexId : String) extends InternalVariable(false, false, true, true, false) {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, NullExpression, NullExpression, fieldIdentifier, level, NullExpression)
+case class IndexFromField(var layoutIdentifier : String, var level : Expression, var indexId : String) extends InternalVariable(false, false, true, true, false) {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, NullExpression, NullExpression, layoutIdentifier, level, NullExpression)
 
   override def usesFieldArrays : Boolean = false
   override def usesLevelArrays : Boolean = true
 
-  override def resolveName = s"idx$indexId" + resolvePostfix("", "", fieldIdentifier, level.prettyprint, "")
+  override def resolveName = s"idx$indexId" + resolvePostfix("", "", layoutIdentifier, level.prettyprint, "")
   override def resolveDataType = s"Vec${Knowledge.dimensionality}i"
 
   override def getCtor() : Option[Statement] = {
@@ -309,11 +309,11 @@ case class IndexFromField(var fieldIdentifier : String, var level : Expression, 
     val oldLev = level
     for (l <- Knowledge.minLevel to Knowledge.maxLevel) {
       level = l
-      val field = FieldCollection.getFieldByIdentifier(fieldIdentifier, l, true)
+      val field = FieldCollection.getFieldByLayoutIdentifier(layoutIdentifier, l, true)
       if (field.isDefined) {
-        statements += AssignmentStatement(resolveAccess(resolveName, NullExpression, NullExpression, fieldIdentifier, level, NullExpression),
+        statements += AssignmentStatement(resolveAccess(resolveName, NullExpression, NullExpression, layoutIdentifier, level, NullExpression),
           s"Vec${Knowledge.dimensionality}i(${
-            (0 until Knowledge.dimensionality).map(i => field.get.fieldLayout(i).idxById(indexId).prettyprint).mkString(", ")
+            (0 until Knowledge.dimensionality).map(dim => field.get.fieldLayout.defIdxById(indexId, dim)).mkString(", ")
           })")
       }
     }

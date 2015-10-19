@@ -338,6 +338,8 @@ object Knowledge {
   var experimental_resolveUnreqFragmentLoops : Boolean = false
 
   var experimental_allowCommInFragLoops : Boolean = false
+
+  var experimental_genVariableFieldSizes : Boolean = false
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {
@@ -498,6 +500,8 @@ object Knowledge {
 
     Constraints.condEnsureValue(experimental_useLevelIndepFcts, false, "Zero" != l3tmp_exactSolution, "level independent communication functions are not compatible with non-trivial boundary conditions")
     Constraints.condEnsureValue(mpi_useCustomDatatypes, false, experimental_useLevelIndepFcts, "MPI data types cannot be used in combination with level independent communication functions yet")
+    Constraints.condEnsureValue(experimental_genVariableFieldSizes, true, experimental_useLevelIndepFcts, "level independent communication functions require variable field sizes")
+    Constraints.condEnsureValue(mpi_useCustomDatatypes, false, experimental_genVariableFieldSizes, "MPI data types cannot be used in combination with variable field sizes yet")
 
     Constraints.condEnsureValue(mpi_useBusyWait, true, experimental_allowCommInFragLoops && domain_numFragmentsPerBlock > 1, s"mpi_useBusyWait must be true when experimental_allowCommInFragLoops is used in conjunction with multiple fragments per block")
     Constraints.condWarn(comm_disableLocalCommSync && experimental_allowCommInFragLoops, s"comm_disableLocalCommSynchronization in conjunction with experimental_allowCommInFragLoops is strongly discouraged")

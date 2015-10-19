@@ -20,10 +20,12 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
   def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[Statement]
 
   def resolveIndex(indexId : String, dim : Int) : Expression = {
-    if (Knowledge.experimental_useLevelIndepFcts)
-      ArrayAccess(iv.IndexFromField(fieldSelection.field.identifier, "level", indexId), dim)
-    else
-      fieldSelection.field.fieldLayout(dim).idxById(indexId)
+    if (Knowledge.experimental_useLevelIndepFcts) {
+      // FIXME
+      ??? //ArrayAccess(iv.IndexFromField(fieldSelection.field.identifier, "level", indexId), dim)
+    } else {
+      fieldSelection.field.fieldLayout.idxById(indexId, dim)
+    }
   }
 
   def vecFieldIndexBegin = Array(fieldSelection.arrayIndex.getOrElse(0).toLong : Expression)
@@ -59,7 +61,7 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
   }
 }
 
-case class ApplyBCsFunction(var name : String, var fieldSelection : FieldSelection, var neighbors : ListBuffer[NeighborInfo],
+case class ApplyBCsFunction(var name : String, override var fieldSelection : FieldSelection, var neighbors : ListBuffer[NeighborInfo],
     var insideFragLoop : Boolean) extends FieldBoundaryFunction {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ApplyBCsFunction\n"
   override def prettyprint_decl = prettyprint
@@ -126,7 +128,7 @@ case class ApplyBCsFunction(var name : String, var fieldSelection : FieldSelecti
   }
 }
 
-case class ExchangeDataFunction(var name : String, var fieldSelection : FieldSelection, var neighbors : ListBuffer[NeighborInfo],
+case class ExchangeDataFunction(var name : String, override var fieldSelection : FieldSelection, var neighbors : ListBuffer[NeighborInfo],
     var begin : Boolean, var finish : Boolean,
     var dupLayerExch : Boolean, var dupLayerBegin : MultiIndex, var dupLayerEnd : MultiIndex,
     var ghostLayerExch : Boolean, var ghostLayerBegin : MultiIndex, var ghostLayerEnd : MultiIndex,

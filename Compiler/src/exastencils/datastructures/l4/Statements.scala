@@ -80,7 +80,7 @@ case class StencilEntry(var offset : ExpressionIndex, var coeff : Expression) ex
   }
 }
 
-case class StencilDeclarationStatement(var identifier : Identifier, var entries : List[StencilEntry]) extends SpecialStatement with HasIdentifier {
+case class StencilDeclarationStatement(override var identifier : Identifier, var entries : List[StencilEntry]) extends SpecialStatement with HasIdentifier {
   override def prettyprint(out : PpStream) = {
     out << "Stencil " << identifier.name << '@' << identifier.asInstanceOf[LeveledIdentifier].level << " {\n"
     out <<< (entries, "\n") << '\n'
@@ -109,7 +109,7 @@ case class GlobalDeclarationStatement(var values : List[ValueDeclarationStatemen
   }
 }
 
-case class VariableDeclarationStatement(var identifier : Identifier, var datatype : Datatype, var expression : Option[Expression] = None) extends Statement with HasIdentifier {
+case class VariableDeclarationStatement(override var identifier : Identifier, var datatype : Datatype, var expression : Option[Expression] = None) extends Statement with HasIdentifier {
   override def prettyprint(out : PpStream) = {
     out << "Variable " << identifier << " : " << datatype
     if (expression.isDefined)
@@ -124,7 +124,7 @@ case class VariableDeclarationStatement(var identifier : Identifier, var datatyp
   }
 }
 
-case class ValueDeclarationStatement(var identifier : Identifier, var datatype : Datatype, var expression : Expression) extends Statement with HasIdentifier {
+case class ValueDeclarationStatement(override var identifier : Identifier, var datatype : Datatype, var expression : Expression) extends Statement with HasIdentifier {
   //  def progressToIr : ir.ValueDeclarationStatement = {
   //    ir.ValueDeclarationStatement(datatype.progressToIr,
   //      identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
@@ -176,6 +176,7 @@ case class LoopOverPointsStatement(
       case access : StencilFieldAccess => access.resolveField
       case _                           => Logger.error(s"Trying to loop over $field - has to be of type FieldAccess or StencilFieldAccess")
     }
+
     ir.LoopOverPoints(resolvedField,
       if (region.isDefined) Some(region.get.progressToIr) else None,
       seq,
@@ -203,7 +204,7 @@ case class LoopOverFragmentsStatement(var statements : List[Statement], var redu
   }
 }
 
-case class FunctionStatement(var identifier : Identifier,
+case class FunctionStatement(override var identifier : Identifier,
     var returntype : Datatype,
     var arguments : List[Variable],
     var statements : List[Statement]) extends Statement with HasIdentifier {

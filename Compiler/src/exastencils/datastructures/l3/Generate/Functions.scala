@@ -1,7 +1,8 @@
 package exastencils.datastructures.l3
 
-import exastencils.knowledge._
 import scala.collection.mutable.ListBuffer
+
+import exastencils.knowledge._
 
 object Functions {
   def solFunction : String = {
