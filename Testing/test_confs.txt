@@ -1,13 +1,14 @@
 # configuration file for automatic tests
 
 # a single line (which represents a single test config) must have one of the following two structures:
-# ID  MainClass  KnowledgeInput
-# ID  MainClass  KnowledgeInput  ResultFile  NumMPIRanks  NumCoresPerRank  [Constraint]
+# ID  MainClass  KnowledgeInput  L4-File
+# ID  MainClass  KnowledgeInput  L4-File  ResultFile  NumMPIRanks  NumCoresPerRank  [Constraint]
 
 # neither of the fields must contain a white space, a tabular, or similar
 # ID  is an arbitrary string to name the test
 # MainClass  is the main class of the scala code generator that should be used (without .class ending)
 # KnowledgeInput  is a text file containing all relevant configurations
+# L4-File  is a text file containing the ExaSlang4 code to test, or "*" if it will be generated automatically
 # ResultFile  is a text file containing the expected output of the generated code
 # both KnowledgeInput and ResultFile must be relative to the directory this file is located in
 # NumMPIRanks  is the number of MPI ranks (processes)
@@ -23,24 +24,24 @@
 #################################################################################################
 
 # 1 OMP thread
-CommBasic_PureMPI     Main  CommBasic/PureMPI.knowledge     CommBasic/PureMPI.results     27  1
+CommBasic_PureMPI     Main  CommBasic/PureMPI.knowledge     *  CommBasic/PureMPI.results     27  1
 # 27 OMP threads
-CommBasic_PureOMP     Main  CommBasic/PureOMP.knowledge     CommBasic/PureOMP.results     1   10
-CommBasic_Hybrid      Main  CommBasic/Hybrid.knowledge      CommBasic/Hybrid.results      27  2
-CommBasic_Summarize   Main  CommBasic/Summarize.knowledge   CommBasic/Summarize.results   27  2
-CommBasic_Strategy26  Main  CommBasic/Strategy26.knowledge  CommBasic/Strategy26.results  27  2
+CommBasic_PureOMP     Main  CommBasic/PureOMP.knowledge     *  CommBasic/PureOMP.results     1   10
+CommBasic_Hybrid      Main  CommBasic/Hybrid.knowledge      *  CommBasic/Hybrid.results      27  2
+CommBasic_Summarize   Main  CommBasic/Summarize.knowledge   *  CommBasic/Summarize.results   27  2
+CommBasic_Strategy26  Main  CommBasic/Strategy26.knowledge  *  CommBasic/Strategy26.results  27  2
 # 9 OMP threads
-CommBasic_2D          Main  CommBasic/2D.knowledge          CommBasic/2D.results          9   2
+CommBasic_2D          Main  CommBasic/2D.knowledge          *  CommBasic/2D.results          9   2
 # cell based
-CommBasic_HybridCell      Main  CommBasic/HybridCell.knowledge      CommBasic/HybridCell.results      27  2
-CommBasic_Strategy26Cell  Main  CommBasic/Strategy26Cell.knowledge  CommBasic/Strategy26Cell.results  27  2
+CommBasic_HybridCell      Main  CommBasic/HybridCell.knowledge      *  CommBasic/HybridCell.results      27  2
+CommBasic_Strategy26Cell  Main  CommBasic/Strategy26Cell.knowledge  *  CommBasic/Strategy26Cell.results  27  2
 
 #################################################################################################
 # LARGE DATA SIZE TESTS                                                                         #
 #################################################################################################
 
 # 10 OMP threads
-Large_Hybrid  Main  Large/Hybrid.knowledge  Large/Hybrid.results  4  10  E5
+Large_Hybrid  Main  Large/Hybrid.knowledge  *  Large/Hybrid.results  4  10  E5
 
 #################################################################################################
 # OPTIMIZATION TESTS                                                                            #
@@ -51,59 +52,59 @@ Large_Hybrid  Main  Large/Hybrid.knowledge  Large/Hybrid.results  4  10  E5
 
 ### sequential version
 ## single precision
-Seq_TestF_naive    Main  Opts/seq__float_naive.knowledge      Opts/seq__float.results  1   1  i7|E5
+Seq_TestF_naive      Main  Opts/seq__float_naive.knowledge     *  Opts/seq__float.results  1   1  i7|E5
 # SSE3
-Seq_TestF_vectS     Main  Opts/seq__float_vectS.knowledge     Opts/seq__float.results  1   1
-Seq_TestF_vectSAl   Main  Opts/seq__float_vectSAl.knowledge   Opts/seq__float.results  1   1
-Seq_TestF_vectSAlAl Main  Opts/seq__float_vectSAlAl.knowledge Opts/seq__float.results  1   1
+Seq_TestF_vectS      Main  Opts/seq__float_vectS.knowledge     *  Opts/seq__float.results  1   1
+Seq_TestF_vectSAl    Main  Opts/seq__float_vectSAl.knowledge   *  Opts/seq__float.results  1   1
+Seq_TestF_vectSAlAl  Main  Opts/seq__float_vectSAlAl.knowledge *  Opts/seq__float.results  1   1
 # AVX
-Seq_TestF_vect      Main  Opts/seq__float_vect.knowledge      Opts/seq__float.results  1   1  i7|E5
-Seq_TestF_vectAl    Main  Opts/seq__float_vectAl.knowledge    Opts/seq__float.results  1   1  i7|E5
-Seq_TestF_vectAlAl  Main  Opts/seq__float_vectAlAl.knowledge  Opts/seq__float.results  1   1  i7|E5
+Seq_TestF_vect       Main  Opts/seq__float_vect.knowledge      *  Opts/seq__float.results  1   1  i7|E5
+Seq_TestF_vectAl     Main  Opts/seq__float_vectAl.knowledge    *  Opts/seq__float.results  1   1  i7|E5
+Seq_TestF_vectAlAl   Main  Opts/seq__float_vectAlAl.knowledge  *  Opts/seq__float.results  1   1  i7|E5
 ## double precision
-Seq_Test_naive      Main  Opts/seq_naive.knowledge      Opts/seq.results  1   1  i7|E5
-Seq_Test_addrPre    Main  Opts/seq_addrPre.knowledge    Opts/seq.results  1   1  i7|E5
-Seq_Test_poly       Main  Opts/seq_poly.knowledge       Opts/seq.results  1   1  i7|E5
-Seq_Test_unroll     Main  Opts/seq_unroll.knowledge     Opts/seq.results  1   1  i7|E5
-Seq_Test_unrolli    Main  Opts/seq_unrolli.knowledge    Opts/seq.results  1   1  i7|E5
+Seq_Test_naive       Main  Opts/seq_naive.knowledge      *  Opts/seq.results  1   1  i7|E5
+Seq_Test_addrPre     Main  Opts/seq_addrPre.knowledge    *  Opts/seq.results  1   1  i7|E5
+Seq_Test_poly        Main  Opts/seq_poly.knowledge       *  Opts/seq.results  1   1  i7|E5
+Seq_Test_unroll      Main  Opts/seq_unroll.knowledge     *  Opts/seq.results  1   1  i7|E5
+Seq_Test_unrolli     Main  Opts/seq_unrolli.knowledge    *  Opts/seq.results  1   1  i7|E5
 # SSE3
-Seq_Test_vectS      Main  Opts/seq_vectS.knowledge      Opts/seq.results  1   1
-Seq_Test_vectSAl    Main  Opts/seq_vectSAl.knowledge    Opts/seq.results  1   1
-Seq_Test_vectSAlAl  Main  Opts/seq_vectSAlAl.knowledge  Opts/seq.results  1   1
-Seq_Test_allS       Main  Opts/seq_allS.knowledge       Opts/seq.results  1   1
+Seq_Test_vectS       Main  Opts/seq_vectS.knowledge      *  Opts/seq.results  1   1
+Seq_Test_vectSAl     Main  Opts/seq_vectSAl.knowledge    *  Opts/seq.results  1   1
+Seq_Test_vectSAlAl   Main  Opts/seq_vectSAlAl.knowledge  *  Opts/seq.results  1   1
+Seq_Test_allS        Main  Opts/seq_allS.knowledge       *  Opts/seq.results  1   1
 # AVX
-Seq_Test_vect       Main  Opts/seq_vect.knowledge       Opts/seq.results  1   1  i7|E5
-Seq_Test_vectAl     Main  Opts/seq_vectAl.knowledge     Opts/seq.results  1   1  i7|E5
-Seq_Test_vectAlAl   Main  Opts/seq_vectAlAl.knowledge   Opts/seq.results  1   1  i7|E5
-Seq_Test_all        Main  Opts/seq_all.knowledge        Opts/seq.results  1   1  i7|E5
+Seq_Test_vect        Main  Opts/seq_vect.knowledge       *  Opts/seq.results  1   1  i7|E5
+Seq_Test_vectAl      Main  Opts/seq_vectAl.knowledge     *  Opts/seq.results  1   1  i7|E5
+Seq_Test_vectAlAl    Main  Opts/seq_vectAlAl.knowledge   *  Opts/seq.results  1   1  i7|E5
+Seq_Test_all         Main  Opts/seq_all.knowledge        *  Opts/seq.results  1   1  i7|E5
 
 ### parallel version (2*2*2 MPI ranks each with 10 OMP threads)
 ## single precision
-Par_TestF_naive     Main  Opts/par__float_naive.knowledge     Opts/par__float.results  8  5  E5
+Par_TestF_naive      Main  Opts/par__float_naive.knowledge     *  Opts/par__float.results  8  5  E5
 # SSE3
-Par_TestF_vectS     Main  Opts/par__float_vectS.knowledge     Opts/par__float.results  8  5  E5
-Par_TestF_vectSAl   Main  Opts/par__float_vectSAl.knowledge   Opts/par__float.results  8  5  E5
-Par_TestF_vectSAlAl Main  Opts/par__float_vectSAlAl.knowledge Opts/par__float.results  8  5  E5
+Par_TestF_vectS      Main  Opts/par__float_vectS.knowledge     *  Opts/par__float.results  8  5  E5
+Par_TestF_vectSAl    Main  Opts/par__float_vectSAl.knowledge   *  Opts/par__float.results  8  5  E5
+Par_TestF_vectSAlAl  Main  Opts/par__float_vectSAlAl.knowledge *  Opts/par__float.results  8  5  E5
 # AVX
-Par_TestF_vect      Main  Opts/par__float_vect.knowledge      Opts/par__float.results  8  5  E5
-Par_TestF_vectAl    Main  Opts/par__float_vectAl.knowledge    Opts/par__float.results  8  5  E5
-Par_TestF_vectAlAl  Main  Opts/par__float_vectAlAl.knowledge  Opts/par__float.results  8  5  E5
+Par_TestF_vect       Main  Opts/par__float_vect.knowledge      *  Opts/par__float.results  8  5  E5
+Par_TestF_vectAl     Main  Opts/par__float_vectAl.knowledge    *  Opts/par__float.results  8  5  E5
+Par_TestF_vectAlAl   Main  Opts/par__float_vectAlAl.knowledge  *  Opts/par__float.results  8  5  E5
 ## double precision
-Par_Test_naive      Main  Opts/par_naive.knowledge      Opts/par.results  8  5  E5
-Par_Test_addrPre    Main  Opts/par_addrPre.knowledge    Opts/par.results  8  5  E5
-Par_Test_poly       Main  Opts/par_poly.knowledge       Opts/par.results  8  5  E5
-Par_Test_unroll     Main  Opts/par_unroll.knowledge     Opts/par.results  8  5  E5
-Par_Test_unrolli    Main  Opts/par_unrolli.knowledge    Opts/par.results  8  5  E5
+Par_Test_naive       Main  Opts/par_naive.knowledge      *  Opts/par.results  8  5  E5
+Par_Test_addrPre     Main  Opts/par_addrPre.knowledge    *  Opts/par.results  8  5  E5
+Par_Test_poly        Main  Opts/par_poly.knowledge       *  Opts/par.results  8  5  E5
+Par_Test_unroll      Main  Opts/par_unroll.knowledge     *  Opts/par.results  8  5  E5
+Par_Test_unrolli     Main  Opts/par_unrolli.knowledge    *  Opts/par.results  8  5  E5
 # SSE3
-Par_Test_vectS      Main  Opts/par_vectS.knowledge      Opts/par.results  8  5  E5
-Par_Test_vectSAl    Main  Opts/par_vectSAl.knowledge    Opts/par.results  8  5  E5
-Par_Test_vectSAlAl  Main  Opts/par_vectSAlAl.knowledge  Opts/par.results  8  5  E5
-Par_Test_allS       Main  Opts/par_allS.knowledge       Opts/par.results  8  5  E5
+Par_Test_vectS       Main  Opts/par_vectS.knowledge      *  Opts/par.results  8  5  E5
+Par_Test_vectSAl     Main  Opts/par_vectSAl.knowledge    *  Opts/par.results  8  5  E5
+Par_Test_vectSAlAl   Main  Opts/par_vectSAlAl.knowledge  *  Opts/par.results  8  5  E5
+Par_Test_allS        Main  Opts/par_allS.knowledge       *  Opts/par.results  8  5  E5
 # AVX
-Par_Test_vect       Main  Opts/par_vect.knowledge       Opts/par.results  8  5  E5
-Par_Test_vectAl     Main  Opts/par_vectAl.knowledge     Opts/par.results  8  5  E5
-Par_Test_vectAlAl   Main  Opts/par_vectAlAl.knowledge   Opts/par.results  8  5  E5
-Par_Test_all        Main  Opts/par_all.knowledge        Opts/par.results  8  5  E5
+Par_Test_vect        Main  Opts/par_vect.knowledge       *  Opts/par.results  8  5  E5
+Par_Test_vectAl      Main  Opts/par_vectAl.knowledge     *  Opts/par.results  8  5  E5
+Par_Test_vectAlAl    Main  Opts/par_vectAlAl.knowledge   *  Opts/par.results  8  5  E5
+Par_Test_all         Main  Opts/par_all.knowledge        *  Opts/par.results  8  5  E5
 
 
 #################################################################################################
@@ -111,57 +112,57 @@ Par_Test_all        Main  Opts/par_all.knowledge        Opts/par.results  8  5  
 #################################################################################################
 
 # 27 OMP threads
-Smoothers_Jac   Main    Smoothers/Jac.knowledge     Smoothers/Jac.results   27  2
-Smoothers_GS    Main    Smoothers/GS.knowledge      Smoothers/GS.results    27  2
-Smoothers_RBGS  Main    Smoothers/RBGS.knowledge    Smoothers/RBGS.results  27  2
+Smoothers_Jac   Main    Smoothers/Jac.knowledge     *  Smoothers/Jac.results   27  2
+Smoothers_GS    Main    Smoothers/GS.knowledge      *  Smoothers/GS.results    27  2
+Smoothers_RBGS  Main    Smoothers/RBGS.knowledge    *  Smoothers/RBGS.results  27  2
 
 #################################################################################################
 # BOUNDARY CONDITION TESTS                                                                      #
 #################################################################################################
 
 # 2D
-BC_2D_Polynomial	Main	BC/2D_Polynomial.knowledge		BC/2D_Polynomial.results	4	2
-BC_2D_Trigonometric	Main	BC/2D_Trigonometric.knowledge	BC/2D_Trigonometric.results	4	2
-BC_2D_Periodic		Main	BC/2D_Periodic.knowledge		BC/2D_Periodic.results		4	2
+BC_2D_Polynomial     Main    BC/2D_Polynomial.knowledge     *  BC/2D_Polynomial.results    4    2
+BC_2D_Trigonometric  Main    BC/2D_Trigonometric.knowledge  *  BC/2D_Trigonometric.results    4    2
+BC_2D_Periodic       Main    BC/2D_Periodic.knowledge       *  BC/2D_Periodic.results        4    2
 # 3D
-BC_3D_Polynomial	Main	BC/3D_Polynomial.knowledge		BC/3D_Polynomial.results	8	2
-BC_3D_Trigonometric	Main	BC/3D_Trigonometric.knowledge	BC/3D_Trigonometric.results	8	2
-BC_3D_Periodic		Main	BC/3D_Periodic.knowledge		BC/3D_Periodic.results		8	2
+BC_3D_Polynomial     Main    BC/3D_Polynomial.knowledge     *  BC/3D_Polynomial.results    8    2
+BC_3D_Trigonometric  Main    BC/3D_Trigonometric.knowledge  *  BC/3D_Trigonometric.results    8    2
+BC_3D_Periodic       Main    BC/3D_Periodic.knowledge       *  BC/3D_Periodic.results        8    2
 
 #################################################################################################
 # CELL BASED DISCRETIZATION TESTS                                                               #
 #################################################################################################
 
 # 2D
-Cell_2D_Basic	Main	CellBased/2D_Basic.knowledge	CellBased/2D_Basic.results		4	2
-Cell_2D_Neumann	Main	CellBased/2D_Neumann.knowledge	CellBased/2D_Neumann.results	4	2
+Cell_2D_Basic    Main    CellBased/2D_Basic.knowledge    *  CellBased/2D_Basic.results        4    2
+Cell_2D_Neumann  Main    CellBased/2D_Neumann.knowledge  *  CellBased/2D_Neumann.results    4    2
 # 3D
-Cell_3D_Basic	Main	CellBased/3D_Basic.knowledge	CellBased/3D_Basic.results		8	2
-Cell_3D_Neumann Main	CellBased/3D_Neumann.knowledge	CellBased/3D_Neumann.results	8	2
+Cell_3D_Basic    Main    CellBased/3D_Basic.knowledge    *  CellBased/3D_Basic.results        8    2
+Cell_3D_Neumann  Main    CellBased/3D_Neumann.knowledge  *  CellBased/3D_Neumann.results    8    2
 
 #################################################################################################
 # SISC PAPER TESTS                                                                              #
 #################################################################################################
 
 # 2D
-SISC_2D_ConstCoeff	Main	SISC/2D_ConstCoeff.knowledge	SISC/2D_ConstCoeff.results	4	4
-SISC_2D_VarCoeff	Main	SISC/2D_VarCoeff.knowledge		SISC/2D_VarCoeff.results	4	4
+SISC_2D_ConstCoeff  Main    SISC/2D_ConstCoeff.knowledge  *  SISC/2D_ConstCoeff.results    4    4
+SISC_2D_VarCoeff    Main    SISC/2D_VarCoeff.knowledge    *  SISC/2D_VarCoeff.results    4    4
 # 3D
-SISC_3D_ConstCoeff	Main	SISC/3D_ConstCoeff.knowledge	SISC/3D_ConstCoeff.results	8	4
-SISC_3D_VarCoeff	Main	SISC/3D_VarCoeff.knowledge		SISC/3D_VarCoeff.results	8	4
+SISC_3D_ConstCoeff  Main    SISC/3D_ConstCoeff.knowledge  *  SISC/3D_ConstCoeff.results    8    4
+SISC_3D_VarCoeff    Main    SISC/3D_VarCoeff.knowledge    *  SISC/3D_VarCoeff.results    8    4
 
 #################################################################################################
 # MISC TESTS                                                                                    #
 #################################################################################################
 
-Inlining  Main  Misc/inlining.knowledge  Misc/inlining.results  8  5  E5
+Inlining  Main  Misc/inlining.knowledge  *  Misc/inlining.results  8  5  E5
 
 #################################################################################################
 # FMG TESTS                                                                                     #
 #################################################################################################
 
-FMG_2D_Polynomial		Main	FMG/2D_Polynomial.knowledge		FMG/2D_Polynomial.results		4	2
-FMG_2D_ConstCoeff		Main	FMG/2D_ConstCoeff.knowledge		FMG/2D_ConstCoeff.results		4	4
-FMG_3D_Trigonometric	Main	FMG/3D_Trigonometric.knowledge	FMG/3D_Trigonometric.results	8	2
-FMG_3D_VarCoeff			Main	FMG/3D_VarCoeff.knowledge		FMG/3D_VarCoeff.results			8	4
+FMG_2D_Polynomial     Main    FMG/2D_Polynomial.knowledge     *  FMG/2D_Polynomial.results        4    2
+FMG_2D_ConstCoeff     Main    FMG/2D_ConstCoeff.knowledge     *  FMG/2D_ConstCoeff.results        4    4
+FMG_3D_Trigonometric  Main    FMG/3D_Trigonometric.knowledge  *  FMG/3D_Trigonometric.results    8    2
+FMG_3D_VarCoeff       Main    FMG/3D_VarCoeff.knowledge       *  FMG/3D_VarCoeff.results            8    4
 

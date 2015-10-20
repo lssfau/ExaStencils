@@ -16,10 +16,11 @@ MAIN=${3}
 TEST_DIR=${4}
 BIN=${5}
 KNOWLEDGE=${6}
-ERROR_MARKER=${7}
-LOG_ALL=${8}
-LINK=${9}
-PROGRESS=${10}
+L4FILE=${7}
+ERROR_MARKER=${8}
+LOG_ALL=${9}
+LINK=${10}
+PROGRESS=${11}
 
 
 echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
@@ -30,7 +31,6 @@ rm -f ${ERROR_MARKER} # remove error marker from old job run if we were requeued
 
 mkdir -p "${TEST_DIR}"
 SETTINGS="${TEST_DIR}/settings.txt"
-L4="${TEST_DIR}/l4.exa"
 
 
 function killed {
@@ -56,7 +56,7 @@ trap cleanup EXIT
 # build settings file
 touch "${SETTINGS}"
 echo "outputPath = \"${TEST_DIR}\"" >> "${SETTINGS}"
-echo "l4file = \"${L4}\"" >> "${SETTINGS}"
+echo "l4file = \"${L4FILE}\"" >> "${SETTINGS}"
 echo "binary = \"${BIN}\"" >> "${SETTINGS}"
 
 echo "Run generator:"
