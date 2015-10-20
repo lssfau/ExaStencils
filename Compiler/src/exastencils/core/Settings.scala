@@ -58,6 +58,9 @@ object Settings {
   def defHtmlLogFile : String = if ("" == basePathPrefix) "../Compiler/log/log.html" else getBasePath + "Compiler/log/log.html"
   def getHtmlLogFile : String = if (htmlLogFile.isEmpty) defHtmlLogFile else getBasePath + htmlLogFile
 
+  /// debug output
+  var printClonedObjects : Boolean = false
+
   var timeStrategies : Boolean = false
   var timeStratPercentThreshold : Int = 5 // five percent threshold by default -> measurements with less than 5.0 % share are not displayed
   var printNodeCountAfterTransformation : Boolean = false // print number of nodes after each transformation
