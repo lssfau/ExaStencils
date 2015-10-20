@@ -188,12 +188,12 @@ object StateManager {
           ret match {
             case NoMatch => nextNode = n // do nothing, but set next node for recursive matching
             case m : Node => {
-              if (!Vars.set(node, field, m)) {
+              if (ret != n && !Vars.set(node, field, m)) {
                 Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
               }
             }
             case m : NodeList if m.nodes.size == 1 => { // Only valid if list contains a single element
-              if (!Vars.set(node, field, m.nodes.toSeq(0))) {
+              if (m.nodes.toSeq(0) != n && !Vars.set(node, field, m.nodes.toSeq(0))) {
                 Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
               }
             }
@@ -213,13 +213,13 @@ object StateManager {
             ret match {
               case NoMatch => nextNode = n // do nothing, but set next node for recursive matching
               case m : Node => {
-                if (!Vars.set(node, field, Some(m))) {
+                if (ret != n && !Vars.set(node, field, Some(m))) {
                   Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
                 }
               }
               case m : NodeList if m.nodes.size == 1 =>
                 { // Only valid if list contains a single element
-                  if (!Vars.set(node, field, Some(m.nodes.toSeq(0)))) {
+                  if (m.nodes.toSeq(0) != n && !Vars.set(node, field, Some(m.nodes.toSeq(0)))) {
                     Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
                   }
                 }
