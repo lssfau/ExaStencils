@@ -3,17 +3,23 @@ package exastencils.communication
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
+import exastencils.core.collectors.StackCollector
 import exastencils.data._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
+import exastencils.logger._
 import exastencils.mpi._
+import exastencils.omp._
 
 object SetupCommunication extends DefaultStrategy("Setting up communication") {
   var commFunctions : CommunicationFunctions = CommunicationFunctions()
   var addedFunctions : ListBuffer[String] = ListBuffer()
+
+  var collector = new StackCollector
+  this.register(collector)
 
   override def apply(node : Option[Node] = None) = {
     commFunctions = StateManager.findFirst[CommunicationFunctions]().get
@@ -21,6 +27,8 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
 
     if (Knowledge.mpi_enabled && Knowledge.domain_canHaveRemoteNeighs)
       commFunctions.functions += new MPI_WaitForRequest
+    if (Knowledge.omp_enabled && Knowledge.domain_canHaveLocalNeighs)
+      commFunctions.functions += new OMP_WaitForFlag
     if (Knowledge.domain_canHaveLocalNeighs)
       commFunctions.functions += new ConnectLocalElement()
     if (Knowledge.domain_canHaveRemoteNeighs)
@@ -35,6 +43,12 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       var dupBegin = new MultiIndex(Array.fill(Knowledge.dimensionality)(0)); var dupEnd = new MultiIndex(Array.fill(Knowledge.dimensionality)(0))
       var commGhost = false
       var ghostBegin = new MultiIndex(Array.fill(Knowledge.dimensionality)(0)); var ghostEnd = new MultiIndex(Array.fill(Knowledge.dimensionality)(0))
+
+      var insideFragLoop = collector.stack.map(node => node match { case loop : LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
+      if (insideFragLoop && !Knowledge.experimental_allowCommInFragLoops) {
+        Logger.warn("Found communication inside fragment loop; this is currently unsupported")
+        insideFragLoop = false
+      }
 
       // TODO: currently assumes numXXXRight == numXXXLeft
       if (communicateStatement.targets.exists(t => "all" == t.target)) {
@@ -59,7 +73,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         ghostEnd = target.end.getOrElse(new MultiIndex((0 until Knowledge.dimensionality).toArray.map(dim => communicateStatement.field.fieldLayout(dim).numGhostLayersLeft)))
       }
 
-      val functionName = ((if (Knowledge.experimental_useLevelIndepFcts)
+      var functionName = (if (Knowledge.experimental_useLevelIndepFcts)
         communicateStatement.op match {
         case "begin"  => s"beginExch${communicateStatement.field.field.identifier}"
         case "finish" => s"finishExch${communicateStatement.field.field.identifier}"
@@ -70,14 +84,16 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         case "finish" => s"finishExch${communicateStatement.field.codeName}"
         case "both"   => s"exch${communicateStatement.field.codeName}"
       })
-        + s"_${communicateStatement.field.arrayIndex.getOrElse("a")}_"
-        + communicateStatement.targets.map(t => s"${t.target}_${
+      functionName += s"_${communicateStatement.field.arrayIndex.getOrElse("a")}_" +
+        communicateStatement.targets.map(t => s"${t.target}_${
           val begin : MultiIndex = t.begin.getOrElse(new MultiIndex(Array.fill(Knowledge.dimensionality)("a" : Expression)))
           (0 until Knowledge.dimensionality).toArray.map(dim => begin(dim).prettyprint).mkString("_")
         }_${
           val end : MultiIndex = t.end.getOrElse(new MultiIndex(Array.fill(Knowledge.dimensionality)("a" : Expression)))
           (0 until Knowledge.dimensionality).toArray.map(dim => end(dim).prettyprint).mkString("_")
-        }").mkString("_"))
+        }").mkString("_")
+      if (insideFragLoop)
+        functionName += "_ifl"
 
       if (!addedFunctions.contains(functionName)) {
         addedFunctions += functionName
@@ -88,7 +104,8 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
           "begin" == communicateStatement.op || "both" == communicateStatement.op,
           "finish" == communicateStatement.op || "both" == communicateStatement.op,
           commDup, dupBegin, dupEnd,
-          commGhost, ghostBegin, ghostEnd)
+          commGhost, ghostBegin, ghostEnd,
+          insideFragLoop)
       }
 
       communicateStatement.field.slot match {
@@ -96,19 +113,33 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         case _ =>
       }
 
+      var fctArgs : ListBuffer[Expression] = ListBuffer()
+      fctArgs += communicateStatement.field.slot
       if (Knowledge.experimental_useLevelIndepFcts)
-        (new FunctionCallExpression(functionName, ListBuffer[Expression](communicateStatement.field.slot, communicateStatement.field.level))) : Statement
-      else
-        (new FunctionCallExpression(functionName, communicateStatement.field.slot)) : Statement
+        fctArgs += communicateStatement.field.level
+      if (insideFragLoop)
+        fctArgs += LoopOverFragments.defIt
+
+      FunctionCallExpression(functionName, fctArgs) : Statement
     }
     case applyBCsStatement : ApplyBCsStatement => {
-      val functionName = if (Knowledge.experimental_useLevelIndepFcts) s"applyBCs${applyBCsStatement.field.field.identifier}" else s"applyBCs${applyBCsStatement.field.codeName}"
+      var insideFragLoop = collector.stack.map(node => node match { case loop : LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
+      if (insideFragLoop && !Knowledge.experimental_allowCommInFragLoops) {
+        Logger.warn("Found apply BCs inside fragment loop; this is currently unsupported")
+        insideFragLoop = false
+      }
+
+      var functionName = (if (Knowledge.experimental_useLevelIndepFcts)
+        s"applyBCs${applyBCsStatement.field.field.identifier}"
+      else
+        s"applyBCs${applyBCsStatement.field.codeName}")
+      if (insideFragLoop) functionName += "_ifl"
 
       if (!addedFunctions.contains(functionName)) {
         addedFunctions += functionName
         var fieldSelection = Duplicate(applyBCsStatement.field)
         fieldSelection.slot = "slot"
-        commFunctions.functions += ApplyBCsFunction(functionName, fieldSelection, Fragment.neighbors)
+        commFunctions.functions += ApplyBCsFunction(functionName, fieldSelection, Fragment.neighbors, insideFragLoop)
       }
 
       applyBCsStatement.field.slot match {
@@ -116,10 +147,14 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         case _ =>
       }
 
+      var fctArgs : ListBuffer[Expression] = ListBuffer()
+      fctArgs += applyBCsStatement.field.slot
       if (Knowledge.experimental_useLevelIndepFcts)
-        (new FunctionCallExpression(functionName, ListBuffer[Expression](applyBCsStatement.field.slot, applyBCsStatement.field.level))) : Statement
-      else
-        (new FunctionCallExpression(functionName, applyBCsStatement.field.slot)) : Statement
+        fctArgs += applyBCsStatement.field.level
+      if (insideFragLoop)
+        fctArgs += LoopOverFragments.defIt
+
+      FunctionCallExpression(functionName, fctArgs) : Statement
     }
   })
 }

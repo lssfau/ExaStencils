@@ -125,20 +125,32 @@ object ResolveConstInternalVariables extends DefaultStrategy("Resolving constant
         case _ : iv.NeighborRemoteRank                            => IntegerConstant(-1)
       }))
 
-    if (Knowledge.domain_numFragmentsTotal <= 1) {
+    if (Knowledge.domain_numFragmentsTotal <= 1 && !Knowledge.domain_rect_hasPeriodicity) {
       this.execute(new Transformation("Resolving NeighborIsValid", {
         case AssignmentStatement(_ : iv.NeighborIsValid, _, _) => NullStatement
         case _ : iv.NeighborIsValid                            => BooleanConstant(false)
       }))
     } else if (Knowledge.domain_rect_generate) {
       for (dim <- 0 until Knowledge.dimensionality)
-        if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
+        if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1 && !Knowledge.domain_rect_periodicAsVec(dim))
           this.execute(new Transformation(s"Resolving NeighborIsValid in dimension $dim", {
             case AssignmentStatement(niv : iv.NeighborIsValid, _, _) if (niv.neighIdx.isInstanceOf[IntegerConstant])
               && (Fragment.neighbors(niv.neighIdx.asInstanceOf[IntegerConstant].value.toInt).dir(dim) != 0) => NullStatement
             case niv : iv.NeighborIsValid if (niv.neighIdx.isInstanceOf[IntegerConstant])
               && (Fragment.neighbors(niv.neighIdx.asInstanceOf[IntegerConstant].value.toInt).dir(dim) != 0) => BooleanConstant(false)
           }))
+    }
+
+    if (Knowledge.domain_numFragmentsPerBlock <= 1 || Knowledge.comm_disableLocalCommSync) {
+      this.execute(new Transformation("Resolving local synchronization", {
+        case AssignmentStatement(_ : iv.LocalCommReady, _, _) => NullStatement
+        case _ : iv.LocalCommReady                            => BooleanConstant(true)
+
+        case AssignmentStatement(_ : iv.LocalCommDone, _, _)  => NullStatement
+        case _ : iv.LocalCommDone                             => BooleanConstant(true)
+
+        case FunctionCallExpression("waitForFlag", _)         => NullExpression
+      }))
     }
 
     this.commit()
@@ -192,7 +204,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   this += new Transformation("Collecting buffer sizes", {
     case buf : iv.TmpBuffer =>
       val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
-      if (Knowledge.experimental_useLevelIndepFcts) {
+      if (Knowledge.experimental_genVariableFieldSizes) {
         if (bufferSizes.contains(id))
           bufferSizes.get(id).get.asInstanceOf[MaximumExpression].args += Duplicate(buf.size)
         else

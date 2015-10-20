@@ -101,6 +101,11 @@ case class ArrayDatatype(datatype : Datatype, size : Int) extends Datatype {
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
 
+case class ArrayDatatype_VS(datatype : Datatype, size : Expression) extends Datatype {
+  override def prettyprint(out : PpStream) : Unit = out << datatype << '[' << size << ']'
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+}
+
 case class PointerDatatype(datatype : Datatype) extends Datatype {
   override def prettyprint(out : PpStream) : Unit = out << datatype << '*'
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
@@ -113,6 +118,11 @@ case class ReferenceDatatype(datatype : Datatype) extends Datatype {
 
 case class ConstPointerDatatype(datatype : Datatype) extends Datatype {
   override def prettyprint(out : PpStream) : Unit = out << datatype << "* const"
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+}
+
+case class VolatileDatatype(datatype : Datatype) extends Datatype {
+  override def prettyprint(out : PpStream) : Unit = out << "volatile " << datatype
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
 

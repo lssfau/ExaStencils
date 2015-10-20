@@ -105,8 +105,8 @@ object Platform {
       cflags = " -O3 -std=c++11"
 
       if (Knowledge.omp_enabled) {
-        cflags += " -fopenmp=libomp"
-        ldflags += " -fopenmp=libomp"
+        cflags += " -fopenmp=libiomp5"
+        ldflags += " -fopenmp=libiomp5"
       }
 
       if (Knowledge.opt_vectorize) {

@@ -6,8 +6,8 @@ import scala.collection.mutable.ListBuffer
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
+import exastencils.omp._
 import exastencils.prettyprinting._
-import exastencils.strategies._
 
 abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDomain : Boolean, var canBePerField : Boolean, var canBePerLevel : Boolean, var canBePerNeighbor : Boolean) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << resolveName
@@ -133,10 +133,18 @@ abstract class UnduplicatedVariable extends InternalVariable(false, false, false
   override def prettyprint(out : PpStream) : Unit = out << resolveName
 }
 
-case class ReqOutstanding(var field : Field, var direction : String, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
+case class RemoteReqOutstanding(var field : Field, var direction : String, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
 
-  override def resolveName = s"reqOutstanding_${direction}" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
+  override def resolveName = s"remoteReqOutstanding_${direction}" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
+  override def resolveDataType = BooleanDatatype
+  override def resolveDefValue = Some(false)
+}
+
+case class LocalReqOutstanding(var field : Field, var direction : String, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
+
+  override def resolveName = s"localReqOutstanding_${direction}" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
   override def resolveDataType = BooleanDatatype
   override def resolveDefValue = Some(false)
 }
@@ -146,6 +154,22 @@ case class MpiRequest(var field : Field, var direction : String, var neighIdx : 
 
   override def resolveName = s"mpiRequest_${direction}" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
   override def resolveDataType = "MPI_Request"
+}
+
+case class LocalCommReady(var field : Field, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
+
+  override def resolveName = s"localCommReady" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
+  override def resolveDataType = VolatileDatatype(BooleanDatatype)
+  override def resolveDefValue = Some(false)
+}
+
+case class LocalCommDone(var field : Field, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
+
+  override def resolveName = s"localCommDone" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
+  override def resolveDataType = VolatileDatatype(BooleanDatatype)
+  override def resolveDefValue = Some(false)
 }
 
 case class NeighborIsValid(var domain : Expression, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends NeighInfoVariable {
@@ -272,13 +296,13 @@ case class CurrentSlot(var field : Field, var fragmentIdx : Expression = LoopOve
   override def resolveDefValue = Some(IntegerConstant(0))
 }
 
-case class IndexFromField(var fieldIdentifier : String, var level : Expression, var indexId : String) extends InternalVariable(false, false, true, true, false) {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, NullExpression, NullExpression, fieldIdentifier, level, NullExpression)
+case class IndexFromField(var layoutIdentifier : String, var level : Expression, var indexId : String, var dim : Int, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, false) {
+  override def prettyprint(out : PpStream) : Unit = out << ArrayAccess(resolveAccess(resolveName, fragmentIdx, NullExpression, layoutIdentifier, level, NullExpression), dim)
 
   override def usesFieldArrays : Boolean = false
   override def usesLevelArrays : Boolean = true
 
-  override def resolveName = s"idx$indexId" + resolvePostfix("", "", fieldIdentifier, level.prettyprint, "")
+  override def resolveName = s"idx$indexId" + resolvePostfix(fragmentIdx.prettyprint, "", layoutIdentifier, level.prettyprint, "")
   override def resolveDataType = s"Vec${Knowledge.dimensionality}i"
 
   override def getCtor() : Option[Statement] = {
@@ -286,16 +310,16 @@ case class IndexFromField(var fieldIdentifier : String, var level : Expression, 
     val oldLev = level
     for (l <- Knowledge.minLevel to Knowledge.maxLevel) {
       level = l
-      val field = FieldCollection.getFieldByIdentifier(fieldIdentifier, l, true)
+      val field = FieldCollection.getFieldByLayoutIdentifier(layoutIdentifier, l, true)
       if (field.isDefined) {
-        statements += AssignmentStatement(resolveAccess(resolveName, NullExpression, NullExpression, fieldIdentifier, level, NullExpression),
+        statements += AssignmentStatement(resolveAccess(resolveName, fragmentIdx, NullExpression, layoutIdentifier, level, NullExpression),
           s"Vec${Knowledge.dimensionality}i(${
-            (0 until Knowledge.dimensionality).map(i => field.get.fieldLayout(i).idxById(indexId).prettyprint).mkString(", ")
+            (0 until Knowledge.dimensionality).map(dim => field.get.fieldLayout.defIdxById(indexId, dim)).mkString(", ")
           })")
       }
     }
     level = oldLev
-    Some(Scope(statements))
+    Some(new LoopOverFragments(statements))
   }
 }
 

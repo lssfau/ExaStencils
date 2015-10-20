@@ -1,17 +1,24 @@
 package exastencils.datastructures.l3
 
-import exastencils.knowledge._
 import scala.collection.mutable.ListBuffer
+
+import exastencils.knowledge._
 
 object Functions {
   def solFunction : String = {
     if (Knowledge.l3tmp_genNonZeroRhs) {
       Knowledge.l3tmp_exactSolution match {
         case "Polynomial" =>
-          Knowledge.dimensionality match {
-            case 2 => "( vf_nodePosition_x@current * vf_nodePosition_x@current * vf_nodePosition_x@current + vf_nodePosition_y@current * vf_nodePosition_y@current * vf_nodePosition_y@current )"
-            case 3 => "( vf_nodePosition_x@current * vf_nodePosition_x@current * vf_nodePosition_x@current + vf_nodePosition_y@current * vf_nodePosition_y@current * vf_nodePosition_y@current + vf_nodePosition_z@current * vf_nodePosition_z@current * vf_nodePosition_z@current )"
-          }
+          if (Knowledge.l3tmp_genPeriodicBounds)
+            Knowledge.dimensionality match {
+              case 2 => "( vf_nodePosition_x@current * vf_nodePosition_x@current )"
+              case 3 => "( vf_nodePosition_x@current * vf_nodePosition_x@current )"
+            }
+          else
+            Knowledge.dimensionality match {
+              case 2 => "( vf_nodePosition_x@current * vf_nodePosition_x@current * vf_nodePosition_x@current + vf_nodePosition_y@current * vf_nodePosition_y@current * vf_nodePosition_y@current )"
+              case 3 => "( vf_nodePosition_x@current * vf_nodePosition_x@current * vf_nodePosition_x@current + vf_nodePosition_y@current * vf_nodePosition_y@current * vf_nodePosition_y@current + vf_nodePosition_z@current * vf_nodePosition_z@current * vf_nodePosition_z@current )"
+            }
         case "Trigonometric" if Knowledge.experimental_Neumann =>
           Knowledge.dimensionality match {
             case 2 => "( cos ( 2.0 * PI * vf_nodePosition_x@current ) * cos ( 2.0 * PI * vf_nodePosition_y@current ) )"
@@ -57,10 +64,16 @@ object Functions {
     if (Knowledge.l3tmp_genNonZeroRhs) {
       Knowledge.l3tmp_exactSolution match {
         case "Polynomial" =>
-          Knowledge.dimensionality match {
-            case 2 => "( -6.0 * ( vf_nodePosition_x@current + vf_nodePosition_y@current ) )"
-            case 3 => "( -6.0 * ( vf_nodePosition_x@current + vf_nodePosition_y@current + vf_nodePosition_z@current ) )"
-          }
+          if (Knowledge.l3tmp_genPeriodicBounds)
+            Knowledge.dimensionality match {
+              case 2 => "-2.0"
+              case 3 => "-2.0"
+            }
+          else
+            Knowledge.dimensionality match {
+              case 2 => "( -6.0 * ( vf_nodePosition_x@current + vf_nodePosition_y@current ) )"
+              case 3 => "( -6.0 * ( vf_nodePosition_x@current + vf_nodePosition_y@current + vf_nodePosition_z@current ) )"
+            }
         case "Trigonometric" if Knowledge.experimental_Neumann =>
           Knowledge.dimensionality match {
             case 2 => "( 8.0 * PI * PI * cos ( 2.0 * PI * vf_nodePosition_x@current ) * cos ( 2.0 * PI * vf_nodePosition_y@current ) )"

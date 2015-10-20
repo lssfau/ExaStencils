@@ -1,0 +1,10 @@
+user						= "Sebastian"
+
+basePathPrefix				= ""
+outputPath					= "\\i10home\home-staff\kuckuk\Comm\"
+l4file						= ".\Compiler\dsl\Layer4.exa"
+htmlLogFile					= ".\Compiler\log\log.html"
+
+produceHtmlLog				= true
+timeStrategies				= true
+timeStratPercentThreshold	= 0

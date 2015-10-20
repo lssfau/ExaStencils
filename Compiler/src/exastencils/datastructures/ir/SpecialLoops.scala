@@ -1,5 +1,6 @@
 package exastencils.datastructures.ir
 
+import scala.annotation.migration
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
@@ -165,39 +166,45 @@ case class LoopOverPointsInOneFragment(var domain : Int,
       // case where a special region is to be traversed
       val regionCode = region.get.region.toUpperCase().charAt(0)
 
-      start = new MultiIndex(DimArray().map(i => (i match {
-        case i if region.get.dir(i) == 0 => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "LB") - field.referenceOffset(i)
-        case i if region.get.dir(i) < 0  => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "LB") - field.referenceOffset(i)
-        case i if region.get.dir(i) > 0  => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "RB") - field.referenceOffset(i)
+      start = new MultiIndex(DimArray().map(dim => (dim match {
+        case dim if region.get.dir(dim) == 0 => field.fieldLayout.idxById(regionCode + "LB", dim) - field.referenceOffset(dim)
+        case dim if region.get.dir(dim) < 0  => field.fieldLayout.idxById(regionCode + "LB", dim) - field.referenceOffset(dim)
+        case dim if region.get.dir(dim) > 0  => field.fieldLayout.idxById(regionCode + "RB", dim) - field.referenceOffset(dim)
       }) : Expression))
 
       stop = new MultiIndex(
-        DimArray().map(i => (i match {
-          case i if region.get.dir(i) == 0 => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "RE") - field.referenceOffset(i)
-          case i if region.get.dir(i) < 0  => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "LE") - field.referenceOffset(i)
-          case i if region.get.dir(i) > 0  => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "RE") - field.referenceOffset(i)
+        DimArray().map(dim => (dim match {
+          case dim if region.get.dir(dim) == 0 => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim)
+          case dim if region.get.dir(dim) < 0  => field.fieldLayout.idxById(regionCode + "LE", dim) - field.referenceOffset(dim)
+          case dim if region.get.dir(dim) > 0  => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim)
         }) : Expression))
     } else {
       // basic case -> just eliminate 'real' boundaries
-      for (i <- 0 until Knowledge.dimensionality) {
+      for (dim <- 0 until Knowledge.dimensionality) {
         field.fieldLayout.discretization match {
-          case d if "node" == d
-            || ("face_x" == d && 0 == i)
-            || ("face_y" == d && 1 == i)
-            || ("face_z" == d && 2 == i) =>
+          case discr if "node" == discr
+            || ("face_x" == discr && 0 == dim)
+            || ("face_y" == discr && 1 == dim)
+            || ("face_z" == discr && 2 == dim) =>
             if (Knowledge.experimental_disableIterationOffsets) {
-              start(i) = field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i)
-              stop(i) = field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i)
+              start(dim) = field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim)
+              stop(dim) = field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
             } else {
-              start(i) = OffsetIndex(0, 1, field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), i))
-              stop(i) = OffsetIndex(-1, 0, field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), i))
+              // FIXME
+              //              if (Knowledge.experimental_genVariableFieldSizes) {
+              //                start(dim) = OffsetIndex(0, 1, ArrayAccess(iv.IndexFromField(field.identifier, field.level, "DLB"), dim) - field.referenceOffset(dim) + startOffset(dim), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
+              //                stop(dim) = OffsetIndex(-1, 0, ArrayAccess(iv.IndexFromField(field.identifier, field.level, "DRE"), dim) - field.referenceOffset(dim) - endOffset(dim), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim))
+              //              } else {
+              start(dim) = OffsetIndex(0, 1, field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
+              stop(dim) = OffsetIndex(-1, 0, field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim))
+              //              }
             }
-          case d if "cell" == d
-            || ("face_x" == d && 0 != i)
-            || ("face_y" == d && 1 != i)
-            || ("face_z" == d && 2 != i) =>
-            start(i) = field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i)
-            stop(i) = field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i)
+          case discr if "cell" == discr
+            || ("face_x" == discr && 0 != dim)
+            || ("face_y" == discr && 1 != dim)
+            || ("face_z" == discr && 2 != dim) =>
+            start(dim) = field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim)
+            stop(dim) = field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
         }
       }
     }
@@ -412,51 +419,49 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
   def expand : Output[StatementList] = {
     var statements = new ListBuffer[Statement]
 
-    // eliminate fragment loops in case of only one fragment per block
     if (Knowledge.experimental_resolveUnreqFragmentLoops && Knowledge.domain_numFragmentsPerBlock <= 1) {
+      // eliminate fragment loops in case of only one fragment per block
       statements = ListBuffer(Scope(body))
 
       // replace references to old loop iterator
       ReplaceStringConstantsStrategy.toReplace = defIt
       ReplaceStringConstantsStrategy.replacement = IntegerConstant(0)
       ReplaceStringConstantsStrategy.applyStandalone(statements)
-
-      return statements
-    }
-
-    val parallelize = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
-    val resolveOmpReduction = (
-      parallelize
-      && Knowledge.omp_version < 3.1
-      && reduction.isDefined
-      && ("min" == reduction.get.op || "max" == reduction.get.op))
-
-    // basic loop
-
-    if (!resolveOmpReduction) {
-      statements += generateBasicLoop(parallelize)
     } else {
-      // resolve max reductions
-      val redOp = reduction.get.op
-      val redExpName = reduction.get.target.name
-      def redExp = VariableAccess(redExpName, None)
-      val redExpLocalName = redExpName + "_red"
-      def redExpLocal = VariableAccess(redExpLocalName, None)
+      val parallelize = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
+      val resolveOmpReduction = (
+        parallelize
+        && Knowledge.omp_version < 3.1
+        && reduction.isDefined
+        && ("min" == reduction.get.op || "max" == reduction.get.op))
 
-      // FIXME: this assumes real data types -> data type should be determined according to redExp
-      val decl = VariableDeclarationStatement(ArrayDatatype(RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
-      var init = (0 until Knowledge.omp_numThreads).map(fragIdx => AssignmentStatement(ArrayAccess(redExpLocal, fragIdx), redExp))
-      val redOperands = ListBuffer[Expression](redExp) ++ (0 until Knowledge.omp_numThreads).map(fragIdx => ArrayAccess(redExpLocal, fragIdx) : Expression)
-      val red = AssignmentStatement(redExp, if ("min" == redOp) MinimumExpression(redOperands) else MaximumExpression(redOperands))
+      // basic loop
 
-      ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
-      ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, VariableAccess("omp_tid", Some(IntegerDatatype)))
-      ReplaceStringConstantsStrategy.applyStandalone(body)
-      body.prepend(VariableDeclarationStatement(IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
+      if (!resolveOmpReduction) {
+        statements += generateBasicLoop(parallelize)
+      } else {
+        // resolve max reductions
+        val redOp = reduction.get.op
+        val redExpName = reduction.get.target.name
+        def redExp = VariableAccess(redExpName, None)
+        val redExpLocalName = redExpName + "_red"
+        def redExpLocal = VariableAccess(redExpLocalName, None)
 
-      statements += Scope(ListBuffer[Statement](decl)
-        ++ init
-        ++ ListBuffer[Statement](generateBasicLoop(parallelize), red))
+        // FIXME: this assumes real data types -> data type should be determined according to redExp
+        val decl = VariableDeclarationStatement(ArrayDatatype(RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
+        var init = (0 until Knowledge.omp_numThreads).map(fragIdx => AssignmentStatement(ArrayAccess(redExpLocal, fragIdx), redExp))
+        val redOperands = ListBuffer[Expression](redExp) ++ (0 until Knowledge.omp_numThreads).map(fragIdx => ArrayAccess(redExpLocal, fragIdx) : Expression)
+        val red = AssignmentStatement(redExp, if ("min" == redOp) MinimumExpression(redOperands) else MaximumExpression(redOperands))
+
+        ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
+        ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, VariableAccess("omp_tid", Some(IntegerDatatype)))
+        ReplaceStringConstantsStrategy.applyStandalone(body)
+        body.prepend(VariableDeclarationStatement(IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
+
+        statements += Scope(ListBuffer[Statement](decl)
+          ++ init
+          ++ ListBuffer[Statement](generateBasicLoop(parallelize), red))
+      }
     }
 
     if (Knowledge.mpi_enabled && reduction.isDefined) {

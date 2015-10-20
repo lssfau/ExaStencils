@@ -92,6 +92,13 @@ object Knowledge {
   var domain_rect_numFragsPerBlock_y : Int = 1 // [1~64§domain_rect_numFragsPerBlock_y*2]
   var domain_rect_numFragsPerBlock_z : Int = 1 // [1~64§domain_rect_numFragsPerBlock_z*2]
 
+  // periodicity for rectangular domains -> this information will be handed down from layer 2 later
+  var domain_rect_periodic_x : Boolean = false // periodicity of the global domain in x direction
+  var domain_rect_periodic_y : Boolean = false // periodicity of the global domain in y direction
+  var domain_rect_periodic_z : Boolean = false // periodicity of the global domain in z direction
+  def domain_rect_periodicAsVec : Array[Boolean] = Array(domain_rect_periodic_x, domain_rect_periodic_y, domain_rect_periodic_z)
+  def domain_rect_hasPeriodicity : Boolean = domain_rect_periodic_x || domain_rect_periodic_y || domain_rect_periodic_z
+
   // specifies which type of grids are used for the discretization
   var discr_gridType = "AxisAlignedConstWidth" // possible options are "AxisAlignedConstWidth" and "AxisAlignedVariableWidth"
 
@@ -116,8 +123,10 @@ object Knowledge {
   // TODO:  var domain_gridWidth_x,y,z
 
   /// utility functions
-  def domain_canHaveLocalNeighs : Boolean = (domain_numFragmentsPerBlock > 1) // specifies if fragments can have local (i.e. shared memory) neighbors, i.e. if local comm is required
-  def domain_canHaveRemoteNeighs : Boolean = (domain_numBlocks > 1) // specifies if fragments can have remote (i.e. different mpi rank) neighbors, i.e. if mpi comm is required
+  // specifies if fragments can have local (i.e. shared memory) neighbors, i.e. if local comm is required
+  def domain_canHaveLocalNeighs : Boolean = (domain_numFragmentsPerBlock > 1 || domain_rect_hasPeriodicity)
+  // specifies if fragments can have remote (i.e. different mpi rank) neighbors, i.e. if mpi comm is required
+  def domain_canHaveRemoteNeighs : Boolean = (domain_numBlocks > 1 || (mpi_enabled && domain_rect_hasPeriodicity))
 
   /// Student project - Jeremias
   var domain_useCase : String = "" // atm only "L-Shape", "X-Shape" in 2D possible; needs to be specified in case of onlyRectangular,rect_generate = false
@@ -159,6 +168,8 @@ object Knowledge {
   // --- OpenMP and MPI Parallelization ---
   var comm_strategyFragment : Int = 6 // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors
   var comm_useFragmentLoopsForEachOp : Boolean = true // [true|false] // specifies if comm ops (buffer copy, send/ recv, wait) should each be aggregated and handled in distinct fragment loops
+  var comm_pushLocalData : Boolean = false // [true|false] // specifies if local data exchanges are implemented using push (true) or pull (false) schemes
+  var comm_disableLocalCommSync = true // [true|false] // specifies if local communication is synchronized using flags; usually not necessary unless communication in fragment loops is allowed
 
   // TODO: check in how far the following parameters can be adapted by the SPL
   var comm_sepDataByFragment : Boolean = true // specifies if communication variables that could be fragment specific are handled separately
@@ -201,6 +212,7 @@ object Knowledge {
       case _                 => Logger.error("Unsupported target compiler"); true
     }
   }
+  var omp_nameCriticalSections : Boolean = false // specifies if unique (usually consecutively numbered) identifiers are to be generated for OMP critical sections => allows entering multiple, disctinct sections concurrently
 
   // --- MPI Parallelization ---
   var mpi_enabled : Boolean = true // [true|false]
@@ -209,6 +221,8 @@ object Knowledge {
   var mpi_useCustomDatatypes : Boolean = false // [true|false] // allows to use custom mpi data types when reading from/ writing to fields thus circumventing temp send/ receive buffers
   var mpi_useLoopsWherePossible : Boolean = true // [true|false] // allows to summarize some code blocks into loops in order to shorten the resulting code length
   var mpi_defaultCommunicator : String = "MPI_COMM_WORLD" // sets the initial communicator used by most MPI operations
+
+  var mpi_useBusyWait : Boolean = false // [true|false] // specifies if MPI_Test (true) or MPI_Wait (false) is to be used when waiting for async communication
 
   // --- Polyhedron Optimization ---
   // the following polyhedral optimization levels are currently supported:
@@ -291,6 +305,7 @@ object Knowledge {
   var l3tmp_useMaxNorm : Boolean = false // uses the maximum norm instead of the L2 norm when reducing the residual on the finest level
   var l3tmp_genCellBasedDiscr : Boolean = false // sets up a cell based discretization
   var l3tmp_targetResReduction : Double = 0.0 // exit criterion for the solver loop as target reduction of the residual in the chosen norm
+  var l3tmp_genPeriodicBounds : Boolean = false // generates a solver for a problem with periodic boundaries
 
   /// optional features
   var l3tmp_printFieldAtEnd : Boolean = false // prints the solution field at the end of the application (or the mean solution in l3tmp_kelvin's case)
@@ -320,8 +335,11 @@ object Knowledge {
   var experimental_bc_checkOnlyMainAxis : Boolean = true
   var experimental_bc_avoidOrOperations : Boolean = true
 
-  var experimental_resolveUnreqFragmentLoops : Boolean = true
+  var experimental_resolveUnreqFragmentLoops : Boolean = false
 
+  var experimental_allowCommInFragLoops : Boolean = false
+
+  var experimental_genVariableFieldSizes : Boolean = false
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {
@@ -390,6 +408,13 @@ object Knowledge {
       }
       Constraints.condEnsureValue(l3tmp_targetResReduction, 1.0 / l3tmp_targetResReduction, l3tmp_targetResReduction > 1.0, "l3tmp_targetResReduction must be smaller than 1")
 
+      Constraints.condEnsureValue(l3tmp_genPeriodicBounds, false, "Polynomial" != l3tmp_exactSolution, "l3tmp_genPeriodicBounds currently only works for polynomial problems")
+      Constraints.condEnsureValue(domain_rect_periodic_x, false, l3tmp_genPeriodicBounds, "For l3tmp_genPeriodicBounds, the domain must not be periodic in x direction")
+      Constraints.condEnsureValue(domain_rect_periodic_y, true, l3tmp_genPeriodicBounds, "For l3tmp_genPeriodicBounds, the domain has to be periodic in y direction")
+      Constraints.condEnsureValue(domain_rect_periodic_z, true, l3tmp_genPeriodicBounds && 3 == dimensionality, "For l3tmp_genPeriodicBounds in 3D, the domain has to be periodic in y and z direction")
+      Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, l3tmp_genPeriodicBounds, "l3tmp_genPeriodicBounds requires non-zero right hand sides")
+      Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_genPeriodicBounds, "l3tmp_genPeriodicBounds requires grid width dependent stencils")
+
       Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, experimental_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
       Constraints.condEnsureValue(l3tmp_exactSolution, "Trigonometric", experimental_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
       Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, "Polynomial" != l3tmp_exactSolution && "Kappa" != l3tmp_exactSolution && "Kappa_VC" != l3tmp_exactSolution && !experimental_Neumann, "non-trivial rhs are currently only supported for Polynomial and Kappa cases")
@@ -407,6 +432,7 @@ object Knowledge {
       Constraints.condEnsureValue(l3tmp_genFMG, false, experimental_Neumann, "FMG is currently not compatible with Neumann BC")
       Constraints.condEnsureValue(l3tmp_genFMG, false, 1 != l3tmp_numVecDims, "FMG is currently not compatible with vector fields")
       Constraints.condEnsureValue(l3tmp_genFMG, false, l3tmp_kelvin, "FMG is currently not compatible with Kelvin mode")
+      Constraints.condEnsureValue(l3tmp_genFMG, false, l3tmp_genPeriodicBounds, "FMG is currently not compatible with l3tmp_genPeriodicBounds")
 
       // l3tmp - stencils
       Constraints.condEnsureValue(l3tmp_genStencilFields, false, experimental_Neumann, "l3tmp_genStencilFields is currently not compatible with Neumann boundary conditions")
@@ -468,9 +494,17 @@ object Knowledge {
     Constraints.condWarn(omp_enabled && omp_numThreads == 1, s"The number of omp threads is equal to one, but omp_enabled is true")
     Constraints.condWarn(omp_parallelizeLoopOverFragments && omp_numThreads > domain_numFragmentsPerBlock, s"the number of omp threads ($omp_numThreads) is higher than the number of fragments per block ($domain_numFragmentsPerBlock) -> this will result in idle omp threads!")
     Constraints.condWarn(omp_parallelizeLoopOverFragments && 0 != domain_numFragmentsPerBlock % omp_numThreads, s"the number of fragments per block ($domain_numFragmentsPerBlock) is not divisible by the number of omp threads ($omp_numThreads) -> this might result in a severe load imbalance!")
+    Constraints.condWarn(omp_nameCriticalSections, s"omp_nameCriticalSections should always be deactivated")
+
+    Constraints.condWarn(experimental_allowCommInFragLoops && omp_numThreads != domain_numFragmentsPerBlock, s"It is strongly recommended that the number of omp threads ($omp_numThreads) is equal to the number of fragments per block ($domain_numFragmentsPerBlock) when experimental_allowCommInFragLoops is enabled!")
 
     Constraints.condEnsureValue(experimental_useLevelIndepFcts, false, "Zero" != l3tmp_exactSolution, "level independent communication functions are not compatible with non-trivial boundary conditions")
     Constraints.condEnsureValue(mpi_useCustomDatatypes, false, experimental_useLevelIndepFcts, "MPI data types cannot be used in combination with level independent communication functions yet")
+    Constraints.condEnsureValue(experimental_genVariableFieldSizes, true, experimental_useLevelIndepFcts, "level independent communication functions require variable field sizes")
+    Constraints.condEnsureValue(mpi_useCustomDatatypes, false, experimental_genVariableFieldSizes, "MPI data types cannot be used in combination with variable field sizes yet")
+
+    Constraints.condEnsureValue(mpi_useBusyWait, true, experimental_allowCommInFragLoops && domain_numFragmentsPerBlock > 1, s"mpi_useBusyWait must be true when experimental_allowCommInFragLoops is used in conjunction with multiple fragments per block")
+    Constraints.condWarn(comm_disableLocalCommSync && experimental_allowCommInFragLoops, s"comm_disableLocalCommSynchronization in conjunction with experimental_allowCommInFragLoops is strongly discouraged")
 
     // data
     Constraints.condEnsureValue(data_alignFieldPointers, true, opt_vectorize && "QPX" == simd_instructionSet, "data_alignFieldPointers must be true for vectorization with QPX")

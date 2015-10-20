@@ -53,6 +53,7 @@ echo ""
 
 if grep -q "Communication connection failure" ${RESULT}; then
   echo "restart test..."
+  cleanup # call cleanup directly; no exit trap when requeue is performed (slurm kills this script completly)
   scontrol requeue ${SLURM_JOB_ID}
   sleep 60 # ensure this execution never enters a finished state (for dependences), since scontrol might need some time
 fi

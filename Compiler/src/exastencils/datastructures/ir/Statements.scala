@@ -29,7 +29,9 @@ case class Scope(var body : ListBuffer[Statement]) extends Statement {
 }
 
 case class VariableDeclarationStatement(var dataType : Datatype, var name : String, var expression : Option[Expression] = None) extends Statement {
-  def this(dT : Datatype, n : String, e : Expression) = this(dT, n, Option(e))
+  def this(dT : Datatype, n : String, e : Expression) = this(dT, n, Some(e))
+  def this(va : VariableAccess) = this(va.dType.get, va.name, None)
+  def this(va : VariableAccess, e : Expression) = this(va.dType.get, va.name, Some(e))
 
   override def prettyprint(out : PpStream) : Unit = {
     out << dataType.resolveUnderlyingDatatype << ' ' << name << dataType.resolvePostscript
@@ -80,7 +82,7 @@ case class ForLoopStatement(var begin : Statement, var end : Expression, var inc
   def this(begin : Statement, end : Expression, inc : Statement, body : Statement*) = this(begin, end, inc, body.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
-    // BEGIN AMAZING HACK as workaround for IBM XL compiler    
+    // BEGIN AMAZING HACK as workaround for IBM XL compiler
     var realEnd = end.prettyprint
     if (realEnd.size > 2 && realEnd(0) == '(')
       realEnd = realEnd.substring(1, realEnd.size - 1)

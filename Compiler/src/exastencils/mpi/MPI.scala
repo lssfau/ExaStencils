@@ -7,6 +7,7 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir.StatementList
 import exastencils.knowledge._
+import exastencils.omp._
 import exastencils.prettyprinting._
 import exastencils.util._
 
@@ -90,15 +91,15 @@ case class MPI_DataType(var field : FieldSelection, var indices : IndexRange) ex
   var blocklen : Int = 0
   var stride : Int = 0
 
-  // this assumes that the conditions implied by 'shouldBeUsed' are fulfilled 
+  // this assumes that the conditions implied by 'shouldBeUsed' are fulfilled
   if (1 == SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2))) {
     count = SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1)).toInt
     blocklen = SimplifyExpression.evalIntegral(indices.end(0) - indices.begin(0)).toInt
-    stride = field.fieldLayout(0).evalTotal
+    stride = field.fieldLayout.defIdxById("TOT", 0)
   } else if (1 == SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1))) {
     count = SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2)).toInt
     blocklen = SimplifyExpression.evalIntegral(indices.end(0) - indices.begin(0)).toInt
-    stride = field.fieldLayout(0).evalTotal * field.fieldLayout(1).evalTotal
+    stride = field.fieldLayout.defIdxById("TOT", 0) * field.fieldLayout.defIdxById("TOT", 1)
   }
 
   def generateName : String = {
@@ -123,7 +124,7 @@ case class MPI_DataType(var field : FieldSelection, var indices : IndexRange) ex
 
 object MPI_DataType {
   def shouldBeUsed(indices : IndexRange) : Boolean = {
-    if (!Knowledge.mpi_useCustomDatatypes)
+    if (!Knowledge.mpi_useCustomDatatypes || Knowledge.experimental_genVariableFieldSizes)
       false
     else
       Knowledge.dimensionality match {
@@ -139,7 +140,7 @@ object MPI_DataType {
 case class InitMPIDataType(mpiTypeName : String, field : Field, indexRange : IndexRange) extends MPI_Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitMPIDataType\n"
 
-  def expand : Output[StatementList] = {
+  override def expand: Output[StatementList] = {
     if (indexRange.begin(2) == indexRange.end(2)) {
       ListBuffer[Statement](s"MPI_Type_vector(" ~
         (indexRange.end(1) - indexRange.begin(1) + 1) ~ ", " ~
@@ -163,7 +164,7 @@ case class MPI_Sequential(var body : ListBuffer[Statement]) extends Statement wi
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = MPI_Sequential\n"
 
-  def expand : Output[ForLoopStatement] = {
+  override def expand: Output[ForLoopStatement] = {
     ForLoopStatement(
       VariableDeclarationStatement(IntegerDatatype, "curRank", Some(0)),
       LowerExpression("curRank", Knowledge.mpi_numThreads),
@@ -179,16 +180,45 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
   override def prettyprint_decl : String = prettyprint
 
   override def expand : Output[FunctionStatement] = {
-    FunctionStatement(UnitDatatype, s"waitForMPIReq",
-      ListBuffer(VariableAccess("request", Some("MPI_Request*"))),
-      ListBuffer[Statement](
-        s"MPI_Status stat",
-        new ConditionStatement("MPI_ERR_IN_STATUS == MPI_Wait(request, &stat)", ListBuffer[Statement](
-          s"char msg[MPI_MAX_ERROR_STRING]",
-          s"int len",
-          s"MPI_Error_string(stat.MPI_ERROR, msg, &len)",
-          new PrintStatement(ListBuffer[Expression]("\"MPI Error encountered (\"", "msg", "\")\"")))),
-        s"*request = MPI_Request()"),
-      false)
+    def request = VariableAccess("request", Some(PointerDatatype(SpecialDatatype("MPI_Request"))))
+    def stat = VariableAccess("stat", Some(SpecialDatatype("MPI_Status")))
+    def flag = VariableAccess("flag", Some(IntegerDatatype))
+    def result = VariableAccess("result", Some(IntegerDatatype))
+
+    def msg = VariableAccess("msg", Some(ArrayDatatype(SpecialDatatype("char"), 64 * 1024)))
+    def len = VariableAccess("len", Some(IntegerDatatype))
+
+    if (Knowledge.mpi_useBusyWait) {
+      FunctionStatement(UnitDatatype, s"waitForMPIReq", ListBuffer(request),
+        ListBuffer[Statement](
+          new VariableDeclarationStatement(stat),
+          new VariableDeclarationStatement(result),
+          new VariableDeclarationStatement(flag, 0),
+          new WhileLoopStatement(EqEqExpression(0, flag),
+            new AssignmentStatement(result, FunctionCallExpression("MPI_Test", ListBuffer(
+              request, AddressofExpression(flag), AddressofExpression(stat)))) with OMP_PotentiallyCritical,
+            new ConditionStatement(EqEqExpression("MPI_ERR_IN_STATUS", result), ListBuffer[Statement](
+              new VariableDeclarationStatement(msg),
+              new VariableDeclarationStatement(len),
+              new FunctionCallExpression("MPI_Error_string", ListBuffer[Expression](
+                MemberAccess(stat, VariableAccess("MPI_ERROR", Some(IntegerDatatype))), msg, AddressofExpression(len))),
+              new PrintStatement(ListBuffer[Expression]("\"MPI Error encountered (\"", msg, "\")\""))))),
+          new AssignmentStatement(DerefAccess(request), FunctionCallExpression("MPI_Request", ListBuffer()))),
+        false)
+    } else {
+      FunctionStatement(UnitDatatype, s"waitForMPIReq", ListBuffer(request),
+        ListBuffer[Statement](
+          new VariableDeclarationStatement(stat),
+          new VariableDeclarationStatement(result),
+          new AssignmentStatement(result, FunctionCallExpression("MPI_Wait", ListBuffer(request, AddressofExpression(stat)))) with OMP_PotentiallyCritical,
+          new ConditionStatement(EqEqExpression("MPI_ERR_IN_STATUS", result), ListBuffer[Statement](
+            new VariableDeclarationStatement(msg),
+            new VariableDeclarationStatement(len),
+            new FunctionCallExpression("MPI_Error_string", ListBuffer[Expression](
+              MemberAccess(stat, VariableAccess("MPI_ERROR", Some(IntegerDatatype))), msg, AddressofExpression(len))),
+            new PrintStatement(ListBuffer[Expression]("\"MPI Error encountered (\"", msg, "\")\"")))),
+          new AssignmentStatement(DerefAccess(request), FunctionCallExpression("MPI_Request", ListBuffer()))),
+        false)
+    }
   }
 }
