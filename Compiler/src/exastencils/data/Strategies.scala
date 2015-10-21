@@ -180,27 +180,6 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
     super.applyStandalone(node)
   }
 
-  this += new Transformation("Collecting", {
-    case mem : iv.InternalVariable => // TODO: don't overwrite for performance reasons
-      mem.registerIV(declarationMap, ctorMap, dtorMap)
-      mem
-  })
-
-  this += new Transformation("Adding to globals", {
-    case globals : Globals =>
-      globals.variables ++= declarationMap.toSeq.sortBy(_._1).map(_._2)
-      globals
-    case func : FunctionStatement if ("initGlobals" == func.name) =>
-      func.body ++= ctorMap.toSeq.sortBy(_._1).map(_._2)
-      func
-    case func : FunctionStatement if ("destroyGlobals" == func.name) =>
-      func.body ++= dtorMap.toSeq.sortBy(_._1).map(_._2)
-      func
-  })
-
-  // add allocation stuff
-  // TODO: restructure
-
   this += new Transformation("Collecting buffer sizes", {
     case buf : iv.TmpBuffer =>
       val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
@@ -219,7 +198,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       cleanedField.slot = "slot"
       cleanedField.fragmentIdx = LoopOverFragments.defIt
 
-      var numDataPoints : Expression = field.field.fieldLayout.layoutsPerDim.map(l => l.total).reduceLeft(_ * _) * field.field.dataType.resolveFlattendSize
+      var numDataPoints : Expression = (0 to Knowledge.dimensionality).map(dim => field.field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _) * field.field.dataType.resolveFlattendSize
       var statements : ListBuffer[Statement] = ListBuffer()
 
       val newFieldData = Duplicate(cleanedField)
@@ -301,5 +280,23 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
 
       func
     }
+  })
+
+  this += new Transformation("Collecting", {
+    case mem : iv.InternalVariable =>
+      mem.registerIV(declarationMap, ctorMap, dtorMap)
+      mem
+  })
+
+  this += new Transformation("Adding to globals", {
+    case globals : Globals =>
+      globals.variables ++= declarationMap.toSeq.sortBy(_._1).map(_._2)
+      globals
+    case func : FunctionStatement if ("initGlobals" == func.name) =>
+      func.body ++= ctorMap.toSeq.sortBy(_._1).map(_._2)
+      func
+    case func : FunctionStatement if ("destroyGlobals" == func.name) =>
+      func.body ++= dtorMap.toSeq.sortBy(_._1).map(_._2)
+      func
   })
 }
