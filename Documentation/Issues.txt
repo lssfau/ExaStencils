@@ -2,13 +2,7 @@
 ================================================================ Known Problems ================================================================
 ================================================================================================================================================
 
-- Non-recursive transformations are only applied to a single node, even if more viable candidates are present
-	> Example code: 
-		this += new Transformation("Adding OMP pragmas", {
-			case target : OMP_PotentiallyCritical =>
-				Some(target.addOMPDirective);
-		}, false);
-
+- 
 
 ================================================================================================================================================
 ===================================================================== TODO =====================================================================
@@ -37,18 +31,9 @@ L4:
 - add temporary fields
 
 IR:
-- fix/ support communication statements within fragment loops specified on l4
-
 - rework trait/member system for specification of parallelizability
-
 - add one distinct communicator per (sub)domain
-
 - add temporary fields
-
-- implement memory layout transformations
-
-- add min/max reduction for omp versions < 3.1
-
 - fix omp collapse for xl compiler (currently iterationOffsetBegin[1] and iterationOffsetBegin[2] seem to be falsly regarded as dependencies)
 
 ISL:
@@ -86,14 +71,6 @@ Bugs:
 - Ability to apply transformations directly, i.e. without having to create a strategy
 	> Example code: (new Transformation("Foo", { case bar : Bar => Some(bar); })).apply;
 
-- Nested strategies
-	> Example code:
-		new Transformation("Outer Foo", {
-			case bar : Bar =>
-				(new Transformation("Inner Foo", { case nob : Nob => Some(nob); })).apply;
-				Some(bar);
-		});
-
 - Ability to reset the results of a strategy
 	> Example code: strategy.resetResults;
 
@@ -109,7 +86,6 @@ Bugs:
 				exitTransformation;
 		}, false);
 
-
 ================================================================================================================================================
 ================================================================= Information ==================================================================
 ================================================================================================================================================
@@ -118,7 +94,6 @@ Bugs:
 
     GMP mit --with-pic --disable-shared --enable-static konfigurieren/bauen
     => PIC wichtig um Linker-Fehler zu vermeiden
-
 
 - bei zu vielen SIMD Variablen (zB bei dicht besetztem Stencil) kann der GCC der 4er Reihe langsamen Code generieren
     GCC 5, oder clang (ab 3.7 wegen OpenMP Support) haben dieses Problem nicht
