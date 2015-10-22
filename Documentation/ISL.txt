@@ -1,5 +1,0 @@
-ISL compilen für Mac:
-
-GMP mit --with-pic --disable-shared --enable-static konfigurieren/bauen
-=> PIC wichtig um Linker-Fehler zu vermeiden
-

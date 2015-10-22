@@ -339,7 +339,7 @@ object Knowledge {
 
   var experimental_allowCommInFragLoops : Boolean = false
 
-  var experimental_genVariableFieldSizes : Boolean = false
+  var experimental_genVariableFieldSizes : Boolean = true
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {

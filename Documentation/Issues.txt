@@ -1,0 +1,100 @@
+================================================================================================================================================
+================================================================ Known Problems ================================================================
+================================================================================================================================================
+
+- 
+
+================================================================================================================================================
+===================================================================== TODO =====================================================================
+================================================================================================================================================
+
+Concept:
+- Find a way to express dependencies between different trafos (must occur after x and must occur before y, etc) and ideally implement an according scheduler/ optimizer
+- Use nodes by reference or apply deep copy? -> automatically apply duplicate for subclasses of node; all other objects (esp fields, stencils and other knowledge objects) should be copied by reference
+
+Framework:
+- check if transformations can be parallelized (e.g. using a breadth first search and a thread pool)
+
+- Lib/ Inc Blocks in HW Knowledge
+- add possibility to specify trafos, that don't exchange nodes, i.e. read-only or only node-internal modification; goal is not having to return a result (for more readability and deep matches)
+
+- allow deletion of nodes (if not deletable bc not in collection -> replace by NullStatement/NullExpr)
+
+- check uniform usage over 'override' keyword
+- check 'var' usage
+- check ';' usage
+
+L3:
+
+L4:
+
+- add temporary fields
+
+IR:
+- rework trait/member system for specification of parallelizability
+- add one distinct communicator per (sub)domain
+- add temporary fields
+- fix omp collapse for xl compiler (currently iterationOffsetBegin[1] and iterationOffsetBegin[2] seem to be falsly regarded as dependencies)
+
+ISL:
+- L4 constraints to ISL mapping
+- long term: reduce optimization runtime
+
+SPL:
+- think about allowing annotation of (application specific) parameters in L4 DSL with default value and value range to be included in the optimization step
+
+Bugs:
+- Setting position dependent bc's for equvalent points on different fragments might lead to diverging results (this only occures with comm strat 26, as the values in question are overwritten with comm strat 6):
+	int x0 = 0;
+	Vec3 pos0 = (Vec3(((((0*3)+5.000000e-01)+x0)*3.333333e-01)+0.000000e+00,((0+5.000000e-01)+0),0));
+	int x1 = 1;
+	Vec3 pos1 = (Vec3(((((0*3)+5.000000e-01)+x1)*3.333333e-01)+0.000000e+00,((0+5.000000e-01)+0),0));
+
+	Vec3 posBegin0 = pos0-Vec3(1.666667e-01,5.000000e-01,0);
+	Vec3 posEnd0 = pos0+Vec3(1.666667e-01,5.000000e-01,0);
+	Vec3 posBegin1 = pos1-Vec3(1.666667e-01,5.000000e-01,0);
+	Vec3 posEnd1 = pos1+Vec3(1.666667e-01,5.000000e-01,0);
+
+	double xPos0 = ((((18-2)/1.600000e+01)*(posEnd0[0]-posBegin0[0]))+posBegin0[0]);
+	double yPos0 = ((((17-1)/1.600000e+01)*(posEnd0[1]-posBegin0[1]))+posBegin0[1]);
+	double xPos1 = ((((2-2)/1.600000e+01)*(posEnd1[0]-posBegin1[0]))+posBegin1[0]);
+	double yPos1 = ((((17-1)/1.600000e+01)*(posEnd1[1]-posBegin1[1]))+posBegin1[1]);
+
+	double v0 = (sin((M_PI*xPos0))*sinh((M_PI*yPos0)));
+	double v1 = (sin((M_PI*xPos1))*sinh((M_PI*yPos1)));
+
+
+================================================================================================================================================
+=============================================================== Feature Requests ===============================================================
+================================================================================================================================================
+
+- Ability to apply transformations directly, i.e. without having to create a strategy
+	> Example code: (new Transformation("Foo", { case bar : Bar => Some(bar); })).apply;
+
+- Ability to reset the results of a strategy
+	> Example code: strategy.resetResults;
+
+- Easier access for the number of matches/ replacements of a strategy
+	> Old code: strategy.results.last._2.replacements
+	> Example code: strategy.results.replacements
+
+- Ability to exit transformations
+	> Example code:
+		new Transformation("Find", { 
+			case hit : Bar =>
+				doSth;
+				exitTransformation;
+		}, false);
+
+================================================================================================================================================
+================================================================= Information ==================================================================
+================================================================================================================================================
+
+- ISL compilen für Mac:
+
+    GMP mit --with-pic --disable-shared --enable-static konfigurieren/bauen
+    => PIC wichtig um Linker-Fehler zu vermeiden
+
+- bei zu vielen SIMD Variablen (zB bei dicht besetztem Stencil) kann der GCC der 4er Reihe langsamen Code generieren
+    GCC 5, oder clang (ab 3.7 wegen OpenMP Support) haben dieses Problem nicht
+

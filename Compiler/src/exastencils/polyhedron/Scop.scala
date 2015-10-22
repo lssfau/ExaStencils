@@ -31,7 +31,14 @@ class Scop(val root : LoopOverDimensions, var context : isl.Set, var optLevel : 
   object deps {
     var flow : isl.UnionMap = null
     var antiOut : isl.UnionMap = null
-    var input : isl.UnionMap = null
+    private var inputCache : isl.UnionMap = null
+    val updateInput = new ArrayBuffer[isl.UnionMap => isl.UnionMap]()
+    def input : isl.UnionMap = {
+      for (up <- updateInput)
+        inputCache = up(inputCache)
+      updateInput.clear()
+      inputCache
+    }
 
     def validity() : isl.UnionMap = {
       return Isl.simplify(flow.union(antiOut))

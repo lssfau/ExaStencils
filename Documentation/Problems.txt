@@ -1,9 +1,0 @@
-Known Problems:
-
-- Non-recursive transformations are only applied to a single node, even if more viable candidates are present
-	> Example code: 
-		this += new Transformation("Adding OMP pragmas", {
-			case target : OMP_PotentiallyCritical =>
-				Some(target.addOMPDirective);
-		}, false);
-
