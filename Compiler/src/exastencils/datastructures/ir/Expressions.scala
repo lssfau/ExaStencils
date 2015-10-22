@@ -271,6 +271,16 @@ case class MultiIndex(
   }
 }
 
+case class TempBufferAccess(var buffer : iv.TmpBuffer, var index : MultiIndex, var strides : MultiIndex) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TempBufferAccess\n"
+
+  def linearize : ArrayAccess = {
+    new ArrayAccess(buffer,
+      Mapping.resolveMultiIdx(index, strides),
+      false && Knowledge.data_alignTmpBufferPointers /* change here if aligned vector operations are possible for tmp buffers */ )
+  }
+}
+
 case class DirectFieldAccess(var fieldSelection : FieldSelection, var index : MultiIndex) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = DirectFieldAccess\n"
 
@@ -516,7 +526,7 @@ case class StencilConvolution(var stencil : Stencil, var fieldAccess : FieldAcce
     stencil.entries(idx).coefficient * new FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + stencil.entries(idx).offset)
   }
 
-  def expand : Output[Expression] = {
+  override def expand : Output[Expression] = {
     var ret : Expression = (0 until stencil.entries.size).toArray.map(idx => Duplicate(resolveEntry(idx))).toArray[Expression].reduceLeft(_ + _)
     SimplifyStrategy.doUntilDoneStandalone(ret)
     ret
@@ -534,7 +544,7 @@ case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, 
       new FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + stencilFieldAccess.stencilFieldSelection.stencil.entries(idx).offset)
   }
 
-  def expand : Output[Expression] = {
+  override def expand : Output[Expression] = {
     var ret : Expression = (0 until stencilFieldAccess.stencilFieldSelection.stencil.entries.size).toArray.map(idx => Duplicate(resolveEntry(idx))).toArray[Expression].reduceLeft(_ + _)
     SimplifyStrategy.doUntilDoneStandalone(ret)
     ret
@@ -544,7 +554,7 @@ case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, 
 case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight : Stencil) extends Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilStencilConvolution\n"
 
-  def expand : Output[StencilAccess] = {
+  override def expand : Output[StencilAccess] = {
     var entries : ListBuffer[StencilEntry] = ListBuffer()
 
     for (re <- stencilRight.entries) {
@@ -587,7 +597,7 @@ case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight
 case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, var stencilRight : Stencil) extends Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilFieldStencilConvolution\n"
 
-  def expand : Output[StencilAccess] = {
+  override def expand : Output[StencilAccess] = {
     var entries : ListBuffer[StencilEntry] = ListBuffer()
 
     for (re <- stencilRight.entries) {

@@ -34,10 +34,12 @@ object SetupDataStructures extends DefaultStrategy("Setting up fragment") {
 
 object LinearizeFieldAccesses extends DefaultStrategy("Linearizing FieldAccess nodes") {
   this += new Transformation("Linearizing", {
-    case loop : DirectFieldAccess =>
-      loop.linearize
-    case loop : ExternalFieldAccess =>
-      loop.linearize
+    case access : DirectFieldAccess =>
+      access.linearize
+    case access : ExternalFieldAccess =>
+      access.linearize
+    case access : TempBufferAccess =>
+      access.linearize
   })
 }
 
