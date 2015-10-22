@@ -298,13 +298,14 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val empty = isl.UnionMap.empty(scop.writes.getSpace())
     val depArr = new Array[isl.UnionMap](1)
     val depArr2 = new Array[isl.UnionMap](1)
+    val domain : isl.UnionSet = scop.domain.intersectParams(scop.context)
 
-    val schedule = Isl.simplify(scop.schedule.intersectDomain(scop.domain))
+    val schedule = Isl.simplify(scop.schedule.intersectDomain(domain))
     //    val schedule = scop.schedule
 
-    val writes = Isl.simplify(scop.writes.intersectDomain(scop.domain))
+    val writes = Isl.simplify(scop.writes.intersectDomain(domain))
     //    val writes = scop.writes
-    val reads = if (scop.reads == null) empty else Isl.simplify(scop.reads.intersectDomain(scop.domain))
+    val reads = if (scop.reads == null) empty else Isl.simplify(scop.reads.intersectDomain(domain))
     //    val reads = scop.reads
 
     // anti & output
