@@ -225,6 +225,10 @@ object SimplifyExpression {
           res(MinimumExpression(exprs)) = 1L
         }
 
+      case iff : iv.IndexFromField =>
+        res = new HashMap[Expression, Long]()
+        res(iff) = 1L
+
       case _ =>
         throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
     }
