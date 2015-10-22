@@ -96,7 +96,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
     scop.deps.flow = Isl.simplify(scop.deps.flow)
     scop.deps.antiOut = Isl.simplify(scop.deps.antiOut)
-    scop.deps.input = Isl.simplify(scop.deps.input)
+    scop.deps.updateInput += { inp => Isl.simplify(inp) }
   }
 
   private def extractPolyModel() : Seq[Scop] = {
@@ -187,7 +187,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         if (lab == njuLabel)
           scop.stmts(lab) = (mergedStmts, mergedLoopIts)
         else
-	  scop.stmts -= lab
+          scop.stmts -= lab
       // adjust read and write accesses
       var nju : isl.UnionMap = null
       scop.reads.foreachMap({
@@ -210,7 +210,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
             var toAdd : isl.Map = map
             if (oldLabel != njuLabel)
               for ((lab, _) <- stmts if (oldLabel == lab))
-               toAdd = toAdd.setTupleName(isl.DimType.In, njuLabel)
+                toAdd = toAdd.setTupleName(isl.DimType.In, njuLabel)
             nju = if (nju == null) toAdd else nju.addMap(toAdd)
           }
       })
@@ -249,7 +249,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       scop.deadAfterScop = unionNull(scop.deadAfterScop, toMerge.deadAfterScop)
       scop.deps.flow = unionNull(scop.deps.flow, toMerge.deps.flow)
       scop.deps.antiOut = unionNull(scop.deps.antiOut, toMerge.deps.antiOut)
-      scop.deps.input = unionNull(scop.deps.input, toMerge.deps.input)
+      scop.deps.updateInput += { inp => unionNull(inp, toMerge.deps.input) }
       if (scop.origIterationCount == null && toMerge.origIterationCount != null)
         scop.origIterationCount = toMerge.origIterationCount
       scop.parallelize &= toMerge.parallelize
@@ -323,9 +323,11 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       })
 
       // input
-      readArrays.computeFlow(readArrays, empty, schedule,
-        depArr, null, null, null) // output params (C-style)
-      scop.deps.input = depArr(0)
+      scop.deps.updateInput += { _ =>
+        readArrays.computeFlow(readArrays, empty, schedule,
+          depArr, null, null, null) // output params (C-style)
+        depArr(0)
+      }
 
       // flow
       reads.computeFlow(writes, empty, schedule,
@@ -334,7 +336,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
     } else {
       val noDeps = isl.UnionMap.empty(scop.deps.antiOut.getSpace())
-      scop.deps.input = noDeps
+      scop.deps.updateInput += { _ => noDeps }
       scop.deps.flow = noDeps
     }
   }
@@ -356,8 +358,12 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       scop.deps.flow = scop.deps.flow.intersectDomain(live)
     if (scop.deps.antiOut != null)
       scop.deps.antiOut = scop.deps.antiOut.intersectDomain(live)
-    if (scop.deps.input != null)
-      scop.deps.input = scop.deps.input.intersectDomain(live)
+    scop.deps.updateInput += { inp =>
+      if (inp != null)
+        scop.deps.input.intersectDomain(live)
+      else
+        null
+    }
   }
 
   private def handleReduction(scop : Scop) : Unit = {
@@ -380,7 +386,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     scop.deps.flow = scop.deps.flow.subtract(toRemove)
     // filter others too, as we do not have an ordering between read and write in the same statement
     scop.deps.antiOut = scop.deps.antiOut.subtract(toRemove)
-    scop.deps.input = scop.deps.input.subtract(toRemove)
+    scop.deps.updateInput += { inp => inp.subtract(toRemove) }
   }
 
   private final val tileSizes = Array(Knowledge.poly_tileSize_x, Knowledge.poly_tileSize_y, Knowledge.poly_tileSize_z, Knowledge.poly_tileSize_w)
