@@ -515,59 +515,62 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   private def optimizeExpl(scop : Scop, confID : Int) : Unit = {
 
-    val df = new DecimalFormat()
-    df.setMinimumIntegerDigits(5)
-    df.setGroupingUsed(false)
-    Settings.outputPath += df.format(confID)
+    Logger.warn("[PolyOpt] Exploration not possible, since it requires external code (this is subject to change); fall back to standard isl optimization")
+    optimizeIsl(scop)
 
-    val explConfig = new File(Settings.poly_explorationConfig)
-    if (!explConfig.exists()) {
-      Logger.debug("[PolyOpt] Exploration: no configuration file found, so perform exploration and create it, progress:")
-      performExploration(scop, explConfig, df)
-      Logger.debug("[PolyOpt] Exploration: configuration finished, creating base version (without any schedule changes)")
-    } else
-      applyConfig(scop, explConfig, df.format(confID))
+    //    val df = new DecimalFormat()
+    //    df.setMinimumIntegerDigits(5)
+    //    df.setGroupingUsed(false)
+    //    Settings.outputPath += df.format(confID)
+    //
+    //    val explConfig = new File(Settings.poly_explorationConfig)
+    //    if (!explConfig.exists()) {
+    //      Logger.debug("[PolyOpt] Exploration: no configuration file found, so perform exploration and create it, progress:")
+    //      performExploration(scop, explConfig, df)
+    //      Logger.debug("[PolyOpt] Exploration: configuration finished, creating base version (without any schedule changes)")
+    //    } else
+    //      applyConfig(scop, explConfig, df.format(confID))
   }
 
-  private def performExploration(scop : Scop, explConfig : File, df : DecimalFormat) : Unit = {
-    var validity = scop.deps.validity()
-
-    if (Knowledge.poly_simplifyDeps) {
-      validity = validity.gistRange(scop.domain)
-      validity = validity.gistDomain(scop.domain)
-    }
-
-    explConfig.getParentFile().mkdirs()
-    val eConfOut = new java.io.PrintWriter(explConfig)
-    var i : Int = 0
-    Exploration.guidedExploration(scop.domain, validity, {
-      (sched : isl.UnionMap, schedVect : Seq[Array[Int]], bands : Seq[Int]) =>
-        i += 1
-        if (i % 100 == 0) {
-          Console.print('.')
-          Console.flush()
-        }
-        if (i % 5000 == 0) {
-          Console.println()
-          Console.flush()
-        }
-        eConfOut.print(df.format(i))
-        eConfOut.print('\t')
-        eConfOut.print(bands.mkString(","))
-        eConfOut.print('\t')
-        eConfOut.print(sched)
-        eConfOut.print('\t')
-        eConfOut.print(schedVect.map(arr => java.util.Arrays.toString(arr)).mkString(", "))
-        eConfOut.println()
-    })
-    if (i % 5000 != 0) {
-      Console.println()
-      Console.flush()
-    }
-    eConfOut.flush()
-    eConfOut.close()
-    Logger.debug(s"[PolyOpt] Exploration: found $i configurations")
-  }
+  //  private def performExploration(scop : Scop, explConfig : File, df : DecimalFormat) : Unit = {
+  //    var validity = scop.deps.validity()
+  //
+  //    if (Knowledge.poly_simplifyDeps) {
+  //      validity = validity.gistRange(scop.domain)
+  //      validity = validity.gistDomain(scop.domain)
+  //    }
+  //
+  //    explConfig.getParentFile().mkdirs()
+  //    val eConfOut = new java.io.PrintWriter(explConfig)
+  //    var i : Int = 0
+  //    Exploration.guidedExploration(scop.domain, validity, {
+  //      (sched : isl.UnionMap, schedVect : Seq[Array[Int]], bands : Seq[Int]) =>
+  //        i += 1
+  //        if (i % 100 == 0) {
+  //          Console.print('.')
+  //          Console.flush()
+  //        }
+  //        if (i % 5000 == 0) {
+  //          Console.println()
+  //          Console.flush()
+  //        }
+  //        eConfOut.print(df.format(i))
+  //        eConfOut.print('\t')
+  //        eConfOut.print(bands.mkString(","))
+  //        eConfOut.print('\t')
+  //        eConfOut.print(sched)
+  //        eConfOut.print('\t')
+  //        eConfOut.print(schedVect.map(arr => java.util.Arrays.toString(arr)).mkString(", "))
+  //        eConfOut.println()
+  //    })
+  //    if (i % 5000 != 0) {
+  //      Console.println()
+  //      Console.flush()
+  //    }
+  //    eConfOut.flush()
+  //    eConfOut.close()
+  //    Logger.debug(s"[PolyOpt] Exploration: found $i configurations")
+  //  }
 
   private def applyConfig(scop : Scop, explConfig : File, confID : String) : Unit = {
     var lines : Iterator[String] = Source.fromFile(explConfig).getLines()
