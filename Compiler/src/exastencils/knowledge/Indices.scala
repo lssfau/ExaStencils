@@ -42,12 +42,13 @@ object Mapping {
     }
   }
 
-  def resolveMultiIdx(index : MultiIndex, aabb : IndexRange) : Expression = {
+  def resolveMultiIdx(index : MultiIndex, aabb : IndexRange) : Expression = resolveMultiIdx(index, new MultiIndex(aabb.end, aabb.begin, _ - _))
+  def resolveMultiIdx(index : MultiIndex, strides : MultiIndex) : Expression = {
     val ret = Knowledge.dimensionality match {
       case 0 => (index(0))
-      case 1 => (index(1) * (aabb.end(0) - aabb.begin(0)) + index(0))
-      case 2 => (index(2) * ((aabb.end(1) - aabb.begin(1)) * (aabb.end(0) - aabb.begin(0))) + index(1) * (aabb.end(0) - aabb.begin(0)) + index(0))
-      case 3 => (index(3) * ((aabb.end(2) - aabb.begin(2)) * (aabb.end(1) - aabb.begin(1)) * (aabb.end(0) - aabb.begin(0))) + index(2) * ((aabb.end(1) - aabb.begin(1)) * (aabb.end(0) - aabb.begin(0))) + index(1) * (aabb.end(0) - aabb.begin(0)) + index(0))
+      case 1 => (index(1) * strides(0) + index(0))
+      case 2 => (index(2) * (strides(1) * strides(0)) + index(1) * strides(0) + index(0))
+      case 3 => (index(3) * (strides(2) * strides(1) * strides(0)) + index(2) * (strides(1) * strides(0)) + index(1) * strides(0) + index(0))
     }
     if (Knowledge.experimental_genVariableFieldSizes) {
       SimplifyStrategy.doUntilDoneStandalone(ret)
