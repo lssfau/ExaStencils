@@ -38,10 +38,14 @@ object Isl {
 
     val dir : String = if (system == "darwin") system else system + '-' + arch
 
-    val Array(fname, fext) = System.mapLibraryName("isl").split('.')
+    var Array(fname, fext) = System.mapLibraryName("isl").split('.')
+    if (system == "darwin" && fext == "jnilib")
+      fext = "dylib"
     val is : InputStream = ClassLoader.getSystemResourceAsStream(dir + '/' + fname + '.' + fext)
 
-    val tmpIslLib = java.io.File.createTempFile(fname, '.' + fext)
+    val tmpIslLib = new java.io.File(System.getProperty("java.io.tmpdir"), fname + "-exastencils." + fext)
+    if (tmpIslLib.exists())
+      tmpIslLib.delete() // delete old version from previous run, if it is sill present
     val fos = new FileOutputStream(tmpIslLib)
 
     val buffer = new Array[Byte](64 * 2 ^ 10)
