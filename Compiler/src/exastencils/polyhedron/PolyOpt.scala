@@ -403,6 +403,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     return vec
   }
 
+  var spamcount : Int = 0 // HACK to reduce the number of warnings generated
+
   private def optimize(scop : Scop) : Unit = {
 
     var schedConstr : isl.ScheduleConstraints = isl.ScheduleConstraints.onDomain(scop.domain)
@@ -463,7 +465,11 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
           if (scop.origIterationCount != null)
             scop.origIterationCount(i) / tileSizes(i)
           else {
-            Logger.warn("[PolyOpt]  unable to determine iteration count, check results of LoopOverDimensions.maxIterationCount(); parallelization might be inefficient")
+            spamcount += 1
+            if (spamcount < 4)
+              Logger.warn("[PolyOpt]  unable to determine iteration count, check results of LoopOverDimensions.maxIterationCount(); parallelization might be inefficient")
+            else if (spamcount == 4)
+              Logger.warn("[PolyOpt]  unable to determine iteration count; spam protection: suppress further warnings for this problem from now on")
             if (tileSizes(i) >= 1000000)
               1
             else // don't know how much iterations loop have... so assume there are enough to parallelize it...
