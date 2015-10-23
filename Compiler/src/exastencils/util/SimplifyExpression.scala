@@ -136,11 +136,15 @@ object SimplifyExpression {
         } else if ((mapR.size == 1 && mapR.contains(constName)) || mapR.isEmpty) {
           coeff = mapR.getOrElse(constName, 0L)
           res = mapL
-        } else
-          throw new EvaluationException("non-constant * non-constant is not yet implemented")
+        } else {
+          coeff = 1L
+          res = new HashMap[Expression, Long]()
+          res(recreateExprFromIntSum(mapL) * recreateExprFromIntSum(mapR)) = 1L
+          // throw new EvaluationException("non-constant * non-constant is not yet implemented")
+        }
         if (coeff == 0L)
           res.clear()
-        else
+        else if (coeff != 1L)
           for ((name : Expression, value : Long) <- res)
             res(name) = value * coeff
 
