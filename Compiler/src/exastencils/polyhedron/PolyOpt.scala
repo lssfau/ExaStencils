@@ -11,8 +11,6 @@ import scala.collection.mutable.TreeSet
 import scala.io.Source
 import scala.util.control.Breaks
 
-import org.exastencils.schedopt.exploration.Exploration
-
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
