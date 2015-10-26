@@ -556,9 +556,9 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val ctx : isl.Ctx = sample.getCtx()
     var mAff = isl.MultiAff.zero(isl.Space.mapFromDomainAndRange(domSp, ranSp))
     for (i <- 0 until tilableDims) {
-      var tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(tilableDims - 1 - i) else 1000000000
+      var tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(tilableDims - 1 - i) else 0
       // if we don't want to tile a dimension, leave the outer tile loop constant 0
-      if (tileSize > 0 && tileSize < 100 + scop.origIterationCount(tilableDims - 1 - i)) {
+      if (tileSize > 0 && (scop.origIterationCount == null || tileSize < 100 + scop.origIterationCount(tilableDims - 1 - i))) {
         var aff = isl.Aff.varOnDomain(isl.LocalSpace.fromSpace(domSp), T_SET, i)
         aff = aff.scaleDownUi(tileSize)
         aff = aff.floor()
@@ -588,9 +588,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
             Logger.warn("[PolyOpt]  unable to determine iteration count, check results of LoopOverDimensions.maxIterationCount(); parallelization might be inefficient")
           else if (spamcount == 4)
             Logger.warn("[PolyOpt]  unable to determine iteration count; spam protection: suppress further warnings for this problem from now on")
-          if (tileSizes(i) >= 1000000)
+
+          if (tileSizes(i) <= 0)
             1
-          else // don't know how much iterations loop have... so assume there are enough to parallelize it...
+          else // don't know how much iterations this loop has... so assume there are enough to parallelize it...
             1000
         }
       if (tiles != threads && tiles < 2 * threads)
