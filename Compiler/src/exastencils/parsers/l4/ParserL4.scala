@@ -259,7 +259,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val stencilEntries = (
     (stencilEntry <~ ",").+ ~ stencilEntry ^^ { case entries ~ entry => entries.::(entry) }
     ||| stencilEntry.+)
-  lazy val stencilEntry = ((expressionIndex ~ ("=>" ~> (factor ||| matrixExpression))) ^^ { case offset ~ weight => StencilEntry(offset, weight) })
+  lazy val stencilEntry = ((expressionIndex ~ ("=>" ~> (binaryexpression ||| matrixExpression))) ^^ { case offset ~ weight => StencilEntry(offset, weight) })
 
   lazy val stencilField = locationize((("StencilField" ~> ident) ~ ("<" ~> ident <~ "=>") ~ (ident <~ ">") ~ level.?)
     ^^ { case id ~ f ~ s ~ level => StencilFieldDeclarationStatement(LeveledIdentifier(id, level.getOrElse(new AllLevelsSpecification)), f, s) })

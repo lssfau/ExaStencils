@@ -33,9 +33,10 @@ case class Matrix() extends Node with FilePrettyPrintable {
 
 template<typename T, size_t M, size_t N>
 class Matrix {
+public:
     std::vector< T > m_data;
 
-    public:
+    
     // default constructor
     Matrix()
     : m_data ( M * N )
@@ -363,7 +364,7 @@ Matrix<T, M, N> operator*= ( Matrix<T, M, A>& a, const T& b ) {
     }
     return out;
 }
-
+/*
 // Matrix * Scalar
 template<typename T, size_t M, size_t N>
 Matrix<T, M, N> operator* ( const Matrix<T, M, N> a, const T& b ) { // pass 'a' by value for implicit copy
@@ -377,14 +378,14 @@ Matrix<T, M, N> operator* ( const T& b, Matrix<T, M, N> a ) { // pass 'a' by val
     a *= b;
     return a;
 }
-
+*/
 // Matrix * Scalar
 template<typename T, size_t M, size_t N>
 Matrix<T, M, N> operator* ( const Matrix<T, M, N>& a, const int b ) {
-    Matrix<T, M, N> out;
+    Matrix<T, M, N> out(a);
     for ( size_t i = 0; i < a.rows(); ++i ) {
         for ( size_t j = 0; j < a.columns(); ++j ) {
-            out ( i, j ) = a ( i, j ) * b;
+            out ( i, j ) *= b;
         }
     }
     return out;
@@ -393,10 +394,10 @@ Matrix<T, M, N> operator* ( const Matrix<T, M, N>& a, const int b ) {
 // Scalar * Matrix
 template<typename T, size_t M, size_t N>
 Matrix<T, M, N> operator* ( const int b, Matrix<T, M, N>& a ) {
-    Matrix<T, M, N> out;
+    Matrix<T, M, N> out(a);
     for ( size_t i = 0; i < a.rows(); ++i ) {
         for ( size_t j = 0; j < a.columns(); ++j ) {
-            out ( i, j ) = a ( i, j ) * b;
+            out ( i, j ) = b;
         }
     }
     return out;
@@ -405,10 +406,10 @@ Matrix<T, M, N> operator* ( const int b, Matrix<T, M, N>& a ) {
 // Matrix * Scalar
 template<typename T, size_t M, size_t N>
 Matrix<T, M, N> operator* ( const Matrix<T, M, N>& a, const double b ) {
-    Matrix<T, M, N> out;
-    for ( size_t i = 0; i < a.rows(); ++i ) {
-        for ( size_t j = 0; j < a.columns(); ++j ) {
-            out ( i, j ) = a ( i, j ) * b;
+    Matrix<T, M, N> out(a);
+    for ( size_t i = 0; i < out.rows(); ++i ) {
+        for ( size_t j = 0; j < out.columns(); ++j ) {
+            out ( i, j ) *= b;
         }
     }
     return out;
@@ -416,11 +417,11 @@ Matrix<T, M, N> operator* ( const Matrix<T, M, N>& a, const double b ) {
 
 // Scalar * Matrix
 template<typename T, size_t M, size_t N>
-Matrix<T, M, N> operator* ( const double b, Matrix<T, M, N>& a ) {
-    Matrix<T, M, N> out;
+Matrix<T, M, N> operator* ( const double b, const Matrix<T, M, N>& a ) {
+    Matrix<T, M, N> out(a);
     for ( size_t i = 0; i < a.rows(); ++i ) {
         for ( size_t j = 0; j < a.columns(); ++j ) {
-            out ( i, j ) = a ( i, j ) * b;
+            out ( i, j ) *= b;
         }
     }
     return out;
@@ -459,10 +460,10 @@ std::ostream& operator<< ( std::ostream &os, const Matrix<T, M, N>& other ) {
     os << "{\n";
     for ( int i = 0; i < other.rows(); i++ ) {
         os << "{ ";
-        for ( int j = 0; j < other.columns() - 1; j++ ) {
-            os << other ( i, j ) << ", ";
+        os << other ( i, 0);
+        for ( int j = 1; j < other.columns(); j++ ) {
+            os << ", " << other ( i, j );
         }
-        os << other ( i, other.columns() - 1 );
         os << " }\n";
     }
     os << "} ";
