@@ -271,9 +271,10 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
       case isl.AstOpType.Sub if n == 2     => new SubtractionExpression(args(0), args(1))
       case isl.AstOpType.Mul if n == 2     => new MultiplicationExpression(args(0), args(1))
       case isl.AstOpType.Div if n == 2     => new DivisionExpression(args(0), args(1))
-      case isl.AstOpType.FdivQ if n == 2   => new DivisionExpression(args(0), args(1)) // TODO: ensure integer division; round to -inf for negative
+      case isl.AstOpType.FdivQ if n == 2   => new FunctionCallExpression("floord", args(0), args(1)) // TODO: ensure integer division
       case isl.AstOpType.PdivQ if n == 2   => new DivisionExpression(args(0), args(1)) // TODO: ensure integer division
       case isl.AstOpType.PdivR if n == 2   => new ModuloExpression(args(0), args(1))
+      case isl.AstOpType.ZdivR if n == 2   => new ModuloExpression(args(0), args(1)) // isl doc: Equal to zero iff the remainder on integer division is zero.
       case isl.AstOpType.Cond if n == 3    => new TernaryConditionExpression(args(0), args(1), args(2))
       case isl.AstOpType.Eq if n == 2      => new EqEqExpression(args(0), args(1))
       case isl.AstOpType.Le if n == 2      => new LowerEqualExpression(args(0), args(1))
