@@ -425,7 +425,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   private def optimizeIsl(scop : Scop) : Unit = {
 
-    var schedConstr : isl.ScheduleConstraints = isl.ScheduleConstraints.onDomain(scop.domain)
+    val domain = scop.domain.intersectParams(scop.context)
+    var schedConstr : isl.ScheduleConstraints = isl.ScheduleConstraints.onDomain(domain)
 
     var validity = scop.deps.validity()
     var coincidence = validity
@@ -439,12 +440,12 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     }
 
     if (Knowledge.poly_simplifyDeps) {
-      validity = validity.gistRange(scop.domain)
-      validity = validity.gistDomain(scop.domain)
-      coincidence = coincidence.gistRange(scop.domain)
-      coincidence = coincidence.gistDomain(scop.domain)
-      proximity = proximity.gistRange(scop.domain)
-      proximity = proximity.gistDomain(scop.domain)
+      validity = validity.gistRange(domain)
+      validity = validity.gistDomain(domain)
+      coincidence = coincidence.gistRange(domain)
+      coincidence = coincidence.gistDomain(domain)
+      proximity = proximity.gistRange(domain)
+      proximity = proximity.gistDomain(domain)
     }
 
     if (Knowledge.poly_filterDeps)
