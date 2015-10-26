@@ -141,6 +141,8 @@ do
 
   if [[ "${l4file}" = "*" ]]; then
     l4file="${TEST_DIR}/l4.exa"
+  else
+    l4file="${TESTING_DIR}/${l4file}"
   fi
 
   echo "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">" > "${TEST_LOG}"
@@ -148,7 +150,7 @@ do
 
   echo "Enqueue generation and compilation job for id  ${id}."
   # configuration is fine, start a new job for it
-  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etg_${id}" -o ${TEST_LOG} -e ${TEST_LOG} "--dependency=afterok:${SLURM_JOB_ID}" "${TESTING_DIR}/tests2_single.sh" "${TESTING_DIR}" "${COMPILER_JAR}" ${main} "${TEST_DIR}" "${TEST_BIN}" "${TESTING_DIR}/${knowledge}" "${TESTING_DIR}/${l4file}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}")
+  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etg_${id}" -o ${TEST_LOG} -e ${TEST_LOG} "--dependency=afterok:${SLURM_JOB_ID}" "${TESTING_DIR}/tests2_single.sh" "${TESTING_DIR}" "${COMPILER_JAR}" ${main} "${TEST_DIR}" "${TEST_BIN}" "${TESTING_DIR}/${knowledge}" "${l4file}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}")
   if [[ $? -eq 0 ]]; then
     SID=${OUT#Submitted batch job }
     DEP_SIDS="${DEP_SIDS}:${SID}"
