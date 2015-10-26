@@ -580,7 +580,9 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val threads = Knowledge.omp_numThreads
     for (i <- 0 until nrTiledDims) {
       val tiles : Long =
-        if (scop.origIterationCount != null)
+        if (tileSizes(i) <= 0)
+          1
+        else if (scop.origIterationCount != null)
           scop.origIterationCount(i) / tileSizes(i)
         else {
           spamcount += 1
