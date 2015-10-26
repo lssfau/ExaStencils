@@ -52,6 +52,7 @@ STARTTIME=$(date +%s)
 
 function cleanup {
   rm "${RESULT}"
+  echo "  Removed  ${RESULT}"
   ENDTIME=$(date +%s)
   echo "Runtime: $((${ENDTIME} - ${STARTTIME})) seconds  (target code generation and compilation)"
   echo ""
@@ -69,6 +70,7 @@ echo "l4file = \"${L4FILE}\"" >> "${SETTINGS}"
 echo "binary = \"${BIN}\"" >> "${SETTINGS}"
 
 echo "Run generator:"
+echo "  Created  ${RESULT}: run generator and save its stdout and stderr."
 cd ${TESTING_DIR}  # there is no possibility to explicitly set the working directory of the jvm... (changing property user.dir does not work in all situations)
 set -o pipefail
 srun java -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}" 2>&1 | tee "${RESULT}"
