@@ -71,7 +71,7 @@ echo "binary = \"${BIN}\"" >> "${SETTINGS}"
 echo "Run generator:"
 cd ${TESTING_DIR}  # there is no possibility to explicitly set the working directory of the jvm... (changing property user.dir does not work in all situations)
 set -o pipefail
-srun java -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}" | tee "${RESULT}"
+srun java -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}" 2>&1 | tee "${RESULT}"
 RETCODE=$?
     if grep -q "Bad file descriptor" ${RESULT}; then
       echo "restart generation..."
