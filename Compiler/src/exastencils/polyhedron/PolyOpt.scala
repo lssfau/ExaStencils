@@ -456,15 +456,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     schedConstr = schedConstr.setProximity(proximity)
 
     val schedule : isl.Schedule = schedConstr.computeSchedule()
+    var scheduleMap : isl.UnionMap = schedule.getMap()
     scop.noParDims.clear()
-    var perfTiling : Boolean = false
-    if (scop.origIterationCount != null)
-      for (i <- 0 until scop.origIterationCount.length)
-        perfTiling |= tileSizes(i) < scop.origIterationCount(i)
-    else
-      perfTiling = true // no info about iteration size...
-    if (scop.optLevel >= 3 && perfTiling) {
-      var tiled : Int = 0
+    if (scop.optLevel >= 3) {
+      var tilableDims : Int = 0
       schedule.foreachBand({
         band : isl.Band =>
           var prefix : Int = 0
@@ -472,44 +467,15 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
             if (!map.range().isSingleton())
               prefix = math.max(prefix, map.dim(T_OUT))
           })
-          if (prefix == 0) {
-            tiled = band.nMember()
-            if (tiled <= 4)
-              band.tile(getTileVec(tiled))
-          }
+          if (prefix == 0)
+            tilableDims = band.nMember()
       })
-      if (tiled <= 4)
-        setSeqTileDims(scop, tiled)
+      if (tilableDims > 1 && tilableDims <= 4)
+        scheduleMap = tileSchedule(scheduleMap, scop, tilableDims)
     }
 
-    scop.schedule = Isl.simplify(schedule.getMap())
+    scop.schedule = Isl.simplify(scheduleMap)
     scop.updateLoopVars()
-  }
-
-  var spamcount : Int = 0 // HACK to reduce the number of warnings generated
-
-  private def setSeqTileDims(scop : Scop, nrTiledDims : Int) : Unit = {
-    val threads = Knowledge.omp_numThreads
-    for (i <- 0 until nrTiledDims) {
-      val tiles : Long =
-        if (scop.origIterationCount != null)
-          scop.origIterationCount(i) / tileSizes(i)
-        else {
-          spamcount += 1
-          if (spamcount < 4)
-            Logger.warn("[PolyOpt]  unable to determine iteration count, check results of LoopOverDimensions.maxIterationCount(); parallelization might be inefficient")
-          else if (spamcount == 4)
-            Logger.warn("[PolyOpt]  unable to determine iteration count; spam protection: suppress further warnings for this problem from now on")
-          if (tileSizes(i) >= 1000000)
-            1
-          else // don't know how much iterations loop have... so assume there are enough to parallelize it...
-            1000
-        }
-      if (tiles != threads && tiles < 2 * threads)
-        scop.noParDims += nrTiledDims - i - 1
-    }
-    if (nrTiledDims > 0 && !Knowledge.poly_tileOuterLoop)
-      scop.noParDims += 0
   }
 
   private def optimizeExpl(scop : Scop, confID : Int) : Unit = {
@@ -587,34 +553,62 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
     // apply tiling
     val tilableDims : Int = bands(0)
-    if (scop.optLevel >= 3 && tilableDims > 1 && tilableDims <= 4) {
+    if (scop.optLevel >= 3 && tilableDims > 1 && tilableDims <= 4)
+      schedule = tileSchedule(schedule, scop, tilableDims)
 
-      val sample : isl.BasicMap = schedule.sample()
-      val domSp : isl.Space = sample.getSpace().range()
-      val ranSp : isl.Space = domSp.insertDims(T_SET, 0, tilableDims)
-      val ctx : isl.Ctx = sample.getCtx()
-      var mAff = isl.MultiAff.zero(isl.Space.mapFromDomainAndRange(domSp, ranSp))
-      for (i <- 0 until tilableDims) {
-        var tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(tilableDims - 1 - i) else 1000000000
-        // if we don't want to tile a dimension, leave the outer tile loop constant 0
-        if (tileSize > 0 && tileSize < 100 + scop.origIterationCount(tilableDims - 1 - i)) {
-          var aff = isl.Aff.varOnDomain(isl.LocalSpace.fromSpace(domSp), T_SET, i)
-          aff = aff.scaleDownUi(tileSize)
-          aff = aff.floor()
-          mAff = mAff.setAff(i, aff)
-        }
-      }
-      for (i <- 0 until domSp.dim(T_SET)) {
-        var aff = isl.Aff.varOnDomain(isl.LocalSpace.fromSpace(domSp), T_SET, i)
-        mAff = mAff.setAff(tilableDims + i, aff)
-      }
-      val trafo = isl.BasicMap.fromMultiAff(mAff)
-      schedule = schedule.applyRange(trafo)
-      setSeqTileDims(scop, tilableDims)
-    }
-
-    scop.schedule = schedule
+    scop.schedule = Isl.simplify(schedule)
     scop.updateLoopVars()
+  }
+
+  private def tileSchedule(schedule : isl.UnionMap, scop : Scop, tilableDims : Int) : isl.UnionMap = {
+    val sample : isl.BasicMap = schedule.sample()
+    val domSp : isl.Space = sample.getSpace().range()
+    val ranSp : isl.Space = domSp.insertDims(T_SET, 0, tilableDims)
+    val ctx : isl.Ctx = sample.getCtx()
+    var mAff = isl.MultiAff.zero(isl.Space.mapFromDomainAndRange(domSp, ranSp))
+    for (i <- 0 until tilableDims) {
+      var tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(tilableDims - 1 - i) else 1000000000
+      // if we don't want to tile a dimension, leave the outer tile loop constant 0
+      if (tileSize > 0 && tileSize < 100 + scop.origIterationCount(tilableDims - 1 - i)) {
+        var aff = isl.Aff.varOnDomain(isl.LocalSpace.fromSpace(domSp), T_SET, i)
+        aff = aff.scaleDownUi(tileSize)
+        aff = aff.floor()
+        mAff = mAff.setAff(i, aff)
+      }
+    }
+    for (i <- 0 until domSp.dim(T_SET)) {
+      var aff = isl.Aff.varOnDomain(isl.LocalSpace.fromSpace(domSp), T_SET, i)
+      mAff = mAff.setAff(tilableDims + i, aff)
+    }
+    val trafo = isl.BasicMap.fromMultiAff(mAff)
+    setSeqTileDims(scop, tilableDims)
+    return schedule.applyRange(trafo)
+  }
+
+  var spamcount : Int = 0 // HACK to reduce the number of warnings generated
+
+  private def setSeqTileDims(scop : Scop, nrTiledDims : Int) : Unit = {
+    val threads = Knowledge.omp_numThreads
+    for (i <- 0 until nrTiledDims) {
+      val tiles : Long =
+        if (scop.origIterationCount != null)
+          scop.origIterationCount(i) / tileSizes(i)
+        else {
+          spamcount += 1
+          if (spamcount < 4)
+            Logger.warn("[PolyOpt]  unable to determine iteration count, check results of LoopOverDimensions.maxIterationCount(); parallelization might be inefficient")
+          else if (spamcount == 4)
+            Logger.warn("[PolyOpt]  unable to determine iteration count; spam protection: suppress further warnings for this problem from now on")
+          if (tileSizes(i) >= 1000000)
+            1
+          else // don't know how much iterations loop have... so assume there are enough to parallelize it...
+            1000
+        }
+      if (tiles != threads && tiles < 2 * threads)
+        scop.noParDims += nrTiledDims - i - 1
+    }
+    if (nrTiledDims > 0 && !Knowledge.poly_tileOuterLoop)
+      scop.noParDims += 0
   }
 
   private def recreateAndInsertAST() : Unit = {
