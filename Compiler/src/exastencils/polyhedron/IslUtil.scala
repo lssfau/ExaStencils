@@ -38,17 +38,35 @@ object Isl {
 
     val dir : String = if (system == "darwin") system else system + '-' + arch
 
+    val markerSuffix : String = ".del"
+
     var Array(fname, fext) = System.mapLibraryName("isl").split('.')
     if (system == "darwin" && fext == "jnilib")
       fext = "dylib"
     val is : InputStream = ClassLoader.getSystemResourceAsStream(dir + '/' + fname + '.' + fext)
 
-    val tmpIslLib = new java.io.File(System.getProperty("java.io.tmpdir"), fname + "-exastencils." + fext)
-    if (tmpIslLib.exists())
-      tmpIslLib.delete() // delete old version from previous run, if it is sill present
+    val tmpLibDir = new java.io.File(System.getProperty("java.io.tmpdir"), "exastencils_native-libs")
+    if (tmpLibDir.exists()) {
+      // remove old libs
+      val markers : Array[java.io.File] =
+        tmpLibDir.listFiles(new java.io.FilenameFilter() {
+          def accept(dir : java.io.File, name : String) : Boolean = {
+            return name.endsWith(markerSuffix)
+          }
+        })
+      for (m <- markers) {
+        var oldLibName : String = m.getName()
+        oldLibName = oldLibName.substring(0, oldLibName.length() - markerSuffix.length())
+        val oldLib = new java.io.File(tmpLibDir, oldLibName)
+        if (!oldLib.exists() || oldLib.delete())
+          m.delete()
+      }
+    } else
+      tmpLibDir.mkdir()
+    val tmpIslLib = java.io.File.createTempFile(fname, '.' + fext, tmpLibDir)
     val fos = new FileOutputStream(tmpIslLib)
 
-    val buffer = new Array[Byte](64 * 2 ^ 10)
+    val buffer = new Array[Byte](65536) // 64 KB
     try {
       Stream.continually(is.read(buffer))
         .takeWhile(_ > 0)
@@ -59,9 +77,16 @@ object Isl {
       is.close()
     }
 
-    tmpIslLib.deleteOnExit()
-
     System.load(tmpIslLib.getAbsolutePath())
+
+    // library loaded, try to delete file now (which should be possible on linux, but not on windows)
+    if (!tmpIslLib.delete()) {
+      // cannot delete temp lib now, mark for later deletion (either when jvm exits normally, or on next run)
+      val marker = new java.io.File(tmpLibDir, tmpIslLib.getName() + markerSuffix)
+      marker.createNewFile()
+      tmpIslLib.deleteOnExit()
+    }
+
     loaded = true
   }
 
