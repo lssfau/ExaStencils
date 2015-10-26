@@ -403,19 +403,6 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     scop.deps.updateInput += { inp => inp.subtract(toRemove) }
   }
 
-  private final val tileSizes = Array(Knowledge.poly_tileSize_x, Knowledge.poly_tileSize_y, Knowledge.poly_tileSize_z, Knowledge.poly_tileSize_w)
-
-  private def getTileVec(dims : Int) : isl.Vec = {
-    var vec = isl.Vec.alloc(Isl.ctx, dims)
-    for (i <- 0 until dims) {
-      var tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(dims - 1 - i) else 1000000000
-      if (tileSize <= 0)
-        tileSize = 1000000000
-      vec = vec.setElementVal(i, tileSize)
-    }
-    return vec
-  }
-
   private def optimize(scop : Scop, confID : Int) : Unit = {
     if (Knowledge.poly_scheduleAlgorithm == "exploration")
       optimizeExpl(scop, confID)
@@ -559,6 +546,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     scop.schedule = Isl.simplify(schedule)
     scop.updateLoopVars()
   }
+
+  private final val tileSizes = Array(Knowledge.poly_tileSize_x, Knowledge.poly_tileSize_y, Knowledge.poly_tileSize_z, Knowledge.poly_tileSize_w)
 
   private def tileSchedule(schedule : isl.UnionMap, scop : Scop, tilableDims : Int) : isl.UnionMap = {
     val sample : isl.BasicMap = schedule.sample()
