@@ -2,13 +2,14 @@ package exastencils.omp
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
 
 trait OMP_PotentiallyCritical
-trait OMP_PotentiallyParallel { var reduction : Option[Reduction]; var addOMPStatements = new ListBuffer[String](); var collapse = 1 }
+trait OMP_PotentiallyParallel { var reduction : Option[Reduction]; var additionalOMPClauses = new ListBuffer[OMP_Clause]; var collapse = 1 }
 
 case class OMP_Barrier() extends Statement {
   override def prettyprint(out : PpStream) : Unit = out << "#pragma omp barrier"
@@ -34,7 +35,7 @@ case object OMP_Critical {
   var counter = 0
 }
 
-case class OMP_ParallelFor(var body : ForLoopStatement, var addOMPStatements : ListBuffer[String], var collapse : Int = 1) extends Statement {
+case class OMP_ParallelFor(var body : ForLoopStatement, var additionalOMPClauses : ListBuffer[OMP_Clause], var collapse : Int = 1) extends Statement {
 
   /**
     * Computes the actual omp collapse level,
@@ -59,7 +60,9 @@ case class OMP_ParallelFor(var body : ForLoopStatement, var addOMPStatements : L
   }
 
   override def prettyprint(out : PpStream) : Unit = {
-    out << "#pragma omp parallel for schedule(static) num_threads(" << Knowledge.omp_numThreads << ')' << addOMPStatements.mkString(" ", " ", "")
+    out << "#pragma omp parallel for schedule(static) num_threads(" << Knowledge.omp_numThreads << ')'
+    if (!additionalOMPClauses.isEmpty)
+      out << ' ' <<< (additionalOMPClauses, " ")
     if (collapse > 1 && Knowledge.omp_version >= 3 && Knowledge.omp_useCollapse)
       out << " collapse(" << getCollapseLvl() << ')'
     out << '\n' << body
@@ -79,4 +82,16 @@ case class OMP_WaitForFlag() extends AbstractFunctionStatement with Expandable {
         new AssignmentStatement(DerefAccess(flag), BooleanConstant(false))),
       false)
   }
+}
+
+abstract class OMP_Clause extends Node with PrettyPrintable
+
+case class OMP_Reduction(var op : String, var target : VariableAccess) extends OMP_Clause {
+  def this(red : Reduction) = this(red.op, red.target)
+  override def prettyprint(out : PpStream) : Unit = out << "reduction(" << op << " : " << target << ')'
+}
+
+case class OMP_Lastprivate(var vars : ListBuffer[VariableAccess]) extends OMP_Clause {
+  def this(v : VariableAccess) = this(ListBuffer(v))
+  override def prettyprint(out : PpStream) : Unit = out << "lastprivate(" <<< (vars, ", ") << ')'
 }
