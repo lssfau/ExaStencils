@@ -46,7 +46,7 @@ object Extractor {
   }
 
   private def extractConstraints(expr : Expression, constraints : StringBuilder, formatString : Boolean,
-    paramConstr : StringBuilder = null, vars : Set[String] = null) : Boolean = {
+    lParConstr : StringBuilder = null, gParConstr : StringBuilder = null, vars : Set[String] = null) : Boolean = {
 
     var bool : Boolean = false
 
@@ -77,36 +77,36 @@ object Extractor {
 
       case b : iv.NeighborIsValid =>
         val islStr : String = ScopNameMapping.expr2id(b)
-        // vars and paramConstr must not be null
+        // vars and glblParConstr must not be null
         vars.add(islStr)
-        paramConstr.append("(0<=").append(islStr).append("<=1)")
-        paramConstr.append(" and ")
+        gParConstr.append("(0<=").append(islStr).append("<=1)")
+        gParConstr.append(" and ")
         constraints.append('(').append(islStr).append("=1)")
 
       case OffsetIndex(min, max, ind, off) =>
         constraints.append('(')
-        bool |= extractConstraints(ind, constraints, formatString, paramConstr, vars)
+        bool |= extractConstraints(ind, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append('+')
-        bool |= extractConstraints(off, constraints, formatString, paramConstr, vars)
+        bool |= extractConstraints(off, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(')')
-        if (paramConstr != null) off match {
+        if (lParConstr != null) off match {
           case _ : VariableAccess | _ : ArrayAccess =>
-            paramConstr.append('(').append(min).append("<=")
-            paramConstr.append(ScopNameMapping.expr2id(off))
-            paramConstr.append("<=").append(max).append(')')
-            paramConstr.append(" and ")
+            lParConstr.append('(').append(min).append("<=")
+            lParConstr.append(ScopNameMapping.expr2id(off))
+            lParConstr.append("<=").append(max).append(')')
+            lParConstr.append(" and ")
 
           case MultiplicationExpression(IntegerConstant(c), arr : ArrayAccess) =>
-            paramConstr.append('(').append(min).append("<=").append(c).append('*')
-            paramConstr.append(ScopNameMapping.expr2id(arr))
-            paramConstr.append("<=").append(max).append(')')
-            paramConstr.append(" and ")
+            lParConstr.append('(').append(min).append("<=").append(c).append('*')
+            lParConstr.append(ScopNameMapping.expr2id(arr))
+            lParConstr.append("<=").append(max).append(')')
+            lParConstr.append(" and ")
 
           case MultiplicationExpression(arr : ArrayAccess, IntegerConstant(c)) =>
-            paramConstr.append('(').append(min).append("<=").append(c).append('*')
-            paramConstr.append(ScopNameMapping.expr2id(arr))
-            paramConstr.append("<=").append(max).append(')')
-            paramConstr.append(" and ")
+            lParConstr.append('(').append(min).append("<=").append(c).append('*')
+            lParConstr.append(ScopNameMapping.expr2id(arr))
+            lParConstr.append("<=").append(max).append(')')
+            lParConstr.append(" and ")
 
           case _ =>
         }
@@ -128,115 +128,115 @@ object Extractor {
         if (vars != null)
           vars.add(islStr)
         constraints.append(islStr)
-        if (paramConstr != null) {
-          paramConstr.append('(').append(islStr).append(">=0)")
-          paramConstr.append(" and ")
+        if (gParConstr != null) {
+          gParConstr.append('(').append(islStr).append(">=0)")
+          gParConstr.append(" and ")
         }
 
       case AdditionExpression(l, r) =>
         constraints.append('(')
-        bool |= extractConstraints(l, constraints, formatString, paramConstr, vars)
+        bool |= extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append('+')
-        bool |= extractConstraints(r, constraints, formatString, paramConstr, vars)
+        bool |= extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(')')
 
       case SubtractionExpression(l, r) =>
         constraints.append('(')
-        bool |= extractConstraints(l, constraints, formatString, paramConstr, vars)
+        bool |= extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append('-')
-        bool |= extractConstraints(r, constraints, formatString, paramConstr, vars)
+        bool |= extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(')')
 
       case MultiplicationExpression(l, r) =>
         constraints.append('(')
-        bool |= extractConstraints(l, constraints, formatString, paramConstr, vars)
+        bool |= extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append('*')
-        bool |= extractConstraints(r, constraints, formatString, paramConstr, vars)
+        bool |= extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(')')
 
       case DivisionExpression(l, r) =>
         constraints.append("floord(")
-        bool |= extractConstraints(l, constraints, formatString, paramConstr, vars)
+        bool |= extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(',')
-        bool |= extractConstraints(r, constraints, formatString, paramConstr, vars)
+        bool |= extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(')')
 
       case ModuloExpression(l, r) =>
         constraints.append('(')
-        bool |= extractConstraints(l, constraints, formatString, paramConstr, vars)
+        bool |= extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append('%')
         if (formatString)
           constraints.append('%')
-        bool |= extractConstraints(r, constraints, formatString, paramConstr, vars)
+        bool |= extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(')')
 
       case NegationExpression(e) =>
         constraints.append("!(")
-        extractConstraints(e, constraints, formatString, paramConstr, vars)
+        extractConstraints(e, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
 
       case LowerExpression(l, r) =>
         constraints.append('(')
-        extractConstraints(l, constraints, formatString, paramConstr, vars)
+        extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append('<')
-        extractConstraints(r, constraints, formatString, paramConstr, vars)
+        extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
 
       case LowerEqualExpression(l, r) =>
         constraints.append('(')
-        extractConstraints(l, constraints, formatString, paramConstr, vars)
+        extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append("<=")
-        extractConstraints(r, constraints, formatString, paramConstr, vars)
+        extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
 
       case GreaterEqualExpression(l, r) =>
         constraints.append('(')
-        extractConstraints(l, constraints, formatString, paramConstr, vars)
+        extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(">=")
-        extractConstraints(r, constraints, formatString, paramConstr, vars)
+        extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
 
       case GreaterExpression(l, r) =>
         constraints.append('(')
-        extractConstraints(l, constraints, formatString, paramConstr, vars)
+        extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append('>')
-        extractConstraints(r, constraints, formatString, paramConstr, vars)
+        extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
 
       case EqEqExpression(l, r) =>
         constraints.append('(')
-        extractConstraints(l, constraints, formatString, paramConstr, vars)
+        extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append('=')
-        extractConstraints(r, constraints, formatString, paramConstr, vars)
+        extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
 
       case NeqExpression(l, r) =>
         constraints.append('(')
-        extractConstraints(l, constraints, formatString, paramConstr, vars)
+        extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append("!=")
-        extractConstraints(r, constraints, formatString, paramConstr, vars)
+        extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
 
       case AndAndExpression(l, r) =>
         constraints.append('(')
-        extractConstraints(l, constraints, formatString, paramConstr, vars)
+        extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(" and ")
-        extractConstraints(r, constraints, formatString, paramConstr, vars)
+        extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
 
       case OrOrExpression(l, r) =>
         constraints.append('(')
-        extractConstraints(l, constraints, formatString, paramConstr, vars)
+        extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(" or ")
-        extractConstraints(r, constraints, formatString, paramConstr, vars)
+        extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
 
@@ -320,11 +320,12 @@ class Extractor extends Collector {
     private final val formatterResult : java.lang.StringBuilder = new java.lang.StringBuilder()
     private final val formatter = new java.util.Formatter(formatterResult)
 
-    def create(root : LoopOverDimensions, context : isl.Set, optLevel : Int, origLoopVars : ArrayBuffer[String],
-      modelLoopVars : String, setTempl : String, mapTempl : String, mergeWithPrev : Boolean) : Unit = {
+    def create(root : LoopOverDimensions, localContext : isl.Set, globalContext : isl.Set, optLevel : Int,
+      origLoopVars : ArrayBuffer[String], modelLoopVars : String, setTempl : String, mapTempl : String,
+      mergeWithPrev : Boolean) : Unit = {
 
-      this.scop_ = new Scop(root, context, optLevel, Knowledge.omp_parallelizeLoopOverDimensions && root.parallelizationIsReasonable,
-        root.maxIterationCount())
+      this.scop_ = new Scop(root, localContext, globalContext, optLevel,
+        Knowledge.omp_parallelizeLoopOverDimensions && root.parallelizationIsReasonable, root.maxIterationCount())
       if (mergeWithPrev)
         scops.last.nextMerge = this.scop_
       this.modelLoopVars_ = modelLoopVars
@@ -563,18 +564,19 @@ class Extractor extends Collector {
     val params = new HashSet[String]()
     val modelLoopVars = new ArrayStack[String]()
     val constrs = new StringBuilder()
-    val paramConstrs = new StringBuilder()
+    val locCtxConstrs = new StringBuilder()
+    val gloCtxConstrs = new StringBuilder()
 
     val origLoopVars = new ArrayBuffer[String]()
 
     var bool : Boolean = false
     var i : Int = 0
     do {
-      bool |= extractConstraints(begin(i), constrs, true, paramConstrs, params)
+      bool |= extractConstraints(begin(i), constrs, true, locCtxConstrs, gloCtxConstrs, params)
       constrs.append("<=")
       constrs.append(ScopNameMapping.expr2id(new VariableAccess(dimToString(i), IntegerDatatype)))
       constrs.append('<')
-      bool |= extractConstraints(end(i), constrs, true, paramConstrs, params)
+      bool |= extractConstraints(end(i), constrs, true, locCtxConstrs, gloCtxConstrs, params)
       constrs.append(" and ")
       val lVar : Expression = loopVarExps(i)
       modelLoopVars.push(ScopNameMapping.expr2id(lVar))
@@ -586,7 +588,7 @@ class Extractor extends Collector {
       throw new ExtractionException("loop bounds contain (in)equalities")
 
     if (loop.condition.isDefined)
-      extractConstraints(loop.condition.get, constrs, true, paramConstrs, params)
+      extractConstraints(loop.condition.get, constrs, true, locCtxConstrs, gloCtxConstrs, params)
     else
       constrs.delete(constrs.length - (" and ".length()), constrs.length)
 
@@ -602,13 +604,21 @@ class Extractor extends Collector {
       templateBuilder.deleteCharAt(templateBuilder.length - 1)
     templateBuilder.append("]->{")
 
-    // create context
+    // create local context
     var tmp : Int = templateBuilder.length
     templateBuilder.append(':')
-    if (!paramConstrs.isEmpty)
-      templateBuilder.append(paramConstrs.delete(paramConstrs.length - (" and ".length()), paramConstrs.length))
+    if (!locCtxConstrs.isEmpty)
+      templateBuilder.append(locCtxConstrs.delete(locCtxConstrs.length - (" and ".length()), locCtxConstrs.length))
     templateBuilder.append('}')
-    val context = isl.Set.readFromStr(Isl.ctx, templateBuilder.toString())
+    val localContext = isl.Set.readFromStr(Isl.ctx, templateBuilder.toString())
+
+    // create global context
+    templateBuilder.delete(tmp, templateBuilder.length)
+    templateBuilder.append(':')
+    if (!gloCtxConstrs.isEmpty)
+      templateBuilder.append(gloCtxConstrs.delete(gloCtxConstrs.length - (" and ".length()), gloCtxConstrs.length))
+    templateBuilder.append('}')
+    val globalContext = isl.Set.readFromStr(Isl.ctx, templateBuilder.toString())
 
     // continue with templates
     templateBuilder.delete(tmp, templateBuilder.length)
@@ -629,7 +639,7 @@ class Extractor extends Collector {
     templateBuilder.append("->%s[%s]}")
     val mapTemplate : String = templateBuilder.toString()
 
-    curScop.create(loop, context, loop.optLevel, origLoopVars, modelLoopVars.mkString(","), setTemplate, mapTemplate, mergeWithPrev)
+    curScop.create(loop, localContext, globalContext, loop.optLevel, origLoopVars, modelLoopVars.mkString(","), setTemplate, mapTemplate, mergeWithPrev)
   }
 
   private def leaveLoop(loop : LoopOverDimensions) : Unit = {

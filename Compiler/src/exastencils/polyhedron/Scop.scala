@@ -11,12 +11,13 @@ import isl.Conversions._
 
 // since Scop can be cloned by Duplicate make sure NONE of the isl wrapper objects it uses is cloned by it
 //   (register all required classes as not cloneable in IslUtil.scala)
-class Scop(val root : LoopOverDimensions, var context : isl.Set, var optLevel : Int, var parallelize : Boolean,
-    var origIterationCount : Array[Long]) {
+class Scop(val root : LoopOverDimensions, var localContext : isl.Set, var globalContext : isl.Set, var optLevel : Int,
+    var parallelize : Boolean, var origIterationCount : Array[Long]) {
 
   var nextMerge : Scop = null
   var remove : Boolean = false
 
+  def getContext() : isl.Set = localContext.intersect(globalContext)
   var domain : isl.UnionSet = null
   var schedule : isl.UnionMap = null
   val stmts = new HashMap[String, (ListBuffer[Statement], ArrayBuffer[String])]()
