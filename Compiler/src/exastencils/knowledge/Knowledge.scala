@@ -236,12 +236,12 @@ object Knowledge {
   var poly_optLevel_fine : Int = 0 // [0~3§poly_optLevel_fine+1] // poly opt-level for poly_numFinestLevels finest fields
   var poly_optLevel_coarse : Int = 0 // [0~poly_optLevel_fine§poly_optLevel_coarse+1] // polyhedral optimization level for coarsest fields  0: disable (fastest);  3: aggressive (slowest)
   var poly_numFinestLevels : Int = 2 // [1~numLevels§poly_numFinestLevels+1] // number of levels that should be optimized in PolyOpt (starting from the finest)
-  var poly_tileSize_x : Int = 1000000000 // [112~1000000000 $32§poly_tileSize_x+32]
-  var poly_tileSize_y : Int = 1000000000 // [16~1000000000 $32§poly_tileSize_y+32]
-  var poly_tileSize_z : Int = 1000000000 // [16~1000000000 $32§poly_tileSize_z+32]
-  var poly_tileSize_w : Int = 1000000000 // [16~1000000000 $32§poly_tileSize_w+32]
+  var poly_tileSize_x : Int = 0 // [112~1000000000 $32§poly_tileSize_x+32] // '0' means no tiling at all in this dimension
+  var poly_tileSize_y : Int = 0 // [16~1000000000 $32§poly_tileSize_y+32]
+  var poly_tileSize_z : Int = 0 // [16~1000000000 $32§poly_tileSize_z+32]
+  var poly_tileSize_w : Int = 0 // [16~1000000000 $32§poly_tileSize_w+32]
   var poly_tileOuterLoop : Boolean = false // [true|false] // specify separately if the outermost loop should be tiled
-  var poly_scheduleAlgorithm : String = "isl" // [isl|feautrier] // choose which schedule algorithm should be used in PolyOpt
+  var poly_scheduleAlgorithm : String = "isl" // [isl|feautrier|exploration] // choose which schedule algorithm should be used in PolyOpt
   var poly_optimizeDeps : String = "raw" // [all|raw|rar] // specifies which dependences should be optimized; "all" means all validity dependences (raw, war, waw)
   var poly_filterDeps : Boolean = false // [true|false] // specifies if the dependences to optimize should be filtered first
   var poly_simplifyDeps : Boolean = true // [true|false] // simplify dependences before computing a new schedule; this reduces PolyOpt run-time, but it could also lead to slower generated code
@@ -338,6 +338,8 @@ object Knowledge {
   var experimental_resolveUnreqFragmentLoops : Boolean = false
 
   var experimental_allowCommInFragLoops : Boolean = false
+
+  var experimental_genVariableFieldSizes : Boolean = false
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {
@@ -463,7 +465,7 @@ object Knowledge {
 
       // l3tmp - temporal blocking
       Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, experimental_Neumann, "l3tmp_genTemporalBlocking is currently not compatible with Neumann boundary conditions")
-      Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_genCellBasedDiscr, "l3tmp_genTemporalBlocking is currently not compatible with cell based discretizations")
+//      Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_genCellBasedDiscr, "l3tmp_genTemporalBlocking is currently not compatible with cell based discretizations")
       Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, "RBGS" == l3tmp_smoother, "l3tmp_genTemporalBlocking is currently not compatible with RBGS smoothers")
       Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_numPre != l3tmp_numPost, "l3tmp_numPre and l3tmp_numPost have to be equal")
       Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, math.ceil(math.log(l3tmp_numPre) / math.log(2)).toInt,
@@ -498,6 +500,9 @@ object Knowledge {
 
     Constraints.condEnsureValue(experimental_useLevelIndepFcts, false, "Zero" != l3tmp_exactSolution, "level independent communication functions are not compatible with non-trivial boundary conditions")
     Constraints.condEnsureValue(mpi_useCustomDatatypes, false, experimental_useLevelIndepFcts, "MPI data types cannot be used in combination with level independent communication functions yet")
+    Constraints.condEnsureValue(experimental_genVariableFieldSizes, true, experimental_useLevelIndepFcts, "level independent communication functions require variable field sizes")
+    Constraints.condEnsureValue(mpi_useCustomDatatypes, false, experimental_genVariableFieldSizes, "MPI data types cannot be used in combination with variable field sizes yet")
+    Constraints.condWarn(experimental_genVariableFieldSizes && poly_optLevel_fine > 0, "experimental_genVariableFieldSizes in combination with poly_opt is currently highly experimental and not recommended")
 
     Constraints.condEnsureValue(mpi_useBusyWait, true, experimental_allowCommInFragLoops && domain_numFragmentsPerBlock > 1, s"mpi_useBusyWait must be true when experimental_allowCommInFragLoops is used in conjunction with multiple fragments per block")
     Constraints.condWarn(comm_disableLocalCommSync && experimental_allowCommInFragLoops, s"comm_disableLocalCommSynchronization in conjunction with experimental_allowCommInFragLoops is strongly discouraged")

@@ -20,6 +20,8 @@ object Settings {
   def defL4file : String = if ("" == basePathPrefix) "../Compiler/dsl/Layer4.exa" else getBasePath + "Compiler/dsl/Layer4.exa"
   def getL4file : String = if (l4file.isEmpty) defL4file else getBasePath + l4file
 
+  var poly_explorationConfig : String = "" // config file for polyhedral search space exploration
+
   /// output
   var outputPath : String = ""
   def defOutputPath : String = if ("" == basePathPrefix) { if ("MSVC" == Knowledge.targetCompiler) "../generated" else "/tmp/" } else getBasePath + "generated/"
@@ -48,6 +50,8 @@ object Settings {
   var additionalLibs : ListBuffer[String] = ListBuffer()
 
   var additionalDefines : ListBuffer[String] = ListBuffer()
+
+  var additionalMacros : ListBuffer[String] = ListBuffer() // which are available in all generated code parts
 
   /// generation process
   var failOnConstraint : Boolean = false

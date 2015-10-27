@@ -123,6 +123,16 @@ object Extractor {
       //          paramConstr.append('+').append(max).append(')')
       //        }
 
+      case iff : iv.IndexFromField =>
+        val islStr : String = ScopNameMapping.expr2id(iff)
+        if (vars != null)
+          vars.add(islStr)
+        constraints.append(islStr)
+        if (paramConstr != null) {
+          paramConstr.append('(').append(islStr).append(">=0)")
+          paramConstr.append(" and ")
+        }
+
       case AdditionExpression(l, r) =>
         constraints.append('(')
         bool |= extractConstraints(l, constraints, formatString, paramConstr, vars)
@@ -343,7 +353,7 @@ class Extractor extends Collector {
     def buildIslSet(tupleName : String) : isl.Set = {
       formatterResult.delete(0, Int.MaxValue)
       formatter.format(setTemplate_, tupleName)
-      val set = new isl.Set(formatterResult.toString())
+      val set = isl.Set.readFromStr(Isl.ctx, formatterResult.toString())
       return set
     }
 
@@ -351,8 +361,12 @@ class Extractor extends Collector {
     def buildIslMap(inTupleName : String, outTupleName : String, out : String) : isl.Map = {
       formatterResult.delete(0, Int.MaxValue)
       formatter.format(mapTemplate_, inTupleName, outTupleName, out)
-      val map = new isl.Map(formatterResult.toString())
-      return map
+      try {
+        return isl.Map.readFromStr(Isl.ctx, formatterResult.toString())
+      } catch {
+        case e : isl.IslException =>
+          throw new ExtractionException("error in map creation (maybe not affine?):  " + e.getMessage())
+      }
     }
 
     def finish() : Scop = {
@@ -459,6 +473,12 @@ class Extractor extends Collector {
             index.annotate(SKIP_ANNOT)
             enterFieldAccess(fieldSelection, index)
 
+          case TempBufferAccess(buffer, index, extent) =>
+            buffer.annotate(SKIP_ANNOT)
+            index.annotate(SKIP_ANNOT)
+            extent.annotate(SKIP_ANNOT)
+            enterTempBufferAccess(buffer, index)
+
           case d : VariableDeclarationStatement =>
             d.dataType.annotate(SKIP_ANNOT)
             enterDecl(d)
@@ -510,7 +530,7 @@ class Extractor extends Collector {
       case _ : VariableAccess               => leaveScalarAccess()
       case _ : ArrayAccess                  => leaveArrayAccess()
       case _ : DirectFieldAccess            => leaveFieldAccess()
-      case _ : FieldAccess                  => leaveFieldAccess()
+      case _ : TempBufferAccess             => leaveTempBufferAccess()
       case _ : VariableDeclarationStatement => leaveDecl()
       case _                                =>
     }
@@ -588,7 +608,7 @@ class Extractor extends Collector {
     if (!paramConstrs.isEmpty)
       templateBuilder.append(paramConstrs.delete(paramConstrs.length - (" and ".length()), paramConstrs.length))
     templateBuilder.append('}')
-    val context = isl.Set.readFromStr(templateBuilder.toString())
+    val context = isl.Set.readFromStr(Isl.ctx, templateBuilder.toString())
 
     // continue with templates
     templateBuilder.delete(tmp, templateBuilder.length)
@@ -745,9 +765,8 @@ class Extractor extends Collector {
   }
 
   private def enterFieldAccess(fSel : FieldSelection, index : MultiIndex) : Unit = {
-
     val name = new StringBuilder("field")
-    name.append('_').append(fSel.field.identifier).append(fSel.field.level)
+    name.append('_').append(fSel.field.identifier).append(fSel.field.index).append('_').append(fSel.field.level)
     name.append("_l").append(fSel.level.prettyprint()).append('a').append(fSel.arrayIndex)
     name.append('_').append(fSel.fragIdx.prettyprint()).append('_')
     fSel.slot match {
@@ -758,6 +777,19 @@ class Extractor extends Collector {
   }
 
   private def leaveFieldAccess() : Unit = {
+    leaveArrayAccess()
+  }
+
+  private def enterTempBufferAccess(buffer : iv.TmpBuffer, index : MultiIndex) : Unit = {
+    val name = new StringBuilder("buffer")
+    name.append('_').append(buffer.direction)
+    name.append('_').append(buffer.field.identifier).append(buffer.field.index).append('_').append(buffer.field.level)
+    name.append("_n").append(buffer.neighIdx.prettyprint())
+    name.append("_f").append(buffer.fragmentIdx.prettyprint())
+    enterArrayAccess(name.toString(), index)
+  }
+
+  private def leaveTempBufferAccess() : Unit = {
     leaveArrayAccess()
   }
 

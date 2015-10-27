@@ -30,8 +30,8 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
 
   def getFortranCompDT() : Datatype = {
     var dt : Datatype = dest.dataType
-    for (d <- 0 until Knowledge.dimensionality)
-      dt = ArrayDatatype(dt, dest.fieldLayout.layoutsPerDim(d).evalTotal)
+    for (dim <- 0 until Knowledge.dimensionality)
+      dt = ArrayDatatype_VS(dt, dest.fieldLayout.idxById("TOT", dim))
 
     if (dest.vectorSize > 1)
       dt = ArrayDatatype(dt, dest.vectorSize)
@@ -53,8 +53,8 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
       ListBuffer(new VariableAccess("dest", Some(externalDT)), new VariableAccess("slot", Some(IntegerDatatype))),
       ListBuffer[Statement](
         new LoopOverDimensions(loopDim, new IndexRange(
-          new MultiIndex((0 until loopDim).toArray.map(i => src.fieldLayout(i).idxGhostLeftBegin)),
-          new MultiIndex((0 until loopDim).toArray.map(i => src.fieldLayout(i).idxGhostRightEnd))),
+          new MultiIndex((0 until loopDim).toArray.map(dim => src.fieldLayout.idxById("GLB", dim))),
+          new MultiIndex((0 until loopDim).toArray.map(dim => src.fieldLayout.idxById("GRE", dim)))),
           new AssignmentStatement(ExternalFieldAccess("dest", dest, Duplicate(multiIndex)),
             DirectFieldAccess(FieldSelection(src, src.level, "slot"), Duplicate(multiIndex)))) with OMP_PotentiallyParallel with PolyhedronAccessable),
       false, true)
@@ -67,8 +67,8 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
 
   def getFortranCompDT() : Datatype = {
     var dt : Datatype = src.dataType
-    for (d <- 0 until Knowledge.dimensionality)
-      dt = ArrayDatatype(dt, src.fieldLayout.layoutsPerDim(d).evalTotal)
+    for (dim <- 0 until Knowledge.dimensionality)
+      dt = ArrayDatatype_VS(dt, src.fieldLayout.idxById("TOT", dim))
 
     if (src.vectorSize > 1)
       dt = ArrayDatatype(dt, src.vectorSize)
@@ -90,8 +90,8 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
       ListBuffer(new VariableAccess("src", Some(externalDT)), new VariableAccess("slot", Some(IntegerDatatype))),
       ListBuffer[Statement](
         new LoopOverDimensions(loopDim, new IndexRange(
-          new MultiIndex((0 until loopDim).toArray.map(i => dest.fieldLayout(i).idxGhostLeftBegin)),
-          new MultiIndex((0 until loopDim).toArray.map(i => dest.fieldLayout(i).idxGhostRightEnd))),
+          new MultiIndex((0 until loopDim).toArray.map(dim => dest.fieldLayout.idxById("GLB", dim))),
+          new MultiIndex((0 until loopDim).toArray.map(dim => dest.fieldLayout.idxById("GRE", dim)))),
           new AssignmentStatement(DirectFieldAccess(FieldSelection(dest, dest.level, "slot"), Duplicate(multiIndex)),
             ExternalFieldAccess("src", src, Duplicate(multiIndex)))) with OMP_PotentiallyParallel with PolyhedronAccessable),
       false, true)

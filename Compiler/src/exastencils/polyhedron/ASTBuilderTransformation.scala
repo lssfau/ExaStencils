@@ -22,9 +22,9 @@ class ASTBuilderTransformation(replaceCallback : (Map[String, Expression], Node)
 private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression], Node) => Unit)
     extends PartialFunction[Node, Transformation.OutputType] {
 
-  private final val ZERO_VAL : isl.Val = isl.Val.zero()
-  private final val ONE_VAL : isl.Val = isl.Val.one()
-  private final val NEG_ONE_VAL : isl.Val = isl.Val.negone()
+  private final val ZERO_VAL : isl.Val = isl.Val.zero(Isl.ctx)
+  private final val ONE_VAL : isl.Val = isl.Val.one(Isl.ctx)
+  private final val NEG_ONE_VAL : isl.Val = isl.Val.negone(Isl.ctx)
 
   private val loopStmts = new HashMap[String, ListBuffer[OptimizationHint]]()
   private var oldStmts : HashMap[String, (ListBuffer[Statement], ArrayBuffer[String])] = null
@@ -114,16 +114,16 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     options.append('}')
 
     // build iterators list
-    var itersId : isl.IdList = isl.IdList.alloc(dims)
+    var itersId : isl.IdList = isl.IdList.alloc(Isl.ctx, dims)
     for (i <- 0 until dims)
-      itersId = itersId.add(isl.Id.alloc(scop.njuLoopVars(i), null))
+      itersId = itersId.add(isl.Id.alloc(Isl.ctx, scop.njuLoopVars(i)))
 
     loopStmts.clear()
     oldStmts = scop.stmts
 
     // build AST
     var islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.context)
-    islBuild = islBuild.setOptions(isl.UnionMap.readFromStr(options.toString()))
+    islBuild = islBuild.setOptions(isl.UnionMap.readFromStr(Isl.ctx, options.toString()))
     islBuild = islBuild.setIterators(itersId)
     var scattering : isl.UnionMap = Isl.simplify(scop.schedule.intersectDomain(scop.domain))
     val islNode : isl.AstNode = islBuild.astFromSchedule(scattering)
@@ -169,16 +169,16 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
 
     return node.getType() match {
 
-      case isl.AstNodeType.NodeFor =>
+      case isl.AstNodeType.For =>
         if (node.forIsDegenerate()) {
           val islIt : isl.AstExpr = node.forGetIterator()
-          assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
+          assume(islIt.getType() == isl.AstExprType.Id, "isl for node iterator is not an ExprId")
           val decl : Statement = new VariableDeclarationStatement(IntegerDatatype, islIt.getId().getName(), processIslExpr(node.forGetInit()))
           processIslNode(node.forGetBody()).+=:(decl)
 
         } else {
           val islIt : isl.AstExpr = node.forGetIterator()
-          assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
+          assume(islIt.getType() == isl.AstExprType.Id, "isl for node iterator is not an ExprId")
           val itStr : String = islIt.getId().getName()
           val parOMP : Boolean = parallelize_omp && !seqDims.contains(itStr)
           parallelize_omp &= !parOMP // if code must be parallelized, then now (parNow) XOR later (parallelize)
@@ -199,7 +199,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
           ListBuffer[Statement](loop)
         }
 
-      case isl.AstNodeType.NodeIf =>
+      case isl.AstNodeType.If =>
         val cond : Expression = processIslExpr(node.ifGetCond())
         val thenBranch : ListBuffer[Statement] = processIslNode(node.ifGetThen())
         if (node.ifHasElse()) {
@@ -208,14 +208,14 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
         } else
           ListBuffer[Statement](new ConditionStatement(cond, thenBranch))
 
-      case isl.AstNodeType.NodeBlock =>
+      case isl.AstNodeType.Block =>
         val stmts = new ListBuffer[Statement]
-        node.blockGetChildren().foreach({ stmt : isl.AstNode => stmts ++= processIslNode(stmt); () })
+        node.blockGetChildren().foreach({ stmt : isl.AstNode => stmts ++= processIslNode(stmt) })
         stmts
 
-      case isl.AstNodeType.NodeUser =>
+      case isl.AstNodeType.User =>
         val expr : isl.AstExpr = node.userGetExpr()
-        assume(expr.getOpType() == isl.AstOpType.OpCall, "user node is no OpCall?!")
+        assume(expr.getOpType() == isl.AstOpType.Call, "user node is no OpCall?!")
         val args : Array[Expression] = processArgs(expr)
         val name : String = args(0).asInstanceOf[StringConstant].value
         val (oldStmt : ListBuffer[Statement], loopVars : ArrayBuffer[String]) = oldStmts(name)
@@ -233,19 +233,19 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
           }
         stmts
 
-      case isl.AstNodeType.NodeError => throw new PolyASTBuilderException("NodeError found...")
+      case isl.AstNodeType.Error => throw new PolyASTBuilderException("NodeError found...")
     }
   }
 
   private def processIslExpr(expr : isl.AstExpr) : Expression = {
 
     return expr.getType() match { // TODO: check if ExprId contains only variable identifier
-      case isl.AstExprType.ExprId =>
+      case isl.AstExprType.Id =>
         val id : String = expr.getId().getName()
         ScopNameMapping.id2expr(id).getOrElse(StringConstant(id))
-      case isl.AstExprType.ExprInt   => IntegerConstant(expr.getVal().toString().toLong)
-      case isl.AstExprType.ExprOp    => processIslExprOp(expr)
-      case isl.AstExprType.ExprError => throw new PolyASTBuilderException("ExprError found...")
+      case isl.AstExprType.Int   => IntegerConstant(expr.getVal().toString().toLong)
+      case isl.AstExprType.Op    => processIslExprOp(expr)
+      case isl.AstExprType.Error => throw new PolyASTBuilderException("ExprError found...")
     }
   }
 
@@ -256,35 +256,36 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     val n : Int = args.length
 
     return expr.getOpType() match {
-      case isl.AstOpType.OpEq if n == 2 && args(0).isInstanceOf[iv.NeighborIsValid] =>
+      case isl.AstOpType.Eq if n == 2 && args(0).isInstanceOf[iv.NeighborIsValid] =>
         args(1) match {
           case IntegerConstant(1) => args(0)
           case IntegerConstant(0) => new NegationExpression(args(0))
         }
 
-      case isl.AstOpType.OpAndThen if n == 2 => new AndAndExpression(args(0), args(1))
-      case isl.AstOpType.OpAnd if n == 2     => new AndAndExpression(args(0), args(1))
-      case isl.AstOpType.OpOrElse if n == 2  => new OrOrExpression(args(0), args(1))
-      case isl.AstOpType.OpOr if n == 2      => new OrOrExpression(args(0), args(1))
-      case isl.AstOpType.OpMinus if n == 1   => new NegativeExpression(args(0))
-      case isl.AstOpType.OpAdd if n == 2     => new AdditionExpression(args(0), args(1))
-      case isl.AstOpType.OpSub if n == 2     => new SubtractionExpression(args(0), args(1))
-      case isl.AstOpType.OpMul if n == 2     => new MultiplicationExpression(args(0), args(1))
-      case isl.AstOpType.OpDiv if n == 2     => new DivisionExpression(args(0), args(1))
-      case isl.AstOpType.OpFdivQ if n == 2   => new DivisionExpression(args(0), args(1)) // TODO: ensure integer division; round to -inf for negative
-      case isl.AstOpType.OpPdivQ if n == 2   => new DivisionExpression(args(0), args(1)) // TODO: ensure integer division
-      case isl.AstOpType.OpPdivR if n == 2   => new ModuloExpression(args(0), args(1))
-      case isl.AstOpType.OpCond if n == 3    => new TernaryConditionExpression(args(0), args(1), args(2))
-      case isl.AstOpType.OpEq if n == 2      => new EqEqExpression(args(0), args(1))
-      case isl.AstOpType.OpLe if n == 2      => new LowerEqualExpression(args(0), args(1))
-      case isl.AstOpType.OpLt if n == 2      => new LowerExpression(args(0), args(1))
-      case isl.AstOpType.OpGe if n == 2      => new GreaterEqualExpression(args(0), args(1))
-      case isl.AstOpType.OpGt if n == 2      => new GreaterExpression(args(0), args(1))
-      case isl.AstOpType.OpMax if n >= 2     => new MaximumExpression(args : _*)
-      case isl.AstOpType.OpMin if n >= 2     => new MinimumExpression(args : _*)
-      case isl.AstOpType.OpSelect if n == 3  => new TernaryConditionExpression(args(0), args(1), args(2))
+      case isl.AstOpType.AndThen if n == 2 => new AndAndExpression(args(0), args(1))
+      case isl.AstOpType.And if n == 2     => new AndAndExpression(args(0), args(1))
+      case isl.AstOpType.OrElse if n == 2  => new OrOrExpression(args(0), args(1))
+      case isl.AstOpType.Or if n == 2      => new OrOrExpression(args(0), args(1))
+      case isl.AstOpType.Minus if n == 1   => new NegativeExpression(args(0))
+      case isl.AstOpType.Add if n == 2     => new AdditionExpression(args(0), args(1))
+      case isl.AstOpType.Sub if n == 2     => new SubtractionExpression(args(0), args(1))
+      case isl.AstOpType.Mul if n == 2     => new MultiplicationExpression(args(0), args(1))
+      case isl.AstOpType.Div if n == 2     => new DivisionExpression(args(0), args(1))
+      case isl.AstOpType.FdivQ if n == 2   => new FunctionCallExpression("floord", args(0), args(1)) // TODO: ensure integer division
+      case isl.AstOpType.PdivQ if n == 2   => new DivisionExpression(args(0), args(1)) // TODO: ensure integer division
+      case isl.AstOpType.PdivR if n == 2   => new ModuloExpression(args(0), args(1))
+      case isl.AstOpType.ZdivR if n == 2   => new ModuloExpression(args(0), args(1)) // isl doc: Equal to zero iff the remainder on integer division is zero.
+      case isl.AstOpType.Cond if n == 3    => new TernaryConditionExpression(args(0), args(1), args(2))
+      case isl.AstOpType.Eq if n == 2      => new EqEqExpression(args(0), args(1))
+      case isl.AstOpType.Le if n == 2      => new LowerEqualExpression(args(0), args(1))
+      case isl.AstOpType.Lt if n == 2      => new LowerExpression(args(0), args(1))
+      case isl.AstOpType.Ge if n == 2      => new GreaterEqualExpression(args(0), args(1))
+      case isl.AstOpType.Gt if n == 2      => new GreaterExpression(args(0), args(1))
+      case isl.AstOpType.Max if n >= 2     => new MaximumExpression(args : _*)
+      case isl.AstOpType.Min if n >= 2     => new MinimumExpression(args : _*)
+      case isl.AstOpType.Select if n == 3  => new TernaryConditionExpression(args(0), args(1), args(2))
 
-      case isl.AstOpType.OpCall if n >= 1 =>
+      case isl.AstOpType.Call if n >= 1 =>
         val fArgs = ListBuffer[Expression](args : _*)
         fArgs.remove(0)
         FunctionCallExpression(args(0).asInstanceOf[StringConstant].value, fArgs)

@@ -129,7 +129,10 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         insideFragLoop = false
       }
 
-      var functionName = if (Knowledge.experimental_useLevelIndepFcts) s"applyBCs${applyBCsStatement.field.field.identifier}" else s"applyBCs${applyBCsStatement.field.codeName}"
+      var functionName = (if (Knowledge.experimental_useLevelIndepFcts)
+        s"applyBCs${applyBCsStatement.field.field.identifier}"
+      else
+        s"applyBCs${applyBCsStatement.field.codeName}")
       if (insideFragLoop) functionName += "_ifl"
 
       if (!addedFunctions.contains(functionName)) {

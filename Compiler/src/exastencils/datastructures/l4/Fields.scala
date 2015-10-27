@@ -9,7 +9,7 @@ import exastencils.logger._
 case class LayoutOption(var name : String, var value : Index, var hasCommunication : Option[Boolean]) extends Node
 
 case class LayoutDeclarationStatement(
-    var identifier : Identifier,
+    override var identifier : Identifier,
     var datatype : Datatype,
     var discretization : String,
     var ghostLayers : Option[Index] = None,
@@ -63,7 +63,7 @@ case class LayoutDeclarationStatement(
   var default_ghostComm : Boolean = false
   var default_dupComm : Boolean = false
 
-  def prettyprint(out : PpStream) = {
+  override def prettyprint(out : PpStream) = {
     out << "Layout " << identifier.name << "< " << datatype << " >" << '@' << identifier.asInstanceOf[LeveledIdentifier].level << " {\n"
     if (ghostLayers.isDefined) out << "ghostLayers = " << ghostLayers.get << (if (ghostLayersCommunication.getOrElse(false)) " with communication" else "") << '\n'
     if (duplicateLayers.isDefined) out << "duplicateLayers = " << duplicateLayers.get << (if (duplicateLayersCommunication.getOrElse(false)) " with communication" else "") << '\n'
@@ -71,7 +71,7 @@ case class LayoutDeclarationStatement(
     out << "}\n"
   }
 
-  def progressToIr : knowledge.FieldLayout = progressToIr("GENERIC")
+  override def progressToIr : knowledge.FieldLayout = progressToIr("GENERIC")
 
   def progressToIr(targetFieldName : String) : knowledge.FieldLayout = {
     val level = identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level
@@ -146,23 +146,26 @@ case class LayoutDeclarationStatement(
         l4_ghostLayers(dim),
         0 // default, only first requires != 0
         ))
+
     if (knowledge.Knowledge.data_alignFieldPointers) {
       // add padding only for innermost dimension
       val innerLayout : knowledge.FieldLayoutPerDim = layouts(0)
-      innerLayout.numPadLayersLeft = (knowledge.Knowledge.simd_vectorSize - innerLayout.idxDupLeftBegin % knowledge.Knowledge.simd_vectorSize) % knowledge.Knowledge.simd_vectorSize
-      innerLayout.numPadLayersRight = (knowledge.Knowledge.simd_vectorSize - innerLayout.evalTotal % knowledge.Knowledge.simd_vectorSize) % knowledge.Knowledge.simd_vectorSize
-      for (layout <- layouts) // update total after potentially changing padding
-        layout.total = ir.IntegerConstant(layout.evalTotal)
+      innerLayout.numPadLayersLeft = (knowledge.Knowledge.simd_vectorSize - innerLayout.numGhostLayersLeft % knowledge.Knowledge.simd_vectorSize) % knowledge.Knowledge.simd_vectorSize
+      val total = innerLayout.numPadLayersLeft + innerLayout.numGhostLayersLeft + innerLayout.numDupLayersLeft + innerLayout.numInnerLayers + innerLayout.numDupLayersRight + innerLayout.numGhostLayersRight
+      innerLayout.numPadLayersRight = (knowledge.Knowledge.simd_vectorSize - total % knowledge.Knowledge.simd_vectorSize) % knowledge.Knowledge.simd_vectorSize
     }
 
     // support vector data types
     layouts ++= Array(new knowledge.FieldLayoutPerDim(0, 0, 0, datatype.progressToIr.resolveFlattendSize, 0, 0, 0))
 
+    // set/ update total
+    for (layout <- layouts) layout.updateTotal
+
     // determine reference offset
     // TODO: this should work for now but may be adapted in the future
     var refOffset = new ir.MultiIndex
     for (dim <- 0 until knowledge.Knowledge.dimensionality)
-      refOffset(dim) = ir.IntegerConstant(layouts(dim).idxDupLeftBegin)
+      refOffset(dim) = ir.IntegerConstant(layouts(dim).numPadLayersLeft + layouts(dim).numGhostLayersLeft)
     refOffset(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(0)
 
     // adapt discretization for low-dimensional primitives
@@ -185,14 +188,14 @@ case class LayoutDeclarationStatement(
 }
 
 case class FieldDeclarationStatement(
-    var identifier : Identifier,
+    override var identifier : Identifier,
     var domain : String,
     var layout : String,
     var boundary : Option[Expression],
     var slots : Integer,
     var index : Int = 0) extends SpecialStatement with HasIdentifier {
 
-  def prettyprint(out : PpStream) = {
+  override def prettyprint(out : PpStream) = {
     out << "Field " << identifier.name << "< " << domain << ", " << layout << ", " << boundary.getOrElse(BasicIdentifier("None")) << " >"
     if (slots > 1) out << '[' << slots << ']'
     out << '@' << identifier.asInstanceOf[LeveledIdentifier].level << '\n'
@@ -230,13 +233,13 @@ case class FieldDeclarationStatement(
 }
 
 case class StencilFieldDeclarationStatement(
-    var identifier : Identifier,
+    override var identifier : Identifier,
     var fieldName : String,
     var stencilName : String) extends ExternalDeclarationStatement with HasIdentifier {
 
-  def prettyprint(out : PpStream) = { out << "StencilField " << identifier.name << "< " << fieldName << " => " << stencilName << " >@" << identifier.asInstanceOf[LeveledIdentifier].level << '\n' }
+  override def prettyprint(out : PpStream) = { out << "StencilField " << identifier.name << "< " << fieldName << " => " << stencilName << " >@" << identifier.asInstanceOf[LeveledIdentifier].level << '\n' }
 
-  def progressToIr : knowledge.StencilField = {
+  override def progressToIr : knowledge.StencilField = {
     new knowledge.StencilField(identifier.name,
       knowledge.FieldCollection.getFieldByIdentifier(fieldName, identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level).get,
       knowledge.StencilCollection.getStencilByIdentifier(stencilName, identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level).get)
@@ -248,7 +251,7 @@ case class ExternalFieldDeclarationStatement(
     var correspondingField : FieldAccess,
     var extLayout : String) extends ExternalDeclarationStatement {
 
-  def prettyprint(out : PpStream) = { out << "external Field " << extIdentifier << " <" << extLayout << "> => " << correspondingField << '\n' }
+  override def prettyprint(out : PpStream) = { out << "external Field " << extIdentifier << " <" << extLayout << "> => " << correspondingField << '\n' }
 
   override def progressToIr : knowledge.ExternalField = {
     val level = correspondingField.level.asInstanceOf[SingleLevelSpecification].level

@@ -32,6 +32,8 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
   // IMPORTANT: must match and extend all possible bounds for LoopOverDimensions inside a ContractingLoop
   private def extendBoundsBegin(expr : Expression, extent : Int) : Expression = {
     expr match {
+      case IntegerConstant(i) =>
+        IntegerConstant(i - extent)
       case oInd @ OffsetIndex(0, 1, _, ArrayAccess(_ : iv.IterationOffsetBegin, _, _)) =>
         oInd.maxOffset += extent
         oInd.index = SimplifyExpression.simplifyIntegralExpr(oInd.index - extent)
@@ -43,6 +45,8 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
   // IMPORTANT: must match and extend all possible bounds for LoopOverDimensions inside a ContractingLoop
   private def extendBoundsEnd(expr : Expression, extent : Int) : Expression = {
     expr match {
+      case IntegerConstant(i) =>
+        IntegerConstant(i + extent)
       case oInd @ OffsetIndex(-1, 0, _, ArrayAccess(_ : iv.IterationOffsetEnd, _, _)) =>
         oInd.minOffset -= extent
         oInd.index = SimplifyExpression.simplifyIntegralExpr(oInd.index + extent)
@@ -162,39 +166,45 @@ case class LoopOverPointsInOneFragment(var domain : Int,
       // case where a special region is to be traversed
       val regionCode = region.get.region.toUpperCase().charAt(0)
 
-      start = new MultiIndex(DimArray().map(i => (i match {
-        case i if region.get.dir(i) == 0 => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "LB") - field.referenceOffset(i)
-        case i if region.get.dir(i) < 0  => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "LB") - field.referenceOffset(i)
-        case i if region.get.dir(i) > 0  => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "RB") - field.referenceOffset(i)
+      start = new MultiIndex(DimArray().map(dim => (dim match {
+        case dim if region.get.dir(dim) == 0 => field.fieldLayout.idxById(regionCode + "LB", dim) - field.referenceOffset(dim)
+        case dim if region.get.dir(dim) < 0  => field.fieldLayout.idxById(regionCode + "LB", dim) - field.referenceOffset(dim)
+        case dim if region.get.dir(dim) > 0  => field.fieldLayout.idxById(regionCode + "RB", dim) - field.referenceOffset(dim)
       }) : Expression))
 
       stop = new MultiIndex(
-        DimArray().map(i => (i match {
-          case i if region.get.dir(i) == 0 => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "RE") - field.referenceOffset(i)
-          case i if region.get.dir(i) < 0  => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "LE") - field.referenceOffset(i)
-          case i if region.get.dir(i) > 0  => field.fieldLayout.layoutsPerDim(i).idxById(regionCode + "RE") - field.referenceOffset(i)
+        DimArray().map(dim => (dim match {
+          case dim if region.get.dir(dim) == 0 => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim)
+          case dim if region.get.dir(dim) < 0  => field.fieldLayout.idxById(regionCode + "LE", dim) - field.referenceOffset(dim)
+          case dim if region.get.dir(dim) > 0  => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim)
         }) : Expression))
     } else {
       // basic case -> just eliminate 'real' boundaries
-      for (i <- 0 until Knowledge.dimensionality) {
+      for (dim <- 0 until Knowledge.dimensionality) {
         field.fieldLayout.discretization match {
-          case d if "node" == d
-            || ("face_x" == d && 0 == i)
-            || ("face_y" == d && 1 == i)
-            || ("face_z" == d && 2 == i) =>
+          case discr if "node" == discr
+            || ("face_x" == discr && 0 == dim)
+            || ("face_y" == discr && 1 == dim)
+            || ("face_z" == discr && 2 == dim) =>
             if (Knowledge.experimental_disableIterationOffsets) {
-              start(i) = field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i)
-              stop(i) = field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i)
+              start(dim) = field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim)
+              stop(dim) = field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
             } else {
-              start(i) = OffsetIndex(0, 1, field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), i))
-              stop(i) = OffsetIndex(-1, 0, field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), i))
+              // FIXME
+              //              if (Knowledge.experimental_genVariableFieldSizes) {
+              //                start(dim) = OffsetIndex(0, 1, ArrayAccess(iv.IndexFromField(field.identifier, field.level, "DLB"), dim) - field.referenceOffset(dim) + startOffset(dim), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
+              //                stop(dim) = OffsetIndex(-1, 0, ArrayAccess(iv.IndexFromField(field.identifier, field.level, "DRE"), dim) - field.referenceOffset(dim) - endOffset(dim), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim))
+              //              } else {
+              start(dim) = OffsetIndex(0, 1, field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
+              stop(dim) = OffsetIndex(-1, 0, field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim))
+              //              }
             }
-          case d if "cell" == d
-            || ("face_x" == d && 0 != i)
-            || ("face_y" == d && 1 != i)
-            || ("face_z" == d && 2 != i) =>
-            start(i) = field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i) + startOffset(i)
-            stop(i) = field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i) - endOffset(i)
+          case discr if "cell" == discr
+            || ("face_x" == discr && 0 != dim)
+            || ("face_y" == discr && 1 != dim)
+            || ("face_z" == discr && 2 != dim) =>
+            start(dim) = field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim)
+            stop(dim) = field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
         }
       }
     }

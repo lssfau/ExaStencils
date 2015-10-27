@@ -50,6 +50,7 @@ STARTTIME=$(date +%s)
 if [[ -d "${REPO_DIR}" ]]; then
   OLD_HASH=$(git -C "${REPO_DIR}" rev-parse @)
   echo "Repo found, try to pull:"
+  srun git -C "${REPO_DIR}" checkout . # revert all (accidental) changes to files in repo (e.g. overwritten l4 files)
   srun git -C "${REPO_DIR}" pull --force
       if [[ $? -ne 0 ]]; then
         echo "ERROR: git remote update failed."

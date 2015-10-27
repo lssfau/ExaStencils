@@ -1,10 +1,14 @@
 package exastencils.polyhedron
 
+import java.io.File
+import java.text.DecimalFormat
+
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.Buffer
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.TreeSet
+import scala.io.Source
 import scala.util.control.Breaks
 
 import exastencils.core._
@@ -13,6 +17,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
+import exastencils.polyhedron.Isl.TypeAliases._
 
 import isl.Conversions._
 
@@ -25,9 +30,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   final val SCOP_ANNOT : String = "PolyScop"
   final val IMPL_CONDITION_ANNOT : String = "ImplCondition"
 
-  // FIXME: HACK: only use shipped versions of jna and isl, NO system libraries (prevent version conflicts)
-  System.setProperty("jna.nosys", "true")
-  System.setProperty("jna.platform.library.path", "NO_SYSTEM")
+  import scala.language.implicitConversions
+  implicit def convertIntToVal(i : Int) : isl.Val = isl.Val.intFromSi(Isl.ctx, i)
 
   /** Register the name of a side-effect free function, that is safe to be used inside a scop. */
   def registerSideeffectFree(functionName : String) : Unit = {
@@ -40,31 +44,42 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   }
 
   override def apply() : Unit = {
+    if (Knowledge.poly_scheduleAlgorithm == "exploration")
+      Logger.error("[PolyOpt] Exploration: Configuration ID required!")
+    this.apply(0)
+  }
+
+  def apply(confID : Int) : Unit = {
     this.transaction()
 
     Logger.info("Applying strategy " + name)
     if (Settings.timeStrategies)
       StrategyTimer.startTiming(name)
 
-    isl.Options.setTileScaleTileLoops(false)
-    isl.Options.setTileShiftPointLoops(false)
+    Settings.additionalMacros += "#define floord(n,d) (((n)>=0) ? (n)/(d) : (((n)-(d)+1)/(d)))"
 
-    Knowledge.poly_scheduleAlgorithm match {
-      case "isl"       => isl.Options.setScheduleAlgorithm(isl.Options.SCHEDULE_ALGORITHM_ISL)
-      case "feautrier" => isl.Options.setScheduleAlgorithm(isl.Options.SCHEDULE_ALGORITHM_FEAUTRIER)
-      case unknown     => Logger.debug("Unknown schedule algorithm \"" + unknown + "\"; no change (default is isl)")
-    }
+    Isl.ctx.setTileScaleTileLoops(0)
+    Isl.ctx.setTileShiftPointLoops(0)
+    //    isl.Options.setTileScaleTileLoops(false)
+    //    isl.Options.setTileShiftPointLoops(false)
 
-    Knowledge.poly_fusionStrategy match {
-      case "min"   => isl.Options.setScheduleFuse(isl.Options.SCHEDULE_FUSE_MIN)
-      case "max"   => isl.Options.setScheduleFuse(isl.Options.SCHEDULE_FUSE_MAX)
-      case unknown => Logger.debug("Unknown fusion strategy \"" + unknown + "\"; no change...")
-    }
-    isl.Options.setScheduleMaximizeBandDepth(Knowledge.poly_maximizeBandDepth)
-    isl.Options.setScheduleMaxConstantTerm(Knowledge.poly_maxConstantTerm)
-    isl.Options.setScheduleMaxCoefficient(Knowledge.poly_maxCoefficient)
+    //    Knowledge.poly_scheduleAlgorithm match {
+    //      case "isl"         => isl.Options.setScheduleAlgorithm(isl.Options.SCHEDULE_ALGORITHM_ISL)
+    //      case "feautrier"   => isl.Options.setScheduleAlgorithm(isl.Options.SCHEDULE_ALGORITHM_FEAUTRIER)
+    //      case "exploration" => TODO
+    //      case unknown       => Logger.debug("Unknown schedule algorithm \"" + unknown + "\"; no change (default is isl)")
+    //    }
+    //
+    //    Knowledge.poly_fusionStrategy match {
+    //      case "min"   => isl.Options.setScheduleFuse(isl.Options.SCHEDULE_FUSE_MIN)
+    //      case "max"   => isl.Options.setScheduleFuse(isl.Options.SCHEDULE_FUSE_MAX)
+    //      case unknown => Logger.debug("Unknown fusion strategy \"" + unknown + "\"; no change...")
+    //    }
+    //    isl.Options.setScheduleMaximizeBandDepth(Knowledge.poly_maximizeBandDepth)
+    //    isl.Options.setScheduleMaxConstantTerm(Knowledge.poly_maxConstantTerm)
+    //    isl.Options.setScheduleMaxCoefficient(Knowledge.poly_maxCoefficient)
 
-    val scops : Seq[Scop] = extractPolyModel()
+    var scops : Seq[Scop] = extractPolyModel()
     for (scop <- scops if (!scop.remove)) {
       mergeLocalScalars(scop)
       mergeScops(scop)
@@ -74,7 +89,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       handleReduction(scop)
       simplifyModel(scop)
       if (scop.optLevel >= 2)
-        optimize(scop)
+        optimize(scop, confID)
     }
     recreateAndInsertAST()
 
@@ -96,7 +111,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
     scop.deps.flow = Isl.simplify(scop.deps.flow)
     scop.deps.antiOut = Isl.simplify(scop.deps.antiOut)
-    scop.deps.input = Isl.simplify(scop.deps.input)
+    scop.deps.updateInput += { inp => Isl.simplify(inp) }
   }
 
   private def extractPolyModel() : Seq[Scop] = {
@@ -163,7 +178,6 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
             remDoms += set
           else
             njuDomain = if (njuDomain == null) set else njuDomain.addSet(set)
-          () // return type must be Unit, but the true branch returns a Buffer...
       })
       val mergedDom : isl.Set = remDoms(0)
       val proto : isl.Set = mergedDom.resetTupleId()
@@ -187,17 +201,17 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         if (lab == njuLabel)
           scop.stmts(lab) = (mergedStmts, mergedLoopIts)
         else
-	  scop.stmts -= lab
+          scop.stmts -= lab
       // adjust read and write accesses
       var nju : isl.UnionMap = null
       scop.reads.foreachMap({
         map : isl.Map =>
-          if (map.getTupleName(isl.DimType.Out) != name) { // remove all accesses to the scalar
-            val oldLabel : String = map.getTupleName(isl.DimType.In)
+          if (map.getTupleName(T_OUT) != name) { // remove all accesses to the scalar
+            val oldLabel : String = map.getTupleName(T_IN)
             var toAdd : isl.Map = map
             if (oldLabel != njuLabel)
               for ((lab, _) <- stmts if (oldLabel == lab))
-                toAdd = toAdd.setTupleName(isl.DimType.In, njuLabel)
+                toAdd = toAdd.setTupleName(T_IN, njuLabel)
             nju = if (nju == null) toAdd else nju.addMap(toAdd)
           }
       })
@@ -205,12 +219,12 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       nju = null
       scop.writes.foreachMap({
         map : isl.Map =>
-          if (map.getTupleName(isl.DimType.Out) != name) { // remove all accesses to the scalar
-            val oldLabel : String = map.getTupleName(isl.DimType.In)
+          if (map.getTupleName(T_OUT) != name) { // remove all accesses to the scalar
+            val oldLabel : String = map.getTupleName(T_IN)
             var toAdd : isl.Map = map
             if (oldLabel != njuLabel)
               for ((lab, _) <- stmts if (oldLabel == lab))
-               toAdd = toAdd.setTupleName(isl.DimType.In, njuLabel)
+                toAdd = toAdd.setTupleName(T_IN, njuLabel)
             nju = if (nju == null) toAdd else nju.addMap(toAdd)
           }
       })
@@ -222,7 +236,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         if (scop.deadAfterScop.intersect(set).isEmpty())
           resurrect = true
       if (resurrect)
-        scop.deadAfterScop = scop.deadAfterScop.subtract(mergedDom.dropConstraintsInvolvingDims(isl.DimType.Set, 0, mergedDom.dim(isl.DimType.Set)))
+        scop.deadAfterScop = scop.deadAfterScop.subtract(isl.Set.universeLike(remDoms(0)))
     }
   }
 
@@ -249,7 +263,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       scop.deadAfterScop = unionNull(scop.deadAfterScop, toMerge.deadAfterScop)
       scop.deps.flow = unionNull(scop.deps.flow, toMerge.deps.flow)
       scop.deps.antiOut = unionNull(scop.deps.antiOut, toMerge.deps.antiOut)
-      scop.deps.input = unionNull(scop.deps.input, toMerge.deps.input)
+      scop.deps.updateInput += { inp => unionNull(inp, toMerge.deps.input) }
       if (scop.origIterationCount == null && toMerge.origIterationCount != null)
         scop.origIterationCount = toMerge.origIterationCount
       scop.parallelize &= toMerge.parallelize
@@ -263,8 +277,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     var s = isl.UnionMap.empty(sched.getSpace())
     sched.foreachMap({
       map : isl.Map =>
-        var nju = map.insertDims(isl.DimType.Out, 0, 1)
-        s = s.addMap(nju.fixVal(isl.DimType.Out, 0, i))
+        var nju = map.insertDims(T_OUT, 0, 1)
+        s = s.addMap(nju.fixVal(T_OUT, 0, i))
     })
     return s
   }
@@ -298,13 +312,14 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val empty = isl.UnionMap.empty(scop.writes.getSpace())
     val depArr = new Array[isl.UnionMap](1)
     val depArr2 = new Array[isl.UnionMap](1)
+    val domain : isl.UnionSet = scop.domain.intersectParams(scop.context)
 
-    val schedule = Isl.simplify(scop.schedule.intersectDomain(scop.domain))
+    val schedule = Isl.simplify(scop.schedule.intersectDomain(domain))
     //    val schedule = scop.schedule
 
-    val writes = Isl.simplify(scop.writes.intersectDomain(scop.domain))
+    val writes = Isl.simplify(scop.writes.intersectDomain(domain))
     //    val writes = scop.writes
-    val reads = if (scop.reads == null) empty else Isl.simplify(scop.reads.intersectDomain(scop.domain))
+    val reads = if (scop.reads == null) empty else Isl.simplify(scop.reads.intersectDomain(domain))
     //    val reads = scop.reads
 
     // anti & output
@@ -317,14 +332,16 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       // input dependences on scalars are irrelevant
       reads.foreachMap({
         read : isl.Map =>
-          if (read.dim(isl.DimType.Out) > 0)
+          if (read.dim(T_OUT) > 0)
             readArrays = readArrays.addMap(read)
       })
 
       // input
-      readArrays.computeFlow(readArrays, empty, schedule,
-        depArr, null, null, null) // output params (C-style)
-      scop.deps.input = depArr(0)
+      scop.deps.updateInput += { _ =>
+        readArrays.computeFlow(readArrays, empty, schedule,
+          depArr, null, null, null) // output params (C-style)
+        depArr(0)
+      }
 
       // flow
       reads.computeFlow(writes, empty, schedule,
@@ -333,7 +350,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
     } else {
       val noDeps = isl.UnionMap.empty(scop.deps.antiOut.getSpace())
-      scop.deps.input = noDeps
+      scop.deps.updateInput += { _ => noDeps }
       scop.deps.flow = noDeps
     }
   }
@@ -355,8 +372,12 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       scop.deps.flow = scop.deps.flow.intersectDomain(live)
     if (scop.deps.antiOut != null)
       scop.deps.antiOut = scop.deps.antiOut.intersectDomain(live)
-    if (scop.deps.input != null)
-      scop.deps.input = scop.deps.input.intersectDomain(live)
+    scop.deps.updateInput += { inp =>
+      if (inp != null)
+        scop.deps.input.intersectDomain(live)
+      else
+        null
+    }
   }
 
   private def handleReduction(scop : Scop) : Unit = {
@@ -367,38 +388,32 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val name : String = Extractor.replaceSpecial(scop.root.reduction.get.target.prettyprint())
     val stmts = new TreeSet[String]()
     scop.writes.foreachMap({ map : isl.Map =>
-      if (map.getTupleName(isl.DimType.Out) == name)
-        stmts += map.getTupleName(isl.DimType.In)
+      if (map.getTupleName(T_OUT) == name)
+        stmts += map.getTupleName(T_IN)
     } : isl.Map => Unit)
 
     var toRemove = isl.UnionMap.empty(scop.deps.flow.getSpace())
     scop.deps.flow.foreachMap({ dep : isl.Map =>
-      if (stmts.contains(dep.getTupleName(isl.DimType.In)))
+      if (stmts.contains(dep.getTupleName(T_IN)))
         toRemove = toRemove.addMap(isl.Map.identity(dep.getSpace()).complement())
     } : isl.Map => Unit)
     scop.deps.flow = scop.deps.flow.subtract(toRemove)
     // filter others too, as we do not have an ordering between read and write in the same statement
     scop.deps.antiOut = scop.deps.antiOut.subtract(toRemove)
-    scop.deps.input = scop.deps.input.subtract(toRemove)
+    scop.deps.updateInput += { inp => inp.subtract(toRemove) }
   }
 
-  private final val tileSizes = Array(Knowledge.poly_tileSize_x, Knowledge.poly_tileSize_y, Knowledge.poly_tileSize_z, Knowledge.poly_tileSize_w)
-
-  private def getTileVec(dims : Int) : isl.Vec = {
-    var vec = isl.Vec.alloc(dims)
-    val iind : Int = dims - 1
-    for (i <- 0 until dims) {
-      var tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(iind - i) else 1000000000
-      if (tileSize <= 0)
-        tileSize = 1000000000
-      vec = vec.setElementVal(i, tileSize)
-    }
-    return vec
+  private def optimize(scop : Scop, confID : Int) : Unit = {
+    if (Knowledge.poly_scheduleAlgorithm == "exploration")
+      optimizeExpl(scop, confID)
+    else
+      optimizeIsl(scop)
   }
 
-  private def optimize(scop : Scop) : Unit = {
+  private def optimizeIsl(scop : Scop) : Unit = {
 
-    var schedConstr : isl.ScheduleConstraints = isl.ScheduleConstraints.onDomain(scop.domain)
+    val domain = scop.domain.intersectParams(scop.context)
+    var schedConstr : isl.ScheduleConstraints = isl.ScheduleConstraints.onDomain(domain)
 
     var validity = scop.deps.validity()
     var coincidence = validity
@@ -412,12 +427,12 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     }
 
     if (Knowledge.poly_simplifyDeps) {
-      validity = validity.gistRange(scop.domain)
-      validity = validity.gistDomain(scop.domain)
-      coincidence = coincidence.gistRange(scop.domain)
-      coincidence = coincidence.gistDomain(scop.domain)
-      proximity = proximity.gistRange(scop.domain)
-      proximity = proximity.gistDomain(scop.domain)
+      validity = validity.gistRange(domain)
+      validity = validity.gistDomain(domain)
+      coincidence = coincidence.gistRange(domain)
+      coincidence = coincidence.gistDomain(domain)
+      proximity = proximity.gistRange(domain)
+      proximity = proximity.gistDomain(domain)
     }
 
     if (Knowledge.poly_filterDeps)
@@ -428,49 +443,164 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     schedConstr = schedConstr.setProximity(proximity)
 
     val schedule : isl.Schedule = schedConstr.computeSchedule()
+    var scheduleMap : isl.UnionMap = schedule.getMap()
     scop.noParDims.clear()
-    var perfTiling : Boolean = false
-    if (scop.origIterationCount != null)
-      for (i <- 0 until scop.origIterationCount.length)
-        perfTiling |= tileSizes(i) < scop.origIterationCount(i)
-    else
-      perfTiling = true // no info about iteration size...
-    if (scop.optLevel >= 3 && perfTiling) {
-      var tiled : Int = 0
+    if (scop.optLevel >= 3) {
+      var tilableDims : Int = 0
       schedule.foreachBand({
         band : isl.Band =>
           var prefix : Int = 0
           band.getPrefixSchedule().foreachMap({ map : isl.Map =>
             if (!map.range().isSingleton())
-              prefix = math.max(prefix, map.dim(isl.DimType.Out))
+              prefix = math.max(prefix, map.dim(T_OUT))
           })
-          if (prefix == 0) {
-            tiled = band.nMember()
-            if (tiled <= 4)
-              band.tile(getTileVec(tiled))
-          }
-      } : isl.Band => Unit)
-      val threads = Knowledge.omp_numThreads
-      for (i <- 0 until tiled) {
-        val tiles : Long =
-          if (scop.origIterationCount != null)
-            scop.origIterationCount(i) / tileSizes(i)
-          else {
-            Logger.warn("[PolyOpt]  unable to determine iteration count, check results of LoopOverDimensions.maxIterationCount(); parallelization might be inefficient")
-            if (tileSizes(i) >= 1000000)
-              1
-            else // don't know how much iterations loop have... so assume there are enough to parallelize it...
-              1000
-          }
-        if (tiles != threads && tiles < 2 * threads)
-          scop.noParDims += tiled - i - 1
-      }
-      if (tiled > 0 && !Knowledge.poly_tileOuterLoop)
-        scop.noParDims += 0
+          if (prefix == 0)
+            tilableDims = band.nMember()
+      })
+      if (tilableDims > 1 && tilableDims <= 4)
+        scheduleMap = tileSchedule(scheduleMap, scop, tilableDims)
     }
 
-    scop.schedule = Isl.simplify(schedule.getMap())
+    scop.schedule = Isl.simplify(scheduleMap)
     scop.updateLoopVars()
+  }
+
+  private def optimizeExpl(scop : Scop, confID : Int) : Unit = {
+
+    Logger.warn("[PolyOpt] Exploration not possible, since it requires external code (this is subject to change); fall back to standard isl optimization")
+    optimizeIsl(scop)
+
+    //    val df = new DecimalFormat()
+    //    df.setMinimumIntegerDigits(5)
+    //    df.setGroupingUsed(false)
+    //    Settings.outputPath += df.format(confID)
+    //
+    //    val explConfig = new File(Settings.poly_explorationConfig)
+    //    if (!explConfig.exists()) {
+    //      Logger.debug("[PolyOpt] Exploration: no configuration file found, so perform exploration and create it, progress:")
+    //      performExploration(scop, explConfig, df)
+    //      Logger.debug("[PolyOpt] Exploration: configuration finished, creating base version (without any schedule changes)")
+    //    } else
+    //      applyConfig(scop, explConfig, df.format(confID))
+  }
+
+  //  private def performExploration(scop : Scop, explConfig : File, df : DecimalFormat) : Unit = {
+  //    var validity = scop.deps.validity()
+  //
+  //    if (Knowledge.poly_simplifyDeps) {
+  //      validity = validity.gistRange(scop.domain)
+  //      validity = validity.gistDomain(scop.domain)
+  //    }
+  //
+  //    explConfig.getParentFile().mkdirs()
+  //    val eConfOut = new java.io.PrintWriter(explConfig)
+  //    var i : Int = 0
+  //    Exploration.guidedExploration(scop.domain, validity, {
+  //      (sched : isl.UnionMap, schedVect : Seq[Array[Int]], bands : Seq[Int]) =>
+  //        i += 1
+  //        if (i % 100 == 0) {
+  //          Console.print('.')
+  //          Console.flush()
+  //        }
+  //        if (i % 5000 == 0) {
+  //          Console.println()
+  //          Console.flush()
+  //        }
+  //        eConfOut.print(df.format(i))
+  //        eConfOut.print('\t')
+  //        eConfOut.print(bands.mkString(","))
+  //        eConfOut.print('\t')
+  //        eConfOut.print(sched)
+  //        eConfOut.print('\t')
+  //        eConfOut.print(schedVect.map(arr => java.util.Arrays.toString(arr)).mkString(", "))
+  //        eConfOut.println()
+  //    })
+  //    if (i % 5000 != 0) {
+  //      Console.println()
+  //      Console.flush()
+  //    }
+  //    eConfOut.flush()
+  //    eConfOut.close()
+  //    Logger.debug(s"[PolyOpt] Exploration: found $i configurations")
+  //  }
+
+  private def applyConfig(scop : Scop, explConfig : File, confID : String) : Unit = {
+    var lines : Iterator[String] = Source.fromFile(explConfig).getLines()
+    lines = lines.dropWhile(l => !l.startsWith(confID))
+
+    val configLine : String = lines.next()
+    Logger.debug("[PolyOpt] Exploration: configuration found:")
+    Logger.debug(" " + configLine)
+    val Array(_, bandsStr, scheduleStr, _) = configLine.split("\t")
+
+    val bands : Array[Int] = bandsStr.split(",").map(str => Integer.parseInt(str))
+    var schedule : isl.UnionMap = isl.UnionMap.readFromStr(scop.domain.getCtx(), scheduleStr)
+
+    scop.noParDims.clear()
+
+    // apply tiling
+    val tilableDims : Int = bands(0)
+    if (scop.optLevel >= 3 && tilableDims > 1 && tilableDims <= 4)
+      schedule = tileSchedule(schedule, scop, tilableDims)
+
+    scop.schedule = Isl.simplify(schedule)
+    scop.updateLoopVars()
+  }
+
+  private final val tileSizes = Array(Knowledge.poly_tileSize_x, Knowledge.poly_tileSize_y, Knowledge.poly_tileSize_z, Knowledge.poly_tileSize_w)
+
+  private def tileSchedule(schedule : isl.UnionMap, scop : Scop, tilableDims : Int) : isl.UnionMap = {
+    val sample : isl.BasicMap = schedule.sample()
+    val domSp : isl.Space = sample.getSpace().range()
+    val ranSp : isl.Space = domSp.insertDims(T_SET, 0, tilableDims)
+    val ctx : isl.Ctx = sample.getCtx()
+    var mAff = isl.MultiAff.zero(isl.Space.mapFromDomainAndRange(domSp, ranSp))
+    for (i <- 0 until tilableDims) {
+      var tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(tilableDims - 1 - i) else 0
+      // if we don't want to tile a dimension, leave the outer tile loop constant 0
+      if (tileSize > 0 && (scop.origIterationCount == null || tileSize < 100 + scop.origIterationCount(tilableDims - 1 - i))) {
+        var aff = isl.Aff.varOnDomain(isl.LocalSpace.fromSpace(domSp), T_SET, i)
+        aff = aff.scaleDownUi(tileSize)
+        aff = aff.floor()
+        mAff = mAff.setAff(i, aff)
+      }
+    }
+    for (i <- 0 until domSp.dim(T_SET)) {
+      var aff = isl.Aff.varOnDomain(isl.LocalSpace.fromSpace(domSp), T_SET, i)
+      mAff = mAff.setAff(tilableDims + i, aff)
+    }
+    val trafo = isl.BasicMap.fromMultiAff(mAff)
+    setSeqTileDims(scop, tilableDims)
+    return schedule.applyRange(trafo)
+  }
+
+  var spamcount : Int = 0 // HACK to reduce the number of warnings generated
+
+  private def setSeqTileDims(scop : Scop, nrTiledDims : Int) : Unit = {
+    val threads = Knowledge.omp_numThreads
+    for (i <- 0 until nrTiledDims) {
+      val tiles : Long =
+        if (tileSizes(i) <= 0)
+          1
+        else if (scop.origIterationCount != null)
+          scop.origIterationCount(i) / tileSizes(i)
+        else {
+          spamcount += 1
+          if (spamcount < 4)
+            Logger.warn("[PolyOpt]  unable to determine iteration count, check results of LoopOverDimensions.maxIterationCount(); parallelization might be inefficient")
+          else if (spamcount == 4)
+            Logger.warn("[PolyOpt]  unable to determine iteration count; spam protection: suppress further warnings for this problem from now on")
+
+          if (tileSizes(i) <= 0)
+            1
+          else // don't know how much iterations this loop has... so assume there are enough to parallelize it...
+            1000
+        }
+      if (tiles != threads && tiles < 2 * threads)
+        scop.noParDims += nrTiledDims - i - 1
+    }
+    if (nrTiledDims > 0 && !Knowledge.poly_tileOuterLoop)
+      scop.noParDims += 0
   }
 
   private def recreateAndInsertAST() : Unit = {

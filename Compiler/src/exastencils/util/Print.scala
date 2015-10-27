@@ -61,8 +61,8 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
         ListBuffer[Statement](
           "std::ofstream stream(" ~ filename ~ ", " ~ (if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc") ~ ")",
           new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
-            new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => (field.fieldLayout(i).idxDupLeftBegin - field.referenceOffset(i)) : Expression)),
-            new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => (field.fieldLayout(i).idxDupRightEnd - field.referenceOffset(i)) : Expression))),
+            new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(dim => (field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)) : Expression)),
+            new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(dim => (field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)) : Expression))),
             ListBuffer[Statement](
               new InitGeomCoords(field.field, false),
               new ConditionStatement(condition,

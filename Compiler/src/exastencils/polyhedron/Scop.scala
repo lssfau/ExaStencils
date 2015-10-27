@@ -9,6 +9,8 @@ import exastencils.datastructures.Node
 import exastencils.datastructures.ir._
 import isl.Conversions._
 
+// since Scop can be cloned by Duplicate make sure NONE of the isl wrapper objects it uses is cloned by it
+//   (register all required classes as not cloneable in IslUtil.scala)
 class Scop(val root : LoopOverDimensions, var context : isl.Set, var optLevel : Int, var parallelize : Boolean,
     var origIterationCount : Array[Long]) {
 
@@ -29,7 +31,14 @@ class Scop(val root : LoopOverDimensions, var context : isl.Set, var optLevel : 
   object deps {
     var flow : isl.UnionMap = null
     var antiOut : isl.UnionMap = null
-    var input : isl.UnionMap = null
+    private var inputCache : isl.UnionMap = null
+    val updateInput = new ArrayBuffer[isl.UnionMap => isl.UnionMap]()
+    def input : isl.UnionMap = {
+      for (up <- updateInput)
+        inputCache = up(inputCache)
+      updateInput.clear()
+      inputCache
+    }
 
     def validity() : isl.UnionMap = {
       return Isl.simplify(flow.union(antiOut))

@@ -95,11 +95,11 @@ case class MPI_DataType(var field : FieldSelection, var indices : IndexRange) ex
   if (1 == SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2))) {
     count = SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1)).toInt
     blocklen = SimplifyExpression.evalIntegral(indices.end(0) - indices.begin(0)).toInt
-    stride = field.fieldLayout(0).evalTotal
+    stride = field.fieldLayout.defIdxById("TOT", 0)
   } else if (1 == SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1))) {
     count = SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2)).toInt
     blocklen = SimplifyExpression.evalIntegral(indices.end(0) - indices.begin(0)).toInt
-    stride = field.fieldLayout(0).evalTotal * field.fieldLayout(1).evalTotal
+    stride = field.fieldLayout.defIdxById("TOT", 0) * field.fieldLayout.defIdxById("TOT", 1)
   }
 
   def generateName : String = {
@@ -124,7 +124,7 @@ case class MPI_DataType(var field : FieldSelection, var indices : IndexRange) ex
 
 object MPI_DataType {
   def shouldBeUsed(indices : IndexRange) : Boolean = {
-    if (!Knowledge.mpi_useCustomDatatypes)
+    if (!Knowledge.mpi_useCustomDatatypes || Knowledge.experimental_genVariableFieldSizes)
       false
     else
       Knowledge.dimensionality match {
@@ -140,7 +140,7 @@ object MPI_DataType {
 case class InitMPIDataType(mpiTypeName : String, field : Field, indexRange : IndexRange) extends MPI_Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitMPIDataType\n"
 
-  def expand : Output[StatementList] = {
+  override def expand: Output[StatementList] = {
     if (indexRange.begin(2) == indexRange.end(2)) {
       ListBuffer[Statement](s"MPI_Type_vector(" ~
         (indexRange.end(1) - indexRange.begin(1) + 1) ~ ", " ~
@@ -164,7 +164,7 @@ case class MPI_Sequential(var body : ListBuffer[Statement]) extends Statement wi
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = MPI_Sequential\n"
 
-  def expand : Output[ForLoopStatement] = {
+  override def expand: Output[ForLoopStatement] = {
     ForLoopStatement(
       VariableDeclarationStatement(IntegerDatatype, "curRank", Some(0)),
       LowerExpression("curRank", Knowledge.mpi_numThreads),

@@ -1,7 +1,7 @@
 targetCompiler				= "GCC"
 targetCompilerVersion		= 4
 targetCompilerVersionMinor	= 8
-simd_instructionSet			= "SSE3"
+//simd_instructionSet			= "SSE3"
 
 dimensionality				= 3
 
@@ -9,22 +9,22 @@ minLevel					= 0
 maxLevel					= 6
 
 domain_onlyRectangular		= true
-domain_numBlocks			= 27
-domain_numFragmentsPerBlock	= 27
+domain_numBlocks			= 1
+domain_numFragmentsPerBlock	= 1
 
 domain_rect_generate			= true
-domain_rect_numBlocks_x			= 3
-domain_rect_numBlocks_y			= 3
-domain_rect_numBlocks_z			= 3
-domain_rect_numFragsPerBlock_x	= 3
-domain_rect_numFragsPerBlock_y	= 3
-domain_rect_numFragsPerBlock_z	= 3
+domain_rect_numBlocks_x		= 1
+domain_rect_numBlocks_y			= 1
+domain_rect_numBlocks_z			= 1
+domain_rect_numFragsPerBlock_x	= 1
+domain_rect_numFragsPerBlock_y	= 1
+domain_rect_numFragsPerBlock_z	= 1
 
 omp_enabled					= true
-omp_numThreads				= 3
+omp_numThreads				= 1
 
 mpi_enabled					= true
-mpi_numThreads				= 27
+mpi_numThreads				= 1
 
 omp_parallelizeLoopOverFragments	= true
 omp_parallelizeLoopOverDimensions	= false
@@ -39,7 +39,7 @@ l3tmp_useSlotsForJac		= true
 l3tmp_useSlotVariables		= true
 
 mpi_useCustomDatatypes		= true
-poly_optLevel_fine			= 3
-opt_useAddressPrecalc		= true
+poly_optLevel_fine			= 0
+opt_useAddressPrecalc		= false
 opt_vectorize				= false
-opt_unroll					= 2
+opt_unroll					= 0

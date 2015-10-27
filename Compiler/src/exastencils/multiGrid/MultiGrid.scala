@@ -14,14 +14,14 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitFieldsWithZero\n"
   override def prettyprint_decl : String = prettyprint
 
-  def expand() : Output[FunctionStatement] = {
+  override def expand: Output[FunctionStatement] = {
     val fields = FieldCollection.getSortedFields
     var statements : ListBuffer[Statement] = new ListBuffer
 
     for (field <- fields) {
       val loopOverDims = new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
-        new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => field.fieldLayout(i).idxGhostLeftBegin)),
-        new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(i => field.fieldLayout(i).idxGhostRightEnd))),
+        new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(dim => field.fieldLayout.idxById("GLB", dim))),
+        new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(dim => field.fieldLayout.idxById("GRE", dim)))),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           new AssignmentStatement(
             new DirectFieldAccess(FieldSelection(field, field.level, slot), LoopOverDimensions.defIt),
