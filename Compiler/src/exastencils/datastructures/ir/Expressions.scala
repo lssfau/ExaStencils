@@ -511,12 +511,6 @@ case class TernaryConditionExpression(var condition : Expression, var trueBody :
 
 case class Reduction(var op : String, var target : VariableAccess) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = Reduction\n"
-
-  def getOMPClause : String = {
-    val str = new PpStream()
-    str << "reduction(" << op << " : " << target << ')'
-    return str.toString()
-  }
 }
 
 case class StencilConvolution(var stencil : Stencil, var fieldAccess : FieldAccess) extends Expression with Expandable {
