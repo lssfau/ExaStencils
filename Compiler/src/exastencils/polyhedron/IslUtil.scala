@@ -45,7 +45,7 @@ object Isl {
       fext = "dylib"
     val is : InputStream = ClassLoader.getSystemResourceAsStream(dir + '/' + fname + '.' + fext)
 
-    val tmpLibDir = new java.io.File(System.getProperty("java.io.tmpdir"), "exastencils_native-libs")
+    val tmpLibDir = new java.io.File(System.getProperty("java.io.tmpdir"), "exastencils_native-libs-" + System.getProperty("user.name").hashCode())
     if (tmpLibDir.exists()) {
       // remove old libs
       val markers : Array[java.io.File] =
