@@ -122,7 +122,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     oldStmts = scop.stmts
 
     // build AST
-    var islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.context)
+    var islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.getContext())
     islBuild = islBuild.setOptions(isl.UnionMap.readFromStr(Isl.ctx, options.toString()))
     islBuild = islBuild.setIterators(itersId)
     var scattering : isl.UnionMap = Isl.simplify(scop.schedule.intersectDomain(scop.domain))

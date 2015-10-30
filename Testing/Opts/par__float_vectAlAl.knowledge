@@ -3,6 +3,7 @@ targetCompilerVersion      = 4
 targetCompilerVersionMinor = 8
 simd_instructionSet        = "AVX"
 data_alignFieldPointers    = true
+simd_avoidUnaligned        = true
 useDblPrecision            = false
 
 dimensionality             = 3

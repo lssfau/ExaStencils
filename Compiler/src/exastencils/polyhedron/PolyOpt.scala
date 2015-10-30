@@ -253,9 +253,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         return
       }
       scop.optLevel = math.max(scop.optLevel, toMerge.optLevel)
-      scop.context = unionNull(scop.context, toMerge.context)
-      scop.domain = unionNull(scop.domain, toMerge.domain)
-      scop.schedule = unionNull(scop.schedule, insertCst(toMerge.schedule, i))
+      scop.localContext = scop.localContext.union(toMerge.localContext)
+      scop.globalContext = scop.globalContext.intersect(toMerge.globalContext)
+      scop.domain = scop.domain.union(toMerge.domain)
+      scop.schedule = scop.schedule.union(insertCst(toMerge.schedule, i))
       scop.stmts ++= toMerge.stmts
       scop.decls ++= toMerge.decls
       scop.reads = unionNull(scop.reads, toMerge.reads)
@@ -312,15 +313,15 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val empty = isl.UnionMap.empty(scop.writes.getSpace())
     val depArr = new Array[isl.UnionMap](1)
     val depArr2 = new Array[isl.UnionMap](1)
-    val domain : isl.UnionSet = scop.domain.intersectParams(scop.context)
+    val domain : isl.UnionSet = scop.domain.intersectParams(scop.getContext())
 
     val schedule = Isl.simplify(scop.schedule.intersectDomain(domain))
     //    val schedule = scop.schedule
 
-    val writes = Isl.simplify(scop.writes.intersectDomain(domain))
+    val writes = (scop.writes.intersectDomain(domain))
     //    val writes = scop.writes
     val reads = if (scop.reads == null) empty else Isl.simplify(scop.reads.intersectDomain(domain))
-    //    val reads = scop.reads
+    //    val reads = if (scop.reads == null) empty else scop.reads
 
     // anti & output
     writes.computeFlow(writes, reads, schedule,
@@ -412,7 +413,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   private def optimizeIsl(scop : Scop) : Unit = {
 
-    val domain = scop.domain.intersectParams(scop.context)
+    val domain = scop.domain.intersectParams(scop.getContext())
     var schedConstr : isl.ScheduleConstraints = isl.ScheduleConstraints.onDomain(domain)
 
     var validity = scop.deps.validity()

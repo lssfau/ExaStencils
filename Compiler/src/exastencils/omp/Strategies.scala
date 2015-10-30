@@ -22,9 +22,9 @@ object AddOMPPragmas extends DefaultStrategy("Adding OMP pragmas") {
       case target : ForLoopStatement with OMP_PotentiallyParallel =>
         if (target.reduction.isDefined)
           if (!(Knowledge.omp_version < 3.1 && ("min" == target.reduction.get.op || "max" == target.reduction.get.op)))
-            target.addOMPStatements += target.reduction.get.getOMPClause
+            target.additionalOMPClauses += new OMP_Reduction(target.reduction.get)
         new OMP_ParallelFor(new ForLoopStatement(target.begin, target.end, target.inc, target.body, target.reduction),
-          target.addOMPStatements, target.collapse)
+          target.additionalOMPClauses, target.collapse)
     }))
 
     this.commit()
