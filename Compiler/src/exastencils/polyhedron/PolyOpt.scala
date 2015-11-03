@@ -476,8 +476,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     Settings.outputPath += df.format(confID)
 
     val explConfig = new File(Settings.poly_explorationConfig)
-    if (!explConfig.exists()) {
-      Logger.debug("[PolyOpt] Exploration: no configuration file found, so perform exploration and create it, progress:")
+    if (!explConfig.exists() || explConfig.length() == 0) {
+      Logger.debug("[PolyOpt] Exploration: no configuration file found or file empty, perform exploration and create it, progress:")
       performExploration(scop, explConfig, df)
       Logger.debug("[PolyOpt] Exploration: configuration finished, creating base version (without any schedule changes)")
     } else
@@ -485,17 +485,19 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   }
 
   private def performExploration(scop : Scop, explConfig : File, df : DecimalFormat) : Unit = {
+
+    val domain = scop.domain.intersectParams(scop.getContext())
     var validity = scop.deps.validity()
 
     if (Knowledge.poly_simplifyDeps) {
-      validity = validity.gistRange(scop.domain)
-      validity = validity.gistDomain(scop.domain)
+      validity = validity.gistRange(domain)
+      validity = validity.gistDomain(domain)
     }
 
     explConfig.getParentFile().mkdirs()
     val eConfOut = new java.io.PrintWriter(explConfig)
     var i : Int = 0
-    Exploration.guidedExploration(scop.domain, validity, {
+    Exploration.guidedExploration(domain, validity, {
       (sched : isl.UnionMap, schedVect : Seq[Array[Int]], bands : Seq[Int]) =>
         i += 1
         if (i % 100 == 0) {
