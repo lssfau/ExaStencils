@@ -295,10 +295,16 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       globals.variables ++= declarationMap.toSeq.sortBy(_._1).map(_._2)
       globals
     case func : FunctionStatement if ("initGlobals" == func.name) =>
-      func.body ++= ctorMap.toSeq.sortBy(_._1).map(_._2)
+      if ("MSVC" == Knowledge.targetCompiler /*&& Knowledge.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
+        func.body ++= ctorMap.toSeq.sortBy(_._1).map(s => new Scope(s._2))
+      else
+        func.body ++= ctorMap.toSeq.sortBy(_._1).map(_._2)
       func
     case func : FunctionStatement if ("destroyGlobals" == func.name) =>
-      func.body ++= dtorMap.toSeq.sortBy(_._1).map(_._2)
+      if ("MSVC" == Knowledge.targetCompiler /*&& Knowledge.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
+        func.body ++= dtorMap.toSeq.sortBy(_._1).map(s => new Scope(s._2))
+      else
+        func.body ++= dtorMap.toSeq.sortBy(_._1).map(_._2)
       func
   })
 }
