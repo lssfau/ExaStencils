@@ -124,7 +124,7 @@ case class MPI_DataType(var field : FieldSelection, var indices : IndexRange) ex
 
 object MPI_DataType {
   def shouldBeUsed(indices : IndexRange) : Boolean = {
-    if (!Knowledge.mpi_useCustomDatatypes || Knowledge.experimental_genVariableFieldSizes)
+    if (!Knowledge.mpi_useCustomDatatypes || Knowledge.data_genVariableFieldSizes)
       false
     else
       Knowledge.dimensionality match {

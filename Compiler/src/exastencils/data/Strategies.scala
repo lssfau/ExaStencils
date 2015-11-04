@@ -185,7 +185,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   this += new Transformation("Collecting buffer sizes", {
     case buf : iv.TmpBuffer =>
       val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
-      if (Knowledge.experimental_genVariableFieldSizes) {
+      if (Knowledge.data_genVariableFieldSizes) {
         if (bufferSizes.contains(id))
           bufferSizes.get(id).get.asInstanceOf[MaximumExpression].args += Duplicate(buf.size)
         else
