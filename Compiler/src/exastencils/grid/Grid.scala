@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.logger._
 
@@ -95,7 +96,6 @@ object ResolveGeometryFunctions extends DefaultStrategy("ResolveGeometryFunction
     }
 
     case FunctionCallExpression(functionName, args) if integrateFunctions.contains(functionName) => {
-      Grid.getGridObject.invokeIntegrateResolve(functionName, args(0).asInstanceOf[Expression])
       if (0 == args.length) {
         Logger.warn(s"Trying to use build-in function $functionName without arguments")
         NullExpression
@@ -107,3 +107,42 @@ object ResolveGeometryFunctions extends DefaultStrategy("ResolveGeometryFunction
   })
 }
 
+object CollectFieldAccesses extends DefaultStrategy("Collecting field accesses") {
+  var fieldAccesses : ListBuffer[FieldAccess] = ListBuffer()
+  var vFieldAccesses : ListBuffer[VirtualFieldAccess] = ListBuffer()
+
+  override def apply(node : Option[Node] = None) = {
+    fieldAccesses.clear
+    vFieldAccesses.clear
+    super.apply(node)
+  }
+
+  override def applyStandalone(node : Node) = {
+    fieldAccesses.clear
+    vFieldAccesses.clear
+    super.applyStandalone(node)
+  }
+
+  this += new Transformation("Collecting", {
+    case fieldAccess : FieldAccess =>
+      fieldAccesses += fieldAccess
+      fieldAccess
+    case fieldAccess : VirtualFieldAccess =>
+      vFieldAccesses += fieldAccess
+      fieldAccess
+  })
+}
+
+object ShiftFieldAccessIndices extends DefaultStrategy("Shifting indices of field accesses") {
+  var offset : Expression = 0
+  var dim : Int = 0
+
+  this += new Transformation("Searching and shifting", {
+    case fieldAccess : FieldAccess =>
+      fieldAccess.index(dim) += offset
+      fieldAccess
+    case fieldAccess : VirtualFieldAccess =>
+      fieldAccess.index(dim) += offset
+      fieldAccess
+  })
+}
