@@ -1,13 +1,15 @@
 package exastencils.grid
 
-import scala.math._
+import scala.annotation.migration
+import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
+import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.l4
 import exastencils.knowledge._
 import exastencils.logger._
-import scala.collection.mutable.ListBuffer
 
 object Grid_AxisAlignedVariableWidth extends Grid {
   override def initL4() : Unit = {
@@ -118,13 +120,13 @@ object Grid_AxisAlignedVariableWidth extends Grid {
     this.getClass().getMethods.find(_.getName.toLowerCase() == name.toLowerCase())
   }
 
-  def invokeEvalResolve(functionName : String, fieldAccess : FieldAccess) : Expression = {
+  override def invokeEvalResolve(functionName : String, fieldAccess : FieldAccess, interpolation : String) : Expression = {
     val method = this.getClass().getMethods.find(_.getName == functionName)
     if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
-    method.get.invoke(this, fieldAccess).asInstanceOf[Expression]
+    method.get.invoke(this, fieldAccess, interpolation).asInstanceOf[Expression]
   }
 
-  def invokeIntegrateResolve(functionName : String, exp : Expression) : Expression = {
+  override def invokeIntegrateResolve(functionName : String, exp : Expression) : Expression = {
     val method = this.getClass().getMethods.find(_.getName == functionName)
     if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
     method.get.invoke(this, exp).asInstanceOf[Expression]
@@ -191,14 +193,14 @@ object Grid_AxisAlignedVariableWidth extends Grid {
   }
 
   // evaluations and interpolations
-  def evalAtEastFace(fieldAccess : FieldAccess) = evalAtRFace(fieldAccess, 0)
-  def evalAtWestFace(fieldAccess : FieldAccess) = evalAtLFace(fieldAccess, 0)
-  def evalAtNorthFace(fieldAccess : FieldAccess) = evalAtRFace(fieldAccess, 1)
-  def evalAtSouthFace(fieldAccess : FieldAccess) = evalAtLFace(fieldAccess, 1)
-  def evalAtTopFace(fieldAccess : FieldAccess) = evalAtRFace(fieldAccess, 2)
-  def evalAtBottomFace(fieldAccess : FieldAccess) = evalAtLFace(fieldAccess, 2)
+  def evalAtEastFace(fieldAccess : FieldAccess, interpolation : String) = evalAtRFace(fieldAccess, 0, interpolation)
+  def evalAtWestFace(fieldAccess : FieldAccess, interpolation : String) = evalAtLFace(fieldAccess, 0, interpolation)
+  def evalAtNorthFace(fieldAccess : FieldAccess, interpolation : String) = evalAtRFace(fieldAccess, 1, interpolation)
+  def evalAtSouthFace(fieldAccess : FieldAccess, interpolation : String) = evalAtLFace(fieldAccess, 1, interpolation)
+  def evalAtTopFace(fieldAccess : FieldAccess, interpolation : String) = evalAtRFace(fieldAccess, 2, interpolation)
+  def evalAtBottomFace(fieldAccess : FieldAccess, interpolation : String) = evalAtLFace(fieldAccess, 2, interpolation)
 
-  def evalAtLFace(fieldAccess : FieldAccess, dim : Int) = {
+  def evalAtLFace(fieldAccess : FieldAccess, dim : Int, interpolation : String = "default") : Expression = {
     val field = fieldAccess.fieldSelection.field
     val baseIndex = fieldAccess.index
     val level = field.level
@@ -207,12 +209,21 @@ object Grid_AxisAlignedVariableWidth extends Grid {
       Logger.warn(s"Attempting (${dimToString(dim)}-)face evaluation for non-cell based discretization (field ${field.identifier}, level ${field.level}, discretization ${field.discretization})")
 
     // compile evaluation
-    ((cellCenterToFace(level, offsetIndex(baseIndex, -1, dim), None, dim) * Duplicate(fieldAccess)
-      + cellCenterToFace(level, Duplicate(baseIndex), None, dim) * offsetAccess(fieldAccess, -1, dim))
-      / stagCVWidth(level, Duplicate(Duplicate(baseIndex)), None, dim))
+    val a0 = (() => { cellCenterToFace(level, Duplicate(baseIndex), None, dim) })
+    val a1 = (() => { cellCenterToFace(level, offsetIndex(baseIndex, -1, dim), None, dim) })
+    val x0 = (() => { Duplicate(fieldAccess) })
+    val x1 = (() => { offsetAccess(fieldAccess, -1, dim) })
+
+    interpolation match {
+      case "linear" | "default" => (a1() * x0() + a0() * x1()) / (a0() + a1())
+      case "harmonicMean"       => ((a0() + a1()) * (x0() * x1())) / (a1() * x0() + a0() * x1())
+      case _ =>
+        Logger.warn(s"Trying to use interpolation scheme $interpolation which is unknown - falling back to default scheme")
+        evalAtLFace(fieldAccess, dim)
+    }
   }
 
-  def evalAtRFace(fieldAccess : FieldAccess, dim : Int) = evalAtLFace(offsetAccess(fieldAccess, 1, dim), dim)
+  def evalAtRFace(fieldAccess : FieldAccess, dim : Int, interpolation : String = "default") = evalAtLFace(offsetAccess(fieldAccess, 1, dim), dim, interpolation)
 
   // integrations
   def integrateOverEastFace(exp : Expression) : Expression = integrateOverRFace(exp, 0)
@@ -343,7 +354,84 @@ object Grid_AxisAlignedVariableWidth extends Grid {
     }
   }
   def integrateOverStaggeredRFace(exp : Expression, stagDim : Int, faceDim : Int) : Expression = {
+    // TODO: check correct duplication of shared information
     exp match {
+      case fieldAccess : FieldAccess => {
+        val level = fieldAccess.fieldSelection.level
+        fieldAccess.fieldSelection.field.discretization match {
+          case "cell" if (stagDim == faceDim) => {
+            val compDim0 = (if (0 == faceDim) 1 else 0)
+            val compDim1 = (if (2 == faceDim) 1 else 2)
+            val index = fieldAccess.index
+            (cellWidth(level, index, None, compDim0) * cellWidth(level, index, None, compDim1)
+              * Duplicate(fieldAccess))
+          }
+        }
+      }
+
+      case functionCall : FunctionCallExpression => {
+        if (stagDim == faceDim) {
+          ???
+        } else {
+          val compDim = (if (0 != faceDim && 0 != stagDim) 0 else (if (1 != faceDim && 1 != stagDim) 1 else 2))
+
+          // scan for fields and extract level and index
+          object CollectFields extends DefaultStrategy("Collecting field accesses") {
+            var fieldAccesses : ListBuffer[FieldAccess] = ListBuffer()
+
+            override def apply(node : Option[Node] = None) = {
+              fieldAccesses.clear
+              super.apply(node)
+            }
+
+            override def applyStandalone(node : Node) = {
+              fieldAccesses.clear
+              super.applyStandalone(node)
+            }
+
+            this += new Transformation("Collecting", {
+              case fieldAccess : FieldAccess =>
+                fieldAccesses += fieldAccess
+                fieldAccess
+            })
+          }
+          CollectFields.applyStandalone(functionCall)
+          if (CollectFields.fieldAccesses.size != 1) ???
+
+          val level = CollectFields.fieldAccesses(0).fieldSelection.level
+          val cellIndex = CollectFields.fieldAccesses(0).index
+
+          val centerExp = Duplicate(functionCall)
+          val offsetExp = Duplicate(functionCall)
+
+          object ShiftFieldAccessIndices extends DefaultStrategy("Shifting indices of field accesses") {
+            var offset : Expression = 0
+            var dim : Int = 0
+
+            this += new Transformation("Searching and shifting", {
+              case fieldAccess : FieldAccess =>
+                fieldAccess.index(dim) += offset
+                fieldAccess
+            })
+          }
+
+          ShiftFieldAccessIndices.offset = -1
+          ShiftFieldAccessIndices.dim = stagDim
+          ShiftFieldAccessIndices.applyStandalone(offsetExp)
+
+          (cellWidth(level, cellIndex, None, compDim) *
+            (cellCenterToFace(level, cellIndex, None, stagDim) * centerExp
+              + cellCenterToFace(level, offsetIndex(cellIndex, -1, stagDim), None, stagDim) * offsetExp))
+        }
+
+        //            Val diffnu : Real = vf_cellWidth_z@current * integrateOverXStaggeredNorthFace ( evalAtNorthFace ( vis@current, "harmonicMean" ) ) / vf_cellWidth_y@current
+        //    Val diffnu : Real = vf_cellWidth_z@current * (
+        //      vf_cellCenterToFace_x@current * evalAtNorthFace ( vis@current, "harmonicMean" )
+        //      + vf_cellCenterToFace_x@current@[-1, 0, 0] * evalAtNorthFace ( vis@current@[-1, 0, 0], "harmonicMean" )
+        //      ) / vf_cellWidth_y@current
+
+      }
+
       case MultiplicationExpression(leftFieldAccess : FieldAccess, rightFieldAccess : FieldAccess) => {
         if (leftFieldAccess.fieldSelection.level != rightFieldAccess.fieldSelection.level)
           Logger.warn(s"Mix level field integration is currently not supported ($leftFieldAccess, $rightFieldAccess)")

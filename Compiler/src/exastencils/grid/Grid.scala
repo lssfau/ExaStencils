@@ -42,7 +42,7 @@ abstract class Grid {
     }
   }
 
-  def invokeEvalResolve(functionName : String, fieldAccess : FieldAccess) : Expression
+  def invokeEvalResolve(functionName : String, fieldAccess : FieldAccess, interpolation : String) : Expression
   def invokeIntegrateResolve(functionName : String, exp : Expression) : Expression
 }
 
@@ -82,11 +82,12 @@ object ResolveGeometryFunctions extends DefaultStrategy("ResolveGeometryFunction
         Logger.warn(s"Trying to use build-in function $functionName without arguments")
         NullExpression
       } else {
-        if (args.length > 1) Logger.warn(s"Trying to use build-in function $functionName with more than one arguments; additional arguments are discarded")
-        args(0) match {
-          case access : FieldAccess => Grid.getGridObject.invokeEvalResolve(functionName, access)
+        if (args.length > 2) Logger.warn(s"Trying to use build-in function $functionName with more than one arguments; additional arguments are discarded")
+        args match {
+          case ListBuffer(access : FieldAccess)                                 => Grid.getGridObject.invokeEvalResolve(functionName, access, "default")
+          case ListBuffer(access : FieldAccess, interpolation : StringConstant) => Grid.getGridObject.invokeEvalResolve(functionName, access, interpolation.value)
           case _ => {
-            Logger.warn(s"Argument ${args(0).prettyprint} is currently not supported for function $functionName")
+            Logger.warn(s"Arguments (${args.map(_.prettyprint).mkString(", ")}) are currently not supported for function $functionName")
             args(0)
           }
         }
