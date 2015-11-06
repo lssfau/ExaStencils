@@ -255,36 +255,13 @@ object Grid_AxisAlignedVariableWidth extends Grid {
   def integrateOverZStaggeredBottomFace(exp : Expression) : Expression = integrateOverStaggeredLFace(exp, 2, 2)
 
   def integrateOverLFace(exp : Expression, faceDim : Int) : Expression = {
-    val compDim0 = (if (0 == faceDim) 1 else 0)
-    val compDim1 = (if (2 == faceDim) 1 else 2)
-    exp match {
-      case fieldAccess : FieldAccess => {
-        val level = fieldAccess.fieldSelection.level
-        val index = fieldAccess.index
+    ShiftFieldAccessIndices.offset = -1
+    ShiftFieldAccessIndices.dim = faceDim
+    ShiftFieldAccessIndices.applyStandalone(exp)
 
-        fieldAccess.fieldSelection.field.discretization match {
-          case "cell" => cellWidth(level, index, None, compDim0) * cellWidth(level, index, None, compDim1) * evalAtLFace(fieldAccess, faceDim)
-        }
-      }
-      case MultiplicationExpression(leftFieldAccess : FieldAccess, rightFieldAccess : FieldAccess) => {
-        if (leftFieldAccess.fieldSelection.level != rightFieldAccess.fieldSelection.level)
-          Logger.warn(s"Mix level field integration is currently not supported ($leftFieldAccess, $rightFieldAccess)")
-        val level = leftFieldAccess.fieldSelection.level
-
-        (leftFieldAccess.fieldSelection.field.discretization, rightFieldAccess.fieldSelection.field.discretization) match {
-          case (leftDisc, "cell") if leftDisc == s"face_${dimToString(faceDim)}" => {
-            val rightIndex = rightFieldAccess.index
-            (cellWidth(level, rightIndex, None, compDim0) * cellWidth(level, rightIndex, None, compDim1)
-              * leftFieldAccess * evalAtLFace(rightFieldAccess, faceDim))
-          }
-        }
-      }
-      case _ => {
-        Logger.warn(s"Integration over staggered faces for expression ${exp.prettyprint} is currently not supported")
-        exp
-      }
-    }
+    integrateOverRFace(exp, faceDim)
   }
+
   def integrateOverRFace(exp : Expression, faceDim : Int) : Expression = {
     val compDim0 = (if (0 == faceDim) 1 else 0)
     val compDim1 = (if (2 == faceDim) 1 else 2)
@@ -394,7 +371,6 @@ object Grid_AxisAlignedVariableWidth extends Grid {
       case MultiplicationExpression(left, right : Number) => // resolve multiplications with constants
         right * integrateOverStaggeredRFace(left, stagDim, faceDim)
 
-      //case MultiplicationExpression(leftFieldAccess : FieldAccess, rightFieldAccess : FieldAccess) => {
       case MultiplicationExpression(left : FieldAccess, right : FieldAccess) if (
         s"face_${dimToString(faceDim)}" == left.fieldSelection.field.discretization
         && "cell" == right.fieldSelection.field.discretization) => {
@@ -420,6 +396,11 @@ object Grid_AxisAlignedVariableWidth extends Grid {
                 * offsetAccess(offsetAccess(left, -1, stagDim), 1, faceDim)
                 * evalAtRFace(offsetAccess(right, -1, stagDim), faceDim))))
         }
+      }
+      case MultiplicationExpression(left : FieldAccess, right : FieldAccess) if (
+        "cell" == right.fieldSelection.field.discretization
+        && s"face_${dimToString(faceDim)}" == left.fieldSelection.field.discretization) => {
+        integrateOverStaggeredRFace(MultiplicationExpression(right, left), stagDim, faceDim)
       }
 
       case _ => {
