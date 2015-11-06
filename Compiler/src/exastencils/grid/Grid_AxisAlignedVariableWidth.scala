@@ -226,83 +226,44 @@ object Grid_AxisAlignedVariableWidth extends Grid {
   def evalAtRFace(fieldAccess : FieldAccess, dim : Int, interpolation : String = "default") = evalAtLFace(offsetAccess(fieldAccess, 1, dim), dim, interpolation)
 
   // integrations
-  def integrateOverEastFace(exp : Expression) : Expression = integrateOverRFace(exp, 0)
-  def integrateOverWestFace(exp : Expression) : Expression = integrateOverLFace(exp, 0)
-  def integrateOverNorthFace(exp : Expression) : Expression = integrateOverRFace(exp, 1)
-  def integrateOverSouthFace(exp : Expression) : Expression = integrateOverLFace(exp, 1)
-  def integrateOverTopFace(exp : Expression) : Expression = integrateOverRFace(exp, 2)
-  def integrateOverBottomFace(exp : Expression) : Expression = integrateOverLFace(exp, 2)
+  def integrateOverEastFace(exp : Expression) : Expression = integrateOverRFace(exp, 0, None)
+  def integrateOverWestFace(exp : Expression) : Expression = integrateOverLFace(exp, 0, None)
+  def integrateOverNorthFace(exp : Expression) : Expression = integrateOverRFace(exp, 1, None)
+  def integrateOverSouthFace(exp : Expression) : Expression = integrateOverLFace(exp, 1, None)
+  def integrateOverTopFace(exp : Expression) : Expression = integrateOverRFace(exp, 2, None)
+  def integrateOverBottomFace(exp : Expression) : Expression = integrateOverLFace(exp, 2, None)
 
-  def integrateOverXStaggeredEastFace(exp : Expression) : Expression = integrateOverStaggeredRFace(exp, 0, 0)
-  def integrateOverXStaggeredWestFace(exp : Expression) : Expression = integrateOverStaggeredLFace(exp, 0, 0)
-  def integrateOverXStaggeredNorthFace(exp : Expression) : Expression = integrateOverStaggeredRFace(exp, 0, 1)
-  def integrateOverXStaggeredSouthFace(exp : Expression) : Expression = integrateOverStaggeredLFace(exp, 0, 1)
-  def integrateOverXStaggeredTopFace(exp : Expression) : Expression = integrateOverStaggeredRFace(exp, 0, 2)
-  def integrateOverXStaggeredBottomFace(exp : Expression) : Expression = integrateOverStaggeredLFace(exp, 0, 2)
+  def integrateOverXStaggeredEastFace(exp : Expression) : Expression = integrateOverRFace(exp, 0, Some(0))
+  def integrateOverXStaggeredWestFace(exp : Expression) : Expression = integrateOverLFace(exp, 0, Some(0))
+  def integrateOverXStaggeredNorthFace(exp : Expression) : Expression = integrateOverRFace(exp, 1, Some(0))
+  def integrateOverXStaggeredSouthFace(exp : Expression) : Expression = integrateOverLFace(exp, 0, Some(1))
+  def integrateOverXStaggeredTopFace(exp : Expression) : Expression = integrateOverRFace(exp, 2, Some(0))
+  def integrateOverXStaggeredBottomFace(exp : Expression) : Expression = integrateOverLFace(exp, 0, Some(2))
 
-  def integrateOverYStaggeredEastFace(exp : Expression) : Expression = integrateOverStaggeredRFace(exp, 1, 0)
-  def integrateOverYStaggeredWestFace(exp : Expression) : Expression = integrateOverStaggeredLFace(exp, 1, 0)
-  def integrateOverYStaggeredNorthFace(exp : Expression) : Expression = integrateOverStaggeredRFace(exp, 1, 1)
-  def integrateOverYStaggeredSouthFace(exp : Expression) : Expression = integrateOverStaggeredLFace(exp, 1, 1)
-  def integrateOverYStaggeredTopFace(exp : Expression) : Expression = integrateOverStaggeredRFace(exp, 1, 2)
-  def integrateOverYStaggeredBottomFace(exp : Expression) : Expression = integrateOverStaggeredLFace(exp, 1, 2)
+  def integrateOverYStaggeredEastFace(exp : Expression) : Expression = integrateOverRFace(exp, 0, Some(1))
+  def integrateOverYStaggeredWestFace(exp : Expression) : Expression = integrateOverLFace(exp, 1, Some(0))
+  def integrateOverYStaggeredNorthFace(exp : Expression) : Expression = integrateOverRFace(exp, 1, Some(1))
+  def integrateOverYStaggeredSouthFace(exp : Expression) : Expression = integrateOverLFace(exp, 1, Some(1))
+  def integrateOverYStaggeredTopFace(exp : Expression) : Expression = integrateOverRFace(exp, 2, Some(1))
+  def integrateOverYStaggeredBottomFace(exp : Expression) : Expression = integrateOverLFace(exp, 1, Some(2))
 
-  def integrateOverZStaggeredEastFace(exp : Expression) : Expression = integrateOverStaggeredRFace(exp, 2, 0)
-  def integrateOverZStaggeredWestFace(exp : Expression) : Expression = integrateOverStaggeredLFace(exp, 2, 0)
-  def integrateOverZStaggeredNorthFace(exp : Expression) : Expression = integrateOverStaggeredRFace(exp, 2, 1)
-  def integrateOverZStaggeredSouthFace(exp : Expression) : Expression = integrateOverStaggeredLFace(exp, 2, 1)
-  def integrateOverZStaggeredTopFace(exp : Expression) : Expression = integrateOverStaggeredRFace(exp, 2, 2)
-  def integrateOverZStaggeredBottomFace(exp : Expression) : Expression = integrateOverStaggeredLFace(exp, 2, 2)
+  def integrateOverZStaggeredEastFace(exp : Expression) : Expression = integrateOverRFace(exp, 0, Some(2))
+  def integrateOverZStaggeredWestFace(exp : Expression) : Expression = integrateOverLFace(exp, 2, Some(0))
+  def integrateOverZStaggeredNorthFace(exp : Expression) : Expression = integrateOverRFace(exp, 1, Some(2))
+  def integrateOverZStaggeredSouthFace(exp : Expression) : Expression = integrateOverLFace(exp, 2, Some(1))
+  def integrateOverZStaggeredTopFace(exp : Expression) : Expression = integrateOverRFace(exp, 2, Some(2))
+  def integrateOverZStaggeredBottomFace(exp : Expression) : Expression = integrateOverLFace(exp, 2, Some(2))
 
-  def integrateOverLFace(exp : Expression, faceDim : Int) : Expression = {
+  def integrateOverLFace(exp : Expression, faceDim : Int, stagDim : Option[Int]) : Expression = {
     ShiftFieldAccessIndices.offset = -1
     ShiftFieldAccessIndices.dim = faceDim
     ShiftFieldAccessIndices.applyStandalone(exp)
 
-    integrateOverRFace(exp, faceDim)
+    integrateOverRFace(exp, faceDim, stagDim)
   }
 
-  def integrateOverRFace(exp : Expression, faceDim : Int) : Expression = {
-    val compDim0 = (if (0 == faceDim) 1 else 0)
-    val compDim1 = (if (2 == faceDim) 1 else 2)
-    exp match {
-      case fieldAccess : FieldAccess => {
-        val level = fieldAccess.fieldSelection.level
-        val index = fieldAccess.index
-
-        fieldAccess.fieldSelection.field.discretization match {
-          case "cell" => cellWidth(level, index, None, compDim0) * cellWidth(level, index, None, compDim1) * evalAtRFace(fieldAccess, faceDim)
-        }
-      }
-      case MultiplicationExpression(leftFieldAccess : FieldAccess, rightFieldAccess : FieldAccess) => {
-        if (leftFieldAccess.fieldSelection.level != rightFieldAccess.fieldSelection.level)
-          Logger.warn(s"Mix level field integration is currently not supported ($leftFieldAccess, $rightFieldAccess)")
-        val level = leftFieldAccess.fieldSelection.level
-
-        (leftFieldAccess.fieldSelection.field.discretization, rightFieldAccess.fieldSelection.field.discretization) match {
-          case (leftDisc, "cell") if leftDisc == s"face_${dimToString(faceDim)}" => {
-            val rightIndex = rightFieldAccess.index
-            (cellWidth(level, rightIndex, None, compDim0) * cellWidth(level, rightIndex, None, compDim1)
-              * offsetAccess(leftFieldAccess, 1, faceDim) * evalAtRFace(rightFieldAccess, faceDim))
-          }
-        }
-      }
-      case _ => {
-        Logger.warn(s"Integration over staggered faces for expression ${exp.prettyprint} is currently not supported")
-        exp
-      }
-    }
-  }
-
-  def integrateOverStaggeredLFace(exp : Expression, stagDim : Int, faceDim : Int) : Expression = {
-    ShiftFieldAccessIndices.offset = -1
-    ShiftFieldAccessIndices.dim = faceDim
-    ShiftFieldAccessIndices.applyStandalone(exp)
-
-    integrateOverStaggeredRFace(exp, stagDim, faceDim)
-  }
-
-  def integrateOverStaggeredRFace(exp : Expression, stagDim : Int, faceDim : Int) : Expression = {
+  // integration over faces of staggered CVs is done by defining stagDim - the dimension in which the grid is staggered
+  def integrateOverRFace(exp : Expression, faceDim : Int, stagDim : Option[Int]) : Expression = {
     // check if there are any field accesses in the current (sub-)expression
     CollectFieldAccesses.applyStandalone(new Scope(exp))
 
@@ -333,8 +294,19 @@ object Grid_AxisAlignedVariableWidth extends Grid {
       val discr = CollectFieldAccesses.fieldAccesses(0).fieldSelection.field.discretization
 
       return discr match {
-        case "cell" =>
-          if (stagDim == faceDim) { // evaluation of a cell centered value w.r.t. a staggered face (in the correct dim) is simply sampling
+        case "cell" if !stagDim.isDefined => { // integration of cell values on non-staggered CVs comes down to interpolation
+          val compDim0 = (if (0 == faceDim) 1 else 0)
+          val compDim1 = (if (2 == faceDim) 1 else 2)
+
+          ReplaceFieldAccesses.replacement = evalAtRFace(CollectFieldAccesses.fieldAccesses(0), faceDim)
+          ReplaceFieldAccesses.applyStandalone(exp)
+
+          cellWidth(level, index(), None, compDim0) * cellWidth(level, index(), None, compDim1) * exp
+        }
+
+        case "cell" if stagDim.isDefined => { // value is defined on the interface
+          val curStagDim = stagDim.get
+          if (curStagDim == faceDim) { // evaluation of a cell centered value w.r.t. a staggered face (in the correct dim) is simply sampling
             val compDim0 = (if (0 == faceDim) 1 else 0)
             val compDim1 = (if (2 == faceDim) 1 else 2)
 
@@ -342,19 +314,21 @@ object Grid_AxisAlignedVariableWidth extends Grid {
               * VirtualFieldAccess(s"vf_cellWidth_${dimToString(compDim1)}", level, index())
               * exp)
           } else { // stagDim != faceDim => piecewise integration is required
-            val compDim = (if (0 != faceDim && 0 != stagDim) 0 else (if (1 != faceDim && 1 != stagDim) 1 else 2))
+            val compDim = (if (0 != faceDim && 0 != curStagDim) 0 else (if (1 != faceDim && 1 != curStagDim) 1 else 2))
 
             val centerExp = Duplicate(exp)
             val offsetExp = Duplicate(exp)
 
             ShiftFieldAccessIndices.offset = -1
-            ShiftFieldAccessIndices.dim = stagDim
+            ShiftFieldAccessIndices.dim = curStagDim
             ShiftFieldAccessIndices.applyStandalone(offsetExp)
 
             (VirtualFieldAccess(s"vf_cellWidth_${dimToString(compDim)}", level, index()) *
-              (VirtualFieldAccess(s"vf_cellCenterToFace_${dimToString(stagDim)}", level, index()) * centerExp
-                + VirtualFieldAccess(s"vf_cellCenterToFace_${dimToString(stagDim)}", level, offsetIndex(index(), -1, stagDim)) * offsetExp))
+              (VirtualFieldAccess(s"vf_cellCenterToFace_${dimToString(curStagDim)}", level, index()) * centerExp
+                + VirtualFieldAccess(s"vf_cellCenterToFace_${dimToString(curStagDim)}", level, offsetIndex(index(), -1, curStagDim)) * offsetExp))
           }
+        }
+
         case _ =>
           Logger.warn(s"Integration over staggered faces for expression ${exp.prettyprint} is currently not supported")
           exp
@@ -364,20 +338,22 @@ object Grid_AxisAlignedVariableWidth extends Grid {
     // more complicated case => match current expression and process it in parts
     return exp match {
       case AdditionExpression(left, right) => // addition components can be integrated separately
-        integrateOverStaggeredRFace(left, stagDim, faceDim) + integrateOverStaggeredRFace(right, stagDim, faceDim)
+        integrateOverRFace(left, faceDim, stagDim) + integrateOverRFace(right, faceDim, stagDim)
 
       case MultiplicationExpression(left : Number, right) => // resolve multiplications with constants
-        left * integrateOverStaggeredRFace(right, stagDim, faceDim)
+        left * integrateOverRFace(right, faceDim, stagDim)
       case MultiplicationExpression(left, right : Number) => // resolve multiplications with constants
-        right * integrateOverStaggeredRFace(left, stagDim, faceDim)
+        right * integrateOverRFace(left, faceDim, stagDim)
 
       case MultiplicationExpression(left : FieldAccess, right : FieldAccess) if (
-        s"face_${dimToString(faceDim)}" == left.fieldSelection.field.discretization
+        stagDim.isDefined
+        && s"face_${dimToString(faceDim)}" == left.fieldSelection.field.discretization
         && "cell" == right.fieldSelection.field.discretization) => {
 
         val index = (() => Duplicate(right.index))
+        val curStagDim = stagDim.get
 
-        if (faceDim == stagDim) {
+        if (faceDim == curStagDim) {
           val compDim0 = (if (0 == faceDim) 1 else 0)
           val compDim1 = (if (2 == faceDim) 1 else 2)
 
@@ -385,22 +361,38 @@ object Grid_AxisAlignedVariableWidth extends Grid {
             * VirtualFieldAccess(s"vf_cellWidth_${dimToString(compDim1)}", level, index())
             * 0.5 * (Duplicate(left) + offsetAccess(left, 1, faceDim)) * Duplicate(right))
         } else { // faceDim != stagDim
-          val compDim = (if (0 != faceDim && 0 != stagDim) 0 else (if (1 != faceDim && 1 != stagDim) 1 else 2))
+          val compDim = (if (0 != faceDim && 0 != curStagDim) 0 else (if (1 != faceDim && 1 != curStagDim) 1 else 2))
 
           // eval cell value at face points; multiply with face values; multiply with dist to (original) cell interface; add up
           (VirtualFieldAccess(s"vf_cellWidth_${dimToString(compDim)}", level, index()) *
-            ((VirtualFieldAccess(s"vf_cellCenterToFace_${dimToString(stagDim)}", level, index())
+            ((VirtualFieldAccess(s"vf_cellCenterToFace_${dimToString(curStagDim)}", level, index())
               * offsetAccess(left, 1, faceDim)
               * evalAtRFace(Duplicate(right), faceDim))
-              + (VirtualFieldAccess(s"vf_cellCenterToFace_${dimToString(stagDim)}", level, offsetIndex(index(), -1, stagDim))
-                * offsetAccess(offsetAccess(left, -1, stagDim), 1, faceDim)
-                * evalAtRFace(offsetAccess(right, -1, stagDim), faceDim))))
+              + (VirtualFieldAccess(s"vf_cellCenterToFace_${dimToString(curStagDim)}", level, offsetIndex(index(), -1, curStagDim))
+                * offsetAccess(offsetAccess(left, -1, curStagDim), 1, faceDim)
+                * evalAtRFace(offsetAccess(right, -1, curStagDim), faceDim))))
         }
       }
+
       case MultiplicationExpression(left : FieldAccess, right : FieldAccess) if (
+        !stagDim.isDefined
+        && "cell" == right.fieldSelection.field.discretization
+        && s"face_${dimToString(faceDim)}" == left.fieldSelection.field.discretization) => {
+        val index = (() => Duplicate(right.index))
+
+        val compDim0 = (if (0 == faceDim) 1 else 0)
+        val compDim1 = (if (2 == faceDim) 1 else 2)
+
+        val rightIndex = right.index
+        (cellWidth(level, rightIndex, None, compDim0) * cellWidth(level, rightIndex, None, compDim1)
+          * offsetAccess(left, 1, faceDim) * evalAtRFace(right, faceDim))
+      }
+
+      case MultiplicationExpression(left : FieldAccess, right : FieldAccess) if (
+        //(stagDim.isDefined || !stagDim.isDefined) &&
         "cell" == right.fieldSelection.field.discretization
         && s"face_${dimToString(faceDim)}" == left.fieldSelection.field.discretization) => {
-        integrateOverStaggeredRFace(MultiplicationExpression(right, left), stagDim, faceDim)
+        integrateOverRFace(MultiplicationExpression(right, left), faceDim, stagDim)
       }
 
       case _ => {

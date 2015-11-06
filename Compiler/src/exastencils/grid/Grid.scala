@@ -2,6 +2,7 @@ package exastencils.grid
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
@@ -107,7 +108,7 @@ object ResolveGeometryFunctions extends DefaultStrategy("ResolveGeometryFunction
   })
 }
 
-object CollectFieldAccesses extends DefaultStrategy("Collecting field accesses") {
+object CollectFieldAccesses extends QuietDefaultStrategy("Collecting field accesses") {
   var fieldAccesses : ListBuffer[FieldAccess] = ListBuffer()
   var vFieldAccesses : ListBuffer[VirtualFieldAccess] = ListBuffer()
 
@@ -133,7 +134,7 @@ object CollectFieldAccesses extends DefaultStrategy("Collecting field accesses")
   })
 }
 
-object ShiftFieldAccessIndices extends DefaultStrategy("Shifting indices of field accesses") {
+object ShiftFieldAccessIndices extends QuietDefaultStrategy("Shifting indices of field accesses") {
   var offset : Expression = 0
   var dim : Int = 0
 
@@ -145,4 +146,12 @@ object ShiftFieldAccessIndices extends DefaultStrategy("Shifting indices of fiel
       fieldAccess.index(dim) += offset
       fieldAccess
   })
+}
+
+object ReplaceFieldAccesses extends QuietDefaultStrategy("Replace field accesses with another expression") {
+  var replacement : Expression = NullExpression
+
+  this += new Transformation("SearchAndReplace", {
+    case _ : FieldAccess => Duplicate(replacement)
+  }, false)
 }
