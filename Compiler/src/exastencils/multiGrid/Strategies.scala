@@ -231,5 +231,12 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     case FunctionCallExpression("isOnBottomBoundaryOf", args) => {
       IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 0, -1)))
     }
+
+    case ElementwiseAdditionExpression(left, right)       => FunctionCallExpression("elementwiseAdd", ListBuffer(left, right))
+    case ElementwiseSubtractionExpression(left, right)    => FunctionCallExpression("elementwiseSub", ListBuffer(left, right))
+    case ElementwiseMultiplicationExpression(left, right) => FunctionCallExpression("elementwiseMul", ListBuffer(left, right))
+    case ElementwiseDivisionExpression(left, right)       => FunctionCallExpression("elementwiseDiv", ListBuffer(left, right))
+    case ElementwiseModuloExpression(left, right)         => FunctionCallExpression("elementwiseMod", ListBuffer(left, right))
+    case FunctionCallExpression("dot", args)              => FunctionCallExpression("dotProduct", args)
   })
 }

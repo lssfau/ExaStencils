@@ -20,12 +20,19 @@ trait Expression extends Node with PrettyPrintable {
 
   import BinaryOperators._
   def +(other : Expression) = new AdditionExpression(this, other)
+  def :+(other : Expression) = new ElementwiseAdditionExpression(this, other) // Scala does not allow .+ and fails with Dot+
   def -(other : Expression) = new SubtractionExpression(this, other)
+  def :-(other : Expression) = new ElementwiseSubtractionExpression(this, other) // Scala does not allow .- and fails with Dot-
   def *(other : Expression) = new MultiplicationExpression(this, other)
+  def :*(other : Expression) = new ElementwiseMultiplicationExpression(this, other) // Scala does not allow .* and fails with Dot*
   def /(other : Expression) = new DivisionExpression(this, other)
+  def :/(other : Expression) = new ElementwiseDivisionExpression(this, other) // Scala does not allow ./ and fails with Dot/
   def Pow(other : Expression) = new PowerExpression(this, other)
+  def DotPow(other : Expression) = new ElementwisePowerExpression(this, other) // Scala does not allow .% and fails with Dot% and fails with :%
   def Mod(other : Expression) = new ModuloExpression(this, other)
   def Modulo(other : Expression) = new ModuloExpression(this, other)
+  def DotMod(other : Expression) = new ElementwiseModuloExpression(this, other)
+  def DotModulo(other : Expression) = new ElementwiseModuloExpression(this, other)
   def And(other : Expression) = new AndAndExpression(this, other)
   def AndAnd(other : Expression) = new AndAndExpression(this, other)
   def Or(other : Expression) = new OrOrExpression(this, other)
@@ -46,6 +53,13 @@ object BinaryOperators extends Enumeration {
   val Division = Value("/")
   val Power = Value("**") // FIXME
   val Modulo = Value("%")
+
+  val ElementwiseAddition = Value(".+")
+  val ElementwiseSubtraction = Value(".-")
+  val ElementwiseMultiplication = Value(".*")
+  val ElementwiseDivision = Value("./")
+  val ElementwisePower = Value(".**")
+  val ElementwiseModulo = Value(".%")
 
   val AndAnd = Value("&&")
   val AndAndWritten = Value("and")
@@ -68,23 +82,30 @@ object BinaryOperators extends Enumeration {
 
   def CreateExpression(op : String, left : Expression, right : Expression) : Expression = CreateExpression(withName(op), left, right)
   def CreateExpression(op : Value, left : Expression, right : Expression) : Expression = op match {
-    case Addition               => return new AdditionExpression(left, right)
-    case Subtraction            => return new SubtractionExpression(left, right)
-    case Multiplication         => return new MultiplicationExpression(left, right)
-    case Division               => return new DivisionExpression(left, right)
-    case Power                  => return new PowerExpression(left, right)
-    case Modulo                 => return new ModuloExpression(left, right)
+    case Addition                  => return new AdditionExpression(left, right)
+    case Subtraction               => return new SubtractionExpression(left, right)
+    case Multiplication            => return new MultiplicationExpression(left, right)
+    case Division                  => return new DivisionExpression(left, right)
+    case Power                     => return new PowerExpression(left, right)
+    case Modulo                    => return new ModuloExpression(left, right)
 
-    case AndAnd | AndAndWritten => return new AndAndExpression(left, right)
-    case OrOr | OrOrWritten     => return new OrOrExpression(left, right)
-    case Negation               => return new NegationExpression(left)
-    case EqEq                   => return new EqEqExpression(left, right)
-    case Neq                    => return new NeqExpression(left, right)
-    case Lower                  => return new LowerExpression(left, right)
-    case LowerEqual             => return new LowerEqualExpression(left, right)
-    case Greater                => return new GreaterExpression(left, right)
-    case GreaterEqual           => return new GreaterEqualExpression(left, right)
-    case BitwiseAnd             => return new BitwiseAndExpression(left, right)
+    case ElementwiseAddition       => return new ElementwiseAdditionExpression(left, right)
+    case ElementwiseSubtraction    => return new ElementwiseSubtractionExpression(left, right)
+    case ElementwiseMultiplication => return new ElementwiseMultiplicationExpression(left, right)
+    case ElementwiseDivision       => return new ElementwiseDivisionExpression(left, right)
+    case ElementwisePower          => return new ElementwisePowerExpression(left, right)
+    case ElementwiseModulo         => return new ElementwiseModuloExpression(left, right)
+
+    case AndAnd | AndAndWritten    => return new AndAndExpression(left, right)
+    case OrOr | OrOrWritten        => return new OrOrExpression(left, right)
+    case Negation                  => return new NegationExpression(left)
+    case EqEq                      => return new EqEqExpression(left, right)
+    case Neq                       => return new NeqExpression(left, right)
+    case Lower                     => return new LowerExpression(left, right)
+    case LowerEqual                => return new LowerEqualExpression(left, right)
+    case Greater                   => return new GreaterExpression(left, right)
+    case GreaterEqual              => return new GreaterEqualExpression(left, right)
+    case BitwiseAnd                => return new BitwiseAndExpression(left, right)
   }
 }
 
@@ -462,6 +483,30 @@ case class ModuloExpression(var left : Expression, var right : Expression) exten
 
 case class PowerExpression(var left : Expression, var right : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << "pow(" << left << ", " << right << ')' // FIXME: check for integer constant => use pown
+}
+
+case class ElementwiseAdditionExpression(var left : Expression, var right : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '+' << right << ')'
+}
+
+case class ElementwiseSubtractionExpression(var left : Expression, var right : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '+' << right << ')'
+}
+
+case class ElementwiseMultiplicationExpression(var left : Expression, var right : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '*' << right << ')'
+}
+
+case class ElementwiseDivisionExpression(var left : Expression, var right : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '/' << right << ')'
+}
+
+case class ElementwiseModuloExpression(var left : Expression, var right : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '%' << right << ')'
+}
+
+case class ElementwisePowerExpression(var left : Expression, var right : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << "dotpow(" << left << ", " << right << ')' // FIXME: check for integer constant => use pown
 }
 
 case class EqEqExpression(var left : Expression, var right : Expression) extends Expression {
