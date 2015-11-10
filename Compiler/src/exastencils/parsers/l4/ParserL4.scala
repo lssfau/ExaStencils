@@ -320,7 +320,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| term2)
 
   lazy val term2 : PackratParser[Expression] = (
-    locationize((term2 ~ ("**" ||| ".**") ~ factor) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
+    locationize((term2 ~ ("**" ||| "^" ||| ".**") ~ factor) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
     ||| factor)
 
   lazy val factor = (

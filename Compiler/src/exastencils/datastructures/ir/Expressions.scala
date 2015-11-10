@@ -51,7 +51,8 @@ object BinaryOperators extends Enumeration {
   val Subtraction = Value("-")
   val Multiplication = Value("*")
   val Division = Value("/")
-  val Power = Value("**") // FIXME
+  val Power = Value("**")
+  val Power_Alt = Value("^")
   val Modulo = Value("%")
 
   val ElementwiseAddition = Value(".+")
@@ -87,6 +88,7 @@ object BinaryOperators extends Enumeration {
     case Multiplication            => return new MultiplicationExpression(left, right)
     case Division                  => return new DivisionExpression(left, right)
     case Power                     => return new PowerExpression(left, right)
+    case Power_Alt                 => return new PowerExpression(left, right)
     case Modulo                    => return new ModuloExpression(left, right)
 
     case ElementwiseAddition       => return new ElementwiseAdditionExpression(left, right)
