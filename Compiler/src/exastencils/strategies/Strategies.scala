@@ -208,55 +208,33 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case AdditionExpression(left : Expression, FloatConstant(0))          => left
     case SubtractionExpression(left : Expression, FloatConstant(0))       => left
 
-    // Simplify row vectors
-    case NegativeExpression(v : RowVectorExpression)                      => RowVectorExpression(v.datatype, v.expressions.map(_ * (-1)))
-    case AdditionExpression(left : RowVectorExpression, right : RowVectorExpression) => {
-      if (left.length != right.length) Logger.error("Vector sizes must match for addition")
-      RowVectorExpression(GetResultingDatatype(left.datatype, right.datatype), (left.expressions, right.expressions).zipped.map(_ + _))
-    }
-    case SubtractionExpression(left : RowVectorExpression, right : RowVectorExpression) => {
-      if (left.length != right.length) Logger.error("Vector sizes must match for addition")
-      RowVectorExpression(GetResultingDatatype(left.datatype, right.datatype), (left.expressions, right.expressions).zipped.map(_ - _))
-    }
-    case MultiplicationExpression(v : RowVectorExpression, c : IntegerConstant) => {
-      RowVectorExpression(v.datatype, v.expressions.map(c * _))
-    }
-    case MultiplicationExpression(v : RowVectorExpression, c : FloatConstant) => {
-      RowVectorExpression(GetResultingDatatype(v.datatype, Some(RealDatatype)), v.expressions.map(c * _))
-    }
-    case MultiplicationExpression(c : IntegerConstant, v : RowVectorExpression) => {
-      RowVectorExpression(v.datatype, v.expressions.map(c * _))
-    }
-    case MultiplicationExpression(c : FloatConstant, v : RowVectorExpression) => {
-      RowVectorExpression(GetResultingDatatype(Some(RealDatatype), v.datatype), v.expressions.map(c * _))
-    }
-
-    // Simplify column vectors
-    case NegativeExpression(v : ColumnVectorExpression) => ColumnVectorExpression(v.datatype, v.expressions.map(_ * (-1)))
-    case AdditionExpression(left : ColumnVectorExpression, right : ColumnVectorExpression) => {
-      if (left.length != right.length) Logger.error("Vector sizes must match for addition")
-      ColumnVectorExpression(GetResultingDatatype(left.datatype, right.datatype), (left.expressions, right.expressions).zipped.map(_ + _))
-    }
-    case SubtractionExpression(left : ColumnVectorExpression, right : ColumnVectorExpression) => {
-      if (left.length != right.length) Logger.error("Vector sizes must match for addition")
-      ColumnVectorExpression(GetResultingDatatype(left.datatype, right.datatype), (left.expressions, right.expressions).zipped.map(_ - _))
-    }
-    case MultiplicationExpression(v : ColumnVectorExpression, c : IntegerConstant) => {
-      ColumnVectorExpression(v.datatype, v.expressions.map(c * _))
-    }
-    case MultiplicationExpression(v : ColumnVectorExpression, c : FloatConstant) => {
-      ColumnVectorExpression(GetResultingDatatype(v.datatype, Some(RealDatatype)), v.expressions.map(c * _))
-    }
-    case MultiplicationExpression(c : IntegerConstant, v : ColumnVectorExpression) => {
-      ColumnVectorExpression(v.datatype, v.expressions.map(c * _))
-    }
-    case MultiplicationExpression(c : FloatConstant, v : ColumnVectorExpression) => {
-      ColumnVectorExpression(GetResultingDatatype(Some(RealDatatype), v.datatype), v.expressions.map(c * _))
-    }
-
     // Simplify vectors
-    case MultiplicationExpression(left : RowVectorExpression, right : ColumnVectorExpression) => {
+    case NegativeExpression(v : VectorExpression)                         => VectorExpression(v.datatype, v.expressions.map(_ * (-1)), v.rowVector)
+    case AdditionExpression(left : VectorExpression, right : VectorExpression) => {
+      if (left.rowVector.getOrElse(true) != right.rowVector.getOrElse(true)) Logger.error("Vector types must match for addition")
       if (left.length != right.length) Logger.error("Vector sizes must match for addition")
+      VectorExpression(GetResultingDatatype(left.datatype, right.datatype), (left.expressions, right.expressions).zipped.map(_ + _), left.rowVector.getOrElse(right.rowVector).asInstanceOf[Option[Boolean]])
+    }
+    case SubtractionExpression(left : VectorExpression, right : VectorExpression) => {
+      if (left.rowVector.getOrElse(true) != right.rowVector.getOrElse(true)) Logger.error("Vector types must match for subtraction")
+      if (left.length != right.length) Logger.error("Vector sizes must match for subtraction")
+      VectorExpression(GetResultingDatatype(left.datatype, right.datatype), (left.expressions, right.expressions).zipped.map(_ - _), left.rowVector.getOrElse(right.rowVector).asInstanceOf[Option[Boolean]])
+    }
+    case MultiplicationExpression(v : VectorExpression, c : IntegerConstant) => {
+      VectorExpression(v.datatype, v.expressions.map(c * _), v.rowVector)
+    }
+    case MultiplicationExpression(v : VectorExpression, c : FloatConstant) => {
+      VectorExpression(GetResultingDatatype(v.datatype, Some(RealDatatype)), v.expressions.map(c * _), v.rowVector)
+    }
+    case MultiplicationExpression(c : IntegerConstant, v : VectorExpression) => {
+      VectorExpression(v.datatype, v.expressions.map(c * _), v.rowVector)
+    }
+    case MultiplicationExpression(c : FloatConstant, v : VectorExpression) => {
+      VectorExpression(GetResultingDatatype(Some(RealDatatype), v.datatype), v.expressions.map(c * _), v.rowVector)
+    }
+    case MultiplicationExpression(left : VectorExpression, right : VectorExpression) => {
+      if (left.length != right.length) Logger.error("Vector sizes must match for multiplication")
+      if (left.rowVector.getOrElse(true) != right.rowVector.getOrElse(true)) Logger.error("Vector types must match for multiplication")
       val t = (left.expressions, right.expressions).zipped.map(_ * _)
       t.reduce((a : Expression, b : Expression) => a + b)
     }

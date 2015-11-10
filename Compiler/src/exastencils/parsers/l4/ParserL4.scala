@@ -337,9 +337,9 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| genericAccess
     ||| locationize(booleanLit ^^ { case s => BooleanConstant(s) }))
 
-  lazy val rowVectorExpression = locationize("{" ~> (binaryexpression <~ ",").+ ~ (binaryexpression <~ "}") ^^ { case x ~ y => RowVectorExpression(None, x :+ y) })
+  lazy val rowVectorExpression = locationize("{" ~> (binaryexpression <~ ",").+ ~ (binaryexpression <~ "}") ^^ { case x ~ y => VectorExpression(None, x :+ y, None) })
 
-  lazy val columnVectorExpression = locationize(rowVectorExpression <~ "T" ^^ { case x => ColumnVectorExpression(None, x.expressions) })
+  lazy val columnVectorExpression = locationize(rowVectorExpression <~ "T" ^^ { case x => VectorExpression(None, x.expressions, Some(false)) })
 
   lazy val matrixExpression = locationize("{" ~> (rowVectorExpression <~ ",").+ ~ (rowVectorExpression <~ "}") ^^ { case x ~ y => MatrixExpression(None, x :+ y) })
 

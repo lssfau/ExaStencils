@@ -181,7 +181,7 @@ case class BooleanConstant(var value : Boolean) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << value
 }
 
-abstract class VectorExpression(var datatype : Option[Datatype], var expressions : ListBuffer[Expression]) extends Expression {
+case class VectorExpression(var datatype : Option[Datatype], var expressions : ListBuffer[Expression], var rowVector : Option[Boolean]) extends Expression {
   def length = expressions.length
 
   def apply(i : Integer) = expressions(i)
@@ -208,25 +208,15 @@ abstract class VectorExpression(var datatype : Option[Datatype], var expressions
     out.removeLast() // remove last comma
     out << "}"
   }
-}
-
-case class RowVectorExpression(dt : Option[Datatype], exp : ListBuffer[Expression]) extends VectorExpression(dt, exp) {
   override def prettyprint(out : PpStream) : Unit = {
     out << "Matrix<"
     datatype.getOrElse(RealDatatype).prettyprint(out)
     out << ", "
-    out << "1, " << length << "> ("
-    prettyprintInner(out)
-    out << ")"
-  }
-}
-
-case class ColumnVectorExpression(dt : Option[Datatype], exp : ListBuffer[Expression]) extends VectorExpression(dt, exp) {
-  override def prettyprint(out : PpStream) : Unit = {
-    out << "Matrix<"
-    datatype.getOrElse(RealDatatype).prettyprint(out)
-    out << ", "
-    out << length << ", 1> ("
+    if (rowVector.getOrElse(true)) {
+      out << "1, " << length << "> (" // row vector
+    } else {
+      out << length << ", 1> ("
+    }
     prettyprintInner(out)
     out << ")"
   }
