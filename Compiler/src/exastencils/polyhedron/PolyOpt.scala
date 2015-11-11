@@ -473,15 +473,17 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val df = new DecimalFormat()
     df.setMinimumIntegerDigits(5)
     df.setGroupingUsed(false)
-    Settings.outputPath += df.format(confID)
 
     val explConfig = new File(Settings.poly_explorationConfig)
     if (!explConfig.exists() || explConfig.length() == 0) {
       Logger.debug("[PolyOpt] Exploration: no configuration file found or file empty, perform exploration and create it, progress:")
       performExploration(scop, explConfig, df)
       Logger.debug("[PolyOpt] Exploration: configuration finished, creating base version (without any schedule changes)")
-    } else
+      Settings.outputPath += df.format(0)
+    } else {
       applyConfig(scop, explConfig, df.format(confID))
+      Settings.outputPath += df.format(confID)
+    }
   }
 
   private def performExploration(scop : Scop, explConfig : File, df : DecimalFormat) : Unit = {
