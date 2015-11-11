@@ -119,7 +119,7 @@ case class VariableDeclarationStatement(override var identifier : Identifier, va
 
   override def progressToIr : ir.VariableDeclarationStatement = {
     ir.VariableDeclarationStatement(datatype.progressToIr,
-      identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
+      identifier.progressToIr.asInstanceOf[ir.StringLiteral].value,
       if (expression.isDefined) Some(expression.get.progressToIr) else None)
   }
 }
@@ -223,7 +223,7 @@ case class FunctionStatement(override var identifier : Identifier,
   override def progressToIr : ir.AbstractFunctionStatement = {
     ir.FunctionStatement(
       returntype.progressToIr,
-      identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
+      identifier.progressToIr.asInstanceOf[ir.StringLiteral].value,
       arguments.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
       statements.map(s => s.progressToIr).to[ListBuffer]) // FIXME: .to[ListBuffer]
   }
@@ -305,7 +305,7 @@ case class RepeatTimesStatement(var number : Int,
         (lv, ir.AssignmentStatement(lv, ir.IntegerConstant(0)))
       } else {
         val lv = "someRandomIndexVar" // FIXME: someRandomIndexVar
-        (ir.StringConstant(lv), ir.VariableDeclarationStatement(ir.IntegerDatatype, lv, Some(ir.IntegerConstant(0))))
+        (ir.StringLiteral(lv), ir.VariableDeclarationStatement(ir.IntegerDatatype, lv, Some(ir.IntegerConstant(0))))
       }
 
     return ir.ForLoopStatement(
@@ -392,6 +392,6 @@ case class AdvanceStatement(var field : Access) extends Statement {
 
   override def progressToIr = {
     data.AdvanceSlotStatement(ir.iv.CurrentSlot(field.asInstanceOf[FieldAccess].progressToIr.fieldSelection.field,
-      ir.StringConstant(ir.LoopOverFragments.defIt)))
+      ir.StringLiteral(ir.LoopOverFragments.defIt)))
   }
 }

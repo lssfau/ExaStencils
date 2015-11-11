@@ -261,7 +261,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       if (Knowledge.experimental_useLevelIndepFcts) {
         val s = new DefaultStrategy("Replacing level specifications")
         s += new Transformation("Search and replace", {
-          case StringConstant("level")    => Knowledge.maxLevel : Expression
+          case StringLiteral("level")     => Knowledge.maxLevel : Expression
           case VariableAccess("level", _) => Knowledge.maxLevel : Expression
         })
         for (buf <- bufferSizes)

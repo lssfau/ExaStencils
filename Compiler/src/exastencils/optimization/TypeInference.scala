@@ -61,7 +61,7 @@ private final class AnnotateStringConstants extends ScopeCollector(Map[String, D
       case VariableDeclarationStatement(ty : Datatype, name : String, _) =>
         declare(name, ty)
 
-      case node @ StringConstant(str) =>
+      case node @ StringLiteral(str) =>
         val ty : Datatype = findType(str)
         if (ty != null)
           node.annotate(TYPE_ANNOT, ty)
@@ -101,7 +101,7 @@ private final object CreateVariableAccesses extends PartialFunction[Node, Transf
   import TypeInference._
 
   def isDefinedAt(node : Node) : Boolean = {
-    return (node.isInstanceOf[StringConstant] || node.isInstanceOf[VariableAccess]) && node.hasAnnotation(TYPE_ANNOT)
+    return (node.isInstanceOf[StringLiteral] || node.isInstanceOf[VariableAccess]) && node.hasAnnotation(TYPE_ANNOT)
   }
 
   def apply(node : Node) : Transformation.OutputType = {
@@ -110,7 +110,7 @@ private final object CreateVariableAccesses extends PartialFunction[Node, Transf
     val typee : Datatype = node.getAnnotation(TYPE_ANNOT).get.value.asInstanceOf[Datatype]
     val varr : String =
       node match {
-        case StringConstant(name)    => name
+        case StringLiteral(name)     => name
         case VariableAccess(name, _) => name
       }
     return new VariableAccess(varr, typee)

@@ -20,7 +20,7 @@ trait Number extends Expression {
 case class StringConstant(var value : String) extends Expression {
   def prettyprint(out : PpStream) = { out << '\'' << value << '\'' }
 
-  def progressToIr : ir.StringConstant = ir.StringConstant(value)
+  def progressToIr = ir.StringConstant(value)
 }
 
 case class IntegerConstant(var v : Long) extends Number {
@@ -118,7 +118,7 @@ case class UnresolvedAccess(var name : String,
     if (dirAccess.isDefined) out << ':' << dirAccess
   }
 
-  def progressToIr : ir.StringConstant = ir.StringConstant("ERROR - Unresolved Access")
+  def progressToIr : ir.StringLiteral = ir.StringLiteral("ERROR - Unresolved Access")
 
   def resolveToBasicOrLeveledAccess = {
     if (slot.isDefined) Logger.warn("Discarding meaningless slot access on basic or leveled access")
@@ -149,14 +149,14 @@ case class UnresolvedAccess(var name : String,
 case class BasicAccess(var name : String) extends Access {
   def prettyprint(out : PpStream) = { out << name }
 
-  def progressToIr : ir.StringConstant = ir.StringConstant(name)
+  def progressToIr : ir.StringLiteral = ir.StringLiteral(name)
 }
 
 case class LeveledAccess(var name : String, var level : AccessLevelSpecification) extends Access {
   def prettyprint(out : PpStream) = { out << name << '[' << level << ']' }
 
   def progressToIr : ir.Expression = {
-    ir.StringConstant(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
+    ir.StringLiteral(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
   }
 }
 
@@ -168,8 +168,8 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
     if (offset.isDefined) out << "@" << offset
   }
 
-  def progressNameToIr : ir.StringConstant = {
-    ir.StringConstant(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
+  def progressNameToIr = {
+    ir.StringLiteral(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
   }
 
   def resolveField : knowledge.Field = {
@@ -306,22 +306,22 @@ abstract class Identifier extends Expression {
 case class BasicIdentifier(var name : String) extends Identifier {
   def prettyprint(out : PpStream) = { out << name }
 
-  def progressToIr : ir.StringConstant = ir.StringConstant(name)
+  def progressToIr = ir.StringLiteral(name)
 }
 
 case class LeveledIdentifier(var name : String, var level : LevelSpecification) extends Identifier {
   def prettyprint(out : PpStream) = { out << name << '@' << level }
 
-  def progressToIr : ir.StringConstant = {
-    ir.StringConstant(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
+  def progressToIr = {
+    ir.StringLiteral(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
   }
 }
 
 case class Variable(var identifier : Identifier, var datatype : Datatype) extends Expression {
   def prettyprint(out : PpStream) = { out << identifier }
 
-  def progressToIr : ir.VariableAccess = {
-    ir.VariableAccess(identifier.progressToIr.asInstanceOf[ir.StringConstant].value, Some(datatype.progressToIr))
+  def progressToIr = {
+    ir.VariableAccess(identifier.progressToIr.asInstanceOf[ir.StringLiteral].value, Some(datatype.progressToIr))
   }
 }
 
@@ -366,7 +366,7 @@ case class FunctionCallExpression(var identifier : Access, var arguments : List[
   def prettyprint(out : PpStream) = { out << identifier << " ( " <<< (arguments, ", ") << " )" }
 
   def progressToIr : ir.FunctionCallExpression = {
-    ir.FunctionCallExpression(identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
+    ir.FunctionCallExpression(identifier.progressToIr.asInstanceOf[ir.StringLiteral].value,
       arguments.map(s => s.progressToIr).to[ListBuffer])
   }
 }

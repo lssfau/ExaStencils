@@ -24,7 +24,7 @@ object ReplaceStringConstantsStrategy extends QuietDefaultStrategy("Replace some
   var replacement : Node = LoopOverDimensions.defIt
 
   this += new Transformation("SearchAndReplace", {
-    case StringConstant(s) if s == toReplace => Duplicate(replacement)
+    case StringLiteral(s) if s == toReplace => Duplicate(replacement)
   }, false)
 }
 

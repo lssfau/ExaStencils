@@ -109,7 +109,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       }
 
       communicateStatement.field.slot match {
-        case SlotAccess(slot, _) if StringConstant(LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
+        case SlotAccess(slot, _) if StringLiteral(LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
         case _ =>
       }
 
@@ -143,7 +143,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       }
 
       applyBCsStatement.field.slot match {
-        case SlotAccess(slot, _) if StringConstant(LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
+        case SlotAccess(slot, _) if StringLiteral(LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
         case _ =>
       }
 

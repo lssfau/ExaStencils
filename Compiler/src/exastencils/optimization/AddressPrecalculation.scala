@@ -79,7 +79,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     object Search extends QuietDefaultStrategy("Anonymous") {
       var res : Boolean = false
       this += new Transformation("contains loop var", {
-        case strC : StringConstant =>
+        case strC : StringLiteral =>
           res |= inVars.contains(strC.value)
           strC
         case varA : VariableAccess =>
@@ -158,31 +158,31 @@ private final class AnnotateLoopsAndAccesses extends Collector {
           case AssignmentStatement(VariableAccess(name, _), _, _) =>
             decls = d
             inVars = Set(name)
-          case AssignmentStatement(StringConstant(name), _, _) =>
+          case AssignmentStatement(StringLiteral(name), _, _) =>
             decls = d
             inVars = Set(name)
           case ExpressionStatement(PreIncrementExpression(VariableAccess(name, _))) =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(PreIncrementExpression(StringConstant(name))) =>
+          case ExpressionStatement(PreIncrementExpression(StringLiteral(name))) =>
             decls = d
             inVars = Set(name)
           case ExpressionStatement(PostIncrementExpression(VariableAccess(name, _))) =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(PostIncrementExpression(StringConstant(name))) =>
+          case ExpressionStatement(PostIncrementExpression(StringLiteral(name))) =>
             decls = d
             inVars = Set(name)
           case ExpressionStatement(PreDecrementExpression(VariableAccess(name, _))) =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(PreDecrementExpression(StringConstant(name))) =>
+          case ExpressionStatement(PreDecrementExpression(StringLiteral(name))) =>
             decls = d
             inVars = Set(name)
           case ExpressionStatement(PostDecrementExpression(VariableAccess(name, _))) =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(PostDecrementExpression(StringConstant(name))) =>
+          case ExpressionStatement(PostDecrementExpression(StringLiteral(name))) =>
             decls = d
             inVars = Set(name)
           case _ =>
@@ -199,9 +199,9 @@ private final class AnnotateLoopsAndAccesses extends Collector {
 
       case AssignmentStatement(dst, _, _) if (decls != null && inVars != null) =>
         dst match {
-          case StringConstant(name) => inVars += name
+          case StringLiteral(name) => inVars += name
           case VariableAccess(name, _) => inVars += name
-          case ArrayAccess(StringConstant(name), _, _) => inVars += name
+          case ArrayAccess(StringLiteral(name), _, _) => inVars += name
           case ArrayAccess(VariableAccess(name, _), _, _) => inVars += name
           // name of ArrayAccess(ArrayAccess(..), ..) is explicitly NOT extracted, see leave(..)
           case _ => // nothing; expand match here, if more vars should stay inside the loop

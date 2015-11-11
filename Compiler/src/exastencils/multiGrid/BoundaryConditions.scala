@@ -18,7 +18,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
     var statements : ListBuffer[Statement] = ListBuffer()
     if (StateManager.findFirst[AnyRef]((node : Any) => node match {
       case vfa : VirtualFieldAccess if "vf_nodePosition_x" == vfa.fieldName || "vf_nodePosition_y" == vfa.fieldName || "vf_nodePosition_z" == vfa.fieldName => true
-      case StringConstant("xPos") | StringConstant("yPos") | StringConstant("zPos") => true
+      case StringLiteral("xPos") | StringLiteral("yPos") | StringLiteral("zPos") => true
       case VariableAccess("xPos", _) | VariableAccess("yPos", _) | VariableAccess("zPos", _) => true
       case _ => false
     }, ExpressionStatement(field.field.boundaryConditions.get)).isDefined) { // wrapped in ExpressionStatement to match top-level expressions as well
@@ -42,7 +42,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
           || ("face_x" == d && 0 != neigh.dir(0))
           || ("face_y" == d && 0 != neigh.dir(1))
           || ("face_z" == d && 0 != neigh.dir(2)) =>
-          if (StringConstant("Neumann") == field.field.boundaryConditions.get)
+          if (StringLiteral("Neumann") == field.field.boundaryConditions.get)
             Knowledge.experimental_NeumannOrder match {
               case 1 => statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index), new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -i))))
               case 2 => statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index),
@@ -60,7 +60,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
           || ("face_x" == d && 0 == neigh.dir(0))
           || ("face_y" == d && 0 == neigh.dir(1))
           || ("face_z" == d && 0 == neigh.dir(2)) =>
-          if (StringConstant("Neumann") == field.field.boundaryConditions.get)
+          if (StringLiteral("Neumann") == field.field.boundaryConditions.get)
             Knowledge.experimental_NeumannOrder match {
               case 1 => statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)))),
                 new DirectFieldAccess(fieldSel, index))

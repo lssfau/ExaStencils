@@ -199,16 +199,16 @@ object ResolveCoordinates extends DefaultStrategy("ResolveCoordinates") {
 
   Knowledge.dimensionality match {
     case 1 => this += new Transformation("SearchAndReplace", {
-      case StringConstant("x") => replacement(0)
+      case StringLiteral("x") => replacement(0)
     })
     case 2 => this += new Transformation("SearchAndReplace", {
-      case StringConstant("x") => replacement(0)
-      case StringConstant("y") => replacement(1)
+      case StringLiteral("x") => replacement(0)
+      case StringLiteral("y") => replacement(1)
     })
     case 3 => this += new Transformation("SearchAndReplace", {
-      case StringConstant("x") => replacement(0)
-      case StringConstant("y") => replacement(1)
-      case StringConstant("z") => replacement(2)
+      case StringLiteral("x") => replacement(0)
+      case StringLiteral("y") => replacement(1)
+      case StringLiteral("z") => replacement(2)
     })
   }
 }
@@ -217,7 +217,7 @@ object CreateGeomCoordinates extends DefaultStrategy("Add geometric coordinate c
   this += new Transformation("Search and extend", {
     case loop : LoopOverPointsInOneFragment =>
       if (StateManager.findFirst[AnyRef]((node : Any) => node match {
-        case StringConstant("xPos") | StringConstant("yPos") | StringConstant("zPos") => true
+        case StringLiteral("xPos") | StringLiteral("yPos") | StringLiteral("zPos") => true
         case VariableAccess("xPos", _) | VariableAccess("yPos", _) | VariableAccess("zPos", _) => true
         case _ => false
       }, loop).isDefined) {

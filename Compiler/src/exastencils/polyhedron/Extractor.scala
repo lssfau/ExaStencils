@@ -59,7 +59,7 @@ object Extractor {
         constraints.append(islStr)
 
       // a StringConstant is only allowed, if the value it represents was used correctly before (as a VariableAccess, for example)
-      case str : StringConstant if (ScopNameMapping.id2expr(str.value).isDefined) =>
+      case str : StringLiteral if (ScopNameMapping.id2expr(str.value).isDefined) =>
         val e = ScopNameMapping.id2expr(str.value).get
         val islStr : String = ScopNameMapping.expr2id(e)
         if (vars != null)
@@ -438,13 +438,13 @@ class Extractor extends Collector {
           case a : AssignmentStatement =>
             enterAssign(a)
 
-          case StringConstant(varName) =>
+          case StringLiteral(varName) =>
             enterScalarAccess(varName)
 
           case VariableAccess(varName, _) =>
             enterScalarAccess(varName)
 
-          case ArrayAccess(array @ StringConstant(varName), index, _) =>
+          case ArrayAccess(array @ StringLiteral(varName), index, _) =>
             array.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(varName, index)
@@ -527,7 +527,7 @@ class Extractor extends Collector {
     node match {
       case l : LoopOverDimensions           => leaveLoop(l)
       case _ : AssignmentStatement          => leaveAssign()
-      case _ : StringConstant               => leaveScalarAccess()
+      case _ : StringLiteral                => leaveScalarAccess()
       case _ : VariableAccess               => leaveScalarAccess()
       case _ : ArrayAccess                  => leaveArrayAccess()
       case _ : DirectFieldAccess            => leaveFieldAccess()
