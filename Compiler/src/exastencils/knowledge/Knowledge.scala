@@ -242,6 +242,7 @@ object Knowledge {
   var poly_tileSize_w : Int = 0 // [16~1000000000 $32§poly_tileSize_w+32]
   var poly_tileOuterLoop : Boolean = false // [true|false] // specify separately if the outermost loop should be tiled
   var poly_scheduleAlgorithm : String = "isl" // [isl|feautrier|exploration] // choose which schedule algorithm should be used in PolyOpt
+  var poly_exploration_extended : Boolean = false // [true|false] // triggers an extended exploration (i.e. not only pairs of lines/rays are considered, but also combinations of three of them)
   var poly_optimizeDeps : String = "raw" // [all|raw|rar] // specifies which dependences should be optimized; "all" means all validity dependences (raw, war, waw)
   var poly_filterDeps : Boolean = false // [true|false] // specifies if the dependences to optimize should be filtered first
   var poly_simplifyDeps : Boolean = true // [true|false] // simplify dependences before computing a new schedule; this reduces PolyOpt run-time, but it could also lead to slower generated code
