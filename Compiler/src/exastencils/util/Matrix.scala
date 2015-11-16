@@ -285,6 +285,7 @@ public:
                 out( j, i ) = ( *this )( i, j );
             }
         }
+        return out;
     }
 
     T& operator() ( const size_t i, const size_t j ) {
