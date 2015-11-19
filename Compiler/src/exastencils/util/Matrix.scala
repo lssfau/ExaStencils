@@ -782,8 +782,8 @@ T& getComponent(const Matrix<T, M, 1>& o, const size_t i) {
     return o.component(i);
 }
 
-template<typename T, size_t M, size_t N>
-T dotProduct(const Matrix<T, M, N>& a, const Matrix<T, M, N>& b) {
+template<typename T, size_t M>
+T dotProduct(const Matrix<T, M, 1>& a, const Matrix<T, M, 1>& b) {
     T out;
     for( size_t i = 0; i < a.rows(); i++ ) {
         for(size_t j = 0; j < a.columns(); j++ ) {
@@ -792,6 +792,40 @@ T dotProduct(const Matrix<T, M, N>& a, const Matrix<T, M, N>& b) {
     }  
     return out;
 }
+
+template<typename T, size_t M>
+T dotProduct(const Matrix<T, 1, M>& a, const Matrix<T, 1, M>& b) {
+    T out;
+    for( size_t i = 0; i < a.rows(); i++ ) {
+        for(size_t j = 0; j < a.columns(); j++ ) {
+            out += a(i, j) * b(i, j);
+        }
+    }  
+    return out;
+}
+
+template<typename T, size_t M>
+T dotProduct(const Matrix<T, M, 1>& a, const Matrix<T, 1, M>& b) {
+    T out;
+    for( size_t i = 0; i < a.rows(); i++ ) {
+        for(size_t j = 0; j < a.columns(); j++ ) {
+            out += a(i, j) * b(i, j);
+        }
+    }  
+    return out;
+}
+
+template<typename T, size_t M>
+T dotProduct(const Matrix<T, 1, M>& a, const Matrix<T, M, 1>& b) {
+    T out;
+    for( size_t i = 0; i < a.rows(); i++ ) {
+        for(size_t j = 0; j < a.columns(); j++ ) {
+            out += a(i, j) * b(i, j);
+        }
+    }  
+    return out;
+}
+
 """
   }
 }

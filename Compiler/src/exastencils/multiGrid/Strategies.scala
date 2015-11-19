@@ -85,7 +85,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
 
     // FIXME: UGLY HACK to realize native code functionality
     case FunctionCallExpression("native", args) =>
-      args(0).asInstanceOf[StringLiteral]
+      StringLiteral(args(0).asInstanceOf[StringConstant].value)
 
     case FunctionCallExpression("concat", args) =>
       ConcatenationExpression(args)
