@@ -223,10 +223,11 @@ public:
         }
         case 2: {
             Matrix<T, M, N> m;
-            m ( 0, 0 ) = ( *this ) ( 1, 1 );
-            m ( 1, 0 ) = ( *this ) ( 1, 0 ) * ( -1 );
-            m ( 0, 1 ) = ( *this ) ( 0, 1 ) * ( -1 );
-            m ( 1, 1 ) = ( *this ) ( 0, 0 );
+            const auto det = this->determinant();
+            m ( 0, 0 ) = ( *this ) ( 1, 1 ) / det;
+            m ( 1, 0 ) = ( *this ) ( 1, 0 ) * ( -1 ) / det;
+            m ( 0, 1 ) = ( *this ) ( 0, 1 ) * ( -1 ) / det;
+            m ( 1, 1 ) = ( *this ) ( 0, 0 ) / det;
             return m;
         }
         case 3: {
