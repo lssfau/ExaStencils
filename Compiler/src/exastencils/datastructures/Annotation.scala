@@ -1,7 +1,6 @@
 package exastencils.datastructures
 
 import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
 
 /**
   * Holds information and be attached to any class that is [[exastencils.datastructures.Annotatable]].
@@ -12,7 +11,7 @@ import scala.collection.mutable.ListBuffer
 sealed class Annotation(val id : String, var value : Any) {
   /**
     * Alternate constructor when no value is needed.
-    * 
+    *
     * Sets the value of this Annotation to None.
     *
     * @param id A key-like identifier denoting the kind of information this annotation holds.
@@ -42,7 +41,7 @@ object Annotation {
 
   /**
     * Creates a new [[exastencils.datastructures.Annotation]] when no value is needed.
-    * 
+    *
     * Sets the value of this [[exastencils.datastructures.Annotation]] to None.
     *
     * @param id A key-like identifier denoting the kind of information this [[exastencils.datastructures.Annotation]] holds.
@@ -94,7 +93,7 @@ trait Annotatable {
 
   /**
     * Adds a new [[exastencils.datastructures.Annotation]] to this instance when no value is needed.
-    * 
+    *
     * Sets the value of the new [[exastencils.datastructures.Annotation]] to None.
     *
     * @param id A key-like identifier denoting the kind of information this [[exastencils.datastructures.Annotation]] holds.
@@ -142,4 +141,12 @@ trait Annotatable {
     * @return `true`, if the [[exastencils.datastructures.Annotation]] was found, or `false`.
     */
   def hasAnnotation(id : String) = { annotations_.contains(id) }
+
+  /**
+    * Checks if this instance contains a certain [[exastencils.datastructures.Annotation]].
+    *
+    * @param annotation The [[exastencils.datastructures.Annotation]] to check for.
+    * @return `true`, if the [[exastencils.datastructures.Annotation]] was found, or `false`.
+    */
+  def hasAnnotation(annotation : Annotation) = { annotations_.contains(annotation.id) }
 }
