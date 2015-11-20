@@ -12,6 +12,13 @@ object Platform {
   var ldflags : String = ""
   var addldflags : String = ""
 
+  if (Knowledge.library_CImg) {
+    Knowledge.targetOS match {
+      case "Windows"       => ldflags += " -lgdi32 "
+      case "Linux" | "OSX" => ldflags += " -lX11 "
+    }
+  }
+
   // NOTE: this only works if the Hardware object is loaded AFTER Knowledge is fully initialized
   Knowledge.targetCompiler match {
     case "IBMBG" => {

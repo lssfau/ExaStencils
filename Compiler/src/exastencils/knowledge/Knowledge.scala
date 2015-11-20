@@ -6,6 +6,7 @@ import exastencils.spl._
 
 object Knowledge {
   // TODO: rename and move to hw knowledge?
+  var targetOS : String = "Windows" // the target operating system: "Linux", "Windows", "OSX"
   var targetCompiler : String = "MSVC" // the target compiler; may atm be "MSVC", "GCC", "IBMXL", "IBMBG", "ICC", "CLANG"
   var targetCompilerVersion : Int = 0 // major version of the target compiler
   var targetCompilerVersionMinor : Int = 0 // minor version of the target compiler
