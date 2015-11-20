@@ -167,16 +167,16 @@ case class LoopOverPointsInOneFragment(var domain : Int,
       val regionCode = region.get.region.toUpperCase().charAt(0)
 
       start = new MultiIndex(DimArray().map(dim => (dim match {
-        case dim if region.get.dir(dim) == 0 => field.fieldLayout.idxById(regionCode + "LB", dim) - field.referenceOffset(dim)
-        case dim if region.get.dir(dim) < 0  => field.fieldLayout.idxById(regionCode + "LB", dim) - field.referenceOffset(dim)
-        case dim if region.get.dir(dim) > 0  => field.fieldLayout.idxById(regionCode + "RB", dim) - field.referenceOffset(dim)
+        case dim if region.get.dir(dim) == 0 => field.fieldLayout.idxById(regionCode + "LB", dim) - field.referenceOffset(dim) + startOffset(dim)
+        case dim if region.get.dir(dim) < 0  => field.fieldLayout.idxById(regionCode + "LB", dim) - field.referenceOffset(dim) + startOffset(dim)
+        case dim if region.get.dir(dim) > 0  => field.fieldLayout.idxById(regionCode + "RB", dim) - field.referenceOffset(dim) + startOffset(dim)
       }) : Expression))
 
       stop = new MultiIndex(
         DimArray().map(dim => (dim match {
-          case dim if region.get.dir(dim) == 0 => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim)
-          case dim if region.get.dir(dim) < 0  => field.fieldLayout.idxById(regionCode + "LE", dim) - field.referenceOffset(dim)
-          case dim if region.get.dir(dim) > 0  => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim)
+          case dim if region.get.dir(dim) == 0 => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim) - endOffset(dim)
+          case dim if region.get.dir(dim) < 0  => field.fieldLayout.idxById(regionCode + "LE", dim) - field.referenceOffset(dim) - endOffset(dim)
+          case dim if region.get.dir(dim) > 0  => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim) - endOffset(dim)
         }) : Expression))
     } else {
       // basic case -> just eliminate 'real' boundaries
@@ -416,7 +416,7 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
         reduction)
   }
 
-  def expand : Output[StatementList] = {
+  override def expand : Output[StatementList] = {
     var statements = new ListBuffer[Statement]
 
     if (Knowledge.experimental_resolveUnreqFragmentLoops && Knowledge.domain_numFragmentsPerBlock <= 1) {
@@ -481,7 +481,7 @@ case class LoopOverDomains(var body : ListBuffer[Statement]) extends Statement w
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverDomains\n"
 
-  def expand : Output[ForLoopStatement] = {
+  override def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
       VariableDeclarationStatement(IntegerDatatype, defIt, Some(0)),
       LowerExpression(defIt, DomainCollection.domains.size),
@@ -499,7 +499,7 @@ case class LoopOverFields(var body : ListBuffer[Statement]) extends Statement wi
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverFields\n"
 
-  def expand : Output[ForLoopStatement] = {
+  override def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
       VariableDeclarationStatement(IntegerDatatype, defIt, Some(0)),
       LowerExpression(defIt, FieldCollection.fields.size),
@@ -517,7 +517,7 @@ case class LoopOverLevels(var body : ListBuffer[Statement]) extends Statement wi
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverLevels\n"
 
-  def expand : Output[ForLoopStatement] = {
+  override def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
       VariableDeclarationStatement(IntegerDatatype, defIt, Some(Knowledge.minLevel)),
       LowerExpression(defIt, Knowledge.maxLevel + 1),
@@ -535,7 +535,7 @@ case class LoopOverNeighbors(var body : ListBuffer[Statement]) extends Statement
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverNeighbors\n"
 
-  def expand : Output[ForLoopStatement] = {
+  override def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
       VariableDeclarationStatement(IntegerDatatype, defIt, Some(0)),
       LowerExpression(defIt, Fragment.neighbors.size),
