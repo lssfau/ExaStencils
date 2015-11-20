@@ -15,7 +15,7 @@ object Platform {
   if (Knowledge.library_CImg) {
     Knowledge.targetOS match {
       case "Windows"       => ldflags += " -lgdi32 "
-      case "Linux" | "OSX" => ldflags += " -lX11 "
+      case "Linux" | "OSX" => ldflags += " -lm -lpthread -lX11"
     }
   }
 
