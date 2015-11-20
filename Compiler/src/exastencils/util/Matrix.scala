@@ -34,27 +34,25 @@ case class Matrix() extends Node with FilePrettyPrintable {
 template<typename T, size_t M, size_t N>
 class Matrix {
 public:
-    std::vector< T > m_data;
+    std::array< T, M*N > m_data;
 
     
     // default constructor
     Matrix()
-    : m_data ( M * N )
     { }
 
     // constructor
     Matrix ( T value )
-    : m_data ( M* N, value )
-    { }
+    {
+        m_data.fill(value);
+    }
 
-    Matrix ( std::vector<T> data ){
-        m_data.resize ( M * N );
+    Matrix ( std::array<T, M*N> data ){
         std::copy(data.begin(), data.end(), m_data.begin());
     }
 
     // copy constructor
     Matrix ( const Matrix<T, M, N>& other ) {
-        m_data.resize ( M * N );
         std::copy(other.m_data.begin(), other.m_data.end(), m_data.begin());
     }
 
@@ -139,13 +137,13 @@ public:
         }
     }
 
-    void setRow ( const size_t row, const std::vector<T>& values ) {
+    void setRow ( const size_t row, const std::array<T, M*N>& values ) {
         for ( size_t i = 0; i < this->columns(); ++i ) {
             ( *this ) ( row, i ) = values ( i );
         }
     }
 
-    void setColumn ( const size_t column, const std::vector<T>& values ) {
+    void setColumn ( const size_t column, const std::array<T, M*N>& values ) {
         for ( size_t i = 0; i < this->rows(); ++i ) {
             ( *this ) ( i, column ) = values ( i );
         }
