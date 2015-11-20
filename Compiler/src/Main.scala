@@ -150,7 +150,8 @@ object Main {
       Stopwatch(),
       TimerFunctions(),
       Vector(),
-      Matrix())
+      Matrix(),
+      CImg())
 
     // apply strategies
 

@@ -14,7 +14,7 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitFieldsWithZero\n"
   override def prettyprint_decl : String = prettyprint
 
-  override def expand: Output[FunctionStatement] = {
+  override def expand : Output[FunctionStatement] = {
     val fields = FieldCollection.getSortedFields
     var statements : ListBuffer[Statement] = new ListBuffer
 
