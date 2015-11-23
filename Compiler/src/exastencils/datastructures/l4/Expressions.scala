@@ -129,7 +129,11 @@ case class UnresolvedAccess(var name : String,
   }
   def resolveToFieldAccess = {
     if (dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on field - was an offset access (@) intended?")
-    FieldAccess(name, level.get, slot.getOrElse(SlotModifier.Active()), arrayIndex, offset)
+    try {
+      FieldAccess(name, level.get, slot.getOrElse(SlotModifier.Active()), arrayIndex, offset)
+    } catch {
+      case e : Exception => Logger.warn(s"""Could not resolve field "${name}""""); throw e
+    }
   }
   def resolveToVirtualFieldAccess = {
     if (dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on special field - was an offset access (@) intended?")
