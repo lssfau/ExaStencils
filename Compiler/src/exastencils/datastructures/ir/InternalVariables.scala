@@ -276,13 +276,14 @@ case class PrimitiveTransformation(var fragmentIdx : Expression = LoopOverFragme
   override def resolveDefValue = Some("Mat4()")
 }
 
-case class Timer(var name : Expression) extends UnduplicatedVariable {
+case class Timer(n : Expression) extends UnduplicatedVariable {
+  def name = StringLiteral(n.prettyprint().replace("\"", ""))
   // TODO: strip result of resolveName (no spaces, etc.)
-  override def resolveName = s"timer_" + name.prettyprint.replaceAll("\"", "")
+  override def resolveName = s"timer_" + name.value
   override def resolveDataType = "StopWatch"
 
   override def getCtor() : Option[Statement] = {
-    Some(AssignmentStatement(resolveName ~ ".timerName", name))
+    Some(AssignmentStatement(resolveName ~ ".timerName", "\"" + name + "\""))
   }
 }
 
