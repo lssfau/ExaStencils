@@ -498,6 +498,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
     explConfig.getParentFile().mkdirs()
     val eConfOut = new java.io.PrintWriter(explConfig)
+    eConfOut.println(domain)
+    eConfOut.println(validity)
+    eConfOut.println(Knowledge.poly_exploration_extended)
+    eConfOut.println()
     var i : Int = 0
     Exploration.guidedExploration(domain, validity, Knowledge.poly_exploration_extended, {
       (sched : isl.UnionMap, schedVect : Seq[Array[Int]], bands : Seq[Int]) =>
