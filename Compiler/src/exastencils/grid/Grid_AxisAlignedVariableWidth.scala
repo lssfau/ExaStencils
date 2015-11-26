@@ -1,7 +1,7 @@
 package exastencils.grid
 
-import scala.annotation.migration
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
@@ -9,9 +9,25 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.logger._
-import exastencils.prettyprinting.PpStream
+import exastencils.prettyprinting._
 
 object Grid_AxisAlignedVariableWidth extends Grid {
+  // specialize strategies
+  object ExpandEvaluationFunctions extends DefaultStrategy("ExpandEvaluationFunctions") {
+    this += new Transformation("Expanding evaluation functions", {
+      case eval : Grid_AxisAlignedVariableWidth.EvalAtRFace => eval.expandSpecial
+    })
+  }
+
+  override def applyStrategies() = {
+    ResolveEvaluationFunctions.apply()
+    ResolveIntegrationFunctions.apply()
+
+    ExpandEvaluationFunctions.apply()
+
+    ResolveVirtualFields.apply()
+  }
+
   override def initL4() : Unit = {
     val root = StateManager.root_.asInstanceOf[l4.Root]
     root.fieldLayouts += l4.LayoutDeclarationStatement(
@@ -41,7 +57,7 @@ object Grid_AxisAlignedVariableWidth extends Grid {
   }
 
   override def generateInitCode() = {
-    /// node_pos      -> nodes of the original grid
+    /// node_pos        -> nodes of the original grid
     /// o   o   o   o   o
     /// cell_width      -> width of the control volumes of the original grid
     /// |---|   |---|
@@ -372,12 +388,14 @@ object Grid_AxisAlignedVariableWidth extends Grid {
             }
           }
         }
-        // TODO: case VirtualFieldAccess
+        case fieldAccess : VirtualFieldAccess => {
+          Logger.warn(s"Virtual field accesses ($fieldAccess) are currently unsupported within evaluation and intergration functions")
+          fieldAccess
+        }
         case eval : EvalAtRFace => {
           if (eval.faceDim != faceDim) Logger.error(s"Found unaligned eval for faceDim ${eval.faceDim} in integration for faceDim $faceDim in eval for ${eval.fieldAccess}")
           if (eval.stagDim != stagDim) Logger.error(s"Found unaligned eval for stagDim ${eval.stagDim} in integration for stagDim $stagDim in eval for ${eval.fieldAccess}")
 
-          // TODO: summarize
           val discr = eval.fieldAccess.fieldSelection.field.discretization
           if (stagDim.isDefined) {
             val curStagDim = stagDim.get
@@ -410,7 +428,7 @@ object Grid_AxisAlignedVariableWidth extends Grid {
             }
           }
         }
-        case fctCall @ FunctionCallExpression(functionName, args) if ResolveGeometryFunctions.integrateFunctions.contains(functionName) => {
+        case fctCall @ FunctionCallExpression(functionName, args) if ResolveIntegrationFunctions.functions.contains(functionName) => {
           Logger.error("Integration functions called inside other integration functions are currently not supported")
         }
       }, false) // not recursive -> don't look inside eval functions
@@ -487,119 +505,5 @@ object Grid_AxisAlignedVariableWidth extends Grid {
         cellWidth(level, index, None, compDim0) * cellWidth(level, index, None, compDim1) * exp
       }
     }
-
-    /*
-    // filter cases in which only one field access happens
-    if (1 == CollectFieldAccesses.fieldAccesses.size) {
-      val index = (() => { Duplicate(CollectFieldAccesses.fieldAccesses(0).index) })
-      val discr = CollectFieldAccesses.fieldAccesses(0).fieldSelection.field.discretization
-
-      return discr match {
-        case "cell" if !stagDim.isDefined => { // integration of cell values on non-staggered CVs comes down to interpolation
-          val compDim0 = (if (0 == faceDim) 1 else 0)
-          val compDim1 = (if (2 == faceDim) 1 else 2)
-
-          ReplaceFieldAccesses.replacement = EvalAtRFace(CollectFieldAccesses.fieldAccesses(0), faceDim, stagDim)
-          ReplaceFieldAccesses.applyStandalone(exp)
-
-          cellWidth(level, index(), None, compDim0) * cellWidth(level, index(), None, compDim1) * exp
-        }
-
-        case "cell" if stagDim.isDefined => { // value is defined on the interface
-          val curStagDim = stagDim.get
-          if (curStagDim == faceDim) { // evaluation of a cell centered value w.r.t. a staggered face (in the correct dim) is simply sampling
-            val compDim0 = (if (0 == faceDim) 1 else 0)
-            val compDim1 = (if (2 == faceDim) 1 else 2)
-
-            (VirtualFieldAccess(s"vf_cellWidth_${dimToString(compDim0)}", level, index())
-              * VirtualFieldAccess(s"vf_cellWidth_${dimToString(compDim1)}", level, index())
-              * exp)
-          } else { // stagDim != faceDim => piecewise integration is required
-            val compDim = (if (0 != faceDim && 0 != curStagDim) 0 else (if (1 != faceDim && 1 != curStagDim) 1 else 2))
-
-            val centerExp = Duplicate(exp)
-            val offsetExp = Duplicate(exp)
-
-            ShiftFieldAccessIndices.offset = -1
-            ShiftFieldAccessIndices.dim = curStagDim
-            ShiftFieldAccessIndices.applyStandalone(offsetExp)
-
-            (VirtualFieldAccess(s"vf_cellWidth_${dimToString(compDim)}", level, index()) *
-              (VirtualFieldAccess(s"vf_cellCenterToFace_${dimToString(curStagDim)}", level, index()) * centerExp
-                + VirtualFieldAccess(s"vf_cellCenterToFace_${dimToString(curStagDim)}", level, offsetIndex(index(), -1, curStagDim)) * offsetExp))
-          }
-        }
-
-        case _ =>
-          Logger.warn(s"Integration over staggered faces for expression ${exp.prettyprint} is currently not supported")
-          exp
-      }
-    }
-
-    // more complicated case => match current expression and process it in parts
-    return exp match {
-      case AdditionExpression(left, right) => // addition components can be integrated separately
-        integrateOverRFace(left, faceDim, stagDim) + integrateOverRFace(right, faceDim, stagDim)
-
-      case MultiplicationExpression(left : Number, right) => // resolve multiplications with constants
-        left * integrateOverRFace(right, faceDim, stagDim)
-      case MultiplicationExpression(left, right : Number) => // resolve multiplications with constants
-        right * integrateOverRFace(left, faceDim, stagDim)
-
-      case MultiplicationExpression(left : FieldAccess, right : FieldAccess) if (
-        stagDim.isDefined
-        && s"face_${dimToString(faceDim)}" == left.fieldSelection.field.discretization
-        && "cell" == right.fieldSelection.field.discretization) => {
-
-        val index = (() => Duplicate(right.index))
-        val curStagDim = stagDim.get
-
-        if (faceDim == curStagDim) {
-          val compDim0 = (if (0 == faceDim) 1 else 0)
-          val compDim1 = (if (2 == faceDim) 1 else 2)
-
-          (VirtualFieldAccess(s"vf_cellWidth_${dimToString(compDim0)}", level, index())
-            * VirtualFieldAccess(s"vf_cellWidth_${dimToString(compDim1)}", level, index())
-            * 0.5 * (Duplicate(left) + offsetAccess(left, 1, faceDim)) * Duplicate(right))
-        } else { // faceDim != stagDim
-          val compDim = (if (0 != faceDim && 0 != curStagDim) 0 else (if (1 != faceDim && 1 != curStagDim) 1 else 2))
-
-          // eval cell value at face points; multiply with face values; multiply with dist to (original) cell interface; add up
-          (VirtualFieldAccess(s"vf_cellWidth_${dimToString(compDim)}", level, index()) *
-            ((VirtualFieldAccess(s"vf_cellCenterToFace_${dimToString(curStagDim)}", level, index())
-              * offsetAccess(left, 1, faceDim)
-              * EvalAtRFace(Duplicate(right), faceDim, stagDim))
-              + (VirtualFieldAccess(s"vf_cellCenterToFace_${dimToString(curStagDim)}", level, offsetIndex(index(), -1, curStagDim))
-                * offsetAccess(offsetAccess(left, -1, curStagDim), 1, faceDim)
-                * EvalAtRFace(offsetAccess(right, -1, curStagDim), faceDim, stagDim))))
-        }
-      }
-
-      case MultiplicationExpression(left : FieldAccess, right : FieldAccess) if (
-        !stagDim.isDefined
-        && "cell" == right.fieldSelection.field.discretization
-        && s"face_${dimToString(faceDim)}" == left.fieldSelection.field.discretization) => {
-        val index = (() => Duplicate(right.index))
-
-        val compDim0 = (if (0 == faceDim) 1 else 0)
-        val compDim1 = (if (2 == faceDim) 1 else 2)
-
-        val rightIndex = right.index
-        (cellWidth(level, rightIndex, None, compDim0) * cellWidth(level, rightIndex, None, compDim1)
-          * offsetAccess(left, 1, faceDim) * EvalAtRFace(right, faceDim, stagDim))
-      }
-
-      case MultiplicationExpression(left : FieldAccess, right : FieldAccess) if (
-        //(stagDim.isDefined || !stagDim.isDefined) &&
-        "cell" == right.fieldSelection.field.discretization
-        && s"face_${dimToString(faceDim)}" == left.fieldSelection.field.discretization) => {
-        integrateOverRFace(MultiplicationExpression(right, left), faceDim, stagDim)
-      }
-
-      case _ => {
-        Logger.warn(s"Integration over staggered faces for expression ${exp.prettyprint} is currently not supported")
-        exp
-      }
-    }*/
   }
 }
