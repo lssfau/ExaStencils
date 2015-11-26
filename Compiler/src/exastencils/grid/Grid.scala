@@ -68,7 +68,13 @@ object ResolveVirtualFields extends DefaultStrategy("ResolveVirtualFields") {
 
 object ResolveGeometryFunctions extends DefaultStrategy("ResolveGeometryFunctions") {
   val evalFunctions = ListBuffer(
-    "evalAtEastFace", "evalAtWestFace", "evalAtNorthFace", "evalAtSouthFace", "evalAtTopFace", "evalAtBottomFace")
+    "evalAtEastFace", "evalAtWestFace", "evalAtNorthFace", "evalAtSouthFace", "evalAtTopFace", "evalAtBottomFace",
+    "evalAtXStaggeredEastFace", "evalAtXStaggeredNorthFace", "evalAtXStaggeredTopFace",
+    "evalAtXStaggeredWestFace", "evalAtXStaggeredSouthFace", "evalAtXStaggeredBottomFace",
+    "evalAtYStaggeredEastFace", "evalAtYStaggeredNorthFace", "evalAtYStaggeredTopFace",
+    "evalAtYStaggeredWestFace", "evalAtYStaggeredSouthFace", "evalAtYStaggeredBottomFace",
+    "evalAtZStaggeredEastFace", "evalAtZStaggeredNorthFace", "evalAtZStaggeredTopFace",
+    "evalAtZStaggeredWestFace", "evalAtZStaggeredSouthFace", "evalAtZStaggeredBottomFace")
   val integrateFunctions = ListBuffer(
     "integrateOverEastFace", "integrateOverWestFace", "integrateOverNorthFace", "integrateOverSouthFace", "integrateOverTopFace", "integrateOverBottomFace",
     "integrateOverXStaggeredEastFace", "integrateOverXStaggeredNorthFace", "integrateOverXStaggeredTopFace",
@@ -78,7 +84,7 @@ object ResolveGeometryFunctions extends DefaultStrategy("ResolveGeometryFunction
     "integrateOverZStaggeredEastFace", "integrateOverZStaggeredNorthFace", "integrateOverZStaggeredTopFace",
     "integrateOverZStaggeredWestFace", "integrateOverZStaggeredSouthFace", "integrateOverZStaggeredBottomFace")
 
-  this += new Transformation("SearchAndReplace", {
+  this += new Transformation("Resolving evaluation functions", {
     case FunctionCallExpression(functionName, args) if evalFunctions.contains(functionName) => {
       if (0 == args.length) {
         Logger.warn(s"Trying to use build-in function $functionName without arguments")
@@ -95,7 +101,9 @@ object ResolveGeometryFunctions extends DefaultStrategy("ResolveGeometryFunction
         }
       }
     }
+  })
 
+  this += new Transformation("Resolving integrate functions", {
     case FunctionCallExpression(functionName, args) if integrateFunctions.contains(functionName) => {
       if (0 == args.length) {
         Logger.warn(s"Trying to use build-in function $functionName without arguments")
@@ -105,6 +113,10 @@ object ResolveGeometryFunctions extends DefaultStrategy("ResolveGeometryFunction
         Grid.getGridObject.invokeIntegrateResolve(functionName, args(0))
       }
     }
+  })
+
+  this += new Transformation("Expanding evaluation functions", { // TODO: move trafo to derived class
+    case eval : Grid_AxisAlignedVariableWidth.EvalAtRFace => eval.expandSpecial
   })
 }
 
