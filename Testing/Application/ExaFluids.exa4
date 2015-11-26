@@ -746,21 +746,13 @@ Function CompileStencil_u@finest (  ) : Unit {
 	}
 
 	loop over AuStencil@current starting [-1, -1, -1] {
-		Val diffeu : Real = vf_cellWidth_y@current * vf_cellWidth_z@current * vis@current / vf_cellWidth_x@current
+		Val diffeu : Real = integrateOverXStaggeredEastFace ( vis@current ) / vf_cellWidth_x@current
 		AuStencil@current:[1, 0, 0] = -1.0 * ( calc_diflow ( floweu@current, diffeu ) + max ( 0.0, floweu@current ) - floweu@current )
 
-		Val diffnu : Real = 2.0 * vf_cellWidth_z@current * (
-			( vf_cellCenterToFace_x@current * vis@current * vis@current@[0, 1, 0] )
-				/ ( vf_cellWidth_y@current * vis@current@[0, 1, 0] + vf_cellWidth_y@current@[0, 1, 0] * vis@current )
-			+ ( vf_cellCenterToFace_x@current@[-1, 0, 0] * vis@current@[-1, 0, 0] * vis@current@[-1, 1, 0] )
-				/ ( vf_cellWidth_y@current * vis@current@[-1, 1, 0] + vf_cellWidth_y@current@[0, 1, 0] * vis@current@[-1, 0, 0] ) )
+		Val diffnu : Real = integrateOverXStaggeredNorthFace ( evalAtXStaggeredNorthFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_y@current@[0, 1, 0]
 		AuStencil@current:[0, 1, 0] = -1.0 * ( calc_diflow ( flownu@current, diffnu ) + max ( 0.0, flownu@current ) - flownu@current )
 
-		Val difftu : Real = 2.0 * vf_cellWidth_y@current * (
-			( vf_cellCenterToFace_x@current * vis@current * vis@current@[0, 0, 1] )
-				/ ( vf_cellWidth_z@current * vis@current@[0, 0, 1] + vf_cellWidth_z@current@[0, 0, 1] * vis@current )
-			+ ( vf_cellCenterToFace_x@current@[-1, 0, 0] * vis@current@[-1, 0, 0] * vis@current@[-1, 0, 1] )
-				/ ( vf_cellWidth_z@current * vis@current@[-1, 0, 1] + vf_cellWidth_z@current@[0, 0, 1] * vis@current@[-1, 0, 0] ) )
+		Val difftu : Real = integrateOverXStaggeredTopFace ( evalAtXStaggeredTopFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_z@current@[0, 0, 1]
 		AuStencil@current:[0, 0, 1] = -1.0 * ( calc_diflow ( flowtu@current, difftu ) + max ( 0.0, flowtu@current ) - flowtu@current )
 	}
 
@@ -810,21 +802,13 @@ Function CompileStencil_v@finest (  ) : Unit {
 	}
 
 	loop over AvStencil@current starting [-1, -1, -1] {
-		Val diffev : Real = 2.0 * vf_cellWidth_z@current * (
-			( vf_cellCenterToFace_y@current * vis@current * vis@current@[1, 0, 0] )
-				/ ( vf_cellWidth_x@current * vis@current@[1, 0, 0] + vf_cellWidth_x@current@[1, 0, 0] * vis@current )
-			+ ( vf_cellCenterToFace_y@current@[0, -1, 0] * vis@current@[0, -1, 0] * vis@current@[1, -1, 0] )
-				/ ( vf_cellWidth_x@current * vis@current@[1, -1, 0] + vf_cellWidth_x@current@[1, 0, 0] * vis@current@[0, -1, 0] ) )
+		Val diffev : Real = integrateOverYStaggeredEastFace ( evalAtYStaggeredEastFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current@[1, 0, 0]
 		AvStencil@current:[1, 0, 0] = -1.0 * ( calc_diflow ( flowev@current, diffev ) + max ( 0.0, flowev@current ) - flowev@current )
 
-		Val diffnv : Real = vf_cellWidth_x@current * vf_cellWidth_z@current * vis@current / vf_cellWidth_y@current
+		Val diffnv : Real = integrateOverYStaggeredNorthFace ( vis@current ) / vf_cellWidth_y@current
 		AvStencil@current:[0, 1, 0] = -1.0 * ( calc_diflow ( flownv@current, diffnv ) + max ( 0.0, flownv@current ) - flownv@current )
 
-		Val difftv : Real = 2.0 * vf_cellWidth_x@current * (
-			( vf_cellCenterToFace_y@current * vis@current * vis@current@[0, 0, 1] )
-				/ ( vf_cellWidth_z@current * vis@current@[0, 0, 1] + vf_cellWidth_z@current@[0, 0, 1] * vis@current)
-			+ ( vf_cellCenterToFace_y@current@[0, -1, 0] * vis@current@[0, -1, 0] * vis@current@[0, -1, 1] )
-				/ ( vf_cellWidth_z@current * vis@current@[0, -1, 1] + vf_cellWidth_z@current@[0, 0, 1] * vis@current@[0, -1, 0] ) )
+		Val difftv : Real = integrateOverYStaggeredTopFace ( evalAtYStaggeredTopFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_z@current@[0, 0, 1]
 		AvStencil@current:[0, 0, 1] = -1.0 * ( calc_diflow ( flowtv@current, difftv ) + max ( 0.0, flowtv@current ) - flowtv@current )
 	}
 
@@ -875,21 +859,13 @@ Function CompileStencil_w@finest (  ) : Unit {
 	}
 
 	loop over AwStencil@current starting [-1, -1, -1] {
-		Val diffew : Real = 2.0 * vf_cellWidth_y@current * (
-			( vf_cellCenterToFace_z@current * vis@current * vis@current@[1, 0, 0] )
-				/ ( vf_cellWidth_x@current * vis@current@[1, 0, 0] + vf_cellWidth_x@current@[1, 0, 0] * vis@current )
-			+ ( vf_cellCenterToFace_z@current@[0, 0, -1] * vis@current@[0, 0, -1] * vis@current@[1, 0, -1] )
-				/ ( vf_cellWidth_x@current * vis@current@[1, 0, -1] + vf_cellWidth_x@current@[1, 0, 0] * vis@current@[0, 0, -1] ) )
+		Val diffew : Real = integrateOverZStaggeredEastFace ( evalAtZStaggeredEastFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current@[1, 0, 0]
 		AwStencil@current:[1, 0, 0] = -1.0 * ( calc_diflow ( flowew@current, diffew ) + max ( 0.0, flowew@current ) - flowew@current )
 
-		Val diffnw : Real = 2.0 * vf_cellWidth_x@current * (
-			( vf_cellCenterToFace_z@current * vis@current * vis@current@[0, 1, 0] )
-				/ ( vf_cellWidth_y@current * vis@current@[0, 1, 0] + vf_cellWidth_y@current@[0, 1, 0] * vis@current )
-			+ ( vf_cellCenterToFace_z@current@[0, 0, -1] * vis@current@[0, 0, -1] * vis@current@[0, 1, -1] )
-				/ ( vf_cellWidth_y@current * vis@current@[0, 1, -1] + vf_cellWidth_y@current@[0, 1, 0] * vis@current@[0, 0, -1] ) )
+		Val diffnw : Real = integrateOverZStaggeredNorthFace ( evalAtZStaggeredNorthFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_y@current@[0, 1, 0]
 		AwStencil@current:[0, 1, 0] = -1.0 * ( calc_diflow ( flownw@current, diffnw ) + max ( 0.0, flownw@current ) - flownw@current )
 
-		Val difftw : Real = vf_cellWidth_x@current * vf_cellWidth_y@current * vis@current / vf_cellWidth_z@current
+		Val difftw : Real = integrateOverZStaggeredTopFace ( vis@current ) / vf_cellWidth_z@current
 		AwStencil@current:[0, 0, 1] = -1.0 * ( calc_diflow ( flowtw@current, difftw ) + max ( 0.0, flowtw@current ) - flowtw@current )
 	}
 
@@ -981,25 +957,16 @@ Function CompileStencil_t@finest (  ) : Unit {
 	loop over AtStencil@current starting [-1, -1, -1] {
 		Var diff : Real
 
-		diff = vf_cellWidth_y@current * vf_cellWidth_z@current * 2.0 * ( 
-			( gamxx@current * gamxx@current@[1, 0, 0] )
-			/ ( vf_cellWidth_x@current * gamxx@current@[1, 0, 0] + vf_cellWidth_x@current@[1, 0, 0] * gamxx@current ) )
+		diff = integrateOverEastFace ( evalAtEastFace ( gamxx@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current@[1, 0, 0]
 		AtStencil@current:[1, 0, 0] = -1.0 * ( calc_diflow ( flowet@current, diff ) + max ( 0.0, flowet@current ) - flowet@current )
-
 		//AtStencil@current:[-1, 0, 0] = calc_diflow ( flowet@current@[-1, 0, 0], diff ) + max ( 0.0, flowet@current@[-1, 0, 0] ) //- flowet@current@[-1, 0, 0]
 	
-		diff = vf_cellWidth_x@current * vf_cellWidth_z@current * 2.0 * (
-			gamyy@current * gamyy@current@[0, 1, 0]
-			/ ( vf_cellWidth_y@current * gamyy@current@[0, 1, 0] + vf_cellWidth_y@current@[0, 1, 0] * gamyy@current ) )
+		diff = integrateOverNorthFace ( evalAtNorthFace ( gamxx@current, "harmonicMean" ) ) / vf_stagCVWidth_y@current@[0, 1, 0]
 		AtStencil@current:[0, 1, 0] = -1.0 * ( calc_diflow ( flownt@current, diff ) + max ( 0.0, flownt@current ) - flownt@current )
-
 		//AtStencil@current:[0, -1, 0] = calc_diflow ( flownt@current@[0, -1, 0], diff ) + max ( 0.0, flownt@current@[0, -1, 0] ) //- flownt@current@[0, -1, 0]
 
-		diff = vf_cellWidth_x@current * vf_cellWidth_y@current * 2.0 * (
-			gamzz@current * gamzz@current@[0, 0, 1]
-			/ ( vf_cellWidth_z@current * gamzz@current@[0, 0, 1] + vf_cellWidth_z@current@[0, 0, 1] * gamzz@current ) )
+		diff = integrateOverTopFace ( evalAtTopFace ( gamxx@current, "harmonicMean" ) ) / vf_stagCVWidth_z@current@[0, 0, 1]
 		AtStencil@current:[0, 0, 1] = -1.0 * ( calc_diflow ( flowtt@current, diff ) + max ( 0.0, flowtt@current ) - flowtt@current )
-
 		//AtStencil@current:[0, 0, -1] = calc_diflow ( flowtt@current@[0, 0, -1], diff ) + max ( 0.0, flowtt@current@[0, 0, -1] ) //- flowtt@current@[0, 0, -1]
 	}
 
