@@ -34,7 +34,7 @@ object Mapping {
       case 2 => (index(2) * (layout(1).total * layout(0).total) + index(1) * layout(0).total + index(0))
       case 3 => (index(3) * (layout(2).total * layout(1).total * layout(0).total) + index(2) * (layout(1).total * layout(0).total) + index(1) * layout(0).total + index(0))
     }
-    if (Knowledge.experimental_genVariableFieldSizes) {
+    if (Knowledge.data_genVariableFieldSizes) {
       SimplifyStrategy.doUntilDoneStandalone(ret)
       ret
     } else {
@@ -50,7 +50,7 @@ object Mapping {
       case 2 => (index(2) * (strides(1) * strides(0)) + index(1) * strides(0) + index(0))
       case 3 => (index(3) * (strides(2) * strides(1) * strides(0)) + index(2) * (strides(1) * strides(0)) + index(1) * strides(0) + index(0))
     }
-    if (Knowledge.experimental_genVariableFieldSizes) {
+    if (Knowledge.data_genVariableFieldSizes) {
       SimplifyStrategy.doUntilDoneStandalone(ret)
       ret
     } else {
