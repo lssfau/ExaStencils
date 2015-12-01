@@ -39,6 +39,12 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
     "vf_nodePosition_x", "vf_nodePosition_y", "vf_nodePosition_z",
     "nodePosition_x", "nodePosition_y", "nodePosition_z",
 
+    "vf_cellCenter_x", "vf_cellCenter_y", "vf_cellCenter_z",
+    "cellCenter_x", "cellCenter_y", "cellCenter_z",
+
+    "vf_boundaryCoord_x", "vf_boundaryCoord_y", "vf_boundaryCoord_z",
+    "boundaryCoord_x", "boundaryCoord_y", "boundaryCoord_z",
+
     "vf_gridWidth_x", "vf_gridWidth_y", "vf_gridWidth_z",
     "gridWidth_x", "gridWidth_y", "gridWidth_z",
 

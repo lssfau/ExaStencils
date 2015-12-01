@@ -14,7 +14,7 @@ object Error {
           printer.println(s"\tloop over Solution$postfix@current with reduction( max : err ) {")
         else
           printer.println(s"\tloop over Solution$postfix@current where x > 0 && y > 0 ${if (Knowledge.dimensionality > 2) "&& z > 0 " else ""}with reduction( max : err ) {")
-        printer.println(s"\t\tVariable curErr : Real = fabs ( ${Fields.solutionSlotted(s"current", "active", postfix)(vecDim)} - ${Functions.solFunction} )")
+        printer.println(s"\t\tVariable curErr : Real = fabs ( ${Fields.solutionSlotted(s"current", "active", postfix)(vecDim)} - ${Functions.solFunction(false)} )")
         printer.println(s"\t\terr = max ( err, curErr )")
         printer.println(s"\t}")
         if (Knowledge.l3tmp_genFragLoops)
@@ -28,7 +28,7 @@ object Error {
           printer.println(s"\tloop over Solution$postfix@current with reduction( + : err ) {")
         else
           printer.println(s"\tloop over Solution$postfix@current where x > 0 && y > 0 ${if (Knowledge.dimensionality > 2) "&& z > 0 " else ""}with reduction( + : err ) {")
-        printer.println(s"\t\tVariable curErr : Real = ${Fields.solutionSlotted(s"current", "active", postfix)(vecDim)} - ${Functions.solFunction}")
+        printer.println(s"\t\tVariable curErr : Real = ${Fields.solutionSlotted(s"current", "active", postfix)(vecDim)} - ${Functions.solFunction(false)}")
         printer.println(s"\t\terr += curErr * curErr")
         printer.println(s"\t}")
         if (Knowledge.l3tmp_genFragLoops)

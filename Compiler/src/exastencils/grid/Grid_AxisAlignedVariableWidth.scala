@@ -152,17 +152,6 @@ object Grid_AxisAlignedVariableWidth extends Grid {
     new MultiIndex(baseIndex(dim), 0, 0, 0)
   }
 
-  def offsetIndex(index : MultiIndex, offset : Expression, dim : Int) : MultiIndex = {
-    var modIndex = Duplicate(index)
-    modIndex(dim) += offset
-    modIndex
-  }
-  def offsetAccess(fieldAccess : FieldAccess, offset : Expression, dim : Int) : FieldAccess = {
-    var modAccess = Duplicate(fieldAccess)
-    modAccess.index(dim) += offset
-    modAccess
-  }
-
   // direct accesses
   def nodePosition(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
     val field = FieldCollection.getFieldByIdentifierLevExp(s"node_pos_${dimToString(dim)}", level).get
@@ -175,6 +164,10 @@ object Grid_AxisAlignedVariableWidth extends Grid {
   }
 
   // compound accesses
+  def cellCenter(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
+    0.5 * (nodePosition(level, offsetIndex(index, 1, dim), arrayIndex, dim) + nodePosition(level, Duplicate(index), arrayIndex, dim))
+  }
+
   def cellWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
     nodePosition(level, offsetIndex(index, 1, dim), arrayIndex, dim) - nodePosition(level, Duplicate(index), arrayIndex, dim)
   }
@@ -439,7 +432,6 @@ object Grid_AxisAlignedVariableWidth extends Grid {
     var piecewiseIntegration = StateManager.findFirst({ n : Node => n.hasAnnotation(WrappingFieldAccesses.pIntAnnot) }, new Scope(exp)).isDefined
 
     // step 3: apply chosen integration
-
     object ShiftFieldAccessIndices_ extends QuietDefaultStrategy("Shifting indices of field accesses") {
       var offset : Expression = 0
       var dim : Int = 0

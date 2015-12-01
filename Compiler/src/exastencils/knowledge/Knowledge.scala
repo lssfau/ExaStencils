@@ -340,6 +340,8 @@ object Knowledge {
   var experimental_resolveUnreqFragmentLoops : Boolean = false
 
   var experimental_allowCommInFragLoops : Boolean = false
+
+  var experimental_generateParaviewFiles : Boolean = false
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {

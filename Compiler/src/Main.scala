@@ -177,7 +177,7 @@ object Main {
 
     ResolveDiagFunction.apply()
     Grid.getGridObject.applyStrategies()
-    CreateGeomCoordinates.apply()
+    if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
     ResolveLoopOverPointsInOneFragment.apply()
     ResolveContractingLoop.apply()
 

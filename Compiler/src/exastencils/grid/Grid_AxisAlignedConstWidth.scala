@@ -14,7 +14,7 @@ object Grid_AxisAlignedConstWidth extends Grid {
     this.getClass().getMethods.find(_.getName.toLowerCase() == name.toLowerCase())
   }
 
-  def gridWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression = {
+  override def cellWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression = {
     val levelIndex = level.asInstanceOf[IntegerConstant].v.toInt - Knowledge.minLevel
     dim match {
       case 0 => Knowledge.discr_hx(levelIndex)
@@ -23,12 +23,12 @@ object Grid_AxisAlignedConstWidth extends Grid {
     }
   }
 
-  def nodePosition(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression = {
-    dim match {
-      case 0 => "xPos"
-      case 1 => "yPos"
-      case 2 => "zPos"
-    }
+  override def nodePosition(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression = {
+    index(dim) * gridWidth(level, index, arrayIndex, dim) + ArrayAccess(iv.PrimitivePositionBegin(), dim)
+  }
+
+  override def cellCenter(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression = {
+    (index(dim) + 0.5) * gridWidth(level, index, arrayIndex, dim) + ArrayAccess(iv.PrimitivePositionBegin(), dim)
   }
 
   override def invokeEvalResolve(functionName : String, fieldAccess : FieldAccess, interpolation : String) : Expression = ???
