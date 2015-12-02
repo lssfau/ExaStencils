@@ -25,7 +25,7 @@ case class Matrix() extends Node with FilePrettyPrintable {
 
 
 #include <iostream>
-#include <vector>
+#include <array>
 #include <algorithm>
 #include <cassert>
 #include <tuple>
@@ -36,7 +36,7 @@ class Matrix {
 public:
     std::array< T, M*N > m_data;
 
-    
+
     // default constructor
     Matrix()
     { }
@@ -788,7 +788,7 @@ T dotProduct(const Matrix<T, M, 1>& a, const Matrix<T, M, 1>& b) {
         for(size_t j = 0; j < a.columns(); j++ ) {
             out += a(i, j) * b(i, j);
         }
-    }  
+    }
     return out;
 }
 
@@ -799,7 +799,7 @@ T dotProduct(const Matrix<T, 1, M>& a, const Matrix<T, 1, M>& b) {
         for(size_t j = 0; j < a.columns(); j++ ) {
             out += a(i, j) * b(i, j);
         }
-    }  
+    }
     return out;
 }
 
@@ -810,7 +810,7 @@ T dotProduct(const Matrix<T, M, 1>& a, const Matrix<T, 1, M>& b) {
         for(size_t j = 0; j < a.columns(); j++ ) {
             out += a(i, j) * b(i, j);
         }
-    }  
+    }
     return out;
 }
 
@@ -821,7 +821,7 @@ T dotProduct(const Matrix<T, 1, M>& a, const Matrix<T, M, 1>& b) {
         for(size_t j = 0; j < a.columns(); j++ ) {
             out += a(i, j) * b(i, j);
         }
-    }  
+    }
     return out;
 }
 

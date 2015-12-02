@@ -31,6 +31,6 @@ object Grid_AxisAlignedConstWidth extends Grid {
     }
   }
 
-  override def invokeEvalResolve(functionName : String, fieldAccess : FieldAccess) : Expression = ???
+  override def invokeEvalResolve(functionName : String, fieldAccess : FieldAccess, interpolation : String) : Expression = ???
   override def invokeIntegrateResolve(functionName : String, exp : Expression) : Expression = ???
 }

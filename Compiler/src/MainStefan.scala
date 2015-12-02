@@ -176,8 +176,7 @@ object MainStefan {
     } while (numConvFound > 0)
 
     ResolveDiagFunction.apply()
-    ResolveGeometryFunctions.apply() // TODO: fuse
-    ResolveVirtualFields.apply() // TODO: fuse
+    Grid.getGridObject.applyStrategies()
     CreateGeomCoordinates.apply()
     ResolveLoopOverPointsInOneFragment.apply()
     ResolveContractingLoop.apply()
