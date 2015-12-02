@@ -10,7 +10,6 @@ case class Matrix() extends Node with FilePrettyPrintable {
     val writer = PrettyprintingManager.getPrinter(s"Util/Matrix.h");
 
     writer.addExternalDependency("cmath")
-    writer.addInternalDependency("Util/Vector.h")
     writer << """
 //      ______            _____ _                  _ _
 //      |  ____|          / ____| |                (_) |
