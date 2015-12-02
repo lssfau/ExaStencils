@@ -2,12 +2,10 @@ package exastencils.languageprocessing.l4
 
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core._
 import exastencils.core.collectors.L4CommCollector
 import exastencils.core.collectors.L4ValueCollector
 import exastencils.datastructures._
-import exastencils.datastructures.Transformation._
 import exastencils.datastructures.l4._
 import exastencils.knowledge
 import exastencils.logger._
@@ -100,6 +98,20 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
 
       // constants
       case BasicAccess("PI") | BasicAccess("M_PI") | BasicAccess("Pi")                                   => FloatConstant(math.Pi)
+    }))
+
+    this.execute(new Transformation("Resolving string constants to literals", {
+      case f : FunctionCallExpression =>
+        f.identifier.name match {
+          case "startTimer"        => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
+          case "stopTimer"         => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
+          case "getMeanFromTimer"  => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
+          case "getMeanTime"       => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
+          case "getTotalFromTimer" => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
+          case "getTotalTime"      => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
+          case _                   =>
+        }
+        f
     }))
 
     this.commit()

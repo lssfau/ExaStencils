@@ -162,11 +162,13 @@ case class SpacedConcatenationExpression(var expressions : ListBuffer[Expression
 }
 
 case class StringLiteral(var value : String) extends Expression {
+  def this(s : StringConstant) = this(s.value)
   override def prettyprint(out : PpStream) : Unit = out << value
   override def toString : String = value
 }
 
 case class StringConstant(var value : String) extends Expression {
+  def this(s : StringLiteral) = this(s.value)
   override def prettyprint(out : PpStream) : Unit = out << '"' << value << '"'
 }
 
