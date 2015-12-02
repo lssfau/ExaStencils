@@ -320,7 +320,6 @@ object Knowledge {
 
   /// paper project - Optical Flow
   var library_CImg : Boolean = false // Adds the CImg library
-  var path_library_CImg : String = "" // Temporary! Path to CImg.h
 
   /// student project - Kelvin
   var l3tmp_kelvin : Boolean = false // currently only works for 2D

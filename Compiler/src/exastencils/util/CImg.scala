@@ -14,9 +14,8 @@ case class CImg() extends Node with FilePrettyPrintable {
 
     val writer = PrettyprintingManager.getPrinter(s"Util/CImg.h");
 
-    // FIXME embed CImg.h
-    // CImg.h cannot be embedded easily because it's too large, breaking scalac
-    for (line <- Source.fromFile(Knowledge.path_library_CImg).getLines())
+    val url = getClass.getResource("/res/CImg.h")
+    for (line <- Source.fromURL(url).getLines())
       writer << (line + '\n')
 
   }
