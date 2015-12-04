@@ -17,7 +17,7 @@ object FMG {
       case 2 => Array("[-1,  0]", "[ 1,  0]", "[ 0, -1]", "[ 0,  1]")
       case 3 => Array("[-1,  0,  0]", "[ 1,  0,  0]", "[ 0, -1,  0]", "[ 0,  1,  0]", "[ 0,  0, -1]", "[ 0,  0,  1]")
     }
-    val bc = Functions.solFunction(true)
+    val bc = Functions.solFunction(false)
 
     printer.println(s"Function SetFuncDir@all ( ) : Unit {")
     for (dir <- directions) {
