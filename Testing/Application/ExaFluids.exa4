@@ -244,8 +244,8 @@ Globals {
 	Val maxSimpleIterations : Int = 1000000
 
 	// density constants
-	Val rhoref : Real           = 0.0
-	Val rhocon : Real           = 1.0
+	Val rhoref : Real           = 999.7 // 0.0
+	Val rhocon : Real           = 999.7 // 1.0
 	Val visl : Real             = 1.0e-5
 
 	// temperature constants
