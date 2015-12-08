@@ -395,3 +395,14 @@ case class AdvanceStatement(var field : Access) extends Statement {
       ir.StringLiteral(ir.LoopOverFragments.defIt)))
   }
 }
+
+case class LeveledScopeStatement(var level : LevelSpecification, var statements : List[Statement]) extends Statement {
+  override def prettyprint(out : PpStream) = {
+    out << level << " {\n"
+    statements.foreach(_.prettyprint(out))
+    out << "\n}\n"
+  }
+  override def progressToIr = {
+    Logger.error("cannot progress LeveledScopeStatement to IR")
+  }
+}

@@ -46,6 +46,10 @@ case class ListLevelSpecification(var levels : HashSet[LevelSpecification]) exte
       case _ =>
     })
   }
+
+  def contains(level : Integer) : Boolean = {
+    levels.find(l => l.isInstanceOf[SingleLevelSpecification] && l.asInstanceOf[SingleLevelSpecification].level == level).isDefined
+  }
 }
 
 case class CurrentLevelSpecification() extends DeclarationLevelSpecification with AccessLevelSpecification {

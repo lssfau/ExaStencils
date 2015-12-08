@@ -98,6 +98,14 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
       }
     }))
 
+    // Flatten leveled scope or remove completely
+    this.execute(new Transformation("Resolve leveled scopes", {
+      case scope : LeveledScopeStatement => scope.level match {
+        case s : SingleLevelSpecification => if (levelCollector.getCurrentLevel == s.level) scope.statements; else List()
+        case s : ListLevelSpecification   => if (s.contains(levelCollector.getCurrentLevel)) scope.statements; else List()
+      }
+    }))
+
     // unfold field layout declarations
     this.execute(new Transformation("Unfold leveled FieldLayout declarations", {
       case fieldLayout : LayoutDeclarationStatement => fieldLayout.identifier match {

@@ -148,7 +148,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| applyBCsStatement
     ||| communicateStatement
     ||| returnStatement
-    ||| advanceStatement)
+    ||| advanceStatement
+    ||| leveledScope)
 
   lazy val statementInsideRepeat = statement ||| breakStatement
 
@@ -208,6 +209,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ^^ { case targets ~ field => CommunicateStatement(field, "both", targets) })
 
   lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ { case exp => ReturnStatement(exp) })
+
+  lazy val leveledScope = locationize((level <~ "{") ~ (statement.+ <~ "}") ^^ { case l ~ s => LeveledScopeStatement(l, s) })
 
   // ######################################
   // ##### Globals
