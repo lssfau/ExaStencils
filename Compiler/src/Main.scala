@@ -38,6 +38,7 @@ object Main {
       InputReader.read(args(1))
       settingsParser.parse(InputReader.settings)
       knowledgeParser.parse(InputReader.knowledge)
+      Knowledge.l3tmp_generateL4 = false // No Layer4 generation with input via JSON
     } else {
       if (args.length >= 1) {
         settingsParser.parseFile(args(0))
