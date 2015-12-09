@@ -11,6 +11,7 @@ object Settings {
   /// input
   var basePathPrefix : String = ""
   def getBasePath = if (basePathPrefix.isEmpty || basePathPrefix.endsWith("/") || basePathPrefix.endsWith("\\")) basePathPrefix else basePathPrefix + "/"
+  def inputFromJson : Boolean = false
 
   var l3file : String = ""
   def defL3file : String = if ("" == basePathPrefix) "../Compiler/dsl/Layer3.exa" else getBasePath + "Compiler/dsl/Layer3.exa"

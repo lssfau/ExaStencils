@@ -20,18 +20,33 @@ import exastencils.util._
 
 object Main {
   def main(args : Array[String]) : Unit = {
-
     // for runtime measurement
     val start : Long = System.nanoTime()
 
     //if (Settings.timeStrategies) -> right now this Schroedinger flag is neither true nor false
     StrategyTimer.startTiming("Initializing")
 
-    // init Settings
-    if (args.length >= 1) {
-      val s = new exastencils.parsers.settings.ParserSettings
-      s.parseFile(args(0))
+    // check from where to read input
+    val settingsParser = new exastencils.parsers.settings.ParserSettings
+    val knowledgeParser = new exastencils.parsers.settings.ParserKnowledge
+    if (args.length == 1 && args(0) == "--json-stdin") {
+      InputReader.read
+      settingsParser.parse(InputReader.settings)
+      knowledgeParser.parse(InputReader.knowledge)
+      Knowledge.l3tmp_generateL4 = false // No Layer4 generation with input via JSON
+    } else if (args.length == 2 && args(0) == "--json-file") {
+      InputReader.read(args(1))
+      settingsParser.parse(InputReader.settings)
+      knowledgeParser.parse(InputReader.knowledge)
+    } else {
+      if (args.length >= 1) {
+        settingsParser.parseFile(args(0))
+      }
+      if (args.length >= 2) {
+        knowledgeParser.parseFile(args(1))
+      }
     }
+    Knowledge.update()
 
     if (Settings.produceHtmlLog)
       Logger_HTML.init
@@ -42,13 +57,6 @@ object Main {
         sys.exit(0)
       }
     }
-
-    // init Knowledge
-    if (args.length >= 2) {
-      val k = new exastencils.parsers.settings.ParserKnowledge
-      k.parseFile(args(1))
-    }
-    Knowledge.update()
 
     // init buildfile generator
     if ("MSVC" == Knowledge.targetCompiler)
@@ -109,7 +117,11 @@ object Main {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 4")
 
-    StateManager.root_ = (new ParserL4).parseFile(Settings.getL4file)
+    if (Settings.inputFromJson) {
+      StateManager.root_ = (new ParserL4).parseFile(InputReader.layer4)
+    } else {
+      StateManager.root_ = (new ParserL4).parseFile(Settings.getL4file)
+    }
     ValidationL4.apply
 
     if (false) // re-print the merged L4 state
