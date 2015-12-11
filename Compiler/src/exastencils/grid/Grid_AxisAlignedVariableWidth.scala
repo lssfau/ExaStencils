@@ -64,11 +64,11 @@ object Grid_AxisAlignedVariableWidth extends Grid {
     /// stag_cv_width   -> width of the staggered control volumes
     /// |-|   |---|   |-|
 
-    (0 until Knowledge.dimensionality).to[ListBuffer].map(dim => setupNodePos(dim, Knowledge.maxLevel)) ++
-      (0 until Knowledge.dimensionality).to[ListBuffer].map(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
+    (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupNodePos(dim, Knowledge.maxLevel)) ++
+      (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
   }
 
-  def setupNodePos(dim : Integer, level : Integer) : Statement = {
+  def setupNodePos(dim : Integer, level : Integer) : ListBuffer[Statement] = {
     val expo = 1.5
     val numCells = (1 << level) // TODO: adapt for non-unit fragments
     val zoneSize = numCells / 4
@@ -81,27 +81,37 @@ object Grid_AxisAlignedVariableWidth extends Grid {
 
     val innerIt = LoopOverDimensions.defIt(0)
 
-    LoopOverPoints(field, None, true,
-      MultiIndex(-2, -1, -1), MultiIndex(-2, -1, -1), MultiIndex(1, 1, 1),
-      ListBuffer[Statement](
-        new ConditionStatement(LowerEqualExpression(innerIt, 0),
-          AssignmentStatement(Duplicate(baseAccess), 0.0),
-          new ConditionStatement(LowerEqualExpression(innerIt, 1 * zoneSize),
-            AssignmentStatement(Duplicate(baseAccess), offsetAccess(baseAccess, -1 * innerIt + 0 * zoneSize, 0)
-              + 0.0095 * FunctionCallExpression("pow", ListBuffer[Expression](step * (LoopOverDimensions.defIt(0) - 0.0 * zoneSize), expo))),
-            new ConditionStatement(LowerEqualExpression(innerIt, 2 * zoneSize),
-              AssignmentStatement(Duplicate(baseAccess), offsetAccess(baseAccess, -1 * innerIt + 1 * zoneSize, 0)
-                + 0.0095 * step * (LoopOverDimensions.defIt(0) - 1.0 * zoneSize)),
-              new ConditionStatement(LowerEqualExpression(innerIt, 3 * zoneSize),
-                AssignmentStatement(Duplicate(baseAccess), offsetAccess(baseAccess, -1 * innerIt + 2 * zoneSize, 0)
-                  + 0.0095 * step * (LoopOverDimensions.defIt(0) - 2.0 * zoneSize)),
-                new ConditionStatement(LowerEqualExpression(innerIt, 4 * zoneSize),
-                  AssignmentStatement(Duplicate(baseAccess), offsetAccess(baseAccess, -1 * innerIt + 3 * zoneSize, 0)
-                    + 0.0095 * (1.0 - FunctionCallExpression("pow", ListBuffer[Expression](1.0 - step * (LoopOverDimensions.defIt(0) - 3.0 * zoneSize), expo)))),
-                  AssignmentStatement(Duplicate(baseAccess), offsetAccess(baseAccess, -1, 0)))))))))
+    val leftGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), MultiIndex(-1, 0, 0, 0))
+    val rightGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), MultiIndex(numCells + 1, 0, 0, 0))
+
+    // TODO: fix loop offsets -> no duplicate layers - don't generate iterationOffset loop bounds
+
+    ListBuffer(
+      LoopOverPoints(field, None, true,
+        MultiIndex(-2, -1, -1), MultiIndex(-2, -1, -1), MultiIndex(1, 1, 1),
+        ListBuffer[Statement](
+          new ConditionStatement(LowerEqualExpression(innerIt, 0),
+            AssignmentStatement(Duplicate(baseAccess), 0.0),
+            new ConditionStatement(LowerEqualExpression(innerIt, 1 * zoneSize),
+              AssignmentStatement(Duplicate(baseAccess), offsetAccess(baseAccess, -1 * innerIt + 0 * zoneSize, 0)
+                + 0.0095 * FunctionCallExpression("pow", ListBuffer[Expression](step * (LoopOverDimensions.defIt(0) - 0.0 * zoneSize), expo))),
+              new ConditionStatement(LowerEqualExpression(innerIt, 2 * zoneSize),
+                AssignmentStatement(Duplicate(baseAccess), offsetAccess(baseAccess, -1 * innerIt + 1 * zoneSize, 0)
+                  + 0.0095 * step * (LoopOverDimensions.defIt(0) - 1.0 * zoneSize)),
+                new ConditionStatement(LowerEqualExpression(innerIt, 3 * zoneSize),
+                  AssignmentStatement(Duplicate(baseAccess), offsetAccess(baseAccess, -1 * innerIt + 2 * zoneSize, 0)
+                    + 0.0095 * step * (LoopOverDimensions.defIt(0) - 2.0 * zoneSize)),
+                  new ConditionStatement(LowerEqualExpression(innerIt, 4 * zoneSize),
+                    AssignmentStatement(Duplicate(baseAccess), offsetAccess(baseAccess, -1 * innerIt + 3 * zoneSize, 0)
+                      + 0.0095 * (1.0 - FunctionCallExpression("pow", ListBuffer[Expression](1.0 - step * (LoopOverDimensions.defIt(0) - 3.0 * zoneSize), expo)))),
+                    AssignmentStatement(Duplicate(baseAccess), offsetAccess(baseAccess, -1, 0))))))))),
+      AssignmentStatement(Duplicate(leftGhostAccess),
+        2 * offsetAccess(leftGhostAccess, 1, 0) - offsetAccess(leftGhostAccess, 2, 0)),
+      AssignmentStatement(Duplicate(rightGhostAccess),
+        2 * offsetAccess(rightGhostAccess, -1, 0) - offsetAccess(rightGhostAccess, -2, 0)))
   }
 
-  def setupStagCVWidth(dim : Integer, level : Integer) : Statement = {
+  def setupStagCVWidth(dim : Integer, level : Integer) : ListBuffer[Statement] = {
     val expo = 1.5
     val numCells = (1 << level) // TODO: adapt for non-unit fragments
     val zoneSize = numCells / 4
@@ -116,20 +126,26 @@ object Grid_AxisAlignedVariableWidth extends Grid {
 
     val innerIt = LoopOverDimensions.defIt(0)
 
-    LoopOverPoints(field, None, true,
-      MultiIndex(-1, -1, -1), MultiIndex(-1, -1, -1), MultiIndex(1, 1, 1),
-      ListBuffer[Statement](
-        new ConditionStatement(EqEqExpression(0, innerIt),
-          AssignmentStatement(Duplicate(baseAccess),
-            0.5 * (Duplicate(npBaseAccess) + offsetAccess(npBaseAccess, 1, 0))
-              - Duplicate(npBaseAccess)),
-          new ConditionStatement(EqEqExpression(numCells, innerIt),
-            AssignmentStatement(Duplicate(baseAccess),
-              Duplicate(npBaseAccess)
-                - 0.5 * (offsetAccess(npBaseAccess, -1, 0) + Duplicate(npBaseAccess))),
+    val leftGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), MultiIndex(-1, 0, 0, 0))
+    val rightGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), MultiIndex(numCells + 1, 0, 0, 0))
+
+    ListBuffer(
+      LoopOverPoints(field, None, true,
+        MultiIndex(-1, -1, -1), MultiIndex(-1, -1, -1), MultiIndex(1, 1, 1),
+        ListBuffer[Statement](
+          new ConditionStatement(EqEqExpression(0, innerIt),
             AssignmentStatement(Duplicate(baseAccess),
               0.5 * (Duplicate(npBaseAccess) + offsetAccess(npBaseAccess, 1, 0))
-                - 0.5 * (offsetAccess(npBaseAccess, -1, 0) + Duplicate(npBaseAccess)))))))
+                - Duplicate(npBaseAccess)),
+            new ConditionStatement(EqEqExpression(numCells, innerIt),
+              AssignmentStatement(Duplicate(baseAccess),
+                Duplicate(npBaseAccess)
+                  - 0.5 * (offsetAccess(npBaseAccess, -1, 0) + Duplicate(npBaseAccess))),
+              AssignmentStatement(Duplicate(baseAccess),
+                0.5 * (Duplicate(npBaseAccess) + offsetAccess(npBaseAccess, 1, 0))
+                  - 0.5 * (offsetAccess(npBaseAccess, -1, 0) + Duplicate(npBaseAccess))))))),
+      AssignmentStatement(Duplicate(leftGhostAccess), offsetAccess(leftGhostAccess, 1, 0)),
+      AssignmentStatement(Duplicate(rightGhostAccess), offsetAccess(rightGhostAccess, -1, 0)))
   }
 
   override def resolveGridMemberFunction(name : String) : Option[java.lang.reflect.Method] = {
