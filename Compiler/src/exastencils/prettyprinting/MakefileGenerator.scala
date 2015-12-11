@@ -35,9 +35,10 @@ object MakefileGenerator extends BuildfileGenerator {
     printer << "${BINARY}: "
     cppFileNames.foreach(file => { printer << s"${file.replace(".cpp", ".o")} " })
     printer <<< ""
-    printer << "\t${CXX} ${LFLAGS} -o ${BINARY} -I. "
+    printer << "\t${CXX} -o ${BINARY} -I. "
     cppFileNames.foreach(file => { printer << s"${file.replace(".cpp", ".o")} " })
     Settings.additionalLibs.foreach(lib => { printer << s"-l$lib " })
+    printer <<< " ${LFLAGS}"
     printer <<< ""
     printer <<< ""
 
