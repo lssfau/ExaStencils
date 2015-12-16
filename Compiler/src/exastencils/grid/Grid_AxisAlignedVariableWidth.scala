@@ -64,13 +64,21 @@ object Grid_AxisAlignedVariableWidth extends Grid {
     /// stag_cv_width   -> width of the staggered control volumes
     /// |-|   |---|   |-|
 
-    (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupNodePos(dim, Knowledge.maxLevel)) ++
-      (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
+    val gridSpacing = "diego" // "diego" or "linearFct" -> TODO: integrate with knowledge
+
+    gridSpacing match {
+      case "diego" =>
+        (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupNodePos_Diego(dim, Knowledge.maxLevel)) ++
+          (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
+      case "linearFct" =>
+        (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupNodePos_LinearFct(dim, Knowledge.maxLevel)) ++
+          (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
+    }
   }
 
-  def setupNodePos(dim : Integer, level : Integer) : ListBuffer[Statement] = {
+  def setupNodePos_Diego(dim : Integer, level : Integer) : ListBuffer[Statement] = {
     val expo = 1.5
-    val numCells = (1 << level) // TODO: adapt for non-unit fragments
+    val numCells = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim) // number of cells per fragment
     val zoneSize = numCells / 4
     val step = 1.0 / zoneSize
 
@@ -105,6 +113,62 @@ object Grid_AxisAlignedVariableWidth extends Grid {
                     AssignmentStatement(Duplicate(baseAccess), offsetAccess(baseAccess, -1 * innerIt + 3 * zoneSize, 0)
                       + 0.0095 * (1.0 - FunctionCallExpression("pow", ListBuffer[Expression](1.0 - step * (LoopOverDimensions.defIt(0) - 3.0 * zoneSize), expo)))),
                     AssignmentStatement(Duplicate(baseAccess), offsetAccess(baseAccess, -1, 0))))))))),
+      AssignmentStatement(Duplicate(leftGhostAccess),
+        2 * offsetAccess(leftGhostAccess, 1, 0) - offsetAccess(leftGhostAccess, 2, 0)),
+      AssignmentStatement(Duplicate(rightGhostAccess),
+        2 * offsetAccess(rightGhostAccess, -1, 0) - offsetAccess(rightGhostAccess, -2, 0)))
+  }
+
+  def setupNodePos_LinearFct(dim : Integer, level : Integer) : ListBuffer[Statement] = {
+    val numCells = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim) // number of cells per fragment
+    val xf = numCells / 4 - 1
+    val xs = (numCells / 4) * 3
+
+    // total size = alphaCoeff * alpha + betaCoeff * beta
+    val lastPointAlphaCoeff = -0.5 * xf * xf - 0.5 * xf + xf * numCells - 0.5 * numCells * numCells + 0.5 * numCells + numCells * xs - 0.5 * xs * xs - 0.5 * xs
+    val lastPointBetaCoeff = numCells
+    // size of the first interval = alphaCoeff * alpha + betaCoeff * beta
+    val firstIntervalAlphaCoeff = 0.5 * xf * xf + 0.5 * xf
+    val firstIntervalBetaCoeff = xf + 1
+
+    // fix alpha to match domain size
+    val domainSize = 0.05 // TODO: get from DSL
+
+    // simple approach: alpha and beta are equal -> results in very small volumes and aspect ratios if the number of points is high
+    //    val alpha = domainSize / (lastPointAlphaCoeff + lastPointBetaCoeff)
+    //    val beta = alpha
+
+    // better approach: fix the ratio between smallest and largest cell width to 8
+    val factor = (numCells / 4) / 8.0
+    val alpha = domainSize / (lastPointAlphaCoeff + lastPointBetaCoeff * factor)
+    val beta = factor * alpha
+
+    Logger.debug(s"Using alpha $alpha and beta $beta")
+
+    val field = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
+    var baseIndex = LoopOverDimensions.defIt
+    baseIndex(Knowledge.dimensionality) = 0
+    val baseAccess = FieldAccess(FieldSelection(field, field.level, 0), baseIndex)
+
+    val innerIt = LoopOverDimensions.defIt(0)
+
+    val leftGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), MultiIndex(-1, 0, 0, 0))
+    val rightGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), MultiIndex(numCells + 1, 0, 0, 0))
+
+    ListBuffer(
+      LoopOverPoints(field, None, true,
+        MultiIndex(-1, -1, -1), MultiIndex(-1, -1, -1), MultiIndex(1, 1, 1),
+        ListBuffer[Statement](
+          new ConditionStatement(LowerEqualExpression(innerIt, xf + 1),
+            AssignmentStatement(Duplicate(baseAccess),
+              0.5 * alpha * innerIt * innerIt + (beta - 0.5 * alpha) * innerIt),
+            new ConditionStatement(LowerEqualExpression(innerIt, xs + 1),
+              AssignmentStatement(Duplicate(baseAccess),
+                -0.5 * alpha * (xf * xf + xf) + (beta + alpha * xf) * innerIt),
+              AssignmentStatement(Duplicate(baseAccess),
+                -0.5 * alpha * innerIt * innerIt
+                  + (alpha * xf + alpha * xs + 0.5 * alpha + beta) * innerIt
+                  - 0.5 * alpha * (xf * xf + xf + xs * xs + xs)))))),
       AssignmentStatement(Duplicate(leftGhostAccess),
         2 * offsetAccess(leftGhostAccess, 1, 0) - offsetAccess(leftGhostAccess, 2, 0)),
       AssignmentStatement(Duplicate(rightGhostAccess),
@@ -169,7 +233,7 @@ object Grid_AxisAlignedVariableWidth extends Grid {
   }
 
   // direct accesses
-  def nodePosition(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
+  override def nodePosition(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
     val field = FieldCollection.getFieldByIdentifierLevExp(s"node_pos_${dimToString(dim)}", level).get
     FieldAccess(FieldSelection(field, field.level, 0, arrayIndex), projectIdx(index, dim))
   }
@@ -180,11 +244,11 @@ object Grid_AxisAlignedVariableWidth extends Grid {
   }
 
   // compound accesses
-  def cellCenter(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
+  override def cellCenter(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
     0.5 * (nodePosition(level, offsetIndex(index, 1, dim), arrayIndex, dim) + nodePosition(level, Duplicate(index), arrayIndex, dim))
   }
 
-  def cellWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
+  override def cellWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
     nodePosition(level, offsetIndex(index, 1, dim), arrayIndex, dim) - nodePosition(level, Duplicate(index), arrayIndex, dim)
   }
 
