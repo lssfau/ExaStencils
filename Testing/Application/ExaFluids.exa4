@@ -100,9 +100,7 @@ StencilField AtStencil< AtStencilData => SevenPointStencil > @all
 
 Field vis < global, DefCellLayout, Neumann > @finest
 
-Field gamxx < global, DefCellLayout, Neumann > @finest
-Field gamyy < global, DefCellLayout, Neumann > @finest
-Field gamzz < global, DefCellLayout, Neumann > @finest
+Field gamma < global, DefCellLayout, Neumann > @finest
 
 // temporary flow fields
 
@@ -637,17 +635,12 @@ Function UpdateProperties@finest ( ) : Unit {
 			+ 4.2365e-9 * phi7[active]@current**3 )
 		vis@current = 3.8208e-2 / ( phi7[active]@current - 252.33 )
 
-		gamxx@current = cond / cp
-		gamyy@current = cond / cp
-		gamzz@current = cond / cp
+		gamma@current = cond / cp
 	}
 	
 	apply bc to vis@current
 	apply bc to rho[active]@current
-
-	apply bc to gamxx@current
-	apply bc to gamyy@current
-	apply bc to gamzz@current
+	apply bc to gamma@current
 }
 
 /// stencil compilation functions
@@ -873,13 +866,13 @@ Function CompileStencil_t@finest (  ) : Unit {
 	}
 
 	loop over AtStencil@current starting [-1, -1, -1] {
-		Val diffet : Real = integrateOverEastFace ( evalAtEastFace ( gamxx@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current@[1, 0, 0]
+		Val diffet : Real = integrateOverEastFace ( evalAtEastFace ( gamma@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current@[1, 0, 0]
 		AtStencil@current:[1, 0, 0] = -1.0 * ( calc_diflow ( flowet@current, diffet ) + max ( 0.0, -1.0 * flowet@current ) )
 		
-		Val diffnt : Real = integrateOverNorthFace ( evalAtNorthFace ( gamxx@current, "harmonicMean" ) ) / vf_stagCVWidth_y@current@[0, 1, 0]
+		Val diffnt : Real = integrateOverNorthFace ( evalAtNorthFace ( gamma@current, "harmonicMean" ) ) / vf_stagCVWidth_y@current@[0, 1, 0]
 		AtStencil@current:[0, 1, 0] = -1.0 * ( calc_diflow ( flownt@current, diffnt ) + max ( 0.0, -1.0 * flownt@current ) )
 
-		Val difftt : Real = integrateOverTopFace ( evalAtTopFace ( gamxx@current, "harmonicMean" ) ) / vf_stagCVWidth_z@current@[0, 0, 1]
+		Val difftt : Real = integrateOverTopFace ( evalAtTopFace ( gamma@current, "harmonicMean" ) ) / vf_stagCVWidth_z@current@[0, 0, 1]
 		AtStencil@current:[0, 0, 1] = -1.0 * ( calc_diflow ( flowtt@current, difftt ) + max ( 0.0, -1.0 * flowtt@current ) )
 	}
 	
