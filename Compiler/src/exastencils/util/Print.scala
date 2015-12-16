@@ -67,23 +67,34 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
     if (!Settings.additionalIncludes.contains("fstream"))
       Settings.additionalIncludes += "fstream"
 
-    var access = new FieldAccess(field, LoopOverDimensions.defIt)
-    access.index(Knowledge.dimensionality) = 0
+    val arrayIndexRange = (
+      if (field.arrayIndex.isEmpty) (0 until field.fieldLayout.dataType.resolveFlattendSize)
+      else (field.arrayIndex.get to field.arrayIndex.get))
 
-    val separator = (if (Knowledge.experimental_generateParaviewFiles) "\", \"" else "\" \"")
+    val separator = (if (Knowledge.experimental_generateParaviewFiles) "\",\"" else "\" \"")
 
     var innerLoop = new LoopOverFragments(
       new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
         ListBuffer[Statement](
           "std::ofstream stream(" ~ filename ~ ", " ~ (if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc") ~ ")",
-          (if (Knowledge.experimental_generateParaviewFiles) "stream << \"x coord,y coord,z coord,scalar\" << std::endl" else NullStatement),
-          new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
-            new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(dim => (field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)) : Expression)),
-            new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(dim => (field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)) : Expression))),
+
+          (if (Knowledge.experimental_generateParaviewFiles)
+            ("stream << \"x,y,z," + arrayIndexRange.map(index => s"s$index").mkString(",") + "\" << std::endl")
+          else
+            NullStatement),
+
+          new LoopOverDimensions(Knowledge.dimensionality, new IndexRange(
+            new MultiIndex((0 until Knowledge.dimensionality).toArray.map(dim => (field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)) : Expression)),
+            new MultiIndex((0 until Knowledge.dimensionality).toArray.map(dim => (field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)) : Expression))),
             new ConditionStatement(condition,
               "stream"
                 ~ (0 until Knowledge.dimensionality).map(dim => " << " ~ getPos(field, dim) ~ " << " ~ separator).reduceLeft(_ ~ _)
-                ~ " << " ~ access ~ " << std::endl")),
+                ~ arrayIndexRange.map(index => {
+                  var access = new FieldAccess(field, LoopOverDimensions.defIt)
+                  access.index(Knowledge.dimensionality) = index
+                  " << " ~ access
+                }).reduceLeft(_ ~ " << " ~ separator ~ _)
+                ~ " << std::endl")),
           "stream.close()")))
 
     var statements : ListBuffer[Statement] = ListBuffer()
