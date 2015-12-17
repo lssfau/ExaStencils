@@ -96,6 +96,7 @@
   <target name="package" depends="compile">
     <jar destfile="${compiler.jar}">
       <fileset dir="${build-classes.dir}"/>
+	  <fileset dir="${basedir}/resources" />
       <!-- include all jars into generated one (to allow running it without any other files present) -->
       <zipgroupfileset dir="${lib.dir}" includes="*.jar"/>
       <!-- dont't forget scala libraries -->
