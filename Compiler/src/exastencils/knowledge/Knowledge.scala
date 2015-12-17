@@ -344,14 +344,16 @@ object Knowledge {
   var experimental_resolveUnreqFragmentLoops : Boolean = false
 
   var experimental_allowCommInFragLoops : Boolean = false
+
+  var experimental_generateParaviewFiles : Boolean = false
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
 
-    Constraints.condEnsureValue(targetCompilerVersion, 11, "MSVC" == targetCompiler && targetCompilerVersion < 11, "When using MSVC, only version 11.0 and 12.0 are currently supported")
-    Constraints.condEnsureValue(targetCompilerVersion, 12, "MSVC" == targetCompiler && targetCompilerVersion > 12, "When using MSVC, only version 11.0 and 12.0 are currently supported")
-    Constraints.condEnsureValue(targetCompilerVersionMinor, 0, "MSVC" == targetCompiler, "When using MSVC, only version 11.0 and 12.0 are currently supported")
+    Constraints.condEnsureValue(targetCompilerVersion, 11, "MSVC" == targetCompiler && targetCompilerVersion < 11, "When using MSVC, only versions > 11.0 are currently supported")
+    Constraints.condEnsureValue(targetCompilerVersion, 14, "MSVC" == targetCompiler && targetCompilerVersion > 14, "When using MSVC, only version up to 14.0 are currently supported")
+    Constraints.condEnsureValue(targetCompilerVersionMinor, 0, "MSVC" == targetCompiler, "When using MSVC, minor version numbers are not supported")
 
     Constraints.condEnsureValue(omp_enabled, false, "CLANG" == targetCompiler && (targetCompilerVersion >= 3 && targetCompilerVersionMinor < 7), "Only clang >= 3.7 supports OpenMP")
 

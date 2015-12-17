@@ -3,10 +3,13 @@ package exastencils.multiGrid
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
+import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.grid._
 import exastencils.knowledge._
+import exastencils.logger._
 import exastencils.omp._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
@@ -16,21 +19,40 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
 
   def setupFieldUpdate(neigh : NeighborInfo) : ListBuffer[Statement] = {
     var statements : ListBuffer[Statement] = ListBuffer()
-    if (StateManager.findFirst[AnyRef]((node : Any) => node match {
-      case vfa : VirtualFieldAccess if "vf_nodePosition_x" == vfa.fieldName || "vf_nodePosition_y" == vfa.fieldName || "vf_nodePosition_z" == vfa.fieldName => true
-      case StringLiteral("xPos") | StringLiteral("yPos") | StringLiteral("zPos") => true
-      case VariableAccess("xPos", _) | VariableAccess("yPos", _) | VariableAccess("zPos", _) => true
-      case _ => false
-    }, ExpressionStatement(field.field.boundaryConditions.get)).isDefined) { // wrapped in ExpressionStatement to match top-level expressions as well
-      field.fieldLayout.discretization match {
-        case "node"   => statements += new InitGeomCoords(field.field, true)
-        // FIXME: check boundary handling for 26p comm and non-node discr
-        case "cell"   => statements += new InitGeomCoords(field.field, true, new MultiIndex((neigh.dir ++ Array(0)).map(i => 0.5 * i)))
-        case "face_x" => statements += new InitGeomCoords(field.field, true, { var off = new MultiIndex((neigh.dir ++ Array(0)).map(i => 0.5 * i)); off(0) = 0.0; off })
-        case "face_y" => statements += new InitGeomCoords(field.field, true, { var off = new MultiIndex((neigh.dir ++ Array(0)).map(i => 0.5 * i)); off(1) = 0.0; off })
-        case "face_z" => statements += new InitGeomCoords(field.field, true, { var off = new MultiIndex((neigh.dir ++ Array(0)).map(i => 0.5 * i)); off(2) = 0.0; off })
+
+    // apply local trafo and replace boundaryCoord
+    val strat = QuietDefaultStrategy("ResolveBoundaryCoordinates")
+    strat += new Transformation("SearchAndReplace", {
+      case virtualField : VirtualFieldAccess if virtualField.fieldName.startsWith("boundaryCoord") || virtualField.fieldName.startsWith("vf_boundaryCoord") => {
+        val evalDim = virtualField.fieldName match {
+          case "boundaryCoord_x" | "vf_boundaryCoord_x" => 0
+          case "boundaryCoord_y" | "vf_boundaryCoord_y" => 1
+          case "boundaryCoord_z" | "vf_boundaryCoord_z" => 2
+          case _                                        => Logger.error(s"Invalid virtual field named ${virtualField.fieldName} found")
+        }
+
+        field.fieldLayout.discretization match {
+          // TODO: adapt for grids that are not axis-parallel
+          case "node" => virtualField.fieldName = virtualField.fieldName.replace("boundaryCoord", "nodePosition")
+          //case d if         || ("face_x" == d && 0 != neigh.dir(0))         || ("face_y" == d && 0 != neigh.dir(1))         || ("face_z" == d && 0 != neigh.dir(2))
+
+          case "cell" => {
+            if (0 == neigh.dir(evalDim)) { // simple projection
+              virtualField.fieldName = virtualField.fieldName.replace("boundaryCoord", "cellCenter")
+            } else if (neigh.dir(evalDim) < 0) { // snap to left boundary
+              virtualField.fieldName = virtualField.fieldName.replace("boundaryCoord", "nodePosition")
+            } else { // snap to right boundary
+              virtualField.fieldName = virtualField.fieldName.replace("boundaryCoord", "nodePosition")
+              virtualField.index = Grid.getGridObject.offsetIndex(virtualField.index, 1, evalDim)
+            }
+          }
+        }
+        virtualField
+        //Grid.getGridObject.invokeAccessResolve(virtualField)
       }
-    }
+    })
+    val bc = Duplicate(field.field.boundaryConditions.get)
+    strat.applyStandalone(ExpressionStatement(bc))
 
     for (vecDim <- 0 until field.field.vectorSize) { // FIXME: this works for now, but users may want to specify bc's per vector element
       var index = LoopOverDimensions.defIt
@@ -42,32 +64,32 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
           || ("face_x" == d && 0 != neigh.dir(0))
           || ("face_y" == d && 0 != neigh.dir(1))
           || ("face_z" == d && 0 != neigh.dir(2)) =>
-          if (StringLiteral("Neumann") == field.field.boundaryConditions.get)
+          if (StringLiteral("Neumann") == bc)
             Knowledge.experimental_NeumannOrder match {
-              case 1 => statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index), new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -i))))
-              case 2 => statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index),
-                ((4.0 / 3.0) * new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -i))))
-                  + ((-1.0 / 3.0) * new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -2 * i)))))
+              case 1 => statements += new AssignmentStatement(new FieldAccess(fieldSel, index), new FieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -i))))
+              case 2 => statements += new AssignmentStatement(new FieldAccess(fieldSel, index),
+                ((4.0 / 3.0) * new FieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -i))))
+                  + ((-1.0 / 3.0) * new FieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -2 * i)))))
               case 3 => // TODO: do we want this? what do we do on the coarser levels?
-                statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index),
-                  (((3.0 * 6.0 / 11.0) * new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -1 * i))))
-                    + ((-3.0 / 2.0 * 6.0 / 11.0) * new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -2 * i))))
-                    + ((1.0 / 3.0 * 6.0 / 11.0) * new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -3 * i))))))
+                statements += new AssignmentStatement(new FieldAccess(fieldSel, index),
+                  (((3.0 * 6.0 / 11.0) * new FieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -1 * i))))
+                    + ((-3.0 / 2.0 * 6.0 / 11.0) * new FieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -2 * i))))
+                    + ((1.0 / 3.0 * 6.0 / 11.0) * new FieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -3 * i))))))
             }
           else
-            statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index), Duplicate(field.field.boundaryConditions.get))
+            statements += new AssignmentStatement(new FieldAccess(fieldSel, index), bc)
         case d if "cell" == d
           || ("face_x" == d && 0 == neigh.dir(0))
           || ("face_y" == d && 0 == neigh.dir(1))
           || ("face_z" == d && 0 == neigh.dir(2)) =>
-          if (StringLiteral("Neumann") == field.field.boundaryConditions.get)
+          if (StringLiteral("Neumann") == bc)
             Knowledge.experimental_NeumannOrder match {
-              case 1 => statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)))),
-                new DirectFieldAccess(fieldSel, index))
+              case 1 => statements += new AssignmentStatement(new FieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)))),
+                new FieldAccess(fieldSel, index))
             }
           else
-            statements += new AssignmentStatement(new DirectFieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)))),
-              (2.0 * Duplicate(field.field.boundaryConditions.get)) - new DirectFieldAccess(fieldSel, index))
+            statements += new AssignmentStatement(new FieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)))),
+              (2.0 * bc) - new FieldAccess(fieldSel, index))
       }
     }
 
@@ -79,7 +101,8 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
       new LoopOverFragments(
         new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
           neighbors.map({ neigh =>
-            val loopOverDims = new LoopOverDimensions(Knowledge.dimensionality, neigh._2, setupFieldUpdate(neigh._1)) with OMP_PotentiallyParallel with PolyhedronAccessable
+            val adaptedIndexRange = IndexRange(neigh._2.begin - field.referenceOffset, neigh._2.end - field.referenceOffset)
+            val loopOverDims = new LoopOverDimensions(Knowledge.dimensionality, adaptedIndexRange, setupFieldUpdate(neigh._1)) with OMP_PotentiallyParallel with PolyhedronAccessable
             loopOverDims.optLevel = 1
             new ConditionStatement(NegationExpression(iv.NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : Statement
           }))) with OMP_PotentiallyParallel

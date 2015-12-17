@@ -7,6 +7,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir.StatementList
+import exastencils.grid._
 import exastencils.knowledge._
 import exastencils.mpi._
 import exastencils.prettyprinting._
@@ -49,27 +50,51 @@ case class PrintStatement(var toPrint : ListBuffer[Expression], var stream : Str
 case class PrintFieldStatement(var filename : Expression, var field : FieldSelection, var condition : Expression = BooleanConstant(true)) extends Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintFieldStatement\n"
 
+  def getPos(field : FieldSelection, dim : Int) : Expression = {
+    field.field.discretization match {
+      case "node" => Grid.getGridObject.nodePosition(field.level, LoopOverDimensions.defIt, None, dim)
+      case "cell" => Grid.getGridObject.cellCenter(field.level, LoopOverDimensions.defIt, None, dim)
+      case discr @ ("face_x" | "face_y" | "face_z") => {
+        if (s"face_${dimToString(dim)}" == discr)
+          Grid.getGridObject.nodePosition(field.level, LoopOverDimensions.defIt, None, dim)
+        else
+          Grid.getGridObject.cellCenter(field.level, LoopOverDimensions.defIt, None, dim)
+      }
+    }
+  }
+
   override def expand : Output[StatementList] = {
     if (!Settings.additionalIncludes.contains("fstream"))
       Settings.additionalIncludes += "fstream"
 
-    var access = new FieldAccess(field, LoopOverDimensions.defIt)
-    access.index(Knowledge.dimensionality) = 0
+    val arrayIndexRange = (
+      if (field.arrayIndex.isEmpty) (0 until field.fieldLayout.dataType.resolveFlattendSize)
+      else (field.arrayIndex.get to field.arrayIndex.get))
+
+    val separator = (if (Knowledge.experimental_generateParaviewFiles) "\",\"" else "\" \"")
 
     var innerLoop = new LoopOverFragments(
       new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
         ListBuffer[Statement](
           "std::ofstream stream(" ~ filename ~ ", " ~ (if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc") ~ ")",
-          new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
-            new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(dim => (field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)) : Expression)),
-            new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(dim => (field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)) : Expression))),
-            ListBuffer[Statement](
-              new InitGeomCoords(field.field, false),
-              new ConditionStatement(condition,
-                ("stream << xPos << \" \"" +
-                  (if (Knowledge.dimensionality > 1) " << yPos << \" \"" else "") +
-                  (if (Knowledge.dimensionality > 2) " << zPos << \" \"" else "") +
-                  " << " : Expression) ~ access ~ " << std::endl"))),
+
+          (if (Knowledge.experimental_generateParaviewFiles)
+            ("stream << \"x,y,z," + arrayIndexRange.map(index => s"s$index").mkString(",") + "\" << std::endl")
+          else
+            NullStatement),
+
+          new LoopOverDimensions(Knowledge.dimensionality, new IndexRange(
+            new MultiIndex((0 until Knowledge.dimensionality).toArray.map(dim => (field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)) : Expression)),
+            new MultiIndex((0 until Knowledge.dimensionality).toArray.map(dim => (field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)) : Expression))),
+            new ConditionStatement(condition,
+              "stream"
+                ~ (0 until Knowledge.dimensionality).map(dim => " << " ~ getPos(field, dim) ~ " << " ~ separator).reduceLeft(_ ~ _)
+                ~ arrayIndexRange.map(index => {
+                  var access = new FieldAccess(field, LoopOverDimensions.defIt)
+                  access.index(Knowledge.dimensionality) = index
+                  " << " ~ access
+                }).reduceLeft(_ ~ " << " ~ separator ~ _)
+                ~ " << std::endl")),
           "stream.close()")))
 
     var statements : ListBuffer[Statement] = ListBuffer()

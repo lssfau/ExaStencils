@@ -3,10 +3,7 @@ package exastencils.grid
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
-import exastencils.datastructures._
-import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.logger._
 
@@ -52,6 +49,26 @@ abstract class Grid {
 
   def invokeEvalResolve(functionName : String, fieldAccess : FieldAccess, interpolation : String) : Expression
   def invokeIntegrateResolve(functionName : String, exp : Expression) : Expression
+
+  // helper functions of offsetting indices and accesses
+  def offsetIndex(index : MultiIndex, offset : Expression, dim : Int) : MultiIndex = {
+    var modIndex = Duplicate(index)
+    modIndex(dim) += offset
+    modIndex
+  }
+
+  def offsetAccess(fieldAccess : FieldAccess, offset : Expression, dim : Int) : FieldAccess = {
+    var modAccess = Duplicate(fieldAccess)
+    modAccess.index(dim) += offset
+    modAccess
+  }
+
+  // basic functionality
+  def nodePosition(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression
+  def cellCenter(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression
+
+  def cellWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression
+  def gridWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression = cellWidth(level, index, arrayIndex, dim) // simple alias for most grids
 }
 
 // helper object/method to branch grid types

@@ -353,6 +353,7 @@ case class MultiIndex(
   }
 
   def +(that : MultiIndex) : MultiIndex = new MultiIndex(this, that, _ + _)
+  def -(that : MultiIndex) : MultiIndex = new MultiIndex(this, that, _ - _)
 
   override def iterator() : scala.collection.Iterator[Expression] = {
     return new Iterator[Expression]() {

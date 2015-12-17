@@ -99,6 +99,7 @@ StencilField AtStencil< AtStencilData => SevenPointStencil > @all
 // auxilary fields
 
 Field vis < global, DefCellLayout, Neumann > @finest
+Field miu < global, DefCellLayout, Neumann > @finest
 
 Field gamma < global, DefCellLayout, Neumann > @finest
 
@@ -282,6 +283,9 @@ Globals {
 	Val c_den : Real            = -0.00894484
 	Val d_den : Real            = 8.7846287e-5
 	Val e_den : Real            = -6.6213979e-7
+
+	// non-Newtonian parameters
+	Val n_index : Real			= 0.9 // 0.95
 }
 
 /// specialized boundary handling functions
@@ -617,9 +621,9 @@ Function calc_diflow ( flow : Real, diff : Real ) : Real {
 /// general functions
 
 Function UpdateProperties@finest ( ) : Unit {
-	// previously props and Gamsor_flu and Gamsor_phi
+	// previously props and non_new and Gamsor_flu and Gamsor_phi
 
-	loop over vis@current {
+	loop over miu@current {
 		// Gangi et al. (Kohlrausch) Density
 		rho[active]@current = ( a_den + b_den * ( phi7[active]@current - t_ph )
 			+ c_den * ( phi7[active]@current - t_ph )**2
@@ -633,14 +637,58 @@ Function UpdateProperties@finest ( ) : Unit {
 		Var cond : Real = ( -0.63262 + 7.1959e-3 * phi7[active]@current
 			- 1.144e-5 * phi7[active]@current**2
 			+ 4.2365e-9 * phi7[active]@current**3 )
-		vis@current = 3.8208e-2 / ( phi7[active]@current - 252.33 )
+		miu@current = 3.8208e-2 / ( phi7[active]@current - 252.33 )
 
 		gamma@current = cond / cp
 	}
-	
-	apply bc to vis@current
+
+	apply bc to miu@current
 	apply bc to rho[active]@current
 	apply bc to gamma@current
+
+	loop over vis@current {
+		// TODO: add evalAtCellCenter, evalAtXFaceCenter, evalAtXYCorner, etc
+		// du/dx and dv/dx and dw/dx
+		Val dudx : Real = ( evalAtEastFace ( u[active]@current ) - evalAtWestFace ( u[active]@current ) ) / vf_cellWidth_x@current
+
+		Val dvdx : Real = 0.5 * ( evalAtEastFace ( v[active]@current ) - evalAtWestFace ( v[active]@current ) 
+			+ evalAtEastFace ( v[active]@current@[0, 1, 0] ) - evalAtWestFace ( v[active]@current@[0, 1, 0] ) ) / vf_cellWidth_x@current
+
+		Val dwdx : Real = 0.5 * ( evalAtEastFace ( w[active]@current ) - evalAtWestFace ( w[active]@current ) 
+			+ evalAtEastFace ( w[active]@current@[0, 0, 1] ) - evalAtWestFace ( w[active]@current@[0, 0, 1] ) ) / vf_cellWidth_x@current
+
+		// du/dy and dv/dy and dw/dy
+		Val dudy : Real = 0.5 * ( evalAtNorthFace ( u[active]@current ) - evalAtSouthFace ( u[active]@current ) 
+			+ evalAtNorthFace ( u[active]@current@[1, 0, 0] ) - evalAtSouthFace ( u[active]@current@[1, 0, 0] ) ) / vf_cellWidth_y@current
+
+		Val dvdy : Real = ( evalAtNorthFace ( v[active]@current ) - evalAtSouthFace ( v[active]@current ) ) / vf_cellWidth_y@current
+
+		Val dwdy : Real = 0.5 * ( evalAtNorthFace ( w[active]@current ) - evalAtSouthFace ( w[active]@current ) 
+			+ evalAtNorthFace ( w[active]@current@[0, 0, 1] ) - evalAtSouthFace ( w[active]@current@[0, 0, 1] ) ) / vf_cellWidth_y@current
+
+		// du/dz and dv/dz and dw/dz
+		Val dudz : Real = 0.5 * ( evalAtTopFace ( u[active]@current ) - evalAtBottomFace ( u[active]@current ) 
+			+ evalAtTopFace ( u[active]@current@[1, 0, 0] ) - evalAtBottomFace ( u[active]@current@[1, 0, 0] ) ) / vf_cellWidth_z@current
+
+		Val dvdz : Real = 0.5 * ( evalAtTopFace ( v[active]@current ) - evalAtBottomFace ( v[active]@current ) 
+			+ evalAtTopFace ( v[active]@current@[0, 1, 0] ) - evalAtBottomFace ( v[active]@current@[0, 1, 0] ) ) / vf_cellWidth_z@current
+
+		Val dwdz : Real = ( evalAtTopFace ( w[active]@current ) - evalAtBottomFace ( w[active]@current ) ) / vf_cellWidth_z@current
+
+		// compile values
+		Val gamap : Real = 2.0 * ( dvdy**2 + dudx**2 + dwdz**2 ) + ( dvdx + dudy )**2 + ( dwdx + dudz )**2 + ( dvdz + dwdy )**2
+		Var gama : Real = sqrt ( gamap )
+
+		// j.non.newt.fluid mech. 15(1984)75-83
+		//gama = max ( gama, 0.01 )
+		//vis@current = rel + ( 1.0 - rel ) / ( 1.0 + sqrt ( lambda * gama ) )
+
+		// Int. J. Heat & Mass Transfer 34(1991) 1083-1096 CMC/Power law
+		gama = max ( gama, 0.01 )
+		vis@current = miu@current * gama**( n_index - 1.0 )
+	}
+
+	apply bc to vis@current
 }
 
 /// stencil compilation functions
