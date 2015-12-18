@@ -11,7 +11,11 @@ import scala.collection.mutable.TreeSet
 import scala.io.Source
 import scala.util.control.Breaks
 
+import org.exastencils.schedopt.exploration.DomainCoeffInfo
 import org.exastencils.schedopt.exploration.Exploration
+import org.exastencils.schedopt.exploration.PartialSchedule
+import org.exastencils.schedopt.exploration.ScheduleSpace
+import org.exastencils.schedopt.exploration.StmtCoeffInfo
 
 import exastencils.core._
 import exastencils.datastructures._
@@ -20,7 +24,6 @@ import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.polyhedron.Isl.TypeAliases._
-
 import isl.Conversions._
 
 trait PolyhedronAccessable {
@@ -407,10 +410,11 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   }
 
   private def optimize(scop : Scop, confID : Int) : Unit = {
-    if (Knowledge.poly_scheduleAlgorithm == "exploration")
-      optimizeExpl(scop, confID)
-    else
-      optimizeIsl(scop)
+    Knowledge.poly_scheduleAlgorithm match {
+      case "exploration" => optimizeExpl(scop, confID)
+      case "test"        => optimizeTest(scop)
+      case _             => optimizeIsl(scop)
+    }
   }
 
   private def optimizeIsl(scop : Scop) : Unit = {
@@ -466,6 +470,76 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
     scop.schedule = Isl.simplify(scheduleMap)
     scop.updateLoopVars()
+  }
+
+  private def optimizeTest(scop : Scop) : Unit = {
+    val domain = scop.domain.intersectParams(scop.getContext())
+    var validity = scop.deps.validity()
+
+    if (Knowledge.poly_simplifyDeps) {
+      validity = validity.gistRange(domain)
+      validity = validity.gistDomain(domain)
+    }
+
+    val depList : ArrayBuffer[isl.BasicMap] = Exploration.preprocess(validity)
+
+    val domInfo = DomainCoeffInfo(domain)
+    val sched = new PartialSchedule(domInfo, depList)
+    var coeffSpace : isl.Set = sched.computeLinIndepSpace()
+
+    // all dependences must be satisfied at least weakly
+    for (dep <- depList) {
+      val constr : isl.BasicSet = ScheduleSpace.compSchedConstrForDep(dep, sched.domInfo, false)
+      coeffSpace = coeffSpace.intersect(constr)
+    }
+
+    val zeroVal = isl.Val.zero(scop.domain.getCtx())
+    for ((stmt, StmtCoeffInfo(itStart, nrIt, _, cstIdx)) <- domInfo.stmtInfo) {
+      coeffSpace = coeffSpace.fixVal(T_SET, itStart + nrIt - 1, zeroVal)
+      coeffSpace = coeffSpace.lowerBoundVal(T_SET, cstIdx, zeroVal)
+    }
+    val addDims : Int = domInfo.nrIt - domInfo.nrStmts + 2 // sum of abs coeffs and sum of paramcoeffs
+    coeffSpace = coeffSpace.insertDims(T_SET, 0, addDims)
+
+    var idx : Int = 1
+    var i : Int = 0
+    while (idx < addDims - 1) {
+      for ((stmt, StmtCoeffInfo(itStart, nrIt, parStart, cstIdx)) <- domInfo.stmtInfo)
+        if (i < nrIt - 1) {
+          var aff = isl.Aff.zeroOnDomain(isl.LocalSpace.fromSpace(coeffSpace.getSpace()))
+          aff = aff.setCoefficientSi(T_IN, addDims + itStart + i, -2)
+          aff = aff.setCoefficientSi(T_IN, idx, -1)
+          var set : isl.Set = aff.zeroBasicSet() // p = -2*c
+          aff = aff.setCoefficientSi(T_IN, addDims + itStart + i, 2)
+          aff = aff.setConstantSi(-1)
+          set = set.union(aff.zeroBasicSet()) // p = 2*c - 1
+          set = set.lowerBoundVal(T_SET, idx, zeroVal) // p >= 0
+          coeffSpace = coeffSpace.intersect(set)
+          idx += 1
+        }
+      i += 1
+    }
+
+    // set coeffSpace[idx] to sum of parameter coeffs and restrict the latter to natural numbers
+    var aff = isl.Aff.zeroOnDomain(isl.LocalSpace.fromSpace(coeffSpace.getSpace()))
+    aff = aff.setCoefficientSi(T_IN, idx, -1)
+    for (pi <- 0 until domInfo.nrParPS * domInfo.nrStmts) {
+      val pos : Int = addDims + domInfo.nrIt + pi
+      coeffSpace = coeffSpace.lowerBoundVal(T_SET, pos, zeroVal)
+      aff = aff.setCoefficientSi(T_IN, pos, 1)
+    }
+    coeffSpace = coeffSpace.intersect(aff.zeroBasicSet())
+    coeffSpace = coeffSpace.lowerBoundVal(T_SET, 0, isl.Val.one(coeffSpace.getCtx())) // prevent 0 solution
+
+    // set coeffSpace[0] to sum of abs coeffs
+    aff = isl.Aff.zeroOnDomain(isl.LocalSpace.fromSpace(coeffSpace.getSpace()))
+    aff = aff.setCoefficientSi(T_IN, 0, -1)
+    for (i <- 1 until addDims - 1)
+      aff = aff.setCoefficientSi(T_IN, i, 1)
+    coeffSpace = coeffSpace.intersect(aff.zeroBasicSet())
+    val schedPoint = coeffSpace.lexmin().removeDims(T_SET, 0, addDims).samplePoint()
+    println(schedPoint)
+    System.exit(42)
   }
 
   private def optimizeExpl(scop : Scop, confID : Int) : Unit = {
