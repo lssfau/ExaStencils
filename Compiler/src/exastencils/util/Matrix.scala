@@ -24,36 +24,48 @@ case class Matrix() extends Node with FilePrettyPrintable {
 
 
 #include <iostream>
-#include <array>
+#include <vector>
 #include <algorithm>
 #include <cassert>
-#include <tuple>
 #include <time.h>
 
 #define EPSILON_ZERO 1e-20
+#ifndef SIZE_MAX
+#define SIZE_MAX 2147483647
+#endif
 
 template<typename T, size_t M, size_t N>
 class Matrix
 {
 public:
-    std::array< T, M*N > m_data;
+    std::vector< T > m_data;
 
 
     // default constructor
     Matrix()
-    { }
+    {
+        m_data.resize(M * N);
+    }
 
     // constructor
     Matrix ( T value ) {
-        m_data.fill ( value );
+        m_data.resize(M * N);
+        std::fill(m_data.begin(), m_data.end(), value);
     }
 
-    Matrix ( std::array<T, M*N> data ) {
+    Matrix ( std::vector<T> data ) {
+        m_data.resize(M * N);
+        // data must be <= M * N
         std::copy ( data.begin(), data.end(), m_data.begin() );
     }
+    
+    Matrix ( T* data )
+    : m_data(data, data + M * N)
+    { }
 
     // copy constructor
     Matrix ( const Matrix<T, M, N>& other ) {
+        m_data.resize(M * N);
         std::copy ( other.m_data.begin(), other.m_data.end(), m_data.begin() );
     }
 
@@ -91,7 +103,7 @@ public:
         return this->columns;
     }
 
-    void swap ( Matrix<T, M, N>& other ) noexcept {
+    void swap ( Matrix<T, M, N>& other ) {
         std::swap ( this->m_data, other.m_data );
     }
 
@@ -127,7 +139,7 @@ public:
     void clearZeros ( T eps = EPSILON_ZERO ) {
         for ( size_t i = 0; i < this->rows(); ++i ) {
             for ( size_t j = 0; j < this->columns(); ++j ) {
-                if ( ( *this ) ( i, j ) <= eps ) {
+                if ( std::abs(( *this ) ( i, j )) <= eps ) {
                     ( *this ) ( i, j ) = 0;
                 }
             }
@@ -148,23 +160,17 @@ public:
         }
     }
 
-    void setRow ( const size_t row, const std::array<T, M*N>& values ) {
+    void setRow ( const size_t row, const std::vector<T>& values ) {
         for ( size_t i = 0; i < this->columns(); ++i ) {
             ( *this ) ( row, i ) = values ( i );
         }
     }
 
-    void setColumn ( const size_t column, const std::array<T, M*N>& values ) {
+    void setColumn ( const size_t column, const std::vector<T>& values ) {
         for ( size_t i = 0; i < this->rows(); ++i ) {
             ( *this ) ( i, column ) = values ( i );
         }
     }
-
-//     void swapRows ( const size_t a, const size_t b ) {
-//         if ( a != b && a < M && b < M ) {
-//             std::swap_ranges ( m_data.begin() + a * N, m_data.begin() + ( a + 1 ) * N, m_data.begin() + b * N );
-//         }
-//     }
 
     void swapRows ( const size_t a, const size_t b, const size_t start_elem = 0, const size_t elems = N ) {
         if ( a != b && a < M && b < M ) {
@@ -181,16 +187,16 @@ public:
                 row = i;
             }
         }
-        // FIXME if mymax < 1.e-12 throw error :(
+        // FIXME if mymax < 1.e-12 throw error
         return row;
     }
 
-    std::tuple< Matrix<T, M, M>, Matrix<T, M, M>, std::array<size_t, M> > lu() const {
-        static_assert ( M == N, "lu() is only defined for square matrices!" );
+    void lu(Matrix<T, M, M>& L, Matrix<T, M, M>& U, std::vector<size_t>& p) const {
+        static_assert ( M == N, "determinant() is only defined for square matrices!" );
 
-        Matrix<T, M, M> A ( *this ), L, U ( *this );
+        U = *this;
         L.setIdentity();
-        std::array<size_t, M> p;
+        p.resize(M);
         for ( size_t i = 0; i < M; ++i ) {
             p[i] = i;
         }
@@ -218,7 +224,6 @@ public:
                 }
             }
         }
-        return std::tuple< Matrix<T, M, M>, Matrix<T, M, M>, std::array<size_t, M> > ( L, U, p );
     }
 
 
@@ -239,7 +244,10 @@ public:
                      - ( *this ) ( 0, 1 ) * ( *this ) ( 1, 0 ) * ( *this ) ( 2, 2 )
                      - ( *this ) ( 0, 0 ) * ( *this ) ( 1, 2 ) * ( *this ) ( 2, 1 ) );
         default: {
-            auto U = std::get<1> ( this->lu() );
+            Matrix<T, M, M> L;
+            Matrix<T, M, M> U;
+            std::vector<size_t> p;
+            this->lu(L, U, p);
             T prod = U ( 0, 0 );
             for ( size_t i = 1; i < N; ++i ) {
                 prod *= U ( i, i );
@@ -282,10 +290,10 @@ public:
             return m;
         }
         default: {
-            auto lu = this->lu();
-            auto L = std::get<0> ( lu );
-            auto U = std::get<1> ( lu );
-            auto p = std::get<2> ( lu );
+            Matrix<T, M, M> L;
+            Matrix<T, M, M> U;
+            std::vector<size_t> p;
+            this->lu(L, U, p);
 
             Matrix<T, M, N> y;
             Matrix<T, M, N> z;
@@ -906,6 +914,9 @@ T dotProduct ( const Matrix<T, 1, M>& a, const Matrix<T, M, 1>& b )
     }
     return out;
 }
+
+
+#endif
 
 """
   }
