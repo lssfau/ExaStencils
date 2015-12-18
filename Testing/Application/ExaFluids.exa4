@@ -22,22 +22,22 @@ Layout DefFaceZLayout < Real , Face_z > @all {
 	ghostLayers		= [ 1, 1, 1 ]
 }
 
-Layout CellStencilLayout < Array[Real][7], Cell > @all {
+Layout CellStencilLayout < Array<Real><7>, Cell > @all {
 	duplicateLayers	= [ 0, 0, 0 ]
 	ghostLayers		= [ 1, 1, 1 ]
 }
 
-Layout FaceXStencilLayout < Array[Real][7], Face_x > @all {
+Layout FaceXStencilLayout < Array<Real><7>, Face_x > @all {
 	duplicateLayers	= [ 1, 0, 0 ]
 	ghostLayers		= [ 1, 1, 1 ]
 }
 
-Layout FaceYStencilLayout < Array[Real][7], Face_y > @all {
+Layout FaceYStencilLayout < Array<Real><7>, Face_y > @all {
 	duplicateLayers	= [ 0, 1, 0 ]
 	ghostLayers		= [ 1, 1, 1 ]
 }
 
-Layout FaceZStencilLayout < Array[Real][7], Face_z > @all {
+Layout FaceZStencilLayout < Array<Real><7>, Face_z > @all {
 	duplicateLayers	= [ 0, 0, 1 ]
 	ghostLayers		= [ 1, 1, 1 ]
 }
