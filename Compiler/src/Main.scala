@@ -275,6 +275,7 @@ object Main {
     if (Knowledge.generateFortranInterface)
       Fortranify.apply()
 
+    Logger.dbg("Prettyprinting to folder " + (new java.io.File(Settings.getOutputPath)).getAbsolutePath)
     PrintStrategy.apply()
     PrettyprintingManager.finish
 
