@@ -127,7 +127,7 @@ public:
     void clearZeros ( T eps = EPSILON_ZERO ) {
         for ( size_t i = 0; i < this->rows(); ++i ) {
             for ( size_t j = 0; j < this->columns(); ++j ) {
-                if ( ( *this ) ( i, j ) <= eps ) {
+                if ( std::abs(( *this ) ( i, j )) <= eps ) {
                     ( *this ) ( i, j ) = 0;
                 }
             }
