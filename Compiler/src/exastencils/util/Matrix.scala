@@ -25,9 +25,9 @@ case class Matrix() extends Node with FilePrettyPrintable {
 
 #include <iostream>
 #include <vector>
-#include <algorithm>
 #include <cassert>
-#include <time.h>
+#include <ctime>
+#include <cstdlib>
 
 #define EPSILON_ZERO 1e-20
 #ifndef SIZE_MAX
@@ -38,58 +38,45 @@ template<typename T, size_t M, size_t N>
 class Matrix
 {
 public:
-    std::vector< T > m_data;
-
+    T* m_data;
+    bool m_alloced;
 
     // default constructor
     Matrix()
+    : m_data(new T[M * N])
+    , m_alloced(true)
+    { }
+
+    ~Matrix()
     {
-        m_data.resize(M * N);
+        if(m_alloced) delete[] m_data;
     }
 
     // constructor
-    Matrix ( T value ) {
-        m_data.resize(M * N);
-        std::fill(m_data.begin(), m_data.end(), value);
+    Matrix ( T value )
+    : m_data(new T[M * N])
+    , m_alloced(false)
+    {
+        std::fill(m_data, m_data + M * N, value);
     }
 
-    Matrix ( std::vector<T> data ) {
-        m_data.resize(M * N);
-        // data must be <= M * N
-        std::copy ( data.begin(), data.end(), m_data.begin() );
-    }
-    
     Matrix ( T* data )
-    : m_data(data, data + M * N)
+    : m_data(data)
+    , m_alloced(false)
     { }
 
     // copy constructor
-    Matrix ( const Matrix<T, M, N>& other ) {
-        m_data.resize(M * N);
-        std::copy ( other.m_data.begin(), other.m_data.end(), m_data.begin() );
+    Matrix ( const Matrix<T, M, N>& other )
+    : m_data(new T[M * N])
+    , m_alloced(true)
+    {
+        std::copy ( other.m_data, other.m_data + M*N, m_data );
     }
 
     Matrix<T, M, N>& operator= ( Matrix<T, M, N> other ) { // pass 'other' by value for implicit copy
         other.swap ( *this );
         return *this;
     }
-
-#ifdef HAS_MOVE_SEMANTICS
-    // C++14 move constructor
-    Matrix ( Matrix&& other ) noexcept
-:
-    m_data ( std::move ( other.m_data ) )
-    { }
-
-    // C++14 move assignment operator
-    Matrix& operator= ( Matrix&& other ) {
-        m_data = std::move ( other.m_data );
-        return *this;
-    }
-#endif
-
-    // destructor
-    ~Matrix() { }
 
     size_t rows() const {
         return M;
@@ -116,7 +103,7 @@ public:
     }
 
     void setRandom ( const T& scale ) {
-        srand ( time ( NULL ) );
+        std::srand ( std::time ( NULL ) );
         for ( size_t i = 0; i < this->rows(); ++i ) {
             for ( size_t j = 0; j < this->columns(); ++j ) {
                 ( *this ) ( i, j ) = rand() / scale;
@@ -160,21 +147,9 @@ public:
         }
     }
 
-    void setRow ( const size_t row, const std::vector<T>& values ) {
-        for ( size_t i = 0; i < this->columns(); ++i ) {
-            ( *this ) ( row, i ) = values ( i );
-        }
-    }
-
-    void setColumn ( const size_t column, const std::vector<T>& values ) {
-        for ( size_t i = 0; i < this->rows(); ++i ) {
-            ( *this ) ( i, column ) = values ( i );
-        }
-    }
-
     void swapRows ( const size_t a, const size_t b, const size_t start_elem = 0, const size_t elems = N ) {
         if ( a != b && a < M && b < M ) {
-            std::swap_ranges ( m_data.begin() + a * M + start_elem, m_data.begin() + a * M + start_elem + elems, m_data.begin() + b * M + start_elem );
+            std::swap_ranges ( m_data + a * M + start_elem, m_data + a * M + start_elem + elems, m_data + b * M + start_elem );
         }
     }
 
@@ -192,7 +167,7 @@ public:
     }
 
     void lu(Matrix<T, M, M>& L, Matrix<T, M, M>& U, std::vector<size_t>& p) const {
-        static_assert ( M == N, "determinant() is only defined for square matrices!" );
+        assert ( M == N ); // "lu() is only defined for square matrices!" );
 
         U = *this;
         L.setIdentity();
@@ -228,7 +203,7 @@ public:
 
 
     T determinant() const {
-        static_assert ( M == N, "determinant() is only defined for square matrices!" );
+        assert ( M == N ); // "determinant() is only defined for square matrices!" );
 
         // Compiler should optimize the switch away
         switch ( M ) {
@@ -258,7 +233,7 @@ public:
     }
 
     Matrix<T, M, N> inverse() const {
-        static_assert ( M == N, "inverse() is only defined for square matrices!" );
+        assert ( M == N ); // "inverse() is only defined for square matrices!" );
 
         // Compiler should optimize the switch away
         switch ( M ) {
@@ -268,7 +243,7 @@ public:
         }
         case 2: {
             Matrix<T, M, N> m;
-            const auto det = this->determinant();
+            const T det = this->determinant();
             m ( 0, 0 ) = ( *this ) ( 1, 1 ) / det;
             m ( 1, 0 ) = ( *this ) ( 1, 0 ) * ( -1 ) / det;
             m ( 0, 1 ) = ( *this ) ( 0, 1 ) * ( -1 ) / det;
@@ -277,7 +252,7 @@ public:
         }
         case 3: {
             Matrix<T, M, N> m;
-            const auto det = this->determinant();
+            const T det = this->determinant();
             m ( 0, 0 ) = ( ( *this ) ( 1, 1 ) * ( *this ) ( 2, 2 ) - ( *this ) ( 1, 2 ) * ( *this ) ( 2, 1 ) ) / det;
             m ( 0, 1 ) = ( ( *this ) ( 0, 2 ) * ( *this ) ( 2, 1 ) - ( *this ) ( 0, 1 ) * ( *this ) ( 2, 2 ) ) / det;
             m ( 0, 2 ) = ( ( *this ) ( 0, 1 ) * ( *this ) ( 1, 2 ) - ( *this ) ( 0, 2 ) * ( *this ) ( 1, 1 ) ) / det;
@@ -741,7 +716,7 @@ std::ostream& operator<< ( std::ostream &os, const Matrix<T, M, N>& other )
         }
         os << "} ";
     } else {
-        for ( int i = 0; i < other.m_data.size(); i++ ) {
+        for ( int i = 0; i < other.rows() * other.columns(); i++ ) {
             os  << other.m_data[i] << " ";
         }
     }
