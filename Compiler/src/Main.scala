@@ -47,10 +47,12 @@ object Main {
         knowledgeParser.parseFile(args(1))
       }
     }
-    Knowledge.update()
 
     if (Settings.produceHtmlLog)
       Logger_HTML.init
+
+    // validate knowledge
+    Knowledge.update()
 
     if (Settings.cancelIfOutFolderExists) {
       if ((new java.io.File(Settings.getOutputPath)).exists) {
