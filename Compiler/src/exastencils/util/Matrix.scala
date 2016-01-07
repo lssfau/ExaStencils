@@ -19,65 +19,64 @@ case class Matrix() extends Node with FilePrettyPrintable {
 //      |______/_/\_\__,_|_____/ \__\___|_| |_|\___|_|_|___/
 //
 /// \file Matrix.h
-/// \brief  Header file for Matrix classes
+/// \brief  Header file for Matrix class
 /// \author Christian Schmitt
 
 
 #include <iostream>
-#include <array>
-#include <algorithm>
+#include <vector>
 #include <cassert>
-#include <tuple>
-#include <time.h>
+#include <ctime>
+#include <cstdlib>
 
 #define EPSILON_ZERO 1e-20
+#ifndef SIZE_MAX
+#define SIZE_MAX 2147483647
+#endif
 
 template<typename T, size_t M, size_t N>
 class Matrix
 {
 public:
-    std::array< T, M*N > m_data;
-
+    T* m_data;
+    bool m_alloced;
 
     // default constructor
     Matrix()
+    : m_data(new T[M * N])
+    , m_alloced(true)
     { }
 
-    // constructor
-    Matrix ( T value ) {
-        m_data.fill ( value );
+    ~Matrix()
+    {
+        if(m_alloced) delete[] m_data;
     }
 
-    Matrix ( std::array<T, M*N> data ) {
-        std::copy ( data.begin(), data.end(), m_data.begin() );
+    // constructor
+    Matrix ( T value )
+    : m_data(new T[M * N])
+    , m_alloced(false)
+    {
+        std::fill(m_data, m_data + M * N, value);
     }
+
+    Matrix ( T* data )
+    : m_data(data)
+    , m_alloced(false)
+    { }
 
     // copy constructor
-    Matrix ( const Matrix<T, M, N>& other ) {
-        std::copy ( other.m_data.begin(), other.m_data.end(), m_data.begin() );
+    Matrix ( const Matrix<T, M, N>& other )
+    : m_data(new T[M * N])
+    , m_alloced(true)
+    {
+        std::copy ( other.m_data, other.m_data + M*N, m_data );
     }
 
     Matrix<T, M, N>& operator= ( Matrix<T, M, N> other ) { // pass 'other' by value for implicit copy
         other.swap ( *this );
         return *this;
     }
-
-#ifdef HAS_MOVE_SEMANTICS
-    // C++14 move constructor
-    Matrix ( Matrix&& other ) noexcept
-:
-    m_data ( std::move ( other.m_data ) )
-    { }
-
-    // C++14 move assignment operator
-    Matrix& operator= ( Matrix&& other ) {
-        m_data = std::move ( other.m_data );
-        return *this;
-    }
-#endif
-
-    // destructor
-    ~Matrix() { }
 
     size_t rows() const {
         return M;
@@ -91,7 +90,7 @@ public:
         return this->columns;
     }
 
-    void swap ( Matrix<T, M, N>& other ) noexcept {
+    void swap ( Matrix<T, M, N>& other ) {
         std::swap ( this->m_data, other.m_data );
     }
 
@@ -104,7 +103,7 @@ public:
     }
 
     void setRandom ( const T& scale ) {
-        srand ( time ( NULL ) );
+        std::srand ( std::time ( NULL ) );
         for ( size_t i = 0; i < this->rows(); ++i ) {
             for ( size_t j = 0; j < this->columns(); ++j ) {
                 ( *this ) ( i, j ) = rand() / scale;
@@ -148,27 +147,9 @@ public:
         }
     }
 
-    void setRow ( const size_t row, const std::array<T, M*N>& values ) {
-        for ( size_t i = 0; i < this->columns(); ++i ) {
-            ( *this ) ( row, i ) = values ( i );
-        }
-    }
-
-    void setColumn ( const size_t column, const std::array<T, M*N>& values ) {
-        for ( size_t i = 0; i < this->rows(); ++i ) {
-            ( *this ) ( i, column ) = values ( i );
-        }
-    }
-
-//     void swapRows ( const size_t a, const size_t b ) {
-//         if ( a != b && a < M && b < M ) {
-//             std::swap_ranges ( m_data.begin() + a * N, m_data.begin() + ( a + 1 ) * N, m_data.begin() + b * N );
-//         }
-//     }
-
     void swapRows ( const size_t a, const size_t b, const size_t start_elem = 0, const size_t elems = N ) {
         if ( a != b && a < M && b < M ) {
-            std::swap_ranges ( m_data.begin() + a * M + start_elem, m_data.begin() + a * M + start_elem + elems, m_data.begin() + b * M + start_elem );
+            std::swap_ranges ( m_data + a * M + start_elem, m_data + a * M + start_elem + elems, m_data + b * M + start_elem );
         }
     }
 
@@ -181,16 +162,16 @@ public:
                 row = i;
             }
         }
-        // FIXME if mymax < 1.e-12 throw error :(
+        // FIXME if mymax < 1.e-12 throw error
         return row;
     }
 
-    std::tuple< Matrix<T, M, M>, Matrix<T, M, M>, std::array<size_t, M> > lu() const {
-        static_assert ( M == N, "lu() is only defined for square matrices!" );
+    void lu(Matrix<T, M, M>& L, Matrix<T, M, M>& U, std::vector<size_t>& p) const {
+        assert ( M == N ); // "lu() is only defined for square matrices!" );
 
-        Matrix<T, M, M> A ( *this ), L, U ( *this );
+        U = *this;
         L.setIdentity();
-        std::array<size_t, M> p;
+        p.resize(M);
         for ( size_t i = 0; i < M; ++i ) {
             p[i] = i;
         }
@@ -218,12 +199,11 @@ public:
                 }
             }
         }
-        return std::tuple< Matrix<T, M, M>, Matrix<T, M, M>, std::array<size_t, M> > ( L, U, p );
     }
 
 
     T determinant() const {
-        static_assert ( M == N, "determinant() is only defined for square matrices!" );
+        assert ( M == N ); // "determinant() is only defined for square matrices!" );
 
         // Compiler should optimize the switch away
         switch ( M ) {
@@ -239,7 +219,10 @@ public:
                      - ( *this ) ( 0, 1 ) * ( *this ) ( 1, 0 ) * ( *this ) ( 2, 2 )
                      - ( *this ) ( 0, 0 ) * ( *this ) ( 1, 2 ) * ( *this ) ( 2, 1 ) );
         default: {
-            auto U = std::get<1> ( this->lu() );
+            Matrix<T, M, M> L;
+            Matrix<T, M, M> U;
+            std::vector<size_t> p;
+            this->lu(L, U, p);
             T prod = U ( 0, 0 );
             for ( size_t i = 1; i < N; ++i ) {
                 prod *= U ( i, i );
@@ -250,7 +233,7 @@ public:
     }
 
     Matrix<T, M, N> inverse() const {
-        static_assert ( M == N, "inverse() is only defined for square matrices!" );
+        assert ( M == N ); // "inverse() is only defined for square matrices!" );
 
         // Compiler should optimize the switch away
         switch ( M ) {
@@ -260,7 +243,7 @@ public:
         }
         case 2: {
             Matrix<T, M, N> m;
-            const auto det = this->determinant();
+            const T det = this->determinant();
             m ( 0, 0 ) = ( *this ) ( 1, 1 ) / det;
             m ( 1, 0 ) = ( *this ) ( 1, 0 ) * ( -1 ) / det;
             m ( 0, 1 ) = ( *this ) ( 0, 1 ) * ( -1 ) / det;
@@ -269,7 +252,7 @@ public:
         }
         case 3: {
             Matrix<T, M, N> m;
-            const auto det = this->determinant();
+            const T det = this->determinant();
             m ( 0, 0 ) = ( ( *this ) ( 1, 1 ) * ( *this ) ( 2, 2 ) - ( *this ) ( 1, 2 ) * ( *this ) ( 2, 1 ) ) / det;
             m ( 0, 1 ) = ( ( *this ) ( 0, 2 ) * ( *this ) ( 2, 1 ) - ( *this ) ( 0, 1 ) * ( *this ) ( 2, 2 ) ) / det;
             m ( 0, 2 ) = ( ( *this ) ( 0, 1 ) * ( *this ) ( 1, 2 ) - ( *this ) ( 0, 2 ) * ( *this ) ( 1, 1 ) ) / det;
@@ -282,10 +265,10 @@ public:
             return m;
         }
         default: {
-            auto lu = this->lu();
-            auto L = std::get<0> ( lu );
-            auto U = std::get<1> ( lu );
-            auto p = std::get<2> ( lu );
+            Matrix<T, M, M> L;
+            Matrix<T, M, M> U;
+            std::vector<size_t> p;
+            this->lu(L, U, p);
 
             Matrix<T, M, N> y;
             Matrix<T, M, N> z;
@@ -733,7 +716,7 @@ std::ostream& operator<< ( std::ostream &os, const Matrix<T, M, N>& other )
         }
         os << "} ";
     } else {
-        for ( int i = 0; i < other.m_data.size(); i++ ) {
+        for ( int i = 0; i < other.rows() * other.columns(); i++ ) {
             os  << other.m_data[i] << " ";
         }
     }
