@@ -144,7 +144,7 @@ object Main {
       StrategyTimer.stopTiming("Handling Layer 4")
 
     // add specialized fields for geometric data - TODO: decide if better left here or moved to ir
-    Grid.getGridObject.initL4()
+    GridGeometry.getGeometry.initL4()
 
     // go to IR
     ResolveFunctionTemplates.apply() // preparation step
@@ -191,7 +191,7 @@ object Main {
     } while (numConvFound > 0)
 
     ResolveDiagFunction.apply()
-    Grid.getGridObject.applyStrategies()
+    Grid.applyStrategies()
     if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
     ResolveLoopOverPointsInOneFragment.apply()
     ResolveContractingLoop.apply()

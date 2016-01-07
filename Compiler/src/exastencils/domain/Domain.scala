@@ -385,7 +385,7 @@ case class DomainFunctions() extends FunctionCollection(
 
   if (Knowledge.domain_rect_generate) {
     functions += new InitGeneratedDomain
-    functions += FunctionStatement(UnitDatatype, s"initGeometry", ListBuffer(), Grid.getGridObject.generateInitCode())
+    functions += FunctionStatement(UnitDatatype, s"initGeometry", ListBuffer(), GridGeometry.getGeometry.generateInitCode)
   } else {
     externalDependencies += ("iostream", "fstream")
     val rvTemplateFunc = FunctionStatement(

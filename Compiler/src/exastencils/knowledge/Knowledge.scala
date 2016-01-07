@@ -101,6 +101,9 @@ object Knowledge {
   def domain_rect_hasPeriodicity : Boolean = domain_rect_periodic_x || domain_rect_periodic_y || domain_rect_periodic_z
 
   // specifies which type of grids are used for the discretization
+  var grid_isUniform : Boolean = false
+  var grid_isStaggered : Boolean = true
+  var grid_isAxisAligned : Boolean = true
   var discr_gridType = "AxisAlignedConstWidth" // possible options are "AxisAlignedConstWidth" and "AxisAlignedVariableWidth"
 
   // options for SISC Paper

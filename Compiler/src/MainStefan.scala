@@ -131,7 +131,7 @@ object MainStefan {
       StrategyTimer.stopTiming("Handling Layer 4")
 
     // add specialized fields for geometric data - TODO: decide if better left here or moved to ir
-    Grid.getGridObject.initL4()
+    GridGeometry.getGeometry.initL4()
 
     // go to IR
     ResolveFunctionTemplates.apply() // preparation step
@@ -176,7 +176,7 @@ object MainStefan {
     } while (numConvFound > 0)
 
     ResolveDiagFunction.apply()
-    Grid.getGridObject.applyStrategies()
+    Grid.applyStrategies()
     CreateGeomCoordinates.apply()
     ResolveLoopOverPointsInOneFragment.apply()
     ResolveContractingLoop.apply()
