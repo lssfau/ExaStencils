@@ -22,22 +22,22 @@ Layout DefFaceZLayout < Real , Face_z > @all {
 	ghostLayers		= [ 1, 1, 1 ]
 }
 
-Layout CellStencilLayout < Array[Real][7], Cell > @all {
+Layout CellStencilLayout < Array<Real><7>, Cell > @all {
 	duplicateLayers	= [ 0, 0, 0 ]
 	ghostLayers		= [ 1, 1, 1 ]
 }
 
-Layout FaceXStencilLayout < Array[Real][7], Face_x > @all {
+Layout FaceXStencilLayout < Array<Real><7>, Face_x > @all {
 	duplicateLayers	= [ 1, 0, 0 ]
 	ghostLayers		= [ 1, 1, 1 ]
 }
 
-Layout FaceYStencilLayout < Array[Real][7], Face_y > @all {
+Layout FaceYStencilLayout < Array<Real><7>, Face_y > @all {
 	duplicateLayers	= [ 0, 1, 0 ]
 	ghostLayers		= [ 1, 1, 1 ]
 }
 
-Layout FaceZStencilLayout < Array[Real][7], Face_z > @all {
+Layout FaceZStencilLayout < Array<Real><7>, Face_z > @all {
 	duplicateLayers	= [ 0, 0, 1 ]
 	ghostLayers		= [ 1, 1, 1 ]
 }
@@ -496,15 +496,15 @@ Function Solve@finest ( ) : Unit {
 		Var index : Integer = curTime / printInterval
 		
 		Var filename_rho : String
-		buildString ( filename_rho, '"rho_"', index, '".csv"' )
+		buildString ( filename_rho, "rho_", index, ".csv" )
 		Var filename_u : String
-		buildString ( filename_u, '"u_"', index, '".csv"' )
+		buildString ( filename_u, "u_", index, ".csv" )
 		Var filename_v : String
-		buildString ( filename_v, '"v_"', index, '".csv"' )
+		buildString ( filename_v, "v_", index, ".csv" )
 		Var filename_w : String
-		buildString ( filename_w, '"w_"', index, '".csv"' )
+		buildString ( filename_w, "w_", index, ".csv" )
 		Var filename_temp : String
-		buildString ( filename_temp, '"temp_"', index, '".csv"' )
+		buildString ( filename_temp, "temp_", index, ".csv" )
 		
 		printField ( filename_rho, rho[active]@current, ( 2**( levels@current ( ) - 1 ) == z ) )
 		printField ( filename_u, u[active]@current, 2**( levels@current ( ) - 1 ) == z )
@@ -531,7 +531,7 @@ Function Solve@finest ( ) : Unit {
 
 Function printVal ( toPrint : Real ) : Unit {
     if ( toPrint <= 1e-12 ) {
-		print ( '"EFFECTIVELY ZERO"' )
+		print ( "EFFECTIVELY ZERO" )
     } else if ( toPrint <= 1e-11 ) {
 		native ( 'std::streamsize oldPrec = std::cout.precision()' )
 		native ( 'std::cout.precision(1)' )
