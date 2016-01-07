@@ -65,8 +65,32 @@ abstract class GridGeometry() {
 
 object GridGeometry {
   def getGeometry = {
-    if (!Knowledge.grid_isUniform && Knowledge.grid_isStaggered && Knowledge.grid_isAxisAligned) GridGeometry_nonUniform_staggered_AA
-    else Logger.error(s"Trying to get geometry for unsupported configuration of ( uniform : ${Knowledge.grid_isUniform} ), ( staggered : ${Knowledge.grid_isStaggered} ), ( axis-aligned : ${Knowledge.grid_isAxisAligned} )")
+    if (Knowledge.grid_isUniform && !Knowledge.grid_isStaggered && Knowledge.grid_isAxisAligned)
+      GridGeometry_uniform_nonStaggered_AA
+    else if (!Knowledge.grid_isUniform && Knowledge.grid_isStaggered && Knowledge.grid_isAxisAligned)
+      GridGeometry_nonUniform_staggered_AA
+    else
+      Logger.error(s"Trying to get geometry for unsupported configuration of ( uniform : ${Knowledge.grid_isUniform} ), ( staggered : ${Knowledge.grid_isStaggered} ), ( axis-aligned : ${Knowledge.grid_isAxisAligned} )")
+  }
+}
+
+abstract class GridGeometry_uniform extends GridGeometry {
+  // properties of uniform grids
+  override def cellWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression = {
+    val levelIndex = level.asInstanceOf[IntegerConstant].v.toInt - Knowledge.minLevel
+    dim match {
+      case 0 => Knowledge.discr_hx(levelIndex)
+      case 1 => Knowledge.discr_hy(levelIndex)
+      case 2 => Knowledge.discr_hz(levelIndex)
+    }
+  }
+
+  override def nodePosition(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression = {
+    index(dim) * cellWidth(level, index, arrayIndex, dim) + ArrayAccess(iv.PrimitivePositionBegin(), dim)
+  }
+
+  override def cellCenter(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression = {
+    (index(dim) + 0.5) * cellWidth(level, index, arrayIndex, dim) + ArrayAccess(iv.PrimitivePositionBegin(), dim)
   }
 }
 
@@ -77,6 +101,12 @@ abstract class GridGeometry_staggered extends GridGeometry {
   def xStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) : Expression = staggeredCellVolume(level, index, arrayIndex, 0)
   def yStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) : Expression = staggeredCellVolume(level, index, arrayIndex, 1)
   def zStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) : Expression = staggeredCellVolume(level, index, arrayIndex, 2)
+}
+
+object GridGeometry_uniform_nonStaggered_AA extends GridGeometry_uniform {
+  // nothing to do here
+  override def initL4() = {}
+  override def generateInitCode() = ListBuffer()
 }
 
 object GridGeometry_nonUniform_staggered_AA extends GridGeometry_staggered {
