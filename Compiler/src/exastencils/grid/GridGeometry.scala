@@ -67,6 +67,8 @@ object GridGeometry {
   def getGeometry = {
     if (Knowledge.grid_isUniform && !Knowledge.grid_isStaggered && Knowledge.grid_isAxisAligned)
       GridGeometry_uniform_nonStaggered_AA
+    else if (Knowledge.grid_isUniform && Knowledge.grid_isStaggered && Knowledge.grid_isAxisAligned)
+      GridGeometry_uniform_staggered_AA
     else if (!Knowledge.grid_isUniform && Knowledge.grid_isStaggered && Knowledge.grid_isAxisAligned)
       GridGeometry_nonUniform_staggered_AA
     else
@@ -74,7 +76,7 @@ object GridGeometry {
   }
 }
 
-abstract class GridGeometry_uniform extends GridGeometry {
+trait GridGeometry_uniform extends GridGeometry {
   // properties of uniform grids
   override def cellWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression = {
     val levelIndex = level.asInstanceOf[IntegerConstant].v.toInt - Knowledge.minLevel
@@ -94,30 +96,10 @@ abstract class GridGeometry_uniform extends GridGeometry {
   }
 }
 
-abstract class GridGeometry_staggered extends GridGeometry {
-  // additional information introduced by the staggered property
-  def stagCVWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression
-  def staggeredCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int], stagDim : Int) : Expression
-  def xStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) : Expression = staggeredCellVolume(level, index, arrayIndex, 0)
-  def yStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) : Expression = staggeredCellVolume(level, index, arrayIndex, 1)
-  def zStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) : Expression = staggeredCellVolume(level, index, arrayIndex, 2)
-}
-
-object GridGeometry_uniform_nonStaggered_AA extends GridGeometry_uniform {
-  // nothing to do here
-  override def initL4() = {}
-  override def generateInitCode() = ListBuffer()
-}
-
-object GridGeometry_nonUniform_staggered_AA extends GridGeometry_staggered {
+trait GridGeometry_nonUniform extends GridGeometry {
   // direct accesses
   override def nodePosition(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
     val field = FieldCollection.getFieldByIdentifierLevExp(s"node_pos_${dimToString(dim)}", level).get
-    FieldAccess(FieldSelection(field, field.level, 0, arrayIndex), GridUtil.projectIdx(index, dim))
-  }
-
-  override def stagCVWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
-    val field = FieldCollection.getFieldByIdentifierLevExp(s"stag_cv_width_${dimToString(dim)}", level).get
     FieldAccess(FieldSelection(field, field.level, 0, arrayIndex), GridUtil.projectIdx(index, dim))
   }
 
@@ -129,8 +111,14 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_staggered {
   override def cellWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
     nodePosition(level, GridUtil.offsetIndex(index, 1, dim), arrayIndex, dim) - nodePosition(level, Duplicate(index), arrayIndex, dim)
   }
+}
 
-  override def staggeredCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int], stagDim : Int) = {
+trait GridGeometry_staggered extends GridGeometry {
+  // additional information introduced by the staggered property
+  def stagCVWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression // depends on uniform property
+
+  // compound accesses
+  def staggeredCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int], stagDim : Int) = {
     var exp : Expression = (
       if (0 == stagDim)
         stagCVWidth(level, index, arrayIndex, 0)
@@ -142,6 +130,36 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_staggered {
       else
         exp *= cellWidth(level, index, arrayIndex, dim)
     exp
+  }
+
+  def xStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) : Expression = staggeredCellVolume(level, index, arrayIndex, 0)
+  def yStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) : Expression = staggeredCellVolume(level, index, arrayIndex, 1)
+  def zStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) : Expression = staggeredCellVolume(level, index, arrayIndex, 2)
+}
+
+object GridGeometry_uniform_nonStaggered_AA extends GridGeometry_uniform {
+  // nothing else to do here since everything can be pre-computed/ inlined
+  override def initL4() = {}
+  override def generateInitCode() = ListBuffer()
+}
+
+object GridGeometry_uniform_staggered_AA extends GridGeometry_uniform with GridGeometry_staggered {
+  // direct accesses
+  override def stagCVWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
+    // TODO: this introduces a slight extension at the physical boundary in the stagger dimension -> how to handle this? relevant or neglectable?
+    0.5 * (cellWidth(level, GridUtil.offsetIndex(index, -1, dim), arrayIndex, dim) + cellWidth(level, index, arrayIndex, dim))
+  }
+
+  // nothing else to do here since everything can be pre-computed/ inlined
+  override def initL4() = {}
+  override def generateInitCode() = ListBuffer()
+}
+
+object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with GridGeometry_staggered {
+  // direct accesses
+  override def stagCVWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
+    val field = FieldCollection.getFieldByIdentifierLevExp(s"stag_cv_width_${dimToString(dim)}", level).get
+    FieldAccess(FieldSelection(field, field.level, 0, arrayIndex), GridUtil.projectIdx(index, dim))
   }
 
   // injection of  missing l4 information for virtual fields and generation of setup code
@@ -293,10 +311,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_staggered {
   }
 
   def setupStagCVWidth(dim : Integer, level : Integer) : ListBuffer[Statement] = {
-    val expo = 1.5
     val numCells = (1 << level) // TODO: adapt for non-unit fragments
-    val zoneSize = numCells / 4
-    val step = 1.0 / zoneSize
 
     var baseIndex = LoopOverDimensions.defIt
     baseIndex(Knowledge.dimensionality) = 0
