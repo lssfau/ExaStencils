@@ -19,7 +19,7 @@ case class Matrix() extends Node with FilePrettyPrintable {
 //      |______/_/\_\__,_|_____/ \__\___|_| |_|\___|_|_|___/
 //
 /// \file Matrix.h
-/// \brief  Header file for Matrix classes
+/// \brief  Header file for Matrix class
 /// \author Christian Schmitt
 
 
@@ -889,9 +889,6 @@ T dotProduct ( const Matrix<T, 1, M>& a, const Matrix<T, M, 1>& b )
     }
     return out;
 }
-
-
-#endif
 
 """
   }
