@@ -20,6 +20,8 @@ object GridUtil {
 
   // helper functions of projecting indices and accesses
   def projectIdx(baseIndex : MultiIndex, dim : Int) = {
-    new MultiIndex(baseIndex(dim), 0, 0, 0)
+    var index = new MultiIndex(baseIndex, new MultiIndex(Array.fill(4) { 0 }), _ * _) // keeps null entries, sets non-null entries to 0
+    index(dim) = baseIndex(dim)
+    index
   }
 }
