@@ -40,9 +40,6 @@ case class CharDatatype() extends ScType {
 case class UnitDatatype() extends ScType {
   override def toTcType : l4.Datatype = l4.UnitDatatype()
 }
-case class ArrayDatatype(val elementType : ScType, val numElements : Int) extends ScType {
-  override def toTcType : l4.Datatype = l4.ArrayDatatype(elementType.toTcType, numElements)
-}
 case class ComplexDatatype(val baseType : ScType) extends ScType {
   override def toTcType : l4.Datatype = l4.ComplexDatatype(baseType.toTcType)
 }
