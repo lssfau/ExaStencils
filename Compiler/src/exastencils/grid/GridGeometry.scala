@@ -270,14 +270,17 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
         2 * GridUtil.offsetAccess(rightGhostAccess, -1, dim) - GridUtil.offsetAccess(rightGhostAccess, -2, dim)))
   }
 
-  def setupNodePos_LinearFct(dim : Integer, level : Integer) : ListBuffer[Statement] = {
-    val numCells = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim) * Knowledge.domain_rect_numFragsTotalAsVec(dim) // number of cells in total
-    val xf = numCells / 4 - 1
-    val xs = (numCells / 4) * 3
+  def setupNodePos_LinearFct(dim : Int, level : Int) : ListBuffer[Statement] = {
+    val numCellsPerFrag = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim)
+    val numCellsTotal = numCellsPerFrag * Knowledge.domain_rect_numFragsTotalAsVec(dim)
+
+    // zone parameters
+    val xf = numCellsTotal / 4 - 1 // end of the first (left-most) zone
+    val xs = (numCellsTotal / 4) * 3 // start of the last (right-most) zone
 
     // total size = alphaCoeff * alpha + betaCoeff * beta
-    val lastPointAlphaCoeff = -0.5 * xf * xf - 0.5 * xf + xf * numCells - 0.5 * numCells * numCells + 0.5 * numCells + numCells * xs - 0.5 * xs * xs - 0.5 * xs
-    val lastPointBetaCoeff = numCells
+    val lastPointAlphaCoeff = -0.5 * xf * xf - 0.5 * xf + xf * numCellsTotal - 0.5 * numCellsTotal * numCellsTotal + 0.5 * numCellsTotal + numCellsTotal * xs - 0.5 * xs * xs - 0.5 * xs
+    val lastPointBetaCoeff = numCellsTotal
     // size of the first interval = alphaCoeff * alpha + betaCoeff * beta
     val firstIntervalAlphaCoeff = 0.5 * xf * xf + 0.5 * xf
     val firstIntervalBetaCoeff = xf + 1
@@ -290,49 +293,81 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     //    val beta = alpha
 
     // better approach: fix the ratio between smallest and largest cell width to 8
-    val factor = (numCells / 4) / 8.0
+    val factor = (numCellsTotal / 4) / 8.0
     val alpha = domainSize / (lastPointAlphaCoeff + lastPointBetaCoeff * factor)
     val beta = factor * alpha
 
     Logger.debug(s"Using alpha $alpha and beta $beta")
 
+    // look up field and compile access to base element
     val field = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
     var baseIndex = LoopOverDimensions.defIt
     baseIndex(Knowledge.dimensionality) = 0
     val baseAccess = FieldAccess(FieldSelection(field, field.level, 0), baseIndex)
 
-    val innerIt = LoopOverDimensions.defIt(dim)
+    // fix the inner iterator -> used for zone checks
+    def innerIt =
+      if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
+        LoopOverDimensions.defIt(dim)
+      else
+        VariableAccess(s"global_${dimToString(dim)}", Some(IntegerDatatype))
+    val innerItDecl =
+      if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
+        NullStatement
+      else
+        new VariableDeclarationStatement(innerIt.asInstanceOf[VariableAccess], LoopOverDimensions.defIt(dim) + ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
+
+    // compile special boundary handling expressions
+    var leftDir = Array(0, 0, 0); leftDir(dim) = -1
+    val leftNeighIndex = Fragment.getNeigh(leftDir).index
 
     var leftGhostIndex = new MultiIndex(0, 0, 0, 0); leftGhostIndex(dim) = -1
     val leftGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), leftGhostIndex)
-    var rightGhostIndex = new MultiIndex(0, 0, 0, 0); rightGhostIndex(dim) = numCells + 1
+
+    val leftBoundaryUpdate = new ConditionStatement(
+      NegationExpression(iv.NeighborIsValid(field.domain.index, leftNeighIndex)),
+      AssignmentStatement(Duplicate(leftGhostAccess),
+        2 * GridUtil.offsetAccess(leftGhostAccess, 1, 0) - GridUtil.offsetAccess(leftGhostAccess, 2, 0)))
+
+    var rightDir = Array(0, 0, 0); rightDir(dim) = 1
+    val rightNeighIndex = Fragment.getNeigh(rightDir).index
+
+    var rightGhostIndex = new MultiIndex(0, 0, 0, 0); rightGhostIndex(dim) = numCellsPerFrag + 1
     val rightGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), rightGhostIndex)
 
-    ListBuffer(
-      LoopOverPoints(field, None, true,
-        GridUtil.offsetIndex(MultiIndex(0, 0, 0), -1, dim),
-        GridUtil.offsetIndex(MultiIndex(0, 0, 0), -1, dim),
-        MultiIndex(1, 1, 1),
-        ListBuffer[Statement](
-          new ConditionStatement(LowerEqualExpression(innerIt, xf + 1),
-            AssignmentStatement(Duplicate(baseAccess),
-              0.5 * alpha * innerIt * innerIt + (beta - 0.5 * alpha) * innerIt),
-            new ConditionStatement(LowerEqualExpression(innerIt, xs + 1),
-              AssignmentStatement(Duplicate(baseAccess),
-                -0.5 * alpha * (xf * xf + xf) + (beta + alpha * xf) * innerIt),
-              AssignmentStatement(Duplicate(baseAccess),
-                -0.5 * alpha * innerIt * innerIt
-                  + (alpha * xf + alpha * xs + 0.5 * alpha + beta) * innerIt
-                  - 0.5 * alpha * (xf * xf + xf + xs * xs + xs)))))),
-      AssignmentStatement(Duplicate(leftGhostAccess),
-        2 * GridUtil.offsetAccess(leftGhostAccess, 1, 0) - GridUtil.offsetAccess(leftGhostAccess, 2, 0)),
+    val rightBoundaryUpdate = new ConditionStatement(
+      NegationExpression(iv.NeighborIsValid(field.domain.index, rightNeighIndex)),
       AssignmentStatement(Duplicate(rightGhostAccess),
         2 * GridUtil.offsetAccess(rightGhostAccess, -1, 0) - GridUtil.offsetAccess(rightGhostAccess, -2, 0)))
+
+    // compile final loop
+    ListBuffer[Statement](
+      LoopOverFragments(ListBuffer[Statement](
+        LoopOverPoints(field, None, true,
+          GridUtil.offsetIndex(MultiIndex(0, 0, 0), -1, dim),
+          GridUtil.offsetIndex(MultiIndex(0, 0, 0), -1, dim),
+          MultiIndex(1, 1, 1),
+          ListBuffer[Statement](
+            innerItDecl,
+            new ConditionStatement(LowerEqualExpression(innerIt, xf + 1),
+              AssignmentStatement(Duplicate(baseAccess),
+                0.5 * alpha * innerIt * innerIt + (beta - 0.5 * alpha) * innerIt),
+              new ConditionStatement(LowerEqualExpression(innerIt, xs + 1),
+                AssignmentStatement(Duplicate(baseAccess),
+                  -0.5 * alpha * (xf * xf + xf) + (beta + alpha * xf) * innerIt),
+                AssignmentStatement(Duplicate(baseAccess),
+                  -0.5 * alpha * innerIt * innerIt
+                    + (alpha * xf + alpha * xs + 0.5 * alpha + beta) * innerIt
+                    - 0.5 * alpha * (xf * xf + xf + xs * xs + xs)))))),
+        leftBoundaryUpdate,
+        rightBoundaryUpdate)))
   }
 
-  def setupStagCVWidth(dim : Integer, level : Integer) : ListBuffer[Statement] = {
-    val numCells = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim) * Knowledge.domain_rect_numFragsTotalAsVec(dim) // number of cells in total
+  def setupStagCVWidth(dim : Int, level : Int) : ListBuffer[Statement] = {
+    val numCellsPerFrag = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim)
+    val numCellsTotal = numCellsPerFrag * Knowledge.domain_rect_numFragsTotalAsVec(dim)
 
+    // look up field and compile access to base element
     var baseIndex = LoopOverDimensions.defIt
     baseIndex(Knowledge.dimensionality) = 0
     val field = FieldCollection.getFieldByIdentifier(s"stag_cv_width_${dimToString(dim)}", level).get
@@ -340,31 +375,60 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     val npField = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
     val npBaseAccess = FieldAccess(FieldSelection(npField, npField.level, 0), Duplicate(baseIndex))
 
-    val innerIt = LoopOverDimensions.defIt(dim)
+    // fix the inner iterator -> used for zone checks
+    def innerIt =
+      if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
+        LoopOverDimensions.defIt(dim)
+      else
+        VariableAccess(s"global_${dimToString(dim)}", Some(IntegerDatatype))
+    val innerItDecl =
+      if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
+        NullStatement
+      else
+        new VariableDeclarationStatement(innerIt.asInstanceOf[VariableAccess], LoopOverDimensions.defIt(dim) + ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
+
+    // compile special boundary handling expressions
+    var leftDir = Array(0, 0, 0); leftDir(dim) = -1
+    val leftNeighIndex = Fragment.getNeigh(leftDir).index
 
     var leftGhostIndex = new MultiIndex(0, 0, 0, 0); leftGhostIndex(dim) = -1
     val leftGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), leftGhostIndex)
-    var rightGhostIndex = new MultiIndex(0, 0, 0, 0); rightGhostIndex(dim) = numCells + 1
+
+    val leftBoundaryUpdate = new ConditionStatement(
+      NegationExpression(iv.NeighborIsValid(field.domain.index, leftNeighIndex)),
+      AssignmentStatement(Duplicate(leftGhostAccess), GridUtil.offsetAccess(leftGhostAccess, 1, dim)))
+
+    var rightDir = Array(0, 0, 0); rightDir(dim) = 1
+    val rightNeighIndex = Fragment.getNeigh(rightDir).index
+
+    var rightGhostIndex = new MultiIndex(0, 0, 0, 0); rightGhostIndex(dim) = numCellsPerFrag + 1
     val rightGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), rightGhostIndex)
 
-    ListBuffer(
-      LoopOverPoints(field, None, true,
-        GridUtil.offsetIndex(MultiIndex(0, 0, 0), -1, dim),
-        GridUtil.offsetIndex(MultiIndex(0, 0, 0), -1, dim),
-        MultiIndex(1, 1, 1),
-        ListBuffer[Statement](
-          new ConditionStatement(EqEqExpression(0, innerIt),
-            AssignmentStatement(Duplicate(baseAccess),
-              0.5 * (Duplicate(npBaseAccess) + GridUtil.offsetAccess(npBaseAccess, 1, dim))
-                - Duplicate(npBaseAccess)),
-            new ConditionStatement(EqEqExpression(numCells, innerIt),
-              AssignmentStatement(Duplicate(baseAccess),
-                Duplicate(npBaseAccess)
-                  - 0.5 * (GridUtil.offsetAccess(npBaseAccess, -1, dim) + Duplicate(npBaseAccess))),
+    val rightBoundaryUpdate = new ConditionStatement(
+      NegationExpression(iv.NeighborIsValid(field.domain.index, rightNeighIndex)),
+      AssignmentStatement(Duplicate(rightGhostAccess), GridUtil.offsetAccess(rightGhostAccess, -1, dim)))
+
+    // compile final loop
+    ListBuffer[Statement](
+      LoopOverFragments(ListBuffer[Statement](
+        LoopOverPoints(field, None, true,
+          GridUtil.offsetIndex(MultiIndex(0, 0, 0), -1, dim),
+          GridUtil.offsetIndex(MultiIndex(0, 0, 0), -1, dim),
+          MultiIndex(1, 1, 1),
+          ListBuffer[Statement](
+            innerItDecl,
+            new ConditionStatement(EqEqExpression(0, innerIt),
               AssignmentStatement(Duplicate(baseAccess),
                 0.5 * (Duplicate(npBaseAccess) + GridUtil.offsetAccess(npBaseAccess, 1, dim))
-                  - 0.5 * (GridUtil.offsetAccess(npBaseAccess, -1, dim) + Duplicate(npBaseAccess))))))),
-      AssignmentStatement(Duplicate(leftGhostAccess), GridUtil.offsetAccess(leftGhostAccess, 1, dim)),
-      AssignmentStatement(Duplicate(rightGhostAccess), GridUtil.offsetAccess(rightGhostAccess, -1, dim)))
+                  - Duplicate(npBaseAccess)),
+              new ConditionStatement(EqEqExpression(numCellsTotal, innerIt),
+                AssignmentStatement(Duplicate(baseAccess),
+                  Duplicate(npBaseAccess)
+                    - 0.5 * (GridUtil.offsetAccess(npBaseAccess, -1, dim) + Duplicate(npBaseAccess))),
+                AssignmentStatement(Duplicate(baseAccess),
+                  0.5 * (Duplicate(npBaseAccess) + GridUtil.offsetAccess(npBaseAccess, 1, dim))
+                    - 0.5 * (GridUtil.offsetAccess(npBaseAccess, -1, dim) + Duplicate(npBaseAccess))))))),
+        leftBoundaryUpdate,
+        rightBoundaryUpdate)))
   }
 }
