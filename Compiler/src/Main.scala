@@ -155,6 +155,10 @@ object Main {
     ResolveBoundaryHandlingFunctions.apply()
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
+    // add some more nodes
+    AddDefaultGlobals.apply()
+    SetupDataStructures.apply()
+
     // add remaining nodes
     StateManager.root_.asInstanceOf[ir.Root].nodes ++= List(
       // FunctionCollections
@@ -168,13 +172,7 @@ object Main {
       Matrix(),
       CImg())
 
-    // apply strategies
-
-    AddDefaultGlobals.apply()
-
     SimplifyStrategy.doUntilDone() // removes (conditional) calls to communication functions that are not possible
-
-    SetupDataStructures.apply()
     SetupCommunication.apply()
 
     ResolveSpecialFunctionsAndConstants.apply()
