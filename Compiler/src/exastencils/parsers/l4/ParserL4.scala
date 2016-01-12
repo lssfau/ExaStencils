@@ -245,9 +245,13 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val fieldBoundary = binaryexpression ^^ { case x => Some(x) } ||| "None" ^^ { case x => None }
 
   lazy val index : PackratParser[Index] = (
-    locationize("[" ~> integerLit <~ "]" ^^ { case n1 => Index1D(n1) })
-    ||| locationize(("[" ~> integerLit <~ ",") ~ (integerLit <~ "]") ^^ { case n1 ~ n2 => Index2D(n1, n2) })
-    ||| locationize(("[" ~> integerLit <~ ",") ~ (integerLit <~ ",") ~ (integerLit <~ "]") ^^ { case n1 ~ n2 ~ n3 => Index3D(n1, n2, n3) }))
+    index1d
+    ||| index2d
+    ||| index3d)
+
+  lazy val index1d = locationize("[" ~> integerLit <~ "]" ^^ { case n1 => Index1D(n1) })
+  lazy val index2d = locationize(("[" ~> integerLit <~ ",") ~ (integerLit <~ "]") ^^ { case n1 ~ n2 => Index2D(n1, n2) })
+  lazy val index3d = locationize(("[" ~> integerLit <~ ",") ~ (integerLit <~ ",") ~ (integerLit <~ "]") ^^ { case n1 ~ n2 ~ n3 => Index3D(n1, n2, n3) })
 
   lazy val realIndex : PackratParser[RealIndex] = (
     locationize("[" ~> realLit <~ "]" ^^ { case n1 => RealIndex1D(n1) })
@@ -280,8 +284,11 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ##### Object Access
   // ######################################
 
-  lazy val slotAccess = (
-    locationize("[" ~> slotModifier <~ "]" ^^ { case s => s }))
+  lazy val componentAccess = index1d ||| index2d
+
+  lazy val slotAccess = locationize(
+    "$" ~> slotModifier ^^ { case s => s }
+      ||| "[" ~> slotModifier <~ "]" ^^ { case s => s })
 
   lazy val slotModifier = locationize("active" ^^ { case _ => SlotModifier.Active() }
     ||| "activeSlot" ^^ { case _ => SlotModifier.Active() }
