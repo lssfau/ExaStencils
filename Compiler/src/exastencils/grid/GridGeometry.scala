@@ -223,7 +223,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     }
   }
 
-  def setupNodePos_Diego(dim : Integer, level : Integer) : ListBuffer[Statement] = {
+  def setupNodePos_Diego(dim : Int, level : Int) : ListBuffer[Statement] = {
     val expo = 1.5
     val numCells = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim) // number of cells per fragment
     val zoneSize = numCells / 4
@@ -297,7 +297,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     val alpha = domainSize / (lastPointAlphaCoeff + lastPointBetaCoeff * factor)
     val beta = factor * alpha
 
-    Logger.debug(s"Using alpha $alpha and beta $beta")
+    //Logger.debug(s"Using alpha $alpha and beta $beta")
 
     // look up field and compile access to base element
     val field = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
