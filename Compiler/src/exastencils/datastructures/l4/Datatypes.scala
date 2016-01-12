@@ -32,6 +32,11 @@ case class UnitDatatype() extends Datatype {
   def progressToIr : ir.Datatype = ir.UnitDatatype
 }
 
+case class ArrayDatatype(var datatype : Datatype, var numElements : Int) extends Datatype {
+  def prettyprint(out : PpStream) = { out << "Array[" << datatype << "][" << numElements << ']' }
+  def progressToIr : ir.Datatype = new ir.ArrayDatatype(datatype.progressToIr, numElements)
+}
+
 case class ComplexDatatype(var datatype : Datatype) extends Datatype {
   def prettyprint(out : PpStream) = { out << "Complex[" << datatype << ']' }
   def progressToIr : ir.Datatype = new ir.ComplexDatatype(datatype.progressToIr)
