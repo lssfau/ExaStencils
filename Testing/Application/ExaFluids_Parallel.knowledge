@@ -9,8 +9,8 @@ generateFortranInterface			= false
 
 dimensionality						= 3
 
-minLevel							= 1
-maxLevel							= 5
+minLevel							= 0
+maxLevel							= 4
 
 experimental_Neumann				= true
 experimental_NeumannOrder			= 1
@@ -19,7 +19,7 @@ grid_isUniform						= false
 grid_isStaggered					= true
 grid_isAxisAligned					= true
 
-grid_spacingModel					= "diego"
+grid_spacingModel					= "linearFct"
 
 // code generation
 
@@ -28,8 +28,8 @@ l3tmp_genForAutoTests				= true
 
 // domain partioning
 
-domain_numBlocks					= 1
-domain_numFragmentsPerBlock			= 1
+domain_numBlocks					= 4
+domain_numFragmentsPerBlock			= 2
 
 domain_onlyRectangular				= true
 
@@ -38,25 +38,25 @@ domain_fragmentLength_y				= 1
 domain_fragmentLength_z				= 1
 
 domain_rect_generate				= true
-domain_rect_numBlocks_x				= 1
-domain_rect_numBlocks_y				= 1
+domain_rect_numBlocks_x				= 2
+domain_rect_numBlocks_y				= 2
 domain_rect_numBlocks_z				= 1
 domain_rect_numFragsPerBlock_x		= 1
 domain_rect_numFragsPerBlock_y		= 1
-domain_rect_numFragsPerBlock_z		= 1
+domain_rect_numFragsPerBlock_z		= 2
 
 // parallelization
 
 comm_strategyFragment				= 6
 
 omp_enabled							= true
-omp_numThreads						= 10
+omp_numThreads						= 2
 
-mpi_enabled							= false
-mpi_numThreads						= 1
+mpi_enabled							= true
+mpi_numThreads						= 4
 
-omp_parallelizeLoopOverFragments	= false
-omp_parallelizeLoopOverDimensions	= true
+omp_parallelizeLoopOverFragments	= true
+omp_parallelizeLoopOverDimensions	= false
 
 // optimization
 

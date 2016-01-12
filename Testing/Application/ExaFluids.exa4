@@ -1,51 +1,51 @@
-// level 4 code
+// layer 4 code
 
-Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >
+Domain global< [ 0, 0, 0 ] to [ 0.05, 0.05, 0.05 ] >
 
 Layout DefCellLayout < Real , Cell > @all {
 	duplicateLayers	= [ 0, 0, 0 ]
-	ghostLayers		= [ 1, 1, 1 ]
+	ghostLayers		= [ 1, 1, 1 ] with communication
 }
 
 Layout DefFaceXLayout < Real , Face_x > @all {
-	duplicateLayers	= [ 1, 0, 0 ]
-	ghostLayers		= [ 1, 1, 1 ]
+	duplicateLayers	= [ 1, 0, 0 ] with communication
+	ghostLayers		= [ 1, 1, 1 ] with communication
 }
 
 Layout DefFaceYLayout < Real , Face_y > @all {
-	duplicateLayers	= [ 0, 1, 0 ]
-	ghostLayers		= [ 1, 1, 1 ]
+	duplicateLayers	= [ 0, 1, 0 ] with communication
+	ghostLayers		= [ 1, 1, 1 ] with communication
 }
 
 Layout DefFaceZLayout < Real , Face_z > @all {
-	duplicateLayers	= [ 0, 0, 1 ]
-	ghostLayers		= [ 1, 1, 1 ]
+	duplicateLayers	= [ 0, 0, 1 ] with communication
+	ghostLayers		= [ 1, 1, 1 ] with communication
 }
 
 Layout CellStencilLayout < Array<Real><7>, Cell > @all {
 	duplicateLayers	= [ 0, 0, 0 ]
-	ghostLayers		= [ 1, 1, 1 ]
+	ghostLayers		= [ 1, 1, 1 ] // no communication necessary since only required for subexpression re-usage
 }
 
 Layout FaceXStencilLayout < Array<Real><7>, Face_x > @all {
-	duplicateLayers	= [ 1, 0, 0 ]
-	ghostLayers		= [ 1, 1, 1 ]
+	duplicateLayers	= [ 1, 0, 0 ] with communication
+	ghostLayers		= [ 1, 1, 1 ] with communication	// only communicate face dim's ghost layers -> fix in communicate call
 }
 
 Layout FaceYStencilLayout < Array<Real><7>, Face_y > @all {
-	duplicateLayers	= [ 0, 1, 0 ]
-	ghostLayers		= [ 1, 1, 1 ]
+	duplicateLayers	= [ 0, 1, 0 ] with communication
+	ghostLayers		= [ 1, 1, 1 ] with communication
 }
 
 Layout FaceZStencilLayout < Array<Real><7>, Face_z > @all {
-	duplicateLayers	= [ 0, 0, 1 ]
-	ghostLayers		= [ 1, 1, 1 ]
+	duplicateLayers	= [ 0, 0, 1 ] with communication
+	ghostLayers		= [ 1, 1, 1 ] with communication
 }
 
 // values associated with u, ie face_x
 
 Field u < global, DefFaceXLayout, 0.0 >[2] @all
-Field du < global, DefFaceXLayout, None > @finest
+Field du < global, DefFaceXLayout, 0.0 > @finest
 
 Field residual_u < global, DefFaceXLayout, 0.0 > @all
 Field rhs_u < global, DefFaceXLayout, None > @all
@@ -56,7 +56,7 @@ StencilField AuStencil< AuStencilData => SevenPointStencil > @all
 // values associated with v, ie face_y
 
 Field v < global, DefFaceYLayout, 0.0 >[2] @all
-Field dv < global, DefFaceYLayout, None > @finest
+Field dv < global, DefFaceYLayout, 0.0 > @finest
 
 Field residual_v < global, DefFaceYLayout, 0.0 > @all
 Field rhs_v < global, DefFaceYLayout, None > @all
@@ -67,7 +67,7 @@ StencilField AvStencil< AvStencilData => SevenPointStencil > @all
 // values associated with w, ie face_z
 
 Field w < global, DefFaceZLayout, 0.0 >[2] @all
-Field dw < global, DefFaceZLayout, None > @finest
+Field dw < global, DefFaceZLayout, 0.0 > @finest
 
 Field residual_w < global, DefFaceZLayout, 0.0 > @all
 Field rhs_w < global, DefFaceZLayout, None > @all
@@ -99,6 +99,7 @@ StencilField AtStencil< AtStencilData => SevenPointStencil > @all
 // auxilary fields
 
 Field vis < global, DefCellLayout, Neumann > @finest
+Field miu < global, DefCellLayout, Neumann > @finest
 
 Field gamma < global, DefCellLayout, Neumann > @finest
 
@@ -282,6 +283,10 @@ Globals {
 	Val c_den : Real            = -0.00894484
 	Val d_den : Real            = 8.7846287e-5
 	Val e_den : Real            = -6.6213979e-7
+
+	// non-Newtonian parameters
+	Val useNonNewtonian : Bool	= false
+	Val n_index : Real			= 0.6 // 0.95
 }
 
 /// specialized boundary handling functions
@@ -352,7 +357,11 @@ Function TimeLoop ( ) : Unit {
 
 		if ( 0.0 == curTime ) {
 			// initialize 'negative' timestep
-			UpdateProperties@finest ( )
+			if ( useNonNewtonian ) {
+				UpdatePropertiesNN@finest ( )
+			} else {
+				UpdateProperties@finest ( )
+			}
 		}
 
 		AdvanceFields@finest ( )
@@ -362,7 +371,7 @@ Function TimeLoop ( ) : Unit {
 
 		stopTimer ( 'timeStep' )
 	}
-} 
+}
 
 Function Solve@finest ( ) : Unit {
 	Var converged : Bool = false
@@ -381,12 +390,16 @@ Function Solve@finest ( ) : Unit {
 		totalInitRes = 0.0
 
 		startTimer ( 'UpdateProperties' )
-		UpdateProperties@current ( )
+		if ( useNonNewtonian ) {
+			UpdatePropertiesNN@current ( )
+		} else {
+			UpdateProperties@current ( )
+		}
 		stopTimer ( 'UpdateProperties' )
-		
+
 		/// velocity step
 		startTimer ( 'UpdateVelocities' )
-	
+
 		// setup stencils and rhs's, and solve resulting systems
 		startTimer ( 'CompileStencil_u' )
 		CompileStencil_u@current ( )
@@ -394,37 +407,34 @@ Function Solve@finest ( ) : Unit {
 
 		startTimer ( 'Solve_u' )
 		Solve_u@current ( )
-		apply bc to u[active]@current
 		stopTimer ( 'Solve_u' )
-	
+
 		startTimer ( 'CompileStencil_v' )
 		CompileStencil_v@current ( )
 		stopTimer ( 'CompileStencil_v' )
 
 		startTimer ( 'Solve_v' )
 		Solve_v@current ( )
-		apply bc to v[active]@current
 		stopTimer ( 'Solve_v' )
-	
+
 		startTimer ( 'CompileStencil_w' )
 		CompileStencil_w@current ( )
 		stopTimer ( 'CompileStencil_w' )
 
 		startTimer ( 'Solve_w' )
 		Solve_w@current ( )
-		apply bc to w[active]@current
 		stopTimer ( 'Solve_w' )
 
 		stopTimer ( 'UpdateVelocities' )
-	
+
 		/// pressure correction step
 		startTimer ( 'PressureCorrection' )
 
 		// reset field
-		loop over pc@current {
-			pc@current = 0.0
+		loop over pc@current starting [-1, -1, -1] ending [-1, -1, -1] {
+			pc[active]@current = 0.0
 		}
-	
+
 		// setup stencil and rhs, and solve resulting system
 		startTimer ( 'CompileStencil_pc' )
 		CompileStencil_pc@current ( )
@@ -432,17 +442,32 @@ Function Solve@finest ( ) : Unit {
 
 		startTimer ( 'Solve_pc' )
 		Solve_pc@current ( )
-		apply bc to pc[active]@current
 		stopTimer ( 'Solve_pc' )
 
 		// perform actual pressure correction
-		loop over pc@current {
+		loop over p@current {
 			p@current += relax_4 * pc@current
+		}
+		communicate p@current
+		apply bc to p@current
+
+		loop over u@current {
 			u[active]@current += du@current * ( pc@current@[-1, 0, 0] - pc@current )
+		}
+		communicate u[active]@current
+		apply bc to u[active]@current
+
+		loop over v@current {
 			v[active]@current += dv@current * ( pc@current@[0, -1, 0] - pc@current )
+		}
+		communicate v[active]@current
+		apply bc to v[active]@current
+
+		loop over w@current {
 			w[active]@current += dw@current * ( pc@current@[0, 0, -1] - pc@current )
 		}
-		apply bc to p[active]@current
+		communicate w[active]@current
+		apply bc to w[active]@current
 
 		stopTimer ( 'PressureCorrection' )
 
@@ -455,7 +480,6 @@ Function Solve@finest ( ) : Unit {
 
 		startTimer ( 'Solve_t' )
 		Solve_t@current ( )
-		apply bc to phi7[active]@current
 		stopTimer ( 'Solve_t' )
 
 		stopTimer ( 'UpdateTemperature' )
@@ -494,7 +518,7 @@ Function Solve@finest ( ) : Unit {
 		nextPrintTime += printInterval
 
 		Var index : Integer = curTime / printInterval
-		
+
 		Var filename_rho : String
 		buildString ( filename_rho, "rho_", index, ".csv" )
 		Var filename_u : String
@@ -505,8 +529,8 @@ Function Solve@finest ( ) : Unit {
 		buildString ( filename_w, "w_", index, ".csv" )
 		Var filename_temp : String
 		buildString ( filename_temp, "temp_", index, ".csv" )
-		
-		printField ( filename_rho, rho[active]@current, ( 2**( levels@current ( ) - 1 ) == z ) )
+
+		printField ( filename_rho, rho[active]@current, 2**( levels@current ( ) - 1 ) == z )
 		printField ( filename_u, u[active]@current, 2**( levels@current ( ) - 1 ) == z )
 		printField ( filename_v, v[active]@current, 2**( levels@current ( ) - 1 ) == z )
 		printField ( filename_w, w[active]@current, 2**( levels@current ( ) - 1 ) == z )
@@ -558,25 +582,35 @@ Function printVal ( toPrint : Real ) : Unit {
 /// init functions
 
 Function InitFields@finest ( ) : Unit {
-	// fields that are not initialized with 0 
+	// fields that are not initialized with 0
 
 	loop over rho@current {
 		rho[active]@current = rhocon
 		rho[previous]@current = rhocon
 	}
+
+	communicate rho[active]@current
 	apply bc to rho[active]@current
+
+	communicate rho[previous]@current
 	apply bc to rho[previous]@current
 
 	loop over vis@current {
 		vis@current = visl
 	}
+
+	communicate vis@current
 	apply bc to vis@current
 
 	loop over phi7@current {
 		phi7[active]@current = th
 		phi7[previous]@current = th
 	}
+
+	communicate phi7[active]@current
 	apply bc to phi7[active]@current
+
+	communicate phi7[previous]@current
 	apply bc to phi7[previous]@current
 }
 
@@ -637,10 +671,92 @@ Function UpdateProperties@finest ( ) : Unit {
 
 		gamma@current = cond / cp
 	}
-	
+
+	communicate vis@current
 	apply bc to vis@current
+
+	communicate rho[active]@current
 	apply bc to rho[active]@current
+
+	communicate gamma@current
 	apply bc to gamma@current
+}
+
+Function UpdatePropertiesNN@finest ( ) : Unit {
+	// previously props and non_new and Gamsor_flu and Gamsor_phi
+
+	loop over miu@current {
+		// Gangi et al. (Kohlrausch) Density
+		rho[active]@current = ( a_den + b_den * ( phi7[active]@current - t_ph )
+			+ c_den * ( phi7[active]@current - t_ph )**2
+			+ d_den * ( phi7[active]@current - t_ph )**3
+			+ e_den * ( phi7[active]@current - t_ph )**4 )
+
+		// Zografos et al. Specific heat, thermal conductivity and viscosity
+		Var cp : Real = ( -3755.9 + 67.953 * phi7[active]@current
+			- 0.19149 * phi7[active]@current**2
+			+ 1.7850e-4 * phi7[active]@current**3 )
+		Var cond : Real = ( -0.63262 + 7.1959e-3 * phi7[active]@current
+			- 1.144e-5 * phi7[active]@current**2
+			+ 4.2365e-9 * phi7[active]@current**3 )
+		miu@current = 3.8208e-2 / ( phi7[active]@current - 252.33 )
+
+		gamma@current = cond / cp
+	}
+
+	communicate miu@current
+	apply bc to miu@current
+
+	communicate rho[active]@current
+	apply bc to rho[active]@current
+
+	communicate gamma@current
+	apply bc to gamma@current
+
+	loop over vis@current {
+		// TODO: add evalAtCellCenter, evalAtXFaceCenter, evalAtXYCorner, etc
+		// du/dx and dv/dx and dw/dx
+		Val dudx : Real = ( evalAtEastFace ( u[active]@current ) - evalAtWestFace ( u[active]@current ) ) / vf_cellWidth_x@current
+
+		Val dvdx : Real = 0.5 * ( evalAtEastFace ( v[active]@current ) - evalAtWestFace ( v[active]@current )
+			+ evalAtEastFace ( v[active]@current@[0, 1, 0] ) - evalAtWestFace ( v[active]@current@[0, 1, 0] ) ) / vf_cellWidth_x@current
+
+		Val dwdx : Real = 0.5 * ( evalAtEastFace ( w[active]@current ) - evalAtWestFace ( w[active]@current )
+			+ evalAtEastFace ( w[active]@current@[0, 0, 1] ) - evalAtWestFace ( w[active]@current@[0, 0, 1] ) ) / vf_cellWidth_x@current
+
+		// du/dy and dv/dy and dw/dy
+		Val dudy : Real = 0.5 * ( evalAtNorthFace ( u[active]@current ) - evalAtSouthFace ( u[active]@current )
+			+ evalAtNorthFace ( u[active]@current@[1, 0, 0] ) - evalAtSouthFace ( u[active]@current@[1, 0, 0] ) ) / vf_cellWidth_y@current
+
+		Val dvdy : Real = ( evalAtNorthFace ( v[active]@current ) - evalAtSouthFace ( v[active]@current ) ) / vf_cellWidth_y@current
+
+		Val dwdy : Real = 0.5 * ( evalAtNorthFace ( w[active]@current ) - evalAtSouthFace ( w[active]@current )
+			+ evalAtNorthFace ( w[active]@current@[0, 0, 1] ) - evalAtSouthFace ( w[active]@current@[0, 0, 1] ) ) / vf_cellWidth_y@current
+
+		// du/dz and dv/dz and dw/dz
+		Val dudz : Real = 0.5 * ( evalAtTopFace ( u[active]@current ) - evalAtBottomFace ( u[active]@current )
+			+ evalAtTopFace ( u[active]@current@[1, 0, 0] ) - evalAtBottomFace ( u[active]@current@[1, 0, 0] ) ) / vf_cellWidth_z@current
+
+		Val dvdz : Real = 0.5 * ( evalAtTopFace ( v[active]@current ) - evalAtBottomFace ( v[active]@current )
+			+ evalAtTopFace ( v[active]@current@[0, 1, 0] ) - evalAtBottomFace ( v[active]@current@[0, 1, 0] ) ) / vf_cellWidth_z@current
+
+		Val dwdz : Real = ( evalAtTopFace ( w[active]@current ) - evalAtBottomFace ( w[active]@current ) ) / vf_cellWidth_z@current
+
+		// compile values
+		Val gamap : Real = 2.0 * ( dvdy**2 + dudx**2 + dwdz**2 ) + ( dvdx + dudy )**2 + ( dwdx + dudz )**2 + ( dvdz + dwdy )**2
+		Var gama : Real = sqrt ( gamap )
+
+		// j.non.newt.fluid mech. 15(1984)75-83
+		//gama = max ( gama, 0.01 )
+		//vis@current = rel + ( 1.0 - rel ) / ( 1.0 + sqrt ( lambda * gama ) )
+
+		// Int. J. Heat & Mass Transfer 34(1991) 1083-1096 CMC/Power law
+		gama = max ( gama, 0.01 )
+		vis@current = miu@current * gama**( n_index - 1.0 )
+	}
+
+	communicate vis@current
+	apply bc to vis@current
 }
 
 /// stencil compilation functions
@@ -665,7 +781,7 @@ Function CompileStencil_u@finest (  ) : Unit {
 		Val difftu : Real = integrateOverXStaggeredTopFace ( evalAtXStaggeredTopFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_z@current@[0, 0, 1]
 		AuStencil@current:[0, 0, 1] = -1.0 * ( calc_diflow ( flowtu@current, difftu ) + max ( 0.0, -1.0 * flowtu@current ) )
 	}
-	
+
 	// compile second half of the stencils
 	loop over AuStencil@current {
 		// subtract because off-center stencil coefficients are negated
@@ -696,6 +812,8 @@ Function CompileStencil_u@finest (  ) : Unit {
 		rhs_u@current += ( vf_cellWidth_y@current * vf_cellWidth_z@current ) * ( p@current@[-1, 0, 0] - p@current )
 	}
 
+	communicate AuStencil@current
+
 	// restrict stencil
 	StencilRestriction_u@current ( )
 
@@ -703,6 +821,9 @@ Function CompileStencil_u@finest (  ) : Unit {
 	loop over du@current {
 		du@current = ( vf_cellWidth_y@current * vf_cellWidth_z@current ) / ( AuStencil@current:[0, 0, 0] )
 	}
+
+	communicate du@current
+	apply bc to du@current
 }
 
 Function CompileStencil_v@finest (  ) : Unit {
@@ -753,6 +874,8 @@ Function CompileStencil_v@finest (  ) : Unit {
 		rhs_v@current += ( vf_cellWidth_x@current * vf_cellWidth_z@current ) * ( p@current@[0, -1, 0] - p@current )
 	}
 
+	communicate AvStencil@current
+
 	// restrict stencil
 	StencilRestriction_v@current ( )
 
@@ -760,6 +883,9 @@ Function CompileStencil_v@finest (  ) : Unit {
 	loop over dv@current {
 		dv@current = ( vf_cellWidth_x@current * vf_cellWidth_z@current ) / ( AvStencil@current:[0, 0, 0] )
 	}
+
+	communicate dv@current
+	apply bc to dv@current
 }
 
 Function CompileStencil_w@finest (  ) : Unit {
@@ -786,7 +912,7 @@ Function CompileStencil_w@finest (  ) : Unit {
 		AwStencil@current:[ 0, -1,  0] = AwStencil@current@[ 0, -1,  0]:[ 0,  1,  0] - flownw@current@[ 0, -1,  0]
 		AwStencil@current:[ 0,  0, -1] = AwStencil@current@[ 0,  0, -1]:[ 0,  0,  1] - flowtw@current@[ 0,  0, -1]
 	}
-	
+
 	// handle boundary conditions
 	apply bc to AwStencil@current
 
@@ -809,6 +935,8 @@ Function CompileStencil_w@finest (  ) : Unit {
 		rhs_w@current += vf_cellWidth_x@current * vf_cellWidth_y@current * ( p@current@[0, 0, -1] - p@current )
 	}
 
+	communicate AwStencil@current
+
 	// restrict stencil
 	StencilRestriction_w@current ( )
 
@@ -816,6 +944,9 @@ Function CompileStencil_w@finest (  ) : Unit {
 	loop over dw@current {
 		dw@current = vf_cellWidth_x@current * vf_cellWidth_y@current / AwStencil@current:[0, 0, 0]
 	}
+
+	communicate dw@current
+	apply bc to dw@current
 }
 
 Function CompileStencil_pc@finest (  ) : Unit {
@@ -868,14 +999,14 @@ Function CompileStencil_t@finest (  ) : Unit {
 	loop over AtStencil@current starting [-1, -1, -1] {
 		Val diffet : Real = integrateOverEastFace ( evalAtEastFace ( gamma@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current@[1, 0, 0]
 		AtStencil@current:[1, 0, 0] = -1.0 * ( calc_diflow ( flowet@current, diffet ) + max ( 0.0, -1.0 * flowet@current ) )
-		
+
 		Val diffnt : Real = integrateOverNorthFace ( evalAtNorthFace ( gamma@current, "harmonicMean" ) ) / vf_stagCVWidth_y@current@[0, 1, 0]
 		AtStencil@current:[0, 1, 0] = -1.0 * ( calc_diflow ( flownt@current, diffnt ) + max ( 0.0, -1.0 * flownt@current ) )
 
 		Val difftt : Real = integrateOverTopFace ( evalAtTopFace ( gamma@current, "harmonicMean" ) ) / vf_stagCVWidth_z@current@[0, 0, 1]
 		AtStencil@current:[0, 0, 1] = -1.0 * ( calc_diflow ( flowtt@current, difftt ) + max ( 0.0, -1.0 * flowtt@current ) )
 	}
-	
+
 	// compile second half of the stencils
 	loop over AtStencil@current ending [-1, -1, -1] {
 		AtStencil@current:[-1,  0,  0] = AtStencil@current@[-1,  0,  0]:[ 1,  0,  0] - flowet@current@[-1,  0,  0]
@@ -922,19 +1053,19 @@ FunctionTemplate SolveComponent < vCycle, normFunction, maxSteps, rhs, converged
 		normRHS += rhs ** 2
 	}
 	normRHS = sqrt ( normRHS )
-	
+
 	if ( curRes <= targetResPerComp * ( 1.0 + normRHS ) ) {
 		converged = true
 	}
 	repeat until numIt > 0 && ( curRes <= targetResPerComp * ( 1.0 + normRHS ) || numIt >= maxSteps || ( numIt > 0 && prevRes - curRes < stagnationThreshold * targetResPerComp ) ) {
 		vCycle@current ( )
-		
+
 		prevRes = curRes
 		curRes = normFunction@current()
 		numIt += 1
 	}
-	
-	//print ( numIt, normRHS, curRes)
+
+	//print ( numIt, normRHS, initRes, curRes)
 }
 
 FunctionTemplate NormResidualComponent < solution, stencil, rhs > ( ) : Real {
@@ -950,9 +1081,13 @@ FunctionTemplate SmoothComponent < solution, stencil, rhs, omega, requiresBcUpda
 	loop over solution where 0 == ((x + y + z) % 2) {
 		solution += ( ( 1.0 / diag ( stencil ) ) * omega ) * ( rhs - stencil * solution )
 	}
+	communicate solution
+
 	loop over solution where 1 == ((x + y + z) % 2) {
 		solution += ( ( 1.0 / diag ( stencil ) ) * omega ) * ( rhs - stencil * solution )
 	}
+	communicate solution
+
 	if ( requiresBcUpdate ) {
 		apply bc to solution
 	}
@@ -977,9 +1112,13 @@ FunctionTemplate CGSComponent < solution, stencil, rhs, omega, requiresBcUpdate 
 		loop over solution where 0 == ((x + y + z) % 2) {
 			solution += ( ( 1.0 / diag ( stencil ) ) * omega ) * ( rhs - stencil * solution )
 		}
+		communicate solution
+
 		loop over solution where 1 == ((x + y + z) % 2) {
 			solution += ( ( 1.0 / diag ( stencil ) ) * omega ) * ( rhs - stencil * solution )
 		}
+		communicate solution
+
 		if ( requiresBcUpdate ) {
 			apply bc to solution
 		}
@@ -990,6 +1129,7 @@ FunctionTemplate UpdateResidualComponent < solution, stencil, rhs, residual > ( 
 	loop over residual {
 		residual = rhs - stencil * solution
 	}
+	communicate residual
 }
 
 FunctionTemplate RestrictionComponent < source, dest, restrictionStencil > ( ) : Unit {
@@ -1008,7 +1148,8 @@ FunctionTemplate StencilRestrictionComponent < self, source, dest, restrictionSt
 		dest:[ 0,  0, -1] = restrictionStencil * source:[ 0,  0, -1]
 		dest:[ 0,  0,  1] = restrictionStencil * source:[ 0,  0,  1]
 	}
-	
+
+	communicate dest
 	apply bc to dest
 
 	if ( levels@current ( ) - 1 > levels@coarsest ( ) ) {
@@ -1020,14 +1161,15 @@ FunctionTemplate CorrectionComponent < source, dest, correctionStencil, requires
 	loop over dest {
 		dest += correctionStencil * source
 	}
-	
+
+	communicate dest
 	if ( requiresBcUpdate ) {
 		apply bc to dest
 	}
 }
 
 FunctionTemplate SetFieldComponent < target > ( value : Real ) : Unit {
-	loop over target {
+	loop over target starting [-1, -1, -1] ending [-1, -1, -1] {
 		target = value
 	}
 }
