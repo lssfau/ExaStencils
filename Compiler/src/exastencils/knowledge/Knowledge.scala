@@ -348,6 +348,8 @@ object Knowledge {
   var experimental_allowCommInFragLoops : Boolean = false
 
   var experimental_generateParaviewFiles : Boolean = false
+
+  var experimental_trimBoundsForReductionLoops : Boolean = false
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {
@@ -539,5 +541,8 @@ object Knowledge {
     Constraints.condEnsureValue(timer_type, "WIN_TIME", "UNIX_TIME" == timer_type && "MSVC" == targetCompiler, "UNIX_TIME is not supported for windows systems")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMXL" == targetCompiler, "IBM XL does currently not support std::chrono")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMBG" == targetCompiler, "IBM BG does currently not support std::chrono")
+
+    // experimental
+    Constraints.condEnsureValue(experimental_trimBoundsForReductionLoops, false, data_genVariableFieldSizes, "experimental_trimBoundsForReductionLoops is currently not compatible with data_genVariableFieldSizes")
   }
 }

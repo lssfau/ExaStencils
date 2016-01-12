@@ -220,6 +220,18 @@ case class LoopOverPointsInOneFragment(var domain : Int,
     var indexRange = IndexRange(start, stop)
     SimplifyStrategy.doUntilDoneStandalone(indexRange)
 
+    // fix iteration space for reduction operations if required
+    if (Knowledge.experimental_trimBoundsForReductionLoops && reduction.isDefined && !region.isDefined) {
+      if (!condition.isDefined) condition = Some(BooleanConstant(true))
+      for (dim <- 0 until Knowledge.dimensionality)
+        if (field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft > 0)
+          /*if ("node" == field.fieldLayout.discretization
+          || ("face_x" == field.fieldLayout.discretization && 0 == dim)
+          || ("face_y" == field.fieldLayout.discretization && 1 == dim)
+          || ("face_z" == field.fieldLayout.discretization && 2 == dim))*/
+          condition = Some(AndAndExpression(condition.get, GreaterEqualExpression(VariableAccess(dimToString(dim), Some(IntegerDatatype)), field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft)))
+    }
+
     var ret : Statement = (
       if (seq)
         new LoopOverDimensions(Knowledge.dimensionality, indexRange, body, increment, reduction, condition)
