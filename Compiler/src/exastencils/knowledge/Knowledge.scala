@@ -413,6 +413,7 @@ object Knowledge {
     // grid
     Constraints.condEnsureValue(grid_spacingModel, "uniform", grid_isUniform, "uniform spacing is required for uniform grids")
     Constraints.condEnsureValue(grid_isUniform, true, "uniform" == grid_spacingModel, "grid_isUniform has to be true for uniform spacing models")
+    Constraints.condWarn("diego" == grid_spacingModel, "diego spacing model currently ignores domain bounds set in the DSL")
 
     if (l3tmp_generateL4) {
       // l3tmp - problem to solve

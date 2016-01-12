@@ -1,12 +1,16 @@
 package exastencils.grid
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
-import exastencils.datastructures.l4
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.domain._
+import exastencils.knowledge
 import exastencils.knowledge._
 import exastencils.logger._
-import scala.collection.mutable.ListBuffer
+import exastencils.util._
 
 abstract class GridGeometry() {
   // information always required
@@ -284,7 +288,8 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     val firstIntervalBetaCoeff = xf + 1
 
     // fix alpha to match domain size
-    val domainSize = 0.05 // TODO: get from DSL
+    if (DomainCollection.domains.size > 1) Logger.warn("More than one domain is currently not supported for non-uniform grids; defaulting to the first domain")
+    val domainBounds = DomainCollection.domains(0).asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
 
     // simple approach: alpha and beta are equal -> results in very small volumes and aspect ratios if the number of points is high
     //    val alpha = domainSize / (lastPointAlphaCoeff + lastPointBetaCoeff)
@@ -292,7 +297,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     // better approach: fix the ratio between smallest and largest cell width to 8
     val factor = (numCellsTotal / 4) / 8.0
-    val alpha = domainSize / (lastPointAlphaCoeff + lastPointBetaCoeff * factor)
+    val alpha = (domainBounds.upper(dim) - domainBounds.lower(dim)) / (lastPointAlphaCoeff + lastPointBetaCoeff * factor)
     val beta = factor * alpha
 
     //Logger.debug(s"Using alpha $alpha and beta $beta")
@@ -317,7 +322,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     // compile special boundary handling expressions
     var leftDir = Array(0, 0, 0); leftDir(dim) = -1
-    val leftNeighIndex = Fragment.getNeigh(leftDir).index
+    val leftNeighIndex = knowledge.Fragment.getNeigh(leftDir).index
 
     var leftGhostIndex = new MultiIndex(0, 0, 0, 0); leftGhostIndex(dim) = -2
     val leftGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), leftGhostIndex)
@@ -331,7 +336,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
           2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim))))
 
     var rightDir = Array(0, 0, 0); rightDir(dim) = 1
-    val rightNeighIndex = Fragment.getNeigh(rightDir).index
+    val rightNeighIndex = knowledge.Fragment.getNeigh(rightDir).index
 
     var rightGhostIndex = new MultiIndex(0, 0, 0, 0); rightGhostIndex(dim) = numCellsPerFrag + 2
     val rightGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), rightGhostIndex)
@@ -355,12 +360,12 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
             innerItDecl,
             new ConditionStatement(LowerEqualExpression(innerIt, xf + 1),
               AssignmentStatement(Duplicate(baseAccess),
-                0.5 * alpha * innerIt * innerIt + (beta - 0.5 * alpha) * innerIt),
+                domainBounds.lower(dim) + 0.5 * alpha * innerIt * innerIt + (beta - 0.5 * alpha) * innerIt),
               new ConditionStatement(LowerEqualExpression(innerIt, xs + 1),
                 AssignmentStatement(Duplicate(baseAccess),
-                  -0.5 * alpha * (xf * xf + xf) + (beta + alpha * xf) * innerIt),
+                  domainBounds.lower(dim) - 0.5 * alpha * (xf * xf + xf) + (beta + alpha * xf) * innerIt),
                 AssignmentStatement(Duplicate(baseAccess),
-                  -0.5 * alpha * innerIt * innerIt
+                  domainBounds.lower(dim) - 0.5 * alpha * innerIt * innerIt
                     + (alpha * xf + alpha * xs + 0.5 * alpha + beta) * innerIt
                     - 0.5 * alpha * (xf * xf + xf + xs * xs + xs)))))),
         leftBoundaryUpdate,
@@ -393,7 +398,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     // compile special boundary handling expressions
     var leftDir = Array(0, 0, 0); leftDir(dim) = -1
-    val leftNeighIndex = Fragment.getNeigh(leftDir).index
+    val leftNeighIndex = knowledge.Fragment.getNeigh(leftDir).index
 
     var leftGhostIndex = new MultiIndex(0, 0, 0, 0); leftGhostIndex(dim) = -2
     val leftGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), leftGhostIndex)
@@ -405,7 +410,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
         AssignmentStatement(Duplicate(leftGhostAccess), GridUtil.offsetAccess(leftGhostAccess, 1, dim))))
 
     var rightDir = Array(0, 0, 0); rightDir(dim) = 1
-    val rightNeighIndex = Fragment.getNeigh(rightDir).index
+    val rightNeighIndex = knowledge.Fragment.getNeigh(rightDir).index
 
     var rightGhostIndex = new MultiIndex(0, 0, 0, 0); rightGhostIndex(dim) = numCellsPerFrag + 2
     val rightGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), rightGhostIndex)
