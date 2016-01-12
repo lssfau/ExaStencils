@@ -172,4 +172,4 @@ FMG_3D_VarCoeff       Main    FMG/3D_VarCoeff.knowledge       *  FMG/3D_VarCoeff
 # 10 OMP threads
 Appl_ExaFluids     Main  Application/ExaFluids.knowledge           Application/ExaFluids.exa4           Application/ExaFluids.results           1  10
 Appl_ExaFluids_PL  Main  Application/ExaFluids.knowledge           Application/ExaFluids_PowerLaw.exa4  Application/ExaFluids_PowerLaw.results  1  10
-Appl_ExaFluids_Par Main  Application/ExaFluids_Parallel.knowledge  Application/ExaFluids.exa4           Application/ExaFluids_Parallel.results  2  4
+Appl_ExaFluids_Par Main  Application/ExaFluids_Parallel.knowledge  Application/ExaFluids.exa4           Application/ExaFluids_Parallel.results  4  2
