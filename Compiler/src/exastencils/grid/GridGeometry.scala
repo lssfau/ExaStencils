@@ -211,9 +211,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     /// stag_cv_width   -> width of the staggered control volumes
     /// |-|   |---|   |-|
 
-    val gridSpacing = "linearFct" // "diego" or "linearFct" -> TODO: integrate with knowledge
-
-    gridSpacing match {
+    Knowledge.grid_spacingModel match {
       case "diego" =>
         (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupNodePos_Diego(dim, Knowledge.maxLevel)) ++
           (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))

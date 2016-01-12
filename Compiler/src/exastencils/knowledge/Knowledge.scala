@@ -105,6 +105,8 @@ object Knowledge {
   var grid_isStaggered : Boolean = false
   var grid_isAxisAligned : Boolean = true
 
+  var grid_spacingModel : String = "uniform" // must be uniform if grid_isUniform; may be "diego" or "linearFct" otherwise
+
   // options for SISC Paper
   var sisc2015_numNodes : Int = 64 // [16~64§sisc2015_numNodes*2]
   var sisc2015_ranksPerNode : Int = 64 // [16~64§sisc2015_ranksPerNode*2]
@@ -407,6 +409,10 @@ object Knowledge {
     Constraints.condEnsureValue(minLevel, 0, minLevel < 0, "minLevel must not be negative")
     Constraints.condEnsureValue(maxLevel, 0, maxLevel < 0, "maxLevel must not be negative")
     // Constraints.condEnsureValue(minLevel, maxLevel - 1, minLevel >= maxLevel, "maxLevel must be larger than minLevel") // TODO: this seems unnecessary -> check if sth breaks
+
+    // grid
+    Constraints.condEnsureValue(grid_spacingModel, "uniform", grid_isUniform, "uniform spacing is required for uniform grids")
+    Constraints.condEnsureValue(grid_isUniform, true, "uniform" == grid_spacingModel, "grid_isUniform has to be true for uniform spacing models")
 
     if (l3tmp_generateL4) {
       // l3tmp - problem to solve
