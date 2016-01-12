@@ -47,10 +47,12 @@ object Main {
         knowledgeParser.parseFile(args(1))
       }
     }
-    Knowledge.update()
 
     if (Settings.produceHtmlLog)
       Logger_HTML.init
+
+    // validate knowledge
+    Knowledge.update()
 
     if (Settings.cancelIfOutFolderExists) {
       if ((new java.io.File(Settings.getOutputPath)).exists) {
@@ -144,7 +146,7 @@ object Main {
       StrategyTimer.stopTiming("Handling Layer 4")
 
     // add specialized fields for geometric data - TODO: decide if better left here or moved to ir
-    Grid.getGridObject.initL4()
+    GridGeometry.getGeometry.initL4()
 
     // go to IR
     ResolveFunctionTemplates.apply() // preparation step
@@ -152,6 +154,10 @@ object Main {
     ResolveL4.apply()
     ResolveBoundaryHandlingFunctions.apply()
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
+
+    // add some more nodes
+    AddDefaultGlobals.apply()
+    SetupDataStructures.apply()
 
     // add remaining nodes
     StateManager.root_.asInstanceOf[ir.Root].nodes ++= List(
@@ -166,13 +172,7 @@ object Main {
       Matrix(),
       CImg())
 
-    // apply strategies
-
-    AddDefaultGlobals.apply()
-
     SimplifyStrategy.doUntilDone() // removes (conditional) calls to communication functions that are not possible
-
-    SetupDataStructures.apply()
     SetupCommunication.apply()
 
     ResolveSpecialFunctionsAndConstants.apply()
@@ -191,7 +191,7 @@ object Main {
     } while (numConvFound > 0)
 
     ResolveDiagFunction.apply()
-    Grid.getGridObject.applyStrategies()
+    Grid.applyStrategies()
     if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
     ResolveLoopOverPointsInOneFragment.apply()
     ResolveContractingLoop.apply()

@@ -101,7 +101,11 @@ object Knowledge {
   def domain_rect_hasPeriodicity : Boolean = domain_rect_periodic_x || domain_rect_periodic_y || domain_rect_periodic_z
 
   // specifies which type of grids are used for the discretization
-  var discr_gridType = "AxisAlignedConstWidth" // possible options are "AxisAlignedConstWidth" and "AxisAlignedVariableWidth"
+  var grid_isUniform : Boolean = true
+  var grid_isStaggered : Boolean = false
+  var grid_isAxisAligned : Boolean = true
+
+  var grid_spacingModel : String = "uniform" // must be uniform if grid_isUniform; may be "diego" or "linearFct" otherwise
 
   // options for SISC Paper
   var sisc2015_numNodes : Int = 64 // [16~64§sisc2015_numNodes*2]
@@ -346,6 +350,8 @@ object Knowledge {
   var experimental_allowCommInFragLoops : Boolean = false
 
   var experimental_generateParaviewFiles : Boolean = false
+
+  var experimental_trimBoundsForReductionLoops : Boolean = false
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {
@@ -403,6 +409,11 @@ object Knowledge {
     Constraints.condEnsureValue(minLevel, 0, minLevel < 0, "minLevel must not be negative")
     Constraints.condEnsureValue(maxLevel, 0, maxLevel < 0, "maxLevel must not be negative")
     // Constraints.condEnsureValue(minLevel, maxLevel - 1, minLevel >= maxLevel, "maxLevel must be larger than minLevel") // TODO: this seems unnecessary -> check if sth breaks
+
+    // grid
+    Constraints.condEnsureValue(grid_spacingModel, "uniform", grid_isUniform, "uniform spacing is required for uniform grids")
+    Constraints.condEnsureValue(grid_isUniform, true, "uniform" == grid_spacingModel, "grid_isUniform has to be true for uniform spacing models")
+    Constraints.condWarn("diego" == grid_spacingModel, "diego spacing model currently ignores domain bounds set in the DSL")
 
     if (l3tmp_generateL4) {
       // l3tmp - problem to solve
@@ -537,5 +548,8 @@ object Knowledge {
     Constraints.condEnsureValue(timer_type, "WIN_TIME", "UNIX_TIME" == timer_type && "MSVC" == targetCompiler, "UNIX_TIME is not supported for windows systems")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMXL" == targetCompiler, "IBM XL does currently not support std::chrono")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMBG" == targetCompiler, "IBM BG does currently not support std::chrono")
+
+    // experimental
+    Constraints.condEnsureValue(experimental_trimBoundsForReductionLoops, false, data_genVariableFieldSizes, "experimental_trimBoundsForReductionLoops is currently not compatible with data_genVariableFieldSizes")
   }
 }

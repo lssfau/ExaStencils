@@ -1,7 +1,5 @@
 package exastencils.grid
 
-import scala.collection.mutable.ListBuffer
-
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
@@ -11,275 +9,29 @@ import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.prettyprinting._
 
-object Grid_AxisAlignedVariableWidth extends Grid {
-  // specialize strategies
-  object ExpandEvaluationFunctions extends DefaultStrategy("ExpandEvaluationFunctions") {
-    this += new Transformation("Expanding evaluation functions", {
-      case eval : Grid_AxisAlignedVariableWidth.EvalAtRFace => eval.expandSpecial
-    })
-  }
-
-  override def applyStrategies() = {
-    ResolveEvaluationFunctions.apply()
-    ResolveIntegrationFunctions.apply()
-
-    ExpandEvaluationFunctions.apply()
-
-    ResolveVirtualFields.apply()
-  }
-
-  override def initL4() : Unit = {
-    val root = StateManager.root_.asInstanceOf[l4.Root]
-    root.fieldLayouts += l4.LayoutDeclarationStatement(
-      l4.LeveledIdentifier("DefNodeLineLayout", l4.FinestLevelSpecification()),
-      l4.RealDatatype(), "Edge_Node".toLowerCase(),
-      Some(l4.Index3D(1, 0, 0)), None,
-      Some(l4.Index3D(1, 0, 0)), None,
-      None)
-
-    root.fields += l4.FieldDeclarationStatement(
-      l4.LeveledIdentifier("node_pos_x", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout", None, 1, 0)
-    if (Knowledge.dimensionality > 1)
-      root.fields += l4.FieldDeclarationStatement(
-        l4.LeveledIdentifier("node_pos_y", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout", None, 1, 0)
-    if (Knowledge.dimensionality > 2)
-      root.fields += l4.FieldDeclarationStatement(
-        l4.LeveledIdentifier("node_pos_z", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout", None, 1, 0)
-
-    root.fields += l4.FieldDeclarationStatement(
-      l4.LeveledIdentifier("stag_cv_width_x", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout", None, 1, 0)
-    if (Knowledge.dimensionality > 1)
-      root.fields += l4.FieldDeclarationStatement(
-        l4.LeveledIdentifier("stag_cv_width_y", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout", None, 1, 0)
-    if (Knowledge.dimensionality > 2)
-      root.fields += l4.FieldDeclarationStatement(
-        l4.LeveledIdentifier("stag_cv_width_z", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout", None, 1, 0)
-  }
-
-  override def generateInitCode() = {
-    /// node_pos        -> nodes of the original grid
-    /// o   o   o   o   o
-    /// cell_width      -> width of the control volumes of the original grid
-    /// |---|   |---|
-    /// stag_cv_width   -> width of the staggered control volumes
-    /// |-|   |---|   |-|
-
-    val gridSpacing = "diego" // "diego" or "linearFct" -> TODO: integrate with knowledge
-
-    gridSpacing match {
-      case "diego" =>
-        (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupNodePos_Diego(dim, Knowledge.maxLevel)) ++
-          (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
-      case "linearFct" =>
-        (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupNodePos_LinearFct(dim, Knowledge.maxLevel)) ++
-          (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
-    }
-  }
-
-  def setupNodePos_Diego(dim : Integer, level : Integer) : ListBuffer[Statement] = {
-    val expo = 1.5
-    val numCells = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim) // number of cells per fragment
-    val zoneSize = numCells / 4
-    val step = 1.0 / zoneSize
-
-    val field = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
-    var baseIndex = LoopOverDimensions.defIt
-    baseIndex(Knowledge.dimensionality) = 0
-    val baseAccess = FieldAccess(FieldSelection(field, field.level, 0), baseIndex)
-
-    val innerIt = LoopOverDimensions.defIt(0)
-
-    val leftGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), MultiIndex(-1, 0, 0, 0))
-    val rightGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), MultiIndex(numCells + 1, 0, 0, 0))
-
-    // TODO: fix loop offsets -> no duplicate layers - don't generate iterationOffset loop bounds
-
-    ListBuffer(
-      LoopOverPoints(field, None, true,
-        MultiIndex(-2, -1, -1), MultiIndex(-2, -1, -1), MultiIndex(1, 1, 1),
-        ListBuffer[Statement](
-          new ConditionStatement(LowerEqualExpression(innerIt, 0),
-            AssignmentStatement(Duplicate(baseAccess), 0.0),
-            new ConditionStatement(LowerEqualExpression(innerIt, 1 * zoneSize),
-              AssignmentStatement(Duplicate(baseAccess), offsetAccess(baseAccess, -1 * innerIt + 0 * zoneSize, 0)
-                + 0.0095 * FunctionCallExpression("pow", ListBuffer[Expression](step * (LoopOverDimensions.defIt(0) - 0.0 * zoneSize), expo))),
-              new ConditionStatement(LowerEqualExpression(innerIt, 2 * zoneSize),
-                AssignmentStatement(Duplicate(baseAccess), offsetAccess(baseAccess, -1 * innerIt + 1 * zoneSize, 0)
-                  + 0.0095 * step * (LoopOverDimensions.defIt(0) - 1.0 * zoneSize)),
-                new ConditionStatement(LowerEqualExpression(innerIt, 3 * zoneSize),
-                  AssignmentStatement(Duplicate(baseAccess), offsetAccess(baseAccess, -1 * innerIt + 2 * zoneSize, 0)
-                    + 0.0095 * step * (LoopOverDimensions.defIt(0) - 2.0 * zoneSize)),
-                  new ConditionStatement(LowerEqualExpression(innerIt, 4 * zoneSize),
-                    AssignmentStatement(Duplicate(baseAccess), offsetAccess(baseAccess, -1 * innerIt + 3 * zoneSize, 0)
-                      + 0.0095 * (1.0 - FunctionCallExpression("pow", ListBuffer[Expression](1.0 - step * (LoopOverDimensions.defIt(0) - 3.0 * zoneSize), expo)))),
-                    AssignmentStatement(Duplicate(baseAccess), offsetAccess(baseAccess, -1, 0))))))))),
-      AssignmentStatement(Duplicate(leftGhostAccess),
-        2 * offsetAccess(leftGhostAccess, 1, 0) - offsetAccess(leftGhostAccess, 2, 0)),
-      AssignmentStatement(Duplicate(rightGhostAccess),
-        2 * offsetAccess(rightGhostAccess, -1, 0) - offsetAccess(rightGhostAccess, -2, 0)))
-  }
-
-  def setupNodePos_LinearFct(dim : Integer, level : Integer) : ListBuffer[Statement] = {
-    val numCells = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim) // number of cells per fragment
-    val xf = numCells / 4 - 1
-    val xs = (numCells / 4) * 3
-
-    // total size = alphaCoeff * alpha + betaCoeff * beta
-    val lastPointAlphaCoeff = -0.5 * xf * xf - 0.5 * xf + xf * numCells - 0.5 * numCells * numCells + 0.5 * numCells + numCells * xs - 0.5 * xs * xs - 0.5 * xs
-    val lastPointBetaCoeff = numCells
-    // size of the first interval = alphaCoeff * alpha + betaCoeff * beta
-    val firstIntervalAlphaCoeff = 0.5 * xf * xf + 0.5 * xf
-    val firstIntervalBetaCoeff = xf + 1
-
-    // fix alpha to match domain size
-    val domainSize = 0.05 // TODO: get from DSL
-
-    // simple approach: alpha and beta are equal -> results in very small volumes and aspect ratios if the number of points is high
-    //    val alpha = domainSize / (lastPointAlphaCoeff + lastPointBetaCoeff)
-    //    val beta = alpha
-
-    // better approach: fix the ratio between smallest and largest cell width to 8
-    val factor = (numCells / 4) / 8.0
-    val alpha = domainSize / (lastPointAlphaCoeff + lastPointBetaCoeff * factor)
-    val beta = factor * alpha
-
-    Logger.debug(s"Using alpha $alpha and beta $beta")
-
-    val field = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
-    var baseIndex = LoopOverDimensions.defIt
-    baseIndex(Knowledge.dimensionality) = 0
-    val baseAccess = FieldAccess(FieldSelection(field, field.level, 0), baseIndex)
-
-    val innerIt = LoopOverDimensions.defIt(0)
-
-    val leftGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), MultiIndex(-1, 0, 0, 0))
-    val rightGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), MultiIndex(numCells + 1, 0, 0, 0))
-
-    ListBuffer(
-      LoopOverPoints(field, None, true,
-        MultiIndex(-1, -1, -1), MultiIndex(-1, -1, -1), MultiIndex(1, 1, 1),
-        ListBuffer[Statement](
-          new ConditionStatement(LowerEqualExpression(innerIt, xf + 1),
-            AssignmentStatement(Duplicate(baseAccess),
-              0.5 * alpha * innerIt * innerIt + (beta - 0.5 * alpha) * innerIt),
-            new ConditionStatement(LowerEqualExpression(innerIt, xs + 1),
-              AssignmentStatement(Duplicate(baseAccess),
-                -0.5 * alpha * (xf * xf + xf) + (beta + alpha * xf) * innerIt),
-              AssignmentStatement(Duplicate(baseAccess),
-                -0.5 * alpha * innerIt * innerIt
-                  + (alpha * xf + alpha * xs + 0.5 * alpha + beta) * innerIt
-                  - 0.5 * alpha * (xf * xf + xf + xs * xs + xs)))))),
-      AssignmentStatement(Duplicate(leftGhostAccess),
-        2 * offsetAccess(leftGhostAccess, 1, 0) - offsetAccess(leftGhostAccess, 2, 0)),
-      AssignmentStatement(Duplicate(rightGhostAccess),
-        2 * offsetAccess(rightGhostAccess, -1, 0) - offsetAccess(rightGhostAccess, -2, 0)))
-  }
-
-  def setupStagCVWidth(dim : Integer, level : Integer) : ListBuffer[Statement] = {
-    val expo = 1.5
-    val numCells = (1 << level) // TODO: adapt for non-unit fragments
-    val zoneSize = numCells / 4
-    val step = 1.0 / zoneSize
-
-    var baseIndex = LoopOverDimensions.defIt
-    baseIndex(Knowledge.dimensionality) = 0
-    val field = FieldCollection.getFieldByIdentifier(s"stag_cv_width_${dimToString(dim)}", level).get
-    val baseAccess = FieldAccess(FieldSelection(field, field.level, 0), Duplicate(baseIndex))
-    val npField = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
-    val npBaseAccess = FieldAccess(FieldSelection(npField, npField.level, 0), Duplicate(baseIndex))
-
-    val innerIt = LoopOverDimensions.defIt(0)
-
-    val leftGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), MultiIndex(-1, 0, 0, 0))
-    val rightGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), MultiIndex(numCells + 1, 0, 0, 0))
-
-    ListBuffer(
-      LoopOverPoints(field, None, true,
-        MultiIndex(-1, -1, -1), MultiIndex(-1, -1, -1), MultiIndex(1, 1, 1),
-        ListBuffer[Statement](
-          new ConditionStatement(EqEqExpression(0, innerIt),
-            AssignmentStatement(Duplicate(baseAccess),
-              0.5 * (Duplicate(npBaseAccess) + offsetAccess(npBaseAccess, 1, 0))
-                - Duplicate(npBaseAccess)),
-            new ConditionStatement(EqEqExpression(numCells, innerIt),
-              AssignmentStatement(Duplicate(baseAccess),
-                Duplicate(npBaseAccess)
-                  - 0.5 * (offsetAccess(npBaseAccess, -1, 0) + Duplicate(npBaseAccess))),
-              AssignmentStatement(Duplicate(baseAccess),
-                0.5 * (Duplicate(npBaseAccess) + offsetAccess(npBaseAccess, 1, 0))
-                  - 0.5 * (offsetAccess(npBaseAccess, -1, 0) + Duplicate(npBaseAccess))))))),
-      AssignmentStatement(Duplicate(leftGhostAccess), offsetAccess(leftGhostAccess, 1, 0)),
-      AssignmentStatement(Duplicate(rightGhostAccess), offsetAccess(rightGhostAccess, -1, 0)))
-  }
-
-  override def resolveGridMemberFunction(name : String) : Option[java.lang.reflect.Method] = {
-    this.getClass().getMethods.find(_.getName.toLowerCase() == name.toLowerCase())
-  }
-
-  override def invokeEvalResolve(functionName : String, fieldAccess : FieldAccess, interpolation : String) : Expression = {
+abstract class GridEvaluator() {
+  def invokeEvalResolve(functionName : String, fieldAccess : FieldAccess, interpolation : String) : Expression = {
     val method = this.getClass().getMethods.find(_.getName == functionName)
     if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
     method.get.invoke(this, fieldAccess, interpolation).asInstanceOf[Expression]
   }
 
-  override def invokeIntegrateResolve(functionName : String, exp : Expression) : Expression = {
+  def invokeIntegrateResolve(functionName : String, exp : Expression) : Expression = {
     val method = this.getClass().getMethods.find(_.getName == functionName)
     if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
     method.get.invoke(this, exp).asInstanceOf[Expression]
   }
+}
 
-  def projectIdx(baseIndex : MultiIndex, dim : Int) = {
-    new MultiIndex(baseIndex(dim), 0, 0, 0)
+object GridEvaluator {
+  def getEvaluator = {
+    if (Knowledge.grid_isAxisAligned) GridEvaluator_AxisAligned
+    else Logger.error("Evaluators for non-axis-aligned grids are currently not supported")
   }
+}
 
-  // direct accesses
-  override def nodePosition(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
-    val field = FieldCollection.getFieldByIdentifierLevExp(s"node_pos_${dimToString(dim)}", level).get
-    FieldAccess(FieldSelection(field, field.level, 0, arrayIndex), projectIdx(index, dim))
-  }
-
-  def stagCVWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
-    val field = FieldCollection.getFieldByIdentifierLevExp(s"stag_cv_width_${dimToString(dim)}", level).get
-    FieldAccess(FieldSelection(field, field.level, 0, arrayIndex), projectIdx(index, dim))
-  }
-
-  // compound accesses
-  override def cellCenter(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
-    0.5 * (nodePosition(level, offsetIndex(index, 1, dim), arrayIndex, dim) + nodePosition(level, Duplicate(index), arrayIndex, dim))
-  }
-
-  override def cellWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
-    nodePosition(level, offsetIndex(index, 1, dim), arrayIndex, dim) - nodePosition(level, Duplicate(index), arrayIndex, dim)
-  }
-
-  def cellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) = {
-    var exp : Expression = cellWidth(level, index, arrayIndex, 0)
-    for (dim <- 1 until Knowledge.dimensionality)
-      exp *= cellWidth(level, index, arrayIndex, dim)
-    exp
-  }
-
-  def staggeredCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int], stagDim : Int) = {
-    var exp : Expression = (
-      if (0 == stagDim)
-        stagCVWidth(level, index, arrayIndex, 0)
-      else
-        cellWidth(level, index, arrayIndex, 0))
-    for (dim <- 1 until Knowledge.dimensionality)
-      if (dim == stagDim)
-        exp *= stagCVWidth(level, index, arrayIndex, dim)
-      else
-        exp *= cellWidth(level, index, arrayIndex, dim)
-    exp
-  }
-
-  def xStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) = staggeredCellVolume(level, index, arrayIndex, 0)
-  def yStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) = staggeredCellVolume(level, index, arrayIndex, 1)
-  def zStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) = staggeredCellVolume(level, index, arrayIndex, 2)
-
-  def cellCenterToFace(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
-    0.5 * cellWidth(level, index, arrayIndex, dim)
-  }
+object GridEvaluator_AxisAligned extends GridEvaluator {
+  def geom = GridGeometry.getGeometry.asInstanceOf[GridGeometry_staggered]
 
   // evaluations and interpolations
   def evalAtEastFace(fieldAccess : FieldAccess, interpolation : String) = EvalAtRFace(fieldAccess, 0, None, interpolation)
@@ -311,7 +63,7 @@ object Grid_AxisAlignedVariableWidth extends Grid {
   def evalAtZStaggeredBottomFace(fieldAccess : FieldAccess, interpolation : String) = evalAtLFace(fieldAccess, 2, Some(2), interpolation)
 
   def evalAtLFace(fieldAccess : FieldAccess, faceDim : Int, stagDim : Option[Int], interpolation : String = "default") =
-    EvalAtRFace(offsetAccess(fieldAccess, -1, faceDim), faceDim, stagDim, interpolation)
+    EvalAtRFace(GridUtil.offsetAccess(fieldAccess, -1, faceDim), faceDim, stagDim, interpolation)
 
   case class EvalAtRFace(var fieldAccess : FieldAccess, var faceDim : Int, var stagDim : Option[Int], var interpolation : String = "default") extends Expression {
     override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = EvalAtRFace\n"
@@ -324,15 +76,15 @@ object Grid_AxisAlignedVariableWidth extends Grid {
       var a0 : (() => Expression) = (() => { NullExpression })
       var a1 : (() => Expression) = (() => { NullExpression })
       var x0 = (() => { Duplicate(fieldAccess) })
-      var x1 = (() => { offsetAccess(fieldAccess, 1, faceDim) })
+      var x1 = (() => { GridUtil.offsetAccess(fieldAccess, 1, faceDim) })
 
       field.discretization match {
         case "cell" => {
           if (stagDim.isDefined) {
             return fieldAccess // value is located at the evaluation region
           } else {
-            a0 = (() => { cellCenterToFace(level, Duplicate(baseIndex), None, faceDim) })
-            a1 = (() => { cellCenterToFace(level, offsetIndex(baseIndex, 1, faceDim), None, faceDim) })
+            a0 = (() => { geom.cellCenterToFace(level, Duplicate(baseIndex), None, faceDim) })
+            a1 = (() => { geom.cellCenterToFace(level, GridUtil.offsetIndex(baseIndex, 1, faceDim), None, faceDim) })
           }
         }
         case "face_x" | "face_y" | "face_z" => {
@@ -343,7 +95,7 @@ object Grid_AxisAlignedVariableWidth extends Grid {
               a1 = (() => { 0.5 })
             } else {
               Logger.warn(s"Trying to evaluate $fieldAccess on face dimension $faceDim of a ${stagDim.get} staggered CV. This is not unique. Defaulting to leftmost candidate")
-              return offsetAccess(fieldAccess, 1, stagDim.get)
+              return GridUtil.offsetAccess(fieldAccess, 1, stagDim.get)
             }
           } else {
             return fieldAccess // value is located at the evaluation region
@@ -437,15 +189,15 @@ object Grid_AxisAlignedVariableWidth extends Grid {
             val curStagDim = stagDim.get
             discr match {
               case "cell" if curStagDim == faceDim => fieldAccess // direct sampling
-              case "cell" if curStagDim != faceDim => addPIntAnnot(EvalAtRFace(offsetAccess(fieldAccess, -1, curStagDim), faceDim, stagDim)) // interpolation with offset, piecewiseIntegration
+              case "cell" if curStagDim != faceDim => addPIntAnnot(EvalAtRFace(GridUtil.offsetAccess(fieldAccess, -1, curStagDim), faceDim, stagDim)) // interpolation with offset, piecewiseIntegration
               case fieldDiscr @ ("face_x" | "face_y" | "face_z") if (s"face_${dimToString(curStagDim)}" == fieldDiscr) => // field discretization matches CV
                 EvalAtRFace(fieldAccess, faceDim, stagDim) // interpolation
               case "face_x" if 0 != curStagDim => // -1 in CV's stag dim and +1 in field discretization's stag dim
-                addPIntAnnot(offsetAccess(offsetAccess(fieldAccess, -1, curStagDim), 1, 0)) // direct sampling with offset, piecewiseIntegration
+                addPIntAnnot(GridUtil.offsetAccess(GridUtil.offsetAccess(fieldAccess, -1, curStagDim), 1, 0)) // direct sampling with offset, piecewiseIntegration
               case "face_y" if 1 != curStagDim => // -1 in CV's stag dim and +1 in field discretization's stag dim
-                addPIntAnnot(offsetAccess(offsetAccess(fieldAccess, -1, curStagDim), 1, 1)) // direct sampling with offset, piecewiseIntegration
+                addPIntAnnot(GridUtil.offsetAccess(GridUtil.offsetAccess(fieldAccess, -1, curStagDim), 1, 1)) // direct sampling with offset, piecewiseIntegration
               case "face_z" if 2 != curStagDim => // -1 in CV's stag dim and +1 in field discretization's stag dim
-                addPIntAnnot(offsetAccess(offsetAccess(fieldAccess, -1, curStagDim), 1, 2)) // direct sampling with offset, piecewiseIntegration
+                addPIntAnnot(GridUtil.offsetAccess(GridUtil.offsetAccess(fieldAccess, -1, curStagDim), 1, 2)) // direct sampling with offset, piecewiseIntegration
               case _ => Logger.error(s"Unknown or unsupported discretization $discr for field $fieldAccess in staggered integration")
             }
           } else {
@@ -453,7 +205,7 @@ object Grid_AxisAlignedVariableWidth extends Grid {
               case "cell" => EvalAtRFace(fieldAccess, faceDim, stagDim) // interpolation
               case "face_x" | "face_y" | "face_z" => {
                 if (s"face_${dimToString(faceDim)}" == discr)
-                  offsetAccess(fieldAccess, 1, faceDim) // direct sampling with offset
+                  GridUtil.offsetAccess(fieldAccess, 1, faceDim) // direct sampling with offset
                 else
                   addPIntAnnot(EvalAtRFace(fieldAccess, faceDim, stagDim)) // interpolation, piecewiseIntegration
               }
@@ -475,16 +227,16 @@ object Grid_AxisAlignedVariableWidth extends Grid {
             discr match {
               case "cell" if curStagDim == faceDim => eval.fieldAccess // direct sampling
               case "cell" if curStagDim != faceDim =>
-                eval.fieldAccess = offsetAccess(eval.fieldAccess, -1, curStagDim)
+                eval.fieldAccess = GridUtil.offsetAccess(eval.fieldAccess, -1, curStagDim)
                 addPIntAnnot(eval) // interpolation with offset, piecewiseIntegration
               case fieldDiscr @ ("face_x" | "face_y" | "face_z") if (s"face_${dimToString(curStagDim)}" == fieldDiscr) => // field discretization matches CV
                 eval // orig eval is fine
               case "face_x" if 0 != curStagDim => // -1 in CV's stag dim and +1 in field discretization's stag dim => ignore eval as direct sampling is possible
-                addPIntAnnot(offsetAccess(offsetAccess(eval.fieldAccess, -1, curStagDim), 1, 0)) // direct sampling with offset, piecewiseIntegration
+                addPIntAnnot(GridUtil.offsetAccess(GridUtil.offsetAccess(eval.fieldAccess, -1, curStagDim), 1, 0)) // direct sampling with offset, piecewiseIntegration
               case "face_y" if 1 != curStagDim =>
-                addPIntAnnot(offsetAccess(offsetAccess(eval.fieldAccess, -1, curStagDim), 1, 1))
+                addPIntAnnot(GridUtil.offsetAccess(GridUtil.offsetAccess(eval.fieldAccess, -1, curStagDim), 1, 1))
               case "face_z" if 2 != curStagDim =>
-                addPIntAnnot(offsetAccess(offsetAccess(eval.fieldAccess, -1, curStagDim), 1, 2))
+                addPIntAnnot(GridUtil.offsetAccess(GridUtil.offsetAccess(eval.fieldAccess, -1, curStagDim), 1, 2))
               case _ => Logger.error(s"Unknown or unsupported discretization $discr for field ${eval.fieldAccess} in staggered integration")
             }
           } else {
@@ -492,7 +244,7 @@ object Grid_AxisAlignedVariableWidth extends Grid {
               case "cell" => eval // interpolation
               case "face_x" | "face_y" | "face_z" => {
                 if (s"face_${dimToString(faceDim)}" == discr) {
-                  eval.fieldAccess = offsetAccess(eval.fieldAccess, 1, faceDim)
+                  eval.fieldAccess = GridUtil.offsetAccess(eval.fieldAccess, 1, faceDim)
                   eval // direct sampling with offset
                 } else
                   addPIntAnnot(eval) // interpolation, piecewiseIntegration
@@ -549,7 +301,7 @@ object Grid_AxisAlignedVariableWidth extends Grid {
         ShiftFieldAccessIndices_.applyStandalone(offsetExp)
 
         (VirtualFieldAccess(s"vf_cellWidth_${dimToString(compDim)}", level, index) *
-          (VirtualFieldAccess(s"vf_cellCenterToFace_${dimToString(curStagDim)}", level, offsetIndex(index, -1, curStagDim)) * centerExp
+          (VirtualFieldAccess(s"vf_cellCenterToFace_${dimToString(curStagDim)}", level, GridUtil.offsetIndex(index, -1, curStagDim)) * centerExp
             + VirtualFieldAccess(s"vf_cellCenterToFace_${dimToString(curStagDim)}", level, index) * offsetExp))
       } else {
         Logger.error("piecewise integration on non-staggered cell interfaces is not supported")
@@ -564,17 +316,17 @@ object Grid_AxisAlignedVariableWidth extends Grid {
           val compDim0 = (if (0 == faceDim) 1 else 0)
           val compDim1 = (if (2 == faceDim) 1 else 2)
 
-          cellWidth(level, index, None, compDim0) * cellWidth(level, index, None, compDim1) * exp
+          geom.cellWidth(level, index, None, compDim0) * geom.cellWidth(level, index, None, compDim1) * exp
         } else {
           val compDim = (if (0 != faceDim && 0 != curStagDim) 0 else (if (1 != faceDim && 1 != curStagDim) 1 else 2))
 
-          cellWidth(level, index, None, compDim) * stagCVWidth(level, index, None, curStagDim) * exp
+          geom.cellWidth(level, index, None, compDim) * geom.stagCVWidth(level, index, None, curStagDim) * exp
         }
       } else {
         val compDim0 = (if (0 == faceDim) 1 else 0)
         val compDim1 = (if (2 == faceDim) 1 else 2)
 
-        cellWidth(level, index, None, compDim0) * cellWidth(level, index, None, compDim1) * exp
+        geom.cellWidth(level, index, None, compDim0) * geom.cellWidth(level, index, None, compDim1) * exp
       }
     }
   }

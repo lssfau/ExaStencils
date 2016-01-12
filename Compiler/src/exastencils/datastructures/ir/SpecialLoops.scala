@@ -195,8 +195,16 @@ case class LoopOverPointsInOneFragment(var domain : Int,
               //                start(dim) = OffsetIndex(0, 1, ArrayAccess(iv.IndexFromField(field.identifier, field.level, "DLB"), dim) - field.referenceOffset(dim) + startOffset(dim), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
               //                stop(dim) = OffsetIndex(-1, 0, ArrayAccess(iv.IndexFromField(field.identifier, field.level, "DRE"), dim) - field.referenceOffset(dim) - endOffset(dim), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim))
               //              } else {
-              start(dim) = OffsetIndex(0, 1, field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
-              stop(dim) = OffsetIndex(-1, 0, field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim))
+              val numDupLeft = field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft
+              val numDupRight = field.fieldLayout.layoutsPerDim(dim).numDupLayersRight
+              if (numDupLeft > 0)
+                start(dim) = OffsetIndex(0, numDupLeft, field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim), numDupLeft * ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
+              else
+                start(dim) = field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim)
+              if (numDupRight > 0)
+                stop(dim) = OffsetIndex(-numDupRight, 0, field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim), numDupRight * ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim))
+              else
+                stop(dim) = field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
               //              }
             }
           case discr if "cell" == discr
@@ -211,6 +219,18 @@ case class LoopOverPointsInOneFragment(var domain : Int,
 
     var indexRange = IndexRange(start, stop)
     SimplifyStrategy.doUntilDoneStandalone(indexRange)
+
+    // fix iteration space for reduction operations if required
+    if (Knowledge.experimental_trimBoundsForReductionLoops && reduction.isDefined && !region.isDefined) {
+      if (!condition.isDefined) condition = Some(BooleanConstant(true))
+      for (dim <- 0 until Knowledge.dimensionality)
+        if (field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft > 0)
+          /*if ("node" == field.fieldLayout.discretization
+          || ("face_x" == field.fieldLayout.discretization && 0 == dim)
+          || ("face_y" == field.fieldLayout.discretization && 1 == dim)
+          || ("face_z" == field.fieldLayout.discretization && 2 == dim))*/
+          condition = Some(AndAndExpression(condition.get, GreaterEqualExpression(VariableAccess(dimToString(dim), Some(IntegerDatatype)), field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft)))
+    }
 
     var ret : Statement = (
       if (seq)

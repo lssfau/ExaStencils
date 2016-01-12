@@ -43,7 +43,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
               virtualField.fieldName = virtualField.fieldName.replace("boundaryCoord", "nodePosition")
             } else { // snap to right boundary
               virtualField.fieldName = virtualField.fieldName.replace("boundaryCoord", "nodePosition")
-              virtualField.index = Grid.getGridObject.offsetIndex(virtualField.index, 1, evalDim)
+              virtualField.index = GridUtil.offsetIndex(virtualField.index, 1, evalDim)
             }
           }
         }

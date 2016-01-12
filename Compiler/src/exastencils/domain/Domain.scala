@@ -65,6 +65,35 @@ case class PointToFragmentId(var pos : Expression) extends Expression with Expan
   }
 }
 
+case class PointToFragmentIndex(var pos : Expression) extends Expression with Expandable {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentIndex\n"
+
+  override def expand : Output[Expression] = {
+    val globalDomain = DomainCollection.getDomainByIdentifier("global").get
+    val gSize = globalDomain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
+    val fragWidth_x = gSize.width(0) / Knowledge.domain_rect_numFragsTotal_x
+    val fragWidth_y = gSize.width(1) / Knowledge.domain_rect_numFragsTotal_y
+    val fragWidth_z = gSize.width(2) / Knowledge.domain_rect_numFragsTotal_z
+
+    val entries = Knowledge.dimensionality match {
+      case 1 => ListBuffer[Expression](
+        "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x),
+        0,
+        0)
+      case 2 => ListBuffer[Expression](
+        "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x),
+        "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y),
+        0)
+      case 3 => ListBuffer[Expression](
+        "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x),
+        "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y),
+        "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z))
+    }
+
+    "Vec3i(" ~ entries.reduceLeft((l, r) => l ~ ", " ~ r) ~ ")"
+  }
+}
+
 case class PointToLocalFragmentId(var pos : Expression) extends Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
 
@@ -223,6 +252,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
         ~ (if (Knowledge.dimensionality > 2) ((("rankPos.z" : Expression) * Knowledge.domain_rect_numFragsPerBlock_z + 0.5 + dimToString(2)) * fragWidth_z) + gSize.lower_z else 0) ~ ")"))
     body += LoopOverFragments(ListBuffer(
       AssignmentStatement(iv.PrimitiveId(), PointToFragmentId(ArrayAccess("positions", LoopOverFragments.defIt))),
+      AssignmentStatement(iv.PrimitiveIndex(), PointToFragmentIndex(ArrayAccess("positions", LoopOverFragments.defIt))),
       AssignmentStatement(iv.CommId(), PointToLocalFragmentId(ArrayAccess("positions", LoopOverFragments.defIt))),
       AssignmentStatement(iv.PrimitivePosition(), ArrayAccess("positions", LoopOverFragments.defIt)),
       AssignmentStatement(iv.PrimitivePositionBegin(), ArrayAccess("positions", LoopOverFragments.defIt) - vecDelta),
@@ -385,7 +415,7 @@ case class DomainFunctions() extends FunctionCollection(
 
   if (Knowledge.domain_rect_generate) {
     functions += new InitGeneratedDomain
-    functions += FunctionStatement(UnitDatatype, s"initGeometry", ListBuffer(), Grid.getGridObject.generateInitCode())
+    functions += FunctionStatement(UnitDatatype, s"initGeometry", ListBuffer(), GridGeometry.getGeometry.generateInitCode)
   } else {
     externalDependencies += ("iostream", "fstream")
     val rvTemplateFunc = FunctionStatement(

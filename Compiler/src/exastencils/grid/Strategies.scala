@@ -27,8 +27,8 @@ object ResolveEvaluationFunctions extends DefaultStrategy("ResolveEvaluationFunc
       } else {
         if (args.length > 2) Logger.warn(s"Trying to use build-in function $functionName with more than one arguments; additional arguments are discarded")
         args match {
-          case ListBuffer(access : FieldAccess)                                 => Grid.getGridObject.invokeEvalResolve(functionName, access, "default")
-          case ListBuffer(access : FieldAccess, interpolation : StringConstant) => Grid.getGridObject.invokeEvalResolve(functionName, access, interpolation.value)
+          case ListBuffer(access : FieldAccess)                                 => GridEvaluator.getEvaluator.invokeEvalResolve(functionName, access, "default")
+          case ListBuffer(access : FieldAccess, interpolation : StringConstant) => GridEvaluator.getEvaluator.invokeEvalResolve(functionName, access, interpolation.value)
           case _ => {
             Logger.warn(s"Arguments (${args.map(_.prettyprint).mkString(", ")}) are currently not supported for function $functionName")
             args(0)
@@ -56,15 +56,21 @@ object ResolveIntegrationFunctions extends DefaultStrategy("ResolveIntegrateFunc
         NullExpression
       } else {
         if (args.length > 1) Logger.warn(s"Trying to use build-in function $functionName with more than one arguments; additional arguments are discarded")
-        Grid.getGridObject.invokeIntegrateResolve(functionName, args(0))
+        GridEvaluator.getEvaluator.invokeIntegrateResolve(functionName, args(0))
       }
     }
   })
 }
 
+object ExpandEvaluationFunctions extends DefaultStrategy("ExpandEvaluationFunctions") {
+  this += new Transformation("Expanding evaluation functions", {
+    case eval : GridEvaluator_AxisAligned.EvalAtRFace => eval.expandSpecial
+  })
+}
+
 object ResolveVirtualFields extends DefaultStrategy("ResolveVirtualFields") {
   this += new Transformation("SearchAndReplace", {
-    case virtualField : VirtualFieldAccess => Grid.getGridObject.invokeAccessResolve(virtualField)
+    case virtualField : VirtualFieldAccess => GridGeometry.getGeometry.invokeAccessResolve(virtualField)
   })
 }
 
