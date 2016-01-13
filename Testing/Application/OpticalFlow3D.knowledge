@@ -1,7 +1,6 @@
-targetOS = "Linux"
-targetCompiler						= "CLANG"
-targetCompilerVersion				= 3
-targetCompilerVersionMinor			= 7
+targetCompiler						= "GCC"
+targetCompilerVersion				= 4
+targetCompilerVersionMinor			= 8
 timer_type							= "UNIX_TIME"
 
 experimental_Neumann				= true
