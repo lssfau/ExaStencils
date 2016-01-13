@@ -73,16 +73,21 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
 
     val separator = (if (Knowledge.experimental_generateParaviewFiles) "\",\"" else "\" \"")
 
-    var innerLoop = new LoopOverFragments(
-      new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
-        ListBuffer[Statement](
-          "std::ofstream stream(" ~ filename ~ ", " ~ (if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc") ~ ")",
+    val fileHeader = {
+      var ret : Statement = NullStatement
+      if (Knowledge.experimental_generateParaviewFiles) {
+        ret = ("stream << \"x,y,z," + arrayIndexRange.map(index => s"s$index").mkString(",") + "\" << std::endl")
+        if (Knowledge.mpi_enabled)
+          ret = new ConditionStatement(new MPI_IsRootProc, ret)
+      }
+      ret
+    }
 
-          (if (Knowledge.experimental_generateParaviewFiles)
-            ("stream << \"x,y,z," + arrayIndexRange.map(index => s"s$index").mkString(",") + "\" << std::endl")
-          else
-            NullStatement),
-
+    var innerLoop = ListBuffer[Statement](
+      "std::ofstream stream(" ~ filename ~ ", " ~ (if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc") ~ ")",
+      fileHeader,
+      new LoopOverFragments(
+        new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
           new LoopOverDimensions(Knowledge.dimensionality, new IndexRange(
             new MultiIndex((0 until Knowledge.dimensionality).toArray.map(dim => (field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)) : Expression)),
             new MultiIndex((0 until Knowledge.dimensionality).toArray.map(dim => (field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)) : Expression))),
@@ -94,8 +99,8 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
                   access.index(Knowledge.dimensionality) = index
                   " << " ~ access
                 }).reduceLeft(_ ~ " << " ~ separator ~ _)
-                ~ " << std::endl")),
-          "stream.close()")))
+                ~ " << std::endl")))),
+      "stream.close()")
 
     var statements : ListBuffer[Statement] = ListBuffer()
 
@@ -107,7 +112,7 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
 
       statements += new MPI_Sequential(innerLoop)
     } else {
-      statements += innerLoop
+      statements ++= innerLoop
     }
 
     statements
