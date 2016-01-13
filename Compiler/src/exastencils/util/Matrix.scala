@@ -39,42 +39,48 @@ class Matrix
 {
 public:
     T* m_data;
-    bool m_alloced;
 
     // default constructor
     Matrix()
     : m_data(new T[M * N])
-    , m_alloced(true)
     { }
 
     ~Matrix()
     {
-        if(m_alloced) delete[] m_data;
+        delete[] m_data;
     }
 
     // constructor
     Matrix ( T value )
     : m_data(new T[M * N])
-    , m_alloced(false)
     {
         std::fill(m_data, m_data + M * N, value);
     }
 
     Matrix ( T* data )
-    : m_data(data)
-    , m_alloced(false)
-    { }
+    : m_data(new T[M * N])//(data)
+    {
+        std::copy ( data, data + M*N, m_data );
+    }
 
     // copy constructor
     Matrix ( const Matrix<T, M, N>& other )
     : m_data(new T[M * N])
-    , m_alloced(true)
     {
         std::copy ( other.m_data, other.m_data + M*N, m_data );
     }
 
+    // move constructor
+#ifndef __IBMCPP__
+    Matrix ( Matrix<T, M, N>&& other )
+    : Matrix()
+    {
+        swap ( *this, other );
+    }
+#endif
+
     Matrix<T, M, N>& operator= ( Matrix<T, M, N> other ) { // pass 'other' by value for implicit copy
-        other.swap ( *this );
+        swap ( *this, other );
         return *this;
     }
 
@@ -90,8 +96,9 @@ public:
         return this->columns;
     }
 
-    void swap ( Matrix<T, M, N>& other ) {
-        std::swap ( this->m_data, other.m_data );
+    friend void swap ( Matrix<T, M, N>& a, Matrix<T, M, N>& b ) {
+        using std::swap;
+        swap ( a.m_data, b.m_data );
     }
 
     void set ( const T& value ) {

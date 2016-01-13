@@ -212,18 +212,17 @@ case class VectorExpression(var datatype : Option[Datatype], var expressions : L
     }
   }
   def prettyprintInner(out : PpStream) : Unit = {
-    if (Knowledge.targetCompiler == "IBMXL" || Knowledge.targetCompiler == "IBMBG") {
+
+    if (Knowledge.targetCompiler == "GCC") {
+      out << "std::move(("
+    } else {
       out << "(("
-      datatype.getOrElse(RealDatatype).prettyprint(out)
-      out << "[])"
     }
-    out << "{"
+    datatype.getOrElse(RealDatatype).prettyprint(out)
+    out << "[]){"
     expressions.foreach(e => { e.prettyprint(out); out << ',' })
     out.removeLast() // remove last comma
-    out << '}'
-    if (Knowledge.targetCompiler == "IBMXL" || Knowledge.targetCompiler == "IBMBG") {
-      out << ')'
-    }
+    out << "})"
   }
   override def prettyprint(out : PpStream) : Unit = {
     out << "Matrix<"
@@ -235,24 +234,22 @@ case class VectorExpression(var datatype : Option[Datatype], var expressions : L
       out << length << ", 1> ("
     }
     prettyprintInner(out)
-    out << ")"
+    out << ')'
   }
 }
 
 case class MatrixExpression(var datatype : Option[Datatype], var expressions : ListBuffer[ListBuffer[Expression]]) extends Expression {
   def prettyprintInner(out : PpStream) : Unit = {
-    if (Knowledge.targetCompiler == "IBMXL" || Knowledge.targetCompiler == "IBMBG") {
+    if (Knowledge.targetCompiler == "GCC") {
+      out << "std::move(("
+    } else {
       out << "(("
-      datatype.getOrElse(RealDatatype).prettyprint(out)
-      out << "[])"
     }
-    out << "{"
+    datatype.getOrElse(RealDatatype).prettyprint(out)
+    out << "[]){"
     expressions.foreach(f => f.foreach(e => { e.prettyprint(out); out << ',' }))
     out.removeLast() // remove last comma
-    out << "}"
-    if (Knowledge.targetCompiler == "IBMXL" || Knowledge.targetCompiler == "IBMBG") {
-      out << ')'
-    }
+    out << "})"
   }
 
   override def prettyprint(out : PpStream) : Unit = {
