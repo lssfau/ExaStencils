@@ -48,6 +48,8 @@ case class PrintStatement(var toPrint : ListBuffer[Expression], var stream : Str
 }
 
 case class PrintFieldStatement(var filename : Expression, var field : FieldSelection, var condition : Expression = BooleanConstant(true)) extends Statement with Expandable {
+  import PrintFieldStatement._
+
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintFieldStatement\n"
 
   def getPos(field : FieldSelection, dim : Int) : Expression = {
@@ -72,11 +74,13 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
       else (field.arrayIndex.get to field.arrayIndex.get))
 
     val separator = (if (Knowledge.experimental_generateParaviewFiles) "\",\"" else "\" \"")
+    val streamName = s"fieldPrintStream_$counter"
+    counter += 1
 
     val fileHeader = {
       var ret : Statement = NullStatement
       if (Knowledge.experimental_generateParaviewFiles) {
-        ret = ("stream << \"x,y,z," + arrayIndexRange.map(index => s"s$index").mkString(",") + "\" << std::endl")
+        ret = (streamName + " << \"x,y,z," + arrayIndexRange.map(index => s"s$index").mkString(",") + "\" << std::endl")
         if (Knowledge.mpi_enabled)
           ret = new ConditionStatement(new MPI_IsRootProc, ret)
       }
@@ -84,7 +88,7 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
     }
 
     var innerLoop = ListBuffer[Statement](
-      "std::ofstream stream(" ~ filename ~ ", " ~ (if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc") ~ ")",
+      "std::ofstream " ~ streamName ~ "(" ~ filename ~ ", " ~ (if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc") ~ ")",
       fileHeader,
       new LoopOverFragments(
         new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
@@ -92,7 +96,7 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
             new MultiIndex((0 until Knowledge.dimensionality).toArray.map(dim => (field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)) : Expression)),
             new MultiIndex((0 until Knowledge.dimensionality).toArray.map(dim => (field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)) : Expression))),
             new ConditionStatement(condition,
-              "stream"
+              streamName
                 ~ (0 until Knowledge.dimensionality).map(dim => " << " ~ getPos(field, dim) ~ " << " ~ separator).reduceLeft(_ ~ _)
                 ~ arrayIndexRange.map(index => {
                   var access = new FieldAccess(field, LoopOverDimensions.defIt)
@@ -100,15 +104,15 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
                   " << " ~ access
                 }).reduceLeft(_ ~ " << " ~ separator ~ _)
                 ~ " << std::endl")))),
-      "stream.close()")
+      streamName ~ ".close()")
 
     var statements : ListBuffer[Statement] = ListBuffer()
 
     if (Knowledge.mpi_enabled) {
       statements += new ConditionStatement(new MPI_IsRootProc,
         ListBuffer[Statement](
-          "std::ofstream stream(" ~ filename ~ ", std::ios::trunc)",
-          "stream.close()"))
+          "std::ofstream " ~ streamName ~ "(" ~ filename ~ ", std::ios::trunc)",
+          streamName ~ ".close()"))
 
       statements += new MPI_Sequential(innerLoop)
     } else {
@@ -117,4 +121,8 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
 
     statements
   }
+}
+
+object PrintFieldStatement {
+  var counter = 0;
 }
