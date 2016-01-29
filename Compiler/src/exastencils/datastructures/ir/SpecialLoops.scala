@@ -1,6 +1,5 @@
 package exastencils.datastructures.ir
 
-import scala.annotation.migration
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
@@ -420,7 +419,7 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverFragments\n"
 
   def generateBasicLoop(parallelize : Boolean) = {
-    if (parallelize)
+    var loop = if (parallelize)
       new ForLoopStatement(
         VariableDeclarationStatement(IntegerDatatype, defIt, Some(0)),
         LowerExpression(defIt, Knowledge.domain_numFragmentsPerBlock),
@@ -434,6 +433,8 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
         PreIncrementExpression(defIt),
         body,
         reduction)
+    loop.add(Annotation("numLoopIterations", Knowledge.domain_numFragmentsPerBlock))
+    loop
   }
 
   override def expand : Output[StatementList] = {

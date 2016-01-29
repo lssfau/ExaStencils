@@ -15,7 +15,7 @@ case class ExpressionStatement(var expression : Expression) extends Statement {
 
 case object NullStatement extends Statement {
   exastencils.core.Duplicate.registerConstant(this)
-  def prettyprint(out : PpStream) : Unit = out << ';'
+  override def prettyprint(out : PpStream): Unit = out << ';'
 }
 
 case class Scope(var body : ListBuffer[Statement]) extends Statement {
@@ -116,6 +116,13 @@ case class ForLoopStatement(var begin : Statement, var end : Expression, var inc
   def this(begin : Statement, end : Expression, inc : Statement, reduction : Reduction, body : Statement*) = this(begin, end, inc, body.to[ListBuffer], Option(reduction))
   def this(begin : Statement, end : Expression, inc : Statement, body : Statement*) = this(begin, end, inc, body.to[ListBuffer])
 
+  def maxIterationCount() = {
+    if (hasAnnotation("numLoopIterations"))
+      getAnnotation("numLoopIterations").get.value.asInstanceOf[Int]
+    else
+      0 // TODO: warning?
+  }
+
   override def prettyprint(out : PpStream) : Unit = {
     // BEGIN AMAZING HACK as workaround for IBM XL compiler
     var realEnd = end.prettyprint
@@ -144,7 +151,7 @@ case class ConditionStatement(var condition : Expression, var trueBody : ListBuf
   def this(condition : Expression, trueBody : ListBuffer[Statement], falseBranch : Statement) = this(condition, trueBody, ListBuffer(falseBranch))
   def this(condition : Expression, trueBranch : Statement, falseBody : ListBuffer[Statement]) = this(condition, ListBuffer(trueBranch), falseBody)
 
-  def prettyprint(out : PpStream) : Unit = {
+  override def prettyprint(out : PpStream): Unit = {
     out << "if (" << condition << ") {\n"
     out <<< (trueBody, "\n") << '\n'
     if (!falseBody.isEmpty) {
