@@ -13,6 +13,7 @@ import exastencils.multiGrid._
 import exastencils.omp._
 import exastencils.optimization._
 import exastencils.parsers.l4._
+import exastencils.performance._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.strategies._
@@ -193,8 +194,12 @@ object Main {
     ResolveDiagFunction.apply()
     Grid.applyStrategies()
     if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
+
     ResolveLoopOverPointsInOneFragment.apply()
     ResolveContractingLoop.apply()
+
+    if (Knowledge.experimental_addPerformanceEstimate)
+      AddPerformanceEstimates()
 
     MapStencilAssignments.apply()
     ResolveFieldAccess.apply()

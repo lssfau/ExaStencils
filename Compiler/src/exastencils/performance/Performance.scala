@@ -1,0 +1,241 @@
+package exastencils.performance
+
+import scala.collection.mutable.HashMap
+import scala.collection.mutable.HashSet
+import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Stack
+
+import exastencils.data._
+import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
+import exastencils.datastructures.ir._
+import exastencils.knowledge._
+
+/// control function
+
+object AddPerformanceEstimates {
+  def apply() = {
+    CollectFunctionStatements.apply()
+    EvaluatePerformanceEstimates.doUntilDone()
+  }
+}
+
+/// top level strategies
+
+object CollectFunctionStatements extends DefaultStrategy("Collecting internal function statements") {
+  var internalFunctions = HashSet[String]()
+
+  override def apply(node : Option[Node] = None) : Unit = {
+    internalFunctions.clear
+    super.apply(node)
+  }
+
+  this += new Transformation("Collecting", {
+    case fct : FunctionStatement => {
+      internalFunctions += fct.name
+      fct
+    }
+  }, false)
+}
+
+object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performance estimates") {
+  var completeFunctions = HashMap[String, Double]()
+  var unknownFunctionCalls = true
+
+  override def apply(node : Option[Node] = None) : Unit = {
+    unknownFunctionCalls = false
+    super.apply(node)
+  }
+
+  def doUntilDone(node : Option[Node] = None) = {
+    var cnt = 0
+    unknownFunctionCalls = true
+    while (unknownFunctionCalls && cnt < 128) {
+      unknownFunctionCalls = false
+      super.apply(node)
+      cnt += 1
+    }
+  }
+
+  this += new Transformation("Processing function statements", {
+    case fct : FunctionStatement if !completeFunctions.contains(fct.name) && CollectFunctionStatements.internalFunctions.contains(fct.name) => {
+      // process function body
+      EvaluatePerformanceEstimates_SubAST.applyStandalone(fct.body)
+
+      if (EvaluatePerformanceEstimates_SubAST.unknownFunctionCalls) {
+        unknownFunctionCalls = true
+      } else {
+        val estimatedTime = EvaluatePerformanceEstimates_SubAST.lastEstimate
+        fct.add(Annotation("perf_timeEstimate", estimatedTime))
+        completeFunctions.put(fct.name, estimatedTime)
+        fct.body = ListBuffer[Statement](
+          CommentStatement(s"Estimated time for function: ${estimatedTime * 1000.0} ms")) ++ fct.body
+      }
+
+      fct
+    }
+  })
+}
+
+/// local util strategies
+
+object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimating performance for sub-ASTs") {
+  // TODO:  loops with conditions, reductions
+  //        while loops
+  //        condition statements
+
+  var unknownFunctionCalls = false
+  var estimatedTimeSubAST = Stack[Double]()
+  var lastEstimate = 0.0
+
+  def addTimeToStack(value : Double) = {
+    estimatedTimeSubAST.push(estimatedTimeSubAST.pop + value)
+  }
+
+  override def applyStandalone(node : Node) : Unit = {
+    unknownFunctionCalls = false
+    estimatedTimeSubAST.push(0.0)
+    super.applyStandalone(node)
+    lastEstimate = estimatedTimeSubAST.pop
+  }
+  override def applyStandalone(nodes : Seq[Node]) : Unit = {
+    super.applyStandalone(nodes) // calls CombBody.applyStandalone internally -> defer stack ops to this function
+  }
+
+  this += new Transformation("Progressing key statements", {
+    // function calls
+    case fct : FunctionCallExpression => {
+      if (!CollectFunctionStatements.internalFunctions.contains(fct.name))
+        () // external functions -> no estimate
+      else if (EvaluatePerformanceEstimates.completeFunctions.contains(fct.name))
+        addTimeToStack(EvaluatePerformanceEstimates.completeFunctions.get(fct.name).get)
+      else
+        unknownFunctionCalls = true
+      fct
+    }
+
+    case loop : LoopOverDimensions => {
+      if (loop.hasAnnotation("perf_timeEstimate")) {
+        addTimeToStack(loop.getAnnotation("perf_timeEstimate").get.value.asInstanceOf[Double])
+        loop
+      } else {
+        val maxIterations = loop.maxIterationCount.reduce(_ * _)
+
+        EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.clear // has to be done manually
+        EvaluatePerformanceEstimates_FieldAccess.applyStandalone(loop)
+        EvaluatePerformanceEstimates_Ops.applyStandalone(loop)
+
+        val optimisticDataPerIt = EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.map(_._2.typicalByteSize).fold(0)(_ + _)
+        val optimisticTimeMem = (optimisticDataPerIt * maxIterations) / Knowledge.hw_cpu_bandwidth
+
+        val cyclesPerIt = Math.max(EvaluatePerformanceEstimates_Ops.numAdd, EvaluatePerformanceEstimates_Ops.numMul) + EvaluatePerformanceEstimates_Ops.numDiv * 55 // TODO: better estimates
+        var estimatedTimeOps = (cyclesPerIt * maxIterations) / Knowledge.hw_cpu_frequency
+        val coresPerRank = (Knowledge.hw_numNodes * Knowledge.hw_numCoresPerNode).toDouble / Knowledge.mpi_numThreads // could be fractions of cores
+        estimatedTimeOps /= Math.min(coresPerRank, Knowledge.omp_numThreads) // adapt for omp threading and hardware utilization
+        estimatedTimeOps /= Knowledge.simd_vectorSize // adapt for vectorization - assume perfect vectorizability
+
+        loop.add(Annotation("perf_timeEstimate", Math.max(estimatedTimeOps, optimisticTimeMem)))
+        addTimeToStack(Math.max(estimatedTimeOps, optimisticTimeMem))
+
+        ListBuffer(
+          CommentStatement(s"Max iterations: $maxIterations"),
+          CommentStatement(s"Optimistic memory transfer per iteration: $optimisticDataPerIt byte"),
+          CommentStatement(s"Optimistic time for memory transfers: ${optimisticTimeMem * 1000.0} ms"),
+          CommentStatement(s"Optimistic time for ops: ${estimatedTimeOps * 1000.0} ms"),
+          CommentStatement(s"Found accesses: ${EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.map(_._1).mkString(", ")}"),
+          loop)
+      }
+    }
+
+    case loop : ForLoopStatement => {
+      if (loop.hasAnnotation("perf_timeEstimate")) {
+        addTimeToStack(loop.getAnnotation("perf_timeEstimate").get.value.asInstanceOf[Double])
+        loop
+      } else {
+        applyStandalone(loop.body)
+
+        if (unknownFunctionCalls) {
+          unknownFunctionCalls = true
+        } else {
+          val estimatedTime = lastEstimate * loop.maxIterationCount
+          loop.add(Annotation("perf_timeEstimate", estimatedTime))
+          addTimeToStack(loop.getAnnotation("perf_timeEstimate").get.value.asInstanceOf[Double])
+          loop.body = ListBuffer[Statement](
+            CommentStatement(s"Estimated time for loop: ${estimatedTime * 1000.0} ms")) ++ loop.body
+        }
+        loop
+      }
+    }
+  }, false)
+}
+
+object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Evaluating performance for FieldAccess nodes") {
+  var fieldAccesses = HashMap[String, Datatype]()
+  var inWriteOp = false
+
+  def mapFieldAccess(access : FieldAccess) = {
+    val field = access.fieldSelection.field
+    var identifier = field.identifier
+
+    identifier = (if (inWriteOp) "write_" else "read_") + identifier
+
+    // TODO: array fields
+    if (field.numSlots > 1) {
+      access.fieldSelection.slot match {
+        case SlotAccess(_, offset) => identifier += s"_o$offset"
+        case IntegerConstant(slot) => identifier += s"_s$slot"
+        case _                     => identifier += s"_s${access.fieldSelection.slot.prettyprint}"
+      }
+    }
+
+    fieldAccesses.put(identifier, field.dataType)
+  }
+
+  this += new Transformation("Searching", {
+    case assign : AssignmentStatement =>
+      inWriteOp = true
+      EvaluatePerformanceEstimates_FieldAccess.applyStandalone(ExpressionStatement(assign.dest))
+      inWriteOp = false
+      EvaluatePerformanceEstimates_FieldAccess.applyStandalone(ExpressionStatement(assign.src))
+      assign
+    case access : FieldAccess =>
+      mapFieldAccess(access)
+      access
+  }, false)
+}
+
+object EvaluatePerformanceEstimates_Ops extends QuietDefaultStrategy("Evaluating performance for numeric operations") {
+  var numAdd = 0
+  var numMul = 0
+  var numDiv = 0
+
+  override def applyStandalone(node : Node) : Unit = {
+    numAdd = 0
+    numMul = 0
+    numDiv = 0
+    super.applyStandalone(node)
+  }
+  override def applyStandalone(nodes : Seq[Node]) : Unit = {
+    super.applyStandalone(nodes) // calls EvaluatePerformanceEstimates_Ops.applyStandalone internally
+  }
+
+  this += new Transformation("Searching", {
+    case exp : AdditionExpression =>
+      numAdd += 1
+      exp
+    case exp : SubtractionExpression =>
+      numAdd += 1
+      exp
+    case exp : MultiplicationExpression =>
+      numMul += 1
+      exp
+    case exp : DivisionExpression =>
+      if (exp.right.isInstanceOf[IntegerConstant])
+        numMul += 0 // ignore integer divs for now
+      else if (exp.right.isInstanceOf[FloatConstant]) // TODO: replace with eval float exp?
+        numMul += 1
+      else
+        numDiv += 1
+      exp
+  })
+}

@@ -12,7 +12,15 @@ object Knowledge {
   var targetCompilerVersionMinor : Int = 0 // minor version of the target compiler
 
   var targetHardware : String = "CPU" // target hw platform; may be "CPU" or "ARM"
+  // FIXME: move me to dedicated hardware specification
   var hw_numThreadsPerNode : Int = 64 // specifies the total number of ranks (OMP and MPI) to be used when generating job scripts
+  def hw_numCoresPerNode : Int = hw_cpu_numCoresPerCPU * hw_cpu_numCPUs
+  var hw_numNodes : Int = 1
+  var hw_cpu_numCoresPerCPU : Int = 4
+  var hw_cpu_numCPUs : Int = 2
+  var hw_cpu_bandwidth : Double = 25.6 * 1024 * 1024 * 1024 // in B/s
+  var hw_cpu_frequency : Double = 2.4 * 1000 * 1000 * 1000 // in Hz
+  var hw_64bit : Boolean = true // true if 64 bit addresses are used
 
   var useDblPrecision : Boolean = true // if true uses double precision for floating point numbers and single precision otherwise
 
@@ -352,6 +360,8 @@ object Knowledge {
   var experimental_generateParaviewFiles : Boolean = false
 
   var experimental_trimBoundsForReductionLoops : Boolean = false
+
+  var experimental_addPerformanceEstimate : Boolean = false
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {

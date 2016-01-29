@@ -109,6 +109,8 @@ object ResolveFieldAccess extends DefaultStrategy("Resolving FieldAccess nodes")
   })
 }
 
+/// internal variables
+
 object ResolveConstInternalVariables extends DefaultStrategy("Resolving constant internal variables") {
   override def apply(applyAtNode : Option[Node]) = {
     this.transaction()
