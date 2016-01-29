@@ -86,6 +86,7 @@ case class MPI_Barrier() extends MPI_Statement {
 case class MPI_DataType(var field : FieldSelection, var indices : IndexRange) extends Datatype {
   override def prettyprint(out : PpStream) : Unit = out << generateName
   override def prettyprint_mpi = generateName
+  override def typicalByteSize = ???
 
   var count : Int = 0
   var blocklen : Int = 0
@@ -140,7 +141,7 @@ object MPI_DataType {
 case class InitMPIDataType(mpiTypeName : String, field : Field, indexRange : IndexRange) extends MPI_Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitMPIDataType\n"
 
-  override def expand: Output[StatementList] = {
+  override def expand : Output[StatementList] = {
     if (indexRange.begin(2) == indexRange.end(2)) {
       ListBuffer[Statement](s"MPI_Type_vector(" ~
         (indexRange.end(1) - indexRange.begin(1) + 1) ~ ", " ~
@@ -164,7 +165,7 @@ case class MPI_Sequential(var body : ListBuffer[Statement]) extends Statement wi
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = MPI_Sequential\n"
 
-  override def expand: Output[ForLoopStatement] = {
+  override def expand : Output[ForLoopStatement] = {
     ForLoopStatement(
       VariableDeclarationStatement(IntegerDatatype, "curRank", Some(0)),
       LowerExpression("curRank", Knowledge.mpi_numThreads),
