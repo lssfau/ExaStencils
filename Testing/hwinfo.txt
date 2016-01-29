@@ -9,7 +9,7 @@ Chimaira (Cluster)
       3,6 GHz Turbo
       25 MB L3-Cache
       AVX
-    64 GB RAM (quadchannel)
+    64 GB RAM (DDR3 1866 - quadchannel)
     1 GeForce GTX Titan Black
   "Frontend" (17. Node) identisch zu oben, Ausnahme: keine GPU, sondern
     1 Xeon Phi 3120 (http://ark.intel.com/products/75798/Intel-Xeon-Phi-Coprocessor-3120P-6GB-1_100-GHz-57-core)

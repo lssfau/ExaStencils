@@ -86,19 +86,24 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val datatype : Parser[Datatype] = (
     simpleDatatype
-    ||| numericDatatype
-    ||| "Array" ~ ("[" ~> datatype <~ "]") ~ ("[" ~> integerLit <~ "]") ^^ { case _ ~ x ~ s => new ArrayDatatype(x, s) })
+    ||| algorithmicDatatype
+    ||| "Array" ~ ("<" ~> datatype <~ ">") ~ ("<" ~> integerLit <~ ">") ^^ { case _ ~ x ~ s => new ArrayDatatype(x, s) })
 
   lazy val simpleDatatype : Parser[Datatype] = (
     "String" ^^ { case _ => new StringDatatype }
     ||| ("Boolean" ||| "Bool") ^^ { case _ => new BooleanDatatype }
-    ||| numericSimpleDatatype)
+    ||| numericDatatype)
+
+  lazy val algorithmicDatatype : Parser[Datatype] = (
+    ("Complex" ~ "<") ~> numericDatatype <~ ">" ^^ { case x => new ComplexDatatype(x) }
+    ||| "Vector" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ s => new VectorDatatype(x, s, None) }
+    ||| ("ColumnVector" ||| "CVector") ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ s => new VectorDatatype(x, s, Some(false)) }
+    ||| numericDatatype ~ ("<" ~> integerLit <~ ">") ^^ { case x ~ s => new VectorDatatype(x, s, Some(true)) }
+    ||| "Matrix" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ m ~ n => new MatrixDatatype(x, m, n) }
+    ||| numericDatatype ~ ("<" ~> integerLit <~ ",") ~ (integerLit <~ ">") ^^ { case x ~ m ~ n => new MatrixDatatype(x, m, n) }
+    ||| numericDatatype)
 
   lazy val numericDatatype : Parser[Datatype] = (
-    ("Complex" ~ "[") ~> numericSimpleDatatype <~ "]" ^^ { case x => new ComplexDatatype(x) }
-    ||| numericSimpleDatatype)
-
-  lazy val numericSimpleDatatype : Parser[Datatype] = (
     ("Integer" ||| "Int") ^^ { case x => new IntegerDatatype }
     ||| "Real" ^^ { case x => new RealDatatype })
 
@@ -143,7 +148,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| applyBCsStatement
     ||| communicateStatement
     ||| returnStatement
-    ||| advanceStatement)
+    ||| advanceStatement
+    ||| leveledScope)
 
   lazy val statementInsideRepeat = statement ||| breakStatement
 
@@ -204,6 +210,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ { case exp => ReturnStatement(exp) })
 
+  lazy val leveledScope = locationize((level <~ "{") ~ (statement.+ <~ "}") ^^ { case l ~ s => LeveledScopeStatement(l, s) })
+
   // ######################################
   // ##### Globals
   // ######################################
@@ -257,7 +265,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val stencilEntries = (
     (stencilEntry <~ ",").+ ~ stencilEntry ^^ { case entries ~ entry => entries.::(entry) }
     ||| stencilEntry.+)
-  lazy val stencilEntry = ((expressionIndex ~ ("=>" ~> factor)) ^^ { case offset ~ weight => StencilEntry(offset, weight) })
+  lazy val stencilEntry = ((expressionIndex ~ ("=>" ~> (binaryexpression ||| matrixExpression))) ^^ { case offset ~ weight => StencilEntry(offset, weight) })
 
   lazy val stencilField = locationize((("StencilField" ~> ident) ~ ("<" ~> ident <~ "=>") ~ (ident <~ ">") ~ level.?)
     ^^ { case id ~ f ~ s ~ level => StencilFieldDeclarationStatement(LeveledIdentifier(id, level.getOrElse(new AllLevelsSpecification)), f, s) })
@@ -310,20 +318,23 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ######################################
 
   lazy val binaryexpression : PackratParser[Expression] = (
-    locationize((binaryexpression ~ ("+" ||| "-") ~ term) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
+    locationize((binaryexpression ~ ("+" ||| "-" ||| ".+" ||| ".-") ~ term) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
     ||| term)
 
   lazy val term : PackratParser[Expression] = (
-    locationize((term ~ ("*" ||| "/" ||| "%") ~ term2) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
+    locationize((term ~ ("*" ||| "/" ||| "%" ||| ".*" ||| "./" ||| ".%") ~ term2) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
     ||| term2)
 
   lazy val term2 : PackratParser[Expression] = (
-    locationize((term2 ~ ("**") ~ factor) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
+    locationize((term2 ~ ("**" ||| "^" ||| ".**") ~ factor) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
     ||| factor)
 
   lazy val factor = (
     "(" ~> binaryexpression <~ ")"
     ||| ("-" ~ "(") ~> binaryexpression <~ ")" ^^ { case exp => UnaryExpression("-", exp) }
+    ||| rowVectorExpression
+    ||| columnVectorExpression
+    ||| matrixExpression
     ||| locationize(stringLit ^^ { case s => StringConstant(s) })
     ||| locationize("-".? ~ numericLit ^^ { case s ~ n => if (isInt(s.getOrElse("") + n)) IntegerConstant((s.getOrElse("") + n).toInt) else FloatConstant((s.getOrElse("") + n).toDouble) })
     ||| locationize("-" ~> functionCall ^^ { case x => UnaryExpression("-", x) })
@@ -331,6 +342,12 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
     ||| locationize("-" ~> genericAccess ^^ { case x => UnaryExpression("-", x) })
     ||| genericAccess
     ||| locationize(booleanLit ^^ { case s => BooleanConstant(s) }))
+
+  lazy val rowVectorExpression = locationize("{" ~> (binaryexpression <~ ",").+ ~ (binaryexpression <~ "}") ^^ { case x ~ y => VectorExpression(None, x :+ y, None) })
+
+  lazy val columnVectorExpression = locationize(rowVectorExpression <~ "T" ^^ { case x => VectorExpression(None, x.expressions, Some(false)) })
+
+  lazy val matrixExpression = locationize("{" ~> (rowVectorExpression <~ ",").+ ~ (rowVectorExpression <~ "}") ^^ { case x ~ y => MatrixExpression(None, x :+ y) })
 
   lazy val booleanexpression : PackratParser[Expression] = (
     locationize((booleanexpression ~ ("||" ||| "or") ~ booleanexpression1) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })

@@ -217,7 +217,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
         val expr : isl.AstExpr = node.userGetExpr()
         assume(expr.getOpType() == isl.AstOpType.Call, "user node is no OpCall?!")
         val args : Array[Expression] = processArgs(expr)
-        val name : String = args(0).asInstanceOf[StringConstant].value
+        val name : String = args(0).asInstanceOf[StringLiteral].value
         val (oldStmt : ListBuffer[Statement], loopVars : ArrayBuffer[String]) = oldStmts(name)
         val stmts : ListBuffer[Statement] = Duplicate(oldStmt)
         val repl = new HashMap[String, Expression]()
@@ -242,7 +242,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     return expr.getType() match { // TODO: check if ExprId contains only variable identifier
       case isl.AstExprType.Id =>
         val id : String = expr.getId().getName()
-        ScopNameMapping.id2expr(id).getOrElse(StringConstant(id))
+        ScopNameMapping.id2expr(id).getOrElse(StringLiteral(id))
       case isl.AstExprType.Int   => IntegerConstant(expr.getVal().toString().toLong)
       case isl.AstExprType.Op    => processIslExprOp(expr)
       case isl.AstExprType.Error => throw new PolyASTBuilderException("ExprError found...")
@@ -288,7 +288,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
       case isl.AstOpType.Call if n >= 1 =>
         val fArgs = ListBuffer[Expression](args : _*)
         fArgs.remove(0)
-        FunctionCallExpression(args(0).asInstanceOf[StringConstant].value, fArgs)
+        FunctionCallExpression(args(0).asInstanceOf[StringLiteral].value, fArgs)
 
       case err =>
         throw new PolyASTBuilderException("expression not (yet) available:  " + err + "  with " + args.length + " arguments:  " + expr)

@@ -1,0 +1,396 @@
+Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >
+
+Layout imageLayout <Real, Cell > @all {
+	ghostLayers = [ 0, 0, 0 ]
+	duplicateLayers = [ 0, 0, 0 ]
+}
+
+Layout GradientLayout < Real, Node> @all {
+	ghostLayers = [ 0, 0, 0 ]
+	duplicateLayers = [ 1, 1, 1 ]
+}
+
+Layout flowLayout < ColumnVector<Real, 3>, Node> @all {
+	ghostLayers = [ 0, 0, 0 ]
+	duplicateLayers = [ 1, 1, 1 ]
+}
+
+Field Image1 < global, imageLayout, None >@all
+Field Image2 < global, imageLayout, None >@all
+Field GradientX < global, GradientLayout, HandleBC_GradientX@current ( ) >@all
+Field GradientY < global, GradientLayout, HandleBC_GradientY@current ( ) >@all
+Field GradientZ < global, GradientLayout, HandleBC_GradientZ@current ( ) >@all
+Field Flow < global, flowLayout, Neumann >[2]@all
+
+Field Residual< global, flowLayout, Neumann >@all
+Field RHS< global, flowLayout, None >@(coarsest)
+Field RHS< global, flowLayout, None >@((coarsest+1) to finest)
+
+Stencil RestrictionStencil@all {
+	[ 0,  0,  0] => 1.0
+	[ 0,  0, -1] => 0.5
+	[ 0,  0,  1] => 0.5
+	[ 0, -1,  0] => 0.5
+	[ 0,  1,  0] => 0.5
+	[-1,  0,  0] => 0.5
+	[ 1,  0,  0] => 0.5
+	[ 0, -1,  1] => 0.25
+	[ 0, -1, -1] => 0.25
+	[ 0,  1,  1] => 0.25
+	[ 0,  1, -1] => 0.25
+	[-1,  0,  1] => 0.25
+	[-1,  0, -1] => 0.25
+	[ 1,  0,  1] => 0.25
+	[ 1,  0, -1] => 0.25
+	[-1, -1,  0] => 0.25
+	[-1,  1,  0] => 0.25
+	[ 1, -1,  0] => 0.25
+	[ 1,  1,  0] => 0.25
+	[-1, -1,  1] => 0.125
+	[-1, -1, -1] => 0.125
+	[-1,  1,  1] => 0.125
+	[-1,  1, -1] => 0.125
+	[ 1, -1,  1] => 0.125
+	[ 1, -1, -1] => 0.125
+	[ 1,  1,  1] => 0.125
+	[ 1,  1, -1] => 0.125
+}
+
+Stencil SmootherStencil@all {
+	[ 0, 0, 0] => {{6.0*alpha + GradientX@current * GradientX@current, GradientX@current * GradientY@current, GradientX@current * GradientZ@current}, { GradientX@current * GradientY@current, 6.0*alpha + GradientY@current * GradientY@current, GradientY@current * GradientZ@current }, {GradientX@current * GradientZ@current, GradientY@current * GradientY@current, 6.0*alpha + GradientZ@current * GradientZ@current}}
+	[ 1, 0, 0] => {{-1.0, 0.0, 0.0}, {0.0,-1.0, 0.0}, {0.0, 0.0, -1.0}}
+	[-1, 0, 0] => {{-1.0, 0.0, 0.0}, {0.0,-1.0, 0.0}, {0.0, 0.0, -1.0}}
+	[ 0, 1, 0] => {{-1.0, 0.0, 0.0}, {0.0,-1.0, 0.0}, {0.0, 0.0, -1.0}}
+	[ 0,-1, 0] => {{-1.0, 0.0, 0.0}, {0.0,-1.0, 0.0}, {0.0, 0.0, -1.0}}
+	[ 0, 0,-1] => {{-1.0, 0.0, 0.0}, {0.0,-1.0, 0.0}, {0.0, 0.0, -1.0}}
+	[ 0, 0, 1] => {{-1.0, 0.0, 0.0}, {0.0,-1.0, 0.0}, {0.0, 0.0, -1.0}}
+}
+
+Stencil CellRestrictionStencil@all {
+	[0, 0, 0] => 0.125
+	[1, 0, 0] => 0.125
+	[0, 1, 0] => 0.125
+	[1, 1, 0] => 0.125
+	[0, 0, 1] => 0.125
+	[1, 0, 1] => 0.125
+	[0, 1, 1] => 0.125
+	[1, 1, 1] => 0.125
+}
+
+Stencil GradientYStencil@all {
+	[-1, -1, 0] => -0.25
+	[ 0, -1, 0] =>  0.25
+	[-1,  0, 0] => -0.25
+	[ 0,  0, 0] =>  0.25
+}
+
+Stencil GradientXStencil@all {
+	[-1, -1, 0] => -0.25
+	[ 0, -1, 0] => -0.25
+	[-1,  0, 0] =>  0.25
+	[ 0,  0, 0] =>  0.25
+}
+
+Stencil GradientZStencil@all {
+	[-1, -1, 0] => -0.25
+	[ 0, -1, 0] => -0.25
+	[-1,  0, 0] => -0.25
+	[ 0,  0, 0] => -0.25
+}
+
+Stencil CorrectionStencil@all {
+	[    0,     0,     0] => 0.0625
+	[x % 2,     0,     0] => 0.0625
+	[    0, y % 2,     0] => 0.0625
+	[x % 2, y % 2,     0] => 0.0625
+	[    0,     0, z % 2] => 0.0625
+	[x % 2,     0, z % 2] => 0.0625
+	[    0, y % 2, z % 2] => 0.0625
+	[x % 2, y % 2, z % 2] => 0.0625
+}
+
+Function printVal ( toPrint : Real ) : Unit {
+    if ( toPrint <= 1e-12 ) {
+                print ( "EFFECTIVELY ZERO" )
+    } else if ( toPrint <= 1e-11 ) {
+                native ( 'std::streamsize oldPrec = std::cout.precision()' )
+                native ( 'std::cout.precision(1)' )
+                print ( toPrint )
+                native ( 'std::cout.precision(oldPrec)' )
+    } else if ( toPrint <= 1e-10 ) {
+                native ( 'std::streamsize oldPrec = std::cout.precision()' )
+                native ( 'std::cout.precision(2)' )
+                print ( toPrint )
+                native ( 'std::cout.precision(oldPrec)' )
+    } else if ( toPrint <= 1e-9 ) {
+                native ( 'std::streamsize oldPrec = std::cout.precision()' )
+                native ( 'std::cout.precision(3)' )
+                print ( toPrint )
+                native ( 'std::cout.precision(oldPrec)' )
+    } else {
+                native ( 'std::streamsize oldPrec = std::cout.precision()' )
+                native ( 'std::cout.precision(4)' )
+                print ( toPrint )
+                native ( 'std::cout.precision(oldPrec)' )
+    }
+}
+
+Function HandleBC_GradientX@all () : Unit {
+	// implicitly include image fields' Neumann BC
+	// NOTE: when the coefficients of the gradient stencils are changed this function has to be adapted accordingly
+
+	loop over fragments {
+	loop over GradientX@current only dup [-1,  0, 0] on boundary starting [0, 1, 1] ending [0, 1, 1] {
+		GradientX@current = ( ( 0.5 * Image1@current@[ 0, -1, 0] - 0.5 * Image1@current@[ 0,  0, 0] )
+							+ ( 0.5 * Image2@current@[ 0, -1, 0] - 0.5 * Image2@current@[ 0,  0, 0] ) )
+	}}
+	loop over fragments {
+	loop over GradientX@current only dup [ 1,  0, 0] on boundary starting [0, 1, 1] ending [0, 1, 1] {
+		GradientX@current = ( ( 0.5 * Image1@current@[-1, -1, 0] - 0.5 * Image1@current@[-1,  0, 0] )
+							+ ( 0.5 * Image2@current@[-1, -1, 0] - 0.5 * Image2@current@[-1,  0, 0] ) )
+	}}
+	loop over fragments {
+	loop over GradientX@current only dup [ 0, -1, 0] on boundary {
+		GradientX@current = 0.
+	}}
+	loop over fragments {
+	loop over GradientX@current only dup [ 0,  1, 0] on boundary {
+		GradientX@current = 0.
+	}}
+	
+	loop over fragments {
+	loop over GradientX@current only dup [ 0, 0, -1] on boundary {
+		GradientX@current = 0.
+	}}
+	loop over fragments {
+	loop over GradientX@current only dup [ 0, 0,  1] on boundary {
+		GradientX@current = 0.
+	}}
+	
+}
+
+Function HandleBC_GradientY@all () : Unit {
+	// implicitly include image fields' Neumann BC
+	// NOTE: when the coefficients of the gradient stencils are changed this function has to be adapted accordingly
+
+	loop over fragments {
+	loop over GradientY@current only dup [-1,  0, 0] on boundary {
+		GradientY@current = 0.
+	}}
+	loop over fragments {
+	loop over GradientY@current only dup [ 1,  0, 0] on boundary {
+		GradientY@current = 0.
+	}}
+	loop over fragments {
+	loop over GradientY@current only dup [ 0, -1, 0] on boundary starting [1, 0, 1] ending [1, 0, 1] {
+		GradientY@current = ( ( 0.5 * Image1@current@[-1,  0, 0] - 0.5 * Image1@current@[ 0,  0, 0] )
+							+ ( 0.5 * Image2@current@[-1,  0, 0] - 0.5 * Image2@current@[ 0,  0, 0] ) )
+	}}
+	loop over fragments {
+	loop over GradientY@current only dup [ 0,  1, 0] on boundary starting [1, 0, 1] ending [1, 0, 1] {
+		GradientY@current = ( ( 0.5 * Image1@current@[-1, -1, 0] - 0.5 * Image1@current@[ 0, -1, 0] )
+							+ ( 0.5 * Image2@current@[-1, -1, 0] - 0.5 * Image2@current@[ 0, -1, 0] ) )
+	}}
+	/*
+	loop over fragments {
+	loop over GradientY@current only dup [0, 0,  1] on boundary {
+		GradientY@current = 0.
+	}}
+	loop over fragments {
+	loop over GradientY@current only dup [0, 0, -1] on boundary {
+		GradientY@current = 0.
+	}}
+	*/
+}
+
+Function HandleBC_GradientZ@all () : Unit {
+	// implicitly include image fields' Neumann BC
+	// NOTE: when the coefficients of the gradient stencils are changed this function has to be adapted accordingly
+
+	loop over fragments {
+	loop over GradientZ@current only dup [-1,  0, 0] on boundary {
+		GradientZ@current = 0.
+	}}
+	loop over fragments {
+	loop over GradientZ@current only dup [ 1,  0, 0] on boundary {
+		GradientZ@current = 0.
+	}}
+	/*
+	loop over fragments {
+	loop over GradientZ@current only dup [0,  1, 0] on boundary {
+		GradientZ@current = 0.
+	}}
+	loop over fragments {
+	loop over GradientZ@current only dup [0, -1, 0] on boundary {
+		GradientZ@current = 0.
+	}}
+	*/
+	loop over fragments {
+	loop over GradientY@current only dup [ 0, 0, -1] on boundary starting [1, 1, 0] ending [1, 1, 0] {
+		GradientZ@current = -( ( 0.5 * Image1@current@[0,  0, -1] + 0.5 * Image1@current@[ 0,  0, 0] )
+							 + ( 0.5 * Image2@current@[0,  0, -1] + 0.5 * Image2@current@[ 0,  0, 0] ) )
+	}}
+	loop over fragments {
+	loop over GradientY@current only dup [ 0,  0, 1] on boundary starting [1, 1, 0] ending [1, 1, 0] {
+		GradientZ@current = -( ( 0.5 * Image1@current@[-1, -1, -1] + 0.5 * Image1@current@[ 0, -1, -1] )
+							 + ( 0.5 * Image2@current@[-1, -1, -1] + 0.5 * Image2@current@[ 0, -1, -1] ) )
+	}}
+}
+
+Function CalculateGradients@all () : Unit {
+	loop over fragments {
+	loop over GradientX@current {
+		GradientX@current = GradientXStencil@current * Image1@current + GradientXStencil@current * Image2@current
+	}}
+	apply bc to GradientX@current
+	loop over fragments {
+	loop over GradientY@current {
+		GradientY@current = GradientYStencil@current * Image1@current + GradientYStencil@current * Image2@current
+	}}
+	apply bc to GradientY@current
+	
+	if ( levels@coarsest ( ) < levels@current ( ) ) {
+		CalculateGradients@coarser ( )
+	}
+}
+
+Function Smoother@all ( ) : Unit {
+	communicate ghost of Flow[active]@current
+	loop over fragments {
+	loop over Flow@current {
+		Flow[next]@current = Flow[active]@current + ( ( 1.0 * inverse( diag ( SmootherStencil@current ) ) ) * ( RHS@current - SmootherStencil@current * Flow[active]@current ) )
+	}}
+	advance Flow@current
+}
+
+Function UpResidual@all (  ) : Unit {
+	communicate  Flow[active]@current
+	loop over fragments {
+	loop over Residual@current {
+		Residual@current = RHS@current - (SmootherStencil@current * Flow[active]@current)
+	}}
+}
+Function NormResidual_0@(coarsest and finest) ( ) : Real {
+	Variable res : Real = 0
+	loop over fragments with reduction( + : res ) {
+	loop over Residual@current where x > 0 && y > 0 && z > 0 with reduction( + : res ) {
+		res += dotProduct(Residual@current, Residual@current)
+	}}
+	return sqrt ( res )
+}
+
+Function Restriction@((coarsest + 1) to finest) ( ) : Unit {
+	communicate ghost of Residual@current
+	loop over fragments {
+	loop over RHS@coarser {
+		RHS@coarser = RestrictionStencil@current * Residual@current
+	}}
+}
+
+Function Correction@((coarsest + 1) to finest) ( ) : Unit {
+	loop over fragments {
+	loop over Flow@current {
+		Flow[active]@current += CorrectionStencil@current * Flow[active]@coarser
+	}}
+	apply bc to Flow[active]@current
+}
+
+Function SetSolution@all (value : Real) : Unit {
+	loop over Flow@current {
+		Flow[active]@current = value
+	}
+	apply bc to Flow[active]@current
+}
+Function InitSolution ( ) : Unit {
+	loop over Flow@finest {
+		Flow[active]@finest = 0.0
+	}
+	apply bc to Flow[active]@current
+}
+Function InitRHS@finest ( ) : Unit {
+	loop over RHS@current {
+		RHS@current = {-GradientX@current, -GradientY@current, -GradientZ@current}T
+	}
+}
+
+Function VCycle@((coarsest + 1) to finest) ( ) : Unit {
+	repeat 3 times {
+		Smoother@current ( )
+	}
+	UpResidual@current ( )
+	Restriction@current ( )
+	SetSolution@coarser ( 0 )
+	VCycle@coarser ( )
+	Correction@current ( )
+	repeat 3 times {
+		Smoother@current ( )
+	}
+}
+
+Function VCycle@coarsest () : Unit {
+	repeat 1 times {
+		Smoother@current ( )
+	}
+}
+
+Function initFields@finest() : Unit {
+	loop over Image1@current {
+		Image1@current = vf_nodePosition_x@current * vf_nodePosition_x@current - 0.5 * vf_nodePosition_y@current * vf_nodePosition_y@current - 0.5 * vf_nodePosition_z@current * vf_nodePosition_z@current
+	}
+	
+	loop over Image2@current {
+		Image2@current = (vf_nodePosition_x@current - 0.1) * (vf_nodePosition_x@current-0.1) - 0.5 * vf_nodePosition_y@current * vf_nodePosition_y@current - 0.5 * vf_nodePosition_z@current * vf_nodePosition_z@current
+	}
+	
+/*	loop over Image1@current {
+		Image1@current /= 1.0
+	}
+	loop over Image2@current {
+		Image2@current /= 1.0
+	}
+*/
+	if ( levels@coarsest ( ) < levels@current ( ) ) {
+		initFields@coarser ( )
+	}
+}
+
+Function initFields@(coarsest to (finest - 1)) () : Unit {
+	loop over Image1@current {
+		Image1@current = CellRestrictionStencil@finer * Image1@finer
+	}
+	loop over Image2@current {
+		Image2@current = CellRestrictionStencil@finer * Image2@finer
+	}
+
+	if ( levels@coarsest ( ) < levels@current ( ) ) {
+		initFields@coarser ( )
+	}
+}
+
+Function Solve() : Unit {
+	UpResidual@finest()
+	printVal ( NormResidual_0@finest ( ) )
+	
+	repeat 5 times {
+		VCycle@finest()
+		UpResidual@finest()
+		printVal ( NormResidual_0@finest ( ) )
+	}
+}
+
+Globals {
+	Var alpha : Real = 10.0
+	Val omega : Real = 1.9
+}
+
+Function Application() : Unit {
+	initGlobals ( )
+	initDomain ( )
+	initFieldsWithZero ( )
+	initFields@finest()
+	InitSolution()
+	CalculateGradients@finest()
+	InitRHS@finest()
+	Solve()
+	destroyGlobals()
+}

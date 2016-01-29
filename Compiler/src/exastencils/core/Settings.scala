@@ -11,6 +11,7 @@ object Settings {
   /// input
   var basePathPrefix : String = ""
   def getBasePath = if (basePathPrefix.isEmpty || basePathPrefix.endsWith("/") || basePathPrefix.endsWith("\\")) basePathPrefix else basePathPrefix + "/"
+  def inputFromJson : Boolean = false
 
   var l3file : String = ""
   def defL3file : String = if ("" == basePathPrefix) "../Compiler/dsl/Layer3.exa" else getBasePath + "Compiler/dsl/Layer3.exa"
@@ -61,6 +62,9 @@ object Settings {
   var htmlLogFile : String = ""
   def defHtmlLogFile : String = if ("" == basePathPrefix) "../Compiler/log/log.html" else getBasePath + "Compiler/log/log.html"
   def getHtmlLogFile : String = if (htmlLogFile.isEmpty) defHtmlLogFile else getBasePath + htmlLogFile
+
+  /// debug output
+  var printClonedObjects : Boolean = false
 
   var timeStrategies : Boolean = false
   var timeStratPercentThreshold : Int = 5 // five percent threshold by default -> measurements with less than 5.0 % share are not displayed

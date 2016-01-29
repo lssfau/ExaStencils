@@ -1,0 +1,71 @@
+targetCompiler						= "GCC"
+targetCompilerVersion				= 4
+targetCompilerVersionMinor			= 8
+simd_instructionSet					= "SSE3"
+
+generateFortranInterface			= false
+
+// problem description
+
+dimensionality						= 3
+
+minLevel							= 0
+maxLevel							= 4
+
+experimental_Neumann				= true
+experimental_NeumannOrder			= 1
+
+grid_isUniform						= false
+grid_isStaggered					= true
+grid_isAxisAligned					= true
+
+grid_spacingModel					= "linearFct"
+
+// code generation
+
+l3tmp_generateL4					= false
+l3tmp_genForAutoTests				= true
+
+// domain partioning
+
+domain_numBlocks					= 4
+domain_numFragmentsPerBlock			= 2
+
+domain_onlyRectangular				= true
+
+domain_fragmentLength_x				= 1
+domain_fragmentLength_y				= 1
+domain_fragmentLength_z				= 1
+
+domain_rect_generate				= true
+domain_rect_numBlocks_x				= 2
+domain_rect_numBlocks_y				= 2
+domain_rect_numBlocks_z				= 1
+domain_rect_numFragsPerBlock_x		= 1
+domain_rect_numFragsPerBlock_y		= 1
+domain_rect_numFragsPerBlock_z		= 2
+
+// parallelization
+
+comm_strategyFragment				= 6
+
+omp_enabled							= true
+omp_numThreads						= 2
+
+mpi_enabled							= true
+mpi_numThreads						= 4
+
+omp_parallelizeLoopOverFragments	= true
+omp_parallelizeLoopOverDimensions	= false
+
+// optimization
+
+mpi_useCustomDatatypes				= false
+poly_optLevel_fine					= 0
+opt_useAddressPrecalc				= false
+opt_vectorize						= false
+opt_unroll							= 1
+
+// other
+
+experimental_trimBoundsForReductionLoops = true

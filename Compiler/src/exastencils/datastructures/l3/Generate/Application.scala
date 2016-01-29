@@ -16,7 +16,7 @@ object Application {
     if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
       printer.println("\tstopTimer ( 'setup' )")
     if (!Knowledge.l3tmp_genForAutoTests)
-      printer.println("\tprint ( '\"Total time to setup: \"', getTotalFromTimer ( 'setup' ) )")
+      printer.println("\tprint ( 'Total time to setup: ', getTotalFromTimer ( 'setup' ) )")
 
     if (Knowledge.l3tmp_genSetableStencil) {
       Knowledge.dimensionality match {
@@ -108,8 +108,8 @@ object Application {
     if (Knowledge.l3tmp_kelvin && !Knowledge.l3tmp_genForAutoTests) {
       printer.println("\t}")
       printer.println("\tstopTimer ( 'timePerSample' )")
-      printer.println("\tprint ( '\"Total time to solve: \"', getTotalFromTimer ( 'timePerSample' ) )")
-      printer.println("\tprint ( '\"Mean time per sample: \"', getMeanFromTimer ( 'timePerSample' ) )")
+      printer.println("\tprint ( 'Total time to solve: ', getTotalFromTimer ( 'timePerSample' ) )")
+      printer.println("\tprint ( 'Mean time per sample: ', getMeanFromTimer ( 'timePerSample' ) )")
     }
 
     if (Knowledge.l3tmp_kelvin) {
@@ -126,14 +126,14 @@ object Application {
       printer.println(s"\t\tsolNorm += SolutionMean@finest * SolutionMean@finest")
       printer.println(s"\t}")
       printer.println(s"\tsolNorm = ( sqrt ( solNorm ) ) / ${(Knowledge.domain_rect_numFragsTotal_x - 2 * Knowledge.l3tmp_kelvin_numHaloFrags) * (1 << Knowledge.maxLevel) - 1}")
-      printer.println("\tprint ( '\"Norm of the solution: \"', solNorm )")
+      printer.println("\tprint ( 'Norm of the solution: ', solNorm )")
     }
 
     if (Knowledge.l3tmp_printFieldAtEnd) {
       if (Knowledge.l3tmp_kelvin)
-        printer.println("\tprintField ( '\"Solution.dat\"', SolutionMean@finest )")
+        printer.println("\tprintField ( 'Solution.dat', SolutionMean@finest )")
       else
-        printer.println("\tprintField ( '\"Solution.dat\"', Solution@finest )")
+        printer.println("\tprintField ( 'Solution.dat', Solution@finest )")
     }
 
     if (!Knowledge.l3tmp_genForAutoTests) {
@@ -151,18 +151,18 @@ object Application {
         ) {
           if (Knowledge.l3tmp_genTimersPerLevel) {
             for (level <- Knowledge.minLevel to Knowledge.maxLevel)
-              printer.println("\tprint ( '\"" + s"Total time spent on level $level in ${func._2}: " + "\"', " + s"getTotalFromTimer ( concat ( '${func._1}_', $level ) ) )")
+              printer.println("\tprint ( '" + s"Total time spent on level $level in ${func._2}: " + "', " + s"getTotalFromTimer ( concat ( '${func._1}_', $level ) ) )")
           } else {
-            printer.println("\tprint ( '\"" + s"Total time spent in ${func._2}: " + "\"', " + s"getTotalFromTimer ( '${func._1}' ) )")
+            printer.println("\tprint ( '" + s"Total time spent in ${func._2}: " + "', " + s"getTotalFromTimer ( '${func._1}' ) )")
           }
         }
       }
       if (Knowledge.l3tmp_genTimersForComm) {
         if (Knowledge.l3tmp_genCommTimersPerLevel) {
           for (level <- Knowledge.minLevel to Knowledge.maxLevel)
-            printer.println("\tprint ( '\"" + s"Total time spent communicating on level $level: " + "\"', " + s"getTotalFromTimer ( concat ( 'communication_', $level ) ) )")
+            printer.println("\tprint ( '" + s"Total time spent communicating on level $level: " + "', " + s"getTotalFromTimer ( concat ( 'communication_', $level ) ) )")
         } else {
-          printer.println("\tprint ( '\"" + s"Total time spent communicating: " + "\"', " + s"getTotalFromTimer ( 'communication' ) )")
+          printer.println("\tprint ( '" + s"Total time spent communicating: " + "', " + s"getTotalFromTimer ( 'communication' ) )")
         }
       }
     }
@@ -177,7 +177,7 @@ object Application {
       }
     }
     if (Knowledge.experimental_timerEnableCallStacks) {
-      printer.println("\tnative ( 'CallTracker::PrintCallStackToFileGlobal(\"callstack.cs\")' )")
+      printer.println("\tnative ( 'CallTracker::PrintCallStackToFileGlobal(callstack.cs)' )")
       printer.println("\tnative ( 'CallTracker::ClearCallStack()' )")
     }
 

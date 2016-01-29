@@ -188,12 +188,12 @@ object StateManager {
           ret match {
             case NoMatch => nextNode = n // do nothing, but set next node for recursive matching
             case m : Node => {
-              if (!Vars.set(node, field, m)) {
+              if (ret != n && !Vars.set(node, field, m)) {
                 Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
               }
             }
             case m : NodeList if m.nodes.size == 1 => { // Only valid if list contains a single element
-              if (!Vars.set(node, field, m.nodes.toSeq(0))) {
+              if (m.nodes.toSeq(0) != n && !Vars.set(node, field, m.nodes.toSeq(0))) {
                 Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
               }
             }
@@ -213,13 +213,13 @@ object StateManager {
             ret match {
               case NoMatch => nextNode = n // do nothing, but set next node for recursive matching
               case m : Node => {
-                if (!Vars.set(node, field, Some(m))) {
+                if (ret != n && !Vars.set(node, field, Some(m))) {
                   Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
                 }
               }
               case m : NodeList if m.nodes.size == 1 =>
                 { // Only valid if list contains a single element
-                  if (!Vars.set(node, field, Some(m.nodes.toSeq(0)))) {
+                  if (m.nodes.toSeq(0) != n && !Vars.set(node, field, Some(m.nodes.toSeq(0)))) {
                     Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
                   }
                 }
@@ -313,6 +313,29 @@ object StateManager {
                 newN.nodes // elements of type Node were returned => use them
               }
               case None => List()
+            }
+            case _seq : Seq[_] => {
+              var _newSeq = _seq.flatMap(_f => _f match {
+                case n : Node => applyAtNode(n, transformation).inner match {
+                  case NoMatch =>
+                    replace(n, transformation); List(n) // no match occured => use old element 
+                  case newN : Node => {
+                    if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
+                      replace(newN, transformation) // Recursive call for new element
+                    }
+                    List(newN) // element of type Node was returned => use it
+                  }
+                  case newN : NodeList => {
+                    if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
+                      newN.nodes.foreach(replace(_, transformation)) // recursive call for new elements
+                    }
+                    newN.nodes // elements of type Node were returned => use them
+                  }
+                  case None => List(_f)
+                }
+                case _ => List(_f)
+              })
+              List(_newSeq)
             }
             case _ => List(f)
           })

@@ -2,12 +2,10 @@ package exastencils.languageprocessing.l4
 
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
-
 import exastencils.core._
 import exastencils.core.collectors.L4CommCollector
 import exastencils.core.collectors.L4ValueCollector
 import exastencils.datastructures._
-import exastencils.datastructures.Transformation._
 import exastencils.datastructures.l4._
 import exastencils.knowledge
 import exastencils.logger._
@@ -39,6 +37,12 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
     "vf_nodePosition_x", "vf_nodePosition_y", "vf_nodePosition_z",
     "nodePosition_x", "nodePosition_y", "nodePosition_z",
 
+    "vf_cellCenter_x", "vf_cellCenter_y", "vf_cellCenter_z",
+    "cellCenter_x", "cellCenter_y", "cellCenter_z",
+
+    "vf_boundaryCoord_x", "vf_boundaryCoord_y", "vf_boundaryCoord_z",
+    "boundaryCoord_x", "boundaryCoord_y", "boundaryCoord_z",
+
     "vf_gridWidth_x", "vf_gridWidth_y", "vf_gridWidth_z",
     "gridWidth_x", "gridWidth_y", "gridWidth_z",
 
@@ -59,9 +63,6 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
 
     // resolve values in expressions by replacing them with their expression => let SimplifyStrategy do the work
     this.register(valueCollector)
-    //    this.execute(new Transformation("Put Values into collector", {
-    //      case x : ValueDeclarationStatement => x
-    //    }))
 
     this.execute(new Transformation("ResolveValuesInExpressions", {
       case x : UnresolvedAccess if (x.level == None && x.slot == None && x.arrayIndex == None) => {
@@ -72,7 +73,7 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
         }
       }
       case x : UnresolvedAccess if (x.level.isDefined && x.level.get.isInstanceOf[SingleLevelSpecification] && x.slot == None && x.arrayIndex == None) => {
-        var value = valueCollector.getValue(x.name + "_" + x.level.get.asInstanceOf[SingleLevelSpecification].level)
+        var value = valueCollector.getValue(x.name + "@@" + x.level.get.asInstanceOf[SingleLevelSpecification].level)
         value match {
           case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Val was found"""); x }
           case _    => value.get
@@ -103,6 +104,20 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
 
       // constants
       case BasicAccess("PI") | BasicAccess("M_PI") | BasicAccess("Pi")                                   => FloatConstant(math.Pi)
+    }))
+
+    this.execute(new Transformation("Resolving string constants to literals", {
+      case f : FunctionCallExpression =>
+        f.identifier.name match {
+          case "startTimer"        => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
+          case "stopTimer"         => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
+          case "getMeanFromTimer"  => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
+          case "getMeanTime"       => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
+          case "getTotalFromTimer" => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
+          case "getTotalTime"      => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
+          case _                   =>
+        }
+        f
     }))
 
     this.commit()
@@ -263,3 +278,38 @@ object WrapL4FieldOpsStrategy extends DefaultStrategy("Adding communcation and l
     // FIXME: handle region loops
   }, false /* recursion must be switched of due to wrapping mechanism */ )
 }
+
+//object UnifyInnerTypes extends DefaultStrategy("Unify inner types of (constant) vectors and matrices") {
+//  var vectors = ListBuffer[VectorExpression]()
+//  var matrices = ListBuffer[MatrixExpression]()
+//
+//  override def apply(applyAtNode : Option[Node]) = {
+//    this.execute(new Transformation("Find vectors and matrices", {
+//      case x : VectorExpression =>
+//        vectors.+=(x); x
+//      case x : MatrixExpression => matrices.+=(x); x
+//    }))
+//
+//    vectors.foreach(vector => {
+//      if (vector.isConstant) {
+//        var reals = vector.expressions.filter(_.isInstanceOf[FloatConstant]).length
+//        var ints = vector.expressions.filter(_.isInstanceOf[IntegerConstant]).length
+//        if (ints > 0 && reals > 0) {
+//          vector.expressions = vector.expressions.map(e => if (e.isInstanceOf[FloatConstant]) e; else FloatConstant(e.asInstanceOf[IntegerConstant].v))
+//        }
+//      }
+//    })
+//
+//    matrices.foreach(matrix => {
+//      if (matrix.isConstant) {
+//        var reals = matrix.expressions.collect { case x : VectorExpression => x.expressions.filter(_.isInstanceOf[FloatConstant]).length } reduce ((a, b) => a + b)
+//        var ints = matrix.expressions.collect { case x : VectorExpression => x.expressions.filter(_.isInstanceOf[IntegerConstant]).length } reduce ((a, b) => a + b)
+//        if (ints > 0 && reals > 0) {
+//          matrix.expressions.foreach(exp => {
+//            exp.expressions = exp.expressions.map(e => if (e.isInstanceOf[FloatConstant]) e; else FloatConstant(e.asInstanceOf[IntegerConstant].v))
+//          })
+//        }
+//      }
+//    })
+//  }
+//}

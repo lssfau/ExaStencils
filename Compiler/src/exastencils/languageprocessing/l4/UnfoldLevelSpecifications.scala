@@ -27,15 +27,6 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
 
     // ###################################################################################################################
 
-    //    // annotate function calls to special function, e.g. return(), so they are not changed by the next transformation
-    //    StateManager.apply(this.token.get, new Transformation("AnnotateFunctionCalls", {
-    //      case f : FunctionCallExpression =>
-    //        f.identifier match {
-    //          case x : UnresolvedAccess if (x.identifier == "return") => x.annotate("NO_PROTECT_THIS")
-    //          case _ =>
-    //        }; f
-    //    }))
-
     // resolve level identifiers "coarsest", "finest"
     this.execute(new Transformation("Resolve IdentifierLevelSpecifications", {
       case x : AllLevelsSpecification     => RangeLevelSpecification(SingleLevelSpecification(Knowledge.minLevel), SingleLevelSpecification(Knowledge.maxLevel))
@@ -104,6 +95,14 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
       case function : FunctionStatement => function.identifier match {
         case LeveledIdentifier(_, level) => doDuplicate(function, level)
         case BasicIdentifier(_)          => function
+      }
+    }))
+
+    // Flatten leveled scope or remove completely
+    this.execute(new Transformation("Resolve leveled scopes", {
+      case scope : LeveledScopeStatement => scope.level match {
+        case s : SingleLevelSpecification => if (levelCollector.getCurrentLevel == s.level) scope.statements; else List()
+        case s : ListLevelSpecification   => if (s.contains(levelCollector.getCurrentLevel)) scope.statements; else List()
       }
     }))
 

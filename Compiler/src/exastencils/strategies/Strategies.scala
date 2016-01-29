@@ -24,7 +24,7 @@ object ReplaceStringConstantsStrategy extends QuietDefaultStrategy("Replace some
   var replacement : Node = LoopOverDimensions.defIt
 
   this += new Transformation("SearchAndReplace", {
-    case StringConstant(s) if s == toReplace => Duplicate(replacement)
+    case StringLiteral(s) if s == toReplace => Duplicate(replacement)
   }, false)
 }
 
@@ -112,6 +112,15 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       FloatConstant(left.v * right.v)
     case DivisionExpression(left : IntegerConstant, right : FloatConstant) =>
       FloatConstant(left.v / right.v)
+
+    case AdditionExpression(left : FloatConstant, right : IntegerConstant) =>
+      FloatConstant(left.v + right.v)
+    case SubtractionExpression(left : FloatConstant, right : IntegerConstant) =>
+      FloatConstant(left.v - right.v)
+    case MultiplicationExpression(left : FloatConstant, right : IntegerConstant) =>
+      FloatConstant(left.v * right.v)
+    case DivisionExpression(left : FloatConstant, right : IntegerConstant) =>
+      FloatConstant(left.v / right.v)
     //})
 
     //this += new Transformation("Permutating operations with constants on the 'wrong' side", {
@@ -198,6 +207,48 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case SubtractionExpression(left : Expression, IntegerConstant(0))     => left
     case AdditionExpression(left : Expression, FloatConstant(0))          => left
     case SubtractionExpression(left : Expression, FloatConstant(0))       => left
+
+    // Simplify vectors
+    case NegativeExpression(v : VectorExpression)                         => VectorExpression(v.datatype, v.expressions.map(_ * (-1)), v.rowVector)
+    case AdditionExpression(left : VectorExpression, right : VectorExpression) => {
+      if (left.rowVector.getOrElse(true) != right.rowVector.getOrElse(true)) Logger.error("Vector types must match for addition")
+      if (left.length != right.length) Logger.error("Vector sizes must match for addition")
+      VectorExpression(GetResultingDatatype(left.datatype, right.datatype), (left.expressions, right.expressions).zipped.map(_ + _), left.rowVector.getOrElse(right.rowVector).asInstanceOf[Option[Boolean]])
+    }
+    case SubtractionExpression(left : VectorExpression, right : VectorExpression) => {
+      if (left.rowVector.getOrElse(true) != right.rowVector.getOrElse(true)) Logger.error("Vector types must match for subtraction")
+      if (left.length != right.length) Logger.error("Vector sizes must match for subtraction")
+      VectorExpression(GetResultingDatatype(left.datatype, right.datatype), (left.expressions, right.expressions).zipped.map(_ - _), left.rowVector.getOrElse(right.rowVector).asInstanceOf[Option[Boolean]])
+    }
+    case MultiplicationExpression(v : VectorExpression, c : IntegerConstant) => {
+      VectorExpression(v.datatype, v.expressions.map(c * _), v.rowVector)
+    }
+    case MultiplicationExpression(v : VectorExpression, c : FloatConstant) => {
+      VectorExpression(GetResultingDatatype(v.datatype, Some(RealDatatype)), v.expressions.map(c * _), v.rowVector)
+    }
+    case MultiplicationExpression(c : IntegerConstant, v : VectorExpression) => {
+      VectorExpression(v.datatype, v.expressions.map(c * _), v.rowVector)
+    }
+    case MultiplicationExpression(c : FloatConstant, v : VectorExpression) => {
+      VectorExpression(GetResultingDatatype(Some(RealDatatype), v.datatype), v.expressions.map(c * _), v.rowVector)
+    }
+    case MultiplicationExpression(left : VectorExpression, right : VectorExpression) => {
+      if (left.length != right.length) Logger.error("Vector sizes must match for multiplication")
+      if (left.rowVector.getOrElse(true) != right.rowVector.getOrElse(true)) Logger.error("Vector types must match for multiplication")
+      val t = (left.expressions, right.expressions).zipped.map(_ * _)
+      t.reduce((a : Expression, b : Expression) => a + b)
+    }
+
+    // Simplify matrices
+    case NegativeExpression(m : MatrixExpression) => MatrixExpression(m.datatype, m.expressions.map(_.map(_ * (-1)).map(_.asInstanceOf[Expression])))
+    case MultiplicationExpression(c : IntegerConstant, m : MatrixExpression) =>
+      MatrixExpression(m.datatype, m.expressions.map(_.map(c * _).map(_.asInstanceOf[Expression])))
+    case MultiplicationExpression(c : FloatConstant, m : MatrixExpression) =>
+      MatrixExpression(m.datatype, m.expressions.map(_.map(c * _).map(_.asInstanceOf[Expression])))
+    case MultiplicationExpression(m : MatrixExpression, c : IntegerConstant) =>
+      MatrixExpression(m.datatype, m.expressions.map(_.map(c * _).map(_.asInstanceOf[Expression])))
+    case MultiplicationExpression(m : MatrixExpression, c : FloatConstant) =>
+      MatrixExpression(m.datatype, m.expressions.map(_.map(c * _).map(_.asInstanceOf[Expression])))
 
     //})
 
@@ -296,3 +347,37 @@ object CleanUnusedStuff extends DefaultStrategy("Cleaning up unused stuff") {
   //    case NullStatement                       => List()
   //  })
 }
+
+object UnifyInnerTypes extends DefaultStrategy("Unify inner types of (constant) vectors and matrices") {
+  var vectors = ListBuffer[VectorExpression]()
+  var matrices = ListBuffer[MatrixExpression]()
+
+  override def apply(applyAtNode : Option[Node]) = {
+    this.execute(new Transformation("Find vectors and matrices", {
+      case x : VectorExpression =>
+        vectors.+=(x); x
+      case x : MatrixExpression => matrices.+=(x); x
+    }))
+
+    vectors.foreach(vector => {
+      if (vector.isConstant) {
+        var reals = vector.expressions.filter(_.isInstanceOf[FloatConstant]).length
+        var ints = vector.expressions.filter(_.isInstanceOf[IntegerConstant]).length
+        if (ints > 0 && reals > 0) {
+          vector.expressions = vector.expressions.map(e => if (e.isInstanceOf[FloatConstant]) e; else FloatConstant(e.asInstanceOf[IntegerConstant].v))
+        }
+      }
+    })
+
+    matrices.foreach(matrix => {
+      if (matrix.isConstant) {
+        var reals = matrix.expressions.flatten[Expression].filter(_.isInstanceOf[FloatConstant]).length
+        var ints = matrix.expressions.flatten[Expression].filter(_.isInstanceOf[IntegerConstant]).length
+        if (ints > 0 && reals > 0) {
+          matrix.expressions = matrix.expressions.map(_.map(e => if (e.isInstanceOf[FloatConstant]) e; else FloatConstant(e.asInstanceOf[IntegerConstant].v)))
+        }
+      }
+    })
+  }
+}
+

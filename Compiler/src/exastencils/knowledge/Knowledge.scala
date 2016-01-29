@@ -6,6 +6,7 @@ import exastencils.spl._
 
 object Knowledge {
   // TODO: rename and move to hw knowledge?
+  var targetOS : String = "Windows" // the target operating system: "Linux", "Windows", "OSX"
   var targetCompiler : String = "MSVC" // the target compiler; may atm be "MSVC", "GCC", "IBMXL", "IBMBG", "ICC", "CLANG"
   var targetCompilerVersion : Int = 0 // major version of the target compiler
   var targetCompilerVersionMinor : Int = 0 // minor version of the target compiler
@@ -100,7 +101,11 @@ object Knowledge {
   def domain_rect_hasPeriodicity : Boolean = domain_rect_periodic_x || domain_rect_periodic_y || domain_rect_periodic_z
 
   // specifies which type of grids are used for the discretization
-  var discr_gridType = "AxisAlignedConstWidth" // possible options are "AxisAlignedConstWidth" and "AxisAlignedVariableWidth"
+  var grid_isUniform : Boolean = true
+  var grid_isStaggered : Boolean = false
+  var grid_isAxisAligned : Boolean = true
+
+  var grid_spacingModel : String = "uniform" // must be uniform if grid_isUniform; may be "diego" or "linearFct" otherwise
 
   // options for SISC Paper
   var sisc2015_numNodes : Int = 64 // [16~64§sisc2015_numNodes*2]
@@ -164,6 +169,8 @@ object Knowledge {
 
   var data_alignFieldPointers : Boolean = false // specifies if pointers to field data are to be aligned to simd_vectorSize, e.g. to ensure correct alignment for SIMD accesses
   var data_alignTmpBufferPointers : Boolean = false // specifies if pointers to communication buffers are to be aligned to simd_vectorSize, e.g. to ensure correct alignment for SIMD accesses
+
+  var data_genVariableFieldSizes : Boolean = false // generates global variables for employed field indices such as ghost/duplicate/inner begin and end
 
   // --- OpenMP and MPI Parallelization ---
   var comm_strategyFragment : Int = 6 // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors
@@ -318,6 +325,9 @@ object Knowledge {
   /// paper project - SISC
   var l3tmp_sisc : Boolean = false // generates test problems for the upcoming SISC paper in conjunction with dimensionality and l3tmp_genStencilFields
 
+  /// paper project - Optical Flow
+  var library_CImg : Boolean = false // Adds the CImg library
+
   /// student project - Kelvin
   var l3tmp_kelvin : Boolean = false // currently only works for 2D
   var l3tmp_kelvin_numSamples : Int = 10 // only required for l3tmp_kelvin; number of samples to be evaluated
@@ -340,15 +350,17 @@ object Knowledge {
 
   var experimental_allowCommInFragLoops : Boolean = false
 
-  var experimental_genVariableFieldSizes : Boolean = true
+  var experimental_generateParaviewFiles : Boolean = false
+
+  var experimental_trimBoundsForReductionLoops : Boolean = false
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
 
-    Constraints.condEnsureValue(targetCompilerVersion, 11, "MSVC" == targetCompiler && targetCompilerVersion < 11, "When using MSVC, only version 11.0 and 12.0 are currently supported")
-    Constraints.condEnsureValue(targetCompilerVersion, 12, "MSVC" == targetCompiler && targetCompilerVersion > 12, "When using MSVC, only version 11.0 and 12.0 are currently supported")
-    Constraints.condEnsureValue(targetCompilerVersionMinor, 0, "MSVC" == targetCompiler, "When using MSVC, only version 11.0 and 12.0 are currently supported")
+    Constraints.condEnsureValue(targetCompilerVersion, 11, "MSVC" == targetCompiler && targetCompilerVersion < 11, "When using MSVC, only versions > 11.0 are currently supported")
+    Constraints.condEnsureValue(targetCompilerVersion, 14, "MSVC" == targetCompiler && targetCompilerVersion > 14, "When using MSVC, only version up to 14.0 are currently supported")
+    Constraints.condEnsureValue(targetCompilerVersionMinor, 0, "MSVC" == targetCompiler, "When using MSVC, minor version numbers are not supported")
 
     Constraints.condEnsureValue(omp_enabled, false, "CLANG" == targetCompiler && (targetCompilerVersion >= 3 && targetCompilerVersionMinor < 7), "Only clang >= 3.7 supports OpenMP")
 
@@ -398,6 +410,11 @@ object Knowledge {
     Constraints.condEnsureValue(minLevel, 0, minLevel < 0, "minLevel must not be negative")
     Constraints.condEnsureValue(maxLevel, 0, maxLevel < 0, "maxLevel must not be negative")
     // Constraints.condEnsureValue(minLevel, maxLevel - 1, minLevel >= maxLevel, "maxLevel must be larger than minLevel") // TODO: this seems unnecessary -> check if sth breaks
+
+    // grid
+    Constraints.condEnsureValue(grid_spacingModel, "uniform", grid_isUniform, "uniform spacing is required for uniform grids")
+    Constraints.condEnsureValue(grid_isUniform, true, "uniform" == grid_spacingModel, "grid_isUniform has to be true for uniform spacing models")
+    Constraints.condWarn("diego" == grid_spacingModel, "diego spacing model currently ignores domain bounds set in the DSL")
 
     if (l3tmp_generateL4) {
       // l3tmp - problem to solve
@@ -466,7 +483,7 @@ object Knowledge {
 
       // l3tmp - temporal blocking
       Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, experimental_Neumann, "l3tmp_genTemporalBlocking is currently not compatible with Neumann boundary conditions")
-//      Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_genCellBasedDiscr, "l3tmp_genTemporalBlocking is currently not compatible with cell based discretizations")
+      //      Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_genCellBasedDiscr, "l3tmp_genTemporalBlocking is currently not compatible with cell based discretizations")
       Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, "RBGS" == l3tmp_smoother, "l3tmp_genTemporalBlocking is currently not compatible with RBGS smoothers")
       Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_numPre != l3tmp_numPost, "l3tmp_numPre and l3tmp_numPost have to be equal")
       Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, math.ceil(math.log(l3tmp_numPre) / math.log(2)).toInt,
@@ -501,8 +518,8 @@ object Knowledge {
 
     Constraints.condEnsureValue(experimental_useLevelIndepFcts, false, "Zero" != l3tmp_exactSolution, "level independent communication functions are not compatible with non-trivial boundary conditions")
     Constraints.condEnsureValue(mpi_useCustomDatatypes, false, experimental_useLevelIndepFcts, "MPI data types cannot be used in combination with level independent communication functions yet")
-    Constraints.condEnsureValue(experimental_genVariableFieldSizes, true, experimental_useLevelIndepFcts, "level independent communication functions require variable field sizes")
-    Constraints.condEnsureValue(mpi_useCustomDatatypes, false, experimental_genVariableFieldSizes, "MPI data types cannot be used in combination with variable field sizes yet")
+    Constraints.condEnsureValue(data_genVariableFieldSizes, true, experimental_useLevelIndepFcts, "level independent communication functions require variable field sizes")
+    Constraints.condEnsureValue(mpi_useCustomDatatypes, false, data_genVariableFieldSizes, "MPI data types cannot be used in combination with variable field sizes yet")
 
     Constraints.condEnsureValue(mpi_useBusyWait, true, experimental_allowCommInFragLoops && domain_numFragmentsPerBlock > 1, s"mpi_useBusyWait must be true when experimental_allowCommInFragLoops is used in conjunction with multiple fragments per block")
     Constraints.condWarn(comm_disableLocalCommSync && experimental_allowCommInFragLoops, s"comm_disableLocalCommSynchronization in conjunction with experimental_allowCommInFragLoops is strongly discouraged")
@@ -532,5 +549,8 @@ object Knowledge {
     Constraints.condEnsureValue(timer_type, "WIN_TIME", "UNIX_TIME" == timer_type && "MSVC" == targetCompiler, "UNIX_TIME is not supported for windows systems")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMXL" == targetCompiler, "IBM XL does currently not support std::chrono")
     Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMBG" == targetCompiler, "IBM BG does currently not support std::chrono")
+
+    // experimental
+    Constraints.condEnsureValue(experimental_trimBoundsForReductionLoops, false, data_genVariableFieldSizes, "experimental_trimBoundsForReductionLoops is currently not compatible with data_genVariableFieldSizes")
   }
 }

@@ -22,7 +22,7 @@ object dirToString extends (Int => String) {
 object Fragment {
   var neighbors : ListBuffer[NeighborInfo] = ListBuffer()
 
-  /// ignores array entries beyond Knowledge.dimensionality
+  // ignores array entries beyond Knowledge.dimensionality
   def getNeigh(dir : Array[Int]) : NeighborInfo = {
     if (dir.size >= Knowledge.dimensionality) {
       for (neigh <- neighbors) {

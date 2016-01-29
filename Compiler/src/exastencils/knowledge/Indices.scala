@@ -34,7 +34,7 @@ object Mapping {
       case 2 => (index(2) * (layout(1).total * layout(0).total) + index(1) * layout(0).total + index(0))
       case 3 => (index(3) * (layout(2).total * layout(1).total * layout(0).total) + index(2) * (layout(1).total * layout(0).total) + index(1) * layout(0).total + index(0))
     }
-    if (Knowledge.experimental_genVariableFieldSizes) {
+    if (Knowledge.data_genVariableFieldSizes) {
       SimplifyStrategy.doUntilDoneStandalone(ret)
       ret
     } else {
@@ -50,7 +50,7 @@ object Mapping {
       case 2 => (index(2) * (strides(1) * strides(0)) + index(1) * strides(0) + index(0))
       case 3 => (index(3) * (strides(2) * strides(1) * strides(0)) + index(2) * (strides(1) * strides(0)) + index(1) * strides(0) + index(0))
     }
-    if (Knowledge.experimental_genVariableFieldSizes) {
+    if (Knowledge.data_genVariableFieldSizes) {
       SimplifyStrategy.doUntilDoneStandalone(ret)
       ret
     } else {
@@ -85,6 +85,7 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
 
   override def expand : Output[StatementList] = {
     if (Knowledge.domain_fragmentTransformation) {
+      // TODO: integrate into the new grid class family
       ListBuffer[Statement](
         VariableDeclarationStatement(RealDatatype, "xPosTMP", field.fieldLayout.discretization match {
           case "node" | "face_x" =>
@@ -142,41 +143,7 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
             + ArrayAccess(iv.PrimitiveTransformation(), 11)))
         else NullStatement)
     } else {
-      ListBuffer[Statement](
-        VariableDeclarationStatement(RealDatatype, "xPos", field.fieldLayout.discretization match {
-          case "node" | "face_x" =>
-            Some(((if (directCoords) ("x" - field.referenceOffset.index_0) else ("x" : Expression)) + offset.index_0)
-              / CastExpression(RealDatatype, field.fieldLayout.idxById("DRE", 0) - field.fieldLayout.idxById("DLB", 0) - 1)
-              * (ArrayAccess(iv.PrimitivePositionEnd(), 0) - ArrayAccess(iv.PrimitivePositionBegin(), 0)) + ArrayAccess(iv.PrimitivePositionBegin(), 0))
-          case "cell" | "face_y" | "face_z" =>
-            Some(((if (directCoords) ("x" - field.referenceOffset.index_0) else ("x" : Expression)) + 0.5 + offset.index_0)
-              / CastExpression(RealDatatype, field.fieldLayout.idxById("DRE", 0) - field.fieldLayout.idxById("DLB", 0) - 0)
-              * (ArrayAccess(iv.PrimitivePositionEnd(), 0) - ArrayAccess(iv.PrimitivePositionBegin(), 0)) + ArrayAccess(iv.PrimitivePositionBegin(), 0))
-        }),
-        if (Knowledge.dimensionality > 1)
-          VariableDeclarationStatement(RealDatatype, "yPos", field.fieldLayout.discretization match {
-          case "node" | "face_y" =>
-            Some(((if (directCoords) ("y" - field.referenceOffset.index_1) else ("y" : Expression)) + offset.index_1)
-              / CastExpression(RealDatatype, field.fieldLayout.idxById("DRE", 1) - field.fieldLayout.idxById("DLB", 1) - 1)
-              * (ArrayAccess(iv.PrimitivePositionEnd(), 1) - ArrayAccess(iv.PrimitivePositionBegin(), 1)) + ArrayAccess(iv.PrimitivePositionBegin(), 1))
-          case "cell" | "face_x" | "face_z" =>
-            Some(((if (directCoords) ("y" - field.referenceOffset.index_1) else ("y" : Expression)) + 0.5 + offset.index_1)
-              / CastExpression(RealDatatype, field.fieldLayout.idxById("DRE", 1) - field.fieldLayout.idxById("DLB", 1) - 0)
-              * (ArrayAccess(iv.PrimitivePositionEnd(), 1) - ArrayAccess(iv.PrimitivePositionBegin(), 1)) + ArrayAccess(iv.PrimitivePositionBegin(), 1))
-        })
-        else NullStatement,
-        if (Knowledge.dimensionality > 2)
-          VariableDeclarationStatement(RealDatatype, "zPos", field.fieldLayout.discretization match {
-          case "node" | "face_z" =>
-            Some(((if (directCoords) ("z" - field.referenceOffset.index_2) else ("z" : Expression)) + offset.index_2)
-              / CastExpression(RealDatatype, field.fieldLayout.idxById("DRE", 2) - field.fieldLayout.idxById("DLB", 2) - 1)
-              * (ArrayAccess(iv.PrimitivePositionEnd(), 2) - ArrayAccess(iv.PrimitivePositionBegin(), 2)) + ArrayAccess(iv.PrimitivePositionBegin(), 2))
-          case "cell" | "face_x" | "face_y" =>
-            Some(((if (directCoords) ("z" - field.referenceOffset.index_2) else ("z" : Expression)) + 0.5 + offset.index_2)
-              / CastExpression(RealDatatype, field.fieldLayout.idxById("DRE", 2) - field.fieldLayout.idxById("DLB", 2) - 0)
-              * (ArrayAccess(iv.PrimitivePositionEnd(), 2) - ArrayAccess(iv.PrimitivePositionBegin(), 2)) + ArrayAccess(iv.PrimitivePositionBegin(), 2))
-        })
-        else NullStatement)
+      Logger.error("deprecated")
     }
   }
 }
@@ -199,16 +166,16 @@ object ResolveCoordinates extends DefaultStrategy("ResolveCoordinates") {
 
   Knowledge.dimensionality match {
     case 1 => this += new Transformation("SearchAndReplace", {
-      case StringConstant("x") => replacement(0)
+      case StringLiteral("x") => replacement(0)
     })
     case 2 => this += new Transformation("SearchAndReplace", {
-      case StringConstant("x") => replacement(0)
-      case StringConstant("y") => replacement(1)
+      case StringLiteral("x") => replacement(0)
+      case StringLiteral("y") => replacement(1)
     })
     case 3 => this += new Transformation("SearchAndReplace", {
-      case StringConstant("x") => replacement(0)
-      case StringConstant("y") => replacement(1)
-      case StringConstant("z") => replacement(2)
+      case StringLiteral("x") => replacement(0)
+      case StringLiteral("y") => replacement(1)
+      case StringLiteral("z") => replacement(2)
     })
   }
 }
@@ -217,7 +184,7 @@ object CreateGeomCoordinates extends DefaultStrategy("Add geometric coordinate c
   this += new Transformation("Search and extend", {
     case loop : LoopOverPointsInOneFragment =>
       if (StateManager.findFirst[AnyRef]((node : Any) => node match {
-        case StringConstant("xPos") | StringConstant("yPos") | StringConstant("zPos") => true
+        case StringLiteral("xPos") | StringLiteral("yPos") | StringLiteral("zPos") => true
         case VariableAccess("xPos", _) | VariableAccess("yPos", _) | VariableAccess("zPos", _) => true
         case _ => false
       }, loop).isDefined) {

@@ -16,7 +16,7 @@ object Solve {
       if (Knowledge.l3tmp_genForAutoTests)
         Util.addPrintAutoTestValueCode(printer, s"resStart_$vecDim")
       else
-        printer.println("\tprint ( '\"" + s"Starting residual at $vecDim" + "\"', " + s"resStart_$vecDim )")
+        printer.println("\tprint ( '" + s"Starting residual at $vecDim" + "', " + s"resStart_$vecDim )")
     }
     if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
       printer.println("\tstartTimer ( 'timeToSolve' )")
@@ -57,7 +57,7 @@ object Solve {
 
     if (Knowledge.l3tmp_timeoutLimit > 0) {
       printer.println(s"\t\tif (getTotalFromTimer ( 'cycle' ) > ${Knowledge.l3tmp_timeoutLimit} ) {")
-      printer.println("\t\t\tprint ( '\"Aborting solve after\"', getTotalFromTimer ( 'cycle' ), '\"ms which exceeds the limit of\"', " + Knowledge.l3tmp_timeoutLimit + ", '\"ms\"' )")
+      printer.println("\t\t\tprint ( 'Aborting solve after', getTotalFromTimer ( 'cycle' ), 'ms which exceeds the limit of', " + Knowledge.l3tmp_timeoutLimit + ", 'ms' )")
       printer.println("\t\t\treturn")
       printer.println(s"\t\t}")
     }
@@ -76,10 +76,10 @@ object Solve {
           printer.println(s"\t\tVar curError_$vecDim : Real = NormError_$vecDim@finest ( )")
         Util.addPrintAutoTestValueCode(printer, if (Knowledge.l3tmp_printError) s"curError_$vecDim" else s"res_$vecDim")
       } else {
-        printer.println("\t\tprint ( '\"" + s"Residual at $vecDim:" + "\"', " + s"res_$vecDim" + ", '\"Residual reduction:\"', " + s"( resStart_$vecDim / res_$vecDim ), " + "'\"Convergence factor:\"', " + s"( res_$vecDim / resOld_$vecDim ) )")
+        printer.println("\t\tprint ( '" + s"Residual at $vecDim:" + "', " + s"res_$vecDim" + ", 'Residual reduction:', " + s"( resStart_$vecDim / res_$vecDim ), " + "'Convergence factor:', " + s"( res_$vecDim / resOld_$vecDim ) )")
         if (Knowledge.l3tmp_printError) {
           printer.println(s"\t\tVar curError_$vecDim : Real = NormError_$vecDim@finest ( )")
-          printer.println("\t\tprint ( '\"" + s"Error at $vecDim:" + "\"', " + s"curError_$vecDim )")
+          printer.println("\t\tprint ( '" + s"Error at $vecDim:" + "', " + s"curError_$vecDim )")
         }
       }
     }
@@ -93,18 +93,18 @@ object Solve {
     if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
       printer.println("\tstopTimer ( 'timeToSolve' )")
     if (!Knowledge.l3tmp_genForAutoTests) {
-      printer.println("\tprint ( '\"Total time to solve in\"', numIt, '\"steps :\"', getTotalFromTimer ( 'timeToSolve' ) )")
-      printer.println("\tprint ( '\"Mean time per vCycle: \"', getMeanFromTimer ( 'cycle' ) )")
+      printer.println("\tprint ( 'Total time to solve in', numIt, 'steps :', getTotalFromTimer ( 'timeToSolve' ) )")
+      printer.println("\tprint ( 'Mean time per vCycle: ', getMeanFromTimer ( 'cycle' ) )")
     }
     printer.println(s"}")
     printer.println
 
     if (Knowledge.l3tmp_kelvin) {
       printer.println("Function Solve_GMRF ( ) : Unit {")
-      printer.println("\tnative ( \"static int sample = 0\" )")
-      printer.println("\tnative ( \"std::default_random_engine generator(mpiRank + sample++)\" )")
-      printer.println("\tnative ( \"std::normal_distribution<" + (if (Knowledge.useDblPrecision) "double" else "float") + "> distribution(0.0, 1.0)\" )")
-      printer.println("\tnative ( \"auto randn = std::bind ( distribution, generator )\" )")
+      printer.println("\tnative ( static int sample = 0 )")
+      printer.println("\tnative ( std::default_random_engine generator(mpiRank + sample++) )")
+      printer.println("\tnative ( std::normal_distribution<" + (if (Knowledge.useDblPrecision) "double" else "float") + "> distribution(0.0, 1.0) )")
+      printer.println("\tnative ( auto randn = std::bind ( distribution, generator ) )")
 
       printer.println(s"\tVariable tau2 : Real = myGamma ( nu ) / ( myGamma ( nu + 0.5 ) * (( 4.0 * PI ) ** ( dim / 2.0 )) * ( kappa ** ( 2 * nu )) * sigma * sigma )")
       printer.println(s"\tloop over RHS_GMRF@finest {")
@@ -123,7 +123,7 @@ object Solve {
       if (Knowledge.l3tmp_genForAutoTests)
         printer.println(s"\tprint ( resStart )")
       else
-        printer.println("\tprint ( '\"Starting residual:\"', resStart )")
+        printer.println("\tprint ( 'Starting residual:', resStart )")
       if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
         printer.println("\tstartTimer ( 'timeToSolve' )")
       printer.println("\tVariable numIt : Integer = 0")
@@ -147,7 +147,7 @@ object Solve {
       if (Knowledge.l3tmp_genForAutoTests)
         Util.addPrintAutoTestValueCode(printer, "res")
       else
-        printer.println("\t\tprint ( '\"Residual:\"', res, '\"Residual reduction:\"', ( resStart / res ), '\"Convergence factor:\"', ( res / resOld ) )")
+        printer.println("\t\tprint ( 'Residual:', res, 'Residual reduction:', ( resStart / res ), 'Convergence factor:', ( res / resOld ) )")
 
       if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
         printer.println("\tstopTimer ( 'convergenceChecking' )")
@@ -159,8 +159,8 @@ object Solve {
       if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
         printer.println("\tstopTimer ( 'timeToSolve' )")
       if (!Knowledge.l3tmp_genForAutoTests) {
-        printer.println("\tprint ( '\"Total time to solve in\"', numIt, '\"steps :\"', getTotalFromTimer ( 'timeToSolve' ) )")
-        printer.println("\tprint ( '\"Mean time per vCycle: \"', getMeanFromTimer ( 'cycle' ) )")
+        printer.println("\tprint ( 'Total time to solve in', numIt, 'steps :', getTotalFromTimer ( 'timeToSolve' ) )")
+        printer.println("\tprint ( 'Mean time per vCycle: ', getMeanFromTimer ( 'cycle' ) )")
       }
 
       printer.println(s"\tloop over Solution_GMRF@finest {")

@@ -4,7 +4,7 @@ import exastencils.knowledge._
 
 object FMG {
   def addFunctions(printer : java.io.PrintWriter) = {
-    // specialized boundary handling functions      
+    // specialized boundary handling functions
     val fields = if ("Jac" == Knowledge.l3tmp_smoother) {
       if (Knowledge.l3tmp_useSlotsForJac)
         Array("Solution[0]@current", "Solution[1]@current")
@@ -17,7 +17,7 @@ object FMG {
       case 2 => Array("[-1,  0]", "[ 1,  0]", "[ 0, -1]", "[ 0,  1]")
       case 3 => Array("[-1,  0,  0]", "[ 1,  0,  0]", "[ 0, -1,  0]", "[ 0,  1,  0]", "[ 0,  0, -1]", "[ 0,  0,  1]")
     }
-    val bc = Functions.solFunction
+    val bc = Functions.solFunction(false)
 
     printer.println(s"Function SetFuncDir@all ( ) : Unit {")
     for (dir <- directions) {

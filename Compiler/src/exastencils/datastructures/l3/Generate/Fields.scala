@@ -43,7 +43,7 @@ object Fields {
       var bc = (
         if (Knowledge.l3tmp_kelvin && "" == postfix) "bcSol(vf_nodePosition_x@current, vf_nodePosition_y@current)"
         else if (Knowledge.experimental_Neumann) "Neumann"
-        else Functions.solFunction)
+        else Functions.solFunction(true))
       var coarseBC = if (Knowledge.experimental_Neumann) "Neumann" else "0.0"
       if ("Jac" == Knowledge.l3tmp_smoother) {
         if (Knowledge.l3tmp_useSlotsForJac) {

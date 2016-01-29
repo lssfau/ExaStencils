@@ -29,6 +29,8 @@ class IRLevelCollector extends Collector {
     levelStack.clear
   }
 
+  def inLevelScope : Boolean = !levelStack.isEmpty
+
   def getCurrentLevel : Int = {
     if (levelStack.isEmpty) {
       Logger.dbg("Trying to access level outside of a valid scope")

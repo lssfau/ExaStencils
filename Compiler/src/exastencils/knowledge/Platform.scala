@@ -12,10 +12,17 @@ object Platform {
   var ldflags : String = ""
   var addldflags : String = ""
 
+  if (Knowledge.library_CImg) {
+    Knowledge.targetOS match {
+      case "Windows"       => ldflags += " -lgdi32 "
+      case "Linux" | "OSX" => ldflags += " -lm -lpthread -lX11"
+    }
+  }
+
   // NOTE: this only works if the Hardware object is loaded AFTER Knowledge is fully initialized
   Knowledge.targetCompiler match {
     case "IBMBG" => {
-      cflags = " -O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot 
+      cflags = " -O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot
       ldflags = " -O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot
 
       if (Knowledge.mpi_enabled && Knowledge.omp_enabled) {
@@ -80,7 +87,11 @@ object Platform {
     }
     case "MSVC" => { /* nothing to do */ }
     case "ICC" => {
-      compiler = "icc"
+      if (Knowledge.mpi_enabled)
+        compiler = "mpicxx"
+      else
+        compiler = "icc"
+
       cflags = " -O3 -std=c++11"
 
       if (Knowledge.omp_enabled) {
@@ -90,7 +101,7 @@ object Platform {
 
       if (Knowledge.opt_vectorize) {
         Knowledge.simd_instructionSet match {
-          case "SSE3"   => cflags += " -mSSE3"
+          case "SSE3"   => cflags += " -msse3" // TODO: Stefan, some of these flags seem to be incorrect (upper vs lower case)
           case "SSSE3"  => cflags += " -mSSSE3"
           case "SSE4.1" => cflags += " -mSSE4.1"
           case "SSE4.2" => cflags += " -mSSE4.2"

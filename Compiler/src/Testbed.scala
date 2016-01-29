@@ -32,16 +32,16 @@ object Testbed {
 
     Knowledge.dimensionality match {
       case 1 => this += new Transformation("SearchAndReplace", {
-        case StringConstant("x0") => replacement(0)
+        case StringLiteral("x0") => replacement(0)
       })
       case 2 => this += new Transformation("SearchAndReplace", {
-        case StringConstant("x0") => replacement(0)
-        case StringConstant("y0") => replacement(1)
+        case StringLiteral("x0") => replacement(0)
+        case StringLiteral("y0") => replacement(1)
       })
       case 3 => this += new Transformation("SearchAndReplace", {
-        case StringConstant("x0") => replacement(0)
-        case StringConstant("y0") => replacement(1)
-        case StringConstant("z0") => replacement(2)
+        case StringLiteral("x0") => replacement(0)
+        case StringLiteral("y0") => replacement(1)
+        case StringLiteral("z0") => replacement(2)
       })
     }
   }

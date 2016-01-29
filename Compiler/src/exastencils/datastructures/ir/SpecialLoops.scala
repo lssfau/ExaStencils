@@ -167,16 +167,16 @@ case class LoopOverPointsInOneFragment(var domain : Int,
       val regionCode = region.get.region.toUpperCase().charAt(0)
 
       start = new MultiIndex(DimArray().map(dim => (dim match {
-        case dim if region.get.dir(dim) == 0 => field.fieldLayout.idxById(regionCode + "LB", dim) - field.referenceOffset(dim)
-        case dim if region.get.dir(dim) < 0  => field.fieldLayout.idxById(regionCode + "LB", dim) - field.referenceOffset(dim)
-        case dim if region.get.dir(dim) > 0  => field.fieldLayout.idxById(regionCode + "RB", dim) - field.referenceOffset(dim)
+        case dim if region.get.dir(dim) == 0 => field.fieldLayout.idxById(regionCode + "LB", dim) - field.referenceOffset(dim) + startOffset(dim)
+        case dim if region.get.dir(dim) < 0  => field.fieldLayout.idxById(regionCode + "LB", dim) - field.referenceOffset(dim) + startOffset(dim)
+        case dim if region.get.dir(dim) > 0  => field.fieldLayout.idxById(regionCode + "RB", dim) - field.referenceOffset(dim) + startOffset(dim)
       }) : Expression))
 
       stop = new MultiIndex(
         DimArray().map(dim => (dim match {
-          case dim if region.get.dir(dim) == 0 => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim)
-          case dim if region.get.dir(dim) < 0  => field.fieldLayout.idxById(regionCode + "LE", dim) - field.referenceOffset(dim)
-          case dim if region.get.dir(dim) > 0  => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim)
+          case dim if region.get.dir(dim) == 0 => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim) - endOffset(dim)
+          case dim if region.get.dir(dim) < 0  => field.fieldLayout.idxById(regionCode + "LE", dim) - field.referenceOffset(dim) - endOffset(dim)
+          case dim if region.get.dir(dim) > 0  => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim) - endOffset(dim)
         }) : Expression))
     } else {
       // basic case -> just eliminate 'real' boundaries
@@ -195,8 +195,16 @@ case class LoopOverPointsInOneFragment(var domain : Int,
               //                start(dim) = OffsetIndex(0, 1, ArrayAccess(iv.IndexFromField(field.identifier, field.level, "DLB"), dim) - field.referenceOffset(dim) + startOffset(dim), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
               //                stop(dim) = OffsetIndex(-1, 0, ArrayAccess(iv.IndexFromField(field.identifier, field.level, "DRE"), dim) - field.referenceOffset(dim) - endOffset(dim), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim))
               //              } else {
-              start(dim) = OffsetIndex(0, 1, field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim), ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
-              stop(dim) = OffsetIndex(-1, 0, field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim), ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim))
+              val numDupLeft = field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft
+              val numDupRight = field.fieldLayout.layoutsPerDim(dim).numDupLayersRight
+              if (numDupLeft > 0)
+                start(dim) = OffsetIndex(0, numDupLeft, field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim), numDupLeft * ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
+              else
+                start(dim) = field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim)
+              if (numDupRight > 0)
+                stop(dim) = OffsetIndex(-numDupRight, 0, field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim), numDupRight * ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim))
+              else
+                stop(dim) = field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
               //              }
             }
           case discr if "cell" == discr
@@ -211,6 +219,18 @@ case class LoopOverPointsInOneFragment(var domain : Int,
 
     var indexRange = IndexRange(start, stop)
     SimplifyStrategy.doUntilDoneStandalone(indexRange)
+
+    // fix iteration space for reduction operations if required
+    if (Knowledge.experimental_trimBoundsForReductionLoops && reduction.isDefined && !region.isDefined) {
+      if (!condition.isDefined) condition = Some(BooleanConstant(true))
+      for (dim <- 0 until Knowledge.dimensionality)
+        if (field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft > 0)
+          /*if ("node" == field.fieldLayout.discretization
+          || ("face_x" == field.fieldLayout.discretization && 0 == dim)
+          || ("face_y" == field.fieldLayout.discretization && 1 == dim)
+          || ("face_z" == field.fieldLayout.discretization && 2 == dim))*/
+          condition = Some(AndAndExpression(condition.get, GreaterEqualExpression(VariableAccess(dimToString(dim), Some(IntegerDatatype)), field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft)))
+    }
 
     var ret : Statement = (
       if (seq)
@@ -416,7 +436,7 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
         reduction)
   }
 
-  def expand : Output[StatementList] = {
+  override def expand : Output[StatementList] = {
     var statements = new ListBuffer[Statement]
 
     if (Knowledge.experimental_resolveUnreqFragmentLoops && Knowledge.domain_numFragmentsPerBlock <= 1) {
@@ -481,7 +501,7 @@ case class LoopOverDomains(var body : ListBuffer[Statement]) extends Statement w
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverDomains\n"
 
-  def expand : Output[ForLoopStatement] = {
+  override def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
       VariableDeclarationStatement(IntegerDatatype, defIt, Some(0)),
       LowerExpression(defIt, DomainCollection.domains.size),
@@ -499,7 +519,7 @@ case class LoopOverFields(var body : ListBuffer[Statement]) extends Statement wi
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverFields\n"
 
-  def expand : Output[ForLoopStatement] = {
+  override def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
       VariableDeclarationStatement(IntegerDatatype, defIt, Some(0)),
       LowerExpression(defIt, FieldCollection.fields.size),
@@ -517,7 +537,7 @@ case class LoopOverLevels(var body : ListBuffer[Statement]) extends Statement wi
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverLevels\n"
 
-  def expand : Output[ForLoopStatement] = {
+  override def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
       VariableDeclarationStatement(IntegerDatatype, defIt, Some(Knowledge.minLevel)),
       LowerExpression(defIt, Knowledge.maxLevel + 1),
@@ -535,7 +555,7 @@ case class LoopOverNeighbors(var body : ListBuffer[Statement]) extends Statement
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverNeighbors\n"
 
-  def expand : Output[ForLoopStatement] = {
+  override def expand : Output[ForLoopStatement] = {
     new ForLoopStatement(
       VariableDeclarationStatement(IntegerDatatype, defIt, Some(0)),
       LowerExpression(defIt, Fragment.neighbors.size),

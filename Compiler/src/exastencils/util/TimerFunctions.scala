@@ -2,6 +2,7 @@ package exastencils.util
 
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._

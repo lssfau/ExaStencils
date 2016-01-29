@@ -1,4 +1,3 @@
-import java.util.Locale
 import exastencils.communication._
 import exastencils.core._
 import exastencils.data._
@@ -6,7 +5,7 @@ import exastencils.datastructures._
 import exastencils.domain._
 import exastencils.globals._
 import exastencils.knowledge._
-import exastencils.languageprocessing.l4.UnfoldLevelSpecifications
+import exastencils.languageprocessing.l4._
 import exastencils.logger._
 import exastencils.mpi._
 import exastencils.multiGrid._
@@ -17,8 +16,6 @@ import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.strategies._
 import exastencils.util._
-//import exastencils.languageprocessing.l4.DependencyAnalysis
-import exastencils.languageprocessing.l4.ResolveL4
 
 object MainChristian {
   def main(args : Array[String]) : Unit = {
@@ -51,6 +48,12 @@ object MainChristian {
       k.parseFile(args(1))
     }
     Knowledge.update()
+
+    // init buildfile generator
+    if ("MSVC" == Knowledge.targetCompiler)
+      Settings.buildfileGenerator = ProjectfileGenerator
+    else
+      Settings.buildfileGenerator = MakefileGenerator
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Initializing")
@@ -129,8 +132,9 @@ object MainChristian {
     // go to IR
     UnfoldLevelSpecifications.apply() // preparation step
     ResolveL4.apply()
-    //DependencyAnalysis.apply()
-    
+    println(StateManager.root)
+    sys.exit(0)
+
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
     // add remaining nodes
@@ -241,6 +245,9 @@ object MainChristian {
     if (Knowledge.ir_maxInliningSize > 0)
       Inlining.apply()
     CleanUnusedStuff.apply()
+
+    if (Knowledge.generateFortranInterface)
+      Fortranify.apply()
 
     PrintStrategy.apply()
     PrettyprintingManager.finish

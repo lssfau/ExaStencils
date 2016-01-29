@@ -76,7 +76,7 @@ case class ApplyBCsFunction(var name : String, override var fieldSelection : Fie
               || ("face_x" == d && 0 == i)
               || ("face_y" == d && 1 == i)
               || ("face_z" == d && 2 == i) => i match {
-              case i if neigh.dir(i) == 0 => resolveIndex("DLB", i) // DLB, GLB
+              case i if neigh.dir(i) == 0 => resolveIndex("GLB", i) // DLB, GLB
               case i if neigh.dir(i) < 0  => resolveIndex("DLB", i) // DLB, GLB
               case i if neigh.dir(i) > 0  => resolveIndex("DRB", i)
             }
@@ -84,7 +84,7 @@ case class ApplyBCsFunction(var name : String, override var fieldSelection : Fie
               || ("face_x" == d && 0 != i)
               || ("face_y" == d && 1 != i)
               || ("face_z" == d && 2 != i) => i match {
-              case i if neigh.dir(i) == 0 => resolveIndex("DLB", i) // DLB, GLB
+              case i if neigh.dir(i) == 0 => resolveIndex("GLB", i) // DLB, GLB
               case i if neigh.dir(i) < 0  => resolveIndex("DLB", i)
               case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) - 1
             }
@@ -96,7 +96,7 @@ case class ApplyBCsFunction(var name : String, override var fieldSelection : Fie
               || ("face_x" == d && 0 == i)
               || ("face_y" == d && 1 == i)
               || ("face_z" == d && 2 == i) => i match {
-              case i if neigh.dir(i) == 0 => resolveIndex("DRE", i) // DRE, GRE
+              case i if neigh.dir(i) == 0 => resolveIndex("GRE", i) // DRE, GRE
               case i if neigh.dir(i) < 0  => resolveIndex("DLE", i)
               case i if neigh.dir(i) > 0  => resolveIndex("DRE", i) // DRE, GRE
             }
@@ -104,7 +104,7 @@ case class ApplyBCsFunction(var name : String, override var fieldSelection : Fie
               || ("face_x" == d && 0 != i)
               || ("face_y" == d && 1 != i)
               || ("face_z" == d && 2 != i) => i match {
-              case i if neigh.dir(i) == 0 => resolveIndex("DRE", i) // DRE, GRE
+              case i if neigh.dir(i) == 0 => resolveIndex("GRE", i) // DRE, GRE
               case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) + 1
               case i if neigh.dir(i) > 0  => resolveIndex("DRE", i)
             }
@@ -144,8 +144,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
             case 6  => resolveIndex("DLB", i)
             case 26 => resolveIndex("IB", i)
           }
-          case i if neigh.dir(i) < 0 => resolveIndex("DLB", i) + dupLayerBegin(i)
-          case i if neigh.dir(i) > 0 => resolveIndex("DRE", i) - dupLayerEnd(i)
+          case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
+          case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
         }) ++ vecFieldIndexBegin),
       new MultiIndex(
         DimArray().map(i => i match {
@@ -153,8 +153,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
             case 6  => resolveIndex("DRE", i)
             case 26 => resolveIndex("DRE", i)
           }
-          case i if neigh.dir(i) < 0 => resolveIndex("DLB", i) + dupLayerEnd(i)
-          case i if neigh.dir(i) > 0 => resolveIndex("DRE", i) - dupLayerBegin(i)
+          case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
+          case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
         }) ++ vecFieldIndexEnd))))
   }
 
@@ -167,8 +167,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 6  => resolveIndex("DLB", i)
               case 26 => resolveIndex("IB", i)
             }
-            case i if neigh.dir(i) < 0 => resolveIndex("DLB", i) + dupLayerBegin(i)
-            case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) - dupLayerEnd(i)
+            case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
+            case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
           }) ++ vecFieldIndexBegin),
         new MultiIndex(
           DimArray().map(i => i match {
@@ -176,8 +176,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 6  => resolveIndex("DRE", i)
               case 26 => resolveIndex("DRE", i)
             }
-            case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) + dupLayerEnd(i)
-            case i if neigh.dir(i) > 0 => resolveIndex("DRE", i) - dupLayerBegin(i)
+            case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
+            case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
           }) ++ vecFieldIndexEnd)),
       new IndexRange(
         new MultiIndex(
@@ -186,7 +186,7 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 6  => resolveIndex("DLB", i)
               case 26 => resolveIndex("IB", i)
             }
-            case i if -neigh.dir(i) < 0 => resolveIndex("DLB", i) - dupLayerEnd(i)
+            case i if -neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
             case i if -neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
           }) ++ vecFieldIndexBegin),
         new MultiIndex(
@@ -196,7 +196,7 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 26 => resolveIndex("DRE", i)
             }
             case i if -neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
-            case i if -neigh.dir(i) > 0 => resolveIndex("DRE", i) + dupLayerEnd(i)
+            case i if -neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
           }) ++ vecFieldIndexEnd))))
   }
 
@@ -209,7 +209,7 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 6  => resolveIndex("DLB", i)
               case 26 => resolveIndex("IB", i)
             }
-            case i if neigh.dir(i) < 0 => resolveIndex("DLB", i) - dupLayerEnd(i)
+            case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
             case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
           }) ++ vecFieldIndexBegin),
         new MultiIndex(
@@ -219,7 +219,7 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 26 => resolveIndex("DRE", i)
             }
             case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
-            case i if neigh.dir(i) > 0 => resolveIndex("DRE", i) + dupLayerEnd(i)
+            case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
           }) ++ vecFieldIndexEnd)),
       new IndexRange(
         new MultiIndex(
@@ -228,8 +228,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 6  => resolveIndex("DLB", i)
               case 26 => resolveIndex("IB", i)
             }
-            case i if -neigh.dir(i) < 0 => resolveIndex("DLB", i) + dupLayerBegin(i)
-            case i if -neigh.dir(i) > 0 => resolveIndex("DRB", i) - dupLayerEnd(i)
+            case i if -neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
+            case i if -neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
           }) ++ vecFieldIndexBegin),
         new MultiIndex(
           DimArray().map(i => i match {
@@ -237,8 +237,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 6  => resolveIndex("DRE", i)
               case 26 => resolveIndex("DRE", i)
             }
-            case i if -neigh.dir(i) < 0 => resolveIndex("DLE", i) + dupLayerEnd(i)
-            case i if -neigh.dir(i) > 0 => resolveIndex("DRE", i) - dupLayerBegin(i)
+            case i if -neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
+            case i if -neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
           }) ++ vecFieldIndexEnd))))
   }
 

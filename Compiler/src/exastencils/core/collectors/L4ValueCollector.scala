@@ -22,7 +22,7 @@ class L4ValueCollector extends Collector {
       case x : ConditionalStatement       => values.+=((new HashMap[String, Expression]()))
       case x : ValueDeclarationStatement => {
         x.identifier match {
-          case v : LeveledIdentifier => if (insideGlobals) globalVals += ((v.name + "_" + v.level, x.expression)); else values.last += ((v.name + "_" + v.level, x.expression))
+          case v : LeveledIdentifier => if (insideGlobals) globalVals += ((v.name + "@@" + v.level, x.expression)); else values.last += ((v.name + "@@" + v.level, x.expression))
           case _                     => if (insideGlobals) globalVals += ((x.identifier.name, x.expression)); else values.last += ((x.identifier.name, x.expression))
         }
       }

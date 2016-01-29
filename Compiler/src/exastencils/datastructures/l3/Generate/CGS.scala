@@ -62,7 +62,7 @@ object CGS {
       printer.println(s"\t\tVariable nextRes : Real = NormResidual${postfix}_$vecDim@current ( )")
 
       printer.println(s"\t\tif ( nextRes <= 0.001 * initialRes ) {")
-      //printer.println("\t\t\tprint ( '\"CG required\"', cgSteps, '\"steps\"' )")
+      //printer.println("\t\t\tprint ( 'CG required', cgSteps, 'steps' )")
       printer.println(s"\t\t\treturn")
       printer.println(s"\t\t}")
 
@@ -75,7 +75,7 @@ object CGS {
       printer.println(s"\t\tres = nextRes")
       printer.println(s"\t}")
 
-      printer.println("\tprint ( '\"Maximum number of cgs iterations (\"', " + Knowledge.l3tmp_maxNumCGSSteps + ", '\") was exceeded\"' )")
+      printer.println("\tprint ( 'Maximum number of cgs iterations (', " + Knowledge.l3tmp_maxNumCGSSteps + ", ') was exceeded' )")
 
       printer.println(s"}")
     }

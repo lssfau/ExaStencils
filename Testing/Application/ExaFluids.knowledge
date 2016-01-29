@@ -15,7 +15,11 @@ maxLevel							= 5
 experimental_Neumann				= true
 experimental_NeumannOrder			= 1
 
-discr_gridType						= "AxisAlignedVariableWidth"
+grid_isUniform						= false
+grid_isStaggered					= true
+grid_isAxisAligned					= true
+
+grid_spacingModel					= "diego"
 
 // code generation
 
@@ -61,3 +65,7 @@ poly_optLevel_fine					= 0
 opt_useAddressPrecalc				= false
 opt_vectorize						= false
 opt_unroll							= 1
+
+// other
+
+experimental_trimBoundsForReductionLoops = true

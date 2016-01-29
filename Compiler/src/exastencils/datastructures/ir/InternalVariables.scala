@@ -228,6 +228,14 @@ case class CommId(var fragmentIdx : Expression = LoopOverFragments.defIt) extend
   override def resolveDefValue = Some(-1)
 }
 
+case class PrimitiveIndex(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, NullExpression, NullExpression, NullExpression)
+
+  override def resolveName = s"primitiveIndex" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
+  override def resolveDataType = "Vec3i"
+  override def resolveDefValue = Some("Vec3i(0, 0, 0)")
+}
+
 case class PrimitivePosition(var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, NullExpression, NullExpression, NullExpression)
 
@@ -282,7 +290,7 @@ case class Timer(var name : Expression) extends UnduplicatedVariable {
   override def resolveDataType = "StopWatch"
 
   override def getCtor() : Option[Statement] = {
-    Some(AssignmentStatement(resolveName ~ ".timerName", "\"" ~ name ~ "\""))
+    Some(AssignmentStatement(resolveName ~ ".timerName", s""""${name}""""))
   }
 }
 

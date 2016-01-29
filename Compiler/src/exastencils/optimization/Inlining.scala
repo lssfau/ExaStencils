@@ -120,7 +120,7 @@ object Inlining extends CustomStrategy("Function inlining") {
       case a @ VariableAccess(name, _) =>
         reserved += name
         a
-      case s @ StringConstant(name) =>
+      case s @ StringLiteral(name) =>
         reserved += name
         s
     }), Some(callScope))
@@ -133,7 +133,7 @@ object Inlining extends CustomStrategy("Function inlining") {
     this.execute(new Transformation("rename conflicts", {
       case VariableDeclarationStatement(t, name, i) if (potConflicts.contains(name)) => VariableDeclarationStatement(t, rename(name), i)
       case VariableAccess(name, t) if (potConflicts.contains(name))                  => VariableAccess(rename(name), t)
-      case StringConstant(name) if (potConflicts.contains(name))                     => StringConstant(rename(name))
+      case StringLiteral(name) if (potConflicts.contains(name))                      => StringLiteral(rename(name))
       case ret : ReturnStatement =>
         if (ret.expr.isEmpty != (funcStmt.returntype == UnitDatatype))
           exit = true
@@ -232,7 +232,7 @@ object Inlining extends CustomStrategy("Function inlining") {
           functionSize(curFunc) += 1
           inlinable = false
 
-        case StringConstant(retStr) if (retStr.contains("return")) =>
+        case StringLiteral(retStr) if (retStr.contains("return")) =>
           inlinable = false
 
         case _ : Statement =>
