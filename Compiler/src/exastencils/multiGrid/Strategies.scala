@@ -95,7 +95,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
       StringLiteral(args(0).asInstanceOf[StringConstant].value)
 
     case FunctionCallExpression("concat", args) =>
-      ConcatenationExpression(args)
+      ConcatenationExpression(args.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value) else a))
 
     // HACK to realize time measurement functionality -> FIXME: move to specialized node
     case ExpressionStatement(FunctionCallExpression("startTimer", args)) =>
