@@ -3,8 +3,10 @@ package exastencils.datastructures.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
+import exastencils.util._
 
 abstract class Statement
   extends Node with PrettyPrintable
@@ -15,7 +17,7 @@ case class ExpressionStatement(var expression : Expression) extends Statement {
 
 case object NullStatement extends Statement {
   exastencils.core.Duplicate.registerConstant(this)
-  override def prettyprint(out : PpStream): Unit = out << ';'
+  override def prettyprint(out : PpStream) : Unit = out << ';'
 }
 
 case class Scope(var body : ListBuffer[Statement]) extends Statement {
@@ -151,7 +153,7 @@ case class ConditionStatement(var condition : Expression, var trueBody : ListBuf
   def this(condition : Expression, trueBody : ListBuffer[Statement], falseBranch : Statement) = this(condition, trueBody, ListBuffer(falseBranch))
   def this(condition : Expression, trueBranch : Statement, falseBody : ListBuffer[Statement]) = this(condition, ListBuffer(trueBranch), falseBody)
 
-  override def prettyprint(out : PpStream): Unit = {
+  override def prettyprint(out : PpStream) : Unit = {
     out << "if (" << condition << ") {\n"
     out <<< (trueBody, "\n") << '\n'
     if (!falseBody.isEmpty) {
@@ -195,6 +197,15 @@ case class ReturnStatement(var expr : Option[Expression] = None) extends Stateme
 case class BreakStatement() extends Statement {
   override def prettyprint(out : PpStream) = {
     out << "break;\n"
+  }
+}
+
+case class AssertStatement(var check : Expression, var msg : ListBuffer[Expression], var abort : Statement) extends Statement with Expandable {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = AssertStatement\n"
+
+  override def expand : Output[ConditionStatement] = {
+    new ConditionStatement(NegationExpression(check),
+      ListBuffer[Statement](new PrintStatement(msg), abort))
   }
 }
 

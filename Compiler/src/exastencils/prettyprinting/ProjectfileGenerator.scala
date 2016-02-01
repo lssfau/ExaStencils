@@ -2,6 +2,7 @@ package exastencils.prettyprinting
 
 import exastencils.core._
 import exastencils.knowledge._
+import scala.collection.mutable.ListBuffer
 
 object ProjectfileGenerator extends BuildfileGenerator {
   override def write : Unit = {
@@ -47,6 +48,10 @@ object ProjectfileGenerator extends BuildfileGenerator {
 
     // extensions
     projectPrinter <<< "\t<ImportGroup Label=\"ExtensionSettings\">"
+    if (Knowledge.experimental_cuda_enabled) {
+      projectPrinter <<< "\t\t<Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\CUDA 7.5.props\" />" // TODO: specify CUDA version in knowledge
+      projectPrinter <<< "\t\t<Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\CUDA 7.5.targets\" />" // TODO: specify CUDA version in knowledge
+    }
     projectPrinter <<< "\t</ImportGroup>"
 
     // properties
@@ -79,6 +84,19 @@ object ProjectfileGenerator extends BuildfileGenerator {
       projectPrinter <<< "\t\t\t<OpenMPSupport>true</OpenMPSupport>"
     projectPrinter <<< "\t\t</ClCompile>"
 
+    // cuda compile step
+    if (Knowledge.experimental_cuda_enabled) {
+      projectPrinter <<< "\t\t<CudaCompile>"
+      projectPrinter <<< "\t\t\t<TargetMachinePlatform>64</TargetMachinePlatform>"
+      projectPrinter <<< "\t\t</CudaCompile>"
+    }
+
+    /// TODO:
+    //    <PostBuildEvent>
+    //      <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
+    //copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
+    //    </PostBuildEvent>
+
     // link part
     projectPrinter <<< "\t\t<Link>"
     projectPrinter <<< "\t\t\t<SubSystem>Console</SubSystem>"
@@ -98,6 +116,15 @@ object ProjectfileGenerator extends BuildfileGenerator {
     for (filename <- cppFileNames)
       projectPrinter <<< s"""\t\t<ClCompile Include=\"${filename.replace('/', '\\')}\" />"""
     projectPrinter <<< "\t</ItemGroup>"
+
+    // cuda kernels
+    if (Knowledge.experimental_cuda_enabled) {
+      projectPrinter <<< "\t<ItemGroup>"
+      val cudaFileNames = ListBuffer("kernel.cu") // TODO: extract from actual AST
+      for (filename <- cudaFileNames)
+        projectPrinter <<< s"""\t\t<CudaCompile Include=\"${filename.replace('/', '\\')}\" />"""
+      projectPrinter <<< "\t</ItemGroup>"
+    }
 
     // target information
     projectPrinter <<< "\t<Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.targets\" />"
