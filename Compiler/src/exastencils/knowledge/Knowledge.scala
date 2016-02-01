@@ -362,6 +362,9 @@ object Knowledge {
   var experimental_trimBoundsForReductionLoops : Boolean = false
 
   var experimental_addPerformanceEstimate : Boolean = false
+
+  var experimental_cuda_enabled : Boolean = false
+  var experimental_cuda_deviceId : Int = 0
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {
