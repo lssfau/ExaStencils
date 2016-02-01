@@ -63,7 +63,7 @@ object SimplifyExpression {
     * Only VariableAccess nodes are used as keys. (NO StringConstant)
     */
   def extractIntegralSum(expr : Expression) : HashMap[Expression, Long] = {
-    return extractIntegralSumRec(expr).filter(e => e._2 != 0L)
+    return extractIntegralSumRec(expr)
   }
 
   private def extractIntegralSumRec(expr : Expression) : HashMap[Expression, Long] = {
@@ -285,7 +285,7 @@ object SimplifyExpression {
         throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
     }
 
-    return res
+    return res.filter(e => e._2 != 0L)
   }
 
   def gcd(x : Long, y : Long) : Long = {
@@ -406,7 +406,7 @@ object SimplifyExpression {
     * Only VariableAccess and ArrayAccess nodes are used as keys. (NO StringConstant)
     */
   def extractFloatingSum(expr : Expression) : HashMap[Expression, Double] = {
-    return extractFloatingSumRec(expr).filter(e => e._2 != 0.0)
+    return extractFloatingSumRec(expr)
   }
 
   private def extractFloatingSumRec(expr : Expression) : HashMap[Expression, Double] = {
@@ -525,7 +525,7 @@ object SimplifyExpression {
         throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass() + " in " + expr.prettyprint())
     }
 
-    return res
+    return res.filter(e => e._2 != 0.0)
   }
 
   /**
