@@ -1,12 +1,12 @@
 package exastencils.parsers
 
+import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.combinator.syntactical.StandardTokenParsers
 
-import exastencils.datastructures._
+import exastencils.datastructures.Annotatable
+import exastencils.datastructures.Annotation
 
-class ExaParser extends StandardTokenParsers {
-  override val lexical : ExaLexer = new ExaLexer()
-
+class ExaParser extends StandardTokenParsers with PackratParsers {
   val IntRegEx = """[+-]?(\d+)""".r
   val DoubleRegEx = """[+-]?\d+(\.\d*)?""".r
 

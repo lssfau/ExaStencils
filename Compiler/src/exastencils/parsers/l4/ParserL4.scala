@@ -1,13 +1,14 @@
 package exastencils.parsers.l4
 
 import scala.collection.immutable.PagedSeq
+import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.input.PagedSeqReader
 
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.parsers._
 
-class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParsers {
+class ParserL4 extends ExaParser with PackratParsers {
   override val lexical : ExaLexer = new LexerL4()
 
   def parse(s : String) : Node = {
@@ -38,9 +39,7 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   //###########################################################
 
-  lazy val program = definition.* ^^ { case d => Root(d) }
-
-  lazy val definition = domain ||| layout ||| field ||| stencilField ||| externalField ||| stencil ||| globals ||| function ||| functionTemplate ||| functionInstantiation
+  lazy val program = (domain ||| layout ||| field ||| stencilField ||| externalField ||| stencil ||| globals ||| function ||| functionTemplate ||| functionInstantiation).+ ^^ { case d => Root(d) }
 
   //###########################################################
 
