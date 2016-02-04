@@ -348,20 +348,22 @@ object StateManager {
         // #### Maps #####################################################################################
         // ###############################################################################################
         case map : scala.collection.mutable.Map[_, _] => {
-          var newMap = map.mapValues(f => f match {
-            case n : Node => applyAtNode(n, transformation).inner match {
-              case NoMatch =>
-                replace(n, transformation); n // no match occured => use old element
-              case newN : Node => {
-                if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
-                  replace(newN, transformation) // Recursive call for new element
+          var newMap = map.map(f => (f._1, {
+            f._2 match {
+              case n : Node => applyAtNode(n, transformation).inner match {
+                case NoMatch =>
+                  replace(n, transformation); n // no match occured => use old element
+                case newN : Node => {
+                  if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
+                    replace(newN, transformation) // Recursive call for new element
+                  }
+                  newN // element of type Node was returned => use it
                 }
-                newN // element of type Node was returned => use it
+                case newN : NodeList => Logger.error("Unable to replace single element of map value by List")
+                case None            =>
               }
-              case newN : NodeList => Logger.error("Unable to replace single element of map value by List")
-              case None            =>
             }
-          })
+          }))
 
           if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newMap)) {
             Logger.error(s"Could not set $field in transformation ${transformation.name}")
@@ -369,20 +371,22 @@ object StateManager {
         }
         // Unfortunately mutable and immutable set have no common supertype
         case map : scala.collection.immutable.Map[_, _] => {
-          var newMap = map.mapValues(f => f match {
-            case n : Node => applyAtNode(n, transformation).inner match {
-              case NoMatch =>
-                replace(n, transformation); n // no match occured => use old element
-              case newN : Node => {
-                if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
-                  replace(newN, transformation) // Recursive call for new element
+          var newMap = map.map(f => (f._1, {
+            f._2 match {
+              case n : Node => applyAtNode(n, transformation).inner match {
+                case NoMatch =>
+                  replace(n, transformation); n // no match occured => use old element
+                case newN : Node => {
+                  if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
+                    replace(newN, transformation) // Recursive call for new element
+                  }
+                  newN // element of type Node was returned => use it
                 }
-                newN // element of type Node was returned => use it
+                case newN : NodeList => Logger.error("Unable to replace single element of map value by List")
+                case None            =>
               }
-              case newN : NodeList => Logger.error("Unable to replace single element of map value by List")
-              case None            =>
             }
-          })
+          }))
 
           if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newMap)) {
             Logger.error(s"Could not set $field in transformation ${transformation.name}")
