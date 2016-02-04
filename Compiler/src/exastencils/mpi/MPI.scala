@@ -13,6 +13,8 @@ import exastencils.util._
 
 trait MPI_Statement extends Statement
 
+// TODO: replace pp with expand where suitable
+
 case class MPI_IsRootProc() extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << "0 == mpiRank"
 }
