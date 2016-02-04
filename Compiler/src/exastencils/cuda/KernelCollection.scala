@@ -73,18 +73,34 @@ case class Kernel(var identifier : String,
 
   import Kernel._
 
-  var evaluatedFieldAccesses = false
+  var evaluatedAccesses = false
   var fieldAccesses = HashMap[String, LinearizedFieldAccess]()
+  var ivAccesses = HashMap[String, iv.InternalVariable]()
 
   def getKernelFctName : String = identifier
   def getWrapperFctName : String = identifier + wrapperPostfix
 
   def evalFieldAccesses = {
-    if (!evaluatedFieldAccesses) {
+    if (!evaluatedAccesses) {
+      // TODO: fuse strategies/ trafos?
       GatherLocalLinearizedFieldAccess.fieldAccesses.clear
       GatherLocalLinearizedFieldAccess.applyStandalone(Scope(body))
       fieldAccesses = GatherLocalLinearizedFieldAccess.fieldAccesses
-      evaluatedFieldAccesses = true
+
+      GatherLocalIVs.ivAccesses.clear
+      GatherLocalIVs.applyStandalone(Scope(body))
+      ivAccesses = GatherLocalIVs.ivAccesses
+
+      // postprocess iv's -> generate parameter names
+      var cnt = 0
+      var processedIVs = HashMap[String, iv.InternalVariable]()
+      for (ivAccess <- ivAccesses) {
+        processedIVs.put(ivAccess._2.resolveName + "_" + cnt, ivAccess._2)
+        cnt += 1
+      }
+      ivAccesses = processedIVs
+
+      evaluatedAccesses = true
     }
   }
 
@@ -114,9 +130,12 @@ case class Kernel(var identifier : String,
     if (condition.isDefined)
       statements += new ConditionStatement(NegationExpression(condition.get), ReturnStatement())
 
-    // add actual body after replacing field accesses
+    // add actual body after replacing field and iv accesses
     ReplacingLocalLinearizedFieldAccess.fieldAccesses = fieldAccesses
     ReplacingLocalLinearizedFieldAccess.applyStandalone(Scope(body))
+    ReplacingLocalIVs.ivAccesses = ivAccesses
+    ReplacingLocalIVs.applyStandalone(Scope(body))
+
     statements ++= body
 
     statements
@@ -133,7 +152,15 @@ case class Kernel(var identifier : String,
     }
     for (fieldAccess <- fieldAccesses) {
       val fieldSelection = fieldAccess._2.fieldSelection
-      callArgs += iv.FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot)
+      callArgs += iv.FieldDeviceData(fieldSelection.field, fieldSelection.level, fieldSelection.slot)
+    }
+    for (ivAccess <- ivAccesses) {
+      val access = Duplicate(ivAccess._2)
+      // Hack for Vec3 -> TODO: split Vec3 iv's into separate real iv's
+      access.resolveDataType match {
+        case SpecialDatatype("Vec3") => callArgs += FunctionCallExpression("make_double3", (0 until 3).map(dim => ArrayAccess(ivAccess._2, dim) : Expression).to[ListBuffer])
+        case _                       => callArgs += ivAccess._2
+      }
     }
     for (variableAccess <- passThroughArgs) {
       callArgs += Duplicate(variableAccess)
@@ -160,6 +187,14 @@ case class Kernel(var identifier : String,
       val fieldSelection = fieldAccess._2.fieldSelection
       fctParams += VariableAccess(fieldAccess._1, Some(PointerDatatype(fieldSelection.field.dataType.resolveUnderlyingDatatype)))
     }
+    for (ivAccess <- ivAccesses) {
+      var access = VariableAccess(ivAccess._1, Some(ivAccess._2.resolveDataType))
+      access.dType match {
+        case Some(SpecialDatatype("Vec3")) => access.dType = Some(SpecialDatatype("double3"))
+        case _                             =>
+      }
+      fctParams += access
+    }
     for (variableAccess <- passThroughArgs) {
       fctParams += Duplicate(variableAccess)
     }
@@ -182,7 +217,7 @@ object GatherLocalLinearizedFieldAccess extends QuietDefaultStrategy("Gathering 
 
   def mapFieldAccess(access : LinearizedFieldAccess) = {
     val field = access.fieldSelection.field
-    var identifier = field.identifier
+    var identifier = field.codeName
 
     // TODO: array fields
     if (field.numSlots > 1) {
@@ -208,7 +243,7 @@ object ReplacingLocalLinearizedFieldAccess extends QuietDefaultStrategy("Replaci
 
   def extractIdentifier(access : LinearizedFieldAccess) = {
     val field = access.fieldSelection.field
-    var identifier = field.identifier
+    var identifier = field.codeName
 
     // TODO: array fields
     if (field.numSlots > 1) {
@@ -225,32 +260,27 @@ object ReplacingLocalLinearizedFieldAccess extends QuietDefaultStrategy("Replaci
   this += new Transformation("Searching", {
     case access : LinearizedFieldAccess => {
       val identifier = extractIdentifier(access)
-      val fieldAccess = fieldAccesses.get(identifier).get
-      ArrayAccess(identifier, fieldAccess.index)
+      ArrayAccess(identifier, access.index)
     }
   })
 }
 
-//__global__ void
-//gpu_smoother(int begin0, int end0, int begin1, int end1, int begin2, int end2,
-//  double *rhs, double *sol0, double *sol1, int3 iterationOffsetBegin, int3 iterationOffsetEnd) {
-//
-//  int x = blockIdx.x * blockDim.x + threadIdx.x;
-//  int y = blockIdx.y * blockDim.y + threadIdx.y;
-//  int z = blockIdx.z * blockDim.z + threadIdx.z;
-//
-//  if (x < iterationOffsetBegin.x || x >= iterationOffsetEnd.x + 257
-//    || y < iterationOffsetBegin.y || y >= iterationOffsetEnd.y + 257
-//    || z < iterationOffsetBegin.z || z >= iterationOffsetEnd.z + 257)
-//    return;
-//
-//  sol1[((((z * 67081) + (y * 259)) + x) + 67341)] = ((sol0[((((z * 67081) + (y * 259)) + x) + 67341)] + (((((((rhs[(((z * 66049) + (y * 257)) + x)] + sol0[((((z * 67081) + (y * 259)) + x) + 134422)]) + sol0[((((z * 67081) + (y * 259)) + x) + 260)]) + sol0[((((z * 67081) + (y * 259)) + x) + 67082)]) + sol0[((((z * 67081) + (y * 259)) + x) + 67340)]) + sol0[((((z * 67081) + (y * 259)) + x) + 67342)]) + sol0[((((z * 67081) + (y * 259)) + x) + 67600)])*0.13333333333333333)) - (sol0[((((z * 67081) + (y * 259)) + x) + 67341)] * 0.8));
-//}
+object GatherLocalIVs extends QuietDefaultStrategy("Gathering local InternalVariable nodes") {
+  var ivAccesses = HashMap[String, iv.InternalVariable]()
 
-//extern "C" void smootherWrapper()
-//{
-//  if (hostFieldUpdated...[]) { /* cuda copy */ }
-//  gpu_smoother<<<dim3(36, 36, 36), dim3(8, 8, 8)>>>(
-//        iterationOffsetBegin.x, iterationOffsetEnd.x, iterationOffsetBegin.y, iterationOffsetEnd.y, iterationOffsetBegin.z, iterationOffsetEnd.z,
-//        gpu_rhs, gpu_sol[(currentSlot_Solution[6] + 0) % 2], gpu_sol[(currentSlot_Solution[6] + 1) % 2]);
-//}
+  this += new Transformation("Searching", {
+    case iv : iv.InternalVariable =>
+      ivAccesses.put(iv.prettyprint, iv)
+      iv
+  }, false)
+}
+
+object ReplacingLocalIVs extends QuietDefaultStrategy("Replacing local InternalVariable nodes") {
+  var ivAccesses = HashMap[String, iv.InternalVariable]()
+
+  this += new Transformation("Searching", {
+    case iv : iv.InternalVariable =>
+      val ivAccess = ivAccesses.find(_._2 == iv).get // TODO: improve performance
+      VariableAccess(ivAccess._1, Some(ivAccess._2.resolveDataType))
+  })
+}

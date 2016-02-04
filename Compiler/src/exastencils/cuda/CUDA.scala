@@ -32,7 +32,7 @@ case class CUDA_CheckError(var exp : Expression) extends Statement with Expandab
     Scope(ListBuffer[Statement](
       VariableDeclarationStatement(SpecialDatatype("cudaError_t"), "cudaStatus", Some(exp)),
       new ConditionStatement(NeqExpression("cudaStatus", "cudaSuccess"),
-        PrintStatement(ListBuffer("\"CUDA error in line (\"", "__LINE__", "\"): \"", "cudaStatus",
+        PrintStatement(ListBuffer("\"CUDA error in file (\"", "__FILE__", "\"), line (\"", "__LINE__", "\"): \"", "cudaStatus",
           "\" -> \"", new FunctionCallExpression("cudaGetErrorString", "cudaStatus"), "std::endl")))))
   }
 }

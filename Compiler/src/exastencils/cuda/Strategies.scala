@@ -66,8 +66,9 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
         loop.reduction,
         loop.condition)
 
-      kernelFunctions.addKernel(kernel)
+      kernelFunctions.addKernel(Duplicate(kernel))
       deviceStmts += FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[Expression]))
+      // TODO: add device sync if desired
 
       // update flags for written fields
       for (access <- GatherLocalFieldAccess.fieldAccesses) {
@@ -90,7 +91,7 @@ object GatherLocalFieldAccess extends QuietDefaultStrategy("Gathering local Fiel
 
   def mapFieldAccess(access : FieldAccess) = {
     val field = access.fieldSelection.field
-    var identifier = field.identifier
+    var identifier = field.codeName
 
     identifier = (if (inWriteOp) "write_" else "read_") + identifier
 

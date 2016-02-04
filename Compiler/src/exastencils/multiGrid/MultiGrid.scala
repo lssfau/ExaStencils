@@ -57,6 +57,8 @@ case class MultiGridFunctions() extends FunctionCollection("MultiGrid/MultiGrid"
   if (Knowledge.experimental_cuda_enabled) {
     externalDependencies += "cuda.h"
     externalDependencies += "cuda_runtime.h"
+
+    internalDependencies += "KernelFunctions/KernelFunctions.h"
   }
   if (Knowledge.opt_vectorize) {
     val header = Knowledge.simd_header
