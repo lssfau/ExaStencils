@@ -1,13 +1,14 @@
 package exastencils.parsers.settings
 
-import scala.collection.immutable.PagedSeq
-import scala.util.parsing.input.PagedSeqReader
+import scala.util.parsing.combinator.lexical.StdLexical
 
-import exastencils.core._
+import exastencils.core.UniversalSetter
 import exastencils.logger._
-import exastencils.parsers._
+import exastencils.parsers.ExaParser
 
 class ParserSettings extends ExaParser {
+  override val lexical : StdLexical = new LexerSettings()
+
   def parse(s : String) : Unit = {
     parseTokens(new lexical.Scanner(s))
   }

@@ -1,6 +1,7 @@
 package exastencils.parsers.settings
 
 import scala.collection.immutable.PagedSeq
+import scala.util.parsing.combinator.lexical.StdLexical
 import scala.util.parsing.input.PagedSeqReader
 
 import exastencils.core._
@@ -8,6 +9,8 @@ import exastencils.logger._
 import exastencils.parsers._
 
 class ParserKnowledge extends ExaParser {
+  override val lexical : StdLexical = new LexerKnowledge()
+
   def parse(s : String) : Unit = {
     parseTokens(new lexical.Scanner(s))
   }
