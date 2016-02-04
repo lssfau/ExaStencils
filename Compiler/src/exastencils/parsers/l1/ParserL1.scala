@@ -3,22 +3,17 @@ package exastencils.parsers.l1
 import scala.collection.immutable.PagedSeq
 import scala.util.parsing.input.PagedSeqReader
 
-import exastencils.datastructures._
-import exastencils.datastructures.l4._
-import exastencils.parsers._
+import exastencils.datastructures.Node
+import exastencils.datastructures.l1._
+import exastencils.parsers.ExaParser
 
-class ParserL1 extends ExaParser with scala.util.parsing.combinator.PackratParsers {
-  override val lexical : ExaLexer = new LexerL1()
-
-  def parse(s : String) : Node = {
-    parseTokens(new lexical.Scanner(s))
-  }
+class ParserL1 extends ExaParser {
+  override val lexical = new LexerL1()
 
   def parseFile(filename : String) : Node = {
     val lines = io.Source.fromFile(filename).getLines
     val reader = new PagedSeqReader(PagedSeq.fromLines(lines))
     val scanner = new lexical.Scanner(reader)
-
     parseTokens(scanner)
   }
 
@@ -36,8 +31,51 @@ class ParserL1 extends ExaParser with scala.util.parsing.combinator.PackratParse
     }
   }
 
-  //###########################################################
+  // ######################################
+  // ##### basic definitions
+  // ######################################
 
-  lazy val program = ???
+  lazy val program = (domain ||| operator ||| equation).+ ^^ { case x => Root(x) }
 
+  lazy val domain = ("Domain" ~> ident) ~ ("=" ~> range) ^^ { case id ~ range => Domain(id, range) }
+  lazy val operator = ("Operator" ~> ident) ~ ("=" ~> binaryexpression) ^^ { case id ~ exp => Operator(id, exp) }
+  lazy val equation = "Equation" ~ binaryexpression ~ "=" ~ binaryexpression ^^ { case _ ~ exp => Equation(exp, exp) }
+
+  // ######################################
+  // ##### range expressions
+  // ######################################
+
+  lazy val range = range1d ||| range2d ||| range3d
+
+  lazy val range1d = ("[" ~> realLit <~ ",") ~ (realLit <~ "]") ^^ { case a ~ b => List(Tuple2(a, b)) }
+  lazy val range2d = (range1d <~ rangeMultiply) ~ range1d ^^ { case a ~ b => a ::: b }
+  lazy val range3d = (range2d <~ rangeMultiply) ~ range1d ^^ { case a ~ b => a ::: b }
+  lazy val rangeMultiply = "\\times" ||| "\u00D7"
+
+  // ######################################
+  // ##### binary expressions
+  // ######################################
+
+  lazy val binaryexpression : PackratParser[Expression] = (
+    ((binaryexpression ~ ("+" ||| "-") ~ term) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
+    ||| term)
+
+  lazy val term : PackratParser[Expression] = (
+    ((term ~ ("*" ||| "/") ~ term2) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
+    ||| term2)
+
+  lazy val term2 : PackratParser[Expression] = (
+    ((term2 ~ ("**" ||| "^") ~ factor) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
+    ||| factor)
+
+  lazy val factor : PackratParser[Expression] = (
+    "(" ~> binaryexpression <~ ")"
+    ||| "{" ~> binaryexpression <~ "}"
+    ||| ("-" ~ "(") ~> binaryexpression <~ ")" ^^ { case exp => UnaryExpression("-", exp) }
+    ||| "-" ~> binaryexpression ^^ { case exp => UnaryExpression("-", exp) }
+    ||| operatorApplication
+    ||| ident ^^ { case id => Access(id) })
+
+  lazy val operatorApplication : PackratParser[OperatorApplication] =
+    (ident <~ "(") ~ (binaryexpression <~ ")") ^^ { case id ~ exp => OperatorApplication(id, exp) }
 }
