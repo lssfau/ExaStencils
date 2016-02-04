@@ -203,6 +203,8 @@ object Main {
     ResolveLoopOverPointsInOneFragment.apply()
     ResolveContractingLoop.apply()
 
+    TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
+
     if (Knowledge.experimental_addPerformanceEstimate)
       AddPerformanceEstimates()
     if (Knowledge.experimental_cuda_enabled)
@@ -225,7 +227,7 @@ object Main {
       PolyOpt.apply()
     ResolveLoopOverDimensions.apply()
 
-    TypeInference.apply()
+    TypeInference.apply() // second sweep for any newly introduced nodes - TODO: check if this is necessary
 
     if (Knowledge.opt_useColorSplitting)
       ColorSplitting.apply()

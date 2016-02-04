@@ -1,5 +1,6 @@
 package exastencils.cuda
 
+import scala.collection.immutable.SortedSet
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
@@ -9,10 +10,12 @@ import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.knowledge._
+import exastencils.polyhedron._
 
 object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into host and device instances") {
   this += new Transformation("Processing LoopOverDimensions nodes", {
-    case loop : LoopOverDimensions if (loop.reduction.isEmpty) // TODO: support reductions
+    case loop : LoopOverDimensions with PolyhedronAccessable if (loop.reduction.isEmpty) // TODO: support reductions // support variable propagation
     => {
       GatherLocalFieldAccess.fieldAccesses.clear
       GatherLocalFieldAccess.applyStandalone(Scope(loop.body))
@@ -50,8 +53,13 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
       // add kernel and kernel call
       val kernelFunctions = StateManager.findFirst[KernelFunctions]().get
 
+      GatherLocalVariableAccesses.accesses.clear
+      GatherLocalVariableAccesses.applyStandalone(Scope(loop.body))
+      val variableAccesses = GatherLocalVariableAccesses.accesses.map(_._2).to[ListBuffer]
+
       val kernel = Kernel(
         kernelFunctions.getIdentifier,
+        variableAccesses,
         loop.numDimensions,
         loop.indices,
         loop.body,
@@ -59,7 +67,7 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
         loop.condition)
 
       kernelFunctions.addKernel(kernel)
-      deviceStmts += new FunctionCallExpression(kernel.getWrapperFctName)
+      deviceStmts += FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[Expression]))
 
       // update flags for written fields
       for (access <- GatherLocalFieldAccess.fieldAccesses) {
@@ -107,6 +115,17 @@ object GatherLocalFieldAccess extends QuietDefaultStrategy("Gathering local Fiel
       assign
     case access : FieldAccess =>
       mapFieldAccess(access)
+      access
+  }, false)
+}
+
+object GatherLocalVariableAccesses extends QuietDefaultStrategy("Gathering local VariableAccess nodes") {
+  var accesses = HashMap[String, VariableAccess]()
+  val ignoredAccesses = (0 to Knowledge.dimensionality).map(dim => dimToString(dim)).to[SortedSet]
+
+  this += new Transformation("Searching", {
+    case access : VariableAccess if !ignoredAccesses.contains(access.name) =>
+      accesses.put(access.name, access)
       access
   }, false)
 }

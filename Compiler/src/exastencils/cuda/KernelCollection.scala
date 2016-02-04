@@ -61,10 +61,10 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
 
 object Kernel {
   def wrapperPostfix = "_wrapper"
-  var fieldAccesses = HashMap[String, LinearizedFieldAccess]()
 }
 
 case class Kernel(var identifier : String,
+    var passThroughArgs : ListBuffer[VariableAccess],
     var numDimensions : Int,
     var indices : IndexRange,
     var body : ListBuffer[Statement],
@@ -74,7 +74,7 @@ case class Kernel(var identifier : String,
   import Kernel._
 
   var evaluatedFieldAccesses = false
-  //  var fieldAccesses = HashMap[String, LinearizedFieldAccess]()
+  var fieldAccesses = HashMap[String, LinearizedFieldAccess]()
 
   def getKernelFctName : String = identifier
   def getWrapperFctName : String = identifier + wrapperPostfix
@@ -135,11 +135,14 @@ case class Kernel(var identifier : String,
       val fieldSelection = fieldAccess._2.fieldSelection
       callArgs += iv.FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot)
     }
+    for (variableAccess <- passThroughArgs) {
+      callArgs += Duplicate(variableAccess)
+    }
 
     FunctionStatement(
       SpecialDatatype("extern \"C\" void"), // FIXME
       getWrapperFctName,
-      ListBuffer(),
+      Duplicate(passThroughArgs),
       ListBuffer[Statement](CUDA_FunctionCallExpression(getKernelFctName, callArgs)),
       false)
   }
@@ -156,6 +159,9 @@ case class Kernel(var identifier : String,
     for (fieldAccess <- fieldAccesses) {
       val fieldSelection = fieldAccess._2.fieldSelection
       fctParams += VariableAccess(fieldAccess._1, Some(PointerDatatype(fieldSelection.field.dataType.resolveUnderlyingDatatype)))
+    }
+    for (variableAccess <- passThroughArgs) {
+      fctParams += Duplicate(variableAccess)
     }
 
     var fct = FunctionStatement(
