@@ -1,5 +1,6 @@
 import exastencils.communication._
 import exastencils.core._
+import exastencils.cuda._
 import exastencils.data._
 import exastencils.datastructures._
 import exastencils.domain._
@@ -170,8 +171,12 @@ object Main {
       Stopwatch(),
       TimerFunctions(),
       Vector(),
-      Matrix(),
-      CImg())
+      Matrix(), // TODO: only if required
+      CImg() // TODO: only if required
+      )
+
+    if (Knowledge.experimental_cuda_enabled)
+      StateManager.root_.asInstanceOf[ir.Root].nodes += KernelFunctions()
 
     SimplifyStrategy.doUntilDone() // removes (conditional) calls to communication functions that are not possible
     SetupCommunication.apply()
@@ -200,6 +205,8 @@ object Main {
 
     if (Knowledge.experimental_addPerformanceEstimate)
       AddPerformanceEstimates()
+    if (Knowledge.experimental_cuda_enabled)
+      SplitLoopsForHostAndDevice.apply()
 
     MapStencilAssignments.apply()
     ResolveFieldAccess.apply()
@@ -223,9 +230,13 @@ object Main {
     if (Knowledge.opt_useColorSplitting)
       ColorSplitting.apply()
 
-    ResolveSlotOperationsStrategy.apply()
     ResolveIndexOffsets.apply()
     LinearizeFieldAccesses.apply()
+
+    if (Knowledge.experimental_cuda_enabled)
+      StateManager.findFirst[KernelFunctions]().get.convertToFunctions
+
+    ResolveSlotOperationsStrategy.apply() // after converting kernel functions -> relies on (unresolved) slot accesses
 
     if (Knowledge.useFasterExpand)
       ExpandOnePassStrategy.apply()

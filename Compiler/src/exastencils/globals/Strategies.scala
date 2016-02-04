@@ -57,14 +57,5 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
 
       func
     }
-
-    case func : FunctionStatement if ("destroyGlobals" == func.name) => {
-      if (Knowledge.experimental_cuda_enabled) {
-        // destroy globals
-        func.body += "cuCtxDestroy(cudaContext)"
-      }
-
-      func
-    }
   })
 }

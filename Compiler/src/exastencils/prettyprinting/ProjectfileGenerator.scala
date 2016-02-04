@@ -12,6 +12,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
     val filesToConsider = PrettyprintingManager.getFiles ++ Settings.additionalFiles
     val hFileNames = filesToConsider.filter(file => file.endsWith(".h")).toList.sorted
     val cppFileNames = filesToConsider.filter(file => file.endsWith(".cpp")).toList.sorted
+    val cuFileNames = filesToConsider.filter(file => file.endsWith(".cu")).toList.sorted
 
     /// project file
 
@@ -120,8 +121,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
     // cuda kernels
     if (Knowledge.experimental_cuda_enabled) {
       projectPrinter <<< "\t<ItemGroup>"
-      val cudaFileNames = ListBuffer("kernel.cu") // TODO: extract from actual AST
-      for (filename <- cudaFileNames)
+      for (filename <- cuFileNames)
         projectPrinter <<< s"""\t\t<CudaCompile Include=\"${filename.replace('/', '\\')}\" />"""
       projectPrinter <<< "\t</ItemGroup>"
     }

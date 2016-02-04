@@ -342,7 +342,7 @@ case class LoopOverDimensions(var numDimensions : Int,
     return (totalNumPoints > Knowledge.omp_minWorkItemsPerThread * Knowledge.omp_numThreads)
   }
 
-  def expandSpecial : Statement = {
+  def expandSpecial : ListBuffer[Statement] = {
     val parallelizable = Knowledge.omp_parallelizeLoopOverDimensions && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
     val parallelize = parallelizable && parallelizationIsReasonable
     val resolveOmpReduction = (
@@ -360,7 +360,7 @@ case class LoopOverDimensions(var numDimensions : Int,
         body)
 
     // compile loop(s)
-    var ret : ForLoopStatement with OptimizationHint = null
+    var compiledLoop : ForLoopStatement with OptimizationHint = null
     for (d <- 0 until numDimensions) {
       def it = VariableAccess(dimToString(d), Some(IntegerDatatype))
       val decl = VariableDeclarationStatement(IntegerDatatype, dimToString(d), Some(indices.begin(d)))
@@ -369,19 +369,21 @@ case class LoopOverDimensions(var numDimensions : Int,
       if (parallelize && d == numDimensions - 1) {
         val omp = new ForLoopStatement(decl, cond, incr, wrappedBody, reduction) with OptimizationHint with OMP_PotentiallyParallel
         omp.collapse = numDimensions
-        ret = omp
+        compiledLoop = omp
       } else {
-        ret = new ForLoopStatement(decl, cond, incr, wrappedBody, reduction) with OptimizationHint
-        wrappedBody = ListBuffer[Statement](ret)
+        compiledLoop = new ForLoopStatement(decl, cond, incr, wrappedBody, reduction) with OptimizationHint
+        wrappedBody = ListBuffer[Statement](compiledLoop)
       }
       // set optimization hints
-      ret.isInnermost = d == 0
-      ret.isParallel = parallelizable
+      compiledLoop.isInnermost = d == 0
+      compiledLoop.isParallel = parallelizable
     }
+
+    var retStmts = ListBuffer[Statement]()
 
     // resolve omp reduction if necessary
     if (!resolveOmpReduction) {
-      ret
+      retStmts += compiledLoop
     } else {
       // resolve max reductions
       val redOp = reduction.get.op
@@ -401,10 +403,12 @@ case class LoopOverDimensions(var numDimensions : Int,
       ReplaceStringConstantsStrategy.applyStandalone(body)
       body.prepend(VariableDeclarationStatement(IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
 
-      Scope(ListBuffer[Statement](decl)
+      retStmts += Scope(ListBuffer[Statement](decl)
         ++ init
-        ++ ListBuffer[Statement](ret, red))
+        ++ ListBuffer[Statement](compiledLoop, red))
     }
+
+    retStmts
   }
 }
 
