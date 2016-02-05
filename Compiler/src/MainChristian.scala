@@ -28,6 +28,7 @@ object MainChristian {
     // L1
     StateManager.root_ = (new ParserL1).parseFile("/home/schmittch/l1.txt")
     StateManager.root.asInstanceOf[l1.Root].sort()
+    exastencils.languageprocessing.l1.UnifyOperators.apply()
     println(StateManager.root)
     sys.exit(0)
 

@@ -74,6 +74,7 @@ class ParserL1 extends ExaParser {
     ||| ("-" ~ "(") ~> binaryexpression <~ ")" ^^ { case exp => UnaryExpression("-", exp) }
     ||| "-" ~> binaryexpression ^^ { case exp => UnaryExpression("-", exp) }
     ||| operatorApplication
+    ||| locationize("-".? ~ numericLit ^^ { case s ~ n => if (isInt(s.getOrElse("") + n)) IntegerConstant((s.getOrElse("") + n).toInt) else FloatConstant((s.getOrElse("") + n).toDouble) })
     ||| ident ^^ { case id => Access(id) })
 
   lazy val operatorApplication : PackratParser[OperatorApplication] =
