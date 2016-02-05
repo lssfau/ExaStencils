@@ -203,6 +203,7 @@ object Main {
     ResolveLoopOverPointsInOneFragment.apply()
     ResolveContractingLoop.apply()
 
+    TypeInference.warnMissingDeclarations = false
     TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
 
     if (Knowledge.experimental_addPerformanceEstimate)
