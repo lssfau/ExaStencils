@@ -15,8 +15,7 @@ import exastencils.polyhedron._
 
 object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into host and device instances") {
   this += new Transformation("Processing LoopOverDimensions nodes", {
-    case loop : LoopOverDimensions with PolyhedronAccessable if (loop.reduction.isEmpty) // TODO: support reductions // support variable propagation
-    => {
+    case loop : LoopOverDimensions with PolyhedronAccessable => {
       GatherLocalFieldAccess.fieldAccesses.clear
       GatherLocalFieldAccess.applyStandalone(Scope(loop.body))
 
@@ -25,8 +24,7 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
 
       // add data sync statements
       for (access <- GatherLocalFieldAccess.fieldAccesses) {
-        val syncWithDeviceForWrite = true // TODO: move flag to knowledge or other appropriate location
-        if (syncWithDeviceForWrite || access._1.startsWith("read")) // skip write accesses if demanded
+        if (Knowledge.experimental_cuda_syncHostForWrites || access._1.startsWith("read")) // skip write accesses if demanded
           hostStmts += CUDA_UpdateHostData(Duplicate(access._2)).expand.inner // expand here to avoid global expand afterwards
       }
 
@@ -45,8 +43,7 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
 
       // add data sync statements
       for (access <- GatherLocalFieldAccess.fieldAccesses) {
-        val syncWithDeviceForWrite = true // TODO: move flag to knowledge or other appropriate location
-        if (syncWithDeviceForWrite || access._1.startsWith("read")) // skip write accesses if demanded
+        if (Knowledge.experimental_cuda_syncDeviceForWrites || access._1.startsWith("read")) // skip write accesses if demanded
           deviceStmts += CUDA_UpdateDeviceData(Duplicate(access._2)).expand.inner // expand here to avoid global expand afterwards
       }
 
@@ -68,7 +65,8 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
 
       kernelFunctions.addKernel(Duplicate(kernel))
       deviceStmts += FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[Expression]))
-      // TODO: add device sync if desired
+      if (Knowledge.experimental_cuda_syncDeviceAfterKernelCalls)
+        deviceStmts += CUDA_DeviceSynchronize()
 
       // update flags for written fields
       for (access <- GatherLocalFieldAccess.fieldAccesses) {
@@ -78,7 +76,16 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
       }
 
       /// compile final switch
-      ConditionStatement(IntegerConstant(1),
+      var defaultChoice = Knowledge.experimental_cuda_preferredExecution match {
+        case "Host"        => 1 // CPU by default
+        case "Device"      => 0 // GPU by default
+        case "Performance" => if (loop.getAnnotation("perf_timeEstimate_host").get.value.asInstanceOf[Double] > loop.getAnnotation("perf_timeEstimate_device").get.value.asInstanceOf[Double]) 0 else 1 // decide according to performance estimates
+      }
+      if (loop.reduction.isDefined) {
+        defaultChoice = 1 // always use host until reductions are supported // TODO: support reductions
+      }
+
+      ConditionStatement(defaultChoice,
         hostStmts,
         deviceStmts)
     }

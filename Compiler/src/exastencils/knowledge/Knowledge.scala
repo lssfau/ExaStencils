@@ -16,11 +16,20 @@ object Knowledge {
   var hw_numThreadsPerNode : Int = 64 // specifies the total number of ranks (OMP and MPI) to be used when generating job scripts
   def hw_numCoresPerNode : Int = hw_cpu_numCoresPerCPU * hw_cpu_numCPUs
   var hw_numNodes : Int = 1
+  var hw_cpu_name : String = "Intel Xeon E5620"
   var hw_cpu_numCoresPerCPU : Int = 4
   var hw_cpu_numCPUs : Int = 2
   var hw_cpu_bandwidth : Double = 25.6 * 1024 * 1024 * 1024 // in B/s
   var hw_cpu_frequency : Double = 2.4 * 1000 * 1000 * 1000 // in Hz
   var hw_64bit : Boolean = true // true if 64 bit addresses are used
+  var hw_gpu_name : String = "NVidia Quadro 4000"
+  var hw_gpu_numDevices : Int = 2
+  var hw_gpu_bandwidth : Double = 89.6 * 1024 * 1024 * 1024 // in B/s
+  var hw_gpu_frequency : Double = 0.475 * 1000 * 1000 * 1000 // in Hz
+  var hw_gpu_numCores : Int = 256
+  var hw_cuda_capability : Int = 2
+  var hw_cuda_capabilityMinor : Int = 0
+  var hw_cuda_kernelCallOverhead : Double = 3.5 * 0.001 // in s
 
   var useDblPrecision : Boolean = true // if true uses double precision for floating point numbers and single precision otherwise
 
@@ -364,7 +373,11 @@ object Knowledge {
   var experimental_addPerformanceEstimate : Boolean = false
 
   var experimental_cuda_enabled : Boolean = false
-  var experimental_cuda_deviceId : Int = 0
+  var experimental_cuda_deviceId : Int = 0 // device id of the CUDA device to be used; only relevant in multi-GPU systems
+  var experimental_cuda_preferredExecution : String = "Performance" // specifies where kernels should be executed by default; may be "Host", "Device" or "Performance"
+  var experimental_cuda_syncDeviceAfterKernelCalls : Boolean = true // specifies if CUDA devices are to be synchronized after each (device) kernel call -> recommended to debug, required for reasonable performance measurements
+  var experimental_cuda_syncHostForWrites : Boolean = false // specifies if fields with (exclusive) write accesses should be synchronized before host kernel executions
+  var experimental_cuda_syncDeviceForWrites : Boolean = true // specifies if fields with (exclusive) write accesses should be synchronized before device kernel executions
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {

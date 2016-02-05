@@ -11,6 +11,13 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 
+/// util classes
+
+case class PerformanceEstimate(var host : Double, var device : Double) {
+  // TODO: integrate host/device choices to estimate final execution time
+  def +(other : PerformanceEstimate) = PerformanceEstimate(host + other.host, device + other.device)
+}
+
 /// control function
 
 object AddPerformanceEstimates {
@@ -39,7 +46,7 @@ object CollectFunctionStatements extends DefaultStrategy("Collecting internal fu
 }
 
 object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performance estimates") {
-  var completeFunctions = HashMap[String, Double]()
+  var completeFunctions = HashMap[String, PerformanceEstimate]()
   var unknownFunctionCalls = true
 
   override def apply(node : Option[Node] = None) : Unit = {
@@ -66,10 +73,14 @@ object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performa
         unknownFunctionCalls = true
       } else {
         val estimatedTime = EvaluatePerformanceEstimates_SubAST.lastEstimate
-        fct.add(Annotation("perf_timeEstimate", estimatedTime))
+
+        fct.add(Annotation("perf_timeEstimate_host", estimatedTime.host))
+        fct.add(Annotation("perf_timeEstimate_device", estimatedTime.device))
+
         completeFunctions.put(fct.name, estimatedTime)
         fct.body = ListBuffer[Statement](
-          CommentStatement(s"Estimated time for function: ${estimatedTime * 1000.0} ms")) ++ fct.body
+          CommentStatement(s"Estimated host time for function: ${estimatedTime.host * 1000.0} ms"),
+          CommentStatement(s"Estimated device time for function: ${estimatedTime.device * 1000.0} ms")) ++ fct.body
       }
 
       fct
@@ -85,19 +96,37 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
   //        condition statements
 
   var unknownFunctionCalls = false
-  var estimatedTimeSubAST = Stack[Double]()
-  var lastEstimate = 0.0
+  var estimatedTimeSubAST = Stack[PerformanceEstimate]()
+  var lastEstimate = PerformanceEstimate(0.0, 0.0)
 
-  def addTimeToStack(value : Double) = {
-    estimatedTimeSubAST.push(estimatedTimeSubAST.pop + value)
+  def addTimeToStack(estimate : PerformanceEstimate) : Unit = {
+    estimatedTimeSubAST.push(estimatedTimeSubAST.pop + estimate)
+  }
+  def addTimeToStack(nodeWithAnnotation : Node) : Unit = {
+    addTimeToStack(PerformanceEstimate(
+      nodeWithAnnotation.getAnnotation("perf_timeEstimate_host").get.value.asInstanceOf[Double],
+      nodeWithAnnotation.getAnnotation("perf_timeEstimate_device").get.value.asInstanceOf[Double]))
+  }
+
+  def addLoopTimeToStack(loop : ForLoopStatement) : Unit = {
+    //    Knowledge.experimental_cuda_preferredExecution match {
+    //      case "Host"   => addTimeToStack(loop.getAnnotation("perf_timeEstimate_host").get.value.asInstanceOf[Double])
+    //      case "Device" => addTimeToStack(loop.getAnnotation("perf_timeEstimate_device").get.value.asInstanceOf[Double])
+    //      case "Performance" => addTimeToStack(
+    //        math.min(
+    //          loop.getAnnotation("perf_timeEstimate_host").get.value.asInstanceOf[Double],
+    //          loop.getAnnotation("perf_timeEstimate_device").get.value.asInstanceOf[Double]))
+    //    }
+    addTimeToStack(loop)
   }
 
   override def applyStandalone(node : Node) : Unit = {
     unknownFunctionCalls = false
-    estimatedTimeSubAST.push(0.0)
+    estimatedTimeSubAST.push(PerformanceEstimate(0.0, 0.0))
     super.applyStandalone(node)
     lastEstimate = estimatedTimeSubAST.pop
   }
+
   override def applyStandalone(nodes : Seq[Node]) : Unit = {
     super.applyStandalone(nodes) // calls CombBody.applyStandalone internally -> defer stack ops to this function
   }
@@ -115,8 +144,8 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
     }
 
     case loop : LoopOverDimensions => {
-      if (loop.hasAnnotation("perf_timeEstimate")) {
-        addTimeToStack(loop.getAnnotation("perf_timeEstimate").get.value.asInstanceOf[Double])
+      if (loop.hasAnnotation("perf_timeEstimate_host") || loop.hasAnnotation("perf_timeEstimate_device")) {
+        addTimeToStack(loop)
         loop
       } else {
         val maxIterations = loop.maxIterationCount.reduce(_ * _)
@@ -126,45 +155,60 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
         EvaluatePerformanceEstimates_Ops.applyStandalone(loop)
 
         val optimisticDataPerIt = EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.map(_._2.typicalByteSize).fold(0)(_ + _)
-        val optimisticTimeMem = (optimisticDataPerIt * maxIterations) / Knowledge.hw_cpu_bandwidth
+        val optimisticTimeMem_host = (optimisticDataPerIt * maxIterations) / Knowledge.hw_cpu_bandwidth
+        val optimisticTimeMem_device = (optimisticDataPerIt * maxIterations) / Knowledge.hw_gpu_bandwidth
 
         val cyclesPerIt = Math.max(EvaluatePerformanceEstimates_Ops.numAdd, EvaluatePerformanceEstimates_Ops.numMul) + EvaluatePerformanceEstimates_Ops.numDiv * 55 // TODO: better estimates
-        var estimatedTimeOps = (cyclesPerIt * maxIterations) / Knowledge.hw_cpu_frequency
+        var estimatedTimeOps_host = (cyclesPerIt * maxIterations) / Knowledge.hw_cpu_frequency
+        var estimatedTimeOps_device = (cyclesPerIt * maxIterations) / Knowledge.hw_gpu_frequency
         val coresPerRank = (Knowledge.hw_numNodes * Knowledge.hw_numCoresPerNode).toDouble / Knowledge.mpi_numThreads // could be fractions of cores
-        estimatedTimeOps /= Math.min(coresPerRank, Knowledge.omp_numThreads) // adapt for omp threading and hardware utilization
-        estimatedTimeOps /= Knowledge.simd_vectorSize // adapt for vectorization - assume perfect vectorizability
+        estimatedTimeOps_host /= Math.min(coresPerRank, Knowledge.omp_numThreads) // adapt for omp threading and hardware utilization
+        estimatedTimeOps_host /= Knowledge.simd_vectorSize // adapt for vectorization - assume perfect vectorizability
+        estimatedTimeOps_device /= Knowledge.hw_gpu_numCores // TODO: incorporate blocks, etc
 
-        loop.add(Annotation("perf_timeEstimate", Math.max(estimatedTimeOps, optimisticTimeMem)))
-        addTimeToStack(Math.max(estimatedTimeOps, optimisticTimeMem))
+        var totalEstimate = PerformanceEstimate(Math.max(estimatedTimeOps_host, optimisticTimeMem_host), Math.max(estimatedTimeOps_device, optimisticTimeMem_device))
+        totalEstimate.device += Knowledge.hw_cuda_kernelCallOverhead
+
+        loop.add(Annotation("perf_timeEstimate_host", totalEstimate.host))
+        loop.add(Annotation("perf_timeEstimate_device", totalEstimate.device))
+        addTimeToStack(totalEstimate)
 
         ListBuffer(
           CommentStatement(s"Max iterations: $maxIterations"),
           CommentStatement(s"Optimistic memory transfer per iteration: $optimisticDataPerIt byte"),
-          CommentStatement(s"Optimistic time for memory transfers: ${optimisticTimeMem * 1000.0} ms"),
-          CommentStatement(s"Optimistic time for ops: ${estimatedTimeOps * 1000.0} ms"),
+          CommentStatement(s"Optimistic host time for memory ops: ${optimisticTimeMem_host * 1000.0} ms"),
+          CommentStatement(s"Optimistic device time for memory ops: ${optimisticTimeMem_device * 1000.0} ms"),
+          CommentStatement(s"Optimistic host time for computational ops: ${estimatedTimeOps_host * 1000.0} ms"),
+          CommentStatement(s"Optimistic device time for computational ops: ${estimatedTimeOps_device * 1000.0} ms"),
+          CommentStatement(s"Assumed kernel call overhead: ${Knowledge.hw_cuda_kernelCallOverhead * 1000.0} ms"),
           CommentStatement(s"Found accesses: ${EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.map(_._1).mkString(", ")}"),
           loop)
       }
     }
 
     case loop : ForLoopStatement => {
-      if (loop.hasAnnotation("perf_timeEstimate")) {
-        addTimeToStack(loop.getAnnotation("perf_timeEstimate").get.value.asInstanceOf[Double])
-        loop
+      if (loop.hasAnnotation("perf_timeEstimate_host") || loop.hasAnnotation("perf_timeEstimate_device")) {
+        addLoopTimeToStack(loop)
       } else {
         applyStandalone(loop.body)
 
         if (unknownFunctionCalls) {
           unknownFunctionCalls = true
         } else {
-          val estimatedTime = lastEstimate * loop.maxIterationCount
-          loop.add(Annotation("perf_timeEstimate", estimatedTime))
-          addTimeToStack(loop.getAnnotation("perf_timeEstimate").get.value.asInstanceOf[Double])
+          val estimatedTime_host = lastEstimate.host * loop.maxIterationCount
+          val estimatedTime_device = lastEstimate.device * loop.maxIterationCount
+
+          loop.add(Annotation("perf_timeEstimate_host", estimatedTime_host))
+          loop.add(Annotation("perf_timeEstimate_device", estimatedTime_device))
+
+          addLoopTimeToStack(loop)
+
           loop.body = ListBuffer[Statement](
-            CommentStatement(s"Estimated time for loop: ${estimatedTime * 1000.0} ms")) ++ loop.body
+            CommentStatement(s"Estimated host time for loop: ${estimatedTime_host * 1000.0} ms"),
+            CommentStatement(s"Estimated device time for loop: ${estimatedTime_device * 1000.0} ms")) ++ loop.body
         }
-        loop
       }
+      loop
     }
   }, false)
 }

@@ -107,3 +107,11 @@ case class CUDA_FunctionCallExpression(var name : String, var arguments : ListBu
   // FIXME: allow setting thread and block parameters via class arguments
   override def prettyprint(out : PpStream) : Unit = out << name << "<<<" << "dim3(36, 36, 36)" << ", " << "dim3(8, 8, 8)" << ">>>" << '(' <<< (arguments, ", ") << ')'
 }
+
+case class CUDA_DeviceSynchronize() extends Statement with Expandable {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_DeviceSynchronize\n"
+
+  override def expand : Output[Statement] = {
+    CUDA_CheckError(FunctionCallExpression("cudaDeviceSynchronize", ListBuffer()))
+  }
+}
