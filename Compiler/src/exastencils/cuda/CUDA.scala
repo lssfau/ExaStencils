@@ -6,6 +6,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
+import exastencils.logger._
 import exastencils.prettyprinting._
 import exastencils.util._
 
@@ -101,11 +102,21 @@ case class CUDA_UpdateDeviceData(var fieldAccess : FieldAccess) extends Statemen
   }
 }
 
-case class CUDA_FunctionCallExpression(var name : String, var arguments : ListBuffer[Expression]) extends Expression {
-  def this(name : String, args : Expression*) = this(name, args.to[ListBuffer])
+case class CUDA_FunctionCallExpression(var name : String, var numThreadsPerDim : /*Array*/ ListBuffer[Int], var arguments : ListBuffer[Expression]) extends Expression {
+  // FIXME: use array for numThreadsPerDim as soon as supported by the framework (c.f. StateManager.scala/396)
+  override def prettyprint(out : PpStream) : Unit = {
+    val numDims = math.min(numThreadsPerDim.size, Knowledge.dimensionality)
+    if (numDims > 3) Logger.warn(s"${numDims}D kernel found; this is currently unsupported by CUDA")
 
-  // FIXME: allow setting thread and block parameters via class arguments
-  override def prettyprint(out : PpStream) : Unit = out << name << "<<<" << "dim3(36, 36, 36)" << ", " << "dim3(8, 8, 8)" << ">>>" << '(' <<< (arguments, ", ") << ')'
+    val numBlocks = (0 until numDims).map(dim => {
+      (numThreadsPerDim(dim) + Knowledge.experimental_cuda_blockSizeAsVec(dim) - 1) / Knowledge.experimental_cuda_blockSizeAsVec(dim)
+    }).toArray
+
+    out << name << "<<<" <<
+      s"dim$numDims(${numBlocks.mkString(", ")})" << ", " <<
+      s"dim$numDims(${Knowledge.experimental_cuda_blockSizeAsVec.take(numDims).mkString(", ")})" <<
+      ">>>" << '(' <<< (arguments, ", ") << ')'
+  }
 }
 
 case class CUDA_DeviceSynchronize() extends Statement with Expandable {

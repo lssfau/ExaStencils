@@ -12,6 +12,7 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.prettyprinting._
+import exastencils.util._
 
 case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelFunctions",
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
@@ -166,11 +167,35 @@ case class Kernel(var identifier : String,
       callArgs += Duplicate(variableAccess)
     }
 
+    // evaluate required thread counts // TODO: re-integrate with LoopOverDimensions
+    // TODO: shift indices incorporating indices.begin
+    var numThreadsPerDim = Array.fill[Int](numDimensions)(0)
+    indices.end match {
+      case endIndex : MultiIndex => {
+        for (dim <- 0 until numDimensions) {
+          endIndex(dim) match {
+            case IntegerConstant(xEnd)                                => numThreadsPerDim(dim) = xEnd.toInt
+            case OffsetIndex(_, xEndOffMax, IntegerConstant(xEnd), _) => numThreadsPerDim(dim) = (xEnd + xEndOffMax).toInt
+            case _ => { // no use -> try evaluation as last resort
+              try {
+                val simplified = SimplifyExpression.evalIntegral(endIndex(dim))
+                endIndex(dim) = IntegerConstant(simplified)
+                numThreadsPerDim(dim) = simplified.toInt
+              } catch {
+                case _ : EvaluationException => // evaluation failed -> abort
+              }
+            }
+          }
+        }
+      }
+    }
+    if (numThreadsPerDim.reduce(_ * _) <= 0) Logger.warn("Could not evaluate required number of threads")
+
     FunctionStatement(
       SpecialDatatype("extern \"C\" void"), // FIXME
       getWrapperFctName,
       Duplicate(passThroughArgs),
-      ListBuffer[Statement](CUDA_FunctionCallExpression(getKernelFctName, callArgs)),
+      ListBuffer[Statement](CUDA_FunctionCallExpression(getKernelFctName, numThreadsPerDim.to[ListBuffer], callArgs)),
       false)
   }
 

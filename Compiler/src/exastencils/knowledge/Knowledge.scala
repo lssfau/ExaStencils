@@ -378,6 +378,12 @@ object Knowledge {
   var experimental_cuda_syncDeviceAfterKernelCalls : Boolean = true // specifies if CUDA devices are to be synchronized after each (device) kernel call -> recommended to debug, required for reasonable performance measurements
   var experimental_cuda_syncHostForWrites : Boolean = false // specifies if fields with (exclusive) write accesses should be synchronized before host kernel executions
   var experimental_cuda_syncDeviceForWrites : Boolean = true // specifies if fields with (exclusive) write accesses should be synchronized before device kernel executions
+
+  var experimental_cuda_blockSize_x : Int = 8 // default block size in x dimension
+  var experimental_cuda_blockSize_y : Int = 8 // default block size in x dimension
+  var experimental_cuda_blockSize_z : Int = 8 // default block size in x dimension
+  def experimental_cuda_blockSizeAsVec = Array(experimental_cuda_blockSize_x, experimental_cuda_blockSize_y, experimental_cuda_blockSize_z)
+  def experimental_cuda_blockSizeTotal = experimental_cuda_blockSize_x * experimental_cuda_blockSize_y * experimental_cuda_blockSize_z
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {
@@ -551,6 +557,12 @@ object Knowledge {
 
     Constraints.condEnsureValue(experimental_addPerformanceEstimate, true, "Performance" == experimental_cuda_preferredExecution, s"experimental_addPerformanceEstimate is required for performance estimate guided kernel execution")
     Constraints.condEnsureValue(experimental_cuda_deviceId, 0, experimental_cuda_deviceId >= hw_gpu_numDevices, s"CUDA device id must not be exceeding number of installed devices")
+
+    Constraints.condEnsureValue(experimental_cuda_blockSize_y, 1, domain_rect_generate && dimensionality < 2, "experimental_cuda_blockSize_y must be set to 1 for problems with a dimensionality smaller 2")
+    Constraints.condEnsureValue(experimental_cuda_blockSize_z, 1, domain_rect_generate && dimensionality < 3, "experimental_cuda_blockSize_z must be set to 1 for problems with a dimensionality smaller 3")
+
+    Constraints.condWarn(experimental_cuda_blockSizeTotal > 512 && hw_cuda_capability <= 2, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability $hw_cuda_capability.$hw_cuda_capabilityMinor")
+    Constraints.condWarn(experimental_cuda_blockSizeTotal > 1024 && hw_cuda_capability >= 3, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability $hw_cuda_capability.$hw_cuda_capabilityMinor")
 
     // data
     Constraints.condEnsureValue(data_alignFieldPointers, true, opt_vectorize && "QPX" == simd_instructionSet, "data_alignFieldPointers must be true for vectorization with QPX")
