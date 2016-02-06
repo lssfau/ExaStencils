@@ -102,7 +102,7 @@ case class CUDA_UpdateDeviceData(var fieldAccess : FieldAccess) extends Statemen
   }
 }
 
-case class CUDA_FunctionCallExpression(var name : String, var numThreadsPerDim : /*Array*/ ListBuffer[Int], var arguments : ListBuffer[Expression]) extends Expression {
+case class CUDA_FunctionCallExpression(var name : String, var numThreadsPerDim : /*Array*/ ListBuffer[Long], var arguments : ListBuffer[Expression]) extends Expression {
   // FIXME: use array for numThreadsPerDim as soon as supported by the framework (c.f. StateManager.scala/396)
   override def prettyprint(out : PpStream) : Unit = {
     val numDims = math.min(numThreadsPerDim.size, Knowledge.dimensionality)

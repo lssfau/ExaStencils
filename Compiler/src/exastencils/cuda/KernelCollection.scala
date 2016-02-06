@@ -167,29 +167,13 @@ case class Kernel(var identifier : String,
       callArgs += Duplicate(variableAccess)
     }
 
-    // evaluate required thread counts // TODO: re-integrate with LoopOverDimensions
+    // evaluate required thread counts
     // TODO: shift indices incorporating indices.begin
-    var numThreadsPerDim = Array.fill[Int](numDimensions)(0)
-    indices.end match {
-      case endIndex : MultiIndex => {
-        for (dim <- 0 until numDimensions) {
-          endIndex(dim) match {
-            case IntegerConstant(xEnd)                                => numThreadsPerDim(dim) = xEnd.toInt
-            case OffsetIndex(_, xEndOffMax, IntegerConstant(xEnd), _) => numThreadsPerDim(dim) = (xEnd + xEndOffMax).toInt
-            case _ => { // no use -> try evaluation as last resort
-              try {
-                val simplified = SimplifyExpression.evalIntegral(endIndex(dim))
-                endIndex(dim) = IntegerConstant(simplified)
-                numThreadsPerDim(dim) = simplified.toInt
-              } catch {
-                case _ : EvaluationException => // evaluation failed -> abort
-              }
-            }
-          }
-        }
-      }
+    var numThreadsPerDim = LoopOverDimensions.evalMaxIndex(indices.end, numDimensions, true)
+    if (null == numThreadsPerDim || numThreadsPerDim.reduce(_ * _) <= 0) {
+      Logger.warn("Could not evaluate required number of threads for kernel " + identifier)
+      numThreadsPerDim = (0 until numDimensions).map(dim => 0 : Long).toArray // TODO: replace 0 with sth more suitable
     }
-    if (numThreadsPerDim.reduce(_ * _) <= 0) Logger.warn("Could not evaluate required number of threads")
 
     FunctionStatement(
       SpecialDatatype("extern \"C\" void"), // FIXME
