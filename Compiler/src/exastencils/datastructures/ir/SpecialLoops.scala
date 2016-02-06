@@ -265,6 +265,45 @@ object LoopOverDimensions {
       case 3 => new MultiIndex(dimToString(0), dimToString(1), dimToString(2), dimToString(3))
     }
   }
+
+  object ReplaceOffsetIndicesWithMin extends QuietDefaultStrategy("Replace OffsetIndex nodes with minimum values") {
+    this += new Transformation("SearchAndReplace", {
+      case OffsetIndex(xStartOffMin, _, xStart, _) => xStart + xStartOffMin
+    })
+  }
+  object ReplaceOffsetIndicesWithMax extends QuietDefaultStrategy("Replace OffsetIndex nodes with maximum values") {
+    this += new Transformation("SearchAndReplace", {
+      case OffsetIndex(_, xEndOffMax, xEnd, _) => xEnd + xEndOffMax
+    })
+  }
+
+  def evalMinIndex(origStartIndex : MultiIndex, numDimensions : Int, printWarnings : Boolean = false) : Array[Long] = {
+    var startIndex = Duplicate(origStartIndex)
+    ReplaceOffsetIndicesWithMin.applyStandalone(startIndex)
+
+    (0 until numDimensions).map(dim =>
+      try {
+        SimplifyExpression.evalIntegral(startIndex(dim))
+      } catch {
+        case _ : EvaluationException =>
+          if (printWarnings) Logger.warn(s"Start index for dimension $dim (${startIndex(dim)}) could not be evaluated")
+          0
+      }).toArray
+  }
+
+  def evalMaxIndex(origEndIndex : MultiIndex, numDimensions : Int, printWarnings : Boolean = false) : Array[Long] = {
+    var endIndex = Duplicate(origEndIndex)
+    ReplaceOffsetIndicesWithMax.applyStandalone(endIndex)
+
+    (0 until numDimensions).map(dim =>
+      try {
+        SimplifyExpression.evalIntegral(endIndex(dim))
+      } catch {
+        case _ : EvaluationException =>
+          if (printWarnings) Logger.warn(s"End index for dimension $dim (${endIndex(dim)}) could not be evaluated")
+          0
+      }).toArray
+  }
 }
 
 case class LoopOverDimensions(var numDimensions : Int,
@@ -278,57 +317,34 @@ case class LoopOverDimensions(var numDimensions : Int,
   def this(numDimensions : Int, indices : IndexRange, body : Statement, stepSize : MultiIndex) = this(numDimensions, indices, ListBuffer[Statement](body), stepSize)
   def this(numDimensions : Int, indices : IndexRange, body : Statement) = this(numDimensions, indices, ListBuffer[Statement](body))
 
+  import LoopOverDimensions._
+
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverDimensions\n"
 
   def maxIterationCount() : Array[Long] = {
-    var start = Array.fill[Long](numDimensions)(0)
-    var end = Array.fill[Long](numDimensions)(0)
+    var start : Array[Long] = null
+    var end : Array[Long] = null
 
     indices match {
       case indexRange : IndexRange =>
         indexRange.begin match {
-          case startIndex : MultiIndex => {
-            for (dim <- 0 until numDimensions) {
-              startIndex(dim) match {
-                case IntegerConstant(xStart)                                  => start(dim) = xStart
-                case OffsetIndex(xStartOffMin, _, IntegerConstant(xStart), _) => start(dim) = xStart + xStartOffMin
-                case _ => { // no use -> try evaluation as last resort
-                  try {
-                    val simplified = SimplifyExpression.evalIntegral(startIndex(dim))
-                    startIndex(dim) = IntegerConstant(simplified)
-                    start(dim) = simplified
-                  } catch {
-                    case _ : EvaluationException => return null // evaluation failed -> abort
-                  }
-                }
-              }
-            }
-          }
-          case _ => Logger.warn("Loop index range begin is not a MultiIndex"); return null
+          case startIndex : MultiIndex => start = evalMinIndex(startIndex, numDimensions, false)
+          case _                       => Logger.warn("Loop index range begin is not a MultiIndex")
         }
         indexRange.end match {
-          case endIndex : MultiIndex => {
-            for (dim <- 0 until numDimensions) {
-              endIndex(dim) match {
-                case IntegerConstant(xEnd)                                => end(dim) = xEnd
-                case OffsetIndex(_, xEndOffMax, IntegerConstant(xEnd), _) => end(dim) = xEnd + xEndOffMax
-                case _ => { // no use -> try evaluation as last resort
-                  try {
-                    val simplified = SimplifyExpression.evalIntegral(endIndex(dim))
-                    endIndex(dim) = IntegerConstant(simplified)
-                    end(dim) = simplified
-                  } catch {
-                    case _ : EvaluationException => return null // evaluation failed -> abort
-                  }
-                }
-              }
-            }
-          }
-          case _ => Logger.warn("Loop index range end is not a MultiIndex"); return null
+          case endIndex : MultiIndex => end = evalMaxIndex(endIndex, numDimensions, false)
+          case _                     => Logger.warn("Loop index range end is not a MultiIndex")
         }
-      case _ => Logger.warn("Loop indices are not of type IndexRange"); return null
+      case _ => Logger.warn("Loop indices are not of type IndexRange")
     }
-    return (0 until numDimensions).toArray.map(dim => end(dim) - start(dim))
+
+    if (null == start && null != end) {
+      Logger.warn("Could determine loop index range end but not begin; assume begin is 0")
+      end
+    } else if (null != start && null != end)
+      (0 until numDimensions).toArray.map(dim => end(dim) - start(dim))
+    else
+      null
   }
 
   def parallelizationIsReasonable : Boolean = {
