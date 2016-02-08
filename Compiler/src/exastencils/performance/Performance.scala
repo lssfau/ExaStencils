@@ -158,16 +158,17 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
         val optimisticTimeMem_host = (optimisticDataPerIt * maxIterations) / Knowledge.hw_cpu_bandwidth
         val optimisticTimeMem_device = (optimisticDataPerIt * maxIterations) / Knowledge.hw_gpu_bandwidth
 
-        val cyclesPerIt = Math.max(EvaluatePerformanceEstimates_Ops.numAdd, EvaluatePerformanceEstimates_Ops.numMul) + EvaluatePerformanceEstimates_Ops.numDiv * 55 // TODO: better estimates
+        val cyclesPerIt = (Math.max(EvaluatePerformanceEstimates_Ops.numAdd, EvaluatePerformanceEstimates_Ops.numMul)
+          + EvaluatePerformanceEstimates_Ops.numDiv * Knowledge.hw_cpu_numCyclesPerDiv)
         var estimatedTimeOps_host = (cyclesPerIt * maxIterations) / Knowledge.hw_cpu_frequency
         var estimatedTimeOps_device = (cyclesPerIt * maxIterations) / Knowledge.hw_gpu_frequency
         val coresPerRank = (Knowledge.hw_numNodes * Knowledge.hw_numCoresPerNode).toDouble / Knowledge.mpi_numThreads // could be fractions of cores
         estimatedTimeOps_host /= Math.min(coresPerRank, Knowledge.omp_numThreads) // adapt for omp threading and hardware utilization
         estimatedTimeOps_host /= Knowledge.simd_vectorSize // adapt for vectorization - assume perfect vectorizability
-        estimatedTimeOps_device /= Knowledge.hw_gpu_numCores // TODO: incorporate blocks, etc
+        estimatedTimeOps_device /= Knowledge.hw_gpu_numCores // assumes perfect utilization - TODO: annotate max number of iterations in loop and use it here if smaller than number of cuda cores
 
         var totalEstimate = PerformanceEstimate(Math.max(estimatedTimeOps_host, optimisticTimeMem_host), Math.max(estimatedTimeOps_device, optimisticTimeMem_device))
-        totalEstimate.device += Knowledge.hw_cuda_kernelCallOverhead
+        totalEstimate.device += Knowledge.sw_cuda_kernelCallOverhead
 
         loop.add(Annotation("perf_timeEstimate_host", totalEstimate.host))
         loop.add(Annotation("perf_timeEstimate_device", totalEstimate.device))
@@ -180,7 +181,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
           CommentStatement(s"Optimistic device time for memory ops: ${optimisticTimeMem_device * 1000.0} ms"),
           CommentStatement(s"Optimistic host time for computational ops: ${estimatedTimeOps_host * 1000.0} ms"),
           CommentStatement(s"Optimistic device time for computational ops: ${estimatedTimeOps_device * 1000.0} ms"),
-          CommentStatement(s"Assumed kernel call overhead: ${Knowledge.hw_cuda_kernelCallOverhead * 1000.0} ms"),
+          CommentStatement(s"Assumed kernel call overhead: ${Knowledge.sw_cuda_kernelCallOverhead * 1000.0} ms"),
           CommentStatement(s"Found accesses: ${EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.map(_._1).mkString(", ")}"),
           loop)
       }

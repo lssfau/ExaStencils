@@ -21,6 +21,7 @@ object Knowledge {
   var hw_cpu_numCPUs : Int = 2
   var hw_cpu_bandwidth : Double = 25.6 * 1024 * 1024 * 1024 // in B/s
   var hw_cpu_frequency : Double = 2.4 * 1000 * 1000 * 1000 // in Hz
+  var hw_cpu_numCyclesPerDiv : Double = 24 // arbitrary value -> to be benchmarked later
   var hw_64bit : Boolean = true // true if 64 bit addresses are used
   var hw_gpu_name : String = "NVidia Quadro 4000"
   var hw_gpu_numDevices : Int = 2
@@ -29,7 +30,10 @@ object Knowledge {
   var hw_gpu_numCores : Int = 256
   var hw_cuda_capability : Int = 2
   var hw_cuda_capabilityMinor : Int = 0
-  var hw_cuda_kernelCallOverhead : Double = 3.5 * 0.001 // in s
+
+  var sw_cuda_version : Int = 7
+  var sw_cuda_versionMinor : Int = 5
+  var sw_cuda_kernelCallOverhead : Double = 3.5 * 0.001 // in s
 
   var useDblPrecision : Boolean = true // if true uses double precision for floating point numbers and single precision otherwise
 

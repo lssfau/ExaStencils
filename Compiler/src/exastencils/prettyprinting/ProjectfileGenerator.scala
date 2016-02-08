@@ -50,8 +50,9 @@ object ProjectfileGenerator extends BuildfileGenerator {
     // extensions
     projectPrinter <<< "\t<ImportGroup Label=\"ExtensionSettings\">"
     if (Knowledge.experimental_cuda_enabled) {
-      projectPrinter <<< "\t\t<Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\CUDA 7.5.props\" />" // TODO: specify CUDA version in knowledge
-      projectPrinter <<< "\t\t<Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\CUDA 7.5.targets\" />" // TODO: specify CUDA version in knowledge
+      val cudaString = s"CUDA ${Knowledge.sw_cuda_version}.${Knowledge.sw_cuda_versionMinor}"
+      projectPrinter <<< "\t\t<Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\" + cudaString + ".props\" />"
+      projectPrinter <<< "\t\t<Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\" + cudaString + ".targets\" />"
     }
     projectPrinter <<< "\t</ImportGroup>"
 
@@ -74,7 +75,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
     // compiler
     projectPrinter <<< "\t<ItemDefinitionGroup Condition=\"'$(Configuration)|$(Platform)'=='Release|x64'\">"
 
-    // compile part
+    // compile step
     projectPrinter <<< "\t\t<ClCompile>"
     projectPrinter <<< "\t\t\t<WarningLevel>Level3</WarningLevel>"
     projectPrinter <<< "\t\t\t<Optimization>MaxSpeed</Optimization>"
@@ -92,17 +93,20 @@ object ProjectfileGenerator extends BuildfileGenerator {
       projectPrinter <<< "\t\t</CudaCompile>"
     }
 
-    /// TODO:
-    //    <PostBuildEvent>
-    //      <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
-    //copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
-    //    </PostBuildEvent>
-
-    // link part
+    // link step
     projectPrinter <<< "\t\t<Link>"
     projectPrinter <<< "\t\t\t<SubSystem>Console</SubSystem>"
     projectPrinter <<< s"\t\t\t<AdditionalDependencies>${Settings.additionalLibs.mkString(";")};%(AdditionalDependencies)</AdditionalDependencies>"
     projectPrinter <<< "\t\t</Link>"
+
+    // post build step
+
+    if (Knowledge.experimental_cuda_enabled) {
+      projectPrinter <<< "\t\t<PostBuildEvent>"
+      projectPrinter <<< "\t\t\t<Command>echo copy \"$(CudaToolkitBinDir)\\cudart*.dll\" \"$(OutDir)\""
+      projectPrinter <<< "\t\t\t\tcopy \"$(CudaToolkitBinDir)\\cudart*.dll\" \"$(OutDir)\"</Command>"
+      projectPrinter <<< "\t\t</PostBuildEvent>"
+    }
 
     projectPrinter <<< "\t</ItemDefinitionGroup>"
 

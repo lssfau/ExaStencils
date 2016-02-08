@@ -83,7 +83,6 @@ case class Kernel(var identifier : String,
 
   def evalFieldAccesses = {
     if (!evaluatedAccesses) {
-      // TODO: fuse strategies/ trafos?
       GatherLocalLinearizedFieldAccess.fieldAccesses.clear
       GatherLocalLinearizedFieldAccess.applyStandalone(Scope(body))
       fieldAccesses = GatherLocalLinearizedFieldAccess.fieldAccesses

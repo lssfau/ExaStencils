@@ -73,14 +73,6 @@ case class FieldDeviceData(override var field : Field, override var level : Expr
   override def resolveName = (if (1 == field.numSlots) s"fieldDeviceData" else "slottedFieldDeviceData") +
     resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, level.prettyprint, "")
 
-  override def getCtor() : Option[Statement] = {
-    val origSlot = slot
-    slot = "slot"
-    val ret = Some(wrapInLoops(AssignmentStatement(resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt), resolveDefValue.get)))
-    slot = origSlot
-    ret
-  }
-
   override def getDtor() : Option[Statement] = {
     val origSlot = slot
     slot = "slot"
