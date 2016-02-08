@@ -20,7 +20,9 @@ class LexerL1 extends StdLexical {
           || ch.toString().matches("""[\x{2070}-\x{2079}]""") // Unicode digit superscripts
           || ch.toString().matches("""[\x{2080}-\x{2089}]""") // Unicode digit subscripts
           || ch.toString().matches("""[\x{2090}-\x{209C}]""")) // Unicode letter subscripts
-          && !delimiters.contains(ch.toString()))
+          && !(delimiters.contains(ch.toString())
+            || ch.toString().matches("""[\x{2119}-\x{211D}]""") // Unicode identifiers for sets
+            ))
     }
   })
 
