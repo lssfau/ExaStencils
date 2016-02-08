@@ -5,7 +5,11 @@ import exastencils.datastructures._
 import exastencils.datastructures.l1._
 import exastencils.logger._
 
-object UnifyOperators extends DefaultStrategy("Unification and Simplification of mathematical operatos") {
+object UnifyOperators extends DefaultStrategy("Unification and simplification of mathematical operators") {
+  def sanitize(s : String) = {
+    s.replaceAll("\\", "__backslash__")
+  }
+
   this += new Transformation("Search and destroy", {
     case BinaryExpression("*", Access("dx"), Access("dx")) => Access("dxx")
     case BinaryExpression("*", Access("dy"), Access("dy")) => Access("dyy")
