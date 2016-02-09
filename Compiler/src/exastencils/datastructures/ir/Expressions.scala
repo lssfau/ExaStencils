@@ -326,6 +326,14 @@ case class MultiIndex(var indices : ListBuffer[Expression]) extends Expression w
     this((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).to[ListBuffer])
   // end of FIXME
 
+  // FIXME: add variable accesses to begin with...
+  for (i <- 0 until length) {
+    update(i, indices(i) match {
+      case StringLiteral(s) => VariableAccess(s, Some(IntegerDatatype))
+      case _                => indices(i)
+    })
+  }
+
   override def prettyprint(out : PpStream) : Unit = {
     out << '[' <<< (this, ", ") << ']'
   }
