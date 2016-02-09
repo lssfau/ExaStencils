@@ -559,7 +559,7 @@ object Knowledge {
     Constraints.condEnsureValue(mpi_useBusyWait, true, experimental_allowCommInFragLoops && domain_numFragmentsPerBlock > 1, s"mpi_useBusyWait must be true when experimental_allowCommInFragLoops is used in conjunction with multiple fragments per block")
     Constraints.condWarn(comm_disableLocalCommSync && experimental_allowCommInFragLoops, s"comm_disableLocalCommSynchronization in conjunction with experimental_allowCommInFragLoops is strongly discouraged")
 
-    Constraints.condEnsureValue(experimental_addPerformanceEstimate, true, "Performance" == experimental_cuda_preferredExecution, s"experimental_addPerformanceEstimate is required for performance estimate guided kernel execution")
+    Constraints.condEnsureValue(experimental_addPerformanceEstimate, true, experimental_cuda_enabled && "Performance" == experimental_cuda_preferredExecution, s"experimental_addPerformanceEstimate is required for performance estimate guided kernel execution")
     Constraints.condEnsureValue(experimental_cuda_deviceId, 0, experimental_cuda_deviceId >= hw_gpu_numDevices, s"CUDA device id must not be exceeding number of installed devices")
 
     Constraints.condEnsureValue(experimental_cuda_blockSize_y, 1, domain_rect_generate && dimensionality < 2, "experimental_cuda_blockSize_y must be set to 1 for problems with a dimensionality smaller 2")
