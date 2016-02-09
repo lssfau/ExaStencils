@@ -190,7 +190,7 @@ case class FieldAccess(name_ : String, var level : AccessLevelSpecification, var
     var multiIndex = ir.LoopOverDimensions.defIt
     if (offset.isDefined) {
       var progressedOffset = offset.get.progressToIr
-      while (progressedOffset.indices.length < knowledge.Knowledge.dimensionality) progressedOffset.indices :+= ir.IntegerConstant(0)
+      while (progressedOffset.indices.length < knowledge.Knowledge.dimensionality + 1) progressedOffset.indices :+= ir.IntegerConstant(0)
       multiIndex += progressedOffset
     }
     multiIndex(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(arrayIndex.getOrElse(0).toLong)
@@ -211,7 +211,7 @@ case class VirtualFieldAccess(name_ : String, var level : AccessLevelSpecificati
     var multiIndex = ir.LoopOverDimensions.defIt
     if (offset.isDefined) {
       var progressedOffset = offset.get.progressToIr
-      while (progressedOffset.indices.length < knowledge.Knowledge.dimensionality) progressedOffset.indices :+= ir.IntegerConstant(0)
+      while (progressedOffset.indices.length < knowledge.Knowledge.dimensionality + 1) progressedOffset.indices :+= ir.IntegerConstant(0)
       multiIndex += progressedOffset
     }
     multiIndex(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(arrayIndex.getOrElse(0).toLong)
@@ -286,7 +286,7 @@ case class StencilFieldAccess(name_ : String,
     var multiIndex = ir.LoopOverDimensions.defIt
     if (offset.isDefined) {
       var progressedOffset = offset.get.progressToIr
-      while (progressedOffset.indices.length < knowledge.Knowledge.dimensionality) progressedOffset.indices :+= ir.IntegerConstant(0)
+      while (progressedOffset.indices.length < knowledge.Knowledge.dimensionality + 1) progressedOffset.indices :+= ir.IntegerConstant(0)
       multiIndex += progressedOffset
     }
     multiIndex(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(arrayIndex.getOrElse(0).toLong)
@@ -303,7 +303,7 @@ case class StencilFieldAccess(name_ : String,
     var multiIndex = ir.LoopOverDimensions.defIt
     if (offset.isDefined) {
       var progressedOffset = offset.get.progressToIr
-      while (progressedOffset.indices.length < knowledge.Knowledge.dimensionality) progressedOffset.indices :+= ir.IntegerConstant(0)
+      while (progressedOffset.indices.length < knowledge.Knowledge.dimensionality + 1) progressedOffset.indices :+= ir.IntegerConstant(0)
       multiIndex += progressedOffset
     }
 
