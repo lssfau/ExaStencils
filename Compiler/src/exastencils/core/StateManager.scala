@@ -168,6 +168,7 @@ object StateManager {
         case NoMatch                               =>
         case x : Annotatable                       => x.annotate(source)
         case x : Seq[_]                            => x.foreach(copyAnnotations(source, _))
+        case x : Array[_]                          => x.foreach(copyAnnotations(source, _))
         case x : scala.collection.mutable.Set[_]   => x.foreach(copyAnnotations(source, _))
         case x : scala.collection.immutable.Set[_] => x.foreach(copyAnnotations(source, _))
         case (x, y) =>
