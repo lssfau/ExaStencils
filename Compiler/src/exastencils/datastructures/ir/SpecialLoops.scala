@@ -159,8 +159,8 @@ case class LoopOverPointsInOneFragment(var domain : Int,
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPointsInOneFragment\n"
 
   def expandSpecial : Output[Statement] = {
-    var start = new MultiIndex()
-    var stop = new MultiIndex()
+    var start = new MultiIndex(Array.fill(Knowledge.dimensionality)(0))
+    var stop = new MultiIndex(Array.fill(Knowledge.dimensionality)(0))
     if (region.isDefined) {
       // case where a special region is to be traversed
       val regionCode = region.get.region.toUpperCase().charAt(0)

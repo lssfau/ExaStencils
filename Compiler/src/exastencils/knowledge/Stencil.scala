@@ -56,7 +56,10 @@ case class Stencil(var identifier : String, var level : Int, var entries : ListB
           s += "\t" +
             entries.find(
               e => e.offset match {
-                case MultiIndex(IntegerConstant(xOff), IntegerConstant(yOff), IntegerConstant(zOff), _) if (x == xOff && y == yOff && z == zOff) => true
+                case index : MultiIndex if index.length >= 3 => (
+                  (index(0) match { case IntegerConstant(xOff) if x == xOff => true; case _ => false })
+                  && (index(1) match { case IntegerConstant(yOff) if y == yOff => true; case _ => false })
+                  && (index(2) match { case IntegerConstant(zOff) if z == zOff => true; case _ => false }))
                 case _ => false
               }).getOrElse(StencilEntry(new MultiIndex, 0)).coefficient.prettyprint
         s += "\n"

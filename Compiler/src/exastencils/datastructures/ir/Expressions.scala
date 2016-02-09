@@ -311,74 +311,34 @@ case class OffsetIndex(var minOffset : Int, var maxOffset : Int, var index : Exp
   }
 }
 
-case class MultiIndex(
-  var index_0 : Expression = null,
-  var index_1 : Expression = null,
-  var index_2 : Expression = null,
-  var index_3 : Expression = null)
-    extends Expression with Iterable[Expression] {
-  def this(indices : Array[Expression]) = this(
-    if (indices.length > 0) indices(0) else null,
-    if (indices.length > 1) indices(1) else null,
-    if (indices.length > 2) indices(2) else null,
-    if (indices.length > 3) indices(3) else null)
-  def this(indices : Array[Int]) = this(
-    (if (indices.length > 0) IntegerConstant(indices(0)) else null) : Expression,
-    (if (indices.length > 1) IntegerConstant(indices(1)) else null) : Expression,
-    (if (indices.length > 2) IntegerConstant(indices(2)) else null) : Expression,
-    (if (indices.length > 3) IntegerConstant(indices(3)) else null) : Expression)
-  def this(indices : Array[Double]) = this(
-    (if (indices.length > 0) FloatConstant(indices(0)) else null) : Expression,
-    (if (indices.length > 1) FloatConstant(indices(1)) else null) : Expression,
-    (if (indices.length > 2) FloatConstant(indices(2)) else null) : Expression,
-    (if (indices.length > 3) FloatConstant(indices(3)) else null) : Expression)
-  def this(names : String*) = this(
-    (if (names.size > 0) VariableAccess(names(0), Some(IntegerDatatype)) else null) : Expression,
-    (if (names.size > 1) VariableAccess(names(1), Some(IntegerDatatype)) else null) : Expression,
-    (if (names.size > 2) VariableAccess(names(2), Some(IntegerDatatype)) else null) : Expression,
-    (if (names.size > 3) VariableAccess(names(3), Some(IntegerDatatype)) else null) : Expression)
-  def this(left : MultiIndex, right : MultiIndex, f : (Expression, Expression) => Expression) = this(
-    if (left(0) != null && right(0) != null) { Duplicate(f(left(0), right(0))) } else null,
-    if (left(1) != null && right(1) != null) { Duplicate(f(left(1), right(1))) } else null,
-    if (left(2) != null && right(2) != null) { Duplicate(f(left(2), right(2))) } else null,
-    if (left(3) != null && right(3) != null) { Duplicate(f(left(3), right(3))) } else null)
+// FIXME: use this
+//case class MultiIndex(var indices : Array[Expression]) extends Expression with Iterable[Expression] {
+//  def this(indices : Expression*) = this(indices.toArray)
+//  def this(indices : Array[Int]) = this(indices.map(IntegerConstant(_) : Expression)) // legacy support
+//  def this(left : MultiIndex, right : MultiIndex, f : (Expression, Expression) => Expression) =
+//    this((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).toArray)
+// FIXME: instead of this
+case class MultiIndex(var indices : ListBuffer[Expression]) extends Expression with Iterable[Expression] {
+  def this(indices : Expression*) = this(indices.to[ListBuffer])
+  def this(indices : Array[Int]) = this(indices.map(IntegerConstant(_) : Expression).to[ListBuffer]) // legacy support
+  def this(indices : Array[Expression]) = this(indices.to[ListBuffer]) // legacy support
+  def this(left : MultiIndex, right : MultiIndex, f : (Expression, Expression) => Expression) =
+    this((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).to[ListBuffer])
+  // end of FIXME
 
   override def prettyprint(out : PpStream) : Unit = {
     out << '[' <<< (this, ", ") << ']'
   }
 
-  def apply(i : Int) : Expression = {
-    i match {
-      case 0 => index_0
-      case 1 => index_1
-      case 2 => index_2
-      case 3 => index_3
-    }
-  }
-
-  def update(i : Int, up : Expression) : Unit = {
-    i match {
-      case 0 => index_0 = up
-      case 1 => index_1 = up
-      case 2 => index_2 = up
-      case 3 => index_3 = up
-    }
-  }
-
   def +(that : MultiIndex) : MultiIndex = new MultiIndex(this, that, _ + _)
   def -(that : MultiIndex) : MultiIndex = new MultiIndex(this, that, _ - _)
 
-  override def iterator() : scala.collection.Iterator[Expression] = {
-    return new Iterator[Expression]() {
-      private var pointer : Int = 0
-      override def hasNext : Boolean = pointer < 4 && apply(pointer) != null
-      override def next() : Expression = {
-        val res = apply(pointer)
-        pointer += 1
-        return res
-      }
-    }
-  }
+  // expose array functions
+  override def iterator() : scala.collection.Iterator[Expression] = indices.iterator
+
+  def apply(i : Int) = indices.apply(i)
+  def update(i : Int, x : Expression) = indices.update(i, x)
+  def length : Int = indices.length
 }
 
 case class TempBufferAccess(var buffer : iv.TmpBuffer, var index : MultiIndex, var strides : MultiIndex) extends Expression {

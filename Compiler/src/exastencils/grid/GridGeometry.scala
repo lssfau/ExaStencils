@@ -250,9 +250,9 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     ListBuffer(
       LoopOverPoints(field, None, true,
-        GridUtil.offsetIndex(MultiIndex(0, 0, 0), -1, dim),
-        GridUtil.offsetIndex(MultiIndex(0, 0, 0), -1, dim),
-        MultiIndex(1, 1, 1),
+        GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
+        GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
+        new MultiIndex(1, 1, 1),
         ListBuffer[Statement](
           new ConditionStatement(LowerEqualExpression(innerIt, 0),
             AssignmentStatement(Duplicate(baseAccess), 0.0),
@@ -356,9 +356,9 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     ListBuffer[Statement](
       LoopOverFragments(ListBuffer[Statement](
         LoopOverPoints(field, None, true,
-          GridUtil.offsetIndex(MultiIndex(0, 0, 0), -2, dim),
-          GridUtil.offsetIndex(MultiIndex(0, 0, 0), -2, dim),
-          MultiIndex(1, 1, 1),
+          GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -2, dim),
+          GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -2, dim),
+          new MultiIndex(1, 1, 1),
           ListBuffer[Statement](
             innerItDecl,
             new ConditionStatement(LowerEqualExpression(innerIt, xf + 1),
@@ -428,9 +428,9 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     ListBuffer[Statement](
       LoopOverFragments(ListBuffer[Statement](
         LoopOverPoints(field, None, true,
-          GridUtil.offsetIndex(MultiIndex(0, 0, 0), -1, dim),
-          GridUtil.offsetIndex(MultiIndex(0, 0, 0), -1, dim),
-          MultiIndex(1, 1, 1),
+          GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
+          GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
+          new MultiIndex(1, 1, 1),
           ListBuffer[Statement](
             innerItDecl,
             new ConditionStatement(EqEqExpression(0, innerIt),
