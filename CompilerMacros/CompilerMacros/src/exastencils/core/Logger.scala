@@ -93,11 +93,11 @@ object Logger {
 
       //q"""if (exastencils.logger.Logger.getLevel >= 0) {
       q"""{
-        sys.error("ERROR: " + $s)
         if (exastencils.core.Settings.produceHtmlLog) {
           Logger_HTML.printErr($fileName, $line, $s)
           Logger_HTML.finish
         }
+        sys.error("ERROR: " + $s)
         sys.exit(-1) // just to be extra sure
        }
     """
