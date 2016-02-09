@@ -16,6 +16,8 @@ case class CommunicationFunctions() extends FunctionCollection("CommFunctions/Co
     externalDependencies += "mpi.h"
   if (Knowledge.omp_enabled)
     externalDependencies += "omp.h"
+  if (Knowledge.experimental_cuda_enabled)
+    internalDependencies += "KernelFunctions/KernelFunctions.h"
   if (Knowledge.opt_vectorize) {
     val header = Knowledge.simd_header
     if (header != null) externalDependencies += header

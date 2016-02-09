@@ -28,7 +28,7 @@ class FunctionCollection(var baseName : String,
       writer <<< "extern \"C\" {"
 
     for (func <- functions)
-      if (!func.hasAnnotation("isTemplate") && !func.isHeaderOnly)
+      if (!func.hasAnnotation("isTemplate") && !func.isHeaderOnly && !func.hasAnnotation("deviceOnly"))
         writer << func.asInstanceOf[FunctionStatement].prettyprint_decl
 
     if (Knowledge.generateFortranInterface)
@@ -36,6 +36,7 @@ class FunctionCollection(var baseName : String,
   }
 
   def printSources = {
+    // will be overwritten for kernel functions
     for (f <- functions)
       if (!f.hasAnnotation("isTemplate") && !f.isHeaderOnly) {
         val writer = PrettyprintingManager.getPrinter(s"${baseName}_${f.asInstanceOf[FunctionStatement].name}.cpp")

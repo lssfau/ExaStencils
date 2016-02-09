@@ -19,12 +19,17 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
     var statements : ListBuffer[Statement] = new ListBuffer
 
     for (field <- fields) {
-      val loopOverDims = new LoopOverDimensions(Knowledge.dimensionality + 1, new IndexRange(
-        new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(dim => field.fieldLayout.idxById("GLB", dim))),
-        new MultiIndex((0 until Knowledge.dimensionality + 1).toArray.map(dim => field.fieldLayout.idxById("GRE", dim)))),
+      val isVectorField = (field.vectorSize > 1)
+      val numDims = (if (isVectorField) Knowledge.dimensionality + 1 else Knowledge.dimensionality)
+      var index = LoopOverDimensions.defIt
+      if (!isVectorField) index(Knowledge.dimensionality) = 0
+
+      val loopOverDims = new LoopOverDimensions(numDims, new IndexRange(
+        new MultiIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GLB", dim))),
+        new MultiIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GRE", dim)))),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           new AssignmentStatement(
-            new DirectFieldAccess(FieldSelection(field, field.level, slot), LoopOverDimensions.defIt),
+            new DirectFieldAccess(FieldSelection(field, field.level, slot), index),
             0.0) : Statement)) with OMP_PotentiallyParallel with PolyhedronAccessable
       loopOverDims.optLevel = 1
 
@@ -49,6 +54,12 @@ case class MultiGridFunctions() extends FunctionCollection("MultiGrid/MultiGrid"
     externalDependencies += "mpi.h"
   if (Knowledge.omp_enabled)
     externalDependencies += "omp.h"
+  if (Knowledge.experimental_cuda_enabled) {
+    externalDependencies += "cuda.h"
+    externalDependencies += "cuda_runtime.h"
+
+    internalDependencies += "KernelFunctions/KernelFunctions.h"
+  }
   if (Knowledge.opt_vectorize) {
     val header = Knowledge.simd_header
     if (header != null) externalDependencies += header

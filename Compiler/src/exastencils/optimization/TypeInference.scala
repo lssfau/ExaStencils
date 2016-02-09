@@ -10,8 +10,8 @@ import exastencils.datastructures.ir._
 import exastencils.logger._
 
 object TypeInference extends CustomStrategy("Type inference") {
-
   private[optimization] final val TYPE_ANNOT = "InfType"
+  var warnMissingDeclarations : Boolean = false
 
   override def apply() : Unit = {
     this.transaction()
@@ -70,13 +70,12 @@ private final class AnnotateStringConstants extends ScopeCollector(Map[String, D
         val ty : Datatype = findType(name)
         if (ty != null)
           node.annotate(TYPE_ANNOT, ty)
-        else
-          Logger.warn("[Type inference]  declaration to " + name + " missing?")
+        else (if (warnMissingDeclarations) Logger.warn("[Type inference]  declaration to " + name + " missing?"))
 
       case VariableAccess(name, Some(ty)) =>
         val inferred = findType(name)
         if (inferred == null)
-          Logger.warn("[Type inference]  declaration to " + name + " missing?")
+          (if (warnMissingDeclarations) Logger.warn("[Type inference]  declaration to " + name + " missing?"))
         else if (ty != inferred)
           Logger.warn("[Type inference]  inferred type (" + inferred + ") different from actual type stored in node (" + ty + "); ignoring")
 
@@ -100,11 +99,11 @@ private final class AnnotateStringConstants extends ScopeCollector(Map[String, D
 private final object CreateVariableAccesses extends PartialFunction[Node, Transformation.OutputType] {
   import TypeInference._
 
-  def isDefinedAt(node : Node) : Boolean = {
+  override def isDefinedAt(node : Node) : Boolean = {
     return (node.isInstanceOf[StringLiteral] || node.isInstanceOf[VariableAccess]) && node.hasAnnotation(TYPE_ANNOT)
   }
 
-  def apply(node : Node) : Transformation.OutputType = {
+  override def apply(node : Node) : Transformation.OutputType = {
 
     // do not remove annotation as the same object could be used multiple times in AST (which is a bug, yes ;))
     val typee : Datatype = node.getAnnotation(TYPE_ANNOT).get.value.asInstanceOf[Datatype]

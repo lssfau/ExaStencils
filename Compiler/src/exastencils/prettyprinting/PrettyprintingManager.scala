@@ -62,14 +62,15 @@ object PrettyprintingManager {
     def finish = {
       // post-process code files
       val isCodeFile = (filename.endsWith(".h") || filename.endsWith(".hpp") || filename.endsWith(".hxx")
-        || filename.endsWith(".c") || filename.endsWith(".cpp") || filename.endsWith(".cxx"))
+        || filename.endsWith(".c") || filename.endsWith(".cpp") || filename.endsWith(".cxx")
+        || filename.endsWith(".cuh") || filename.endsWith(".cu"))
 
       if (isCodeFile) {
         // temporary storage
         val extendedContent = new java.io.StringWriter
 
         // add header guard
-        val addHeaderGuard = (filename.endsWith(".h") || filename.endsWith(".hpp") || filename.endsWith(".hxx"))
+        val addHeaderGuard = (filename.endsWith(".h") || filename.endsWith(".hpp") || filename.endsWith(".hxx") || filename.endsWith(".cuh"))
         if (addHeaderGuard) {
           val guard = "EXASTENCILS_" + filename.replace("/", "_").replace("""\""", "_").replace(".", "_").toUpperCase()
           extendedContent.write(s"#ifndef $guard\n")

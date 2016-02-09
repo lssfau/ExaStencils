@@ -142,15 +142,6 @@ case class PointToOwningRank(var pos : Expression, var domain : Domain) extends 
   }
 }
 
-case class AssertStatement(var check : Expression, var msg : ListBuffer[Expression], var abort : Statement) extends Statement with Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = AssertStatement\n"
-
-  override def expand : Output[ConditionStatement] = {
-    new ConditionStatement(check,
-      ListBuffer[Statement](new PrintStatement(msg), abort))
-  }
-}
-
 case class ConnectFragments() extends Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ConnectFragments\n"
 
@@ -233,7 +224,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
     var body = ListBuffer[Statement]()
 
     if (Knowledge.mpi_enabled)
-      body += AssertStatement(NeqExpression(s"mpiSize", Knowledge.domain_numBlocks),
+      body += AssertStatement(EqEqExpression(s"mpiSize", Knowledge.domain_numBlocks),
         ListBuffer("\"Invalid number of MPI processes (\"", "mpiSize", "\") should be \"", Knowledge.mpi_numThreads),
         new FunctionCallExpression("exit", 1))
 
@@ -277,7 +268,7 @@ case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with E
           VariableDeclarationStatement(IntegerDatatype, "numFragments", Some("0")),
           VariableDeclarationStatement(IntegerDatatype, "bufsize", Some("0")),
           VariableDeclarationStatement(IntegerDatatype, "fileOffset", Some("0")),
-          AssertStatement(NeqExpression("mpiSize", Knowledge.mpi_numThreads),
+          AssertStatement(EqEqExpression("mpiSize", Knowledge.mpi_numThreads),
             ListBuffer("\"Invalid number of MPI processes (\"", "mpiSize", "\") should be \"", Knowledge.domain_numBlocks),
             "return"),
           ConditionStatement("mpiRank == 0",

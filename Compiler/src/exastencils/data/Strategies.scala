@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
+import exastencils.cuda._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
@@ -109,6 +110,8 @@ object ResolveFieldAccess extends DefaultStrategy("Resolving FieldAccess nodes")
   })
 }
 
+/// internal variables
+
 object ResolveConstInternalVariables extends DefaultStrategy("Resolving constant internal variables") {
   override def apply(applyAtNode : Option[Node]) = {
     this.transaction()
@@ -167,6 +170,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   var bufferSizes : HashMap[String, Expression] = HashMap()
   var bufferAllocs : HashMap[String, Statement] = HashMap()
   var fieldAllocs : HashMap[String, Statement] = HashMap()
+  var deviceAllocs : HashMap[String, Statement] = HashMap()
 
   var counter : Int = 0
 
@@ -183,7 +187,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   }
 
   this += new Transformation("Collecting buffer sizes", {
-    case buf : iv.TmpBuffer =>
+    case buf : iv.TmpBuffer => {
       val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
       if (Knowledge.data_genVariableFieldSizes) {
         if (bufferSizes.contains(id))
@@ -195,6 +199,8 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
         bufferSizes += (id -> (size max bufferSizes.getOrElse(id, IntegerConstant(0)).asInstanceOf[IntegerConstant].v))
       }
       buf
+    }
+
     case field : iv.FieldData => {
       val cleanedField = Duplicate(field)
       cleanedField.slot = "slot"
@@ -231,6 +237,36 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
 
       fieldAllocs += (cleanedField.prettyprint() -> new LoopOverFragments(
         new ConditionStatement(iv.IsValidForSubdomain(field.field.domain.index), statements)) with OMP_PotentiallyParallel)
+
+      field
+    }
+
+    case field : iv.FieldDeviceData => {
+      val cleanedField = Duplicate(field)
+      cleanedField.slot = "slot"
+      cleanedField.fragmentIdx = LoopOverFragments.defIt
+
+      var numDataPoints : Expression = (0 to Knowledge.dimensionality).map(dim => field.field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _) * field.field.dataType.resolveFlattendSize
+      var statements : ListBuffer[Statement] = ListBuffer()
+
+      val newFieldData = Duplicate(cleanedField)
+      newFieldData.slot = (if (field.field.numSlots > 1) "slot" else 0)
+
+      var innerStmts = ListBuffer[Statement](
+        CUDA_AllocateStatement(newFieldData, numDataPoints, field.field.dataType.resolveUnderlyingDatatype))
+
+      if (field.field.numSlots > 1)
+        statements += new ForLoopStatement(
+          VariableDeclarationStatement(IntegerDatatype, "slot", Some(0)),
+          LowerExpression("slot", field.field.numSlots),
+          PreIncrementExpression("slot"),
+          innerStmts)
+      else
+        statements ++= innerStmts
+
+      deviceAllocs += (cleanedField.prettyprint() -> new LoopOverFragments(
+        new ConditionStatement(iv.IsValidForSubdomain(field.field.domain.index), statements)) with OMP_PotentiallyParallel)
+
       field
     }
   })
@@ -268,17 +304,11 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
           s.applyStandalone(buf._2)
       }
 
-      for (bufferAlloc <- bufferAllocs.toSeq.sortBy(_._1))
+      for (genericAlloc <- bufferAllocs.toSeq.sortBy(_._1) ++ fieldAllocs.toSeq.sortBy(_._1) ++ deviceAllocs.toSeq.sortBy(_._1))
         if ("MSVC" == Knowledge.targetCompiler /*&& Knowledge.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
-          func.body += new Scope(bufferAlloc._2)
+          func.body += new Scope(genericAlloc._2)
         else
-          func.body += bufferAlloc._2
-
-      for (fieldAlloc <- fieldAllocs.toSeq.sortBy(_._1))
-        if ("MSVC" == Knowledge.targetCompiler /*&& Knowledge.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
-          func.body += new Scope(fieldAlloc._2)
-        else
-          func.body += fieldAlloc._2
+          func.body += genericAlloc._2
 
       func
     }

@@ -308,12 +308,16 @@ case class RepeatTimesStatement(var number : Int,
         (ir.StringLiteral(lv), ir.VariableDeclarationStatement(ir.IntegerDatatype, lv, Some(ir.IntegerConstant(0))))
       }
 
-    return ir.ForLoopStatement(
+    var ret = ir.ForLoopStatement(
       begin,
       loopVar < ir.IntegerConstant(number),
       ir.AssignmentStatement(loopVar, ir.IntegerConstant(1), "+="),
       statements.map(s => s.progressToIr).to[ListBuffer], // FIXME: to[ListBuffer]
       None)
+
+    ret.add(Annotation("numLoopIterations", number))
+
+    ret
   }
 }
 
