@@ -178,7 +178,7 @@ case class Kernel(var identifier : String,
       SpecialDatatype("extern \"C\" void"), // FIXME
       getWrapperFctName,
       Duplicate(passThroughArgs),
-      ListBuffer[Statement](CUDA_FunctionCallExpression(getKernelFctName, numThreadsPerDim.to[ListBuffer], callArgs)),
+      ListBuffer[Statement](CUDA_FunctionCallExpression(getKernelFctName, numThreadsPerDim, callArgs)),
       false)
   }
 
