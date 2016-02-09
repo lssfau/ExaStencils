@@ -15,3 +15,9 @@ pathsLib					+= "$(ProgramFiles)\OpenMPI_v1.6.2-x64\lib"
 additionalLibs				+= "libmpi.lib"
 
 additionalDefines			+= "OMPI_IMPORTS"
+
+pathsInc					+= "$(CUDA_INC_PATH)"
+pathsLib					+= "$(CUDA_LIB_PATH)"
+
+additionalLibs				+= "cuda.lib"
+additionalLibs				+= "cudart.lib"

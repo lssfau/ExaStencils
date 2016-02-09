@@ -1,6 +1,5 @@
 package exastencils.datastructures.ir
 
-import scala.annotation.migration
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
@@ -266,6 +265,45 @@ object LoopOverDimensions {
       case 3 => new MultiIndex(dimToString(0), dimToString(1), dimToString(2), dimToString(3))
     }
   }
+
+  object ReplaceOffsetIndicesWithMin extends QuietDefaultStrategy("Replace OffsetIndex nodes with minimum values") {
+    this += new Transformation("SearchAndReplace", {
+      case OffsetIndex(xStartOffMin, _, xStart, _) => xStart + xStartOffMin
+    })
+  }
+  object ReplaceOffsetIndicesWithMax extends QuietDefaultStrategy("Replace OffsetIndex nodes with maximum values") {
+    this += new Transformation("SearchAndReplace", {
+      case OffsetIndex(_, xEndOffMax, xEnd, _) => xEnd + xEndOffMax
+    })
+  }
+
+  def evalMinIndex(origStartIndex : MultiIndex, numDimensions : Int, printWarnings : Boolean = false) : Array[Long] = {
+    var startIndex = Duplicate(origStartIndex)
+    ReplaceOffsetIndicesWithMin.applyStandalone(startIndex)
+
+    (0 until numDimensions).map(dim =>
+      try {
+        SimplifyExpression.evalIntegral(startIndex(dim))
+      } catch {
+        case _ : EvaluationException =>
+          if (printWarnings) Logger.warn(s"Start index for dimension $dim (${startIndex(dim)}) could not be evaluated")
+          0
+      }).toArray
+  }
+
+  def evalMaxIndex(origEndIndex : MultiIndex, numDimensions : Int, printWarnings : Boolean = false) : Array[Long] = {
+    var endIndex = Duplicate(origEndIndex)
+    ReplaceOffsetIndicesWithMax.applyStandalone(endIndex)
+
+    (0 until numDimensions).map(dim =>
+      try {
+        SimplifyExpression.evalIntegral(endIndex(dim))
+      } catch {
+        case _ : EvaluationException =>
+          if (printWarnings) Logger.warn(s"End index for dimension $dim (${endIndex(dim)}) could not be evaluated")
+          0
+      }).toArray
+  }
 }
 
 case class LoopOverDimensions(var numDimensions : Int,
@@ -279,57 +317,34 @@ case class LoopOverDimensions(var numDimensions : Int,
   def this(numDimensions : Int, indices : IndexRange, body : Statement, stepSize : MultiIndex) = this(numDimensions, indices, ListBuffer[Statement](body), stepSize)
   def this(numDimensions : Int, indices : IndexRange, body : Statement) = this(numDimensions, indices, ListBuffer[Statement](body))
 
+  import LoopOverDimensions._
+
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverDimensions\n"
 
   def maxIterationCount() : Array[Long] = {
-    var start = Array.fill[Long](numDimensions)(0)
-    var end = Array.fill[Long](numDimensions)(0)
+    var start : Array[Long] = null
+    var end : Array[Long] = null
 
     indices match {
       case indexRange : IndexRange =>
         indexRange.begin match {
-          case startIndex : MultiIndex => {
-            for (dim <- 0 until numDimensions) {
-              startIndex(dim) match {
-                case IntegerConstant(xStart)                                  => start(dim) = xStart
-                case OffsetIndex(xStartOffMin, _, IntegerConstant(xStart), _) => start(dim) = xStart + xStartOffMin
-                case _ => { // no use -> try evaluation as last resort
-                  try {
-                    val simplified = SimplifyExpression.evalIntegral(startIndex(dim))
-                    startIndex(dim) = IntegerConstant(simplified)
-                    start(dim) = simplified
-                  } catch {
-                    case _ : EvaluationException => return null // evaluation failed -> abort
-                  }
-                }
-              }
-            }
-          }
-          case _ => Logger.warn("Loop index range begin is not a MultiIndex"); return null
+          case startIndex : MultiIndex => start = evalMinIndex(startIndex, numDimensions, false)
+          case _                       => Logger.warn("Loop index range begin is not a MultiIndex")
         }
         indexRange.end match {
-          case endIndex : MultiIndex => {
-            for (dim <- 0 until numDimensions) {
-              endIndex(dim) match {
-                case IntegerConstant(xEnd)                                => end(dim) = xEnd
-                case OffsetIndex(_, xEndOffMax, IntegerConstant(xEnd), _) => end(dim) = xEnd + xEndOffMax
-                case _ => { // no use -> try evaluation as last resort
-                  try {
-                    val simplified = SimplifyExpression.evalIntegral(endIndex(dim))
-                    endIndex(dim) = IntegerConstant(simplified)
-                    end(dim) = simplified
-                  } catch {
-                    case _ : EvaluationException => return null // evaluation failed -> abort
-                  }
-                }
-              }
-            }
-          }
-          case _ => Logger.warn("Loop index range end is not a MultiIndex"); return null
+          case endIndex : MultiIndex => end = evalMaxIndex(endIndex, numDimensions, false)
+          case _                     => Logger.warn("Loop index range end is not a MultiIndex")
         }
-      case _ => Logger.warn("Loop indices are not of type IndexRange"); return null
+      case _ => Logger.warn("Loop indices are not of type IndexRange")
     }
-    return (0 until numDimensions).toArray.map(dim => end(dim) - start(dim))
+
+    if (null == start && null != end) {
+      Logger.warn("Could determine loop index range end but not begin; assume begin is 0")
+      end
+    } else if (null != start && null != end)
+      (0 until numDimensions).toArray.map(dim => end(dim) - start(dim))
+    else
+      null
   }
 
   def parallelizationIsReasonable : Boolean = {
@@ -343,7 +358,7 @@ case class LoopOverDimensions(var numDimensions : Int,
     return (totalNumPoints > Knowledge.omp_minWorkItemsPerThread * Knowledge.omp_numThreads)
   }
 
-  def expandSpecial : Statement = {
+  def expandSpecial : ListBuffer[Statement] = {
     val parallelizable = Knowledge.omp_parallelizeLoopOverDimensions && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
     val parallelize = parallelizable && parallelizationIsReasonable
     val resolveOmpReduction = (
@@ -361,7 +376,7 @@ case class LoopOverDimensions(var numDimensions : Int,
         body)
 
     // compile loop(s)
-    var ret : ForLoopStatement with OptimizationHint = null
+    var compiledLoop : ForLoopStatement with OptimizationHint = null
     for (d <- 0 until numDimensions) {
       def it = VariableAccess(dimToString(d), Some(IntegerDatatype))
       val decl = VariableDeclarationStatement(IntegerDatatype, dimToString(d), Some(indices.begin(d)))
@@ -370,19 +385,21 @@ case class LoopOverDimensions(var numDimensions : Int,
       if (parallelize && d == numDimensions - 1) {
         val omp = new ForLoopStatement(decl, cond, incr, wrappedBody, reduction) with OptimizationHint with OMP_PotentiallyParallel
         omp.collapse = numDimensions
-        ret = omp
+        compiledLoop = omp
       } else {
-        ret = new ForLoopStatement(decl, cond, incr, wrappedBody, reduction) with OptimizationHint
-        wrappedBody = ListBuffer[Statement](ret)
+        compiledLoop = new ForLoopStatement(decl, cond, incr, wrappedBody, reduction) with OptimizationHint
+        wrappedBody = ListBuffer[Statement](compiledLoop)
       }
       // set optimization hints
-      ret.isInnermost = d == 0
-      ret.isParallel = parallelizable
+      compiledLoop.isInnermost = d == 0
+      compiledLoop.isParallel = parallelizable
     }
+
+    var retStmts = ListBuffer[Statement]()
 
     // resolve omp reduction if necessary
     if (!resolveOmpReduction) {
-      ret
+      retStmts += compiledLoop
     } else {
       // resolve max reductions
       val redOp = reduction.get.op
@@ -402,10 +419,12 @@ case class LoopOverDimensions(var numDimensions : Int,
       ReplaceStringConstantsStrategy.applyStandalone(body)
       body.prepend(VariableDeclarationStatement(IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
 
-      Scope(ListBuffer[Statement](decl)
+      retStmts += Scope(ListBuffer[Statement](decl)
         ++ init
-        ++ ListBuffer[Statement](ret, red))
+        ++ ListBuffer[Statement](compiledLoop, red))
     }
+
+    retStmts
   }
 }
 
@@ -420,7 +439,7 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverFragments\n"
 
   def generateBasicLoop(parallelize : Boolean) = {
-    if (parallelize)
+    var loop = if (parallelize)
       new ForLoopStatement(
         VariableDeclarationStatement(IntegerDatatype, defIt, Some(0)),
         LowerExpression(defIt, Knowledge.domain_numFragmentsPerBlock),
@@ -434,6 +453,8 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
         PreIncrementExpression(defIt),
         body,
         reduction)
+    loop.add(Annotation("numLoopIterations", Knowledge.domain_numFragmentsPerBlock))
+    loop
   }
 
   override def expand : Output[StatementList] = {

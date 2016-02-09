@@ -1,6 +1,7 @@
 package exastencils.datastructures
 
 import scala.collection.mutable.HashMap
+import exastencils.core.Duplicate
 
 /**
   * Holds information and be attached to any class that is [[exastencils.datastructures.Annotatable]].
@@ -101,6 +102,16 @@ trait Annotatable {
   def annotate(id : String) = this.add(new Annotation(id))
 
   /**
+    * Copies the [[exastencils.datastructures.Annotation]]s from another object.
+    *
+    * @param other The other object holding the [[exastencils.datastructures.Annotation]]s to add to this instance.
+    */
+  def annotate(other : Annotatable) : Unit = {
+    var z = other.annotations_
+    annotations_ ++= Duplicate(z)
+  }
+
+  /**
     * Removes a [[exastencils.datastructures.Annotation]] from this instance.
     *
     * @param annotation The [[exastencils.datastructures.Annotation]] to remove.
@@ -122,7 +133,16 @@ trait Annotatable {
   def removeAnnotation(id : String) = { annotations_.remove(id) }
 
   /**
-    * Returns all [[exastencils.datastructures.Annotation]]s from this instance.
+    * Returns all [[exastencils.datastructures.Annotation]]s of this instance.
+    *
+    * @return The list of [[exastencils.datastructures.Annotation]] of this instance.
+    */
+  def annotations = annotations_
+
+  /**
+    * Returns all [[exastencils.datastructures.Annotation]]s of this instance.
+    *
+    * @return The list of [[exastencils.datastructures.Annotation]] of this instance.
     */
   def getAnnotations = { annotations_.values }
 

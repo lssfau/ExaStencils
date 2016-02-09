@@ -63,7 +63,7 @@ object SimplifyExpression {
     * Only VariableAccess nodes are used as keys. (NO StringConstant)
     */
   def extractIntegralSum(expr : Expression) : HashMap[Expression, Long] = {
-    return extractIntegralSumRec(expr).filter(e => e._2 != 0L)
+    return extractIntegralSumRec(expr)
   }
 
   private def extractIntegralSumRec(expr : Expression) : HashMap[Expression, Long] = {
@@ -99,14 +99,14 @@ object SimplifyExpression {
           res(name) = res.getOrElse(name, 0L) + value
         // opt:  (x/2) + (x%2)  ==>  (x+1)/2
         val toOpt = new HashMap[Expression, (DivisionExpression, ModuloExpression, Long)]()
-        for (e <- res) e match {
-          case (divd @ DivisionExpression(x, IntegerConstant(2)), coeff) =>
+        for ((ex, coeff) <- res) ex match {
+          case divd @ DivisionExpression(x, IntegerConstant(2)) =>
             toOpt.get(x) match {
               case None                               => toOpt(x) = (divd, null, coeff)
               case Some((_, modd, c)) if (c == coeff) => toOpt(x) = (divd, modd, coeff)
               case Some(_)                            => toOpt -= x // coefficient is not matching...
             }
-          case (modd @ ModuloExpression(x, IntegerConstant(2)), coeff) =>
+          case modd @ ModuloExpression(x, IntegerConstant(2)) =>
             toOpt.get(x) match {
               case None                               => toOpt(x) = (null, modd, coeff)
               case Some((divd, _, c)) if (c == coeff) => toOpt(x) = (divd, modd, coeff)
@@ -137,9 +137,23 @@ object SimplifyExpression {
           coeff = mapR.getOrElse(constName, 0L)
           res = mapL
         } else {
-          coeff = 1L
+          var gcdL : Long = math.abs(mapL.head._2)
+          for ((_, c) <- mapL)
+            gcdL = gcd(c, gcdL)
+          var gcdR : Long = math.abs(mapR.head._2)
+          for ((_, c) <- mapR)
+            gcdR = gcd(c, gcdR)
+          for ((e, c) <- mapL)
+            mapL(e) = c / gcdL
+          for ((e, c) <- mapR)
+            mapR(e) = c / gcdR
+          val exprL : Expression = recreateExprFromIntSum(mapL)
+          val exprR : Expression = recreateExprFromIntSum(mapR)
           res = new HashMap[Expression, Long]()
-          res(recreateExprFromIntSum(mapL) * recreateExprFromIntSum(mapR)) = 1L
+          if (exprL.prettyprint() <= exprR.prettyprint())
+        	  res(MultiplicationExpression(exprL, exprR)) = gcdL * gcdR
+          else
+            res(MultiplicationExpression(exprR, exprL)) = gcdL * gcdR
           // throw new EvaluationException("non-constant * non-constant is not yet implemented")
         }
         if (coeff == 0L)
@@ -271,7 +285,18 @@ object SimplifyExpression {
         throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
     }
 
-    return res
+    return res.filter(e => e._2 != 0L)
+  }
+
+  def gcd(x : Long, y : Long) : Long = {
+    var a : Long = x
+    var b : Long = y
+    while (b != 0) {
+      val h = a % b
+      a = b
+      b = h
+    }
+    return math.abs(a)
   }
 
   /**
@@ -381,7 +406,7 @@ object SimplifyExpression {
     * Only VariableAccess and ArrayAccess nodes are used as keys. (NO StringConstant)
     */
   def extractFloatingSum(expr : Expression) : HashMap[Expression, Double] = {
-    return extractFloatingSumRec(expr).filter(e => e._2 != 0.0)
+    return extractFloatingSumRec(expr)
   }
 
   private def extractFloatingSumRec(expr : Expression) : HashMap[Expression, Double] = {
@@ -500,7 +525,7 @@ object SimplifyExpression {
         throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass() + " in " + expr.prettyprint())
     }
 
-    return res
+    return res.filter(e => e._2 != 0.0)
   }
 
   /**

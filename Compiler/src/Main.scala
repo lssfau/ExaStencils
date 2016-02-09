@@ -1,5 +1,6 @@
 import exastencils.communication._
 import exastencils.core._
+import exastencils.cuda._
 import exastencils.data._
 import exastencils.datastructures._
 import exastencils.domain._
@@ -13,6 +14,7 @@ import exastencils.multiGrid._
 import exastencils.omp._
 import exastencils.optimization._
 import exastencils.parsers.l4._
+import exastencils.performance._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.strategies._
@@ -169,8 +171,12 @@ object Main {
       Stopwatch(),
       TimerFunctions(),
       Vector(),
-      Matrix(),
-      CImg())
+      Matrix(), // TODO: only if required
+      CImg() // TODO: only if required
+      )
+
+    if (Knowledge.experimental_cuda_enabled)
+      StateManager.root_.asInstanceOf[ir.Root].nodes += KernelFunctions()
 
     SimplifyStrategy.doUntilDone() // removes (conditional) calls to communication functions that are not possible
     SetupCommunication.apply()
@@ -193,8 +199,17 @@ object Main {
     ResolveDiagFunction.apply()
     Grid.applyStrategies()
     if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
+
     ResolveLoopOverPointsInOneFragment.apply()
     ResolveContractingLoop.apply()
+
+    TypeInference.warnMissingDeclarations = false
+    TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
+
+    if (Knowledge.experimental_addPerformanceEstimate)
+      AddPerformanceEstimates()
+    if (Knowledge.experimental_cuda_enabled)
+      SplitLoopsForHostAndDevice.apply()
 
     MapStencilAssignments.apply()
     ResolveFieldAccess.apply()
@@ -213,14 +228,18 @@ object Main {
       PolyOpt.apply()
     ResolveLoopOverDimensions.apply()
 
-    TypeInference.apply()
+    TypeInference.apply() // second sweep for any newly introduced nodes - TODO: check if this is necessary
 
     if (Knowledge.opt_useColorSplitting)
       ColorSplitting.apply()
 
-    ResolveSlotOperationsStrategy.apply()
-    ResolveIndexOffsets.apply()
-    LinearizeFieldAccesses.apply()
+    LinearizeFieldAccesses.apply() // before converting kernel functions -> requires linearized accesses
+
+    if (Knowledge.experimental_cuda_enabled)
+      StateManager.findFirst[KernelFunctions]().get.convertToFunctions
+
+    ResolveIndexOffsets.apply() // after converting kernel functions -> relies on (unresolved) index offsets to determine loop iteration counts
+    ResolveSlotOperationsStrategy.apply() // after converting kernel functions -> relies on (unresolved) slot accesses
 
     if (Knowledge.useFasterExpand)
       ExpandOnePassStrategy.apply()

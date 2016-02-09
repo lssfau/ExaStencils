@@ -12,7 +12,24 @@ object Knowledge {
   var targetCompilerVersionMinor : Int = 0 // minor version of the target compiler
 
   var targetHardware : String = "CPU" // target hw platform; may be "CPU" or "ARM"
+  // FIXME: move me to dedicated hardware specification
   var hw_numThreadsPerNode : Int = 64 // specifies the total number of ranks (OMP and MPI) to be used when generating job scripts
+  def hw_numCoresPerNode : Int = hw_cpu_numCoresPerCPU * hw_cpu_numCPUs
+  var hw_numNodes : Int = 1
+  var hw_cpu_name : String = "Intel Xeon E5620"
+  var hw_cpu_numCoresPerCPU : Int = 4
+  var hw_cpu_numCPUs : Int = 2
+  var hw_cpu_bandwidth : Double = 25.6 * 1024 * 1024 * 1024 // in B/s
+  var hw_cpu_frequency : Double = 2.4 * 1000 * 1000 * 1000 // in Hz
+  var hw_64bit : Boolean = true // true if 64 bit addresses are used
+  var hw_gpu_name : String = "NVidia Quadro 4000"
+  var hw_gpu_numDevices : Int = 2
+  var hw_gpu_bandwidth : Double = 89.6 * 1024 * 1024 * 1024 // in B/s
+  var hw_gpu_frequency : Double = 0.475 * 1000 * 1000 * 1000 // in Hz
+  var hw_gpu_numCores : Int = 256
+  var hw_cuda_capability : Int = 2
+  var hw_cuda_capabilityMinor : Int = 0
+  var hw_cuda_kernelCallOverhead : Double = 3.5 * 0.001 // in s
 
   var useDblPrecision : Boolean = true // if true uses double precision for floating point numbers and single precision otherwise
 
@@ -352,6 +369,21 @@ object Knowledge {
   var experimental_generateParaviewFiles : Boolean = false
 
   var experimental_trimBoundsForReductionLoops : Boolean = false
+
+  var experimental_addPerformanceEstimate : Boolean = false
+
+  var experimental_cuda_enabled : Boolean = false
+  var experimental_cuda_deviceId : Int = 0 // device id of the CUDA device to be used; only relevant in multi-GPU systems
+  var experimental_cuda_preferredExecution : String = "Performance" // specifies where kernels should be executed by default; may be "Host", "Device" or "Performance"
+  var experimental_cuda_syncDeviceAfterKernelCalls : Boolean = true // specifies if CUDA devices are to be synchronized after each (device) kernel call -> recommended to debug, required for reasonable performance measurements
+  var experimental_cuda_syncHostForWrites : Boolean = false // specifies if fields with (exclusive) write accesses should be synchronized before host kernel executions
+  var experimental_cuda_syncDeviceForWrites : Boolean = true // specifies if fields with (exclusive) write accesses should be synchronized before device kernel executions
+
+  var experimental_cuda_blockSize_x : Int = 8 // default block size in x dimension
+  var experimental_cuda_blockSize_y : Int = 8 // default block size in x dimension
+  var experimental_cuda_blockSize_z : Int = 8 // default block size in x dimension
+  def experimental_cuda_blockSizeAsVec = Array(experimental_cuda_blockSize_x, experimental_cuda_blockSize_y, experimental_cuda_blockSize_z)
+  def experimental_cuda_blockSizeTotal = experimental_cuda_blockSize_x * experimental_cuda_blockSize_y * experimental_cuda_blockSize_z
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {
@@ -522,6 +554,15 @@ object Knowledge {
 
     Constraints.condEnsureValue(mpi_useBusyWait, true, experimental_allowCommInFragLoops && domain_numFragmentsPerBlock > 1, s"mpi_useBusyWait must be true when experimental_allowCommInFragLoops is used in conjunction with multiple fragments per block")
     Constraints.condWarn(comm_disableLocalCommSync && experimental_allowCommInFragLoops, s"comm_disableLocalCommSynchronization in conjunction with experimental_allowCommInFragLoops is strongly discouraged")
+
+    Constraints.condEnsureValue(experimental_addPerformanceEstimate, true, "Performance" == experimental_cuda_preferredExecution, s"experimental_addPerformanceEstimate is required for performance estimate guided kernel execution")
+    Constraints.condEnsureValue(experimental_cuda_deviceId, 0, experimental_cuda_deviceId >= hw_gpu_numDevices, s"CUDA device id must not be exceeding number of installed devices")
+
+    Constraints.condEnsureValue(experimental_cuda_blockSize_y, 1, domain_rect_generate && dimensionality < 2, "experimental_cuda_blockSize_y must be set to 1 for problems with a dimensionality smaller 2")
+    Constraints.condEnsureValue(experimental_cuda_blockSize_z, 1, domain_rect_generate && dimensionality < 3, "experimental_cuda_blockSize_z must be set to 1 for problems with a dimensionality smaller 3")
+
+    Constraints.condWarn(experimental_cuda_blockSizeTotal > 512 && hw_cuda_capability <= 2, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability $hw_cuda_capability.$hw_cuda_capabilityMinor")
+    Constraints.condWarn(experimental_cuda_blockSizeTotal > 1024 && hw_cuda_capability >= 3, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability $hw_cuda_capability.$hw_cuda_capabilityMinor")
 
     // data
     Constraints.condEnsureValue(data_alignFieldPointers, true, opt_vectorize && "QPX" == simd_instructionSet, "data_alignFieldPointers must be true for vectorization with QPX")
