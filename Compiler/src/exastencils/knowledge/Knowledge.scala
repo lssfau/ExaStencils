@@ -39,21 +39,22 @@ object Knowledge {
 
   var generateFortranInterface : Boolean = false // generates fortran compliant function names and marks functions for interfacing
 
-  var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2", "QPX", "NEON"
+  var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2", "AVX512", "IMCI", "QPX", "NEON"
   def simd_vectorSize : Int = { // number of vector elements for SIMD instructions (currently only double precision)
     val double : Int = if (useDblPrecision) 1 else 2
     simd_instructionSet match {
-      case "SSE3"         => 2 * double
-      case "AVX" | "AVX2" => 4 * double
-      case "QPX"          => 4 // yes, it's always 4
-      case "NEON"         => 2 * double // TODO: check if double is supported
+      case "SSE3"            => 2 * double
+      case "AVX" | "AVX2"    => 4 * double
+      case "AVX512" | "IMCI" => 8 * double
+      case "QPX"             => 4 // yes, it's always 4
+      case "NEON"            => 2 * double // TODO: check if double is supported
     }
   }
   def simd_header : String = { // header for vector intrinsics
     simd_instructionSet match {
-      case "SSE3" | "AVX" | "AVX2" => "immintrin.h"
-      case "NEON"                  => "arm_neon.h"
-      case "QPX"                   => null
+      case "SSE3" | "AVX" | "AVX2" | "AVX512" | "IMCI" => "immintrin.h"
+      case "NEON"                                      => "arm_neon.h"
+      case "QPX"                                       => null
     }
   }
 
@@ -399,6 +400,10 @@ object Knowledge {
 
     Constraints.condEnsureValue(omp_enabled, false, "CLANG" == targetCompiler && (targetCompilerVersion >= 3 && targetCompilerVersionMinor < 7), "Only clang >= 3.7 supports OpenMP")
 
+    Constraints.condEnsureValue(opt_vectorize, false, "GCC" == targetCompiler && "IMCI" == simd_instructionSet, "GCC does not support intel IMCI")
+    Constraints.condEnsureValue(simd_instructionSet, "QPX", "IBMBG" == targetCompiler && opt_vectorize, "IBM BlueGene/Q compiler can only generate code for BlueGene/Q (with vector extension QPX)")
+    Constraints.condEnsureValue(opt_vectorize, false, "IBMBG" != targetCompiler && "QPX" == simd_instructionSet, "only IBM BlueGene/Q compiler supports QPX")
+
     if (l3tmp_generateL4) {
       // specific project configurations - SISC
       Constraints.condEnsureValue(l3tmp_exactSolution, "Kappa_VC", l3tmp_sisc && l3tmp_genStencilFields, "Kappa_VC is required as l3tmp_exactSolution for variable stencils and l3tmp_sisc")
@@ -572,6 +577,7 @@ object Knowledge {
     Constraints.condEnsureValue(data_alignFieldPointers, true, opt_vectorize && "QPX" == simd_instructionSet, "data_alignFieldPointers must be true for vectorization with QPX")
 
     Constraints.condEnsureValue(simd_avoidUnaligned, true, opt_vectorize && "QPX" == simd_instructionSet, "QPX does not support unaligned loads/stores")
+    Constraints.condEnsureValue(simd_avoidUnaligned, true, opt_vectorize && "IMCI" == simd_instructionSet, "IMCI does not support unaligned loads/stores")
     Constraints.condEnsureValue(simd_avoidUnaligned, false, !opt_vectorize, "avoid unaligned loads/stores doesn't make sense without vectorization enabled")
     Constraints.condEnsureValue(simd_avoidUnaligned, false, !data_alignFieldPointers, "impossible to avoid unaligned accesses if data is not aligned")
 

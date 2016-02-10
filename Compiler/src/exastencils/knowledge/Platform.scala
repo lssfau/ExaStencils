@@ -61,10 +61,12 @@ object Platform {
 
       if (Knowledge.opt_vectorize) {
         Knowledge.simd_instructionSet match {
-          case "SSE3" => cflags += " -msse3"
-          case "AVX"  => cflags += " -mavx"
-          case "AVX2" => cflags += " -mavx2 -mfma"
-          case "NEON" => cflags += " -mfpu=neon"
+          case "SSE3"   => cflags += " -msse3"
+          case "AVX"    => cflags += " -mavx"
+          case "AVX2"   => cflags += " -mavx2 -mfma"
+          case "AVX512" => cflags += " -march=knl"
+          case "IMCI"   => Logger.error("GCC does not support IMCI")
+          case "NEON"   => cflags += " -mfpu=neon"
         }
       }
       if ("ARM" == Knowledge.targetHardware) {
@@ -100,14 +102,12 @@ object Platform {
       }
 
       if (Knowledge.opt_vectorize) {
-        Knowledge.simd_instructionSet match {
-          case "SSE3"   => cflags += " -msse3" // TODO: Stefan, some of these flags seem to be incorrect (upper vs lower case)
-          case "SSSE3"  => cflags += " -mSSSE3"
-          case "SSE4.1" => cflags += " -mSSE4.1"
-          case "SSE4.2" => cflags += " -mSSE4.2"
-          case "AVX"    => cflags += " -mAVX"
+        Knowledge.simd_instructionSet match { // TODO: verify flags
+          case "SSE3"   => cflags += " -msse3"
+          case "AVX"    => cflags += " -mavx"
           case "AVX2"   => cflags += " -march=core-avx2"
-          case _        => Logger.error("Unknown SIMD instruction set " + Knowledge.simd_instructionSet)
+          case "AVX512" => cflags += " -march=knl"
+          case "IMCI"   => cflags += " -march=knc"
         }
       }
     }
@@ -122,9 +122,11 @@ object Platform {
 
       if (Knowledge.opt_vectorize) {
         Knowledge.simd_instructionSet match {
-          case "SSE3" => cflags += " -msse3"
-          case "AVX"  => cflags += " -mavx"
-          case "AVX2" => cflags += " -mavx2 -mfma"
+          case "SSE3"   => cflags += " -msse3"
+          case "AVX"    => cflags += " -mavx"
+          case "AVX2"   => cflags += " -mavx2 -mfma"
+          case "AVX512" => cflags += " -mavx512f"
+          case "IMCI"   => Logger.error("clang does not support IMCI")
         }
       }
     }

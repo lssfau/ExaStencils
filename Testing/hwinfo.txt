@@ -17,7 +17,7 @@ Chimaira (Cluster)
       228 Threads
       1,1 GHz
       6 GB GDDR5 (240 GB/s)
-      AVX512
+      IMCI
 
 
 Workstations (neu)
