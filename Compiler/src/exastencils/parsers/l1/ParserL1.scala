@@ -35,14 +35,15 @@ class ParserL1 extends ExaParser {
   // ##### basic definitions
   // ######################################
 
-  lazy val program = (domain ||| operator ||| equation).+ ^^ { case x => Root(x) }
+  lazy val program = (domain ||| operator ||| equation ||| mapping).+ ^^ { case x => Root(x) }
 
   lazy val domain = ("Domain" ~> ident) ~ ("=" ~> range) ^^ { case id ~ range => Domain(id, range) }
   lazy val operator = ("Operator" ~> ident) ~ ("=" ~> binaryexpression) ^^ { case id ~ exp => Operator(id, exp) }
-  lazy val equation = "Equation" ~ binaryexpression ~ "=" ~ binaryexpression ^^ { case _ ~ exp => Equation(exp, exp) }
+  lazy val equation = ("Equation" ~> binaryexpression) ~ ("=" ~> binaryexpression) ^^ { case l ~ r => Equation(l, r) }
+  lazy val mapping = ("Mapping" ~> ident) ~ (arrow ~> set) ^^ { case id ~ set => Mapping(id, set) }
 
   // ######################################
-  // ##### range expressions
+  // ##### range definitions
   // ######################################
 
   lazy val range = range1d ||| range2d ||| range3d
@@ -50,7 +51,16 @@ class ParserL1 extends ExaParser {
   lazy val range1d = ("[" ~> realLit <~ ",") ~ (realLit <~ "]") ^^ { case a ~ b => List(Tuple2(a, b)) }
   lazy val range2d = (range1d <~ rangeMultiply) ~ range1d ^^ { case a ~ b => a ::: b }
   lazy val range3d = (range2d <~ rangeMultiply) ~ range1d ^^ { case a ~ b => a ::: b }
-  lazy val rangeMultiply = "\\times" ||| "\u00D7"
+  lazy val rangeMultiply = "\\times" ||| "\u00D7" ||| "*"
+
+  // ######################################
+  // ##### mapping definitions
+  // ######################################
+
+  lazy val arrow = "-" ~ ">"
+  lazy val set = (
+    ("C" ||| "R") ~ ("^" ~> ("1" ||| "2" ||| "3")) ^^ { case id ~ exp => MathSet(id, exp) }
+    ||| ident ^^ { case id => MathSet(id) })
 
   // ######################################
   // ##### binary expressions

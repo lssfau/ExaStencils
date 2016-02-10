@@ -14,6 +14,7 @@ class LexerL1 extends StdLexical {
       (
         (ch.isUnicodeIdentifierStart
           || ch == '\\'
+          || ch == '_'
           || ch.toString().matches("""[\p{L}\p{M}\p{S}]""") // General Unicode characters: Letters, Marks (accents/umlauts), math Symbols 
           //          || ch.toString().matches("""[\\x{1D400}-\\x{1D7FF}]""")) // FIXME allow math symbols from unicode SMP
           || ch == '²' || ch == '³' || ch == '¹' // Exponents carried over from ISO8859
@@ -30,7 +31,7 @@ class LexerL1 extends StdLexical {
 
   override def token : Parser[Token] = super.token
 
-  delimiters += ("=", "(", ")", "{", "}", "[", "]", ",", ":", "+", "-", "*", "/", "^", "**", "%")
+  delimiters += ("=", "(", ")", "{", "}", "[", "]", ",", ":", "+", "-", "*", "/", "^", "**", "%", "<", ">")
 
   // Operator keywords
   reserved += ("Operator")
@@ -41,5 +42,9 @@ class LexerL1 extends StdLexical {
 
   // Equation keywords
   reserved += ("Equation")
+
+  // Mapping keywords
+  reserved += ("Mapping")
+  reserved += ("C", "R")
 }
 

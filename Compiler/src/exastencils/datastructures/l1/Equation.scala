@@ -2,4 +2,4 @@ package exastencils.datastructures.l1
 
 import exastencils.datastructures.l1._
 
-case class Equation(var lhs : Expression, var rhs : Expression) extends Definition
+case class Equation(var left : Expression, var right : Expression) extends Definition
