@@ -35,11 +35,12 @@ class ParserL1 extends ExaParser {
   // ##### basic definitions
   // ######################################
 
-  lazy val program = (domain ||| operator ||| equation ||| mapping).+ ^^ { case x => Root(x) }
+  lazy val program = (domain ||| operator ||| equation ||| rhs ||| mapping).+ ^^ { case x => Root(x) }
 
   lazy val domain = ("Domain" ~> ident) ~ ("=" ~> range) ^^ { case id ~ range => Domain(id, range) }
   lazy val operator = ("Operator" ~> ident) ~ ("=" ~> binaryexpression) ^^ { case id ~ exp => Operator(id, exp) }
   lazy val equation = ("Equation" ~> binaryexpression) ~ ("=" ~> binaryexpression) ^^ { case l ~ r => Equation(l, r) }
+  lazy val rhs = ("RHS" ~> ident) ~ ("=" ~> binaryexpression) ^^ { case id ~ exp => RHS(id, exp) }
   lazy val mapping = ("Mapping" ~> ident) ~ (arrow ~> set) ^^ { case id ~ set => Mapping(id, set) }
 
   // ######################################

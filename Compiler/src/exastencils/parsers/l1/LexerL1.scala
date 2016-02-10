@@ -43,6 +43,9 @@ class LexerL1 extends StdLexical {
   // Equation keywords
   reserved += ("Equation")
 
+  // RHS keywords
+  reserved += ("RHS")
+
   // Mapping keywords
   reserved += ("Mapping")
   reserved += ("C", "R")
