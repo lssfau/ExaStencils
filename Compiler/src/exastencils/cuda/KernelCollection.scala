@@ -83,7 +83,6 @@ case class Kernel(var identifier : String,
 
   def evalFieldAccesses = {
     if (!evaluatedAccesses) {
-      // TODO: fuse strategies/ trafos?
       GatherLocalLinearizedFieldAccess.fieldAccesses.clear
       GatherLocalLinearizedFieldAccess.applyStandalone(Scope(body))
       fieldAccesses = GatherLocalLinearizedFieldAccess.fieldAccesses
@@ -179,7 +178,7 @@ case class Kernel(var identifier : String,
       SpecialDatatype("extern \"C\" void"), // FIXME
       getWrapperFctName,
       Duplicate(passThroughArgs),
-      ListBuffer[Statement](CUDA_FunctionCallExpression(getKernelFctName, numThreadsPerDim.to[ListBuffer], callArgs)),
+      ListBuffer[Statement](CUDA_FunctionCallExpression(getKernelFctName, numThreadsPerDim, callArgs)),
       false)
   }
 

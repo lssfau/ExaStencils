@@ -80,7 +80,7 @@ object dimToString extends (Int => String) {
   }
 }
 
-case class InitGeomCoords(var field : Field, var directCoords : Boolean, var offset : MultiIndex = MultiIndex(0.0, 0.0, 0.0)) extends Statement with Expandable {
+case class InitGeomCoords(var field : Field, var directCoords : Boolean, var offset : MultiIndex = new MultiIndex(0, 0, 0) /* was float index before */ ) extends Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitGeomCoords\n"
 
   override def expand : Output[StatementList] = {
@@ -89,11 +89,11 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
       ListBuffer[Statement](
         VariableDeclarationStatement(RealDatatype, "xPosTMP", field.fieldLayout.discretization match {
           case "node" | "face_x" =>
-            Some(((if (directCoords) ("x" - field.referenceOffset.index_0) else ("x" : Expression)) + offset.index_0)
+            Some(((if (directCoords) ("x" - field.referenceOffset(0)) else ("x" : Expression)) + offset(0))
               / CastExpression(RealDatatype, field.fieldLayout.idxById("DRE", 0) - field.fieldLayout.idxById("DLB", 0) - 1)
               * (ArrayAccess(iv.PrimitivePositionEnd(), 0) - ArrayAccess(iv.PrimitivePositionBegin(), 0)) + ArrayAccess(iv.PrimitivePositionBegin(), 0))
           case "cell" | "face_y" | "face_z" =>
-            Some(((if (directCoords) ("x" - field.referenceOffset.index_0) else ("x" : Expression)) + 0.5 + offset.index_0)
+            Some(((if (directCoords) ("x" - field.referenceOffset(0)) else ("x" : Expression)) + 0.5 + offset(0))
               / CastExpression(RealDatatype, field.fieldLayout.idxById("DRE", 0) - field.fieldLayout.idxById("DLB", 0) - 0)
               * (ArrayAccess(iv.PrimitivePositionEnd(), 0) - ArrayAccess(iv.PrimitivePositionBegin(), 0)) + ArrayAccess(iv.PrimitivePositionBegin(), 0))
         }),
@@ -101,11 +101,11 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
           if (Knowledge.dimensionality > 1) {
             field.fieldLayout.discretization match {
               case "node" | "face_y" =>
-                Some(((if (directCoords) ("y" - field.referenceOffset.index_1) else ("y" : Expression)) + offset.index_1)
+                Some(((if (directCoords) ("y" - field.referenceOffset(1)) else ("y" : Expression)) + offset(1))
                   / CastExpression(RealDatatype, field.fieldLayout.idxById("DRE", 1) - field.fieldLayout.idxById("DLB", 1) - 1)
                   * (ArrayAccess(iv.PrimitivePositionEnd(), 1) - ArrayAccess(iv.PrimitivePositionBegin(), 1)) + ArrayAccess(iv.PrimitivePositionBegin(), 1))
               case "cell" | "face_x" | "face_z" =>
-                Some(((if (directCoords) ("y" - field.referenceOffset.index_1) else ("y" : Expression)) + 0.5 + offset.index_1)
+                Some(((if (directCoords) ("y" - field.referenceOffset(1)) else ("y" : Expression)) + 0.5 + offset(1))
                   / CastExpression(RealDatatype, field.fieldLayout.idxById("DRE", 1) - field.fieldLayout.idxById("DLB", 1) - 0)
                   * (ArrayAccess(iv.PrimitivePositionEnd(), 1) - ArrayAccess(iv.PrimitivePositionBegin(), 1)) + ArrayAccess(iv.PrimitivePositionBegin(), 1))
             }
@@ -114,11 +114,11 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
           if (Knowledge.dimensionality > 2) {
             field.fieldLayout.discretization match {
               case "node" | "face_z" =>
-                Some(((if (directCoords) ("z" - field.referenceOffset.index_2) else ("z" : Expression)) + offset.index_2)
+                Some(((if (directCoords) ("z" - field.referenceOffset(2)) else ("z" : Expression)) + offset(2))
                   / CastExpression(RealDatatype, field.fieldLayout.idxById("DRE", 2) - field.fieldLayout.idxById("DLB", 2) - 1)
                   * (ArrayAccess(iv.PrimitivePositionEnd(), 2) - ArrayAccess(iv.PrimitivePositionBegin(), 2)) + ArrayAccess(iv.PrimitivePositionBegin(), 2))
               case "cell" | "face_x" | "face_y" =>
-                Some(((if (directCoords) ("z" - field.referenceOffset.index_2) else ("z" : Expression)) + 0.5 + offset.index_2)
+                Some(((if (directCoords) ("z" - field.referenceOffset(2)) else ("z" : Expression)) + 0.5 + offset(2))
                   / CastExpression(RealDatatype, field.fieldLayout.idxById("DRE", 2) - field.fieldLayout.idxById("DLB", 2) - 0)
                   * (ArrayAccess(iv.PrimitivePositionEnd(), 2) - ArrayAccess(iv.PrimitivePositionBegin(), 2)) + ArrayAccess(iv.PrimitivePositionBegin(), 2))
             }

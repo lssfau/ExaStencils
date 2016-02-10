@@ -232,6 +232,8 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     val zoneSize = numCells / 4
     val step = 1.0 / zoneSize
 
+    val zoneLength = 0.0095 * 8 / zoneSize
+
     val field = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
     var baseIndex = LoopOverDimensions.defIt
     baseIndex(Knowledge.dimensionality) = 0
@@ -248,24 +250,24 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     ListBuffer(
       LoopOverPoints(field, None, true,
-        GridUtil.offsetIndex(MultiIndex(0, 0, 0), -1, dim),
-        GridUtil.offsetIndex(MultiIndex(0, 0, 0), -1, dim),
-        MultiIndex(1, 1, 1),
+        GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
+        GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
+        new MultiIndex(1, 1, 1),
         ListBuffer[Statement](
           new ConditionStatement(LowerEqualExpression(innerIt, 0),
             AssignmentStatement(Duplicate(baseAccess), 0.0),
             new ConditionStatement(LowerEqualExpression(innerIt, 1 * zoneSize),
               AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 0 * zoneSize, dim)
-                + 0.0095 * FunctionCallExpression("pow", ListBuffer[Expression](step * (LoopOverDimensions.defIt(dim) - 0.0 * zoneSize), expo))),
+                + zoneLength * FunctionCallExpression("pow", ListBuffer[Expression](step * (LoopOverDimensions.defIt(dim) - 0.0 * zoneSize), expo))),
               new ConditionStatement(LowerEqualExpression(innerIt, 2 * zoneSize),
                 AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 1 * zoneSize, dim)
-                  + 0.0095 * step * (LoopOverDimensions.defIt(dim) - 1.0 * zoneSize)),
+                  + zoneLength * step * (LoopOverDimensions.defIt(dim) - 1.0 * zoneSize)),
                 new ConditionStatement(LowerEqualExpression(innerIt, 3 * zoneSize),
                   AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 2 * zoneSize, dim)
-                    + 0.0095 * step * (LoopOverDimensions.defIt(dim) - 2.0 * zoneSize)),
+                    + zoneLength * step * (LoopOverDimensions.defIt(dim) - 2.0 * zoneSize)),
                   new ConditionStatement(LowerEqualExpression(innerIt, 4 * zoneSize),
                     AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 3 * zoneSize, dim)
-                      + 0.0095 * (1.0 - FunctionCallExpression("pow", ListBuffer[Expression](1.0 - step * (LoopOverDimensions.defIt(dim) - 3.0 * zoneSize), expo)))),
+                      + zoneLength * (1.0 - FunctionCallExpression("pow", ListBuffer[Expression](1.0 - step * (LoopOverDimensions.defIt(dim) - 3.0 * zoneSize), expo)))),
                     AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1, dim))))))))),
       AssignmentStatement(Duplicate(leftGhostAccess),
         2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim)),
@@ -354,9 +356,9 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     ListBuffer[Statement](
       LoopOverFragments(ListBuffer[Statement](
         LoopOverPoints(field, None, true,
-          GridUtil.offsetIndex(MultiIndex(0, 0, 0), -2, dim),
-          GridUtil.offsetIndex(MultiIndex(0, 0, 0), -2, dim),
-          MultiIndex(1, 1, 1),
+          GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -2, dim),
+          GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -2, dim),
+          new MultiIndex(1, 1, 1),
           ListBuffer[Statement](
             innerItDecl,
             new ConditionStatement(LowerEqualExpression(innerIt, xf + 1),
@@ -426,9 +428,9 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     ListBuffer[Statement](
       LoopOverFragments(ListBuffer[Statement](
         LoopOverPoints(field, None, true,
-          GridUtil.offsetIndex(MultiIndex(0, 0, 0), -1, dim),
-          GridUtil.offsetIndex(MultiIndex(0, 0, 0), -1, dim),
-          MultiIndex(1, 1, 1),
+          GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
+          GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
+          new MultiIndex(1, 1, 1),
           ListBuffer[Statement](
             innerItDecl,
             new ConditionStatement(EqEqExpression(0, innerIt),

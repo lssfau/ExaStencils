@@ -168,6 +168,7 @@ object StateManager {
         case NoMatch                               =>
         case x : Annotatable                       => x.annotate(source)
         case x : Seq[_]                            => x.foreach(copyAnnotations(source, _))
+        case x : Array[_]                          => x.foreach(copyAnnotations(source, _))
         case x : scala.collection.mutable.Set[_]   => x.foreach(copyAnnotations(source, _))
         case x : scala.collection.immutable.Set[_] => x.foreach(copyAnnotations(source, _))
         case (x, y) =>
@@ -406,25 +407,6 @@ object StateManager {
             Logger.error(s"Could not set $field in transformation ${transformation.name}")
           }
         }
-        case array : Array[_] => {
-          Logger.warn("Arrays are currently not supported for matching!")
-        }
-        //        case list : Array[_] => {
-        //          val arrayType = list.getClass().getComponentType()
-        //          val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
-        //          if (invalids.size <= 0) {
-        //            var tmpArray = list.asInstanceOf[Array[Node]].flatMap(listitem => processOutput(applyAtNode(listitem, transformation)))
-        //            var changed = tmpArray.diff(list)
-        //            if (changed.size > 0) {
-        //              var newArray = java.lang.reflect.Array.newInstance(arrayType, tmpArray.length)
-        //              System.arraycopy(tmpArray, 0, newArray, 0, tmpArray.length)
-        //              if (!Vars.set(node, setter, newArray)) {
-        //                Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
-        //              }
-        //            }
-        //            if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) tmpArray.asInstanceOf[Array[Node]].foreach(f => replace(f, transformation))
-        //          }
-        //        }
         case _ => //
       }
     })

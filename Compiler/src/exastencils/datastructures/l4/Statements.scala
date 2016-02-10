@@ -75,7 +75,7 @@ case class StencilEntry(var offset : ExpressionIndex, var coeff : Expression) ex
 
   override def progressToIr : knowledge.StencilEntry = {
     var off = offset.progressToIr
-    if (off(knowledge.Knowledge.dimensionality) == null) off(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(0)
+    while (off.length < knowledge.Knowledge.dimensionality + 1) off.indices :+= ir.IntegerConstant(0)
     knowledge.StencilEntry(off, coeff.progressToIr)
   }
 }

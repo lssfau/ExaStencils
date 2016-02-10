@@ -87,10 +87,11 @@ case object SIMD_RealDatatype extends Datatype {
   override def prettyprint(out : PpStream) : Unit = {
     val suffix = if (Knowledge.useDblPrecision) "d" else ""
     Knowledge.simd_instructionSet match {
-      case "SSE3"         => out << "__m128" << suffix
-      case "AVX" | "AVX2" => out << "__m256" << suffix
-      case "QPX"          => out << "vector4double" // no suffix
-      case "NEON"         => out << "float32x4_t" // FIXME: only single precision until now
+      case "SSE3"            => out << "__m128" << suffix
+      case "AVX" | "AVX2"    => out << "__m256" << suffix
+      case "AVX512" | "IMCI" => out << "__m512" << suffix
+      case "QPX"             => out << "vector4double" // no suffix
+      case "NEON"            => out << "float32x4_t" // FIXME: only single precision until now
     }
   }
 

@@ -21,6 +21,7 @@ object Knowledge {
   var hw_cpu_numCPUs : Int = 2
   var hw_cpu_bandwidth : Double = 25.6 * 1024 * 1024 * 1024 // in B/s
   var hw_cpu_frequency : Double = 2.4 * 1000 * 1000 * 1000 // in Hz
+  var hw_cpu_numCyclesPerDiv : Double = 24 // arbitrary value -> to be benchmarked later
   var hw_64bit : Boolean = true // true if 64 bit addresses are used
   var hw_gpu_name : String = "NVidia Quadro 4000"
   var hw_gpu_numDevices : Int = 2
@@ -29,27 +30,31 @@ object Knowledge {
   var hw_gpu_numCores : Int = 256
   var hw_cuda_capability : Int = 2
   var hw_cuda_capabilityMinor : Int = 0
-  var hw_cuda_kernelCallOverhead : Double = 3.5 * 0.001 // in s
+
+  var sw_cuda_version : Int = 7
+  var sw_cuda_versionMinor : Int = 5
+  var sw_cuda_kernelCallOverhead : Double = 3.5 * 0.001 // in s
 
   var useDblPrecision : Boolean = true // if true uses double precision for floating point numbers and single precision otherwise
 
   var generateFortranInterface : Boolean = false // generates fortran compliant function names and marks functions for interfacing
 
-  var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2", "QPX", "NEON"
+  var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2", "AVX512", "IMCI", "QPX", "NEON"
   def simd_vectorSize : Int = { // number of vector elements for SIMD instructions (currently only double precision)
     val double : Int = if (useDblPrecision) 1 else 2
     simd_instructionSet match {
-      case "SSE3"         => 2 * double
-      case "AVX" | "AVX2" => 4 * double
-      case "QPX"          => 4 // yes, it's always 4
-      case "NEON"         => 2 * double // TODO: check if double is supported
+      case "SSE3"            => 2 * double
+      case "AVX" | "AVX2"    => 4 * double
+      case "AVX512" | "IMCI" => 8 * double
+      case "QPX"             => 4 // yes, it's always 4
+      case "NEON"            => 2 * double // TODO: check if double is supported
     }
   }
   def simd_header : String = { // header for vector intrinsics
     simd_instructionSet match {
-      case "SSE3" | "AVX" | "AVX2" => "immintrin.h"
-      case "NEON"                  => "arm_neon.h"
-      case "QPX"                   => null
+      case "SSE3" | "AVX" | "AVX2" | "AVX512" | "IMCI" => "immintrin.h"
+      case "NEON"                                      => "arm_neon.h"
+      case "QPX"                                       => null
     }
   }
 
@@ -395,6 +400,10 @@ object Knowledge {
 
     Constraints.condEnsureValue(omp_enabled, false, "CLANG" == targetCompiler && (targetCompilerVersion >= 3 && targetCompilerVersionMinor < 7), "Only clang >= 3.7 supports OpenMP")
 
+    Constraints.condEnsureValue(opt_vectorize, false, "GCC" == targetCompiler && "IMCI" == simd_instructionSet, "GCC does not support intel IMCI")
+    Constraints.condEnsureValue(simd_instructionSet, "QPX", "IBMBG" == targetCompiler && opt_vectorize, "IBM BlueGene/Q compiler can only generate code for BlueGene/Q (with vector extension QPX)")
+    Constraints.condEnsureValue(opt_vectorize, false, "IBMBG" != targetCompiler && "QPX" == simd_instructionSet, "only IBM BlueGene/Q compiler supports QPX")
+
     if (l3tmp_generateL4) {
       // specific project configurations - SISC
       Constraints.condEnsureValue(l3tmp_exactSolution, "Kappa_VC", l3tmp_sisc && l3tmp_genStencilFields, "Kappa_VC is required as l3tmp_exactSolution for variable stencils and l3tmp_sisc")
@@ -555,7 +564,7 @@ object Knowledge {
     Constraints.condEnsureValue(mpi_useBusyWait, true, experimental_allowCommInFragLoops && domain_numFragmentsPerBlock > 1, s"mpi_useBusyWait must be true when experimental_allowCommInFragLoops is used in conjunction with multiple fragments per block")
     Constraints.condWarn(comm_disableLocalCommSync && experimental_allowCommInFragLoops, s"comm_disableLocalCommSynchronization in conjunction with experimental_allowCommInFragLoops is strongly discouraged")
 
-    Constraints.condEnsureValue(experimental_addPerformanceEstimate, true, "Performance" == experimental_cuda_preferredExecution, s"experimental_addPerformanceEstimate is required for performance estimate guided kernel execution")
+    Constraints.condEnsureValue(experimental_addPerformanceEstimate, true, experimental_cuda_enabled && "Performance" == experimental_cuda_preferredExecution, s"experimental_addPerformanceEstimate is required for performance estimate guided kernel execution")
     Constraints.condEnsureValue(experimental_cuda_deviceId, 0, experimental_cuda_deviceId >= hw_gpu_numDevices, s"CUDA device id must not be exceeding number of installed devices")
 
     Constraints.condEnsureValue(experimental_cuda_blockSize_y, 1, domain_rect_generate && dimensionality < 2, "experimental_cuda_blockSize_y must be set to 1 for problems with a dimensionality smaller 2")
@@ -568,6 +577,7 @@ object Knowledge {
     Constraints.condEnsureValue(data_alignFieldPointers, true, opt_vectorize && "QPX" == simd_instructionSet, "data_alignFieldPointers must be true for vectorization with QPX")
 
     Constraints.condEnsureValue(simd_avoidUnaligned, true, opt_vectorize && "QPX" == simd_instructionSet, "QPX does not support unaligned loads/stores")
+    Constraints.condEnsureValue(simd_avoidUnaligned, true, opt_vectorize && "IMCI" == simd_instructionSet, "IMCI does not support unaligned loads/stores")
     Constraints.condEnsureValue(simd_avoidUnaligned, false, !opt_vectorize, "avoid unaligned loads/stores doesn't make sense without vectorization enabled")
     Constraints.condEnsureValue(simd_avoidUnaligned, false, !data_alignFieldPointers, "impossible to avoid unaligned accesses if data is not aligned")
 

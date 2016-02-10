@@ -89,7 +89,7 @@ object Testbed {
     }*/
 
     //    for (e <- RAP.entries) {
-    //      ResolveCoordinates0.replacement = MultiIndex(0, 0, 0, 0)
+    //      ResolveCoordinates0.replacement = new MultiIndex(0, 0, 0, 0)
     //      ResolveCoordinates0.apply(Some(e.offset))
     //    }
 
@@ -138,47 +138,47 @@ object Testbed {
     var A : Stencil = new Stencil("A", 5,
       if (false) {
         ListBuffer(
-          new StencilEntry(MultiIndex(0, 0, 0), 3.0),
-          new StencilEntry(MultiIndex(-1, 0, 0), -0.5),
-          new StencilEntry(MultiIndex(1, 0, 0), -0.5),
-          new StencilEntry(MultiIndex(0, -1, 0), -0.5),
-          new StencilEntry(MultiIndex(0, 1, 0), -0.5),
-          new StencilEntry(MultiIndex(-1, -1, 0), -0.25),
-          new StencilEntry(MultiIndex(-1, 1, 0), -0.25),
-          new StencilEntry(MultiIndex(1, -1, 0), -0.25),
-          new StencilEntry(MultiIndex(1, 1, 0), -0.25))
+          new StencilEntry(new MultiIndex(0, 0, 0), 3.0),
+          new StencilEntry(new MultiIndex(-1, 0, 0), -0.5),
+          new StencilEntry(new MultiIndex(1, 0, 0), -0.5),
+          new StencilEntry(new MultiIndex(0, -1, 0), -0.5),
+          new StencilEntry(new MultiIndex(0, 1, 0), -0.5),
+          new StencilEntry(new MultiIndex(-1, -1, 0), -0.25),
+          new StencilEntry(new MultiIndex(-1, 1, 0), -0.25),
+          new StencilEntry(new MultiIndex(1, -1, 0), -0.25),
+          new StencilEntry(new MultiIndex(1, 1, 0), -0.25))
       } else if (true) {
         ListBuffer(
-          new StencilEntry(MultiIndex(0, 0, 0), 4.0),
-          new StencilEntry(MultiIndex(-1, 0, 0), -1.0),
-          new StencilEntry(MultiIndex(1, 0, 0), -1.0),
-          new StencilEntry(MultiIndex(0, -1, 0), -1.0),
-          new StencilEntry(MultiIndex(0, 1, 0), -1.0))
+          new StencilEntry(new MultiIndex(0, 0, 0), 4.0),
+          new StencilEntry(new MultiIndex(-1, 0, 0), -1.0),
+          new StencilEntry(new MultiIndex(1, 0, 0), -1.0),
+          new StencilEntry(new MultiIndex(0, -1, 0), -1.0),
+          new StencilEntry(new MultiIndex(0, 1, 0), -1.0))
       } else {
         ListBuffer(
-          new StencilEntry(MultiIndex(0, 0, 0), "C"),
-          new StencilEntry(MultiIndex(-1, 0, 0), "W"),
-          new StencilEntry(MultiIndex(1, 0, 0), "E"),
-          new StencilEntry(MultiIndex(0, -1, 0), "S"),
-          new StencilEntry(MultiIndex(0, 1, 0), "N"))
+          new StencilEntry(new MultiIndex(0, 0, 0), "C"),
+          new StencilEntry(new MultiIndex(-1, 0, 0), "W"),
+          new StencilEntry(new MultiIndex(1, 0, 0), "E"),
+          new StencilEntry(new MultiIndex(0, -1, 0), "S"),
+          new StencilEntry(new MultiIndex(0, 1, 0), "N"))
       })
 
     var R : Stencil = new Stencil("R", 4, ListBuffer(
-      new StencilEntry(MultiIndex(0, 0, 0), 1.0),
-      new StencilEntry(MultiIndex(-1, 0, 0), 0.5),
-      new StencilEntry(MultiIndex(1, 0, 0), 0.5),
-      new StencilEntry(MultiIndex(0, -1, 0), 0.5),
-      new StencilEntry(MultiIndex(0, 1, 0), 0.5),
-      new StencilEntry(MultiIndex(-1, -1, 0), 0.25),
-      new StencilEntry(MultiIndex(-1, 1, 0), 0.25),
-      new StencilEntry(MultiIndex(1, -1, 0), 0.25),
-      new StencilEntry(MultiIndex(1, 1, 0), 0.25)))
+      new StencilEntry(new MultiIndex(0, 0, 0), 1.0),
+      new StencilEntry(new MultiIndex(-1, 0, 0), 0.5),
+      new StencilEntry(new MultiIndex(1, 0, 0), 0.5),
+      new StencilEntry(new MultiIndex(0, -1, 0), 0.5),
+      new StencilEntry(new MultiIndex(0, 1, 0), 0.5),
+      new StencilEntry(new MultiIndex(-1, -1, 0), 0.25),
+      new StencilEntry(new MultiIndex(-1, 1, 0), 0.25),
+      new StencilEntry(new MultiIndex(1, -1, 0), 0.25),
+      new StencilEntry(new MultiIndex(1, 1, 0), 0.25)))
 
     var P : Stencil = new Stencil("P", 4, ListBuffer(
-      new StencilEntry(MultiIndex(0, 0, 0), 0.25),
-      new StencilEntry(MultiIndex("x" Mod 2, 0, 0), 0.25),
-      new StencilEntry(MultiIndex(0, "y" Mod 2, 0), 0.25),
-      new StencilEntry(MultiIndex("x" Mod 2, "y" Mod 2, 0), 0.25)))
+      new StencilEntry(new MultiIndex(0, 0, 0), 0.25),
+      new StencilEntry(new MultiIndex("x" Mod 2, 0, 0), 0.25),
+      new StencilEntry(new MultiIndex(0, "y" Mod 2, 0), 0.25),
+      new StencilEntry(new MultiIndex("x" Mod 2, "y" Mod 2, 0), 0.25)))
 
     println(R.printStencilToStr)
     println(A.printStencilToStr)
@@ -268,13 +268,13 @@ object Testbed {
             // 196-15 = 181 Flops
     """
 
-    var aabb = IndexRange(MultiIndex(0, 0, 0), MultiIndex(4, 4, 4))
+    var aabb = IndexRange(new MultiIndex(0, 0, 0), new MultiIndex(4, 4, 4))
     var k : Expression = "k_el"
     for (group <- 0 to 5) {
       for (position <- 0 to 3) {
         statements += AssignmentStatement(k, "k_tc_mn + k_mc_me")
         for (i <- 0 to 4) {
-          statements += AssignmentStatement(ArrayAccess("stencil", "tet_" ~ "mc"), k * ArrayAccess("c", Mapping.resolveMultiIdx(MultiIndex(i, position, group), aabb)), "+=")
+          statements += AssignmentStatement(ArrayAccess("stencil", "tet_" ~ "mc"), k * ArrayAccess("c", Mapping.resolveMultiIdx(new MultiIndex(i, position, group), aabb)), "+=")
         }
       }
     }

@@ -1,5 +1,6 @@
 import exastencils.communication._
 import exastencils.core._
+import exastencils.cuda._
 import exastencils.data._
 import exastencils.datastructures._
 import exastencils.domain._
@@ -13,6 +14,7 @@ import exastencils.multiGrid._
 import exastencils.omp._
 import exastencils.optimization._
 import exastencils.parsers.l4._
+import exastencils.performance._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.strategies._
@@ -20,21 +22,39 @@ import exastencils.util._
 
 object MainStefan {
   def main(args : Array[String]) : Unit = {
-
     // for runtime measurement
     val start : Long = System.nanoTime()
 
     //if (Settings.timeStrategies) -> right now this Schroedinger flag is neither true nor false
     StrategyTimer.startTiming("Initializing")
 
-    // init Settings
-    if (args.length >= 1) {
-      val s = new exastencils.parsers.settings.ParserSettings
-      s.parseFile(args(0))
+    // check from where to read input
+    val settingsParser = new exastencils.parsers.settings.ParserSettings
+    val knowledgeParser = new exastencils.parsers.settings.ParserKnowledge
+    if (args.length == 1 && args(0) == "--json-stdin") {
+      InputReader.read
+      settingsParser.parse(InputReader.settings)
+      knowledgeParser.parse(InputReader.knowledge)
+      Knowledge.l3tmp_generateL4 = false // No Layer4 generation with input via JSON
+    } else if (args.length == 2 && args(0) == "--json-file") {
+      InputReader.read(args(1))
+      settingsParser.parse(InputReader.settings)
+      knowledgeParser.parse(InputReader.knowledge)
+      Knowledge.l3tmp_generateL4 = false // No Layer4 generation with input via JSON
+    } else {
+      if (args.length >= 1) {
+        settingsParser.parseFile(args(0))
+      }
+      if (args.length >= 2) {
+        knowledgeParser.parseFile(args(1))
+      }
     }
 
     if (Settings.produceHtmlLog)
       Logger_HTML.init
+
+    // validate knowledge
+    Knowledge.update()
 
     if (Settings.cancelIfOutFolderExists) {
       if ((new java.io.File(Settings.getOutputPath)).exists) {
@@ -42,13 +62,6 @@ object MainStefan {
         sys.exit(0)
       }
     }
-
-    // init Knowledge
-    if (args.length >= 2) {
-      val k = new exastencils.parsers.settings.ParserKnowledge
-      k.parseFile(args(1))
-    }
-    Knowledge.update()
 
     // init buildfile generator
     if ("MSVC" == Knowledge.targetCompiler)
@@ -109,7 +122,11 @@ object MainStefan {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 4")
 
-    StateManager.root_ = (new ParserL4).parseFile(Settings.getL4file)
+    if (Settings.inputFromJson) {
+      StateManager.root_ = (new ParserL4).parseFile(InputReader.layer4)
+    } else {
+      StateManager.root_ = (new ParserL4).parseFile(Settings.getL4file)
+    }
     ValidationL4.apply
 
     if (false) // re-print the merged L4 state
@@ -140,6 +157,10 @@ object MainStefan {
     ResolveBoundaryHandlingFunctions.apply()
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
+    // add some more nodes
+    AddDefaultGlobals.apply()
+    SetupDataStructures.apply()
+
     // add remaining nodes
     StateManager.root_.asInstanceOf[ir.Root].nodes ++= List(
       // FunctionCollections
@@ -149,15 +170,15 @@ object MainStefan {
       // Util
       Stopwatch(),
       TimerFunctions(),
-      Vector())
+      Vector(),
+      Matrix(), // TODO: only if required
+      CImg() // TODO: only if required
+      )
 
-    // apply strategies
-
-    AddDefaultGlobals.apply()
+    if (Knowledge.experimental_cuda_enabled)
+      StateManager.root_.asInstanceOf[ir.Root].nodes += KernelFunctions()
 
     SimplifyStrategy.doUntilDone() // removes (conditional) calls to communication functions that are not possible
-
-    SetupDataStructures.apply()
     SetupCommunication.apply()
 
     ResolveSpecialFunctionsAndConstants.apply()
@@ -177,9 +198,18 @@ object MainStefan {
 
     ResolveDiagFunction.apply()
     Grid.applyStrategies()
-    CreateGeomCoordinates.apply()
+    if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
+
     ResolveLoopOverPointsInOneFragment.apply()
     ResolveContractingLoop.apply()
+
+    TypeInference.warnMissingDeclarations = false
+    TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
+
+    if (Knowledge.experimental_addPerformanceEstimate)
+      AddPerformanceEstimates()
+    if (Knowledge.experimental_cuda_enabled)
+      SplitLoopsForHostAndDevice.apply()
 
     MapStencilAssignments.apply()
     ResolveFieldAccess.apply()
@@ -201,14 +231,18 @@ object MainStefan {
         PolyOpt.apply()
     ResolveLoopOverDimensions.apply()
 
-    TypeInference.apply()
+    TypeInference.apply() // second sweep for any newly introduced nodes - TODO: check if this is necessary
 
     if (Knowledge.opt_useColorSplitting)
       ColorSplitting.apply()
 
-    ResolveSlotOperationsStrategy.apply()
-    ResolveIndexOffsets.apply()
-    LinearizeFieldAccesses.apply()
+    LinearizeFieldAccesses.apply() // before converting kernel functions -> requires linearized accesses
+
+    if (Knowledge.experimental_cuda_enabled)
+      StateManager.findFirst[KernelFunctions]().get.convertToFunctions
+
+    ResolveIndexOffsets.apply() // after converting kernel functions -> relies on (unresolved) index offsets to determine loop iteration counts
+    ResolveSlotOperationsStrategy.apply() // after converting kernel functions -> relies on (unresolved) slot accesses
 
     if (Knowledge.useFasterExpand)
       ExpandOnePassStrategy.apply()
@@ -263,6 +297,7 @@ object MainStefan {
     if (Knowledge.generateFortranInterface)
       Fortranify.apply()
 
+    Logger.dbg("Prettyprinting to folder " + (new java.io.File(Settings.getOutputPath)).getAbsolutePath)
     PrintStrategy.apply()
     PrettyprintingManager.finish
 

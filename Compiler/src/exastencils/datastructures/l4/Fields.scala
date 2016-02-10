@@ -163,7 +163,7 @@ case class LayoutDeclarationStatement(
 
     // determine reference offset
     // TODO: this should work for now but may be adapted in the future
-    var refOffset = new ir.MultiIndex
+    var refOffset = new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality + 1)(0))
     for (dim <- 0 until knowledge.Knowledge.dimensionality)
       refOffset(dim) = ir.IntegerConstant(layouts(dim).numPadLayersLeft + layouts(dim).numGhostLayersLeft)
     refOffset(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(0)

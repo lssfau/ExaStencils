@@ -249,6 +249,8 @@ case class SIMD_StoreStatement(var mem : Expression, var value : Expression, var
     Knowledge.simd_instructionSet match {
       case "SSE3"         => out << "_mm_store" << alig << "_p" << prec
       case "AVX" | "AVX2" => out << "_mm256_store" << alig << "_p" << prec
+      case "AVX512"       => out << "_mm512_store" << alig << "_p" << prec
+      case "IMCI"         => out << (if (aligned) "_mm512_store_p" + prec else "NOT VALID ; unaligned store for QPX: ")
       case "QPX"          => out << (if (aligned) "vec_sta" else "NOT VALID ; unaligned store for QPX: ")
       case "NEON"         => out << "vst1q_f32"
     }
@@ -288,7 +290,7 @@ case class SIMD_HorizontalAddStatement(var dest : Expression, var src : Expressi
         }
         out << '}'
 
-      case "QPX" | "NEON" =>
+      case _ =>
         HorizontalPrinterHelper.prettyprint(out, dest, src, "add", "+=")
     }
   }
@@ -344,6 +346,12 @@ private object HorizontalPrinterHelper {
           out << " float _r = _mm_cvtss_f32(_mm_" << redName << "_ps(_h, _mm_shuffle_ps(_h,_h,10))); // a_b_ -> bbaa\n"
         }
 
+      case "AVX512" | "IMCI" =>
+        if (Knowledge.useDblPrecision)
+          out << " double _r = _mm512_reduce_" << redName << "_pd(" << src << ");\n"
+        else
+          out << " float  _r = _mm512_reduce_" << redName << "_ps(" << src << ");\n"
+
       case "QPX" =>
         out << " vector4double _v = " << src << ";\n"
         out << " _v = vec_" << redName << "(_v, vec_sldw(_v, _v, 2));\n"
@@ -381,14 +389,19 @@ case class SIMD_IncrementVectorDeclaration(var name : String) extends Statement 
         out << ' ' << name << " = vec_lda(0, _a);\n"
         out << "}"
 
-      case "SSE3" | "AVX" | "AVX2" =>
-        val bit = if (is == "SSE3") "" else "256"
+      case "SSE3" | "AVX" | "AVX2" | "AVX512" =>
+        val bit = if (is == "SSE3") "" else if (is == "AVX512") "512" else "256"
         val prec = if (Knowledge.useDblPrecision) 'd' else 's'
         out << " = _mm" << bit << "_set_p" << prec << '('
-        for (i <- Knowledge.simd_vectorSize - 1 to 0 by -1)
-          out << i << ','
-        out.removeLast()
-        out << ");"
+        for (i <- Knowledge.simd_vectorSize - 1 to 1 by -1)
+          out << i << ", "
+        out << "0);"
+
+      case "IMCI" =>
+        out << " (" << SIMD_RealDatatype << ") { 0"
+        for (i <- 1 to Knowledge.simd_vectorSize - 1)
+          out << ", " << i
+        out << " };"
 
       case "NEON" =>
         out << ";\n"
