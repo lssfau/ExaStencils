@@ -407,6 +407,72 @@ object StateManager {
             Logger.error(s"Could not set $field in transformation ${transformation.name}")
           }
         }
+        case array : Array[_] => {
+          //          var a = array.clone()
+          //          val x = array.filter(p => true)
+          var newSeq = array.flatMap(f => f match {
+            case n : Node => applyAtNode(n, transformation).inner match {
+              case NoMatch =>
+                replace(n, transformation); List(n) // no match occured => use old element
+              case newN : Node => {
+                if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
+                  replace(newN, transformation) // Recursive call for new element
+                }
+                List(newN) // element of type Node was returned => use it
+              }
+              case newN : NodeList => {
+                if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
+                  newN.nodes.foreach(replace(_, transformation)) // recursive call for new elements
+                }
+                newN.nodes // elements of type Node were returned => use them
+              }
+              case None => List()
+            }
+            case _seq : Seq[_] => {
+              var _newSeq = _seq.flatMap(_f => _f match {
+                case n : Node => applyAtNode(n, transformation).inner match {
+                  case NoMatch =>
+                    replace(n, transformation); List(n) // no match occured => use old element
+                  case newN : Node => {
+                    if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
+                      replace(newN, transformation) // Recursive call for new element
+                    }
+                    List(newN) // element of type Node was returned => use it
+                  }
+                  case newN : NodeList => {
+                    if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
+                      newN.nodes.foreach(replace(_, transformation)) // recursive call for new elements
+                    }
+                    newN.nodes // elements of type Node were returned => use them
+                  }
+                  case None => List(_f)
+                }
+                case _ => List(_f)
+              })
+              List(_newSeq)
+            }
+            case _ => List(f)
+          })
+        }
+        //        case array : Array[_] => {
+        //          Logger.warn("Arrays are currently not supported for matching!")
+        //        }
+        //        case list : Array[_] => {
+        //          val arrayType = list.getClass().getComponentType()
+        //          val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
+        //          if (invalids.size <= 0) {
+        //            var tmpArray = list.asInstanceOf[Array[Node]].flatMap(listitem => processOutput(applyAtNode(listitem, transformation)))
+        //            var changed = tmpArray.diff(list)
+        //            if (changed.size > 0) {
+        //              var newArray = java.lang.reflect.Array.newInstance(arrayType, tmpArray.length)
+        //              System.arraycopy(tmpArray, 0, newArray, 0, tmpArray.length)
+        //              if (!Vars.set(node, setter, newArray)) {
+        //                Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
+        //              }
+        //            }
+        //            if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) tmpArray.asInstanceOf[Array[Node]].foreach(f => replace(f, transformation))
+        //          }
+        //        }
         case _ => //
       }
     })
