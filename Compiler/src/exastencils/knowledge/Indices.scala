@@ -56,14 +56,6 @@ object Mapping {
   }
 }
 
-object DimArray {
-  def apply() : Array[Int] = { (0 until Knowledge.dimensionality).toArray }
-}
-
-object DimArrayHigher {
-  def apply() : Array[Int] = { (0 until Knowledge.dimensionality + 1).toArray }
-}
-
 object dimToString extends (Int => String) {
   // FIXME: this is named inappropriately; move this to a global variable manager as it becomes available
   override def apply(dim : Int) : String = {

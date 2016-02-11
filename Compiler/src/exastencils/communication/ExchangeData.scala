@@ -28,15 +28,6 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
     }
   }
 
-  def vecFieldIndexBegin = Array(fieldSelection.arrayIndex.getOrElse(0).toLong : Expression) // TODO: remove
-
-  def vecFieldIndexEnd = { // TODO: remove
-    if (fieldSelection.arrayIndex.isDefined)
-      Array((fieldSelection.arrayIndex.get + 1) : Expression)
-    else
-      Array(fieldSelection.fieldLayout.gridDataType.resolveFlattendSize : Expression)
-  }
-
   override def expand : Output[FunctionStatement] = {
     var body = new ListBuffer[Statement]
 

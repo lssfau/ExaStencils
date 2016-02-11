@@ -158,28 +158,29 @@ case class LoopOverPointsInOneFragment(var domain : Int,
     var condition : Option[Expression] = None) extends Statement {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPointsInOneFragment\n"
 
+  def numDims = field.fieldLayout.numDimsData
+
   def expandSpecial : Output[Statement] = {
-    var start = new MultiIndex(Array.fill(Knowledge.dimensionality)(0))
-    var stop = new MultiIndex(Array.fill(Knowledge.dimensionality)(0))
+    var start = new MultiIndex(Array.fill(numDims)(0))
+    var stop = new MultiIndex(Array.fill(numDims)(0))
     if (region.isDefined) {
       // case where a special region is to be traversed
       val regionCode = region.get.region.toUpperCase().charAt(0)
 
-      start = new MultiIndex(DimArray().map(dim => (dim match {
+      start = new MultiIndex((0 until numDims).toArray.map(dim => (dim match {
         case dim if region.get.dir(dim) == 0 => field.fieldLayout.idxById(regionCode + "LB", dim) - field.referenceOffset(dim) + startOffset(dim)
         case dim if region.get.dir(dim) < 0  => field.fieldLayout.idxById(regionCode + "LB", dim) - field.referenceOffset(dim) + startOffset(dim)
         case dim if region.get.dir(dim) > 0  => field.fieldLayout.idxById(regionCode + "RB", dim) - field.referenceOffset(dim) + startOffset(dim)
       }) : Expression))
 
-      stop = new MultiIndex(
-        DimArray().map(dim => (dim match {
-          case dim if region.get.dir(dim) == 0 => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim) - endOffset(dim)
-          case dim if region.get.dir(dim) < 0  => field.fieldLayout.idxById(regionCode + "LE", dim) - field.referenceOffset(dim) - endOffset(dim)
-          case dim if region.get.dir(dim) > 0  => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim) - endOffset(dim)
-        }) : Expression))
+      stop = new MultiIndex((0 until numDims).toArray.map(dim => (dim match {
+        case dim if region.get.dir(dim) == 0 => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim) - endOffset(dim)
+        case dim if region.get.dir(dim) < 0  => field.fieldLayout.idxById(regionCode + "LE", dim) - field.referenceOffset(dim) - endOffset(dim)
+        case dim if region.get.dir(dim) > 0  => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim) - endOffset(dim)
+      }) : Expression))
     } else {
       // basic case -> just eliminate 'real' boundaries
-      for (dim <- 0 until Knowledge.dimensionality) {
+      for (dim <- 0 until numDims) {
         field.fieldLayout.discretization match {
           case discr if "node" == discr
             || ("face_x" == discr && 0 == dim)
@@ -196,6 +197,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
               //              } else {
               val numDupLeft = field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft
               val numDupRight = field.fieldLayout.layoutsPerDim(dim).numDupLayersRight
+
               if (numDupLeft > 0)
                 start(dim) = OffsetIndex(0, numDupLeft, field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim), numDupLeft * ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
               else

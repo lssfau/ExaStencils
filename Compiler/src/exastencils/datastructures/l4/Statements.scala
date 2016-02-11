@@ -177,11 +177,23 @@ case class LoopOverPointsStatement(
       case _                           => Logger.error(s"Trying to loop over $field - has to be of type FieldAccess or StencilFieldAccess")
     }
 
+    val numDims = resolvedField.fieldLayout.numDimsData
+    var procStartOffset = new ir.MultiIndex(Array.fill(numDims)(0))
+    var procEndOffset = new ir.MultiIndex(Array.fill(numDims)(0))
+    if (startOffset.isDefined) {
+      val newOffset = startOffset.get.progressToIr
+      for (i <- 0 until newOffset.length) procStartOffset(i) = newOffset(i)
+    }
+    if (endOffset.isDefined) {
+      val newOffset = endOffset.get.progressToIr
+      for (i <- 0 until newOffset.length) procEndOffset(i) = newOffset(i)
+    }
+
     ir.LoopOverPoints(resolvedField,
       if (region.isDefined) Some(region.get.progressToIr) else None,
       seq,
-      if (startOffset.isDefined) startOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
-      if (endOffset.isDefined) endOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
+      procStartOffset,
+      procEndOffset,
       if (increment.isDefined) increment.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(1)),
       statements.map(_.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
       preComms.map(_.progressToIr).to[ListBuffer],
