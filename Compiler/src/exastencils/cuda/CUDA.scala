@@ -104,7 +104,7 @@ case class CUDA_UpdateDeviceData(var fieldAccess : FieldAccess) extends Statemen
 
 case class CUDA_FunctionCallExpression(var name : String, var numThreadsPerDim : Array[Long], var arguments : ListBuffer[Expression]) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
-    val numDims = math.min(numThreadsPerDim.size, Knowledge.dimensionality)
+    val numDims = numThreadsPerDim.size
     if (numDims > 3) Logger.warn(s"${numDims}D kernel found; this is currently unsupported by CUDA") // TODO: check relation to compute capability
 
     val numBlocks = (0 until numDims).map(dim => {

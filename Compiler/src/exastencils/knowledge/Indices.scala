@@ -57,13 +57,15 @@ object Mapping {
 }
 
 object dimToString extends (Int => String) {
-  // FIXME: this is named inappropriately; move this to a global variable manager as it becomes available
+  // FIXME: this is named inappropriately; move this to a global variable manager as it becomes available; rename to i_x after checking where x, etc are used explicitly
   override def apply(dim : Int) : String = {
     return dim match {
       case 0 => "x"
       case 1 => "y"
       case 2 => "z"
       case 3 => "w"
+      case 4 => "v"
+      case 5 => "u"
       case _ => "UNKNOWN"
     }
   }

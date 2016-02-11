@@ -72,7 +72,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
 
   private def processLoopOverDimensions(l : LoopOverDimensions, extent : Int, fieldOffset : HashMap[FieldKey, Int]) : LoopOverDimensions = {
     val nju : LoopOverDimensions = Duplicate(l)
-    for (dim <- 0 until Knowledge.dimensionality) {
+    for (dim <- 0 until nju.numDimensions) {
       nju.indices.begin(dim) = extendBoundsBegin(nju.indices.begin(dim), extent * spec.negExt(dim))
       nju.indices.end(dim) = extendBoundsEnd(nju.indices.end(dim), extent * spec.posExt(dim))
     }
@@ -224,7 +224,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
     // fix iteration space for reduction operations if required
     if (Knowledge.experimental_trimBoundsForReductionLoops && reduction.isDefined && !region.isDefined) {
       if (!condition.isDefined) condition = Some(BooleanConstant(true))
-      for (dim <- 0 until Knowledge.dimensionality)
+      for (dim <- 0 until numDims)
         if (field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft > 0)
           /*if ("node" == field.fieldLayout.discretization
           || ("face_x" == field.fieldLayout.discretization && 0 == dim)
@@ -235,9 +235,9 @@ case class LoopOverPointsInOneFragment(var domain : Int,
 
     var ret : Statement = (
       if (seq)
-        new LoopOverDimensions(Knowledge.dimensionality, indexRange, body, increment, reduction, condition)
+        new LoopOverDimensions(numDims, indexRange, body, increment, reduction, condition)
       else {
-        val ret = new LoopOverDimensions(Knowledge.dimensionality, indexRange, body, increment, reduction, condition) with OMP_PotentiallyParallel with PolyhedronAccessable
+        val ret = new LoopOverDimensions(numDims, indexRange, body, increment, reduction, condition) with OMP_PotentiallyParallel with PolyhedronAccessable
         ret.optLevel = (
           if (Knowledge.maxLevel - field.level < Knowledge.poly_numFinestLevels)
             Knowledge.poly_optLevel_fine
@@ -310,7 +310,7 @@ object LoopOverDimensions {
 case class LoopOverDimensions(var numDimensions : Int,
     var indices : IndexRange,
     var body : ListBuffer[Statement],
-    var stepSize : MultiIndex = new MultiIndex(Array.fill(Knowledge.dimensionality + 1)(1)),
+    var stepSize : MultiIndex = new MultiIndex(), // to be overwritten afterwards
     var reduction : Option[Reduction] = None,
     var condition : Option[Expression] = None) extends Statement {
   def this(numDimensions : Int, indices : IndexRange, body : Statement, stepSize : MultiIndex, reduction : Option[Reduction], condition : Option[Expression]) = this(numDimensions, indices, ListBuffer[Statement](body), stepSize, reduction, condition)
@@ -319,6 +319,8 @@ case class LoopOverDimensions(var numDimensions : Int,
   def this(numDimensions : Int, indices : IndexRange, body : Statement) = this(numDimensions, indices, ListBuffer[Statement](body))
 
   import LoopOverDimensions._
+
+  if (0 == stepSize.length) stepSize = new MultiIndex(Array.fill(numDimensions)(1))
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverDimensions\n"
 

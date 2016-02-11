@@ -16,12 +16,8 @@ import exastencils.strategies._
 import exastencils.util._
 
 case class CommunicateTarget(var target : String, var begin : Option[MultiIndex], var end : Option[MultiIndex]) extends Expression {
-  if (begin.isDefined && !end.isDefined) end = {
-    var newEnd = Duplicate(begin.get)
-    for (dim <- 0 until Knowledge.dimensionality)
-      newEnd(dim) += 1
-    Some(newEnd)
-  }
+  if (begin.isDefined && !end.isDefined) // create end if only one 'index' is to be communicated
+    end = Some(Duplicate(begin.get) + new MultiIndex(Array.fill(begin.get.length)(1)))
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CommunicateTarget\n"
 }
@@ -407,7 +403,7 @@ case class IsOnSpecBoundary(var field : FieldSelection, var neigh : NeighborInfo
     // should work for node, cell and face discretizations
 
     var conditions = ListBuffer[Expression](NegationExpression(iv.NeighborIsValid(field.domainIndex, neigh.index)))
-    for (dim <- 0 until Knowledge.dimensionality) {
+    for (dim <- 0 until field.field.fieldLayout.numDimsGrid) {
       neigh.dir(dim) match {
         case -1 => conditions += LowerExpression(LoopOverDimensions.defIt(dim), field.fieldLayout.idxById("DLE", dim) - field.referenceOffset(dim))
         case 1  => conditions += GreaterEqualExpression(LoopOverDimensions.defIt(dim), field.fieldLayout.idxById("DRB", dim) - field.referenceOffset(dim))

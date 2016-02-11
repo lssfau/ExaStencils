@@ -107,13 +107,7 @@ case class ApplyBCsFunction(var name : String, override var fieldSelection : Fie
   override def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[Statement] = {
     var body = new ListBuffer[Statement]
 
-    val boundaryNeighs = neighbors.filter(neigh => {
-      var numNonZeros = 0
-      for (dim <- 0 until Knowledge.dimensionality)
-        if (0 != neigh.dir(dim))
-          numNonZeros += 1
-      (1 == numNonZeros)
-    })
+    val boundaryNeighs = neighbors.filter(neigh => (1 == neigh.dir.map(i => if (0 != i) 1 else 0).reduce(_ + _))) // exactly one non-zero entry
     body += new HandleBoundaries(updatedFieldSelection, genIndicesBoundaryHandling(boundaryNeighs))
 
     body
@@ -398,7 +392,7 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
       if (field.fieldLayout.layoutsPerDim.foldLeft(0)((old : Int, l) => old max l.numDupLayersLeft max l.numDupLayersRight) > 0) {
         Knowledge.comm_strategyFragment match {
           case 6 => {
-            for (dim <- 0 until Knowledge.dimensionality) {
+            for (dim <- 0 until field.fieldLayout.numDimsGrid) {
               var recvNeighbors = ListBuffer(neighbors(2 * dim + 0))
               var sendNeighbors = ListBuffer(neighbors(2 * dim + 1))
 
@@ -438,7 +432,7 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
       if (field.fieldLayout.layoutsPerDim.foldLeft(0)((old : Int, l) => old max l.numGhostLayersLeft max l.numGhostLayersRight) > 0) {
         Knowledge.comm_strategyFragment match {
           case 6 => {
-            for (dim <- 0 until Knowledge.dimensionality) {
+            for (dim <- 0 until field.fieldLayout.numDimsGrid) {
               var curNeighbors = ListBuffer(neighbors(2 * dim + 0), neighbors(2 * dim + 1))
 
               if (begin) {

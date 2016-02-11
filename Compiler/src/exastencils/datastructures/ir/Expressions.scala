@@ -423,7 +423,7 @@ case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection,
     var entries : ListBuffer[StencilEntry] = ListBuffer()
     for (e <- 0 until stencilFieldSelection.stencil.entries.size) {
       var stencilFieldIdx = Duplicate(index)
-      stencilFieldIdx(Knowledge.dimensionality) = e
+      stencilFieldIdx(stencilFieldSelection.stencilField.field.fieldLayout.numDimsData - 1) = e // TODO: assumes last index is vector dimension
       var fieldSel = stencilFieldSelection.toFieldSelection
       fieldSel.arrayIndex = Some(e)
       entries += new StencilEntry(stencilFieldSelection.stencil.entries(e).offset, new FieldAccess(fieldSel, stencilFieldIdx))
@@ -628,6 +628,8 @@ case class StencilConvolution(var stencil : Stencil, var fieldAccess : FieldAcce
   }
 }
 
+// TODO: update convolutions with new dimensionality logic
+
 case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, var fieldAccess : FieldAccess) extends Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilConvolution\n"
 
@@ -655,10 +657,6 @@ case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight
     for (re <- stencilRight.entries) {
       for (le <- stencilLeft.entries) {
         var rightOffset = Duplicate(re.offset)
-        //            if (stencilRight.level < stencilLeft.level) {
-        //              for (d <- 0 until Knowledge.dimensionality)
-        //                rightOffset(d) = (dimToString(d) : Expression) * 2 + rightOffset(d)
-        //            }
 
         var leftOffset = Duplicate(le.offset)
         if (stencilRight.level > stencilLeft.level) {

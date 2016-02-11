@@ -180,6 +180,7 @@ case class LoopOverPointsStatement(
     val numDims = resolvedField.fieldLayout.numDimsData
     var procStartOffset = new ir.MultiIndex(Array.fill(numDims)(0))
     var procEndOffset = new ir.MultiIndex(Array.fill(numDims)(0))
+    var procIncrement = new ir.MultiIndex(Array.fill(numDims)(1))
     if (startOffset.isDefined) {
       val newOffset = startOffset.get.progressToIr
       for (i <- 0 until newOffset.length) procStartOffset(i) = newOffset(i)
@@ -188,13 +189,17 @@ case class LoopOverPointsStatement(
       val newOffset = endOffset.get.progressToIr
       for (i <- 0 until newOffset.length) procEndOffset(i) = newOffset(i)
     }
+    if (increment.isDefined) {
+      val newIncrement = increment.get.progressToIr
+      for (i <- 0 until newIncrement.length) procIncrement(i) = newIncrement(i)
+    }
 
     ir.LoopOverPoints(resolvedField,
       if (region.isDefined) Some(region.get.progressToIr) else None,
       seq,
       procStartOffset,
       procEndOffset,
-      if (increment.isDefined) increment.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(1)),
+      procIncrement,
       statements.map(_.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
       preComms.map(_.progressToIr).to[ListBuffer],
       postComms.map(_.progressToIr).to[ListBuffer],
