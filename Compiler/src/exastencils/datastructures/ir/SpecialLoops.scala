@@ -263,9 +263,6 @@ object LoopOverDimensions {
   def defIt(numDims : Int) = {
     new MultiIndex((0 until numDims).map(dim => VariableAccess(dimToString(dim), Some(IntegerDatatype)) : Expression).toArray)
   }
-  def defIt() = { // TODO: delete
-    new MultiIndex((0 until Knowledge.dimensionality).map(dim => VariableAccess(dimToString(dim), Some(IntegerDatatype)) : Expression).toArray)
-  }
 
   object ReplaceOffsetIndicesWithMin extends QuietDefaultStrategy("Replace OffsetIndex nodes with minimum values") {
     this += new Transformation("SearchAndReplace", {

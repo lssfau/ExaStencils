@@ -283,7 +283,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
     }
 
     if (piecewiseIntegration) {
-      def index = LoopOverDimensions.defIt
+      def index = LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
 
       if (stagDim.isDefined) {
         val curStagDim = stagDim.get
@@ -307,7 +307,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
         Logger.error("piecewise integration on non-staggered cell interfaces is not supported")
       }
     } else {
-      def index = LoopOverDimensions.defIt
+      def index = LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
 
       if (stagDim.isDefined) {
         val curStagDim = stagDim.get

@@ -140,7 +140,7 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
 }
 
 object ResolveCoordinates extends DefaultStrategy("ResolveCoordinates") {
-  var replacement : MultiIndex = LoopOverDimensions.defIt
+  var replacement : MultiIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // to be overwritten
 
   def doUntilDone(node : Option[Node] = None) = {
     do { apply(node) }
@@ -155,7 +155,7 @@ object ResolveCoordinates extends DefaultStrategy("ResolveCoordinates") {
     Logger.setLevel(oldLvl)
   }
 
-  Knowledge.dimensionality match {
+  Knowledge.dimensionality match { // TODO: update and extend -> arbitrary dimensionality, VariableAccesses and name of indices
     case 1 => this += new Transformation("SearchAndReplace", {
       case StringLiteral("x") => replacement(0)
     })

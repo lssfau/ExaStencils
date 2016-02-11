@@ -235,8 +235,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     val zoneLength = 0.0095 * 8 / zoneSize
 
     val field = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
-    var baseIndex = LoopOverDimensions.defIt
-    baseIndex(Knowledge.dimensionality) = 0
+    val baseIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
     val baseAccess = FieldAccess(FieldSelection(field, field.level, 0), baseIndex)
 
     val innerIt = LoopOverDimensions.defIt(dim)
@@ -307,8 +306,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     // look up field and compile access to base element
     val field = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
-    var baseIndex = LoopOverDimensions.defIt
-    baseIndex(Knowledge.dimensionality) = 0
+    val baseIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
     val baseAccess = FieldAccess(FieldSelection(field, field.level, 0), baseIndex)
 
     // fix the inner iterator -> used for zone checks
@@ -380,8 +378,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     val numCellsTotal = numCellsPerFrag * Knowledge.domain_rect_numFragsTotalAsVec(dim)
 
     // look up field and compile access to base element
-    var baseIndex = LoopOverDimensions.defIt
-    baseIndex(Knowledge.dimensionality) = 0
+    val baseIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
     val field = FieldCollection.getFieldByIdentifier(s"stag_cv_width_${dimToString(dim)}", level).get
     val baseAccess = FieldAccess(FieldSelection(field, field.level, 0), Duplicate(baseIndex))
     val npField = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get

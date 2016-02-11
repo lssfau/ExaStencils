@@ -1,6 +1,5 @@
 package exastencils.strategies
 
-import scala.annotation.migration
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
@@ -8,6 +7,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.prettyprinting._
 
@@ -21,7 +21,7 @@ object PrintStrategy extends DefaultStrategy("Pretty-Print") {
 
 object ReplaceStringConstantsStrategy extends QuietDefaultStrategy("Replace something with something else") {
   var toReplace : String = ""
-  var replacement : Node = LoopOverDimensions.defIt
+  var replacement : Node = LoopOverDimensions.defIt(Knowledge.dimensionality) // to be overwritten
 
   this += new Transformation("SearchAndReplace", {
     case StringLiteral(s) if s == toReplace => Duplicate(replacement)
