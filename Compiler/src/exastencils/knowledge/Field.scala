@@ -10,7 +10,8 @@ import exastencils.logger._
 case class FieldLayout(
     var identifier : String, // will be used to find the field
     var level : Int, // the (geometric) level the layout is associated with
-    var dataType : Datatype, // represents the data type; thus it can also encode the dimensionality when using e.g. vector fields
+    var gridDataType : Datatype, // represents the (original) data type; may be multidimensional, i.e. vectors, matrices, etc.
+    var scalarDataType : Datatype, // represents the underlying data type, i.e. the data type of the innermost dimensions
     var discretization : String, // specifies where data is located; currently allowed values are "node", "cell" and "face_{x,y,z}"
     var layoutsPerDim : Array[FieldLayoutPerDim], // represents the number of data points and their distribution in each dimension
     var numDimsGrid : Int, // dimensionality of the associated grid; usually lesser than or equal to 3
@@ -110,9 +111,10 @@ case class Field(
     var boundaryConditions : Option[Expression] // None if no explicit boundary handling is given, otherwise specifies the expression to be used for the dirichlet boundary or Neumann as magic identifier
     ) {
   // shortcuts to layout options
-  def dataType = fieldLayout.dataType
+  def gridDataType = fieldLayout.gridDataType
+  def scalarDataType = fieldLayout.scalarDataType
   def discretization = fieldLayout.discretization
-  def vectorSize = fieldLayout.dataType.resolveFlattendSize
+  //def vectorSize = fieldLayout.dataType.resolveFlattendSize
   def referenceOffset = fieldLayout.referenceOffset
   def communicatesDuplicated = fieldLayout.communicatesDuplicated
   def communicatesGhosts = fieldLayout.communicatesGhosts
@@ -122,12 +124,13 @@ case class FieldSelection(
     var field : Field,
     var level : Expression,
     var slot : Expression,
-    var arrayIndex : Option[Int] = None,
+    var arrayIndex : Option[Int] = None, // TODO: delete
     var fragIdx : Expression = LoopOverFragments.defIt) extends Node {
 
   // shortcuts to Field members
   def codeName = field.codeName
-  def dataType = field.dataType
+  def gridDataType = field.gridDataType
+  def scalarDataType = field.scalarDataType
   def fieldLayout = field.fieldLayout
   def referenceOffset = field.referenceOffset
 
@@ -172,8 +175,8 @@ case class ExternalField(
     var level : Int // the (geometric) level the field lives on
     ) {
   // shortcuts to layout options
-  def dataType = fieldLayout.dataType
-  def vectorSize = fieldLayout.dataType.resolveFlattendSize
+  def gridDataType = fieldLayout.gridDataType
+  def scalarDataType = fieldLayout.scalarDataType
   def referenceOffset = fieldLayout.referenceOffset
   def communicatesDuplicated = fieldLayout.communicatesDuplicated
   def communicatesGhosts = fieldLayout.communicatesGhosts
