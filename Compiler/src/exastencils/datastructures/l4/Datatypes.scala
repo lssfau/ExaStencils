@@ -11,6 +11,7 @@ trait Datatype extends ProgressableToIr with PrettyPrintable {
 }
 
 // TODO: convert to objects
+// TODO: merge with ir datatypes?
 
 case class UnitDatatype() extends Datatype {
   override def prettyprint(out : PpStream) = { out << "Unit" }

@@ -7,33 +7,26 @@ import exastencils.prettyprinting._
 trait Datatype extends Node with PrettyPrintable {
   def prettyprint_mpi : String
 
-  def resolveUnderlyingDatatype : Datatype = {
-    this match {
-      case ArrayDatatype(dt, size) => dt.resolveUnderlyingDatatype
-      case dt                      => dt
-    }
-  }
-
-  def resolvePostscript : String = {
-    this match {
-      case ArrayDatatype(dt, size) => dt.resolvePostscript + s"[$size]"
-      case _                       => ""
-    }
-  }
-
-  def resolveFlattendSize : Int = {
-    this match {
-      case ArrayDatatype(dt, size) => dt.resolveFlattendSize * size
-      case _                       => 1
-    }
-  }
-
+  def dimensionality : Int
+  def getSizeArray : Array[Int]
+  def resolveUnderlyingDatatype : Datatype
+  def resolvePostscript : String // TODO: rename
+  def resolveFlattendSize : Int
   def typicalByteSize : Int
 }
+
+/// special data types
 
 case class SpecialDatatype(typeName : String) extends Datatype {
   override def prettyprint(out : PpStream) : Unit = out << typeName
   override def prettyprint_mpi = typeName
+
+  // unknown
+  override def dimensionality : Int = ???
+  override def getSizeArray : Array[Int] = ???
+  override def resolveUnderlyingDatatype : Datatype = this
+  override def resolvePostscript : String = ""
+  override def resolveFlattendSize : Int = ???
   override def typicalByteSize = ???
 }
 
@@ -41,24 +34,40 @@ case object UnitDatatype extends Datatype {
   exastencils.core.Duplicate.registerConstant(this)
   override def prettyprint(out : PpStream) : Unit = out << "void"
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+
+  override def dimensionality : Int = 0
+  override def getSizeArray : Array[Int] = Array()
+  override def resolveUnderlyingDatatype : Datatype = this
+  override def resolvePostscript : String = ""
+  override def resolveFlattendSize : Int = 0
   override def typicalByteSize = 0
 }
 
-case object BooleanDatatype extends Datatype {
+/// scalar data types
+
+trait ScalarDatatype extends Datatype {
+  override def dimensionality : Int = 0
+  override def getSizeArray : Array[Int] = Array()
+  override def resolveUnderlyingDatatype : Datatype = this
+  override def resolvePostscript : String = ""
+  override def resolveFlattendSize : Int = 1
+}
+
+case object BooleanDatatype extends ScalarDatatype {
   exastencils.core.Duplicate.registerConstant(this)
   override def prettyprint(out : PpStream) : Unit = out << "bool"
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
   override def typicalByteSize = 1
 }
 
-case object IntegerDatatype extends Datatype {
+case object IntegerDatatype extends ScalarDatatype {
   exastencils.core.Duplicate.registerConstant(this)
   override def prettyprint(out : PpStream) : Unit = out << "int"
   override def prettyprint_mpi = "MPI_INT"
   override def typicalByteSize = 4
 }
 
-case object RealDatatype extends Datatype {
+case object RealDatatype extends ScalarDatatype {
   exastencils.core.Duplicate.registerConstant(this)
   override def prettyprint(out : PpStream) : Unit = {
     if (Knowledge.useDblPrecision)
@@ -82,8 +91,182 @@ case object RealDatatype extends Datatype {
   }
 }
 
-case object SIMD_RealDatatype extends Datatype {
+case object CharDatatype extends ScalarDatatype {
   exastencils.core.Duplicate.registerConstant(this)
+  override def prettyprint(out : PpStream) : Unit = out << "char"
+  override def prettyprint_mpi = "MPI::CHAR"
+  override def typicalByteSize = 1
+}
+
+/// higher order data types
+
+trait HigherOrderDatatype extends Datatype {
+  def datatype : Datatype // encapsulated data type
+  override def resolveUnderlyingDatatype : Datatype = datatype.resolveUnderlyingDatatype
+}
+
+// FIXME: in the following classes, rename size to numElements to make intention clearer
+
+case class ArrayDatatype(datatype : Datatype, size : Int) extends HigherOrderDatatype {
+  override def prettyprint(out : PpStream) : Unit = out << datatype << '[' << size << ']'
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+
+  override def dimensionality : Int = 1 + datatype.dimensionality
+  override def getSizeArray : Array[Int] = Array(size) ++ datatype.getSizeArray
+  override def resolvePostscript : String = datatype.resolvePostscript + s"[$size]"
+  override def resolveFlattendSize : Int = size * datatype.resolveFlattendSize
+  override def typicalByteSize = size * datatype.typicalByteSize
+}
+
+case class ArrayDatatype_VS(datatype : Datatype, size : Expression) extends HigherOrderDatatype {
+  override def prettyprint(out : PpStream) : Unit = out << datatype << '[' << size << ']'
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+
+  override def dimensionality : Int = 1 + datatype.dimensionality
+  override def getSizeArray : Array[Int] = ???
+  override def resolvePostscript : String = datatype.resolvePostscript + s"[$size]"
+  override def resolveFlattendSize : Int = ???
+  override def typicalByteSize = ???
+}
+
+case class VectorDatatype(var datatype : Datatype, var size : Int, var isRow : Option[Boolean]) extends HigherOrderDatatype {
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+  override def prettyprint(out : PpStream) : Unit = {
+    if (isRow.getOrElse(true)) out << "Matrix<" << datatype << ",1," << size << '>'
+    else out << "Matrix<" << datatype << ',' << size << ",1>"
+  }
+
+  override def dimensionality : Int = 1 + datatype.dimensionality
+  override def getSizeArray : Array[Int] = Array(size) ++ datatype.getSizeArray
+  override def resolvePostscript : String = ""
+  override def resolveFlattendSize : Int = size * datatype.resolveFlattendSize
+  override def typicalByteSize = size * datatype.typicalByteSize
+}
+
+case class MatrixDatatype(datatype : Datatype, sizeM : Int, sizeN : Int) extends HigherOrderDatatype {
+  override def prettyprint(out : PpStream) : Unit = out << "Matrix<" << datatype << ',' << sizeM << ',' << sizeN << '>'
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+
+  override def dimensionality : Int = 2 + datatype.dimensionality
+  override def getSizeArray : Array[Int] = Array(sizeM, sizeN) ++ datatype.getSizeArray
+  override def resolvePostscript : String = ""
+  override def resolveFlattendSize : Int = sizeM * sizeN * datatype.resolveFlattendSize
+  override def typicalByteSize = sizeM * sizeN * datatype.typicalByteSize
+}
+
+/// data type modifiers
+
+trait DatatypeModifier extends Datatype {
+  def datatype : Datatype
+
+  override def dimensionality : Int = datatype.dimensionality
+  override def getSizeArray : Array[Int] = datatype.getSizeArray
+  override def resolveUnderlyingDatatype : Datatype = datatype.resolveUnderlyingDatatype
+  override def resolvePostscript : String = datatype.resolvePostscript
+  override def resolveFlattendSize : Int = datatype.resolveFlattendSize
+  override def typicalByteSize = datatype.typicalByteSize
+}
+
+case class VolatileDatatype(datatype : Datatype) extends DatatypeModifier {
+  override def prettyprint(out : PpStream) : Unit = out << "volatile " << datatype
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+}
+
+/// references and pointers
+
+trait IndirectionDatatype extends Datatype {
+  def datatype : Datatype
+
+  override def dimensionality : Int = datatype.dimensionality
+  override def getSizeArray : Array[Int] = datatype.getSizeArray
+  override def resolveUnderlyingDatatype : Datatype = datatype.resolveUnderlyingDatatype
+  override def resolvePostscript : String = datatype.resolvePostscript
+  override def resolveFlattendSize : Int = datatype.resolveFlattendSize
+}
+
+trait PointerLikeDatatype extends IndirectionDatatype {
+  override def dimensionality : Int = 0
+  override def getSizeArray : Array[Int] = Array()
+  override def resolveUnderlyingDatatype : Datatype = this
+  override def resolvePostscript : String = ""
+  override def resolveFlattendSize : Int = 1
+
+  override def typicalByteSize = if (Knowledge.hw_64bit) 8 else 4
+}
+
+trait ReferenceLikeDatatype extends IndirectionDatatype {
+  override def dimensionality : Int = datatype.dimensionality
+  override def getSizeArray : Array[Int] = datatype.getSizeArray
+  override def resolveUnderlyingDatatype : Datatype = datatype.resolveUnderlyingDatatype
+  override def resolvePostscript : String = datatype.resolvePostscript
+  override def resolveFlattendSize : Int = datatype.resolveFlattendSize
+  override def typicalByteSize = datatype.typicalByteSize
+}
+
+case class PointerDatatype(datatype : Datatype) extends PointerLikeDatatype {
+  override def prettyprint(out : PpStream) : Unit = out << datatype << '*'
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+}
+
+case class ConstPointerDatatype(datatype : Datatype) extends PointerLikeDatatype {
+  override def prettyprint(out : PpStream) : Unit = out << datatype << "* const"
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+}
+
+case class ReferenceDatatype(datatype : Datatype) extends ReferenceLikeDatatype {
+  override def prettyprint(out : PpStream) : Unit = out << datatype << '&'
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+}
+
+// add const ref, etc here if required
+
+/// standard data types
+
+case object StringDatatype extends Datatype {
+  exastencils.core.Duplicate.registerConstant(this)
+  override def prettyprint(out : PpStream) : Unit = out << "std::string"
+  override def prettyprint_mpi = "MPI::CHAR"
+
+  override def dimensionality : Int = 0
+  override def getSizeArray : Array[Int] = Array()
+  override def resolveUnderlyingDatatype : Datatype = ???
+  override def resolvePostscript : String = ""
+  override def resolveFlattendSize : Int = ???
+  override def typicalByteSize = ???
+}
+
+case class ComplexDatatype(datatype : Datatype) extends Datatype {
+  override def prettyprint(out : PpStream) : Unit = out << "std::complex<" << datatype << '>'
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+
+  // TODO: treat like a vec2 or like a struct?
+
+  override def dimensionality : Int = 0 + datatype.dimensionality
+  override def getSizeArray : Array[Int] = Array() ++ datatype.getSizeArray
+  override def resolveUnderlyingDatatype : Datatype = datatype.resolveUnderlyingDatatype
+  override def resolvePostscript : String = datatype.resolvePostscript
+  override def resolveFlattendSize : Int = 1 * datatype.resolveFlattendSize
+  override def typicalByteSize = 2 * datatype.typicalByteSize
+}
+
+/// SIMD data types
+
+trait SIMDDatatype extends Datatype {
+  def datatype : ScalarDatatype
+
+  // TODO: currently treated similar to a vector - correct?
+
+  override def dimensionality : Int = 1
+  override def getSizeArray : Array[Int] = Array(Knowledge.simd_vectorSize)
+  override def resolveUnderlyingDatatype : Datatype = datatype
+  override def resolvePostscript : String = ""
+  override def resolveFlattendSize : Int = Knowledge.simd_vectorSize
+  override def typicalByteSize = Knowledge.simd_vectorSize * datatype.typicalByteSize
+}
+
+case object SIMD_RealDatatype extends SIMDDatatype {
+  exastencils.core.Duplicate.registerConstant(this)
+  override def datatype : ScalarDatatype = RealDatatype
   override def prettyprint(out : PpStream) : Unit = {
     val suffix = if (Knowledge.useDblPrecision) "d" else ""
     Knowledge.simd_instructionSet match {
@@ -93,82 +276,10 @@ case object SIMD_RealDatatype extends Datatype {
       case "NEON"         => out << "float32x4_t" // FIXME: only single precision until now
     }
   }
-
   override def prettyprint_mpi = "INVALID DATATYPE: " + this.prettyprint()
-
-  override def typicalByteSize = Knowledge.simd_vectorSize * RealDatatype.typicalByteSize
 }
 
-case object StringDatatype extends Datatype {
-  exastencils.core.Duplicate.registerConstant(this)
-  override def prettyprint(out : PpStream) : Unit = out << "std::string"
-  override def prettyprint_mpi = "MPI::CHAR"
-  override def typicalByteSize = ???
-}
-
-case object CharDatatype extends Datatype {
-  exastencils.core.Duplicate.registerConstant(this)
-  override def prettyprint(out : PpStream) : Unit = out << "char"
-  override def prettyprint_mpi = "MPI::CHAR"
-  override def typicalByteSize = 1
-}
-
-case class ArrayDatatype(datatype : Datatype, size : Int) extends Datatype {
-  override def prettyprint(out : PpStream) : Unit = out << datatype << '[' << size << ']'
-  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
-  override def typicalByteSize = size * datatype.typicalByteSize
-}
-
-case class ArrayDatatype_VS(datatype : Datatype, size : Expression) extends Datatype {
-  override def prettyprint(out : PpStream) : Unit = out << datatype << '[' << size << ']'
-  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
-  override def typicalByteSize = ???
-}
-
-case class VectorDatatype(var datatype : Datatype, var size : Int, var isRow : Option[Boolean]) extends Datatype {
-  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
-  override def prettyprint(out : PpStream) : Unit = {
-    if (isRow.getOrElse(true)) out << "Matrix<" << datatype << ",1," << size << '>'
-    else out << "Matrix<" << datatype << ',' << size << ",1>"
-  }
-  override def typicalByteSize = size * datatype.typicalByteSize
-}
-
-case class MatrixDatatype(datatype : Datatype, sizeM : Int, sizeN : Int) extends Datatype {
-  override def prettyprint(out : PpStream) : Unit = out << "Matrix<" << datatype << ',' << sizeM << ',' << sizeN << '>'
-  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
-  override def typicalByteSize = sizeM * sizeN * datatype.typicalByteSize
-}
-
-case class PointerDatatype(datatype : Datatype) extends Datatype {
-  override def prettyprint(out : PpStream) : Unit = out << datatype << '*'
-  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
-  override def typicalByteSize = if (Knowledge.hw_64bit) 8 else 4
-}
-
-case class ReferenceDatatype(datatype : Datatype) extends Datatype {
-  override def prettyprint(out : PpStream) : Unit = out << datatype << '&'
-  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
-  override def typicalByteSize = datatype.typicalByteSize
-}
-
-case class ConstPointerDatatype(datatype : Datatype) extends Datatype {
-  override def prettyprint(out : PpStream) : Unit = out << datatype << "* const"
-  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
-  override def typicalByteSize = if (Knowledge.hw_64bit) 8 else 4
-}
-
-case class VolatileDatatype(datatype : Datatype) extends Datatype {
-  override def prettyprint(out : PpStream) : Unit = out << "volatile " << datatype
-  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
-  override def typicalByteSize = datatype.typicalByteSize
-}
-
-case class ComplexDatatype(datatype : Datatype) extends Datatype {
-  override def prettyprint(out : PpStream) : Unit = out << "std::complex<" << datatype << '>'
-  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
-  override def typicalByteSize = 2 * datatype.typicalByteSize
-}
+/// helper functions and objects
 
 object GetResultingDatatype {
   def apply(a : Option[Datatype], b : Option[Datatype]) : Option[Datatype] = {

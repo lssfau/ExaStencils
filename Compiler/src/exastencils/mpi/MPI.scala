@@ -88,6 +88,12 @@ case class MPI_Barrier() extends MPI_Statement {
 case class MPI_DataType(var field : FieldSelection, var indices : IndexRange) extends Datatype {
   override def prettyprint(out : PpStream) : Unit = out << generateName
   override def prettyprint_mpi = generateName
+
+  override def dimensionality : Int = ???
+  override def getSizeArray : Array[Int] = ???
+  override def resolveUnderlyingDatatype : Datatype = ???
+  override def resolvePostscript : String = ""
+  override def resolveFlattendSize : Int = ???
   override def typicalByteSize = ???
 
   var count : Int = 0
