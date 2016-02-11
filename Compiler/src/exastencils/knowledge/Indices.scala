@@ -15,12 +15,7 @@ import exastencils.util._
 
 case class IndexRange(var begin : MultiIndex = new MultiIndex, var end : MultiIndex = new MultiIndex) extends Node {
   def getSize : Expression = {
-    var size = DimArray().map(i => (end(i) - begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
-    SimplifyStrategy.doUntilDoneStandalone(size)
-    size
-  }
-  def getSizeHigher : Expression = {
-    var size = DimArrayHigher().map(i => (end(i) - begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
+    var size = (end - begin).reduce(_ * _)
     SimplifyStrategy.doUntilDoneStandalone(size)
     size
   }

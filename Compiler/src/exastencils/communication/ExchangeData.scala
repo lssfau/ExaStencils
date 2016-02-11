@@ -137,260 +137,263 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ExchangeDataFunction\n"
   override def prettyprint_decl = prettyprint
 
+  def dimArray = (0 until fieldSelection.field.fieldLayout.numDimsData).toArray
+
   def genIndicesDuplicateRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
+    // TODO: honor fieldSelection.arrayIndex
     curNeighbors.map(neigh => (neigh, new IndexRange(
       new MultiIndex(
-        DimArray().map(i => i match {
+        dimArray.map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
             case 6  => resolveIndex("DLB", i)
             case 26 => resolveIndex("IB", i)
           }
           case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
           case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
-        }) ++ vecFieldIndexBegin),
+        })),
       new MultiIndex(
-        DimArray().map(i => i match {
+        dimArray.map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
             case 6  => resolveIndex("DRE", i)
             case 26 => resolveIndex("DRE", i)
           }
           case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
           case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
-        }) ++ vecFieldIndexEnd))))
+        })))))
   }
 
   def genIndicesDuplicateLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange, IndexRange)] = {
     curNeighbors.map(neigh => (neigh,
       new IndexRange(
         new MultiIndex(
-          DimArray().map(i => i match {
+          dimArray.map(i => i match {
             case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("DLB", i)
               case 26 => resolveIndex("IB", i)
             }
             case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
             case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
-          }) ++ vecFieldIndexBegin),
+          })),
         new MultiIndex(
-          DimArray().map(i => i match {
+          dimArray.map(i => i match {
             case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("DRE", i)
               case 26 => resolveIndex("DRE", i)
             }
             case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
             case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
-          }) ++ vecFieldIndexEnd)),
+          }))),
       new IndexRange(
         new MultiIndex(
-          DimArray().map(i => i match {
+          dimArray.map(i => i match {
             case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("DLB", i)
               case 26 => resolveIndex("IB", i)
             }
             case i if -neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
             case i if -neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
-          }) ++ vecFieldIndexBegin),
+          })),
         new MultiIndex(
-          DimArray().map(i => i match {
+          dimArray.map(i => i match {
             case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("DRE", i)
               case 26 => resolveIndex("DRE", i)
             }
             case i if -neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
             case i if -neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
-          }) ++ vecFieldIndexEnd))))
+          })))))
   }
 
   def genIndicesDuplicateLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange, IndexRange)] = {
     curNeighbors.map(neigh => (neigh,
       new IndexRange(
         new MultiIndex(
-          DimArray().map(i => i match {
+          dimArray.map(i => i match {
             case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("DLB", i)
               case 26 => resolveIndex("IB", i)
             }
             case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
             case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
-          }) ++ vecFieldIndexBegin),
+          })),
         new MultiIndex(
-          DimArray().map(i => i match {
+          dimArray.map(i => i match {
             case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("DRE", i)
               case 26 => resolveIndex("DRE", i)
             }
             case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
             case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
-          }) ++ vecFieldIndexEnd)),
+          }))),
       new IndexRange(
         new MultiIndex(
-          DimArray().map(i => i match {
+          dimArray.map(i => i match {
             case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("DLB", i)
               case 26 => resolveIndex("IB", i)
             }
             case i if -neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
             case i if -neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
-          }) ++ vecFieldIndexBegin),
+          })),
         new MultiIndex(
-          DimArray().map(i => i match {
+          dimArray.map(i => i match {
             case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("DRE", i)
               case 26 => resolveIndex("DRE", i)
             }
             case i if -neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
             case i if -neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
-          }) ++ vecFieldIndexEnd))))
+          })))))
   }
 
   def genIndicesDuplicateRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
     curNeighbors.map(neigh => (neigh, new IndexRange(
       new MultiIndex(
-        DimArray().map(i => i match {
+        dimArray.map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
             case 6  => resolveIndex("DLB", i)
             case 26 => resolveIndex("IB", i)
           }
           case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
           case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
-        }) ++ vecFieldIndexBegin),
+        })),
       new MultiIndex(
-        DimArray().map(i => i match {
+        dimArray.map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
             case 6  => resolveIndex("DRE", i)
             case 26 => resolveIndex("DRE", i)
           }
           case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
           case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
-        }) ++ vecFieldIndexEnd))))
+        })))))
   }
 
   def genIndicesGhostRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
     curNeighbors.map(neigh => (neigh, new IndexRange(
       new MultiIndex(
-        DimArray().map(i => i match {
+        dimArray.map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
             case 6  => resolveIndex("GLB", i)
             case 26 => resolveIndex("DLB", i)
           }
           case i if neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerBegin(i)
           case i if neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerEnd(i)
-        }) ++ vecFieldIndexBegin),
+        })),
       new MultiIndex(
-        DimArray().map(i => i match {
+        dimArray.map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
             case 6  => resolveIndex("GRE", i)
             case 26 => resolveIndex("DRE", i)
           }
           case i if neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerEnd(i)
           case i if neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerBegin(i)
-        }) ++ vecFieldIndexEnd))))
+        })))))
   }
 
   def genIndicesGhostLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange, IndexRange)] = {
     curNeighbors.map(neigh => (neigh,
       new IndexRange(
         new MultiIndex(
-          DimArray().map(i => i match {
+          dimArray.map(i => i match {
             case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("GLB", i)
               case 26 => resolveIndex("DLB", i)
             }
             case i if neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerBegin(i)
             case i if neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerEnd(i)
-          }) ++ vecFieldIndexBegin),
+          })),
         new MultiIndex(
-          DimArray().map(i => i match {
+          dimArray.map(i => i match {
             case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("GRE", i)
               case 26 => resolveIndex("DRE", i)
             }
             case i if neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerEnd(i)
             case i if neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerBegin(i)
-          }) ++ vecFieldIndexEnd)),
+          }))),
       new IndexRange(
         new MultiIndex(
-          DimArray().map(i => i match {
+          dimArray.map(i => i match {
             case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("GLB", i)
               case 26 => resolveIndex("DLB", i)
             }
             case i if -neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerEnd(i)
             case i if -neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerBegin(i)
-          }) ++ vecFieldIndexBegin),
+          })),
         new MultiIndex(
-          DimArray().map(i => i match {
+          dimArray.map(i => i match {
             case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("GRE", i)
               case 26 => resolveIndex("DRE", i)
             }
             case i if -neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerBegin(i)
             case i if -neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerEnd(i)
-          }) ++ vecFieldIndexEnd))))
+          })))))
   }
 
   def genIndicesGhostLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange, IndexRange)] = {
     curNeighbors.map(neigh => (neigh,
       new IndexRange(
         new MultiIndex(
-          DimArray().map(i => i match {
+          dimArray.map(i => i match {
             case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("GLB", i)
               case 26 => resolveIndex("DLB", i)
             }
             case i if neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerEnd(i)
             case i if neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerBegin(i)
-          }) ++ vecFieldIndexBegin),
+          })),
         new MultiIndex(
-          DimArray().map(i => i match {
+          dimArray.map(i => i match {
             case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("GRE", i)
               case 26 => resolveIndex("DRE", i)
             }
             case i if neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerBegin(i)
             case i if neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerEnd(i)
-          }) ++ vecFieldIndexEnd)),
+          }))),
       new IndexRange(
         new MultiIndex(
-          DimArray().map(i => i match {
+          dimArray.map(i => i match {
             case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("GLB", i)
               case 26 => resolveIndex("DLB", i)
             }
             case i if -neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerBegin(i)
             case i if -neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerEnd(i)
-          }) ++ vecFieldIndexBegin),
+          })),
         new MultiIndex(
-          DimArray().map(i => i match {
+          dimArray.map(i => i match {
             case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("GRE", i)
               case 26 => resolveIndex("DRE", i)
             }
             case i if -neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerEnd(i)
             case i if -neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerBegin(i)
-          }) ++ vecFieldIndexEnd))))
+          })))))
   }
 
   def genIndicesGhostRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
     curNeighbors.map(neigh => (neigh, new IndexRange(
       new MultiIndex(
-        DimArray().map(i => i match {
+        dimArray.map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
             case 6  => resolveIndex("GLB", i)
             case 26 => resolveIndex("DLB", i)
           }
           case i if neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerEnd(i)
           case i if neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerBegin(i)
-        }) ++ vecFieldIndexBegin),
+        })),
       new MultiIndex(
-        DimArray().map(i => i match {
+        dimArray.map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
             case 6  => resolveIndex("GRE", i)
             case 26 => resolveIndex("DRE", i)
           }
           case i if neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerBegin(i)
           case i if neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerEnd(i)
-        }) ++ vecFieldIndexEnd))))
+        })))))
   }
 
   override def compileName : String = name
