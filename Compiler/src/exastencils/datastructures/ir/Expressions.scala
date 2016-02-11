@@ -346,7 +346,7 @@ case class MultiIndex(var indices : ListBuffer[Expression]) extends Expression w
 
   def apply(i : Int) = indices.apply(i)
   def update(i : Int, x : Expression) = indices.update(i, x)
-  def length : Int = indices.length
+  def length = indices.length
 }
 
 case class TempBufferAccess(var buffer : iv.TmpBuffer, var index : MultiIndex, var strides : MultiIndex) extends Expression {
@@ -393,14 +393,13 @@ case class ExternalFieldAccess(var name : Expression, var field : ExternalField,
   def w = new VariableAccess("w", IntegerDatatype)
 
   def linearize : ArrayAccess = {
-    if (Knowledge.generateFortranInterface) // Fortran requires multi-index access to multidimensional arrays
-      (Knowledge.dimensionality + (if (field.vectorSize > 1) 1 else 0)) match {
-        case 1 => new ArrayAccess(x, false)
-        case 2 => new ArrayAccess(new ArrayAccess(name, y, false), x, false)
-        case 3 => new ArrayAccess(new ArrayAccess(new ArrayAccess(name, z, false), y, false), x, false)
-        case 4 => new ArrayAccess(new ArrayAccess(new ArrayAccess(new ArrayAccess(name, w, false), z, false), y, false), x, false)
-      }
-    else
+    if (Knowledge.generateFortranInterface) { // Fortran requires multi-index access to multidimensional arrays
+      val it = LoopOverDimensions.defIt(field.fieldLayout.numDimsData)
+      var ret = name
+      for (dim <- field.fieldLayout.numDimsData - 1 to 0)
+        ret = new ArrayAccess(ret, it(dim), false)
+      ret.asInstanceOf[ArrayAccess]
+    } else
       new ArrayAccess(name, Mapping.resolveMultiIdx(field.fieldLayout, index), false)
   }
 }

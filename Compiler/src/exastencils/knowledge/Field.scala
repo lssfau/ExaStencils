@@ -114,7 +114,6 @@ case class Field(
   def gridDataType = fieldLayout.gridDataType
   def scalarDataType = fieldLayout.scalarDataType
   def discretization = fieldLayout.discretization
-  //def vectorSize = fieldLayout.dataType.resolveFlattendSize
   def referenceOffset = fieldLayout.referenceOffset
   def communicatesDuplicated = fieldLayout.communicatesDuplicated
   def communicatesGhosts = fieldLayout.communicatesGhosts

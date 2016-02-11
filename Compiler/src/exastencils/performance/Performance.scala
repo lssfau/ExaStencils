@@ -224,7 +224,6 @@ object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Ev
 
     identifier = (if (inWriteOp) "write_" else "read_") + identifier
 
-    // TODO: array fields
     if (field.numSlots > 1) {
       access.fieldSelection.slot match {
         case SlotAccess(_, offset) => identifier += s"_o$offset"
@@ -233,7 +232,7 @@ object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Ev
       }
     }
 
-    fieldAccesses.put(identifier, field.dataType)
+    fieldAccesses.put(identifier, field.gridDataType) // TODO: optimize for array fields
   }
 
   this += new Transformation("Searching", {

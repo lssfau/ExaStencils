@@ -15,7 +15,7 @@ import exastencils.polyhedron._
 
 object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into host and device instances") {
   this += new Transformation("Processing LoopOverDimensions nodes", {
-    case loop : LoopOverDimensions with PolyhedronAccessable => {
+    case loop : LoopOverDimensions with PolyhedronAccessable => { // TODO: OMP_PotentiallyParallel?
       GatherLocalFieldAccess.fieldAccesses.clear
       GatherLocalFieldAccess.applyStandalone(Scope(loop.body))
 

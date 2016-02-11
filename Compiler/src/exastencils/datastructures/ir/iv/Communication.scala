@@ -66,7 +66,7 @@ abstract class AbstractTmpBuffer extends CommVariable {
 
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
 
-  override def resolveDataType = new PointerDatatype(field.dataType.resolveUnderlyingDatatype)
+  override def resolveDataType = new PointerDatatype(field.scalarDataType)
   override def resolveDefValue = Some(0)
 
   override def getDtor() : Option[Statement] = {

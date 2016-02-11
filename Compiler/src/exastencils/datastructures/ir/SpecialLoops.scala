@@ -258,12 +258,11 @@ case class LoopOverPointsInOneFragment(var domain : Int,
 }
 
 object LoopOverDimensions {
-  def defIt = {
-    Knowledge.dimensionality match {
-      case 1 => new MultiIndex(dimToString(0), dimToString(1))
-      case 2 => new MultiIndex(dimToString(0), dimToString(1), dimToString(2))
-      case 3 => new MultiIndex(dimToString(0), dimToString(1), dimToString(2), dimToString(3))
-    }
+  def defIt(numDims : Int) = {
+    new MultiIndex((0 until numDims).map(dim => VariableAccess(dimToString(dim), Some(IntegerDatatype)) : Expression).toArray)
+  }
+  def defIt() = { // TODO: delete
+    new MultiIndex((0 until Knowledge.dimensionality).map(dim => VariableAccess(dimToString(dim), Some(IntegerDatatype)) : Expression).toArray)
   }
 
   object ReplaceOffsetIndicesWithMin extends QuietDefaultStrategy("Replace OffsetIndex nodes with minimum values") {

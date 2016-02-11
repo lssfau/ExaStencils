@@ -74,8 +74,8 @@ case class CUDA_UpdateHostData(var fieldAccess : FieldAccess) extends Statement 
           FunctionCallExpression("cudaMemcpy", ListBuffer[Expression](
             iv.FieldData(field, fieldSelection.level, fieldSelection.slot),
             iv.FieldDeviceData(field, fieldSelection.level, fieldSelection.slot),
-            (0 to Knowledge.dimensionality).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
-              * field.dataType.resolveFlattendSize * SizeOfExpression(field.dataType),
+            (0 until field.fieldLayout.numDimsData).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
+              * SizeOfExpression(field.scalarDataType),
             "cudaMemcpyDeviceToHost"))),
         AssignmentStatement(iv.DeviceDataUpdated(field, fieldSelection.slot), BooleanConstant(false))))
   }
@@ -95,8 +95,8 @@ case class CUDA_UpdateDeviceData(var fieldAccess : FieldAccess) extends Statemen
           FunctionCallExpression("cudaMemcpy", ListBuffer[Expression](
             iv.FieldDeviceData(field, fieldSelection.level, fieldSelection.slot),
             iv.FieldData(field, fieldSelection.level, fieldSelection.slot),
-            (0 to Knowledge.dimensionality).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
-              * field.dataType.resolveFlattendSize * SizeOfExpression(field.dataType),
+            (0 until field.fieldLayout.numDimsData).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
+              * SizeOfExpression(field.scalarDataType),
             "cudaMemcpyHostToDevice"))),
         AssignmentStatement(iv.HostDataUpdated(field, fieldSelection.slot), BooleanConstant(false))))
   }

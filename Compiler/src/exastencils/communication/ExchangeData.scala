@@ -28,13 +28,13 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
     }
   }
 
-  def vecFieldIndexBegin = Array(fieldSelection.arrayIndex.getOrElse(0).toLong : Expression)
+  def vecFieldIndexBegin = Array(fieldSelection.arrayIndex.getOrElse(0).toLong : Expression) // TODO: remove
 
-  def vecFieldIndexEnd = {
+  def vecFieldIndexEnd = { // TODO: remove
     if (fieldSelection.arrayIndex.isDefined)
       Array((fieldSelection.arrayIndex.get + 1) : Expression)
     else
-      Array(fieldSelection.field.vectorSize : Expression)
+      Array(fieldSelection.fieldLayout.gridDataType.resolveFlattendSize : Expression)
   }
 
   override def expand : Output[FunctionStatement] = {
@@ -67,10 +67,11 @@ case class ApplyBCsFunction(var name : String, override var fieldSelection : Fie
   override def prettyprint_decl = prettyprint
 
   def genIndicesBoundaryHandling(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
-    // FIXME: this works for now, but might be adapted later to incorporate different regions of boundary handling
+    val dimArray = (0 until fieldSelection.field.fieldLayout.numDimsData).toArray // TODO: bc's should be stated wrt the original data type
+
     curNeighbors.map(neigh => (neigh, new IndexRange(
       new MultiIndex(
-        DimArray().map(i =>
+        dimArray.map(i =>
           fieldSelection.fieldLayout.discretization match {
             case d if "node" == d
               || ("face_x" == d && 0 == i)
@@ -88,9 +89,9 @@ case class ApplyBCsFunction(var name : String, override var fieldSelection : Fie
               case i if neigh.dir(i) < 0  => resolveIndex("DLB", i)
               case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) - 1
             }
-          }) ++ vecFieldIndexBegin),
+          })),
       new MultiIndex(
-        DimArray().map(i =>
+        dimArray.map(i =>
           fieldSelection.fieldLayout.discretization match {
             case d if "node" == d
               || ("face_x" == d && 0 == i)
@@ -108,7 +109,7 @@ case class ApplyBCsFunction(var name : String, override var fieldSelection : Fie
               case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) + 1
               case i if neigh.dir(i) > 0  => resolveIndex("DRE", i)
             }
-          }) ++ vecFieldIndexEnd))))
+          })))))
   }
 
   override def compileName : String = name

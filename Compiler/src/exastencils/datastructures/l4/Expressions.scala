@@ -187,13 +187,17 @@ case class FieldAccess(name_ : String, var level : AccessLevelSpecification, var
   }
 
   def progressToIr : ir.FieldAccess = {
-    var multiIndex = ir.LoopOverDimensions.defIt
+    // TODO: extract common index stuff from here and VirtualFieldAccess and StencilFieldAccess
+    var numDims = knowledge.Knowledge.dimensionality // TODO: resolve field info
+    if (arrayIndex.isDefined) numDims += 1 // TODO: remove array index and update function after integration of vec types
+    var multiIndex = ir.LoopOverDimensions.defIt(numDims)
+    if (arrayIndex.isDefined)
+      multiIndex(numDims - 1) = ir.IntegerConstant(arrayIndex.get)
     if (offset.isDefined) {
       var progressedOffset = offset.get.progressToIr
-      while (progressedOffset.indices.length < knowledge.Knowledge.dimensionality + 1) progressedOffset.indices :+= ir.IntegerConstant(0)
+      while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= ir.IntegerConstant(0)
       multiIndex += progressedOffset
     }
-    multiIndex(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(arrayIndex.getOrElse(0).toLong)
 
     val field = knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
     ir.FieldAccess(knowledge.FieldSelection(field, ir.IntegerConstant(field.level), FieldAccess.resolveSlot(field, slot), arrayIndex), multiIndex)
@@ -208,13 +212,16 @@ case class VirtualFieldAccess(name_ : String, var level : AccessLevelSpecificati
   }
 
   def progressToIr : ir.VirtualFieldAccess = {
-    var multiIndex = ir.LoopOverDimensions.defIt
+    var numDims = knowledge.Knowledge.dimensionality // TODO: resolve field info
+    if (arrayIndex.isDefined) numDims += 1 // TODO: remove array index and update function after integration of vec types
+    var multiIndex = ir.LoopOverDimensions.defIt(numDims)
+    if (arrayIndex.isDefined)
+      multiIndex(numDims - 1) = ir.IntegerConstant(arrayIndex.get)
     if (offset.isDefined) {
       var progressedOffset = offset.get.progressToIr
-      while (progressedOffset.indices.length < knowledge.Knowledge.dimensionality + 1) progressedOffset.indices :+= ir.IntegerConstant(0)
+      while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= ir.IntegerConstant(0)
       multiIndex += progressedOffset
     }
-    multiIndex(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(arrayIndex.getOrElse(0).toLong)
 
     ir.VirtualFieldAccess(name, ir.IntegerConstant(level.asInstanceOf[SingleLevelSpecification].level), multiIndex, arrayIndex)
   }
@@ -300,13 +307,6 @@ case class StencilFieldAccess(name_ : String,
 
     val stencilField = knowledge.StencilFieldCollection.getStencilFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
 
-    var multiIndex = ir.LoopOverDimensions.defIt
-    if (offset.isDefined) {
-      var progressedOffset = offset.get.progressToIr
-      while (progressedOffset.indices.length < knowledge.Knowledge.dimensionality + 1) progressedOffset.indices :+= ir.IntegerConstant(0)
-      multiIndex += progressedOffset
-    }
-
     var accessIndex = -1
 
     if (arrayIndex.isDefined)
@@ -314,14 +314,27 @@ case class StencilFieldAccess(name_ : String,
     else if (dirAccess.isDefined)
       accessIndex = stencilField.stencil.findStencilEntryIndex(dirAccess.get.progressToIr).get
 
-    if (accessIndex < 0) {
-      multiIndex(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(0)
-      ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), None), multiIndex)
-    } else {
-      multiIndex(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(accessIndex)
+    var numDims = knowledge.Knowledge.dimensionality // TODO: resolve field info
+    numDims += 1 // TODO: remove array index and update function after integration of vec types
+    var multiIndex = ir.LoopOverDimensions.defIt(numDims)
+
+    if (accessIndex < 0)
+      multiIndex(numDims - 1) = ir.IntegerConstant(0)
+    else
+      multiIndex(numDims - 1) = ir.IntegerConstant(accessIndex)
+
+    if (offset.isDefined) {
+      var progressedOffset = offset.get.progressToIr
+      while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= ir.IntegerConstant(0)
+      multiIndex += progressedOffset
+    }
+
+    if (accessIndex < 0)
+      ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), None),
+        multiIndex)
+    else
       ir.FieldAccess(knowledge.FieldSelection(stencilField.field, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), Some(accessIndex)),
         multiIndex)
-    }
   }
 }
 

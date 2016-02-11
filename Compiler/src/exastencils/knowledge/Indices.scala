@@ -28,12 +28,13 @@ case class IndexRange(var begin : MultiIndex = new MultiIndex, var end : MultiIn
 
 object Mapping {
   def resolveMultiIdx(layout : FieldLayout, index : MultiIndex) : Expression = {
-    val ret = Knowledge.dimensionality match {
-      case 0 => (index(0))
-      case 1 => (index(1) * layout(0).total + index(0))
-      case 2 => (index(2) * (layout(1).total * layout(0).total) + index(1) * layout(0).total + index(0))
-      case 3 => (index(3) * (layout(2).total * layout(1).total * layout(0).total) + index(2) * (layout(1).total * layout(0).total) + index(1) * layout(0).total + index(0))
-    }
+    if (layout.numDimsData != index.length) Logger.warn(s"Index with dimensionality ${index.length} does not match layout with dimensionality ${layout.numDimsData}")
+
+    var ret = (0 until math.min(layout.numDimsData, index.length)).map(dim => {
+      val stride = ((0 until dim).map(d3 => layout(d3).total).fold(1 : Expression)(_ * _))
+      index(dim) * stride
+    }).fold(0 : Expression)(_ + _)
+
     if (Knowledge.data_genVariableFieldSizes) {
       SimplifyStrategy.doUntilDoneStandalone(ret)
       ret
@@ -44,12 +45,13 @@ object Mapping {
 
   def resolveMultiIdx(index : MultiIndex, aabb : IndexRange) : Expression = resolveMultiIdx(index, new MultiIndex(aabb.end, aabb.begin, _ - _))
   def resolveMultiIdx(index : MultiIndex, strides : MultiIndex) : Expression = {
-    val ret = Knowledge.dimensionality match {
-      case 0 => (index(0))
-      case 1 => (index(1) * strides(0) + index(0))
-      case 2 => (index(2) * (strides(1) * strides(0)) + index(1) * strides(0) + index(0))
-      case 3 => (index(3) * (strides(2) * strides(1) * strides(0)) + index(2) * (strides(1) * strides(0)) + index(1) * strides(0) + index(0))
-    }
+    if (strides.length != index.length) Logger.warn(s"Index with dimensionality ${index.length} does not match strides with dimensionality ${strides.length}")
+
+    var ret = (0 until math.min(strides.length, index.length)).map(dim => {
+      val stride = ((0 until dim).map(d3 => strides(d3)).fold(1 : Expression)(_ * _))
+      index(dim) * stride
+    }).fold(0 : Expression)(_ + _)
+
     if (Knowledge.data_genVariableFieldSizes) {
       SimplifyStrategy.doUntilDoneStandalone(ret)
       ret
