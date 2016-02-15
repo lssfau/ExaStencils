@@ -207,7 +207,7 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = RemoteSends\n"
 
   override def genCopy(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
-    if (Knowledge.data_genVariableFieldSizes || (!MPI_DataType.shouldBeUsed(indices) && SimplifyExpression.evalIntegral(indices.getSize) > 1)) {
+    if (Knowledge.data_genVariableFieldSizes || (!MPI_DataType.shouldBeUsed(indices) && SimplifyExpression.evalIntegral(indices.getTotalSize) > 1)) {
       var body = CopyToSendBuffer(field, neighbor, indices, concurrencyId)
       if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
     } else {
@@ -217,7 +217,7 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
 
   override def genTransfer(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
     var body = {
-      val cnt = indices.getSize
+      val cnt = indices.getTotalSize
       if (!Knowledge.data_genVariableFieldSizes && 1 == SimplifyExpression.evalIntegral(cnt)) {
         RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(indices)) {
@@ -270,7 +270,7 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = RemoteRecvs\n"
 
   override def genCopy(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
-    if (Knowledge.data_genVariableFieldSizes || (!MPI_DataType.shouldBeUsed(indices) && SimplifyExpression.evalIntegral(indices.getSize) > 1)) {
+    if (Knowledge.data_genVariableFieldSizes || (!MPI_DataType.shouldBeUsed(indices) && SimplifyExpression.evalIntegral(indices.getTotalSize) > 1)) {
       var body = CopyFromRecvBuffer(field, neighbor, indices, concurrencyId)
       if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
     } else {
@@ -280,7 +280,7 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
 
   override def genTransfer(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
     var body = {
-      val cnt = indices.getSize
+      val cnt = indices.getTotalSize
       if (!Knowledge.data_genVariableFieldSizes && 1 == SimplifyExpression.evalIntegral(cnt)) {
         RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(indices)) {
@@ -334,7 +334,7 @@ case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborI
   def numDims = field.field.fieldLayout.numDimsData
 
   override def expand : Output[Statement] = {
-    val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Send_${concurrencyId}", indices.getSize, neighbor.index),
+    val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Send_${concurrencyId}", indices.getTotalSize, neighbor.index),
       new MultiIndex(LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
       new MultiIndex(indices.end, indices.begin, _ - _))
     val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
@@ -349,7 +349,7 @@ case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : Neighbo
   def numDims = field.field.fieldLayout.numDimsData
 
   override def expand : Output[Statement] = {
-    val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Recv_${concurrencyId}", indices.getSize, neighbor.index),
+    val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Recv_${concurrencyId}", indices.getTotalSize, neighbor.index),
       new MultiIndex(LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
       new MultiIndex(indices.end, indices.begin, _ - _))
     val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))

@@ -13,11 +13,17 @@ import exastencils.prettyprinting._
 import exastencils.strategies._
 import exastencils.util._
 
-case class IndexRange(var begin : MultiIndex = new MultiIndex, var end : MultiIndex = new MultiIndex) extends Node {
-  def getSize : Expression = {
-    var size = (end - begin).reduce(_ * _)
-    SimplifyStrategy.doUntilDoneStandalone(size)
-    size
+case class IndexRange(var begin : MultiIndex, var end : MultiIndex) extends Node {
+  def size = math.min(begin.size, end.size)
+
+  def getTotalSize : Expression = {
+    var totalSize = (end - begin).reduce(_ * _)
+    SimplifyStrategy.doUntilDoneStandalone(totalSize)
+    totalSize
+  }
+
+  def print : String = {
+    s"${begin.prettyprint()} to ${end.prettyprint()}"
   }
 }
 
