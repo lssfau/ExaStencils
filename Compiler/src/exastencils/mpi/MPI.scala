@@ -1,12 +1,14 @@
 package exastencils.mpi
 
 import scala.collection.mutable.ListBuffer
+import scala.util.control.Breaks.break
 
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir.StatementList
 import exastencils.knowledge._
+import exastencils.logger._
 import exastencils.omp._
 import exastencils.prettyprinting._
 import exastencils.util._
@@ -132,17 +134,14 @@ case class MPI_DataType(var field : FieldSelection, var indices : IndexRange) ex
 }
 
 object MPI_DataType {
-  def shouldBeUsed(indices : IndexRange) : Boolean = {
+  def shouldBeUsed(indexRange : IndexRange) : Boolean = {
     if (!Knowledge.mpi_useCustomDatatypes || Knowledge.data_genVariableFieldSizes)
       false
-    else
-      Knowledge.dimensionality match {
-        case 2 => (
-          1 == SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1)) || 1 == SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2)))
-        case 3 => (
-          1 == SimplifyExpression.evalIntegral(indices.end(3) - indices.begin(3)) &&
-          (1 == SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1)) || 1 == SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2))))
-      }
+    else {
+      val numNonDummyDims = (1 until indexRange.size).map(dim => // size in the zero dimension is irrelevant
+        if (SimplifyExpression.evalIntegral(indexRange.end(dim) - indexRange.begin(dim)) > 1) 1 else 0).reduce(_ + _)
+      return (numNonDummyDims <= 1) // avoid nested data types for now
+    }
   }
 }
 
@@ -150,21 +149,31 @@ case class InitMPIDataType(mpiTypeName : String, field : Field, indexRange : Ind
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitMPIDataType\n"
 
   override def expand : Output[StatementList] = {
-    if (indexRange.begin(2) == indexRange.end(2)) {
-      ListBuffer[Statement](s"MPI_Type_vector(" ~
-        (indexRange.end(1) - indexRange.begin(1) + 1) ~ ", " ~
-        (indexRange.end(0) - indexRange.begin(0) + 1) ~ ", " ~
-        (field.fieldLayout(0).total) ~
-        s", MPI_DOUBLE, &$mpiTypeName)",
-        s"MPI_Type_commit(&$mpiTypeName)")
-    } else if (indexRange.begin(1) == indexRange.end(1)) {
-      ListBuffer[Statement](s"MPI_Type_vector(" ~
-        (indexRange.end(2) - indexRange.begin(2) + 1) ~ ", " ~
-        (indexRange.end(0) - indexRange.begin(0) + 1) ~ ", " ~
-        (field.fieldLayout(0).total * field.fieldLayout(1).total) ~
-        s", MPI_DOUBLE, &$mpiTypeName)",
-        s"MPI_Type_commit(&$mpiTypeName)")
-    } else return ListBuffer[Statement]()
+    if (!MPI_DataType.shouldBeUsed(indexRange))
+      Logger.warn(s"Trying to setup an MPI data type for unsupported index range ${indexRange.print}")
+
+    // determine data type parameters
+    var blockLength : Expression = indexRange.end(0) - indexRange.begin(0) + 1
+    var blockCount : Expression = 1
+    var stride : Expression = field.fieldLayout(0).total
+
+    for (dim <- 1 until indexRange.size) {
+      if (1 == SimplifyExpression.evalIntegral(indexRange.end(dim) - indexRange.begin(dim))) {
+        stride *= field.fieldLayout(dim).total
+      } else {
+        blockCount = indexRange.end(dim) - indexRange.begin(dim) + 1
+        break
+      }
+    }
+
+    def mpiTypeNameArg = AddressofExpression(mpiTypeName)
+    val scalarDatatype = field.fieldLayout.scalarDataType.prettyprint_mpi
+
+    // compile statement(s)
+    var stmts = ListBuffer[Statement]()
+    stmts += FunctionCallExpression("MPI_Type_vector", ListBuffer(blockCount, blockLength, stride, scalarDatatype, mpiTypeNameArg))
+    stmts += FunctionCallExpression("MPI_Type_commit", ListBuffer(mpiTypeNameArg))
+    stmts
   }
 }
 
