@@ -1,12 +1,10 @@
 package exastencils.mpi
 
 import scala.collection.mutable.ListBuffer
-import scala.util.control.Breaks.break
 
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.ir.StatementList
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.omp._
@@ -87,7 +85,7 @@ case class MPI_Barrier() extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = out << "MPI_Barrier(mpiCommunicator);"
 }
 
-case class MPI_DataType(var field : FieldSelection, var indices : IndexRange) extends Datatype {
+case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange) extends Datatype {
   override def prettyprint(out : PpStream) : Unit = out << generateName
   override def prettyprint_mpi = generateName
 
@@ -98,38 +96,47 @@ case class MPI_DataType(var field : FieldSelection, var indices : IndexRange) ex
   override def resolveFlattendSize : Int = ???
   override def typicalByteSize = ???
 
-  var count : Int = 0
-  var blocklen : Int = 0
-  var stride : Int = 0
+  if (!MPI_DataType.shouldBeUsed(indexRange))
+    Logger.warn(s"Trying to setup an MPI data type for unsupported index range ${indexRange.print}")
 
-  // this assumes that the conditions implied by 'shouldBeUsed' are fulfilled
-  if (1 == SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2))) {
-    count = SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1)).toInt
-    blocklen = SimplifyExpression.evalIntegral(indices.end(0) - indices.begin(0)).toInt
-    stride = field.fieldLayout.defIdxById("TOT", 0)
-  } else if (1 == SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1))) {
-    count = SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2)).toInt
-    blocklen = SimplifyExpression.evalIntegral(indices.end(0) - indices.begin(0)).toInt
-    stride = field.fieldLayout.defIdxById("TOT", 0) * field.fieldLayout.defIdxById("TOT", 1)
+  // determine data type parameters
+  var blockLengthExp : Expression = indexRange.end(0) - indexRange.begin(0)
+  var blockCountExp : Expression = 1
+  var strideExp : Expression = field.fieldLayout(0).total
+
+  var done = false
+  for (dim <- 1 until indexRange.size; if !done) {
+    if (1 == SimplifyExpression.evalIntegral(indexRange.end(dim) - indexRange.begin(dim))) {
+      strideExp *= field.fieldLayout.defIdxById("TOT", dim)
+    } else {
+      blockCountExp = indexRange.end(dim) - indexRange.begin(dim)
+      done = true // break
+    }
   }
 
-  def generateName : String = {
-    s"mpiDatatype_${count}_${blocklen}_${stride}"
-  }
+  val blockLength = SimplifyExpression.evalIntegral(blockLengthExp)
+  val blockCount = SimplifyExpression.evalIntegral(blockCountExp)
+  val stride = SimplifyExpression.evalIntegral(strideExp)
+
+  def generateName : String = s"mpiDatatype_${blockCount}_${blockLength}_${stride}"
+  def mpiTypeNameArg : Expression = AddressofExpression(generateName)
 
   def generateDecl : VariableDeclarationStatement = {
     VariableDeclarationStatement("MPI_Datatype", generateName)
   }
 
   def generateCtor : ListBuffer[Statement] = {
+    val scalarDatatype = field.fieldLayout.scalarDataType.prettyprint_mpi
+
+    // compile statement(s)
     ListBuffer[Statement](
-      s"MPI_Type_vector($count, $blocklen, $stride, MPI_DOUBLE, &${generateName})",
-      s"MPI_Type_commit(&${generateName})")
+      FunctionCallExpression("MPI_Type_vector", ListBuffer(blockCount, blockLength, stride, scalarDatatype, mpiTypeNameArg)),
+      FunctionCallExpression("MPI_Type_commit", ListBuffer(mpiTypeNameArg)))
   }
 
   def generateDtor : ListBuffer[Statement] = {
     ListBuffer[Statement](
-      s"MPI_Type_free(&${generateName})")
+      FunctionCallExpression("MPI_Type_free", ListBuffer(mpiTypeNameArg)))
   }
 }
 
@@ -142,38 +149,6 @@ object MPI_DataType {
         if (SimplifyExpression.evalIntegral(indexRange.end(dim) - indexRange.begin(dim)) > 1) 1 else 0).reduce(_ + _)
       return (numNonDummyDims <= 1) // avoid nested data types for now
     }
-  }
-}
-
-case class InitMPIDataType(mpiTypeName : String, field : Field, indexRange : IndexRange) extends MPI_Statement with Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitMPIDataType\n"
-
-  override def expand : Output[StatementList] = {
-    if (!MPI_DataType.shouldBeUsed(indexRange))
-      Logger.warn(s"Trying to setup an MPI data type for unsupported index range ${indexRange.print}")
-
-    // determine data type parameters
-    var blockLength : Expression = indexRange.end(0) - indexRange.begin(0) + 1
-    var blockCount : Expression = 1
-    var stride : Expression = field.fieldLayout(0).total
-
-    for (dim <- 1 until indexRange.size) {
-      if (1 == SimplifyExpression.evalIntegral(indexRange.end(dim) - indexRange.begin(dim))) {
-        stride *= field.fieldLayout(dim).total
-      } else {
-        blockCount = indexRange.end(dim) - indexRange.begin(dim) + 1
-        break
-      }
-    }
-
-    def mpiTypeNameArg = AddressofExpression(mpiTypeName)
-    val scalarDatatype = field.fieldLayout.scalarDataType.prettyprint_mpi
-
-    // compile statement(s)
-    var stmts = ListBuffer[Statement]()
-    stmts += FunctionCallExpression("MPI_Type_vector", ListBuffer(blockCount, blockLength, stride, scalarDatatype, mpiTypeNameArg))
-    stmts += FunctionCallExpression("MPI_Type_commit", ListBuffer(mpiTypeNameArg))
-    stmts
   }
 }
 
