@@ -99,11 +99,15 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
   }
 
   override def expand : Output[Statement] = {
+    val layout = field.field.fieldLayout
     if (field.field.boundaryConditions.isDefined) {
       new LoopOverFragments(
         new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
           neighbors.map({ neigh =>
-            val adaptedIndexRange = IndexRange(neigh._2.begin - field.referenceOffset, neigh._2.end - field.referenceOffset)
+            var adaptedIndexRange = IndexRange(neigh._2.begin - field.referenceOffset, neigh._2.end - field.referenceOffset)
+            // TODO: assumes equal bc's for all components
+            adaptedIndexRange.begin.indices ++= (layout.numDimsGrid until layout.numDimsData).map(dim => 0 : Expression)
+            adaptedIndexRange.end.indices ++= (layout.numDimsGrid until layout.numDimsData).map(dim => layout.idxById("TOT", dim))
             val loopOverDims = new LoopOverDimensions(
               field.fieldLayout.numDimsData,
               adaptedIndexRange,

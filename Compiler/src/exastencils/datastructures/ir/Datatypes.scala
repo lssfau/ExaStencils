@@ -229,7 +229,7 @@ case object StringDatatype extends Datatype {
 
   override def dimensionality : Int = 0
   override def getSizeArray : Array[Int] = Array()
-  override def resolveUnderlyingDatatype : Datatype = ???
+  override def resolveUnderlyingDatatype : Datatype = this
   override def resolvePostscript : String = ""
   override def resolveFlattendSize : Int = ???
   override def typicalByteSize = ???

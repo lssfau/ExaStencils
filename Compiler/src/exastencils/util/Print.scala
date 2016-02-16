@@ -56,8 +56,8 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintFieldStatement\n"
 
+  def numDimsGrid = field.fieldLayout.numDimsGrid
   def numDimsData = field.fieldLayout.numDimsData
-  def numDimsGrid = field.fieldLayout.numDimsData
 
   def getPos(field : FieldSelection, dim : Int) : Expression = {
     field.field.discretization match {
