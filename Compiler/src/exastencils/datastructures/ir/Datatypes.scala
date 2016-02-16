@@ -135,6 +135,21 @@ case class ArrayDatatype_VS(datatype : Datatype, size : Expression) extends High
   override def typicalByteSize = ???
 }
 
+// TODO: use after successful integration:
+//case class VectorDatatype(var datatype : Datatype, var size : Int, var isRow : Option[Boolean]) extends HigherOrderDatatype {
+//  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+//  override def prettyprint(out : PpStream) : Unit = {
+//    if (isRow.getOrElse(true)) out << "Matrix<" << datatype << ",1," << size << '>'
+//    else out << "Matrix<" << datatype << ',' << size << ",1>"
+//  }
+//
+//  override def dimensionality : Int = 1 + datatype.dimensionality
+//  override def getSizeArray : Array[Int] = Array(size) ++ datatype.getSizeArray
+//  override def resolveDeclType : Datatype = this
+//  override def resolveDeclPostscript : String = ""
+//  override def resolveFlattendSize : Int = size * datatype.resolveFlattendSize
+//  override def typicalByteSize = size * datatype.typicalByteSize
+//}
 case class VectorDatatype(var datatype : Datatype, var size : Int, var isRow : Option[Boolean]) extends HigherOrderDatatype {
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
   override def prettyprint(out : PpStream) : Unit = {
@@ -142,23 +157,35 @@ case class VectorDatatype(var datatype : Datatype, var size : Int, var isRow : O
     else out << "Matrix<" << datatype << ',' << size << ",1>"
   }
 
-  override def dimensionality : Int = 1 + datatype.dimensionality
-  override def getSizeArray : Array[Int] = Array(size) ++ datatype.getSizeArray
+  override def dimensionality : Int = 0
+  override def getSizeArray : Array[Int] = Array()
   override def resolveDeclType : Datatype = this
   override def resolveDeclPostscript : String = ""
-  override def resolveFlattendSize : Int = size * datatype.resolveFlattendSize
+  override def resolveFlattendSize : Int = datatype.resolveFlattendSize
   override def typicalByteSize = size * datatype.typicalByteSize
 }
 
+// TODO: use after successful integration:
+//case class MatrixDatatype(datatype : Datatype, sizeM : Int, sizeN : Int) extends HigherOrderDatatype {
+//  override def prettyprint(out : PpStream) : Unit = out << "Matrix<" << datatype << ',' << sizeM << ',' << sizeN << '>'
+//  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+//
+//  override def dimensionality : Int = 2 + datatype.dimensionality
+//  override def getSizeArray : Array[Int] = Array(sizeM, sizeN) ++ datatype.getSizeArray
+//  override def resolveDeclType : Datatype = this
+//  override def resolveDeclPostscript : String = ""
+//  override def resolveFlattendSize : Int = sizeM * sizeN * datatype.resolveFlattendSize
+//  override def typicalByteSize = sizeM * sizeN * datatype.typicalByteSize
+//}
 case class MatrixDatatype(datatype : Datatype, sizeM : Int, sizeN : Int) extends HigherOrderDatatype {
   override def prettyprint(out : PpStream) : Unit = out << "Matrix<" << datatype << ',' << sizeM << ',' << sizeN << '>'
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 
-  override def dimensionality : Int = 2 + datatype.dimensionality
-  override def getSizeArray : Array[Int] = Array(sizeM, sizeN) ++ datatype.getSizeArray
+  override def dimensionality : Int = 0
+  override def getSizeArray : Array[Int] = Array()
   override def resolveDeclType : Datatype = this
   override def resolveDeclPostscript : String = ""
-  override def resolveFlattendSize : Int = sizeM * sizeN * datatype.resolveFlattendSize
+  override def resolveFlattendSize : Int = datatype.resolveFlattendSize
   override def typicalByteSize = sizeM * sizeN * datatype.typicalByteSize
 }
 
