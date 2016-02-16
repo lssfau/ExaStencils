@@ -42,27 +42,24 @@ object Fragment {
 
     Knowledge.comm_strategyFragment match {
       case 6 => {
-        neighbors += new NeighborInfo(Array(-1, 0, 0), 0)
-        neighbors += new NeighborInfo(Array(+1, 0, 0), 1)
-        if (Knowledge.dimensionality > 1) {
-          neighbors += new NeighborInfo(Array(0, -1, 0), 2)
-          neighbors += new NeighborInfo(Array(0, +1, 0), 3)
-        }
-        if (Knowledge.dimensionality > 2) {
-          neighbors += new NeighborInfo(Array(0, 0, -1), 4)
-          neighbors += new NeighborInfo(Array(0, 0, +1), 5)
+        var neighIndex = 0
+        for (dim <- 0 until Knowledge.dimensionality) {
+          neighbors += new NeighborInfo(Array.fill(dim)(0) ++ Array(-1) ++ Array.fill(Knowledge.dimensionality - dim - 1)(0), neighIndex)
+          neighIndex += 1
+          neighbors += new NeighborInfo(Array.fill(dim)(0) ++ Array(+1) ++ Array.fill(Knowledge.dimensionality - dim - 1)(0), neighIndex)
+          neighIndex += 1
         }
       }
       case 26 => {
-        var i = 0
-        for (
-          z <- (if (Knowledge.dimensionality > 2) (-1 to 1) else (0 to 0));
-          y <- (if (Knowledge.dimensionality > 1) (-1 to 1) else (0 to 0));
-          x <- -1 to 1;
-          if (0 != x || 0 != y || 0 != z)
-        ) {
-          neighbors += new NeighborInfo(Array(x, y, z), i)
-          i += 1
+        val unitDirections = Array(-1, 0, 1)
+        var directions = ListBuffer(ListBuffer(-1), ListBuffer(0), ListBuffer(1))
+        for (dim <- 1 until Knowledge.dimensionality)
+          directions = (for (dir <- directions; newComponent <- unitDirections) yield (dir :+ newComponent))
+
+        var neighIndex = 0
+        for (dir <- directions; if (dir.map(i => if (0 == i) 0 else 1).reduce(_ + _) > 0)) {
+          neighbors += new NeighborInfo(dir.toArray, neighIndex)
+          neighIndex += 1
         }
       }
     }
