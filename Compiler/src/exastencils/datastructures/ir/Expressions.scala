@@ -287,7 +287,7 @@ case class VariableAccess(var name : String, var dType : Option[Datatype] = None
 
   override def prettyprint(out : PpStream) : Unit = out << name
 
-  def printDeclaration() : String = dType.get.resolveUnderlyingDatatype.prettyprint + " " + name + dType.get.resolvePostscript
+  def printDeclaration() : String = dType.get.resolveDeclType.prettyprint + " " + name + dType.get.resolveDeclPostscript
 }
 
 case class ArrayAccess(var base : Expression, var index : Expression, var alignedAccessPossible : Boolean = false) extends Access {

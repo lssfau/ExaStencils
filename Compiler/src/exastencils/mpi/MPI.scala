@@ -91,8 +91,9 @@ case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange)
 
   override def dimensionality : Int = ???
   override def getSizeArray : Array[Int] = ???
-  override def resolveUnderlyingDatatype : Datatype = ???
-  override def resolvePostscript : String = ""
+  override def resolveBaseDatatype : Datatype = field.field.fieldLayout.scalarDataType
+  override def resolveDeclType : Datatype = this
+  override def resolveDeclPostscript : String = ""
   override def resolveFlattendSize : Int = ???
   override def typicalByteSize = ???
 

@@ -54,7 +54,7 @@ case class VariableDeclarationStatement(var dataType : Datatype, var name : Stri
         }
       }
       case _ => {
-        out << dataType.resolveUnderlyingDatatype << ' ' << name << dataType.resolvePostscript
+        out << dataType.resolveDeclType << ' ' << name << dataType.resolveDeclPostscript
         if (expression.isDefined)
           out << " = " << expression.get
       }
