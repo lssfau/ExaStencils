@@ -120,7 +120,7 @@ case class Kernel(var identifier : String,
 
     // add index bounds conditions
     statements ++= (0 until numDimensions).map(dim => {
-      def it = Duplicate(LoopOverDimensions.defIt(dim))
+      def it = Duplicate(LoopOverDimensions.defIt(numDimensions)(dim))
       new ConditionStatement(
         OrOrExpression(LowerExpression(it, s"begin_$dim"), GreaterEqualExpression(it, s"end_$dim")),
         ReturnStatement())
