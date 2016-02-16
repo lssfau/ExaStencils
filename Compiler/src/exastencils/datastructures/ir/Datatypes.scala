@@ -258,7 +258,7 @@ trait SIMDDatatype extends Datatype {
 
   override def dimensionality : Int = 1
   override def getSizeArray : Array[Int] = Array(Knowledge.simd_vectorSize)
-  override def resolveUnderlyingDatatype : Datatype = datatype
+  override def resolveUnderlyingDatatype : Datatype = this
   override def resolvePostscript : String = ""
   override def resolveFlattendSize : Int = Knowledge.simd_vectorSize
   override def typicalByteSize = Knowledge.simd_vectorSize * datatype.typicalByteSize
