@@ -63,5 +63,10 @@ object Fragment {
         }
       }
     }
+
+    // FIXME: remove HACK after fragment positions, etc are stored with correct data types
+    if (Knowledge.dimensionality < 3) {
+      for (neigh <- neighbors) { neigh.dir ++= Array.fill(3 - Knowledge.dimensionality)(0) }
+    }
   }
 }
