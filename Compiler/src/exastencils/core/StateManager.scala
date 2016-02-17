@@ -254,7 +254,7 @@ object StateManager {
           var newSet = set.flatMap(f => f match {
             case n : Node => applyAtNode(n, transformation).inner match {
               case NoMatch =>
-                replace(n, transformation); List(n) // no match occured => use old element
+                replace(n, transformation); List(n) // no match occurred => use old element
               case newN : Node => {
                 newN.annotate(n)
                 if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
@@ -312,7 +312,7 @@ object StateManager {
           var newSeq = seq.flatMap(f => f match {
             case n : Node => applyAtNode(n, transformation).inner match {
               case NoMatch =>
-                replace(n, transformation); List(n) // no match occured => use old element
+                replace(n, transformation); List(n) // no match occurred => use old element
               case newN : Node => {
                 if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
                   replace(newN, transformation) // Recursive call for new element
@@ -333,7 +333,7 @@ object StateManager {
               var _newSeq = _seq.flatMap(_f => _f match {
                 case n : Node => applyAtNode(n, transformation).inner match {
                   case NoMatch =>
-                    replace(n, transformation); List(n) // no match occured => use old element
+                    replace(n, transformation); List(n) // no match occurred => use old element
                   case newN : Node => {
                     if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
                       replace(newN, transformation) // Recursive call for new element
@@ -400,7 +400,7 @@ object StateManager {
             f._2 match {
               case n : Node => applyAtNode(n, transformation).inner match {
                 case NoMatch =>
-                  replace(n, transformation); n // no match occured => use old element
+                  replace(n, transformation); n // no match occurred => use old element
                 case newN : Node => {
                   if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
                     replace(newN, transformation) // Recursive call for new element
@@ -424,7 +424,7 @@ object StateManager {
             f._2 match {
               case n : Node => applyAtNode(n, transformation).inner match {
                 case NoMatch =>
-                  replace(n, transformation); n // no match occured => use old element
+                  replace(n, transformation); n // no match occurred => use old element
                 case newN : Node => {
                   if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
                     replace(newN, transformation) // Recursive call for new element

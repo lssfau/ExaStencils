@@ -16,8 +16,8 @@ trait Datatype extends ProgressableToIr with PrettyPrintable {
 case class UnitDatatype() extends Datatype {
   override def prettyprint(out : PpStream) = { out << "Unit" }
   override def progressToIr : ir.Datatype = ir.UnitDatatype
-  override def dimensionality : Int = { Logger.warn("Request for dimensionality of l4.UnitDatatype occured"); 0 }
-  override def getSizeArray : Array[Int] = { Logger.warn("Request for sizeArray of l4.UnitDatatype occured"); Array() }
+  override def dimensionality : Int = { Logger.warn("Request for dimensionality of l4.UnitDatatype occurred"); 0 }
+  override def getSizeArray : Array[Int] = { Logger.warn("Request for sizeArray of l4.UnitDatatype occurred"); Array() }
 }
 
 case class IntegerDatatype() extends Datatype {
@@ -37,8 +37,8 @@ case class RealDatatype() extends Datatype {
 case class StringDatatype() extends Datatype {
   override def prettyprint(out : PpStream) = { out << "String" }
   override def progressToIr : ir.Datatype = ir.StringDatatype
-  override def dimensionality : Int = { Logger.warn("Request for dimensionality of l4.StringDatatype occured"); 0 }
-  override def getSizeArray : Array[Int] = { Logger.warn("Request for sizeArray of l4.StringDatatype occured"); Array() }
+  override def dimensionality : Int = { Logger.warn("Request for dimensionality of l4.StringDatatype occurred"); 0 }
+  override def getSizeArray : Array[Int] = { Logger.warn("Request for sizeArray of l4.StringDatatype occurred"); Array() }
 }
 
 case class CharDatatype() extends Datatype {
