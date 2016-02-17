@@ -195,13 +195,13 @@ case class VectorExpression(var datatype : Option[Datatype], var expressions : L
   def length = expressions.length
 
   def apply(i : Integer) = expressions(i)
-  def isConstant = expressions.filter(e => e.isInstanceOf[Number]).length == expressions.length
+  def isConstant = expressions.forall(e => e.isInstanceOf[Number])
   def innerType : Option[Datatype] = {
     if (datatype.isEmpty) {
       if (!isConstant) {
         None
       } else {
-        expressions.foreach(e => e match {
+        expressions.foreach(e => e match { // FIXME: dead code? datatype will unconditionally be overwritten in next statement
           case x : FloatConstant => datatype = Some(RealDatatype)
           case _                 =>
         })
@@ -214,21 +214,11 @@ case class VectorExpression(var datatype : Option[Datatype], var expressions : L
   }
   def prettyprintInner(out : PpStream) : Unit = {
 
-    if (Knowledge.targetCompiler == "GCC") {
-      out << "std::move(("
-    } else {
-      out << "(("
-    }
-    datatype.getOrElse(RealDatatype).prettyprint(out)
-    out << "[]){"
-    expressions.foreach(e => { e.prettyprint(out); out << ',' })
-    out.removeLast() // remove last comma
-    out << "})"
+    out << (if (Knowledge.targetCompiler == "GCC") "std::move((" else "((")
+    out << datatype.getOrElse(RealDatatype) << "[]){" <<< (expressions, ",") << "})"
   }
   override def prettyprint(out : PpStream) : Unit = {
-    out << "Matrix<"
-    datatype.getOrElse(RealDatatype).prettyprint(out)
-    out << ", "
+    out << "Matrix<" << datatype.getOrElse(RealDatatype) << ", "
     if (rowVector.getOrElse(true)) {
       out << "1, " << length << "> (" // row vector
     } else {
@@ -241,24 +231,14 @@ case class VectorExpression(var datatype : Option[Datatype], var expressions : L
 
 case class MatrixExpression(var datatype : Option[Datatype], var expressions : ListBuffer[ListBuffer[Expression]]) extends Expression {
   def prettyprintInner(out : PpStream) : Unit = {
-    if (Knowledge.targetCompiler == "GCC") {
-      out << "std::move(("
-    } else {
-      out << "(("
-    }
-    datatype.getOrElse(RealDatatype).prettyprint(out)
-    out << "[]){"
-    expressions.foreach(f => f.foreach(e => { e.prettyprint(out); out << ',' }))
-    out.removeLast() // remove last comma
-    out << "})"
+    out << (if (Knowledge.targetCompiler == "GCC") "std::move((" else "((")
+    out << datatype.getOrElse(RealDatatype) << "[]){" <<< (expressions.flatten, ",") << "})"
   }
 
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) "double" else "float"
 
-    out << "Matrix<"
-    if (isInteger) out << "int, "; else out << prec << ", "
-    out << rows << ", " << columns << "> ("
+    out << "Matrix<" << (if (isInteger) "int" else prec) << ", " << rows << ", " << columns << "> ("
     prettyprintInner(out)
     out << ")"
   }
@@ -266,8 +246,8 @@ case class MatrixExpression(var datatype : Option[Datatype], var expressions : L
   def columns = expressions(0).length
 
   def apply(i : Integer) = expressions(i)
-  def isConstant = expressions.flatten.filter(e => e.isInstanceOf[Number]).length == expressions.flatten.length
-  def isInteger = expressions.flatten.filter(e => e.isInstanceOf[IntegerConstant]).length == expressions.flatten.length
+  def isConstant = expressions.flatten.forall(e => e.isInstanceOf[Number])
+  def isInteger = expressions.flatten.forall(e => e.isInstanceOf[IntegerConstant])
 }
 
 case class Allocation(var datatype : Datatype, var size : Expression) extends Expression {
