@@ -196,24 +196,8 @@ case class VectorExpression(var datatype : Option[Datatype], var expressions : L
 
   def apply(i : Integer) = expressions(i)
   def isConstant = expressions.forall(e => e.isInstanceOf[Number])
-  def innerType : Option[Datatype] = {
-    if (datatype.isEmpty) {
-      if (!isConstant) {
-        None
-      } else {
-        expressions.foreach(e => e match { // FIXME: dead code? datatype will unconditionally be overwritten in next statement
-          case x : FloatConstant => datatype = Some(RealDatatype)
-          case _                 =>
-        })
-        datatype = Some(IntegerDatatype)
-        return datatype
-      }
-    } else {
-      return datatype
-    }
-  }
-  def prettyprintInner(out : PpStream) : Unit = {
 
+  def prettyprintInner(out : PpStream) : Unit = {
     out << (if (Knowledge.targetCompiler == "GCC") "std::move((" else "((")
     out << datatype.getOrElse(RealDatatype) << "[]){" <<< (expressions, ",") << "})"
   }
@@ -234,7 +218,6 @@ case class MatrixExpression(var datatype : Option[Datatype], var expressions : L
     out << (if (Knowledge.targetCompiler == "GCC") "std::move((" else "((")
     out << datatype.getOrElse(RealDatatype) << "[]){" <<< (expressions.flatten, ",") << "})"
   }
-
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) "double" else "float"
 
@@ -242,6 +225,7 @@ case class MatrixExpression(var datatype : Option[Datatype], var expressions : L
     prettyprintInner(out)
     out << ")"
   }
+
   def rows = expressions.length
   def columns = expressions(0).length
 
