@@ -312,11 +312,21 @@ case class OffsetIndex(var minOffset : Int, var maxOffset : Int, var index : Exp
   }
 }
 
-case class MultiIndex(var indices : Array[Expression]) extends Expression with Iterable[Expression] {
-  def this(indices : Expression*) = this(indices.toArray)
-  def this(indices : Array[Int]) = this(indices.map(IntegerConstant(_) : Expression)) // legacy support
+// FIXME: use this
+//case class MultiIndex(var indices : Array[Expression]) extends Expression with Iterable[Expression] {
+//  def this(indices : Expression*) = this(indices.toArray)
+//  def this(indices : Array[Int]) = this(indices.map(IntegerConstant(_) : Expression)) // legacy support
+//  def this(left : MultiIndex, right : MultiIndex, f : (Expression, Expression) => Expression) =
+//    this((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).toArray)
+// FIXME: instead of this
+case class MultiIndex(var indices : ListBuffer[Expression]) extends Expression with Iterable[Expression] {
+  def this(indices : Expression*) = this(indices.to[ListBuffer])
+  def this(indices : Array[Int]) = this(indices.map(IntegerConstant(_) : Expression).to[ListBuffer]) // legacy support
+  def this(indices : Array[Expression]) = this(indices.to[ListBuffer]) // legacy support
   def this(left : MultiIndex, right : MultiIndex, f : (Expression, Expression) => Expression) =
-    this((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).toArray)
+    this((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).to[ListBuffer])
+  // end of FIXME
+
   // FIXME: add variable accesses to begin with...
   for (i <- 0 until length) {
     update(i, indices(i) match {
