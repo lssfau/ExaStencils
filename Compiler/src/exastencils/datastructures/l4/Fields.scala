@@ -192,7 +192,6 @@ case class LayoutDeclarationStatement(
       s"${identifier.name}_$targetFieldName",
       level,
       datatype.progressToIr,
-      datatype.progressToIr.resolveBaseDatatype,
       finalDiscretization,
       layouts,
       numDimsGrid,

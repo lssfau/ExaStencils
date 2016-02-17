@@ -232,7 +232,7 @@ object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Ev
       }
     }
 
-    fieldAccesses.put(identifier, field.gridDataType) // TODO: optimize for array fields
+    fieldAccesses.put(identifier, field.gridDatatype) // TODO: optimize for array fields / HODT
   }
 
   this += new Transformation("Searching", {

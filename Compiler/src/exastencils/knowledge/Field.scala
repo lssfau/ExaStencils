@@ -10,8 +10,7 @@ import exastencils.logger._
 case class FieldLayout(
     var identifier : String, // will be used to find the field
     var level : Int, // the (geometric) level the layout is associated with
-    var gridDataType : Datatype, // represents the (original) data type; may be multidimensional, i.e. vectors, matrices, etc.
-    var scalarDataType : Datatype, // represents the underlying data type, i.e. the data type of the innermost dimensions
+    var datatype : Datatype, // represents the (original) data type; may be multidimensional, i.e. vectors, matrices, etc.
     var discretization : String, // specifies where data is located; currently allowed values are "node", "cell" and "face_{x,y,z}"
     var layoutsPerDim : Array[FieldLayoutPerDim], // represents the number of data points and their distribution in each dimension
     var numDimsGrid : Int, // dimensionality of the associated grid; usually lesser than or equal to 3
@@ -111,8 +110,9 @@ case class Field(
     var boundaryConditions : Option[Expression] // None if no explicit boundary handling is given, otherwise specifies the expression to be used for the dirichlet boundary or Neumann as magic identifier
     ) {
   // shortcuts to layout options
-  def gridDataType = fieldLayout.gridDataType
-  def scalarDataType = fieldLayout.scalarDataType
+  def gridDatatype = fieldLayout.datatype
+  def resolveBaseDatatype = fieldLayout.datatype.resolveBaseDatatype
+  def resolveDeclType = fieldLayout.datatype.resolveDeclType
   def discretization = fieldLayout.discretization
   def referenceOffset = fieldLayout.referenceOffset
   def communicatesDuplicated = fieldLayout.communicatesDuplicated
@@ -128,8 +128,6 @@ case class FieldSelection(
 
   // shortcuts to Field members
   def codeName = field.codeName
-  def gridDataType = field.gridDataType
-  def scalarDataType = field.scalarDataType
   def fieldLayout = field.fieldLayout
   def referenceOffset = field.referenceOffset
 
@@ -174,8 +172,9 @@ case class ExternalField(
     var level : Int // the (geometric) level the field lives on
     ) {
   // shortcuts to layout options
-  def gridDataType = fieldLayout.gridDataType
-  def scalarDataType = fieldLayout.scalarDataType
+  def gridDatatype = fieldLayout.datatype
+  def resolveBaseDatatype = fieldLayout.datatype.resolveBaseDatatype
+  def resolveDeclType = fieldLayout.datatype.resolveDeclType
   def referenceOffset = fieldLayout.referenceOffset
   def communicatesDuplicated = fieldLayout.communicatesDuplicated
   def communicatesGhosts = fieldLayout.communicatesGhosts

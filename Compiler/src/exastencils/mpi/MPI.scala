@@ -91,7 +91,7 @@ case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange)
 
   override def dimensionality : Int = ???
   override def getSizeArray : Array[Int] = ???
-  override def resolveBaseDatatype : Datatype = field.field.fieldLayout.scalarDataType
+  override def resolveBaseDatatype : Datatype = field.field.resolveBaseDatatype
   override def resolveDeclType : Datatype = this
   override def resolveDeclPostscript : String = ""
   override def resolveFlattendSize : Int = ???
@@ -127,7 +127,7 @@ case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange)
   }
 
   def generateCtor : ListBuffer[Statement] = {
-    val scalarDatatype = field.fieldLayout.scalarDataType.prettyprint_mpi
+    val scalarDatatype = field.field.resolveBaseDatatype.prettyprint_mpi
 
     // compile statement(s)
     ListBuffer[Statement](

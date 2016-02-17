@@ -75,7 +75,7 @@ case class CUDA_UpdateHostData(var fieldAccess : FieldAccess) extends Statement 
             iv.FieldData(field, fieldSelection.level, fieldSelection.slot),
             iv.FieldDeviceData(field, fieldSelection.level, fieldSelection.slot),
             (0 until field.fieldLayout.numDimsData).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
-              * SizeOfExpression(field.scalarDataType),
+              * SizeOfExpression(field.resolveBaseDatatype),
             "cudaMemcpyDeviceToHost"))),
         AssignmentStatement(iv.DeviceDataUpdated(field, fieldSelection.slot), BooleanConstant(false))))
   }
@@ -96,7 +96,7 @@ case class CUDA_UpdateDeviceData(var fieldAccess : FieldAccess) extends Statemen
             iv.FieldDeviceData(field, fieldSelection.level, fieldSelection.slot),
             iv.FieldData(field, fieldSelection.level, fieldSelection.slot),
             (0 until field.fieldLayout.numDimsData).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
-              * SizeOfExpression(field.scalarDataType),
+              * SizeOfExpression(field.resolveBaseDatatype),
             "cudaMemcpyHostToDevice"))),
         AssignmentStatement(iv.HostDataUpdated(field, fieldSelection.slot), BooleanConstant(false))))
   }

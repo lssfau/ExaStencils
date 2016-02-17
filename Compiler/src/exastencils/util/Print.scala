@@ -77,7 +77,7 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
       Settings.additionalIncludes += "fstream"
 
     val arrayIndexRange = (
-      if (field.arrayIndex.isEmpty) (0 until field.fieldLayout.gridDataType.resolveFlattendSize)
+      if (field.arrayIndex.isEmpty) (0 until field.field.gridDatatype.resolveFlattendSize)
       else (field.arrayIndex.get to field.arrayIndex.get))
 
     val separator = (if (Knowledge.experimental_generateParaviewFiles) "\",\"" else "\" \"")

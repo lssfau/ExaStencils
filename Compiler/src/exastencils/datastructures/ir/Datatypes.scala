@@ -166,7 +166,7 @@ case class VectorDatatype(var datatype : Datatype, var size : Int, var isRow : O
 }
 
 // TODO: use after successful integration:
-//case class MatrixDatatype(datatype : Datatype, sizeM : Int, sizeN : Int) extends HigherOrderDatatype {
+//case class MatrixDatatype(var datatype : Datatype, var sizeM : Int, var sizeN : Int) extends HigherOrderDatatype {
 //  override def prettyprint(out : PpStream) : Unit = out << "Matrix<" << datatype << ',' << sizeM << ',' << sizeN << '>'
 //  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 //
@@ -177,7 +177,7 @@ case class VectorDatatype(var datatype : Datatype, var size : Int, var isRow : O
 //  override def resolveFlattendSize : Int = sizeM * sizeN * datatype.resolveFlattendSize
 //  override def typicalByteSize = sizeM * sizeN * datatype.typicalByteSize
 //}
-case class MatrixDatatype(datatype : Datatype, sizeM : Int, sizeN : Int) extends HigherOrderDatatype {
+case class MatrixDatatype(var datatype : Datatype, var sizeM : Int, var sizeN : Int) extends HigherOrderDatatype {
   override def prettyprint(out : PpStream) : Unit = out << "Matrix<" << datatype << ',' << sizeM << ',' << sizeN << '>'
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 
