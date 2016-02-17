@@ -107,8 +107,10 @@ trait Annotatable {
     * @param other The other object holding the [[exastencils.datastructures.Annotation]]s to add to this instance.
     */
   def annotate(other : Annotatable) : Unit = {
-    var z = other.annotations_
-    annotations_ ++= Duplicate(z)
+    if (other != this) {
+      var z = other.annotations_
+      annotations_ ++= Duplicate(z)
+    }
   }
 
   /**
