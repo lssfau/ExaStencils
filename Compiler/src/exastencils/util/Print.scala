@@ -56,8 +56,8 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintFieldStatement\n"
 
+  def numDimsGrid = field.fieldLayout.numDimsGrid
   def numDimsData = field.fieldLayout.numDimsData
-  def numDimsGrid = field.fieldLayout.numDimsData
 
   def getPos(field : FieldSelection, dim : Int) : Expression = {
     field.field.discretization match {
@@ -77,7 +77,7 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
       Settings.additionalIncludes += "fstream"
 
     val arrayIndexRange = (
-      if (field.arrayIndex.isEmpty) (0 until field.fieldLayout.gridDataType.resolveFlattendSize)
+      if (field.arrayIndex.isEmpty) (0 until field.field.gridDatatype.resolveFlattendSize)
       else (field.arrayIndex.get to field.arrayIndex.get))
 
     val separator = (if (Knowledge.experimental_generateParaviewFiles) "\",\"" else "\" \"")

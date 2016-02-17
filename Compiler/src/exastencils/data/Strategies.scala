@@ -218,12 +218,12 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
           ListBuffer(
             VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), s"vs_$counter",
               Some(Knowledge.simd_vectorSize * SizeOfExpression(RealDatatype))),
-            AssignmentStatement(newFieldData.basePtr, Allocation(field.field.scalarDataType, numDataPoints + Knowledge.simd_vectorSize - 1)),
+            AssignmentStatement(newFieldData.basePtr, Allocation(field.field.resolveDeclType, numDataPoints + Knowledge.simd_vectorSize - 1)),
             VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), s"offset_$counter",
               Some(((s"vs_$counter" - (CastExpression(SpecialDatatype("ptrdiff_t"), newFieldData.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / SizeOfExpression(RealDatatype))),
             AssignmentStatement(newFieldData, newFieldData.basePtr + s"offset_$counter"))
         } else {
-          ListBuffer(AssignmentStatement(newFieldData, Allocation(field.field.scalarDataType, numDataPoints)))
+          ListBuffer(AssignmentStatement(newFieldData, Allocation(field.field.resolveDeclType, numDataPoints)))
         }
 
       if (field.field.numSlots > 1)
@@ -253,7 +253,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       newFieldData.slot = (if (field.field.numSlots > 1) "slot" else 0)
 
       var innerStmts = ListBuffer[Statement](
-        CUDA_AllocateStatement(newFieldData, numDataPoints, field.field.scalarDataType))
+        CUDA_AllocateStatement(newFieldData, numDataPoints, field.field.resolveBaseDatatype))
 
       if (field.field.numSlots > 1)
         statements += new ForLoopStatement(

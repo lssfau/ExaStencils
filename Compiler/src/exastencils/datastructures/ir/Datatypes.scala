@@ -9,8 +9,9 @@ trait Datatype extends Node with PrettyPrintable {
 
   def dimensionality : Int
   def getSizeArray : Array[Int]
-  def resolveUnderlyingDatatype : Datatype
-  def resolvePostscript : String // TODO: rename
+  def resolveBaseDatatype : Datatype
+  def resolveDeclType : Datatype
+  def resolveDeclPostscript : String
   def resolveFlattendSize : Int
   def typicalByteSize : Int
 }
@@ -24,8 +25,9 @@ case class SpecialDatatype(typeName : String) extends Datatype {
   // unknown
   override def dimensionality : Int = ???
   override def getSizeArray : Array[Int] = ???
-  override def resolveUnderlyingDatatype : Datatype = this
-  override def resolvePostscript : String = ""
+  override def resolveBaseDatatype : Datatype = this
+  override def resolveDeclType : Datatype = this
+  override def resolveDeclPostscript : String = ""
   override def resolveFlattendSize : Int = ???
   override def typicalByteSize = ???
 }
@@ -37,8 +39,9 @@ case object UnitDatatype extends Datatype {
 
   override def dimensionality : Int = 0
   override def getSizeArray : Array[Int] = Array()
-  override def resolveUnderlyingDatatype : Datatype = this
-  override def resolvePostscript : String = ""
+  override def resolveBaseDatatype : Datatype = this
+  override def resolveDeclType : Datatype = this
+  override def resolveDeclPostscript : String = ""
   override def resolveFlattendSize : Int = 0
   override def typicalByteSize = 0
 }
@@ -48,8 +51,9 @@ case object UnitDatatype extends Datatype {
 trait ScalarDatatype extends Datatype {
   override def dimensionality : Int = 0
   override def getSizeArray : Array[Int] = Array()
-  override def resolveUnderlyingDatatype : Datatype = this
-  override def resolvePostscript : String = ""
+  override def resolveBaseDatatype : Datatype = this
+  override def resolveDeclType : Datatype = this
+  override def resolveDeclPostscript : String = ""
   override def resolveFlattendSize : Int = 1
 }
 
@@ -102,7 +106,7 @@ case object CharDatatype extends ScalarDatatype {
 
 trait HigherOrderDatatype extends Datatype {
   def datatype : Datatype // encapsulated data type
-  override def resolveUnderlyingDatatype : Datatype = datatype.resolveUnderlyingDatatype
+  override def resolveBaseDatatype : Datatype = datatype.resolveBaseDatatype
 }
 
 // FIXME: in the following classes, rename size to numElements to make intention clearer
@@ -113,7 +117,8 @@ case class ArrayDatatype(datatype : Datatype, size : Int) extends HigherOrderDat
 
   override def dimensionality : Int = 1 + datatype.dimensionality
   override def getSizeArray : Array[Int] = Array(size) ++ datatype.getSizeArray
-  override def resolvePostscript : String = datatype.resolvePostscript + s"[$size]"
+  override def resolveDeclType : Datatype = datatype.resolveDeclType
+  override def resolveDeclPostscript : String = datatype.resolveDeclPostscript + s"[$size]"
   override def resolveFlattendSize : Int = size * datatype.resolveFlattendSize
   override def typicalByteSize = size * datatype.typicalByteSize
 }
@@ -124,11 +129,27 @@ case class ArrayDatatype_VS(datatype : Datatype, size : Expression) extends High
 
   override def dimensionality : Int = 1 + datatype.dimensionality
   override def getSizeArray : Array[Int] = ???
-  override def resolvePostscript : String = datatype.resolvePostscript + s"[$size]"
+  override def resolveDeclType : Datatype = datatype.resolveDeclType
+  override def resolveDeclPostscript : String = datatype.resolveDeclPostscript + s"[$size]"
   override def resolveFlattendSize : Int = ???
   override def typicalByteSize = ???
 }
 
+// TODO: use after successful integration:
+//case class VectorDatatype(var datatype : Datatype, var size : Int, var isRow : Option[Boolean]) extends HigherOrderDatatype {
+//  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+//  override def prettyprint(out : PpStream) : Unit = {
+//    if (isRow.getOrElse(true)) out << "Matrix<" << datatype << ",1," << size << '>'
+//    else out << "Matrix<" << datatype << ',' << size << ",1>"
+//  }
+//
+//  override def dimensionality : Int = 1 + datatype.dimensionality
+//  override def getSizeArray : Array[Int] = Array(size) ++ datatype.getSizeArray
+//  override def resolveDeclType : Datatype = this
+//  override def resolveDeclPostscript : String = ""
+//  override def resolveFlattendSize : Int = size * datatype.resolveFlattendSize
+//  override def typicalByteSize = size * datatype.typicalByteSize
+//}
 case class VectorDatatype(var datatype : Datatype, var size : Int, var isRow : Option[Boolean]) extends HigherOrderDatatype {
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
   override def prettyprint(out : PpStream) : Unit = {
@@ -136,21 +157,35 @@ case class VectorDatatype(var datatype : Datatype, var size : Int, var isRow : O
     else out << "Matrix<" << datatype << ',' << size << ",1>"
   }
 
-  override def dimensionality : Int = 1 + datatype.dimensionality
-  override def getSizeArray : Array[Int] = Array(size) ++ datatype.getSizeArray
-  override def resolvePostscript : String = ""
-  override def resolveFlattendSize : Int = size * datatype.resolveFlattendSize
+  override def dimensionality : Int = 0
+  override def getSizeArray : Array[Int] = Array()
+  override def resolveDeclType : Datatype = this
+  override def resolveDeclPostscript : String = ""
+  override def resolveFlattendSize : Int = datatype.resolveFlattendSize
   override def typicalByteSize = size * datatype.typicalByteSize
 }
 
-case class MatrixDatatype(datatype : Datatype, sizeM : Int, sizeN : Int) extends HigherOrderDatatype {
+// TODO: use after successful integration:
+//case class MatrixDatatype(var datatype : Datatype, var sizeM : Int, var sizeN : Int) extends HigherOrderDatatype {
+//  override def prettyprint(out : PpStream) : Unit = out << "Matrix<" << datatype << ',' << sizeM << ',' << sizeN << '>'
+//  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+//
+//  override def dimensionality : Int = 2 + datatype.dimensionality
+//  override def getSizeArray : Array[Int] = Array(sizeM, sizeN) ++ datatype.getSizeArray
+//  override def resolveDeclType : Datatype = this
+//  override def resolveDeclPostscript : String = ""
+//  override def resolveFlattendSize : Int = sizeM * sizeN * datatype.resolveFlattendSize
+//  override def typicalByteSize = sizeM * sizeN * datatype.typicalByteSize
+//}
+case class MatrixDatatype(var datatype : Datatype, var sizeM : Int, var sizeN : Int) extends HigherOrderDatatype {
   override def prettyprint(out : PpStream) : Unit = out << "Matrix<" << datatype << ',' << sizeM << ',' << sizeN << '>'
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 
-  override def dimensionality : Int = 2 + datatype.dimensionality
-  override def getSizeArray : Array[Int] = Array(sizeM, sizeN) ++ datatype.getSizeArray
-  override def resolvePostscript : String = ""
-  override def resolveFlattendSize : Int = sizeM * sizeN * datatype.resolveFlattendSize
+  override def dimensionality : Int = 0
+  override def getSizeArray : Array[Int] = Array()
+  override def resolveDeclType : Datatype = this
+  override def resolveDeclPostscript : String = ""
+  override def resolveFlattendSize : Int = datatype.resolveFlattendSize
   override def typicalByteSize = sizeM * sizeN * datatype.typicalByteSize
 }
 
@@ -161,8 +196,9 @@ trait DatatypeModifier extends Datatype {
 
   override def dimensionality : Int = datatype.dimensionality
   override def getSizeArray : Array[Int] = datatype.getSizeArray
-  override def resolveUnderlyingDatatype : Datatype = datatype.resolveUnderlyingDatatype
-  override def resolvePostscript : String = datatype.resolvePostscript
+  override def resolveBaseDatatype : Datatype = datatype.resolveBaseDatatype
+  override def resolveDeclType : Datatype = datatype.resolveDeclType
+  override def resolveDeclPostscript : String = datatype.resolveDeclPostscript
   override def resolveFlattendSize : Int = datatype.resolveFlattendSize
   override def typicalByteSize = datatype.typicalByteSize
 }
@@ -179,16 +215,15 @@ trait IndirectionDatatype extends Datatype {
 
   override def dimensionality : Int = datatype.dimensionality
   override def getSizeArray : Array[Int] = datatype.getSizeArray
-  override def resolveUnderlyingDatatype : Datatype = datatype.resolveUnderlyingDatatype
-  override def resolvePostscript : String = datatype.resolvePostscript
+  override def resolveBaseDatatype : Datatype = datatype.resolveBaseDatatype
+  override def resolveDeclType : Datatype = this
+  override def resolveDeclPostscript : String = ""
   override def resolveFlattendSize : Int = datatype.resolveFlattendSize
 }
 
 trait PointerLikeDatatype extends IndirectionDatatype {
   override def dimensionality : Int = 0
   override def getSizeArray : Array[Int] = Array()
-  override def resolveUnderlyingDatatype : Datatype = this
-  override def resolvePostscript : String = ""
   override def resolveFlattendSize : Int = 1
 
   override def typicalByteSize = if (Knowledge.hw_64bit) 8 else 4
@@ -197,8 +232,7 @@ trait PointerLikeDatatype extends IndirectionDatatype {
 trait ReferenceLikeDatatype extends IndirectionDatatype {
   override def dimensionality : Int = datatype.dimensionality
   override def getSizeArray : Array[Int] = datatype.getSizeArray
-  override def resolveUnderlyingDatatype : Datatype = datatype.resolveUnderlyingDatatype
-  override def resolvePostscript : String = datatype.resolvePostscript
+  override def resolveDeclPostscript : String = datatype.resolveDeclPostscript
   override def resolveFlattendSize : Int = datatype.resolveFlattendSize
   override def typicalByteSize = datatype.typicalByteSize
 }
@@ -229,8 +263,9 @@ case object StringDatatype extends Datatype {
 
   override def dimensionality : Int = 0
   override def getSizeArray : Array[Int] = Array()
-  override def resolveUnderlyingDatatype : Datatype = ???
-  override def resolvePostscript : String = ""
+  override def resolveBaseDatatype : Datatype = CharDatatype
+  override def resolveDeclType : Datatype = this
+  override def resolveDeclPostscript : String = ""
   override def resolveFlattendSize : Int = ???
   override def typicalByteSize = ???
 }
@@ -243,8 +278,9 @@ case class ComplexDatatype(datatype : Datatype) extends Datatype {
 
   override def dimensionality : Int = 0 + datatype.dimensionality
   override def getSizeArray : Array[Int] = Array() ++ datatype.getSizeArray
-  override def resolveUnderlyingDatatype : Datatype = datatype.resolveUnderlyingDatatype
-  override def resolvePostscript : String = datatype.resolvePostscript
+  override def resolveBaseDatatype : Datatype = datatype.resolveBaseDatatype
+  override def resolveDeclType : Datatype = this
+  override def resolveDeclPostscript : String = datatype.resolveDeclPostscript
   override def resolveFlattendSize : Int = 1 * datatype.resolveFlattendSize
   override def typicalByteSize = 2 * datatype.typicalByteSize
 }
@@ -258,8 +294,9 @@ trait SIMDDatatype extends Datatype {
 
   override def dimensionality : Int = 1
   override def getSizeArray : Array[Int] = Array(Knowledge.simd_vectorSize)
-  override def resolveUnderlyingDatatype : Datatype = datatype
-  override def resolvePostscript : String = ""
+  override def resolveBaseDatatype : Datatype = datatype
+  override def resolveDeclType : Datatype = this
+  override def resolveDeclPostscript : String = ""
   override def resolveFlattendSize : Int = Knowledge.simd_vectorSize
   override def typicalByteSize = Knowledge.simd_vectorSize * datatype.typicalByteSize
 }
