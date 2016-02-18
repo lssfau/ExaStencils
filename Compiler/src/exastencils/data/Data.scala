@@ -29,13 +29,9 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
   override def prettyprint_decl : String = prettyprint
 
   def getFortranCompDT() : Datatype = {
-    var dt : Datatype = dest.dataType
-    for (dim <- 0 until Knowledge.dimensionality)
+    var dt : Datatype = dest.resolveBaseDatatype
+    for (dim <- 0 until dest.fieldLayout.numDimsData)
       dt = ArrayDatatype_VS(dt, dest.fieldLayout.idxById("TOT", dim))
-
-    if (dest.vectorSize > 1)
-      dt = ArrayDatatype(dt, dest.vectorSize)
-
     dt
   }
 
@@ -43,11 +39,10 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
     val externalDT = if (Knowledge.generateFortranInterface)
       getFortranCompDT()
     else
-      PointerDatatype(src.dataType)
+      PointerDatatype(src.resolveBaseDatatype)
 
-    val loopDim = Knowledge.dimensionality + (if (src.vectorSize > 1) 1 else 0)
-    var multiIndex = LoopOverDimensions.defIt
-    if (src.vectorSize <= 1) multiIndex(Knowledge.dimensionality) = 0
+    val loopDim = dest.fieldLayout.numDimsData
+    var multiIndex = LoopOverDimensions.defIt(loopDim)
 
     new FunctionStatement(UnitDatatype, "get" + dest.identifier,
       ListBuffer(new VariableAccess("dest", Some(externalDT)), new VariableAccess("slot", Some(IntegerDatatype))),
@@ -66,13 +61,9 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
   override def prettyprint_decl : String = prettyprint
 
   def getFortranCompDT() : Datatype = {
-    var dt : Datatype = src.dataType
-    for (dim <- 0 until Knowledge.dimensionality)
+    var dt : Datatype = src.resolveBaseDatatype
+    for (dim <- 0 until src.fieldLayout.numDimsData)
       dt = ArrayDatatype_VS(dt, src.fieldLayout.idxById("TOT", dim))
-
-    if (src.vectorSize > 1)
-      dt = ArrayDatatype(dt, src.vectorSize)
-
     dt
   }
 
@@ -80,11 +71,10 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
     val externalDT = if (Knowledge.generateFortranInterface)
       getFortranCompDT()
     else
-      PointerDatatype(dest.dataType)
+      PointerDatatype(dest.resolveBaseDatatype)
 
-    val loopDim = Knowledge.dimensionality + (if (src.vectorSize > 1) 1 else 0)
-    var multiIndex = LoopOverDimensions.defIt
-    if (src.vectorSize <= 1) multiIndex(Knowledge.dimensionality) = 0
+    val loopDim = src.fieldLayout.numDimsData
+    var multiIndex = LoopOverDimensions.defIt(loopDim)
 
     new FunctionStatement(UnitDatatype, "set" + src.identifier,
       ListBuffer(new VariableAccess("src", Some(externalDT)), new VariableAccess("slot", Some(IntegerDatatype))),

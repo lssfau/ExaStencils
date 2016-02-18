@@ -61,9 +61,9 @@ abstract class AbstractFieldData extends InternalVariable(true, false, true, tru
 
   override def resolveDataType = {
     if (field.numSlots > 1)
-      new ArrayDatatype(new PointerDatatype(field.dataType.resolveUnderlyingDatatype), field.numSlots)
+      new ArrayDatatype(new PointerDatatype(field.resolveDeclType), field.numSlots)
     else
-      new PointerDatatype(field.dataType.resolveUnderlyingDatatype)
+      new PointerDatatype(field.resolveDeclType)
   }
 
   override def resolveDefValue = Some(0)

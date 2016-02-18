@@ -10,9 +10,11 @@ import exastencils.logger._
 case class FieldLayout(
     var identifier : String, // will be used to find the field
     var level : Int, // the (geometric) level the layout is associated with
-    var dataType : Datatype, // represents the data type; thus it can also encode the dimensionality when using e.g. vector fields
+    var datatype : Datatype, // represents the (original) data type; may be multidimensional, i.e. vectors, matrices, etc.
     var discretization : String, // specifies where data is located; currently allowed values are "node", "cell" and "face_{x,y,z}"
     var layoutsPerDim : Array[FieldLayoutPerDim], // represents the number of data points and their distribution in each dimension
+    var numDimsGrid : Int, // dimensionality of the associated grid; usually lesser than or equal to 3
+    var numDimsData : Int, // dimensionality of the stored data; numDimsGrid for scalar fields, numDimsGrid + 1 for vector fields, numDimsGrid + 2 for matrix fields, etc.
     var referenceOffset : MultiIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
     var communicatesDuplicated : Boolean, // specifies if duplicated values need to be exchanged between processes
     var communicatesGhosts : Boolean // specifies if ghost layer values need to be exchanged between processes
@@ -108,9 +110,10 @@ case class Field(
     var boundaryConditions : Option[Expression] // None if no explicit boundary handling is given, otherwise specifies the expression to be used for the dirichlet boundary or Neumann as magic identifier
     ) {
   // shortcuts to layout options
-  def dataType = fieldLayout.dataType
+  def gridDatatype = fieldLayout.datatype
+  def resolveBaseDatatype = fieldLayout.datatype.resolveBaseDatatype
+  def resolveDeclType = fieldLayout.datatype.resolveDeclType
   def discretization = fieldLayout.discretization
-  def vectorSize = fieldLayout.dataType.resolveFlattendSize
   def referenceOffset = fieldLayout.referenceOffset
   def communicatesDuplicated = fieldLayout.communicatesDuplicated
   def communicatesGhosts = fieldLayout.communicatesGhosts
@@ -120,12 +123,11 @@ case class FieldSelection(
     var field : Field,
     var level : Expression,
     var slot : Expression,
-    var arrayIndex : Option[Int] = None,
+    var arrayIndex : Option[Int] = None, // TODO: delete
     var fragIdx : Expression = LoopOverFragments.defIt) extends Node {
 
   // shortcuts to Field members
   def codeName = field.codeName
-  def dataType = field.dataType
   def fieldLayout = field.fieldLayout
   def referenceOffset = field.referenceOffset
 
@@ -150,7 +152,7 @@ object FieldCollection {
     level match {
       case IntegerConstant(constLevel) => getFieldByIdentifier(identifier, constLevel.toInt, suppressError)
       case _ => {
-        if (suppressError) Logger.warn(s"Trying to find field $identifier on level ${level.prettyprint} - non-constant levels are not supported")
+        if (!suppressError) Logger.warn(s"Trying to find field $identifier on level ${level.prettyprint} - non-constant levels are not supported")
         None
       }
     }
@@ -170,8 +172,9 @@ case class ExternalField(
     var level : Int // the (geometric) level the field lives on
     ) {
   // shortcuts to layout options
-  def dataType = fieldLayout.dataType
-  def vectorSize = fieldLayout.dataType.resolveFlattendSize
+  def gridDatatype = fieldLayout.datatype
+  def resolveBaseDatatype = fieldLayout.datatype.resolveBaseDatatype
+  def resolveDeclType = fieldLayout.datatype.resolveDeclType
   def referenceOffset = fieldLayout.referenceOffset
   def communicatesDuplicated = fieldLayout.communicatesDuplicated
   def communicatesGhosts = fieldLayout.communicatesGhosts

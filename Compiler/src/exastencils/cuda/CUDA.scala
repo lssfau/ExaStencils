@@ -74,8 +74,8 @@ case class CUDA_UpdateHostData(var fieldAccess : FieldAccess) extends Statement 
           FunctionCallExpression("cudaMemcpy", ListBuffer[Expression](
             iv.FieldData(field, fieldSelection.level, fieldSelection.slot),
             iv.FieldDeviceData(field, fieldSelection.level, fieldSelection.slot),
-            (0 to Knowledge.dimensionality).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
-              * field.dataType.resolveFlattendSize * SizeOfExpression(field.dataType),
+            (0 until field.fieldLayout.numDimsData).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
+              * SizeOfExpression(field.resolveBaseDatatype),
             "cudaMemcpyDeviceToHost"))),
         AssignmentStatement(iv.DeviceDataUpdated(field, fieldSelection.slot), BooleanConstant(false))))
   }
@@ -95,8 +95,8 @@ case class CUDA_UpdateDeviceData(var fieldAccess : FieldAccess) extends Statemen
           FunctionCallExpression("cudaMemcpy", ListBuffer[Expression](
             iv.FieldDeviceData(field, fieldSelection.level, fieldSelection.slot),
             iv.FieldData(field, fieldSelection.level, fieldSelection.slot),
-            (0 to Knowledge.dimensionality).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
-              * field.dataType.resolveFlattendSize * SizeOfExpression(field.dataType),
+            (0 until field.fieldLayout.numDimsData).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
+              * SizeOfExpression(field.resolveBaseDatatype),
             "cudaMemcpyHostToDevice"))),
         AssignmentStatement(iv.HostDataUpdated(field, fieldSelection.slot), BooleanConstant(false))))
   }
@@ -104,7 +104,7 @@ case class CUDA_UpdateDeviceData(var fieldAccess : FieldAccess) extends Statemen
 
 case class CUDA_FunctionCallExpression(var name : String, var numThreadsPerDim : Array[Long], var arguments : ListBuffer[Expression]) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
-    val numDims = math.min(numThreadsPerDim.size, Knowledge.dimensionality)
+    val numDims = numThreadsPerDim.size
     if (numDims > 3) Logger.warn(s"${numDims}D kernel found; this is currently unsupported by CUDA") // TODO: check relation to compute capability
 
     val numBlocks = (0 until numDims).map(dim => {

@@ -19,10 +19,8 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
     var statements : ListBuffer[Statement] = new ListBuffer
 
     for (field <- fields) {
-      val isVectorField = (field.vectorSize > 1)
-      val numDims = (if (isVectorField) Knowledge.dimensionality + 1 else Knowledge.dimensionality)
-      var index = LoopOverDimensions.defIt
-      if (!isVectorField) index(Knowledge.dimensionality) = 0
+      val numDims = field.fieldLayout.numDimsData
+      var index = LoopOverDimensions.defIt(numDims)
 
       val loopOverDims = new LoopOverDimensions(numDims, new IndexRange(
         new MultiIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GLB", dim))),

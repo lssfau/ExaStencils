@@ -229,7 +229,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
           val bases : ArrayBases = decls.getOrElseUpdate(name, new ArrayBases(name))
           name = bases.getName(outMap, base, al)
           val dType : Option[Datatype] = base match {
-            case fd : FieldData => Some(ConstPointerDatatype(fd.field.dataType.resolveUnderlyingDatatype))
+            case fd : FieldData => Some(ConstPointerDatatype(fd.field.resolveDeclType))
             case _              => None
           }
           val newAcc = new ArrayAccess(new VariableAccess(name, dType), in, al)

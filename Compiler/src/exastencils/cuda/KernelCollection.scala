@@ -120,7 +120,7 @@ case class Kernel(var identifier : String,
 
     // add index bounds conditions
     statements ++= (0 until numDimensions).map(dim => {
-      def it = Duplicate(LoopOverDimensions.defIt(dim))
+      def it = Duplicate(LoopOverDimensions.defIt(numDimensions)(dim))
       new ConditionStatement(
         OrOrExpression(LowerExpression(it, s"begin_$dim"), GreaterEqualExpression(it, s"end_$dim")),
         ReturnStatement())
@@ -193,7 +193,7 @@ case class Kernel(var identifier : String,
     }
     for (fieldAccess <- fieldAccesses) {
       val fieldSelection = fieldAccess._2.fieldSelection
-      fctParams += VariableAccess(fieldAccess._1, Some(PointerDatatype(fieldSelection.field.dataType.resolveUnderlyingDatatype)))
+      fctParams += VariableAccess(fieldAccess._1, Some(PointerDatatype(fieldSelection.field.resolveBaseDatatype)))
     }
     for (ivAccess <- ivAccesses) {
       var access = VariableAccess(ivAccess._1, Some(ivAccess._2.resolveDataType))

@@ -559,7 +559,7 @@ class Extractor extends Collector {
 
     val begin : MultiIndex = loop.indices.begin
     val end : MultiIndex = loop.indices.end
-    val loopVarExps : MultiIndex = LoopOverDimensions.defIt
+    val loopVarExps : MultiIndex = LoopOverDimensions.defIt(loop.numDimensions)
 
     val params = new HashSet[String]()
     val modelLoopVars = new ArrayStack[String]()

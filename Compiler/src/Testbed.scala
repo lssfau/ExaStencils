@@ -28,7 +28,7 @@ object Testbed {
   }
 
   object ResolveCoordinates0 extends DefaultStrategy("ResolveCoordinates0") {
-    var replacement : MultiIndex = LoopOverDimensions.defIt
+    var replacement : MultiIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // to be overwritten
 
     Knowledge.dimensionality match {
       case 1 => this += new Transformation("SearchAndReplace", {

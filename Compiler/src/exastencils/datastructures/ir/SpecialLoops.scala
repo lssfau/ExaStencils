@@ -72,7 +72,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
 
   private def processLoopOverDimensions(l : LoopOverDimensions, extent : Int, fieldOffset : HashMap[FieldKey, Int]) : LoopOverDimensions = {
     val nju : LoopOverDimensions = Duplicate(l)
-    for (dim <- 0 until Knowledge.dimensionality) {
+    for (dim <- 0 until nju.numDimensions) {
       nju.indices.begin(dim) = extendBoundsBegin(nju.indices.begin(dim), extent * spec.negExt(dim))
       nju.indices.end(dim) = extendBoundsEnd(nju.indices.end(dim), extent * spec.posExt(dim))
     }
@@ -158,28 +158,29 @@ case class LoopOverPointsInOneFragment(var domain : Int,
     var condition : Option[Expression] = None) extends Statement {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPointsInOneFragment\n"
 
+  def numDims = field.fieldLayout.numDimsData
+
   def expandSpecial : Output[Statement] = {
-    var start = new MultiIndex(Array.fill(Knowledge.dimensionality)(0))
-    var stop = new MultiIndex(Array.fill(Knowledge.dimensionality)(0))
+    var start = new MultiIndex(Array.fill(numDims)(0))
+    var stop = new MultiIndex(Array.fill(numDims)(0))
     if (region.isDefined) {
       // case where a special region is to be traversed
       val regionCode = region.get.region.toUpperCase().charAt(0)
 
-      start = new MultiIndex(DimArray().map(dim => (dim match {
+      start = new MultiIndex((0 until numDims).toArray.map(dim => (dim match {
         case dim if region.get.dir(dim) == 0 => field.fieldLayout.idxById(regionCode + "LB", dim) - field.referenceOffset(dim) + startOffset(dim)
         case dim if region.get.dir(dim) < 0  => field.fieldLayout.idxById(regionCode + "LB", dim) - field.referenceOffset(dim) + startOffset(dim)
         case dim if region.get.dir(dim) > 0  => field.fieldLayout.idxById(regionCode + "RB", dim) - field.referenceOffset(dim) + startOffset(dim)
       }) : Expression))
 
-      stop = new MultiIndex(
-        DimArray().map(dim => (dim match {
-          case dim if region.get.dir(dim) == 0 => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim) - endOffset(dim)
-          case dim if region.get.dir(dim) < 0  => field.fieldLayout.idxById(regionCode + "LE", dim) - field.referenceOffset(dim) - endOffset(dim)
-          case dim if region.get.dir(dim) > 0  => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim) - endOffset(dim)
-        }) : Expression))
+      stop = new MultiIndex((0 until numDims).toArray.map(dim => (dim match {
+        case dim if region.get.dir(dim) == 0 => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim) - endOffset(dim)
+        case dim if region.get.dir(dim) < 0  => field.fieldLayout.idxById(regionCode + "LE", dim) - field.referenceOffset(dim) - endOffset(dim)
+        case dim if region.get.dir(dim) > 0  => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim) - endOffset(dim)
+      }) : Expression))
     } else {
       // basic case -> just eliminate 'real' boundaries
-      for (dim <- 0 until Knowledge.dimensionality) {
+      for (dim <- 0 until numDims) {
         field.fieldLayout.discretization match {
           case discr if "node" == discr
             || ("face_x" == discr && 0 == dim)
@@ -196,6 +197,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
               //              } else {
               val numDupLeft = field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft
               val numDupRight = field.fieldLayout.layoutsPerDim(dim).numDupLayersRight
+
               if (numDupLeft > 0)
                 start(dim) = OffsetIndex(0, numDupLeft, field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim), numDupLeft * ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
               else
@@ -222,7 +224,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
     // fix iteration space for reduction operations if required
     if (Knowledge.experimental_trimBoundsForReductionLoops && reduction.isDefined && !region.isDefined) {
       if (!condition.isDefined) condition = Some(BooleanConstant(true))
-      for (dim <- 0 until Knowledge.dimensionality)
+      for (dim <- 0 until numDims)
         if (field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft > 0)
           /*if ("node" == field.fieldLayout.discretization
           || ("face_x" == field.fieldLayout.discretization && 0 == dim)
@@ -233,9 +235,9 @@ case class LoopOverPointsInOneFragment(var domain : Int,
 
     var ret : Statement = (
       if (seq)
-        new LoopOverDimensions(Knowledge.dimensionality, indexRange, body, increment, reduction, condition)
+        new LoopOverDimensions(numDims, indexRange, body, increment, reduction, condition)
       else {
-        val ret = new LoopOverDimensions(Knowledge.dimensionality, indexRange, body, increment, reduction, condition) with OMP_PotentiallyParallel with PolyhedronAccessable
+        val ret = new LoopOverDimensions(numDims, indexRange, body, increment, reduction, condition) with OMP_PotentiallyParallel with PolyhedronAccessable
         ret.optLevel = (
           if (Knowledge.maxLevel - field.level < Knowledge.poly_numFinestLevels)
             Knowledge.poly_optLevel_fine
@@ -258,12 +260,8 @@ case class LoopOverPointsInOneFragment(var domain : Int,
 }
 
 object LoopOverDimensions {
-  def defIt = {
-    Knowledge.dimensionality match {
-      case 1 => new MultiIndex(dimToString(0), dimToString(1))
-      case 2 => new MultiIndex(dimToString(0), dimToString(1), dimToString(2))
-      case 3 => new MultiIndex(dimToString(0), dimToString(1), dimToString(2), dimToString(3))
-    }
+  def defIt(numDims : Int) = {
+    new MultiIndex((0 until numDims).map(dim => VariableAccess(dimToString(dim), Some(IntegerDatatype)) : Expression).toArray)
   }
 
   object ReplaceOffsetIndicesWithMin extends QuietDefaultStrategy("Replace OffsetIndex nodes with minimum values") {
@@ -309,7 +307,7 @@ object LoopOverDimensions {
 case class LoopOverDimensions(var numDimensions : Int,
     var indices : IndexRange,
     var body : ListBuffer[Statement],
-    var stepSize : MultiIndex = new MultiIndex(Array.fill(Knowledge.dimensionality + 1)(1)),
+    var stepSize : MultiIndex = new MultiIndex(), // to be overwritten afterwards
     var reduction : Option[Reduction] = None,
     var condition : Option[Expression] = None) extends Statement {
   def this(numDimensions : Int, indices : IndexRange, body : Statement, stepSize : MultiIndex, reduction : Option[Reduction], condition : Option[Expression]) = this(numDimensions, indices, ListBuffer[Statement](body), stepSize, reduction, condition)
@@ -318,6 +316,8 @@ case class LoopOverDimensions(var numDimensions : Int,
   def this(numDimensions : Int, indices : IndexRange, body : Statement) = this(numDimensions, indices, ListBuffer[Statement](body))
 
   import LoopOverDimensions._
+
+  if (0 == stepSize.length) stepSize = new MultiIndex(Array.fill(numDimensions)(1))
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverDimensions\n"
 

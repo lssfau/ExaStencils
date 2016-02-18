@@ -56,15 +56,18 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintFieldStatement\n"
 
+  def numDimsGrid = field.fieldLayout.numDimsGrid
+  def numDimsData = field.fieldLayout.numDimsData
+
   def getPos(field : FieldSelection, dim : Int) : Expression = {
     field.field.discretization match {
-      case "node" => GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt, None, dim)
-      case "cell" => GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt, None, dim)
+      case "node" => GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
+      case "cell" => GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
       case discr @ ("face_x" | "face_y" | "face_z") => {
         if (s"face_${dimToString(dim)}" == discr)
-          GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt, None, dim)
+          GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
         else
-          GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt, None, dim)
+          GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
       }
     }
   }
@@ -74,7 +77,7 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
       Settings.additionalIncludes += "fstream"
 
     val arrayIndexRange = (
-      if (field.arrayIndex.isEmpty) (0 until field.fieldLayout.dataType.resolveFlattendSize)
+      if (field.arrayIndex.isEmpty) (0 until field.field.gridDatatype.resolveFlattendSize)
       else (field.arrayIndex.get to field.arrayIndex.get))
 
     val separator = (if (Knowledge.experimental_generateParaviewFiles) "\",\"" else "\" \"")
@@ -96,15 +99,15 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
       fileHeader,
       new LoopOverFragments(
         new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
-          new LoopOverDimensions(Knowledge.dimensionality, new IndexRange(
-            new MultiIndex((0 until Knowledge.dimensionality).toArray.map(dim => (field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)) : Expression)),
-            new MultiIndex((0 until Knowledge.dimensionality).toArray.map(dim => (field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)) : Expression))),
+          new LoopOverDimensions(numDimsData, new IndexRange(
+            new MultiIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)) : Expression)),
+            new MultiIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)) : Expression))),
             new ConditionStatement(condition,
               streamName
-                ~ (0 until Knowledge.dimensionality).map(dim => " << " ~ getPos(field, dim) ~ " << " ~ separator).reduceLeft(_ ~ _)
+                ~ (0 until numDimsGrid).map(dim => " << " ~ getPos(field, dim) ~ " << " ~ separator).reduceLeft(_ ~ _)
                 ~ arrayIndexRange.map(index => {
-                  var access = new FieldAccess(field, LoopOverDimensions.defIt)
-                  access.index(Knowledge.dimensionality) = index
+                  var access = new FieldAccess(field, LoopOverDimensions.defIt(numDimsData))
+                  access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
                   " << " ~ access
                 }).reduceLeft(_ ~ " << " ~ separator ~ _)
                 ~ " << std::endl")))),

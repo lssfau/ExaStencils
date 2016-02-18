@@ -110,7 +110,6 @@ case class StencilFieldSelection(
 
   // shortcuts to Field members
   def codeName = field.codeName
-  def dataType = field.dataType
   def fieldLayout = field.fieldLayout
   def referenceOffset = field.referenceOffset
 }

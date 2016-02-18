@@ -195,40 +195,14 @@ case class VectorExpression(var datatype : Option[Datatype], var expressions : L
   def length = expressions.length
 
   def apply(i : Integer) = expressions(i)
-  def isConstant = expressions.filter(e => e.isInstanceOf[Number]).length == expressions.length
-  def innerType : Option[Datatype] = {
-    if (datatype.isEmpty) {
-      if (!isConstant) {
-        None
-      } else {
-        expressions.foreach(e => e match {
-          case x : FloatConstant => datatype = Some(RealDatatype)
-          case _                 =>
-        })
-        datatype = Some(IntegerDatatype)
-        return datatype
-      }
-    } else {
-      return datatype
-    }
-  }
-  def prettyprintInner(out : PpStream) : Unit = {
+  def isConstant = expressions.forall(e => e.isInstanceOf[Number])
 
-    if (Knowledge.targetCompiler == "GCC") {
-      out << "std::move(("
-    } else {
-      out << "(("
-    }
-    datatype.getOrElse(RealDatatype).prettyprint(out)
-    out << "[]){"
-    expressions.foreach(e => { e.prettyprint(out); out << ',' })
-    out.removeLast() // remove last comma
-    out << "})"
+  def prettyprintInner(out : PpStream) : Unit = {
+    out << (if (Knowledge.targetCompiler == "GCC") "std::move((" else "((")
+    out << datatype.getOrElse(RealDatatype) << "[]){" <<< (expressions, ",") << "})"
   }
   override def prettyprint(out : PpStream) : Unit = {
-    out << "Matrix<"
-    datatype.getOrElse(RealDatatype).prettyprint(out)
-    out << ", "
+    out << "Matrix<" << datatype.getOrElse(RealDatatype) << ", "
     if (rowVector.getOrElse(true)) {
       out << "1, " << length << "> (" // row vector
     } else {
@@ -241,33 +215,23 @@ case class VectorExpression(var datatype : Option[Datatype], var expressions : L
 
 case class MatrixExpression(var datatype : Option[Datatype], var expressions : ListBuffer[ListBuffer[Expression]]) extends Expression {
   def prettyprintInner(out : PpStream) : Unit = {
-    if (Knowledge.targetCompiler == "GCC") {
-      out << "std::move(("
-    } else {
-      out << "(("
-    }
-    datatype.getOrElse(RealDatatype).prettyprint(out)
-    out << "[]){"
-    expressions.foreach(f => f.foreach(e => { e.prettyprint(out); out << ',' }))
-    out.removeLast() // remove last comma
-    out << "})"
+    out << (if (Knowledge.targetCompiler == "GCC") "std::move((" else "((")
+    out << datatype.getOrElse(RealDatatype) << "[]){" <<< (expressions.flatten, ",") << "})"
   }
-
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) "double" else "float"
 
-    out << "Matrix<"
-    if (isInteger) out << "int, "; else out << prec << ", "
-    out << rows << ", " << columns << "> ("
+    out << "Matrix<" << (if (isInteger) "int" else prec) << ", " << rows << ", " << columns << "> ("
     prettyprintInner(out)
     out << ")"
   }
+
   def rows = expressions.length
   def columns = expressions(0).length
 
   def apply(i : Integer) = expressions(i)
-  def isConstant = expressions.flatten.filter(e => e.isInstanceOf[Number]).length == expressions.flatten.length
-  def isInteger = expressions.flatten.filter(e => e.isInstanceOf[IntegerConstant]).length == expressions.flatten.length
+  def isConstant = expressions.flatten.forall(e => e.isInstanceOf[Number])
+  def isInteger = expressions.flatten.forall(e => e.isInstanceOf[IntegerConstant])
 }
 
 case class Allocation(var datatype : Datatype, var size : Expression) extends Expression {
@@ -287,7 +251,7 @@ case class VariableAccess(var name : String, var dType : Option[Datatype] = None
 
   override def prettyprint(out : PpStream) : Unit = out << name
 
-  def printDeclaration() : String = dType.get.resolveUnderlyingDatatype.prettyprint + " " + name + dType.get.resolvePostscript
+  def printDeclaration() : String = dType.get.resolveDeclType.prettyprint + " " + name + dType.get.resolveDeclPostscript
 }
 
 case class ArrayAccess(var base : Expression, var index : Expression, var alignedAccessPossible : Boolean = false) extends Access {
@@ -338,7 +302,7 @@ case class MultiIndex(var indices : Array[Expression]) extends Expression with I
 
   def apply(i : Int) = indices.apply(i)
   def update(i : Int, x : Expression) = indices.update(i, x)
-  def length : Int = indices.length
+  def length = indices.length
 }
 
 case class TempBufferAccess(var buffer : iv.TmpBuffer, var index : MultiIndex, var strides : MultiIndex) extends Expression {
@@ -385,14 +349,13 @@ case class ExternalFieldAccess(var name : Expression, var field : ExternalField,
   def w = new VariableAccess("w", IntegerDatatype)
 
   def linearize : ArrayAccess = {
-    if (Knowledge.generateFortranInterface) // Fortran requires multi-index access to multidimensional arrays
-      (Knowledge.dimensionality + (if (field.vectorSize > 1) 1 else 0)) match {
-        case 1 => new ArrayAccess(x, false)
-        case 2 => new ArrayAccess(new ArrayAccess(name, y, false), x, false)
-        case 3 => new ArrayAccess(new ArrayAccess(new ArrayAccess(name, z, false), y, false), x, false)
-        case 4 => new ArrayAccess(new ArrayAccess(new ArrayAccess(new ArrayAccess(name, w, false), z, false), y, false), x, false)
-      }
-    else
+    if (Knowledge.generateFortranInterface) { // Fortran requires multi-index access to multidimensional arrays
+      val it = LoopOverDimensions.defIt(field.fieldLayout.numDimsData)
+      var ret = name
+      for (dim <- field.fieldLayout.numDimsData - 1 to 0)
+        ret = new ArrayAccess(ret, it(dim), false)
+      ret.asInstanceOf[ArrayAccess]
+    } else
       new ArrayAccess(name, Mapping.resolveMultiIdx(field.fieldLayout, index), false)
   }
 }
@@ -416,7 +379,7 @@ case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection,
     var entries : ListBuffer[StencilEntry] = ListBuffer()
     for (e <- 0 until stencilFieldSelection.stencil.entries.size) {
       var stencilFieldIdx = Duplicate(index)
-      stencilFieldIdx(Knowledge.dimensionality) = e
+      stencilFieldIdx(stencilFieldSelection.stencilField.field.fieldLayout.numDimsData - 1) = e // TODO: assumes last index is vector dimension
       var fieldSel = stencilFieldSelection.toFieldSelection
       fieldSel.arrayIndex = Some(e)
       entries += new StencilEntry(stencilFieldSelection.stencil.entries(e).offset, new FieldAccess(fieldSel, stencilFieldIdx))
@@ -621,6 +584,8 @@ case class StencilConvolution(var stencil : Stencil, var fieldAccess : FieldAcce
   }
 }
 
+// TODO: update convolutions with new dimensionality logic
+
 case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, var fieldAccess : FieldAccess) extends Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilConvolution\n"
 
@@ -648,10 +613,6 @@ case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight
     for (re <- stencilRight.entries) {
       for (le <- stencilLeft.entries) {
         var rightOffset = Duplicate(re.offset)
-        //            if (stencilRight.level < stencilLeft.level) {
-        //              for (d <- 0 until Knowledge.dimensionality)
-        //                rightOffset(d) = (dimToString(d) : Expression) * 2 + rightOffset(d)
-        //            }
 
         var leftOffset = Duplicate(le.offset)
         if (stencilRight.level > stencilLeft.level) {

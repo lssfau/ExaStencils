@@ -15,7 +15,7 @@ import exastencils.polyhedron._
 
 object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into host and device instances") {
   this += new Transformation("Processing LoopOverDimensions nodes", {
-    case loop : LoopOverDimensions with PolyhedronAccessable => {
+    case loop : LoopOverDimensions with PolyhedronAccessable => { // TODO: OMP_PotentiallyParallel?
       GatherLocalFieldAccess.fieldAccesses.clear
       GatherLocalFieldAccess.applyStandalone(Scope(loop.body))
 
@@ -129,7 +129,7 @@ object GatherLocalFieldAccess extends QuietDefaultStrategy("Gathering local Fiel
 
 object GatherLocalVariableAccesses extends QuietDefaultStrategy("Gathering local VariableAccess nodes") {
   var accesses = HashMap[String, VariableAccess]()
-  val ignoredAccesses = (0 to Knowledge.dimensionality).map(dim => dimToString(dim)).to[SortedSet]
+  val ignoredAccesses = (0 to Knowledge.dimensionality + 2 /* FIXME: find a way to determine max dimensionality */ ).map(dim => dimToString(dim)).to[SortedSet]
 
   this += new Transformation("Searching", {
     case access : VariableAccess if !ignoredAccesses.contains(access.name) =>
