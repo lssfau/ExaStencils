@@ -210,6 +210,7 @@ case class AssertStatement(var check : Expression, var msg : ListBuffer[Expressi
 }
 
 abstract class AbstractFunctionStatement(var isHeaderOnly : Boolean = false) extends Statement {
+  def name : String
   def prettyprint_decl() : String
 }
 

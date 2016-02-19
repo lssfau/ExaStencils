@@ -100,6 +100,7 @@ case class TimerFct_StartTimer() extends AbstractTimerFunction with Expandable {
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_StartTimer\n"
   override def prettyprint_decl : String = prettyprint
+  override def name = "startTimer"
 
   def expand() : Output[FunctionStatement] = {
     var statements = ListBuffer[Statement](
@@ -109,7 +110,7 @@ case class TimerFct_StartTimer() extends AbstractTimerFunction with Expandable {
       if (Knowledge.experimental_timerEnableCallStacks) "CallTracker::StartTimer(&stopWatch)" else "",
       PreIncrementExpression(accessMember("numEntries")))
 
-    FunctionStatement(UnitDatatype, s"startTimer", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements, true, false)
+    FunctionStatement(UnitDatatype, name, ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements, true, false)
   }
 }
 
@@ -118,6 +119,7 @@ case class TimerFct_StopTimer() extends AbstractTimerFunction with Expandable {
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_StopTimer\n"
   override def prettyprint_decl : String = prettyprint
+  override def name = "stopTimer"
 
   def expand() : Output[FunctionStatement] = {
     var statements = ListBuffer[Statement](
@@ -133,7 +135,7 @@ case class TimerFct_StopTimer() extends AbstractTimerFunction with Expandable {
         if (Knowledge.experimental_timerEnableCallStacks) "CallTracker::StopTimer(&stopWatch)" else "",
         PreIncrementExpression(accessMember("numMeasurements")))))
 
-    FunctionStatement(UnitDatatype, s"stopTimer", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements, true, false)
+    FunctionStatement(UnitDatatype, name, ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements, true, false)
   }
 }
 
@@ -142,12 +144,13 @@ case class TimerFct_GetTotalTime /* in milliseconds */ () extends AbstractTimerF
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_GetTotalTime\n"
   override def prettyprint_decl : String = prettyprint
+  override def name = "getTotalTime"
 
   def expand() : Output[FunctionStatement] = {
     var statements = ListBuffer[Statement](
       TimerDetail_ReturnConvertToMS(accessMember("totalTimeMeasured")))
 
-    FunctionStatement(RealDatatype, s"getTotalTime", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements, true, false)
+    FunctionStatement(RealDatatype, name, ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements, true, false)
   }
 }
 
@@ -156,6 +159,7 @@ case class TimerFct_GetMeanTime /* in milliseconds */ () extends AbstractTimerFu
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_GetMeanTime\n"
   override def prettyprint_decl : String = prettyprint
+  override def name = "getMeanTime"
 
   def expand() : Output[FunctionStatement] = {
     var statements = ListBuffer[Statement](
@@ -164,7 +168,7 @@ case class TimerFct_GetMeanTime /* in milliseconds */ () extends AbstractTimerFu
         FunctionCallExpression("getTotalTime", ListBuffer("stopWatch")) / accessMember("numMeasurements"),
         0.0))))
 
-    FunctionStatement(RealDatatype, s"getMeanTime", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements, true, false)
+    FunctionStatement(RealDatatype, name, ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements, true, false)
   }
 }
 
@@ -173,12 +177,13 @@ case class TimerFct_GetLastTime /* in milliseconds */ () extends AbstractTimerFu
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_GetLastTime\n"
   override def prettyprint_decl : String = prettyprint
+  override def name = "getLastTime"
 
   def expand() : Output[FunctionStatement] = {
     var statements = ListBuffer[Statement](
       TimerDetail_ReturnConvertToMS(accessMember("lastTimeMeasured")))
 
-    FunctionStatement(RealDatatype, s"getLastTime", ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements, true, false)
+    FunctionStatement(RealDatatype, name, ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements, true, false)
   }
 }
 
@@ -187,6 +192,7 @@ case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with Expandab
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_PrintAllTimers\n"
   override def prettyprint_decl : String = prettyprint
+  override def name = "printAllTimers"
 
   def genPrintTimerCode(timer : iv.Timer) : Statement = {
     var statements : ListBuffer[Statement] = ListBuffer()
@@ -214,7 +220,7 @@ case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with Expandab
       else
         timers.toList.sortBy(_._1).map(t => genPrintTimerCode(t._2)).to[ListBuffer]
 
-    FunctionStatement(UnitDatatype, s"printAllTimers", ListBuffer(), statements, true, false)
+    FunctionStatement(UnitDatatype, name, ListBuffer(), statements, true, false)
   }
 }
 
@@ -223,6 +229,7 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_PrintAllTimersToFile\n"
   override def prettyprint_decl : String = prettyprint
+  override def name = "printAllTimersToFile"
 
   def genDataCollect(timers : HashMap[String, iv.Timer]) : ListBuffer[Statement] = {
     var statements : ListBuffer[Statement] = ListBuffer()
@@ -288,6 +295,6 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
           ++ genDataCollect(timers)
           ++ ListBuffer[Statement](MPI_Gather("timesToPrint", "timesToPrint", RealDatatype, 2 * timers.size)))
 
-    FunctionStatement(UnitDatatype, s"printAllTimersToFile", ListBuffer(), statements, true, false)
+    FunctionStatement(UnitDatatype, name, ListBuffer(), statements, true, false)
   }
 }

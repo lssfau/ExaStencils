@@ -14,19 +14,21 @@ import exastencils.prettyprinting._
 case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetupBuffers\n"
   override def prettyprint_decl : String = prettyprint
+  override def name = "setupBuffers"
 
   override def expand : Output[FunctionStatement] = {
     var body = ListBuffer[Statement]()
 
     // add static allocations here
 
-    return FunctionStatement(UnitDatatype, s"setupBuffers", ListBuffer(), body)
+    return FunctionStatement(UnitDatatype, name, ListBuffer(), body)
   }
 }
 
 case class GetFromExternalField(var src : Field, var dest : ExternalField) extends AbstractFunctionStatement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetFromExternalField\n"
   override def prettyprint_decl : String = prettyprint
+  override def name = "get" + dest.identifier
 
   def getFortranCompDT() : Datatype = {
     var dt : Datatype = dest.resolveBaseDatatype
@@ -44,7 +46,7 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
     val loopDim = dest.fieldLayout.numDimsData
     var multiIndex = LoopOverDimensions.defIt(loopDim)
 
-    new FunctionStatement(UnitDatatype, "get" + dest.identifier,
+    new FunctionStatement(UnitDatatype, name,
       ListBuffer(new VariableAccess("dest", Some(externalDT)), new VariableAccess("slot", Some(IntegerDatatype))),
       ListBuffer[Statement](
         new LoopOverDimensions(loopDim, new IndexRange(
@@ -59,6 +61,7 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
 case class SetFromExternalField(var dest : Field, var src : ExternalField) extends AbstractFunctionStatement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetFromExternalField\n"
   override def prettyprint_decl : String = prettyprint
+  override def name = "set" + src.identifier
 
   def getFortranCompDT() : Datatype = {
     var dt : Datatype = src.resolveBaseDatatype
@@ -76,7 +79,7 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
     val loopDim = src.fieldLayout.numDimsData
     var multiIndex = LoopOverDimensions.defIt(loopDim)
 
-    new FunctionStatement(UnitDatatype, "set" + src.identifier,
+    new FunctionStatement(UnitDatatype, name,
       ListBuffer(new VariableAccess("src", Some(externalDT)), new VariableAccess("slot", Some(IntegerDatatype))),
       ListBuffer[Statement](
         new LoopOverDimensions(loopDim, new IndexRange(
