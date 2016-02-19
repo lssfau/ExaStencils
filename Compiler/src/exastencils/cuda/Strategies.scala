@@ -146,10 +146,7 @@ object GatherLocalFieldAccess extends QuietDefaultStrategy("Gathering local Fiel
         GatherLocalFieldAccess.applyStandalone(ExpressionStatement(assign.dest))
       GatherLocalFieldAccess.applyStandalone(ExpressionStatement(assign.src))
       assign
-    case access : FieldAccess =>
-      mapFieldAccess(access)
-      access
-    case access : DirectFieldAccess =>
+    case access : FieldAccessLike =>
       mapFieldAccess(access)
       access
   }, false)

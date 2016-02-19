@@ -218,9 +218,9 @@ object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Ev
   var fieldAccesses = HashMap[String, Datatype]()
   var inWriteOp = false
 
-  def mapFieldAccess(access : FieldAccess) = {
+  def mapFieldAccess(access : FieldAccessLike) = {
     val field = access.fieldSelection.field
-    var identifier = field.identifier
+    var identifier = field.codeName
 
     identifier = (if (inWriteOp) "write_" else "read_") + identifier
 
@@ -242,7 +242,7 @@ object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Ev
       inWriteOp = false
       EvaluatePerformanceEstimates_FieldAccess.applyStandalone(ExpressionStatement(assign.src))
       assign
-    case access : FieldAccess =>
+    case access : FieldAccessLike =>
       mapFieldAccess(access)
       access
   }, false)
