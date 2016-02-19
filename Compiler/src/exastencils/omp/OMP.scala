@@ -96,3 +96,8 @@ case class OMP_Lastprivate(var vars : ListBuffer[VariableAccess]) extends OMP_Cl
   def this(v : VariableAccess) = this(ListBuffer(v))
   override def prettyprint(out : PpStream) : Unit = out << "lastprivate(" <<< (vars, ", ") << ')'
 }
+
+case class OMP_Private(var vars : ListBuffer[VariableAccess]) extends OMP_Clause {
+  def this(v : VariableAccess) = this(ListBuffer(v))
+  override def prettyprint(out : PpStream) : Unit = out << "private(" <<< (vars, ", ") << ')'
+}

@@ -283,7 +283,7 @@ object Knowledge {
   var opt_useAddressPrecalc : Boolean = false // [true|false]
   var opt_vectorize : Boolean = false // [true|false]
   var opt_unroll : Int = 1 // [1~5]
-  var opt_unroll_interleave : Boolean = false // [true|false] // FIXME: WARNING: there is a bug in combination with poly opts, use with caution until it's fixed!
+  var opt_unroll_interleave : Boolean = false // [true|false]
   var opt_useColorSplitting : Boolean = false // [true|false] // only relevant for RBGS smoother currently
 
   /// BEGIN HACK config options for generating L4 DSL file
