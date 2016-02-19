@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.SortedSet
 
 import exastencils.core._
+import exastencils.core.collectors.FctNameCollector
 import exastencils.data._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
@@ -15,6 +16,9 @@ import exastencils.omp._
 import exastencils.polyhedron._
 
 object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into host and device instances") {
+  val collector = new FctNameCollector
+  this.register(collector)
+
   this += new Transformation("Processing LoopOverDimensions nodes", {
     case loop : LoopOverDimensions => { // don't filter here - memory transfer code is still required
       GatherLocalFieldAccess.fieldAccesses.clear
@@ -78,7 +82,7 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
         val variableAccesses = GatherLocalVariableAccesses.accesses.toSeq.sortBy(_._1).map(_._2).to[ListBuffer]
 
         val kernel = Kernel(
-          kernelFunctions.getIdentifier,
+          kernelFunctions.getIdentifier(collector.getCurrentName),
           variableAccesses,
           loop.numDimensions,
           loop.indices,
