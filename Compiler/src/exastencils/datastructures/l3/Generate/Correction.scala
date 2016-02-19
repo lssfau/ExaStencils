@@ -7,9 +7,9 @@ object Correction {
     printer.println(s"Function Correction$postfix@((coarsest + 1) to finest) ( ) : Unit {")
 
     if (Knowledge.l3tmp_genTemporalBlocking)
-      Communication.exch(printer, s"Solution$postfix[active]@current", s"ghost [ ${Array.fill(Knowledge.dimensionality)(0).mkString(", ")} ]")
+      Communication.exch(printer, s"Solution$postfix[active]@coarser", s"ghost [ ${Array.fill(Knowledge.dimensionality)(0).mkString(", ")} ]")
     else
-      Communication.exch(printer, s"Solution$postfix[active]@current", "ghost")
+      Communication.exch(printer, s"Solution$postfix[active]@coarser", "ghost")
 
     if (Knowledge.l3tmp_genFragLoops)
       printer.println(s"\tloop over fragments {")
