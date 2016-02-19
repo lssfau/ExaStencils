@@ -315,7 +315,12 @@ case class TempBufferAccess(var buffer : iv.TmpBuffer, var index : MultiIndex, v
   }
 }
 
-case class DirectFieldAccess(var fieldSelection : FieldSelection, var index : MultiIndex) extends Expression {
+abstract class FieldAccessLike extends Expression {
+  def fieldSelection : FieldSelection
+  def index : MultiIndex
+}
+
+case class DirectFieldAccess(var fieldSelection : FieldSelection, var index : MultiIndex) extends FieldAccessLike {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = DirectFieldAccess\n"
 
   def linearize : LinearizedFieldAccess = {
@@ -323,7 +328,7 @@ case class DirectFieldAccess(var fieldSelection : FieldSelection, var index : Mu
   }
 }
 
-case class FieldAccess(var fieldSelection : FieldSelection, var index : MultiIndex) extends Expression {
+case class FieldAccess(var fieldSelection : FieldSelection, var index : MultiIndex) extends FieldAccessLike {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = FieldAccess\n"
 
   def expandSpecial() : DirectFieldAccess = {

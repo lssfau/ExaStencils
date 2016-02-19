@@ -112,10 +112,10 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
 }
 
 object GatherLocalFieldAccess extends QuietDefaultStrategy("Gathering local FieldAccess nodes") {
-  var fieldAccesses = HashMap[String, FieldAccess]()
+  var fieldAccesses = HashMap[String, FieldAccessLike]()
   var inWriteOp = false
 
-  def mapFieldAccess(access : FieldAccess) = {
+  def mapFieldAccess(access : FieldAccessLike) = {
     val field = access.fieldSelection.field
     var identifier = field.codeName
 
@@ -143,6 +143,9 @@ object GatherLocalFieldAccess extends QuietDefaultStrategy("Gathering local Fiel
       GatherLocalFieldAccess.applyStandalone(ExpressionStatement(assign.src))
       assign
     case access : FieldAccess =>
+      mapFieldAccess(access)
+      access
+    case access : DirectFieldAccess =>
       mapFieldAccess(access)
       access
   }, false)
