@@ -411,7 +411,7 @@ object StateManager {
                 case newN : NodeList => Logger.error("Unable to replace single element of map value by List")
                 case None            =>
               }
-              case sthElse => sthElse // TODO: Christian, please check
+              case _ =>
             }
           }))
 
@@ -436,6 +436,7 @@ object StateManager {
                 case newN : NodeList => Logger.error("Unable to replace single element of map value by List")
                 case None            =>
               }
+              case _ =>
             }
           }))
 
@@ -443,7 +444,8 @@ object StateManager {
             Logger.error(s"Could not set $field in transformation ${transformation.name}")
           }
         }
-        case _ => //
+
+        case _ => // No Node, Seq[_], Map, ... => Leave it alone
       }
     })
     strategies_.top.notifyLeave(node)
