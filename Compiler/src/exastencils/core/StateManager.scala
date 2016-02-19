@@ -411,6 +411,7 @@ object StateManager {
                 case newN : NodeList => Logger.error("Unable to replace single element of map value by List")
                 case None            =>
               }
+              case sthElse => sthElse // TODO: Christian, please check
             }
           }))
 
