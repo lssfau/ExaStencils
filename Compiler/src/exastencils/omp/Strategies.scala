@@ -25,8 +25,10 @@ object AddOMPPragmas extends DefaultStrategy("Adding OMP pragmas") {
           if (!(Knowledge.omp_version < 3.1 && ("min" == target.reduction.get.op || "max" == target.reduction.get.op)))
             target.additionalOMPClauses += new OMP_Reduction(target.reduction.get)
         target match {
-          case l : OptimizationHint => target.additionalOMPClauses += new OMP_Private(l.privateVars.clone())
-          case _                    =>
+          case l : OptimizationHint =>
+            if (!l.privateVars.isEmpty)
+              target.additionalOMPClauses += new OMP_Private(l.privateVars.clone())
+          case _ =>
         }
         new OMP_ParallelFor(new ForLoopStatement(target.begin, target.end, target.inc, target.body, target.reduction),
           target.additionalOMPClauses, target.collapse)

@@ -99,8 +99,5 @@ case class OMP_Lastprivate(var vars : ListBuffer[VariableAccess]) extends OMP_Cl
 
 case class OMP_Private(var vars : ListBuffer[VariableAccess]) extends OMP_Clause {
   def this(v : VariableAccess) = this(ListBuffer(v))
-  override def prettyprint(out : PpStream) : Unit = {
-    if (!vars.isEmpty) // prevent compiler error when using MSVC
-      out << "private(" <<< (vars, ", ") << ')'
-  }
+  override def prettyprint(out : PpStream) : Unit = out << "private(" <<< (vars, ", ") << ')'
 }
