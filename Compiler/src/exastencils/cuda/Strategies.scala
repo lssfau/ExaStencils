@@ -25,7 +25,12 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
 
       // add data sync statements
       for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
-        if (Knowledge.experimental_cuda_syncHostForWrites || access._1.startsWith("read")) // skip write accesses if demanded
+        var sync = true
+        if (access._1.startsWith("write") && !Knowledge.experimental_cuda_syncHostForWrites)
+          sync = false // skip write accesses if demanded
+        if (access._1.startsWith("write") && GatherLocalFieldAccess.fieldAccesses.contains("read" + access._1.substring("write".length)))
+          sync = false // skip write access for read/write accesses
+        if (sync)
           hostStmts += CUDA_UpdateHostData(Duplicate(access._2)).expand.inner // expand here to avoid global expand afterwards
       }
 
@@ -56,7 +61,12 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
 
         // add data sync statements
         for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
-          if (Knowledge.experimental_cuda_syncDeviceForWrites || access._1.startsWith("read")) // skip write accesses if demanded
+          var sync = true
+          if (access._1.startsWith("write") && !Knowledge.experimental_cuda_syncDeviceForWrites)
+            sync = false // skip write accesses if demanded
+          if (access._1.startsWith("write") && GatherLocalFieldAccess.fieldAccesses.contains("read" + access._1.substring("write".length)))
+            sync = false // skip write access for read/write accesses
+          if (sync)
             deviceStmts += CUDA_UpdateDeviceData(Duplicate(access._2)).expand.inner // expand here to avoid global expand afterwards
         }
 
@@ -128,6 +138,8 @@ object GatherLocalFieldAccess extends QuietDefaultStrategy("Gathering local Fiel
       inWriteOp = true
       GatherLocalFieldAccess.applyStandalone(ExpressionStatement(assign.dest))
       inWriteOp = false
+      if ("=" != assign.op) // add compound assignments as read and write accesses
+        GatherLocalFieldAccess.applyStandalone(ExpressionStatement(assign.dest))
       GatherLocalFieldAccess.applyStandalone(ExpressionStatement(assign.src))
       assign
     case access : FieldAccess =>
