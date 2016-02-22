@@ -2,10 +2,12 @@ package exastencils.languageprocessing.l4
 
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
+
 import exastencils.core._
 import exastencils.core.collectors.L4CommCollector
 import exastencils.core.collectors.L4ValueCollector
 import exastencils.datastructures._
+import exastencils.datastructures.Transformation._
 import exastencils.datastructures.l4._
 import exastencils.knowledge
 import exastencils.logger._
@@ -266,7 +268,7 @@ object WrapL4FieldOpsStrategy extends DefaultStrategy("Adding communcation and l
       CollectCommInformation.applyStandalone(assignment)
 
       var commStatements = CollectCommInformation.commCollector.communicates.map(comm =>
-        CommunicateStatement(comm._1, "both", List( /* FIXME: add radius */ ))).toList
+        CommunicateStatement(comm._1, "both", List( /* FIXME: add radius */ ), None)).toList
 
       LoopOverFragmentsStatement(List(
         LoopOverPointsStatement(lhs, None, false, None, None, None, None, List(assignment), None, commStatements, List())),

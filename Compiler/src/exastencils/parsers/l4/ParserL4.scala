@@ -199,13 +199,14 @@ class ParserL4 extends ExaParser with PackratParsers {
   lazy val applyBCsStatement = locationize(("apply" ~ "bc" ~ "to") ~> genericAccess //fieldAccess
     ^^ { case field => ApplyBCsStatement(field) })
   lazy val communicateStatement = locationize((("begin" ||| "finish").? <~ ("communicate" ||| "communicating")) ~ communicateTarget.* ~ (("of").? ~> genericAccess) //fieldAccess
-    ^^ { case op ~ targets ~ field => CommunicateStatement(field, op.getOrElse("both"), targets) })
+    ~ ("where" ~> booleanexpression).?
+    ^^ { case op ~ targets ~ field ~ cond => CommunicateStatement(field, op.getOrElse("both"), targets, cond) })
   lazy val communicateTarget = locationize(("all" ||| "dup" ||| "ghost") ~ index.? ~ ("to" ~> index).? // inclucive indices
     ^^ { case target ~ start ~ end => CommunicateTarget(target, start, end) })
-  lazy val precomm = locationize("precomm" ~> communicateTarget.* ~ (("of").? ~> genericAccess)
-    ^^ { case targets ~ field => CommunicateStatement(field, "both", targets) })
-  lazy val postcomm = locationize("postcomm" ~> communicateTarget.* ~ (("of").? ~> genericAccess)
-    ^^ { case targets ~ field => CommunicateStatement(field, "both", targets) })
+  lazy val precomm = locationize("precomm" ~> communicateTarget.* ~ (("of").? ~> genericAccess) ~ ("where" ~> booleanexpression).?
+    ^^ { case targets ~ field ~ cond => CommunicateStatement(field, "both", targets, cond) })
+  lazy val postcomm = locationize("postcomm" ~> communicateTarget.* ~ (("of").? ~> genericAccess) ~ ("where" ~> booleanexpression).?
+    ^^ { case targets ~ field ~ cond => CommunicateStatement(field, "both", targets, cond) })
 
   lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ { case exp => ReturnStatement(exp) })
 

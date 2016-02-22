@@ -194,7 +194,7 @@ case class LoopOverPointsStatement(
       for (i <- 0 until newIncrement.length) procIncrement(i) = newIncrement(i)
     }
 
-    ir.LoopOverPoints(resolvedField,
+    var loop = ir.LoopOverPoints(resolvedField,
       if (region.isDefined) Some(region.get.progressToIr) else None,
       seq,
       procStartOffset,
@@ -205,6 +205,9 @@ case class LoopOverPointsStatement(
       postComms.map(_.progressToIr).to[ListBuffer],
       if (reduction.isDefined) Some(reduction.get.progressToIr) else None,
       if (condition.isDefined) Some(condition.get.progressToIr) else None)
+
+    loop.annotate("l4_fromDSL") // experimental annotation -> if successful and performance impacts are ok annotate all l4 statements
+    loop
   }
 }
 
