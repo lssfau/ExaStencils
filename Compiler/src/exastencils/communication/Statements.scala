@@ -247,13 +247,17 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
 
   override def genTransfer(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
     var body = {
-      val cnt = indices.getTotalSize
-      if (!Knowledge.data_genVariableFieldSizes && 1 == SimplifyExpression.evalIntegral(cnt)) {
+      val maxCnt = indices.getTotalSize
+      val cnt = (if (condition.isDefined)
+        iv.TmpBufferIterator(field.field, s"Send_${concurrencyId}", neighbor.index)
+      else
+        maxCnt)
+      if (!Knowledge.data_genVariableFieldSizes && (condition.isEmpty && 1 == SimplifyExpression.evalIntegral(cnt))) {
         RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(indices, condition)) {
         RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, MPI_DataType(field, indices, condition), concurrencyId)
       } else {
-        RemoteSend(field, neighbor, iv.TmpBuffer(field.field, s"Send_${concurrencyId}", cnt, neighbor.index), cnt, RealDatatype, concurrencyId)
+        RemoteSend(field, neighbor, iv.TmpBuffer(field.field, s"Send_${concurrencyId}", maxCnt, neighbor.index), cnt, RealDatatype, concurrencyId)
       }
     }
     if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
@@ -310,13 +314,14 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
 
   override def genTransfer(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
     var body = {
-      val cnt = indices.getTotalSize
+      val maxCnt = indices.getTotalSize
+      val cnt = maxCnt // always cnt, even when condition is defined -> max count for receive
       if (!Knowledge.data_genVariableFieldSizes && 1 == SimplifyExpression.evalIntegral(cnt)) {
         RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(indices, condition)) {
         RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, MPI_DataType(field, indices, condition), concurrencyId)
       } else {
-        RemoteRecv(field, neighbor, iv.TmpBuffer(field.field, s"Recv_${concurrencyId}", cnt, neighbor.index), cnt, RealDatatype, concurrencyId)
+        RemoteRecv(field, neighbor, iv.TmpBuffer(field.field, s"Recv_${concurrencyId}", maxCnt, neighbor.index), cnt, RealDatatype, concurrencyId)
       }
     }
     if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
