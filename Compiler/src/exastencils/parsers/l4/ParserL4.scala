@@ -284,8 +284,6 @@ class ParserL4 extends ExaParser with PackratParsers {
   // ##### Object Access
   // ######################################
 
-  lazy val componentAccess = index1d ||| index2d
-
   lazy val slotAccess = locationize(
     "$" ~> slotModifier ^^ { case s => s }
       ||| "[" ~> slotModifier <~ "]" ^^ { case s => s })
@@ -304,6 +302,11 @@ class ParserL4 extends ExaParser with PackratParsers {
   lazy val levelAccess = (
     locationize("@" ~> levelsingle ^^ { case l => l })
     ||| locationize("@" ~ "(" ~> levelsingle <~ ")" ^^ { case l => l }))
+
+  lazy val componentIndex = (index1d ^^ { case x => new ComponentIndex1d(x) }
+    ||| (("[" ~> integerLit.?) <~ ":") ~ (integerLit.? <~ "]") ^^ { case a ~ b => ComponentIndex1d(a, b) }
+    ||| index2d ^^ { case x => new ComponentIndex2d(x) }
+    ||| ("[" ~> integerLit.?) ~ (":" ~> integerLit.? <~ ",") ~ (integerLit.? <~ ":") ~ (integerLit.? <~ "]") ^^ { case a ~ b ~ c ~ d => ComponentIndex2d(ComponentIndex1d(a, b), ComponentIndex1d(a, b)) })
 
   lazy val fieldAccess = locationize(ident ~ slotAccess.? ~ levelAccess ~ ("[" ~> integerLit <~ "]").?
     ^^ { case id ~ slot ~ level ~ arrayIndex => FieldAccess(id, level, slot.getOrElse(SlotModifier.Active()), arrayIndex) })

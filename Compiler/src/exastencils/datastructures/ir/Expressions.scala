@@ -130,6 +130,13 @@ object UnaryOperators extends Enumeration {
   }
 }
 
+case class SelectionAccess(
+    var access : Access,
+    var datatype : Datatype,
+    var selection : Array[MultiIndex]) extends Access {
+  override def prettyprint(out : PpStream) : Unit = out << "INVALID, class = SelectionAccess"
+}
+
 trait Access extends Expression
 trait Number extends Expression {
   def value : AnyVal
