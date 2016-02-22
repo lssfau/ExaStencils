@@ -137,7 +137,7 @@ object Extractor {
         constraints.append('(')
         for (s <- sums) {
           bool |= extractConstraints(s, constraints, formatString, lParConstr, gParConstr, vars)
-     		  constraints.append('+')
+          constraints.append('+')
         }
         constraints(constraints.length - 1) = ')' // replace last '+'
 

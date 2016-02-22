@@ -160,6 +160,8 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       } else if (!change && rem.length == add.summands.length) {
         negMatches += 1
         add // return
+      } else if (rem.isEmpty) {
+        new IntegerConstant(0)
       } else {
         new AdditionExpression(rem)
       }
