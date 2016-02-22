@@ -61,9 +61,7 @@ case class VectorExpression(var datatype : Option[Datatype], var expressions : L
   def isConstant = expressions.filter(e => e.isInstanceOf[Number]).length == expressions.length
 
   def prettyprint(out : PpStream) = {
-    out << '{'
-    expressions.mkString(", ");
-    out << '}'
+    out << '{' <<< (expressions, ", ") << '}'
     if (rowVector.getOrElse(true) == false) {
       out << 'T';
     }
