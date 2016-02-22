@@ -67,7 +67,7 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
           bound
 
         case LowerEqualExpression(VariableAccess(itVar2, Some(IntegerDatatype)), bound) if (itVar == itVar2) =>
-          AdditionExpression(bound, IntegerConstant(1))
+          new AdditionExpression(bound, IntegerConstant(1))
 
         case _ => throw new UnrollException("cannot interpret loop end: " + end.prettyprint())
       }
@@ -178,12 +178,12 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
       case AssignmentStatement(VariableAccess(itVar, Some(IntegerDatatype)), IntegerConstant(incr), "+=") => (itVar, incr)
 
       case AssignmentStatement(VariableAccess(itVar, Some(IntegerDatatype)),
-        AdditionExpression(VariableAccess(itVar2, Some(IntegerDatatype)), IntegerConstant(incr)),
+        AdditionExpression(ListBuffer(VariableAccess(itVar2, Some(IntegerDatatype)), IntegerConstant(incr))),
         "=") if (itVar == itVar2) =>
         (itVar, incr)
 
       case AssignmentStatement(VariableAccess(itVar, Some(IntegerDatatype)),
-        AdditionExpression(IntegerConstant(incr), VariableAccess(itVar2, Some(IntegerDatatype))),
+        AdditionExpression(ListBuffer(IntegerConstant(incr), VariableAccess(itVar2, Some(IntegerDatatype)))),
         "=") if (itVar == itVar2) =>
         (itVar, incr)
 
@@ -201,7 +201,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     val upperExcl : Expression =
       end match {
         case LowerExpression(VariableAccess(itVar2, Some(IntegerDatatype)), bound) if (itVar == itVar2) => bound
-        case LowerEqualExpression(VariableAccess(itVar2, Some(IntegerDatatype)), bound) if (itVar == itVar2) => AdditionExpression(bound, IntegerConstant(1))
+        case LowerEqualExpression(VariableAccess(itVar2, Some(IntegerDatatype)), bound) if (itVar == itVar2) => new AdditionExpression(bound, IntegerConstant(1))
         case _ => throw new UnrollException("cannot interpret loop end: " + end.prettyprint())
       }
 
@@ -252,7 +252,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
       case vAcc @ VariableAccess(v, Some(IntegerDatatype)) if (v == itVar) =>
         if (offset != 0 && !vAcc.removeAnnotation(SKIP_ANNOT).isDefined) {
           vAcc.annotate(SKIP_ANNOT) // already done
-          AdditionExpression(vAcc, IntegerConstant(offset))
+          new AdditionExpression(vAcc, IntegerConstant(offset))
         } else
           vAcc
 
