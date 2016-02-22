@@ -13,6 +13,7 @@ import exastencils.prettyprinting._
 case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitFieldsWithZero\n"
   override def prettyprint_decl : String = prettyprint
+  override def name = "initFieldsWithZero"
 
   override def expand : Output[FunctionStatement] = {
     val fields = FieldCollection.getSortedFields
@@ -40,7 +41,7 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
         statements += wrapped
     }
 
-    new FunctionStatement(UnitDatatype, s"initFieldsWithZero", ListBuffer[VariableAccess](), statements)
+    new FunctionStatement(UnitDatatype, name, ListBuffer[VariableAccess](), statements)
   }
 }
 
@@ -85,4 +86,5 @@ case class NEONDivision() extends AbstractFunctionStatement(true) {
 }"""
   }
   override def prettyprint_decl : String = "NOT VALID ; no prototype for vdivq_f32\n"
+  override def name = "vdivq_f32"
 }

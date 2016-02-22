@@ -58,7 +58,7 @@ case class CUDA_FreeStatement(var pointer : Expression) extends Statement with E
   }
 }
 
-case class CUDA_UpdateHostData(var fieldAccess : FieldAccess) extends Statement with Expandable {
+case class CUDA_UpdateHostData(var fieldAccess : FieldAccessLike) extends Statement with Expandable {
   // TODO: allow targeting of specific index ranges
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_UpdateHostData\n"
@@ -81,7 +81,7 @@ case class CUDA_UpdateHostData(var fieldAccess : FieldAccess) extends Statement 
   }
 }
 
-case class CUDA_UpdateDeviceData(var fieldAccess : FieldAccess) extends Statement with Expandable {
+case class CUDA_UpdateDeviceData(var fieldAccess : FieldAccessLike) extends Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_UpdateDeviceData\n"
 
   override def expand : Output[ConditionStatement] = {

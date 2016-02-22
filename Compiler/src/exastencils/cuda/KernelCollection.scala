@@ -28,11 +28,12 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
   }
 
   var kernelCollection = ListBuffer[Kernel]()
-  var counter = 1000
+  var counterMap = HashMap[String, Int]()
 
-  def getIdentifier : String = {
-    counter += 1
-    s"kernel_$counter"
+  def getIdentifier(fctName : String) : String = {
+    val cnt = counterMap.getOrElse(fctName, -1) + 1
+    counterMap.update(fctName, cnt)
+    s"${fctName}_k${String.format("%03d", cnt : java.lang.Integer)}"
   }
 
   def addKernel(kernel : Kernel) = {

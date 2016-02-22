@@ -172,6 +172,7 @@ case class MPI_Sequential(var body : ListBuffer[Statement]) extends Statement wi
 case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = WaitForMPIReq\n"
   override def prettyprint_decl : String = prettyprint
+  override def name = "waitForMPIReq"
 
   override def expand : Output[FunctionStatement] = {
     def request = VariableAccess("request", Some(PointerDatatype(SpecialDatatype("MPI_Request"))))
@@ -183,7 +184,7 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
     def len = VariableAccess("len", Some(IntegerDatatype))
 
     if (Knowledge.mpi_useBusyWait) {
-      FunctionStatement(UnitDatatype, s"waitForMPIReq", ListBuffer(request),
+      FunctionStatement(UnitDatatype, name, ListBuffer(request),
         ListBuffer[Statement](
           new VariableDeclarationStatement(stat),
           new VariableDeclarationStatement(result),

@@ -50,9 +50,10 @@ case class SetIterationOffset(var location : Expression, var domain : Expression
 case class ConnectLocalElement() extends AbstractFunctionStatement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ConnectLocalElement\n"
   override def prettyprint_decl : String = prettyprint
+  override def name = "connectLocalElement"
 
   override def expand : Output[FunctionStatement] = {
-    FunctionStatement(UnitDatatype, s"connectLocalElement",
+    FunctionStatement(UnitDatatype, name,
       ListBuffer(
         VariableAccess("localFragId", Some(IntegerDatatype)),
         VariableAccess("localNeighId", Some(IntegerDatatype)),
@@ -69,9 +70,10 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
 case class ConnectRemoteElement() extends AbstractFunctionStatement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ConnectRemoteElement\n"
   override def prettyprint_decl : String = prettyprint
+  override def name = "connectRemoteElement"
 
   override def expand : Output[FunctionStatement] = {
-    FunctionStatement(UnitDatatype, s"connectRemoteElement",
+    FunctionStatement(UnitDatatype, name,
       ListBuffer(
         VariableAccess("localFragId", Some(IntegerDatatype)),
         VariableAccess("localNeighId", Some(IntegerDatatype)),

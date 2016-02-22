@@ -138,7 +138,9 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     loop.begin = new VariableDeclarationStatement(IntegerDatatype, itVar, Unrolling.startVarAcc)
     loop.end = new LowerExpression(itVarAcc, Unrolling.intermVarAcc)
     loop.inc = new AssignmentStatement(itVarAcc, IntegerConstant(newStride), "+=")
-    loop.body = duplicateStmts(loop.body, Knowledge.opt_unroll, itVar, oldStride, loop.isParallel && Knowledge.opt_unroll_interleave)
+    // duplicate private vars would also be possible...
+    val interleave : Boolean = Knowledge.opt_unroll_interleave && loop.isParallel && loop.privateVars.isEmpty
+    loop.body = duplicateStmts(loop.body, Knowledge.opt_unroll, itVar, oldStride, interleave)
 
     val annot = loop.removeAnnotation(Unrolling.UNROLLED_ANNOT)
     val unrolled : Boolean = annot.isDefined
