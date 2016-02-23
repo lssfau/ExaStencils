@@ -129,10 +129,10 @@ object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions"
             result += StencilFieldConvolution(stencilFieldAccess, fieldAccess)
             prev = null
           case (StencilAccess(stencilLeft), StencilAccess(stencilRight)) =>
-            StencilStencilConvolution(stencilLeft, stencilRight)
+            result += StencilStencilConvolution(stencilLeft, stencilRight)
             prev = null
           case (stencilLeft : StencilFieldAccess, StencilAccess(stencilRight)) =>
-            StencilFieldStencilConvolution(stencilLeft, stencilRight)
+            result += StencilFieldStencilConvolution(stencilLeft, stencilRight)
             prev = null
           case (StencilAccess(stencilLeft), stencilRight : StencilFieldAccess) =>
             ??? // TODO
@@ -143,7 +143,9 @@ object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions"
               result += prev
             prev = f
         }
-      changed = facts.length != result.length
+      if (prev != null)
+        result += prev
+      changed |= facts.length != result.length
       new MultiplicationExpression(result)
   })
 }

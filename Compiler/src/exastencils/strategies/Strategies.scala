@@ -150,7 +150,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
           }
         } while (!workQ.isEmpty)
       }
-      if (floatCst != 1d)
+      if (floatCst != 0d)
         new FloatConstant(floatCst + intCst) +=: rem
       else if (intCst != 0L)
         new IntegerConstant(intCst) +=: rem
