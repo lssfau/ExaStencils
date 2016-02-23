@@ -130,18 +130,6 @@ object UnaryOperators extends Enumeration {
   }
 }
 
-case class SelectionAccess(
-    var access : Access,
-    var datatype : Datatype,
-    var selection : Array[MultiIndex]) extends Access {
-  override def prettyprint(out : PpStream) : Unit = out << "INVALID, class = SelectionAccess"
-}
-
-trait Access extends Expression
-trait Number extends Expression {
-  def value : AnyVal
-}
-
 case object NullExpression extends Expression {
   exastencils.core.Duplicate.registerConstant(this)
   override def prettyprint(out : PpStream) : Unit = ()
@@ -178,6 +166,10 @@ case class StringLiteral(var value : String) extends Expression {
 case class StringConstant(var value : String) extends Expression {
   def this(s : StringLiteral) = this(s.value)
   override def prettyprint(out : PpStream) : Unit = out << '"' << value << '"'
+}
+
+trait Number extends Expression {
+  def value : AnyVal
 }
 
 case class IntegerConstant(var v : Long) extends Number {
@@ -261,15 +253,6 @@ case class VariableAccess(var name : String, var dType : Option[Datatype] = None
   def printDeclaration() : String = dType.get.resolveDeclType.prettyprint + " " + name + dType.get.resolveDeclPostscript
 }
 
-case class ArrayAccess(var base : Expression, var index : Expression, var alignedAccessPossible : Boolean = false) extends Access {
-  override def prettyprint(out : PpStream) : Unit = {
-    index match {
-      case ind : MultiIndex => out << base << ind
-      case ind : Expression => out << base << '[' << ind << ']'
-    }
-  }
-}
-
 //TODO specific expression for reading from fragment data file
 case class ReadValueFrom(var datatype : Datatype, data : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << "readValue<" << datatype << '>' << "(" << data << ")"
@@ -310,102 +293,6 @@ case class MultiIndex(var indices : Array[Expression]) extends Expression with I
   def apply(i : Int) = indices.apply(i)
   def update(i : Int, x : Expression) = indices.update(i, x)
   def length = indices.length
-}
-
-case class TempBufferAccess(var buffer : iv.TmpBuffer, var index : MultiIndex, var strides : MultiIndex) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TempBufferAccess\n"
-
-  def linearize : ArrayAccess = {
-    new ArrayAccess(buffer,
-      Mapping.resolveMultiIdx(index, strides),
-      false && Knowledge.data_alignTmpBufferPointers /* change here if aligned vector operations are possible for tmp buffers */ )
-  }
-}
-
-abstract class FieldAccessLike extends Expression {
-  def fieldSelection : FieldSelection
-  def index : MultiIndex
-}
-
-case class DirectFieldAccess(var fieldSelection : FieldSelection, var index : MultiIndex) extends FieldAccessLike {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = DirectFieldAccess\n"
-
-  def linearize : LinearizedFieldAccess = {
-    new LinearizedFieldAccess(fieldSelection, Mapping.resolveMultiIdx(fieldSelection.fieldLayout, index))
-  }
-}
-
-case class FieldAccess(var fieldSelection : FieldSelection, var index : MultiIndex) extends FieldAccessLike {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = FieldAccess\n"
-
-  def expandSpecial() : DirectFieldAccess = {
-    DirectFieldAccess(fieldSelection, index + fieldSelection.referenceOffset)
-  }
-}
-
-case class VirtualFieldAccess(var fieldName : String,
-    var level : Expression,
-    var index : MultiIndex,
-    var arrayIndex : Option[Int] = None,
-    var fragIdx : Expression = LoopOverFragments.defIt) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = VirtualFieldAccess\n"
-
-}
-
-case class ExternalFieldAccess(var name : Expression, var field : ExternalField, var index : MultiIndex) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ExternalFieldAccess\n"
-
-  def x = new VariableAccess("x", IntegerDatatype)
-  def y = new VariableAccess("y", IntegerDatatype)
-  def z = new VariableAccess("z", IntegerDatatype)
-  def w = new VariableAccess("w", IntegerDatatype)
-
-  def linearize : ArrayAccess = {
-    if (Knowledge.generateFortranInterface) { // Fortran requires multi-index access to multidimensional arrays
-      val it = LoopOverDimensions.defIt(field.fieldLayout.numDimsData)
-      var ret = name
-      for (dim <- field.fieldLayout.numDimsData - 1 to 0)
-        ret = new ArrayAccess(ret, it(dim), false)
-      ret.asInstanceOf[ArrayAccess]
-    } else
-      new ArrayAccess(name, Mapping.resolveMultiIdx(field.fieldLayout, index), false)
-  }
-}
-
-case class LinearizedFieldAccess(var fieldSelection : FieldSelection, var index : Expression) extends Expression with Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LinearizedFieldAccess\n"
-
-  override def expand : Output[Expression] = {
-    new ArrayAccess(new iv.FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx), index, Knowledge.data_alignFieldPointers)
-  }
-}
-
-case class StencilAccess(var stencil : Stencil) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilAccess\n"
-}
-
-case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection, var index : MultiIndex) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilFieldAccess\n"
-
-  def buildStencil : Stencil = {
-    var entries : ListBuffer[StencilEntry] = ListBuffer()
-    for (e <- 0 until stencilFieldSelection.stencil.entries.size) {
-      var stencilFieldIdx = Duplicate(index)
-      stencilFieldIdx(stencilFieldSelection.stencilField.field.fieldLayout.numDimsData - 1) = e // TODO: assumes last index is vector dimension
-      var fieldSel = stencilFieldSelection.toFieldSelection
-      fieldSel.arrayIndex = Some(e)
-      entries += new StencilEntry(stencilFieldSelection.stencil.entries(e).offset, new FieldAccess(fieldSel, stencilFieldIdx))
-    }
-    new Stencil("GENERATED_PLACEHOLDER_STENCIL", stencilFieldSelection.stencil.level, entries)
-  }
-}
-
-case class MemberAccess(var base : Access, var varAcc : VariableAccess) extends Access {
-  override def prettyprint(out : PpStream) : Unit = out << base << '.' << varAcc
-}
-
-case class DerefAccess(var base : Access) extends Access {
-  override def prettyprint(out : PpStream) : Unit = out << "(*" << base << ')'
 }
 
 case class AdditionExpression(var summands : ListBuffer[Expression]) extends Expression {
