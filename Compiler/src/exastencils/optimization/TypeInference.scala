@@ -106,7 +106,7 @@ private final object CreateVariableAccesses extends PartialFunction[Node, Transf
   override def apply(node : Node) : Transformation.OutputType = {
 
     // do not remove annotation as the same object could be used multiple times in AST (which is a bug, yes ;))
-    val typee : Datatype = node.getAnnotation(TYPE_ANNOT).get.value.asInstanceOf[Datatype]
+    val typee : Datatype = node.getAnnotation(TYPE_ANNOT).get.asInstanceOf[Datatype]
     val varr : String =
       node match {
         case StringLiteral(name)     => name
@@ -115,4 +115,3 @@ private final object CreateVariableAccesses extends PartialFunction[Node, Transf
     return new VariableAccess(varr, typee)
   }
 }
-

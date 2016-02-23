@@ -278,9 +278,9 @@ private final object IntegrateAnnotations extends PartialFunction[Node, Transfor
 
     val repl = node.removeAnnotation(REPL_ANNOT)
     if (repl.isDefined)
-      return repl.get.value.asInstanceOf[Node]
+      return repl.get.asInstanceOf[Node]
 
-    val decls = node.removeAnnotation(DECLS_ANNOT).get.value.asInstanceOf[HashMap[String, ArrayBases]]
+    val decls = node.removeAnnotation(DECLS_ANNOT).get.asInstanceOf[HashMap[String, ArrayBases]]
     if (decls.isEmpty)
       return node
 

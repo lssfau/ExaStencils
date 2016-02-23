@@ -335,7 +335,7 @@ case class RepeatTimesStatement(var number : Int,
       statements.map(s => s.progressToIr).to[ListBuffer], // FIXME: to[ListBuffer]
       None)
 
-    ret.add(Annotation("numLoopIterations", number))
+    ret.annotate("numLoopIterations", number)
 
     ret
   }

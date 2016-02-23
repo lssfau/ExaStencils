@@ -179,8 +179,8 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
 
     // step 1: wrap field accesses with eval functions if necessary
     object WrappingFieldAccesses extends QuietDefaultStrategy("Wrapping field accesses") {
-      val pIntAnnot = Annotation("PIECEWISE_INTEGRATION")
-      def addPIntAnnot(exp : Expression) = { exp.add(pIntAnnot); exp }
+      val pIntAnnot = "PIECEWISE_INTEGRATION"
+      def addPIntAnnot(exp : Expression) = { exp.annotate(pIntAnnot); exp }
 
       this += new Transformation("Wrapping", {
         case fieldAccess : FieldAccess => {
@@ -267,7 +267,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
     object ShiftFieldAccessIndices_ extends QuietDefaultStrategy("Shifting indices of field accesses") {
       var offset : Expression = 0
       var dim : Int = 0
-      var requiredAnnot : Option[Annotation] = None
+      var requiredAnnot : Option[String] = None
 
       this += new Transformation("Searching and shifting", {
         case fieldAccess : FieldAccess if requiredAnnot.isEmpty || fieldAccess.hasAnnotation(requiredAnnot.get) =>

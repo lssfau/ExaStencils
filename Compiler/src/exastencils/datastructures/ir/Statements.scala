@@ -120,7 +120,7 @@ case class ForLoopStatement(var begin : Statement, var end : Expression, var inc
 
   def maxIterationCount() = {
     if (hasAnnotation("numLoopIterations"))
-      getAnnotation("numLoopIterations").get.value.asInstanceOf[Int]
+      getAnnotation("numLoopIterations").get.asInstanceOf[Int]
     else
       0 // TODO: warning?
   }

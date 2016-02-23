@@ -51,7 +51,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
 
   override def apply(node : Node) : Transformation.OutputType = {
 
-    val scop : Scop = node.removeAnnotation(PolyOpt.SCOP_ANNOT).get.value.asInstanceOf[Scop]
+    val scop : Scop = node.removeAnnotation(PolyOpt.SCOP_ANNOT).get.asInstanceOf[Scop]
     if (scop.remove)
       return NullStatement
     reduction = scop.root.reduction
