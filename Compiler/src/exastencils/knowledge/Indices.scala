@@ -36,12 +36,7 @@ object Mapping {
       index(dim) * stride
     }).fold(0 : Expression)(_ + _)
 
-    if (Knowledge.data_genVariableFieldSizes) {
-      SimplifyStrategy.doUntilDoneStandalone(ret)
-      ret
-    } else {
-      SimplifyExpression.simplifyIntegralExpr(ret)
-    }
+    SimplifyExpression.simplifyIntegralExpr(ret)
   }
 
   def resolveMultiIdx(index : MultiIndex, aabb : IndexRange) : Expression = resolveMultiIdx(index, new MultiIndex(aabb.end, aabb.begin, _ - _))
