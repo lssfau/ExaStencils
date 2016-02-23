@@ -338,9 +338,9 @@ object SimplifyExpression {
   def recreateExprFromIntSum(sumMap : HashMap[Expression, Long]) : Expression = {
 
     var res : Expression = null
-    val const : Option[Long] = sumMap.remove(constName)
+    val const : Option[Long] = sumMap.get(constName)
 
-    val sumSeq = sumMap.filter(s => s._2 != 0L).toSeq.sortWith({
+    val sumSeq = sumMap.view.filter(s => s._1 != constName && s._2 != 0L).toSeq.sortWith({
       case ((VariableAccess(v1, _), _), (VariableAccess(v2, _), _)) => v1 < v2
       case ((v1 : VariableAccess, _), _)                            => true
       case (_, (v2 : VariableAccess, _))                            => false
@@ -592,9 +592,9 @@ object SimplifyExpression {
   def recreateExprFromFloatSum(sumMap : HashMap[Expression, Double]) : Expression = {
 
     var res : Expression = null
-    val const : Option[Double] = sumMap.remove(constName)
+    val const : Option[Double] = sumMap.get(constName)
 
-    val sumSeq = sumMap.filter(s => s._2 != 0d).toSeq.sortWith({
+    val sumSeq = sumMap.view.filter(s => s._1 != constName && s._2 != 0d).toSeq.sortWith({
       case ((VariableAccess(v1, _), _), (VariableAccess(v2, _), _)) => v1 < v2
       case ((v1 : VariableAccess, _), _)                            => true
       case (_, (v2 : VariableAccess, _))                            => false
