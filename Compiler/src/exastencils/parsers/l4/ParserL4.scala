@@ -203,10 +203,10 @@ class ParserL4 extends ExaParser with PackratParsers {
     ^^ { case op ~ targets ~ field ~ cond => CommunicateStatement(field, op.getOrElse("both"), targets, cond) })
   lazy val communicateTarget = locationize(("all" ||| "dup" ||| "ghost") ~ index.? ~ ("to" ~> index).? // inclucive indices
     ^^ { case target ~ start ~ end => CommunicateTarget(target, start, end) })
-  lazy val precomm = locationize("precomm" ~> communicateTarget.* ~ (("of").? ~> genericAccess) ~ ("where" ~> booleanexpression).?
-    ^^ { case targets ~ field ~ cond => CommunicateStatement(field, "both", targets, cond) })
-  lazy val postcomm = locationize("postcomm" ~> communicateTarget.* ~ (("of").? ~> genericAccess) ~ ("where" ~> booleanexpression).?
-    ^^ { case targets ~ field ~ cond => CommunicateStatement(field, "both", targets, cond) })
+  lazy val precomm = locationize("precomm" ~> ("begin" ||| "finish").? ~ communicateTarget.* ~ (("of").? ~> genericAccess) ~ ("where" ~> booleanexpression).?
+    ^^ { case op ~ targets ~ field ~ cond => CommunicateStatement(field, op.getOrElse("both"), targets, cond) })
+  lazy val postcomm = locationize("postcomm" ~> ("begin" ||| "finish").? ~ communicateTarget.* ~ (("of").? ~> genericAccess) ~ ("where" ~> booleanexpression).?
+    ^^ { case op ~ targets ~ field ~ cond => CommunicateStatement(field, op.getOrElse("both"), targets, cond) })
 
   lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ { case exp => ReturnStatement(exp) })
 
