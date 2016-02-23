@@ -178,6 +178,9 @@ object Main {
     if (Knowledge.experimental_cuda_enabled)
       StateManager.root_.asInstanceOf[ir.Root].nodes += KernelFunctions()
 
+    if (Knowledge.experimental_mergeCommIntoLoops)
+      MergeCommunicatesAndLoops.apply()
+
     SimplifyStrategy.doUntilDone() // removes (conditional) calls to communication functions that are not possible
     SetupCommunication.firstCall = true
     SetupCommunication.apply()

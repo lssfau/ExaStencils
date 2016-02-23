@@ -179,3 +179,28 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
     }
   }, false)
 }
+
+object MergeCommunicatesAndLoops extends DefaultStrategy("Merging communicate statements with loop nodes") {
+  def processFctBody(body : ListBuffer[Statement]) : ListBuffer[Statement] = {
+    if (body.length < 2) return body
+
+    var newBody = ListBuffer[Statement]()
+
+    for (i <- 1 until body.length) {
+      (body(i - 1), body(i)) match {
+        case (cs : CommunicateStatement, loop : LoopOverPoints) => loop.preComms += cs // already merged: newBody += cs
+        case (first, second)                                    => newBody += first
+      }
+    }
+    newBody += body.last
+
+    newBody
+  }
+
+  this += new Transformation("Resolving", {
+    case fct : FunctionStatement => {
+      fct.body = processFctBody(fct.body)
+      fct
+    }
+  })
+}
