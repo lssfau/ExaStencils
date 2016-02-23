@@ -302,7 +302,8 @@ case class LoopOverPointsInOneFragment(var domain : Int,
       }
 
       // start communication
-      stmts ++= preComms.filter(comm => "begin" == comm.op || "both" == comm.op)
+      stmts ++= preComms.filter(comm => "begin" == comm.op)
+      stmts ++= preComms.filter(comm => "both" == comm.op).map(comm => { var newComm = Duplicate(comm); newComm.op = "begin"; newComm })
 
       // innerRegion
       var coreLoop = Duplicate(loop)
@@ -314,6 +315,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
 
       // finish communication
       stmts ++= preComms.filter(comm => "finish" == comm.op)
+      stmts ++= preComms.filter(comm => "both" == comm.op).map(comm => { var newComm = Duplicate(comm); newComm.op = "finish"; newComm })
 
       // outerRegion
       var boundaryLoop = Duplicate(loop)
