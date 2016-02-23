@@ -400,7 +400,7 @@ class Extractor extends Collector {
     mergeScops = false
 
     node.getAnnotation(Access.ANNOT) match {
-      case Some(Annotation(_, acc)) =>
+      case Some(acc) =>
         acc match {
           case Access.READ  => isRead = true
           case Access.WRITE => isWrite = true

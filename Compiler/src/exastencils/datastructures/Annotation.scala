@@ -3,108 +3,33 @@ package exastencils.datastructures
 import scala.collection.mutable.HashMap
 import exastencils.core.Duplicate
 
-/**
-  * Holds information and be attached to any class that is [[exastencils.datastructures.Annotatable]].
-  *
-  * @param id A key-like identifier denoting the kind of information this annotation holds.
-  * @param value The information this annotation holds.
-  */
-sealed class Annotation(val id : String, var value : Any) {
+/** Marks a class as annotatable, meaning annotations holding metadata can be added. */
+trait Annotatable {
+  private val annotations_ = new HashMap[String, Any]
+
   /**
-    * Alternate constructor when no value is needed.
+    * Adds a new annotation to this instance.
     *
-    * Sets the value of this Annotation to None.
+    * @param id A key-like identifier denoting the kind of information this annotation holds.
+    * @param value The information this annotation holds.
+    */
+  def annotate(id : String, value : Any) : Unit = {
+    annotations_ += ((id, value))
+  }
+
+  /**
+    * Adds a new annotation to this instance when no value is needed.
+    *
+    * Sets the value of the new annotation to None.
     *
     * @param id A key-like identifier denoting the kind of information this annotation holds.
     */
-  def this(id : String) = this(id, None)
+  def annotate(id : String) : Unit = this.annotate(id, None)
 
   /**
-    * Re-Sets the value of this annotation.
+    * Copies the annotations from another object.
     *
-    * @param newValue The new information this annotation holds.
-    */
-  def setValue(newValue : Any) = { value = newValue }
-
-  override def toString = { f"Annotation: $id: $value" }
-}
-
-/** Companion object for the [[exastencils.datastructures.Annotation]] class. */
-object Annotation {
-  /**
-    * Creates a new [[exastencils.datastructures.Annotation]].
-    *
-    * @param id A key-like identifier denoting the kind of information this [[exastencils.datastructures.Annotation]] holds.
-    * @param value The information this [[exastencils.datastructures.Annotation]] holds.
-    * @return The newly created [[exastencils.datastructures.Annotation]] instance.
-    */
-  def apply(id : String, value : Any) = new Annotation(id, value)
-
-  /**
-    * Creates a new [[exastencils.datastructures.Annotation]] when no value is needed.
-    *
-    * Sets the value of this [[exastencils.datastructures.Annotation]] to None.
-    *
-    * @param id A key-like identifier denoting the kind of information this [[exastencils.datastructures.Annotation]] holds.
-    * @return The newly created [[exastencils.datastructures.Annotation]] instance.
-    */
-  def apply(id : String) = new Annotation(id)
-
-  /**
-    * Splits an [[exastencils.datastructures.Annotation]] into a standard Scala key-value-pair.
-    *
-    * @param annotation The [[exastencils.datastructures.Annotation]] to be split up.
-    * @return A standard Scala key-value-pair, or `None`.
-    */
-  def unapply(annotation : Annotation) : Option[(String, Any)] = Some((annotation.id, annotation.value))
-}
-
-/** Marks a class as annotatable, meaning [[exastencils.datastructures.Annotation]]s holding metadata can be added. */
-trait Annotatable {
-  private val annotations_ = new HashMap[String, Annotation]
-
-  /**
-    * Adds a [[exastencils.datastructures.Annotation]] to this instance.
-    *
-    * @param annotation The [[exastencils.datastructures.Annotation]] to add to this instance.
-    */
-  def add(annotation : Annotation) : Unit = { annotations_ += ((annotation.id, annotation)) }
-
-  /**
-    * Adds a list of [[exastencils.datastructures.Annotation]]s to this instance.
-    *
-    * @param annotations The list of [[exastencils.datastructures.Annotation]]s to add to this instance.
-    */
-  def add(annotations : Seq[Annotation]) : Unit = { annotations.foreach(add(_)) }
-
-  /**
-    * Adds a [[exastencils.datastructures.Annotation]] to this instance.
-    *
-    * @param annotation The [[exastencils.datastructures.Annotation]] to add to this instance.
-    */
-  def annotate(annotation : Annotation) : Unit = { annotations_ += ((annotation.id, annotation)) }
-
-  /**
-    * Adds a new [[exastencils.datastructures.Annotation]] to this instance.
-    *
-    * @param id A key-like identifier denoting the kind of information this [[exastencils.datastructures.Annotation]] holds.
-    * @param value The information this [[exastencils.datastructures.Annotation]] holds.
-    */
-  def annotate(id : String, value : Any) = this.add(new Annotation(id, value))
-
-  /**
-    * Adds a new [[exastencils.datastructures.Annotation]] to this instance when no value is needed.
-    *
-    * Sets the value of the new [[exastencils.datastructures.Annotation]] to None.
-    *
-    * @param id A key-like identifier denoting the kind of information this [[exastencils.datastructures.Annotation]] holds.
-    */
-  def annotate(id : String) = this.add(new Annotation(id))
-
-  /**
-    * Copies the [[exastencils.datastructures.Annotation]]s from another object.
-    *
-    * @param other The other object holding the [[exastencils.datastructures.Annotation]]s to add to this instance.
+    * @param other The other object holding the annotations to add to this instance.
     */
   def annotate(other : Annotatable) : Unit = {
     if (other != this) {
@@ -114,61 +39,32 @@ trait Annotatable {
   }
 
   /**
-    * Removes a [[exastencils.datastructures.Annotation]] from this instance.
+    * Removes a annotation from this instance.
     *
-    * @param annotation The [[exastencils.datastructures.Annotation]] to remove.
-    */
-  def remove(annotation : Annotation) = { annotations_.remove(annotation.id) }
-
-  /**
-    * Removes a [[exastencils.datastructures.Annotation]] from this instance.
-    *
-    * @param annotation The [[exastencils.datastructures.Annotation]] to remove.
-    */
-  def removeAnnotation(annotation : Annotation) = { annotations_.remove(annotation.id) }
-
-  /**
-    * Removes a [[exastencils.datastructures.Annotation]] from this instance.
-    *
-    * @param id A key-like identifier denoting the [[exastencils.datastructures.Annotation]] to remove.
+    * @param id A key-like identifier denoting the annotation to remove.
     */
   def removeAnnotation(id : String) = { annotations_.remove(id) }
 
   /**
-    * Returns all [[exastencils.datastructures.Annotation]]s of this instance.
+    * Returns all annotations of this instance.
     *
-    * @return The list of [[exastencils.datastructures.Annotation]] of this instance.
+    * @return The list of annotation of this instance.
     */
   def annotations = annotations_
 
   /**
-    * Returns all [[exastencils.datastructures.Annotation]]s of this instance.
+    * Returns a annotations from this instance.
     *
-    * @return The list of [[exastencils.datastructures.Annotation]] of this instance.
-    */
-  def getAnnotations = { annotations_.values }
-
-  /**
-    * Returns a [[exastencils.datastructures.Annotation]]s from this instance.
-    *
-    * @param id A key-like identifier denoting the [[exastencils.datastructures.Annotation]] to return.
-    * @return The [[exastencils.datastructures.Annotation]] matching the given identifier, or `None`.
+    * @param id A key-like identifier denoting the annotation to return.
+    * @return The annotation matching the given identifier, or `None`.
     */
   def getAnnotation(id : String) = { annotations_.get(id) }
 
   /**
-    * Checks if this instance contains a certain [[exastencils.datastructures.Annotation]].
+    * Checks if this instance contains a certain annotation.
     *
-    * @param id A key-like identifier denoting the [[exastencils.datastructures.Annotation]] to check for.
-    * @return `true`, if the [[exastencils.datastructures.Annotation]] was found, or `false`.
+    * @param id A key-like identifier denoting the annotation to check for.
+    * @return `true`, if the annotation was found, or `false`.
     */
   def hasAnnotation(id : String) = { annotations_.contains(id) }
-
-  /**
-    * Checks if this instance contains a certain [[exastencils.datastructures.Annotation]].
-    *
-    * @param annotation The [[exastencils.datastructures.Annotation]] to check for.
-    * @return `true`, if the [[exastencils.datastructures.Annotation]] was found, or `false`.
-    */
-  def hasAnnotation(annotation : Annotation) = { annotations_.contains(annotation.id) }
 }

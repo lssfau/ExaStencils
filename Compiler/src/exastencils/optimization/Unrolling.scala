@@ -149,7 +149,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     var postLoop : Statement = null
     if (unrolled) {
       res = new ListBuffer[Statement]()
-      intermDecl = annot.get.value.asInstanceOf[VariableDeclarationStatement]
+      intermDecl = annot.get.asInstanceOf[VariableDeclarationStatement]
       intermDecl.expression = Some(Unrolling.getIntermExpr(newStride))
     } else {
       val (boundsDecls, postLoop_) : (ListBuffer[Statement], Statement) =

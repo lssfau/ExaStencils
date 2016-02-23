@@ -4,7 +4,6 @@ import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.combinator.syntactical.StandardTokenParsers
 
 import exastencils.datastructures.Annotatable
-import exastencils.datastructures.Annotation
 
 class ExaParser extends StandardTokenParsers with PackratParsers {
   val IntRegEx = """[+-]?(\d+)""".r
@@ -22,7 +21,7 @@ class ExaParser extends StandardTokenParsers with PackratParsers {
 
   def locationize[T <: Annotatable](p : => Parser[T]) : Parser[T] = Parser { in =>
     p(in) match {
-      case Success(t, in1) => Success(if (!t.hasAnnotation("location")) { t.add(new Annotation("location", Some(in.pos))); t } else t, in1)
+      case Success(t, in1) => Success({ t.annotate("location", Some(in.pos)); t }, in1)
       case ns : NoSuccess  => ns
     }
   }

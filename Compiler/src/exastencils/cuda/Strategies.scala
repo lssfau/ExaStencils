@@ -106,7 +106,7 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
         var defaultChoice = Knowledge.experimental_cuda_preferredExecution match {
           case "Host"        => 1 // CPU by default
           case "Device"      => 0 // GPU by default
-          case "Performance" => if (loop.getAnnotation("perf_timeEstimate_host").get.value.asInstanceOf[Double] > loop.getAnnotation("perf_timeEstimate_device").get.value.asInstanceOf[Double]) 0 else 1 // decide according to performance estimates
+          case "Performance" => if (loop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] > loop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]) 0 else 1 // decide according to performance estimates
         }
 
         ConditionStatement(defaultChoice, hostStmts, deviceStmts)
