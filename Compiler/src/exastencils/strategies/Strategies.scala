@@ -1,6 +1,7 @@
 package exastencils.strategies
 
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Queue
 
 import exastencils.core._
 import exastencils.datastructures._
@@ -79,16 +80,22 @@ object ExpandOnePassStrategy extends DefaultStrategy("Expanding") { // TODO: thi
 }
 
 object SimplifyStrategy extends DefaultStrategy("Simplifying") {
+  var negMatches : Int = 0
+
   def doUntilDone(node : Option[Node] = None) = {
-    do { apply(node) }
-    while (results.last._2.matches > 0) // FIXME: cleaner code
+    do {
+      negMatches = 0
+      apply(node)
+    } while (results.last._2.matches - negMatches > 0) // FIXME: cleaner code
   }
 
   def doUntilDoneStandalone(node : Node) = {
     val oldLvl = Logger.getLevel
     Logger.setLevel(Logger.WARNING)
-    do { applyStandalone(node) }
-    while (results.last._2.matches > 0) // FIXME: cleaner code
+    do {
+      negMatches = 0
+      applyStandalone(node)
+    } while (results.last._2.matches - negMatches > 0) // FIXME: cleaner code
     Logger.setLevel(oldLvl)
   }
 
@@ -101,11 +108,69 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       IntegerConstant(-value.v)
     case NegativeExpression(FloatConstant(value)) =>
       FloatConstant(-value.v)
+    //    case NegativeExpression(add : AdditionExpression) =>
+    //      add.summands.transform { s => NegationExpression(s) }
+    //      add
     //})
 
+    case add : AdditionExpression =>
+      // TODO: add distributive law?
+      var change : Boolean = false
+      var intCst : Long = 0
+      var floatCst : Double = 0.0
+      var vecExpr : VectorExpression = null
+      val workQ = new Queue[Expression]()
+      val rem = new ListBuffer[Expression]()
+      for (s <- add.summands) {
+        workQ.enqueue(s) // for nested AdditionExpressions; this allows in-order processing
+        do {
+          workQ.dequeue() match {
+            case IntegerConstant(i) => intCst += i
+            case FloatConstant(f)   => floatCst += f
+            case AdditionExpression(sums) =>
+              workQ.enqueue(sums : _*)
+              change = true
+            case v : VectorExpression =>
+              if (vecExpr == null)
+                vecExpr = v
+              else {
+                if (vecExpr.rowVector.getOrElse(true) != v.rowVector.getOrElse(true))
+                  Logger.error("Vector types must match for addition")
+                if (vecExpr.length != v.length)
+                  Logger.error("Vector sizes must match for addition")
+                vecExpr =
+                  VectorExpression(GetResultingDatatype(vecExpr.datatype, v.datatype),
+                    (vecExpr.expressions, v.expressions).zipped.map(_ + _),
+                    if (vecExpr.rowVector.isDefined) vecExpr.rowVector else v.rowVector)
+              }
+            case r : Expression => rem += r
+          }
+        } while (!workQ.isEmpty)
+      }
+      if (floatCst != 0.0)
+        new FloatConstant(floatCst + intCst) +=: rem
+      else if (intCst != 0)
+        new IntegerConstant(intCst) +=: rem
+
+      if (vecExpr != null) {
+        if (!rem.isEmpty)
+          Logger.error("Unable to add VectorExpression with other Expression types")
+        else
+          vecExpr
+      } else if (!change && rem.length == add.summands.length) {
+        negMatches += 1
+        add // return
+      } else if (rem.isEmpty) {
+        new IntegerConstant(0)
+      } else if (rem.length == 1) {
+        rem.head
+      } else {
+        new AdditionExpression(rem)
+      }
+
     //this += new Transformation("Resolving operations with mixed data types", {
-    case AdditionExpression(left : IntegerConstant, right : FloatConstant) =>
-      FloatConstant(left.v + right.v)
+    //    case AdditionExpression(left : IntegerConstant, right : FloatConstant) =>
+    //      FloatConstant(left.v + right.v)
     case SubtractionExpression(left : IntegerConstant, right : FloatConstant) =>
       FloatConstant(left.v - right.v)
     case MultiplicationExpression(left : IntegerConstant, right : FloatConstant) =>
@@ -113,8 +178,8 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case DivisionExpression(left : IntegerConstant, right : FloatConstant) =>
       FloatConstant(left.v / right.v)
 
-    case AdditionExpression(left : FloatConstant, right : IntegerConstant) =>
-      FloatConstant(left.v + right.v)
+    //    case AdditionExpression(left : FloatConstant, right : IntegerConstant) =>
+    //      FloatConstant(left.v + right.v)
     case SubtractionExpression(left : FloatConstant, right : IntegerConstant) =>
       FloatConstant(left.v - right.v)
     case MultiplicationExpression(left : FloatConstant, right : IntegerConstant) =>
@@ -124,31 +189,31 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     //})
 
     //this += new Transformation("Permutating operations with constants on the 'wrong' side", {
-    case AdditionExpression(left : IntegerConstant, right : Expression) if !right.isInstanceOf[IntegerConstant] =>
-      right + left
+    //    case AdditionExpression(left : IntegerConstant, right : Expression) if !right.isInstanceOf[IntegerConstant] =>
+    //      right + left
     case MultiplicationExpression(left : IntegerConstant, right : Expression) if !right.isInstanceOf[IntegerConstant] =>
       right * left
 
-    case AdditionExpression(left : FloatConstant, right : Expression) if !right.isInstanceOf[FloatConstant] =>
-      right + left
+    //    case AdditionExpression(left : FloatConstant, right : Expression) if !right.isInstanceOf[FloatConstant] =>
+    //      right + left
     case MultiplicationExpression(left : FloatConstant, right : Expression) if !right.isInstanceOf[FloatConstant] =>
       right * left
     //})
 
     //this += new Transformation("Correcting signs", {
-    case AdditionExpression(left, IntegerConstant(right)) if (right < 0) =>
-      left - IntegerConstant(-right)
+    //    case AdditionExpression(left, IntegerConstant(right)) if (right < 0) =>
+    //      left - IntegerConstant(-right)
     case SubtractionExpression(left, IntegerConstant(right)) if (right < 0) =>
       left + IntegerConstant(-right)
-    case AdditionExpression(left, FloatConstant(right)) if (right < 0) =>
-      left - FloatConstant(-right)
+    //    case AdditionExpression(left, FloatConstant(right)) if (right < 0) =>
+    //      left - FloatConstant(-right)
     case SubtractionExpression(left, FloatConstant(right)) if (right < 0) =>
       left + FloatConstant(-right)
     //})
 
     //this += new Transformation("Resolving operations on constant integers", {
-    case AdditionExpression(left : IntegerConstant, right : IntegerConstant) =>
-      IntegerConstant(left.v + right.v)
+    //    case AdditionExpression(left : IntegerConstant, right : IntegerConstant) =>
+    //      IntegerConstant(left.v + right.v)
     case SubtractionExpression(left : IntegerConstant, right : IntegerConstant) =>
       IntegerConstant(left.v - right.v)
     case MultiplicationExpression(left : IntegerConstant, right : IntegerConstant) =>
@@ -158,17 +223,17 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case ModuloExpression(left : IntegerConstant, right : IntegerConstant) =>
       IntegerConstant(left.v % right.v)
 
-    case AdditionExpression(AdditionExpression(leftLeft, leftRight : IntegerConstant), right : IntegerConstant) =>
-      (leftLeft + IntegerConstant(leftRight.v + right.v))
-    case SubtractionExpression(AdditionExpression(leftLeft, leftRight : IntegerConstant), right : IntegerConstant) =>
-      (leftLeft + IntegerConstant(leftRight.v - right.v))
-    case AdditionExpression(SubtractionExpression(leftLeft, leftRight : IntegerConstant), right : IntegerConstant) =>
-      (leftLeft + IntegerConstant(-leftRight.v + right.v))
+    //    case AdditionExpression(AdditionExpression(leftLeft, leftRight : IntegerConstant), right : IntegerConstant) =>
+    //      (leftLeft + IntegerConstant(leftRight.v + right.v))
+    //    case SubtractionExpression(AdditionExpression(leftLeft, leftRight : IntegerConstant), right : IntegerConstant) =>
+    //      (leftLeft + IntegerConstant(leftRight.v - right.v))
+    //    case AdditionExpression(SubtractionExpression(leftLeft, leftRight : IntegerConstant), right : IntegerConstant) =>
+    //      (leftLeft + IntegerConstant(-leftRight.v + right.v))
     case SubtractionExpression(SubtractionExpression(leftLeft, leftRight : IntegerConstant), right : IntegerConstant) =>
       (leftLeft - IntegerConstant(leftRight.v + right.v))
 
-    case AdditionExpression(left : FloatConstant, right : FloatConstant) =>
-      FloatConstant(left.v + right.v)
+    //    case AdditionExpression(left : FloatConstant, right : FloatConstant) =>
+    //      FloatConstant(left.v + right.v)
     case SubtractionExpression(left : FloatConstant, right : FloatConstant) =>
       FloatConstant(left.v - right.v)
     case MultiplicationExpression(left : FloatConstant, right : FloatConstant) =>
@@ -176,12 +241,12 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case DivisionExpression(left : FloatConstant, right : FloatConstant) =>
       FloatConstant(left.v / right.v)
 
-    case AdditionExpression(AdditionExpression(leftLeft, leftRight : FloatConstant), right : FloatConstant) =>
-      (leftLeft + FloatConstant(leftRight.v + right.v))
-    case SubtractionExpression(AdditionExpression(leftLeft, leftRight : FloatConstant), right : FloatConstant) =>
-      (leftLeft + FloatConstant(leftRight.v - right.v))
-    case AdditionExpression(SubtractionExpression(leftLeft, leftRight : FloatConstant), right : FloatConstant) =>
-      (leftLeft + FloatConstant(-leftRight.v + right.v))
+    //    case AdditionExpression(AdditionExpression(leftLeft, leftRight : FloatConstant), right : FloatConstant) =>
+    //      (leftLeft + FloatConstant(leftRight.v + right.v))
+    //    case SubtractionExpression(AdditionExpression(leftLeft, leftRight : FloatConstant), right : FloatConstant) =>
+    //      (leftLeft + FloatConstant(leftRight.v - right.v))
+    //    case AdditionExpression(SubtractionExpression(leftLeft, leftRight : FloatConstant), right : FloatConstant) =>
+    //      (leftLeft + FloatConstant(-leftRight.v + right.v))
     case SubtractionExpression(SubtractionExpression(leftLeft, leftRight : FloatConstant), right : FloatConstant) =>
       (leftLeft - FloatConstant(leftRight.v + right.v))
 
@@ -203,18 +268,18 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case MultiplicationExpression(FloatConstant(0.0), right : Expression) => FloatConstant(0.0)
     case DivisionExpression(FloatConstant(0.0), right : Expression)       => FloatConstant(0.0)
 
-    case AdditionExpression(left : Expression, IntegerConstant(0))        => left
+    //    case AdditionExpression(left : Expression, IntegerConstant(0))        => left
     case SubtractionExpression(left : Expression, IntegerConstant(0))     => left
-    case AdditionExpression(left : Expression, FloatConstant(0))          => left
+    //    case AdditionExpression(left : Expression, FloatConstant(0))          => left
     case SubtractionExpression(left : Expression, FloatConstant(0))       => left
 
     // Simplify vectors
     case NegativeExpression(v : VectorExpression)                         => VectorExpression(v.datatype, v.expressions.map(_ * (-1)), v.rowVector)
-    case AdditionExpression(left : VectorExpression, right : VectorExpression) => {
-      if (left.rowVector.getOrElse(true) != right.rowVector.getOrElse(true)) Logger.error("Vector types must match for addition")
-      if (left.length != right.length) Logger.error("Vector sizes must match for addition")
-      VectorExpression(GetResultingDatatype(left.datatype, right.datatype), (left.expressions, right.expressions).zipped.map(_ + _), left.rowVector.getOrElse(right.rowVector).asInstanceOf[Option[Boolean]])
-    }
+    //    case AdditionExpression(left : VectorExpression, right : VectorExpression) => {
+    //      if (left.rowVector.getOrElse(true) != right.rowVector.getOrElse(true)) Logger.error("Vector types must match for addition")
+    //      if (left.length != right.length) Logger.error("Vector sizes must match for addition")
+    //      VectorExpression(GetResultingDatatype(left.datatype, right.datatype), (left.expressions, right.expressions).zipped.map(_ + _), left.rowVector.getOrElse(right.rowVector).asInstanceOf[Option[Boolean]])
+    //    }
     case SubtractionExpression(left : VectorExpression, right : VectorExpression) => {
       if (left.rowVector.getOrElse(true) != right.rowVector.getOrElse(true)) Logger.error("Vector types must match for subtraction")
       if (left.length != right.length) Logger.error("Vector sizes must match for subtraction")
@@ -256,29 +321,29 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     // FIXME: the two following applications are obviously contrary -> treat with caution when extending to general data types
     //    case MultiplicationExpression(AdditionExpression(leftLeft, leftRight), right : Expression)    => ((leftLeft * right) + (leftRight * right))
     //    case MultiplicationExpression(SubtractionExpression(leftLeft, leftRight), right : Expression) => ((leftLeft * right) - (leftRight * right))
-    case AdditionExpression(
-      MultiplicationExpression(FloatConstant(leftLeft), leftRight),
-      MultiplicationExpression(FloatConstant(rightLeft), rightRight)) if (leftLeft == rightLeft) =>
-      (leftLeft * (leftRight + rightRight))
+    //    case AdditionExpression(
+    //      MultiplicationExpression(FloatConstant(leftLeft), leftRight),
+    //      MultiplicationExpression(FloatConstant(rightLeft), rightRight)) if (leftLeft == rightLeft) =>
+    //      (leftLeft * (leftRight + rightRight))
     //})
 
     //this += new Transformation("Summarize constant additions", {
-    case AdditionExpression(
-      AdditionExpression(leftLeft, IntegerConstant(leftRight)),
-      AdditionExpression(rightLeft, IntegerConstant(rightRight))) =>
-      ((leftLeft + rightLeft) + (leftRight.v + rightRight.v))
-    case AdditionExpression(
-      AdditionExpression(leftLeft, IntegerConstant(leftRight)),
-      SubtractionExpression(rightLeft, IntegerConstant(rightRight))) =>
-      ((leftLeft + rightLeft) + (leftRight.v - rightRight.v))
-    case AdditionExpression(
-      SubtractionExpression(leftLeft, IntegerConstant(leftRight)),
-      AdditionExpression(rightLeft, IntegerConstant(rightRight))) =>
-      ((leftLeft + rightLeft) + (-leftRight.v + rightRight.v))
-    case AdditionExpression(
-      SubtractionExpression(leftLeft, IntegerConstant(leftRight)),
-      SubtractionExpression(rightLeft, IntegerConstant(rightRight))) =>
-      ((leftLeft + rightLeft) - (leftRight.v + rightRight.v))
+    //    case AdditionExpression(
+    //      AdditionExpression(leftLeft, IntegerConstant(leftRight)),
+    //      AdditionExpression(rightLeft, IntegerConstant(rightRight))) =>
+    //      ((leftLeft + rightLeft) + (leftRight.v + rightRight.v))
+    //    case AdditionExpression(
+    //      AdditionExpression(leftLeft, IntegerConstant(leftRight)),
+    //      SubtractionExpression(rightLeft, IntegerConstant(rightRight))) =>
+    //      ((leftLeft + rightLeft) + (leftRight.v - rightRight.v))
+    //    case AdditionExpression(
+    //      SubtractionExpression(leftLeft, IntegerConstant(leftRight)),
+    //      AdditionExpression(rightLeft, IntegerConstant(rightRight))) =>
+    //      ((leftLeft + rightLeft) + (-leftRight.v + rightRight.v))
+    //    case AdditionExpression(
+    //      SubtractionExpression(leftLeft, IntegerConstant(leftRight)),
+    //      SubtractionExpression(rightLeft, IntegerConstant(rightRight))) =>
+    //      ((leftLeft + rightLeft) - (leftRight.v + rightRight.v))
     //})
 
     case loop @ ForLoopStatement(_, _, _, body, _) if (body.length == 1 && body(0).isInstanceOf[Scope]) =>

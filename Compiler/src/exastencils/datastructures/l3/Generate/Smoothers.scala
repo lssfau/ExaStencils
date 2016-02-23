@@ -65,7 +65,10 @@ object Smoothers {
   }
 
   def addBodyRBGS(printer : java.io.PrintWriter, postfix : String, stencil : String, tempBlocking : Boolean) = {
-    Communication.exch(printer, s"Solution$postfix@current")
+    if (Knowledge.l3tmp_useConditionsForRBGS && !tempBlocking)
+      Communication.exch(printer, s"Solution$postfix@current", "", s"1 == ((64 + x + y${if (Knowledge.dimensionality > 2) " + z" else ""}) % 2)") // FIXME: '64 + ' to prevent neg values
+    else
+      Communication.exch(printer, s"Solution$postfix@current")
     if (tempBlocking)
       Communication.exch(printer, s"RHS$postfix@current")
 
@@ -92,8 +95,12 @@ object Smoothers {
     if (Knowledge.l3tmp_genFragLoops)
       printer.println(s"\t}")
 
-    if (!tempBlocking) // FIXME: else
-      Communication.exch(printer, s"Solution$postfix@current")
+    if (Knowledge.l3tmp_useConditionsForRBGS && !tempBlocking)
+      Communication.exch(printer, s"Solution$postfix@current", "", s"0 == ((64 + x + y${if (Knowledge.dimensionality > 2) " + z" else ""}) % 2)")
+    else {
+      if (!tempBlocking) // FIXME: else
+        Communication.exch(printer, s"Solution$postfix@current")
+    }
 
     if (Knowledge.l3tmp_genFragLoops)
       printer.println(s"\tloop over fragments {")

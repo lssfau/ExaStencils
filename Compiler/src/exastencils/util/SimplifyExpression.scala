@@ -17,13 +17,13 @@ object SimplifyExpression {
     */
   def evalIntegral(expr : Expression) : Long = expr match {
     case IntegerConstant(v)                                       => v
-    case AdditionExpression(l : Expression, r : Expression)       => evalIntegral(l) + evalIntegral(r)
+    case AdditionExpression(sums : ListBuffer[Expression])        => sums.view.map(s => evalIntegral(s)).reduce(_ + _)
     case SubtractionExpression(l : Expression, r : Expression)    => evalIntegral(l) - evalIntegral(r)
     case MultiplicationExpression(l : Expression, r : Expression) => evalIntegral(l) * evalIntegral(r)
     case DivisionExpression(l : Expression, r : Expression)       => evalIntegral(l) / evalIntegral(r)
     case ModuloExpression(l : Expression, r : Expression)         => evalIntegral(l) % evalIntegral(r)
-    case MinimumExpression(l : ListBuffer[Expression])            => l.map(e => evalIntegral(e)).reduce((l, r) => l min r)
-    case MaximumExpression(l : ListBuffer[Expression])            => l.map(e => evalIntegral(e)).reduce((l, r) => l max r)
+    case MinimumExpression(l : ListBuffer[Expression])            => l.view.map(e => evalIntegral(e)).reduce(_ min _)
+    case MaximumExpression(l : ListBuffer[Expression])            => l.view.map(e => evalIntegral(e)).reduce(_ max _)
     case _ =>
       throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
   }
@@ -35,12 +35,12 @@ object SimplifyExpression {
     */
   def evalFloating(expr : Expression) : Double = expr match {
     case FloatConstant(v)                                         => v
-    case AdditionExpression(l : Expression, r : Expression)       => evalFloating(l) + evalFloating(r)
+    case AdditionExpression(sums : ListBuffer[Expression])        => sums.view.map(s => evalFloating(s)).reduce(_ + _)
     case SubtractionExpression(l : Expression, r : Expression)    => evalFloating(l) - evalFloating(r)
     case MultiplicationExpression(l : Expression, r : Expression) => evalFloating(l) * evalFloating(r)
     case DivisionExpression(l : Expression, r : Expression)       => evalFloating(l) / evalFloating(r)
-    case MinimumExpression(l : ListBuffer[Expression])            => l.map(e => evalFloating(e)).reduce((l, r) => l min r)
-    case MaximumExpression(l : ListBuffer[Expression])            => l.map(e => evalFloating(e)).reduce((l, r) => l max r)
+    case MinimumExpression(l : ListBuffer[Expression])            => l.view.map(e => evalFloating(e)).reduce(_ min _)
+    case MaximumExpression(l : ListBuffer[Expression])            => l.view.map(e => evalFloating(e)).reduce(_ max _)
     case _ =>
       throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
   }
@@ -93,10 +93,13 @@ object SimplifyExpression {
         for ((name : Expression, value : Long) <- extractIntegralSumRec(expr))
           res(name) = -value
 
-      case AdditionExpression(l, r) =>
-        res = extractIntegralSumRec(l)
-        for ((name : Expression, value : Long) <- extractIntegralSumRec(r))
-          res(name) = res.getOrElse(name, 0L) + value
+      case AdditionExpression(summands) =>
+        for (s <- summands)
+          if (res == null)
+            res = extractIntegralSumRec(s)
+          else
+            for ((name : Expression, value : Long) <- extractIntegralSumRec(s))
+              res(name) = res.getOrElse(name, 0L) + value
         // opt:  (x/2) + (x%2)  ==>  (x+1)/2
         val toOpt = new HashMap[Expression, (DivisionExpression, ModuloExpression, Long)]()
         for ((ex, coeff) <- res) ex match {
@@ -151,7 +154,7 @@ object SimplifyExpression {
           val exprR : Expression = recreateExprFromIntSum(mapR)
           res = new HashMap[Expression, Long]()
           if (exprL.prettyprint() <= exprR.prettyprint())
-        	  res(MultiplicationExpression(exprL, exprR)) = gcdL * gcdR
+            res(MultiplicationExpression(exprL, exprR)) = gcdL * gcdR
           else
             res(MultiplicationExpression(exprR, exprL)) = gcdL * gcdR
           // throw new EvaluationException("non-constant * non-constant is not yet implemented")
@@ -187,9 +190,9 @@ object SimplifyExpression {
         val (name, update) : (Expression, Long) = dividend match {
           case IntegerConstant(x)                            => (constName, x / divs)
           case DivisionExpression(x, IntegerConstant(divs2)) => (DivisionExpression(x, IntegerConstant(divs * divs2)), 1L)
-          case AdditionExpression(DivisionExpression(x, IntegerConstant(divs2)), IntegerConstant(const)) =>
+          case AdditionExpression(ListBuffer(DivisionExpression(x, IntegerConstant(divs2)), IntegerConstant(const))) =>
             (simplifyIntegralExpr(DivisionExpression(x + IntegerConstant(const * divs2), IntegerConstant(divs * divs2))), 1L)
-          case AdditionExpression(IntegerConstant(const), DivisionExpression(x, IntegerConstant(divs2))) =>
+          case AdditionExpression(ListBuffer(IntegerConstant(const), DivisionExpression(x, IntegerConstant(divs2)))) =>
             (simplifyIntegralExpr(DivisionExpression(x + IntegerConstant(const * divs2), IntegerConstant(divs * divs2))), 1L)
           case divd => (DivisionExpression(divd, IntegerConstant(divs)), 1L)
         }
@@ -221,9 +224,9 @@ object SimplifyExpression {
           case IntegerConstant(x) => (constName, if (x >= 0) x / divs else ((x - divs + 1) / divs))
           case FunctionCallExpression("floord", ListBuffer(x, IntegerConstant(divs2))) =>
             (FunctionCallExpression("floord", ListBuffer(x, IntegerConstant(divs * divs2))), 1L)
-          case AdditionExpression(FunctionCallExpression("floord", ListBuffer(x, IntegerConstant(divs2))), IntegerConstant(const)) =>
+          case AdditionExpression(ListBuffer(FunctionCallExpression("floord", ListBuffer(x, IntegerConstant(divs2))), IntegerConstant(const))) =>
             (simplifyIntegralExpr(FunctionCallExpression("floord", ListBuffer(x + IntegerConstant(const * divs2), IntegerConstant(divs * divs2)))), 1L)
-          case AdditionExpression(IntegerConstant(const), FunctionCallExpression("floord", ListBuffer(x, IntegerConstant(divs2)))) =>
+          case AdditionExpression(ListBuffer(IntegerConstant(const), FunctionCallExpression("floord", ListBuffer(x, IntegerConstant(divs2))))) =>
             (simplifyIntegralExpr(FunctionCallExpression("floord", ListBuffer(x + IntegerConstant(const * divs2), IntegerConstant(divs * divs2)))), 1L)
           case divd => (FunctionCallExpression("floord", ListBuffer(divd, IntegerConstant(divs))), 1L)
         }
@@ -277,9 +280,14 @@ object SimplifyExpression {
           res(MinimumExpression(exprs)) = 1L
         }
 
-      case iff : iv.IndexFromField =>
+      case scalarIV : iv.InternalVariable if scalarIV.resolveDataType.isInstanceOf[ScalarDatatype] =>
         res = new HashMap[Expression, Long]()
-        res(iff) = 1L
+        res(scalarIV) = 1L
+
+      case anyIV : iv.InternalVariable =>
+        Logger.warn(s"Found non-scalar iv ${anyIV.prettyprint()} in extractIntegralSumRec")
+        res = new HashMap[Expression, Long]()
+        res(anyIV) = 1L
 
       case _ =>
         throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
@@ -323,7 +331,7 @@ object SimplifyExpression {
       val expr : Option[Expression] = reverse.get(value)
       reverse(value) =
         if (expr.isDefined)
-          AdditionExpression(expr.get, njuExpr)
+          new AdditionExpression(expr.get, njuExpr)
         else
           njuExpr
     }
@@ -343,17 +351,19 @@ object SimplifyExpression {
             case _   => (MultiplicationExpression(IntegerConstant(math.abs(value)), expr), value < 0L)
           }
         res =
-          if (negative) SubtractionExpression(res, summand)
-          else AdditionExpression(res, summand)
+          if (negative)
+            new SubtractionExpression(res, summand)
+          else
+            new AdditionExpression(res, summand)
       }
     }
 
     if (const.isDefined && const.get != 0L)
       res =
         if (const.get > 0L)
-          AdditionExpression(res, IntegerConstant(const.get))
+          new AdditionExpression(res, IntegerConstant(const.get))
         else
-          SubtractionExpression(res, IntegerConstant(-const.get))
+          new SubtractionExpression(res, IntegerConstant(-const.get))
 
     return res
   }
@@ -442,10 +452,13 @@ object SimplifyExpression {
         for ((name : Expression, value : Double) <- extractFloatingSumRec(expr))
           res(name) = -value
 
-      case AdditionExpression(l, r) =>
-        res = extractFloatingSumRec(l)
-        for ((name : Expression, value : Double) <- extractFloatingSumRec(r))
-          res(name) = res.getOrElse(name, 0d) + value
+      case AdditionExpression(summands) =>
+        for (s <- summands)
+          if (res == null)
+            res = extractFloatingSumRec(s)
+          else
+            for ((name : Expression, value : Double) <- extractFloatingSumRec(s))
+              res(name) = res.getOrElse(name, 0d) + value
 
       case SubtractionExpression(l, r) =>
         res = extractFloatingSumRec(l)
@@ -552,7 +565,7 @@ object SimplifyExpression {
       val expr : Option[Expression] = reverse.get(value)
       reverse(value) =
         if (expr.isDefined)
-          AdditionExpression(expr.get, njuExpr)
+          new AdditionExpression(expr.get, njuExpr)
         else
           njuExpr
     }
@@ -572,13 +585,15 @@ object SimplifyExpression {
             case _   => (MultiplicationExpression(FloatConstant(math.abs(value)), expr), value < 0d)
           }
         res =
-          if (negative) SubtractionExpression(res, summand)
-          else AdditionExpression(res, summand)
+          if (negative)
+            new SubtractionExpression(res, summand)
+          else
+            new AdditionExpression(res, summand)
       }
     }
 
     if (const.isDefined && const.get != 0d)
-      res = AdditionExpression(res, FloatConstant(const.get))
+      res = new AdditionExpression(res, FloatConstant(const.get))
 
     return res
   }

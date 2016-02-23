@@ -107,3 +107,11 @@ case class TmpBuffer(override var field : Field, override var direction : String
       basePtr.registerIV(declarations, ctors, dtors)
   }
 }
+
+case class TmpBufferIterator(var field : Field, var direction : String, var neighIdx : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends CommVariable {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
+
+  override def resolveName = s"tmpBufferIndex_${direction}" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
+  override def resolveDataType = IntegerDatatype
+  override def resolveDefValue = Some(0)
+}

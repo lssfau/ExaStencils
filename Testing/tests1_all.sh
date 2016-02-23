@@ -5,8 +5,8 @@
 #SBATCH -n 1
 #SBATCH -c 4
 #SBATCH --hint=nomultithread
-#SBATCH --time=5
-#SBATCH --signal=INT@5
+#SBATCH --time=10
+#SBATCH --signal=INT@10
 #SBATCH --open-mode=append
 
 

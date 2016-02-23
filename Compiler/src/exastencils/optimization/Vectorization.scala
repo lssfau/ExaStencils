@@ -2,6 +2,7 @@ package exastencils.optimization
 
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Queue
 
 import exastencils.core._
 import exastencils.datastructures._
@@ -57,7 +58,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
             case LowerExpression(VariableAccess(bName, Some(IntegerDatatype)), upperBoundExcl) if (itName == bName) =>
               upperBoundExcl
             case LowerEqualExpression(VariableAccess(bName, Some(IntegerDatatype)), upperBoundIncl) if (itName == bName) =>
-              AdditionExpression(upperBoundIncl, IntegerConstant(1))
+              new AdditionExpression(upperBoundIncl, IntegerConstant(1))
             case _ => throw new VectorizationException("no upper bound")
           }
 
@@ -69,10 +70,10 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
               IntegerConstant(i),
               "+=") if (itName == n) => i
             case AssignmentStatement(VariableAccess(n1, Some(IntegerDatatype)),
-              AdditionExpression(IntegerConstant(i), VariableAccess(n2, Some(IntegerDatatype))),
+              AdditionExpression(ListBuffer(IntegerConstant(i), VariableAccess(n2, Some(IntegerDatatype)))),
               "=") if (itName == n1 && itName == n2) => i
             case AssignmentStatement(VariableAccess(n1, Some(IntegerDatatype)),
-              AdditionExpression(VariableAccess(n2, Some(IntegerDatatype)), IntegerConstant(i)),
+              AdditionExpression(ListBuffer(VariableAccess(n2, Some(IntegerDatatype)), IntegerConstant(i))),
               "=") if (itName == n1 && itName == n2) => i
             case _ => throw new VectorizationException("loop increment must be constant or cannot be extracted:  " + incrExpr)
           }
@@ -341,8 +342,8 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         ctx.vectStmts += new CommentStatement(stmt.prettyprint())
         val source = assOp match {
           case "="  => rhsSca
-          case "+=" => AdditionExpression(Duplicate(lhsSca), rhsSca)
-          case "-=" => SubtractionExpression(Duplicate(lhsSca), rhsSca)
+          case "+=" => new AdditionExpression(Duplicate(lhsSca), rhsSca)
+          case "-=" => new SubtractionExpression(Duplicate(lhsSca), rhsSca)
           case _    => throw new VectorizationException("cannot deal with assignment operator \"" + assOp + "\" in " + stmt.prettyprint())
         }
         // create rhs before lhs to ensure all loads are created
@@ -383,7 +384,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
                 }
 
               case DivisionExpression(
-                AdditionExpression(VariableAccess(name, Some(IntegerDatatype)), IntegerConstant(_)),
+                AdditionExpression(ListBuffer(VariableAccess(name, Some(IntegerDatatype)), IntegerConstant(_))),
                 IntegerConstant(divs)) =>
                 if (name == ctx.itName) {
                   if (value != 1L || ctx.incr != divs) throw new VectorizationException("no linear memory access;  " + expr.prettyprint())
@@ -391,7 +392,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
                 }
 
               case DivisionExpression(
-                AdditionExpression(IntegerConstant(_), VariableAccess(name, Some(IntegerDatatype))),
+                AdditionExpression(ListBuffer(IntegerConstant(_), VariableAccess(name, Some(IntegerDatatype)))),
                 IntegerConstant(divs)) =>
                 if (name == ctx.itName) {
                   if (value != 1L || ctx.incr != divs) throw new VectorizationException("no linear memory access;  " + expr.prettyprint())
@@ -455,14 +456,39 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
       case NegativeExpression(expr) =>
         SIMD_NegateExpression(vectorizeExpr(expr, ctx))
 
-      case AdditionExpression(MultiplicationExpression(factor1, factor2), summand) =>
-        SIMD_MultiplyAddExpression(vectorizeExpr(factor1, ctx), vectorizeExpr(factor2, ctx), vectorizeExpr(summand, ctx))
+      case AdditionExpression(sums) =>
+        val (muls, other) = sums.partition(_.isInstanceOf[MultiplicationExpression])
+        val mulsIt = muls.iterator
+        val otherIt = other.iterator
+        val exprs = new Queue[Expression]()
+        while (mulsIt.hasNext && otherIt.hasNext) {
+          val mul = mulsIt.next().asInstanceOf[MultiplicationExpression]
+          val oth = otherIt.next()
+          exprs.enqueue(SIMD_MultiplyAddExpression(vectorizeExpr(mul.left, ctx), vectorizeExpr(mul.right, ctx), vectorizeExpr(oth, ctx)))
+        }
+        while (mulsIt.hasNext) {
+          val mul = mulsIt.next().asInstanceOf[MultiplicationExpression]
+          exprs.enqueue(SIMD_MultiplicationExpression(vectorizeExpr(mul.left, ctx), vectorizeExpr(mul.right, ctx)))
+        }
+        while (otherIt.hasNext) {
+          val oth = otherIt.next()
+          if (otherIt.hasNext)
+            exprs.enqueue(SIMD_AdditionExpression(vectorizeExpr(oth, ctx), vectorizeExpr(otherIt.next(), ctx)))
+          else
+            exprs.enqueue(vectorizeExpr(oth, ctx))
+        }
+        while (exprs.length > 1)
+          exprs.enqueue(SIMD_AdditionExpression(exprs.dequeue(), exprs.dequeue()))
+        exprs.dequeue()
 
-      case AdditionExpression(summand, MultiplicationExpression(factor1, factor2)) =>
-        SIMD_MultiplyAddExpression(vectorizeExpr(factor1, ctx), vectorizeExpr(factor2, ctx), vectorizeExpr(summand, ctx))
-
-      case AdditionExpression(left, right) =>
-        SIMD_AdditionExpression(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
+      //      case AdditionExpression(MultiplicationExpression(factor1, factor2), summand) =>
+      //        SIMD_MultiplyAddExpression(vectorizeExpr(factor1, ctx), vectorizeExpr(factor2, ctx), vectorizeExpr(summand, ctx))
+      //
+      //      case AdditionExpression(summand, MultiplicationExpression(factor1, factor2)) =>
+      //        SIMD_MultiplyAddExpression(vectorizeExpr(factor1, ctx), vectorizeExpr(factor2, ctx), vectorizeExpr(summand, ctx))
+      //
+      //      case AdditionExpression(left, right) =>
+      //        SIMD_AdditionExpression(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
 
       case SubtractionExpression(MultiplicationExpression(factor1, factor2), summand) =>
         SIMD_MultiplySubExpression(vectorizeExpr(factor1, ctx), vectorizeExpr(factor2, ctx), vectorizeExpr(summand, ctx))

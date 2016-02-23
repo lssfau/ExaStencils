@@ -408,8 +408,9 @@ case class DerefAccess(var base : Access) extends Access {
   override def prettyprint(out : PpStream) : Unit = out << "(*" << base << ')'
 }
 
-case class AdditionExpression(var left : Expression, var right : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '+' << right << ')'
+case class AdditionExpression(var summands : ListBuffer[Expression]) extends Expression {
+  def this(left : Expression, right : Expression) = this(ListBuffer(left, right))
+  override def prettyprint(out : PpStream) : Unit = out << '(' <<< (summands, "+") << ')'
 }
 
 case class SubtractionExpression(var left : Expression, var right : Expression) extends Expression {

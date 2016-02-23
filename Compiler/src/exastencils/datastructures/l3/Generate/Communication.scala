@@ -7,17 +7,14 @@ object Communication {
     printer.println(s"\tapply bc to $field")
   }
 
-  def exch(printer : java.io.PrintWriter, field : String, target : String = "") = {
+  def exch(printer : java.io.PrintWriter, field : String, target : String = "", condition : String = "") = {
     if (Knowledge.l3tmp_genTimersForComm)
       printer.println(s"\tstartTimer ( ${if (Knowledge.l3tmp_genCommTimersPerLevel) "concat ( 'communication_', levels@current() )" else "'communication'"} )")
 
     if (Knowledge.l3tmp_genCellBasedDiscr || Knowledge.experimental_Neumann)
       applyBCs(printer, field)
 
-    if ("" == target)
-      printer.println(s"\tcommunicate  $field")
-    else
-      printer.println(s"\tcommunicate $target of $field")
+    printer.println(s"\tcommunicate${if ("" == target) "" else s" $target of"} $field${if ("" == condition) "" else s" where $condition"}")
 
     if (Knowledge.l3tmp_genTimersForComm)
       printer.println(s"\tstopTimer ( ${if (Knowledge.l3tmp_genCommTimersPerLevel) "concat ( 'communication_', levels@current() )" else "'communication'"} )")

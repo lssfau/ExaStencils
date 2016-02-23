@@ -85,7 +85,7 @@ case class MPI_Barrier() extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = out << "MPI_Barrier(mpiCommunicator);"
 }
 
-case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange) extends Datatype {
+case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange, var condition : Option[Expression]) extends Datatype {
   override def prettyprint(out : PpStream) : Unit = out << generateName
   override def prettyprint_mpi = generateName
 
@@ -97,7 +97,7 @@ case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange)
   override def resolveFlattendSize : Int = ???
   override def typicalByteSize = ???
 
-  if (!MPI_DataType.shouldBeUsed(indexRange))
+  if (!MPI_DataType.shouldBeUsed(indexRange, condition))
     Logger.warn(s"Trying to setup an MPI data type for unsupported index range ${indexRange.print}")
 
   // determine data type parameters
@@ -142,8 +142,10 @@ case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange)
 }
 
 object MPI_DataType {
-  def shouldBeUsed(indexRange : IndexRange) : Boolean = {
+  def shouldBeUsed(indexRange : IndexRange, condition : Option[Expression]) : Boolean = {
     if (!Knowledge.mpi_useCustomDatatypes || Knowledge.data_genVariableFieldSizes)
+      false
+    else if (condition.isDefined) // skip communication steps with conditions for now
       false
     else {
       val numNonDummyDims = (1 until indexRange.size).map(dim => // size in the zero dimension is irrelevant

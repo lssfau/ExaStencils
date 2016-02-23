@@ -133,12 +133,13 @@ object Extractor {
           gParConstr.append(" and ")
         }
 
-      case AdditionExpression(l, r) =>
+      case AdditionExpression(sums) =>
         constraints.append('(')
-        bool |= extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
-        constraints.append('+')
-        bool |= extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
-        constraints.append(')')
+        for (s <- sums) {
+          bool |= extractConstraints(s, constraints, formatString, lParConstr, gParConstr, vars)
+          constraints.append('+')
+        }
+        constraints(constraints.length - 1) = ')' // replace last '+'
 
       case SubtractionExpression(l, r) =>
         constraints.append('(')

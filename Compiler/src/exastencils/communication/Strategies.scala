@@ -18,6 +18,8 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
   var commFunctions : CommunicationFunctions = CommunicationFunctions()
   var addedFunctions : ListBuffer[String] = ListBuffer()
 
+  var condCounter = 0
+
   var collector = new StackCollector
   this.register(collector)
 
@@ -45,6 +47,8 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       var dupBegin = new MultiIndex(Array.fill(numDims)(0)); var dupEnd = new MultiIndex(Array.fill(numDims)(0))
       var commGhost = false
       var ghostBegin = new MultiIndex(Array.fill(numDims)(0)); var ghostEnd = new MultiIndex(Array.fill(numDims)(0))
+
+      var cond = communicateStatement.condition
 
       var insideFragLoop = collector.stack.map(node => node match { case loop : LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
       if (insideFragLoop && !Knowledge.experimental_allowCommInFragLoops) {
@@ -96,6 +100,11 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         }").mkString("_")
       if (insideFragLoop)
         functionName += "_ifl"
+      if (cond.isDefined) {
+        // TODO: summarize communicate statements with identical conditions (and targets ofc)
+        functionName += s"_c$condCounter"
+        condCounter += 1
+      }
 
       if (!addedFunctions.contains(functionName)) {
         addedFunctions += functionName
@@ -107,7 +116,8 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
           "finish" == communicateStatement.op || "both" == communicateStatement.op,
           commDup, dupBegin, dupEnd,
           commGhost, ghostBegin, ghostEnd,
-          insideFragLoop)
+          insideFragLoop,
+          cond)
       }
 
       communicateStatement.field.slot match {

@@ -295,7 +295,7 @@ case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with E
                       MPI_Send("&n", "1", IntegerDatatype, "i", 0, "mpiRequest_Send_0[i][0]"),
                       MPI_Send("&fileOffset", "1", IntegerDatatype, "i", 1, "mpiRequest_Send_0[i][1]"),
                       MPI_Send("&b", "1", IntegerDatatype, "i", 2, "mpiRequest_Send_0[i][2]"),
-                      AssignmentStatement("fileOffset", AdditionExpression("fileOffset", "b"))))
+                      AssignmentStatement("fileOffset", new AdditionExpression("fileOffset", "b"))))
                   } else NullStatement),
                   "file.close()"), ListBuffer[Statement]()),
               AssignmentStatement("fileOffset", 0)),
