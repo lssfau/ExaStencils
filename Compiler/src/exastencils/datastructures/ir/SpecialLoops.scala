@@ -261,31 +261,45 @@ case class LoopOverPointsInOneFragment(var domain : Int,
     if (Knowledge.experimental_splitLoopsForAsyncComm && !preComms.isEmpty) {
       if (region.isDefined) Logger.warn("Found region loop with communication step")
 
+      // FIXME: replace dimToString with defIt
+
       val cacheLineSize = 512 // TODO: Knowledge
       val minInnerWidth = 4 // cacheLineSize / field.fieldLayout.datatype.resolveBaseDatatype.typicalByteSize
       val useRelOffsets = false
 
-      // FIXME: use comm field(s) instead of loop field
-      // FIXME: replace dimToString with defIt
-      val lowerBounds = (0 until field.fieldLayout.numDimsGrid).map(dim => {
-        val defNumLayers = field.fieldLayout.layoutsPerDim(dim).numGhostLayersRight + field.fieldLayout.layoutsPerDim(dim).numDupLayersRight
-        val minWidth = (if (0 == dim) minInnerWidth else 0)
-        var lowerBound : Expression = Math.max(defNumLayers, minWidth) // number of elements to skip in the default case
-        lowerBound += field.fieldLayout.idxById("DLB", dim) // offset for default case
-        lowerBound -= field.referenceOffset(dim) // correction for loop indices
-        if (useRelOffsets && 0 == dim) lowerBound = new MaximumExpression(lowerBound, start(dim) + minWidth)
-        lowerBound
-      })
+      // check dimensionality of involved fields
+      val numDims = field.fieldLayout.numDimsGrid
+      for (cs <- preComms)
+        if (numDims != cs.field.fieldLayout.numDimsGrid)
+          Logger.warn(s"Found communicate statement on field ${cs.field.codeName} which is incompatible with dimensionality $numDims")
 
-      val upperBounds = (0 until field.fieldLayout.numDimsGrid).map(dim => {
-        val defNumLayers = field.fieldLayout.layoutsPerDim(dim).numGhostLayersLeft + field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft
-        val minWidth = (if (0 == dim) minInnerWidth else 0)
-        var upperBound : Expression = -Math.max(defNumLayers, minWidth) // number of elements to skip in the default case
-        upperBound += field.fieldLayout.idxById("DRE", dim) // offset for default case
-        upperBound -= field.referenceOffset(dim) // correction for loop indices
-        if (useRelOffsets && 0 == dim) upperBound = new MinimumExpression(upperBound, stop(dim) - minWidth)
-        upperBound
-      })
+      // init default bounds
+      var lowerBounds = (0 until numDims).map(dim => start(dim))
+      var upperBounds = (0 until numDims).map(dim => stop(dim))
+
+      for (cs <- preComms) {
+        lowerBounds = (0 until numDims).map(dim => {
+          val defNumLayers = cs.field.fieldLayout.layoutsPerDim(dim).numGhostLayersRight + cs.field.fieldLayout.layoutsPerDim(dim).numDupLayersRight
+          val minWidth = (if (0 == dim) minInnerWidth else 0)
+          var lowerBound : Expression = Math.max(defNumLayers, minWidth) // number of elements to skip in the default case
+          lowerBound += cs.field.fieldLayout.idxById("DLB", dim) // offset for default case
+          lowerBound -= cs.field.referenceOffset(dim) // correction for loop indices
+          if (useRelOffsets && 0 == dim) lowerBound = new MaximumExpression(lowerBound, start(dim) + minWidth)
+          new MaximumExpression(lowerBounds(dim), lowerBound)
+        })
+      }
+
+      for (cs <- preComms) {
+        upperBounds = (0 until numDims).map(dim => {
+          val defNumLayers = cs.field.fieldLayout.layoutsPerDim(dim).numGhostLayersLeft + cs.field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft
+          val minWidth = (if (0 == dim) minInnerWidth else 0)
+          var upperBound : Expression = -Math.max(defNumLayers, minWidth) // number of elements to skip in the default case
+          upperBound += cs.field.fieldLayout.idxById("DRE", dim) // offset for default case
+          upperBound -= cs.field.referenceOffset(dim) // correction for loop indices
+          if (useRelOffsets && 0 == dim) upperBound = new MinimumExpression(upperBound, stop(dim) - minWidth)
+          new MinimumExpression(upperBounds(dim), upperBound)
+        })
+      }
 
       // start communication
       stmts ++= preComms.filter(comm => "begin" == comm.op || "both" == comm.op)
