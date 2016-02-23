@@ -53,12 +53,7 @@ object Mapping {
       index(dim) * stride
     }).fold(0 : Expression)(_ + _)
 
-    //if (Knowledge.data_genVariableFieldSizes) {
-    SimplifyStrategy.doUntilDoneStandalone(ret)
-    ret
-    //} else {
-    //  SimplifyExpression.simplifyIntegralExpr(ret)
-    //}
+    SimplifyExpression.simplifyIntegralExpr(ret)
   }
 }
 

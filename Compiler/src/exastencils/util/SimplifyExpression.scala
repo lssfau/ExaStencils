@@ -154,7 +154,7 @@ object SimplifyExpression {
           val exprR : Expression = recreateExprFromIntSum(mapR)
           res = new HashMap[Expression, Long]()
           if (exprL.prettyprint() <= exprR.prettyprint())
-        	  res(MultiplicationExpression(exprL, exprR)) = gcdL * gcdR
+            res(MultiplicationExpression(exprL, exprR)) = gcdL * gcdR
           else
             res(MultiplicationExpression(exprR, exprL)) = gcdL * gcdR
           // throw new EvaluationException("non-constant * non-constant is not yet implemented")
@@ -280,9 +280,14 @@ object SimplifyExpression {
           res(MinimumExpression(exprs)) = 1L
         }
 
-      case iff : iv.IndexFromField =>
+      case scalarIV : iv.InternalVariable if scalarIV.resolveDataType.isInstanceOf[ScalarDatatype] =>
         res = new HashMap[Expression, Long]()
-        res(iff) = 1L
+        res(scalarIV) = 1L
+
+      case anyIV : iv.InternalVariable =>
+        Logger.warn(s"Found non-scalar iv ${anyIV.prettyprint()} in extractIntegralSumRec")
+        res = new HashMap[Expression, Long]()
+        res(anyIV) = 1L
 
       case _ =>
         throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
