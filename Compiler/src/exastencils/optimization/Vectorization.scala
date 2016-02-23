@@ -206,7 +206,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         stmt match {
           case AssignmentStatement(acc @ ArrayAccess(_, index, true), _, _) =>
             val annot = acc.getAnnotation(AddressPrecalculation.ORIG_IND_ANNOT)
-            val ind : Expression = if (annot.isDefined) annot.get.value.asInstanceOf[Expression] else index
+            val ind : Expression = if (annot.isDefined) annot.get.asInstanceOf[Expression] else index
             val const : Long = SimplifyExpression.extractIntegralSum(ind).get(SimplifyExpression.constName).getOrElse(0L)
             val residue : Long = (const % vs + vs) % vs
             ctx.setAlignedResidue(residue)
@@ -220,7 +220,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         case acc @ ArrayAccess(_, index, true) =>
           if (containsVarAcc(index, ctx.itName)) {
             val annot = acc.removeAnnotation(AddressPrecalculation.ORIG_IND_ANNOT)
-            indexExprs += SimplifyExpression.extractIntegralSum(if (annot.isDefined) annot.get.value.asInstanceOf[Expression] else index)
+            indexExprs += SimplifyExpression.extractIntegralSum(if (annot.isDefined) annot.get.asInstanceOf[Expression] else index)
           }
           acc
       })
@@ -314,7 +314,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     }
     var intermDecl : VariableDeclarationStatement = null
     if (unrolled) {
-      intermDecl = annot.get.value.asInstanceOf[VariableDeclarationStatement]
+      intermDecl = annot.get.asInstanceOf[VariableDeclarationStatement]
       intermDecl.expression = Some(Unrolling.getIntermExpr(newIncr))
     } else {
       intermDecl = Unrolling.getIntermDecl(newIncr)

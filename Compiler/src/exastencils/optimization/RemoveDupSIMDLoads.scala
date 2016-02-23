@@ -152,11 +152,11 @@ private final object Adapt extends PartialFunction[Node, Transformation.OutputTy
 
     val decls = node.removeAnnotation(NEW_DECLS_COND_ANNOT)
     if (decls.isDefined) {
-      val (stmts, cond) = decls.get.value.asInstanceOf[(ListBuffer[Statement], Expression)]
+      val (stmts, cond) = decls.get.asInstanceOf[(ListBuffer[Statement], Expression)]
       stmts += node.asInstanceOf[Statement]
       return new ConditionStatement(cond, stmts)
     }
 
-    return node.removeAnnotation(REPL_ANNOT).get.value.asInstanceOf[Node]
+    return node.removeAnnotation(REPL_ANNOT).get.asInstanceOf[Node]
   }
 }

@@ -453,7 +453,7 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
         PreIncrementExpression(defIt),
         body,
         reduction)
-    loop.add(Annotation("numLoopIterations", Knowledge.domain_numFragmentsPerBlock))
+    loop.annotate("numLoopIterations", Knowledge.domain_numFragmentsPerBlock)
     loop
   }
 

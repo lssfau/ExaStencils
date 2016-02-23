@@ -75,19 +75,27 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     return res.toString()
   }
 
-  def containsLoopVar(expr : Expression) : Boolean = {
-    object Search extends QuietDefaultStrategy("Anonymous") {
+  def containsLoopVar(expr : Expression, allowed : String = null) : Boolean = {
+    object Search extends QuietDefaultStrategy("Anonymous search") {
       var res : Boolean = false
+      var allowed : String = null
       this += new Transformation("contains loop var", {
         case strC : StringLiteral =>
-          res |= inVars.contains(strC.value)
+          val name = strC.value
+          res |= (allowed != name) && inVars.contains(name)
           strC
         case varA : VariableAccess =>
-          res |= inVars.contains(varA.name)
+          val name = varA.name
+          res |= (allowed != name) && inVars.contains(name)
           varA
+        case i : iv.InternalVariable =>
+          val name = i.resolveName
+          res |= (allowed != name) && inVars.contains(name)
+          i
       })
     }
     Search.res = false
+    Search.allowed = allowed
     Search.applyStandalone(new ReturnStatement(expr)) // wrap to ensure ALL nodes of expr are visited
     return Search.res
   }
@@ -154,7 +162,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
           return
         }
         val d = new HashMap[String, ArrayBases]()
-        l.inc match { // TODO: remove StringConstant
+        l.inc match { // TODO: remove StringLiteral
           case AssignmentStatement(VariableAccess(name, _), _, _) =>
             decls = d
             inVars = Set(name)
@@ -199,11 +207,10 @@ private final class AnnotateLoopsAndAccesses extends Collector {
 
       case AssignmentStatement(dst, _, _) if (decls != null && inVars != null) =>
         dst match {
-          case StringLiteral(name) => inVars += name
-          case VariableAccess(name, _) => inVars += name
-          case ArrayAccess(StringLiteral(name), _, _) => inVars += name
-          case ArrayAccess(VariableAccess(name, _), _, _) => inVars += name
-          // name of ArrayAccess(ArrayAccess(..), ..) is explicitly NOT extracted, see leave(..)
+          case _ : StringLiteral
+            | _ : VariableAccess
+            | _ : ArrayAccess
+            | _ : iv.InternalVariable => inVars += resolveName(dst)
           case _ => // nothing; expand match here, if more vars should stay inside the loop
         }
 
@@ -223,7 +230,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
       case l : ForLoopStatement with OptimizationHint if (l.isInnermost) =>
         // if base is ArrayAccess we ensure that it does not contain anything, which is written in the loop
         //   (the name of this access itself is not critical, see AssignmentStatement match in enter(..))
-        for (acc @ ArrayAccess(base, index, al) <- toAnalyze) if (!base.isInstanceOf[ArrayAccess] || !containsLoopVar(base)) {
+        for (acc @ ArrayAccess(base, index, al) <- toAnalyze) if (!containsLoopVar(base, resolveName(base))) {
           var name : String = generateName(base)
           val (in : Expression, outMap : HashMap[Expression, Long]) = splitIndex(index)
           val bases : ArrayBases = decls.getOrElseUpdate(name, new ArrayBases(name))
@@ -249,6 +256,15 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     inVars = null
     toAnalyze.clear()
   }
+
+  private def resolveName(expr : Expression) : String = {
+    expr match {
+      case ArrayAccess(base, _, _) => resolveName(base)
+      case VariableAccess(name, _) => name
+      case StringLiteral(str)      => str
+      case i : iv.InternalVariable => i.resolveName
+    }
+  }
 }
 
 private final object IntegrateAnnotations extends PartialFunction[Node, Transformation.OutputType] {
@@ -262,9 +278,9 @@ private final object IntegrateAnnotations extends PartialFunction[Node, Transfor
 
     val repl = node.removeAnnotation(REPL_ANNOT)
     if (repl.isDefined)
-      return repl.get.value.asInstanceOf[Node]
+      return repl.get.asInstanceOf[Node]
 
-    val decls = node.removeAnnotation(DECLS_ANNOT).get.value.asInstanceOf[HashMap[String, ArrayBases]]
+    val decls = node.removeAnnotation(DECLS_ANNOT).get.asInstanceOf[HashMap[String, ArrayBases]]
     if (decls.isEmpty)
       return node
 

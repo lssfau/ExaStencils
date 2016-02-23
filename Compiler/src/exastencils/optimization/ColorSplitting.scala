@@ -89,9 +89,9 @@ object ColorCondCollector extends Collector {
       case ConditionStatement(c : EqEqExpression, _, fB) if (fB.isEmpty) =>
         cond = c
       case _ =>
-        val annot : Option[Annotation] = node.getAnnotation(PolyOpt.IMPL_CONDITION_ANNOT)
-        if (annot.isDefined && annot.get.value.isInstanceOf[EqEqExpression])
-          cond = annot.get.value.asInstanceOf[Expression]
+        val annot : Option[Any] = node.getAnnotation(PolyOpt.IMPL_CONDITION_ANNOT)
+        if (annot.isDefined && annot.get.isInstanceOf[EqEqExpression])
+          cond = annot.get.asInstanceOf[Expression]
     }
   }
 
