@@ -162,6 +162,8 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
         add // return
       } else if (rem.isEmpty) {
         new IntegerConstant(0)
+      } else if (rem.length == 1) {
+        rem.head
       } else {
         new AdditionExpression(rem)
       }
