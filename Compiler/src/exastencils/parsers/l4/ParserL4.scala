@@ -303,13 +303,13 @@ class ParserL4 extends ExaParser with PackratParsers {
     locationize("@" ~> levelsingle ^^ { case l => l })
     ||| locationize("@" ~ "(" ~> levelsingle <~ ")" ^^ { case l => l }))
 
-  lazy val componentIndex = (index1d ^^ { case x => new ComponentIndex1d(x) }
+  lazy val componentIndex = locationize(index1d ^^ { case x => new ComponentIndex1d(x) }
     ||| (("[" ~> integerLit.?) <~ ":") ~ (integerLit.? <~ "]") ^^ { case a ~ b => ComponentIndex1d(a, b) }
     ||| index2d ^^ { case x => new ComponentIndex2d(x) }
     ||| ("[" ~> integerLit.?) ~ (":" ~> integerLit.? <~ ",") ~ (integerLit.? <~ ":") ~ (integerLit.? <~ "]") ^^ { case a ~ b ~ c ~ d => ComponentIndex2d(ComponentIndex1d(a, b), ComponentIndex1d(a, b)) })
 
-  lazy val fieldAccess = locationize(ident ~ slotAccess.? ~ levelAccess ~ ("[" ~> integerLit <~ "]").?
-    ^^ { case id ~ slot ~ level ~ arrayIndex => FieldAccess(id, level, slot.getOrElse(SlotModifier.Active()), arrayIndex) })
+  lazy val fieldAccess = locationize(ident ~ slotAccess.? ~ levelAccess ~ componentIndex.?
+    ^^ { case id ~ slot ~ level ~ cIndex => FieldAccess(id, level, slot.getOrElse(SlotModifier.Active()), cIndex) })
 
   lazy val flatAccess = locationize(ident
     ^^ { case id => UnresolvedAccess(id, None, None, None, None, None) })
@@ -317,8 +317,8 @@ class ParserL4 extends ExaParser with PackratParsers {
     ^^ { case id ~ level => UnresolvedAccess(id, None, Some(level), None, None, None) })
 
   lazy val genericAccess = (
-    locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> expressionIndex).? ~ ("[" ~> integerLit <~ "]").?
-      ^^ { case id ~ slot ~ level ~ offset ~ arrayIndex => UnresolvedAccess(id, slot, level, offset, arrayIndex, None) })
+    locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> expressionIndex).? ~ componentIndex.?
+      ^^ { case id ~ slot ~ level ~ offset ~ cIndex => UnresolvedAccess(id, slot, level, offset, cIndex, None) })
     ||| locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> expressionIndex).? ~ (":" ~> expressionIndex).?
       ^^ { case id ~ slot ~ level ~ offset ~ dirAccess => UnresolvedAccess(id, slot, level, offset, None, dirAccess) }))
 
