@@ -130,61 +130,14 @@ case class LoopOverPoints(var field : Field,
 
   def expandSpecial(collector : StackCollector) : Output[StatementList] = {
     val insideFragLoop = collector.stack.map(node => node match { case loop : LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
-    val innerLoop = LoopOverPointsInOneFragment(field.domain.index, field, region, seq, startOffset, endOffset, increment, body, reduction, condition)
+    val innerLoop =
+      if (Knowledge.experimental_splitLoopsForAsyncComm)
+        LoopOverPointsInOneFragment(field.domain.index, field, region, seq, startOffset, endOffset, increment, body, preComms, postComms, reduction, condition)
+      else
+        LoopOverPointsInOneFragment(field.domain.index, field, region, seq, startOffset, endOffset, increment, body, ListBuffer(), ListBuffer(), reduction, condition)
 
     var stmts = ListBuffer[Statement]()
-
-    if (!preComms.isEmpty) {
-      val cacheLineSize = 512 // TODO: Knowledge
-      val minInnerWidth = 4 // cacheLineSize / field.fieldLayout.datatype.resolveBaseDatatype.typicalByteSize
-
-      val lowerBounds = (0 until field.fieldLayout.numDimsGrid).map(dim => {
-        val defNumLayers = field.fieldLayout.layoutsPerDim(dim).numGhostLayersRight + field.fieldLayout.layoutsPerDim(dim).numDupLayersRight
-        var lowerBound : Expression = (if (0 == dim) Math.max(defNumLayers, minInnerWidth) else defNumLayers) // number of elements to skip in the default case
-        lowerBound += field.fieldLayout.idxById("DLB", dim) // offset for default case
-        lowerBound -= field.referenceOffset(dim) // correction for loop indices
-        lowerBound
-      })
-
-      val upperBounds = (0 until field.fieldLayout.numDimsGrid).map(dim => {
-        val defNumLayers = field.fieldLayout.layoutsPerDim(dim).numGhostLayersLeft + field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft
-        var upperBound : Expression = -(if (0 == dim) Math.max(defNumLayers, minInnerWidth) else defNumLayers) // number of elements to skip in the default case
-        upperBound += field.fieldLayout.idxById("DLE", dim) // offset for default case
-        upperBound -= field.referenceOffset(dim) // correction for loop indices
-        upperBound
-      })
-
-      // start communication
-      stmts ++= preComms.filter(_ match {
-        case comm : CommunicateStatement if "begin" == comm.op || "both" == comm.op => true
-        case ExpressionStatement(fc : FunctionCallExpression) if fc.name.startsWith("begin") || fc.name.startsWith("both") => true
-        case _ => false
-      })
-
-      // innerRegion
-      var coreLoop = Duplicate(innerLoop)
-      coreLoop.condition = Some(AndAndExpression(coreLoop.condition.getOrElse(BooleanConstant(true)),
-        (0 until field.fieldLayout.numDimsGrid).map(dim =>
-          AndAndExpression(GreaterEqualExpression(dimToString(dim), lowerBounds(dim)), LowerExpression(dimToString(dim), upperBounds(dim))) : Expression).reduce(AndAndExpression(_, _))))
-
-      stmts += coreLoop
-
-      // finish communication
-      stmts ++= preComms.filter(_ match {
-        case comm : CommunicateStatement if "finish" == comm.op => true
-        case ExpressionStatement(fc : FunctionCallExpression) if fc.name.startsWith("finish") => true
-        case _ => false
-      })
-
-      // outerRegion
-      var boundaryLoop = Duplicate(innerLoop)
-      boundaryLoop.condition = Some(OrOrExpression(boundaryLoop.condition.getOrElse(BooleanConstant(false)),
-        (0 until field.fieldLayout.numDimsGrid).map(dim =>
-          OrOrExpression(LowerExpression(dimToString(dim), lowerBounds(dim)), GreaterEqualExpression(dimToString(dim), upperBounds(dim))) : Expression).reduce(OrOrExpression(_, _))))
-      stmts += boundaryLoop
-    } else {
-      stmts += innerLoop
-    }
+    stmts += innerLoop
 
     if (!insideFragLoop)
       if (seq)
@@ -192,8 +145,12 @@ case class LoopOverPoints(var field : Field,
       else
         stmts = ListBuffer(new LoopOverFragments(stmts, reduction) with OMP_PotentiallyParallel)
 
-    stmts
-    //preComms ++ ListBuffer(actLoop) ++ postComms
+    if (Knowledge.experimental_splitLoopsForAsyncComm)
+      stmts
+    else {
+      if (!preComms.isEmpty) Logger.warn("Found precomm")
+      preComms ++ stmts ++ postComms
+    }
   }
 }
 
@@ -205,13 +162,15 @@ case class LoopOverPointsInOneFragment(var domain : Int,
     var endOffset : MultiIndex,
     var increment : MultiIndex,
     var body : ListBuffer[Statement],
+    var preComms : ListBuffer[Statement] = ListBuffer(),
+    var postComms : ListBuffer[Statement] = ListBuffer(),
     var reduction : Option[Reduction] = None,
     var condition : Option[Expression] = None) extends Statement {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPointsInOneFragment\n"
 
   def numDims = field.fieldLayout.numDimsData
 
-  def expandSpecial : Output[Statement] = {
+  def expandSpecial : Output[StatementList] = {
     var start = new MultiIndex(Array.fill(numDims)(0))
     var stop = new MultiIndex(Array.fill(numDims)(0))
     if (region.isDefined) {
@@ -284,7 +243,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
           condition = Some(AndAndExpression(condition.get, GreaterEqualExpression(VariableAccess(dimToString(dim), Some(IntegerDatatype)), field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft)))
     }
 
-    var ret : Statement = (
+    var loop : LoopOverDimensions = (
       if (seq)
         new LoopOverDimensions(numDims, indexRange, body, increment, reduction, condition)
       else {
@@ -297,16 +256,81 @@ case class LoopOverPointsInOneFragment(var domain : Int,
         ret
       })
 
+    var stmts = ListBuffer[Statement]()
+
+    if (Knowledge.experimental_splitLoopsForAsyncComm && !preComms.isEmpty) {
+      if (region.isDefined) Logger.warn("Found region loop with communication step")
+
+      val cacheLineSize = 512 // TODO: Knowledge
+      val minInnerWidth = 4 // cacheLineSize / field.fieldLayout.datatype.resolveBaseDatatype.typicalByteSize
+      val useRelOffsets = false
+
+      // FIXME: use comm field(s) instead of loop field
+      // FIXME: replace dimToString with defIt
+      val lowerBounds = (0 until field.fieldLayout.numDimsGrid).map(dim => {
+        val defNumLayers = field.fieldLayout.layoutsPerDim(dim).numGhostLayersRight + field.fieldLayout.layoutsPerDim(dim).numDupLayersRight
+        val minWidth = (if (0 == dim) minInnerWidth else 0)
+        var lowerBound : Expression = Math.max(defNumLayers, minWidth) // number of elements to skip in the default case
+        lowerBound += field.fieldLayout.idxById("DLB", dim) // offset for default case
+        lowerBound -= field.referenceOffset(dim) // correction for loop indices
+        if (useRelOffsets && 0 == dim) lowerBound = new MaximumExpression(lowerBound, start(dim) + minWidth)
+        lowerBound
+      })
+
+      val upperBounds = (0 until field.fieldLayout.numDimsGrid).map(dim => {
+        val defNumLayers = field.fieldLayout.layoutsPerDim(dim).numGhostLayersLeft + field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft
+        val minWidth = (if (0 == dim) minInnerWidth else 0)
+        var upperBound : Expression = -Math.max(defNumLayers, minWidth) // number of elements to skip in the default case
+        upperBound += field.fieldLayout.idxById("DRE", dim) // offset for default case
+        upperBound -= field.referenceOffset(dim) // correction for loop indices
+        if (useRelOffsets && 0 == dim) upperBound = new MinimumExpression(upperBound, stop(dim) - minWidth)
+        upperBound
+      })
+
+      // start communication
+      stmts ++= preComms.filter(_ match {
+        case comm : CommunicateStatement if "begin" == comm.op || "both" == comm.op => true
+        case ExpressionStatement(fc : FunctionCallExpression) if fc.name.startsWith("begin") || fc.name.startsWith("both") => true
+        case _ => false
+      })
+
+      // innerRegion
+      var coreLoop = Duplicate(loop)
+      coreLoop.condition = Some(AndAndExpression(coreLoop.condition.getOrElse(BooleanConstant(true)),
+        (0 until field.fieldLayout.numDimsGrid).map(dim =>
+          AndAndExpression(GreaterEqualExpression(dimToString(dim), lowerBounds(dim)), LowerExpression(dimToString(dim), upperBounds(dim))) : Expression).reduce(AndAndExpression(_, _))))
+
+      stmts += coreLoop
+
+      // finish communication
+      stmts ++= preComms.filter(_ match {
+        case comm : CommunicateStatement if "finish" == comm.op => true
+        case ExpressionStatement(fc : FunctionCallExpression) if fc.name.startsWith("finish") => true
+        case _ => false
+      })
+
+      // outerRegion
+      var boundaryLoop = Duplicate(loop)
+      boundaryLoop.condition = Some(OrOrExpression(boundaryLoop.condition.getOrElse(BooleanConstant(false)),
+        (0 until field.fieldLayout.numDimsGrid).map(dim =>
+          OrOrExpression(LowerExpression(dimToString(dim), lowerBounds(dim)), GreaterEqualExpression(dimToString(dim), upperBounds(dim))) : Expression).reduce(OrOrExpression(_, _))))
+      stmts += boundaryLoop
+    } else {
+      stmts += loop
+    }
+
     if (region.isDefined) {
       if (region.get.onlyOnBoundary) {
         val neighIndex = Fragment.getNeigh(region.get.dir).index
-        ret = new ConditionStatement(NegationExpression(iv.NeighborIsValid(domain, neighIndex)), ret)
+        stmts = ListBuffer[Statement](new ConditionStatement(NegationExpression(iv.NeighborIsValid(domain, neighIndex)), stmts))
       }
     }
-    if (domain >= 0)
-      ret = new ConditionStatement(iv.IsValidForSubdomain(domain), ret)
 
-    ret
+    if (domain >= 0) {
+      stmts = ListBuffer[Statement](new ConditionStatement(iv.IsValidForSubdomain(domain), stmts))
+    }
+
+    stmts
   }
 }
 
