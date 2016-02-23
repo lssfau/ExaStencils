@@ -18,28 +18,36 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
   var commFunctions : CommunicationFunctions = CommunicationFunctions()
   var addedFunctions : ListBuffer[String] = ListBuffer()
 
+  var firstCall = true
   var condCounter = 0
 
   var collector = new StackCollector
   this.register(collector)
 
   override def apply(node : Option[Node] = None) = {
-    commFunctions = StateManager.findFirst[CommunicationFunctions]().get
-    addedFunctions.clear
+    if (firstCall) {
+      commFunctions = StateManager.findFirst[CommunicationFunctions]().get
+      addedFunctions.clear
 
-    if (Knowledge.mpi_enabled && Knowledge.domain_canHaveRemoteNeighs)
-      commFunctions.functions += new MPI_WaitForRequest
-    if (Knowledge.omp_enabled && Knowledge.domain_canHaveLocalNeighs)
-      commFunctions.functions += new OMP_WaitForFlag
-    if (Knowledge.domain_canHaveLocalNeighs)
-      commFunctions.functions += new ConnectLocalElement()
-    if (Knowledge.domain_canHaveRemoteNeighs)
-      commFunctions.functions += new ConnectRemoteElement()
+      if (Knowledge.mpi_enabled && Knowledge.domain_canHaveRemoteNeighs)
+        commFunctions.functions += new MPI_WaitForRequest
+      if (Knowledge.omp_enabled && Knowledge.domain_canHaveLocalNeighs)
+        commFunctions.functions += new OMP_WaitForFlag
+      if (Knowledge.domain_canHaveLocalNeighs)
+        commFunctions.functions += new ConnectLocalElement()
+      if (Knowledge.domain_canHaveRemoteNeighs)
+        commFunctions.functions += new ConnectRemoteElement()
+    }
 
     super.apply(node)
+
+    firstCall = false
   }
 
   this += new Transformation("Adding and linking communication functions", {
+    case loop : LoopOverPoints if firstCall => // skip communication statements in loops -> to be handled after resolving loops
+      loop
+
     case communicateStatement : CommunicateStatement => {
       val numDims = communicateStatement.field.field.fieldLayout.numDimsData
 
@@ -134,6 +142,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
 
       FunctionCallExpression(functionName, fctArgs) : Statement
     }
+
     case applyBCsStatement : ApplyBCsStatement => {
       var insideFragLoop = collector.stack.map(node => node match { case loop : LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
       if (insideFragLoop && !Knowledge.experimental_allowCommInFragLoops) {
@@ -168,5 +177,5 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
 
       FunctionCallExpression(functionName, fctArgs) : Statement
     }
-  })
+  }, false)
 }

@@ -201,8 +201,8 @@ case class LoopOverPointsStatement(
       procEndOffset,
       procIncrement,
       statements.map(_.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
-      preComms.map(_.progressToIr : ir.Statement).to[ListBuffer],
-      postComms.map(_.progressToIr : ir.Statement).to[ListBuffer],
+      preComms.map(_.progressToIr).to[ListBuffer],
+      postComms.map(_.progressToIr).to[ListBuffer],
       if (reduction.isDefined) Some(reduction.get.progressToIr) else None,
       if (condition.isDefined) Some(condition.get.progressToIr) else None)
 

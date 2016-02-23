@@ -122,8 +122,8 @@ case class LoopOverPoints(var field : Field,
     var endOffset : MultiIndex,
     var increment : MultiIndex,
     var body : ListBuffer[Statement],
-    var preComms : ListBuffer[Statement] = ListBuffer(),
-    var postComms : ListBuffer[Statement] = ListBuffer(),
+    var preComms : ListBuffer[CommunicateStatement] = ListBuffer(),
+    var postComms : ListBuffer[CommunicateStatement] = ListBuffer(),
     var reduction : Option[Reduction] = None,
     var condition : Option[Expression] = None) extends Statement {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPoints\n"
@@ -162,8 +162,8 @@ case class LoopOverPointsInOneFragment(var domain : Int,
     var endOffset : MultiIndex,
     var increment : MultiIndex,
     var body : ListBuffer[Statement],
-    var preComms : ListBuffer[Statement] = ListBuffer(),
-    var postComms : ListBuffer[Statement] = ListBuffer(),
+    var preComms : ListBuffer[CommunicateStatement] = ListBuffer(),
+    var postComms : ListBuffer[CommunicateStatement] = ListBuffer(),
     var reduction : Option[Reduction] = None,
     var condition : Option[Expression] = None) extends Statement {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPointsInOneFragment\n"
@@ -288,11 +288,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
       })
 
       // start communication
-      stmts ++= preComms.filter(_ match {
-        case comm : CommunicateStatement if "begin" == comm.op || "both" == comm.op => true
-        case ExpressionStatement(fc : FunctionCallExpression) if fc.name.startsWith("begin") || fc.name.startsWith("both") => true
-        case _ => false
-      })
+      stmts ++= preComms.filter(comm => "begin" == comm.op || "both" == comm.op)
 
       // innerRegion
       var coreLoop = Duplicate(loop)
@@ -303,11 +299,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
       stmts += coreLoop
 
       // finish communication
-      stmts ++= preComms.filter(_ match {
-        case comm : CommunicateStatement if "finish" == comm.op => true
-        case ExpressionStatement(fc : FunctionCallExpression) if fc.name.startsWith("finish") => true
-        case _ => false
-      })
+      stmts ++= preComms.filter(comm => "finish" == comm.op)
 
       // outerRegion
       var boundaryLoop = Duplicate(loop)
