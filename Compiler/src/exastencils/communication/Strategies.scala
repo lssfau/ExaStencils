@@ -188,13 +188,18 @@ object MergeCommunicatesAndLoops extends DefaultStrategy("Merging communicate st
 
     for (i <- 1 until body.length) {
       (body(i - 1), body(i)) match {
-        case (cs : CommunicateStatement, loop : LoopOverPoints) => loop.preComms += cs // already merged: newBody += cs
-        case (first, second)                                    => newBody += first
+        case (cs : CommunicateStatement, loop : LoopOverPoints) if cs.field.field.level == loop.field.level => // skip intergrid ops for now
+          loop.preComms += cs // already merged: newBody += cs
+        case (first, second) => newBody += first
       }
     }
+    // TODO: postComms
     newBody += body.last
 
-    newBody
+    if (newBody.length != body.length)
+      processFctBody(newBody) // sth changed -> apply recursively to support multiple communicate statements
+    else
+      newBody // nothing changed -> work is done
   }
 
   this += new Transformation("Resolving", {
