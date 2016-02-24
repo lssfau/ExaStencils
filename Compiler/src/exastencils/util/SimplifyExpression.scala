@@ -7,6 +7,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.logger._
+import exastencils.strategies.SimplifyStrategy
 
 object SimplifyExpression {
 
@@ -495,11 +496,10 @@ object SimplifyExpression {
         val nonCst = new ListBuffer[HashMap[Expression, Double]]()
         for (f <- facs) {
           val map = extractFloatingSumRec(f)
-          if (map.size == 1 && map.contains(constName) || map.isEmpty) {
+          if (map.size == 1 && map.contains(constName) || map.isEmpty)
             coeff *= map.getOrElse(constName, 0d)
-          } else {
+          else
             nonCst += map
-          }
         }
         res = new HashMap[Expression, Double]()
         if (nonCst.isEmpty)
@@ -507,8 +507,20 @@ object SimplifyExpression {
         else if (nonCst.length == 1)
           for ((name : Expression, value : Double) <- nonCst.head)
             res(name) = value * coeff
-        else
-          res(new MultiplicationExpression(nonCst.map { sum => recreateExprFromFloatSum(sum.map { nv => (nv._1, nv._2 * coeff) }) })) = 1d
+        else {
+          for (nC <- nonCst) {
+            val it = nC.view.filter(_._1 != constName).map(_._2).iterator
+            val v : Double = it.next()
+            var allId : Boolean = true
+            while (it.hasNext && allId)
+              allId = it.next() == v
+            if (allId) {
+              coeff *= v
+              nC.transform((expr, d) => d / v)
+            }
+          }
+          res(new MultiplicationExpression(nonCst.map { sum => recreateExprFromFloatSum(sum) })) = coeff
+        }
 
       //      case MultiplicationExpression(l, r) =>
       //        val mapL = extractFloatingSumRec(l)
@@ -604,6 +616,7 @@ object SimplifyExpression {
     if (sumSeq.isEmpty)
       return FloatConstant(const.getOrElse(0d))
 
+    // TODO: 2x * (-2y) -> (x-y)*2
     // use distributive property
     val reverse = new HashMap[Double, Expression]()
     for ((njuExpr : Expression, value : Double) <- sumSeq) {
@@ -645,7 +658,9 @@ object SimplifyExpression {
 
   def simplifyFloatingExpr(expr : Expression) : Expression = {
     try {
-      return recreateExprFromFloatSum(extractFloatingSum(expr))
+      val res = ExpressionStatement(recreateExprFromFloatSum(extractFloatingSum(expr)))
+      SimplifyStrategy.doUntilDoneStandalone(res)
+      return res.expression
     } catch {
       case EvaluationException(msg) =>
         throw new EvaluationException(msg + ";  in " + expr.prettyprint())
