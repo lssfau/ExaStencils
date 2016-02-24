@@ -96,13 +96,13 @@ object Extractor {
             lParConstr.append("<=").append(max).append(')')
             lParConstr.append(" and ")
 
-          case MultiplicationExpression(IntegerConstant(c), arr : ArrayAccess) =>
+          case MultiplicationExpression(ListBuffer(IntegerConstant(c), arr : ArrayAccess)) =>
             lParConstr.append('(').append(min).append("<=").append(c).append('*')
             lParConstr.append(ScopNameMapping.expr2id(arr))
             lParConstr.append("<=").append(max).append(')')
             lParConstr.append(" and ")
 
-          case MultiplicationExpression(arr : ArrayAccess, IntegerConstant(c)) =>
+          case MultiplicationExpression(ListBuffer(arr : ArrayAccess, IntegerConstant(c))) =>
             lParConstr.append('(').append(min).append("<=").append(c).append('*')
             lParConstr.append(ScopNameMapping.expr2id(arr))
             lParConstr.append("<=").append(max).append(')')
@@ -148,12 +148,13 @@ object Extractor {
         bool |= extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(')')
 
-      case MultiplicationExpression(l, r) =>
+      case MultiplicationExpression(facs) =>
         constraints.append('(')
-        bool |= extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
-        constraints.append('*')
-        bool |= extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
-        constraints.append(')')
+        for (s <- facs) {
+          bool |= extractConstraints(s, constraints, formatString, lParConstr, gParConstr, vars)
+          constraints.append('*')
+        }
+        constraints(constraints.length - 1) = ')' // replace last '+'
 
       case DivisionExpression(l, r) =>
         constraints.append("floord(")

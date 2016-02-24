@@ -191,15 +191,16 @@ object Main {
     ResolveLoopOverPoints.apply()
     ResolveIntergridIndices.apply()
 
-    var numConvFound = 0
+    var convChanged = false
     do {
+      FindStencilConvolutions.changed = false
       FindStencilConvolutions.apply()
-      numConvFound = FindStencilConvolutions.results.last._2.matches
+      convChanged = FindStencilConvolutions.changed
       if (Knowledge.useFasterExpand)
         ExpandOnePassStrategy.apply()
       else
         ExpandStrategy.doUntilDone()
-    } while (numConvFound > 0)
+    } while (convChanged)
 
     ResolveDiagFunction.apply()
     Grid.applyStrategies()
