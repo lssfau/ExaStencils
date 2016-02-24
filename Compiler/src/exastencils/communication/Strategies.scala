@@ -186,15 +186,26 @@ object MergeCommunicatesAndLoops extends DefaultStrategy("Merging communicate st
 
     var newBody = ListBuffer[Statement]()
 
-    for (i <- 1 until body.length) {
+    for (i <- 1 until body.length) { // check for pre communications steps
       (body(i - 1), body(i)) match {
         case (cs : CommunicateStatement, loop : LoopOverPoints) if cs.field.field.level == loop.field.level => // skip intergrid ops for now
           loop.preComms += cs // already merged: newBody += cs
         case (first, second) => newBody += first
       }
     }
-    // TODO: postComms
     newBody += body.last
+
+    if (newBody.length == body.length) { // nothing changed -> look for post communications steps
+      newBody.clear
+      for (i <- body.length - 1 until 0 by -1) {
+        (body(i - 1), body(i)) match {
+          case (loop : LoopOverPoints, cs : CommunicateStatement) if cs.field.field.level == loop.field.level => // skip intergrid ops for now
+            loop.postComms += cs // already merged: newBody += cs
+          case (first, second) => newBody.prepend(second)
+        }
+      }
+      newBody.prepend(body.head)
+    }
 
     if (newBody.length != body.length)
       processFctBody(newBody) // sth changed -> apply recursively to support multiple communicate statements

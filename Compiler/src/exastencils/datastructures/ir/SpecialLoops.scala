@@ -259,32 +259,15 @@ case class LoopOverPointsInOneFragment(var domain : Int,
     var stmts = ListBuffer[Statement]()
 
     if (Knowledge.experimental_splitLoopsForAsyncComm && !preComms.isEmpty && !postComms.isEmpty) {
-      Logger.warn("Found unsupported case of a loop with pre and post communication statements")
+      Logger.warn("Found unsupported case of a loop with pre and post communication statements - post communication statements will be ignored")
     }
 
     if (Knowledge.experimental_splitLoopsForAsyncComm && !preComms.isEmpty) {
       if (region.isDefined) Logger.warn("Found region loop with communication step")
 
-      object TODO extends QuietDefaultStrategy("TODO") {
-        var accesses = HashMap[String, ListBuffer[MultiIndex]]()
-
-        this += new Transformation("TODO", {
-          case fa : FieldAccess =>
-            val key = fa.fieldSelection.field.codeName
-            if (!accesses.contains(key)) accesses.put(key, ListBuffer())
-            accesses(key) += (fa.index - LoopOverDimensions.defIt(fa.index.length))
-            fa
-        })
-      }
-      TODO.accesses.clear
-      TODO.applyStandalone(Scope(body))
-      Logger.debug("Found : " + TODO.accesses.size)
-
-      // FIXME: replace dimToString with defIt
-
-      val cacheLineSize = 512 // TODO: Knowledge
-      val minInnerWidth = 4 // cacheLineSize / field.fieldLayout.datatype.resolveBaseDatatype.typicalByteSize
-      val useRelOffsets = false
+      // gather occuring field access offsets - will determine bounds of inner and outer loop
+      GatherFieldAccessOffsets.accesses.clear
+      GatherFieldAccessOffsets.applyStandalone(Scope(body))
 
       // check dimensionality of involved fields
       val numDims = field.fieldLayout.numDimsGrid
@@ -292,55 +275,32 @@ case class LoopOverPointsInOneFragment(var domain : Int,
         if (numDims != cs.field.fieldLayout.numDimsGrid)
           Logger.warn(s"Found communicate statement on field ${cs.field.codeName} which is incompatible with dimensionality $numDims")
 
-      // init default bounds
+      // loop iterator
+      val loopIt = LoopOverDimensions.defIt(numDims)
+
+      // init default bounds ...
       var lowerBounds = (0 until numDims).map(dim => start(dim))
       var upperBounds = (0 until numDims).map(dim => stop(dim))
 
-      // FIXME: check for write vs read access
-      //      for (cs <- preComms) {
-      //        lowerBounds = (0 until numDims).map(dim => {
-      //          val defNumLayers = cs.field.fieldLayout.layoutsPerDim(dim).numGhostLayersRight + cs.field.fieldLayout.layoutsPerDim(dim).numDupLayersRight
-      //          val minWidth = (if (0 == dim) minInnerWidth else 0)
-      //          var lowerBound : Expression = Math.max(defNumLayers, minWidth) // number of elements to skip in the default case
-      //          lowerBound += cs.field.fieldLayout.idxById("DLB", dim) // offset for default case
-      //          lowerBound -= cs.field.referenceOffset(dim) // correction for loop indices
-      //          if (useRelOffsets && 0 == dim) lowerBound = new MaximumExpression(lowerBound, start(dim) + minWidth)
-      //          new MaximumExpression(lowerBounds(dim), lowerBound)
-      //        })
-      //      }
+      // ... and compile actual loop condition bounds
+      // Concept:
+      //  determine maximum offset to the left for potentially required reads
+      //  shift loop start by this (negated) offset plus 1
+      //  optionally enforce a certain number of elements for vectorization/ optimized cache line usage
       for (cs <- preComms) {
         lowerBounds = (0 until numDims).map(dim => {
-          val minWidth = (if (0 == dim) minInnerWidth else 0)
-          // Concept:
-          //  determine maximum offset to the left for potentially required reads
-          //  shift loop start by this (negated) offset plus 1
-          //  optionally enforce a certain number of elements for vectorization/ optimized cache line usage
-          var ret : Expression = new MinimumExpression(TODO.accesses.getOrElse(cs.field.codeName, ListBuffer()).map(_(dim)))
+          val minWidth = (if (0 == dim) Knowledge.experimental_splitLoops_minInnerWidth else 0)
+          var ret : Expression = new MinimumExpression(GatherFieldAccessOffsets.accesses.getOrElse(cs.field.codeName, ListBuffer()).map(_(dim)))
           ret = 1 - ret
           SimplifyStrategy.doUntilDoneStandalone(ExpressionStatement(ret))
           start(dim) + new MaximumExpression(ret, minWidth)
         })
       }
 
-      //      for (cs <- preComms) {
-      //        upperBounds = (0 until numDims).map(dim => {
-      //          val defNumLayers = cs.field.fieldLayout.layoutsPerDim(dim).numGhostLayersLeft + cs.field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft
-      //          val minWidth = (if (0 == dim) minInnerWidth else 0)
-      //          var upperBound : Expression = -Math.max(defNumLayers, minWidth) // number of elements to skip in the default case
-      //          upperBound += cs.field.fieldLayout.idxById("DRE", dim) // offset for default case
-      //          upperBound -= cs.field.referenceOffset(dim) // correction for loop indices
-      //          if (useRelOffsets && 0 == dim) upperBound = new MinimumExpression(upperBound, stop(dim) - minWidth)
-      //          new MinimumExpression(upperBounds(dim), upperBound)
-      //        })
-      //      }
       for (cs <- preComms) {
         upperBounds = (0 until numDims).map(dim => {
-          val minWidth = (if (0 == dim) minInnerWidth else 0)
-          // Concept:
-          //  determine maximum offset to the right for potentially required reads
-          //  shift loop start by this offset plus 1
-          //  optionally enforce a certain number of elements for vectorization/ optimized cache line usage
-          var ret : Expression = new MaximumExpression(TODO.accesses.getOrElse(cs.field.codeName, ListBuffer()).map(_(dim)))
+          val minWidth = (if (0 == dim) Knowledge.experimental_splitLoops_minInnerWidth else 0)
+          var ret : Expression = new MaximumExpression(GatherFieldAccessOffsets.accesses.getOrElse(cs.field.codeName, ListBuffer()).map(_(dim)))
           ret = 1 + ret
           SimplifyStrategy.doUntilDoneStandalone(ExpressionStatement(ret))
           stop(dim) - new MaximumExpression(ret, minWidth)
@@ -355,7 +315,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
       var coreLoop = Duplicate(loop)
       coreLoop.condition = Some(AndAndExpression(coreLoop.condition.getOrElse(BooleanConstant(true)),
         (0 until field.fieldLayout.numDimsGrid).map(dim =>
-          AndAndExpression(GreaterEqualExpression(dimToString(dim), lowerBounds(dim)), LowerExpression(dimToString(dim), upperBounds(dim))) : Expression).reduce(AndAndExpression(_, _))))
+          AndAndExpression(GreaterEqualExpression(loopIt(dim), lowerBounds(dim)), LowerExpression(loopIt(dim), upperBounds(dim))) : Expression).reduce(AndAndExpression(_, _))))
 
       stmts += coreLoop
 
@@ -367,8 +327,70 @@ case class LoopOverPointsInOneFragment(var domain : Int,
       var boundaryLoop = Duplicate(loop)
       boundaryLoop.condition = Some(OrOrExpression(boundaryLoop.condition.getOrElse(BooleanConstant(false)),
         (0 until field.fieldLayout.numDimsGrid).map(dim =>
-          OrOrExpression(LowerExpression(dimToString(dim), lowerBounds(dim)), GreaterEqualExpression(dimToString(dim), upperBounds(dim))) : Expression).reduce(OrOrExpression(_, _))))
+          OrOrExpression(LowerExpression(loopIt(dim), lowerBounds(dim)), GreaterEqualExpression(loopIt(dim), upperBounds(dim))) : Expression).reduce(OrOrExpression(_, _))))
       stmts += boundaryLoop
+    } else if (Knowledge.experimental_splitLoopsForAsyncComm && !postComms.isEmpty) {
+      if (region.isDefined) Logger.warn("Found region loop with communication step")
+
+      // check dimensionality of involved fields
+      val numDims = field.fieldLayout.numDimsGrid
+      for (cs <- postComms)
+        if (numDims != cs.field.fieldLayout.numDimsGrid)
+          Logger.warn(s"Found communicate statement on field ${cs.field.codeName} which is incompatible with dimensionality $numDims")
+
+      // loop iterator
+      val loopIt = LoopOverDimensions.defIt(numDims)
+
+      // init default bounds ...
+      var lowerBounds = (0 until numDims).map(dim => start(dim))
+      var upperBounds = (0 until numDims).map(dim => stop(dim))
+
+      // ... and compile actual loop condition bounds
+      // Concept:
+      //  enforce that elements to be synchronized are in outer region
+      //  optionally enforce a certain number of elements for vectorization/ optimized cache line usage
+      for (cs <- postComms) {
+        lowerBounds = (0 until numDims).map(dim => {
+          val minWidth = (if (0 == dim) Knowledge.experimental_splitLoops_minInnerWidth else 0)
+          var ret : Expression = cs.field.fieldLayout.layoutsPerDim(dim).numGhostLayersRight + cs.field.fieldLayout.layoutsPerDim(dim).numDupLayersRight
+          ret += cs.field.fieldLayout.idxById("DLB", dim) // incorporate base index
+          ret -= cs.field.referenceOffset(dim) // incorporate correction for loop indices
+          new MaximumExpression(ret, start(dim) + minWidth)
+        })
+      }
+
+      for (cs <- postComms) {
+        upperBounds = (0 until numDims).map(dim => {
+          val minWidth = (if (0 == dim) Knowledge.experimental_splitLoops_minInnerWidth else 0)
+          var ret : Expression = cs.field.fieldLayout.layoutsPerDim(dim).numGhostLayersLeft + cs.field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft
+          ret = cs.field.fieldLayout.idxById("DRB", dim) - ret // incorporate base index
+          ret -= cs.field.referenceOffset(dim) // incorporate correction for loop indices
+          new MinimumExpression(ret, stop(dim) - minWidth)
+        })
+      }
+
+      // outerRegion
+      var boundaryLoop = Duplicate(loop)
+      boundaryLoop.condition = Some(OrOrExpression(boundaryLoop.condition.getOrElse(BooleanConstant(false)),
+        (0 until field.fieldLayout.numDimsGrid).map(dim =>
+          OrOrExpression(LowerExpression(loopIt(dim), lowerBounds(dim)), GreaterEqualExpression(loopIt(dim), upperBounds(dim))) : Expression).reduce(OrOrExpression(_, _))))
+      stmts += boundaryLoop
+
+      // start communication
+      stmts ++= postComms.filter(comm => "begin" == comm.op)
+      stmts ++= postComms.filter(comm => "both" == comm.op).map(comm => { var newComm = Duplicate(comm); newComm.op = "begin"; newComm })
+
+      // innerRegion
+      var coreLoop = Duplicate(loop)
+      coreLoop.condition = Some(AndAndExpression(coreLoop.condition.getOrElse(BooleanConstant(true)),
+        (0 until field.fieldLayout.numDimsGrid).map(dim =>
+          AndAndExpression(GreaterEqualExpression(loopIt(dim), lowerBounds(dim)), LowerExpression(loopIt(dim), upperBounds(dim))) : Expression).reduce(AndAndExpression(_, _))))
+
+      stmts += coreLoop
+
+      // finish communication
+      stmts ++= postComms.filter(comm => "finish" == comm.op)
+      stmts ++= postComms.filter(comm => "both" == comm.op).map(comm => { var newComm = Duplicate(comm); newComm.op = "finish"; newComm })
     } else {
       stmts += loop
     }
