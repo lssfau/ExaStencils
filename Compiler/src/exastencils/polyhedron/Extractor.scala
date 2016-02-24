@@ -782,7 +782,7 @@ class Extractor extends Collector {
   private def enterFieldAccess(fSel : FieldSelection, index : MultiIndex) : Unit = {
     val name = new StringBuilder("field")
     name.append('_').append(fSel.field.identifier).append(fSel.field.index).append('_').append(fSel.field.level)
-    name.append("_l").append(fSel.level.prettyprint()).append('a').append(fSel.arrayIndex)
+   // name.append("_l").append(fSel.level.prettyprint()).append('a').append(fSel.arrayIndex) // FIXME_componentIndex
     name.append('_').append(fSel.fragIdx.prettyprint()).append('_')
     fSel.slot match {
       case SlotAccess(_, offset) => name.append('s').append(offset)

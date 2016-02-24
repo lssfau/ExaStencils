@@ -67,14 +67,14 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
     this.register(valueCollector)
 
     this.execute(new Transformation("ResolveValuesInExpressions", {
-      case x : UnresolvedAccess if (x.level == None && x.slot == None && x.arrayIndex == None) => {
+      case x : UnresolvedAccess if (x.level == None && x.slot == None && x.componentIndex.isEmpty) => {
         var value = valueCollector.getValue(x.name)
         value match {
           case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Val was found"""); x }
           case _    => value.get
         }
       }
-      case x : UnresolvedAccess if (x.level.isDefined && x.level.get.isInstanceOf[SingleLevelSpecification] && x.slot == None && x.arrayIndex == None) => {
+      case x : UnresolvedAccess if (x.level.isDefined && x.level.get.isInstanceOf[SingleLevelSpecification] && x.slot == None && x.componentIndex.isEmpty) => {
         var value = valueCollector.getValue(x.name + "@@" + x.level.get.asInstanceOf[SingleLevelSpecification].level)
         value match {
           case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Val was found"""); x }
@@ -100,12 +100,12 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
 
     this.execute(new Transformation("special functions and constants", {
       // levelIndex
-      case FunctionCallExpression(LeveledAccess("levels", SingleLevelSpecification(level)), List())      => IntegerConstant(level)
-      case FunctionCallExpression(LeveledAccess("levelIndex", SingleLevelSpecification(level)), List())  => IntegerConstant(level - knowledge.Knowledge.minLevel)
-      case FunctionCallExpression(LeveledAccess("levelString", SingleLevelSpecification(level)), List()) => StringConstant(level.toString())
+      case FunctionCallExpression(LeveledAccess("levels", SingleLevelSpecification(level), _), List())      => IntegerConstant(level)
+      case FunctionCallExpression(LeveledAccess("levelIndex", SingleLevelSpecification(level), _), List())  => IntegerConstant(level - knowledge.Knowledge.minLevel)
+      case FunctionCallExpression(LeveledAccess("levelString", SingleLevelSpecification(level), _), List()) => StringConstant(level.toString())
 
       // constants
-      case BasicAccess("PI") | BasicAccess("M_PI") | BasicAccess("Pi")                                   => FloatConstant(math.Pi)
+      case BasicAccess("PI", _) | BasicAccess("M_PI", _) | BasicAccess("Pi", _)                             => FloatConstant(math.Pi)
     }))
 
     this.execute(new Transformation("Resolving string constants to literals", {
@@ -154,9 +154,9 @@ object ReplaceExpressions extends DefaultStrategy("Replace something with someth
             if (newAccess.offset.isDefined) Logger.warn("Overriding offset on access in function instantiation")
             newAccess.offset = origAccess.offset
           }
-          if (origAccess.arrayIndex.isDefined) {
-            if (newAccess.arrayIndex.isDefined) Logger.warn("Overriding array index on access in function instantiation")
-            newAccess.arrayIndex = origAccess.arrayIndex
+          if (origAccess.componentIndex.isDefined) {
+            if (newAccess.componentIndex.isDefined) Logger.warn("Overriding component index on access in function instantiation")
+            newAccess.componentIndex = origAccess.componentIndex
           }
           if (origAccess.dirAccess.isDefined) {
             if (newAccess.dirAccess.isDefined) Logger.warn("Overriding direction access on access in function instantiation")

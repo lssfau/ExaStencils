@@ -103,39 +103,6 @@ case class MatrixExpression(var datatype : Option[Datatype], var expressions : L
   def isConstant = expressions.filter(_.isConstant).length == expressions.length
 }
 
-abstract class ComponentIndex extends Expression
-
-case class ComponentIndex1d(var begin : Option[Int], var end : Option[Int]) extends ComponentIndex {
-  def this(a : Int, b : Int) = this(Some(a), Some(b))
-  def this(idx : Index1D) = this(idx.x, idx.x)
-
-  def prettyprintInner(out : PpStream) = {
-    if (begin.isDefined) out << begin.get
-    out << ':'
-    if (end.isDefined) out << end.get
-  }
-
-  override def prettyprint(out : PpStream) = {
-    out << '['
-    prettyprintInner(out)
-    out << ']'
-  }
-  override def progressToIr = ???
-}
-
-case class ComponentIndex2d(var x : ComponentIndex1d, var y : ComponentIndex1d) extends ComponentIndex {
-  def this(idx : Index2D) = this(new ComponentIndex1d(idx.x, idx.x), new ComponentIndex1d(idx.y, idx.y))
-
-  override def prettyprint(out : PpStream) = {
-    out << '[';
-    x.prettyprintInner(out)
-    out << ',';
-    y.prettyprintInner(out)
-    out << ']'
-  }
-  override def progressToIr = ???
-}
-
 abstract class Identifier extends Expression {
   var name : String
 }

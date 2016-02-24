@@ -245,14 +245,6 @@ case class CastExpression(var datatype : Datatype, var toCast : Expression) exte
   override def prettyprint(out : PpStream) : Unit = out << "((" << datatype << ")" << toCast << ")"
 }
 
-case class VariableAccess(var name : String, var dType : Option[Datatype] = None) extends Access {
-  def this(n : String, dT : Datatype) = this(n, Option(dT))
-
-  override def prettyprint(out : PpStream) : Unit = out << name
-
-  def printDeclaration() : String = dType.get.resolveDeclType.prettyprint + " " + name + dType.get.resolveDeclPostscript
-}
-
 //TODO specific expression for reading from fragment data file
 case class ReadValueFrom(var datatype : Datatype, data : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << "readValue<" << datatype << '>' << "(" << data << ")"
@@ -556,7 +548,7 @@ case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, 
         for (dim <- 0 until Knowledge.dimensionality)
           stencilFieldIdx(dim) += re.offset(dim)
         var fieldSel = stencilLeft.stencilFieldSelection.toFieldSelection
-        fieldSel.arrayIndex = Some(e)
+        //fieldSel.arrayIndex = Some(e) // FIXME_componentIndex
 
         var rightOffset = Duplicate(re.offset)
 

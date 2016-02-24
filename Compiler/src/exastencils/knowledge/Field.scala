@@ -123,7 +123,7 @@ case class FieldSelection(
     var field : Field,
     var level : Expression,
     var slot : Expression,
-    var arrayIndex : Option[Int] = None, // TODO: delete
+    var componentIndex : List[MultiIndex] = List(),
     var fragIdx : Expression = LoopOverFragments.defIt) extends Node {
 
   // shortcuts to Field members

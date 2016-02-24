@@ -91,3 +91,41 @@ case class ExpressionIndex3D(var x : Expression, var y : Expression, var z : Exp
 
   def progressToIr : ir.MultiIndex = new ir.MultiIndex(Array(x.progressToIr, y.progressToIr, z.progressToIr))
 }
+
+abstract class ComponentIndex extends Node with PrettyPrintable with ProgressableToIr {
+  def toMultiIndexList : List[ir.MultiIndex]
+  override def progressToIr : List[ir.MultiIndex] = ???
+}
+
+case class ComponentIndex1d(var begin : Option[Int], var end : Option[Int]) extends ComponentIndex {
+  def this(a : Int, b : Int) = this(Some(a), Some(b))
+  def this(idx : Index1D) = this(idx.x, idx.x)
+
+  def prettyprintInner(out : PpStream) = {
+    if (begin.isDefined) out << begin.get
+    out << ':'
+    if (end.isDefined) out << end.get
+  }
+
+  override def prettyprint(out : PpStream) = {
+    out << '['
+    prettyprintInner(out)
+    out << ']'
+  }
+  override def toMultiIndexList = ???
+  override def progressToIr : List[ir.MultiIndex] = ???
+}
+
+case class ComponentIndex2d(var x : ComponentIndex1d, var y : ComponentIndex1d) extends ComponentIndex {
+  def this(idx : Index2D) = this(new ComponentIndex1d(idx.x, idx.x), new ComponentIndex1d(idx.y, idx.y))
+
+  override def prettyprint(out : PpStream) = {
+    out << '[';
+    x.prettyprintInner(out)
+    out << ',';
+    y.prettyprintInner(out)
+    out << ']'
+  }
+  override def toMultiIndexList = ???
+  override def progressToIr : List[ir.MultiIndex] = ???
+}

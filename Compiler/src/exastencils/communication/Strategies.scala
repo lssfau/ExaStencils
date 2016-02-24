@@ -90,7 +90,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         case "finish" => s"finishExch${communicateStatement.field.codeName}"
         case "both"   => s"exch${communicateStatement.field.codeName}"
       })
-      functionName += s"_${communicateStatement.field.arrayIndex.getOrElse("a")}_" +
+      functionName += s"_${communicateStatement.field/*.arrayIndex.getOrElse("a")*/}_" + // FIXME_componentIndex
         communicateStatement.targets.map(t => s"${t.target}_${
           val begin : MultiIndex = t.begin.getOrElse(new MultiIndex(Array.fill(numDims)("a" : Expression)))
           (0 until numDims).toArray.map(dim => begin(dim).prettyprint).mkString("_")

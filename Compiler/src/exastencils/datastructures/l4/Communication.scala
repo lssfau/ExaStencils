@@ -31,7 +31,7 @@ case class ApplyBCsStatement(var field : Access) extends Statement {
       case sf : StencilFieldAccess => knowledge.FieldSelection(sf.resolveField,
         ir.IntegerConstant(sf.level.asInstanceOf[SingleLevelSpecification].level),
         FieldAccess.resolveSlot(sf.resolveField, sf.slot),
-        sf.arrayIndex)
+        if (sf.componentIndex.isDefined) sf.componentIndex.get.progressToIr; else List())
     }
     communication.ApplyBCsStatement(resolvedField)
   }
@@ -51,7 +51,7 @@ case class CommunicateStatement(var field : Access, var op : String, var targets
       case sf : StencilFieldAccess => knowledge.FieldSelection(sf.resolveField,
         ir.IntegerConstant(sf.level.asInstanceOf[SingleLevelSpecification].level),
         FieldAccess.resolveSlot(sf.resolveField, sf.slot),
-        sf.arrayIndex)
+        if (sf.componentIndex.isDefined) sf.componentIndex.get.progressToIr; else List())
     }
     val progressedTargets : ListBuffer[communication.CommunicateTarget] = ListBuffer()
 

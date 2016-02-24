@@ -67,7 +67,7 @@ object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
       case access : StencilFieldAccess => {
         var index = Duplicate(access.index)
         index(Knowledge.dimensionality) = 0 // FIXME: this assumes the center entry to be in pos 0
-        new FieldAccess(FieldSelection(access.stencilFieldSelection.field, access.stencilFieldSelection.level, access.stencilFieldSelection.slot, Some(0), access.stencilFieldSelection.fragIdx), index)
+        new FieldAccess(FieldSelection(access.stencilFieldSelection.field, access.stencilFieldSelection.level, access.stencilFieldSelection.slot, List() /* war Some(0) */, access.stencilFieldSelection.fragIdx), index)
       }
       case _ => {
         Logger.warn("diag with unknown arg " + args(0))

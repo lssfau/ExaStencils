@@ -61,13 +61,13 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
 
   def getPos(field : FieldSelection, dim : Int) : Expression = {
     field.field.discretization match {
-      case "node" => GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
-      case "cell" => GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
+      case "node" => GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt(numDimsGrid), List(), dim)
+      case "cell" => GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt(numDimsGrid), List(), dim)
       case discr @ ("face_x" | "face_y" | "face_z") => {
         if (s"face_${dimToString(dim)}" == discr)
-          GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
+          GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt(numDimsGrid), List(), dim)
         else
-          GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
+          GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt(numDimsGrid), List(), dim)
       }
     }
   }
@@ -77,9 +77,8 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
       Settings.additionalIncludes += "fstream"
 
     val arrayIndexRange = (
-      if (field.arrayIndex.isEmpty) (0 until field.field.gridDatatype.resolveFlattendSize)
-      else (field.arrayIndex.get to field.arrayIndex.get))
-
+      if (field.componentIndex.isEmpty) (0 until field.field.gridDatatype.resolveFlattendSize) else 0 to 0 // else (field.arrayIndex.get to field.arrayIndex.get)) // FIXME_componentIndex
+      )
     val separator = (if (Knowledge.experimental_generateParaviewFiles) "\",\"" else "\" \"")
     val streamName = s"fieldPrintStream_$counter"
     counter += 1
@@ -87,7 +86,7 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
     val fileHeader = {
       var ret : Statement = NullStatement
       if (Knowledge.experimental_generateParaviewFiles) {
-        ret = (streamName + " << \"x,y,z," + arrayIndexRange.map(index => s"s$index").mkString(",") + "\" << std::endl")
+        //ret = (streamName + " << \"x,y,z," + arrayIndexRange.map(index => s"s$index").mkString(",") + "\" << std::endl") // FIXME_componentIndex
         if (Knowledge.mpi_enabled)
           ret = new ConditionStatement(new MPI_IsRootProc, ret)
       }

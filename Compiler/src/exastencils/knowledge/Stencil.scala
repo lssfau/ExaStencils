@@ -97,11 +97,11 @@ case class StencilFieldSelection(
     var stencilField : StencilField,
     var level : Expression,
     var slot : Expression,
-    var arrayIndex : Option[Int],
+    var componentIndex : List[MultiIndex] = List(),
     var fragIdx : Expression = LoopOverFragments.defIt) extends Node {
 
   def toFieldSelection = {
-    new FieldSelection(field, level, slot, arrayIndex, fragIdx)
+    new FieldSelection(field, level, slot, componentIndex, fragIdx)
   }
 
   // shortcuts to stencilField members
@@ -141,7 +141,7 @@ object MapStencilAssignments extends DefaultStrategy("MapStencilAssignments") {
 
       for (idx <- 0 until stencilLeft.entries.size) {
         var fieldSelection = stencilFieldAccess.stencilFieldSelection.toFieldSelection
-        fieldSelection.arrayIndex = Some(idx)
+        //fieldSelection.arrayIndex = Some(idx) // FIXME_componentIndex
         var fieldIndex = Duplicate(stencilFieldAccess.index)
         fieldIndex(Knowledge.dimensionality) = idx
         var coeff : Expression = 0
