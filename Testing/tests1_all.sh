@@ -4,7 +4,7 @@
 #SBATCH -A idle
 #SBATCH -n 1
 #SBATCH -c 4
-#SBATCH --hint=nomultithread
+#SBATCH --exclusive
 #SBATCH --time=10
 #SBATCH --signal=INT@10
 #SBATCH --open-mode=append
