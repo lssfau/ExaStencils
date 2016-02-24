@@ -53,6 +53,8 @@ object Main {
     if (Settings.produceHtmlLog)
       Logger_HTML.init
 
+    //    try {
+
     // validate knowledge
     Knowledge.update()
 
@@ -180,7 +182,6 @@ object Main {
 
     if (Knowledge.experimental_mergeCommIntoLoops)
       MergeCommunicatesAndLoops.apply()
-
     SimplifyStrategy.doUntilDone() // removes (conditional) calls to communication functions that are not possible
     SetupCommunication.firstCall = true
     SetupCommunication.apply()
@@ -311,6 +312,18 @@ object Main {
 
     if (Settings.timeStrategies)
       StrategyTimer.print
+
+    //    } catch {
+    //      case t : Throwable =>
+    //        Logger.dbg("An error occured: ")
+    //        var tt = t
+    //        while (tt != null) {
+    //          val sw = new StringWriter
+    //          tt.printStackTrace(new PrintWriter(sw))
+    //          Logger.warn("Stack trace:\n" + sw.toString)
+    //          tt = tt.getCause
+    //        }
+    //    }
 
     if (Settings.produceHtmlLog)
       Logger_HTML.finish
