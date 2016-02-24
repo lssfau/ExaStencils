@@ -61,13 +61,13 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
 
   def getPos(field : FieldSelection, dim : Int) : Expression = {
     field.field.discretization match {
-      case "node" => GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt(numDimsGrid), List(), dim)
-      case "cell" => GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt(numDimsGrid), List(), dim)
+      case "node" => GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt(numDimsGrid), Array(), dim)
+      case "cell" => GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt(numDimsGrid), Array(), dim)
       case discr @ ("face_x" | "face_y" | "face_z") => {
         if (s"face_${dimToString(dim)}" == discr)
-          GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt(numDimsGrid), List(), dim)
+          GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt(numDimsGrid), Array(), dim)
         else
-          GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt(numDimsGrid), List(), dim)
+          GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt(numDimsGrid), Array(), dim)
       }
     }
   }

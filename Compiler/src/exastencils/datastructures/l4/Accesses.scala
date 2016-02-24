@@ -115,11 +115,11 @@ case class FieldAccess(
       multiIndex += progressedOffset
     }
 
-    var cIdx : List[ir.MultiIndex] = List()
-    //  if (componentIndex.isDefined) cIdx = componentIndex.get.progressToIr
+    var cIdx : Array[ir.ConstIndex] = Array()
+    if (componentIndex.isDefined) cIdx = componentIndex.get.progressToIr
 
     val field = knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
-    ir.FieldAccess(knowledge.FieldSelection(field, ir.IntegerConstant(field.level), FieldAccess.resolveSlot(field, slot), List()), multiIndex)
+    ir.FieldAccess(knowledge.FieldSelection(field, ir.IntegerConstant(field.level), FieldAccess.resolveSlot(field, slot), cIdx), multiIndex)
   }
 }
 
@@ -143,7 +143,7 @@ case class VirtualFieldAccess(
       multiIndex += progressedOffset
     }
 
-    var cIdx : List[ir.MultiIndex] = List()
+    var cIdx : Array[ir.ConstIndex] = Array()
     if (componentIndex.isDefined) cIdx = componentIndex.get.progressToIr
     ir.VirtualFieldAccess(name, ir.IntegerConstant(level.asInstanceOf[SingleLevelSpecification].level), multiIndex, cIdx)
   }
@@ -185,7 +185,7 @@ case class StencilAccess(
 
     val stencil = knowledge.StencilCollection.getStencilByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
 
-    /*if (componentIndex.isDefined)
+    /*if (componentIndex.isDefined) // FIXME_componentIndex
       stencil.entries(componentIndex.get).coefficient
     else */ if (dirAccess.isDefined)
       stencil.findStencilEntry(dirAccess.get.progressToIr).get.coefficient
@@ -227,7 +227,7 @@ case class StencilFieldAccess(name_ : String,
     }
 
     // FIXME add componentIndex
-    var cIdx : List[ir.MultiIndex] = List()
+    var cIdx : Array[ir.ConstIndex] = Array()
     if (componentIndex.isDefined) cIdx = componentIndex.get.progressToIr
     ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), cIdx), multiIndex)
   }
@@ -255,11 +255,11 @@ case class StencilFieldAccess(name_ : String,
       multiIndex += progressedOffset
     }
 
-    var cIdx : List[ir.MultiIndex] = List()
+    var cIdx : Array[ir.ConstIndex] = Array()
     if (componentIndex.isDefined) cIdx = componentIndex.get.progressToIr
 
     if (accessIndex < 0)
-      ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), List()),
+      ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), Array()),
         multiIndex)
     else // FIXME hier accessIndex mit uebergeben!!
       ir.FieldAccess(knowledge.FieldSelection(stencilField.field, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), cIdx),

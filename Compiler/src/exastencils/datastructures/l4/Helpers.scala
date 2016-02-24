@@ -93,8 +93,8 @@ case class ExpressionIndex3D(var x : Expression, var y : Expression, var z : Exp
 }
 
 abstract class ComponentIndex extends Node with PrettyPrintable with ProgressableToIr {
-  def toMultiIndexList : List[ir.MultiIndex]
-  override def progressToIr : List[ir.MultiIndex] = ???
+  def toMultiIndexArray : Array[ir.MultiIndex]
+  override def progressToIr : Array[ir.ConstIndex] = ???
 }
 
 case class ComponentIndex1d(var begin : Option[Int], var end : Option[Int]) extends ComponentIndex {
@@ -112,8 +112,8 @@ case class ComponentIndex1d(var begin : Option[Int], var end : Option[Int]) exte
     prettyprintInner(out)
     out << ']'
   }
-  override def toMultiIndexList = ???
-  override def progressToIr : List[ir.MultiIndex] = ???
+  override def toMultiIndexArray = ???
+  override def progressToIr : Array[ir.ConstIndex] = ???
 }
 
 case class ComponentIndex2d(var x : ComponentIndex1d, var y : ComponentIndex1d) extends ComponentIndex {
@@ -126,6 +126,6 @@ case class ComponentIndex2d(var x : ComponentIndex1d, var y : ComponentIndex1d) 
     y.prettyprintInner(out)
     out << ']'
   }
-  override def toMultiIndexList = ???
-  override def progressToIr : List[ir.MultiIndex] = ???
+  override def toMultiIndexArray = ???
+  override def progressToIr : Array[ir.ConstIndex] = ???
 }

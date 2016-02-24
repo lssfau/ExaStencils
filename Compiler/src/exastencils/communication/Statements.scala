@@ -164,7 +164,7 @@ case class LocalSend(var field : FieldSelection, var neighbor : NeighborInfo, va
 
   override def expand : Output[Statement] = {
     var innerStmt : Statement = new AssignmentStatement(
-      new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, List(), iv.NeighborFragLocalId(field.domainIndex, neighbor.index)), new MultiIndex(
+      new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, Array(), iv.NeighborFragLocalId(field.domainIndex, neighbor.index)), new MultiIndex(
         new MultiIndex(LoopOverDimensions.defIt(numDims), src.begin, _ + _), dest.begin, _ - _)),
       new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims)))
 
@@ -190,7 +190,7 @@ case class LocalRecv(var field : FieldSelection, var neighbor : NeighborInfo, va
   override def expand : Output[Statement] = {
     var innerStmt : Statement = AssignmentStatement(
       DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims)),
-      DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, List(), iv.NeighborFragLocalId(field.domainIndex, neighbor.index)),
+      DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, Array(), iv.NeighborFragLocalId(field.domainIndex, neighbor.index)),
         new MultiIndex(new MultiIndex(LoopOverDimensions.defIt(numDims), src.begin, _ + _), dest.begin, _ - _)))
 
     if (condition.isDefined)

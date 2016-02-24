@@ -82,7 +82,7 @@ case class FieldAccess(
 case class VirtualFieldAccess(var fieldName : String,
                               var level : Expression,
                               var index : MultiIndex,
-                              var componentIndex : List[MultiIndex] = List(),
+                              var componentIndex : Array[ir.ConstIndex] = Array(),
                               var fragIdx : Expression = LoopOverFragments.defIt) extends Access {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = VirtualFieldAccess\n"
   override def datatype = ??? // FIXME_componentIndex

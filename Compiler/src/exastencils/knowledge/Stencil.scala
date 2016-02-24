@@ -97,7 +97,7 @@ case class StencilFieldSelection(
     var stencilField : StencilField,
     var level : Expression,
     var slot : Expression,
-    var componentIndex : List[MultiIndex] = List(),
+    var componentIndex : Array[ir.ConstIndex] = Array(),
     var fragIdx : Expression = LoopOverFragments.defIt) extends Node {
 
   def toFieldSelection = {

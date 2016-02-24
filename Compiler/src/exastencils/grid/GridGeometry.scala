@@ -14,20 +14,20 @@ import exastencils.util._
 
 abstract class GridGeometry() {
   // information always required
-  def nodePosition(level : Expression, index : MultiIndex, componentIndex : List[MultiIndex], dim : Int) : Expression
-  def cellCenter(level : Expression, index : MultiIndex, componentIndex : List[MultiIndex], dim : Int) : Expression
+  def nodePosition(level : Expression, index : MultiIndex, componentIndex : Array[ConstIndex], dim : Int) : Expression
+  def cellCenter(level : Expression, index : MultiIndex, componentIndex : Array[ConstIndex], dim : Int) : Expression
 
-  def cellWidth(level : Expression, index : MultiIndex, componentIndex : List[MultiIndex], dim : Int) : Expression
-  def gridWidth(level : Expression, index : MultiIndex, componentIndex : List[MultiIndex], dim : Int) : Expression = cellWidth(level, index, componentIndex, dim) // simple alias for most grids
+  def cellWidth(level : Expression, index : MultiIndex, componentIndex : Array[ConstIndex], dim : Int) : Expression
+  def gridWidth(level : Expression, index : MultiIndex, componentIndex : Array[ConstIndex], dim : Int) : Expression = cellWidth(level, index, componentIndex, dim) // simple alias for most grids
 
-  def cellVolume(level : Expression, index : MultiIndex, componentIndex : List[MultiIndex]) : Expression = {
+  def cellVolume(level : Expression, index : MultiIndex, componentIndex : Array[ConstIndex]) : Expression = {
     var exp : Expression = cellWidth(level, index, componentIndex, 0)
     for (dim <- 1 until Knowledge.dimensionality)
       exp *= cellWidth(level, index, componentIndex, dim)
     exp
   }
 
-  def cellCenterToFace(level : Expression, index : MultiIndex, componentIndex : List[MultiIndex], dim : Int) : Expression = { 0.5 * cellWidth(level, index, componentIndex, dim) }
+  def cellCenterToFace(level : Expression, index : MultiIndex, componentIndex : Array[ConstIndex], dim : Int) : Expression = { 0.5 * cellWidth(level, index, componentIndex, dim) }
 
   // resolution of special function accessing virtual fields
   def resolveGridMemberFunction(name : String) : Option[java.lang.reflect.Method] = {
@@ -82,7 +82,7 @@ object GridGeometry {
 
 trait GridGeometry_uniform extends GridGeometry {
   // properties of uniform grids
-  override def cellWidth(level : Expression, index : MultiIndex, componentIndex : List[MultiIndex], dim : Int) : Expression = {
+  override def cellWidth(level : Expression, index : MultiIndex, componentIndex : Array[ConstIndex], dim : Int) : Expression = {
     val levelIndex = level.asInstanceOf[IntegerConstant].v.toInt - Knowledge.minLevel
     dim match {
       case 0 => Knowledge.discr_hx(levelIndex)
@@ -91,39 +91,39 @@ trait GridGeometry_uniform extends GridGeometry {
     }
   }
 
-  override def nodePosition(level : Expression, index : MultiIndex, componentIndex : List[MultiIndex], dim : Int) : Expression = {
+  override def nodePosition(level : Expression, index : MultiIndex, componentIndex : Array[ConstIndex], dim : Int) : Expression = {
     //index(dim) * cellWidth(level, index, arrayIndex, dim) + ArrayAccess(iv.PrimitivePositionBegin(), dim)
     index(dim) * cellWidth(level, index, componentIndex, dim) + (iv.PrimitivePositionBegin() ~ s".${dimToString(dim)}") // FIXME: HACK
   }
 
-  override def cellCenter(level : Expression, index : MultiIndex, componentIndex : List[MultiIndex], dim : Int) : Expression = {
+  override def cellCenter(level : Expression, index : MultiIndex, componentIndex : Array[ConstIndex], dim : Int) : Expression = {
     (index(dim) + 0.5) * cellWidth(level, index, componentIndex, dim) + ArrayAccess(iv.PrimitivePositionBegin(), dim)
   }
 }
 
 trait GridGeometry_nonUniform extends GridGeometry {
   // direct accesses
-  override def nodePosition(level : Expression, index : MultiIndex, componentIndex : List[MultiIndex], dim : Int) = {
+  override def nodePosition(level : Expression, index : MultiIndex, componentIndex : Array[ConstIndex], dim : Int) = {
     val field = FieldCollection.getFieldByIdentifierLevExp(s"node_pos_${dimToString(dim)}", level).get
     FieldAccess(FieldSelection(field, field.level, 0, componentIndex), GridUtil.projectIdx(index, dim))
   }
 
   // compound accesses
-  override def cellCenter(level : Expression, index : MultiIndex, componentIndex : List[MultiIndex], dim : Int) = {
+  override def cellCenter(level : Expression, index : MultiIndex, componentIndex : Array[ConstIndex], dim : Int) = {
     0.5 * (nodePosition(level, GridUtil.offsetIndex(index, 1, dim), componentIndex, dim) + nodePosition(level, Duplicate(index), componentIndex, dim))
   }
 
-  override def cellWidth(level : Expression, index : MultiIndex, componentIndex : List[MultiIndex], dim : Int) = {
+  override def cellWidth(level : Expression, index : MultiIndex, componentIndex : Array[ConstIndex], dim : Int) = {
     nodePosition(level, GridUtil.offsetIndex(index, 1, dim), componentIndex, dim) - nodePosition(level, Duplicate(index), componentIndex, dim)
   }
 }
 
 trait GridGeometry_staggered extends GridGeometry {
   // additional information introduced by the staggered property
-  def stagCVWidth(level : Expression, index : MultiIndex, componentIndex : List[MultiIndex], dim : Int) : Expression // depends on uniform property
+  def stagCVWidth(level : Expression, index : MultiIndex, componentIndex : Array[ConstIndex], dim : Int) : Expression // depends on uniform property
 
   // compound accesses
-  def staggeredCellVolume(level : Expression, index : MultiIndex, componentIndex : List[MultiIndex], stagDim : Int) = {
+  def staggeredCellVolume(level : Expression, index : MultiIndex, componentIndex : Array[ConstIndex], stagDim : Int) = {
     var exp : Expression = (
       if (0 == stagDim)
         stagCVWidth(level, index, componentIndex, 0)
@@ -137,9 +137,9 @@ trait GridGeometry_staggered extends GridGeometry {
     exp
   }
 
-  def xStagCellVolume(level : Expression, index : MultiIndex, componentIndex : List[MultiIndex]) : Expression = staggeredCellVolume(level, index, componentIndex, 0)
-  def yStagCellVolume(level : Expression, index : MultiIndex, componentIndex : List[MultiIndex]) : Expression = staggeredCellVolume(level, index, componentIndex, 1)
-  def zStagCellVolume(level : Expression, index : MultiIndex, componentIndex : List[MultiIndex]) : Expression = staggeredCellVolume(level, index, componentIndex, 2)
+  def xStagCellVolume(level : Expression, index : MultiIndex, componentIndex : Array[ConstIndex]) : Expression = staggeredCellVolume(level, index, componentIndex, 0)
+  def yStagCellVolume(level : Expression, index : MultiIndex, componentIndex : Array[ConstIndex]) : Expression = staggeredCellVolume(level, index, componentIndex, 1)
+  def zStagCellVolume(level : Expression, index : MultiIndex, componentIndex : Array[ConstIndex]) : Expression = staggeredCellVolume(level, index, componentIndex, 2)
 }
 
 object GridGeometry_uniform_nonStaggered_AA extends GridGeometry_uniform {
@@ -150,7 +150,7 @@ object GridGeometry_uniform_nonStaggered_AA extends GridGeometry_uniform {
 
 object GridGeometry_uniform_staggered_AA extends GridGeometry_uniform with GridGeometry_staggered {
   // direct accesses
-  override def stagCVWidth(level : Expression, index : MultiIndex, componentIndex : List[MultiIndex], dim : Int) = {
+  override def stagCVWidth(level : Expression, index : MultiIndex, componentIndex : Array[ConstIndex], dim : Int) = {
     // TODO: this introduces a slight extension at the physical boundary in the stagger dimension -> how to handle this? relevant or neglectable?
     0.5 * (cellWidth(level, GridUtil.offsetIndex(index, -1, dim), componentIndex, dim) + cellWidth(level, index, componentIndex, dim))
   }
@@ -162,7 +162,7 @@ object GridGeometry_uniform_staggered_AA extends GridGeometry_uniform with GridG
 
 object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with GridGeometry_staggered {
   // direct accesses
-  override def stagCVWidth(level : Expression, index : MultiIndex, componentIndex : List[MultiIndex], dim : Int) = {
+  override def stagCVWidth(level : Expression, index : MultiIndex, componentIndex : Array[ConstIndex], dim : Int) = {
     val field = FieldCollection.getFieldByIdentifierLevExp(s"stag_cv_width_${dimToString(dim)}", level).get
     FieldAccess(FieldSelection(field, field.level, 0, componentIndex), GridUtil.projectIdx(index, dim))
   }
