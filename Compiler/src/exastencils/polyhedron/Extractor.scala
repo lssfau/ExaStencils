@@ -241,6 +241,8 @@ object Extractor {
         constraints.append(')')
         bool = true
 
+      // FIXME: support min/max exp
+
       case _ => throw new ExtractionException("unknown expression: " + expr.getClass() + " - " + expr.prettyprint())
     }
 
