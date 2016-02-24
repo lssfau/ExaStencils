@@ -23,6 +23,7 @@ object Knowledge {
   var hw_cpu_frequency : Double = 2.4 * 1000 * 1000 * 1000 // in Hz
   var hw_cpu_numCyclesPerDiv : Double = 24 // arbitrary value -> to be benchmarked later
   var hw_64bit : Boolean = true // true if 64 bit addresses are used
+  var hw_cacheLineSize : Int = 512 // in B
   var hw_gpu_name : String = "NVidia Quadro 4000"
   var hw_gpu_numDevices : Int = 2
   var hw_gpu_bandwidth : Double = 89.6 * 1024 * 1024 * 1024 // in B/s
@@ -392,6 +393,7 @@ object Knowledge {
 
   var experimental_mergeCommIntoLoops : Boolean = false // tries to merge communication statements and loop over points in function bodies -> allows automatic overlap of communication and computation
   var experimental_splitLoopsForAsyncComm : Boolean = false // attempts to overlap communication and computation of loops with added communication statements
+  var experimental_splitLoops_minInnerWidth : Int = 4 // minimum width of inner dimension when splitting according to experimental_splitLoopsForAsyncComm; 0 to disable
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {
