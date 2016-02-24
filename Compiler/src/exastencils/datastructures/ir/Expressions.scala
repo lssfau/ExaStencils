@@ -296,8 +296,9 @@ case class SubtractionExpression(var left : Expression, var right : Expression) 
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '-' << right << ')'
 }
 
-case class MultiplicationExpression(var left : Expression, var right : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '*' << right << ')'
+case class MultiplicationExpression(var factors : ListBuffer[Expression]) extends Expression {
+  def this(left : Expression, right : Expression) = this(ListBuffer(left, right))
+  override def prettyprint(out : PpStream) : Unit = out << '(' <<< (factors, "*") << ')'
 }
 
 case class DivisionExpression(var left : Expression, var right : Expression) extends Expression {

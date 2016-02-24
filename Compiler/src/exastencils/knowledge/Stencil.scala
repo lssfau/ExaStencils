@@ -115,17 +115,38 @@ case class StencilFieldSelection(
 }
 
 object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions") {
+  var changed : Boolean = false
   this += new Transformation("SearchAndMark", {
-    case MultiplicationExpression(StencilAccess(stencil), fieldAccess : FieldAccess) =>
-      StencilConvolution(stencil, fieldAccess)
-    case MultiplicationExpression(stencilFieldAccess : StencilFieldAccess, fieldAccess : FieldAccess) =>
-      StencilFieldConvolution(stencilFieldAccess, fieldAccess)
-    case MultiplicationExpression(StencilAccess(stencilLeft), StencilAccess(stencilRight)) =>
-      StencilStencilConvolution(stencilLeft, stencilRight)
-    case MultiplicationExpression(stencilLeft : StencilFieldAccess, StencilAccess(stencilRight)) =>
-      StencilFieldStencilConvolution(stencilLeft, stencilRight)
-    case MultiplicationExpression(StencilAccess(stencilLeft), stencilRight : StencilFieldAccess)       => ??? // TODO
-    case MultiplicationExpression(stencilLeft : StencilFieldAccess, stencilRight : StencilFieldAccess) => ??? // TODO
+    case MultiplicationExpression(facts) =>
+      val result = new ListBuffer[Expression]()
+      var prev : Expression = null
+      for (f <- facts)
+        (prev, f) match {
+          case (StencilAccess(stencil), fieldAccess : FieldAccess) =>
+            result += StencilConvolution(stencil, fieldAccess)
+            prev = null
+          case (stencilFieldAccess : StencilFieldAccess, fieldAccess : FieldAccess) =>
+            result += StencilFieldConvolution(stencilFieldAccess, fieldAccess)
+            prev = null
+          case (StencilAccess(stencilLeft), StencilAccess(stencilRight)) =>
+            result += StencilStencilConvolution(stencilLeft, stencilRight)
+            prev = null
+          case (stencilLeft : StencilFieldAccess, StencilAccess(stencilRight)) =>
+            result += StencilFieldStencilConvolution(stencilLeft, stencilRight)
+            prev = null
+          case (StencilAccess(stencilLeft), stencilRight : StencilFieldAccess) =>
+            ??? // TODO
+          case (stencilLeft : StencilFieldAccess, stencilRight : StencilFieldAccess) =>
+            ??? // TODO
+          case _ =>
+            if (prev != null)
+              result += prev
+            prev = f
+        }
+      if (prev != null)
+        result += prev
+      changed |= facts.length != result.length
+      new MultiplicationExpression(result)
   })
 }
 

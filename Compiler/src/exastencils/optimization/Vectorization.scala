@@ -461,22 +461,17 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         val mulsIt = muls.iterator
         val otherIt = other.iterator
         val exprs = new Queue[Expression]()
+        val temp = new Queue[Expression]()
         while (mulsIt.hasNext && otherIt.hasNext) {
-          val mul = mulsIt.next().asInstanceOf[MultiplicationExpression]
+          val mul = mulsIt.next()
           val oth = otherIt.next()
-          exprs.enqueue(SIMD_MultiplyAddExpression(vectorizeExpr(mul.left, ctx), vectorizeExpr(mul.right, ctx), vectorizeExpr(oth, ctx)))
+          val simd_mul = vectorizeExpr(mul, ctx).asInstanceOf[SIMD_MultiplicationExpression]
+          temp.enqueue(SIMD_MultiplyAddExpression(simd_mul.left, simd_mul.right, vectorizeExpr(oth, ctx)))
         }
-        while (mulsIt.hasNext) {
-          val mul = mulsIt.next().asInstanceOf[MultiplicationExpression]
-          exprs.enqueue(SIMD_MultiplicationExpression(vectorizeExpr(mul.left, ctx), vectorizeExpr(mul.right, ctx)))
-        }
-        while (otherIt.hasNext) {
-          val oth = otherIt.next()
-          if (otherIt.hasNext)
-            exprs.enqueue(SIMD_AdditionExpression(vectorizeExpr(oth, ctx), vectorizeExpr(otherIt.next(), ctx)))
-          else
-            exprs.enqueue(vectorizeExpr(oth, ctx))
-        }
+        val itIt = mulsIt ++ otherIt
+        while (itIt.hasNext)
+          exprs.enqueue(vectorizeExpr(itIt.next(), ctx))
+        exprs.enqueue(temp : _*)
         while (exprs.length > 1)
           exprs.enqueue(SIMD_AdditionExpression(exprs.dequeue(), exprs.dequeue()))
         exprs.dequeue()
@@ -490,14 +485,19 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
       //      case AdditionExpression(left, right) =>
       //        SIMD_AdditionExpression(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
 
-      case SubtractionExpression(MultiplicationExpression(factor1, factor2), summand) =>
-        SIMD_MultiplySubExpression(vectorizeExpr(factor1, ctx), vectorizeExpr(factor2, ctx), vectorizeExpr(summand, ctx))
+      // TODO: remove SubtractionExpression
+      //      case SubtractionExpression(MultiplicationExpression(factor1, factor2), summand) =>
+      //        SIMD_MultiplySubExpression(vectorizeExpr(factor1, ctx), vectorizeExpr(factor2, ctx), vectorizeExpr(summand, ctx))
 
       case SubtractionExpression(left, right) =>
         SIMD_SubtractionExpression(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
 
-      case MultiplicationExpression(left, right) =>
-        SIMD_MultiplicationExpression(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
+      case MultiplicationExpression(facs) =>
+        val exprs = new Queue[Expression]()
+        exprs.enqueue(facs.view.map { x => vectorizeExpr(x, ctx) } : _*)
+        while (exprs.length > 1)
+          exprs.enqueue(SIMD_MultiplicationExpression(exprs.dequeue(), exprs.dequeue()))
+        exprs.dequeue()
 
       case DivisionExpression(left, right) =>
         SIMD_DivisionExpression(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
