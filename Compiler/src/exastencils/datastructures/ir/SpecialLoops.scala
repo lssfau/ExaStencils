@@ -258,8 +258,27 @@ case class LoopOverPointsInOneFragment(var domain : Int,
 
     var stmts = ListBuffer[Statement]()
 
+    if (Knowledge.experimental_splitLoopsForAsyncComm && !preComms.isEmpty && !postComms.isEmpty) {
+      Logger.warn("Found unsupported case of a loop with pre and post communication statements")
+    }
+
     if (Knowledge.experimental_splitLoopsForAsyncComm && !preComms.isEmpty) {
       if (region.isDefined) Logger.warn("Found region loop with communication step")
+
+      object TODO extends QuietDefaultStrategy("TODO") {
+        var accesses = HashMap[String, ListBuffer[MultiIndex]]()
+
+        this += new Transformation("TODO", {
+          case fa : FieldAccess =>
+            val key = fa.fieldSelection.field.codeName
+            if (!accesses.contains(key)) accesses.put(key, ListBuffer())
+            accesses(key) += (fa.index - LoopOverDimensions.defIt(fa.index.length))
+            fa
+        })
+      }
+      TODO.accesses.clear
+      TODO.applyStandalone(Scope(body))
+      Logger.debug("Found : " + TODO.accesses.size)
 
       // FIXME: replace dimToString with defIt
 
@@ -277,27 +296,54 @@ case class LoopOverPointsInOneFragment(var domain : Int,
       var lowerBounds = (0 until numDims).map(dim => start(dim))
       var upperBounds = (0 until numDims).map(dim => stop(dim))
 
+      // FIXME: check for write vs read access
+      //      for (cs <- preComms) {
+      //        lowerBounds = (0 until numDims).map(dim => {
+      //          val defNumLayers = cs.field.fieldLayout.layoutsPerDim(dim).numGhostLayersRight + cs.field.fieldLayout.layoutsPerDim(dim).numDupLayersRight
+      //          val minWidth = (if (0 == dim) minInnerWidth else 0)
+      //          var lowerBound : Expression = Math.max(defNumLayers, minWidth) // number of elements to skip in the default case
+      //          lowerBound += cs.field.fieldLayout.idxById("DLB", dim) // offset for default case
+      //          lowerBound -= cs.field.referenceOffset(dim) // correction for loop indices
+      //          if (useRelOffsets && 0 == dim) lowerBound = new MaximumExpression(lowerBound, start(dim) + minWidth)
+      //          new MaximumExpression(lowerBounds(dim), lowerBound)
+      //        })
+      //      }
       for (cs <- preComms) {
         lowerBounds = (0 until numDims).map(dim => {
-          val defNumLayers = cs.field.fieldLayout.layoutsPerDim(dim).numGhostLayersRight + cs.field.fieldLayout.layoutsPerDim(dim).numDupLayersRight
           val minWidth = (if (0 == dim) minInnerWidth else 0)
-          var lowerBound : Expression = Math.max(defNumLayers, minWidth) // number of elements to skip in the default case
-          lowerBound += cs.field.fieldLayout.idxById("DLB", dim) // offset for default case
-          lowerBound -= cs.field.referenceOffset(dim) // correction for loop indices
-          if (useRelOffsets && 0 == dim) lowerBound = new MaximumExpression(lowerBound, start(dim) + minWidth)
-          new MaximumExpression(lowerBounds(dim), lowerBound)
+          // Concept:
+          //  determine maximum offset to the left for potentially required reads
+          //  shift loop start by this (negated) offset plus 1
+          //  optionally enforce a certain number of elements for vectorization/ optimized cache line usage
+          var ret : Expression = new MinimumExpression(TODO.accesses.getOrElse(cs.field.codeName, ListBuffer()).map(_(dim)))
+          ret = 1 - ret
+          SimplifyStrategy.doUntilDoneStandalone(ExpressionStatement(ret))
+          start(dim) + new MaximumExpression(ret, minWidth)
         })
       }
 
+      //      for (cs <- preComms) {
+      //        upperBounds = (0 until numDims).map(dim => {
+      //          val defNumLayers = cs.field.fieldLayout.layoutsPerDim(dim).numGhostLayersLeft + cs.field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft
+      //          val minWidth = (if (0 == dim) minInnerWidth else 0)
+      //          var upperBound : Expression = -Math.max(defNumLayers, minWidth) // number of elements to skip in the default case
+      //          upperBound += cs.field.fieldLayout.idxById("DRE", dim) // offset for default case
+      //          upperBound -= cs.field.referenceOffset(dim) // correction for loop indices
+      //          if (useRelOffsets && 0 == dim) upperBound = new MinimumExpression(upperBound, stop(dim) - minWidth)
+      //          new MinimumExpression(upperBounds(dim), upperBound)
+      //        })
+      //      }
       for (cs <- preComms) {
         upperBounds = (0 until numDims).map(dim => {
-          val defNumLayers = cs.field.fieldLayout.layoutsPerDim(dim).numGhostLayersLeft + cs.field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft
           val minWidth = (if (0 == dim) minInnerWidth else 0)
-          var upperBound : Expression = -Math.max(defNumLayers, minWidth) // number of elements to skip in the default case
-          upperBound += cs.field.fieldLayout.idxById("DRE", dim) // offset for default case
-          upperBound -= cs.field.referenceOffset(dim) // correction for loop indices
-          if (useRelOffsets && 0 == dim) upperBound = new MinimumExpression(upperBound, stop(dim) - minWidth)
-          new MinimumExpression(upperBounds(dim), upperBound)
+          // Concept:
+          //  determine maximum offset to the right for potentially required reads
+          //  shift loop start by this offset plus 1
+          //  optionally enforce a certain number of elements for vectorization/ optimized cache line usage
+          var ret : Expression = new MaximumExpression(TODO.accesses.getOrElse(cs.field.codeName, ListBuffer()).map(_(dim)))
+          ret = 1 + ret
+          SimplifyStrategy.doUntilDoneStandalone(ExpressionStatement(ret))
+          stop(dim) - new MaximumExpression(ret, minWidth)
         })
       }
 
