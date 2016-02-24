@@ -353,8 +353,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
         lowerBounds = (0 until numDims).map(dim => {
           val minWidth = (if (0 == dim) Knowledge.experimental_splitLoops_minInnerWidth else 0)
           var ret : Expression = cs.field.fieldLayout.layoutsPerDim(dim).numGhostLayersRight + cs.field.fieldLayout.layoutsPerDim(dim).numDupLayersRight
-          ret += cs.field.fieldLayout.idxById("DLB", dim) // incorporate base index
-          ret -= cs.field.referenceOffset(dim) // incorporate correction for loop indices
+          ret = cs.field.fieldLayout.idxById("DLB", dim) - cs.field.referenceOffset(dim) + ret
           new MaximumExpression(ret, start(dim) + minWidth)
         })
       }
@@ -363,8 +362,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
         upperBounds = (0 until numDims).map(dim => {
           val minWidth = (if (0 == dim) Knowledge.experimental_splitLoops_minInnerWidth else 0)
           var ret : Expression = cs.field.fieldLayout.layoutsPerDim(dim).numGhostLayersLeft + cs.field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft
-          ret = cs.field.fieldLayout.idxById("DRB", dim) - ret // incorporate base index
-          ret -= cs.field.referenceOffset(dim) // incorporate correction for loop indices
+          ret = cs.field.fieldLayout.idxById("DRE", dim) - cs.field.referenceOffset(dim) - ret
           new MinimumExpression(ret, stop(dim) - minWidth)
         })
       }
