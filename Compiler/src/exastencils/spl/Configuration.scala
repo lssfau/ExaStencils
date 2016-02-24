@@ -132,7 +132,7 @@ class Configuration() {
     */
   def getSelectedSubFeatureNames(featureName : String) : scala.collection.mutable.Set[String] = {
     var subFeatureNames : scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
-    // test whether the desired feature is selected 
+    // test whether the desired feature is selected
     boolFeatures.filter(f => f._1.identifier == featureName)
       // identify childs of the parent feature
       .map(a => FeatureModel.parentChildRelationships
@@ -165,7 +165,7 @@ class Configuration() {
 
   override def hashCode() : Int = identifier.hashCode;
 
-  // TODO 
+  // TODO
   override def equals(that : Any) = {
     //        that match {
     //          case that: Configuration => (if (numberOfDifferentBooleanFeatures(that) == 0 && !hasDifferentNumbericalFeatures(that)) true else false)
@@ -234,7 +234,7 @@ class Configuration() {
     return sb.toString;
   }
 
-  def addNumericOptions(additionalNumericOptions : scala.collection.mutable.Map[Feature, Double]) {
+  def addNumericOptions(additionalNumericOptions : scala.collection.mutable.Map[Feature, Double]) = {
 
     additionalNumericOptions.foreach(x => {
       if (this.numericalFeatureValues.contains(x._1))
