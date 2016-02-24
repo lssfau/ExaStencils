@@ -578,6 +578,8 @@ object Knowledge {
     Constraints.condWarn(experimental_cuda_enabled && experimental_cuda_blockSizeTotal > 512 && hw_cuda_capability <= 2, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability $hw_cuda_capability.$hw_cuda_capabilityMinor")
     Constraints.condWarn(experimental_cuda_enabled && experimental_cuda_blockSizeTotal > 1024 && hw_cuda_capability >= 3, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability $hw_cuda_capability.$hw_cuda_capabilityMinor")
 
+    Constraints.condWarn(experimental_splitLoopsForAsyncComm && 26 != comm_strategyFragment, s"Using asynchronous communication with comm_strategyFragment != 26 leads to problems with full stencils and post loop communication")
+
     // data
     Constraints.condEnsureValue(data_alignFieldPointers, true, opt_vectorize && "QPX" == simd_instructionSet, "data_alignFieldPointers must be true for vectorization with QPX")
 
