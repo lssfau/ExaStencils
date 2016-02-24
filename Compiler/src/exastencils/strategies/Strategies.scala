@@ -81,6 +81,7 @@ object ExpandOnePassStrategy extends DefaultStrategy("Expanding") { // TODO: thi
 }
 
 object SimplifyStrategy extends DefaultStrategy("Simplifying") {
+  // hack: since AdditionExpression and MultiplicationExpression lead always to a match, we don't count these if nothing was changed
   var negMatches : Int = 0
 
   def doUntilDone(node : Option[Node] = None) = {
@@ -161,7 +162,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
         else
           /*return*/ vecExpr
       } else if (!change && rem.length == add.summands.length) {
-        negMatches += 1
+        negMatches += 1 // we haven't changed anything, don't count match
         /*return*/ add
       } else if (rem.isEmpty) {
         /*return*/ new IntegerConstant(0L)
@@ -209,7 +210,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       if (floatCst * intCst == 0d) {
         /*return*/ rem.head
       } else if (!change && rem.length == mult.factors.length) {
-        negMatches += 1
+        negMatches += 1 // we haven't changed anything, don't count match
         /*return*/ mult
       } else if (rem.isEmpty) {
         /*return*/ new IntegerConstant(1L)
@@ -228,6 +229,8 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
               MatrixExpression(GetResultingDatatype(cstDt, m.datatype), m.expressions.map(_.map[Expression, ListBuffer[Expression]](coeff * _)))
             case x => x
           }
+          if (found)
+            rem.remove(0)
         }
         /*return*/ new MultiplicationExpression(rem)
       }

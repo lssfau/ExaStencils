@@ -63,7 +63,7 @@ abstract class GridGeometry() {
   }
 
   // injection of  missing l4 information for virtual fields and generation of setup code
-  def initL4()
+  def initL4() : Unit
   def generateInitCode() : ListBuffer[Statement]
 }
 
