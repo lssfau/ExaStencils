@@ -23,6 +23,7 @@ object Knowledge {
   var hw_cpu_frequency : Double = 2.4 * 1000 * 1000 * 1000 // in Hz
   var hw_cpu_numCyclesPerDiv : Double = 24 // arbitrary value -> to be benchmarked later
   var hw_64bit : Boolean = true // true if 64 bit addresses are used
+  var hw_cacheLineSize : Int = 512 // in B
   var hw_gpu_name : String = "NVidia Quadro 4000"
   var hw_gpu_numDevices : Int = 2
   var hw_gpu_bandwidth : Double = 89.6 * 1024 * 1024 * 1024 // in B/s
@@ -389,6 +390,10 @@ object Knowledge {
   var experimental_cuda_blockSize_z : Int = 8 // default block size in x dimension
   def experimental_cuda_blockSizeAsVec = Array(experimental_cuda_blockSize_x, experimental_cuda_blockSize_y, experimental_cuda_blockSize_z)
   def experimental_cuda_blockSizeTotal = experimental_cuda_blockSize_x * experimental_cuda_blockSize_y * experimental_cuda_blockSize_z
+
+  var experimental_mergeCommIntoLoops : Boolean = false // tries to merge communication statements and loop over points in function bodies -> allows automatic overlap of communication and computation
+  var experimental_splitLoopsForAsyncComm : Boolean = false // attempts to overlap communication and computation of loops with added communication statements
+  var experimental_splitLoops_minInnerWidth : Int = 4 // minimum width of inner dimension when splitting according to experimental_splitLoopsForAsyncComm; 0 to disable
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {
@@ -524,7 +529,7 @@ object Knowledge {
       // l3tmp - temporal blocking
       Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, experimental_Neumann, "l3tmp_genTemporalBlocking is currently not compatible with Neumann boundary conditions")
       //      Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_genCellBasedDiscr, "l3tmp_genTemporalBlocking is currently not compatible with cell based discretizations")
-      Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, "RBGS" == l3tmp_smoother, "l3tmp_genTemporalBlocking is currently not compatible with RBGS smoothers")
+      Constraints.condWarn(l3tmp_genTemporalBlocking && "RBGS" == l3tmp_smoother, "l3tmp_genTemporalBlocking is currently not compatible with RBGS smoothers")
       Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_numPre != l3tmp_numPost, "l3tmp_numPre and l3tmp_numPost have to be equal")
       Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, math.ceil(math.log(l3tmp_numPre) / math.log(2)).toInt,
         l3tmp_genTemporalBlocking && l3tmp_tempBlockingMinLevel < math.ceil(math.log(l3tmp_numPre) / math.log(2)).toInt,
@@ -572,6 +577,8 @@ object Knowledge {
 
     Constraints.condWarn(experimental_cuda_enabled && experimental_cuda_blockSizeTotal > 512 && hw_cuda_capability <= 2, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability $hw_cuda_capability.$hw_cuda_capabilityMinor")
     Constraints.condWarn(experimental_cuda_enabled && experimental_cuda_blockSizeTotal > 1024 && hw_cuda_capability >= 3, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability $hw_cuda_capability.$hw_cuda_capabilityMinor")
+
+    Constraints.condWarn(experimental_splitLoopsForAsyncComm && 26 != comm_strategyFragment, s"Using asynchronous communication with comm_strategyFragment != 26 leads to problems with stencils containing diagonal entries")
 
     // data
     Constraints.condEnsureValue(data_alignFieldPointers, true, opt_vectorize && "QPX" == simd_instructionSet, "data_alignFieldPointers must be true for vectorization with QPX")

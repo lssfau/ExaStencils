@@ -510,10 +510,10 @@ object SimplifyExpression {
         else {
           for (nC <- nonCst) {
             val it = nC.view.filter(_._1 != constName).map(_._2).iterator
-            val v : Double = it.next()
+            val v : Double = math.abs(it.next())
             var allId : Boolean = true
             while (it.hasNext && allId)
-              allId = it.next() == v
+              allId = math.abs(it.next()) == v
             if (allId) {
               coeff *= v
               nC.transform((expr, d) => d / v)

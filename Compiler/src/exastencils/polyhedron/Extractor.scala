@@ -154,7 +154,7 @@ object Extractor {
           bool |= extractConstraints(s, constraints, formatString, lParConstr, gParConstr, vars)
           constraints.append('*')
         }
-        constraints(constraints.length - 1) = ')' // replace last '+'
+        constraints(constraints.length - 1) = ')' // replace last '*'
 
       case DivisionExpression(l, r) =>
         constraints.append("floord(")
@@ -171,6 +171,22 @@ object Extractor {
           constraints.append('%')
         bool |= extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(')')
+
+      case MinimumExpression(es) =>
+        constraints.append("min(")
+        for (e <- es) {
+          bool |= extractConstraints(e, constraints, formatString, lParConstr, gParConstr, vars)
+          constraints.append(',')
+        }
+        constraints(constraints.length - 1) = ')' // replace last ','
+
+      case MaximumExpression(es) =>
+        constraints.append("max(")
+        for (e <- es) {
+          bool |= extractConstraints(e, constraints, formatString, lParConstr, gParConstr, vars)
+          constraints.append(',')
+        }
+        constraints(constraints.length - 1) = ')' // replace last ','
 
       case NegationExpression(e) =>
         constraints.append("!(")
@@ -241,6 +257,8 @@ object Extractor {
         extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
+
+      // FIXME: support min/max exp
 
       case _ => throw new ExtractionException("unknown expression: " + expr.getClass() + " - " + expr.prettyprint())
     }
