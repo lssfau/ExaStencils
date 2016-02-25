@@ -86,26 +86,6 @@ object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") 
   }
 }
 
-private final object SortLoads extends PartialFunction[Node, Transformation.OutputType] {
-  import RemoveDupSIMDLoads._
-
-  def isDefinedAt(node : Node) : Boolean = {
-    return node.hasAnnotation(NEW_DECLS_COND_ANNOT) || node.hasAnnotation(REPL_ANNOT)
-  }
-
-  def apply(node : Node) : Transformation.OutputType = {
-
-    val decls = node.removeAnnotation(NEW_DECLS_COND_ANNOT)
-    if (decls.isDefined) {
-      val (stmts, cond) = decls.get.asInstanceOf[(ListBuffer[Statement], Expression)]
-      stmts += node.asInstanceOf[Statement]
-      return new ConditionStatement(cond, stmts)
-    }
-
-    return node.removeAnnotation(REPL_ANNOT).get.asInstanceOf[Node]
-  }
-}
-
 private[optimization] final class Analyze extends Collector {
   import RemoveDupSIMDLoads._
 
