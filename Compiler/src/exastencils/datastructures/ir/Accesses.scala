@@ -19,7 +19,7 @@ case class VariableAccess(var name : String, var dType : Option[Datatype] = None
   def this(n : String, dT : Datatype) = this(n, Option(dT))
 
   override def prettyprint(out : PpStream) : Unit = out << name
-  override def datatype = ??? // FIXME_componentIndex
+  override def datatype = this.dType.get
 
   def printDeclaration() : String = dType.get.resolveDeclType.prettyprint + " " + name + dType.get.resolveDeclPostscript
 }

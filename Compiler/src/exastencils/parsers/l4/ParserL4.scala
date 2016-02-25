@@ -16,6 +16,7 @@ class ParserL4 extends ExaParser with PackratParsers {
   }
 
   def parseFile(filename : String) : Node = {
+    println(filename)
     val lines = io.Source.fromFile(filename).getLines
     val reader = new PagedSeqReader(PagedSeq.fromLines(lines))
     val scanner = new lexical.Scanner(reader)
