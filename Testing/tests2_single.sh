@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -p chimaira
-#SBATCH -A chimaira
+#SBATCH -A cl
 #SBATCH -n 1
 #SBATCH -c 4
 #SBATCH --hint=multithread
