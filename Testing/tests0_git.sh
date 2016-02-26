@@ -15,10 +15,12 @@ OUT_FILE=${3}
 OUT_FILE_URL=${4} # url to ${OUT_FILE}
 PROGRESS=${5}
 TESTS_LOCK=${6}
-FORCE_START=${7}
+BRANCH=${7}
+FORCE_START=${8}
 
 REPO_DIR="${BASE_DIR}/repo"
-TEMP_DIR="${BASE_DIR}/temp"
+SCR_DIR="${BASE_DIR}/scripts"
+TEMP_DIR="${BASE_DIR}/temp/${BRANCH}"
 FAILURE_MAIL="kronast@fim.uni-passau.de"
 FAILURE_MAIL_SUBJECT="ExaStencils TestBot Error (cron)"
 
@@ -29,8 +31,7 @@ GIT_URL="ssh://git@git.infosun.fim.uni-passau.de/exastencils/dev/ScalaExaStencil
 
 function killed {
   echo "ERROR? Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} killed; possible reasons: timeout, manually canceled, user login (job is then requeued)."
-  touch ${ERROR_MARKER}
-  exit 1
+  error "Error"
 }
 trap killed SIGTERM
 
@@ -39,26 +40,41 @@ function cleanup {
 }
 trap cleanup EXIT
 
+function error {
+  echo "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">" > "${PROGRESS}"
+  echo "${1}" >> "${PROGRESS}"
+  echo "" >> "${PROGRESS}"
+  echo "" >> "${PROGRESS}"
+  cat "${TMP_OUT_FILE}"  >> "${PROGRESS}"
+  echo "" >> "${PROGRESS}"
+  echo "</div></body></html>" >> "${PROGRESS}"
+  exit 1
+}
+
 
 echo "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">"
-echo "$(date -R):  Initialize tests on host ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})..."
-echo "Progress can be found <a href=$(basename ${PROGRESS})>here</a>.  (Reload page manually.)"
+echo -n "$(date -R):  Initialize tests on host ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID}) for branch ${BRANCH}..."
+echo "Progress can be found <a href=$(realpath --relative-to=${OUT_DIR} ${PROGRESS})>here</a>.  (Reload page manually.)"
 echo ""
 
 STARTTIME=$(date +%s)
 
 if [[ -d "${REPO_DIR}" ]]; then
-  OLD_HASH=$(git -C "${REPO_DIR}" rev-parse @)
   echo "Repo found, try to pull:"
+  srun git -C "${REPO_DIR}" fetch --force
   srun git -C "${REPO_DIR}" checkout . # revert all (accidental) changes to files in repo (e.g. overwritten l4 files)
-  srun git -C "${REPO_DIR}" pull --force
+  srun git -C "${REPO_DIR}" clean -fxd # delete ALL untracked files
+  srun git -C "${REPO_DIR}" checkout --force -- "${BRANCH}"
+    if [[ $? -ne 0 ]]; then
+      error "ERROR: switch to branch ${BRANCH} failed."
+    fi
+  OLD_HASH=$(git -C "${REPO_DIR}" rev-parse @)
+  srun git -C "${REPO_DIR}" merge FETCH_HEAD
       if [[ $? -ne 0 ]]; then
-        echo "ERROR: git remote update failed."
-        echo "git remote update failed." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
-        exit 1
+        error "ERROR: git remote update failed."
       fi
   NEW_HASH=$(git -C "${REPO_DIR}" rev-parse @)
-  if [[ -z "${FORCE_START}" && ${OLD_HASH} = ${NEW_HASH} ]]; then
+  if [[ "${FORCE_START}" -eq 0 && ${OLD_HASH} = ${NEW_HASH} ]]; then
     # up-to-date, no need to run tests, exit script
     if [[ -z "$(squeue -h -u exatest | grep -v ${SLURM_JOB_NAME})" ]]; then # only output log if there are no old tests running
       echo "$(date -R):  Tests triggered, but there are no new commits since last run, finish." >> "${OUT_FILE}"
@@ -69,11 +85,9 @@ if [[ -d "${REPO_DIR}" ]]; then
 else
   echo "No local repo found, create a new clone:"
   mkdir -p "${REPO_DIR}"
-  srun git clone "${GIT_URL}" "${REPO_DIR}"
+  srun git clone "${GIT_URL}" "${REPO_DIR}" --branch "${BRANCH}"
       if [[ $? -ne 0 ]]; then
-        echo "ERROR: git clone failed."
-        echo "git clone failed." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
-        exit 1
+        error "ERROR: git clone failed."
       fi
 fi
 
@@ -81,10 +95,14 @@ mkdir -p "${TEMP_DIR}"
 NEW_HASH=$(git -C "${REPO_DIR}" rev-parse @)
 echo ""
 echo "Run tests for hash  ${NEW_HASH}."
-(unset SLURM_JOB_NAME; sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" "--dependency=afterok:${SLURM_JOB_ID}" "${REPO_DIR}/Testing/tests1_all.sh" "${REPO_DIR}" "${BASE_DIR}/scala/" "${TEMP_DIR}" "${OUT_FILE}" "${OUT_FILE_URL}" "${PROGRESS}")
+if [[ $(cat ${SCR_DIR}/tests_version.txt) -lt $(cat ${REPO_DIR}/Testing/tests_version.txt) ]]; then
+  rm "${SCR_DIR}"/*
+  cp "${REPO_DIR}"/Testing/tests_version.txt "${SCR_DIR}"
+  cp "${REPO_DIR}"/Testing/tests*.sh "${SCR_DIR}"
+fi
+(unset SLURM_JOB_NAME; sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" "--dependency=afterok:${SLURM_JOB_ID}" "${SCR_DIR}/tests1_all.sh" "${SCR_DIR}" "${REPO_DIR}" "${BASE_DIR}/scala/" "${TEMP_DIR}" "${OUT_FILE}" "${OUT_FILE_URL}" "${PROGRESS}")
       if [[ $? -ne 0 ]]; then
-        echo "ERROR: Unable to enqueue testing job."
-        echo "Test failed!  Unable to enqueue testing job." | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
+        error "ERROR: Unable to enqueue testing job."
       fi
 echo ""
 echo ""
