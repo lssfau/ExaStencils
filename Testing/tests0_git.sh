@@ -95,7 +95,7 @@ mkdir -p "${TEMP_DIR}"
 NEW_HASH=$(git -C "${REPO_DIR}" rev-parse @)
 echo ""
 echo "Run tests for hash  ${NEW_HASH}."
-if [[ $(cat ${SCR_DIR}/tests_version.txt) -lt $(cat ${REPO_DIR}/Testing/tests_version.txt) ]]; then
+if [[ -e "${REPO_DIR}/Testing/tests_version.txt" ]] && [[ $(cat "${SCR_DIR}/tests_version.txt") -lt $(cat "${REPO_DIR}/Testing/tests_version.txt") ]]; then
   rm "${SCR_DIR}"/*
   cp "${REPO_DIR}"/Testing/tests_version.txt "${SCR_DIR}"
   cp "${REPO_DIR}"/Testing/tests*.sh "${SCR_DIR}"
