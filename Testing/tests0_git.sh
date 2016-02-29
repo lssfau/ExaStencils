@@ -36,7 +36,7 @@ function killed {
 trap killed SIGTERM
 
 function cleanup {
-  rm "${TMP_OUT_FILE}" "${TESTS_LOCK}"
+  rm -f "${TMP_OUT_FILE}" "${TESTS_LOCK}"
 }
 trap cleanup EXIT
 
@@ -52,10 +52,8 @@ function error {
 }
 
 
-mkdir -p "${OUT_DIR}"
-
 echo "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">"
-echo -n "$(date -R):  Initialize tests on host ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID}) for branch ${BRANCH}..."
+echo "$(date -R):  Initialize tests on host ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID}) for branch ${BRANCH}..."
 echo "Progress can be found <a href=../$(basename ${PROGRESS})>here</a>.  (Reload page manually.)"
 # echo "Progress can be found <a href=$(realpath --relative-to=${OUT_DIR} ${PROGRESS})>here</a>.  (Reload page manually.)" # FIXME: ubuntus realpath version is from 2011...
 echo ""
@@ -94,6 +92,7 @@ else
       fi
 fi
 
+mkdir -p "${OUT_DIR}"
 mkdir -p "${TEMP_DIR}"
 NEW_HASH=$(git -C "${REPO_DIR}" rev-parse @)
 echo ""
@@ -117,4 +116,4 @@ echo ""
 
 rm -f "${OUT_DIR}"/*
 echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
-cat "${TMP_OUT_FILE}" > "${OUT_FILE}"
+srun mv "${TMP_OUT_FILE}" "${OUT_FILE}"
