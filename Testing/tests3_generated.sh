@@ -1,4 +1,5 @@
 #!/bin/bash
+#SBATCH --qos=norm
 #SBATCH --hint=nomultithread
 #SBATCH --nice=100
 #SBATCH --time=15
