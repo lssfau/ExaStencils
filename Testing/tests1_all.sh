@@ -197,14 +197,14 @@ for ((i=0;i<${#TMP_ARRAY[@]};i+=7)); do
 
   TEST_DEP="--dependency=afterok:${SID_GEN},afterany${COMP_DEPS}"
 
-  ACC="idle"
-  PART="idle"
+  ACC="anywhere"
+  PART="anywhere"
   CONSTR_PARAM="--constraint=${constraints}"
-#  if [[ $(( ${nodes} * ${cores} )) -gt 8 ]] || [[ ${constraints} = "E5" ]]; then # HACK to ensure jobs are executed even if the cluster is in use
+  if [[ $(( ${nodes} * ${cores} )) -gt 64 ]] || [[ ${cores} -gt 8 ]] || [[ ${constraints} = "E5" ]]; then # HACK to ensure jobs are executed even if the cluster is in use
     ACC="cl"
     PART="chimaira"
     CONSTR_PARAM=""
-#  fi
+  fi
   echo "Enqueue execution job for id  ${id}."
   OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etr_${id}" -o ${TEST_LOG} -e ${TEST_LOG} -A ${ACC} -p ${PART} -n ${nodes} -c ${cores} ${TEST_DEP} ${CONSTR_PARAM} "${SCR_DIR}/tests3_generated.sh" "${TEST_BIN}" "${TESTING_DIR}/${result}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}")
   if [[ $? -eq 0 ]]; then

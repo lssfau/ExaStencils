@@ -3,7 +3,6 @@
 #SBATCH -A cl
 #SBATCH -n 1
 #SBATCH -c 4
-#SBATCH --hint=multithread
 #SBATCH --nice=100
 #SBATCH --time=17
 #SBATCH --signal=INT@5
