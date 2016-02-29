@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH -p chimaira
-#SBATCH -A cl
+#SBATCH -p anywhere
+#SBATCH -A anywhere
 #SBATCH -n 1
 #SBATCH -c 4
 #SBATCH --nice=100

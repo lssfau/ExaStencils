@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=et_git
-#SBATCH -p idle
-#SBATCH -A idle
+#SBATCH -p anywhere
+#SBATCH -A anywhere
 #SBATCH -n 1
 #SBATCH -c 1
 #SBATCH --time=5
