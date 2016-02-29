@@ -52,9 +52,12 @@ function error {
 }
 
 
+mkdir -p "${OUT_DIR}"
+
 echo "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">"
 echo -n "$(date -R):  Initialize tests on host ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID}) for branch ${BRANCH}..."
-echo "Progress can be found <a href=$(realpath --relative-to=${OUT_DIR} ${PROGRESS})>here</a>.  (Reload page manually.)"
+echo "Progress can be found <a href=../$(basename ${PROGRESS})>here</a>.  (Reload page manually.)"
+# echo "Progress can be found <a href=$(realpath --relative-to=${OUT_DIR} ${PROGRESS})>here</a>.  (Reload page manually.)" # FIXME: ubuntus realpath version is from 2011...
 echo ""
 
 STARTTIME=$(date +%s)
