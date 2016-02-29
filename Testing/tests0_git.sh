@@ -117,4 +117,4 @@ echo ""
 
 rm -f "${OUT_DIR}"/*
 echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
-srun mv "${TMP_OUT_FILE}" "${OUT_FILE}"
+cat "${TMP_OUT_FILE}" > "${OUT_FILE}"
