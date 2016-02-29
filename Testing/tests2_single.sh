@@ -1,6 +1,7 @@
 #!/bin/bash
 #SBATCH -p anywhere
 #SBATCH -A anywhere
+#SBATCH --qos=norm
 #SBATCH -n 1
 #SBATCH -c 4
 #SBATCH --nice=100
