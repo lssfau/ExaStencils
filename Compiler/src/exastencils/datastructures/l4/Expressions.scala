@@ -103,16 +103,16 @@ case class MatrixExpression(var datatype : Option[Datatype], var expressions : L
   def isConstant = expressions.filter(_.isConstant).length == expressions.length
 }
 
-abstract class Access(var name : String) extends Expression {
-
+abstract class Access() extends Expression {
+  def name : String
 }
 
-case class UnresolvedAccess(name_ : String,
+case class UnresolvedAccess(var name : String,
     var slot : Option[SlotModifier],
     var level : Option[AccessLevelSpecification],
     var offset : Option[ExpressionIndex],
     var arrayIndex : Option[Int],
-    var dirAccess : Option[ExpressionIndex]) extends Access(name_) {
+    var dirAccess : Option[ExpressionIndex]) extends Access {
   def prettyprint(out : PpStream) = {
     out << name
     if (slot.isDefined) out << '[' << slot.get << ']'
@@ -154,13 +154,13 @@ case class UnresolvedAccess(name_ : String,
   }
 }
 
-case class BasicAccess(name_ : String) extends Access(name_) {
+case class BasicAccess(var name : String) extends Access {
   def prettyprint(out : PpStream) = { out << name }
 
   def progressToIr : ir.StringLiteral = ir.StringLiteral(name)
 }
 
-case class LeveledAccess(name_ : String, var level : AccessLevelSpecification) extends Access(name_) {
+case class LeveledAccess(var name : String, var level : AccessLevelSpecification) extends Access {
   def prettyprint(out : PpStream) = { out << name << '[' << level << ']' }
 
   def progressToIr : ir.Expression = {
@@ -168,7 +168,7 @@ case class LeveledAccess(name_ : String, var level : AccessLevelSpecification) e
   }
 }
 
-case class FieldAccess(name_ : String, var level : AccessLevelSpecification, var slot : SlotModifier, var arrayIndex : Option[Int] = None, var offset : Option[ExpressionIndex] = None) extends Access(name_) {
+case class FieldAccess(var name : String, var level : AccessLevelSpecification, var slot : SlotModifier, var arrayIndex : Option[Int] = None, var offset : Option[ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     // FIXME: omit slot if numSlots of target field is 1
     out << name << '[' << slot << ']' << '@' << level
@@ -202,7 +202,7 @@ case class FieldAccess(name_ : String, var level : AccessLevelSpecification, var
   }
 }
 
-case class VirtualFieldAccess(name_ : String, var level : AccessLevelSpecification, var arrayIndex : Option[Int] = None, var offset : Option[ExpressionIndex] = None) extends Access(name_) {
+case class VirtualFieldAccess(var name : String, var level : AccessLevelSpecification, var arrayIndex : Option[Int] = None, var offset : Option[ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     out << name << '@' << level
     if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
@@ -237,7 +237,7 @@ object FieldAccess {
   }
 }
 
-case class StencilAccess(name_ : String, var level : AccessLevelSpecification, var arrayIndex : Option[Int] = None, var dirAccess : Option[ExpressionIndex] = None) extends Access(name_) {
+case class StencilAccess(var name : String, var level : AccessLevelSpecification, var arrayIndex : Option[Int] = None, var dirAccess : Option[ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     out << name << '@' << level
     if (dirAccess.isDefined) out << ":" << dirAccess
@@ -265,12 +265,12 @@ case class StencilAccess(name_ : String, var level : AccessLevelSpecification, v
   }
 }
 
-case class StencilFieldAccess(name_ : String,
+case class StencilFieldAccess(var name : String,
     var level : AccessLevelSpecification,
     var slot : SlotModifier,
     var arrayIndex : Option[Int] = None,
     var offset : Option[ExpressionIndex] = None,
-    var dirAccess : Option[ExpressionIndex] = None) extends Access(name_) {
+    var dirAccess : Option[ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     // FIXME: omit slot if numSlots of target field is 1
     out << name << '[' << slot << ']' << '@' << level
