@@ -206,6 +206,11 @@ for ((i=0;i<${#TMP_ARRAY[@]};i+=7)); do
     PART="chimaira"
     CONSTR_PARAM=""
   fi
+  if [[ ${constraints} =~ GPU ]]; then
+    ACC="cl"
+    PART="chimaira"
+    CONSTR_PARAM="--gres=gpu:1"
+  fi
   echo "Enqueue execution job for id  ${id}."
   OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etr_${id}" -o ${TEST_LOG} -e ${TEST_LOG} -A ${ACC} -p ${PART} -n ${nodes} -c ${cores} ${TEST_DEP} ${CONSTR_PARAM} "${SCR_DIR}/tests3_generated.sh" "${TEST_BIN}" "${TESTING_DIR}/${result}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}")
   if [[ $? -eq 0 ]]; then
