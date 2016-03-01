@@ -65,6 +65,10 @@ object Knowledge {
 
   var timer_type : String = "Chrono" // may be one of the following: 'Chrono', 'QPC', 'WIN_TIME', 'UNIX_TIME', 'MPI_TIME', 'RDSC', 'WINDOWS_RDSC'
 
+  // === Parser ===
+
+  var parser_annotateLocation : Boolean = false // adds annotations containing location information to all parsed nodes
+
   // === Layer 1 ===
 
   var dimensionality : Int = 3 // dimensionality of the problem; may be 1, 2 or 3
