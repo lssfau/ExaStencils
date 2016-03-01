@@ -933,7 +933,7 @@ case class SIMD_FloatConstant(var value : Double) extends Expression {
       case "AVX512"       => out << "_mm512_set1_p" << prec
       case "QPX"          => out << "vec_splats"
       case "NEON"         => out << "vdupq_n_f32"
-      case "IMCI"         => out << "_mm512_set_1to8_p" << prec
+      case "IMCI"         => out << "_mm512_set_1to" << Knowledge.simd_vectorSize << "_p" << prec
     }
     out << '(' << value << ')' // this uses value.toString(), which is Locale-independent and the string can be parsed without a loss of precision later
   }
@@ -955,7 +955,7 @@ case class SIMD_Scalar2VectorExpression(var scalar : Expression) extends Express
       case "AVX512"       => out << "_mm512_set1_p" << prec
       case "QPX"          => out << "vec_splats"
       case "NEON"         => out << "vdupq_n_f32"
-      case "IMCI"         => out << "_mm512_set_1to8_p" << prec
+      case "IMCI"         => out << "_mm512_set_1to" << Knowledge.simd_vectorSize << "_p" << prec
     }
     out << '(' << scalar << ')'
   }
