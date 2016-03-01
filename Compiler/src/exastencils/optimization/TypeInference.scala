@@ -11,6 +11,7 @@ import exastencils.logger._
 
 object TypeInference extends CustomStrategy("Type inference") {
   private[optimization] final val TYPE_ANNOT = "InfType"
+  private[optimization] final val SKIP_ANNOT = "TypSkip"
   var warnMissingDeclarations : Boolean = false
 
   override def apply() : Unit = {
@@ -27,6 +28,13 @@ object TypeInference extends CustomStrategy("Type inference") {
 
     this.execute(new Transformation("replace nodes", CreateVariableAccesses))
 
+    this.execute(new Transformation("remove annotations", {
+      case node : Node =>
+        if (node.hasAnnotation(TYPE_ANNOT)) node.removeAnnotation(TYPE_ANNOT)
+        if (node.hasAnnotation(SKIP_ANNOT)) node.removeAnnotation(SKIP_ANNOT)
+        node
+    }))
+
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming(name)
 
@@ -36,8 +44,6 @@ object TypeInference extends CustomStrategy("Type inference") {
 
 private final class AnnotateStringConstants extends ScopeCollector(Map[String, Datatype]()) {
   import TypeInference._
-
-  private final val SKIP_ANNOT = "TypSkip"
 
   override def cloneCurScope() : Map[String, Datatype] = {
     return curScope.clone()
