@@ -66,7 +66,7 @@ if [[ -d "${REPO_DIR}" ]]; then
   srun git -C "${REPO_DIR}" fetch --force
   srun git -C "${REPO_DIR}" checkout . # revert all (accidental) changes to files in repo (e.g. overwritten l4 files)
   srun git -C "${REPO_DIR}" clean -fxd # delete ALL untracked files
-  if [[ ! "$(srun git branch -a)" =~ "${BRANCH}" ]]; then
+  if [[ ! "$(srun git -C "${REPO_DIR}" branch -a)" =~ "${BRANCH}" ]]; then
     error "ERROR: branch ${BRANCH} does not exist"
   fi
   srun git -C "${REPO_DIR}" checkout "${BRANCH}"
