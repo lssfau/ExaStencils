@@ -459,15 +459,14 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         SIMD_NegateExpression(vectorizeExpr(expr, ctx))
 
       case AdditionExpression(sums) =>
+        if (sums.isEmpty)
+          Logger.error("empty sum not allowed")
         val (muls, other) = sums.partition(_.isInstanceOf[MultiplicationExpression])
         val mulsIt = muls.iterator
         val vecSumds = new Queue[Expression]()
         vecSumds.enqueue(other.view.map { x => vectorizeExpr(x, ctx) } : _*)
-        if (vecSumds.isEmpty) {
-          if (mulsIt.isEmpty)
-            Logger.error("empty sum not allowed")
+        if (vecSumds.isEmpty)
           vecSumds += vectorizeExpr(mulsIt.next(), ctx)
-        }
         while (mulsIt.hasNext) {
           val simdMul = vectorizeExpr(mulsIt.next(), ctx).asInstanceOf[SIMD_MultiplicationExpression]
           vecSumds.enqueue(SIMD_MultiplyAddExpression(simdMul.left, simdMul.right, vecSumds.dequeue()))
@@ -475,15 +474,6 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         while (vecSumds.length > 1)
           vecSumds.enqueue(SIMD_AdditionExpression(vecSumds.dequeue(), vecSumds.dequeue()))
         vecSumds.dequeue()
-
-      //      case AdditionExpression(MultiplicationExpression(factor1, factor2), summand) =>
-      //        SIMD_MultiplyAddExpression(vectorizeExpr(factor1, ctx), vectorizeExpr(factor2, ctx), vectorizeExpr(summand, ctx))
-      //
-      //      case AdditionExpression(summand, MultiplicationExpression(factor1, factor2)) =>
-      //        SIMD_MultiplyAddExpression(vectorizeExpr(factor1, ctx), vectorizeExpr(factor2, ctx), vectorizeExpr(summand, ctx))
-      //
-      //      case AdditionExpression(left, right) =>
-      //        SIMD_AdditionExpression(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
 
       // TODO: remove SubtractionExpression
       //      case SubtractionExpression(MultiplicationExpression(factor1, factor2), summand) =>
