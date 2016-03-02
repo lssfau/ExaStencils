@@ -347,7 +347,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
           case "-=" => new SubtractionExpression(lhsSca, rhsSca)
           case _    => throw new VectorizationException("cannot deal with assignment operator \"" + assOp + "\" in " + stmt.prettyprint())
         }))
-        SimplifyStrategy.applyStandalone(srcWrap)
+        SimplifyStrategy.doUntilDoneStandalone(srcWrap)
         // create rhs before lhs to ensure all loads are created
         val rhsVec = vectorizeExpr(srcWrap.expression, ctx.setLoad())
         val lhsVec = vectorizeExpr(lhsSca, ctx.setStore())
