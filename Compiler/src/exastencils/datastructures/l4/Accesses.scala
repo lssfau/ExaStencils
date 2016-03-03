@@ -9,15 +9,18 @@ import exastencils.knowledge
 import exastencils.logger._
 import exastencils.prettyprinting._
 
-abstract class Access(var name : String, var componentIndex : Option[ComponentIndex]) extends Expression
+trait Access extends Expression {
+  def name() : String
+  def componentIndex() : Option[ComponentIndex]
+}
 
 case class UnresolvedAccess(
-    name_ : String,
+    var name : String,
     var slot : Option[SlotModifier],
     var level : Option[AccessLevelSpecification],
     var offset : Option[ExpressionIndex],
-    componentIndex_ : Option[ComponentIndex],
-    var dirAccess : Option[ExpressionIndex]) extends Access(name_, componentIndex_) {
+    var componentIndex : Option[ComponentIndex],
+    var dirAccess : Option[ExpressionIndex]) extends Access {
   def prettyprint(out : PpStream) = {
     out << name
     if (slot.isDefined) out << '[' << slot.get << ']'
@@ -60,8 +63,8 @@ case class UnresolvedAccess(
 }
 
 case class BasicAccess(
-    name_ : String,
-    componentIndex_ : Option[ComponentIndex] = None) extends Access(name_, componentIndex_) {
+    var name : String,
+    var componentIndex : Option[ComponentIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     out << name
     if (componentIndex.isDefined) componentIndex.get.prettyprint(out)
@@ -71,9 +74,9 @@ case class BasicAccess(
 }
 
 case class LeveledAccess(
-    name_ : String,
+    var name : String,
     var level : AccessLevelSpecification,
-    componentIndex_ : Option[ComponentIndex] = None) extends Access(name_, componentIndex_) {
+    var componentIndex : Option[ComponentIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     out << name << '@' << level
     if (componentIndex.isDefined) componentIndex.get.prettyprint(out)
@@ -85,11 +88,11 @@ case class LeveledAccess(
 }
 
 case class FieldAccess(
-    name_ : String,
+    var name : String,
     var level : AccessLevelSpecification,
     var slot : SlotModifier,
-    componentIndex_ : Option[ComponentIndex] = None,
-    var offset : Option[ExpressionIndex] = None) extends Access(name_, componentIndex_) {
+    var componentIndex : Option[ComponentIndex] = None,
+    var offset : Option[ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     // FIXME: omit slot if numSlots of target field is 1
     out << name << '[' << slot << ']' << '@' << level
@@ -124,10 +127,10 @@ case class FieldAccess(
 }
 
 case class VirtualFieldAccess(
-    name_ : String,
+    var name : String,
     var level : AccessLevelSpecification,
-    componentIndex_ : Option[ComponentIndex] = None,
-    var offset : Option[ExpressionIndex] = None) extends Access(name_, componentIndex_) {
+    var componentIndex : Option[ComponentIndex] = None,
+    var offset : Option[ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     out << name << '@' << level
     if (componentIndex.isDefined) componentIndex.get.prettyprint(out)
@@ -162,10 +165,10 @@ object FieldAccess {
 }
 
 case class StencilAccess(
-    name_ : String,
+    var name : String,
     var level : AccessLevelSpecification,
-    componentIndex_ : Option[ComponentIndex] = None,
-    var dirAccess : Option[ExpressionIndex] = None) extends Access(name_, componentIndex_) {
+    var componentIndex : Option[ComponentIndex] = None,
+    var dirAccess : Option[ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     out << name << '@' << level
     if (componentIndex.isDefined) componentIndex.get.prettyprint(out)
@@ -194,12 +197,13 @@ case class StencilAccess(
   }
 }
 
-case class StencilFieldAccess(name_ : String,
+case class StencilFieldAccess(
+    var name : String,
     var level : AccessLevelSpecification,
     var slot : SlotModifier,
-    componentIndex_ : Option[ComponentIndex] = None,
+    var componentIndex : Option[ComponentIndex] = None,
     var offset : Option[ExpressionIndex] = None,
-    var dirAccess : Option[ExpressionIndex] = None) extends Access(name_, componentIndex_) {
+    var dirAccess : Option[ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     // FIXME: omit slot if numSlots of target field is 1
     out << name << '[' << slot << ']' << '@' << level

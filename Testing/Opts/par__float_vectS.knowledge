@@ -24,7 +24,7 @@ domain_rect_numFragsPerBlock_y	= 1
 domain_rect_numFragsPerBlock_z	= 1
 
 omp_enabled					= true
-omp_numThreads				= 10
+omp_numThreads				= 8
 
 mpi_enabled					= true
 mpi_numThreads				= 8

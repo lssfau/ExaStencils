@@ -157,7 +157,14 @@ object Main {
     UnfoldLevelSpecifications.apply() // preparation step
     ResolveL4.apply()
     ResolveBoundaryHandlingFunctions.apply()
+
+    if (Settings.timeStrategies)
+      StrategyTimer.startTiming("Progressing from L4 to IR")
+
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
+
+    if (Settings.timeStrategies)
+      StrategyTimer.startTiming("Progressing from L4 to IR")
 
     // add some more nodes
     AddDefaultGlobals.apply()

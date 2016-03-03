@@ -190,13 +190,13 @@ case class ReturnStatement(var expr : Option[Expression] = None) extends Stateme
   override def prettyprint(out : PpStream) = {
     out << "return"
     if (expr.isDefined) out << ' ' << expr.get.prettyprint()
-    out << ';' << '\n'
+    out << ';'
   }
 }
 
 case class BreakStatement() extends Statement {
   override def prettyprint(out : PpStream) = {
-    out << "break;\n"
+    out << "break;"
   }
 }
 

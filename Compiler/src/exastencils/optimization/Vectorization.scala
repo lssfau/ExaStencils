@@ -11,6 +11,7 @@ import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.omp._
+import exastencils.strategies.SimplifyStrategy
 import exastencils.util._
 
 object Vectorization extends DefaultStrategy("Vectorization") {
@@ -336,20 +337,21 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
   private def vectorizeStmt(stmt : Statement, ctx : LoopCtx) : Unit = {
     stmt match {
       case CommentStatement(str) =>
-        ctx.vectStmts += CommentStatement(str) // new instance
+        ctx.vectStmts += new CommentStatement(str) // new instance
 
       case AssignmentStatement(lhsSca, rhsSca, assOp) =>
         ctx.vectStmts += new CommentStatement(stmt.prettyprint())
-        val source = assOp match {
+        val srcWrap = new ExpressionStatement(Duplicate(assOp match {
           case "="  => rhsSca
-          case "+=" => new AdditionExpression(Duplicate(lhsSca), rhsSca)
-          case "-=" => new SubtractionExpression(Duplicate(lhsSca), rhsSca)
+          case "+=" => new AdditionExpression(lhsSca, rhsSca)
+          case "-=" => new SubtractionExpression(lhsSca, rhsSca)
           case _    => throw new VectorizationException("cannot deal with assignment operator \"" + assOp + "\" in " + stmt.prettyprint())
-        }
+        }))
+        SimplifyStrategy.doUntilDoneStandalone(srcWrap)
         // create rhs before lhs to ensure all loads are created
-        val rhsVec = vectorizeExpr(source, ctx.setLoad())
+        val rhsVec = vectorizeExpr(srcWrap.expression, ctx.setLoad())
         val lhsVec = vectorizeExpr(lhsSca, ctx.setStore())
-        ctx.vectStmts += AssignmentStatement(lhsVec, rhsVec, "=")
+        ctx.vectStmts += new AssignmentStatement(lhsVec, rhsVec, "=")
         if (ctx.storesTmp != null)
           ctx.vectStmts += ctx.storesTmp
         ctx.storesTmp = null
@@ -459,22 +461,20 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
       case AdditionExpression(sums) =>
         val (muls, other) = sums.partition(_.isInstanceOf[MultiplicationExpression])
         val mulsIt = muls.iterator
-        val otherIt = other.iterator
-        val exprs = new Queue[Expression]()
-        val temp = new Queue[Expression]()
-        while (mulsIt.hasNext && otherIt.hasNext) {
-          val mul = mulsIt.next()
-          val oth = otherIt.next()
-          val simd_mul = vectorizeExpr(mul, ctx).asInstanceOf[SIMD_MultiplicationExpression]
-          temp.enqueue(SIMD_MultiplyAddExpression(simd_mul.left, simd_mul.right, vectorizeExpr(oth, ctx)))
+        val vecSumds = new Queue[Expression]()
+        vecSumds.enqueue(other.view.map { x => vectorizeExpr(x, ctx) } : _*)
+        if (vecSumds.isEmpty) {
+          if (mulsIt.isEmpty)
+            Logger.error("empty sum not allowed")
+          vecSumds += vectorizeExpr(mulsIt.next(), ctx)
         }
-        val itIt = mulsIt ++ otherIt
-        while (itIt.hasNext)
-          exprs.enqueue(vectorizeExpr(itIt.next(), ctx))
-        exprs.enqueue(temp : _*)
-        while (exprs.length > 1)
-          exprs.enqueue(SIMD_AdditionExpression(exprs.dequeue(), exprs.dequeue()))
-        exprs.dequeue()
+        while (mulsIt.hasNext) {
+          val simdMul = vectorizeExpr(mulsIt.next(), ctx).asInstanceOf[SIMD_MultiplicationExpression]
+          vecSumds.enqueue(SIMD_MultiplyAddExpression(simdMul.left, simdMul.right, vecSumds.dequeue()))
+        }
+        while (vecSumds.length > 1)
+          vecSumds.enqueue(SIMD_AdditionExpression(vecSumds.dequeue(), vecSumds.dequeue()))
+        vecSumds.dequeue()
 
       //      case AdditionExpression(MultiplicationExpression(factor1, factor2), summand) =>
       //        SIMD_MultiplyAddExpression(vectorizeExpr(factor1, ctx), vectorizeExpr(factor2, ctx), vectorizeExpr(summand, ctx))

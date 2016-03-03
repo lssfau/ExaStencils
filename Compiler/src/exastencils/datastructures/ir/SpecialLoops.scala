@@ -279,8 +279,14 @@ case class LoopOverPointsInOneFragment(var domain : Int,
       val loopIt = LoopOverDimensions.defIt(numDims)
 
       // init default bounds ...
-      var lowerBounds = (0 until numDims).map(dim => start(dim))
-      var upperBounds = (0 until numDims).map(dim => stop(dim))
+      var lowerBounds : IndexedSeq[Expression] = (0 until numDims).map(dim => {
+        val minWidth = (if (0 == dim) Knowledge.experimental_splitLoops_minInnerWidth else 0)
+        start(dim) + minWidth
+      })
+      var upperBounds : IndexedSeq[Expression] = (0 until numDims).map(dim => {
+        val minWidth = (if (0 == dim) Knowledge.experimental_splitLoops_minInnerWidth else 0)
+        stop(dim) - minWidth
+      })
 
       // ... and compile actual loop condition bounds
       // Concept:
@@ -288,23 +294,25 @@ case class LoopOverPointsInOneFragment(var domain : Int,
       //  shift loop start by this (negated) offset plus 1
       //  optionally enforce a certain number of elements for vectorization/ optimized cache line usage
       for (cs <- preComms) {
-        lowerBounds = (0 until numDims).map(dim => {
-          val minWidth = (if (0 == dim) Knowledge.experimental_splitLoops_minInnerWidth else 0)
+        var newLowerBounds = (0 until numDims).map(dim => {
           var ret : Expression = new MinimumExpression(GatherFieldAccessOffsets.accesses.getOrElse(cs.field.codeName, ListBuffer()).map(_(dim)))
           ret = 1 - ret
           SimplifyStrategy.doUntilDoneStandalone(ExpressionStatement(ret))
-          start(dim) + new MaximumExpression(ret, minWidth)
+          start(dim) + ret
         })
+
+        lowerBounds = (lowerBounds, newLowerBounds).zipped.map(new MaximumExpression(_, _))
       }
 
       for (cs <- preComms) {
-        upperBounds = (0 until numDims).map(dim => {
-          val minWidth = (if (0 == dim) Knowledge.experimental_splitLoops_minInnerWidth else 0)
+        var newUpperBounds = (0 until numDims).map(dim => {
           var ret : Expression = new MaximumExpression(GatherFieldAccessOffsets.accesses.getOrElse(cs.field.codeName, ListBuffer()).map(_(dim)))
           ret = 1 + ret
           SimplifyStrategy.doUntilDoneStandalone(ExpressionStatement(ret))
-          stop(dim) - new MaximumExpression(ret, minWidth)
+          stop(dim) - ret
         })
+
+        upperBounds = (upperBounds, newUpperBounds).zipped.map(new MinimumExpression(_, _))
       }
 
       // start communication
@@ -342,29 +350,35 @@ case class LoopOverPointsInOneFragment(var domain : Int,
       val loopIt = LoopOverDimensions.defIt(numDims)
 
       // init default bounds ...
-      var lowerBounds = (0 until numDims).map(dim => start(dim))
-      var upperBounds = (0 until numDims).map(dim => stop(dim))
+      var lowerBounds : IndexedSeq[Expression] = (0 until numDims).map(dim => {
+        val minWidth = (if (0 == dim) Knowledge.experimental_splitLoops_minInnerWidth else 0)
+        start(dim) + minWidth
+      })
+      var upperBounds : IndexedSeq[Expression] = (0 until numDims).map(dim => {
+        val minWidth = (if (0 == dim) Knowledge.experimental_splitLoops_minInnerWidth else 0)
+        stop(dim) - minWidth
+      })
 
       // ... and compile actual loop condition bounds
       // Concept:
       //  enforce that elements to be synchronized are in outer region
       //  optionally enforce a certain number of elements for vectorization/ optimized cache line usage
       for (cs <- postComms) {
-        lowerBounds = (0 until numDims).map(dim => {
-          val minWidth = (if (0 == dim) Knowledge.experimental_splitLoops_minInnerWidth else 0)
+        var newLowerBounds = (0 until numDims).map(dim => {
           var ret : Expression = cs.field.fieldLayout.layoutsPerDim(dim).numGhostLayersRight + cs.field.fieldLayout.layoutsPerDim(dim).numDupLayersRight
-          ret = cs.field.fieldLayout.idxById("DLB", dim) - cs.field.referenceOffset(dim) + ret
-          new MaximumExpression(ret, start(dim) + minWidth)
+          cs.field.fieldLayout.idxById("DLB", dim) - cs.field.referenceOffset(dim) + ret
         })
+
+        lowerBounds = (lowerBounds, newLowerBounds).zipped.map(new MaximumExpression(_, _))
       }
 
       for (cs <- postComms) {
-        upperBounds = (0 until numDims).map(dim => {
-          val minWidth = (if (0 == dim) Knowledge.experimental_splitLoops_minInnerWidth else 0)
+        var newUpperBounds = (0 until numDims).map(dim => {
           var ret : Expression = cs.field.fieldLayout.layoutsPerDim(dim).numGhostLayersLeft + cs.field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft
-          ret = cs.field.fieldLayout.idxById("DRE", dim) - cs.field.referenceOffset(dim) - ret
-          new MinimumExpression(ret, stop(dim) - minWidth)
+          cs.field.fieldLayout.idxById("DRE", dim) - cs.field.referenceOffset(dim) - ret
         })
+
+        upperBounds = (upperBounds, newUpperBounds).zipped.map(new MinimumExpression(_, _))
       }
 
       // outerRegion
