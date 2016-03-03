@@ -30,6 +30,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   final val SCOP_ANNOT : String = "PolyScop"
   final val IMPL_CONDITION_ANNOT : String = "ImplCondition"
 
+  var timeSingleSteps : Boolean = false
+
   import scala.language.implicitConversions
   implicit def convertIntToVal(i : Int) : isl.Val = isl.Val.intFromSi(Isl.ctx, i)
 
@@ -81,17 +83,43 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
     var scops : Seq[Scop] = extractPolyModel()
     for (scop <- scops if (!scop.remove)) {
+      if (timeSingleSteps) StrategyTimer.startTiming("po:mergeLocalScalars")
       mergeLocalScalars(scop)
+      if (timeSingleSteps) StrategyTimer.stopTiming("po:mergeLocalScalars")
+
+      if (timeSingleSteps) StrategyTimer.startTiming("po:mergeScops")
       mergeScops(scop)
+      if (timeSingleSteps) StrategyTimer.stopTiming("po:mergeScops")
+
+      if (timeSingleSteps) StrategyTimer.startTiming("po:simplifyModel")
       simplifyModel(scop)
+      if (timeSingleSteps) StrategyTimer.stopTiming("po:simplifyModel")
+
+      if (timeSingleSteps) StrategyTimer.startTiming("po:computeDependences")
       computeDependences(scop)
+      if (timeSingleSteps) StrategyTimer.stopTiming("po:computeDependences")
+
+      if (timeSingleSteps) StrategyTimer.startTiming("po:deadCodeElimination")
       deadCodeElimination(scop)
+      if (timeSingleSteps) StrategyTimer.stopTiming("po:deadCodeElimination")
+
+      if (timeSingleSteps) StrategyTimer.startTiming("po:handleReduction")
       handleReduction(scop)
+      if (timeSingleSteps) StrategyTimer.stopTiming("po:handleReduction")
+
+      if (timeSingleSteps) StrategyTimer.startTiming("po:simplifyModel")
       simplifyModel(scop)
-      if (scop.optLevel >= 2)
+      if (timeSingleSteps) StrategyTimer.stopTiming("po:simplifyModel")
+
+      if (scop.optLevel >= 2) {
+        if (timeSingleSteps) StrategyTimer.startTiming("po:optimize")
         optimize(scop, confID)
+        if (timeSingleSteps) StrategyTimer.stopTiming("po:optimize")
+      }
     }
+    if (timeSingleSteps) StrategyTimer.startTiming("po:recreateAndInsertAST")
     recreateAndInsertAST()
+    if (timeSingleSteps) StrategyTimer.stopTiming("po:recreateAndInsertAST")
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming(name)

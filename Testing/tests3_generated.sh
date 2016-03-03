@@ -1,4 +1,5 @@
 #!/bin/bash
+#SBATCH --qos=norm
 #SBATCH --hint=nomultithread
 #SBATCH --nice=100
 #SBATCH --time=15
@@ -48,7 +49,7 @@ trap cleanup EXIT
 
 # run generated code
 echo "  Created  ${RESULT}: run code and redirect its stdout and stderr."
-srun "${BIN}" 2>&1 | grep -v -e "No protocol specified" -e "fglrx" | tee "${RESULT}" # HACK: filter strange X server error...
+srun --cpu_bind=socket "${BIN}" 2>&1 | grep -v -e "No protocol specified" -e "fglrx" | tee "${RESULT}" # HACK: filter strange X server error...
 echo ""
 
 if grep -q "Communication connection failure" ${RESULT}; then

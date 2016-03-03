@@ -1,6 +1,7 @@
 package exastencils.strategies
 
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
 
@@ -524,3 +525,20 @@ object UnifyInnerTypes extends DefaultStrategy("Unify inner types of (constant) 
   }
 }
 
+object GatherFieldAccessOffsets extends QuietDefaultStrategy("Gathering field access offsets honoring reference offsets") {
+  var accesses = HashMap[String, ListBuffer[MultiIndex]]()
+
+  def addAccess(key : String, index : MultiIndex) = {
+    if (!accesses.contains(key)) accesses.put(key, ListBuffer())
+    accesses(key) += index
+  }
+
+  this += new Transformation("TODO", {
+    case fa : FieldAccess =>
+      addAccess(fa.fieldSelection.field.codeName, fa.index - LoopOverDimensions.defIt(fa.index.length))
+      fa
+    case dfa : DirectFieldAccess =>
+      addAccess(dfa.fieldSelection.field.codeName, dfa.index - dfa.fieldSelection.field.referenceOffset - LoopOverDimensions.defIt(dfa.index.length))
+      dfa
+  })
+}

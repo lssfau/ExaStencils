@@ -1,7 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=et_all
-#SBATCH -p idle
-#SBATCH -A idle
+#SBATCH -p anywhere
+#SBATCH -A anywhere
+#SBATCH --qos=norm
 #SBATCH -n 1
 #SBATCH -c 4
 #SBATCH --exclusive
@@ -10,12 +11,13 @@
 #SBATCH --open-mode=append
 
 
-REPO_DIR=${1}
-SCALA_DIR=${2}
-TEMP_DIR=${3}
-OUT_FILE=${4} # stdout and stderr should already be redirected to this file
-OUT_FILE_URL=${5} # url to ${OUT_FILE}
-PROGRESS=${6}
+SCR_DIR=${1}
+REPO_DIR=${2}
+SCALA_DIR=${3}
+TEMP_DIR=${4}
+OUT_FILE=${5} # stdout and stderr should already be redirected to this file
+OUT_FILE_URL=${6} # url to ${OUT_FILE}
+PROGRESS=${7}
 
 
 # HACK: otherwise ant wouldn't find it...
@@ -150,7 +152,7 @@ do
 
   echo "Enqueue generation and compilation job for id  ${id}."
   # configuration is fine, start a new job for it
-  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etg_${id}" -o ${TEST_LOG} -e ${TEST_LOG} "--dependency=afterok:${SLURM_JOB_ID}" "${TESTING_DIR}/tests2_single.sh" "${TESTING_DIR}" "${COMPILER_JAR}" ${main} "${TEST_DIR}" "${TEST_BIN}" "${TESTING_DIR}/${knowledge}" "${l4file}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}")
+  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etg_${id}" -o ${TEST_LOG} -e ${TEST_LOG} "--dependency=afterok:${SLURM_JOB_ID}" "${SCR_DIR}/tests2_single.sh" "${TESTING_DIR}" "${COMPILER_JAR}" ${main} "${TEST_DIR}" "${TEST_BIN}" "${TESTING_DIR}/${knowledge}" "${l4file}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}")
   if [[ $? -eq 0 ]]; then
     SID=${OUT#Submitted batch job }
     DEP_SIDS="${DEP_SIDS}:${SID}"
@@ -196,16 +198,21 @@ for ((i=0;i<${#TMP_ARRAY[@]};i+=7)); do
 
   TEST_DEP="--dependency=afterok:${SID_GEN},afterany${COMP_DEPS}"
 
-  ACC="idle"
-  PART="idle"
+  ACC="anywhere"
+  PART="anywhere"
   CONSTR_PARAM="--constraint=${constraints}"
-  if [[ $(( ${nodes} * ${cores} )) -gt 8 ]] || [[ ${constraints} = "E5" ]]; then # HACK to ensure jobs are executed even if the cluster is in use
+  if [[ $(( ${nodes} * ${cores} )) -gt 56 ]] || [[ ${cores} -gt 8 ]] || [[ ${constraints} = "E5" ]]; then # HACK to ensure jobs are executed even if the cluster is in use
     ACC="cl"
     PART="chimaira"
     CONSTR_PARAM=""
   fi
+  if [[ ${constraints} =~ GPU ]]; then
+    ACC="cl"
+    PART="chimaira"
+    CONSTR_PARAM="--gres=gpu:1"
+  fi
   echo "Enqueue execution job for id  ${id}."
-  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etr_${id}" -o ${TEST_LOG} -e ${TEST_LOG} -A ${ACC} -p ${PART} -n ${nodes} -c ${cores} ${TEST_DEP} ${CONSTR_PARAM} "${TESTING_DIR}/tests3_generated.sh" "${TEST_BIN}" "${TESTING_DIR}/${result}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}")
+  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etr_${id}" -o ${TEST_LOG} -e ${TEST_LOG} -A ${ACC} -p ${PART} -n ${nodes} -c ${cores} ${TEST_DEP} ${CONSTR_PARAM} "${SCR_DIR}/tests3_generated.sh" "${TEST_BIN}" "${TESTING_DIR}/${result}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}")
   if [[ $? -eq 0 ]]; then
     SID=${OUT#Submitted batch job }
     DEP_SIDS="${DEP_SIDS}:${SID}"
@@ -219,7 +226,7 @@ done
 echo ""
 echo "Collect separate logs after all other jobs are finished:"
 LOG_DEPS="--dependency=afterany${DEP_SIDS}"
-(unset SLURM_JOB_NAME; sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${TESTING_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${PROGRESS}")
+(unset SLURM_JOB_NAME; sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${SCR_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${PROGRESS}")
 echo ""
 
 echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"

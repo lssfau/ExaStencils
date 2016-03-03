@@ -780,30 +780,30 @@ case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess,
 
       case "IMCI" =>
         if (Knowledge.useDblPrecision) offset match {
-          case 1 => out << "_mm512_castsi512_pd(_mm512_permutexvar_epi32(" << shiftIV << ", _mm512_castpd_si512(_mm512_mask_blend_pd(0x01, " << left << ", " << right << "))))"
+          case 1 => out << "_mm512_castsi512_pd(_mm512_permutevar_epi32(" << shiftIV << ", _mm512_castpd_si512(_mm512_mask_blend_pd(0x01, " << left << ", " << right << "))))"
           case 2 => out << "_mm512_castsi512_pd(_mm512_permute4f128_epi32(_mm512_castpd_si512(_mm512_mask_blend_pd(0x03, " << left << ", " << right << ")), _MM_PERM_ADCB))"
-          case 3 => out << "_mm512_castsi512_pd(_mm512_permutexvar_epi32(" << shiftIV << ", _mm512_castpd_si512(_mm512_mask_blend_pd(0x07, " << left << ", " << right << "))))"
+          case 3 => out << "_mm512_castsi512_pd(_mm512_permutevar_epi32(" << shiftIV << ", _mm512_castpd_si512(_mm512_mask_blend_pd(0x07, " << left << ", " << right << "))))"
           case 4 => out << "_mm512_castsi512_pd(_mm512_permute4f128_epi32(_mm512_castpd_si512(_mm512_mask_blend_pd(0x0F, " << left << ", " << right << ")), _MM_PERM_BADC))"
-          case 5 => out << "_mm512_castsi512_pd(_mm512_permutexvar_epi32(" << shiftIV << ", _mm512_castpd_si512(_mm512_mask_blend_pd(0x1F, " << left << ", " << right << "))))"
+          case 5 => out << "_mm512_castsi512_pd(_mm512_permutevar_epi32(" << shiftIV << ", _mm512_castpd_si512(_mm512_mask_blend_pd(0x1F, " << left << ", " << right << "))))"
           case 6 => out << "_mm512_castsi512_pd(_mm512_permute4f128_epi32(_mm512_castpd_si512(_mm512_mask_blend_pd(0x3F, " << left << ", " << right << ")), _MM_PERM_CBAD))"
-          case 7 => out << "_mm512_castsi512_pd(_mm512_permutexvar_epi32(" << shiftIV << ", _mm512_castpd_si512(_mm512_mask_blend_pd(0x7F, " << left << ", " << right << "))))"
+          case 7 => out << "_mm512_castsi512_pd(_mm512_permutevar_epi32(" << shiftIV << ", _mm512_castpd_si512(_mm512_mask_blend_pd(0x7F, " << left << ", " << right << "))))"
         }
         else offset match {
-          case 1  => out << "_mm512_castsi512_ps(_mm512_permutexvar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x0001, " << left << ", " << right << "))))"
-          case 2  => out << "_mm512_castsi512_ps(_mm512_permutexvar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x0003, " << left << ", " << right << "))))"
-          case 3  => out << "_mm512_castsi512_ps(_mm512_permutexvar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x0007, " << left << ", " << right << "))))"
+          case 1  => out << "_mm512_castsi512_ps(_mm512_permutevar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x0001, " << left << ", " << right << "))))"
+          case 2  => out << "_mm512_castsi512_ps(_mm512_permutevar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x0003, " << left << ", " << right << "))))"
+          case 3  => out << "_mm512_castsi512_ps(_mm512_permutevar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x0007, " << left << ", " << right << "))))"
           case 4  => out << "_mm512_castsi512_ps(_mm512_permute4f128_epi32(_mm512_castpd_si512(_mm512_mask_blend_pd(0x000F, " << left << ", " << right << ")), _MM_PERM_ADCB))"
-          case 5  => out << "_mm512_castsi512_ps(_mm512_permutexvar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x001F, " << left << ", " << right << "))))"
-          case 6  => out << "_mm512_castsi512_ps(_mm512_permutexvar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x003F, " << left << ", " << right << "))))"
-          case 7  => out << "_mm512_castsi512_ps(_mm512_permutexvar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x007F, " << left << ", " << right << "))))"
+          case 5  => out << "_mm512_castsi512_ps(_mm512_permutevar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x001F, " << left << ", " << right << "))))"
+          case 6  => out << "_mm512_castsi512_ps(_mm512_permutevar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x003F, " << left << ", " << right << "))))"
+          case 7  => out << "_mm512_castsi512_ps(_mm512_permutevar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x007F, " << left << ", " << right << "))))"
           case 8  => out << "_mm512_castsi512_ps(_mm512_permute4f128_epi32(_mm512_castpd_si512(_mm512_mask_blend_pd(0x00FF, " << left << ", " << right << ")), _MM_PERM_BADC))"
-          case 9  => out << "_mm512_castsi512_ps(_mm512_permutexvar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x01FF, " << left << ", " << right << "))))"
-          case 10 => out << "_mm512_castsi512_ps(_mm512_permutexvar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x03FF, " << left << ", " << right << "))))"
-          case 11 => out << "_mm512_castsi512_ps(_mm512_permutexvar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x07FF, " << left << ", " << right << "))))"
+          case 9  => out << "_mm512_castsi512_ps(_mm512_permutevar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x01FF, " << left << ", " << right << "))))"
+          case 10 => out << "_mm512_castsi512_ps(_mm512_permutevar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x03FF, " << left << ", " << right << "))))"
+          case 11 => out << "_mm512_castsi512_ps(_mm512_permutevar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x07FF, " << left << ", " << right << "))))"
           case 12 => out << "_mm512_castsi512_ps(_mm512_permute4f128_epi32(_mm512_castpd_si512(_mm512_mask_blend_pd(0x0FFF, " << left << ", " << right << ")), _MM_PERM_CBAD))"
-          case 13 => out << "_mm512_castsi512_ps(_mm512_permutexvar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x1FFF, " << left << ", " << right << "))))"
-          case 14 => out << "_mm512_castsi512_ps(_mm512_permutexvar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x3FFF, " << left << ", " << right << "))))"
-          case 15 => out << "_mm512_castsi512_ps(_mm512_permutexvar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x7FFF, " << left << ", " << right << "))))"
+          case 13 => out << "_mm512_castsi512_ps(_mm512_permutevar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x1FFF, " << left << ", " << right << "))))"
+          case 14 => out << "_mm512_castsi512_ps(_mm512_permutevar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x3FFF, " << left << ", " << right << "))))"
+          case 15 => out << "_mm512_castsi512_ps(_mm512_permutevar_epi32(" << shiftIV << ", _mm512_castps_si512(_mm512_mask_blend_ps(0x7FFF, " << left << ", " << right << "))))"
         }
 
       case "QPX"  => out << "vec_sldw(" << left << ", " << right << ", " << offset << ")"
@@ -919,42 +919,44 @@ case class SIMD_DivisionExpression(var left : Expression, var right : Expression
 
 case class SIMD_FloatConstant(var value : Double) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
-    if (Knowledge.simd_instructionSet == "IMCI") { // TODO: is there a better way?
-      out << "((__m512" << (if (Knowledge.useDblPrecision) "d" else "") << ") { " << value
-      for (i <- 0 until Knowledge.simd_vectorSize - 1)
-        out << ", " << value
-      out << " })"
-    } else {
-      val prec = if (Knowledge.useDblPrecision) 'd' else 's'
-      Knowledge.simd_instructionSet match {
-        case "SSE3"         => out << "_mm_set1_p" << prec
-        case "AVX" | "AVX2" => out << "_mm256_set1_p" << prec
-        case "AVX512"       => out << "_mm512_set1_p" << prec
-        case "QPX"          => out << "vec_splats"
-        case "NEON"         => out << "vdupq_n_f32"
-      }
-      out << '(' << value << ')' // this uses value.toString(), which is Locale-independent and the string can be parsed without a loss of precision later
+    /*
+     * Fix by Thomas Lang: 
+     * Added intrinsic for IMCI.
+     * 
+     * This intrinsic is defined in 'zmmintrin.h' and is
+     * also known by 'immintrin.h', this fills the value
+     */
+    val prec = if (Knowledge.useDblPrecision) 'd' else 's'
+    Knowledge.simd_instructionSet match {
+      case "SSE3"         => out << "_mm_set1_p" << prec
+      case "AVX" | "AVX2" => out << "_mm256_set1_p" << prec
+      case "AVX512"       => out << "_mm512_set1_p" << prec
+      case "QPX"          => out << "vec_splats"
+      case "NEON"         => out << "vdupq_n_f32"
+      case "IMCI"         => out << "_mm512_set_1to" << Knowledge.simd_vectorSize << "_p" << prec
     }
+    out << '(' << value << ')' // this uses value.toString(), which is Locale-independent and the string can be parsed without a loss of precision later
   }
 }
 
 case class SIMD_Scalar2VectorExpression(var scalar : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
-    if (Knowledge.simd_instructionSet == "IMCI") { // TODO: is there a better way?
-      out << "((__m512" << (if (Knowledge.useDblPrecision) "d" else "") << ") { " << scalar
-      for (i <- 0 until Knowledge.simd_vectorSize - 1)
-        out << ", " << scalar
-      out << " })"
-    } else {
-      val prec = if (Knowledge.useDblPrecision) 'd' else 's'
-      Knowledge.simd_instructionSet match {
-        case "SSE3"         => out << "_mm_set1_p" << prec
-        case "AVX" | "AVX2" => out << "_mm256_set1_p" << prec
-        case "AVX512"       => out << "_mm512_set1_p" << prec
-        case "QPX"          => out << "vec_splats"
-        case "NEON"         => out << "vdupq_n_f32"
-      }
-      out << '(' << scalar << ')'
+    /*
+     * Fix by Thomas Lang: 
+     * Added intrinsic for IMCI.
+     * 
+     * This intrinsic is defined in 'zmmintrin.h' and is
+     * also known by 'immintrin.h', this fills the value
+     */
+    val prec = if (Knowledge.useDblPrecision) 'd' else 's'
+    Knowledge.simd_instructionSet match {
+      case "SSE3"         => out << "_mm_set1_p" << prec
+      case "AVX" | "AVX2" => out << "_mm256_set1_p" << prec
+      case "AVX512"       => out << "_mm512_set1_p" << prec
+      case "QPX"          => out << "vec_splats"
+      case "NEON"         => out << "vdupq_n_f32"
+      case "IMCI"         => out << "_mm512_set_1to" << Knowledge.simd_vectorSize << "_p" << prec
     }
+    out << '(' << scalar << ')'
   }
 }
