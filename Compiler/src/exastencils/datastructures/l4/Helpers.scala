@@ -114,6 +114,11 @@ case class ComponentIndex1d(var begin : Option[Int], var end : Option[Int]) exte
   }
   override def toMultiIndexArray = ???
   override def progressToIr : Array[ir.ConstIndex] = ???
+
+  def setMaximumSize(begin : Int, end : Int) = {
+    if (this.begin.isEmpty) this.begin = Some(begin)
+    if (this.end.isEmpty) this.end = Some(end)
+  }
 }
 
 case class ComponentIndex2d(var x : ComponentIndex1d, var y : ComponentIndex1d) extends ComponentIndex {
@@ -128,4 +133,12 @@ case class ComponentIndex2d(var x : ComponentIndex1d, var y : ComponentIndex1d) 
   }
   override def toMultiIndexArray = ???
   override def progressToIr : Array[ir.ConstIndex] = ???
+
+  def setMaximumSizeX(begin : Int, end : Int) = {
+    this.x.setMaximumSize(begin, end)
+  }
+
+  def setMaximumSizeY(begin : Int, end : Int) = {
+    this.y.setMaximumSize(begin, end)
+  }
 }

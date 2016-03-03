@@ -15,9 +15,6 @@ trait Expression extends Node with PrettyPrintable {
   def ~(exp : Expression) : ConcatenationExpression = {
     new ConcatenationExpression(this, exp)
   }
-  def ~~(exp : Expression) : SpacedConcatenationExpression = {
-    new SpacedConcatenationExpression(this, exp)
-  }
 
   import BinaryOperators._
   def +(other : Expression) = new AdditionExpression(this, other)

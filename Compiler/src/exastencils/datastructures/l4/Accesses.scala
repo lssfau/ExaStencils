@@ -67,7 +67,7 @@ case class BasicAccess(
     if (componentIndex.isDefined) componentIndex.get.prettyprint(out)
   }
 
-  def progressToIr : ir.StringLiteral = ir.StringLiteral(name)
+  def progressToIr : ir.StringLiteral = ir.StringLiteral(name) // FIXME_componentIndex
 }
 
 case class LeveledAccess(
@@ -80,7 +80,7 @@ case class LeveledAccess(
   }
 
   def progressToIr : ir.Expression = {
-    ir.StringLiteral(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
+    ir.StringLiteral(name + "_" + level.asInstanceOf[SingleLevelSpecification].level) // FIXME_componentIndex
   }
 }
 
@@ -185,9 +185,9 @@ case class StencilAccess(
 
     val stencil = knowledge.StencilCollection.getStencilByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
 
-    /*if (componentIndex.isDefined) // FIXME_componentIndex
-      stencil.entries(componentIndex.get).coefficient
-    else */ if (dirAccess.isDefined)
+    /*if (componentIndex.isDefined) // FIXME_componentIndex 
+      stencil.entries(componentIndex.get).coefficient // TODO uncertain if this still makes sense... could be removed?
+    else  */ if (dirAccess.isDefined)
       stencil.findStencilEntry(dirAccess.get.progressToIr).get.coefficient
     else
       ir.StencilAccess(stencil)
@@ -195,11 +195,11 @@ case class StencilAccess(
 }
 
 case class StencilFieldAccess(name_ : String,
-                              var level : AccessLevelSpecification,
-                              var slot : SlotModifier,
-                              componentIndex_ : Option[ComponentIndex] = None,
-                              var offset : Option[ExpressionIndex] = None,
-                              var dirAccess : Option[ExpressionIndex] = None) extends Access(name_, componentIndex_) {
+    var level : AccessLevelSpecification,
+    var slot : SlotModifier,
+    componentIndex_ : Option[ComponentIndex] = None,
+    var offset : Option[ExpressionIndex] = None,
+    var dirAccess : Option[ExpressionIndex] = None) extends Access(name_, componentIndex_) {
   def prettyprint(out : PpStream) = {
     // FIXME: omit slot if numSlots of target field is 1
     out << name << '[' << slot << ']' << '@' << level
