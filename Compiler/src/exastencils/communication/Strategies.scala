@@ -18,26 +18,36 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
   var commFunctions : CommunicationFunctions = CommunicationFunctions()
   var addedFunctions : ListBuffer[String] = ListBuffer()
 
+  var firstCall = true
+  var condCounter = 0
+
   var collector = new StackCollector
   this.register(collector)
 
   override def apply(node : Option[Node] = None) = {
-    commFunctions = StateManager.findFirst[CommunicationFunctions]().get
-    addedFunctions.clear
+    if (firstCall) {
+      commFunctions = StateManager.findFirst[CommunicationFunctions]().get
+      addedFunctions.clear
 
-    if (Knowledge.mpi_enabled && Knowledge.domain_canHaveRemoteNeighs)
-      commFunctions.functions += new MPI_WaitForRequest
-    if (Knowledge.omp_enabled && Knowledge.domain_canHaveLocalNeighs)
-      commFunctions.functions += new OMP_WaitForFlag
-    if (Knowledge.domain_canHaveLocalNeighs)
-      commFunctions.functions += new ConnectLocalElement()
-    if (Knowledge.domain_canHaveRemoteNeighs)
-      commFunctions.functions += new ConnectRemoteElement()
+      if (Knowledge.mpi_enabled && Knowledge.domain_canHaveRemoteNeighs)
+        commFunctions.functions += new MPI_WaitForRequest
+      if (Knowledge.omp_enabled && Knowledge.domain_canHaveLocalNeighs)
+        commFunctions.functions += new OMP_WaitForFlag
+      if (Knowledge.domain_canHaveLocalNeighs)
+        commFunctions.functions += new ConnectLocalElement()
+      if (Knowledge.domain_canHaveRemoteNeighs)
+        commFunctions.functions += new ConnectRemoteElement()
+    }
 
     super.apply(node)
+
+    firstCall = false
   }
 
   this += new Transformation("Adding and linking communication functions", {
+    case loop : LoopOverPoints if firstCall => // skip communication statements in loops -> to be handled after resolving loops
+      loop
+
     case communicateStatement : CommunicateStatement => {
       val numDims = communicateStatement.field.field.fieldLayout.numDimsData
 
@@ -45,6 +55,8 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       var dupBegin = new MultiIndex(Array.fill(numDims)(0)); var dupEnd = new MultiIndex(Array.fill(numDims)(0))
       var commGhost = false
       var ghostBegin = new MultiIndex(Array.fill(numDims)(0)); var ghostEnd = new MultiIndex(Array.fill(numDims)(0))
+
+      var cond = communicateStatement.condition
 
       var insideFragLoop = collector.stack.map(node => node match { case loop : LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
       if (insideFragLoop && !Knowledge.experimental_allowCommInFragLoops) {
@@ -96,6 +108,11 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         }").mkString("_")
       if (insideFragLoop)
         functionName += "_ifl"
+      if (cond.isDefined) {
+        // TODO: summarize communicate statements with identical conditions (and targets ofc)
+        functionName += s"_c$condCounter"
+        condCounter += 1
+      }
 
       if (!addedFunctions.contains(functionName)) {
         addedFunctions += functionName
@@ -107,7 +124,8 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
           "finish" == communicateStatement.op || "both" == communicateStatement.op,
           commDup, dupBegin, dupEnd,
           commGhost, ghostBegin, ghostEnd,
-          insideFragLoop)
+          insideFragLoop,
+          cond)
       }
 
       communicateStatement.field.slot match {
@@ -124,6 +142,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
 
       FunctionCallExpression(functionName, fctArgs) : Statement
     }
+
     case applyBCsStatement : ApplyBCsStatement => {
       var insideFragLoop = collector.stack.map(node => node match { case loop : LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
       if (insideFragLoop && !Knowledge.experimental_allowCommInFragLoops) {
@@ -157,6 +176,47 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         fctArgs += LoopOverFragments.defIt
 
       FunctionCallExpression(functionName, fctArgs) : Statement
+    }
+  }, false)
+}
+
+object MergeCommunicatesAndLoops extends DefaultStrategy("Merging communicate statements with loop nodes") {
+  def processFctBody(body : ListBuffer[Statement]) : ListBuffer[Statement] = {
+    if (body.length < 2) return body
+
+    var newBody = ListBuffer[Statement]()
+
+    for (i <- 1 until body.length) { // check for pre communications steps
+      (body(i - 1), body(i)) match {
+        case (cs : CommunicateStatement, loop : LoopOverPoints) if cs.field.field.level == loop.field.level => // skip intergrid ops for now
+          loop.preComms += cs // already merged: newBody += cs
+        case (first, second) => newBody += first
+      }
+    }
+    newBody += body.last
+
+    if (newBody.length == body.length) { // nothing changed -> look for post communications steps
+      newBody.clear
+      for (i <- body.length - 1 until 0 by -1) {
+        (body(i - 1), body(i)) match {
+          case (loop : LoopOverPoints, cs : CommunicateStatement) if cs.field.field.level == loop.field.level => // skip intergrid ops for now
+            loop.postComms += cs // already merged: newBody += cs
+          case (first, second) => newBody.prepend(second)
+        }
+      }
+      newBody.prepend(body.head)
+    }
+
+    if (newBody.length != body.length)
+      processFctBody(newBody) // sth changed -> apply recursively to support multiple communicate statements
+    else
+      newBody // nothing changed -> work is done
+  }
+
+  this += new Transformation("Resolving", {
+    case fct : FunctionStatement => {
+      fct.body = processFctBody(fct.body)
+      fct
     }
   })
 }

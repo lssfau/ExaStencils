@@ -72,11 +72,12 @@ case class OMP_ParallelFor(var body : ForLoopStatement, var additionalOMPClauses
 case class OMP_WaitForFlag() extends AbstractFunctionStatement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = OMP_WaitForFlag\n"
   override def prettyprint_decl : String = prettyprint
+  override def name = "waitForFlag"
 
   override def expand : Output[FunctionStatement] = {
     def flag = VariableAccess("flag", Some(PointerDatatype(VolatileDatatype(BooleanDatatype))))
 
-    FunctionStatement(UnitDatatype, s"waitForFlag", ListBuffer(flag),
+    FunctionStatement(UnitDatatype, name, ListBuffer(flag),
       ListBuffer[Statement](
         new WhileLoopStatement(NegationExpression(DerefAccess(flag)), ListBuffer[Statement]()),
         new AssignmentStatement(DerefAccess(flag), BooleanConstant(false))),
@@ -94,4 +95,9 @@ case class OMP_Reduction(var op : String, var target : VariableAccess) extends O
 case class OMP_Lastprivate(var vars : ListBuffer[VariableAccess]) extends OMP_Clause {
   def this(v : VariableAccess) = this(ListBuffer(v))
   override def prettyprint(out : PpStream) : Unit = out << "lastprivate(" <<< (vars, ", ") << ')'
+}
+
+case class OMP_Private(var vars : ListBuffer[VariableAccess]) extends OMP_Clause {
+  def this(v : VariableAccess) = this(ListBuffer(v))
+  override def prettyprint(out : PpStream) : Unit = out << "private(" <<< (vars, ", ") << ')'
 }

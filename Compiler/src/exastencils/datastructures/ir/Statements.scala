@@ -120,7 +120,7 @@ case class ForLoopStatement(var begin : Statement, var end : Expression, var inc
 
   def maxIterationCount() = {
     if (hasAnnotation("numLoopIterations"))
-      getAnnotation("numLoopIterations").get.value.asInstanceOf[Int]
+      getAnnotation("numLoopIterations").get.asInstanceOf[Int]
     else
       0 // TODO: warning?
   }
@@ -190,13 +190,13 @@ case class ReturnStatement(var expr : Option[Expression] = None) extends Stateme
   override def prettyprint(out : PpStream) = {
     out << "return"
     if (expr.isDefined) out << ' ' << expr.get.prettyprint()
-    out << ';' << '\n'
+    out << ';'
   }
 }
 
 case class BreakStatement() extends Statement {
   override def prettyprint(out : PpStream) = {
-    out << "break;\n"
+    out << "break;"
   }
 }
 
@@ -210,6 +210,7 @@ case class AssertStatement(var check : Expression, var msg : ListBuffer[Expressi
 }
 
 abstract class AbstractFunctionStatement(var isHeaderOnly : Boolean = false) extends Statement {
+  def name : String
   def prettyprint_decl() : String
 }
 

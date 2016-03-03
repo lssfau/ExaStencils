@@ -37,12 +37,12 @@ case class ApplyBCsStatement(var field : Access) extends Statement {
   }
 }
 
-case class CommunicateStatement(var field : Access, var op : String, var targets : List[CommunicateTarget]) extends Statement {
+case class CommunicateStatement(var field : Access, var op : String, var targets : List[CommunicateTarget], var condition : Option[Expression]) extends Statement {
   override def prettyprint(out : PpStream) = {
-    out <<
-      (if ("both" == op) "" else (op + ' ')) <<
-      "communicate " <<< (targets, " ") << (if (targets.isEmpty) "" else " of ") <<
-      field << '\n'
+    if ("both" != op) out << op + ' '
+    out << "communicate " <<< (targets, " ") << (if (targets.isEmpty) "" else " of ") << field
+    if (condition.isDefined) out << "where " << condition
+    out << '\n'
   }
 
   override def progressToIr : communication.CommunicateStatement = {
@@ -60,6 +60,6 @@ case class CommunicateStatement(var field : Access, var op : String, var targets
     else
       for (t <- targets) progressedTargets += t.progressToIr
 
-    communication.CommunicateStatement(progressedField, op, progressedTargets)
+    communication.CommunicateStatement(progressedField, op, progressedTargets, if (condition.isDefined) Some(condition.get.progressToIr) else None)
   }
 }

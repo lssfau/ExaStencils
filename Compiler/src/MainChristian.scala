@@ -31,6 +31,5 @@ object MainChristian {
     exastencils.languageprocessing.l1.UnifyOperators.apply()
     println(StateManager.root)
     sys.exit(0)
-
   }
 }

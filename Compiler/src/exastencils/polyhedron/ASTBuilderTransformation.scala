@@ -31,6 +31,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
   private var seqDims : TreeSet[String] = null
   private var parallelize_omp : Boolean = false
   private var reduction : Option[Reduction] = None
+  private var privateVars : ListBuffer[VariableAccess] = null
   private var condition : Expression = null
 
   private def invalidateScop(scop : Scop) : Unit = {
@@ -50,7 +51,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
 
   override def apply(node : Node) : Transformation.OutputType = {
 
-    val scop : Scop = node.removeAnnotation(PolyOpt.SCOP_ANNOT).get.value.asInstanceOf[Scop]
+    val scop : Scop = node.removeAnnotation(PolyOpt.SCOP_ANNOT).get.asInstanceOf[Scop]
     if (scop.remove)
       return NullStatement
     reduction = scop.root.reduction
@@ -96,6 +97,11 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     scop.schedule.foreachMap({
       sched : isl.Map => dims = math.max(dims, sched.dim(isl.DimType.Out))
     })
+
+    // mark all additionally declared variables as private
+    privateVars = new ListBuffer[VariableAccess]()
+    for (VariableDeclarationStatement(dt, name, _) <- scop.decls)
+      privateVars += VariableAccess(name, Some(dt))
 
     // build AST generation options
     val options = new StringBuilder()
@@ -195,6 +201,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
             else
               new ForLoopStatement(init, cond, incr, body, reduction) with OptimizationHint
           loop.isParallel = seqDims != null && !seqDims.contains(itStr)
+          loop.privateVars ++= privateVars
           loopStmts.getOrElseUpdate(itStr, new ListBuffer()) += loop
           ListBuffer[Statement](loop)
         }

@@ -212,6 +212,7 @@ case class ConnectFragments() extends Statement with Expandable {
 case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitGeneratedDomain\n"
   override def prettyprint_decl = prettyprint
+  override def name = "initDomain"
 
   override def expand : Output[FunctionStatement] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
@@ -253,16 +254,17 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
 
     body += new ExpressionStatement(new FunctionCallExpression("setupBuffers")) // FIXME: move to app
 
-    FunctionStatement(UnitDatatype, s"initDomain", ListBuffer(), body)
+    FunctionStatement(UnitDatatype, name, ListBuffer(), body)
   }
 }
 
 case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitGeneratedDomain\n"
   override def prettyprint_decl = prettyprint
+  override def name = "initDomain"
 
   override def expand : Output[FunctionStatement] = {
-    FunctionStatement(UnitDatatype, s"initDomain", ListBuffer(),
+    FunctionStatement(UnitDatatype, name, ListBuffer(),
       (if (Knowledge.mpi_enabled) {
         ListBuffer(
           VariableDeclarationStatement(IntegerDatatype, "numFragments", Some("0")),
@@ -293,7 +295,7 @@ case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with E
                       MPI_Send("&n", "1", IntegerDatatype, "i", 0, "mpiRequest_Send_0[i][0]"),
                       MPI_Send("&fileOffset", "1", IntegerDatatype, "i", 1, "mpiRequest_Send_0[i][1]"),
                       MPI_Send("&b", "1", IntegerDatatype, "i", 2, "mpiRequest_Send_0[i][2]"),
-                      AssignmentStatement("fileOffset", AdditionExpression("fileOffset", "b"))))
+                      AssignmentStatement("fileOffset", new AdditionExpression("fileOffset", "b"))))
                   } else NullStatement),
                   "file.close()"), ListBuffer[Statement]()),
               AssignmentStatement("fileOffset", 0)),
@@ -340,6 +342,7 @@ case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with E
 case class SetValues() extends AbstractFunctionStatement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetValues\n"
   override def prettyprint_decl = prettyprint
+  override def name = "setValues"
 
   override def expand : Output[FunctionStatement] = {
     var body = new ListBuffer[Statement]
@@ -385,9 +388,7 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
           AssignmentStatement("trafoTmp[i]", ReadValueFrom(RealDatatype, "data")))),
         AssignmentStatement(iv.PrimitiveTransformation(), "trafoTmp")),
       ListBuffer(NullStatement))
-    FunctionStatement(
-      UnitDatatype,
-      s"setValues",
+    FunctionStatement(UnitDatatype, name,
       ListBuffer[VariableAccess](VariableAccess("data", Some("char*")), VariableAccess("numFragments", Some(IntegerDatatype))),
       //      ListBuffer((LoopOverFragments(body))))
       ListBuffer(ForLoopStatement(" int fragmentIdx = 0 ", " fragmentIdx < numFragments ", " ++fragmentIdx ", body)))

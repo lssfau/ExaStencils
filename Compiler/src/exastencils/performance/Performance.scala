@@ -74,8 +74,8 @@ object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performa
       } else {
         val estimatedTime = EvaluatePerformanceEstimates_SubAST.lastEstimate
 
-        fct.add(Annotation("perf_timeEstimate_host", estimatedTime.host))
-        fct.add(Annotation("perf_timeEstimate_device", estimatedTime.device))
+        fct.annotate("perf_timeEstimate_host", estimatedTime.host)
+        fct.annotate("perf_timeEstimate_device", estimatedTime.device)
 
         completeFunctions.put(fct.name, estimatedTime)
         fct.body = ListBuffer[Statement](
@@ -104,8 +104,8 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
   }
   def addTimeToStack(nodeWithAnnotation : Node) : Unit = {
     addTimeToStack(PerformanceEstimate(
-      nodeWithAnnotation.getAnnotation("perf_timeEstimate_host").get.value.asInstanceOf[Double],
-      nodeWithAnnotation.getAnnotation("perf_timeEstimate_device").get.value.asInstanceOf[Double]))
+      nodeWithAnnotation.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double],
+      nodeWithAnnotation.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]))
   }
 
   def addLoopTimeToStack(loop : ForLoopStatement) : Unit = {
@@ -170,8 +170,8 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
         var totalEstimate = PerformanceEstimate(Math.max(estimatedTimeOps_host, optimisticTimeMem_host), Math.max(estimatedTimeOps_device, optimisticTimeMem_device))
         totalEstimate.device += Knowledge.sw_cuda_kernelCallOverhead
 
-        loop.add(Annotation("perf_timeEstimate_host", totalEstimate.host))
-        loop.add(Annotation("perf_timeEstimate_device", totalEstimate.device))
+        loop.annotate("perf_timeEstimate_host", totalEstimate.host)
+        loop.annotate("perf_timeEstimate_device", totalEstimate.device)
         addTimeToStack(totalEstimate)
 
         ListBuffer(
@@ -199,8 +199,8 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
           val estimatedTime_host = lastEstimate.host * loop.maxIterationCount
           val estimatedTime_device = lastEstimate.device * loop.maxIterationCount
 
-          loop.add(Annotation("perf_timeEstimate_host", estimatedTime_host))
-          loop.add(Annotation("perf_timeEstimate_device", estimatedTime_device))
+          loop.annotate("perf_timeEstimate_host", estimatedTime_host)
+          loop.annotate("perf_timeEstimate_device", estimatedTime_device)
 
           addLoopTimeToStack(loop)
 
@@ -218,9 +218,9 @@ object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Ev
   var fieldAccesses = HashMap[String, Datatype]()
   var inWriteOp = false
 
-  def mapFieldAccess(access : FieldAccess) = {
+  def mapFieldAccess(access : FieldAccessLike) = {
     val field = access.fieldSelection.field
-    var identifier = field.identifier
+    var identifier = field.codeName
 
     identifier = (if (inWriteOp) "write_" else "read_") + identifier
 
@@ -242,7 +242,7 @@ object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Ev
       inWriteOp = false
       EvaluatePerformanceEstimates_FieldAccess.applyStandalone(ExpressionStatement(assign.src))
       assign
-    case access : FieldAccess =>
+    case access : FieldAccessLike =>
       mapFieldAccess(access)
       access
   }, false)

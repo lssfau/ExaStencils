@@ -155,15 +155,16 @@ object MainL3 {
     ResolveLoopOverPoints.apply()
     ResolveIntergridIndices.apply()
 
-    var numConvFound = 1
-    while (numConvFound > 0) {
+    var convChanged = false
+    do {
+      FindStencilConvolutions.changed = false
       FindStencilConvolutions.apply()
-      numConvFound = FindStencilConvolutions.results.last._2.matches
+      convChanged = FindStencilConvolutions.changed
       if (Knowledge.useFasterExpand)
         ExpandOnePassStrategy.apply()
       else
         ExpandStrategy.doUntilDone()
-    }
+    } while (convChanged)
 
     ResolveDiagFunction.apply()
     ResolveContractingLoop.apply()

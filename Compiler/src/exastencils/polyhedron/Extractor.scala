@@ -96,13 +96,13 @@ object Extractor {
             lParConstr.append("<=").append(max).append(')')
             lParConstr.append(" and ")
 
-          case MultiplicationExpression(IntegerConstant(c), arr : ArrayAccess) =>
+          case MultiplicationExpression(ListBuffer(IntegerConstant(c), arr : ArrayAccess)) =>
             lParConstr.append('(').append(min).append("<=").append(c).append('*')
             lParConstr.append(ScopNameMapping.expr2id(arr))
             lParConstr.append("<=").append(max).append(')')
             lParConstr.append(" and ")
 
-          case MultiplicationExpression(arr : ArrayAccess, IntegerConstant(c)) =>
+          case MultiplicationExpression(ListBuffer(arr : ArrayAccess, IntegerConstant(c))) =>
             lParConstr.append('(').append(min).append("<=").append(c).append('*')
             lParConstr.append(ScopNameMapping.expr2id(arr))
             lParConstr.append("<=").append(max).append(')')
@@ -133,12 +133,13 @@ object Extractor {
           gParConstr.append(" and ")
         }
 
-      case AdditionExpression(l, r) =>
+      case AdditionExpression(sums) =>
         constraints.append('(')
-        bool |= extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
-        constraints.append('+')
-        bool |= extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
-        constraints.append(')')
+        for (s <- sums) {
+          bool |= extractConstraints(s, constraints, formatString, lParConstr, gParConstr, vars)
+          constraints.append('+')
+        }
+        constraints(constraints.length - 1) = ')' // replace last '+'
 
       case SubtractionExpression(l, r) =>
         constraints.append('(')
@@ -147,12 +148,13 @@ object Extractor {
         bool |= extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(')')
 
-      case MultiplicationExpression(l, r) =>
+      case MultiplicationExpression(facs) =>
         constraints.append('(')
-        bool |= extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
-        constraints.append('*')
-        bool |= extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
-        constraints.append(')')
+        for (s <- facs) {
+          bool |= extractConstraints(s, constraints, formatString, lParConstr, gParConstr, vars)
+          constraints.append('*')
+        }
+        constraints(constraints.length - 1) = ')' // replace last '*'
 
       case DivisionExpression(l, r) =>
         constraints.append("floord(")
@@ -169,6 +171,22 @@ object Extractor {
           constraints.append('%')
         bool |= extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(')')
+
+      case MinimumExpression(es) =>
+        constraints.append("min(")
+        for (e <- es) {
+          bool |= extractConstraints(e, constraints, formatString, lParConstr, gParConstr, vars)
+          constraints.append(',')
+        }
+        constraints(constraints.length - 1) = ')' // replace last ','
+
+      case MaximumExpression(es) =>
+        constraints.append("max(")
+        for (e <- es) {
+          bool |= extractConstraints(e, constraints, formatString, lParConstr, gParConstr, vars)
+          constraints.append(',')
+        }
+        constraints(constraints.length - 1) = ')' // replace last ','
 
       case NegationExpression(e) =>
         constraints.append("!(")
@@ -239,6 +257,8 @@ object Extractor {
         extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
+
+      // FIXME: support min/max exp
 
       case _ => throw new ExtractionException("unknown expression: " + expr.getClass() + " - " + expr.prettyprint())
     }
@@ -399,7 +419,7 @@ class Extractor extends Collector {
     mergeScops = false
 
     node.getAnnotation(Access.ANNOT) match {
-      case Some(Annotation(_, acc)) =>
+      case Some(acc) =>
         acc match {
           case Access.READ  => isRead = true
           case Access.WRITE => isWrite = true
@@ -441,7 +461,9 @@ class Extractor extends Collector {
           case StringLiteral(varName) =>
             enterScalarAccess(varName)
 
-          case VariableAccess(varName, _) =>
+          case VariableAccess(varName, ty) =>
+            if (ty.isDefined)
+              ty.get.annotate(SKIP_ANNOT)
             enterScalarAccess(varName)
 
           case ArrayAccess(array @ StringLiteral(varName), index, _) =>
@@ -449,7 +471,9 @@ class Extractor extends Collector {
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(varName, index)
 
-          case ArrayAccess(array @ VariableAccess(varName, _), index, _) =>
+          case ArrayAccess(array @ VariableAccess(varName, ty), index, _) =>
+            if (ty.isDefined)
+              ty.get.annotate(SKIP_ANNOT)
             array.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(varName, index)
