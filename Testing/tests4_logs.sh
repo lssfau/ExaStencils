@@ -18,6 +18,7 @@ ERROR_MARKER_NAME=${4}
 ERROR_MARKER=${5}
 LOG_DIR=${6}
 PROGRESS=${7}
+BRANCH=${8}
 
 
 echo ""
@@ -62,4 +63,4 @@ echo "Tests finished at $(date -R)."
 echo ""
 echo "============================================================================"
 
-echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(date -R):  Done!</pre></body></html>" > "${PROGRESS}"
+echo -e "<html><head><meta charset=\"utf-8\"></head><body><pre>Branch: ${BRANCH}; last update: $(date -R)\n\n  Done!</pre></body></html>" > "${PROGRESS}"

@@ -13,9 +13,10 @@ ERROR_MARKER=${3}
 LOG_ALL=${4}
 LINK=${5}
 PROGRESS=${6}
+BRANCH=${7}
 
 
-echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
+echo -e "<html><head><meta charset=\"utf-8\"></head><body><pre>Branch: ${BRANCH}; last update: $(date -R)\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
 
 echo "Running test on machine(s) ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
 rm -f ${ERROR_MARKER} # remove error marker from old job run if we were requeued
@@ -69,4 +70,4 @@ else
   echo "${LINK}" >> "${LOG_ALL}"
 fi
 echo ""
-echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
+echo -e "<html><head><meta charset=\"utf-8\"></head><body><pre>Branch: ${BRANCH}; last update: $(date -R)\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R" | grep -v ${SLURM_JOB_ID})</pre></body></html>" > "${PROGRESS}"

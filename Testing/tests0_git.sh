@@ -69,19 +69,24 @@ if [[ -d "${REPO_DIR}" ]]; then
   if [[ ! "$(srun git -C "${REPO_DIR}" branch -a)" =~ "${BRANCH}" ]]; then
     error "ERROR: branch ${BRANCH} does not exist"
   fi
+  OLD_HASH=$(srun git -C "${REPO_DIR}" rev-parse "${BRANCH}")
   srun git -C "${REPO_DIR}" checkout "${BRANCH}"
     if [[ $? -ne 0 ]]; then
       error "ERROR: switch to branch ${BRANCH} failed."
     fi
-  OLD_HASH=$(git -C "${REPO_DIR}" rev-parse @)
   srun git -C "${REPO_DIR}" merge FETCH_HEAD
       if [[ $? -ne 0 ]]; then
         error "ERROR: git remote update failed."
       fi
-  NEW_HASH=$(git -C "${REPO_DIR}" rev-parse @)
-  if [[ "${FORCE_START}" -eq 0 && ${OLD_HASH} = ${NEW_HASH} ]]; then
+  NEW_HASH=$(srun git -C "${REPO_DIR}" rev-parse @)
+  OLD_JOBS="$(squeue -h -u exatest -o %i | grep -v ${SLURM_JOB_ID})"
+  if [[ "${FORCE_START}" -eq 1 ]]; then
+    echo "Force flag given, start tests."
+  elif [[ -n "${OLD_JOBS}" ]]; then
+    exit 0
+  elif [[ ${OLD_HASH} = ${NEW_HASH} ]]; then
     # up-to-date, no need to run tests, exit script
-    if [[ -z "$(squeue -h -u exatest | grep -v ${SLURM_JOB_NAME})" ]]; then # only output log if there are no old tests running
+    if [[ -z "${OLD_JOBS}" ]]; then # only output log if there are no old tests running
       echo "$(date -R):  Tests triggered, but there are no new commits since last run, finish." >> "${OUT_FILE}"
       echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(date -R):  Done!</pre></body></html>" > "${PROGRESS}"
     fi
@@ -98,7 +103,7 @@ fi
 
 mkdir -p "${OUT_DIR}"
 mkdir -p "${TEMP_DIR}"
-NEW_HASH=$(git -C "${REPO_DIR}" rev-parse @)
+NEW_HASH=$(srun git -C "${REPO_DIR}" rev-parse @)
 echo ""
 echo "Run tests for hash  ${NEW_HASH}."
 if [[ -e "${REPO_DIR}/Testing/tests_version.txt" ]] && [[ $(cat "${SCR_DIR}/tests_version.txt") -lt $(cat "${REPO_DIR}/Testing/tests_version.txt") ]]; then
@@ -106,7 +111,7 @@ if [[ -e "${REPO_DIR}/Testing/tests_version.txt" ]] && [[ $(cat "${SCR_DIR}/test
   cp "${REPO_DIR}"/Testing/tests_version.txt "${SCR_DIR}"
   cp "${REPO_DIR}"/Testing/tests*.sh "${SCR_DIR}"
 fi
-(unset SLURM_JOB_NAME; sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" "--dependency=afterok:${SLURM_JOB_ID}" "${SCR_DIR}/tests1_all.sh" "${SCR_DIR}" "${REPO_DIR}" "${BASE_DIR}/scala/" "${TEMP_DIR}" "${OUT_FILE}" "${OUT_FILE_URL}" "${PROGRESS}")
+(unset SLURM_JOB_NAME; sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" "--dependency=afterok:${SLURM_JOB_ID}" "${SCR_DIR}/tests1_all.sh" "${SCR_DIR}" "${REPO_DIR}" "${BASE_DIR}/scala/" "${TEMP_DIR}" "${OUT_FILE}" "${OUT_FILE_URL}" "${PROGRESS}" "${BRANCH}")
       if [[ $? -ne 0 ]]; then
         error "ERROR: Unable to enqueue testing job."
       fi
@@ -119,5 +124,5 @@ echo ""
 echo ""
 
 rm -f "${OUT_DIR}"/*
-echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
+echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R" | grep -v ${SLURM_JOB_ID})</pre></body></html>" > "${PROGRESS}"
 cat "${TMP_OUT_FILE}" > "${OUT_FILE}"

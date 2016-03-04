@@ -18,6 +18,7 @@ TEMP_DIR=${4}
 OUT_FILE=${5} # stdout and stderr should already be redirected to this file
 OUT_FILE_URL=${6} # url to ${OUT_FILE}
 PROGRESS=${7}
+BRANCH=${8}
 
 
 # HACK: otherwise ant wouldn't find it...
@@ -63,7 +64,7 @@ function cleanup {
 trap cleanup EXIT
 
 
-echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
+echo -e "<html><head><meta charset=\"utf-8\"></head><body><pre>Branch: ${BRANCH}; last update: $(date -R)\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
 
 echo "-----------------------------------------------------------------------------------------------"
 echo "Running main test script on machine ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
@@ -79,18 +80,14 @@ echo "  Created  ${RAM_TMP_DIR}: generator build dir"
 
 
 # cancel all uncompleted jobs from last testrun
-first=1
-for job in $(squeue -h -u exatest -o %i); do
-  if [[ ${job} -ne ${SLURM_JOB_ID} ]]; then
-    if [[ first -eq 1 ]]; then
-      first=0
-      echo "Old tests from last run found. Cancel them and requeue new tests."
-      echo "Old tests from last run found. Cancel them and requeue new tests." | mail -s "TestBot jobs too old" "kronast@fim.uni-passau.de"
-    fi
+OLD_JOBS="$(squeue -h -u exatest -o %i | grep -v ${SLURM_JOB_ID})"
+if [[ -n "${OLD_JOBS}" ]]; then
+  echo "Old tests from last run found. Cancel them and requeue new tests."
+  for job in ${OLD_JOBS}; do
     scancel ${job}
-	echo "Old job ${job} canceled."
-  fi
-done
+    echo "Old job ${job} canceled."
+  done
+fi
 # remove old files (if some)
 rm -rf "${TEMP_DIR}"/*
 TESTS_DIR="${TEMP_DIR}/tests"
@@ -129,7 +126,7 @@ do
   read id main knowledge l4file result nodes cores constraints <<< $line2
 
   # ${knowledge} must present, ${l4file} must be present or "*" and either all of ${result}, ${nodes} and ${cores} must be valid or none of them
-  if [[ ! -f "${TESTING_DIR}/${knowledge}" ]] || [[ ! "${l4file}" = "*" && ! -f "${TESTING_DIR}/${l4file}" ]] || [[ ! ( -f "${TESTING_DIR}/${result}" && ${nodes} =~ ^[0-9]+$ && ${cores} =~ ^[0-9]+$ ) && ! ( ${result} = "" && ${nodes} = "" && ${cores} = "" ) ]]; then
+  if [[ ! -f "${TESTING_DIR}/${knowledge}" ]] || [[ ! "${l4file}" = "*" && ! -f "${TESTING_DIR}/${l4file}" ]] || [[ ! ( -f "${TESTING_DIR}/${result}" && ${nodes} =~ ^[0-9]+$ && ${cores} =~ ^[0-9]+$ ) && ! ( -z ${result} && -z ${nodes} && -z ${cores} ) ]]; then
     echo "ERROR:  Invalid configuration line:  '${line}'"
     touch "${ERROR_MARKER}"
     continue
@@ -152,7 +149,7 @@ do
 
   echo "Enqueue generation and compilation job for id  ${id}."
   # configuration is fine, start a new job for it
-  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etg_${id}" -o ${TEST_LOG} -e ${TEST_LOG} "--dependency=afterok:${SLURM_JOB_ID}" "${SCR_DIR}/tests2_single.sh" "${TESTING_DIR}" "${COMPILER_JAR}" ${main} "${TEST_DIR}" "${TEST_BIN}" "${TESTING_DIR}/${knowledge}" "${l4file}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}")
+  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etg_${id}" -o ${TEST_LOG} -e ${TEST_LOG} "--dependency=afterok:${SLURM_JOB_ID}" "${SCR_DIR}/tests2_single.sh" "${TESTING_DIR}" "${COMPILER_JAR}" ${main} "${TEST_DIR}" "${TEST_BIN}" "${TESTING_DIR}/${knowledge}" "${l4file}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}" "${BRANCH}")
   if [[ $? -eq 0 ]]; then
     SID=${OUT#Submitted batch job }
     DEP_SIDS="${DEP_SIDS}:${SID}"
@@ -212,7 +209,7 @@ for ((i=0;i<${#TMP_ARRAY[@]};i+=7)); do
     CONSTR_PARAM="--gres=gpu:1"
   fi
   echo "Enqueue execution job for id  ${id}."
-  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etr_${id}" -o ${TEST_LOG} -e ${TEST_LOG} -A ${ACC} -p ${PART} -n ${nodes} -c ${cores} ${TEST_DEP} ${CONSTR_PARAM} "${SCR_DIR}/tests3_generated.sh" "${TEST_BIN}" "${TESTING_DIR}/${result}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}")
+  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etr_${id}" -o ${TEST_LOG} -e ${TEST_LOG} -A ${ACC} -p ${PART} -n ${nodes} -c ${cores} ${TEST_DEP} ${CONSTR_PARAM} "${SCR_DIR}/tests3_generated.sh" "${TEST_BIN}" "${TESTING_DIR}/${result}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}" "${BRANCH}")
   if [[ $? -eq 0 ]]; then
     SID=${OUT#Submitted batch job }
     DEP_SIDS="${DEP_SIDS}:${SID}"
@@ -226,7 +223,7 @@ done
 echo ""
 echo "Collect separate logs after all other jobs are finished:"
 LOG_DEPS="--dependency=afterany${DEP_SIDS}"
-(unset SLURM_JOB_NAME; sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${SCR_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${PROGRESS}")
+(unset SLURM_JOB_NAME; sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${SCR_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${PROGRESS}" "${BRANCH}")
 echo ""
 
-echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
+echo -e "<html><head><meta charset=\"utf-8\"></head><body><pre>Branch: ${BRANCH}; last update: $(date -R)\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R" | grep -v ${SLURM_JOB_ID})</pre></body></html>" > "${PROGRESS}"
