@@ -183,11 +183,12 @@ object StateManager {
         // ###############################################################################################
         case n : Node => {
           val ret = applyAtNode(n, transformation).inner
-          var nextNode = ret
+          var nextNode : Node = n
           ret match {
-            case NoMatch => nextNode = n // do nothing, but set next node for recursive matching
+            case NoMatch => // do nothing, next is already set
             case m : Node => {
-              if (ret != n) {
+              if (m ne n) {
+                nextNode = m
                 m.annotate(n)
                 if (!Vars.set(node, field, m)) {
                   Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
@@ -195,9 +196,11 @@ object StateManager {
               }
             }
             case m : NodeList if m.nodes.size == 1 => { // Only valid if list contains a single element
-              if (m.nodes.toSeq(0) != n) {
-                m.nodes.toSeq(0).annotate(n)
-                if (!Vars.set(node, field, m.nodes.toSeq(0))) {
+              val mNode : Node = m.nodes.toSeq(0)
+              if (mNode ne n) {
+                nextNode = mNode
+                mNode.annotate(n)
+                if (!Vars.set(node, field, mNode)) {
                   Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
                 }
               }
@@ -207,33 +210,36 @@ object StateManager {
 
           // Apply transformation to sub-elements
           if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
-            replace(nextNode.asInstanceOf[Node], transformation) // can safely downcast because of type matching above erroring out for unfitting types
+            replace(nextNode, transformation)
           }
         }
         case Some(any) => any match {
           case n : Node => {
             val ret = applyAtNode(n, transformation).inner
-            var nextNode = ret
+            var nextNode : Node = n
             ret match {
-              case NoMatch => nextNode = n // do nothing, but set next node for recursive matching
+              case NoMatch => // do nothing, next is already set
               case m : Node => {
-                if (ret != n) {
+                if (m ne n) {
+                  nextNode = m
                   m.annotate(n)
                   if (!Vars.set(node, field, Some(m))) {
                     Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
                   }
                 }
               }
-              case m : NodeList if m.nodes.size == 1 =>
-                { // Only valid if list contains a single element
-                  if (m.nodes.toSeq(0) != n) {
-                    m.nodes.toSeq(0).annotate(n)
-                    if (!Vars.set(node, field, Some(m.nodes.toSeq(0)))) {
-                      Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
-                    }
+              case m : NodeList if m.nodes.size == 1 => { // Only valid if list contains a single element
+                val mNode : Node = m.nodes.toSeq(0)
+                if (mNode != n) {
+                  nextNode = mNode
+                  mNode.annotate(n)
+                  if (!Vars.set(node, field, Some(mNode))) {
+                    Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
                   }
                 }
+              }
               case None => {
+                nextNode = null
                 if (!Vars.set(node, field, None)) {
                   Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
                 }
@@ -242,7 +248,9 @@ object StateManager {
 
             // Apply transformation to sub-elements
             if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
-              replace(nextNode.asInstanceOf[Node], transformation) // can safely downcast because of type matching above erroring out for unfitting types
+              if (nextNode != null) {
+                replace(nextNode, transformation)
+              }
             }
           }
           case _ => // "any" is not of type Node, thus not interesting to us
