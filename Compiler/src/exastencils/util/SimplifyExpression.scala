@@ -334,9 +334,9 @@ object SimplifyExpression {
         negSums ++= nSums
       } else {
         if (pSums.isEmpty)
-          negSums += toExpr(nSums)
+          negSums += new MultiplicationExpression(IntegerConstant(value), toExpr(nSums))
         else if (nSums.isEmpty)
-          posSums += toExpr(pSums)
+          posSums += new MultiplicationExpression(IntegerConstant(value), toExpr(pSums))
         else
           posSums += new MultiplicationExpression(IntegerConstant(value), new SubtractionExpression(toExpr(pSums), toExpr(nSums)))
       }
@@ -575,9 +575,9 @@ object SimplifyExpression {
         negSums ++= nSums
       } else {
         if (pSums.isEmpty)
-          negSums += toExpr(nSums)
+          negSums += new MultiplicationExpression(FloatConstant(value), toExpr(nSums))
         else if (nSums.isEmpty)
-          posSums += toExpr(pSums)
+          posSums += new MultiplicationExpression(FloatConstant(value), toExpr(pSums))
         else
           posSums += new MultiplicationExpression(FloatConstant(value), new SubtractionExpression(toExpr(pSums), toExpr(nSums)))
       }
