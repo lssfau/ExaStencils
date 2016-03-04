@@ -29,7 +29,7 @@ case class IndexRange(var begin : MultiIndex, var end : MultiIndex) extends Node
 
 object Mapping {
   def resolveMultiIdx(layout : FieldLayout, index : MultiIndex) : Expression = {
-    if (layout.numDimsData != index.length) Logger.warn(s"Index with dimensionality ${index.length} does not match layout with dimensionality ${layout.numDimsData}")
+    if (layout.numDimsData != index.length) Logger.warn(s"Index with dimensionality ${index.length} does not match layout ${layout.identifier} with dimensionality ${layout.numDimsData}")
 
     var ret = (0 until math.min(layout.numDimsData, index.length)).map(dim => {
       val stride = ((0 until dim).map(d3 => layout(d3).total).fold(1 : Expression)(_ * _))
