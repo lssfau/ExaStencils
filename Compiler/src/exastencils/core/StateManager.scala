@@ -102,7 +102,7 @@ object StateManager {
       Logger.warning("Transaction has been aborted")
     }
 
-    def isValid(token : TransactionToken) = { currentToken != None && token == currentToken.get }
+    def isValid(token : TransactionToken) = { currentToken != None && (token eq currentToken.get) }
   }
   def transaction(strategy : Strategy) = History.transaction(strategy)
   def commit(token : History.TransactionToken) = History.commit(token)
@@ -187,7 +187,7 @@ object StateManager {
           ret match {
             case NoMatch => nextNode = n // do nothing, but set next node for recursive matching
             case m : Node => {
-              if (ret != n) {
+              if (ret ne n) {
                 m.annotate(n)
                 if (!Vars.set(node, field, m)) {
                   Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
@@ -195,7 +195,7 @@ object StateManager {
               }
             }
             case m : NodeList if m.nodes.size == 1 => { // Only valid if list contains a single element
-              if (m.nodes.toSeq(0) != n) {
+              if (m.nodes.toSeq(0) ne n) {
                 m.nodes.toSeq(0).annotate(n)
                 if (!Vars.set(node, field, m.nodes.toSeq(0))) {
                   Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
@@ -217,7 +217,7 @@ object StateManager {
             ret match {
               case NoMatch => nextNode = n // do nothing, but set next node for recursive matching
               case m : Node => {
-                if (ret != n) {
+                if (ret ne n) {
                   m.annotate(n)
                   if (!Vars.set(node, field, Some(m))) {
                     Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
@@ -226,7 +226,7 @@ object StateManager {
               }
               case m : NodeList if m.nodes.size == 1 =>
                 { // Only valid if list contains a single element
-                  if (m.nodes.toSeq(0) != n) {
+                  if (m.nodes.toSeq(0) ne n) {
                     m.nodes.toSeq(0).annotate(n)
                     if (!Vars.set(node, field, Some(m.nodes.toSeq(0)))) {
                       Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
@@ -509,7 +509,7 @@ object StateManager {
         println("transformationtimer;" + strategies_.top.name + ";" + transformation.name + ";" + time + "\\\\")
       }
       var s = strategies_.pop()
-      if (s != strategy) {
+      if (s ne strategy) {
         Logger.error(s"""Mismatch of Standalone Strategy: Expected "${strategy.name}", got "${s.name}"""")
       }
       return new TransformationResult(true, progresses_(transformation).getMatches)
