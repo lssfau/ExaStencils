@@ -7,23 +7,32 @@
 #SBATCH -c 1
 #SBATCH --time=5
 #SBATCH --signal=INT@5
-#SBATCH --open-mode=truncate
+#SBATCH -o /dev/null
+#SBATCH -e /dev/null
 
 
 BASE_DIR=${1}
-TMP_OUT_FILE=${2} # stdout and stderr should already be redirected to this file
-OUT_FILE=${3}
-OUT_FILE_URL=${4} # url to ${OUT_FILE}
-PROGRESS=${5}
-TESTS_LOCK=${6}
-BRANCH=${7}
-FORCE_START=${8}
+OUT_FILE=${2}
+OUT_FILE_URL=${3} # url to ${OUT_FILE}
+PROGRESS=${4}
+TESTS_LOCK=${5}
+BRANCH=${6}
+FORCE_START=${7}
 
 REPO_DIR="${BASE_DIR}/repo"
 SCR_DIR="${BASE_DIR}/scripts"
 TEMP_DIR="${BASE_DIR}/temp/${BRANCH}"
 FAILURE_MAIL="kronast@fim.uni-passau.de"
 FAILURE_MAIL_SUBJECT="ExaStencils TestBot Error (cron)"
+
+TMP_OUT_FILE=$(mktemp --tmpdir=/run/shm 2>&1 || mktemp --tmpdir=/tmp 2>&1) || {
+    echo -e "ERROR: Failed to create temporary file.\n\n${TMP_OUT_FILE}" | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
+    exit 0
+  }
+if [[ ! ${TMP_OUT_FILE} =~ ^/run/shm/* ]]; then
+  echo "Problems with /run/shm on machine ${SLURM_JOB_NODELIST} in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID}." | mail -s "ExaTest /run/shm" "kronast@fim.uni-passau.de"
+fi
+exec > ${TMP_OUT_FILE} 2>&1 # redirect any output using bash; don't use slurms output mechanism, since there is no guarantee all output was writte to the file when it is read at the end of this script
 
 OUT_DIR=$(dirname "${OUT_FILE}")
 

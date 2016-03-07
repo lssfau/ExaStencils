@@ -9,11 +9,12 @@
 
 BIN=${1}
 EXP_RESULT=${2}
-ERROR_MARKER=${3}
-LOG_ALL=${4}
-LINK=${5}
-PROGRESS=${6}
-BRANCH=${7}
+TEMP_DIR=${3}
+ERROR_MARKER=${4}
+LOG_ALL=${5}
+LINK=${6}
+PROGRESS=${7}
+BRANCH=${8}
 
 
 function update_progress {
@@ -31,7 +32,7 @@ update_progress 1
 echo "Running test on machine(s) ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
 rm -f ${ERROR_MARKER} # remove error marker from old job run if we were requeued
 
-RESULT=$(mktemp --tmpdir=/scratch/exatest test_res_XXXXXXXX.txt) || { # should not be placed in ram, since all nodes must have access to the same file
+RESULT=$(mktemp --tmpdir=${TEMP_DIR} test_res_XXXXXXXX.txt) || { # should not be placed in ram, since all nodes must have access to the same file
     echo "ERROR: Failed to create temporary file."
     touch ${ERROR_MARKER}
     echo "${LINK}" >> "${LOG_ALL}"
