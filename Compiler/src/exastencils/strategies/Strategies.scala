@@ -155,17 +155,18 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
         } while (!workQ.isEmpty)
       }
 
+      // add constant at last position
       if (floatCst != 0d) {
         val cst : Double = floatCst + intCst
         if (cst > 0.0)
-          FloatConstant(cst) +=: posSums
+          posSums += FloatConstant(cst)
         else
-          FloatConstant(-cst) +=: negSums
+          negSums += FloatConstant(-cst)
       } else if (intCst != 0L)
         if (intCst > 0)
-          IntegerConstant(intCst) +=: posSums
+          posSums += IntegerConstant(intCst)
         else
-          IntegerConstant(-intCst) +=: negSums
+          negSums += IntegerConstant(-intCst)
 
       var result : Expression = null
       if (vecExpr != null) {
@@ -231,10 +232,10 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       if (div != null)
         div.left = FloatConstant(floatCst * intCst)
       else if (floatCst != 1d) {
-        FloatConstant(floatCst * intCst) +=: rem
+        FloatConstant(floatCst * intCst) +=: rem // add constant at first position (it is expected as rem.head later)
         cstDt = Some(RealDatatype)
       } else if (intCst != 1L) {
-        IntegerConstant(intCst) +=: rem
+        IntegerConstant(intCst) +=: rem // add constant at first position (it is expected as rem.head later)
         cstDt = Some(IntegerDatatype)
       }
 
@@ -248,7 +249,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       } else {
         if (cstDt.isDefined) {
           var found : Boolean = false
-          val coeff : Expression = rem.head
+          val coeff : Expression = rem.head // this must be the constant factor (as added a few lines above)
           rem.transform {
             case v : VectorExpression if (!found) =>
               found = true
