@@ -1,0 +1,40 @@
+targetOS : String           = "OSX"
+targetCompiler              = "GCC"
+targetCompilerVersion       = 0
+targetCompilerVersionMinor  = 0
+
+targetHardware              = "CPU"
+hw_numThreadsPerNode        = 2
+hw_numCoresPerNode          = hw_cpu_numCoresPerCPU * hw_cpu_numCPUs
+hw_numNodes                 = 1
+hw_cpu_name                 = "Intel(R) Core(TM) i7-3520M CPU @ 2.90GHz"
+hw_cpu_numCoresPerCPU       = 2
+hw_cpu_numCPUs              = 1
+hw_cpu_bandwidth            = 25.6 * 1024 * 1024 * 1024
+hw_cpu_frequency            = 2.9 * 1000 * 1000 * 1000
+hw_64bit                    = true
+hw_cacheLineSize            = 512
+hw_gpu_name                 = "NVidia Quadro 4000"
+hw_gpu_numDevices           = 2
+hw_gpu_bandwidth            = 89.6 * 1024 * 1024 * 1024
+hw_gpu_frequency            = 0.475 * 1000 * 1000 * 1000
+hw_gpu_numCores             = 256
+hw_cuda_capability          = 2
+hw_cuda_capabilityMinor     = 0
+
+sw_cuda_version             = 7
+sw_cuda_versionMinor        = 5
+sw_cuda_kernelCallOverhead  = 3.5 * 0.001
+
+experimental_cuda_enabled                       = true
+experimental_cuda_deviceId                      = 0
+experimental_cuda_preferredExecution            = "Performance"
+experimental_cuda_syncDeviceAfterKernelCalls    = true
+experimental_cuda_syncHostForWrites             = false
+experimental_cuda_syncDeviceForWrites           = true
+experimental_cuda_blockSize_x                   = 8
+experimental_cuda_blockSize_y                   = 8
+experimental_cuda_blockSize_z                   = 8
+experimental_mergeCommIntoLoops                 = false
+experimental_splitLoopsForAsyncComm             = false
+experimental_splitLoops_minInnerWidth           = 4
