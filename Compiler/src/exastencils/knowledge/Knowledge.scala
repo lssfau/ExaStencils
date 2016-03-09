@@ -20,7 +20,7 @@ object Knowledge {
   var hw_cpu_numCoresPerCPU : Int = 4
   var hw_cpu_numCPUs : Int = 2
   var hw_cpu_bandwidth : Double = 25.6 * 1024 * 1024 * 1024 // in B/s
-  var hw_cpu_frequency : Double = 2.4 * 1000 * 1000 * 1000 // in Hz
+  var hw_cpu_frequency : Double = 2.9 * 1000 * 1000 * 1000 // in Hz
   var hw_cpu_numCyclesPerDiv : Double = 24 // arbitrary value -> to be benchmarked later
   var hw_64bit : Boolean = true // true if 64 bit addresses are used
   var hw_cacheLineSize : Int = 512 // in B
