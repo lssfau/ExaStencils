@@ -50,6 +50,9 @@ RESULT=$(mktemp --tmpdir=/run/shm || mktemp --tmpdir=/tmp) || {
     echo "${LINK}" >> "${LOG_ALL}"
     exit 0
   }
+if [[ ! ${RESULT} =~ ^/run/shm/* ]]; then
+  echo "Problems with /run/shm on machine ${SLURM_JOB_NODELIST} in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID}." | mail -s "ExaTest /run/shm" "kronast@fim.uni-passau.de"
+fi
 
 function killed {
   echo "ERROR? Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} killed; possible reasons: timeout, manually canceled, user login (job is then requeued)."
