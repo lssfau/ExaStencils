@@ -113,10 +113,11 @@ case class Kernel(var identifier : String,
     var statements = ListBuffer[Statement]()
 
     // add index calculation
+    val minIndices = LoopOverDimensions.evalMinIndex(indices.begin, numDimensions, true)
     statements ++= (0 until numDimensions).map(dim => {
       def it = dimToString(dim)
       VariableDeclarationStatement(IntegerDatatype, it,
-        Some(("blockIdx." ~ it) * ("blockDim." ~ it) + ("threadIdx." ~ it)))
+        Some(("blockIdx." ~ it) * ("blockDim." ~ it) + ("threadIdx." ~ it) + minIndices(dim)))
     })
 
     // add index bounds conditions
@@ -168,8 +169,10 @@ case class Kernel(var identifier : String,
     }
 
     // evaluate required thread counts
-    // TODO: shift indices incorporating indices.begin
-    var numThreadsPerDim = LoopOverDimensions.evalMaxIndex(indices.end, numDimensions, true)
+    var numThreadsPerDim = (
+      LoopOverDimensions.evalMaxIndex(indices.end, numDimensions, true),
+      LoopOverDimensions.evalMinIndex(indices.begin, numDimensions, true)).zipped.map(_ - _)
+
     if (null == numThreadsPerDim || numThreadsPerDim.reduce(_ * _) <= 0) {
       Logger.warn("Could not evaluate required number of threads for kernel " + identifier)
       numThreadsPerDim = (0 until numDimensions).map(dim => 0 : Long).toArray // TODO: replace 0 with sth more suitable
