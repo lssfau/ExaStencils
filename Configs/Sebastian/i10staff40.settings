@@ -1,0 +1,16 @@
+user						= "Sebastian"
+
+basePathPrefix				= "./"
+l4file						= "Compiler\dsl\Layer4.exa"
+htmlLogFile					= "Compiler\log\log.html"
+outputPath					= "generated/"
+
+produceHtmlLog				= true
+timeStrategies				= true
+timeStratPercentThreshold	= 0
+
+pathsInc					+= "$(CUDA_INC_PATH)"
+pathsLib					+= "$(CUDA_LIB_PATH)"
+
+additionalLibs				+= "cuda.lib"
+additionalLibs				+= "cudart.lib"
