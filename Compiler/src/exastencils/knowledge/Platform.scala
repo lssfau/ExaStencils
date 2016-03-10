@@ -3,132 +3,144 @@ package exastencils.knowledge
 import exastencils.logger._
 
 object Platform {
+  /// hardware options
 
-  // TODO: check which flags are required
+  var hw_numThreadsPerNode : Int = 64 // specifies the total number of ranks (OMP and MPI) to be used when generating job scripts
+  def hw_numCoresPerNode : Int = hw_cpu_numCoresPerCPU * hw_cpu_numCPUs
+  var hw_numNodes : Int = 1
+  var hw_cpu_name : String = "Intel Xeon E5620"
+  var hw_cpu_numCoresPerCPU : Int = 4
+  var hw_cpu_numCPUs : Int = 2
+  var hw_cpu_bandwidth : Double = 25.6 * 1024 * 1024 * 1024 // in B/s
+  var hw_cpu_frequency : Double = 2.4 * 1000 * 1000 * 1000 // in Hz
+  var hw_cpu_numCyclesPerDiv : Double = 24 // arbitrary value -> to be benchmarked later
+  var hw_64bit : Boolean = true // true if 64 bit addresses are used
+  var hw_cacheLineSize : Int = 512 // in B
+  var hw_gpu_name : String = "NVidia Quadro 4000"
+  var hw_gpu_numDevices : Int = 2
+  var hw_gpu_bandwidth : Double = 89.6 * 1024 * 1024 * 1024 // in B/s
+  var hw_gpu_frequency : Double = 0.475 * 1000 * 1000 * 1000 // in Hz
+  var hw_gpu_numCores : Int = 256
+  var hw_cuda_capability : Int = 2
+  var hw_cuda_capabilityMinor : Int = 0
 
-  var compiler : String = ""
-  var cflags : String = ""
-  var addcflags : String = ""
-  var ldflags : String = ""
-  var addldflags : String = ""
+  def hw_cuda_maxNumDimsBlock : Int = if (hw_cuda_capability < 2) 2 else 3 // 3 seems to be max; checked for versions up to 5.3
 
-  if (Knowledge.library_CImg) {
-    Knowledge.targetOS match {
-      case "Windows"       => ldflags += " -lgdi32 "
-      case "Linux" | "OSX" => ldflags += " -lm -lpthread -lX11"
+  /// software options
+
+  var sw_cuda_version : Int = 7
+  var sw_cuda_versionMinor : Int = 5
+  var sw_cuda_kernelCallOverhead : Double = 3.5 * 0.001 // in s
+
+  /// resolve functions
+
+  def resolveCompiler = {
+    Knowledge.targetCompiler match {
+      case "IBMBG" =>
+        var base = if (Knowledge.mpi_enabled) "mpixlcxx" else "bgxlc++"
+        if (Knowledge.omp_enabled) base + "_r" else base
+      case "IBMXL" =>
+        if (Knowledge.mpi_enabled) "mpixlcxx" else "xlc++"
+      case "GCC" =>
+        if ("ARM" == Knowledge.targetHardware)
+          "arm-linux-gnueabihf-g++"
+        else if (Knowledge.mpi_enabled)
+          "mpicxx"
+        else
+          "g++"
+      case "MSVC" =>
+        "" // nothing to do
+      case "ICC" =>
+        if (Knowledge.mpi_enabled) "mpicxx" else "icc"
+      case "CLANG" =>
+        "clang++-" + Knowledge.targetCompilerVersion + "." + Knowledge.targetCompilerVersionMinor
     }
   }
 
-  // NOTE: this only works if the Hardware object is loaded AFTER Knowledge is fully initialized
-  Knowledge.targetCompiler match {
-    case "IBMBG" => {
-      cflags = " -O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot
-      ldflags = " -O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot
+  def resolveCFlags = {
+    var flags : String = ""
 
-      if (Knowledge.mpi_enabled && Knowledge.omp_enabled) {
-        compiler = "mpixlcxx_r"
-      } else if (Knowledge.mpi_enabled && !Knowledge.omp_enabled) {
-        compiler = "mpixlcxx"
-      } else if (!Knowledge.mpi_enabled && Knowledge.omp_enabled) {
-        compiler = "bgxlc++_r"
-      } else if (!Knowledge.mpi_enabled && !Knowledge.omp_enabled) {
-        compiler = "bgxlc++"
-      }
+    Knowledge.targetCompiler match {
+      case "IBMBG" | "IBMXL" =>
+        flags += " -O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot
+        if (Knowledge.omp_enabled) flags += " -qsmp=omp"
+      case "GCC" =>
+        flags += " -O3 -DNDEBUG -std=c++11"
 
-      if (Knowledge.omp_enabled) {
-        cflags += " -qsmp=omp"
-        ldflags += " -qsmp=omp"
-      }
-    }
-    case "IBMXL" => {
-      cflags = " -O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot
-      ldflags = " -O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot
+        if (Knowledge.omp_enabled) flags += " -fopenmp"
 
-      if (Knowledge.mpi_enabled) {
-        compiler = "mpixlcxx"
-      } else {
-        compiler = "xlc++"
-      }
-
-      if (Knowledge.omp_enabled) {
-        cflags += " -qsmp=omp"
-        ldflags += " -qsmp=omp"
-      }
-    }
-    case "GCC" => {
-      cflags = " -O3 -DNDEBUG -std=c++11"
-      ldflags = ""
-
-      if (Knowledge.opt_vectorize) {
-        Knowledge.simd_instructionSet match {
-          case "SSE3"   => cflags += " -msse3"
-          case "AVX"    => cflags += " -mavx"
-          case "AVX2"   => cflags += " -mavx2 -mfma"
-          case "AVX512" => cflags += " -march=knl"
-          case "IMCI"   => Logger.error("GCC does not support IMCI")
-          case "NEON"   => cflags += " -mfpu=neon"
+        if (Knowledge.opt_vectorize) {
+          Knowledge.simd_instructionSet match {
+            case "SSE3"   => flags += " -msse3"
+            case "AVX"    => flags += " -mavx"
+            case "AVX2"   => flags += " -mavx2 -mfma"
+            case "AVX512" => flags += " -march=knl"
+            case "IMCI"   => Logger.error("GCC does not support IMCI")
+            case "NEON"   => flags += " -mfpu=neon"
+          }
         }
-      }
-      if ("ARM" == Knowledge.targetHardware) {
-        cflags += " -mcpu=cortex-a9 -mhard-float -funsafe-math-optimizations -static"
-        ldflags += " -static"
-      }
 
-      if ("ARM" == Knowledge.targetHardware)
-        compiler = "arm-linux-gnueabihf-g++"
-      else if (Knowledge.mpi_enabled) {
-        compiler = "mpicxx"
-      } else {
-        compiler = "g++"
-      }
-
-      if (Knowledge.omp_enabled) {
-        cflags += " -fopenmp"
-        ldflags += " -fopenmp"
-      }
-    }
-    case "MSVC" => { /* nothing to do */ }
-    case "ICC" => {
-      if (Knowledge.mpi_enabled)
-        compiler = "mpicxx"
-      else
-        compiler = "icc"
-
-      cflags = " -O3 -std=c++11"
-
-      if (Knowledge.omp_enabled) {
-        cflags += " -openmp"
-        ldflags += " -openmp"
-      }
-
-      if (Knowledge.opt_vectorize) {
-        Knowledge.simd_instructionSet match { // TODO: verify flags
-          case "SSE3"   => cflags += " -msse3"
-          case "AVX"    => cflags += " -mavx"
-          case "AVX2"   => cflags += " -march=core-avx2"
-          case "AVX512" => cflags += " -march=knl"
-          case "IMCI"   => cflags += " -march=knc"
+        if ("ARM" == Knowledge.targetHardware) {
+          flags += " -mcpu=cortex-a9 -mhard-float -funsafe-math-optimizations -static"
         }
-      }
-    }
-    case "CLANG" => {
-      compiler = "clang++-" + Knowledge.targetCompilerVersion + "." + Knowledge.targetCompilerVersionMinor
-      cflags = " -O3 -std=c++11"
+      case "MSVC" => // nothing to do
+      case "ICC" =>
+        flags += " -O3 -std=c++11"
 
-      if (Knowledge.omp_enabled) {
-        cflags += " -fopenmp=libiomp5"
-        ldflags += " -fopenmp=libiomp5"
-      }
+        if (Knowledge.omp_enabled) flags += " -openmp"
 
-      if (Knowledge.opt_vectorize) {
-        Knowledge.simd_instructionSet match {
-          case "SSE3"   => cflags += " -msse3"
-          case "AVX"    => cflags += " -mavx"
-          case "AVX2"   => cflags += " -mavx2 -mfma"
-          case "AVX512" => cflags += " -mavx512f"
-          case "IMCI"   => Logger.error("clang does not support IMCI")
+        if (Knowledge.opt_vectorize) {
+          Knowledge.simd_instructionSet match { // TODO: verify flags
+            case "SSE3"   => flags += " -msse3"
+            case "AVX"    => flags += " -mavx"
+            case "AVX2"   => flags += " -march=core-avx2"
+            case "AVX512" => flags += " -march=knl"
+            case "IMCI"   => flags += " -march=knc"
+          }
         }
+      case "CLANG" =>
+        flags += " -O3 -std=c++11"
+
+        if (Knowledge.omp_enabled) flags += " -fopenmp=libiomp5"
+
+        if (Knowledge.opt_vectorize) {
+          Knowledge.simd_instructionSet match {
+            case "SSE3"   => flags += " -msse3"
+            case "AVX"    => flags += " -mavx"
+            case "AVX2"   => flags += " -mavx2 -mfma"
+            case "AVX512" => flags += " -mavx512f"
+            case "IMCI"   => Logger.error("clang does not support IMCI")
+          }
+        }
+    }
+
+    flags
+  }
+
+  def resolveLdFlags = {
+    var flags : String = ""
+
+    if (Knowledge.library_CImg) {
+      Knowledge.targetOS match {
+        case "Windows"       => flags += " -lgdi32 "
+        case "Linux" | "OSX" => flags += " -lm -lpthread -lX11"
       }
     }
+
+    Knowledge.targetCompiler match {
+      case "IBMBG" | "IBMXL" =>
+        flags += " -O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot
+        if (Knowledge.omp_enabled) flags += " -qsmp=omp"
+      case "GCC" =>
+        if ("ARM" == Knowledge.targetHardware) flags += " -static"
+        if (Knowledge.omp_enabled) flags += " -fopenmp"
+      case "MSVC" => // nothing to do
+      case "ICC" =>
+        if (Knowledge.omp_enabled) flags += " -openmp"
+      case "CLANG" =>
+        if (Knowledge.omp_enabled) flags += " -fopenmp=libiomp5"
+    }
+
+    flags
   }
 }
