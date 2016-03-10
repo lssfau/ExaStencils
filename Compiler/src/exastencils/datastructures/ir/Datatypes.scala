@@ -102,16 +102,16 @@ case object CharDatatype extends ScalarDatatype {
   override def typicalByteSize = 1
 }
 
-/// higher order data types
+/// higher-dimensional data types
 
-trait HigherOrderDatatype extends Datatype {
+trait HigherDimensionalDatatype extends Datatype {
   def datatype : Datatype // encapsulated data type
   override def resolveBaseDatatype : Datatype = datatype.resolveBaseDatatype
 }
 
 // FIXME: in the following classes, rename size to numElements to make intention clearer
 
-case class ArrayDatatype(datatype : Datatype, size : Int) extends HigherOrderDatatype {
+case class ArrayDatatype(datatype : Datatype, size : Int) extends HigherDimensionalDatatype {
   override def prettyprint(out : PpStream) : Unit = out << datatype << '[' << size << ']'
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 
@@ -123,7 +123,7 @@ case class ArrayDatatype(datatype : Datatype, size : Int) extends HigherOrderDat
   override def typicalByteSize = size * datatype.typicalByteSize
 }
 
-case class ArrayDatatype_VS(datatype : Datatype, size : Expression) extends HigherOrderDatatype {
+case class ArrayDatatype_VS(datatype : Datatype, size : Expression) extends HigherDimensionalDatatype {
   override def prettyprint(out : PpStream) : Unit = out << datatype << '[' << size << ']'
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 
@@ -135,7 +135,7 @@ case class ArrayDatatype_VS(datatype : Datatype, size : Expression) extends High
   override def typicalByteSize = ???
 }
 
-case class VectorDatatype(var datatype : Datatype, var size : Int, var isRow : Option[Boolean]) extends HigherOrderDatatype {
+case class VectorDatatype(var datatype : Datatype, var size : Int, var isRow : Option[Boolean]) extends HigherDimensionalDatatype {
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
   override def prettyprint(out : PpStream) : Unit = {
     if (isRow.getOrElse(true)) out << "Matrix<" << datatype << ",1," << size << '>'
@@ -150,7 +150,7 @@ case class VectorDatatype(var datatype : Datatype, var size : Int, var isRow : O
   override def typicalByteSize = size * datatype.typicalByteSize
 }
 
-case class MatrixDatatype(var datatype : Datatype, var sizeM : Int, var sizeN : Int) extends HigherOrderDatatype {
+case class MatrixDatatype(var datatype : Datatype, var sizeM : Int, var sizeN : Int) extends HigherDimensionalDatatype {
   override def prettyprint(out : PpStream) : Unit = out << "Matrix<" << datatype << ',' << sizeM << ',' << sizeN << '>'
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 
