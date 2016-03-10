@@ -52,5 +52,5 @@ l3tmp_printAllTimers			= true
 
 l3tmp_genFragLoops 				= false
 experimental_cuda_enabled		= true
-experimental_cuda_preferredExecution	= "Host"
+experimental_cuda_preferredExecution	= "Performance"
 

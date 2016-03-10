@@ -128,7 +128,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
             case SubtractionExpression(left, right) =>
               workQ.enqueue((left, pos))
               workQ.enqueue((right, !pos))
-            // if some more simplifications with vectors or matrices are required, a similar approach than for a 
+            // if some more simplifications with vectors or matrices are required, a similar approach than for a
             //    MultiplicationExpression is possible here
             case v : VectorExpression =>
               if (vecExpr == null) {
@@ -389,7 +389,7 @@ object CleanUnusedStuff extends DefaultStrategy("Cleaning up unused stuff") {
   }
 
   this += new Transformation("Looking for deletable objects", {
-    case FunctionStatement(_, name, _, ListBuffer(), _, _) => {
+    case FunctionStatement(_, name, _, ListBuffer(), _, _, _) => {
       emptyFunctions += name
       List()
     }

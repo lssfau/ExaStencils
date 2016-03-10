@@ -179,11 +179,12 @@ case class Kernel(var identifier : String,
     }
 
     FunctionStatement(
-      SpecialDatatype("extern \"C\" void"), // FIXME
+      UnitDatatype,
       getWrapperFctName,
       Duplicate(passThroughArgs),
       ListBuffer[Statement](CUDA_FunctionCallExpression(getKernelFctName, numThreadsPerDim, callArgs)),
-      false)
+      false, false,
+      "extern \"C\"")
   }
 
   def compileKernelFunction : FunctionStatement = {
@@ -212,11 +213,9 @@ case class Kernel(var identifier : String,
     }
 
     var fct = FunctionStatement(
-      SpecialDatatype("__global__ void"), // FIXME
-      getKernelFctName,
-      fctParams,
+      UnitDatatype, getKernelFctName, fctParams,
       compileKernelBody,
-      false, false)
+      false, false, "__global__")
 
     fct.annotate("deviceOnly")
 
