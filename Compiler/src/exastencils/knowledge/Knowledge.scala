@@ -32,6 +32,8 @@ object Knowledge {
   var hw_cuda_capability : Int = 2
   var hw_cuda_capabilityMinor : Int = 0
 
+  def hw_cuda_maxNumDimsBlock : Int = if (hw_cuda_capability < 2) 2 else 3 // 3 seems to be max; checked for versions up tp 5.3
+
   var sw_cuda_version : Int = 7
   var sw_cuda_versionMinor : Int = 5
   var sw_cuda_kernelCallOverhead : Double = 3.5 * 0.001 // in s

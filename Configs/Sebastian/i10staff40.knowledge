@@ -41,7 +41,7 @@ opt_unroll						= 1
 
 l3tmp_generateL4				= true
 
-//l3tmp_genStencilFields			= true
+l3tmp_genStencilFields			= true
 l3tmp_exactSolution				= "Polynomial"
 
 l3tmp_printError				= true

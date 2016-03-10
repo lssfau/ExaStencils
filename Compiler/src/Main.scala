@@ -223,8 +223,10 @@ object Main {
 
     if (Knowledge.experimental_addPerformanceEstimate)
       AddPerformanceEstimates()
-    if (Knowledge.experimental_cuda_enabled)
+    if (Knowledge.experimental_cuda_enabled) {
       SplitLoopsForHostAndDevice.apply()
+      AdaptKernelDimensionalities.apply()
+    }
 
     MapStencilAssignments.apply()
     ResolveFieldAccess.apply()
