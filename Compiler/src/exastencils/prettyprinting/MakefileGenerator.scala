@@ -11,17 +11,17 @@ object MakefileGenerator extends BuildfileGenerator {
     val cppFileNames = filesToConsider.filter(file => file.endsWith(".cpp")).toList.sorted
     val cuFileNames = filesToConsider.filter(file => file.endsWith(".cu")).toList.sorted
 
-    printer <<< "CXX = " + Platform.compiler
+    printer <<< "CXX = " + Platform.resolveCompiler
     if (Knowledge.experimental_cuda_enabled)
       printer <<< "NVCC = nvcc" // TODO: TPDL
     printer <<< ""
 
-    printer <<< "CFLAGS = " + Platform.cflags + " " + Platform.addcflags + " " +
+    printer <<< "CFLAGS = " + Platform.resolveCFlags + " " +
       Settings.pathsInc.map(path => s"-I$path").mkString(" ") + " " +
       Settings.additionalDefines.map(path => s"-D$path").mkString(" ")
     if (Knowledge.experimental_cuda_enabled)
       printer <<< "NVCCFLAGS = -std=c++11 -O3 -DNDEBUG " + Settings.pathsInc.map(path => s"-I$path").mkString(" ") + " " // TODO: TPDL
-    printer <<< "LFLAGS = " + Platform.ldflags + " " + Platform.addldflags + " " +
+    printer <<< "LFLAGS = " + Platform.resolveLdFlags + " " +
       Settings.pathsLib.map(path => s"-L$path").mkString(" ") + " " +
       Settings.additionalDefines.map(path => s"-D$path").mkString(" ")
     printer <<< ""

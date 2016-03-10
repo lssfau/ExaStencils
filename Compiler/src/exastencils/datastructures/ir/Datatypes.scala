@@ -226,7 +226,7 @@ trait PointerLikeDatatype extends IndirectionDatatype {
   override def getSizeArray : Array[Int] = Array()
   override def resolveFlattendSize : Int = 1
 
-  override def typicalByteSize = if (Knowledge.hw_64bit) 8 else 4
+  override def typicalByteSize = if (Platform.hw_64bit) 8 else 4
 }
 
 trait ReferenceLikeDatatype extends IndirectionDatatype {

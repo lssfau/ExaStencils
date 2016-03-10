@@ -113,15 +113,16 @@ case class Kernel(var identifier : String,
     var statements = ListBuffer[Statement]()
 
     // add index calculation
+    val minIndices = LoopOverDimensions.evalMinIndex(indices.begin, numDimensions, true)
     statements ++= (0 until numDimensions).map(dim => {
       def it = dimToString(dim)
       VariableDeclarationStatement(IntegerDatatype, it,
-        Some(("blockIdx." ~ it) * ("blockDim." ~ it) + ("threadIdx." ~ it)))
+        Some(("blockIdx." ~ it) * ("blockDim." ~ it) + ("threadIdx." ~ it) + minIndices(dim)))
     })
 
     // add index bounds conditions
     statements ++= (0 until numDimensions).map(dim => {
-      def it = Duplicate(LoopOverDimensions.defIt(numDimensions)(dim))
+      def it = Duplicate(LoopOverDimensions.defItForDim(dim))
       new ConditionStatement(
         OrOrExpression(LowerExpression(it, s"begin_$dim"), GreaterEqualExpression(it, s"end_$dim")),
         ReturnStatement())
@@ -168,19 +169,22 @@ case class Kernel(var identifier : String,
     }
 
     // evaluate required thread counts
-    // TODO: shift indices incorporating indices.begin
-    var numThreadsPerDim = LoopOverDimensions.evalMaxIndex(indices.end, numDimensions, true)
+    var numThreadsPerDim = (
+      LoopOverDimensions.evalMaxIndex(indices.end, numDimensions, true),
+      LoopOverDimensions.evalMinIndex(indices.begin, numDimensions, true)).zipped.map(_ - _)
+
     if (null == numThreadsPerDim || numThreadsPerDim.reduce(_ * _) <= 0) {
       Logger.warn("Could not evaluate required number of threads for kernel " + identifier)
       numThreadsPerDim = (0 until numDimensions).map(dim => 0 : Long).toArray // TODO: replace 0 with sth more suitable
     }
 
     FunctionStatement(
-      SpecialDatatype("extern \"C\" void"), // FIXME
+      UnitDatatype,
       getWrapperFctName,
       Duplicate(passThroughArgs),
       ListBuffer[Statement](CUDA_FunctionCallExpression(getKernelFctName, numThreadsPerDim, callArgs)),
-      false)
+      false, false,
+      "extern \"C\"")
   }
 
   def compileKernelFunction : FunctionStatement = {
@@ -209,11 +213,9 @@ case class Kernel(var identifier : String,
     }
 
     var fct = FunctionStatement(
-      SpecialDatatype("__global__ void"), // FIXME
-      getKernelFctName,
-      fctParams,
+      UnitDatatype, getKernelFctName, fctParams,
       compileKernelBody,
-      false, false)
+      false, false, "__global__")
 
     fct.annotate("deviceOnly")
 

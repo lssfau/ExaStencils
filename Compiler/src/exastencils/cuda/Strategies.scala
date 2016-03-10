@@ -115,6 +115,25 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
   }, false)
 }
 
+object AdaptKernelDimensionalities extends DefaultStrategy("Reduce kernel dimensionality where necessary") {
+  this += new Transformation("Process kernel nodes", {
+    case kernel : Kernel => {
+      while (kernel.numDimensions > Platform.hw_cuda_maxNumDimsBlock) {
+        def it = LoopOverDimensions.defItForDim(kernel.numDimensions - 1)
+        kernel.body = ListBuffer[Statement](ForLoopStatement(
+          new VariableDeclarationStatement(it, kernel.indices.begin.last),
+          LowerExpression(it, kernel.indices.end.last),
+          AssignmentStatement(it, 1, "+="),
+          kernel.body))
+        kernel.indices.begin.dropRight(1)
+        kernel.indices.end.dropRight(1)
+        kernel.numDimensions -= 1
+      }
+      kernel
+    }
+  })
+}
+
 object GatherLocalFieldAccess extends QuietDefaultStrategy("Gathering local FieldAccess nodes") {
   var fieldAccesses = HashMap[String, FieldAccessLike]()
   var inWriteOp = false

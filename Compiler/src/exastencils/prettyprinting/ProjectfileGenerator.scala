@@ -50,7 +50,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
     // extensions
     projectPrinter <<< "\t<ImportGroup Label=\"ExtensionSettings\">"
     if (Knowledge.experimental_cuda_enabled) {
-      val cudaString = s"CUDA ${Knowledge.sw_cuda_version}.${Knowledge.sw_cuda_versionMinor}"
+      val cudaString = s"CUDA ${Platform.sw_cuda_version}.${Platform.sw_cuda_versionMinor}"
       projectPrinter <<< "\t\t<Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\" + cudaString + ".props\" />"
       projectPrinter <<< "\t\t<Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\" + cudaString + ".targets\" />"
     }

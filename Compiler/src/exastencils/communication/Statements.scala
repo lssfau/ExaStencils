@@ -479,8 +479,8 @@ case class IsOnSpecBoundary(var field : FieldSelection, var neigh : NeighborInfo
     var conditions = ListBuffer[Expression](NegationExpression(iv.NeighborIsValid(field.domainIndex, neigh.index)))
     for (dim <- 0 until field.field.fieldLayout.numDimsGrid) {
       neigh.dir(dim) match {
-        case -1 => conditions += LowerExpression(LoopOverDimensions.defIt(Knowledge.dimensionality)(dim), field.fieldLayout.idxById("DLE", dim) - field.referenceOffset(dim))
-        case 1  => conditions += GreaterEqualExpression(LoopOverDimensions.defIt(Knowledge.dimensionality)(dim), field.fieldLayout.idxById("DRB", dim) - field.referenceOffset(dim))
+        case -1 => conditions += LowerExpression(LoopOverDimensions.defItForDim(dim), field.fieldLayout.idxById("DLE", dim) - field.referenceOffset(dim))
+        case 1  => conditions += GreaterEqualExpression(LoopOverDimensions.defItForDim(dim), field.fieldLayout.idxById("DRB", dim) - field.referenceOffset(dim))
         case 0  => // true
       }
     }

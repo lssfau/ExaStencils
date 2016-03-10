@@ -5,12 +5,11 @@ import exastencils.logger._
 import exastencils.spl._
 
 object Knowledge {
-  // TODO: rename and move to hw knowledge?
-  var targetOS : String = "OSX" // the target operating system: "Linux", "Windows", "OSX"
-  var targetCompiler : String = "GCC" // the target compiler; may atm be "MSVC", "GCC", "IBMXL", "IBMBG", "ICC", "CLANG"
+  // TODO: rename and move to platform -> check with Stefan about impacts on automatic tests
+  var targetOS : String = "Windows" // the target operating system: "Linux", "Windows", "OSX"
+  var targetCompiler : String = "MSVC" // the target compiler; may atm be "MSVC", "GCC", "IBMXL", "IBMBG", "ICC", "CLANG"
   var targetCompilerVersion : Int = 0 // major version of the target compiler
   var targetCompilerVersionMinor : Int = 0 // minor version of the target compiler
-
   var targetHardware : String = "CPU" // target hw platform; may be "CPU" or "ARM"
   // FIXME: move me to dedicated hardware specification
   var hw_numThreadsPerNode : Int = 64 // specifies the total number of ranks (OMP and MPI) to be used when generating job scripts
@@ -574,13 +573,13 @@ object Knowledge {
     Constraints.condWarn(comm_disableLocalCommSync && experimental_allowCommInFragLoops, s"comm_disableLocalCommSynchronization in conjunction with experimental_allowCommInFragLoops is strongly discouraged")
 
     Constraints.condEnsureValue(experimental_addPerformanceEstimate, true, experimental_cuda_enabled && "Performance" == experimental_cuda_preferredExecution, s"experimental_addPerformanceEstimate is required for performance estimate guided kernel execution")
-    Constraints.condEnsureValue(experimental_cuda_deviceId, 0, experimental_cuda_enabled && experimental_cuda_deviceId >= hw_gpu_numDevices, s"CUDA device id must not be exceeding number of installed devices")
+    Constraints.condEnsureValue(experimental_cuda_deviceId, 0, experimental_cuda_enabled && experimental_cuda_deviceId >= Platform.hw_gpu_numDevices, s"CUDA device id must not be exceeding number of installed devices")
 
     Constraints.condEnsureValue(experimental_cuda_blockSize_y, 1, experimental_cuda_enabled && domain_rect_generate && dimensionality < 2, "experimental_cuda_blockSize_y must be set to 1 for problems with a dimensionality smaller 2")
     Constraints.condEnsureValue(experimental_cuda_blockSize_z, 1, experimental_cuda_enabled && domain_rect_generate && dimensionality < 3, "experimental_cuda_blockSize_z must be set to 1 for problems with a dimensionality smaller 3")
 
-    Constraints.condWarn(experimental_cuda_enabled && experimental_cuda_blockSizeTotal > 512 && hw_cuda_capability <= 2, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability $hw_cuda_capability.$hw_cuda_capabilityMinor")
-    Constraints.condWarn(experimental_cuda_enabled && experimental_cuda_blockSizeTotal > 1024 && hw_cuda_capability >= 3, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability $hw_cuda_capability.$hw_cuda_capabilityMinor")
+    Constraints.condWarn(experimental_cuda_enabled && experimental_cuda_blockSizeTotal > 512 && Platform.hw_cuda_capability <= 2, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability ${Platform.hw_cuda_capability}.${Platform.hw_cuda_capabilityMinor}")
+    Constraints.condWarn(experimental_cuda_enabled && experimental_cuda_blockSizeTotal > 1024 && Platform.hw_cuda_capability >= 3, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability ${Platform.hw_cuda_capability}.${Platform.hw_cuda_capabilityMinor}")
 
     Constraints.condWarn(experimental_splitLoopsForAsyncComm && 26 != comm_strategyFragment, s"Using asynchronous communication with comm_strategyFragment != 26 leads to problems with stencils containing diagonal entries")
 
