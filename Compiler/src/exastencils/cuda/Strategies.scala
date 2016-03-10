@@ -118,7 +118,7 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
 object AdaptKernelDimensionalities extends DefaultStrategy("Reduce kernel dimensionality where necessary") {
   this += new Transformation("Process kernel nodes", {
     case kernel : Kernel => {
-      while (kernel.numDimensions > Knowledge.hw_cuda_maxNumDimsBlock) {
+      while (kernel.numDimensions > Platform.hw_cuda_maxNumDimsBlock) {
         def it = LoopOverDimensions.defItForDim(kernel.numDimensions - 1)
         kernel.body = ListBuffer[Statement](ForLoopStatement(
           new VariableDeclarationStatement(it, kernel.indices.begin.last),

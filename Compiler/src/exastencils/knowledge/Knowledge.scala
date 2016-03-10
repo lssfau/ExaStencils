@@ -5,38 +5,13 @@ import exastencils.logger._
 import exastencils.spl._
 
 object Knowledge {
-  // TODO: rename and move to hw knowledge?
+  // TODO: rename and move to platform -> check with Stefan about impacts on automatic tests
   var targetOS : String = "Windows" // the target operating system: "Linux", "Windows", "OSX"
   var targetCompiler : String = "MSVC" // the target compiler; may atm be "MSVC", "GCC", "IBMXL", "IBMBG", "ICC", "CLANG"
   var targetCompilerVersion : Int = 0 // major version of the target compiler
   var targetCompilerVersionMinor : Int = 0 // minor version of the target compiler
 
   var targetHardware : String = "CPU" // target hw platform; may be "CPU" or "ARM"
-  // FIXME: move me to dedicated hardware specification
-  var hw_numThreadsPerNode : Int = 64 // specifies the total number of ranks (OMP and MPI) to be used when generating job scripts
-  def hw_numCoresPerNode : Int = hw_cpu_numCoresPerCPU * hw_cpu_numCPUs
-  var hw_numNodes : Int = 1
-  var hw_cpu_name : String = "Intel Xeon E5620"
-  var hw_cpu_numCoresPerCPU : Int = 4
-  var hw_cpu_numCPUs : Int = 2
-  var hw_cpu_bandwidth : Double = 25.6 * 1024 * 1024 * 1024 // in B/s
-  var hw_cpu_frequency : Double = 2.4 * 1000 * 1000 * 1000 // in Hz
-  var hw_cpu_numCyclesPerDiv : Double = 24 // arbitrary value -> to be benchmarked later
-  var hw_64bit : Boolean = true // true if 64 bit addresses are used
-  var hw_cacheLineSize : Int = 512 // in B
-  var hw_gpu_name : String = "NVidia Quadro 4000"
-  var hw_gpu_numDevices : Int = 2
-  var hw_gpu_bandwidth : Double = 89.6 * 1024 * 1024 * 1024 // in B/s
-  var hw_gpu_frequency : Double = 0.475 * 1000 * 1000 * 1000 // in Hz
-  var hw_gpu_numCores : Int = 256
-  var hw_cuda_capability : Int = 2
-  var hw_cuda_capabilityMinor : Int = 0
-
-  def hw_cuda_maxNumDimsBlock : Int = if (hw_cuda_capability < 2) 2 else 3 // 3 seems to be max; checked for versions up tp 5.3
-
-  var sw_cuda_version : Int = 7
-  var sw_cuda_versionMinor : Int = 5
-  var sw_cuda_kernelCallOverhead : Double = 3.5 * 0.001 // in s
 
   var useDblPrecision : Boolean = true // if true uses double precision for floating point numbers and single precision otherwise
 
@@ -576,13 +551,13 @@ object Knowledge {
     Constraints.condWarn(comm_disableLocalCommSync && experimental_allowCommInFragLoops, s"comm_disableLocalCommSynchronization in conjunction with experimental_allowCommInFragLoops is strongly discouraged")
 
     Constraints.condEnsureValue(experimental_addPerformanceEstimate, true, experimental_cuda_enabled && "Performance" == experimental_cuda_preferredExecution, s"experimental_addPerformanceEstimate is required for performance estimate guided kernel execution")
-    Constraints.condEnsureValue(experimental_cuda_deviceId, 0, experimental_cuda_enabled && experimental_cuda_deviceId >= hw_gpu_numDevices, s"CUDA device id must not be exceeding number of installed devices")
+    Constraints.condEnsureValue(experimental_cuda_deviceId, 0, experimental_cuda_enabled && experimental_cuda_deviceId >= Platform.hw_gpu_numDevices, s"CUDA device id must not be exceeding number of installed devices")
 
     Constraints.condEnsureValue(experimental_cuda_blockSize_y, 1, experimental_cuda_enabled && domain_rect_generate && dimensionality < 2, "experimental_cuda_blockSize_y must be set to 1 for problems with a dimensionality smaller 2")
     Constraints.condEnsureValue(experimental_cuda_blockSize_z, 1, experimental_cuda_enabled && domain_rect_generate && dimensionality < 3, "experimental_cuda_blockSize_z must be set to 1 for problems with a dimensionality smaller 3")
 
-    Constraints.condWarn(experimental_cuda_enabled && experimental_cuda_blockSizeTotal > 512 && hw_cuda_capability <= 2, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability $hw_cuda_capability.$hw_cuda_capabilityMinor")
-    Constraints.condWarn(experimental_cuda_enabled && experimental_cuda_blockSizeTotal > 1024 && hw_cuda_capability >= 3, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability $hw_cuda_capability.$hw_cuda_capabilityMinor")
+    Constraints.condWarn(experimental_cuda_enabled && experimental_cuda_blockSizeTotal > 512 && Platform.hw_cuda_capability <= 2, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability ${Platform.hw_cuda_capability}.${Platform.hw_cuda_capabilityMinor}")
+    Constraints.condWarn(experimental_cuda_enabled && experimental_cuda_blockSizeTotal > 1024 && Platform.hw_cuda_capability >= 3, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability ${Platform.hw_cuda_capability}.${Platform.hw_cuda_capabilityMinor}")
 
     Constraints.condWarn(experimental_splitLoopsForAsyncComm && 26 != comm_strategyFragment, s"Using asynchronous communication with comm_strategyFragment != 26 leads to problems with stencils containing diagonal entries")
 

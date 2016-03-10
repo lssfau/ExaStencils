@@ -9,7 +9,7 @@ object JobScriptGenerator {
       case "IBMBG" | "IBMXL" => {
         val numOMP = Knowledge.omp_numThreads
         val numMPI = Knowledge.mpi_numThreads
-        val numThreadsPerNode = Knowledge.hw_numThreadsPerNode
+        val numThreadsPerNode = Platform.hw_numThreadsPerNode
         val numMPIRanksPerNode = numThreadsPerNode / numOMP
         val numNodes = (numOMP * numMPI) / numThreadsPerNode
 
