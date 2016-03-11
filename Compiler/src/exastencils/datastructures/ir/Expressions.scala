@@ -279,6 +279,7 @@ case class OffsetIndex(var minOffset : Int, var maxOffset : Int, var index : Exp
 case class MultiIndex(var indices : Array[Expression]) extends Expression with Iterable[Expression] {
   def this(indices : Expression*) = this(indices.toArray)
   def this(indices : Array[Int]) = this(indices.map(IntegerConstant(_) : Expression)) // legacy support
+  def this(indices : Array[Long]) = this(indices.map(IntegerConstant(_) : Expression)) // legacy support
   def this(left : MultiIndex, right : MultiIndex, f : (Expression, Expression) => Expression) =
     this((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).toArray)
 
@@ -312,6 +313,14 @@ case class TempBufferAccess(var buffer : iv.TmpBuffer, var index : MultiIndex, v
     new ArrayAccess(buffer,
       Mapping.resolveMultiIdx(index, strides),
       false && Knowledge.data_alignTmpBufferPointers /* change here if aligned vector operations are possible for tmp buffers */ )
+  }
+}
+
+case class ReductionDeviceDataAccess(var data : iv.ReductionDeviceData, var index : MultiIndex, var strides : MultiIndex) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ReductionDeviceDataAccess\n"
+
+  def linearize : ArrayAccess = {
+    new ArrayAccess(data, Mapping.resolveMultiIdx(index, strides), false)
   }
 }
 
@@ -920,9 +929,9 @@ case class SIMD_DivisionExpression(var left : Expression, var right : Expression
 case class SIMD_FloatConstant(var value : Double) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
     /*
-     * Fix by Thomas Lang: 
+     * Fix by Thomas Lang:
      * Added intrinsic for IMCI.
-     * 
+     *
      * This intrinsic is defined in 'zmmintrin.h' and is
      * also known by 'immintrin.h', this fills the value
      */
@@ -942,9 +951,9 @@ case class SIMD_FloatConstant(var value : Double) extends Expression {
 case class SIMD_Scalar2VectorExpression(var scalar : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
     /*
-     * Fix by Thomas Lang: 
+     * Fix by Thomas Lang:
      * Added intrinsic for IMCI.
-     * 
+     *
      * This intrinsic is defined in 'zmmintrin.h' and is
      * also known by 'immintrin.h', this fills the value
      */

@@ -230,6 +230,7 @@ object Main {
     if (Knowledge.experimental_cuda_enabled) {
       SplitLoopsForHostAndDevice.apply()
       AdaptKernelDimensionalities.apply()
+      HandleKernelReductions.apply()
     }
 
     MapStencilAssignments.apply()
