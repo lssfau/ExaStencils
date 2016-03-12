@@ -2,8 +2,11 @@ user                        = "Christoph"
 basePathPrefix              = ""
 l3file                      = ""
 l4file                      = ""
-outputPath                  = "generated/"
-htmlLogFile                 = "Compiler/log/log.html"
+outputPath                  = "../CompilerRun/GPU/generated/"
+htmlLogFile                 = "../CompilerRun/GPU/log/log.html"
 produceHtmlLog              = true
 timeStrategies              = true
 timeStratPercentThreshold   = 0
+
+additionalLibs				+= "cuda.lib"
+additionalLibs				+= "cudart.lib"
