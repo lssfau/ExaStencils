@@ -41,6 +41,8 @@ object LinearizeFieldAccesses extends DefaultStrategy("Linearizing FieldAccess n
       access.linearize
     case access : TempBufferAccess =>
       access.linearize
+    case access : ReductionDeviceDataAccess =>
+      access.linearize
   })
 }
 
@@ -170,7 +172,10 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   var bufferSizes : HashMap[String, Expression] = HashMap()
   var bufferAllocs : HashMap[String, Statement] = HashMap()
   var fieldAllocs : HashMap[String, Statement] = HashMap()
-  var deviceAllocs : HashMap[String, Statement] = HashMap()
+
+  var deviceBufferSizes : HashMap[String, Expression] = HashMap()
+  var deviceBufferAllocs : HashMap[String, Statement] = HashMap()
+  var deviceFieldAllocs : HashMap[String, Statement] = HashMap()
 
   var counter : Int = 0
 
@@ -264,10 +269,24 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       else
         statements ++= innerStmts
 
-      deviceAllocs += (cleanedField.prettyprint() -> new LoopOverFragments(
+      deviceFieldAllocs += (cleanedField.prettyprint() -> new LoopOverFragments(
         new ConditionStatement(iv.IsValidForSubdomain(field.field.domain.index), statements)) with OMP_PotentiallyParallel)
 
       field
+    }
+
+    case buf : iv.ReductionDeviceData => {
+      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, NullExpression, NullExpression, NullExpression).prettyprint
+      if (Knowledge.data_genVariableFieldSizes) {
+        if (deviceBufferSizes.contains(id))
+          deviceBufferSizes.get(id).get.asInstanceOf[MaximumExpression].args += Duplicate(buf.size)
+        else
+          deviceBufferSizes += (id -> MaximumExpression(ListBuffer(Duplicate(buf.size))))
+      } else {
+        val size = SimplifyExpression.evalIntegral(buf.size).toLong
+        deviceBufferSizes += (id -> (size max bufferSizes.getOrElse(id, IntegerConstant(0)).asInstanceOf[IntegerConstant].v))
+      }
+      buf
     }
   })
 
@@ -290,6 +309,14 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       }
 
       buf
+
+    case buf : iv.ReductionDeviceData =>
+      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, NullExpression, NullExpression, NullExpression).prettyprint
+      val size = deviceBufferSizes(id)
+
+      deviceBufferAllocs += (id -> new LoopOverFragments(CUDA_AllocateStatement(buf, size, RealDatatype /*FIXME*/ )) with OMP_PotentiallyParallel)
+
+      buf
   })
 
   this += new Transformation("Extending SetupBuffers function", {
@@ -304,7 +331,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
           s.applyStandalone(buf._2)
       }
 
-      for (genericAlloc <- bufferAllocs.toSeq.sortBy(_._1) ++ fieldAllocs.toSeq.sortBy(_._1) ++ deviceAllocs.toSeq.sortBy(_._1))
+      for (genericAlloc <- bufferAllocs.toSeq.sortBy(_._1) ++ fieldAllocs.toSeq.sortBy(_._1) ++ deviceFieldAllocs.toSeq.sortBy(_._1) ++ deviceBufferAllocs.toSeq.sortBy(_._1))
         if ("MSVC" == Knowledge.targetCompiler /*&& Knowledge.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
           func.body += new Scope(genericAlloc._2)
         else
