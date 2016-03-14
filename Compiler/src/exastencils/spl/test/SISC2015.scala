@@ -1248,7 +1248,7 @@ object SISC2015 {
     writer.close()
   }
 
-  def generateShFileChimaira(configKey : String, suffix : String) {
+  def generateShFileChimaira(configKey : String, suffix : String) = {
     var newFilelocation = generationTargetDir + "script_" + configKey + suffix + ".sh"
     val writer = new PrintWriter(new File(newFilelocation))
     writer.append("#!/bin/sh\n")

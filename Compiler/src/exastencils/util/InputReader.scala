@@ -8,11 +8,17 @@ object InputReader {
   private var settings_ = ""
   private var knowledge_ = ""
   private var platform_ = ""
+  private var layer1_ = ""
+  private var layer2_ = ""
+  private var layer3_ = ""
   private var layer4_ = ""
 
   def settings = settings_
   def knowledge = knowledge_
   def platform = platform_
+  def layer1 = layer1_
+  def layer2 = layer2_
+  def layer3 = layer3_
   def layer4 = layer4_
 
   def read(filename : String) = {
@@ -44,11 +50,10 @@ object InputReader {
         case "settings"  => settings_ = f._2.asInstanceOf[String]
         case "knowledge" => knowledge_ = f._2.asInstanceOf[String]
         case "platform"  => platform_ = f._2.asInstanceOf[String]
-        case "layer1"    =>
-        case "layer2"    =>
-        case "layer3"    =>
+        case "layer1"    => layer1_ = f._2.asInstanceOf[String]
+        case "layer2"    => layer2_ = f._2.asInstanceOf[String]
+        case "layer3"    => layer3_ = f._2.asInstanceOf[String]
         case "layer4"    => layer4_ = f._2.asInstanceOf[String]
-        case "tpdl"      =>
         case _           => Logger.error("Unexpected file identifier in JSON")
       }
     })

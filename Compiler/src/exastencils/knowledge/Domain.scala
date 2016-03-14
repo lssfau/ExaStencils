@@ -46,7 +46,7 @@ object DomainCollection {
     ret
   }
 
-  def initFragments() {
+  def initFragments() = {
     if (Knowledge.domain_readFromFile) {
       domains
         .find { d => d.identifier == "global" } match {
