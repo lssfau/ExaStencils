@@ -196,7 +196,10 @@ case class LoopOverPointsInOneFragment(var domain : Int,
             || ("face_x" == discr && 0 == dim)
             || ("face_y" == discr && 1 == dim)
             || ("face_z" == discr && 2 == dim) =>
-            if (Knowledge.experimental_disableIterationOffsets) {
+            if (Knowledge.experimental_useStefanOffsets) {
+              start(dim) = field.fieldLayout.idxById("IB", dim) - field.referenceOffset(dim) + startOffset(dim)
+              stop(dim) = field.fieldLayout.idxById("IE", dim) - field.referenceOffset(dim) - endOffset(dim)
+            } else if (Knowledge.experimental_disableIterationOffsets) {
               start(dim) = field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim)
               stop(dim) = field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
             } else {
