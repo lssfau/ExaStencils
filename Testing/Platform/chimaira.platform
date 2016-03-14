@@ -8,14 +8,14 @@ simd_instructionSet        = "AVX"
 hw_cpu_name                = "Intel Xeon E5-2690 v2"
 hw_cpu_numCoresPerCPU      = 10
 hw_cpu_numCPUs             = 1
-hw_cpu_bandwidth           = 639950127104 // = 4 * 14.9 GB/s
-hw_cpu_frequency           = 30000000000 // = 3.0 GHz
+hw_cpu_bandwidth           = 639950127104.0 // = 4 * 14.9 GB/s
+hw_cpu_frequency           = 30000000000.0 // = 3.0 GHz
 hw_64bit                   = true
 hw_cacheLineSize           = 512 // in B
 hw_gpu_name                = "NVidia GeForce GTX Titan Black"
 hw_gpu_numDevices          = 1
-hw_gpu_bandwidth           = 360777252864 // = 336 GB/s
-hw_gpu_frequency           = 889000000000 // = 889 MHz
+hw_gpu_bandwidth           = 360777252864.0 // = 336 GB/s
+hw_gpu_frequency           = 889000000000.0 // = 889 MHz
 hw_gpu_numCores            = 2880
 hw_cuda_capability         = 3
 hw_cuda_capabilityMinor    = 5

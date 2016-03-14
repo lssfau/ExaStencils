@@ -8,8 +8,8 @@ simd_instructionSet        = "AVX"
 hw_cpu_name                = "AnyCPU"
 hw_cpu_numCoresPerCPU      = 4
 hw_cpu_numCPUs             = 1
-hw_cpu_bandwidth           = 274877906944 // = 2 * 12.8 * 1024 * 1024 * 1024 // in B/s
-hw_cpu_frequency           = 20000000000 // = 2.0 * 1000 * 1000 * 1000 // in Hz
+hw_cpu_bandwidth           = 274877906944.0 // = 2 * 12.8 * 1024 * 1024 * 1024 // in B/s
+hw_cpu_frequency           = 20000000000.0 // = 2.0 * 1000 * 1000 * 1000 // in Hz
 hw_64bit                   = true
 hw_cacheLineSize           = 512 // in B
 hw_gpu_name                = "NoGPU"
