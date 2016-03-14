@@ -535,7 +535,7 @@ case class LoopOverDimensions(var numDimensions : Int,
     val resolveOmpReduction = (
       parallelize
       && Knowledge.omp_enabled
-      && Knowledge.omp_version < 3.1
+      && Platform.omp_version < 3.1
       && reduction.isDefined
       && ("min" == reduction.get.op || "max" == reduction.get.op))
 
@@ -643,7 +643,7 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
       val parallelize = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
       val resolveOmpReduction = (
         parallelize
-        && Knowledge.omp_version < 3.1
+        && Platform.omp_version < 3.1
         && reduction.isDefined
         && ("min" == reduction.get.op || "max" == reduction.get.op))
 

@@ -10,6 +10,7 @@ import java.io.FileWriter
 import java.io._
 import exastencils.prettyprinting.JobScriptGenerator
 import exastencils.knowledge.Knowledge
+import exastencils.knowledge.Platform
 import exastencils.spl.samplingStrategies.doe.RandomDesign
 import exastencils.spl.learning._
 
@@ -83,7 +84,7 @@ object SISC2015 {
     // change default values
     FeatureModel.get("poly_optLevel_fine").defaultValue = "3"
 
-    // update upper value of firstDim and secDim 
+    // update upper value of firstDim and secDim
     if (dimToConsider == 3) {
       FeatureModel.get("sisc2015_firstDim").maxValue = 2
       FeatureModel.get("sisc2015_secondDim").maxValue = 2
@@ -297,10 +298,10 @@ object SISC2015 {
 
     //        if (dimToConsider == 2 && ccVSvc.equals("vc"))
     //          learnedModel = "-9.823367356467688 * opt_unroll + -22.80475638447024 * l3tmp_numPre + 7.493748952680161E15 * Jac + -1.2526630438708684E13 * domain_rect_numFragsPerBlock_x + -56.238135860072 * domain_rect_numFragsPerBlock_y + 110.28963279742973 * domain_fragmentLength_y + 7.493748952680136E15 * RBGS + 0.08598701397960785 * poly_tileSize_x + -1.2944184786690056E14 * domain_fragmentLength_x + 66.85352734598186 * l3tmp_useSlotsForJac + 1.2944184786702181E14 * minLevel * domain_rect_numFragsPerBlock_x * domain_rect_numFragsPerBlock_y * domain_fragmentLength_x + -3.468525038377703E15 * 1 + 53.836070645135244 * opt_unroll_interleave + -6.757703723101701 * comm_useFragmentLoopsForEachOp + 1.252663043869541E13 * minLevel * domain_rect_numFragsPerBlock_x + 22.619229118613518 * l3tmp_numRecCycleCalls + -109.69185136603845 * opt_vectorize + -27.632309023854358 * mpi_useCustomDatatypes + -1.2526630439211836E13 * minLevel + -7.083445898075203 * l3tmp_numPost + 1.9094717635660984E16 * maxLevel + -43.77875702806896 * poly_optLevel_fine + -1.9483043179260616E16 * maxLevel + -1.2944184786698339E14 * minLevel * domain_rect_numFragsPerBlock_x * domain_rect_numFragsPerBlock_y + 30.595173302766916 * opt_useAddressPrecalc"
-    //    
+    //
     //        if (dimToConsider == 3 && ccVSvc.equals("cc"))
     //          learnedModel = "131.55559748049566 * domain_rect_numFragsPerBlock_y * domain_fragmentLength_x + -1.751020673673363E14 * l3tmp_numPost + 4.743233982404961E14 * domain_rect_numFragsPerBlock_y + 7.2110074980131165 * poly_optLevel_fine + -46.41936048625558 * opt_useAddressPrecalc + -2.6379995867751705E15 * minLevel + 32.90171559255296 * domain_fragmentLength_y * domain_fragmentLength_z + 8.081242281711642 * l3tmp_numPre + 0.09015896558654206 * poly_tileSize_x + 12.788380233765182 * l3tmp_useSlotsForJac + 20.773964067740852 * opt_unroll + -11.298155360693727 * domain_rect_numFragsPerBlock_z + -4.743233982406324E14 * domain_rect_numFragsPerBlock_y + 75.70405586108987 * Jac + -0.4149395050669495 * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x + -9.88743152809839E14 * domain_fragmentLength_y + 1.7419329820950004E13 * maxLevel + 1.7510206736733525E14 * l3tmp_numPost + 70.82783734084664 * comm_useFragmentLoopsForEachOp + 20.03377492939528 * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x * domain_rect_numFragsPerBlock_z + -2.8737370970461216 * opt_unroll_interleave + -30.064521863607258 * l3tmp_numRecCycleCalls + 9.887431528098819E14 * domain_fragmentLength_y + -67.57806757006787 * opt_vectorize + -5.995430946572485 * mpi_useCustomDatatypes + -1.045159789254908E14 * 1 + 2.6379995867750915E15 * minLevel + 0.3695740885770345 * poly_tileSize_y + -38.22668765266216 * minLevel * domain_fragmentLength_y"
-    //    
+    //
     //        if (dimToConsider == 3 && ccVSvc.equals("vc"))
     //          learnedModel = "-62.09165073622925 * comm_useFragmentLoopsForEachOp + -1.0342112095861066E14 * domain_rect_numFragsPerBlock_y * domain_fragmentLength_x * domain_rect_numFragsPerBlock_z * domain_rect_numFragsPerBlock_x + -48.792733456881024 * RBGS + 23.045996087336192 * poly_optLevel_fine + -0.04308536610671082 * domain_rect_numFragsPerBlock_y * domain_fragmentLength_x * domain_rect_numFragsPerBlock_z * domain_rect_numFragsPerBlock_x * maxLevel * l3tmp_numPre + -7.788249110930933E11 * domain_rect_numFragsPerBlock_y * domain_fragmentLength_x * maxLevel + 5.30120034841732 * l3tmp_numPost + 1.7236853493103059E13 * domain_rect_numFragsPerBlock_y * domain_fragmentLength_x * domain_rect_numFragsPerBlock_z * domain_rect_numFragsPerBlock_x * maxLevel + 29.81350182824211 * opt_useAddressPrecalc + -0.07657100783278278 * poly_tileSize_x + -0.014420060012994982 * domain_rect_numFragsPerBlock_y * domain_fragmentLength_x * maxLevel * opt_unroll + 1.6513419330539802 * domain_rect_numFragsPerBlock_y * domain_fragmentLength_x * domain_rect_numFragsPerBlock_z * domain_rect_numFragsPerBlock_x * maxLevel * domain_fragmentLength_z + 0.16618697592986034 * poly_tileSize_y + 821.1466345880615 * 1 + -127.7193135808727 * domain_rect_numFragsPerBlock_y + 38.788258427732345 * mpi_useCustomDatatypes + -26.05262251160333 * opt_vectorize + 74.41313571563397 * minLevel + -1.0809377694258684 * domain_rect_numFragsPerBlock_y * domain_fragmentLength_x * domain_rect_numFragsPerBlock_z + 45.11499822758881 * l3tmp_numRecCycleCalls + 26.92400060874349 * domain_rect_numFragsPerBlock_y * domain_fragmentLength_y + 48.745004605327644 * opt_unroll_interleave + 63.941488494300884 * l3tmp_useSlotsForJac + 4.672949466662614E12 * domain_rect_numFragsPerBlock_y * domain_fragmentLength_x"
 
@@ -347,7 +348,7 @@ object SISC2015 {
 
     // if part 1 == aspectRatioOffset < 2
     // if part 2 == 2 <= aspectRatioOffset < 4
-    // if part 3 == 4 <= aspectRatioOffset 
+    // if part 3 == 4 <= aspectRatioOffset
 
     for (ifPart <- 1 to 3) {
       lfaConfigsCaseStudy.foreach { currLFA =>
@@ -654,7 +655,7 @@ object SISC2015 {
       "</obj>\n" +
       "</objectives>\n")
 
-    // constraints  
+    // constraints
     var numberOfConstraints = 0
     var osil : OSILSyntax = null
 
@@ -695,7 +696,7 @@ object SISC2015 {
 
   def samplingWithPartitionedFeatureSpace() : Boolean = {
 
-    //  splitting feature in binary and numeric (numeric features with less than 5 values are used in the binary samplings)  
+    //  splitting feature in binary and numeric (numeric features with less than 5 values are used in the binary samplings)
     var featuresBinary : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
     var featuresNumeric : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
     FeatureModel.allFeatures.foreach(x => {
@@ -765,7 +766,7 @@ object SISC2015 {
 
     var configurationsPreFiltered : scala.collection.mutable.Set[Configuration] = (new Configuration).generateConfigurations(binaryConfigs, numericSamplings)
     println("configsBeforeFiltering " + configurationsPreFiltered.size)
-    //       
+    //
     var configurationsFiltered : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
     configurationsPreFiltered.foreach(x =>
       {
@@ -846,7 +847,7 @@ object SISC2015 {
 
     configurationsPreFiltered = (new Configuration).generateConfigurations(binaryConfigs, numericSamplings)
     println("configsBeforeFiltering " + configurationsPreFiltered.size)
-    //       
+    //
     configurationsFiltered = scala.collection.mutable.Set()
     configurationsPreFiltered.foreach(x =>
       {
@@ -928,7 +929,7 @@ object SISC2015 {
 
     configurationsPreFiltered = (new Configuration).generateConfigurations(binaryConfigs, numericSamplings)
     println("configsBeforeFiltering " + configurationsPreFiltered.size)
-    //       
+    //
     configurationsFiltered = scala.collection.mutable.Set()
     configurationsPreFiltered.foreach(x =>
       {
@@ -967,7 +968,7 @@ object SISC2015 {
 
     println("random configurations: " + configurationsWithSecondSamplingRandom.size)
 
-    // add derived features for debug perpuses 
+    // add derived features for debug perpuses
     var featuresInOutput : scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
     featuresInOutput ++= (featuresToConsider)
 
@@ -1174,7 +1175,7 @@ object SISC2015 {
     //     print random configs
     writeConfigurations(configurationsWithSecondSamplingRandom, blackList, "_random")
 
-    //     print all 
+    //     print all
     //    writeConfigurations(configurationsWiththirdSampling, blackList, "")
 
     return true
@@ -1247,7 +1248,7 @@ object SISC2015 {
     writer.close()
   }
 
-  def generateShFileChimaira(configKey : String, suffix : String) {
+  def generateShFileChimaira(configKey : String, suffix : String) = {
     var newFilelocation = generationTargetDir + "script_" + configKey + suffix + ".sh"
     val writer = new PrintWriter(new File(newFilelocation))
     writer.append("#!/bin/sh\n")
@@ -1260,7 +1261,7 @@ object SISC2015 {
 
   def generateJobScript(mpiOmpRanksKey : String, configs : scala.collection.mutable.Set[Configuration], suffix : String) = {
     Settings.user = "alex"
-    Knowledge.targetCompiler = "IBMBG"
+    Platform.targetCompiler = "IBMBG"
     var mpi_numThreads = configs.head.partialBaseConfig("mpi_numThreads").asInstanceOf[Double].toInt
     var omp_numThreads = configs.head.partialBaseConfig("omp_numThreads").asInstanceOf[Double].toInt
     var ranksPerNode = configs.head.numericalFeatureValues(FeatureModel.get("sisc2015_ranksPerNode")).toInt
@@ -1269,7 +1270,7 @@ object SISC2015 {
     var numNodes = (mpi_numThreads * omp_numThreads) / 64
 
     if (numNodes <= 512) {
-      // splitting in multiple jobs ( because one the max timeout of one job is 30 minutes)       
+      // splitting in multiple jobs ( because one the max timeout of one job is 30 minutes)
       var sourcePathes : Array[String] = new Array(20)
       var config = 0
       var index = 0
@@ -1818,7 +1819,7 @@ object SISC2015 {
     else
       config.partialBaseConfig.put("l3tmp_useSlotVariables", "true")
 
-    //Constraints.condEnsureValue(poly_optLevel_coarse, poly_optLevel_fine, poly_optLevel_coarse > poly_optLevel_fine, "optimization level for coarse grids must smaller or equal to the one for the fine levels")  
+    //Constraints.condEnsureValue(poly_optLevel_coarse, poly_optLevel_fine, poly_optLevel_coarse > poly_optLevel_fine, "optimization level for coarse grids must smaller or equal to the one for the fine levels")
     if (poly_optLevel_fine.equals("0")) {
       config.partialBaseConfig.put("poly_optLevel_coarse", "0")
     } else {
@@ -1833,7 +1834,7 @@ object SISC2015 {
 
     config.partialBaseConfig.put("l3tmp_tempBlockingMinLevel", minLevel + 1)
 
-    // new 
+    // new
     config.partialBaseConfig.put("omp_enabled", omp_enabled)
     config.partialBaseConfig.put("targetHardware", "\"CPU\"")
     config.partialBaseConfig.put("generateFortranInterface", false)

@@ -50,7 +50,7 @@ object MainChristian {
     Knowledge.update()
 
     // init buildfile generator
-    if ("MSVC" == Knowledge.targetCompiler)
+    if ("MSVC" == Platform.targetCompiler)
       Settings.buildfileGenerator = ProjectfileGenerator
     else
       Settings.buildfileGenerator = MakefileGenerator

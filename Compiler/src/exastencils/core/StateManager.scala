@@ -102,7 +102,7 @@ object StateManager {
       Logger.warning("Transaction has been aborted")
     }
 
-    def isValid(token : TransactionToken) = { currentToken != None && token == currentToken.get }
+    def isValid(token : TransactionToken) = { currentToken != None && (token eq currentToken.get) }
   }
   def transaction(strategy : Strategy) = History.transaction(strategy)
   def commit(token : History.TransactionToken) = History.commit(token)
@@ -517,7 +517,7 @@ object StateManager {
         println("transformationtimer;" + strategies_.top.name + ";" + transformation.name + ";" + time + "\\\\")
       }
       var s = strategies_.pop()
-      if (s != strategy) {
+      if (s ne strategy) {
         Logger.error(s"""Mismatch of Standalone Strategy: Expected "${strategy.name}", got "${s.name}"""")
       }
       return new TransformationResult(true, progresses_(transformation).getMatches)

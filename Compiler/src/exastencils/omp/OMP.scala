@@ -63,7 +63,7 @@ case class OMP_ParallelFor(var body : ForLoopStatement, var additionalOMPClauses
     out << "#pragma omp parallel for schedule(static) num_threads(" << Knowledge.omp_numThreads << ')'
     if (!additionalOMPClauses.isEmpty)
       out << ' ' <<< (additionalOMPClauses, " ")
-    if (collapse > 1 && Knowledge.omp_version >= 3 && Knowledge.omp_useCollapse)
+    if (collapse > 1 && Platform.omp_version >= 3 && Knowledge.omp_useCollapse)
       out << " collapse(" << getCollapseLvl() << ')'
     out << '\n' << body
   }

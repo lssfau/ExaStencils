@@ -30,8 +30,8 @@ object TypeInference extends CustomStrategy("Type inference") {
 
     this.execute(new Transformation("remove annotations", {
       case node : Node =>
-        if (node.hasAnnotation(TYPE_ANNOT)) node.removeAnnotation(TYPE_ANNOT)
-        if (node.hasAnnotation(SKIP_ANNOT)) node.removeAnnotation(SKIP_ANNOT)
+        node.removeAnnotation(TYPE_ANNOT)
+        node.removeAnnotation(SKIP_ANNOT)
         node
     }))
 

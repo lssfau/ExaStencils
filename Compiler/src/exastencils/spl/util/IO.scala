@@ -73,7 +73,7 @@ object IO {
     return features
   }
 
-  def copyF(from : java.io.File, to : String) {
+  def copyF(from : java.io.File, to : String) = {
     val out = new java.io.BufferedWriter(new java.io.FileWriter(to));
     io.Source.fromFile(from).getLines.foreach(s => out.write(s + "\n"));
     out.close()

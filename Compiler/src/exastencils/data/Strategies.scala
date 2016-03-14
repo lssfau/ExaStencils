@@ -222,8 +222,8 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
           counter += 1
           ListBuffer(
             VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), s"vs_$counter",
-              Some(Knowledge.simd_vectorSize * SizeOfExpression(RealDatatype))),
-            AssignmentStatement(newFieldData.basePtr, Allocation(field.field.resolveDeclType, numDataPoints + Knowledge.simd_vectorSize - 1)),
+              Some(Platform.simd_vectorSize * SizeOfExpression(RealDatatype))),
+            AssignmentStatement(newFieldData.basePtr, Allocation(field.field.resolveDeclType, numDataPoints + Platform.simd_vectorSize - 1)),
             VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), s"offset_$counter",
               Some(((s"vs_$counter" - (CastExpression(SpecialDatatype("ptrdiff_t"), newFieldData.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / SizeOfExpression(RealDatatype))),
             AssignmentStatement(newFieldData, newFieldData.basePtr + s"offset_$counter"))
@@ -299,8 +299,8 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
         counter += 1
         bufferAllocs += (id -> new LoopOverFragments(ListBuffer[Statement](
           VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), s"vs_$counter",
-            Some(Knowledge.simd_vectorSize * SizeOfExpression(RealDatatype))),
-          AssignmentStatement(buf.basePtr, Allocation(RealDatatype, size + Knowledge.simd_vectorSize - 1)),
+            Some(Platform.simd_vectorSize * SizeOfExpression(RealDatatype))),
+          AssignmentStatement(buf.basePtr, Allocation(RealDatatype, size + Platform.simd_vectorSize - 1)),
           VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), s"offset_$counter",
             Some(((s"vs_$counter" - (CastExpression(SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / SizeOfExpression(RealDatatype))),
           AssignmentStatement(buf, buf.basePtr + s"offset_$counter"))) with OMP_PotentiallyParallel)
@@ -332,7 +332,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       }
 
       for (genericAlloc <- bufferAllocs.toSeq.sortBy(_._1) ++ fieldAllocs.toSeq.sortBy(_._1) ++ deviceFieldAllocs.toSeq.sortBy(_._1) ++ deviceBufferAllocs.toSeq.sortBy(_._1))
-        if ("MSVC" == Knowledge.targetCompiler /*&& Knowledge.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
+        if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
           func.body += new Scope(genericAlloc._2)
         else
           func.body += genericAlloc._2
@@ -352,13 +352,13 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       globals.variables ++= declarationMap.toSeq.sortBy(_._1).map(_._2)
       globals
     case func : FunctionStatement if ("initGlobals" == func.name) =>
-      if ("MSVC" == Knowledge.targetCompiler /*&& Knowledge.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
+      if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
         func.body ++= ctorMap.toSeq.sortBy(_._1).map(s => new Scope(s._2))
       else
         func.body ++= ctorMap.toSeq.sortBy(_._1).map(_._2)
       func
     case func : FunctionStatement if ("destroyGlobals" == func.name) =>
-      if ("MSVC" == Knowledge.targetCompiler /*&& Knowledge.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
+      if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
         func.body ++= dtorMap.toSeq.sortBy(_._1).map(s => new Scope(s._2))
       else
         func.body ++= dtorMap.toSeq.sortBy(_._1).map(_._2)

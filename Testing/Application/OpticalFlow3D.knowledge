@@ -1,14 +1,15 @@
+<<<<<<< HEAD
 targetOS							= "Linux"
 targetCompiler						= "GCC"
 targetCompilerVersion				= 4
 targetCompilerVersionMinor			= 8
+=======
+>>>>>>> origin/master
 timer_type							= "UNIX_TIME"
 
 experimental_Neumann				= true
 experimental_NeumannOrder			= 1
 library_CImg = true
-
-simd_instructionSet					= "AVX"
 
 dimensionality						= 3
 

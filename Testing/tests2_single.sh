@@ -17,11 +17,12 @@ TEST_DIR=${4}
 BIN=${5}
 KNOWLEDGE=${6}
 L4FILE=${7}
-ERROR_MARKER=${8}
-LOG_ALL=${9}
-LINK=${10}
-PROGRESS=${11}
-BRANCH=${12}
+PLATFORM=${8}
+ERROR_MARKER=${9}
+LOG_ALL=${10}
+LINK=${11}
+PROGRESS=${12}
+BRANCH=${13}
 
 
 function update_progress {
@@ -87,7 +88,7 @@ echo "Run generator:"
 echo "  Created  ${RESULT}: run generator and save its stdout and stderr."
 cd ${TESTING_DIR}  # there is no possibility to explicitly set the working directory of the jvm... (changing property user.dir does not work in all situations)
 set -o pipefail
-srun java -XX:+UseG1GC -Xmx3G -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}" 2>&1 | tee "${RESULT}"
+srun java -XX:+UseG1GC -Xmx3G -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}" "${PLATFORM}" 2>&1 | tee "${RESULT}"
 RETCODE=$?
     if grep -q "Bad file descriptor" ${RESULT}; then
       echo "restart generation..."

@@ -5,7 +5,7 @@ import exastencils.knowledge._
 
 object JobScriptGenerator {
   def write : Unit = {
-    Knowledge.targetCompiler match {
+    Platform.targetCompiler match {
       case "IBMBG" | "IBMXL" => {
         val numOMP = Knowledge.omp_numThreads
         val numMPI = Knowledge.mpi_numThreads
@@ -60,7 +60,7 @@ object JobScriptGenerator {
   }
 
   def write(numMPI : Int, numOMP : Int, ranksPerNode : Int, sourcePath : Array[String], number : Int, suffix : String) : Unit = {
-    Knowledge.targetCompiler match {
+    Platform.targetCompiler match {
       case "IBMBG" | "IBMXL" => {
         val numThreadsPerNode = ranksPerNode
         val numMPIRanksPerNode = numThreadsPerNode / numOMP

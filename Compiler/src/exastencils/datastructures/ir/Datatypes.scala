@@ -293,12 +293,12 @@ trait SIMDDatatype extends Datatype {
   // TODO: currently treated similar to a vector - correct?
 
   override def dimensionality : Int = 1
-  override def getSizeArray : Array[Int] = Array(Knowledge.simd_vectorSize)
+  override def getSizeArray : Array[Int] = Array(Platform.simd_vectorSize)
   override def resolveBaseDatatype : Datatype = datatype
   override def resolveDeclType : Datatype = this
   override def resolveDeclPostscript : String = ""
-  override def resolveFlattendSize : Int = Knowledge.simd_vectorSize
-  override def typicalByteSize = Knowledge.simd_vectorSize * datatype.typicalByteSize
+  override def resolveFlattendSize : Int = Platform.simd_vectorSize
+  override def typicalByteSize = Platform.simd_vectorSize * datatype.typicalByteSize
 }
 
 case object SIMD_RealDatatype extends SIMDDatatype {
@@ -306,7 +306,7 @@ case object SIMD_RealDatatype extends SIMDDatatype {
   override def datatype : ScalarDatatype = RealDatatype
   override def prettyprint(out : PpStream) : Unit = {
     val suffix = if (Knowledge.useDblPrecision) "d" else ""
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"            => out << "__m128" << suffix
       case "AVX" | "AVX2"    => out << "__m256" << suffix
       case "AVX512" | "IMCI" => out << "__m512" << suffix

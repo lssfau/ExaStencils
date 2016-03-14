@@ -28,6 +28,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
   private final val DEBUG : Boolean = false
 
   override def isDefinedAt(node : Node) : Boolean = {
+    node.removeAnnotation(AddressPrecalculation.ORIG_IND_ANNOT) // remove old annotations
     return node match {
       case loop : ForLoopStatement with OptimizationHint =>
         loop.isInnermost && loop.isParallel
@@ -37,7 +38,6 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
   }
 
   override def apply(node : Node) : Transformation.OutputType = {
-
     return try {
       vectorizeLoop(node.asInstanceOf[ForLoopStatement])
     } catch {
@@ -79,7 +79,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
             case _ => throw new VectorizationException("loop increment must be constant or cannot be extracted:  " + incrExpr)
           }
 
-        vectorizeLoop(loop, itName, lBound, uBoundExcl, incr, body, reduction)
+        vectorizeLoop(Duplicate(loop), itName, lBound, uBoundExcl, incr, body, reduction)
 
       case _ => throw new VectorizationException("cannot analyze loop (yet)")
     }
@@ -201,7 +201,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
     // ensure all stores are aligned (heuristics)
     var alignmentExpr : Expression = null
-    val vs = Knowledge.simd_vectorSize
+    val vs = Platform.simd_vectorSize
     if (Knowledge.data_alignFieldPointers) {
       for (stmt <- body)
         stmt match {
@@ -406,7 +406,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
                 if (containsVarAcc(expr, ctx.itName)) throw new VectorizationException("no linear memory access;  " + expr.prettyprint())
             }
 
-          val vs = Knowledge.simd_vectorSize
+          val vs = Platform.simd_vectorSize
           val aligned : Boolean = alignedBase && (const.getOrElse(0L) - ctx.getAlignedResidue()) % vs == 0
           val init : Option[Expression] =
             if (ctx.isLoad() && !ctx.isStore())
@@ -509,7 +509,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     else if (!alignedBase)
       throw new VectorizationException("cannot vectorize load: array is not aligned, but unaligned accesses should be avoided")
     else { // avoid unaligned load
-      val vs : Long = Knowledge.simd_vectorSize
+      val vs : Long = Platform.simd_vectorSize
       val lowerConst : Long = indexConst - ((indexConst - ctx.getAlignedResidue()) % vs + vs) % vs
       index(SimplifyExpression.constName) = lowerConst
       val lowerExpr = vectorizeExpr(ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(index), true), ctx).asInstanceOf[VariableAccess]
