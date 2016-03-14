@@ -25,7 +25,7 @@ object Settings {
 
   /// output
   var outputPath : String = ""
-  def defOutputPath : String = if ("" == basePathPrefix) { if ("MSVC" == Knowledge.targetCompiler) "../generated" else "/tmp/" } else getBasePath + "generated/"
+  def defOutputPath : String = if ("" == basePathPrefix) { if ("MSVC" == Platform.targetCompiler) "../generated" else "/tmp/" } else getBasePath + "generated/"
   def getOutputPath : String = if (outputPath.isEmpty) defOutputPath else getBasePath + (if (outputPath.endsWith("/") || outputPath.endsWith("\\")) outputPath else outputPath + "/")
   var cancelIfOutFolderExists : Boolean = false
 

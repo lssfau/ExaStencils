@@ -32,7 +32,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
     projectPrinter <<< "\t<PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='Release|x64'\" Label=\"Configuration\">"
     projectPrinter <<< "\t\t<ConfigurationType>Application</ConfigurationType>"
     projectPrinter <<< "\t\t<UseDebugLibraries>false</UseDebugLibraries>"
-    projectPrinter <<< s"\t\t<PlatformToolset>v${Knowledge.targetCompilerVersion}${Knowledge.targetCompilerVersionMinor}</PlatformToolset>"
+    projectPrinter <<< s"\t\t<PlatformToolset>v${Platform.targetCompilerVersion}${Platform.targetCompilerVersionMinor}</PlatformToolset>"
     projectPrinter <<< "\t\t<WholeProgramOptimization>false</WholeProgramOptimization>"
     projectPrinter <<< "\t\t<CharacterSet>MultiByte</CharacterSet>"
     projectPrinter <<< "\t</PropertyGroup>"

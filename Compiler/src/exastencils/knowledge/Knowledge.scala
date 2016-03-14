@@ -5,36 +5,9 @@ import exastencils.logger._
 import exastencils.spl._
 
 object Knowledge {
-  // TODO: rename and move to platform -> check with Stefan about impacts on automatic tests
-  var targetOS : String = "Windows" // the target operating system: "Linux", "Windows", "OSX"
-  var targetCompiler : String = "MSVC" // the target compiler; may atm be "MSVC", "GCC", "IBMXL", "IBMBG", "ICC", "CLANG"
-  var targetCompilerVersion : Int = 0 // major version of the target compiler
-  var targetCompilerVersionMinor : Int = 0 // minor version of the target compiler
-
-  var targetHardware : String = "CPU" // target hw platform; may be "CPU" or "ARM"
-
   var useDblPrecision : Boolean = true // if true uses double precision for floating point numbers and single precision otherwise
 
   var generateFortranInterface : Boolean = false // generates fortran compliant function names and marks functions for interfacing
-
-  var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2", "AVX512", "IMCI", "QPX", "NEON"
-  def simd_vectorSize : Int = { // number of vector elements for SIMD instructions (currently only double precision)
-    val double : Int = if (useDblPrecision) 1 else 2
-    simd_instructionSet match {
-      case "SSE3"            => 2 * double
-      case "AVX" | "AVX2"    => 4 * double
-      case "AVX512" | "IMCI" => 8 * double
-      case "QPX"             => 4 // yes, it's always 4
-      case "NEON"            => 2 * double // TODO: check if double is supported
-    }
-  }
-  def simd_header : String = { // header for vector intrinsics
-    simd_instructionSet match {
-      case "SSE3" | "AVX" | "AVX2" | "AVX512" | "IMCI" => "immintrin.h"
-      case "NEON"                                      => "arm_neon.h"
-      case "QPX"                                       => null
-    }
-  }
 
   var simd_avoidUnaligned : Boolean = false
 
@@ -155,18 +128,6 @@ object Knowledge {
   var ir_genSepLayoutsPerField : Boolean = true // specifies if shared fieldlayouts should be duplicated when progressing from l4 to ir
   var ir_maxInliningSize : Int = 10 // inlines functions containing less or equal number of statement nodes (0 disables inlining)
 
-  // --- Compiler Capabilities ---
-  def supports_initializerList = { // indicates if the compiler supports initializer lists (e.g. for std::min)
-    targetCompiler match {
-      case "MSVC"            => targetCompilerVersion >= 12
-      case "GCC"             => targetCompilerVersion > 4 || (targetCompilerVersion == 4 && targetCompilerVersionMinor >= 5)
-      case "IBMXL" | "IBMBG" => false // TODO: does it support initializer lists? since which version?
-      case "ICC"             => targetCompilerVersion >= 14
-      case "CLANG"           => targetCompilerVersion >= 3 // TODO: check if some minor version fails to compile
-      case _                 => Logger.error("Unsupported target compiler"); false
-    }
-  }
-
   // --- Data Structures ---
   var data_initAllFieldsWithZero : Boolean = true // specifies if all data points in all fields on all levels should initially be set zero (before the l4 initField functions are applied)
   var data_useFieldNamesAsIdx : Boolean = true // specifies if generated data field names should hold the clear text field identifier
@@ -199,30 +160,10 @@ object Knowledge {
   var omp_enabled : Boolean = false // [true|false]
   var omp_numThreads : Int = 1 // TODO // the number of omp threads to be used; may be incorporated in omp pragmas
 
-  def omp_version : Double = { // the maximum version of omp supported by the chosen compiler
-    targetCompiler match {
-      case "MSVC"            => 2.0
-      case "GCC"             => 4.0
-      case "IBMXL" | "IBMBG" => 3.0
-      case "ICC"             => if (targetCompilerVersion >= 15) 4.0; else if (targetCompilerVersion >= 13) 3.1; else if (targetCompilerVersion >= 12 && targetCompilerVersionMinor >= 1) 3.1; else 3.0
-      case "CLANG"           => if (targetCompilerVersion >= 3 && targetCompilerVersionMinor >= 7) 3.1; else 0.0
-      case _                 => Logger.error("Unsupported target compiler"); 0.0
-    }
-  }
   var omp_parallelizeLoopOverFragments : Boolean = true // [true|false] // specifies if loops over fragments may be parallelized with omp if marked correspondingly
   var omp_parallelizeLoopOverDimensions : Boolean = false // [true|false] // specifies if loops over dimensions may be parallelized with omp if marked correspondingly
   var omp_useCollapse : Boolean = false // [true|false] // if true the 'collapse' directive may be used in omp for regions; this will only be done if the minimum omp version supports this
   var omp_minWorkItemsPerThread : Int = 400 // [1~inf§omp_minWorkItemsPerThread+1] // threshold specifying which loops yield enough workload to amortize the omp overhead
-  def omp_requiresCriticalSections : Boolean = { // true if the chosen compiler / mpi version requires critical sections to be marked explicitly
-    targetCompiler match {
-      case "MSVC"            => true
-      case "GCC"             => true
-      case "IBMXL" | "IBMBG" => true // needs to be true since recently
-      case "ICC"             => true
-      case "CLANG"           => true
-      case _                 => Logger.error("Unsupported target compiler"); true
-    }
-  }
   var omp_nameCriticalSections : Boolean = false // specifies if unique (usually consecutively numbered) identifiers are to be generated for OMP critical sections => allows entering multiple, disctinct sections concurrently
 
   // --- MPI Parallelization ---
@@ -383,15 +324,15 @@ object Knowledge {
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
 
-    Constraints.condEnsureValue(targetCompilerVersion, 11, "MSVC" == targetCompiler && targetCompilerVersion < 11, "When using MSVC, only versions > 11.0 are currently supported")
-    Constraints.condEnsureValue(targetCompilerVersion, 14, "MSVC" == targetCompiler && targetCompilerVersion > 14, "When using MSVC, only version up to 14.0 are currently supported")
-    Constraints.condEnsureValue(targetCompilerVersionMinor, 0, "MSVC" == targetCompiler, "When using MSVC, minor version numbers are not supported")
+    Constraints.condEnsureValue(Platform.targetCompilerVersion, 11, "MSVC" == Platform.targetCompiler && Platform.targetCompilerVersion < 11, "When using MSVC, only versions > 11.0 are currently supported")
+    Constraints.condEnsureValue(Platform.targetCompilerVersion, 14, "MSVC" == Platform.targetCompiler && Platform.targetCompilerVersion > 14, "When using MSVC, only version up to 14.0 are currently supported")
+    Constraints.condEnsureValue(Platform.targetCompilerVersionMinor, 0, "MSVC" == Platform.targetCompiler, "When using MSVC, minor version numbers are not supported")
 
-    Constraints.condEnsureValue(omp_enabled, false, "CLANG" == targetCompiler && (targetCompilerVersion >= 3 && targetCompilerVersionMinor < 7), "Only clang >= 3.7 supports OpenMP")
+    Constraints.condEnsureValue(omp_enabled, false, "CLANG" == Platform.targetCompiler && (Platform.targetCompilerVersion >= 3 && Platform.targetCompilerVersionMinor < 7), "Only clang >= 3.7 supports OpenMP")
 
-    Constraints.condEnsureValue(opt_vectorize, false, "GCC" == targetCompiler && "IMCI" == simd_instructionSet, "GCC does not support intel IMCI")
-    Constraints.condEnsureValue(simd_instructionSet, "QPX", "IBMBG" == targetCompiler && opt_vectorize, "IBM BlueGene/Q compiler can only generate code for BlueGene/Q (with vector extension QPX)")
-    Constraints.condEnsureValue(opt_vectorize, false, "IBMBG" != targetCompiler && "QPX" == simd_instructionSet, "only IBM BlueGene/Q compiler supports QPX")
+    Constraints.condEnsureValue(opt_vectorize, false, "GCC" == Platform.targetCompiler && "IMCI" == Platform.simd_instructionSet, "GCC does not support intel IMCI")
+    Constraints.condEnsureValue(Platform.simd_instructionSet, "QPX", "IBMBG" == Platform.targetCompiler && opt_vectorize, "IBM BlueGene/Q compiler can only generate code for BlueGene/Q (with vector extension QPX)")
+    Constraints.condEnsureValue(opt_vectorize, false, "IBMBG" != Platform.targetCompiler && "QPX" == Platform.simd_instructionSet, "only IBM BlueGene/Q compiler supports QPX")
 
     if (l3tmp_generateL4) {
       // specific project configurations - SISC
@@ -533,7 +474,7 @@ object Knowledge {
     }
 
     // parallelization
-    Constraints.condEnsureValue(omp_useCollapse, false, "IBMXL" == targetCompiler || "IBMBG" == targetCompiler, "omp collapse is currently not fully supported by the IBM XL compiler")
+    Constraints.condEnsureValue(omp_useCollapse, false, "IBMXL" == Platform.targetCompiler || "IBMBG" == Platform.targetCompiler, "omp collapse is currently not fully supported by the IBM XL compiler")
     Constraints.condEnsureValue(omp_parallelizeLoopOverDimensions, false, omp_enabled && omp_parallelizeLoopOverFragments, "omp_parallelizeLoopOverDimensions and omp_parallelizeLoopOverFragments are mutually exclusive")
 
     Constraints.condWarn(mpi_numThreads != domain_numBlocks, s"the number of mpi threads ($mpi_numThreads) differs from the number of blocks ($domain_numBlocks) -> this might lead to unexpected behavior!")
@@ -565,10 +506,10 @@ object Knowledge {
     Constraints.condWarn(experimental_splitLoopsForAsyncComm && 26 != comm_strategyFragment, s"Using asynchronous communication with comm_strategyFragment != 26 leads to problems with stencils containing diagonal entries")
 
     // data
-    Constraints.condEnsureValue(data_alignFieldPointers, true, opt_vectorize && "QPX" == simd_instructionSet, "data_alignFieldPointers must be true for vectorization with QPX")
+    Constraints.condEnsureValue(data_alignFieldPointers, true, opt_vectorize && "QPX" == Platform.simd_instructionSet, "data_alignFieldPointers must be true for vectorization with QPX")
 
-    Constraints.condEnsureValue(simd_avoidUnaligned, true, opt_vectorize && "QPX" == simd_instructionSet, "QPX does not support unaligned loads/stores")
-    Constraints.condEnsureValue(simd_avoidUnaligned, true, opt_vectorize && "IMCI" == simd_instructionSet, "IMCI does not support unaligned loads/stores")
+    Constraints.condEnsureValue(simd_avoidUnaligned, true, opt_vectorize && "QPX" == Platform.simd_instructionSet, "QPX does not support unaligned loads/stores")
+    Constraints.condEnsureValue(simd_avoidUnaligned, true, opt_vectorize && "IMCI" == Platform.simd_instructionSet, "IMCI does not support unaligned loads/stores")
     Constraints.condEnsureValue(simd_avoidUnaligned, false, !opt_vectorize, "avoid unaligned loads/stores doesn't make sense without vectorization enabled")
     Constraints.condEnsureValue(simd_avoidUnaligned, false, !data_alignFieldPointers, "impossible to avoid unaligned accesses if data is not aligned")
 
@@ -583,13 +524,13 @@ object Knowledge {
 
     // timer configuration
     Constraints.condEnsureValue(timer_type, "Chrono", !mpi_enabled && "MPI_TIME" == timer_type, "MPI_TIME is not supported for codes generated without MPI")
-    Constraints.condEnsureValue(timer_type, "Chrono", "QPC" == timer_type && "MSVC" != targetCompiler, "QPC is only supported for windows")
-    Constraints.condEnsureValue(timer_type, "WINDOWS_RDSC", "RDSC" == timer_type && "MSVC" == targetCompiler, "WINDOWS_RDSC is required for windows systems")
-    Constraints.condEnsureValue(timer_type, "RDSC", "WINDOWS_RDSC" == timer_type && "MSVC" != targetCompiler, "RDSC is required for non-windows systems")
-    Constraints.condEnsureValue(timer_type, "UNIX_TIME", "WIN_TIME" == timer_type && "MSVC" != targetCompiler, "WIN_TIME is not supported for non-windows systems")
-    Constraints.condEnsureValue(timer_type, "WIN_TIME", "UNIX_TIME" == timer_type && "MSVC" == targetCompiler, "UNIX_TIME is not supported for windows systems")
-    Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMXL" == targetCompiler, "IBM XL does currently not support std::chrono")
-    Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMBG" == targetCompiler, "IBM BG does currently not support std::chrono")
+    Constraints.condEnsureValue(timer_type, "Chrono", "QPC" == timer_type && "MSVC" != Platform.targetCompiler, "QPC is only supported for windows")
+    Constraints.condEnsureValue(timer_type, "WINDOWS_RDSC", "RDSC" == timer_type && "MSVC" == Platform.targetCompiler, "WINDOWS_RDSC is required for windows systems")
+    Constraints.condEnsureValue(timer_type, "RDSC", "WINDOWS_RDSC" == timer_type && "MSVC" != Platform.targetCompiler, "RDSC is required for non-windows systems")
+    Constraints.condEnsureValue(timer_type, "UNIX_TIME", "WIN_TIME" == timer_type && "MSVC" != Platform.targetCompiler, "WIN_TIME is not supported for non-windows systems")
+    Constraints.condEnsureValue(timer_type, "WIN_TIME", "UNIX_TIME" == timer_type && "MSVC" == Platform.targetCompiler, "UNIX_TIME is not supported for windows systems")
+    Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMXL" == Platform.targetCompiler, "IBM XL does currently not support std::chrono")
+    Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMBG" == Platform.targetCompiler, "IBM BG does currently not support std::chrono")
 
     // experimental
     Constraints.condEnsureValue(experimental_trimBoundsForReductionLoops, false, data_genVariableFieldSizes, "experimental_trimBoundsForReductionLoops is currently not compatible with data_genVariableFieldSizes")

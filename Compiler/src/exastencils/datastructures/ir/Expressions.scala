@@ -198,7 +198,7 @@ case class VectorExpression(var datatype : Option[Datatype], var expressions : L
   def isConstant = expressions.forall(e => e.isInstanceOf[Number])
 
   def prettyprintInner(out : PpStream) : Unit = {
-    out << (if (Knowledge.targetCompiler == "GCC") "std::move((" else "((")
+    out << (if (Platform.targetCompiler == "GCC") "std::move((" else "((")
     out << datatype.getOrElse(RealDatatype) << "[]){" <<< (expressions, ",") << "})"
   }
   override def prettyprint(out : PpStream) : Unit = {
@@ -215,7 +215,7 @@ case class VectorExpression(var datatype : Option[Datatype], var expressions : L
 
 case class MatrixExpression(var datatype : Option[Datatype], var expressions : ListBuffer[ListBuffer[Expression]]) extends Expression {
   def prettyprintInner(out : PpStream) : Unit = {
-    out << (if (Knowledge.targetCompiler == "GCC") "std::move((" else "((")
+    out << (if (Platform.targetCompiler == "GCC") "std::move((" else "((")
     out << datatype.getOrElse(RealDatatype) << "[]){" <<< (expressions.flatten, ",") << "})"
   }
   override def prettyprint(out : PpStream) : Unit = {
@@ -530,7 +530,7 @@ private object MinMaxPrinter {
     if (args.length == 1)
       out << args(0)
 
-    else if (Knowledge.supports_initializerList)
+    else if (Platform.supports_initializerList)
       out << method << "({" <<< (args, ",") << "})"
 
     else {
@@ -711,7 +711,7 @@ case class SIMD_LoadExpression(var mem : Expression, val aligned : Boolean) exte
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     val alig = if (aligned) "" else "u"
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"         => out << "_mm_load" << alig << "_p" << prec << '('
       case "AVX" | "AVX2" => out << "_mm256_load" << alig << "_p" << prec << '('
       case "AVX512"       => out << "_mm512_load" << alig << "_p" << prec << '('
@@ -726,7 +726,7 @@ case class SIMD_LoadExpression(var mem : Expression, val aligned : Boolean) exte
 case class SIMD_Load1Expression(var mem : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"         => out << "_mm_load1_p" << prec << '('
       case "AVX" | "AVX2" => out << "_mm256_broadcast_s" << prec << '('
       case "AVX512"       => out << "_mm512_set1_p" << prec << "(*" // TODO: check again: no direct load possible?
@@ -735,7 +735,7 @@ case class SIMD_Load1Expression(var mem : Expression) extends Expression {
       case "NEON"         => out << "vld1q_dup_f32(" // TODO: only unaligned?
     }
     out << mem
-    if (Knowledge.simd_instructionSet == "IMCI") {
+    if (Platform.simd_instructionSet == "IMCI") {
       if (Knowledge.useDblPrecision)
         out << "_MM_UPCONV_PD_NONE, _MM_BROADCAST_1X8, 0"
       else
@@ -748,13 +748,13 @@ case class SIMD_Load1Expression(var mem : Expression) extends Expression {
 case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess, val offset : Int) extends Expression {
   private var shiftIV : VecShiftIndex = null
 
-  Knowledge.simd_instructionSet match {
+  Platform.simd_instructionSet match {
     case "AVX512" | "IMCI" => shiftIV = new VecShiftIndex(offset)
     case _                 =>
   }
 
   override def prettyprint(out : PpStream) : Unit = {
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3" =>
         if (Knowledge.useDblPrecision) offset match {
           case 1 => out << "_mm_shuffle_pd(" << left << ", " << right << ", 1)"
@@ -782,7 +782,7 @@ case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess,
         }
 
       case "AVX512" =>
-        if (offset <= 0 || offset >= Knowledge.simd_vectorSize)
+        if (offset <= 0 || offset >= Platform.simd_vectorSize)
           throw new InternalError("offset for SIMD_ConcShift out of bounds: " + offset)
         val prec = if (Knowledge.useDblPrecision) 'd' else 's'
         out << "_mm512_permutex2var_p" << prec << '(' << left << ", " << shiftIV << ", " << right << ')'
@@ -824,7 +824,7 @@ case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess,
 case class SIMD_NegateExpression(var vect : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
     val (prec, ts, fp) = if (Knowledge.useDblPrecision) ('d', "d", 'd') else ('s', "", 'f')
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"         => out << "_mm_xor_p" << prec << '(' << vect << ", _mm_set1_p" << prec << "(-0." << fp << "))"
       case "AVX" | "AVX2" => out << "_mm256_xor_p" << prec << '(' << vect << ", _mm256_set1_p" << prec << "(-0." << fp << "))"
       case "AVX512"       => out << "_mm512_xor_p" << prec << '(' << vect << ", _mm512_set1_p" << prec << "(-0." << fp << "))"
@@ -838,7 +838,7 @@ case class SIMD_NegateExpression(var vect : Expression) extends Expression {
 case class SIMD_AdditionExpression(var left : Expression, var right : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"            => out << "_mm_add_p" << prec
       case "AVX" | "AVX2"    => out << "_mm256_add_p" << prec
       case "AVX512" | "IMCI" => out << "_mm512_add_p" << prec
@@ -852,7 +852,7 @@ case class SIMD_AdditionExpression(var left : Expression, var right : Expression
 case class SIMD_SubtractionExpression(var left : Expression, var right : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"            => out << "_mm_sub_p" << prec
       case "AVX" | "AVX2"    => out << "_mm256_sub_p" << prec
       case "AVX512" | "IMCI" => out << "_mm512_sub_p" << prec
@@ -866,7 +866,7 @@ case class SIMD_SubtractionExpression(var left : Expression, var right : Express
 case class SIMD_MultiplicationExpression(var left : Expression, var right : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"            => out << "_mm_mul_p" << prec
       case "AVX" | "AVX2"    => out << "_mm256_mul_p" << prec
       case "AVX512" | "IMCI" => out << "_mm512_mul_p" << prec
@@ -896,7 +896,7 @@ case class SIMD_MultiplySubExpression(var factor1 : Expression, var factor2 : Ex
 private object FusedPrinterHelper {
   def prettyprint(out : PpStream, factor1 : Expression, factor2 : Expression, summand : Expression, addSub : String) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"            => out << "_mm_" << addSub << "_p" << prec << "(_mm_mul_p" << prec << '(' << factor1 << ", " << factor2 << "), " << summand << ')'
       case "AVX"             => out << "_mm256_" << addSub << "_p" << prec << "(_mm256_mul_p" << prec << '(' << factor1 << ", " << factor2 << "), " << summand << ')'
       case "AVX2"            => out << "_mm256_fm" << addSub << "_p" << prec << '(' << factor1 << ", " << factor2 << ", " << summand << ')'
@@ -914,7 +914,7 @@ private object FusedPrinterHelper {
 case class SIMD_DivisionExpression(var left : Expression, var right : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"         => out << "_mm_div_p" << prec
       case "AVX" | "AVX2" => out << "_mm256_div_p" << prec
       case "AVX512"       => out << "_mm512_div_p" << prec
@@ -928,21 +928,14 @@ case class SIMD_DivisionExpression(var left : Expression, var right : Expression
 
 case class SIMD_FloatConstant(var value : Double) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
-    /*
-     * Fix by Thomas Lang:
-     * Added intrinsic for IMCI.
-     *
-     * This intrinsic is defined in 'zmmintrin.h' and is
-     * also known by 'immintrin.h', this fills the value
-     */
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"         => out << "_mm_set1_p" << prec
       case "AVX" | "AVX2" => out << "_mm256_set1_p" << prec
       case "AVX512"       => out << "_mm512_set1_p" << prec
       case "QPX"          => out << "vec_splats"
       case "NEON"         => out << "vdupq_n_f32"
-      case "IMCI"         => out << "_mm512_set_1to" << Knowledge.simd_vectorSize << "_p" << prec
+      case "IMCI"         => out << "_mm512_set_1to" << Platform.simd_vectorSize << "_p" << prec
     }
     out << '(' << value << ')' // this uses value.toString(), which is Locale-independent and the string can be parsed without a loss of precision later
   }
@@ -950,21 +943,14 @@ case class SIMD_FloatConstant(var value : Double) extends Expression {
 
 case class SIMD_Scalar2VectorExpression(var scalar : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
-    /*
-     * Fix by Thomas Lang:
-     * Added intrinsic for IMCI.
-     *
-     * This intrinsic is defined in 'zmmintrin.h' and is
-     * also known by 'immintrin.h', this fills the value
-     */
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"         => out << "_mm_set1_p" << prec
       case "AVX" | "AVX2" => out << "_mm256_set1_p" << prec
       case "AVX512"       => out << "_mm512_set1_p" << prec
       case "QPX"          => out << "vec_splats"
       case "NEON"         => out << "vdupq_n_f32"
-      case "IMCI"         => out << "_mm512_set_1to" << Knowledge.simd_vectorSize << "_p" << prec
+      case "IMCI"         => out << "_mm512_set_1to" << Platform.simd_vectorSize << "_p" << prec
     }
     out << '(' << scalar << ')'
   }

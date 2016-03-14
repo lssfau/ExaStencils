@@ -253,7 +253,7 @@ case class SIMD_StoreStatement(var mem : Expression, var value : Expression, var
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     val alig = if (aligned) "" else "u"
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"         => out << "_mm_store" << alig << "_p" << prec
       case "AVX" | "AVX2" => out << "_mm256_store" << alig << "_p" << prec
       case "AVX512"       => out << "_mm512_store" << alig << "_p" << prec
@@ -261,7 +261,7 @@ case class SIMD_StoreStatement(var mem : Expression, var value : Expression, var
       case "QPX"          => out << (if (aligned) "vec_sta" else "NOT VALID ; unaligned store for QPX: ")
       case "NEON"         => out << "vst1q_f32"
     }
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "QPX" => out << '(' << value << ", 0, " << mem << ");"
       case _     => out << '(' << mem << ", " << value << ");"
     }
@@ -270,7 +270,7 @@ case class SIMD_StoreStatement(var mem : Expression, var value : Expression, var
 
 case class SIMD_HorizontalAddStatement(var dest : Expression, var src : Expression) extends Statement {
   override def prettyprint(out : PpStream) : Unit = {
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3" =>
         out << "{\n"
         if (Knowledge.useDblPrecision) {
@@ -311,7 +311,7 @@ case class SIMD_HorizontalMulStatement(var dest : Expression, var src : Expressi
 
 case class SIMD_HorizontalMinStatement(var dest : Expression, var src : Expression) extends Statement {
   override def prettyprint(out : PpStream) : Unit = {
-    if (Knowledge.simd_instructionSet == "QPX")
+    if (Platform.simd_instructionSet == "QPX")
       out << "NOT VALID ; vec_min not available on BG/Q"
     else
       HorizontalPrinterHelper.prettyprint(out, dest, src, "min", "=", "std::min")
@@ -320,7 +320,7 @@ case class SIMD_HorizontalMinStatement(var dest : Expression, var src : Expressi
 
 case class SIMD_HorizontalMaxStatement(var dest : Expression, var src : Expression) extends Statement {
   override def prettyprint(out : PpStream) : Unit = {
-    if (Knowledge.simd_instructionSet == "QPX")
+    if (Platform.simd_instructionSet == "QPX")
       out << "NOT VALID ; vec_max not available on BG/Q"
     else
       HorizontalPrinterHelper.prettyprint(out, dest, src, "max", "=", "std::max")
@@ -330,7 +330,7 @@ case class SIMD_HorizontalMaxStatement(var dest : Expression, var src : Expressi
 private object HorizontalPrinterHelper {
   def prettyprint(out : PpStream, dest : Expression, src : Expression, redName : String, assOp : String, redFunc : String = null) : Unit = {
     out << "{\n"
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3" =>
         if (Knowledge.useDblPrecision) {
           out << " __m128d _v = " << src << ";\n"
@@ -387,7 +387,7 @@ private object HorizontalPrinterHelper {
 case class SIMD_IncrementVectorDeclaration(var name : String) extends Statement {
   override def prettyprint(out : PpStream) : Unit = {
     out << SIMD_RealDatatype << ' ' << name
-    val is = Knowledge.simd_instructionSet
+    val is = Platform.simd_instructionSet
     is match {
       case "QPX" =>
         out << ";\n"
@@ -400,13 +400,13 @@ case class SIMD_IncrementVectorDeclaration(var name : String) extends Statement 
         val bit = if (is == "SSE3") "" else if (is == "AVX512") "512" else "256"
         val prec = if (Knowledge.useDblPrecision) 'd' else 's'
         out << " = _mm" << bit << "_set_p" << prec << '('
-        for (i <- Knowledge.simd_vectorSize - 1 to 1 by -1)
+        for (i <- Platform.simd_vectorSize - 1 to 1 by -1)
           out << i << ", "
         out << "0);"
 
       case "IMCI" =>
         out << " (" << SIMD_RealDatatype << ") { 0"
-        for (i <- 1 to Knowledge.simd_vectorSize - 1)
+        for (i <- 1 to Platform.simd_vectorSize - 1)
           out << ", " << i
         out << " };"
 
