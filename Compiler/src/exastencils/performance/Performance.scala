@@ -155,20 +155,20 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
         EvaluatePerformanceEstimates_Ops.applyStandalone(loop)
 
         val optimisticDataPerIt = EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.map(_._2.typicalByteSize).fold(0)(_ + _)
-        val optimisticTimeMem_host = (optimisticDataPerIt * maxIterations) / Knowledge.hw_cpu_bandwidth
-        val optimisticTimeMem_device = (optimisticDataPerIt * maxIterations) / Knowledge.hw_gpu_bandwidth
+        val optimisticTimeMem_host = (optimisticDataPerIt * maxIterations) / Platform.hw_cpu_bandwidth
+        val optimisticTimeMem_device = (optimisticDataPerIt * maxIterations) / Platform.hw_gpu_bandwidth
 
         val cyclesPerIt = (Math.max(EvaluatePerformanceEstimates_Ops.numAdd, EvaluatePerformanceEstimates_Ops.numMul)
-          + EvaluatePerformanceEstimates_Ops.numDiv * Knowledge.hw_cpu_numCyclesPerDiv)
-        var estimatedTimeOps_host = (cyclesPerIt * maxIterations) / Knowledge.hw_cpu_frequency
-        var estimatedTimeOps_device = (cyclesPerIt * maxIterations) / Knowledge.hw_gpu_frequency
-        val coresPerRank = (Knowledge.hw_numNodes * Knowledge.hw_numCoresPerNode).toDouble / Knowledge.mpi_numThreads // could be fractions of cores
+          + EvaluatePerformanceEstimates_Ops.numDiv * Platform.hw_cpu_numCyclesPerDiv)
+        var estimatedTimeOps_host = (cyclesPerIt * maxIterations) / Platform.hw_cpu_frequency
+        var estimatedTimeOps_device = (cyclesPerIt * maxIterations) / Platform.hw_gpu_frequency
+        val coresPerRank = (Platform.hw_numNodes * Platform.hw_numCoresPerNode).toDouble / Knowledge.mpi_numThreads // could be fractions of cores
         estimatedTimeOps_host /= Math.min(coresPerRank, Knowledge.omp_numThreads) // adapt for omp threading and hardware utilization
         estimatedTimeOps_host /= Knowledge.simd_vectorSize // adapt for vectorization - assume perfect vectorizability
-        estimatedTimeOps_device /= Knowledge.hw_gpu_numCores // assumes perfect utilization - TODO: annotate max number of iterations in loop and use it here if smaller than number of cuda cores
+        estimatedTimeOps_device /= Platform.hw_gpu_numCores // assumes perfect utilization - TODO: annotate max number of iterations in loop and use it here if smaller than number of cuda cores
 
         var totalEstimate = PerformanceEstimate(Math.max(estimatedTimeOps_host, optimisticTimeMem_host), Math.max(estimatedTimeOps_device, optimisticTimeMem_device))
-        totalEstimate.device += Knowledge.sw_cuda_kernelCallOverhead
+        totalEstimate.device += Platform.sw_cuda_kernelCallOverhead
 
         loop.annotate("perf_timeEstimate_host", totalEstimate.host)
         loop.annotate("perf_timeEstimate_device", totalEstimate.device)
@@ -181,7 +181,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
           CommentStatement(s"Optimistic device time for memory ops: ${optimisticTimeMem_device * 1000.0} ms"),
           CommentStatement(s"Optimistic host time for computational ops: ${estimatedTimeOps_host * 1000.0} ms"),
           CommentStatement(s"Optimistic device time for computational ops: ${estimatedTimeOps_device * 1000.0} ms"),
-          CommentStatement(s"Assumed kernel call overhead: ${Knowledge.sw_cuda_kernelCallOverhead * 1000.0} ms"),
+          CommentStatement(s"Assumed kernel call overhead: ${Platform.sw_cuda_kernelCallOverhead * 1000.0} ms"),
           CommentStatement(s"Found accesses: ${EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.map(_._1).mkString(", ")}"),
           loop)
       }

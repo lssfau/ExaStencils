@@ -220,11 +220,14 @@ case class FunctionStatement(
     var parameters : ListBuffer[VariableAccess],
     var body : ListBuffer[Statement],
     var allowInlining : Boolean = true,
-    var allowFortranInterface : Boolean = true) extends AbstractFunctionStatement {
+    var allowFortranInterface : Boolean = true,
+    var functionQualifiers : String = "" // e.g. "__global__" etc
+    ) extends AbstractFunctionStatement {
   def this(returntype : Datatype, name : String, parameters : ListBuffer[VariableAccess], body : Statement) = this(returntype, name, parameters, ListBuffer[Statement](body))
   def this(returntype : Datatype, name : String, parameters : VariableAccess, body : ListBuffer[Statement]) = this(returntype, name, ListBuffer[VariableAccess](parameters), body)
 
   override def prettyprint(out : PpStream) : Unit = { // FIXME: add specialized node for parameter specification with own PP
+    if (!functionQualifiers.isEmpty) out << functionQualifiers << ' '
     out << returntype << ' ' << name << ' ' << '('
     if (!parameters.isEmpty) {
       for (param <- parameters)
@@ -237,7 +240,10 @@ case class FunctionStatement(
   }
 
   override def prettyprint_decl() : String = {
-    s"${returntype.prettyprint} $name (" + parameters.map(param => s"${param.printDeclaration}").mkString(", ") + ");\n"
+    var decl = ""
+    if (!functionQualifiers.isEmpty) decl += functionQualifiers + ' '
+    decl += s"${returntype.prettyprint} $name (" + parameters.map(param => s"${param.printDeclaration}").mkString(", ") + ");\n"
+    decl
   }
 }
 

@@ -348,6 +348,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
           case _    => throw new VectorizationException("cannot deal with assignment operator \"" + assOp + "\" in " + stmt.prettyprint())
         }))
         SimplifyStrategy.doUntilDoneStandalone(srcWrap)
+        SimplifyStrategy.doUntilDoneStandalone(lhsSca) // simplify lhsSca too, to ensure identical array accesses have the same AST structure
         // create rhs before lhs to ensure all loads are created
         val rhsVec = vectorizeExpr(srcWrap.expression, ctx.setLoad())
         val lhsVec = vectorizeExpr(lhsSca, ctx.setStore())

@@ -31,6 +31,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
   // IMPORTANT: must match and extend all possible bounds for LoopOverDimensions inside a ContractingLoop
   private def extendBoundsBegin(expr : Expression, extent : Int) : Expression = {
     expr match {
+      case e if Knowledge.experimental_useStefanOffsets => e // don't do anything here
       case IntegerConstant(i) =>
         IntegerConstant(i - extent)
       case oInd @ OffsetIndex(0, 1, _, ArrayAccess(_ : iv.IterationOffsetBegin, _, _)) =>
@@ -44,6 +45,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
   // IMPORTANT: must match and extend all possible bounds for LoopOverDimensions inside a ContractingLoop
   private def extendBoundsEnd(expr : Expression, extent : Int) : Expression = {
     expr match {
+      case e if Knowledge.experimental_useStefanOffsets => e // don't do anything here
       case IntegerConstant(i) =>
         IntegerConstant(i + extent)
       case oInd @ OffsetIndex(-1, 0, _, ArrayAccess(_ : iv.IterationOffsetEnd, _, _)) =>
@@ -196,7 +198,10 @@ case class LoopOverPointsInOneFragment(var domain : Int,
             || ("face_x" == discr && 0 == dim)
             || ("face_y" == discr && 1 == dim)
             || ("face_z" == discr && 2 == dim) =>
-            if (Knowledge.experimental_disableIterationOffsets) {
+            if (Knowledge.experimental_useStefanOffsets) {
+              start(dim) = field.fieldLayout.idxById("IB", dim) - field.referenceOffset(dim) + startOffset(dim)
+              stop(dim) = field.fieldLayout.idxById("IE", dim) - field.referenceOffset(dim) - endOffset(dim)
+            } else if (Knowledge.experimental_disableIterationOffsets) {
               start(dim) = field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim)
               stop(dim) = field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
             } else {
@@ -424,7 +429,10 @@ case class LoopOverPointsInOneFragment(var domain : Int,
 
 object LoopOverDimensions {
   def defIt(numDims : Int) = {
-    new MultiIndex((0 until numDims).map(dim => VariableAccess(dimToString(dim), Some(IntegerDatatype)) : Expression).toArray)
+    new MultiIndex((0 until numDims).map(dim => defItForDim(dim) : Expression).toArray)
+  }
+  def defItForDim(dim : Int) = {
+    new VariableAccess(dimToString(dim), Some(IntegerDatatype))
   }
 
   object ReplaceOffsetIndicesWithMin extends QuietDefaultStrategy("Replace OffsetIndex nodes with minimum values") {
