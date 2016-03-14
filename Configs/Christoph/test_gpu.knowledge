@@ -30,3 +30,7 @@ experimental_cuda_blockSize_z                   = 8
 experimental_mergeCommIntoLoops                 = false
 experimental_splitLoopsForAsyncComm             = false
 experimental_splitLoops_minInnerWidth           = 4
+
+l3tmp_genTimersPerFunction  = true
+l3tmp_genTimersPerLevel     = true
+l3tmp_printAllTimers        = true
