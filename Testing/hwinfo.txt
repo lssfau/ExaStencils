@@ -29,7 +29,7 @@ Chimaira (Cluster)
 
 Zmiy (Pseudo-Cluster)
   4 Systeme mit je:
-    Constraints: i7, AVX, AVX2
+    Constraints: AVX, AVX2
     Intel Core i7-4790 (http://ark.intel.com/de/products/80806/Intel-Core-i7-4790-Processor-8M-Cache-up-to-4_00-GHz)
       Haswell
       4 Kerne
@@ -40,7 +40,7 @@ Zmiy (Pseudo-Cluster)
       AVX2 (& FMA)
     16 GB RAM (dualchannel)
   14 Systeme mit je:
-    Constraints: i5, AVX, AVX2
+    Constraints: AVX, AVX2
     Intel Core i5-4590 (http://ark.intel.com/de/products/80815/Intel-Core-i5-4590-Processor-6M-Cache-up-to-3_70-GHz)
       Haswell
       4 Kerne
@@ -53,7 +53,7 @@ Zmiy (Pseudo-Cluster)
 
 
 Sphinx (Compute-Server)
-  Constraints: E5, AVX
+  Constraints: AVX
   2 Sockel mit je:
     Intel Xeon E5-2609 v2 (http://ark.intel.com/de/products/75787/Intel-Xeon-Processor-E5-2609-v2-10M-Cache-2_50-GHz)
       Ivy Bridge EP
@@ -67,7 +67,7 @@ Sphinx (Compute-Server)
 
 
 Workstations (neu)
-  Constraints: i7, AVX, AVX2
+  Constraints: AVX, AVX2
   Core i7-4770 (http://ark.intel.com/de/products/75122/Intel-Core-i7-4770-Processor-8M-Cache-up-to-3_90-GHz)
     Haswell
     4 Kerne

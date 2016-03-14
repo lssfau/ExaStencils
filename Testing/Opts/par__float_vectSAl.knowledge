@@ -1,7 +1,3 @@
-targetCompiler             = "GCC"
-targetCompilerVersion      = 4
-targetCompilerVersionMinor = 8
-simd_instructionSet        = "SSE3"
 data_alignFieldPointers    = true
 simd_avoidUnaligned        = true
 useDblPrecision            = false
