@@ -372,6 +372,8 @@ object Knowledge {
   var experimental_bc_checkOnlyMainAxis : Boolean = true
   var experimental_bc_avoidOrOperations : Boolean = true
 
+  var experimental_useStefanOffsets : Boolean = false // use this flag to resolve iteration offsets -> use only for single fragments!
+
   var experimental_resolveUnreqFragmentLoops : Boolean = false
 
   var experimental_allowCommInFragLoops : Boolean = false
@@ -613,5 +615,6 @@ object Knowledge {
 
     // experimental
     Constraints.condEnsureValue(experimental_trimBoundsForReductionLoops, false, data_genVariableFieldSizes, "experimental_trimBoundsForReductionLoops is currently not compatible with data_genVariableFieldSizes")
+    Constraints.condEnsureValue(experimental_useStefanOffsets, false, domain_numFragmentsTotal > 1, "experimental_useStefanOffsets requires a single fragment")
   }
 }
