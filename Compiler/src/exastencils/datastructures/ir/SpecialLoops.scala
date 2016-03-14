@@ -31,6 +31,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
   // IMPORTANT: must match and extend all possible bounds for LoopOverDimensions inside a ContractingLoop
   private def extendBoundsBegin(expr : Expression, extent : Int) : Expression = {
     expr match {
+      case e if Knowledge.experimental_useStefanOffsets => e // don't do anything here
       case IntegerConstant(i) =>
         IntegerConstant(i - extent)
       case oInd @ OffsetIndex(0, 1, _, ArrayAccess(_ : iv.IterationOffsetBegin, _, _)) =>
@@ -44,6 +45,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
   // IMPORTANT: must match and extend all possible bounds for LoopOverDimensions inside a ContractingLoop
   private def extendBoundsEnd(expr : Expression, extent : Int) : Expression = {
     expr match {
+      case e if Knowledge.experimental_useStefanOffsets => e // don't do anything here
       case IntegerConstant(i) =>
         IntegerConstant(i + extent)
       case oInd @ OffsetIndex(-1, 0, _, ArrayAccess(_ : iv.IterationOffsetEnd, _, _)) =>
