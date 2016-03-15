@@ -284,7 +284,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
           deviceBufferSizes += (id -> MaximumExpression(ListBuffer(Duplicate(buf.size))))
       } else {
         val size = SimplifyExpression.evalIntegral(buf.size).toLong
-        deviceBufferSizes += (id -> (size max bufferSizes.getOrElse(id, IntegerConstant(0)).asInstanceOf[IntegerConstant].v))
+        deviceBufferSizes += (id -> (size max deviceBufferSizes.getOrElse(id, IntegerConstant(0)).asInstanceOf[IntegerConstant].v))
       }
       buf
     }
