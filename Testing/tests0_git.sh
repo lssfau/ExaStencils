@@ -107,7 +107,7 @@ if [[ -d "${REPO_DIR}" ]]; then
     # up-to-date, no need to run tests, exit script
     if [[ -z "${OLD_JOBS}" ]]; then # only output log if there are no old tests running
       echo "$(date -R):  Tests triggered, but there are no new commits since last run, finish." >> "${OUT_FILE}"
-      echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(date -R):  Done!</pre></body></html>" > "${PROGRESS}"
+      update_progress 0
     fi
     exit 0
   fi
