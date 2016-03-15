@@ -1,5 +1,6 @@
 package exastencils.knowledge
 
+import exastencils.constraints._
 import exastencils.logger._
 
 object Platform {
@@ -69,9 +70,11 @@ object Platform {
 
   var hw_numThreadsPerNode : Int = 64 // specifies the total number of ranks (OMP and MPI) to be used when generating job scripts
   def hw_numCoresPerNode : Int = hw_cpu_numCoresPerCPU * hw_cpu_numCPUs
+  def hw_numHWThreadsPerNode : Int = hw_cpu_numHWThreads * hw_cpu_numCPUs
   var hw_numNodes : Int = 1
   var hw_cpu_name : String = "Intel Xeon E5620"
   var hw_cpu_numCoresPerCPU : Int = 4
+  var hw_cpu_numHWThreads : Int = 8 // number of hardware threads per cpu
   var hw_cpu_numCPUs : Int = 2
   var hw_cpu_bandwidth : Double = 25.6 * 1024 * 1024 * 1024 // in B/s
   var hw_cpu_frequency : Double = 2.4 * 1000 * 1000 * 1000 // in Hz
@@ -204,5 +207,9 @@ object Platform {
     }
 
     flags
+  }
+
+  def update() : Unit = {
+    Constraints.condEnsureValue(hw_cpu_numHWThreads, hw_cpu_numCoresPerCPU, hw_cpu_numHWThreads < hw_cpu_numCoresPerCPU, "The number of hardware threads has at least to be equal to the number of physical cores")
   }
 }

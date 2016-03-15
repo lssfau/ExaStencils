@@ -74,6 +74,8 @@ object BinaryOperators extends Enumeration {
   val LowerEqual = Value("<=")
   val Greater = Value(">")
   val GreaterEqual = Value(">=")
+  val Maximum = Value("max")
+  val Minimum = Value("min")
   val BitwiseAnd = Value("&")
 
   exastencils.core.Duplicate.registerImmutable(this.getClass())
@@ -108,6 +110,8 @@ object BinaryOperators extends Enumeration {
     case LowerEqual                => return new LowerEqualExpression(left, right)
     case Greater                   => return new GreaterExpression(left, right)
     case GreaterEqual              => return new GreaterEqualExpression(left, right)
+    case Maximum                   => return new MaximumExpression(left, right)
+    case Minimum                   => return new MinimumExpression(left, right)
     case BitwiseAnd                => return new BitwiseAndExpression(left, right)
   }
 }
@@ -530,7 +534,7 @@ private object MinMaxPrinter {
     if (args.length == 1)
       out << args(0)
 
-    else if (Platform.supports_initializerList)
+    else if (Platform.supports_initializerList && PrintEnvironment.CPP == out.env)
       out << method << "({" <<< (args, ",") << "})"
 
     else {
@@ -548,7 +552,9 @@ case class MinimumExpression(var args : ListBuffer[Expression]) extends Expressi
   def this(varargs : Expression*) = this(varargs.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
-    MinMaxPrinter.prettyprintsb(out, args, "std::min")
+    import PrintEnvironment._
+    val name = if (out.env == CUDA) "fmin" else "std::min"
+    MinMaxPrinter.prettyprintsb(out, args, name)
   }
 }
 
@@ -556,7 +562,9 @@ case class MaximumExpression(var args : ListBuffer[Expression]) extends Expressi
   def this(varargs : Expression*) = this(varargs.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
-    MinMaxPrinter.prettyprintsb(out, args, "std::max")
+    import PrintEnvironment._
+    val name = if (out.env == CUDA) "fmax" else "std::max"
+    MinMaxPrinter.prettyprintsb(out, args, name)
   }
 }
 

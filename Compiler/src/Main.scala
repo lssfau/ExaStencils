@@ -59,8 +59,10 @@ object Main {
 
     //    try {
 
-    // validate knowledge
+    // validate knowledge, etc.
     Knowledge.update()
+    Settings.update()
+    Platform.update()
 
     if (Settings.cancelIfOutFolderExists) {
       if ((new java.io.File(Settings.getOutputPath)).exists) {
@@ -137,11 +139,10 @@ object Main {
 
     if (false) // re-print the merged L4 state
     {
-      val l4_printed = new PpStream()
-      StateManager.root_.asInstanceOf[l4.Root].prettyprint(l4_printed)
+      val l4_printed = StateManager.root_.asInstanceOf[l4.Root].prettyprint()
 
       val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
-      outFile.write((Indenter.addIndentations(l4_printed.toString)))
+      outFile.write((Indenter.addIndentations(l4_printed)))
       outFile.close
 
       // re-parse the file to check for errors
@@ -168,7 +169,7 @@ object Main {
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
     if (Settings.timeStrategies)
-      StrategyTimer.startTiming("Progressing from L4 to IR")
+      StrategyTimer.stopTiming("Progressing from L4 to IR")
 
     // add some more nodes
     AddDefaultGlobals.apply()

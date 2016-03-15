@@ -1,3 +1,10 @@
+targetOS					= "Windows"
+targetCompiler				= "MSVC"
+targetCompilerVersion		= 12
+targetCompilerVersionMinor	= 0
+
+simd_instructionSet			= "AVX"
+
 hw_numThreadsPerNode		= 16
 hw_numNodes					= 1
 
@@ -5,7 +12,7 @@ hw_cpu_name					= "Intel Xeon E5-2623 v3"
 hw_cpu_numCoresPerCPU		= 4
 hw_cpu_numHWThreads			= 8
 hw_cpu_numCPUs				= 1
-hw_cpu_bandwidth			= 63350767616.0 // 59 GB/s in B/s
+hw_cpu_bandwidth			= 59000000000.0 // 59 GB/s in B/s
 hw_cpu_frequency			= 3000000000.0 // 3.0 GHz in Hz (base)
 hw_cpu_numCyclesPerDiv		= 24 // arbitrary value -> to be benchmarked later
 
@@ -14,7 +21,7 @@ hw_cacheLineSize			= 512 // in B
 
 hw_gpu_name					= "NVidia GeForce GTX 980 Ti"
 hw_gpu_numDevices			= 2
-hw_gpu_bandwidth			= 361314123776.0 // 336.5 GB/s in B/s
+hw_gpu_bandwidth			= 336500000000.0 // 336.5 GB/s in B/s
 hw_gpu_frequency			= 1000000000 // 1000 MHz in Hz (base)
 hw_gpu_numCores				= 2816
 
