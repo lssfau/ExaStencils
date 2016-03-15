@@ -71,4 +71,20 @@ object Settings {
   var printNodeCountAfterTransformation : Boolean = false // print number of nodes after each transformation
   var printNodeCountAfterStrategy : Boolean = false // print number of nodes after each strategy
   var printTransformationTime : Boolean = false
+
+  def update() : Unit = {
+    // handle CUDA
+    if (Knowledge.experimental_cuda_enabled) {
+      Platform.targetOS match {
+        case "Windows" =>
+          if (!additionalLibs.contains("cuda.lib")) additionalLibs += "cuda.lib"
+          if (!additionalLibs.contains("cudart.lib")) additionalLibs += "cudart.lib"
+          if (!pathsInc.contains("$(CUDA_INC_PATH)")) pathsInc += "$(CUDA_INC_PATH)"
+          if (!pathsLib.contains("$(CUDA_LIB_PATH)")) pathsLib += "$(CUDA_LIB_PATH)"
+        case "Linux" | "OSX" =>
+          if (!additionalLibs.contains("cuda")) additionalLibs += "cuda"
+          if (!additionalLibs.contains("cudart")) additionalLibs += "cudart"
+      }
+    }
+  }
 }

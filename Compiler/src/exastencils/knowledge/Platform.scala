@@ -205,4 +205,8 @@ object Platform {
 
     flags
   }
+
+  def update() : Unit = {
+    // nothing to do yet
+  }
 }
