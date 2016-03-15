@@ -19,11 +19,7 @@ object PrettyprintingManager {
   def popPrinter() = printerStack.pop
 
   def getPrinter(filename : String) : Prettyprinter = {
-    printers.getOrElse(filename, {
-      var printer = new Prettyprinter(filename, (new java.io.File(Settings.getOutputPath + filename)).getAbsolutePath())
-      printers += ((filename, printer))
-      printer
-    })
+    printers.getOrElseUpdate(filename, new Prettyprinter(filename, (new java.io.File(Settings.getOutputPath + filename)).getAbsolutePath()))
   }
 
   def finish = {
