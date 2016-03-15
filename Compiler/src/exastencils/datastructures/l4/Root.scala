@@ -8,7 +8,7 @@ import exastencils.knowledge._
 import exastencils.multiGrid._
 import exastencils.prettyprinting._
 
-case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
+case class Root(nodes : List[Node]) extends Node with ProgressableToIr with PrettyPrintable {
 
   var domains : ListBuffer[DomainDeclarationStatement] = new ListBuffer()
   var fieldLayouts : ListBuffer[LayoutDeclarationStatement] = new ListBuffer()

@@ -60,7 +60,7 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
       val writer = PrettyprintingManager.getPrinter(s"${baseName}_${fileName}.cu")
       writer.addInternalDependency(s"${baseName}.h")
 
-      writer <<< f.prettyprint
+      writer <<< f.prettyprint(PrintEnvironment.CUDA)
       writer <<< ""
     }
   }
