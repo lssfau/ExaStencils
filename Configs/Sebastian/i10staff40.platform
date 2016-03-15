@@ -1,3 +1,10 @@
+targetOS					= "Windows"
+targetCompiler				= "MSVC"
+targetCompilerVersion		= 12
+targetCompilerVersionMinor	= 0
+
+simd_instructionSet			= "AVX"
+
 hw_numThreadsPerNode		= 16
 hw_numNodes					= 1
 
