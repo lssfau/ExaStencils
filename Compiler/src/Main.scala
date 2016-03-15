@@ -168,7 +168,7 @@ object Main {
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
 
     if (Settings.timeStrategies)
-      StrategyTimer.startTiming("Progressing from L4 to IR")
+      StrategyTimer.stopTiming("Progressing from L4 to IR")
 
     // add some more nodes
     AddDefaultGlobals.apply()
