@@ -58,8 +58,10 @@ object MainStefan {
         platformParser.parseFile(args(2))
     }
 
-    // validate knowledge
+    // validate knowledge, etc.
     Knowledge.update()
+    Settings.update()
+    Platform.update()
 
     if (Settings.cancelIfOutFolderExists) {
       if ((new java.io.File(Settings.getOutputPath)).exists) {
