@@ -37,6 +37,8 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< "clean:"
     printer << "\trm -f "
     cppFileNames.foreach(file => { printer << s"${file.replace(".cpp", ".o")} " })
+    if (Knowledge.experimental_cuda_enabled)
+      cuFileNames.foreach(file => { printer << s"${file.replace(".cu", ".o")} " })
     printer <<< "${BINARY}"
     printer <<< ""
 
