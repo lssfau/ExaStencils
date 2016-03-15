@@ -552,7 +552,9 @@ case class MinimumExpression(var args : ListBuffer[Expression]) extends Expressi
   def this(varargs : Expression*) = this(varargs.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
-    MinMaxPrinter.prettyprintsb(out, args, "std::min")
+    import PrintEnvironment._
+    val name = if (out.env == CUDA) "fmin" else "std::min"
+    MinMaxPrinter.prettyprintsb(out, args, name)
   }
 }
 
@@ -560,7 +562,9 @@ case class MaximumExpression(var args : ListBuffer[Expression]) extends Expressi
   def this(varargs : Expression*) = this(varargs.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
-    MinMaxPrinter.prettyprintsb(out, args, "std::max")
+    import PrintEnvironment._
+    val name = if (out.env == CUDA) "fmax" else "std::max"
+    MinMaxPrinter.prettyprintsb(out, args, name)
   }
 }
 
