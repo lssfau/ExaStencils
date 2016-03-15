@@ -534,7 +534,7 @@ private object MinMaxPrinter {
     if (args.length == 1)
       out << args(0)
 
-    else if (Platform.supports_initializerList)
+    else if (Platform.supports_initializerList && PrintEnvironment.CPP == out.env)
       out << method << "({" <<< (args, ",") << "})"
 
     else {
