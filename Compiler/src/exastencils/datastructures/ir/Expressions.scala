@@ -74,6 +74,8 @@ object BinaryOperators extends Enumeration {
   val LowerEqual = Value("<=")
   val Greater = Value(">")
   val GreaterEqual = Value(">=")
+  val Maximum = Value("max")
+  val Minimum = Value("min")
   val BitwiseAnd = Value("&")
 
   exastencils.core.Duplicate.registerImmutable(this.getClass())
@@ -108,6 +110,8 @@ object BinaryOperators extends Enumeration {
     case LowerEqual                => return new LowerEqualExpression(left, right)
     case Greater                   => return new GreaterExpression(left, right)
     case GreaterEqual              => return new GreaterEqualExpression(left, right)
+    case Maximum                   => return new MaximumExpression(left, right)
+    case Minimum                   => return new MinimumExpression(left, right)
     case BitwiseAnd                => return new BitwiseAndExpression(left, right)
   }
 }
