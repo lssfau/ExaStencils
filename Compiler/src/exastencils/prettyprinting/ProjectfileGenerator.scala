@@ -84,12 +84,19 @@ object ProjectfileGenerator extends BuildfileGenerator {
     projectPrinter <<< "\t\t\t<MultiProcessorCompilation>true</MultiProcessorCompilation>"
     if (Knowledge.omp_enabled)
       projectPrinter <<< "\t\t\t<OpenMPSupport>true</OpenMPSupport>"
+    Platform.simd_instructionSet match {
+      case "AVX"  => projectPrinter <<< "\t\t\t<EnableEnhancedInstructionSet>AdvancedVectorExtensions</EnableEnhancedInstructionSet>"
+      case "AVX2" => projectPrinter <<< "\t\t\t<EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>"
+      case _      => // TODO: add other options: StreamingSIMDExtensions, StreamingSIMDExtensions2, NoExtensions
+    }
     projectPrinter <<< "\t\t</ClCompile>"
 
     // cuda compile step
     if (Knowledge.experimental_cuda_enabled) {
       projectPrinter <<< "\t\t<CudaCompile>"
       projectPrinter <<< "\t\t\t<TargetMachinePlatform>64</TargetMachinePlatform>"
+      projectPrinter <<< s"\t\t\t<CodeGeneration>compute_${Platform.hw_cuda_capability}${Platform.hw_cuda_capabilityMinor},sm_${Platform.hw_cuda_capability}${Platform.hw_cuda_capabilityMinor}</CodeGeneration>"
+      projectPrinter <<< "\t\t\t<FastMath>true</FastMath>"
       projectPrinter <<< "\t\t</CudaCompile>"
     }
 
