@@ -31,6 +31,10 @@ TESTING_DIR="${REPO_DIR}/Testing"
 TESTING_CONF="${TESTING_DIR}/test_confs.txt"
 
 FAILURE_MAIL="exastencils-dev@www.uni-passau.de"
+FAILURE_MAIL_FILE="${TESTING_DIR}/failure_mails.txt"
+if [[ -s "${FAILURE_MAIL_FILE}" ]]; then
+  FAILURE_MAIL=$(cat ${FAILURE_MAIL_FILE})
+fi
 
 ERROR_MARKER_NAME="error"
 ERROR_MARKER="${TEMP_DIR}/${ERROR_MARKER_NAME}"
