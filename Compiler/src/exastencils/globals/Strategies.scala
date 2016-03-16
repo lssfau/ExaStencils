@@ -37,7 +37,7 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
           s"cuDeviceGet(&cudaDevice, ${Knowledge.experimental_cuda_deviceId})")
 
         // print device info (name)
-        if (true) {
+        if (!Knowledge.l3tmp_genForAutoTests) {
           func.body ++= ListBuffer[Statement](
             "cudaDeviceProp devProp",
             s"cudaGetDeviceProperties(&devProp, ${Knowledge.experimental_cuda_deviceId})",
