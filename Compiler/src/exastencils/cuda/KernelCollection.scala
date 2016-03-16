@@ -13,6 +13,7 @@ import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.prettyprinting._
 import exastencils.util._
+import scala.collection.mutable.HashSet
 
 case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelFunctions",
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
@@ -28,7 +29,7 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
   }
 
   var kernelCollection = ListBuffer[Kernel]()
-  var requiresRedKernel = false
+  var requiredRedKernels = HashSet[String]()
   var counterMap = HashMap[String, Int]()
 
   def getIdentifier(fctName : String) : String = {
@@ -49,8 +50,8 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
     kernelCollection.clear // consume processed kernels
 
     // take care of reductions
-    if (requiresRedKernel) addDefaultReductionKernel
-    requiresRedKernel = false
+    for (op <- requiredRedKernels) addDefaultReductionKernel(op)
+    requiredRedKernels.clear // consume reduction requests
   }
 
   override def printSources = {
@@ -65,7 +66,11 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
     }
   }
 
-  def addDefaultReductionKernel = {
+  def addDefaultReductionKernel(op : String) = {
+    val opAsIdent = BinaryOperators.opAsIdent(op)
+    val kernelName = "DefaultReductionKernel" + opAsIdent
+    val wrapperName = kernelName + "_wrapper"
+
     // kernel function
     {
       def data = VariableAccess("data", Some(PointerDatatype(RealDatatype)))
@@ -87,12 +92,12 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
       // add values with stride
       fctBody += new ConditionStatement(
         LowerExpression(it + stride, numElements),
-        AssignmentStatement(ArrayAccess(data, it), ArrayAccess(data, it + stride), "+="))
+        AssignmentStatement(ArrayAccess(data, it), BinaryOperators.CreateExpression(op, ArrayAccess(data, it), ArrayAccess(data, it + stride))))
 
       // compile final kernel function
       var fct = FunctionStatement(
         UnitDatatype,
-        "DefaultReductionKernel",
+        kernelName,
         ListBuffer(data, numElements, stride),
         fctBody,
         false, false, "__global__")
@@ -116,7 +121,7 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
       var loopBody = ListBuffer[Statement]()
       loopBody += new VariableDeclarationStatement(blocks, (numElements + (blockSize * stride - 1)) / (blockSize * stride))
       loopBody += new ConditionStatement(EqEqExpression(0, blocks), AssignmentStatement(blocks, 1))
-      loopBody += new CUDA_FunctionCallExpression("DefaultReductionKernel", ListBuffer[Expression](data, numElements, stride),
+      loopBody += new CUDA_FunctionCallExpression(kernelName, ListBuffer[Expression](data, numElements, stride),
         Array[Expression](blocks * blockSize /*FIXME: avoid x*BS/BS */ ), Array[Expression](blockSize))
 
       fctBody += ForLoopStatement(
@@ -133,7 +138,7 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
       // compile final wrapper function
       functions += FunctionStatement(
         RealDatatype, // TODO: support other types
-        "DefaultReductionKernel_wrapper",
+        wrapperName,
         ListBuffer(data, VariableAccess("numElements", Some(IntegerDatatype /*FIXME: size_t*/ ))),
         fctBody,
         false, false,
@@ -263,9 +268,10 @@ case class Kernel(var identifier : String,
       def bufAccess = iv.ReductionDeviceData(bufSize)
       body += CUDA_Memset(bufAccess, 0, bufSize, reduction.get.target.dType.get)
       body += new CUDA_FunctionCallExpression(getKernelFctName, callArgs, numThreadsPerDim)
-      body += ReturnStatement(Some(FunctionCallExpression("DefaultReductionKernel_wrapper", ListBuffer[Expression](bufAccess, bufSize))))
+      body += ReturnStatement(Some(FunctionCallExpression(s"DefaultReductionKernel${BinaryOperators.opAsIdent(reduction.get.op)}_wrapper",
+        ListBuffer[Expression](bufAccess, bufSize))))
 
-      StateManager.findFirst[KernelFunctions]().get.requiresRedKernel = true // request reduction kernel and wrapper
+      StateManager.findFirst[KernelFunctions]().get.requiredRedKernels += reduction.get.op // request reduction kernel and wrapper
     } else {
       body += new CUDA_FunctionCallExpression(getKernelFctName, callArgs, numThreadsPerDim)
     }
