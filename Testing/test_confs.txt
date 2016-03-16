@@ -199,4 +199,4 @@ FMG_3D_VarCoeff       Main    FMG/3D_VarCoeff.knowledge       *  FMG/3D_VarCoeff
 # CUDA TESTS                                                                                    #
 #################################################################################################
 
-# CUDA_SISC_3D_ConstCoeff Main  CUDA/3D_ConstCoeff.knowledge  *  CUDA/3D_ConstCoeff.result  1  10  GPU
+CUDA_SISC_3D_ConstCoeff Main  CUDA/3D_ConstCoeff.knowledge  *  CUDA/3D_ConstCoeff.result  1  10  GPU
