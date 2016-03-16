@@ -158,8 +158,10 @@ do
     l4file="${TESTING_DIR}/${l4file}"
   fi
 
+  COMPILE_CONSTR=""
   if [[ ${constraints} =~ GPU ]] || [[ ${constraints} = "E5" ]]; then
     PLATFORM="chimaira.platform"
+    COMPILE_CONSTR="-A cl -p chimaira" # HACK: the cuda compiler is not installed on all machines
   elif [[ ${constraints} = "AVX2" ]]; then
     PLATFORM="anyavx2.platform"
   elif [[ ${constraints} = "AVX" ]]; then
@@ -173,7 +175,7 @@ do
 
   echo "Enqueue generation and compilation job for id  ${id}."
   # configuration is fine, start a new job for it
-  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etg_${id}" -o ${TEST_LOG} -e ${TEST_LOG} "--dependency=afterok:${SLURM_JOB_ID}" "${SCR_DIR}/tests2_single.sh" "${TESTING_DIR}" "${COMPILER_JAR}" ${main} "${TEST_DIR}" "${TEST_BIN}" "${TESTING_DIR}/${knowledge}" "${l4file}" "${TESTING_DIR}/Platform/${PLATFORM}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}" "${BRANCH}")
+  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etg_${id}" -o ${TEST_LOG} -e ${TEST_LOG} ${COMPILE_CONSTR} "--dependency=afterok:${SLURM_JOB_ID}" "${SCR_DIR}/tests2_single.sh" "${TESTING_DIR}" "${COMPILER_JAR}" ${main} "${TEST_DIR}" "${TEST_BIN}" "${TESTING_DIR}/${knowledge}" "${l4file}" "${TESTING_DIR}/Platform/${PLATFORM}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}" "${BRANCH}")
   if [[ $? -eq 0 ]]; then
     SID=${OUT#Submitted batch job }
     DEP_SIDS="${DEP_SIDS}:${SID}"
@@ -200,7 +202,6 @@ done < "${TESTING_CONF}"
 echo ""
 echo "Enqueue execution jobs:"
 echo ""
-COMP_DEPS="${DEP_SIDS}"
 
 # enqueue execution jobs
 for ((i=0;i<${#TMP_ARRAY[@]};i+=7)); do
@@ -217,7 +218,7 @@ for ((i=0;i<${#TMP_ARRAY[@]};i+=7)); do
   TEST_LOG="${LOG_DIR}/${TEST_LOG_REL}"
   TEST_ERROR_MARKER="${TEST_LOG}.${ERROR_MARKER_NAME}"
 
-  TEST_DEP="--dependency=afterok:${SID_GEN},afterany${COMP_DEPS}"
+  TEST_DEP="--dependency=afterok:${SID_GEN}"
 
   ACC="anywhere"
   PART="anywhere"
