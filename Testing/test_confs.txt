@@ -194,3 +194,9 @@ FMG_2D_Polynomial     Main    FMG/2D_Polynomial.knowledge     *  FMG/2D_Polynomi
 FMG_2D_ConstCoeff     Main    FMG/2D_ConstCoeff.knowledge     *  FMG/2D_ConstCoeff.results     4    4
 FMG_3D_Trigonometric  Main    FMG/3D_Trigonometric.knowledge  *  FMG/3D_Trigonometric.results  8    2
 FMG_3D_VarCoeff       Main    FMG/3D_VarCoeff.knowledge       *  FMG/3D_VarCoeff.results       8    4
+
+#################################################################################################
+# CUDA TESTS                                                                                    #
+#################################################################################################
+
+# CUDA_SISC_3D_ConstCoeff Main  CUDA/3D_ConstCoeff.knowledge  *  CUDA/3D_ConstCoeff.result  1  10  GPU
