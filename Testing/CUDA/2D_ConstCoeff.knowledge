@@ -1,7 +1,7 @@
 dimensionality				= 2
 
 minLevel					= 5
-maxLevel					= 12
+maxLevel					= 10
 comm_strategyFragment		= 6
 
 domain_onlyRectangular		= true
