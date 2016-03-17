@@ -6,8 +6,8 @@ import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.ir.iv.VecShiftIndex
 import exastencils.knowledge._
+import exastencils.logger._
 import exastencils.prettyprinting._
 import exastencils.strategies._
 
@@ -113,6 +113,42 @@ object BinaryOperators extends Enumeration {
     case Maximum                   => return new MaximumExpression(left, right)
     case Minimum                   => return new MinimumExpression(left, right)
     case BitwiseAnd                => return new BitwiseAndExpression(left, right)
+  }
+
+  def opAsIdent(op : String) = {
+    op match {
+      case "+"   => "Addition"
+      case "-"   => "Subtraction"
+      case "*"   => "Multiplication"
+      case "/"   => "Division"
+      case "**"  => "Power"
+      case "^"   => "Power_Alt"
+      case "%"   => "Modulo"
+
+      case ".+"  => "ElementwiseAddition"
+      case ".-"  => "ElementwiseSubtraction"
+      case ".*"  => "ElementwiseMultiplication"
+      case "./"  => "ElementwiseDivision"
+      case ".**" => "ElementwisePower"
+      case ".%"  => "ElementwiseModulo"
+
+      case "&&"  => "AndAnd"
+      case "and" => "AndAndWritten"
+      case "||"  => "OrOr"
+      case "or"  => "OrOrWritten"
+      case "!"   => "Negation"
+      case "=="  => "EqEq"
+      case "!="  => "Neq"
+      case "<"   => "Lower"
+      case "<="  => "LowerEqual"
+      case ">"   => "Greater"
+      case ">="  => "GreaterEqual"
+      case "max" => "Maximum"
+      case "min" => "Minimum"
+      case "&"   => "BitwiseAnd"
+
+      case _     => Logger.warn(s"Unknown op $op"); op
+    }
   }
 }
 
@@ -754,10 +790,10 @@ case class SIMD_Load1Expression(var mem : Expression) extends Expression {
 }
 
 case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess, val offset : Int) extends Expression {
-  private var shiftIV : VecShiftIndex = null
+  private var shiftIV : iv.VecShiftIndex = null
 
   Platform.simd_instructionSet match {
-    case "AVX512" | "IMCI" => shiftIV = new VecShiftIndex(offset)
+    case "AVX512" | "IMCI" => shiftIV = new iv.VecShiftIndex(offset)
     case _                 =>
   }
 

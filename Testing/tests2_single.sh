@@ -107,6 +107,28 @@ RETCODE=$?
 echo ""
 echo ""
 echo "-----------------------------------------------------------------------------------------------"
+# set environment for cuda compiler
+if [[ ! ${PATH} =~ cuda ]]; then
+  CUDA_PREFIX="/usr/local/cuda"
+  if [[ -d "${CUDA_PREFIX}/bin" ]]; then
+    export PATH="${CUDA_PREFIX}/bin:${PATH}"
+  fi
+  if [[ -d "${CUDA_PREFIX}/lib" ]]; then
+    export LD_RUN_PATH="${CUDA_PREFIX}/lib:${LD_RUN_PATH}"
+    export LD_LIBRARY_PATH="${CUDA_PREFIX}/lib:${LD_LIBRARY_PATH}"
+    export LIBRARY_PATH="${CUDA_PREFIX}/lib:${LIBRARY_PATH}"
+  fi
+  if [[ -d "${CUDA_PREFIX}/lib64" ]]; then
+    export LD_RUN_PATH="${CUDA_PREFIX}/lib64:${LD_RUN_PATH}"
+    export LD_LIBRARY_PATH="${CUDA_PREFIX}/lib64:${LD_LIBRARY_PATH}"
+    export LIBRARY_PATH="${CUDA_PREFIX}/lib64:${LIBRARY_PATH}"
+  fi
+  if [[ -d "${CUDA_PREFIX}/include" ]]; then
+    export INCLUDE_PATH="${CUDA_PREFIX}/include:${INCLUDE_PATH}"
+    export C_INCLUDE_PATH="${CUDA_PREFIX}/include:${C_INCLUDE_PATH}"
+    export CPLUS_INCLUDE_PATH="${CUDA_PREFIX}/include:${CPLUS_INCLUDE_PATH}"
+  fi
+fi
 echo "Call make:"
 srun make -C "${TEST_DIR}" -j ${SLURM_CPUS_ON_NODE}
     if [[ $? -ne 0 ]]; then
