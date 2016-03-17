@@ -1,14 +1,9 @@
 user                        = "Christoph"
-basePathPrefix              = ""
+basePathPrefix              = "../CompilerRun/GPU/"
 l3file                      = ""
-l4file                      = ""
-outputPath                  = "../CompilerRun/GPU/generated/"
-htmlLogFile                 = "../CompilerRun/GPU/log/log.html"
+l4file                      = "/dsl/"
+outputPath                  = "/generated/"
+htmlLogFile                 = "/log/log.html"
 produceHtmlLog              = true
 timeStrategies              = true
 timeStratPercentThreshold   = 0
-
-pathsInc					+= "$(CUDA_INC_PATH)"
-pathsLib					+= "$(CUDA_LIB_PATH)"
-additionalLibs				+= "cuda.lib"
-additionalLibs				+= "cudart.lib"

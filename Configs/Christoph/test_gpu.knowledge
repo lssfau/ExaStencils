@@ -1,36 +1,92 @@
-targetOS                    = "OSX"
-targetCompiler              = "GCC"
-targetCompilerVersion       = 0
-targetCompilerVersionMinor  = 0
+///////////////////////
+/// Domain Settings ///
+///////////////////////
+dimensionality                  = 3
 
-targetHardware              = "CPU"
-hw_64bit                    = true
-hw_cacheLineSize            = 512
-hw_gpu_name                 = "NVidia Quadro 4000"
-hw_gpu_numDevices           = 2
-hw_gpu_numCores             = 256
-hw_cuda_capability          = 2
-hw_cuda_capabilityMinor     = 0
+minLevel                        = 0
+maxLevel                        = 8
+comm_strategyFragment           = 6
 
-omp_enabled                 = false
-mpi_enabled                 = false
+domain_onlyRectangular          = true
+domain_numBlocks                = 1
+domain_numFragmentsPerBlock     = 1
+domain_fragmentLength_x         = 1
+domain_fragmentLength_y         = 1
+domain_fragmentLength_z         = 1
 
-sw_cuda_version             = 7
-sw_cuda_versionMinor        = 5
+domain_rect_generate            = true
+domain_rect_numBlocks_x         = 1
+domain_rect_numBlocks_y         = 1
+domain_rect_numBlocks_z         = 1
+domain_rect_numFragsPerBlock_x  = 1
+domain_rect_numFragsPerBlock_y  = 1
+domain_rect_numFragsPerBlock_z  = 1
+
+///////////////////
+/// L3 Settings ///
+///////////////////
+l3tmp_generateL4            = true
+l3tmp_genForAutoTests       = false
+l3tmp_genStencilFields      = false
+l3tmp_genHDepStencils       = true
+l3tmp_genNonZeroRhs         = true
+l3tmp_sisc                  = true
+l3tmp_exactSolution         = "Kappa"
+l3tmp_smoother              = "Jac"
+l3tmp_numPre                = 3
+l3tmp_numPost               = 3
+
+l3tmp_useSlotsForJac        = true
+l3tmp_useSlotVariables      = true
+l3tmp_useMaxNormForError    = true
+
+l3tmp_genTimersPerFunction  = true
+l3tmp_genTimersPerLevel     = true
+l3tmp_printAllTimers        = true
+l3tmp_printError            = true
+
+///////////////////
+/// Parallelism ///
+///////////////////
+// OpenMP
+omp_enabled                         = true
+omp_numThreads                      = 10
+omp_parallelizeLoopOverFragments    = false
+omp_parallelizeLoopOverDimensions   = true
+
+// MPI
+mpi_enabled                         = false
+mpi_numThreads                      = 1
+
+////////////
+/// Cuda ///
+////////////
+sw_cuda_version                                 = 7
+sw_cuda_versionMinor                            = 5
 
 experimental_cuda_enabled                       = true
-experimental_cuda_deviceId                      = 0
+//experimental_cuda_deviceId                      = 0
 experimental_cuda_preferredExecution            = "Performance"
+// experimental_cuda_preferredExecution            = "Device" // potentially better results
 experimental_cuda_syncDeviceAfterKernelCalls    = true
 experimental_cuda_syncHostForWrites             = false
 experimental_cuda_syncDeviceForWrites           = true
 experimental_cuda_blockSize_x                   = 8
 experimental_cuda_blockSize_y                   = 8
 experimental_cuda_blockSize_z                   = 8
-experimental_mergeCommIntoLoops                 = false
-experimental_splitLoopsForAsyncComm             = false
-experimental_splitLoops_minInnerWidth           = 4
 
-l3tmp_genTimersPerFunction  = true
-l3tmp_genTimersPerLevel     = true
-l3tmp_printAllTimers        = true
+////////////////////
+/// Optimization ///
+////////////////////
+opt_useAddressPrecalc   = true
+opt_vectorize           = true
+opt_unroll              = 2
+opt_unroll_interleave   = false
+
+///////////////////////////////
+/// Polyhedral Optimization ///
+///////////////////////////////
+poly_tileSize_x     = 0
+poly_tileSize_y     = 0
+poly_tileSize_z     = 0
+poly_optLevel_fine  = 3
