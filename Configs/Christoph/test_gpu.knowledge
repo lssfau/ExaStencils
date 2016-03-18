@@ -61,9 +61,6 @@ mpi_numThreads                      = 1
 ////////////
 /// Cuda ///
 ////////////
-sw_cuda_version                                 = 7
-sw_cuda_versionMinor                            = 5
-
 experimental_cuda_enabled                       = true
 //experimental_cuda_deviceId                      = 0
 experimental_cuda_preferredExecution            = "Performance"
@@ -78,15 +75,15 @@ experimental_cuda_blockSize_z                   = 8
 ////////////////////
 /// Optimization ///
 ////////////////////
-opt_useAddressPrecalc   = true
-opt_vectorize           = true
-opt_unroll              = 2
-opt_unroll_interleave   = false
+//opt_useAddressPrecalc   = true
+//opt_vectorize           = true
+//opt_unroll              = 2
+//opt_unroll_interleave   = false
 
 ///////////////////////////////
 /// Polyhedral Optimization ///
 ///////////////////////////////
-poly_tileSize_x     = 0
-poly_tileSize_y     = 0
-poly_tileSize_z     = 0
-poly_optLevel_fine  = 3
+//poly_tileSize_x     = 0
+//poly_tileSize_y     = 0
+//poly_tileSize_z     = 0
+//poly_optLevel_fine  = 3

@@ -22,6 +22,8 @@ hw_gpu_frequency           = 889000000000.0 // = 889 MHz
 hw_gpu_numCores            = 2880
 hw_cuda_capability         = 3
 hw_cuda_capabilityMinor    = 5
+sw_cuda_version            = 7
+sw_cuda_versionMinor       = 5
 
 ////////////////////////
 /////// Chimaira ///////

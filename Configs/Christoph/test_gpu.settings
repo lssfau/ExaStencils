@@ -1,7 +1,7 @@
 user                        = "Christoph"
 basePathPrefix              = "../CompilerRun/GPU/"
 l3file                      = ""
-l4file                      = "/dsl/"
+l4file                      = "/dsl/Layer4.exa"
 outputPath                  = "/generated/"
 htmlLogFile                 = "/log/log.html"
 produceHtmlLog              = true
