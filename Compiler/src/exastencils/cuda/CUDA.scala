@@ -121,7 +121,7 @@ case class CUDA_FunctionCallExpression(
     if (1 == numDims)
       out << numBlocks(0) << ", " << numBlocksPerDim(0) // only one dimensions -> wrapping not necessary
     else
-      out << s"dim$numDims(" <<< (numBlocks, ", ") << "), " << s"dim$numDims(" <<< (numBlocksPerDim.take(numDims), ", ") << ")"
+      out << s"dim3(" <<< (numBlocks, ", ") << "), " << s"dim3(" <<< (numBlocksPerDim.take(numDims), ", ") << ")"
 
     out << ">>>" << '(' <<< (arguments, ", ") << ')'
   }
