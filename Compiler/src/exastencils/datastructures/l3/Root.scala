@@ -26,7 +26,9 @@ case class Root(var nodes : List[Node]) extends Node {
     env.bind("field", StaticConstant(InstantiateFieldBuiltin()))
     env.bind("list_append", StaticConstant(ListAppendBuiltin()))
 
-    l4.Root(toTc(ctx))
+    var r = l4.Root()
+    r.addNodes(toTc(ctx))
+    r
   }
 
   def toTc(ctx : Context) : List[Node] = {
