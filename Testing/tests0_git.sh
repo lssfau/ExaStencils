@@ -7,17 +7,17 @@
 #SBATCH -c 1
 #SBATCH --time=5
 #SBATCH --signal=INT@5
-#SBATCH --open-mode=truncate
+#SBATCH -o /dev/null
+#SBATCH -e /dev/null
 
 
 BASE_DIR=${1}
-TMP_OUT_FILE=${2} # stdout and stderr should already be redirected to this file
-OUT_FILE=${3}
-OUT_FILE_URL=${4} # url to ${OUT_FILE}
-PROGRESS=${5}
-TESTS_LOCK=${6}
-BRANCH=${7}
-FORCE_START=${8}
+OUT_FILE=${2}
+OUT_FILE_URL=${3} # url to ${OUT_FILE}
+PROGRESS=${4}
+TESTS_LOCK=${5}
+BRANCH=${6}
+FORCE_START=${7}
 
 REPO_DIR="${BASE_DIR}/repo"
 SCR_DIR="${BASE_DIR}/scripts"
@@ -25,9 +25,28 @@ TEMP_DIR="${BASE_DIR}/temp/${BRANCH}"
 FAILURE_MAIL="kronast@fim.uni-passau.de"
 FAILURE_MAIL_SUBJECT="ExaStencils TestBot Error (cron)"
 
+TMP_OUT_FILE=$(mktemp --tmpdir=/run/shm 2>&1 || mktemp --tmpdir=/tmp 2>&1) || {
+    echo -e "ERROR: Failed to create temporary file.\n\n${TMP_OUT_FILE}" | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
+    exit 0
+  }
+if [[ ! ${TMP_OUT_FILE} =~ ^/run/shm/* ]]; then
+  echo "Problems with /run/shm on machine ${SLURM_JOB_NODELIST} in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID}." | mail -s "ExaTest /run/shm" "kronast@fim.uni-passau.de"
+fi
+exec > ${TMP_OUT_FILE} 2>&1 # redirect any output using bash; don't use slurms output mechanism, since there is no guarantee all output was writte to the file when it is read at the end of this script
+
 OUT_DIR=$(dirname "${OUT_FILE}")
 
 GIT_URL="ssh://git@git.infosun.fim.uni-passau.de/exastencils/dev/ScalaExaStencil.git"
+
+function update_progress {
+  if [[ "${1}" -eq 0 ]]; then
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n  Done!</div></body></html>" > "${PROGRESS}"
+  elif [[ "${1}" -eq 1 ]]; then
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</div></body></html>" > "${PROGRESS}"
+  else
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R" | grep -v ${SLURM_JOB_ID})</div></body></html>" > "${PROGRESS}"
+  fi
+}
 
 
 function killed {
@@ -69,21 +88,26 @@ if [[ -d "${REPO_DIR}" ]]; then
   if [[ ! "$(srun git -C "${REPO_DIR}" branch -a)" =~ "${BRANCH}" ]]; then
     error "ERROR: branch ${BRANCH} does not exist"
   fi
+  OLD_HASH=$(srun git -C "${REPO_DIR}" rev-parse "${BRANCH}")
   srun git -C "${REPO_DIR}" checkout "${BRANCH}"
     if [[ $? -ne 0 ]]; then
       error "ERROR: switch to branch ${BRANCH} failed."
     fi
-  OLD_HASH=$(git -C "${REPO_DIR}" rev-parse @)
   srun git -C "${REPO_DIR}" merge FETCH_HEAD
       if [[ $? -ne 0 ]]; then
         error "ERROR: git remote update failed."
       fi
-  NEW_HASH=$(git -C "${REPO_DIR}" rev-parse @)
-  if [[ "${FORCE_START}" -eq 0 && ${OLD_HASH} = ${NEW_HASH} ]]; then
+  NEW_HASH=$(srun git -C "${REPO_DIR}" rev-parse @)
+  OLD_JOBS="$(squeue -h -u exatest -o %i | grep -v ${SLURM_JOB_ID})"
+  if [[ "${FORCE_START}" -eq 1 ]]; then
+    echo "Force flag given, start tests."
+  elif [[ -n "${OLD_JOBS}" ]]; then
+    exit 0
+  elif [[ ${OLD_HASH} = ${NEW_HASH} ]]; then
     # up-to-date, no need to run tests, exit script
-    if [[ -z "$(squeue -h -u exatest | grep -v ${SLURM_JOB_NAME})" ]]; then # only output log if there are no old tests running
+    if [[ -z "${OLD_JOBS}" ]]; then # only output log if there are no old tests running
       echo "$(date -R):  Tests triggered, but there are no new commits since last run, finish." >> "${OUT_FILE}"
-      echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(date -R):  Done!</pre></body></html>" > "${PROGRESS}"
+      update_progress 0
     fi
     exit 0
   fi
@@ -98,7 +122,7 @@ fi
 
 mkdir -p "${OUT_DIR}"
 mkdir -p "${TEMP_DIR}"
-NEW_HASH=$(git -C "${REPO_DIR}" rev-parse @)
+NEW_HASH=$(srun git -C "${REPO_DIR}" rev-parse @)
 echo ""
 echo "Run tests for hash  ${NEW_HASH}."
 if [[ -e "${REPO_DIR}/Testing/tests_version.txt" ]] && [[ $(cat "${SCR_DIR}/tests_version.txt") -lt $(cat "${REPO_DIR}/Testing/tests_version.txt") ]]; then
@@ -106,7 +130,7 @@ if [[ -e "${REPO_DIR}/Testing/tests_version.txt" ]] && [[ $(cat "${SCR_DIR}/test
   cp "${REPO_DIR}"/Testing/tests_version.txt "${SCR_DIR}"
   cp "${REPO_DIR}"/Testing/tests*.sh "${SCR_DIR}"
 fi
-(unset SLURM_JOB_NAME; sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" "--dependency=afterok:${SLURM_JOB_ID}" "${SCR_DIR}/tests1_all.sh" "${SCR_DIR}" "${REPO_DIR}" "${BASE_DIR}/scala/" "${TEMP_DIR}" "${OUT_FILE}" "${OUT_FILE_URL}" "${PROGRESS}")
+(unset SLURM_JOB_NAME; sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" "--dependency=afterok:${SLURM_JOB_ID}" "${SCR_DIR}/tests1_all.sh" "${SCR_DIR}" "${REPO_DIR}" "${BASE_DIR}/scala/" "${TEMP_DIR}" "${OUT_FILE}" "${OUT_FILE_URL}" "${PROGRESS}" "${BRANCH}")
       if [[ $? -ne 0 ]]; then
         error "ERROR: Unable to enqueue testing job."
       fi
@@ -119,5 +143,5 @@ echo ""
 echo ""
 
 rm -f "${OUT_DIR}"/*
-echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
+update_progress 2
 cat "${TMP_OUT_FILE}" > "${OUT_FILE}"

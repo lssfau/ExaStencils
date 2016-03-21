@@ -88,3 +88,15 @@ case class FieldDeviceData(override var field : Field, override var level : Expr
   }
 }
 
+case class ReductionDeviceData(var size : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
+  override def resolveDataType = PointerDatatype(RealDatatype) // TODO: extend for other types
+  override def resolveName : String = "reductionDeviceData" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
+
+  override def getDtor() : Option[Statement] = {
+    var access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
+    Some(new ConditionStatement(access,
+      ListBuffer[Statement](
+        CUDA_FreeStatement(access),
+        new AssignmentStatement(access, 0))))
+  }
+}

@@ -17,13 +17,25 @@ TEST_DIR=${4}
 BIN=${5}
 KNOWLEDGE=${6}
 L4FILE=${7}
-ERROR_MARKER=${8}
-LOG_ALL=${9}
-LINK=${10}
-PROGRESS=${11}
+PLATFORM=${8}
+ERROR_MARKER=${9}
+LOG_ALL=${10}
+LINK=${11}
+PROGRESS=${12}
+BRANCH=${13}
 
 
-echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
+function update_progress {
+  if [[ "${1}" -eq 0 ]]; then
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n  Done!</div></body></html>" > "${PROGRESS}"
+  elif [[ "${1}" -eq 1 ]]; then
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</div></body></html>" > "${PROGRESS}"
+  else
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R" | grep -v ${SLURM_JOB_ID})</div></body></html>" > "${PROGRESS}"
+  fi
+}
+
+update_progress 1
 
 echo "Generate and compile on machine ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
 echo ""
@@ -39,6 +51,9 @@ RESULT=$(mktemp --tmpdir=/run/shm || mktemp --tmpdir=/tmp) || {
     echo "${LINK}" >> "${LOG_ALL}"
     exit 0
   }
+if [[ ! ${RESULT} =~ ^/run/shm/* ]]; then
+  echo "Problems with /run/shm on machine ${SLURM_JOB_NODELIST} in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID}." | mail -s "ExaTest /run/shm" "kronast@fim.uni-passau.de"
+fi
 
 function killed {
   echo "ERROR? Job ${SLURM_JOB_NAME}:${SLURM_JOB_ID} killed; possible reasons: timeout, manually canceled, user login (job is then requeued)."
@@ -73,7 +88,7 @@ echo "Run generator:"
 echo "  Created  ${RESULT}: run generator and save its stdout and stderr."
 cd ${TESTING_DIR}  # there is no possibility to explicitly set the working directory of the jvm... (changing property user.dir does not work in all situations)
 set -o pipefail
-srun java -XX:+UseG1GC -Xmx3G -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}" 2>&1 | tee "${RESULT}"
+srun java -XX:+UseG1GC -Xmx3G -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}" "${PLATFORM}" 2>&1 | tee "${RESULT}"
 RETCODE=$?
     if grep -q "Bad file descriptor" ${RESULT}; then
       echo "restart generation..."
@@ -92,6 +107,28 @@ RETCODE=$?
 echo ""
 echo ""
 echo "-----------------------------------------------------------------------------------------------"
+# set environment for cuda compiler
+if [[ ! ${PATH} =~ cuda ]]; then
+  CUDA_PREFIX="/usr/local/cuda"
+  if [[ -d "${CUDA_PREFIX}/bin" ]]; then
+    export PATH="${CUDA_PREFIX}/bin:${PATH}"
+  fi
+  if [[ -d "${CUDA_PREFIX}/lib" ]]; then
+    export LD_RUN_PATH="${CUDA_PREFIX}/lib:${LD_RUN_PATH}"
+    export LD_LIBRARY_PATH="${CUDA_PREFIX}/lib:${LD_LIBRARY_PATH}"
+    export LIBRARY_PATH="${CUDA_PREFIX}/lib:${LIBRARY_PATH}"
+  fi
+  if [[ -d "${CUDA_PREFIX}/lib64" ]]; then
+    export LD_RUN_PATH="${CUDA_PREFIX}/lib64:${LD_RUN_PATH}"
+    export LD_LIBRARY_PATH="${CUDA_PREFIX}/lib64:${LD_LIBRARY_PATH}"
+    export LIBRARY_PATH="${CUDA_PREFIX}/lib64:${LIBRARY_PATH}"
+  fi
+  if [[ -d "${CUDA_PREFIX}/include" ]]; then
+    export INCLUDE_PATH="${CUDA_PREFIX}/include:${INCLUDE_PATH}"
+    export C_INCLUDE_PATH="${CUDA_PREFIX}/include:${C_INCLUDE_PATH}"
+    export CPLUS_INCLUDE_PATH="${CUDA_PREFIX}/include:${CPLUS_INCLUDE_PATH}"
+  fi
+fi
 echo "Call make:"
 srun make -C "${TEST_DIR}" -j ${SLURM_CPUS_ON_NODE}
     if [[ $? -ne 0 ]]; then
@@ -104,4 +141,4 @@ srun make -C "${TEST_DIR}" -j ${SLURM_CPUS_ON_NODE}
     fi
 echo ""
 
-echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
+update_progress 2

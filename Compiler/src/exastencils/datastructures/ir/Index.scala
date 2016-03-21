@@ -12,6 +12,7 @@ import exastencils.strategies._
 case class MultiIndex(var indices : Array[Expression]) extends Expression with Iterable[Expression] {
   def this(indices : Expression*) = this(indices.toArray)
   def this(indices : Array[Int]) = this(indices.map(IntegerConstant(_) : Expression)) // legacy support
+  def this(indices : Array[Long]) = this(indices.map(IntegerConstant(_) : Expression)) // legacy support
   def this(left : MultiIndex, right : MultiIndex, f : (Expression, Expression) => Expression) =
     this((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).toArray)
 
@@ -38,6 +39,17 @@ case class MultiIndex(var indices : Array[Expression]) extends Expression with I
   def length = indices.length
 }
 
+case class OffsetIndex(var minOffset : Int,
+    var maxOffset : Int,
+    var index : Expression,
+    var offset : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = OffsetIndex\n"
+
+  def expandSpecial : AdditionExpression = {
+    index + offset
+  }
+}
+
 case class ConstIndex(var indices : Array[Int]) extends Expression with Iterable[Int] {
   def this(indices : Int*) = this(indices.toArray)
   def this(left : ConstIndex, right : ConstIndex, f : (Int, Int) => Int) =
@@ -57,3 +69,4 @@ case class ConstIndex(var indices : Array[Int]) extends Expression with Iterable
   def update(i : Int, x : Int) = indices.update(i, x)
   def length = indices.length
 }
+

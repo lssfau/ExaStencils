@@ -50,8 +50,6 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
 
       // check for elimination criteria
       var earlyExit = false
-      if (loop.reduction.isDefined)
-        earlyExit = true // always use host until reductions are supported // TODO: support reductions
       if (!loop.isInstanceOf[PolyhedronAccessable])
         earlyExit = true // always use host for special loops
       if (!loop.isInstanceOf[OMP_PotentiallyParallel])
@@ -91,7 +89,17 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
           loop.condition)
 
         kernelFunctions.addKernel(Duplicate(kernel))
-        deviceStmts += FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[Expression]))
+
+        // process return value of kernel wrapper call if reduction is required
+        if (loop.reduction.isDefined) {
+          val red = loop.reduction.get
+          deviceStmts += AssignmentStatement(red.target,
+            BinaryOperators.CreateExpression(red.op, red.target,
+              FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[Expression]))))
+        } else {
+          deviceStmts += FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[Expression]))
+        }
+
         if (Knowledge.experimental_cuda_syncDeviceAfterKernelCalls)
           deviceStmts += CUDA_DeviceSynchronize()
 
@@ -113,6 +121,58 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
       }
     }
   }, false)
+}
+
+object AdaptKernelDimensionalities extends DefaultStrategy("Reduce kernel dimensionality where necessary") {
+  this += new Transformation("Process kernel nodes", {
+    case kernel : Kernel => {
+      while (kernel.numDimensions > Platform.hw_cuda_maxNumDimsBlock) {
+        def it = LoopOverDimensions.defItForDim(kernel.numDimensions - 1)
+        kernel.body = ListBuffer[Statement](ForLoopStatement(
+          new VariableDeclarationStatement(it, kernel.indices.begin.last),
+          LowerExpression(it, kernel.indices.end.last),
+          AssignmentStatement(it, 1, "+="),
+          kernel.body))
+        kernel.indices.begin.dropRight(1)
+        kernel.indices.end.dropRight(1)
+        kernel.numDimensions -= 1
+      }
+      kernel
+    }
+  })
+}
+
+object HandleKernelReductions extends DefaultStrategy("Handle reductions in device kernels") {
+  this += new Transformation("Process kernel nodes", {
+    case kernel : Kernel if kernel.reduction.isDefined => {
+      // update assignments according to reduction clauses
+      val index = LoopOverDimensions.defIt(kernel.numDimensions)
+      val stride = (
+        LoopOverDimensions.evalMaxIndex(kernel.indices.end, kernel.numDimensions, true),
+        LoopOverDimensions.evalMinIndex(kernel.indices.begin, kernel.numDimensions, true)).zipped.map(_ - _)
+      ReplaceReductionAssignements.redTarget = kernel.reduction.get.target.name
+      ReplaceReductionAssignements.replacement = ReductionDeviceDataAccess(iv.ReductionDeviceData(stride.reduce(_ * _)), index, new MultiIndex(stride))
+      ReplaceReductionAssignements.applyStandalone(Scope(kernel.body))
+      kernel
+    }
+  })
+}
+
+object ReplaceReductionAssignements extends QuietDefaultStrategy("Replace assignments to reduction targets") {
+  var redTarget : String = ""
+  var replacement : Expression = NullExpression
+
+  this += new Transformation("Searching", {
+    case assignment : AssignmentStatement => {
+      assignment.dest match {
+        case VariableAccess(redTarget, _) =>
+          assignment.dest = Duplicate(replacement)
+        // assignment.op = "=" // don't modify assignments - there could be inlined loops
+        case _ =>
+      }
+      assignment
+    }
+  })
 }
 
 object GatherLocalFieldAccess extends QuietDefaultStrategy("Gathering local FieldAccess nodes") {

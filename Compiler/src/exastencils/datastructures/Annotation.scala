@@ -32,7 +32,7 @@ trait Annotatable {
     * @param other The other object holding the annotations to add to this instance.
     */
   def annotate(other : Annotatable) : Unit = {
-    if (other != this) {
+    if (other ne this) {
       var z = other.annotations_
       annotations_ ++= Duplicate(z)
     }

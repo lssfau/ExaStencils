@@ -15,7 +15,8 @@ trait Access extends Expression {
   def datatype : Datatype
 }
 
-case class VariableAccess(var name : String, var dType : Option[Datatype] = None) extends Access {
+case class VariableAccess(var name : String,
+    var dType : Option[Datatype] = None) extends Access {
   def this(n : String, dT : Datatype) = this(n, Option(dT))
 
   override def prettyprint(out : PpStream) : Unit = out << name
@@ -24,8 +25,7 @@ case class VariableAccess(var name : String, var dType : Option[Datatype] = None
   def printDeclaration() : String = dType.get.resolveDeclType.prettyprint + " " + name + dType.get.resolveDeclPostscript
 }
 
-case class ArrayAccess(
-    var base : Expression,
+case class ArrayAccess(var base : Expression,
     var index : Expression,
     var alignedAccessPossible : Boolean = false) extends Access {
   override def prettyprint(out : PpStream) : Unit = {
@@ -37,8 +37,7 @@ case class ArrayAccess(
   override def datatype = RealDatatype // FIXME_componentIndex // FIXME add type deduction for expressions
 }
 
-case class TempBufferAccess(
-  var buffer : iv.TmpBuffer,
+case class TempBufferAccess(var buffer : iv.TmpBuffer,
   var index : MultiIndex,
   var strides : MultiIndex)
     extends Access {
@@ -49,6 +48,14 @@ case class TempBufferAccess(
     new ArrayAccess(buffer,
       Mapping.resolveMultiIdx(index, strides),
       false && Knowledge.data_alignTmpBufferPointers /* change here if aligned vector operations are possible for tmp buffers */ )
+  }
+}
+
+case class ReductionDeviceDataAccess(var data : iv.ReductionDeviceData, var index : MultiIndex, var strides : MultiIndex) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ReductionDeviceDataAccess\n"
+
+  def linearize : ArrayAccess = {
+    new ArrayAccess(data, Mapping.resolveMultiIdx(index, strides), false)
   }
 }
 
@@ -68,8 +75,7 @@ case class DirectFieldAccess(
   }
 }
 
-case class FieldAccess(
-    var fieldSelection : FieldSelection,
+case class FieldAccess(var fieldSelection : FieldSelection,
     var index : MultiIndex) extends FieldAccessLike {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = FieldAccess\n"
   override def datatype = fieldSelection.fieldLayout.datatype
@@ -86,7 +92,6 @@ case class VirtualFieldAccess(var fieldName : String,
     var fragIdx : Expression = LoopOverFragments.defIt) extends Access {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = VirtualFieldAccess\n"
   override def datatype = FieldCollection.getFieldByIdentifierLevExp(fieldName, level).get.fieldLayout.datatype
-
 }
 
 case class ExternalFieldAccess(var name : Expression,
@@ -113,8 +118,7 @@ case class ExternalFieldAccess(var name : Expression,
   }
 }
 
-case class LinearizedFieldAccess(
-    var fieldSelection : FieldSelection,
+case class LinearizedFieldAccess(var fieldSelection : FieldSelection,
     var index : Expression) extends Access with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LinearizedFieldAccess\n"
   override def datatype = fieldSelection.fieldLayout.datatype // FIXME_componentIndex
@@ -161,3 +165,4 @@ case class DerefAccess(var base : Access) extends Access {
   override def prettyprint(out : PpStream) : Unit = out << "(*" << base << ')'
   override def datatype = base.datatype
 }
+

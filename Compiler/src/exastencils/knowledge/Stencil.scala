@@ -40,7 +40,7 @@ case class Stencil(var identifier : String, var level : Int, var entries : ListB
     }
 
     Logger.warn(s"Trying to find stencil entry for invalid offset ${offset.prettyprint()} in stencil:\n" +
-      entries.map(e => s"\t${e.offset.prettyprint()} -> ${e.coefficient.prettyprint()}").mkString("\n"))
+      entries.map(e => s"\t${e.offset.prettyprint : String} -> ${e.coefficient.prettyprint : String}").mkString("\n"))
 
     None
   }

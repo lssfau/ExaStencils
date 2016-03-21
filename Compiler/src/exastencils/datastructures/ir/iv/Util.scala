@@ -1,10 +1,10 @@
 package exastencils.datastructures.ir.iv
 
-import exastencils.core.StateManager
+import exastencils.core._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.globals.Globals
-import exastencils.knowledge.Knowledge
+import exastencils.globals._
+import exastencils.knowledge._
 import exastencils.logger._
 
 case class Timer(var name : Expression) extends UnduplicatedVariable {
@@ -19,7 +19,7 @@ case class Timer(var name : Expression) extends UnduplicatedVariable {
 }
 
 object VecShiftIndexStaticInit {
-  val header = Knowledge.simd_header
+  val header = Platform.simd_header
   if (header != null)
     StateManager.findFirst[Globals].get.externalDependencies += header
 }
@@ -27,7 +27,7 @@ object VecShiftIndexStaticInit {
 case class VecShiftIndex(val offset : Int) extends UnduplicatedVariable {
   VecShiftIndexStaticInit // just to ensure VecShiftIndexStaticInit is initialized (once, since its an object)
 
-  if (offset <= 0 || offset >= Knowledge.simd_vectorSize)
+  if (offset <= 0 || offset >= Platform.simd_vectorSize)
     Logger.error("VecShiftIndex out of bounds: " + offset)
 
   override def resolveName = "vShift" + offset
@@ -35,7 +35,7 @@ case class VecShiftIndex(val offset : Int) extends UnduplicatedVariable {
 
   override def getCtor() : Option[Statement] = {
     val init = new StringLiteral(null : String)
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "AVX512" =>
         if (Knowledge.useDblPrecision)
           init.value = "_mm512_set_epi64(" + (7 + offset to 0 + offset by -1).mkString(", ") + ')'

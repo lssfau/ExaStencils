@@ -28,6 +28,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
   private final val DEBUG : Boolean = false
 
   override def isDefinedAt(node : Node) : Boolean = {
+    node.removeAnnotation(AddressPrecalculation.ORIG_IND_ANNOT) // remove old annotations
     return node match {
       case loop : ForLoopStatement with OptimizationHint =>
         loop.isInnermost && loop.isParallel
@@ -37,7 +38,6 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
   }
 
   override def apply(node : Node) : Transformation.OutputType = {
-
     return try {
       vectorizeLoop(node.asInstanceOf[ForLoopStatement])
     } catch {
@@ -79,7 +79,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
             case _ => throw new VectorizationException("loop increment must be constant or cannot be extracted:  " + incrExpr)
           }
 
-        vectorizeLoop(loop, itName, lBound, uBoundExcl, incr, body, reduction)
+        vectorizeLoop(Duplicate(loop), itName, lBound, uBoundExcl, incr, body, reduction)
 
       case _ => throw new VectorizationException("cannot analyze loop (yet)")
     }
@@ -201,7 +201,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
     // ensure all stores are aligned (heuristics)
     var alignmentExpr : Expression = null
-    val vs = Knowledge.simd_vectorSize
+    val vs = Platform.simd_vectorSize
     if (Knowledge.data_alignFieldPointers) {
       for (stmt <- body)
         stmt match {
@@ -348,6 +348,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
           case _    => throw new VectorizationException("cannot deal with assignment operator \"" + assOp + "\" in " + stmt.prettyprint())
         }))
         SimplifyStrategy.doUntilDoneStandalone(srcWrap)
+        SimplifyStrategy.doUntilDoneStandalone(lhsSca) // simplify lhsSca too, to ensure identical array accesses have the same AST structure
         // create rhs before lhs to ensure all loads are created
         val rhsVec = vectorizeExpr(srcWrap.expression, ctx.setLoad())
         val lhsVec = vectorizeExpr(lhsSca, ctx.setStore())
@@ -405,7 +406,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
                 if (containsVarAcc(expr, ctx.itName)) throw new VectorizationException("no linear memory access;  " + expr.prettyprint())
             }
 
-          val vs = Knowledge.simd_vectorSize
+          val vs = Platform.simd_vectorSize
           val aligned : Boolean = alignedBase && (const.getOrElse(0L) - ctx.getAlignedResidue()) % vs == 0
           val init : Option[Expression] =
             if (ctx.isLoad() && !ctx.isStore())
@@ -459,15 +460,14 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         SIMD_NegateExpression(vectorizeExpr(expr, ctx))
 
       case AdditionExpression(sums) =>
+        if (sums.isEmpty)
+          Logger.error("empty sum not allowed")
         val (muls, other) = sums.partition(_.isInstanceOf[MultiplicationExpression])
         val mulsIt = muls.iterator
         val vecSumds = new Queue[Expression]()
         vecSumds.enqueue(other.view.map { x => vectorizeExpr(x, ctx) } : _*)
-        if (vecSumds.isEmpty) {
-          if (mulsIt.isEmpty)
-            Logger.error("empty sum not allowed")
+        if (vecSumds.isEmpty)
           vecSumds += vectorizeExpr(mulsIt.next(), ctx)
-        }
         while (mulsIt.hasNext) {
           val simdMul = vectorizeExpr(mulsIt.next(), ctx).asInstanceOf[SIMD_MultiplicationExpression]
           vecSumds.enqueue(SIMD_MultiplyAddExpression(simdMul.left, simdMul.right, vecSumds.dequeue()))
@@ -475,15 +475,6 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         while (vecSumds.length > 1)
           vecSumds.enqueue(SIMD_AdditionExpression(vecSumds.dequeue(), vecSumds.dequeue()))
         vecSumds.dequeue()
-
-      //      case AdditionExpression(MultiplicationExpression(factor1, factor2), summand) =>
-      //        SIMD_MultiplyAddExpression(vectorizeExpr(factor1, ctx), vectorizeExpr(factor2, ctx), vectorizeExpr(summand, ctx))
-      //
-      //      case AdditionExpression(summand, MultiplicationExpression(factor1, factor2)) =>
-      //        SIMD_MultiplyAddExpression(vectorizeExpr(factor1, ctx), vectorizeExpr(factor2, ctx), vectorizeExpr(summand, ctx))
-      //
-      //      case AdditionExpression(left, right) =>
-      //        SIMD_AdditionExpression(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
 
       // TODO: remove SubtractionExpression
       //      case SubtractionExpression(MultiplicationExpression(factor1, factor2), summand) =>
@@ -518,7 +509,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     else if (!alignedBase)
       throw new VectorizationException("cannot vectorize load: array is not aligned, but unaligned accesses should be avoided")
     else { // avoid unaligned load
-      val vs : Long = Knowledge.simd_vectorSize
+      val vs : Long = Platform.simd_vectorSize
       val lowerConst : Long = indexConst - ((indexConst - ctx.getAlignedResidue()) % vs + vs) % vs
       index(SimplifyExpression.constName) = lowerConst
       val lowerExpr = vectorizeExpr(ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(index), true), ctx).asInstanceOf[VariableAccess]

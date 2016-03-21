@@ -10,6 +10,7 @@ import java.io.FileWriter
 import java.io._
 import exastencils.prettyprinting.JobScriptGenerator
 import exastencils.knowledge.Knowledge
+import exastencils.knowledge.Platform
 import exastencils.spl.samplingStrategies.doe.RandomDesign
 import exastencils.spl.learning._
 
@@ -1260,7 +1261,7 @@ object SISC2015 {
 
   def generateJobScript(mpiOmpRanksKey : String, configs : scala.collection.mutable.Set[Configuration], suffix : String) = {
     Settings.user = "alex"
-    Knowledge.targetCompiler = "IBMBG"
+    Platform.targetCompiler = "IBMBG"
     var mpi_numThreads = configs.head.partialBaseConfig("mpi_numThreads").asInstanceOf[Double].toInt
     var omp_numThreads = configs.head.partialBaseConfig("omp_numThreads").asInstanceOf[Double].toInt
     var ranksPerNode = configs.head.numericalFeatureValues(FeatureModel.get("sisc2015_ranksPerNode")).toInt

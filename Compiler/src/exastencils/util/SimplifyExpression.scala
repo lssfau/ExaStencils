@@ -156,41 +156,6 @@ object SimplifyExpression {
         else
           res(new MultiplicationExpression(nonCst.sortBy(_.prettyprint()))) = coeff
 
-      //      case MultiplicationExpression(l, r) =>
-      //        val mapL = extractIntegralSumRec(l)
-      //        val mapR = extractIntegralSumRec(r)
-      //        var coeff : Long = 1L
-      //        if ((mapL.size == 1 && mapL.contains(constName)) || mapL.isEmpty) {
-      //          coeff = mapL.getOrElse(constName, 0L)
-      //          res = mapR
-      //        } else if ((mapR.size == 1 && mapR.contains(constName)) || mapR.isEmpty) {
-      //          coeff = mapR.getOrElse(constName, 0L)
-      //          res = mapL
-      //        } else {
-      //          var gcdL : Long = math.abs(mapL.head._2)
-      //          for ((_, c) <- mapL)
-      //            gcdL = gcd(c, gcdL)
-      //          var gcdR : Long = math.abs(mapR.head._2)
-      //          for ((_, c) <- mapR)
-      //            gcdR = gcd(c, gcdR)
-      //          for ((e, c) <- mapL)
-      //            mapL(e) = c / gcdL
-      //          for ((e, c) <- mapR)
-      //            mapR(e) = c / gcdR
-      //          val exprL : Expression = recreateExprFromIntSum(mapL)
-      //          val exprR : Expression = recreateExprFromIntSum(mapR)
-      //          res = new HashMap[Expression, Long]()
-      //          if (exprL.prettyprint() <= exprR.prettyprint())
-      //            res(new MultiplicationExpression(exprL, exprR)) = gcdL * gcdR
-      //          else
-      //            res(new MultiplicationExpression(exprR, exprL)) = gcdL * gcdR
-      //        }
-      //        if (coeff == 0L)
-      //          res.clear()
-      //        else if (coeff != 1L)
-      //          for ((name : Expression, value : Long) <- res)
-      //            res(name) = value * coeff
-
       case DivisionExpression(l, r) =>
         val tmp = extractIntegralSumRec(r)
         if (tmp.isEmpty)
@@ -338,8 +303,7 @@ object SimplifyExpression {
     */
   def recreateExprFromIntSum(sumMap : HashMap[Expression, Long]) : Expression = {
 
-    var res : Expression = null
-    val const : Option[Long] = sumMap.get(constName)
+    val const : Long = sumMap.get(constName).getOrElse(0L)
 
     val sumSeq = sumMap.view.filter(s => s._1 != constName && s._2 != 0L).toSeq.sortWith({
       case ((VariableAccess(v1, _), _), (VariableAccess(v2, _), _)) => v1 < v2
@@ -349,54 +313,52 @@ object SimplifyExpression {
     })
 
     if (sumSeq.isEmpty)
-      return IntegerConstant(const.getOrElse(0L))
+      return IntegerConstant(const)
 
     // use distributive property
-    val reverse = new HashMap[Long, Expression]()
-    for ((njuExpr : Expression, value : Long) <- sumSeq) {
-      val expr : Option[Expression] = reverse.get(value)
-      reverse(value) =
-        if (expr.isDefined)
-          new AdditionExpression(expr.get, njuExpr)
-        else
-          njuExpr
-    }
+    val reverse = new HashMap[Long, (ListBuffer[Expression], ListBuffer[Expression])]()
+    def empty = (new ListBuffer[Expression](), new ListBuffer[Expression]())
+    for ((njuExpr : Expression, value : Long) <- sumSeq)
+      if (value > 0L)
+        reverse.getOrElseUpdate(value, empty)._1 += njuExpr
+      else
+        reverse.getOrElseUpdate(-value, empty)._2 += njuExpr
 
-    for ((value : Long, expr : Expression) <- reverse.toSeq.sortBy(t => t._1).reverse) {
-      if (res == null) {
-        res = value match {
-          case 1L  => expr
-          case -1L => NegativeExpression(expr)
-          case _   => new MultiplicationExpression(IntegerConstant(value), expr)
-        }
+    val posSums = new ListBuffer[Expression]()
+    val negSums = new ListBuffer[Expression]()
+
+    def toExpr(sum : ListBuffer[Expression]) = if (sum.length == 1) sum.head else new AdditionExpression(sum)
+    for ((value : Long, (pSums : ListBuffer[Expression], nSums : ListBuffer[Expression])) <- reverse.toSeq.sortBy(t => t._1).reverse)
+      if (value == 1L) {
+        posSums ++= pSums
+        negSums ++= nSums
       } else {
-        val (summand, negative) : (Expression, Boolean) =
-          value match {
-            case 1L  => (expr, false)
-            case -1L => (expr, true)
-            case _   => (new MultiplicationExpression(IntegerConstant(math.abs(value)), expr), value < 0L)
-          }
-        res =
-          if (negative)
-            new SubtractionExpression(res, summand)
-          else
-            new AdditionExpression(res, summand)
-      }
-    }
-
-    if (const.isDefined && const.get != 0L)
-      res =
-        if (const.get > 0L)
-          new AdditionExpression(res, IntegerConstant(const.get))
+        if (pSums.isEmpty)
+          negSums += new MultiplicationExpression(IntegerConstant(value), toExpr(nSums))
+        else if (nSums.isEmpty)
+          posSums += new MultiplicationExpression(IntegerConstant(value), toExpr(pSums))
         else
-          new SubtractionExpression(res, IntegerConstant(-const.get))
+          posSums += new MultiplicationExpression(IntegerConstant(value), new SubtractionExpression(toExpr(pSums), toExpr(nSums)))
+      }
 
-    return res
+    if (const > 0L)
+      posSums += IntegerConstant(const)
+    else if (const < 0L)
+      negSums += IntegerConstant(-const)
+
+    if (posSums.isEmpty)
+      return new NegativeExpression(toExpr(negSums))
+    else if (negSums.isEmpty)
+      return toExpr(posSums)
+    else
+      return new SubtractionExpression(toExpr(posSums), toExpr(negSums))
   }
 
   def simplifyIntegralExpr(expr : Expression) : Expression = {
     try {
-      return recreateExprFromIntSum(extractIntegralSum(expr))
+      val res = ExpressionStatement(recreateExprFromIntSum(extractIntegralSum(expr)))
+      SimplifyStrategy.doUntilDoneStandalone(res)
+      return res.expression
     } catch {
       case EvaluationException(msg) =>
         throw new EvaluationException(msg + ";  in " + expr.prettyprint())
@@ -479,12 +441,10 @@ object SimplifyExpression {
           res(name) = -value
 
       case AdditionExpression(summands) =>
+        res = new HashMap[Expression, Double]()
         for (s <- summands)
-          if (res == null)
-            res = extractFloatingSumRec(s)
-          else
-            for ((name : Expression, value : Double) <- extractFloatingSumRec(s))
-              res(name) = res.getOrElse(name, 0d) + value
+          for ((name : Expression, value : Double) <- extractFloatingSumRec(s))
+            res(name) = res.getOrElse(name, 0d) + value
 
       case SubtractionExpression(l, r) =>
         res = extractFloatingSumRec(l)
@@ -584,7 +544,7 @@ object SimplifyExpression {
     */
   def recreateExprFromFloatSum(sumMap : HashMap[Expression, Double]) : Expression = {
 
-    val const : Option[Double] = sumMap.get(constName)
+    val const : Double = sumMap.get(constName).getOrElse(0d)
 
     val sumSeq = sumMap.view.filter(s => s._1 != constName && s._2 != 0d).toSeq.sortWith({
       case ((VariableAccess(v1, _), _), (VariableAccess(v2, _), _)) => v1 < v2
@@ -594,55 +554,45 @@ object SimplifyExpression {
     })
 
     if (sumSeq.isEmpty)
-      return FloatConstant(const.getOrElse(0d))
+      return FloatConstant(const)
 
-    // TODO: 2x * (-2y) -> (x-y)*2
     // use distributive property
-    val reverse = new HashMap[Double, ListBuffer[Expression]]().withDefault { _ => new ListBuffer[Expression]() }
+    val reverse = new HashMap[Double, (ListBuffer[Expression], ListBuffer[Expression])]()
+    def empty = (new ListBuffer[Expression](), new ListBuffer[Expression]())
     for ((njuExpr : Expression, value : Double) <- sumSeq)
-      reverse(value) = reverse(value) += njuExpr
+      if (value > 0d)
+        reverse.getOrElseUpdate(value, empty)._1 += njuExpr
+      else
+        reverse.getOrElseUpdate(-value, empty)._2 += njuExpr
 
     val posSums = new ListBuffer[Expression]()
     val negSums = new ListBuffer[Expression]()
 
-    for ((value : Double, sums : ListBuffer[Expression]) <- reverse.toSeq.sortBy(t => t._1).reverse)
-      value match {
-        case 1d  => posSums ++= sums
-        case -1d => negSums ++= sums
-        case _ =>
-          val expr = if (sums.length == 1) sums.head else new AdditionExpression(sums)
-          val absMul = new MultiplicationExpression(FloatConstant(math.abs(value)), expr)
-          if (value > 0d)
-        	  posSums += absMul
-          else
-        	  negSums += absMul
+    def toExpr(sum : ListBuffer[Expression]) = if (sum.length == 1) sum.head else new AdditionExpression(sum)
+    for ((value : Double, (pSums : ListBuffer[Expression], nSums : ListBuffer[Expression])) <- reverse.toSeq.sortBy(t => t._1).reverse)
+      if (value == 1d) {
+        posSums ++= pSums
+        negSums ++= nSums
+      } else {
+        if (pSums.isEmpty)
+          negSums += new MultiplicationExpression(FloatConstant(value), toExpr(nSums))
+        else if (nSums.isEmpty)
+          posSums += new MultiplicationExpression(FloatConstant(value), toExpr(pSums))
+        else
+          posSums += new MultiplicationExpression(FloatConstant(value), new SubtractionExpression(toExpr(pSums), toExpr(nSums)))
       }
 
-    val cst : Double = const.getOrElse(0d)
-    if (cst > 0d)
-      posSums += FloatConstant(cst)
-    else if (cst < 0d)
-      negSums += FloatConstant(-cst)
+    if (const > 0d)
+      posSums += FloatConstant(const)
+    else if (const < 0d)
+      negSums += FloatConstant(-const)
 
-    val pos : Expression =
-      posSums.length match {
-        case 0 => null
-        case 1 => posSums.head
-        case _ => new AdditionExpression(posSums)
-      }
-    val neg : Expression =
-      negSums.length match {
-        case 0 => null
-        case 1 => negSums.head
-        case _ => new AdditionExpression(negSums)
-      }
-
-    if (neg == null)
-      return pos
-    else if (pos == null)
-      return new NegativeExpression(neg)
+    if (posSums.isEmpty)
+      return new NegativeExpression(toExpr(negSums))
+    else if (negSums.isEmpty)
+      return toExpr(posSums)
     else
-      return new SubtractionExpression(pos, neg)
+      return new SubtractionExpression(toExpr(posSums), toExpr(negSums))
   }
 
   def simplifyFloatingExpr(expr : Expression) : Expression = {

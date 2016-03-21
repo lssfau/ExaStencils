@@ -116,6 +116,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
           return (ind, outMap)
       }
 
+    // constant part should stay inside the loop, as this reduces the number of required pointers outside
     for ((expr, value) <- inMap)
       if (expr != SimplifyExpression.constName && !containsLoopVar(expr))
         outMap.put(expr, value)
@@ -240,7 +241,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
             case _              => None
           }
           val newAcc = new ArrayAccess(new VariableAccess(name, dType), in, al)
-          newAcc.annotate(ORIG_IND_ANNOT, Duplicate(index))
+          newAcc.annotate(ORIG_IND_ANNOT, Duplicate(index)) // save old (complete) index expression for vectorization
           acc.annotate(REPL_ANNOT, newAcc)
         }
         decls = null

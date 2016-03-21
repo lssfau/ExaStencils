@@ -1,0 +1,21 @@
+targetOS                   = "Linux"
+targetCompiler             = "GCC"
+targetCompilerVersion      = 4
+targetCompilerVersionMinor = 8
+targetHardware             = "CPU"
+simd_instructionSet        = "AVX"
+
+hw_cpu_name                = "Intel Xeon E5-2690 v2"
+hw_cpu_numCoresPerCPU      = 10
+hw_cpu_numCPUs             = 1
+hw_cpu_bandwidth           = 59648000000.0 // = 55.6 GB/s = 4 * 233 * 1000^2 * 8 * 8 B/s
+hw_cpu_frequency           = 30000000000.0 // = 3.0 GHz
+hw_64bit                   = true
+hw_cacheLineSize           = 512 // in B
+hw_gpu_name                = "NVidia GeForce GTX Titan Black"
+hw_gpu_numDevices          = 1
+hw_gpu_bandwidth           = 336000000000.0 // = 312.9 GB/s = 384 / 8 * 1750 * 1000^2 * 4 B/s
+hw_gpu_frequency           = 889000000000.0 // = 889 MHz
+hw_gpu_numCores            = 2880
+hw_cuda_capability         = 3
+hw_cuda_capabilityMinor    = 5

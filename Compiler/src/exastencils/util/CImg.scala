@@ -13,15 +13,6 @@ case class CImg() extends Node with FilePrettyPrintable {
       return
     }
 
-    Knowledge.targetOS match {
-      case "Windows" => if (!Settings.additionalLibs.contains("gdi32")) Settings.additionalLibs += "gdi32"
-      case "Linux" | "OSX" => {
-        if (!Settings.additionalLibs.contains("m")) Settings.additionalLibs += "m"
-        if (!Settings.additionalLibs.contains("pthread")) Settings.additionalLibs += "pthread"
-        if (!Settings.additionalLibs.contains("X11")) Settings.additionalLibs += "X11"
-      }
-    }
-
     val writer = PrettyprintingManager.getPrinter(s"Util/CImg.h");
 
     val url = getClass.getResource("/res/CImg.h")
