@@ -96,9 +96,9 @@ class ParserL4 extends ExaParser with PackratParsers {
 
   lazy val algorithmicDatatype : Parser[Datatype] = (
     ("Complex" ~ "<") ~> numericDatatype <~ ">" ^^ { case x => new ComplexDatatype(x) }
-    ||| "Vector" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ s => new VectorDatatype(x, s, None) }
-    ||| ("ColumnVector" ||| "CVector") ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ s => new VectorDatatype(x, s, Some(false)) }
-    ||| numericDatatype ~ ("<" ~> integerLit <~ ">") ^^ { case x ~ s => new VectorDatatype(x, s, Some(true)) }
+    ||| "Vector" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ s => new VectorDatatype(x, s, true) }
+    ||| ("ColumnVector" ||| "CVector") ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ s => new VectorDatatype(x, s, false) }
+    ||| numericDatatype ~ ("<" ~> integerLit <~ ">") ^^ { case x ~ s => new VectorDatatype(x, s, true) }
     ||| "Matrix" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ m ~ n => new MatrixDatatype(x, m, n) }
     ||| numericDatatype ~ ("<" ~> integerLit <~ ",") ~ (integerLit <~ ">") ^^ { case x ~ m ~ n => new MatrixDatatype(x, m, n) }
     ||| numericDatatype)
@@ -354,9 +354,9 @@ class ParserL4 extends ExaParser with PackratParsers {
     ||| genericAccess
     ||| locationize(booleanLit ^^ { case s => BooleanConstant(s) }))
 
-  lazy val rowVectorExpression = locationize("{" ~> (binaryexpression <~ ",").+ ~ (binaryexpression <~ "}") ^^ { case x ~ y => VectorExpression(None, x :+ y, None) })
+  lazy val rowVectorExpression = locationize("{" ~> (binaryexpression <~ ",").+ ~ (binaryexpression <~ "}") ^^ { case x ~ y => VectorExpression(None, x :+ y, true) })
 
-  lazy val columnVectorExpression = locationize(rowVectorExpression <~ "T" ^^ { case x => VectorExpression(None, x.expressions, Some(false)) })
+  lazy val columnVectorExpression = locationize(rowVectorExpression <~ "T" ^^ { case x => VectorExpression(None, x.expressions, false) })
 
   lazy val matrixExpression = locationize("{" ~> (rowVectorExpression <~ ",").+ ~ (rowVectorExpression <~ "}") ^^ { case x ~ y => MatrixExpression(None, x :+ y) })
 

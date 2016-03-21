@@ -18,15 +18,15 @@ trait Expression extends Node with PrettyPrintable {
 
   import BinaryOperators._
   def +(other : Expression) = new AdditionExpression(this, other)
-  def :+(other : Expression) = new ElementwiseAdditionExpression(this, other) // Scala does not allow .+ and fails with Dot+
+  //  def :+(other : Expression) = new ElementwiseAdditionExpression(this, other) // Scala does not allow .+ and fails with Dot+
   def -(other : Expression) = new SubtractionExpression(this, other)
-  def :-(other : Expression) = new ElementwiseSubtractionExpression(this, other) // Scala does not allow .- and fails with Dot-
+  //  def :-(other : Expression) = new ElementwiseSubtractionExpression(this, other) // Scala does not allow .- and fails with Dot-
   def *(other : Expression) = new MultiplicationExpression(this, other)
-  def :*(other : Expression) = new ElementwiseMultiplicationExpression(this, other) // Scala does not allow .* and fails with Dot*
+  //  def :*(other : Expression) = new ElementwiseMultiplicationExpression(this, other) // Scala does not allow .* and fails with Dot*
   def /(other : Expression) = new DivisionExpression(this, other)
-  def :/(other : Expression) = new ElementwiseDivisionExpression(this, other) // Scala does not allow ./ and fails with Dot/
+  //  def :/(other : Expression) = new ElementwiseDivisionExpression(this, other) // Scala does not allow ./ and fails with Dot/
   def Pow(other : Expression) = new PowerExpression(this, other)
-  def DotPow(other : Expression) = new ElementwisePowerExpression(this, other) // Scala does not allow .% and fails with Dot% and fails with :%
+  //  def DotPow(other : Expression) = new ElementwisePowerExpression(this, other) // Scala does not allow .% and fails with Dot% and fails with :%
   def Mod(other : Expression) = new ModuloExpression(this, other)
   def Modulo(other : Expression) = new ModuloExpression(this, other)
   def DotMod(other : Expression) = new ElementwiseModuloExpression(this, other)
@@ -53,6 +53,7 @@ object BinaryOperators extends Enumeration {
   val Power_Alt = Value("^")
   val Modulo = Value("%")
 
+  val ScalarProduct = Value(",")
   val ElementwiseAddition = Value(".+")
   val ElementwiseSubtraction = Value(".-")
   val ElementwiseMultiplication = Value(".*")
@@ -89,6 +90,7 @@ object BinaryOperators extends Enumeration {
     case Power_Alt                 => return new PowerExpression(left, right)
     case Modulo                    => return new ModuloExpression(left, right)
 
+    case ScalarProduct             => return new ScalarProductExpression(left, right)
     case ElementwiseAddition       => return new ElementwiseAdditionExpression(left, right)
     case ElementwiseSubtraction    => return new ElementwiseSubtractionExpression(left, right)
     case ElementwiseMultiplication => return new ElementwiseMultiplicationExpression(left, right)
@@ -176,7 +178,7 @@ case class BooleanConstant(var value : Boolean) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << value
 }
 
-case class VectorExpression(var datatype : Option[Datatype], var expressions : ListBuffer[Expression], var rowVector : Option[Boolean]) extends Expression {
+case class VectorExpression(var datatype : Option[Datatype], var expressions : ListBuffer[Expression], var rowVector : Boolean) extends Expression {
   def length = expressions.length
 
   def apply(i : Integer) = expressions(i)
@@ -188,7 +190,7 @@ case class VectorExpression(var datatype : Option[Datatype], var expressions : L
   }
   override def prettyprint(out : PpStream) : Unit = {
     out << "Matrix<" << datatype.getOrElse(RealDatatype) << ", "
-    if (rowVector.getOrElse(true)) {
+    if (rowVector) {
       out << "1, " << length << "> (" // row vector
     } else {
       out << length << ", 1> ("
@@ -198,7 +200,7 @@ case class VectorExpression(var datatype : Option[Datatype], var expressions : L
   }
 }
 
-case class MatrixExpression(var datatype : Option[Datatype], var expressions : ListBuffer[ListBuffer[Expression]]) extends Expression {
+case class MatrixExpression(var datatype : Option[Datatype], var expressions : ListBuffer[ListBuffer[Expression]]) extends Expression { // FIXME Array[Array[Expression]]
   def prettyprintInner(out : PpStream) : Unit = {
     out << (if (Knowledge.targetCompiler == "GCC") "std::move((" else "((")
     out << datatype.getOrElse(RealDatatype) << "[]){" <<< (expressions.flatten, ",") << "})"
@@ -269,6 +271,12 @@ case class ModuloExpression(var left : Expression, var right : Expression) exten
 
 case class PowerExpression(var left : Expression, var right : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << "pow(" << left << ", " << right << ')' // FIXME: check for integer constant => use pown
+}
+
+case class ScalarProductExpression(var left : Expression, var right : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = {
+    out << "CURRENTLY INVALID: ScalarProduct(" << left << ", " << right << ")"
+  }
 }
 
 case class ElementwiseAdditionExpression(var left : Expression, var right : Expression) extends Expression {

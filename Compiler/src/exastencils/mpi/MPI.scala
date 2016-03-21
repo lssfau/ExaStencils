@@ -96,6 +96,7 @@ case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange,
   override def resolveDeclPostscript : String = ""
   override def resolveFlattendSize : Int = ???
   override def typicalByteSize = ???
+  override def isNumeric = ???
 
   if (!MPI_DataType.shouldBeUsed(indexRange, condition))
     Logger.warn(s"Trying to setup an MPI data type for unsupported index range ${indexRange.print}")

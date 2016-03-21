@@ -69,7 +69,7 @@ case class ComplexDatatype(var datatype : Datatype) extends Datatype {
   override def getSizeArray : Array[Int] = Array(1) // TODO: likely depends on later implementation (std::complex vs Real[2])
 }
 
-case class VectorDatatype(var datatype : Datatype, var length : Int, var isRow : Option[Boolean]) extends Datatype {
+case class VectorDatatype(var datatype : Datatype, var length : Int, var isRow : Boolean = true) extends Datatype {
   override def prettyprint(out : PpStream) = { out << "Vector[" << datatype << ',' << length << ']' }
   override def progressToIr : ir.Datatype = new ir.VectorDatatype(datatype.progressToIr, length, isRow)
   override def dimensionality : Int = 1 + datatype.dimensionality

@@ -53,7 +53,7 @@ case class BooleanConstant(var value : Boolean) extends Expression {
   def progressToIr : ir.BooleanConstant = ir.BooleanConstant(value)
 }
 
-case class VectorExpression(var datatype : Option[Datatype], var expressions : List[Expression], var rowVector : Option[Boolean]) extends Expression {
+case class VectorExpression(var datatype : Option[Datatype], var expressions : List[Expression], var rowVector : Boolean) extends Expression {
   // rowVector == true: Row; false: Column; None: unspecified
   def length = expressions.length
 
@@ -62,31 +62,11 @@ case class VectorExpression(var datatype : Option[Datatype], var expressions : L
 
   def prettyprint(out : PpStream) = {
     out << '{' <<< (expressions, ", ") << '}'
-    if (rowVector.getOrElse(true) == false) {
+    if (!rowVector) {
       out << 'T';
     }
   }
   def progressToIr = new ir.VectorExpression(if (datatype.isDefined) Some(datatype.get.progressToIr); else None, expressions.map(_.progressToIr).to[ListBuffer], rowVector)
-}
-
-object VectorExpression {
-  // helper function
-  def isRowVector(n : Node) = {
-    if (n.isInstanceOf[VectorExpression]) {
-      var v = n.asInstanceOf[VectorExpression]
-      if (v.rowVector.getOrElse(true)) true; else false
-    } else {
-      false
-    }
-  }
-  def isColumnVector(n : Node) = {
-    if (n.isInstanceOf[VectorExpression]) {
-      var v = n.asInstanceOf[VectorExpression]
-      if (v.rowVector.getOrElse(true)) true; else false
-    } else {
-      false
-    }
-  }
 }
 
 case class MatrixExpression(var datatype : Option[Datatype], var expressions : List[VectorExpression]) extends Expression {

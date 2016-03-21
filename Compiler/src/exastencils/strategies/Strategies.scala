@@ -139,14 +139,14 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
               if (vecExpr == null)
                 vecExpr = v
               else {
-                if (vecExpr.rowVector.getOrElse(true) != v.rowVector.getOrElse(true))
+                if (vecExpr.rowVector != v.rowVector)
                   Logger.error("Vector types must match for addition")
                 if (vecExpr.length != v.length)
                   Logger.error("Vector sizes must match for addition")
                 vecExpr =
-                  VectorExpression(GetResultingDatatype(vecExpr.datatype, v.datatype),
+                  VectorExpression(GetResultingDatatype("+", vecExpr.datatype, v.datatype),
                     (vecExpr.expressions, v.expressions).zipped.map(_ + _),
-                    if (vecExpr.rowVector.isDefined) vecExpr.rowVector else v.rowVector)
+                    vecExpr.rowVector)
               }
             case r : Expression => rem += r
           }
@@ -224,10 +224,10 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
           rem.transform {
             case v : VectorExpression if (!found) =>
               found = true
-              VectorExpression(GetResultingDatatype(cstDt, v.datatype), v.expressions.map(coeff * _), v.rowVector)
+              VectorExpression(GetResultingDatatype("*", cstDt, v.datatype), v.expressions.map(coeff * _), v.rowVector)
             case m : MatrixExpression if (!found) =>
               found = true
-              MatrixExpression(GetResultingDatatype(cstDt, m.datatype), m.expressions.map(_.map[Expression, ListBuffer[Expression]](coeff * _)))
+              MatrixExpression(GetResultingDatatype("*", cstDt, m.datatype), m.expressions.map(_.map[Expression, ListBuffer[Expression]](coeff * _)))
             case x => x
           }
           if (found)
@@ -349,9 +349,9 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     //      VectorExpression(GetResultingDatatype(left.datatype, right.datatype), (left.expressions, right.expressions).zipped.map(_ + _), left.rowVector.getOrElse(right.rowVector).asInstanceOf[Option[Boolean]])
     //    }
     case SubtractionExpression(left : VectorExpression, right : VectorExpression) => {
-      if (left.rowVector.getOrElse(true) != right.rowVector.getOrElse(true)) Logger.error("Vector types must match for subtraction")
+      if (left.rowVector != right.rowVector) Logger.error("Vector types must match for subtraction")
       if (left.length != right.length) Logger.error("Vector sizes must match for subtraction")
-      VectorExpression(GetResultingDatatype(left.datatype, right.datatype), (left.expressions, right.expressions).zipped.map(_ - _), left.rowVector.getOrElse(right.rowVector).asInstanceOf[Option[Boolean]])
+      VectorExpression(GetResultingDatatype("-", left.datatype, right.datatype), (left.expressions, right.expressions).zipped.map(_ - _), left.rowVector)
     }
     //    case MultiplicationExpression(v : VectorExpression, c : IntegerConstant) => {
     //      VectorExpression(v.datatype, v.expressions.map(c * _), v.rowVector)
@@ -456,7 +456,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     (le, ri) match { // matching for constants is not required here (this is already handled by the caller)
       case (left : VectorExpression, right : VectorExpression) =>
         if (left.length != right.length) Logger.error("Vector sizes must match for multiplication")
-        if (left.rowVector.getOrElse(true) != right.rowVector.getOrElse(true)) Logger.error("Vector types must match for multiplication")
+        if (left.rowVector != right.rowVector) Logger.error("Vector types must match for multiplication")
         List(AdditionExpression((left.expressions, right.expressions).zipped.map(_ * _)))
       case (left, right) =>
         List(left, right)
