@@ -296,7 +296,7 @@ case class Kernel(var identifier : String,
     }
     for (fieldAccess <- fieldAccesses) {
       val fieldSelection = fieldAccess._2.fieldSelection
-      fctParams += VariableAccess(fieldAccess._1, Some(PointerDatatype(fieldSelection.field.resolveBaseDatatype)))
+      fctParams += VariableAccess(fieldAccess._1, Some(PointerDatatype(fieldSelection.field.resolveDeclType)))
     }
     for (ivAccess <- ivAccesses) {
       var access = VariableAccess(ivAccess._1, Some(ivAccess._2.resolveDataType))
@@ -363,7 +363,7 @@ object ReplacingLocalLinearizedFieldAccess extends QuietDefaultStrategy("Replaci
       }
     }
 
-    identifier
+    VariableAccess(identifier, Some(PointerDatatype(field.resolveDeclType)))
   }
 
   this += new Transformation("Searching", {
