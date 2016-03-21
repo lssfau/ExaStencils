@@ -3,6 +3,7 @@ package exastencils.datastructures.ir
 import exastencils.datastructures._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
+import exastencils.logger.Logger
 
 trait Datatype extends Node with PrettyPrintable {
   def prettyprint_mpi : String
@@ -14,6 +15,7 @@ trait Datatype extends Node with PrettyPrintable {
   def resolveDeclPostscript : String
   def resolveFlattendSize : Int
   def typicalByteSize : Int
+  def isNumeric : Boolean
 }
 
 /// special data types
@@ -30,6 +32,7 @@ case class SpecialDatatype(typeName : String) extends Datatype {
   override def resolveDeclPostscript : String = ""
   override def resolveFlattendSize : Int = ???
   override def typicalByteSize = ???
+  override def isNumeric = ???
 }
 
 case object UnitDatatype extends Datatype {
@@ -44,6 +47,7 @@ case object UnitDatatype extends Datatype {
   override def resolveDeclPostscript : String = ""
   override def resolveFlattendSize : Int = 0
   override def typicalByteSize = 0
+  override def isNumeric = true
 }
 
 /// scalar data types
@@ -55,6 +59,7 @@ trait ScalarDatatype extends Datatype {
   override def resolveDeclType : Datatype = this
   override def resolveDeclPostscript : String = ""
   override def resolveFlattendSize : Int = 1
+  override def isNumeric = true
 }
 
 case object BooleanDatatype extends ScalarDatatype {
@@ -62,6 +67,7 @@ case object BooleanDatatype extends ScalarDatatype {
   override def prettyprint(out : PpStream) : Unit = out << "bool"
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
   override def typicalByteSize = 1
+  override def isNumeric = false
 }
 
 case object IntegerDatatype extends ScalarDatatype {
@@ -69,6 +75,7 @@ case object IntegerDatatype extends ScalarDatatype {
   override def prettyprint(out : PpStream) : Unit = out << "int"
   override def prettyprint_mpi = "MPI_INT"
   override def typicalByteSize = 4
+  override def isNumeric = true
 }
 
 case object RealDatatype extends ScalarDatatype {
@@ -93,6 +100,7 @@ case object RealDatatype extends ScalarDatatype {
     else
       4
   }
+  override def isNumeric = true
 }
 
 case object CharDatatype extends ScalarDatatype {
@@ -100,6 +108,7 @@ case object CharDatatype extends ScalarDatatype {
   override def prettyprint(out : PpStream) : Unit = out << "char"
   override def prettyprint_mpi = "MPI::CHAR"
   override def typicalByteSize = 1
+  override def isNumeric = false
 }
 
 /// higher-dimensional data types
@@ -121,6 +130,7 @@ case class ArrayDatatype(datatype : Datatype, size : Int) extends HigherDimensio
   override def resolveDeclPostscript : String = datatype.resolveDeclPostscript + s"[$size]"
   override def resolveFlattendSize : Int = size * datatype.resolveFlattendSize
   override def typicalByteSize = size * datatype.typicalByteSize
+  override def isNumeric = datatype.isNumeric
 }
 
 case class ArrayDatatype_VS(datatype : Datatype, size : Expression) extends HigherDimensionalDatatype {
@@ -133,14 +143,15 @@ case class ArrayDatatype_VS(datatype : Datatype, size : Expression) extends High
   override def resolveDeclPostscript : String = datatype.resolveDeclPostscript + s"[$size]"
   override def resolveFlattendSize : Int = ???
   override def typicalByteSize = ???
+  override def isNumeric = datatype.isNumeric
 }
 
-case class VectorDatatype(var datatype : Datatype, var size : Int, var isRow : Option[Boolean]) extends HigherDimensionalDatatype {
-  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+case class VectorDatatype(var datatype : Datatype, var size : Int, var isRow : Boolean = true) extends HigherDimensionalDatatype {
   override def prettyprint(out : PpStream) : Unit = {
-    if (isRow.getOrElse(true)) out << "Matrix<" << datatype << ",1," << size << '>'
-    else out << "Matrix<" << datatype << ',' << size << ",1>"
+    if (isRow) out << "INVALID DATATYPE: Matrix<" << datatype << ",1," << size << '>'
+    else out << "INVALID DATATYPE: Matrix<" << datatype << ',' << size << ",1>"
   }
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 
   override def dimensionality : Int = 1 + datatype.dimensionality
   override def getSizeArray : Array[Int] = Array(size) ++ datatype.getSizeArray
@@ -148,10 +159,11 @@ case class VectorDatatype(var datatype : Datatype, var size : Int, var isRow : O
   override def resolveDeclPostscript : String = ""
   override def resolveFlattendSize : Int = size * datatype.resolveFlattendSize
   override def typicalByteSize = size * datatype.typicalByteSize
+  override def isNumeric = datatype.isNumeric
 }
 
 case class MatrixDatatype(var datatype : Datatype, var sizeM : Int, var sizeN : Int) extends HigherDimensionalDatatype {
-  override def prettyprint(out : PpStream) : Unit = out << "Matrix<" << datatype << ',' << sizeM << ',' << sizeN << '>'
+  override def prettyprint(out : PpStream) : Unit = out << "INVALID DATATYPE: Matrix<" << datatype << ',' << sizeM << ',' << sizeN << '>'
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 
   override def dimensionality : Int = 2 + datatype.dimensionality
@@ -160,6 +172,7 @@ case class MatrixDatatype(var datatype : Datatype, var sizeM : Int, var sizeN : 
   override def resolveDeclPostscript : String = ""
   override def resolveFlattendSize : Int = sizeM * sizeN * datatype.resolveFlattendSize
   override def typicalByteSize = sizeM * sizeN * datatype.typicalByteSize
+  override def isNumeric = datatype.isNumeric
 }
 
 /// data type modifiers
@@ -174,6 +187,7 @@ trait DatatypeModifier extends Datatype {
   override def resolveDeclPostscript : String = datatype.resolveDeclPostscript
   override def resolveFlattendSize : Int = datatype.resolveFlattendSize
   override def typicalByteSize = datatype.typicalByteSize
+  override def isNumeric = datatype.isNumeric
 }
 
 case class VolatileDatatype(datatype : Datatype) extends DatatypeModifier {
@@ -192,6 +206,7 @@ trait IndirectionDatatype extends Datatype {
   override def resolveDeclType : Datatype = this
   override def resolveDeclPostscript : String = ""
   override def resolveFlattendSize : Int = datatype.resolveFlattendSize
+  override def isNumeric = datatype.isNumeric
 }
 
 trait PointerLikeDatatype extends IndirectionDatatype {
@@ -241,6 +256,7 @@ case object StringDatatype extends Datatype {
   override def resolveDeclPostscript : String = ""
   override def resolveFlattendSize : Int = ???
   override def typicalByteSize = ???
+  override def isNumeric = false
 }
 
 case class ComplexDatatype(datatype : Datatype) extends Datatype {
@@ -256,6 +272,7 @@ case class ComplexDatatype(datatype : Datatype) extends Datatype {
   override def resolveDeclPostscript : String = datatype.resolveDeclPostscript
   override def resolveFlattendSize : Int = 1 * datatype.resolveFlattendSize
   override def typicalByteSize = 2 * datatype.typicalByteSize
+  override def isNumeric = datatype.isNumeric
 }
 
 /// SIMD data types
@@ -288,16 +305,16 @@ case object SIMD_RealDatatype extends SIMDDatatype {
     }
   }
   override def prettyprint_mpi = "INVALID DATATYPE: " + this.prettyprint()
+  override def isNumeric = datatype.isNumeric
 }
 
 /// helper functions and objects
 
 object GetResultingDatatype {
-  def apply(a : Option[Datatype], b : Option[Datatype]) : Option[Datatype] = {
+  def apply(operator : String, a : Option[Datatype], b : Option[Datatype]) : Option[Datatype] = {
     if (a.isDefined && b.isEmpty) return None
     if (a.isEmpty && b.isDefined) return None
     if (a.isEmpty && b.isEmpty) return None
-
     a.get match {
       case IntegerDatatype => b.get match {
         case IntegerDatatype          => Some(IntegerDatatype)
@@ -314,10 +331,10 @@ object GetResultingDatatype {
         case RealDatatype             => Some(RealDatatype)
         case StringDatatype           => Some(StringDatatype)
         case CharDatatype             => Some(RealDatatype)
-        case ArrayDatatype(dt, l)     => Some(ArrayDatatype(GetResultingDatatype(Some(dt), a).getOrElse(dt), l))
-        case ComplexDatatype(dt)      => Some(ComplexDatatype(GetResultingDatatype(Some(dt), a).getOrElse(dt)))
-        case VectorDatatype(dt, l, r) => Some(VectorDatatype(GetResultingDatatype(Some(dt), a).getOrElse(dt), l, r))
-        case MatrixDatatype(dt, m, n) => Some(MatrixDatatype(GetResultingDatatype(Some(dt), a).getOrElse(dt), m, n))
+        case ArrayDatatype(dt, l)     => Some(ArrayDatatype(GetResultingDatatype(operator, Some(dt), a).getOrElse(dt), l))
+        case ComplexDatatype(dt)      => Some(ComplexDatatype(GetResultingDatatype(operator, Some(dt), a).getOrElse(dt)))
+        case VectorDatatype(dt, l, r) => Some(VectorDatatype(GetResultingDatatype(operator, Some(dt), a).getOrElse(dt), l, r))
+        case MatrixDatatype(dt, m, n) => Some(MatrixDatatype(GetResultingDatatype(operator, Some(dt), a).getOrElse(dt), m, n))
       }
       case StringDatatype => b.get match {
         case IntegerDatatype          => Some(StringDatatype)
@@ -338,10 +355,56 @@ object GetResultingDatatype {
         case VectorDatatype(dt, l, r) => Some(VectorDatatype(dt, l, r))
         case MatrixDatatype(dt, m, n) => Some(MatrixDatatype(dt, m, n))
       }
-      case ArrayDatatype(dt, l)     => Some(ArrayDatatype(GetResultingDatatype(Some(dt), b).getOrElse(dt), l))
-      case ComplexDatatype(dt)      => Some(ComplexDatatype(GetResultingDatatype(Some(dt), b).getOrElse(dt)))
-      case VectorDatatype(dt, l, r) => Some(VectorDatatype(GetResultingDatatype(Some(dt), b).getOrElse(dt), l, r))
-      case MatrixDatatype(dt, m, n) => Some(MatrixDatatype(GetResultingDatatype(Some(dt), b).getOrElse(dt), m, n))
+      case ArrayDatatype(dt, l) => Some(ArrayDatatype(GetResultingDatatype(operator, Some(dt), b).getOrElse(dt), l))
+      case ComplexDatatype(dt)  => Some(ComplexDatatype(GetResultingDatatype(operator, Some(dt), b).getOrElse(dt)))
+
+      case VectorDatatype(dta, la, rowa) => b.get match {
+        case VectorDatatype(dtb, lb, rowb) => {
+          if (la != lb) Logger.error("Vector lengths have to match")
+          if (operator == "*") {
+            if (!rowa && rowb) Some(MatrixDatatype(GetResultingDatatype("*", dta, dtb).get, la, lb)) /* ColumnVec * RowVec => Matrix */
+            else if (rowa && !rowb) Some(GetResultingDatatype("*", dta, dtb).get) /* RowVec * ColumnVec => Scalar */
+            else Logger.error(s"""Could not get resulting type for operation '$operator' for $a and $b""") /* RowVec * RowVec or ColumnVec * ColumnVec */
+          } else {
+            if (!operator.startsWith(".") && rowa != rowb) Logger.error("Vector types (row or column) have to match!")
+            Some(VectorDatatype(GetResultingDatatype(operator, dta, dtb).get, la, rowa))
+          }
+        }
+        case MatrixDatatype(dtb, mb, nb) => {
+          if (operator == "*") {
+            if (la != mb) Logger.error("Vector length must match matrix size M")
+            if (nb == 1) GetResultingDatatype(operator, dta, dtb) // is scalar product
+            else Some(MatrixDatatype(GetResultingDatatype("*", dta, dtb).get, 1, nb))
+          } else {
+            Logger.error(s"""Invalid operation '$operator' for types $a and $b""")
+          }
+        }
+        case _ => GetResultingDatatype(operator, b, a)
+      }
+
+      case MatrixDatatype(dta, ma, na) => b.get match {
+        case MatrixDatatype(dtb, mb, nb) => {
+          if (operator == "*") {
+            if (na != mb) Logger.error(s"""Invalid matrix sizes for operator '$operator'""")
+            Some(MatrixDatatype(GetResultingDatatype("*", dta, dtb).get, ma, nb))
+          } else {
+            if (na != ma && nb != mb) Logger.error(s"""Invalid matrix sizes for operator '$operator'""")
+            Some(MatrixDatatype(GetResultingDatatype(operator, dta, dtb).get, ma, na))
+          }
+        }
+        case VectorDatatype(dtb, lb, rowb) => {
+          if (operator == "*") {
+            if (rowb) Logger.error(s"""Invalid operation '$operator' for types $a and $b""")
+            Some(VectorDatatype(GetResultingDatatype("*", dta, dtb).get, ma, false))
+          } else {
+            Logger.error(s"""Invalid operation '$operator' for types $a and $b""")
+          }
+        }
+      }
     }
   }
+
+  def apply(operator : String, a : Datatype, b : Datatype) : Option[Datatype] = apply(operator, Some(a), Some(b))
+  def apply(operator : String, a : Option[Datatype], b : Datatype) : Option[Datatype] = apply(operator, a, Some(b))
+  def apply(operator : String, a : Datatype, b : Option[Datatype]) : Option[Datatype] = apply(operator, Some(a), b)
 }
