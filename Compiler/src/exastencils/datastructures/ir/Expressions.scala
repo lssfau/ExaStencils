@@ -18,15 +18,10 @@ trait Expression extends Node with PrettyPrintable {
 
   import BinaryOperators._
   def +(other : Expression) = new AdditionExpression(this, other)
-  //  def :+(other : Expression) = new ElementwiseAdditionExpression(this, other) // Scala does not allow .+ and fails with Dot+
   def -(other : Expression) = new SubtractionExpression(this, other)
-  //  def :-(other : Expression) = new ElementwiseSubtractionExpression(this, other) // Scala does not allow .- and fails with Dot-
   def *(other : Expression) = new MultiplicationExpression(this, other)
-  //  def :*(other : Expression) = new ElementwiseMultiplicationExpression(this, other) // Scala does not allow .* and fails with Dot*
   def /(other : Expression) = new DivisionExpression(this, other)
-  //  def :/(other : Expression) = new ElementwiseDivisionExpression(this, other) // Scala does not allow ./ and fails with Dot/
   def Pow(other : Expression) = new PowerExpression(this, other)
-  //  def DotPow(other : Expression) = new ElementwisePowerExpression(this, other) // Scala does not allow .% and fails with Dot% and fails with :%
   def Mod(other : Expression) = new ModuloExpression(this, other)
   def Modulo(other : Expression) = new ModuloExpression(this, other)
   def DotMod(other : Expression) = new ElementwiseModuloExpression(this, other)
