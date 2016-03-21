@@ -70,7 +70,7 @@ object UniversalSetter {
 
     value match {
       case s : String => {
-        if (fieldType == classOf[Integer]) { return apply(obj, ident, s.toInt) }
+        if (fieldType == classOf[Int] || fieldType == classOf[Integer]) { return apply(obj, ident, s.toInt) }
         else if (fieldType == classOf[Float]) { return apply(obj, ident, s.toFloat) }
         else if (fieldType == classOf[Double]) { return apply(obj, ident, s.toDouble) }
       }

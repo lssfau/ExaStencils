@@ -25,7 +25,7 @@ object Duplicate {
     * @param n The number of clones to be created.
     * @return A [[scala.collection.immutable.List]] holding the cloned instances.
     */
-  def apply[T](t : T, n : Integer) : List[T] = List.fill(n)(cloner.deepClone(t))
+  def apply[T](t : T, n : Int) : List[T] = List.fill(n)(cloner.deepClone(t))
 
   /**
     * Enable or disable debug output.

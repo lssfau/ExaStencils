@@ -19,10 +19,10 @@ object StateManager {
   var strategies_ = Stack[Strategy]()
 
   /** Dummy strategy that is used internally to encapsulate finds. */
-  protected case object FindStrategy extends Strategy("Statemanager::internal::FindStrategy")
+  protected final case object FindStrategy extends Strategy("Statemanager::internal::FindStrategy")
 
   /** Dummy node that is used internally to signal that a Transformation did not match a given node. */
-  protected case object NoMatch extends Node
+  protected final case object NoMatch extends Node
 
   // ###############################################################################################
   // #### Checkpointing ############################################################################
