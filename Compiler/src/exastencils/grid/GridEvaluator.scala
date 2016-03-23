@@ -83,8 +83,8 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
           if (stagDim.isDefined) {
             return fieldAccess // value is located at the evaluation region
           } else {
-            a0 = (() => { geom.cellCenterToFace(level, Duplicate(baseIndex), Array(), faceDim) })
-            a1 = (() => { geom.cellCenterToFace(level, GridUtil.offsetIndex(baseIndex, 1, faceDim), Array(), faceDim) })
+            a0 = (() => { geom.cellCenterToFace(level, Duplicate(baseIndex), new ConstIndex(0), faceDim) })
+            a1 = (() => { geom.cellCenterToFace(level, GridUtil.offsetIndex(baseIndex, 1, faceDim), new ConstIndex(0), faceDim) })
           }
         }
         case "face_x" | "face_y" | "face_z" => {
@@ -316,17 +316,17 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
           val compDim0 = (if (0 == faceDim) 1 else 0)
           val compDim1 = (if (2 == faceDim) 1 else 2)
 
-          geom.cellWidth(level, index, Array(), compDim0) * geom.cellWidth(level, index, Array(), compDim1) * exp
+          geom.cellWidth(level, index, new ConstIndex(0), compDim0) * geom.cellWidth(level, index, new ConstIndex(0), compDim1) * exp
         } else {
           val compDim = (if (0 != faceDim && 0 != curStagDim) 0 else (if (1 != faceDim && 1 != curStagDim) 1 else 2))
 
-          geom.cellWidth(level, index, Array(), compDim) * geom.stagCVWidth(level, index, Array(), curStagDim) * exp
+          geom.cellWidth(level, index, new ConstIndex(0), compDim) * geom.stagCVWidth(level, index, new ConstIndex(0), curStagDim) * exp
         }
       } else {
         val compDim0 = (if (0 == faceDim) 1 else 0)
         val compDim1 = (if (2 == faceDim) 1 else 2)
 
-        geom.cellWidth(level, index, Array(), compDim0) * geom.cellWidth(level, index, Array(), compDim1) * exp
+        geom.cellWidth(level, index, new ConstIndex(0), compDim0) * geom.cellWidth(level, index, new ConstIndex(0), compDim1) * exp
       }
     }
   }

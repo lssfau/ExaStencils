@@ -57,7 +57,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
     // FIXME: this works for now, but users may want to specify bc's per vector element
     // FIXME: (update) adapt for numDimsGrid once new vector and matrix data types are fully integrated
     var index = LoopOverDimensions.defIt(field.fieldLayout.numDimsData)
-    var fieldSel = new FieldSelection(field.field, field.level, field.slot, Array(), field.fragIdx) // TODO: check
+    var fieldSel = new FieldSelection(field.field, field.level, field.slot, new ConstIndex(0), field.fragIdx) // TODO: check
 
     def offsetIndex = new MultiIndex(neigh.dir ++ Array.fill(field.fieldLayout.numDimsData - field.fieldLayout.numDimsGrid)(0))
     def offsetIndexWithTrafo(f : (Int => Int)) = new MultiIndex(neigh.dir.map(f) ++ Array.fill(field.fieldLayout.numDimsData - field.fieldLayout.numDimsGrid)(0))

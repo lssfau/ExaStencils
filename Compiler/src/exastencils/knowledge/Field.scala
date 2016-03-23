@@ -123,7 +123,7 @@ case class FieldSelection(
     var field : Field,
     var level : Expression,
     var slot : Expression,
-    var componentIndex : Array[ir.ConstIndex] = Array(),
+    var componentIndex : ConstIndex = new ConstIndex(0),
     var fragIdx : Expression = LoopOverFragments.defIt) extends Node {
 
   // shortcuts to Field members

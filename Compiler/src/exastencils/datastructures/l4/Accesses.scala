@@ -118,7 +118,7 @@ case class FieldAccess(
       multiIndex += progressedOffset
     }
 
-    var cIdx : Array[ir.ConstIndex] = Array()
+    var cIdx = new ir.ConstIndex(0)
     if (componentIndex.isDefined) cIdx = componentIndex.get.progressToIr
 
     val field = knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
@@ -146,7 +146,7 @@ case class VirtualFieldAccess(
       multiIndex += progressedOffset
     }
 
-    var cIdx : Array[ir.ConstIndex] = Array()
+    var cIdx = new ir.ConstIndex(0)
     if (componentIndex.isDefined) cIdx = componentIndex.get.progressToIr
     ir.VirtualFieldAccess(name, ir.IntegerConstant(level.asInstanceOf[SingleLevelSpecification].level), multiIndex, cIdx)
   }
@@ -231,7 +231,7 @@ case class StencilFieldAccess(
     }
 
     // FIXME add componentIndex
-    var cIdx : Array[ir.ConstIndex] = Array()
+    var cIdx = new ir.ConstIndex(0)
     if (componentIndex.isDefined) cIdx = componentIndex.get.progressToIr
     ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), cIdx), multiIndex)
   }
@@ -259,11 +259,11 @@ case class StencilFieldAccess(
       multiIndex += progressedOffset
     }
 
-    var cIdx : Array[ir.ConstIndex] = Array()
+    var cIdx = new ir.ConstIndex(0)
     if (componentIndex.isDefined) cIdx = componentIndex.get.progressToIr
 
     if (accessIndex < 0)
-      ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), Array()),
+      ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), new ir.ConstIndex(0)),
         multiIndex)
     else // FIXME hier accessIndex mit uebergeben!!
       ir.FieldAccess(knowledge.FieldSelection(stencilField.field, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), cIdx),

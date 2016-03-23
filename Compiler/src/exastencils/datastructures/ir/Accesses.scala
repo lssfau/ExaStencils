@@ -72,23 +72,25 @@ abstract class FieldAccessLike extends Access {
 
 case class DirectFieldAccess(
     var fieldSelection : FieldSelection,
-    var index : MultiIndex) extends FieldAccessLike {
+    var index : MultiIndex,
+    var componentIndex : ConstIndex = new ConstIndex(0)) extends FieldAccessLike {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = DirectFieldAccess\n"
   override def datatype = fieldSelection.fieldLayout.datatype // FIXME_componentIndex
 
   def linearize : LinearizedFieldAccess = {
-    new LinearizedFieldAccess(fieldSelection, Mapping.resolveMultiIdx(fieldSelection.fieldLayout, index))
+    new LinearizedFieldAccess(fieldSelection, Mapping.resolveMultiIdx(fieldSelection.fieldLayout, index), componentIndex)
   }
 }
 
 case class FieldAccess(
     var fieldSelection : FieldSelection,
-    var index : MultiIndex) extends FieldAccessLike {
+    var index : MultiIndex,
+    var componentIndex : ConstIndex = new ConstIndex(0)) extends FieldAccessLike {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = FieldAccess\n"
   override def datatype = fieldSelection.fieldLayout.datatype
 
   def expandSpecial() : DirectFieldAccess = {
-    DirectFieldAccess(fieldSelection, index + fieldSelection.referenceOffset)
+    DirectFieldAccess(fieldSelection, index + fieldSelection.referenceOffset, componentIndex)
   }
 }
 
@@ -96,7 +98,7 @@ case class VirtualFieldAccess(
     var fieldName : String,
     var level : Expression,
     var index : MultiIndex,
-    var componentIndex : Array[ir.ConstIndex] = Array(),
+    var componentIndex : ConstIndex = new ConstIndex(0),
     var fragIdx : Expression = LoopOverFragments.defIt) extends Access {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = VirtualFieldAccess\n"
   override def datatype = FieldCollection.getFieldByIdentifierLevExp(fieldName, level).get.fieldLayout.datatype
@@ -106,7 +108,7 @@ case class ExternalFieldAccess(
     var name : Expression,
     var field : ExternalField,
     var index : MultiIndex,
-    var componentIndex : Array[ir.ConstIndex] = Array()) extends Access {
+    var componentIndex : ConstIndex = new ConstIndex(0)) extends Access {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ExternalFieldAccess\n"
   override def datatype = field.fieldLayout.datatype
 
@@ -129,12 +131,13 @@ case class ExternalFieldAccess(
 
 case class LinearizedFieldAccess(
     var fieldSelection : FieldSelection,
-    var index : Expression) extends Access with Expandable {
+    var index : Expression,
+    var componentIndex : ConstIndex = new ConstIndex(0)) extends Access with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LinearizedFieldAccess\n"
   override def datatype = fieldSelection.fieldLayout.datatype // FIXME_componentIndex
 
   override def expand : Output[Expression] = {
-    new ArrayAccess(new iv.FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx), index, Knowledge.data_alignFieldPointers)
+    new ArrayAccess(new iv.FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx), index /* FIXME add componentIndex here */ , Knowledge.data_alignFieldPointers)
   }
 }
 

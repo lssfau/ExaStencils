@@ -338,6 +338,15 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     //      val t = (left.expressions, right.expressions).zipped.map(_ * _)
     //      t.reduce((a : Expression, b : Expression) => a + b)
     //    }
+    case x : FunctionCallExpression if (x.name == "transpose") => {
+      x.arguments(0) match {
+        case x : VectorExpression =>
+          x.rowVector = !x.rowVector; x
+        case x : MatrixExpression =>
+          x.expressions.transpose; x
+      }
+      x
+    }
 
     // Simplify matrices
     case NegativeExpression(m : MatrixExpression) =>
