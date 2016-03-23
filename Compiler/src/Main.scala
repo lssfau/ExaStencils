@@ -226,6 +226,8 @@ object Main {
     TypeInference.warnMissingDeclarations = false
     TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
 
+    MatrixToScalar.apply() // Resolve vector/matrix operands
+
     if (Knowledge.experimental_addPerformanceEstimate)
       AddPerformanceEstimates()
     if (Knowledge.experimental_cuda_enabled) {
