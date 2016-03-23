@@ -93,7 +93,7 @@ if [[ -d "${REPO_DIR}" ]]; then
     if [[ $? -ne 0 ]]; then
       error "ERROR: switch to branch ${BRANCH} failed."
     fi
-  srun git -C "${REPO_DIR}" merge FETCH_HEAD
+  srun git -C "${REPO_DIR}" rebase
       if [[ $? -ne 0 ]]; then
         error "ERROR: git remote update failed."
       fi
