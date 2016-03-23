@@ -12,6 +12,7 @@ class L4ValueCollector extends Collector {
 
   override def enter(node : Node) : Unit = {
     node match {
+      case x : GlobalDeclarationStatement => insideGlobals = true
       case x : FunctionStatement          => { values.clear(); values.+=((new HashMap[String, Expression]())) }
       case x : LoopOverFragmentsStatement => values.+=((new HashMap[String, Expression]()))
       case x : LoopOverPointsStatement    => values.+=((new HashMap[String, Expression]()))
@@ -19,9 +20,9 @@ class L4ValueCollector extends Collector {
       case x : RepeatUntilStatement       => values.+=((new HashMap[String, Expression]()))
       case x : ConditionalStatement       => values.+=((new HashMap[String, Expression]()))
       case x : ValueDeclarationStatement => {
-        x.identifier match {
-          case v : LeveledIdentifier => values.last += ((v.name + "@@" + v.level, x.expression))
-          case _                     => values.last += ((x.identifier.name, x.expression))
+        x.identifier match { // ignore Values in Globals
+          case v : LeveledIdentifier => if (!insideGlobals) values.last += ((v.name + "@@" + v.level, x.expression))
+          case _                     => if (!insideGlobals) values.last += ((x.identifier.name, x.expression))
         }
       }
       case _ =>
@@ -30,6 +31,7 @@ class L4ValueCollector extends Collector {
 
   override def leave(node : Node) : Unit = {
     node match {
+      case x : GlobalDeclarationStatement => insideGlobals = false
       case x : FunctionStatement          => values.clear()
       case x : LoopOverFragmentsStatement => values.trimEnd(1)
       case x : LoopOverPointsStatement    => values.trimEnd(1)
