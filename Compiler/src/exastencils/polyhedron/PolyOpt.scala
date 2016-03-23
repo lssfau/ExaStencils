@@ -81,45 +81,30 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     //    isl.Options.setScheduleMaxConstantTerm(Knowledge.poly_maxConstantTerm)
     //    isl.Options.setScheduleMaxCoefficient(Knowledge.poly_maxCoefficient)
 
-    var scops : Seq[Scop] = extractPolyModel()
-    for (scop <- scops if (!scop.remove)) {
-      if (timeSingleSteps) StrategyTimer.startTiming("po:mergeLocalScalars")
-      mergeLocalScalars(scop)
-      if (timeSingleSteps) StrategyTimer.stopTiming("po:mergeLocalScalars")
-
-      if (timeSingleSteps) StrategyTimer.startTiming("po:mergeScops")
-      mergeScops(scop)
-      if (timeSingleSteps) StrategyTimer.stopTiming("po:mergeScops")
-
-      if (timeSingleSteps) StrategyTimer.startTiming("po:simplifyModel")
-      simplifyModel(scop)
-      if (timeSingleSteps) StrategyTimer.stopTiming("po:simplifyModel")
-
-      if (timeSingleSteps) StrategyTimer.startTiming("po:computeDependences")
-      computeDependences(scop)
-      if (timeSingleSteps) StrategyTimer.stopTiming("po:computeDependences")
-
-      if (timeSingleSteps) StrategyTimer.startTiming("po:deadCodeElimination")
-      deadCodeElimination(scop)
-      if (timeSingleSteps) StrategyTimer.stopTiming("po:deadCodeElimination")
-
-      if (timeSingleSteps) StrategyTimer.startTiming("po:handleReduction")
-      handleReduction(scop)
-      if (timeSingleSteps) StrategyTimer.stopTiming("po:handleReduction")
-
-      if (timeSingleSteps) StrategyTimer.startTiming("po:simplifyModel")
-      simplifyModel(scop)
-      if (timeSingleSteps) StrategyTimer.stopTiming("po:simplifyModel")
-
-      if (scop.optLevel >= 2) {
-        if (timeSingleSteps) StrategyTimer.startTiming("po:optimize")
-        optimize(scop, confID)
-        if (timeSingleSteps) StrategyTimer.stopTiming("po:optimize")
-      }
+    def time[T](op : => T, name : String) : T = {
+      if (timeSingleSteps) {
+        StrategyTimer.startTiming(name)
+        val res = op
+        StrategyTimer.stopTiming(name)
+        return res
+      } else
+        return op
     }
-    if (timeSingleSteps) StrategyTimer.startTiming("po:recreateAndInsertAST")
-    recreateAndInsertAST()
-    if (timeSingleSteps) StrategyTimer.stopTiming("po:recreateAndInsertAST")
+
+    val scops : Seq[Scop] = time(extractPolyModel(), "po:extractPolyModel")
+    for (scop <- scops if (!scop.remove)) {
+      time(mergeLocalScalars(scop), "po:mergeLocalScalars")
+      time(mergeScops(scop), "po:mergeScops")
+      time(simplifyModel(scop), "po:simplifyModel")
+      time(computeDependences(scop), "po:computeDependences")
+      time(deadCodeElimination(scop), "po:deadCodeElimination")
+      time(handleReduction(scop), "po:handleReduction")
+      time(simplifyModel(scop), "po:simplifyModel")
+
+      if (scop.optLevel >= 2)
+        time(optimize(scop, confID), "po:optimize")
+    }
+    time(recreateAndInsertAST(), "po:recreateAndInsertAST")
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming(name)

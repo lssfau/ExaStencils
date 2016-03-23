@@ -23,6 +23,7 @@ class Scop(val root : LoopOverDimensions, var localContext : isl.Set, var global
   val stmts = new HashMap[String, (ListBuffer[Statement], ArrayBuffer[String])]()
   val decls = new ListBuffer[VariableDeclarationStatement]()
 
+  final val loopVarTempl : String = "_i%d"
   val njuLoopVars = new ArrayBuffer[String]()
   val noParDims = new TreeSet[Int]()
 
@@ -54,7 +55,7 @@ class Scop(val root : LoopOverDimensions, var localContext : isl.Set, var global
     })
     var i : Int = 0
     while (i < maxOut) {
-      njuLoopVars += "_i" + i
+      njuLoopVars += loopVarTempl.format(i)
       i += 1
     }
   }
