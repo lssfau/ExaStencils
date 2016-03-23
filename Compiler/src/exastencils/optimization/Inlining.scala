@@ -15,6 +15,7 @@ import exastencils.knowledge.Knowledge
 import exastencils.logger._
 
 private final class Renamer(reserved : Set[String], inUse : Set[String]) {
+	private final val parTempl : String = "_i%02d%s"
   private final val nameMapping = Map[String, String]()
   def apply(s : String) : String = {
     nameMapping.getOrElseUpdate(s, {
@@ -22,7 +23,7 @@ private final class Renamer(reserved : Set[String], inUse : Set[String]) {
       if (reserved.contains(nju)) {
         var i = 0
         do {
-          nju = "_i" + i + s
+          nju = parTempl.format(i, s)
           i += 1
         } while (reserved.contains(nju) || inUse.contains(nju))
       }
