@@ -111,7 +111,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
             val loopOverDims = new LoopOverDimensions(
               field.fieldLayout.numDimsData,
               adaptedIndexRange,
-              setupFieldUpdate(neigh._1)) with OMP_PotentiallyParallel with PolyhedronAccessable
+              setupFieldUpdate(neigh._1)) with OMP_PotentiallyParallel with PolyhedronAccessible
             loopOverDims.optLevel = 1
             new ConditionStatement(NegationExpression(iv.NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : Statement
           }))) with OMP_PotentiallyParallel

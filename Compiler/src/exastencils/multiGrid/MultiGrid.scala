@@ -29,7 +29,7 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           new AssignmentStatement(
             new DirectFieldAccess(FieldSelection(field, field.level, slot), index),
-            0.0) : Statement)) with OMP_PotentiallyParallel with PolyhedronAccessable
+            0.0) : Statement)) with OMP_PotentiallyParallel with PolyhedronAccessible
       loopOverDims.optLevel = 1
 
       val wrapped = new LoopOverFragments(
