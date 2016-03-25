@@ -319,6 +319,9 @@ object Knowledge {
   var experimental_mergeCommIntoLoops : Boolean = false // tries to merge communication statements and loop over points in function bodies -> allows automatic overlap of communication and computation
   var experimental_splitLoopsForAsyncComm : Boolean = false // attempts to overlap communication and computation of loops with added communication statements
   var experimental_splitLoops_minInnerWidth : Int = 4 // minimum width of inner dimension when splitting according to experimental_splitLoopsForAsyncComm; 0 to disable
+
+  var experimental_useCommonSubexpElimination : Boolean = false // [true|false] // WARNING: experimental, may break things!  currently assumes RealDatatype for ALL common subexpressions
+  var experimental_cse_inline : Boolean = false // [true|false] // WARNING: this performs an additional, unchecked inlining with a by-name call semantics! this may break things!
   /// END HACK
 
   def update(configuration : Configuration = new Configuration) : Unit = {

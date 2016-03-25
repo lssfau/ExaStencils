@@ -50,7 +50,7 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
 
       // check for elimination criteria
       var earlyExit = false
-      if (!loop.isInstanceOf[PolyhedronAccessable])
+      if (!loop.isInstanceOf[PolyhedronAccessible])
         earlyExit = true // always use host for special loops
       if (!loop.isInstanceOf[OMP_PotentiallyParallel])
         earlyExit = true // always use host for un-parallelizable loops

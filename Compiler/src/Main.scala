@@ -246,6 +246,12 @@ object Main {
     ResolveConstInternalVariables.apply()
     SimplifyStrategy.doUntilDone()
 
+    if (Knowledge.experimental_useCommonSubexpElimination) {
+      if (Knowledge.experimental_cse_inline)
+        Inlining.apply(true)
+      CommonSubexpressionElimination.apply()
+    }
+
     MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)
       PolyOpt.apply()

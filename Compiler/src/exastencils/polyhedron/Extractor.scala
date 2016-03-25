@@ -438,7 +438,7 @@ class Extractor extends Collector {
     try {
       if (!curScop.exists())
         node match {
-          case loop : LoopOverDimensions with PolyhedronAccessable =>
+          case loop : LoopOverDimensions with PolyhedronAccessible =>
             loop.indices.annotate(SKIP_ANNOT)
             loop.stepSize.annotate(SKIP_ANNOT)
             if (loop.condition.isDefined)
@@ -573,7 +573,7 @@ class Extractor extends Collector {
 
   /////////////////// methods for node processing \\\\\\\\\\\\\\\\\\\
 
-  private def enterLoop(loop : LoopOverDimensions with PolyhedronAccessable, mergeWithPrev : Boolean) : Unit = {
+  private def enterLoop(loop : LoopOverDimensions with PolyhedronAccessible, mergeWithPrev : Boolean) : Unit = {
 
     for (step <- loop.stepSize)
       if (step != IntegerConstant(1))

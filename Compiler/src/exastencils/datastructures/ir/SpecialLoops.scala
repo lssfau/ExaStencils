@@ -252,7 +252,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
       if (seq)
         new LoopOverDimensions(numDims, indexRange, body, increment, reduction, condition)
       else {
-        val ret = new LoopOverDimensions(numDims, indexRange, body, increment, reduction, condition) with OMP_PotentiallyParallel with PolyhedronAccessable
+        val ret = new LoopOverDimensions(numDims, indexRange, body, increment, reduction, condition) with OMP_PotentiallyParallel with PolyhedronAccessible
         ret.optLevel = (
           if (Knowledge.maxLevel - field.level < Knowledge.poly_numFinestLevels)
             Knowledge.poly_optLevel_fine

@@ -103,8 +103,6 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
   }
 
   this += new Transformation("Improving the quality of some horrid code...", {
-    // FIXME: for re-runs only the number of replacements of the last trafo is checked, thus only one big trafo (should also improve performance)
-    // TODO: extend for general data types; extend with missing cases; extend for left-right-switched cases
 
     case add : AdditionExpression => {
       // TODO: add distributive law?

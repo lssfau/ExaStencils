@@ -175,7 +175,7 @@ case class LocalSend(var field : FieldSelection, var neighbor : NeighborInfo, va
       ListBuffer[Statement](
         // wait until the fragment to be written to is ready for communication
         new FunctionCallExpression("waitForFlag", AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)))),
-        new LoopOverDimensions(numDims, dest, innerStmt) with OMP_PotentiallyParallel with PolyhedronAccessable,
+        new LoopOverDimensions(numDims, dest, innerStmt) with OMP_PotentiallyParallel with PolyhedronAccessible,
         // signal other threads that the data reading step is completed
         AssignmentStatement(iv.LocalCommDone(field.field, neighbor.index), BooleanConstant(true))))
   }
@@ -200,7 +200,7 @@ case class LocalRecv(var field : FieldSelection, var neighbor : NeighborInfo, va
       ListBuffer[Statement](
         // wait until the fragment to be read from is ready for communication
         new FunctionCallExpression("waitForFlag", AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)))),
-        new LoopOverDimensions(numDims, dest, innerStmt) with OMP_PotentiallyParallel with PolyhedronAccessable,
+        new LoopOverDimensions(numDims, dest, innerStmt) with OMP_PotentiallyParallel with PolyhedronAccessible,
         // signal other threads that the data reading step is completed
         AssignmentStatement(iv.LocalCommDone(field.field, neighbor.index), BooleanConstant(true))))
   }
@@ -390,7 +390,7 @@ case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborI
         new MultiIndex(LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
         new MultiIndex(indices.end, indices.begin, _ - _))
       val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
-      ret += new LoopOverDimensions(numDims, indices, AssignmentStatement(tmpBufAccess, fieldAccess)) with OMP_PotentiallyParallel with PolyhedronAccessable
+      ret += new LoopOverDimensions(numDims, indices, AssignmentStatement(tmpBufAccess, fieldAccess)) with OMP_PotentiallyParallel with PolyhedronAccessible
     }
 
     ret
@@ -425,7 +425,7 @@ case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : Neighbo
         new MultiIndex(indices.end, indices.begin, _ - _))
       val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
 
-      ret += new LoopOverDimensions(numDims, indices, AssignmentStatement(fieldAccess, tmpBufAccess)) with OMP_PotentiallyParallel with PolyhedronAccessable
+      ret += new LoopOverDimensions(numDims, indices, AssignmentStatement(fieldAccess, tmpBufAccess)) with OMP_PotentiallyParallel with PolyhedronAccessible
     }
 
     ret

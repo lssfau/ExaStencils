@@ -7,7 +7,7 @@ import exastencils.globals._
 import exastencils.knowledge._
 import exastencils.logger._
 
-case class Timer(var name : Expression) extends UnduplicatedVariable {
+case class Timer(var name : Expression) extends UnduplicatedVariable with Access {
   override def resolveName = s"timer_" + stripName
   override def resolveDataType = "StopWatch"
 

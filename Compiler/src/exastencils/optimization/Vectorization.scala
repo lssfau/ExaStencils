@@ -98,13 +98,14 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
     private var varID : Int = -1
     private var incrVectDeclared : Boolean = false
     private var alignedResidue : Long = -1
+    private final val nameTempl : String = "_vec%02d"
 
     def getName(expr : Expression) : (String, Boolean) = {
       var nju : Boolean = false
       val name : String = temporaryMapping.getOrElseUpdate(expr, {
         nju = true
         varID += 1
-        "_vec" + varID
+        nameTempl.format(varID)
       })
       return (name, nju)
     }
@@ -475,10 +476,6 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
         while (vecSumds.length > 1)
           vecSumds.enqueue(SIMD_AdditionExpression(vecSumds.dequeue(), vecSumds.dequeue()))
         vecSumds.dequeue()
-
-      // TODO: remove SubtractionExpression
-      //      case SubtractionExpression(MultiplicationExpression(factor1, factor2), summand) =>
-      //        SIMD_MultiplySubExpression(vectorizeExpr(factor1, ctx), vectorizeExpr(factor2, ctx), vectorizeExpr(summand, ctx))
 
       case SubtractionExpression(left, right) =>
         SIMD_SubtractionExpression(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))

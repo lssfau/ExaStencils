@@ -44,7 +44,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
   }
 
   override def isDefinedAt(node : Node) : Boolean = node match {
-    case loop : LoopOverDimensions with PolyhedronAccessable =>
+    case loop : LoopOverDimensions with PolyhedronAccessible =>
       loop.hasAnnotation(PolyOpt.SCOP_ANNOT)
     case _ => false
   }
