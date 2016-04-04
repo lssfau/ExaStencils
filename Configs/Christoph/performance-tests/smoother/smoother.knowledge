@@ -44,4 +44,15 @@ opt_vectorize          = true
 opt_unroll             = 2
 opt_unroll_interleave  = false
 l3tmp_genTemporalBlocking  = true
-experimental_cuda_enabled  = true
+
+// CUDA
+experimental_cuda_enabled                       = true
+//experimental_cuda_deviceId                      = 0
+experimental_cuda_preferredExecution            = "Performance"
+// experimental_cuda_preferredExecution            = "Device" // potentially better results
+experimental_cuda_syncDeviceAfterKernelCalls    = true
+experimental_cuda_syncHostForWrites             = false
+experimental_cuda_syncDeviceForWrites           = true
+//experimental_cuda_blockSize_x                   = 8
+//experimental_cuda_blockSize_y                   = 8
+//experimental_cuda_blockSize_z                   = 8
