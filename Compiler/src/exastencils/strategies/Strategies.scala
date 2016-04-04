@@ -83,7 +83,8 @@ object ExpandOnePassStrategy extends DefaultStrategy("Expanding") { // TODO: thi
 
 object SimplifyStrategy extends DefaultStrategy("Simplifying") {
   // hack: since AdditionExpression and MultiplicationExpression lead always to a match, we don't count these if nothing was changed
-  var negMatches : Int = 0
+  private var negMatches : Int = 0
+  private var compactAST : Boolean = false
 
   def doUntilDone(node : Option[Node] = None) = {
     do {
@@ -92,7 +93,8 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     } while (results.last._2.matches - negMatches > 0) // FIXME: cleaner code
   }
 
-  def doUntilDoneStandalone(node : Node) = {
+  def doUntilDoneStandalone(node : Node, compactAST : Boolean = false) = {
+    this.compactAST = compactAST
     val oldLvl = Logger.getLevel
     Logger.setLevel(Logger.WARNING)
     do {
@@ -100,6 +102,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       applyStandalone(node)
     } while (results.last._2.matches - negMatches > 0) // FIXME: cleaner code
     Logger.setLevel(oldLvl)
+    this.compactAST = false
   }
 
   this += new Transformation("Improving the quality of some horrid code...", {
@@ -121,8 +124,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
             case IntegerConstant(i)       => if (pos) intCst += i else intCst -= i
             case FloatConstant(f)         => if (pos) floatCst += f else floatCst -= f
             case AdditionExpression(sums) => workQ.enqueue(sums.view.map { x => (x, pos) } : _*)
-            case NegationExpression(e) =>
-              workQ.enqueue((e, !pos))
+            case NegationExpression(e)    => workQ.enqueue((e, !pos))
             case SubtractionExpression(left, right) =>
               workQ.enqueue((left, pos))
               workQ.enqueue((right, !pos))
@@ -156,12 +158,16 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       // add constant at last position
       if (floatCst != 0d) {
         val cst : Double = floatCst + intCst
-        if (cst > 0.0)
+        // if compactAST is set, no SubtractionExpression is created, so prevent creating a Neg(Const),
+        //   which would lead to a non-terminating recursion
+        if (cst > 0.0 || compactAST)
           posSums += FloatConstant(cst)
         else
           negSums += FloatConstant(-cst)
       } else if (intCst != 0L)
-        if (intCst > 0)
+        // if compactAST is set, no SubtractionExpression is created, so prevent creating a Neg(Const),
+        //   which would lead to a non-terminating recursion
+        if (intCst > 0 || compactAST)
           posSums += IntegerConstant(intCst)
         else
           negSums += IntegerConstant(-intCst)
@@ -176,7 +182,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       } else if (posSums.length + negSums.length <= 1) { // result is only one summand (either a positive, or a negative, or 0)
         result = (posSums ++= negSums.transform(x => NegativeExpression(x)) += IntegerConstant(0L)).head
 
-      } else if (posSums.length * negSums.length == 0) {
+      } else if (posSums.length * negSums.length == 0 || compactAST) { // if compactAST is set do not create any SubtractionExpression
         result = AdditionExpression(posSums ++= negSums.transform(x => NegativeExpression(x)))
 
       } else {
@@ -300,6 +306,9 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
 
     case SubtractionExpression(left, IntegerConstant(right)) if (right < 0)   => new AdditionExpression(left, IntegerConstant(-right))
     case SubtractionExpression(left, FloatConstant(right)) if (right < 0)     => new AdditionExpression(left, FloatConstant(-right))
+
+    // compactAST means we should eleminate all SubtractionExpressions
+    case SubtractionExpression(left, right) if (compactAST)                   => new AdditionExpression(left, NegativeExpression(right))
 
     case SubtractionExpression(NegativeExpression(l), NegativeExpression(r))  => new SubtractionExpression(r, l)
     case SubtractionExpression(NegativeExpression(left), right)               => new AdditionExpression(NegativeExpression(left), NegativeExpression(right))

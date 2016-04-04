@@ -246,8 +246,7 @@ object MainStefan {
     SimplifyStrategy.doUntilDone()
 
     if (Knowledge.experimental_useCommonSubexpElimination) {
-      if (Knowledge.experimental_cse_inline)
-        Inlining.apply(true)
+      Inlining.apply(true)
       CommonSubexpressionElimination.apply()
     }
 
