@@ -203,3 +203,10 @@ CUDA_SISC_2D_ConstCoeff  Main  CUDA/2D_ConstCoeff.knowledge  *  SISC/2D_ConstCoe
 CUDA_SISC_2D_VarCoeff    Main  CUDA/2D_VarCoeff.knowledge    *  SISC/2D_VarCoeff.results    1  10  GPU
 CUDA_SISC_3D_ConstCoeff  Main  CUDA/3D_ConstCoeff.knowledge  *  SISC/3D_ConstCoeff.results  1  10  GPU
 CUDA_SISC_3D_VarCoeff    Main  CUDA/3D_VarCoeff.knowledge    *  SISC/3D_VarCoeff.results    1  10  GPU
+
+#################################################################################################
+# CSE TESTS                                                                                     #
+#################################################################################################
+
+CSE_SISC_2D_VarCoeff    Main  CSE/2D_VarCoeff.knowledge    *  SISC/2D_VarCoeff.results    8  4
+CSE_SISC_3D_VarCoeff    Main  CSE/3D_VarCoeff.knowledge    *  SISC/3D_VarCoeff.results    8  4
