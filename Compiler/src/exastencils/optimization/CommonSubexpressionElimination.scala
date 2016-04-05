@@ -100,7 +100,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       SimplifyStrategy.doUntilDoneStandalone(scope, true)
 
     // then, perform actual CSE (repeatedly) and be quiet! (R)
-    Logger.debug("Perform common subexpression elimination")
+    Logger.debug("Perform common subexpression elimination...")
     val bak = Logger.getLevel
     Logger.setLevel(Logger.WARNING)
     var repeat : Boolean = false
@@ -117,6 +117,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       }
     } while (repeat)
     Logger.setLevel(bak)
+    Logger.debug(" ... done")
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming(name)
