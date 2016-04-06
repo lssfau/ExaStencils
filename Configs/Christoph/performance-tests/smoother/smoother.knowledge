@@ -48,11 +48,12 @@ l3tmp_genTemporalBlocking  = true
 // CUDA
 experimental_cuda_enabled                       = true
 //experimental_cuda_deviceId                      = 0
-experimental_cuda_preferredExecution            = "Performance"
-// experimental_cuda_preferredExecution            = "Device" // potentially better results
+experimental_cuda_preferredExecution            = "Device"
 experimental_cuda_syncDeviceAfterKernelCalls    = true
 experimental_cuda_syncHostForWrites             = false
 experimental_cuda_syncDeviceForWrites           = true
-//experimental_cuda_blockSize_x                   = 8
-//experimental_cuda_blockSize_y                   = 8
-//experimental_cuda_blockSize_z                   = 8
+experimental_cuda_blockSize_x                   = 8
+experimental_cuda_blockSize_y                   = 8
+experimental_cuda_blockSize_z                   = 8
+// default (1D) block size for default reduction kernels
+experimental_cuda_reductionBlockSize            = 1024
