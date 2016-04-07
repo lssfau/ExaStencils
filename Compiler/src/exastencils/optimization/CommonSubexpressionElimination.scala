@@ -111,9 +111,9 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       this.unregister(coll)
 
       repeat = false
-      for ((body, commSubs) <- coll.scopes) {
-        findCommSubs(commSubs)
-        repeat |= updateAST(body, commSubs)
+      for ((body, commonSubs) <- coll.scopes) {
+        findCommonSubs(commonSubs)
+        repeat |= updateAST(body, commonSubs)
       }
     } while (repeat)
     Logger.setLevel(bak)
@@ -125,12 +125,13 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     this.commit()
   }
 
-  private def findCommSubs(commSubs : HashMap[Node, Subexpression]) : Unit = {
+  private def findCommonSubs(commonSubs : HashMap[Node, Subexpression]) : Unit = {
     val processedChildren = new java.util.IdentityHashMap[Any, Null]()
-    var nju : ArrayBuffer[List[Node]] = commSubs.view.flatMap { x => x._2.getPositions() }.to[ArrayBuffer]
+    val func : String = commonSubs.valuesIterator.next().func
+    var nju : ArrayBuffer[List[Node]] = commonSubs.view.flatMap { x => x._2.getPositions() }.to[ArrayBuffer]
     val njuCommSubs = new HashMap[Node, Subexpression]()
     def registerCS(node : Expression with Product, weight : Int, pos : List[Node], recurse : Boolean, children : Seq[Any]) : Unit = {
-      if (njuCommSubs.getOrElseUpdate(node, new Subexpression(node, weight)).addPosition(pos)) {
+      if (njuCommSubs.getOrElseUpdate(node, new Subexpression(func, node, weight)).addPosition(pos)) {
         for (child <- children)
           processedChildren.put(child, null)
         if (recurse)
@@ -151,7 +152,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
               val nrBuffs = buffs.length
 
               if (nrProds <= 2 && nrBuffs == 0) {
-                val childCSes = prods.view.collect({ case n : Node => commSubs.get(n) })
+                val childCSes = prods.view.collect({ case n : Node => commonSubs.get(n) })
                 if (childCSes.forall(_.isDefined))
                   registerCS(parent, childCSes.map(_.get.weight).sum, pos, true, prods)
 
@@ -159,14 +160,14 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
                 //   this must be in sync with Subexpression.initDeclRepl below
               } else if (nrProds == 0 && nrBuffs == 1) {
                 if (parent.isInstanceOf[FunctionCallExpression]) {
-                  val childCSes = buffs.head.view.collect({ case n : Node => commSubs.get(n) })
+                  val childCSes = buffs.head.view.collect({ case n : Node => commonSubs.get(n) })
                   if (childCSes.forall(_.isDefined))
                     registerCS(parent, childCSes.map(_.get.weight).sum + 1, pos, true, prods)
                 } else {
                   val dupParents : Array[(Expression with Product, Buffer[PrettyPrintable])] =
-                    duplicateAndFill(parent, { case n : Node => commSubs.contains(n); case _ => false })
+                    duplicateAndFill(parent, { case n : Node => commonSubs.contains(n); case _ => false })
                   for ((dupPar, dupParChildren) <- dupParents)
-                    registerCS(dupPar, dupParChildren.view.map { case x : Node => commSubs(x).weight }.sum, pos, dupPar eq parent, dupParChildren)
+                    registerCS(dupPar, dupParChildren.view.map { case x : Node => commonSubs(x).weight }.sum, pos, dupPar eq parent, dupParChildren)
                 }
 
               } else
@@ -177,9 +178,9 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
           }
 
       for ((key, value) <- njuCommSubs.view.filter { case (_, sExpr) => sExpr.getPositions().size > 1 }) {
-        val old = commSubs.get(key)
+        val old = commonSubs.get(key)
         if (old.isEmpty)
-          commSubs.put(key, value)
+          commonSubs.put(key, value)
       }
       njuCommSubs.clear()
       processedChildren.clear() // we can clear the set of processed nodes, they cannot appear in nju again (this keeps the size of the map small)
@@ -370,6 +371,7 @@ private class CollectBaseCSes extends StackCollector {
 
   private var innerBody : ListBuffer[Statement] = null
   private var commSubs : HashMap[Node, Subexpression] = null
+  private var curFunc : String = null
 
   override def enter(node : Node) : Unit = state match {
     case SEARCH_SCOPE =>
@@ -383,6 +385,8 @@ private class CollectBaseCSes extends StackCollector {
       }
       // this should be the same as in FindRemovableDecls above
       node match {
+        case f : FunctionStatement =>
+          curFunc = f.name // track the current function to allow temp var numbering per function (instead of globally)
         case l : ForLoopStatement with OptimizationHint if (l.isInnermost) =>
           processInnermost(l.body)
         case l : LoopOverDimensions =>
@@ -426,7 +430,7 @@ private class CollectBaseCSes extends StackCollector {
           =>
 
           // all matched types are subclasses of Expression and Product
-          val cs = commSubs.getOrElseUpdate(node, new Subexpression(node.asInstanceOf[Expression with Product]))
+          val cs = commSubs.getOrElseUpdate(node, new Subexpression(curFunc, node.asInstanceOf[Expression with Product]))
           if (cs != null)
             cs.addPosition(stack.elems) // extract internal (immutable) list from stack
 
@@ -477,19 +481,20 @@ private class CollectBaseCSes extends StackCollector {
 
 object Subexpression {
   private final val nameTempl : String = "_ce%03d"
-  private var counter : Int = -1 // increment happens before first usage
+  private var counter = new HashMap[String, Int]
 
-  def getNewName() : String = {
-    counter += 1
-    return nameTempl.format(counter)
+  def getNewName(func : String) : String = {
+    val c = counter.getOrElse(func, 0)
+    counter(func) = c + 1
+    return nameTempl.format(c)
   }
 }
 
-private class Subexpression(val witness : Expression with Product, val weight : Int = 1) {
+private class Subexpression(val func : String, val witness : Expression with Product, val weight : Int = 1) {
   private val positions = new java.util.IdentityHashMap[List[Node], Any]()
 
   private lazy val tmpVarDatatype : Datatype = RealDatatype // FIXME: make generic!
-  private lazy val tmpVarName : String = Subexpression.getNewName()
+  private lazy val tmpVarName : String = Subexpression.getNewName(func)
 
   lazy val declaration = VariableDeclarationStatement(tmpVarDatatype, tmpVarName, Some(witness))
 
