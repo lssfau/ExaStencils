@@ -20,7 +20,7 @@ object MakefileGenerator extends BuildfileGenerator {
       Settings.pathsInc.map(path => s"-I$path").mkString(" ") + " " +
       Settings.additionalDefines.map(path => s"-D$path").mkString(" ")
     if (Knowledge.experimental_cuda_enabled)
-      printer <<< "NVCCFLAGS = -std=c++11 -O3 -DNDEBUG " + Settings.pathsInc.map(path => s"-I$path").mkString(" ") + " " // TODO: TPDL
+      printer <<< "NVCCFLAGS = -std=c++11 -O3 -DNDEBUG -lineinfo " + Settings.pathsInc.map(path => s"-I$path").mkString(" ") + " " // TODO: TPDL
     printer <<< "LFLAGS = " + Platform.resolveLdFlags + " " +
       Settings.pathsLib.map(path => s"-L$path").mkString(" ") + " " +
       Settings.additionalDefines.map(path => s"-D$path").mkString(" ")

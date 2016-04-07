@@ -4,7 +4,7 @@
 dimensionality				= 2
 
 minLevel					= 0
-maxLevel					= 8
+maxLevel					= 12
 comm_strategyFragment		= 6
 
 domain_onlyRectangular		= true
@@ -65,8 +65,7 @@ mpi_numThreads                      = 1
 ////////////
 experimental_cuda_enabled                       = true
 //experimental_cuda_deviceId                      = 0
-experimental_cuda_preferredExecution            = "Performance"
-// experimental_cuda_preferredExecution            = "Device" // potentially better results
+experimental_cuda_preferredExecution            = "Device"
 experimental_cuda_syncDeviceAfterKernelCalls    = true
 experimental_cuda_syncHostForWrites             = false
 experimental_cuda_syncDeviceForWrites           = true

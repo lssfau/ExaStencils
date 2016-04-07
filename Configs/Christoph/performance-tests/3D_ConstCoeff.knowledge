@@ -27,6 +27,7 @@ domain_rect_numFragsPerBlock_z	= 1
 ///////////////////
 l3tmp_generateL4			= true
 l3tmp_genForAutoTests		= false
+l3tmp_genTemporalBlocking   = false
 
 l3tmp_sisc					= true
 l3tmp_genStencilFields		= false
@@ -65,8 +66,7 @@ mpi_numThreads                      = 1
 ////////////
 experimental_cuda_enabled                       = true
 //experimental_cuda_deviceId                      = 0
-experimental_cuda_preferredExecution            = "Performance"
-// experimental_cuda_preferredExecution            = "Device" // potentially better results
+experimental_cuda_preferredExecution            = "Device"
 experimental_cuda_syncDeviceAfterKernelCalls    = true
 experimental_cuda_syncHostForWrites             = false
 experimental_cuda_syncDeviceForWrites           = true
