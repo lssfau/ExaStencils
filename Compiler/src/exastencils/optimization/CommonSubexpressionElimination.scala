@@ -188,7 +188,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
   }
 
   private def updateAST(body : ListBuffer[Statement], commSubs : HashMap[Node, Subexpression]) : Boolean = {
-    val (_, commSub) = commSubs.toList.sortBy { x => -x._2.weight }.head
+    val (_, commSub) = commSubs.toList.sortBy { x => (-x._2.weight, -x._2.getPositions().size, x._2.ppString) }.head
     if (commSub.weight <= 1)
       return false
 
@@ -225,7 +225,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
 
   /**
     * @param orig  	 The original element to be duplicated and filled.
-    * 							 `orig.productElement(0)` must be a `Buffer[PrettyPrintable]`, whose elements will be sorted.
+    * 							 `orig.productIterator` must contain a single `Buffer[PrettyPrintable]`, whose elements will be sorted.
     */
   private def duplicateAndFill[T <: Product : ClassTag](orig : T, relevant : Any => Boolean) : Array[(T, Buffer[PrettyPrintable])] = {
 
@@ -497,6 +497,7 @@ private class Subexpression(val func : String, val witness : Expression with Pro
   private lazy val tmpVarName : String = Subexpression.getNewName(func)
 
   lazy val declaration = VariableDeclarationStatement(tmpVarDatatype, tmpVarName, Some(witness))
+  lazy val ppString : String = witness.prettyprint()
 
   def addPosition(nju : List[Node]) : Boolean = {
     return positions.put(nju, nju) == null
