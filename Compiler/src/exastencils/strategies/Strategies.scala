@@ -1,6 +1,7 @@
 package exastencils.strategies
 
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.Buffer
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
@@ -83,7 +84,8 @@ object ExpandOnePassStrategy extends DefaultStrategy("Expanding") { // TODO: thi
 
 object SimplifyStrategy extends DefaultStrategy("Simplifying") {
   // hack: since AdditionExpression and MultiplicationExpression lead always to a match, we don't count these if nothing was changed
-  var negMatches : Int = 0
+  private var negMatches : Int = 0
+  private var compactAST : Boolean = false
 
   def doUntilDone(node : Option[Node] = None) = {
     do {
@@ -92,7 +94,8 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     } while (results.last._2.matches - negMatches > 0) // FIXME: cleaner code
   }
 
-  def doUntilDoneStandalone(node : Node) = {
+  def doUntilDoneStandalone(node : Node, compactAST : Boolean = false) = {
+    this.compactAST = compactAST
     val oldLvl = Logger.getLevel
     Logger.setLevel(Logger.WARNING)
     do {
@@ -100,224 +103,67 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       applyStandalone(node)
     } while (results.last._2.matches - negMatches > 0) // FIXME: cleaner code
     Logger.setLevel(oldLvl)
+    this.compactAST = false
   }
 
   this += new Transformation("Improving the quality of some horrid code...", {
 
-    case add : AdditionExpression => {
-      // TODO: add distributive law?
-      var intCst : Long = 0L
-      var floatCst : Double = 0d
-      var vecExpr : VectorExpression = null
-      var vecPos : Boolean = true
-      val workQ = new Queue[(Expression, Boolean)]()
-      val posSums = new ListBuffer[Expression]()
-      val negSums = new ListBuffer[Expression]()
-      for (s <- add.summands) {
-        workQ.enqueue((s, true)) // for nested AdditionExpressions; this allows in-order processing
-        do {
-          val (expr, pos) = workQ.dequeue()
-          expr match {
-            case IntegerConstant(i)       => if (pos) intCst += i else intCst -= i
-            case FloatConstant(f)         => if (pos) floatCst += f else floatCst -= f
-            case AdditionExpression(sums) => workQ.enqueue(sums.view.map { x => (x, pos) } : _*)
-            case NegationExpression(e) =>
-              workQ.enqueue((e, !pos))
-            case SubtractionExpression(left, right) =>
-              workQ.enqueue((left, pos))
-              workQ.enqueue((right, !pos))
-            // if some more simplifications with vectors or matrices are required, a similar approach than for a
-            //    MultiplicationExpression is possible here
-            case v : VectorExpression =>
-              if (vecExpr == null) {
-                vecPos = pos
-                vecExpr = v
-              } else {
-                if (vecExpr.rowVector.getOrElse(true) != v.rowVector.getOrElse(true))
-                  Logger.error("Vector types must match for addition")
-                if (vecExpr.length != v.length)
-                  Logger.error("Vector sizes must match for addition")
-                val vecExprsView = if (vecPos) vecExpr.expressions.view else vecExpr.expressions.view.map { x => NegationExpression(x) }
-                val vExprs = if (pos) v.expressions else v.expressions.view.map { x => NegationExpression(x) }
-                vecExpr =
-                  VectorExpression(GetResultingDatatype(vecExpr.datatype, v.datatype),
-                    vecExprsView.zip(vExprs).map { x => x._1 + x._2 : Expression }.to[ListBuffer],
-                    if (vecExpr.rowVector.isDefined) vecExpr.rowVector else v.rowVector)
-              }
-            case e : Expression =>
-              if (pos)
-                posSums += e
-              else
-                negSums += e
-          }
-        } while (!workQ.isEmpty)
-      }
-
-      // add constant at last position
-      if (floatCst != 0d) {
-        val cst : Double = floatCst + intCst
-        if (cst > 0.0)
-          posSums += FloatConstant(cst)
-        else
-          negSums += FloatConstant(-cst)
-      } else if (intCst != 0L)
-        if (intCst > 0)
-          posSums += IntegerConstant(intCst)
-        else
-          negSums += IntegerConstant(-intCst)
-
-      var result : Expression = null
-      if (vecExpr != null) {
-        if (posSums.isEmpty && negSums.isEmpty)
-          result = vecExpr
-        else
-          Logger.error("Unable to add VectorExpression with other Expression types")
-
-      } else if (posSums.length + negSums.length <= 1) { // result is only one summand (either a positive, or a negative, or 0)
-        result = (posSums ++= negSums.transform(x => NegativeExpression(x)) += IntegerConstant(0L)).head
-
-      } else if (posSums.length * negSums.length == 0) {
-        result = AdditionExpression(posSums ++= negSums.transform(x => NegativeExpression(x)))
-
-      } else {
-        val posExpr = if (posSums.length == 1) posSums.head else new AdditionExpression(posSums)
-        val negExpr = if (negSums.length == 1) negSums.head else new AdditionExpression(negSums)
-        result = new SubtractionExpression(posExpr, negExpr)
-      }
-
-      if (result == add)
+    case add : AdditionExpression =>
+      val nju = simplifyAdd(add.summands)
+      if (nju == add)
         negMatches += 1
-      result
-    }
+      nju
 
-    case mult : MultiplicationExpression => {
-      var intCst : Long = 1L
-      var floatCst : Double = 1d
-      val workQ = new Queue[Expression]()
-      val remA = new ArrayBuffer[Expression]() // use ArrayBuffer here for a more efficient access to the last element
-      var div : DivisionExpression = null
-      for (f <- mult.factors) {
-        workQ.enqueue(f) // for nested MultiplicationExpression; this allows in-order processing
-        do {
-          val expr = workQ.dequeue()
-          expr match {
-            case IntegerConstant(i) => intCst *= i
-            case FloatConstant(f)   => floatCst *= f
-            case NegativeExpression(e) =>
-              workQ.enqueue(e)
-              intCst = -intCst
-            case MultiplicationExpression(facs) =>
-              workQ.enqueue(facs : _*)
-            case d @ DivisionExpression(FloatConstant(f), _) =>
-              floatCst *= f
-              d.left = FloatConstant(1.0)
-              if (div == null)
-                div = d
-              remA += d
-            case _ : VectorExpression | _ : MatrixExpression =>
-              if (remA.isEmpty)
-                remA += expr
-              else
-                // merging with one previous only is sufficient, if simplifyMult only matches first arg with vect/mat types
-                remA ++= simplifyMult(remA.last, expr)
-            case r : Expression =>
-              remA += r
-          }
-        } while (!workQ.isEmpty)
-      }
-      val rem = remA.to[ListBuffer]
-      var cstDt : Option[Datatype] = None
-      if (div != null)
-        div.left = FloatConstant(floatCst * intCst)
-      else if (floatCst != 1d) {
-        FloatConstant(floatCst * intCst) +=: rem // add constant at first position (it is expected as rem.head later)
-        cstDt = Some(RealDatatype)
-      } else if (intCst != 1L) {
-        IntegerConstant(intCst) +=: rem // add constant at first position (it is expected as rem.head later)
-        cstDt = Some(IntegerDatatype)
-      }
-
-      var result : Expression = null
-      if (rem.isEmpty) {
-        result = IntegerConstant(1L)
-
-      } else if (rem.length == 1 || floatCst * intCst == 0d) {
-        result = rem.head
-
-      } else {
-        if (cstDt.isDefined) {
-          var found : Boolean = false
-          val coeff : Expression = rem.head // this must be the constant factor (as added a few lines above)
-          rem.transform {
-            case v : VectorExpression if (!found) =>
-              found = true
-              VectorExpression(GetResultingDatatype(cstDt, v.datatype), v.expressions.map(Duplicate(coeff) * _), v.rowVector)
-            case m : MatrixExpression if (!found) =>
-              found = true
-              MatrixExpression(GetResultingDatatype(cstDt, m.datatype), m.expressions.map(_.map(Duplicate(coeff) * _ : Expression)))
-            case x => x
-          }
-          if (found)
-            rem.remove(0)
-        }
-        result = MultiplicationExpression(rem)
-      }
-
-      if (result == mult)
+    case sub : SubtractionExpression =>
+      val nju = simplifyAdd(List(sub))
+      if (nju == sub)
         negMatches += 1
-      result
-    }
+      nju
 
-    case NegativeExpression(IntegerConstant(value))                           => IntegerConstant(-value)
-    case NegativeExpression(FloatConstant(value))                             => FloatConstant(-value)
+    case mult : MultiplicationExpression =>
+      val nju = simplifyMult(mult.factors)
+      if (nju == mult)
+        negMatches += 1
+      nju
 
-    case NegativeExpression(NegativeExpression(expr))                         => expr
-    case NegativeExpression(AdditionExpression(sums))                         => AdditionExpression(sums.map { s => NegativeExpression(s) })
-    case NegativeExpression(SubtractionExpression(left, right))               => SubtractionExpression(right, left)
-    case NegativeExpression(MultiplicationExpression(facs))                   => MultiplicationExpression(facs += IntegerConstant(-1))
+    case old @ NegativeExpression(MultiplicationExpression(facs)) =>
+      val nju = simplifyMult(facs.clone() += IntegerConstant(-1L))
+      if (nju == old)
+        negMatches += 1
+      nju
 
-    case SubtractionExpression(IntegerConstant(left), IntegerConstant(right)) => IntegerConstant(left - right)
-    case SubtractionExpression(FloatConstant(left), FloatConstant(right))     => FloatConstant(left - right)
-    case SubtractionExpression(IntegerConstant(left), FloatConstant(right))   => FloatConstant(left - right)
-    case SubtractionExpression(FloatConstant(left), IntegerConstant(right))   => FloatConstant(left - right)
+    // deal with constants
+    case NegativeExpression(IntegerConstant(value))                        => IntegerConstant(-value)
+    case NegativeExpression(FloatConstant(value))                          => FloatConstant(-value)
 
-    case DivisionExpression(IntegerConstant(left), IntegerConstant(right))    => IntegerConstant(left / right)
-    case DivisionExpression(IntegerConstant(left), FloatConstant(right))      => FloatConstant(left / right)
-    case DivisionExpression(FloatConstant(left), IntegerConstant(right))      => FloatConstant(left / right)
-    case DivisionExpression(FloatConstant(left), FloatConstant(right))        => FloatConstant(left / right)
+    case DivisionExpression(IntegerConstant(left), IntegerConstant(right)) => IntegerConstant(left / right)
+    case DivisionExpression(IntegerConstant(left), FloatConstant(right))   => FloatConstant(left / right)
+    case DivisionExpression(FloatConstant(left), IntegerConstant(right))   => FloatConstant(left / right)
+    case DivisionExpression(FloatConstant(left), FloatConstant(right))     => FloatConstant(left / right)
 
-    case SubtractionExpression(left : Expression, IntegerConstant(0))         => left
-    case SubtractionExpression(left : Expression, FloatConstant(0))           => left
-    case SubtractionExpression(IntegerConstant(0), right : Expression)        => NegativeExpression(right)
-    case SubtractionExpression(FloatConstant(0), right : Expression)          => NegativeExpression(right)
+    case DivisionExpression(left : Expression, IntegerConstant(1))         => left
+    case DivisionExpression(left : Expression, FloatConstant(f))           => new MultiplicationExpression(left, FloatConstant(1.0 / f))
+    case DivisionExpression(FloatConstant(0.0), right : Expression)        => FloatConstant(0.0)
+    case DivisionExpression(IntegerConstant(0), right : Expression)        => IntegerConstant(0)
 
-    case DivisionExpression(left : Expression, IntegerConstant(1))            => left
-    case DivisionExpression(left : Expression, FloatConstant(f))              => new MultiplicationExpression(left, FloatConstant(1.0 / f))
-    case DivisionExpression(FloatConstant(0.0), right : Expression)           => FloatConstant(0.0)
-    case DivisionExpression(IntegerConstant(0), right : Expression)           => IntegerConstant(0)
+    case ModuloExpression(IntegerConstant(left), IntegerConstant(right))   => IntegerConstant(left % right)
 
-    case ModuloExpression(IntegerConstant(left), IntegerConstant(right))      => IntegerConstant(left % right)
+    // deal with negatives
+    case NegativeExpression(NegativeExpression(expr))                      => expr
+    case NegativeExpression(AdditionExpression(sums))                      => AdditionExpression(sums.map { s => NegativeExpression(s) })
+    case NegativeExpression(SubtractionExpression(left, right))            => SubtractionExpression(right, left)
 
-    case SubtractionExpression(left, IntegerConstant(right)) if (right < 0)   => new AdditionExpression(left, IntegerConstant(-right))
-    case SubtractionExpression(left, FloatConstant(right)) if (right < 0)     => new AdditionExpression(left, FloatConstant(-right))
-
-    case SubtractionExpression(NegativeExpression(l), NegativeExpression(r))  => new SubtractionExpression(r, l)
-    case SubtractionExpression(NegativeExpression(left), right)               => new AdditionExpression(NegativeExpression(left), NegativeExpression(right))
-    case SubtractionExpression(left, NegativeExpression(right))               => new AdditionExpression(left, right)
-    case SubtractionExpression(SubtractionExpression(pos, neg1), neg2)        => new SubtractionExpression(pos, new AdditionExpression(neg1, neg2))
-    case SubtractionExpression(pos1, SubtractionExpression(neg, pos2))        => new SubtractionExpression(new AdditionExpression(pos1, pos2), neg)
+    case DivisionExpression(NegativeExpression(l), NegativeExpression(r))  => DivisionExpression(l, r)
+    case DivisionExpression(l, NegativeExpression(r))                      => NegativeExpression(DivisionExpression(l, r))
+    case DivisionExpression(NegativeExpression(l), r)                      => NegativeExpression(DivisionExpression(l, r))
 
     // Simplify vectors
     case NegativeExpression(v : VectorExpression) =>
       VectorExpression(v.datatype, v.expressions.map { x => NegativeExpression(x) }, v.rowVector)
-    case SubtractionExpression(left, right : VectorExpression) =>
-      new AdditionExpression(left, NegativeExpression(right))
 
     // Simplify matrices
     case NegativeExpression(m : MatrixExpression) =>
       MatrixExpression(m.datatype, m.expressions.map { x => x.map { y => NegativeExpression(y) : Expression } })
-    case SubtractionExpression(left, right : MatrixExpression) =>
-      new AdditionExpression(left, NegativeExpression(right))
 
     case Scope(ListBuffer(Scope(body)))                                        => Scope(body)
     case ConditionStatement(cond, ListBuffer(Scope(trueBody)), falseBody)      => ConditionStatement(cond, trueBody, falseBody)
@@ -363,7 +209,174 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     }
   })
 
-  private def simplifyMult(le : Expression, ri : Expression) : Seq[Expression] = {
+  private def simplifyAdd(sum : Seq[Expression]) : Expression = {
+    var intCst : Long = 0L
+    var floatCst : Double = 0d
+    var vecExpr : VectorExpression = null
+    var vecPos : Boolean = true
+    val workQ = new Queue[(Expression, Boolean)]()
+    val posSums = new ListBuffer[Expression]()
+    val negSums = new ListBuffer[Expression]()
+    for (s <- sum) {
+      workQ.enqueue((s, true)) // for nested AdditionExpressions; this allows in-order processing
+      do {
+        val (expr, pos) = workQ.dequeue()
+        expr match {
+          case IntegerConstant(i)       => if (pos) intCst += i else intCst -= i
+          case FloatConstant(f)         => if (pos) floatCst += f else floatCst -= f
+          case AdditionExpression(sums) => workQ.enqueue(sums.view.map { x => (x, pos) } : _*)
+          case NegativeExpression(e)    => workQ.enqueue((e, !pos))
+          case SubtractionExpression(left, right) =>
+            workQ.enqueue((left, pos))
+            workQ.enqueue((right, !pos))
+          // if some more simplifications with vectors or matrices are required, a similar approach than for a
+          //    MultiplicationExpression is possible here
+          case v : VectorExpression =>
+            if (vecExpr == null) {
+              vecPos = pos
+              vecExpr = v
+            } else {
+              if (vecExpr.rowVector.getOrElse(true) != v.rowVector.getOrElse(true))
+                Logger.error("Vector types must match for addition")
+              if (vecExpr.length != v.length)
+                Logger.error("Vector sizes must match for addition")
+              val vecExprsView = if (vecPos) vecExpr.expressions.view else vecExpr.expressions.view.map { x => NegationExpression(x) }
+              val vExprs = if (pos) v.expressions else v.expressions.view.map { x => NegationExpression(x) }
+              vecExpr =
+                VectorExpression(GetResultingDatatype(vecExpr.datatype, v.datatype),
+                  vecExprsView.zip(vExprs).map { x => x._1 + x._2 : Expression }.to[ListBuffer],
+                  if (vecExpr.rowVector.isDefined) vecExpr.rowVector else v.rowVector)
+            }
+          case e : Expression =>
+            if (pos)
+              posSums += e
+            else
+              negSums += e
+        }
+      } while (!workQ.isEmpty)
+    }
+
+    // add constant at last position
+    if (floatCst != 0d) {
+      val cst : Double = floatCst + intCst
+      // if compactAST is set, no SubtractionExpression is created, so prevent creating a Neg(Const),
+      //   which would lead to a non-terminating recursion
+      if (cst > 0.0 || compactAST)
+        posSums += FloatConstant(cst)
+      else
+        negSums += FloatConstant(-cst)
+    } else if (intCst != 0L)
+      // if compactAST is set, no SubtractionExpression is created, so prevent creating a Neg(Const),
+      //   which would lead to a non-terminating recursion
+      if (intCst > 0 || compactAST)
+        posSums += IntegerConstant(intCst)
+      else
+        negSums += IntegerConstant(-intCst)
+
+    if (vecExpr != null) {
+      if (posSums.isEmpty && negSums.isEmpty)
+        return vecExpr
+      else
+        Logger.error("Unable to add VectorExpression with other Expression types")
+
+    } else if (posSums.length + negSums.length <= 1) { // result is only one summand (either a positive, or a negative, or 0)
+      return (posSums ++= negSums.transform(x => NegativeExpression(x)) += IntegerConstant(0L)).head
+
+    } else if (posSums.length * negSums.length == 0 || compactAST) { // if compactAST is set do not create any SubtractionExpression
+      return AdditionExpression(posSums ++= negSums.transform(x => NegativeExpression(x)))
+
+    } else {
+      val posExpr = if (posSums.length == 1) posSums.head else new AdditionExpression(posSums)
+      val negExpr = if (negSums.length == 1) negSums.head else new AdditionExpression(negSums)
+      return SubtractionExpression(posExpr, negExpr)
+    }
+  }
+
+  private def simplifyMult(facs : Seq[Expression]) : Expression = {
+    var intCst : Long = 1L
+    var floatCst : Double = 1d
+    val workQ = new Queue[Expression]()
+    val remA = new ArrayBuffer[Expression]() // use ArrayBuffer here for a more efficient access to the last element
+    var div : DivisionExpression = null
+    for (f <- facs) {
+      workQ.enqueue(f) // for nested MultiplicationExpression; this allows in-order processing
+      do {
+        val expr = workQ.dequeue()
+        expr match {
+          case IntegerConstant(i) => intCst *= i
+          case FloatConstant(f)   => floatCst *= f
+          case NegativeExpression(e) =>
+            workQ.enqueue(e)
+            intCst = -intCst
+          case MultiplicationExpression(facs) =>
+            workQ.enqueue(facs : _*)
+          case d @ DivisionExpression(FloatConstant(f), _) =>
+            floatCst *= f
+            d.left = FloatConstant(1.0)
+            if (div == null)
+              div = d
+            remA += d
+          case _ : VectorExpression | _ : MatrixExpression =>
+            if (remA.isEmpty)
+              remA += expr
+            else
+              // merging with one previous only is sufficient, if simplifyMult only matches first arg with vect/mat types
+              remA ++= simplifyBinMult(remA.last, expr)
+          case r : Expression =>
+            remA += r
+        }
+      } while (!workQ.isEmpty)
+    }
+    val rem = remA.to[ListBuffer]
+    var cstDt : Option[Datatype] = None
+    val negative : Boolean = floatCst * intCst < 0d
+    floatCst = math.abs(floatCst)
+    intCst = math.abs(intCst)
+    if (floatCst * intCst == 0d) {
+      rem.clear()
+      rem += new IntegerConstant(0L) // TODO: fix type
+    } else if (div != null) {
+      div.left = FloatConstant(floatCst * intCst)
+    } else if (floatCst != 1d) {
+      FloatConstant(floatCst * intCst) +=: rem // add constant at first position (it is expected as rem.head later)
+      cstDt = Some(RealDatatype)
+    } else if (intCst != 1L) {
+      IntegerConstant(intCst) +=: rem // add constant at first position (it is expected as rem.head later)
+      cstDt = Some(IntegerDatatype)
+    }
+
+    var result : Expression = null
+    if (rem.isEmpty) {
+      result = IntegerConstant(1L) // TODO: fix type
+
+    } else if (rem.length == 1 || floatCst * intCst == 0d) {
+      result = rem.head
+
+    } else {
+      if (cstDt.isDefined) {
+        var found : Boolean = false
+        val coeff : Expression = rem.head // this must be the constant factor (as added a few lines above)
+        rem.transform {
+          case v : VectorExpression if (!found) =>
+            found = true
+            VectorExpression(GetResultingDatatype(cstDt, v.datatype), v.expressions.map(Duplicate(coeff) * _), v.rowVector)
+          case m : MatrixExpression if (!found) =>
+            found = true
+            MatrixExpression(GetResultingDatatype(cstDt, m.datatype), m.expressions.map(_.map(Duplicate(coeff) * _ : Expression)))
+          case x => x
+        }
+        if (found)
+          rem.remove(0)
+      }
+      result = MultiplicationExpression(rem)
+    }
+
+    if (negative)
+      result = NegativeExpression(result)
+    return result
+  }
+
+  private def simplifyBinMult(le : Expression, ri : Expression) : Seq[Expression] = {
     (le, ri) match { // matching for constants is not required here (this is already handled by the caller)
       case (left : VectorExpression, right : VectorExpression) =>
         if (left.length != right.length) Logger.error("Vector sizes must match for multiplication")

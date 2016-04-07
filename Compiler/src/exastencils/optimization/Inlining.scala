@@ -40,15 +40,13 @@ object Inlining extends CustomStrategy("Function inlining") {
     this.apply(false)
   }
 
-  // FIXME: better and more fault-tolerant integration!
   /**
-    * @param HACK_inlineByName  If set inline functions with exacly one ReturnStatement using a by-name call semantics,
-    *                           otherwise perform a "normal" inlining (which respects `Knowledge.ir_maxInliningSize`)
-    *                           using a by-value semantics.
-    *
-    * @note Using a by-name call semantics is experimental and may break things! Use with caution!
+    * @param heuristics_prepareCSE
+    *            If set inline only functions with exacly one `ReturnStatement` and any number of
+    *            `VariableDeclarationStatement`s, otherwise perform a "normal" inlining (which respects
+    *            `Knowledge.ir_maxInliningSize`).
     */
-  def apply(HACK_inlineByName : Boolean) : Unit = {
+  def apply(heuristics_prepareCSE : Boolean) : Unit = {
     this.transaction()
 
     Logger.info("Applying strategy " + name)
@@ -64,9 +62,17 @@ object Inlining extends CustomStrategy("Function inlining") {
     val toInline = Map[String, Int]()
     for ((func, funcStmt) <- analyzer.functions) {
       // some heuristics to identify which functions to inline
-      var inline : Boolean = analyzer.flatFunctionBody(func).length <= Knowledge.ir_maxInliningSize
-      if (HACK_inlineByName)
-        inline = analyzer.flatFunctionBody(func).length == 1 && analyzer.flatFunctionBody(func).head.isInstanceOf[ReturnStatement]
+      val stmts : Buffer[Statement] = analyzer.flatFunctionBody(func)
+      var inline : Boolean = stmts.length <= Knowledge.ir_maxInliningSize
+      if (heuristics_prepareCSE) {
+        var singleRet : Boolean = false
+        for (stmt <- stmts) stmt match {
+          case _ : VariableDeclarationStatement    =>
+          case _ : ReturnStatement if (!singleRet) => singleRet = true
+          case _                                   => inline = false // any other statement (or a second ReturnStatement) found...
+        }
+        inline &= singleRet
+      }
       inline &= funcStmt.allowInlining
       if (inline)
         toInline(func) = 0
@@ -99,7 +105,7 @@ object Inlining extends CustomStrategy("Function inlining") {
               analyzer.potConflicts(callScope.asInstanceOf[FunctionStatement].name)
             else
               null
-          remove &= inline(callScope, callStmt, callExpr, funcStmt, potConflicts, potConflToUpdate, HACK_inlineByName)
+          remove &= inline(callScope, callStmt, callExpr, funcStmt, potConflicts, potConflToUpdate)
         }
         if (remove)
           toRemove.put(funcStmt, ())
@@ -118,7 +124,7 @@ object Inlining extends CustomStrategy("Function inlining") {
   }
 
   private def inline(callScope : Node, callStmt : Statement, callExpr : FunctionCallExpression, funcStmt : FunctionStatement,
-    potConflicts : Set[String], potConflToUpdate : Set[String], HACK_inlineByName : Boolean) : Boolean = {
+    potConflicts : Set[String], potConflToUpdate : Set[String]) : Boolean = {
 
     // each function parameter must be given in call
     val nrPar = funcStmt.parameters.size
@@ -155,24 +161,6 @@ object Inlining extends CustomStrategy("Function inlining") {
         ret // keep ReturnStatement to ensure variables in its expression are renamed, too; it will be removed later
     }), Some(bodyWrapper))
 
-    if (HACK_inlineByName) {
-      val x = funcStmt.parameters.view.map { x => if (potConflicts.contains(x.name)) rename(x.name) else x.name }.zip(callExpr.arguments).toMap
-      this.execute(new Transformation("replace parameter", {
-        case VariableAccess(name, t) if (x.contains(name)) =>
-          val res = Duplicate(x(name))
-          if (res.isInstanceOf[StringLiteral])
-            new VariableAccess(res.toString(), t)
-          else
-            res
-        case StringLiteral(name) if (x.contains(name)) =>
-          val res = Duplicate(x(name))
-          if (res.isInstanceOf[StringLiteral])
-            new VariableAccess(res.toString())
-          else
-            res
-      }, false), Some(bodyWrapper))
-    }
-
     if (exit)
       return false
     this.execute(new Transformation("remove old return", {
@@ -182,14 +170,13 @@ object Inlining extends CustomStrategy("Function inlining") {
     val body : ListBuffer[Statement] = bodyWrapper.body
 
     // prepend declarations for method parameters (after renaming, as initialization must not be modified)
-    if (!HACK_inlineByName)
-      body.++=:(funcStmt.parameters.zip(callExpr.arguments).map {
-        case (vAcc, init) =>
-          var name : String = vAcc.name
-          if (potConflicts.contains(name))
-            name = rename(name)
-          new VariableDeclarationStatement(Duplicate(vAcc.dType.get), name, init)
-      })
+    body.++=:(funcStmt.parameters.zip(callExpr.arguments).map {
+      case (vAcc, init) =>
+        var name : String = vAcc.name
+        if (potConflicts.contains(name))
+          name = rename(name)
+        new VariableDeclarationStatement(Duplicate(vAcc.dType.get), name, init)
+    })
 
     if (potConflToUpdate != null) {
       // update potConflicts of function to inline in for later call to this method
