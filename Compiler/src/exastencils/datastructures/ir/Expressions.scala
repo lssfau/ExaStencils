@@ -325,10 +325,10 @@ case class MultiIndex(var indices : Array[Expression]) extends Expression with I
 
   // FIXME: add variable accesses to begin with...
   for (i <- 0 until length) {
-    update(i, indices(i) match {
+    this(i) = this(i) match {
       case StringLiteral(s) => VariableAccess(s, Some(IntegerDatatype))
-      case _                => indices(i)
-    })
+      case _                => this(i)
+    }
   }
 
   override def prettyprint(out : PpStream) : Unit = {
