@@ -514,13 +514,13 @@ private class Subexpression(val func : String, val witness : Expression with Pro
         if (witness == oldExpr) { // we can completely replace the subtree
           (oldExpr, VariableAccess(tmpVarName, Some(tmpVarDatatype)))
         } else { // only a part of the n-ary expression can be extracted...
-          // according to the matching above (in findCommSubs), this expression must have a single child, which is a Buffer
-          val allChildren = oldExpr.productElement(0).asInstanceOf[Buffer[Any]]
-          val commSubsChildren = witness.productElement(0).asInstanceOf[Buffer[Any]]
+          // according to the matching above (in findCommSubs), this expression must have a single Buffer child
+          val allChildren = oldExpr.productIterator.find { x => x.isInstanceOf[Buffer[_]] }.get.asInstanceOf[Buffer[Any]]
+          val commSubsChildren = witness.productIterator.find { x => x.isInstanceOf[Buffer[_]] }.get.asInstanceOf[Buffer[Any]]
           // according to the generation of witnesses children above, both buffers have the same ordering
           allChildren --= commSubsChildren
           allChildren += VariableAccess(tmpVarName, Some(tmpVarDatatype))
-          null
+          null // no need to replace node, since its children were already modified
         }
     }.filter { x => x != null }
   }
