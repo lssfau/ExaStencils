@@ -75,8 +75,8 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
   }
   //\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\//\\
 
-  private[optimization] final val replaceAnnot : String = "CSE_RDrepl"
-  private[optimization] final val removeAnnot : String = "CSE_RDrem"
+  private final val REPLACE_ANNOT : String = "CSE_RDrepl"
+  private final val REMOVE_ANNOT : String = "CSE_RDrem"
 
   override def apply() : Unit = {
     this.transaction()
@@ -85,44 +85,95 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     if (Settings.timeStrategies)
       StrategyTimer.startTiming(name)
 
-    // first, inline declarations with no additional write to the same variable (CSE afterwards may find larger CSes)
-    val analyze = new FindRemovableDecls()
-    this.register(analyze)
-    this.execute(new Transformation("search declarations to inline", PartialFunction.empty))
-    this.unregister(analyze)
-
-    this.execute(new Transformation("inline found declarations", {
-      case n if (n.hasAnnotation(removeAnnot))  => List()
-      case n if (n.hasAnnotation(replaceAnnot)) => n.getAnnotation(replaceAnnot).get.asInstanceOf[Node]
+    val scopes = new ArrayBuffer[(String, Node, () => ListBuffer[Statement])]() // actual node and shortcut to its body buffer
+    var curFunc : String = null
+    this.execute(new Transformation("find and extract relevant scopes", {
+      case f : FunctionStatement =>
+        curFunc = f.name
+        f
+      case l : ForLoopStatement with OptimizationHint if (l.isInnermost) =>
+        scopes += ((curFunc, l, l.body _))
+        l
+      case l : LoopOverDimensions =>
+        scopes += ((curFunc, l, l.body _))
+        l
     }))
 
-    for (scope <- analyze.simplifyScopes)
-      SimplifyStrategy.doUntilDoneStandalone(scope, true)
-
-    // then, perform actual CSE (repeatedly) and be quiet! (R)
-    Logger.debug("Perform common subexpression elimination...")
+    Logger.debug(s"Perform common subexpression elimination on ${scopes.length} scopes...")
     val bak = Logger.getLevel
-    Logger.setLevel(Logger.WARNING)
-    var repeat : Boolean = false
-    do {
-      val coll = new CollectBaseCSes()
-      this.register(coll)
-      this.execute(new Transformation("collect base common subexpressions", PartialFunction.empty))
-      this.unregister(coll)
-
-      repeat = false
-      for ((body, commonSubs) <- coll.scopes) {
-        findCommonSubs(commonSubs)
-        repeat |= updateAST(body, commonSubs)
-      }
-    } while (repeat)
-    Logger.setLevel(bak)
+    Logger.setLevel(Logger.WARNING) // be quiet! (R)
+    for ((curFunc, parent, body) <- scopes) {
+      // inline declarations with no additional write to the same variable first (CSE afterwards may find larger CSes)
+      inlineDecls(parent, body())
+      conventionalCSE(curFunc, body())
+    }
+    Logger.setLevel(bak) // restore verbosity
     Logger.debug(" ... done")
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming(name)
 
     this.commit()
+  }
+
+  private def inlineDecls(parent : Node, body : ListBuffer[Statement]) : Unit = {
+    val accesses = new HashMap[String, (VariableDeclarationStatement, Buffer[Expression])]()
+    this.execute(new Transformation("find removable declarations", {
+      case decl @ VariableDeclarationStatement(_ : ScalarDatatype, name, Some(init)) =>
+        accesses(name) = (decl, new ArrayBuffer[Expression]())
+        decl
+      case ass @ AssignmentStatement(VariableAccess(name, _), _, _) =>
+        accesses.remove(name)
+        ass
+      case inc @ PreDecrementExpression(VariableAccess(name, _)) =>
+        accesses.remove(name)
+        inc
+      case inc @ PreIncrementExpression(VariableAccess(name, _)) =>
+        accesses.remove(name)
+        inc
+      case inc @ PostIncrementExpression(VariableAccess(name, _)) =>
+        accesses.remove(name)
+        inc
+      case inc @ PostDecrementExpression(VariableAccess(name, _)) =>
+        accesses.remove(name)
+        inc
+      case acc @ VariableAccess(name, _) =>
+        for ((_, uses) <- accesses.get(name))
+          uses += acc
+        acc
+    }), Some(Scope(body))) // restrict to body only
+
+    for ((_, (decl, uses)) <- accesses) {
+      decl.annotate(REMOVE_ANNOT)
+      val init = decl.expression.get
+      for (use <- uses)
+        use.annotate(REPLACE_ANNOT, Duplicate(init))
+    }
+
+    this.execute(new Transformation("inline removable declarations", {
+      case n if (n.hasAnnotation(REMOVE_ANNOT))  => List()
+      case n if (n.hasAnnotation(REPLACE_ANNOT)) => n.getAnnotation(REPLACE_ANNOT).get.asInstanceOf[Node]
+    }, false), Some(parent)) // modifications in a list result in a new list created, so work with original parent and not with body
+
+    if (!accesses.isEmpty)
+      SimplifyStrategy.doUntilDoneStandalone(parent, true)
+  }
+
+  private def conventionalCSE(curFunc : String, body : ListBuffer[Statement]) : Unit = {
+    var repeat : Boolean = false
+    do {
+      val coll = new CollectBaseCSes(curFunc)
+      this.register(coll)
+      this.execute(new Transformation("collect base common subexpressions", PartialFunction.empty), Some(Scope(body)))
+      this.unregister(coll)
+      val commonSubs : HashMap[Node, Subexpression] = coll.commonSubs
+      commonSubs.retain { (_, cs) => cs != null && cs.getPositions().size > 1 }
+      if (!commonSubs.isEmpty) {
+        findCommonSubs(commonSubs)
+        repeat = updateAST(body, commonSubs)
+      } else
+        repeat = false
+    } while (repeat)
   }
 
   private def findCommonSubs(commonSubs : HashMap[Node, Subexpression]) : Unit = {
@@ -146,6 +197,13 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
         // only process this node if not already done (based on ref eq)
         if (!processedChildren.containsKey(c) && par.isInstanceOf[Expression])
           par.asInstanceOf[Expression] match {
+            case func : FunctionCallExpression =>
+              if (!func.name.contains("std::rand")) { // HACK to prevent inlining call to std::rand
+                val childCSes = func.arguments.view.map { e => commonSubs.get(e) }
+                if (childCSes.forall(_.isDefined))
+                  registerCS(func, childCSes.map(_.get.weight).sum + 1, pos, true, List.empty)
+              }
+
             case parent : Product =>
               val (prods, buffs, Nil, _) = splitIt3[Product, Buffer[AnyRef], Seq[_]](parent.productIterator)
               val nrProds = prods.length
@@ -157,18 +215,12 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
                   registerCS(parent, childCSes.map(_.get.weight).sum, pos, true, prods)
 
                 // this is the only one, that may create new instances for subexpression witnesses,
-                //   this must be in sync with Subexpression.initDeclRepl below
+                //   this must be in sync with Subexpression.getRepls below
               } else if (nrProds == 0 && nrBuffs == 1) {
-                if (parent.isInstanceOf[FunctionCallExpression]) {
-                  val childCSes = buffs.head.view.collect({ case n : Node => commonSubs.get(n) })
-                  if (childCSes.forall(_.isDefined))
-                    registerCS(parent, childCSes.map(_.get.weight).sum + 1, pos, true, prods)
-                } else {
-                  val dupParents : Array[(Expression with Product, Buffer[PrettyPrintable])] =
-                    duplicateAndFill(parent, { case n : Node => commonSubs.contains(n); case _ => false })
-                  for ((dupPar, dupParChildren) <- dupParents)
-                    registerCS(dupPar, dupParChildren.view.map { case x : Node => commonSubs(x).weight }.sum, pos, dupPar eq parent, dupParChildren)
-                }
+                val dupParents : Array[(Expression with Product, Buffer[PrettyPrintable])] =
+                  duplicateAndFill(parent, { case n : Node => commonSubs.contains(n); case _ => false })
+                for ((dupPar, dupParChildren) <- dupParents)
+                  registerCS(dupPar, dupParChildren.view.map { case x : Node => commonSubs(x).weight }.sum, pos, dupPar eq parent, dupParChildren)
 
               } else
                 Logger.warn("  wat?! unexpected number/type of children:  " + par)
@@ -188,19 +240,19 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
   }
 
   private def updateAST(body : ListBuffer[Statement], commSubs : HashMap[Node, Subexpression]) : Boolean = {
-    val (_, commSub) = commSubs.toList.sortBy { x => -x._2.weight }.head
+    val (_, commSub) = commSubs.toList.sortBy { x => (-x._2.weight, -x._2.getPositions().size, x._2.ppString) }.head
     if (commSub.weight <= 1)
       return false
 
-    val replAnnot : String = "CSE_Rep"
+    val REPL_ANNOT : String = "CSE_Rep"
     var repl : Boolean = false
     for ((old, nju) <- commSub.getRepls()) {
-      old.annotate(replAnnot, nju)
+      old.annotate(REPL_ANNOT, nju)
       repl = true
     }
     if (repl)
       this.execute(new Transformation("replace common subexpressions", {
-        case x if (x.hasAnnotation(replAnnot)) => x.removeAnnotation(replAnnot).get.asInstanceOf[Node]
+        case x if (x.hasAnnotation(REPL_ANNOT)) => x.removeAnnotation(REPL_ANNOT).get.asInstanceOf[Node]
       }), Some(Scope(body)))
 
     // add declaration after transformation to prevent modifying it
@@ -225,7 +277,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
 
   /**
     * @param orig  	 The original element to be duplicated and filled.
-    * 							 `orig.productElement(0)` must be a `Buffer[PrettyPrintable]`, whose elements will be sorted.
+    * 							 `orig.productIterator` must contain a single `Buffer[PrettyPrintable]`, whose elements will be sorted.
     */
   private def duplicateAndFill[T <: Product : ClassTag](orig : T, relevant : Any => Boolean) : Array[(T, Buffer[PrettyPrintable])] = {
 
@@ -289,193 +341,70 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
   }
 }
 
-private class FindRemovableDecls extends Collector {
+private class CollectBaseCSes(curFunc : String) extends StackCollector {
 
-  private final val markerStartAnnot : String = "CSE_RDs"
-  private final val markerEndAnnot : String = "CSE_RDe"
+  private final val SKIP_ANNOT : String = "CSE_skip"
+  private var skip : Boolean = false
 
-  val simplifyScopes = new ArrayBuffer[Node]()
-
-  private var scope : Node = null
-  private var inScope : Boolean = false
-  private val accesses = new HashMap[String, (VariableDeclarationStatement, Buffer[Expression])]()
+  val commonSubs = new HashMap[Node, Subexpression]()
 
   override def enter(node : Node) : Unit = {
+    super.enter(node) // adds current node to the stack
+
+    if (skip)
+      return
+
     node match {
-      // search for scope should be the same as in CollectBaseCSes blow
-      case l : ForLoopStatement with OptimizationHint if (l.isInnermost) =>
-        l.body.head.annotate(markerStartAnnot)
-        l.body.last.annotate(markerEndAnnot)
-        scope = l
+      case VariableDeclarationStatement(dt, name, _) =>
+        commonSubs(VariableAccess(name, Some(dt))) = null
+      case AssignmentStatement(vAcc : VariableAccess, _, _) =>
+        commonSubs(vAcc) = null
+      case AssignmentStatement(ArrayAccess(vAcc : VariableAccess, _, _), _, _) =>
+        commonSubs(vAcc) = null
+      case AssignmentStatement(ArrayAccess(iv : iv.InternalVariable, _, _), _, _) =>
+        commonSubs(iv) = null
+      case AssignmentStatement(dfa : DirectFieldAccess, _, _) =>
+        commonSubs(dfa) = null
+      case AssignmentStatement(tba : TempBufferAccess, _, _) =>
+        commonSubs(tba) = null
 
-      case l : LoopOverDimensions =>
-        l.body.head.annotate(markerStartAnnot)
-        l.body.last.annotate(markerEndAnnot)
-        scope = l
+      case _ : IntegerConstant
+        | _ : FloatConstant
+        | _ : BooleanConstant
+        | _ : VariableAccess
+        | _ : StringLiteral
+        | _ : ArrayAccess
+        | _ : DirectFieldAccess
+        | _ : TempBufferAccess
+        | _ : iv.InternalVariable
+        | _ : ConcatenationExpression //
+        =>
 
-      case stmt : Statement if (inScope || stmt.removeAnnotation(markerStartAnnot).isDefined) =>
-        inScope = true
-        stmt match {
-          case decl @ VariableDeclarationStatement(_ : ScalarDatatype, name, Some(init)) =>
-            accesses(name) = (decl, new ArrayBuffer[Expression]())
-          case AssignmentStatement(VariableAccess(name, _), _, _) =>
-            accesses.remove(name)
-          case _ => // nothing to do
-        }
+        // all matched types are subclasses of Expression and Product
+        val cs = commonSubs.getOrElseUpdate(node, new Subexpression(curFunc, node.asInstanceOf[Expression with Product]))
+        if (cs != null)
+          cs.addPosition(stack.elems) // extract internal (immutable) list from stack
 
-      case acc : VariableAccess =>
-        accesses.get(acc.name).foreach { case (_, uses) => uses += acc }
+        // skip subtree of this node
+        node.annotate(SKIP_ANNOT)
+        skip = true
 
-      case _ => // nothing to do
+      case _ =>
+      // nothing to do
     }
   }
 
   override def leave(node : Node) : Unit = {
-    import CommonSubexpressionElimination._
+    super.leave(node) // removes current node from stack
 
-    if (node.removeAnnotation(markerEndAnnot).isDefined) {
-      for ((_, (decl, uses)) <- accesses) {
-        decl.annotate(removeAnnot)
-        val init = decl.expression.get
-        for (use <- uses)
-          use.annotate(replaceAnnot, Duplicate(init))
-      }
-      if (!accesses.isEmpty)
-        simplifyScopes += scope
-      scope = null
-      inScope = false
-      accesses.clear()
-    }
-  }
-
-  override def reset() : Unit = {
-    simplifyScopes.clear()
-    scope = null
-    inScope = false
-    accesses.clear()
-  }
-}
-
-private class CollectBaseCSes extends StackCollector {
-
-  val scopes = new ListBuffer[(ListBuffer[Statement], HashMap[Node, Subexpression])]()
-
-  private final val markerAnnot : String = "CSE_CM"
-
-  private final val SEARCH_SCOPE : Int = 1
-  private final val IN_SCOPE : Int = 2
-  private final val SEARCH_CS : Int = 3
-  private final val SKIP : Int = 4
-
-  private var state : Int = SEARCH_SCOPE
-
-  private var innerBody : ListBuffer[Statement] = null
-  private var commSubs : HashMap[Node, Subexpression] = null
-  private var curFunc : String = null
-
-  override def enter(node : Node) : Unit = state match {
-    case SEARCH_SCOPE =>
-      def processInnermost(body : ListBuffer[Statement]) : Unit = {
-        for (s <- body)
-          s.annotate(markerAnnot)
-        innerBody = body
-        commSubs = new HashMap[Node, Subexpression]()
-        node.annotate(markerAnnot)
-        state = IN_SCOPE
-      }
-      // this should be the same as in FindRemovableDecls above
-      node match {
-        case f : FunctionStatement =>
-          curFunc = f.name // track the current function to allow temp var numbering per function (instead of globally)
-        case l : ForLoopStatement with OptimizationHint if (l.isInnermost) =>
-          processInnermost(l.body)
-        case l : LoopOverDimensions =>
-          processInnermost(l.body)
-        case _ =>
-        // nothing to do
-      }
-
-    case IN_SCOPE =>
-      if (node.hasAnnotation(markerAnnot)) {
-        state = SEARCH_CS
-        this.enter(node) // execute code for new state immediatly
-      }
-
-    case SEARCH_CS =>
-      super.enter(node) // adds current node to the stack
-      node match {
-        case VariableDeclarationStatement(dt, name, _) =>
-          commSubs(VariableAccess(name, Some(dt))) = null
-        case AssignmentStatement(vAcc : VariableAccess, _, _) =>
-          commSubs(vAcc) = null
-        case AssignmentStatement(ArrayAccess(vAcc : VariableAccess, _, _), _, _) =>
-          commSubs(vAcc) = null
-        case AssignmentStatement(ArrayAccess(iv : iv.InternalVariable, _, _), _, _) =>
-          commSubs(iv) = null
-        case AssignmentStatement(dfa : DirectFieldAccess, _, _) =>
-          commSubs(dfa) = null
-        case AssignmentStatement(tba : TempBufferAccess, _, _) =>
-          commSubs(tba) = null
-
-        case _ : IntegerConstant
-          | _ : FloatConstant
-          | _ : BooleanConstant
-          | _ : VariableAccess
-          | _ : StringLiteral
-          | _ : ArrayAccess
-          | _ : DirectFieldAccess
-          | _ : TempBufferAccess
-          | _ : iv.InternalVariable
-          | _ : ConcatenationExpression //
-          =>
-
-          // all matched types are subclasses of Expression and Product
-          val cs = commSubs.getOrElseUpdate(node, new Subexpression(curFunc, node.asInstanceOf[Expression with Product]))
-          if (cs != null)
-            cs.addPosition(stack.elems) // extract internal (immutable) list from stack
-
-          // skip subtree of this node
-          node.annotate(markerAnnot)
-          state = SKIP
-
-        case _ =>
-        // nothing to do
-      }
-
-    case SKIP =>
-  }
-
-  override def leave(node : Node) : Unit = state match {
-    case SEARCH_SCOPE =>
-
-    case IN_SCOPE =>
-      if (node.removeAnnotation(markerAnnot).isDefined) {
-        if (!commSubs.retain { (_, cs) => cs != null && cs.getPositions().size > 1 }.isEmpty) {
-          scopes += ((innerBody, commSubs))
-          innerBody = null
-          commSubs = null
-        }
-        state = SEARCH_SCOPE
-      }
-
-    case SEARCH_CS =>
-      super.leave(node) // removes current node from stack
-      if (node.removeAnnotation(markerAnnot).isDefined)
-        state = IN_SCOPE
-
-    case SKIP =>
-      if (node.removeAnnotation(markerAnnot).isDefined) {
-        super.leave(node) // removes current node from stack
-        state = SEARCH_CS
-      }
+    if (node.removeAnnotation(SKIP_ANNOT).isDefined)
+      skip = false
   }
 
   override def reset() : Unit = {
     super.reset()
-    scopes.clear()
-    innerBody = null
-    commSubs = null
-    state = SEARCH_SCOPE
+    commonSubs.clear()
+    skip = false
   }
 }
 
@@ -497,6 +426,7 @@ private class Subexpression(val func : String, val witness : Expression with Pro
   private lazy val tmpVarName : String = Subexpression.getNewName(func)
 
   lazy val declaration = VariableDeclarationStatement(tmpVarDatatype, tmpVarName, Some(witness))
+  lazy val ppString : String = witness.prettyprint()
 
   def addPosition(nju : List[Node]) : Boolean = {
     return positions.put(nju, nju) == null
@@ -513,13 +443,13 @@ private class Subexpression(val func : String, val witness : Expression with Pro
         if (witness == oldExpr) { // we can completely replace the subtree
           (oldExpr, VariableAccess(tmpVarName, Some(tmpVarDatatype)))
         } else { // only a part of the n-ary expression can be extracted...
-          // according to the matching above (in findCommSubs), this expression must have a single child, which is a Buffer
-          val allChildren = oldExpr.productElement(0).asInstanceOf[Buffer[Any]]
-          val commSubsChildren = witness.productElement(0).asInstanceOf[Buffer[Any]]
+          // according to the matching above (in findCommSubs), this expression must have a single Buffer child
+          val allChildren = oldExpr.productIterator.find { x => x.isInstanceOf[Buffer[_]] }.get.asInstanceOf[Buffer[Any]]
+          val commSubsChildren = witness.productIterator.find { x => x.isInstanceOf[Buffer[_]] }.get.asInstanceOf[Buffer[Any]]
           // according to the generation of witnesses children above, both buffers have the same ordering
           allChildren --= commSubsChildren
           allChildren += VariableAccess(tmpVarName, Some(tmpVarDatatype))
-          null
+          null // no need to replace node, since its children were already modified
         }
     }.filter { x => x != null }
   }

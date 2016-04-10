@@ -154,7 +154,7 @@ class DefaultStrategy(name : String) extends Strategy(name) {
   def applyStandalone(nodes : Seq[Node]) : Unit = {
     // for (node <- nodes) applyStandalone(node)
     final case class NodeSeqWrapper(var nodes : Seq[Node]) extends Node {}
-    applyStandalone(NodeSeqWrapper(nodes))
+    applyStandalone(NodeSeqWrapper(nodes)) // FIXME: BUG: modifications of `nodes` directly (e.g. replacing one element of `nodes`) are NOT visible to the caller!
   }
 
   protected def executeStandaloneInternal(transformation : Transformation, node : Node) : TransformationResult = {

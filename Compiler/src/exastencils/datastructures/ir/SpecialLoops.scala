@@ -478,7 +478,7 @@ object LoopOverDimensions {
 case class LoopOverDimensions(var numDimensions : Int,
     var indices : IndexRange,
     var body : ListBuffer[Statement],
-    var stepSize : MultiIndex = new MultiIndex(), // to be overwritten afterwards
+    var stepSize : MultiIndex = null, // to be overwritten afterwards
     var reduction : Option[Reduction] = None,
     var condition : Option[Expression] = None) extends Statement {
   def this(numDimensions : Int, indices : IndexRange, body : Statement, stepSize : MultiIndex, reduction : Option[Reduction], condition : Option[Expression]) = this(numDimensions, indices, ListBuffer[Statement](body), stepSize, reduction, condition)
@@ -488,7 +488,7 @@ case class LoopOverDimensions(var numDimensions : Int,
 
   import LoopOverDimensions._
 
-  if (0 == stepSize.length) stepSize = new MultiIndex(Array.fill(numDimensions)(1))
+  if (stepSize == null) stepSize = new MultiIndex(Array.fill(numDimensions)(1))
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverDimensions\n"
 
