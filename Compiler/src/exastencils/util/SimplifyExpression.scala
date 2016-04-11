@@ -435,6 +435,16 @@ object SimplifyExpression {
         res = new HashMap[Expression, Double]()
         res(aAcc) = 1d
 
+      case fAcc : FieldAccessLike =>
+        res = new HashMap[Expression, Double]()
+        res(fAcc) = 1d
+
+      case call : FunctionCallExpression =>
+        if (call.name.contains("std::rand")) // HACK
+          throw new EvaluationException("don't optimze code containing a call to std::rand")
+        res = new HashMap[Expression, Double]()
+        res(call) = 1d
+
       case NegativeExpression(expr) =>
         res = extractFloatingSumRec(expr)
         for ((name : Expression, value : Double) <- extractFloatingSumRec(expr))
@@ -503,8 +513,8 @@ object SimplifyExpression {
       case MinimumExpression(args : ListBuffer[Expression]) =>
         val exprs = new ListBuffer[Expression]
         var min : java.lang.Double = null
-        for (arg <- args) simplifyIntegralExpr(arg) match {
-          case IntegerConstant(c)              => min = if (min == null || min > c) c else min
+        for (arg <- args) simplifyFloatingExpr(arg) match {
+          case FloatConstant(c)                => min = if (min == null || min > c) c else min
           case expr if (!exprs.contains(expr)) => exprs += expr
         }
         res = new HashMap[Expression, Double]()
@@ -519,8 +529,8 @@ object SimplifyExpression {
       case MaximumExpression(args : ListBuffer[Expression]) =>
         val exprs = new ListBuffer[Expression]
         var max : java.lang.Double = null
-        for (arg <- args) simplifyIntegralExpr(arg) match {
-          case IntegerConstant(c)              => max = if (max == null || max < c) c else max
+        for (arg <- args) simplifyFloatingExpr(arg) match {
+          case FloatConstant(c)                => max = if (max == null || max < c) c else max
           case expr if (!exprs.contains(expr)) => exprs += expr
         }
         res = new HashMap[Expression, Double]()
@@ -601,8 +611,9 @@ object SimplifyExpression {
       SimplifyStrategy.doUntilDoneStandalone(res)
       return res.expression
     } catch {
-      case EvaluationException(msg) =>
-        throw new EvaluationException(msg + ";  in " + expr.prettyprint())
+      case x : EvaluationException =>
+        throw new EvaluationException(x.msg + ";  in " + expr.prettyprint() +
+          "  (in class " + x.getStackTrace()(0).getClassName() + ":" + x.getStackTrace()(0).getLineNumber() + ')')
     }
   }
 }
