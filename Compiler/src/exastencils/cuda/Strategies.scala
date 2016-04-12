@@ -15,6 +15,244 @@ import exastencils.knowledge._
 import exastencils.omp._
 import exastencils.polyhedron._
 
+object AnnotateLoopsForCUDATransformation extends DefaultStrategy("Annotate loops that should late be transformed " +
+  "into CUDA code") {
+  this += new Transformation("Annotate LoopOverDimensions nodes", {
+    case loop : LoopOverDimensions => {
+      loop.annotate("CUDALoop")
+      println("Annotate a loop as CUDA loop: " + loop)
+      loop
+    }
+  }, false)
+}
+
+object FindAnnotatedCUDALoops extends DefaultStrategy("Find annotated CUDA loops") {
+  this += new Transformation("Find CUDA loops", {
+    case loop : ForLoopStatement => {
+      if (loop.hasAnnotation("CUDALoop"))
+        println("This node is an annotated CUDA loop: " + loop)
+      loop
+    }
+  }, true)
+}
+
+object TransformAnnotatedCUDALoops extends DefaultStrategy("Find annotated CUDA Loops that should be transformed") {
+  val collector = new FctNameCollector
+  this.register(collector)
+
+  this += new Transformation("Find CUDA Loops", {
+    case loop : ForLoopStatement => {
+      var output : OutputType = loop
+      if (loop.hasAnnotation("CUDALoop")) {
+        GatherLocalFieldAccess.fieldAccesses.clear
+        GatherLocalFieldAccess.applyStandalone(Scope(loop.body))
+
+        /// compile host statements
+        var hostStmts = ListBuffer[Statement]()
+
+        // add data sync statements
+        for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
+          var sync = true
+          if (access._1.startsWith("write") && !Knowledge.experimental_cuda_syncHostForWrites)
+            sync = false // skip write accesses if demanded
+          if (access._1.startsWith("write") && GatherLocalFieldAccess.fieldAccesses.contains("read" + access._1.substring("write".length)))
+            sync = false // skip write access for read/write accesses
+          if (sync)
+            hostStmts += CUDA_UpdateHostData(Duplicate(access._2)).expand.inner // expand here to avoid global expand afterwards
+        }
+
+        // add original loop
+        hostStmts += loop
+
+        // update flags for written fields
+        for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
+          val fieldSelection = access._2.fieldSelection
+          if (access._1.startsWith("write"))
+            hostStmts += AssignmentStatement(iv.HostDataUpdated(fieldSelection.field, fieldSelection.slot), BooleanConstant(true))
+        }
+
+        // check for elimination criteria
+        var earlyExit = false
+
+        /// compile device statements
+        if (earlyExit) {
+          output = hostStmts
+        } else {
+          var deviceStmts = ListBuffer[Statement]()
+
+          // add data sync statements
+          for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
+            var sync = true
+            if (access._1.startsWith("write") && !Knowledge.experimental_cuda_syncDeviceForWrites)
+              sync = false // skip write accesses if demanded
+            if (access._1.startsWith("write") && GatherLocalFieldAccess.fieldAccesses.contains("read" + access._1.substring("write".length)))
+              sync = false // skip write access for read/write accesses
+            if (sync)
+              deviceStmts += CUDA_UpdateDeviceData(Duplicate(access._2)).expand.inner // expand here to avoid global expand afterwards
+          }
+
+          // add kernel and kernel call
+          val kernelFunctions = StateManager.findFirst[KernelFunctions]().get
+
+          GatherLocalVariableAccesses.clear
+          GatherLocalVariableAccesses.applyStandalone(Scope(loop.body))
+          val variableAccesses = GatherLocalVariableAccesses.accesses.toSeq.sortBy(_._1).map(_._2).to[ListBuffer]
+
+          val kernel = Kernel(
+            kernelFunctions.getIdentifier(collector.getCurrentName),
+            variableAccesses,
+            1,
+            IndexRange(MultiIndex(Array(loop.end)), MultiIndex(Array(loop.end))),
+            loop.body,
+            loop.reduction,
+            None)
+
+          kernelFunctions.addKernel(Duplicate(kernel))
+
+          // process return value of kernel wrapper call if reduction is required
+          if (loop.reduction.isDefined) {
+            val red = loop.reduction.get
+            deviceStmts += AssignmentStatement(red.target,
+              BinaryOperators.CreateExpression(red.op, red.target,
+                FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[Expression]))))
+          } else {
+            deviceStmts += FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[Expression]))
+          }
+
+          if (Knowledge.experimental_cuda_syncDeviceAfterKernelCalls)
+            deviceStmts += CUDA_DeviceSynchronize()
+
+          // update flags for written fields
+          for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
+            val fieldSelection = access._2.fieldSelection
+            if (access._1.startsWith("write"))
+              deviceStmts += AssignmentStatement(iv.DeviceDataUpdated(fieldSelection.field, fieldSelection.slot), BooleanConstant(true))
+          }
+
+          /// compile final switch
+          var defaultChoice = Knowledge.experimental_cuda_preferredExecution match {
+            case "Host"        => 1 // CPU by default
+            case "Device"      => 0 // GPU by default
+            case "Performance" => if (loop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] > loop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]) 0 else 1 // decide according to performance estimates
+          }
+
+          output = ConditionStatement(defaultChoice, hostStmts, deviceStmts)
+        }
+      }
+      output
+    }
+  }, false)
+}
+
+object SplitLoopsAfterPolyForHostAndDevice extends DefaultStrategy("Splitting loops into host and device instances " +
+  "after applying polyhedral optimizations") {
+  val collector = new FctNameCollector
+  this.register(collector)
+
+  this += new Transformation("Processing LoopOverDimensions nodes", {
+    case loop : LoopOverDimensions => { // don't filter here - memory transfer code is still required
+      GatherLocalFieldAccess.fieldAccesses.clear
+      GatherLocalFieldAccess.applyStandalone(Scope(loop.body))
+
+      /// compile host statements
+      var hostStmts = ListBuffer[Statement]()
+
+      // add data sync statements
+      for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
+        var sync = true
+        if (access._1.startsWith("write") && !Knowledge.experimental_cuda_syncHostForWrites)
+          sync = false // skip write accesses if demanded
+        if (access._1.startsWith("write") && GatherLocalFieldAccess.fieldAccesses.contains("read" + access._1.substring("write".length)))
+          sync = false // skip write access for read/write accesses
+        if (sync)
+          hostStmts += CUDA_UpdateHostData(Duplicate(access._2)).expand.inner // expand here to avoid global expand afterwards
+      }
+
+      // add original loop
+      hostStmts += loop
+
+      // update flags for written fields
+      for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
+        val fieldSelection = access._2.fieldSelection
+        if (access._1.startsWith("write"))
+          hostStmts += AssignmentStatement(iv.HostDataUpdated(fieldSelection.field, fieldSelection.slot), BooleanConstant(true))
+      }
+
+      // check for elimination criteria
+      var earlyExit = false
+      if (!loop.isInstanceOf[PolyhedronAccessible])
+        earlyExit = true // always use host for special loops
+      if (!loop.isInstanceOf[OMP_PotentiallyParallel])
+        earlyExit = true // always use host for un-parallelizable loops
+
+      /// compile device statements
+      if (earlyExit) {
+        hostStmts
+      } else {
+        var deviceStmts = ListBuffer[Statement]()
+
+        // add data sync statements
+        for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
+          var sync = true
+          if (access._1.startsWith("write") && !Knowledge.experimental_cuda_syncDeviceForWrites)
+            sync = false // skip write accesses if demanded
+          if (access._1.startsWith("write") && GatherLocalFieldAccess.fieldAccesses.contains("read" + access._1.substring("write".length)))
+            sync = false // skip write access for read/write accesses
+          if (sync)
+            deviceStmts += CUDA_UpdateDeviceData(Duplicate(access._2)).expand.inner // expand here to avoid global expand afterwards
+        }
+
+        // add kernel and kernel call
+        val kernelFunctions = StateManager.findFirst[KernelFunctions]().get
+
+        GatherLocalVariableAccesses.clear
+        GatherLocalVariableAccesses.applyStandalone(Scope(loop.body))
+        val variableAccesses = GatherLocalVariableAccesses.accesses.toSeq.sortBy(_._1).map(_._2).to[ListBuffer]
+
+        val kernel = Kernel(
+          kernelFunctions.getIdentifier(collector.getCurrentName),
+          variableAccesses,
+          loop.numDimensions,
+          loop.indices,
+          loop.body,
+          loop.reduction,
+          loop.condition)
+
+        kernelFunctions.addKernel(Duplicate(kernel))
+
+        // process return value of kernel wrapper call if reduction is required
+        if (loop.reduction.isDefined) {
+          val red = loop.reduction.get
+          deviceStmts += AssignmentStatement(red.target,
+            BinaryOperators.CreateExpression(red.op, red.target,
+              FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[Expression]))))
+        } else {
+          deviceStmts += FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[Expression]))
+        }
+
+        if (Knowledge.experimental_cuda_syncDeviceAfterKernelCalls)
+          deviceStmts += CUDA_DeviceSynchronize()
+
+        // update flags for written fields
+        for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
+          val fieldSelection = access._2.fieldSelection
+          if (access._1.startsWith("write"))
+            deviceStmts += AssignmentStatement(iv.DeviceDataUpdated(fieldSelection.field, fieldSelection.slot), BooleanConstant(true))
+        }
+
+        /// compile final switch
+        var defaultChoice = Knowledge.experimental_cuda_preferredExecution match {
+          case "Host"        => 1 // CPU by default
+          case "Device"      => 0 // GPU by default
+          case "Performance" => if (loop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] > loop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]) 0 else 1 // decide according to performance estimates
+        }
+
+        ConditionStatement(defaultChoice, hostStmts, deviceStmts)
+      }
+    }
+  }, false)
+}
+
 object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into host and device instances") {
   val collector = new FctNameCollector
   this.register(collector)
