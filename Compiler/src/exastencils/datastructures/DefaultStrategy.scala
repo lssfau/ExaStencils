@@ -1,5 +1,6 @@
 package exastencils.datastructures
 
+import scala.collection.mutable.Buffer
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
@@ -151,8 +152,8 @@ class DefaultStrategy(name : String) extends Strategy(name) {
     }
   }
 
-  def applyStandalone[T](nodes : ListBuffer[T]) : Unit = {
-    final case class NodeLBWrapper(var nodes : ListBuffer[T]) extends Node {}
+  def applyStandalone[T](nodes : Buffer[T]) : Unit = {
+    final case class NodeLBWrapper(var nodes : Buffer[T]) extends Node {}
     var wrapper = NodeLBWrapper(nodes)
     applyStandalone(wrapper)
     nodes.clear()
