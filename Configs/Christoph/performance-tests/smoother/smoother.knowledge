@@ -59,7 +59,7 @@ poly_filterDeps        = true
 
 // other optimizations
 opt_useAddressPrecalc  = true
-opt_vectorize          = true
+opt_vectorize          = false // true is not working
 opt_unroll             = 2
 opt_unroll_interleave  = false
 

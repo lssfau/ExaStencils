@@ -1,0 +1,9 @@
+user                        = "Christoph"
+basePathPrefix              = "../CompilerRun/smoother-test/"
+l3file                      = ""
+l4file                      = "../../Configs/Christoph/performance-tests/smoother/Smoother_3D_ConstCoeff.exa4"
+outputPath                  = "/generated/"
+htmlLogFile                 = "/log/log.html"
+produceHtmlLog              = true
+timeStrategies              = true
+timeStratPercentThreshold   = 0
