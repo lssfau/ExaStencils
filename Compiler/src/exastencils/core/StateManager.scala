@@ -260,17 +260,17 @@ object StateManager {
         // ###############################################################################################
         case set : scala.collection.mutable.Set[_] => {
           var newSet = set.flatMap(f => f match {
-            case n : Node => applyAtNode(n, transformation).inner match {
+            case n: Node => applyAtNode(n, transformation).inner match {
               case NoMatch =>
                 replace(n, transformation); List(n) // no match occurred => use old element
-              case newN : Node => {
+              case newN: Node => {
                 newN.annotate(n)
                 if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
                   replace(newN, transformation) // Recursive call for new element
                 }
                 List(newN) // element of type Node was returned => use it
               }
-              case newN : NodeList => {
+              case newN: NodeList => {
                 if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
                   newN.nodes.foreach(replace(_, transformation)) // recursive call for new elements
                 }
