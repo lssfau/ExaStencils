@@ -435,6 +435,10 @@ object SimplifyExpression {
         res = new HashMap[Expression, Double]()
         res(aAcc) = 1d
 
+      case mAcc : MemberAccess =>
+        res = new HashMap[Expression, Double]()
+        res(mAcc) = 1d
+
       case fAcc : FieldAccessLike =>
         res = new HashMap[Expression, Double]()
         res(fAcc) = 1d
@@ -613,7 +617,7 @@ object SimplifyExpression {
     } catch {
       case x : EvaluationException =>
         throw new EvaluationException(x.msg + ";  in " + expr.prettyprint() +
-          "  (in class " + x.getStackTrace()(0).getClassName() + ":" + x.getStackTrace()(0).getLineNumber() + ')')
+          "  (" + x.getStackTrace()(0).getClassName() + ":" + x.getStackTrace()(0).getLineNumber() + ')')
     }
   }
 }

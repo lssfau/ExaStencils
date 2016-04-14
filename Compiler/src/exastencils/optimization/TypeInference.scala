@@ -91,10 +91,6 @@ private final class AnnotateStringConstants extends ScopeCollector(Map[String, D
         for (param <- params)
           declare(param.name, param.dType.get)
 
-      // HACK: skip member accesses as they are not declared explicitly
-      case MemberAccess(_, member) =>
-        member.annotate(SKIP_ANNOT)
-
       // HACK: ensure the iterator declaration is visited before the body...
       case ForLoopStatement(begin, _, _, _, _) =>
         this.enter(begin)

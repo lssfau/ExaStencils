@@ -127,10 +127,6 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
     lastEstimate = estimatedTimeSubAST.pop
   }
 
-  override def applyStandalone(nodes : Seq[Node]) : Unit = {
-    super.applyStandalone(nodes) // calls CombBody.applyStandalone internally -> defer stack ops to this function
-  }
-
   this += new Transformation("Progressing key statements", {
     // function calls
     case fct : FunctionCallExpression => {
@@ -258,9 +254,6 @@ object EvaluatePerformanceEstimates_Ops extends QuietDefaultStrategy("Evaluating
     numMul = 0
     numDiv = 0
     super.applyStandalone(node)
-  }
-  override def applyStandalone(nodes : Seq[Node]) : Unit = {
-    super.applyStandalone(nodes) // calls EvaluatePerformanceEstimates_Ops.applyStandalone internally
   }
 
   this += new Transformation("Searching", {

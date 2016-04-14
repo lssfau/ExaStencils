@@ -12,9 +12,11 @@ import exastencils.prettyprinting._
 import exastencils.strategies._
 
 trait Expression extends Node with PrettyPrintable {
+  @deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
   def ~(exp : Expression) : ConcatenationExpression = {
     new ConcatenationExpression(this, exp)
   }
+  @deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
   def ~~(exp : Expression) : SpacedConcatenationExpression = {
     new SpacedConcatenationExpression(this, exp)
   }
@@ -44,6 +46,7 @@ trait Expression extends Node with PrettyPrintable {
   def <=(other : Expression) = new LowerEqualExpression(this, other)
   def >(other : Expression) = new GreaterExpression(this, other)
   def >=(other : Expression) = new GreaterEqualExpression(this, other)
+  def <<(other : Expression) = new LeftShiftExpression(this, other)
 }
 
 object BinaryOperators extends Enumeration {
@@ -77,6 +80,7 @@ object BinaryOperators extends Enumeration {
   val Maximum = Value("max")
   val Minimum = Value("min")
   val BitwiseAnd = Value("&")
+  val LeftShift = Value("<<")
 
   exastencils.core.Duplicate.registerImmutable(this.getClass())
 
@@ -113,6 +117,7 @@ object BinaryOperators extends Enumeration {
     case Maximum                   => return new MaximumExpression(left, right)
     case Minimum                   => return new MinimumExpression(left, right)
     case BitwiseAnd                => return new BitwiseAndExpression(left, right)
+    case LeftShift                 => return new LeftShiftExpression(left, right)
   }
 
   def opAsIdent(op : String) = {
@@ -180,22 +185,26 @@ case object NullExpression extends Expression {
   override def prettyprint(out : PpStream) : Unit = ()
 }
 
+@deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
 case class ConcatenationExpression(var expressions : ListBuffer[Expression]) extends Expression {
   def this(exprs : Expression*) = this(exprs.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = out <<< expressions
 
+  @deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
   override def ~(exp : Expression) : ConcatenationExpression = {
     expressions += exp
     this
   }
 }
 
+@deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
 case class SpacedConcatenationExpression(var expressions : ListBuffer[Expression]) extends Expression {
   def this(exprs : Expression*) = this(exprs.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = out <<< (expressions, " ")
 
+  @deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
   override def ~~(exp : Expression) : SpacedConcatenationExpression = {
     expressions += exp
     this
@@ -442,8 +451,8 @@ case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection,
   }
 }
 
-case class MemberAccess(var base : Access, var varAcc : VariableAccess) extends Access {
-  override def prettyprint(out : PpStream) : Unit = out << base << '.' << varAcc
+case class MemberAccess(var base : Access, var member : String) extends Access {
+  override def prettyprint(out : PpStream) : Unit = out << base << '.' << member
 }
 
 case class DerefAccess(var base : Access) extends Access {
@@ -539,6 +548,10 @@ case class GreaterEqualExpression(var left : Expression, var right : Expression)
 
 case class BitwiseAndExpression(var left : Expression, var right : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '&' << right << ')'
+}
+
+case class LeftShiftExpression(var left : Expression, var right : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << "<<" << right << ')'
 }
 
 case class PreDecrementExpression(var left : Expression) extends Expression {

@@ -313,12 +313,6 @@ class Extractor extends Collector {
 
       private var id_ : Int = -1
       private var label_ : String = null
-      private val df = {
-        val df_ = new java.text.DecimalFormat()
-        df_.setMinimumIntegerDigits(4) // 9999 different statements should be enough
-        df_.setGroupingUsed(false)
-        df_
-      }
 
       def exists() : Boolean = { label_ != null }
       def label() : String = { label_ }
@@ -326,7 +320,7 @@ class Extractor extends Collector {
       def leave() : Unit = { label_ = null }
       def next() : this.type = {
         id_ += 1
-        label_ = "S" + df.format(id_)
+        label_ = "S%04d".format(id_)
         return this
       }
     }

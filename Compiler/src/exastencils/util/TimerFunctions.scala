@@ -20,15 +20,15 @@ case class TimerDetail_AssignNow(var lhs : Expression) extends Statement with Ex
       case "Chrono" => AssignmentStatement(lhs, new FunctionCallExpression("std::chrono::high_resolution_clock::now"))
       case "QPC" => Scope(ListBuffer[Statement](
         VariableDeclarationStatement(SpecialDatatype("LARGE_INTEGER"), "now"),
-        FunctionCallExpression("QueryPerformanceCounter", ListBuffer("&" ~ "now")),
-        AssignmentStatement(lhs, MemberAccess(VariableAccess("now"), VariableAccess("QuadPart")))))
+        FunctionCallExpression("QueryPerformanceCounter", ListBuffer(AddressofExpression("now"))),
+        AssignmentStatement(lhs, MemberAccess(VariableAccess("now"), "QuadPart"))))
       case "WIN_TIME" => AssignmentStatement(lhs, CastExpression(DoubleDatatype, FunctionCallExpression("clock", ListBuffer())) / "CLOCKS_PER_SEC")
       case "UNIX_TIME" => Scope(ListBuffer[Statement](
         VariableDeclarationStatement(SpecialDatatype("timeval"), "timePoint"),
-        FunctionCallExpression("gettimeofday", ListBuffer("&" ~ "timePoint", "NULL")),
+        FunctionCallExpression("gettimeofday", ListBuffer(AddressofExpression("timePoint"), "NULL")),
         AssignmentStatement(lhs,
-          CastExpression(DoubleDatatype, MemberAccess(VariableAccess("timePoint"), VariableAccess("tv_sec")) * 1e3
-            + CastExpression(DoubleDatatype, MemberAccess(VariableAccess("timePoint"), VariableAccess("tv_usec")) * 1e-3)))))
+          CastExpression(DoubleDatatype, MemberAccess(VariableAccess("timePoint"), "tv_sec") * 1e3
+            + CastExpression(DoubleDatatype, MemberAccess(VariableAccess("timePoint"), "tv_usec") * 1e-3)))))
       case "MPI_TIME"     => AssignmentStatement(lhs, FunctionCallExpression("MPI_Wtime", ListBuffer()))
       case "WINDOWS_RDSC" => AssignmentStatement(lhs, FunctionCallExpression("__rdtsc", ListBuffer()))
       case "RDSC"         => AssignmentStatement(lhs, FunctionCallExpression("__rdtsc", ListBuffer()))
@@ -58,7 +58,7 @@ case class TimerDetail_ReturnConvertToMS(var time : Expression) extends Statemen
       case "Chrono" => ReturnStatement(Some(new MemberFunctionCallExpression(new FunctionCallExpression("std::chrono::duration_cast<std::chrono::nanoseconds>", time), "count") * 1e-6))
       case "QPC" => Scope(ListBuffer[Statement](
         VariableDeclarationStatement(SpecialDatatype("static LARGE_INTEGER"), "s_frequency"),
-        VariableDeclarationStatement(SpecialDatatype("static BOOL"), "s_use_qpc", Some(FunctionCallExpression("QueryPerformanceFrequency", ListBuffer("&" ~ "s_frequency")))),
+        VariableDeclarationStatement(SpecialDatatype("static BOOL"), "s_use_qpc", Some(FunctionCallExpression("QueryPerformanceFrequency", ListBuffer(AddressofExpression("s_frequency"))))),
         ReturnStatement(Some(time / ("s_frequency.QuadPart" / 1000.0)))))
       case "WIN_TIME"     => ReturnStatement(Some(time * 1e3))
       case "UNIX_TIME"    => ReturnStatement(Some(time))
@@ -91,8 +91,7 @@ abstract class AbstractTimerFunction extends AbstractFunctionStatement
 
 object AbstractTimerFunction {
   def accessMember(member : String) = {
-    MemberAccess(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&"))), VariableAccess(member) // TODO: dt req?
-    )
+    MemberAccess(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&"))), member)
   }
 }
 

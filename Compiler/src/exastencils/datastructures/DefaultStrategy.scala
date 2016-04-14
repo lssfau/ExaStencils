@@ -1,5 +1,6 @@
 package exastencils.datastructures
 
+import scala.collection.mutable.Buffer
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
@@ -151,10 +152,21 @@ class DefaultStrategy(name : String) extends Strategy(name) {
     }
   }
 
-  def applyStandalone(nodes : Seq[Node]) : Unit = {
-    // for (node <- nodes) applyStandalone(node)
-    final case class NodeSeqWrapper(var nodes : Seq[Node]) extends Node {}
-    applyStandalone(NodeSeqWrapper(nodes)) // FIXME: BUG: modifications of `nodes` directly (e.g. replacing one element of `nodes`) are NOT visible to the caller!
+  def applyStandalone[T](nodes : Buffer[T]) : Unit = {
+    final case class NodeLBWrapper(var nodes : Buffer[T]) extends Node {}
+    var wrapper = NodeLBWrapper(nodes)
+    applyStandalone(wrapper)
+    if (nodes ne wrapper.nodes) {
+      nodes.clear()
+      nodes.++=(wrapper.nodes)
+    }
+  }
+
+  def applyStandalone[T](nodes : Seq[T]) : Seq[T] = {
+    final case class NodeSeqWrapper(var nodes : Seq[T]) extends Node {}
+    var wrapper = NodeSeqWrapper(nodes)
+    applyStandalone(wrapper)
+    wrapper.nodes
   }
 
   protected def executeStandaloneInternal(transformation : Transformation, node : Node) : TransformationResult = {
