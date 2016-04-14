@@ -152,17 +152,15 @@ class DefaultStrategy(name : String) extends Strategy(name) {
     }
   }
 
-  // FIXME: the correct behaviour here causes bugs somewhere... it seems some strategy accidentially removes nodes:
-  // diff -r broken/SISC_3D_ConstCoeff/Domains/DomainGenerated_initDomain.cpp old/Domains/DomainGenerated_initDomain.cpp
-  // 19a20
-  // >                               positions[posWritePos++] = (Vec3((0.25*((2*rankPos.x)+x+1.5))+0.0,(0.25*((2*rankPos.y)+y+0.5)),(0.25*((2*rankPos.z)+z+0.5))));
-  // def applyStandalone[T](nodes : Buffer[T]) : Unit = {
-  //   final case class NodeLBWrapper(var nodes : Buffer[T]) extends Node {}
-  //   var wrapper = NodeLBWrapper(nodes)
-  //   applyStandalone(wrapper)
-  //   nodes.clear()
-  //   nodes.++=(wrapper.nodes)
-  // }
+  def applyStandalone[T](nodes : Buffer[T]) : Unit = {
+    final case class NodeLBWrapper(var nodes : Buffer[T]) extends Node {}
+    var wrapper = NodeLBWrapper(nodes)
+    applyStandalone(wrapper)
+    if (nodes ne wrapper.nodes) {
+      nodes.clear()
+      nodes.++=(wrapper.nodes)
+    }
+  }
 
   def applyStandalone[T](nodes : Seq[T]) : Seq[T] = {
     final case class NodeSeqWrapper(var nodes : Seq[T]) extends Node {}
