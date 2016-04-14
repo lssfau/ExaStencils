@@ -259,10 +259,7 @@ object MainChristoph {
     ResolveLoopOverDimensions.apply()
 
     if (Knowledge.experimental_cuda_enabled) {
-      FindAnnotatedCUDALoops.apply()
       TransformAnnotatedCUDALoops.apply()
-      AdaptKernelDimensionalities.apply()
-      HandleKernelReductions.apply()
     }
 
     TypeInference.apply() // second sweep for any newly introduced nodes - TODO: check if this is necessary

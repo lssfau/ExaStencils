@@ -25,7 +25,7 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
     externalDependencies += "cuda_runtime.h"
   }
 
-  var kernelCollection = ListBuffer[KernelFromLoop]()
+  var kernelCollection = ListBuffer[ExpKernel]()
   var requiredRedKernels = HashSet[String]()
   var counterMap = HashMap[String, Int]()
 
@@ -39,14 +39,14 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
     //kernelCollection += kernel
   }
 
-  def addKernel(kernel : KernelFromLoop) = {
+  def addKernel(kernel : ExpKernel) = {
     kernelCollection += kernel
   }
 
   def convertToFunctions = {
     for (kernel <- kernelCollection) {
-      functions += kernel.compileKernelFunctionPrimitive
-      functions += kernel.compileWrapperFunctionPrimitive
+      functions += kernel.compileKernelFunction
+      functions += kernel.compileWrapperFunction
     }
     kernelCollection.clear // consume processed kernels
 
@@ -322,13 +322,13 @@ case class Kernel(var identifier : String,
   }
 }
 
-case class KernelFromLoop(var identifier : String,
+object ExpKernel {
+  def wrapperPostfix = "_wrapper"
+}
+
+case class ExpKernel(var identifier : String,
     var passThroughArgs : ListBuffer[VariableAccess],
-    var begin : Statement,
-    var end : Expression,
-    var inc : Statement,
-    var body : ListBuffer[Statement],
-    var reduction : Option[Reduction] = None) extends Node {
+    var body : ListBuffer[Statement]) extends Node {
 
   import Kernel._
 
@@ -339,8 +339,18 @@ case class KernelFromLoop(var identifier : String,
   def getKernelFctName : String = identifier
   def getWrapperFctName : String = identifier + wrapperPostfix
 
-  def evalFieldAccesses = {
+  /**
+    * Check the accesses in the loop to create valid function calls.
+    */
+  def evalAccesses = {
     if (!evaluatedAccesses) {
+
+      // eval loop start
+
+      // eval loop end
+
+      // eval loop body
+
       GatherLocalLinearizedFieldAccess.fieldAccesses.clear
       GatherLocalLinearizedFieldAccess.applyStandalone(Scope(body))
       fieldAccesses = GatherLocalLinearizedFieldAccess.fieldAccesses
@@ -362,15 +372,51 @@ case class KernelFromLoop(var identifier : String,
     }
   }
 
-  def compileKernelBodyPrimitive : ListBuffer[Statement] = {
-    var statements = ListBuffer[Statement]()
-    statements ++= body
-    statements
+  def compileKernelBody : ListBuffer[Statement] = {
+    evalAccesses // ensure that field accesses have been mapped
+
+
+    // add actual body after replacing field and iv accesses
+    ReplacingLocalLinearizedFieldAccess.fieldAccesses = fieldAccesses
+    ReplacingLocalLinearizedFieldAccess.applyStandalone(Scope(body))
+    ReplacingLocalIVs.ivAccesses = ivAccesses
+    ReplacingLocalIVs.applyStandalone(Scope(body))
+
+    body
   }
 
-  def compileWrapperFunctionPrimitive : FunctionStatement = {
+  def compileWrapperFunction : FunctionStatement = {
+    evalAccesses // ensure that field accesses have been mapped
+
+    // compile arguments for device function call
+    var callArgs = ListBuffer[Expression]()
+
+    for (fieldAccess <- fieldAccesses) {
+      val fieldSelection = fieldAccess._2.fieldSelection
+      callArgs += iv.FieldDeviceData(fieldSelection.field, fieldSelection.level, fieldSelection.slot)
+    }
+    for (ivAccess <- ivAccesses) {
+      val access = Duplicate(ivAccess._2)
+      // Hack for Vec3 -> TODO: split Vec3 iv's into separate real iv's
+      access.resolveDataType match {
+        case SpecialDatatype("Vec3") => callArgs += FunctionCallExpression("make_double3", (0 until 3).map(dim => ArrayAccess(ivAccess._2, dim) : Expression).to[ListBuffer])
+        case SpecialDatatype("Vec3i") => callArgs += FunctionCallExpression("make_double3", (0 until 3).map(dim =>
+          ArrayAccess(ivAccess._2, dim) : Expression).to[ListBuffer])
+        case _ => callArgs += ivAccess._2
+      }
+    }
+    for (variableAccess <- passThroughArgs) {
+      callArgs += Duplicate(variableAccess)
+    }
+
+    // evaluate required thread counts
+    val numThreadsPerDim = Array[ Long ](1, 1)
+
+    var body = ListBuffer[Statement]()
+    body += new CUDA_FunctionCallExpression(getKernelFctName, callArgs, numThreadsPerDim)
+
     FunctionStatement(
-      if (reduction.isDefined) reduction.get.target.dType.get else UnitDatatype,
+      UnitDatatype,
       getWrapperFctName,
       Duplicate(passThroughArgs),
       body,
@@ -378,16 +424,11 @@ case class KernelFromLoop(var identifier : String,
       "extern \"C\"")
   }
 
-  def compileKernelFunctionPrimitive : FunctionStatement = {
-    evalFieldAccesses // ensure that field accesses have been mapped
+  def compileKernelFunction : FunctionStatement = {
+    evalAccesses // ensure that field accesses have been mapped
 
     // compile parameters for device function
     var fctParams = ListBuffer[VariableAccess]()
-
-    for (dim <- 0 until 1) {
-      fctParams += VariableAccess(s"begin_$dim", Some(IntegerDatatype))
-      fctParams += VariableAccess(s"end_$dim", Some(IntegerDatatype))
-    }
 
     for (fieldAccess <- fieldAccesses) {
       val fieldSelection = fieldAccess._2.fieldSelection
@@ -397,6 +438,7 @@ case class KernelFromLoop(var identifier : String,
       var access = VariableAccess(ivAccess._1, Some(ivAccess._2.resolveDataType))
       access.dType match {
         case Some(SpecialDatatype("Vec3")) => access.dType = Some(SpecialDatatype("double3"))
+        case Some(SpecialDatatype("Vec3i")) => access.dType = Some(SpecialDatatype("double3"))
         case _ =>
       }
       fctParams += access
@@ -407,7 +449,7 @@ case class KernelFromLoop(var identifier : String,
 
     val fct = FunctionStatement(
       UnitDatatype, getKernelFctName, fctParams,
-      compileKernelBodyPrimitive,
+      compileKernelBody,
       allowInlining = false, allowFortranInterface = false, "__global__")
 
     fct.annotate("deviceOnly")

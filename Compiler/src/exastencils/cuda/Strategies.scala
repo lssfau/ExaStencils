@@ -32,23 +32,17 @@ object AnnotateLoopsForCUDATransformation extends DefaultStrategy("Annotate loop
   }, false)
 }
 
-object FindAnnotatedCUDALoops extends DefaultStrategy("Find annotated CUDA loops") {
-  this += new Transformation("Find CUDA loops", {
-    case loop : ForLoopStatement =>
-      if (loop.hasAnnotation("CUDALoop"))
-        println("This node is an annotated CUDA loop: " + loop)
-      loop
-  }, true)
-}
-
 object TransformAnnotatedCUDALoops extends DefaultStrategy("Transform CUDA loop in host and device code") {
   val collector = new FctNameCollector
   this.register(collector)
 
   this += new Transformation("Transform CUDA loop in host and device code", {
     case loop : ForLoopStatement if loop.hasAnnotation("CUDALoop") =>
+      loop.removeAnnotation("CUDALoop")
+      val loopAsStmtsList = ListBuffer[Statement](loop)
+
       GatherLocalFieldAccess.fieldAccesses.clear
-      GatherLocalFieldAccess.applyStandalone(Scope(loop.body))
+      GatherLocalFieldAccess.applyStandalone(Scope(loopAsStmtsList))
 
       /// compile host statements
       var hostStmts = ListBuffer[Statement]()
@@ -92,38 +86,17 @@ object TransformAnnotatedCUDALoops extends DefaultStrategy("Transform CUDA loop 
       val kernelFunctions = StateManager.findFirst[KernelFunctions]().get
 
       GatherLocalVariableAccesses.clear
-      GatherLocalVariableAccesses.applyStandalone(Scope(loop.body))
+      GatherLocalVariableAccesses.applyStandalone(Scope(loopAsStmtsList))
       val variableAccesses = GatherLocalVariableAccesses.accesses.toSeq.sortBy(_._1).map(_._2).to[ListBuffer]
 
-      val kernel = KernelFromLoop(
+      val kernel = ExpKernel(
         kernelFunctions.getIdentifier(collector.getCurrentName),
         variableAccesses,
-        loop.begin,
-        loop.end,
-        loop.inc,
-        loop.body,
-        loop.reduction)
-
-//      val kernel = Kernel(
-//        kernelFunctions.getIdentifier(collector.getCurrentName),
-//        variableAccesses,
-//        1,
-//        IndexRange(MultiIndex(Array(loop.end)), MultiIndex(Array(loop.end))),
-//        loop.body,
-//        loop.reduction,
-//        None)
+        loopAsStmtsList)
 
       kernelFunctions.addKernel(Duplicate(kernel))
 
-      // process return value of kernel wrapper call if reduction is required
-      if (loop.reduction.isDefined) {
-        val red = loop.reduction.get
-        deviceStmts += AssignmentStatement(red.target,
-          BinaryOperators.CreateExpression(red.op, red.target,
-            FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[Expression]))))
-      } else {
-        deviceStmts += FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[Expression]))
-      }
+      deviceStmts += FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[Expression]))
 
       if (Knowledge.experimental_cuda_syncDeviceAfterKernelCalls)
         deviceStmts += CUDA_DeviceSynchronize()

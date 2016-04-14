@@ -577,9 +577,9 @@ private object MinMaxPrinter {
       for (i <- 0 until args.length - 1)
         out << method << '('
       val it : Iterator[Expression] = args.iterator
-      out << it.next()
+      out << "static_cast<double>(" << it.next() << ')'
       while (it.hasNext)
-        out << ',' << it.next() << ')'
+        out << ", static_cast<double>(" << it.next() << ')' << ')'
     }
   }
 }
