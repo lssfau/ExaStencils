@@ -83,9 +83,9 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
       // add index calculation
       // FIXME: datatype for VariableAccess
       fctBody += new VariableDeclarationStatement(it,
-        MemberAccess(VariableAccess("blockIdx", None), it) *
-          MemberAccess(VariableAccess("blockDim", None), it) +
-          MemberAccess(VariableAccess("threadIdx", None), it))
+        MemberAccess(VariableAccess("blockIdx", None), it.name) *
+          MemberAccess(VariableAccess("blockDim", None), it.name) +
+          MemberAccess(VariableAccess("threadIdx", None), it.name))
       fctBody += new AssignmentStatement(it, 2 * stride, "*=")
 
       // add index bounds conditions
@@ -203,9 +203,9 @@ case class Kernel(var identifier : String,
     // add index calculation
     val minIndices = LoopOverDimensions.evalMinIndex(indices.begin, numDimensions, true)
     statements ++= (0 until numDimensions).map(dim => {
-      def it = new VariableAccess(dimToString(dim), IntegerDatatype)
+      val it = dimToString(dim)
       // FIXME: datatype for VariableAccess
-      VariableDeclarationStatement(IntegerDatatype, it.name,
+      VariableDeclarationStatement(IntegerDatatype, it,
         Some(MemberAccess(VariableAccess("blockIdx", None), it) *
           MemberAccess(VariableAccess("blockDim", None), it) +
           MemberAccess(VariableAccess("threadIdx", None), it) +

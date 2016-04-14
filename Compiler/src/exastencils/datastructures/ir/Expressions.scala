@@ -451,8 +451,8 @@ case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection,
   }
 }
 
-case class MemberAccess(var base : Access, var varAcc : VariableAccess) extends Access {
-  override def prettyprint(out : PpStream) : Unit = out << base << '.' << varAcc
+case class MemberAccess(var base : Access, var member : String) extends Access {
+  override def prettyprint(out : PpStream) : Unit = out << base << '.' << member
 }
 
 case class DerefAccess(var base : Access) extends Access {

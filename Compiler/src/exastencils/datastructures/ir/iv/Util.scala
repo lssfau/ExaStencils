@@ -16,7 +16,7 @@ case class Timer(var name : Expression) extends UnduplicatedVariable with Access
 
   override def getCtor() : Option[Statement] = {
     // FIXME: datatype for VariableAccess
-    Some(AssignmentStatement(MemberAccess(VariableAccess(resolveName, Some(resolveDataType)), VariableAccess("timerName", None)), StringConstant(stripName)))
+    Some(AssignmentStatement(MemberAccess(VariableAccess(resolveName, Some(resolveDataType)), "timerName"), StringConstant(stripName)))
   }
 }
 

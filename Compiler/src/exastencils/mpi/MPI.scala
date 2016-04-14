@@ -198,7 +198,7 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
               new VariableDeclarationStatement(msg),
               new VariableDeclarationStatement(len),
               new FunctionCallExpression("MPI_Error_string", ListBuffer[Expression](
-                MemberAccess(stat, VariableAccess("MPI_ERROR", Some(IntegerDatatype))), msg, AddressofExpression(len))),
+                MemberAccess(stat, "MPI_ERROR"), msg, AddressofExpression(len))),
               new PrintStatement(ListBuffer[Expression]("\"MPI Error encountered (\"", msg, "\")\""))))),
           new AssignmentStatement(DerefAccess(request), FunctionCallExpression("MPI_Request", ListBuffer()))),
         false)
@@ -212,7 +212,7 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
             new VariableDeclarationStatement(msg),
             new VariableDeclarationStatement(len),
             new FunctionCallExpression("MPI_Error_string", ListBuffer[Expression](
-              MemberAccess(stat, VariableAccess("MPI_ERROR", Some(IntegerDatatype))), msg, AddressofExpression(len))),
+              MemberAccess(stat, "MPI_ERROR"), msg, AddressofExpression(len))),
             new PrintStatement(ListBuffer[Expression]("\"MPI Error encountered (\"", msg, "\")\"")))),
           new AssignmentStatement(DerefAccess(request), FunctionCallExpression("MPI_Request", ListBuffer()))),
         false)
