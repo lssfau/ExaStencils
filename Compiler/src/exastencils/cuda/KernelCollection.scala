@@ -394,8 +394,6 @@ case class ExpKernel(var identifier : String,
     ReplacingLocalLinearizedFieldAccess.applyStandalone(Scope(body))
     ReplacingLocalIVs.ivAccesses = ivAccesses
     ReplacingLocalIVs.applyStandalone(Scope(body))
-    ReplacingLocalIVArrays.ivArrayAccesses = ivArrayAccesses
-    ReplacingLocalIVArrays.applyStandalone((Scope(body)))
 
     body
   }
@@ -414,9 +412,10 @@ case class ExpKernel(var identifier : String,
       val access = Duplicate(ivAccess._2)
       // Hack for Vec3 -> TODO: split Vec3 iv's into separate real iv's
       access.resolveDataType match {
-        case SpecialDatatype("Vec3") => callArgs += FunctionCallExpression("make_double3", (0 until 3).map(dim => ArrayAccess(ivAccess._2, dim) : Expression).to[ListBuffer])
-        case SpecialDatatype("Vec3i") => callArgs += FunctionCallExpression("make_double3", (0 until 3).map(dim =>
-          ArrayAccess(ivAccess._2, dim) : Expression).to[ListBuffer])
+        case SpecialDatatype("Vec3") => callArgs ++= (0 until 3).map(dim => ArrayAccess(ivAccess._2, dim) : Expression).to[ListBuffer]
+        case SpecialDatatype("Vec3i") => callArgs ++= (0 until 3).map(dim => ArrayAccess(ivAccess._2, dim) :
+          Expression).to[ListBuffer]
+
         case _ => callArgs += ivAccess._2
       }
     }
@@ -450,14 +449,16 @@ case class ExpKernel(var identifier : String,
       fctParams += VariableAccess(fieldAccess._1, Some(PointerDatatype(fieldSelection.field.resolveDeclType)))
     }
     for (ivAccess <- ivAccesses) {
-      var access = VariableAccess(ivAccess._1, Some(ivAccess._2.resolveDataType))
+      val datatype = ivAccess._2.resolveDataType
 
-      access.dType match {
-        case Some(SpecialDatatype("Vec3")) => access.dType = Some(SpecialDatatype("double3"))
-        case Some(SpecialDatatype("Vec3i")) => access.dType = Some(SpecialDatatype("double3"))
-        case _ =>
+
+      datatype match {
+        case SpecialDatatype("Vec3") =>
+          fctParams ++= (0 until 3).map(dim => VariableAccess(ivAccess._1 + '_' + dim, Some(SpecialDatatype("double")))).to[ListBuffer]
+        case SpecialDatatype("Vec3i") =>
+          fctParams ++= (0 until 3).map(dim => VariableAccess(ivAccess._1 + '_' + dim, Some(SpecialDatatype("double")))).to[ListBuffer]
+        case _ => fctParams += VariableAccess(ivAccess._1, Some(datatype))
       }
-      fctParams += access
     }
     for (variableAccess <- passThroughArgs) {
       fctParams += Duplicate(variableAccess)
@@ -557,11 +558,13 @@ object GatherLocalIVArrays extends QuietDefaultStrategy("Gathering local Interna
 }
 
 object ReplacingLocalIVArrays extends QuietDefaultStrategy("Replacing local InternalVariable nodes") {
-  var ivArrayAccesses = HashMap[String, ArrayAccess]()
+  var ivAccesses = HashMap[String, iv.InternalVariable]()
 
   this += new Transformation("Searching", {
-    case ivArray : ArrayAccess =>
-      val ivArrayAccess = ivArrayAccesses.find(_._2 == ivArray).get // TODO: improve performance
-      ivArrayAccess._2
+    case ivArray : ArrayAccess if ivArray.base.isInstanceOf[VariableAccess] =>
+      val ivAccess = ivAccesses.find(_._2 == ivArray.base).get
+      val iv = ivArray.base.asInstanceOf[VariableAccess]
+
+      MemberAccess(iv, "")
   })
 }
