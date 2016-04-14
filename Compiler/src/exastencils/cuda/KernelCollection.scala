@@ -335,6 +335,7 @@ case class ExpKernel(var identifier : String,
   var evaluatedAccesses = false
   var fieldAccesses = HashMap[String, LinearizedFieldAccess]()
   var ivAccesses = HashMap[String, iv.InternalVariable]()
+  var ivArrayAccesses = HashMap[String, ArrayAccess]()
 
   def getKernelFctName : String = identifier
   def getWrapperFctName : String = identifier + wrapperPostfix
@@ -359,6 +360,10 @@ case class ExpKernel(var identifier : String,
       GatherLocalIVs.applyStandalone(Scope(body))
       ivAccesses = GatherLocalIVs.ivAccesses
 
+      GatherLocalIVArrays.ivArrayAccesses.clear
+      GatherLocalIVArrays.applyStandalone(Scope(body))
+      ivArrayAccesses = GatherLocalIVArrays.ivArrayAccesses
+
       // postprocess iv's -> generate parameter names
       var cnt = 0
       val processedIVs = HashMap[String, iv.InternalVariable]()
@@ -381,6 +386,8 @@ case class ExpKernel(var identifier : String,
     ReplacingLocalLinearizedFieldAccess.applyStandalone(Scope(body))
     ReplacingLocalIVs.ivAccesses = ivAccesses
     ReplacingLocalIVs.applyStandalone(Scope(body))
+    ReplacingLocalIVArrays.ivArrayAccesses = ivArrayAccesses
+    ReplacingLocalIVArrays.applyStandalone((Scope(body)))
 
     body
   }
@@ -436,6 +443,7 @@ case class ExpKernel(var identifier : String,
     }
     for (ivAccess <- ivAccesses) {
       var access = VariableAccess(ivAccess._1, Some(ivAccess._2.resolveDataType))
+
       access.dType match {
         case Some(SpecialDatatype("Vec3")) => access.dType = Some(SpecialDatatype("double3"))
         case Some(SpecialDatatype("Vec3i")) => access.dType = Some(SpecialDatatype("double3"))
@@ -527,5 +535,25 @@ object ReplacingLocalIVs extends QuietDefaultStrategy("Replacing local InternalV
     case iv : iv.InternalVariable =>
       val ivAccess = ivAccesses.find(_._2 == iv).get // TODO: improve performance
       VariableAccess(ivAccess._1, Some(ivAccess._2.resolveDataType))
+  })
+}
+
+object GatherLocalIVArrays extends QuietDefaultStrategy("Gathering local InternalVariable nodes") {
+  var ivArrayAccesses = HashMap[String, ArrayAccess]()
+
+  this += new Transformation("Searching", {
+    case ivArray : ArrayAccess =>
+      ivArrayAccesses.put(ivArray.prettyprint(), ivArray)
+      ivArray
+  }, false)
+}
+
+object ReplacingLocalIVArrays extends QuietDefaultStrategy("Replacing local InternalVariable nodes") {
+  var ivArrayAccesses = HashMap[String, ArrayAccess]()
+
+  this += new Transformation("Searching", {
+    case ivArray : ArrayAccess =>
+      val ivArrayAccess = ivArrayAccesses.find(_._2 == ivArray).get // TODO: improve performance
+      ivArrayAccess._2
   })
 }
