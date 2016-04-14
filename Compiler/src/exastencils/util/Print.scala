@@ -17,20 +17,22 @@ case class BuildStringStatement(var stringName : Expression, var toPrint : ListB
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintStatement\n"
 
   override def expand : Output[StatementList] = {
-    val streamName = s"string_builder_${BuildStringStatement.counter}"
+    val streamName = BuildStringStatement.getNewName()
     var statements = ListBuffer[Statement](
       VariableDeclarationStatement(SpecialDatatype("std::ostringstream"), streamName),
       (streamName : Expression) ~ " << " ~ toPrint.reduceLeft((l, e) => l ~ " << " ~ e),
-      AssignmentStatement(stringName, MemberFunctionCallExpression(streamName, "str", ListBuffer())))
-
-    BuildStringStatement.counter += 1
+      AssignmentStatement(stringName, MemberFunctionCallExpression(VariableAccess(streamName, Some(SpecialDatatype("std::ostringstream"))), "str", ListBuffer())))
 
     /*Scope*/ (statements)
   }
 }
 
-object BuildStringStatement {
-  var counter : Int = 0
+private object BuildStringStatement {
+  private var counter : Int = 0
+  def getNewName() : String = {
+    counter += 1
+    return "string_builder_%02d".format(counter)
+  }
 }
 
 case class PrintStatement(var toPrint : ListBuffer[Expression], var stream : String = "std::cout") extends Statement with Expandable {

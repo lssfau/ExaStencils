@@ -81,7 +81,11 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
       var fctBody = ListBuffer[Statement]()
 
       // add index calculation
-      fctBody += new VariableDeclarationStatement(it, ("blockIdx." ~ it) * ("blockDim." ~ it) + ("threadIdx." ~ it))
+      // FIXME: datatype for VariableAccess
+      fctBody += new VariableDeclarationStatement(it,
+        MemberAccess(VariableAccess("blockIdx", None), it) *
+          MemberAccess(VariableAccess("blockDim", None), it) +
+          MemberAccess(VariableAccess("threadIdx", None), it))
       fctBody += new AssignmentStatement(it, 2 * stride, "*=")
 
       // add index bounds conditions
@@ -199,9 +203,13 @@ case class Kernel(var identifier : String,
     // add index calculation
     val minIndices = LoopOverDimensions.evalMinIndex(indices.begin, numDimensions, true)
     statements ++= (0 until numDimensions).map(dim => {
-      def it = dimToString(dim)
-      VariableDeclarationStatement(IntegerDatatype, it,
-        Some(("blockIdx." ~ it) * ("blockDim." ~ it) + ("threadIdx." ~ it) + minIndices(dim)))
+      def it = new VariableAccess(dimToString(dim), IntegerDatatype)
+      // FIXME: datatype for VariableAccess
+      VariableDeclarationStatement(IntegerDatatype, it.name,
+        Some(MemberAccess(VariableAccess("blockIdx", None), it) *
+          MemberAccess(VariableAccess("blockDim", None), it) +
+          MemberAccess(VariableAccess("threadIdx", None), it) +
+          minIndices(dim)))
     })
 
     // add index bounds conditions

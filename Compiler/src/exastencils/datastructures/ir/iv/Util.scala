@@ -7,6 +7,7 @@ import exastencils.globals._
 import exastencils.knowledge._
 import exastencils.logger._
 
+// FIXME: why is name an Expression?
 case class Timer(var name : Expression) extends UnduplicatedVariable with Access {
   override def resolveName = s"timer_" + stripName
   override def resolveDataType = "StopWatch"
@@ -14,7 +15,8 @@ case class Timer(var name : Expression) extends UnduplicatedVariable with Access
   def stripName = name.prettyprint.replaceAll("[^a-zA-Z0-9]", "_")
 
   override def getCtor() : Option[Statement] = {
-    Some(AssignmentStatement(resolveName ~ ".timerName", StringConstant(stripName)))
+    // FIXME: datatype for VariableAccess
+    Some(AssignmentStatement(MemberAccess(VariableAccess(resolveName, Some(resolveDataType)), VariableAccess("timerName", None)), StringConstant(stripName)))
   }
 }
 
