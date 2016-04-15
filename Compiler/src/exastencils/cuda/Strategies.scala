@@ -13,34 +13,59 @@ import exastencils.polyhedron._
 
 import scala.collection.mutable._
 
-object AnnotateLoopsForCUDATransformation extends DefaultStrategy("Annotate loops that should late be transformed " +
-  "into CUDA code") {
+/**
+  * This transformation is used to annotate all Statements/Loops that should be considered as potential CUDA code.
+  * The relevant code has to be annotated because the conversion into CUDA code takes place after polyhedral
+  * optimization.
+  */
+object AnnotateCudaRelevantCode extends DefaultStrategy("Annotate statement/loops that should be taken into account " +
+  "for CUDA code generation") {
+  val CudaLoopAnnotation = "CUDALoop"
+  val CudaLoopTransformAnnotation = "CUDALoopToTransform"
+
   this += new Transformation("Annotate LoopOverDimensions nodes", {
     case loop : LoopOverDimensions =>
 
-      // check for elimination criteria
-      var earlyExit = false
-      if (!loop.isInstanceOf[PolyhedronAccessible])
-        earlyExit = true // always use host for special loops
-      if (!loop.isInstanceOf[OMP_PotentiallyParallel])
-        earlyExit = true // always use host for un-parallelizable loops
-
-      if (!earlyExit)
-        loop.annotate("CUDALoop")
+      // every LoopOverDimensions statement is potentially worse to transform in CUDA code
+      // Exceptions:
+      // 1. this loop is a special one and cannot be optimized in polyhedral model
+      // 2. this loop has no parallel potential
+      // use the host for dealing with the two exceptional cases
+      if (!(!loop.isInstanceOf[PolyhedronAccessible] || !loop.isInstanceOf[OMP_PotentiallyParallel]))
+        loop.annotate(CudaLoopAnnotation)
+        loop.annotate(CudaLoopTransformAnnotation)
 
       loop
   }, false)
 }
 
-object TransformAnnotatedCUDALoops extends DefaultStrategy("Transform CUDA loop in host and device code") {
+/**
+  * This transformation is used to convert annotated code into CUDA device code and host code.
+  * This transformation is applied after the polyhedral optimization to work on optimized for loops.
+  */
+object TransformAnnotatedCudaLoops extends DefaultStrategy("Transform annotated CUDA loop in host and device code") {
   val collector = new FctNameCollector
   this.register(collector)
 
-  this += new Transformation("Transform CUDA loop in host and device code", {
-    case loop : ForLoopStatement if loop.hasAnnotation("CUDALoop") =>
-      loop.removeAnnotation("CUDALoop")
-      val loopAsStmtsList = ListBuffer[Statement](loop)
+  def annotateInnerLoops(loop : ForLoopStatement) : ForLoopStatement = {
+    val loops : ListBuffer[ForLoopStatement] = loop.body.filter(_.isInstanceOf[ForLoopStatement])
+      .asInstanceOf[ListBuffer[ForLoopStatement]]
+    loops.foreach(_.annotate(AnnotateCudaRelevantCode.CudaLoopAnnotation))
+    loops.map(annotateInnerLoops(_))
+    loop
+  }
 
+  this += new Transformation("Transform annotated CUDA loop in host and device code", {
+    case loop : ForLoopStatement if loop.hasAnnotation(AnnotateCudaRelevantCode.CudaLoopAnnotation) && loop
+      .hasAnnotation(AnnotateCudaRelevantCode.CudaLoopTransformAnnotation) =>
+      // annotate inner loops to avoid openmp pragmas
+      annotateInnerLoops(loop)
+      // remove the annotation first to guarantee single application of this transformation.
+      loop.removeAnnotation(AnnotateCudaRelevantCode.CudaLoopTransformAnnotation)
+
+
+      val loopAsStmtsList = ListBuffer[Statement](loop)
+      // collect local FieldAccess nodes to determine required data exchange
       GatherLocalFieldAccess.fieldAccesses.clear
       GatherLocalFieldAccess.applyStandalone(Scope(loopAsStmtsList))
 
@@ -85,6 +110,7 @@ object TransformAnnotatedCUDALoops extends DefaultStrategy("Transform CUDA loop 
       // add kernel and kernel call
       val kernelFunctions = StateManager.findFirst[KernelFunctions]().get
 
+      // collect local variable accesses because these variables need to be passed to the kernel at call
       GatherLocalVariableAccesses.clear
       GatherLocalVariableAccesses.applyStandalone(Scope(loopAsStmtsList))
       val variableAccesses = GatherLocalVariableAccesses.accesses.toSeq.sortBy(_._1).map(_._2).to[ListBuffer]

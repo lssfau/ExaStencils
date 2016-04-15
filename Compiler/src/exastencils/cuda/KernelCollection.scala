@@ -343,14 +343,13 @@ case class ExpKernel(var identifier : String,
   var evaluatedAccesses = false
   var fieldAccesses = HashMap[String, LinearizedFieldAccess]()
   var ivAccesses = HashMap[String, iv.InternalVariable]()
-  var ivArrayAccesses = HashMap[String, ArrayAccess]()
 
   def getKernelFctName : String = identifier
   def getWrapperFctName : String = identifier + wrapperPostfix
 
   /**
-    * Check the accesses in the loop to create valid function calls.
-    */
+   * Check the accesses in the loop to create valid function calls.
+   */
   def evalAccesses = {
     if (!evaluatedAccesses) {
 
@@ -368,10 +367,6 @@ case class ExpKernel(var identifier : String,
       GatherLocalIVs.applyStandalone(Scope(body))
       ivAccesses = GatherLocalIVs.ivAccesses
 
-      GatherLocalIVArrays.ivArrayAccesses.clear
-      GatherLocalIVArrays.applyStandalone(Scope(body))
-      ivArrayAccesses = GatherLocalIVArrays.ivArrayAccesses
-
       // postprocess iv's -> generate parameter names
       var cnt = 0
       val processedIVs = HashMap[String, iv.InternalVariable]()
@@ -388,12 +383,12 @@ case class ExpKernel(var identifier : String,
   def compileKernelBody : ListBuffer[Statement] = {
     evalAccesses // ensure that field accesses have been mapped
 
-
     // add actual body after replacing field and iv accesses
     ReplacingLocalLinearizedFieldAccess.fieldAccesses = fieldAccesses
     ReplacingLocalLinearizedFieldAccess.applyStandalone(Scope(body))
     ReplacingLocalIVs.ivAccesses = ivAccesses
     ReplacingLocalIVs.applyStandalone(Scope(body))
+    ReplacingLocalIVArrays.applyStandalone(Scope(body))
 
     body
   }
@@ -413,8 +408,7 @@ case class ExpKernel(var identifier : String,
       // Hack for Vec3 -> TODO: split Vec3 iv's into separate real iv's
       access.resolveDataType match {
         case SpecialDatatype("Vec3") => callArgs ++= (0 until 3).map(dim => ArrayAccess(ivAccess._2, dim) : Expression).to[ListBuffer]
-        case SpecialDatatype("Vec3i") => callArgs ++= (0 until 3).map(dim => ArrayAccess(ivAccess._2, dim) :
-          Expression).to[ListBuffer]
+        case SpecialDatatype("Vec3i") => callArgs ++= (0 until 3).map(dim => ArrayAccess(ivAccess._2, dim) : Expression).to[ListBuffer]
 
         case _ => callArgs += ivAccess._2
       }
@@ -424,7 +418,7 @@ case class ExpKernel(var identifier : String,
     }
 
     // evaluate required thread counts
-    val numThreadsPerDim = Array[ Long ](1, 1)
+    val numThreadsPerDim = Array[Long](1, 1)
 
     var body = ListBuffer[Statement]()
     body += new CUDA_FunctionCallExpression(getKernelFctName, callArgs, numThreadsPerDim)
@@ -450,7 +444,6 @@ case class ExpKernel(var identifier : String,
     }
     for (ivAccess <- ivAccesses) {
       val datatype = ivAccess._2.resolveDataType
-
 
       datatype match {
         case SpecialDatatype("Vec3") =>
@@ -547,24 +540,25 @@ object ReplacingLocalIVs extends QuietDefaultStrategy("Replacing local InternalV
   })
 }
 
-object GatherLocalIVArrays extends QuietDefaultStrategy("Gathering local InternalVariable nodes") {
-  var ivArrayAccesses = HashMap[String, ArrayAccess]()
-
-  this += new Transformation("Searching", {
-    case ivArray : ArrayAccess =>
-      ivArrayAccesses.put(ivArray.prettyprint(), ivArray)
-      ivArray
-  }, false)
-}
-
 object ReplacingLocalIVArrays extends QuietDefaultStrategy("Replacing local InternalVariable nodes") {
-  var ivAccesses = HashMap[String, iv.InternalVariable]()
+
+  def checkAccess(ivArray : ArrayAccess) : Boolean = {
+    var result = false
+
+    (ivArray.base, ivArray.index) match {
+      case (ivAccess : VariableAccess, i : IntegerConstant) =>
+        result = ivAccess.dType.contains(SpecialDatatype("Vec3i"))
+      case _ =>
+    }
+
+    result
+  }
 
   this += new Transformation("Searching", {
-    case ivArray : ArrayAccess if ivArray.base.isInstanceOf[VariableAccess] =>
-      val ivAccess = ivAccesses.find(_._2 == ivArray.base).get
+    case ivArray : ArrayAccess if checkAccess(ivArray) =>
       val iv = ivArray.base.asInstanceOf[VariableAccess]
+      val i = ivArray.index.asInstanceOf[IntegerConstant]
 
-      MemberAccess(iv, "")
+      VariableAccess(iv.name + '_' + i.v, Some(SpecialDatatype("double")))
   })
 }

@@ -231,7 +231,7 @@ object MainChristoph {
     if (Knowledge.experimental_addPerformanceEstimate)
       AddPerformanceEstimates()
     if (Knowledge.experimental_cuda_enabled) {
-      AnnotateLoopsForCUDATransformation.apply()
+      AnnotateCudaRelevantCode.apply()
     }
 
     MapStencilAssignments.apply()
@@ -259,7 +259,7 @@ object MainChristoph {
     ResolveLoopOverDimensions.apply()
 
     if (Knowledge.experimental_cuda_enabled) {
-      TransformAnnotatedCUDALoops.apply()
+      TransformAnnotatedCudaLoops.apply()
     }
 
     TypeInference.apply() // second sweep for any newly introduced nodes - TODO: check if this is necessary
