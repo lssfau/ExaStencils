@@ -249,9 +249,10 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     var offset : Long = 0
 
     this += new Transformation("apply", {
-      case vAcc @ VariableAccess(v, Some(IntegerDatatype)) if (v == itVar) =>
+      case vAcc @ VariableAccess(v, _) if (v == itVar) =>
         if (offset != 0 && !vAcc.removeAnnotation(SKIP_ANNOT).isDefined) {
           vAcc.annotate(SKIP_ANNOT) // already done
+          vAcc.dType = Some(IntegerDatatype) // fix type, if required
           new AdditionExpression(vAcc, IntegerConstant(offset))
         } else
           vAcc

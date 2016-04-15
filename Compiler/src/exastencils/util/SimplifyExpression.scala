@@ -421,15 +421,15 @@ object SimplifyExpression {
         res = new HashMap[Expression, Double]()
         res(constName) = d
 
-      case VariableAccess(varName, _) =>
+      case VariableAccess(varName, dt) =>
         res = new HashMap[Expression, Double]()
-        res(VariableAccess(varName, Some(RealDatatype))) = 1d
+        res(VariableAccess(varName, dt.orElse(Some(RealDatatype)))) = 1d // preserve datatype if some
 
       case StringLiteral(varName) =>
         if (varName.contains("std::rand")) // HACK
           throw new EvaluationException("don't optimze code containing a call to std::rand")
         res = new HashMap[Expression, Double]()
-        res(VariableAccess(varName, Some(RealDatatype))) = 1d // ONLY VariableAccess in res keys, NO StringConstant
+        res(VariableAccess(varName, Some(RealDatatype))) = 1d // ONLY VariableAccess in res keys, NO StringLiteral
 
       case aAcc : ArrayAccess =>
         res = new HashMap[Expression, Double]()
