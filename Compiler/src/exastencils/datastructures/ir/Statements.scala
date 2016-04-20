@@ -22,6 +22,7 @@ case object NullStatement extends Statement {
 
 case class Scope(var body : ListBuffer[Statement]) extends Statement {
   def this(body : Statement*) = this(body.to[ListBuffer])
+  def this(body : Statement) = this(ListBuffer[Statement](body))
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "{\n"

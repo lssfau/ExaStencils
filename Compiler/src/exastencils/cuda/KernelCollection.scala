@@ -10,7 +10,7 @@ import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.prettyprinting._
 
-import scala.collection.mutable.{ HashMap, HashSet, ListBuffer }
+import scala.collection.mutable.{HashMap, HashSet, ListBuffer}
 
 case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelFunctions",
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
@@ -336,13 +336,25 @@ object ExpKernel {
 
 case class ExpKernel(var identifier : String,
     var passThroughArgs : ListBuffer[VariableAccess],
-    var body : ListBuffer[Statement]) extends Node {
+    var loopVariables : ListBuffer[String],
+    var lowerBounds : ListBuffer[Expression],
+    var upperBounds : ListBuffer[Expression],
+    var increments : ListBuffer[Expression],
+    var loopBody : ListBuffer[Statement],
+    var loop : ForLoopStatement,
+    var innerLoops : ListBuffer[ForLoopStatement],
+    var reduction : Option[Reduction] = None) extends Node {
 
   import Kernel._
 
   var evaluatedAccesses = false
+  var evaluatedIndices = false
   var fieldAccesses = HashMap[String, LinearizedFieldAccess]()
   var ivAccesses = HashMap[String, iv.InternalVariable]()
+  val executionConfigurationDimensionality = math.min(3,loopVariables.size) // 3D is maximum of dimensions supported
+  // by CUDA
+  var minIndices = Array.fill[Expression](executionConfigurationDimensionality) {0}
+  var maxIndices = Array.fill[Expression](executionConfigurationDimensionality) {0}
 
   def getKernelFctName : String = identifier
   def getWrapperFctName : String = identifier + wrapperPostfix
@@ -352,19 +364,12 @@ case class ExpKernel(var identifier : String,
    */
   def evalAccesses = {
     if (!evaluatedAccesses) {
-
-      // eval loop start
-
-      // eval loop end
-
-      // eval loop body
-
       GatherLocalLinearizedFieldAccess.fieldAccesses.clear
-      GatherLocalLinearizedFieldAccess.applyStandalone(Scope(body))
+      GatherLocalLinearizedFieldAccess.applyStandalone(new Scope(loopBody))
       fieldAccesses = GatherLocalLinearizedFieldAccess.fieldAccesses
 
       GatherLocalIVs.ivAccesses.clear
-      GatherLocalIVs.applyStandalone(Scope(body))
+      GatherLocalIVs.applyStandalone(new Scope(loopBody))
       ivAccesses = GatherLocalIVs.ivAccesses
 
       // postprocess iv's -> generate parameter names
@@ -380,24 +385,64 @@ case class ExpKernel(var identifier : String,
     }
   }
 
+  def evalIndices = {
+    if (!evaluatedIndices) {
+      (0 until executionConfigurationDimensionality).foreach(dim => {
+        minIndices(dim) = lowerBounds(dim)
+        maxIndices(dim) = upperBounds(dim)
+      })
+
+      evaluatedIndices = true
+    }
+  }
+
   def compileKernelBody : ListBuffer[Statement] = {
     evalAccesses // ensure that field accesses have been mapped
+    evalIndices // calculate the minimal and maximal indices used in the loops
+
+    var statements = ListBuffer[Statement]()
+
+    // add index calculation
+    statements ++= (0 until executionConfigurationDimensionality).map(dim => {
+      val it = dimToString(dim)
+      // FIXME: datatype for VariableAccess
+      VariableDeclarationStatement(IntegerDatatype, it,
+        Some(MemberAccess(VariableAccess("blockIdx", None), it) *
+          MemberAccess(VariableAccess("blockDim", None), it) +
+          MemberAccess(VariableAccess("threadIdx", None), it) +
+          minIndices(dim)))
+    })
+
+    // add index bounds conditions
+    statements ++= (0 until executionConfigurationDimensionality).map(dim => {
+      def it = Duplicate(LoopOverDimensions.defItForDim(dim))
+      new ConditionStatement(
+        OrOrExpression(LowerExpression(it, s"begin_$dim"), GreaterEqualExpression(it, s"end_$dim")),
+        ReturnStatement())
+    })
 
     // add actual body after replacing field and iv accesses
     ReplacingLocalLinearizedFieldAccess.fieldAccesses = fieldAccesses
-    ReplacingLocalLinearizedFieldAccess.applyStandalone(Scope(body))
+    ReplacingLocalLinearizedFieldAccess.applyStandalone(new Scope(loopBody))
     ReplacingLocalIVs.ivAccesses = ivAccesses
-    ReplacingLocalIVs.applyStandalone(Scope(body))
-    ReplacingLocalIVArrays.applyStandalone(Scope(body))
+    ReplacingLocalIVs.applyStandalone(new Scope(loopBody))
+    ReplacingLocalIVArrays.applyStandalone(new Scope(loopBody))
 
-    body
+    statements ++= loopBody
+    statements
   }
 
   def compileWrapperFunction : FunctionStatement = {
     evalAccesses // ensure that field accesses have been mapped
+    evalIndices // calculate the minimal and maximal indices used in the loops
 
     // compile arguments for device function call
     var callArgs = ListBuffer[Expression]()
+    for (dim <- 0 until executionConfigurationDimensionality) {
+      // add dimension index start and end point
+      callArgs += minIndices(dim)
+      callArgs += maxIndices(dim)
+    }
 
     for (fieldAccess <- fieldAccesses) {
       val fieldSelection = fieldAccess._2.fieldSelection
@@ -418,7 +463,15 @@ case class ExpKernel(var identifier : String,
     }
 
     // evaluate required thread counts
-    val numThreadsPerDim = Array[Long](1, 1)
+    val minIndex = Array.fill[Long](executionConfigurationDimensionality) {0}
+    val maxIndex = (0 until executionConfigurationDimensionality).map(dim => 1).toArray
+
+    var numThreadsPerDim = (maxIndex, minIndex).zipped.map(_ - _)
+
+    if (null == numThreadsPerDim || numThreadsPerDim.product <= 0) {
+      Logger.warn("Could not evaluate required number of threads for kernel " + identifier)
+      numThreadsPerDim = (0 until executionConfigurationDimensionality).map(dim => 0 : Long).toArray // TODO: replace 0 with sth more suitable
+    }
 
     var body = ListBuffer[Statement]()
     body += new CUDA_FunctionCallExpression(getKernelFctName, callArgs, numThreadsPerDim)
@@ -438,10 +491,16 @@ case class ExpKernel(var identifier : String,
     // compile parameters for device function
     var fctParams = ListBuffer[VariableAccess]()
 
+    for (dim <- 0 until executionConfigurationDimensionality) {
+      fctParams += VariableAccess(s"begin_$dim", Some(IntegerDatatype))
+      fctParams += VariableAccess(s"end_$dim", Some(IntegerDatatype))
+    }
+
     for (fieldAccess <- fieldAccesses) {
       val fieldSelection = fieldAccess._2.fieldSelection
       fctParams += VariableAccess(fieldAccess._1, Some(PointerDatatype(fieldSelection.field.resolveDeclType)))
     }
+
     for (ivAccess <- ivAccesses) {
       val datatype = ivAccess._2.resolveDataType
 
@@ -453,6 +512,7 @@ case class ExpKernel(var identifier : String,
         case _ => fctParams += VariableAccess(ivAccess._1, Some(datatype))
       }
     }
+
     for (variableAccess <- passThroughArgs) {
       fctParams += Duplicate(variableAccess)
     }

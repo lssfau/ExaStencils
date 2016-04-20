@@ -55,19 +55,59 @@ object TransformAnnotatedCudaLoops extends DefaultStrategy("Transform annotated 
     loop
   }
 
+  def verifyLoopSuitability(loop : ForLoopStatement) : Boolean = {
+
+    // check if it is a common for loop
+    var verification = loop.begin.isInstanceOf[VariableDeclarationStatement]
+    verification = verification && loop.end.isInstanceOf[LowerEqualExpression]
+    verification = verification && loop.inc.isInstanceOf[AssignmentStatement]
+    verification
+  }
+
+  def calculateLoopCollapseDimensionality(loop : ForLoopStatement) : ListBuffer[ForLoopStatement] = {
+    val innerLoopCandidate = loop.body.head
+    val loops = ListBuffer[ForLoopStatement](loop)
+
+    innerLoopCandidate match {
+      case innerLoop: ForLoopStatement if verifyLoopSuitability(innerLoop) => loops ++
+        calculateLoopCollapseDimensionality(innerLoop)
+      case _ => loops
+    }
+  }
+
+  def createLoopBounds(loops : ListBuffer[ForLoopStatement]) = {
+    var loopVariables = ListBuffer[String]()
+    var lowerBounds = ListBuffer[Expression]()
+    var upperBounds = ListBuffer[Expression]()
+    var increments = ListBuffer[Expression]()
+
+    loops foreach { loop =>
+      val loopDeclaration = loop.begin.asInstanceOf[VariableDeclarationStatement]
+      loopVariables += loopDeclaration.name
+      lowerBounds += loopDeclaration.expression.get
+      upperBounds += loop.end.asInstanceOf[LowerEqualExpression].right
+      increments += loop.inc.asInstanceOf[AssignmentStatement].src
+    }
+
+    (loopVariables,lowerBounds,upperBounds,increments)
+  }
+
   this += new Transformation("Transform annotated CUDA loop in host and device code", {
     case loop : ForLoopStatement if loop.hasAnnotation(AnnotateCudaRelevantCode.CudaLoopAnnotation) && loop
-      .hasAnnotation(AnnotateCudaRelevantCode.CudaLoopTransformAnnotation) =>
-      // annotate inner loops to avoid openmp pragmas
-      annotateInnerLoops(loop)
+      .hasAnnotation(AnnotateCudaRelevantCode.CudaLoopTransformAnnotation) && verifyLoopSuitability(loop) =>
+
       // remove the annotation first to guarantee single application of this transformation.
       loop.removeAnnotation(AnnotateCudaRelevantCode.CudaLoopTransformAnnotation)
 
+      // annotate inner loops to avoid openmp pragmas
+      annotateInnerLoops(loop)
 
-      val loopAsStmtsList = ListBuffer[Statement](loop)
+      val innerLoops = calculateLoopCollapseDimensionality(loop)
+      val (loopVariables, lowerBounds, upperBounds, increments) = createLoopBounds(innerLoops)
+
       // collect local FieldAccess nodes to determine required data exchange
       GatherLocalFieldAccess.fieldAccesses.clear
-      GatherLocalFieldAccess.applyStandalone(Scope(loopAsStmtsList))
+      GatherLocalFieldAccess.applyStandalone(new Scope(loop))
 
       /// compile host statements
       var hostStmts = ListBuffer[Statement]()
@@ -112,13 +152,20 @@ object TransformAnnotatedCudaLoops extends DefaultStrategy("Transform annotated 
 
       // collect local variable accesses because these variables need to be passed to the kernel at call
       GatherLocalVariableAccesses.clear
-      GatherLocalVariableAccesses.applyStandalone(Scope(loopAsStmtsList))
+      GatherLocalVariableAccesses.applyStandalone(new Scope(loop))
       val variableAccesses = GatherLocalVariableAccesses.accesses.toSeq.sortBy(_._1).map(_._2).to[ListBuffer]
 
       val kernel = ExpKernel(
         kernelFunctions.getIdentifier(collector.getCurrentName),
         variableAccesses,
-        loopAsStmtsList)
+        loopVariables,
+        lowerBounds,
+        upperBounds,
+        increments,
+        loop.body,
+        loop,
+        innerLoops,
+        loop.reduction)
 
       kernelFunctions.addKernel(Duplicate(kernel))
 
@@ -219,7 +266,7 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
           loop.reduction,
           loop.condition)
 
-        //kernelFunctions.addKernel(Duplicate(kernel))
+        kernelFunctions.addKernel(Duplicate(kernel))
 
         // process return value of kernel wrapper call if reduction is required
         if (loop.reduction.isDefined) {
