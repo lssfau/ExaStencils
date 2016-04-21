@@ -11,13 +11,14 @@ import exastencils.knowledge._
 import exastencils.omp._
 import exastencils.polyhedron._
 
+import scala.annotation._
 import scala.collection.mutable._
 
 /**
-  * This transformation is used to annotate all Statements/Loops that should be considered as potential CUDA code.
-  * The relevant code has to be annotated because the conversion into CUDA code takes place after polyhedral
-  * optimization.
-  */
+ * This transformation is used to annotate all Statements/Loops that should be considered as potential CUDA code.
+ * The relevant code has to be annotated because the conversion into CUDA code takes place after polyhedral
+ * optimization.
+ */
 object AnnotateCudaRelevantCode extends DefaultStrategy("Annotate statement/loops that should be taken into account " +
   "for CUDA code generation") {
   val CudaLoopAnnotation = "CUDALoop"
@@ -31,18 +32,19 @@ object AnnotateCudaRelevantCode extends DefaultStrategy("Annotate statement/loop
       // 1. this loop is a special one and cannot be optimized in polyhedral model
       // 2. this loop has no parallel potential
       // use the host for dealing with the two exceptional cases
-      if (!(!loop.isInstanceOf[PolyhedronAccessible] || !loop.isInstanceOf[OMP_PotentiallyParallel]))
+      if (!(!loop.isInstanceOf[PolyhedronAccessible] || !loop.isInstanceOf[OMP_PotentiallyParallel])) {
         loop.annotate(CudaLoopAnnotation)
         loop.annotate(CudaLoopTransformAnnotation)
+      }
 
       loop
   }, false)
 }
 
 /**
-  * This transformation is used to convert annotated code into CUDA device code and host code.
-  * This transformation is applied after the polyhedral optimization to work on optimized for loops.
-  */
+ * This transformation is used to convert annotated code into CUDA device code and host code.
+ * This transformation is applied after the polyhedral optimization to work on optimized for loops.
+ */
 object TransformAnnotatedCudaLoops extends DefaultStrategy("Transform annotated CUDA loop in host and device code") {
   val collector = new FctNameCollector
   this.register(collector)
@@ -64,14 +66,24 @@ object TransformAnnotatedCudaLoops extends DefaultStrategy("Transform annotated 
     verification
   }
 
-  def calculateLoopCollapseDimensionality(loop : ForLoopStatement) : ListBuffer[ForLoopStatement] = {
+  def calculateCollapsingLoops(loop : ForLoopStatement, recursionDepth : Int = 1) : ListBuffer[ForLoopStatement] = {
     val innerLoopCandidate = loop.body.head
     val loops = ListBuffer[ForLoopStatement](loop)
 
     innerLoopCandidate match {
-      case innerLoop: ForLoopStatement if verifyLoopSuitability(innerLoop) => loops ++
-        calculateLoopCollapseDimensionality(innerLoop)
+      case innerLoop : ForLoopStatement if recursionDepth < 3 && loop.body.size == 1 && verifyLoopSuitability(innerLoop)
+    => loops ++
+        calculateCollapsingLoops(innerLoop, recursionDepth + 1)
       case _ => loops
+    }
+  }
+
+  @tailrec
+  def pruneKernelBody(body : ListBuffer[Statement], surplus : ListBuffer[ForLoopStatement]) : ListBuffer[Statement] = {
+    if (surplus.isEmpty || !(body.head.isInstanceOf[ForLoopStatement] && (body.head equals surplus.head))) {
+      body
+    } else {
+      pruneKernelBody(body.head.asInstanceOf[ForLoopStatement].body, surplus.tail)
     }
   }
 
@@ -89,7 +101,7 @@ object TransformAnnotatedCudaLoops extends DefaultStrategy("Transform annotated 
       increments += loop.inc.asInstanceOf[AssignmentStatement].src
     }
 
-    (loopVariables,lowerBounds,upperBounds,increments)
+    (loopVariables, lowerBounds, upperBounds, increments)
   }
 
   this += new Transformation("Transform annotated CUDA loop in host and device code", {
@@ -102,8 +114,9 @@ object TransformAnnotatedCudaLoops extends DefaultStrategy("Transform annotated 
       // annotate inner loops to avoid openmp pragmas
       annotateInnerLoops(loop)
 
-      val innerLoops = calculateLoopCollapseDimensionality(loop)
+      val innerLoops = calculateCollapsingLoops(loop)
       val (loopVariables, lowerBounds, upperBounds, increments) = createLoopBounds(innerLoops)
+      val kernelBody = pruneKernelBody(ListBuffer[Statement](loop), innerLoops)
 
       // collect local FieldAccess nodes to determine required data exchange
       GatherLocalFieldAccess.fieldAccesses.clear
@@ -162,7 +175,7 @@ object TransformAnnotatedCudaLoops extends DefaultStrategy("Transform annotated 
         lowerBounds,
         upperBounds,
         increments,
-        loop.body,
+        kernelBody,
         loop,
         innerLoops,
         loop.reduction)

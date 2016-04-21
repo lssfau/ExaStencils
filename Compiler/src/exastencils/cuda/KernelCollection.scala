@@ -10,7 +10,7 @@ import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.prettyprinting._
 
-import scala.collection.mutable.{HashMap, HashSet, ListBuffer}
+import scala.collection.mutable.{ HashMap, HashSet, ListBuffer }
 
 case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelFunctions",
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
@@ -347,14 +347,15 @@ case class ExpKernel(var identifier : String,
 
   import Kernel._
 
+  val CudaMaxDimensionality = 3
   var evaluatedAccesses = false
   var evaluatedIndices = false
   var fieldAccesses = HashMap[String, LinearizedFieldAccess]()
   var ivAccesses = HashMap[String, iv.InternalVariable]()
-  val executionConfigurationDimensionality = math.min(3,loopVariables.size) // 3D is maximum of dimensions supported
-  // by CUDA
-  var minIndices = Array.fill[Expression](executionConfigurationDimensionality) {0}
-  var maxIndices = Array.fill[Expression](executionConfigurationDimensionality) {0}
+  val executionConfigurationDimensionality = math.min(CudaMaxDimensionality, loopVariables.size)
+  var minIndices = Array.fill[Expression](executionConfigurationDimensionality) { 0 }
+  var maxIndices = Array.fill[Expression](executionConfigurationDimensionality) { 0 }
+  var offsets = Array.fill[Expression](executionConfigurationDimensionality) { 0 }
 
   def getKernelFctName : String = identifier
   def getWrapperFctName : String = identifier + wrapperPostfix
@@ -390,6 +391,7 @@ case class ExpKernel(var identifier : String,
       (0 until executionConfigurationDimensionality).foreach(dim => {
         minIndices(dim) = lowerBounds(dim)
         maxIndices(dim) = upperBounds(dim)
+        offsets(dim) = lowerBounds(dim)
       })
 
       evaluatedIndices = true
@@ -402,15 +404,17 @@ case class ExpKernel(var identifier : String,
 
     var statements = ListBuffer[Statement]()
 
-    // add index calculation
+    // add CUDA global Thread ID (x,y,z) calculation for a dim3 execution configuration
+    // global thread id x = blockIdx.x *blockDim.x + threadIdx.x + offset1;
+    // global thread id y = blockIdx.y *blockDim.y + threadIdx.y + offset2;
+    // global thread id z = blockIdx.z *blockDim.z + threadIdx.z + offset3;
     statements ++= (0 until executionConfigurationDimensionality).map(dim => {
       val it = dimToString(dim)
-      // FIXME: datatype for VariableAccess
       VariableDeclarationStatement(IntegerDatatype, it,
-        Some(MemberAccess(VariableAccess("blockIdx", None), it) *
-          MemberAccess(VariableAccess("blockDim", None), it) +
-          MemberAccess(VariableAccess("threadIdx", None), it) +
-          minIndices(dim)))
+        Some(MemberAccess(VariableAccess("blockIdx", Some(SpecialDatatype("dim3"))), it) *
+          MemberAccess(VariableAccess("blockDim", Some(SpecialDatatype("dim3"))), it) +
+          MemberAccess(VariableAccess("threadIdx", Some(SpecialDatatype("dim3"))), it) +
+          offsets(dim)))
     })
 
     // add index bounds conditions
@@ -427,8 +431,10 @@ case class ExpKernel(var identifier : String,
     ReplacingLocalIVs.ivAccesses = ivAccesses
     ReplacingLocalIVs.applyStandalone(new Scope(loopBody))
     ReplacingLocalIVArrays.applyStandalone(new Scope(loopBody))
-
     statements ++= loopBody
+    ReplacingArraySubscripts.loopVariables = loopVariables
+    ReplacingArraySubscripts.applyStandalone(new Scope(statements))
+
     statements
   }
 
@@ -463,7 +469,7 @@ case class ExpKernel(var identifier : String,
     }
 
     // evaluate required thread counts
-    val minIndex = Array.fill[Long](executionConfigurationDimensionality) {0}
+    val minIndex = Array.fill[Long](executionConfigurationDimensionality) { 0 }
     val maxIndex = (0 until executionConfigurationDimensionality).map(dim => 1).toArray
 
     var numThreadsPerDim = (maxIndex, minIndex).zipped.map(_ - _)
@@ -620,5 +626,16 @@ object ReplacingLocalIVArrays extends QuietDefaultStrategy("Replacing local Inte
       val i = ivArray.index.asInstanceOf[IntegerConstant]
 
       VariableAccess(iv.name + '_' + i.v, Some(SpecialDatatype("double")))
+  })
+}
+
+object ReplacingArraySubscripts extends QuietDefaultStrategy("Replacing array subscripts with dimensionality " +
+  "depending indexing") {
+  var loopVariables = ListBuffer[String]()
+
+  this += new Transformation("Searching", {
+    case VariableAccess(name @ n, maybeDatatype @ d) if loopVariables.contains(name) =>
+      val newName = dimToString(loopVariables.indexOf(name))
+      VariableAccess(newName, Some(IntegerDatatype))
   })
 }
