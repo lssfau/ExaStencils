@@ -3,7 +3,7 @@ package exastencils.core
 import scala.collection.immutable.Nil
 
 object Duplicate {
-  val cloner = new com.rits.cloning.Cloner
+  private val cloner = new com.rits.cloning.Cloner
   cloner.setDumpClonedClasses(Settings.printClonedObjects);
 
   def apply[T](t : T) : T = cloner.deepClone(t)
