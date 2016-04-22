@@ -45,7 +45,7 @@ object AddressPrecalculation extends CustomStrategy("Perform address precalculat
 private final class ArrayBases(val arrayName : String) {
 
   private val inits = new HashMap[HashMap[Expression, Long], (String, Expression)]()
-  private var idCount = 0
+  private var idCount = -1
 
   def getName(initVec : HashMap[Expression, Long], base : Expression, al : Boolean) : String = {
     inits.getOrElseUpdate(initVec, { idCount += 1; (arrayName + "_p" + idCount, new ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(initVec), al)) })._1
@@ -111,8 +111,13 @@ private final class AnnotateLoopsAndAccesses extends Collector {
       try {
         SimplifyExpression.extractIntegralSum(ind)
       } catch {
-        case EvaluationException(msg) =>
-          Logger.dbg("[APC]  cannot deal with index expression  (" + msg + ")  in  " + ind.prettyprint())
+        case ex : EvaluationException =>
+          var cause : Throwable = ex
+          while (cause.getCause() != null)
+            cause = cause.getCause()
+          val stackTraceHead = cause.getStackTrace()(0)
+          Logger.dbg("[APC]  cannot deal with index expression  (" + ex.msg + ")  in  " + ind.prettyprint() +
+            "  (" + stackTraceHead.getFileName() + ':' + stackTraceHead.getLineNumber() + ')')
           return (ind, outMap)
       }
 
@@ -232,17 +237,19 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         // if base is ArrayAccess we ensure that it does not contain anything, which is written in the loop
         //   (the name of this access itself is not critical, see AssignmentStatement match in enter(..))
         for (acc @ ArrayAccess(base, index, al) <- toAnalyze) if (!containsLoopVar(base, resolveName(base))) {
-          var name : String = generateName(base)
           val (in : Expression, outMap : HashMap[Expression, Long]) = splitIndex(index)
-          val bases : ArrayBases = decls.getOrElseUpdate(name, new ArrayBases(name))
-          name = bases.getName(outMap, base, al)
-          val dType : Option[Datatype] = base match {
-            case fd : FieldData => Some(ConstPointerDatatype(fd.field.resolveDeclType))
-            case _              => None
+          if (!outMap.isEmpty) {
+            var name : String = generateName(base)
+            val bases : ArrayBases = decls.getOrElseUpdate(name, new ArrayBases(name))
+            name = bases.getName(outMap, base, al)
+            val dType : Option[Datatype] = base match {
+              case fd : FieldData => Some(ConstPointerDatatype(fd.field.resolveDeclType))
+              case _              => None
+            }
+            val newAcc = new ArrayAccess(new VariableAccess(name, dType), in, al)
+            newAcc.annotate(ORIG_IND_ANNOT, Duplicate(index)) // save old (complete) index expression for vectorization
+            acc.annotate(REPL_ANNOT, newAcc)
           }
-          val newAcc = new ArrayAccess(new VariableAccess(name, dType), in, al)
-          newAcc.annotate(ORIG_IND_ANNOT, Duplicate(index)) // save old (complete) index expression for vectorization
-          acc.annotate(REPL_ANNOT, newAcc)
         }
         decls = null
         inVars = null

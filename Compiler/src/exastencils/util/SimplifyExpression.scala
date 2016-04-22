@@ -3,6 +3,7 @@ package exastencils.util
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
+import exastencils.core.StateManager
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
@@ -280,6 +281,10 @@ object SimplifyExpression {
         res = new HashMap[Expression, Long]()
         res(anyIV) = 1L
 
+      case offInd : OffsetIndex =>
+        res = new HashMap[Expression, Long]()
+        res(offInd) = 1L
+
       case _ =>
         throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
     }
@@ -360,8 +365,8 @@ object SimplifyExpression {
       SimplifyStrategy.doUntilDoneStandalone(res)
       return res.expression
     } catch {
-      case EvaluationException(msg) =>
-        throw new EvaluationException(msg + ";  in " + expr.prettyprint())
+      case ex : EvaluationException =>
+        throw new EvaluationException(ex.msg + ";  in " + expr.prettyprint(), ex)
     }
   }
 
@@ -443,9 +448,26 @@ object SimplifyExpression {
         res = new HashMap[Expression, Double]()
         res(fAcc) = 1d
 
+      case tAcc : TempBufferAccess =>
+        res = new HashMap[Expression, Double]()
+        res(tAcc) = 1d
+
       case call : FunctionCallExpression =>
         if (call.name.contains("std::rand")) // HACK
           throw new EvaluationException("don't optimze code containing a call to std::rand")
+        def simplifyFloatingArgs(pars : Seq[Datatype]) : Unit = {
+          call.arguments =
+            pars.view.zip(call.arguments).map {
+              case (RealDatatype, arg) =>
+                simplifyFloatingExpr(arg)
+              case (_, arg) =>
+                arg
+            }.to[ListBuffer]
+        }
+        if (call.name == "exp")
+          simplifyFloatingArgs(List(RealDatatype))
+        else for (func <- StateManager.findFirst({ f : FunctionStatement => f.name == call.name }))
+          simplifyFloatingArgs(func.parameters.view.map(_.dType.orNull))
         res = new HashMap[Expression, Double]()
         res(call) = 1d
 
@@ -615,11 +637,10 @@ object SimplifyExpression {
       SimplifyStrategy.doUntilDoneStandalone(res)
       return res.expression
     } catch {
-      case x : EvaluationException =>
-        throw new EvaluationException(x.msg + ";  in " + expr.prettyprint() +
-          "  (" + x.getStackTrace()(0).getClassName() + ":" + x.getStackTrace()(0).getLineNumber() + ')')
+      case ex : EvaluationException =>
+        throw new EvaluationException(ex.msg + ";  in " + expr.prettyprint(), ex)
     }
   }
 }
 
-case class EvaluationException(msg : String) extends Exception(msg) {}
+case class EvaluationException(msg : String, cause : Throwable = null) extends Exception(msg, cause) {}
