@@ -31,9 +31,9 @@ case class Scope(var body : ListBuffer[Statement]) extends Statement {
 }
 
 case class VariableDeclarationStatement(var dataType : Datatype, var name : String, var expression : Option[Expression] = None) extends Statement {
-  def this(dT : Datatype, n : String, e : Expression) = this(dT, n, Some(e))
+  def this(dT : Datatype, n : String, e : Expression) = this(dT, n, Option(e))
   def this(va : VariableAccess) = this(va.dType.get, va.name, None)
-  def this(va : VariableAccess, e : Expression) = this(va.dType.get, va.name, Some(e))
+  def this(va : VariableAccess, e : Expression) = this(va.dType.get, va.name, Option(e))
 
   override def prettyprint(out : PpStream) : Unit = {
     dataType match {

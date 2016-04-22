@@ -106,10 +106,10 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
 
   def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, Statement], dtors : HashMap[String, Statement]) = {
     declarations += (resolveName -> getDeclaration)
-    if (getCtor().isDefined)
-      ctors += (resolveName -> getCtor().get)
-    if (getDtor().isDefined)
-      dtors += (resolveName -> getDtor().get)
+    for (ctor <- getCtor())
+      ctors += (resolveName -> ctor)
+    for (dtor <- getDtor())
+      dtors += (resolveName -> dtor)
   }
 }
 

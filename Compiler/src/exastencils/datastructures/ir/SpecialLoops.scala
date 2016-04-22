@@ -513,7 +513,7 @@ case class LoopOverDimensions(var numDimensions : Int,
       Logger.warn("Could determine loop index range end but not begin; assume begin is 0")
       end
     } else if (null != start && null != end)
-      (0 until numDimensions).toArray.map(dim => end(dim) - start(dim))
+      (0 until numDimensions).view.map(dim => end(dim) - start(dim)).toArray
     else
       null
   }
