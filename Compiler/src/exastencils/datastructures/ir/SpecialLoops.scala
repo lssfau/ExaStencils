@@ -170,7 +170,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
     var condition : Option[Expression] = None) extends Statement {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPointsInOneFragment\n"
 
-  def numDims = field.fieldLayout.numDimsData
+  def numDims = field.fieldLayout.numDimsGrid
 
   def expandSpecial : Output[StatementList] = {
     var start = new MultiIndex(Array.fill(numDims)(0))

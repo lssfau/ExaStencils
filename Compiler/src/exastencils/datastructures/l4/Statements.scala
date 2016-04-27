@@ -177,7 +177,7 @@ case class LoopOverPointsStatement(
       case _                           => Logger.error(s"Trying to loop over $field - has to be of type FieldAccess or StencilFieldAccess")
     }
 
-    val numDims = resolvedField.fieldLayout.numDimsData
+    val numDims = resolvedField.fieldLayout.numDimsGrid
     var procStartOffset = new ir.MultiIndex(Array.fill(numDims)(0))
     var procEndOffset = new ir.MultiIndex(Array.fill(numDims)(0))
     var procIncrement = new ir.MultiIndex(Array.fill(numDims)(1))
