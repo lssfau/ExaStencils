@@ -246,6 +246,7 @@ object MainStefan {
     SimplifyStrategy.doUntilDone()
 
     if (Knowledge.experimental_useCommonSubexpElimination) {
+    	new DuplicateNodes().apply() // FIXME: only debug
       Inlining.apply(true)
       CommonSubexpressionElimination.apply()
     }
