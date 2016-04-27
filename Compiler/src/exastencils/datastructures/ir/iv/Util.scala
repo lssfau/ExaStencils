@@ -6,6 +6,10 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.globals._
 import exastencils.knowledge._
 import exastencils.logger._
+import exastencils.prettyprinting._
+import exastencils.util.SimplifyExpression
+
+import scala.collection.mutable._
 
 // FIXME: why is name an Expression?
 case class Timer(var name : Expression) extends UnduplicatedVariable with Access {
@@ -52,5 +56,33 @@ case class VecShiftIndex(val offset : Int) extends UnduplicatedVariable {
     }
 
     return Some(AssignmentStatement(new VariableAccess(resolveName, resolveDataType), init))
+  }
+}
+
+case class LoopCarriedCSBuffer(var identifier : Int, val baseDatatype : Datatype, val dimSizes : Array[Expression]) extends InternalVariable(true, false, false, false, false) {
+
+  override def prettyprint(out : PpStream) : Unit = {
+    out << resolveAccess(resolveName, LoopOverFragments.defIt, null, null, null, null)
+  }
+
+  override def resolveName() : String = {
+    return "_lcs" + identifier
+  }
+
+  override def resolveDataType() : Datatype = {
+    return new PointerDatatype(baseDatatype)
+  }
+
+  override def resolveDefValue() : Option[Expression] = {
+    return Some(0)
+  }
+
+  override def getDtor() : Option[Statement] = {
+    val ptrExpr = resolveAccess(resolveName, LoopOverFragments.defIt, null, null, null, null)
+    Some(wrapInLoops(
+      new ConditionStatement(ptrExpr,
+        ListBuffer[Statement](
+          FreeStatement(ptrExpr),
+          new AssignmentStatement(ptrExpr, 0)))))
   }
 }

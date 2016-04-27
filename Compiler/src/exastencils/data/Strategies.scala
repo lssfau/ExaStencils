@@ -12,6 +12,7 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.globals._
 import exastencils.knowledge._
+import exastencils.logger._
 import exastencils.multiGrid._
 import exastencils.omp._
 import exastencils.util._
@@ -42,6 +43,8 @@ object LinearizeFieldAccesses extends DefaultStrategy("Linearizing FieldAccess n
     case access : TempBufferAccess =>
       access.linearize
     case access : ReductionDeviceDataAccess =>
+      access.linearize
+    case access : LoopCarriedCSBufferAccess =>
       access.linearize
   })
 }
@@ -288,6 +291,21 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       }
       buf
     }
+
+    case buf : iv.LoopCarriedCSBuffer => {
+      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, null, null, null, null).prettyprint()
+      val size : Expression =
+        if (buf.dimSizes.isEmpty)
+          IntegerConstant(1)
+        else
+          Duplicate(buf.dimSizes.reduce(_ * _))
+      bufferSizes.get(id) match {
+        case Some(MaximumExpression(maxList)) => maxList += size
+        case None                             => bufferSizes += (id -> MaximumExpression(ListBuffer(size)))
+        case _                                => Logger.error("should not happen...")
+      }
+      buf
+    }
   })
 
   this += new Transformation("Updating temporary buffer allocations", {
@@ -316,6 +334,17 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
 
       deviceBufferAllocs += (id -> new LoopOverFragments(CUDA_AllocateStatement(buf, size, RealDatatype /*FIXME*/ )) with OMP_PotentiallyParallel)
 
+      buf
+
+    case buf : iv.LoopCarriedCSBuffer =>
+      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, null, null, null, null).prettyprint
+      var size = bufferSizes(id)
+      try {
+        size = SimplifyExpression.simplifyIntegralExpr(size)
+      } catch {
+        case ex : EvaluationException => // what a pitty...
+      }
+      bufferAllocs += (id -> new LoopOverFragments(new AssignmentStatement(buf, Allocation(buf.baseDatatype, size))) with OMP_PotentiallyParallel)
       buf
   })
 
