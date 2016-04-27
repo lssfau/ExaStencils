@@ -30,7 +30,7 @@ object Extractor {
   private final val SKIP_ANNOT : String = "PolySkip"
 
   /** set of all functions that are allowed in a scop (these must not have side effects) */
-  private final val allowedFunctions = HashSet[String]("sin", "cos", "tan", "sinh", "cosh", "tanh", "exp", "sqrt")
+  private final val allowedFunctions = HashSet[String]("sin", "cos", "tan", "sinh", "cosh", "tanh", "exp", "sqrt", "abs", "fabs")
 
   /** set of symbolic constants that must not be modeled as read accesses (these must be constant inside a scop) */
   private final val symbolicConstants = HashSet[String]()
@@ -258,8 +258,6 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      // FIXME: support min/max exp
-
       case _ => throw new ExtractionException("unknown expression: " + expr.getClass() + " - " + expr.prettyprint())
     }
 
@@ -283,6 +281,21 @@ object Extractor {
 
     return str
   }
+
+  private def checkCode(name : String) : Unit = {
+
+    var i : Int = name.length()
+    while (i > 0) {
+      i -= 1
+      name.charAt(i) match {
+        case '=' | '+' | '*' | '/' | '[' | '(' | ' ' =>
+          throw new ExtractionException("expression in string constant found: " + name)
+        case '-' if name.charAt(i + 1) != '>' =>
+          throw new ExtractionException("expression in string constant found: " + name)
+        case _ =>
+      }
+    }
+  }
 }
 
 private final case class ExtractionException(msg : String) extends Exception(msg)
@@ -303,6 +316,9 @@ class Extractor extends Collector {
   /** indicates if a new scop starting at the next node can be merged with the last one */
   private var mergeScops : Boolean = false
 
+  /** stack of additional conditions for the next statements found */
+  private val conditions = new ArrayStack[String]()
+
   /** all found static control parts */
   val scops = new ArrayBuffer[Scop](256)
   val trash = new ArrayBuffer[(Node, String)] // TODO: debug; remove
@@ -310,7 +326,6 @@ class Extractor extends Collector {
   private object curScop {
 
     object curStmt {
-
       private var id_ : Int = -1
       private var label_ : String = null
 
@@ -364,12 +379,11 @@ class Extractor extends Collector {
       return origLoopVars_
     }
 
-    // [..] -> { %s[..] : .. }
-    def buildIslSet(tupleName : String) : isl.Set = {
+    // [..] -> { %s[..] : .. %s }
+    def buildIslSet(tupleName : String, cond : String = "") : isl.Set = {
       formatterResult.delete(0, Int.MaxValue)
-      formatter.format(setTemplate_, tupleName)
-      val set = isl.Set.readFromStr(Isl.ctx, formatterResult.toString())
-      return set
+      formatter.format(setTemplate_, tupleName, cond)
+      return isl.Set.readFromStr(Isl.ctx, formatterResult.toString())
     }
 
     // [..] -> { %s[..] -> %s[%s] }
@@ -449,6 +463,10 @@ class Extractor extends Collector {
         node match {
 
           // process
+          case c : ConditionStatement =>
+            c.condition.annotate(SKIP_ANNOT)
+            enterCondition(c)
+
           case a : AssignmentStatement =>
             enterAssign(a)
 
@@ -472,16 +490,6 @@ class Extractor extends Collector {
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(varName, index)
 
-          case ArrayAccess(ppVec : iv.PrimitivePositionBegin, index, _) =>
-            ppVec.annotate(SKIP_ANNOT)
-            index.annotate(SKIP_ANNOT)
-            enterArrayAccess(ppVec.prettyprint(), index)
-
-          case ArrayAccess(ppVec : iv.PrimitivePositionEnd, index, _) =>
-            ppVec.annotate(SKIP_ANNOT)
-            index.annotate(SKIP_ANNOT)
-            enterArrayAccess(ppVec.prettyprint(), index)
-
           case ArrayAccess(tmp : iv.TmpBuffer, index, _) =>
             tmp.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
@@ -498,9 +506,34 @@ class Extractor extends Collector {
             extent.annotate(SKIP_ANNOT)
             enterTempBufferAccess(buffer, index)
 
+          case LoopCarriedCSBufferAccess(buffer, index) =>
+            buffer.annotate(SKIP_ANNOT)
+            index.annotate(SKIP_ANNOT)
+            enterLoopCarriedCSBufferAccess(buffer, index)
+
           case d : VariableDeclarationStatement =>
             d.dataType.annotate(SKIP_ANNOT)
             enterDecl(d)
+
+          // for the following 4 matches: do not distinguish between different elements of
+          //    PrimitivePositionBegin and PrimitivePositionEnd (conservative approach)
+          case ArrayAccess(ppVec : iv.PrimitivePositionBegin, index, _) =>
+            ppVec.annotate(SKIP_ANNOT)
+            index.annotate(SKIP_ANNOT)
+            enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
+
+          case ArrayAccess(ppVec : iv.PrimitivePositionEnd, index, _) =>
+            ppVec.annotate(SKIP_ANNOT)
+            index.annotate(SKIP_ANNOT)
+            enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
+
+          case MemberAccess(ppVec : iv.PrimitivePositionBegin, _) =>
+            ppVec.annotate(SKIP_ANNOT)
+            enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
+
+          case MemberAccess(ppVec : iv.PrimitivePositionEnd, _) =>
+            ppVec.annotate(SKIP_ANNOT)
+            enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
 
           // ignore
           case FunctionCallExpression(name, _) if (allowedFunctions.contains(name)) =>
@@ -519,6 +552,9 @@ class Extractor extends Collector {
             | _ : DivisionExpression
             | _ : ModuloExpression
             | _ : PowerExpression
+            | _ : MinimumExpression
+            | _ : MaximumExpression
+            | _ : CommentStatement
             | NullStatement => // nothing to do for all of them...
 
           // deny
@@ -539,24 +575,32 @@ class Extractor extends Collector {
       isWrite = false
     }
 
-    if (node.removeAnnotation(SKIP_ANNOT).isDefined)
+    if (node.removeAnnotation(SKIP_ANNOT).isDefined) {
       skip = false
-
-    node match {
-      case l : LoopOverDimensions           => leaveLoop(l)
-      case _ : AssignmentStatement          => leaveAssign()
-      case _ : StringLiteral                => leaveScalarAccess()
-      case _ : VariableAccess               => leaveScalarAccess()
-      case _ : ArrayAccess                  => leaveArrayAccess()
-      case _ : DirectFieldAccess            => leaveFieldAccess()
-      case _ : TempBufferAccess             => leaveTempBufferAccess()
-      case _ : VariableDeclarationStatement => leaveDecl()
-      case _                                =>
+      return
     }
+    if (skip)
+      return
+
+    if (curScop.exists())
+      node match {
+        case l : LoopOverDimensions           => leaveLoop(l)
+        case c : ConditionStatement           => leaveCondition(c)
+        case _ : AssignmentStatement          => leaveAssign()
+        case _ : StringLiteral                => leaveScalarAccess()
+        case _ : VariableAccess               => leaveScalarAccess()
+        case _ : ArrayAccess                  => leaveArrayAccess()
+        case _ : DirectFieldAccess            => leaveFieldAccess()
+        case _ : TempBufferAccess             => leaveTempBufferAccess()
+        case _ : LoopCarriedCSBufferAccess    => leaveLoopCarriedCSBufferAccess()
+        case _ : VariableDeclarationStatement => leaveDecl()
+        case _                                =>
+      }
   }
 
   override def reset() : Unit = {
     curScop.discard()
+    conditions.clear()
     isRead = false
     isWrite = false
     skip = false
@@ -649,6 +693,7 @@ class Extractor extends Collector {
     tmp = templateBuilder.length
     templateBuilder.append(':')
     templateBuilder.append(constrs)
+    templateBuilder.append("%s") // additional constraints (e.g. from conditions)
     templateBuilder.append('}')
     val setTemplate : String = templateBuilder.toString()
 
@@ -670,6 +715,20 @@ class Extractor extends Collector {
     }
   }
 
+  private def enterCondition(cond : ConditionStatement) : Unit = {
+    if (cond.falseBody.isEmpty) {
+      val sb = new StringBuilder(" and ")
+      extractConstraints(cond.condition, sb, true)
+      conditions.push(sb.toString())
+    } else
+      throw new ExtractionException("cannot deal with a non-empty falseBody in a ConditionStatement: " + cond.prettyprint())
+  }
+
+  private def leaveCondition(cond : ConditionStatement) : Unit = {
+    if (cond.falseBody.isEmpty)
+      conditions.pop()
+  }
+
   private def enterStmt(stmt : Statement) : Unit = {
 
     val scop : Scop = curScop.get()
@@ -677,7 +736,7 @@ class Extractor extends Collector {
     val label : String = curScop.curStmt.next().label()
     scop.stmts.put(label, (ListBuffer(stmt), curScop.origLoopVars()))
 
-    val domain = curScop.buildIslSet(label)
+    val domain = curScop.buildIslSet(label, conditions.mkString)
     scop.domain = if (scop.domain == null) domain else scop.domain.addSet(domain)
     val schedule = curScop.buildIslMap(label, "", curScop.modelLoopVars() + ',' + curScop.curStmt.id())
     scop.schedule = if (scop.schedule == null) schedule else scop.schedule.addMap(schedule)
@@ -716,17 +775,7 @@ class Extractor extends Collector {
   private def enterScalarAccess(varName : String, deadAfterScop : Boolean = false) : Unit = {
 
     // hack: filter out code
-    var i : Int = varName.length()
-    while (i > 0) {
-      i -= 1
-      varName.charAt(i) match {
-        case '=' | '+' | '*' | '/' | '[' | '(' | ' ' =>
-          throw new ExtractionException("expression in StringConstant found: " + varName)
-        case '-' if varName.charAt(i + 1) != '>' =>
-          throw new ExtractionException("expression in StringConstant found: " + varName)
-        case _ =>
-      }
-    }
+    checkCode(varName)
 
     if (!curScop.curStmt.exists() || (!isRead && !isWrite))
       throw new ExtractionException("misplaced access expression?")
@@ -740,7 +789,7 @@ class Extractor extends Collector {
 
     val scop : Scop = curScop.get()
 
-    var access : isl.Map = curScop.buildIslMap(curScop.curStmt.label(), replaceSpecial(varName), "")
+    val access : isl.Map = curScop.buildIslMap(curScop.curStmt.label(), replaceSpecial(varName), "")
 
     if (isRead)
       scop.reads = if (scop.reads == null) access else scop.reads.addMap(access)
@@ -757,30 +806,38 @@ class Extractor extends Collector {
     // nothing to do here...
   }
 
-  private def enterArrayAccess(name : String, index : Expression) : Unit = {
+  private def enterArrayAccess(name : String, index : Expression, deadAfterScop : Boolean = false) : Unit = {
 
     if (!curScop.curStmt.exists() || (!isRead && !isWrite))
       throw new ExtractionException("misplaced access expression?")
 
+    // hack: check for code in name
+    checkCode(name)
+
     val scop : Scop = curScop.get()
 
-    var bool : Boolean = false
+    var ineq : Boolean = false
     val indB : StringBuilder = new StringBuilder()
     index match {
       case mInd : MultiIndex =>
         for (i <- mInd) {
-          bool |= extractConstraints(i, indB, false)
+          ineq |= extractConstraints(i, indB, false)
           indB.append(',')
         }
-        indB.deleteCharAt(indB.length - 1)
+        if (!mInd.isEmpty)
+          indB.deleteCharAt(indB.length - 1)
       case ind =>
-        bool |= extractConstraints(ind, indB, false)
+        ineq |= extractConstraints(ind, indB, false)
     }
 
-    if (bool)
+    if (ineq)
       throw new ExtractionException("array access contains (in)equalities")
 
-    var access : isl.Map = curScop.buildIslMap(curScop.curStmt.label(), replaceSpecial(name), indB.toString())
+    val access : isl.Map = curScop.buildIslMap(curScop.curStmt.label(), replaceSpecial(name), indB.toString())
+    if (deadAfterScop) {
+      val dead : isl.Set = access.domain()
+      scop.deadAfterScop = if (scop.deadAfterScop == null) dead else scop.deadAfterScop.addSet(dead)
+    }
 
     if (isRead)
       scop.reads = if (scop.reads == null) access else scop.reads.addMap(access)
@@ -801,7 +858,7 @@ class Extractor extends Collector {
       case SlotAccess(_, offset) => name.append('s').append(offset)
       case s                     => name.append(s.prettyprint())
     }
-    enterArrayAccess(name.toString(), index)
+    enterArrayAccess(replaceSpecial(name.toString()), index)
   }
 
   private def leaveFieldAccess() : Unit = {
@@ -818,6 +875,14 @@ class Extractor extends Collector {
   }
 
   private def leaveTempBufferAccess() : Unit = {
+    leaveArrayAccess()
+  }
+
+  private def enterLoopCarriedCSBufferAccess(buffer : iv.LoopCarriedCSBuffer, index : MultiIndex) : Unit = {
+    enterArrayAccess(buffer.resolveName, index, true)
+  }
+
+  private def leaveLoopCarriedCSBufferAccess() : Unit = {
     leaveArrayAccess()
   }
 

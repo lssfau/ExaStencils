@@ -203,7 +203,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         mergedStmts ++= stmt
         if (mergedLoopIts == null)
           mergedLoopIts = loopIts
-        else if (!mergedLoopIts.sameElements(loopIts))
+        else if (!mergedLoopIts.equals(loopIts))
           Breaks.break() // continue... loopIts must be identical?!
       }
       scop.domain =
@@ -291,7 +291,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     var s = isl.UnionMap.empty(sched.getSpace())
     sched.foreachMap({
       map : isl.Map =>
-        var nju = map.insertDims(T_OUT, 0, 1)
+        val nju = map.insertDims(T_OUT, 0, 1)
         s = s.addMap(nju.fixVal(T_OUT, 0, i))
     })
     return s
@@ -374,11 +374,14 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     var live = scop.writes.intersectDomain(scop.domain).reverse().lexmax().range()
     if (scop.deadAfterScop != null)
       live = live.subtract(scop.deadAfterScop)
-    live = live.union(scop.deps.flow.domain().intersect(scop.domain)) // keeps even dead instances?
-    // live = live.apply(scop.deps.flow.reverse().transitiveClosure(null)) // better? test!
+    // live = live.union(scop.deps.flow.domain().intersect(scop.domain)) // keeps even dead instances?
+    val trans = scop.deps.flow.reverse().transitiveClosure(new Array[Int](1))
+    live = live.union(live.apply(trans))
+    live = live.intersect(scop.domain)
+    live = live.coalesce()
 
     if (!scop.domain.isEqual(live)) // the new one could be more complex, so keep old ;)
-      scop.domain = live
+      scop.domain = live.coalesce()
 
     // update schedule and dependencies
     scop.schedule = scop.schedule.intersectDomain(live)
@@ -570,7 +573,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val ctx : isl.Ctx = sample.getCtx()
     var mAff = isl.MultiAff.zero(isl.Space.mapFromDomainAndRange(domSp, ranSp))
     for (i <- 0 until tilableDims) {
-      var tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(tilableDims - 1 - i) else 0
+      val tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(tilableDims - 1 - i) else 0
       // if we don't want to tile a dimension, leave the outer tile loop constant 0
       if (tileSize > 0 && (scop.origIterationCount == null || tileSize < 100 + scop.origIterationCount(tilableDims - 1 - i))) {
         var aff = isl.Aff.varOnDomain(isl.LocalSpace.fromSpace(domSp), T_SET, i)
@@ -580,7 +583,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       }
     }
     for (i <- 0 until domSp.dim(T_SET)) {
-      var aff = isl.Aff.varOnDomain(isl.LocalSpace.fromSpace(domSp), T_SET, i)
+      val aff = isl.Aff.varOnDomain(isl.LocalSpace.fromSpace(domSp), T_SET, i)
       mAff = mAff.setAff(tilableDims + i, aff)
     }
     val trafo = isl.BasicMap.fromMultiAff(mAff)

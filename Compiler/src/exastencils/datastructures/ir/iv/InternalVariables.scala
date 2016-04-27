@@ -92,10 +92,10 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
       access = new ArrayAccess(access, field)
     if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1) {
       val simplifiedLevel : Expression =
-        if (level.isInstanceOf[IntegerConstant])
-          level.asInstanceOf[IntegerConstant].value - Knowledge.minLevel
-        else
-          level - Knowledge.minLevel
+        level match {
+          case IntegerConstant(v) => v - Knowledge.minLevel
+          case _                  => level - Knowledge.minLevel
+        }
       access = new ArrayAccess(access, simplifiedLevel)
     }
     if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
@@ -106,10 +106,10 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
 
   def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, Statement], dtors : HashMap[String, Statement]) = {
     declarations += (resolveName -> getDeclaration)
-    if (getCtor().isDefined)
-      ctors += (resolveName -> getCtor().get)
-    if (getDtor().isDefined)
-      dtors += (resolveName -> getDtor().get)
+    for (ctor <- getCtor())
+      ctors += (resolveName -> ctor)
+    for (dtor <- getDtor())
+      dtors += (resolveName -> dtor)
   }
 }
 

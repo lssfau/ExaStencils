@@ -297,6 +297,7 @@ case class CastExpression(var datatype : Datatype, var toCast : Expression) exte
 
 case class VariableAccess(var name : String, var dType : Option[Datatype] = None) extends Access {
   def this(n : String, dT : Datatype) = this(n, Option(dT))
+  def this(decl : VariableDeclarationStatement) = this(decl.name, decl.dataType)
 
   override def prettyprint(out : PpStream) : Unit = out << name
 
@@ -361,7 +362,7 @@ case class TempBufferAccess(var buffer : iv.TmpBuffer, var index : MultiIndex, v
   def linearize : ArrayAccess = {
     new ArrayAccess(buffer,
       Mapping.resolveMultiIdx(index, strides),
-      false && Knowledge.data_alignTmpBufferPointers /* change here if aligned vector operations are possible for tmp buffers */ )
+      false) // Knowledge.data_alignTmpBufferPointers) // change here if aligned vector operations are possible for tmp buffers
   }
 }
 
@@ -370,6 +371,17 @@ case class ReductionDeviceDataAccess(var data : iv.ReductionDeviceData, var inde
 
   def linearize : ArrayAccess = {
     new ArrayAccess(data, Mapping.resolveMultiIdx(index, strides), false)
+  }
+}
+
+case class LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var index : MultiIndex) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopCarriedCSEBufferAccess\n"
+
+  def linearize() : ArrayAccess = {
+    if (buffer.dimSizes.isEmpty)
+      return new ArrayAccess(buffer, IntegerConstant(0), false)
+
+    return new ArrayAccess(buffer, Mapping.resolveMultiIdx(index, MultiIndex(buffer.dimSizes)), false)
   }
 }
 
@@ -426,7 +438,7 @@ case class ExternalFieldAccess(var name : Expression, var field : ExternalField,
 case class LinearizedFieldAccess(var fieldSelection : FieldSelection, var index : Expression) extends Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LinearizedFieldAccess\n"
 
-  override def expand : Output[Expression] = {
+  override def expand() : Output[Expression] = {
     new ArrayAccess(new iv.FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx), index, Knowledge.data_alignFieldPointers)
   }
 }
@@ -441,9 +453,9 @@ case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection,
   def buildStencil : Stencil = {
     var entries : ListBuffer[StencilEntry] = ListBuffer()
     for (e <- 0 until stencilFieldSelection.stencil.entries.size) {
-      var stencilFieldIdx = Duplicate(index)
+      val stencilFieldIdx = Duplicate(index)
       stencilFieldIdx(stencilFieldSelection.stencilField.field.fieldLayout.numDimsData - 1) = e // TODO: assumes last index is vector dimension
-      var fieldSel = stencilFieldSelection.toFieldSelection
+      val fieldSel = stencilFieldSelection.toFieldSelection
       fieldSel.arrayIndex = Some(e)
       entries += new StencilEntry(stencilFieldSelection.stencil.entries(e).offset, new FieldAccess(fieldSel, stencilFieldIdx))
     }
@@ -650,8 +662,8 @@ case class StencilConvolution(var stencil : Stencil, var fieldAccess : FieldAcce
     stencil.entries(idx).coefficient * new FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + stencil.entries(idx).offset)
   }
 
-  override def expand : Output[Expression] = {
-    var ret : Expression = (0 until stencil.entries.size).toArray.map(idx => Duplicate(resolveEntry(idx))).toArray[Expression].reduceLeft(_ + _)
+  override def expand() : Output[Expression] = {
+    val ret : Expression = stencil.entries.indices.view.map(idx => Duplicate(resolveEntry(idx))).reduceLeft(_ + _)
     SimplifyStrategy.doUntilDoneStandalone(ret)
     ret
   }
@@ -663,15 +675,15 @@ case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilConvolution\n"
 
   def resolveEntry(idx : Int) : Expression = {
-    var stencilFieldIdx = Duplicate(stencilFieldAccess.index)
+    val stencilFieldIdx = Duplicate(stencilFieldAccess.index)
     stencilFieldIdx(Knowledge.dimensionality) = idx
 
     FieldAccess(stencilFieldAccess.stencilFieldSelection.toFieldSelection, stencilFieldIdx) *
       new FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + stencilFieldAccess.stencilFieldSelection.stencil.entries(idx).offset)
   }
 
-  override def expand : Output[Expression] = {
-    var ret : Expression = (0 until stencilFieldAccess.stencilFieldSelection.stencil.entries.size).toArray.map(idx => Duplicate(resolveEntry(idx))).toArray[Expression].reduceLeft(_ + _)
+  override def expand() : Output[Expression] = {
+    val ret : Expression = stencilFieldAccess.stencilFieldSelection.stencil.entries.indices.view.map(idx => Duplicate(resolveEntry(idx))).reduceLeft(_ + _)
     SimplifyStrategy.doUntilDoneStandalone(ret)
     ret
   }
@@ -680,14 +692,14 @@ case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, 
 case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight : Stencil) extends Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilStencilConvolution\n"
 
-  override def expand : Output[StencilAccess] = {
+  override def expand() : Output[StencilAccess] = {
     var entries : ListBuffer[StencilEntry] = ListBuffer()
 
     for (re <- stencilRight.entries) {
       for (le <- stencilLeft.entries) {
-        var rightOffset = Duplicate(re.offset)
+        val rightOffset = Duplicate(re.offset)
 
-        var leftOffset = Duplicate(le.offset)
+        val leftOffset = Duplicate(le.offset)
         if (stencilRight.level > stencilLeft.level) {
           for (d <- 0 until Knowledge.dimensionality)
             leftOffset(d) = (dimToString(d) : Expression) / 2 + leftOffset(d)
@@ -696,14 +708,14 @@ case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight
             leftOffset(d) = (dimToString(d) : Expression) + leftOffset(d)
         }
 
-        var combOff = leftOffset
+        val combOff = leftOffset
         ResolveCoordinates.replacement = rightOffset
         ResolveCoordinates.doUntilDoneStandalone(combOff)
 
         var combCoeff : Expression = (re.coefficient * le.coefficient)
         SimplifyStrategy.doUntilDoneStandalone(combOff)
         SimplifyStrategy.doUntilDoneStandalone(combCoeff)
-        var addToEntry = entries.find(e => e.offset match { case o if (combOff == o) => true; case _ => false })
+        val addToEntry = entries.find(e => e.offset match { case o if (combOff == o) => true; case _ => false })
         if (addToEntry.isDefined) {
           combCoeff += addToEntry.get.coefficient
           SimplifyStrategy.doUntilDoneStandalone(combCoeff)
@@ -719,21 +731,21 @@ case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight
 case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, var stencilRight : Stencil) extends Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilFieldStencilConvolution\n"
 
-  override def expand : Output[StencilAccess] = {
+  override def expand() : Output[StencilAccess] = {
     var entries : ListBuffer[StencilEntry] = ListBuffer()
 
     for (re <- stencilRight.entries) {
       for (e <- 0 until stencilLeft.stencilFieldSelection.stencil.entries.size) {
-        var stencilFieldIdx = Duplicate(stencilLeft.index)
+        val stencilFieldIdx = Duplicate(stencilLeft.index)
         stencilFieldIdx(Knowledge.dimensionality) = e
         for (dim <- 0 until Knowledge.dimensionality)
           stencilFieldIdx(dim) += re.offset(dim)
-        var fieldSel = stencilLeft.stencilFieldSelection.toFieldSelection
+        val fieldSel = stencilLeft.stencilFieldSelection.toFieldSelection
         fieldSel.arrayIndex = Some(e)
 
-        var rightOffset = Duplicate(re.offset)
+        val rightOffset = Duplicate(re.offset)
 
-        var leftOffset = Duplicate(stencilLeft.stencilFieldSelection.stencil.entries(e).offset)
+        val leftOffset = Duplicate(stencilLeft.stencilFieldSelection.stencil.entries(e).offset)
         if (stencilRight.level > stencilLeft.stencilFieldSelection.stencil.level) {
           for (d <- 0 until Knowledge.dimensionality)
             leftOffset(d) = (dimToString(d) : Expression) / 2 + leftOffset(d)
@@ -742,14 +754,14 @@ case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, 
             leftOffset(d) = (dimToString(d) : Expression) + leftOffset(d)
         }
 
-        var combOff = leftOffset
+        val combOff = leftOffset
         ResolveCoordinates.replacement = rightOffset
         ResolveCoordinates.doUntilDoneStandalone(combOff)
 
         var combCoeff : Expression = (re.coefficient * new FieldAccess(fieldSel, stencilFieldIdx))
         SimplifyStrategy.doUntilDoneStandalone(combOff)
         SimplifyStrategy.doUntilDoneStandalone(combCoeff)
-        var addToEntry = entries.find(e => e.offset match { case o if (combOff == o) => true; case _ => false })
+        val addToEntry = entries.find(e => e.offset match { case o if (combOff == o) => true; case _ => false })
         if (addToEntry.isDefined) {
           combCoeff += addToEntry.get.coefficient
           SimplifyStrategy.doUntilDoneStandalone(combCoeff)

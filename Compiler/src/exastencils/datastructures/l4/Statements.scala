@@ -36,7 +36,7 @@ case class DomainDeclarationStatement(var name : String, var lower : Any, var up
           case (_ : RealIndex, _ : RealIndex) => {
             val sep = lo.map(m => ", ").dropRight(1) :+ " >\n"
             out << "Domain " << name << "< "
-            for (i <- 0 until lo.length) { out << lo(i) << " to " << up(i) << sep(i) }
+            for (i <- lo.indices) { out << lo(i) << " to " << up(i) << sep(i) }
             //out << "Domain " << name << "< " << l(0) << " to " << u(0) << ", " << l(1) << " to " << u(1) << " ," << l(2) << " to " << u(2) << " >\n"
           }
         }
@@ -177,10 +177,10 @@ case class LoopOverPointsStatement(
       case _                           => Logger.error(s"Trying to loop over $field - has to be of type FieldAccess or StencilFieldAccess")
     }
 
-    val numDims = resolvedField.fieldLayout.numDimsData
-    var procStartOffset = new ir.MultiIndex(Array.fill(numDims)(0))
-    var procEndOffset = new ir.MultiIndex(Array.fill(numDims)(0))
-    var procIncrement = new ir.MultiIndex(Array.fill(numDims)(1))
+    val numDims = resolvedField.fieldLayout.numDimsGrid
+    val procStartOffset = new ir.MultiIndex(Array.fill(numDims)(0))
+    val procEndOffset = new ir.MultiIndex(Array.fill(numDims)(0))
+    val procIncrement = new ir.MultiIndex(Array.fill(numDims)(1))
     if (startOffset.isDefined) {
       val newOffset = startOffset.get.progressToIr
       for (i <- 0 until newOffset.length) procStartOffset(i) = newOffset(i)
@@ -194,7 +194,7 @@ case class LoopOverPointsStatement(
       for (i <- 0 until newIncrement.length) procIncrement(i) = newIncrement(i)
     }
 
-    var loop = ir.LoopOverPoints(resolvedField,
+    val loop = ir.LoopOverPoints(resolvedField,
       if (region.isDefined) Some(region.get.progressToIr) else None,
       seq,
       procStartOffset,
@@ -328,7 +328,7 @@ case class RepeatTimesStatement(var number : Int,
         (ir.StringLiteral(lv), ir.VariableDeclarationStatement(ir.IntegerDatatype, lv, Some(ir.IntegerConstant(0))))
       }
 
-    var ret = ir.ForLoopStatement(
+    val ret = ir.ForLoopStatement(
       begin,
       loopVar < ir.IntegerConstant(number),
       ir.AssignmentStatement(loopVar, ir.IntegerConstant(1), "+="),

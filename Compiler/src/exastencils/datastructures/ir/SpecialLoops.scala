@@ -170,7 +170,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
     var condition : Option[Expression] = None) extends Statement {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPointsInOneFragment\n"
 
-  def numDims = field.fieldLayout.numDimsData
+  def numDims = field.fieldLayout.numDimsGrid
 
   def expandSpecial : Output[StatementList] = {
     var start = new MultiIndex(Array.fill(numDims)(0))
@@ -446,13 +446,16 @@ object LoopOverDimensions {
     })
   }
 
-  def evalMinIndex(origStartIndex : MultiIndex, numDimensions : Int, printWarnings : Boolean = false) : Array[Long] = {
-    var startIndex = Duplicate(origStartIndex)
-    ReplaceOffsetIndicesWithMin.applyStandalone(startIndex)
+  def evalMinIndex(index : Expression) : Long = {
+    val wrappedIndex = ExpressionStatement(Duplicate(index))
+    ReplaceOffsetIndicesWithMin.applyStandalone(wrappedIndex)
+    return SimplifyExpression.evalIntegral(wrappedIndex.expression)
+  }
 
+  def evalMinIndex(startIndex : MultiIndex, numDimensions : Int, printWarnings : Boolean = false) : Array[Long] = {
     (0 until numDimensions).map(dim =>
       try {
-        SimplifyExpression.evalIntegral(startIndex(dim))
+        evalMinIndex(startIndex(dim))
       } catch {
         case _ : EvaluationException =>
           if (printWarnings) Logger.warn(s"Start index for dimension $dim (${startIndex(dim)}) could not be evaluated")
@@ -460,13 +463,16 @@ object LoopOverDimensions {
       }).toArray
   }
 
-  def evalMaxIndex(origEndIndex : MultiIndex, numDimensions : Int, printWarnings : Boolean = false) : Array[Long] = {
-    var endIndex = Duplicate(origEndIndex)
-    ReplaceOffsetIndicesWithMax.applyStandalone(endIndex)
+  def evalMaxIndex(index : Expression) : Long = {
+    val wrappedIndex = ExpressionStatement(Duplicate(index))
+    ReplaceOffsetIndicesWithMax.applyStandalone(wrappedIndex)
+    return SimplifyExpression.evalIntegral(wrappedIndex.expression)
+  }
 
+  def evalMaxIndex(endIndex : MultiIndex, numDimensions : Int, printWarnings : Boolean = false) : Array[Long] = {
     (0 until numDimensions).map(dim =>
       try {
-        SimplifyExpression.evalIntegral(endIndex(dim))
+        evalMaxIndex(endIndex(dim))
       } catch {
         case _ : EvaluationException =>
           if (printWarnings) Logger.warn(s"End index for dimension $dim (${endIndex(dim)}) could not be evaluated")
@@ -513,7 +519,7 @@ case class LoopOverDimensions(var numDimensions : Int,
       Logger.warn("Could determine loop index range end but not begin; assume begin is 0")
       end
     } else if (null != start && null != end)
-      (0 until numDimensions).toArray.map(dim => end(dim) - start(dim))
+      (0 until numDimensions).view.map(dim => end(dim) - start(dim)).toArray
     else
       null
   }
