@@ -32,7 +32,7 @@ object AnnotateCudaRelevantCode extends DefaultStrategy("Annotate statement/loop
       // 1. this loop is a special one and cannot be optimized in polyhedral model
       // 2. this loop has no parallel potential
       // use the host for dealing with the two exceptional cases
-      if (!(!loop.isInstanceOf[PolyhedronAccessible] || !loop.isInstanceOf[OMP_PotentiallyParallel])) {
+      if (loop.isInstanceOf[PolyhedronAccessible] && loop.isInstanceOf[OMP_PotentiallyParallel]) {
         loop.annotate(CudaLoopAnnotation)
         loop.annotate(CudaLoopTransformAnnotation)
       }

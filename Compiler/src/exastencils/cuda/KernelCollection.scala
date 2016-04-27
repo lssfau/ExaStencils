@@ -348,14 +348,10 @@ case class ExpKernel(var identifier : String,
   import Kernel._
 
   val CudaMaxDimensionality = 3
+  val executionConfigurationDimensionality = math.min(CudaMaxDimensionality, loopVariables.size)
   var evaluatedAccesses = false
-  var evaluatedIndices = false
   var fieldAccesses = HashMap[String, LinearizedFieldAccess]()
   var ivAccesses = HashMap[String, iv.InternalVariable]()
-  val executionConfigurationDimensionality = math.min(CudaMaxDimensionality, loopVariables.size)
-  var minIndices = Array.fill[Expression](executionConfigurationDimensionality) { 0 }
-  var maxIndices = Array.fill[Expression](executionConfigurationDimensionality) { 0 }
-  var offsets = Array.fill[Expression](executionConfigurationDimensionality) { 0 }
 
   def getKernelFctName : String = identifier
   def getWrapperFctName : String = identifier + wrapperPostfix
@@ -386,22 +382,7 @@ case class ExpKernel(var identifier : String,
     }
   }
 
-  def evalIndices = {
-    if (!evaluatedIndices) {
-      (0 until executionConfigurationDimensionality).foreach(dim => {
-        minIndices(dim) = lowerBounds(dim)
-        maxIndices(dim) = upperBounds(dim)
-        offsets(dim) = lowerBounds(dim)
-      })
-
-      evaluatedIndices = true
-    }
-  }
-
-  def compileKernelBody : ListBuffer[Statement] = {
-    evalAccesses // ensure that field accesses have been mapped
-    evalIndices // calculate the minimal and maximal indices used in the loops
-
+  def completeKernelBody = {
     var statements = ListBuffer[Statement]()
 
     // add CUDA global Thread ID (x,y,z) calculation for a dim3 execution configuration
@@ -414,16 +395,33 @@ case class ExpKernel(var identifier : String,
         Some(MemberAccess(VariableAccess("blockIdx", Some(SpecialDatatype("dim3"))), it) *
           MemberAccess(VariableAccess("blockDim", Some(SpecialDatatype("dim3"))), it) +
           MemberAccess(VariableAccess("threadIdx", Some(SpecialDatatype("dim3"))), it) +
-          offsets(dim)))
+          lowerBounds(dim)))
     })
 
+    // add dimension index start and end point
     // add index bounds conditions
+    val bounds = (0 until executionConfigurationDimensionality).map(dim => {
+      (s"begin_$dim", s"end_$dim")
+    })
+
+    (0 until executionConfigurationDimensionality).foreach(dim => {
+      statements += VariableDeclarationStatement(IntegerDatatype, bounds(dim)_1, Some(lowerBounds(dim)))
+      statements += VariableDeclarationStatement(IntegerDatatype, bounds(dim)_2, Some(upperBounds(dim)))
+    })
+
     statements ++= (0 until executionConfigurationDimensionality).map(dim => {
       def it = Duplicate(LoopOverDimensions.defItForDim(dim))
       new ConditionStatement(
-        OrOrExpression(LowerExpression(it, s"begin_$dim"), GreaterEqualExpression(it, s"end_$dim")),
+        OrOrExpression(LowerExpression(it, bounds(dim)_1), GreaterEqualExpression(it, bounds(dim)_2)),
         ReturnStatement())
     })
+
+    statements ++= loopBody
+    loopBody = statements
+  }
+
+  def compileKernelBody : ListBuffer[Statement] = {
+    evalAccesses // ensure that field accesses have been mapped
 
     // add actual body after replacing field and iv accesses
     ReplacingLocalLinearizedFieldAccess.fieldAccesses = fieldAccesses
@@ -431,24 +429,17 @@ case class ExpKernel(var identifier : String,
     ReplacingLocalIVs.ivAccesses = ivAccesses
     ReplacingLocalIVs.applyStandalone(new Scope(loopBody))
     ReplacingLocalIVArrays.applyStandalone(new Scope(loopBody))
-    statements ++= loopBody
     ReplacingArraySubscripts.loopVariables = loopVariables
-    ReplacingArraySubscripts.applyStandalone(new Scope(statements))
+    ReplacingArraySubscripts.applyStandalone(new Scope(loopBody))
 
-    statements
+    loopBody
   }
 
   def compileWrapperFunction : FunctionStatement = {
     evalAccesses // ensure that field accesses have been mapped
-    evalIndices // calculate the minimal and maximal indices used in the loops
 
     // compile arguments for device function call
     var callArgs = ListBuffer[Expression]()
-    for (dim <- 0 until executionConfigurationDimensionality) {
-      // add dimension index start and end point
-      callArgs += minIndices(dim)
-      callArgs += maxIndices(dim)
-    }
 
     for (fieldAccess <- fieldAccesses) {
       val fieldSelection = fieldAccess._2.fieldSelection
@@ -492,15 +483,11 @@ case class ExpKernel(var identifier : String,
   }
 
   def compileKernelFunction : FunctionStatement = {
+    completeKernelBody
     evalAccesses // ensure that field accesses have been mapped
 
     // compile parameters for device function
     var fctParams = ListBuffer[VariableAccess]()
-
-    for (dim <- 0 until executionConfigurationDimensionality) {
-      fctParams += VariableAccess(s"begin_$dim", Some(IntegerDatatype))
-      fctParams += VariableAccess(s"end_$dim", Some(IntegerDatatype))
-    }
 
     for (fieldAccess <- fieldAccesses) {
       val fieldSelection = fieldAccess._2.fieldSelection
