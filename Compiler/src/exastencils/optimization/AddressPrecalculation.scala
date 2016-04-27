@@ -131,23 +131,6 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     return (SimplifyExpression.recreateExprFromIntSum(inMap), outMap)
   }
 
-  private var count : Int = 0
-
-  private def checkId(
-    curDecls : HashMap[String, (Expression, HashMap[Expression, Long])],
-    name : String,
-    outMap : HashMap[Expression, Long]) : String = {
-
-    val d : Option[(Expression, HashMap[Expression, Long])] = curDecls.get(name)
-    if (d.isEmpty || d.get._2 == outMap)
-      return name
-
-    val newName = "p_" + count
-    count += 1
-
-    return null
-  }
-
   private final val SKIP_SUBTREE_ANNOT = "APCSST"
   private var skipSubtree : Boolean = false
 
@@ -238,18 +221,18 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         //   (the name of this access itself is not critical, see AssignmentStatement match in enter(..))
         for (acc @ ArrayAccess(base, index, al) <- toAnalyze) if (!containsLoopVar(base, resolveName(base))) {
           val (in : Expression, outMap : HashMap[Expression, Long]) = splitIndex(index)
-          if (!outMap.isEmpty) {
-            var name : String = generateName(base)
-            val bases : ArrayBases = decls.getOrElseUpdate(name, new ArrayBases(name))
-            name = bases.getName(outMap, base, al)
-            val dType : Option[Datatype] = base match {
-              case fd : FieldData => Some(ConstPointerDatatype(fd.field.resolveDeclType))
-              case _              => None
-            }
-            val newAcc = new ArrayAccess(new VariableAccess(name, dType), in, al)
-            newAcc.annotate(ORIG_IND_ANNOT, Duplicate(index)) // save old (complete) index expression for vectorization
-            acc.annotate(REPL_ANNOT, newAcc)
+          // if (!outMap.isEmpty) {
+          var name : String = generateName(base)
+          val bases : ArrayBases = decls.getOrElseUpdate(name, new ArrayBases(name))
+          name = bases.getName(outMap, base, al)
+          val dType : Option[Datatype] = base match {
+            case fd : FieldData => Some(ConstPointerDatatype(fd.field.resolveDeclType))
+            case _              => None
           }
+          val newAcc = new ArrayAccess(new VariableAccess(name, dType), in, al)
+          newAcc.annotate(ORIG_IND_ANNOT, Duplicate(index)) // save old (complete) index expression for vectorization
+          acc.annotate(REPL_ANNOT, newAcc)
+          // }
         }
         decls = null
         inVars = null

@@ -55,7 +55,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     if (scop.remove)
       return NullStatement
     reduction = scop.root.reduction
-    condition = scop.root.condition.getOrElse(null)
+    condition = scop.root.condition.orNull
 
     // find all sequential loops
     parallelize_omp = scop.parallelize
@@ -131,7 +131,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     var islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.getContext())
     islBuild = islBuild.setOptions(isl.UnionMap.readFromStr(Isl.ctx, options.toString()))
     islBuild = islBuild.setIterators(itersId)
-    var scattering : isl.UnionMap = Isl.simplify(scop.schedule.intersectDomain(scop.domain))
+    val scattering : isl.UnionMap = Isl.simplify(scop.schedule.intersectDomain(scop.domain))
     val islNode : isl.AstNode = islBuild.astFromSchedule(scattering)
     var nju : ListBuffer[Statement] =
       try {
@@ -146,7 +146,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     // mark innermost loops
     var i : Int = scop.njuLoopVars.size - 1
     while (i >= 0) {
-      var innermostLoops = loopStmts.get(scop.njuLoopVars(i))
+      val innermostLoops = loopStmts.get(scop.njuLoopVars(i))
       if (innermostLoops.isDefined) {
         for (l <- innermostLoops.get)
           l.isInnermost = true
