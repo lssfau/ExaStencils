@@ -21,7 +21,7 @@ object AddOMPPragmas extends DefaultStrategy("Adding OMP pragmas") {
     }
 
     this.execute(new Transformation("Adding OMP parallel for pragmas", {
-      case target : ForLoopStatement with OMP_PotentiallyParallel if !target.hasAnnotation(AnnotateCudaRelevantCode
+      case target : ForLoopStatement with OMP_PotentiallyParallel if !target.hasAnnotation(PrepareCudaRelevantCode
         .CudaLoopAnnotation) =>
         if (target.reduction.isDefined)
           if (!(Platform.omp_version < 3.1 && ("min" == target.reduction.get.op || "max" == target.reduction.get.op)))
