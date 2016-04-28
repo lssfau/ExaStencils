@@ -5,7 +5,6 @@ import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.TreeSet
 
-import exastencils.datastructures.Node
 import exastencils.datastructures.ir._
 import isl.Conversions._
 
@@ -34,12 +33,35 @@ class Scop(val root : LoopOverDimensions, var localContext : isl.Set, var global
     var flow : isl.UnionMap = null
     var antiOut : isl.UnionMap = null
     private var inputCache : isl.UnionMap = null
-    val updateInput = new ArrayBuffer[isl.UnionMap => isl.UnionMap]()
+    private var lazySetInput : () => isl.UnionMap = null
+    private val lazyUpdateInputs = new ArrayBuffer[isl.UnionMap => isl.UnionMap]()
+
+    def input_=(nju : isl.UnionMap) : Unit = {
+      lazySetInput = null
+      lazyUpdateInputs.clear()
+      inputCache = nju
+    }
+
+    def setInputLazy(f : () => isl.UnionMap) : Unit = {
+      lazySetInput = f
+      lazyUpdateInputs.clear()
+    }
+
+    /** Maps a given Function1 to the input dependences, iff it was not null. */
+    def mapInputLazy(f : isl.UnionMap => isl.UnionMap) : Unit = {
+      lazyUpdateInputs += f
+    }
+
     def input : isl.UnionMap = {
-      for (up <- updateInput)
-        inputCache = up(inputCache)
-      updateInput.clear()
-      inputCache
+      if (lazySetInput != null) {
+        inputCache = lazySetInput()
+        lazySetInput = null
+      }
+      val it = lazyUpdateInputs.iterator
+      while (it.hasNext && inputCache != null)
+        inputCache = it.next()(inputCache)
+      lazyUpdateInputs.clear()
+      return inputCache
     }
 
     def validity() : isl.UnionMap = {
