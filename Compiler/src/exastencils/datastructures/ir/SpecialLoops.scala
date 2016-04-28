@@ -24,7 +24,7 @@ case class RegionSpecification(var region : String, var dir : Array[Int], var on
 case class ContractionSpecification(var posExt : Array[Int], var negExt : Array[Int])
 
 case class ContractingLoop(var number : Int, var iterator : Option[Expression], var statements : ListBuffer[Statement],
-    var spec : ContractionSpecification) extends Statement {
+    var spec : ContractionSpecification) extends Statement { // FIXME: iterator is not used?!
   // TODO: validate spec
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ContractingLoop\n"
 
@@ -435,27 +435,27 @@ object LoopOverDimensions {
     new VariableAccess(dimToString(dim), Some(IntegerDatatype))
   }
 
-  object ReplaceOffsetIndicesWithMin extends QuietDefaultStrategy("Replace OffsetIndex nodes with minimum values") {
-    this += new Transformation("SearchAndReplace", {
-      case OffsetIndex(xStartOffMin, _, xStart, _) => xStart + xStartOffMin
-    })
-  }
-  object ReplaceOffsetIndicesWithMax extends QuietDefaultStrategy("Replace OffsetIndex nodes with maximum values") {
-    this += new Transformation("SearchAndReplace", {
-      case OffsetIndex(_, xEndOffMax, xEnd, _) => xEnd + xEndOffMax
-    })
-  }
+  // object ReplaceOffsetIndicesWithMin extends QuietDefaultStrategy("Replace OffsetIndex nodes with minimum values") {
+  //   this += new Transformation("SearchAndReplace", {
+  //     case OffsetIndex(xStartOffMin, _, xStart, _) => xStart + xStartOffMin
+  //   })
+  // }
+  // object ReplaceOffsetIndicesWithMax extends QuietDefaultStrategy("Replace OffsetIndex nodes with maximum values") {
+  //   this += new Transformation("SearchAndReplace", {
+  //     case OffsetIndex(_, xEndOffMax, xEnd, _) => xEnd + xEndOffMax
+  //   })
+  // }
 
-  def evalMinIndex(index : Expression) : Long = {
-    val wrappedIndex = ExpressionStatement(Duplicate(index))
-    ReplaceOffsetIndicesWithMin.applyStandalone(wrappedIndex)
-    return SimplifyExpression.evalIntegral(wrappedIndex.expression)
-  }
+  // def evalMinIndex(index : Expression) : Long = {
+  //   val wrappedIndex = ExpressionStatement(Duplicate(index))
+  //   ReplaceOffsetIndicesWithMin.applyStandalone(wrappedIndex)
+  //   return SimplifyExpression.evalIntegral(wrappedIndex.expression)
+  // }
 
   def evalMinIndex(startIndex : MultiIndex, numDimensions : Int, printWarnings : Boolean = false) : Array[Long] = {
     (0 until numDimensions).map(dim =>
       try {
-        evalMinIndex(startIndex(dim))
+        SimplifyExpression.evalIntegralExtrema(startIndex(dim))._1
       } catch {
         case _ : EvaluationException =>
           if (printWarnings) Logger.warn(s"Start index for dimension $dim (${startIndex(dim)}) could not be evaluated")
@@ -463,16 +463,16 @@ object LoopOverDimensions {
       }).toArray
   }
 
-  def evalMaxIndex(index : Expression) : Long = {
-    val wrappedIndex = ExpressionStatement(Duplicate(index))
-    ReplaceOffsetIndicesWithMax.applyStandalone(wrappedIndex)
-    return SimplifyExpression.evalIntegral(wrappedIndex.expression)
-  }
+  // def evalMaxIndex(index : Expression) : Long = {
+  //   val wrappedIndex = ExpressionStatement(Duplicate(index))
+  //   ReplaceOffsetIndicesWithMax.applyStandalone(wrappedIndex)
+  //   return SimplifyExpression.evalIntegral(wrappedIndex.expression)
+  // }
 
   def evalMaxIndex(endIndex : MultiIndex, numDimensions : Int, printWarnings : Boolean = false) : Array[Long] = {
     (0 until numDimensions).map(dim =>
       try {
-        evalMaxIndex(endIndex(dim))
+        SimplifyExpression.evalIntegralExtrema(endIndex(dim))._2
       } catch {
         case _ : EvaluationException =>
           if (printWarnings) Logger.warn(s"End index for dimension $dim (${endIndex(dim)}) could not be evaluated")

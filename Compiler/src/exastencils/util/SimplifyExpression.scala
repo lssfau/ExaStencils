@@ -31,6 +31,71 @@ object SimplifyExpression {
   }
 
   /**
+    * Completely evaluates an integral expression and computes a lower bound and an upper bound
+    *   for its value depending on the minOffset and maxOffset in potential OffsetIndex nodes.
+    * Only IntegerConstants are allowed! (Except for the offset field in OffsetIndex, which is not evaluated at all.)
+    * Other scalar constants or variable accesses lead to an EvaluationException.
+    */
+  def evalIntegralExtrema(expr : Expression) : (Long, Long) = expr match {
+    case IntegerConstant(v) =>
+      (v, v)
+
+    case AdditionExpression(sums : ListBuffer[Expression]) =>
+      sums.view.map(s => evalIntegralExtrema(s)).reduce { (x, y) =>
+        (x._1 + y._1, x._2 + y._2)
+      }
+
+    case SubtractionExpression(l : Expression, r : Expression) =>
+      val x = evalIntegralExtrema(l)
+      val y = evalIntegralExtrema(r)
+      (x._1 - y._2, x._2 - y._1)
+
+    case MultiplicationExpression(facs : ListBuffer[Expression]) =>
+      facs.view.map(s => evalIntegralExtrema(s)).reduce { (x, y) =>
+        val a = x._1 * y._1
+        val b = x._1 * y._2
+        val c = x._2 * y._1
+        val d = x._2 * y._2
+        (a min b min c min d, a max b max c max d)
+      }
+
+    case DivisionExpression(l : Expression, r : Expression) =>
+      val x = evalIntegralExtrema(l)
+      val y = evalIntegralExtrema(r)
+      val a = x._1 / y._1
+      val b = x._1 / y._2
+      val c = x._2 / y._1
+      val d = x._2 / y._2
+      (a min b min c min d, a max b max c max d)
+
+    case ModuloExpression(l : Expression, r : Expression) =>
+      val x = evalIntegralExtrema(l)
+      val y = evalIntegralExtrema(r)
+      val a = x._1 % y._1
+      val b = x._1 % y._2
+      val c = x._2 % y._1
+      val d = x._2 % y._2
+      (a min b min c min d, a max b max c max d)
+
+    case MinimumExpression(l : ListBuffer[Expression]) =>
+      l.view.map(e => evalIntegralExtrema(e)).reduce { (x, y) =>
+        (x._1 min y._1, x._2 min y._2)
+      }
+
+    case MaximumExpression(l : ListBuffer[Expression]) =>
+      l.view.map(e => evalIntegralExtrema(e)).reduce { (x, y) =>
+        (x._1 max y._1, x._2 max y._2)
+      }
+
+    case OffsetIndex(minOffset, maxOffset, index, _) =>
+      val x = evalIntegralExtrema(index)
+      (x._1 + minOffset, x._2 + maxOffset)
+
+    case _ =>
+      throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
+  }
+
+  /**
     * Completely evaluates an floating expression.
     * Only FloatConstants are allowed!
     * Other scalar constants or variable accesses lead to an EvaluationException.

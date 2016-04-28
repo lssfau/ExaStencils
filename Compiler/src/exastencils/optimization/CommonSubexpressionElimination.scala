@@ -232,13 +232,13 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
 
       val loopBeginOpt =
         try {
-          IntegerConstant(LoopOverDimensions.evalMinIndex(loopBegin))
+          IntegerConstant(SimplifyExpression.evalIntegralExtrema(loopBegin)._1)
         } catch {
           case ex : EvaluationException => Duplicate(loopBegin)
         }
       val loopEndOpt =
         try {
-          IntegerConstant(LoopOverDimensions.evalMaxIndex(loopEnd))
+          IntegerConstant(SimplifyExpression.evalIntegralExtrema(loopEnd)._2)
         } catch {
           case ex : EvaluationException => loopEnd // must not be duplicated, since it is not used elsewhere
         }
