@@ -718,7 +718,7 @@ class Extractor extends Collector {
   private def enterCondition(cond : ConditionStatement) : Unit = {
     if (cond.falseBody.isEmpty) {
       val sb = new StringBuilder(" and ")
-      extractConstraints(cond.condition, sb, true)
+      extractConstraints(cond.condition, sb, false)
       conditions.push(sb.toString())
     } else
       throw new ExtractionException("cannot deal with a non-empty falseBody in a ConditionStatement: " + cond.prettyprint())
