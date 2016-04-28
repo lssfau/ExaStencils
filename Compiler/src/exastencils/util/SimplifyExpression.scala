@@ -39,7 +39,7 @@ object SimplifyExpression {
     case FloatConstant(v)                                        => v
     case AdditionExpression(sums : ListBuffer[Expression])       => sums.view.map(s => evalFloating(s)).reduce(_ + _)
     case SubtractionExpression(l : Expression, r : Expression)   => evalFloating(l) - evalFloating(r)
-    case MultiplicationExpression(facs : ListBuffer[Expression]) => facs.view.map(s => evalIntegral(s)).reduce(_ * _)
+    case MultiplicationExpression(facs : ListBuffer[Expression]) => facs.view.map(s => evalFloating(s)).reduce(_ * _)
     case DivisionExpression(l : Expression, r : Expression)      => evalFloating(l) / evalFloating(r)
     case MinimumExpression(l : ListBuffer[Expression])           => l.view.map(e => evalFloating(e)).reduce(_ min _)
     case MaximumExpression(l : ListBuffer[Expression])           => l.view.map(e => evalFloating(e)).reduce(_ max _)
