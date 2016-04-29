@@ -16,6 +16,7 @@ import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge.dimToString
+import exastencils.knowledge.Knowledge
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PrettyPrintable
 import exastencils.strategies.SimplifyStrategy
@@ -117,7 +118,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
   }
 
   private def loopCarriedCSE(curFunc : String, body : ListBuffer[Statement], loopIt : Array[(String, Expression, Expression, Long)]) : Seq[ListBuffer[Statement]] = {
-    if (loopIt == null || loopIt.forall(_ == null))
+    if (!Knowledge.opt_loopCarriedCSE || loopIt == null || loopIt.forall(_ == null))
       return Nil
 
     // first, number all nodes for overlap-test later
@@ -267,20 +268,20 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
   }
 
   private def conventionalCSE(curFunc : String, body : ListBuffer[Statement]) : Unit = {
-    var repeat : Boolean = false
-    do {
+    var repeat : Boolean = Knowledge.opt_conventionalCSE
+    while (repeat) {
       val coll = new CollectBaseCSes(curFunc)
       this.register(coll)
       this.execute(new Transformation("collect base common subexpressions", PartialFunction.empty), Some(Scope(body)))
       this.unregister(coll)
       val commonSubs : HashMap[Node, Subexpression] = coll.commonSubs
       commonSubs.retain { (_, cs) => cs != null && cs.getPositions().size > 1 }
+      repeat = false
       if (!commonSubs.isEmpty) {
         findCommonSubs(curFunc, commonSubs)
         repeat = updateAST(body, commonSubs)
-      } else
-        repeat = false
-    } while (repeat)
+      }
+    }
   }
 
   private def findCommonSubs(curFunc : String, commonSubs : HashMap[Node, Subexpression]) : Unit = {
