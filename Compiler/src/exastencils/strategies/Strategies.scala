@@ -168,7 +168,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case Scope(ListBuffer(Scope(body)))                                        => Scope(body)
     case ConditionStatement(cond, ListBuffer(Scope(trueBody)), falseBody)      => ConditionStatement(cond, trueBody, falseBody)
     case ConditionStatement(cond, trueBody, ListBuffer(Scope(falseBody)))      => ConditionStatement(cond, trueBody, falseBody)
-    case ForLoopStatement(beg, end, inc, ListBuffer(Scope(body)), red)         => ForLoopStatement(beg, end, inc, body, red)
+    case l @ ForLoopStatement(beg, end, inc, ListBuffer(Scope(body)), red)     => l.body = body; l // preserve ForLoopStatement instance to ensure all traits are still present
 
     case EqEqExpression(IntegerConstant(left), IntegerConstant(right))         => BooleanConstant(left == right)
     case NeqExpression(IntegerConstant(left), IntegerConstant(right))          => BooleanConstant(left != right)
