@@ -1,29 +1,29 @@
-dimensionality				= 2
+dimensionality				= 3
 
-minLevel					= 2
-maxLevel					= 7
+minLevel					= 0
+maxLevel					= 5
 comm_strategyFragment		= 6
 
 domain_onlyRectangular		= true
-domain_numBlocks			= 4
-domain_numFragmentsPerBlock	= 4
+domain_numBlocks			= 8
+domain_numFragmentsPerBlock	= 8
 domain_fragmentLength_x		= 2
 domain_fragmentLength_y		= 2
-domain_fragmentLength_z		= 1
+domain_fragmentLength_z		= 2
 
 domain_rect_generate		= true
 domain_rect_numBlocks_x		= 2
 domain_rect_numBlocks_y		= 2
-domain_rect_numBlocks_z		= 1
+domain_rect_numBlocks_z		= 2
 domain_rect_numFragsPerBlock_x	= 2
 domain_rect_numFragsPerBlock_y	= 2
-domain_rect_numFragsPerBlock_z	= 1
+domain_rect_numFragsPerBlock_z	= 2
 
 omp_enabled					= true
-omp_numThreads				= 4
+omp_numThreads				= 8
 
 mpi_enabled					= true
-mpi_numThreads				= 4
+mpi_numThreads				= 8
 
 omp_parallelizeLoopOverFragments	= true
 omp_parallelizeLoopOverDimensions	= false
@@ -49,7 +49,8 @@ poly_optLevel_fine			= 3
 opt_useAddressPrecalc		= true
 opt_vectorize				= false
 opt_unroll					= 2
-experimental_useCommonSubexpElimination = true
+opt_conventionalCSE         = true
+opt_loopCarriedCSE          = true
 
 l3tmp_printError			= true
 l3tmp_useMaxNormForError	= true
