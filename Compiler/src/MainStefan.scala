@@ -245,7 +245,7 @@ object MainStefan {
     ResolveConstInternalVariables.apply()
     SimplifyStrategy.doUntilDone()
 
-    if (Knowledge.experimental_useCommonSubexpElimination) {
+    if (Knowledge.opt_conventionalCSE || Knowledge.opt_loopCarriedCSE) {
     	new DuplicateNodes().apply() // FIXME: only debug
       Inlining.apply(true)
       CommonSubexpressionElimination.apply()

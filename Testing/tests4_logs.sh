@@ -66,7 +66,7 @@ if [[ -n "${TO_ZIP}" ]]; then
   srun 7z a "${ERROR_ARCHIVE}" ${TO_ZIP}
   echo ""
   echo ""
-  echo "Errors in automatic tests!  See log or attachment for details: ${OUT_FILE_URL}" | mail -s "TestBot Error" -A "${ERROR_ARCHIVE}" ${FAILURE_MAIL}
+  echo "Errors in automatic tests!  See log (or attachment) for details: ${OUT_FILE_URL}" | mail -s "TestBot Error" -A "${ERROR_ARCHIVE}" ${FAILURE_MAIL}
 fi
 
 echo "Tests finished at $(date -R)."

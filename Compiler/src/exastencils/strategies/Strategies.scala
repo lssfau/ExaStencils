@@ -1,7 +1,6 @@
 package exastencils.strategies
 
 import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.Buffer
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
@@ -10,7 +9,6 @@ import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.prettyprinting._
@@ -58,17 +56,19 @@ object ExpandOnePassStrategy extends DefaultStrategy("Expanding") { // TODO: thi
         expandedSth = false
         for (n <- 0 until nodes.length) {
           if (!expandedSth) {
-            if (nodes(n).isInstanceOf[Expandable]) {
-              var output = nodes(n).asInstanceOf[Expandable].expand
-              output.inner match {
-                case single : Node => nodes.update(n, single)
-                case list : NodeList => {
-                  val split = nodes.splitAt(n)
-                  split._2.remove(0)
-                  nodes = split._1 ++ list.nodes ++ split._2
+            nodes(n) match {
+              case expandable : Expandable =>
+                val output = expandable.expand
+                output.inner match {
+                  case single : Node => nodes.update(n, single)
+                  case list : NodeList => {
+                    val split = nodes.splitAt(n)
+                    split._2.remove(0)
+                    nodes = split._1 ++ list.nodes ++ split._2
+                  }
                 }
-              }
-              expandedSth = true
+                expandedSth = true
+              case _ =>
             }
           }
         }
@@ -168,7 +168,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case Scope(ListBuffer(Scope(body)))                                        => Scope(body)
     case ConditionStatement(cond, ListBuffer(Scope(trueBody)), falseBody)      => ConditionStatement(cond, trueBody, falseBody)
     case ConditionStatement(cond, trueBody, ListBuffer(Scope(falseBody)))      => ConditionStatement(cond, trueBody, falseBody)
-    case ForLoopStatement(beg, end, inc, ListBuffer(Scope(body)), red)         => ForLoopStatement(beg, end, inc, body, red)
+    case l @ ForLoopStatement(beg, end, inc, ListBuffer(Scope(body)), red)     => l.body = body; l // preserve ForLoopStatement instance to ensure all traits are still present
 
     case EqEqExpression(IntegerConstant(left), IntegerConstant(right))         => BooleanConstant(left == right)
     case NeqExpression(IntegerConstant(left), IntegerConstant(right))          => BooleanConstant(left != right)
@@ -303,15 +303,15 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       do {
         val expr = workQ.dequeue()
         expr match {
-          case IntegerConstant(i) => intCst *= i
-          case FloatConstant(f)   => floatCst *= f
+          case IntegerConstant(iv) => intCst *= iv
+          case FloatConstant(fv)   => floatCst *= fv
           case NegativeExpression(e) =>
             workQ.enqueue(e)
             intCst = -intCst
-          case MultiplicationExpression(facs) =>
-            workQ.enqueue(facs : _*)
-          case d @ DivisionExpression(FloatConstant(f), _) =>
-            floatCst *= f
+          case MultiplicationExpression(iFacs) =>
+            workQ.enqueue(iFacs : _*)
+          case d @ DivisionExpression(FloatConstant(fv), _) =>
+            floatCst *= fv
             d.left = FloatConstant(1.0)
             if (div == null)
               div = d
@@ -400,14 +400,14 @@ object CleanUnusedStuff extends DefaultStrategy("Cleaning up unused stuff") {
   }
 
   this += new Transformation("Looking for deletable objects", {
-    case FunctionStatement(_, name, _, ListBuffer(), _, _, _) => {
-      emptyFunctions += name
+    case FunctionStatement(_, fName, _, ListBuffer(), _, _, _) => {
+      emptyFunctions += fName
       List()
     }
   })
 
   this += new Transformation("Removing obsolete references", {
-    case FunctionCallExpression(name, _) if emptyFunctions.contains(name) => NullExpression
+    case FunctionCallExpression(fName, _) if emptyFunctions.contains(fName) => NullExpression
   })
 
   //  this += new Transformation("Removing null-statements", {
@@ -429,8 +429,8 @@ object UnifyInnerTypes extends DefaultStrategy("Unify inner types of (constant) 
 
     vectors.foreach(vector => {
       if (vector.isConstant) {
-        var reals = vector.expressions.filter(_.isInstanceOf[FloatConstant]).length
-        var ints = vector.expressions.filter(_.isInstanceOf[IntegerConstant]).length
+        val reals = vector.expressions.count(_.isInstanceOf[FloatConstant])
+        val ints = vector.expressions.count(_.isInstanceOf[IntegerConstant])
         if (ints > 0 && reals > 0) {
           vector.expressions = vector.expressions.map(e => if (e.isInstanceOf[FloatConstant]) e; else FloatConstant(e.asInstanceOf[IntegerConstant].v))
         }
@@ -439,8 +439,8 @@ object UnifyInnerTypes extends DefaultStrategy("Unify inner types of (constant) 
 
     matrices.foreach(matrix => {
       if (matrix.isConstant) {
-        var reals = matrix.expressions.flatten[Expression].filter(_.isInstanceOf[FloatConstant]).length
-        var ints = matrix.expressions.flatten[Expression].filter(_.isInstanceOf[IntegerConstant]).length
+        val reals = matrix.expressions.flatten[Expression].count(_.isInstanceOf[FloatConstant])
+        val ints = matrix.expressions.flatten[Expression].count(_.isInstanceOf[IntegerConstant])
         if (ints > 0 && reals > 0) {
           matrix.expressions = matrix.expressions.map(_.map(e => if (e.isInstanceOf[FloatConstant]) e; else FloatConstant(e.asInstanceOf[IntegerConstant].v)))
         }
